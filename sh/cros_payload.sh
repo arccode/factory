@@ -28,6 +28,7 @@
 : "${BZIP2:="bzip2"}"
 : "${CROS_PAYLOAD_FORMAT:=gz}"
 : "${JQ:=""}"
+: "${SUDO:=""}"
 
 # Debug settings
 : "${DEBUG:=}"
@@ -46,7 +47,7 @@ cleanup() {
   if [ -n "${TMP_OBJECTS}" ]; then
     while read object; do
       if [ -d "${object}" ]; then
-        umount -d "${object}" 2>/dev/null || true
+        ${SUDO} umount -d "${object}" 2>/dev/null || true
       fi
       rm -rf "${object}"
     done <"${TMP_OBJECTS}"
@@ -349,11 +350,11 @@ add_image_part() {
     # Read version from /etc/lsb-release#CHROMEOS_RELEASE_DESCRIPTION
     local rootfs_dir="$(mktemp -d)"
     register_tmp_object "${rootfs_dir}"
-    sudo mount "${file}" "${rootfs_dir}" -t ext2 -o \
+    ${SUDO} mount "${file}" "${rootfs_dir}" -t ext2 -o \
       ro,offset=$((start * 512)),sizelimit=$((sectors * 512))
     version="$(sed -n 's/^CHROMEOS_RELEASE_DESCRIPTION=//p' \
       "${rootfs_dir}/etc/lsb-release")"
-    sudo umount "${rootfs_dir}"
+    ${SUDO} umount "${rootfs_dir}"
   fi
 
   commit_payload "${component}" "part${nr}" "${md5sum%% *}" \
@@ -566,7 +567,7 @@ install_file() {
     fi
     mount_point="$(mktemp -d)"
     register_tmp_object "${mount_point}"
-    mount "${dev}" "${mount_point}"
+    ${SUDO} mount "${dev}" "${mount_point}"
 
     local out_dir="${mount_point}/cros_payloads"
     mkdir -p "${out_dir}"
@@ -598,7 +599,7 @@ install_file() {
   fi
 
   if [ -n "${mount_point}" ]; then
-    umount "${mount_point}"
+    ${SUDO} umount "${mount_point}"
   fi
 }
 
@@ -711,6 +712,10 @@ main() {
   fi
   set -e
   trap "die Execution failed." EXIT
+
+  if [ "$(id -u)" != 0 ]; then
+    SUDO=sudo
+  fi
 
   if has_tool pigz; then
     # -n in pigz controls only file name, not modtime.
