@@ -1,7 +1,5 @@
 #!/usr/bin/python -u
 #
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -12,21 +10,20 @@
 
 from __future__ import print_function
 
-import factory_common  # pylint: disable=W0611
-
 import cPickle as pickle
 import logging
 import math
-import mox
 import os
 import subprocess
 import threading
 import time
 import unittest
 
+import mox
 from mox import IgnoreArg
 from ws4py.client import WebSocketBaseClient
 
+import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import goofy
 from cros.factory.goofy.goofy import Goofy
 from cros.factory.goofy.prespawner import PytestPrespawner
@@ -255,7 +252,7 @@ class GoofyUITest(GoofyTest):
   def setUpWebSocketMock(self):
     class MyClient(WebSocketBaseClient):
       """The web socket client class."""
-      # pylint: disable=E0213
+      # pylint: disable=no-self-argument
       def handshake_ok(socket_self):
         pass
 
@@ -275,7 +272,7 @@ class GoofyUITest(GoofyTest):
       ws.connect()
       ws.run()
       self.ws_done.set()
-    # pylint: disable=W0108
+    # pylint: disable=unnecessary-lambda
     self.env.controller_ready_for_ui().WithSideEffects(
         lambda: threading.Thread(target=open_web_socket).start()
     ).AndReturn(None)
@@ -347,8 +344,7 @@ class WebSocketTest(GoofyUITest):
 
     # Each test will first reset their iteration count (status == UNTESTED), And
     # then have a transition to active, a transition to active + visible, and
-    # then to its final state.  But since the first test (a) starts before
-    # websocket is connected, our websocket won't receive the first event.
+    # then to its final state.
     for path, final_status in (('a', TestState.PASSED),
                                ('b', TestState.FAILED),
                                ('c', TestState.FAILED)):
@@ -357,10 +353,15 @@ class WebSocketTest(GoofyUITest):
           event.state['status']
           for event in events_by_type[Event.Type.STATE_CHANGE]
           if event.path == path]
-      if path == 'a':
+      if len(statuses) == 4:
+        self.assertEqual(expected, statuses)
+      elif path == 'a':
+        # Since there's a high probability that the first test (a) starts
+        # before websocket is connected, our websocket probably won't receive
+        # the first event.
         self.assertEqual(expected[1:], statuses)
       else:
-        self.assertEqual(expected, statuses)
+        raise AssertionError('Unexpected status %r' % statuses)
     self.mockAnything.VerifyAll()
 
 
