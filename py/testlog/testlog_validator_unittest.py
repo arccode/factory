@@ -14,12 +14,11 @@ import shutil
 import tempfile
 import unittest
 
-import factory_common  # pylint: disable=unused-import
-from cros.factory.test import testlog
-from cros.factory.test import testlog_goofy
-from cros.factory.test import testlog_utils
-from cros.factory.test import testlog_validator
-from cros.factory.utils import time_utils
+import testlog
+import testlog_utils
+import testlog_validator
+from utils import time_utils
+
 
 class TestlogValidatorTest(unittest.TestCase):
   class TestEvent(testlog.EventBase):
@@ -116,7 +115,7 @@ class TestlogValidatorTest(unittest.TestCase):
 class StationTestRunValidatorTest(unittest.TestCase):
   """Validators primarily serve for StationTestRun."""
   def setUp(self):
-    self.state_dir = testlog_goofy.LOG_ROOT
+    self.state_dir = tempfile.mkdtemp()
     self.tmp_dir = tempfile.mkdtemp()
     # Reset testlog if any
     # pylint: disable=protected-access

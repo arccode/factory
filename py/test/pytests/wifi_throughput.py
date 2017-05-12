@@ -83,8 +83,8 @@ from cros.factory.test.fixture import arduino
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import leds
 from cros.factory.test import test_ui
-from cros.factory.test import testlog
 from cros.factory.test.ui_templates import OneSection
+from cros.factory.testlog import testlog
 from cros.factory.utils import arg_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import net_utils

@@ -12,9 +12,8 @@ import pprint
 import re
 import shutil
 
-import factory_common  # pylint: disable=unused-import
-from cros.factory.test import testlog_utils
-from cros.factory.utils import time_utils
+import testlog_utils
+from utils import time_utils
 
 
 class Validator(object):

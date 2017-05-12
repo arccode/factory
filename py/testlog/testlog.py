@@ -48,17 +48,13 @@ import re
 import tempfile
 import threading
 
-
-# TODO(itspeter): Find a way to properly pack those as testlog should
-# be able to deploy without factory framework.
-import factory_common  # pylint: disable=unused-import
-from cros.factory.test import testlog_seq
-from cros.factory.test import testlog_utils
-from cros.factory.test import testlog_validator
-from cros.factory.utils import file_utils
-from cros.factory.utils import sys_utils
-from cros.factory.utils import time_utils
-from cros.factory.utils import type_utils
+import testlog_seq
+import testlog_utils
+import testlog_validator
+from utils import file_utils
+from utils import sys_utils
+from utils import time_utils
+from utils import type_utils
 
 
 TESTLOG_API_VERSION = '0.1'

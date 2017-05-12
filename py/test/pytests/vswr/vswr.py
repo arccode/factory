@@ -53,8 +53,8 @@ from cros.factory.test.rf import e5071c_scpi
 from cros.factory.test import shopfloor
 from cros.factory.test import state
 from cros.factory.test import test_ui
-from cros.factory.test import testlog
 from cros.factory.test.utils import connection_manager
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import net_utils
 

@@ -54,8 +54,8 @@ from cros.factory.test.rules import phase
 from cros.factory.test import shopfloor
 from cros.factory.test import state
 from cros.factory.test.test_lists import test_lists
-from cros.factory.test import testlog
 from cros.factory.test import testlog_goofy
+from cros.factory.testlog import testlog
 from cros.factory.tools.key_filter import KeyFilter
 from cros.factory.utils import config_utils
 from cros.factory.utils import debug_utils

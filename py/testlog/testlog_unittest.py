@@ -15,12 +15,11 @@ import subprocess
 import tempfile
 import unittest
 
-import factory_common  # pylint: disable=unused-import
-from cros.factory.test import testlog
-from cros.factory.test import testlog_goofy
-from cros.factory.test import testlog_utils
-from cros.factory.utils import file_utils
-from cros.factory.utils import time_utils
+import testlog
+import testlog_utils
+from utils import file_utils
+from utils import time_utils
+
 
 SAMPLE_DATETIME = datetime.datetime(1989, 8, 8, 8, 8, 8, 888888)
 SAMPLE_DATETIME_STRING = '1989-08-08T08:08:08.888Z'
@@ -101,20 +100,9 @@ class TestlogE2ETest(unittest.TestCase):
   def _reset():
     """Deletes state files and resets global variables."""
     # pylint: disable=protected-access
-    testlog_goofy._device_id = testlog_goofy._installation_id = None
     if testlog._global_testlog:
       testlog._global_testlog.Close()
-    state_dir = testlog_goofy.LOG_ROOT
-    for f in [testlog_goofy.DEVICE_ID_PATH,
-              testlog_goofy.INSTALLATION_ID_PATH,
-              testlog_goofy.INIT_COUNT_PATH,
-              testlog._SEQUENCE_PATH,
-              os.path.join(state_dir, testlog._DEFAULT_PRIMARY_JSON_FILE)]:
-
-      file_utils.TryUnlink(f)
-    for d in [os.path.join(state_dir, testlog._DEFAULT_SESSION_FOLDER),
-              os.path.join(state_dir, testlog._DEFAULT_ATTACHMENTS_FOLDER)]:
-      shutil.rmtree(d, ignore_errors=True)
+    file_utils.TryUnlink(testlog._SEQUENCE_PATH)
     if testlog.TESTLOG_ENV_VARIABLE_NAME in os.environ:
       del os.environ[testlog.TESTLOG_ENV_VARIABLE_NAME]
 
@@ -159,10 +147,18 @@ class TestlogE2ETest(unittest.TestCase):
     shutil.rmtree(tmp_dir)
 
   def testE2E(self):
+    def _GetDeviceID():
+      logging.warning('WARNING')
+      return 'ThisIsDeviceID'
+
+    def _GetInstallationID():
+      logging.info('INFO')
+      return 'ThisIsInstallationID'
+
     IN_TAG = '$IN$'
     OUT_TAG = '$OUT$'
     TestlogE2ETest._reset()
-    state_dir = testlog_goofy.LOG_ROOT
+    state_dir = tempfile.mkdtemp()
     # Assuming we are the harness.
     my_uuid = time_utils.TimedUUID()
     testlog.Testlog(log_root=state_dir, uuid=my_uuid)
@@ -175,8 +171,8 @@ class TestlogE2ETest(unittest.TestCase):
     session_uuid = time_utils.TimedUUID()
     session_test_run = testlog.StationTestRun()
     session_test_run.Populate({
-        'stationDeviceId': testlog_goofy.GetDeviceID(),
-        'stationInstallationId': testlog_goofy.GetInstallationID(),
+        'stationDeviceId': _GetDeviceID(),
+        'stationInstallationId': _GetInstallationID(),
         'testRunId': session_uuid,
         'testName': 'TestlogDemo',
         'status': testlog.StationTestRun.STATUS.STARTING,
@@ -209,9 +205,9 @@ class TestlogE2ETest(unittest.TestCase):
          'functionName': 'CaptureLogging', 'logLevel': 'INFO'},
         {'type': 'station.init', 'seq': 1, 'count': 10, 'success': True},
         {'type': 'station.message', 'seq': 2,
-         'functionName': 'GetDeviceID', 'logLevel': u'WARNING'},
+         'functionName': '_GetDeviceID', 'logLevel': u'WARNING'},
         {'type': 'station.message', 'seq': 3,
-         'functionName': 'GetInstallationID', 'logLevel': 'INFO'},
+         'functionName': '_GetInstallationID', 'logLevel': 'INFO'},
         {'type': 'station.message', 'seq': 4,
          'functionName': 'testE2E', 'logLevel': 'INFO', 'message': '$IN$'},
         # Now that we are entering the subprocess, we should expect to see

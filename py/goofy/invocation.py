@@ -30,9 +30,7 @@ from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test import state
 from cros.factory.test import test_ui
-from cros.factory.test import testlog
 from cros.factory.test import testlog_goofy
-from cros.factory.test import testlog_utils
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
@@ -40,6 +38,8 @@ from cros.factory.test.factory import TestState
 from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.test.test_lists.test_lists import BuildAllTestLists
 from cros.factory.test.utils.pytest_utils import LoadPytestModule
+from cros.factory.testlog import testlog
+from cros.factory.testlog import testlog_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import time_utils

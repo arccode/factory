@@ -17,9 +17,8 @@ import threading
 import time
 import unittest
 
-import factory_common  # pylint: disable=unused-import
-from cros.factory.test import testlog_seq
-from cros.factory.utils import file_utils
+import testlog_seq
+from utils import file_utils
 
 
 class BootSequenceTest(unittest.TestCase):
@@ -47,7 +46,7 @@ class BootSequenceTest(unittest.TestCase):
     self.assertEquals(next_seq, current_seq)
     # pylint: disable=protected-access
     self.assertEquals(
-        next_seq, 1 + first_seq + testlog_seq._SEQ_INCREMENT_ON_BOOT)
+        next_seq, 1 + first_seq + testlog_seq.SEQ_INCREMENT_ON_BOOT)
 
   def testAllCorrupt(self):
     """Tests seq recovery functionality.  Should use current time."""
@@ -79,7 +78,7 @@ class BootSequenceTest(unittest.TestCase):
     seq = testlog_seq.SeqGenerator(self.seq_path, self.json_path)
     next_seq = seq.Next()
     self.assertEquals(
-        next_seq, 1 + last_valid_seq + testlog_seq._SEQ_INCREMENT_ON_BOOT)
+        next_seq, 1 + last_valid_seq + testlog_seq.SEQ_INCREMENT_ON_BOOT)
 
   def testFailsWhenLocked(self):
     seq = testlog_seq.SeqGenerator(self.seq_path, self.json_path)

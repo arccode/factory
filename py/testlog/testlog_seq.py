@@ -9,8 +9,7 @@ import logging
 import os
 import time
 
-import factory_common  # pylint: disable=unused-import
-from cros.factory.utils import file_utils
+from utils import file_utils
 
 # Each boot, the sequence number increases by this amount, to try to
 # help ensure monotonicity.
@@ -27,8 +26,8 @@ from cros.factory.utils import file_utils
 # then have a similar power problem, and on the next reboot write and
 # sync event #1000055 again. But this is much more unlikely than the
 # above scenario.
-_SEQ_INCREMENT_ON_BOOT = 1000000
-_FILELOCK_WAITSECS = 0.5
+SEQ_INCREMENT_ON_BOOT = 1000000
+FILELOCK_WAITSECS = 0.5
 
 class SeqGenerator(object):
   """Maintains a monotonically increasing sequence in best effort.
@@ -49,7 +48,7 @@ class SeqGenerator(object):
         special testing purposes, this can be tweaked.
   """
   def __init__(self, path, log_file_path, _after_read=lambda: True,
-               _filelock_waitsecs=_FILELOCK_WAITSECS):
+               _filelock_waitsecs=FILELOCK_WAITSECS):
     self.path = path
     self.log_file_path = log_file_path
     self._after_read = _after_read
@@ -103,6 +102,7 @@ class SeqGenerator(object):
     try:
       max_seq = 0
       seq = None
+      last_line = ''
       for l in open(self.log_file_path).readlines():
         # Attempt to load the JSON to get the seq.
         try:
@@ -110,11 +110,12 @@ class SeqGenerator(object):
           max_seq = max(max_seq, seq)
         except (ValueError, KeyError):
           pass
+        last_line = l
       if not seq:
         # This could potentially happen if the JSON file was very small
         # and every single line was corrupted.
         logging.exception('JSON file %s is corrupted, last line is %r',
-                          self.log_file_path, l)
+                          self.log_file_path, last_line)
         return None
       return max_seq + 1
     except os.error:
@@ -124,7 +125,7 @@ class SeqGenerator(object):
       return None
 
   def _FindNextSequenceNumber(self):
-    """Recovers the sequence number and add _SEQ_INCREMENT_ON_BOOT."""
+    """Recovers the sequence number and add SEQ_INCREMENT_ON_BOOT."""
     recovery_seq = self._GetLastSeq()
 
     if recovery_seq is None:
@@ -139,7 +140,7 @@ class SeqGenerator(object):
       return recovery_seq
 
     else:
-      return recovery_seq + _SEQ_INCREMENT_ON_BOOT
+      return recovery_seq + SEQ_INCREMENT_ON_BOOT
 
   def _NextOrRaise(self):
     """Returns the next sequence number, raising an exception on failure."""
@@ -152,7 +153,7 @@ class SeqGenerator(object):
         f.seek(0)
         f.write(str(value + 1))
       # Don't bother flushing to disk. If a reboot occurs before flushing, the
-      # sequence number will be increased by _SEQ_INCREMENT_ON_BOOT,
+      # sequence number will be increased by SEQ_INCREMENT_ON_BOOT,
       # maintaining the monotonicity property.
     return value
 

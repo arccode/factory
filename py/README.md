@@ -10,6 +10,7 @@ Standalone Projects
  - `factory_flow/`: Automated testing of factory flow.
  - `lumberjack/`: A log processing tool.
  - `minijack/`: A console and dashboard for manufacturing status.
+ - `testlog/`: The log format.
  - `umpire/`: Unified server to integrate factory imaging and various services.
 
 Shared and misc folders

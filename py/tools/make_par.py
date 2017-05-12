@@ -189,10 +189,14 @@ def main(argv=None):
                          # Config file templates needed by the factory_flow
                          # tool.
                          '--include', 'factory_flow/templates/*',
-                         # We must include goofy explicitly, as it is
+                         # We must include instalog/utils explicitly, as it is
                          # a symlink that would otherwise be excluded
                          # by the * wildcard.
-                         '--include', 'goofy'])
+                         '--include', 'instalog/utils',
+                         # We must include testlog/utils explicitly, as it is
+                         # a symlink that would otherwise be excluded
+                         # by the * wildcard.
+                         '--include', 'testlog/utils'])
 
     rsync_args.extend([
         '--include', '*/',

@@ -18,7 +18,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
 from cros.factory.test.env import paths
 from cros.factory.test import factory
-from cros.factory.test import testlog
+from cros.factory.testlog import testlog
 
 
 class TemperaturesMonitor(object):
