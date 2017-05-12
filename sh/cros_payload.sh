@@ -17,12 +17,6 @@
 #  dd tee od chmod dirname readlink mktemp stat
 #  cp mv ln rm
 
-# TODO(hungte) List of todo:
-# - Quick check dependency before starting to run.
-# - Add partitions in parallel if pigz cannot be found.
-# - Support adding or removing single partition directly.
-# - Add part0 as GPT itself.
-
 # Environment settings for utilities to invoke.
 : "${GZIP:="gzip"}"
 : "${BZIP2:="bzip2"}"
@@ -147,7 +141,6 @@ get_partition_dev() {
   local base="$1"
   shift
 
-  # TODO(hungte) decide if we should also test -b ${base}.
   case "${base}" in
     *[0-9])
       # Adjust from /dev/mmcblk0 to /dev/mmcblk0p
@@ -166,27 +159,56 @@ get_partition_dev() {
 cmd_help() {
   echo "Usage: $0 command [args...]
 
-  '$(basename "$0")' is an utility for manipulating payload-type resources.
-  All the payloads will be stored as compressed file with MD5SUM in file name.
+  '$(basename "$0")' is an utility to manipulate imaging resources as payloads.
+  All payloads will be stored as compressed file with MD5SUM in file name.
   A JSON file manages the mapping to individual files.
 
   The selected compression is ${CROS_PAYLOAD_FORMAT}. To change that, override
   environment variable CROS_PAYLOAD_FORMAT to 'gz' or 'bz2'.
 
-  Commands:
-      add      JSON_PATH COMPONENT FILE
-      install  JSON_URL  DEST      COMPONENTS...
-      download JSON_URL  DEST      COMPONENTS...
-      list     JSON_URL
+  ARGUMENTS
 
-  COMPONENT: The type of file resource. Known values: ${COMPONENTS_ALL}
-  JSON_PATH: A path to local JSON config file.
-  JSON_URL:  An URL to remote or local JSON config file.
-  FILE:      A path to local file resource.
-  DEST:      Destination (a folder, file, or block device like /dev/sda).
+    COMPONENT: The type name of imaging resource. For disk image components,
+               a '.partN' can be added to specify partition N, for example
+               'test_image.part1'.
+               Known values: ${COMPONENTS_ALL}
+    JSON_PATH: A path to local JSON configuration file.
+    JSON_URL:  An URL to remote or local JSON configuration file.
+    DEST:      Destination (a folder, file, or block device like /dev/sda).
 
-  Command 'install' will fetch, decompress, and create install stubs if needed.
-  Command 'download' will simply fetch and keep file in compressed form.
+  COMMANDS
+
+  add JSON_PATH COMPONENT FILE
+
+      Creates payloads from FILE as COMPONENT to the JSON_PATH. Payloads wil
+      be stored in same folder as JSON_PATH.
+
+      Example: $0 add static/test.json test_image chromiumos_test_image.bin
+
+  install JSON_URL DEST COMPONENTs...
+
+      Fetch and decompress COMPONENT payloads to DEST from remote or local
+      storage associated by JSON_URL. Creates installation stubs if needed.
+      If DEST is a folder or file path, COMPONENT will be created as file.
+      If DEST is a block device, do partition copy if COMPONENT is a partition;
+      otherwise put COMPONENT as file on first partition of DEST, in folder
+      'cros_payloads', and create installer stub if needed.
+
+      Example: $0 install http://a/b.json test.json /dev/mmcblk0 test_image
+
+  download JSON_URL DEST COMPONENTs...
+
+      Fetch COMPONENT payloads to DEST and keep in compressed form.
+      DEST is processed in the same way as 'install' command except partition
+      type COMPONENT will be treated as file type.
+
+      Example: $0 download test.json ./output toolkit hwid release_image.part1
+
+  list JSON_URL
+
+      List all available components in JSON_URL.
+
+      Example: $0 list http://192.168.200.1:8080/static/test.json
   "
 }
 
@@ -381,6 +403,7 @@ add_image_component() {
     die "Missing partition tools - please install cgpt or partx."
   fi
 
+  # TODO(hungte) Add part0 as GPT itself.
   ${part_command} "${file}" | while read start sectors nr uuid; do
     debug "${part_command} ${file} -> ${start} ${sectors} ${nr} ${uuid}"
     # ${uuid} is not really needed for add_image_part.
@@ -475,41 +498,6 @@ cmd_add() {
   esac
 }
 
-# Installs a disk image partition type payload to given location.
-# Usage: install_partition JSON_URL DEST JSON_FILE COMPONENT MAPPINGS...
-install_partition() {
-  local json_url="$1"; shift
-  local dest="$1"; shift
-  local json_file="$1"; shift
-  local component="$1"; shift
-  local json_url_base="$(dirname "${json_url}")"
-  local remote_file="" remote_url="" dest_part_dev=""
-  local mapping part_from part_to
-
-  # Each mapping comes in "from_NR to_NR" format.
-  # TODO(hungte) Install partitions in parallel if pigz is not available.
-  for mapping in "$@"; do
-    part_from="${mapping% *}"
-    part_to="${mapping#* }"
-    remote_file="$( \
-      json_get_file_value ".${component}.part${part_from}" "${json_file}")"
-    if [ "${remote_file}" = "null" ]; then
-      die "Missing payload ${component}.part${part_from} from ${json_url}."
-    fi
-    remote_url="${json_url_base}/${remote_file}"
-    dest_part_dev="$(get_partition_dev "${dest}" "${part_to}")"
-    [ -b "${dest_part_dev}" ] || die "Not a block device: ${dest_part_dev}"
-    info "Installing from ${component}#${part_from} to ${dest_part_dev} ..."
-    # bs is fixed on 1048576 because many dd implementations do not support
-    # units like '1M' or '1m'. Larger bs may slightly increase the speed for gz
-    # payloads (for a test_image component, execution time reduced from 72s to
-    # 59s for bs=2M), but that does not help bz2 payloads and also makes it
-    # harder to install small partitions.
-    fetch "${remote_url}" | do_compress "${remote_url}" -d | \
-      dd of="${dest_part_dev}" bs=1048576 iflag=fullblock oflag=dsync
-  done
-}
-
 # Adds a stub file for component installation.
 # Usage: install_add_stub COMPONENT FILE
 install_add_stub() {
@@ -539,27 +527,48 @@ install_add_stub() {
   echo "${command}" >>"${stub}"
 }
 
-# Installs a file type payload to given location.
-# Usage: install_file JSON_URL DEST JSON_FILE COMPONENT
-install_file() {
+# Installs (or downloads) a payload (component or part of component).
+# When MODE is 'partition', dump the payload to block device DEST.
+# Otherwise (MODE = file),
+# If DEST is a folder, download payload to the folder.
+# If DEST is a file path, download payload to that path.
+# If DEST is a disk device with partitions, select its first partition.
+# If (selected) DEST is a block device, mount DEST and download payloads to a
+# sub folder 'cros_payloads' inside partition. Create installer stubs if needed.
+# Usage: install_payload MODE JSON_URL DEST JSON_FILE PAYLOAD
+install_payload() {
+  local mode="$1"; shift
   local json_url="$1"; shift
   local dest="$1"; shift
   local json_file="$1"; shift
-  local component="$1"; shift
+  local payload="$1"; shift
   local json_url_base="$(dirname "${json_url}")"
   local output=""
   local output_display=""
 
-  local remote_file="$(json_get_file_value ".${component}" "${json_file}")"
+  local remote_file="$(json_get_file_value ".${payload}" "${json_file}")"
   local remote_url="${json_url_base}/${remote_file}"
   local file_ext="${remote_file##*.}"
   local output_is_final=""
   local mount_point
 
-  if [ -d "${dest}" ]; then
+  if [ "${remote_file}" = "null" ]; then
+    die "Missing payload [${payload}] from ${json_url}."
+  fi
+
+  if [ "${mode}" = "partition" ]; then
+    # The destination must be a block device.
+    [ -b "${dest}" ] || die "${dest} must be a block device."
+    output="${dest}"
+    output_is_final="true"
+  elif [ -d "${dest}" ]; then
     # The destination is a directory.
-    output="${dest}/${component}.${file_ext}"
-  elif [ -b "${dest}" ]; then
+    output="${dest}/${payload}.${file_ext}"
+  elif [ ! -b "${dest}" ]; then
+    # Destination is probably a file path to overwrite.
+    output="${dest}"
+    output_is_final="true"
+  else
     # The destination is a block device file for disk or partition.
     local dev="$(get_partition_dev "${dest}" 1)"
     if [ ! -b "${dev}" ]; then
@@ -571,12 +580,8 @@ install_file() {
 
     local out_dir="${mount_point}/cros_payloads"
     mkdir -p "${out_dir}"
-    output="${out_dir}/${component}.${file_ext}"
+    output="${out_dir}/${payload}.${file_ext}"
     output_display="${dev}!${output#${mount_point}}"
-  else
-    # Destination is probably a file path to overwrite.
-    output="${dest}"
-    output_is_final="true"
   fi
 
   if [ -z "${output_display}" ]; then
@@ -587,14 +592,23 @@ install_file() {
     output_display="${output_display%.${file_ext}}"
   fi
 
-  if [ -n "${DO_INSTALL}" ]; then
-    echo "Installing from ${component} to ${output_display} ..."
+  if [ "${mode}" = "partition" ]; then
+    info "Installing from ${payload} to ${output} ..."
+    # bs is fixed on 1048576 because many dd implementations do not support
+    # units like '1M' or '1m'. Larger bs may slightly increase the speed for gz
+    # payloads (for a test_image component, execution time reduced from 72s to
+    # 59s for bs=2M), but that does not help bz2 payloads and also makes it
+    # harder to install small partitions.
+    fetch "${remote_url}" | do_compress "${remote_url}" -d | \
+      dd of="${dest}" bs=1048576 iflag=fullblock oflag=dsync
+  elif [ -n "${DO_INSTALL}" ]; then
+    echo "Installing from ${payload} to ${output_display} ..."
     fetch "${remote_url}" | do_compress "${remote_url}" -d >"${output}"
     if [ -n "${mount_point}" ]; then
-      install_add_stub "${component}" "${output}"
+      install_add_stub "${payload}" "${output}"
     fi
   else
-    echo "Downloading from ${component} to ${output_display} ..."
+    echo "Downloading from ${payload} to ${output_display} ..."
     fetch "${remote_url}" "${output}"
   fi
 
@@ -622,12 +636,9 @@ get_canonical_url() {
 }
 
 # Downloads (and installs if DO_INSTALL is set) components to given destination.
-# If DEST_DEV is a folder, download components to the folder.
-# If DEST_DEV is a partition (block device), download components to a sub folder
-#  "cros_payloads" inside that partition.
-# If DEST_DEV is a disk device, use its first partition as block device mode.
-# Usage: install_components JSON_URL DEST_DEV [COMPONENTS...]
+# Usage: install_components MODE JSON_URL DEST COMPONENTS...
 install_components() {
+  local mode="$1"; shift
   local json_url="$1"; shift
   local dest="$1"; shift
   [ -n "${json_url}" ] || die "Need JSON URL."
@@ -644,8 +655,9 @@ install_components() {
   fetch "${json_url}" "${json_file}"
 
   for component in ${components}; do
-    if [ -z "${DO_INSTALL}" ]; then
-      install_file "${json_url}" "${dest}" "${json_file}" "${component}"
+    if [ -n "${mode}" ]; then
+      install_payload "${mode}" "${json_url}" \
+        "${dest}" "${json_file}" "${component}"
       continue
     fi
 
@@ -660,20 +672,34 @@ install_components() {
     #  5 = Release Image Root FS
 
     # Download and install.
+    local from to
     case "${component}" in
       test_image)
-        install_partition \
-          "${json_url}" "${dest}" "${json_file}" "${component}" \
-          "1 1" "4 2" "3 3"
+        for mapping in "1 1" "4 2" "3 3"; do
+          from="${mapping% *}"
+          to="${mapping#* }"
+          install_payload "partition" "${json_url}" \
+            "$(get_partition_dev "${dest}" "${to}")" \
+            "${json_file}" "${component}.part${from}"
+        done
         ;;
       release_image)
-        install_partition \
-          "${json_url}" "${dest}" "${json_file}" "${component}" \
-          "4 4" "3 5" \
-          "6 6" "7 7" "8 8" "9 9" "10 10" "11 11" "12 12"
+        for mapping in "4 4" "3 5" \
+          "6 6" "7 7" "8 8" "9 9" "10 10" "11 11" "12 12"; do
+          from="${mapping% *}"
+          to="${mapping#* }"
+          install_payload "partition" "${json_url}" \
+            "$(get_partition_dev "${dest}" "${to}")" \
+            "${json_file}" "${component}.part${from}"
+        done
+        ;;
+      test_image.part* | release_image.part*)
+        install_payload "partition" "${json_url}" \
+          "${dest}" "${json_file}" "${component}"
         ;;
       toolkit | hwid | firmware | complete)
-        install_file "${json_url}" "${dest}" "${json_file}" "${component}"
+        install_payload "file" "${json_url}" \
+          "${dest}" "${json_file}" "${component}"
         ;;
       *)
         die "Unknown component: ${component}"
@@ -681,16 +707,16 @@ install_components() {
   done
 }
 
-# Command "download", to allow downloading components to target.
+# Command "download", to download components to target.
 # Usage: cmd_download JSON_URL DEST_DEV COMPONENTS...
 cmd_download() {
-  DO_INSTALL="" install_components "$@"
+  DO_INSTALL="" install_components "file" "$@"
 }
 
-# Command "install", to allow installing components to target.
-# Usage: cmd_install JSON_URL DEST_DEV COMPONENTS...
+# Command "install", to install components to target.
+# Usage: cmd_install JSON_URL DEST COMPONENTS...
 cmd_install() {
-  DO_INSTALL=1 install_components "$@"
+  DO_INSTALL=1 install_components "" "$@"
 }
 
 # Lists available components on JSON URL.
@@ -717,6 +743,8 @@ main() {
     SUDO=""
   fi
 
+  # TODO(hungte) Download and install components in parallel if parallel
+  # compressors cannot be found.
   if has_tool pigz; then
     # -n in pigz controls only file name, not modtime.
     GZIP="pigz -T"
@@ -738,6 +766,7 @@ main() {
   esac
   umask 022
 
+  # TODO(hungte) Quick check dependency of all needed tools.
   TMP_OBJECTS="$(mktemp)"
   case "$1" in
     add)
