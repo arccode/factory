@@ -141,11 +141,7 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
       'display_boot_message', 'dumpe2fs', 'ectool', 'flashrom', 'halt',
       'initctl', 'mkfs.ext4', 'mktemp', 'mosys', 'mount', 'mount-encrypted',
       'od', 'pango-view', 'pkill', 'pv', 'python', 'reboot', 'setterm', 'sh',
-      'shutdown', 'stop', 'umount', 'vpd', 'wget', 'lsof', 'jq']
-  if os.path.exists('/sbin/frecon'):
-    binary_deps.append('/sbin/frecon')
-  else:
-    binary_deps.append('/usr/bin/ply-image')
+      'shutdown', 'stop', 'umount', 'vpd', 'wget', 'lsof', 'jq', '/sbin/frecon']
 
   etc_issue = textwrap.dedent("""
     You are now in tmp file system created for in-place wiping.

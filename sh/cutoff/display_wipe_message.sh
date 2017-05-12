@@ -66,7 +66,7 @@ display_message() {
   local short_message="$1"
   shift
 
-  if has_bin frecon || has_bin ply-image && has_bin pango-view; then
+  if has_bin frecon && has_bin pango-view; then
     prepare_message "$@" >"${MESSAGE_FILE}"
     if [ "${SHOW_SPINNER}" = "true" ]; then
       SPINNER_INTERVAL=25 display_boot_message "show_spinner" "${MESSAGE_FILE}"
