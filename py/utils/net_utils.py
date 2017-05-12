@@ -4,14 +4,14 @@
 
 """Networking-related utilities."""
 
-import SocketServer
-
 import glob
 import httplib
 import logging
 import os
+import random
 import re
 import socket
+import SocketServer
 import struct
 import subprocess
 import time
@@ -455,7 +455,7 @@ def FindConsecutiveUnusedPorts(port, length):
           current_port, MAX_PORT))
 
 
-def GetUnusedPort():
+def GetUnusedPort(tcp_only=False):
   """Finds a semi-random available port.
 
   A race condition is still possible after the port number is returned, if
@@ -463,30 +463,48 @@ def GetUnusedPort():
 
   This is ported from autotest repo.
 
+  Arguments:
+    tcp_only: Whether to only find port that is free on TCP.
+
   Returns:
-    A port number that is unused on both TCP and UDP.
+    A port number that is unused on TCP (and UDP, if tcp_only is False).
   """
 
   def TryBind(port, socket_type, socket_proto):
-    s = socket.socket(socket.AF_INET, socket_type, socket_proto)
+    # If python support IPV6, then we use AF_INET6 to bind to both IPv4 and
+    # IPv6, so the returned port would be unused for both. If python doesn't,
+    # we only bind IPV4.
+    socket_family = socket.AF_INET6 if socket.has_ipv6 else socket.AF_INET
+    s = socket.socket(socket_family, socket_type, socket_proto)
     try:
       try:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind(('', port))
-        return s.getsockname()[1]
+        return True
       except socket.error:
-        return None
+        return False
     finally:
       s.close()
 
-  # On the 2.6 kernel, calling TryBind() on UDP socket returns the
-  # same port over and over. So always try TCP first.
+  # We don't bind to port 0 and use the port given by kernel, since the port
+  # would be in ephemeral port range, and the chance of it to confilct with
+  # other code because of race condition would be larger since it would
+  # possibly be conflicting with port used by outgoing connection too.
+  #
+  # Also, a typical usage of GetUnusedPort is as follows:
+  #   port = net_utils.GetUnusedPort()
+  #   server = StartServerAsync(port=port)
+  #   sync_utils.WaitFor(lambda: PingServer(port=port), 2)
+  # But if the server port is in ephemeral port range, there's a small chance
+  # that the PingServer() would actually connects to itself, binding the port,
+  # and the StartServerAsync() would fail.
+  # (See http://sgros.blogspot.tw/2013/08/tcp-client-self-connect.html)
   while True:
-    # Ask the OS for an unused port.
-    port = TryBind(0, socket.SOCK_STREAM, socket.IPPROTO_TCP)
-    # Check if this port is unused on the other protocol.
-    if port and TryBind(port, socket.SOCK_DGRAM, socket.IPPROTO_UDP):
-      return port
+    port = random.randrange(16384, 32768)
+    if TryBind(port, socket.SOCK_STREAM, socket.IPPROTO_TCP):
+      # Check if this port is unused on the other protocol.
+      if tcp_only or TryBind(port, socket.SOCK_DGRAM, socket.IPPROTO_UDP):
+        return port
 
 
 def FindUnusedTCPPort():
@@ -500,16 +518,7 @@ def FindUnusedTCPPort():
   If race condition need to be avoided, caller should bind to port 0 directly,
   and the kernel would do the right job.
   """
-  # If python support IPV6, then we use AF_INET6 to bind to both IPv4 and IPv6,
-  # so the returned port would be unused for both. If python doesn't, we only
-  # bind IPV4.
-  socket_family = socket.AF_INET6 if socket.has_ipv6 else socket.AF_INET
-  socket_obj = socket.socket(socket_family, socket.SOCK_STREAM)
-  socket_obj.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-  socket_obj.bind(('', 0))
-  port = socket_obj.getsockname()[1]
-  socket_obj.close()
-  return port
+  return GetUnusedPort(tcp_only=True)
 
 
 def EnablePort(port, protocol='tcp', priority=None, interface=None):

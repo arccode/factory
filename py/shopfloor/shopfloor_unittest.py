@@ -18,14 +18,15 @@ import time
 import unittest
 import xmlrpclib
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory import shopfloor
 from cros.factory.shopfloor import factory_update_server
 from cros.factory.test.env import paths
 from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import process_utils
+from cros.factory.utils import sync_utils
 
 
 TESTDATA_MD5SUM = 'd9d51c02d1b40da5c7ddae311ff52597'
@@ -35,8 +36,7 @@ class ShopFloorServerTest(unittest.TestCase):
 
   def setUp(self):
     """Starts shop floor server and creates client proxy."""
-    # pylint: disable=W0212
-    self.server_port = net_utils.FindUnusedTCPPort()
+    # pylint: disable=protected-access
     self.base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     self.data_dir = tempfile.mkdtemp(prefix='shopfloor_data.')
     self.auto_archive_logs = os.path.join(self.data_dir, 'auto-archive-logs')
@@ -63,6 +63,7 @@ class ShopFloorServerTest(unittest.TestCase):
     os.mkdir(os.path.join(self.data_dir, shopfloor.UPDATE_DIR, 'factory'))
 
     factory_update_server.poll_interval_sec = 0.1
+    self.server_port = net_utils.FindUnusedTCPPort()
     # Use shopfloor_server.py (or the SHOPFLOOR_SERVER_CMD environment
     # variable if set).
     cmd = os.environ.get(
@@ -78,20 +79,18 @@ class ShopFloorServerTest(unittest.TestCase):
         '--updater-dir', os.path.join(self.data_dir, 'update'),
         '--auto-archive-logs', os.path.join(self.auto_archive_logs,
                                             'logs.DATE.tar.bz2')])
-    self.process = Spawn(cmd, log=True)
+    self.process = process_utils.Spawn(cmd, log=True)
     self.proxy = umpire_server_proxy.TimeoutUmpireServerProxy(
         'http://%s:%s' % (net_utils.LOCALHOST, self.server_port),
         allow_none=True)
-    # Waits the server to be ready, up to 1 second.
-    for unused_i in xrange(10):
+
+    def _ServerUp():
       try:
         self.proxy.Ping()
-        break
-      except:  # pylint: disable=W0702
-        time.sleep(0.1)
-        continue
-    else:
-      self.fail('Server never came up')
+        return True
+      except:  # pylint: disable=bare-except
+        return False
+    sync_utils.WaitFor(_ServerUp, 2)
 
   def tearDown(self):
     """Terminates shop floor server"""
@@ -248,10 +247,9 @@ class ShopFloorServerTest(unittest.TestCase):
           tmp, content_path.lstrip('/'))
       file_utils.TryMakeDirs(os.path.dirname(factory_log_path))
       open(factory_log_path, 'w').close()
-      return Spawn([
+      return process_utils.Spawn([
           'tar', '-c' + ('j' if compress else '') + 'f', '-', '-C', tmp,
-          content_path.lstrip('/')],
-                   check_output=True).stdout_data
+          content_path.lstrip('/')], check_output=True).stdout_data
     finally:
       shutil.rmtree(tmp)
 
@@ -341,12 +339,10 @@ class ShopFloorServerTest(unittest.TestCase):
     dest_path = os.path.join(
         self.auto_archive_logs,
         time.strftime('logs.%Y%m%d.tar.bz2', yesterday_localtime))
-    for _ in xrange(20):
-      if os.path.exists(dest_path):
-        break
-      time.sleep(.1)
-    else:
-      self.fail('%s was never created' % dest_path)
+
+    def _CheckArchive():
+      return os.path.exists(dest_path)
+    sync_utils.WaitFor(_CheckArchive, 3)
 
   def testFinalize(self):
     self.proxy.Finalize('CR001024')

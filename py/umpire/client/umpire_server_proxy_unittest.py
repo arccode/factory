@@ -33,7 +33,7 @@ from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 
 MOCK_UMPIRE_ADDR = 'http://' + net_utils.LOCALHOST
-SEARCH_STARTING_PORT = 49998
+SEARCH_STARTING_PORT = 16384
 TESTDATA_DIRECTORY = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), 'testdata')
 UMPIRE_HANDLER_METHOD = 'umpire_handler_method'
