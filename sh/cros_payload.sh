@@ -28,7 +28,7 @@
 : "${BZIP2:="bzip2"}"
 : "${CROS_PAYLOAD_FORMAT:=gz}"
 : "${JQ:=""}"
-: "${SUDO:=""}"
+: "${SUDO:="sudo"}"
 
 # Debug settings
 : "${DEBUG:=}"
@@ -713,8 +713,8 @@ main() {
   set -e
   trap "die Execution failed." EXIT
 
-  if [ "$(id -u)" != 0 ]; then
-    SUDO=sudo
+  if [ "$(id -u)" = 0 ]; then
+    SUDO=""
   fi
 
   if has_tool pigz; then
