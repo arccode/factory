@@ -292,8 +292,8 @@ class ExtractFileTest(unittest.TestCase):
           ['unzip', zipfile, '-d', output_dir, 'bar', 'buz'],
           log=True, check_call=True)
 
-  @mock.patch.object(process_utils, 'Spawn', return_value=True)
   @mock.patch.object(os, 'system', return_value=0)
+  @mock.patch.object(process_utils, 'Spawn', return_value=True)
   def testExtractTar(self, mock_spawn, mock_system):
     with file_utils.TempDirectory() as temp_dir:
       output_dir = os.path.join(temp_dir, 'extracted')
