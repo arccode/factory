@@ -347,18 +347,19 @@ commit_payload() {
 }
 
 # Adds an image partition type payload.
-# Usage: add_image_part JSON_PATH COMPONENT FILE PART_NO START SIZE
+# Usage: add_image_part JSON_PATH COMPONENT FILE PART_NO START COUNT
 #  FILE is the disk image file.
 #  PART_NO is the number (NR) of partition number.
 #  START is the starting sector (bs=512) of partition.
-#  SIZE is the number of sectors in partition.
+#  COUNT is the number of sectors in partition.
 add_image_part() {
   local json_path="$1"
   local component="$2"
   local file="$3"
   local nr="$4"
   local start="$5"
-  local sectors="$6"
+  local count="$6"
+  local bs=512 bs_max="$((32 * 1024 * 1024))"
 
   local md5sum=""
   local version=""
@@ -370,16 +371,35 @@ add_image_part() {
   register_tmp_object "${tmp_file}"
 
   info "Adding component ${component} part ${nr} ($((sectors / 2048))M)..."
+
+  # Larger bs helps dd to run faster. Another approach is to do losetup so start
+  # can be 0 (with even larger bs), but setting up loop device takes additional
+  # time, need root and is actually slower.
+  local o_offset="$((start * bs))" o_size="$((count * bs))"
+  debug "Partition info: bs=${bs}, start=${start}, count=${count}."
+  # It is possible use iflag=skip_bytes to help getting larger bs, but that will
+  # need dd to be GNU dd; also not getting better speed in real experiments.
+  while [ "$((start % 2 == 0 && count % 2 == 0 && count > 1 &&
+              bs < bs_max))" = 1 ]; do
+    # dash does not allow multiple expressions in $(()).
+    : "$((start /= 2)) $((count /= 2)) $((bs *= 2))"
+  done
+  debug "Calculated dd:  bs=${bs}, start=${start}, count=${count}."
+  if [ "$((o_offset != start * bs || o_size != count * bs))" = 1 ]; then
+    die "Calculation error for dd parameters."
+  fi
+
+  # TODO(hungte) Figure out a better way to detect if commands in pipe failed.
   md5sum="$(
-    dd if="${file}" bs=512 skip="${start}" count="${sectors}" 2>/dev/null | \
-    do_compress "${CROS_PAYLOAD_FORMAT}" | tee "${tmp_file}" | md5sum -b)"
+    dd if="${file}" bs="${bs}" skip="${start}" count="${count}" 2>/dev/null \
+      | do_compress "${CROS_PAYLOAD_FORMAT}" | tee "${tmp_file}" | md5sum -b)"
 
   if [ "${nr}" = 3 ]; then
     # Read version from /etc/lsb-release#CHROMEOS_RELEASE_DESCRIPTION
     local rootfs_dir="$(mktemp -d)"
     register_tmp_object "${rootfs_dir}"
     ${SUDO} mount "${file}" "${rootfs_dir}" -t ext2 -o \
-      ro,offset=$((start * 512)),sizelimit=$((sectors * 512))
+      ro,offset=$((start * bs)),sizelimit=$((count * bs))
     version="$(sed -n 's/^CHROMEOS_RELEASE_DESCRIPTION=//p' \
       "${rootfs_dir}/etc/lsb-release")"
     ${SUDO} umount "${rootfs_dir}"
