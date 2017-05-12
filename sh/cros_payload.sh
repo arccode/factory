@@ -204,6 +204,12 @@ cmd_help() {
 
       Example: $0 download test.json ./output toolkit hwid release_image.part1
 
+  add_meta JSON_PATH COMPONENT NAME VALUE
+
+      Adds a meta data (for example, version) to a component.
+
+      Example: $0 add_meta test.json hwid version '1.0'
+
   list JSON_URL
 
       List all available components in JSON_URL.
@@ -498,6 +504,22 @@ cmd_add() {
   esac
 }
 
+# Command "add_meta", to add a meta data into component.
+# Usage: cmd_add_meta JSON_PATH COMPONENT NAME VALUE
+cmd_add_meta() {
+  local json_path="$1"
+  local component="$2"
+  local name="$3"
+  local value="$4"
+
+  if [ ! -e "${json_path}" ]; then
+    die "Invalid JSON config path: ${json_path}"
+  fi
+
+  update_json "${json_path}" \
+    "{\"${component}\": {\"${name}\": $(json_encode_str "${value}")}}"
+}
+
 # Adds a stub file for component installation.
 # Usage: install_add_stub COMPONENT FILE
 install_add_stub() {
@@ -772,6 +794,10 @@ main() {
     add)
       shift
       cmd_add "$@"
+      ;;
+    add_meta)
+      shift
+      cmd_add_meta "$@"
       ;;
     install)
       shift
