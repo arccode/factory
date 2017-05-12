@@ -125,7 +125,10 @@ class RFGraphyteTest(unittest.TestCase):
       self.process.kill()
 
   def runTest(self):
-    self._ui.Run(blocking=False)
+    self._ui.RunInBackground(self._runTest)
+    self._ui.Run()
+
+  def _runTest(self):
     # Update the config file from shopfloor.
     self.FetchConfigFromShopfloor()
 

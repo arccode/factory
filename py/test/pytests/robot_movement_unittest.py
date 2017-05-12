@@ -9,10 +9,10 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device.board import DeviceBoard as dut
-from cros.factory.test import test_ui
-from cros.factory.test.fixture.robot.robot import Robot
 from cros.factory.test.fixture.robot.algorithm import Algorithm
+from cros.factory.test.fixture.robot.robot import Robot
 from cros.factory.test.pytests import robot_movement
+from cros.factory.test import test_ui
 from cros.factory.test.ui_templates import OneSection
 
 
@@ -88,7 +88,7 @@ class RobotMovementTest(unittest.TestCase):
     self._test.Compute = mock.Mock(spec=self.Test.Compute)
     self._test.PushResult = mock.Mock(spec=self.Test.PushResult)
 
-    self._test.runTest()
+    self._test._runTest()
 
     self._test.Initialize.assert_called_with()
     self._test.LoadDevice.assert_called_with()

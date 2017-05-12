@@ -72,7 +72,6 @@ class VerifyComponentsUnitTest(unittest.TestCase):
                     u'is_re': False}},
             u'error': None}]}
 
-    self._mock_test._ui.Run(blocking=False)
     self._mock_test.template.SetState(mox.IsA(basestring))
     self._mock_test.factory_par.CheckOutput(command).AndReturn(
         json.dumps(probed))
@@ -80,7 +79,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     event_log.Log('probed_components', results=probed)
 
     self._mox.ReplayAll()
-    self._mock_test.runTest()
+    self._mock_test._runTest()
     self._mox.VerifyAll()
     # esnure the result is appended
     self.assertEquals(probed, self._mock_test.probed_results)
@@ -111,7 +110,6 @@ class VerifyComponentsUnitTest(unittest.TestCase):
             u'probed_values': None,
             u'error': u'Fake error'}]}
 
-    self._mock_test._ui.Run(blocking=False)
     self._mock_test.template.SetState(mox.IsA(basestring))
     self._mock_test.factory_par.CheckOutput(command).AndReturn(
         json.dumps(probed))
@@ -120,7 +118,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
 
     self._mox.ReplayAll()
     with self.assertRaises(FactoryTestFailure):
-      self._mock_test.runTest()
+      self._mock_test._runTest()
     self._mox.VerifyAll()
 
   def testCheckComponentsTaskException(self):
@@ -136,14 +134,13 @@ class VerifyComponentsUnitTest(unittest.TestCase):
                '--no-fast-fw-probe', '--components', 'camera,cpu',
                '--phase', self.fake_phase]
 
-    self._mock_test._ui.Run(blocking=False)
     self._mock_test.template.SetState(mox.IsA(basestring))
     self._mock_test.factory_par.CheckOutput(command).AndRaise(
         subprocess.CalledProcessError(1, 'Fake command'))
 
     self._mox.ReplayAll()
     with self.assertRaises(subprocess.CalledProcessError):
-      self._mock_test.runTest()
+      self._mock_test._runTest()
     self._mox.VerifyAll()
 
 

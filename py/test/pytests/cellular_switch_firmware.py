@@ -23,11 +23,11 @@ class CellularFirmwareSwitching(unittest.TestCase):
 
   def runTest(self):
     ui = test_ui.UI()
-    ui.Run(blocking=False)
     template = ui_templates.OneSection(ui)
     template.SetState(
         i18n_test_ui.MakeI18nLabelWithClass(
             'Switching firmware to {target!r}<br>',
             'status-info',
             target=self.args.target))
-    cellular.SwitchModemFirmware(self.args.target)
+    ui.RunInBackground(lambda: cellular.SwitchModemFirmware(self.args.target))
+    ui.Run()

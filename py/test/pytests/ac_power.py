@@ -129,8 +129,7 @@ class ACPowerTest(unittest.TestCase):
       return False
     return True
 
-  def runTest(self):
-    self._ui.Run(blocking=False, on_finish=self.Done)
+  def _runTest(self):
     if self.fixture:
       self.fixture.SetDeviceEngaged(bft_fixture.BFTFixture.Device.AC_ADAPTER,
                                     self.args.online)
@@ -148,3 +147,7 @@ class ACPowerTest(unittest.TestCase):
           self.fail('Failed after probing %d times' % num_probes)
       # Prevent busy polling.
       time.sleep(self.args.polling_period_secs)
+
+  def runTest(self):
+    self._ui.RunInBackground(self._runTest)
+    self._ui.Run(on_finish=self.Done)

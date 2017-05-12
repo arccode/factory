@@ -1388,8 +1388,10 @@ class CameraFixture(unittest.TestCase):
         lambda _: self.PostInternalQueue(EventType.EXIT_TEST))
 
   def runTest(self):
-    ui_thread = self.ui.Run(blocking=False)
+    self.ui.RunInBackground(self._runTest)
+    self.ui.Run()
 
+  def _runTest(self):
     if self.test_type == TestType.CALI:
       self._RunCalibration()
     elif self.test_type == TestType.LS:
@@ -1398,8 +1400,6 @@ class CameraFixture(unittest.TestCase):
       self._RunDeligateTest()
     else:
       raise ValueError('Unsupported test type.')
-
-    ui_thread.join()
 
   def _RunCalibration(self):
     """Main routine for camera fixture calibration.

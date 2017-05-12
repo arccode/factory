@@ -70,8 +70,12 @@ class VerifyComponentsTest(unittest.TestCase):
 
   def runTest(self):
     if self.args.with_goofy:
-      self._ui.Run(blocking=False)
+      self._ui.RunInBackground(self._runTest)
+      self._ui.Run()
+    else:
+      self._runTest()
 
+  def _runTest(self):
     if not self.args.skip_shopfloor:
       shopfloor.update_local_hwid_data(self._dut)
 

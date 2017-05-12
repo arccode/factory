@@ -105,12 +105,15 @@ class SpatialSensorCalibration(unittest.TestCase):
     self._ui.BindKey(test_ui.ENTER_KEY, lambda _: self._start_event.set())
 
   def runTest(self):
+    self._ui.RunInBackground(self._runTest)
+    self._ui.Run()
+
+  def _runTest(self):
     previous_fail = False
     while True:
       try:
         if self.args.prompt:
           self.Prompt(previous_fail)
-          self._ui.Run(blocking=False)
           self._start_event.wait()
 
         self.RunCalibration()

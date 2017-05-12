@@ -1,5 +1,3 @@
-# -*- mode: python; coding: utf-8 -*-
-#
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -138,6 +136,8 @@ class VSWR(unittest.TestCase):
     self._ui = test_ui.UI()
     self._ui.AddEventHandler('keypress', self._event_queue.put)
     self._ui.AddEventHandler('snenter', self._event_queue.put)
+
+    self.test_passed = False
 
   def _ConnectToENA(self, network_analyzer_config):
     """Connnects to the ENA and initializes the SCPI object."""
@@ -465,6 +465,10 @@ class VSWR(unittest.TestCase):
     self._ui.RunJS('showMessageBlock("%s")' % html_id)
 
   def runTest(self):
+    self._ui.RunInBackground(self._runTest)
+    self._ui.Run()
+
+  def _runTest(self):
     """Runs the test.
 
     At each step, we first call self._ShowMessageBlock(BLOCK_ID) to display the
@@ -474,8 +478,6 @@ class VSWR(unittest.TestCase):
     specific user's action like pressing the ENTER key to continue, e.g.
     self._WaitForKey(test_ui.ENTER_KEY).
     """
-    self._ui.Run(blocking=False)
-
     # Load config.
     if self.args.load_from_shopfloor:
       self._ShowMessageBlock('download-parameters-from-shopfloor')

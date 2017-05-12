@@ -350,8 +350,7 @@ class SuspendResumeTest(unittest.TestCase):
     self.messages = messages
     return wake_source
 
-  def runTest(self):
-    self._ui.Run(blocking=False)
+  def _runTest(self):
     self._ui.SetHTML(self.args.cycles, id=_ID_CYCLES)
     self.initial_suspend_count = self._ReadSuspendCount()
     logging.info('The initial suspend count is %d.', self.initial_suspend_count)
@@ -418,3 +417,7 @@ class SuspendResumeTest(unittest.TestCase):
                     actual_wake_extensions=self.actual_wake_extensions,
                     alarm_suspend_delays=alarm_suspend_delays,
                     wake_source=wake_source)
+
+  def runTest(self):
+    self._ui.RunInBackground(self._runTest)
+    self._ui.Run()

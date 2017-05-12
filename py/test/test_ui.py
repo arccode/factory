@@ -1,6 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
-#
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -13,7 +11,6 @@ import cgi
 import json
 import logging
 import os
-import signal
 import threading
 import traceback
 import uuid
@@ -356,83 +353,49 @@ class UI(object):
     """Allows space/enter to pass the test, and escape to fail it."""
     self.BindStandardKeys()
 
-  def SignalHandler(self, signum, frame):
-    """A signal handler to handle SIGINT from UI daemon thread.
+  def RunInBackground(self, target):
+    def _target():
+      try:
+        target()
+        self.Pass()
+      except: # pylint: disable=bare-except
+        self.Fail(traceback.format_exc())
+    process_utils.StartDaemonThread(target=_target)
 
-    When UI is running in non-blocking mode, we use SIGINT to communicate from
-    the UI daemon thread to the main thread to notify the main thread of UI
-    exceptions.
-
-    Args:
-      signum: The signum. Currently only SIGINT is handled.
-      unused_frame: Unused frame.
-
-    Raises:
-      FactoryTestFailure if the received signal is SIGINT.
-    """
-    del frame  # Unused.
-    logging.warn('Signal handler called with signal %s', signum)
-    if signum == signal.SIGINT:
-      for source, description in exception_list:
-        logging.error('Exception caught by %s: %s', source, description)
-      raise FactoryTestFailure('Test aborted by SIGINT')
-
-  def Run(self, blocking=True, on_finish=None):
+  def Run(self, on_finish=None):
     """Runs the test UI, waiting until the test completes.
 
     Args:
-      blocking: True if running UI in the same thread. False if creating a
-          dedicated UI thread. Test UI must not be non-blocking if used in
-          autotest.
       on_finish: Callback function when UI ends. This can be used to notify
           the test for necessary clean-up (e.g. terminate an event loop.)
     """
 
-    def _RunImpl(self, blocking, on_finish):
-      event = self.event_client.wait(
-          lambda event:
-          (event.type == test_event.Event.Type.END_TEST and
-           event.invocation == self.invocation and
-           event.test == self.test))
-      logging.info('Received end test event %r', event)
-      if self.task_hook:
-        # Let factory task have a chance to do its clean up work.
-        # pylint: disable=protected-access
-        self.task_hook._Finish(getattr(event, 'error_msg', ''))
-      self.event_client.close()
+    event = self.event_client.wait(
+        lambda event:
+        (event.type == test_event.Event.Type.END_TEST and
+         event.invocation == self.invocation and
+         event.test == self.test))
+    logging.info('Received end test event %r', event)
+    if self.task_hook:
+      # Let factory task have a chance to do its clean up work.
+      # pylint: disable=protected-access
+      self.task_hook._Finish(getattr(event, 'error_msg', ''))
+    self.event_client.close()
 
-      try:
-        if event.status == factory.TestState.PASSED and not self.error_msgs:
-          pass
-        elif event.status == factory.TestState.FAILED or self.error_msgs:
-          error_msg = getattr(event, 'error_msg', '')
-          if self.error_msgs:
-            error_msg += ('\n'.join([''] + self.error_msgs))
-
-          if blocking:
-            raise FactoryTestFailure(error_msg)
-          else:
-            # Save exception if UI is not run in the main thread
-            exception_list.append(('ui-thread',
-                                   'Failed from UI\n%s' % error_msg))
-            os.kill(os.getpid(), signal.SIGINT)
-        else:
-          raise ValueError('Unexpected status in event %r' % event)
-      finally:
-        if on_finish:
-          on_finish()
-
-    if not blocking:
-      try:
-        signal.signal(signal.SIGINT, self.SignalHandler)
-      except ValueError:
-        # Called in a thread. This can happen when running E2E tests, which runs
-        # the UI in a child thread.
+    try:
+      if event.status == factory.TestState.PASSED and not self.error_msgs:
         pass
-      return process_utils.StartDaemonThread(
-          target=lambda: _RunImpl(self, blocking=False, on_finish=on_finish))
-    else:
-      _RunImpl(self, blocking=True, on_finish=on_finish)
+      elif event.status == factory.TestState.FAILED or self.error_msgs:
+        error_msg = getattr(event, 'error_msg', '')
+        if self.error_msgs:
+          error_msg += ('\n'.join([''] + self.error_msgs))
+
+        raise FactoryTestFailure(error_msg)
+      else:
+        raise ValueError('Unexpected status in event %r' % event)
+    finally:
+      if on_finish:
+        on_finish()
 
   def BindStandardKeys(self, bind_pass_keys=True, bind_fail_keys=True):
     """Binds standard pass and/or fail keys.

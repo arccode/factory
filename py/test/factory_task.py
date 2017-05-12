@@ -1,7 +1,5 @@
 #!/usr/bin/python
 #
-# -*- coding: utf-8 -*-
-#
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -56,12 +54,8 @@ class FactoryTaskManager(object):
       self._ui.Pass()
 
   def Run(self):
-    ui_thread = self._ui.Run(on_finish=self._on_finish, blocking=False)
-    self.RunNextTask()
-    while ui_thread.is_alive():
-      # Can't just blocking wait for join here; otherwise it will stuck here if
-      # the test is killed.
-      ui_thread.join(1)
+    self._ui.RunInBackground(self.RunNextTask)
+    self._ui.Run(on_finish=self._on_finish)
 
   def PassCurrentTask(self):
     """Passes current task.

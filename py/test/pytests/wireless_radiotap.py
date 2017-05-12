@@ -576,12 +576,6 @@ class WirelessRadiotapTest(unittest.TestCase):
         elif freq != wireless_services[ssid]:
           self.fail('There are more than one frequencies for ssid %s.' % ssid)
 
-  def PromptSpace(self):
-    """Prompts a message to ask operator to press space."""
-    self._template.SetState(_MSG_SPACE)
-    self._ui.BindKey(test_ui.SPACE_KEY, lambda _: self.OnSpacePressed())
-    self._ui.Run(blocking=False, on_finish=self.Done)
-
   def Done(self):
     """The callback when ui is done.
 
@@ -599,8 +593,18 @@ class WirelessRadiotapTest(unittest.TestCase):
   def runTest(self):
     if self.args.press_space_to_start:
       # Prompts a message to tell operator to press space key when ready.
-      self.PromptSpace()
-      self._space_event.wait()
+      self._template.SetState(_MSG_SPACE)
+      self._ui.BindKey(test_ui.SPACE_KEY,
+                       lambda _: self.OnSpacePressed(),
+                       once=True)
+      self._ui.RunInBackground(self._runTest)
+      self._ui.Run(on_finish=self.Done)
+    else:
+      self._space_event.set()
+      self._runTest()
+
+  def _runTest(self):
+    self._space_event.wait()
     if self._done.isSet():
       return
 

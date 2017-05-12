@@ -41,18 +41,20 @@ class MemorySize(unittest.TestCase):
 
   def setUp(self):
     self._event = threading.Event()
+    self.ui = test_ui.UI()
+    self.ui.AppendCSS('.large { font-size: 200% }')
+    self.template = ui_templates.OneSection(self.ui)
+
+  def Done(self):
+    self._event.set()
 
   def runTest(self):
-    def Done():
-      self._event.set()
+    self.ui.RunInBackground(self._runTest)
+    self.ui.Run(on_finish=self.Done)
 
-    ui = test_ui.UI()
-    template = ui_templates.OneSection(ui)
-
-    ui.Run(blocking=False, on_finish=Done)
-    ui.AppendCSS('.large { font-size: 200% }')
-
-    template.SetState(i18n_test_ui.MakeI18nLabel('Checking memory info...'))
+  def _runTest(self):
+    self.template.SetState(
+        i18n_test_ui.MakeI18nLabel('Checking memory info...'))
 
     # Get memory info using mosys.
     ret = process_utils.CheckOutput(
@@ -75,7 +77,7 @@ class MemorySize(unittest.TestCase):
     if not self.args.compare_with_shopfloor:
       return
 
-    ui.AddEventHandler('retry', lambda dummy_event: self._event.set())
+    self.ui.AddEventHandler('retry', lambda dummy_event: self._event.set())
 
     method_name = self.args.shopfloor_method_name
     method = getattr(shopfloor.get_instance(detect=True), method_name)
@@ -84,10 +86,10 @@ class MemorySize(unittest.TestCase):
 
     while True:
       logging.info(message)
-      template.SetState(test_ui.Escape(message))
+      self.template.SetState(test_ui.Escape(message))
 
       def HandleError(trace):
-        template.SetState(
+        self.template.SetState(
             i18n_test_ui.MakeI18nLabelWithClass(
                 'Shop floor exception:',
                 'test-status-failed large') +
@@ -102,7 +104,7 @@ class MemorySize(unittest.TestCase):
 
       try:
         result = method(mlb_serial_number)
-        logging.info('%s: %s', method_name, str(result))
+        logging.info('%s: %s', method_name, result)
       except:  # pylint: disable=bare-except
         exception_str = debug_utils.FormatExceptionOnly()
         logging.exception('Exception invoking shopfloor method\n' +

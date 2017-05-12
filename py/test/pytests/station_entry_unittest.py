@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
-#
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -11,18 +9,19 @@
 """Unit tests for station_entry factory test."""
 
 import logging
-import mox
 import unittest
 
+import mox
+
 import factory_common  # pylint: disable=unused-import
-from cros.factory.goofy.goofy_rpc import GoofyRPC
 from cros.factory.device import device_utils
 from cros.factory.device.link import DeviceLink
-from cros.factory.test import state
+from cros.factory.goofy.goofy_rpc import GoofyRPC
+from cros.factory.test.pytests import station_entry
 from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.pytests import station_entry
 from cros.factory.utils import sync_utils
 
 
@@ -95,7 +94,6 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.mox.StubOutWithMock(sync_utils, 'WaitFor')
     self.mox.StubOutWithMock(self.test, 'SendTestResult')
 
-    self.mock_ui.Run(blocking=False)
     self.mock_ui.BindKey(test_ui.SPACE_KEY, mox.Func(callable))
     shopfloor.DeleteDeviceData(['serial_number', 'mlb_serial_number'],
                                optional=True)
@@ -113,7 +111,7 @@ class FactoryEntryUnitTest(unittest.TestCase):
 
     self.mox.ReplayAll()
 
-    self.test.runTest()
+    self.test._runTest()
 
     self.mox.VerifyAll()
 
@@ -135,7 +133,6 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.mox.StubOutWithMock(sync_utils, 'WaitFor')
     self.mox.StubOutWithMock(self.test._dut.info, 'GetAllSerialNumbers')
 
-    self.mock_ui.Run(blocking=False)
     self.mock_ui.BindKey(test_ui.SPACE_KEY, mox.Func(callable))
     shopfloor.DeleteDeviceData(['serial_number', 'mlb_serial_number'],
                                optional=True)
@@ -148,7 +145,7 @@ class FactoryEntryUnitTest(unittest.TestCase):
 
     self.mox.ReplayAll()
 
-    self.test.runTest()
+    self.test._runTest()
 
     self.mox.VerifyAll()
 

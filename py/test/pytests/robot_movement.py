@@ -179,14 +179,13 @@ class RobotMovement(unittest.TestCase):
 
     self._algorithm.PullResult(self._dut)
 
-  def runTest(self):
+  def _runTest(self):
     serial_number = self._dut.info.serial_number
     if not serial_number:
       self.fail('Failed to get the device SN')
 
     factory.console.info('SN: %s', serial_number)
     logging.info('SN: %s', serial_number)
-    self._ui.Run(blocking=False)
     self.Initialize()
     self.LoadDevice()
     self.StartMoving()
@@ -194,3 +193,7 @@ class RobotMovement(unittest.TestCase):
     self.PushResult()
     if self.args.upload_to_shopfloor:
       self._algorithm.UploadLog(self._dut, shopfloor)
+
+  def runTest(self):
+    self._ui.RunInBackground(self._runTest)
+    self._ui.Run()

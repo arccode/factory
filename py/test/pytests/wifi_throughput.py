@@ -67,7 +67,7 @@ import contextlib
 import json
 import logging
 import os
-import string  # pylint: disable=W0402
+import string  # pylint: disable=deprecated-module
 import subprocess
 import sys
 import threading
@@ -654,23 +654,19 @@ class _ServiceTest(object):
 class _Ui(object):
   def __init__(self):
     # Set up UI.
-    self._ui = test_ui.UI()
-    self._template = OneSection(self._ui)
-    self._ui.AppendCSS(_DEFAULT_WIRELESS_TEST_CSS)
+    self.ui = test_ui.UI()
+    self._template = OneSection(self.ui)
+    self.ui.AppendCSS(_DEFAULT_WIRELESS_TEST_CSS)
     self._template.SetState(_MSG_RUNNING)
     self._space_event = threading.Event()
-    self._done = threading.Event()
 
   def PromptSpace(self):
     """Prompts a message to ask operator to press space."""
-    self._done.clear()
     self._space_event.clear()
     self._template.SetState(_MSG_SPACE)
-    self._ui.BindKey(
+    self.ui.BindKey(
         test_ui.SPACE_KEY, lambda _: self.OnSpacePressed(), once=True)
-    self._ui.Run(blocking=False, on_finish=self.Done)
     self._space_event.wait()
-    return self._done.isSet()
 
   def Done(self):
     """The callback when ui is done.
@@ -678,7 +674,6 @@ class _Ui(object):
     This will be called when test is finished, or if operator presses
     'Mark Failed'.
     """
-    self._done.set()
     self._space_event.set()
 
   def OnSpacePressed(self):
@@ -1012,6 +1007,13 @@ class WiFiThroughput(unittest.TestCase):
     return self.args.interface or interfaces[0]
 
   def runTest(self):
+    if self._ui:
+      self._ui.ui.RunInBackground(self._runTest)
+      self._ui.ui.Run()
+    else:
+      self._runTest()
+
+  def _runTest(self):
     # Choose the WLAN interface to use for this test, either from the test
     # arguments, or by choosing the first one listed on the device.
     self._interface = self._SelectInterface()

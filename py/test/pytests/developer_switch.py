@@ -50,9 +50,12 @@ class DeveloperSwitchTest(unittest.TestCase):
     self._ui = test_ui.UI()
     self._template = ui_templates.TwoSections(self._ui)
     self._ui.AppendCSS(_TEST_PAGE_CSS)
-    self._ui.Run(blocking=False)
 
   def runTest(self):
+    self._ui.RunInBackground(self._runTest)
+    self._ui.Run()
+
+  def _runTest(self):
 
     def GetState():
       # This will be called so many times so we don't want to be logged.

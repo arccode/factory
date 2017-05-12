@@ -146,5 +146,5 @@ class PingTest(unittest.TestCase):
     self._ui.Pass()
 
   def runTest(self):
-    self._ui.Run(blocking=False)
-    self._PingTest()
+    self._ui.RunInBackground(self._PingTest)
+    self._ui.Run()

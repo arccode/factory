@@ -424,7 +424,10 @@ class ChameleonDisplayTest(unittest.TestCase):
                 (chameleon_port, self.DIFF_IMAGE_PATH))
 
   def runTest(self):
-    self.ui.Run(blocking=False)
+    self.ui.RunInBackground(self._runTest)
+    self.ui.Run()
+
+  def _runTest(self):
     dut_port, chameleon_port, width, height, refresh_rate = self.args.test_info
     self.assertTrue(
         chameleon_port in PORTS,

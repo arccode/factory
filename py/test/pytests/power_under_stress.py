@@ -94,8 +94,10 @@ class PowerUnderStressTest(unittest.TestCase):
     self._ui.SetHTML(_CURRENT_FMT_STR(current), id='current')
 
   def runTest(self):
-    self._ui.Run(blocking=False)
+    self._ui.RunInBackground(self._runTest)
+    self._ui.Run()
 
+  def _runTest(self):
     try:
       with stress_manager.StressManager(self._dut).Run(
           duration_secs=None,

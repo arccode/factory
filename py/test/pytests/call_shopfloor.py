@@ -80,8 +80,19 @@ class CallShopfloor(unittest.TestCase):
   def setUp(self):
     self.done = False
     self.event = threading.Event()
+    self.ui = test_ui.UI()
+    self.ui.AppendCSS('.large { font-size: 200% }')
+    self.template = ui_templates.OneSection(self.ui)
+
+  def Done(self):
+    self.done = True
+    self.event.set()
 
   def runTest(self):
+    self.ui.RunInBackground(self._runTest)
+    self.ui.Run(on_finish=self.Done)
+
+  def _runTest(self):
     if self.args.action:
       action_handler = self.RETURN_VALUE_ACTIONS.get(self.args.action)
       self.assertTrue(
@@ -91,17 +102,7 @@ class CallShopfloor(unittest.TestCase):
     else:
       action_handler = lambda value: None
 
-    ui = test_ui.UI()
-
-    def Done():
-      self.done = True
-      self.event.set()
-
-    ui.Run(blocking=False, on_finish=Done)
-    ui.AppendCSS('.large { font-size: 200% }')
-    template = ui_templates.OneSection(ui)
-
-    ui.AddEventHandler('retry', lambda dummy_event: self.event.set())
+    self.ui.AddEventHandler('retry', lambda dummy_event: self.event.set())
 
     while not self.done:
       # If the server_proxy_url has been specified, create a simple XML-PRC
@@ -119,14 +120,14 @@ class CallShopfloor(unittest.TestCase):
           self.args.method, ', '.join(repr(x) for x in args_to_log))
 
       logging.info(message)
-      template.SetState(test_ui.Escape(message))
+      self.template.SetState(test_ui.Escape(message))
 
       # If any arguments are callable, evaluate them.
       args = [x() if callable(x) else x
               for x in self.args.args]
 
       def HandleError(trace):
-        template.SetState(
+        self.template.SetState(
             i18n_test_ui.MakeI18nLabelWithClass(
                 'Shop floor exception:',
                 'test-status-failed large') + '<p>' + test_ui.Escape(trace) +

@@ -99,8 +99,10 @@ class TouchpadHoverTest(unittest.TestCase):
     self._timer_disabler.set()
 
   def runTest(self):
-    self._ui.Run(blocking=False)
+    self._ui.RunInBackground(self._runTest)
+    self._ui.Run()
 
+  def _runTest(self):
     self._SetMessage(_MSG_CALIBRATION, self.args.calibration_sleep_secs)
     self._dut.WriteFile(self.args.calibration_trigger, '1')
     time.sleep(self.args.calibration_sleep_secs)

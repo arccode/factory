@@ -161,13 +161,16 @@ class BatteryCurrentTest(unittest.TestCase):
     return -current >= target
 
   def runTest(self):
+    self._ui.RunInBackground(self._runTest)
+    self._ui.Run()
+
+  def _runTest(self):
     """Main entrance of charger test."""
     self.assertTrue(self._power.CheckBatteryPresent())
     if self.args.max_battery_level:
       self.assertLessEqual(self._power.GetChargePct(),
                            self.args.max_battery_level,
                            'Starting battery level too high')
-    self._ui.Run(blocking=False)
     if self.args.usbpd_info is not None:
       sync_utils.PollForCondition(
           poll_method=self._CheckUSBPD, poll_interval_secs=0.5,

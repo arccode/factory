@@ -190,13 +190,14 @@ class CountDownTest(unittest.TestCase):
     self._sensors = sensors
     # TODO(hungte) Remove the fixed-order when migration is finished.
     self._sensors_index = self._dut.thermal.GetTemperatureSensorNames()
+    self._ui = test_ui.UI()
 
   def runTest(self):
-    # Allow attributes to be defined outside __init__
-    # pylint: disable=attribute-defined-outside-init
+    self._ui.RunInBackground(self._runTest)
+    self._ui.Run()
 
-    self._ui = test_ui.UI()
-    self._ui.Run(blocking=False)
+  def _runTest(self):
+    # pylint: disable=attribute-defined-outside-init
     self._ui.SetHTML(i18n_test_ui.MakeI18nLabel(self.args.title),
                      id='cd-title')
 

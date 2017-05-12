@@ -42,8 +42,10 @@ class FlashNetbootTest(unittest.TestCase):
                             append=True, scroll_down=True)
 
   def runTest(self):
-    self._ui.Run(blocking=False)
+    self._ui.RunInBackground(self._runTest)
+    self._ui.Run()
 
+  def _runTest(self):
     netboot_flasher = flash_netboot.FlashNetboot(self.args.image,
                                                  on_output=self.ShowResult)
     self.ShowResult(netboot_flasher.WarningMessage())

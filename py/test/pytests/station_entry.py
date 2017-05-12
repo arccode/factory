@@ -110,10 +110,12 @@ class StationEntry(unittest.TestCase):
     self._dut.hooks.SendTestResult(self._state.get_test_states())
 
   def runTest(self):
-    self._template.SetState(_STATE_HTML)
-    self._ui.Run(blocking=False)
-    self._ui.BindKey(test_ui.SPACE_KEY, lambda _: self._space_event.set())
+    self._ui.RunInBackground(self._runTest)
+    self._ui.Run()
 
+  def _runTest(self):
+    self._template.SetState(_STATE_HTML)
+    self._ui.BindKey(test_ui.SPACE_KEY, lambda _: self._space_event.set())
     if self.args.start_station_tests:
       # Clear dut.info data.
       if self.args.invalidate_dut_info:
