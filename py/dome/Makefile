@@ -51,7 +51,7 @@ test-backend:
 	docker run \
 		--rm \
 		--volume "$(CURDIR)/../../build/docker:/usr/local/factory/py/dome/build" \
-		--volume "/docker_shared/dome/test_log:/var/log/dome" \
+		--volume "/cros_docker/dome/test_log:/var/log/dome" \
 		--workdir "${DOME_DIR}" \
 		cros/factory_server \
 		sh -c "$(TEST_COVERAGE_CMD)"

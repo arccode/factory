@@ -51,7 +51,7 @@ ADDR_BASE = 'http://localhost:%s' % PORT
 RPC_ADDR_BASE = 'http://localhost:%s' % (PORT + 2)
 
 HOST_BASE_DIR = os.environ.get('TMPDIR', '/tmp')
-HOST_SHARED_DIR = os.path.join(HOST_BASE_DIR, 'docker_shared')
+HOST_SHARED_DIR = os.path.join(HOST_BASE_DIR, 'cros_docker')
 HOST_UMPIRE_DIR = os.path.join(HOST_SHARED_DIR, 'umpire', UMPIRE_BOARD_NAME)
 HOST_RESOURCE_DIR = os.path.join(HOST_UMPIRE_DIR, 'resources')
 
@@ -59,7 +59,7 @@ DOCKER_BASE_DIR = '/var/db/factory/umpire/'
 DOCKER_RESOURCE_DIR = os.path.join(DOCKER_BASE_DIR, 'resources')
 
 TESTDATA_DIR = os.path.join(BASE_DIR, 'testdata')
-SHARED_TESTDATA_DIR = os.path.join(TESTDATA_DIR, 'docker_shared')
+SHARED_TESTDATA_DIR = os.path.join(TESTDATA_DIR, 'cros_docker')
 UMPIRE_TESTDATA_DIR = os.path.join(TESTDATA_DIR, 'umpire')
 CONFIG_TESTDATA_DIR = os.path.join(TESTDATA_DIR, 'config')
 

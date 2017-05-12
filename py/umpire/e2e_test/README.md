@@ -22,8 +22,7 @@ In directory `py/umpire/e2e_test`:
                       Test Docker.
 * `testdata/umpire`: Data that would be mounted on `/var/db/factory/umpire` in
                      Umpire Docker.
-* `testdata/docker_shared`: Data that would be mounted on `/mnt` in Umpire
-                            Docker.
+* `testdata/cros_docker`: Data that would be mounted on `/mnt` in Umpire Docker.
 * `testdata/config`: Testdata used by main test script.
 
 In directory `setup`:
@@ -42,13 +41,13 @@ The test flow is as follows when `cros_docker.sh umpire test` is executed.
 * Inside Test Docker, for each set of test, a new Umpire Docker is created on
   setUpClass, and destroyed on tearDownClass.
 * Inside Test Docker, when creating a new Umpire Docker, copy
-  `testdata/docker_shared` into `${TMPDIR}/docker_shared/`, `testdata/umpire`
-  into `${TMPDIR}/docker_shared/umpire/${BOARD}/`, and set
-  `HOST_SHARED_DIR` environment variable to `${TMPDIR}/docker_shared` when
+  `testdata/cros_docker` into `${TMPDIR}/cros_docker/`, `testdata/umpire`
+  into `${TMPDIR}/cros_docker/umpire/${BOARD}/`, and set
+  `HOST_SHARED_DIR` environment variable to `${TMPDIR}/cros_docker` when
   calling `cros_docker.sh umpire run` inside main test script.
 * The docker service **on Host** would then create Umpire Docker, mount
-  `${TMPDIR}/docker_shared` to `/mnt` in Umpire Docker,
-  `${TMPDIR}/docker_shared/umpire/${BOARD}` to `/var/db/factory/umpire` in
+  `${TMPDIR}/cros_docker` to `/mnt` in Umpire Docker,
+  `${TMPDIR}/cros_docker/umpire/${BOARD}` to `/var/db/factory/umpire` in
   Umpire Docker.
 * Test is executed by calling other `cros_docker.sh` commands, and interact
   with Umpire Docker.

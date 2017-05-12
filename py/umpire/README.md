@@ -40,8 +40,8 @@ Currently the recommended approach is using Umpire inside Docker.
        done
 
        *** NOTE ***
-       - Host directory /docker_shared is mounted under /mnt in the container.
-       - Host directory /docker_shared/umpire/$BOARD is mounted under /var/db/factory/umpire in the container.
+       - Host directory /cros_docker is mounted under /mnt in the container.
+       - Host directory /cros_docker/umpire/$BOARD is mounted under /var/db/factory/umpire in the container.
        - Umpire service ports is mapped to the local machine.
 
 Check if Umpire is running properly
@@ -62,7 +62,7 @@ Umpire by default comes with empty bundle. To feed the images (with test image,
 release image, toolkit, firmware, hwid, ... etc) you have to first prepare it
 with the `finalize_bundle` command. When a bundle ZIP file is available, do:
 
-    sudo cp factory_bundle.zip /docker_shared
+    sudo cp factory_bundle.zip /cros_docker
     setup/cros_docker.sh umpire shell
      umpire import-bundle /mnt/factory_bundle.zip
      umpire edit  # and mark the bundle in rulesets as active.
@@ -70,7 +70,7 @@ with the `finalize_bundle` command. When a bundle ZIP file is available, do:
 
 Updating resources
 ------------------
-You have to first copy the new file into /docker_shared (which can be found as
+You have to first copy the new file into /cros_docker (which can be found as
 /mnt inside docker) then notify Umpire to use them using `umpire update`
 command. Example:
 
@@ -154,11 +154,11 @@ Troubleshooting
 There are two places for logs of Umpire.
 
 1. Services hosted by Umpire, especially shopfloor proxy. The logs are
-   accessible outside Docker. Find them in `/docker_shared/umpire/$BOARD/log`.
+   accessible outside Docker. Find them in `/cros_docker/umpire/$BOARD/log`.
 
    For example, nginx logs are in:
 
-       cd /docker_shared/umpire/$BOARD/log
+       cd /cros_docker/umpire/$BOARD/log
        less httpd_access.log
        less httpd_error.log
 

@@ -104,7 +104,7 @@ BUILD_DIR="${FACTORY_DIR}/build/docker"
 
 # Directories on host that would be mounted to docker
 # This would be overriden in integration tests.
-: "${HOST_SHARED_DIR:="/docker_shared"}"
+: "${HOST_SHARED_DIR:="/cros_docker"}"
 HOST_DOME_DIR="${HOST_SHARED_DIR}/dome"
 HOST_UMPIRE_DIR="${HOST_SHARED_DIR}/umpire"
 HOST_OVERLORD_DIR="${HOST_SHARED_DIR}/overlord"
