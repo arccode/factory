@@ -81,6 +81,8 @@ class FactoryState(object):
   See help(FactoryState.[methodname]) for more information.
   """
 
+  _TEST_STATE_POSTFIX = '__test_state__'
+
   def __init__(self, state_file_path=None):
     """Initializes the state server.
 
@@ -90,10 +92,10 @@ class FactoryState(object):
     state_file_path = state_file_path or DEFAULT_FACTORY_STATE_FILE_PATH
     if not os.path.exists(state_file_path):
       os.makedirs(state_file_path)
-    self._tests_shelf = shelve_utils.OpenShelfOrBackup(
-        state_file_path + '/tests')
-    self._data_shelf = shelve_utils.OpenShelfOrBackup(
-        state_file_path + '/data')
+    self._tests_shelf = shelve_utils.DictShelfView(
+        shelve_utils.OpenShelfOrBackup(state_file_path + '/tests'))
+    self._data_shelf = shelve_utils.DictShelfView(
+        shelve_utils.OpenShelfOrBackup(state_file_path + '/data'))
     self._lock = threading.RLock()
 
     if factory.TestState not in jsonclass.supported_types:
@@ -105,9 +107,17 @@ class FactoryState(object):
     for shelf in [self._tests_shelf,
                   self._data_shelf]:
       try:
-        shelf.close()
+        shelf.Close()
       except:  # pylint: disable=bare-except
         logging.exception('Unable to close shelf')
+
+  def _convert_test_path_to_key(self, path):
+    return shelve_utils.DictKey.Join(path, self._TEST_STATE_POSTFIX)
+
+  def _convert_key_to_test_path(self, key):
+    test_path, postfix = shelve_utils.DictKey.Split(key)
+    assert postfix == self._TEST_STATE_POSTFIX
+    return test_path
 
   @sync_utils.Synchronized
   def update_test_state(self, path, **kw):
@@ -125,7 +135,8 @@ class FactoryState(object):
       A tuple containing the new state, and a boolean indicating whether the
       state was just changed.
     """
-    state = self._tests_shelf.get(path)
+    key = self._convert_test_path_to_key(path)
+    state = self._tests_shelf.GetValue(key, optional=True)
     old_state_repr = repr(state)
     changed = False
 
@@ -138,44 +149,39 @@ class FactoryState(object):
     if changed:
       logging.debug('Updating test state for %s: %s -> %s',
                     path, old_state_repr, state)
-      self._tests_shelf[path] = state
-      self._tests_shelf.sync()
+      self._tests_shelf.SetValue(key, state)
 
     return state, changed
 
   @sync_utils.Synchronized
   def get_test_state(self, path):
     """Returns the state of a test."""
-    return self._tests_shelf[path]
+    key = self._convert_test_path_to_key(path)
+    return self._tests_shelf.GetValue(key)
 
   @sync_utils.Synchronized
   def get_test_paths(self):
     """Returns a list of all tests' paths."""
-    return self._tests_shelf.keys()
+    # GetKeys() only returns keys that are mapped to a value, therefore, all
+    # keys returned should end with `self._TEST_STATE_POSTFIX`.
+    keys = self._tests_shelf.GetKeys()
+    return [self._convert_key_to_test_path(key) for key in keys]
 
   @sync_utils.Synchronized
   def get_test_states(self):
     """Returns a map of each test's path to its state."""
-    return dict(self._tests_shelf)
+    return {path: self.get_test_state(path)
+            for path in self.get_test_paths()}
 
   @sync_utils.Synchronized
   def clear_test_state(self):
     """Clears all test state."""
-    self._tests_shelf.clear()
+    self._tests_shelf.Clear()
 
   @sync_utils.Synchronized
-  def set_shared_data(self, *key_value_pairs):
-    """Sets shared data items.
-
-    Args:
-      key_value_pairs: A series of alternating keys and values
-          (k1, v1, k2, v2...). In the simple case this can just
-          be a single key and value.
-    """
-    assert len(key_value_pairs) % 2 == 0, repr(key_value_pairs)
-    for i in range(0, len(key_value_pairs), 2):
-      self._data_shelf[key_value_pairs[i]] = key_value_pairs[i + 1]
-    self._data_shelf.sync()
+  def set_shared_data(self, key, value):
+    """Sets shared data item."""
+    self._data_shelf.SetValue(key, value)
 
   @sync_utils.Synchronized
   def get_shared_data(self, key, optional=False):
@@ -185,29 +191,22 @@ class FactoryState(object):
       key: The key whose value to retrieve.
       optional: True to return None if not found; False to raise a KeyError.
     """
-    if optional:
-      return self._data_shelf.get(key)
-    else:
-      return self._data_shelf[key]
+    return self._data_shelf.GetValue(key, optional)
 
   @sync_utils.Synchronized
   def has_shared_data(self, key):
     """Returns if a shared data item exists."""
-    return key in self._data_shelf
+    return self._data_shelf.HasKey(key)
 
   @sync_utils.Synchronized
   def del_shared_data(self, key, optional=False):
     """Deletes a shared data item.
 
     Args:
-      key: The key whose value to retrieve.
+      key: The key whose value to delete.
       optional: False to raise a KeyError if not found.
     """
-    try:
-      del self._data_shelf[key]
-    except KeyError:
-      if not optional:
-        raise
+    self._data_shelf.DeleteKeys([key], optional)
 
   @sync_utils.Synchronized
   def update_shared_data_dict(self, key, new_data):
@@ -229,10 +228,8 @@ class FactoryState(object):
     Returns:
       The updated value.
     """
-    data = self._data_shelf.get(key, {})
-    data.update(new_data)
-    self._data_shelf[key] = data
-    return data
+    self._data_shelf.UpdateValue(key, new_data)
+    return self._data_shelf.GetValue(key)
 
   @sync_utils.Synchronized
   def delete_shared_data_dict_item(self, shared_data_key,
@@ -261,14 +258,14 @@ class FactoryState(object):
     Returns:
       The updated value.
     """
-    data = self._data_shelf.get(shared_data_key, {})
+    data = self.get_shared_data(shared_data_key, optional=True) or {}
     for key in delete_keys:
       try:
         del data[key]
       except KeyError:
         if not optional:
           raise
-    self._data_shelf[shared_data_key] = data
+    self.set_shared_data(shared_data_key, data)
     return data
 
   @sync_utils.Synchronized
@@ -291,10 +288,88 @@ class FactoryState(object):
     Returns:
       The updated value.
     """
-    data = self._data_shelf.get(key, [])
+    data = self.get_shared_data(key, optional=True) or []
     data.append(new_item)
-    self._data_shelf[key] = data
+    self.set_shared_data(key, data)
     return data
+
+  #############################################################################
+  # The following functions are exposed for data_shelf APIs.
+  # In the future, *_shared_data APIs might be deprecated, users shall use
+  # `state_proxy.data_shelf.{GetValue, SetValue, GetKeys, ...}`, which use the
+  # following functions.
+  #############################################################################
+  @sync_utils.Synchronized
+  def data_shelf_set_value(self, key, value):
+    self._data_shelf.SetValue(key, value)
+
+  @sync_utils.Synchronized
+  def data_shelf_get_value(self, key, optional=False):
+    return self._data_shelf.GetValue(key, optional)
+
+  @sync_utils.Synchronized
+  def data_shelf_has_key(self, key):
+    return self._data_shelf.HasKey(key)
+
+  @sync_utils.Synchronized
+  def data_shelf_delete_keys(self, keys, optional=False):
+    self._data_shelf.DeleteKeys(keys, optional)
+
+  @sync_utils.Synchronized
+  def data_shelf_get_children(self, key):
+    # Make sure we are returning a list
+    return list(self._data_shelf.GetChildren(key))
+
+
+class DataShelfSelector(object):
+  NOTSET = object()
+
+  def __init__(self, proxy, key=None):
+    """Constructor
+
+    Args:
+      :type proxy: FactoryState
+      :type key: basestring
+    """
+    self._proxy = proxy
+    self._key = key
+
+  def SetValue(self, key, value):
+    self._proxy.data_shelf_set_value(key, value)
+
+  def GetValue(self, key, default=NOTSET):
+    if default == self.NOTSET or self._proxy.data_shelf_has_key(key):
+      return self._proxy.data_shelf_get_value(key, False)
+    else:
+      return default
+
+  def Set(self, value):
+    if self._key is None:
+      raise ValueError('self._key cannot be None')
+    self.SetValue(self._key, value)
+
+  def Get(self, default=NOTSET):
+    if self._key is None:
+      raise ValueError('self._key cannot be None')
+    return self.GetValue(self._key, default=default)
+
+  def __getitem__(self, key):
+    if self._key:
+      key = shelve_utils.DictKey.Join(self._key, key)
+      return self.__class__(self._proxy, key)
+    else:
+      return self.__class__(self._proxy, key)
+
+  def __setitem__(self, key, value):
+    if self._key:
+      key = shelve_utils.DictKey.Join(self._key, key)
+    self.SetValue(key, value)
+
+  def __iter__(self):
+    return iter(self._proxy.data_shelf_get_children(self._key or ''))
+
+  def __contains__(self, key):
+    return key in self._proxy.data_shelf_get_children(self._key or '')
 
 
 def get_instance(address=None, port=None):
@@ -310,8 +385,10 @@ def get_instance(address=None, port=None):
     An object with all public functions from FactoryState.
     See help(FactoryState) for more information.
   """
-  return goofy_proxy.get_rpc_proxy(
+  proxy = goofy_proxy.get_rpc_proxy(
       address, port, goofy_proxy.STATE_URL)
+  proxy.__dict__['data_shelf'] = DataShelfSelector(proxy)
+  return proxy
 
 
 # ---------------------------------------------------------------------------
@@ -322,8 +399,8 @@ def get_shared_data(key, default=None):
   return get_instance().get_shared_data(key)
 
 
-def set_shared_data(*key_value_pairs):
-  return get_instance().set_shared_data(*key_value_pairs)
+def set_shared_data(key, value):
+  return get_instance().set_shared_data(key, value)
 
 
 def has_shared_data(key):
@@ -401,15 +478,8 @@ def GetSerialNumber():
 
 
 class StubFactoryState(FactoryState):
-  class InMemoryShelf(dict):
-    def sync(self):
-      pass
-
-    def close(self):
-      pass
-
   def __init__(self):  # pylint: disable=super-init-not-called
-    self._tests_shelf = self.InMemoryShelf()
-    self._data_shelf = self.InMemoryShelf()
+    self._tests_shelf = shelve_utils.DictShelfView(shelve_utils.InMemoryShelf())
+    self._data_shelf = shelve_utils.DictShelfView(shelve_utils.InMemoryShelf())
 
     self._lock = threading.RLock()

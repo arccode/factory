@@ -72,25 +72,29 @@ class FactoryStateTest(unittest.TestCase):
     self.assertSequenceEqual([], self.state.get_test_paths())
 
   def testSetSharedData(self):
-    self.state.set_shared_data('a', 1, 'b', 'abc')
+    self.state.set_shared_data('a', 1)
+    self.state.set_shared_data('b', 'abc')
 
     self.assertEqual(1, self.state.get_shared_data('a'))
     self.assertEqual('abc', self.state.get_shared_data('b'))
 
   def testGetSharedData(self):
-    self.state.set_shared_data('a', 1, 'b', 'abc')
+    self.state.set_shared_data('a', 1)
+    self.state.set_shared_data('b', 'abc')
 
     self.assertEqual(1, self.state.get_shared_data('a'))
     self.assertEqual('abc', self.state.get_shared_data('b'))
     self.assertIsNone(self.state.get_shared_data('c', optional=True))
 
   def testHasSharedData(self):
-    self.state.set_shared_data('a', 1, 'b', 'abc')
+    self.state.set_shared_data('a', 1)
+    self.state.set_shared_data('b', 'abc')
     self.assertTrue(self.state.has_shared_data('a'))
     self.assertFalse(self.state.has_shared_data('c'))
 
   def testDelSharedData(self):
-    self.state.set_shared_data('a', 1, 'b', 'abc')
+    self.state.set_shared_data('a', 1)
+    self.state.set_shared_data('b', 'abc')
     self.state.del_shared_data('a')
     self.state.del_shared_data('c', optional=True)
 
@@ -102,9 +106,14 @@ class FactoryStateTest(unittest.TestCase):
 
     self.assertEqual({'a': 2, 'b': 3}, self.state.get_shared_data('data'))
 
+    self.state.update_shared_data_dict('data', {'c': 4, 'b': 2})
+    self.assertEqual({'a': 2, 'b': 2, 'c': 4},
+                     self.state.get_shared_data('data'))
+
   def testDeleteSharedDataDictItem(self):
     self.state.set_shared_data('data', {'a': 1, 'b': 2})
-    self.state.delete_shared_data_dict_item('data', ['b', 'c'], optional=True)
+    self.state.del_shared_data('data.b')
+    self.state.del_shared_data('data.c', optional=True)
 
     self.assertEqual({'a': 1}, self.state.get_shared_data('data'))
 

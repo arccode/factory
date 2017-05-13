@@ -943,8 +943,11 @@ cros.factory.Goofy.prototype.init = function() {
   this.sendRpc('GetPluginFrontendURLs', [], this.setPluginUI);
   this.sendRpc('get_shared_data', ['factory_note', true], this.updateNote);
   this.sendRpc(
-      'get_shared_data', ['test_list_options'],
+      'get_shared_data', ['test_list_options', true],
       function(/** Object<string, ?string> */ options) {
+        if (!options) {
+          options = {};
+        }
         this.engineeringPasswordSHA1 = options['engineering_password_sha1'];
         // If no password, enable eng mode, and don't
         // show the 'disable' link, since there is no way to

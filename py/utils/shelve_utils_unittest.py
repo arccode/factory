@@ -80,6 +80,117 @@ class ShelveUtilsTest(unittest.TestCase):
     self.assertFalse(shelve_utils.BackupShelfIfValid(path))
 
 
+class DictShelveViewTest(unittest.TestCase):
+
+  def setUp(self):
+    self.shelf = shelve_utils.InMemoryShelf()
+    self.shelf_view = shelve_utils.DictShelfView(self.shelf)
+
+  def testSetValueAndGetValue(self):
+    self.shelf_view.SetValue('a.b.c', 1)
+    self.assertEqual(self.shelf_view.GetValue('a.b.c'), 1)
+    self.assertEqual(self.shelf_view.GetValue('a.b'), {'c': 1})
+    self.assertEqual(self.shelf_view.GetValue('a'), {'b': {'c': 1}})
+    self.shelf_view.SetValue('a.b.c', 2)
+    self.assertEqual(self.shelf_view.GetValue('a.b.c'), 2)
+    self.assertEqual(self.shelf_view.GetValue('a.b'), {'c': 2})
+    self.assertEqual(self.shelf_view.GetValue('a'), {'b': {'c': 2}})
+
+    self.shelf_view.Clear()
+    self.shelf_view.SetValue('a.b.c.d', 3)
+    self.shelf_view.SetValue('a.b', {})
+    self.assertFalse(self.shelf_view.HasKey('a.b.c.d'))
+    self.assertFalse(self.shelf_view.HasKey('a.b.c'))
+    self.assertFalse(self.shelf_view.HasKey('a.b'))
+    self.assertFalse(self.shelf_view.HasKey('a'))
+    self.assertFalse(self.shelf_view.GetKeys())
+
+    self.shelf_view.Clear()
+    self.shelf_view.SetValue('', {'a': 1, 'b': {'c': 2, 'd': 3}})
+    self.assertEqual(self.shelf_view.GetValue('a'), 1)
+    self.assertEqual(self.shelf_view.GetValue('b.c'), 2)
+    self.assertEqual(self.shelf_view.GetValue('b.d'), 3)
+    self.assertEqual(self.shelf_view.GetValue('b'), {'c': 2, 'd': 3})
+    self.assertEqual(self.shelf_view.GetValue(''),
+                     {'a': 1, 'b': {'c': 2, 'd': 3}})
+
+    self.shelf_view.Clear()
+    self.shelf_view.SetValue('a', 0)
+    self.shelf_view.SetValue('a.b', 1)
+    self.shelf_view.SetValue('a.b.c', 2)
+    self.assertItemsEqual(['a.b.c'], self.shelf_view.GetKeys())
+
+  def testGetKeys(self):
+    self.shelf_view.SetValue('a.b', {'c': 1, 'd': 2})
+    self.assertItemsEqual(['a.b.c', 'a.b.d'], self.shelf_view.GetKeys())
+
+  def testDeleteKeys(self):
+    # delete everything
+    self.shelf_view.SetValue('', {'a': 1, 'b': {'c': 2, 'd': 3}})
+    self.shelf_view.DeleteKeys(['a', 'b', 'b.c', 'b.d'])
+    self.assertFalse(self.shelf_view.GetKeys())
+
+    self.shelf_view.Clear()
+
+    # ignore KeyError if optional=True
+    self.shelf_view.SetValue('', {'a': 1, 'b': {'c': 2, 'd': 3}})
+    self.shelf_view.DeleteKeys(['a', 'b.c.d', 'b.d'], optional=True)
+    self.assertEqual(self.shelf_view.GetValue(''), {'b': {'c': 2}})
+
+    self.shelf_view.Clear()
+
+    self.shelf_view.SetValue('a.b.c', 1)
+    self.shelf_view.DeleteKeys(['a.b'])
+    self.assertFalse(self.shelf_view.GetKeys())
+    with self.assertRaises(KeyError):
+      # since there is nothing under 'a', so a is deleted as well.
+      self.shelf_view.DeleteKeys(['a'])
+
+    self.shelf_view.Clear()
+    self.shelf_view.SetValue('a.b', 1)
+    with self.assertRaises(KeyError):
+      self.shelf_view.DeleteKeys(['a', 'a.b.c'])
+    self.assertItemsEqual([], self.shelf_view.GetKeys())
+
+  def testGetChildren(self):
+    self.shelf_view.SetValue('', {'a': 1, 'b': {'c': 2, 'd': 3}})
+    self.assertItemsEqual(self.shelf_view.GetChildren(''), ['a', 'b'])
+
+
+class DictKeyUnittest(unittest.TestCase):
+  def testJoin(self):
+    self.assertEqual('a.b.c', shelve_utils.DictKey.Join('a', 'b', 'c'))
+    self.assertEqual('a.b.c', shelve_utils.DictKey.Join('a', 'b.c'))
+    self.assertEqual('a.b.c', shelve_utils.DictKey.Join('a.b', 'c'))
+    self.assertEqual('a.b.c', shelve_utils.DictKey.Join('', 'a', 'b', 'c'))
+    self.assertEqual('a.c', shelve_utils.DictKey.Join('', 'a', '', 'c'))
+
+  def testGetBasename(self):
+    self.assertEqual('c', shelve_utils.DictKey.GetBasename('a.b.c'))
+    self.assertEqual('c', shelve_utils.DictKey.GetBasename('c'))
+    self.assertEqual('', shelve_utils.DictKey.GetBasename(''))
+
+  def testGetParent(self):
+    self.assertEqual('a.b', shelve_utils.DictKey.GetParent('a.b.c'))
+    self.assertEqual('', shelve_utils.DictKey.GetParent('c'))
+    self.assertEqual('', shelve_utils.DictKey.GetParent(''))
+
+  def testSplit(self):
+    self.assertEqual(('a.b', 'c'), shelve_utils.DictKey.Split('a.b.c'))
+    self.assertEqual(('', 'c'), shelve_utils.DictKey.Split('c'))
+    self.assertEqual(('', ''), shelve_utils.DictKey.Split(''))
+
+  def testIsAncestor(self):
+    self.assertTrue(shelve_utils.DictKey.IsAncestor('a', 'a.b.c'))
+    self.assertTrue(shelve_utils.DictKey.IsAncestor('', 'a.b.c'))
+    self.assertTrue(shelve_utils.DictKey.IsAncestor('a.b.c', 'a.b.c'))
+    self.assertTrue(shelve_utils.DictKey.IsAncestor('', ''))
+
+    self.assertFalse(shelve_utils.DictKey.IsAncestor('a.b.c', 'a.b'))
+    self.assertFalse(shelve_utils.DictKey.IsAncestor('a.b', 'a.d'))
+    self.assertFalse(shelve_utils.DictKey.IsAncestor('a.b', ''))
+
+
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
   unittest.main()

@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import collections
 import glob
 import logging
 import os
@@ -128,3 +129,266 @@ def OpenShelfOrBackup(shelf, flag='c', protocol=None, writeback=False):
     # At this point the shelf is guaranteed to be valid.
 
   return shelve.open(shelf, flag, protocol, writeback)
+
+
+class DictShelfView(object):
+  """Wrapper for shelf.
+
+  Turns a shelf object into recursive dictionary data structure.
+  For example::
+
+    shelf_view.SetValue('a.b.c', True)
+    assert shelf_view.GetChildren('a') == ['b']
+    assert shelf_view.GetChildren('a.b') == ['c']
+
+  Key used in shelf is treated as a path on tree that seperated by dot ('.').
+  """
+  def __init__(self, shelf):
+    """Constructor
+
+    Args
+      :type shelf: shelve.Shelf
+    """
+    self._shelf = shelf
+    self._cached_children = {}
+    self._InitCache()
+
+  def GetValue(self, key, optional=False):
+    """Retrives a shared data item, recursively.
+
+    For example::
+      shelf_view.SetValue('a.b.c', 1)
+      assert shelf_view.GetValue('a') == {'b': {'c': 1}}
+    Args:
+      key: The key whose value to retrieve.
+      optional: True to return None if not found; False to raise a KeyError.
+    """
+    if key not in self._cached_children:
+      if optional:
+        return None
+      else:
+        raise KeyError(key)
+
+    def walk(path):
+      children = self._cached_children[path]
+      if children:
+        retval = {}
+        for c in children:
+          retval[c] = walk(DictKey.Join(path, c))
+        return retval
+      else:
+        return self._shelf[path]
+    return walk(key)
+
+  def SetValue(self, key, value, sync=True):
+    """Set key with value. `d[key] = value`
+
+    Args:
+      key: key that will be replaced.
+      value: new value.
+    """
+    if self.HasKey(key):
+      self._DeleteOneKey(key)
+
+    def _SetValue(key, value):
+      if isinstance(value, collections.Mapping):
+        for k in value:
+          _SetValue(DictKey.Join(key, k), value[k])
+      else:
+        self._AddCache(key)
+        self._shelf[key] = value
+
+    _SetValue(key, value)
+    if sync:
+      self._shelf.sync()
+
+  def UpdateValue(self, key, value, sync=True):
+    def _UpdateValue(key, value):
+      if isinstance(value, collections.Mapping):
+        for k in value:
+          _UpdateValue(DictKey.Join(key, k), value[k])
+      else:
+        self.SetValue(key, value, sync=False)
+
+    _UpdateValue(key, value)
+    if sync:
+      self._shelf.sync()
+
+  def DeleteKeys(self, keys, optional=False):
+    """Delete each key in `keys`, recursively.
+
+    For example::
+      shelf_view.SetValue('a.b.c', 1)
+      shelf_view.SetValue('a.b.d', 1)
+      shelf_view.DeleteKeys(['a'])  # shelf will become empty
+
+    If there are keys cannot be found in shelf, a KeyError exception will be
+    raised for those keys, but other keys which are valid will be deleted first.
+    """
+    # sort keys, so we will always delete children before deleting parent.
+    keys.sort(reverse=True)
+    last_deleted_key = None
+    invalid_keys = set()
+
+    for key in keys:
+      # trying to delete a key which is ancestor of previous deleted key.
+      try:
+        self._DeleteOneKey(key)
+      except KeyError:
+        # if key is ancestor of last deleted key, it is possible that current
+        # key is invalid now (because last deleted key is the last descendant).
+        if not (last_deleted_key is not None and
+                DictKey.IsAncestor(key, last_deleted_key)):
+          invalid_keys.add(key)
+      else:
+        last_deleted_key = key
+
+    self._shelf.sync()
+    if not optional and invalid_keys:
+      raise KeyError(' '.join(invalid_keys))
+
+  def GetChildren(self, key):
+    """Returns children of node `key`.
+
+    For example::
+      shelf_view.SetValue('a.b.c', 1)
+      shelf_view.SetValue('a.b.d', 1)
+      assert shelf_view.GetChildren('a') == {'b'}
+      assert shelf_view.GetChildren('a.b') == {'c', 'd'}
+
+    Returns:
+      the return value will be an iterable the contains all children of `key`
+      :rtype: collections.Iterable
+    """
+    return self._cached_children[key]
+
+  def GetKeys(self):
+    """List of shelf's keys.
+
+    For example::
+      shelf_view.SetValue('a.b.c', 1)
+      shelf_view.GetKeys() == ['a.b.c']  # note there is no 'a' and 'a.b'
+    """
+    return self._shelf.keys()
+
+  def Close(self):
+    """Closes the shelf."""
+    self._shelf.close()
+
+  def Clear(self):
+    """Removes everything in shelf."""
+    self._shelf.clear()
+    self._cached_children.clear()
+
+  def HasKey(self, key):
+    """Check if shelf has `key` or has a key that is desendant of `key`.
+
+    For example::
+      shelf_view.SetValue('a.b.c', 1)
+      assert shelf_view.HasKey('a') == True
+      assert shelf_view.HasKey('a.b') == True
+      assert shelf_view.HasKey('a.b.c') == True
+      assert shelf_view.HasKey('b') == False
+      assert shelf_view.HasKey('a.b.c.d') == False
+    """
+    return key in self._cached_children
+
+  def _DeleteOneKey(self, key, update_parent=True):
+    assert isinstance(key, basestring)
+    if key == '':  # '' is the root node, delete it will delete everything
+      self.Clear()
+      return
+
+    # remove my children
+    for child in self._cached_children[key]:
+      self._DeleteOneKey(DictKey.Join(key, child), update_parent=False)
+
+    if key in self._shelf:
+      # key might be an intermediate node which has no data
+      del self._shelf[key]
+    del self._cached_children[key]
+
+    if update_parent:
+      # remove pointer from my parent
+      parent, tail = DictKey.Split(key)
+      self._cached_children[parent].remove(tail)
+      if not self._cached_children[parent]:
+        self._DeleteOneKey(parent, update_parent=True)
+
+  def _InitCache(self):
+    keys = self._shelf.keys()
+    for key in keys:
+      self._AddCache(key)
+
+  def _AddCache(self, key):
+    assert isinstance(key, basestring)
+    if key:
+      parent, tail = DictKey.Split(key)
+      self._AddCache(parent)
+      # parent should not map to anything, force a pop
+      self._shelf.pop(parent, None)
+      self._cached_children[parent].add(tail)
+    if key not in self._cached_children:
+      self._cached_children[key] = set()
+
+
+class DictKey(object):
+  """A namespace of functions to manipulate dict keys.
+
+  Dictionary keys look very similar to domain name addresses, each components of
+  key are separated by '.' (dots).  The root node will be represented by an
+  empty string ''.  (Direct) Children of root shall access by `key` directly,
+  such as 'device'.  A child node 'factory' of node 'device' shall be access by
+  'device.factory'.  All keys shall not contain dots (just like you cannot have
+  slashes '/' in linux filename).
+  """
+  @staticmethod
+  def Join(parent, *keys):
+    """Joins two or more pathname components, '.' will be inserted."""
+    path = parent.strip('.')
+    for key in keys:
+      key = key.strip('.')
+      if not key:
+        continue
+      if path == '':
+        path = key
+      else:
+        path += '.' + key
+    return path
+
+  @staticmethod
+  def GetBasename(path):
+    """Returns the final component."""
+    i = path.rfind('.') + 1
+    return path[i:]
+
+  @staticmethod
+  def GetParent(path):
+    """Returns the path whose final component is removed."""
+    i = path.rfind('.') + 1
+    head = path[:i]
+    return head.rstrip('.')
+
+  @staticmethod
+  def Split(path):
+    """Returns (GetParent(path), GetBasename(path))."""
+    i = path.rfind('.') + 1
+    head, tail = path[:i], path[i:]
+    return head.rstrip('.'), tail
+
+  @staticmethod
+  def IsAncestor(a, b):
+    """Returns True if `a` is an ancestor of `b` or `a` == `b`"""
+    if not isinstance(a, basestring) or not isinstance(b, basestring):
+      raise ValueError('`a` and `b` must be strings')
+    return (not a) or (a == b) or b.startswith(a + '.')
+
+
+# for unittest
+class InMemoryShelf(dict):
+  def sync(self):
+    pass
+
+  def close(self):
+    pass
+

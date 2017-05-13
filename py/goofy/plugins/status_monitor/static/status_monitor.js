@@ -111,7 +111,7 @@ status_monitor.Status.prototype.start = function() {
       document.getElementById('system-info-hover'),
       this.infoTooltip);
 
-  goofy.sendRpc('get_shared_data', ['system_info'],
+  goofy.sendRpc('get_shared_data', ['system_info', true],
                 goog.bind(this.setSystemInfo, this));
 
   window.setInterval(
@@ -141,7 +141,7 @@ status_monitor.Status.prototype.updateTime = function() {
  * @param {Object<string, string>} systemInfo
  */
 status_monitor.Status.prototype.setSystemInfo = function(systemInfo) {
-  this.systemInfo = systemInfo;
+  this.systemInfo = systemInfo || {};
   var rows = [];
   goog.array.forEach(status_monitor.SYSTEM_INFO_LABELS, function(item) {
     var value = systemInfo[item.key];
