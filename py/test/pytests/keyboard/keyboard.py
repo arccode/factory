@@ -37,7 +37,7 @@ _HTML_KEYBOARD = (
 
 _KEYBOARD_TEST_DEFAULT_CSS = (
     '#keyboard-test-timer { font-size: 2em; }\n'
-    '.keyboard-test-key-untested { display: none; }\n'
+    '.keyboard-test-key-untested { background-color: white; opacity: 0.5; }\n'
     '.keyboard-test-keydown { background-color: yellow; opacity: 0.5; }\n'
     '.keyboard-test-keyup { background-color: green; opacity: 0.5; }\n'
     '.keyboard-test-key-skip { background-color: gray; opacity: 0.5; }\n')
@@ -80,7 +80,9 @@ class KeyboardTest(unittest.TestCase):
       Arg('replacement_keymap', dict, 'Dictionary mapping key codes to '
           'replacement key codes', default={}),
       Arg('detect_long_press', bool, 'Detect long press event. Usually for '
-          'detecting bluetooth keyboard disconnection.', default=False)
+          'detecting bluetooth keyboard disconnection.', default=False),
+      Arg('number_to_press', int, 'Number of presses required for each key to '
+          'pass the test', default=1),
   ]
 
   def setUp(self):
@@ -128,7 +130,8 @@ class KeyboardTest(unittest.TestCase):
                            keycodes_to_skip_dict, _ID_IMAGE,
                            self.key_order_list,
                            self.args.strict_sequential_press,
-                           self.args.allow_multi_keys)
+                           self.args.allow_multi_keys,
+                           self.args.number_to_press)
 
     self.keyboard_device.grab()
     self.dispatcher = evdev_utils.InputDeviceDispatcher(self.keyboard_device,

@@ -12,16 +12,19 @@
  * @param {Array} keyOrderList
  * @param {boolean} strictSequentialPress
  * @param {boolean} allowMultiKeys
+ * @param {integer} numberToPress
  */
 var keyboardTest = function(layout, bindings, skipKeycodes, container,
-    keyOrderList, strictSequentialPress, allowMultiKeys) {
+    keyOrderList, strictSequentialPress, allowMultiKeys, numberToPress) {
   this.layout = layout;
   this.bindings = bindings;
   this.skipKeycodes = skipKeycodes;
   this.container = container;
   this.keyOrderList = keyOrderList;
   this.strictSequentialPress = strictSequentialPress;
-  this.next_key_index = 0;
+  this.keyPressCounts = {};
+  this.numberToPress = numberToPress;
+
   if (allowMultiKeys) {
     this.enInstruct = '';
     this.zhInstruct = '';
@@ -40,7 +43,7 @@ keyboardTest.prototype.init = function() {
   var bindings = this.bindings;
   var skipKeycodes = this.skipKeycodes;
   img.id = 'layout-image';
-  img.onload = function() {
+  img.onload = (function(test) {
     var xOffset = ($(container).clientWidth - this.width) / 2;
     for (var keycode in bindings) {
       var skip = keycode in skipKeycodes;
@@ -52,13 +55,20 @@ keyboardTest.prototype.init = function() {
         div.style.top = bindings[keycode][i][1];
         div.style.width = bindings[keycode][i][2];
         div.style.height = bindings[keycode][i][3];
+        div.style.lineHeight = bindings[keycode][i][3] + 'px';
         div.style.zIndex = 2;
         div.className =
             skip ? 'keyboard-test-key-skip' : 'keyboard-test-key-untested';
+        if (!skip) {
+          div.innerHTML = test.numberToPress;
+        } else {
+          test.keyPressCounts[keycode] = test.numberToPress;
+        }
+
         $(container).appendChild(div);
       }
     }
-  };
+  }).bind(img, this);
   img.src = this.layout + '.png';
   $(container).appendChild(img);
   var instruction = document.createElement('div');
@@ -81,26 +91,27 @@ keyboardTest.prototype.markKeydown = function(keycode) {
   if (this.keyOrderList && this.keyOrderList.indexOf(keycode) != -1) {
     // Checks if the key has been pressed following the given order.
     var index = this.keyOrderList.indexOf(keycode);
-    if (this.strictSequentialPress) {
-      // Check the keys in the strict sequential manner.
-      if (index != this.next_key_index) {
+
+    // find first key that is not tested
+    var expected_index = 0;
+    while (expected_index < this.keyOrderList.length) {
+      var count = this.keyPressCounts[this.keyOrderList[expected_index]] || 0;
+      if (count < this.numberToPress) {
+        // this key is not fully tested
+        break;
+      }
+      expected_index++;
+    }
+
+    if (index != expected_index) {
+      if (this.strictSequentialPress) {
         var failMsg =
-            'expect keycode ' + this.keyOrderList[this.next_key_index] +
-            ' but get keycode ' + keycode;
+          'expect keycode ' + this.keyOrderList[expected_index] +
+          ' but get keycode ' + keycode;
         this.failTest(failMsg);
       } else {
-        this.next_key_index += 1;
-      }
-    } else {
-      // Check the keys in a somewhat relaxed sequential manner.
-      if (index > 0) {
-        var untested = this.getClassArray('keyboard-test-key-untested');
-        for (var i = 0; i < untested.length; ++i) {
-          if (this.matchKeycode(untested[i].id, this.keyOrderList[index - 1])) {
-            // Returns if the previous key is untested.
-            return;
-          }
-        }
+        // Ignore this event
+        return;
       }
     }
   }
@@ -123,10 +134,18 @@ keyboardTest.prototype.markKeyup = function(keycode) {
   if (!divs.length) {
     return;
   }
+  this.keyPressCounts[keycode] = (this.keyPressCounts[keycode] || 0) + 1;
+
   divs.forEach(function(element) {
       if (!element) return;
       if (this.matchKeycode(element.id, keycode)) {
-        element.className = 'keyboard-test-keyup';
+        if (this.keyPressCounts[keycode] < this.numberToPress) {
+          element.className = 'keyboard-test-key-untested';
+          element.innerHTML = this.numberToPress - this.keyPressCounts[keycode];
+        } else {
+          element.className = 'keyboard-test-keyup';
+          element.innerHTML = '';
+        }
       }
     }, this);
   this.checkTestComplete();
@@ -218,11 +237,13 @@ keyboardTest.prototype.getClassArray = function(className) {
  * @param {Array} keyOrderList
  * @param {boolean} strictSequentialPress
  * @param {boolean} allowMultiKeys
+ * @param {integer} numberToPress
  */
 function setUpKeyboardTest(layout, bindings, skipKeycodes, container,
-    keyOrderList, strictSequentialPress, allowMultiKeys) {
+    keyOrderList, strictSequentialPress, allowMultiKeys, numberToPress) {
   window.keyboardTest = new keyboardTest(layout, bindings, skipKeycodes,
-      container, keyOrderList, strictSequentialPress, allowMultiKeys);
+      container, keyOrderList, strictSequentialPress, allowMultiKeys,
+      numberToPress);
   window.keyboardTest.init();
 }
 
