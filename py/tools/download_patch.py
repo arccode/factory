@@ -10,6 +10,7 @@ specific topic or hashtag.  If BOARD is given, will also cherry-pick changes in
 private overlay.  Please refer to tools/README.md for more detailed information.
 """
 
+from __future__ import print_function
 
 import argparse
 import logging
@@ -200,7 +201,6 @@ def CherryPickChanges(info, changes):
     :type changes: dict
   """
   changes = TopologicalSort(changes)
-  last_success = -1
 
   try:
     process_utils.LogAndCheckCall(
@@ -209,28 +209,46 @@ def CherryPickChanges(info, changes):
   except subprocess.CalledProcessError:
     logging.exception('failed to checkout branch %s', info['branch'])
   else:
+    head = process_utils.CheckOutput(['git', 'rev-parse', 'HEAD'],
+                                     cwd=info['dir']).strip()
+
+    successes = set()
     for idx, change in enumerate(changes):
-      print 'cherry-picking %s...' % change['url']
+      print('cherry-picking %s ...' % change['url'])
       try:
         process_utils.LogAndCheckCall(
             ['git', 'fetch', change['fetch']['url'], change['fetch']['ref']],
             cwd=info['dir'])
+      except subprocess.CalledProcessError:
+        logging.exception('Cannot download change %s', change['url'])
+        continue
+
+      try:
         process_utils.LogAndCheckCall(
             ['git', 'cherry-pick', 'FETCH_HEAD'],
             cwd=info['dir'])
-        last_success = idx
       except subprocess.CalledProcessError:
-        logging.exception('failed to cherry pick %s', change['url'])
-        break
+        logging.exception('Failed to cherry pick %s', change['url'])
+        logging.error('Revert this change...')
+        try:
+          process_utils.LogAndCheckCall(['git', 'cherry-pick', '--abort'],
+                                        cwd=info['dir'])
+        except subprocess.CalledProcessError:
+          # somehow we cannot recover git state, abort
+          logging.exception('Cannot revert git state, abort...')
+          break
+        continue
+      successes.add(idx)
 
-  print
-  print
-  print "Summary:"
+  print()
+  print()
+  print('Summary:')
+  print('BASE:', head)
   for idx, change in enumerate(changes):
-    print '%s: %s' % (change['url'],
-                      'success' if idx <= last_success else 'failed')
-  print
-  print
+    print('%s: %s' % (change['url'],
+                      'success' if idx in successes else 'failed'))
+  print()
+  print()
 
 
 def main():
