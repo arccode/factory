@@ -8,20 +8,15 @@ goog.require('cros.factory.DeviceManager');
 goog.require('cros.factory.DiagnosisTool');
 goog.require('cros.factory.i18n');
 goog.require('cros.factory.Plugin');
-goog.require('goog.Uri');
 goog.require('goog.crypt');
 goog.require('goog.crypt.Sha1');
-goog.require('goog.crypt.base64');
-goog.require('goog.date.Date');
 goog.require('goog.date.DateTime');
-goog.require('goog.debug.ErrorHandler');
 goog.require('goog.debug.FancyWindow');
 goog.require('goog.debug.Logger');
 goog.require('goog.dom');
 goog.require('goog.dom.classlist');
 goog.require('goog.dom.iframe');
 goog.require('goog.events');
-goog.require('goog.events.EventHandler');
 goog.require('goog.events.KeyCodes');
 goog.require('goog.html.SafeHtml');
 goog.require('goog.html.SafeStyle');
@@ -34,18 +29,16 @@ goog.require('goog.net.XhrIo');
 goog.require('goog.string');
 goog.require('goog.style');
 goog.require('goog.ui.AdvancedTooltip');
-goog.require('goog.ui.Checkbox');
 goog.require('goog.ui.Dialog');
 goog.require('goog.ui.Dialog.ButtonSet');
 goog.require('goog.ui.MenuSeparator');
 goog.require('goog.ui.PopupMenu');
 goog.require('goog.ui.ProgressBar');
 goog.require('goog.ui.Prompt');
-goog.require('goog.ui.Select');
 goog.require('goog.ui.SplitPane');
 goog.require('goog.ui.SubMenu');
 goog.require('goog.ui.tree.TreeControl');
-goog.require('goog.window');
+goog.require('goog.Uri');
 
 /**
  * @type {goog.debug.Logger}
@@ -2230,7 +2223,7 @@ cros.factory.Goofy.prototype.showHistoryEntry = function(path, invocation) {
 
         var metadataRows = [];
         goog.array.forEach(
-            /** @type Array<Array<string>> */ ([
+            /** @type {Array<Array<string>>} */ ([
               ['status', 'Status'], ['init_time', 'Creation time'],
               ['start_time', 'Start time'], ['end_time', 'End time']
             ]),
@@ -2261,13 +2254,16 @@ cros.factory.Goofy.prototype.showHistoryEntry = function(path, invocation) {
             // entire log.
             return;
           }
-          var /** string|number|Object */ value = entry.metadata[key];
+          var /** string|number|!Object */ value = entry.metadata[key];
+          var /** string|number */ valueRepr;
           if (goog.isObject(value)) {
-            value = goog.json.serialize(value);
+            valueRepr = goog.json.serialize(value);
+          } else {
+            valueRepr = value;
           }
           metadataRows.push(goog.html.SafeHtml.create('tr', {}, [
             goog.html.SafeHtml.create('th', {}, key),
-            goog.html.SafeHtml.create('td', {}, value)
+            goog.html.SafeHtml.create('td', {}, valueRepr)
           ]));
         });
 
@@ -2878,11 +2874,6 @@ cros.factory.Goofy.prototype.hideTooltips = function() {
 };
 
 /**
- * @type {{runtime: {sendMessage: function(string, Object, function(Object))}}}
- */
-window.chrome;
-
-/**
  * Handles an event sends from the backend.
  * @suppress {missingProperties}
  * @param {string} jsonMessage the message as a JSON string.
@@ -2923,10 +2914,13 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
     var invocation = this.getOrCreateInvocation(
         message.test, message.invocation, message.parent_invocation);
     if (invocation && invocation.iframe) {
-      goog.dom.iframe.writeContent(invocation.iframe, message['html']);
-      this.updateCSSClassesInDocument(invocation.iframe.contentDocument);
+      var doc = invocation.iframe.contentDocument;
+      doc.open();
+      doc.write(message['html']);
+      doc.close();
+      this.updateCSSClassesInDocument(doc);
       invocation.iframe.onload = goog.bind(function() {
-        this.fixSelectElements(invocation.iframe.contentDocument);
+        this.fixSelectElements(doc);
       }, this);
       // In the content window's evaluation context, add our keydown
       // listener.
@@ -3095,25 +3089,25 @@ var jQuery = function() {};
 /** @constructor */
 jQuery.Type = function() {};
 
-/** @type function(string): jQuery.Type */
+/** @type {function(string): jQuery.Type} */
 jQuery.Type.prototype.find;
 
-/** @type function(Object) */
+/** @type {function(Object)} */
 jQuery.Type.prototype.draggable;
 
-/** @type function(string, string=): string */
+/** @type {function(string, string=): string} */
 jQuery.Type.prototype.css;
 
-/** @type function(): number */
+/** @type {function(): number} */
 jQuery.Type.prototype.width;
 
-/** @type function(): number */
+/** @type {function(): number} */
 jQuery.Type.prototype.height;
 
-/** @type function() */
+/** @type {function()} */
 jQuery.Type.prototype.resizable;
 
-/** @type function(string, function()) */
+/** @type {function(string, function())} */
 jQuery.Type.prototype.bind;
 
 /**

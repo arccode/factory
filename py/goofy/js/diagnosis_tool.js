@@ -11,6 +11,7 @@ goog.require('goog.array');
 goog.require('goog.dom');
 goog.require('goog.string');
 goog.require('goog.ui.Button');
+goog.require('goog.ui.Checkbox');
 goog.require('goog.ui.Component');
 goog.require('goog.ui.Dialog');
 goog.require('goog.ui.LabelInput');
@@ -310,8 +311,7 @@ cros.factory.DiagnosisTool.prototype.initWindow = function() {
     'goog-splitpane-first-container', 'goog-splitpane-second-container',
     'goog-splitpane-handle'
   ];
-  for (var i in classNames) {
-    var className = classNames[i];
+  for (var className of classNames) {
     var element = rightPart.getElement().getElementsByClassName(className)[0];
     element.style['width'] = '100%';
   }
@@ -368,8 +368,7 @@ cros.factory.DiagnosisTool.prototype.initWindowRightUpperPart = function() {
   for (var key in cros.factory.DiagnosisTool.State) {
     var value = cros.factory.DiagnosisTool.State[key];
     var stateId = cros.factory.DiagnosisTool.getStateId(value);
-    var content = goog.dom.htmlToDocumentFragment(value);
-    var stateElement = goog.dom.createDom('span', {'id': stateId}, content);
+    var stateElement = goog.dom.createDom('span', {'id': stateId}, value);
     goog.dom.appendChild(row_element, stateElement);
     stateElement.style['display'] = 'none';
   }
@@ -555,8 +554,7 @@ cros.factory.DiagnosisTool.prototype.confirmDialog = function(
   button.setDefault(defaultOption);
   dialog.setButtonSet(button);
   // Content text setting
-  var text = goog.dom.htmlToDocumentFragment(content);
-  goog.dom.append(dialogContent, goog.dom.createDom('div', {}, text));
+  goog.dom.append(dialogContent, goog.dom.createDom('div', {}, content));
   // Register and display
   this.goofy.registerDialog(dialog);
   dialog.setVisible(true);
@@ -683,8 +681,7 @@ cros.factory.DiagnosisTool.prototype.setInputs = function(inputs) {
 cros.factory.DiagnosisTool.prototype.appendOutput = function(text) {
   var lines = text.split('\n');
   for (var i = 0, iMax = lines.length; i < iMax; ++i) {
-    var document_fragment = goog.dom.htmlToDocumentFragment(lines[i]);
-    var line = goog.dom.createDom('div', {}, document_fragment);
+    var line = goog.dom.createDom('div', {}, lines[i]);
     goog.dom.appendChild(this.outputElement_, line);
     if (i + 1 < iMax) {
       goog.dom.appendChild(this.outputElement_, goog.dom.createDom('br'));
@@ -790,9 +787,7 @@ cros.factory.DiagnosisTool.Inputs.addFieldPrompt = function(
   var ret = new goog.ui.Component();
   ret.createDom();
   goog.dom.append(
-      /** @type {!Element} */ (ret.getElement()),
-      goog.dom.htmlToDocumentFragment(prefix), input,
-      goog.dom.htmlToDocumentFragment(suffix));
+      /** @type {!Element} */ (ret.getElement()), prefix, input, suffix);
   if (helpText.length > 0) {
     var tp = new goog.ui.Tooltip(ret.getElement(), helpText);
   }

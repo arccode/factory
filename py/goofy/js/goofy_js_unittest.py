@@ -18,7 +18,11 @@ SCRIPT_DIR = os.path.dirname(__file__)
 class GoofyJSTest(unittest.TestCase):
   def runTest(self):
     static_dir = os.path.join(SCRIPT_DIR, '..', 'static')
-    subprocess.check_call(['make', '-C', static_dir, 'check_js'])
+    output = subprocess.check_output(
+        ['make', '-C', static_dir, 'check_js'], stderr=subprocess.STDOUT)
+    self.assertNotIn(
+        ' WARNING ', output,
+        "There's warning in closure compiler output, please fix them.")
 
 
 if __name__ == '__main__':

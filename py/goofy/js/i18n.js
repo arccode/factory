@@ -113,7 +113,7 @@ cros.factory.i18n.locales = [cros.factory.i18n.DEFAULT_LOCALE];
 cros.factory.i18n.translations_ = Object.create(null);
 if (window['goofy_i18n_data']) {
   cros.factory.i18n.locales = window['goofy_i18n_data']['locales'];
-  for (const text of /** @type !Array<cros.factory.i18n.TranslationDict> */ (
+  for (const text of /** @type {!Array<cros.factory.i18n.TranslationDict>} */ (
            window['goofy_i18n_data']['translations'])) {
     const key = text[cros.factory.i18n.DEFAULT_LOCALE];
     cros.factory.i18n.translations_[key] = text;

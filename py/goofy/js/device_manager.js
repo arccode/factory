@@ -4,11 +4,9 @@
 
 goog.provide('cros.factory.DeviceManager');
 
-goog.require('goog.debug');
 goog.require('goog.dom');
 goog.require('goog.dom.xml');
 goog.require('goog.events');
-goog.require('goog.string');
 goog.require('goog.ui.Button');
 goog.require('goog.ui.Component');
 goog.require('goog.ui.Dialog');
@@ -201,8 +199,12 @@ cros.factory.DeviceManager.prototype.createDrilldownMenu = function(
     itemMenuParent, fullPath) {
 
   var itemMenuSubnode = new goog.ui.DrilldownRow({
-    html: '<tr><td><div id="show-button-' + fullPath +
-        '" style="display:inline-table"></div></td></tr>'
+    html: goog.html.SafeHtml.create('tr', {},
+        goog.html.SafeHtml.create('td', {},
+            goog.html.SafeHtml.create('div', {
+              'id': 'show-button-' + fullPath,
+              'style': {'display': 'inline-table'}
+            })))
   });
   itemMenuParent.addChild(itemMenuSubnode, true);
 
@@ -286,15 +288,17 @@ cros.factory.DeviceManager.prototype.showWindow = function() {
       goog.dom.getViewportSize(goog.dom.getWindow(document) || window);
   var maxWidth = viewSize.width * cros.factory.MAX_DIALOG_SIZE_FRACTION;
   var maxHeight = viewSize.height * cros.factory.MAX_DIALOG_SIZE_FRACTION;
+  var style = {'width': maxWidth.toString(), 'height': maxHeight.toString()};
 
-  dialog.setContent(
-      '<div class="goofy-log-data"' +
-      'style="width: ' + maxWidth + '; height: ' + maxHeight + '">' +
-      '<div id="goofy-device-data-area"></div>' +
-      '<div id="goofy-device-list-area">' +
-      '<table id="tree-menu-area"></table></div>' +
-      '<div id="goofy-device-manager-refresh"></div>' +
-      goog.string.htmlEscape('') + '</div>');
+  dialog.setSafeHtmlContent(goog.html.SafeHtml.create(
+      'div', {'class': 'goofy-log-data', 'style': style}, [
+        goog.html.SafeHtml.create('div', {'id': 'goofy-device-data-area'}),
+        goog.html.SafeHtml.create(
+            'div', {'id': 'goofy-device-list-area'},
+            goog.html.SafeHtml.create('table', {'id': 'tree-menu-area'})),
+        goog.html.SafeHtml.create(
+            'div', {'id': 'goofy-device-manager-refresh'})
+      ]));
 
   dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
   dialog.setVisible(true);

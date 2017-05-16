@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-var status_monitor = {}
+var status_monitor = {};
 
 /**
  * Time interval for each status update checking.
@@ -101,7 +101,7 @@ status_monitor.Status = function(plugin) {
    * @type {Object<string, string>}
    */
   this.systemInfo = {};
-}
+};
 
 /**
  * Starts running the plugin.
@@ -124,7 +124,7 @@ status_monitor.Status.prototype.start = function() {
       timer, goog.Timer.TICK, this.updateTime, false, this);
   timer.dispatchTick();
   timer.start();
-}
+};
 
 /**
  * Updates the current time.
@@ -175,10 +175,10 @@ status_monitor.Status.prototype.setSystemInfo = function(systemInfo) {
       'text-align': 'left',
       'padding': '0 .1em 0 .1em',
       'white-space': 'nowrap'
-  })
+  });
   $(this.infoTooltip).find('th').css({
-      'padding-right': '1em',
-  })
+      'padding-right': '1em'
+  });
 
   this.updateTime();
 
@@ -288,7 +288,7 @@ status_monitor.Status.prototype.updateStatus = function() {
       }, this));
 };
 
-$(function(){
+$(function() {
   var statusPlugin = new status_monitor.Status(plugin);
   statusPlugin.start();
 });
