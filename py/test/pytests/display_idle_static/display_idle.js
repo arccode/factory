@@ -32,52 +32,31 @@ var DisplayTest = function(container) {
     'display-subtest-gradient-blue',
     'display-subtest-gradient-white',*/
   ];
-  this.enItemList = [
-    'solid-white'
-    /*'solid-gray-170',
-    'solid-gray-127',
-    'solid-gray-63',
-    'solid-red',
-    'solid-green',
-    'solid-blue',
-    'solid-white',
-    'solid-gray',
-    'solid-black',
-    'grid',
-    'rectangle',
-    'gradient-red',
-    'gradient-green',
-    'gradient-blue',
-    'gradient-white',*/
+  var _ = cros.factory.i18n.translation;
+  this.itemList = [
+    _('solid-white')
+    /*_('solid-gray-170'),
+    _('solid-gray-127'),
+    _('solid-gray-63'),
+    _('solid-red'),
+    _('solid-green'),
+    _('solid-blue'),
+    _('solid-white'),
+    _('solid-gray'),
+    _('solid-black'),
+    _('grid'),
+    _('rectangle'),
+    _('gradient-red'),
+    _('gradient-green'),
+    _('gradient-blue'),
+    _('gradient-white')*/
   ];
-  this.zhItemList = [
-    '白色'
-    /*'灰色170',
-    '灰色127',
-    '灰色63',
-    '红色',
-    '绿色',
-    '蓝色',
-    '白色',
-    '灰色',
-    '黑色',
-    '格框',
-    '矩形',
-    '渐红',
-    '渐绿',
-    '渐蓝',
-    '渐白',*/
-  ];
-  this.enPassed = 'Passed';
-  this.zhPassed = '通过';
-  this.enFailed = 'Failed';
-  this.zhFailed = '失败';
-  this.enUntested = 'Untested';
-  this.zhUntested = '未经测试';
-  this.enInstruct = 'Press Space to display;<br>' +
-      'Esc to fail. Test will pass itself after timeout.';
-  this.zhInstruct = '按空白键显示;<br>' +
-      '按Esc键失败。时间到测试会自行结束';
+  this.passed = _('Passed');
+  this.failed = _('Failed');
+  this.untested = _('Untested');
+  this.instruct =
+      _('Press Space to display;\n' +
+          'Esc to fail. Test will pass itself after timeout.');
   this.gridWidth = 10;
   this.gridHeight = 10;
   this.gridStyleCSS = '' +
@@ -107,11 +86,11 @@ function setupDisplayTest(container) {
  * There is a table with itemNumber rows and two columns.
  */
 DisplayTest.prototype.init = function() {
-  this.itemNumber = this.enItemList.length;
+  this.itemNumber = this.itemList.length;
 
   var caption = document.createElement('div');
   caption.className = 'display-caption';
-  appendSpanEnZh(caption, this.enInstruct, this.zhInstruct);
+  caption.appendChild(cros.factory.i18n.i18nLabelNode(this.instruct));
   $(this.container).appendChild(caption);
 
   var table = document.createElement('table');
@@ -123,14 +102,14 @@ DisplayTest.prototype.init = function() {
     var itemName = document.createElement('td');
     itemName.className = 'display-subtest-td';
     itemName.style.width = '50%';
-    appendSpanEnZh(itemName, this.enItemList[item], this.zhItemList[item]);
+    itemName.appendChild(cros.factory.i18n.i18nLabelNode(this.itemList[item]));
     row.appendChild(itemName);
 
     var itemStatus = document.createElement('td');
     itemStatus.id = 'item-' + item + '-status';
-    itemStatus.itemName = this.enItemList[item];
+    itemStatus.itemName = this.itemList[item][cros.factory.i18n.DEFAULT_LOCALE];
     itemStatus.className = 'display-subtest-untested';
-    appendSpanEnZh(itemStatus, this.enUntested, this.zhUntested);
+    itemStatus.appendChild(cros.factory.i18n.i18nLabelNode(this.untested));
 
     row.appendChild(itemStatus);
     tableBody.appendChild(row);
@@ -266,10 +245,10 @@ DisplayTest.prototype.judgeSubTest = function(success) {
     element.innerHTML = '';
     if (success) {
       element.className = 'display-subtest-passed';
-      appendSpanEnZh(element, this.enPassed, this.zhPassed);
+      element.appendChild(cros.factory.i18n.i18nLabelNode(this.passed));
     } else {
       element.className = 'display-subtest-failed';
-      appendSpanEnZh(element, this.enFailed, this.zhFailed);
+      element.appendChild(cros.factory.i18n.i18nLabelNode(this.failed));
     }
     this.focusItem = this.focusItem + 1;
     if (this.focusItem < this.itemNumber) {
@@ -349,21 +328,4 @@ function failSubTest() {
  */
 function failTest() {
   window.displayTest.failTest();
-}
-
-/**
- * Appends en span and zh span to the input element.
- * @param {Element} div the element we to which we want to append spans.
- * @param {string} en the English text to append.
- * @param {string} zh the Simplified-Chinese text to append.
- */
-function appendSpanEnZh(div, en, zh) {
-  var en_span = document.createElement('span');
-  var zh_span = document.createElement('span');
-  en_span.className = 'goofy-label-en-US';
-  en_span.innerHTML = en;
-  zh_span.className = 'goofy-label-zh-CN';
-  zh_span.innerHTML = zh;
-  div.appendChild(en_span);
-  div.appendChild(zh_span);
 }

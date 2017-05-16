@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-05-19 12:20+CST\n"
+"POT-Creation-Date: 2017-05-19 12:24+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -631,6 +631,30 @@ msgstr "输出设备"
 msgid "Input Nodes"
 msgstr "输入设备"
 
+#: ../py/test/pytests/audio_loop/audio_loop.js
+msgid ""
+"Loopback testing...\n"
+"Success Rate: {success_rate}"
+msgstr ""
+"音源回放测试中...\n"
+"成功率: {success_rate}"
+
+#: ../py/test/pytests/audio_loop/audio_loop.js
+msgid "Loopback testing..."
+msgstr "音源回放测试中..."
+
+#: ../py/test/pytests/audio_loop/audio_loop.js
+msgid ""
+"Testing Result: Fail\n"
+"Success Rate: {success_rate}"
+msgstr ""
+"测试结果: 失败\n"
+"成功率: {success_rate}"
+
+#: ../py/test/pytests/audio_loop/audio_loop.js
+msgid "Testing Result: Success!"
+msgstr "测试结果: 成功!"
+
 #: ../py/test/pytests/audio_loop/audio_loop.py
 msgid "Plug in audio jack dongle"
 msgstr "请放入音源孔测试置具"
@@ -702,6 +726,20 @@ msgstr "准备完成,等待链接"
 #: ../py/test/pytests/audio_quality.py
 msgid "Upload log"
 msgstr "上传记录档"
+
+#: ../py/test/pytests/backlight_static/backlight.js
+msgid ""
+"Press Space to change backlight brightness;\n"
+"Press Esc to reset backlight brightness to original;\n"
+"After checking, Enter H if pressing Space changes the backlight to be "
+"brighter;\n"
+"Enter L if pressing Space changes the backlight to be dimmer.\n"
+"This test will be executed twice."
+msgstr ""
+"按空白键调整亮度;\n"
+"按Esc复原亮度;\n"
+"检查后若为提高亮度输入H; 若为降低亮度输入L\n"
+"此项测试会进行两次。"
 
 #: ../py/test/pytests/bad_blocks.py
 msgid "Testing {test_size_mb} region of storage"
@@ -1020,6 +1058,7 @@ msgid "USB Stick:"
 msgstr "测试参数U盘:"
 
 #: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.js
 msgid "UNLOADED"
 msgstr "未载入"
 
@@ -1032,6 +1071,7 @@ msgid "Fixture:"
 msgstr "治具链接:"
 
 #: ../py/test/pytests/camera_fixture_static/camera_fixture.html
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.js
 msgid "UNAVAILABLE"
 msgstr "未连接"
 
@@ -1046,6 +1086,14 @@ msgstr "离开测试"
 #: ../py/test/pytests/camera_fixture_static/camera_fixture.html
 msgid "IDLE"
 msgstr "閒置中"
+
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.js
+msgid "LOADED"
+msgstr "已载入"
+
+#: ../py/test/pytests/camera_fixture_static/camera_fixture.js
+msgid "OK"
+msgstr "已连接"
 
 #: ../py/test/pytests/cellular_switch_firmware.py
 msgid "Switching firmware to {target!r}<br>"
@@ -1182,6 +1230,34 @@ msgstr "DEV SW 开发者开关目前为<b class=\"on\">开启</b>状态"
 msgid "Develop switch is currently <b class=\"off\">OFF</b>."
 msgstr "DEV SW 开发者开关目前为<b class=\"off\">关闭</b>状态"
 
+#: ../py/test/pytests/display_idle_static/display_idle.js
+#: ../py/test/pytests/display_static/display.js
+msgid "solid-white"
+msgstr "白色"
+
+#: ../py/test/pytests/display_idle_static/display_idle.js
+#: ../py/test/pytests/display_static/display.js
+msgid "Passed"
+msgstr "通过"
+
+#: ../py/test/pytests/display_idle_static/display_idle.js
+#: ../py/test/pytests/display_static/display.js
+msgid "Failed"
+msgstr "失败"
+
+#: ../py/test/pytests/display_idle_static/display_idle.js
+#: ../py/test/pytests/display_static/display.js
+msgid "Untested"
+msgstr "未经测试"
+
+#: ../py/test/pytests/display_idle_static/display_idle.js
+msgid ""
+"Press Space to display;\n"
+"Esc to fail. Test will pass itself after timeout."
+msgstr ""
+"按空白键显示;\n"
+"按Esc键失败。时间到测试会自行结束"
+
 #: ../py/test/pytests/display_images.py
 msgid ""
 "Press space to show each image on display<br>Press Enter to PASS after "
@@ -1195,6 +1271,118 @@ msgstr "({index}/{total})正在上传图档 {name}"
 #: ../py/test/pytests/display_images.py
 msgid "Display Test"
 msgstr "显示测试"
+
+#: ../py/test/pytests/display_point_static/display_point.js
+msgid ""
+"Press Space to display;\n"
+"After checking, Enter number of points to pass."
+msgstr ""
+"按空白键显示;\n"
+"检查后按下正确的点数按键通过。"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "solid-gray-170"
+msgstr "灰色170"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "solid-gray-127"
+msgstr "灰色127"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "solid-gray-63"
+msgstr "灰色63"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "solid-red"
+msgstr "红色"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "solid-green"
+msgstr "绿色"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "solid-blue"
+msgstr "蓝色"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "solid-gray"
+msgstr "灰色"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "solid-black"
+msgstr "黑色"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "grid"
+msgstr "格框"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "rectangle"
+msgstr "矩形"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "gradient-red"
+msgstr "渐红"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "gradient-green"
+msgstr "渐绿"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "gradient-blue"
+msgstr "渐蓝"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "gradient-white"
+msgstr "渐白"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "image-complex.bmp"
+msgstr "影像-复杂"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "image-BLACK.BMP"
+msgstr "影像-黑色"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "image-WHITE.BMP"
+msgstr "影像-白色"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "image-CrossTalk(black).bmp"
+msgstr "影像-方形-黑色"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "image-CrossTalk(white).bmp"
+msgstr "影像-方形-白色"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "image-gray(63).bmp"
+msgstr "影像-灰色63"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "image-gray(127).bmp"
+msgstr "影像-灰色127"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "image-gray(170).bmp"
+msgstr "影像-灰色170"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "image-Horizontal(RGBW).bmp"
+msgstr "影像-水平"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "image-Vertical(RGBW).bmp"
+msgstr "影像-垂直"
+
+#: ../py/test/pytests/display_static/display.js
+msgid ""
+"Press Space to display;\n"
+"After checking, Enter to pass; Esc to fail."
+msgstr ""
+"按空白键显示;\n"
+"检查后按Enter键通过; 按Esc键失败。"
 
 #: ../py/test/pytests/emmc_check_fw_version.py
 msgid "eMMC Firmware Version Incorrect"
@@ -1410,6 +1598,10 @@ msgstr "（不变）"
 #: ../py/test/pytests/hwid_v3.py
 msgid "Setting HWID (v3): {encoded_string}..."
 msgstr "正在写入 HWID (v3): {encoded_string}..."
+
+#: ../py/test/pytests/keyboard/static/keyboard.js
+msgid "Press one key at a time."
+msgstr "一次只能按一个键"
 
 #: ../py/test/pytests/keyboard_backlight.py
 msgid "Keyboard Backlight Test"
@@ -2247,6 +2439,11 @@ msgstr "目前校正尚未结束"
 #: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
 msgid "Please enter SN first"
 msgstr "请先输入序号"
+
+#: ../py/test/pytests/touchscreen_static/touchscreen.js
+msgid ""
+"Press Space to display and use one finger to touch each sector; Esc to fail."
+msgstr "按空白键显示并用一个手指触摸每区; 按Esc键失败。"
 
 #: ../py/test/pytests/touchscreen_uniformity.py
 msgid "Calibrating Touchscreen"

@@ -26,14 +26,10 @@ var g_is_test_running = false;
 // Incrementally loaded image data.
 var g_image_data;
 
-var label_usb_loaded = '<span class="goofy-label-en-US">LOADED</span>' +
-    '<span class="goofy-label-zh-CN">已载入</span>';
-var label_usb_unloaded = '<span class="goofy-label-en-US">UNLOADED</span>' +
-    '<span class="goofy-label-zh-CN">未载入</span>';
-var label_fxt_loaded = '<span class="goofy-label-en-US">OK</span>' +
-    '<span class="goofy-label-zh-CN">已连接</span>';
-var label_fxt_unloaded = '<span class="goofy-label-en-US">UNAVAILABLE</span>' +
-    '<span class="goofy-label-zh-CN">未连接</span>';
+var label_usb_loaded = cros.factory.i18n.i18nLabel('LOADED');
+var label_usb_unloaded = cros.factory.i18n.i18nLabel('UNLOADED');
+var label_fxt_loaded = cros.factory.i18n.i18nLabel('OK');
+var label_fxt_unloaded = cros.factory.i18n.i18nLabel('UNAVAILABLE');
 
 
 ////////////////////////////////////////////////////////////
@@ -213,10 +209,10 @@ function UpdateUSBStatus(is_loaded) {
   var usb_status_text = document.getElementById('usb_status_text');
 
   if (is_loaded) {
-    usb_status_text.innerHTML = label_usb_loaded;
+    goog.dom.safe.setInnerHtml(usb_status_text, label_usb_loaded);
     usb_status.className = 'panel_good';
   } else {
-    usb_status_text.innerHTML = label_usb_unloaded;
+    goog.dom.safe.setInnerHtml(usb_status_text, label_usb_unloaded);
     usb_status.className = 'panel_bad';
   }
 
@@ -235,10 +231,10 @@ function UpdateFixtureStatus(is_loaded) {
   var fxt_status_text = document.getElementById('fixture_status_text');
 
   if (is_loaded) {
-    fxt_status_text.innerHTML = label_fxt_loaded;
+    goog.dom.safe.setInnerHtml(fxt_status_text, label_fxt_loaded);
     fxt_status.className = 'panel_good';
   } else {
-    fxt_status_text.innerHTML = label_fxt_unloaded;
+    goog.dom.safe.setInnerHtml(fxt_status_text, label_fxt_unloaded);
     fxt_status.className = 'panel_bad';
   }
 

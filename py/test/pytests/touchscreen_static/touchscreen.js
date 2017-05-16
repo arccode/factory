@@ -14,9 +14,10 @@ var TouchscreenTest = function(container, xSegments, ySegments) {
   this.xSegments = xSegments;
   this.ySegments = ySegments;
   this.display = false;
-  this.enInstruct = 'Press Space to display and use one finger to ' +
-      'touch each sector; Esc to fail.';
-  this.zhInstruct = '按空白键显示并用一个手指触摸每区; 按Esc键失败。';
+  var _ = cros.factory.i18n.translation;
+  this.instruct =
+      _('Press Space to display and use one finger to ' +
+        'touch each sector; Esc to fail.');
 };
 
 /**
@@ -37,7 +38,7 @@ function setupTouchscreenTest(container, xSegments, ySegments) {
 TouchscreenTest.prototype.init = function() {
   var caption = document.createElement('div');
   caption.className = 'touchscreen-caption';
-  appendSpanEnZh(caption, this.enInstruct, this.zhInstruct);
+  caption.appendChild(cros.factory.i18n.i18nLabelNode(this.instruct));
   $(this.container).appendChild(caption);
   var countdownTimerElement = document.createElement('div');
   countdownTimerElement.id = 'touchscreen-countdown-timer';
@@ -147,23 +148,6 @@ TouchscreenTest.prototype.failTest = function() {
 TouchscreenTest.prototype.getClassArray = function(className) {
   return Array.prototype.slice.call(document.getElementsByClassName(className));
 };
-
-/**
- * Appends en span and zh span to the input element.
- * @param {Element} div the element to which we want to append spans.
- * @param {string} en the English text to be appended.
- * @param {string} zh the Simplified-Chinese text to be appended.
- */
-function appendSpanEnZh(div, en, zh) {
-  var en_span = document.createElement('span');
-  var zh_span = document.createElement('span');
-  en_span.className = 'goofy-label-en-US';
-  en_span.innerHTML = en;
-  zh_span.className = 'goofy-label-zh-CN';
-  zh_span.innerHTML = zh;
-  div.appendChild(en_span);
-  div.appendChild(zh_span);
-}
 
 /**
  * Creates a table element with specified row number and column number.

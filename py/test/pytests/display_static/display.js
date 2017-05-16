@@ -41,70 +41,40 @@ var DisplayTest = function(container, colors) {
     'display-subtest-image-horizontal-rgbw',
     'display-subtest-image-vertical-rgbw'
   ];
-  this.allEnItemList = [
-    'solid-gray-170',
-    'solid-gray-127',
-    'solid-gray-63',
-    'solid-red',
-    'solid-green',
-    'solid-blue',
-    'solid-white',
-    'solid-gray',
-    'solid-black',
-    'grid',
-    'rectangle',
-    'gradient-red',
-    'gradient-green',
-    'gradient-blue',
-    'gradient-white',
-    'image-complex.bmp',
-    'image-BLACK.BMP',
-    'image-WHITE.BMP',
-    'image-CrossTalk(black).bmp',
-    'image-CrossTalk(white).bmp',
-    'image-gray(63).bmp',
-    'image-gray(127).bmp',
-    'image-gray(170).bmp',
-    'image-Horizontal(RGBW).bmp',
-    'image-Vertical(RGBW).bmp'
+  var _ = cros.factory.i18n.translation;
+  this.allItemList = [
+    _('solid-gray-170'),
+    _('solid-gray-127'),
+    _('solid-gray-63'),
+    _('solid-red'),
+    _('solid-green'),
+    _('solid-blue'),
+    _('solid-white'),
+    _('solid-gray'),
+    _('solid-black'),
+    _('grid'),
+    _('rectangle'),
+    _('gradient-red'),
+    _('gradient-green'),
+    _('gradient-blue'),
+    _('gradient-white'),
+    _('image-complex.bmp'),
+    _('image-BLACK.BMP'),
+    _('image-WHITE.BMP'),
+    _('image-CrossTalk(black).bmp'),
+    _('image-CrossTalk(white).bmp'),
+    _('image-gray(63).bmp'),
+    _('image-gray(127).bmp'),
+    _('image-gray(170).bmp'),
+    _('image-Horizontal(RGBW).bmp'),
+    _('image-Vertical(RGBW).bmp')
   ];
-  this.allZhItemList = [
-    '灰色170',
-    '灰色127',
-    '灰色63',
-    '红色',
-    '绿色',
-    '蓝色',
-    '白色',
-    '灰色',
-    '黑色',
-    '格框',
-    '矩形',
-    '渐红',
-    '渐绿',
-    '渐蓝',
-    '渐白',
-    '影像-复杂',
-    '影像-黑色',
-    '影像-白色',
-    '影像-方形-黑色',
-    '影像-方形-白色',
-    '影像-灰色63',
-    '影像-灰色127',
-    '影像-灰色170',
-    '影像-水平',
-    '影像-垂直'
-  ];
-  this.enPassed = 'Passed';
-  this.zhPassed = '通过';
-  this.enFailed = 'Failed';
-  this.zhFailed = '失败';
-  this.enUntested = 'Untested';
-  this.zhUntested = '未经测试';
-  this.enInstruct = 'Press Space to display;<br>' +
-      'After checking, Enter to pass; Esc to fail.';
-  this.zhInstruct = '按空白键显示;<br>' +
-      '检查后按Enter键通过; 按Esc键失败。';
+  this.passed = _('Passed');
+  this.failed = _('Failed');
+  this.untested = _('Untested');
+  this.instruct =
+      _('Press Space to display;\n' +
+        'After checking, Enter to pass; Esc to fail.');
   this.gridWidth = 10;
   this.gridHeight = 10;
   this.gridStyleCSS = '' +
@@ -114,19 +84,19 @@ var DisplayTest = function(container, colors) {
       '{background-color: black; width: ' + this.gridWidth + ';' +
       ' height: ' + this.gridHeight + ';' +
       ' border: 5px solid; }';
-  this.enItemList = [];
-  this.zhItemList = [];
+  this.itemList = [];
   this.styleList = [];
-  //Puts the selected colors into enItemList, zhItemList, and styleList.
+  //Puts the selected colors into itemList and styleList.
   for (var item = 0; item < colors.length; ++item) {
-    var index = this.allEnItemList.indexOf(colors[item]);
+    var index = goog.array.findIndex(this.allItemList, function(ele) {
+      return ele[cros.factory.i18n.DEFAULT_LOCALE] == colors[item];
+    });
     if (index >= 0) {
-      this.enItemList.push(this.allEnItemList[index]);
-      this.zhItemList.push(this.allZhItemList[index]);
+      this.itemList.push(this.allItemList[index]);
       this.styleList.push(this.allStyleList[index]);
     }
   }
-  this.itemNumber = this.enItemList.length;
+  this.itemNumber = this.itemList.length;
 };
 
 /**
@@ -150,7 +120,7 @@ function setupDisplayTest(container, colors) {
 DisplayTest.prototype.init = function() {
   var caption = document.createElement('div');
   caption.className = 'display-caption';
-  appendSpanEnZh(caption, this.enInstruct, this.zhInstruct);
+  caption.appendChild(cros.factory.i18n.i18nLabelNode(this.instruct));
   $(this.container).appendChild(caption);
 
   var table = document.createElement('table');
@@ -162,14 +132,14 @@ DisplayTest.prototype.init = function() {
     var itemName = document.createElement('td');
     itemName.className = 'display-subtest-td';
     itemName.style.width = '50%';
-    appendSpanEnZh(itemName, this.enItemList[item], this.zhItemList[item]);
+    itemName.appendChild(cros.factory.i18n.i18nLabelNode(this.itemList[item]));
     row.appendChild(itemName);
 
     var itemStatus = document.createElement('td');
     itemStatus.id = 'item-' + item + '-status';
-    itemStatus.itemName = this.enItemList[item];
+    itemStatus.itemName = this.itemList[item][cros.factory.i18n.DEFAULT_LOCALE];
     itemStatus.className = 'display-subtest-untested';
-    appendSpanEnZh(itemStatus, this.enUntested, this.zhUntested);
+    itemStatus.appendChild(cros.factory.i18n.i18nLabelNode(this.untested));
 
     row.appendChild(itemStatus);
     tableBody.appendChild(row);
@@ -304,10 +274,10 @@ DisplayTest.prototype.judgeSubTest = function(success) {
     element.innerHTML = '';
     if (success) {
       element.className = 'display-subtest-passed';
-      appendSpanEnZh(element, this.enPassed, this.zhPassed);
+      element.appendChild(cros.factory.i18n.i18nLabelNode(this.passed));
     } else {
       element.className = 'display-subtest-failed';
-      appendSpanEnZh(element, this.enFailed, this.zhFailed);
+      element.appendChild(cros.factory.i18n.i18nLabelNode(this.failed));
     }
     this.focusItem = this.focusItem + 1;
     if (this.focusItem < this.itemNumber) {
@@ -387,21 +357,4 @@ function failSubTest() {
  */
 function failTest() {
   window.displayTest.failTest();
-}
-
-/**
- * Appends en span and zh span to the input element.
- * @param {Element} div the element we to which we want to append spans.
- * @param {string} en the English text to append.
- * @param {string} zh the Simplified-Chinese text to append.
- */
-function appendSpanEnZh(div, en, zh) {
-  var en_span = document.createElement('span');
-  var zh_span = document.createElement('span');
-  en_span.className = 'goofy-label-en-US';
-  en_span.innerHTML = en;
-  zh_span.className = 'goofy-label-zh-CN';
-  zh_span.innerHTML = zh;
-  div.appendChild(en_span);
-  div.appendChild(zh_span);
 }

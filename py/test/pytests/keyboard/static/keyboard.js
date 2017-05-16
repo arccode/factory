@@ -25,11 +25,10 @@ var keyboardTest = function(layout, bindings, skipKeycodes, container,
   this.numberToPress = numberToPress;
 
   if (allowMultiKeys) {
-    this.enInstruct = '';
-    this.zhInstruct = '';
+    this.instruct = cros.factory.i18n.noTranslation('');
   } else {
-    this.enInstruct = 'Press one key at a time.';
-    this.zhInstruct = '一次只能按一个键';
+    var _ = cros.factory.i18n.translation;
+    this.instruct = _('Press one key at a time.');
   }
 };
 
@@ -74,7 +73,7 @@ keyboardTest.prototype.init = function() {
   img.src = this.layout + '.png';
   $(container).appendChild(img);
   var instruction = document.createElement('div');
-  appendSpanEnZh(instruction, this.enInstruct, this.zhInstruct);
+  instruction.appendChild(cros.factory.i18n.i18nLabelNode(this.instruct));
   $(container).appendChild(instruction);
 };
 
@@ -274,21 +273,4 @@ function failTest(failMsg) {
  */
 function failTestTimeout() {
   window.keyboardTest.failTestTimeout();
-}
-
-/**
- * Appends en span and zh span to the input element.
- * @param {Element} div the element we to which we want to append spans.
- * @param {string} en the English text to append.
- * @param {string} zh the Simplified-Chinese text to append.
- */
-function appendSpanEnZh(div, en, zh) {
-  var en_span = document.createElement('span');
-  var zh_span = document.createElement('span');
-  en_span.className = 'goofy-label-en-US';
-  en_span.innerHTML = en;
-  zh_span.className = 'goofy-label-zh-CN';
-  zh_span.innerHTML = zh;
-  div.appendChild(en_span);
-  div.appendChild(zh_span);
 }

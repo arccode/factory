@@ -17,10 +17,10 @@ var DisplayPointTest = function(container, arrayNumberPoint, pointSize) {
   this.display = false;
   this.fullScreenElement = null;
   this.focusItem = 0;
-  this.enInstruct = 'Press Space to display;<br>' +
-      'After checking, Enter number of points to pass.';
-  this.zhInstruct = '按空白键显示;<br>' +
-      '检查后按下正确的点数按键通过。';
+  var _ = cros.factory.i18n.translation;
+  this.instruct =
+      _('Press Space to display;\n' +
+        'After checking, Enter number of points to pass.');
   this.itemNumber = 2;
   this.backgroundStyleList = [
     'display-point-background-white',
@@ -39,7 +39,7 @@ var DisplayPointTest = function(container, arrayNumberPoint, pointSize) {
 DisplayPointTest.prototype.init = function() {
   var caption = document.createElement('div');
   caption.className = 'display-point-caption';
-  appendSpanEnZh(caption, this.enInstruct, this.zhInstruct);
+  caption.appendChild(cros.factory.i18n.i18nLabelNode(this.instruct));
   $(this.container).appendChild(caption);
 };
 
@@ -213,21 +213,4 @@ function switchDisplayOnOff() {
  */
 function failTest() {
   window.displayPointTest.failTest('None');
-}
-
-/**
- * Appends en span and zh span to the input element.
- * @param {Element} div the element we to which we want to append spans.
- * @param {string} en the English text to append.
- * @param {string} zh the Simplified-Chinese text to append.
- */
-function appendSpanEnZh(div, en, zh) {
-  var en_span = document.createElement('span');
-  var zh_span = document.createElement('span');
-  en_span.className = 'goofy-label-en-US';
-  en_span.innerHTML = en;
-  zh_span.className = 'goofy-label-zh-CN';
-  zh_span.innerHTML = zh;
-  div.appendChild(en_span);
-  div.appendChild(zh_span);
 }
