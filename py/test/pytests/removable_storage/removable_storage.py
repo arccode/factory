@@ -645,7 +645,6 @@ class RemovableStorageTest(unittest.TestCase):
   def Fail(self, msg):
     """Fails the test."""
     self._ui.Fail(msg)
-    raise factory.FactoryTestFailure(msg)
 
   def Pass(self):
     """Passes the test."""
