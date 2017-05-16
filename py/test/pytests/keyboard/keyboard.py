@@ -81,8 +81,13 @@ class KeyboardTest(unittest.TestCase):
           'replacement key codes', default={}),
       Arg('detect_long_press', bool, 'Detect long press event. Usually for '
           'detecting bluetooth keyboard disconnection.', default=False),
-      Arg('number_to_press', int, 'Number of presses required for each key to '
-          'pass the test', default=1),
+      Arg('repeat_times', dict, 'A dict object {key_code: times} to specify '
+          'number of presses required for keys specified in key code, e.g. '
+          '{28: 3, 57: 5}, then ENTER (28) shall be pressed 3 times while '
+          'SPACE (57) shall be pressed 5 times. If you want all keys to be '
+          'pressed twice, you can do: {"default": 2}. '
+          'You can find keycode mappings in /usr/include/linux/input.h',
+          default=None),
   ]
 
   def setUp(self):
@@ -121,6 +126,10 @@ class KeyboardTest(unittest.TestCase):
     if self.args.sequential_press or self.args.strict_sequential_press:
       self.key_order_list = self.ReadKeyOrder(self.layout)
 
+    number_to_press = {'default': 1}
+    if self.args.repeat_times:
+      number_to_press.update(self.args.repeat_times)
+
     self.key_down = set()
     # Initialize frontend presentation
     self.template.SetState(_HTML_KEYBOARD)
@@ -131,7 +140,7 @@ class KeyboardTest(unittest.TestCase):
                            self.key_order_list,
                            self.args.strict_sequential_press,
                            self.args.allow_multi_keys,
-                           self.args.number_to_press)
+                           number_to_press)
 
     self.keyboard_device.grab()
     self.dispatcher = evdev_utils.InputDeviceDispatcher(self.keyboard_device,
