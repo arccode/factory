@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-05-09 13:58+CST\n"
+"POT-Creation-Date: 2017-05-16 11:25+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -1800,14 +1800,6 @@ msgid "The scanned value \"{value}\" does not match the expected format."
 msgstr "所扫描的编号「{value}」格式不对。"
 
 #: ../py/test/pytests/scan/scan.py
-msgid "The scanned value \"{value}\" is not a known {label}."
-msgstr "所扫描的编号「{value}」不是已知的{label}。"
-
-#: ../py/test/pytests/scan/scan.py
-msgid "Unable to contact shopfloor server: {exception}"
-msgstr "连不到 shopfloor server: {exception}"
-
-#: ../py/test/pytests/scan/scan.py
 msgid ""
 "The scanned value \"{value}\" does not match the expected value <span "
 "class=test-engineering-mode-only>\"{expected_value}\"</span>."
@@ -1826,18 +1818,6 @@ msgstr "扫描{label}"
 #: ../py/test/pytests/scan/scan.py
 msgid "Please scan the {label} and press ENTER."
 msgstr "请扫描{label}后按下 ENTER。"
-
-#: ../py/test/pytests/select_aux_field.py
-msgid "No selection."
-msgstr "未选择。"
-
-#: ../py/test/pytests/select_aux_field.py
-msgid "Select {label}"
-msgstr "选择{label}"
-
-#: ../py/test/pytests/select_aux_field.py
-msgid "Please select the {label} and press ENTER."
-msgstr "请选择{label}后按下 ENTER。"
 
 #: ../py/test/pytests/select_components.py
 msgid "Select Components:"
