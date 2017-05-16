@@ -43,6 +43,18 @@ usage_die() {
   exit 1
 }
 
+# Clones the partition GPT info (type, attr, label).
+clone_partition_type() {
+  local input_file="$1" input_part="$2" output_file="$3" output_part="$4"
+
+  local part_type="$(cgpt show -q -n -t -i "$input_part" "$input_file")"
+  local part_attr="$(cgpt show -q -n -A -i "$input_part" "$input_file")"
+  local part_label="$(cgpt show -q -n -l -i "$input_part" "$input_file")"
+
+  cgpt add -t "${part_type}" -l "${part_label}" -A "${part_attr}" \
+    -i "${output_part}" "${output_file}"
+}
+
 # Merge multiple USB installation disk images.
 #
 # The usbimg should have factory_install kernel and rootfs in (2, 3) and
@@ -60,57 +72,77 @@ usage_die() {
 #    5 rootfs    [install-usbimg2]
 #    6 kernel    [install-usbimg3]
 #    7 rootfs    [install-usbimg3]
-# 8-12 reserved for legacy paritions
-#   13 kernel    [install-usbimg4]
-#   14 rootfs    [install-usbimg4]
-#   15 kernel    [install-usbimg5]
-#   16 rootfs    [install-usbimg5]
 #   ...
 # --------------------------------
 merge_images() {
   local output_file="$1"
-  local image_file
+  local image
+  local pygpt="${SCRIPT_DIR}/pygpt"
   shift
 
   # Basically the output file should be sized in sum of all input files.
   info "Scanning input files..."
-  local master_size="$(stat --format="%s" "$1")"
-  local new_sectors=$((master_size / 512))
-  : $((new_sectors -= $("${SCRIPT_DIR}/pygpt" show -i 1 -s "$1") ))
+  local sectors_list=""
+  local new_sectors=0
   for image_file in "$@"; do
-    : $((new_sectors += $("${SCRIPT_DIR}/pygpt" show -i 1 -s "${image_file}") ))
+    : $((new_sectors += $("${pygpt}" show -i 1 -s "${image_file}") ))
+    sectors_list="${sectors_list} $("${pygpt}" show -i 2 -s "${image_file}")"
+    sectors_list="${sectors_list} $("${pygpt}" show -i 3 -s "${image_file}")"
   done
-  local new_size_K="$((new_sectors / 2))"
-  info "Creating a new image file in $((new_size_K / 1024))M..."
-  cp -f "$1" "${output_file}"
-  truncate -s "${new_size_K}K" "${output_file}"
-  "${SCRIPT_DIR}/pygpt" repair --expand "${output_file}"
 
-  local image all_payloads="$(mktemp -d)" stateful="$(mktemp -d)"
+  # Put new stateful partition in first (partition 1).
+  sectors_list="${new_sectors} ${sectors_list}"
+  image_geometry_build_file "${sectors_list}" "${output_file}"
+  local new_size="$(stat --format="%s" "${output_file}")"
+  info "Creating new image file in $((new_size / 1048576))M..."
+
+  # Clone and resize stateful partition.
+  clone_partition_type "$1" 1 "${output_file}" 1
+  image_partition_overwrite "${image_file}" "1" "${output_file}" "1"
+  local state_dev="$(image_map_partition "${output_file}" 1)"
+  sudo e2fsck -f "${state_dev}"
+  sudo resize2fs "${state_dev}"
+  image_unmap_partition "${state_dev}"
+
+  # Clone root and kernel partitions
+  local index=2
+  for image_file in "$@"; do
+    info "Copying kernel and rootfs from ${image_file}..."
+    clone_partition_type "${image_file}" "2" "${output_file}" "${index}"
+    image_partition_copy "${image_file}" "2" "${output_file}" "${index}"
+    : $((index += 1))
+    clone_partition_type "${image_file}" "3" "${output_file}" "${index}"
+    image_partition_copy "${image_file}" "3" "${output_file}" "${index}"
+    : $((index += 1))
+  done
+
+  local all_payloads="$(mktemp -d)" stateful="$(mktemp -d)"
   image_add_temp "${all_payloads}"
   image_add_temp "${stateful}"
 
   image_mount_partition "${output_file}" 1 "${all_payloads}" "rw"
-  mkdir -p "${all_payloads}/cros_payloads"
+  sudo mkdir -p "${all_payloads}/cros_payloads"
+
+  # This must be the last loop on $@.
+  # $@ is changed since here because stateful partition in first image is
+  # already copied.
+  shift
   for image_file in "$@"; do
     info "Collecting RMA payloads from ${image_file}..."
     image_mount_partition "${image_file}" 1 "${stateful}" "ro"
-    cp -pr "${stateful}"/cros_payloads/* "${all_payloads}/cros_payloads/."
+    sudo cp -pr "${stateful}"/cros_payloads/* "${all_payloads}/cros_payloads/."
     image_umount_partition "${stateful}"
   done
   image_umount_partition "${all_payloads}"
 
-  local temp_master="${output_file}.wip"
-  mv -f "${output_file}" "${temp_master}"
-  image_add_temp "${temp_master}"
-
-  local builder="${SCRIPT_DIR}/make_universal_factory_shim.sh"
-  "${builder}" -m "${temp_master}" -f "${output_file}" "$@"
+  info "Merged new image created successfully: ${output_file}."
 }
 
 main() {
   local force=""
   local output=""
+
+  umask 022
 
   while [ "$#" -gt 1 ]; do
     case "$1" in
@@ -137,6 +169,7 @@ main() {
 
   # Reset trap here to check whether output file is generated or not.
   # Use double quote to expand the local variable ${output} now.
+  # shellcheck disable=SC2064
   trap "check_output_on_exit ${output}" EXIT
   merge_images "$output" "$@"
 }
