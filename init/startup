@@ -56,7 +56,7 @@ execute_rules() {
       continue
     fi
     # In UNIX we cannot wait for grandchildren (which will become children of
-    # init when its parent = our children exists), so we have to put the logic
+    # init when its parent = our children exits), so we have to put the logic
     # here.
     if [ -n "${IS_PARALLEL}" ]; then
       log "Applying ${rule_file} in parallel..."
