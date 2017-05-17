@@ -137,7 +137,7 @@ class BluetoothScanTest(unittest.TestCase):
     """Gets the MAC address of the host station."""
     # Devices:
     # 	hci0	01:02:03:04:05:06
-    host_mac = self.host.CheckOutput(
-        'hcitool dev | grep hci0').split()[1].lower()
+    GET_MAC_CMD = 'hcitool dev | grep %s' % self.args.host_hci_device
+    host_mac = self.host.CheckOutput(GET_MAC_CMD).split()[1].lower()
     factory.console.info('Host MAC: %s', host_mac)
     return host_mac
