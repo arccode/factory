@@ -9,17 +9,21 @@
 import argparse
 import logging
 import os
+import random
 import shutil
 import signal
+import SocketServer
+import struct
 from subprocess import STDOUT
 import sys
 import tempfile
 import threading
 import time
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils import file_utils
+from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 
 TEST_PASSED_MARK = '.tests-passed'
@@ -83,7 +87,7 @@ class _TestProc(object):
     log_name: path of log file for unittest.
   """
 
-  def __init__(self, test_name, log_name):
+  def __init__(self, test_name, log_name, port_server):
     self.test_name = test_name
     self.log_file = open(log_name, 'w')
     self.start_time = time.time()
@@ -105,6 +109,9 @@ class _TestProc(object):
     # cros_factory_root temporary directory, so it would be removed even if the
     # test is terminated.
     child_env['TMPDIR'] = self.child_tmp_root
+    # This is used by net_utils.FindUnusedPort, to eliminate the chance of
+    # collision of FindUnusedPort between different unittests.
+    child_env['CROS_FACTORY_UNITTEST_PORT_DISTRIBUTE_SERVER'] = port_server
     self.proc = process_utils.Spawn(self.test_name, stdout=self.log_file,
                                     stderr=STDOUT, env=child_env)
     self.pid = self.proc.pid
@@ -134,6 +141,47 @@ class _TestProc(object):
   def Close(self):
     if os.path.isdir(self.cros_factory_root):
       shutil.rmtree(self.cros_factory_root)
+
+
+class PortDistributeHandler(SocketServer.StreamRequestHandler):
+  def handle(self):
+    length = struct.unpack('B', self.rfile.read(1))[0]
+    port = self.server.RequestPort(length)
+    self.wfile.write(struct.pack('<H', port))
+
+
+class PortDistributeServer(SocketServer.ThreadingUnixStreamServer):
+  def __init__(self):
+    self.lock = threading.RLock()
+    self.unused_ports = set(
+        xrange(net_utils.UNUSED_PORT_LOW, net_utils.UNUSED_PORT_HIGH))
+    self.socket_file = tempfile.mktemp(prefix='random_port_socket')
+    self.thread = None
+    SocketServer.ThreadingUnixStreamServer.__init__(self, self.socket_file,
+                                                    PortDistributeHandler)
+
+  def Start(self):
+    self.thread = threading.Thread(target=self.serve_forever)
+    self.thread.start()
+
+  def Close(self):
+    self.server_close()
+    if self.thread:
+      net_utils.ShutdownTCPServer(self)
+      self.thread.join()
+    if self.socket_file and os.path.exists(self.socket_file):
+      os.unlink(self.socket_file)
+
+  def RequestPort(self, length):
+    with self.lock:
+      while True:
+        port = random.randint(net_utils.UNUSED_PORT_LOW,
+                              net_utils.UNUSED_PORT_HIGH - length)
+        port_range = xrange(port, port + length)
+        if self.unused_ports.issuperset(port_range):
+          self.unused_ports.difference_update(port_range)
+          break
+      return port
 
 
 class RunTests(object):
@@ -252,16 +300,23 @@ class RunTests(object):
       tests: list of unittest paths.
       max_jobs: maximum number of tests to run in parallel.
     """
-    for test_name in tests:
-      try:
-        p = _TestProc(test_name, self._GetLogFilename(test_name))
-      except Exception as e:
-        self._FailMessage('Error running test %r' % test_name)
-        raise e
-      self._running_proc[p.pid] = (p, os.path.basename(test_name))
-      self._WaitRunningProcessesFewerThan(max_jobs)
-    # Wait for all running test.
-    self._WaitRunningProcessesFewerThan(1)
+    port_server = PortDistributeServer()
+    port_server.Start()
+    try:
+      for test_name in tests:
+        try:
+          p = _TestProc(test_name,
+                        self._GetLogFilename(test_name),
+                        port_server.socket_file)
+        except Exception as e:
+          self._FailMessage('Error running test %r' % test_name)
+          raise e
+        self._running_proc[p.pid] = (p, os.path.basename(test_name))
+        self._WaitRunningProcessesFewerThan(max_jobs)
+      # Wait for all running test.
+      self._WaitRunningProcessesFewerThan(1)
+    finally:
+      port_server.Close()
 
   def _RecordTestResult(self, p):
     """Records test result.

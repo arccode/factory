@@ -30,7 +30,7 @@ from cros.factory.umpire.web import xmlrpc as umpire_xmlrpc
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 
-TEST_RPC_PORT = net_utils.GetUnusedPort()
+TEST_RPC_PORT = net_utils.FindUnusedPort()
 TESTDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), 'testdata'))
 TESTCONFIG = os.path.join(TESTDIR, 'enable_update.yaml')
 

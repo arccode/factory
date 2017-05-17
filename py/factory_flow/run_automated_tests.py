@@ -238,7 +238,7 @@ class RunAutomatedTests(FactoryFlowCommand):
           lambda: connection_manager.PingHost(self.options.dut, timeout=1) == 0,
           timeout_secs=30)
       # Create a SSH tunnel to connect to the JSON RPC server on DUT.
-      local_port = net_utils.GetUnusedPort()
+      local_port = net_utils.FindUnusedPort()
       self.ssh_tunnel = ssh_utils.SSHTunnelToDUT(
           self.options.dut, local_port, state.DEFAULT_FACTORY_STATE_PORT)
       self.ssh_tunnel.Establish()

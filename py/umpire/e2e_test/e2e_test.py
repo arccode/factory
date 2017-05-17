@@ -43,10 +43,7 @@ UMPIRE_CONTAINER_NAME = 'umpire_' + UMPIRE_BOARD_NAME
 BASE_DIR = os.path.dirname(__file__)
 SETUP_DIR = os.path.abspath(os.path.join(BASE_DIR, '..', '..', '..', 'setup'))
 SCRIPT_PATH = os.path.join(SETUP_DIR, 'cros_docker.sh')
-# TODO(pihsun): Should use net_utils.FindConsecutiveUnusedPorts, but it use
-# lsof to find which ports are used, which doesn't work inside docker with
-# --net=host.
-PORT = net_utils.FindUnusedTCPPort()
+PORT = net_utils.FindUnusedPort(tcp_only=True, length=5)
 ADDR_BASE = 'http://localhost:%s' % PORT
 RPC_ADDR_BASE = 'http://localhost:%s' % (PORT + 2)
 

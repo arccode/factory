@@ -24,7 +24,7 @@ class TestBufferSimpleFile(unittest.TestCase):
   def setUp(self):
     self.core = testing.MockCore()
     self.hostname = 'localhost'
-    self.port = net_utils.GetUnusedPort()
+    self.port = net_utils.FindUnusedPort()
 
     # Create PluginSandbox for output plugin.
     output_config = {

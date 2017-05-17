@@ -33,7 +33,7 @@ from cros.factory.utils import net_utils
 class CommandTest(unittest.TestCase):
 
   def setUp(self):
-    test_port = net_utils.GetUnusedPort()
+    test_port = net_utils.FindUnusedPort()
     self.env = umpire_env.UmpireEnvForTest()
     self.mox = mox.Mox()
     self.proxy = xmlrpc.Proxy('http://%s:%d' % (net_utils.LOCALHOST, test_port))

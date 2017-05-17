@@ -33,7 +33,6 @@ from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 
 MOCK_UMPIRE_ADDR = 'http://' + net_utils.LOCALHOST
-SEARCH_STARTING_PORT = 16384
 TESTDATA_DIRECTORY = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), 'testdata')
 UMPIRE_HANDLER_METHOD = 'umpire_handler_method'
@@ -256,8 +255,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     cls.temp_testdata_dir = os.path.join(cls.temp_dir, 'testdata')
     shutil.copytree(TESTDATA_DIRECTORY, cls.temp_testdata_dir)
     os.chdir(cls.temp_testdata_dir)
-    port = net_utils.FindConsecutiveUnusedPorts(
-        SEARCH_STARTING_PORT, cls.NUMBER_OF_PORTS)
+    port = net_utils.FindUnusedPort(tcp_only=True, length=cls.NUMBER_OF_PORTS)
     logging.debug('Set starting testing port to %r', port)
     cls.SetTestingPort(port)
     cls.SetupServers()

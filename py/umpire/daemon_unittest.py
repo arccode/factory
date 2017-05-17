@@ -95,7 +95,7 @@ class DaemonTest(unittest.TestCase):
     self.env = umpire_env.UmpireEnvForTest()
     shutil.copy(TESTCONFIG, self.env.active_config_file)
     self.env.LoadConfig()
-    self.env.config['port'] = net_utils.FindConsecutiveUnusedPorts(10000, 5)
+    self.env.config['port'] = net_utils.FindUnusedPort(tcp_only=True, length=5)
     self.daemon = daemon.UmpireDaemon(self.env)
     self.rpc_proxy = xmlrpc.Proxy(
         'http://%s:%d' % (net_utils.LOCALHOST, self.env.umpire_cli_port))

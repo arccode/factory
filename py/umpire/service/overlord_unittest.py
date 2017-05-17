@@ -65,9 +65,9 @@ class OverlordServiceTest(unittest.TestCase):
 
     # set random port for overlord to bind
     procs[0].config.env = {
-        'OVERLORD_PORT': str(net_utils.GetUnusedPort()),
-        'OVERLORD_LD_PORT': str(net_utils.GetUnusedPort()),
-        'OVERLORD_HTTP_PORT': str(net_utils.GetUnusedPort())
+        'OVERLORD_PORT': str(net_utils.FindUnusedPort()),
+        'OVERLORD_LD_PORT': str(net_utils.FindUnusedPort()),
+        'OVERLORD_HTTP_PORT': str(net_utils.FindUnusedPort())
     }
 
     with self.assertRaises(subprocess.CalledProcessError):

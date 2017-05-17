@@ -31,6 +31,8 @@ MAX_PORT = 65535
 FULL_MASK = 2 ** 32 - 1
 FULL_MASK6 = 2 ** 128 - 1
 DEFAULT_ETHERNET_NAME_PATTERNS = ['eth*']
+UNUSED_PORT_LOW = 8192
+UNUSED_PORT_HIGH = 32768
 
 
 class IP(object):
@@ -413,50 +415,8 @@ def SwitchEthernetInterfaces(enable,
     Ifconfig(dev, enable)
 
 
-def IsPortBeingUsed(port):
-  """Checks if a port is being used.
-
-  Args:
-    port: A port number to check.
-
-  Returns:
-    True if the port is being used.
-  """
-  ret = process_utils.Spawn(['lsof', '-i', ':%d' % port],
-                            call=True, sudo=True).returncode
-  return ret == 0
-
-
-def FindConsecutiveUnusedPorts(port, length):
-  """Finds a range of ports that are all available.
-
-  Args:
-    port: The port number of starting port to search.
-    length: The length of the range.
-
-  Returns:
-    A port number such that [port, port + 1,..., port+length-1] are all
-    available.
-  """
-  success_count = 0
-  current_port = port
-  while current_port < MAX_PORT:
-    if not IsPortBeingUsed(current_port):
-      success_count = success_count + 1
-      if success_count == length:
-        starting_port = current_port - length + 1
-        logging.info('Found valid port %r ~ %r', starting_port, current_port)
-        return starting_port
-    else:
-      success_count = 0
-    current_port = current_port + 1
-  raise Exception(
-      'Can not find a range of valid ports from %s to %s' % (
-          current_port, MAX_PORT))
-
-
-def GetUnusedPort(tcp_only=False):
-  """Finds a semi-random available port.
+def FindUnusedPort(tcp_only=False, length=1):
+  """Finds a range of semi-random available port.
 
   A race condition is still possible after the port number is returned, if
   another process happens to bind it.
@@ -465,10 +425,32 @@ def GetUnusedPort(tcp_only=False):
 
   Arguments:
     tcp_only: Whether to only find port that is free on TCP.
+    length: The length of the range.
 
   Returns:
-    A port number that is unused on TCP (and UDP, if tcp_only is False).
+    A port number that [port, ..., port + length - 1] is unused on TCP (and
+    UDP, if tcp_only is False).
   """
+
+  def _GetRandomPort():
+    # The environ would be set by tools/run_tests.py, and would point to a unix
+    # stream server that can be used to ensure unittests in different processes
+    # would not get same random port, thus eliminate the chance of race
+    # condition between different unit tests.
+    addr = os.environ.get('CROS_FACTORY_UNITTEST_PORT_DISTRIBUTE_SERVER')
+    if addr:
+      sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+      try:
+        sock.connect(addr)
+        sock.send(struct.pack('B', length))
+        port = struct.unpack('<H', sock.recv(2))[0]
+        logging.debug('Got port %d from port distribute server.', port)
+        return port
+      except Exception:
+        pass
+      finally:
+        sock.close()
+    return random.randrange(UNUSED_PORT_LOW, UNUSED_PORT_HIGH)
 
   def TryBind(port, socket_type, socket_proto):
     # If python support IPV6, then we use AF_INET6 to bind to both IPv4 and
@@ -486,13 +468,20 @@ def GetUnusedPort(tcp_only=False):
     finally:
       s.close()
 
+  def _CheckPort(port):
+    if TryBind(port, socket.SOCK_STREAM, socket.IPPROTO_TCP):
+      # Check if this port is unused on the other protocol.
+      if tcp_only or TryBind(port, socket.SOCK_DGRAM, socket.IPPROTO_UDP):
+        return True
+    return False
+
   # We don't bind to port 0 and use the port given by kernel, since the port
   # would be in ephemeral port range, and the chance of it to confilct with
   # other code because of race condition would be larger since it would
   # possibly be conflicting with port used by outgoing connection too.
   #
-  # Also, a typical usage of GetUnusedPort is as follows:
-  #   port = net_utils.GetUnusedPort()
+  # Also, a typical usage of FindUnusedPort is as follows:
+  #   port = net_utils.FindUnusedPort()
   #   server = StartServerAsync(port=port)
   #   sync_utils.WaitFor(lambda: PingServer(port=port), 2)
   # But if the server port is in ephemeral port range, there's a small chance
@@ -500,11 +489,11 @@ def GetUnusedPort(tcp_only=False):
   # and the StartServerAsync() would fail.
   # (See http://sgros.blogspot.tw/2013/08/tcp-client-self-connect.html)
   while True:
-    port = random.randrange(16384, 32768)
-    if TryBind(port, socket.SOCK_STREAM, socket.IPPROTO_TCP):
-      # Check if this port is unused on the other protocol.
-      if tcp_only or TryBind(port, socket.SOCK_DGRAM, socket.IPPROTO_UDP):
-        return port
+    port = _GetRandomPort()
+    if all(_CheckPort(p) for p in range(port, port + length)):
+      logging.info('FindUnusedPort returned port %d (length = %d)', port,
+                   length)
+      return port
 
 
 def FindUnusedTCPPort():
@@ -518,7 +507,7 @@ def FindUnusedTCPPort():
   If race condition need to be avoided, caller should bind to port 0 directly,
   and the kernel would do the right job.
   """
-  return GetUnusedPort(tcp_only=True)
+  return FindUnusedPort(tcp_only=True)
 
 
 def EnablePort(port, protocol='tcp', priority=None, interface=None):

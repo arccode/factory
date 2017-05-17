@@ -27,7 +27,7 @@ class TestInputSocket(unittest.TestCase):
   def _CreatePlugin(self):
     self.core = testing.MockCore()
     self.hostname = 'localhost'
-    self.port = net_utils.GetUnusedPort()
+    self.port = net_utils.FindUnusedPort()
     config = {
         'hostname': 'localhost',
         'port': self.port}
