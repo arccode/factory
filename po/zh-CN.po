@@ -485,6 +485,10 @@ msgid ""
 msgstr "请按你从 {device} 输出所听到的数字<br>按 {key} 重播语音"
 
 #: ../py/test/pytests/audio.py
+msgid "Please wait for the {device} playback to finish."
+msgstr "{device} 正在播放语音···"
+
+#: ../py/test/pytests/audio.py
 msgid " (Left Channel)"
 msgstr "(左声道)"
 

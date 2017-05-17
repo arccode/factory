@@ -37,6 +37,9 @@ _INSTRUCTION_AUDIO_RANDOM_TEST = lambda device, key: i18n_test_ui.MakeI18nLabel(
     'Press "{key}" to replay.',
     device=device, key=key)
 
+_PLAYBACK_IS_RUNNING = lambda device: i18n_test_ui.MakeI18nLabel(
+    'Please wait for the {device} playback to finish.', device=device)
+
 _SOUND_DIRECTORY = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), '..', '..', 'goofy',
     'static', 'sounds')
@@ -81,10 +84,6 @@ class AudioDigitPlaybackTask(factory_task.InteractiveFactoryTask):
 
   def _InitUI(self):
     self._ui.SetHTML(self._port_label, id=self._title_id)
-    self._ui.SetHTML(
-        '%s<br>%s' % (_INSTRUCTION_AUDIO_RANDOM_TEST(self._port_label, 'R'),
-                      test_ui.MakePassFailKeyLabel(pass_key=False)),
-        id=self._instruction_id)
     self.BindPassFailKeys(pass_key=False)
 
   def Run(self):
@@ -94,6 +93,10 @@ class AudioDigitPlaybackTask(factory_task.InteractiveFactoryTask):
       Args:
         num: digit number to play.
       """
+      self.UnbindDigitKeys()
+      self._ui.SetHTML(_PLAYBACK_IS_RUNNING(self._port_label),
+                       id=self._instruction_id)
+
       lang = self._ui.GetUILanguage()
       base_name = '%d_%s.ogg' % (num, lang)
       with file_utils.UnopenedTemporaryFile(suffix='.wav') as wav_path:
@@ -123,10 +126,17 @@ class AudioDigitPlaybackTask(factory_task.InteractiveFactoryTask):
           self._dut.audio.PlaybackWavFile(dut_wav_path, self._out_card,
                                           self._out_device)
 
+      self._ui.SetHTML(
+          '%s<br>%s' % (_INSTRUCTION_AUDIO_RANDOM_TEST(self._port_label, 'R'),
+                        test_ui.MakePassFailKeyLabel(pass_key=False)),
+          id=self._instruction_id)
+      self._ui.BindKey(
+          'R', lambda _: _PlayDigit(self._pass_digit, self._channel),
+          once=True)
+      self.BindDigitKeys(self._pass_digit)
+
     self._InitUI()
 
-    self._ui.BindKey('R', lambda _: _PlayDigit(self._pass_digit, self._channel))
-    self.BindDigitKeys(self._pass_digit)
     _PlayDigit(self._pass_digit, self._channel)
 
   def Cleanup(self):
