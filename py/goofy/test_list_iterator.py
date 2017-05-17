@@ -93,7 +93,7 @@ class TestListIterator(object):
       def dfs(node):
         if not OnEnter(node):
           return
-        while Continue(node):
+        while CheckContinue(node):
           Body(node)
         OnLeave(node)
   """
@@ -295,6 +295,10 @@ class TestListIterator(object):
     if state.iterations_left > 0 and state.retries_left >= 0:
       # should continue
       frame.next_step = self.Body.__name__
+      if frame.locals.get('executed', False):
+        # reset test state of subtests
+        for subtest in test.Walk():
+          subtest.UpdateState(status=factory.TestState.UNTESTED)
       return self.RETURN_CODE.CONTINUE, None
     else:
       # should not continue
