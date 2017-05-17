@@ -77,6 +77,7 @@ class WaitExternalTest(unittest.TestCase):
   ]
 
   def setUp(self):
+    i18n_arg_utils.ParseArg(self, 'msg')
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)
     self.template.SetTitle(_TEST_TITLE)
