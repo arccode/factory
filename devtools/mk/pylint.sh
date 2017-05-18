@@ -6,17 +6,18 @@
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 . "${SCRIPT_DIR}/common.sh" || exit 1
 
-: ${PYTHONPATH:=py_pkg:py:setup}
-: ${PYLINT_MSG_TEMPLATE:='{path}:{line}: {symbol}: {msg}'}
-: ${PYLINT_RC_FILE:="${SCRIPT_DIR}/pylint.rc"}
-: ${PYLINT_OPTIONS:=}
+: "${PYTHONPATH:=py_pkg:py:setup}"
+: "${PYLINT_MSG_TEMPLATE:='{path}:{line}: {symbol}: {msg}'}"
+: "${PYLINT_RC_FILE:="${SCRIPT_DIR}/pylint.rc"}"
+: "${PYLINT_OPTIONS:=}"
 
 do_lint() {
   local ret="0"
   local out="$1"
   shift
+  local num_cpu="$(grep -c ^processor /proc/cpuinfo)"
 
-  PYTHONPATH="${PYTHONPATH}" pylint \
+  PYTHONPATH="${PYTHONPATH}" pylint -j "${num_cpu}"\
     --rcfile="${PYLINT_RC_FILE}" \
     --msg-template="${PYLINT_MSG_TEMPLATE}" \
     ${PYLINT_OPTIONS} \
