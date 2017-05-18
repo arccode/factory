@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-05-16 11:25+CST\n"
+"POT-Creation-Date: 2017-05-18 13:55+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -2051,7 +2051,7 @@ msgstr "竖立平板电脑使其垂直于桌面，并开始旋转到对齐图片
 
 #: ../py/test/pytests/touchpad.py
 msgid "Please take off your fingers and then press SPACE to start testing..."
-msgstr "请将待测物放置于水平面上，并按空白键开始校准。"
+msgstr "请先将手指远离触控版後按 空白键 开始测试..."
 
 #: ../py/test/pytests/touchpad.py
 msgid ""
