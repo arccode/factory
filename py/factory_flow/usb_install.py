@@ -142,7 +142,7 @@ class USBInstall(FactoryFlowCommand):
           '--install_shim', install_shim_path,
           '--release', release_image_path,
           '--factory', factory_image_path,
-          '--hwid_updater', hwid_bundle_path,
+          '--hwid', hwid_bundle_path,
           '--usbimg', usb_image_path,
       ]
 

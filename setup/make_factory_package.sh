@@ -914,7 +914,7 @@ parse_and_run_config() {
 check_empty_normal_params() {
   local param
   local mode="$1"
-  local param_list="release factory firmware_updater hwid_updater install_shim
+  local param_list="release test toolkit firmware hwid install_shim
                     complete_script usb_img disk_img subfolder"
   for param in $param_list; do
     check_empty_param FLAGS_$param "$mode"

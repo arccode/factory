@@ -129,7 +129,7 @@ class MakeFactoryPackageTest(unittest.TestCase):
         '--toolkit', 'unpacked/factory_toolkit/install_factory_toolkit.run',
         '--test', 'unpacked/chromiumos_test_image.bin',
         '--release', 'unpacked/chromiumos_base_image.bin',
-        '--hwid_updater', self.hwid,
+        '--hwid', self.hwid,
     ]
 
   def tearDown(self):
@@ -141,7 +141,7 @@ class MakeFactoryPackageTest(unittest.TestCase):
     if not self.args.skip_mfp:
       Spawn(self.base_args + [
           '--omaha_data_dir', static,
-          '--firmware_updater', self.firmware_updater,
+          '--firmware', self.firmware_updater,
       ], cwd=self.artifacts_dir, check_call=True, log=True)
 
     # The static directory should have been created with a particular
@@ -196,7 +196,7 @@ class MakeFactoryPackageTest(unittest.TestCase):
     if not self.args.skip_mfp:
       Spawn(self.base_args + [
           '--usbimg', image,
-          '--firmware_updater', self.firmware_updater,
+          '--firmware', self.firmware_updater,
           '--install_shim',
           'unpacked/factory_shim/factory_install_shim.bin',
       ],

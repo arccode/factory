@@ -663,8 +663,9 @@ class FinalizeBundle(object):
         './make_factory_package.sh',
         '--board', self.board,
         '--release', os.path.relpath(self.release_image_path, setup_dir),
-        '--factory', os.path.relpath(self.factory_image_path, setup_dir),
-        '--hwid_updater', '../hwid/hwid_v3_bundle_%s.sh' %
+        '--test', os.path.relpath(self.test_image_path, setup_dir),
+        '--toolkit', os.path.relpath(self.toolkit_path, setup_dir),
+        '--hwid', '../hwid/hwid_v3_bundle_%s.sh' %
         self.simple_board.upper()]
 
     if 'complete_script' in self.manifest:
@@ -688,7 +689,7 @@ class FinalizeBundle(object):
     firmware_updater = os.path.join(
         self.bundle_dir, 'firmware', 'chromeos-firmwareupdate')
     if os.path.exists(firmware_updater):
-      make_factory_package += ['--firmware_updater',
+      make_factory_package += ['--firmware',
                                os.path.relpath(firmware_updater, setup_dir)]
 
     if self.args.make_factory_package:
