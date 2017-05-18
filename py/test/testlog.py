@@ -79,7 +79,8 @@ _DEFAULT_ATTACHMENTS_FOLDER = 'attachments'
 # The /run directory (or something writable by us if in the chroot).
 # TODO(itspeter): Survey if we can find an equivalent folder in Windows.
 #                 Otherwise, the SEQ_INCREMENT_ON_BOOT magic might not work.
-_TMP_DIR = tempfile.gettempdir() if sys_utils.InChroot() else '/run'
+_TMP_DIR = (os.environ.get('CROS_FACTORY_RUN_PATH') or
+            (tempfile.gettempdir() if sys_utils.InChroot() else '/run'))
 
 # File containing the next sequence number to write. This is in
 # /run so it is cleared on each boot.
