@@ -153,10 +153,12 @@ class StationEntry(unittest.TestCase):
           disable_event=disable_event)
 
     def _IsReady():
+      if not self._dut.link.IsReady():
+        return False
       try:
         self._dut.CheckCall(['true'])
         return True
-      except:  # pylint: disable=bare-except
+      except Exception:
         return False
 
     sync_utils.WaitFor(_IsReady, self.args.timeout_secs, poll_interval=1)
