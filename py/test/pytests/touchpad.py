@@ -10,14 +10,16 @@ dargs:
 """
 
 import array
-import evdev
 import fcntl
 import logging
 import unittest
 
+import evdev
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import countdown_timer
 from cros.factory.test import factory
+from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -339,7 +341,7 @@ class TouchpadTest(unittest.TestCase):
       logging.error(msg)
       factory.console.error(msg)
 
-      self.ui.Alert(i18n_test_ui.MakeI18nLabel(
+      self.ui.Alert(_(
           "Please don't put your third finger on the touchpad.\n"
           "If you didn't do that,\n"
           'treat this touch panel as a problematic one!!'))
@@ -494,7 +496,7 @@ class TouchpadTest(unittest.TestCase):
     return fcntl.ioctl(self.touchpad_device.fileno(), EVIOCGMTSLOTS(nbytes),
                        buf) >= 0 and buf.count(-1) == num_slots
 
-  def StartTest(self, _):
+  def StartTest(self, event):
     """Start the test if the touchpad is clear.
 
     This function is invoked when SPACE key is pressed. It will first check
@@ -502,15 +504,16 @@ class TouchpadTest(unittest.TestCase):
     and fail the test. Else, it will clear the event buffer and start the test.
 
     Args:
-      _: a BindKey event object, not used.
+      event: a BindKey event object, not used.
     """
+    del event  # Unused.
 
     self.ui.UnbindKey(test_ui.SPACE_KEY)
 
     self.touchpad_device.grab()
     if not self.IsClear():
       logging.error('Ghost finger detected.')
-      self.ui.Alert(i18n_test_ui.MakeI18nLabel(
+      self.ui.Alert(_(
           'Ghost finger detected!!\n'
           'Please treat this touch panel as a problematic one!!'))
       self.ui.Fail('Ghost finger detected.')

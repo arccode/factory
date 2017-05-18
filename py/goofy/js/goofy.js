@@ -1385,14 +1385,20 @@ cros.factory.Goofy.prototype.registerDialog = function(dialog) {
 
 /**
  * Displays an alert.
- * @param {string|!goog.html.SafeHtml} message
+ * @param {string|cros.factory.i18n.TranslationDict|!goog.html.SafeHtml} message
  */
 cros.factory.Goofy.prototype.alert = function(message) {
   var dialog = new goog.ui.Dialog();
   this.registerDialog(dialog);
   dialog.setTitle('Alert');
   dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
-  cros.factory.Goofy.setDialogContent(dialog, message);
+  var /** goog.html.SafeHtml */ html;
+  if (message instanceof goog.html.SafeHtml) {
+    html = message;
+  } else {
+    html = cros.factory.i18n.i18nLabel(message);
+  }
+  cros.factory.Goofy.setDialogContent(dialog, html);
   dialog.setVisible(true);
   goog.dom.classlist.add(dialog.getElement(), 'goofy-alert');
 };

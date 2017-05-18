@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -12,6 +11,7 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event
 from cros.factory.test import factory
+from cros.factory.test.i18n import _
 from cros.factory.test.utils import serial_utils
 
 
@@ -177,12 +177,12 @@ class FakeFixture(BaseFixture):
   def DriveProbeDown(self):
     """Drives the probe to the 'down' position."""
     factory.console.info('Drive Probe Down....')
-    self.ui.Alert('Pull the lever down.\n拉下把手')
+    self.ui.Alert(_('Pull the lever down.'))
 
   def DriveProbeUp(self):
     """Drives the probe to the 'up' position."""
     factory.console.info('Drive Probe Up....')
-    self.ui.Alert('Pull the lever up.\n拉起把手')
+    self.ui.Alert(_('Pull the lever up.'))
     self.final_calibration_lock.wait(self.TIMEOUT)
     self.ui.PostEvent(event.Event(event.Event.Type.TEST_UI_EVENT,
                                   subtype='FinishTest'))

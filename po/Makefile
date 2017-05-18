@@ -26,6 +26,7 @@ func-get-source-list = \
     $(1)/goofy/*.py $(1)/goofy/*/*.py $(1)/goofy/plugins/*/*.py \
     $(1)/test/*.py $(1)/test/pytests/*.py \
     $(1)/test/pytests/*/*.py $(1)/test/test_lists/*.py \
+    $(1)/test/fixture/*/*.py \
     $(1)/test/pytests/*.html $(1)/test/pytests/*/*.html \
     $(1)/goofy/js/*.js $(1)/goofy/static/index.html \
     $(1)/goofy/static/ui_templates/*.html $(1)/test/pytests/*/*.js \

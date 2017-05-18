@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-05-18 13:55+CST\n"
+"POT-Creation-Date: 2017-05-18 14:02+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -385,6 +385,14 @@ msgstr "测试进度:"
 #: ../py/test/countdown_timer.py
 msgid "Time remaining: {time:.0f}"
 msgstr "剩余时间：{time:.0f}"
+
+#: ../py/test/fixture/touchscreen_calibration/fixture.py
+msgid "Pull the lever down."
+msgstr "拉下把手"
+
+#: ../py/test/fixture/touchscreen_calibration/fixture.py
+msgid "Pull the lever up."
+msgstr "拉起把手"
 
 #: ../py/test/pytests/ac_power.py
 msgid "Connect AC"
