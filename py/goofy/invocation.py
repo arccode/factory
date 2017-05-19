@@ -16,7 +16,6 @@ import cPickle as pickle
 import pprint
 import re
 import signal
-import syslog
 import sys
 import tempfile
 import threading
@@ -25,7 +24,6 @@ import traceback
 import unittest
 import yaml
 from optparse import OptionParser
-from setproctitle import setproctitle  # pylint: disable=no-name-in-module
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -49,6 +47,9 @@ from cros.factory.utils.arg_utils import Args
 from cros.factory.utils.service_utils import ServiceManager
 from cros.factory.utils.string_utils import DecodeUTF8
 
+ # pylint: disable=no-name-in-module
+from cros.factory.external.setproctitle import setproctitle
+from cros.factory.external import syslog
 
 # Number of bytes to include from the log of a failed test.
 ERROR_LOG_TAIL_LENGTH = 8 * 1024

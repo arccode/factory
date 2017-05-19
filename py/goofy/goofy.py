@@ -14,7 +14,6 @@ from optparse import OptionParser
 import os
 import signal
 import sys
-import syslog
 import threading
 import time
 import traceback
@@ -65,6 +64,8 @@ from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
+
+from cros.factory.external import syslog
 
 
 HWID_CFG_PATH = '/usr/local/share/chromeos-hwid/cfg'

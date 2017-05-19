@@ -9,7 +9,6 @@
 
 import argparse
 import logging
-import syslog
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.goofy import test_environment
@@ -19,6 +18,8 @@ from cros.factory.goofy.ui_app_controller import UIAppController
 from cros.factory.test import factory
 from cros.factory.utils import jsonrpc_utils
 from cros.factory.utils import sys_utils
+
+from cros.factory.external import syslog
 
 
 class GoofyPresenter(GoofyBase):

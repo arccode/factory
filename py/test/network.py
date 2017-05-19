@@ -61,12 +61,13 @@ def GetAllWiredIPs():
 
 
 def _SendDhclientCommand(arguments, interface,
-                         timeout=5, expect_str=pexpect.EOF):
+                         timeout=5, expect_str=None):
   """Calls dhclient as a foreground process with timeout.
 
   Because the read-only filesystem, using dhclient in ChromeOS needs a
   little tweaks on few paths.
   """
+  expect_str = pexpect.EOF if expect_str is None else expect_str
   DHCLIENT_SCRIPT = '/usr/local/sbin/dhclient-script'
   DHCLIENT_LEASE = os.path.join(paths.GetStateRoot(), 'dhclient.leases')
   assert timeout > 0, 'Must have a timeout'

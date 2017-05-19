@@ -6,12 +6,17 @@
 
 from __future__ import print_function
 
-import ctypes
 import inspect
 import logging
 import signal
 import threading
 import time
+
+_HAVE_CTYPES = True
+try:
+  import ctypes
+except Exception:
+  _HAVE_CTYPES = False
 
 from contextlib import contextmanager
 
@@ -151,7 +156,7 @@ def Timeout(secs, use_signal=False):
     secs: Number of seconds to wait before timeout.
     use_signal: force using SignalTimeout (implemented by signal.alarm)
   """
-  if use_signal:
+  if not _HAVE_CTYPES or use_signal:
     return SignalTimeout(secs)
   return ThreadTimeout(secs)
 
