@@ -70,8 +70,6 @@ from cros.factory.utils import type_utils
 HWID_CFG_PATH = '/usr/local/share/chromeos-hwid/cfg'
 CACHES_DIR = os.path.join(paths.GetStateRoot(), 'caches')
 
-CLEANUP_LOGS_PAUSED = '/var/lib/cleanup_logs_paused'
-
 # Value for tests_after_shutdown that forces auto-run (e.g., after
 # a factory update, when the available set of tests might change).
 FORCE_AUTO_RUN = 'force_auto_run'
@@ -1120,8 +1118,6 @@ class Goofy(GoofyBase):
         self.test_list.options.__dict__)
     self.state_instance.test_list = self.test_list
 
-    self.check_log_rotation()
-
     if self.options.dummy_shopfloor:
       os.environ[shopfloor.SHOPFLOOR_SERVER_ENV_VAR_NAME] = (
           'http://%s:%d/' %
@@ -1217,26 +1213,6 @@ class Goofy(GoofyBase):
           caps_lock_keycode=test_options.caps_lock_keycode)
       self.key_filter.Start()
 
-  def check_log_rotation(self):
-    """Checks log rotation file presence/absence according to test_list option.
-
-    Touch /var/lib/cleanup_logs_paused if test_list.options.disable_log_rotation
-    is True, delete it otherwise.
-    """
-    if sys_utils.InChroot():
-      return
-    try:
-      if self.test_list.options.disable_log_rotation:
-        open(CLEANUP_LOGS_PAUSED, 'w').close()
-      else:
-        file_utils.TryUnlink(CLEANUP_LOGS_PAUSED)
-    except:  # pylint: disable=W0702
-      # Oh well.  Logs an error (but no trace)
-      logging.info(
-          'Unable to %s %s: %s',
-          'touch' if self.test_list.options.disable_log_rotation else 'delete',
-          CLEANUP_LOGS_PAUSED, debug_utils.FormatExceptionOnly())
-
   def perform_periodic_tasks(self):
     """Override of base method to perform periodic work.
 
@@ -1246,7 +1222,6 @@ class Goofy(GoofyBase):
 
     self.check_plugins()
     self.check_for_updates()
-    self.check_log_rotation()
 
   def handle_event_logs(self, chunks, periodic=False):
     """Callback for event watcher.

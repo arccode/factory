@@ -14,6 +14,11 @@
           "/var/log/chrome/*"],
         "enable_foreground_sync": false
       }
+    },
+    "log_rotation_checker": {
+      "args": {
+        "disable_rotation": false
+      }
     }
   }
 }

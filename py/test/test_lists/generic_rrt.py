@@ -217,9 +217,6 @@ def SetOptions(test_list, args):
     # - Default to Chinese language
     options.ui_locale = 'zh-CN'
 
-    # Enable system log rotation.
-    options.disable_log_rotation = False
-
     options.shopfloor_server_url = 'http://%s:%d/' % (
         args.shopfloor_host, args.shopfloor_port)
 

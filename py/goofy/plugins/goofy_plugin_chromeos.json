@@ -91,6 +91,11 @@
     },
     "device_manager": {},
     "status_monitor.status_monitor": {},
-    "terminal.terminal": {}
+    "terminal.terminal": {},
+    "log_rotation_checker": {
+      "args": {
+        "disable_rotation": true
+      }
+    }
   }
 }

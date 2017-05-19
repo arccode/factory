@@ -289,12 +289,6 @@ class Options(object):
   stop_on_failure = False
   """Whether to stop on any failure."""
 
-  disable_log_rotation = True
-  """Disables (or Enables) log rotation by writing (or deleting)
-  ``/var/lib/cleanup_logs_paused`` (see ``/usr/sbin/chromeos-cleanup-logs``).
-  in goofy idle loops. Note that autotest harness disables log rotation.
-  """
-
   disable_cros_shortcut_keys = False
   """Disable ChromeOS shortcut keys (see ``factory/tools/key_filter.py``)."""
   disable_caps_lock = False
