@@ -109,12 +109,12 @@ situations, e.g., to specify different limits or parameters or to
 enable/disable various checks. To allow this sort of customization,
 you can declare test arguments in your test case by adding an ``ARGS``
 attribute describing the supported set of arguments. ``ARGS`` is a
-list of items of type :py:class:`cros.factory.test.args.Arg`.
+list of items of type :py:class:`cros.factory.utils.arg_utils.Arg`.
 
 For example::
 
   import unittest
-  from cros.factory.test.args import Arg
+  from cros.factory.utils.arg_utils import Arg
 
   class BadBlocksTest(unittest.TestCase):
     ARGS = [
