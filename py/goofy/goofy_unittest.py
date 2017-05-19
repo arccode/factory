@@ -168,7 +168,6 @@ class GoofyTest(unittest.TestCase):
       server.RegisterData('/index.html', 'text/html', IgnoreArg()).InAnyOrder()
       server.AddRPCInstance(goofy_proxy.STATE_URL, self.state).InAnyOrder()
       server.AddHTTPGetHandler('/event', IgnoreArg()).InAnyOrder()
-      server.AddHTTPGetHandler('/pty', IgnoreArg()).InAnyOrder()
       server.RegisterData('/js/goofy-translations.js', 'application/javascript',
                           IgnoreArg()).InAnyOrder()
       server.RegisterData('/css/i18n.css', 'text/css', IgnoreArg()).InAnyOrder()

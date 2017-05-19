@@ -17,13 +17,23 @@ import threading
 from ws4py.websocket import WebSocket
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.goofy.plugins import plugin
 from cros.factory.test.utils.web_socket_utils import WebSocketHandshake
+from cros.factory.utils import type_utils
 
 
 _SHELL = os.getenv('SHELL', '/bin/bash')
 _BUFSIZ = 8192
 _CONTROL_START = 128
 _CONTROL_END = 129
+
+
+class Terminal(plugin.Plugin):
+  @type_utils.Overrides
+  def OnStart(self):
+    terminal_manager = TerminalManager()
+    self.goofy.goofy_server.AddHTTPGetHandler(
+        '/pty', terminal_manager.handle_web_socket)
 
 
 class TerminalManager(object):

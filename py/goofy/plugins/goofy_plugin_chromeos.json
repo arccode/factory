@@ -90,6 +90,7 @@
       }
     },
     "device_manager": {},
-    "status_monitor.status_monitor": {}
+    "status_monitor.status_monitor": {},
+    "terminal.terminal": {}
   }
 }

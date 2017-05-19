@@ -30,7 +30,6 @@ from cros.factory.goofy.invocation import TestInvocation
 from cros.factory.goofy.link_manager import PresenterLinkManager
 from cros.factory.goofy.plugins import plugin_controller
 from cros.factory.goofy import prespawner
-from cros.factory.goofy.terminal_manager import TerminalManager
 from cros.factory.goofy import test_environment
 from cros.factory.goofy.test_list_iterator import TestListIterator
 from cros.factory.goofy import updater
@@ -223,7 +222,6 @@ class Goofy(GoofyBase):
     }
 
     self.web_socket_manager = None
-    self.terminal_manager = None
 
   def destroy(self):
     """Performs any shutdown tasks. Overrides base class method."""
@@ -336,11 +334,6 @@ class Goofy(GoofyBase):
     self.web_socket_manager = WebSocketManager(self.uuid)
     self.goofy_server.AddHTTPGetHandler(
         '/event', self.web_socket_manager.handle_web_socket)
-
-  def start_terminal_server(self):
-    self.terminal_manager = TerminalManager()
-    self.goofy_server.AddHTTPGetHandler(
-        '/pty', self.terminal_manager.handle_web_socket)
 
   def set_visible_test(self, test):
     if self.visible_test == test:
@@ -1142,7 +1135,6 @@ class Goofy(GoofyBase):
 
     self.init_states()
     self.start_event_server()
-    self.start_terminal_server()
 
     # Load and run Goofy plugins.
     self.plugin_controller = plugin_controller.PluginController(
