@@ -268,6 +268,12 @@ def PressToStart(id_suffix='',
 
 def EnlargeStatefulPartition(args):
   """Enlarge stateful partition to prevent disk full during long run tests."""
+
+  # TODO: detect the partition size and decide if resizing is reasonable instead
+  # of checking OS type here. (b/38485491).
+  if not sys_utils.InCrOSDevice():
+    return
+
   with TestGroup(id='EnlargeStatefulPartition',
                  label=_('Enlarge Stateful Partition')):
     FactoryTest(
