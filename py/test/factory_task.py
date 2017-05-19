@@ -5,6 +5,7 @@
 # found in the LICENSE file.
 
 import logging
+import threading
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_ui
@@ -32,55 +33,35 @@ class FactoryTaskManager(object):
                on_finish=None):
     self._ui = ui
     self._task_list = task_list
-    self._current_task = None
-    self._num_tasks = len(task_list)
-    self._num_done_tasks = 0
     self._update_progress = update_progress
+    self.task_finish_event = threading.Event()
+    self.task_abort_event = threading.Event()
     self._on_finish = on_finish
 
-  def RunNextTask(self):
-    if self._current_task:
-      self._num_done_tasks += 1
-      if self._update_progress:
-        self._update_progress(100 * self._num_done_tasks / self._num_tasks)
-
-    if self._task_list:
+  def RunAllTasks(self):
+    self.task_abort_event.clear()
+    for idx, task in enumerate(self._task_list, 1):
       # pylint: disable=protected-access
-      self._current_task = self._task_list.pop(0)
-      self._current_task._task_manager = self
-      self._current_task._ui = self._ui
-      self._current_task._Start()
+      self.task_finish_event.clear()
+      task._task_manager = self
+      task._ui = self._ui
+      task._Start()
+      self.task_finish_event.wait()
+      if self.task_abort_event.is_set():
+        break
+      if self._update_progress:
+        self._update_progress(100 * idx / len(self._task_list))
     else:
       self._ui.Pass()
+
+  def TaskFinished(self, abort=False):
+    if abort:
+      self.task_abort_event.set()
+    self.task_finish_event.set()
 
   def Run(self):
-    self._ui.RunInBackground(self.RunNextTask)
+    self._ui.RunInBackground(self.RunAllTasks)
     self._ui.Run(on_finish=self._on_finish)
-
-  def PassCurrentTask(self):
-    """Passes current task.
-
-    If _current_task does not exist, just passes the parent test.
-    """
-    if self._current_task:
-      self._current_task.Pass()
-    else:
-      self._ui.Pass()
-
-  def FailCurrentTask(self, error_msg, later=False):
-    """Fails current task with error message.
-
-    Args:
-      error_msg: error message.
-      later: False to fails the parent test right now; otherwise, fails later.
-    """
-    if self._current_task:
-      self._current_task.Fail(error_msg, later=later)
-    else:
-      if later:
-        self._ui.FailLater(error_msg)
-      else:
-        self._ui.Fail(error_msg)
 
 
 class FactoryTask(object):
@@ -101,13 +82,13 @@ class FactoryTask(object):
 
     # Hook to the test_ui so that the ui can call _Finish when it
     # receives END_TEST event.
-    assert self._ui.task_hook == None, 'Another task is running.'
+    assert self._ui.task_hook is None, 'Another task is running.'
     self._ui.task_hook = self
 
     self._execution_status = TaskState.RUNNING
     self.Run()
 
-  def _Finish(self, reason):
+  def _Finish(self, reason, abort=False):
     """Finishes a task and performs cleanups.
 
     It is used for Stop, Pass, and Fail operation.
@@ -124,17 +105,16 @@ class FactoryTask(object):
                    'window.test.removeAllVirtualkeys();')
     self._ui.event_handlers = {}
     self.Cleanup()
+    self._task_manager.TaskFinished(abort)
 
   def _IsRunning(self):
     return self._execution_status == TaskState.RUNNING
 
   def Stop(self):
     self._Finish(FinishReason.STOPPED)
-    self._task_manager.RunNextTask()
 
   def Pass(self):
     self._Finish(FinishReason.PASSED)
-    self._task_manager.RunNextTask()
 
   def Fail(self, error_msg, later=False):
     """Fails the task and perform cleanup.
@@ -149,11 +129,11 @@ class FactoryTask(object):
       # Prevent multiple call of _Finish().
       return
 
-    self._Finish(FinishReason.FAILED)
     if later:
+      self._Finish(FinishReason.FAILED)
       self._ui.FailLater(error_msg)
-      self._task_manager.RunNextTask()
     else:
+      self._Finish(FinishReason.FAILED, abort=True)
       self._ui.Fail(error_msg)
 
   def Run(self):

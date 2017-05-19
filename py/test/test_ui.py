@@ -380,7 +380,7 @@ class UI(object):
     if self.task_hook:
       # Let factory task have a chance to do its clean up work.
       # pylint: disable=protected-access
-      self.task_hook._Finish(getattr(event, 'error_msg', ''))
+      self.task_hook._Finish(getattr(event, 'error_msg', ''), abort=True)
     self.event_client.close()
 
     try:
