@@ -22,4 +22,4 @@ py_pkg = os.getenv(
         os.path.realpath(__file__.replace('.pyc', '.py')))), 'py_pkg'))
 
 if py_pkg not in sys.path:
-  sys.path.append(py_pkg)
+  sys.path.insert(0, py_pkg)
