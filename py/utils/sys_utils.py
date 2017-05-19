@@ -452,7 +452,7 @@ def ResetCommitTime():
     return
 
   devices = set()
-  with open('/etc/mtab', 'r') as f:
+  with open('/proc/mounts', 'r') as f:
     for line in f.readlines():
       cols = line.split(' ')
       device = cols[0]
