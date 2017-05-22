@@ -23,10 +23,15 @@ from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.tools import ghost
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
 from cros.factory.utils import process_utils
+
+_HAS_GHOST = True
+try:
+  from cros.factory.tools import ghost
+except Exception:
+  _HAS_GHOST = False
 
 
 class Scan(unittest.TestCase):
@@ -203,6 +208,10 @@ class Scan(unittest.TestCase):
       time.sleep(self.args.barcode_scan_interval_secs)
 
   def KickGhost(self):
+    # TODO: modify ghost.py to accept command 'ghost reconnect' to
+    # avoid importing it directly here (b/38485295).
+    if not _HAS_GHOST:
+      raise RuntimeError('ghost library is not loaded.')
     server = ghost.GhostRPCServer()
     try:
       server.Reconnect()
