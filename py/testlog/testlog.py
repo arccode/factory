@@ -52,6 +52,7 @@ import testlog_seq
 import testlog_utils
 import testlog_validator
 from utils import file_utils
+from utils import schema
 from utils import sys_utils
 from utils import time_utils
 from utils import type_utils
@@ -234,7 +235,7 @@ class Testlog(object):
     metadata = last_test_run.pop(
         Testlog.FIELDS._METADATA)  # pylint: disable=protected-access
     return {
-        Testlog.FIELDS.LAST_TEST_RUN: Event.FromDict(last_test_run),
+        Testlog.FIELDS.LAST_TEST_RUN: Event.FromDict(last_test_run, False),
         Testlog.FIELDS.LOG_ROOT: metadata[Testlog.FIELDS.LOG_ROOT],
         Testlog.FIELDS.PRIMARY_JSON: metadata[Testlog.FIELDS.PRIMARY_JSON],
         Testlog.FIELDS.SESSION_JSON: session_json_path,
@@ -666,16 +667,17 @@ class EventBase(object):
   def CheckMissingFields(self):
     """Returns a list of missing field."""
     mro = self.__class__.__mro__
-    missing_fileds = []
+    missing_fields = []
     # Find the corresponding requirement.
     for cls in mro:
       if cls is object:
         break
       for field_name, metadata in cls.FIELDS.iteritems():
         if metadata[0] and field_name not in self._data:
-          missing_fileds.append(field_name)
+          missing_fields.append(field_name)
 
-    return missing_fileds
+    if missing_fields != []:
+      raise testlog_utils.TestlogError('Missing fields: %s' % missing_fields)
 
   @classmethod
   def GetEventType(cls):
@@ -693,6 +695,7 @@ class EventBase(object):
     """
     for key in data.iterkeys():
       data_type = type(data[key])
+      # TODO(chuntsen): raise exception when the empty list/dict has wrong key.
       if data_type == list:
         for value in data[key]:
           self[key] = value
@@ -734,16 +737,18 @@ class EventBase(object):
           'Input event does not have a valid `type`.')
 
   @classmethod
-  def FromJSON(cls, json_string):
+  def FromJSON(cls, json_string, check_missing=True):
     """Converts JSON data into an Event instance."""
-    return cls.FromDict(json.loads(json_string))
+    return cls.FromDict(json.loads(json_string), check_missing)
 
   @classmethod
-  def FromDict(cls, data):
+  def FromDict(cls, data, check_missing=True):
     """Converts Python dict data into an Event instance."""
     event = cls.DetermineClass(data)()
     event.Populate(data)
     event.CastFields()
+    if check_missing:
+      event.CheckMissingFields()
     return event
 
   def ToJSON(self):
@@ -903,6 +908,76 @@ class StationTestRun(_StationBase):
   # TODO(itspeter): Document 'argument', 'operatorId', 'failures',
   #                 'serialNumbers', 'parameters' and 'series'.
 
+  @classmethod
+  def _NumericSchema(cls, label):
+    return schema.AnyOf([
+        schema.Scalar(label, int),
+        schema.Scalar(label, long),
+        schema.Scalar(label, float)])
+
+  def _ValidatorArgumentWrapper(*args, **kwargs):  # pylint: disable=E0211
+    SCHEMA = schema.FixedDict(
+        'arguments.value',
+        items={'value': schema.Scalar('value', object)},
+        optional_items={
+            'description': schema.Scalar('description', basestring)})
+    kwargs['schema'] = SCHEMA
+    return testlog_validator.Validator.Dict(*args, **kwargs)
+
+  def _ValidatorFailureWrapper(*args, **kwargs):  # pylint: disable=E0211
+    SCHEMA = schema.FixedDict(
+        'failures.value',
+        items={'code': schema.Scalar('code', basestring),
+               'details': schema.Scalar('details', basestring)})
+    kwargs['schema'] = SCHEMA
+    return testlog_validator.Validator.List(*args, **kwargs)
+
+  def _ValidatorSerialNumberWrapper(*args, **kwargs):  # pylint: disable=E0211
+    SCHEMA = schema.Scalar('serialNumbers.value', basestring)
+    kwargs['schema'] = SCHEMA
+    return testlog_validator.Validator.Dict(*args, **kwargs)
+
+  def _ValidatorParameterWrapper(*args, **kwargs):  # pylint: disable=E0211
+    SCHEMA = schema.FixedDict(
+        'parameters.value',
+        items={},
+        optional_items={
+            'description': schema.Scalar('description', basestring),
+            'group': schema.Scalar('group', basestring),
+            'status': schema.Scalar('status', basestring, ['PASS', 'FAIL']),
+            'valueUnit': schema.Scalar('valueUnit', basestring),
+            'numericValue': StationTestRun._NumericSchema('numericValue'),
+            'expectedMinimum': StationTestRun._NumericSchema('expectedMinimum'),
+            'expectedMaximum': StationTestRun._NumericSchema('expectedMaximum'),
+            'textValue': schema.Scalar('textValue', basestring),
+            'expectedRegex': schema.Scalar('expectedRegex', basestring)})
+    kwargs['schema'] = SCHEMA
+    return testlog_validator.Validator.Dict(*args, **kwargs)
+
+  def _ValidatorSeriesWrapper(*args, **kwargs):  # pylint: disable=E0211
+    DATA_SCHEMA = schema.List('data', schema.FixedDict(
+        'data',
+        items={
+            'key': StationTestRun._NumericSchema('key')},
+        optional_items={
+            'status': schema.Scalar('status', basestring, ['PASS', 'FAIL']),
+            'numericValue': StationTestRun._NumericSchema('numericValue'),
+            'expectedMinimum': StationTestRun._NumericSchema('expectedMinimum'),
+            'expectedMaximum': StationTestRun._NumericSchema('expectedMaximum')
+        }))
+    SCHEMA = schema.FixedDict(
+        'series.value',
+        items={},
+        optional_items={
+            'description': schema.Scalar('description', basestring),
+            'group': schema.Scalar('group', basestring),
+            'status': schema.Scalar('status', basestring, ['PASS', 'FAIL']),
+            'keyUnit': schema.Scalar('keyUnit', basestring),
+            'valueUnit': schema.Scalar('valueUnit', basestring),
+            'data': DATA_SCHEMA})
+    kwargs['schema'] = SCHEMA
+    return testlog_validator.Validator.Dict(*args, **kwargs)
+
   def _ValidatorAttachmentWrapper(*args, **kwargs):  # pylint: disable=E0211
     # Because the FIELDS map must be assigned at the time of loading the
     # module. However, Testlog singleton is not ready yet, we pass the
@@ -914,17 +989,17 @@ class StationTestRun(_StationBase):
       'testRunId': (True, testlog_validator.Validator.String),
       'testName': (True, testlog_validator.Validator.String),
       'testType': (True, testlog_validator.Validator.String),
-      'arguments': (False, testlog_validator.Validator.Dict),
+      'arguments': (False, _ValidatorArgumentWrapper),
       'status': (True, testlog_validator.Validator.Status),
       'startTime': (True, testlog_validator.Validator.Time),
       'endTime': (False, testlog_validator.Validator.Time),
-      'duration': (False, testlog_validator.Validator.Float),
+      'duration': (False, testlog_validator.Validator.Number),
       'operatorId': (False, testlog_validator.Validator.String),
       'attachments': (False, _ValidatorAttachmentWrapper),
-      'failures': (False, testlog_validator.Validator.List),
-      'serialNumbers': (False, testlog_validator.Validator.Dict),
-      'parameters': (False, testlog_validator.Validator.Dict),
-      'series': (False, testlog_validator.Validator.Dict),
+      'failures': (False, _ValidatorFailureWrapper),
+      'serialNumbers': (False, _ValidatorSerialNumberWrapper),
+      'parameters': (False, _ValidatorParameterWrapper),
+      'series': (False, _ValidatorSeriesWrapper),
   }
 
   # Possible values for the `status` field.
@@ -938,10 +1013,11 @@ class StationTestRun(_StationBase):
     return 'station.test_run'
 
   def CastFields(self):
+    super(StationTestRun, self).CastFields()
     if 'series' in self:
       s = Series(__METADATA__={})
       s.update(self['series'])
-      self['series'] = s
+      self._data.update(series=s)
 
   @staticmethod
   def _CheckParamArguments(value, description, value_unit,

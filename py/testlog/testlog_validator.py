@@ -32,7 +32,9 @@ class Validator(object):
     Validator.Object(inst, key, value)
 
   @staticmethod
-  def Float(inst, key, value):
+  def Number(inst, key, value):
+    if isinstance(value, (int, long)):
+      value = float(value)
     if not isinstance(value, float):
       raise ValueError(
           'key[%s] accepts type of float. Not %r '
@@ -56,7 +58,7 @@ class Validator(object):
     Validator.Object(inst, key, value)
 
   @staticmethod
-  def Dict(inst, key, value):
+  def Dict(inst, key, value, schema=None):
     """Inserts an item into the inst._data[key].
 
     Assuming inst._data[key] is a dictionary, the inserted element will be
@@ -67,6 +69,14 @@ class Validator(object):
       raise ValueError(
           'Validator.Dict accepts value in form of {%r:..., %r:...}, not %s' % (
               'key', 'value', pprint.pformat(value)))
+
+    if not isinstance(value['key'], basestring):
+      raise ValueError(
+          'The key of %s accepts type of basestring. Not %r '
+          'Please convert before assign' % (key, type(value['key'])))
+
+    if schema:
+      schema.Validate(value['value'])
 
     # pylint: disable=protected-access
     updated_dict = inst._data[key] if key in inst._data else {}
@@ -80,8 +90,12 @@ class Validator(object):
     inst._data[key] = updated_dict
 
   @staticmethod
-  def List(inst, key, value):
+  def List(inst, key, value, schema=None):
     logging.debug('Validator.List called with (%s, %s)', key, value)
+
+    if schema:
+      schema.Validate(value)
+
     # pylint: disable=protected-access
     updated_list = inst._data[key] if key in inst._data else []
     updated_list.append(value)

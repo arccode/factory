@@ -55,7 +55,7 @@ class TestlogEventTest(unittest.TestCase):
 
   def testEventSerializeUnserialize(self):
     original = testlog.StationInit()
-    output = testlog.Event.FromJSON(original.ToJSON())
+    output = testlog.Event.FromJSON(original.ToJSON(), False)
     self.assertEquals(output, original)
 
   def testNewEventTime(self):
@@ -79,8 +79,11 @@ class TestlogEventTest(unittest.TestCase):
   def testCheckMissingFields(self):
     event = testlog.StationInit()
     event['failureMessage'] = 'Missed fields'
-    self.assertItemsEqual(event.CheckMissingFields(),
-                          ['count', 'success', 'uuid', 'apiVersion', 'time'])
+    try:
+      event.CheckMissingFields()
+    except testlog_utils.TestlogError as e:
+      self.assertEqual(repr(e), 'TestlogError("Missing fields: [\'count\', '
+                       '\'success\', \'uuid\', \'apiVersion\', \'time\']",)')
 
   def testAddArgument(self):
     event = testlog.StationTestRun()
