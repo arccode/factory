@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-05-19 12:24+CST\n"
+"POT-Creation-Date: 2017-05-22 17:26+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -2211,11 +2211,12 @@ msgstr "RESTARTING 测试结束，正在重设测试列表..."
 
 #: ../py/test/pytests/stylus.py
 msgid ""
-"Please draw a line with stylus from bottom left corner to top right corner. "
-"Stay between the two red lines.<br>Press SPACE to start; Esc to fail."
+"Please extend the green line with stylus to the other end.<br>"
+"Stay between the two red lines.<br>"
+"Press SPACE to start; Esc to fail."
 msgstr ""
-"请使用触控笔从左下方画至右上角，不要超出红线区域。<br>按空白键开始测试; Esc "
-"键标记失败"
+"请使用触控笔将绿色线段延伸至另一头，<br>不要超出红线区域。<br>"
+"按空白键开始测试; Esc 键标记失败"
 
 #: ../py/test/pytests/summary/summary.py
 msgid "Click or press SPACE to continue"
