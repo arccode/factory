@@ -126,7 +126,7 @@ class MakeFactoryPackageTest(unittest.TestCase):
 
     self.base_args = [
         self.make_factory_package,
-        '--toolkit', 'unpacked/factory_toolkit/install_factory_toolkit.run',
+        '--toolkit', 'unpacked/toolkit/install_factory_toolkit.run',
         '--test', 'unpacked/chromiumos_test_image.bin',
         '--release', 'unpacked/chromiumos_base_image.bin',
         '--hwid', self.hwid,
@@ -292,7 +292,7 @@ def main():
   parser.add_argument(
       '--artifacts', metavar='URL',
       help='URL of a directory containing build artifacts',
-      default='gs://chromeos-image-archive/daisy-release/R54-8743.65.0')
+      default='gs://chromeos-image-archive/eve-release/R60-9578.0.0/')
   parser.add_argument(
       '--no-release', action='store_false', dest='release',
       help=('Specify if not using release artifacts '
