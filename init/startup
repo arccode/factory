@@ -106,6 +106,13 @@ factory_install() {
 factory_init() {
   log "Starting ChromeOS factory initialization..."
 
+  local frecon_vt0="/run/frecon/vt0"
+  local text_splash="/usr/local/factory/misc/boot_splash.txt"
+
+  if [ -c "${frecon_vt0}" ]; then
+    cat "${text_splash}" >>"${frecon_vt0}"
+  fi
+
   # Probe the install request file to see if we need to install toolkit first.
   factory_install
 
