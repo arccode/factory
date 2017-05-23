@@ -13,7 +13,6 @@ provides all of the Google required test functionality and must be run
 on each device as part of the assembly process.
 """
 
-import collections
 import logging
 import os
 import pipes
@@ -768,34 +767,6 @@ def VerifyHWID(options):
                         rma_mode=options.rma_mode)
 
   event_log.Log('verified_hwid', hwid=encoded_string)
-
-
-def ParseDecodedHWID(hwid):
-  """Parse the HWID object into a more compact dict.
-
-  Args:
-    hwid: A decoded HWID object.
-
-  Returns:
-    A dict containing the board name, the binary string, and the list of
-    components.
-  """
-  results = {}
-  results['board'] = hwid.database.board
-  results['binary_string'] = hwid.binary_string
-  results['components'] = collections.defaultdict(list)
-  components = hwid.bom.components
-  for comp_cls in sorted(components):
-    for (comp_name, probed_values, _) in sorted(components[comp_cls]):
-      if not probed_values:
-        db_components = hwid.database.components
-        probed_values = db_components.GetComponentAttributes(
-            comp_cls, comp_name).get('values')
-      results['components'][comp_cls].append(
-          {comp_name: probed_values if probed_values else None})
-  # Convert defaultdict to dict.
-  results['components'] = dict(results['components'])
-  return results
 
 
 @Command('get_firmware_hash',
