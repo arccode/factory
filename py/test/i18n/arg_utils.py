@@ -11,8 +11,7 @@ from cros.factory.test.i18n import translation
 from cros.factory.utils import arg_utils
 
 
-def I18nArg(name, help_msg, optional=False, default=None,
-            accept_tuple=False):
+def I18nArg(name, help_msg, optional=False, default=None):
   """Define an argument for i18n text.
 
   See docstring of ``ParseArgs`` for detail on what the argument accepts.
@@ -22,17 +21,12 @@ def I18nArg(name, help_msg, optional=False, default=None,
     help_msg: The help message of the argument.
     optional: Whether the argument is optional.
     default: The default value of the message.
-    accept_tuple: If true, also accept tuple of (en, zh) input.
 
   Returns:
     The ``arg_utils.Arg`` object.
   """
-  # TODO(pihsun): accept_tuple argument is for backward compatibility, and
-  #   should be removed when all tests / test_lists are migrated to the new
-  #   format.
   return arg_utils.Arg(
-      name, (basestring, dict, tuple) if accept_tuple else (basestring, dict),
-      help_msg, optional=optional, default=default)
+      name, (basestring, dict), help_msg, optional=optional, default=default)
 
 
 def ParseArg(test, name):

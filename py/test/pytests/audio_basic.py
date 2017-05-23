@@ -85,9 +85,7 @@ def GetPlaybackLabel(channel):
 class AudioBasicTest(unittest.TestCase):
   ARGS = [
       i18n_arg_utils.I18nArg(
-          'audio_title', 'Label Title of audio test',
-          default=_('Headset'),
-          accept_tuple=True),
+          'audio_title', 'Label Title of audio test', default=_('Headset')),
       Arg('audio_conf', str, 'Audio config file path', optional=True),
       Arg('initial_actions', list, 'List of tuple (card, actions)', []),
       Arg('input_dev', tuple,

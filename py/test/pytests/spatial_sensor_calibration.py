@@ -59,7 +59,7 @@ class SpatialSensorCalibration(unittest.TestCase):
       Arg('timeout_secs', int, 'Timeout in seconds when waiting for device.',
           default=60),
       i18n_arg_utils.I18nArg('sensor_name', 'name of the sensor to calibrate.',
-                             default=DEFAULT_NAME, accept_tuple=True),
+                             default=DEFAULT_NAME),
       Arg('device_name', str, 'The "name" atribute of the sensor'),
       Arg('device_location', str, 'The "location" atribute of the sensor'),
       Arg('raw_entry_template', str,

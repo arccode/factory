@@ -298,8 +298,7 @@ class StartTest(unittest.TestCase):
           default=None, optional=True),
       i18n_arg_utils.I18nArg(
           'prompt', 'Message to show to the operator when prompting for input.',
-          default=_('Enter valid serial number:<br>'),
-          accept_tuple=True),
+          default=_('Enter valid serial number:<br>')),
       Arg('init_shared_data', dict, 'the shared data to initialize',
           default={}, optional=True)]
 

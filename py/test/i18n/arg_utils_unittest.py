@@ -55,24 +55,6 @@ class ArgUtilsTest(unittest_test_case.I18nTestCase):
     self._ParsePyTest(test, 'text', {})
     self.assertEqual({'en-US': 'en', 'zh-CN': 'zh'}, test.args.text)
 
-  def testI18nArgAcceptTuple(self):
-    test = MockPyTest([
-        i18n_arg_utils.I18nArg('text', 'text.',
-                               default={'en-US': 'en', 'zh-CN': 'zh'},
-                               accept_tuple=True)])
-
-    self._ParsePyTest(test, 'text', {'text': translation._('text 1')})
-    self.assertEqual({'en-US': 'text 1', 'zh-CN': 'text-1'}, test.args.text)
-
-    self._ParsePyTest(test, 'text', {'text': 'text 1'})
-    self.assertEqual({'en-US': 'text 1', 'zh-CN': 'text-1'}, test.args.text)
-
-    self._ParsePyTest(test, 'text', {})
-    self.assertEqual({'en-US': 'en', 'zh-CN': 'zh'}, test.args.text)
-
-    self._ParsePyTest(test, 'text', {'text': ('e', 'z')})
-    self.assertEqual({'en-US': 'e', 'zh-CN': 'z'}, test.args.text)
-
   # ParseArg is already tested in previous two tests.
 
 if __name__ == '__main__':

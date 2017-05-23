@@ -9,7 +9,6 @@ from __future__ import print_function
 import gettext
 import glob
 import json
-import logging
 import os
 
 import factory_common  # pylint: disable=unused-import
@@ -84,7 +83,7 @@ def NoTranslation(obj):
   return {locale: obj for locale in LOCALES}
 
 
-def Translated(obj, translate=True, backward_compatible=True):
+def Translated(obj, translate=True):
   """Ensure that the argument is a translation dict, pass it to _ or
   NoTranslation if it isn't.
 
@@ -96,20 +95,10 @@ def Translated(obj, translate=True, backward_compatible=True):
     obj: The string to be translated, or the translation dict.
     translate: True to pass things that are not translation dict to _, False
         to pass to NoTranslation.
-    backward_compatible: if True, also accept the case that obj is a tuple
-        of form ``(en, zh)``.
 
   Returns:
     The translation dict.
   """
-  # TODO(pihsun): backward_compatible mode should be removed when all tests /
-  #   test_lists are migrated to the new format.
-  if isinstance(obj, tuple) and len(obj) == 2 and backward_compatible:
-    logging.warn('Use of tuple form %r is deprecated. '
-                 "Please use {'en-US': %r, 'zh-CN': %r} instead.",
-                 obj, obj[0], obj[1])
-    obj = {'en-US': obj[0], 'zh-CN': obj[1]}
-
   if isinstance(obj, dict):
     if DEFAULT_LOCALE not in obj:
       raise ValueError("%r doesn't contains default locale %s." % (

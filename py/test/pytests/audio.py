@@ -207,9 +207,7 @@ class AudioTest(unittest.TestCase):
           'Onput ALSA device. (card_name, sub_device).'
           'For example: ("audio_card", "0").', ('0', '0')),
       i18n_arg_utils.I18nArg(
-          'port_label', 'Label of audio.',
-          default=_('Internal Speaker'),
-          accept_tuple=True),
+          'port_label', 'Label of audio.', default=_('Internal Speaker')),
       Arg('test_left_right', bool, 'Test left and right channel.',
           default=True),
       Arg('require_headphone', bool, 'Require headphone option', False),

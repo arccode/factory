@@ -64,10 +64,6 @@ class TranslationTest(unittest_test_case.I18nTestCase):
         ValueError, "doesn't contains default locale",
         translation.Translated, {'zh-CN': 'zh'}, translate=False)
 
-  def testTranslatedBackwardCompatibleTuple(self):
-    self.assertEqual({'en-US': 'en', 'zh-CN': 'zh'},
-                     translation.Translated(('en', 'zh')))
-
   def testTranslatedUnicode(self):
     self.assertEqual({'en-US': 'en', 'zh-CN': u'\u4e2d\u6587'},
                      translation.Translated({

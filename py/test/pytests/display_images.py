@@ -119,8 +119,7 @@ class DisplayImageTest(unittest.TestCase):
   """
   ARGS = [
       i18n_arg_utils.I18nArg(
-          'title', 'Label Title of the test',
-          default=_('Display Test'), accept_tuple=True),
+          'title', 'Label Title of the test', default=_('Display Test')),
       Arg('compressed_image_file', str, 'Compressed image file name.',
           default=_DEFAULT_IMAGE_FILE)
   ]
