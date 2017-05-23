@@ -444,6 +444,8 @@ generate_img() {
 
   sudo "${cros_payload}" install "${json_path}" "${outdev}" \
     test_image release_image toolkit hwid || failure=$?
+  sudo "${cros_payload}" download "${json_path}" "${outdev}" \
+    release_image.part1 || failure=$?
 
   echo "Updating files in stateful partition"
   # Add /etc/lsb-factory into diskimg if not exists.
