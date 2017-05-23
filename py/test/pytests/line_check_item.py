@@ -36,17 +36,13 @@ class LineCheckItemTest(unittest.TestCase):
       i18n_arg_utils.I18nArg('title', 'test title.'),
       Arg('items', list,
           ('A list of item to check. Each item can be either a simple string\n'
-           'as shell command to execute, or a tuple in one of the formats:\n'
+           'as shell command to execute, or a tuple of format:\n'
            '\n'
            '  (instruction, command, judge_to_pass)\n'
-           '\n'
-           '  (instruction_en, instruction_zh, command, judge_to_pass)\n'
            '\n'
            'The fields are:\n'
            '\n'
            '- instruction: instruction, would be passed to i18n.Translated.\n'
-           '- instruction_en: (str or unicode) instruction in English.\n'
-           '- instruction_zh: (str or unicode) instruction in Chinese.\n'
            '- command: (list or str) commands to be passed to Spawn.\n'
            '- judge_to_pass: (bool) require user to judge pass/fail\n'
            '  even if command is successful.'),
@@ -75,13 +71,6 @@ class LineCheckItemTest(unittest.TestCase):
       if isinstance(item, basestring):
         check_item = CheckItem(
             i18n.NoTranslation(_CommandToLabel(item)), item, False)
-      elif isinstance(item, tuple) and len(item) == 4:
-        # TODO(pihsun): This is to maintain backward compatibility. Should be
-        #               removed after test lists are migrated to new format.
-        check_item = CheckItem(
-            i18n.Translated({'en-US': item[0], 'zh-CN': item[1]},
-                            translate=False),
-            item[2], item[3])
       elif isinstance(item, tuple) and len(item) == 3:
         check_item = CheckItem(
             i18n.Translated(item[0], translate=False), item[1], item[2])

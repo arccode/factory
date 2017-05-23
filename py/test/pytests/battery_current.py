@@ -18,7 +18,6 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
@@ -58,23 +57,15 @@ class BatteryCurrentTest(unittest.TestCase):
       Arg('max_battery_level', int,
           'maximum allowed starting battery level', optional=True),
       Arg('usbpd_info', tuple, textwrap.dedent("""
-          (usbpd_port, min_millivolt, max_millivolt) or
-          (usbpd_port, usbpd_port_prompt, min_millivolt, max_millivolt)
+          (usbpd_port, min_millivolt, max_millivolt)
           Used to select a particular port from a multi-port DUT.
 
           * ``usbpd_port``: (int) usbpd_port number. Specify which port to
                             insert power line.
-          * ``usbpd_port_prompt_en``: (str) prompt operator which port to
-                                      insert in English
-          * ``usbpd_port_prompt_zh``: (str) prompt operator which port to
-                                      insert in Chinese.
           * ``min_millivolt``: (int) The minimum millivolt the power must
                                provide
           * ``max_millivolt``: (int) The maximum millivolt the power must
                                provide
-
-          ``usbpd_prompt`` should be used instead of
-          ``usbpd_port_prompt_{en,zh}``, which doesn't support i18n.
           """),
           optional=True),
       i18n_arg_utils.I18nArg('usbpd_prompt',
@@ -95,18 +86,8 @@ class BatteryCurrentTest(unittest.TestCase):
     if self.args.usbpd_info:
       self._CheckUSBPDInfoArg(self.args.usbpd_info)
       self._usbpd_port = self.args.usbpd_info[0]
-      # TODO(pihsun): This is to maintain backward compatibility. Should be
-      #               removed after test lists are migrated to new format.
-      if len(self.args.usbpd_info) == 5:
-        self.args.usbpd_prompt = i18n.Translated({
-            'en-US': self.args.usbpd_info[1],
-            'zh-CN': self.args.usbpd_info[2]
-        }, translate=False)
-        self._usbpd_min_millivolt = self.args.usbpd_info[3]
-        self._usbpd_max_millivolt = self.args.usbpd_info[4]
-      else:
-        self._usbpd_min_millivolt = self.args.usbpd_info[1]
-        self._usbpd_max_millivolt = self.args.usbpd_info[2]
+      self._usbpd_min_millivolt = self.args.usbpd_info[1]
+      self._usbpd_max_millivolt = self.args.usbpd_info[2]
     self._usbpd_prompt = self.args.usbpd_prompt
 
   def _CheckUSBPDInfoArg(self, info):

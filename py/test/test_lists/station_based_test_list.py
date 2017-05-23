@@ -29,7 +29,7 @@ def EndStationTest(test_list_id, label, disconnect_dut):
              'disconnect_dut': disconnect_dut})
 
 
-def StationBased(test_list_id, label, label_zh=None,
+def StationBased(test_list_id, label,
                  dut_options=None,
                  automated_sequence=True,
                  prompt_start=True,
@@ -75,11 +75,6 @@ def StationBased(test_list_id, label, label_zh=None,
   """
   if not dut_options:
     dut_options = {}
-
-  # TODO(pihsun): argument label_zh is for backward-compatibility, and should
-  #     be removed when all test lists are using the new format.
-  if label_zh is not None:
-    label = i18n.Translated({'en-US': label, 'zh-CN': label_zh})
 
   def Wrap(CreateTestLists):
     def CreateStationTestList():

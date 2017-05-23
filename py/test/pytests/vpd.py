@@ -439,8 +439,7 @@ class VPDTest(unittest.TestCase):
           'value from key should be added to the ro or rw VPD.  This option '
           'only applies if use_shopfloor_device_data is True.', default=[]),
       Arg('manual_input_fields', list,
-          'A list of tuples (vpd_region, key, display_name, VALUE_CHECK) or '
-          '(vpd_region, key, en_display_name, zh_display_name, VALUE_CHECK) '
+          'A list of tuples (vpd_region, key, display_name, VALUE_CHECK) '
           'indicating the VPD fields that need to be manually entered.\n'
           'VALUE_CHECK can be a list of strings, a regexp string, or None. '
           'If VALUE_CHECK is None or a regexp string then a text input box '
@@ -534,10 +533,6 @@ class VPDTest(unittest.TestCase):
     if not (self.args.override_vpd and self.ui.InEngineeringMode()):
       manual_input_fields = []
       for v in self.args.manual_input_fields:
-        if len(v) == 5:
-          # TODO(pihsun): This is to maintain backward compatibility. Should be
-          #               removed after test lists are migrated to new format.
-          v = (v[0], v[1], {'en-US': v[2], 'zh-CN': v[3]}, v[4])
         v = (v[0], v[1], i18n.Translated(v[2], translate=False), v[3])
         manual_input_fields.append(v)
       if shopfloor.is_enabled():

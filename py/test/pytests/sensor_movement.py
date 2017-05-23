@@ -127,18 +127,12 @@ class SensorMovement(unittest.TestCase):
           'and "magnetometer".',
           optional=False),
       Arg('sub_tests', list,
-          'A list of tuples of the format '
-          '(instruction, expected_value) or '
-          '(instruction_en, instruction_zh, expected_value), which tells '
-          'operator to move the dut, and checks the sensor output.\n'
+          'A list of tuples of the format (instruction, expected_value) which '
+          'tells operator to move the dut, and checks the sensor output.\n'
           '\n'
           'The fields are:\n'
           '- instruction: instruction on how to move the dut, would be passed '
           'to i18n.Translated.\n'
-          '- instruction_en: (str or unicode) instruction on how to move the '
-          'dut in English.\n'
-          '- instruction_zh: (str or unicode) instruction on how to move the '
-          'dut in Chinese.\n'
           '- expected_value: (dict) A dict of {sensor-name: value} indicates '
           'the expect output of sensors. '
           'The keys of this dict can be a subset of '
@@ -166,10 +160,6 @@ class SensorMovement(unittest.TestCase):
   def runTest(self):
     task_list = []
     for test in self.args.sub_tests:
-      if len(test) == 3:
-        # TODO(pihsun): This is to maintain backward compatibility. Should be
-        #               removed after test lists are migrated to new format.
-        test = ({'en-US': test[0], 'zh-CN': test[1]}, test[2])
       label = i18n_test_ui.MakeI18nLabelWithClass(
           i18n.Translated(test[0], translate=False), 'test-info')
       task_list.append(SensorMovementTask(

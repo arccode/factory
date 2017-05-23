@@ -25,17 +25,13 @@ class VerifyValueTest(unittest.TestCase):
   ARGS = [
       Arg('items', list,
           'A list of tuples, each representing an item to check. Each tuple\n'
-          'is one of the formats:\n'
+          'is in format:\n'
           '\n'
           '  (name, command/func_name, expected_value)\n'
           '\n'
-          '  (name_en, name_zh, command/func_name, expected_value)\n'
-          '\n'
           'The fields are:\n'
           '    - name: name of the check, would be passed to i18n.Translated.\n'
-          '    - name_en: (str or unicode) name of the check in English.\n'
-          '    - name_zh: (str or unicode) name of the check in Chinese.\n'
-          '    - command/func_name: (str or list) Can be one of the following:\n'
+          '    - command/func_name: (str or list) one of the following:\n'
           '        - A command (str or list) that returns a value.\n'
           "            E.g. 'cat /sys/class/xxx/xxx/xxx'\n"
           "        - A DUT fucntion (str) to be called, begin with 'dut.'.\n"
@@ -59,10 +55,6 @@ class VerifyValueTest(unittest.TestCase):
 
   def runTest(self):
     for item in self.args.items:
-      if len(item) == 4:
-        # TODO(pihsun): This is to maintain backward compatibility. Should be
-        #               removed after test lists are migrated to new format.
-        item = ({'en-US': item[0], 'zh-CN': item[1]}, item[2], item[3])
       item = Item(i18n.Translated(item[0], translate=False), item[1], item[2])
       name = i18n_test_ui.MakeI18nLabel(item.name)
       self._template.SetState(name)
