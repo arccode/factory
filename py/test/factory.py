@@ -549,7 +549,7 @@ class FactoryTest(object):
 
   ACTION_ON_FAILURE = type_utils.Enum(['STOP', 'NEXT', 'PARENT'])
 
-  RUN_IF_REGEXP = re.compile(r'^(!)?(\w+)\.(.+)$')
+  RUN_IF_REGEXP = re.compile(r'^(!)?(.+)$')
 
   def __init__(self,
                label=None,
@@ -629,9 +629,8 @@ class FactoryTest(object):
                 require_run)
     self.require_run = require_run
 
-    self.run_if_table_name = None
-    self.run_if_col = None
     self.run_if_not = False
+    self.run_if_key = None
     self.run_if_expr = None
     if callable(run_if):
       self.run_if_expr = run_if
@@ -640,8 +639,7 @@ class FactoryTest(object):
       assert match, ('In test %s, run_if value %r does not match %s',
                      self.path, run_if, self.RUN_IF_REGEXP.pattern)
       self.run_if_not = match.group(1) is not None
-      self.run_if_table_name = match.group(2)
-      self.run_if_col = match.group(3)
+      self.run_if_key = match.group(2)
 
     self.subtests = filter(None, type_utils.FlattenList(subtests or []))
     self._teardown = teardown
@@ -974,8 +972,8 @@ class FactoryTest(object):
 
     Args:
       test_arg_env: a cros.factory.goofy.invocation.TestArgEnv object
-      get_data: a function to select data by self.run_if_table_name, the
-          function should return a dict like object.
+      get_data: a function to select data by self.run_if_key, the
+          function should return value corresponding to given key.
 
     Returns:
       True if this test should be run, otherwise False
@@ -989,11 +987,10 @@ class FactoryTest(object):
         # But keep going; we have no choice.  This will end up always activating
         # the test.
         return True
-    elif self.run_if_table_name:
+    elif self.run_if_key:
       try:
-        table = get_data(self.run_if_table_name)
-        value = table.get(self.run_if_col)
-      except ValueError:
+        value = get_data(self.run_if_key)
+      except KeyError:
         # Cannot find corresponding value, use default value (False)
         value = False
       return bool(value) ^ self.run_if_not
@@ -1008,7 +1005,7 @@ class FactoryTest(object):
     """
     self.run_if_expr = lambda _: False
     self.run_if_not = False
-    self.run_if_table_name = None
+    self.run_if_key = None
 
   def Skip(self):
     """Skips this test and any subtests that have not already passed.

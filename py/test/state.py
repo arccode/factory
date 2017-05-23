@@ -483,3 +483,4 @@ class StubFactoryState(FactoryState):
     self._data_shelf = shelve_utils.DictShelfView(shelve_utils.InMemoryShelf())
 
     self._lock = threading.RLock()
+    self.data_shelf = DataShelfSelector(self)

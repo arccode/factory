@@ -14,6 +14,7 @@ from cros.factory.goofy import test_list_iterator
 from cros.factory.test import factory
 from cros.factory.test import state
 from cros.factory.test.test_lists import test_lists
+from cros.factory.utils import shelve_utils
 
 
 class TestListIteratorTest(unittest.TestCase):
@@ -71,7 +72,6 @@ class TestListIteratorTest(unittest.TestCase):
     """
     if not root:
       root = test_list
-    aux_data = aux_data or {}
     if set_state:
       test_list = self._SetStubStateInstance(test_list)
     iterator = test_list_iterator.TestListIterator(
@@ -80,15 +80,17 @@ class TestListIteratorTest(unittest.TestCase):
     if not run_test:
       run_test = lambda unused_path, unused_aux_data: True
 
+    aux_data = aux_data or {}
     # mock CheckRunIf
-    def _GetData(db_name):
-      return aux_data.get(db_name, {})
     def _MockedCheckRunIf(path):
+      data_shelf = shelve_utils.DictShelfView(shelve_utils.InMemoryShelf())
+      data_shelf.SetValue('', aux_data)
+
       return test_list_iterator.TestListIterator.CheckRunIf(
           iterator,
           path,
           test_arg_env={},
-          get_data=_GetData)
+          get_data=data_shelf.GetValue)
     iterator.CheckRunIf = _MockedCheckRunIf
 
     max_iteration = len(expected_sequence) + 1

@@ -399,16 +399,8 @@ class TestListIterator(object):
       test_arg_env = invocation.TestArgEnv()
     if get_data is None:
       state_instance = self.test_list.state_instance
-
-      def select_table(table_name):
-        class Table(object):
-          def __init__(self, table_name):
-            self.table_name = table_name
-          def get(self, key):
-            return state_instance.get_shared_data(table_name + '.' + key, True)
-        return Table(table_name)
-
-      get_data = select_table
+      # state_instance should be the *real* FactoryState object, not proxy
+      get_data = state_instance.data_shelf_get_value
     return test.EvaluateRunIf(test_arg_env, get_data)
 
   def _ResetIterations(self, test):
