@@ -444,13 +444,13 @@ generate_img() {
 
   sudo "${cros_payload}" install "${json_path}" "${outdev}" \
     test_image release_image toolkit hwid || failure=$?
-  sudo losetup -d "${outdev}"
 
   echo "Updating files in stateful partition"
   # Add /etc/lsb-factory into diskimg if not exists.
   image_mount_partition "${outdev}" 1 "${build_tmp}" "rw"
   sudo touch "${build_tmp}"/dev_image/etc/lsb-factory
   image_umount_partition "${build_tmp}"
+  sudo losetup -d "${outdev}"
 
   if [ "${failure}" != 0 ]; then
     die "Installation to ${FLAGS_diskimg} failed."
