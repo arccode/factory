@@ -56,21 +56,21 @@ class ShowingTask(factory_task.FactoryTask):
 
 class MessageTest(unittest.TestCase):
   """A factory test to display a message."""
-  ARGS = (
-      i18n_arg_utils.BackwardCompatibleI18nArgs('html', 'Message in HTML') + [
-          Arg('text_size', str, 'size of message in percentage', default='200'),
-          Arg('text_color', str, 'color of message (in CSS)', default='black'),
-          Arg('background_color', str, 'background color (in CSS)',
-              default='white'),
-          Arg('seconds', int, 'duration to display message.'
-              'Specify None to show until key press.',
-              default=None, optional=True),
-          Arg('manual_check', bool, 'If set to true, operator can press ESC to '
-              'fail the test case.', default=False, optional=True),
-          Arg('show_press_button_hint', bool, 'If set to true, will show '
-              'addition message to ask operators to press the button.',
-              default=False, optional=True),
-      ])
+  ARGS = [
+      i18n_arg_utils.I18nArg('html', 'Message in HTML'),
+      Arg('text_size', str, 'size of message in percentage', default='200'),
+      Arg('text_color', str, 'color of message (in CSS)', default='black'),
+      Arg('background_color', str, 'background color (in CSS)',
+          default='white'),
+      Arg('seconds', int, 'duration to display message.'
+          'Specify None to show until key press.',
+          default=None, optional=True),
+      Arg('manual_check', bool, 'If set to true, operator can press ESC to '
+          'fail the test case.', default=False, optional=True),
+      Arg('show_press_button_hint', bool, 'If set to true, will show '
+          'addition message to ask operators to press the button.',
+          default=False, optional=True)
+  ]
 
   def runTest(self):
     i18n_arg_utils.ParseArg(self, 'html')

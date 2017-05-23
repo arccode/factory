@@ -70,10 +70,11 @@ class WaitExternalTest(unittest.TestCase):
   """Wait for a test by external fixture to finish."""
   ARGS = [
       Arg('run_factory_external_name', str,
-          'File name to check in /run/factory/external.', optional=False)
-  ] + i18n_arg_utils.BackwardCompatibleI18nArgs(
-      'msg', 'Instruction for running external test',
-      default=_('Please run external test: {name}'))
+          'File name to check in /run/factory/external.', optional=False),
+      i18n_arg_utils.I18nArg(
+          'msg', 'Instruction for running external test',
+          default=_('Please run external test: {name}'))
+  ]
 
   def setUp(self):
     self.ui = test_ui.UI()

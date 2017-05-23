@@ -171,7 +171,7 @@ class ECToolButton(GenericButton):
 
 class ButtonTest(unittest.TestCase):
   """Button factory test."""
-  ARGS = ([
+  ARGS = [
       Arg('timeout_secs', int, 'Timeout value for the test.',
           default=_DEFAULT_TIMEOUT),
       Arg('button_key_name', str, 'Button key name for evdev.',
@@ -184,8 +184,8 @@ class ButtonTest(unittest.TestCase):
           default=None, optional=True),
       Arg('bft_button_name', str, 'Button name for BFT fixture',
           default=None, optional=True),
-      ] + i18n_arg_utils.BackwardCompatibleI18nArgs(
-          'button_name', 'The name of the button.'))
+      i18n_arg_utils.I18nArg('button_name', 'The name of the button.')
+  ]
 
   def setUp(self):
     i18n_arg_utils.ParseArg(self, 'button_name')

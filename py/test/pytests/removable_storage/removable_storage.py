@@ -121,7 +121,7 @@ _IMG_HTML_TAG = (
 
 class RemovableStorageTest(unittest.TestCase):
   """The removable storage factory test."""
-  ARGS = ([
+  ARGS = [
       Arg('media', str, 'Media type'),
       Arg('sysfs_path', str,
           'The expected sysfs path that udev events should '
@@ -169,11 +169,12 @@ class RemovableStorageTest(unittest.TestCase):
           default=None, optional=True),
       Arg('use_busybox_dd', bool,
           'Use busybox dd. This option can be removed when toybox dd is ready.',
-          default=False)
-  ] + i18n_arg_utils.BackwardCompatibleI18nArgs(
-      'extra_prompt',
-      'An extra prompt, e.g., to specify which USB port to use',
-      default=''))
+          default=False),
+      i18n_arg_utils.I18nArg(
+          'extra_prompt',
+          'An extra prompt, e.g., to specify which USB port to use',
+          default='')
+  ]
 
   def setUp(self):
     i18n_arg_utils.ParseArg(self, 'extra_prompt')

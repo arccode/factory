@@ -32,12 +32,14 @@ _BRIGHTNESS_TEST_DEFAULT_CSS = '.brightness-test-info { font-size: 2em; }'
 
 
 class BrightnessTest(unittest.TestCase):
-  ARGS = i18n_arg_utils.BackwardCompatibleI18nArgs('msg', 'Message HTML') + [
+  ARGS = [
+      i18n_arg_utils.I18nArg('msg', 'Message HTML'),
       Arg('timeout_secs', int, 'Timeout value for the test in seconds.',
           default=10),
       Arg('levels', (tuple, list), 'A sequence of brightness levels.'),
       Arg('interval_secs', (int, float),
-          'Time for each brightness level in seconds.')]
+          'Time for each brightness level in seconds.')
+  ]
 
   def setUp(self):
     i18n_arg_utils.ParseArg(self, 'msg')

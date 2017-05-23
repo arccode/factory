@@ -32,7 +32,8 @@ class LineCheckItemTest(unittest.TestCase):
     _items: A list of CheckItems.
     _current: current test item index in _items.
   """
-  ARGS = i18n_arg_utils.BackwardCompatibleI18nArgs('title', 'test title.') + [
+  ARGS = [
+      i18n_arg_utils.I18nArg('title', 'test title.'),
       Arg('items', list,
           ('A list of item to check. Each item can be either a simple string\n'
            'as shell command to execute, or a tuple in one of the formats:\n'

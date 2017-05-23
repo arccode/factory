@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2016 The Chromium OS Authors. All rights reserved.
+# Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -18,14 +18,16 @@ from cros.factory.utils.arg_utils import Arg
 class LCDBacklightTest(brightness.BrightnessTest):
   ARGS = arg_utils.MergeArgs(
       brightness.BrightnessTest.ARGS,
-      i18n_arg_utils.BackwardCompatibleI18nArgs(
-          'msg', 'Message HTML',
-          default=_('Please check if backlight brightness is changing from '
-                    'dark to bright.')) +
-      [Arg('levels', (tuple, list), 'A sequence of brightness levels.',
-           optional=True),
-       Arg('interval_secs', (int, float),
-           'Time for each brightness level in seconds.', default=0.5)])
+      [
+          i18n_arg_utils.I18nArg(
+              'msg', 'Message HTML',
+              default=_('Please check if backlight brightness is changing from '
+                        'dark to bright.')),
+          Arg('levels', (tuple, list), 'A sequence of brightness levels.',
+              optional=True),
+          Arg('interval_secs', (int, float),
+              'Time for each brightness level in seconds.', default=0.5)
+      ])
 
   def setUp(self):
     i18n_arg_utils.ParseArg(self, 'msg')

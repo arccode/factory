@@ -28,9 +28,8 @@ from cros.factory.utils import time_utils
 class CountDownTest(unittest.TestCase):
   """A countdown test that monitors and logs various system status."""
 
-  ARGS = (i18n_arg_utils.BackwardCompatibleI18nArgs(
-      'title', 'title.', default=_('Countdown')
-  ) + [
+  ARGS = [
+      i18n_arg_utils.I18nArg('title', 'title.', default=_('Countdown')),
       Arg('position_top_right', bool,
           'A workaround for some machines on which graphics test would overlay '
           'countdown info.', False),
@@ -55,7 +54,8 @@ class CountDownTest(unittest.TestCase):
           'relation is a text output with warning messages to describe the two '
           'temp sensors in the rule', [], optional=True),
       Arg('fan_min_expected_rpm', int, 'Minimum fan rpm expected', None,
-          optional=True)])
+          optional=True)
+  ]
 
   def FormatSeconds(self, secs):
     hours = int(secs / 3600)

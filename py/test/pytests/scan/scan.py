@@ -36,10 +36,10 @@ except Exception:
 
 class Scan(unittest.TestCase):
   """The main class for this pytest."""
-  ARGS = (i18n_arg_utils.BackwardCompatibleI18nArgs(
-      'label',
-      'Name of the ID or serial number being scanned, e.g., "MLB serial number"'
-  ) + [
+  ARGS = [
+      i18n_arg_utils.I18nArg(
+          'label', 'Name of the ID or serial number being scanned, '
+          'e.g., "MLB serial number"'),
       Arg('event_log_key', str, 'Key to use for event log', optional=True),
       Arg('shared_data_key', str,
           'Key to use to store in scanned value in shared data',
@@ -88,7 +88,7 @@ class Scan(unittest.TestCase):
           'If not None, use the value to fill the key.', optional=True),
       Arg('reconnect_ghost', bool,
           'Reconnect ghost to update machine ID', default=False, optional=True)
-  ])
+  ]
 
   def HandleScanValue(self, event):
     def SetError(label):
