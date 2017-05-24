@@ -6,8 +6,9 @@ goog.provide('cros.factory.Goofy');
 
 goog.require('cros.factory.DeviceManager');
 goog.require('cros.factory.DiagnosisTool');
-goog.require('cros.factory.i18n');
 goog.require('cros.factory.Plugin');
+goog.require('cros.factory.i18n');
+goog.require('goog.Uri');
 goog.require('goog.crypt');
 goog.require('goog.crypt.Sha1');
 goog.require('goog.date.DateTime');
@@ -38,7 +39,6 @@ goog.require('goog.ui.Prompt');
 goog.require('goog.ui.SplitPane');
 goog.require('goog.ui.SubMenu');
 goog.require('goog.ui.tree.TreeControl');
-goog.require('goog.Uri');
 
 /**
  * @type {goog.debug.Logger}
@@ -687,7 +687,7 @@ cros.factory.Goofy = function() {
   /**
    * @type {Array<cros.factory.PluginMenuItem>}
    */
-  this.pluginMenuItems = null
+  this.pluginMenuItems = null;
 
   // Set up magic keyboard shortcuts.
   goog.events.listen(
@@ -1605,7 +1605,7 @@ cros.factory.Goofy.prototype.showTestPopup = function(
   // If it's a leaf node, and it's the active but not the visible
   // test, ask the backend to make it visible.
   if (test.state.status == 'ACTIVE' &&
-      !/** @type {boolean} */ (test.state.visible) && !test.subtests.length) {
+      !test.state.visible && !test.subtests.length) {
     this.sendEvent('goofy:set_visible_test', {path: path});
   }
 
@@ -2581,7 +2581,7 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                         } else if (return_data.action == 'RUN_AS_JS') {
                           eval(return_data.data);
                         } else {
-                          this.alert("Unknonw return action: " +
+                          this.alert('Unknonw return action: ' +
                                      return_data.action);
                         }
                       });
@@ -2897,7 +2897,7 @@ cros.factory.Goofy.prototype.sendRpcToPlugin = function(
     pluginName, method, args, callback, opt_errorCallback) {
   this.sendRpc(method, args, callback, opt_errorCallback,
                '/plugin/' + pluginName.replace('.', '_'));
-}
+};
 
 /**
  * Sends a keepalive event if the web socket is open.
@@ -2954,7 +2954,6 @@ cros.factory.Goofy.prototype.hideTooltips = function() {
 
 /**
  * Handles an event sends from the backend.
- * @suppress {missingProperties}
  * @param {string} jsonMessage the message as a JSON string.
  */
 cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
@@ -3236,8 +3235,8 @@ cros.factory.Goofy.prototype.launchTerminal = function() {
     };
 
     var terminalWindow = document.getElementById('goofy-terminal-window');
-    var /** jQuery.Type */ $terminalWindow = jQuery(terminalWindow);
-    var /** jQuery.Type */ $terminal = $terminalWindow.find('.terminal');
+    var $terminalWindow = jQuery(terminalWindow);
+    var $terminal = $terminalWindow.find('.terminal');
     var termBorderRightWidth = $terminal.css('border-right-width');
     var termBorderBottomWidth = $terminal.css('border-bottom-width');
     var totalWidthOffset = $terminalWindow.width() - term.element.clientWidth;
@@ -3320,8 +3319,11 @@ cros.factory.Goofy.prototype.hideTerminal = function() {
   this.sendEvent('goofy:key_filter_mode', {enabled: true});
 };
 
-cros.factory.Goofy.prototype.setPluginUI = function(
-    /** Array<string> */ urls) {
+/**
+ * Setup the UI for plugin.
+ * @param {Array<string>} urls
+ */
+cros.factory.Goofy.prototype.setPluginUI = function(urls) {
   var goofy = this;
   urls.forEach(function(/** string */ url) {
     var pluginArea = document.getElementById('goofy-plugin-area');
@@ -3335,7 +3337,7 @@ cros.factory.Goofy.prototype.setPluginUI = function(
     iframe.contentWindow.goog = goog;
     iframe.contentWindow.goofy = goofy;
   });
-}
+};
 
 goog.events.listenOnce(window, goog.events.EventType.LOAD, function() {
   window.goofy = new cros.factory.Goofy();

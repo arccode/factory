@@ -16,7 +16,7 @@ goog.require('goog.dom');
 cros.factory.Plugin = function(goofy, dom) {
   this.goofy = goofy;
   this.dom = dom;
-}
+};
 
 /**
  * Adds tooltip for a plugin element.
@@ -44,4 +44,4 @@ cros.factory.Plugin.prototype.addPluginTooltip = function(anchor, tooltip) {
         {'visibility': 'hidden'});
   });
   goog.dom.appendChild(this.dom, tooltipContainer);
-}
+};
