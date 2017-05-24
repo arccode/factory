@@ -21,7 +21,6 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.hwid.v3 import common as hwid3_common
 from cros.factory.hwid.v3.database import Database
-from cros.factory.hwid.v3.decoder import Decode
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import wipe
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
@@ -101,7 +100,6 @@ class Gooftool(object):
     self._read_rw_vpd = ReadRwVpd
     self._delete_rw_vpd = DeleteRwVpd
     self._update_ro_vpd = UpdateRoVpd
-    self._hwid_decode = Decode
     self._unpack_bmpblock = unpack_bmpblock
     self._named_temporary_file = NamedTemporaryFile
     self._db = None
@@ -612,8 +610,8 @@ class Gooftool(object):
     """
     bitmap_locales = []
     with self._named_temporary_file() as f:
-      self._util.shell(
-          'cbfstool %s extract -n locales -f %s -r COREBOOT' % (image_file, f.name))
+      self._util.shell('cbfstool %s extract -n locales -f %s -r COREBOOT' %
+                       (image_file, f.name))
       bitmap_locales = f.read()
       # We reach here even if cbfstool command fails
       if bitmap_locales:
