@@ -20,6 +20,7 @@ from twisted.web import xmlrpc
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import bundle_selector
 from cros.factory.umpire import common
+from cros.factory.umpire import resource
 from cros.factory.umpire.service import umpire_service
 from cros.factory.umpire import umpire_env
 from cros.factory.umpire import umpire_rpc
@@ -27,13 +28,8 @@ from cros.factory.umpire import utils
 from cros.factory.utils import file_utils
 
 
-VERSION_COMPONENTS = ['firmware_bios', 'firmware_ec', 'firmware_pd', 'hwid',
-                      'rootfs_test', 'rootfs_release']
-HASH_COMPONENTS = ['device_factory_toolkit', 'netboot_firmware']
-ALL_COMPONENTS = VERSION_COMPONENTS + HASH_COMPONENTS
 # Factory stages in running sequence.
 FACTORY_STAGES = ['SMT', 'RUNIN', 'FA', 'GRT']
-SYNC_URL = '%{scheme}s://%{ip}s:%{port}d/%{path}s/%{toolkit_md5sum}s/'
 
 
 def Fault(message, reason=xmlrpclib.INVALID_METHOD_PARAMS):
@@ -136,49 +132,6 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
     return xmlrpc.Binary(file_utils.ReadFile(abspath))
 
   @staticmethod
-  def _GetResourceTag(component, resource_filename):
-    """Gets resource tag and resource hash tuple from name.
-
-    Tag can be version or hex MD5SUM value depends on component name is in
-    VERSION_COMPONENTS or HASH_COMPONENTS.
-
-    Args:
-      component: resource type.
-      resource_filename: resource file name.
-
-    Returns:
-      (resource_tag, resource_hash) tuple. Where resource_tag can be version
-      string or resource MD5SUM hexstring depends on component in VERSION_ or
-      HASH_ list.
-    """
-    unused_resource_basename, resource_version, resource_hash = (
-        utils.ParseResourceName(resource_filename))
-    if component in HASH_COMPONENTS:
-      return (resource_hash, resource_hash)
-    else:
-      if component.startswith('firmware_'):
-        # Make version list length >= 3
-        versions = resource_version.split(':') + [None] * 3
-        bios_version, ec_version, pd_version = versions[0:3]
-        if component.endswith('_ec'):
-          return (ec_version, resource_hash)
-        elif component.endswith('_pd'):
-          return (pd_version, resource_hash)
-        else:
-          return (bios_version, resource_hash)
-      else:
-        return (resource_version, resource_hash)
-
-  @staticmethod
-  def _IsTagEqual(component, component_tag, resource_tag):
-    """Compares component tag and resource tag."""
-    if component_tag is None:
-      return False
-    if component in HASH_COMPONENTS:
-      return component_tag.startswith(resource_tag)
-    return component_tag == resource_tag
-
-  @staticmethod
   def _CanUpdate(stage, range_start, range_end):
     return ((range_start is None or FACTORY_STAGES.index(stage) >=
              FACTORY_STAGES.index(range_start)) and
@@ -225,44 +178,35 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
     logging.debug('ruleset = %s', ruleset)
     bundle_id = ruleset['bundle_id']
     bundle = self.env.config.GetBundle(bundle_id)
-    resource_map = bundle['resources']
+    payloads = self.env.GetPayloadsDict(bundle['payloads'])
     enable_update = ruleset.get('enable_update', {})
 
-    for component, component_tag in device_info['components'].iteritems():
-      if component not in ALL_COMPONENTS:
-        return Fault('%s is not in update component list %s' %
-                     (component, ALL_COMPONENTS))
-
-      resource_type = (component if not component.startswith('firmware_') else
-                       'firmware')
-
-      # Factory bundle does not contain the resource_type e.g. netboot_firmware
-      if resource_type not in resource_map:
+    for dut_component_name, dut_component_tag in device_info[
+        'components'].iteritems():
+      # TODO(youcheng): Support firmware and test_image.
+      try:
+        if dut_component_name == 'device_factory_toolkit':
+          res_hash = resource.GetToolkitHash(payloads)
+        elif dut_component_name == 'hwid':
+          res_hash = payloads['hwid']['version']
+          res_name = payloads['hwid']['file']
+        else:
+          continue
+      except Exception:
         continue
-
-      resource_filename = resource_map[resource_type]
-      resource_tag, resource_hash = self._GetResourceTag(
-          component, resource_filename)
-
-      if resource_tag is None:
-        return Fault('can not get %s tag from resource %s' %
-                     (component, resource_filename))
-
-      if resource_hash is None:
-        return Fault('can not get %s hash from resource %s' %
-                     (component, resource_filename))
 
       needs_update = False
 
-      if not self._IsTagEqual(component, component_tag, resource_tag):
+      if dut_component_tag != res_hash:
         # Check if DUT needs an update.
-        stage_start, stage_end = enable_update.get(component, (None, None))
+        stage_start, stage_end = enable_update.get(dut_component_name,
+                                                   (None, None))
         if self._CanUpdate(current_stage, stage_start, stage_end):
           needs_update = True
 
       # Calculate resource
-      resource_scheme = None
-      resource_url = None
+      res_scheme = None
+      res_url = None
 
       # Use the ip and port from request headers, since the ip and port in
       # self.env.{umpire_ip, umpire_base_port} are ip / port inside docker,
@@ -270,28 +214,28 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
       server_ip, server_port = GetServerIpPortFromRequest(request, self.env)
 
       # TODO(crosbug.com/p/52705): no special case should be allowed here.
-      if component == 'device_factory_toolkit':
+      if dut_component_name == 'device_factory_toolkit':
         # Select first service provides 'toolkit_update' property.
         iterable = umpire_service.FindServicesWithProperty(
             self.env.config, 'toolkit_update')
         instance = next(iterable, None)
         if instance and hasattr(instance, 'GetServiceURL'):
-          resource_scheme = instance.properties.get('update_scheme', None)
-          resource_url = instance.GetServiceURL(server_ip, server_port)
-          if resource_url:
-            resource_url = '%s/%s' % (resource_url, resource_hash)
+          res_scheme = instance.properties.get('update_scheme', None)
+          res_url = instance.GetServiceURL(server_ip, server_port)
+          if res_url:
+            res_url = '%s/%s' % (res_url, res_hash)
       else:
-        resource_scheme = 'http'
-        resource_url = 'http://%(ip)s:%(port)d/res/%(filename)s' % {
+        res_scheme = 'http'
+        res_url = 'http://%(ip)s:%(port)d/res/%(filename)s' % {
             'ip': server_ip,
             'port': server_port,
-            'filename': urllib.quote(resource_filename)}
+            'filename': urllib.quote(res_name)}
 
-      update_matrix[component] = {
+      update_matrix[dut_component_name] = {
           'needs_update': needs_update,
-          'md5sum': resource_hash,
-          'scheme': resource_scheme,
-          'url': resource_url}
+          'md5sum': res_hash,
+          'scheme': res_scheme,
+          'url': res_url}
 
     return update_matrix
 

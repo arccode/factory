@@ -9,7 +9,6 @@ chooses the right bundle for the DUT and returns the resource map of the bundle.
 """
 
 import Cookie
-import urllib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import common
@@ -181,8 +180,7 @@ def GetResourceMap(dut_info, env):
   result = ['id: %s' % bundle['id'],
             'note: %s' % bundle['note'],
             '__token__: %s' % handler_token,
-            'shop_floor_handler: %s/%d' % (common.HANDLER_BASE, handler_port)]
-  result.extend('%s: %s' % (k, urllib.quote(v)) for k, v in
-                bundle['resources'].iteritems())
+            'shop_floor_handler: %s/%d' % (common.HANDLER_BASE, handler_port),
+            'payloads: %s' % bundle['payloads']]
 
-  return '\n'.join(result)
+  return ''.join('%s\n' % s for s in result)

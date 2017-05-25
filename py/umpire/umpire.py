@@ -18,6 +18,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.commands import edit
 from cros.factory.umpire import common
 from cros.factory.umpire import config
+from cros.factory.umpire import resource
 from cros.factory.umpire import umpire_env
 from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils.argparse_utils import Command
@@ -62,7 +63,7 @@ def ImportBundle(args, umpire_cli):
          CmdArg('resources', nargs='+',
                 help=('resource(s) to update. Format: '
                       '<resource_type>=/path/to/resource where resource_type '
-                      'is one of ' + ', '.join(common.UPDATEABLE_RESOURCES))))
+                      'is one of ' + ', '.join(resource.PayloadTypeNames))))
 def Update(args, umpire_cli):
   """Updates a specific resource of a bundle.
 
@@ -80,9 +81,9 @@ def Update(args, umpire_cli):
         args.dest_id, source_bundle)
 
   print 'Updating resources:'
-  for resource in args.resources:
-    resource_type, resource_path = resource.split('=', 1)
-    if resource_type not in common.UPDATEABLE_RESOURCES:
+  for item in args.resources:
+    resource_type, resource_path = item.split('=', 1)
+    if resource_type not in resource.PayloadTypeNames:
       raise common.UmpireError('Unsupported resource type: ' + resource_type)
     file_utils.CheckPath(resource_path, 'resource')
     resource_real_path = os.path.realpath(resource_path)

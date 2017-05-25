@@ -166,9 +166,7 @@ class HTTPService(umpire_service.UmpireService):
     with file_utils.UnopenedTemporaryFile() as temp_path:
       HTTPService._GenerateNginxConfigImpl(umpire_config, env, temp_path)
       md5 = file_utils.MD5InHex(temp_path)
-      config_path = os.path.join(
-          env.config_dir,
-          NGINX_CONFIG_FILENAME % md5[:common.RESOURCE_HASH_DIGITS])
+      config_path = os.path.join(env.config_dir, NGINX_CONFIG_FILENAME % md5)
       # Use shutil.move() instead of os.rename(). os.rename calls OS
       # rename() function. And under Linux-like OSes, this system call
       # creates and removes hardlink, that only works when source path and

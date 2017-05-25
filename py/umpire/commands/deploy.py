@@ -9,31 +9,18 @@ See ConfigDeployer for detail.
 
 from __future__ import print_function
 
-import datetime
 import logging
-import os
+
 from twisted.python import failure as twisted_failure
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import common
 from cros.factory.umpire import config as umpire_config
-from cros.factory.umpire import utils
 from cros.factory.utils import file_utils
-
-NONE_FILENAME = 'none##' + common.EMPTY_FILE_HASH
 
 
 class ConfigDeployer(object):
   """Deploys an Umpire config file."""
-  _RESOURCE_FOR_DOWNLOAD_CONF = (
-      ('rootfs_release', 'rootfs-release.gz'),  # RELEASE
-      ('oem_partition', 'oem.gz'),              # OEM
-      ('hwid', 'hwid.gz'),                      # HWID
-      ('efi_partition', 'efi.gz'),              # EFI
-      ('stateful_partition', 'state.gz'),       # STATE
-      ('complete_script', 'complete.gz'),       # COMPLETE
-      ('firmware', 'firmware.gz'),              # FIRMWARE
-      ('rootfs_test', 'rootfs-test.gz'))        # FACTORY
 
   def __init__(self, daemon):
     """Constructor.
@@ -61,104 +48,6 @@ class ConfigDeployer(object):
     config_to_validate = umpire_config.UmpireConfig(self._config_path_to_deploy)
     umpire_config.ValidateResources(config_to_validate, self._env)
     self._config_to_deploy = config_to_validate
-
-  def _ComposeDownloadConf(self, resources):
-    """Composes download_conf body.
-
-    First checks if all files needed by download_conf exist in resources.
-
-    Returns:
-      download_conf content (multi-line string).
-
-    Raises:
-      UmpireError if resource is missing.
-    """
-    download_files = []
-    error_message = []
-    for res_key, filename_prefix in self._RESOURCE_FOR_DOWNLOAD_CONF:
-      res_filename = resources.get(res_key)
-      # Skip empty resource file
-      if res_filename == NONE_FILENAME:
-        continue
-      if res_filename and res_filename.startswith(filename_prefix):
-        download_files.append(self._env.GetResourcePath(res_filename))
-      else:
-        error_message.append(
-            'Resource %s filename should be %s, but found %r' %
-            (res_key, filename_prefix, res_filename))
-
-    if error_message:
-      raise common.UmpireError(error_message)
-    return utils.ComposeDownloadConfig(download_files)
-
-  def _UpdateDownloadConf(self):
-    """May update download_conf.
-
-    Resources of a bundle in config might be changed by "umpire edit" or
-    "umpire update". We need to regenerate download_conf to reflect the
-    change.
-    """
-    if not self._config_to_deploy:
-      raise common.UmpireError('Unable to get config_to_deploy. '
-                               'It should fail in _ValidateConfigToDeploy')
-    logging.debug('Refreshing download_conf')
-    need_update_config = False
-
-    for bundle in self._config_to_deploy.GetActiveBundles():
-      resources = bundle['resources']
-      new_conf = self._ComposeDownloadConf(resources)
-      if 'download_conf' in resources:
-        original_conf = file_utils.ReadFile(
-            self._env.GetResourcePath(resources['download_conf']))
-      else:
-        original_conf = None
-
-      need_add_download_conf = False
-      if original_conf:
-        if not new_conf:
-          # download_conf no longer needed.
-          del resources['download_conf']
-          logging.info('Download conf becomes empty. Remove it from resources.')
-          need_update_config = True
-        else:
-          original_conf_lines = original_conf.split('\n')
-          new_conf_lines = new_conf.split('\n')
-          if original_conf_lines[2:] != new_conf_lines:
-            need_add_download_conf = True
-      else:
-        if new_conf:
-          logging.info('Add new download_conf resources.')
-          need_add_download_conf = True
-
-      if need_add_download_conf:
-        logging.info('download-conf differ for bundle %s', bundle['id'])
-        header = '# date:   %s\n# bundle: %s\n' % (
-            datetime.datetime.utcnow(), bundle['id'])
-        with file_utils.TempDirectory() as temp_dir:
-          temp_conf_path = os.path.join(temp_dir, 'download.conf')
-          with open(temp_conf_path, 'w') as f:
-            f.write(header)
-            f.write(new_conf)
-          # Add resource inside TempDirectory context.
-          new_download_conf_path = self._env.AddResource(temp_conf_path)
-        resources['download_conf'] = os.path.basename(new_download_conf_path)
-        logging.info('Composes new download_conf in %r', new_download_conf_path)
-        need_update_config = True
-
-    # If UmpireConfig needs update, add it to resources and use it.
-    if need_update_config:
-      with file_utils.TempDirectory() as temp_dir:
-        temp_config_path = os.path.join(temp_dir, 'umpire.yaml')
-        self._config_to_deploy.WriteFile(temp_config_path)
-        self._config_path_to_deploy = self._env.AddResource(temp_config_path)
-      logging.info('Updated UmpireConfig %r', self._config_path_to_deploy)
-      # Validate again.
-      self._ValidateConfigToDeploy()
-      self._env.StageConfigFile(config_path=self._config_path_to_deploy,
-                                force=True)
-      logging.info('Updated UmpireConfig validated and staged.')
-    else:
-      logging.debug('download_conf unchanged, nothing to refresh.')
 
   def _HandleDeploySuccess(self, result):
     """Handles deploy success.
@@ -240,7 +129,6 @@ class ConfigDeployer(object):
     """
     self._config_path_to_deploy = self._env.GetResourcePath(config_res)
     self._ValidateConfigToDeploy()
-    self._UpdateDownloadConf()
 
     # Load new config and let daemon deploy it.
     # Note that it shall not init ShopFloorManager here.

@@ -12,6 +12,7 @@ To validate a YAML file 'abc.yaml':
 from __future__ import print_function
 
 import copy
+import re
 import yaml
 
 import factory_common  # pylint: disable=W0611
@@ -70,23 +71,6 @@ _RULESETS_SCHEMA = List(
         optional_items={
             'match': _RULE_MATCHER_SCHEMA,
             'enable_update': _ENABLE_UPDATE_SCHEMA}))
-# Resources validator.
-_RESOURCES_SCHEMA = FixedDict(
-    'Resource files in a bundle',
-    items={
-        'device_factory_toolkit': Scalar('Device package', str),
-        'oem_partition': Scalar('OEM channel', str),
-        'rootfs_release': Scalar('RELEASE channel', str),
-        'rootfs_test': Scalar('TEST channel', str),
-        'stateful_partition': Scalar('STATE channel', str)},
-    optional_items={
-        'netboot_firmware': Scalar('Netboot firmware image.net.bin', str),
-        'netboot_kernel': Scalar('Netboot kernel vmlinuz', str),
-        'complete_script': Scalar('COMPLETE channel', str),
-        'efi_partition': Scalar('EFI channel', str),
-        'firmware': Scalar('FIRMWARE channel', str),
-        'hwid': Scalar('HWID updater', str),
-        'download_conf': Scalar('DOWNLOAD configuration', str)})
 # Single bundle validator.
 # A valid configuration can contain multiple bundles. At any time, one device
 # state (mac, sn, mlb_sn) can map to one bundle only.
@@ -95,7 +79,7 @@ _BUNDLE_SCHEMA = FixedDict(
     items={
         'id': Scalar('Unique key for this bundle', str),
         'note': Scalar('Notes', str),
-        'resources': _RESOURCES_SCHEMA,
+        'payloads': Scalar('Payload', str),
         'shop_floor': FixedDict(
             'Shop floor handler settings',
             items={
@@ -147,27 +131,19 @@ def ValidateResources(config, env):
   Raises:
     UmpireError if there's any resources for active bundles missing.
   """
-  active_bundles = set(r['bundle_id']
-                       for r in config['rulesets'] if r.get('active'))
-
-  # Used to cache verified resource name
-  resource_verified = set()
-
-  # Used to store missing or checksum mismatch resource(s).
   error = []
-  for bundle in config['bundles']:
-    if bundle['id'] not in active_bundles:
-      continue
-    for resource_name, resource_filename in bundle['resources'].iteritems():
-      if resource_filename not in resource_verified:
-        resource_verified.add(resource_filename)
-        try:
-          env.GetResourcePath(resource_filename)
-        except IOError as e:
-          error.append('[NOT FOUND] resource %s:%s for bundle %r' % (
-              resource_name, e.filename, bundle['id']))
+  for bundle in config.GetActiveBundles():
+    payloads = env.GetPayloadsDict(bundle['payloads'])
+    for type_name, payload_dict in payloads.iteritems():
+      for part, res_name in payload_dict.iteritems():
+        if part == 'file' or re.match(r'part\d+$', part):
+          try:
+            env.GetResourcePath(res_name)
+          except IOError:
+            error.append('[NOT FOUND] resource %s:%s:%r for bundle %r\n' % (
+                type_name, part, res_name, bundle['id']))
   if error:
-    raise common.UmpireError('\n'.join(error))
+    raise common.UmpireError(''.join(error))
 
 
 def ShowDiff(original, new):
@@ -265,7 +241,7 @@ class ServicesOrderedDict(dict):
 
 class BundleOrderedDict(dict):
   """Used to output an UmpireConfig's bundle with desired key order."""
-  _KEY_ORDER = ['id', 'note', 'shop_floor', 'auto_update', 'resources']
+  _KEY_ORDER = ['id', 'note', 'shop_floor', 'payloads']
 
   def Omap(self):
     return DictToOrderedList(self, self._KEY_ORDER, 'BundleOrderedDict')
@@ -343,14 +319,13 @@ class UmpireConfig(dict):
     self.bundle_map = {bundle['id']: bundle
                        for bundle in self.get('bundles', [])}
 
-  def WriteFile(self, config_file):
-    """Writes UmpireConfig to a file in YAML format.
+  def Dump(self):
+    """Dump UmpireConfig to a YAML string.
 
-    Args:
-      config_file: path to write.
+    Returns:
+      A string representing the UmpireConfig in YAML format.
     """
-    with open(config_file, 'w') as f:
-      yaml.dump(UmpireOrderedDict(self), f, default_flow_style=False)
+    return yaml.dump(UmpireOrderedDict(self), default_flow_style=False)
 
   def GetDefaultBundle(self):
     """Gets the default bundle.

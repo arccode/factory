@@ -16,6 +16,7 @@ import tempfile
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import common
 from cros.factory.umpire import config as umpire_config
+from cros.factory.umpire import resource
 from cros.factory.utils import file_utils
 
 
@@ -122,9 +123,8 @@ class ConfigEditor(object):
   def _StageEditedConfig(self):
     """Copies config file to resources, stages it, and prompts user to deploy.
     """
-    res_name = self._umpire_cli.UploadConfig(
-        os.path.basename(self._config_file),
-        file_utils.ReadFile(self._config_file))
+    res_name = self._umpire_cli.AddConfig(
+        self._config_file, resource.ConfigTypeNames.umpire_config)
     # Force staging.
     self._umpire_cli.StageConfigFile(res_name, True)
     print ('Successful upload config to resource %r and mark it as staging.' %

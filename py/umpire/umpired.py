@@ -12,11 +12,11 @@ import glob
 import logging
 import optparse
 import os
-import shutil
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import common
 from cros.factory.umpire import daemon
+from cros.factory.umpire import resource
 from cros.factory.umpire import rpc_cli
 from cros.factory.umpire import rpc_dut
 from cros.factory.umpire import umpire_env
@@ -51,10 +51,6 @@ def InitDaemon(env, root_dir='/'):
     TryMkdir(env.base_dir)
     for sub_dir in env.SUB_DIRS:
       TryMkdir(os.path.join(env.base_dir, sub_dir))
-    # Create the dummy resource file (empty).
-    dummy_resource = os.path.join(env.resources_dir, common.DUMMY_RESOURCE)
-    if not os.path.isfile(dummy_resource):
-      file_utils.TouchFile(dummy_resource)
 
   def SymlinkBinary():
     """Creates symlink to umpire executable.
@@ -71,21 +67,19 @@ def InitDaemon(env, root_dir='/'):
       os.symlink(umpire_binary, default_symlink)
       logging.info('Symlink %r -> %r', default_symlink, umpire_binary)
 
-  def InitUmpireConfig():
-    """Prepares the very first UmpireConfig and marks it as active.
+  def InitConfig():
+    """Prepares the very first UmpireConfig and PayloadConfig, and marks the
+    UmpireConfig as active.
 
     An active config is necessary for the second step, import-bundle.
     """
+    env.AddConfigFromBlob('{}', resource.ConfigTypeNames.payload_config)
+
     # Do not override existing active config.
-    if os.path.exists(env.active_config_file):
-      return
-
-    template_path = os.path.join(env.server_toolkit_dir, _DEFAULT_CONFIG_NAME)
-    with file_utils.TempDirectory() as temp_dir:
-      config_path = os.path.join(temp_dir, 'umpire.yaml')
-      shutil.copyfile(template_path, config_path)
-      config_in_resource = env.AddResource(config_path)
-
+    if not os.path.exists(env.active_config_file):
+      template_path = os.path.join(env.server_toolkit_dir, _DEFAULT_CONFIG_NAME)
+      config_in_resource = env.GetResourcePath(
+          env.AddConfig(template_path, resource.ConfigTypeNames.umpire_config))
       file_utils.SymlinkRelative(config_in_resource, env.active_config_file,
                                  base=env.base_dir)
       logging.info('Init UmpireConfig %r and set it as active.',
@@ -94,7 +88,7 @@ def InitDaemon(env, root_dir='/'):
   logging.info('Init umpire to %r', env.base_dir)
 
   SetUpDir()
-  InitUmpireConfig()
+  InitConfig()
   SymlinkBinary()
 
 
