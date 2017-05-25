@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 #
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -15,8 +15,8 @@ import unittest
 
 import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow import create_bundle
+from cros.factory.factory_flow.common import LoadBundleManifest
 from cros.factory.tools import build_board
-from cros.factory.umpire.utils import LoadBundleManifest
 
 
 TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')

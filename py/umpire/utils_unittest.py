@@ -134,27 +134,6 @@ class VerifyResourceTest(unittest.TestCase):
       self.assertFalse(utils.VerifyResource(test_file))
 
 
-class LoadBundleManifestTest(unittest.TestCase):
-
-  def testNormal(self):
-    manifest_path = os.path.join(TESTDATA_DIR, 'sample_MANIFEST.yaml')
-    manifest = utils.LoadBundleManifest(manifest_path)
-    self.assertEqual('daisy_spring', manifest['board'])
-
-  def testIgnoreGlob(self):
-    manifest_path = os.path.join(TESTDATA_DIR, 'sample_MANIFEST.yaml')
-    manifest = utils.LoadBundleManifest(manifest_path, ignore_glob=True)
-    self.assertEqual('daisy_spring', manifest['board'])
-
-  def testManifestNotFound(self):
-    self.assertRaises(IOError, utils.LoadBundleManifest, '/path/not/exists')
-
-  def testInvalidManifest(self):
-    with file_utils.UnopenedTemporaryFile() as f:
-      file_utils.WriteFile(f, 'key: %scalar cannot start with %')
-      self.assertRaises(common.UmpireError, utils.LoadBundleManifest, f)
-
-
 class ParseResourceNameTest(unittest.TestCase):
 
   def testNormal(self):

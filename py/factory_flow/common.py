@@ -8,11 +8,13 @@ import glob
 import logging
 import os
 import sys
+import yaml
 
 import factory_common   # pylint: disable=W0611
 from cros.factory.tools import build_board
 from cros.factory.umpire import common as umpire_common
 from cros.factory.utils.argparse_utils import CmdArg
+from cros.factory.utils import file_utils
 
 
 # Arguments that are commonly used in commands.
@@ -35,7 +37,7 @@ def GetFactoryParPath():
     module is invoked through the factory.par; None otherwise.
   """
   # Check if path to factory.par is in sys.path.
-  par_file = filter(lambda p: p.endswith('factory.par'), sys.path)
+  par_file = [p for p in sys.path if p.endswith('factory.par')]
   if not par_file:
     return None
   return par_file[0]
@@ -200,3 +202,52 @@ class FactoryFlowCommand(object):
   def TearDown(self):
     """Optional clean-up function."""
     pass
+
+
+# pylint: disable=R0901
+class BundleManifestIgnoreGlobLoader(yaml.Loader):
+  """A YAML loader that loads factory bundle manifest with !glob ignored."""
+
+  def __init__(self, *args, **kwargs):
+    def FakeGlobConstruct(loader, node):
+      del loader, node  # Unused.
+      return None
+
+    yaml.Loader.__init__(self, *args, **kwargs)
+    self.add_constructor('!glob', FakeGlobConstruct)
+
+
+# pylint: disable=R0901
+class BundleManifestLoader(yaml.Loader):
+  """A YAML loader that loads factory bundle manifest with !glob ignored."""
+
+  def __init__(self, *args, **kwargs):
+    yaml.Loader.__init__(self, *args, **kwargs)
+    # TODO(deanliao): refactor out Glob from py/tools/finalize_bundle.py
+    #     to py/utils/bundle_manifest.py and move the LoadBundleManifest
+    #     related methods to that module.
+    self.add_constructor('!glob', file_utils.Glob.Construct)
+
+
+def LoadBundleManifest(path, ignore_glob=False):
+  """Loads factory bundle's MANIFEST.yaml (with !glob ignored).
+
+  Args:
+    path: path to factory bundle's MANIFEST.yaml
+    ignore_glob: True to ignore glob.
+
+  Returns:
+    A Python object the manifest file represents.
+
+  Raises:
+    IOError if file not found.
+    UmpireError if the manifest fail to load and parse.
+  """
+  file_utils.CheckPath(path, description='factory bundle manifest')
+  try:
+    loader = (BundleManifestIgnoreGlobLoader if ignore_glob else
+              BundleManifestLoader)
+    with open(path) as f:
+      return yaml.load(f, Loader=loader)
+  except Exception as e:
+    raise FactoryFlowError('Failed to load MANIFEST.yaml: ' + str(e))

@@ -5,13 +5,10 @@
 """Umpire utility classes."""
 
 import logging
-import yaml
 
 from twisted.internet import defer
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.umpire import common
-from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
 
 
@@ -60,52 +57,3 @@ def Deprecate(method):
 
   _Wrapper.__name__ = method.__name__
   return _Wrapper
-
-
-# pylint: disable=R0901
-class BundleManifestIgnoreGlobLoader(yaml.Loader):
-  """A YAML loader that loads factory bundle manifest with !glob ignored."""
-
-  def __init__(self, *args, **kwargs):
-    def FakeGlobConstruct(loader, node):
-      del loader, node  # Unused.
-      return None
-
-    yaml.Loader.__init__(self, *args, **kwargs)
-    self.add_constructor('!glob', FakeGlobConstruct)
-
-
-# pylint: disable=R0901
-class BundleManifestLoader(yaml.Loader):
-  """A YAML loader that loads factory bundle manifest with !glob ignored."""
-
-  def __init__(self, *args, **kwargs):
-    yaml.Loader.__init__(self, *args, **kwargs)
-    # TODO(deanliao): refactor out Glob from py/tools/finalize_bundle.py
-    #     to py/utils/bundle_manifest.py and move the LoadBundleManifest
-    #     related methods to that module.
-    self.add_constructor('!glob', file_utils.Glob.Construct)
-
-
-def LoadBundleManifest(path, ignore_glob=False):
-  """Loads factory bundle's MANIFEST.yaml (with !glob ignored).
-
-  Args:
-    path: path to factory bundle's MANIFEST.yaml
-    ignore_glob: True to ignore glob.
-
-  Returns:
-    A Python object the manifest file represents.
-
-  Raises:
-    IOError if file not found.
-    UmpireError if the manifest fail to load and parse.
-  """
-  file_utils.CheckPath(path, description='factory bundle manifest')
-  try:
-    loader = (BundleManifestIgnoreGlobLoader if ignore_glob else
-              BundleManifestLoader)
-    with open(path) as f:
-      return yaml.load(f, Loader=loader)
-  except Exception as e:
-    raise common.UmpireError('Failed to load MANIFEST.yaml: ' + str(e))
