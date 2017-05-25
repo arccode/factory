@@ -299,6 +299,7 @@ def InitSubSession(log_root, uuid, station_test_run=None):
   # TODO(itspeter): Enable more fine setting on the testlog.json location, etc.
   session_log_path = os.path.join(log_root, _DEFAULT_SESSION_FOLDER,
                                   _DEFAULT_SESSION_JSON_FILE_TEMPLATE % uuid)
+  file_utils.TryMakeDirs(os.path.dirname(session_log_path))
   if not station_test_run:
     station_test_run = StationTestRun()
     station_test_run.FromDict({

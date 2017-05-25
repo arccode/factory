@@ -58,7 +58,7 @@ class WebSocketManager(object):
     self.event_client = EventClient(callback=self._handle_event,
                                     name='WebSocketManager')
     self.tail_process = Spawn(
-        ['tail', '-F', paths.GetConsoleLogPath()],
+        ['tail', '-F', paths.CONSOLE_LOG_PATH],
         ignore_stdin=True,
         stdout=subprocess.PIPE)
     self.tail_thread = threading.Thread(target=self._tail_console)

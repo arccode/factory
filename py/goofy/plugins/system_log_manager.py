@@ -381,7 +381,7 @@ class SystemLogManager(plugin.Plugin):
             extra_log_args['data'] = data
 
             # Copy to /var/factory/kcrash for posterity
-            kcrash_dir = paths.GetFactoryRoot('kcrash')
+            kcrash_dir = os.path.join(paths.DATA_DIR, 'kcrash')
             file_utils.TryMakeDirs(kcrash_dir)
             shutil.copy(path, kcrash_dir)
             logging.info('Copied to %s',

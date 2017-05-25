@@ -23,6 +23,7 @@ from cros.factory.test.env import paths
 from cros.factory.test import event
 from cros.factory.test import factory
 from cros.factory.test.rules import privacy
+from cros.factory.utils import file_utils
 from cros.factory.utils import shelve_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
@@ -34,7 +35,7 @@ from cros.factory.utils import type_utils
 DEFAULT_FACTORY_STATE_PORT = goofy_proxy.DEFAULT_GOOFY_PORT
 DEFAULT_FACTORY_STATE_ADDRESS = goofy_proxy.DEFAULT_GOOFY_ADDRESS
 
-DEFAULT_FACTORY_STATE_FILE_PATH = paths.GetStateRoot()
+DEFAULT_FACTORY_STATE_FILE_DIR = paths.DATA_STATE_DIR
 
 POST_SHUTDOWN_TAG = '%s.post_shutdown'
 
@@ -45,15 +46,15 @@ KEY_DEVICE_DATA = 'device'
 KEY_SERIAL_NUMBER = 'serial_number'
 
 
-def clear_state(state_file_path=DEFAULT_FACTORY_STATE_FILE_PATH):
+def clear_state(state_file_dir=DEFAULT_FACTORY_STATE_FILE_DIR):
   """Clears test state (removes the state file path).
 
   Args:
-    state_file_path: Path to state; uses the default path if None.
+    state_file_dir: Path to state; uses the default path if None.
   """
-  logging.warn('Clearing state file path %s', state_file_path)
-  if os.path.exists(state_file_path):
-    shutil.rmtree(state_file_path)
+  logging.warn('Clearing state file path %s', state_file_dir)
+  if os.path.exists(state_file_dir):
+    shutil.rmtree(state_file_dir)
 
 
 # TODO(shunhsingou): move goofy or dut related functions to goofy_rpc so we can
@@ -84,19 +85,18 @@ class FactoryState(object):
 
   _TEST_STATE_POSTFIX = '__test_state__'
 
-  def __init__(self, state_file_path=None):
+  def __init__(self, state_file_dir=None):
     """Initializes the state server.
 
     Parameters:
-      state_file_path:  External file to store the state information.
+      state_file_dir:  External file to store the state information.
     """
-    state_file_path = state_file_path or DEFAULT_FACTORY_STATE_FILE_PATH
-    if not os.path.exists(state_file_path):
-      os.makedirs(state_file_path)
+    state_file_dir = state_file_dir or DEFAULT_FACTORY_STATE_FILE_DIR
+    file_utils.TryMakeDirs(state_file_dir)
     self._tests_shelf = shelve_utils.DictShelfView(
-        shelve_utils.OpenShelfOrBackup(state_file_path + '/tests'))
+        shelve_utils.OpenShelfOrBackup(state_file_dir + '/tests'))
     self._data_shelf = shelve_utils.DictShelfView(
-        shelve_utils.OpenShelfOrBackup(state_file_path + '/data'))
+        shelve_utils.OpenShelfOrBackup(state_file_dir + '/data'))
     self._lock = threading.RLock()
 
     if factory.TestState not in jsonclass.supported_types:

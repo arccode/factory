@@ -59,7 +59,7 @@ ERROR_LOG_TAIL_LENGTH = 8 * 1024
 
 # A file that stores override test list dargs for factory test automation.
 OVERRIDE_TEST_LIST_DARGS_FILE = os.path.join(
-    paths.GetStateRoot(), 'override_test_list_dargs.yaml')
+    paths.DATA_STATE_DIR, 'override_test_list_dargs.yaml')
 
 
 class InvocationError(Exception):
@@ -216,14 +216,14 @@ class TestInvocation(object):
       self.uuid = state.get_shared_data(post_shutdown_tag)
     else:
       self.uuid = time_utils.TimedUUID()
-    self.output_dir = os.path.join(paths.GetTestDataRoot(),
+    self.output_dir = os.path.join(paths.DATA_TESTS_DIR,
                                    '%s-%s' % (self.test.path,
                                               self.uuid))
     file_utils.TryMakeDirs(self.output_dir)
 
     # Create a symlink for the latest test run, so if we're looking at the
     # logs we don't need to enter the whole UUID.
-    latest_symlink = os.path.join(paths.GetTestDataRoot(),
+    latest_symlink = os.path.join(paths.DATA_TESTS_DIR,
                                   self.test.path)
     try:
       os.remove(latest_symlink)
@@ -335,9 +335,8 @@ class TestInvocation(object):
 
       results_path = make_tmp('results')
 
-      log_dir = os.path.join(paths.GetTestDataRoot())
-      if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
+      log_dir = os.path.join(paths.DATA_TESTS_DIR)
+      file_utils.TryMakeDirs(log_dir)
 
       pytest_name = self.test.pytest_name
       if self.goofy.options.automation_mode != AutomationMode.NONE:
@@ -609,7 +608,7 @@ class TestInvocation(object):
         #                 and flush for the first event to observe if any
         #                 test session is missing.
         self.session_json_path = testlog.InitSubSession(
-            log_root=paths.GetLogRoot(),
+            log_root=paths.DATA_LOG_DIR,
             station_test_run=self._convert_log_args(
                 log_args, TestState.ACTIVE),
             uuid=self.uuid)

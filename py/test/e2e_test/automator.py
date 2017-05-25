@@ -19,7 +19,7 @@ from cros.factory.utils import type_utils
 
 
 AUTOMATION_FUNCTION_KWARGS_FILE = os.path.join(
-    paths.GetStateRoot(), 'automation_function_kwargs.yaml')
+    paths.DATA_STATE_DIR, 'automation_function_kwargs.yaml')
 
 
 class AutomationError(Exception):

@@ -28,6 +28,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test.env import paths
 from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
@@ -231,7 +232,7 @@ class RFGraphyteTest(unittest.TestCase):
     file_name = '%s_%s_%s' % (
         self._dut.info.mlb_serial_number, timestamp, suffix)
     # save the log under /var/factory/tests/<TestID>-<UUID>/
-    current_test_dir = os.path.join(factory.get_test_data_root(),
+    current_test_dir = os.path.join(paths.DATA_TESTS_DIR,
                                     factory.get_current_test_path())
     return os.path.join(current_test_dir, file_name)
 

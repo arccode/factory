@@ -67,7 +67,7 @@ from cros.factory.external import syslog
 
 
 HWID_CFG_PATH = '/usr/local/share/chromeos-hwid/cfg'
-CACHES_DIR = os.path.join(paths.GetStateRoot(), 'caches')
+CACHES_DIR = os.path.join(paths.DATA_STATE_DIR, 'caches')
 
 # Value for tests_after_shutdown that forces auto-run (e.g., after
 # a factory update, when the available set of tests might change).
@@ -984,9 +984,9 @@ class Goofy(GoofyBase):
     # be fixed.
 
     # Make sure factory directories exist.
-    paths.GetLogRoot()
-    paths.GetStateRoot()
-    paths.GetTestDataRoot()
+    for path in [
+        paths.DATA_LOG_DIR, paths.DATA_STATE_DIR, paths.DATA_TESTS_DIR]:
+      file_utils.TryMakeDirs(path)
 
     global _inited_logging  # pylint: disable=global-statement
     if not _inited_logging:
@@ -1014,7 +1014,7 @@ class Goofy(GoofyBase):
     # that device_id, reimage_id, etc. are all set up.
     self.event_log = EventLog('goofy', defer=False)
     self.testlog = testlog.Testlog(
-        log_root=paths.GetLogRoot(), uuid=self.uuid,
+        log_root=paths.DATA_LOG_DIR, uuid=self.uuid,
         stationDeviceId=testlog_goofy.GetDeviceID(),
         stationInstallationId=testlog_goofy.GetInstallationID())
 

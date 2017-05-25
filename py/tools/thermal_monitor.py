@@ -112,7 +112,7 @@ def main():
   # Initialize testlog.
   if args.use_testlog:
     testlog_instance = testlog.Testlog(
-        log_root=paths.GetLogRoot(), uuid=str(uuid.uuid4()))
+        log_root=paths.DATA_LOG_DIR, uuid=str(uuid.uuid4()))
     testlog.CapturePythonLogging(
         callback=testlog_instance.primary_json.Log,
         level=logging.getLogger().getEffectiveLevel())

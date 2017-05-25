@@ -11,12 +11,12 @@ import logging
 import os
 import signal
 import sys
-import threading
 
 import instalog_common  # pylint: disable=unused-import
 from instalog import core
 from instalog import daemon_utils
 from instalog import log_utils
+from instalog.utils import file_utils
 from instalog.utils import sync_utils
 from instalog.utils import type_utils
 
@@ -70,7 +70,9 @@ class InstalogService(daemon_utils.Daemon):
     formatter = logging.Formatter(log_utils.LOG_FORMAT)
 
     # Save logging calls to log file.
-    fh = logging.FileHandler(self._config['instalog']['log_file'])
+    log_file = self._config['instalog']['log_file']
+    file_utils.TryMakeDirs(os.path.dirname(log_file))
+    fh = logging.FileHandler(log_file)
     fh.setFormatter(formatter)
     fh.setLevel(self._logging_level)
     logger.addHandler(fh)
@@ -231,7 +233,7 @@ class InstalogCLI(object):
       sys.exit(1)
 
 
-if __name__ == '__main__':
+def main():
   parser = argparse.ArgumentParser()
   parser.add_argument(
       '--config', '-c',
@@ -287,3 +289,6 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   InstalogCLI(args)
+
+if __name__ == '__main__':
+  main()

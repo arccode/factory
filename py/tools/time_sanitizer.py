@@ -16,6 +16,7 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import shopfloor
+from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 
@@ -68,7 +69,7 @@ SECONDS_PER_DAY = 86400
 class TimeSanitizer(object):
 
   def __init__(self,
-               state_file=os.path.join(paths.GetStateRoot(),
+               state_file=os.path.join(paths.DATA_STATE_DIR,
                                        'time_sanitizer_base_time'),
                monitor_interval_secs=30,
                time_bump_secs=60,
@@ -116,8 +117,7 @@ class TimeSanitizer(object):
     # Set shopfloor.  This may be mocked out.
     self._shopfloor = shopfloor
 
-    if not os.path.isdir(os.path.dirname(self.state_file)):
-      os.makedirs(os.path.dirname(self.state_file))
+    file_utils.TryMakeDirs(os.path.dirname(self.state_file))
 
     # Set hwclock (in a background thread, since this is slow).
     # Do this upon startup to ensure hwclock is working

@@ -9,6 +9,7 @@ This module provides fast access to "gooftool".
 """
 
 
+import os
 import subprocess
 import tempfile
 
@@ -16,6 +17,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import factory
 from cros.factory.test import test_ui
+from cros.factory.utils import file_utils
 
 
 GOOFTOOL_HOME = '/usr/local/factory'
@@ -37,16 +39,18 @@ def run(command, ignore_status=False):
 
   factory.log('Running gooftool: ' + command)
 
-  # We want the stderr goes to GetConsoleLogPath() immediately, but tee only
+  # We want the stderr goes to CONSOLE_LOG_PATH immediately, but tee only
   # works with stdout; so here's a tiny trick to swap the handles.
   swap_stdout_stderr = '3>&1 1>&2 2>&3'
 
   # When using pipes, return code is from the last command; so we need to use
   # a temporary file for the return code of first command.
+  console_log_path = paths.CONSOLE_LOG_PATH
+  file_utils.TryMakeDirs(os.path.dirname(console_log_path))
   return_code_file = tempfile.NamedTemporaryFile()
   system_cmd = ('(PATH=%s:$PATH %s %s || echo $? >"%s") | tee -a "%s"' %
                 (GOOFTOOL_HOME, command, swap_stdout_stderr,
-                 return_code_file.name, paths.GetConsoleLogPath()))
+                 return_code_file.name, console_log_path))
   proc = subprocess.Popen(system_cmd,
                           stderr=subprocess.PIPE,
                           stdout=subprocess.PIPE,

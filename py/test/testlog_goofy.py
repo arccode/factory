@@ -14,7 +14,7 @@ from cros.factory.test.env import paths
 from cros.factory.utils import file_utils
 
 
-LOG_ROOT = paths.GetLogRoot()
+LOG_ROOT = paths.DATA_LOG_DIR
 
 # The location to store the device ID file should be a place that is
 # less likely to be deleted.
@@ -32,9 +32,6 @@ INSTALLATION_ID_PATH = os.path.join(LOG_ROOT, 'installation_id')
 # itspeter
 # File containing the number of times Goofy has been initialized.
 INIT_COUNT_PATH = os.path.join(LOG_ROOT, 'init_count')
-
-# The /var/factory/log directory (or equivalent if in the chroot).
-LOG_DIR = paths.GetLogRoot()
 
 # Cache the DEVICE_ID and INSTALLATION_ID after being read from disk or
 # after being generated (if they do not yet exist).

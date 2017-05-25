@@ -68,7 +68,8 @@ def _SendDhclientCommand(arguments, interface,
   """
   expect_str = pexpect.EOF if expect_str is None else expect_str
   DHCLIENT_SCRIPT = '/usr/local/sbin/dhclient-script'
-  DHCLIENT_LEASE = os.path.join(paths.GetStateRoot(), 'dhclient.leases')
+  DHCLIENT_LEASE = os.path.join(paths.DATA_STATE_DIR, 'dhclient.leases')
+  file_utils.TryMakeDirs(os.path.dirname(DHCLIENT_LEASE))
   assert timeout > 0, 'Must have a timeout'
 
   logging.info('Starting dhclient')

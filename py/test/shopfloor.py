@@ -36,6 +36,7 @@ from cros.factory.test import state
 from cros.factory.umpire.client import get_update
 from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.utils import debug_utils
+from cros.factory.utils import file_utils
 
 
 # Name of the factory shared data key that maps to session info.
@@ -306,7 +307,9 @@ def update_local_hwid_data(dut, target_dir='/usr/local/factory/hwid'):
           hwid_updater_sh,
           hashlib.md5(updater_data).hexdigest())
 
-      with open(paths.GetConsoleLogPath(), 'a') as log:
+      console_log_path = paths.CONSOLE_LOG_PATH
+      file_utils.TryMakeDirs(os.path.dirname(console_log_path))
+      with open(console_log_path, 'a') as log:
         if not dut.path.isdir(target_dir):
           dut.CheckCall(['mkdir', '-p', target_dir])
         dut.CheckCall([hwid_updater_sh, target_dir],

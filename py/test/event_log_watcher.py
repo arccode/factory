@@ -18,7 +18,7 @@ from cros.factory.utils import shelve_utils
 
 EVENT_SEPARATOR = '\n---\n'
 KEY_OFFSET = 'offset'
-EVENT_LOG_DB_FILE = os.path.join(paths.GetStateRoot(), 'event_log_db')
+EVENT_LOG_DB_FILE = os.path.join(paths.DATA_STATE_DIR, 'event_log_db')
 
 
 class ScanException(Exception):

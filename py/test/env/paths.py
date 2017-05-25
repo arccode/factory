@@ -7,7 +7,6 @@ import getpass
 import os
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 
 
@@ -24,61 +23,31 @@ FIRMWARE_UPDATER_PATH = os.path.join(
 # Path to factory log on a "real" device.
 FACTORY_LOG_PATH_ON_DEVICE = '/var/factory/log/factory.log'
 
+# The root directory for logging and state.
+DATA_DIR = os.environ.get('CROS_FACTORY_DATA_DIR',
+                          ('/tmp/factory.%s' % getpass.getuser())
+                          if sys_utils.InChroot() else '/var/factory')
+# The directory for logs.
+DATA_LOG_DIR = os.path.join(DATA_DIR, 'log')
+# The directory for all factory state.
+DATA_STATE_DIR = os.path.join(DATA_DIR, 'state')
+# The directory for all test logs/state.
+DATA_TESTS_DIR = os.path.join(DATA_DIR, 'tests')
 
-def GetFactoryRoot(subdir=None):
-  """Returns the root for logging and state.
-
-  This is usually /var/log, or /tmp/factory.$USER if in the chroot, but may be
-  overridden by the CROS_FACTORY_ROOT environment variable.
-
-  Creates the directory it doesn't exist.
-
-  Args:
-   subdir: If not None, returns that subdirectory.
-  """
-  ret = (os.environ.get('CROS_FACTORY_ROOT') or
-         (('/tmp/factory.%s' % getpass.getuser())
-          if sys_utils.InChroot() else '/var/factory'))
-  if subdir:
-    ret = os.path.join(ret, subdir)
-  file_utils.TryMakeDirs(ret)
-  return ret
-
-
-def GetLogRoot():
-  """Returns the root for logs"""
-  return GetFactoryRoot('log')
-
-
-def GetStateRoot():
-  """Returns the root for all factory state."""
-  return GetFactoryRoot('state')
-
-
-def GetTestDataRoot():
-  """Returns the root for all test logs/state."""
-  return GetFactoryRoot('tests')
-
-
-def GetConsoleLogPath():
-  """Returns the path to console.log file."""
-  return os.path.join(GetLogRoot(), 'console.log')
-
-
-def GetFactoryLogPath():
-  """Returns the path to factory.log file."""
-  return os.path.join(GetLogRoot(), 'factory.log')
+CONSOLE_LOG_PATH = os.path.join(DATA_LOG_DIR, 'console.log')
+FACTORY_LOG_PATH = os.path.join(DATA_LOG_DIR, 'factory.log')
 
 
 def GetRuntimeVariableDataPath():
   """Returns the root for logging and state.
 
   Returns:
-    /run, or GetFactoryRoot("run") if in the chroot, may be overridden
+    /run, or ${DATA_DIR}/run if in the chroot, may be overridden
     by the CROS_FACTORY_RUN_PATH environment variable.
   """
-  return (os.environ.get('CROS_FACTORY_RUN_PATH') or
-          (GetFactoryRoot('run') if sys_utils.InChroot() else '/run'))
+  return os.environ.get('CROS_FACTORY_RUN_PATH',
+                        os.path.join(DATA_DIR, 'run')
+                        if sys_utils.InChroot() else '/run')
 
 
 def GetFactoryPythonArchivePath():

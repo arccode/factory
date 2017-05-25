@@ -7,7 +7,7 @@ DATA_DIR={%data_root%}
 SCRIPT_DIR={%script_root%}
 TOTAL_TASKS={%total_tasks%}
 DELAY_AFTER_REBOOT={%delay_after_reboot%}
-export CROS_FACTORY_ROOT="${DATA_DIR}/root"
+export CROS_FACTORY_DATA_DIR="${DATA_DIR}/root"
 export LOGFILE="${DATA_DIR}/logfile"
 export CROS_FACTORY_RUN_PATH="${DATA_DIR}/run"
 

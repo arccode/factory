@@ -608,7 +608,7 @@ def CreateReportArchive(device_sn=None, add_file=None):
 
   # Intentionally ignoring dotfiles in EVENT_LOG_DIR.
   tar_cmd = 'cd %s ; tar cJf %s *' % (event_log.EVENT_LOG_DIR, target_path)
-  tar_cmd += ' %s' % paths.GetFactoryLogPath()
+  tar_cmd += ' %s' % paths.FACTORY_LOG_PATH
   if add_file:
     for f in add_file:
       # Require absolute paths since the tar command may change the

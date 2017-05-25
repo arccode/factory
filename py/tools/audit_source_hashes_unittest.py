@@ -55,7 +55,7 @@ class AuditSourceHashesTest(unittest.TestCase):
     """'End-to-end' test using 'gooftool log_source_hashes'."""
     # Use tempdir as state root, so we don't end up going through a bunch
     # of old event logs.
-    os.environ['CROS_FACTORY_ROOT'] = self.tmpdir
+    os.environ['CROS_FACTORY_DATA_DIR'] = self.tmpdir
 
     # Log the source hashes for this source tree.
     Spawn([os.path.join(paths.FACTORY_PATH, 'bin', 'gooftool'),

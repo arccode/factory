@@ -78,7 +78,7 @@ class _TestProc(object):
   """Creates and runs a subprocess to run an unittest.
 
   Besides creating a subprocess, it also prepares a temp directory for
-  env CROS_FACTORY_ROOT, records a test start time and test path.
+  env CROS_FACTORY_DATA_DIR, records a test start time and test path.
 
   The temp directory will be removed once the object is destroyed.
 
@@ -91,11 +91,12 @@ class _TestProc(object):
     self.test_name = test_name
     self.log_file = open(log_name, 'w')
     self.start_time = time.time()
-    self.cros_factory_root = tempfile.mkdtemp(prefix='cros_factory_root.')
-    self.child_tmp_root = os.path.join(self.cros_factory_root, 'tmp')
+    self.cros_factory_data_dir = tempfile.mkdtemp(
+        prefix='cros_factory_data_dir.')
+    self.child_tmp_root = os.path.join(self.cros_factory_data_dir, 'tmp')
     os.mkdir(self.child_tmp_root)
     child_env = os.environ.copy()
-    child_env['CROS_FACTORY_ROOT'] = self.cros_factory_root
+    child_env['CROS_FACTORY_DATA_DIR'] = self.cros_factory_data_dir
     # Set TEST_RUNNER_ENV_VAR so we know to kill it later if
     # re-running tests.
     child_env[TEST_RUNNER_ENV_VAR] = os.path.basename(__file__)
@@ -106,8 +107,8 @@ class _TestProc(object):
     # directory, don't generate .pyc file.
     child_env['PYTHONDONTWRITEBYTECODE'] = '1'
     # Change child calls for tempfile.* to be rooted at directory inside
-    # cros_factory_root temporary directory, so it would be removed even if the
-    # test is terminated.
+    # cros_factory_data_dir temporary directory, so it would be removed even if
+    # the test is terminated.
     child_env['TMPDIR'] = self.child_tmp_root
     # This is used by net_utils.FindUnusedPort, to eliminate the chance of
     # collision of FindUnusedPort between different unittests.
@@ -139,8 +140,8 @@ class _TestProc(object):
     return
 
   def Close(self):
-    if os.path.isdir(self.cros_factory_root):
-      shutil.rmtree(self.cros_factory_root)
+    if os.path.isdir(self.cros_factory_data_dir):
+      shutil.rmtree(self.cros_factory_data_dir)
 
 
 class PortDistributeHandler(SocketServer.StreamRequestHandler):

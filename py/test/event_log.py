@@ -34,9 +34,9 @@ _default_event_logger_prefix = None
 
 # The location to store the device ID file should be a place that is
 # less likely to be deleted.
-DEVICE_ID_PATH = os.path.join(paths.GetFactoryRoot(), ".device_id")
+DEVICE_ID_PATH = os.path.join(paths.DATA_DIR, ".device_id")
 
-EVENT_LOG_DIR = os.path.join(paths.GetStateRoot(), "events")
+EVENT_LOG_DIR = os.path.join(paths.DATA_STATE_DIR, "events")
 
 # Path to use to generate an image ID in case none exists (i.e.,
 # this is the first time we're creating an event log).

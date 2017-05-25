@@ -434,7 +434,7 @@ class AudioQualityTest(unittest.TestCase):
     logging.info('Received file %s with size %d', file_name, size)
     real_data = binascii.a2b_hex(received_data)
 
-    write_path = os.path.join(paths.GetLogRoot(), 'aux', 'audio', file_name)
+    write_path = os.path.join(paths.DATA_LOG_DIR, 'aux', 'audio', file_name)
     file_utils.TryMakeDirs(os.path.dirname(write_path))
     factory.console.info('save file: %s', write_path)
     with open(write_path, 'wb') as f:
@@ -460,7 +460,7 @@ class AudioQualityTest(unittest.TestCase):
     size = int(attr_list[2])
     received_data = attr_list[3].replace('\x00', ' ')
 
-    write_path = os.path.join(paths.GetLogRoot(), 'aux', 'audio', file_name)
+    write_path = os.path.join(paths.DATA_LOG_DIR, 'aux', 'audio', file_name)
     file_utils.TryMakeDirs(os.path.dirname(write_path))
     factory.console.info('save file: %s', write_path)
     with open(write_path, 'wb') as f:
@@ -764,10 +764,10 @@ class AudioQualityTest(unittest.TestCase):
 
     # Download the list and saved to caches in state directory.
     for filepath in download_list:
-      process_utils.Spawn(['mkdir', '-p', os.path.join(
-          self._caches_dir, os.path.dirname(filepath))], check_call=True)
+      path = os.path.join(self._caches_dir, filepath)
+      file_utils.TryMakeDirs(os.path.dirname(path))
       binary_obj = shopfloor_client.GetParameter(filepath)
-      with open(os.path.join(self._caches_dir, filepath), 'wb') as fd:
+      with open(path, 'wb') as fd:
         fd.write(binary_obj.data)
 
   def RunAudioServer(self):

@@ -47,9 +47,9 @@ class Instalog(plugin.Plugin):
                                      'instalog.yaml')
 
     node_id = testlog_goofy.GetDeviceID()
-    data_dir = os.path.join(paths.GetLogRoot(), 'instalog')
+    data_dir = os.path.join(paths.DATA_LOG_DIR, 'instalog')
     pid_file = os.path.join(paths.GetRuntimeVariableDataPath(), 'instalog.pid')
-    log_file = os.path.join(paths.GetLogRoot(), 'instalog.log')
+    log_file = os.path.join(paths.DATA_LOG_DIR, 'instalog.log')
     cli_hostname = _CLI_HOSTNAME
     cli_port = _CLI_PORT
     testlog_json_path = goofy.testlog.primary_json.path

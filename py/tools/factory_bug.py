@@ -198,7 +198,7 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
 
     # Exclude various items from bug reports.
     exclude_files = list(chain.from_iterable(('--exclude', x) for x in [
-        os.path.join(env_paths.GetStateRoot(), chrome_data_dir_name),
+        os.path.join(env_paths.DATA_STATE_DIR, chrome_data_dir_name),
         'Extensions',
     ]))
     if not include_network_log:
@@ -353,8 +353,8 @@ def main():
   # When --mount is specified, we only mount and don't actually
   # collect logs.
   if not args.mount:
-    with (MountUSB() if args.usb
-          else DummyContext(MountUSBInfo(None, args.output_dir, False))) as mount:
+    with (MountUSB() if args.usb else
+          DummyContext(MountUSBInfo(None, args.output_dir, False))) as mount:
       output_file = SaveLogs(mount.mount_point, args.net, args.id, **paths)
       logging.info('Wrote %s (%d bytes)',
                    output_file, os.path.getsize(output_file))

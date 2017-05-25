@@ -750,7 +750,7 @@ class GoofyRPC(object):
     ret = []
 
     for path in test_paths:
-      for f in glob.glob(os.path.join(paths.GetTestDataRoot(),
+      for f in glob.glob(os.path.join(paths.DATA_TESTS_DIR,
                                       path + '-*',
                                       'metadata')):
         try:
@@ -763,7 +763,7 @@ class GoofyRPC(object):
 
   def GetTestHistoryEntry(self, path, invocation):
     """Returns metadata and log for one test invocation."""
-    test_dir = os.path.join(paths.GetTestDataRoot(),
+    test_dir = os.path.join(paths.DATA_TESTS_DIR,
                             '%s-%s' % (path, invocation))
 
     log_file = os.path.join(test_dir, 'log')

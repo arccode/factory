@@ -84,7 +84,7 @@ _state_root_for_testing = None
 
 def GetPhaseStatePath():
   """Returns the path used to save the current phase."""
-  return os.path.join((_state_root_for_testing or paths.GetStateRoot()),
+  return os.path.join((_state_root_for_testing or paths.DATA_STATE_DIR),
                       'PHASE')
 
 
@@ -178,7 +178,8 @@ def SetPersistentPhase(phase):
   if phase:
     phase = Phase(phase)  # Coerce to Phase object
     logging.info('Setting phase to %s in %s', phase, path)
-    with open(GetPhaseStatePath(), 'w') as f:
+    file_utils.TryMakeDirs(os.path.dirname(path))
+    with open(path, 'w') as f:
       f.write(phase.name)
   else:
     logging.info('Deleting phase in %s', path)

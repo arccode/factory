@@ -38,6 +38,7 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
@@ -151,8 +152,7 @@ class Finalize(unittest.TestCase):
     self.template = ui_templates.OneSection(self.ui)
     self.force = False
     self.go_cond = threading.Condition()
-    self.test_states_path = os.path.join(paths.GetLogRoot(),
-                                         'test_states')
+    self.test_states_path = os.path.join(paths.DATA_LOG_DIR, 'test_states')
     self.factory_par = deploy_utils.CreateFactoryTools(self.dut)
 
     # variables for remote SSH DUT
@@ -205,6 +205,7 @@ class Finalize(unittest.TestCase):
     test_states = test_list.AsDict(
         state.get_instance().get_test_states())
 
+    file_utils.TryMakeDirs(os.path.dirname(self.test_states_path))
     with open(self.test_states_path, 'w') as f:
       yaml.dump(test_states, f)
 
@@ -267,7 +268,9 @@ class Finalize(unittest.TestCase):
       factory.console.info('call factory.par: %s', command)
       factory.console.info('=== STDOUT and STDERR ===')
       # append STDOUT and STDERR to console log.
-      with open(factory.CONSOLE_LOG_PATH, 'a') as output:
+      console_log_path = paths.CONSOLE_LOG_PATH
+      file_utils.TryMakeDirs(os.path.dirname(console_log_path))
+      with open(console_log_path, 'a') as output:
         returncode = self.factory_par.Call(command, stdout=output,
                                            stderr=subprocess.STDOUT)
     factory.console.info('=========================')
@@ -548,7 +551,7 @@ class Finalize(unittest.TestCase):
           'Remote DUT not response in %d seconds' % self.FINALIZE_TIMEOUT)
 
     # save log files in test data directory
-    output_dir = os.path.join(factory.get_test_data_root(),
+    output_dir = os.path.join(paths.DATA_TESTS_DIR,
                               factory.get_current_test_path())
     with open(os.path.join(output_dir, 'wipe_in_tmpfs.log'), 'w') as f:
       f.write(self.dut_response.get('wipe_in_tmpfs_log', ''))

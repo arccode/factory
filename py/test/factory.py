@@ -27,17 +27,9 @@ import yaml
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import i18n
+from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
 
-
-# Retain factory path functions and constants for backwards compatibility.
-get_factory_root = paths.GetFactoryRoot
-get_log_root = paths.GetLogRoot
-get_state_root = paths.GetStateRoot
-get_test_data_root = paths.GetTestDataRoot
-CONSOLE_LOG_PATH = paths.GetConsoleLogPath()
-FACTORY_LOG_PATH = paths.GetFactoryLogPath()
-FACTORY_LOG_PATH_ON_DEVICE = paths.FACTORY_LOG_PATH_ON_DEVICE
 
 # Regexp that all IDs should match.  Currently we just warn if it doesn't
 # match, for backward compatibility.  Note that this allows leading digits
@@ -105,7 +97,9 @@ def get_current_md5sum():
 
 
 def _init_console_log():
-  handler = logging.FileHandler(paths.GetConsoleLogPath(), 'a', delay=True)
+  console_log_path = paths.CONSOLE_LOG_PATH
+  file_utils.TryMakeDirs(os.path.dirname(console_log_path))
+  handler = logging.FileHandler(console_log_path, 'a', delay=True)
   log_format = '[%(levelname)s] %(message)s'
   test_path = get_current_test_path()
   if test_path:
@@ -133,7 +127,8 @@ def get_verbose_log_file():
   """
   invocation = os.environ['CROS_FACTORY_TEST_INVOCATION']
   log_name = '%s-log-%s' % (get_current_test_path(), invocation)
-  log_path = os.path.join(paths.GetFactoryRoot('log'), log_name)
+  log_path = os.path.join(paths.DATA_LOG_DIR, log_name)
+  file_utils.TryMakeDirs(os.path.dirname(log_path))
   console.info('Raw log stored at %s', log_path)
   return open(log_path, 'a')
 

@@ -6,12 +6,10 @@
 """The finalize test is used to collect the test results for accessories."""
 
 
-import os
 import re
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test.env import paths
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
@@ -49,7 +47,6 @@ class FinalizeAccessory(unittest.TestCase):
     self.ui = test_ui.UI()
     self._template = ui_templates.OneSection(self.ui)
     self._state = state.get_instance()
-    self.test_states_path = os.path.join(paths.GetLogRoot(), 'test_states')
 
   def _GetFinalTestResult(self):
     def _IsWaived(path):

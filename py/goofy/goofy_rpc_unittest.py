@@ -57,7 +57,7 @@ class GoofyRPCTest(unittest.TestCase):
     expected = []
 
     for invocation in invocations:
-      path = os.path.join(paths.GetTestDataRoot(),
+      path = os.path.join(paths.DATA_TESTS_DIR,
                           test_path + '-%s' % invocation,
                           'metadata')
       file_utils.TryMakeDirs(os.path.dirname(path))
@@ -75,7 +75,7 @@ class GoofyRPCTest(unittest.TestCase):
     log = 'This is the test log'
     data = {'A': 1, 'b': 'abc'}
 
-    test_dir = os.path.join(paths.GetTestDataRoot(),
+    test_dir = os.path.join(paths.DATA_TESTS_DIR,
                             '%s-%s' % (path, invocation))
 
     file_utils.TryMakeDirs(test_dir)
