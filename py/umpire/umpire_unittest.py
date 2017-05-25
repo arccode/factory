@@ -49,25 +49,25 @@ class UpdateTest(unittest.TestCase):
 
   def testUpdateSingleResource(self):
     # Expect XMLRPC call.
-    self.mock_cli.Update([('factory_toolkit', self.TOOLKIT_PATH)], None, None)
+    self.mock_cli.Update([('toolkit', self.TOOLKIT_PATH)], None, None)
     self.mox.ReplayAll()
 
-    self.args.resources.append('factory_toolkit=%s' % self.TOOLKIT_PATH)
+    self.args.resources.append('toolkit=%s' % self.TOOLKIT_PATH)
     umpire.Update(self.args, self.mock_cli)
     self.assertListEqual(
         ['Updating resources of default bundle in place',
          'Updating resources:',
-         '  factory_toolkit  %s' % self.TOOLKIT_PATH,
+         '  toolkit  %s' % self.TOOLKIT_PATH,
          'Update successfully.'],
         GetStdout())
 
   def testUpdateSingleResourceWithSourceDestId(self):
     # Expect XMLRPC call.
-    self.mock_cli.Update([('factory_toolkit', self.TOOLKIT_PATH)], 'bundle1',
+    self.mock_cli.Update([('toolkit', self.TOOLKIT_PATH)], 'bundle1',
                          'bundle2')
     self.mox.ReplayAll()
 
-    self.args.resources.append('factory_toolkit=%s' % self.TOOLKIT_PATH)
+    self.args.resources.append('toolkit=%s' % self.TOOLKIT_PATH)
     self.args.source_id = 'bundle1'
     self.args.dest_id = 'bundle2'
     umpire.Update(self.args, self.mock_cli)
@@ -75,23 +75,23 @@ class UpdateTest(unittest.TestCase):
         ["Creating a new bundle 'bundle2' based on bundle 'bundle1' with new "
          'resources',
          'Updating resources:',
-         '  factory_toolkit  %s' % self.TOOLKIT_PATH,
+         '  toolkit  %s' % self.TOOLKIT_PATH,
          'Update successfully.'],
         GetStdout())
 
   def testUpdateMultipleResources(self):
     # Expect XMLRPC call.
-    self.mock_cli.Update([('factory_toolkit', self.TOOLKIT_PATH),
+    self.mock_cli.Update([('toolkit', self.TOOLKIT_PATH),
                           ('firmware', self.FIRMWARE_PATH)], None, None)
     self.mox.ReplayAll()
 
-    self.args.resources.append('factory_toolkit=%s' % self.TOOLKIT_PATH)
+    self.args.resources.append('toolkit=%s' % self.TOOLKIT_PATH)
     self.args.resources.append('firmware=%s' % self.FIRMWARE_PATH)
     umpire.Update(self.args, self.mock_cli)
     self.assertListEqual(
         ['Updating resources of default bundle in place',
          'Updating resources:',
-         '  factory_toolkit  %s' % self.TOOLKIT_PATH,
+         '  toolkit  %s' % self.TOOLKIT_PATH,
          '  firmware  %s' % self.FIRMWARE_PATH,
          'Update successfully.'],
         GetStdout())
@@ -106,7 +106,7 @@ class UpdateTest(unittest.TestCase):
   def testUpdateInvalidResourceFile(self):
     self.mox.ReplayAll()
 
-    self.args.resources.append('fsi=/path/to/nowhere')
+    self.args.resources.append('release_image=/path/to/nowhere')
     self.assertRaisesRegexp(IOError, 'Missing resource',
                             umpire.Update, self.args, self.mock_cli)
 

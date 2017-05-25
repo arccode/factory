@@ -23,6 +23,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import bundle_selector
 from cros.factory.umpire import common
 from cros.factory.umpire import daemon
+from cros.factory.umpire import resource
 from cros.factory.umpire import rpc_dut
 from cros.factory.umpire import umpire_env
 from cros.factory.umpire import utils
@@ -33,6 +34,7 @@ from cros.factory.utils import net_utils
 TEST_RPC_PORT = net_utils.FindUnusedPort()
 TESTDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), 'testdata'))
 TESTCONFIG = os.path.join(TESTDIR, 'enable_update.yaml')
+TESTPAYLOAD = os.path.join(TESTDIR, 'enable_update.json')
 
 
 class DUTRPCTest(unittest.TestCase):
@@ -40,14 +42,11 @@ class DUTRPCTest(unittest.TestCase):
   def setUp(self):
     self.env = umpire_env.UmpireEnvForTest()
     shutil.copy(TESTCONFIG, self.env.active_config_file)
+    self.env.AddConfig(TESTPAYLOAD, resource.ConfigTypeNames.payload_config)
 
     # Create empty files with version for resources.
-    for res in ['install_factory_toolkit.run#ftk_v0.1#d41d8cd9',
-                'firmware.gz#bios_v0.3:ec_v0.2:pd_v0.1#d41d8cd9',
-                'rootfs-release.gz#release_v9876.0.0#d41d8cd9',
-                'rootfs-test.gz#test_v5432.0.0#d41d8cd9',
-                'install_factory_toolkit.run#ftk_v0.4#d41d8cd9']:
-      file_utils.TouchFile(os.path.join(self.env.resources_dir, res))
+    file_utils.TouchFile(
+        self.env.GetResourcePath('toolkit.1234.gz', check=False))
 
     self.env.LoadConfig()
     self.mox = mox.Mox()
@@ -72,12 +71,7 @@ class DUTRPCTest(unittest.TestCase):
             'mlb_sn': 'SN001',
             'stage': 'SMT'},
         'components': {
-            'device_factory_toolkit': 'd41d8cd9',
-            'rootfs_release': 'release_v9876.0.0',
-            'rootfs_test': 'test_v5432.0.0',
-            'firmware_ec': 'ec_v0.2',
-            'firmware_pd': 'pd_v0.1',
-            'firmware_bios': 'bios_v0.3'}}
+            'device_factory_toolkit': '1234'}}
 
   def tearDown(self):
     self.twisted_port.stopListening()

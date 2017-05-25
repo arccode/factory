@@ -14,21 +14,14 @@ bundles:
   note: bundle for test
   shop_floor:
     handler: cros.factory.shopfloor.test_board_shopfloor
-  resources:
-    hwid: hwid.gz##9c7de5c7
-    efi: efi.gz##0498ba96
+  payloads: payload.99914b932bd37a50b983c5e7c90ae93b.json
 - id: test2
   note: bundle for test
   shop_floor:
     handler: cros.factory.shopfloor.test_board_shopfloor
-  resources:
-    hwid: hwid.gz##00000000
-    efi: efi.gz##00000000
+  payloads: payload.96faf6aaf0395dc8c8795bf65131bc32.json
 - id: test3
   note: bundle for test
   shop_floor:
     handler: cros.factory.shopfloor.test_board_shopfloor
-  resources:
-    hwid: hwid.gz##aa686306
-    efi: efi.gz##a20a13b9
-
+  payloads: payload.99914b932bd37a50b983c5e7c90ae93b.json

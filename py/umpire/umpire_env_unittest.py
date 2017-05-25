@@ -4,17 +4,17 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import json
 import mox
 import os
 import shutil
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.tools import get_version
 from cros.factory.umpire.commands import update
 from cros.factory.umpire import common
+from cros.factory.umpire import resource
 from cros.factory.umpire import umpire_env
-from cros.factory.umpire import utils
 from cros.factory.utils import file_utils
 
 
@@ -121,161 +121,9 @@ class UmpireEnvTest(unittest.TestCase):
     self.assertEqual(config_to_activate,
                      os.path.realpath(self.env.active_config_file))
 
-  def testAddResource(self):
-    resource_to_add = os.path.join(self.env.base_dir, 'some_resource')
-    file_utils.WriteFile(resource_to_add, 'something')
-    resource_md5 = file_utils.MD5InHex(
-        resource_to_add)[:common.RESOURCE_HASH_DIGITS]
-
-    resource_path = self.env.AddResource(resource_to_add)
-    self.assertTrue(resource_path.endswith(
-        '/resources/%s##%s' % ('some_resource', resource_md5)))
-    self.assertTrue(os.path.exists(resource_path))
-
-  def testAddResourceSourceNotFound(self):
-    resource_to_add = os.path.join(self.env.base_dir, 'some_resource')
-    self.assertRaisesRegexp(IOError, 'Missing source',
-                            self.env.AddResource, resource_to_add)
-
-  def testAddResourceSkipDuplicate(self):
-    resource_to_add = os.path.join(self.env.base_dir, 'some_resource')
-    file_utils.WriteFile(resource_to_add, 'something')
-
-    resource_path = self.env.AddResource(resource_to_add)
-    resource_path_duplicate = self.env.AddResource(resource_to_add)
-    self.assertEqual(resource_path, resource_path_duplicate)
-
-  def testAddResourceHashCollision(self):
-    resource_to_add = os.path.join(self.env.base_dir, 'some_resource')
-    file_utils.WriteFile(resource_to_add, 'something')
-
-    resource_path = self.env.AddResource(resource_to_add)
-
-    # Change its content to mimic hash collision case.
-    file_utils.WriteFile(resource_path, 'changed')
-
-    self.assertRaisesRegexp(common.UmpireError, 'Hash collision',
-                            self.env.AddResource, resource_to_add)
-
-  def testAddResourceFirmwareOmahaChannel(self):
-    file_name = 'firmware.gz'
-    resource_to_add = os.path.join(self.env.base_dir, file_name)
-    file_utils.WriteFile(resource_to_add, 'firmware')
-    resource_md5 = file_utils.MD5InHex(resource_to_add)[
-        :common.RESOURCE_HASH_DIGITS]
-
-    # TODO(deanliao): use real firmware.gz in which Umpire can extract
-    #     version from.
-    self.mox.StubOutWithMock(get_version, 'GetFirmwareVersions')
-    BIOS_VERSION = 'bios_0.0.1'
-    EC_VERSION = 'ec_0.0.2'
-    PD_VERSION = 'pd_0.0.3'
-    get_version.GetFirmwareVersions(
-        resource_to_add).AndReturn((BIOS_VERSION, EC_VERSION, PD_VERSION))
-    self.mox.ReplayAll()
-
-    resource_path = self.env.AddResource(resource_to_add,
-                                         res_type=common.ResourceType.FIRMWARE)
-    expected_version = ':'.join([BIOS_VERSION, EC_VERSION, PD_VERSION])
-    self.assertTrue(resource_path.endswith(
-        '/resources/%s#%s#%s' % (file_name, expected_version, resource_md5)))
-    self.assertTrue(os.path.exists(resource_path))
-
-  def testAddResourceFirmware(self):
-    file_name = 'chromeos-firmwareupdate'
-    resource_to_add = os.path.join(self.env.base_dir, file_name)
-    file_utils.WriteFile(resource_to_add, 'firmware')
-    resource_md5 = file_utils.MD5InHex(resource_to_add)[
-        :common.RESOURCE_HASH_DIGITS]
-
-    # TODO(deanliao): use real chromeos-firmwareupdate in which Umpire can
-    # extract version from.
-    self.mox.StubOutWithMock(get_version, 'GetFirmwareVersions')
-    BIOS_VERSION = 'bios_0.0.1'
-    EC_VERSION = 'ec_0.0.2'
-    PD_VERSION = 'pd_0.0.3'
-    get_version.GetFirmwareVersions(resource_to_add).AndReturn(
-        (BIOS_VERSION, EC_VERSION, PD_VERSION))
-    self.mox.ReplayAll()
-
-    resource_path = self.env.AddResource(resource_to_add,
-                                         res_type=common.ResourceType.FIRMWARE)
-    expected_version = ':'.join([BIOS_VERSION, EC_VERSION, PD_VERSION])
-    self.assertTrue(resource_path.endswith(
-        '/resources/%s#%s#%s' % (file_name, expected_version, resource_md5)))
-    self.assertTrue(os.path.exists(resource_path))
-
-  def testAddResourceRootfsRelease(self):
-    file_name = 'rootfs-test.gz'
-    resource_to_add = os.path.join(self.env.base_dir, file_name)
-    file_utils.WriteFile(resource_to_add, 'rootfs-test')
-    resource_md5 = file_utils.MD5InHex(resource_to_add)[
-        :common.RESOURCE_HASH_DIGITS]
-
-    # TODO(deanliao): use real rootfs-test.gz in which Umpire can extract
-    #     version from.
-    self.mox.StubOutWithMock(
-        get_version, 'GetReleaseVersionFromOmahaChannelFile')
-    TEST_IMAGE_VERSION = '0.0.1'
-    get_version.GetReleaseVersionFromOmahaChannelFile(
-        resource_to_add).AndReturn(TEST_IMAGE_VERSION)
-    self.mox.ReplayAll()
-
-    resource_path = self.env.AddResource(
-        resource_to_add, res_type=common.ResourceType.ROOTFS_TEST)
-    self.assertTrue(resource_path.endswith(
-        '/resources/%s#%s#%s' % (file_name, TEST_IMAGE_VERSION, resource_md5)))
-    self.assertTrue(os.path.exists(resource_path))
-
-  def testAddResourceHWID(self):
-    # HWID version extracted from testdata/hwid_v3_bundle.sh checksum field.
-    file_name = 'hwid_v3_bundle.sh'
-    hwid_version = 'a95cd8def470df2e7a8d549af887897e2d095bb0'
-    resource_to_add = os.path.join(TESTDATA_DIR, file_name)
-    resource_md5 = file_utils.MD5InHex(resource_to_add)[
-        :common.RESOURCE_HASH_DIGITS]
-
-    resource_path = self.env.AddResource(resource_to_add,
-                                         res_type=common.ResourceType.HWID)
-
-    self.assertTrue(resource_path.endswith(
-        '/resources/%s#%s#%s' % (file_name, hwid_version, resource_md5)))
-    self.assertTrue(os.path.exists(resource_path))
-
-  def testAddResourceHWIDGzipped(self):
-    # HWID version extracted from testdata/hwid.gz checksum field.
-    file_name = 'hwid.gz'
-    hwid_version = 'a95cd8def470df2e7a8d549af887897e2d095bb0'
-    resource_to_add = os.path.join(TESTDATA_DIR, file_name)
-
-    resource_md5 = file_utils.MD5InHex(resource_to_add)[
-        :common.RESOURCE_HASH_DIGITS]
-
-    resource_path = self.env.AddResource(resource_to_add,
-                                         res_type=common.ResourceType.HWID)
-    self.assertTrue(resource_path.endswith(
-        '/resources/%s#%s#%s' % (file_name, hwid_version, resource_md5)))
-    self.assertTrue(os.path.exists(resource_path))
-
-  def testAddResourceToolkitNoVersion(self):
-    file_name = 'install_factory_toolkit.run'
-    resource_to_add = os.path.join(self.env.base_dir, file_name)
-    file_utils.WriteFile(resource_to_add, 'factory_toolkit')
-    resource_md5 = file_utils.MD5InHex(resource_to_add)[
-        :common.RESOURCE_HASH_DIGITS]
-
-    resource_path = self.env.AddResource(
-        resource_to_add, res_type=common.ResourceType.FACTORY_TOOLKIT)
-
-    expected_version = ''
-    self.assertTrue(resource_path.endswith(
-        '/resources/%s#%s#%s' % (file_name, expected_version, resource_md5)))
-    self.assertTrue(os.path.exists(resource_path))
-
   def testGetResourcePath(self):
-    resource_to_add = os.path.join(self.env.base_dir, 'some_resource')
-    file_utils.WriteFile(resource_to_add, 'something')
-    resource_path = self.env.AddResource(resource_to_add)
+    resource_path = self.env.AddConfigFromBlob(
+        'hello', resource.ConfigTypeNames.umpire_config)
     resource_name = os.path.basename(resource_path)
 
     self.assertTrue(resource_path, self.env.GetResourcePath(resource_name))
@@ -289,9 +137,8 @@ class UmpireEnvTest(unittest.TestCase):
 
   def testInResource(self):
     # Prepare a resource file.
-    resource_to_add = os.path.join(self.env.base_dir, 'some_resource')
-    file_utils.WriteFile(resource_to_add, 'something')
-    resource_path = self.env.AddResource(resource_to_add)
+    resource_path = self.env.AddConfigFromBlob(
+        'hello', resource.ConfigTypeNames.umpire_config)
     resource_name = os.path.basename(resource_path)
 
     # Either full path or resource filename are okay.
@@ -314,15 +161,16 @@ class UmpireEnvTest(unittest.TestCase):
 
     # Add the toolkit to resources and get hash value.
     updater = update.ResourceUpdater(self.env)
-    updater.Update([('factory_toolkit', TOOLKIT_DIR)])
+    updater.Update([('toolkit', TOOLKIT_DIR)])
     # After updating resources, we need to reload the staging config.
     self.env.ActivateConfigFile()
     self.env.LoadConfig()
 
     # Get hash value to compose expected toolkit dir.
     bundle = self.env.config.GetDefaultBundle()
-    toolkit_resource = bundle['resources']['device_factory_toolkit']
-    toolkit_hash = utils.GetHashFromResourceName(toolkit_resource)
+    payloads = json.loads(file_utils.ReadFile(
+        self.env.GetResourcePath(bundle['payloads'])))
+    toolkit_hash = payloads['toolkit']['file'].split('.')[-2]
     return os.path.join(self.env.device_toolkits_dir, toolkit_hash)
 
   def testGetBundleDeviceToolkit(self):

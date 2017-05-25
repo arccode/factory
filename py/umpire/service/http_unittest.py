@@ -4,13 +4,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import logging
 import os
 import subprocess
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.umpire import common
 from cros.factory.umpire import config as umpire_config
 from cros.factory.umpire.service import http
 from cros.factory.umpire import umpire_env
@@ -36,12 +34,7 @@ class HTTPServiceTest(unittest.TestCase):
             'id': 'default',
             'note': '',
             'shop_floor': {'handler': ''},
-            'resources': {
-                'device_factory_toolkit': '',
-                'stateful_partition': '',
-                'oem_partition': '',
-                'rootfs_release': '',
-                'rootfs_test': ''}}],
+            'payloads': 'payload.99914b932bd37a50b983c5e7c90ae93b.json'}],
         'rulesets': [{
             'bundle_id': 'default',
             'note': '',
@@ -52,9 +45,7 @@ class HTTPServiceTest(unittest.TestCase):
 
     self.assertRegexpMatches(
         config_path,
-        os.path.join(
-            self.env.config_dir,
-            'nginx_#[0-9a-f]{%d}#.conf' % common.RESOURCE_HASH_DIGITS))
+        os.path.join(self.env.config_dir, 'nginx_#[0-9a-f]{32}#.conf'))
 
     if subprocess.call(['sudo', 'which', 'nginx']):
       raise RuntimeError(

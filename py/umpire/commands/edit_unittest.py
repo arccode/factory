@@ -13,6 +13,7 @@ import xmlrpclib
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.commands import edit
 from cros.factory.umpire import common
+from cros.factory.umpire import resource
 from cros.factory.utils import file_utils
 
 
@@ -51,9 +52,9 @@ class ConfigEditorTest(unittest.TestCase):
     if not config_basename:
       config_basename = 'umpire.yaml'
     res_name = config_basename + MOCK_RES_HASH
-    self.umpire_cli.UploadConfig(
+    self.umpire_cli.AddConfig(
         mox.StrContains(config_basename),
-        mox.StrContains(EDITOR_PREPEND)).AndReturn(res_name)
+        resource.ConfigTypeNames.umpire_config).AndReturn(res_name)
     self.umpire_cli.StageConfigFile(res_name, True)
 
   def testEdit(self):

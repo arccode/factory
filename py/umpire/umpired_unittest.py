@@ -14,7 +14,6 @@ from cros.factory.umpire import common
 from cros.factory.umpire import config
 from cros.factory.umpire import umpire_env
 from cros.factory.umpire import umpired
-from cros.factory.utils import file_utils
 
 
 TEST_DIR = os.path.dirname(__file__)
@@ -22,7 +21,7 @@ TEST_DIR = os.path.dirname(__file__)
 # If anything in UMPIRE_CONFIG_PATH file changed, update UMPIRE_CONFIG_RESOURCE
 # by md5sum.
 UMPIRE_CONFIG_PATH = os.path.join(TEST_DIR, 'testdata', 'default_umpire.yaml')
-UMPIRE_CONFIG_RESOURCE = 'umpire.yaml##9d4b9132'
+UMPIRE_CONFIG_RESOURCE = 'umpire.d286cfad9b8e9dea60adc599ac2891f7.yaml'
 
 # Relative path of Umpire / Umpired executable.
 UMPIRE_RELATIVE_PATH = os.path.join('bin', 'umpire')
@@ -57,10 +56,6 @@ class InitDaemonTest(unittest.TestCase):
     for sub_dir in self.env.SUB_DIRS:
       self.assertTrue(os.path.isdir(os.path.join(self.env.base_dir, sub_dir)))
 
-    dummy_resource = os.path.join(self.env.resources_dir, common.DUMMY_RESOURCE)
-    self.assertTrue(os.path.isfile(dummy_resource))
-    self.assertEqual('', file_utils.ReadFile(dummy_resource))
-
   def VerifyConfig(self):
     self.assertTrue(os.path.exists(os.path.join(
         self.root_dir, 'var', 'db', 'factory', 'umpire', 'active_umpire.yaml')))
@@ -92,15 +87,14 @@ class InitDaemonTest(unittest.TestCase):
     self.assertNotEqual('modified active config',
                         active_config.GetDefaultBundle()['note'])
     active_config.GetDefaultBundle()['note'] = 'modified active config'
-    active_config.WriteFile(self.env.active_config_file)
+    active_config_yaml = active_config.Dump()
 
     umpired.InitDaemon(self.env, root_dir=self.root_dir)
 
     self.VerifyConfig()
     self.VerifyGlobalSymlink()
 
-    active_config = config.UmpireConfig(self.env.active_config_file,
-                                        validate=False)
+    active_config = config.UmpireConfig(active_config_yaml, validate=False)
     self.assertEqual('modified active config',
                      active_config.GetDefaultBundle()['note'])
 

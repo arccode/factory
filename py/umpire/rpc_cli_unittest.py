@@ -23,6 +23,7 @@ from cros.factory.umpire.commands import update
 from cros.factory.umpire import common
 from cros.factory.umpire import config
 from cros.factory.umpire import daemon
+from cros.factory.umpire import resource
 from cros.factory.umpire import rpc_cli
 from cros.factory.umpire import umpire_env
 from cros.factory.umpire.web import xmlrpc as umpire_xmlrpc
@@ -104,9 +105,7 @@ class CommandTest(unittest.TestCase):
     mock_importer = self.mox.CreateMockAnything()
     import_bundle.BundleImporter(mox.IsA(umpire_env.UmpireEnv)).AndReturn(
         mock_importer)
-    mock_importer.__enter__().AndReturn(mock_importer)
     mock_importer.Import(bundle_path, bundle_id, note)
-    mock_importer.__exit__(mox.IgnoreArg(), mox.IgnoreArg(), mox.IgnoreArg())
     self.mox.ReplayAll()
 
     return self.AssertSuccess(
@@ -120,65 +119,40 @@ class CommandTest(unittest.TestCase):
     mock_importer = self.mox.CreateMockAnything()
     import_bundle.BundleImporter(mox.IsA(umpire_env.UmpireEnv)).AndReturn(
         mock_importer)
-    mock_importer.__enter__().AndReturn(mock_importer)
     mock_importer.Import(bundle_path, bundle_id, note).AndRaise(
         common.UmpireError('mock error'))
-    mock_importer.__exit__(mox.IgnoreArg(), mox.IgnoreArg(), mox.IgnoreArg())
     self.mox.ReplayAll()
 
     return self.AssertFailure(
         self.Call('ImportBundle', bundle_path, bundle_id, note),
         'UmpireError: mock error')
 
-  def testAddResource(self):
-    file_to_add = os.path.join(self.env.base_dir, 'file_to_add')
-    file_utils.WriteFile(file_to_add, '...')
-
-    expected_resource_name = 'file_to_add##2f43b42f'
-
-    d = self.Call('AddResource', file_to_add)
-    d.addCallback(lambda result: self.assertEqual(expected_resource_name,
-                                                  result))
-    return self.AssertSuccess(d)
-
   def testAddResourceResType(self):
     checksum_for_empty = 'da39a3ee5e6b4b0d3255bfef95601890afd80709'
-    res_hash = '1f78df50'
 
     file_to_add = os.path.join(self.env.base_dir, 'hwid')
     file_utils.WriteFile(file_to_add, 'checksum: %s' % checksum_for_empty)
 
-    expected_resource_name = 'hwid#%s#%s' % (checksum_for_empty, res_hash)
-
-    d = self.Call('AddResource', file_to_add, 'HWID')
-    d.addCallback(lambda result: self.assertEqual(expected_resource_name,
-                                                  result))
+    d = self.Call('AddPayload', file_to_add, resource.PayloadTypeNames.hwid)
+    d.addCallback(lambda result: self.assertEqual(checksum_for_empty,
+                                                  result['hwid']['version']))
     return self.AssertSuccess(d)
 
-  def testAddResourceFail(self):
-    return self.AssertFailure(self.Call('AddResource', '/path/to/nowhere'),
-                              'IOError:.*/path/to/nowhere')
-
-  def testUploadConfig(self):
-    basename = 'umpire.yaml'
-    config_str = 'line1\nline2\nline3'
-
-    def Verify(result):
-      self.assertTrue(result.find(basename) != -1)
-      self.assertEqual(
-          config_str,
-          file_utils.ReadFile(os.path.join(self.env.resources_dir, result)))
-
-    d = self.Call('UploadConfig', basename, config_str)
-    d.addCallback(Verify)
-    return self.AssertSuccess(d)
+  def testAddConfigFail(self):
+    return self.AssertFailure(
+        self.Call('AddConfig', '/path/to/nowhere',
+                  resource.ConfigTypeNames.umpire_config),
+        'IOError:.*/path/to/nowhere')
 
   def testGetStagingConfig(self):
     # Prepare a staging config.
     active_config_path = os.path.join(self.env.base_dir, 'active_config')
     with file(active_config_path, 'w') as f:
       f.write('config\nfile')
-    self.env.ActivateConfigFile(self.env.AddResource(active_config_path))
+    self.env.ActivateConfigFile(
+        self.env.GetResourcePath(
+            self.env.AddConfig(active_config_path,
+                               resource.ConfigTypeNames.umpire_config)))
     self.env.StageConfigFile()
 
     d = self.Call('GetStagingConfig')
@@ -196,13 +170,13 @@ class CommandTest(unittest.TestCase):
     config_to_stage = os.path.join(self.env.base_dir, 'config_to_stage')
     file_utils.WriteFile(config_to_stage, '...')
 
-    config_to_stage_res_full_path = self.env.AddResource(config_to_stage)
-    config_to_stage_res_name = os.path.basename(config_to_stage_res_full_path)
+    config_to_stage_res_name = self.env.AddConfig(
+        config_to_stage, resource.ConfigTypeNames.umpire_config)
 
     d = self.Call('StageConfigFile', config_to_stage_res_name)
     d.addCallback(
         lambda _: self.assertEqual(
-            config_to_stage_res_full_path,
+            self.env.GetResourcePath(config_to_stage_res_name),
             os.path.realpath(self.env.staging_config_file)))
     return self.AssertSuccess(d)
 
@@ -211,7 +185,10 @@ class CommandTest(unittest.TestCase):
     active_config_path = os.path.join(self.env.base_dir, 'active_config')
     file_utils.WriteFile(active_config_path, 'config\nfile')
 
-    self.env.ActivateConfigFile(self.env.AddResource(active_config_path))
+    self.env.ActivateConfigFile(
+        self.env.GetResourcePath(
+            self.env.AddConfig(active_config_path,
+                               resource.ConfigTypeNames.umpire_config)))
 
     d = self.Call('StageConfigFile')
     d.addCallback(
@@ -222,14 +199,13 @@ class CommandTest(unittest.TestCase):
 
   def testStageConfigFileNotInResource(self):
     # Prepare a file not in resources to stage.
-    res_basename = 'config_to_stage'
-    config_to_stage = os.path.join(self.env.base_dir, res_basename)
+    config_to_stage = os.path.join(self.env.base_dir, 'config_to_stage')
     file_utils.WriteFile(config_to_stage, '...')
 
     d = self.Call('StageConfigFile', config_to_stage)
-    d.addCallback(
-        lambda _: self.assertRegexpMatches(
-            os.path.realpath(self.env.staging_config_file), res_basename))
+    d.addCallback(lambda _: self.assertRegexpMatches(
+        os.path.realpath(self.env.staging_config_file),
+        resource.GetResourceHashFromFile(config_to_stage)))
     return self.AssertSuccess(d)
 
   def testStageConfigFileFailFileAlreadyExists(self):
@@ -237,7 +213,8 @@ class CommandTest(unittest.TestCase):
     config_to_stage = os.path.join(self.env.base_dir, 'config_to_stage')
     file_utils.WriteFile(config_to_stage, '...')
 
-    config_to_stage_res_full_path = self.env.AddResource(config_to_stage)
+    config_to_stage_res_full_path = self.env.AddConfig(
+        config_to_stage, resource.ConfigTypeNames.umpire_config)
     config_to_stage_res_name = os.path.basename(config_to_stage_res_full_path)
 
     # Set a stage config first.
@@ -255,8 +232,8 @@ class CommandTest(unittest.TestCase):
     config_to_stage = os.path.join(self.env.base_dir, 'config_to_stage')
     file_utils.WriteFile(config_to_stage, '...')
 
-    config_to_stage_res_full_path = self.env.AddResource(config_to_stage)
-    config_to_stage_res_name = os.path.basename(config_to_stage_res_full_path)
+    config_to_stage_res_name = self.env.AddConfig(
+        config_to_stage, resource.ConfigTypeNames.umpire_config)
 
     # Set a stage config first.
     staged_config = os.path.join(self.env.base_dir, 'staged_config')
@@ -268,7 +245,7 @@ class CommandTest(unittest.TestCase):
     d = self.Call('StageConfigFile', config_to_stage_res_name, True)
     d.addCallback(
         lambda _: self.assertEqual(
-            config_to_stage_res_full_path,
+            self.env.GetResourcePath(config_to_stage_res_name),
             os.path.realpath(self.env.staging_config_file)))
     return self.AssertSuccess(d)
 

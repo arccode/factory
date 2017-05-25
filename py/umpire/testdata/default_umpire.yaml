@@ -15,14 +15,4 @@ bundles:
   note: n/a
   shop_floor:
      handler: cros.factory.umpire.samus_shop_floor_handler
-  resources:
-    complete_script: none##00000000
-    device_factory_toolkit: none##00000000
-    efi_partition: none##00000000
-    firmware: none##00000000
-    hwid: none##00000000
-    netboot_kernel: none##00000000
-    oem_partition: none##00000000
-    rootfs_release: none##00000000
-    rootfs_test: none##00000000
-    stateful_partition: none##00000000
+  payloads: payload.99914b932bd37a50b983c5e7c90ae93b.json

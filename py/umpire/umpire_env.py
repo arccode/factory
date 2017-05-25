@@ -446,6 +446,7 @@ class UmpireEnvForTest(UmpireEnv):
         self.log_dir,
         self.pid_dir,
         self.resources_dir,
+        self.temp_dir,
         self.umpire_data_dir):
       os.makedirs(fundamental_subdir)
     self.AddConfigFromBlob('{}', resource.ConfigTypeNames.payload_config)

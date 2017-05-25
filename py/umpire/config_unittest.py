@@ -13,6 +13,7 @@ import yaml
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import common
 from cros.factory.umpire import config
+from cros.factory.umpire import resource
 from cros.factory.umpire import umpire_env
 from cros.factory.utils import file_utils
 
@@ -82,16 +83,13 @@ class UmpireConfigTest(unittest.TestCase):
 
   def testLoadConfigFromConfigDeepCopy(self):
     conf = config.UmpireConfig(EMPTY_SERVICES_CONFIG)
-    original_complete_script = conf['bundles'][0]['resources'][
-        'complete_script']
+    original_payloads = conf['bundles'][0]['payloads']
 
     dup_conf = config.UmpireConfig(conf)
-    dup_conf['bundles'][0]['resources']['complete_script'] = (
-        'new_complete.gz##d41d8cd9')
+    dup_conf['bundles'][0]['payloads'] = 'new payloads'
 
     # Make sure that the structure is deep-copied.
-    self.assertEqual(original_complete_script,
-                     conf['bundles'][0]['resources']['complete_script'])
+    self.assertEqual(original_payloads, conf['bundles'][0]['payloads'])
 
   def testLoadConfigRuleMatcher(self):
     conf = config.UmpireConfig(RULESET_CONFIG)
@@ -124,22 +122,18 @@ class UmpireConfigTest(unittest.TestCase):
          'active': True},
         default_ruleset)
 
-  def testWriteConfig(self):
+  def testDumpConfig(self):
     def RemoveComments(lines):
-      return [_RE_COMMENT.sub('', line) for line in lines]
+      return [_RE_COMMENT.sub('', line.rstrip()) for line in lines]
 
     # TODO(deanliao): remove validate=False once services are implemented.
     conf = config.UmpireConfig(MINIMAL_CONFIG, validate=False)
+    new_config_lines = conf.Dump().splitlines()
+    # TODO(deanliao): remove this once we can dump comments.
+    config_lines = RemoveComments(file_utils.ReadLines(MINIMAL_CONFIG))
 
-    with file_utils.UnopenedTemporaryFile() as new_config_file:
-      conf.WriteFile(new_config_file)
-
-      # TODO(deanliao): remove this once we can dump comments.
-      config_lines = RemoveComments(file_utils.ReadLines(MINIMAL_CONFIG))
-      new_config_lines = file_utils.ReadLines(new_config_file)
-
-      self.maxDiff = None
-      self.assertListEqual(config_lines, new_config_lines)
+    self.maxDiff = None
+    self.assertListEqual(config_lines, new_config_lines)
 
   def testGetDefaultBundle(self):
     conf = config.UmpireConfig(EMPTY_SERVICES_CONFIG)
@@ -177,21 +171,20 @@ class UmpireConfigTest(unittest.TestCase):
     new_bundle = copy.deepcopy(conf['bundles'][0])
     new_bundle['id'] = 'new_bundle'
     new_bundle['note'] = 'new bundle for test'
-    new_bundle['resources']['complete_script'] = 'complete.gz##00000001'
+    new_bundle['payloads'] = 'new payloads'
     conf['bundles'].append(new_bundle)
     conf.BuildBundleMap()
 
     bundle = conf.GetBundle('test')
     self.assertEqual('test', bundle['id'])
     self.assertEqual('bundle for test', bundle['note'])
-    self.assertEqual('complete.gz##d41d8cd9',
-                     bundle['resources']['complete_script'])
+    self.assertEqual('payload.99914b932bd37a50b983c5e7c90ae93b.json',
+                     bundle['payloads'])
 
     bundle = conf.GetBundle('new_bundle')
     self.assertEqual('new_bundle', bundle['id'])
     self.assertEqual('new bundle for test', bundle['note'])
-    self.assertEqual('complete.gz##00000001',
-                     bundle['resources']['complete_script'])
+    self.assertEqual('new payloads', bundle['payloads'])
 
     self.assertIsNone(conf.GetBundle('nonexist_bundle'))
 
@@ -217,19 +210,12 @@ class ValidateResourcesTest(unittest.TestCase):
   def setUp(self):
     self.env = umpire_env.UmpireEnvForTest()
     self.conf = config.UmpireConfig(RESOURCE_CHECK_CONFIG, validate=False)
-
-    self.hwid1 = self.MakeResourceFile('hwid.gz', 'hwid1')
-    self.hwid2 = self.MakeResourceFile('hwid.gz', 'hwid2')
-    self.MakeResourceFile('efi.gz', 'efi1')
-    self.MakeResourceFile('efi.gz', 'efi2')
+    self.env.AddConfigFromBlob('{}', resource.ConfigTypeNames.payload_config)
+    self.env.AddConfigFromBlob('{"hwid":{"file":"hwid.404.gz"}}',
+                               resource.ConfigTypeNames.payload_config)
 
   def tearDown(self):
     self.env.Close()
-
-  def MakeResourceFile(self, filename, content):
-    path = os.path.join(self.env.root_dir, filename)
-    file_utils.WriteFile(path, content)
-    return self.env.AddResource(path)
 
   def testNormal(self):
     config.ValidateResources(self.conf, self.env)
@@ -237,21 +223,8 @@ class ValidateResourcesTest(unittest.TestCase):
   def testFileNotFound(self):
     # Resources in the second ruleset's bundle are not presented.
     self.conf['rulesets'][1]['active'] = True
-    self.assertRaisesRegexp(common.UmpireError, 'NOT FOUND.+efi.gz##00000000',
+    self.assertRaisesRegexp(common.UmpireError, 'NOT FOUND.+hwid.404.gz',
                             config.ValidateResources, self.conf, self.env)
-
-  def testFileNotFound2(self):
-    def RenameResourceThenTest(resource_path):
-      filename = os.path.basename(resource_path)
-      temp_path = os.path.join(self.env.root_dir, filename)
-      os.rename(resource_path, temp_path)
-      self.assertRaisesRegexp(common.UmpireError, 'NOT FOUND.+' + filename,
-                              config.ValidateResources, self.conf, self.env)
-      os.rename(temp_path, resource_path)
-
-    # Remove hwid in the first and second active bundle, respectively.
-    RenameResourceThenTest(self.hwid1)
-    RenameResourceThenTest(self.hwid2)
 
 
 class ShowDiffTest(unittest.TestCase):
