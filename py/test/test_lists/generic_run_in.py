@@ -157,7 +157,7 @@ def RunIn(args, group_suffix=''):
         #   'line': The line number in multi-line scenario, where we use
         #     line to decide which AP to associate with.
         # Note that it is not required these items being fetched from
-        # shopfloor. If user wants to input these items by hand, he can use
+        # shopfloor. If user wants to input these items by hand, they can use
         # select_components pytest for selection.
         # For items that is not selectable, like gbind_attribute,
         # ubind_attribute, golden_iccid, golden_imei, serial number, user can

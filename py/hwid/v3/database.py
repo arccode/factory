@@ -1173,7 +1173,7 @@ class Pattern(object):
       binary_string_length = self.GetTotalBitLength(image_id=image_id) - 1
     for element in self.GetPatternByImageId(image_id)['fields']:
       for field, length in element.iteritems():
-        # Normally when one wants to extend bit length of a field, he should
+        # Normally when one wants to extend bit length of a field, one should
         # append new pattern field instead of expanding the last field.
         # However, for some board, we already have cases where last pattern
         # fields were expanded directly. See crosbug.com/p/30266.

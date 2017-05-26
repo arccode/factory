@@ -520,7 +520,7 @@ class TouchpadTest(unittest.TestCase):
       return
 
     # We have to clear the event buffer because we open the device before
-    # the operator presses SPACE key. If the operator puts his/her finger
+    # the operator presses SPACE key. If the operator puts their finger
     # on the touchpad when setUp() and we don't clear the event buffer,
     # we will receive a FingerLeaving event and set number_fingers to -1.
     try:

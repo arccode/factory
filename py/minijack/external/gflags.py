@@ -919,8 +919,8 @@ class FlagValues:
       module: A module object or a module name (a string).
 
     Returns:
-      A new list of Flag objects.  Caller may update this list as he
-      wishes: none of those changes will affect the internals of this
+      A new list of Flag objects.  Caller may update this list as they
+      wish: none of those changes will affect the internals of this
       FlagValue object.
     """
     if not isinstance(module, str):
@@ -935,8 +935,8 @@ class FlagValues:
       module: A module object or a module name (a string)
 
     Returns:
-      A new list of Flag objects.  Caller may update this list as he
-      wishes: none of those changes will affect the internals of this
+      A new list of Flag objects.  Caller may update this list as they
+      wish: none of those changes will affect the internals of this
       FlagValue object.
     """
     if not isinstance(module, str):

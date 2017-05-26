@@ -85,8 +85,8 @@ class OPTIONS(object):
   YES = 'Yes'
   CANCEL = 'Cancel'
 
-  # When user want to load another task while the current task is running, we
-  # need to tell he/she that he/she should stop the running task first.
+  # When user wants to load another task while the current task is running, we
+  # need to tell them that they should stop the running task first.
   STOP_IT = 'OK, stop it'
   KEEP_IT = 'No, keep it running'
 

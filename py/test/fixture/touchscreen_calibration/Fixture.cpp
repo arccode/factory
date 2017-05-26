@@ -286,7 +286,7 @@ bool Fixture::isDebugPressed() {
  */
 void Fixture::checkJumper() {
   // In the factory, we would like to use the debug button anyway.
-  // It might be a hassle for a tester if s/he needs to check the jumper
+  // It might be a hassle for a tester if they need to check the jumper
   // to determine if the debug button is enabled.
   bool CHECK_JUMPER = false;
   jumper_ = CHECK_JUMPER ? checkSensorValue(JUMPER) : true;

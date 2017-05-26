@@ -131,7 +131,7 @@ class AudioBasicTest(unittest.TestCase):
     self.current_process = None
     self.key_press = None
     # prevent operator from pressing space directly,
-    # make sure he presses P and R.
+    # make sure they press P and R.
     self.event_value = 0
 
   def HandleRecordEvent(self, event):

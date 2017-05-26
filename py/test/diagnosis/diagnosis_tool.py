@@ -283,7 +283,7 @@ class DiagnosisToolRPC(object):
 
     If the current task is not running (done/failed/stopped), this function
     will post an event to ask UI to load task immediately.
-    If not, it will tell the user that he/she needs to stop the task first.
+    If not, it will tell the user that they need to stop the task first.
 
     Args:
       task_id: Id of the task that user want to load.
