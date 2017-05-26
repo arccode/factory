@@ -79,15 +79,6 @@ TESTS_AFTER_SHUTDOWN = 'tests_after_shutdown'
 Status = type_utils.Enum(['UNINITIALIZED', 'INITIALIZING', 'RUNNING',
                           'TERMINATING', 'TERMINATED'])
 
-def get_hwid_cfg():
-  """Returns the HWID config tag, or an empty string if none can be found."""
-  if 'CROS_HWID' in os.environ:
-    return os.environ['CROS_HWID']
-  if os.path.exists(HWID_CFG_PATH):
-    with open(HWID_CFG_PATH, 'r') as hwid_cfg_handle:
-      return hwid_cfg_handle.read().strip()
-  return ''
-
 _inited_logging = False
 
 
@@ -1052,7 +1043,6 @@ class Goofy(GoofyBase):
     self.start_goofy_server()
     self.init_state_instance()
     self.init_i18n()
-    self.state_instance.set_shared_data('hwid_cfg', get_hwid_cfg())
     self.last_shutdown_time = (
         self.state_instance.get_shared_data('shutdown_time', optional=True))
     self.state_instance.del_shared_data('shutdown_time', optional=True)
