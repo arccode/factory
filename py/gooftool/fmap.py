@@ -2,7 +2,13 @@
 # Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-"""Basic encode and decode function for flashrom memory map (FMAP) structure.
+"""
+This module provides basic encode and decode functionality to the flashrom
+memory map (FMAP) structure.
+
+WARNING: This module has been copied from third_party/flashmap/fmap.py (see
+crbug/726356 for background). Please make modifications to this file there
+first and then copy changes to this file.
 
 Usage:
   (decode)
@@ -202,20 +208,16 @@ def fmap_encode(obj):
 
 
 def main():
-  """Unit test."""
-  if len(sys.argv) > 1:
-    filename = sys.argv[1]
-  else:
-    filename = 'bin/example.bin'
-  logging.basicConfig(level=logging.DEBUG)
+  """Decode FMAP from supplied file and print."""
+  if len(sys.argv) < 2:
+    print 'Usage: fmap.py <file>'
+    sys.exit(1)
+
+  filename = sys.argv[1]
   print 'Decoding FMAP from: %s' % filename
   blob = open(filename).read()
   obj = fmap_decode(blob)
   print obj
-  blob2 = fmap_encode(obj)
-  obj2 = fmap_decode(blob2, 0)
-  print obj2
-  assert obj == obj2
 
 
 if __name__ == '__main__':
