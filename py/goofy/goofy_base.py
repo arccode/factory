@@ -1,6 +1,4 @@
 #!/usr/bin/python -u
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -8,14 +6,14 @@
 """Components shared between host and device instances of goofy."""
 
 import logging
-import Queue
 import os
+import Queue
 import sys
 import threading
 import time
 import traceback
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import type_utils
 
 RUN_QUEUE_TIMEOUT_SECS = 10
@@ -89,7 +87,7 @@ class GoofyBase(object):
 
       try:
         event()
-      except:  # pylint: disable=W0702
+      except:  # pylint: disable=bare-except
         logging.exception('Error in event loop')
         self.record_exception(traceback.format_exception_only(
             *sys.exc_info()[:2]))
@@ -177,7 +175,7 @@ class GoofyBase(object):
     except Exception:
       logging.info('Failed to instantiate %s, shutting down.', cls.__name__)
       traceback.print_exc()
-      os._exit(1)  # pylint: disable=W0212
+      os._exit(1)  # pylint: disable=protected-access
       sys.exit(1)
 
     try:
@@ -206,6 +204,6 @@ class GoofyBase(object):
         # do want to capture all logs, so we shut down logging gracefully.
         logging.info('Graceful shutdown interrupted, shutting down abruptly')
         logging.shutdown()
-        os._exit(1)  # pylint: disable=W0212
+        os._exit(1)  # pylint: disable=protected-access
       # Normal exit path
       sys.exit(0)

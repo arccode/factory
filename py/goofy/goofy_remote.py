@@ -1,6 +1,4 @@
 #!/usr/bin/python -u
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -15,14 +13,15 @@ import pipes
 import re
 import sys
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test.env import paths
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.e2e_test.common import AutomationMode
+from cros.factory.test.env import paths
 from cros.factory.test.test_lists import test_lists
 from cros.factory.tools import build_board
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
-from cros.factory.utils.ssh_utils import SpawnSSHToDUT, SpawnRsyncToDUT
+from cros.factory.utils.ssh_utils import SpawnRsyncToDUT
+from cros.factory.utils.ssh_utils import SpawnSSHToDUT
 from cros.factory.utils.sync_utils import Retry
 from cros.factory.utils.sys_utils import InChroot
 

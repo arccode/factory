@@ -1,6 +1,4 @@
 #!/usr/bin/python -u
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -20,7 +18,7 @@ import traceback
 import uuid
 from xmlrpclib import Binary
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.goofy.goofy_base import GoofyBase
 from cros.factory.goofy.goofy_rpc import GoofyRPC
@@ -324,7 +322,7 @@ class Goofy(GoofyBase):
     logging.info('Starting factory event server')
     self.event_server_thread = threading.Thread(
         target=self.event_server.serve_forever,
-        name='EventServer')  # pylint: disable=E1101
+        name='EventServer')
     self.event_server_thread.start()
 
     self.event_client = EventClient(
@@ -791,7 +789,7 @@ class Goofy(GoofyBase):
                   'count': testlog_goofy.GetInitCount(),
                   'success': False,
                   'failureMessage': traceback.format_exc()}))
-      except:  # pylint: disable=W0702
+      except:  # pylint: disable=bare-except
         pass
       raise
 
@@ -999,7 +997,7 @@ class Goofy(GoofyBase):
     paths.GetStateRoot()
     paths.GetTestDataRoot()
 
-    global _inited_logging  # pylint: disable=W0603
+    global _inited_logging  # pylint: disable=global-statement
     if not _inited_logging:
       factory.init_logging('goofy', verbose=self.options.verbose)
       _inited_logging = True
@@ -1037,7 +1035,7 @@ class Goofy(GoofyBase):
       self.env = test_environment.DUTEnvironment()
     self.env.goofy = self
     # web_socket_manager will be initialized later
-    # pylint: disable=W0108
+    # pylint: disable=unnecessary-lambda
     self.env.has_sockets = lambda: self.web_socket_manager.has_sockets()
 
     if self.options.restart:
@@ -1072,7 +1070,7 @@ class Goofy(GoofyBase):
     exc_info = None
     try:
       success = self.InitTestLists()
-    except:  # pylint: disable=W0702
+    except:  # pylint: disable=bare-except
       exc_info = sys.exc_info()
 
     if not success:
@@ -1246,7 +1244,7 @@ class Goofy(GoofyBase):
         logging.info(
             'Successfully synced %s in %.03f s',
             description, time.time() - start_time)
-      except:  # pylint: disable=W0702
+      except:  # pylint: disable=bare-except
         first_exception = (first_exception or
                            (chunk.log_name + ': ' +
                             debug_utils.FormatExceptionOnly()))

@@ -3,13 +3,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import mox
 import os
 import shutil
 import tempfile
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import mox
+
+import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool import probe
 from cros.factory.utils.type_utils import Obj
 
@@ -27,7 +28,7 @@ class ProbeRegionUnittest(unittest.TestCase):
     probe.ReadVpd('RO_VPD', None).AndReturn({'region': 'us'})
     self.mox.ReplayAll()
 
-    result = probe._ProbeRegion()  # pylint: disable=W0212
+    result = probe._ProbeRegion()  # pylint: disable=protected-access
     self.assertEquals([{'region_code': 'us'}], result)
 
     self.mox.VerifyAll()
@@ -57,7 +58,7 @@ class GetEMMC5FirmwareVersionUnittest(unittest.TestCase):
         Obj(stdout=mock_stdout))
     self.mox.ReplayAll()
 
-    result = probe._GetEMMC5FirmwareVersion(  # pylint: disable=W0212
+    result = probe._GetEMMC5FirmwareVersion(  # pylint: disable=protected-access
         '/sys/class/block/mmcblk0')
     self.assertEquals('4142434445464748 (ABCDEFGH)', result)
     self.mox.VerifyAll()
@@ -77,7 +78,7 @@ class GetEMMC5FirmwareVersionUnittest(unittest.TestCase):
         Obj(stdout=mock_stdout))
     self.mox.ReplayAll()
 
-    result = probe._GetEMMC5FirmwareVersion(  # pylint: disable=W0212
+    result = probe._GetEMMC5FirmwareVersion(  # pylint: disable=protected-access
         '/sys/class/block/mmcblk0')
     self.assertEquals('4142434445460020 (ABCDEF)', result)
     self.mox.VerifyAll()
@@ -97,7 +98,7 @@ class GetEMMC5FirmwareVersionUnittest(unittest.TestCase):
         Obj(stdout=mock_stdout))
     self.mox.ReplayAll()
 
-    result = probe._GetEMMC5FirmwareVersion(  # pylint: disable=W0212
+    result = probe._GetEMMC5FirmwareVersion(  # pylint: disable=protected-access
         '/sys/class/block/mmcblk0')
     self.assertEquals('0300000000000000 (3)', result)
     self.mox.VerifyAll()
@@ -110,7 +111,7 @@ No Firmware version.
         Obj(stdout=mock_stdout))
     self.mox.ReplayAll()
 
-    result = probe._GetEMMC5FirmwareVersion(  # pylint: disable=W0212
+    result = probe._GetEMMC5FirmwareVersion(  # pylint: disable=protected-access
         '/sys/class/block/mmcblk0')
     self.assertTrue(result is None)
     self.mox.VerifyAll()

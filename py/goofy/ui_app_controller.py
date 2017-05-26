@@ -4,14 +4,15 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+from BaseHTTPServer import HTTPServer
 import json
 import logging
-import threading
-from BaseHTTPServer import HTTPServer
 from SimpleHTTPServer import SimpleHTTPRequestHandler
+import threading
+
 from ws4py.websocket import WebSocket
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import state
 from cros.factory.test.utils.web_socket_utils import WebSocketHandshake
 from cros.factory.utils import net_utils
@@ -35,7 +36,7 @@ class UIAppControllerHandler(SimpleHTTPRequestHandler):
     try:
       self.server.controller.AddWebSocket(web_socket)
       web_socket.run()
-    except:  # pylint: disable=W0702
+    except:  # pylint: disable=bare-except
       logging.exception('Web socket closed with exception')
     finally:
       self.server.controller.DiscardWebSocket(web_socket)

@@ -13,11 +13,10 @@ import traceback
 from urlparse import urlparse
 import uuid
 
-
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test.env import paths
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
-from cros.factory.test.env import paths
 from cros.factory.umpire.client import get_update
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils import sys_utils
@@ -57,7 +56,7 @@ def RunRsync(*rsync_command):
 
 
 def TryUpdate(pre_update_hook=None, timeout=15):
-  '''Attempts to update the factory directory on the device.
+  """Attempts to update the factory directory on the device.
 
   Atomically replaces the factory directory with new contents.
   This routine will always fail in the chroot (to avoid destroying
@@ -78,7 +77,7 @@ def TryUpdate(pre_update_hook=None, timeout=15):
   Raises:
     UpdaterException: If update scheme is not rsync when using Umpire, since
       scheme other than rsync is not supported yet.
-  '''
+  """
   # On a real device, this will resolve to 'factory' (since 'client'
   # is a symlink to that).  In the chroot, this will resolve to the
   # 'client' directory.
@@ -177,7 +176,7 @@ def TryUpdate(pre_update_hook=None, timeout=15):
 
 
 def CheckForUpdate(timeout, quiet=False):
-  '''Checks for an update synchronously.
+  """Checks for an update synchronously.
 
   Args:
     timeout: If not None, the timeout in seconds. This timeout is for RPC
@@ -195,7 +194,7 @@ def CheckForUpdate(timeout, quiet=False):
 
   Raises:
     An exception if unable to contact the shopfloor server.
-  '''
+  """
   shopfloor_client = shopfloor.get_instance(
       detect=True, timeout=timeout, quiet=quiet)
   # Use GetUpdate API provided by Umpire server.
@@ -211,7 +210,7 @@ def CheckForUpdate(timeout, quiet=False):
 
 
 def CheckForUpdateAsync(callback, timeout, quiet=False):
-  '''Checks for an update asynchronously.
+  """Checks for an update asynchronously.
 
   Launches a separate thread, checks for an update, and invokes callback (in
   at most timeout seconds) in that separate thread with the following arguments:
@@ -229,11 +228,11 @@ def CheckForUpdateAsync(callback, timeout, quiet=False):
     timeout: If not None, the timeout in seconds. This timeout is for RPC
              calls on the proxy, not for get_instance() itself.
     quiet: Suppresses error messages when shopfloor can not be reached.
-  '''
+  """
   def Run():
     try:
       callback(True, *CheckForUpdate(timeout=timeout, quiet=quiet))
-    except:  # pylint: disable=W0702
+    except:  # pylint: disable=bare-except
       # Just an info, not a trace, since this is pretty common (and not
       # necessarily an error) and we don't want logs to get out of control.
       if not quiet:

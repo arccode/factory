@@ -13,7 +13,7 @@ import signal
 import sys
 import threading
 
-import instalog_common  # pylint: disable=W0611
+import instalog_common  # pylint: disable=unused-import
 from instalog import core
 from instalog import daemon_utils
 from instalog import log_utils

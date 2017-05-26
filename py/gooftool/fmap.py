@@ -145,7 +145,6 @@ def _fmap_search_header(blob, fmap_name=None):
       except struct.error as e:
         # Search for next FMAP candidate.
         logging.debug('Continue searching FMAP due to exception %r', e)
-        pass
     align /= 2
   raise struct.error('No valid FMAP signatures.')
 

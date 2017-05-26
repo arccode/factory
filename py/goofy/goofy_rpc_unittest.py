@@ -1,17 +1,16 @@
 #!/usr/bin/python -u
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 from contextlib import contextmanager
-import mox
 import os
 import unittest
+
+import mox
 import yaml
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import goofy
 from cros.factory.goofy import goofy_rpc
 from cros.factory.test.env import paths

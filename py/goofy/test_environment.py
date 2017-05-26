@@ -8,21 +8,19 @@
 
 from __future__ import print_function
 
-import cPickle as pickle
-import hashlib
 import logging
 import os
 import subprocess
 import threading
 import time
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import state
 from cros.factory.tools import chrome_debugger
-from cros.factory.utils import sync_utils
 from cros.factory.utils.service_utils import GetServiceStatus
 from cros.factory.utils.service_utils import SetServiceStatus
 from cros.factory.utils.service_utils import Status
+from cros.factory.utils import sync_utils
 
 
 class Environment(object):
@@ -121,7 +119,7 @@ class DUTEnvironment(Environment):
     def is_state_server_ready():
       try:
         return state_server.IsReadyForUIConnection()
-      except:  # pylint: disable=W0702
+      except:  # pylint: disable=bare-except
         return False
     sync_utils.WaitFor(is_state_server_ready, 30)
     chrome.PageNavigate(url)

@@ -5,6 +5,7 @@
 # found in the LICENSE file.
 
 from __future__ import print_function
+
 import collections
 import logging
 import subprocess
@@ -13,11 +14,11 @@ import time
 
 from ws4py.websocket import WebSocket
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient
+from cros.factory.test import factory
 from cros.factory.test.utils.web_socket_utils import WebSocketHandshake
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.string_utils import DecodeUTF8
@@ -28,7 +29,7 @@ TAIL_BUFFER_SIZE = 10
 
 
 class WebSocketManager(object):
-  '''Object to manage web sockets for Goofy.
+  """Object to manage web sockets for Goofy.
 
   Brokers between events in the event client infrastructure
   and on web sockets.  Also tails the console log and sends
@@ -44,7 +45,7 @@ class WebSocketManager(object):
   Properties:
     tail_buffer: A rotating buffer of the last TAIL_BUFFER_SIZE lines,
         to give to new web clients.
-  '''
+  """
 
   def __init__(self, uuid):
     self.uuid = uuid
@@ -92,10 +93,10 @@ class WebSocketManager(object):
       return len(self.web_sockets) > 0
 
   def handle_web_socket(self, request):
-    '''Runs a web socket in the current thread.
+    """Runs a web socket in the current thread.
 
     request: A RequestHandler object containing the request.
-    '''
+    """
     if not WebSocketHandshake(request):
       return
 
@@ -107,7 +108,8 @@ class WebSocketManager(object):
         self.send_lock = threading.Lock()
         super(MyWebSocket, self).__init__(**kwargs)
 
-      def received_message(socket_self, message):  # pylint: disable=E0213
+      def received_message(socket_self, message):
+        # pylint: disable=no-self-argument
         event = Event.from_json(str(message))
         if event.type == Event.Type.KEEPALIVE:
           if event.uuid == self.uuid:
@@ -141,7 +143,7 @@ class WebSocketManager(object):
       logging.info('Running web socket')
       web_socket.run()
       logging.info('Web socket closed gracefully')
-    except:  # pylint: disable=W0702
+    except:  # pylint: disable=bare-except
       logging.exception('Web socket closed with exception')
     finally:
       with self.lock:
@@ -155,13 +157,13 @@ class WebSocketManager(object):
       self.has_confirmed_socket.wait(0.1)
 
   def _tail_console(self):
-    '''Tails the console log, generating an event whenever a new
+    """Tails the console log, generating an event whenever a new
     line is available.
 
     We send this event only to web sockets (not to event clients
     in general) since only the UI is interested in these log
     lines.
-    '''
+    """
     # tail seems to have a bug where, when outputting to a pipe, it
     # doesn't output the first batch of data until it receives some
     # new output.  Let tail start up, then output a single line to
@@ -200,5 +202,5 @@ class WebSocketManager(object):
       try:
         with web_socket.send_lock:
           web_socket.send(event_json)
-      except:  # pylint: disable=W0702
+      except:  # pylint: disable=bare-except
         logging.exception('Unable to send event on web socket')

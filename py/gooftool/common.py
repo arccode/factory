@@ -10,9 +10,10 @@ import logging
 import os
 import pipes
 import re
-from subprocess import Popen, PIPE
+from subprocess import PIPE
+from subprocess import Popen
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.utils import sys_utils
 from cros.factory.utils.type_utils import Error
@@ -34,7 +35,7 @@ def Shell(cmd, stdin=None, log=True):
   if not isinstance(cmd, basestring):
     cmd = ' '.join(pipes.quote(param) for param in cmd)
   process = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
-  stdout, stderr = process.communicate(input=stdin)  # pylint: disable=E1123
+  stdout, stderr = process.communicate(input=stdin)
   if log:
     logging.debug('running %s' % repr(cmd) +
                   (', stdout: %s' % repr(stdout.strip()) if stdout else '') +

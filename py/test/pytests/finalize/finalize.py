@@ -20,6 +20,7 @@ import subprocess
 import threading
 import time
 import unittest
+
 import yaml
 
 import factory_common  # pylint: disable=unused-import

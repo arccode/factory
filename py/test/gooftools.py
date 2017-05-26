@@ -26,7 +26,7 @@ def run(command, ignore_status=False):
 
   Args:
     command: Shell command to execute.
-    ignore_status: False to raise exectopion when execution result is not 0.
+    ignore_status: False to raise exception when execution result is not 0.
 
   Returns:
     (stdout, stderr, return_code) of the execution results.

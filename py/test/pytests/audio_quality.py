@@ -20,8 +20,9 @@ import tempfile
 import threading
 import time
 import unittest
-import yaml
 import zipfile
+
+import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils

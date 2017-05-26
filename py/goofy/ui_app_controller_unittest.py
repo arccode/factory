@@ -7,12 +7,13 @@
 from __future__ import print_function
 
 import json
-import mox
 import threading
 import unittest
+
+import mox
 from ws4py.client.threadedclient import WebSocketClient
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import ui_app_controller
 from cros.factory.goofy.ui_app_controller import UIAppController
 from cros.factory.utils import net_utils

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 # Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -229,7 +228,7 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
 
       ExecFactoryPar('gooftool', 'wipe_init', *args)
       raise RuntimeError('Should not reach here')
-  except:  # pylint: disable=bare-except
+  except:
     logging.exception('wipe_in_place failed')
     _OnError(station_ip, station_port, wipe_finish_token, state_dev,
              wipe_in_tmpfs_log=logfile, wipe_init_log=None)
@@ -475,7 +474,7 @@ def WipeInit(wipe_args, shopfloor_url, state_dev, release_rootfs,
 
     # should not reach here
     time.sleep(1e8)
-  except:  # pylint: disable=bare-except
+  except:
     logging.exception('wipe_init failed')
     _OnError(station_ip, station_port, finish_token, state_dev,
              wipe_in_tmpfs_log=wipe_in_tmpfs_log, wipe_init_log=logfile)

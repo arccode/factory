@@ -3,18 +3,17 @@
 # found in the LICENSE file.
 
 
-'''A library to prespawn pytest processes to minimize startup overhead.
-'''
+"""A library to prespawn pytest processes to minimize startup overhead.
+"""
 
 import cPickle as pickle
 import logging
 import os
+from Queue import Queue
 import subprocess
 import threading
-from Queue import Queue
 
-
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.utils.process_utils import Spawn
 
@@ -36,11 +35,11 @@ class Prespawner(object):
     self.pipe_stdout = pipe_stdout
 
   def spawn(self, args, env_additions=None):
-    '''Spawns a new process (reusing an prespawned process if available).
+    """Spawns a new process (reusing an prespawned process if available).
 
     @param args: A list of arguments (sys.argv)
     @param env_additions: Items to add to the current environment
-    '''
+    """
     new_env = dict(os.environ)
     if env_additions:
       new_env.update(env_additions)
@@ -53,8 +52,8 @@ class Prespawner(object):
     return process
 
   def start(self):
-    '''Starts a thread to pre-spawn pytests.
-    '''
+    """Starts a thread to pre-spawn pytests.
+    """
     def run():
       while not self.terminated:
         if self.pipe_stdout:
@@ -79,8 +78,8 @@ class Prespawner(object):
       self.thread.start()
 
   def stop(self):
-    '''Stops the pre-spawn thread gracefully.
-    '''
+    """Stops the pre-spawn thread gracefully.
+    """
     self.terminated = True
     if self.thread:
       # Wait for any existing prespawned processes.

@@ -1,6 +1,4 @@
 #!/usr/bin/python -u
-# -*- coding: utf-8 -*-
-#
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -20,9 +18,10 @@ import re
 import tempfile
 import time
 import uuid
+
 import yaml
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.goofy import goofy_remote
 from cros.factory.test.diagnosis.diagnosis_tool import DiagnosisToolRPC
@@ -129,10 +128,10 @@ class GoofyRPC(object):
       # put this in a separate method to rebind m, since it will
       # change during the next for loop iteration.)
       def SetEntry(m):
-        # pylint: disable=W0108,W0640
+        # pylint: disable=unnecessary-lambda,cell-var-from-loop
         state_instance.__dict__[name] = (
             lambda *args, **kwargs: m(*args, **kwargs))
-        # pylint: enable=W0108,W0640
+        # pylint: enable=unnecessary-lambda,cell-var-from-loop
       SetEntry(m)
 
   def FlushEventLogs(self):
@@ -203,7 +202,7 @@ class GoofyRPC(object):
         ret_value.put({
             'success': True, 'updated': False, 'restart_time': None,
             'error_msg': None})
-      except:  # pylint: disable=W0702
+      except:  # pylint: disable=bare-except
         # There was an update available, but we couldn't get it.
         logging.exception('Update failed')
         ret_value.put({
@@ -769,7 +768,7 @@ class GoofyRPC(object):
 
     log_file = os.path.join(test_dir, 'log')
     try:
-      log = string_utils.CleanUTF8(open(log_file).read())
+      log = string_utils.CleanUTF8(file_utils.ReadFile(log_file))
     except:  # pylint: disable=bare-except
       # Oh well
       logging.exception('Unable to read log file %s', log_file)

@@ -7,7 +7,7 @@
 import threading
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import link_manager
 from cros.factory.goofy.link_manager import DUTLinkManager
 from cros.factory.goofy.link_manager import LinkDownError

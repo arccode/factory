@@ -16,29 +16,25 @@ and a None probe result assumed.
 
 from __future__ import print_function
 
+from array import array
 import collections
+from fcntl import ioctl
+from glob import glob
 import hashlib
 import logging
 import os
 import re
-import string  # pylint: disable=W0402
+import string  # pylint: disable=deprecated-module
 import struct
 import sys
-
-from array import array
-from glob import glob
-from fcntl import ioctl
 from tempfile import NamedTemporaryFile
 
-import factory_common  # pylint: disable=W0611
-
-from cros.factory.external import evdev
-
-from cros.factory.gooftool import edid
-from cros.factory.gooftool import crosfw
-from cros.factory.gooftool import vblock
+import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.common import Shell
-# pylint: disable=E0611
+from cros.factory.gooftool import crosfw
+from cros.factory.gooftool import edid
+from cros.factory.gooftool import vblock
+# pylint: disable=no-name-in-module
 from cros.factory.hwid.v2.hwid_tool import ProbeResults
 from cros.factory.test.l10n import regions
 from cros.factory.utils import process_utils
@@ -46,11 +42,12 @@ from cros.factory.utils import sys_utils
 from cros.factory.utils.type_utils import Error
 from cros.factory.utils.type_utils import Obj
 
+from cros.factory.external import evdev
 
 try:
   sys.path.append('/usr/local/lib/flimflam/test')
-  import flimflam  # pylint: disable=F0401
-except:  # pylint: disable=W0702
+  import flimflam  # pylint: disable=import-error
+except:  # pylint: disable=bare-except
   pass
 
 # TODO(tammo): Some tests look for multiple components, some tests
@@ -579,7 +576,7 @@ class _InputDevices(object):
             evdev.ecodes.BTN_MOUSE in keycaps)
 
 
-class _TouchInputData(object):  # pylint: disable=W0232
+class _TouchInputData(object):  # pylint: disable=no-init
   """Base class for collecting touchpad and touchscreen information."""
 
   @classmethod
@@ -742,7 +739,7 @@ class _TouchpadData(_TouchInputData):
         cls.Cypress, cls.Synaptics, cls.Elan, cls.I2c, cls.Generic])
 
 
-class _TouchscreenData(_TouchInputData):  # pylint: disable=W0232
+class _TouchscreenData(_TouchInputData):  # pylint: disable=no-init
   """Return Obj with hw_ident and fw_ident string fields."""
 
   @classmethod
@@ -957,7 +954,7 @@ def _GetV4L2Data(video_idx):
     """Try to invoke ioctl without raising an exception if it fails."""
     try:
       ioctl(fileno, request, *args)
-    except:  # pylint: disable=W0702
+    except:  # pylint: disable=bare-except
       pass
 
   try:
@@ -978,7 +975,7 @@ def _GetV4L2Data(video_idx):
         info['type'] = 'webcam'
       elif capabilities & V4L2_CAP_VIDEO_CODEC == V4L2_CAP_VIDEO_CODEC:
         info['type'] = 'video_codec'
-  except:  # pylint: disable=W0702
+  except:  # pylint: disable=bare-except
     pass
 
   return info
@@ -1477,7 +1474,7 @@ def _MainRoHash(image):
   image.put_section('GBB', zero_gbb)
   hash_src += image.get_section('RO_SECTION')
   image.put_section('GBB', gbb)
-  # pylint: disable=E1101
+  # pylint: disable=no-member
   return {
       'hash': hashlib.sha256(hash_src).hexdigest(),
       'version': _AddFirmwareIdTag(image).lstrip('#')}
@@ -1487,7 +1484,7 @@ def _EcRoHash(image):
   """Algorithm: sha256(fmap, EC_RO)."""
   hash_src = image.get_fmap_blob()
   hash_src += image.get_section('EC_RO')
-  # pylint: disable=E1101
+  # pylint: disable=no-member
   return {
       'hash': hashlib.sha256(hash_src).hexdigest(),
       'version': _AddFirmwareIdTag(image).lstrip('#')}
@@ -1524,7 +1521,7 @@ def CalculateFirmwareHashes(fw_file_path):
   raw_image = open(fw_file_path, 'rb').read()
   try:
     image = crosfw.FirmwareImage(raw_image)
-  except:  # pylint: disable=W0702
+  except:  # pylint: disable=bare-except
     return None
   hashes = {}
   if image.has_section('EC_RO'):
@@ -1687,7 +1684,7 @@ def Probe(target_comp_classes=None,
   def RunProbe(probe_fun):
     try:
       return probe_fun()
-    except Exception:  # pylint: disable=W0703
+    except Exception:  # pylint: disable=broad-except
       logging.exception('Probe %r FAILED (see traceback), returning None.',
                         probe_fun.__name__)
       return None

@@ -6,7 +6,6 @@
 from __future__ import print_function
 
 import argparse
-import jsonrpclib
 import logging
 import os
 import signal
@@ -14,7 +13,9 @@ import socket
 import threading
 import time
 
-import factory_common  # pylint: disable=W0611
+import jsonrpclib
+
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import network
 from cros.factory.test.utils import dhcp_utils

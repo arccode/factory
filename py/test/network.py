@@ -9,14 +9,14 @@ system components.
 """
 
 import logging
-import os
 from multiprocessing import pool
+import os
 import tempfile
 import time
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import factory
 from cros.factory.test.env import paths
+from cros.factory.test import factory
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
@@ -282,7 +282,7 @@ def GetDHCPBootParameters(interface):
       udp = eth.ip.data
       dhcp = dpkt.dhcp.DHCP(udp.data)
 
-      if dhcp['siaddr'] != 0 and len(dhcp['file'].strip('\x00')):
+      if dhcp['siaddr'] != 0 and dhcp['file'].strip('\x00'):
         ip = '.'.join([str(ord(x)) for x in
                        ('%x' % dhcp['siaddr']).decode('hex')])
         return (ip, dhcp['file'].strip('\x00'), dhcp['sname'].strip('\x00'))

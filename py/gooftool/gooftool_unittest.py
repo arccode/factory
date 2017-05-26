@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# pylint: disable=W0212
+# pylint: disable=protected-access
 #
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -8,28 +8,29 @@
 """Unit tests for gooftool module."""
 
 import __builtin__
-import logging
-import mox
-import os
-import time
-import unittest
-from StringIO import StringIO
-
 from collections import namedtuple
 from contextlib import contextmanager
+import logging
+import os
+from StringIO import StringIO
 from tempfile import NamedTemporaryFile
+import time
+import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.gooftool import core
-from cros.factory.gooftool import crosfw
-from cros.factory.gooftool import probe
+import mox
+
+import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Shell
+from cros.factory.gooftool import core
 from cros.factory.gooftool.core import ProbedComponentResult
+from cros.factory.gooftool import crosfw
+from cros.factory.gooftool import probe
 from cros.factory.gooftool.probe import Probe
 from cros.factory.gooftool.probe import ReadRoVpd
 from cros.factory.hwid.v2 import hwid_tool
-from cros.factory.hwid.v2.hwid_tool import ProbeResults  # pylint: disable=E0611
+# pylint: disable=no-name-in-module
+from cros.factory.hwid.v2.hwid_tool import ProbeResults
 from cros.factory.test.rules import branding
 from cros.factory.utils import file_utils
 from cros.factory.utils.type_utils import Error
@@ -183,14 +184,14 @@ class GooftoolTest(unittest.TestCase):
     self.mox.UnsetStubs()
 
   def testVerifyComponents(self):
-    '''Test if the Gooftool.VerifyComponent() works properly.
+    """Test if the Gooftool.VerifyComponent() works properly.
 
     This test tries to probe three components [camera, battery, cpu], where
       'camera' returns a valid result.
       'battery' returns a false result.
       'cpu' does not return any result.
       'tpm' returns multiple results.
-    '''
+    """
 
     self._mock_probe(
         probe_initial_config=False,

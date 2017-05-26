@@ -12,7 +12,7 @@ See for more info:
 import os
 import sys
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.probe.functions import edid
 

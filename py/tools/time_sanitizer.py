@@ -13,9 +13,9 @@ import os
 import threading
 import time
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test import shopfloor
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
+from cros.factory.test import shopfloor
 from cros.factory.utils import process_utils
 
 
@@ -74,7 +74,7 @@ class TimeSanitizer(object):
                time_bump_secs=60,
                max_leap_secs=(SECONDS_PER_DAY * 30),
                base_time=None):
-    '''Attempts to ensure that system time is monotonic and sane.
+    """Attempts to ensure that system time is monotonic and sane.
 
     Guarantees that:
 
@@ -100,7 +100,7 @@ class TimeSanitizer(object):
         being considered insane.
       base_time: A time that is known to be earlier than the current
         time.
-    '''
+    """
     self.state_file = state_file
     self.monitor_interval_secs = monitor_interval_secs
     self.time_bump_secs = time_bump_secs
@@ -128,7 +128,7 @@ class TimeSanitizer(object):
     while True:
       try:
         self.RunOnce()
-      except:  # pylint: disable=W0702
+      except:  # pylint: disable=bare-except
         logging.exception('Exception in run loop')
 
       time.sleep(self.monitor_interval_secs)
@@ -140,7 +140,7 @@ class TimeSanitizer(object):
       try:
         minimum_time = max(minimum_time,
                            float(open(self.state_file).read().strip()))
-      except:  # pylint: disable=W0702
+      except:  # pylint: disable=bare-except
         logging.exception('Unable to read %s', self.state_file)
     else:
       logging.warn('State file %s does not exist', self.state_file)
@@ -170,14 +170,14 @@ class TimeSanitizer(object):
     self.SaveTime(now)
 
   def SaveTime(self, now=None):
-    '''Writes the current time to the state file.
+    """Writes the current time to the state file.
 
     Thread-safe.
 
     Args:
       now: The present time if already known.  If None, time.time() will be
         used.
-    '''
+    """
     with self.lock:
       with open(self.state_file, 'w') as f:
         now = now or self._time.Time()
@@ -186,7 +186,7 @@ class TimeSanitizer(object):
         print >> f, now
 
   def SyncWithShopfloor(self, timeout=5):
-    '''Attempts to synchronize the clock with the shopfloor server.
+    """Attempts to synchronize the clock with the shopfloor server.
 
     Thread-safe.
 
@@ -195,7 +195,7 @@ class TimeSanitizer(object):
 
     Raises:
       Exception if unable to contact the shopfloor server.
-    '''
+    """
     proxy = self._shopfloor.get_instance(detect=True,
                                          timeout=timeout)
     shopfloor_time = proxy.GetTime()
@@ -219,12 +219,12 @@ class TimeSanitizer(object):
 
 
 def GetBaseTimeFromFile(*base_time_files):
-  '''Returns the base time to use.
+  """Returns the base time to use.
 
   This will be the mtime of the first existing file in
   base_time_files, or None.
 
-  Never throws an exception.'''
+  Never throws an exception."""
   for f in base_time_files:
     if os.path.exists(f):
       try:
@@ -232,7 +232,7 @@ def GetBaseTimeFromFile(*base_time_files):
         logging.info('Using %s (mtime of %s) as base time',
                      _FormatTime(base_time), f)
         return base_time
-      except:  # pylint: disable=W0702
+      except:  # pylint: disable=bare-except
         logging.exception('Unable to stat %s', f)
     else:
       logging.warn('base-time-file %s does not exist', f)

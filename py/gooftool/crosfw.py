@@ -1,4 +1,4 @@
-# pylint: disable=W0201
+# pylint: disable=attribute-defined-outside-init
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -19,7 +19,7 @@ import os
 import re
 import tempfile
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool import common
 from cros.factory.gooftool import fmap
 

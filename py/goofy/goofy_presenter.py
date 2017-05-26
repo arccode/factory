@@ -1,6 +1,4 @@
 #!/usr/bin/python -u
-# -*- coding: utf-8 -*-
-#
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -10,10 +8,10 @@
 import argparse
 import logging
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.goofy import test_environment
+import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.goofy_base import GoofyBase
 from cros.factory.goofy.link_manager import DUTLinkManager
+from cros.factory.goofy import test_environment
 from cros.factory.goofy.ui_app_controller import UIAppController
 from cros.factory.test import factory
 from cros.factory.utils import jsonrpc_utils

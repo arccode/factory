@@ -4,11 +4,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import unittest
-import mox
 import threading
+import unittest
 
-import factory_common  # pylint: disable=W0611
+import mox
+
+import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import updater
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
@@ -73,7 +74,7 @@ class CheckForUpdateAsyncTest(unittest.TestCase):
     self.mox.StubOutWithMock(updater, 'CheckForUpdate')
     updater.CheckForUpdate(1).AndReturn(('11111', available))
     callback = self.mox.CreateMockAnything()
-    callback(True, '11111', available).WithSideEffects(  # pylint: disable=E1102
+    callback(True, '11111', available).WithSideEffects(  # pylint: disable=not-callable
         self.CallbackCalled)
     self.mox.ReplayAll()
     updater.CheckForUpdateAsync(callback, 1)
@@ -97,7 +98,7 @@ class CheckForUpdateAsyncTest(unittest.TestCase):
     updater.CheckForUpdate(1).AndRaise(
         Exception('Can not contact shopfloorserver'))
     callback = self.mox.CreateMockAnything()
-    callback(False, None, False).WithSideEffects(  # pylint: disable=E1102
+    callback(False, None, False).WithSideEffects(  # pylint: disable=not-callable
         self.CallbackCalled)
     self.mox.ReplayAll()
     updater.CheckForUpdateAsync(callback, 1)

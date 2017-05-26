@@ -14,7 +14,7 @@ import tempfile
 import time
 from xml.sax import saxutils
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.i18n import _
 from cros.factory.utils import file_utils
@@ -268,7 +268,7 @@ class DeviceManager(plugin.Plugin):
           [('fw', fw_version, True), ('ec', ec_version, True),
            ('image', image_version, True)])
 
-    def GetVPD():  # pylint: disable=W0612
+    def GetVPD():  # pylint: disable=unused-variable
       """Returns RO VPD and RW VPD info."""
       ro_vpd = subprocess.check_output(['vpd', '-i', 'RO_VPD', '-l'])
       rw_vpd = subprocess.check_output(['vpd', '-i', 'RW_VPD', '-l'])
@@ -526,7 +526,7 @@ class DeviceManager(plugin.Plugin):
       html_string = ''.join(content_rows)
       return html_string.replace('<table', '<table class="multi-column-table"')
 
-    def GetPowerUsage(fetch_time=20):  # pylint: disable=W0612
+    def GetPowerUsage(fetch_time=20):  # pylint: disable=unused-variable
       """Returns power usage detail.
 
       Args:

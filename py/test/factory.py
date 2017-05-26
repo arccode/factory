@@ -21,6 +21,7 @@ import logging
 import os
 import re
 import sys
+
 import yaml
 
 import factory_common  # pylint: disable=unused-import
@@ -1146,7 +1147,7 @@ class FactoryTestList(FactoryTest):
     """
     ret, changed = self.state_instance.update_test_state(path=path, **kwargs)
     if changed and self.state_change_callback:
-      self.state_change_callback(  # pylint: disable=E1102
+      self.state_change_callback(  # pylint: disable=not-callable
           self.LookupPath(path), ret)
     return ret
 

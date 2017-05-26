@@ -5,23 +5,23 @@
 # found in the LICENSE file.
 
 import argparse
+from collections import namedtuple
 from contextlib import contextmanager
 from glob import glob
 from itertools import chain
 import logging
-from collections import namedtuple
 import os
 import re
 import shutil
 import sys
 import tempfile
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths as env_paths
 from cros.factory.utils import file_utils
+from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils import sys_utils
 from cros.factory.utils import time_utils
-from cros.factory.utils.process_utils import Spawn
 
 
 # Info about a mounted partition.
@@ -36,7 +36,7 @@ MountUSBInfo = namedtuple('MountUSBInfo',
 
 @contextmanager
 def MountUSB(read_only=False):
-  '''Mounts (or re-uses) a USB drive, returning the path.
+  """Mounts (or re-uses) a USB drive, returning the path.
 
   Acts as a context manager.  If we mount a partition, we will
   unmount it when exiting the context manager.
@@ -53,7 +53,7 @@ def MountUSB(read_only=False):
 
   Raises:
     IOError if no mounted or mountable partition is found.
-  '''
+  """
   usb_devices = set(os.path.basename(x)
                     for x in glob('/sys/class/block/sd?')
                     if '/usb' in os.readlink(x))
@@ -120,7 +120,7 @@ def DummyContext(arg):
 
 def SaveLogs(output_dir, include_network_log=False, archive_id=None,
              var='/var', usr_local='/usr/local', etc='/etc'):
-  '''Saves dmesg and relevant log files to a new archive in output_dir.
+  """Saves dmesg and relevant log files to a new archive in output_dir.
 
   The archive will be named factory_bug.<description>.<timestamp>.tar.bz2,
   where description is the 'description' argument (if provided).
@@ -131,7 +131,7 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
     archive_id: An optional short ID to put in the filename (so
       archives may be more easily differentiated).
     var, usr_local, etc: Paths to the relavant directories.
-  '''
+  """
   output_dir = os.path.realpath(output_dir)
   files = []
 

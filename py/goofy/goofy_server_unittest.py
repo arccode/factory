@@ -4,12 +4,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-from jsonrpclib import jsonrpc
 import os
 import threading
 import time
 import unittest
 import urllib2
+
+from jsonrpclib import jsonrpc
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import goofy_server

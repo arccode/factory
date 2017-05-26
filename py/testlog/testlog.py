@@ -915,7 +915,8 @@ class StationTestRun(_StationBase):
         schema.Scalar(label, long),
         schema.Scalar(label, float)])
 
-  def _ValidatorArgumentWrapper(*args, **kwargs):  # pylint: disable=E0211
+  def _ValidatorArgumentWrapper(*args, **kwargs):
+    # pylint: disable=no-method-argument
     SCHEMA = schema.FixedDict(
         'arguments.value',
         items={'value': schema.Scalar('value', object)},
@@ -924,7 +925,8 @@ class StationTestRun(_StationBase):
     kwargs['schema'] = SCHEMA
     return testlog_validator.Validator.Dict(*args, **kwargs)
 
-  def _ValidatorFailureWrapper(*args, **kwargs):  # pylint: disable=E0211
+  def _ValidatorFailureWrapper(*args, **kwargs):
+    # pylint: disable=no-method-argument
     SCHEMA = schema.FixedDict(
         'failures.value',
         items={'code': schema.Scalar('code', basestring),
@@ -932,12 +934,14 @@ class StationTestRun(_StationBase):
     kwargs['schema'] = SCHEMA
     return testlog_validator.Validator.List(*args, **kwargs)
 
-  def _ValidatorSerialNumberWrapper(*args, **kwargs):  # pylint: disable=E0211
+  def _ValidatorSerialNumberWrapper(*args, **kwargs):
+    # pylint: disable=no-method-argument
     SCHEMA = schema.Scalar('serialNumbers.value', basestring)
     kwargs['schema'] = SCHEMA
     return testlog_validator.Validator.Dict(*args, **kwargs)
 
-  def _ValidatorParameterWrapper(*args, **kwargs):  # pylint: disable=E0211
+  def _ValidatorParameterWrapper(*args, **kwargs):
+    # pylint: disable=no-method-argument
     SCHEMA = schema.FixedDict(
         'parameters.value',
         items={},
@@ -954,7 +958,8 @@ class StationTestRun(_StationBase):
     kwargs['schema'] = SCHEMA
     return testlog_validator.Validator.Dict(*args, **kwargs)
 
-  def _ValidatorSeriesWrapper(*args, **kwargs):  # pylint: disable=E0211
+  def _ValidatorSeriesWrapper(*args, **kwargs):
+    # pylint: disable=no-method-argument
     DATA_SCHEMA = schema.List('data', schema.FixedDict(
         'data',
         items={
@@ -978,7 +983,8 @@ class StationTestRun(_StationBase):
     kwargs['schema'] = SCHEMA
     return testlog_validator.Validator.Dict(*args, **kwargs)
 
-  def _ValidatorAttachmentWrapper(*args, **kwargs):  # pylint: disable=E0211
+  def _ValidatorAttachmentWrapper(*args, **kwargs):
+    # pylint: disable=no-method-argument
     # Because the FIELDS map must be assigned at the time of loading the
     # module. However, Testlog singleton is not ready yet, we pass the
     # function that get the singleton instead.
@@ -1128,7 +1134,7 @@ class StationTestRun(_StationBase):
 
 
 class Series(dict):
-  def __init__(*args, **kwargs):  # pylint: disable=E0211
+  def __init__(*args, **kwargs):  # pylint: disable=no-method-argument
     # Allowed only a specific form of initialization.
     assert len(args) == 1  # Expecting only self
     assert isinstance(kwargs['__METADATA__'], dict)
@@ -1180,7 +1186,6 @@ class Series(dict):
       self.LogValue(key, value, call_update=False)
     self.UpdateSession()
 
-  # pylint: disable=redefined-builtin
   def CheckValue(self, key, value, min=None, max=None, call_update=True):
     # pylint: disable=redefined-builtin
     Series._CheckArguments(key, value, min, max)

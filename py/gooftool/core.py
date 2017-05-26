@@ -6,30 +6,29 @@
 
 from __future__ import print_function
 
+from collections import namedtuple
+from contextlib import contextmanager
+from distutils.version import LooseVersion
 import logging
 import os
 import re
 import sys
+from tempfile import NamedTemporaryFile
 import time
 
-from collections import namedtuple
-from contextlib import contextmanager
-from distutils.version import LooseVersion
-from tempfile import NamedTemporaryFile
-
-import factory_common  # pylint: disable=W0611
-from cros.factory.hwid.v2 import hwid_tool
-from cros.factory.hwid.v3 import common as hwid3_common
-from cros.factory.hwid.v3.database import Database
-from cros.factory.gooftool import crosfw
-from cros.factory.gooftool import wipe
+import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Util
+from cros.factory.gooftool import crosfw
 from cros.factory.gooftool.probe import DeleteRwVpd
 from cros.factory.gooftool.probe import Probe
 from cros.factory.gooftool.probe import ReadRoVpd
 from cros.factory.gooftool.probe import ReadRwVpd
 from cros.factory.gooftool.probe import UpdateRoVpd
+from cros.factory.gooftool import wipe
+from cros.factory.hwid.v2 import hwid_tool
+from cros.factory.hwid.v3 import common as hwid3_common
+from cros.factory.hwid.v3.database import Database
 from cros.factory.test.l10n import regions
 from cros.factory.test.rules import branding
 from cros.factory.test.rules import phase
@@ -563,7 +562,7 @@ class Gooftool(object):
                      (hwid, main_fw.GetFileName()))
     main_fw.Write(sections=['GBB'])
 
-  def VerifyWPSwitch(self):  # pylint: disable=W0613
+  def VerifyWPSwitch(self):
     """Verifies hardware write protection switch is enabled.
 
     Raises:
@@ -573,7 +572,7 @@ class Gooftool(object):
     if self._util.shell('crossystem wpsw_cur').stdout.strip() != '1':
       raise Error, 'write protection switch is disabled'
 
-  def CheckDevSwitchForDisabling(self):  # pylint: disable=W0613
+  def CheckDevSwitchForDisabling(self):
     """Checks if the developer switch is ready for disabling.
 
     It checks the developer switch is either already disabled or is virtual so

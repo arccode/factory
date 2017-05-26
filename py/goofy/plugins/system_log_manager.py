@@ -16,14 +16,15 @@ import threading
 import time
 from urlparse import urlparse
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.env import paths
 from cros.factory.test import event_log
 from cros.factory.test import shopfloor
 from cros.factory.utils.debug_utils import CatchException
 from cros.factory.utils import file_utils
-from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
+from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.process_utils import TerminateOrKillProcess
 from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
 
@@ -223,7 +224,7 @@ class SystemLogManager(plugin.Plugin):
     for f in file_list:
       try:
         os.unlink(f)
-      except:  # pylint: disable=W0702
+      except:  # pylint: disable=bare-except
         logging.exception('Fails to remove file %s.', f)
     logging.debug('Logs cleared.')
 
@@ -391,7 +392,7 @@ class SystemLogManager(plugin.Plugin):
           self.goofy.event_log.Log('crash_file',
                                    path=path, size=stat.st_size, mtime=mtime,
                                    **extra_log_args)
-      except:  # pylint: disable=W0702
+      except:  # pylint: disable=bare-except
         logging.exception('Unable to handle crash files %s', path)
       seen_crashes.add(path)
 

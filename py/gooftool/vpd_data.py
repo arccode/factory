@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# pylint: disable=C0301
 #
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -10,7 +9,7 @@
 
 """Collection of valid VPD values for ChromeOS."""
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.l10n import regions
 
 

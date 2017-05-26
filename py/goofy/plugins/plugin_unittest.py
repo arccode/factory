@@ -5,8 +5,9 @@
 # found in the LICENSE file.
 
 
-import mock
 import unittest
+
+import mock
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import goofy

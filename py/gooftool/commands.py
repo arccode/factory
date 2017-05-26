@@ -4,7 +4,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# pylint: disable=E1101
 
 """Google Factory Tool.
 
@@ -18,37 +17,36 @@ import os
 import pipes
 import re
 import sys
+from tempfile import gettempdir
 import threading
 import time
 import xmlrpclib
+
 import yaml
 
-from tempfile import gettempdir
-
-import factory_common  # pylint: disable=W0611
-
-from cros.factory.gooftool import crosfw
-from cros.factory.gooftool import report_upload
-from cros.factory.gooftool.core import Gooftool
+import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.common import ExecFactoryPar
 from cros.factory.gooftool.common import Shell
+from cros.factory.gooftool.core import Gooftool
+from cros.factory.gooftool import crosfw
+from cros.factory.gooftool.probe import CalculateFirmwareHashes
 from cros.factory.gooftool.probe import Probe
 from cros.factory.gooftool.probe import ReadRoVpd
-from cros.factory.gooftool.probe import CalculateFirmwareHashes
+from cros.factory.gooftool import report_upload
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import hwid_utils
-from cros.factory.test import event_log
 from cros.factory.test.env import paths
+from cros.factory.test import event_log
 from cros.factory.test.rules import phase
 from cros.factory.test.rules.privacy import FilterDict
+from cros.factory.utils import argparse_utils
 from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils.argparse_utils import ParseCmdline
 from cros.factory.utils.argparse_utils import verbosity_cmd_arg
-from cros.factory.utils import argparse_utils
+from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import time_utils
-from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.type_utils import Error
 
@@ -62,7 +60,7 @@ _gooftool_lock = threading.Lock()
 
 
 def GetGooftool(options):
-  global _global_gooftool  # pylint: disable=W0603
+  global _global_gooftool  # pylint: disable=global-statement
 
   if _global_gooftool is None:
     with _gooftool_lock:
@@ -265,14 +263,14 @@ def PrintVerifyComponentsResults(result):
 @Command('verify_keys',
          _release_rootfs_cmd_arg,
          _firmware_path_cmd_arg)
-def VerifyKeys(options):  # pylint: disable=W0613
+def VerifyKeys(options):
   """Verify keys in firmware and SSD match."""
   return GetGooftool(options).VerifyKeys(
       options.release_rootfs, options.firmware_path)
 
 
 @Command('set_fw_bitmap_locale')
-def SetFirmwareBitmapLocale(options):  # pylint: disable=W0613
+def SetFirmwareBitmapLocale(options):
   """Use VPD locale value to set firmware bitmap default language."""
 
   (index, locale) = GetGooftool(options).SetFirmwareBitmapLocale()
@@ -282,7 +280,7 @@ def SetFirmwareBitmapLocale(options):  # pylint: disable=W0613
 
 @Command('verify_system_time',
          _release_rootfs_cmd_arg)
-def VerifySystemTime(options):  # pylint: disable=W0613
+def VerifySystemTime(options):
   """Verify system time is later than release filesystem creation time."""
 
   return GetGooftool(options).VerifySystemTime(options.release_rootfs)
@@ -290,35 +288,35 @@ def VerifySystemTime(options):  # pylint: disable=W0613
 
 @Command('verify_rootfs',
          _release_rootfs_cmd_arg)
-def VerifyRootFs(options):  # pylint: disable=W0613
+def VerifyRootFs(options):
   """Verify rootfs on SSD is valid by checking hash."""
 
   return GetGooftool(options).VerifyRootFs(options.release_rootfs)
 
 
 @Command('verify_tpm')
-def VerifyTPM(options):  # pylint: disable=W0613
+def VerifyTPM(options):
   """Verify TPM is cleared."""
 
   return GetGooftool(options).VerifyTPM()
 
 
 @Command('verify_me_locked')
-def VerifyManagementEngineLocked(options):  # pylint: disable=W0613
+def VerifyManagementEngineLocked(options):
   """Verify Management Engine is locked."""
 
   return GetGooftool(options).VerifyManagementEngineLocked()
 
 
 @Command('verify_switch_wp')
-def VerifyWPSwitch(options):  # pylint: disable=W0613
+def VerifyWPSwitch(options):
   """Verify hardware write protection switch is enabled."""
 
   GetGooftool(options).VerifyWPSwitch()
 
 
 @Command('verify_switch_dev')
-def VerifyDevSwitch(options):  # pylint: disable=W0613
+def VerifyDevSwitch(options):
   """Verify developer switch is disabled."""
 
   if GetGooftool(options).CheckDevSwitchForDisabling():
@@ -327,7 +325,7 @@ def VerifyDevSwitch(options):  # pylint: disable=W0613
 
 
 @Command('verify_branding')
-def VerifyBranding(options):  # pylint: disable=W0613
+def VerifyBranding(options):
   """Verify that branding fields are properly set.
 
   customization_id, if set in the RO VPD, must be of the correct format.
@@ -340,7 +338,7 @@ def VerifyBranding(options):  # pylint: disable=W0613
 
 @Command('verify_release_channel',
          _enforced_release_channels_cmd_arg)
-def VerifyReleaseChannel(options):  # pylint: disable=W0613
+def VerifyReleaseChannel(options):
   """Verify that release image channel is correct.
 
   ChromeOS has four channels: canary, dev, beta and stable.
@@ -352,8 +350,9 @@ def VerifyReleaseChannel(options):  # pylint: disable=W0613
 
 
 @Command('write_protect')
-def EnableFwWp(options):  # pylint: disable=W0613
+def EnableFwWp(options):
   """Enable then verify firmware write protection."""
+  del options  # Unused.
 
   def CalculateLegacyRange(fw_type, length, section_data,
                            section_name):
@@ -416,7 +415,7 @@ def EnableFwWp(options):  # pylint: disable=W0613
 
 
 @Command('clear_gbb_flags')
-def ClearGBBFlags(options):  # pylint: disable=W0613
+def ClearGBBFlags(options):
   """Zero out the GBB flags, in preparation for transition to release state.
 
   No GBB flags are set in release/shipping state, but they are useful
@@ -428,14 +427,14 @@ def ClearGBBFlags(options):  # pylint: disable=W0613
 
 
 @Command('clear_factory_vpd_entries')
-def ClearFactoryVPDEntries(options):  # pylint: disable=W0613
+def ClearFactoryVPDEntries(options):
   """Clears factory.* items in the RW VPD."""
   entries = GetGooftool(options).ClearFactoryVPDEntries()
   event_log.Log('clear_factory_vpd_entries', entries=FilterDict(entries))
 
 
 @Command('generate_stable_device_secret')
-def GenerateStableDeviceSecret(options):  # pylint: disable=W0613
+def GenerateStableDeviceSecret(options):
   """Generates a fresh stable device secret and stores it in the RO VPD."""
   GetGooftool(options).GenerateStableDeviceSecret()
   event_log.Log('generate_stable_device_secret')
@@ -545,8 +544,9 @@ def UntarStatefulFiles(unused_options):
 
 
 @Command('log_source_hashes')
-def LogSourceHashes(options):  # pylint: disable=W0613
+def LogSourceHashes(options):
   """Logs hashes of source files in the factory toolkit."""
+  del options  # Unused.
   # WARNING: The following line is necessary to validate the integrity
   # of the factory software.  Do not remove or modify it.
   #
@@ -563,7 +563,7 @@ def LogSourceHashes(options):  # pylint: disable=W0613
 
 
 @Command('log_system_details')
-def LogSystemDetails(options):  # pylint: disable=W0613
+def LogSystemDetails(options):
   """Write miscellaneous system details to the event log."""
 
   event_log.Log('system_details', **GetGooftool(options).GetSystemDetails())
@@ -783,7 +783,7 @@ def GetFirmwareHash(options):
     raise Error('File does not exist: %s' % options.file)
 
 
-def Main():
+def main():
   """Run sub-command specified by the command line args."""
 
   options = ParseCmdline(
@@ -815,4 +815,4 @@ def Main():
 
 
 if __name__ == '__main__':
-  Main()
+  main()

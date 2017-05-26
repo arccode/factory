@@ -4,7 +4,6 @@
 
 import random
 
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.utils import connection_manager

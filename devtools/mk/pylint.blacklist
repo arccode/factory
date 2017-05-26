@@ -1,7 +1,6 @@
 py/argparse.py
 py/gooftool/vblock.py
 py/goofy/prespawner.py
-py/goofy/test_environment.py
 py/goofy/updater.py
 py/goofy/web_socket_manager.py
 py/hwdb/convert_to_v2_test_files/components_SAMS_TEST-ALFA_1111

@@ -10,16 +10,17 @@
 
 from __future__ import print_function
 
-from jsonrpclib import jsonclass
 import logging
 import os
 import shutil
 import threading
 
+from jsonrpclib import jsonclass
+
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test.env import goofy_proxy
 from cros.factory.test.env import paths
 from cros.factory.test import event
-from cros.factory.test.env import goofy_proxy
 from cros.factory.test import factory
 from cros.factory.test.rules import privacy
 from cros.factory.utils import shelve_utils

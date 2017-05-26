@@ -9,10 +9,11 @@
 from __future__ import print_function
 
 import copy
+import cPickle as pickle
 import datetime
 import logging
+from optparse import OptionParser
 import os
-import cPickle as pickle
 import pprint
 import re
 import signal
@@ -22,30 +23,30 @@ import threading
 import time
 import traceback
 import unittest
+
 import yaml
-from optparse import OptionParser
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import factory
-from cros.factory.test import state
-from cros.factory.test import test_ui
-from cros.factory.test import testlog_goofy
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
+from cros.factory.test import factory
 from cros.factory.test.factory import TestState
 from cros.factory.test.rules.privacy import FilterDict
+from cros.factory.test import state
 from cros.factory.test.test_lists.test_lists import BuildAllTestLists
+from cros.factory.test import test_ui
+from cros.factory.test import testlog_goofy
 from cros.factory.test.utils.pytest_utils import LoadPytestModule
 from cros.factory.testlog import testlog
 from cros.factory.testlog import testlog_utils
+from cros.factory.utils.arg_utils import Args
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
-from cros.factory.utils import time_utils
-from cros.factory.utils.arg_utils import Args
 from cros.factory.utils.service_utils import ServiceManager
 from cros.factory.utils.string_utils import DecodeUTF8
+from cros.factory.utils import time_utils
 
  # pylint: disable=no-name-in-module
 from cros.factory.external.setproctitle import setproctitle
@@ -54,7 +55,7 @@ from cros.factory.external import syslog
 # Number of bytes to include from the log of a failed test.
 ERROR_LOG_TAIL_LENGTH = 8 * 1024
 
-# pylint: disable=W0702
+# pylint: disable=bare-except
 
 # A file that stores override test list dargs for factory test automation.
 OVERRIDE_TEST_LIST_DARGS_FILE = os.path.join(
@@ -854,7 +855,7 @@ def RunPytest(test_info):
 
     # Register a handler for SIGTERM, so that Python interpreter has
     # a chance to do clean up procedures when SIGTERM is received.
-    def _SIGTERMHandler(signum, frame):  # pylint: disable=W0613
+    def _SIGTERMHandler(signum, frame):  # pylint: disable=unused-argument
       logging.error('SIGTERM received')
       raise factory.FactoryTestFailure('SIGTERM received')
 
