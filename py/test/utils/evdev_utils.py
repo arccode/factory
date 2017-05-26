@@ -119,7 +119,7 @@ def IsTouchscreenDevice(dev):
 
 
 def FindDevice(*args):
-  """Find a device with hints of arguments.
+  """Find a device that match all arguments.
 
   Args:
     Each argument should be None (skipped), int (event id), str (pattern to
@@ -128,21 +128,28 @@ def FindDevice(*args):
   Returns:
     An evdev.InputDevice
   """
+  candidates = GetDevices()
+
   for item in args:
-    if item is not None:
-      if isinstance(item, int):
-        return evdev.InputDevice('/dev/input/event%d' % item)
-      if isinstance(item, str):
-        # pylint: disable=cell-var-from-loop
-        dev_filter = lambda dev: item in dev.name
-      elif callable(item):
-        dev_filter = item
-      else:
-        raise ValueError('Invalid argument %r' % item)
-      candidates = [dev for dev in GetDevices() if dev_filter(dev)]
-      assert len(candidates) == 1, 'Not having exactly one candidate!'
-      return candidates[0]
-  raise ValueError('Arguments are all None.')
+    # pylint: disable=cell-var-from-loop
+    if item is None:
+      continue
+    if isinstance(item, int):
+      dev_filter = lambda dev: dev.fn == '/dev/input/event%d' % item
+    elif isinstance(item, str):
+      dev_filter = lambda dev: item in dev.name
+    elif callable(item):
+      dev_filter = item
+    else:
+      raise ValueError('Invalid argument %r' % item)
+    candidates = filter(dev_filter, candidates)
+
+  if len(candidates) == 1:
+    return candidates[0]
+  elif not candidates:
+    raise ValueError("Can't find device.")
+  else:
+    raise ValueError('Not having exactly one candidate!')
 
 
 def DeviceReopen(dev):
