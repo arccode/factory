@@ -74,8 +74,6 @@ class ResourceSerializer(serializers.Serializer):
 
   type = serializers.CharField()
   version = serializers.CharField(read_only=True)
-  hash = serializers.CharField(read_only=True)
-  updatable = serializers.BooleanField(read_only=True)
   file_id = serializers.IntegerField(write_only=True)
 
   def create(self, validated_data):

@@ -30,7 +30,6 @@ var ResourceTable = React.createClass({
           <TableRow>
             <TableHeaderColumn>resource</TableHeaderColumn>
             <TableHeaderColumn>version</TableHeaderColumn>
-            <TableHeaderColumn>hash</TableHeaderColumn>
             <TableHeaderColumn>actions</TableHeaderColumn>
           </TableRow>
         </TableHeader>
@@ -54,12 +53,8 @@ var ResourceTable = React.createClass({
                 <TableRowColumn style={style}>
                   {resource.get('version')}
                 </TableRowColumn>
-                <TableRowColumn style={style}>
-                  {resource.get('hash')}
-                </TableRowColumn>
                 <TableRowColumn>
-                  {/* show update button for updatable resources only */}
-                  {resource.get('updatable') &&
+                  {
                     <RaisedButton
                       label="update"
                       onClick={() => handleUpdate(

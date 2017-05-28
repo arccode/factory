@@ -18,7 +18,6 @@ import copy
 import errno
 import logging
 import os
-import re
 import shutil
 import stat
 import subprocess
@@ -32,6 +31,9 @@ import rest_framework.exceptions
 import rest_framework.status
 import yaml
 
+import factory_common  # pylint: disable=unused-import
+from cros.factory.umpire import resource as umpire_resource
+
 
 # TODO(littlecvr): pull out the common parts between umpire and dome, and put
 #                  them into a config file (using the new config API).
@@ -39,16 +41,6 @@ UMPIRE_BASE_PORT = 8080
 UMPIRE_RPC_PORT_OFFSET = 2
 UMPIRE_RSYNC_PORT_OFFSET = 4
 UMPIRE_INSTALOG_SOCKET_PORT_OFFSET = 6
-UMPIRE_CONFIG_BASENAME = 'umpire.yaml'
-UMPIRE_RESOURCE_NAME_ALIAS = {
-    'device_factory_toolkit': 'factory_toolkit',
-    'rootfs_release': 'fsi',
-    'server_factory_toolkit': 'factory_toolkit'}
-UMPIRE_UPDATABLE_RESOURCE = set(['device_factory_toolkit',
-                                 'firmware',
-                                 'hwid',
-                                 'rootfs_release',
-                                 'server_factory_toolkit'])
 UMPIRE_MATCH_KEY_MAP = {
     'macs': 'mac',
     'serial_numbers': 'sn',
@@ -421,61 +413,32 @@ class Board(django.db.models.Model):
 
 class Resource(object):
 
-  def __init__(self, res_type, res_version, res_hash, updatable):
-    self.type = res_type
-    self.version = res_version
-    self.hash = res_hash
-    self.updatable = updatable
-
-  # TODO(littlecvr): Umpire may have the same function already
-  @staticmethod
-  def ParseName(resource_filename):
-    """Parse a resource name and return its basename, version, and hash."""
-    match = re.match(r'^([^#]*)#([^#]*)#([^#]*)$', resource_filename)
-    return {
-        'basename': match.group(1),
-        'version': match.group(2),
-        'hash': match.group(3)
-    }
+  def __init__(self, type_name, version):
+    self.type = type_name
+    self.version = version
 
   @staticmethod
-  def CreateOne(board_name, resource_type, resource_file_id):
+  def CreateOne(board_name, type_name, file_id):
     umpire_server = GetUmpireServer(board_name)
-    with UploadedFile(resource_file_id) as f:
+    with UploadedFile(file_id) as f:
       with UmpireAccessibleFile(board_name, f) as p:
-        resource_filename = umpire_server.AddResource(p, resource_type)
-    parsed = Resource.ParseName(resource_filename)
-    return Resource(resource_type,
-                    parsed['version'],
-                    parsed['hash'],
-                    resource_type in UMPIRE_UPDATABLE_RESOURCE)
+        payloads = umpire_server.AddPayload(p, type_name)
+    return Resource(type_name, payloads[type_name]['version'])
 
 
 class Bundle(object):
   """Represent a bundle in umpire."""
 
-  def __init__(self, name, note, active, resources, rules):
+  def __init__(self, name, note, active, payloads, rules):
     self.name = name
     self.note = note
     self.active = active
 
-    # Parse resources. A resource in umpire config is a simple key-value
-    # mapping, with its value consists of {file_name}, {version}, and {hash}:
-    #   {resource_type}: {file_name}#{version}#{hash}
-    # We'll parse its value for the front-end:
-    #   {resource_type}: {
-    #       'version': {version},
-    #       'hash': {hash},
-    #       'updatable': whether or not the resource can be updated}
-    self.resources = {}
-    for res_type in resources:
-      match = re.match(r'^[^#]*#([^#]*)#([^#]*)$', resources[res_type])
-      if match and len(match.groups()) >= 2:
-        self.resources[res_type] = Resource(
-            res_type,  # type
-            match.group(1),  # version
-            match.group(2),  # hash
-            res_type in UMPIRE_UPDATABLE_RESOURCE)  # updatable
+    self.resources = {type_name: Resource(type_name, 'N/A')
+                      for type_name in umpire_resource.PayloadTypeNames}
+    for type_name in payloads:
+      self.resources[type_name] = Resource(type_name,
+                                           payloads[type_name]['version'])
 
     self.rules = {}
     for umpire_key in rules:
@@ -496,8 +459,9 @@ class Bundle(object):
     umpire_server = GetUmpireServer(board_name)
 
     logger.info('Uploading Umpire config')
-    staging_config_path = umpire_server.UploadConfig(
-        UMPIRE_CONFIG_BASENAME, yaml.dump(config, default_flow_style=False))
+    staging_config_path = umpire_server.AddConfigFromBlob(
+        yaml.dump(config, default_flow_style=False),
+        umpire_resource.ConfigTypeNames.umpire_config)
 
     logger.info('Staging Umpire config')
     try:
@@ -578,7 +542,7 @@ class Bundle(object):
     return config
 
   @staticmethod
-  def _FromUmpireBundleAndRuleset(bundle, ruleset):
+  def _FromUmpireBundleAndRuleset(board_name, bundle, ruleset):
     """Take the target entry in the "bundles" and "rulesets" sections in Umpire
     config, and turns them into the Bundle entity in Dome.
 
@@ -586,10 +550,11 @@ class Bundle(object):
       bundle: the target bundle in the "bundles" section in Umpire config.
       ruleset: ruleset that refers the the target bundle in Umpire config.
     """
+    payloads = GetUmpireServer(board_name).GetPayloadsDict(bundle['payloads'])
     return Bundle(bundle['id'],  # name
                   ruleset['note'],  # note
                   ruleset['active'],  # active
-                  bundle['resources'],  # resources
+                  payloads,  # payloads
                   ruleset.get('match', {}))  # matching rules
 
   @staticmethod
@@ -635,7 +600,7 @@ class Bundle(object):
       logger.error(error_message)
       raise DomeClientException(error_message)
 
-    return Bundle._FromUmpireBundleAndRuleset(bundle, ruleset)
+    return Bundle._FromUmpireBundleAndRuleset(board_name, bundle, ruleset)
 
   @staticmethod
   def ListAll(board_name):
@@ -658,7 +623,7 @@ class Bundle(object):
     bundle_list = []
     for r in config['rulesets']:
       b = bundle_dict[r['bundle_id']]
-      bundle_list.append(Bundle._FromUmpireBundleAndRuleset(b, r))
+      bundle_list.append(Bundle._FromUmpireBundleAndRuleset(board_name, b, r))
 
     return bundle_list
 
@@ -773,22 +738,19 @@ class Bundle(object):
     return Bundle.ListAll(board_name)
 
   @staticmethod
-  def _UpdateResource(board_name, bundle_name, resource_type, resource_file_id):
+  def _UpdateResource(board_name, bundle_name, type_name, resource_file_id):
     """Update resource in a bundle.
 
     Args:
       board_name: name of the board.
       bundle_name: the bundle to update.
-      resource_type: type of resource to update.
+      type_name: An element of umpire_resource.PayloadTypeNames.
       resource_file_id: id of the resource file (id of TemporaryUploadedFile).
     """
-    # Replace with the alias if needed.
-    resource_type = UMPIRE_RESOURCE_NAME_ALIAS.get(resource_type, resource_type)
-
     umpire_server = GetUmpireServer(board_name)
     with UploadedFile(resource_file_id) as f:
       with UmpireAccessibleFile(board_name, f) as p:
-        umpire_server.Update([(resource_type, p)], bundle_name)
+        umpire_server.Update([(type_name, p)], bundle_name)
 
     config = yaml.load(umpire_server.GetStatus()['staging_config'])
 
