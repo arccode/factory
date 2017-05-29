@@ -14,8 +14,8 @@
 
 # External dependencies:
 #  jq curl md5sum partx|cgpt pigz|gzip
-#  dd tee od chmod dirname readlink mktemp stat
-#  cp mv ln rm
+#  dd tee od sed chmod basename dirname readlink mktemp stat
+#  cp ln rm
 
 # Environment settings for utilities to invoke.
 : "${GZIP:="gzip"}"
@@ -454,6 +454,10 @@ get_file_component_version() {
       ;;
     hwid)
       sed -n 's/^checksum: //p' "${file}"
+      ;;
+    complete)
+      local temp="$(md5sum "${file}")"
+      echo "${temp%% *}"
       ;;
   esac
 }
