@@ -40,7 +40,7 @@ class ValidHWIDsTest(unittest.TestCase):
       shutil.copyfile(f, os.path.join(tmp, os.path.basename(f)))
 
     # List all hwids
-    Spawn([os.path.join(paths.FACTORY_PATH, 'bin', 'hwid_tool'),
+    Spawn([os.path.join(paths.FACTORY_DIR, 'bin', 'hwid_tool'),
            '-p', tmp,
            'hwid_list'],
           log=True, log_stderr_on_error=True, check_call=True, read_stdout=True)

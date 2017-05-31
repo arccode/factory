@@ -45,7 +45,7 @@ class UpdateFirmwareTest(unittest.TestCase):
     self.just_pass = False
     if self.args.umpire:
       if shopfloor.get_firmware_updater():
-        self.args.firmware_updater = paths.FIRMWARE_UPDATER_PATH
+        self.args.firmware_updater = paths.FACTORY_FIRMWARE_UPDATER_PATH
       else:
         self.just_pass = True
     else:

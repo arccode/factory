@@ -37,7 +37,7 @@ class ThermalMonitor(plugin.Plugin):
       cmd.append('-t')
 
     self._thermal_watcher = process_utils.Spawn(
-        cmd, cwd=paths.FACTORY_PATH)
+        cmd, cwd=paths.FACTORY_DIR)
 
   @type_utils.Overrides
   def OnStop(self):

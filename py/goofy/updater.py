@@ -122,7 +122,7 @@ def TryUpdate(pre_update_hook=None, timeout=15):
         new_md5sum)
 
   # /usr/local on the device (parent to factory)
-  parent_dir = os.path.dirname(paths.FACTORY_PATH)
+  parent_dir = os.path.dirname(paths.FACTORY_DIR)
 
   new_path = os.path.join(parent_dir, 'updater.new')
   # rsync --link-dest considers any existing files to be definitive,
@@ -140,7 +140,7 @@ def TryUpdate(pre_update_hook=None, timeout=15):
       factory_src_path,
       '%s/' % new_path)
 
-  hwid_path = os.path.join(paths.FACTORY_PATH, 'hwid')
+  hwid_path = os.path.join(paths.FACTORY_DIR, 'hwid')
   new_hwid_path = os.path.join(new_path, 'factory', 'hwid')
   if os.path.exists(hwid_path) and not os.path.exists(new_hwid_path):
     RunRsync(

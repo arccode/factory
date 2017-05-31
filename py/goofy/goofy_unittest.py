@@ -162,9 +162,9 @@ class GoofyTest(unittest.TestCase):
       # We do not use mox for server.serve_forever, since the method is run in
       # another thread, and mox object are NOT thread safe.
       server.serve_forever = lambda *args, **kwargs: None
-      server.RegisterPath(
-          '/',
-          os.path.join(paths.FACTORY_PACKAGE_PATH, 'goofy/static')).InAnyOrder()
+      server.RegisterPath('/',
+                          os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR,
+                                       'goofy/static')).InAnyOrder()
       server.RegisterData('/index.html', 'text/html', IgnoreArg()).InAnyOrder()
       server.AddRPCInstance(goofy_proxy.STATE_URL, self.state).InAnyOrder()
       server.AddHTTPGetHandler('/event', IgnoreArg()).InAnyOrder()

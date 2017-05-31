@@ -45,7 +45,7 @@ class DocTest(unittest.TestCase):
 
   def testMakeDoc(self):
     stderr_lines = Spawn(
-        ['make', 'doc'], cwd=paths.FACTORY_PATH,
+        ['make', 'doc'], cwd=paths.FACTORY_DIR,
         check_output=True, read_stderr=True,
         log=True, log_stderr_on_error=True).stderr_lines()
 

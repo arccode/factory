@@ -82,7 +82,7 @@ class RFRadiatedTest(unittest.TestCase):
           'If "enable_shopfloor" is False, this is interprested as a local '
           'path.  Note that in the later case, if the path starts with a '
           'slash, it is interpreted as an absolute path; otherwise, it is '
-          'interpreted as a relative path (based on paths.FACTORY_PATH).',
+          'interpreted as a relative path (based on paths.FACTORY_DIR).',
           optional=False),
       Arg('enable_shopfloor', bool,
           'Whether to use shopfloor or not.  If True, the test will try to '
@@ -139,7 +139,7 @@ class RFRadiatedTest(unittest.TestCase):
           config_file_path = self.args.config_file_path
         else:
           config_file_path = os.path.join(
-              paths.FACTORY_PATH, self.args.config_file_path)
+              paths.FACTORY_DIR, self.args.config_file_path)
         logging.info(
             'Loading config file from local disk %s.', config_file_path)
         with open(config_file_path, 'r') as f:

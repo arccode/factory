@@ -43,7 +43,7 @@ class OfflineTest(unittest.TestCase):
       # DUT is current machine, so the factory environment is already here
       return
 
-    root = paths.FACTORY_PATH
+    root = paths.FACTORY_DIR
 
     # make tar (tar command should be available on chromebooks and android
     # devices)

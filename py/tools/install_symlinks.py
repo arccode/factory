@@ -54,7 +54,7 @@ def InstallSymlinks(target, dest, mode, sudo=False, symlinks=None):
   assert mode in [MODE_MINI, MODE_FULL]
 
   if not symlinks:
-    with open(os.path.join(paths.FACTORY_PATH,
+    with open(os.path.join(paths.FACTORY_DIR,
                            'misc/symlinks.yaml')) as f:
       symlinks = yaml.load(f)
 

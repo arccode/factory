@@ -25,7 +25,7 @@ from cros.factory.test import factory
 
 # Directory for new-style test lists.
 TEST_LISTS_PATH = os.path.join(
-    paths.FACTORY_PACKAGE_PATH, 'test', 'test_lists')
+    paths.FACTORY_PYTHON_PACKAGE_DIR, 'test', 'test_lists')
 
 # File identifying the active test list.
 ACTIVE_PATH = os.path.join(TEST_LISTS_PATH, 'ACTIVE')
@@ -38,7 +38,7 @@ MAIN_TEST_LIST_ID = 'main'
 
 # Old symlinked custom directory (which may contain test lists).
 # For backward compatibility only.
-CUSTOM_DIR = os.path.join(paths.FACTORY_PATH, 'custom')
+CUSTOM_DIR = os.path.join(paths.FACTORY_DIR, 'custom')
 
 # State used to build test lists.
 #

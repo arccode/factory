@@ -343,7 +343,7 @@ class DeployShellOfflineTest(unittest.TestCase):
 
     # push callback script
     callback_script_path = self.dut.path.join(self.script_root, 'callback.sh')
-    self.dut.SendFile(os.path.join(paths.FACTORY_PATH,
+    self.dut.SendFile(os.path.join(paths.FACTORY_DIR,
                                    self.args.callback_script_path),
                       callback_script_path)
     self.dut.Call(['chmod', '+x', callback_script_path])

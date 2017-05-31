@@ -36,7 +36,7 @@ class FactoryInitTest(unittest.TestCase):
     script = '/usr/local/factory/sh/offline-test.sh'
     job_path = self._factory_root + '/init/main.d/' + name + '.sh'
     dut_startup_script = self._factory_root + '/init/startup'
-    station_startup_script = posixpath.join(paths.FACTORY_PATH, 'sh',
+    station_startup_script = posixpath.join(paths.FACTORY_DIR, 'sh',
                                             'stub_startup.sh')
 
     self._dut.path.exists = mock.Mock(spec=posixpath.exists,

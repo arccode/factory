@@ -309,7 +309,7 @@ class CreateBundle(FactoryFlowCommand):
     logging.info('Preparing MANIFEST.yaml')
     manifest = None
     template_manifest_path = os.path.join(
-        paths.FACTORY_PATH, 'py', 'factory_flow', 'templates',
+        paths.FACTORY_DIR, 'py', 'factory_flow', 'templates',
         'MANIFEST_template.yaml')
     manifest = LoadBundleManifest(template_manifest_path)
 
@@ -434,7 +434,7 @@ class CreateBundle(FactoryFlowCommand):
     Backs up the original README in the bundle if one is found.
     """
     input_readme_path = os.path.join(
-        paths.FACTORY_PATH, 'py', 'factory_flow', 'templates',
+        paths.FACTORY_DIR, 'py', 'factory_flow', 'templates',
         'README_template')
 
     readme = None
@@ -461,7 +461,7 @@ class CreateBundle(FactoryFlowCommand):
   def FinalizeBundle(self):
     """Calls finalize_bundle to create the testing factory bundle."""
     logging.info('Finalizing factory bundle %s', self.bundle_dir)
-    finalize_bundle_tool = os.path.join(paths.FACTORY_PATH, 'bin',
+    finalize_bundle_tool = os.path.join(paths.FACTORY_DIR, 'bin',
                                         'finalize_bundle')
     process_utils.Spawn([finalize_bundle_tool, '--no-check-files',
                          '--no-archive', self.bundle_dir],

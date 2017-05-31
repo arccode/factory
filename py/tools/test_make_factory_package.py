@@ -117,7 +117,7 @@ class MakeFactoryPackageTest(unittest.TestCase):
     self.tmp_dir = (self.args.tmp_dir or
                     tempfile.mkdtemp(prefix='test_make_factory_package.'))
     self.make_factory_package = os.path.join(
-        paths.FACTORY_PATH, 'setup', 'make_factory_package.sh')
+        paths.FACTORY_DIR, 'setup', 'make_factory_package.sh')
     self.hwid = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              'testdata', 'hwid_v3_bundle_X86-GENERIC.sh')
     self.firmware_updater = os.path.join(self.tmp_dir,

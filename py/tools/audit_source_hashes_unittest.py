@@ -48,7 +48,7 @@ class AuditSourceHashesTest(unittest.TestCase):
     out = StringIO()
     self.assertRaisesRegexp(
         SystemExit, '^0$', audit_source_hashes.main,
-        [os.path.join(paths.FACTORY_PATH, 'py')], out)
+        [os.path.join(paths.FACTORY_DIR, 'py')], out)
     self.assertEquals('PASSED (1/1 samples passed).\n', out.getvalue())
 
   def testGooftoolLogSourceHashes(self):
@@ -58,7 +58,7 @@ class AuditSourceHashesTest(unittest.TestCase):
     os.environ['CROS_FACTORY_DATA_DIR'] = self.tmpdir
 
     # Log the source hashes for this source tree.
-    Spawn([os.path.join(paths.FACTORY_PATH, 'bin', 'gooftool'),
+    Spawn([os.path.join(paths.FACTORY_DIR, 'bin', 'gooftool'),
            'log_source_hashes'], log=True, check_call=True)
 
     # We should find the event in this log.  Check that it works.

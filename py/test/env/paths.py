@@ -11,14 +11,14 @@ from cros.factory.utils import sys_utils
 
 
 SCRIPT_PATH = os.path.realpath(__file__)
-# Path to factory envrionment (code and resources)
-FACTORY_PATH = os.path.realpath(
+# Path to factory environment (code and resources)
+FACTORY_DIR = os.path.realpath(
     os.path.join(SCRIPT_PATH, '..', '..', '..', '..'))
-FACTORY_PACKAGE_PATH = os.path.join(FACTORY_PATH, 'py_pkg', 'cros', 'factory')
-FACTORY_MD5SUM_PATH = os.path.join(FACTORY_PATH, 'MD5SUM')
-FIRMWARE_UPDATER_PATH = os.path.join(
-    FACTORY_PATH, 'board', 'chromeos-firmwareupdate')
-
+FACTORY_PYTHON_PACKAGE_DIR = os.path.join(
+    FACTORY_DIR, 'py_pkg', 'cros', 'factory')
+FACTORY_MD5SUM_PATH = os.path.join(FACTORY_DIR, 'MD5SUM')
+FACTORY_FIRMWARE_UPDATER_PATH = os.path.join(
+    FACTORY_DIR, 'board', 'chromeos-firmwareupdate')
 
 # Path to factory log on a "real" device.
 FACTORY_LOG_PATH_ON_DEVICE = '/var/factory/log/factory.log'
@@ -65,11 +65,11 @@ def GetFactoryPythonArchivePath():
   if factory_par:
     return factory_par
 
-  factory_par = os.path.join(FACTORY_PATH, 'factory.par')
+  factory_par = os.path.join(FACTORY_DIR, 'factory.par')
   if os.path.exists(factory_par):
     return factory_par
 
-  factory_par = os.path.join(FACTORY_PATH, 'factory-mini.par')
+  factory_par = os.path.join(FACTORY_DIR, 'factory-mini.par')
   if os.path.exists(factory_par):
     return factory_par
 

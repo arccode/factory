@@ -19,7 +19,7 @@ from cros.factory.utils.process_utils import Spawn
 
 
 NUM_PRESPAWNED_PROCESSES = 1
-PYTEST_PRESPAWNER_PATH = os.path.join(paths.FACTORY_PATH,
+PYTEST_PRESPAWNER_PATH = os.path.join(paths.FACTORY_DIR,
                                       'py/goofy/invocation.py')
 
 

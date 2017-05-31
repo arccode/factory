@@ -186,7 +186,7 @@ def main(argv=None, out=sys.stderr):
   logging.basicConfig(level=logging.WARNING)
 
   if args.golden is None:
-    args.golden = os.path.join(paths.FACTORY_PATH, 'py')
+    args.golden = os.path.join(paths.FACTORY_DIR, 'py')
 
   sys.exit(0 if AuditHashes(args.golden, args.samples, out) else 1)
 

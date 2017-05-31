@@ -17,9 +17,9 @@ from cros.factory.test.test_lists.test_lists import TestList
 
 def CreateTestLists():
   test_module_paths = [
-      os.path.join(paths.FACTORY_PATH, 'py', 'test', 'pytests',
+      os.path.join(paths.FACTORY_DIR, 'py', 'test', 'pytests',
                    '*', '*_e2etest.py'),
-      os.path.join(paths.FACTORY_PATH, 'py', 'test', 'pytests',
+      os.path.join(paths.FACTORY_DIR, 'py', 'test', 'pytests',
                    '*_e2etest.py'),
   ]
   with TestList('e2e-test', 'End-to-end tests for factory tests'):

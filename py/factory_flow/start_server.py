@@ -475,7 +475,7 @@ class StartServer(FactoryFlowCommand):
             fake_hwid_db = f.read()
       else:
         template_fake_hwid_path = os.path.join(
-            paths.FACTORY_PATH, 'py', 'factory_flow', 'templates',
+            paths.FACTORY_DIR, 'py', 'factory_flow', 'templates',
             'FAKE_HWID')
         with open(template_fake_hwid_path) as f:
           fake_hwid_db = f.read()

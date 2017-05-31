@@ -45,7 +45,7 @@ class PluginControllerTest(unittest.TestCase):
         ['/plugin/mock_plugin_mock_plugin/mock_plugin.html'])
     self._goofy.goofy_server.RegisterPath.assert_called_once_with(
         '/plugin/mock_plugin_mock_plugin',
-        os.path.join(paths.FACTORY_PACKAGE_PATH,
+        os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR,
                      'goofy', 'plugins', 'mock_plugin', 'static'))
 
   def testInitError(self):

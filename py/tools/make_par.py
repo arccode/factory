@@ -152,8 +152,8 @@ def main(argv=None):
     os.mkdir(src)
     Spawn(['rsync', '-a',
            '--exclude', 'testdata',
-           os.path.join(paths.FACTORY_PATH, 'py'),
-           os.path.join(paths.FACTORY_PATH, 'bin'),
+           os.path.join(paths.FACTORY_DIR, 'py'),
+           os.path.join(paths.FACTORY_DIR, 'bin'),
            src],
           log=True, check_call=True)
     # Add files from overlay.
@@ -218,7 +218,7 @@ def main(argv=None):
 
       rsync_args.append(par_build)
       Spawn(rsync_args, log=True, check_call=True,
-            cwd=paths.FACTORY_PATH)
+            cwd=paths.FACTORY_DIR)
 
     # Add empty __init__.py files so Python realizes these directories
     # are modules.

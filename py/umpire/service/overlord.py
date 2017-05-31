@@ -50,8 +50,8 @@ class OverlordService(umpire_service.UmpireService):
 
   def FindOverlorddPath(self):
     # We are installed on server: 'usr/local/factory'
-    if '/local/' in paths.FACTORY_PATH:
-      return os.path.normpath(os.path.join(paths.FACTORY_PATH,
+    if '/local/' in paths.FACTORY_DIR:
+      return os.path.normpath(os.path.join(paths.FACTORY_DIR,
                                            '..', '..', 'bin', 'overlordd'))
     else:
       return OVERLORDD_BIN

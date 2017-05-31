@@ -21,7 +21,7 @@ class CPUUsageMonitor(plugin.Plugin):
   def OnStart(self):
     self._cpu_usage_monitor = process_utils.Spawn(
         ['py/tools/cpu_usage_monitor.py', '-p', str(self._period_secs)],
-        cwd=paths.FACTORY_PATH)
+        cwd=paths.FACTORY_DIR)
 
   @type_utils.Overrides
   def OnStop(self):

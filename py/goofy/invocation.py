@@ -351,11 +351,11 @@ class TestInvocation(object):
         if self.test.has_automator:
           logging.info('Enable factory test automator for %r', pytest_name)
           if os.path.exists(os.path.join(
-              paths.FACTORY_PATH, 'py', 'test', 'pytests',
+              paths.FACTORY_DIR, 'py', 'test', 'pytests',
               pytest_name, pytest_name + '_automator_private.py')):
             pytest_name += '_automator_private'
           elif os.path.exists(os.path.join(
-              paths.FACTORY_PATH, 'py', 'test', 'pytests',
+              paths.FACTORY_DIR, 'py', 'test', 'pytests',
               pytest_name, pytest_name + '_automator.py')):
             pytest_name += '_automator'
           else:

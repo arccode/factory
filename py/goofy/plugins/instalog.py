@@ -188,7 +188,7 @@ class Instalog(plugin.Plugin):
     cmd_args.extend(args)
     log_fn = logging.info if verbose else logging.debug
     log_fn('Instalog: Running command: %s', ' '.join(cmd_args))
-    return process_utils.Spawn(cmd_args, cwd=paths.FACTORY_PATH, **kwargs)
+    return process_utils.Spawn(cmd_args, cwd=paths.FACTORY_DIR, **kwargs)
 
   @type_utils.Overrides
   def OnStart(self):

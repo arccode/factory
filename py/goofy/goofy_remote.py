@@ -199,7 +199,7 @@ def main():
     sys.exit('--no-auto-run-on-start must be used only when factory test '
              'automation is enabled')
 
-  Spawn(['make', '--quiet'], cwd=paths.FACTORY_PATH,
+  Spawn(['make', '--quiet'], cwd=paths.FACTORY_DIR,
         check_call=True, log=True)
   board = args.board or GetBoard(args.host)
 
@@ -210,18 +210,18 @@ def main():
   SpawnRsyncToDUT(
       ['-azlKC', '--force', '--exclude', '*.pyc'] +
       filter(os.path.exists,
-             [os.path.join(paths.FACTORY_PATH, x)
+             [os.path.join(paths.FACTORY_DIR, x)
               for x in ('bin', 'py', 'py_pkg', 'sh', 'third_party', 'init')]) +
       ['%s:/usr/local/factory' % args.host],
       check_call=True, log=True)
 
-  Spawn(['make', 'par-overlay-%s' % board], cwd=paths.FACTORY_PATH,
+  Spawn(['make', 'par-overlay-%s' % board], cwd=paths.FACTORY_DIR,
         check_call=True, log=True)
 
   SpawnRsyncToDUT(
       ['-az', 'overlay-%s/build/par/factory.par' % board,
        '%s:/usr/local/factory/' % args.host],
-      cwd=paths.FACTORY_PATH, check_call=True, log=True)
+      cwd=paths.FACTORY_DIR, check_call=True, log=True)
   SetHostBasedRole()
 
   private_path = build_board.GetChromeOSFactoryBoardPath(board)
@@ -241,7 +241,7 @@ def main():
       sys.exit('Cannot update hwid without board')
     hwid_board = board.split('_')[-1]
     chromeos_hwid_path = os.path.join(
-        os.path.dirname(paths.FACTORY_PATH), 'chromeos-hwid')
+        os.path.dirname(paths.FACTORY_DIR), 'chromeos-hwid')
     Spawn(['./create_bundle', '--version', '3', hwid_board.upper()],
           cwd=chromeos_hwid_path, check_call=True, log=True)
     SpawnSSHToDUT([args.host, 'bash'],

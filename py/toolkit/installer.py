@@ -476,7 +476,7 @@ def main():
 
   args = parser.parse_args()
 
-  src_root = paths.FACTORY_PATH
+  src_root = paths.FACTORY_DIR
   for _ in xrange(3):
     src_root = os.path.dirname(src_root)
 

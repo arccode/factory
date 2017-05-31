@@ -292,7 +292,7 @@ def GetDHCPBootParameters(interface):
 
 def GetDHCPInterfaceBlacklist(blacklist_file=None):
   if not blacklist_file:
-    blacklist_file = os.path.join(paths.FACTORY_PATH, 'board',
+    blacklist_file = os.path.join(paths.FACTORY_DIR, 'board',
                                   'dhcp_interface_blacklist')
     if os.path.exists(blacklist_file):
       with open(blacklist_file) as f:

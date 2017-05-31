@@ -18,7 +18,7 @@ from cros.factory.device.links import ssh
 from cros.factory.device.links import local
 
 dut_options = dict(
-    identity=os.path.join(paths.FACTORY_PATH, 'setup', 'sshkeys',
+    identity=os.path.join(paths.FACTORY_DIR, 'setup', 'sshkeys',
                           'testing_rsa'))
 
 class SSHLinkUnittest(unittest.TestCase):

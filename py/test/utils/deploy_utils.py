@@ -171,7 +171,7 @@ class FactoryBin(FactoryTools):
     if not isinstance(command, basestring):
       command = ' '.join(map(pipes.quote, command))
 
-    command = 'PATH=%s:$PATH %s' % (os.path.join(paths.FACTORY_PATH, 'bin'),
+    command = 'PATH=%s:$PATH %s' % (os.path.join(paths.FACTORY_DIR, 'bin'),
                                     command)
     return command
 
@@ -213,7 +213,7 @@ def CreateFactoryTools(dut, factory_par_path=None):
     an implementation of FactoryTools.
     :rtype: FactoryTools
   """
-  if dut.path.exists(dut.path.join(paths.FACTORY_PATH, 'bin')):
+  if dut.path.exists(dut.path.join(paths.FACTORY_DIR, 'bin')):
     # factory/bin exists, let's use factory/bin
     return FactoryBin(dut)
   else:

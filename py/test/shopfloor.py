@@ -277,12 +277,12 @@ def get_firmware_updater():
     logging.info('No firmware updater available on shopfloor')
     return False
 
-  with open(paths.FIRMWARE_UPDATER_PATH, 'wb') as f:
+  with open(paths.FACTORY_FIRMWARE_UPDATER_PATH, 'wb') as f:
     f.write(firmware_updater)
 
   logging.info('Writing firmware updater from shopfloor to %s',
-               paths.FIRMWARE_UPDATER_PATH)
-  os.chmod(paths.FIRMWARE_UPDATER_PATH, 0755)
+               paths.FACTORY_FIRMWARE_UPDATER_PATH)
+  os.chmod(paths.FACTORY_FIRMWARE_UPDATER_PATH, 0755)
   return True
 
 

@@ -19,7 +19,7 @@ from cros.factory.utils import string_utils
 DOMAIN = 'factory'
 DEFAULT_LOCALE = 'en-US'
 
-LOCALE_DIR = os.path.join(paths.FACTORY_PATH, 'locale')
+LOCALE_DIR = os.path.join(paths.FACTORY_DIR, 'locale')
 # All supported locales by Goofy.
 LOCALES = [DEFAULT_LOCALE] + sorted(
     [os.path.basename(p) for p in glob.glob(os.path.join(LOCALE_DIR, '*'))])

@@ -41,7 +41,7 @@ def GetFactoryRepoInfo(options):
   return {
       'url': 'chromium-review.googlesource.com',
       'project': 'chromiumos/platform/factory',
-      'dir': paths.FACTORY_PATH,
+      'dir': paths.FACTORY_DIR,
       'branch': 'cros/' + options.branch}
 
 

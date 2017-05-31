@@ -58,7 +58,7 @@ class FactoryInit(component.DeviceComponent):
     if not self._dut.path.exists(dut_startup_script):
       # however, if the default startup script doesn't exists (e.g. factory
       # toolkit is not installed), we will create a stub startup script.
-      station_startup_script = os.path.join(paths.FACTORY_PATH, 'sh',
+      station_startup_script = os.path.join(paths.FACTORY_DIR, 'sh',
                                             'stub_startup.sh')
       self._dut.link.Push(station_startup_script, dut_startup_script)
       self._dut.CheckCall(['chmod', '+x', dut_startup_script])

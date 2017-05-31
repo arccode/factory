@@ -559,7 +559,7 @@ def LogSourceHashes(options):
   else:
     event_log.Log(
         'source_hashes',
-        **file_utils.HashSourceTree(os.path.join(paths.FACTORY_PATH, 'py')))
+        **file_utils.HashSourceTree(os.path.join(paths.FACTORY_DIR, 'py')))
 
 
 @Command('log_system_details')

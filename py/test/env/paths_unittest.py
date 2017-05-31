@@ -19,13 +19,13 @@ class GetFactoryPythonArchivePathUnittest(unittest.TestCase):
     paths.sys_utils.GetRunningFactoryPythonArchivePath = lambda: None
     paths.os.path.exists = mock.MagicMock(
         side_effect=lambda p: p.endswith('factory.par'))
-    expected = os.path.join(paths.FACTORY_PATH, 'factory.par')
+    expected = os.path.join(paths.FACTORY_DIR, 'factory.par')
 
     self.assertEqual(paths.GetFactoryPythonArchivePath(), expected)
 
   def testLocalFactoryPythonArchiveMiniParExists(self):
     paths.sys_utils.GetRunningFactoryPythonArchivePath = lambda: None
-    expected = os.path.join(paths.FACTORY_PATH, 'factory-mini.par')
+    expected = os.path.join(paths.FACTORY_DIR, 'factory-mini.par')
     paths.os.path.exists = mock.MagicMock(
         side_effect=lambda p: p == expected)
 

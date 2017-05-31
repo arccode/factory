@@ -17,7 +17,7 @@ from cros.factory.utils import process_utils
 
 SCRIPT_DIR = os.path.dirname(__file__)
 TESTDATA_DIR = os.path.join(SCRIPT_DIR, 'testdata')
-PO_DIR = os.path.join(paths.FACTORY_PATH, 'po')
+PO_DIR = os.path.join(paths.FACTORY_DIR, 'po')
 
 
 class I18nTestCase(unittest.TestCase):

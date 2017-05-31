@@ -280,9 +280,9 @@ class Goofy(GoofyBase):
 
     # Setup static file path
     self.goofy_server.RegisterPath(
-        '/', os.path.join(paths.FACTORY_PACKAGE_PATH, 'goofy/static'))
+        '/', os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR, 'goofy/static'))
     # index.html needs to be preprocessed.
-    index_path = os.path.join(paths.FACTORY_PACKAGE_PATH,
+    index_path = os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR,
                               'goofy/static/index.html')
     index_html = html_translator.TranslateHTML(file_utils.ReadFile(index_path))
     self.goofy_server.RegisterData('/index.html', 'text/html', index_html)
@@ -1103,7 +1103,7 @@ class Goofy(GoofyBase):
           'http://%s:%d/' %
           (net_utils.LOCALHOST, shopfloor.DEFAULT_SERVER_PORT))
       self.dummy_shopfloor = process_utils.Spawn(
-          [os.path.join(paths.FACTORY_PATH, 'bin', 'shopfloor_server'),
+          [os.path.join(paths.FACTORY_DIR, 'bin', 'shopfloor_server'),
            '--dummy'])
     elif self.test_list.options.shopfloor_server_url:
       shopfloor.set_server_url(self.test_list.options.shopfloor_server_url)

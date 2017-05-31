@@ -37,7 +37,7 @@ class ShopFloorStandaloneTest(unittest.TestCase):
 
   def runTest(self):
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    Spawn(['make', '-s', '-C', paths.FACTORY_PATH,
+    Spawn(['make', '-s', '-C', paths.FACTORY_DIR,
            'par', 'PAR_OUTPUT_DIR=%s' % self.tmp,
            'PAR_TEMP_DIR=%s' % self.tmp_build_dir],
           log=True, check_call=True)
