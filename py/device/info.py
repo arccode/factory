@@ -153,7 +153,7 @@ class SystemInfo(component.DeviceComponent):
   @InfoProperty
   def stage(self):
     """Manufacturing build stage. Examples: PVT, EVT, DVT."""
-    return state.GetDeviceData()['stage']
+    return state.GetDeviceData('stage')
 
   @InfoProperty
   def factory_image_version(self):

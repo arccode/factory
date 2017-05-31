@@ -99,7 +99,7 @@ class HWIDV3Test(unittest.TestCase):
 
     # pass device info to DUT
     device_info_file = self._dut.path.join(self.tmpdir, 'device_info')
-    device_info = state.GetDeviceData()
+    device_info = state.GetAllDeviceData()
     with file_utils.UnopenedTemporaryFile() as f:
       yaml.dump(device_info, open(f, 'w'))
       self._dut.SendFile(f, device_info_file)

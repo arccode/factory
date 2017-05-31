@@ -442,7 +442,7 @@ class DeviceDataCommand(Subcommand):
       state.UpdateDeviceData(update, post_update_event=False)
 
     sys.stdout.write(
-        yaml.safe_dump(state.GetDeviceData(),
+        yaml.safe_dump(state.GetAllDeviceData(),
                        default_flow_style=False))
 
 

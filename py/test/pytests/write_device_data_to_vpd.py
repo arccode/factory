@@ -10,7 +10,6 @@ Data is all written as strings."""
 
 import unittest
 
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
@@ -48,10 +47,9 @@ class CallShopfloor(unittest.TestCase):
     template = ui_templates.OneSection(ui)
     template.SetState(_MSG_WRITING_VPD(self.args.vpd_section))
 
-    device_data = state.GetDeviceData()
     data_to_write = {}
     for prefix, key in self.args.device_data_keys:
-      data_to_write[prefix + key] = device_data.get(key)
+      data_to_write[prefix + key] = state.GetDeviceData(key, None)
 
     missing_keys = [k for k, v in data_to_write.iteritems() if v is None]
     if missing_keys:

@@ -62,6 +62,10 @@ OVERRIDE_TEST_LIST_DARGS_FILE = os.path.join(
     paths.DATA_STATE_DIR, 'override_test_list_dargs.yaml')
 
 
+# Dummy object to detect not set keyward argument.
+_DEFAULT_NOT_SET = object()
+
+
 class InvocationError(Exception):
   """Invocation error."""
   pass
@@ -77,19 +81,22 @@ class TestArgEnv(object):
 
   def __init__(self):
     self.state = state.get_instance()
-    self.device_data = None
+    self.device_data_selector = state.GetDeviceDataSelector()
 
   def GetMACAddress(self, interface):
     return open('/sys/class/net/%s/address' % interface).read().strip()
 
-  def GetDeviceData(self):
-    """Returns state.GetDeviceData().
+  def GetDeviceData(self, key, default=_DEFAULT_NOT_SET):
+    """Returns device data of given key."""
+    if not key:
+      raise KeyError('empty key')
+    if default == _DEFAULT_NOT_SET:
+      return self.device_data_selector.GetValue(key)
+    else:
+      return self.device_data_selector.GetValue(key, default)
 
-    The value is cached to avoid extra calls to GetDeviceData().
-    """
-    if self.device_data is None:
-      self.device_data = state.GetDeviceData()
-    return self.device_data
+  def GetAllDeviceData(self):
+    return self.device_data_selector.Get({})
 
   def GetSerialNumber(self, key=state.KEY_SERIAL_NUMBER):
     """Returns serial number.

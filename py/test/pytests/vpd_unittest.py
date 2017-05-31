@@ -36,7 +36,7 @@ class VPDBrandingFieldsTest(unittest.TestCase):
     self.test_case.vpd = dict(ro={})
     self.device_data = {}
     self.mox = mox.Mox()
-    self.mox.StubOutWithMock(state, 'GetDeviceData')
+    self.mox.StubOutWithMock(state, 'get_instance')
 
   def tearDown(self):
     self.mox.VerifyAll()
@@ -64,8 +64,11 @@ class VPDBrandingFieldsTest(unittest.TestCase):
   def testFromShopFloor(self):
     self.test_case.args = Obj(rlz_brand_code=vpd.FROM_DEVICE_DATA,
                               customization_id=vpd.FROM_DEVICE_DATA)
-    state.GetDeviceData().AndReturn(dict(rlz_brand_code='ABCD',
-                                         customization_id='FOO-BAR'))
+    state_proxy = state.StubFactoryState()
+    state.get_instance().MultipleTimes().AndReturn(state_proxy)
+    state_proxy.data_shelf.SetValue(
+        state.KEY_DEVICE_DATA,
+        dict(rlz_brand_code='ABCD', customization_id='FOO-BAR'))
     self.mox.ReplayAll()
     self.test_case.ReadBrandingFields()
     self.assertEquals(dict(rlz_brand_code='ABCD', customization_id='FOO-BAR'),

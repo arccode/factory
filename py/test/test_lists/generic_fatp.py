@@ -244,9 +244,9 @@ def FATP(args):
         pytest_name='wireless',
         dargs=dict(
             services=lambda env: [
-                (args.fatp_ap_map[env.GetDeviceData()['line']]['5G'][0][0],
+                (args.fatp_ap_map[env.GetDeviceData('line')]['5G'][0][0],
                  args.fatp_ap_password),
-                (args.fatp_ap_map[env.GetDeviceData()['line']]['2.4G'][0][0],
+                (args.fatp_ap_map[env.GetDeviceData('line')]['2.4G'][0][0],
                  args.fatp_ap_password)],
             test_url=('http://%s/testdata/test' % args.shopfloor_host),
             md5sum='097daa256e3a4569305db580df900d8d'))
@@ -262,10 +262,10 @@ def FATP(args):
           dargs=dict(
               device_name='mlan0',
               services=lambda env: [
-                  args.fatp_ap_map[env.GetDeviceData()['line']]['2.4G'][0]],
+                  args.fatp_ap_map[env.GetDeviceData('line')]['2.4G'][0]],
               strength=(
                   lambda env:
-                  args.fatp_ap_map[env.GetDeviceData()['line']]['2.4G'][1]),
+                  args.fatp_ap_map[env.GetDeviceData('line')]['2.4G'][1]),
               scan_count=10,
               switch_antenna_sleep_secs=1))
 
@@ -277,10 +277,10 @@ def FATP(args):
           dargs=dict(
               device_name='mlan0',
               services=lambda env: [
-                  args.fatp_ap_map[env.GetDeviceData()['line']]['5G'][0]],
+                  args.fatp_ap_map[env.GetDeviceData('line')]['5G'][0]],
               strength=(
                   lambda env:
-                  args.fatp_ap_map[env.GetDeviceData()['line']]['5G'][1]),
+                  args.fatp_ap_map[env.GetDeviceData('line')]['5G'][1]),
               scan_count=10,
               switch_antenna_sleep_secs=1))
 

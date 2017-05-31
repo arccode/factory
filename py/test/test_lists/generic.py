@@ -427,7 +427,7 @@ class TestListArgs(object):
     Returns:
       Returns component.has_cellular if it exists, else returns False.
     """
-    return env.GetDeviceData().get('component.has_cellular', False)
+    return env.GetDeviceData('component.has_cellular')
 
   @staticmethod
   def HasLTE(env):
@@ -443,7 +443,7 @@ class TestListArgs(object):
     Returns:
       Returns component.has_lte if it exists, else returns False.
     """
-    return env.GetDeviceData().get('component.has_lte', False)
+    return env.GetDeviceData('component.has_lte')
 
   def SelectedForSampling(self, name):
     """Helper function to check if a test is sampled.
@@ -459,7 +459,7 @@ class TestListArgs(object):
       device_data key corresponding to name in self.sampling is True.
       If it is not present, treat it as True.
     """
-    return lambda env: env.GetDeviceData().get(
+    return lambda env: env.GetDeviceData(
         self.fatp_sampling_rate[name].key, True)
 
   def SelectedForAnyFixture(self, env):

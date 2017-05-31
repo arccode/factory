@@ -249,7 +249,7 @@ class HWIDTest(unittest.TestCase):
         self.task_list.append(SelectHWIDTask(self))
       else:
         if shopfloor.is_enabled():
-          device_data = state.GetDeviceData()
+          device_data = state.GetAllDeviceData()
           if 'hwid' in device_data:
             self.hwid = device_data['hwid']
           else:

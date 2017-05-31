@@ -130,8 +130,8 @@ class Scan(unittest.TestCase):
       self.dut.storage.UpdateDict({self.args.dut_data_key: scan_value})
 
     if self.args.check_device_data_key:
-      expected_value = state.GetDeviceData().get(
-          self.args.check_device_data_key)
+      expected_value = state.GetDeviceData(
+          self.args.check_device_data_key, None)
 
       if self.args.match_the_last_few_chars != 0:
         expected_value = expected_value[-self.args.match_the_last_few_chars:]

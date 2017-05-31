@@ -476,31 +476,38 @@ class VPDTest(unittest.TestCase):
           '  written into VPD.', default=None, optional=True)]
 
   def _ReadShopFloorDeviceData(self):
-    device_data = state.GetDeviceData()
-    required_keys = set(['serial_number', 'region',
+    required_keys = set(['all_serial_numbers.serial_number', 'region',
                          'ubind_attribute', 'gbind_attribute'] +
                         [x[1] for x in self.args.extra_device_data_fields])
-    missing_keys = required_keys - set(device_data.keys())
+    missing_keys = []
+    for key in required_keys:
+      try:
+        unused_value = state.GetDeviceData(key)
+      except Exception:
+        missing_keys.append(key)
+
     if missing_keys:
       self.fail('Missing keys in shopfloor device data: %r' %
                 sorted(missing_keys))
 
-    self.vpd['ro']['serial_number'] = device_data['serial_number']
+    self.vpd['ro']['serial_number'] = state.GetDeviceData(
+        'all_serial_numbers.serial_number')
 
-    region = regions.REGIONS[device_data['region']]
+    region = regions.REGIONS[state.GetDeviceData('region')]
     self.vpd['ro']['region'] = region.region_code
 
     for ro_or_rw, key in self.args.extra_device_data_fields:
-      self.vpd[ro_or_rw][key] = device_data[key]
+      self.vpd[ro_or_rw][key] = state.GetDeviceData(key)
 
-    for k, v in device_data.iteritems():
-      match = re.match(r'$vpd\.(ro|rw)\.(.+)^', k)
-      if match:
-        self.vpd[match.group(1)][match.group(2)] = v
+    for k, v in state.GetDeviceData('vpd.ro', {}).iteritems():
+      self.vpd['ro'][k] = v
+
+    for k, v in state.GetDeviceData('vpd.rw', {}).iteritems():
+      self.vpd['rw'][k] = v
 
     self.registration_code_map = {
-        'user': device_data['ubind_attribute'],
-        'group': device_data['gbind_attribute'],
+        'user': state.GetDeviceData('ubind_attribute'),
+        'group': state.GetDeviceData('gbind_attribute'),
     }
 
   def setUp(self):
@@ -561,8 +568,6 @@ class VPDTest(unittest.TestCase):
     self.tasks += [WriteVPDTask(self)]
 
   def ReadBrandingFields(self):
-    cached_device_data = None
-
     for attr, regexp in (
         ('rlz_brand_code', branding.RLZ_BRAND_CODE_REGEXP),
         ('customization_id', branding.CUSTOMIZATION_ID_REGEXP)):
@@ -572,9 +577,7 @@ class VPDTest(unittest.TestCase):
         continue
 
       if arg_value == FROM_DEVICE_DATA:
-        if cached_device_data is None:
-          cached_device_data = state.GetDeviceData()
-        value = cached_device_data.get(attr)
+        value = state.GetDeviceData(attr, None)
         if value is None:
           raise ValueError('%s not present in device data' % attr)
       elif isinstance(arg_value, dict):

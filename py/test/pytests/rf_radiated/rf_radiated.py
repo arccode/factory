@@ -236,7 +236,7 @@ class RFRadiatedTest(unittest.TestCase):
     # First, find antenna model.  Use 'generic' and give it a warning if no
     # antenna model specified.  This will be used later to query thresholds
     # table because different antenna models may have different thresholds.
-    antenna_model = state.GetDeviceData().get('component.antenna')
+    antenna_model = state.GetDeviceData('component.antenna', None)
     if antenna_model is None or len(antenna_model) == 0:
       antenna_model = 'generic'
       factory.console.warning(

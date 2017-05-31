@@ -17,7 +17,7 @@ from cros.factory.test import state
 
 
 def main():
-  pprint.pprint(state.GetDeviceData())
+  pprint.pprint(state.GetAllDeviceData())
 
 if __name__ == '__main__':
   main()

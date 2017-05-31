@@ -418,7 +418,7 @@ class ShopFloorServerTest(unittest.TestCase):
       self.assertEqual(events[1], 'EVENT_1')
       self.assertEqual(events[2], 'EVENT_2')
 
-  def testGetDeviceData(self):
+  def testGetAuxData(self):
     self.assertEqual({'serial_number': 'MLB00001',
                       'has_lte': True},
                      self.proxy.GetAuxData('mlb', 'MLB00001'))

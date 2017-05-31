@@ -158,7 +158,7 @@ class TestListArgs(object):
     Returns:
       Returns component.has_cellular if it exists, else returns False.
     """
-    return env.GetDeviceData().get('component.has_cellular', False)
+    return env.GetDeviceData('component.has_cellular')
 
   @staticmethod
   def HasLTE(env):
@@ -174,7 +174,7 @@ class TestListArgs(object):
     Returns:
       Returns component.has_lte if it exists, else returns False.
     """
-    return env.GetDeviceData().get('component.has_lte', False)
+    return env.GetDeviceData('component.has_lte')
 
   def SyncShopFloor(self, id_suffix=None, update_without_prompt=False,
                     flush_event_logs=None, run_if=None):

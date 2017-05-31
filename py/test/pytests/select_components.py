@@ -58,7 +58,6 @@ class SelectComponentTest(unittest.TestCase):
     self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_TEST_DEFAULT_CSS)
     self.template.SetTitle(_TEST_TITLE)
-    self.device_data = state.GetDeviceData()
     # The component names.
     self.fields = self.args.comps.keys()
     self.component_device_data = dict((k, self.args.comps[k][0])
@@ -76,12 +75,13 @@ class SelectComponentTest(unittest.TestCase):
     the test argument. The second item is the selected component.
     """
     logging.info('Component selection: %r', event.data)
+    update_dict = {}
     for comp in event.data:
       key_name = self.component_device_data[self.fields[comp[0]]]
       value = string_utils.ParseString(comp[1])
-      self.device_data[key_name] = value
+      update_dict[key_name] = value
       factory.console.info('Update device data %r: %r', key_name, value)
-    state.UpdateDeviceData(self.device_data)
+    state.UpdateDeviceData(update_dict)
 
   def runTest(self):
     table = ui_templates.Table(element_id=None, rows=2, cols=len(self.fields))
@@ -112,7 +112,7 @@ class SelectComponentTest(unittest.TestCase):
         select_box.InsertOption(comp_value, comp_value)
         # Let user choose component even if device data field is not present
         # in device_data.
-        if comp_value == self.device_data.get(
+        if comp_value == state.GetDeviceData(
             self.component_device_data[field], None):
           selected = index
       if selected is not None:

@@ -39,6 +39,9 @@ DEFAULT_FACTORY_STATE_FILE_DIR = paths.DATA_STATE_DIR
 
 POST_SHUTDOWN_TAG = '%s.post_shutdown'
 
+# dummy object to detect not set keyward argument
+_DEFAULT_NOT_SET = object()
+
 # Key for device data.  This is a dictionary of accumulated data usually from
 # shopfloor calls with information about the configuration of the device.
 KEY_DEVICE_DATA = 'device'
@@ -255,8 +258,8 @@ class FactoryState(object):
     Returns:
       The updated value.
     """
-    self._data_shelf.UpdateValue(key, new_data)
-    return self._data_shelf.GetValue(key)
+    self.data_shelf_update_value(key, new_data)
+    return self._data_shelf.GetValue(key, True) or {}
 
   @sync_utils.Synchronized
   def delete_shared_data_dict_item(self, shared_data_key,
@@ -285,15 +288,11 @@ class FactoryState(object):
     Returns:
       The updated value.
     """
-    data = self.get_shared_data(shared_data_key, optional=True) or {}
-    for key in delete_keys:
-      try:
-        del data[key]
-      except KeyError:
-        if not optional:
-          raise
-    self.set_shared_data(shared_data_key, data)
-    return data
+    self.data_shelf_delete_keys(
+        [shelve_utils.DictKey.Join(shared_data_key, key)
+         for key in delete_keys],
+        optional)
+    return self._data_shelf.GetValue(shared_data_key, True) or {}
 
   @sync_utils.Synchronized
   def append_shared_data_list(self, key, new_item):
@@ -335,6 +334,10 @@ class FactoryState(object):
     return self._data_shelf.GetValue(key, optional)
 
   @sync_utils.Synchronized
+  def data_shelf_update_value(self, key, value):
+    self._data_shelf.UpdateValue(key, value)
+
+  @sync_utils.Synchronized
   def data_shelf_has_key(self, key):
     return self._data_shelf.HasKey(key)
 
@@ -349,9 +352,35 @@ class FactoryState(object):
 
 
 class DataShelfSelector(object):
-  NOTSET = object()
+  """Data selector for data_shelf.
 
-  def __init__(self, proxy, key=None):
+  data_shelf behaves like a recursive dictionary structure.  The
+  DataShelfSelector helps you get data from this dictionary.
+
+  For example, if the data stored in data_shelf is:
+
+      {
+        'a': {
+          'b': {
+            'c': 3
+          }
+        }
+      }
+
+  Then,
+
+      selector.Get() shall return entire dictionary.
+
+      selector['a'] shall return another selector rooted at 'a', thus
+      selector['a'].Get() shall return {'b': {'c': 3}}.
+
+      selector.GetValue('a') shall return {'b': {'c': 3}}
+      selector['a'].GetValue('b') shall return {'c': 3}
+
+      selector['a']['b'] and selector['a.b'] are equivalent, they both return a
+      selector rooted at 'b'.
+  """
+  def __init__(self, proxy, key=''):
     """Constructor
 
     Args:
@@ -362,41 +391,36 @@ class DataShelfSelector(object):
     self._key = key
 
   def SetValue(self, key, value):
+    key = shelve_utils.DictKey.Join(self._key, key)
+
     self._proxy.data_shelf_set_value(key, value)
 
-  def GetValue(self, key, default=NOTSET):
-    if default == self.NOTSET or self._proxy.data_shelf_has_key(key):
+  def GetValue(self, key, default=_DEFAULT_NOT_SET):
+    key = shelve_utils.DictKey.Join(self._key, key)
+
+    if default == _DEFAULT_NOT_SET or self._proxy.data_shelf_has_key(key):
       return self._proxy.data_shelf_get_value(key, False)
     else:
       return default
 
   def Set(self, value):
-    if self._key is None:
-      raise ValueError('self._key cannot be None')
-    self.SetValue(self._key, value)
+    self.SetValue('', value)
 
-  def Get(self, default=NOTSET):
-    if self._key is None:
-      raise ValueError('self._key cannot be None')
-    return self.GetValue(self._key, default=default)
+  def Get(self, default=_DEFAULT_NOT_SET):
+    return self.GetValue('', default=default)
 
   def __getitem__(self, key):
-    if self._key:
-      key = shelve_utils.DictKey.Join(self._key, key)
-      return self.__class__(self._proxy, key)
-    else:
-      return self.__class__(self._proxy, key)
+    key = shelve_utils.DictKey.Join(self._key, key)
+    return self.__class__(self._proxy, key)
 
   def __setitem__(self, key, value):
-    if self._key:
-      key = shelve_utils.DictKey.Join(self._key, key)
     self.SetValue(key, value)
 
   def __iter__(self):
-    return iter(self._proxy.data_shelf_get_children(self._key or ''))
+    return iter(self._proxy.data_shelf_get_children(self._key))
 
   def __contains__(self, key):
-    return key in self._proxy.data_shelf_get_children(self._key or '')
+    return key in self._proxy.data_shelf_get_children(self._key)
 
 
 def get_instance(address=None, port=None):
@@ -440,9 +464,23 @@ def del_shared_data(key):
 
 # ---------------------------------------------------------------------------
 # Helper functions for device data
-def GetDeviceData():
-  """Returns the accumulated dictionary of device data."""
-  return get_shared_data(KEY_DEVICE_DATA, {})
+def GetDeviceData(key, default=_DEFAULT_NOT_SET):
+  if not isinstance(key, basestring):
+    raise KeyError('key must be a string')
+
+  if default == _DEFAULT_NOT_SET:
+    return get_instance().data_shelf[KEY_DEVICE_DATA].GetValue(key)
+  else:
+    return get_instance().data_shelf[KEY_DEVICE_DATA].GetValue(key, default)
+
+
+def GetAllDeviceData():
+  return get_instance().data_shelf[KEY_DEVICE_DATA].Get({})
+
+
+def GetDeviceDataSelector():
+  """Returns the data shelf selector rooted at device data."""
+  return get_instance().data_shelf[KEY_DEVICE_DATA]
 
 
 def DeleteDeviceData(delete_keys, post_update_event=True, optional=False):

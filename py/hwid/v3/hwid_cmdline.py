@@ -160,7 +160,7 @@ def GenerateHWIDWrapper(options):
                      'Please specify device info with an input file. If you '
                      'are running with command-line, use --device-info-file')
   else:
-    device_info = state.GetDeviceData()
+    device_info = state.GetAllDeviceData()
 
   vpd = hwid_utils.GetVPD(probed_results)
 

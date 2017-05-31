@@ -165,7 +165,7 @@ class TestListArgs(object):
       Returns True if need to enlarge stateful partition, else returns False.
     """
     # Skip enlarge stateful partition if it has been done before.
-    if env.GetDeviceData().get('resize_complete', False):
+    if env.GetDeviceData('resize_complete'):
       return False
 
     dut_instance = device_utils.CreateDUTInterface()
