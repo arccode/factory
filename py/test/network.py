@@ -11,7 +11,6 @@ system components.
 import logging
 from multiprocessing import pool
 import os
-import tempfile
 import time
 
 import factory_common  # pylint: disable=unused-import
@@ -257,35 +256,35 @@ def GetDHCPBootParameters(interface):
     A tuple (ip, filename, hostname) if bootp parameter is found, else None.
   """
   dhcp_filter = '((port 67 or port 68) and (udp[8:1] = 0x2))'
-  _, dump_file = tempfile.mkstemp()
-  try:
-    p = process_utils.Spawn("tcpdump -i %s -c 1 -w %s '%s'" %
-                            (interface, dump_file, dhcp_filter), shell=True)
-  except OSError as e:
-    logging.exception(str(e))
-    return None
-
-  # Send two renew requests to make sure tcmpdump can capture the response.
-  for _ in range(2):
-    if not RenewDhcpLease(interface):
-      logging.error('can not find DHCP server on %s', interface)
-      p.terminate()
+  with file_utils.UnopenedTemporaryFile() as dump_file:
+    try:
+      p = process_utils.Spawn("tcpdump -i %s -c 1 -w %s '%s'" %
+                              (interface, dump_file, dhcp_filter), shell=True)
+    except OSError as e:
+      logging.exception(str(e))
       return None
-    time.sleep(0.5)
 
-  p.wait()
+    # Send two renew requests to make sure tcmpdump can capture the response.
+    for _ in range(2):
+      if not RenewDhcpLease(interface):
+        logging.error('can not find DHCP server on %s', interface)
+        p.terminate()
+        return None
+      time.sleep(0.5)
 
-  with open(dump_file, 'r') as f:
-    pcap = dpkt.pcap.Reader(f)
-    for _, buf in pcap:
-      eth = dpkt.ethernet.Ethernet(buf)
-      udp = eth.ip.data
-      dhcp = dpkt.dhcp.DHCP(udp.data)
+    p.wait()
 
-      if dhcp['siaddr'] != 0 and dhcp['file'].strip('\x00'):
-        ip = '.'.join([str(ord(x)) for x in
-                       ('%x' % dhcp['siaddr']).decode('hex')])
-        return (ip, dhcp['file'].strip('\x00'), dhcp['sname'].strip('\x00'))
+    with open(dump_file, 'r') as f:
+      pcap = dpkt.pcap.Reader(f)
+      for _, buf in pcap:
+        eth = dpkt.ethernet.Ethernet(buf)
+        udp = eth.ip.data
+        dhcp = dpkt.dhcp.DHCP(udp.data)
+
+        if dhcp['siaddr'] != 0 and dhcp['file'].strip('\x00'):
+          ip = '.'.join([str(ord(x)) for x in
+                         ('%x' % dhcp['siaddr']).decode('hex')])
+          return (ip, dhcp['file'].strip('\x00'), dhcp['sname'].strip('\x00'))
 
   return None
 

@@ -10,7 +10,6 @@ import logging
 import os
 import re
 import subprocess
-import tempfile
 import time
 from xml.sax import saxutils
 
@@ -533,33 +532,33 @@ class DeviceManager(plugin.Plugin):
         fetch_time: A number indicating how long powertop should fetch data.
           The default time is 20 seconds.
       """
-      html_file_path = tempfile.mkstemp(suffix='.html')[1]
-      subprocess.check_output(
-          ['powertop', '--html=%s' % html_file_path, '--time=%d' % fetch_time])
+      with file_utils.UnopenedTemporaryFile(suffix='.html') as html_file_path:
+        subprocess.check_output(['powertop', '--html=%s' % html_file_path,
+                                 '--time=%d' % fetch_time])
 
-      power_usage_main_xml = []
-      power_usage_main_xml.append('<node id="power_usage">')
-      power_usage_main_xml.append('<description>Power usage</description>')
+        power_usage_main_xml = []
+        power_usage_main_xml.append('<node id="power_usage">')
+        power_usage_main_xml.append('<description>Power usage</description>')
 
-      item_list = GetItemListFromPowerTOPHTML(html_file_path)
+        item_list = GetItemListFromPowerTOPHTML(html_file_path)
 
-      first_item = True
-      for description, tag_id in item_list:
-        if first_item:
-          power_usage_main_xml.append('<html_string>')
-          power_usage_main_xml.append(
-              saxutils.escape(FetchFromHTML(html_file_path, tag_id)))
-          power_usage_main_xml.append('</html_string>')
-          first_item = False
-        else:
-          power_usage_main_xml.append(
-              DeviceNodeString(
-                  tag_id, description,
-                  [('html_string',
-                    FetchFromHTML(html_file_path, tag_id),
-                    False)]))
+        first_item = True
+        for description, tag_id in item_list:
+          if first_item:
+            power_usage_main_xml.append('<html_string>')
+            power_usage_main_xml.append(
+                saxutils.escape(FetchFromHTML(html_file_path, tag_id)))
+            power_usage_main_xml.append('</html_string>')
+            first_item = False
+          else:
+            power_usage_main_xml.append(
+                DeviceNodeString(
+                    tag_id, description,
+                    [('html_string',
+                      FetchFromHTML(html_file_path, tag_id),
+                      False)]))
 
-      power_usage_main_xml.append('</node>')
+        power_usage_main_xml.append('</node>')
 
       return ''.join(power_usage_main_xml)
 
