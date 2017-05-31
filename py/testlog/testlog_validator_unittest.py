@@ -172,6 +172,7 @@ class StationTestRunFieldsValidatorTest(unittest.TestCase):
     event = testlog.StationTestRun()
     # Valid serial number
     event['serialNumbers'] = {'key': 'mlb', 'value': 'A1234567890'}
+    event['serialNumbers'] = {'key': 'sn', 'value': None}
     # Wrong key type
     with self.assertRaises(ValueError):
       event['serialNumbers'] = {'key': 3, 'value': 'Google'}

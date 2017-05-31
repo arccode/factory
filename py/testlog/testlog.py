@@ -939,7 +939,7 @@ class StationTestRun(_StationBase):
 
   def _ValidatorSerialNumberWrapper(*args, **kwargs):
     # pylint: disable=no-method-argument
-    SCHEMA = schema.Scalar('serialNumbers.value', basestring)
+    SCHEMA = schema.Optional(schema.Scalar('serialNumbers.value', basestring))
     kwargs['schema'] = SCHEMA
     return testlog_validator.Validator.Dict(*args, **kwargs)
 
