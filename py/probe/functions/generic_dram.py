@@ -31,10 +31,11 @@ class GenericDRAMFunction(function.ProbeFunction):
     sizes = dict(re.findall('dimm="([^"]*)".*size_mb="([^"]*)"', size_data))
 
     results = []
-    for slot in sorted(parts):
-      part = parts[slot]
-      size = sizes[slot]
-      timing = timings[slot].replace(' ', '')
+    for dimm in sorted(parts):
+      slot = dimm.strip()
+      part = parts[dimm].strip()
+      size = sizes[dimm].strip()
+      timing = timings[dimm].replace(' ', '')
       results.append({
           'slot': slot,
           'part': part,
