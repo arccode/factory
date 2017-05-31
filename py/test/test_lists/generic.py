@@ -382,7 +382,7 @@ class TestListArgs(object):
       True to run RunIn.ShopFloor.ImageUpdateControlRun.
       None will be treated as True.
     """
-    serial_number = env.GetDeviceData().get('serial_number', None)
+    serial_number = env.GetSerialNumber()
     if not serial_number:
       return None
     return (str(serial_number) in
@@ -407,7 +407,7 @@ class TestListArgs(object):
       True to run RunIn.ShopFloor.FirmwareUpdate. None will be treated
       as True.
     """
-    serial_number = env.GetDeviceData().get('serial_number', None)
+    serial_number = env.GetSerialNumber()
     if not serial_number:
       return None
     return (str(serial_number) in

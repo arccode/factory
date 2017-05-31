@@ -139,8 +139,9 @@ class GoofyTest(unittest.TestCase):
       args.append('--restart')
 
     logging.info('Running goofy with args %r', args)
-    new_goofy.dut.info.Overrides('mlb_serial_number', 'mlb_sn_123456789')
-    new_goofy.dut.info.Overrides('serial_number', 'sn_123456789')
+    new_goofy.dut.info.Overrides(state.KEY_MLB_SERIAL_NUMBER,
+                                 'mlb_sn_123456789')
+    new_goofy.dut.info.Overrides(state.KEY_SERIAL_NUMBER, 'sn_123456789')
     new_goofy.init(args, self.env or Environment())
     self.goofy = new_goofy
 

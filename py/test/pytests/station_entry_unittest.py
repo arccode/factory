@@ -89,13 +89,12 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.test._ui = self.mock_ui
     self.test._template = self.mock_template
 
-    self.mox.StubOutWithMock(state, 'DeleteDeviceData')
+    self.mox.StubOutWithMock(state, 'ClearAllSerialNumbers')
     self.mox.StubOutWithMock(sync_utils, 'WaitFor')
     self.mox.StubOutWithMock(self.test, 'SendTestResult')
 
     self.mock_ui.BindKey(test_ui.SPACE_KEY, mox.Func(callable))
-    state.DeleteDeviceData(['serial_number', 'mlb_serial_number'],
-                           optional=True)
+    state.ClearAllSerialNumbers()
     self.mock_ui.SetHTML(mox.IsA(basestring),
                          id=mox.IsA(basestring)).MultipleTimes()
 
@@ -128,17 +127,14 @@ class FactoryEntryUnitTest(unittest.TestCase):
                                'invalidate_dut_info': True,
                                'clear_serial_numbers': True, })
 
-    self.mox.StubOutWithMock(state, 'DeleteDeviceData')
+    self.mox.StubOutWithMock(state, 'ClearAllSerialNumbers')
     self.mox.StubOutWithMock(sync_utils, 'WaitFor')
-    self.mox.StubOutWithMock(self.test._dut.info, 'GetAllSerialNumbers')
 
     self.mock_ui.BindKey(test_ui.SPACE_KEY, mox.Func(callable))
-    state.DeleteDeviceData(['serial_number', 'mlb_serial_number'],
-                           optional=True)
+    state.ClearAllSerialNumbers()
     self.mock_template.SetState(mox.IsA(basestring))
     self.mock_ui.SetHTML(mox.IsA(basestring),
                          id=mox.IsA(basestring)).MultipleTimes()
-    self.test._dut.info.GetAllSerialNumbers()
     sync_utils.WaitFor(mox.IsA(type(lambda: None)), timeout_secs,
                        poll_interval=1)
 

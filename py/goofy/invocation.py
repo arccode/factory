@@ -91,6 +91,22 @@ class TestArgEnv(object):
       self.device_data = state.GetDeviceData()
     return self.device_data
 
+  def GetSerialNumber(self, key=state.KEY_SERIAL_NUMBER):
+    """Returns serial number.
+
+    Use `key` to specify which type of serial number you want, e.g.
+    'mlb_serial_number'.  The default key will be 'serial_number'.
+
+    Return: str or None (if not found)
+    """
+    if not key:
+      raise KeyError('empty key')
+    return self.device_data_selector[
+        state.KEY_ALL_SERIAL_NUMBERS].GetValue(key, None)
+
+  def GetAllSerialNumbers(self):
+    return self.device_data_selector[state.KEY_ALL_SERIAL_NUMBERS].Get({})
+
   def InEngineeringMode(self):
     """Returns if goofy is in engineering mode."""
     return state.get_shared_data('engineering_mode')
@@ -106,8 +122,8 @@ def ResolveTestArgs(dargs):
       dargs={
           'method': 'Foo',
           'args': lambda env: [
-              env.state.get_shared_data('mlb_serial_number'),
-              env.state.GetSerialNumber(),
+              env.GetSerialNumber('mlb_serial_number'),
+              env.GetSerialNumber(),
               env.GetMACAddress('wlan0'),
           ]
       })
@@ -594,7 +610,7 @@ class TestInvocation(object):
       log_args = dict(
           path=self.test.path,
           dargs=resolved_dargs,
-          serial_numbers=self.goofy.dut.info.GetAllSerialNumbers(),
+          serial_numbers=state.GetAllSerialNumbers(),
           invocation=self.uuid)
       if self.test.pytest_name:
         log_args['pytest_name'] = self.test.pytest_name

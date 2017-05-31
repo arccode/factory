@@ -82,7 +82,7 @@ class MemorySize(unittest.TestCase):
 
     method_name = self.args.shopfloor_method_name
     method = getattr(shopfloor.get_instance(detect=True), method_name)
-    mlb_serial_number = state.GetDeviceData()['mlb_serial_number']
+    mlb_serial_number = state.GetSerialNumber(state.KEY_MLB_SERIAL_NUMBER)
     message = 'Invoking %s(%s)' % (method_name, mlb_serial_number)
 
     while True:

@@ -43,7 +43,33 @@ POST_SHUTDOWN_TAG = '%s.post_shutdown'
 # shopfloor calls with information about the configuration of the device.
 KEY_DEVICE_DATA = 'device'
 
+# Key for all serial numbers.  This is a dictionary of different serial numbers.
+# For example, a typical device usually has both serial_number and
+# mlb_serial_number, thus the shared data will be set to:
+#
+# {
+#   'device': {
+#     'all_serial_numbers': {
+#       'serial_number': 'SN1234567890',
+#       'mlb_serial_number': 'MLB1234567890'
+#     }
+#   }
+# }
+#
+# At here, we only define the key of **device serial number** to be
+# 'serial_number'.  For other serial numbers, you can choose any name
+# appropriated for your project.  As long as the key is set under
+# 'device.serial_numbers', it will be logged by testlog.
+#
+# You can use UpdateSerialNumbers({'mlb_serial_number': 'MLB12345'}) to set a
+# serial number called 'mlb_serial_number'.  And GetAllSerialNumbers() will
+# return {'mlb_serial_number': 'MLB12345'}.
+# `set_shared_data('device.serial_numbers.mlb_serial_number', 'MLB12345')` will
+# do the same thing.
+KEY_ALL_SERIAL_NUMBERS = 'all_serial_numbers'
+
 KEY_SERIAL_NUMBER = 'serial_number'
+KEY_MLB_SERIAL_NUMBER = 'mlb_serial_number'
 
 
 def clear_state(state_file_dir=DEFAULT_FACTORY_STATE_FILE_DIR):
@@ -434,8 +460,6 @@ def DeleteDeviceData(delete_keys, post_update_event=True, optional=False):
   logging.info('Deleting device data: %s', delete_keys)
   data = get_instance().delete_shared_data_dict_item(
       KEY_DEVICE_DATA, delete_keys, optional)
-  if 'serial_number' in delete_keys:
-    SetSerialNumber(None)
   logging.info('Updated device data; complete device data is now %s',
                privacy.FilterDict(data))
   if post_update_event:
@@ -470,12 +494,40 @@ def UpdateDeviceData(new_device_data, post_update_event=True):
 
 # ---------------------------------------------------------------------------
 # Helper functions for serial numbers
-def SetSerialNumber(serial_number):
-  UpdateDeviceData({KEY_SERIAL_NUMBER: serial_number})
+# When setting serial numbers, a value evaluates to false (None, false, empty
+# string...) will **delete** the serial number instead.
+def SetSerialNumber(key=KEY_SERIAL_NUMBER, value=None):
+  UpdateSerialNumbers({key: value})
 
 
-def GetSerialNumber():
-  return GetDeviceData().get(KEY_SERIAL_NUMBER)
+def GetSerialNumber(key=KEY_SERIAL_NUMBER):
+  return GetAllSerialNumbers().get(key)
+
+
+def UpdateSerialNumbers(dict_):
+  assert isinstance(dict_, dict)
+  keys_to_delete = []
+  for key, value in dict_.iteritems():
+    if not value:
+      keys_to_delete.append(key)
+
+  for key in keys_to_delete:
+    dict_.pop(key)
+
+  if dict_:
+    UpdateDeviceData({KEY_ALL_SERIAL_NUMBERS: dict_})
+  if keys_to_delete:
+    DeleteDeviceData(
+        [shelve_utils.DictKey.Join(KEY_ALL_SERIAL_NUMBERS, key)
+         for key in keys_to_delete], optional=True)
+
+
+def ClearAllSerialNumbers():
+  DeleteDeviceData([KEY_ALL_SERIAL_NUMBERS], optional=True)
+
+
+def GetAllSerialNumbers():
+  return GetDeviceData(KEY_ALL_SERIAL_NUMBERS, {})
 
 
 class StubFactoryState(FactoryState):

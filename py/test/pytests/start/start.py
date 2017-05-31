@@ -202,7 +202,7 @@ class ShopFloorTask(FactoryTask):
     try:
       # All exceptions
       shopfloor.check_serial_number(serial.strip())
-      Log('mlb_serial_number', serial_number=serial)
+      Log(state.KEY_MLB_SERIAL_NUMBER, serial_number=serial)
       logging.info('Serial number: %s', serial)
       state.SetSerialNumber(serial)
       self._test.ui.event_client.post_event(
@@ -255,7 +255,7 @@ class ReadVPDSerialTask(FactoryTask):
           else:
             serial_number[v] = vpd_value
 
-    Log('mlb_serial_number', serial_number=serial_number)
+    Log(state.KEY_MLB_SERIAL_NUMBER, serial_number=serial_number)
     state.SetSerialNumber(serial_number)
     self._test.ui.event_client.post_event(Event(Event.Type.UPDATE_SYSTEM_INFO))
     self.Pass()

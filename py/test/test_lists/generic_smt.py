@@ -15,6 +15,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool import commands
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.i18n import _
+from cros.factory.test import state
 from cros.factory.test.test_lists.test_lists import AutomatedSequence
 from cros.factory.test.test_lists.test_lists import FactoryTest
 from cros.factory.test.test_lists.test_lists import HaltStep
@@ -22,6 +23,7 @@ from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import Passed
 from cros.factory.test.test_lists.test_lists import RebootStep
 from cros.factory.test.test_lists.test_lists import TestGroup
+from cros.factory.utils.shelve_utils import DictKey
 
 
 # SMT test items.
@@ -118,8 +120,9 @@ def ScanMLB(args):
     args: A TestListArgs object.
   """
   dargs = dict(
-      device_data_key='mlb_serial_number',
-      event_log_key='mlb_serial_number',
+      device_data_key=DictKey.Join(state.KEY_ALL_SERIAL_NUMBERS,
+                                   state.KEY_MLB_SERIAL_NUMBER),
+      event_log_key=state.KEY_MLB_SERIAL_NUMBER,
       label=_('MLB Serial Number'),
       regexp=args.smt_mlb_serial_number_pattern)
 
@@ -220,7 +223,8 @@ def SMTShopFloor2(args):
         require_run=Passed(
             args.smt_test_group_id + '.ShopFloor2.UpdateDeviceData'),
         dargs=dict(
-            device_data_keys=[('factory.device_data.', 'mlb_serial_number'),
+            device_data_keys=[('factory.device_data.',
+                               state.KEY_MLB_SERIAL_NUMBER),
                               ('factory.device_data.', 'smt_complete')],
             vpd_section='rw'))
 
@@ -233,7 +237,7 @@ def SMTShopFloor2(args):
         dargs=dict(
             method='UploadReport',
             args=lambda env: [
-                env.GetDeviceData()['mlb_serial_number'],
+                env.GetSerialNumber(state.KEY_MLB_SERIAL_NUMBER),
                 # CreateReportArchiveBlob is a function;
                 # call_shopfloor will execute it.  We don't
                 # put it here since it may be megabytes long

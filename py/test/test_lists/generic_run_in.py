@@ -14,6 +14,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
+from cros.factory.test import state
 from cros.factory.test.test_lists.test_lists import AutomatedSequence
 from cros.factory.test.test_lists.test_lists import FactoryTest
 from cros.factory.test.test_lists.test_lists import OperatorTest
@@ -80,7 +81,7 @@ def RunIn(args, group_suffix=''):
               pytest_name='write_device_data_to_vpd',
               dargs=dict(
                   device_data_keys=[
-                      ('factory.device_data.', 'mlb_serial_number'),
+                      ('factory.device_data.', state.KEY_MLB_SERIAL_NUMBER),
                       ('factory.device_data.', 'smt_complete')
                   ],
                   vpd_section='rw'))
@@ -169,7 +170,7 @@ def RunIn(args, group_suffix=''):
               dargs=dict(
                   method='GetDeviceInfo',
                   args=lambda env: [
-                      env.GetDeviceData()['mlb_serial_number'],
+                      env.GetSerialNumber(state.KEY_MLB_SERIAL_NUMBER),
                   ],
                   action='update_device_data'))
 
@@ -318,7 +319,7 @@ def RunIn(args, group_suffix=''):
                 run_if=args.SelectedForControlRunImageUpdate,
                 dargs=dict(
                     device_data_keys=[
-                        ('factory.device_data.', 'mlb_serial_number'),
+                        ('factory.device_data.', state.KEY_MLB_SERIAL_NUMBER),
                         ('factory.device_data.', 'smt_complete')
                     ],
                     vpd_section='rw'))

@@ -123,25 +123,22 @@ class SystemInfo(component.DeviceComponent):
 
   def ClearSerialNumbers(self):
     """Clears any serial numbers from DeviceData."""
-    return state.DeleteDeviceData(
-        ['serial_number',
-         'mlb_serial_number'], optional=True)
+    return state.ClearAllSerialNumbers()
 
   def GetAllSerialNumbers(self):
     """Returns all available serial numbers in a dict."""
-    return {'device': self.GetSerialNumber(),
-            'mlb': self.GetSerialNumber('mlb_serial_number')}
+    return state.GetAllSerialNumbers()
 
-  def GetSerialNumber(self, name='serial_number'):
+  def GetSerialNumber(self, name=state.KEY_SERIAL_NUMBER):
     """Retrieves a serial number from device.
 
     Tries to load the serial number from DeviceData.  If not found, loads
     from DUT storage, and caches into DeviceData.
     """
-    if not state.GetDeviceData().get(name):
+    if not state.GetSerialNumber(name):
       serial = self._dut.storage.LoadDict().get(name)
-      state.UpdateDeviceData({name: serial})
-    return state.GetDeviceData()[name]
+      state.UpdateSerialNumbers({name: serial})
+    return state.GetSerialNumber(name)
 
   @InfoProperty
   def serial_number(self):
@@ -151,7 +148,7 @@ class SystemInfo(component.DeviceComponent):
   @InfoProperty
   def mlb_serial_number(self):
     """Motherboard serial number."""
-    return self.GetSerialNumber('mlb_serial_number')
+    return self.GetSerialNumber(state.KEY_MLB_SERIAL_NUMBER)
 
   @InfoProperty
   def stage(self):
