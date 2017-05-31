@@ -43,7 +43,7 @@ EVENT_LOG_DIR = os.path.join(paths.DATA_STATE_DIR, "events")
 REIMAGE_ID_PATH = os.path.join(EVENT_LOG_DIR, ".reimage_id")
 
 # The /run directory (or something writable by us if in the chroot).
-RUN_DIR = os.path.join(paths.GetRuntimeVariableDataPath(), "factory")
+RUN_DIR = os.path.join(paths.RUNTIME_VARIABLE_DATA_DIR, "factory")
 
 # File containing the next sequence number to write.  This is in
 # /run so it is cleared on each boot.

@@ -37,17 +37,9 @@ DATA_TESTS_DIR = os.path.join(DATA_DIR, 'tests')
 CONSOLE_LOG_PATH = os.path.join(DATA_LOG_DIR, 'console.log')
 FACTORY_LOG_PATH = os.path.join(DATA_LOG_DIR, 'factory.log')
 
-
-def GetRuntimeVariableDataPath():
-  """Returns the root for logging and state.
-
-  Returns:
-    /run, or ${DATA_DIR}/run if in the chroot, may be overridden
-    by the CROS_FACTORY_RUN_PATH environment variable.
-  """
-  return os.environ.get('CROS_FACTORY_RUN_PATH',
-                        os.path.join(DATA_DIR, 'run')
-                        if sys_utils.InChroot() else '/run')
+RUNTIME_VARIABLE_DATA_DIR = os.environ.get('CROS_FACTORY_RUN_PATH',
+                                           os.path.join(DATA_DIR, 'run')
+                                           if sys_utils.InChroot() else '/run')
 
 
 def GetFactoryPythonArchivePath():

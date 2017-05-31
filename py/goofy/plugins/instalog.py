@@ -43,12 +43,12 @@ class Instalog(plugin.Plugin):
     """
     super(Instalog, self).__init__(goofy)
     self._instalog_process = None
-    self._config_path = os.path.join(paths.GetRuntimeVariableDataPath(),
+    self._config_path = os.path.join(paths.RUNTIME_VARIABLE_DATA_DIR,
                                      'instalog.yaml')
 
     node_id = testlog_goofy.GetDeviceID()
     data_dir = os.path.join(paths.DATA_LOG_DIR, 'instalog')
-    pid_file = os.path.join(paths.GetRuntimeVariableDataPath(), 'instalog.pid')
+    pid_file = os.path.join(paths.RUNTIME_VARIABLE_DATA_DIR, 'instalog.pid')
     log_file = os.path.join(paths.DATA_LOG_DIR, 'instalog.log')
     cli_hostname = _CLI_HOSTNAME
     cli_port = _CLI_PORT
