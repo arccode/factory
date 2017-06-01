@@ -3,6 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+# TODO(stimim): use DUT API
 
 """A factory test for ambient light sensor.
 
@@ -18,6 +19,7 @@ Roughly speaking:
 
 from __future__ import print_function
 
+import glob
 import logging
 import math
 import os
@@ -42,7 +44,7 @@ _DEFAULT_SUBTEST_INSTRUCTION = {
     'Light sensor exact': 'Remove finger from light sensor',
     'Light sensor light': 'Shine light sensor with flashlight'}
 
-_DEFAULT_DEVICE_PATH = '/sys/bus/iio/devices/iio:device0/'
+_DEFAULT_DEVICE_PATH = '/sys/bus/iio/devices/*/'
 _DEFAULT_DEVICE_INPUT = 'illuminance0_input'
 
 _MSG_PROMPT_FMT = """
@@ -82,9 +84,19 @@ class iio_generic(object):
                    None means no value is set.
       init_cmd: initial command to setup light sensor device
     """
+    if device_path is None:
+      device_path = _DEFAULT_DEVICE_PATH
+
+    if '*' in device_path:
+      # use glob to find correct path
+      matches = glob.glob(os.path.join(device_path, device_input))
+      assert len(matches) > 0, 'Cannot find any light sensor'
+      assert len(matches) == 1, 'More than one light sensor found'
+      device_path = os.path.dirname(matches[0])
+
     # initial values
-    self._rd = device_path + device_input
-    self._range_setting = device_path + 'range'
+    self._rd = os.path.join(device_path, device_input)
+    self._range_setting = os.path.join(device_path, 'range')
     self._init_cmd = init_cmd
     self._min = 0
     self._max = math.pow(2, 16)
@@ -162,7 +174,7 @@ class iio_generic(object):
 class LightSensorTest(unittest.TestCase):
   """Tests light sensor."""
   ARGS = [
-      Arg('device_path', str, 'device path', _DEFAULT_DEVICE_PATH),
+      Arg('device_path', str, 'device path', optional=True),
       Arg('device_input', str, 'device input file', _DEFAULT_DEVICE_INPUT),
       Arg('timeout_per_subtest', int, 'timeout for each subtest', 10),
       Arg('subtest_list', list, 'subtest list', optional=True),
