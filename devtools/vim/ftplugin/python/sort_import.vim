@@ -39,15 +39,26 @@
 "   from ... import ...
 " or
 "   import ...
+if has('python')
+  command! -range -nargs=* VimPython <line1>,<line2>python <args>
+elseif has('python3')
+  command! -range -nargs=* VimPython <line1>,<line2>python3 <args>
+else
+  echoerr "sort_import plugin will not work because the version of vim" .
+      \ " supports neither python nor python3"
+  finish
+endif
+
 if !exists('g:vim_sort_import_map')
   let g:vim_sort_import_map = '<Leader>si'
 endif
 
 if g:vim_sort_import_map != ''
-  execute "vnoremap <buffer>" g:vim_sort_import_map ":python SortImports()<CR>"
+  execute "vnoremap <buffer>" g:vim_sort_import_map
+      \ ":VimPython SortImports()<CR>"
 endif
 
-python <<EOF
+VimPython <<EOF
 from __future__ import print_function
 import vim
 
