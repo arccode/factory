@@ -103,13 +103,14 @@ class Event(json_utils.Serializable):
           payload=dct[0],
           attachments=dct[1])
 
-    # Case of only 'payload' being provided (run_plugin.py).
-    if '__type__' not in json_string:
-      dct = json_utils.JSONDecoder().decode(json_string)
-      return cls(payload=dct)
+    dct = json_utils.JSONDecoder().decode(json_string)
 
     # Use Serializable's default method.
-    return super(Event, cls).Deserialize(json_string)
+    if '__type__' in dct and dct['__type__'] == cls.__name__:
+      return super(Event, cls).Deserialize(json_string)
+
+    # Case of only 'payload' being provided (run_plugin.py).
+    return cls(payload=dct)
 
   def ToDict(self):
     """Returns the dictionary equivalent of the Event object."""
