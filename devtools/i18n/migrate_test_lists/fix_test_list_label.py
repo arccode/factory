@@ -184,10 +184,12 @@ class FixTestListLabel(fixer_base.BaseFix):
   """
   FUNC_NAME = (
       "('FactoryTest' | 'OperatorTest' | 'AutomatedSequence' | 'RebootStep' "
-      "| 'HaltStep')")
+      "| 'HaltStep' | 'TestGroup')")
 
   PATTERN = r"""
     power< name={func_name} trailer< '(' arg_list=any ')' > >
+    |
+    power< 'test_lists' trailer< '.' name={func_name} > trailer< '(' arg_list=any ')' > >
     |
     argument< 'dargs' '=' power< 'dict' trailer< '(' arg_list=any ')' > > >
     |
