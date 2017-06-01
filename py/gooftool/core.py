@@ -13,7 +13,7 @@ import logging
 import os
 import re
 import sys
-from tempfile import NamedTemporaryFile
+import tempfile
 import time
 
 import factory_common  # pylint: disable=unused-import
@@ -100,7 +100,7 @@ class Gooftool(object):
     self._delete_rw_vpd = DeleteRwVpd
     self._update_ro_vpd = UpdateRoVpd
     self._unpack_bmpblock = unpack_bmpblock
-    self._named_temporary_file = NamedTemporaryFile
+    self._named_temporary_file = tempfile.NamedTemporaryFile
     self._db = None
 
   @property

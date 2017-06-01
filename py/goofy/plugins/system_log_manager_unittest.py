@@ -14,7 +14,6 @@ import mox
 import os
 import Queue
 import shutil
-import tempfile
 import threading
 import unittest
 from urlparse import urlparse
@@ -68,6 +67,10 @@ MOCK_RSYNC_DESTINATION = [
      MOCK_DEVICE_ID.replace(':', '') + '_' + MOCK_IMAGE_ID)]
 MOCK_RSYNC_COMMAND_ARG = ['rsync', '-azR', '--stats', '--chmod=o-t',
                           '--timeout=%s' % MOCK_RSYNC_IO_TIMEOUT]
+
+
+def CreateTestFile(prefix):
+  return file_utils.CreateTemporaryFile(prefix=prefix, dir=TEST_DIRECTORY)
 
 
 class StubTimer(object):
@@ -152,9 +155,8 @@ class TestSystemLogManager(unittest.TestCase):
     self.kick_replayed_event = threading.Event()
     file_utils.TryMakeDirs(TEST_DIRECTORY)
     self.ClearFiles()
-    self._tempfiles = [
-        tempfile.mkstemp(prefix=mock_file_prefix, dir=TEST_DIRECTORY)
-        for _ in xrange(3)]
+    self._tempfiles = [CreateTestFile(mock_file_prefix)
+                       for unused_index in xrange(3)]
     self.base_rsync_command = (
         MOCK_RSYNC_COMMAND_ARG +
         sum([glob.glob(x) for x in mock_sync_log_paths], []) +
@@ -560,7 +562,7 @@ class TestSystemLogManager(unittest.TestCase):
     self.SetMock()
     clear_file_prefix = mock_file_prefix + 'clear_'
     for _ in xrange(3):
-      tempfile.mkstemp(prefix=clear_file_prefix, dir=TEST_DIRECTORY)
+      CreateTestFile(clear_file_prefix)
     clear_file_paths = [os.path.join(TEST_DIRECTORY, clear_file_prefix + '*')]
     self.MockSyncOnce()
     self.MockStopAt((MOCK_SCAN_PERIOD_SEC + MOCK_POLLING_DURATION) * 2)
@@ -582,7 +584,7 @@ class TestSystemLogManager(unittest.TestCase):
     self.SetMock()
     clear_file_prefix = mock_file_prefix + 'clear_'
     for _ in xrange(3):
-      tempfile.mkstemp(prefix=clear_file_prefix, dir=TEST_DIRECTORY)
+      CreateTestFile(clear_file_prefix)
     clear_file_paths = [os.path.join(TEST_DIRECTORY, clear_file_prefix + '*')]
 
     self.MockStopAt(MOCK_SCAN_PERIOD_SEC)
@@ -604,7 +606,7 @@ class TestSystemLogManager(unittest.TestCase):
     self.SetMock()
     clear_file_prefix = mock_file_prefix + 'clear_'
     for _ in xrange(3):
-      tempfile.mkstemp(prefix=clear_file_prefix, dir=TEST_DIRECTORY)
+      CreateTestFile(clear_file_prefix)
     clear_file_paths = [os.path.join(TEST_DIRECTORY, clear_file_prefix + '*')]
 
     self.RecordKickToClear()
@@ -628,10 +630,10 @@ class TestSystemLogManager(unittest.TestCase):
     self.SetMock()
     clear_file_prefix = mock_file_prefix + 'clear_'
     for _ in xrange(3):
-      tempfile.mkstemp(prefix=clear_file_prefix, dir=TEST_DIRECTORY)
+      CreateTestFile(clear_file_prefix)
     preserve_file_prefix = clear_file_prefix + 'preserve_'
     for _ in xrange(3):
-      tempfile.mkstemp(prefix=preserve_file_prefix, dir=TEST_DIRECTORY)
+      CreateTestFile(preserve_file_prefix)
     clear_file_paths = [os.path.join(TEST_DIRECTORY, clear_file_prefix + '*')]
     clear_file_excluded_paths = [
         os.path.join(TEST_DIRECTORY, preserve_file_prefix + '*')]

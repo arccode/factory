@@ -12,9 +12,8 @@ from __future__ import print_function
 
 import logging
 import os
-import shutil
-import tempfile
 
+from . import file_utils
 from . import net_utils
 from . import process_utils
 
@@ -35,22 +34,15 @@ def _Init():
   We do not use generated temp files because we do not want to leave dangling
   temp files around.
   """
+  # TODO(hungte) Use testing keys from factory repo.
   # Import chromite here so that importing this module on a DUT does not raise
   # exception.
   from chromite.lib import remote_access
   global testing_rsa    # pylint: disable=W0603
   if not testing_rsa:
-    temp_fd, temp_file_name = tempfile.mkstemp()
-
-    # Copy testing_rsa into a private file since otherwise ssh will ignore it
-    os.write(temp_fd, open(remote_access.TEST_PRIVATE_KEY).read())
-    os.fsync(temp_fd)
-    os.fchmod(temp_fd, 0400)
-    os.close(temp_fd)
-
-    # Rename the temp file to the target file name.
-    target_name = '/tmp/testing_rsa.%s' % os.environ.get('USER')
-    shutil.move(temp_file_name, target_name)
+    target_name = '/tmp/testing_rsa.%s' % os.environ.get('USER', 'default')
+    if not os.path.exists(target_name):
+      file_utils.AtomicCopy(remote_access.TEST_PRIVATE_KEY, target_name, 0400)
     testing_rsa = target_name
 
 

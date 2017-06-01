@@ -12,14 +12,13 @@ Logs screenshots of the framebuffer every interval.
 from __future__ import print_function
 
 import datetime
-import os
-import tempfile
 
 import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
 from instalog import plugin_base
 from instalog.plugins.input_drm_screencap import drm
 from instalog.utils.arg_utils import Arg
+from instalog.utils import file_utils
 
 
 _DEFAULT_INTERVAL = 60
@@ -38,8 +37,8 @@ class InputFramebuf(plugin_base.InputPlugin):
     screencap_image = drm.screenshot()
     self.debug('Done capturing, writing to disk...')
 
-    fd, screencap_path = tempfile.mkstemp(prefix='screencap_', suffix='.png')
-    os.close(fd)
+    screencap_path = file_utils.CreateTemporaryFile(
+        prefix='screencap_', suffix='.png')
     screencap_image.save(screencap_path, optimize=True)
     self.debug('Done writing to disk')
 

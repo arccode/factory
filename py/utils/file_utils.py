@@ -117,6 +117,31 @@ class Glob(object):
         include=node.include, exclude=node.exclude))
 
 
+def CreateTemporaryFile(**kwargs):
+  """Gets an unopened temporary file.
+
+  This is similar to UnopenedTemporaryFile except that CreateTemporaryFile is
+  not a context manager and will not try to delete the allocated file, making it
+  more convenient for unittest style programs to get temporary files in setUp
+  and delete on tearDown.
+
+  In comparison to tempfile.mkstemp, this function does not return an opened fd,
+  thus avoiding potential file handle leaks.
+
+  Args:
+    Any allowable arguments to tempfile.NamedTemporaryFile (e.g., prefix,
+      suffix, dir) except 'delete'.
+
+  Returns:
+    A file path.
+  """
+  assert kwargs.get('delete') is not True, 'CreateTemporaryFile never deletes.'
+  kwargs['delete'] = False
+  with tempfile.NamedTemporaryFile(**kwargs) as f:
+    path = f.name
+  return path
+
+
 @contextlib.contextmanager
 def UnopenedTemporaryFile(**kwargs):
   """Yields an unopened temporary file.
@@ -125,11 +150,10 @@ def UnopenedTemporaryFile(**kwargs):
   is closed if it still exists at that moment.
 
   Args:
-    Any allowable arguments to tempfile.mkstemp (e.g., prefix,
+    Any allowable arguments to tempfile.NamedTemporaryFile (e.g., prefix,
       suffix, dir).
   """
-  f, path = tempfile.mkstemp(**kwargs)
-  os.close(f)
+  path = CreateTemporaryFile(**kwargs)
   try:
     yield path
   finally:
@@ -348,8 +372,7 @@ def GunzipSingleFile(gzip_path, output_path=None):
 
   is_temp_file = not output_path
   if not output_path:
-    f, output_path = tempfile.mkstemp()
-    os.close(f)
+    output_path = CreateTemporaryFile(prefix='GunzipSingleFile_')
 
   with open(output_path, 'w') as output_file:
     with gzip.open(gzip_path, 'rb') as input_file:
@@ -483,7 +506,7 @@ def CheckPath(path, description=None):
   "Missing file_type".
 
   Args:
-    path: path to check
+    path: path to check.
     description: the description of the path to check, e.g. "factory bundle".
 
   Raises:
@@ -495,19 +518,22 @@ def CheckPath(path, description=None):
     raise IOError(errno.ENOENT, message, path)
 
 
-def AtomicCopy(source, dest):
+def AtomicCopy(source, dest, mode=None):
   """Copies source file to dest in an atomic manner.
 
   It copies source to a temporary file first. Then renames the temp file to
   dest. It avoids interrupting others reading the dest file while copying.
 
   Args:
-    source: source filename
-    dest: destination filename
+    source: source filename.
+    dest: destination filename.
+    mode: new file mode if specified.
   """
   CheckPath(source, description='source')
-  with UnopenedTemporaryFile() as temp_path:
+  with UnopenedTemporaryFile(prefix='atomic_copy_') as temp_path:
     shutil.copy2(source, temp_path)
+    if mode is not None:
+      os.chmod(temp_path, mode)
     try:
       os.rename(temp_path, dest)
     except OSError as err:

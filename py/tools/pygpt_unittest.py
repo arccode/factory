@@ -7,12 +7,12 @@
 
 import os
 import subprocess
-import tempfile
 import unittest
 import uuid
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.tools import pygpt
+from cros.factory.utils import file_utils
 
 
 class GPTTest(unittest.TestCase):
@@ -22,8 +22,7 @@ class GPTTest(unittest.TestCase):
     return subprocess.check_call(command, shell=True)
 
   def setUp(self):
-    fd, self.temp_bin = tempfile.mkstemp()
-    os.close(fd)
+    self.temp_bin = file_utils.CreateTemporaryFile()
 
     self.CheckCall('truncate -s %s %s' % (50 * 1048576, self.temp_bin))
     self.CheckCall('cgpt create %s 2>/dev/null' % self.temp_bin)
@@ -35,7 +34,8 @@ class GPTTest(unittest.TestCase):
                    self.temp_bin)
 
   def tearDown(self):
-    os.remove(self.temp_bin)
+    if os.path.exists(self.temp_bin):
+      os.remove(self.temp_bin)
 
   def testLoad(self):
     with open(self.temp_bin, 'rb') as f:

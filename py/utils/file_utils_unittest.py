@@ -523,8 +523,7 @@ class FileHashTest(unittest.TestCase):
 class FileLockTest(unittest.TestCase):
 
   def setUp(self):
-    fd, self.temp_file = tempfile.mkstemp()
-    os.close(fd)
+    self.temp_file = file_utils.CreateTemporaryFile()
 
   def tearDown(self):
     os.unlink(self.temp_file)
@@ -603,8 +602,7 @@ class FileLockTest(unittest.TestCase):
 
 class FileLockContextManagerTest(unittest.TestCase):
   def setUp(self):
-    fd, self.temp_file = tempfile.mkstemp()
-    os.close(fd)
+    self.temp_file = file_utils.CreateTemporaryFile()
     self.manager = file_utils.FileLockContextManager(self.temp_file, 'w')
 
   def tearDown(self):

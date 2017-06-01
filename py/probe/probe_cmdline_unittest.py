@@ -15,6 +15,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
 from cros.factory.probe import probe_cmdline
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 
@@ -41,12 +42,11 @@ class ProbeStatementTest(unittest.TestCase):
 
 class ProbeCmdTest(unittest.TestCase):
   def setUp(self):
-    self.tmp_fd, self.tmp_file = tempfile.mkstemp()
+    self.tmp_file = file_utils.CreateTemporaryFile()
     self.tmp_dir = tempfile.mkdtemp()
 
   def tearDown(self):
     if os.path.isfile(self.tmp_file):
-      os.close(self.tmp_fd)
       os.remove(self.tmp_file)
     if os.path.isdir(self.tmp_dir):
       shutil.rmtree(self.tmp_dir)
@@ -135,12 +135,11 @@ class ProbeCmdTest(unittest.TestCase):
 
 class EvalFunctionCmdTest(unittest.TestCase):
   def setUp(self):
-    self.tmp_fd, self.tmp_file = tempfile.mkstemp()
+    self.tmp_file = file_utils.CreateTemporaryFile()
     self.tmp_dir = tempfile.mkdtemp()
 
   def tearDown(self):
     if os.path.isfile(self.tmp_file):
-      os.close(self.tmp_fd)
       os.remove(self.tmp_file)
     if os.path.isdir(self.tmp_dir):
       shutil.rmtree(self.tmp_dir)

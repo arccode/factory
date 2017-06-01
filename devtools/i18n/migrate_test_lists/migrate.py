@@ -215,8 +215,9 @@ def main():
   GetI18nMessages(args.files, write=True)
 
   if i18n_messages:
-    fd, temp_fn = tempfile.mkstemp(prefix='migrate_test_list_', suffix='.pot')
-    os.close(fd)
+    with tempfile.NamedTemporaryFile(prefix='migrate_test_list_', suffix='.pot',
+                                     delete=False) as f:
+      temp_fn = f.name
     try:
       orig_po_header = subprocess.check_output(
           ['sed', '-e', '/^$/Q', args.po_file])

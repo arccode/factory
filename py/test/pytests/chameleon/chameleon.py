@@ -9,7 +9,6 @@ from __future__ import print_function
 import contextlib
 import logging
 import os
-import tempfile
 import time
 import unittest
 import xmlrpclib
@@ -25,6 +24,7 @@ from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils import arg_utils
+from cros.factory.utils import file_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
@@ -208,8 +208,8 @@ class ChameleonDisplayTest(unittest.TestCase):
     self.chameleon = Chameleon(
         self.args.chameleon_host, self.args.chameleon_port)
     self.goofy_rpc = state.get_instance()
-    fd, self.image_template_file = tempfile.mkstemp(prefix='image_template.')
-    os.close(fd)
+    self.image_template_file = file_utils.CreateTemporaryFile(
+        prefix='image_template.')
 
   def tearDown(self):
     os.unlink(self.image_template_file)

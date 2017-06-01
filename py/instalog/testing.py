@@ -17,6 +17,7 @@ import tempfile
 import instalog_common  # pylint: disable=W0611
 from instalog import plugin_base
 from instalog import plugin_sandbox
+from instalog.utils import file_utils
 
 
 class MockCore(plugin_sandbox.CoreAPI):
@@ -61,9 +62,8 @@ class MockCore(plugin_sandbox.CoreAPI):
       # Move attachments to a temporary directory to simulate buffer.
       for att_id, att_path in event.attachments.iteritems():
         # Use a filename that contains the original one for clarity.
-        f, tmp_path = tempfile.mkstemp(
+        tmp_path = file_utils.CreateTemporaryFile(
             prefix=os.path.basename(att_path) + '_', dir=self._att_dir)
-        os.close(f)
         # Relocate the attachment and update the event path.
         logging.debug('Moving attachment %s --> %s...', att_path, tmp_path)
         shutil.move(att_path, tmp_path)

@@ -5,17 +5,17 @@
 # found in the LICENSE file.
 
 import os
-import tempfile
 import textwrap
 import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.functions import input_device
+from cros.factory.utils import file_utils
 
 
 class InputDeviceFunctionTest(unittest.TestCase):
   def setUp(self):
-    self.tmp_fd, self.tmp_file = tempfile.mkstemp()
+    self.tmp_file = file_utils.CreateTemporaryFile()
     mock_content = textwrap.dedent("""\
     I: Bus=0000 Vendor=0000 Product=0000 Version=0000
     N: Name="Google HDMI"
@@ -46,7 +46,6 @@ class InputDeviceFunctionTest(unittest.TestCase):
 
   def tearDown(self):
     if os.path.isfile(self.tmp_file):
-      os.close(self.tmp_fd)
       os.remove(self.tmp_file)
     input_device.INPUT_DEVICE_PATH = self.original_path
 

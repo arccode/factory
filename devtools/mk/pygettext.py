@@ -261,8 +261,8 @@ def ParseJSFiles(files, options):
 
   # Use xgettext to extract translatable text from javascript sources, and
   # merge them with our output.
-  temp_fd, temp_filename = tempfile.mkstemp(prefix='pygettext')
-  os.close(temp_fd)
+  with tempfile.NamedTemporaryFile(prefix='pygettext', delete=False) as f:
+    temp_filename = f.name
   keyword_args = ['-k' + keyword for keyword in options.js_keywords]
   cmd = [
       'xgettext', '--from-code=UTF-8', '--language=javascript', '-o',

@@ -63,8 +63,7 @@ class TestInputHTTP(unittest.TestCase):
     shutil.rmtree(self._tmp_dir)
 
   def _GeneratePayload(self, mbytes):
-    fd, path = tempfile.mkstemp(dir=self._tmp_dir)
-    os.close(fd)
+    path = file_utils.CreateTemporaryFile(dir=self._tmp_dir)
     process_utils.Spawn(
         ['truncate', '-s', str(mbytes * 1024 * 1024), path], check_call=True)
     return path
