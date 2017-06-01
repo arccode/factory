@@ -303,16 +303,10 @@ class InputSocketRequest(log_utils.LoggerMixin, threading.Thread):
       A tuple with (total bytes received, temporary path).
     """
     progress = 0
-    fd, tmp_path = tempfile.mkstemp(dir=self._tmp_dir)
-    # If anything in the 'try' block raises an exception, make sure we
-    # close the file handle created by mkstemp.
-    try:
-      with open(tmp_path, 'w') as f:
-        for progress, bin_part in self.RecvFieldParts():
-          f.write(bin_part)
-    finally:
-      os.close(fd)
-    return progress, tmp_path
+    with tempfile.NamedTemporaryFile('w', dir=self._tmp_dir, delete=False) as f:
+      for progress, bin_part in self.RecvFieldParts():
+        f.write(bin_part)
+      return progress, f.name
 
 
 if __name__ == '__main__':

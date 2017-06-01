@@ -53,10 +53,10 @@ class TestPluginLoader(unittest.TestCase):
     Returns:
       Name of the plugin file.
     """
-    fd, fpath = tempfile.mkstemp(dir=self._plugin_dir, suffix='.py')
-    with os.fdopen(fd, 'w') as f:
+    with tempfile.NamedTemporaryFile(
+        'w', dir=self._plugin_dir, suffix='.py', delete=False) as f:
       f.write(textwrap.dedent(content))
-    return os.path.splitext(os.path.basename(fpath))[0]
+      return os.path.splitext(os.path.basename(f.name))[0]
 
   def testInvalidPluginAPI(self):
     """Tests that a loader passed an invalid PluginAPI object will complain."""

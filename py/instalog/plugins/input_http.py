@@ -160,16 +160,16 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
 
   def _RecvAttachment(self, data):
     """Receives attachment and saves it as tmp_path in _tmp_dir."""
-    fd, tmp_path = tempfile.mkstemp(prefix=data.name + '_', dir=self._tmp_dir)
-    with os.fdopen(fd, 'w') as f:
+    with tempfile.NamedTemporaryFile(
+        'w', prefix=data.name + '_', dir=self._tmp_dir, delete=False) as f:
       if data.file:
         shutil.copyfileobj(data.file, f)
       # cgi.MiniFieldStorage does not have attribute 'file', since it stores
       # the binary data in-memory.
       else:
         f.write(data.value)
-    self.debug('Temporary save the attachment to: %s', tmp_path)
-    return tmp_path
+      self.debug('Temporary save the attachment to: %s', f.name)
+      return f.name
 
   def log_request(self, code='-', size='-'):
     """Override log_request to Instalog format."""

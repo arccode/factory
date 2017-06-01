@@ -86,15 +86,10 @@ class InputRPC(plugin_base.InputPlugin):
     for event in serialized_events:
       event = datatypes.Event.Deserialize(event)
       for att_id, att_data in event.attachments.iteritems():
-        fd, tmp_path = tempfile.mkstemp(dir=self._tmp_dir)
-        # If anything in the 'try' block raises an exception, make sure we
-        # close the file handle created by mkstemp.
-        try:
-          with open(tmp_path, 'w') as f:
-            f.write(zlib.decompress(base64.b64decode(att_data['value'])))
-        finally:
-          os.close(fd)
-        event.attachments[att_id] = tmp_path
+        with tempfile.NamedTemporaryFile(
+            'w', dir=self._tmp_dir, delete=False) as f:
+          f.write(zlib.decompress(base64.b64decode(att_data['value'])))
+          event.attachments[att_id] = f.name
       events.append(event)
     self.info('Received %d events', len(events))
     # TODO(kitching): Remove files on failure.
