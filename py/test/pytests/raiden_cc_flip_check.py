@@ -243,6 +243,6 @@ class RaidenCCFlipCheck(unittest.TestCase):
           self._ui.Fail('Unexpected polarity')
 
       process_utils.StartDaemonThread(target=do_flip)
-      self._ui.Run(blocking=True)
+      self._ui.Run()
 
     logging.info('Detect polarity: %s', self._polarity)
