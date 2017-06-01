@@ -12,6 +12,7 @@
 IMAGE_CGPT_START_SIZE=$((1 + 1 + 32))
 IMAGE_CGPT_END_SIZE=$((32 + 1))
 IMAGE_CGPT_BS="512"
+: ${SUDO:=}
 
 # Alignment of partition sectors
 IMAGE_PARTITION_SECTOR_ALIGNMENT=256
@@ -66,11 +67,12 @@ image_part_offset() {
 
   # TODO parted is available on most Linux so we may deprecate other code path
   if image_has_command cgpt; then
-    cgpt show -b -i "$partno" "$file"
+    ${SUDO} cgpt show -b -i "$partno" "$file"
   elif image_has_command parted; then
     # First trial-run to make sure image is valid (because awk always return 0)
-    parted -m "$file" unit s print | grep -qs "^$partno:" || exit 1
-    parted -m "$file" unit s print | awk -F ':' "/^$partno:/ { print int(\$2) }"
+    ${SUDO} parted -m "$file" unit s print | grep -qs "^$partno:" || exit 1
+    ${SUDO} parted -m "$file" unit s print | \
+      awk -F ':' "/^$partno:/ { print int(\$2) }"
   elif [ -f "$unpack_file" ]; then
     awk "/ $partno  *Label:/ { print \$2 }" "$unpack_file"
   else
@@ -86,11 +88,12 @@ image_part_size() {
 
   # TODO parted is available on most Linux so we may deprecate other code path
   if image_has_command cgpt; then
-    cgpt show -s -i "$partno" "$file"
+    ${SUDO} cgpt show -s -i "$partno" "$file"
   elif image_has_command parted; then
     # First trial-run to make sure image is valid (because awk always return 0)
-    parted -m "$file" unit s print | grep -qs "^$partno:" || exit 1
-    parted -m "$file" unit s print | awk -F ':' "/^$partno:/ { print int(\$4) }"
+    ${SUDO} parted -m "$file" unit s print | grep -qs "^$partno:" || exit 1
+    ${SUDO} parted -m "$file" unit s print | \
+      awk -F ':' "/^$partno:/ { print int(\$4) }"
   elif [ -s "$unpack_file" ]; then
     awk "/ $partno  *Label:/ { print \$3 }" "$unpack_file"
   else
@@ -281,9 +284,9 @@ image_mount_partition() {
   local mount_point="$3"
   local mount_opt="$4"
   local mount_ext="$5"
-  local offset="$(image_part_offset "$file" "$part_num")" ||
+  local offset="$(SUDO=sudo image_part_offset "$file" "$part_num")" ||
     image_die "failed to find partition #$part_num from: $file"
-  local size="$(image_part_size "$file" "$part_num")" ||
+  local size="$(SUDO=sudo image_part_size "$file" "$part_num")" ||
     image_die "failed to find partition #$part_num from: $file"
 
   if [ -z "$mount_opt" ]; then
