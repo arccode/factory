@@ -184,7 +184,7 @@ class Util(object):
                         ' '.join(post_opts) if post_opts else '')
     result = self.shell(cmd.strip())
     if not result.success:
-      raise Error, '%r failed, stderr: %r' % (cmd, result.stderr)
+      raise Error('%r failed, stderr: %r' % (cmd, result.stderr))
 
     return result
 
@@ -292,7 +292,7 @@ class Util(object):
   def InvokeChromeOSPostInstall(self, root_dev=None):
     """Invokes the ChromeOS post-install script (/postinst)."""
     if root_dev is None:
-      root_dev = self._util.GetReleaseRootPartitionPath()
+      root_dev = self.GetReleaseRootPartitionPath()
 
     logging.info('Running ChromeOS post-install on %s...', root_dev)
 

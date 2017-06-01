@@ -82,7 +82,7 @@ def unpack_BmpBlockHeader(blob, offset=0):
   header = dict(zip(NAMES_BMPBLOCK_HEADER, fields))
   # check signature
   if header['signature'] != BMPBLOCK_SIGNATURE:
-    raise ValueError, 'unknown bmpblock signature: %s' % header['signature']
+    raise ValueError('unknown bmpblock signature: %s' % header['signature'])
   return header
 
 

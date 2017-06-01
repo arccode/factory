@@ -579,8 +579,7 @@ class EventLog(object):
     self._OpenUnlocked()
 
     if self.file is None:
-      raise IOError, "cannot append to closed file for prefix %r" % (
-          self.prefix)
+      raise IOError("cannot append to closed file for prefix %r" % self.prefix)
     if not EVENT_NAME_RE.match(event_name):
       raise ValueError("event_name %r must match %s" % (
           event_name, EVENT_NAME_RE.pattern))

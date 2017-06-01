@@ -389,7 +389,7 @@ class Gooftool(object):
       tpm_root = legacy_tpm_root
     for key, value in expected_status.iteritems():
       if open(os.path.join(tpm_root, key)).read().strip() != value:
-        raise Error, 'TPM is not cleared.'
+        raise Error('TPM is not cleared.')
 
   def VerifyManagementEngineLocked(self):
     """Verify Management Engine is locked."""
@@ -400,7 +400,7 @@ class Gooftool(object):
     # If ME is locked, it should contain only 0xFFs.
     data = mainfw.get_section('SI_ME').strip(chr(0xFF))
     if len(data) != 0:
-      raise Error, 'ME (ManagementEngine) firmware may be not locked.'
+      raise Error('ME (ManagementEngine) firmware may be not locked.')
     # TODO(hungte) In future we may add more checks using ifdtool. See
     # crosbug.com/p/30283 for more information.
     logging.info('Management Engine is locked.')
@@ -570,7 +570,7 @@ class Gooftool(object):
     """
 
     if self._util.shell('crossystem wpsw_cur').stdout.strip() != '1':
-      raise Error, 'write protection switch is disabled'
+      raise Error('write protection switch is disabled')
 
   def CheckDevSwitchForDisabling(self):
     """Checks if the developer switch is ready for disabling.
@@ -596,7 +596,7 @@ class Gooftool(object):
     if self._util.GetCurrentDevSwitchPosition() == 0:
       return False
 
-    raise Error, 'developer mode is not disabled'
+    raise Error('developer mode is not disabled')
 
   def GetBitmapLocales(self, image_file):
     """Get bitmap locales
@@ -642,7 +642,7 @@ class Gooftool(object):
     image_file = self._crosfw.LoadMainFirmware().GetFileName()
     region = self._read_ro_vpd().get('region', None)
     if region is None:
-      raise Error, 'Missing VPD "region".'
+      raise Error('Missing VPD "region".')
     # Use the primary initial locale for the firmware bitmap.
     locales = regions.REGIONS[region].language_codes
     bitmap_locales = self.GetBitmapLocales(image_file)
@@ -659,10 +659,10 @@ class Gooftool(object):
           self._util.shell('crossystem loc_idx=%d' % locale_index)
           return (locale_index, language_code)
 
-    raise Error, ('Firmware bitmaps do not contain support for the specified '
-                  'initial locales: %r.\n'
-                  'Current supported locales are %r.' % (
-                      locales, bitmap_locales))
+    raise Error('Firmware bitmaps do not contain support for the specified '
+                'initial locales: %r.\n'
+                'Current supported locales are %r.' % (
+                    locales, bitmap_locales))
 
   def GetSystemDetails(self):
     """Gets the system details including: platform name, crossystem,
@@ -740,7 +740,7 @@ class Gooftool(object):
     # re-enrollment from the stable device secret.
     release_image_version = LooseVersion(self._util.GetReleaseImageVersion())
     if not release_image_version >= LooseVersion('6887.0.0'):
-      raise Error, 'Release image version can\'t handle stable device secret!'
+      raise Error('Release image version can\'t handle stable device secret!')
 
     # A context manager useful for wrapping code blocks that handle the device
     # secret in an exception handler, so the secret value does not leak due to

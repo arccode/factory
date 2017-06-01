@@ -174,7 +174,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
       logging.warning('Bad path to rma_config_board.yaml, ignoring.')
       return
     config = os.path.join(config_path, 'rma_config_board.yaml')
-    if(os.path.exists(config)):
+    if os.path.exists(config):
       logging.info('Found a rma_config_board.yaml file, loading...')
       with open(config, 'rb') as yaml_file:
         board_config = yaml.load(yaml_file)
@@ -227,7 +227,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
     if serial in self.data_store:
       return
     data_path = os.path.join(self.data_dir, serial + '.yaml')
-    if(os.path.exists(data_path)):
+    if os.path.exists(data_path):
       device_data = LoadDeviceData(data_path, self.device_info_fields)
       logging.info('%s: Loading device data.', serial)
       self.data_store[serial] = device_data
@@ -281,7 +281,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
       value = self.aux_data[table_name][id]
       logging.info('Fetched %s aux data for %s: %s', table_name, id, value)
     except KeyError:
-      raise KeyError, 'No %s data found for %s' % (table_name, id)
+      raise KeyError('No %s data found for %s' % (table_name, id))
     return value
 
   @_synchronized
@@ -370,7 +370,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
       serial: Serial number of device.
     """
     data_path = os.path.join(self.data_dir, serial + '.yaml')
-    if(os.path.exists(data_path)):
+    if os.path.exists(data_path):
       os.remove(data_path)
       logging.info('%s: Removed yaml file: %s', serial, data_path)
     logging.info('%s: Finalized', serial)

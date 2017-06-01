@@ -72,8 +72,8 @@ def GetProvider(api_name, system=None):
     system = _CURRENT_PLATFORM_SYSTEM
   func = systems.get(system, systems.get(_SYSTEM_DEFAULT, None))
   if func is None:
-    raise NotImplementedError, 'No implementation on %s for <%s>' % (
-        system, api_name)
+    raise NotImplementedError('No implementation on %s for <%s>' %
+                              (system, api_name))
   return func
 
 
@@ -134,7 +134,7 @@ def UnixMonotonicTime():
 
     _clock_gettime = rt_clock_gettime
 
-  except:
+  except Exception:
     # Either ctypes or librt failed. Try to provide system time if possible.
     _clock_gettime = time.time
 

@@ -48,11 +48,11 @@ def unpack_VbKeyBlockHeader(blob, offset=0):
   header = dict(zip(names, fields))
   # check values
   if header['magic'] != KEY_BLOCK_MAGIC:
-    raise ValueError, 'unknown key block magic: %s' % header['magic']
+    raise ValueError('unknown key block magic: %s' % header['magic'])
   major = header['header_version_major']
   minor = header['header_version_minor']
-  if (major != KEY_BLOCK_HEADER_VERSION_MAJOR):
-    raise ValueError, 'unknown key block version (%d.%d)' % (major, minor)
+  if major != KEY_BLOCK_HEADER_VERSION_MAJOR:
+    raise ValueError('unknown key block version (%d.%d)' % (major, minor))
   return header
 
 
@@ -85,7 +85,7 @@ def unpack_VbFirmwarePreambleHeader(blob, offset=0):
   major = header['header_version_major']
   minor = header['header_version_minor']
   if major != FIRMWARE_PREAMBLE_HEADER_VERSION_MAJOR:
-    raise ValueError, 'unknown preamble version: (%d.%d)' % (major, minor)
+    raise ValueError('unknown preamble version: (%d.%d)' % (major, minor))
   return header
 
 

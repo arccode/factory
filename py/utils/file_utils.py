@@ -88,7 +88,7 @@ class Glob(object):
     elif isinstance(exclude, str):
       self.exclude = [exclude]
     else:
-      raise TypeError, 'Unexpected exclude type %s' % type(exclude)
+      raise TypeError('Unexpected exclude type %s' % type(exclude))
 
   def Match(self, root):
     """Returns files that match include but not exclude.
@@ -659,8 +659,8 @@ def GlobSingleFile(pattern):
   """
   matches = glob.glob(pattern)
   if len(matches) != 1:
-    raise ValueError, 'Expected one match for %s but got %s' % (
-        pattern, matches)
+    raise ValueError('Expected one match for %s but got %s' %
+                     (pattern, matches))
 
   return matches[0]
 
