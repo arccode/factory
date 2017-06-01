@@ -212,11 +212,13 @@ do_umpire_run() {
     local p1=${UMPIRE_PORT}              # Imaging & Shopfloor
     local p2=$((UMPIRE_PORT + 2))  # CLI RPC
     local p3=$((UMPIRE_PORT + 4))  # Rsync
+    # TODO(chuntsen): Remove instalog_socket_port.
     local p4=$((UMPIRE_PORT + 6))  # Instalog input_socket
 
     local umpire_base_port=8080
     local umpire_cli_port=$((umpire_base_port + 2))
     local umpire_rsync_port=$((umpire_base_port + 4))
+    # TODO(chuntsen): Remove instalog_socket_port.
     local umpire_instalog_socket_port=$((umpire_base_port + 6))
 
     ${DOCKER} run \

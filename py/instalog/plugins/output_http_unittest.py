@@ -36,6 +36,7 @@ class TestOutputHTTP(unittest.TestCase):
     output_config = {
         'hostname': 'localhost',
         'port': self.port,
+        'url_path': 'instalog',
         'batch_size': 3,
         'timeout': 10}
     self.output_sandbox = plugin_sandbox.PluginSandbox(
@@ -72,11 +73,19 @@ class TestOutputHTTP(unittest.TestCase):
 
       def do_GET(self):
         """Checks the server is online or not."""
+        if self.path != '/instalog':
+          self._SendResponse(400, 'Bad url path')
+          return
+
         self._SendResponse(200, 'OK')
         self.wfile.write('Instalog input HTTP plugin is online now.\n')
         self.wfile.close()
 
       def do_POST(self):
+        if self.path != '/instalog':
+          self._SendResponse(400, 'Bad url path')
+          return
+
         form = cgi.FieldStorage(
             fp=self.rfile,
             headers=self.headers,

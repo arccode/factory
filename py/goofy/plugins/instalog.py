@@ -56,16 +56,13 @@ class Instalog(plugin.Plugin):
     uplink_enabled = uplink_use_shopfloor or (uplink_hostname and uplink_port)
     if uplink_use_shopfloor:
       url = None
-      instalog_port = None
       try:
         url = shopfloor.get_server_url()
-        proxy = shopfloor.get_instance(timeout=_SHOPFLOOR_TIMEOUT)
-        instalog_port = proxy.GetInstalogPort()
       except Exception:
         pass
-      if url and instalog_port:
+      if url:
         uplink_hostname = urlparse.urlparse(url).hostname
-        uplink_port = instalog_port
+        uplink_port = urlparse.urlparse(url).port
       elif uplink_hostname and uplink_port:
         logging.error('Instalog: Could not retrieve Shopfloor IP and port; '
                       'falling back to provided uplink "%s:%d"',
@@ -99,17 +96,14 @@ class Instalog(plugin.Plugin):
                     'max_bytes': _TESTLOG_JSON_MAX_BYTES,
                 },
             },
-            'health': {
-                'plugin': 'input_health',
-                'targets': 'output_uplink',
-            },
         },
         'output': {
             'output_uplink': {
-                'plugin': 'output_socket',
+                'plugin': 'output_http',
                 'args': {
                     'hostname': uplink_hostname,
                     'port': uplink_port,
+                    'url_path': 'instalog'
                 },
             }
         },

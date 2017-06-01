@@ -53,6 +53,7 @@ def GetRsyncPortFromBasePort(base_port):
   return base_port + _RSYNC_PORT_OFFSET
 
 
+# TODO(chuntsen): Remove instalog_socket_port.
 def GetInstalogPortFromBasePort(base_port):
   return base_port + _INSTALOG_SOCKET_PORT_OFFSET
 
@@ -152,6 +153,7 @@ class UmpireEnv(object):
   def umpire_http_post_port(self):
     return self.umpire_base_port + _HTTP_POST_PORT_OFFSET
 
+  # TODO(chuntsen): Remove instalog_socket_port.
   @property
   def umpire_instalog_socket_port(self):
     return GetInstalogPortFromBasePort(self.umpire_base_port)

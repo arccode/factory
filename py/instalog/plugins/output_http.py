@@ -25,6 +25,7 @@ from instalog.external import requests
 
 _DEFAULT_BATCH_SIZE = 4096
 _DEFAULT_PORT = 8899
+_DEFAULT_URL_PATH = ''
 _DEFAULT_TIMEOUT = 5
 _FAILED_CONNECTION_INTERVAL = 60
 _POST_TIMEOUT = 180
@@ -44,7 +45,10 @@ class OutputHTTP(plugin_base.OutputPlugin):
           optional=False),
       Arg('port', int,
           'Port of target running input HTTP plugin.',
-          optional=True, default=_DEFAULT_PORT)
+          optional=True, default=_DEFAULT_PORT),
+      Arg('url_path', (str, unicode),
+          'URL path of target running input HTTP plugin.',
+          optional=True, default=_DEFAULT_URL_PATH)
   ]
 
   def __init__(self, *args, **kwargs):
@@ -52,7 +56,14 @@ class OutputHTTP(plugin_base.OutputPlugin):
     # _max_bytes will be updated after _CheckConnect and _PostRequest.
     self._batch_size = 1
     self._max_bytes = 2 * 1024 * 1024 * 1024  # 2gb
+    self._target_url = ''
     super(OutputHTTP, self).__init__(*args, **kwargs)
+
+  def SetUp(self):
+    """Sets up the plugin."""
+    self._target_url = 'http://%s:%d/%s' % (self.args.hostname,
+                                            self.args.port,
+                                            self.args.url_path)
 
   def Main(self):
     """Main thread of the plugin."""
@@ -152,8 +163,7 @@ class OutputHTTP(plugin_base.OutputPlugin):
   def _CheckConnect(self):
     """Checks the input HTTP plugin with and empty post request."""
     try:
-      resp = requests.get('http://%s:%d' % (self.args.hostname, self.args.port),
-                          timeout=2)
+      resp = requests.get(self._target_url, timeout=2)
       if resp.headers['Maximum-Bytes']:
         self._max_bytes = int(resp.headers['Maximum-Bytes'])
       return resp.status_code == 200
@@ -174,7 +184,7 @@ class OutputHTTP(plugin_base.OutputPlugin):
     # requests will use about 3 times of data size's memory.
     req = requests.Request(
         'POST',
-        url='http://%s:%d' % (self.args.hostname, self.args.port),
+        url=self._target_url,
         headers={'Multi-Event': 'True'},
         files=data).prepare()
     clen = int(req.headers.get('Content-Length'))
