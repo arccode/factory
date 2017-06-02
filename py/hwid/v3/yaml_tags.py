@@ -80,9 +80,9 @@ class RegionField(dict):
     else:
       self._is_legacy_style = True
       fields_dict = dict(
-          (r.numeric_id, {'region': r.region_code})
-          for r in regions.REGIONS_LIST
-          if r.region_code in regions.LEGACY_REGIONS_LIST)
+          (i + 1, {'region': code})
+          for i, code in enumerate(regions.LEGACY_REGIONS_LIST)
+          if code in regions.REGIONS)
     # 0 is a reserved field and is set to {region: None}, so that previous HWIDs
     # which do not have region encoded will not return a bogus region component
     # when being decoded.

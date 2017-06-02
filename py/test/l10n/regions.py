@@ -28,8 +28,8 @@ LANGUAGE_CODE_PATTERN = re.compile(r'^(\w+)(-[A-Z0-9]+)?$')
 CROS_REGIONS_DATABASE_DEFAULT_PATH = '/usr/share/misc/cros-regions.json'
 CROS_REGIONS_DATABASE_ENV_NAME = 'CROS_REGIONS_DATABASE'
 
-# crbug.com/624257: Only regions defined below can use numeric_id for
-# auto-populating HWID field mappings in !region_field.
+# crbug.com/624257: Only regions defined below can use be automatically
+# populated for HWID field mappings in !region_field.
 LEGACY_REGIONS_LIST = [
     'au', 'be', 'br', 'br.abnt', 'br.usintl', 'ca.ansi', 'ca.fr', 'ca.hybrid',
     'ca.hybridansi', 'ca.multix', 'ch', 'de', 'es', 'fi', 'fr', 'gb', 'ie',
@@ -112,7 +112,7 @@ class Region(object):
   """Notes about the region.  This may be None."""
 
   FIELDS = ['region_code', 'keyboards', 'time_zone', 'language_codes',
-            'keyboard_mechanical_layout', 'numeric_id']
+            'keyboard_mechanical_layout']
   """Names of fields that define the region."""
 
   """Constructor.
@@ -127,13 +127,10 @@ class Region(object):
     keyboard_mechanical_layout: See :py:attr:`keyboard_mechanical_layout`.
     description: See :py:attr:`description`.
     notes: See :py:attr:`notes`.
-    numeric_id: See :py:attr:`numeric_id`.  This must be None or a
-      non-negative integer.
   """
 
   def __init__(self, region_code, keyboards, time_zone, language_codes,
-               keyboard_mechanical_layout, description=None, notes=None,
-               numeric_id=None):
+               keyboard_mechanical_layout, description=None, notes=None):
     # Quick check: should be 'gb', not 'uk'
     if region_code == 'uk':
       raise RegionException("'uk' is not a valid region code (use 'gb')")
@@ -145,15 +142,6 @@ class Region(object):
     self.keyboard_mechanical_layout = keyboard_mechanical_layout
     self.description = description or region_code
     self.notes = notes
-    self.numeric_id = numeric_id
-
-    if self.numeric_id is not None:
-      if not isinstance(self.numeric_id, int):
-        raise TypeError('Numeric ID is %r but should be an integer' %
-                        (self.numeric_id,))
-      if self.numeric_id < 0:
-        raise ValueError('Numeric ID is %r but should be non-negative' %
-                         self.numeric_id)
 
     for f in (self.keyboards, self.language_codes):
       assert all(isinstance(x, str) for x in f), (
@@ -293,8 +281,7 @@ def LoadRegionDatabase(path=None):
                      EncodeUnicode(r['locales']),
                      EncodeUnicode(r['keyboard_mechanical_layout']),
                      EncodeUnicode(r['description']),
-                     None,
-                     r['numeric_id'])
+                     None)
     if r.get('confirmed', True):
       confirmed.append(encoded)
     else:
