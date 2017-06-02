@@ -391,7 +391,7 @@ class ShopFloorBase(object):
     path = self.update_server.hwid_path
     return Binary(open(path).read()) if path else None
 
-  def UploadReport(self, serial, report_blob, report_name=None, stage='FA'):
+  def UploadReport(self, serial, report_blob, report_name=None, stage=None):
     """Uploads a report file.
 
     Args:
@@ -411,7 +411,8 @@ class ShopFloorBase(object):
       modules. Note this will be converted to xmlrpclib.Fault when being used as
       a XML-RPC server module.
     """
-    name = report_name or '%s-%s-%s.rpt.xz' % (stage, serial, self._Timestamp())
+    name = report_name or '%s-%s-%s.rpt.xz' % (
+        stage or 'FA', serial, self._Timestamp())
     return self.SaveReport(name, self.UnwrapBlob(report_blob))
 
   def SaveAuxLog(self, name, contents):

@@ -338,7 +338,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
     return self._GetDataStoreValue(serial, 'vpd')
 
   @_synchronized
-  def UploadReport(self, serial, report_blob, report_name=None):
+  def UploadReport(self, serial, report_blob, report_name=None, stage=None):
     """Saves the factory log for a device.
 
     Args:
@@ -355,8 +355,9 @@ class ShopFloor(shopfloor.ShopFloorBase):
     if isinstance(report_blob, shopfloor.Binary):
       report_blob = report_blob.data
     if not report_name:
-      report_name = ('%s-%s.rpt' % (re.sub('[^a-zA-Z0-9]', '', serial),
-                                    time.strftime('%Y%m%d-%H%M%S%z')))
+      report_name = ('%s-%s-%s.rpt' % (stage or 'RMA',
+                                       re.sub('[^a-zA-Z0-9]', '', serial),
+                                       time.strftime('%Y%m%d-%H%M%S%z')))
       if is_gzip_blob(report_blob):
         report_name += '.gz'
     self.SaveReport(report_name, report_blob)

@@ -117,7 +117,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
                                 registration_code_map)
     return registration_code_map
 
-  def UploadReport(self, serial, report_blob, report_name=None):
+  def UploadReport(self, serial, report_blob, report_name=None, stage=None):
     def is_gzip_blob(blob):
       """Check (not 100% accurate) if input blob is gzipped."""
       GZIP_MAGIC = '\x1f\x8b'
@@ -127,8 +127,9 @@ class ShopFloor(shopfloor.ShopFloorBase):
     if isinstance(report_blob, shopfloor.Binary):
       report_blob = report_blob.data
     if not report_name:
-      report_name = ('%s-%s.rpt' % (re.sub('[^a-zA-Z0-9]', '', serial),
-                                    time.strftime('%Y%m%d-%H%M%S%z')))
+      report_name = ('%s-%s-%s.rpt' % (stage or 'FA',
+                                       re.sub('[^a-zA-Z0-9]', '', serial),
+                                       time.strftime('%Y%m%d-%H%M%S%z')))
       if is_gzip_blob(report_blob):
         report_name += '.gz'
     self.SaveReport(report_name, report_blob)

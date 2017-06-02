@@ -299,7 +299,7 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
 
   @umpire_rpc.RPCCall
   @utils.Deprecate
-  def UploadReport(self, serial, report_blob, report_name=None, stage='FA'):
+  def UploadReport(self, serial, report_blob, report_name=None, stage=None):
     """Uploads a report file.
 
     Args:
@@ -324,7 +324,7 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
     """
     opt_name = ('-' + report_name) if report_name else ''
     file_name = '{stage}{opt_name}-{serial}-{gmtime}.rpt.xz'.format(
-        stage=stage, opt_name=opt_name, serial=serial,
+        stage=stage or 'FA', opt_name=opt_name, serial=serial,
         gmtime=time.strftime('%Y%m%dT%H%M%SZ', self._Now()))
     d = threads.deferToThread(lambda: self._SaveUpload(
         'report', file_name, self._UnwrapBlob(report_blob)))
