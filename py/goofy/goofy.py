@@ -766,7 +766,7 @@ class Goofy(GoofyBase):
               'stationInstallationId': testlog_goofy.GetInstallationID(),
               'count': testlog_goofy.GetInitCount(),
               'success': True}))
-    except:
+    except Exception:
       try:
         if self.event_log:
           self.event_log.Log('goofy_init',
@@ -780,7 +780,7 @@ class Goofy(GoofyBase):
                   'count': testlog_goofy.GetInitCount(),
                   'success': False,
                   'failureMessage': traceback.format_exc()}))
-      except:  # pylint: disable=bare-except
+      except Exception:
         pass
       raise
 
@@ -1060,7 +1060,7 @@ class Goofy(GoofyBase):
     exc_info = None
     try:
       success = self.InitTestLists()
-    except:  # pylint: disable=bare-except
+    except Exception:
       exc_info = sys.exc_info()
 
     if not success:
@@ -1234,7 +1234,7 @@ class Goofy(GoofyBase):
         logging.info(
             'Successfully synced %s in %.03f s',
             description, time.time() - start_time)
-      except:  # pylint: disable=bare-except
+      except Exception:
         first_exception = (first_exception or
                            (chunk.log_name + ': ' +
                             debug_utils.FormatExceptionOnly()))

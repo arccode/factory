@@ -977,7 +977,7 @@ class FactoryTest(object):
     if self.run_if_expr:
       try:
         return self.run_if_expr(test_arg_env)
-      except:  # pylint: disable=bare-except
+      except Exception:
         logging.exception('Unable to evaluate run_if expression for %s',
                           self.path)
         # But keep going; we have no choice.  This will end up always activating

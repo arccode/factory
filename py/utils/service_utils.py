@@ -59,7 +59,7 @@ def GetServiceStatus(service, ignore_failure=False, dut=None):
   '''
   try:
     return SetServiceStatus(service, None, dut)
-  except:  # pylint: disable=W0702
+  except Exception:
     if not ignore_failure:
       raise
     logging.exception('Failed to get service %s.', service)

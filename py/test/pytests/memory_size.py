@@ -106,7 +106,7 @@ class MemorySize(unittest.TestCase):
       try:
         result = method(mlb_serial_number)
         logging.info('%s: %s', method_name, result)
-      except:  # pylint: disable=bare-except
+      except Exception:
         exception_str = debug_utils.FormatExceptionOnly()
         logging.exception('Exception invoking shopfloor method\n' +
                           exception_str)

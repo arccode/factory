@@ -60,7 +60,7 @@ class FlushTestlog(unittest.TestCase):
           factory.console.info('Logs flushed successfully: %s', msg)
           ui.Pass()
           return
-        except:  # pylint: disable=W0702
+        except Exception:
           exception_string = debug_utils.FormatExceptionOnly()
           # Log only the exception string, not the entire exception,
           # since this may happen repeatedly.

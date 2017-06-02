@@ -58,7 +58,7 @@ class CPUUsageMonitor(object):
         command = ' '.join(attr[command_column:])[0:self.COMMAND_LENGTH]
         msg.append('Process %s using %s%% CPU: %s' %
                    (attr[pid_column], attr[cpu_column], command))
-    except:  # pylint: disable=W0702
+    except Exception:
       logging.exception('Unable to check CPU usage')
     else:
       logging.info('; '.join(msg))

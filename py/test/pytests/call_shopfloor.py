@@ -141,7 +141,7 @@ class CallShopfloor(unittest.TestCase):
         event_log.Log('call_shopfloor',
                       method=self.args.method, args=args_to_log,
                       result=privacy.FilterDict(result))
-      except:  # pylint: disable=bare-except
+      except Exception:
         logging.exception('Exception invoking shop floor method')
 
         exception_str = debug_utils.FormatExceptionOnly()
@@ -159,7 +159,7 @@ class CallShopfloor(unittest.TestCase):
           # using action_args.
           action_handler(result, **self.args.action_args)
         break  # All done
-      except:  # pylint: disable=bare-except
+      except Exception:
         logging.exception('Exception in action handler')
         HandleError(debug_utils.FormatExceptionOnly())
         # Fall through and retry

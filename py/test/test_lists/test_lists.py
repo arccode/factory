@@ -445,7 +445,7 @@ def BuildAllTestLists(force_generic=False):
                    os.path.splitext(os.path.basename(f))[0])
     try:
       module = importlib.import_module(module_name)
-    except:  # pylint: disable=bare-except
+    except Exception:
       logging.exception('Unable to import %s', module_name)
       failed_files[f] = sys.exc_info()
       continue
@@ -458,7 +458,7 @@ def BuildAllTestLists(force_generic=False):
         if dups:
           logging.warning('Duplicate test lists: %s', dups)
         test_lists.update(new_test_lists)
-      except:  # pylint: disable=bare-except
+      except Exception:
         logging.exception('Unable to read test lists from %s', module_name)
         failed_files[f] = sys.exc_info()
 

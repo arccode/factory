@@ -327,7 +327,7 @@ class TestListCommand(Subcommand):
         uuid = goofy.GetGoofyStatus()['uuid']
       except socket.error:
         logging.info('goofy is not up')
-      except:  # pylint: disable=W0702
+      except Exception:
         logging.exception('Unable to get goofy status; assuming it is down')
         uuid = None
 
@@ -364,7 +364,7 @@ class TestListCommand(Subcommand):
             # This means it's never going to come up.
             sys.exit('goofy failed to come up; status is %r',
                      status['status'])
-        except:  # pylint: disable=W0702
+        except Exception:
           status_summary = 'Exception: %s' % debug_utils.FormatExceptionOnly()
           if 'Connection refused' in status_summary:
             # Still waiting for goofy to open its RPC; print a friendly

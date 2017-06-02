@@ -119,7 +119,7 @@ class DUTEnvironment(Environment):
     def is_state_server_ready():
       try:
         return state_server.IsReadyForUIConnection()
-      except:  # pylint: disable=bare-except
+      except Exception:
         return False
     sync_utils.WaitFor(is_state_server_ready, 30)
     chrome.PageNavigate(url)

@@ -122,7 +122,7 @@ def TryLoadJSON(path, logger=logging):
   try:
     with open(path, 'r') as f:
       return json.load(f)
-  except:
+  except Exception:
     logger.exception('%s: Error reading disk or loading JSON', path)
     raise
 
@@ -563,7 +563,7 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
         for consumer in self.consumers.values():
           try:
             consumer._read_lock.release()
-          except:
+          except Exception:
             pass
 
   def _CreateConsumer(self, name):

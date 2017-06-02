@@ -84,7 +84,7 @@ def CalculateFirmwareHashes(fw_file_path):
   raw_image = open(fw_file_path, 'rb').read()
   try:
     image = crosfw.FirmwareImage(raw_image)
-  except:  # pylint: disable=W0702
+  except Exception:
     return None
 
   if image.has_section('EC_RO'):

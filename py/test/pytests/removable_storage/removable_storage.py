@@ -229,7 +229,7 @@ class RemovableStorageTest(unittest.TestCase):
     """
     try:
       dev_size = self._dut.CheckOutput(['blockdev', '--getsize64', dev_path])
-    except:  # pylint: disable=bare-except
+    except Exception:
       self.Fail(_ERR_GET_DEV_SIZE_FAILED_FMT_STR(dev_path))
 
     if not dev_size:
@@ -252,7 +252,7 @@ class RemovableStorageTest(unittest.TestCase):
     """
     try:
       ro = self._dut.CheckOutput(['blockdev', '--getro', dev_path])
-    except:  # pylint: disable=bare-except
+    except Exception:
       self.Fail(_ERR_RO_TEST_FAILED_FMT_STR(dev_path))
 
     ro = int(ro)
@@ -568,7 +568,7 @@ class RemovableStorageTest(unittest.TestCase):
       if 'mmcblk' in dev_path:
         dev_path = dev_path + 'p'
       self._dut.path.exists(dev_path + '1')
-    except:  # pylint: disable=bare-except
+    except Exception:
       self.Fail(_ERR_VERIFY_PARTITION_FMT_STR(self.args.media, dev_path))
 
   def VerifyUSBPDPolarity(self):

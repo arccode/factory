@@ -150,5 +150,5 @@ class NetworkConnectionSetup(unittest.TestCase):
           sync_utils.PollForCondition(_TryOnce,
                                       timeout_secs=self.args.timeout_secs)
       self.ui.Pass()
-    except:  # pylint: disable=bare-except
+    except Exception:
       self.ui.Fail(traceback.format_exc())

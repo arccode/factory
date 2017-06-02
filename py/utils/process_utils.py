@@ -333,7 +333,7 @@ def TerminateOrKillProcess(process, wait_seconds=1, sudo=False):
       try:
         logging.info('Sending SIGKILL to process %d', pid)
         process.kill()
-      except:  # pylint: disable=W0702
+      except Exception:
         pass
   thread = threading.Thread(target=WaitAndKill)
   thread.start()

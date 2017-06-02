@@ -104,7 +104,7 @@ class RobotMovement(unittest.TestCase):
       self._robot.SetLED(False)
       self._robot.LoadDevice(False)
       self._robot.SetMotor(False)
-    except:  # pylint: disable=bare-except
+    except Exception:
       pass
     self._robot.Disconnect()
 

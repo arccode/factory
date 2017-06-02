@@ -354,7 +354,7 @@ class _ServiceTest(object):
           DoTest(self._Test1, ...)        # if fails, will continue
           DoTest(self._Test2, abort=True) # if fails, will not execute _Test3
           DoTest(self._Test3, ...)        # if fails, will continue
-        except:
+        except Exception:
           return self._log # next try/except block depends on this one's success
           pass             # OR: next try/except block should be executed anyway
 

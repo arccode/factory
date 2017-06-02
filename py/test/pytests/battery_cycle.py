@@ -305,7 +305,7 @@ class BatteryCycleTest(unittest.TestCase):
 
       self._Log('pass')
       self.Pass()
-    except:  # pylint: disable=bare-except
+    except Exception:
       logging.exception('Test failed')
       error_msg = debug_utils.FormatExceptionOnly()
       self._Log('fail', error_msg=error_msg)

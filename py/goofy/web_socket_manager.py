@@ -143,7 +143,7 @@ class WebSocketManager(object):
       logging.info('Running web socket')
       web_socket.run()
       logging.info('Web socket closed gracefully')
-    except:  # pylint: disable=bare-except
+    except Exception:
       logging.exception('Web socket closed with exception')
     finally:
       with self.lock:
@@ -202,5 +202,5 @@ class WebSocketManager(object):
       try:
         with web_socket.send_lock:
           web_socket.send(event_json)
-      except:  # pylint: disable=bare-except
+      except Exception:
         logging.exception('Unable to send event on web socket')

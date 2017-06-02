@@ -58,7 +58,7 @@ def _GetV4L2Data(video_idx):
     """Try to invoke ioctl without raising an exception if it fails."""
     try:
       fcntl.ioctl(fileno, request, *args)
-    except:  # pylint: disable=W0702
+    except Exception:
       pass
 
   try:
@@ -79,7 +79,7 @@ def _GetV4L2Data(video_idx):
         info['type'] = 'webcam'
       elif capabilities & V4L2_CAP_VIDEO_CODEC == V4L2_CAP_VIDEO_CODEC:
         info['type'] = 'video_codec'
-  except:  # pylint: disable=W0702
+  except Exception:
     pass
   return info
 

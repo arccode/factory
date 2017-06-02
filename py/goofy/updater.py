@@ -232,7 +232,7 @@ def CheckForUpdateAsync(callback, timeout, quiet=False):
   def Run():
     try:
       callback(True, *CheckForUpdate(timeout=timeout, quiet=quiet))
-    except:  # pylint: disable=bare-except
+    except Exception:
       # Just an info, not a trace, since this is pretty common (and not
       # necessarily an error) and we don't want logs to get out of control.
       if not quiet:

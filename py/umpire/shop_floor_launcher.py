@@ -107,7 +107,7 @@ def _ShopFloorHandlerFactory(module, directory):
       logging.critical('Module does not inherit ShopFloorHandlerBase: %s',
                        module)
       exit(1)
-  except:  # pylint: disable=W0702
+  except Exception:
     logging.exception('Failed loading module: %s', module)
     exit(1)
   return instance

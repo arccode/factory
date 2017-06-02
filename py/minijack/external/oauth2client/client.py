@@ -552,7 +552,7 @@ class OAuth2Credentials(Credentials):
       try:
         data['token_expiry'] = datetime.datetime.strptime(
             data['token_expiry'], EXPIRY_FORMAT)
-      except:
+      except Exception:
         data['token_expiry'] = None
     retval = cls(
         data['access_token'],

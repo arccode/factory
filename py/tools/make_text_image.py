@@ -33,7 +33,7 @@ def GetAttrData(img_path):
   try:
     i = Image.open(img_path)
     return yaml.load(i.info['text_attr'].decode('UTF-8'))
-  except:  # pylint: disable=W0702
+  except Exception:
     return None
 
 

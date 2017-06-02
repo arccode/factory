@@ -359,7 +359,7 @@ class UI(object):
       try:
         target()
         self.Pass()
-      except: # pylint: disable=bare-except
+      except Exception:
         self.Fail(traceback.format_exc())
     process_utils.StartDaemonThread(target=_target)
 

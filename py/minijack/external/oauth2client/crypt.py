@@ -64,7 +64,7 @@ try:
       try:
         crypto.verify(self._pubkey, signature, message, 'sha256')
         return True
-      except:
+      except Exception:
         return False
 
     @staticmethod
@@ -167,7 +167,7 @@ try:
       try:
         return PKCS1_v1_5.new(self._pubkey).verify(
             SHA256.new(message), signature)
-      except:
+      except Exception:
         return False
 
     @staticmethod
@@ -329,7 +329,7 @@ def verify_signed_jwt_with_certs(jwt, certs, audience):
   json_body = _urlsafe_b64decode(segments[1])
   try:
     parsed = simplejson.loads(json_body)
-  except:
+  except Exception:
     raise AppIdentityError('Can\'t parse token: %s' % json_body)
 
   # Check signature.

@@ -109,7 +109,7 @@ class FactoryState(object):
                   self._data_shelf]:
       try:
         shelf.Close()
-      except:  # pylint: disable=bare-except
+      except Exception:
         logging.exception('Unable to close shelf')
 
   def _convert_test_path_to_key(self, path):

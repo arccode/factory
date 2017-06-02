@@ -259,7 +259,7 @@ class ShopFloorBase(object):
       try:
         with open(md5_path, 'w') as f:
           Spawn(['md5sum', report_path], stdout=f, check_call=True)
-      except:
+      except Exception:
         try:
           os.unlink(md5_path)
         except OSError:

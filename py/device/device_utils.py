@@ -78,7 +78,7 @@ def _GetDeviceClass(module_prefix, class_postfix, class_name):
     class_object = getattr(__import__(module_path, fromlist=[class_name]),
                            class_name)
     return class_object
-  except:
+  except Exception:
     logging.exception('GetDeviceClass')
     raise DeviceOptionsError('Failed to load %s#%s' % (module_path, class_name))
 

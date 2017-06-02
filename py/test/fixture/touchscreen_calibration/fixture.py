@@ -206,7 +206,7 @@ class FixtureSerialDevice(BaseFixture):
       factory.console.info(msg, port)
       factory.console.info('Wait up to %d seconds for arduino initialization.',
                            timeout)
-    except:
+    except Exception:
       raise FixtureException('Failed to connect the test fixture.')
 
     self.AssertStateWithTimeout([STATE.INIT, STATE.STOP_UP,

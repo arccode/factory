@@ -33,7 +33,7 @@ try:
   from Xlib import X, XK  # pylint: disable=F0401
   from Xlib.display import Display  # pylint: disable=F0401
   _has_Xlib = True
-except:  # pylint: disable=W0702
+except Exception:
   _has_Xlib = False
 
 import factory_common  # pylint: disable=W0611

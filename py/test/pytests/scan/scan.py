@@ -161,7 +161,7 @@ class Scan(unittest.TestCase):
           self.dut.vpd.rw.Update({self.args.rw_vpd_key: scan_value})
         if self.args.ro_vpd_key:
           self.dut.vpd.ro.Update({self.args.ro_vpd_key: scan_value})
-      except:  # pylint: disable=bare-except
+      except Exception:
         logging.exception('Setting VPD failed')
         return SetError(debug_utils.FormatExceptionOnly())
 
@@ -170,7 +170,7 @@ class Scan(unittest.TestCase):
         dirname = self.dut.path.dirname(self.args.save_path)
         self.dut.CheckCall(['mkdir', '-p', dirname])
         self.dut.WriteFile(self.args.save_path, scan_value)
-      except:  # pylint: disable=bare-except
+      except Exception:
         logging.exception('Save file failed')
         return SetError(debug_utils.FormatExceptionOnly())
 

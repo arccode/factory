@@ -322,7 +322,7 @@ class _MultiStore(object):
       try:
         (key, credential) = self._decode_credential_from_json(cred_entry)
         self._data[key] = credential
-      except:
+      except Exception:
         # If something goes wrong loading a credential, just ignore it
         logger.info('Error decoding credential, skipping', exc_info=True)
 

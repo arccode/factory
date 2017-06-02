@@ -243,7 +243,7 @@ class TestInvocation(object):
     if state.get_shared_data(post_shutdown_tag):
       try:
         self.load_metadata()
-      except:
+      except Exception:
         logging.exception('Failed to load metadata from active shutdown test; '
                           'will continue, but logs will be inaccurate')
 
@@ -418,7 +418,7 @@ class TestInvocation(object):
 
       with open(results_path) as f:
         return pickle.load(f)
-    except:
+    except Exception:
       logging.exception('Unable to retrieve pytest results')
       return TestState.FAILED, 'Unable to retrieve pytest results'
     finally:
@@ -426,7 +426,7 @@ class TestInvocation(object):
         try:
           if os.path.exists(f):
             os.unlink(f)
-        except:
+        except Exception:
           logging.exception('Unable to delete temporary file %s',
                             f)
 
@@ -435,7 +435,7 @@ class TestInvocation(object):
     try:
       self.test.invocation_target(self)
       return TestState.PASSED, ''
-    except:
+    except Exception:
       logging.exception('Exception while invoking target')
 
       if sys.exc_info()[0] == factory.FactoryTestFailure:
@@ -549,7 +549,7 @@ class TestInvocation(object):
       # use it in prepare function.
       if self.test.prepare:
         self.test.prepare()
-    except:
+    except Exception:
       logging.exception('Exception while invoking prepare callback %s',
                         traceback.format_exc())
 
@@ -643,7 +643,7 @@ class TestInvocation(object):
             Event(Event.Type.DESTROY_TEST,
                   test=self.test.path,
                   invocation=self.uuid))
-      except:
+      except Exception:
         logging.exception('Unable to post DESTROY_TEST event')
 
       syslog.syslog('Test %s (%s) completed: %s%s' % (
@@ -667,7 +667,7 @@ class TestInvocation(object):
             with open(self.log_path) as f:
               f.seek(offset)
               log_args['log_tail'] = DecodeUTF8(f.read())
-          except:
+          except Exception:
             logging.exception('Unable to read log tail')
 
         self.goofy.event_log.Log('end_test', **log_args)
@@ -702,7 +702,7 @@ class TestInvocation(object):
     try:
       if self.test.finish:
         self.test.finish(status)
-    except:
+    except Exception:
       logging.exception('Exception while invoking finish_callback %s',
                         traceback.format_exc())
 
@@ -937,7 +937,7 @@ def RunPytest(test_info):
         logging.info('pytest failure: %s', error_msg)
     else:
       status = TestState.PASSED
-  except:
+  except Exception:
     logging.exception('Unable to run pytest')
     status = TestState.FAILED
     error_msg = traceback.format_exc()

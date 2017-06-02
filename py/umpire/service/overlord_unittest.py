@@ -77,7 +77,7 @@ class OverlordServiceTest(unittest.TestCase):
         except subprocess.CalledProcessError:
           return False
       sync_utils.WaitFor(CheckOverlord, 5)
-    except:  # pylint: disable=W0702
+    except Exception:
       self.fail('overlord process not started')
     finally:
       svc.Stop()

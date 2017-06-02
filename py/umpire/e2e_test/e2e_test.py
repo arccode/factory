@@ -113,7 +113,7 @@ class UmpireDockerTestCase(unittest.TestCase):
         proxy = xmlrpclib.ServerProxy(RPC_ADDR_BASE)
         # Wait until the initial config is deployed.
         return not proxy.GetStatus()['deploying']
-      except:  # pylint: disable=bare-except
+      except Exception:
         return False
 
     sync_utils.WaitFor(UmpireReady, 10)

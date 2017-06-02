@@ -796,7 +796,7 @@ class HttpRequest(object):
       resp, content = http.request(self.resumable_uri, 'PUT',
                                    body=data,
                                    headers=headers)
-    except:
+    except Exception:
       self._in_error_state = True
       raise
 

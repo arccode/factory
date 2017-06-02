@@ -394,7 +394,7 @@ class SuspendResumeTest(unittest.TestCase):
       try:
         logging.info('Resuming monitoring')
         self.goofy.ResumeDUTMonitoring()
-      except:  # pylint: disable=bare-except
+      except Exception:
         # Monitoring suspension will time out eventually
         logging.exception('Failed to resume monitoring. Ignore.')
 

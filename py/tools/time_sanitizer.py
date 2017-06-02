@@ -128,7 +128,7 @@ class TimeSanitizer(object):
     while True:
       try:
         self.RunOnce()
-      except:  # pylint: disable=bare-except
+      except Exception:
         logging.exception('Exception in run loop')
 
       time.sleep(self.monitor_interval_secs)
@@ -140,7 +140,7 @@ class TimeSanitizer(object):
       try:
         minimum_time = max(minimum_time,
                            float(open(self.state_file).read().strip()))
-      except:  # pylint: disable=bare-except
+      except Exception:
         logging.exception('Unable to read %s', self.state_file)
     else:
       logging.warn('State file %s does not exist', self.state_file)
@@ -232,7 +232,7 @@ def GetBaseTimeFromFile(*base_time_files):
         logging.info('Using %s (mtime of %s) as base time',
                      _FormatTime(base_time), f)
         return base_time
-      except:  # pylint: disable=bare-except
+      except Exception:
         logging.exception('Unable to stat %s', f)
     else:
       logging.warn('base-time-file %s does not exist', f)

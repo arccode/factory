@@ -30,7 +30,7 @@ class ShopFloorStandaloneTest(unittest.TestCase):
     if self.process and self.process.poll() is None:
       try:
         self.process.terminate()
-      except:
+      except Exception:
         pass
     shutil.rmtree(self.tmp)
     shutil.rmtree(self.tmp_build_dir)

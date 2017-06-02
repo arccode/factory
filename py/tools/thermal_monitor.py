@@ -54,7 +54,7 @@ class TemperaturesMonitor(object):
         self._last_temperatures = temperatures
         self._sensor_array_changed = True
         self._sensor_array = self._GetSensorArray(temperatures)
-    except:  # pylint: disable=bare-except
+    except Exception:
       syslog.syslog('Unable to get all temperatures.')
       logging.exception('Unable to get all temperatures.')
       self._last_success = False

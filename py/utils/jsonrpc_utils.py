@@ -70,7 +70,7 @@ class JSONRPCServer(object):
                           transport=TimeoutJSONRPCTransport(0.01))
     try:
       s.IsAlive()
-    except:  # pylint: disable=W0702
+    except Exception:
       pass
     self._server_thread.join()
     self._server.server_close()

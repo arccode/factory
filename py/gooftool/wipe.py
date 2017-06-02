@@ -228,7 +228,7 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
 
       ExecFactoryPar('gooftool', 'wipe_init', *args)
       raise RuntimeError('Should not reach here')
-  except:
+  except Exception:
     logging.exception('wipe_in_place failed')
     _OnError(station_ip, station_port, wipe_finish_token, state_dev,
              wipe_in_tmpfs_log=logfile, wipe_init_log=None)
@@ -299,7 +299,7 @@ def _UnmountStatefulPartition(root, state_dev):
     for pid in proc_list:
       try:
         os.kill(pid, sig)
-      except:  # pylint: disable=bare-except
+      except Exception:
         logging.exception('killing process %d failed', pid)
     return False  # need to check again
 
@@ -360,7 +360,7 @@ def _InformStation(ip, port, token, wipe_init_log=None,
         lambda: 0 == process_utils.Spawn(['ping', '-w1', '-c1', ip],
                                          call=True).returncode,
         timeout_secs=180, poll_interval=1)
-  except:  # pylint: disable=bare-except
+  except Exception:
     logging.exception('cannot get network connection...')
   else:
     sock = socket.socket()
@@ -474,7 +474,7 @@ def WipeInit(wipe_args, shopfloor_url, state_dev, release_rootfs,
 
     # should not reach here
     time.sleep(1e8)
-  except:
+  except Exception:
     logging.exception('wipe_init failed')
     _OnError(station_ip, station_port, finish_token, state_dev,
              wipe_in_tmpfs_log=wipe_in_tmpfs_log, wipe_init_log=logfile)

@@ -70,7 +70,7 @@ def ShopFloorUpload(source_path, remote_spec,
       result['message'] = 'Remote server fault #%d: %s' % (err.faultCode,
                                                            err.faultString)
       result['abort'] = True
-    except:  # pylint: disable=bare-except
+    except Exception:
       result['message'] = sys.exc_info()[1]
       result['abort'] = False
 

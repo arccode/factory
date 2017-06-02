@@ -99,7 +99,7 @@ class SyncShopfloor(unittest.TestCase):
             # Note that updateFactory() will kill this test.
             ui.BindKeyJS(test_ui.SPACE_KEY, 'window.test.updateFactory()')
             return
-        except:  # pylint: disable=bare-except
+        except Exception:
           exception_string = debug_utils.FormatExceptionOnly()
           # Log only the exception string, not the entire exception,
           # since this may happen repeatedly.

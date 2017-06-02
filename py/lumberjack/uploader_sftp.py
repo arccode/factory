@@ -124,7 +124,7 @@ class SFTPBase(object):
     if self._sftp:  # Verify if the sftp session is still valid.
       try:
         self._sftp.chdir('.')
-      except:  # pylint: disable=W0702
+      except Exception:
         logging.info('SFTP session no longer valid, reconnect.')
         _ConnectWithRetries(retries)
     else:

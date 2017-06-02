@@ -436,7 +436,7 @@ class GlobalSeq(object):
           max_seq = max(max_seq, int(match.group(1)))
 
       return max_seq + SEQ_INCREMENT_ON_BOOT + 1
-    except:  # pylint: disable=bare-except
+    except Exception:
       # This should really never happen; maybe the events file is
       # so corrupted that a read operation is failing.
       logging.exception("Unable to find next sequence number from "
@@ -552,7 +552,7 @@ class EventLog(object):
     if not os.path.exists(parent_dir):
       try:
         os.makedirs(parent_dir)
-      except:  # pylint: disable=bare-except
+      except Exception:
         # Maybe someone else tried to create it simultaneously
         if not os.path.exists(parent_dir):
           raise

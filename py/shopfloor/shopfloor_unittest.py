@@ -88,7 +88,7 @@ class ShopFloorServerTest(unittest.TestCase):
       try:
         self.proxy.Ping()
         return True
-      except:  # pylint: disable=bare-except
+      except Exception:
         return False
     sync_utils.WaitFor(_ServerUp, 2)
 

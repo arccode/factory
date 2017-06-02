@@ -202,7 +202,7 @@ class GoofyRPC(object):
         ret_value.put({
             'success': True, 'updated': False, 'restart_time': None,
             'error_msg': None})
-      except:  # pylint: disable=bare-except
+      except Exception:
         # There was an update available, but we couldn't get it.
         logging.exception('Update failed')
         ret_value.put({
@@ -258,7 +258,7 @@ class GoofyRPC(object):
                 'name': os.path.basename(output_file),
                 'size': os.path.getsize(output_file),
                 'temporary': mount.temporary}
-    except:
+    except Exception:
       logging.exception('Unable to save logs to USB')
       raise
 
@@ -755,7 +755,7 @@ class GoofyRPC(object):
                                       'metadata')):
         try:
           ret.append(yaml.load(open(f)))
-        except:  # pylint: disable=bare-except
+        except Exception:
           logging.exception('Unable to load test metadata %s', f)
 
     ret.sort(key=lambda item: item.get('init_time', None))
@@ -769,7 +769,7 @@ class GoofyRPC(object):
     log_file = os.path.join(test_dir, 'log')
     try:
       log = string_utils.CleanUTF8(file_utils.ReadFile(log_file))
-    except:  # pylint: disable=bare-except
+    except Exception:
       # Oh well
       logging.exception('Unable to read log file %s', log_file)
       log = None

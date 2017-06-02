@@ -36,7 +36,7 @@ class UIAppControllerHandler(SimpleHTTPRequestHandler):
     try:
       self.server.controller.AddWebSocket(web_socket)
       web_socket.run()
-    except:  # pylint: disable=bare-except
+    except Exception:
       logging.exception('Web socket closed with exception')
     finally:
       self.server.controller.DiscardWebSocket(web_socket)

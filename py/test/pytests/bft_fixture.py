@@ -31,7 +31,7 @@ class BFTFixture(unittest.TestCase):
         fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
         getattr(fixture, self.args.method)(*self.args.args)
         break  # Success; we're done
-      except:  # pylint: disable=bare-except
+      except Exception:
         logging.exception('BFT fixture test failed')
         if not self.args.retry_secs:
           # No retry; raise the exception to fail the test
@@ -40,7 +40,7 @@ class BFTFixture(unittest.TestCase):
         if fixture:
           try:
             fixture.Disconnect()
-          except:  # pylint: disable=bare-except
+          except Exception:
             logging.exception('Unable to disconnect fixture')
 
       logging.info('Will retry in %s secs', self.args.retry_secs)

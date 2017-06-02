@@ -110,7 +110,7 @@ class BadBlocksTest(unittest.TestCase):
   def _CheckBadBlocks(self):
     try:
       self._CheckBadBlocksImpl()
-    except:
+    except Exception:
       self.ui.Fail(debug_utils.FormatExceptionOnly())
       raise
     else:

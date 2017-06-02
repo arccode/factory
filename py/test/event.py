@@ -217,7 +217,7 @@ class EventServerRequestHandler(SocketServer.BaseRequestHandler):
         return
       try:
         self.request.send(message)
-      except:  # pylint: disable=bare-except
+      except Exception:
         return
 
 
@@ -284,7 +284,7 @@ class EventServer(SocketServer.ThreadingUnixStreamServer):
       if logging.getLogger().isEnabledFor(logging.DEBUG):
         logging.debug('Event server: dispatching object %s',
                       pickle.loads(message))
-    except:  # pylint: disable=bare-except
+    except Exception:
       # Message isn't parseable as a pickled object; weird!
       logging.info(
           'Event server: dispatching message %r', message)
@@ -377,7 +377,7 @@ class EventClient(object):
     del exc_type, exc_value, traceback  # Unused.
     try:
       self.close()
-    except:  # pylint: disable=bare-except
+    except Exception:
       pass
     return False
 
@@ -499,7 +499,7 @@ class EventClient(object):
       if logging.getLogger().isEnabledFor(logging.DEBUG):
         logging.debug('Event client: dispatching event %s',
                       self._truncate_event_for_debug_log(event))
-    except:  # pylint: disable=bare-except
+    except Exception:
       logging.warn('Event client: bad message %r', msg_bytes)
       traceback.print_exc(sys.stderr)
       return True, None
@@ -509,7 +509,7 @@ class EventClient(object):
     for callback in callbacks:
       try:
         callback(event)
-      except:  # pylint: disable=bare-except
+      except Exception:
         logging.warn('Event client: error in callback')
         traceback.print_exc(sys.stderr)
         # Keep going

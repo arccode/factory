@@ -353,7 +353,7 @@ class Util(object):
       logging.info('Syncing disks...')
       self.shell('sync; sleep 3')
       logging.info('Enable release partition: Complete.')
-    except:  # pylint: disable=bare-except
+    except Exception:
       logging.error('FAIL: Failed to enable release partition.')
       self.shell('crossystem disable_dev_request=0')
       self.SetCgptAttributes(curr_attrs, device)

@@ -239,7 +239,7 @@ class EventLogTest(unittest.TestCase):
     try:
       log.Log('should-fail')
       self.fail('Expected exception')
-    except:  # pylint: disable=bare-except
+    except Exception:
       pass
 
     log_data = list(yaml.load_all(open(event_log.EVENTS_PATH, 'r')))

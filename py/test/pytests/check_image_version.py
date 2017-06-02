@@ -93,7 +93,7 @@ class ImageCheckTask(factory_task.FactoryTask):
       self.dut.CheckCall(['reboot'], log=True)
 
       self.Fail('Incorrect image version, DUT is rebooting to reimage.')
-    except:  # pylint: disable=bare-except
+    except Exception:
       self._test.template.SetState(_MSG_FLASH_ERROR)
 
   def CheckImageFromUmpire(self):

@@ -224,7 +224,7 @@ class SystemLogManager(plugin.Plugin):
     for f in file_list:
       try:
         os.unlink(f)
-      except:  # pylint: disable=bare-except
+      except Exception:
         logging.exception('Fails to remove file %s.', f)
     logging.debug('Logs cleared.')
 
@@ -392,7 +392,7 @@ class SystemLogManager(plugin.Plugin):
           self.goofy.event_log.Log('crash_file',
                                    path=path, size=stat.st_size, mtime=mtime,
                                    **extra_log_args)
-      except:  # pylint: disable=bare-except
+      except Exception:
         logging.exception('Unable to handle crash files %s', path)
       seen_crashes.add(path)
 

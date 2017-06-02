@@ -111,7 +111,7 @@ class FileScanner(WorkerBase):
               self._db[short_path][KEY_OFFSET] != os.path.getsize(full_path)):
             try:
               chunk = self._ScanEventLog(short_path)
-            except:  # pylint: disable=W0702
+            except Exception:
               logging.info(short_path + ': ' +
                            debug_utils.FormatExceptionOnly())
             if chunk:
@@ -127,7 +127,7 @@ class FileScanner(WorkerBase):
     """Gets the database or recreate one if exception occurs."""
     try:
       db = OpenShelfOrBackup(self._scan_db_file)
-    except:  # pylint: disable=W0702
+    except Exception:
       logging.exception('Corrupted database, recreating')
       os.unlink(self._scan_db_file)
       db = shelve.open(self._scan_db_file)
@@ -212,7 +212,7 @@ class EventLoadingWorker(WorkerBase):
     # TODO(waihong): Optimize it using a cache.
     try:
       text = open(file_path).read()
-    except:  # pylint: disable=W0702
+    except Exception:
       logging.exception('Error on reading log file %s: %s',
                         file_path,
                         debug_utils.FormatExceptionOnly())

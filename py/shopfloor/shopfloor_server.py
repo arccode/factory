@@ -111,7 +111,7 @@ class MyXMLRPCServer(SocketServer.ThreadingMixIn,
     try:
       self.local.method = method
       return SimpleXMLRPCServer._dispatch(self, method, params)
-    except:
+    except Exception:
       logging.exception('Exception in method %s', method)
       self.local.exception = debug_utils.FormatExceptionOnly()
       raise
@@ -311,7 +311,7 @@ def main():
           shutil.copy(f, instance.data_dir)
 
     instance.Init()
-  except:  # pylint: disable=W0702
+  except Exception:
     logging.exception('Failed loading module: %s', options.module)
     exit(1)
 

@@ -80,7 +80,7 @@ def _SendDhclientCommand(arguments, interface,
            '-v', '--no-pid', interface] + arguments, timeout))
   try:
     dhcp_process.expect(expect_str)
-  except:
+  except Exception:
     logging.info('dhclient output before timeout - %r', dhcp_process.before)
     raise type_utils.Error(
         'Timeout when running DHCP command, check if cable is connected.')
@@ -180,7 +180,7 @@ def PrepareNetwork(ip, force_new_ip=False, on_waiting=None):
       factory.console.info('Setting up IP address...')
       sync_utils.PollForCondition(poll_method=_obtain_IP,
                                   condition_name='Setup IP address')
-  except:  # pylint: disable=bare-except
+  except Exception:
     exception_string = debug_utils.FormatExceptionOnly()
     factory.console.error('Unable to setup network: %s', exception_string)
   factory.console.info('Network prepared. IP: %r', net_utils.GetEthernetIp())

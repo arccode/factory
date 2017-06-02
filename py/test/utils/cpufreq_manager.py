@@ -84,7 +84,7 @@ class CpufreqManager(object):
           if not enabled:
             file_utils.WriteFile(os.path.join(path, 'scaling_setspeed'),
                                  self.cpu_speed_hz, log=True)
-        except:  # pylint: disable=bare-except
+        except Exception:
           success = False
           logging.exception('Unable to set CPU scaling parameters')
           exception = traceback.format_exc()

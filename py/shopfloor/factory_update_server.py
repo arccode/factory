@@ -292,7 +292,7 @@ class FactoryUpdateServer(object):
     while True:
       try:
         self.RunOnce()
-      except:  # pylint: disable=W0702
+      except Exception:
         logging.exception('Error in event loop')
 
       self._stop_event.wait(self.poll_interval_sec)
@@ -347,9 +347,9 @@ class FactoryUpdateServer(object):
       if self.on_idle:
         try:
           self.on_idle()
-        except:  # pylint: disable=W0702
+        except Exception:
           logging.exception('Exception in idle hook')
-    except:
+    except Exception:
       self._errors += 1
       raise
 

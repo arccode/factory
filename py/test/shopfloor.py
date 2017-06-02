@@ -227,7 +227,7 @@ def check_server_status(instance=None):
     if instance is None:
       instance = get_instance()
     instance.Ping()
-  except:
+  except Exception:
     raise
   return True
 
@@ -374,7 +374,7 @@ def GetShopfloorConnection(
           detect=True, timeout=timeout_secs)
       check_server_status(shopfloor_client)
       break
-    except:  # pylint: disable=bare-except
+    except Exception:
       exception_string = debug_utils.FormatExceptionOnly()
       # Log only the exception string, not the entire exception,
       # since this may happen repeatedly.
@@ -405,7 +405,7 @@ def UploadAuxLogs(file_paths, ignore_on_fail=False, dir_name=None):
       shopfloor_client.SaveAuxLog(log_name, Binary(chunk))
       factory.console.info('Successfully synced %s in %.03f s',
                            log_name, time.time() - start_time)
-    except:  # pylint: disable=bare-except
+    except Exception:
       if ignore_on_fail:
         factory.console.info(
             'Failed to sync with shopfloor for [%s], ignored',

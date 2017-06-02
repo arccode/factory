@@ -39,7 +39,7 @@ def InfoProperty(f):
     value = None
     try:
       value = f(self)
-    except:  # pylint: disable=bare-except
+    except Exception:
       pass
     self._cached[name] = value
     return value

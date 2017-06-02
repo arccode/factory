@@ -87,7 +87,7 @@ class GoofyBase(object):
 
       try:
         event()
-      except:  # pylint: disable=bare-except
+      except Exception:
         logging.exception('Error in event loop')
         self.record_exception(traceback.format_exception_only(
             *sys.exc_info()[:2]))
@@ -185,7 +185,7 @@ class GoofyBase(object):
       raise
     except KeyboardInterrupt:
       logging.info('Interrupted, shutting down...')
-    except:
+    except Exception:
       # Log the error before trying to shut down
       logging.exception('Error in main loop')
       raise

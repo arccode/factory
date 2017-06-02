@@ -366,7 +366,7 @@ class Finalize(unittest.TestCase):
       for i, item in enumerate(items):
         try:
           passed = item[0]()
-        except:  # pylint: disable=bare-except
+        except Exception:
           logging.exception('Error evaluating finalization condition')
           passed = False
         js.append('$("finalize-%d").className = "test-status-%s"' % (
@@ -523,7 +523,7 @@ class Finalize(unittest.TestCase):
           self.dut_response = dut_response
           dut_finished.set()
         # otherwise, the reponse is invalid, just ignore it
-      except:  # pylint: disable=bare-except
+      except Exception:
         pass
 
     # Start response listener

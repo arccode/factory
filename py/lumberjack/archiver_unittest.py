@@ -61,7 +61,7 @@ class ArchiverUnittest(unittest.TestCase):
     for directory in directories_to_delete:
       try:
         shutil.rmtree(os.path.join(TEST_DATA_PATH, directory))
-      except:  # pylint: disable=W0702
+      except Exception:
         pass
 
     # Delete lock file
@@ -72,7 +72,7 @@ class ArchiverUnittest(unittest.TestCase):
     for lock_file in lock_file_to_delete:
       try:
         os.unlink(os.path.join(TEST_DATA_PATH, lock_file))
-      except:  # pylint: disable=W0702
+      except Exception:
         pass
 
   def testYAMLConfigNonExist(self):
@@ -358,7 +358,7 @@ class ArchiverUnittest(unittest.TestCase):
     try:
       # Make sure no metadata for this file.
       os.unlink(GetMetadataPath(filename, ARCHIVER_METADATA_DIRECTORY))
-    except:  # pylint: disable=W0702
+    except Exception:
       pass
     expected_list.append(EligibleFile(
         last_completed_bytes=0, current_size=os.path.getsize(filename),

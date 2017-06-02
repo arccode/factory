@@ -113,7 +113,7 @@ class EventSinker(object):
       for invoker in invokers:
         try:
           invoker(packet)
-        except:  # pylint: disable=W0702
+        except Exception:
           logging.exception('Error on invoking the exporter: %s',
                             debug_utils.FormatExceptionOnly())
 

@@ -56,7 +56,7 @@ def SetLeds(state):
         dev = '/dev/tty%d' % tty
         try:
           _tty_fds.append(os.open(dev, os.O_RDWR))
-        except:  # pylint: disable=bare-except
+        except Exception:
           logging.exception('Unable to open %s', dev)
 
   if not _tty_fds:
@@ -65,7 +65,7 @@ def SetLeds(state):
   for fd in _tty_fds:
     try:
       fcntl.ioctl(fd, KDSETLED, state)
-    except:  # pylint: disable=bare-except
+    except Exception:
       pass
 
   return True

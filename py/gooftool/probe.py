@@ -47,7 +47,7 @@ from cros.factory.external import evdev
 try:
   sys.path.append('/usr/local/lib/flimflam/test')
   import flimflam  # pylint: disable=import-error
-except:  # pylint: disable=bare-except
+except Exception:
   pass
 
 # TODO(tammo): Some tests look for multiple components, some tests
@@ -954,7 +954,7 @@ def _GetV4L2Data(video_idx):
     """Try to invoke ioctl without raising an exception if it fails."""
     try:
       ioctl(fileno, request, *args)
-    except:  # pylint: disable=bare-except
+    except Exception:
       pass
 
   try:
@@ -975,7 +975,7 @@ def _GetV4L2Data(video_idx):
         info['type'] = 'webcam'
       elif capabilities & V4L2_CAP_VIDEO_CODEC == V4L2_CAP_VIDEO_CODEC:
         info['type'] = 'video_codec'
-  except:  # pylint: disable=bare-except
+  except Exception:
     pass
 
   return info
@@ -1521,7 +1521,7 @@ def CalculateFirmwareHashes(fw_file_path):
   raw_image = open(fw_file_path, 'rb').read()
   try:
     image = crosfw.FirmwareImage(raw_image)
-  except:  # pylint: disable=bare-except
+  except Exception:
     return None
   hashes = {}
   if image.has_section('EC_RO'):

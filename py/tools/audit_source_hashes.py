@@ -147,7 +147,7 @@ def AuditHashes(golden, samples, out):
       sample_hashes = GetHashes(s)
       mismatched_hashes = FindMismatches(golden_hashes,
                                          sample_hashes, s, out)
-    except:  # pylint: disable=W0702
+    except Exception:
       out.write('Error processing sample %s\n' % s)
       traceback.print_exc(file=out)
       total_exceptions += 1

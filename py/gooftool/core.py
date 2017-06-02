@@ -752,7 +752,7 @@ class Gooftool(object):
     def scrub_exceptions(operation):
       try:
         yield
-      except:
+      except Exception:
         # Re-raise an exception including type and stack trace for the original
         # exception to facilitate error analysis. Don't include the exception
         # value as it may contain the device secret.

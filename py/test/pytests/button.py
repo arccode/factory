@@ -247,11 +247,11 @@ class ButtonTest(unittest.TestCase):
     if self._fixture:
       try:
         self._fixture.SimulateButtonRelease(self.args.bft_button_name)
-      except:  # pylint: disable=bare-except
+      except Exception:
         logging.warning('failed to release button', exc_info=True)
       try:
         self._fixture.Disconnect()
-      except:  # pylint: disable=bare-except
+      except Exception:
         logging.warning('disconnection failure', exc_info=True)
 
   def _PollForCondition(self, poll_method, condition_name):

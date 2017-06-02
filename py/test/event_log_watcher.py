@@ -132,7 +132,7 @@ class EventLogWatcher(object):
             f.flush()
             os.fdatasync(f)
 
-    except:  # pylint: disable=bare-except
+    except Exception:
       if suppress_error:
         logging.debug('Upload handler error')
       else:
@@ -147,7 +147,7 @@ class EventLogWatcher(object):
         self._db[chunk.log_name] = log_state
       if not self._use_sync_markers:
         self._db.sync()
-    except:  # pylint: disable=bare-except
+    except Exception:
       if suppress_error:
         logging.debug('Upload handler error')
       else:
@@ -190,7 +190,7 @@ class EventLogWatcher(object):
             chunk_info = self.ScanEventLog(relative_path)
             if chunk_info is not None:
               chunks.append(chunk_info)
-          except:  # pylint: disable=bare-except
+          except Exception:
             msg = relative_path + ': ' + debug_utils.FormatExceptionOnly()
             if suppress_error:
               logging.info(msg)
@@ -236,7 +236,7 @@ class EventLogWatcher(object):
       try:
         with self._scan_lock:
           self.ScanEventLogs(True, True)
-      except:  # pylint: disable=bare-except
+      except Exception:
         logging.exception('Error in event log watcher thread')
 
   def GetOrCreateDb(self):
@@ -245,7 +245,7 @@ class EventLogWatcher(object):
 
     try:
       db = shelve_utils.OpenShelfOrBackup(self._event_log_db_file)
-    except:  # pylint: disable=bare-except
+    except Exception:
       logging.exception('Corrupted database, recreating')
       os.unlink(self._event_log_db_file)
       db = shelve.open(self._event_log_db_file)

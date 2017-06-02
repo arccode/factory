@@ -156,7 +156,7 @@ def _I2CDump(bus, address, size):
     time.sleep(0.05)  # Wait i2c to get ready
     if os.write(fd, chr(0)) == 1:
       blob = os.read(fd, size)
-  except:  # pylint: disable=W0702
+  except Exception:
     pass
   finally:
     if fd >= 0:

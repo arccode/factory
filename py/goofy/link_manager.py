@@ -197,7 +197,7 @@ class PresenterLinkManager(object):
           if self._connect_hook:
             self._connect_hook(presenter_ip)
           return
-      except:  # pylint: disable=bare-except
+      except Exception:
         logging.exception('Failed to register DUT as %s', my_ip)
 
     except (socket.error, socket.timeout):
@@ -359,7 +359,7 @@ class DUTLinkManager(object):
       my_ip = dhcp_subnet + '.1'
       try:
         proxy.Announce(dut_ip, my_ip)
-      except: # pylint: disable=bare-except
+      except Exception:
         pass
 
   def _StartDHCPServer(self):

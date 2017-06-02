@@ -104,7 +104,7 @@ class _DatastoreBase(object):
         for elt_subtype in elt_type:
           try:
             return NestedDecode(elt_subtype, elt_data)
-          except:  # pylint: disable=W0702
+          except Exception:
             continue
       elif issubclass(elt_type, _DatastoreBase):
         cooked_field_dict = dict(

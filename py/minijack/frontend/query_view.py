@@ -60,7 +60,7 @@ def GetQueryView(request):
         results = executor.FetchAll()
         logging.debug(results)
         columns = executor.GetDescription()
-      except:  # pylint: disable=W0702
+      except Exception:
         error_message = 'Failed to execute SQL query "%s":\n%s' % (
             sql_query, FormatExceptionOnly())
     else:

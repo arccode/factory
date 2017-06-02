@@ -128,7 +128,7 @@ def CatchException(name, enable=True):
     def Wrap(*args, **kwargs):
       try:
         method(*args, **kwargs)
-      except:  # pylint: disable=W0702
+      except Exception:
         logging.warning(
             '%s Exception: %s.', name,
             '\n'.join(traceback.format_exception_only(

@@ -89,7 +89,7 @@ module = modules.get(name)
 try:
   from setproctitle import setproctitle
   setproctitle(' '.join(sys.argv))
-except:
+except Exception:
   pass  # Oh well
 
 # Set process title so killall/pkill will work.
@@ -98,7 +98,7 @@ try:
   buff = ctypes.create_string_buffer(len(name) + 1)
   buff.value = name
   ctypes.cdll.LoadLibrary('libc.so.6').prctl(15, ctypes.byref(buff), 0, 0, 0)
-except:
+except Exception:
   pass  # Oh well
 
 if not module:
