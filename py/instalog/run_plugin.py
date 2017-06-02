@@ -286,6 +286,9 @@ class PluginRunner(plugin_sandbox.CoreAPI):
     """See Core.GetNodeID."""
     return 'run_plugin'
 
+  def GetProgress(self, plugin):
+    raise NotImplementedError
+
 
 def main(plugin_type=None, config=None):
   """Executes a plugin as a command-line utility for testing purposes.
