@@ -223,9 +223,12 @@ def SMTShopFloor2(args):
         require_run=Passed(
             args.smt_test_group_id + '.ShopFloor2.UpdateDeviceData'),
         dargs=dict(
-            device_data_keys=[('factory.device_data.',
-                               state.KEY_MLB_SERIAL_NUMBER),
-                              ('factory.device_data.', 'smt_complete')],
+            key_map={
+                DictKey.Join('factory_device_data', key): key
+                for key in [DictKey.Join(state.KEY_ALL_SERIAL_NUMBERS,
+                                         state.KEY_MLB_SERIAL_NUMBER),
+                            'smt_complete']
+            },
             vpd_section='rw'))
 
     args.SyncShopFloor('2')

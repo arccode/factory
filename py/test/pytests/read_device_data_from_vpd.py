@@ -17,6 +17,7 @@ from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils.shelve_utils import DictKey
 
 
 _MSG_READING_VPD = lambda vpd_section: i18n_test_ui.MakeI18nLabel(
@@ -24,27 +25,42 @@ _MSG_READING_VPD = lambda vpd_section: i18n_test_ui.MakeI18nLabel(
     vpd_section=vpd_section.upper())
 
 
-class CallShopfloor(unittest.TestCase):
+class ReadDeviceDataFromVPD(unittest.TestCase):
   ARGS = [
-      Arg('device_data_keys', list,
-          ('List of keys for device_data we want to read from RW_VPD.'
-           'Each key is a tuple of (prefix, key) meaning that the '
-           'pair (key, value) should be added into device_data if there is '
-           'a pair (prefix + key, value) in RW_VPD. If key is \\*, it means '
-           'all keys with the prefix should be added.'),
-          default=[('factory.device_data.', '*')], optional=True),
+      Arg('key_map', dict,
+          ('Mapping from VPD key to device data key.  For example, '
+           '{"foo": "bar.baz"} will read value of "foo" from VPD, and '
+           'set device data "bar.baz" to that value.  If VPD key ends with '
+           '"*", then all keys with the prefix will be added to device data '
+           '(In this case, device data key will be treated as a prefix as '
+           'well).  For example, {"foo.*": "bar"} will write all VPD values '
+           'with key starts with "foo" to device data, and change the prefix '
+           '"foo" to "bar"'),
+          default={'factory.device_data.*': ''}, optional=True),
       Arg('vpd_section', str,
           'It should be rw or ro which means RW_VPD or RO_VPD to read.',
           default='rw', optional=True),
   ]
 
   @staticmethod
-  def _MatchKey(matcher, vpd_key):
-    prefix, key = matcher
-    if key == '*':
-      return vpd_key.startswith(prefix)
+  def _MatchKey(rule, vpd_key):
+    expected_key = rule[0]
+    if expected_key.endswith('*'):
+      return vpd_key.startswith(expected_key[:-1])
     else:
-      return vpd_key == prefix + key
+      return vpd_key == expected_key
+
+  @staticmethod
+  def _DeriveDeviceDataKey(rule, vpd_key):
+    expected_key = rule[0]
+    if not expected_key.endswith('*'):
+      return rule[1]
+
+    # remove the prefix
+    vpd_key = vpd_key[len(expected_key[:-1]):]
+
+    # prepend new prefix
+    return DictKey.Join(rule[1], vpd_key)
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
@@ -59,14 +75,16 @@ class CallShopfloor(unittest.TestCase):
     template.SetState(_MSG_READING_VPD(self.args.vpd_section))
 
     vpd_data = getattr(self.dut.vpd, self.args.vpd_section).GetAll()
+    self.UpdateDeviceData(self.args.key_map, vpd_data)
+
+  def UpdateDeviceData(self, key_map, vpd_data):
     device_data = {}
-    for matcher in self.args.device_data_keys:
-      for key in vpd_data:
-        if self._MatchKey(matcher, key):
-          discarded_prefix = matcher[0]
-          device_data_key = key[len(discarded_prefix):]
-          if vpd_data[key].upper() in ['TRUE', 'FALSE']:
-            device_data[device_data_key] = (vpd_data[key].upper() == 'TRUE')
+    for rule in key_map.iteritems():
+      for vpd_key in vpd_data:
+        if self._MatchKey(rule, vpd_key):
+          device_data_key = self._DeriveDeviceDataKey(rule, vpd_key)
+          if vpd_data[vpd_key].upper() in ['TRUE', 'FALSE']:
+            device_data[device_data_key] = (vpd_data[vpd_key].upper() == 'TRUE')
           else:
-            device_data[device_data_key] = vpd_data[key]
+            device_data[device_data_key] = vpd_data[vpd_key]
     state.UpdateDeviceData(device_data)

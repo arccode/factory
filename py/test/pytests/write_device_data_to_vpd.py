@@ -18,6 +18,7 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
+
 _MSG_WRITING_VPD = lambda vpd_section: i18n_test_ui.MakeI18nLabel(
     'Writing device data to {vpd_section} VPD...',
     vpd_section=vpd_section.upper())
@@ -25,11 +26,10 @@ _MSG_WRITING_VPD = lambda vpd_section: i18n_test_ui.MakeI18nLabel(
 
 class CallShopfloor(unittest.TestCase):
   ARGS = [
-      Arg('device_data_keys', list,
-          ('List of keys for device_data we want to write into RW_VPD.'
-           'Each key is a tuple of (prefix, key) meaning that the pair '
-           '(prefix + key, value) should be added into RW_VPD if there is '
-           'a pair (key, value) in device_data.')),
+      Arg('key_map', dict,
+          ('Mapping from VPD key to device data key, e.g. {"foo": "bar.baz"} '
+           'will write the value of "bar.baz" in device data to VPD with key '
+           '"foo"')),
       Arg('vpd_section', str,
           'It should be rw or ro which means RW_VPD or RO_VPD to write.',
           default='rw', optional=True),
@@ -48,8 +48,8 @@ class CallShopfloor(unittest.TestCase):
     template.SetState(_MSG_WRITING_VPD(self.args.vpd_section))
 
     data_to_write = {}
-    for prefix, key in self.args.device_data_keys:
-      data_to_write[prefix + key] = state.GetDeviceData(key, None)
+    for vpd_key, device_data_key in self.args.key_map.iteritems():
+      data_to_write[vpd_key] = state.GetDeviceData(device_data_key, None)
 
     missing_keys = [k for k, v in data_to_write.iteritems() if v is None]
     if missing_keys:

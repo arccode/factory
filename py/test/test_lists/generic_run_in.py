@@ -21,6 +21,7 @@ from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import Passed
 from cros.factory.test.test_lists.test_lists import RebootStep
 from cros.factory.test.test_lists.test_lists import TestGroup
+from cros.factory.utils.shelve_utils import DictKey
 
 
 HOURS = 60 * 60
@@ -80,10 +81,11 @@ def RunIn(args, group_suffix=''):
               label=_('Write Device Data To VPD'),
               pytest_name='write_device_data_to_vpd',
               dargs=dict(
-                  device_data_keys=[
-                      ('factory.device_data.', state.KEY_MLB_SERIAL_NUMBER),
-                      ('factory.device_data.', 'smt_complete')
-                  ],
+                  key_map={
+                      DictKey.Join('factory.device_data', key): key for key in
+                      [DictKey.Join(state.KEY_ALL_SERIAL_NUMBERS,
+                                    state.KEY_MLB_SERIAL_NUMBER),
+                       'smt_complete']},
                   vpd_section='rw'))
 
           # Checks image version is not lower than certain version. If it is,
@@ -318,10 +320,11 @@ def RunIn(args, group_suffix=''):
                 pytest_name='write_device_data_to_vpd',
                 run_if=args.SelectedForControlRunImageUpdate,
                 dargs=dict(
-                    device_data_keys=[
-                        ('factory.device_data.', state.KEY_MLB_SERIAL_NUMBER),
-                        ('factory.device_data.', 'smt_complete')
-                    ],
+                    key_map={
+                        DictKey.Join('factory.device_data', key): key for key in
+                        [DictKey.Join(state.KEY_ALL_SERIAL_NUMBERS,
+                                      state.KEY_MLB_SERIAL_NUMBER),
+                         'smt_complete']},
                     vpd_section='rw'))
 
             # Checks image version is not lower than certain version. If it is,
