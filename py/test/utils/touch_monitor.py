@@ -26,12 +26,13 @@ Quick Start:
   device.ungrab()
 """
 
-import array
 import copy
 import fcntl
+import struct
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.external.evdev import ecodes  # pylint: disable=E0611
+# pylint: disable=no-name-in-module
+from cros.factory.external.evdev import ecodes
 
 
 class TouchMonitorBase(object):
@@ -62,11 +63,12 @@ class TouchMonitorBase(object):
       # array. Each bit represents if a corresponding key is pressed or not.
       KEY_CNT = 0x2ff + 1  # Defined in <uapi/linux/input-event-codes.h>.
       nbytes = (KEY_CNT + 7) / 8
-      buf = array.array('B', [0] * nbytes)
       # Defined in <uapi/linux/input.h>.
       EVIOCGKEY = (2 << 30) | (ord('E') << 8) | 0x18 | (nbytes << 16)
-      assert fcntl.ioctl(device.fileno(), EVIOCGKEY, buf) >= 0
-      return {key: bool((buf[key >> 3] >> (key & 7)) & 1)
+      in_buf = '\0' * nbytes
+      out_buf = struct.unpack('=%dB' % nbytes,
+                              fcntl.ioctl(device.fileno(), EVIOCGKEY, in_buf))
+      return {key: bool((out_buf[key >> 3] >> (key & 7)) & 1)
               for key in caps[ecodes.EV_KEY]}
 
     self._device = device
@@ -227,14 +229,15 @@ class MultiTouchMonitor(TouchMonitorBase):
 
     def IoctlEVIOCGMTSLOTS(code):
       # This function calls ioctl with EVIOCGMTSLOTS request, which can return
-      # the X position, Y position, or tracking id of all slots.
-      # See uapi/linux/input.h for details.
-      buf = array.array('l', [code] + [0] * num_slots)
-      nbytes = buf.itemsize * len(buf)
+      # the X position, Y position, or tracking id of all slots as an array of
+      # 32-bit signed integers. See <uapi/linux/input.h> for details.
+      fmt = '=%di' % (1 + num_slots)
+      nbytes = struct.calcsize(fmt)
       # Defined in <uapi/linux/input.h>.
       EVIOCGMTSLOTS = (2 << 30) | (ord('E') << 8) | 0x0a | (nbytes << 16)
-      assert fcntl.ioctl(device.fileno(), EVIOCGMTSLOTS, buf) >= 0
-      return list(buf)[1:]
+      in_buf = struct.pack(fmt, code, *([0] * num_slots))
+      out_buf = fcntl.ioctl(device.fileno(), EVIOCGMTSLOTS, in_buf)
+      return struct.unpack(fmt, out_buf)[1:]
 
     super(MultiTouchMonitor, self).__init__(device)
     self._normalize_x = self._GetNormalizer(ecodes.ABS_MT_POSITION_X)
