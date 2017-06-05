@@ -35,17 +35,25 @@ const fetchBundles = () => (dispatch, getState) => {
   //                  have to add a hidden task after the main task as the
   //                  onFinish callback.)
   fetch(`${baseURL(getState)}/bundles.json`).then(response => {
+    // a response can only be read once, workaround to read the response twice
+    // if needed
+    let responseCopy = response.clone();
+
     response.json().then(json => {
       dispatch(receiveBundles(json));
     }, error => {
-      // TODO(littlecvr): better error handling
-      console.error('error parsing bundle list response');
-      console.error(error);
+      responseCopy.text().then(text => {
+        dispatch(DomeActions.setAndShowErrorDialog(
+            'error parsing bundle list response\n\n' +
+            `${error.message}\n\n` +
+            text
+        ));
+      });
     });
   }, error => {
-    // TODO(littlecvr): better error handling
-    console.error('error fetching bundle list');
-    console.error(error);
+    dispatch(DomeActions.setAndShowErrorDialog(
+        `error fetching bundle list\n\n${error.message}`
+    ));
   });
 };
 

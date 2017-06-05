@@ -17,6 +17,7 @@ import BoardsApp from './BoardsApp';
 import BundlesApp from './BundlesApp';
 import DashboardApp from './DashboardApp';
 import DomeActions from '../actions/domeactions';
+import ErrorDialog from './ErrorDialog';
 import FixedAppBar from './FixedAppBar';
 import SettingsApp from './SettingsApp';
 import TaskList from './TaskList';
@@ -165,6 +166,7 @@ var DomeApp = React.createClass({
         >
           {app}
         </div>
+        <ErrorDialog />
         <Measure onMeasure={d => this.setState({taskListHeight: d.height})}>
           <TaskList
             collapsed={this.state.taskListCollapsed}

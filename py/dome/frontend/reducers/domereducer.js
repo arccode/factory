@@ -12,6 +12,10 @@ const INITIAL_STATE = Immutable.fromJS({
   boards: {},
   currentBoard: '',
   currentApp: AppNames.BOARDS_APP,  // default app is the board selection page
+  errorDialog: {
+    show: false,
+    message: '',
+  },
   formVisibility: {
   },
   formPayload: {
@@ -21,6 +25,15 @@ const INITIAL_STATE = Immutable.fromJS({
 
 export default function domeReducer(state = INITIAL_STATE, action) {
   switch (action.type) {
+    case ActionTypes.SET_ERROR_MESSAGE:
+      return state.setIn(['errorDialog', 'message'], action.message);
+
+    case ActionTypes.SHOW_ERROR_DIALOG:
+      return state.setIn(['errorDialog', 'show'], true);
+
+    case ActionTypes.HIDE_ERROR_DIALOG:
+      return state.setIn(['errorDialog', 'show'], false);
+
     case ActionTypes.ADD_BOARD:
       return state.setIn(['boards', action.board.name],
           Immutable.fromJS(action.board));

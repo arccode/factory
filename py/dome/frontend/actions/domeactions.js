@@ -58,6 +58,25 @@ function recursivelyUploadFileFields(data, queue = null) {
   return queue;
 }
 
+const setError = message => ({
+  type: ActionTypes.SET_ERROR_MESSAGE,
+  message
+});
+
+const showErrorDialog = () => ({
+  type: ActionTypes.SHOW_ERROR_DIALOG
+});
+
+const hideErrorDialog = () => ({
+  type: ActionTypes.HIDE_ERROR_DIALOG
+});
+
+// convenient wrapper of setError() + showErrorDialog()
+const setAndShowErrorDialog = message => dispatch => {
+  dispatch(setError(message));
+  dispatch(showErrorDialog());
+};
+
 const createBoard = name => dispatch => {
   var description = `Create board "${name}"`;
   dispatch(createTask(
@@ -274,8 +293,16 @@ const startTask = taskID => (dispatch, getState) => {
 
   // if any sub-task above failed, display the error message
   queue = queue.catch(error => {
-    console.error(error);
-    // TODO: show an error message box
+    let setAndShow = response => {
+      dispatch(setAndShowErrorDialog(`${error.message}\n\n${response}`));
+    };
+    if (error.response.headers.get('Content-Type') == 'application/json') {
+      error.response.json().then(JSON.stringify).then(setAndShow);
+    } else {
+      error.response.text().then(setAndShow);
+    }
+
+    // mark the task as failed
     dispatch(changeTaskState(taskID, TaskStates.FAILED));
   });
 };
@@ -304,6 +331,7 @@ const cancelTaskAndItsDependencies = taskID => (dispatch, getState) => {
 };
 
 export default {
+  setError, showErrorDialog, hideErrorDialog, setAndShowErrorDialog,
   createBoard, updateBoard, deleteBoard, fetchBoards, switchBoard,
   switchApp,
   openForm, closeForm,

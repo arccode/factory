@@ -5,6 +5,10 @@
 import Enum from '../utils/enum';
 
 export default Enum([
+  'SET_ERROR_MESSAGE',
+  'SHOW_ERROR_DIALOG',
+  'HIDE_ERROR_DIALOG',
+
   'SWITCH_BOARD',
   'SWITCH_APP',
 
