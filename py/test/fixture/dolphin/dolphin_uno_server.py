@@ -14,7 +14,6 @@ import argparse
 import glob
 import logging
 import os
-import re
 from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 import time
@@ -74,10 +73,16 @@ def _CheckPlanktonHDMIPresentDaemon(uvc_port, uvc_device_name,
   """Checks Plankton HDMI present and notices operator if fail."""
   show_success_msg = True
   while True:
-    uvc_vid_dirs = glob.glob(
-        '/sys/bus/usb/drivers/uvcvideo/*/video4linux/video*')
-    uvc_matcher = re.compile(r'%s' % uvc_port if uvc_port else r'video0$')
-    camera_present = any(uvc_matcher.search(d) for d in uvc_vid_dirs)
+    if uvc_port:
+      try:
+        plankton_hdmi.PlanktonHDMI.FindUVCVideoDeviceIndex(uvc_port)
+        camera_present = True
+      except Exception:
+        camera_present = False
+    else:
+      camera_present = bool(glob.glob(
+          '/sys/bus/usb/drivers/uvcvideo/*/video4linux/video0'))
+
     if not camera_present:
       logging.error('Camera device is not detected. Please re-plug '
                     'Plankton HDMI %s !!!', uvc_device_name)
