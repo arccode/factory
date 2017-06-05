@@ -183,21 +183,29 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
 
     for dut_component_name, dut_component_tag in device_info[
         'components'].iteritems():
-      # TODO(youcheng): Support firmware and test_image.
+      # TODO(youcheng): Support release_image.
       try:
         if dut_component_name == 'device_factory_toolkit':
-          res_hash = resource.GetToolkitHash(payloads)
+          type_name = resource.PayloadTypeNames.toolkit
         elif dut_component_name == 'hwid':
-          res_hash = payloads['hwid']['version']
-          res_name = payloads['hwid']['file']
+          type_name = resource.PayloadTypeNames.hwid
+        elif dut_component_name.startswith('firmware_'):
+          type_name = resource.PayloadTypeNames.firmware
         else:
           continue
+        payload = payloads[type_name]
+        res_hash = resource.GetFilePayloadHash(payload)
+        res_name = payload['file']
+        # TODO(youcheng): Needs special rule for firmware. cros_payload doesn't
+        #                 provide firmware version in desired format. This will
+        #                 always reports needs_update=True for now.
+        res_tag = payload['version']
       except Exception:
         continue
 
       needs_update = False
 
-      if dut_component_tag != res_hash:
+      if dut_component_tag != res_tag:
         # Check if DUT needs an update.
         stage_start, stage_end = enable_update.get(dut_component_name,
                                                    (None, None))

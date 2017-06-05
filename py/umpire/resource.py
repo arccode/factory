@@ -111,19 +111,15 @@ def UnpackFactoryToolkit(env, toolkit_path, toolkit_hash):
   logging.debug('%r generated', md5sum_path)
 
 
-def GetToolkitHash(payloads):
-  """Extracts toolkit hash from a dictionary of payloads.
-
-  Notice that this function returns hash of compressed factory toolkit
-  installers, which are very likely to be different from hash of uncompressed
-  one.
+def GetFilePayloadHash(payload):
+  """Extracts hash from a dictionary of a file payload component.
 
   TODO(youcheng): Remove this function after b:38512373.
 
   Args:
-    payloads: A dictionary of payloads.
+    payload: A dictionary of a file payload component.
 
   Returns:
-    Resource hash of factory toolkit.
+    Resource hash.
   """
-  return payloads['toolkit']['file'].split('.')[-2]
+  return payload['file'].split('.')[-2]

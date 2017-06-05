@@ -26,4 +26,4 @@ bundles:
   note: bundle for test
   shop_floor:
     handler: cros.factory.shopfloor.test_board_shopfloor
-  payloads: payload.16943f667b0dfc704b54f9c3c279b5a8.json
+  payloads: payload.1a52faaacb6df3fe2bf8cc19a87168f9.json

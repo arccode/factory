@@ -331,8 +331,8 @@ class UmpireEnv(object):
 
     # TODO(b/38512373): Remove this part.
     if type_name == resource.PayloadTypeNames.toolkit:
-      resource.UnpackFactoryToolkit(self, file_path,
-                                    resource.GetToolkitHash(payloads))
+      resource.UnpackFactoryToolkit(
+          self, file_path, resource.GetFilePayloadHash(payloads[type_name]))
 
     return payloads
 
@@ -423,8 +423,9 @@ class UmpireEnv(object):
     try:
       bundle = self.config.GetBundle(bundle_id)
       payloads = self.GetPayloadsDict(bundle['payloads'])
+      payload = payloads[resource.PayloadTypeNames.toolkit]
       toolkit_path = os.path.join(self.device_toolkits_dir,
-                                  resource.GetToolkitHash(payloads))
+                                  resource.GetFilePayloadHash(payload))
       assert os.path.isdir(toolkit_path)
       return toolkit_path
     except Exception:
