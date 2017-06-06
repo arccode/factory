@@ -196,10 +196,15 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
         payload = payloads[type_name]
         res_hash = resource.GetFilePayloadHash(payload)
         res_name = payload['file']
-        # TODO(youcheng): Needs special rule for firmware. cros_payload doesn't
-        #                 provide firmware version in desired format. This will
-        #                 always reports needs_update=True for now.
-        res_tag = payload['version']
+        if type_name == resource.PayloadTypeNames.toolkit:
+          # TODO(b/36083439): Use version to determine if toolkit update is
+          #                   necessary.
+          res_tag = res_hash
+        else:
+          # TODO(youcheng): Needs special rule for firmware. cros_payload
+          #                 doesn't provide firmware version in desired format.
+          #                 This will always report needs_update=True for now.
+          res_tag = payload['version']
       except Exception:
         continue
 
