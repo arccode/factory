@@ -85,7 +85,9 @@ SEQ_INCREMENT_ON_BOOT = 1000000
 # Regexp matching the sequence number in the events file.
 SEQ_RE = re.compile(r"^SEQ: (\d+)$")
 
-PREFIX_RE = re.compile(r"^[a-zA-Z0-9_\.]+$")
+# Regexp matching the prefix of events.
+PREFIX_RE = re.compile(r"^(\w+(?:-\d+)?\.?)+$")
+
 EVENT_NAME_RE = re.compile(r"^[a-zA-Z_]\w*$")
 EVENT_KEY_RE = EVENT_NAME_RE
 
@@ -232,8 +234,7 @@ def SetGlobalLoggerDefaultPrefix(prefix):
   Args:
       prefix: String to identify this category of EventLog, to help
         humans differentiate between event log files (since UUIDs all
-        look the same).  If string is not alphanumeric with period and
-        underscore punctuation, raises ValueError.
+        look the same).  If string does not match PREFIX_RE, raises ValueError.
   Raises:
       EventLogException: if the global event logger has been initialized
       ValueError: if the format of prefix is invalid
@@ -483,8 +484,8 @@ class EventLog(object):
     Args:
       prefix: String to identify this category of EventLog, to help
           humans differentiate between event log files (since UUIDs all
-          look the same).  If string is not alphanumeric with period and
-          underscore punctuation, raises ValueError.
+          look the same).  If string does not match PREFIX_RE, raises
+          ValueError.
       log_id: A UUID for the log (or None, in which case TimedUUID() is used)
       defer: If True, then the file will not be written until the first
           event is logged (if ever).
