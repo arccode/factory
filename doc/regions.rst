@@ -5,9 +5,8 @@ Like most operating systems, CrOS supports user-selectable region
 settings, including keyboard layouts, languages, and time zones.  In
 order to support an ideal out-of-box experience (OOBE), each device
 must be shipped with regional configuration suitable for its intended
-users.  These settings are stored in the RO VPD (read-only vital
-product data) in the ``initial_locale``, ``keyboard_layout``, and
-``initial_timezone`` fields.
+users.  These settings are controlled by a value stored in the RO VPD (read-only
+vital product data) `region` field, and a database `cros-regions.json`.
 
 This document describes how regional configurations are managed in the
 factory SDK.
@@ -126,8 +125,7 @@ This field is stored in the VPD but is not currently used by CrOS.
 
 Keyboard layouts (input methods)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The ``keyboards`` field (corresponding to the ``keyboard_layout`` VPD
-setting) is a list of input method IDs. The first one is the
+The ``keyboards`` field is a list of input method IDs. The first one is the
 default. In general these should correspond to the languages chosen;
 when a language is selected, only keyboards that represent a valid
 choice for that language are shown.
@@ -171,9 +169,8 @@ the new region to the codebase.
 
 Time zone
 ~~~~~~~~~
-The ``time_zone`` field (corresponding to the VPD ``initial_timezone``
-field) specifies a single time zone that will be used as the default
-timezone. M35+ supports automatic time zone detection based on
+The ``time_zone`` field specifies a single time zone that will be used as the
+default timezone. M35+ supports automatic time zone detection based on
 geolocation, but it is still worthwhile to choose a reasonable default
 time zone default.
 
@@ -190,8 +187,7 @@ the region with the largest population.
 
 Language codes
 ~~~~~~~~~~~~~~
-The ``language_codes`` field (corresponding to the VPD
-``initial_locale`` setting) is a list of language codes. See the
+The ``language_codes`` field  is a list of language codes. See the
 ``kAcceptLanguageList`` array in `l10n_util.cc <http://goo.gl/kVkht>`_
 for supported languages.
 
@@ -269,37 +265,13 @@ obtain the region code from the shop floor server, and set the
                 ],
             action='update_device_data'))
 
-The ``vpd`` test can then be used to read the ``region_code`` entry
-from the device data dictionary, look up the necessary VPD fields
-(``initial_locale``, ``keyboard_layout``, and ``initial_timezone``),
-and store the fields into the RO VPD.  In addition, the ``vpd`` test
-also saves the region code into the ``region`` field in the RO VPD.
+The ``vpd`` test can then be used to read the ``region`` entry
+from the device data dictionary and and store the value into the RO VPD.
 For example::
 
     OperatorTest(
         id='VPD',
-        dargs=dict(use_shopfloor_device_data=True,
-                   allow_multiple_l10n=False))
-
-.. warning::
-
-   Multiple keyboards and initial locales are only supported in M34+.
-   For this reason, the VPD test defaults to
-   ``allow_multiple_l10n=False``, in which case only the first
-   keyboard and initial locale will be used for OOBE.  To allow
-   multiple localizations once M34 is being shipped on device, set
-   ``allow_multiple_l10n=True``.
-
-.. warning::
-
-   The precise values of these VPD fields (e.g.,
-   ``keyboard_layout=xkb:us::eng``) should *not* be retrieved directly
-   on the shop floor server, since it is an error-prone process to
-   store the correct VPD values for all valid regions on individual
-   projects' shop floor servers.  Rather, the appropriate region code
-   should be retrieved from the shop floor server and the ``vpd`` test
-   should be used to set the precise VPD field values.  This ensures
-   that the VPD field values are consistent and up to date.
+        dargs=dict(use_shopfloor_device_data=True))
 
 Region API
 ----------

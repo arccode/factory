@@ -640,9 +640,15 @@ class Gooftool(object):
       not supported.
     """
     image_file = self._crosfw.LoadMainFirmware().GetFileName()
-    region = self._read_ro_vpd().get('region', None)
+    ro_vpd = self._read_ro_vpd()
+    region = ro_vpd.get('region')
     if region is None:
       raise Error('Missing VPD "region".')
+    deprecated_region_vpds = ['initial_locale', 'initial_timezone',
+                              'keyboard_layout']
+    deprecated_keys = [key for key in deprecated_region_vpds if key in ro_vpd]
+    if deprecated_keys:
+      raise Error('Deprecated VPD found: %s' % ','.join(deprecated_keys))
     # Use the primary initial locale for the firmware bitmap.
     locales = regions.REGIONS[region].language_codes
     bitmap_locales = self.GetBitmapLocales(image_file)

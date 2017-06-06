@@ -171,25 +171,6 @@ class Region(object):
     """
     return dict((k, getattr(self, k)) for k in self.FIELDS)
 
-  def GetLegacyVPDSettings(self, allow_multiple=True):
-    """Returns a dictionary of legacy VPD settings for the locale.
-
-    Args:
-      allow_multiple: Allow multiple initial_locale and initial_timezone values
-        (supported only in M34+).
-    """
-    if allow_multiple:
-      initial_locale = ','.join(self.language_codes)
-      keyboard = ','.join(self.keyboards)
-    else:
-      initial_locale = self.language_codes[0]
-      keyboard = self.keyboards[0]
-
-    return dict(initial_locale=initial_locale,
-                keyboard_layout=keyboard,
-                initial_timezone=self.time_zone,
-                region=self.region_code)
-
 
 def LoadRegionDatabaseFromSource():
   """Reads region database from a ChromiumOS source tree.
