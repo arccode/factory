@@ -1,6 +1,6 @@
 board: daisy_spring
 bundle_name: 20130604_dvt
-mini_omaha_url: http://10.3.0.11:8080/update
+server_url: http://10.3.0.11:8080/update
 
 # Files to add into the bundle. You can use ${FACTORY_IMAGE_BASE_VERSION} here
 # to refer to the factory_image.zip version you are using.

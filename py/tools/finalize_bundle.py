@@ -1,6 +1,5 @@
-#!/usr/bin/python -B
-#
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+#!/usr/bin/env python
+# Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -26,15 +25,15 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.tools import build_board
 from cros.factory.tools import get_version
 from cros.factory.tools import gsutil
-from cros.factory.tools.make_update_bundle import MakeUpdateBundle
-from cros.factory.utils.file_utils import (
-    TryUnlink, ExtractFile, WriteWithSudo)
+from cros.factory.utils.file_utils import TryUnlink, ExtractFile, WriteWithSudo
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.sys_utils import MountPartition
 from cros.factory.utils.type_utils import CheckDictKeys
 
+
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 REQUIRED_GSUTIL_VERSION = [3, 32]  # 3.32
 
@@ -47,6 +46,9 @@ DELETION_MARKER_SUFFIX = '_DELETED'
 # has_firmware: [EC, BIOS]
 # has_firmware: [EC, BIOS, PD]
 DEFAULT_FIRMWARES = ['BIOS', 'EC']
+
+FIRMWARE_UPDATER_NAME = 'chromeos-firmwareupdate'
+FIRMWARE_UPDATER_PATH = os.path.join('usr', 'sbin', FIRMWARE_UPDATER_NAME)
 
 # Special string to use a local file instead of downloading one.
 LOCAL = 'local'
@@ -92,8 +94,8 @@ def _GetFirmwareVersions(updater, expected_firmwares):
 
   for label in expected_firmwares:
     if versions.get(label) is None:
-      sys.exit('Unable to read %r version from chromeos-firmwareupdater' %
-               label)
+      sys.exit('Unable to read %r version from %s' % (label,
+                                                      FIRMWARE_UPDATER_NAME))
 
   return versions
 
@@ -134,7 +136,6 @@ class FinalizeBundle(object):
     args: Command-line arguments from argparse.
     bundle_dir: Path to the bundle directory.
     bundle_name: Name of the bundle (e.g., 20121115_proto).
-    factory_image_path: Path to the factory image in the bundle.
     build_board: The BuildBoard object for the board.
     board: Board name (e.g., link).
     simple_board: For board name like "base_variant", simple_board is "variant".
@@ -142,11 +143,8 @@ class FinalizeBundle(object):
       This name is used in firmware and hwid.
     manifest: Parsed YAML manifest.
     readme_path: Path to the README file within the bundle.
-    factory_image_base_version: Build of the factory image (e.g., 3004.100.0)
     install_shim_version: Build of the install shim.
     netboot_install_shim_version: Build of the netboot install shim.
-    mini_omaha_script_path: Path to the script used to start the mini-Omaha
-      server.
     new_factory_par: Path to a replacement factory.par.
     test_image_source: Source (LOCAL or a version) of the test image.
     test_image_path: Path to the test image.
@@ -162,16 +160,13 @@ class FinalizeBundle(object):
   args = None
   bundle_dir = None
   bundle_name = None
-  factory_image_path = None
   build_board = None
   board = None
   simple_board = None
   manifest = None
   readme_path = None
-  factory_image_base_version = None
   install_shim_version = None
   netboot_install_shim_version = None
-  mini_omaha_script_path = None
   new_factory_par = None
   test_image_source = None
   test_image_path = None
@@ -190,14 +185,13 @@ class FinalizeBundle(object):
     self.LoadManifest()
     self.LocateResources()
     self.DownloadResources()
+    self.AddCompleteScript()
+    self.AddFirmwareUpdaterAndImages()
     self.GetAndSetResourceVersions()
-    self.BuildFactoryImage()
     self.UpdateNetbootURL()
     self.UpdateInstallShim()
-    self.ModifyFactoryImage()
-    self.MakeUpdateBundle()
-    self.MakeFactoryPackages()
     self.FixFactoryPar()
+    self.CreateStartDownloadServerSymlink()
     self.RemoveUnnecessaryFiles()
     self.UpdateReadme()
     self.Archive()
@@ -206,23 +200,13 @@ class FinalizeBundle(object):
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=USAGE)
+
     parser.add_argument(
         '--no-download', dest='download', action='store_false',
         help="Don't download files from Google Storage (for testing only)")
     parser.add_argument(
-        '--no-updater', dest='updater', action='store_false',
-        help="Don't make an update bundle (for testing only)")
-    parser.add_argument(
         '--no-archive', dest='archive', action='store_false',
         help="Don't make a tarball (for testing only)")
-    parser.add_argument(
-        '--no-make-factory-packages', dest='make_factory_package',
-        action='store_false',
-        help="Don't call make_factory_package (for testing only)")
-    parser.add_argument(
-        '--test-list', dest='test_list', metavar='TEST_LIST',
-        help='Set active test_list. e.g. --test-list manual_smt to set active '
-             'test_list to test_list.manual_smt')
 
     parser.add_argument('manifest', metavar='MANIFEST',
                         help='Path to the manifest file')
@@ -232,12 +216,11 @@ class FinalizeBundle(object):
     self.args = parser.parse_args()
 
   def LoadManifest(self):
-    with open(self.args.manifest) as f:
-      self.manifest = yaml.load(f)
+    self.manifest = yaml.load(file_utils.ReadFile(self.args.manifest))
     CheckDictKeys(self.manifest,
-                  ['board', 'bundle_name', 'add_files', 'add_files_to_image',
-                   'mini_omaha_url', 'toolkit', 'test_image', 'release_image',
-                   'complete_script', 'has_firmware', 'external_presenter'])
+                  ['board', 'bundle_name', 'add_files', 'server_url',
+                   'toolkit', 'test_image', 'release_image', 'complete_script',
+                   'firmware', 'has_firmware'])
 
     self.build_board = build_board.BuildBoard(self.manifest['board'])
     self.board = self.build_board.full_name
@@ -245,7 +228,7 @@ class FinalizeBundle(object):
     self.gsutil = gsutil.GSUtil(self.board)
 
     self.bundle_name = self.manifest['bundle_name']
-    if not re.match(r'^\d{8}_', self.bundle_name):
+    if not re.match(r'\d{8}_', self.bundle_name):
       sys.exit("The bundle_name (currently %r) should be today's date, "
                'plus an underscore, plus a description of the build, e.g.: %r' %
                (self.bundle_name, time.strftime('%Y%m%d_proto')))
@@ -452,7 +435,7 @@ class FinalizeBundle(object):
       dest_dir = os.path.join(self.bundle_dir, f['install_into'])
       file_utils.TryMakeDirs(dest_dir)
 
-      source = self._SubstVars(f['source'])
+      source = f['source'].replace('${BOARD}', self.simple_board.upper())
 
       if self.args.download:
         cached_file = self._DownloadResource([source])
@@ -494,63 +477,48 @@ class FinalizeBundle(object):
     self.toolkit_version = match.group(1)  # May be None if locally built
     logging.info('Toolkit version: %s', self.toolkit_version)
 
-  def BuildFactoryImage(self):
-    self.factory_image_path = os.path.join(self.bundle_dir, 'factory_image',
-                                           'chromiumos_factory_image.bin')
-    logging.info('Creating %s image from %s...',
-                 os.path.basename(self.factory_image_path),
-                 os.path.basename(self.test_image_path))
-    file_utils.TryMakeDirs(os.path.dirname(self.factory_image_path))
-    shutil.copyfile(self.test_image_path, self.factory_image_path)
+  def AddCompleteScript(self):
+    """Add complete script into bundle directory."""
+    complete_src = self.manifest.get(
+        'complete_script',
+        os.path.join(self.bundle_dir, 'setup', 'complete_script_sample.sh'))
+    complete_dir = os.path.join(self.bundle_dir, 'complete')
+    file_utils.TryMakeDirs(complete_dir)
+    if complete_src != LOCAL:
+      shutil.copy(complete_src, complete_dir)
+    if len(os.listdir(complete_dir)) != 1:
+      raise Exception('Not having exactly one file under %s.' % complete_dir)
 
-    # PYTHONPATH is set when finalize_bundle is executing from a par file.
-    # Remove PYTHONPATH variable when spawning factory toolkit installer
-    # since it cause factory toolkit to find the wrong module path.
-    exec_env = os.environ.copy()
-    if 'PYTHONPATH' in exec_env:
-      del exec_env['PYTHONPATH']
+  def AddFirmwareUpdaterAndImages(self):
+    """Add firmware updater into bundle directory, and extract firmware images
+    into firmware_images/."""
 
-    additional_args = []
-    if self.manifest.get('external_presenter', False):
-      additional_args = ['--no-enable-presenter']
+    firmware_src = self.manifest.get('firmware', 'release_image')
+    firmware_dir = os.path.join(self.bundle_dir, 'firmware')
+    file_utils.TryMakeDirs(firmware_dir)
+    if firmware_src == 'release_image':
+      with MountPartition(self.release_image_path, 3) as f:
+        shutil.copy(os.path.join(f, FIRMWARE_UPDATER_PATH), firmware_dir)
+    elif firmware_src != LOCAL:
+      raise Exception('firmware must be either "release_image" or "%s".' %
+                      LOCAL)
+    updaters = os.listdir(firmware_dir)
+    if len(updaters) != 1:
+      raise Exception('Not having exactly one file under %s.' % firmware_dir)
 
-    Spawn([self.toolkit_path, self.factory_image_path, '--yes'] +
-          additional_args, check_call=True, env=exec_env)
-
-  def ModifyFactoryImage(self):
-    add_files_to_image = self.manifest.get('add_files_to_image', [])
-    if add_files_to_image:
-      with MountPartition(self.factory_image_path, 1, rw=True) as mount:
-        for f in add_files_to_image:
-          dest_dir = os.path.join(mount, 'dev_image', f['install_into'])
-          Spawn(['mkdir', '-p', dest_dir], log=True, sudo=True, check_call=True)
-          Spawn(['cp', '-a', os.path.join(self.bundle_dir, f['source']),
-                 dest_dir], log=True, sudo=True, check_call=True)
-
-    if self.args.test_list:
-      logging.info('Setting active test_list to %s', self.args.test_list)
-      with MountPartition(self.factory_image_path, 1, rw=True) as mount:
-        logging.info('Using test_list ACTIVE file')
-        active = os.path.join(mount, 'dev_image', 'factory', 'py', 'test',
-                              'test_lists', 'ACTIVE')
-        with open(active, 'w') as f:
-          f.write(self.args.test_list)
-
-  # TODO(littlecvr): remove this function once shopfloor has been deprecated.
-  def MakeUpdateBundle(self):
-    # Make the factory update bundle
-    if self.args.updater:
-      updater_path = os.path.join(
-          self.bundle_dir, 'shopfloor', 'shopfloor_data', 'update',
-          'factory.tar.bz2')
-      file_utils.TryMakeDirs(os.path.dirname(updater_path))
-      MakeUpdateBundle(self.factory_image_path, updater_path)
+    firmware_images_dir = os.path.join(self.bundle_dir, 'firmware_images')
+    file_utils.TryMakeDirs(firmware_images_dir)
+    Spawn(['sh', os.path.join(firmware_dir, updaters[0]),
+           '--sb_extract', firmware_images_dir], log=True, check_call=True)
+    for filename in os.listdir(firmware_images_dir):
+      if not filename.endswith('.bin'):
+        file_utils.TryUnlink(os.path.join(firmware_images_dir, filename))
 
   def UpdateNetbootURL(self):
     """Updates Omaha & TFTP servers' URL in depthcharge netboot firmware."""
 
-    mini_omaha_url = self.manifest.get('mini_omaha_url')
-    if not mini_omaha_url:
+    server_url = self.manifest.get('server_url')
+    if not server_url:
       return
 
     netboot_firmware_image = os.path.join(
@@ -566,9 +534,9 @@ class FinalizeBundle(object):
              '--bootfile', target_bootfile,
              '--input', netboot_firmware_image,
              '--output', new_netboot_firmware_image,
-             '--omahaserver=%s' % mini_omaha_url,
+             '--omahaserver=%s' % server_url,
              '--tftpserverip=%s' %
-             urlparse.urlparse(mini_omaha_url).hostname],
+             urlparse.urlparse(server_url).hostname],
             check_call=True, log=True)
       shutil.move(new_netboot_firmware_image, netboot_firmware_image)
       # support both 'vmlinux.bin' and 'vmlinuz'.
@@ -585,9 +553,9 @@ class FinalizeBundle(object):
       shutil.copy(target_netboot_shim, renamed_netboot_shim)
 
   def UpdateInstallShim(self):
-    mini_omaha_url = self.manifest.get('mini_omaha_url')
+    server_url = self.manifest.get('server_url')
 
-    if not mini_omaha_url:
+    if not server_url:
       return
 
     def PatchLSBFactory(mount):
@@ -602,9 +570,9 @@ class FinalizeBundle(object):
       orig_lsb_factory = open(lsb_factory_path).read()
       lsb_factory = orig_lsb_factory
 
-      if mini_omaha_url:
+      if server_url:
         lsb_factory, number_of_subs = re.subn(
-            r'(?m)^(CHROMEOS_(AU|DEV)SERVER=).+$', r'\1' + mini_omaha_url,
+            r'(?m)^(CHROMEOS_(AU|DEV)SERVER=).+$', r'\1' + server_url,
             lsb_factory)
         if number_of_subs != 2:
           sys.exit('Unable to set mini-Omaha server in %s' % lsb_factory_path)
@@ -657,65 +625,19 @@ class FinalizeBundle(object):
     if not has_install_shim:
       logging.warning('There is no install shim in the bundle.')
 
-  def MakeFactoryPackages(self):
-    setup_dir = os.path.join(self.bundle_dir, 'setup')
-    make_factory_package = [
-        './make_factory_package.sh',
-        '--board', self.board,
-        '--release', os.path.relpath(self.release_image_path, setup_dir),
-        '--test', os.path.relpath(self.test_image_path, setup_dir),
-        '--toolkit', os.path.relpath(self.toolkit_path, setup_dir),
-        '--hwid', '../hwid/hwid_v3_bundle_%s.sh' %
-        self.simple_board.upper()]
-
-    if 'complete_script' in self.manifest:
-      script_base_name = self.manifest['complete_script']
-      if script_base_name is None:
-        complete_script = None
-      else:
-        complete_script = os.path.join(self.bundle_dir, script_base_name)
-        if not os.path.exists(complete_script):
-          raise OSError('Complete script %s does not exist' % complete_script)
-    else:
-      # Use setup/complete_script_sample.sh, if it exists
-      complete_script = os.path.join(
-          self.bundle_dir, 'setup/complete_script_sample.sh')
-      if not os.path.exists(complete_script):
-        complete_script = None
-
-    if complete_script:
-      make_factory_package.extend(['--complete_script', complete_script])
-
-    firmware_updater = os.path.join(
-        self.bundle_dir, 'firmware', 'chromeos-firmwareupdate')
-    if os.path.exists(firmware_updater):
-      make_factory_package += ['--firmware',
-                               os.path.relpath(firmware_updater, setup_dir)]
-
-    if self.args.make_factory_package:
-      Spawn(make_factory_package, cwd=setup_dir, check_call=True, log=True)
-
-    # TODO(littlecvr): should be pulled outside of this file.
-    # Build the mini-Omaha startup script.
-    self.mini_omaha_script_path = os.path.join(
-        self.bundle_dir, 'start_download_server.sh')
-    if os.path.exists(self.mini_omaha_script_path):
-      os.unlink(self.mini_omaha_script_path)
-    with open(self.mini_omaha_script_path, 'w') as f:
-      f.write('\n'.join([
-          '#!/bin/bash',
-          'set -e',  # Fail on error
-          'cd $(dirname $(readlink -f "$0"))/setup',
-          'cat static/miniomaha.conf',
-          ('echo Miniomaha configuration MD5SUM: '
-           '$(md5sum static/miniomaha.conf)'),
-          'echo Validating configuration...',
-          ('python miniomaha.py --validate_factory_config'),
-          'echo Starting download server.',
-          'python miniomaha.py',
-          ''  # Add newline at EOF
-      ]))
-      os.fchmod(f.fileno(), 0555)
+  def CreateStartDownloadServerSymlink(self):
+    """Create a symlink to start_download_server.sh in bundle directory."""
+    script_name = 'start_download_server.sh'
+    target_path = os.path.join(self.bundle_dir, 'setup', script_name)
+    if not os.path.exists(target_path):
+      logging.info('%s not found, symlink creation skipped.', target_path)
+      return
+    file_utils.SymlinkRelative(target_path,
+                               os.path.join(self.bundle_dir, script_name),
+                               force=True)
+    file_utils.WriteFile(
+        os.path.join(self.bundle_dir, 'setup', '.default_board'),
+        '%s\n' % self.board)
 
   def FixFactoryPar(self):
     """Fix symlinks to factory.par, and replace factory.par if necessary.
@@ -723,8 +645,7 @@ class FinalizeBundle(object):
     (Certain files may have been turned into real files by the buildbots.)
     """
     factory_par_path = os.path.join(self.bundle_dir, 'shopfloor', 'factory.par')
-    with open(factory_par_path) as f:
-      factory_par_data = f.read()
+    factory_par_data = file_utils.ReadFile(factory_par_path)
 
     # Look for files that are identical copies of factory.par.
     for root, _, files in os.walk(self.bundle_dir):
@@ -746,8 +667,7 @@ class FinalizeBundle(object):
         # Replace the file with a symlink.
         logging.info('Replacing %s with a symlink', path)
         os.unlink(path)
-        os.symlink(os.path.relpath(factory_par_path,
-                                   os.path.dirname(path)),
+        os.symlink(os.path.relpath(factory_par_path, os.path.dirname(path)),
                    path)
 
     if self.new_factory_par:
@@ -778,7 +698,7 @@ class FinalizeBundle(object):
         # Section header
         r'(\*\*\*\n\*\n\* (.+?)\n\*\n\*\*\*\n)'
         # Anything up to (but not including) the next section header
-        r'((?:(?!\*\*\*).)+)', open(self.readme_path).read(), re.DOTALL)
+        r'((?:(?!\*\*\*).)+)', file_utils.ReadFile(self.readme_path), re.DOTALL)
     # This results in a list of tuples (a, b, c), where a is the whole
     # section header string; b is the name of the section; and c is the
     # contents of the section.  Turn each tuple into a list; we'll be
@@ -811,20 +731,16 @@ class FinalizeBundle(object):
         ('Bundle', '%s (created by %s, %s)' % (
             self.bundle_name, os.environ['USER'],
             time.strftime('%a %Y-%m-%d %H:%M:%S %z')))]
-    if self.factory_image_base_version:
-      vitals.append(('Factory image base', self.factory_image_base_version))
     if self.toolkit_version:
       vitals.append(('Factory toolkit', self.toolkit_version))
 
     if self.test_image_source == LOCAL:
-      with MountPartition(self.factory_image_path, 3) as f:
+      with MountPartition(self.test_image_path, 3) as f:
         vitals.append(('Test image', '%s (local)' % _GetReleaseVersion(f)))
     elif self.test_image_source:
       vitals.append(('Test image', self.test_image_source))
 
-    with MountPartition(self.factory_image_path, 1) as f:
-      vitals.append(('Factory updater MD5SUM', open(
-          os.path.join(f, 'dev_image/factory/MD5SUM')).read().strip()))
+    with MountPartition(self.test_image_path, 1) as f:
       stat = os.statvfs(f)
       stateful_free_bytes = stat.f_bfree * stat.f_bsize
       stateful_total_bytes = stat.f_blocks * stat.f_bsize
@@ -844,8 +760,8 @@ class FinalizeBundle(object):
                      self.netboot_install_shim_version))
     with MountPartition(self.release_image_path, 3) as f:
       vitals.append(('Release (FSI)', _GetReleaseVersion(f)))
-      fw_updater_file = os.path.join(f, 'usr/sbin/chromeos-firmwareupdate')
-      vitals.extend(_ExtractFirmwareVersions(fw_updater_file, 'Release (FSI)'))
+      vitals.extend(_ExtractFirmwareVersions(
+          os.path.join(f, FIRMWARE_UPDATER_PATH), 'Release (FSI)'))
 
     # If we have any firmware in the tree, add them to the vitals.
     firmwareupdates = []
@@ -853,7 +769,7 @@ class FinalizeBundle(object):
       for f in files:
         path = os.path.join(root, f)
         relpath = os.path.relpath(path, self.bundle_dir)
-        if f == 'chromeos-firmwareupdate':
+        if f == FIRMWARE_UPDATER_NAME:
           firmwareupdates.append(path)
           vitals.extend(_ExtractFirmwareVersions(path, relpath))
         elif f == 'ec.bin':
@@ -875,16 +791,6 @@ class FinalizeBundle(object):
     readme_sections[readme_section_index['VITAL INFORMATION']][2] = (
         vital_contents + '\n\n')
 
-    index = readme_section_index.get('MINI-OMAHA SERVER')
-    if index is not None:
-      instructions = [
-          'To start a mini-Omaha server:',
-          '',
-          '  ./start_download_server.sh'
-      ]
-      readme_sections[index][2] = (
-          '\n'.join(instructions) + '\n\n')
-
     with open(self.readme_path, 'w') as f:
       for header, _, contents in readme_sections:
         f.write(header)
@@ -905,44 +811,27 @@ class FinalizeBundle(object):
                     ['an afternoon snack'] * 2 +
                     ['a beer'] * 8)[time.localtime().tm_hour])
 
-      for mini in [True, False]:
-        output_file = self.bundle_dir + ('.mini' if mini else '') + '.tar.bz2'
-        Spawn(['tar', '-cf', output_file,
-               '-I', file_utils.GetCompressor('bz2'),
-               '-C', os.path.dirname(self.bundle_dir)] +
-              (['--exclude', '*.bin'] if mini else []) +
-              [os.path.basename(self.bundle_dir)],
-              log=True, check_call=True)
-        logging.info(
-            'Created %s (%.1f GiB).',
-            output_file, os.path.getsize(output_file) / (1024. * 1024. * 1024.))
+      output_file = self.bundle_dir + '.tar.bz2'
+      Spawn(['tar', '-cf', output_file,
+             '-I', file_utils.GetCompressor('bz2'),
+             '-C', os.path.dirname(self.bundle_dir)] +
+            [os.path.basename(self.bundle_dir)],
+            log=True, check_call=True)
+      logging.info(
+          'Created %s (%.1f GiB).',
+          output_file, os.path.getsize(output_file) / (1024. * 1024. * 1024.))
 
     logging.info('The README file (%s) has been updated.  Make sure to check '
                  'that it is correct!', self.readme_path)
-    if sys_utils.InChroot():
-      factory_board_bundle_path = (
-          os.path.join(self.build_board.factory_board_files, 'bundle'))
+    if sys_utils.InChroot() and self.build_board.factory_board_files:
+      factory_board_bundle_path = os.path.join(
+          self.build_board.factory_board_files, 'bundle')
     else:
       factory_board_bundle_path = 'factory-board'
     logging.info(
         "IMPORTANT: If you modified the README or MANIFEST.yaml, don't forget "
         'to check your changes into %s.',
         factory_board_bundle_path)
-
-  def _SubstVars(self, input_str):
-    """Substitutes variables into a string.
-
-    The following substitutions are made:
-      ${BOARD} -> the simple board name (in uppercase)
-      ${FACTORY_IMAGE_BASE_VERSION} -> the factory image version
-    """
-    subst_vars = {
-        'BOARD': self.simple_board.upper(),
-        'FACTORY_IMAGE_BASE_VERSION': (self.factory_image_base_version or
-                                       self.toolkit_version)
-    }
-    return re.sub(r'\$\{(\w+)\}', lambda match: subst_vars[match.group(1)],
-                  input_str)
 
   @contextlib.contextmanager
   def _DownloadResource(self, possible_urls, resource_name=None):
@@ -1008,7 +897,7 @@ class FinalizeBundle(object):
 
           # Replace '.tar.xz' with the extracted ext name ('.bin' normally).
           unused_name, ext = os.path.splitext(extracted_path)
-          dst_path = os.path.join(target_dir, image_basename[:-7] + '.' + ext)
+          dst_path = os.path.join(target_dir, image_basename[:-7] + ext)
           shutil.move(extracted_path, dst_path)
         else:
           raise ValueError(
