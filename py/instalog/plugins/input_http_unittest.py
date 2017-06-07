@@ -18,8 +18,11 @@ import threading
 import unittest
 import urllib
 
+import requests
+
 import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
+from instalog.external import gnupg
 from instalog import log_utils
 from instalog import plugin_sandbox
 from instalog import testing
@@ -27,8 +30,6 @@ from instalog.utils import file_utils
 from instalog.utils import net_utils
 from instalog.utils import process_utils
 from instalog.utils import sync_utils
-
-from instalog.external import requests
 
 
 def _TempAvailSpaceMB():
@@ -329,6 +330,106 @@ class TestInputHTTP(unittest.TestCase):
     process_utils.Spawn(
         ['cmp', '-s', uploaded_path, att_path], check_call=True)
 
+
+class TestHTTPAE(unittest.TestCase):
+
+  def _CreateKeys(self):
+    # Generate key pairs and export keys.
+    # pylint: disable=unexpected-keyword-arg
+    gpg_output = gnupg.GPG(homedir=os.path.join(self._tmp_dir, 'gpg_output'))
+    gen_key_result = gpg_output.gen_key(
+        gpg_output.gen_key_input(key_type='RSA',
+                                 key_length=1024,
+                                 subkey_type='RSA',
+                                 subkey_length=1024))
+    key_fpr_output = gen_key_result.fingerprint
+    key_output = gpg_output.export_keys(key_fpr_output)
+
+    gpg_input = gnupg.GPG(homedir=os.path.join(self._tmp_dir, 'gpg_input'))
+    gen_key_result = gpg_input.gen_key(
+        gpg_input.gen_key_input(key_type='RSA',
+                                key_length=1024,
+                                subkey_type='RSA',
+                                subkey_length=1024))
+    self._target_key = gen_key_result.fingerprint
+    key_fpr_input = gen_key_result.fingerprint
+    key_input = gpg_input.export_keys(key_fpr_input)
+
+    # Import keys and trust keys.
+    gpg_output.import_keys(key_input)
+    gpg_output.sign_key(key_fpr_input)
+
+    gpg_input.import_keys(key_output)
+    gpg_input.sign_key(key_fpr_output)
+
+  def _CreatePlugin(self):
+    self.core = testing.MockCore()
+    self.hostname = 'localhost'
+    self.port = net_utils.FindUnusedPort()
+
+    # Create PluginSandbox for input plugin.
+    input_config = {
+        'hostname': 'localhost',
+        'port': self.port,
+        'enable_gnupg': True,
+        'gnupg_home': os.path.join(self._tmp_dir, 'gpg_input')}
+    self.input_sandbox = plugin_sandbox.PluginSandbox(
+        'input_http', config=input_config, core_api=self.core)
+
+    # Start the plugins.  Input needs to start first; otherwise Output will
+    # sleep for _FAILED_CONNECTION_INTERVAL.
+    self.input_sandbox.Start(True)
+
+    # Store a BufferEventStream.
+    self.stream = self.core.GetStream(0)
+
+  def setUp(self):
+    self._tmp_dir = tempfile.mkdtemp(prefix='input_http_ae_unittest_')
+    self._target_key = None
+    self._CreateKeys()
+    self._CreatePlugin()
+
+  def tearDown(self):
+    self.input_sandbox.Stop(True)
+    self.core.Close()
+    shutil.rmtree(self._tmp_dir)
+
+  def testEncryptAndSign(self):
+    gpg_output = gnupg.GPG(homedir=os.path.join(self._tmp_dir, 'gpg_output'))
+
+    def EncryptWithoutSign(data):
+      encrypted_data = gpg_output.encrypt(data, self._target_key)
+      if not encrypted_data.ok:
+        raise Exception('Failed to encrypt the data! Log: %s' %
+                        encrypted_data.stderr)
+      return encrypted_data.data
+
+    def EncryptWithSign(data):
+      encrypted_data = gpg_output.encrypt(
+          data,
+          self._target_key,
+          default_key=gpg_output.list_keys()[0]['fingerprint'])
+      if not encrypted_data.ok:
+        raise Exception('Failed to encrypt the data! Log: %s' %
+                        encrypted_data.stderr)
+      return encrypted_data.data
+
+    event = datatypes.Event({'K': 'V'})
+    serialized_event = datatypes.Event.Serialize(event)
+
+    r = requests.post(url='http://localhost:' + str(self.port),
+                      files={'event': EncryptWithoutSign(serialized_event)},
+                      headers={'Multi-Event': True})
+    self.assertEqual(r.status_code, 400)
+    self.assertEqual(r.reason,
+                     'Bad request: Exception(\'Failed to verify!\',)')
+    self.assertEqual(self.core.emit_calls, [])
+
+    r = requests.post(url='http://localhost:' + str(self.port),
+                      files={'event': EncryptWithSign(serialized_event)},
+                      headers={'Multi-Event': True})
+    self.assertEqual(r.status_code, 200)
+    self.assertEqual(self.core.emit_calls, [[datatypes.Event({'K': 'V'})]])
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO, format=log_utils.LOG_FORMAT)

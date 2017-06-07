@@ -29,22 +29,22 @@ from __future__ import print_function
 
 import BaseHTTPServer
 import cgi
-import os
 import shutil
 import tempfile
 import threading
 
 import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
+from instalog.external import gnupg
 from instalog import log_utils
 from instalog import plugin_base
+from instalog.plugins import http_common
 from instalog.utils.arg_utils import Arg
+from instalog.utils import file_utils
 from instalog.utils import net_utils
 
 
-_DEFAULT_MAX_BYTES = 2 * 1024 * 1024 * 1024  # 2gb
 _DEFAULT_HOSTNAME = '0.0.0.0'
-_DEFAULT_PORT = 8899
 
 
 class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
@@ -54,6 +54,7 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     self.logger = server.context['logger']
     self._plugin_api = server.context['plugin_api']
     self._max_bytes = server.context['max_bytes']
+    self._gpg = server.context['gpg']
     self._check_format = server.context['check_format']
     self._tmp_dir = None
     self._enable_multi_event = False
@@ -125,8 +126,12 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
       # To avoid confusion, we only allow processing one event per request.
       if not self._enable_multi_event and len(event_list) > 1:
         raise ValueError('One request should not exceed one event')
+
       for serialize_event in event_list:
+        if self._gpg:
+          serialize_event = self._DecryptData(serialize_event)
         event = datatypes.Event.Deserialize(serialize_event)
+
         if not self._enable_multi_event:
           if len(event.attachments) != 0:
             raise ValueError('Please follow the format: event={Payload}')
@@ -134,6 +139,7 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
           for key in requests_keys:
             if key != 'event':
               event.attachments[key] = key
+
         for att_id, att_key in event.attachments.iteritems():
           if att_key not in form or isinstance(form[att_key], list):
             raise ValueError('Attachment(%s) should have exactly one in the '
@@ -143,6 +149,9 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
                              att_key)
           remaining_att.remove(att_key)
           event.attachments[att_id] = self._RecvAttachment(form[att_key])
+          if self._gpg:
+            self._DecryptFile(event.attachments[att_id])
+
         self._check_format(event)
         events.append(event)
       if remaining_att:
@@ -170,6 +179,30 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
         f.write(data.value)
       self.debug('Temporary save the attachment to: %s', f.name)
       return f.name
+
+  def _CheckDecryptedData(self, decrypted_data):
+    """Checks if the data is decrypted and verified."""
+    if not decrypted_data.ok:
+      raise Exception('Failed to decrypt! Log: %s' % decrypted_data.stderr)
+    if (decrypted_data.trust_level is None or
+        decrypted_data.trust_level < decrypted_data.TRUST_FULLY):
+      raise Exception('Failed to verify!')
+
+  def _DecryptData(self, data):
+    """Decrypts and verifies the data."""
+    decrypted_data = self._gpg.decrypt(data)
+    self._CheckDecryptedData(decrypted_data)
+    return decrypted_data.data
+
+  def _DecryptFile(self, path):
+    """Decrypts and verifies the file."""
+    with file_utils.UnopenedTemporaryFile(prefix='decrypt_',
+                                          dir=self._tmp_dir) as tmp_path:
+      with open(path, 'r') as encrypted_file:
+        decrypted_data = self._gpg.decrypt_file(
+            encrypted_file, output=tmp_path)
+        self._CheckDecryptedData(decrypted_data)
+      shutil.move(tmp_path, path)
 
   def log_request(self, code='-', size='-'):
     """Overrides log_request to Instalog format."""
@@ -227,12 +260,21 @@ class ThreadedHTTPServer(BaseHTTPServer.HTTPServer, log_utils.LoggerMixin):
 class InputHTTP(plugin_base.InputPlugin):
 
   ARGS = [
-      Arg('hostname', (str, unicode), 'Hostname that server should bind to.',
+      Arg('hostname', (str, unicode),
+          'Hostname that server should bind to.',
           optional=True, default=_DEFAULT_HOSTNAME),
-      Arg('port', int, 'Port that server should bind to.',
-          optional=True, default=_DEFAULT_PORT),
-      Arg('max_bytes', int, 'Maximum size of the request in bytes.',
-          optional=True, default=_DEFAULT_MAX_BYTES)
+      Arg('port', int,
+          'Port that server should bind to.',
+          optional=True, default=http_common.DEFAULT_PORT),
+      Arg('max_bytes', int,
+          'Maximum size of the request in bytes.',
+          optional=True, default=http_common.DEFAULT_MAX_BYTES),
+      Arg('enable_gnupg', bool,
+          'Enable to use GnuPG.',
+          optional=True, default=False),
+      Arg('gnupg_home', (str, unicode),
+          'The home directory of GnuPG.',
+          optional=True, default=None),
   ]
 
   def __init__(self, *args, **kwargs):
@@ -241,10 +283,21 @@ class InputHTTP(plugin_base.InputPlugin):
 
   def SetUp(self):
     """Sets up the plugin."""
+    gpg = None
+    if self.args.enable_gnupg:
+      self.info('Enable GnuPG to decrypt and verify the data')
+      http_common.CheckGnuPG()
+      # pylint: disable=unexpected-keyword-arg
+      gpg = gnupg.GPG(homedir=self.args.gnupg_home)
+      self.info('GnuPG home directory: %s', gpg.homedir)
+      if len(gpg.list_keys(True)) < 1:
+        raise Exception('Need at least one GnuPG secret key in gnupghome')
+
     self._http_server = ThreadedHTTPServer(
         self.logger, (self.args.hostname, self.args.port), HTTPHandler)
     self._http_server.context = {
         'max_bytes': self.args.max_bytes,
+        'gpg': gpg,
         'logger': self.logger,
         'plugin_api': self,
         'check_format': self._CheckFormat}

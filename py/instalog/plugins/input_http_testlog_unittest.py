@@ -14,14 +14,14 @@ import shutil
 import tempfile
 import unittest
 
+import requests
+
 import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
 from instalog import log_utils
 from instalog import plugin_sandbox
 from instalog import testing
 from instalog.utils import net_utils
-
-from instalog.external import requests
 
 
 class TestInputHTTPTestlog(unittest.TestCase):

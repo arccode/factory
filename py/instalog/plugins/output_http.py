@@ -12,19 +12,23 @@ Sends events to input HTTP plugin.
 from __future__ import print_function
 
 import os
+import shutil
+import tempfile
 import time
+
+import requests
 
 import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
+from instalog.external import gnupg
 from instalog import plugin_base
+from instalog.plugins import http_common
 from instalog.utils.arg_utils import Arg
+from instalog.utils import file_utils
 from instalog.utils import time_utils
-
-from instalog.external import requests
 
 
 _DEFAULT_BATCH_SIZE = 4096
-_DEFAULT_PORT = 8899
 _DEFAULT_URL_PATH = ''
 _DEFAULT_TIMEOUT = 5
 _FAILED_CONNECTION_INTERVAL = 60
@@ -45,25 +49,55 @@ class OutputHTTP(plugin_base.OutputPlugin):
           optional=False),
       Arg('port', int,
           'Port of target running input HTTP plugin.',
-          optional=True, default=_DEFAULT_PORT),
+          optional=True, default=http_common.DEFAULT_PORT),
       Arg('url_path', (str, unicode),
           'URL path of target running input HTTP plugin.',
-          optional=True, default=_DEFAULT_URL_PATH)
+          optional=True, default=_DEFAULT_URL_PATH),
+      Arg('enable_gnupg', bool,
+          'Enable to use GnuPG.',
+          optional=True, default=False),
+      Arg('gnupg_home', (str, unicode),
+          'The home directory of GnuPG.',
+          optional=True, default=None),
+      Arg('target_key', (str, unicode),
+          'The fingerprint of target GnuPG public key in this machine.',
+          optional=True, default=None)
   ]
 
   def __init__(self, *args, **kwargs):
     """Sets up the plugin."""
     # _max_bytes will be updated after _CheckConnect and _PostRequest.
     self._batch_size = 1
-    self._max_bytes = 2 * 1024 * 1024 * 1024  # 2gb
+    self._max_bytes = http_common.DEFAULT_MAX_BYTES
+    self._tmp_dir = None
     self._target_url = ''
+    self._gpg = None
     super(OutputHTTP, self).__init__(*args, **kwargs)
 
   def SetUp(self):
     """Sets up the plugin."""
+    if self.args.enable_gnupg:
+      self.info('Enable GnuPG to encrypt and sign the data')
+      http_common.CheckGnuPG()
+      # pylint: disable=unexpected-keyword-arg
+      self._gpg = gnupg.GPG(homedir=self.args.gnupg_home)
+      self.info('GnuPG home directory: %s', self._gpg.homedir)
+      if not self.args.target_key:
+        raise ValueError('Missing target GnuPG public key')
+
+      self._EncryptData('Checks the target public key is valid.')
+      self.info('Finished checking the target public key')
+
+    # Create the temporary directory for attachments.
+    self._tmp_dir = tempfile.mkdtemp(prefix='output_http_')
     self._target_url = 'http://%s:%d/%s' % (self.args.hostname,
                                             self.args.port,
                                             self.args.url_path)
+
+  def TearDown(self):
+    # Remove the temporary directory.
+    self.debug('Removing temporary directory %s...', self._tmp_dir)
+    shutil.rmtree(self._tmp_dir)
 
   def Main(self):
     """Main thread of the plugin."""
@@ -155,9 +189,14 @@ class OutputHTTP(plugin_base.OutputPlugin):
       for att_id, att_path in event.attachments.iteritems():
         att_newname = '%s_%03d' % (os.path.basename(att_path), att_seq)
         att_seq += 1
+        if self._gpg:
+          att_path = self._EncryptFile(att_path)
         request_body.append((att_newname, open(att_path, 'rb')))
         event.attachments[att_id] = att_newname
-      request_body.append(('event', datatypes.Event.Serialize(event)))
+      serialized_event = datatypes.Event.Serialize(event)
+      if self._gpg:
+        serialized_event = self._EncryptData(serialized_event)
+      request_body.append(('event', serialized_event))
     return request_body
 
   def _CheckConnect(self):
@@ -196,6 +235,31 @@ class OutputHTTP(plugin_base.OutputPlugin):
     if resp.headers['Maximum-Bytes']:
       self._max_bytes = int(resp.headers['Maximum-Bytes'])
     return resp.status_code, resp.reason, clen
+
+  def _EncryptData(self, data):
+    """Encrypts and signs the data by target key and default secret key."""
+    encrypted_data = self._gpg.encrypt(
+        data,
+        self.args.target_key,
+        default_key=self._gpg.list_keys(True)[0]['fingerprint'])
+    if not encrypted_data.ok:
+      raise Exception('Failed to encrypt data! Log: %s' % encrypted_data.stderr)
+    return encrypted_data.data
+
+  def _EncryptFile(self, path):
+    """Encrypts and signs the file by target key and default secret key."""
+    encrypt_path = file_utils.CreateTemporaryFile(prefix='encrypt_',
+                                                  dir=self._tmp_dir)
+    with open(path, 'r') as plaintext_file:
+      encrypted_data = self._gpg.encrypt(
+          plaintext_file,
+          self.args.target_key,
+          default_key=self._gpg.list_keys(True)[0]['fingerprint'],
+          output=encrypt_path)
+      if not encrypted_data.ok:
+        raise Exception(
+            'Failed to encrypt file! Log: %s' % encrypted_data.stderr)
+    return encrypt_path
 
 
 if __name__ == '__main__':
