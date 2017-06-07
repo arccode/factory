@@ -120,8 +120,8 @@ The input is a MANIFEST.yaml file like the following:
   add_files:
   - install_into: release
     source: "gs://.../chromeos_recovery_image.bin"
-  - install_into: firmware
-    extract_files: [ec.bin, nv_image-link.bin]
+  - install_into: firmware_images
+    extract_files: [ec.bin, image.bin]
     source: 'gs://.../ChromeOS-firmware-...tar.bz2'
 """
 
@@ -743,23 +743,16 @@ class FinalizeBundle(object):
           os.path.join(f, FIRMWARE_UPDATER_PATH), 'Release (FSI)'))
 
     # If we have any firmware in the tree, add them to the vitals.
-    firmwareupdates = []
     for root, unused_dirs, files in os.walk(self.bundle_dir):
       for f in files:
         path = os.path.join(root, f)
         relpath = os.path.relpath(path, self.bundle_dir)
         if f == FIRMWARE_UPDATER_NAME:
-          firmwareupdates.append(path)
           vitals.extend(_ExtractFirmwareVersions(path, relpath))
-        elif f == 'ec.bin':
+        elif f in ['ec.bin', 'bios.bin', 'image.bin', 'image.net.bin']:
           version = get_version.GetFirmwareBinaryVersion(path)
           if not version:
-            sys.exit('Unable to find EC version in %s' % path)
-          vitals.append((relpath, version))
-        elif any(f.startswith(prefix) for prefix in ('nv_image', 'image.net')):
-          version = get_version.GetFirmwareBinaryVersion(path)
-          if not version:
-            sys.exit('Unable to find BIOS version in %s' % path)
+            sys.exit('Unable to find firmware version in %s' % path)
           vitals.append((relpath, version))
 
     vital_lines = []
