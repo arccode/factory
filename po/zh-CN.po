@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-05-23 10:14+CST\n"
+"POT-Creation-Date: 2017-06-07 16:48+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -2277,8 +2277,8 @@ msgid "Confirm tablet mode"
 msgstr "确认平板模式"
 
 #: ../py/test/pytests/tablet_mode_ui.py
-msgid "Confirm notebook mode"
-msgstr "确认笔电模式"
+msgid "Press SPACE to confirm notebook mode"
+msgstr "请按空白键确认笔电模式"
 
 #: ../py/test/pytests/tablet_mode_ui.py
 msgid "Failure"

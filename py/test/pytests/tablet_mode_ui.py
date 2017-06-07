@@ -9,6 +9,7 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 
+from cros.factory.test import test_ui
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.ui_templates import OneSection
 
@@ -20,7 +21,8 @@ _MSG_PROMPT_FLIP_TABLET = i18n_test_ui.MakeI18nLabel(
 _MSG_PROMPT_FLIP_NOTEBOOK = i18n_test_ui.MakeI18nLabel(
     'Open the lid back to notebook mode')
 _MSG_CONFIRM_TABLET_MODE = i18n_test_ui.MakeI18nLabel('Confirm tablet mode')
-_MSG_CONFIRM_NOTEBOOK_MODE = i18n_test_ui.MakeI18nLabel('Confirm notebook mode')
+_MSG_CONFIRM_NOTEBOOK_MODE = i18n_test_ui.MakeI18nLabel(
+    'Press SPACE to confirm notebook mode')
 _MSG_STATUS_SUCCESS = i18n_test_ui.MakeI18nLabel('Success!')
 _MSG_STATUS_FAILURE = i18n_test_ui.MakeI18nLabel('Failure')
 
@@ -32,7 +34,6 @@ _CLASS_IMAGE_FLIP_TABLET = 'notebook-to-tablet'
 _CLASS_IMAGE_FLIP_NOTEBOOK = 'tablet-to-notebook'
 
 _EVENT_CONFIRM_TABLET_MODE = 'confirm_tablet_mode'
-_EVENT_CONFIRM_NOTEBOOK_MODE = 'confirm_notebook_mode'
 
 _HTML_EMPTY = ''
 _HTML_BUILD_CONFIRM_BUTTON = lambda button_text, test_event: (
@@ -85,12 +86,14 @@ class TabletModeUI(object):
                       + self.extra_html)
     self.ui.AppendCSS(self.extra_css)
     self.ui.SetHTML(_MSG_PROMPT_FLIP_NOTEBOOK, id=_ID_PROMPT)
-    self.ui.SetHTML(_HTML_BUILD_CONFIRM_BUTTON(_MSG_CONFIRM_NOTEBOOK_MODE,
-                                               _EVENT_CONFIRM_NOTEBOOK_MODE),
+    self.ui.SetHTML(_MSG_CONFIRM_NOTEBOOK_MODE,
                     id=_ID_CONFIRM_BUTTON)
     self.ui.SetHTML(_HTML_EMPTY, id=_ID_STATUS)
-    self.ui.AddEventHandler(_EVENT_CONFIRM_NOTEBOOK_MODE,
-                            event_callback)
+    # Ask OP to press space to verify the dut is in notebook mode.
+    # Set virtual_key to False since the event callback should be triggered
+    # from a real key press, not from a button on screen.
+    self.ui.BindKey(test_ui.SPACE_KEY, event_callback, virtual_key=False)
+    self.ui.RunJS('$("#%s").focus()' % _ID_CONFIRM_BUTTON)
 
   def _FlashStatus(self, status_label):
     template = OneSection(self.ui)

@@ -32,10 +32,13 @@
   margin: 0.2em 0 0.8em;
 }
 .confirm-button {
-  font-size: 4em;
+  font-size: 1em;
   padding: 0.5em 1em;
   margin: 0 auto;
   width: 90%;
   height: 60%;
   line-height: 1.2;
+}
+.button-cont {
+  font-size: 4em;
 }
