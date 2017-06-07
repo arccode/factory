@@ -66,7 +66,8 @@ def GetBoardRepoInfo(options):
   #   ----------------------------
   #
   PROJECT_LINE_PREFIX = 'Project: '
-  repo_info = process_utils.CheckOutput(['repo', 'info', '.'], cwd=overlay_dir)
+  repo_info = process_utils.CheckOutput(['repo', '--color=never', 'info', '.'],
+                                        cwd=overlay_dir)
   project = [s for s in repo_info.splitlines()
              if s.startswith(PROJECT_LINE_PREFIX)][0]  # find project line
   project = project[len(PROJECT_LINE_PREFIX):]  # remove prefix
