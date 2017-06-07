@@ -53,9 +53,6 @@ FIRMWARE_UPDATER_PATH = os.path.join('usr', 'sbin', FIRMWARE_UPDATER_NAME)
 # Special string to use a local file instead of downloading one.
 LOCAL = 'local'
 
-# Netboot install shims that we are using at the moment.
-NETBOOT_SHIMS = ('vmlinuz', 'vmlinux.bin')
-
 
 # Legacy: resources may live in different places due to historical reason. To
 # maintain backward compatibility, we have to search for a set of directories.
@@ -144,7 +141,6 @@ class FinalizeBundle(object):
     manifest: Parsed YAML manifest.
     readme_path: Path to the README file within the bundle.
     install_shim_version: Build of the install shim.
-    netboot_install_shim_version: Build of the netboot install shim.
     new_factory_par: Path to a replacement factory.par.
     test_image_source: Source (LOCAL or a version) of the test image.
     test_image_path: Path to the test image.
@@ -166,7 +162,6 @@ class FinalizeBundle(object):
   manifest = None
   readme_path = None
   install_shim_version = None
-  netboot_install_shim_version = None
   new_factory_par = None
   test_image_source = None
   test_image_path = None
@@ -441,20 +436,7 @@ class FinalizeBundle(object):
         cached_file = self._DownloadResource([source])
 
       if f.get('extract_files'):
-        # Gets netboot install shim version from source url since version
-        # is not stored in the image.
         install_into = os.path.join(self.bundle_dir, f['install_into'])
-        shims_to_extract = [x for x in f['extract_files']
-                            if x in NETBOOT_SHIMS]
-        if shims_to_extract:
-          self.netboot_install_shim_version = str(LooseVersion(
-              os.path.basename(os.path.dirname(source))))
-          # Delete any existing vmlinuz or vmlinux.bin to make sure we will
-          # not put any wrong file into the bundle, i.e. if we extract only
-          # vmlinuz we should delete existing vmlinux.bin, and vice versa.
-          for path in shims_to_extract:
-            for shim in NETBOOT_SHIMS:
-              TryUnlink(os.path.join(install_into, os.path.dirname(path), shim))
         if self.args.download:
           ExtractFile(cached_file, install_into,
                       only_extracts=f['extract_files'])
@@ -755,9 +737,6 @@ class FinalizeBundle(object):
           '%d nodes (%d free)' % (stat.f_files, stat.f_ffree)))
     if self.install_shim_version:
       vitals.append(('Factory install shim', self.install_shim_version))
-    if self.netboot_install_shim_version:
-      vitals.append(('Netboot install shim (vmlinuz/vmlinux.bin)',
-                     self.netboot_install_shim_version))
     with MountPartition(self.release_image_path, 3) as f:
       vitals.append(('Release (FSI)', _GetReleaseVersion(f)))
       vitals.extend(_ExtractFirmwareVersions(
