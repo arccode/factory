@@ -45,7 +45,7 @@ DEFINE_string test_image "" \
   "Path to a ChromiumOS test image (build_image test) chromiumos_test_image.bin"
 DEFINE_string toolkit "" \
   "Path to a factory toolkit to use (install_factory_toolkit.run)."
-DEFINE_string install_shim "" \
+DEFINE_string factory_shim "" \
 "Path to a factory shim (build_image factory_install) factory_install_shim.bin"
 
 # Flags for optional input components
@@ -81,6 +81,8 @@ DEFINE_string factory_toolkit "" \
   "Deprecated by --toolkit. "
 DEFINE_string factory "" \
   "Deprecated by --test_image and --toolkit."
+DEFINE_string install_shim "" \
+  "Deprecated by --factory_shim. "
 # Usage Help
 # shellcheck disable=SC2034
 FLAGS_HELP="Prepares factory resources (mini-omaha server, RMA/usb/disk images)
@@ -99,9 +101,13 @@ ORIGINAL_PARAMS="$@"
 eval set -- "${FLAGS_ARGV}"
 
 # Convert legacy options
-if [ -z "${FLAGS_toolkit}" ] && [ -n "${FLAGS_factory_toolkit}" ]; then
+if [ -n "${FLAGS_factory_toolkit}" ]; then
   FLAGS_toolkit="${FLAGS_factory_toolkit}"
   warn "--factory_toolkit is deprecated by --toolkit."
+fi
+if [ -n "${FLAGS_install_shim}" ]; then
+  FLAGS_factory_shim="${FLAGS_install_shim}"
+  warn "--install_shim is deprecated by --factory_shim."
 fi
 if [ -n "${FLAGS_factory}" ]; then
   die "--factory is deprecated by --test_image TEST_IMAGE --toolkit TOOLKIT."
@@ -223,16 +229,16 @@ check_parameters() {
   esac
 
   # All remaining parameters must be checked:
-  # install_shim, firmware, complete_script.
+  # factory_shim, firmware, complete_script.
   if [ -n "${FLAGS_usbimg}" ]; then
     [ -z "${FLAGS_diskimg}" ] ||
       die "--usbimg and --diskimg cannot be used at the same time."
-    check_file_param FLAGS_install_shim "in --usbimg mode"
+    check_file_param FLAGS_factory_shim "in --usbimg mode"
     check_file_param_or_none FLAGS_firmware "in --usbimg mode"
     check_empty_param FLAGS_complete_script "in --usbimg mode"
     check_false_param FLAGS_run_omaha "in --usbimg mode"
   elif [ -n "${FLAGS_diskimg}" ]; then
-    check_empty_param FLAGS_install_shim "in --diskimg mode"
+    check_empty_param FLAGS_factory_shim "in --diskimg mode"
     check_empty_param FLAGS_firmware "in --diskimg mode"
     check_empty_param FLAGS_complete_script "in --diskimg mode"
     check_false_param FLAGS_run_omaha "in --diskimg mode"
@@ -245,7 +251,7 @@ check_parameters() {
       MFP_SUDO=TRUE exec sudo "$0" ${ORIGINAL_PARAMS}
     fi
   else
-    check_empty_param FLAGS_install_shim "in mini-omaha mode"
+    check_empty_param FLAGS_factory_shim "in mini-omaha mode"
     check_file_param_or_none FLAGS_firmware "in mini-omaha mode"
   fi
 }
@@ -365,8 +371,8 @@ generate_usbimg() {
   local payloads_size="$(du -sk "${payloads_dir}" | cut -f 1)"
   info "cros_payloads size: $((payloads_size / 1024))M."
 
-  info "Preparing new USB image from ${FLAGS_install_shim}..."
-  cp -f "${FLAGS_install_shim}" "${FLAGS_usbimg}"
+  info "Preparing new USB image from ${FLAGS_factory_shim}..."
+  cp -f "${FLAGS_factory_shim}" "${FLAGS_usbimg}"
   local old_size="$(stat --printf="%s" "${FLAGS_usbimg}")"
   local new_size="$((payloads_size * 1024 + old_size))"
 

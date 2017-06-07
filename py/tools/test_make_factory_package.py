@@ -197,7 +197,7 @@ class MakeFactoryPackageTest(unittest.TestCase):
       Spawn(self.base_args + [
           '--usbimg', image,
           '--firmware', self.firmware_updater,
-          '--install_shim',
+          '--factory_shim',
           'unpacked/factory_shim/factory_install_shim.bin',
       ],
             cwd=self.artifacts_dir, check_call=True, log=True)

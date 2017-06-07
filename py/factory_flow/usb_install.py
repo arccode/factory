@@ -101,7 +101,7 @@ class USBInstall(FactoryFlowCommand):
       USBInstallError if any required files are missing.
     """
     # Search for factory shim.
-    install_shim_path = self.LocateUniquePath(
+    factory_shim_path = self.LocateUniquePath(
         'factory instsall shim',
         [os.path.join(self.options.bundle, 'factory_shim', name)
          for name in ('factory_install_shim.bin', 'chromeos_*.bin')])
@@ -109,8 +109,8 @@ class USBInstall(FactoryFlowCommand):
     if self.options.method == INSTALL_METHOD.install_shim:
       logging.info('\n'.join(['Found the following binaries for %s:'
                               'Factory install shim: %s']),
-                   self.options.board.full_name, install_shim_path)
-      self.usb_image_path = install_shim_path
+                   self.options.board.full_name, factory_shim_path)
+      self.usb_image_path = factory_shim_path
 
     else:   # Using INSTALL_METHOD.usb_image.
       # Search for release image (FSI).
@@ -139,7 +139,7 @@ class USBInstall(FactoryFlowCommand):
       make_factory_package = [
           os.path.join(self.options.bundle, 'setup', 'make_factory_package.sh'),
           '--board', self.options.board.full_name,
-          '--install_shim', install_shim_path,
+          '--factory_shim', factory_shim_path,
           '--release', release_image_path,
           '--factory', factory_image_path,
           '--hwid', hwid_bundle_path,
@@ -160,7 +160,7 @@ class USBInstall(FactoryFlowCommand):
                               'Factory test image: %s'
                               'HWID bundle: %s'
                               'Firmware updater: %s']),
-                   self.options.board.full_name, install_shim_path,
+                   self.options.board.full_name, factory_shim_path,
                    release_image_path, factory_image_path, hwid_bundle_path,
                    firmware_updater_path)
       process_utils.Spawn(make_factory_package, check_call=True, log=True)

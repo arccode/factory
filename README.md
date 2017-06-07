@@ -302,7 +302,7 @@ To do that, use `--usbimg` option in `make_factory_package.sh`:
 
     ./make_factory_package.sh --usbimg=usb_image.bin \
       --board=BOARD \
-      --install=path/to/factory_install_shim.bin \
+      --factory_shim=path/to/factory_install_shim.bin \
       --test=path/to/chromiumos_test_image.bin \
       --toolkit=path/to/install_factory_toolkit.run \
       --release=path/to/chromiumos_image.bin \
