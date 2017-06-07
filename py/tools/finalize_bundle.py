@@ -430,7 +430,7 @@ class FinalizeBundle(object):
     #                  workable without gsutil if all resources come from LOCAL.
     #                  Therefore, when merging these function, make sure we
     #                  don't call self._CheckGSUtilVersion() if not necessary.
-    for f in self.manifest['add_files']:
+    for f in self.manifest.get('add_files', []):
       CheckDictKeys(f, ['install_into', 'source', 'extract_files'])
       dest_dir = os.path.join(self.bundle_dir, f['install_into'])
       file_utils.TryMakeDirs(dest_dir)
