@@ -180,7 +180,7 @@ class FinalizeBundle(object):
     self.LoadManifest()
     self.LocateResources()
     self.DownloadResources()
-    self.AddCompleteScript()
+    self.AddDefaultCompleteScript()
     self.AddFirmwareUpdaterAndImages()
     self.GetAndSetResourceVersions()
     self.UpdateNetbootURL()
@@ -214,8 +214,8 @@ class FinalizeBundle(object):
     self.manifest = yaml.load(file_utils.ReadFile(self.args.manifest))
     CheckDictKeys(self.manifest,
                   ['board', 'bundle_name', 'add_files', 'server_url',
-                   'toolkit', 'test_image', 'release_image', 'complete_script',
-                   'firmware', 'has_firmware'])
+                   'toolkit', 'test_image', 'release_image', 'firmware',
+                   'has_firmware'])
 
     self.build_board = build_board.BuildBoard(self.manifest['board'])
     self.board = self.build_board.full_name
@@ -459,17 +459,21 @@ class FinalizeBundle(object):
     self.toolkit_version = match.group(1)  # May be None if locally built
     logging.info('Toolkit version: %s', self.toolkit_version)
 
-  def AddCompleteScript(self):
-    """Add complete script into bundle directory."""
-    complete_src = self.manifest.get(
-        'complete_script',
-        os.path.join(self.bundle_dir, 'setup', 'complete_script_sample.sh'))
+  def AddDefaultCompleteScript(self):
+    """Adds default complete script if not set."""
     complete_dir = os.path.join(self.bundle_dir, 'complete')
     file_utils.TryMakeDirs(complete_dir)
-    if complete_src != LOCAL:
-      shutil.copy(complete_src, complete_dir)
-    if len(os.listdir(complete_dir)) != 1:
+    num_complete_scripts = len(os.listdir(complete_dir))
+
+    if num_complete_scripts == 1:
+      # Complete script already provided.
+      return
+    elif num_complete_scripts > 1:
       raise Exception('Not having exactly one file under %s.' % complete_dir)
+
+    default_complete_script = os.path.join(
+        self.bundle_dir, 'setup', 'complete_script_sample.sh')
+    shutil.copy(default_complete_script, complete_dir)
 
   def AddFirmwareUpdaterAndImages(self):
     """Add firmware updater into bundle directory, and extract firmware images
