@@ -93,7 +93,7 @@ class TabletModeUI(object):
     # Set virtual_key to False since the event callback should be triggered
     # from a real key press, not from a button on screen.
     self.ui.BindKey(test_ui.SPACE_KEY, event_callback, virtual_key=False)
-    self.ui.RunJS('$("#%s").focus()' % _ID_CONFIRM_BUTTON)
+    self.ui.RunJS('document.getElementById("%s").focus()' % _ID_CONFIRM_BUTTON)
 
   def _FlashStatus(self, status_label):
     template = OneSection(self.ui)
