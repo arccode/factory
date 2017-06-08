@@ -254,13 +254,13 @@ After installed, open a browser to http://localhost:8000, follow the instruction
 to create a board, upload individual files to it or import a prepared bundle.
 
 #### Boot from USB
-![Diagram of Network Install, booted from USB](doc/images/network_usb_installation.svg)
+![Diagram of Network Install, booted from USB](doc/images/net_inst_usb_boot.png)
 
 After factory server is setup, flash the Factory Install Shim to an USB stick
 and boot with it, select Install when you see a menu and proceed.
 
 #### Boot from Netboot Firmware
-![Diagram of Network Install, booted from Netboot Firmware](doc/images/network_netboot_installation.svg)
+![Diagram of Network Install, booted from Netboot Firmware](doc/images/net_inst_netboot.png)
 
 If the Netboot firmware `image.net.bin` is available, flash the that to main
 (AP) SPI firmware and just boot. You will need to setup the network environment
@@ -269,7 +269,7 @@ run same installer as [Boot from USB](#Boot-from-USB]. For more details, please
 refer to [Netboot Setup](./setup/NETBOOT.md).
 
 ### Pre-Installation (Copy Machine)
-![Diagram of Pre-Installation](doc/images/pre_installation.svg)
+![Diagram of Pre-Installation](doc/images/pre_installation.png)
 
 To speed up the process, many factories will try to pre-flash the internal
 storage so no imaging process is needed. You can generate the disk image from a
@@ -291,7 +291,7 @@ You can image directly to a device, or to a .bin file. Available options are:
  * `--preserve` prevents wiping of the unused space for faster imaging
 
 ### USB Installation (RMA)
-![Diagram of USB (RMA) Installation](doc/images/usb_installation.svg)
+![Diagram of USB (RMA) Installation](doc/images/usb_installation.png)
 
 It is possible to install everything from same USB that boots system without
 network. This is helpful in proto builds if network is not ready, and if copy
