@@ -16,10 +16,10 @@ import os
 import re
 import shutil
 import sys
+import textwrap
 import time
 import urlparse
 import yaml
-from distutils.version import LooseVersion
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.tools import build_board
@@ -183,7 +183,7 @@ class FinalizeBundle(object):
     self.AddDefaultCompleteScript()
     self.AddFirmwareUpdaterAndImages()
     self.GetAndSetResourceVersions()
-    self.UpdateNetbootURL()
+    self.PrepareNetboot()
     self.UpdateInstallShim()
     self.FixFactoryPar()
     self.CreateStartDownloadServerSymlink()
@@ -500,43 +500,74 @@ class FinalizeBundle(object):
       if not filename.endswith('.bin'):
         file_utils.TryUnlink(os.path.join(firmware_images_dir, filename))
 
-  def UpdateNetbootURL(self):
-    """Updates Omaha & TFTP servers' URL in depthcharge netboot firmware."""
+  def PrepareNetboot(self):
+    """Prepares netboot resource for TFTP setup."""
+    # TODO(hungte) Change factory_shim/netboot/ to be netboot/ in factory.zip.
+    orig_netboot_dir = os.path.join(self.bundle_dir, 'factory_shim', 'netboot')
+    netboot_dir = os.path.join(self.bundle_dir, 'netboot')
+    if os.path.exists(orig_netboot_dir) and not os.path.exists(netboot_dir):
+      shutil.move(orig_netboot_dir, netboot_dir)
 
-    server_url = self.manifest.get('server_url')
-    if not server_url:
+    if not os.path.exists(netboot_dir):
+      logging.info('No netboot resources.')
       return
 
-    netboot_firmware_image = os.path.join(
-        self.bundle_dir, 'netboot_firmware', 'image.net.bin')
-    target_bootfile = 'vmlinuz-%s' % self.board
-    target_argsfile = 'cmdline-%s' % self.board
-    if os.path.exists(netboot_firmware_image):
-      netboot_firmware_settings = os.path.join(
-          self.bundle_dir, 'setup', 'netboot_firmware_settings.py')
-      new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
-      Spawn([netboot_firmware_settings,
-             '--argsfile', target_argsfile,
-             '--bootfile', target_bootfile,
-             '--input', netboot_firmware_image,
-             '--output', new_netboot_firmware_image,
-             '--omahaserver=%s' % server_url,
-             '--tftpserverip=%s' %
-             urlparse.urlparse(server_url).hostname],
-            check_call=True, log=True)
-      shutil.move(new_netboot_firmware_image, netboot_firmware_image)
-      # support both 'vmlinux.bin' and 'vmlinuz'.
-      legacy_netboot_shim = os.path.join(self.bundle_dir, 'factory_shim',
-                                         'netboot', 'vmlinux.bin')
-      target_netboot_shim = os.path.join(self.bundle_dir, 'factory_shim',
-                                         'netboot', 'vmlinuz')
-      if not os.path.exists(target_netboot_shim):
-        target_netboot_shim = legacy_netboot_shim
+    # Try same convention that sys-boot/chromeos-bootimage is doing:
+    # bootfile=${PORTAGE_USERNAME}/${BOARD_USE}/vmlinuz
+    # argfile=${PORTAGE_USERNAME}/${BOARD_USE}/cmdline
+    files_dir = os.path.join('chrome-bot', self.board)
+    target_bootfile = os.path.join(files_dir, 'vmlinuz')
+    target_argsfile = os.path.join(files_dir, 'cmdline')
+    netboot_firmware_settings = os.path.join(
+        self.bundle_dir, 'setup', 'netboot_firmware_settings.py')
 
-      # Finally, copy to 'vmlinuz-<board>'.
-      renamed_netboot_shim = os.path.join(self.bundle_dir, 'factory_shim',
-                                          'netboot', target_bootfile)
-      shutil.copy(target_netboot_shim, renamed_netboot_shim)
+    server_url = self.manifest.get('server_url')
+    tftp_server_ip = (urlparse.urlparse(server_url).hostname if server_url else
+                      '')
+
+    netboot_firmware_image = os.path.join(netboot_dir, 'image.net.bin')
+    if os.path.exists(netboot_firmware_image):
+      new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
+      args = ['--argsfile', target_argsfile,
+              '--bootfile', target_bootfile,
+              '--input', netboot_firmware_image,
+              '--output', new_netboot_firmware_image]
+      if server_url:
+        args += ['--omahaserver=%s' % server_url,
+                 '--tftpserverip=%s' % tftp_server_ip]
+      Spawn([netboot_firmware_settings] + args, check_call=True, log=True)
+      shutil.move(new_netboot_firmware_image, netboot_firmware_image)
+
+    tftp_root = os.path.join(self.bundle_dir, 'netboot', 'tftp')
+    tftp_board_dir = os.path.join(tftp_root, files_dir)
+    file_utils.TryMakeDirs(tftp_board_dir)
+
+    # omaha_conf is fetched by factory_installer explicitly.
+    if server_url:
+      omaha_conf = os.path.join(tftp_root, 'omahaserver_%s.conf' % self.board)
+      file_utils.WriteFile(omaha_conf, server_url)
+
+    file_utils.WriteFile(os.path.join(tftp_root, '..', 'dnsmasq.conf'),
+                         textwrap.dedent('''\
+          # This is a sample config file to be invoked by `dnsmasq -d -C FILE`.
+          interface=eth2
+          tftp-root=/var/tftp
+          enable-tftp
+          dhcp-leasefile=/tmp/dnsmasq.leases
+          dhcp-range=192.168.200.50,192.168.200.150,12h
+          port=0
+          '''))
+
+    bootfile_path = os.path.join(netboot_dir, 'vmlinuz')
+    if os.path.exists(bootfile_path):
+      shutil.move(bootfile_path, os.path.join(tftp_board_dir, 'vmlinuz'))
+    tftpserverip_config = (
+        ('tftpserverip=%s' % tftp_server_ip) if tftp_server_ip else '')
+    file_utils.WriteFile(
+        os.path.join(tftp_board_dir, 'cmdline.sample'),
+        'lsm.module_locking=0 cros_netboot_ramfs cros_factory_install '
+        'cros_secure cros_netboot earlyprintk cros_debug loglevel=7 '
+        '%s console=ttyS2,115200n8' % tftpserverip_config)
 
   def UpdateInstallShim(self):
     server_url = self.manifest.get('server_url')
@@ -845,6 +876,7 @@ class FinalizeBundle(object):
 
     if found_url is None:
       raise Exception('No %s found in %r' % (resource_name, possible_urls))
+    logging.info('Starting to download %s...', found_url)
     downloaded_path = self.gsutil.GSDownload(found_url)
 
     try:
