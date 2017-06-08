@@ -427,7 +427,7 @@ class Finalize(unittest.TestCase):
       return 'none'
 
     if method == 'shopfloor':
-      method = 'shopfloor:%s#%s' % (shopfloor.get_server_url(),
+      method = 'shopfloor:%s#%s' % (shopfloor.get_server_url().rstrip('/'),
                                     state.GetSerialNumber())
     logging.info('Using upload method %s', method)
 
