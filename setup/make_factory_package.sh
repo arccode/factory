@@ -208,8 +208,8 @@ check_parameters() {
   check_file_param FLAGS_toolkit ""
   check_file_param_or_none FLAGS_hwid ""
 
-  # --usbimg and --diskimg need complete_script to be empty, but that is fine
-  # for check_optional_file_param.
+  # --diskimg need complete_script to be empty, but that is fine for
+  # check_optional_file_param.
   check_optional_file_param FLAGS_complete_script ""
 
   # Pre-parse parameter default values
@@ -235,7 +235,6 @@ check_parameters() {
       die "--usbimg and --diskimg cannot be used at the same time."
     check_file_param FLAGS_factory_shim "in --usbimg mode"
     check_file_param_or_none FLAGS_firmware "in --usbimg mode"
-    check_empty_param FLAGS_complete_script "in --usbimg mode"
     check_false_param FLAGS_run_omaha "in --usbimg mode"
   elif [ -n "${FLAGS_diskimg}" ]; then
     check_empty_param FLAGS_factory_shim "in --diskimg mode"
