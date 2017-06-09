@@ -528,6 +528,10 @@ msgstr "计算ALS结果"
 msgid "Writing the ALS calibration data to vpd"
 msgstr "写入ALS校正结果"
 
+#: ../py/test/pytests/als_fixture.py
+msgid "Validating the calibrated ALS value"
+msgstr "验证已完成校正灯光 ALS数值"
+
 #: ../py/test/pytests/als_fixture.py ../py/test/pytests/camera_fixture.py
 msgid "All tests are complete"
 msgstr "测试已全部完成"

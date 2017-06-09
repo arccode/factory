@@ -26,10 +26,10 @@ var g_is_test_running = false;
 // Incrementally loaded image data.
 var g_image_data;
 
-var label_usb_loaded = cros.factory.i18n.i18nLabelNode('USB LOADED');
-var label_usb_unloaded = cros.factory.i18n.i18nLabelNode('USB UNLOADED');
-var label_fxt_loaded = cros.factory.i18n.i18nLabelNode('Fixture CONNECTED');
-var label_fxt_unloaded = cros.factory.i18n.i18nLabelNode('Fixture UNAVAILABLE');
+var label_usb_loaded = cros.factory.i18n.i18nLabel('USB LOADED');
+var label_usb_unloaded = cros.factory.i18n.i18nLabel('USB UNLOADED');
+var label_fxt_loaded = cros.factory.i18n.i18nLabel('Fixture CONNECTED');
+var label_fxt_unloaded = cros.factory.i18n.i18nLabel('Fixture UNAVAILABLE');
 
 
 ////////////////////////////////////////////////////////////

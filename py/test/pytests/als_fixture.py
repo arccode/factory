@@ -47,34 +47,31 @@ Usage examples::
           'OFF': [('OFF\\n', 'OFF_READY')]
         },
         'data_method': 'Shopfloor',
-        'param_pathname': 'als/als.params.FATP',
-        'ALS_val_path':
-            '/sys/bus/iio/devices/iio:device0/in_illuminance_input'})
+        'param_pathname': 'als/als.params.FATP' })
 
 """
 
 
 import ast
+from collections import namedtuple
+from collections import OrderedDict
 import numpy as np
 import os
 import Queue
-import string
 import threading
 import time
 import traceback
 import unittest
-from collections import namedtuple
-from collections import OrderedDict
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test.fixture.camera import als_light_chamber
-from cros.factory.test.fixture import fixture_connection
-from cros.factory.test.i18n import _
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import event_log
 from cros.factory.test import factory
+from cros.factory.test.fixture.camera import als_light_chamber
+from cros.factory.test.fixture import fixture_connection
 from cros.factory.test import i18n
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import leds
 from cros.factory.test import network
 from cros.factory.test import shopfloor
@@ -94,6 +91,7 @@ STAGE40_ALS_LIGHT2 = 'als_light2'
 STAGE50_ALS_LIGHT3 = 'als_light3'
 STAGE60_ALS_CALCULATION = 'als_calculation'
 STAGE70_VPD = 'als_vpd'
+STAGE80_ALS_VALIDATING = 'als_validating'
 STAGE90_END = 'als_end'  # end test
 STAGE100_SAVED = 'als_data_saved'  # test data saved
 
@@ -122,6 +120,7 @@ MSG_TEST_STATUS = {
     STAGE50_ALS_LIGHT3: _('Reading Light3 ALS value'),
     STAGE60_ALS_CALCULATION: _('Calculate the ALS line'),
     STAGE70_VPD: _('Writing the ALS calibration data to vpd'),
+    STAGE80_ALS_VALIDATING: _('Validating the calibrated ALS value'),
     STAGE90_END: _('All tests are complete'),
     STAGE100_SAVED: _('Test data saved'),
 }
@@ -145,8 +144,8 @@ FAIL_CHAMBER_ERROR = 'ChamberError'  # Fail to set light chamber chart
 FAIL_ALS_NOT_FOUND = 'AlsNotFound'  # ALS not found.
 FAIL_ALS_INIT = 'AlsInit'  # ALS initialization error.
 FAIL_ALS_ORDER = 'AlsOrder'  # ALS order error.
-FAIL_ALS_LIMIT = 'AlsLimit'  # ALS linear regression result not within limit.
 FAIL_ALS_CALIB = 'AlsCalibration'  # ALS calibration error.
+FAIL_ALS_VALID = 'AlsValidating'  # ALS validating error.
 FAIL_ALS_VPD = 'AlsVPD'  # ALS write VPD error
 FAIL_UNKNOWN = 'UnknownError'  # Unknown error.
 
@@ -157,8 +156,8 @@ EVENT_ALS_DATA = 'camera_ALS_data'
 
 
 # Log output format.
-LOG_FORMAT_ALS_SLOPE = 'ALS cal slope: %f'
 LOG_FORMAT_ALS_INTERCEPT = 'ALS cal intercept: %f'
+LOG_FORMAT_ALS_SLOPE = 'ALS cal slope: %f'
 
 
 # Serial numbers.
@@ -181,466 +180,6 @@ CHAMBER_CONN_PARAMS_DEFAULT = {
     },
     'response_delay': 2
 }
-
-
-class _TestDelegate(object):
-  """Delegate class for ALS (Ambient Light Sensor) test.
-
-  We use four types of logging:
-
-    1. factory console (factory.console.info())
-    2. factory.log (self._Log())
-    3. Save raw data to USB drive or shopfloor aux_logs folder (self._Log() and
-       self._SaveTestData())
-    4. Event log (event_log.Log())
-
-  It has three public methods:
-    - __init__()
-    - LoadParamsAndShowTestScreen()
-    - RunTest()
-
-  Usage Example:
-
-    delegate = _TestDelegate(...)
-    delegate.LoadParamsAndShowTestScreen()
-    while ...:  # loop test iterations
-      delegate.RunTest()
-
-  """
-
-  def __init__(self, delegator, mock_mode, chamber,
-               control_chamber, chamber_n_retries, chamber_retry_delay,
-               data_method, local_ip, param_pathname, param_dict):
-    """Initalizes _TestDelegate.
-
-    Args:
-      delegator: Instance of CameraFixture.
-      mock_mode: Whether or not we are in mock mode.
-      chamber: Instance of LightChamber.
-      control_chamber: Whether or not to control the chart in the light chamber.
-      chamber_n_retries: Number of retries when connecting.
-      chamber_retry_delay: Delay between connection retries.
-      data_method: DataMethod enum.
-      local_ip: Check CameraFixture.ARGS for detailed description.
-      param_pathname: ditto.
-      param_dict: ditto.
-    """
-
-    self.delegator = delegator
-    self.mock_mode = mock_mode
-    self.chamber = chamber
-    self.control_chamber = control_chamber
-    self.chamber_n_retries = chamber_n_retries
-    self.chamber_retry_delay = chamber_retry_delay
-
-    # Basic config set by test_list.
-    self.data_method = data_method
-    self.local_ip = local_ip
-    self.param_pathname = param_pathname
-
-    # Internal context across multiple test iterations.
-    if data_method == DataMethod.SIMPLE:
-      self.params = param_dict
-    else:
-      self.params = None  # to be dynamically loaded later
-    self.timing = {}  # test stage => completion ratio (0~1)
-
-    self.usb_ready_event = None  # Internal flag is true if USB drive is ready.
-    self.usb_dev_path = None
-
-    # Internal context to be reset for each test iteration.
-    # (Remember to reset them in _ResetForNewTest())
-    self.logs = []  # list of log lines to be saved later.
-    self.module_sn = SN_NA
-    self.original_img = None
-    self.analyzed_img = None
-
-    # ALS test state
-    self.light_index = -1
-
-  def LoadParamsAndShowTestScreen(self):
-    """Loads parameters and then shows main test screen."""
-    # TODO(yllin): Move parameter loading to a standalone pytest and transform
-    #              the parameters to JSON form.
-    if self.data_method == DataMethod.USB:
-      self.params = self._LoadParamsFromUSB()
-    elif self.data_method == DataMethod.SF:
-      self.params = self._LoadParamsFromShopfloor()
-
-    media_utils.MediaMonitor('usb-serial', None).Start(
-        on_insert=self._OnU2SInsertion, on_remove=self._OnU2SRemoval)
-
-    # Basic pre-processing of the parameters.
-    self._Log('Parameter version: %s\n' % self.params['version'])
-    self._CalculateTiming()
-
-    bind_keys = [test_ui.SPACE_KEY]
-    if not self.params['ui']['ignore_enter_key']:
-      bind_keys.append(test_ui.ENTER_KEY)
-    for key in bind_keys:
-      self.delegator.ui.BindKeyJS(
-          key, 'if(event)event.preventDefault();\nOnButtonStartTestClick();')
-    self.delegator.ui.CallJSFunction('ShowMainTestScreen',
-                                     not self.params['sn']['auto_read'])
-
-  def _LoadParamsFromUSB(self):
-    """Loads parameters from USB drive."""
-    self.usb_ready_event = threading.Event()
-    media_utils.RemovableDiskMonitor().Start(on_insert=self._OnUSBInsertion,
-                                             on_remove=self._OnUSBRemoval)
-
-    while self.usb_ready_event.wait():
-      with media_utils.MountedMedia(self.usb_dev_path, 1) as mount_point:
-        pathname = os.path.join(mount_point, self.param_pathname)
-        try:
-          with open(pathname, 'r') as f:
-            return ast.literal_eval(f.read())
-        except IOError as e:
-          self._Log('Error: fail to read %r: %r' % (pathname, e))
-      time.sleep(0.5)
-
-  def _LoadParamsFromShopfloor(self):
-    """Loads parameters from shopfloor."""
-    network.PrepareNetwork(ip=self.local_ip, force_new_ip=False)
-
-    factory.console.info('Reading %s from shopfloor', self.param_pathname)
-    shopfloor_client = shopfloor.GetShopfloorConnection()
-    return ast.literal_eval(
-        shopfloor_client.GetParameter(self.param_pathname).data)
-
-  def _CalculateTiming(self):
-    """Calculates the timing of each test stage to self.timing."""
-    chk_point = self.params['chk_point']
-    cumsum = np.cumsum([d for _, d in chk_point])
-    total_time = cumsum[-1]
-    for i in xrange(len(chk_point)):
-      if i > 0:
-        self.timing[chk_point[i][0]] = cumsum[i - 1] / total_time
-      else:
-        self.timing[chk_point[i][0]] = 0
-
-  def RunTest(self, input_sn):
-    if self.delegator.args.assume_chamber_connected:
-      self._SetupFixture()
-
-    ret = self._ALSTest(input_sn)
-
-    if self.delegator.args.auto_mode:
-      self.delegator.PostInternalQueue(EventType.EXIT_TEST)
-
-    return ret
-
-  def _ALSTest(self, input_sn):
-    self._ResetForNewTest()
-
-    test_status = OrderedDict([
-        (STAGE00_START, TestStatus.NA),
-        (STAGE10_SN, TestStatus.UNTESTED),
-        (STAGE20_INIT, TestStatus.UNTESTED),
-        (STAGE30_ALS_LIGHT1, TestStatus.UNTESTED),
-        (STAGE40_ALS_LIGHT2, TestStatus.UNTESTED),
-        (STAGE50_ALS_LIGHT3, TestStatus.UNTESTED),
-        (STAGE60_ALS_CALCULATION, TestStatus.UNTESTED),
-        (STAGE70_VPD, TestStatus.UNTESTED),
-        (STAGE90_END, TestStatus.UNTESTED),
-        (STAGE100_SAVED, TestStatus.NA),
-    ])
-
-    intercept = None
-    slope = None
-    non_locals = {}  # hack to immitate nonlocal keyword in Python 3.x
-
-    def update_progress(test_stage):
-      non_locals['current_stage'] = test_stage
-      self._UpdateTestProgress(test_stage)
-
-    def update_status(success):
-      if success:
-        test_status[non_locals['current_stage']] = TestStatus.PASSED
-      else:
-        test_status[non_locals['current_stage']] = TestStatus.FAILED
-
-    update_progress(STAGE00_START)
-    update_status(True)
-
-    # (1) Check / read module serial number.
-    update_progress(STAGE10_SN)
-    success = self._CheckSN(input_sn)
-    update_status(success)
-    if not success:
-      return False, FAIL_SN
-
-    conf = self.params['conf']
-
-    # (2) Initializing ALS
-    update_progress(STAGE20_INIT)
-    success = self.chamber.EnableALS()
-    update_status(success)
-    if not success:
-      return False, FAIL_ALS_NOT_FOUND
-
-    LIGHT_STAGES = [STAGE30_ALS_LIGHT1, STAGE40_ALS_LIGHT2, STAGE50_ALS_LIGHT3]
-
-    try:
-      vals = []
-      # (3) Measure light level at three different light levels
-      while True:
-        factory.console.info('try to switch light')
-        # Go to the next lighting preset.
-        if not self._SwitchToNextLight():
-          break
-
-        update_progress(LIGHT_STAGES[self.light_index])
-        val = self.chamber.ReadMean(conf['read_delay'], conf['n_samples'])
-        vals.append(val)
-        self._Log('Lighting preset lux value: %d' %
-                  conf['luxs'][self.light_index])
-        self._Log('ALS value: %d' % val)
-
-        # Check if it is a false read.
-        if not val:
-          update_status(False)
-          self._Log('The ALS value is stuck at zero.')
-          return False, FAIL_ALS_CALIB
-
-        update_status(True)
-
-      # (4) Check value ordering
-      # Skipping value ordering check when in mock mode since we don't have
-      # real ALS device
-      if not self.mock_mode:
-        for i, li in enumerate(conf['luxs']):
-          for j in range(i):
-            if ((li > conf['luxs'][j] and vals[j] >= vals[i]) or
-                (li < conf['luxs'][j] and vals[j] <= vals[i])):
-              self._Log('The ordering of ALS values is wrong.')
-              return False, FAIL_ALS_ORDER
-
-      # (5) Perform linear regression
-      # The linear regression can be calculate as follows:
-      # y = A + Bx
-      # B = Covariance[x, y] / Variance[x]
-      #     _    _
-      # A = y - Bx
-      #
-      # Here our x is conf['luxs'] and y is vals
-
-      def Mean(xs):
-        return float(sum(xs)) / len(xs)
-
-      def Variance(xs):
-        return Mean([x * x for x in xs]) - Mean(xs) ** 2
-
-      def Covariance(xs, ys):
-        return Mean([x * y for x, y in zip(xs, ys)]) - Mean(xs) * Mean(ys)
-
-      slope = Covariance(conf['luxs'], vals) / Variance(conf['luxs'])
-      intercept = Mean(vals) - slope * Mean(conf['luxs'])
-
-      # (6) Check if the result is within range
-      update_progress(STAGE60_ALS_CALCULATION)
-      if ((slope < conf['slope_limit'][0] or
-           slope > conf['slope_limit'][1]) or
-          intercept < conf['intercept_limit'][0] or
-          intercept > conf['intercept_limit'][1]):
-        update_status(False)
-        self._Log('The result line spec is not within limit.')
-        return False, FAIL_ALS_LIMIT
-      update_status(True)
-
-      # (7) Save ALS values to vpd for FATP test.
-      update_progress(STAGE70_VPD)
-      if (not self.mock_mode and
-          self.delegator.dut.Call(conf['save_vpd'] % (slope, intercept))):
-        update_status(False)
-        self._Log('Writing VPD data failed!')
-        return False, FAIL_ALS_VPD
-      update_status(True)
-
-      # (8) Final test result.
-      update_progress(STAGE90_END)
-      update_status(True)
-    except fixture_connection.FixtureConnectionError:
-      update_status(False)
-      self._Log('The test fixture was disconnected!')
-      return False, FAIL_CHAMBER_ERROR
-    except Exception:
-      update_status(False)
-      self._Log('Failed to read values from ALS or unknown error.' +
-                traceback.format_exc())
-      return False, FAIL_UNKNOWN
-    else:
-      # (8) Logs to event log, and save to USB and shopfloor.
-      update_progress(STAGE100_SAVED)
-      self._UploadALSCalibData(
-          test_status[STAGE90_END] == TestStatus.PASSED,
-          {'sn': self.module_sn, 'vals': vals, 'slope': slope,
-           'intercept': intercept})
-      update_status(True)
-      self._CollectALSLogs(test_status, slope, intercept)
-      self._FlushEventLogs()
-
-      # JavaScript needs to cleanup after the test is completed.
-      self.delegator.ui.CallJSFunction('OnTestCompleted')
-
-    return True, None
-
-  def _SwitchToNextLight(self):
-    self.light_index += 1
-    if self.light_index >= len(self.params['conf']['luxs']):
-      return False
-
-    self.chamber.SetLight(self.params['conf']['light_seq'][self.light_index])
-    time.sleep(self.params['conf']['light_delay'])
-    return True
-
-  def _ResetForNewTest(self):
-    """Reset per-test context for new test."""
-    self.logs = []
-    self.module_sn = SN_NA
-    self.light_index = -1
-
-  def _UpdateTestProgress(self, test_stage):
-    """Updates UI to show the test progress.
-
-    Args:
-      test_stage: Current test stage.
-    """
-    msg = MSG_TEST_STATUS[test_stage]
-    self.delegator.ShowTestStatus(msg)
-    self.delegator.ShowProgressBar(self.timing[test_stage])
-
-  def _Log(self, text):
-    """Custom log function to log to factory console and USB/shopfloor later."""
-    factory.console.info(text)
-    self.logs.append(text)
-
-  def _UploadALSCalibData(self, test_passed, result):
-    """Upload ALS calibration data to shopfloor.
-
-    Args:
-      test_passed: whether the IQ test has passed the criteria.
-    """
-
-    if test_passed:
-      shopfloor_client = shopfloor.GetShopfloorConnection()
-      shopfloor_client.SaveAuxLog(
-          os.path.join('als', '%s.als' % self.module_sn),
-          str(result))
-
-  def _GetLogFilePrefix(self):
-    return self.module_sn
-
-  def _CheckSN(self, input_sn):
-    """Checks and/or read module serial number.
-
-    Args:
-      input_sn: Serial number input on UI.
-    """
-    try:
-      if self.params['sn']['auto_read']:
-        input_sn = self.delegator.camera_dev.GetSerialNumber()
-    except Exception:
-      self._Log('Error: fails to read serial number.')
-      return False
-
-    self.module_sn = input_sn
-    self._Log('Serial number: %s' % self.module_sn)
-    if not self.delegator.camera_dev.IsValidSerialNumber(self.module_sn):
-      self._Log('Error: invalid serial number.')
-      return False
-
-    return True
-
-  def _ReadSysfs(self, pathname):
-    """Read single-line data from sysfs.
-
-    Args:
-      pathname: Pathname in sysfs.
-
-    Returns:
-      Tuple of (success, read data).
-    """
-    def _FilterNonPrintable(s):
-      return ''.join(c for c in s if c in string.printable)
-
-    try:
-      read_data = _FilterNonPrintable(
-          self.delegator.dut.ReadSpecialFile(pathname)).rstrip()
-
-    except IOError as e:
-      self._Log('Fail to read %r: %r' % (pathname, e))
-      return False, None
-    if read_data.find('\n') >= 0:
-      self._Log('%r contains multi-line data: %r' % (pathname, read_data))
-      return False, None
-    return True, read_data
-
-  def _CollectALSLogs(self, test_status, slope, intercept):
-    # 1. Log overall test states.
-    self._Log('Test status:\n%s' % self._FormatOrderedDict(test_status))
-    event_log.Log(EVENT_ALS_STATUS, **test_status)
-
-    # 2. Log IQ data.
-    ALS_data = {}
-
-    def mylog(value, key, log_text_fmt):
-      self._Log((log_text_fmt % value))
-      ALS_data[key] = value
-
-    ALS_data['module_sn'] = self.module_sn
-    mylog(slope, 'als_cal_slope', LOG_FORMAT_ALS_SLOPE)
-    mylog(intercept, 'als_cal_intercept', LOG_FORMAT_ALS_INTERCEPT)
-
-    event_log.Log(EVENT_ALS_DATA, **ALS_data)
-
-  def _FlushEventLogs(self):
-    if self.data_method == DataMethod.SF:
-      goofy = state.get_instance()
-      goofy.FlushEventLogs()
-
-  def _FormatOrderedDict(self, ordered_dict):
-    l = ['{']
-    l += ["  '%s': %s," % (key, ordered_dict[key]) for key in ordered_dict]
-    l.append('}')
-    return '\n'.join(l)
-
-  def _SetupFixture(self):
-    """Initialize the communication with the fixture."""
-    try:
-      self.chamber.Connect()
-    except Exception as e:
-      self._Log(str(e))
-      self._Log('Failed to initialize the test fixture.')
-      return False
-    self._Log('Test fixture successfully initialized.')
-    return True
-
-  def _OnUSBInsertion(self, dev_path):
-    self.usb_dev_path = dev_path
-    self.usb_ready_event.set()
-    self.delegator.ui.CallJSFunction('UpdateUSBStatus', True)
-
-  def _OnUSBRemoval(self, dev_path):
-    del dev_path  # Unused.
-    self.usb_ready_event.clear()
-    self.usb_dev_path = None
-    self.delegator.ui.CallJSFunction('UpdateUSBStatus', False)
-
-  def _OnU2SInsertion(self, _):
-    if self.params:
-      cnt = 0
-      while not self._SetupFixture():
-        cnt += 1
-        if cnt >= self.chamber_n_retries:
-          self.delegator.ui.CallJSFunction('UpdateFixtureStatus', False)
-          return
-        time.sleep(self.chamber_retry_delay)
-      self.delegator.ui.CallJSFunction('UpdateFixtureStatus', True)
-
-  def _OnU2SRemoval(self, _):
-    if self.params:
-      self.delegator.ui.CallJSFunction('UpdateFixtureStatus', False)
 
 
 class ALSFixture(unittest.TestCase):
@@ -683,7 +222,6 @@ class ALSFixture(unittest.TestCase):
       Arg('param_dict', dict, 'The parameters dictionary. '
           'when data_method = Simple.',
           default=None, optional=True),
-      Arg('ALS_val_path', str, 'ALS value path', default=None, optional=True),
 
   ]
 
@@ -711,91 +249,502 @@ class ALSFixture(unittest.TestCase):
     else:
       chamber_conn_params = self.args.chamber_conn_params
 
-    fixture_conn = None
+    self.fixture_conn = None
     if self.args.control_chamber:
       if self.args.mock_mode:
         script = dict([(k.strip(), v.strip()) for k, v in
                        reduce(lambda a, b: a + b,
                               self.args.chamber_cmd.values(), [])])
-        fixture_conn = fixture_connection.MockFixtureConnection(script)
+        self.fixture_conn = fixture_connection.MockFixtureConnection(script)
       else:
-        fixture_conn = fixture_connection.SerialFixtureConnection(
+        self.fixture_conn = fixture_connection.SerialFixtureConnection(
             **chamber_conn_params)
+
+    self._LoadParams()
+
+    self.als_controller = self.dut.ambient_light_sensor.GetController()
+
+    self.timing = {}  # test stage => completion ratio (0~1)
+    self.current_stage = None
+
+    self.usb_ready_event = None  # Internal flag is true if USB drive is ready
+    self.usb_dev_path = None
 
     self.chamber = als_light_chamber.ALSLightChamber(
         dut=self.dut,
-        val_path=self.args.ALS_val_path,
+        val_path=self.als_val_path,
         scale_path=None,
-        fixture_conn=fixture_conn,
+        fixture_conn=self.fixture_conn,
         fixture_cmd=self.args.chamber_cmd,
         mock_mode=self.args.mock_mode)
+
+    # Internal context to be reset for each test iteration.
+    # (Remember to reset them in _ResetForNewTest())
+    # TODO(yllin): Replace auxlog with testlog.
+    self.logs = []  # list of log lines to be saved later.
+    self.module_sn = SN_NA
+
+    # ALS test state
+    self.light_index = -1
 
     self.ui = test_ui.UI()
     self.ui.AddEventHandler(
         'start_test_button_clicked',
-        lambda js_args: self.PostInternalQueue(EventType.START_TEST, js_args))
+        lambda event: self._PostInternalQueue(EventType.START_TEST, event))
     self.ui.AddEventHandler(
         'exit_test_button_clicked',
-        lambda _: self.PostInternalQueue(EventType.EXIT_TEST))
+        lambda _: self._PostInternalQueue(EventType.EXIT_TEST))
     self.ui.AddEventHandler(
         'sn_input_box_on_input',
-        lambda js_args: self.PostInternalQueue(EventType.VALIDATE_SN, js_args))
+        lambda event: self._PostInternalQueue(EventType.VALIDATE_SN, event))
     self.ui.BindKey(
         test_ui.ESCAPE_KEY,
-        lambda _: self.PostInternalQueue(EventType.EXIT_TEST))
+        lambda _: self._PostInternalQueue(EventType.EXIT_TEST))
+
+  def _LoadParams(self):
+    # TODO(yllin): Move parameter loading to a standalone pytest and transform
+    #              the parameters to JSON form.
+    data_method = self.DATA_METHODS[self.args.data_method]
+    if data_method == DataMethod.SIMPLE:
+      self.params = self.args.param_dict
+    elif data_method == DataMethod.USB:
+      self.params = self._LoadParamsFromUSB()
+    elif data_method == DataMethod.SF:
+      self.params = self._LoadParamsFromShopfloor()
+
+  def _ShowTestScreen(self):
+    """Loads parameters and then shows main test screen."""
+    media_utils.MediaMonitor('usb-serial', None).Start(
+        on_insert=self._OnU2SInsertion, on_remove=self._OnU2SRemoval)
+
+    # Basic pre-processing of the parameters.
+    self._Log('Parameter version: %s\n' % self.params['version'])
+    self._CalculateTiming()
+
+    bind_keys = [test_ui.SPACE_KEY]
+    if not self.params['ui']['ignore_enter_key']:
+      bind_keys.append(test_ui.ENTER_KEY)
+    for key in bind_keys:
+      self.ui.BindKeyJS(
+          key, 'if(event)event.preventDefault();\nOnButtonStartTestClick();')
+    self.ui.CallJSFunction('ShowMainTestScreen',
+                           not self.params['sn']['auto_read'])
+
+  def _LoadParamsFromUSB(self):
+    """Loads parameters from USB drive."""
+    self.usb_ready_event = threading.Event()
+    media_utils.RemovableDiskMonitor().Start(on_insert=self._OnUSBInsertion,
+                                             on_remove=self._OnUSBRemoval)
+
+    while self.usb_ready_event.wait():
+      with media_utils.MountedMedia(self.usb_dev_path, 1) as mount_point:
+        pathname = os.path.join(mount_point, self.args.param_pathname)
+        try:
+          with open(pathname, 'r') as f:
+            return ast.literal_eval(f.read())
+        except IOError as e:
+          self._Log('Error: fail to read %r: %r' % (pathname, e))
+      time.sleep(0.5)
+
+  def _LoadParamsFromShopfloor(self):
+    """Loads parameters from shopfloor."""
+    network.PrepareNetwork(ip=self.args.local_ip, force_new_ip=False)
+
+    factory.console.info('Reading %s from shopfloor', self.args.param_pathname)
+    shopfloor_client = shopfloor.GetShopfloorConnection()
+    return ast.literal_eval(
+        shopfloor_client.GetParameter(self.args.param_pathname).data)
+
+  def _Log(self, text):
+    """Custom log function to log to factory console and USB/shopfloor later."""
+    factory.console.info(text)
+    self.logs.append(text)
+
+  def _CalculateTiming(self):
+    """Calculates the timing of each test stage to self.timing."""
+    chk_point = self.params['chk_point']
+    cumsum = np.cumsum([d for _, d in chk_point])
+    total_time = cumsum[-1]
+    for i in xrange(len(chk_point)):
+      if i > 0:
+        self.timing[chk_point[i][0]] = cumsum[i - 1] / total_time
+      else:
+        self.timing[chk_point[i][0]] = 0
+
+  def _CheckSN(self, input_sn):
+    """Checks and/or read module serial number.
+
+    Args:
+      input_sn: Serial number input on UI.
+    """
+    try:
+      if self.params['sn']['auto_read']:
+        input_sn = self.camera_dev.GetSerialNumber()
+    except Exception:
+      self._Log('Error: fails to read serial number.')
+      return False
+
+    self.module_sn = input_sn
+    self._Log('Serial number: %s' % self.module_sn)
+    if not self.camera_dev.IsValidSerialNumber(self.module_sn):
+      self._Log('Error: invalid serial number.')
+      return False
+
+    return True
+
+  def _ALSTest(self, input_sn):
+    self._ResetForNewTest()
+
+    test_status = OrderedDict([
+        (STAGE00_START, TestStatus.NA),
+        (STAGE10_SN, TestStatus.UNTESTED),
+        (STAGE20_INIT, TestStatus.UNTESTED),
+        (STAGE30_ALS_LIGHT1, TestStatus.UNTESTED),
+        (STAGE40_ALS_LIGHT2, TestStatus.UNTESTED),
+        (STAGE50_ALS_LIGHT3, TestStatus.UNTESTED),
+        (STAGE60_ALS_CALCULATION, TestStatus.UNTESTED),
+        (STAGE70_VPD, TestStatus.UNTESTED),
+        (STAGE80_ALS_VALIDATING, TestStatus.UNTESTED),
+        (STAGE90_END, TestStatus.UNTESTED),
+        (STAGE100_SAVED, TestStatus.NA),
+    ])
+
+    bias = None
+    sf = None
+    self.current_stage = None
+
+    def update_progress(test_stage):
+      self.current_stage = test_stage
+      self._UpdateTestProgress(test_stage)
+
+    def update_status(success):
+      if success:
+        test_status[self.current_stage] = TestStatus.PASSED
+      else:
+        test_status[self.current_stage] = TestStatus.FAILED
+
+    update_progress(STAGE00_START)
+    update_status(True)
+
+    # (1) Check / read module serial number.
+    update_progress(STAGE10_SN)
+    success = self._CheckSN(input_sn)
+    update_status(success)
+    if not success:
+      return False, FAIL_SN
+
+    conf = self.params['conf']
+
+    # (2) Initializing ALS
+    update_progress(STAGE20_INIT)
+    success = self.chamber.EnableALS()
+    update_status(success)
+    if not success:
+      return False, FAIL_ALS_NOT_FOUND
+
+    LIGHT_STAGES = [STAGE30_ALS_LIGHT1, STAGE40_ALS_LIGHT2, STAGE50_ALS_LIGHT3]
+
+    try:
+      if not self.args.mock_mode:
+        # (3.1) Clean up the calibration values.
+        self.als_controller.CleanUpCalibrationValues()
+      vals = []
+      # (3.2) Measure light level at three different light levels
+      while True:
+        # Go to the next lighting preset.
+        if not self._SwitchToNextLight():
+          break
+
+        update_progress(LIGHT_STAGES[self.light_index])
+        val = self.chamber.ReadMean(conf['read_delay'], conf['n_samples'])
+        vals.append(val)
+        self._Log('Lighting preset lux value: %d' %
+                  conf['luxs'][self.light_index])
+        self._Log('ALS value: %d' % val)
+
+        # Check if it is a false read.
+        if not val:
+          update_status(False)
+          self._Log('The ALS value is stuck at zero.')
+          return False, FAIL_ALS_CALIB
+
+        update_status(True)
+
+      # (4) Check value ordering
+      # Skipping value ordering check when in mock mode since we don't have
+      # real ALS device
+      if not self.args.mock_mode:
+        for i, li in enumerate(conf['luxs']):
+          for j in range(i):
+            if ((li > conf['luxs'][j] and vals[j] >= vals[i]) or
+                (li < conf['luxs'][j] and vals[j] <= vals[i])):
+              self._Log('The ordering of ALS values is wrong.')
+              return False, FAIL_ALS_ORDER
+
+      # (5) Calculate bias and scale factor (sf).
+      # x' = (x / default_sf) - default_bias
+      # bias = x'0
+      # Scale Factor sf = mean(Slope((x'0,y0), (x'1,y1)), ... ,
+      #                        Slope((x'0,y0), (x'n,yn)))
+      # Here our x is vals, x' is vals_new and y is conf['luxs']
+
+      def Slope(base, sample):
+        return float((sample[1]-base[1])/(sample[0]-base[0]))
+
+      def ScaleFactor(xs, ys):
+        base = (xs[0], ys[0])
+        samples = zip(xs[1:], ys[1:])
+        return np.mean([Slope(base, s) for s in samples])
+
+      update_progress(STAGE60_ALS_CALCULATION)
+      if not self.args.mock_mode:
+        default_sf = self.params['conf']['default_sf']
+        default_bias = self.params['conf']['default_scale']
+        vals_new = [(x / default_sf) - default_bias for x in vals]
+        bias = vals_new[0]
+        sf = ScaleFactor(vals_new, conf['luxs'])
+      update_status(True)
+
+      # (6) Save ALS values to vpd for FATP test.
+      update_progress(STAGE70_VPD)
+      if (not self.args.mock_mode
+          and self.dut.Call(conf['set_vpd_slope'] % sf)
+          and self.dut.Call(conf['set_vpd_intercept'] % bias)):
+        update_status(False)
+        self._Log('Writing VPD data failed!')
+        return False, FAIL_ALS_VPD
+      update_status(True)
+
+      # (7) Validating test result with presetted validating light
+      #     The validating function:
+      #     y - sf*(x + bias)
+      #     ----------------- <= validating_err_limit
+      #            y
+      #     where y is light intensity v_lux, and x is read value v_val.
+      update_progress(STAGE80_ALS_VALIDATING)
+      # Force als adopts the calibrated vpd values.
+      self.als_controller.ForceLightInit()
+
+      self._SwitchLight(conf['validating_light'])
+      v_val = self.chamber.ReadMean(conf['read_delay'], conf['n_samples'])
+      v_lux = float(conf['validating_lux'])
+
+      def OnePointValidation(bias, sf, v_val, v_lux):
+        return (v_lux - sf*(v_val - bias)) / v_lux
+
+      err = OnePointValidation(bias, sf, v_val, v_lux)
+
+      if err > conf['validating_err_limit']:
+        self._Log('Validating err %f > validating_err_limit %f'
+                  % (err, conf['validating_err_limit']))
+        update_status(False)
+        return False, FAIL_ALS_VALID
+      update_status(True)
+
+      # (8) Final test result.
+      update_progress(STAGE90_END)
+      update_status(True)
+    except fixture_connection.FixtureConnectionError:
+      update_status(False)
+      self._Log('The test fixture was disconnected!')
+      return False, FAIL_CHAMBER_ERROR
+    except Exception:
+      update_status(False)
+      self._Log('Failed to read values from ALS or unknown error.' +
+                traceback.format_exc())
+      return False, FAIL_UNKNOWN
+    else:
+      # (8) Logs to event log, and save to USB and shopfloor.
+      update_progress(STAGE100_SAVED)
+      self._UploadALSCalibData(
+          test_status[STAGE90_END] == TestStatus.PASSED,
+          {'sn': self.module_sn, 'vals': vals, 'bias': bias,
+           'sf': sf})
+      update_status(True)
+      self._CollectALSLogs(test_status, bias, sf)
+      self._FlushEventLogs()
+
+      # JavaScript needs to cleanup after the test is completed.
+      self.ui.CallJSFunction('OnTestCompleted')
+
+    return True, None
+
+  def _OnUSBInsertion(self, dev_path):
+    self.usb_dev_path = dev_path
+    self.usb_ready_event.set()
+    self.ui.CallJSFunction('UpdateUSBStatus', True)
+
+  def _OnUSBRemoval(self, dev_path):
+    del dev_path  # Unused.
+    self.usb_ready_event.clear()
+    self.usb_dev_path = None
+    self.ui.CallJSFunction('UpdateUSBStatus', False)
+
+  def _OnU2SInsertion(self, dev_path):
+    del dev_path  # unused
+    if self.params:
+      cnt = 0
+      while not self._SetupFixture():
+        cnt += 1
+        if cnt >= self.chamber_n_retries:
+          self.ui.CallJSFunction('UpdateFixtureStatus', False)
+          return
+        time.sleep(self.chamber_retry_delay)
+      self.ui.CallJSFunction('UpdateFixtureStatus', True)
+
+  def _OnU2SRemoval(self, dev_path):
+    del dev_path  # unused
+    if self.params:
+      self.ui.CallJSFunction('UpdateFixtureStatus', False)
+
+  def _ReadSysfs(self, pathname):
+    """Reads single-line data from sysfs.
+
+    Args:
+      pathname: Pathname in sysfs.
+
+    Returns:
+      A string, read data.
+
+    Raises:
+      IOError or ValueError if fails.
+    """
+    try:
+      read_data = self.dut.ReadSpecialFile(pathname).rstrip()
+      if read_data.find('\n') >= 0:
+        self._Log('%r contains multi-line data: %r' % (pathname, read_data))
+        raise ValueError
+      return read_data
+    except IOError as e:
+      self._Log('Fail to read %r: %r' % (pathname, e))
+      raise e
+
+  def _ResetForNewTest(self):
+    """Reset per-test context for new test."""
+    self.logs = []
+    self.module_sn = SN_NA
+    self.light_index = -1
+
+  def _CollectALSLogs(self, test_status, bias, sf):
+    # 1. Log overall test states.
+    self._Log('Test status:\n%s' % self._FormatOrderedDict(test_status))
+    event_log.Log(EVENT_ALS_STATUS, **test_status)
+
+    # 2. Log ALS data.
+    ALS_data = {}
+
+    def mylog(value, key, log_text_fmt):
+      self._Log((log_text_fmt % value))
+      ALS_data[key] = value
+
+    ALS_data['module_sn'] = self.module_sn
+    mylog(bias, 'als_cal_intercept', LOG_FORMAT_ALS_INTERCEPT)
+    mylog(sf, 'als_cal_slope', LOG_FORMAT_ALS_SLOPE)
+
+    event_log.Log(EVENT_ALS_DATA, **ALS_data)
+
+  def _FlushEventLogs(self):
+    if self.data_method == DataMethod.SF:
+      goofy = state.get_instance()
+      goofy.FlushEventLogs()
+
+  def _FormatOrderedDict(self, ordered_dict):
+    l = ['{']
+    l += ["  '%s': %s," % (key, ordered_dict[key]) for key in ordered_dict]
+    l.append('}')
+    return '\n'.join(l)
+
+  def _SetupFixture(self):
+    """Initialize the communication with the fixture."""
+    try:
+      self.chamber.Connect()
+    except Exception as e:
+      self._Log(str(e))
+      self._Log('Failed to initialize the test fixture.')
+      return False
+    self._Log('Test fixture successfully initialized.')
+    return True
+
+  def _SwitchLight(self, light):
+    self.chamber.SetLight(light)
+    self._Log("Switched to lightning %s." % light)
+    time.sleep(self.params['conf']['light_delay'])
+
+  def _SwitchToNextLight(self):
+    self.light_index += 1
+    if self.light_index >= len(self.params['conf']['luxs']):
+      return False
+    self._SwitchLight(self.params['conf']['light_seq'][self.light_index])
+    return True
+
+  def _UpdateTestProgress(self, test_stage):
+    """Updates UI to show the test progress.
+
+    Args:
+      test_stage: Current test stage.
+    """
+    msg = MSG_TEST_STATUS[test_stage]
+    self._ShowTestStatus(msg)
+    self._ShowProgressBar(self.timing[test_stage])
+
+  def _UploadALSCalibData(self, test_passed, result):
+    """Upload ALS calibration data to shopfloor.
+
+    Args:
+      test_passed: whether the ALS test has passed the criteria.
+    """
+    if test_passed:
+      shopfloor_client = shopfloor.GetShopfloorConnection()
+      shopfloor_client.SaveAuxLog(
+          os.path.join('als', '%s.als' % self.module_sn),
+          str(result))
 
   def runTest(self):
-    self.ui.RunInBackgroud(self._RunDeligateTest)
+    self.ui.RunInBackground(self._RunTest)
     self.ui.Run()
 
-  def _RunDeligateTest(self):
+  def _RunTest(self):
     """Main routine for ALS test."""
-    delegate = _TestDelegate(
-        delegator=self,
-        mock_mode=self.args.mock_mode,
-        chamber=self.chamber,
-        control_chamber=self.args.control_chamber,
-        chamber_n_retries=self.args.chamber_n_retries,
-        chamber_retry_delay=self.args.chamber_retry_delay,
-        data_method=self.DATA_METHODS[self.args.data_method],
-        local_ip=self.args.local_ip,
-        param_pathname=self.args.param_pathname,
-        param_dict=self.args.param_dict)
-
     self.ui.CallJSFunction('InitForTest', self.args.data_method,
                            self.args.control_chamber)
 
     self.ui.CallJSFunction('UpdateTextLabel', MSG_TITLE_ALS_TEST,
                            ID_MAIN_SCREEN_TITLE)
 
-    delegate.LoadParamsAndShowTestScreen()
+    self._ShowTestScreen()
 
     if self.args.assume_chamber_connected:
       self.ui.CallJSFunction('UpdateFixtureStatus', True)
 
-    if self.args.auto_mode and delegate.params['sn']['auto_read']:
-      self.PostInternalQueue(EventType.START_TEST)
+    if self.args.auto_mode and self.params['sn']['auto_read']:
+      self._PostInternalQueue(EventType.START_TEST)
 
     # Loop to repeat the test until user chooses 'Exit Test'.  For module-level
     # testing, it may test thousands of DUTs without leaving the test. The test
     # passes or fails depending on the last test result.
     success, fail_cause = False, None
     while True:
-      event = self.PopInternalQueue(wait=True)
+      event = self._PopInternalQueue(wait=True)
       if event.event_type == EventType.START_TEST:
         with leds.Blinker(LED_PATTERN):
           input_sn = ''
           if event.aux_data is not None:
             input_sn = event.aux_data.data.get('input_sn', '')
 
-          # pylint: disable=unpacking-non-sequence
-          success, fail_cause = delegate.RunTest(input_sn)
+          if self.args.assume_chamber_connected:
+            self._SetupFixture()
+
+          success, fail_cause = self._ALSTest(input_sn)
+
+          if self.args.auto_mode:
+            self._PostInternalQueue(EventType.EXIT_TEST)
 
         if success:
-          self.ShowTestStatus(i18n.NoTranslation('ALS: PASS'), style=STYLE_PASS)
+          self._ShowTestStatus(i18n.NoTranslation('ALS: PASS'),
+                               style=STYLE_PASS)
         else:
-          self.ShowTestStatus(i18n.NoTranslation('ALS: FAIL %r' % fail_cause),
-                              style=STYLE_FAIL)
+          self._ShowTestStatus(i18n.NoTranslation('ALS: FAIL %r' % fail_cause),
+                               style=STYLE_FAIL)
       elif event.event_type == EventType.EXIT_TEST:
         if success:
           self.ui.Pass()
@@ -805,12 +754,14 @@ class ALSFixture(unittest.TestCase):
       elif event.event_type == EventType.VALIDATE_SN:
         if event.aux_data is not None:
           input_sn = event.aux_data.data.get('input_sn', '')
-          self.ui.CallJSFunction('UpdateStartTestButtonStatus',
-                                 self.camera_dev.IsValidSerialNumber(input_sn))
+          if not self.params['sn']['auto_read']:
+            self.ui.CallJSFunction(
+                'UpdateStartTestButtonStatus',
+                self.camera_dev.IsValidSerialNumber(input_sn))
       else:
         raise ValueError('Invalid event type.')
 
-  def PostInternalQueue(self, event_type, aux_data=None):
+  def _PostInternalQueue(self, event_type, aux_data=None):
     """Posts an event to internal queue.
 
     Args:
@@ -819,7 +770,7 @@ class ALSFixture(unittest.TestCase):
     """
     self.internal_queue.put(InternalEvent(event_type, aux_data))
 
-  def PopInternalQueue(self, wait):
+  def _PopInternalQueue(self, wait):
     """Pops an event from internal queue.
 
     Args:
@@ -837,7 +788,7 @@ class ALSFixture(unittest.TestCase):
       except Queue.Empty:
         return None
 
-  def ShowTestStatus(self, msg, style=STYLE_INFO):
+  def _ShowTestStatus(self, msg, style=STYLE_INFO):
     """Shows test status.
 
     Args:
@@ -847,7 +798,7 @@ class ALSFixture(unittest.TestCase):
     label = i18n_test_ui.MakeI18nLabelWithClass(msg, style)
     self.ui.CallJSFunction('UpdateTextLabel', label, ID_TEST_STATUS)
 
-  def ShowProgressBar(self, completion_ratio):
+  def _ShowProgressBar(self, completion_ratio):
     """Update the progress bar.
 
     Args:

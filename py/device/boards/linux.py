@@ -9,8 +9,9 @@
 # Assume most linux devices will be running POSIX os.
 import posixpath
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import accelerometer
+from cros.factory.device import ambient_light_sensor
 from cros.factory.device.audio import utils as audio_utils
 from cros.factory.device.board import DeviceBoard
 from cros.factory.device import camera
@@ -44,6 +45,10 @@ class LinuxBoard(DeviceBoard):
   @DeviceProperty
   def accelerometer(self):
     return accelerometer.Accelerometer(self)
+
+  @DeviceProperty
+  def ambient_light_sensor(self):
+    return ambient_light_sensor.AmbientLightSensor(self)
 
   @DeviceProperty
   def audio(self):
