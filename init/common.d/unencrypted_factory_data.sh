@@ -13,10 +13,10 @@
 # reasonable to redirect factory data (/var/factory) to the unencrypted path on
 # stateful parition.
 
-ROOT="/mnt/stateful_partition"
+STATEFUL="/mnt/stateful_partition"
 
 main() {
-  local overlay="${ROOT}/var_overlay/factory"
+  local overlay="${STATEFUL}/var/factory"
   local dest="/var/factory"
 
   if [ ! -e /dev/mapper/encstateful ]; then
