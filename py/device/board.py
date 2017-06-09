@@ -263,7 +263,11 @@ class DeviceBoard(object):
     """
     if self.link.IsLocal():
       with open(path, 'rb') as f:
-        f.seek(skip or 0)
+        if skip:
+          try:
+            f.seek(skip)
+          except IOError:
+            f.read(skip)
         return f.read() if count is None else f.read(count)
 
     args = ['dd', 'bs=1', 'if=%s' % path]
