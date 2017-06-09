@@ -5,31 +5,47 @@
 """Applies new kernel to DUT (for testing)."""
 
 import os
-import tempfile
-import threading
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.device import device_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.test.utils import deploy_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+
 
 _TEST_TITLE = i18n_test_ui.MakeI18nLabel('Update Kernel')
 _CSS = '#state {text-align:left;}'
+_DEVKEY = 'b11d74edd286c144e1135b49e7f0bc20cf041f10'
 
 
 class UpdateFirmwareTest(unittest.TestCase):
   ARGS = [
       # TODO(hungte) Support compressed image, or download from Omaha.
       Arg('kernel_image', str, 'Full path of kernel.bin',
-          default='/usr/local/factory/board/kernel.bin'),
+          optional=True),
+      Arg('kernel_config', str,
+          'Path to a file containing kernel command line.',
+          optional=True),
+      Arg('to_release', bool,
+          'Set to True to update on release partition, '
+          'otherwise update on test partition.',
+          default=False)
   ]
 
   def setUp(self):
-    self.assertTrue(os.path.isfile(self.args.kernel_image),
-                    msg='%s is missing.' % self.args.kernel_image)
+    self._dut = device_utils.CreateDUTInterface()
+    if self.args.kernel_image is not None:
+      self.assertTrue(os.path.isfile(self.args.kernel_image),
+                      msg='%s is missing.' % self.args.kernel_image)
+    if self.args.kernel_config is not None:
+      self.assertTrue(os.path.isfile(self.args.kernel_config),
+                      msg='%s is missing.' % self.args.kernel_config)
+
     self._ui = test_ui.UI()
     self._template = ui_templates.OneScrollableSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
@@ -40,30 +56,42 @@ class UpdateFirmwareTest(unittest.TestCase):
 
     Gets current kernel config, re-sign by make_dev_ssd, then write into system.
     """
-    rootdev = process_utils.CheckOutput(["rootdev", "-s"]).strip()
-    if rootdev.endswith('3'):
-      kerndev = rootdev[:-1] + '2'
-    elif rootdev.endswith('5'):
-      kerndev = rootdev[:-1] + '4'
-    else:
-      self._ui.Fail('Unable to determine kernel location (%s)' % rootdev)
-      return
-    kernel_id = kerndev[-1:]
+    if self.args.to_release:
+      # verify release partition is in dev channel
+      factory_tool = deploy_utils.CreateFactoryTools(self._dut)
+      factory_tool.CheckCall(['gooftool', 'verify_release_channel',
+                              '--enforced_release_channels', 'dev'])
+      # verify firmware is dev key
+      with self._dut.temp.TempFile() as temp_file:
+        self._dut.CheckCall(['flashrom', '-r', temp_file, '-i', 'GBB', '-i',
+                             'FMAP'])
+        key_info = factory_tool.CheckOutput(['gooftool', 'get_firmware_hash',
+                                             '--file', temp_file])
+        self.assertIn(_DEVKEY, key_info)
 
-    kernel_config = process_utils.CheckOutput(["dump_kernel_config", kerndev])
-    # Directly write into kernel partition.
-    with open(kerndev, 'wb') as f:
-      f.write(open(self.args.kernel_image).read())
+    if self.args.to_release:
+      kerndev = self._dut.partitions.RELEASE_KERNEL
+    else:
+      kerndev = self._dut.partitions.FACTORY_KERNEL
+    kernel_id = str(kerndev.index)
+
+    if self.args.kernel_config is None:
+      kernel_config = process_utils.CheckOutput(
+          ["dump_kernel_config", kerndev.path])
+    else:
+      kernel_config = file_utils.ReadFile(self.args.kernel_config)
+
+    if self.args.kernel_image is not None:
+      # Directly write into kernel partition.
+      with open(self.args.kernel_image, 'r') as f:
+        self._dut.WriteSpecialFile(kerndev.path, f.read())
 
     config_suffix = ".%s" % kernel_id
-    with tempfile.NamedTemporaryFile(suffix=config_suffix) as config:
-      config.write(kernel_config)
-      config.flush()
+    with self._dut.temp.TempFile(suffix=config_suffix) as config_file:
+      self._dut.WriteFile(config_file, kernel_config)
       process_utils.LogAndCheckCall([
           "/usr/share/vboot/bin/make_dev_ssd.sh", "--partitions", kernel_id,
-          "--set_config", config.name[:-len(config_suffix)]])
-    self._ui.Pass()
+          "--set_config", config_file[:-len(config_suffix)]])
 
   def runTest(self):
-    threading.Thread(target=self.UpdateKernel).start()
-    self._ui.Run()
+    self.UpdateKernel()

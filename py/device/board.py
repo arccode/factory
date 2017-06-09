@@ -296,6 +296,26 @@ class DeviceBoard(object):
         f.write(content)
       self.link.Push(temp_path, path)
 
+  def WriteSpecialFile(self, path, content):
+    """Writes some content into a special file on DUT.
+
+    Args:
+      path: A string for file path on DUT.
+      content: A string to be written into file.
+    """
+    # If the link is local, we just open file and write content.
+    if self.link.IsLocal():
+      with open(path, 'w') as f:
+        f.write(content)
+      return
+
+    with file_utils.UnopenedTemporaryFile() as local_temp:
+      with open(local_temp, 'w') as f:
+        f.write(content)
+      with self.temp.TempFile() as remote_temp:
+        self.link.Push(local_temp, remote_temp)
+        self.CheckOutput(['dd', 'if=%s' % remote_temp, 'of=%s' % path])
+
   def SendDirectory(self, local, remote):
     """Copies a local file to DUT.
 
