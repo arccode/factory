@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-06-07 16:48+CST\n"
+"POT-Creation-Date: 2017-06-10 13:18+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -1218,8 +1218,7 @@ msgstr "将机器朝向{direction}方"
 
 #: ../py/test/pytests/countdown.py ../py/test/pytests/wifi_rf.py
 #: ../py/test/test_lists/firmware_stress_generic.py
-#: ../py/test/test_lists/generic_rrt.py
-#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
 #: ../py/test/test_lists/generic_smt.py
 msgid "Countdown"
 msgstr "倒数计时"
@@ -2233,12 +2232,11 @@ msgstr "RESTARTING 测试结束，正在重设测试列表..."
 
 #: ../py/test/pytests/stylus.py
 msgid ""
-"Please extend the green line with stylus to the other end.<br>"
-"Stay between the two red lines.<br>"
-"Press SPACE to start; Esc to fail."
+"Please extend the green line with stylus to the other end.<br>Stay between "
+"the two red lines.<br>Press SPACE to start; Esc to fail."
 msgstr ""
-"请使用触控笔将绿色线段延伸至另一头，<br>不要超出红线区域。<br>"
-"按空白键开始测试; Esc 键标记失败"
+"请使用触控笔将绿色线段延伸至另一头，<br>不要超出红线区域。<br>按空白键开始测"
+"试; Esc 键标记失败"
 
 #: ../py/test/pytests/summary/summary.py
 msgid "Click or press SPACE to continue"
@@ -2730,20 +2728,17 @@ msgstr "检查关卡{suffix}"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
 #: ../py/test/test_lists/generic_fatp.py
-#: ../py/test/test_lists/generic_run_in.py
-#: ../py/test/test_lists/generic_smt.py
+#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
 msgid "Start"
 msgstr "开始"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
-#: ../py/test/test_lists/generic_run_in.py
-#: ../py/test/test_lists/generic_smt.py
+#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
 msgid "Bad Blocks"
 msgstr "毁损扇区"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
-#: ../py/test/test_lists/generic_rrt.py
-#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
 msgid "Graphics"
 msgstr "图像"
 
@@ -2754,40 +2749,34 @@ msgid "Camera"
 msgstr "相机"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
-#: ../py/test/test_lists/generic_rrt.py
-#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
 #: ../py/test/test_lists/generic_smt.py
 msgid "Stress App Test"
 msgstr "压力测试"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
-#: ../py/test/test_lists/generic_rrt.py
-#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
 msgid "Run-In Tests"
 msgstr "烧机测试"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
-#: ../py/test/test_lists/generic_rrt.py
-#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
 msgid "Dozing Stress"
 msgstr "睡眠内存压力测试"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
-#: ../py/test/test_lists/generic_rrt.py
-#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
 msgid "SuspendResume ({count} times)"
 msgstr "睡眠、唤醒 ({count} 次)"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
-#: ../py/test/test_lists/generic_rrt.py
-#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
 msgid "Dozing Stress Tests"
 msgstr "睡眠内存压力测试"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
 #: ../py/test/test_lists/generic_experiment.py
-#: ../py/test/test_lists/generic_rrt.py
-#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
 msgid "Reboot ({count} times)"
 msgstr "重新开机 ({count} 次)"
 
@@ -2798,8 +2787,7 @@ msgstr "充电"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
 #: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_grt.py
-#: ../py/test/test_lists/generic_run_in.py
-#: ../py/test/test_lists/generic_smt.py
+#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
 msgid "Finish"
 msgstr "结束"
 
@@ -2814,8 +2802,7 @@ msgstr "音效诊断"
 
 #: ../py/test/test_lists/generic_experiment.py
 #: ../py/test/test_lists/generic_fatp.py
-#: ../py/test/test_lists/generic_run_in.py
-#: ../py/test/test_lists/generic_smt.py
+#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
 msgid "Reboot"
 msgstr "重新开机"
 
@@ -3027,8 +3014,7 @@ msgid ""
 "FATP tests finished. Press SPACE to run GRT,<br>or switch test list to RRT."
 msgstr "FATP 测试结束，按下空白键执行最终程序,<br>或切换测试列表到RRT."
 
-#: ../py/test/test_lists/generic_grt.py
-#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_grt.py ../py/test/test_lists/generic_run_in.py
 #: ../py/test/test_lists/generic_smt.py
 msgid "Verify Root Partition"
 msgstr "验证根磁区"
@@ -3037,18 +3023,15 @@ msgstr "验证根磁区"
 msgid "ShopFloor"
 msgstr "ShopFloor"
 
-#: ../py/test/test_lists/generic_grt.py
-#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_grt.py ../py/test/test_lists/generic_run_in.py
 msgid "Scan Serial Number"
 msgstr "扫描机器编号"
 
-#: ../py/test/test_lists/generic_grt.py
-#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_grt.py ../py/test/test_lists/generic_run_in.py
 msgid "Device Serial Number"
 msgstr "机器编号"
 
-#: ../py/test/test_lists/generic_grt.py
-#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_grt.py ../py/test/test_lists/generic_run_in.py
 msgid "Write HWID"
 msgstr "硬体代号"
 
@@ -3056,8 +3039,7 @@ msgstr "硬体代号"
 msgid "Check SIM Card Not Present"
 msgstr "检查 SIM 卡不存在"
 
-#: ../py/test/test_lists/generic_grt.py
-#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_grt.py ../py/test/test_lists/generic_run_in.py
 msgid "Probe LTE IMEI ICCID"
 msgstr "提取 LTE IMEI ICCID"
 
@@ -3187,8 +3169,7 @@ msgstr "验证 TPM"
 msgid "verify TPM command"
 msgstr "验证 TPM"
 
-#: ../py/test/test_lists/generic_rrt.py
-#: ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
 msgid "Stress"
 msgstr "集合压力测试"
 
@@ -3216,8 +3197,7 @@ msgstr "不支援"
 msgid "This test list does not support station mode."
 msgstr "本测试清单不支援测站模式"
 
-#: ../py/test/test_lists/generic_run_in.py
-#: ../py/test/test_lists/generic_smt.py
+#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
 msgid "Charger Type Detection"
 msgstr "充电器型号识别"
 
@@ -3225,8 +3205,7 @@ msgstr "充电器型号识别"
 msgid "Image Update"
 msgstr "映像更新"
 
-#: ../py/test/test_lists/generic_run_in.py
-#: ../py/test/test_lists/generic_smt.py
+#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
 msgid "Write Device Data To VPD"
 msgstr "机器资料写入到 VPD"
 
@@ -3234,13 +3213,11 @@ msgstr "机器资料写入到 VPD"
 msgid "Check Version"
 msgstr "检查版本"
 
-#: ../py/test/test_lists/generic_run_in.py
-#: ../py/test/test_lists/generic_smt.py
+#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
 msgid "Firmware Update"
 msgstr "韧体更新"
 
-#: ../py/test/test_lists/generic_run_in.py
-#: ../py/test/test_lists/generic_smt.py
+#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
 msgid "Read Device Data From VPD"
 msgstr "从 VPD 读机器资料"
 
@@ -3304,8 +3281,7 @@ msgstr "映像更新 ControlRun"
 msgid "Probe SIM Card Tray Not Present"
 msgstr "SIM 卡卡盘不存在"
 
-#: ../py/test/test_lists/generic_run_in.py
-#: ../py/test/test_lists/generic_smt.py
+#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
 msgid "Thermal Sensor"
 msgstr "温度感应器"
 
