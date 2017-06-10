@@ -377,11 +377,12 @@ class TestListIterator(object):
     if not self.CheckRunIf(test):
       logging.info('test %s is skipped because run_if evaluated to False',
                    test.path)
-      test.UpdateState(skip=True)
+      test.Skip()
       return True  # we need to skip it
     elif test.IsSkipped():
       # this test was skipped before, but now we might need to run it
-      test.UpdateState(status=factory.TestState.UNTESTED, error_msg='')
+      test.UpdateState(status=factory.TestState.UNTESTED, error_msg='',
+                       skip=False)
       # check again (for status filter)
       return self.CheckSkip(test)
     return False

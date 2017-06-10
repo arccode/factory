@@ -1009,9 +1009,6 @@ class FactoryTest(object):
     Subtests that have passed are not modified.  If any subtests were
     skipped, this node (if not a leaf node) is marked as skipped as well.
     """
-    # Modifies run_if argument of this test so it will not be enabled again
-    # when its run_if is evaluated.
-    self.DisableByRunIf()
     skipped_tests = []
     for test in self.Walk():
       if not test.subtests and test.GetState().status != TestState.PASSED:
@@ -1028,9 +1025,10 @@ class FactoryTest(object):
 
   def IsSkipped(self):
     """Returns True if this test was skipped."""
+    # TODO(stimim): state.skip should be replaced by a test status SKIPPED.
+    # We should stop using status=PASSED, msg=SKIPPED_MSG.
     state = self.GetState()
-    return (state.status == TestState.PASSED and
-            state.error_msg == TestState.SKIPPED_MSG)
+    return state.skip
 
   def GetNextSibling(self):
     return self.next_sibling
