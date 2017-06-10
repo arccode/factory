@@ -187,9 +187,20 @@ class RadiotapPacket(object):
       FIELD('dB Antenna Signal', struct.Struct('B'), 0),
       FIELD('dB Antenna Noise', struct.Struct('B'), 0),
       FIELD('RX Flags', struct.Struct('H'), 2),
+      FIELD('TX Flags', struct.Struct('H'), 2),
+      FIELD('RTS Retries', struct.Struct('B'), 0),
+      FIELD('Data Retries', struct.Struct('B'), 0),
+      None,
       FIELD('MCS', struct.Struct('BBB'), 1),
       FIELD('AMPDU status', struct.Struct('IHBB'), 4),
-      FIELD('VHT', struct.Struct('HBBBBBBBBH'), 2)]
+      FIELD('VHT', struct.Struct('HBBBBBBBBH'), 2),
+      FIELD('Timestamp', struct.Struct('QHBB'), 8),
+      None,
+      None,
+      None,
+      None,
+      None,
+      None]
   MAIN_HEADER_FORMAT = struct.Struct('BBhI')
   PARSE_INFO = collections.namedtuple('AntennaData', ['header_size',
                                                       'data_bytes',
@@ -240,6 +251,10 @@ class RadiotapPacket(object):
       antenna_offsets.append({})
       for bit, field in enumerate(RadiotapPacket.FIELDS):
         if bitmask & (1 << bit):
+          if field is None:
+            logging.warning('Unknown field at bit %d is given in radiotap '
+                            'packet, the result would probably be wrong...')
+            continue
           if field.align and (data_bytes % field.align):
             data_bytes += field.align - (data_bytes % field.align)
           if (field == RadiotapPacket.ANTENNA_SIGNAL_FIELD or
