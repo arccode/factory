@@ -1,0 +1,14 @@
+{
+  "hwid": {
+    "version": "hwid_v2",
+    "file": "hwid.d41d8cd98f00b204e9800998ecf8427e.gz"
+  },
+  "firmware": {
+    "version": "firmware_v2",
+    "file": "./firmware.d41d8cd98f00b204e9800998ecf8427e.gz"
+  },
+  "toolkit": {
+    "version": "toolkit_v2",
+    "file": "toolkit.067f0398c038261d7f4ab9706850c280.gz"
+  }
+}

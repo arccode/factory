@@ -1,0 +1,10 @@
+{
+  "complete": {
+    "version": "c6a844fb8dc80669a9318d65f353065c",
+    "file": "complete.d99607cf791a4be648ec1f9469af47a7.gz"
+  },
+  "toolkit": {
+    "version": "I'm a fake installer!",
+    "file": "toolkit.067f0398c038261d7f4ab9706850c280.gz"
+  }
+}
