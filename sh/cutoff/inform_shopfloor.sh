@@ -36,9 +36,7 @@ usage_help() {
 }
 
 post_to_shopfloor() {
-  # umpire server doesn't accept URL in "http://<shopfloor>/" format,
-  # we have to remove trailing "/"
-  local shopfloor_url="${1%/}"
+  local shopfloor_url="$1"
   local post_file="$2"
   local response=""
 

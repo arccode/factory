@@ -102,7 +102,7 @@ http {
 """
 
 NGINX_PROXY_TEMPLATE = """
-location %(prefix)s {
+location %(location_rule)s {
   proxy_pass http://localhost:%(port)d;
   proxy_set_header Host $http_host;
 }
@@ -194,6 +194,7 @@ class HTTPService(umpire_service.UmpireService):
     # python xmlrpclib calls http://host/RPC2 for ServerProxy('http://host')
     umpire_proxy_handlers.append((ROOT_RPC_PREFIX, env.umpire_rpc_port))
     umpire_proxy_handlers.append((UMPIRE_RPC_PREFIX, env.umpire_rpc_port))
+    umpire_proxy_handlers.append(('= /', env.umpire_rpc_port))
     # Web applications
     umpire_proxy_handlers.append(
         (RESOURCEMAP_APP_PREFIX, env.umpire_webapp_port))
@@ -212,8 +213,11 @@ class HTTPService(umpire_service.UmpireService):
       umpire_proxy_handlers.append((match_path, port))
 
     config_proxies_str = [
-        NGINX_PROXY_TEMPLATE % {'prefix': prefix, 'port': port}
-        for prefix, port in umpire_proxy_handlers]
+        NGINX_PROXY_TEMPLATE % {
+            'location_rule': location_rule,
+            'port': port
+        } for location_rule, port in umpire_proxy_handlers
+    ]
 
     reverse_proxy_ips = []
     reverse_proxies_str = []

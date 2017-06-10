@@ -213,6 +213,10 @@ class UmpireRPCTest(UmpireDockerTestCase):
   def testListMethods(self):
     self.assertIn('GetStatus', self.proxy.system.listMethods())
 
+  def testEndingSlashInProxyAddress(self):
+    proxy = xmlrpclib.ServerProxy(RPC_ADDR_BASE + '/')
+    self.assertIn('GetStatus', proxy.system.listMethods())
+
   def testGetStatus(self):
     status = self.proxy.GetStatus()
     self.assertIn('active_config', status)
@@ -456,6 +460,10 @@ class RPCDUTTest(UmpireDockerTestCase):
   def testPing(self):
     version = self.proxy.Ping()
     self.assertEqual({'version': 3}, version)
+
+  def testEndingSlashInProxyAddress(self):
+    proxy = xmlrpclib.ServerProxy(ADDR_BASE + '/')
+    self.assertEqual({'version': 3}, proxy.Ping())
 
   def testGetTime(self):
     t = self.proxy.GetTime()
