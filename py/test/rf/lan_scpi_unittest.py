@@ -19,6 +19,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.rf import lan_scpi
 from cros.factory.utils import net_utils
+from cros.factory.utils import type_utils
 
 
 class MockTestServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
@@ -90,7 +91,8 @@ class LanScpiTest(unittest.TestCase):
   def _StartTest(self):
     self.mock_server, self.server_port = self._StartMockServer()
     self.lan_scpi = lan_scpi.LANSCPI(
-        host=net_utils.LOCALHOST, port=self.server_port, timeout=1, delay=0)
+        host=net_utils.LOCALHOST, port=self.server_port, timeout=1, delay=0,
+        in_main_thread=True)
 
   def testBasicConnect(self):
     self._StartTest()
@@ -141,7 +143,7 @@ class LanScpiTest(unittest.TestCase):
     MockServerHandler.AddLookup('SYST:ERR?', None)
 
     self._StartTest()
-    self.assertRaisesRegexp(lan_scpi.TimeoutError, 'Timeout',
+    self.assertRaisesRegexp(type_utils.TimeoutError, 'Timeout',
                             self.lan_scpi.Query, TEST_COMMAND)
 
   def setUp(self):

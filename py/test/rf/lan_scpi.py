@@ -5,15 +5,15 @@
 
 """SCPI-over-TCP controller."""
 
-
-import contextlib
 import logging
 import math
 import re
-import signal
 import socket
 import struct
 import time
+
+import factory_common  # pylint: disable=unused-import
+from cros.factory.utils import sync_utils
 
 
 class Error(Exception):
@@ -42,38 +42,21 @@ def _TruncateForLogging(msg):
   return msg
 
 
-@contextlib.contextmanager
-def Timeout(secs):
-  def handler(signum, frame):
-    del signum, frame  # Unused.
-    raise TimeoutError('Timeout')
-
-  if secs:
-    if signal.alarm(secs):
-      raise Error('Alarm was already set')
-
-  signal.signal(signal.SIGALRM, handler)
-
-  try:
-    yield
-  finally:
-    if secs:
-      signal.alarm(0)
-      signal.signal(signal.SIGALRM, lambda signum, frame: None)
-
-
 class LANSCPI(object):
   """A SCPI-over-TCP controller."""
 
-  def __init__(self, host, port=5025, timeout=3, retries=5, delay=1):
+  def __init__(self, host, port=5025, timeout=3, retries=5, delay=1,
+               in_main_thread=False):
     """Connects to a device using SCPI-over-TCP.
 
     Parameters:
       host: Host to connect to.
       port: Port to connect to.
-      timeout: Timeout in seconds.  (Uses the ALRM signal.)
+      timeout: Timeout in seconds.
       retries: maximum attemptis to connect to the host.
       delay: Delay in seconds before issuing the first command.
+      in_main_thread: boolean to indicate whether the instance is executed in
+                      the main thread. If so, then we use signal to for Timeout.
     """
     self.timeout = timeout
     self.delay = delay
@@ -84,6 +67,7 @@ class LANSCPI(object):
     self.wfile = None
     self.socket = None
     self.id = None
+    self.timeout_use_signal = in_main_thread
 
     for times in range(1, retries + 1):
       try:
@@ -102,7 +86,7 @@ class LANSCPI(object):
   def _Connect(self):
     self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    with Timeout(self.timeout):
+    with sync_utils.Timeout(self.timeout, self.timeout_use_signal):
       self.logger.debug('] Connecting to %s:%d...', self.host, self.port)
       self.socket.connect((self.host, self.port))
 
@@ -245,7 +229,7 @@ class LANSCPI(object):
   def _ReadLine(self):
     """Reads a single line, timing out in self.timeout seconds."""
 
-    with Timeout(self.timeout):
+    with sync_utils.Timeout(self.timeout, self.timeout_use_signal):
       if not self.timeout:
         self.logger.debug('[ (waiting)')
       ch = self.rfile.read(1)
@@ -288,7 +272,7 @@ class LANSCPI(object):
 
   def _ReadBinary(self, expected_length):
     """Reads a binary of fixed bytes."""
-    with Timeout(self.timeout):
+    with sync_utils.Timeout(self.timeout, self.timeout_use_signal):
       if not self.timeout:
         self.logger.debug('[ (waiting)')
       ret = self.rfile.read(expected_length)
