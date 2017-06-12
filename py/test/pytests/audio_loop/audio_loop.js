@@ -26,6 +26,7 @@ var testInProgress = function(success_rate) {
 
 var testFailResult = function(success_rate) {
   var msgs = document.getElementById('message');
+  var _ = cros.factory.i18n.translation;
   msgs.innerHTML = '';
   msgs.appendChild(
       cros.factory.i18n.i18nLabelNode(cros.factory.i18n.stringFormat(
