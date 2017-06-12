@@ -31,8 +31,8 @@ from cros.factory.device import status
 from cros.factory.device import storage
 from cros.factory.device import temp
 from cros.factory.device import thermal
+from cros.factory.device import touch
 from cros.factory.device import toybox
-from cros.factory.device import touchscreen
 from cros.factory.device import udev
 from cros.factory.device import usb_c
 from cros.factory.device import wifi
@@ -144,8 +144,8 @@ class LinuxBoard(DeviceBoard):
     return thermal.Thermal(self)
 
   @DeviceProperty
-  def touchscreen(self):
-    return touchscreen.Touchscreen(self)
+  def touch(self):
+    return touch.Touch(self)
 
   @DeviceProperty
   def toybox(self):

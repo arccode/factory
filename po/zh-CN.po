@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-06-10 13:18+CST\n"
+"POT-Creation-Date: 2017-06-13 12:59+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -470,13 +470,13 @@ msgstr "校准程序进行中，请勿移动待测物。"
 
 #: ../py/test/pytests/accelerometers_calibration.py
 #: ../py/test/pytests/gyroscope.py ../py/test/pytests/sensor_movement.py
-#: ../py/test/pytests/touchscreen_uniformity.py
+#: ../py/test/pytests/touch_uniformity.py
 msgid "PASS"
 msgstr "成功"
 
 #: ../py/test/pytests/accelerometers_calibration.py
 #: ../py/test/pytests/gyroscope.py ../py/test/pytests/sensor_movement.py
-#: ../py/test/pytests/touchscreen_uniformity.py
+#: ../py/test/pytests/touch_uniformity.py
 msgid "FAIL"
 msgstr "失败"
 
@@ -2288,6 +2288,18 @@ msgid ""
 "90-degree angle."
 msgstr "竖立平板电脑使其垂直于桌面，并开始旋转到对齐图片。"
 
+#: ../py/test/pytests/touch_uniformity.py
+msgid "Calibrating Touch device"
+msgstr "触控装置校正中"
+
+#: ../py/test/pytests/touch_uniformity.py
+msgid "ERROR: Touch device Not Found"
+msgstr "没有找到触控装置"
+
+#: ../py/test/pytests/touch_uniformity.py
+msgid "Testing... "
+msgstr "测试中... "
+
 #: ../py/test/pytests/touchpad.py
 msgid "Please take off your fingers and then press SPACE to start testing..."
 msgstr "请先将手指远离触控版後按 空白键 开始测试..."
@@ -2465,22 +2477,6 @@ msgstr "请先输入序号"
 msgid ""
 "Press Space to display and use one finger to touch each sector; Esc to fail."
 msgstr "按空白键显示并用一个手指触摸每区; 按Esc键失败。"
-
-#: ../py/test/pytests/touchscreen_uniformity.py
-msgid "Calibrating Touchscreen"
-msgstr "触屏校正中"
-
-#: ../py/test/pytests/touchscreen_uniformity.py
-msgid "ERROR: Touchscreen Not Found"
-msgstr "没有找到触屏"
-
-#: ../py/test/pytests/touchscreen_uniformity.py
-msgid "Testing References"
-msgstr "参考值测试中"
-
-#: ../py/test/pytests/touchscreen_uniformity.py
-msgid "Testing Deltas"
-msgstr "差量测试中"
 
 #: ../py/test/pytests/touchscreen_wrap_static/touchscreen_wrap.js
 msgid "Draw blocks from upper-left corner in sequence; Esc to fail."

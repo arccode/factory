@@ -200,8 +200,8 @@ class DeviceBoard(object):
     raise NotImplementedError
 
   @DeviceProperty
-  def touchscreen(self):
-    """Module for touchscreen."""
+  def touch(self):
+    """Module for touch."""
     raise NotImplementedError
 
   @DeviceProperty
