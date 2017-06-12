@@ -8,6 +8,7 @@
 import logging
 import os
 import re
+import subprocess
 import threading
 import time
 import uuid
@@ -54,11 +55,6 @@ SEQUENCE_PATH = os.path.join(RUN_DIR, "event_log_seq")
 EVENTS_PATH = os.path.join(EVENT_LOG_DIR, "events")
 
 BOOT_SEQUENCE_PATH = os.path.join(EVENT_LOG_DIR, ".boot_sequence")
-
-WLAN0_MAC_PATH = '/sys/class/net/wlan0/address'
-MLAN0_MAC_PATH = '/sys/class/net/mlan0/address'
-# TODO(kitching): Add CPUID for Intel devices?
-DEVICE_ID_SEARCH_PATHS = [WLAN0_MAC_PATH, MLAN0_MAC_PATH]
 
 # Cache the DEVICE_ID and REIMAGE_ID after being read from disk or
 # after being generated (if they do not yet exist).
@@ -255,45 +251,19 @@ def SetGlobalLoggerDefaultPrefix(prefix):
 def GetDeviceId():
   """Returns the device ID.
 
-  The device ID is created and stored when this function is first called
-  on a device after imaging/reimaging. The result is stored in
-  DEVICE_ID_PATH and is used for all future references. If DEVICE_ID_PATH
-  does not exist, it is obtained from the first successful read from
-  DEVICE_ID_SEARCH_PATHS. If none is available, the ID is generated.
-
-  Note that ideally a device ID does not change for one "device". However,
-  in the case that the read result from DEVICE_ID_SEARCH_PATHS changed (e.g.
-  caused by firmware update, change of components) AND the device is reimaged,
-  the device ID will change.
+  The device ID is created and stored by init/goofy.d/device/device_id.sh on
+  system startup. We read it and cache it in the global variable _device_id.
   """
   with _event_logger_lock:
     global _device_id  # pylint: disable=global-statement
-    if _device_id:
-      return _device_id
-
-    # Always respect the device ID recorded in DEVICE_ID_PATH first.
-    if os.path.exists(DEVICE_ID_PATH):
-      _device_id = open(DEVICE_ID_PATH).read().strip()
-      if _device_id:
-        return _device_id
-
-    # Find or generate device ID from the search path.
-    for p in DEVICE_ID_SEARCH_PATHS:
-      if os.path.exists(p):
-        _device_id = open(p).read().strip()
-        if _device_id:
-          break
-    else:
-      _device_id = str(uuid.uuid4())
-      logging.warning('No device_id available yet: generated %s', _device_id)
-
-    # Save the device ID to DEVICE_ID_PATH for future reloading.
-    file_utils.TryMakeDirs(os.path.dirname(DEVICE_ID_PATH))
-    with open(DEVICE_ID_PATH, 'w') as f:
-      f.write(_device_id)
-      f.flush()
-      os.fsync(f)
-
+    if _device_id is None:
+      if os.path.exists(DEVICE_ID_PATH):
+        _device_id = file_utils.ReadFile(DEVICE_ID_PATH).strip()
+      else:
+        # The device_id file doesn't exist, we probably are not on DUT, just
+        # run bin/device_id once and return the result.
+        device_id_bin = os.path.join(paths.FACTORY_DIR, 'bin', 'device_id')
+        _device_id = subprocess.check_output(device_id_bin).strip()
     return _device_id
 
 

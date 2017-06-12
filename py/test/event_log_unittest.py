@@ -20,6 +20,7 @@ import time
 import unittest
 import uuid
 
+import mock
 import yaml
 
 import factory_common  # pylint: disable=unused-import
@@ -191,10 +192,15 @@ class EventLogTest(unittest.TestCase):
   def testGetBootId(self):
     assert UUID_RE.match(event_log.GetBootId())
 
-  def testGetDeviceIdGenerateId(self):
-    device_id = event_log.GetDeviceId()
-    assert (MAC_RE.match(device_id) or
-            UUID_RE.match(device_id)), device_id
+  @mock.patch('event_log.file_utils.ReadFile', return_value='device_id\n')
+  @mock.patch('os.path.exists', return_value=True)
+  def testGetDeviceIdGenerateId(self, mock_exists, mock_read_file):
+    event_log._device_id = None  # pylint: disable=protected-access
+    self.assertEqual('device_id', event_log.GetDeviceId())
+    self.assertEqual('device_id', event_log.GetDeviceId())
+    mock_exists.assert_called_with(event_log.DEVICE_ID_PATH)
+    mock_read_file.assert_called_with(event_log.DEVICE_ID_PATH)
+    mock_exists.assert_called_with(event_log.DEVICE_ID_PATH)
 
   def testGetReimageId(self):
     reimage_id = event_log.GetReimageId()
