@@ -230,28 +230,38 @@ have to first setup the server.
 
 #### Using mini-Omaha as factory server
 The mini-Omaha is a python program in `setup/` folder. You have to first prepare
-the payloads for it by command `make_factory_package`:
+the payloads for it by command `make_factory_package.sh`:
 
     ./setup/make_factory_package.sh \
       --board=BOARD \
-      --test=path/to/chromiumos_test_image.bin \
+      --test_image=path/to/chromiumos_test_image.bin \
       --toolkit=path/to/install_factory_toolkit.run \
-      --release=path/to/chromiumos_image.bin \
+      --release_image=path/to/chromiumos_image.bin \
       --hwid=path/to/hwid_bundle.sh
 
     # Start the mini-Omaha server after package is ready.
     ./setup/miniomaha.py
 
+If you have a prepared factory bundle, you can simply extract it and then run
+the script `start_download_server.sh` in it. This will call
+`make_factory_package.sh` and `miniomaha.py` automatically:
+
+    /path/to/factory_bundle_board_20170101_evt/start_download_server.sh
+
 #### Using Dome and Umpire as factory server
-If you want to try the edge-bleeding technology instead of mini-Omaha, fetch and
-install the factory server by `cros_docker.sh` command:
+If you want to try the edge-bleeding technology instead of mini-Omaha, fetch,
+install, and run the factory server by `cros_docker.sh` command:
 
-    ./setup/cros_docker.sh download
-    # Copy the downloaded files to the real machine to deploy server.
+    # Download factory server docker images.
+    ./setup/cros_docker.sh pull
+    # Install factory server docker images.
     ./setup/cros_docker.sh install
+    # Create and start Dome containers.
+    ./setup/cros_docker.sh run
 
-After installed, open a browser to http://localhost:8000, follow the instruction
-to create a board, upload individual files to it or import a prepared bundle.
+After Dome containers started, open a browser to http://localhost:8000, follow
+the instruction to create a board, upload individual files to it or import a
+prepared bundle.
 
 #### Boot from USB
 ![Diagram of Network Install, booted from USB](doc/images/net_inst_usb_boot.png)
@@ -279,9 +289,9 @@ To do that, use `--diskimg` option in `make_factory_package.sh`:
 
     ./setup/make_factory_package.sh --diskimg=disk_image.bin \
       --board=BOARD \
-      --test=path/to/chromiumos_test_image.bin \
+      --test_image=path/to/chromiumos_test_image.bin \
       --toolkit=path/to/install_factory_toolkit.run \
-      --release=path/to/chromiumos_image.bin \
+      --release_image=path/to/chromiumos_image.bin \
       --hwid=path/to/hwid_bundle.sh
 
 You can image directly to a device, or to a .bin file. Available options are:
@@ -303,9 +313,9 @@ To do that, use `--usbimg` option in `make_factory_package.sh`:
     ./make_factory_package.sh --usbimg=usb_image.bin \
       --board=BOARD \
       --factory_shim=path/to/factory_install_shim.bin \
-      --test=path/to/chromiumos_test_image.bin \
+      --test_image=path/to/chromiumos_test_image.bin \
       --toolkit=path/to/install_factory_toolkit.run \
-      --release=path/to/chromiumos_image.bin \
+      --release_image=path/to/chromiumos_image.bin \
       --hwid=path/to/hwid_bundle.sh
 
 Flash the `usb_image.bin` to a USB stick, boot it in with developer switch

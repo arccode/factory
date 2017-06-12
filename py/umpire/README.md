@@ -17,7 +17,6 @@ Data generated (or the resources to be delivered) are stored in
 
 Installation
 ------------
-Currently the recommended approach is using Umpire inside Docker.
 
 1. Setup a x86-64 Linux workstation with [Docker](https://www.docker.com/).
    The recommendation is [Ubuntu 16.04.1](
@@ -77,7 +76,7 @@ command. Example:
     # Update toolkit/hwid in bundle
     setup/cros_docker.sh umpire shell
      umpire update --from 20150702_rev3 --to 20150702_rev3_newtoolkit \
-       factory_toolkit=/mnt/install_factory_toolkit.run
+       toolkit=/mnt/install_factory_toolkit.run
      umpire edit
 
 You should see a new bundle name 20150702_rev3_newtoolkit.  Put it in ruleset
@@ -88,9 +87,9 @@ To update HWID:
     umpire update --from 20150702_rev3 --to 20150702_rev3_newhwid hwid=./hwid.gz
 
 There are also resources:
- - `hwid`: HWID bundle (must be gzipped).
- - `firmware`: The chromeos-firmware script (must be gzipped).
- - `factory_toolkit`: The toolkit file (install_factory_toolkit.run).
+ - `hwid`: HWID bundle (could be gzipped).
+ - `firmware`: The chromeos-firmware script (could be gzipped).
+ - `toolkit`: The toolkit file (install_factory_toolkit.run).
 
 Restarting Umpire
 -----------------
@@ -100,14 +99,14 @@ rebooted unexpectedly. If you want to fully restart umpire, try
 
 Changing Umpire configuration
 -----------------------------
-To configure additional services or to import / upgrade individual resources,
-enter docker and execute `umpire edit` to get additional commands.
+To configure additional services, enter docker and execute `umpire edit` to get
+additional commands.
 
 A sample config looks like:
 
     port: 8080
     rulesets:
-    - bundle_id: empty_init_bundle
+    - bundle_id: empty
       note: n/a
       active: true
     services:
@@ -115,22 +114,11 @@ A sample config looks like:
       shop_floor: {}
       rsync: {}
     bundles:
-    - id: empty_init_bundle
+    - id: empty
       note: n/a
       shop_floor:
-        handler: cros.factory.umpire.samus_shop_floor_handler
-      resources:
-        complete_script: none##00000000
-      device_factory_toolkit: none##00000000
-      efi_partition: none##00000000
-      firmware: none##00000000
-      hwid: none##00000000
-      netboot_kernel: none##00000000
-      oem_partition: none##00000000
-      rootfs_release: none##00000000
-      rootfs_test: none##00000000
-      server_factory_toolkit: none##00000000
-      stateful_partition: none##00000000
+        handler: cros.factory.umpire.board_shop_floor_handler
+      payloads: payload.99914b932bd37a50b983c5e7c90ae93b.json
 
 Currently we encourage using Dome management console instead.
 
