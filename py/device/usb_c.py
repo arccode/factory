@@ -51,8 +51,8 @@ class USBTypeC(component.DeviceComponent):
           re.compile(
               r'Port C(?P<port>\d+): (?P<enabled>enabled|disabled), '
               r'(?P<connected>connected|disconnected)  State:(?P<state>\w+)\n'
-              r'Role:(?P<role>SRC|SNK) (?P<datarole>DFP|UFP) *(?P<vconn>VCONN|), '
-              r'Polarity:(?P<polarity>CC1|CC2)'),
+              r'Role:(?P<role>SRC|SNK) (?P<datarole>DFP|UFP) *(?P<vconn>VCONN|)'
+              r', Polarity:(?P<polarity>CC1|CC2)'),
   }
 
   # USB PD Power info.
@@ -77,7 +77,8 @@ class USBTypeC(component.DeviceComponent):
     Returns:
       A string of the PD firmware version.
     """
-    return (self._dut.CallOutput(['mosys', 'pd', 'info', '-s', 'fw_version']) or '').strip()
+    return (self._dut.CallOutput(['mosys', 'pd', 'info', '-s', 'fw_version']) or
+            '').strip()
 
   def GetPDGPIOValue(self, gpio_name):
     """Gets PD GPIO value.
@@ -154,7 +155,7 @@ class USBTypeC(component.DeviceComponent):
         continue
       match = self.USB_PD_POWER_INFO_RE.match(line)
       if not match:
-        raise self.error('Unable to parse USB Power status from: %s' % line)
+        raise self.Error('Unable to parse USB Power status from: %s' % line)
       status[int(match.group('port'))] = port_status
       port_status['role'] = match.group('role')
       port_status['type'] = match.group('type')
@@ -168,8 +169,8 @@ class USBTypeC(component.DeviceComponent):
 
   def SetHPD(self, port):
     """Manually pulls up DP HPD (Hot Plug Detection) GPIO.
-    This pin is used for detecting plugging of external display. Manually pulls up it can be used
-    for triggering events for testing.
+    This pin is used for detecting plugging of external display. Manually pulls
+    up it can be used for triggering events for testing.
 
     Args:
       port: The USB port number.
@@ -179,8 +180,8 @@ class USBTypeC(component.DeviceComponent):
 
   def ResetHPD(self, port):
     """Manually pulls down DP HPD (Hot Plug Detection) GPIO.
-    This pin is used for detecting plugging of external display. Manually pulls up it can be used
-    for triggering events for testing.
+    This pin is used for detecting plugging of external display. Manually pulls
+    up it can be used for triggering events for testing.
 
     Args:
       port: The USB port number.
@@ -193,11 +194,13 @@ class USBTypeC(component.DeviceComponent):
 
     Args:
       port: The USB port number.
-      function: USB Type-C function, should be one of 'dp', 'usb', 'sink', and 'source'.
+      function: USB Type-C function, should be one of 'dp', 'usb', 'sink', and
+          'source'.
     """
     logging.info('Set USB type-C port %d to %s', port, function)
     if function not in self.PORT_FUNCTION:
-      raise component.DeviceException('unsupported USB Type-C function: %s' % function)
+      raise component.DeviceException('unsupported USB Type-C function: %s' %
+                                      function)
     self._CallPD([function], port)
 
   def ResetPortFunction(self, port):
@@ -217,7 +220,8 @@ class USBTypeC(component.DeviceComponent):
 
     Args:
       command: A list of strings for command to execute.
-      port: The USB port number. None for sending command without indicating port.
+      port: The USB port number. None for sending command without indicating
+          port.
 
     Returns:
       The output on STDOUT from executed command.
