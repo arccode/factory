@@ -7,6 +7,5 @@ import Enum from '../utils/enum';
 export default Enum([
   'BOARDS_APP',
   'BUNDLES_APP',
-  'DASHBOARD_APP',
-  'SETTINGS_APP'
+  'DASHBOARD_APP'
 ]);

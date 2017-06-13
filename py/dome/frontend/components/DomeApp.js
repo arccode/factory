@@ -19,7 +19,6 @@ import DashboardApp from './DashboardApp';
 import DomeActions from '../actions/domeactions';
 import ErrorDialog from './ErrorDialog';
 import FixedAppBar from './FixedAppBar';
-import SettingsApp from './SettingsApp';
 import TaskList from './TaskList';
 
 const _APP_MENU_WIDTH = 250;
@@ -89,8 +88,6 @@ var DomeApp = React.createClass({
       // TODO(littlecvr): standardize the floating button API so we don't need
       //                  to pass offset like this
       app = <BundlesApp offset={paddingBottom} />;
-    } else if (appName == AppNames.SETTINGS_APP) {
-      app = <SettingsApp />;
     } else {
       console.error(`Unknown app ${appName}`);
     }
@@ -135,30 +132,11 @@ var DomeApp = React.createClass({
               Bundles{!board.get('umpireReady') && ' (activating...)'}
             </MenuItem>
           }
-          {boardName != '' &&
-            <MenuItem
-              onTouchTap={() => console.warn('not implemented yet')}
-              innerDivStyle={{paddingLeft: _BOARD_MENU_ITEM_PADDING_LEFT}}
-            >
-              DRM keys
-            </MenuItem>
-          }
-          {boardName != '' &&
-            <MenuItem
-              onTouchTap={() => console.warn('not implemented yet')}
-              innerDivStyle={{paddingLeft: _BOARD_MENU_ITEM_PADDING_LEFT}}
-            >
-              Logs
-            </MenuItem>
-          }
 
           {boardName != '' && <Divider />}
 
           <MenuItem onTouchTap={() => this.handleClick(AppNames.BOARDS_APP)}>
             Change board
-          </MenuItem>
-          <MenuItem onTouchTap={() => this.handleClick(AppNames.SETTINGS_APP)}>
-            Settings
           </MenuItem>
         </Drawer>
         <div
