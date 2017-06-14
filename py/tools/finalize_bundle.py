@@ -206,7 +206,7 @@ class FinalizeBundle(object):
     parser.add_argument('manifest', metavar='MANIFEST',
                         help='Path to the manifest file')
     parser.add_argument('dir', metavar='DIR', nargs='?',
-                        default=os.getcwd(), help='Working directory')
+                        default=None, help='Working directory')
 
     self.args = parser.parse_args()
 
@@ -227,6 +227,9 @@ class FinalizeBundle(object):
       sys.exit("The bundle_name (currently %r) should be today's date, "
                'plus an underscore, plus a description of the build, e.g.: %r' %
                (self.bundle_name, time.strftime('%Y%m%d_proto')))
+
+    if self.args.dir is None:
+      self.args.dir = os.path.dirname(os.path.realpath(self.args.manifest))
 
     # If the basename of the working directory is equal to the expected name, we
     # believe that the user intentionally wants to make the bundle in the
