@@ -90,9 +90,8 @@ SERVER_FILE_MASK = [
     '--include', 'py/umpire/client',
     '--include', 'py/umpire/client/**',
     '--exclude', 'py/umpire/**',
-
-    # Lumberjack is only used on Umpire server
-    '--exclude', 'py/lumberjack'
+    '--exclude', 'bin/umpire',
+    '--exclude', 'bin/umpired',
 ]
 
 

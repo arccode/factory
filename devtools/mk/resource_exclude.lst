@@ -1,6 +1,9 @@
 *.pyc
 *_unittest.py
-bundle/*
-py/doc/*
-py/lumberjack/*
-py/minijack/*
+bundle
+bin/generate_rsts
+bin/list_dir_as_yaml
+py/doc
+py/dome
+py/lumberjack
+py/minijack
