@@ -12,7 +12,7 @@ main() {
       die 'Unit tests have not passed.  Please run "make test".'
   fi
 
-  if [ -n "$@" ]; then
+  if [ "$#" != "0" ]; then
     # TODO(hungte) skip doc/%
     changed="$(find "$@" -type f -newer .tests-passed)"
   elif [ "$(git log -1 --format=%ct)" -gt "$(stat -c %Y .tests-passed)" ]; then
