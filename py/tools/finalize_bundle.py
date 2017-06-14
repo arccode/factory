@@ -311,27 +311,33 @@ class FinalizeBundle(object):
     logging.info('Searching %s in %r', resource_name, search_dirs)
     found_entries = FinalizeBundle._ListAllFilesIn(abs_search_dirs)
 
-    if len(found_entries) > 1:
-      raise Exception(
-          'There should be only one %s in %r but found multiple: %r' % (
-              resource_name, search_dirs, found_entries))
-
+    len_found_entries = len(found_entries)
     resource_path = None
-    if len(found_entries) == 1:
+    is_local = resource_source == LOCAL
+
+    if len_found_entries == 1:
       resource_path = found_entries[0]
       logging.info(
           'A local copy of %s is found at %r', resource_name, resource_path)
-
-    if resource_source == LOCAL and len(found_entries) == 0:
+      if not is_local and not version_checker(resource_path, resource_source):
+        raise Exception(
+            'Requested %s version is %r but found a local one with different '
+            'version at %r' % (resource_name, resource_source, resource_path))
+    elif len_found_entries > 1:
       raise Exception(
-          '%s source is specified as %r but no one found under %r' % (
-              resource_name.capitalize(), LOCAL, search_dirs))
-
-    if (resource_source != LOCAL and len(found_entries) == 1 and
-        not version_checker(resource_path, resource_source)):
-      raise Exception(
-          'Requested %s version is %r but found a local one with different '
-          'version at %r' % (resource_name, resource_source, resource_path))
+          'There should be only one %s in %r but found multiple: %r' % (
+              resource_name, search_dirs, found_entries))
+    else:
+      assert len_found_entries == 0
+      if is_local:
+        raise Exception(
+            '%s source is specified as %r but no one found under %r' % (
+                resource_name.capitalize(), LOCAL, abs_search_dirs))
+      if not self.args.download:
+        raise Exception(
+            'Need %s but no files found under %r' % (
+                resource_name.capitalize(), abs_search_dirs))
+      # Will be downloaded later.
 
     return resource_path
 
@@ -344,9 +350,10 @@ class FinalizeBundle(object):
     - self.releases_image_path
     - self.toolkit_path
 
-    If a resource is found, the corresponding attribute is set to its path; it
+    If a resource is found, the corresponding attribute is set to its path; if
     it's not found, the attribute is set to None (and we'll raise an error if
-    the source of the resource is set to LOCAL in this case).
+    the source of the resource is set to LOCAL or if self.args.download is set
+    to False in this case).
     """
     self.test_image_path = self._LocateOneResource(
         'test image', self.test_image_source, TEST_IMAGE_SEARCH_DIRS,
