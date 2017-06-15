@@ -104,6 +104,8 @@ class FactoryToolkitInstaller(object):
     no_enable: True to not install the tag file.
     system_root: The path to the root of the file system. This must be left
                  as its default value except for unit testing.
+    apps: The list of apps to enable/disable under factory/init/main.d/.
+    active_test_list: The id of active test list for Goofy.
   """
 
   # Whether to sudo when rsyncing; set to False for testing.
@@ -111,7 +113,7 @@ class FactoryToolkitInstaller(object):
 
   def __init__(self, src, dest, no_enable, enable_presenter,
                enable_device, non_cros=False, system_root='/',
-               apps=None):
+               apps=None, active_test_list=None):
     self._src = src
     self._system_root = system_root
     if dest == self._system_root:
@@ -158,6 +160,7 @@ class FactoryToolkitInstaller(object):
     self._device_tag_file = os.path.join(self._usr_local_dest, 'factory',
                                          'init', 'run_goofy_device')
     self._apps = apps
+    self._active_test_list = active_test_list
 
     if not os.path.exists(self._usr_local_src):
       raise Exception(
@@ -200,6 +203,13 @@ class FactoryToolkitInstaller(object):
     else:
       print '*** Removing %s enabled tag...' % name
       Spawn(['rm', '-f', path], sudo=True, log=True, check_call=True)
+
+  def _SetActiveTestList(self):
+    """Set the active test list for Goofy."""
+    if self._active_test_list is not None:
+      file_utils.WriteFile(
+          os.path.join(self._usr_local_dest, 'factory', 'py', 'test',
+                       'test_lists', 'ACTIVE'), self._active_test_list)
 
   def _EnableApp(self, app, enabled):
     """Enable / disable @app.
@@ -308,6 +318,7 @@ class FactoryToolkitInstaller(object):
                      self._enable_presenter)
     self._SetTagFile('device', self._device_tag_file, self._enable_device)
 
+    self._SetActiveTestList()
     self._EnableApps()
 
     print '*** Installation completed.'
@@ -461,6 +472,9 @@ def main():
                             'factory/init/main.d/. Use prefix "-" to disable, '
                             'prefix "+" to enable, and use "," to separate. '
                             'For example: --apps="-goofy,+whale_servo"'))
+  parser.add_argument('--active-test-list', dest='active_test_list',
+                      default=None,
+                      help='Set the id of active test list for Goofy.')
 
   args = parser.parse_args()
 
@@ -513,7 +527,7 @@ def main():
         src=src_root, dest=dest, no_enable=args.no_enable,
         enable_presenter=args.enable_presenter,
         enable_device=args.enable_device, non_cros=args.non_cros,
-        apps=args.apps)
+        apps=args.apps, active_test_list=args.active_test_list)
 
     print installer.WarningMessage(args.dest if patch_test_image else None)
 
