@@ -224,14 +224,14 @@ class TestInvocation(object):
     self.goofy = goofy
     self.test = test
     self.thread = threading.Thread(
-        target=self._run, name='TestInvocation-%s' % test.path)
+        target=self._run, name='TestInvocation-%s' % self.test.path)
     self.start_time = None
     self.end_time = None
     self.on_completion = on_completion
     self.on_test_failure = on_test_failure
     self.resume_test = False
     self.session_json_path = None
-    key_post_shutdown = state.KEY_POST_SHUTDOWN % test.path
+    key_post_shutdown = state.KEY_POST_SHUTDOWN % self.test.path
     if state.get_shared_data(key_post_shutdown):
       # If this is going to be a post-shutdown run of an active shutdown test,
       # reuse the existing invocation as uuid so that we can accumulate all the
@@ -535,6 +535,11 @@ class TestInvocation(object):
         if err_field in log_args:
           testlog_event.AddFailure(failure_code, log_args.pop(err_field))
 
+    if 'tag' in log_args:
+      testlog_event.LogParam(
+          name='tag', value=log_args.pop('tag'),
+          description='Indicate type of shutdown')
+
     if len(log_args) > 0:
       logging.error('Unexpected fields in logs_args: %s',
                     pprint.pformat(log_args))
@@ -581,7 +586,6 @@ class TestInvocation(object):
     status, error_msg = None, None
 
     # Resume the previously-running test.
-    # TODO(itspeter): Handle resume_test with testlog.
     if self.resume_test:
       self.start_time = self.metadata['start_time']
       resolved_dargs = self.metadata['dargs']
@@ -592,6 +596,8 @@ class TestInvocation(object):
           invocation=self.uuid)
       if self.test.pytest_name:
         log_args['pytest_name'] = self.metadata['pytest_name']
+      if isinstance(self.test, factory.ShutdownStep):
+        log_args['tag'] = 'post-shutdown'
 
       try:
         self.goofy.event_log.Log('resume_test', **log_args)
@@ -621,6 +627,8 @@ class TestInvocation(object):
           invocation=self.uuid)
       if self.test.pytest_name:
         log_args['pytest_name'] = self.test.pytest_name
+      if isinstance(self.test, factory.ShutdownStep):
+        log_args['tag'] = 'pre-shutdown'
 
       self.start_time = time.time()
       self.update_metadata(start_time=self.start_time, **log_args)
@@ -637,6 +645,7 @@ class TestInvocation(object):
             uuid=self.uuid)
         log_args.pop('dargs', None)  # We need to avoid duplication
         log_args.pop('serial_numbers', None)  # We need to avoid duplication
+        log_args.pop('tag', None)  # We need to avoid duplication
         self.env_additions.update(
             {testlog.TESTLOG_ENV_VARIABLE_NAME: self.session_json_path})
 
@@ -700,14 +709,18 @@ class TestInvocation(object):
             log_args, status))
         del self.env_additions[testlog.TESTLOG_ENV_VARIABLE_NAME]
 
-
       except Exception:
         logging.exception('Unable to log end_test event')
 
     service_manager.RestoreServices()
 
-    logging.info(u'Test %s%s %s', self.test.path, iteration_string,
-                 ': '.join([status, error_msg]))
+    if isinstance(self.test, factory.ShutdownStep):
+      logging.info(u'Test %s%s (%s) %s', self.test.path, iteration_string,
+                   ('post-shutdown' if self.resume_test else 'pre-shutdown'),
+                   ': '.join([status, error_msg]))
+    else:
+      logging.info(u'Test %s%s %s', self.test.path, iteration_string,
+                   ': '.join([status, error_msg]))
 
     decrement_iterations_left = 0
     decrement_retries_left = 0

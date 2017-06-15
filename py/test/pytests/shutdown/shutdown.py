@@ -187,9 +187,12 @@ class ShutdownTest(unittest.TestCase):
       # The presenter may be absent (e.g. during run-in). Ignore error
       # in this case.
       pass
-    self.goofy.Shutdown(self.args.operation)
+    try:
+      self.goofy.Shutdown(self.args.operation)
 
-    time.sleep(self.args.wait_shutdown_secs)
+      time.sleep(self.args.wait_shutdown_secs)
+    except factory.FactoryTestFailure:
+      return
     error_msg = 'System did not shutdown in %s seconds.' % (
         self.args.wait_shutdown_secs)
     self.ui.Fail(error_msg)
