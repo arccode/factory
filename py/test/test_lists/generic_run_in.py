@@ -124,7 +124,7 @@ def RunIn(args, group_suffix=''):
         # Note that currently user has to implement the hook to skip all SMT
         # tests if there is 'smt_complete' in device_data.
         # If it is not implemented, they only those tests with
-        # run_if='!device_data.smt_complete' will be skipped.
+        # run_if='!device.factory.end_SMT' will be skipped.
         # TODO(cychiang) Let goofy support smt_complete instead of relying on
         # hooks.
         OperatorTest(
@@ -267,7 +267,7 @@ def RunIn(args, group_suffix=''):
             run_if=args.HasLTE)
 
         # For LTE model only. This test item will be skipped if GetDeviceInfo
-        # does not get device_data.component.has_lte = True.
+        # does not get factory.component.has_lte = True.
         # In this test, IMEI of LTE module and ICCID of LTE SIM card will be
         # probed and saved in device_data. They will be matched in hwid rule
         # to golden IMEI and golden ICCID fetched from shopfloor.

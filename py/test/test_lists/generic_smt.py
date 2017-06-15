@@ -131,7 +131,7 @@ def ScanMLB(args):
       label=_('Scan MLB'),
       has_automator=True,
       pytest_name='scan',
-      run_if='!device_data.smt_complete',
+      run_if='!device.factory.end_SMT',
       dargs=dargs)
 
 
@@ -148,7 +148,7 @@ def ScanOperatorID(args):
       label=_('Scan Operator ID'),
       has_automator=True,
       pytest_name='scan',
-      run_if='!device_data.smt_complete',
+      run_if='!device.factory.end_SMT',
       dargs=dict(
           device_data_key='smt_operator_id',
           event_log_key='smt_operator_id',

@@ -37,7 +37,7 @@ Usage example::
       id='LTERadiated',
       exclusive_resources=[plugin.RESOURCE.NETWORK],
       label=_('LTE Radiated'),
-      run_if='device_data.component.has_lte',
+      run_if='device.component.has_lte',
       pytest_name='lte_radiated',
       dargs={
           'config_file_path': 'rf/lte_radiated/lte_radiated_config.yaml',
