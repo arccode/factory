@@ -23,12 +23,11 @@ import tempfile
 import time
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import event_log
 from cros.factory.test.env import paths
 from cros.factory.tools import install_symlinks
 from cros.factory.utils import file_utils
-from cros.factory.utils import sys_utils
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import sys_utils
 
 
 INSTALLER_PATH = 'usr/local/factory/py/toolkit/installer.py'
@@ -111,7 +110,7 @@ class FactoryToolkitInstaller(object):
   _sudo = True
 
   def __init__(self, src, dest, no_enable, enable_presenter,
-               enable_device, non_cros=False, device_id=None, system_root='/',
+               enable_device, non_cros=False, system_root='/',
                apps=None):
     self._src = src
     self._system_root = system_root
@@ -158,7 +157,6 @@ class FactoryToolkitInstaller(object):
     self._enable_device = enable_device
     self._device_tag_file = os.path.join(self._usr_local_dest, 'factory',
                                          'init', 'run_goofy_device')
-    self._device_id = device_id
     self._apps = apps
 
     if not os.path.exists(self._usr_local_src):
@@ -202,11 +200,6 @@ class FactoryToolkitInstaller(object):
     else:
       print '*** Removing %s enabled tag...' % name
       Spawn(['rm', '-f', path], sudo=True, log=True, check_call=True)
-
-  def _SetDeviceID(self):
-    if self._device_id is not None:
-      file_utils.WriteFile(os.path.join(event_log.DEVICE_ID_PATH),
-                           self._device_id)
 
   def _EnableApp(self, app, enabled):
     """Enable / disable @app.
@@ -315,7 +308,6 @@ class FactoryToolkitInstaller(object):
                      self._enable_presenter)
     self._SetTagFile('device', self._device_tag_file, self._enable_device)
 
-    self._SetDeviceID()
     self._EnableApps()
 
     print '*** Installation completed.'
@@ -453,9 +445,6 @@ def main():
                       action='store_false', help=argparse.SUPPRESS)
   parser.set_defaults(enable_device=False)
 
-  parser.add_argument('--device-id', dest='device_id', type=str, default=None,
-                      help='Set device ID for this device')
-
   parser.add_argument('--exe-path', dest='exe_path',
                       nargs='?', default=None,
                       help='Current self-extracting archive pathname')
@@ -524,7 +513,6 @@ def main():
         src=src_root, dest=dest, no_enable=args.no_enable,
         enable_presenter=args.enable_presenter,
         enable_device=args.enable_device, non_cros=args.non_cros,
-        device_id=args.device_id,
         apps=args.apps)
 
     print installer.WarningMessage(args.dest if patch_test_image else None)
