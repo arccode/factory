@@ -71,10 +71,7 @@ main() {
   fi
 
   check_parameters
-  # Check required tools.
-  if ! image_has_part_tools; then
-    die "Missing partition tools. Please install cgpt/parted, or run in chroot."
-  fi
+  image_check_part_tools
 
   extract_firmware_updater "$FLAGS_image" "$FLAGS_output_dir"
 }

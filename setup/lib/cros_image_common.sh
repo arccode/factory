@@ -12,6 +12,7 @@
 IMAGE_CGPT_START_SIZE=$((1 + 1 + 32))
 IMAGE_CGPT_END_SIZE=$((32 + 1))
 IMAGE_CGPT_BS="512"
+: ${CGPT:=}
 : ${SUDO:=}
 
 # Alignment of partition sectors
@@ -28,19 +29,40 @@ image_die() {
   exit 1
 }
 
-# Finds if current system has tools for part_* commands
-image_has_part_tools() {
-  image_has_command cgpt || image_has_command parted
+# Finds and checks if CGPT is available. Similar to image_check_part_tools, but
+# this is dedicated for 'cgpt' since it's the only tool (currently) that can
+# create and modify ChromeOS style partitions.
+image_check_cgpt() {
+  if [ -z "${CGPT}" ]; then
+    image_die "Need cgpt utility."
+  fi
 }
 
-# Finds if specified tool can be found by current path; updates system path if
-# the tool is available in given folder.
-image_find_tool() {
-  local tool="$1"
-  local alternative_folder="$(readlink -f "$2")"
-  if ! image_has_command "$tool" && [ -x "$alternative_folder/$tool" ]; then
-    PATH="$alternative_folder:$PATH"; export PATH
+# Finds and checks if the system has tools to do partitioning.
+image_check_part_tools() {
+  if image_has_command python || [ -n "${CGPT}" ] || image_has_command parted;
+  then
+    return
+  else
+    die "Missing partition tools. " \
+         "Please install Python or parted or cgpt, or run inside chroot."
   fi
+}
+
+# Finds a tool program in PATH or given folder(s), and prints the found path.
+image_find_tool() {
+  local tool="$1" dir=""
+  if image_has_command "${tool}"; then
+    echo "${tool}"
+    return
+  fi
+  shift
+  for dir in "$@"; do
+    if [ -x "${dir}/${tool}" ]; then
+      echo "$(readlink -f "${dir}/${tool}")"
+      return
+    fi
+  done
 }
 
 # Returns offset aligned to alignment.
@@ -65,9 +87,10 @@ image_part_offset() {
   local partno="$2"
   local unpack_file="$(dirname "$file")/unpack_partitions.sh"
 
-  # TODO parted is available on most Linux so we may deprecate other code path
-  if image_has_command cgpt; then
-    ${SUDO} cgpt show -b -i "$partno" "$file"
+  if image_has_command python; then
+    ${SUDO} python "${SCRIPT_DIR}/pygpt" show -b -i "${partno}" "${file}"
+  elif [ -n "${CGPT}" ]; then
+    ${SUDO} "${CGPT}" show -b -i "$partno" "$file"
   elif image_has_command parted; then
     # First trial-run to make sure image is valid (because awk always return 0)
     ${SUDO} parted -m "$file" unit s print | grep -qs "^$partno:" || exit 1
@@ -86,9 +109,10 @@ image_part_size() {
   local partno="$2"
   local unpack_file="$(dirname "$file")/unpack_partitions.sh"
 
-  # TODO parted is available on most Linux so we may deprecate other code path
-  if image_has_command cgpt; then
-    ${SUDO} cgpt show -s -i "$partno" "$file"
+  if image_has_command python; then
+    ${SUDO} python "${SCRIPT_DIR}/pygpt" show -s -i "${partno}" "${file}"
+  elif [ -n "${CGPT}" ]; then
+    ${SUDO} "${CGPT}" show -s -i "$partno" "$file"
   elif image_has_command parted; then
     # First trial-run to make sure image is valid (because awk always return 0)
     ${SUDO} parted -m "$file" unit s print | grep -qs "^$partno:" || exit 1
@@ -124,7 +148,8 @@ image_geometry_create_partition() {
     return
   fi
 
-  cgpt add -b "$offset" -s "$sectors" -i "$index" -t reserved "$output_file"
+  image_check_cgpt
+  "${CGPT}" add -b "$offset" -s "$sectors" -i "$index" -t reserved "$output_file"
 }
 
 # Processes a list of disk geometry sectors into aligned (offset, sectors) form.
@@ -159,6 +184,8 @@ image_geometry_build_file() {
   local output_file_size=0
   local partition_offsets
 
+  image_check_cgpt
+
   # Calculate output image file size
   partition_offsets="$(image_process_geometry \
       "$IMAGE_CGPT_START_SIZE $sectors_list $IMAGE_CGPT_END_SIZE 1" \
@@ -170,8 +197,8 @@ image_geometry_build_file() {
   truncate -s "$((output_file_size * IMAGE_CGPT_BS))" "$output_file"
 
   # Initialize partition table (GPT)
-  cgpt create "$output_file"
-  cgpt boot -p "$output_file" >/dev/null
+  "${CGPT}" create "$output_file"
+  "${CGPT}" boot -p "$output_file" >/dev/null
 
   # Create partition tables
   image_process_geometry "$IMAGE_CGPT_START_SIZE $sectors_list" \

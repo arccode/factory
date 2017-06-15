@@ -19,9 +19,6 @@ main() {
 
     Ex: $0 chromiumos_image.bin 3 /media"
   fi
-  if ! image_has_part_tools; then
-    die "Missing partition tools. Please install cgpt/parted, or run in chroot."
-  fi
 
   local image_file="$1"
   local partition_index="$2"
@@ -30,6 +27,7 @@ main() {
   # Basic checking
   [ -f "$image_file" ] || die "Cannot find image file: $image_file"
   [ -d "$mount_point" ] || die "Invalid mount point: $mount_point"
+  image_check_part_tools
 
   # Check image format.
   local part_offset="$(

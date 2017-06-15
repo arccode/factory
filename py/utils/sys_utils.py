@@ -340,6 +340,7 @@ class PartitionManager(object):
     """Create an empty GPT."""
     return self._runner.CreatePartitionTable()
 
+  # TODO(hungte) Support pygpt.
   class _CGPT(object):
     """Wrapper for cgpt."""
 

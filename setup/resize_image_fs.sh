@@ -108,10 +108,7 @@ main() {
   fi
 
   check_parameters
-  # Check required tools.
-  if ! image_has_part_tools; then
-    die "Missing partition tools. Please install cgpt/parted, or run in chroot."
-  fi
+  image_check_part_tools
 
   resize_filesystem "${FLAGS_image}" "${FLAGS_partition_index}" \
     "${FLAGS_size_mb}" "${FLAGS_append}"

@@ -286,10 +286,7 @@ setup_environment() {
     echo "Done"
   fi
 
-  # Check required tools.
-  if ! image_has_part_tools; then
-    die "Missing partition tools. Please install cgpt/parted, or run in chroot."
-  fi
+  image_check_part_tools
 }
 
 # Builds cros_payloads into a folder.
@@ -351,10 +348,6 @@ generate_omaha() {
 generate_usbimg() {
   # TODO(hungte) Read board from release image if needed.
   [ -n "$FLAGS_board" ] || die "Need --board parameter."
-
-  if ! type cgpt >/dev/null 2>&1; then
-    die "Missing 'cgpt'. Please install cgpt, or run inside chroot."
-  fi
 
   # It is possible to enlarge the disk by calculating sizes of all input files,
   # create cros_payloads folder in the disk image file, to minimize execution
@@ -522,7 +515,7 @@ check_cherrypy3() {
 }
 
 run_omaha() {
-  local python="python2.6"
+  local python="python2"
   image_has_command "$python" || python="python"
   image_has_command "$python" || die "Please install Python in your system."
   check_cherrypy3 "$python"

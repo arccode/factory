@@ -47,11 +47,11 @@ usage_die() {
 clone_partition_type() {
   local input_file="$1" input_part="$2" output_file="$3" output_part="$4"
 
-  local part_type="$(cgpt show -q -n -t -i "$input_part" "$input_file")"
-  local part_attr="$(cgpt show -q -n -A -i "$input_part" "$input_file")"
-  local part_label="$(cgpt show -q -n -l -i "$input_part" "$input_file")"
+  local part_type="$("${CGPT}" show -q -n -t -i "$input_part" "$input_file")"
+  local part_attr="$("${CGPT}" show -q -n -A -i "$input_part" "$input_file")"
+  local part_label="$("${CGPT}" show -q -n -l -i "$input_part" "$input_file")"
 
-  cgpt add -t "${part_type}" -l "${part_label}" -A "${part_attr}" \
+  "${CGPT}" add -t "${part_type}" -l "${part_label}" -A "${part_attr}" \
     -i "${output_part}" "${output_file}"
 }
 
@@ -158,6 +158,12 @@ main() {
   if [ "$#" -lt 2 ]; then
     alert "ERROR: invalid number of parameters ($#)."
     usage_die
+  fi
+
+  # Check required tools.
+  # TODO(hungte) Change this to Python when we have implemented 'add' in pygpt.
+  if [ -z "${CGPT}" ]; then
+    die "Missing cgpt. Please install cgpt or run inside chroot."
   fi
 
   output="$1"

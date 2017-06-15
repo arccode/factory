@@ -14,8 +14,7 @@ SCRIPT_DIR="$(dirname "$SCRIPT")"
 . "$SCRIPT_DIR/lib/cros_image_common.sh" || exit 1
 
 # Finds binary utilities if available.
-image_find_tool "cgpt" "$SCRIPT_DIR/bin"
-image_find_tool "cgpt" "$SCRIPT_DIR/lib"
+: "${CGPT:="$(image_find_tool cgpt "${SCRIPT_DIR}/bin" "${SCRIPT_DIR}/lib")"}"
 
 # Redirects tput to stderr, and drop any error messages.
 tput2() {
