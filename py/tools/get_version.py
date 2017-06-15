@@ -12,6 +12,7 @@ import re
 import subprocess
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.gooftool import crosfw
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
@@ -103,17 +104,13 @@ def GetFirmwareBinaryVersion(path):
     The extracted firmware version as a string; or None if the function fails to
     extract version.
   """
-  binary_path = os.path.abspath(path)
   result = None
   try:
-    with file_utils.TempDirectory(prefix='dump_fmap') as temp_dir:
-      process_utils.Spawn(['dump_fmap', '-x', binary_path], ignore_stdout=True,
-                          log=True, cwd=temp_dir, check_call=True)
-      with open(os.path.join(temp_dir, 'RO_FRID')) as f:
-        result = f.read().strip('\x00')   # Strip paddings.
-  except (subprocess.CalledProcessError, IOError):
+    return crosfw.FirmwareImage(file_utils.ReadFile(path)).get_section(
+        'RO_FRID').strip('\xff').strip('\x00')
+  except Exception:
     logging.exception(
-        'Failed to extract firmware version from %s.', binary_path)
+        'Failed to extract firmware version from: %s', path)
   return result
 
 
