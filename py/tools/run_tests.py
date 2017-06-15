@@ -58,7 +58,11 @@ def _MaybeRunPytestsOnly(tests, isolated_tests):
   last_test_time = os.path.getmtime(TEST_PASSED_MARK)
 
   try:
-    changed_files = [f for f in files if os.path.getmtime(f) > last_test_time]
+    # We can't use os.path.getmtime here, because we don't want it to follow
+    # symlink (for example, py_pkg/cros/factory, py/testlog/utils), and those
+    # directories would appear changed since we clear all .pyc before running
+    # this.
+    changed_files = [f for f in files if os.lstat(f).st_mtime > last_test_time]
   except OSError:
     # E.g., file renamed; just run everything
     return (tests, isolated_tests)
@@ -462,7 +466,7 @@ def main():
                       help='Maximum number of tests to run in parallel.')
   parser.add_argument('--log', '-l', default='',
                       help='directory to place logs.')
-  parser.add_argument('--isolated', '-i', nargs='*',
+  parser.add_argument('--isolated', '-i', nargs='*', default=[],
                       help='Isolated unittests which run sequentially.')
   parser.add_argument('--nofallback', action='store_true',
                       help='Do not re-run failed test sequentially.')
