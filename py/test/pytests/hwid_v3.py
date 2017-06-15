@@ -118,6 +118,7 @@ class HWIDV3Test(unittest.TestCase):
         generate_cmd += ['--no-verify-checksum']
 
       output = self.factory_tools.CallOutput(generate_cmd)
+      self.assertIsNotNone(output, 'HWID generate failed.')
       hwid = json.loads(output)
 
       encoded_string = hwid['encoded_string']
@@ -127,6 +128,7 @@ class HWIDV3Test(unittest.TestCase):
       decode_cmd = ['hwid', 'decode'] + (['-b', board] if board else [])
       decode_cmd += [encoded_string]
       output = self.factory_tools.CallOutput(decode_cmd)
+      self.assertIsNotNone(output, 'HWID decode failed.')
       decoded_hwid = yaml.load(output)
 
       logging.info('HWDB checksum: %s', hwid['hwdb_checksum'])
