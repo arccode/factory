@@ -19,7 +19,7 @@ import unittest
 import xmlrpclib
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory import shopfloor
+from cros.factory.shopfloor import factory_server
 from cros.factory.shopfloor import factory_update_server
 from cros.factory.test.env import paths
 from cros.factory.umpire.client import umpire_server_proxy
@@ -32,7 +32,7 @@ from cros.factory.utils import sync_utils
 TESTDATA_MD5SUM = 'd9d51c02d1b40da5c7ddae311ff52597'
 
 
-class ShopFloorServerTest(unittest.TestCase):
+class FactoryServerTest(unittest.TestCase):
 
   def setUp(self):
     """Starts shop floor server and creates client proxy."""
@@ -42,16 +42,16 @@ class ShopFloorServerTest(unittest.TestCase):
     self.auto_archive_logs = os.path.join(self.data_dir, 'auto-archive-logs')
     self.logs_dir = os.path.join(self.data_dir, time.strftime('logs.%Y%m%d'))
     self.reports_dir = os.path.join(
-        self.data_dir, shopfloor.REPORTS_DIR,
-        time.strftime(shopfloor.LOGS_DIR_FORMAT))
+        self.data_dir, factory_server.REPORTS_DIR,
+        time.strftime(factory_server.LOGS_DIR_FORMAT))
     self.aux_logs_dir = os.path.join(
-        self.data_dir, shopfloor.AUX_LOGS_DIR,
-        time.strftime(shopfloor.LOGS_DIR_FORMAT))
+        self.data_dir, factory_server.AUX_LOGS_DIR,
+        time.strftime(factory_server.LOGS_DIR_FORMAT))
     self.events_dir = os.path.join(
-        self.data_dir, shopfloor.EVENTS_DIR)
+        self.data_dir, factory_server.EVENTS_DIR)
     self.parameters_dir = os.path.join(self.data_dir, 'parameters')
     self.registration_code_log = (
-        os.path.join(self.data_dir, shopfloor.REGISTRATION_CODE_LOG_CSV))
+        os.path.join(self.data_dir, factory_server.REGISTRATION_CODE_LOG_CSV))
     csv_source = os.path.join(self.base_dir, 'testdata', 'devices.csv')
     csv_work = os.path.join(self.data_dir, 'devices.csv')
     aux_csv_source = os.path.join(self.base_dir, 'testdata', 'aux_mlb.csv')
@@ -59,21 +59,20 @@ class ShopFloorServerTest(unittest.TestCase):
 
     shutil.copyfile(csv_source, csv_work)
     shutil.copyfile(aux_csv_source, aux_csv_work)
-    os.mkdir(os.path.join(self.data_dir, shopfloor.UPDATE_DIR))
-    os.mkdir(os.path.join(self.data_dir, shopfloor.UPDATE_DIR, 'factory'))
+    os.mkdir(os.path.join(self.data_dir, factory_server.UPDATE_DIR))
+    os.mkdir(os.path.join(self.data_dir, factory_server.UPDATE_DIR, 'factory'))
 
     factory_update_server.poll_interval_sec = 0.1
     self.server_port = net_utils.FindUnusedTCPPort()
-    # Use shopfloor_server.py (or the SHOPFLOOR_SERVER_CMD environment
+    # Use factory_server.py (or the SHOPFLOOR_SERVER_CMD environment
     # variable if set).
     cmd = os.environ.get(
         'SHOPFLOOR_SERVER_CMD',
         'python %s' % os.path.join(
-            self.base_dir, 'shopfloor_server.py')).split(' ')
+            self.base_dir, 'factory_server.py')).split(' ')
 
     cmd.extend([
-        '-q', '-a', net_utils.LOCALHOST, '-p', str(self.server_port),
-        '-m', 'cros.factory.shopfloor.simple_shopfloor',
+        '-a', net_utils.LOCALHOST, '-p', str(self.server_port),
         '-d', self.data_dir,
         '--updater', 'cros.factory.shopfloor.dummy_updater',
         '--updater-dir', os.path.join(self.data_dir, 'update'),
@@ -97,20 +96,6 @@ class ShopFloorServerTest(unittest.TestCase):
     self.process.terminate()
     self.process.wait()
     shutil.rmtree(self.data_dir)
-
-  def testCheckSN(self):
-    # Valid serial numbers range from CR001001 to CR001025
-    for i in range(25):
-      serial = 'CR0010%02d' % (i + 1)
-      self.assertTrue(self.proxy.CheckSN(serial))
-
-    # Test invalid serial numbers
-    self.assertRaises(xmlrpclib.Fault, self.proxy.CheckSN, '0000')
-    self.assertRaises(xmlrpclib.Fault, self.proxy.CheckSN, 'garbage')
-    self.assertRaises(xmlrpclib.Fault, self.proxy.CheckSN, '')
-    self.assertRaises(xmlrpclib.Fault, self.proxy.CheckSN, None)
-    self.assertRaises(xmlrpclib.Fault, self.proxy.CheckSN, 'CR001000')
-    self.assertRaises(xmlrpclib.Fault, self.proxy.CheckSN, 'CR001026')
 
   def _CreateFileAndContextAsFilename(self, filename):
     file_utils.TryMakeDirs(os.path.dirname(filename))
@@ -152,20 +137,12 @@ class ShopFloorServerTest(unittest.TestCase):
     self.assertRaises(
         xmlrpclib.Fault, self.proxy.GetParameter, '../devices.csv')
 
-  def testGetHWID(self):
-    # Valid HWIDs range from CR001001 to CR001025
-    for i in range(25):
-      serial = 'CR0010%02d' % (i + 1)
-      result = self.proxy.GetHWID(serial)
-      self.assertTrue(result.startswith('MAGICA '))
-      self.assertEqual(len(result.split(' ')), 4)
-
   def testGetHWIDUpdater(self):
     self.assertEquals(None, self.proxy.GetHWIDUpdater())
 
     # Add a HWID updater; the update server will start serving it within
     # a second.
-    with open(os.path.join(self.data_dir, shopfloor.UPDATE_DIR,
+    with open(os.path.join(self.data_dir, factory_server.UPDATE_DIR,
                            'hwid_updater.sh'), 'w') as f:
       f.write('foobar')
 
@@ -180,7 +157,7 @@ class ShopFloorServerTest(unittest.TestCase):
 
     # Add another file; now there should be no updater returned since
     # this is an invalid state.
-    open(os.path.join(self.data_dir, shopfloor.UPDATE_DIR,
+    open(os.path.join(self.data_dir, factory_server.UPDATE_DIR,
                       'hwid_updater2.sh'), 'w').close()
     for _ in xrange(20):
       if self.proxy.GetHWIDUpdater() is None:
@@ -189,46 +166,8 @@ class ShopFloorServerTest(unittest.TestCase):
     else:
       self.fail('HWID updater never reverted to None')
 
-  def testGetVPD(self):
-    # VPD fields defined in simple.csv
-    RO_FIELDS = ('region', 'serial_number')
-    RW_FIELDS_SET1 = ('wifi_mac', 'cellular_mac')
-    RW_FIELDS_SET2 = ('wifi_mac', )
-
-    vpd = self.proxy.GetVPD('CR001005')
-    for field in RO_FIELDS:
-      self.assertTrue(field in vpd['ro'] and vpd['ro'][field])
-    for field in RW_FIELDS_SET1:
-      self.assertTrue(field in vpd['rw'] and vpd['rw'][field])
-    self.assertEqual(vpd['ro']['region'], 'us')
-    self.assertEqual(vpd['rw']['wifi_mac'], '0b:ad:f0:0d:15:05')
-    self.assertEqual(vpd['rw']['cellular_mac'], '70:75:65:6c:6c:65')
-
-    vpd = self.proxy.GetVPD('CR001016')
-    for field in RO_FIELDS:
-      self.assertTrue(field in vpd['ro'] and vpd['ro'][field])
-    for field in RW_FIELDS_SET2:
-      self.assertTrue(field in vpd['rw'] and vpd['rw'][field])
-    self.assertEqual(vpd['ro']['region'], 'nl')
-    self.assertEqual(vpd['rw']['wifi_mac'], '0b:ad:f0:0d:15:10')
-    self.assertEqual(vpd['rw']['cellular_mac'], '')
-
-    # Checks MAC addresses
-    for i in range(25):
-      serial = 'CR0010%02d' % (i + 1)
-      vpd = self.proxy.GetVPD(serial)
-      wifi_mac = vpd['rw']['wifi_mac']
-      self.assertEqual(wifi_mac, '0b:ad:f0:0d:15:%02x' % (i + 1))
-      if i < 5:
-        cellular_mac = vpd['rw']['cellular_mac']
-        self.assertEqual(cellular_mac, '70:75:65:6c:6c:%02x' % (i + 0x61))
-
-    # Checks invalid serial numbers
-    self.assertRaises(xmlrpclib.Fault, self.proxy.GetVPD, 'MAGICA')
-    return True
-
   def testSaveAuxLog(self):
-    self.proxy.SaveAuxLog('foo/bar', shopfloor.Binary('Blob'))
+    self.proxy.SaveAuxLog('foo/bar', factory_server.Binary('Blob'))
     self.assertEquals(
         'Blob',
         open(os.path.join(self.aux_logs_dir, 'foo/bar')).read())
@@ -257,14 +196,14 @@ class ShopFloorServerTest(unittest.TestCase):
     self.assertRaisesRegexp(
         xmlrpclib.Fault,
         'This does not look like a tar archive',
-        self.proxy.UploadReport, 'CR001020', shopfloor.Binary(''), 'foo')
+        self.proxy.UploadReport, 'CR001020', factory_server.Binary(''), 'foo')
 
   def testUploadCorruptReport_MissingLog(self):
     self.assertRaisesRegexp(
         xmlrpclib.Fault,
         paths.FACTORY_LOG_PATH_ON_DEVICE.lstrip('/') + ' missing',
         self.proxy.UploadReport, 'CR001020',
-        shopfloor.Binary(self._MakeTarFile('foo')), 'foo')
+        factory_server.Binary(self._MakeTarFile('foo')), 'foo')
 
   def testUploadCorruptReport_CorruptBZ2(self):
     tbz2 = self._MakeTarFile('foo')
@@ -273,44 +212,7 @@ class ShopFloorServerTest(unittest.TestCase):
         xmlrpclib.Fault,
         'Compressed file ends unexpectedly',
         self.proxy.UploadReport, 'CR001020',
-        shopfloor.Binary(tbz2), 'foo')
-
-  def testUploadReportWithHourlyRotation(self):
-    # Other things should be well covered by the testUploadReport.
-    # We only test if the hourly rotating directory created as expected.
-    blob = self._MakeTarFile(paths.FACTORY_LOG_PATH_ON_DEVICE)
-
-    report_name = 'hourly_report_blob.rpt.bz2'
-    # Test the SetReportHourlyRotation is working.
-    self.assertFalse(self.proxy.SetReportHourlyRotation(False))
-    self.assertTrue(self.proxy.SetReportHourlyRotation(True))
-    expected_report_path = os.path.join(
-        self.proxy.GetReportsDir(), report_name)
-    # TODO(itspeter): It might be a risk of low possibility that hour of
-    # getting the path are different when the RPC call is actually made.
-    # A re-run of make test should immediate fix that : )
-    self.proxy.UploadReport('CR001020', shopfloor.Binary(blob),
-                            report_name)
-    self.assertEquals(blob, open(expected_report_path).read())
-
-  def testUploadEventWithHourlyRotataion(self):
-    # Other things should be well covered by the testUploadEvent.
-    # We only test if the hourly rotating directory created as expected.
-    # Test the SetEventHourlyRotation is working.
-    self.assertFalse(self.proxy.SetEventHourlyRotation(False))
-    self.assertTrue(self.proxy.SetEventHourlyRotation(True))
-    incremental_event_file = os.path.join(
-        self.proxy.GetIncrementalEventsDir(), 'LOG_tradasai')
-    self.assertTrue(self.proxy.UploadEvent('LOG_tradasai',
-                                           'PREAMBLE\n---\nEVENT_1\n'))
-    # There is a low possibility flaky that hour of getting the path
-    # are different when the RPC call is actually made.
-    # A re-run of make test should immediate fix that : )
-    self.assertTrue(os.path.isfile(incremental_event_file))
-    with open(incremental_event_file, 'r') as f:
-      events = [event.strip() for event in f.read().split('---')]
-      self.assertEqual(events[0], 'PREAMBLE')
-      self.assertEqual(events[1], 'EVENT_1')
+        factory_server.Binary(tbz2), 'foo')
 
   def testUploadReport(self):
     self.proxy.SetReportHourlyRotation(False)
@@ -319,7 +221,7 @@ class ShopFloorServerTest(unittest.TestCase):
 
     report_name = 'simple_blob.rpt.bz2'
     report_path = os.path.join(self.reports_dir, report_name)
-    self.proxy.UploadReport('CR001020', shopfloor.Binary(blob),
+    self.proxy.UploadReport('CR001020', factory_server.Binary(blob),
                             report_name)
     self.assertEquals(blob, open(report_path).read())
     self.assertTrue(re.match(r'^[0-9a-f]{32}\s',
@@ -331,9 +233,10 @@ class ShopFloorServerTest(unittest.TestCase):
     # Move the report to yesterday's dir.  "Insert" some media and
     # check that the logs are archived.
     yesterday_localtime = time.localtime(time.time() - 24 * 60 * 60)
-    yesterday = time.strftime(shopfloor.LOGS_DIR_FORMAT, yesterday_localtime)
-    shutil.move(self.reports_dir,
-                os.path.join(self.data_dir, shopfloor.REPORTS_DIR, yesterday))
+    yesterday = time.strftime(factory_server.LOGS_DIR_FORMAT,
+                              yesterday_localtime)
+    shutil.move(self.reports_dir, os.path.join(
+        self.data_dir, factory_server.REPORTS_DIR, yesterday))
 
     os.makedirs(self.auto_archive_logs)
     dest_path = os.path.join(
@@ -344,14 +247,10 @@ class ShopFloorServerTest(unittest.TestCase):
       return os.path.exists(dest_path)
     sync_utils.WaitFor(_CheckArchive, 3)
 
-  def testFinalize(self):
-    self.proxy.Finalize('CR001024')
-    self.assertRaises(xmlrpclib.Fault, self.proxy.Finalize, '0999')
-
   def testGetTestMd5sum(self):
     shutil.copyfile(os.path.join(os.path.dirname(__file__),
                                  'testdata', 'factory.tar.bz2'),
-                    os.path.join(self.data_dir, shopfloor.UPDATE_DIR,
+                    os.path.join(self.data_dir, factory_server.UPDATE_DIR,
                                  'factory.tar.bz2'))
 
     # It should be unpacked within a second.
@@ -366,25 +265,6 @@ class ShopFloorServerTest(unittest.TestCase):
 
   def testGetTestMd5sumWithoutMd5sumFile(self):
     self.assertTrue(self.proxy.GetTestMd5sum() is None)
-
-  def testGetRegistrationCodeMap(self):
-    self.assertEquals(
-        {'user': ('000000000000000000000000000000000000'
-                  '0000000000000000000000000000190a55ad'),
-         'group': ('010101010101010101010101010101010101'
-                   '010101010101010101010101010162319fcc')},
-        self.proxy.GetRegistrationCodeMap('CR001001'))
-
-    # Make sure it was logged.
-    log = open(self.registration_code_log).read()
-    self.assertTrue(re.match(
-        r'^MAGICA,'
-        r'000000000000000000000000000000000000'
-        r'0000000000000000000000000000190a55ad,'
-        r'010101010101010101010101010101010101'
-        r'010101010101010101010101010162319fcc,'
-        r'\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d,'
-        r'MAGICA MADOKA A-A 1214\n', log), repr(log))
 
   def testLogRegistrationCode(self):
     valid_code = ('000000000000000000000000000000000000'
@@ -417,11 +297,6 @@ class ShopFloorServerTest(unittest.TestCase):
       self.assertEqual(events[0], 'PREAMBLE')
       self.assertEqual(events[1], 'EVENT_1')
       self.assertEqual(events[2], 'EVENT_2')
-
-  def testGetAuxData(self):
-    self.assertEqual({'serial_number': 'MLB00001',
-                      'has_lte': True},
-                     self.proxy.GetAuxData('mlb', 'MLB00001'))
 
 
 if __name__ == '__main__':

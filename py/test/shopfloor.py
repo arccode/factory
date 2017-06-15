@@ -18,7 +18,7 @@ The common flow is:
   - Finalize by shopfloor.finalize()
 
 For the protocol details, check:
- src/platform/factory/py/shopfloor/shopfloor_server.
+ src/platform/factory/py/shopfloor/factory_server.py.
 """
 
 import hashlib
@@ -47,10 +47,7 @@ KEY_SHOPFLOOR_SESSION = 'shopfloor.session'
 SESSION_SERVER_URL = 'server_url'
 SESSION_ENABLED = 'enabled'
 
-API_GET_HWID = 'GetHWID'
-API_GET_VPD = 'GetVPD'
-
-# Default port number from shopfloor_server.py.
+# Default port number from factory_server.py.
 DEFAULT_SERVER_PORT = 8082
 
 # Environment variable containing the shopfloor server URL (for

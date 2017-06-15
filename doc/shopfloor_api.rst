@@ -1,19 +1,17 @@
-Shopfloor API (TODO)
-====================
+Shopfloor Service API (TODO)
+============================
 
 Overview
 --------
 
-The :py:class:`cros.factory.shopfloor.ShopFloorBase` class implements common
-base to support various shopfloor servers and product requirements.
-
-Extending the ShopFloorBase class
----------------------------------
+The :py:class:`cros.factory.shopfloor.factory_server.FactoryServer` class
+implements common base to support various factory server, shopfloor, and product
+requirements.
 
 API Documentation
 -----------------
 
-.. py:module:: cros.factory.shopfloor
+.. py:module:: cros.factory.shopfloor.factory_server
 
-.. autoclass:: ShopFloorBase
+.. autoclass:: FactoryServer
    :members:

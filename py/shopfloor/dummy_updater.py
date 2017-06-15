@@ -14,7 +14,7 @@ from cros.factory.shopfloor import factory_update_server
 class FactoryUpdater(factory_update_server.FactoryUpdateServer):
   """A dummy FactoryUpdater.
 
-  This behaves like the one started in shopfloor.ShopFloorBase, but without
+  This behaves like the one started in shopfloor.factory_server, but without
   starting the rsync daemon.
 
   This is intended to be used in unittest only.
