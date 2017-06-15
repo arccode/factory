@@ -12,9 +12,6 @@ import os
 import factory_common  # pylint: disable=W0611
 
 
-# Base serving path for ShopFloorHander.
-HANDLER_BASE = '/shop_floor'
-
 # "version" in Ping method return value to indicate server is Umpire server.
 UMPIRE_VERSION = 3
 
@@ -22,7 +19,7 @@ UMPIRE_VERSION = 3
 DUT_INFO_KEYS = set(['sn', 'mlb_sn', 'board', 'firmware', 'ec', 'pd', 'stage'])
 
 # Required fields in resource map.
-REQUIRED_RESOURCE_MAP_FIELDS = set(['__token__', 'shop_floor_handler'])
+REQUIRED_RESOURCE_MAP_FIELDS = set(['payloads', 'id'])
 
 # List of valid key prefix in DUT info. For example, a DUT may have several
 # MACs, like mac.eth0, mac.wlan0. It accepts those keys with prefix 'mac'.
@@ -37,6 +34,9 @@ SCALAR_PREFIX_MATCHERS = set(['mac'])
 # Default Umpire base directory relative to root dir.
 DEFAULT_BASE_DIR = os.path.join('var', 'db', 'factory', 'umpire')
 DEFAULT_SERVER_DIR = os.path.join('usr', 'local', 'factory')
+
+# IP should be decided by host IP inside Docker.
+DEFAULT_SHOPFLOOR_SERVICE_PORT = 8090
 
 UMPIRE_DEFAULT_PORT = 8080
 

@@ -9,6 +9,4 @@ services:
 bundles:
 - id: empty_init_bundle
   note: n/a
-  shop_floor:
-    handler: cros.factory.umpire.no_shop_floor_handler
   payloads: payload.99914b932bd37a50b983c5e7c90ae93b.json

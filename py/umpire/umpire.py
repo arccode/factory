@@ -176,12 +176,6 @@ def Status(args, umpire_cli):
   else:
     print 'No staging config'
 
-  print 'Mapping of bundle_id => shop floor handler path:'
-  # Because XMLRPC converts tuple to list, so convert it back as string
-  # formatting expects tuple.
-  print '\n'.join('  %s => %s' % tuple(m) for m in status['shop_floor_mapping'])
-  print
-
 
 @Command('stage',
          CmdArg('--config',
@@ -233,7 +227,7 @@ def _UmpireCLI():
     Umpire CLI XMLRPC server proxy
   """
   env = umpire_env.UmpireEnv()
-  env.LoadConfig(init_shop_floor_manager=False, validate=False)
+  env.LoadConfig(validate=False)
 
   umpire_cli_uri = 'http://127.0.0.1:%d' % env.umpire_cli_port
   logging.debug('Umpire CLI server URI: %s', umpire_cli_uri)

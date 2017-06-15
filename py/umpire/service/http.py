@@ -2,14 +2,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""HTTP service for static image and shopfloor frontend."""
+"""HTTP service for static images and RPC proxies."""
 
 import os
 import shutil
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.umpire import common
-from cros.factory.umpire import config
 from cros.factory.umpire.service import umpire_service
 from cros.factory.utils import file_utils
 from cros.factory.utils.schema import FixedDict
@@ -30,11 +28,6 @@ HTTP_SERVICE_NAME = 'httpsvc'
 
 # Nginx config filename with hash of the file.
 NGINX_CONFIG_FILENAME = 'nginx_#%s#.conf'
-
-# String template for handlers.
-# %d is the binding port of its corresponding shop floor handler XMLRPC
-# running locally.
-SHOP_FLOOR_HANDLER_PATH = common.HANDLER_BASE + '/%d/'
 
 # Prefixes use in nginx proxy config:
 # Handles RPC requests to / and /RPC2.
@@ -187,7 +180,6 @@ class HTTPService(umpire_service.UmpireService):
     """
     http_config = umpire_config['services']['http']
     httpd_port = int(env.umpire_base_port)
-    shopfloor_port = env.shopfloor_start_port
 
     # Umpire common RPCs
     umpire_proxy_handlers = []
@@ -206,11 +198,6 @@ class HTTPService(umpire_service.UmpireService):
     # Instalog HTTP plugin
     umpire_proxy_handlers.append(
         (INSTALOG_PREFIX, env.umpire_instalog_http_port))
-    # Shop floor handlers XMLRPC proxy bindings.
-    for port in xrange(shopfloor_port,
-                       shopfloor_port + config.NUMBER_SHOP_FLOOR_HANDLERS):
-      match_path = SHOP_FLOOR_HANDLER_PATH % port
-      umpire_proxy_handlers.append((match_path, port))
 
     config_proxies_str = [
         NGINX_PROXY_TEMPLATE % {

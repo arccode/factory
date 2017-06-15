@@ -12,16 +12,10 @@ services: {}
 bundles:
 - id: test1
   note: bundle for test
-  shop_floor:
-    handler: cros.factory.shopfloor.test_board_shopfloor
   payloads: payload.99914b932bd37a50b983c5e7c90ae93b.json
 - id: test2
   note: bundle for test
-  shop_floor:
-    handler: cros.factory.shopfloor.test_board_shopfloor
   payloads: payload.96faf6aaf0395dc8c8795bf65131bc32.json
 - id: test3
   note: bundle for test
-  shop_floor:
-    handler: cros.factory.shopfloor.test_board_shopfloor
   payloads: payload.99914b932bd37a50b983c5e7c90ae93b.json

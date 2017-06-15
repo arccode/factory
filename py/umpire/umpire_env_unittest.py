@@ -41,7 +41,6 @@ class UmpireEnvTest(unittest.TestCase):
 
     self.env.LoadConfig()
     self.assertEqual(default_path, self.env.config_path)
-    self.assertIsNotNone(self.env.shop_floor_manager)
 
   def testLoadConfigCustomPath(self):
     custom_path = os.path.join(self.env.base_dir, 'custom_config.yaml')
@@ -49,13 +48,6 @@ class UmpireEnvTest(unittest.TestCase):
 
     self.env.LoadConfig(custom_path=custom_path)
     self.assertEqual(custom_path, self.env.config_path)
-
-  def testLoadConfigNoInitShopFloorManager(self):
-    default_path = os.path.join(self.env.base_dir, 'active_umpire.yaml')
-    shutil.copy(TEST_CONFIG, default_path)
-
-    self.env.LoadConfig(init_shop_floor_manager=False)
-    self.assertIsNone(self.env.shop_floor_manager)
 
   def testStageConfigFile(self):
     config_to_stage = os.path.join(self.env.base_dir, 'to_stage.yaml')

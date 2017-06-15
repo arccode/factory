@@ -152,12 +152,6 @@ class ResourceMapTest(UmpireDockerTestCase):
     r = requests.get('%s/resourcemap' % ADDR_BASE,
                      headers={'X-Umpire-DUT': 'mac=00:11:22:33:44:55'})
     self.assertEqual(200, r.status_code)
-    self.assertIn('shop_floor_handler: /shop_floor/', r.text)
-
-  def testResourceMapNoShopFloor(self):
-    r = requests.get('%s/resourcemap' % ADDR_BASE,
-                     headers={'X-Umpire-DUT': 'mac=gg:gg:gg:gg:gg:gg'})
-    self.assertEqual(400, r.status_code)
 
 
 class PostTest(UmpireDockerTestCase):
@@ -305,10 +299,6 @@ class UmpireRPCTest(UmpireDockerTestCase):
     status = self.proxy.GetStatus()
     active_config = yaml.load(status['active_config'])
     self.assertEqual(yaml.load(to_deploy_config), active_config)
-    self.assertIn(
-        'shop_floor_handler:',
-        requests.get(
-            '%s/resourcemap' % ADDR_BASE, headers={'X-Umpire-DUT': 'x'}).text)
 
   def testDeployServiceConfigChanged(self):
     to_deploy_config = self.ReadConfigTestdata('umpire_deploy.yaml')
@@ -344,6 +334,7 @@ class UmpireRPCTest(UmpireDockerTestCase):
     self.assertEqual(['instalog'], restarted_services)
 
   def testDeployConfigFail(self):
+    # You need a config with "unable to start some service" for this fail.
     to_deploy_config = self.ReadConfigTestdata('umpire_deploy_fail.yaml')
     conf = self.proxy.AddConfigFromBlob(to_deploy_config, 'umpire_config')
     self.proxy.StageConfigFile(conf)
@@ -528,57 +519,6 @@ class RPCDUTTest(UmpireDockerTestCase):
     self.assertEqual(report, file_utils.ReadFile(report_file))
 
 
-class ShopFloorTest(UmpireDockerTestCase):
-  """Tests for Umpire ShopFloor Proxy."""
-  def _GetShopFloorURLToken(self):
-    r = requests.get('%s/resourcemap' % ADDR_BASE,
-                     headers={'X-Umpire-DUT': 'mac=00:11:22:33:44:55'})
-    shop_floor_url = None
-    token = None
-    for line in r.text.splitlines():
-      if line.startswith('shop_floor_handler:'):
-        shop_floor_url = line.split(': ', 1)[1]
-      if line.startswith('__token__:'):
-        token = line.split(': ', 1)[1]
-    self.assertIsNotNone(shop_floor_url)
-    return (shop_floor_url, token)
-
-  def _GetShopFloorProxy(self):
-    shop_floor_url, token = self._GetShopFloorURLToken()
-    return xmlrpclib.ServerProxy('%s%s/%s' % (ADDR_BASE, shop_floor_url, token))
-
-  def testListMethods(self):
-    proxy = self._GetShopFloorProxy()
-    methods = proxy.system.listMethods()
-    self.assertIn('GetDeviceInfo', methods)
-
-  def testRPC(self):
-    proxy = self._GetShopFloorProxy()
-    info = proxy.GetDeviceInfo('sn')
-    self.assertEqual({'component.has_touchscreen': True}, info)
-
-  def testRPCException(self):
-    proxy = self._GetShopFloorProxy()
-    with self.assertRPCRaises(
-        "ShopFloorHandlerException('exception granted.')"):
-      proxy.GetDeviceInfo('exception')
-
-  def testRPCNotExist(self):
-    proxy = self._GetShopFloorProxy()
-    with self.assertRPCRaises(fault_code=xmlrpclib.METHOD_NOT_FOUND):
-      proxy.Magic()
-
-  def testRPCWrongToken(self):
-    shop_floor_url, token = self._GetShopFloorURLToken()
-    # Change the token to some wrong one.
-    token = token[:-1] + chr(ord(token[-1]) ^ 1)
-    proxy = xmlrpclib.ServerProxy(
-        '%s%s/%s' % (ADDR_BASE, shop_floor_url, token))
-    with self.assertRaises(xmlrpclib.ProtocolError) as cm:
-      proxy.GetDeviceInfo('sn')
-    self.assertEqual(410, cm.exception.errcode)
-
-
 class UmpireServerProxyTest(UmpireDockerTestCase):
   """Tests for using cros.factory.umpire.client.umpire_server_proxy to interact
   with Umpire."""
@@ -597,16 +537,9 @@ class UmpireServerProxyTest(UmpireDockerTestCase):
   def testUseUmpire(self):
     self.assertTrue(self.proxy.use_umpire)
 
-  def testGetShopFloorHandlerUri(self):
-    self.assertIn('/shop_floor/', self.proxy.GetShopFloorHandlerUri())
-
   def testDUTRPC(self):
     t = self.proxy.GetTime()
     self.assertAlmostEqual(t, time.time(), delta=1)
-
-  def testShopFloorRPC(self):
-    info = self.proxy.GetDeviceInfo('sn')
-    self.assertEqual({'component.has_touchscreen': True}, info)
 
   def testRPCNotExist(self):
     with self.assertRPCRaises(fault_code=xmlrpclib.METHOD_NOT_FOUND):

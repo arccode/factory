@@ -116,8 +116,6 @@ A sample config looks like:
     bundles:
     - id: empty
       note: n/a
-      shop_floor:
-        handler: cros.factory.umpire.board_shop_floor_handler
       payloads: payload.99914b932bd37a50b983c5e7c90ae93b.json
 
 Currently we encourage using Dome management console instead.

@@ -79,12 +79,13 @@ _BUNDLE_SCHEMA = FixedDict(
     items={
         'id': Scalar('Unique key for this bundle', str),
         'note': Scalar('Notes', str),
-        'payloads': Scalar('Payload', str),
+        'payloads': Scalar('Payload', str)},
+    # TODO(hungte) Remove the deprecated shop_floor.
+    optional_items={
         'shop_floor': FixedDict(
-            'Shop floor handler settings',
-            items={
-                'handler': Scalar('Full handler package name', str)},
+            '(Deprecated) Shop floor handler settings',
             optional_items={
+                'handler': Scalar('Full handler package name', str),
                 'handler_config': FixedDict(
                     'Optional handler configs',
                     optional_items={
@@ -117,7 +118,8 @@ def ValidateConfig(config):
           'bundles': List('Bundles', _BUNDLE_SCHEMA)},
       optional_items={
           'ip': Scalar('IP address to bind', str),
-          'port': Scalar('Base port', int)})
+          'port': Scalar('Base port', int),
+          'shopfloor_service_url': Scalar('Shopfloor Service URL', str)})
   schema.Validate(config)
 
 
@@ -232,8 +234,8 @@ class RulesetOrderedDict(dict):
 
 class ServicesOrderedDict(dict):
   """Used to output an UmpireConfig's services with desired key order."""
-  _KEY_ORDER = ['archiver', 'http', 'shop_floor', 'mock_shop_floor_backend',
-                'rsync', 'dhcp', 'tftp', 'overlord', 'dkps', 'instalog']
+  _KEY_ORDER = ['http', 'rsync', 'dhcp', 'shop_floor', 'instalog',
+                'overlord', 'dkps']
 
   def Omap(self):
     return DictToOrderedList(self, self._KEY_ORDER, 'ServicesOrderedDict')
@@ -241,7 +243,8 @@ class ServicesOrderedDict(dict):
 
 class BundleOrderedDict(dict):
   """Used to output an UmpireConfig's bundle with desired key order."""
-  _KEY_ORDER = ['id', 'note', 'shop_floor', 'payloads']
+  # TODO(hungte) Remove shop_floor when migration is completed.
+  _KEY_ORDER = ['id', 'note', 'payloads', 'shop_floor']
 
   def Omap(self):
     return DictToOrderedList(self, self._KEY_ORDER, 'BundleOrderedDict')

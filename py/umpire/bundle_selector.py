@@ -170,17 +170,12 @@ def GetResourceMap(dut_info, env):
   if not bundle:
     return None
 
-  shopfloor_bundle_id = env.config['services']['shop_floor'].get('bundle_id',
-                                                                 bundle_id)
-  handler_port, handler_token = env.shop_floor_manager.GetHandler(
-      shopfloor_bundle_id)
-  if handler_port is None:
-    return None
-
+  # TODO(hungte) Remove __token__ and shop_floor_handler when most DUTs have
+  # finished migration.
   result = ['id: %s' % bundle['id'],
             'note: %s' % bundle['note'],
-            '__token__: %s' % handler_token,
-            'shop_floor_handler: %s/%d' % (common.HANDLER_BASE, handler_port),
+            '__token__: 00000001',
+            'shop_floor_handler: /umpire',
             'payloads: %s' % bundle['payloads']]
 
   return ''.join('%s\n' % s for s in result)

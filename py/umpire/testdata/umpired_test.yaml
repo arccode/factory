@@ -10,16 +10,4 @@ services:
 bundles:
 - id: test
   note: bundle for test
-  shop_floor:
-    handler: cros.factory.shopfloor.test_board_shopfloor
-  resources:
-    complete_script: complete.gz##00000000
-    device_factory_toolkit: install_factory_toolkit.run##00000000
-    efi_partition: efi.gz##00000000
-    firmware: firmware.gz##00000000
-    hwid: hwid.gz##00000000
-    netboot_kernel: vmlinuz##00000000
-    oem_partition: oem.gz##00000000
-    rootfs_release: rootfs-release.gz##00000000
-    rootfs_test: rootfs-test.gz##00000000
-    stateful_partition: state.gz##00000000
+  payloads: payload.99914b932bd37a50b983c5e7c90ae93b.json

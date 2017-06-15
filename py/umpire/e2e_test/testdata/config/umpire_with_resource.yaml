@@ -9,6 +9,4 @@ services:
 bundles:
 - id: default
   note: Default bundle for testing update
-  shop_floor:
-    handler: cros.factory.umpire.test_shop_floor_handler
   payloads: payload.5f4d37b044e74da13f0cf8fbeca7e148.json

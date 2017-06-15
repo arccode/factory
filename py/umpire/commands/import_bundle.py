@@ -83,10 +83,6 @@ class BundleImporter(object):
     config['bundles'].append({
         'id': bundle_id,
         'note': note,
-        'shop_floor': {
-            # TODO(pihsun): Decide the default value for this.
-            'handler': 'cros.factory.umpire.board_shop_floor_handler',
-            },
         'payloads': payload_json_name,
         })
     config['rulesets'].insert(0, {

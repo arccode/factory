@@ -32,6 +32,4 @@ services: {}
 bundles:
 - id: test
   note: bundle for test
-  shop_floor:
-    handler: cros.factory.shopfloor.test_board_shopfloor
   payloads: payload.99914b932bd37a50b983c5e7c90ae93b.json

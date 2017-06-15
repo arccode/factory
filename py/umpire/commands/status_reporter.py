@@ -40,7 +40,6 @@ class StatusReporter(object):
           self._env.staging_config_file))
     else:
       result['staging_config_res'] = ''
-    result['shop_floor_mapping'] = self.GetShopFloorMapping()
     result['deploying'] = self._daemon.deploying
     return result
 
@@ -62,11 +61,3 @@ class StatusReporter(object):
     if not self._env.HasStagingConfigFile():
       return None
     return file_utils.ReadFile(self._env.staging_config_file)
-
-  def GetShopFloorMapping(self):
-    """Gets list of (bundle_id, handler) pairs.
-
-    Returns:
-      list of (bundle_id, handler) pairs.
-    """
-    return self._env.shop_floor_manager.GetBundleHandlerMapping()

@@ -7,14 +7,10 @@ rulesets:
     - null
     - RUNIN
 services:
-  archiver: {}
   http:
     reverse_proxies:
     - proxy_addr: 192.168.51.1:8080
       remoteip: 192.168.51.0/24
-  shop_floor: {}
-  mock_shop_floor_backend:
-    active: false
   rsync: {}  # empty parameter
   dhcp:
     interface: # Note that we should be able to dump [eth4] instead.
@@ -24,11 +20,8 @@ services:
     - 10.3.11.50
     - 10.3.50.254
     subnet: 10.3.0.0
-  tftp:
-    netboot_kernel: vmlinuz##00000000
+  shop_floor: {}
 bundles:
 - id: test
   note: bundle for test
-  shop_floor:
-    handler: cros.factory.shopfloor.test_board_shopfloor
   payloads: payload.99914b932bd37a50b983c5e7c90ae93b.json

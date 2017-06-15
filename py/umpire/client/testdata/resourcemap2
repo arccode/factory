@@ -1,7 +1,3 @@
 id: 'foo_bundle_2'
 note: 'Bundle 2'
-__token__: 00000002
-shop_floor_handler: /shop_floor/50002
-device_factory_toolkit: factory.tar.bz2#[version]#[hash]
-netboot_kernel: 'vmlinuz#[version]#[hash]'
-complete_script: 'complete.gz##[hash]'
+payloads: 'umpire.dummy.json'

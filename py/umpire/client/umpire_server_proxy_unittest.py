@@ -13,7 +13,6 @@ import logging
 import mox
 import multiprocessing
 import os
-import re
 import shutil
 import signal
 import SimpleHTTPServer
@@ -153,10 +152,9 @@ def MyXMLRPCRequestHandlerWrapper(name):
 def HandlerFunctionWrapper(handler_name, use_umpire=False):
   """Wrapper for user to set handler_name in HandlerFunction."""
   def HandlerFunction(message):
-    """An ordinary shop floor handler function."""
-    logging.debug('Shop floor handler gets message: %s', message)
+    """An ordinary XMLRPC handler function."""
+    logging.debug('XMLRPC handler gets message: %s', message)
     return 'Handler: %s; message: %s' % (handler_name, message)
-  # pylint: disable=W0613
 
   def UmpireHandlerFunction(message):
     """Umpire handler function"""
@@ -170,8 +168,8 @@ def PingOfUmpire():
   return {'version': common.UMPIRE_VERSION}
 
 
-def PingOfShopFloor():
-  """Ping method served on shop floor XMLRPC handler."""
+def PingOfLegacyServer():
+  """Ping method served on legacy XMLRPC server handler."""
   return True
 
 
@@ -211,35 +209,23 @@ class UmpireServerProxyTest(unittest.TestCase):
       request.
     umpire_handler: Umpire xmlrpc handler, which will handle method call in
       UMPIRE_HANDLER_METHODS.
-    shopfloor_handler_1: Shopfloor handler 1. Resourcemap 1 assigns this
-      shopfloor to DUT.
-    shopfloor_handler_2: Shopfloor handler 2. Resourcemap 2 assigns this
-      shopfloor to DUT.
     umpire_http_server_process: Process for Umpire http server.
     umpire_base_handler_process: Process for Umpire base xmlrpc handler.
     umpire_handler_process: Process for Umpire xmlrpc handler.
-    shopfloor_handler_1_process: Process for shopfloor handler 1.
-    shopfloor_handler_2_process: Process for shopfloor handler 2.
     mock_resourcemap: A ResourceMapWrapper object to control which resourcemap
       Umpire http server should serve.
   """
   umpire_http_server = None
   umpire_base_handler = None
   umpire_handler = None
-  shopfloor_handler_1 = None
-  shopfloor_handler_2 = None
 
   umpire_http_server_process = None
   umpire_base_handler_process = None
   umpire_handler_process = None
-  shopfloor_handler_1_process = None
-  shopfloor_handler_2_process = None
 
   UMPIRE_BASE_HANDLER_PORT = None
   UMPIRE_HTTP_SERVER_PORT = None
   UMPIRE_HANDLER_PORT = None
-  SHOPFLOOR_1_PORT = None
-  SHOPFLOOR_2_PORT = None
   NUMBER_OF_PORTS = 5
   UMPIRE_SERVER_URI = None
   SHOPFLOOR_SERVER_URI = None
@@ -261,39 +247,15 @@ class UmpireServerProxyTest(unittest.TestCase):
     cls.SetupServers()
 
   @classmethod
-  def ModifyShopFloorPortInResourceMap(cls, file_name, port):
-    """Modify shop_floor_handler port in resourcemap.
-
-    Args:
-      file_name: Name of the resource map
-      port: The port that should be overwritten to resourcemap.
-    """
-    file_path = os.path.join(cls.temp_testdata_dir, file_name)
-    lines_to_write = []
-    for line in open(file_path).readlines():
-      line = re.sub(
-          r'shop_floor_handler: /shop_floor/(\d+)',
-          'shop_floor_handler: /shop_floor/%d' % port,
-          line)
-      lines_to_write.append(line)
-    file_utils.WriteFile(file_path, ''.join(lines_to_write))
-    logging.debug('Modified content: %r in %r',
-                  ''.join(lines_to_write), file_path)
-
-  @classmethod
   def SetTestingPort(cls, umpire_base_handler_port):
     """Sets testing port based on umpire_base_handler_port"""
     cls.UMPIRE_BASE_HANDLER_PORT = umpire_base_handler_port
     cls.UMPIRE_HTTP_SERVER_PORT = umpire_base_handler_port + 1
     cls.UMPIRE_HANDLER_PORT = umpire_base_handler_port + 2
-    cls.SHOPFLOOR_1_PORT = umpire_base_handler_port + 3
-    cls.SHOPFLOOR_2_PORT = umpire_base_handler_port + 4
     cls.UMPIRE_SERVER_URI = '%s:%d' % (MOCK_UMPIRE_ADDR,
                                        cls.UMPIRE_BASE_HANDLER_PORT)
     cls.SHOPFLOOR_SERVER_URI = '%s:%d' % (MOCK_UMPIRE_ADDR,
-                                          cls.SHOPFLOOR_1_PORT)
-    cls.ModifyShopFloorPortInResourceMap('resourcemap1', cls.SHOPFLOOR_1_PORT)
-    cls.ModifyShopFloorPortInResourceMap('resourcemap2', cls.SHOPFLOOR_2_PORT)
+                                          cls.UMPIRE_HANDLER_PORT)
 
   @classmethod
   def tearDownClass(cls):
@@ -320,17 +282,9 @@ class UmpireServerProxyTest(unittest.TestCase):
     if cls.umpire_base_handler_process.is_alive():
       process_utils.KillProcessTree(cls.umpire_base_handler_process,
                                     'base_handler')
-    if cls.shopfloor_handler_1_process.is_alive():
-      process_utils.KillProcessTree(cls.shopfloor_handler_1_process,
-                                    'shopfloor_handler_1')
-    if cls.shopfloor_handler_2_process.is_alive():
-      process_utils.KillProcessTree(cls.shopfloor_handler_2_process,
-                                    'shopfloor_handler_1')
     cls.umpire_http_server_process.join()
     cls.umpire_handler_process.join()
     cls.umpire_base_handler_process.join()
-    cls.shopfloor_handler_1_process.join()
-    cls.shopfloor_handler_2_process.join()
     logging.debug('All servers stopped')
 
   @classmethod
@@ -361,38 +315,18 @@ class UmpireServerProxyTest(unittest.TestCase):
         ('', cls.UMPIRE_HANDLER_PORT),
         allow_none=True,
         logRequests=True)
+    cls.umpire_handler.register_function(PingOfLegacyServer, 'Ping')
+    cls.umpire_handler.register_function(LongBusyMethod, 'LongBusyMethod')
     cls.umpire_handler.register_function(
         HandlerFunctionWrapper('umpire_handler', use_umpire=True),
         UMPIRE_HANDLER_METHOD)
+    cls.umpire_handler.register_function(
+        HandlerFunctionWrapper('shopfloor_handler'),
+        SHOPFLOOR_HANDLER_METHOD)
     cls.umpire_handler.register_introspection_functions()
     cls.umpire_handler_process = multiprocessing.Process(
         target=RunServer, args=(cls.umpire_handler,))
     cls.umpire_handler_process.start()
-
-    cls.shopfloor_handler_1 = SimpleXMLRPCServer.SimpleXMLRPCServer(
-        addr=('', cls.SHOPFLOOR_1_PORT),
-        requestHandler=MyXMLRPCRequestHandlerWrapper('shopfloor_handler1'),
-        allow_none=True,
-        logRequests=True)
-    cls.shopfloor_handler_1.register_function(
-        HandlerFunctionWrapper('shopfloor_handler1'), SHOPFLOOR_HANDLER_METHOD)
-    cls.shopfloor_handler_1.register_function(PingOfShopFloor, 'Ping')
-    cls.shopfloor_handler_1.register_function(LongBusyMethod, 'LongBusyMethod')
-    cls.shopfloor_handler_1_process = multiprocessing.Process(
-        target=RunServer, args=(cls.shopfloor_handler_1,))
-    cls.shopfloor_handler_1_process.start()
-
-    cls.shopfloor_handler_2 = SimpleXMLRPCServer.SimpleXMLRPCServer(
-        ('', cls.SHOPFLOOR_2_PORT),
-        requestHandler=MyXMLRPCRequestHandlerWrapper('shopfloor_handler2'),
-        allow_none=True,
-        logRequests=True)
-    cls.shopfloor_handler_2.register_function(PingOfShopFloor, 'Ping')
-    cls.shopfloor_handler_2.register_function(
-        HandlerFunctionWrapper('shopfloor_handler2'), SHOPFLOOR_HANDLER_METHOD)
-    cls.shopfloor_handler_2_process = multiprocessing.Process(
-        target=RunServer, args=(cls.shopfloor_handler_2,))
-    cls.shopfloor_handler_2_process.start()
 
   def setUp(self):
     """Setups mox and mock umpire_client_info used in tests."""
@@ -433,115 +367,6 @@ class UmpireServerProxyTest(unittest.TestCase):
     self.mox.VerifyAll()
     logging.debug('Done')
 
-  def testGetResourceMapAndConnectToShopFloorHandler1(self):
-    """Inits an UmpireServerProxy and connects to shopfloor handler 1."""
-    umpire_client.UmpireClientInfo().AndReturn(self.fake_umpire_client_info)
-    self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO')
-    self.fake_umpire_client_info.Update().AndReturn(False)
-
-    self.mox.ReplayAll()
-
-    UmpireServerProxyTest.mock_resourcemap.SetPath('resourcemap1')
-
-    proxy = umpire_server_proxy.UmpireServerProxy(
-        server_uri=self.UMPIRE_SERVER_URI,
-        test_mode=True)
-
-    result = proxy.__getattr__(SHOPFLOOR_HANDLER_METHOD)('hi shopfloor 1')
-    self.assertEqual(
-        result,
-        'Handler: %s; message: %s' % ('shopfloor_handler1', 'hi shopfloor 1'))
-
-    self.mox.VerifyAll()
-    logging.debug('Done')
-
-  def testHandleClientInfoUpdate(self):
-    """Proxy tries to make a call but client info is updated."""
-    umpire_client.UmpireClientInfo().AndReturn(self.fake_umpire_client_info)
-    self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO1')
-    # When proxy tries to call method, Umpire_client_info.Update() returns
-    # True, so proxy needs to request resource map again.
-    self.fake_umpire_client_info.Update().AndReturn(True)
-    self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO2')
-
-    self.mox.ReplayAll()
-
-    # Http server serves resourcemap1 to DUT.
-    UmpireServerProxyTest.mock_resourcemap.SetPath('resourcemap1')
-
-    proxy = umpire_server_proxy.UmpireServerProxy(
-        server_uri=self.UMPIRE_SERVER_URI,
-        test_mode=True)
-
-    # After proxy init, http server serves resourcemap2 to DUT.
-    UmpireServerProxyTest.mock_resourcemap.SetPath('resourcemap2')
-
-    # Proxy thinks it is talking to shopfloor 1, but actually it will talk
-    # to shopfloor 2 after requesting resource map.
-    result = proxy.__getattr__(SHOPFLOOR_HANDLER_METHOD)('hi shopfloor 1')
-    self.assertEqual(result,
-                     'Handler: %s; message: %s' %
-                     ('shopfloor_handler2', 'hi shopfloor 1'))
-    # Token will be changed to the token in resourcemap2.
-    self.assertEqual(proxy._token, '00000002')  # pylint: disable=W0212
-    self.mox.VerifyAll()
-    logging.debug('Done')
-
-  def testHandleServerErrorMessageGone(self):
-    """Proxy tries to make a call but server says token is invalid."""
-    umpire_client.UmpireClientInfo().AndReturn(
-        self.fake_umpire_client_info)
-    self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO')
-    self.fake_umpire_client_info.Update().AndReturn(False)
-    self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO')
-
-    self.mox.ReplayAll()
-
-    UmpireServerProxyTest.mock_resourcemap.SetPath('resourcemap1')
-
-    proxy = umpire_server_proxy.UmpireServerProxy(
-        server_uri=self.UMPIRE_SERVER_URI,
-        test_mode=True)
-
-    UmpireServerProxyTest.mock_resourcemap.SetPath('resourcemap2')
-    # Lets shopfloor handler 1 generate 410 Gone error.
-    SetHandlerError('shopfloor_handler1', 410, 'Gone')
-    # Proxy thinks it is talking to shopfloor 1, but actually it will talk
-    # to shopfloor 2 after requesting resource map.
-    result = proxy.__getattr__(SHOPFLOOR_HANDLER_METHOD)('hi shopfloor 1')
-    # It talks to shopfloor_handler2 actually.
-    self.assertEqual(
-        result,
-        'Handler: %s; message: %s' % ('shopfloor_handler2', 'hi shopfloor 1'))
-
-    self.mox.VerifyAll()
-    logging.debug('Done')
-
-  def testHandleServerErrorMessageGoneRetriesFail(self):
-    """Proxy tries to make a call but server always says token is invalid."""
-    umpire_client.UmpireClientInfo().AndReturn(self.fake_umpire_client_info)
-    self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO')
-    self.fake_umpire_client_info.Update().AndReturn(False)
-    for _ in xrange(5):
-      self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO')
-
-    self.mox.ReplayAll()
-
-    UmpireServerProxyTest.mock_resourcemap.SetPath('resourcemap1')
-
-    proxy = umpire_server_proxy.UmpireServerProxy(
-        server_uri=self.UMPIRE_SERVER_URI,
-        test_mode=True)
-
-    # Lets shopfloor handler 1 generate 410 Gone error.
-    SetHandlerError('shopfloor_handler1', 410, 'Gone')
-
-    with self.assertRaises(umpire_server_proxy.UmpireServerProxyException):
-      proxy.__getattr__(SHOPFLOOR_HANDLER_METHOD)('hi shopfloor 1')
-
-    self.mox.VerifyAll()
-    logging.debug('Done')
-
   def testHandleServerErrorMessageConnectionRefused(self):
     """Inits proxy but server is unavailable.
 
@@ -567,17 +392,16 @@ class UmpireServerProxyTest(unittest.TestCase):
     # It is not OK if server is not available when method is called though
     # proxy.
     with self.assertRaises(umpire_server_proxy.UmpireServerProxyException):
-      proxy.__getattr__(SHOPFLOOR_HANDLER_METHOD)('hi shopfloor 1')
+      proxy.__getattr__(SHOPFLOOR_HANDLER_METHOD)('hi shopfloor')
 
     # Clear error files so base handler will not return 111 error.
     self.ClearErrorFiles()
 
-    # to shopfloor 1 after requesting resource map.
-    result = proxy.__getattr__(SHOPFLOOR_HANDLER_METHOD)('hi shopfloor 1')
-    # It talks to shopfloor_handler2 actually.
+    # retry after requesting resource map.
+    result = proxy.__getattr__(SHOPFLOOR_HANDLER_METHOD)('hi umpire')
     self.assertEqual(
         result,
-        'Handler: %s; message: %s' % ('shopfloor_handler1', 'hi shopfloor 1'))
+        'Handler: %s; message: %s' % ('shopfloor_handler', 'hi umpire'))
 
     self.mox.VerifyAll()
     logging.debug('Done')
@@ -596,7 +420,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     result = proxy.__getattr__(SHOPFLOOR_HANDLER_METHOD)('hi shopfloor')
     self.assertEqual(
         result,
-        'Handler: %s; message: %s' % ('shopfloor_handler1', 'hi shopfloor'))
+        'Handler: %s; message: %s' % ('shopfloor_handler', 'hi shopfloor'))
 
     self.mox.VerifyAll()
     logging.debug('Done')

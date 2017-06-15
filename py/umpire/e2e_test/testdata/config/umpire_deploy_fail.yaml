@@ -3,13 +3,14 @@ rulesets:
   note: n/a
   active: true
 services:
-  http: {}
+  http:
+   reverse_proxies:
+   - remoteip: "invalid ip with space"
+     proxy_addr: "invalid address with space"
   rsync: {}
   shop_floor: {}
   instalog: {}
 bundles:
 - id: empty_init_bundle
   note: n/a
-  shop_floor:
-    handler: cros.factory.umpire.nonexist_handler
-  payloads: payload.489a1c39af84e02926c0937ae95e4f23.json
+  payloads: payload.99914b932bd37a50b983c5e7c90ae93b.json

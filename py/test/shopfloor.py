@@ -199,16 +199,6 @@ def get_instance(url=None, detect=False, timeout=None, quiet=False):
       url, quiet=quiet, allow_none=True, verbose=False, timeout=timeout)
 
 
-def get_shopfloor_handler_uri():
-  """Gets shop floor server XMLRPC handler URI."""
-  instance = get_instance()
-  uri = instance.GetShopFloorHandlerUri()
-  if not uri:
-    uri = get_server_url()
-  logging.info('Get shopfloor handler uri %s', uri)
-  return uri
-
-
 @_server_api
 def check_server_status(instance=None):
   """Checks if the given instance is successfully connected.

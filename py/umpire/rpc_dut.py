@@ -253,6 +253,66 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
     return update_matrix
 
 
+class ShopfloorServiceDUTCommands(umpire_rpc.UmpireRPC):
+  """Shopfloor Service for DUT (Device Under Test) to invoke.
+
+  RPC URL:
+    http://umpire_server_address:umpire_port/umpire
+  """
+
+  def __init__(self, daemon, service_url):
+    super(ShopfloorServiceDUTCommands, self).__init__(daemon)
+    self.service = xmlrpclib.ServerProxy(service_url.rstrip('/'),
+                                         allow_none=True)
+
+  @umpire_rpc.RPCCall
+  def GetVersion(self):
+    """Returns the version of supported protocol."""
+    return self.service.GetVersion()
+
+  @umpire_rpc.RPCCall
+  def NotifyStart(self, data, station):
+    """Notifies shopfloor backend that DUT entered a manufacturing station."""
+    return self.service.NotifyStart(data, station)
+
+  @umpire_rpc.RPCCall
+  def NotifyEnd(self, data, station):
+    """Notifies shopfloor backend that DUT leaves a manufacturing station."""
+    return self.service.NotifyEnd(data, station)
+
+  @umpire_rpc.RPCCall
+  def NotifyEvent(self, data, event):
+    """Notifies shopfloor backend that the DUT has performed an event."""
+    return self.service.NotifyEvent(data, event)
+
+  @umpire_rpc.RPCCall
+  def GetDeviceInfo(self, data):
+    """Returns information about the device's expected configuration."""
+    return self.service.GetDeviceInfo(data)
+
+  @umpire_rpc.RPCCall
+  def ActivateRegCode(self, ubind_attribute, gbind_attribute, hwid):
+    """Notifies shopfloor backend that DUT has deployed a registration code."""
+    return self.service.ActivateRegCode(ubind_attribute, gbind_attribute, hwid)
+
+  @umpire_rpc.RPCCall
+  def UpdateTestResult(self, data, test_id, status, details=None):
+    """Sends the specified test result to shopfloor backend."""
+    return self.service.UpdateTestResult(data, test_id, status, details)
+
+  @umpire_rpc.RPCCall
+  @utils.Deprecate
+  def Finalize(self, serial_number):
+    """Legacy from inform_shopfloor, not in Shopfloor Service API 1.0."""
+    return self.NotifyEvent({'serial_number': serial_number}, 'Finalize')
+
+  @umpire_rpc.RPCCall
+  @utils.Deprecate
+  def FinalizeFQC(self, serial_number):
+    """Legacy from inform_shopfloor, not in Shopfloor Service API 1.0."""
+    return self.NotifyEvent({'serial_number': serial_number}, 'Refinalize')
+
+
 class LogDUTCommands(umpire_rpc.UmpireRPC):
   """DUT log upload procedures.
 

@@ -127,6 +127,11 @@ def StartServer(config_file=None):
   # Add Umpire RPC handlers.
   umpire_dut_rpc = rpc_dut.UmpireDUTCommands(umpired)
   umpired.AddMethodForDUT(umpire_dut_rpc)
+  # TODO(hungte) Change shopfloor service to a real Umpire service.
+  # Add Shopfloor Service RPC handlers
+  shopfloor_service_rpc = rpc_dut.ShopfloorServiceDUTCommands(
+      umpired, env.shopfloor_service_url)
+  umpired.AddMethodForDUT(shopfloor_service_rpc)
   # Add log RPC handlers.
   log_dut_rpc = rpc_dut.LogDUTCommands(umpired)
   umpired.AddMethodForDUT(log_dut_rpc)

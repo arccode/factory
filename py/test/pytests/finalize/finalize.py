@@ -450,11 +450,10 @@ class Finalize(unittest.TestCase):
     if not self.args.secure_wipe:
       command += ' --fast'
 
-    if (self.args.inform_shopfloor_after_wipe and
-        shopfloor.is_enabled() and
-        shopfloor.get_shopfloor_handler_uri()):
-      command += ' --shopfloor_url "%s"' % (
-          shopfloor.get_shopfloor_handler_uri())
+    if self.args.inform_shopfloor_after_wipe and shopfloor.is_enabled():
+      server_url = shopfloor.get_server_url()
+      if server_url:
+        command += ' --shopfloor_url "%s"' % server_url
 
     command += ' --upload_method "%s"' % upload_method
     command += ' --add_file "%s"' % self.test_states_path

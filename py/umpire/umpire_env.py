@@ -18,7 +18,6 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import common
 from cros.factory.umpire import config
 from cros.factory.umpire import resource
-from cros.factory.umpire import shop_floor_manager
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
@@ -45,8 +44,6 @@ _RSYNC_PORT_OFFSET = 4
 _HTTP_POST_PORT_OFFSET = 5
 _INSTALOG_SOCKET_PORT_OFFSET = 6
 _INSTALOG_HTTP_PORT_OFFSET = 7
-# shopfloor XMLRPC port ranges starts at base_port + _SHOPFLOOR_PORTS_OFFSET.
-_SHOPFLOOR_PORTS_OFFSET = 10
 
 
 def GetRsyncPortFromBasePort(base_port):
@@ -70,7 +67,6 @@ class UmpireEnv(object):
     config_path: Path of the Umpire Config file
     config: Active UmpireConfig object
     staging_config: Staging UmpireConfig object
-    shop_floor_manager: ShopFloorManager instance
   """
   # List of Umpire mandatory subdirectories.
   # Use tuple to avoid modifying.
@@ -83,7 +79,6 @@ class UmpireEnv(object):
     self.config_path = None
     self.config = None
     self.staging_config = None
-    self.shop_floor_manager = None
 
   @property
   def device_toolkits_dir(self):
@@ -163,8 +158,30 @@ class UmpireEnv(object):
     return self.umpire_base_port + _INSTALOG_HTTP_PORT_OFFSET
 
   @property
-  def shopfloor_start_port(self):
-    return self.umpire_base_port + _SHOPFLOOR_PORTS_OFFSET
+  def shopfloor_service_url(self):
+
+    def IsInsideDocker():
+      with open('/proc/1/sched') as f:
+        return f.readline().split()[0] != 'init'
+
+    if not self.config:
+      raise common.UmpireError('UmpireConfig not loaded yet.')
+    url = self.config.get('shopfloor_service_url')
+    if url is None:
+      # When running inside Docker, we want to reach the service running outside
+      # Docker so the host should be default router; otherwise host should be
+      # localhost.
+      host = 'localhost'
+      try:
+        if IsInsideDocker():
+          # 'ip route' prints default routing in first line: 'default via <IP>'
+          host = process_utils.CheckOutput([
+              'ip', 'route']).splitlines()[0].split()[2]
+      except Exception:
+        logging.debug('Probably not inside Docker, bind to localhost.')
+
+      url = 'http://%s:%s' % (host, common.DEFAULT_SHOPFLOOR_SERVICE_PORT)
+    return url.rstrip('/')
 
   def ReadConfig(self, custom_path=None):
     """Reads Umpire config.
@@ -181,16 +198,11 @@ class UmpireEnv(object):
     config_path = custom_path or self.active_config_file
     return config.UmpireConfig(config_path)
 
-  def LoadConfig(self, custom_path=None, init_shop_floor_manager=True,
-                 validate=True):
+  def LoadConfig(self, custom_path=None, validate=True):
     """Loads Umpire config file and validates it.
-
-    Also, if init_shop_floor_manager is True, it also initializes
-    ShopFloorManager.
 
     Args:
       custom_path: If specified, load the config file custom_path pointing to.
-      init_shop_floor_manager: True to init ShopFloorManager object.
       validate: True to validate resources in config.
 
     Raises:
@@ -202,13 +214,6 @@ class UmpireEnv(object):
         config.ValidateResources(result, self)
       return result
 
-    def _InitShopFloorManager():
-      # Can be obtained after a valid config is loaded.
-      port_start = self.shopfloor_start_port
-      if port_start:
-        self.shop_floor_manager = shop_floor_manager.ShopFloorManager(
-            port_start, port_start + config.NUMBER_SHOP_FLOOR_HANDLERS)
-
     # Load active config & update config_path.
     config_path = custom_path or self.active_config_file
     logging.debug('Load %sconfig: %s', 'active ' if not custom_path else '',
@@ -216,9 +221,6 @@ class UmpireEnv(object):
     # Note that config won't be set if it fails to load/validate the new config.
     self.config = _LoadValidateConfig(config_path)
     self.config_path = config_path
-
-    if init_shop_floor_manager:
-      _InitShopFloorManager()
 
   def HasStagingConfigFile(self):
     """Checks if a staging config file exists.

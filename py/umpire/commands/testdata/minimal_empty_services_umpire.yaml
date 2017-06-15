@@ -6,11 +6,7 @@ services: {}
 bundles:
 - id: non_default_test
   note: another bundle (not default)
-  shop_floor:
-    handler: cros.factory.shopfloor.test_board_shopfloor
   payloads: payload.99914b932bd37a50b983c5e7c90ae93b.json
 - id: default_test
   note: default bundle for test
-  shop_floor:
-    handler: cros.factory.shopfloor.test_board_shopfloor
   payloads: payload.99914b932bd37a50b983c5e7c90ae93b.json

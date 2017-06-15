@@ -74,8 +74,7 @@ class ConfigDeployer(object):
     """
     logging.error('Failed to deploy config %r. Reason: %s. Rollbacking...',
                   self._config_path_to_deploy, failure)
-    self._env.LoadConfig(custom_path=self._original_config_path,
-                         init_shop_floor_manager=False)
+    self._env.LoadConfig(custom_path=self._original_config_path)
     deferred = self._daemon.Deploy()
     deferred.addCallbacks(self._HandleRollbackSuccess,
                           self._HandleRollbackError)
@@ -132,8 +131,7 @@ class ConfigDeployer(object):
 
     # Load new config and let daemon deploy it.
     # Note that it shall not init ShopFloorManager here.
-    self._env.LoadConfig(custom_path=self._config_path_to_deploy,
-                         init_shop_floor_manager=False)
+    self._env.LoadConfig(custom_path=self._config_path_to_deploy)
     logging.info('Config %r validated. Try deploying...',
                  self._config_path_to_deploy)
     deferred = self._daemon.Deploy()

@@ -36,7 +36,7 @@ CONFIG_SCHEMA = {
 
 CLI_HOSTNAME = '0.0.0.0'  # Allows remote connections.
 CLI_PORT = 7000
-NODE_ID = 'shopfloor'
+NODE_ID = 'factory_server'
 SERVICE_NAME = 'instalog'
 
 
