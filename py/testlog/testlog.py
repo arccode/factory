@@ -14,10 +14,8 @@ TODO(itspeter): Remove event_log related path once phased out.
 TODO(itspeter): Move to Instalog folder and remove the dependency of
                 factory framework
 
-[FACTORY_ROOT] ─── .device_id
-                   (legacy file, replaced by [LOG_ROOT]/device_id)
+[DATA_DIR] ─── .device_id
 [LOG_ROOT]─┬─ testlog.json
-           ├─ device_id
            ├─ init_count
            ├─ installation_id
            ├─ events/ ─┬─ .boot_sequence
@@ -987,7 +985,8 @@ class StationTestRun(_StationBase):
     kwargs['schema'] = SCHEMA
     return testlog_validator.Validator.Dict(*args, **kwargs)
 
-  def _ValidatorAttachmentWrapper(*args, **kwargs):  # pylint: disable=E0211
+  def _ValidatorAttachmentWrapper(*args, **kwargs):
+    # pylint: disable=no-method-argument
     SCHEMA = schema.FixedDict(
         'attachments.value',
         items={'path': schema.Scalar('path', basestring),

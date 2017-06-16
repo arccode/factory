@@ -14,10 +14,11 @@ import shutil
 import tempfile
 import unittest
 
+import mock
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import testlog_goofy
 
-MAC_RE = re.compile(r'^([a-f0-9]{2}:){5}[a-f0-9]{2}$')
 UUID_RE = re.compile(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-'
                      '[a-f0-9]{4}-[a-f0-9]{12}$')
 
@@ -41,40 +42,17 @@ class TestlogGoofyTest(unittest.TestCase):
   def tearDown(self):
     shutil.rmtree(self.tmp)
 
-  def testGetBootId(self):
+  def testGetBootID(self):
     assert UUID_RE.match(testlog_goofy.GetBootID())
 
-  def testGetDeviceIdGenerateId(self):
-    device_id = testlog_goofy.GetDeviceID()
-    assert (MAC_RE.match(device_id) or
-            UUID_RE.match(device_id)), device_id
-
-    # Remove device_id and make sure we get the same thing
-    # back again, re-reading it from disk or the wlan0 interface
-    testlog_goofy._device_id = None  # pylint: disable=protected-access
-    self.assertEqual(device_id, testlog_goofy.GetDeviceID())
-
-    self.assertNotEqual(device_id, testlog_goofy.GetInstallationID())
-
-  def testGetDeviceIdFromSearchPath(self):
-    testlog_goofy._device_id = None  # pylint: disable=protected-access
-
-    mock_id = 'MOCK_ID'
-    device_id_search_path = os.path.join(self.tmp, '.device_id_search')
-    with open(device_id_search_path, 'w') as f:
-      print >> f, mock_id
-    testlog_goofy.DEVICE_ID_SEARCH_PATHS = [device_id_search_path]
-
-    # Device ID should be the same as mock_id every time it is called.
-    device_id = testlog_goofy.GetDeviceID()
-    self.assertEqual(mock_id, device_id)
-    self.assertEqual(mock_id, testlog_goofy.GetDeviceID())
-
-    # Ensure the mock ID remains the same even if search path is gone.
-    # i.e. obtains ID from the file
-    testlog_goofy._device_id = None  # pylint: disable=protected-access
-    testlog_goofy.DEVICE_ID_SEARCH_PATHS = []
-    self.assertEqual(mock_id, testlog_goofy.GetDeviceID())
+  @mock.patch('testlog_goofy.file_utils.ReadFile', return_value='device_id\n')
+  @mock.patch('os.path.exists', return_value=True)
+  def testGetDeviceID(self, mock_exists, mock_read_file):
+    self.assertEqual('device_id', testlog_goofy.GetDeviceID())
+    # Make one more call to ensure the result is cached.
+    self.assertEqual('device_id', testlog_goofy.GetDeviceID())
+    mock_exists.assert_called_once_with(testlog_goofy.DEVICE_ID_PATH)
+    mock_read_file.assert_called_once_with(testlog_goofy.DEVICE_ID_PATH)
 
   def testGetInstallationID(self):
     installation_id = testlog_goofy.GetInstallationID()

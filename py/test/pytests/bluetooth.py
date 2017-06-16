@@ -32,6 +32,7 @@ from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
 from cros.factory.test import state
 from cros.factory.test import test_ui
+from cros.factory.test import testlog_goofy
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import bluetooth_utils
 from cros.factory.utils.arg_utils import Arg
@@ -491,7 +492,7 @@ class DetectRSSIofTargetMACTask(factory_task.FactoryTask):
       self.fail_msg += 'Wrong type of RSSI threshold: %s\n' % str(threshold)
 
   def Run(self):
-    fid = event_log.GetDeviceId()
+    fid = testlog_goofy.GetDeviceID()
     self._average_rssi_lower_threshold = self._DeriveRSSIThreshold(
         self._test.args.average_rssi_lower_threshold, fid)
     self._average_rssi_upper_threshold = self._DeriveRSSIThreshold(
@@ -1181,7 +1182,7 @@ class BluetoothTest(unittest.TestCase):
     if self.args.use_charge_fixture:
       # Import this module only when a test station needs it.
       # A base SMT test station does not need to use the charge fixture.
-      # pylint: disable=E0611
+      # pylint: disable=no-name-in-module
       from cros.factory.test.fixture import base_charge_fixture
       # Note: only reset the fixture in InitializeFixture test.
       #       This will stop charging and disable the magnet initially.

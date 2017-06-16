@@ -68,6 +68,7 @@ from cros.factory.test import leds
 from cros.factory.test.rf import n1914a
 from cros.factory.test import shopfloor
 from cros.factory.test import state
+from cros.factory.test import testlog_goofy
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
@@ -178,7 +179,7 @@ class RFRadiatedTest(unittest.TestCase):
             'content': None},
         'dut': {
             'antenna_model': None,
-            'device_id': event_log.GetDeviceId(),
+            'device_id': testlog_goofy.GetDeviceID(),
             'mac_address': net_utils.GetWLANMACAddress(),
             'serial_number': self.dut.GetSerialNumber(),
             'mlb_serial_number': self.dut.GetMlbSerialNumber(),

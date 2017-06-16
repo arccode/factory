@@ -20,16 +20,16 @@ import time
 import unittest
 import uuid
 
-import mock
 import yaml
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.external import dbus
-from cros.factory.test import event_log
-from cros.factory.utils import file_utils
 from cros.factory.hwid.v3.common import ProbedComponentResult
+from cros.factory.test import event_log
+from cros.factory.test import testlog_goofy
+from cros.factory.utils import file_utils
 
-MAC_RE = re.compile(r'^([a-f0-9]{2}:){5}[a-f0-9]{2}$')
+from cros.factory.external import dbus
+
 UUID_RE = re.compile(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-'
                      '[a-f0-9]{4}-[a-f0-9]{12}$')
 
@@ -38,7 +38,7 @@ def Reset():
   # Deletes state files and resets global variables.
   event_log.device_id = event_log.reimage_id = None
   shutil.rmtree(event_log.EVENT_LOG_DIR, ignore_errors=True)
-  for f in [event_log.DEVICE_ID_PATH, event_log.SEQUENCE_PATH,
+  for f in [testlog_goofy.DEVICE_ID_PATH, event_log.SEQUENCE_PATH,
             event_log.BOOT_SEQUENCE_PATH, event_log.EVENTS_PATH]:
     file_utils.TryUnlink(f)
 
@@ -192,15 +192,6 @@ class EventLogTest(unittest.TestCase):
   def testGetBootId(self):
     assert UUID_RE.match(event_log.GetBootId())
 
-  @mock.patch('event_log.file_utils.ReadFile', return_value='device_id\n')
-  @mock.patch('os.path.exists', return_value=True)
-  def testGetDeviceIdGenerateId(self, mock_exists, mock_read_file):
-    event_log._device_id = None  # pylint: disable=protected-access
-    self.assertEqual('device_id', event_log.GetDeviceId())
-    self.assertEqual('device_id', event_log.GetDeviceId())
-    mock_exists.assert_called_with(event_log.DEVICE_ID_PATH)
-    mock_read_file.assert_called_with(event_log.DEVICE_ID_PATH)
-    mock_exists.assert_called_with(event_log.DEVICE_ID_PATH)
 
   def testGetReimageId(self):
     reimage_id = event_log.GetReimageId()
@@ -270,7 +261,7 @@ class EventLogTest(unittest.TestCase):
     self.assertEqual(0, log_data[0]['SEQ'])
     self.assertEqual(event_log.GetBootId(), log_data[0]['boot_id'])
     self.assertEqual(-1, log_data[0]['boot_sequence'])
-    self.assertEqual(event_log.GetDeviceId(), log_data[0]['device_id'])
+    self.assertEqual(testlog_goofy.GetDeviceID(), log_data[0]['device_id'])
     self.assertEqual(event_log.GetReimageId(), log_data[0]['reimage_id'])
     log_id = log_data[0]['LOG_ID']
     uuid.UUID(log_id)  # Make sure UUID is well-formed
@@ -287,7 +278,7 @@ class EventLogTest(unittest.TestCase):
              SEQ=2,
              boot_id=event_log.GetBootId(),
              boot_sequence=-1,
-             device_id=event_log.GetDeviceId(),
+             device_id=testlog_goofy.GetDeviceID(),
              factory_md5sum=None,
              reimage_id=event_log.GetReimageId()),
         log_data[2])

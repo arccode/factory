@@ -10,7 +10,6 @@
 
 import glob
 import logging
-import mox
 import os
 import Queue
 import shutil
@@ -18,10 +17,13 @@ import threading
 import unittest
 from urlparse import urlparse
 
-import factory_common  # pylint: disable=W0611
+import mox
+
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test import shopfloor
 from cros.factory.test import state
+from cros.factory.test import testlog_goofy
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 
@@ -59,12 +61,12 @@ MOCK_POLLING_DURATION = 3.8 * MOCK_POLLING_PERIOD
 
 MOCK_SERVER_URL = 'http://0.0.0.0:1234'
 MOCK_PORT = '8084'
-MOCK_DEVICE_ID = 'ab:cd:ef:12:34:56'
+MOCK_DEVICE_ID = 'abcdef0123456789abcdef0123456789'
 MOCK_IMAGE_ID = '123456'
 MOCK_RSYNC_DESTINATION = [
     'rsync://%s:%s/system_logs/%s' %
     (urlparse(MOCK_SERVER_URL).hostname, MOCK_PORT,
-     MOCK_DEVICE_ID.replace(':', '') + '_' + MOCK_IMAGE_ID)]
+     MOCK_DEVICE_ID + '_' + MOCK_IMAGE_ID)]
 MOCK_RSYNC_COMMAND_ARG = ['rsync', '-azR', '--stats', '--chmod=o-t',
                           '--timeout=%s' % MOCK_RSYNC_IO_TIMEOUT]
 
@@ -186,7 +188,7 @@ class TestSystemLogManager(unittest.TestCase):
     """Sets mocked methods and objects."""
     self.mox.StubOutWithMock(shopfloor, 'get_server_url')
     self.mox.StubOutWithMock(shopfloor, 'get_instance')
-    self.mox.StubOutWithMock(event_log, 'GetDeviceId')
+    self.mox.StubOutWithMock(testlog_goofy, 'GetDeviceID')
     self.mox.StubOutWithMock(event_log, 'GetReimageId')
     self.mox.StubOutWithMock(system_log_manager, 'Spawn')
     self.mox.StubOutWithMock(system_log_manager, 'TerminateOrKillProcess')
@@ -222,7 +224,7 @@ class TestSystemLogManager(unittest.TestCase):
         detect=True, timeout=MOCK_SHOPFLOOR_TIMEOUT, quiet=False).AndReturn(
             self.fake_shopfloor)
     self.fake_shopfloor.GetFactoryLogPort().AndReturn(MOCK_PORT)
-    event_log.GetDeviceId().AndReturn(MOCK_DEVICE_ID)
+    testlog_goofy.GetDeviceID().AndReturn(MOCK_DEVICE_ID)
     event_log.GetReimageId().AndReturn(MOCK_IMAGE_ID)
     if extra_files:
       logging.debug('Mocks getting extra_files %r', extra_files)

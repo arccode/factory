@@ -8,7 +8,6 @@
 import logging
 import os
 import re
-import subprocess
 import threading
 import time
 import uuid
@@ -32,10 +31,6 @@ FileLock = platform_utils.GetProvider('FileLock')
 _global_event_logger = None
 _event_logger_lock = threading.Lock()
 _default_event_logger_prefix = None
-
-# The location to store the device ID file should be a place that is
-# less likely to be deleted.
-DEVICE_ID_PATH = os.path.join(paths.DATA_DIR, ".device_id")
 
 EVENT_LOG_DIR = os.path.join(paths.DATA_STATE_DIR, "events")
 
@@ -246,25 +241,6 @@ def SetGlobalLoggerDefaultPrefix(prefix):
                              "initializing the global event logger") % prefix)
 
   _default_event_logger_prefix = prefix
-
-
-def GetDeviceId():
-  """Returns the device ID.
-
-  The device ID is created and stored by init/goofy.d/device/device_id.sh on
-  system startup. We read it and cache it in the global variable _device_id.
-  """
-  with _event_logger_lock:
-    global _device_id  # pylint: disable=global-statement
-    if _device_id is None:
-      if os.path.exists(DEVICE_ID_PATH):
-        _device_id = file_utils.ReadFile(DEVICE_ID_PATH).strip()
-      else:
-        # The device_id file doesn't exist, we probably are not on DUT, just
-        # run bin/device_id once and return the result.
-        device_id_bin = os.path.join(paths.FACTORY_DIR, 'bin', 'device_id')
-        _device_id = subprocess.check_output(device_id_bin).strip()
-    return _device_id
 
 
 def GetReimageId():
@@ -537,7 +513,7 @@ class EventLog(object):
     self.file = open(EVENTS_PATH, "a")
     self._LogUnlocked("preamble",
                       boot_id=GetBootId(),
-                      device_id=GetDeviceId(),
+                      device_id=testlog_goofy.GetDeviceID(),
                       reimage_id=GetReimageId(),
                       boot_sequence=GetBootSequence(),
                       factory_md5sum=factory.get_current_md5sum())

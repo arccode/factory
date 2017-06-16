@@ -1,5 +1,3 @@
-# -*- mode: python; coding: utf-8 -*-
-#
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -14,7 +12,7 @@ Here's an example of input arguments::
 
   ARGS={
       'station_name': 'gps_fatp',
-      'fixture_id': event_log.GetDeviceId(),
+      'fixture_id': testlog_goofy.GetDeviceID(),
       'timeout': 30,
       'init_timeout': 30,
       'warmup_count': 1,
@@ -33,20 +31,15 @@ Here's an example of input arguments::
 
 from __future__ import print_function
 
-from contextlib import contextmanager
-import datetime
 import logging
 import os
 import re
-import shutil
 import subprocess
 import sys
 import threading
 import unittest
-import zipfile
 
 import numpy
-import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory import device
@@ -54,7 +47,6 @@ from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import file_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
 
