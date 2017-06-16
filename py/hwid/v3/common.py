@@ -377,11 +377,12 @@ class BOM(object):
           'list of ProbedComponentResult',
           schema.Tuple('ProbedComponentResult',
                        [schema.Optional(schema.Scalar('component name', str)),
-                        schema.Optional(schema.Dict('probed_values',
-                                                    key_type=schema.Scalar('key', str),
-                                                    value_type=schema.AnyOf([
-                                                        schema.Scalar('value', str),
-                                                        schema.Scalar('value', rule.Value)]))),
+                        schema.Optional(schema.Dict(
+                            'probed_values',
+                            key_type=schema.Scalar('key', str),
+                            value_type=schema.AnyOf([
+                                schema.Scalar('value', str),
+                                schema.Scalar('value', rule.Value)]))),
                         schema.Optional(schema.Scalar('error', str))])))
 
   def __init__(self, board, encoding_pattern_index, image_id,

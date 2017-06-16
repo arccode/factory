@@ -462,7 +462,8 @@ class Database(object):
           # probed_components argument.
           bom_component_names_of_the_class = sorted([
               x.component_name for x in probed_components[db_comp_cls]])
-          # Create a sorted list of component names of db_comp_cls from the database.
+          # Create a sorted list of component names of db_comp_cls from the
+          # database.
           db_component_names_of_the_class = sorted(db_comp_names)
           if (bom_component_names_of_the_class !=
               db_component_names_of_the_class):
@@ -797,9 +798,10 @@ class EncodedFields(dict):
             'encoded indices', schema.Scalar('encoded index', int),
             schema.Dict(
                 'component classes', schema.Scalar('component class', str),
-                schema.Optional([schema.Scalar('component name', str),
-                                 schema.List('list of component names',
-                                             schema.Scalar('component name', str))]))))
+                schema.Optional(
+                    [schema.Scalar('component name', str),
+                     schema.List('list of component names',
+                                 schema.Scalar('component name', str))]))))
     self.schema.Validate(encoded_fields_dict)
     super(EncodedFields, self).__init__(encoded_fields_dict)
     # Convert string to list of string.
@@ -861,7 +863,8 @@ class Components(object):
                         'component attributes',
                         items={'values': schema.Optional(
                             schema.Dict('probe key-value pairs',
-                                        key_type=schema.Scalar('probe key', str),
+                                        key_type=schema.Scalar('probe key',
+                                                               str),
                                         value_type=schema.AnyOf([
                                             schema.Scalar('probe value', str),
                                             schema.Scalar('probe value regexp',
