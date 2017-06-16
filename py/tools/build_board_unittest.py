@@ -5,7 +5,6 @@
 
 """Unit tests for build_board module."""
 
-import os
 import unittest
 
 import factory_common  # pylint: disable=W0611
@@ -16,18 +15,10 @@ class BuildBoardTest(unittest.TestCase):
   """Unit tests for BuildBoard class."""
 
   def runTest(self):
-    have_private_overlays = os.path.exists(
-        os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src',
-                     'private-overlays'))
-
     spring = BuildBoard('spring')
     self.assertDictContainsSubset(
         dict(base='daisy', variant='spring', full_name='daisy_spring',
-             short_name='spring', gsutil_name='daisy-spring',
-             overlay_relpath=('private-overlays/'
-                              'overlay-variant-daisy-spring-private'
-                              if have_private_overlays else
-                              'overlays/overlay-variant-daisy-spring')),
+             short_name='spring', gsutil_name='daisy-spring'),
         spring.__dict__)
 
     # "daisy_spring" and "daisy-spring" should be the same
@@ -36,10 +27,7 @@ class BuildBoardTest(unittest.TestCase):
 
     self.assertDictContainsSubset(
         dict(base='link', variant=None, full_name='link',
-             short_name='link', gsutil_name='link',
-             overlay_relpath=('private-overlays/overlay-link-private'
-                              if have_private_overlays else
-                              'overlays/overlay-link')),
+             short_name='link', gsutil_name='link'),
         BuildBoard('link').__dict__)
 
     self.assertRaisesRegexp(BuildBoardException, 'Unknown board',

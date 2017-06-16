@@ -15,16 +15,6 @@ from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
 
-# List of all source path that could be used for overlay project.
-OVERLAY_PATH = [
-    'overlays/overlay-%s',
-    'overlays/overlay-variant-%s',
-    'overlays/project-%s',
-    'private-overlays/overlay-%s-private',
-    'private-overlays/overlay-variant-%s-private',
-    'private-overlays/project-%s-private']
-
-
 def GetChromeOSFactoryBoardPath(board):
   # The packages here must be in same order as defined in
   # virtual/chromeos-bsp-factory.
@@ -70,10 +60,6 @@ class BuildBoard(object):
     factory_board_files: A folder to FILESDIR in factory board package
       (chromeos-factory-board or factory-board). This is available only
       when the module is invoked in chroot.
-    overlay_relpath: Relative patch the overlay within the source root
-      (like "overlays/overlay-variant-tegra2-dev-board" for
-      "tegra2_dev-board").  This is available only when this module is
-      invoked in chroot.
   """
 
   def __init__(self, board_name=None):
@@ -166,21 +152,6 @@ class BuildBoard(object):
     self.variant = self.variant or None  # Use None, not ''
     self.short_name = self.variant or self.base  # Ick
     self.gsutil_name = re.sub('_', '-', self.full_name)
-
-    if sys_utils.InChroot():
-      # Only get overlay relative path in chroot.
-      overlay = (self.base if not self.variant else
-                 '%s-%s' % (self.base, self.variant))
-
-      try_overlays = [path % overlay for path in OVERLAY_PATH]
-      overlay_paths = [os.path.join(src, d) for d in try_overlays]
-      existing_overlays = filter(os.path.exists, overlay_paths)
-      if not existing_overlays:
-        raise BuildBoardException('Unable to find overlay for board %s at %s' %
-                                  (self.full_name, overlay_paths))
-      self.overlay_relpath = os.path.relpath(existing_overlays[0], src)
-    else:
-      self.overlay_relpath = None
 
   @type_utils.LazyProperty
   def factory_board_files(self):
