@@ -601,6 +601,20 @@ class TestInvocation(object):
 
       try:
         self.goofy.event_log.Log('resume_test', **log_args)
+        self.session_json_path = testlog.InitSubSession(
+            log_root=paths.DATA_LOG_DIR,
+            station_test_run=self._convert_log_args(
+                log_args, TestState.ACTIVE),
+            uuid=self.uuid)
+        log_args.pop('dargs', None)  # We need to avoid duplication
+        log_args.pop('serial_numbers', None)  # We need to avoid duplication
+        log_args.pop('tag', None)  # We need to avoid duplication
+        self.env_additions[
+            testlog.TESTLOG_ENV_VARIABLE_NAME] = self.session_json_path
+
+        # Log a STARTING event.
+        testlog.LogTestRun(self.session_json_path, self._convert_log_args(
+            log_args, testlog.StationTestRun.STATUS.STARTING))
       except Exception:
         logging.exception('Unable to log resume_test event')
 
@@ -646,8 +660,8 @@ class TestInvocation(object):
         log_args.pop('dargs', None)  # We need to avoid duplication
         log_args.pop('serial_numbers', None)  # We need to avoid duplication
         log_args.pop('tag', None)  # We need to avoid duplication
-        self.env_additions.update(
-            {testlog.TESTLOG_ENV_VARIABLE_NAME: self.session_json_path})
+        self.env_additions[
+            testlog.TESTLOG_ENV_VARIABLE_NAME] = self.session_json_path
 
         # Log a STARTING event.
         testlog.LogTestRun(self.session_json_path, self._convert_log_args(
