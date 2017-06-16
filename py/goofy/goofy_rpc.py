@@ -562,6 +562,8 @@ class GoofyRPC(object):
       raise GoofyRPCException(
           'Cannot switch test in chroot; please manually restart Goofy')
     else:
+      # Reset goofy_ghost so the test list in overlord is correct.
+      process_utils.Spawn(['goofy_ghost', 'reset'], call=True)
       # Restart Goofy and clear state.
       process_utils.Spawn(
           ['nohup ' +

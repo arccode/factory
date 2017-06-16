@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "context": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "ui": {
+      "type": "object",
+      "properties": {
+        "controls": {
+          "type": "array",
+          "items": {"type": "object"}
+        },
+        "display": {"type": "object"},
+        "lights": {
+          "type": "array",
+          "items": {"type": "object"}
+        },
+        "logs": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "terminals": {
+          "type": "array",
+          "items": {"type": "object"}
+        },
+        "update_ui_command": {"type": "string"},
+        "group": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

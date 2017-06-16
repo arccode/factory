@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-FACTORY_BASE="/usr/local/factory"
+FACTORY_DIR="/usr/local/factory"
 
-export PATH=${FACTORY_BASE}/bin:${FACTORY_BASE}/bin/overlord:$PATH
-${FACTORY_BASE}/bin/ghost --fork > /dev/null 2>&1
+export PATH=${FACTORY_DIR}/bin:${FACTORY_DIR}/bin/overlord:$PATH
+${FACTORY_DIR}/bin/goofy_ghost start > /dev/null 2>&1
