@@ -125,13 +125,13 @@ check_ac_state() {
 }
 
 main() {
+  options_find_tty
+
   local key
   options_parse_command_line "$@"
   options_check_values
-  export TTY  # for display_wipe_message to use same TTY settings.
 
   reset_activate_date
-
   reset_recovery_count
 
   if has_battery; then

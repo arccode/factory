@@ -39,19 +39,24 @@ post_to_shopfloor() {
   local shopfloor_url="$1"
   local post_file="$2"
   local response=""
+  local rc=""
 
   while true; do
-    echo "Sending data to shopfloor..." >"${TTY}"
-    if response=$(wget -T 30 --tries 1 -q --header='Content-Type: text/xml' \
-        --post-file="${post_file}" -O - "${shopfloor_url}"); then
-      if ! echo "${response}" | grep -q "fault"; then
-        return
-      else
-        echo "Shopfloor call failed with response ${response}" >"${TTY}"
-      fi
+    echo "Sending data to shopfloor service ${shopfloor_url}..." >"${TTY}"
+    rc=0
+    response="$(curl --header 'Content-Type: text/xml' --data "@${post_file}" \
+      --connect-timeout 10 --retry 1 -s "${shopfloor_url}")" || rc="$?"
+    if [ "${rc}" != 0 ]; then
+      echo "Cannot connect to server: ${shopfloor_url}" >"${TTY}"
+    elif ! echo "${response}" | grep -qw "methodResponse"; then
+      echo "Unknown response from server: ${response}" >"${TTY}"
+    elif echo "${response}" | grep -qw "fault"; then
+      echo "Shopfloor Service failed, response: ${response}" >"${TTY}"
     else
-      echo "Cannot connect to server ${shopfloor_url}." >"${TTY}"
+      echo "SUCCESS: Invoked Shopfloor Service." >"${TTY}"
+      return
     fi
+
     echo "Retry in 10s..." >"${TTY}"
     sleep 10
     # Clear screen.
@@ -60,11 +65,12 @@ post_to_shopfloor() {
 }
 
 main() {
+  options_find_tty
+
   if [ $# -ne 2 ]; then
     usage_help
     exit 1
   fi
-  export TTY  # for display_wipe_message to use same TTY settings.
 
   local shopfloor_url="$1"
   if [ -z "${shopfloor_url}" ]; then
@@ -77,7 +83,7 @@ main() {
     factory_reset|factory_wipe )
       if ! "${GENERATE_FINALIZE_REQUEST}" "$2" >"${POST_FILE}"; then
         local err=""
-        err="$(cat ${POST_FILE})"
+        err="$(cat "${POST_FILE}")"
         die_with_error_message "Failed to generate request: ${err}"
       fi
       post_to_shopfloor "${shopfloor_url}" "${POST_FILE}"

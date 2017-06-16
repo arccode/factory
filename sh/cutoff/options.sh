@@ -39,6 +39,19 @@ lsbval() {
   fi
 }
 
+# Try to find a real working TTY.
+options_find_tty() {
+  local tty
+  for tty in "${TTY}" /run/frecon/vt0 /dev/tty /dev/console /dev/null; do
+    if [ -w "${tty}" ]; then
+      TTY="${tty}"
+      break
+    fi
+  done
+  echo "Selected TTY: ${TTY}"
+  export TTY
+}
+
 # Try to read from config file. This file should be using same format that
 # /etc/lsb-release is using and friendly for sh to process, or a JSON file.
 # Usage: load_options_file <FILE>
