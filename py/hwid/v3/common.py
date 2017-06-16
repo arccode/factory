@@ -57,6 +57,24 @@ def ProbeBoard(hwid=None):
   return build_board.BuildBoard().short_name
 
 
+def ProbeProject(hwid=None):
+  """Probes the project name.
+
+  Currently this function is equal to `ProbeBoard(hwid)`.
+
+  Args:
+    hwid: A HWID string to parse.
+
+  Returns:
+    The probed project name as a string.
+
+  Raises:
+    HWIDException when probe error.
+  """
+  # TODO(yhong): return the real project name instead of board name
+  return ProbeBoard(hwid)
+
+
 def IsMPKeyName(name):
   """Returns True if the key name looks like MP (not pre-MP).
 

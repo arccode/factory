@@ -169,7 +169,7 @@ class Database(object):
       HWIDException if no database is found.
     """
     return Database.LoadFile(os.path.join(common.DEFAULT_HWID_DATA_PATH,
-                                          common.ProbeBoard().upper()),
+                                          common.ProbeProject().upper()),
                              verify_checksum=verify_checksum)
 
   @staticmethod

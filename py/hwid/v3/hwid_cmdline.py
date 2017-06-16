@@ -339,6 +339,7 @@ def InitializeDefaultOptions(options):
   if not options.hwid_db_path:
     options.hwid_db_path = common.DEFAULT_HWID_DATA_PATH
   if not options.board:
+    # TODO(yhong): Use project name instead of board name.
     options.board = common.ProbeBoard()
 
   # Build database doesn't need to initialize the database.

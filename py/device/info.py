@@ -260,7 +260,7 @@ class SystemInfo(component.DeviceComponent):
   def hwid_database_version(self):
     """Uses checksum of hwid file as hwid database version."""
     hwid_file_path = self._dut.path.join(common.DEFAULT_HWID_DATA_PATH,
-                                         common.ProbeBoard().upper())
+                                         common.ProbeProject().upper())
     # TODO(hungte) Support remote DUT.
     return hwid_utils.ComputeDatabaseChecksum(hwid_file_path)
 
