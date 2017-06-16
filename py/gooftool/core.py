@@ -170,64 +170,6 @@ class Gooftool(object):
 
     return result
 
-  def FindBOMMismatches(self, board, bom_name, probed_comps):
-    """Finds mismatched components for a BOM.
-
-    Args:
-      board: The name of the board containing a list of BOMs .
-      bom_name: The name of the BOM listed in the hardware database.
-      probed_comps: A named tuple for probed results.
-        Format: (component_name, probed_string, error)
-
-    Returns:
-      A dict of mismatched component list for the given BOM.
-      {component class: [Mismatch(
-        expected,  # The expected result.
-        actual)]}  # The actual probed result.
-    """
-
-    if board not in self._hardware_db.devices:
-      raise ValueError('Unable to find BOMs for board %r' % board)
-
-    boms = self._hardware_db.devices[board].boms
-    if not bom_name or not probed_comps:
-      raise ValueError('both bom_name and probed components must be specified')
-
-    if bom_name not in boms:
-      raise ValueError('BOM %r not found. Available BOMs: %s' % (
-          bom_name, boms.keys()))
-
-    primary = boms[bom_name].primary
-    mismatches = {}
-
-    for comp_class, results in probed_comps.items():
-      if comp_class in primary.classes_dontcare:  # skip don't care components
-        continue
-
-      # If a component is expected to be missing, then empty probed result
-      # is expected.
-      if comp_class in primary.classes_missing and (
-          not any(result.probed_string for result in results)):
-        continue
-
-      if comp_class not in primary.components:
-        mismatches[comp_class] = Mismatch(None, results)
-        continue
-
-      # Since the component names could be either str or list of str,
-      # detect its type before converting to a set.
-      expected_names = primary.components[comp_class]
-      if isinstance(expected_names, str):
-        expected_names = [expected_names]
-      expected_names = set(expected_names)
-
-      probed_comp_names = set([result.component_name for result in results])
-
-      if probed_comp_names != expected_names:
-        mismatches[comp_class] = Mismatch(expected_names, probed_comp_names)
-
-    return mismatches
-
   def VerifyKeys(self, release_rootfs=None, firmware_path=None, _tmpexec=None):
     """Verify keys in firmware and SSD match.
 

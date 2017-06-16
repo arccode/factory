@@ -23,7 +23,6 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Shell
 from cros.factory.gooftool import core
-from cros.factory.gooftool.core import ProbedComponentResult
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import probe
 from cros.factory.gooftool.probe import Probe
@@ -226,75 +225,6 @@ class GooftoolTest(unittest.TestCase):
     self.assertRaises(
         ValueError,
         self._gooftool.VerifyComponents, ['camera', 'bad_class_name'])
-
-  def testFindBOMMismatches(self):
-    self.mox.ReplayAll()
-
-    # expect fully matched result
-    self.assertEquals(
-        {},
-        self._gooftool.FindBOMMismatches(
-            'BENDER',
-            'LEELA',
-            {'camera': [ProbedComponentResult('camera_1', 'CAMERA_1', None)],
-             'tpm': [ProbedComponentResult('tpm_1', 'TPM_1', None)]}))
-
-    # expect mismatch results
-    self.assertEquals(
-        {'camera': core.Mismatch(
-            expected=set(['camera_1']), actual=set(['camera_2'])),},
-        self._gooftool.FindBOMMismatches(
-            'BENDER',
-            'LEELA',
-            {'camera': [ProbedComponentResult('camera_2', 'CAMERA_2', None)],
-             'tpm': [ProbedComponentResult('tpm_1', 'TPM_1', None)]}))
-
-  def testFindBOMMismatchesMissingDontcare(self):
-    self.mox.ReplayAll()
-
-    # expect fully matched result
-    self.assertEquals(
-        {},
-        self._gooftool.FindBOMMismatches(
-            'BENDER',
-            'FRY',
-            # expect = don't care, actual = some value
-            {'camera': [ProbedComponentResult('camera_2', 'CAMERA_2', None)],
-             # expect = don't care, actual = missing
-             'cpu': [ProbedComponentResult(None, None, 'Missing')],
-             # expect = missing, actual = missing
-             'cellular': [ProbedComponentResult(None, None, 'Missing')]}))
-
-    # expect mismatch results
-    self.assertEquals(
-        {'cellular': core.Mismatch(
-            expected=None,
-            actual=[ProbedComponentResult('cellular_1', 'CELLULAR_1', None)]),
-         'dram': core.Mismatch(
-             expected=set(['dram_1']), actual=set([None]))},
-        self._gooftool.FindBOMMismatches(
-            'BENDER',
-            'FRY',
-            # expect correct value
-            {'camera': [ProbedComponentResult('camera_2', 'CAMERA_2', None)],
-             # expect = missing, actual = some value
-             'cellular': [ProbedComponentResult(
-                 'cellular_1', 'CELLULAR_1', None)],
-             # expect = some value, actual = missing
-             'dram': [ProbedComponentResult(None, None, 'Missing')]}))
-
-  def testFindBOMMismatchesError(self):
-    self.mox.ReplayAll()
-
-    self.assertRaises(
-        ValueError, self._gooftool.FindBOMMismatches, 'NO_BARD', 'LEELA',
-        {'camera': [ProbedComponentResult('camera_1', 'CAMERA_1', None)]})
-    self.assertRaises(
-        ValueError, self._gooftool.FindBOMMismatches, 'BENDER', 'NO_BOM', {})
-    self.assertRaises(
-        ValueError, self._gooftool.FindBOMMismatches, 'BENDER', None, {})
-    self.assertRaises(
-        ValueError, self._gooftool.FindBOMMismatches, 'BENDER', 'LEELA', None)
 
   def testVerifyKey(self):
     self._gooftool._util.GetReleaseKernelPathFromRootPartition(
