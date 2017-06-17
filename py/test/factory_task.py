@@ -130,11 +130,11 @@ class FactoryTask(object):
       return
 
     if later:
-      self._Finish(FinishReason.FAILED)
       self._ui.FailLater(error_msg)
+      self._Finish(FinishReason.FAILED)
     else:
+      self._ui.FailLater(error_msg)
       self._Finish(FinishReason.FAILED, abort=True)
-      self._ui.Fail(error_msg)
 
   def Run(self):
     raise NotImplementedError
