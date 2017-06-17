@@ -33,14 +33,6 @@ class ReadDeviceDataFromVPDUnittest(unittest.TestCase):
   def testRunTest(self):
     pytest.state.get_instance = lambda *args, **kwargs: self.state_proxy
 
-    def WrapUpdateDeviceData(func):
-      def NewUpdateDeviceData(new_device_data):
-        return func(new_device_data, post_update_event=False)
-      return NewUpdateDeviceData
-
-    pytest.state.UpdateDeviceData = WrapUpdateDeviceData(
-        pytest.state.UpdateDeviceData)
-
     test_instance = pytest.ReadDeviceDataFromVPD()
 
     key_map = {

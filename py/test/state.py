@@ -483,13 +483,11 @@ def GetDeviceDataSelector():
   return get_instance().data_shelf[KEY_DEVICE_DATA]
 
 
-def DeleteDeviceData(delete_keys, post_update_event=True, optional=False):
+def DeleteDeviceData(delete_keys, optional=False):
   """Returns the accumulated dictionary of device data.
 
   Args:
     delete_keys: A list of keys to be deleted.
-    post_update_event: If True, posts an UPDATE_SYSTEM_INFO event to
-        update the test list.
     optional: False to raise a KeyError if not found.
 
   Returns:
@@ -500,20 +498,21 @@ def DeleteDeviceData(delete_keys, post_update_event=True, optional=False):
       KEY_DEVICE_DATA, delete_keys, optional)
   logging.info('Updated device data; complete device data is now %s',
                privacy.FilterDict(data))
-  if post_update_event:
+  try:
     with event.EventClient() as event_client:
-      event_client.post_event(event.Event(event.Event.Type.UPDATE_SYSTEM_INFO))
+      event_client.post_event(
+          event.Event(event.Event.Type.UPDATE_SYSTEM_INFO))
+  except Exception:
+    logging.exception('Failed to post update event')
   return data
 
 
-def UpdateDeviceData(new_device_data, post_update_event=True):
+def UpdateDeviceData(new_device_data):
   """Returns the accumulated dictionary of device data.
 
   Args:
     new_device_data: A dict with key/value pairs to update.  Old values
         are overwritten.
-    post_update_event: If True, posts an UPDATE_SYSTEM_INFO event to
-        update the test list.
 
   Returns:
     The updated dictionary.
@@ -524,9 +523,12 @@ def UpdateDeviceData(new_device_data, post_update_event=True):
       KEY_DEVICE_DATA, new_device_data)
   logging.info('Updated device data; complete device data is now %s',
                privacy.FilterDict(data))
-  if post_update_event:
+  try:
     with event.EventClient() as event_client:
-      event_client.post_event(event.Event(event.Event.Type.UPDATE_SYSTEM_INFO))
+      event_client.post_event(
+          event.Event(event.Event.Type.UPDATE_SYSTEM_INFO))
+  except Exception:
+    logging.exception('Failed to post update event')
   return data
 
 

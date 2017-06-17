@@ -426,10 +426,10 @@ class DeviceDataCommand(Subcommand):
             pass  # No sweat
 
         update[key] = value
-      state.UpdateDeviceData(update, post_update_event=False)
+      state.UpdateDeviceData(update)
 
     if self.args.delete:
-      state.DeleteDeviceData(self.args.delete, post_update_event=False)
+      state.DeleteDeviceData(self.args.delete)
 
     if self.args.set_yaml:
       if self.args.set_yaml == '-':
@@ -439,7 +439,7 @@ class DeviceDataCommand(Subcommand):
           update = yaml.load(f)
       if type(update) != dict:
         sys.exit('Expected a dict but got a %r' % type(update))
-      state.UpdateDeviceData(update, post_update_event=False)
+      state.UpdateDeviceData(update)
 
     sys.stdout.write(
         yaml.safe_dump(state.GetAllDeviceData(),
