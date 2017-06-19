@@ -46,9 +46,6 @@ class ThermalLoadTest(unittest.TestCase):
           default=None),
       Arg('temperatures_difference', int, 'The difference of temperatures '
           'should be under a specified limit.', optional=True),
-      # TODO(hungte) Deprecate sensor_index by sensors.
-      Arg('sensor_index', (int, list), 'The index of temperature sensor to use,'
-          ' deprecated by sensors.', optional=True, default=0),
   ]
 
   def GetTemperatures(self):
@@ -119,20 +116,7 @@ class ThermalLoadTest(unittest.TestCase):
                     'heat_up_timeout_secs must not be greater than '
                     'duration_secs.')
 
-    # Migration check: user can either special sensors or sensor_index.
-    assert self.args.sensors is None or self.args.sensor_index == 0, (
-        'You can either specify sensors or sensor_index.')
-
-    if self.args.sensor_index == 0:
-      # Use legacy sensor_index to build sensors.
-      indexes = self.args.sensor_index
-      if type(indexes) is int:
-        indexes = [indexes]
-      names = self.dut.thermal.GetTemperatureSensorNames()
-      sensors = [names[i] for i in indexes]
-    else:
-      sensors = self.args.sensors or [self.dut.thermal.GetMainSensorName()]
-
+    sensors = self.args.sensors or [self.dut.thermal.GetMainSensorName()]
     self.sensors = sensors
 
     if type(self.args.lower_threshold) is int:
@@ -143,7 +127,7 @@ class ThermalLoadTest(unittest.TestCase):
     self.assertTrue(
         len(sensors) == len(self.args.lower_threshold) and (
             len(sensors) == len(self.args.temperature_limit)),
-        'The number of sensor_index, lower_threshold, and temperature_limit '
+        'The number of sensors, lower_threshold, and temperature_limit '
         'should be the same.')
 
     self.heated_up = [False] * len(sensors)
