@@ -247,6 +247,7 @@ class RaidenChargeBFTTest(unittest.TestCase):
 
     self._template.SetState(_TESTING_PROTECT)
     self._bft_fixture.SetDeviceEngaged('CHARGE_5V', engage=True)
+    time.sleep(self.args.wait_after_engage_secs)
 
     ina_current = 0
     retry = self.args.protect_ina_retry_times
