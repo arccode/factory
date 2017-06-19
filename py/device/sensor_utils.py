@@ -32,7 +32,7 @@ def FindDevice(dut, path_pattern, **attr_filter):
     match = True
     for name, value in attr_filter.viewitems():
       try:
-        if dut.ReadFile(dut.path.join(path, name)).strip() != value:
+        if dut.ReadSpecialFile(dut.path.join(path, name)).strip() != value:
           match = False
           break
       except Exception:
