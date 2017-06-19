@@ -100,7 +100,7 @@ class ThermalLoadTest(unittest.TestCase):
                       timeout=self.args.heat_up_timeout_secs)
         logging.info('temperature track: %r', self.temperatures_track)
         self.fail("Temperature %s didn't go over %d in %s seconds." % (
-            self.args.sensors[index],
+            self.sensors[index],
             self.args.lower_threshold[index],
             self.args.heat_up_timeout_secs))
 
