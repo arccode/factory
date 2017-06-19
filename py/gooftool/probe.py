@@ -1501,10 +1501,10 @@ def _FwKeyHash(main_fw_file, key_name):
       'c14bd720b70d97394257e3e826bd8f43de48d4ed': 'devkeys/recovery',
   }
   with NamedTemporaryFile(prefix='gbb_%s_' % key_name) as f:
-    if not Shell('gbb_utility -g --%s=%s %s' %
+    if not Shell('futility gbb -g --%s=%s %s' %
                  (key_name, f.name, main_fw_file)).success:
       raise Error('cannot get %s from GBB' % key_name)
-    key_info = _ShellOutput('vbutil_key --unpack %s' % f.name)
+    key_info = _ShellOutput('futility vbutil_key --unpack %s' % f.name)
     sha1sum = re.findall(r'Key sha1sum:[\s]+([\w]+)', key_info)
     if len(sha1sum) != 1:
       logging.error('Failed calling vbutil_key for firmware key hash.')

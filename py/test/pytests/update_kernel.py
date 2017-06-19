@@ -74,7 +74,7 @@ class UpdateFirmwareTest(unittest.TestCase):
 
     if self.args.kernel_config is None:
       kernel_config = process_utils.CheckOutput(
-          ["dump_kernel_config", kerndev.path])
+          ["futility", "dump_kernel_config", kerndev.path])
     else:
       kernel_config = file_utils.ReadFile(self.args.kernel_config)
 

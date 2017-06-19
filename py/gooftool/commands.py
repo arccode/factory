@@ -417,7 +417,7 @@ def ClearGBBFlags(options):
   """Zero out the GBB flags, in preparation for transition to release state.
 
   No GBB flags are set in release/shipping state, but they are useful
-  for factory/development.  See "gbb_utility --flags" for details.
+  for factory/development.  See "futility gbb --flags" for details.
   """
 
   GetGooftool(options).ClearGBBFlags()

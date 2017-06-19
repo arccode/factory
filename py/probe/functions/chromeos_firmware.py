@@ -26,10 +26,10 @@ def _FwKeyHash(fw_file_path, key_name):
   }
   with tempfile.NamedTemporaryFile(prefix='gbb_%s_' % key_name) as f:
     process_utils.CheckOutput(
-        'gbb_utility -g --%s=%s %s' % (key_name, f.name, fw_file_path),
+        'futility gbb -g --%s=%s %s' % (key_name, f.name, fw_file_path),
         shell=True, log=True)
     key_info = process_utils.CheckOutput(
-        'vbutil_key --unpack %s' % f.name, shell=True)
+        'futility vbutil_key --unpack %s' % f.name, shell=True)
     sha1sum = re.findall(r'Key sha1sum:[\s]+([\w]+)', key_info)
     if len(sha1sum) != 1:
       logging.error('Failed calling vbutil_key for firmware key hash.')

@@ -94,9 +94,6 @@ def GetFirmwareVersionsWithLabel(updater):
 def GetFirmwareBinaryVersion(path):
   """Gets the version stored in RO_FRID section of the firmware binary.
 
-  Note that this function relies on dump_fmap, which is only available on a CrOS
-  device or inside CrOS SDK chroot.
-
   Args:
     path: Path to the firmware binary.
 

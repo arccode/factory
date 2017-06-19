@@ -210,17 +210,17 @@ from recovery image, which will be used to install the real firmware.
 Therefore, you might need to change GBB flag of netboot firmware.
 
 If you are setting up with a factory zip, the netboot image is in path
-`factory_shim/netboot/image.net.bin`. You can change GBB flag by `gbb_utility`.
+`factory_shim/netboot/image.net.bin`. You can change GBB flag by `futility`.
 For example,
 
 ```
-gbb_utility -s --flags 0x1239 factory_shim/netboot/image.net.bin
+futility gbb -s --flags 0x1239 factory_shim/netboot/image.net.bin
 ```
 
 If you are setting up with a factory bundle, the netboot image is in path
-`netboot/image.net.bin`. You can change GBB flag by `gbb_utility`.
+`netboot/image.net.bin`. You can change GBB flag by `futility`.
 For example,
 
 ```
-gbb_utility -s --flags 0x1239 netboot/image.net.bin
+futility gbb -s --flags 0x1239 netboot/image.net.bin
 ```

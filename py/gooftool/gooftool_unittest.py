@@ -359,8 +359,10 @@ class GooftoolTest(unittest.TestCase):
   def testWriteHWID(self):
     self._gooftool._crosfw.LoadMainFirmware().MultipleTimes().AndReturn(
         MockMainFirmware())
-    self._gooftool._util.shell('gbb_utility --set --hwid="hwid1" "firmware"')
-    self._gooftool._util.shell('gbb_utility --set --hwid="hwid2" "firmware"')
+    self._gooftool._util.shell(
+        'futility gbb --set --hwid="hwid1" "firmware"')
+    self._gooftool._util.shell(
+        'futility gbb --set --hwid="hwid2" "firmware"')
 
     self.mox.ReplayAll()
 
@@ -529,7 +531,7 @@ class GooftoolTest(unittest.TestCase):
         'cbfstool %s extract -n locales -f %s -r COREBOOT'
         % (image_file, f.name))
     self._gooftool._util.shell(
-        'gbb_utility -g --bmpfv=%s %s' % (f.name, image_file))
+        'futility gbb -g --bmpfv=%s %s' % (f.name, image_file))
     self._gooftool._unpack_bmpblock(f.read()).AndReturn(
         {'locales': ['ja', 'zh', 'en']})
 

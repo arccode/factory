@@ -231,43 +231,44 @@ class Gooftool(object):
                              firmware_image.get_section(section))
 
       _TmpExec('get keys from firmware GBB',
-               'gbb_utility -g --rootkey %s  --recoverykey %s GBB' %
+               'futility gbb -g --rootkey %s  --recoverykey %s GBB' %
                (key_root, key_recovery))
       rootkey_hash = _TmpExec(
-          'unpack rootkey', 'vbutil_key --unpack %s' % key_root,
+          'unpack rootkey', 'futility vbutil_key --unpack %s' % key_root,
           regex=r'(?<=Key sha1sum:).*').strip()
-      _TmpExec('unpack recoverykey', 'vbutil_key --unpack %s' % key_recovery)
+      _TmpExec(
+          'unpack recoverykey','futility vbutil_key --unpack %s' % key_recovery)
 
       # Pre-scan for well-known problems.
       if rootkey_hash == 'b11d74edd286c144e1135b49e7f0bc20cf041f10':
         logging.warn('YOU ARE TRYING TO FINALIZE WITH DEV ROOTKEY.')
 
       _TmpExec('verify firmware A with root key',
-               'vbutil_firmware --verify VBLOCK_A --signpubkey %s '
+               'futility vbutil_firmware --verify VBLOCK_A --signpubkey %s '
                ' --fv FW_MAIN_A --kernelkey %s' % (key_root, key_normal_a))
       _TmpExec('verify firmware B with root key',
-               'vbutil_firmware --verify VBLOCK_B --signpubkey %s '
+               'futility vbutil_firmware --verify VBLOCK_B --signpubkey %s '
                ' --fv FW_MAIN_B --kernelkey %s' % (key_root, key_normal_b))
 
       # Unpack keys and keyblocks
       _TmpExec('unpack kernel keyblock',
-               'vbutil_keyblock --unpack %s' % blob_kern)
+               'futility vbutil_keyblock --unpack %s' % blob_kern)
       try:
         for key in key_normal_a, key_normal_b:
           _TmpExec('unpack %s' % key, 'vbutil_key --unpack %s' % key)
           _TmpExec('verify kernel by %s' % key,
-                   'vbutil_kernel --verify %s --signpubkey %s' %
+                   'futility vbutil_kernel --verify %s --signpubkey %s' %
                    (blob_kern, key))
 
       except Error:
         _TmpExec('check recovery key signed image',
-                 '! vbutil_kernel --verify %s --signpubkey %s' %
+                 '! futility vbutil_kernel --verify %s --signpubkey %s' %
                  (blob_kern, key_recovery),
                  'YOU ARE USING A RECOVERY KEY SIGNED IMAGE.')
 
         for key in key_normal, key_recovery:
           _TmpExec('check dev-signed image <%s>' % key,
-                   '! vbutil_kernel --verify %s --signpubkey %s/%s' %
+                   '! futility vbutil_kernel --verify %s --signpubkey %s/%s' %
                    (blob_kern, dir_devkeys, key),
                    'YOU ARE FINALIZING WITH DEV-SIGNED iMAGE <%s>' %
                    key)
@@ -402,7 +403,7 @@ class Gooftool(object):
     """Zero out the GBB flags, in preparation for transition to release state.
 
     No GBB flags are set in release/shipping state, but they are useful
-    for factory/development.  See "gbb_utility --flags" for details.
+    for factory/development.  See "futility gbb --flags" for details.
     """
 
     result = self._util.shell('/usr/share/vboot/bin/set_gbb_flags.sh 0 2>&1')
@@ -477,7 +478,7 @@ class Gooftool(object):
 
     assert hwid
     main_fw = self._crosfw.LoadMainFirmware()
-    self._util.shell('gbb_utility --set --hwid="%s" "%s"' %
+    self._util.shell('futility gbb --set --hwid="%s" "%s"' %
                      (hwid, main_fw.GetFileName()))
     main_fw.Write(sections=['GBB'])
 
@@ -535,7 +536,8 @@ class Gooftool(object):
       if bitmap_locales:
         return bitmap_locales.split('\n')
       # Looks like image does not have locales file. Do the old-fashioned way
-      self._util.shell('gbb_utility -g --bmpfv=%s %s' % (f.name, image_file))
+      self._util.shell('futility gbb -g --bmpfv=%s %s' %
+                       (f.name, image_file))
       bmpblk_data = self._unpack_bmpblock(f.read())
       bitmap_locales = bmpblk_data.get('locales', bitmap_locales)
     return bitmap_locales

@@ -68,7 +68,8 @@ class VerifyRootPartitionTest(unittest.TestCase):
                          conv='fsync')
       try:
         vbutil_kernel_output = self.dut.CheckOutput(
-            ['vbutil_kernel', '--verify', kern_a_bin, '--verbose'], log=True)
+            ['futility', 'vbutil_kernel', '--verify', kern_a_bin, '--verbose'],
+            log=True)
       except Exception:
         logging.exception(
             'Unable to verify kernel in KERN-A; perhaps this device was imaged '
