@@ -65,6 +65,10 @@ class StylusTest(unittest.TestCase):
           'Both endpoints must be on the border '
           '(e.g., X=0 or X=1 or Y=0 or Y=1).',
           default=[(0, 1), (1, 0)]),
+      Arg('autostart', bool,
+          'Starts the test automatically without prompting.  Operators can '
+          'still press ESC to fail the test.',
+          default=False),
       ]
 
   def setUp(self):
@@ -114,5 +118,8 @@ class StylusTest(unittest.TestCase):
 
   def runTest(self):
     self._ui.BindKeyJS(test_ui.ESCAPE_KEY, 'failTest();')
-    self._ui.BindKey(test_ui.SPACE_KEY, self._StartTest)
+    if self.args.autostart:
+      self._StartTest(None)
+    else:
+      self._ui.BindKey(test_ui.SPACE_KEY, self._StartTest)
     self._ui.Run()
