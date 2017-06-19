@@ -301,7 +301,7 @@ class AudioQualityTest(unittest.TestCase):
         if not buf or '\x03' in commands:
           break
 
-      commands, next_commands = commands.split('\x03', 1)
+      commands, unused_sep, next_commands = commands.partition('\x03')
       if not commands:
         break
 
