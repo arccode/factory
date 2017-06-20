@@ -831,8 +831,7 @@ class FinalizeBundle(object):
       output_file = self.bundle_dir + '.tar.bz2'
       Spawn(['tar', '-cf', output_file,
              '-I', file_utils.GetCompressor('bz2'),
-             '-C', os.path.dirname(self.bundle_dir)] +
-            [os.path.basename(self.bundle_dir)],
+             '-C', self.bundle_dir, '.'],
             log=True, check_call=True)
       logging.info(
           'Created %s (%.1f GiB).',
