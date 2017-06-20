@@ -1,0 +1,88 @@
+{
+  "context": ["ui", "cam"],
+  "ui": {
+    "group": "Project X",
+    "update_ui_command": "update_ui_status",
+    "display": {
+      "template": "<b>Report</b><ul><li>Version: {{:version}}</li><li>Battery %: {{:battery_percent}}</li></ul>",
+      "data": [{
+        "id": "version",
+        "init_cmd": "echo DATA[version]=\\'$(cat /etc/lsb-release | sed -n 's/^CHROMEOS_RELEASE_VERSION=//p')\\'"
+      }, {
+        "id": "battery_percent",
+        "poll": {
+          "cmd": "echo DATA[battery_percent]=\\'$(ectool chargestate show | sed -n 's/^batt_state_of_charge = //p')\\'",
+          "interval": 2000
+        }
+      }]
+    },
+    "lights": [{
+      "id": "toggle",
+      "label": "TOGGLE",
+      "light": "light-toggle-off",
+      "command": "echo $(echo -n LIGHT[toggle]=\\'light-toggle-; [ -f /tmp/t ] && (echo -n off; rm /tmp/t) || (echo -n on; touch /tmp/t); echo \\')",
+      "init_cmd": "echo $(echo -n LIGHT[toggle]=\\'light-toggle-; [ -f /tmp/t ] && echo -n on || echo -n off; echo \\')"
+    }, {
+      "id": "ac_present",
+      "label": "AC_PRESENT",
+      "light": "light-toggle-off",
+      "poll": {
+        "cmd": "(ectool battery | grep -qw AC_PRESENT) && echo LIGHT[ac_present]=\\'light-toggle-on\\' || echo LIGHT[ac_present]=\\'light-toggle-off\\'",
+        "interval": 1000
+      }
+    }],
+    "terminals": [{
+      "name": "MAIN"
+    }, {
+      "name": "SERVO",
+      "path_cmd": "dut-control cpu_uart_pty | cut -d : -f 2"
+    }, {
+      "name": "SERVO_EC",
+      "path_cmd": "dut-control ec_uart_pty | cut -d : -f 2"
+    }],
+    "controls": [{
+      "name": "Factory Restart",
+      "command": "factory_restart"
+    }, {
+      "name": "Set LED",
+      "type": "toggle",
+      "on_command": "ectool led left white",
+      "off_command": "ectool led left auto"
+    }, {
+      "name": "Upgrade Toolkit",
+      "type": "upload",
+      "dest": "/tmp/install_factory_toolkit.run",
+      "command": "rm -rf /usr/local/factory && sh /tmp/install_factory_toolkit.run -- -y && factory_restart"
+    }, {
+      "name": "Download Log",
+      "type": "download",
+      "command": "dmesg > /tmp/dmesg.log",
+      "filename": "/tmp/dmesg.log"
+    }, {
+      "name": "Properties",
+      "type": "link",
+      "url": "/api/agent/properties/{{:client.mid}}"
+    }, {
+      "name": "LED Control",
+      "group": [{
+        "name": "WHITE",
+        "command": "ectool led left white"
+      }, {
+        "name": "AMBER",
+        "command": "ectool led left amber"
+      }, {
+        "name": "OFF",
+        "command": "ectool led left off"
+      }, {
+        "name": "AUTO",
+        "command": "ectool led left auto"
+      }]
+    }],
+    "logs": ["/var/log/factory.log"]
+  },
+  "camera": {
+    "command": "/usr/local/factory/py/tools/stream_camera.py --size 640x480",
+    "width": 640,
+    "height": 480
+  }
+}
