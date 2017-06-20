@@ -213,6 +213,11 @@ class Goofy(GoofyBase):
 
   def destroy(self):
     """Performs any shutdown tasks. Overrides base class method."""
+    # To avoid race condition when running shutdown test.
+    for test, invoc in self.invocations.iteritems():
+      logging.info('Waiting for %s to complete...', test)
+      invoc.thread.join(3)  # Timeout in 3 seconds.
+
     self.status = Status.TERMINATING
     if self.chrome:
       self.chrome.kill()
@@ -824,9 +829,11 @@ class Goofy(GoofyBase):
         post_update_hook()
       self.env.shutdown('reboot')
 
-  def handle_signal(self, signum, frame):
-    del signum, frame
-    logging.error('Received SIGINT or SIGKILL')
+  def handle_signal(self, signum, unused_frame):
+    names = [signame for signame in dir(signal) if signame.startswith('SIG') and
+             getattr(signal, signame) == signum]
+    signal_name = ', '.join(names) if names else 'UNKNOWN'
+    logging.error('Received signal %s(%d)', signal_name, signum)
     self.run_enqueue(None)
     raise KeyboardInterrupt()
 
