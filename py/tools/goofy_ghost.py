@@ -31,8 +31,12 @@ def _Start(args):
   del args  # Unused.
 
   _WriteGhostProperties()
-  subprocess.check_call(
-      ['ghost', '--fork', '--prop-file', GOOFY_GHOST_PROPERTIES_FILE])
+  cmd = ['ghost', '--fork', '--prop-file', GOOFY_GHOST_PROPERTIES_FILE]
+  # TODO(pihsun): Have a way to specify --tls-no-verify.
+  pem_file = os.path.join(paths.DATA_DIR, 'overlord.pem')
+  if os.path.exists(pem_file):
+    cmd.extend(['--tls-cert-file', pem_file])
+  subprocess.check_call(cmd)
 
 
 @argparse_utils.Command('reset')
