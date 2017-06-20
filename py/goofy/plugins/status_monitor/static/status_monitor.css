@@ -75,3 +75,15 @@ body {
 #update-available-indicator a {
   color: #fff;
 }
+.battery-charging:before {
+  content: '↑';
+}
+.battery-discharging:before {
+  content: '↓';
+}
+.battery-idle:before {
+  content: '=';
+}
+.battery-full:before {
+  content: 'F';
+}

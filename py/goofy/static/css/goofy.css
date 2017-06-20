@@ -114,18 +114,6 @@ body {
   padding: 4px;
   border: 1px solid lightgray;
 }
-.goofy-battery-charging:before {
-  content: '↑';
-}
-.goofy-battery-discharging:before {
-  content: '↓';
-}
-.goofy-battery-idle:before {
-  content: '=';
-}
-.goofy-battery-full:before {
-  content: 'F';
-}
 .goofy-indicator {
   color: white;
   display: none;
