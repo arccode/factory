@@ -44,6 +44,7 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.tools import build_board
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import shelve_utils
 from cros.factory.utils import type_utils
 
 _MSG_FETCH_FROM_SHOP_FLOOR = i18n_test_ui.MakeI18nLabelWithClass(
@@ -406,6 +407,14 @@ class SelectBrandingTask(factory_task.FactoryTask):
 class VPDTest(unittest.TestCase):
   VPDTasks = type_utils.Enum(['serial', 'region'])
 
+  KEY_SERIAL_NUMBER = shelve_utils.DictKey.Join(
+      state.KEY_ALL_SERIAL_NUMBERS, state.KEY_SERIAL_NUMBER)
+  KEY_MLB_SERIAL_NUMBER = shelve_utils.DictKey.Join(
+      state.KEY_ALL_SERIAL_NUMBERS, 'mlb_serial_number')
+  KEY_VPD_REGION = shelve_utils.DictKey.Join('vpd.ro', 'region')
+  KEY_VPD_USER_REGCODE = shelve_utils.DictKey.Join('vpd.rw', 'ubind_attribute')
+  KEY_VPD_GROUP_REGCODE = shelve_utils.DictKey.Join('vpd.rw', 'gbind_attribute')
+
   ARGS = [
       Arg('override_vpd', dict,
           'A dict of override VPDs. This is for development purpose and is '
@@ -476,9 +485,10 @@ class VPDTest(unittest.TestCase):
           '  written into VPD.', default=None, optional=True)]
 
   def _ReadShopFloorDeviceData(self):
-    required_keys = set(['all_serial_numbers.serial_number', 'region',
-                         'ubind_attribute', 'gbind_attribute'] +
-                        [x[1] for x in self.args.extra_device_data_fields])
+    required_keys = set(
+        [self.KEY_SERIAL_NUMBER, self.KEY_VPD_REGION, self.KEY_VPD_USER_REGCODE,
+         self.KEY_VPD_GROUP_REGCODE] +
+        [x[1] for x in self.args.extra_device_data_fields])
     missing_keys = []
     for key in required_keys:
       try:
@@ -491,9 +501,11 @@ class VPDTest(unittest.TestCase):
                 sorted(missing_keys))
 
     self.vpd['ro']['serial_number'] = state.GetDeviceData(
-        'all_serial_numbers.serial_number')
+        self.KEY_SERIAL_NUMBER)
 
-    region = regions.REGIONS[state.GetDeviceData('region')]
+    # Find region code
+    region_code = state.GetDeviceData(self.KEY_VPD_REGION)
+    region = regions.REGIONS[region_code]
     self.vpd['ro']['region'] = region.region_code
 
     for ro_or_rw, key in self.args.extra_device_data_fields:
@@ -506,8 +518,8 @@ class VPDTest(unittest.TestCase):
       self.vpd['rw'][k] = v
 
     self.registration_code_map = {
-        'user': state.GetDeviceData('ubind_attribute'),
-        'group': state.GetDeviceData('gbind_attribute'),
+        'user': state.GetDeviceData(self.KEY_VPD_USER_REGCODE),
+        'group': state.GetDeviceData(self.KEY_VPD_GROUP_REGCODE),
     }
 
   def setUp(self):
@@ -567,6 +579,7 @@ class VPDTest(unittest.TestCase):
 
     self.tasks += [WriteVPDTask(self)]
 
+  # TODO(hungte) rlz_brand_code and customization_id should be removed.
   def ReadBrandingFields(self):
     for attr, regexp in (
         ('rlz_brand_code', branding.RLZ_BRAND_CODE_REGEXP),
