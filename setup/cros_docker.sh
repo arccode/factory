@@ -108,6 +108,7 @@ BUILD_DIR="${FACTORY_DIR}/build/docker"
 HOST_DOME_DIR="${HOST_SHARED_DIR}/dome"
 HOST_UMPIRE_DIR="${HOST_SHARED_DIR}/umpire"
 HOST_OVERLORD_DIR="${HOST_SHARED_DIR}/overlord"
+HOST_OVERLORD_APP_DIR="${HOST_OVERLORD_DIR}/app"
 
 # Publish tools
 PREBUILT_IMAGE_SITE="https://storage.googleapis.com"
@@ -410,7 +411,7 @@ do_overlord_setup() {
     --tty \
     --rm \
     --name "${overlord_setup_container_name}" \
-    --volume "${host_overlord_app_dir}:${DOCKER_OVERLORD_APP_DIR}" \
+    --volume "${HOST_OVERLORD_APP_DIR}:${DOCKER_OVERLORD_APP_DIR}" \
     "${DOCKER_IMAGE_NAME}" \
     "${DOCKER_OVERLORD_DIR}/setup.sh" || \
     (echo "Setup failed... removing Overlord settings."; \
@@ -431,7 +432,6 @@ do_overlord_run() {
   check_docker
 
   local overlord_container_name="overlord"
-  local host_overlord_app_dir="${HOST_OVERLORD_DIR}/app"
 
   # stop and remove old containers
   ${DOCKER} stop "${overlord_container_name}" 2>/dev/null || true
@@ -445,7 +445,7 @@ do_overlord_run() {
     --detach \
     --restart unless-stopped \
     --name "${overlord_container_name}" \
-    --volume "${host_overlord_app_dir}:${DOCKER_OVERLORD_APP_DIR}" \
+    --volume "${HOST_OVERLORD_APP_DIR}:${DOCKER_OVERLORD_APP_DIR}" \
     --volume "${HOST_SHARED_DIR}:/mnt" \
     --publish "4455:4455" \
     --publish "4456:4456/udp" \
