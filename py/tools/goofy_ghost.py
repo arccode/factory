@@ -16,7 +16,7 @@ from cros.factory.utils import file_utils
 
 
 GOOFY_GHOST_PROPERTIES_FILE = os.path.join(paths.RUNTIME_VARIABLE_DATA_DIR,
-                                           'goofy_ghost.json')
+                                           'factory', 'goofy_ghost.json')
 
 
 def _WriteGhostProperties():
