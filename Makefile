@@ -163,7 +163,7 @@ ovl-bin:
 	# Build ovl binary with pyinstaller
 	cd $(BUILD_DIR); \
 	  source .env/bin/activate; \
-	  pip install jsonrpclib ws4py pyinstaller; \
+	  pip install jsonrpclib ws4py pyinstaller pyyaml; \
 	  pyinstaller --onefile $(CURDIR)/py/tools/ovl.py
 
 # Checks if a package is properly installed.
