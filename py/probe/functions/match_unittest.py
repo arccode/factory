@@ -32,6 +32,43 @@ class MatchedRuleTest(unittest.TestCase):
     self.assertTrue(rule.Match({'idx': 'FOO123'}))
     self.assertFalse(rule.Match({'foo': 'FOO123', 'extra': 'NOT OK'}))
 
+  def testMatchNumberComparison(self):
+    rule = match.MatchFunction(rule='!num == 100')
+    self.assertFalse(rule.Match({'foo': '0'}))
+    self.assertTrue(rule.Match({'foo': '100'}))
+    self.assertFalse(rule.Match({'foo': '200'}))
+    self.assertFalse(rule.Match({'foo': '200k'}))  # not a valid float number
+
+    rule = match.MatchFunction(rule='!num <= 100')
+    self.assertTrue(rule.Match({'foo': '0'}))
+    self.assertTrue(rule.Match({'foo': '100'}))
+    self.assertFalse(rule.Match({'foo': '200'}))
+    self.assertFalse(rule.Match({'foo': '200k'}))  # not a valid float number
+
+    rule = match.MatchFunction(rule='!num < 100')
+    self.assertTrue(rule.Match({'foo': '0'}))
+    self.assertFalse(rule.Match({'foo': '100'}))
+    self.assertFalse(rule.Match({'foo': '200'}))
+    self.assertFalse(rule.Match({'foo': '200k'}))  # not a valid float number
+
+    rule = match.MatchFunction(rule='!num > 100')
+    self.assertFalse(rule.Match({'foo': '0'}))
+    self.assertFalse(rule.Match({'foo': '100'}))
+    self.assertTrue(rule.Match({'foo': '200'}))
+    self.assertFalse(rule.Match({'foo': '200k'}))  # not a valid float number
+
+    rule = match.MatchFunction(rule='!num >= 100')
+    self.assertFalse(rule.Match({'foo': '0'}))
+    self.assertTrue(rule.Match({'foo': '100'}))
+    self.assertTrue(rule.Match({'foo': '200'}))
+    self.assertFalse(rule.Match({'foo': '200k'}))  # not a valid float number
+
+    rule = match.MatchFunction(rule='!num != 100')
+    self.assertTrue(rule.Match({'foo': '0'}))
+    self.assertFalse(rule.Match({'foo': '100'}))
+    self.assertTrue(rule.Match({'foo': '200'}))
+    self.assertFalse(rule.Match({'foo': '200k'}))  # not a valid float number
+
 
 if __name__ == '__main__':
   unittest.main()

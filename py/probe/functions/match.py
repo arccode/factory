@@ -17,11 +17,26 @@ class MatchFunction(function.Function):
   only contain one item and the value is matched to the string.
 
   If the string starts with "!re ", then the remaining string is treated as a
-  regular expression. Otherwise, the value of the result should be the same.
+  regular expression.
+
+  If the string starts with "!num ", the probed value will be treated as
+  floating point number, and the remaining of rule string should be
+  "< '==' | '>' | '<' | '>=' | '<=' | '!=' > ' ' NUMBER", e.g. "!num >= 10".
+
+  Otherwise, the value of the result should be the same.
   """
 
-  RE_TYPE = type(re.compile(''))
-  REGEX_PREFIX = '!re '
+  REGEX_PREFIX = '!re'
+  NUM_CMP_PREFIX = '!num'
+  NUM_CMP_OPERATOR = {
+      '==': lambda a, b: a == b,
+      '>': lambda a, b: a > b,
+      '<': lambda a, b: a < b,
+      '>=': lambda a, b: a >= b,
+      '<=': lambda a, b: a <= b,
+      '!=': lambda a, b: a != b,
+  }
+
   ARGS = [
       Arg('rule', (str, dict), 'The matched rule.')]
 
@@ -30,23 +45,17 @@ class MatchFunction(function.Function):
 
     self.is_dict = isinstance(self.args.rule, dict)
     if self.is_dict:
-      self.args.rule = {key: self.TryTransferRegex(value)
+      self.args.rule = {key: self.ConstructRule(value)
                         for key, value in self.args.rule.iteritems()}
     else:
-      self.args.rule = self.TryTransferRegex(self.args.rule)
+      self.args.rule = self.ConstructRule(self.args.rule)
 
   def Apply(self, data):
     return filter(self.Match, data)
 
   def Match(self, item):
-    def _Match(rule, value):
-      if isinstance(rule, self.RE_TYPE):
-        try:
-          return rule.match(value) is not None
-        except TypeError:
-          return False
-      else:
-        return rule == value
+    def _Match(matcher, value):
+      return matcher(value)
 
     if not self.is_dict:
       return len(item) == 1 and _Match(self.args.rule, item.values()[0])
@@ -55,8 +64,40 @@ class MatchFunction(function.Function):
                   for key, rule in self.args.rule.iteritems()])
 
   @classmethod
+  def ConstructRule(cls, rule):
+    assert isinstance(rule, str)
+
+    transformers = {
+        cls.REGEX_PREFIX: cls.TryTransferRegex,
+        cls.NUM_CMP_PREFIX: cls.TryTransferNumberCompare,
+    }
+
+    prefix, unused_sep, rest = rule.partition(' ')
+    if prefix in transformers:
+      return transformers[prefix](rest)
+    else:
+      return lambda v: v == rule
+
+  @classmethod
   def TryTransferRegex(cls, value):
-    assert isinstance(value, str)
-    if value.startswith(cls.REGEX_PREFIX):
-      return re.compile(value[len(cls.REGEX_PREFIX):])
-    return value
+    regexp = re.compile(value)
+    def matcher(v):
+      try:
+        return regexp.match(v) is not None
+      except TypeError:
+        return False
+    return matcher
+
+  @classmethod
+  def TryTransferNumberCompare(cls, value):
+    op, unused_sep, num = value.partition(' ')
+    num = float(num)
+    if op not in cls.NUM_CMP_OPERATOR:
+      raise ValueError('invalid operator %s' % op)
+    def matcher(v):
+      try:
+        v = float(v)
+      except ValueError:
+        return False
+      return cls.NUM_CMP_OPERATOR[op](v, num)
+    return matcher
