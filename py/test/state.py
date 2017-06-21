@@ -493,6 +493,8 @@ def DeleteDeviceData(delete_keys, optional=False):
   Returns:
     The updated dictionary.
   """
+  if isinstance(delete_keys, basestring):
+    delete_keys = [delete_keys]
   logging.info('Deleting device data: %s', delete_keys)
   data = get_instance().delete_shared_data_dict_item(
       KEY_DEVICE_DATA, delete_keys, optional)
