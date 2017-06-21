@@ -1,34 +1,258 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "type": "object",
+  "definitions": {
+    "simple_control": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "command": {
+          "type": "string"
+        }
+      },
+      "required": ["name", "command"],
+      "additionalProperties": false
+    },
+    "update_ui_status_poll": {
+      "type": "object",
+      "properties": {
+        "cmd": {
+          "type": "string"
+        },
+        "interval": {
+          "type": "number"
+        }
+      }
+    }
+  },
   "properties": {
     "context": {
       "type": "array",
-      "items": {"type": "string"}
+      "items": {
+        "type": "string"
+      }
     },
     "ui": {
       "type": "object",
       "properties": {
         "controls": {
           "type": "array",
-          "items": {"type": "object"}
+          "items": {
+            "oneOf": [{
+              "$ref": "#/definitions/simple_control"
+            }, {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["toggle"]
+                },
+                "on_command": {
+                  "type": "string"
+                },
+                "off_command": {
+                  "type": "string"
+                }
+              },
+              "required": ["name", "type", "on_command", "off_command"],
+              "additionalProperties": false
+            }, {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["upload"]
+                },
+                "dest": {
+                  "type": "string"
+                },
+                "command": {
+                  "type": "string"
+                }
+              },
+              "required": ["name", "type", "dest"],
+              "additionalProperties": false
+            }, {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["download"]
+                },
+                "command": {
+                  "type": "string"
+                },
+                "filename": {
+                  "type": "string"
+                }
+              },
+              "required": ["name", "type", "filename"],
+              "additionalProperties": false
+            }, {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["download"]
+                },
+                "command": {
+                  "type": "string"
+                },
+                "filename_cmd": {
+                  "type": "string"
+                }
+              },
+              "required": ["name", "type", "filename_cmd"],
+              "additionalProperties": false
+            }, {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["link"]
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": ["name", "type", "url"],
+              "additionalProperties": false
+            }, {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "group": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/simple_control"
+                  }
+                }
+              },
+              "required": ["name", "group"],
+              "additionalProperties": false
+            }]
+          }
         },
-        "display": {"type": "object"},
+        "display": {
+          "type": "object",
+          "properties": {
+            "template": {
+              "type": "string"
+            },
+            "data": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "init_cmd": {
+                    "type": "string"
+                  },
+                  "poll": {
+                    "$ref": "#/definitions/update_ui_status_poll"
+                  }
+                },
+                "required": ["id"]
+              }
+            }
+          },
+          "additionalProperties": false
+        },
         "lights": {
           "type": "array",
-          "items": {"type": "object"}
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "light": {
+                "type": "string",
+                "enum": ["light-toggle-on", "light-toggle-off"]
+              },
+              "command": {
+                "type": "string"
+              },
+              "init_cmd": {
+                "type": "string"
+              },
+              "poll": {
+                "$ref": "#/definitions/update_ui_status_poll"
+              }
+            },
+            "required": ["id", "label", "light"],
+            "additionalProperties": false
+          }
         },
         "logs": {
           "type": "array",
-          "items": {"type": "string"}
+          "items": {
+            "type": "string"
+          }
         },
         "terminals": {
           "type": "array",
-          "items": {"type": "object"}
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "path_cmd": {
+                "type": "string"
+              }
+            },
+            "required": ["name"],
+            "additionalProperties": false
+          }
         },
-        "update_ui_command": {"type": "string"},
-        "group": {"type": "string"}
+        "update_ui_command": {
+          "type": "string"
+        },
+        "group": {
+          "type": "string"
+        }
       },
+      "additionalProperties": false
+    },
+    "camera": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "integer"
+        }
+      },
+      "required": ["command"],
       "additionalProperties": false
     }
   }

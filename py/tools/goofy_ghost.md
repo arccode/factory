@@ -56,7 +56,8 @@ The ghost properties file can be any JSON object, which would be passed to
 overlord server and shown on `ovl ls -v`.
 
 The Overlord web interface expects several special keys from ghost properties
-to change the display of a client: `context, ui, camera`.
+to change the display of a client: `context, ui, camera`, so goofy_ghost
+validates [JSON schema](./goofy_ghost.schema.json) on these three fields.
 
 An example of ghost properties file and explanation of each keys is as below.
 
