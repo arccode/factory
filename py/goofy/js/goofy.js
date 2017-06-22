@@ -974,7 +974,6 @@ cros.factory.Goofy.prototype.init = function() {
   this.sendRpc(
       'get_shared_data', ['automation_mode'],
       function(/** string */ mode) { this.setAutomationMode(mode); });
-
 };
 
 /**
@@ -2857,11 +2856,13 @@ cros.factory.Goofy.prototype.sendRpc = function(
         'RPC response for ' + method + ': ' + this.getResponseText());
 
     if (this.getLastErrorCode() != goog.net.ErrorCode.NO_ERROR) {
-      factoryThis.logToConsole(
+      var message = (
           'RPC error calling ' + method + ': ' +
-              goog.net.ErrorCode.getDebugMessage(this.getLastErrorCode()),
-          'goofy-internal-error');
-      // TODO(jsalz): handle error
+          goog.net.ErrorCode.getDebugMessage(this.getLastErrorCode()));
+      factoryThis.logToConsole(message, 'goofy-internal-error');
+      if (opt_errorCallback) {
+        opt_errorCallback.call(factoryThis, {error: {message: message}});
+      }
       return;
     }
 
