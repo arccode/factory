@@ -23,6 +23,7 @@ def _WriteGhostProperties():
   # TODO(pihsun): Complete JSON schema for ghost properties.
   properties = config_utils.LoadConfig('goofy_ghost')
   properties['active_test_list'] = test_lists.GetActiveTestListId()
+  file_utils.TryMakeDirs(os.path.dirname(GOOFY_GHOST_PROPERTIES_FILE))
   file_utils.WriteFile(GOOFY_GHOST_PROPERTIES_FILE, json.dumps(properties))
 
 
