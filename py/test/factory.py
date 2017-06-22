@@ -1003,12 +1003,19 @@ class FactoryTest(object):
     self.run_if_not = False
     self.run_if_key = None
 
-  def Skip(self):
+  def Skip(self, forever=False):
     """Skips this test and any subtests that have not already passed.
 
     Subtests that have passed are not modified.  If any subtests were
     skipped, this node (if not a leaf node) is marked as skipped as well.
+
+    Args:
+      forever: if this is True, will set run_if function to constant False,
+        which will disable this pytest forever (until goofy restart).
     """
+    if forever:
+      self.DisableByRunIf()
+
     skipped_tests = []
     for test in self.Walk():
       if not test.subtests and test.GetState().status != TestState.PASSED:
