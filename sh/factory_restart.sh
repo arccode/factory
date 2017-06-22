@@ -29,6 +29,7 @@ usage_help() {
       -r | run:     clear run data (/run/factory)
       -a | all:     clear all of the above data
       -d | vpd:     clear VPD
+      -c | chrome:  restart Chrome (UI)
       -h | help:    this help screen
       --automation-mode MODE:
                     set factory automation mode (none, partial, full);
@@ -129,8 +130,10 @@ enable_automation() {
 main() {
   local data=""
   local vpd=""
-  local services="factory ui"
+  local services="factory"
   local stop_auto_run_on_start=false automation_mode="none"
+  # TODO(hungte) Find right URL for presenter mode.
+  local chrome_url="http://127.0.0.1:4012"
 
   while [ $# -gt 0 ]; do
     opt="$1"
@@ -151,6 +154,10 @@ main() {
       -a | all )
         data="${data} ${FACTORY_BASE}/log ${FACTORY_BASE}/state"
         data="${data} ${FACTORY_BASE}/tests /run/factory"
+        ;;
+      -c | chrome )
+        chrome_url=""
+        services="${services} ui"
         ;;
       -d | vpd )
         vpd="${vpd} RO RW"
@@ -181,6 +188,10 @@ main() {
         ;;
     esac
   done
+
+  if [ -n "${chrome_url}" ]; then
+    chrome_openurl "${chrome_url}/restarting.html"
+  fi
 
   stop_session
   stop_services "${services}"

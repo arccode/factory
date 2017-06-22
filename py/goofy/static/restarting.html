@@ -1,0 +1,45 @@
+<html id="goofy">
+  <head>
+    <title>CrOS Factory</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" href="/css/goofy.css">
+    <link rel="icon" type="image/png" href="images/logo32.png">
+  </head>
+  <body>
+    <div id='goofy-div-wait'>
+      Chrome OS Factory: Restarting...
+    </div>
+    <script type="text/javascript">
+      function GetGoofyUUID() {
+        return new Promise(resolve => {
+          const ws = new WebSocket('ws://' + window.location.host + '/event');
+          function fail() { ws.close(); resolve(null); }
+          window.setTimeout(fail, 500);
+          ws.onerror = fail;
+          ws.onmessage = e => {
+            const data = JSON.parse(e.data);
+            if (data.type == 'goofy:hello') {
+              ws.close();
+              resolve(data.uuid);
+            } else {
+              fail();
+            }
+          };
+        });
+      }
+
+      GetGoofyUUID().then(old_uuid => {
+        function retry() {
+          GetGoofyUUID().then(uuid => {
+            if (uuid && uuid != old_uuid) {
+              window.location.pathname = '/';
+            } else {
+              window.setTimeout(retry, 500);
+            }
+          });
+        }
+        retry();
+      });
+    </script>
+  </body>
+</html>

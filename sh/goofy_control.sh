@@ -38,7 +38,6 @@ on_error() {
   local pid
   # Try to show console because stopping UI may take a while.
   show_interactive_console
-  stop -n ui >/dev/null 2>&1 || true
   for pid in ${LOG_PROCESSES}; do
     kill -9 "${pid}" &
   done
