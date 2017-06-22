@@ -16,7 +16,8 @@ The script does the following things:
 ## Ghost properties file
 The properties file use the standard config hierarchy for ChromeOS Factory.
 This means that there are three levels of config:
-* `/usr/local/factory/py/tools/goofy_ghost.json`: The default empty config.
+* `/usr/local/factory/py/tools/goofy_ghost/goofy_ghost.json`: The default empty
+  config.
 * `/usr/local/factory/py/config/goofy_ghost.json`: Board specific config.
 * `/var/factory/config/goofy_ghost.json`: Device specific config.
 
