@@ -70,6 +70,7 @@ class FinalizeAccessory(unittest.TestCase):
     skip_patterns = map(re.compile, self.args.waive_tests)
     passed_states = set([factory.TestState.PASSED,
                          factory.TestState.FAILED_AND_WAIVED,
+                         factory.TestState.SKIPPED,
                          factory.TestState.ACTIVE])
     test_states = self._state.get_test_states()
     factory.console.debug('states: %s', test_states)

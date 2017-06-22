@@ -489,7 +489,7 @@ class TestInvocation(object):
         TestState.UNTESTED: testlog.StationTestRun.STATUS.UNKNOWN,
         # TODO(itspeter): Consider adding another status.
         TestState.FAILED_AND_WAIVED: testlog.StationTestRun.STATUS.PASSED,
-        TestState.SKIPPED_MSG: testlog.StationTestRun.STATUS.PASSED}
+        TestState.SKIPPED: testlog.StationTestRun.STATUS.PASSED}
 
     log_args = copy.deepcopy(log_args)  # Make sure it is intact
     log_args.pop('status', None)  # Discard the status

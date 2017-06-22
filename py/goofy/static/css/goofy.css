@@ -281,7 +281,10 @@ h1 {
 .goofy-status-untested > div > .goofy-test-icon {
   background-image: url(/images/untested.gif);
 }
-.goofy-skip .goog-tree-item-label {
+.goofy-status-skipped > div > .goofy-test-icon {
+  background-image: url(/images/passed.gif);
+}
+.goofy-status-skipped > div > .goog-tree-item-label {
   text-decoration: line-through;
   color: darkgray !important;
 }

@@ -360,14 +360,11 @@ class TestState(object):
   FAILED = 'FAILED'
   UNTESTED = 'UNTESTED'
   FAILED_AND_WAIVED = 'FAILED_AND_WAIVED'
-
-  # Error message used for tests that are considered passed only because
-  # they have been skipped.
-  SKIPPED_MSG = 'SKIPPED'
+  SKIPPED = 'SKIPPED'
 
   def __init__(self, status=UNTESTED, count=0, visible=False, error_msg=None,
                shutdown_count=0, invocation=None, iterations_left=0,
-               retries_left=0, skip=False):
+               retries_left=0):
     self.status = status
     self.count = count
     self.visible = visible
@@ -376,7 +373,6 @@ class TestState(object):
     self.invocation = invocation
     self.iterations_left = iterations_left
     self.retries_left = retries_left
-    self.skip = skip
 
   def __repr__(self):
     return type_utils.StdRepr(self)
@@ -385,8 +381,7 @@ class TestState(object):
              shutdown_count=None, increment_shutdown_count=0, visible=None,
              invocation=None,
              decrement_iterations_left=0, iterations_left=None,
-             decrement_retries_left=0, retries_left=None,
-             skip=None):
+             decrement_retries_left=0, retries_left=None):
     """Updates the state of a test.
 
     Args:
@@ -404,7 +399,6 @@ class TestState(object):
           The case retries_left = -1 means the test had already used the first
           try and all the retries.
       decrement_retries_left: An amount by which to decrement retries_left.
-      skip: Whether the test should be skipped.
 
     Returns:
       True if anything was changed.
@@ -423,8 +417,6 @@ class TestState(object):
       self.retries_left = retries_left
     if visible is not None:
       self.visible = visible
-    if skip is not None:
-      self.skip = skip
 
     if invocation is not None:
       self.invocation = invocation
@@ -1019,23 +1011,19 @@ class FactoryTest(object):
     skipped_tests = []
     for test in self.Walk():
       if not test.subtests and test.GetState().status != TestState.PASSED:
-        test.UpdateState(status=TestState.PASSED, skip=True,
-                         error_msg=TestState.SKIPPED_MSG)
+        test.UpdateState(status=TestState.SKIPPED)
         skipped_tests.append(test.path)
     if skipped_tests:
       logging.info('Skipped tests %s', skipped_tests)
       if self.subtests:
         logging.info('Marking %s as skipped, since subtests were skipped',
                      self.path)
-        self.UpdateState(status=TestState.PASSED, skip=True,
-                         error_msg=TestState.SKIPPED_MSG)
+        self.UpdateState(status=TestState.SKIPPED)
 
   def IsSkipped(self):
     """Returns True if this test was skipped."""
-    # TODO(stimim): state.skip should be replaced by a test status SKIPPED.
-    # We should stop using status=PASSED, msg=SKIPPED_MSG.
     state = self.GetState()
-    return state.skip
+    return state.status == TestState.SKIPPED
 
   def GetNextSibling(self):
     return self.next_sibling

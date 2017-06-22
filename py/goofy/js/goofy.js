@@ -2765,8 +2765,6 @@ cros.factory.Goofy.prototype.setTestState = function(path, state) {
   goog.dom.classlist.add(
       elt, 'goofy-status-' + state.status.toLowerCase().replace(/_/g, '-'));
 
-  goog.dom.classlist.enable(elt, 'goofy-skip', state.skip);
-
   var visible = state.visible;
   goog.dom.classlist.enable(elt, 'goofy-test-visible', visible);
   goog.object.forEach(this.invocations, function(invoc, uuid) {

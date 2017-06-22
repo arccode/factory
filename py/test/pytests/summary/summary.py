@@ -55,6 +55,12 @@ th, td {
 
 _EXTERNAL_DIR = '/run/factory/external'
 
+# The following test states are considered passed
+_EXTENED_PASSED_STATE = {
+    factory.TestState.PASSED,
+    factory.TestState.FAILED_AND_WAIVED,
+    factory.TestState.SKIPPED, }
+
 
 class Report(unittest.TestCase):
   """A factory test to report test status."""
@@ -117,8 +123,7 @@ class Report(unittest.TestCase):
       statuses.append(test_state.status)
 
     overall_status = factory.overall_status(statuses)
-    all_pass = overall_status in (factory.TestState.PASSED,
-                                  factory.TestState.FAILED_AND_WAIVED)
+    all_pass = overall_status in _EXTENED_PASSED_STATE
 
     if all_pass:
       self.dut.hooks.OnSummaryGood()

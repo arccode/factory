@@ -31,18 +31,11 @@ class FactoryStateTest(unittest.TestCase):
     This test also covers get_test_state.
     """
     # Pick some of the fields and update them.
-    test_state, changed = self.state.update_test_state('a.b.c', skip=True)
-    self.assertEqual(True, test_state.skip)
-    self.assertTrue(changed)
-
-    test_state, changed = self.state.update_test_state(
-        'a.b.c', visible=True, skip=False)
-    self.assertEqual(False, test_state.skip)
+    test_state, changed = self.state.update_test_state('a.b.c', visible=True)
     self.assertEqual(True, test_state.visible)
     self.assertTrue(changed)
 
     test_state, changed = self.state.update_test_state('a.b.c', visible=True)
-    self.assertEqual(False, test_state.skip)
     self.assertEqual(True, test_state.visible)
     self.assertFalse(changed)
 
@@ -54,17 +47,17 @@ class FactoryStateTest(unittest.TestCase):
     self.assertItemsEqual(test_paths, self.state.get_test_paths())
 
   def testGetTestStates(self):
-    self.state.update_test_state('a', skip=True)
+    self.state.update_test_state('a', visible=True)
     self.state.update_test_state('a.b', visible=True)
     self.state.update_test_state('a.b.c', visible=False)
 
     states = self.state.get_test_states()
-    self.assertEqual(True, states['a'].skip)
+    self.assertEqual(True, states['a'].visible)
     self.assertEqual(True, states['a.b'].visible)
     self.assertEqual(False, states['a.b.c'].visible)
 
   def testClearTestState(self):
-    self.state.update_test_state('a', skip=True)
+    self.state.update_test_state('a', visible=True)
     self.state.update_test_state('a.b', visible=True)
     self.state.update_test_state('a.b.c', visible=False)
     self.state.clear_test_state()

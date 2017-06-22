@@ -388,8 +388,7 @@ class TestListIterator(object):
       return True  # we need to skip it
     elif test.IsSkipped():
       # this test was skipped before, but now we might need to run it
-      test.UpdateState(status=factory.TestState.UNTESTED, error_msg='',
-                       skip=False)
+      test.UpdateState(status=factory.TestState.UNTESTED)
       # check again (for status filter)
       return self.CheckSkip(test)
     return False
