@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "definitions": {},
+  "properties": {
+    "force_light_init": {
+      "type": "boolean"
+    },
+    "light_delay": {
+      "type": "number"
+    },
+    "light_seq": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "luxs": {
+      "items": {
+        "type": "integer"
+      },
+      "type": "array"
+    },
+    "n_samples": {
+      "type": "integer"
+    },
+    "read_delay": {
+      "type": "number"
+    },
+    "validating_err_limit": {
+      "type": "number"
+    },
+    "validating_light": {
+      "type": "string"
+    },
+    "validating_lux": {
+      "type": "integer"
+    },
+    "version": {
+      "type": "string"
+    }
+  },
+  "type": "object",
+  "additionalProperties": false
+}

@@ -2107,105 +2107,44 @@ msgid "ALS Sensor Calibration"
 msgstr "光感应器校正"
 
 #: ../py/test/pytests/light_sensor_calibration.py
-msgid "Starting the test"
-msgstr "开始测试"
+msgid "Fixture Connected"
+msgstr "治具已连线"
 
 #: ../py/test/pytests/light_sensor_calibration.py
-msgid "Reading serial number"
-msgstr "读取序号"
+msgid "Fixture Disconnected"
+msgstr "治具连线断线"
 
 #: ../py/test/pytests/light_sensor_calibration.py
-msgid "Initializing camera"
-msgstr "初始化摄像头"
+msgid "Logging serial numbers"
+msgstr "登录序号"
 
 #: ../py/test/pytests/light_sensor_calibration.py
-msgid "Reading Light1 ALS value"
-msgstr "读取灯光1 ALS数值"
+msgid "Cleaning up calibration values"
+msgstr "清除校正数值"
 
 #: ../py/test/pytests/light_sensor_calibration.py
-msgid "Reading Light2 ALS value"
-msgstr "读取灯光2 ALS数值"
+msgid "Sampling {name}"
+msgstr "讀取 {name}"
 
 #: ../py/test/pytests/light_sensor_calibration.py
-msgid "Reading Light3 ALS value"
-msgstr "读取灯光3 ALS数值"
+msgid "Checking ALS ordering"
+msgstr "确认 ALS 顺序"
 
 #: ../py/test/pytests/light_sensor_calibration.py
-msgid "Calculate the ALS line"
-msgstr "计算ALS结果"
+msgid "Calculating calibration coefficients"
+msgstr "计算校正参数"
 
 #: ../py/test/pytests/light_sensor_calibration.py
-msgid "Writing the ALS calibration data to vpd"
-msgstr "写入ALS校正结果"
+msgid "Saving calibration coefficients to VPD"
+msgstr "写入校正参数至VPD"
 
 #: ../py/test/pytests/light_sensor_calibration.py
-msgid "Validating the calibrated ALS value"
-msgstr "验证已完成校正灯光 ALS数值"
+msgid "Validating ALS"
+msgstr "验证ALS"
 
 #: ../py/test/pytests/light_sensor_calibration.py
-msgid "All tests are complete"
-msgstr "测试已全部完成"
-
-#: ../py/test/pytests/light_sensor_calibration.py
-msgid "Test data saved"
-msgstr "记录档已写入"
-
-#: ../py/test/pytests/light_sensor_calibration_static/light_sensor_calibration.html
-msgid "Please insert the USB stick to load test parameters"
-msgstr "请插入U盘读取测试参数"
-
-#: ../py/test/pytests/light_sensor_calibration_static/light_sensor_calibration.html
-msgid "Please insert ethernet dongle to load test parameters"
-msgstr "请插入网路介面卡读取测试参数"
-
-#: ../py/test/pytests/light_sensor_calibration_static/light_sensor_calibration.html
-msgid "ALS Calibration"
-msgstr "光感应器校正"
-
-#: ../py/test/pytests/light_sensor_calibration_static/light_sensor_calibration.html
-msgid "USB Stick:"
-msgstr "测试参数U盘:"
-
-#: ../py/test/pytests/light_sensor_calibration_static/light_sensor_calibration.html
-#: ../py/test/pytests/light_sensor_calibration_static/light_sensor_calibration.js
-msgid "USB UNLOADED"
-msgstr "U盘已载入"
-
-#: ../py/test/pytests/light_sensor_calibration_static/light_sensor_calibration.html
-msgid "Serial Number:"
-msgstr "待测物序号:"
-
-#: ../py/test/pytests/light_sensor_calibration_static/light_sensor_calibration.html
-msgid "Fixture:"
-msgstr "治具链接:"
-
-#: ../py/test/pytests/light_sensor_calibration_static/light_sensor_calibration.html
-msgid "UNAVAILABLE"
-msgstr "未连接"
-
-#: ../py/test/pytests/light_sensor_calibration_static/light_sensor_calibration.html
-msgid "Start Test"
-msgstr "开始测试"
-
-#: ../py/test/pytests/light_sensor_calibration_static/light_sensor_calibration.html
-msgid "Exit Test"
-msgstr "离开测试"
-
-#: ../py/test/pytests/light_sensor_calibration_static/light_sensor_calibration.html
-msgid "IDLE"
-msgstr "閒置中"
-
-#: ../py/test/pytests/light_sensor_calibration_static/light_sensor_calibration.js
-msgid "USB LOADED"
-msgstr "U盘未载入"
-
-#: ../py/test/pytests/light_sensor_calibration_static/light_sensor_calibration.js
-msgid "Fixture CONNECTED"
-msgstr "治具已连接"
-
-#: ../py/test/pytests/light_sensor_calibration_static/light_sensor_calibration.js
-msgid "Fixture UNAVAILABLE"
-msgstr "治具未连接"
+msgid "Switching to lighting {name}"
+msgstr "切换到 {name}"
 
 #: ../py/test/pytests/lightbar.py
 msgid "Is the lightbar {color}?<br>Press SPACE if yes, \"f\" if no."

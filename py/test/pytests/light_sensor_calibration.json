@@ -1,0 +1,12 @@
+{
+  "version": "v0.01",
+  "light_seq": ["LUX1", "LUX2", "LUX3"],
+  "n_samples": 5,
+  "read_delay": 2.0,
+  "light_delay": 6.0,
+  "luxs": [40, 217],
+  "validating_light": "LUX3",
+  "validating_lux": 316,
+  "validating_err_limit": 0.2,
+  "force_light_init": false
+}

@@ -11,6 +11,11 @@ from cros.factory.device import types
 from cros.factory.device import sensor_utils
 
 
+IN_ILLUMINANCE_RAW = "in_illuminance_raw"
+IN_ILLUMINANCE_BIAS = "in_illuminance_calibbias"
+IN_ILLUMINANCE_SCALE = "in_illuminance_calibscale"
+
+
 class AmbientLightSensorException(Exception):
   pass
 
@@ -26,10 +31,9 @@ class AmbientLightSensorController(sensor_utils.BasicSensorController):
       location: The location attribute of sensor.
     """
     super(AmbientLightSensorController, self).__init__(
-        dut, name, location, ['in_illuminance_raw', 'in_illuminance_calibbias',
-                              'in_illuminance_calibscale'])
-    self.calib_signal_names = [
-        'in_illuminance_calibbias', 'in_illuminance_calibscale']
+        dut, name, location, [IN_ILLUMINANCE_RAW, IN_ILLUMINANCE_BIAS,
+                              IN_ILLUMINANCE_SCALE])
+    self.calib_signal_names = [IN_ILLUMINANCE_BIAS, IN_ILLUMINANCE_SCALE]
     self.location = location
 
   def _SetSysfsValue(self, signal_name, value):
@@ -41,21 +45,21 @@ class AmbientLightSensorController(sensor_utils.BasicSensorController):
 
   def _GetSysfsValue(self, signal_name):
     try:
-      return self._device.ReadFile(os.path.join(
+      return self._device.ReadSpecialFile(os.path.join(
           self._iio_path, signal_name)).strip()
     except Exception as e:
       raise AmbientLightSensorException(e.message)
 
   def CleanUpCalibrationValues(self):
     """Cleans up calibration values."""
-    self._SetSysfsValue('in_illuminance_calibbias', '0.0')
-    self._SetSysfsValue('in_illuminance_calibscale', '1.0')
+    self._SetSysfsValue(IN_ILLUMINANCE_BIAS, '0.0')
+    self._SetSysfsValue(IN_ILLUMINANCE_SCALE, '1.0')
 
   def GetCalibrationValues(self):
     """Reads the calibration values from sysfs."""
     vals = {}
     for signal_name in self.calib_signal_names:
-      vals[signal_name] = self._GetSysfsValue(signal_name)
+      vals[signal_name] = float(self._GetSysfsValue(signal_name))
     return vals
 
   def SetCalibrationValue(self, signal_name, value):
@@ -67,10 +71,24 @@ class AmbientLightSensorController(sensor_utils.BasicSensorController):
     except Exception as e:
       raise AmbientLightSensorException(e.message)
 
+  def SetCalibrationIntercept(self, value):
+    """Sets the calibration bias to sysfs."""
+    try:
+      self._SetSysfsValue(IN_ILLUMINANCE_BIAS, str(value))
+    except Exception as e:
+      raise AmbientLightSensorException(e.message)
+
+  def SetCalibrationSlope(self, value):
+    """Sets the calibration scale to sysfs."""
+    try:
+      self._SetSysfsValue(IN_ILLUMINANCE_SCALE, str(value))
+    except Exception as e:
+      raise AmbientLightSensorException(e.message)
+
   def GetLuxValue(self):
     """Reads the LUX raw value from sysfs."""
     try:
-      return self._GetSysfsValue('in_illuminance_raw')
+      return int(self._GetSysfsValue(IN_ILLUMINANCE_RAW))
     except Exception as e:
       logging.exception('Failed to get illuminance value')
       raise AmbientLightSensorException(e.message)
@@ -78,8 +96,12 @@ class AmbientLightSensorController(sensor_utils.BasicSensorController):
   def ForceLightInit(self):
     """Froce als to apply the vpd value."""
     try:
-      self._device.CheckCall('/lib/udev/light-init.sh')
+      device_name = os.path.basename(self._iio_path)
+      self._device.CheckCall('/lib/udev/light-init.sh', device_name,
+                             'illuminance')
     except Exception as e:
+      logging.exception('Failed to invoke light-init.sh (%s, illuminance)',
+                        device_name)
       raise AmbientLightSensorException(e.message)
 
 
