@@ -130,6 +130,7 @@ class TestHTTP(unittest.TestCase):
       self.assertTrue(self.core.AllStreamsExpired())
 
 
+@unittest.skip('Package gnupg is not yet installed in chroot.')
 class TestHTTPAE(unittest.TestCase):
 
   def _CreateKeys(self):

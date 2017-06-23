@@ -331,6 +331,7 @@ class TestInputHTTP(unittest.TestCase):
         ['cmp', '-s', uploaded_path, att_path], check_call=True)
 
 
+@unittest.skip('Package gnupg is not yet installed in chroot.')
 class TestHTTPAE(unittest.TestCase):
 
   def _CreateKeys(self):
@@ -430,6 +431,7 @@ class TestHTTPAE(unittest.TestCase):
                       headers={'Multi-Event': True})
     self.assertEqual(r.status_code, 200)
     self.assertEqual(self.core.emit_calls, [[datatypes.Event({'K': 'V'})]])
+
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO, format=log_utils.LOG_FORMAT)
