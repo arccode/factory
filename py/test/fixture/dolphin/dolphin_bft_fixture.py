@@ -365,7 +365,7 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
       disconnect_secs: Disconnection interval in seconds.
     """
     disconnect_msecs = 1000 * disconnect_secs
-    self._Send('fake_disconnect 0 %d' % disconnect_msecs,
+    self._Send('fakedisconnect 0 %d' % disconnect_msecs,
                'set fake disconnection %d secs' % disconnect_secs)
 
   def SetOutputBufferChannel(self, channel):
