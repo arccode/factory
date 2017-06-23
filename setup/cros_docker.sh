@@ -448,7 +448,6 @@ do_overlord_run() {
     --volume "${HOST_OVERLORD_APP_DIR}:${DOCKER_OVERLORD_APP_DIR}" \
     --volume "${HOST_SHARED_DIR}:/mnt" \
     --publish "4455:4455" \
-    --publish "4456:4456/udp" \
     --publish "${OVERLORD_HTTP_PORT}:9000" \
     --workdir "${DOCKER_OVERLORD_DIR}" \
     "${DOCKER_IMAGE_NAME}" \
