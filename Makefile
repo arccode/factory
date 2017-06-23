@@ -311,8 +311,7 @@ bundle: par doc toolkit
 	  "$(TOOLKIT_OUTPUT_DIR)/$(TOOLKIT_FILENAME)" \
 	  "$(PAR_OUTPUT_DIR)/$(PAR_NAME)" \
 	  "$(DOC_ARCHIVE_PATH)" \
-	  "setup" \
-	  "$(SYSROOT)"
+	  "setup"
 	$(call func-apply-board-resources,bundle,$(BUNDLE_DIR))
 	$(info Bundle is created in $(abspath $(BUNDLE_DIR)))
 

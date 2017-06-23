@@ -46,6 +46,44 @@ running Google Chrome OS Factory Server, on a dedicated Windows or Linux
 machine, or even directly on the backend. The Google ChromeOS Factory Server
 just needs to know the URL to Shopfloor Service.
 
+## Setting shopfloor service URL for factory server
+Depends on which ChromeOS Factory Server to use, there are different ways to
+configure shopfloor service.
+
+### Using Umpire
+[Umpire](../umpire/README.md) is the new recommended factory server for ChromeOS
+factory flow. In its configuration, there is a `shopfloor_service` property. To
+set that:
+
+```sh
+  # Enter Docker instance
+  (host)$ setup/cros_docker.sh umpire shell
+  (docker)$ umpire edit
+
+  # Add following as first line:
+  shopfloor_service: http://172.17.0.1:8090
+```
+
+The default URL is set to 'Docker host IP' (usually 172.17.0.1) when Docker
+environment is detected, otherwise http://127.0.0.1:8090.
+
+### Using legacy Factory Server (shopfloor_server)
+The legacy factory server, which was known as `shopfloor_server` or `shopfloor`
+and now renamed to `factory_server`, allows specifying shopfloor service using
+`-s` argument or loaded from config file `factory_server.json`.
+
+The default URL is set to local host (http://127.0.0.1:8090).
+
+To override permanently, in board overlay create a file
+`chromeos-base/factory-board/files/py/config/factory_server.json` with following
+contents, then rebuild toolkit:
+
+```json
+  {
+    "shopfloor_service_url": "http://127.0.0.1:8090"
+  }
+```
+
 ## Shopfloor Service API
 The "Chrome OS Factory Shopfloor Service" must be implemented as a web service
 using [XMLRPC](http://xmlrpc.scripting.com/spec.html) protocol with

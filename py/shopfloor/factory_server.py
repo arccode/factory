@@ -32,6 +32,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.shopfloor import factory_update_server, factory_log_server
 from cros.factory.test.env import paths
 from cros.factory.test.rules.registration_codes import CheckRegistrationCode
+from cros.factory.utils import config_utils
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
@@ -47,7 +48,7 @@ DEFAULT_SERVER_PORT = 8082
 # want to change address to "localhost".
 _DEFAULT_SERVER_ADDRESS = '0.0.0.0'
 
-# Environment variables that can be used to set shop floor sever address and
+# Environment variables that can be used to set shop floor server address and
 # port.
 SHOPFLOOR_ADDR_ENV_VAR = 'CROS_SHOPFLOOR_ADDR'
 SHOPFLOOR_PORT_ENV_VAR = 'CROS_SHOPFLOOR_PORT'
@@ -135,10 +136,11 @@ class FactoryServer(object):
       self._auto_archive_logs_days = auto_archive_logs_days
 
     if shopfloor_service_url is None:
-      shopfloor_service_url = DEFAULT_SHOPFLOOR_SERVICE_URL
-    else:
-      shopfloor_service_url = shopfloor_service_url.rstrip('/')
+      shopfloor_service_url = config_utils.LoadConfig('factory_server').get(
+          'shopfloor_service_url', DEFAULT_SHOPFLOOR_SERVICE_URL)
+    shopfloor_service_url = shopfloor_service_url.rstrip('/')
     self.service = xmlrpclib.ServerProxy(shopfloor_service_url, allow_none=True)
+    logging.info('Using shopfloor service from %s', shopfloor_service_url)
 
     if not os.path.exists(self.data_dir):
       logging.warn('Data directory %s does not exist; creating it',
@@ -714,8 +716,7 @@ def main():
                     help=('data directory for shop floor system '
                           '(default: %default)'))
   parser.add_option('-s', '--shopfloor-service-url',
-                    dest='shopfloor_service_url',
-                    default=DEFAULT_SHOPFLOOR_SERVICE_URL,
+                    dest='shopfloor_service_url', default=None,
                     help='URL to shopfloor service backend.')
   parser.add_option('-v', '--verbose', action='count', dest='verbose',
                     help='increase message verbosity')

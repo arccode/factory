@@ -25,8 +25,8 @@ bundle_install() {
 }
 
 main() {
-  if [ "$#" != 6 ]; then
-    die "Usage: $0 bundle_dir toolkit par doc_zip setup sysroot"
+  if [ "$#" != 5 ]; then
+    die "Usage: $0 bundle_dir toolkit par doc_zip setup"
   fi
   # We want all files and directories created to be readable by world.
   umask 022
@@ -36,19 +36,13 @@ main() {
   local par="$3"
   local doc_zip="$4"
   local setup="$5"
-  local sysroot="$6"
-  local par_name="$(basename "${par}")"
 
   echo "Creating factory bundle in ${bundle_dir}..."
   mkdir -p "${bundle_dir}"
   bundle_install "${bundle_dir}" "${doc_zip}" .
-  # TODO(hungte) The folder for toolkit should be 'factory_toolkit', but it will
-  # currently conflict with make_factory_toolkit and the creation of bundle in
-  # chromite. To prevent that, we'll name this 'toolkit' for a short time, until
-  # the transition is complete.
   bundle_install "${bundle_dir}" "${toolkit}" toolkit
   bundle_install "${bundle_dir}" "${par}" shopfloor \
-    "shopfloor shopfloor_server"
+    "factory_server shopfloor_server"
   if [ -n "${BUNDLE_FACTORY_FLOW}" ]; then
     bundle_install "${bundle_dir}" "${par}" factory_flow \
       "factory_flow finalize_bundle test_factory_flow"
@@ -58,11 +52,6 @@ main() {
   mkdir -p "${bundle_dir}/setup/bin"
   cp -f /usr/bin/cgpt "${bundle_dir}/setup/bin"
   cp -f /usr/bin/futility "${bundle_dir}/setup/bin"
-
-  # TODO(hungte) Remove the copied cros-regions.json when regions.py supports
-  # reading region database from local folder inside PAR.
-  cp -f "${sysroot}/usr/share/misc/cros-regions.json" \
-    "${bundle_dir}/shopfloor/."
 
   # Last chance to make sure all bundle files are world readable.
   chmod -R ugo+rX "${bundle_dir}"
