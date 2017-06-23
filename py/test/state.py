@@ -5,6 +5,33 @@
 
 
 """This module handles factory test states (status) and shared persistent data.
+
+The `state` provides two different data set using shelve_utils.DictShelfView:
+
+ - tests: A shelf storing test states and status.
+ - data: A shelf for data to be shared (also known as shared_data), providing:
+   - device: Data and configuration of current DUT (usually accumulated from
+     shopfloor or barcode scanner), including:
+     - serials: A dict for serial numbers of device, components, and mainboard.
+       All serial numbers here will be logged by `testlog`, including:
+       - serial_number: The serial number of "device" itself (printed on case).
+       - mlb_serial_number: The serial number of main logic board (mainboard).
+     - hwid: A value of probed Hardware ID.
+     - vpd: A dict for what VPD values need to be set, including:
+       - ro: VPD values in RO section (RO_VPD), usually including:
+         - region: Region code as defined in go/cros-regions.
+       - rw: VPD values in RW section (RW_VPD), usually including:
+         - ubind_attribute: User registration code.
+         - gbind_attribute: Group registration code.
+     - factory: A dict for manufacturing flow control, used by shopfloor.
+
+There are few different helper APIs to get and set values in different level of
+dict. For example, following calls are identical:
+
+    set_shared_data('device.serials.mlb_serial_number', 'MLB12345')
+    UpdateDeviceData({'serials.mlb_serial_number': 'MLB12345'})
+    SetSerialNumber('mlb_serial_number', 'MLB12345')
+    UpdateSerialNumbers({'mlb_serial_number', 'MLB12345'})
 """
 
 
@@ -52,7 +79,7 @@ KEY_DEVICE_DATA = 'device'
 #
 # {
 #   'device': {
-#     'all_serial_numbers': {
+#     'serials': {
 #       'serial_number': 'SN1234567890',
 #       'mlb_serial_number': 'MLB1234567890'
 #     }
@@ -69,7 +96,10 @@ KEY_DEVICE_DATA = 'device'
 # return {'mlb_serial_number': 'MLB12345'}.
 # `set_shared_data('device.serial_numbers.mlb_serial_number', 'MLB12345')` will
 # do the same thing.
-KEY_ALL_SERIAL_NUMBERS = 'all_serial_numbers'
+KEY_SERIALS = 'serials'
+
+# TODO(hungte) Remove this when migration is done.
+KEY_ALL_SERIAL_NUMBERS = KEY_SERIALS
 
 KEY_SERIAL_NUMBER = 'serial_number'
 KEY_MLB_SERIAL_NUMBER = 'mlb_serial_number'
@@ -557,19 +587,19 @@ def UpdateSerialNumbers(dict_):
     dict_.pop(key)
 
   if dict_:
-    UpdateDeviceData({KEY_ALL_SERIAL_NUMBERS: dict_})
+    UpdateDeviceData({KEY_SERIALS: dict_})
   if keys_to_delete:
     DeleteDeviceData(
-        [shelve_utils.DictKey.Join(KEY_ALL_SERIAL_NUMBERS, key)
+        [shelve_utils.DictKey.Join(KEY_SERIALS, key)
          for key in keys_to_delete], optional=True)
 
 
 def ClearAllSerialNumbers():
-  DeleteDeviceData([KEY_ALL_SERIAL_NUMBERS], optional=True)
+  DeleteDeviceData([KEY_SERIALS], optional=True)
 
 
 def GetAllSerialNumbers():
-  return GetDeviceData(KEY_ALL_SERIAL_NUMBERS, {})
+  return GetDeviceData(KEY_SERIALS, {})
 
 
 class StubFactoryState(FactoryState):

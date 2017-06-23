@@ -408,9 +408,9 @@ class VPDTest(unittest.TestCase):
   VPDTasks = type_utils.Enum(['serial', 'region'])
 
   KEY_SERIAL_NUMBER = shelve_utils.DictKey.Join(
-      state.KEY_ALL_SERIAL_NUMBERS, state.KEY_SERIAL_NUMBER)
+      state.KEY_SERIALS, state.KEY_SERIAL_NUMBER)
   KEY_MLB_SERIAL_NUMBER = shelve_utils.DictKey.Join(
-      state.KEY_ALL_SERIAL_NUMBERS, 'mlb_serial_number')
+      state.KEY_SERIALS, 'mlb_serial_number')
   KEY_VPD_REGION = shelve_utils.DictKey.Join('vpd.ro', 'region')
   KEY_VPD_USER_REGCODE = shelve_utils.DictKey.Join('vpd.rw', 'ubind_attribute')
   KEY_VPD_GROUP_REGCODE = shelve_utils.DictKey.Join('vpd.rw', 'gbind_attribute')

@@ -109,10 +109,10 @@ class TestArgEnv(object):
     if not key:
       raise KeyError('empty key')
     return self.device_data_selector[
-        state.KEY_ALL_SERIAL_NUMBERS].GetValue(key, None)
+        state.KEY_SERIALS].GetValue(key, None)
 
   def GetAllSerialNumbers(self):
-    return self.device_data_selector[state.KEY_ALL_SERIAL_NUMBERS].Get({})
+    return self.device_data_selector[state.KEY_SERIALS].Get({})
 
   def InEngineeringMode(self):
     """Returns if goofy is in engineering mode."""

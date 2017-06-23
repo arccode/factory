@@ -251,27 +251,29 @@ Or if the region is in the private overlay::
 How regions are set in the factory flow
 ---------------------------------------
 In general, the test list should contain an invocation of the
-``call_shopfloor`` test with the ``update_device_data`` action to
-obtain the region code from the shop floor server, and set the
-``region_code`` value in the device data dictionary.  For instance::
+``shopfloor_service`` test with the ``GetDeviceInfo`` method to
+obtain the device-specific data, including region code in VPD.
+For instance::
 
     OperatorTest(
         id='GetDeviceInfo',
-        pytest_name='call_shopfloor',
-        dargs=dict(
-            method='GetDeviceInfo',
-            args=lambda env: [
-                env.GetDeviceData()['mlb_serial_number'],
-                ],
-            action='update_device_data'))
+        pytest_name='shopfloor_service',
+        dargs=dict(method='GetDeviceInfo'))
 
-The ``vpd`` test can then be used to read the ``region`` entry
-from the device data dictionary and and store the value into the RO VPD.
+The returned data from remote Shopfloor Service should return a dictionary to be
+stored in factory state data shelve (DeviceData) with region for VPD as::
+
+    {'ro.vpd.region': 'us'}
+
+The ``write_device_data_to_vpd`` test can then be used to read the
+``ro.vpd.region`` entry from the device data dictionary and provision into
+firmware VPD RO region.
+
 For example::
 
     OperatorTest(
-        id='VPD',
-        dargs=dict(use_shopfloor_device_data=True))
+        id='WriteDeviceDataToVPD',
+        pytest_name='write_device_data_to_vpd)
 
 Region API
 ----------

@@ -120,7 +120,7 @@ def ScanMLB(args):
     args: A TestListArgs object.
   """
   dargs = dict(
-      device_data_key=DictKey.Join(state.KEY_ALL_SERIAL_NUMBERS,
+      device_data_key=DictKey.Join(state.KEY_SERIALS,
                                    state.KEY_MLB_SERIAL_NUMBER),
       event_log_key=state.KEY_MLB_SERIAL_NUMBER,
       label=_('MLB Serial Number'),
@@ -225,7 +225,7 @@ def SMTShopFloor2(args):
         dargs=dict(
             key_map={
                 DictKey.Join('factory_device_data', key): key
-                for key in [DictKey.Join(state.KEY_ALL_SERIAL_NUMBERS,
+                for key in [DictKey.Join(state.KEY_SERIALS,
                                          state.KEY_MLB_SERIAL_NUMBER),
                             'smt_complete']
             },

@@ -83,7 +83,7 @@ def RunIn(args, group_suffix=''):
               dargs=dict(
                   key_map={
                       DictKey.Join('factory.device_data', key): key for key in
-                      [DictKey.Join(state.KEY_ALL_SERIAL_NUMBERS,
+                      [DictKey.Join(state.KEY_SERIALS,
                                     state.KEY_MLB_SERIAL_NUMBER),
                        'smt_complete']},
                   vpd_section='rw'))
@@ -322,7 +322,7 @@ def RunIn(args, group_suffix=''):
                 dargs=dict(
                     key_map={
                         DictKey.Join('factory.device_data', key): key for key in
-                        [DictKey.Join(state.KEY_ALL_SERIAL_NUMBERS,
+                        [DictKey.Join(state.KEY_SERIALS,
                                       state.KEY_MLB_SERIAL_NUMBER),
                          'smt_complete']},
                     vpd_section='rw'))
