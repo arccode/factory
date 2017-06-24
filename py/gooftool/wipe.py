@@ -140,7 +140,7 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
       'display_boot_message', 'dumpe2fs', 'ectool', 'flashrom', 'halt',
       'initctl', 'mkfs.ext4', 'mktemp', 'mosys', 'mount', 'mount-encrypted',
       'od', 'pango-view', 'pkill', 'pv', 'python', 'reboot', 'setterm', 'sh',
-      'shutdown', 'stop', 'umount', 'vpd', 'wget', 'lsof', 'jq', '/sbin/frecon']
+      'shutdown', 'stop', 'umount', 'vpd', 'curl', 'lsof', 'jq', '/sbin/frecon']
 
   etc_issue = textwrap.dedent("""
     You are now in tmp file system created for in-place wiping.
@@ -185,6 +185,8 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
             # Factory related scripts.
             factory_par,
             '/usr/local/factory/sh',
+            # Factory config files
+            '/usr/local/factory/py/config',
             # Fonts and assets required for showing message.
             pango_module,
             '/usr/share/fonts/notocjk',
