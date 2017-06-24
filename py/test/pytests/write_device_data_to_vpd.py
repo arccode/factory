@@ -5,7 +5,8 @@
 
 """Writes a subset device data to the RW VPD.
 
-Data is all written as strings."""
+Data is all written as strings.
+"""
 
 
 import unittest
@@ -29,32 +30,50 @@ class CallShopfloor(unittest.TestCase):
       Arg('key_map', dict,
           ('Mapping from VPD key to device data key, e.g. {"foo": "bar.baz"} '
            'will write the value of "bar.baz" in device data to VPD with key '
-           '"foo"')),
+           '"foo". If set to None, write both RO and RW from "device.vpd".'),
+          default=None),
       Arg('vpd_section', str,
-          'It should be rw or ro which means RW_VPD or RO_VPD to write.',
-          default='rw', optional=True),
+          'Set to "rw" or "ro" to specify target VPD region (RW_VPD or RO_VPD)'
+          'to write. Default to "rw" if key_map is not None.',
+          default=None, optional=True),
   ]
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
 
   def runTest(self):
-    if self.args.vpd_section not in ['ro', 'rw']:
-      self.fail('Invalid vpd_section:% r, should be %r or %r.' %
-                (self.args.vpd_section, 'ro', 'rw'))
-
     ui = test_ui.UI()
     template = ui_templates.OneSection(ui)
-    template.SetState(_MSG_WRITING_VPD(self.args.vpd_section))
 
-    data_to_write = {}
-    for vpd_key, device_data_key in self.args.key_map.iteritems():
-      data_to_write[vpd_key] = state.GetDeviceData(device_data_key, None)
+    key_map = self.args.key_map
+    vpd_section = self.args.vpd_section
 
-    missing_keys = [k for k, v in data_to_write.iteritems() if v is None]
-    if missing_keys:
-      self.fail('Missing device data keys: %r' % sorted(missing_keys))
+    data = {
+        'ro': {},
+        'rw': {},
+    }
 
-    vpd = self.dut.vpd
-    getattr(vpd, self.args.vpd_section).Update(
-        dict((k, str(v)) for k, v in data_to_write.iteritems()))
+    if key_map is None:
+      data['ro'] = state.GetDeviceData('vpd.ro', {}).update(
+          state.GetDeviceData('serials', {}))
+      data['rw'] = state.GetDeviceData('vpd.rw', {})
+      self.assertEqual(vpd_section, None,
+                       'vpd_section must be None when key_map is None.')
+    else:
+      self.assertIn(vpd_section, data, 'vpd_section (%s) must be in %s' %
+                    (vpd_section, data.keys()))
+      for k, v in key_map.iteritems():
+        data[vpd_section][k] = state.GetDeviceData(v, None)
+
+      missing_keys = [k for k, v in data[vpd_section].iteritems() if v is None]
+      if missing_keys:
+        self.fail('Missing device data keys: %r' % sorted(missing_keys))
+
+    for section, entries in data.iteritems():
+      template.SetState(_MSG_WRITING_VPD(section))
+      if not entries:
+        continue
+      # Normalize boolean and integer types to strings.
+      output = dict((k, str(v)) for k, v in entries.iteritems())
+      vpd = getattr(self.dut.vpd, section)
+      vpd.Update(output)
