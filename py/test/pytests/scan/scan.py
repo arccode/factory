@@ -5,9 +5,9 @@
 """Prompts the operator to input a string of data."""
 
 from __future__ import print_function
+
 import logging
 import re
-import socket
 import time
 import unittest
 
@@ -26,12 +26,6 @@ from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
 from cros.factory.utils import process_utils
-
-_HAS_GHOST = True
-try:
-  from cros.factory.tools import ghost
-except Exception:
-  _HAS_GHOST = False
 
 
 class Scan(unittest.TestCase):
@@ -85,9 +79,7 @@ class Scan(unittest.TestCase):
       Arg('ignore_case', bool, 'True to ignore case from input.',
           default=False),
       Arg('value_assigned', str,
-          'If not None, use the value to fill the key.', optional=True),
-      Arg('reconnect_ghost', bool,
-          'Reconnect ghost to update machine ID', default=False, optional=True)
+          'If not None, use the value to fill the key.', optional=True)
   ]
 
   def HandleScanValue(self, event):
@@ -194,9 +186,6 @@ class Scan(unittest.TestCase):
     if self.auto_scan_timer:
       self.auto_scan_timer.cancel()
 
-    if self.args.reconnect_ghost:
-      self.KickGhost()
-
   def ScanBarcode(self):
     while True:
       self.fixture.ScanBarcode()
@@ -206,17 +195,6 @@ class Scan(unittest.TestCase):
     while True:
       self.fixture.TriggerScanner()
       time.sleep(self.args.barcode_scan_interval_secs)
-
-  def KickGhost(self):
-    # TODO: modify ghost.py to accept command 'ghost reconnect' to
-    # avoid importing it directly here (b/38485295).
-    if not _HAS_GHOST:
-      raise RuntimeError('ghost library is not loaded.')
-    server = ghost.GhostRPCServer()
-    try:
-      server.Reconnect()
-    except socket.error as e:
-      logging.exception(str(e))
 
   def runTest(self):
     template = ui_templates.OneSection(self.ui)
