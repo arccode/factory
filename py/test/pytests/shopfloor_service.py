@@ -33,9 +33,12 @@ from cros.factory.utils import shelve_utils
 class ServiceSpec(object):
   """The specification of shopfloor service API."""
 
-  def __init__(self, has_data=True, auto_values=None):
+  def __init__(self, has_data=True, auto_values=None, data_args=None,
+               has_privacy_args=False):
     self.has_data = has_data
+    self.has_privacy_args = has_privacy_args
     self.auto_values = auto_values or {}
+    self.data_args = data_args
 
 
 class ShopfloorService(unittest.TestCase):
@@ -60,6 +63,9 @@ class ShopfloorService(unittest.TestCase):
   DOMAIN_COMPONENT = 'component'
   KEY_HWID = 'hwid'
 
+  KEY_VPD_USER_ECHO = 'vpd.rw.ubind_attribute'
+  KEY_VPD_GROUP_ECHO = 'vpd.rw.gbind_attribute'
+
   # Service API method names defined in version 1.0, in {name: has_data} format.
   METHODS = {
       'GetVersion': ServiceSpec(has_data=False),
@@ -67,8 +73,10 @@ class ShopfloorService(unittest.TestCase):
       'NotifyEnd': ServiceSpec(auto_values={'factory.end_{1}': True}),
       'NotifyEvent': ServiceSpec(auto_values={'factory.event_{1}': True}),
       'GetDeviceInfo': ServiceSpec(),
-      'ActivateRegCode': ServiceSpec(has_data=False, auto_values={
-          'factory.activate_reg_code': True}),
+      'ActivateRegCode': ServiceSpec(
+          has_data=False, has_privacy_args=True,
+          auto_values={'factory.activate_reg_code': True},
+          data_args=[KEY_VPD_USER_ECHO, KEY_VPD_GROUP_ECHO, KEY_HWID]),
       'UpdateTestResult': ServiceSpec(),
   }
 
@@ -153,10 +161,15 @@ class ShopfloorService(unittest.TestCase):
     # Prepare arguments
     method = self.args.method
     args = list(self.args.args or ())
-    if self.METHODS[method].has_data:
+    spec = self.METHODS[method]
+    if spec.data_args:
+      args = [state.GetDeviceData(k) for k in spec.data_args] + args
+    if spec.has_data:
       args.insert(0, self.GetFactoryDeviceData())
 
-    logging.info('shopfloor_service: invoking %s%r', method, tuple(args))
+    log_args = '(...)' if spec.has_privacy_args else tuple(args)
+
+    logging.info('shopfloor_service: invoking %s%r', method, log_args)
     invocation_message = pprint.pformat({method: args})
 
     while not self.done:
@@ -183,7 +196,7 @@ class ShopfloorService(unittest.TestCase):
       try:
         result = getattr(server_proxy, method)(*args)
         logging.info('shopfloor_service: %r%r => %r',
-                     method, tuple(args), self.FilterDict(result))
+                     method, log_args, self.FilterDict(result))
         self.UpdateAutoResults(method, result, args)
         self.UpdateDeviceData(result)
         self.done = True
