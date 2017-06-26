@@ -60,7 +60,7 @@ There are few options you can set:
  - `CUTOFF_BATTERY_MAX_VOLTAGE`: Maximal allowed value for battery voltage.
  - `SHOPFLOOR_URL`: URL to shopfloor server that we can send request to inform
      "device is cut-off and ready for packaging".
- - `TTY`: Path of terminal for output. Defaults to /dev/tty1.
+ - `TTY`: Path of terminal for output. Defaults to /run/frecon/vt0.
 
 The options should be set in same syntax that Linux /etc/lsb-release file is
 using; i.e., `KEY=VALUE`. For example,

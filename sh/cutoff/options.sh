@@ -15,8 +15,8 @@
 : ${SHOPFLOOR_URL:=}
 
 # After calling display_wipe_message.sh to draw image with frecon, we must
-# redirect text output to tty1 to display information on the screen.
-: ${TTY:=/dev/tty1}
+# redirect text output to active terminal to display information on the screen.
+: ${TTY:=/run/frecon/vt0}
 
 # Exit as error with messages.
 # Usage: die messages...
@@ -42,8 +42,8 @@ lsbval() {
 # Try to find a real working TTY.
 options_find_tty() {
   local tty
-  for tty in "${TTY}" /run/frecon/vt0 /dev/tty /dev/console /dev/null; do
-    if [ -w "${tty}" ]; then
+  for tty in "${TTY}" /dev/tty1 /dev/tty /dev/console /dev/null; do
+    if [ -c "${tty}" ]; then
       TTY="${tty}"
       break
     fi

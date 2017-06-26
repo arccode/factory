@@ -23,8 +23,7 @@ on_exit() {
 die_with_error_message() {
   "${DISPLAY_MESSAGE}" "inform_shopfloor_failed"
 
-  # In factory install shim, we need to reset tty1 to show message in currect
-  # way.
+  # In factory install shim, we need to reset tty to show message correctly.
   stty -F "${TTY}" sane
   echo "$@" > "${TTY}"
   # Stop here to show error message on the screen.

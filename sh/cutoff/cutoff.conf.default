@@ -19,5 +19,6 @@ CUTOFF_BATTERY_MAX_VOLTAGE=
 # Valid value: An URL to shopfloor.
 SHOPFLOOR_URL=
 
-# Valid value: Any valid terminal like /dev/tty1. This is rarely changed.
-# TTY=/dev/tty1
+# Valid value: Any valid terminal like /run/frecon/vt0 or /dev/tty1.
+# This is rarely changed.
+# TTY=/run/frecon/vt0

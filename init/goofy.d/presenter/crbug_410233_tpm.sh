@@ -18,7 +18,12 @@ check_tpm() {
     return
   fi
 
-  local ttys="/dev/tty1 /dev/tty2 /dev/kmsg /dev/console"
+  local ttys="" tty=""
+  for tty in /dev/kmsg /dev/console /run/frecon/vt0 /dev/tty1; do
+    if [ -c "${tty}" ]; then
+      ttys="${ttys} ${tty}"
+    fi
+  done
 
   # If TPM is owned, we have to reboot otherwise UI may get freak.
   # Alert user and try to clear TPM.

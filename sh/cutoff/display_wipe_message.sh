@@ -13,7 +13,7 @@ FONT_COLOR="Green"
 # Temp message file for display_boot_message.
 MESSAGE_FILE="$(mktemp --tmpdir)"
 
-: ${TTY:=/dev/tty1}
+: ${TTY:=/run/frecon/vt0}
 
 on_exit() {
   rm -f "${MESSAGE_FILE}"
@@ -162,10 +162,11 @@ main() {
       # Light up the screen if possible.
       backlight_tool --set_brightness_percent=100 2>/dev/null || true
 
-      # Hides cursor and prevents console from blanking after long inactivity.
-      setterm -cursor off -blank 0 -powersave off -powerdown 0 2>/dev/null \
-        >>"${TTY}" || true
-
+      if [ -c "${TTY}" ]; then
+        # Hides cursor and prevents console from blanking after long inactivity.
+        setterm -cursor off -blank 0 -powersave off -powerdown 0 2>/dev/null \
+          >>"${TTY}" || true
+      fi
       ;;
     * )
       usage_help
