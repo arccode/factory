@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-06-29 13:58+CST\n"
+"POT-Creation-Date: 2017-06-30 15:23+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -168,7 +168,7 @@ msgstr "正在上载工厂记录 。 请稍等..."
 
 #: ../py/goofy/js/goofy.js
 #: ../py/goofy/plugins/status_monitor/static/status_monitor.js
-#: ../py/test/pytests/vpd.py ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_run_in.py
 msgid "Serial Number"
 msgstr "序号"
 
@@ -348,11 +348,11 @@ msgstr "架构"
 
 #: ../py/goofy/plugins/status_monitor/static/status_monitor.js
 msgid "EC"
-msgstr ""
+msgstr "EC"
 
 #: ../py/goofy/plugins/status_monitor/static/status_monitor.js
 msgid "PD"
-msgstr ""
+msgstr "PD"
 
 #: ../py/goofy/plugins/status_monitor/static/status_monitor.js
 msgid "Main Firmware"
@@ -364,7 +364,7 @@ msgstr "根目录装置"
 
 #: ../py/goofy/plugins/status_monitor/static/status_monitor.js
 msgid "Factory MD5SUM"
-msgstr ""
+msgstr "工厂软件MD5版号"
 
 #: ../py/goofy/plugins/status_monitor/static/status_monitor.js
 msgid "(no update)"
@@ -2489,6 +2489,51 @@ msgstr "TPM 自我诊断"
 msgid "Update Firmware"
 msgstr "更新韧体"
 
+#: ../py/test/pytests/update_device_data.py
+#: ../py/test/test_lists/generic_grt.py ../py/test/test_lists/generic_run_in.py
+msgid "Device Serial Number"
+msgstr "机器编号"
+
+#: ../py/test/pytests/update_device_data.py
+msgid "Mainboard Serial Number"
+msgstr "主板(MLB)序号"
+
+#: ../py/test/pytests/update_device_data.py
+msgid "VPD Region Code"
+msgstr "VPD 地区代码(Region)"
+
+#: ../py/test/pytests/update_device_data.py
+msgid "User Registration Code"
+msgstr "用户注册码(User ECHO)"
+
+#: ../py/test/pytests/update_device_data.py
+msgid "Group Registration Code"
+msgstr "群组注册码(Group ECHO)"
+
+#: ../py/test/pytests/update_device_data.py
+msgid "Invalid value for {label}."
+msgstr "输入的{label}不正确"
+
+#: ../py/test/pytests/update_device_data.py
+msgid "No valid data on machine for {label}."
+msgstr "缺少装置资料: {label}"
+
+#: ../py/test/pytests/update_device_data.py
+msgid "<br>Select with ENTER"
+msgstr "<br>按 ENTER 选择"
+
+#: ../py/test/pytests/update_device_data.py
+msgid "Enter {label}: "
+msgstr "输入{label}: "
+
+#: ../py/test/pytests/update_device_data.py
+msgid "Select {label}: <br>"
+msgstr "选择{label}: <br>"
+
+#: ../py/test/pytests/update_device_data.py
+msgid "<br>(ESC to keep current value)"
+msgstr "<br>(ESC 保持原值不变)"
+
 #: ../py/test/pytests/update_kernel.py
 msgid "Update Kernel"
 msgstr "更新 Kernel"
@@ -2504,42 +2549,6 @@ msgstr "元件验证测试"
 #: ../py/test/pytests/verify_components.py
 msgid "Checking components..."
 msgstr "元件验证中..."
-
-#: ../py/test/pytests/vpd.py
-msgid "Fetching VPD from shop floor server..."
-msgstr "从 Shop Floor 服务器抓取 VPD 中..."
-
-#: ../py/test/pytests/vpd.py
-msgid "Writing VPD:<br>"
-msgstr "写入 VPD:<br>"
-
-#: ../py/test/pytests/vpd.py
-msgid "Select region:<br>"
-msgstr "选择区域代码:<br>"
-
-#: ../py/test/pytests/vpd.py
-msgid "<br>Select with ENTER"
-msgstr "<br>按 ENTER 选择"
-
-#: ../py/test/pytests/vpd.py
-msgid "Enter {vpd_label}: "
-msgstr "输入{vpd_label}: "
-
-#: ../py/test/pytests/vpd.py
-msgid "Select {vpd_label}: <br>"
-msgstr "选择{vpd_label}: <br>"
-
-#: ../py/test/pytests/vpd.py
-msgid "<br>(ESC to re-use current machine {vpd_label})"
-msgstr "<br>(ESC 使用目前已写入机器的{vpd_label})"
-
-#: ../py/test/pytests/vpd.py
-msgid "Found no valid {vpd_label} on machine."
-msgstr "机器上并无合法的{vpd_label}"
-
-#: ../py/test/pytests/vpd.py
-msgid "Invalid {vpd_label} value."
-msgstr "输入的{vpd_label}不合法"
 
 #: ../py/test/pytests/vswr/vswr.html
 msgid "Loading parameters from local disk..."
@@ -2628,7 +2637,7 @@ msgstr ""
 
 #: ../py/test/pytests/wifi_rf.py
 msgid "RMA Factory WiFi RF Test"
-msgstr ""
+msgstr "RMA 无线网路测试"
 
 #: ../py/test/pytests/wifi_rf.py
 msgid "WiFi RF Chamber Testing."
@@ -2646,7 +2655,7 @@ msgstr "将设备放置在WiFi室。当您准备关闭室，按空白键。"
 msgid ""
 "Please wait for other DUTs to finish WiFiThroughput test, and press spacebar "
 "to continue."
-msgstr "请等其它的 DUT 完成测试后按空白键继续。"
+msgstr "请等其它的裝置完成测试后按空白键继续。"
 
 #: ../py/test/pytests/wifi_throughput.py
 msgid "Running, please wait..."
@@ -2835,7 +2844,7 @@ msgstr "插入 SIM 卡和卡盘"
 
 #: ../py/test/test_lists/generic_fatp.py
 msgid "Probe SIM"
-msgstr "SIM 卡"
+msgstr "侦测 SIM 卡"
 
 #: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_grt.py
 msgid "Check No SIM Card Tray"
@@ -2994,10 +3003,6 @@ msgid "Scan Serial Number"
 msgstr "扫描机器编号"
 
 #: ../py/test/test_lists/generic_grt.py ../py/test/test_lists/generic_run_in.py
-msgid "Device Serial Number"
-msgstr "机器编号"
-
-#: ../py/test/test_lists/generic_grt.py ../py/test/test_lists/generic_run_in.py
 msgid "Write HWID"
 msgstr "硬体代号"
 
@@ -3085,7 +3090,7 @@ msgstr "关机时冷重启"
 
 #: ../py/test/test_lists/generic_rrt.py
 msgid "EC Reboot"
-msgstr "EC Reboot"
+msgstr "EC 重启"
 
 #: ../py/test/test_lists/generic_rrt.py
 msgid "Halt"
@@ -3105,7 +3110,7 @@ msgstr "检查无线网络"
 
 #: ../py/test/test_lists/generic_rrt.py
 msgid "WLAN command"
-msgstr "WLAN command"
+msgstr "WLAN 命令"
 
 #: ../py/test/test_lists/generic_rrt.py
 msgid "Check Bluetooth"
@@ -3113,7 +3118,7 @@ msgstr "检查蓝牙"
 
 #: ../py/test/test_lists/generic_rrt.py
 msgid "BT command"
-msgstr "BT command"
+msgstr "BT 命令"
 
 #: ../py/test/test_lists/generic_rrt.py
 msgid "Clear TPM ({count} times)"

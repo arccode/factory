@@ -287,12 +287,7 @@ def RunIn(args, group_suffix=''):
         OperatorTest(
             id='VPD',
             label=_('VPD'),
-            pytest_name='vpd',
-            dargs=dict(
-                use_shopfloor_device_data=True,
-                rlz_brand_code=args.rlz_brand_code,
-                customization_id=args.customization_id,
-                extra_device_data_fields=[('ro', 'color')]))
+            pytest_name='write_device_data_to_vpd')
 
         # For 3G model only. Some modem can only do testing in Generic UMTS
         # mode.
