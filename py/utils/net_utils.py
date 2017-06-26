@@ -234,6 +234,8 @@ def SetEthernetIp(ip, interface=None, netmask=None, force=False, logger=None):
   if force or not current_ip:
     cmd = ['ifconfig', interface, ip]
     if netmask:
+      if isinstance(netmask, int):
+        netmask = str(CIDR(ip, netmask).Netmask())
       cmd += ['netmask', netmask]
     process_utils.Spawn(cmd, call=True)
   elif logger:
