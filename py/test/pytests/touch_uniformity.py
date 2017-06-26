@@ -39,7 +39,9 @@ from cros.factory.test import factory_task
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import file_utils
 
 
 _LABEL_CALIBRATING = i18n_test_ui.MakeI18nLabelWithClass(
@@ -91,8 +93,7 @@ class CheckRawDataTask(factory_task.FactoryTask):
 
   def __init__(self, test):
     super(CheckRawDataTask, self).__init__()
-    self.template = test.template
-    self.controller = test.controller
+    self.test = test
     self.check_list = [CheckItem(*item) for item in test.args.check_list]
 
   def checkRawData(self, check_item, data):
@@ -130,20 +131,35 @@ class CheckRawDataTask(factory_task.FactoryTask):
     return check_passed
 
   def Run(self):
-    matrices = self.controller.GetMatrices([item.frame_idx
-                                            for item in self.check_list])
+    matrices = self.test.controller.GetMatrices([item.frame_idx
+                                                 for item in self.check_list])
     fails = []
+    to_log = []
     for item, matrix in zip(self.check_list, matrices):
-      self.template.SetState(
+      self.test.template.SetState(
           _LABEL_TESTING +
           i18n_test_ui.MakeI18nLabelWithClass(item.label, 'test-info'),
           append=True)
       if self.checkRawData(item, matrix):
-        self.template.SetState(' ' + _LABEL_PASS + _BR, append=True)
+        self.test.template.SetState(' ' + _LABEL_PASS + _BR, append=True)
+        to_log.append([dict(item._asdict()), 'PASS', matrix])
       else:
-        self.template.SetState(' ' + _LABEL_FAIL + _BR, append=True)
+        self.test.template.SetState(' ' + _LABEL_FAIL + _BR, append=True)
         fails.append(item.frame_idx)
+        to_log.append([dict(item._asdict()), 'FAIL', matrix])
     time.sleep(_MESSAGE_DELAY_SECS)
+
+    if self.test.args.upload_log:
+      serial_number = self.test.dut.info.GetSerialNumber()
+      with file_utils.UnopenedTemporaryFile() as temp_path:
+        with open(temp_path, 'w') as f:
+          for obj in to_log:
+            f.write('%r\n' % obj)
+        testlog.AttachFile(
+            path=temp_path,
+            name='touch_uniformity.%s.log' % serial_number,
+            mime_type='text/plain',
+            description='plain text log of touch_uniformity')
 
     if fails:
       self.Fail('Uniformity check failed on frame %s.' % fails)
@@ -179,14 +195,16 @@ class TouchUniformity(unittest.TestCase):
           'min_val: Lower bound for values in this frame.\n'
           'max_val: Upper bound for values in this frame.\n'
           'rows: Number of rows from top to check, or zero to check all.\n'
-          'cols: Number of columns from left to check, or zero to check all.')]
+          'cols: Number of columns from left to check, or zero to check all.'),
+      Arg('upload_log', bool, 'To upload log file via testlog or not.',
+          default=True)]
 
   def setUp(self):
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_CSS)
-    dut = device_utils.CreateDUTInterface()
-    self.controller = dut.touch.GetController(self.args.device_index)
+    self.dut = device_utils.CreateDUTInterface()
+    self.controller = self.dut.touch.GetController(self.args.device_index)
 
   def runTest(self):
     factory_task.FactoryTaskManager(self.ui, [
