@@ -157,6 +157,8 @@ set_docker_image_info
 : "${UMPIRE_PORT:="8080"}"  # base port for Umpire
 : "${DOME_PORT:="8000"}"  # port to access Dome
 : "${OVERLORD_HTTP_PORT:="9000"}"  # port to access Overlord
+: "${OVERLORD_LAN_DISC_IFACE:=""}"  # The network interface that Overlord LAN
+                                    # discovery should be run on.
 
 ensure_dir() {
   local dir="$1"
@@ -432,10 +434,15 @@ do_overlord_run() {
   check_docker
 
   local overlord_container_name="overlord"
+  local overlord_lan_disc_container_name="overlord_lan_disc"
 
   # stop and remove old containers
   ${DOCKER} stop "${overlord_container_name}" 2>/dev/null || true
   ${DOCKER} rm "${overlord_container_name}" 2>/dev/null || true
+
+  # stop and remove old containers
+  ${DOCKER} stop "${overlord_lan_disc_container_name}" 2>/dev/null || true
+  ${DOCKER} rm "${overlord_lan_disc_container_name}" 2>/dev/null || true
 
   if [ ! -d "${HOST_OVERLORD_DIR}" ]; then
     do_overlord_setup
@@ -451,10 +458,23 @@ do_overlord_run() {
     --publish "${OVERLORD_HTTP_PORT}:9000" \
     --workdir "${DOCKER_OVERLORD_DIR}" \
     "${DOCKER_IMAGE_NAME}" \
-    "./overlordd" -tls "app/cert.pem,app/key.pem" || \
+    "./overlordd" -tls "app/cert.pem,app/key.pem" -no-lan-disc || \
     (echo "Removing stale container due to error ..."; \
      ${DOCKER} rm "${overlord_container_name}"; \
      die "Can't start overlord docker. Possibly wrong port binding?")
+
+  # The Overlord LAN discovery need to be run with --net host.
+  ${DOCKER} run \
+    --detach \
+    --restart unless-stopped \
+    --name "${overlord_lan_disc_container_name}" \
+    --workdir "${DOCKER_OVERLORD_DIR}" \
+    --net host \
+    "${DOCKER_IMAGE_NAME}" \
+    "./overlord_lan_disc" -lan-disc-iface "${OVERLORD_LAN_DISC_IFACE}"|| \
+    (echo "Removing stale container due to error ..."; \
+     ${DOCKER} rm "${overlord_lan_disc_container_name}"; \
+     die "Can't start overlord lan discovery docker.")
 }
 
 overlord_usage() {
