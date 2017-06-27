@@ -2,9 +2,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import logging
 import random
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.goofy import goofy as goofy_module
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.utils import connection_manager
 from cros.factory.utils import net_utils
@@ -44,7 +46,16 @@ class ConnectionManager(plugin.Plugin):
 
   @type_utils.Overrides
   def OnStop(self):
-    self._connection_manager.DisableNetworking()
+    # connection_manager plugin is usually stopped for running pytests that
+    # needs exclusive access to network. But we should restore network state
+    # when Goofy is terminating for factory_restart and wipe_in_place.
+    name = self.__class__.__name__
+    if self.goofy.status == goofy_module.Status.TERMINATING:
+      logging.info('%s: Leave network enabled for shutdown.', name)
+      self._connection_manager.EnableNetworking(reset=False)
+    else:
+      logging.info('%s: Disable network.', name)
+      self._connection_manager.DisableNetworking()
 
   @plugin.RPCFunction
   def SetStaticIP(self, *args, **kwargs):
