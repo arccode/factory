@@ -42,7 +42,13 @@ class ConnectionManager(plugin.Plugin):
 
   @type_utils.Overrides
   def OnStart(self):
-    self._connection_manager.EnableNetworking()
+    if self.goofy.status == goofy_module.Status.INITIALIZING:
+      # The first enabling of network is already done inside ConnectionManager
+      # by start_enabled=True with reset=False so we don't want to init again.
+      return
+    # Back from a pytest requested exclusive network resource so we do want to
+    # reset and clear everything.
+    self._connection_manager.EnableNetworking(reset=True)
 
   @type_utils.Overrides
   def OnStop(self):
