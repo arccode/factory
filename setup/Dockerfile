@@ -20,8 +20,8 @@ ARG alpine_repository="http://dl-3.alpinelinux.org/alpine/edge/testing/"
 RUN mkdir -p "${umpire_dir_in_dome}"
 
 # Install packages. Python packages should be installed by pip if possible.
-# However, uwsgi-python from pip needs to build from source, Twisted has
-# package signing problem, so we will install them using apk.
+# However, uwsgi-python and psutil from pip needs to build from source, Twisted
+# has package signing problem, so we will install them using apk.
 #
 #  pigz, py-pip, py-twisted, py-yaml, python, tar: Used by Umpire
 #  (buzybox tar doesn't support -I, which is used in file_utils.ExtractFile)
@@ -29,14 +29,14 @@ RUN mkdir -p "${umpire_dir_in_dome}"
 #  rsync: Used by umpire/service/rsync
 #  jq: Will be used by umpire in future.
 #
-#  py-protobuf: Dependencies that are used by some board's shop_floor
-#
 #  nginx, uwsgi-python: Used by Dome.
 #
 #  apache2-utils, openssl: Used by Overlord setup.sh
 #
 #  util-linux: For GNU mount since busybox mount doesn't support offset.
 #  coreutils: For GNU mktemp since busybox mktemp doesn't support --tmpdir.
+#
+#  py-psutil: Dependencies for Python package gnupg that is used by instalog.
 RUN apk upgrade --no-cache && apk add --no-cache \
     apache2-utils \
     coreutils \
@@ -46,6 +46,7 @@ RUN apk upgrade --no-cache && apk add --no-cache \
     openssl \
     pigz \
     py-pip \
+    py-psutil \
     py-twisted \
     python \
     rsync \
@@ -64,7 +65,6 @@ COPY py/instalog/requirements.txt "${instalog_dir}/"
 # TODO(hungte) Move Umpire packages to its own requirements file.
 RUN pip install --no-cache-dir --upgrade pip setuptools && \
     pip install --no-cache-dir \
-      protobuf==3.2.0 \
       python-gnupg==0.4.0 \
       PyYAML==3.12 \
       -r "${dome_dir}/requirements.txt" \
