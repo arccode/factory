@@ -312,11 +312,15 @@ class ShutdownTest(unittest.TestCase):
       time.sleep(POLLING_PERIOD)
 
   def LocalShutdown(self):
-    post_shutdown_tag = state.POST_SHUTDOWN_TAG % self.test_info.path
-    if self.goofy.get_shared_data(post_shutdown_tag, True):
+    key_post_shutdown = state.KEY_POST_SHUTDOWN % self.test_info.path
+    post_shutdown = self.goofy.get_shared_data(key_post_shutdown, True)
+    if post_shutdown:
       # Only do post shutdown verification once.
       self.template.SetState(_SHUTDOWN_COMPLETE_MSG(self.args.operation))
-      self.goofy.del_shared_data(post_shutdown_tag)
+      self.goofy.del_shared_data(key_post_shutdown)
+
+      if post_shutdown['goofy_error']:
+        raise ShutdownError(post_shutdown['goofy_error'])
       self.PostShutdown()
     else:
       self.template.SetState(

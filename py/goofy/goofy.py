@@ -397,17 +397,19 @@ class Goofy(GoofyBase):
     # Make this shutdown test the next test to run.  This is to continue on
     # post-shutdown verification in the shutdown step.
     if not tests_after_shutdown:
+      goofy_error = 'TESTS_AFTER_SHTUDOWN is not set'
       self.state_instance.set_shared_data(
           TESTS_AFTER_SHUTDOWN, TestListIterator(test))
     else:
-      tests_after_shutdown.RestartLastTest()
+      goofy_error = tests_after_shutdown.RestartLastTest()
       self.state_instance.set_shared_data(
           TESTS_AFTER_SHUTDOWN, tests_after_shutdown)
 
     # Set 'post_shutdown' to inform shutdown test that a shutdown just occurred.
     self.state_instance.set_shared_data(
-        state.POST_SHUTDOWN_TAG % test.path,
-        self.state_instance.get_test_state(test.path).invocation)
+        state.KEY_POST_SHUTDOWN % test.path,
+        {'invocation': self.state_instance.get_test_state(test.path).invocation,
+         'goofy_error': goofy_error})
 
   def init_states(self):
     """Initializes all states on startup."""
@@ -551,7 +553,7 @@ class Goofy(GoofyBase):
       # okay, let's run the test
       if (isinstance(test, factory.ShutdownStep) and
           self.state_instance.get_shared_data(
-              state.POST_SHUTDOWN_TAG % test.path, optional=True)):
+              state.KEY_POST_SHUTDOWN % test.path, optional=True)):
         # Invoking post shutdown method of shutdown test. We should retain the
         # iterations_left and retries_left of the original test state.
         test_state = self.state_instance.get_test_state(test.path)

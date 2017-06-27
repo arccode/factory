@@ -64,7 +64,7 @@ DEFAULT_FACTORY_STATE_ADDRESS = goofy_proxy.DEFAULT_GOOFY_ADDRESS
 
 DEFAULT_FACTORY_STATE_FILE_DIR = paths.DATA_STATE_DIR
 
-POST_SHUTDOWN_TAG = '%s.post_shutdown'
+KEY_POST_SHUTDOWN = '%s.post_shutdown'
 
 # dummy object to detect not set keyward argument
 _DEFAULT_NOT_SET = object()

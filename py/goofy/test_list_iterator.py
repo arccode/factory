@@ -258,8 +258,15 @@ class TestListIterator(object):
     return [test.path for test in root.Walk() if test.IsLeaf()]
 
   def RestartLastTest(self):
-    assert self.Top().next_step == self.CheckContinue.__name__
+    # if next step is not CheckContinue, then there are something wrong during
+    # the shutdown / reboot process.  For example, the iterator state is not
+    # properly written back to file system.  Or the system crashed during boot
+    # up, thus the next_step is changed, but the active test is still shutdown
+    # test.
+    next_step = self.Top().next_step
     self.Top().next_step = self.Body.__name__
+    if next_step != self.CheckContinue.__name__:
+      return 'test_list_iterator: unexpected next_step %r' % next_step
 
   ###########################
   # State Machine Functions #
