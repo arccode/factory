@@ -204,14 +204,20 @@ class FinalizeBundle(object):
         help="Don't make a tarball (for testing only)")
 
     parser.add_argument('manifest', metavar='MANIFEST',
-                        help='Path to the manifest file')
+                        help=(
+                            'Path to the manifest file or the directory '
+                            'containing MANIFEST.yaml'))
     parser.add_argument('dir', metavar='DIR', nargs='?',
                         default=None, help='Working directory')
 
     self.args = parser.parse_args()
 
   def LoadManifest(self):
-    self.manifest = yaml.load(file_utils.ReadFile(self.args.manifest))
+    if os.path.isdir(self.args.manifest):
+      manifest_path = os.path.join(self.args.manifest, 'MANIFEST.yaml')
+    else:
+      manifest_path = self.args.manifest
+    self.manifest = yaml.load(file_utils.ReadFile(manifest_path))
     CheckDictKeys(self.manifest,
                   ['board', 'bundle_name', 'add_files', 'server_url',
                    'toolkit', 'test_image', 'release_image', 'firmware',
@@ -228,8 +234,7 @@ class FinalizeBundle(object):
                'plus an underscore, plus a description of the build, e.g.: %r' %
                (self.bundle_name, time.strftime('%Y%m%d_proto')))
 
-    if self.args.dir is None:
-      self.args.dir = os.path.dirname(os.path.realpath(self.args.manifest))
+    work_dir = self.args.dir or os.path.dirname(os.path.realpath(manifest_path))
 
     # If the basename of the working directory is equal to the expected name, we
     # believe that the user intentionally wants to make the bundle in the
@@ -238,13 +243,13 @@ class FinalizeBundle(object):
     # the working directory.
     expected_dir_name = 'factory_bundle_%s_%s' % (self.board, self.bundle_name)
     logging.info('Expected bundle directory name is %r', expected_dir_name)
-    if expected_dir_name == os.path.basename(self.args.dir):
-      self.bundle_dir = self.args.dir
+    if expected_dir_name == os.path.basename(work_dir):
+      self.bundle_dir = work_dir
       logging.info('The working directory name matches the expected bundle '
                    'directory name, will finalized bundle directly in the '
                    'working directory %r', self.bundle_dir)
     else:
-      self.bundle_dir = os.path.join(self.args.dir, expected_dir_name)
+      self.bundle_dir = os.path.join(work_dir, expected_dir_name)
       logging.info('The working directory name does not match the expected '
                    'bundle directory name, will create a new directoy and '
                    'finalize bundle in %r', self.bundle_dir)
