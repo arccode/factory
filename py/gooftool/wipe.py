@@ -205,8 +205,15 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
           'lsof: %s',
           process_utils.SpawnOutput('lsof -p %d' % os.getpid(), shell=True))
 
-      process_utils.Spawn(['sync'], call=True)
-      time.sleep(3)
+      # Modify display_wipe_message so we have shells in VT2.
+      # --dev-mode provides shell with etc-issue.
+      # --enable-vt1 allows drawing escapes (OSC) on VT1 but it'll also display
+      # etc-issue and login prompt.
+      # For now we only want login prompts on VT2+.
+      process_utils.Spawn(['sed', '-i',
+                           's/--no-login/--dev-mode/g;s/--enable-vt1//g',
+                           '/usr/sbin/display_boot_message'],
+                          call=True)
 
       # Restart gooftool under new root. Since current gooftool might be using
       # some resource under stateful partition, restarting gooftool ensures that
