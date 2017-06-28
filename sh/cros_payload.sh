@@ -79,14 +79,12 @@ register_tmp_object() {
   echo "$*" >>"${TMP_OBJECTS}"
 }
 
-# Returns the compression format of input file.
-# Usage: get_compression_format FILE
+# Returns the compression format of input file or STDIN stream.
+# Usage: get_compression_format [FILE]
 get_compression_format() {
-  local input="$1"
-
   # The 'file' command needs special database, so we want to directly read the
   # magic value.
-  local magic="$(od -An -N6 -t x1 "${input}")"
+  local magic="$(od -An -N262 -v -w262 -t x1 "$@")"
   case "${magic}" in
     " 1f 8b"*)
       echo "gz"
@@ -96,6 +94,11 @@ get_compression_format() {
       ;;
     " fd 37 7a 58 5a 00"*)
       echo "xz"
+      ;;
+    *" 75 73 74 61 72")
+      if [ "${#magic}" = 786 ]; then
+        echo "tar"
+      fi
       ;;
   esac
 }
@@ -155,6 +158,18 @@ do_compress() {
       ;;
     xz)
       ${XZ} -cq "$@"
+      ;;
+    tar)
+      # Currently we only support decompression for tar.
+      if [ "$1" != "-d" ]; then
+        die "Only decompression allowed for tar files."
+      fi
+      shift
+      if [ "$#" -gt 0 ]; then
+        tar -xOf "$@"
+      else
+        tar -xO
+      fi
       ;;
     *)
       die "Unknown compression for ${url}."
