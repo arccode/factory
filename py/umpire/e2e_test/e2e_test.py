@@ -15,6 +15,7 @@ umpire test`, and should not be run directly.
 
 import contextlib
 import glob
+import gzip
 import logging
 import os
 import re
@@ -364,9 +365,9 @@ class UmpireRPCTest(UmpireDockerTestCase):
     resource_path = os.path.join(HOST_RESOURCE_DIR, resource)
 
     self.assertRegexpMatches(resource, r'hwid\..*\.gz')
-    self.assertEqual(
-        file_utils.ReadFile(os.path.join(SHARED_TESTDATA_DIR, 'hwid.gz')),
-        file_utils.ReadFile(resource_path))
+    with gzip.open(os.path.join(SHARED_TESTDATA_DIR, 'hwid.gz')) as f1:
+      with gzip.open(resource_path) as f2:
+        self.assertEqual(f1.read(), f2.read())
 
     os.unlink(resource_path)
 
@@ -397,9 +398,9 @@ class UmpireRPCTest(UmpireDockerTestCase):
   def testImportBundle(self):
     resources = {
         'complete': 'complete.d41d8cd98f00b204e9800998ecf8427e.gz',
-        'toolkit': 'toolkit.1fa114f0d115285b6e89d6009062cc7f.gz',
-        'firmware': 'firmware.8d5aeaea50362c09335a5fc2c1b62b23.gz',
-        'hwid': 'hwid.b9af3f21fe717542b0a4da28f65267e6.gz'
+        'toolkit': 'toolkit.26a11b67b5abda74b4292cb84cedef26.gz',
+        'firmware': 'firmware.7c5f73ab48d570fac54057ccf50eb28a.gz',
+        'hwid': 'hwid.d173cfd28e47a0bf7f2760784f55580e.gz'
     }
     # TODO(pihsun): Add test data for test_image and release_image.
 

@@ -328,6 +328,13 @@ class UmpireEnv(object):
                           env=dict(os.environ, TMPDIR=self.temp_dir))
       payloads = json.loads(file_utils.ReadFile(json_path))
       os.unlink(json_path)
+
+      # All Umpire payloads must have version.
+      if 'version' not in payloads[type_name]:
+        raise common.UmpireError(
+            'Cannot identify version information from <%s> payload.' %
+            type_name)
+
       for filename in os.listdir(temp_dir):
         self._AddResource(os.path.join(temp_dir, filename), filename, True)
 
