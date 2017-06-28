@@ -24,6 +24,7 @@
 : "${CROS_PAYLOAD_FORMAT:=gz}"
 : "${JQ:=""}"
 : "${SUDO:="sudo"}"
+: "${PV:="cat"}"
 
 # Debug settings
 : "${DEBUG:=}"
@@ -174,6 +175,31 @@ do_compress() {
     *)
       die "Unknown compression for ${url}."
   esac
+}
+
+# Returns an uncompressed file from argument.
+get_uncompressed_file() {
+  local file="$1"
+  local file_format="$(get_compression_format "${file}")"
+  if [ -n "${file_format}" ]; then
+    local output="$(mktemp)"
+    register_tmp_object "${output}"
+    # Check if inner file is compressed - usually tar.
+    local format2="$(do_compress "${file_format}" -d "${file}" |
+                     get_compression_format)"
+    if [ -n "${format2}" ]; then
+      info "Decompressing ${format2}.${file_format} input file ${file}..."
+      ${PV} "${file}" | do_compress "${file_format}" -d | \
+        do_compress "${format2}" -d >"${output}"
+    else
+      info "Decompressing ${file_format} input file ${file}..."
+      ${PV} "${file}" | do_compress "${file_format}" -d >"${output}"
+    fi
+    debug "Uncompressed file ready: ${file} -> ${output}"
+    echo "${output}"
+  else
+    echo "${file}"
+  fi
 }
 
 # Downloads from given URL. If output is not given, use STDOUT.
@@ -572,9 +598,11 @@ cmd_add() {
 
   case "${component}" in
     release_image | test_image)
+      file="$(get_uncompressed_file "${file}")"
       add_image_component "${json_path}" "${component}" "${file}"
       ;;
     toolkit | hwid | firmware | complete)
+      file="$(get_uncompressed_file "${file}")"
       add_file_component "${json_path}" "${component}" "${file}"
       ;;
     *)
@@ -859,6 +887,9 @@ main() {
     XZ="do_pixz"
   elif has_tool pxz; then
     XZ="pxz"
+  fi
+  if has_tool pv; then
+    PV="pv"
   fi
   if has_tool jq; then
     JQ="jq"
