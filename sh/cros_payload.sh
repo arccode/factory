@@ -453,7 +453,8 @@ get_file_component_version() {
         uniq | paste -sd ';' -
       ;;
     hwid)
-      sed -n 's/^checksum: //p' "${file}"
+      # 'shar' may add leading X on some versions.
+      sed -n 's/^X*checksum: //p' "${file}"
       ;;
     complete)
       local temp="$(md5sum "${file}")"
