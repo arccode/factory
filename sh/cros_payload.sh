@@ -20,6 +20,7 @@
 # Environment settings for utilities to invoke.
 : "${GZIP:="gzip"}"
 : "${BZIP2:="bzip2"}"
+: "${XZ:="xz"}"
 : "${CROS_PAYLOAD_FORMAT:=gz}"
 : "${JQ:=""}"
 : "${SUDO:="sudo"}"
@@ -85,13 +86,16 @@ get_compression_format() {
 
   # The 'file' command needs special database, so we want to directly read the
   # magic value.
-  local magic="$(od -An -N3 -t x1 "${input}")"
+  local magic="$(od -An -N6 -t x1 "${input}")"
   case "${magic}" in
     " 1f 8b"*)
       echo "gz"
       ;;
     " 42 5a 68"*)
       echo "bz2"
+      ;;
+    " fd 37 7a 58 5a 00"*)
+      echo "xz"
       ;;
   esac
 }
@@ -102,9 +106,41 @@ has_tool() {
   type "$1" >/dev/null 2>&1
 }
 
-# Compresses or decompresses an input file or stream. The ARGS should be options
-# (-dkf) or file.
-# Usage: do_compress URL ARGS
+# Invoke pixz in a way that is similar with other compressors.
+do_pixz() {
+  # pixz has a different command usage that it does not have -c so we have
+  # to always use redirection.
+  local cmd="pixz -t"
+
+  # '-c' and '-q' were not supported. This must be aligned with how XZ is
+  # invoked in do_compress.
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      -d)
+        cmd="${cmd} $1"
+        shift
+        ;;
+      -*)
+        # Ignore all other commands.
+        shift
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+
+  if [ "$#" -gt 1 ]; then
+    die "Does not allow multiple input for pixz."
+  elif [ "$#" -gt 0 ]; then
+    ${cmd} <"$1"
+  else
+    ${cmd}
+  fi
+}
+
+# Compresses or decompresses an input file or stream then output to STDOUT.
+# Usage: do_compress URL [-d] [FILE]
 do_compress() {
   local url="$1"
   local format="${url##*.}"
@@ -112,10 +148,13 @@ do_compress() {
 
   case "${format}" in
     gz)
-      ${GZIP} -qn "$@"
+      ${GZIP} -cqn "$@"
       ;;
     bz2)
-      ${BZIP2} -q "$@"
+      ${BZIP2} -cq "$@"
+      ;;
+    xz)
+      ${XZ} -cq "$@"
       ;;
     *)
       die "Unknown compression for ${url}."
@@ -494,7 +533,7 @@ add_file_component() {
   else
     # Compress and copy at the same time.
     info "Adding component ${component} (${file_size})..."
-    md5sum="$(do_compress "${CROS_PAYLOAD_FORMAT}" -c "${file}" | \
+    md5sum="$(do_compress "${CROS_PAYLOAD_FORMAT}" "${file}" | \
       tee "${tmp_file}" | md5sum -b)"
   fi
   version="$(get_file_component_version "${component}" "${file}")"
@@ -800,6 +839,11 @@ main() {
     BZIP2="lbzip2"
   elif has_tool pbzip2; then
     BZIP2="pbzip2"
+  fi
+  if has_tool pixz; then
+    XZ="do_pixz"
+  elif has_tool pxz; then
+    XZ="pxz"
   fi
   if has_tool jq; then
     JQ="jq"
