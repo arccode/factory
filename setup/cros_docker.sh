@@ -135,8 +135,8 @@ DOCKER_OVERLORD_APP_DIR="${DOCKER_OVERLORD_DIR}/app"
 DOCKER_UMPIRE_DIR_IN_DOME="/var/db/factory/umpire"
 
 # DOCKER_IMAGE_{GITHASH,TIMESTAMP} will be updated when you publish.
-DOCKER_IMAGE_GITHASH="f84a8972ce484d53beccd566b350f8a032213f58"
-DOCKER_IMAGE_TIMESTAMP="20170620164005"
+DOCKER_IMAGE_GITHASH="015873d648ac2ae9a534ae4c120d85e8e50e302e"
+DOCKER_IMAGE_TIMESTAMP="20170628144809"
 DOCKER_IMAGE_NAME="cros/factory_server"
 
 # Configures docker image file information by DOCKER_IMAGE_{GITHASH,TIMESTAMP}.
@@ -734,6 +734,7 @@ do_update_docker_image_version() {
       setup/Dockerfile
       setup/Dockerfile.overlord
       setup/cros_docker.sh
+      sh/cros_payload.sh
       py/dome
       py/instalog
       py/umpire
