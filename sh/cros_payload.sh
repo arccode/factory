@@ -644,6 +644,9 @@ install_add_stub() {
       command="sh ./${component} -- --yes"
       ;;
     hwid)
+      # Current HWID bundle expects parent folder to exist before being able to
+      # extract HWID files so we have to mkdir first.
+      command="mkdir -p /usr/local/factory; ${command}"
       ;;
     *)
       return
