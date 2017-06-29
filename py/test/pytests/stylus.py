@@ -2,6 +2,44 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""Test stylus functionality.
+
+Description
+-----------
+Verifies if stylus is functional by asking operator to draw specified lines or
+shapes using stylus.
+
+For EMR stylus, drawing a diagonal line from left-bottom to right-top corner
+should be sufficient to validate all scan lines. But for clamshells with hall
+sensor, the magnet may cause EMR stylus to be non-functional in particular area.
+To test that, set argument `endpoints_ratio` to build the lines for operator to
+draw.
+
+Test Procedure
+--------------
+1. When started, a diagonal line is displayed on screen.
+2. Operator must use stylus to draw and follow the displayed line.
+3. If the stylus moved too far (specified in argument `error_margin`) from the
+   requested path, test will fail.
+
+Dependency
+----------
+- Based on Linux evdev.
+
+Examples
+--------
+To check stylus functionality by drawing a diagonal line, add this in test
+list::
+
+  OperatorTest(pytest_name='stylus')
+
+To check if the magnet in left side will cause problems, add this in test list
+to draw a line from left-top to left-bottom::
+
+  OperatorTest(pytest_name='stylus',
+               dargs=dict(endpoints_ratio=[(0, 0), (0, 1)]))
+"""
+
 import unittest
 
 import factory_common  # pylint: disable=unused-import

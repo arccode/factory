@@ -1,5 +1,5 @@
-Catalog of Factory Tests
-========================
+List of Factory Tests (pytests)
+===============================
 
 This document describes all tests available throughout the
 factory code.

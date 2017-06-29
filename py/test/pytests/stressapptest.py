@@ -1,8 +1,56 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
+
+"""A test to stress CPU, memory and disk.
+
+Description
+-----------
+A test using `stressapptest <https://github.com/stressapptest/stressapptest>`_
+to stress CPU, memory, and disk.
+
+By default the system data partition (or the stateful partition for Chrome OS
+devices) is used. However a long stress testing of disk may shorten eMMC or SSD
+life, so you may want to set `disk_thread` argument to False if `seconds` is
+pretty long.
+
+Setting memory ratio may be tricky. If your system does not have enough free
+memory (for example if you have lots of tests running in parallel) then the test
+will fail, so usually you'll want to set `free_memory_only` argument to True.
+
+However, if you start multiple tests at same time, other tests may allocate more
+memory after the calculation of "free memory" is done, causing the test to fail.
+To solve that, increase the argument `wait_secs` so the calculation of "free
+memory" will be done when the memory usage is stabilized.
+
+Test Procedure
+--------------
+This is an automated test without user interaction.
+
+Start the test and it will run for the time specified in argument `seconds`, and
+pass if no errors found; otherwise fail with error messages and logs, especially
+if unexpected reboot or crash were found during execution.
+
+Dependency
+----------
+- Need external program `stressapptest
+  <https://github.com/stressapptest/stressapptest>`_.
+
+Examples
+--------
+To stress CPU, memory (90% of free memory), and the disk using stateful
+partition for 60 seconds, add this into test list::
+
+  FactoryTest(pytest_name='stressapptest')
+
+To stress for one day without accessing disk::
+
+  FactoryTest(pytest_name='stressapptest',
+              dargs=dict(
+                  seconds=86400,
+                  disk_thread=False))
+"""
 
 import logging
 import time
@@ -34,7 +82,8 @@ class StressAppTest(unittest.TestCase):
           'stress disk using -f argument of stressapptest.',
           default=True),
       Arg('disk_thread_dir', str,
-          'directory of disk thread file will be placed',
+          'directory of disk thread file will be placed '
+          '(default to system stateful partition.)',
           default=None),
   ]
 
