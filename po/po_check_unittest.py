@@ -16,6 +16,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import translation
+from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 
@@ -29,7 +30,7 @@ class _MockValue(object):
     return ''
 
 
-class PoCheckTest(unittest.TestCase):
+class PoBuildTest(unittest.TestCase):
   """Basic sanity check for po files."""
 
   @classmethod
@@ -114,6 +115,63 @@ class PoCheckTest(unittest.TestCase):
       else:
         ret.add(var_name)
     return ret
+
+
+class PoCheckTest(unittest.TestCase):
+  """Check some formatting issue for po files."""
+  def setUp(self):
+    self.po_files = glob.glob(os.path.join(SCRIPT_DIR, '*.po'))
+
+  def testNoFuzzy(self):
+    err_files = []
+    for po_file in self.po_files:
+      po_lines = file_utils.ReadLines(po_file)
+      if any(line.startswith('#, fuzzy') for line in po_lines):
+        err_files.append(os.path.basename(po_file))
+
+    self.assertFalse(
+        err_files,
+        "'#, fuzzy' lines found in files %r, please check the translation is "
+        'correct and remove those lines.' % err_files)
+
+
+class PoUpdateTest(unittest.TestCase):
+  """Check that po update have been run."""
+  def _ReadPoFileNoHeader(self, filename):
+    po_lines = file_utils.ReadLines(filename)
+    # Header is up to the first empty line.
+    return po_lines[po_lines.index('\n') + 1:]
+
+  def runTest(self):
+    try:
+      temp_dir = tempfile.mkdtemp(prefix='po_update_test.')
+      po_dir = os.path.join(temp_dir, 'po')
+
+      po_files = glob.glob(os.path.join(SCRIPT_DIR, '*.po'))
+      os.makedirs(po_dir)
+      for po_file in po_files:
+        shutil.copy(po_file, po_dir)
+
+      env = {'PO_DIR': po_dir}
+      process_utils.Spawn(['make', '-C', SCRIPT_DIR, 'update'],
+                          ignore_stdout=True, ignore_stderr=True,
+                          env=env, check_call=True)
+
+      err_files = []
+      for po_file in po_files:
+        new_po_file = os.path.join(po_dir, os.path.basename(po_file))
+        if self._ReadPoFileNoHeader(po_file) != self._ReadPoFileNoHeader(
+            new_po_file):
+          err_files.append(os.path.basename(po_file))
+
+      self.assertFalse(
+          err_files,
+          "Files %r are not updated, please run 'make -C po update' inside "
+          'chroot and check the translations.' % err_files)
+
+    finally:
+      if os.path.exists(temp_dir):
+        shutil.rmtree(temp_dir)
 
 
 if __name__ == '__main__':
