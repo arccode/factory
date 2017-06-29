@@ -12,8 +12,6 @@ body {
 #status-bar-main img {
   padding-left: .15em;
   padding-right: .1em;
-}
-#status-bar-main img {
   vertical-align: -4px;
 }
 .status-bar-section {
@@ -59,12 +57,6 @@ body {
 }
 .wlan-enabled#wlan-indicator {
   background-image: url('images/wlan_on.png');
-}
-.status-bar-item:not(.value-known) .value {
-  display: none;
-}
-.status-bar-item.value-known .unknown {
-  display: none;
 }
 #update-available-indicator {
   height: 24px;
