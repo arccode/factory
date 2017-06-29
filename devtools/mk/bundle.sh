@@ -48,15 +48,7 @@ main() {
       "factory_flow finalize_bundle test_factory_flow"
   fi
 
-  # --safe-links because some files (netboot_firmware_settings.py) point to
-  # other repositories. The real files corresponding to these will be copied
-  # in later.
-  rsync -a --safe-links --exclude testdata "${setup}/" "${bundle_dir}/setup/"
-  # Resolve symlinks to real files. We can't combine --safe-links with
-  # --copy-links as the latter will override the former.
-  for f in $(find "${bundle_dir}/setup/" -type l); do
-      cp --remove-destination "$(readlink -f "${f}")" "${f}"
-  done
+  rsync -aL --exclude testdata "${setup}/" "${bundle_dir}/setup/"
   mkdir -p "${bundle_dir}/setup/bin"
   cp -f /usr/bin/cgpt "${bundle_dir}/setup/bin"
   cp -f /usr/bin/futility "${bundle_dir}/setup/bin"

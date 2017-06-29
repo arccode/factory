@@ -45,7 +45,6 @@ TEMP_DIR ?= $(BUILD_DIR)/tmp
 SHELL := bash
 OUTOFTREE_BUILD ?=
 PYTHON ?= python
-SRCROOT ?= $(abspath ../../../)
 TARGET_DIR = /usr/local/factory
 
 # Build and board config settings
@@ -190,25 +189,13 @@ check-board-resources:
 	   $(call func-check-package,chromeos-regions, \
 	     [ -e "$(CROS_REGIONS_DATABASE)" ] ))
 
-# Gets the absolute path of the target of a symlink in the factory respository.
-# This handles the case where the factory repository has not been synced, such
-# as in the minilayout case.
-func-resolve-external-symlink = \
-  $(abspath $(SRCROOT)/src/platform/factory/$(dir $(1))$(shell readlink $(1)))
-
 # Prepare files from source folder into resource folder.
 resource: closure check-board-resources po
 	@$(info Create resource $(if $(BOARD),for [$(BOARD)],without board).)
 	mkdir -p $(RESOURCE_DIR)
 	tar -cf $(RESOURCE_PATH) -X $(MK_DIR)/resource_exclude.lst \
-	  -X $(MK_DIR)/external_symlinks.lst bin misc py py_pkg sh init \
+	  bin misc py py_pkg sh init \
 	  $(if $(wildcard $(BOARD_FILES_DIR)),-C $(BOARD_FILES_DIR) .)
-	$(foreach file,\
-	  $(shell cat $(MK_DIR)/external_symlinks.lst),\
-	  $(info - Found external symlink $(file)) \
-	  tar -rf $(RESOURCE_PATH) --transform 's"^"./$(dir $(file))"' \
-	    -C $(dir $(call func-resolve-external-symlink,$(file))) \
-	    $(notdir $(file)))
 	tar -rf $(RESOURCE_PATH) -C $(BUILD_DIR) locale
 	$(if $(LEGACY_BOARD_IN_OUTOFTREE),,\
 	  $(if $(wildcard $(BOARD_FILES_DIR)/bundle), tar \
