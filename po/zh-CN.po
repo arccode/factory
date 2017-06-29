@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-06-13 12:59+CST\n"
+"POT-Creation-Date: 2017-06-29 13:58+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -393,6 +393,7 @@ msgstr "工程模式"
 #: ../py/goofy/static/ui_templates/template_one_scrollable_section.html
 #: ../py/goofy/static/ui_templates/template_one_section.html
 #: ../py/goofy/static/ui_templates/template_two_sections.html
+#: ../py/test/pytests/light_sensor_static/light_sensor.html
 msgid "Mark Failed"
 msgstr "标记失败"
 
@@ -1044,6 +1045,7 @@ msgid "Shop floor exception:"
 msgstr "Shop floor 错误:"
 
 #: ../py/test/pytests/call_shopfloor.py ../py/test/pytests/memory_size.py
+#: ../py/test/pytests/shopfloor_service.py
 msgid "Retry"
 msgstr "重试"
 
@@ -1576,51 +1578,23 @@ msgid ""
 "Calibration will be started within {secs} seconds.Please do not move device."
 msgstr "测试程序即将于 {secs} 秒后开始，请勿移动待测物。"
 
-#: ../py/test/pytests/hwid.py
-msgid "Fetching HWID from shop floor server..."
-msgstr "从 Shop Floor 服务器抓取 HWID 中..."
-
-#: ../py/test/pytests/hwid.py
-msgid "Auto probing HWID..."
-msgstr "自动侦测 HWID 中..."
-
-#: ../py/test/pytests/hwid.py
-msgid "Writing HWID: {hwid}"
-msgstr "写入 HWID: {hwid}"
-
-#: ../py/test/pytests/hwid.py
-msgid "Select HWID:<br><br>"
-msgstr "选择 HWID：<br><br>"
-
-#: ../py/test/pytests/hwid.py
-msgid "<br><br>Select with Enter key"
-msgstr "<br><br>使用 Enter 键选择"
-
-#: ../py/test/pytests/hwid.py
-msgid "Cannot find matched HWID."
-msgstr "无法找到匹配的 HWID。"
-
-#: ../py/test/pytests/hwid.py
-msgid "HWID Test"
-msgstr "HWID测试"
-
-#: ../py/test/pytests/hwid_v3.py
+#: ../py/test/pytests/hwid.py ../py/test/pytests/hwid_v3.py
 msgid "Probing components..."
 msgstr "正在探索零件..."
 
-#: ../py/test/pytests/hwid_v3.py
+#: ../py/test/pytests/hwid.py ../py/test/pytests/hwid_v3.py
 msgid "Generating HWID (v3)..."
 msgstr "正在产生 HWID (v3)..."
 
-#: ../py/test/pytests/hwid_v3.py
+#: ../py/test/pytests/hwid.py ../py/test/pytests/hwid_v3.py
 msgid "Verifying HWID (v3): {encoded_string}..."
 msgstr "正在验证 HWID (v3): {encoded_string}..."
 
-#: ../py/test/pytests/hwid_v3.py
+#: ../py/test/pytests/hwid.py ../py/test/pytests/hwid_v3.py
 msgid "(unchanged)"
 msgstr "（不变）"
 
-#: ../py/test/pytests/hwid_v3.py
+#: ../py/test/pytests/hwid.py ../py/test/pytests/hwid_v3.py
 msgid "Setting HWID (v3): {encoded_string}..."
 msgstr "正在写入 HWID (v3): {encoded_string}..."
 
@@ -2034,7 +2008,7 @@ msgstr "校正中..."
 msgid "Pushing the result..."
 msgstr "储存结果中..."
 
-#: ../py/test/pytests/scan/scan.py ../py/test/pytests/vpd_from_http.py
+#: ../py/test/pytests/scan/scan.py
 msgid "The scanned value is empty."
 msgstr "扫描编号是空的。"
 
@@ -2050,7 +2024,7 @@ msgstr ""
 "所扫描的编号「{value}」不搭配所期望的编号<span class=test-engineering-mode-"
 "only>「{expected_value}」</span>。"
 
-#: ../py/test/pytests/scan/scan.py ../py/test/pytests/vpd_from_http.py
+#: ../py/test/pytests/scan/scan.py
 msgid "Writing to VPD. Please wait..."
 msgstr "正在写到 VPD，请稍等..."
 
@@ -2566,14 +2540,6 @@ msgstr "机器上并无合法的{vpd_label}"
 #: ../py/test/pytests/vpd.py
 msgid "Invalid {vpd_label} value."
 msgstr "输入的{vpd_label}不合法"
-
-#: ../py/test/pytests/vpd_from_http.py
-msgid "Please scan the panel serial number and press ENTER."
-msgstr "请扫描面板序号后按下 ENTER"
-
-#: ../py/test/pytests/vpd_from_http.py
-msgid "No VPD updated"
-msgstr "没有VPD需要更新"
 
 #: ../py/test/pytests/vswr/vswr.html
 msgid "Loading parameters from local disk..."
