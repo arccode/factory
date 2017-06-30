@@ -457,16 +457,28 @@ class JSONLogFile(file_utils.FileLockContextManager):
 
   def __init__(self, uuid, seq_generator, path, mode='a'):
     super(JSONLogFile, self).__init__(path=path, mode=mode)
+    self._thread_data = threading.local()
     self.test_run_id = uuid
     self.seq_generator = seq_generator
 
   def Log(self, event, override=False):
     """Converts event into JSON string and writes into disk.
 
+    Warning: If this function or any code executed down the call stack makes
+    use of Python logging functions, they will be dropped from this function.
+    Otherwise, a deadlock will occur.
+
     Args:
       event: The event to output.
       override: Ture to make sure the JSON log file contains only one event.
     """
+    if getattr(self._thread_data, 'in_log', False):
+      # We are already in a log call.  Throw out any other subsequent logs
+      # until this call finishes.
+      return
+
+    self._thread_data.in_log = True
+
     # Data that should be refreshed on every write operation.
     event['uuid'] = time_utils.TimedUUID()
     event['seq'] = self.seq_generator.Next()
@@ -484,6 +496,8 @@ class JSONLogFile(file_utils.FileLockContextManager):
         self.file.truncate()
       self.file.flush()
       os.fsync(self.file.fileno())
+
+    self._thread_data.in_log = False
     return line
 
 

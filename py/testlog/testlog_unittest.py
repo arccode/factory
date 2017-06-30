@@ -234,6 +234,18 @@ class TestlogE2ETest(unittest.TestCase):
       dct = json.loads(json_string)
       self.assertDictContainsSubset(expected_events[i], dct)
 
+  def testDisallowReenterLog(self):
+    # FileLock records a DEBUG message after getting the file lock.
+    logging.getLogger().setLevel(logging.DEBUG)
+    TestlogE2ETest._reset()
+    state_dir = tempfile.mkdtemp()
+    # Assuming we are the harness.
+    my_uuid = time_utils.TimedUUID()
+    testlog.Testlog(log_root=state_dir, uuid=my_uuid)
+    testlog.Log(testlog.StationInit({}))
+    logging.getLogger().setLevel(logging.INFO)
+
+
 if __name__ == '__main__':
   logging.basicConfig(
       format=('[%(levelname)s] '
