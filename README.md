@@ -41,8 +41,9 @@ The Chromium OS Factory Software Platform has three major components:
     itself into /usr/local/factory. This is also considered as the main "factory
     test program" (built by running `emerge-$BOARD factory` or
     `make BOARD=$BOARD toolkit` inside factory repository).
-* Factory bundle: An archive containing everything: a release (recovery) image,
-  test image, factory shim image, factory toolkit, and few setup programs.
+* [Factory bundle](BUNDLE.md): An archive containing everything: a release
+    (recovery) image, test image, factory shim image, factory toolkit, and few
+    setup programs.
 
 ## Typical Factory Flow
 The basic steps are:
@@ -56,9 +57,9 @@ The basic steps are:
    AP/EC firmware are installed or updated. Included on disk are two full Chrome
    OS images: the test image and the shipping image.
 3. The system automatically reboots using the test image and begins
-   manufacturing tests. This test suite is based on [pytest](py/pytests). The
-   software supports sequencing tests, configuration, firmware and configuration
-   updates, reboots, and other events in a configurable sequence.
+   manufacturing tests. This test suite is based on [pytest](py/test/pytests).
+   The software supports sequencing tests, configuration, firmware and
+   configuration updates, reboots, and other events in a configurable sequence.
 4. Functional, Run-In, and manual tests run as configured. Upon completion,
    results are displayed on the screen. Results are also available as an
    electronic pass/fail record with detailed logs for uploading to the shopfloor
@@ -190,8 +191,9 @@ steps sare optional:
 
 ## Imaging methods
 All of the methods will make sure the internal storage and firmware flash chip
-are having right contents. A typical factory installation places the factory test image in the first
-slot of Chrome OS image partitions ([#2 and #3](http://www.chromium.org/chromium-os/chromiumos-design-docs/disk-format#TOC-Drive-partitions)),
+are having right contents. A typical factory installation places the factory
+test image in the first slot of Chrome OS image partitions
+([#2 and #3](http://www.chromium.org/chromium-os/chromiumos-design-docs/disk-format#TOC-Drive-partitions)),
 and the release image in the second slot (#4 and #5).
 
 *** note
@@ -361,21 +363,25 @@ this repository, and follow this repository's directory structure.
  - `build/`: Folder to contain build output artifacts.
  - `doc/`: Document templates and resources.
  - `go/`: Programs written in Go language.
- - `init/`: Initialization of factory environment for Chrome OS.
+ - [`init/`](init/README.md): Initialization of factory environment for Chrome
+    OS.
  - `misc/`: Miscellaneous resources used outside of Goofy
  - `proto/`: Proto-buf schema definition.
- - `setup/`: Scripts and programs for partner to setup the environment.
+ - [`setup/`](setup/README.md): Scripts and programs for partner to setup the
+    environment.
  - `sh/`: Shell scripts.
  - `py_pkg/`: Symbolic link to enable importing Python packages
 
- - `py/`: Python source code in the cros.factory module and sub-modules.
-   See `py/README.md` for more information.
+ - [`py/`](py/README.md): Python source code in the cros.factory module and
+    sub-modules.
 
  - `board/`: Board-specific files (optional and only provided by board overlays,
     not this repository.) in board overlay:
     - `board_setup_factory.sh`: A script to add board-specific arguments when
       starting the Goofy (the factory test harness).
     - Other files needed by board-specific tests.
+
+ - [`po/`](po/README.md): i18n resources.
 
 Within the build root (`/build/$BOARD`), `/usr/local/factory/bundle` is a
 "pseudo-directory" for the factory bundle: it is masked with
