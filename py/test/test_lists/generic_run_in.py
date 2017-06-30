@@ -607,8 +607,7 @@ def RunIn(args, group_suffix=''):
       OperatorTest(
           id='VerifyRootPartition2',
           label=_('Verify Root Partition'),
-          pytest_name='verify_root_partition',
-          dargs=dict(kern_a_device='mmcblk0p4', root_device='mmcblk0p5'))
+          pytest_name='verify_root_partition')
 
       args.Barrier('RunInVerifyRootPartition2',
                    pass_without_prompt=True,
