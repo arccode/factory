@@ -102,6 +102,7 @@ class GenericStorageFunction(function.ProbeFunction):
   """
   ATA_FIELDS = ['vendor', 'model']
   EMMC_FIELDS = ['type', 'name', 'hwrev', 'oemid', 'manfid']
+  NVME_FIELDS = ['vendor', 'device', 'class']
   # Another field 'cid' is a combination of all other fields so we should not
   # include it again.
   EMMC_OPTIONAL_FIELDS = ['prv']
@@ -113,7 +114,10 @@ class GenericStorageFunction(function.ProbeFunction):
   def _ProcessNode(self, node_path):
     logging.info('Processing the node: %s', node_path)
     dev_path = os.path.join(node_path, 'device')
+    # The directory layout for NVMe is "/<path>/device/device/<entries>"
+    nvme_dev_path = os.path.join(dev_path, 'device')
     data = (sysfs.ReadSysfs(dev_path, self.ATA_FIELDS) or
+            sysfs.ReadSysfs(nvme_dev_path, self.NVME_FIELDS) or
             sysfs.ReadSysfs(dev_path, self.EMMC_FIELDS,
                             self.EMMC_OPTIONAL_FIELDS))
     if not data:

@@ -1274,15 +1274,19 @@ def _ProbeStorage():
   """Compile sysfs data for all non-removable block storage devices."""
   def ProcessNode(node_path):
     dev_path = os.path.join(node_path, 'device')
+    # The directory layout for NVMe is "/<path>/device/device/<entries>"
+    nvme_dev_path = os.path.join(dev_path, 'device')
     size_path = os.path.join(os.path.dirname(dev_path), 'size')
     sectors = (_StripRead(size_path) if os.path.exists(size_path) else '')
     ata_fields = ['vendor', 'model']
     emmc_fields = ['type', 'name', 'hwrev', 'oemid', 'manfid']
+    nvme_fields = ['vendor', 'device', 'class']
     # Another field 'cid' is a combination of all other fields so we should not
     # include it again.
     optional_fields = ['prv']
     data = (_ReadSysfsFields(dev_path, ata_fields) or
             _ReadSysfsFields(dev_path, emmc_fields, optional_fields) or
+            _ReadSysfsFields(nvme_dev_path, nvme_fields) or
             None)
     if not data:
       return None
