@@ -69,7 +69,7 @@ class TestListArgs(object):
   enable_fixture_tests = True
 
   # Enable/Disable flush event logs in foreground.
-  # This is used in SyncShopFloor and Finalize.
+  # This is used in SyncFactoryServer and Finalize.
   enable_flush_event_logs = True
 
   # Whether to check for a completed netboot factory install.
@@ -332,7 +332,8 @@ class TestListArgs(object):
   def grt_enforced_release_channels(self):
     return ['stable'] if self.phase == 'PVT' else None
 
-  # Serial number format. This is used in RunIn.ShopFloor.Scan test as well.
+  # Serial number format. This is used in RunIn.SyncFactoryServer.Scan test as
+  # well.
   grt_serial_number_format = r'.+'
 
   # Set the user that can force finalize.
@@ -358,7 +359,8 @@ class TestListArgs(object):
   #
   # Helper methods.
   # Some helper methods can be used in run_if test argument. Helper methods like
-  # SyncShopFloor and Barrier can create test that is used in many test lists.
+  # SyncFactoryServer and Barrier can create test that is used in many test
+  # lists.
   #
   #####
 
@@ -481,18 +483,19 @@ class TestListArgs(object):
             (self.SelectedForSampling('fatp_lte_fixture')(env) and
              self.HasLTE(env)))
 
-  def SyncShopFloor(self, id_suffix=None, update_without_prompt=False,
-                    flush_event_logs=None, run_if=None):
-    """Creates a step to sync with the shopfloor server.
+  def SyncFactoryServer(self, id_suffix=None, update_without_prompt=False,
+                        flush_event_logs=None, run_if=None, upload_report=False,
+                        report_stage=None):
+    """Creates a step to sync with the factory server.
 
     If factory_environment is False, None is returned (since there is no
-    shopfloor server to sync to).
+    factory server to sync to).
 
     Args:
-      id_suffix: An optional suffix in case multiple SyncShopFloor steps
+      id_suffix: An optional suffix in case multiple SyncFactoryServer steps
         are needed in the same group (since they cannot have the same ID).
       update_without_prompt: do factory update if needed without prompt.
-      flush_event_logs: Flush event logs to shopfloor. The default value is
+      flush_event_logs: Flush event logs to server. The default value is
         enable_flush_event_logs in TestListArgs.
       run_if: run_if argument passed to OperatorTest.
     """
@@ -504,14 +507,16 @@ class TestListArgs(object):
 
     suffix_str = str(id_suffix) if id_suffix else ''
     OperatorTest(
-        id='SyncShopFloor' + suffix_str,
-        pytest_name='flush_event_logs',
-        label=i18n.StringFormat(_('Sync Shopfloor {suffix}'),
+        id='SyncFactoryServer' + suffix_str,
+        pytest_name='sync_factory_server',
+        label=i18n.StringFormat(_('Sync Factory Server {suffix}'),
                                 suffix=suffix_str),
         run_if=run_if,
         dargs=dict(
             update_without_prompt=update_without_prompt,
-            sync_event_logs=flush_event_logs))
+            sync_event_logs=flush_event_logs,
+            upload_report=upload_report,
+            report_stage=report_stage))
 
   def Barrier(self, id_suffix, pass_without_prompt=False,
               accessibility=False, charge_manager=True, run_if=None):

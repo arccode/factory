@@ -72,7 +72,7 @@ def RunIn(args, group_suffix=''):
       # image re-install using netboot.
       if args.run_in_update_image_version:
         with OperatorTest(id='ImageUpdate', label=_('Image Update')):
-          args.SyncShopFloor(update_without_prompt=True)
+          args.SyncFactoryServer(update_without_prompt=True)
 
           # Writes mlb_serial_number and smt_complete into VPD
           # (Vital Product Data) so it will be availabe after re-imaging.
@@ -115,7 +115,7 @@ def RunIn(args, group_suffix=''):
 
     if args.factory_environment:
       with OperatorTest(id='ShopFloor'):
-        args.SyncShopFloor()
+        args.SyncFactoryServer()
 
         # Read device data from VPD (most importantly,
         # 'mlb_serial_number' and 'smt_complete').  If SMT is
@@ -168,13 +168,8 @@ def RunIn(args, group_suffix=''):
         if args.run_in_set_device_info_from_shopfloor:
           OperatorTest(
               id='GetDeviceInfo',
-              pytest_name='call_shopfloor',
-              dargs=dict(
-                  method='GetDeviceInfo',
-                  args=lambda env: [
-                      env.GetSerialNumber(state.KEY_MLB_SERIAL_NUMBER),
-                  ],
-                  action='update_device_data'))
+              pytest_name='shopfloor_service',
+              dargs=dict(method='GetDeviceInfo'))
 
           # This test has two meaning:
           # 1. For normal flow, MLB serial number is correct, serial number
@@ -360,7 +355,7 @@ def RunIn(args, group_suffix=''):
 
         # Machine will be on carousel after this point.
         # Prompt to continue.
-        args.Barrier('RunInSyncShopFloor',
+        args.Barrier('RunInSyncFactoryServer',
                      pass_without_prompt=False,
                      accessibility=True)
 

@@ -37,7 +37,7 @@ def CreateTestLists():
           dargs={'shopfloor_ip': _SHOPFLOOR_IP})
 
       OperatorTest(
-          id='SyncShopfloor',
-          label=_('Sync Shopfloor'),
-          pytest_name='flush_event_logs',
-          dargs={'disable_update': True})
+          id='SyncFactoryServer',
+          label=_('Sync Factory Server'),
+          pytest_name='sync_factory_server',
+          dargs={'update_toolkit': False})

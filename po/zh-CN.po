@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-06-30 15:23+CST\n"
+"POT-Creation-Date: 2017-07-03 22:02+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -1544,19 +1544,6 @@ msgstr "检查系统最终测试结果..."
 msgid "Flash Netboot Firmware"
 msgstr "烧录 netboot 韧体"
 
-#: ../py/test/pytests/flush_event_logs.py ../py/test/pytests/sync_shopfloor.py
-msgid "Contacting shopfloor server..."
-msgstr "正在与shopfloor server连线..."
-
-#: ../py/test/pytests/flush_event_logs.py ../py/test/pytests/sync_shopfloor.py
-msgid "A software update is available. Press SPACE to update."
-msgstr "有可用的更新。按空白键更新。"
-
-#: ../py/test/pytests/flush_event_logs.py ../py/test/pytests/sync_shopfloor.py
-msgid ""
-"Unable to contact shopfloor server. Will try again in {time_left} seconds."
-msgstr "无法连线到 shopfloor server。将于 {time_left} 秒后自动重试。"
-
 #: ../py/test/pytests/flush_testlog.py
 msgid "Attempting to flush logs upstream..."
 msgstr "同步测试记录..."
@@ -2236,6 +2223,34 @@ msgstr "暂停/恢复测试"
 msgid "Suspend/Resume:"
 msgstr "暂停/恢复:"
 
+#: ../py/test/pytests/sync_factory_server.py
+msgid "A software update is available. Press SPACE to update."
+msgstr "有可用的更新。按空白键更新。"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Contacting factory server {server_url}...<br> Current Task: "
+msgstr "正在与工厂伺服器{server_url}连线...<br> 目前任务: "
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Sync time"
+msgstr "同步时间"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Flush Event Logs"
+msgstr "同步事件记录"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Update Toolkit"
+msgstr "更新测试程序"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "<span style=\"color: green\">Server Task Finished: {label}</span>"
+msgstr "<span style=\"color: green\">完成任务: {label}</span>"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Failed in task <b>{label}</b>.<br>Retry in {time_left} seconds..."
+msgstr "任务失败 <b>{label}</b>。<br>将在 {time_left} 秒后重试..."
+
 #: ../py/test/pytests/sysfs_battery.py
 msgid "Battery Self-diagnosis"
 msgstr "电池自我诊断"
@@ -2693,8 +2708,8 @@ msgid "Writing device data to {vpd_section} VPD..."
 msgstr "机器资料正在写入到 {vpd_section} VPD..."
 
 #: ../py/test/test_lists/firmware_stress.py ../py/test/test_lists/generic.py
-msgid "Sync Shopfloor {suffix}"
-msgstr "同步事件记录 {suffix}"
+msgid "Sync Factory Server {suffix}"
+msgstr "同步工厂伺服器 {suffix}"
 
 #: ../py/test/test_lists/firmware_stress.py ../py/test/test_lists/generic.py
 #: ../py/test/test_lists/generic_rrt.py
@@ -3341,8 +3356,8 @@ msgid "Touchscreen Calibration"
 msgstr "触控面板校正"
 
 #: ../py/test/test_lists/generic_tsab.py ../py/test/test_lists/generic_vswr.py
-msgid "Sync Shopfloor"
-msgstr "同步事件记录"
+msgid "Sync Factory Server"
+msgstr "同步工厂伺服器"
 
 #: ../py/test/test_lists/generic_vswr.py
 msgid "Scan the serial number"

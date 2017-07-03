@@ -12,7 +12,6 @@ This file implements SMT method to create SMT test list.
 
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.gooftool import commands
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.i18n import _
 from cros.factory.test import state
@@ -166,7 +165,7 @@ def ManualSMTShopFloor1(args):
     args: A TestListArgs object.
   """
   with AutomatedSequence(id='ShopFloor1'):
-    args.SyncShopFloor()
+    args.SyncFactoryServer()
     ReadDeviceDataFromVPD(args)
     ScanMLB(args)
     ScanOperatorID(args)
@@ -204,7 +203,7 @@ def SMTShopFloor2(args):
     args: A TestListArgs object.
   """
   with AutomatedSequence(id='ShopFloor2'):
-    args.SyncShopFloor()
+    args.SyncFactoryServer()
 
     # Writes 'smt_complete' into device_data to mark this DUT has finished
     # SMT tests. However, this DUT has not uploaded the report yet.
@@ -231,24 +230,7 @@ def SMTShopFloor2(args):
             },
             vpd_section='rw'))
 
-    args.SyncShopFloor('2')
-
-    # Uploads SMT report to shopfloor.
-    OperatorTest(
-        id='UploadReport',
-        pytest_name='call_shopfloor',
-        dargs=dict(
-            method='UploadReport',
-            args=lambda env: [
-                env.GetSerialNumber(state.KEY_MLB_SERIAL_NUMBER),
-                # CreateReportArchiveBlob is a function;
-                # call_shopfloor will execute it.  We don't
-                # put it here since it may be megabytes long
-                # and we don't want it logged.
-                commands.CreateReportArchiveBlob,
-                None,
-                'SMT',
-            ]))
+    args.SyncFactoryServer('2', upload_report=True, report_stage='SMT')
 
 
 def VerifyComponents(args):
@@ -688,7 +670,7 @@ def ManualSMTTests(args):
   TPM(args)
 
   # Uploads test status and events to Shopfloor.
-  args.SyncShopFloor()
+  args.SyncFactoryServer()
   args.Barrier('SMTTests')
 
   # If all tests pass, mark the DUT as SMT complete.
