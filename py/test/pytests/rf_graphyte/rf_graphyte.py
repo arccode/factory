@@ -4,7 +4,40 @@
 
 """Tests RF chip's transmitting and receiving capabilities using Graphyte.
 
-Usage example::
+Description
+-----------
+A station-based test using
+`Graphyte framework <https://chromium.googlesource.com/chromiumos/graphyte/>`_
+to validate RF chip's transmitting and receiving capabilities in conductive or
+radiated way. Currently it supports WLAN, Bluetooth, and 802.15.4 technologies.
+
+Graphyte is a RF testing framework that runs on Linux and ChromeOS, and
+provide a unified RF testing way for each product in Google. It contains three
+parts: Graphyte framework, DUT plugin and instrument plugin.
+
+Test Procedure
+--------------
+This is an automated test without user interaction.
+
+1. If the argument `enable_shopfloor` is True, fetch the config files from the
+   Google shopfloor server. The folder name is assigned by the argument
+   `shopfloor_parameter_dir`.
+2. Start running Graphyte framework with the assigned config file.
+3. If the argument `enable_shopfloor` is True, upload the log file and the
+   result file to the Google shopfloor server. The folder name is assigned by
+   the argument `shopfloor_log_dir`.
+4. Parse the result and upload them via testlog.
+
+Dependency
+----------
+- Python pip package
+- `Graphyte framework <https://chromium.googlesource.com/chromiumos/graphyte/>`_
+- Graphyte plugins for the target DUT and test instrument.
+
+Examples
+--------
+To run Graphyte framework with the config file `conductive_config.json`, add
+this into the test list::
 
   FactoryTest(
       id='RFConductive',
