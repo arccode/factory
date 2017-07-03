@@ -49,7 +49,7 @@ class TimeSanitizer(plugin.Plugin):
 
   @type_utils.Overrides
   def OnStop(self):
-    if self._threading:
+    if self._thread:
       self._stop_event.set()
       self._thread.join()
 
