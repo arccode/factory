@@ -227,6 +227,15 @@ There are two valid values:
 
 This is an optional field. Default value is `release_image`.
 
+#### Field `hwid`
+
+There are two valid values:
+
+* `real`: There should be a real HWID bundle in `hwid/`.
+* `none`: `finalize_bundle` will create a dummy HWID bundle.
+
+This is an optional field. Default value is `real`.
+
 #### Field `release_image`
 
 There are two kinds of valid values:
@@ -287,9 +296,13 @@ Prepare test image if you want to use local test image:
 
     tar -JxvC test_image/ < /path/to/ChromeOS-test-R58-9334.72.0-samus.tar.xz
 
-Extract factory zip (`FACTORY_IMAGE_ARCHIVE`) if you want to use local one:
+Extract factory zip (`FACTORY_IMAGE_ARCHIVE`) if you want to use a local one:
 
     unzip /path/to/ChromeOS-factory-R61-9688.0.0-samus.zip
+
+Prepare HWID bundle if you want to use local HWID bundle:
+
+    ln /path/to/hwid_v3_bundle_SAMUS.sh hwid/
 
 Add your `MANIFEST.yaml` if you don't have it in factory zip or you want to use
 a new one:

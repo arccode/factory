@@ -181,6 +181,7 @@ class FinalizeBundle(object):
     self.LocateResources()
     self.DownloadResources()
     self.AddDefaultCompleteScript()
+    self.CheckAndAddDummyHWID()
     self.AddFirmwareUpdaterAndImages()
     self.GetAndSetResourceVersions()
     self.PrepareNetboot()
@@ -220,7 +221,7 @@ class FinalizeBundle(object):
     self.manifest = yaml.load(file_utils.ReadFile(manifest_path))
     CheckDictKeys(self.manifest,
                   ['board', 'bundle_name', 'add_files', 'server_url',
-                   'toolkit', 'test_image', 'release_image', 'firmware',
+                   'toolkit', 'test_image', 'release_image', 'firmware', 'hwid',
                    'has_firmware'])
 
     self.build_board = build_board.BuildBoard(self.manifest['board'])
@@ -489,6 +490,39 @@ class FinalizeBundle(object):
     default_complete_script = os.path.join(
         self.bundle_dir, 'setup', 'complete_script_sample.sh')
     shutil.copy(default_complete_script, complete_dir)
+
+  def CheckAndAddDummyHWID(self):
+    """Check number of files in hwid/, and add dummy HWID bundle if there is no
+    file and given 'hwid: none'."""
+    dummy_name = 'hwid_v3_bundle_DUMMY.sh'
+    hwid_dir = os.path.join(self.bundle_dir, 'hwid')
+    hwid_lst = os.listdir(hwid_dir)
+    hwid_num = len(hwid_lst)
+    if hwid_num > 1:
+      raise Exception('There are multiple files under %s.' % hwid_dir)
+    elif self.manifest.get('hwid') == 'none':
+      if hwid_num == 1:
+        # We should check if it is a real HWID bundle for local toolkit.
+        # Or users might always use 'hwid: none'.
+        if self.toolkit_source == LOCAL and hwid_lst[0] != dummy_name:
+          raise Exception(
+              'hwid is set to none but found a non-dummy HWID bundle.')
+      else:
+        file_utils.WriteFile(
+            os.path.join(hwid_dir, dummy_name),
+            '\n'.join([
+                '#!/bin/sh',
+                'exit',
+                'checksum: DUMMY',
+                '']))
+    else:  # hwid: real
+      if hwid_num == 0:
+        raise Exception(
+            "Please add 'hwid: none' in manifest file explicitly if you don't "
+            "have a real HWID bundle now.")
+      elif hwid_lst[0] == dummy_name:
+        raise Exception(
+            'hwid is not set to none but found a dummy HWID bundle.')
 
   def AddFirmwareUpdaterAndImages(self):
     """Add firmware updater into bundle directory, and extract firmware images
