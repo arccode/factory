@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-07-03 22:02+CST\n"
+"POT-Creation-Date: 2017-07-03 22:03+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -2238,6 +2238,10 @@ msgstr "同步时间"
 #: ../py/test/pytests/sync_factory_server.py
 msgid "Flush Event Logs"
 msgstr "同步事件记录"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Upload report"
+msgstr "上传生产报告"
 
 #: ../py/test/pytests/sync_factory_server.py
 msgid "Update Toolkit"

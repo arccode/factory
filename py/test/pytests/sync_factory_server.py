@@ -15,7 +15,9 @@ This test will sync following items:
 1. If `sync_time` is enabled (default True), sync system time with server time.
 2. If `sync_event_logs` is enabled (default True), sync the `event_log` YAML
    event logs to factory server.
-3. If `update_toolkit` is enabled (default True), compare the factory software
+3. If `upload_report` is enabled (default False), upload a Gooftool style report
+   collecting various system information and manufacturing logs to server.
+4. If `update_toolkit` is enabled (default True), compare the factory software
    (toolkit) installed on DUT with the active version on server, and update
    if needed.
 
@@ -46,6 +48,11 @@ To only sync time and logs, and never update software (useful for stations)::
 
   OperatorTest(pytest_name='sync_factory_server',
                dargs={'update_toolkit': False})
+
+To also upload a report::
+
+  OperatorTest(pytest_name='sync_factory_server',
+               dargs={'upload_report': True})
 """
 
 import logging
@@ -99,6 +106,12 @@ class SyncShopfloor(unittest.TestCase):
           default=True),
       Arg('sync_event_logs', bool, 'Sync event logs to factory server.',
           default=True),
+      Arg('upload_report', bool, 'Upload a factory report to factory server.',
+          default=False),
+      Arg('report_stage', str, 'Stage of report to upload.', default=None),
+      Arg('report_serial_number_name', str,
+          'Name of serial number to use for report file name to use.',
+          default=None),
   ]
 
   def UpdateToolkit(self, force_update, timeout_secs, ui, template):
@@ -143,6 +156,14 @@ class SyncShopfloor(unittest.TestCase):
 
       if self.args.sync_event_logs:
         tasks += [(_('Flush Event Logs'), goofy.FlushEventLogs)]
+
+      if self.args.upload_report:
+        blob = commands.CreateReportArchiveBlob()
+        report_serial_number = state.GetSerialNumber(
+            self.args.report_serial_number_name or state.KEY_SERIAL_NUMBER)
+        tasks += [(_('Upload report'),
+                   lambda: server.UploadReport(report_serial_number, blob, None,
+                                               self.args.report_stage))]
 
       if self.args.update_toolkit:
         tasks += [(_('Update Toolkit'),
