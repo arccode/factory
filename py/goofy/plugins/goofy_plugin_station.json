@@ -33,6 +33,10 @@
         "uplink_port": 7500,
         "uplink_use_shopfloor": true
       }
+    },
+    "station_setup.station_setup": {
+      "args": {
+      }
     }
   }
 }

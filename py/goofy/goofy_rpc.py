@@ -792,6 +792,10 @@ class GoofyRPC(object):
     """Returns a list of URLs of all plugin's UI."""
     return self.goofy.plugin_controller.GetFrontendURLs()
 
+  def IsPluginEnabled(self, plugin_name):
+    """Returns whether a plugin is enabled."""
+    return bool(self.goofy.plugin_controller.GetPluginInstance(plugin_name))
+
 
 def main():
   parser = argparse.ArgumentParser(

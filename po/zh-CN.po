@@ -305,6 +305,31 @@ msgstr "检视 dmesg"
 msgid "Device manager"
 msgstr "检视硬件"
 
+#: ../py/goofy/plugins/station_setup/static/station_setup.js
+#: ../py/goofy/plugins/station_setup/station_setup.py
+msgid "Update Station Properties"
+msgstr "更新测站资讯"
+
+#: ../py/goofy/plugins/station_setup/station_setup.py
+msgid "Station Name"
+msgstr "测站名称"
+
+#: ../py/goofy/plugins/station_setup/station_setup.py
+msgid "Manufacture Line Number"
+msgstr "产线编号"
+
+#: ../py/goofy/plugins/station_setup/station_setup.py
+msgid "Station Number"
+msgstr "测站编号"
+
+#: ../py/goofy/plugins/station_setup/station_setup.py
+msgid "{key} can't be empty!"
+msgstr "{key}的值不能为空"
+
+#: ../py/goofy/plugins/station_setup/station_setup.py
+msgid "Station with same {keys!r} found."
+msgstr "测站已存在"
+
 #: ../py/goofy/plugins/status_monitor/static/status_monitor.html
 msgid "Update available. Click to update."
 msgstr "有可用的更新。点击更新"
@@ -2202,6 +2227,10 @@ msgstr "REMOVE 请移除测试装置。"
 #: ../py/test/pytests/station_entry.py
 msgid "Restarting all tests..."
 msgstr "RESTARTING 测试结束，正在重设测试列表..."
+
+#: ../py/test/pytests/station_setup.py
+msgid "Setup Station"
+msgstr "设定测站"
 
 #: ../py/test/pytests/stylus.py
 msgid ""

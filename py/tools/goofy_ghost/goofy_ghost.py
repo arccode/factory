@@ -10,21 +10,19 @@ import subprocess
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test.test_lists import test_lists
+from cros.factory.tools.goofy_ghost import ghost_prop
 from cros.factory.utils import argparse_utils
 from cros.factory.utils import config_utils
 from cros.factory.utils import file_utils
 
 
-GOOFY_GHOST_PROPERTIES_FILE = os.path.join(paths.RUNTIME_VARIABLE_DATA_DIR,
-                                           'factory', 'goofy_ghost.json')
-
-
 def _WriteGhostProperties():
-  # TODO(pihsun): Complete JSON schema for ghost properties.
   properties = config_utils.LoadConfig('goofy_ghost')
   properties['active_test_list'] = test_lists.GetActiveTestListId()
-  file_utils.TryMakeDirs(os.path.dirname(GOOFY_GHOST_PROPERTIES_FILE))
-  file_utils.WriteFile(GOOFY_GHOST_PROPERTIES_FILE, json.dumps(properties))
+  file_utils.TryMakeDirs(
+      os.path.dirname(ghost_prop.GOOFY_GHOST_PROPERTIES_FILE))
+  file_utils.WriteFile(ghost_prop.GOOFY_GHOST_PROPERTIES_FILE,
+                       json.dumps(properties))
 
 
 @argparse_utils.Command('start')
@@ -32,7 +30,9 @@ def _Start(args):
   del args  # Unused.
 
   _WriteGhostProperties()
-  cmd = ['ghost', '--fork', '--prop-file', GOOFY_GHOST_PROPERTIES_FILE]
+  cmd = [
+      'ghost', '--fork', '--prop-file', ghost_prop.GOOFY_GHOST_PROPERTIES_FILE
+  ]
   # TODO(pihsun): Have a way to specify --tls-no-verify.
   pem_file = os.path.join(paths.DATA_DIR, 'overlord.pem')
   if os.path.exists(pem_file):
