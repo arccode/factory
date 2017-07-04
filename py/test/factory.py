@@ -28,6 +28,7 @@ import yaml
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import i18n
+from cros.factory.test.i18n import translation
 from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
 
@@ -230,7 +231,7 @@ class Options(object):
   """The default UI language (must be ``'en'`` for English or ``'zh'``
   for Chinese. Deprecated."""
 
-  ui_locale = 'en-US'
+  ui_locale = translation.DEFAULT_LOCALE
   """The default UI locale."""
 
   engineering_password_sha1 = None
@@ -297,9 +298,6 @@ class Options(object):
   hooks_class = 'cros.factory.test.factory.Hooks'
   """Hooks class for the factory test harness.  Defaults to a dummy
   class."""
-
-  strict_ids = False
-  """Strictly require an ID for each test."""
 
   check_if_mlb_changed = False
   """Check if MLB has been changed, and reset all tests if so."""
@@ -517,8 +515,6 @@ class FactoryTest(object):
       run_if_expr: A callable function (taking one argument, an
           invocation.TestArgEnv) that will return True if the test
           should be run.
-      implicit_id: Whether the ID was determined implicitly (i.e., not
-          explicitly specified in the test list).
   """
 
   # If True, the test never fails, but only returns to an untested state.
@@ -570,20 +566,25 @@ class FactoryTest(object):
                waived=False,
                parallel=False,
                action_on_failure=None,
-               _root=None,
-               _default_id=None):
+               _root=None):
     """Constructor.
 
     See cros.factory.test.test_lists.FactoryTest for argument
     documentation.
     """
+    self.pytest_name = pytest_name
+    self.invocation_target = invocation_target
+
+    self.subtests = filter(None, type_utils.FlattenList(subtests or []))
+    assert len(filter(None, [pytest_name, invocation_target, subtests])) <= 1, (
+        'No more than one of pytest_name, invocation_target, and subtests '
+        'must be specified')
+
     # The next test under its parent, this value will be updated by
     # FactoryTestList object
     self.next_sibling = None
 
     self.has_automator = has_automator
-    self.pytest_name = pytest_name
-    self.invocation_target = invocation_target
     # TODO(henryhsu): prepare and finish should support TestGroup also
     #    instead of test case only
     self.prepare = prepare
@@ -633,12 +634,12 @@ class FactoryTest(object):
       self.run_if_not = match.group(1) is not None
       self.run_if_key = match.group(2)
 
-    self.subtests = filter(None, type_utils.FlattenList(subtests or []))
     self._teardown = teardown
     self.path = ''
     self.parent = None
     self.root = None
     self.iterations = iterations
+
     assert isinstance(self.iterations, int) and self.iterations > 0, (
         'In test %s, Iterations must be a positive integer, not %r' % (
             self.path, self.iterations))
@@ -646,18 +647,34 @@ class FactoryTest(object):
     assert isinstance(self.retries, int) and self.retries >= 0, (
         'In test %s, Retries must be a positive integer or 0, not %r' % (
             self.path, self.retries))
+
+    if has_ui is not None:
+      self.has_ui = has_ui
+    if never_fails is not None:
+      self.never_fails = never_fails
+    if disable_abort is not None:
+      self.disable_abort = disable_abort
+
+    # Solve ID and Label. Considering I18n, the priority is:
+    # 1. `label` must be specified, or it should come from pytest_name
+    # 2. If not specified, `id` comes from label by stripping spaces and dots.
+    # Resolved id may be changed in _init when there are duplicated id's found
+    # in same path.
+
+    if label is None:
+      # Auto-assign label text.
+      label_en = (label_en or id or
+                  self.PytestNameToLabel(pytest_name or 'test group'))
+      label_zh = label_zh or label_en
+      assert 'en-US' == translation.DEFAULT_LOCALE, 'Unknown default locale'
+      label = {'en-US': label_en, 'zh-CN': label_zh}
+
+    self.label = i18n.Translated(label)
+
     if _root:
       self.id = None
-      self.implicit_id = False
     else:
-      self.implicit_id = not id
-
-      if id:
-        self.id = id
-      elif pytest_name:
-        self.id = self.PytestNameToId(pytest_name)
-      else:
-        self.id = _default_id
+      self.id = id or self.LabelToId(self.label.get(translation.DEFAULT_LOCALE))
 
       assert self.id, (
           'id not specified for test: %r' % self)
@@ -668,38 +685,23 @@ class FactoryTest(object):
               self.id, ID_REGEXP.pattern))
       # Note that we check ID uniqueness in _init.
 
-    assert len(filter(
-        None,
-        [pytest_name, invocation_target,
-         subtests])) <= 1, ('No more than one of pytest_name, '
-                            'invocation_target, and subtests must be specified')
-
-    if has_ui is not None:
-      self.has_ui = has_ui
-    if never_fails is not None:
-      self.never_fails = never_fails
-    if disable_abort is not None:
-      self.disable_abort = disable_abort
-
-    if label is None:
-      # Auto-assign label text.
-      label_en = label_en or self.id
-      label_zh = label_zh or label_en
-      label = {'en-US': label_en, 'zh-CN': label_zh}
-
-    self.label = i18n.Translated(label)
+  @staticmethod
+  def PytestNameToLabel(pytest_name):
+    """Returns a titled string without duplicated elements."""
+    pytest_name = pytest_name.replace('.', ' ').replace('_', ' ')
+    seen = set()
+    return ' '.join(name for name in pytest_name.split() if not
+                    (name in seen or seen.add(name))).title()
 
   @staticmethod
-  def PytestNameToId(pytest_name):
-    """Converts a pytest name to an ID.
+  def LabelToId(label):
+    """Converts a label to an ID.
 
-    Removes all but the rightmost dot-separated component, removes
-    underscores, and converts to CamelCase.
+    Removes all symbols and join as CamelCase.
     """
-    name = pytest_name.rpartition('.')[2]
-    return re.sub('(?:^|_)([a-z])',
-                  lambda match: match.group(1).upper(),
-                  name)
+    new_name = ''.join(c if c.isalnum() else ' ' for c in label)
+    return ''.join(name.capitalize() if name[0].islower() else name
+                   for name in new_name.split())
 
   def ToStruct(self, extra_fields=None, recursive=True):
     """Returns the node as a struct suitable for JSONification.
@@ -1127,14 +1129,6 @@ class FactoryTestList(FactoryTest):
               'that full paths are required)'
               % (requirement.path, test.path))
 
-    if self.options.strict_ids:
-      bad_implicit_ids = []
-      for test in self.Walk():
-        if test.implicit_id:
-          bad_implicit_ids.append(test.path)
-      if bad_implicit_ids:
-        raise TestListError('options.strict_ids is set, but tests %s lack '
-                            'explicitly specified IDs' % bad_implicit_ids)
     self._check()
 
   def GetAllTests(self):

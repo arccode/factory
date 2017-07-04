@@ -28,12 +28,16 @@ class FactoryModuleTest(unittest.TestCase):
   # TODO(stimim): test FactoryTestList
 
   def test_py_test_name_to_id(self):
-    for name, test_id in (('a', 'A'),
-                          ('_', '_'),
-                          ('ab', 'Ab'),
-                          ('a_b', 'AB'),
-                          ('foo_bar', 'FooBar')):
-      self.assertEqual(test_id, factory.FactoryTest.PytestNameToId(name))
+    for name, label in (('a', 'A'),
+                        ('a.b', 'A B'),
+                        ('ab', 'Ab'),
+                        ('foo_bar', 'Foo Bar')):
+      self.assertEqual(label, factory.FactoryTest.PytestNameToLabel(name))
+    for label, test_id in (('A test', 'ATest'),
+                           ('ab', 'Ab'),
+                           ('a_b', 'AB'),
+                           ('foo_bar', 'FooBar')):
+      self.assertEqual(test_id, factory.FactoryTest.LabelToId(label))
 
 
 class FactoryTestListTest(unittest.TestCase):

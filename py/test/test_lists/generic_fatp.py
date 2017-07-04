@@ -28,9 +28,8 @@ def FATP(args):
   Args:
     args: A TestListArgs object.
   """
-  with TestGroup(id='FATP'):
+  with TestGroup(label=_('FATP')):
     OperatorTest(
-        id='Start',
         label=_('Start'),
         pytest_name='start',
         never_fails=True,
@@ -42,7 +41,6 @@ def FATP(args):
 
     # Decides if DUT is sampled for audio fixture test.
     FactoryTest(
-        id='SelectForAudioFixture',
         label=_('Select For Audio Fixture'),
         pytest_name='select_for_sampling',
         dargs=dict(
@@ -52,7 +50,6 @@ def FATP(args):
 
     # Decides if DUT is sampled for camera fixture test.
     FactoryTest(
-        id='SelectForCameraFixture',
         label=_('Select For Camera Fixture'),
         pytest_name='select_for_sampling',
         dargs=dict(
@@ -62,7 +59,6 @@ def FATP(args):
 
     # Decides if DUT is sampled for RF fixture test.
     FactoryTest(
-        id='SelectForRFFixture',
         label=_('Select For RF Fixture'),
         pytest_name='select_for_sampling',
         dargs=dict(
@@ -73,7 +69,6 @@ def FATP(args):
     # Decides if DUT is sampled for RF fixture test.
     # LTE Model has different sampling rate for RF fixture.
     FactoryTest(
-        id='SelectForRFFixtureLTEModel',
         label=_('Select For RF Fixture LTE Model'),
         pytest_name='select_for_sampling',
         run_if=args.HasLTE,
@@ -84,7 +79,6 @@ def FATP(args):
 
     # Decides if DUT is sampled for LTE fixture test.
     FactoryTest(
-        id='SelectForLTEFixture',
         label=_('Select For LTE Fixture'),
         pytest_name='select_for_sampling',
         run_if=args.HasLTE,
@@ -95,13 +89,11 @@ def FATP(args):
 
     # Write-protect screw should be on.
     OperatorTest(
-        id='WriteProtectSwitch',
         label=_('Write Protect Switch'),
         pytest_name='write_protect_switch')
 
     # Tests micro USB port using on-the-go dongle and a USB key.
     OperatorTest(
-        id='MicroUSBPerformance',
         label=_('Micro USB Performance'),
         pytest_name='removable_storage',
         dargs=dict(
@@ -114,13 +106,11 @@ def FATP(args):
 
     # Checks Lid switch signal.
     OperatorTest(
-        id='LidSwitch',
         label=_('Lid Switch'),
         pytest_name='lid_switch')
 
     # Checks display for black dots and white dots.
     OperatorTest(
-        id='DisplayPoint',
         label=_('Display Point'),
         pytest_name='display_point',
         dargs=dict(
@@ -129,13 +119,11 @@ def FATP(args):
 
     # Lets operator check display quality under different colors.
     OperatorTest(
-        id='Display',
         label=_('Display'),
         pytest_name='display')
 
     # Lets operator check backlight brightness can be changed.
     OperatorTest(
-        id='Backlight',
         label=_('Backlight'),
         pytest_name='backlight',
         dargs=dict(
@@ -143,7 +131,6 @@ def FATP(args):
 
     # Checks if camera is connected to USB.
     FactoryTest(
-        id='CameraProbe',
         label=_('Camera Probe'),
         pytest_name='usb_probe',
         dargs=dict(
@@ -151,7 +138,6 @@ def FATP(args):
 
     # Lets operator check camera and camera light function.
     OperatorTest(
-        id='Camera',
         label=_('Camera'),
         pytest_name='camera',
         dargs=dict(
@@ -162,7 +148,6 @@ def FATP(args):
 
     # Lets operator check LED function.
     OperatorTest(
-        id='LED',
         label=_('LED'),
         pytest_name='led')
 
@@ -170,7 +155,6 @@ def FATP(args):
     # User can use evtest command to list the input devices and get
     # keyboard_device_name.
     OperatorTest(
-        id='Keyboard',
         label=_('Keyboard'),
         pytest_name='keyboard',
         dargs=dict(
@@ -178,7 +162,7 @@ def FATP(args):
             sequential_press=True,
             skip_power_key=False))
 
-    with AutomatedSequence(id='SIMCard', label=_('SIM Card')):
+    with AutomatedSequence(label=_('SIM Card')):
       # For 3G model only. Note that different factory can have different
       # testing sequences of 3G model. The tests set in this test list
       # are just examples.
@@ -188,7 +172,6 @@ def FATP(args):
       # sim card tray. Then the test checks if sim card tray detection pin
       # is high.
       OperatorTest(
-          id='InsertSIMCardTray',
           label=_('Insert SIM Card Tray'),
           pytest_name='probe_sim_card_tray',
           dargs=dict(
@@ -202,7 +185,6 @@ def FATP(args):
       # The test checks the connection between modem and MLB, and the connection
       # between modem and SIM card.
       OperatorTest(
-          id='ProbeSIM',
           label=_('Probe SIM'),
           pytest_name='probe_sim',
           run_if=args.HasCellular)
@@ -210,7 +192,6 @@ def FATP(args):
       # For 3G model only. SIM card and SIM card tray should be removed
       # at this station. They will be put back in the packing station.
       OperatorTest(
-          id='CheckNoSIMCardTray',
           label=_('Check No SIM Card Tray'),
           pytest_name='probe_sim_card_tray',
           dargs=dict(tray_already_present=False),
@@ -218,7 +199,6 @@ def FATP(args):
 
       # For 3G model only. Probe modem IMEI value and log it.
       OperatorTest(
-          id='ProbeIMEI',
           label=_('Probe IMEI'),
           pytest_name='probe_cellular_info',
           run_if=args.HasCellular,
@@ -228,7 +208,6 @@ def FATP(args):
     # If there is setup for wireless connection test, then this test can
     # be skipped.
     FactoryTest(
-        id='Wifi',
         label=_('Wifi'),
         pytest_name='wireless',
         retries=args.fatp_retries_basic_wifi)
@@ -239,7 +218,6 @@ def FATP(args):
     # (ssid, password) if there is no 'line' in device_data.
     OperatorTest(
         exclusive_resources=[plugin.RESOURCE.NETWORK],
-        id='WirelessConnection',
         label=_('Wireless Connection'),
         pytest_name='wireless',
         dargs=dict(
@@ -251,12 +229,11 @@ def FATP(args):
             test_url=('http://%s/testdata/test' % args.shopfloor_host),
             md5sum='097daa256e3a4569305db580df900d8d'))
 
-    with TestGroup(id='RSSI', label=_('RSSI Test')):
+    with TestGroup(label=_('RSSI Test')):
       # DUT will switch antenna and scan for different AP based on 'line'
       # in device_data.
       OperatorTest(
           exclusive_resources=[plugin.RESOURCE.NETWORK],
-          id='WirelessRSSI24G',
           label=_('Wireless RSSI 2.4G'),
           pytest_name='wireless_antenna',
           dargs=dict(
@@ -271,7 +248,6 @@ def FATP(args):
 
       OperatorTest(
           exclusive_resources=[plugin.RESOURCE.NETWORK],
-          id='WirelessRSSI5G',
           label=_('Wireless RSSI 5G'),
           pytest_name='wireless_antenna',
           dargs=dict(
@@ -288,7 +264,6 @@ def FATP(args):
       # TODO(itspeter), this should be supported by cellular_gobi_rssi and
       # lte_rssi tests.
       OperatorTest(
-          id='PromptBeforeRSSI',
           label=_('Begin RSSI Test'),
           pytest_name='message',
           never_fails=True,
@@ -303,7 +278,6 @@ def FATP(args):
       # for cellular module.
       OperatorTest(
           exclusive_resources=[plugin.RESOURCE.NETWORK],
-          id='CellularRSSI',
           label=_('Cellular RSSI'),
           pytest_name='cellular_gobi_rssi',
           run_if=args.HasCellular,
@@ -317,7 +291,6 @@ def FATP(args):
       # for LTE module.
       OperatorTest(
           exclusive_resources=[plugin.RESOURCE.NETWORK],
-          id='LTERSSI',
           label=_('LTE RSSI'),
           pytest_name='lte_rssi',
           run_if=args.HasLTE,
@@ -328,7 +301,6 @@ def FATP(args):
 
     # Checks Received signal strength indication (RSSI) for bluetooth signal.
     OperatorTest(
-        id='Bluetooth',
         label=_('Bluetooth'),
         pytest_name='bluetooth',
         dargs=dict(
@@ -342,7 +314,6 @@ def FATP(args):
     # For LTE model only. Writes parameters to LTE module.
     OperatorTest(
         exclusive_resources=[plugin.RESOURCE.NETWORK],
-        id='WriteLTEChromebookSpecificParameters',
         label=_('Write LTE Chromebook Specific Parameters'),
         pytest_name='lte_smt',
         run_if=args.HasLTE,
@@ -352,7 +323,6 @@ def FATP(args):
 
     # Checks audio jack using a loopback dongle.
     OperatorTest(
-        id='AudioJack',
         label=_('Audio Jack'),
         pytest_name='audio_loop',
         dargs={'require_dongle': True,
@@ -367,7 +337,6 @@ def FATP(args):
 
     # Checks speaker and digital mic.
     OperatorTest(
-        id='SpeakerDMic',
         label=_('Speaker/Microphone'),
         pytest_name='audio_loop',
         dargs={'require_dongle': False,
@@ -383,13 +352,11 @@ def FATP(args):
     # Checks touchpad including one finger moving, two finger moving,
     # single clicking and double clicking.
     OperatorTest(
-        id='Touchpad',
         label=_('Touchpad'),
         pytest_name='touchpad')
 
     # Checks touchscreen using one finger moving.
     OperatorTest(
-        id='Touchscreen',
         label=_('Touchscreen'),
         pytest_name='touchscreen')
 
@@ -398,7 +365,6 @@ def FATP(args):
     # monitors. Run ext_display test alone and checks the screen indeed
     # refresh on external display.
     OperatorTest(
-        id='ExtDisplay',
         label=_('External Display'),
         pytest_name='ext_display',
         dargs=dict(
@@ -407,11 +373,10 @@ def FATP(args):
 
     # We groups fixture tests in this TestGroup.
     if args.enable_fixture_tests:
-      with TestGroup(id='Fixtures', label=_('Fixture Test')):
+      with TestGroup(label=_('Fixture Test')):
         # If there is any fixture tests selected, prompts a message to ask
         # operator to take this DUT to fixture stations.
         OperatorTest(
-            id='FixtureStart',
             label=_('Fixture Start'),
             pytest_name='message',
             run_if=args.SelectedForAnyFixture,
@@ -426,14 +391,12 @@ def FATP(args):
 
         # Checks audio quality.
         OperatorTest(
-            id='AudioQuality',
             label=_('Audio Quality'),
             pytest_name='audio_quality',
             run_if=args.SelectedForSampling('fatp_audio_fixture'))
 
         # Checks camera performance.
         OperatorTest(
-            id='CameraPerformance',
             label=_('Camera Performance'),
             pytest_name='camera_fixture',
             run_if=args.SelectedForSampling('fatp_camera_fixture'),
@@ -455,7 +418,6 @@ def FATP(args):
         # Checks radiated signal strength for WiFi using RF fixture.
         OperatorTest(
             exclusive_resources=[plugin.RESOURCE.NETWORK],
-            id='WifiRadiated',
             label=_('Wifi Radiated'),
             pytest_name='radiated_wifi',
             run_if=lambda env: (
@@ -478,7 +440,6 @@ def FATP(args):
         # using RF fixture.
         OperatorTest(
             exclusive_resources=[plugin.RESOURCE.NETWORK],
-            id='ComboRadiated',
             label=_('Wifi and 3G Radiated'),
             pytest_name='radiated_combo',
             run_if=lambda env: (
@@ -508,7 +469,6 @@ def FATP(args):
         # actually using RF fixture to test LTE signal.
         OperatorTest(
             exclusive_resources=[plugin.RESOURCE.NETWORK],
-            id='LTERadiated',
             label=_('LTE Radiated'),
             run_if=lambda env: (
                 args.SelectedForSampling('fatp_lte_fixture')(env) and
@@ -536,7 +496,6 @@ def FATP(args):
         # Prompts a message to ask operator to put back DUT to the line from
         # fixture stations.
         OperatorTest(
-            id='FixtureEnd',
             label=_('Fixture End'),
             pytest_name='message',
             run_if=args.SelectedForAnyFixture,
@@ -553,7 +512,6 @@ def FATP(args):
     # Checks the log of the test for correct sysfs path.
     # It should match the hierachy shown in 'lsusb -t' command.
     OperatorTest(
-        id='USBPerformanceNearMicroUSB',
         label=_('USB Performance Near Micro USB'),
         pytest_name='removable_storage',
         dargs=dict(
@@ -568,7 +526,6 @@ def FATP(args):
     # Checks the log of the test for correct sysfs path.
     # It should match the hierachy shown in 'lsusb -t' command.
     OperatorTest(
-        id='USBPerformanceNearAudioJack',
         label=_('USB Performance Near Audio Jack'),
         pytest_name='removable_storage',
         dargs=dict(
@@ -581,20 +538,17 @@ def FATP(args):
 
     # This takes a long time (~30s) to execute, can be moved to run-in if
     # necessary.
-    with AutomatedSequence(id='MRCCache', label=_('MRCCache')):
+    with AutomatedSequence(label=_('MRCCache')):
       FactoryTest(
-          id='Create',
           label=_('Create Cache'),
           pytest_name='mrc_cache',
           dargs={'mode': 'create'})
 
       RebootStep(
-          id='Reboot',
           label=_('Reboot'),
           iterations=1)
 
       FactoryTest(
-          id='Verify',
           label=_('Verify'),
           pytest_name='mrc_cache',
           dargs={'mode': 'verify'})
@@ -606,7 +560,6 @@ def FATP(args):
     # e,g. Rolling Reliability Test (RRT). Otherwise, DUT should go to
     # Google Required Tests (GRT).
     OperatorTest(
-        id='Finish',
         label=_('Finish'),
         pytest_name='message',
         require_run=(Passed('FATP.BarrierFATP')

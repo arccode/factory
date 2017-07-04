@@ -35,7 +35,6 @@ def RunIn(args, group_suffix=''):
   group_id = 'RunIn' + group_suffix
   with TestGroup(id=group_id):
     OperatorTest(
-        id='Start',
         label=_('Start'),
         has_automator=True,
         pytest_name='start',
@@ -50,7 +49,6 @@ def RunIn(args, group_suffix=''):
     # Checks if a designated charger is attached. If the AC plug only accept
     # the designated type, this test is not necessary.
     OperatorTest(
-        id='ChargerTypeDetection',
         label=_('Charger Type Detection'),
         pytest_name='ac_power',
         # Only CHG12 charger will be identified as 'Mains'.
@@ -69,13 +67,12 @@ def RunIn(args, group_suffix=''):
       # and Run-In can be several monthgs. In this station we can let DUT do
       # image re-install using netboot.
       if args.run_in_update_image_version:
-        with OperatorTest(id='ImageUpdate', label=_('Image Update')):
+        with OperatorTest(label=_('Image Update')):
           args.SyncFactoryServer(update_without_prompt=True)
 
           # Writes mlb_serial_number and smt_complete into VPD
           # (Vital Product Data) so it will be availabe after re-imaging.
           OperatorTest(
-              id='WriteDeviceDataToVPD',
               label=_('Write Device Data To VPD'),
               pytest_name='write_device_data_to_vpd')
 
@@ -83,7 +80,6 @@ def RunIn(args, group_suffix=''):
           # flash netboot firmware and do netboot install.
           # Note that VPD will be retained using flash_netboot tool.
           OperatorTest(
-              id='CheckVersion',
               label=_('Check Version'),
               pytest_name='check_image_version',
               dargs=dict(
@@ -92,20 +88,18 @@ def RunIn(args, group_suffix=''):
                   require_space=False))
 
       if args.run_in_update_firmware:
-        with OperatorTest(id='FirmwareUpdate', label=_('Firmware Update')):
+        with OperatorTest(label=_('Firmware Update')):
 
           OperatorTest(
-              id='FirmwareUpdate',
               label=_('Firmware Update'),
               pytest_name='update_firmware')
 
           RebootStep(
-              id='RebootAfterFirmwareUpdate',
               label=_('Reboot'),
               iterations=1)
 
     if args.factory_environment:
-      with OperatorTest(id='ShopFloor'):
+      with OperatorTest(label=_('ShopFloor')):
         args.SyncFactoryServer()
 
         # Read device data from VPD (most importantly,
@@ -119,7 +113,6 @@ def RunIn(args, group_suffix=''):
         # TODO(cychiang) Let goofy support smt_complete instead of relying on
         # hooks.
         OperatorTest(
-            id='ReadDeviceDataFromVPD',
             label=_('Read Device Data From VPD'),
             pytest_name='read_device_data_from_vpd')
 
@@ -158,7 +151,6 @@ def RunIn(args, group_suffix=''):
         # use scan pytest.
         if args.run_in_set_device_info_from_shopfloor:
           OperatorTest(
-              id='GetDeviceInfo',
               pytest_name='shopfloor_service',
               dargs=dict(method='GetDeviceInfo'))
 
@@ -175,7 +167,6 @@ def RunIn(args, group_suffix=''):
           # of the machine and see if it matches serial number fetched from
           # shopfloor server using MLB serial number as key.
           OperatorTest(
-              id='Scan',
               label=_('Scan'),
               has_automator=True,
               pytest_name='scan',
@@ -186,7 +177,6 @@ def RunIn(args, group_suffix=''):
 
         else:
           OperatorTest(
-              id='SetDeviceInfo',
               label=_('Set Device Info'),
               pytest_name='select_components',
               dargs=dict(comps=dict(
@@ -197,7 +187,6 @@ def RunIn(args, group_suffix=''):
                   region=('region', ['us', 'gb']))))
 
           OperatorTest(
-              id='ScanSerialNumber',
               label=_('Scan Serial Number'),
               pytest_name='scan',
               dargs=dict(
@@ -207,7 +196,6 @@ def RunIn(args, group_suffix=''):
                   regexp=args.grt_serial_number_format))
 
           OperatorTest(
-              id='ScanGoldenICCID',
               label=_('Scan GoldenICCID'),
               pytest_name='scan',
               run_if=args.HasLTE,
@@ -217,7 +205,6 @@ def RunIn(args, group_suffix=''):
                   regexp=args.run_in_golden_iccid_format))
 
           OperatorTest(
-              id='ScanGoldenIMEI',
               label=_('Scan GoldenIMEI'),
               pytest_name='scan',
               run_if=args.HasLTE,
@@ -227,14 +214,12 @@ def RunIn(args, group_suffix=''):
                   regexp=args.run_in_golden_imei_format))
 
           OperatorTest(
-              id='ScanGbindAttribute',
               label=_('Scan Gbind Attribute'),
               pytest_name='scan',
               dargs=dict(
                   device_data_key='gbind_attribute', label=_('Group code')))
 
           OperatorTest(
-              id='ScanUbindAttribute',
               label=_('Scan Ubind Attribute'),
               pytest_name='scan',
               dargs=dict(
@@ -246,7 +231,6 @@ def RunIn(args, group_suffix=''):
         # LTE model has SIM card inserted after assembly before entering RunIn.
         # This test checks SIM card tray detection pin is already high.
         OperatorTest(
-            id='CheckLTESIMCardTray',
             label=_('Check LTE SIM Card Tray'),
             pytest_name='probe_sim_card_tray',
             dargs=dict(tray_already_present=True),
@@ -258,7 +242,6 @@ def RunIn(args, group_suffix=''):
         # probed and saved in device_data. They will be matched in hwid rule
         # to golden IMEI and golden ICCID fetched from shopfloor.
         OperatorTest(
-            id='ProbeLTEIMEIICCID',
             label=_('Probe LTE IMEI ICCID'),
             pytest_name='probe_cellular_info',
             run_if=args.HasLTE,
@@ -271,14 +254,12 @@ def RunIn(args, group_suffix=''):
         # Writes VPD values into RO/RW VPD. This includes at least
         # 'serial_number', 'region', 'ubind_attribute', 'gbind_attribute'.
         OperatorTest(
-            id='VPD',
             label=_('VPD'),
             pytest_name='write_device_data_to_vpd')
 
         # For 3G model only. Some modem can only do testing in Generic UMTS
         # mode.
         FactoryTest(
-            id='SwitchToWCDMAFirmware',
             label=_('Switch To WCDMA Firmware'),
             pytest_name='cellular_switch_firmware',
             run_if=args.HasCellular,
@@ -288,15 +269,13 @@ def RunIn(args, group_suffix=''):
         # image on a range of serial numbers. We put update steps here after
         # scan so unit gets serial number in their device_data.
         if args.run_in_control_run_update_image_version:
-          with OperatorTest(
-              id='ImageUpdateControlRun', label=_('Image Update ControlRun')):
+          with OperatorTest(label=_('Image Update ControlRun')):
 
             # Only availabe on DUT which satifies
             # args.SelectedForControlRunImageUpdate.
             # Writes mlb_serial_number and smt_complete into VPD so it will be
             # availabe after re-imaging.
             OperatorTest(
-                id='WriteDeviceDataToVPD',
                 label=_('Write Device Data To VPD'),
                 pytest_name='write_device_data_to_vpd',
                 run_if=args.SelectedForControlRunImageUpdate)
@@ -307,7 +286,6 @@ def RunIn(args, group_suffix=''):
             # shopfloor server so it will download control images.
             # Note that VPD will be retained using flash_netboot tool.
             OperatorTest(
-                id='CheckVersion',
                 label=_('Check Version'),
                 pytest_name='check_image_version',
                 run_if=args.SelectedForControlRunImageUpdate,
@@ -322,20 +300,17 @@ def RunIn(args, group_suffix=''):
         # scan so unit gets serial number.
         if args.run_in_control_run_firmware_update:
           OperatorTest(
-              id='FirmwareUpdate',
               label=_('Firmware Update'),
               pytest_name='update_firmware',
               run_if=args.SelectedForControlRunFirmwareUpdate)
 
           RebootStep(
-              id='RebootAfterFirmwareUpdate',
               label=_('Reboot'),
               iterations=1,
               run_if=args.SelectedForControlRunFirmwareUpdate)
 
         # Write HWID to check components are correct.
-        OperatorTest(
-            id='WriteHWID', label=_('Write HWID'), pytest_name='hwid_v3')
+        OperatorTest(label=_('Write HWID'), pytest_name='hwid_v3')
 
         # Machine will be on carousel after this point.
         # Prompt to continue.
@@ -345,7 +320,6 @@ def RunIn(args, group_suffix=''):
 
     # After putting on carousel, we need to make sure charger is working.
     OperatorTest(
-        id='ChargerTypeDetectionCarousel',
         label=_('Charger Type Detection'),
         pytest_name='ac_power',
         # Only CHG12 charger will be identified as 'Mains'.
@@ -361,7 +335,6 @@ def RunIn(args, group_suffix=''):
 
     # For 3G model only. There should be no sim card tray at this point.
     OperatorTest(
-        id='ProbeSIMCardTrayNotPresent',
         label=_('Probe SIM Card Tray Not Present'),
         pytest_name='probe_sim_card_tray',
         dargs=dict(tray_already_present=False),
@@ -373,7 +346,6 @@ def RunIn(args, group_suffix=''):
 
     # Checks hardware write protect is on.
     FactoryTest(
-        id='WriteProtectSwitch',
         label=_('Write Protect Switch'),
         pytest_name='write_protect_switch')
 
@@ -384,7 +356,6 @@ def RunIn(args, group_suffix=''):
     # Probes thermal sensor since we will use thermal sensor during stress
     # test.
     FactoryTest(
-        id='ThermalSensor',
         label=_('Thermal Sensor'),
         pytest_name='i2c_probe',
         dargs=dict(bus=7, addr=0x4c))
@@ -396,7 +367,6 @@ def RunIn(args, group_suffix=''):
     # Checks kernel and rootfs partition of release image.
     if args.fully_imaged:
       OperatorTest(
-          id='VerifyRootPartition',
           label=_('Verify Root Partition'),
           pytest_name='verify_root_partition')
 
@@ -409,7 +379,6 @@ def RunIn(args, group_suffix=''):
     # chromeos-install, there will be no free space in stateful partition,
     # and we have to use 'file' mode.
     OperatorTest(
-        id='BadBlocks',
         label=_('Bad Blocks'),
         pytest_name='bad_blocks',
         # When run alone, this takes ~.5s/MiB (for four passes).  We'll do a
@@ -428,15 +397,13 @@ def RunIn(args, group_suffix=''):
     # Reboots before stress test so DUT is in a fresh state. Note that we
     # might not want to add this step if we are trying to find what might
     # be wrong if machine is not in a fresh state.
-    RebootStep(
-        id='RebootBeforeStress', label=_('Reboot'), iterations=1)
+    RebootStep(label=_('Reboot'), iterations=1)
 
     # Runs stress tests in parallel.
     # TODO(bhthompson): add in video and audio tests
-    with AutomatedSequence(id='Stress', label=_('Stress'), parallel=True):
+    with AutomatedSequence(label=_('Stress'), parallel=True):
       # Runs WebGL operations to check graphic chip.
       OperatorTest(
-          id='Graphics',
           label=_('Graphics'),
           pytest_name='webgl_aquarium',
           dargs=dict(duration_secs=args.run_in_stress_duration_secs))
@@ -446,7 +413,6 @@ def RunIn(args, group_suffix=''):
       # Watch if the LED light of camera is on to check if camera is in
       # operation.
       FactoryTest(
-          id='Camera',
           label=_('Camera'),
           pytest_name='camera',
           dargs=dict(
@@ -457,7 +423,6 @@ def RunIn(args, group_suffix=''):
 
       # Runs StressAppTest to stresses CPU and checks memory and storage.
       FactoryTest(
-          id='StressAppTest',
           label=_('Stress App Test'),
           pytest_name='stressapptest',
           dargs=dict(
@@ -468,7 +433,6 @@ def RunIn(args, group_suffix=''):
       # If AC is unplugged for more than args.run_in_countdown_ac_secs,
       # The test will fail and stop all tests.
       FactoryTest(
-          id='Countdown',
           label=_('Countdown'),
           pytest_name='countdown',
           dargs=dict(
@@ -486,7 +450,7 @@ def RunIn(args, group_suffix=''):
     # Reboots before dozing stress test so DUT is in a fresh state. Note that we
     # might not want to add this step if we are trying to find what might
     # be wrong if machine is not in a fresh state.
-    RebootStep(id='Reboot1', label=_('Reboot'), iterations=1)
+    RebootStep(label=_('Reboot'), iterations=1)
 
     args.Barrier('RunInReboot1',
                  pass_without_prompt=True,
@@ -494,11 +458,9 @@ def RunIn(args, group_suffix=''):
 
     # Runs StressAppTest in parallel with suspend/resume so it will be easier
     # to detect bad memory.
-    with AutomatedSequence(
-        id='DozingStress', label=_('Dozing Stress'), parallel=True):
+    with AutomatedSequence(label=_('Dozing Stress'), parallel=True):
       # if StressAppTest fails here, it's likely memory issue.
       FactoryTest(
-          id='StressAppTest',
           label=_('Stress App Test'),
           pytest_name='stressapptest',
           dargs=dict(
@@ -506,7 +468,6 @@ def RunIn(args, group_suffix=''):
 
       # Takes about 30 minutes for 60 iterations
       FactoryTest(
-          id='SuspendResume',
           label=i18n.StringFormat(_('SuspendResume ({count} times)'),
                                   count=args.run_in_resume_iterations),
           pytest_name='suspend_resume',
@@ -521,7 +482,6 @@ def RunIn(args, group_suffix=''):
       # If AC is unplugged for more than args.run_in_countdown_ac_secs,
       # The test will fail and stop all tests.
       OperatorTest(
-          id='Countdown',
           label=_('Countdown'),
           pytest_name='countdown',
           dargs=dict(
@@ -538,7 +498,6 @@ def RunIn(args, group_suffix=''):
 
     # Stress test for reboot.
     RebootStep(
-        id='Reboot2',
         label=i18n.StringFormat(
             _('Reboot ({count} times)'),
             count=args.run_in_reboot_seq_iterations),
@@ -551,7 +510,6 @@ def RunIn(args, group_suffix=''):
     # Regulates charge level to a accepted starting point, then test
     # charging and discharging speed.
     OperatorTest(
-        id='Charger',
         label=_('Charger'),
         exclusive_resources=[plugin.RESOURCE.POWER],
         pytest_name='charger',
@@ -584,7 +542,6 @@ def RunIn(args, group_suffix=''):
     # tests above.
     if args.fully_imaged:
       OperatorTest(
-          id='VerifyRootPartition2',
           label=_('Verify Root Partition'),
           pytest_name='verify_root_partition')
 
@@ -595,7 +552,6 @@ def RunIn(args, group_suffix=''):
     # AC power during FATP process, so we must make sure DUT battery has enough
     # charge before leaving RunIn.
     OperatorTest(
-        id='Charge',
         label=_('Charge'),
         pytest_name='blocking_charge',
         exclusive_resources=[plugin.RESOURCE.POWER],
@@ -611,7 +567,6 @@ def RunIn(args, group_suffix=''):
       # Disables charge manager here so we can have more charge when we
       # leave RunIn.
       OperatorTest(
-          id='Finish',
           label=_('Finish'),
           pytest_name='message',
           exclusive_resources=[plugin.RESOURCE.POWER],

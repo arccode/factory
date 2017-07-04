@@ -34,7 +34,6 @@ def SMTCharger(args, id_suffix=''):
     id_suffix: The suffix of charger tests.
   """
   OperatorTest(
-      id='ChargerTypeDetection_' + id_suffix,
       label=_('Charger Type Detection'),
       pytest_name='ac_power',
       # Only CHG12 charger will be identified as 'Mains'.
@@ -46,7 +45,6 @@ def SMTCharger(args, id_suffix=''):
   # Checks if battery current can reach certain values when charging
   # and discharging.
   charge_discharge_args = dict(
-      id='ChargeDischargeCurrent_' + id_suffix,
       label=_('Charge Discharge Current'),
       exclusive_resources=[plugin.RESOURCE.POWER],
       pytest_name='battery_current',
@@ -66,7 +64,6 @@ def ManualExtDisplay(args):
     args: A TestListArgs object.
   """
   OperatorTest(
-      id='ExtDisplay',
       label=_('External Display (Manual Test)'),
       has_automator=True,
       pytest_name='ext_display',
@@ -82,7 +79,6 @@ def ManualSMTStart(args):
     args: A TestListArgs object.
   """
   OperatorTest(
-      id='Start',
       label=_('Start'),
       has_automator=True,
       pytest_name='start',
@@ -104,7 +100,6 @@ def ReadDeviceDataFromVPD(args):
     args: A TestListArgs object.
   """
   OperatorTest(
-      id='ReadDeviceDataFromVPD',
       label=_('Read Device Data From VPD'),
       pytest_name='read_device_data_from_vpd')
 
@@ -124,7 +119,6 @@ def ScanMLB(args):
       regexp=args.smt_mlb_serial_number_pattern)
 
   OperatorTest(
-      id='ScanMLB',
       label=_('Scan MLB'),
       has_automator=True,
       pytest_name='scan',
@@ -141,7 +135,6 @@ def ScanOperatorID(args):
     args: A TestListArgs object.
   """
   OperatorTest(
-      id='ScanOperatorID',
       label=_('Scan Operator ID'),
       has_automator=True,
       pytest_name='scan',
@@ -162,7 +155,7 @@ def ManualSMTShopFloor1(args):
   Args:
     args: A TestListArgs object.
   """
-  with AutomatedSequence(id='ShopFloor1'):
+  with AutomatedSequence(label=_('ShopFloor1')):
     args.SyncFactoryServer()
     ReadDeviceDataFromVPD(args)
     ScanMLB(args)
@@ -176,17 +169,13 @@ def UpdateFirmware(args):
     args: A TestListArgs object.
   """
   if args.smt_update_firmware:
-    with OperatorTest(
-        id='FirmwareUpdate',
-        label=_('Firmware Update')):
+    with OperatorTest(label=_('Firmware Update')):
 
       OperatorTest(
-          id='FirmwareUpdate',
           label=_('Firmware Update'),
           pytest_name='update_firmware')
 
       RebootStep(
-          id='RebootAfterFirmwareUpdate',
           label=_('Reboot'),
           iterations=1)
 
@@ -200,13 +189,12 @@ def SMTShopFloor2(args):
   Args:
     args: A TestListArgs object.
   """
-  with AutomatedSequence(id='ShopFloor2'):
+  with AutomatedSequence(label=_('ShopFloor2')):
     args.SyncFactoryServer()
 
     # Writes 'smt_complete' into device_data to mark this DUT has finished
     # SMT tests. However, this DUT has not uploaded the report yet.
     OperatorTest(
-        id='UpdateDeviceData',
         label=_('Update Device Data'),
         pytest_name='update_device_data',
         dargs=dict(data=dict(smt_complete=True)))
@@ -214,7 +202,6 @@ def SMTShopFloor2(args):
     # Writes 'smt_complete' and 'mlb_serial_number' into RW VPD. This will be
     # retained upon re-imaging.
     OperatorTest(
-        id='WriteDeviceDataToVPD',
         label=_('Write Device Data To VPD'),
         pytest_name='write_device_data_to_vpd',
         require_run=Passed(
@@ -230,7 +217,6 @@ def VerifyComponents(args):
     args: A TestListArgs object.
   """
   FactoryTest(
-      id='VerifyComponents',
       label=_('Verify Components'),
       pytest_name='verify_components',
       dargs=dict(
@@ -251,7 +237,6 @@ def SMTCountdown(args):
     args: A TestListArgs object.
   """
   OperatorTest(
-      id='Countdown',
       label=_('Countdown'),
       pytest_name='countdown',
       dargs=dict(
@@ -267,7 +252,6 @@ def SMTStress(args):
     args: A TestListArgs object.
   """
   FactoryTest(
-      id='StressAppTest',
       label=_('Stress App Test'),
       pytest_name='stressapptest',
       exclusive_resources=[plugin.RESOURCE.CPU],
@@ -282,7 +266,6 @@ def BasicWifi(args):
     args: A TestListArgs object.
   """
   FactoryTest(
-      id='Wifi',
       label=_('Wifi'),
       pytest_name='wireless',
       retries=args.smt_retries_basic_wifi)
@@ -295,7 +278,6 @@ def I2CProbeThermalSensor(args):
     args: A TestListArgs object.
   """
   FactoryTest(
-      id='ThermalSensor',
       label=_('Thermal Sensor'),
       pytest_name='i2c_probe',
       dargs=dict(
@@ -310,7 +292,6 @@ def I2CProbeTouchpad(args):
     args: A TestListArgs object.
   """
   FactoryTest(
-      id='Touchpad',
       label=_('Touchpad'),
       pytest_name='i2c_probe',
       dargs=dict(
@@ -328,7 +309,7 @@ def I2CProbeTSU671(args):
     args: A TestListArgs object.
   """
   FactoryTest(
-      id='TSU6721',
+      label=_('TSU6721'),
       pytest_name='ectool_i2c_dev_id',
       dargs=dict(
           bus=0,
@@ -343,7 +324,6 @@ def CameraProbe(args, retries=None):
     retries: The number of retries for the test.
   """
   FactoryTest(
-      id='CameraProbe',
       label=_('Probe Camera'),
       pytest_name='usb_probe',
       retries=(retries if retries is not None
@@ -358,7 +338,6 @@ def SysfsBattery(args):
     args: A TestListArgs object.
   """
   FactoryTest(
-      id='Battery',
       label=_('Battery'),
       pytest_name='sysfs_battery')
 
@@ -376,7 +355,7 @@ def SMT3G(args, retries=None):
     retries: The number of retries for the test.
   """
   FactoryTest(
-      id='3G',
+      label=_('3G Probing'),
       pytest_name='line_check_item',
       retries=(retries if retries is not None
                else args.smt_retries_3g),
@@ -395,7 +374,6 @@ def SMTThermalLoad(args, retries=None):
     retries: The number of retries for the test.
   """
   FactoryTest(
-      id='ThermalLoad',
       label=_('Thermal Load'),
       pytest_name='thermal_load',
       retries=(retries if retries is not None
@@ -413,7 +391,7 @@ def SMTComponents(args):
   Args:
     args: A TestListArgs object.
   """
-  with FactoryTest(id='Components', label=_('Components'), parallel=True):
+  with FactoryTest(label=_('Components'), parallel=True):
     SMTCountdown(args)
     SMTStress(args)
     BasicWifi(args)
@@ -434,7 +412,6 @@ def SMTLed(args):
     args: A TestListArgs object.
   """
   OperatorTest(
-      id='LED',
       label=_('LED'),
       has_automator=True,
       pytest_name='led')
@@ -447,7 +424,6 @@ def Keyboard(args):
     args: A TestListArgs object.
   """
   OperatorTest(
-      id='Keyboard',
       label=_('Keyboard'),
       has_automator=True,
       pytest_name='keyboard',
@@ -467,7 +443,6 @@ def SMTAudioJack(args, retries=None):
     retries: The number of retries for the test.
   """
   OperatorTest(
-      id='AudioJack',
       label=_('Audio Jack'),
       has_automator=True,
       pytest_name='audio_loop',
@@ -490,7 +465,6 @@ def SpeakerDMic(args):
     args: A TestListArgs object.
   """
   OperatorTest(
-      id='SpeakerDMic',
       label=_('Speaker/Microphone'),
       has_automator=True,
       pytest_name='audio_loop',
@@ -513,7 +487,6 @@ def LidSwitch(args, retries=3):
     retries: The number of retries for the test.
   """
   OperatorTest(
-      id='LidSwitch',
       label=_('Lid Switch'),
       has_automator=True,
       pytest_name='lid_switch',
@@ -527,7 +500,6 @@ def MicroUSBPerformance(args):
     args: A TestListArgs object.
   """
   OperatorTest(
-      id='MicroUSBPerformance',
       label=_('Micro USB Performance'),
       has_automator=True,
       pytest_name='removable_storage',
@@ -548,7 +520,6 @@ def BadBlocks(args):
     args: A TestListArgs object.
   """
   FactoryTest(
-      id='BadBlocks',
       label=_('Bad Blocks'),
       pytest_name='bad_blocks',
       dargs=dict(max_bytes=30 * 1024 * 1024))
@@ -560,9 +531,7 @@ def PartitionTable(args):
   Args:
     args: A TestListArgs object.
   """
-  FactoryTest(id='PartitionTable',
-              label=_('Partition Table'),
-              pytest_name='partition_table')
+  FactoryTest(label=_('Partition Table'), pytest_name='partition_table')
 
 
 def VerifyRootPartition(args):
@@ -574,7 +543,6 @@ def VerifyRootPartition(args):
     args: A TestListArgs object.
   """
   FactoryTest(
-      id='VerifyRootPartition',
       label=_('Verify Root Partition'),
       pytest_name='verify_root_partition',
       dargs=dict(max_bytes=1024 * 1024))
@@ -587,7 +555,6 @@ def SMTFinish(args):
     args: A TestListArgs object.
   """
   OperatorTest(
-      id='Finish',
       label=_('Finish'),
       has_automator=True,
       pytest_name='message',
@@ -604,8 +571,7 @@ def ParallelTestGroup(args):
   Args:
     args: A TestListArgs object.
   """
-  with FactoryTest(id='ParallelTestGroup',
-                   label=_('Parallel Test Group 1'),
+  with FactoryTest(label=_('Parallel Test Group 1'),
                    parallel=True):
     SMTCharger(args)
     VerifyComponents(args)
@@ -623,17 +589,14 @@ def TPM(args):
   """
   # Checks the endorsement key in TPM. This might not be enabled in earlier
   # build.
-  with TestGroup(id='TPMVerifyEK', label=_('TPM Verify EK')):
+  with TestGroup(label=_('TPM Verify EK')):
     FactoryTest(
-        id='RequestClearTPM',
         label=_('Request Clear TPM'),
         pytest_name='clear_tpm_owner_request')
     RebootStep(
-        id='RebootToClearTPM',
         label=_('Reboot To Clear TPM'),
         iterations=1)
     FactoryTest(
-        id='VerifyEK',
         label=_('Verify EK'),
         pytest_name='tpm_verify_ek')
 
@@ -668,7 +631,7 @@ def ManualSMTTests(args):
     SMTShopFloor2(args)
   args.Barrier('SMT')
   SMTFinish(args)
-  HaltStep(id='Shutdown', label=_('Shutdown'), has_automator=True)
+  HaltStep(label=_('Shutdown'), has_automator=True)
 
 
 def SMT(args):

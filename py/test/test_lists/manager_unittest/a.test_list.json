@@ -9,7 +9,6 @@
   },
 
   "options": {
-    "strict_ids": true,
     "engineering_password_sha1": "dummy_password_sha1",
     "ui_lang": "zh",
     "sync_event_log_period_secs": 0,

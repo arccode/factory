@@ -23,10 +23,9 @@ def Diagnostic(args):
     args: A TestListArgs object.
   """
   del args  # Unused.
-  group_id = 'Diagnostic'
-  with TestGroup(id=group_id, run_if=lambda env: env.InEngineeringMode()):
+  with TestGroup(label=_('Diagnostic'),
+                 run_if=lambda env: env.InEngineeringMode()):
     OperatorTest(
-        id='AudioDiagnostic',
         label=_('Audio Diagnostic'),
         pytest_name='audio_diagnostic',
     )

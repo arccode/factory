@@ -28,16 +28,13 @@ def CreateTestLists():
                 'Generic touchscreen calibration on AB panel') as tlist:
     tlist.options.shopfloor_server_url = 'http://%s:%s' % (
         _SHOPFLOOR_IP, _SHOPFLOOR_PORT)
-    with AutomatedSequence(id='TouchscreenCalibrationSequence',
-                           label=_('Touchscreen Calibration Sequence')):
+    with AutomatedSequence(label=_('Touchscreen Calibration Sequence')):
       OperatorTest(
-          id='TouchscreenCalibration',
           label=_('Touchscreen Calibration'),
           pytest_name='touchscreen_calibration',
           dargs={'shopfloor_ip': _SHOPFLOOR_IP})
 
       OperatorTest(
-          id='SyncFactoryServer',
           label=_('Sync Factory Server'),
           pytest_name='sync_factory_server',
           dargs={'update_toolkit': False})

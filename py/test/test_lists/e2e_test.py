@@ -26,6 +26,4 @@ def CreateTestLists():
     for path in test_module_paths:
       for test in glob.glob(path):
         e2e_test_name = os.path.splitext(os.path.basename(test))[0]
-        OperatorTest(
-            id=e2e_test_name,
-            pytest_name=e2e_test_name)
+        OperatorTest(pytest_name=e2e_test_name)

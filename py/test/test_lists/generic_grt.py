@@ -24,11 +24,10 @@ def GRT(args):
   Args:
     args: A TestListArgs object.
   """
-  with AutomatedSequence(id='GoogleRequiredTests'):
+  with AutomatedSequence(label=_('Google Required Tests')):
     # Checks release image root partition.
     if args.fully_imaged:
       OperatorTest(
-          id='VerifyRootPartition',
           label=_('Verify Root Partition'),
           pytest_name='verify_root_partition')
 
@@ -37,11 +36,10 @@ def GRT(args):
                    accessibility=True)
 
     if args.factory_environment:
-      with OperatorTest(id='ShopFloor', label=_('ShopFloor')):
+      with OperatorTest(label=_('ShopFloor')):
         # Double checks the serial number is correct.
         # The one in device_data matches the one on the sticker.
         OperatorTest(
-            id='Scan',
             label=_('Scan Serial Number'),
             has_automator=True,
             pytest_name='scan',
@@ -52,17 +50,13 @@ def GRT(args):
 
         # Write HWID again in case there is any component replacement or HWID
         # database change.
-        OperatorTest(
-            id='WriteHWID',
-            label=_('Write HWID'),
-            pytest_name='hwid_v3')
+        OperatorTest(label=_('Write HWID'), pytest_name='hwid_v3')
 
         args.Barrier('GRTVerifyHWID', pass_without_prompt=True)
 
     if args.detailed_cellular_tests:
       # 3G model only. Checks there is no sim card tray.
       OperatorTest(
-          id='CheckNoSIMCardTray',
           label=_('Check No SIM Card Tray'),
           pytest_name='probe_sim_card_tray',
           dargs=dict(tray_already_present=False),
@@ -70,7 +64,6 @@ def GRT(args):
 
       # 3G model only. Checks there is no sim card.
       OperatorTest(
-          id='CheckSIMCardNotPresent',
           label=_('Check SIM Card Not Present'),
           pytest_name='probe_sim',
           run_if=args.HasCellular,
@@ -79,7 +72,6 @@ def GRT(args):
       # LTE model only. Gets the IMEI and ICCID the last time in case
       # LTE sim card or module was replaced before finalize.
       OperatorTest(
-          id='ProbeLTEIMEIICCID',
           label=_('Probe LTE IMEI ICCID'),
           pytest_name='probe_cellular_info',
           run_if=args.HasLTE,
@@ -91,13 +83,11 @@ def GRT(args):
 
     # Requests to clear TPM at next boot.
     FactoryTest(
-        id='RequestClearTPM',
         label=_('Request Clear TPM'),
         pytest_name='clear_tpm_owner_request')
 
     # Reboot to clear TPM.
     RebootStep(
-        id='RebootToClearTPM',
         label=_('Reboot To Clean TPM'),
         iterations=1)
 
@@ -105,7 +95,6 @@ def GRT(args):
 
     if args.factory_environment:
       OperatorTest(
-          id='Finish',
           label=_('Finish'),
           has_automator=True,
           pytest_name='message',
@@ -118,7 +107,6 @@ def GRT(args):
       # THIS IS A GOOGLE REQUIRED TEST.
       # PLEASE DO NOT REMOVE THIS TEST IN PRODUCTION RELEASES.
       OperatorTest(
-          id='Finalize',
           label=_('Finalize'),
           has_automator=True,
           pytest_name='finalize',

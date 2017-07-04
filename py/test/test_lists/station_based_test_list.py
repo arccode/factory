@@ -12,17 +12,15 @@ from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import TestGroup
 from cros.factory.test.test_lists.test_lists import TestList
 
-def StartStationTest(test_list_id, label, prompt_start):
+def StartStationTest(label, prompt_start):
   OperatorTest(
-      id='StartStationTest_%s' % test_list_id,
       label=i18n.StringFormat(_('Start {label}'), label=label),
       pytest_name='station_entry',
       dargs={'prompt_start': prompt_start})
 
 
-def EndStationTest(test_list_id, label, disconnect_dut):
+def EndStationTest(label, disconnect_dut):
   OperatorTest(
-      id='EndStationTest_%s' % test_list_id,
       label=i18n.StringFormat(_('End {label}'), label=label),
       pytest_name='station_entry',
       dargs={'start_station_tests': False,
@@ -56,9 +54,9 @@ def StationBased(test_list_id, label,
     def CreateTestLists(test_list):
       # dut_options is automatically set to test_list,
       # you can set other options for test_list here
-      with TestGroup(id='TestGroupA', ...):
+      with TestGroup(label=_('TestGroupA'), ...):
         ...
-      OperatorTest(id='Test1', ...)
+      OperatorTest(...)
 
   Then CreateTestLists() will create a test list named 'main', with
   label 'CoolProduct EVT'.
@@ -78,22 +76,20 @@ def StationBased(test_list_id, label,
 
   def Wrap(CreateTestLists):
     def CreateStationTestList():
-      with TestList(test_list_id, label) as test_list:
+      with TestList(test_list_id, label=label) as test_list:
         test_list.options.dut_options = dut_options
 
         if automated_sequence:
-          group = AutomatedSequence(
-              id=test_list_id, label=label)
+          group = AutomatedSequence(label=label)
         else:
-          group = TestGroup(
-              id=test_list_id, label=label)
+          group = TestGroup(label=label)
 
         with group:
           if prestart_steps:
             for step in prestart_steps:
               step()
-          StartStationTest(test_list_id, label, prompt_start)
+          StartStationTest(label, prompt_start)
           CreateTestLists(test_list)
-          EndStationTest(test_list_id, label, disconnect_dut)
+          EndStationTest(label, disconnect_dut)
     return CreateStationTestList
   return Wrap

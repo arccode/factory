@@ -32,7 +32,6 @@ def CreateTestLists(test_list):
       _SHOPFLOOR_IP, _SHOPFLOOR_PORT)
 
   OperatorTest(
-      id='scan',
       label=_('Scan the serial number'),
       pytest_name='scan',
       dargs={
@@ -41,7 +40,6 @@ def CreateTestLists(test_list):
       })
 
   OperatorTest(
-      id='VSWR',
       label=_('VSWR Antenna Test'),
       pytest_name='vswr',
       dargs={
@@ -54,13 +52,11 @@ def CreateTestLists(test_list):
       })
 
   OperatorTest(
-      id='SyncFactoryServer',
       label=_('Sync Factory Server'),
       pytest_name='sync_factory_server',
       dargs={'update_toolkit': False})
 
   OperatorTest(
-      id='Barrier',
       label=_('Barrier'),
       pytest_name='summary',
       never_fails=True,

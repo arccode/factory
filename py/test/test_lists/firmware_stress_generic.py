@@ -30,7 +30,6 @@ def RunIn(args, group_suffix='FirmwareStress'):
   group_id = 'RunIn' + group_suffix
   with TestGroup(id=group_id):
     OperatorTest(
-        id='Start',
         label=_('Start'),
         has_automator=True,
         pytest_name='start',
@@ -47,7 +46,6 @@ def RunIn(args, group_suffix='FirmwareStress'):
     # chromeos-install, there will be no free space in stateful partition,
     # and we have to use 'file' mode.
     OperatorTest(
-        id='BadBlocks',
         label=_('Bad Blocks'),
         pytest_name='bad_blocks',
         # When run alone, this takes ~.5s/MiB (for four passes).  We'll do a
@@ -61,10 +59,9 @@ def RunIn(args, group_suffix='FirmwareStress'):
 
     # Runs stress tests in parallel.
     # TODO(bhthompson): add in video and audio tests
-    with FactoryTest(id='Stress', label='Stress', parallel=True):
+    with FactoryTest(label=_('Stress'), parallel=True):
       # Runs WebGL operations to check graphic chip.
       OperatorTest(
-          id='Graphics',
           label=_('Graphics'),
           pytest_name='webgl_aquarium',
           dargs=dict(duration_secs=args.run_in_stress_duration_secs))
@@ -74,7 +71,6 @@ def RunIn(args, group_suffix='FirmwareStress'):
       # Watch if the LED light of camera is on to check if camera is in
       # operation.
       FactoryTest(
-          id='Camera',
           label=_('Camera'),
           pytest_name='camera',
           dargs=dict(
@@ -85,7 +81,6 @@ def RunIn(args, group_suffix='FirmwareStress'):
 
       # Runs StressAppTest to stresses CPU and checks memory and storage.
       FactoryTest(
-          id='StressAppTest',
           label=_('Stress App Test'),
           dargs=dict(
               seconds=args.run_in_stress_duration_secs,
@@ -95,7 +90,6 @@ def RunIn(args, group_suffix='FirmwareStress'):
       # If AC is unplugged for more than args.run_in_countdown_ac_secs,
       # The test will fail and stop all tests.
       FactoryTest(
-          id='Countdown',
           label=_('Countdown'),
           pytest_name='countdown',
           dargs=dict(
@@ -112,11 +106,9 @@ def RunIn(args, group_suffix='FirmwareStress'):
 
     # Runs StressAppTest in parallel with suspend/resume so it will be easier
     # to detect bad memory.
-    with AutomatedSequence(id='DozingStress', label=_('Dozing Stress'),
-                           parallel=True):
+    with AutomatedSequence(label=_('Dozing Stress'), parallel=True):
       # if StressAppTest fails here, it's likely memory issue.
       FactoryTest(
-          id='StressAppTest',
           label=_('Stress App Test'),
           pytest_name='stressapptest',
           dargs=dict(
@@ -124,7 +116,6 @@ def RunIn(args, group_suffix='FirmwareStress'):
 
       # Takes about 30 minutes for 60 iterations
       FactoryTest(
-          id='SuspendResume',
           label=i18n.StringFormat(_('SuspendResume ({count} times)'),
                                   count=args.run_in_resume_iterations),
           pytest_name='suspend_resume',
@@ -139,7 +130,6 @@ def RunIn(args, group_suffix='FirmwareStress'):
       # If AC is unplugged for more than args.run_in_countdown_ac_secs,
       # The test will fail and stop all tests.
       OperatorTest(
-          id='Countdown',
           label=_('Countdown'),
           pytest_name='countdown',
           dargs=dict(
@@ -156,14 +146,12 @@ def RunIn(args, group_suffix='FirmwareStress'):
 
     # Stress test for reboot.
     RebootStep(
-        id='Reboot2',
         label=i18n.StringFormat(_('Reboot ({count} times)'),
                                 count=args.run_in_reboot_seq_iterations),
         iterations=args.run_in_reboot_seq_iterations)
 
     # Charges battery to args.run_in_blocking_charge_pct.
     OperatorTest(
-        id='Charge',
         label=_('Charge'),
         pytest_name='blocking_charge',
         exclusive_resources=[plugin.RESOURCE.POWER],
@@ -175,7 +163,6 @@ def RunIn(args, group_suffix='FirmwareStress'):
       # Disables charge manager here so we can have more charge when we
       # leave RunIn.
       OperatorTest(
-          id='Finish',
           label=_('Finish'),
           has_automator=True,
           pytest_name='message',

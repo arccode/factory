@@ -507,7 +507,6 @@ class TestListArgs(object):
 
     suffix_str = str(id_suffix) if id_suffix else ''
     OperatorTest(
-        id='SyncFactoryServer' + suffix_str,
         pytest_name='sync_factory_server',
         label=i18n.StringFormat(_('Sync Factory Server {suffix}'),
                                 suffix=suffix_str),
@@ -531,7 +530,6 @@ class TestListArgs(object):
     """
     if self.enable_barriers:
       OperatorTest(
-          id='Barrier' + str(id_suffix),
           label=i18n.StringFormat(_('Barrier{suffix}'), suffix=id_suffix),
           has_automator=True,
           pytest_name='summary',
@@ -564,9 +562,6 @@ def SetOptions(options, args):
     args: A TestListArgs object which contains argument that are used commonly
       by tests and options. Fox example shopfloor_host.
   """
-
-  # Require explicit IDs for each test
-  options.strict_ids = True
 
   options.phase = args.phase
 

@@ -24,9 +24,8 @@ def Experiment(args):
   Args:
     args: A TestListArgs object.
   """
-  with TestGroup(id='Reboot', label=_('Reboot')):
+  with TestGroup(label=_('Reboot')):
     RebootStep(
-        id='Reboot',
         label=i18n.StringFormat(_('Reboot ({count} times)'),
                                 count=args.experiment_reboot_iterations),
         iterations=args.experiment_reboot_iterations,

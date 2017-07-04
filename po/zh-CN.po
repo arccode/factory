@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-07-03 22:03+CST\n"
+"POT-Creation-Date: 2017-07-04 22:11+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -2733,6 +2733,11 @@ msgstr "毁损扇区"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
 #: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
+msgid "Stress"
+msgstr "集合压力测试"
+
+#: ../py/test/test_lists/firmware_stress_generic.py
+#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
 msgid "Graphics"
 msgstr "图像"
 
@@ -2791,6 +2796,10 @@ msgid "RunIn tests finished, press SPACE to continue.\n"
 msgstr "RunIn 测试结束，按下空白键继续\n"
 
 #: ../py/test/test_lists/generic_diagnostic.py
+msgid "Diagnostic"
+msgstr "诊断"
+
+#: ../py/test/test_lists/generic_diagnostic.py
 msgid "Audio Diagnostic"
 msgstr "音效诊断"
 
@@ -2799,6 +2808,10 @@ msgstr "音效诊断"
 #: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
 msgid "Reboot"
 msgstr "重新开机"
+
+#: ../py/test/test_lists/generic_fatp.py
+msgid "FATP"
+msgstr "FATP"
 
 #: ../py/test/test_lists/generic_fatp.py
 msgid "Select For Audio Fixture"
@@ -3008,12 +3021,16 @@ msgid ""
 "FATP tests finished. Press SPACE to run GRT,<br>or switch test list to RRT."
 msgstr "FATP 测试结束，按下空白键执行最终程序,<br>或切换测试列表到RRT."
 
+#: ../py/test/test_lists/generic_grt.py
+msgid "Google Required Tests"
+msgstr "Google 必要测试项目(GRT)"
+
 #: ../py/test/test_lists/generic_grt.py ../py/test/test_lists/generic_run_in.py
 #: ../py/test/test_lists/generic_smt.py
 msgid "Verify Root Partition"
 msgstr "验证根磁区"
 
-#: ../py/test/test_lists/generic_grt.py
+#: ../py/test/test_lists/generic_grt.py ../py/test/test_lists/generic_run_in.py
 msgid "ShopFloor"
 msgstr "ShopFloor"
 
@@ -3159,10 +3176,6 @@ msgstr "验证 TPM"
 msgid "verify TPM command"
 msgstr "验证 TPM"
 
-#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
-msgid "Stress"
-msgstr "集合压力测试"
-
 #: ../py/test/test_lists/generic_rrt.py
 msgid "Random Number Generation"
 msgstr "乱数产生"
@@ -3300,12 +3313,24 @@ msgid "Operator ID"
 msgstr "作业员 ID"
 
 #: ../py/test/test_lists/generic_smt.py
+msgid "ShopFloor1"
+msgstr "ShopFloor1"
+
+#: ../py/test/test_lists/generic_smt.py
+msgid "ShopFloor2"
+msgstr "ShopFloor2"
+
+#: ../py/test/test_lists/generic_smt.py
 msgid "Verify Components"
 msgstr "验证元件"
 
 #: ../py/test/test_lists/generic_smt.py
 msgid "Stress/Component Tests"
 msgstr "压力及元件测试"
+
+#: ../py/test/test_lists/generic_smt.py
+msgid "TSU6721"
+msgstr "TSU6721"
 
 #: ../py/test/test_lists/generic_smt.py
 msgid "Probe Camera"

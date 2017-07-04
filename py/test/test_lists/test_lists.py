@@ -158,7 +158,6 @@ def FactoryTest(*args, **kwargs):
       `cros.factory.goofy.plugins.plugin.RESOURCE`.
     enable_services: Services to enable for the test to run correctly.
     disable_services: Services to disable for the test to run correctly.
-    _default_id: A default ID to use if no ID is specified.
     require_run: A list of RequireRun objects indicating which
       tests must have been run (and optionally passed) before this
       test may be run.  If the specified path includes this test, then
@@ -217,16 +216,16 @@ def TestGroup(*args, **kwargs):
   to be included in that test group should be placed inside the
   contained block, e.g.::
 
-    with TestGroup(id='some_test_group'):
-      FactoryTest(id='foo', ...)
-      OperatorTest(id='bar', ...)
+    with TestGroup(label=_('some_test_group')):
+      FactoryTest(label=_('foo'), ...)
+      OperatorTest(label=_('bar'), ...)
 
   This creates a test group ``some_test_group`` containing the ``foo``
   and ``bar`` tests.  The top-level nodes ``foo`` and ``bar`` can be
   independently run.
 
   Args:
-    id: The ID of the test (see :ref:`test-paths`).
+    id: Optional, the ID of the test (see :ref:`test-paths`).
     label: The i18n label of the group.
     label_en: Deprecated. The label of the group, in English.  This defaults
       to the value of ``id`` if none is specified.
@@ -338,7 +337,7 @@ from cros.factory.test.test_lists import test_lists
 from cros.factory.utils.net_utils import WLAN
 
 def CreateTestLists():
-  with test_lists.TestList(id='stub_test_list', label='label') as test_list:
+  with test_lists.TestList(id='id', label='label') as test_list:
     options = test_list.options
 
     # Load dummy plugin config as default.

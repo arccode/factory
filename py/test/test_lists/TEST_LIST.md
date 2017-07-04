@@ -19,15 +19,12 @@ def CreateTestLists():
     SetOptions(test_list.options)
 
     with test_lists.FactoryTest(
-        id='SMT',
         label=_('SMT Tests'),
         action_on_failure='STOP'):
       with test_lists.FactoryTest(
-          id='ProbeComponents',
           label=_('Probe Components'),
           parallel=True):
         test_lists.FactoryTest(
-            id='ProbeAccelerometer',
             label=_('Probe Accelerometer'),
             pytest_name='i2c_probe',
             dargs={
@@ -35,16 +32,14 @@ def CreateTestLists():
                 'addr': 0x30,
             })
         test_lists.FactoryTest(
-            id='ProbeCamera',
             label=_('Probe Camera'),
             pytest_name='i2c_probe',
             dargs={
                 'bus': 1,
                 'addr': 0x45,
             })
-      test_lists.RebootStep(id='Reboot')
+      test_lists.RebootStep(label=_('Reboot'))
       test_lists.FactoryTest(
-          id='LED',
           label=_('LED Test'),
           pytest_name='led',
           action_on_failure='PARENT',
@@ -52,14 +47,12 @@ def CreateTestLists():
           dargs={
               'colors': ['RED', 'BLUE', 'GREEN']
           })
-      test_lists.ShutdownStep(id='Shutdown')
+      test_lists.ShutdownStep(label=_('Shutdown'))
 
     with test_lists.FactoryTest(
-        id='RunIn',
         label=_('RunIn Tests'),
         action_on_failure='STOP'):
       test_lists.FactoryTest(
-          id='StressAppTest',
           label=_('StressAppTest'),
           pytest_name='stressapptest',
           dargs=dict(seconds=30 * 60,
@@ -127,7 +120,7 @@ mapped to the name of each arguments in `ARGS`.
 To create a group of tests, you just need to
 
 ```python
-  with test_lists.FactoryTest(id='TestGroupID'):
+  with test_lists.FactoryTest(label=_('TestGroupID')):
     # add subtests here
     ...
 ```
@@ -160,7 +153,7 @@ those tests success or not.  For example, a test item that uploads log files to
 shopfloor server should always be run despite the status of previous tests.
 
 ```python
-  with test_lists.FactoryTest(id='TestGroupID'):
+  with test_lists.FactoryTest(label=_('TestGroupID')):
     # add subtests here
     ...
     with test_lists.Teardowns():
@@ -168,7 +161,7 @@ shopfloor server should always be run despite the status of previous tests.
       ...
 
   # or, if you care about symmetry
-  with test_lists.FactoryTest(id='TestGroupID'):
+  with test_lists.FactoryTest(label=_('TestGroupID')):
     with test_lists.Subtests():
       # add subtests here
       ...
