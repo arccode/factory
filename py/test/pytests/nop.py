@@ -4,7 +4,25 @@
 
 """An no-op test.
 
-This test does nothing but sleeps for a given period of time.
+Description
+-----------
+This test does nothing but waits for a given period of time.
+
+The length of time is given in `wait_secs`.
+
+Test Procedure
+--------------
+No user interaction is required, the test waits `wait_secs` seconds and pass.
+
+Dependency
+----------
+None.
+
+Examples
+--------
+To wait for 5 seconds::
+
+  FactoryTest(pytest_name='nop', dargs={'wait_secs': 5})
 """
 
 import time
