@@ -134,6 +134,18 @@ class PoCheckTest(unittest.TestCase):
         "'#, fuzzy' lines found in files %r, please check the translation is "
         'correct and remove those lines.' % err_files)
 
+  def testNoUnused(self):
+    err_files = []
+    for po_file in self.po_files:
+      po_lines = file_utils.ReadLines(po_file)
+      if any(line.startswith('#~') for line in po_lines):
+        err_files.append(os.path.basename(po_file))
+
+    self.assertFalse(
+        err_files,
+        "Lines started with '#~' found in files %r, please check if those lines"
+        ' are unused and remove those lines.' % err_files)
+
 
 class PoUpdateTest(unittest.TestCase):
   """Check that po update have been run."""
