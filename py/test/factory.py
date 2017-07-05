@@ -17,6 +17,7 @@ To log to the factory console, use:
 from __future__ import print_function
 
 import itertools
+import json
 import logging
 import os
 import re
@@ -530,10 +531,12 @@ class FactoryTest(object):
   # display the summary of running tests.
   has_ui = False
 
-  REPR_FIELDS = ['test_list_id', 'id', 'pytest_name', 'dargs',
-                 'dut_options', 'never_fails', '_parallel', '_teardown',
-                 'enable_services', 'disable_services', 'no_host',
-                 'exclusive_resources', 'action_on_failure']
+  # Fields of test_object defined by test_list.schema.json
+  TEST_OBJECT_FIELDS = [
+      'action_on_failure', 'args', 'disable_abort', 'disable_services',
+      'enable_services', 'exclusive_resources', 'has_ui', 'id', 'iterations',
+      'label', 'never_fails', 'parallel', 'pytest_name', 'retries',
+      'run_if', 'subtests', 'teardown', 'inherit', ]
 
   ACTION_ON_FAILURE = type_utils.Enum(['STOP', 'NEXT', 'PARENT'])
 
@@ -617,6 +620,7 @@ class FactoryTest(object):
                 require_run)
     self.require_run = require_run
 
+    self.run_if = run_if  # Remember the original value for ToStruct
     self.run_if_not = False
     self.run_if_key = None
     self.run_if_expr = None
@@ -697,27 +701,47 @@ class FactoryTest(object):
                   lambda match: match.group(1).upper(),
                   name)
 
-  def ToStruct(self):
-    """Returns the node as a struct suitable for JSONification."""
-    ret = dict(
-        (k, getattr(self, k))
-        for k in ['id', 'path', 'label', 'dut_options',
-                  'disable_abort', '_parallel'])
-    ret['is_shutdown_step'] = isinstance(self, ShutdownStep)
-    ret['subtests'] = [subtest.ToStruct() for subtest in self.subtests]
-    return ret
+  def ToStruct(self, extra_fields=None, recursive=True):
+    """Returns the node as a struct suitable for JSONification.
+
+    Args:
+      extra_fields: additional fields from FactoryTest object you'd like to
+        include.  If this is provided, then the returned object might not match
+        definition of test_list.scheme.json.
+
+    Returns:
+      A JSON serializable object that can is a test_object defined by
+      test_list.schema.json.
+    """
+    fields = set(self.TEST_OBJECT_FIELDS + (extra_fields or []))
+
+    struct = {
+        k: getattr(self, k) for k in fields if hasattr(self, k)
+    }
+
+    # Fields that needs to remap
+    struct['inherit'] = self.__class__.__name__
+    struct['args'] = self.dargs.copy()
+
+    # Fields that need extra processing
+    if recursive:
+      struct['subtests'] = [
+          subtest.ToStruct(extra_fields) for subtest in struct['subtests']]
+    else:
+      struct.pop('subtests', None)
+    if callable(struct['run_if']):
+      struct['run_if'] = '<lambda function>'
+    for key in struct['args']:
+      if callable(struct['args'][key]):
+        struct['args'][key] = '<lambda function>'
+
+    return struct
 
   def __repr__(self, recursive=False):
-    attrs = ['%s=%s' % (k, repr(getattr(self, k)))
-             for k in sorted(self.__dict__.keys())
-             if k in FactoryTest.REPR_FIELDS and getattr(self, k)]
-    if recursive and self.subtests:
-      indent = '  ' * (1 + self.path.count('.'))
-      attrs.append('subtests=[' + ('\n' + ',\n'.join(
-          [subtest.__repr__(recursive)
-           for subtest in self.subtests])).replace('\n', '\n' + indent) + '\n]')
-
-    return '%s(%s)' % (self.__class__.__name__, ', '.join(attrs))
+    if recursive:
+      return json.dumps(self.ToStruct(recursive=True), indent=2)
+    else:
+      return json.dumps(self.ToStruct(recursive=False))
 
   def _init(self, prefix, path_map):
     """Recursively assigns paths to this node and its children.
@@ -750,7 +774,7 @@ class FactoryTest(object):
     path_map[self.path] = self
 
     # subtests of a teardown test should be part of teardown as well
-    if self.IsTeardown():
+    if self.teardown:
       if self.action_on_failure != self.ACTION_ON_FAILURE.NEXT:
         logging.warning('`action_on_failure` of a teardown test must be `NEXT`')
         logging.warning('The value will be overwritten.')
@@ -780,7 +804,7 @@ class FactoryTest(object):
       raise TestListError(
           'action_on_failure must be one of "NEXT", "PARENT", "STOP"')
 
-    if self.IsParallel():
+    if self.parallel:
       if not self.subtests:
         raise TestListError(
             '`parallel` should be set on test group')
@@ -796,11 +820,11 @@ class FactoryTest(object):
 
     # all subtests should come before teardown tests
     it = iter(self.subtests)
-    if not self.IsTeardown():
+    if not self.teardown:
       # find first teardown test
-      it = itertools.dropwhile(lambda subtest: not subtest.IsTeardown(), it)
+      it = itertools.dropwhile(lambda subtest: not subtest.teardown, it)
     for subtest in it:
-      if not subtest.IsTeardown():
+      if not subtest.teardown:
         raise TestListError(
             '%s: all subtests should come before teardown tests' % self.id)
 
@@ -815,10 +839,12 @@ class FactoryTest(object):
     """Returns true if this is a leaf node."""
     return not self.subtests
 
-  def IsParallel(self):
+  @property
+  def parallel(self):
     return self._parallel
 
-  def IsTeardown(self):
+  @property
+  def teardown(self):
     return self._teardown
 
   def SetTeardown(self, value=True):

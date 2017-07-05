@@ -458,8 +458,9 @@ class GoofyRPC(object):
     return ret
 
   def GetTestList(self):
-    """Returns the test list."""
-    return self.goofy.test_list.ToStruct()
+    """Returns the test list in JSON serializable struct."""
+    # goofy.js will need 'path'
+    return self.goofy.test_list.ToStruct(extra_fields=['path'])
 
   def GetGoofyStatus(self):
     """Returns a dictionary containing Goofy status information.

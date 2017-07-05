@@ -19,7 +19,7 @@
           "type": "array",
           "items": {"type": "string"}
         },
-        "exclusive_services": {
+        "exclusive_resources": {
           "type": "array",
           "items": {"type": "string"}
         },

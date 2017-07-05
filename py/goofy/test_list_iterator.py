@@ -349,7 +349,7 @@ class TestListIterator(object):
       # if we can only run teardown tests, skip next_subtest until we find a
       # teardown test.
       if self.teardown_only or frame.locals.get('teardown_only', False):
-        if not next_subtest.IsTeardown():
+        if not next_subtest.teardown:
           next_subtest = next_subtest.GetNextSibling()
           continue
       # okay, this is a valid test (any test when teardown_only == False,
@@ -422,7 +422,7 @@ class TestListIterator(object):
     return self.test_list.LookupPath(frame.node)
 
   def _IsRunnableTest(self, test):
-    return test.IsLeaf() or test.IsParallel()
+    return test.IsLeaf() or test.parallel
 
   def _DetermineSuccess(self, test):
     """Determines success / fail of a test.

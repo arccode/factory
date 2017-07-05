@@ -588,8 +588,7 @@ class Goofy(GoofyBase):
         self.set_visible_test(test)
       self.check_plugins()
       invoc.start()
-    else:
-      assert test.IsParallel()
+    elif test.parallel:
       for subtest in test.subtests:
         # TODO(stimim): what if the subtests *must* be run in parallel?
         # for example, stressapptest and countdown test.
@@ -597,6 +596,15 @@ class Goofy(GoofyBase):
         # Make sure we don't need to skip it:
         if not self.test_list_iterator.CheckSkip(subtest):
           self._run_test(subtest, subtest.iterations, subtest.retries)
+    else:
+      # This should never happen, there must be something wrong.
+      # However, we can't raise an exception, otherwise goofy will be closed
+      logging.critical(
+          'Goofy should not get a non-leaf test that is not parallel: %r',
+          test)
+      factory.console.critical(
+          'Goofy should not get a non-leaf test that is not parallel: %r',
+          test)
 
   def check_plugins(self):
     """Check plugins to be paused or resumed."""

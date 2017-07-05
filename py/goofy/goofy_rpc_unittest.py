@@ -42,7 +42,7 @@ class GoofyRPCTest(unittest.TestCase):
   def testGetTestList(self):
     test_list = "data"
     self.goofy.test_list = self.mox.CreateMock(factory.FactoryTestList)
-    self.goofy.test_list.ToStruct().AndReturn(test_list)
+    self.goofy.test_list.ToStruct(extra_fields=['path']).AndReturn(test_list)
 
     self.mox.ReplayAll()
 
