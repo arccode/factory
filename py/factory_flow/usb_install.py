@@ -18,8 +18,11 @@ import time
 
 import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow import servo
-from cros.factory.factory_flow.common import (
-    board_cmd_arg, bundle_dir_cmd_arg, dut_hostname_cmd_arg, FactoryFlowCommand)
+from cros.factory.factory_flow.common import FactoryFlowCommand
+from cros.factory.factory_flow.common import board_cmd_arg
+from cros.factory.factory_flow.common import bundle_dir_cmd_arg
+from cros.factory.factory_flow.common import dut_hostname_cmd_arg
+from cros.factory.factory_flow.common import project_cmd_arg
 from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
@@ -46,6 +49,7 @@ class USBInstall(FactoryFlowCommand):
       board_cmd_arg,
       bundle_dir_cmd_arg,
       dut_hostname_cmd_arg,
+      project_cmd_arg,
       CmdArg('--method', choices=INSTALL_METHOD,
              default=INSTALL_METHOD.install_shim,
              help=('the install method to use with the USB disk '
@@ -127,7 +131,7 @@ class USBInstall(FactoryFlowCommand):
       # Search for HWID bundle shellball.
       hwid_bundle_path = os.path.join(
           self.options.bundle, 'hwid',
-          'hwid_v3_bundle_%s.sh' % self.options.board.short_name.upper())
+          'hwid_v3_bundle_%s.sh' % self.options.project.upper())
       if not os.path.exists(hwid_bundle_path):
         raise USBInstallError('Unable to locate HWID bundle')
 
@@ -154,15 +158,14 @@ class USBInstall(FactoryFlowCommand):
       else:
         firmware_updater_path = None
 
-      logging.info('\n'.join(['Found the following binaries for %s:'
-                              'Factory install shim: %s'
-                              'Release image: %s'
-                              'Factory test image: %s'
-                              'HWID bundle: %s'
-                              'Firmware updater: %s']),
-                   self.options.board.full_name, factory_shim_path,
-                   release_image_path, factory_image_path, hwid_bundle_path,
-                   firmware_updater_path)
+      logging.info('\n'.join([
+          'Found the following binaries for project %s (board: %s)' % (
+              self.options.project, self.options.board),
+          'Factory install shim: %s' % factory_shim_path,
+          'Release image: %s' % release_image_path,
+          'Factory test image: %s' % factory_image_path,
+          'HWID bundle: %s' % hwid_bundle_path,
+          'Firmware updater: %s' % firmware_updater_path]))
       process_utils.Spawn(make_factory_package, check_call=True, log=True)
       self.usb_image_path = usb_image_path
 

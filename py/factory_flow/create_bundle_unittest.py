@@ -117,9 +117,11 @@ class CreateBundleUnittest(unittest.TestCase):
                                                          'MANIFEST_test.yaml'))
     self.output_dir = tempfile.mkdtemp(prefix='create_bundle.')
     self.create_bundle = create_bundle.CreateBundle()
+    board = build_board.BuildBoard('spring')
     self.create_bundle.options = type(
         'Namespace', (object,),
-        {'board': build_board.BuildBoard('spring'),
+        {'board': board,
+         'project': board.short_name,
          'output_dir': self.output_dir})
     self.create_bundle.Init()
 

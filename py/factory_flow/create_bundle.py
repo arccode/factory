@@ -16,6 +16,7 @@ import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow.common import board_cmd_arg
 from cros.factory.factory_flow.common import FactoryFlowCommand
 from cros.factory.factory_flow.common import LoadBundleManifest
+from cros.factory.factory_flow.common import project_cmd_arg
 from cros.factory.test.env import paths
 from cros.factory.tools.gsutil import GSUtil
 from cros.factory.utils.argparse_utils import CmdArg
@@ -45,6 +46,7 @@ class CreateBundle(FactoryFlowCommand):
   """
   args = [
       board_cmd_arg,
+      project_cmd_arg,
       CmdArg('--output-dir', help='the output directory'),
       CmdArg('--factory-version',
              help=('the version of factory zip to use; the factory toolkit '
@@ -244,7 +246,7 @@ class CreateBundle(FactoryFlowCommand):
                    source=r'^.*\.zip$'),
               extra_check=lambda file_spec: (
                   ('hwid/hwid_v3_bundle_%s.sh' %
-                   self.options.board.short_name.upper())
+                   self.options.project.upper())
                   in file_spec.get('extract_files', [])))
         else:
           raise CreateBundleError(
@@ -412,7 +414,7 @@ class CreateBundle(FactoryFlowCommand):
       manifest['add_files'].append(
           dict(install_into='.',
                extract_files=['hwid/hwid_v3_bundle_%s.sh' %
-                              self.options.board.short_name.upper()],
+                              self.options.project.upper()],
                source=hwid_bundle_url,))
 
     # Remove complete script to unblock the DUT after installation is done.

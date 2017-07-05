@@ -19,6 +19,7 @@ from cros.factory.factory_flow.common import bundle_dir_cmd_arg
 from cros.factory.factory_flow.common import FactoryFlowCommand
 from cros.factory.factory_flow.common import GetFactoryParPath
 from cros.factory.factory_flow.common import LoadBundleManifest
+from cros.factory.factory_flow.common import project_cmd_arg
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test.env import paths
 from cros.factory.utils.argparse_utils import CmdArg
@@ -115,6 +116,7 @@ class StartServer(FactoryFlowCommand):
   args = [
       board_cmd_arg,
       bundle_dir_cmd_arg,
+      project_cmd_arg,
       CmdArg('--stop', action='store_true',
              help='stop running servers and return'),
       CmdArg('--no-wait', dest='wait', action='store_false',
@@ -454,7 +456,7 @@ class StartServer(FactoryFlowCommand):
       return
 
     logging.info('Creating fake HWID updater for testing')
-    hwid_db_name = self.options.board.short_name.upper()
+    hwid_db_name = self.options.project.upper()
     hwid_updater_filename = 'hwid_v3_bundle_%s.sh' % hwid_db_name
     shop_floor_update_dir = os.path.join(
         self.options.bundle, 'shopfloor', 'shopfloor_data', 'update')
@@ -479,6 +481,8 @@ class StartServer(FactoryFlowCommand):
             'FAKE_HWID')
         with open(template_fake_hwid_path) as f:
           fake_hwid_db = f.read()
+      # TODO(yhong): Update the fake hwid template to remove the assumption
+      #     of board=project.
       fake_hwid_db = re.sub(r'%\{BOARD\}', hwid_db_name, fake_hwid_db)
       # Create a temp HWID database and compute the database checksum.
       temp_hwid_db_path = os.path.join(temp_dir, hwid_db_name)

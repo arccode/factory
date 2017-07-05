@@ -21,6 +21,8 @@ from cros.factory.utils import file_utils
 board_cmd_arg = CmdArg('--board', help='board name to test')
 bundle_dir_cmd_arg = CmdArg('--bundle', help='path to factory bundle directory')
 dut_hostname_cmd_arg = CmdArg('--dut', help='IP or hostname of the DUT')
+project_cmd_arg = CmdArg('--project', type=str, default=None,
+                         help='project name to test, default to board name')
 
 # Environmental variables for frequently used arguments. User can set these env
 # vars to save the time typing the arguments each time.
@@ -148,6 +150,22 @@ class FactoryFlowCommand(object):
             'Unable to determine DUT hostname; please specify with --dut '
             'or set environment variable %r' % DUT_ENVVAR)
 
+  def _ParseProjectName(self):
+    """Parses the project name if args has --project argument.
+
+    Raises:
+      ValueError if the default project name cannot be resolved.
+    """
+    if project_cmd_arg not in self.args:
+      return
+    if self.options.project is None:
+      if not hasattr(self.options, 'board'):
+        raise ValueError(
+            'Unable to determine the default project name; please explicitly '
+            'specify the project name with --project or specify the default '
+            'project name with %s' % board_cmd_arg[0])
+      self.options.project = self.options.board.short_name
+
   def LocateUniquePath(self, file_type, globs):
     """Locates an unique full path name from the given globs.
 
@@ -180,6 +198,7 @@ class FactoryFlowCommand(object):
     self._ParseBoard()
     self._ParseBundleDir()
     self._ParseDUTHostname()
+    self._ParseProjectName()
 
   def Main(self, options):
     """Main entry point of the command."""
