@@ -1,11 +1,57 @@
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""Writes device data to VPD (Vital Product Data).
 
-"""Writes a subset device data to the RW VPD.
+Description
+-----------
+Device Data (``cros.factory.test.device_data``) maintains the data during
+manufacturing flow, and will be wiped when device goes to shipping mode (or
+re-flashed for re-run of manufacturing flow).
 
-Data is all written as strings.
+To keep device data persistent, we may copy the values to VPD area, which is
+inside the SPI flashrom where firmware lives on Chromebooks (other platforms
+may implement VPD in other locations, for example Android may prefer to use
+/persist partition).
+
+By default, this test writes all device data under ``vpd`` category (for
+example, ``vpd.ro.region``) and device serial number (serials.serial_number).
+To write different values, specify the mapping in ``ro_key_map`` or
+``rw_key_map``.
+
+The ``ro_key_map`` is a mapping from RO VPD keys to device data keys. For
+example::
+
+  {'foo': 'bar.baz'}
+
+This map indicates we have to read ``bar.baz`` from device data and write to
+RO VPD by name ``foo``.
+
+``rw_key_map`` works in similar way, except it's writing values to RW VPD.
+
+Test Procedure
+--------------
+This is an automated test without user interaction.
+
+Start the test and the specified device data values (or all under ``vpd.*``)
+will be written to VPD using Device API.
+
+Dependency
+----------
+This test relies on ``vpd`` component in Device API to access VPD.
+
+Examples
+--------
+To write all VPD values from device data to VPD, add this in test list::
+
+  FactoryTest(pytest_name='write_device_data_to_vpd')
+
+To write a calibration data value to RO VPD::
+
+  FactoryTest(pytest_name='write_device_data_to_vpd',
+              dargs={'ro_key_map': {'modem_calibration':
+                                    'component.cellular.calibration_data'}})
 """
 
 
@@ -25,17 +71,14 @@ _MSG_WRITING_VPD = lambda vpd_section: i18n_test_ui.MakeI18nLabel(
     vpd_section=vpd_section.upper())
 
 
-class CallShopfloor(unittest.TestCase):
+class WriteDeviceDataToVPD(unittest.TestCase):
   ARGS = [
-      Arg('key_map', dict,
-          ('Mapping from VPD key to device data key, e.g. {"foo": "bar.baz"} '
-           'will write the value of "bar.baz" in device data to VPD with key '
-           '"foo". If set to None, write both RO and RW from "device.vpd".'),
-          default=None),
-      Arg('vpd_section', str,
-          'Set to "rw" or "ro" to specify target VPD region (RW_VPD or RO_VPD)'
-          'to write. Default to "rw" if key_map is not None.',
-          default=None, optional=True),
+      Arg('ro_key_map', dict,
+          'Mapping of (VPD_NAME, DEVICE_DATA_KEY) to write into RO VPD.',
+          optional=True, default=None),
+      Arg('rw_key_map', dict,
+          'Mapping of (VPD_NAME, DEVICE_DATA_KEY) to write into RW VPD.',
+          optional=True, default=None),
   ]
 
   def setUp(self):
@@ -45,29 +88,28 @@ class CallShopfloor(unittest.TestCase):
     ui = test_ui.UI()
     template = ui_templates.OneSection(ui)
 
-    key_map = self.args.key_map
-    vpd_section = self.args.vpd_section
-
     data = {
         'ro': {},
         'rw': {},
     }
 
-    if key_map is None:
+    if self.args.ro_key_map is None and self.args.rw_key_map is None:
       data['ro'] = device_data.GetDeviceData(device_data.KEY_VPD_RO, {})
-      data['ro'].update(device_data.GetDeviceData('serials', {}))
       data['rw'] = device_data.GetDeviceData(device_data.KEY_VPD_RW, {})
-      self.assertEqual(vpd_section, None,
-                       'vpd_section must be None when key_map is None.')
+      # Device serial number is usually not included in vpd.ro.*.
+      serial_number = device_data.GetSerialNumber()
+      if serial_number:
+        data['ro'][device_data.NAME_SERIAL_NUMBER] = serial_number
     else:
-      self.assertIn(vpd_section, data, 'vpd_section (%s) must be in %s' %
-                    (vpd_section, data.keys()))
-      for k, v in key_map.iteritems():
-        data[vpd_section][k] = device_data.GetDeviceData(v, None)
+      data['ro'] = {vpd_name: device_data.GetDeviceData(data_key)
+                    for vpd_name, data_key in self.args.ro_key_map or {}}
+      data['rw'] = {vpd_name: device_data.GetDeviceData(data_key)
+                    for vpd_name, data_key in self.args.rw_key_map or {}}
 
-      missing_keys = [k for k, v in data[vpd_section].iteritems() if v is None]
-      if missing_keys:
-        self.fail('Missing device data keys: %r' % sorted(missing_keys))
+    missing_keys = [k for section in data for k, v in data[section].iteritems()
+                    if v is None]
+    if missing_keys:
+      self.fail('Missing device data keys: %r' % sorted(missing_keys))
 
     for section, entries in data.iteritems():
       template.SetState(_MSG_WRITING_VPD(section))
