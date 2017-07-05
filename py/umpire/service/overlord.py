@@ -41,7 +41,7 @@ class OverlordService(umpire_service.UmpireService):
       args.extend(['-lan-disc-iface', overlord_config['lan_disc_iface']])
 
     if 'noauth' in overlord_config and overlord_config['noauth']:
-      args.extend(['-noauth'])
+      args.extend(['-no-auth'])
 
     if 'tls' in overlord_config:
       args.extend(['-tls', overlord_config['tls']])
