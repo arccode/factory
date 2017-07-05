@@ -435,10 +435,10 @@ class TestState(object):
 
   @classmethod
   def from_dict_or_object(cls, obj):
-    if type(obj) == dict:
+    if isinstance(obj, dict):
       return TestState(**obj)
     else:
-      assert type(obj) == TestState, type(obj)
+      assert isinstance(obj, TestState), type(obj)
       return obj
 
 
@@ -787,7 +787,7 @@ class FactoryTest(object):
     for subtest in self.subtests:
       subtest.parent = self
       # pylint: disable=protected-access
-      subtest._init((self.path + '.' if len(self.path) else ''), path_map)
+      subtest._init((self.path + '.' if self.path else ''), path_map)
 
     # next_sibling should point to next test
     for u, v in zip(self.subtests, self.subtests[1:]):
