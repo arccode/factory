@@ -44,13 +44,14 @@ class TouchpadHoverTest(unittest.TestCase):
           'Touchpad input event id. The test will probe for event id '
           'if it is not given.', optional=True),
       Arg('calibration_trigger', str,
-          'The file path of the touchpad calibration trigger.'),
+          'The file path of the touchpad calibration trigger. '
+          'If not set, calibration step will be skipped.', optional=True),
       Arg('calibration_sleep_secs', int,
           'Duration to sleep for calibration in seconds.', default=1),
       Arg('repeat_times', int, 'Number of rounds of the test.', default=2),
       Arg('timeout_secs', int,
           'Timeout to put in or pull out hover-tool in seconds.', default=3),
-      Arg('fp_check_duration', int,
+      Arg('false_positive_check_duration', int,
           'Duration of false positive check in seconds.', default=5)]
 
   def tearDown(self):
@@ -103,17 +104,18 @@ class TouchpadHoverTest(unittest.TestCase):
     self._ui.Run()
 
   def _runTest(self):
-    self._SetMessage(_MSG_CALIBRATION, self.args.calibration_sleep_secs)
-    self._dut.WriteFile(self.args.calibration_trigger, '1')
-    time.sleep(self.args.calibration_sleep_secs)
-    self._timer_disabler.set()
+    if self.args.calibration_trigger:
+      self._SetMessage(_MSG_CALIBRATION, self.args.calibration_sleep_secs)
+      self._dut.WriteFile(self.args.calibration_trigger, '1')
+      time.sleep(self.args.calibration_sleep_secs)
+      self._timer_disabler.set()
 
     for round_index in xrange(self.args.repeat_times):
       progress = '(%d/%d) ' % (round_index, self.args.repeat_times)
       self._TestForValue(progress + _MSG_PUT_IN, 1)
       self._TestForValue(progress + _MSG_PULL_OUT, 0)
 
-    self._SetMessage(_MSG_FP_CHECK, self.args.fp_check_duration)
-    fp = self._WaitForValue(1, self.args.fp_check_duration)
+    self._SetMessage(_MSG_FP_CHECK, self.args.false_positive_check_duration)
+    fp = self._WaitForValue(1, self.args.false_positive_check_duration)
     self._timer_disabler.set()
     self.assertFalse(fp, 'False Positive Detected.')
