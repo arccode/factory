@@ -19,23 +19,8 @@ from cros.factory.test.env import paths
 from cros.factory.utils.process_utils import Spawn
 
 
-# Files allowed to have errors now.  TODO: Clean these up.
-BLACKLIST = [
-    'keyboard.rst',
-    'led.rst',
-    'lid_switch.rst',
-    'light_sensor.rst',
-    'line_check_item.rst',
-    'read_device_data_from_vpd.rst',
-    'removable_storage.rst',
-    'scan.rst',
-    'select_components.rst',
-    'thermal_load.rst',
-    'touch_device_fw_update.rst',
-    'touchscreen_uniformity.rst',
-    'touchscreen_wrap.rst',
-    'verify_touch_device_fw.rst',
-]
+# Files allowed to have errors now.
+BLACKLIST = []
 
 
 """Tests the overall documentation generation process."""
