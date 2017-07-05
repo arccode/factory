@@ -29,7 +29,7 @@ from cros.factory.test.env import paths
 from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient
 from cros.factory.test import factory
-from cros.factory.test import i18n
+from cros.factory.test.i18n import translation
 from cros.factory.test import shopfloor
 from cros.factory.test import state
 from cros.factory.test.test_lists.test_lists import SetActiveTestList
@@ -453,7 +453,7 @@ class GoofyRPC(object):
                enabled=(k == self.goofy.test_list.test_list_id)))
 
     # Sort by name.
-    ret.sort(key=lambda x: i18n.Translated(x['name'])['en-US'].lower())
+    ret.sort(key=lambda x: x['name'][translation.DEFAULT_LOCALE].lower())
 
     return ret
 
