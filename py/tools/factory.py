@@ -16,6 +16,7 @@ To add a subcommand, just add a new Subcommand subclass to this file.
 import argparse
 import csv
 import inspect
+import json
 import logging
 import re
 import socket
@@ -247,8 +248,8 @@ class DumpTestListCommand(Subcommand):
     self.subparser.add_argument(
         '--format', metavar='FORMAT',
         help='Format in which to dump test list',
-        default='yaml',
-        choices=('yaml', 'csv'))
+        default='json',
+        choices=('yaml', 'csv', 'json'))
     self.subparser.add_argument(
         'id', metavar='ID', help='ID of test list to dump')
 
@@ -267,8 +268,11 @@ class DumpTestListCommand(Subcommand):
             module = ''
 
           writer.writerow((t.path, module))
-    else:
-      test_lists.YamlDumpTestListDestructive(test_list, sys.stdout)
+    elif self.args.format == 'yaml':
+      yaml.dump(test_list.ToTestListConfig(), sys.stdout)
+    elif self.args.format == 'json':
+      json.dump(test_list.ToTestListConfig(), sys.stdout, indent=2,
+                separators=(',', ': '))
 
 
 class TestListCommand(Subcommand):
