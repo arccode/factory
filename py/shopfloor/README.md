@@ -130,8 +130,8 @@ The `FactoryDeviceData` may contain following members:
 ### Data Format: DeviceData
 The `DeviceData` is the structure for return value of Shopfloor Service function
 calls. The DUT Software will update Device Data (a special dictionary style
-storage maintained by [`cros.factory.test.state`](../test/state.py) using
-`GetDeviceData` and `UpdateDeviceData` calls).
+storage maintained by [`cros.factory.test.device_data`](../test/device_data.py)
+using `GetDeviceData` and `UpdateDeviceData` calls).
 
 It is based on `FactoryDeviceData`, plus few extra domains that DUT won't send
 back to Shopfloor Service for privacy and performance issues:
@@ -178,11 +178,11 @@ Notifies shopfloor backend that DUT is entering a manufacturing station.
       - station: A string (case-sensitive) as name of station.
 
     Returns:
-      A struct DeviceData for values to update in the state.GetDeviceData.
+      A struct DeviceData for values to update in the device_data.GetDeviceData.
 
     Example:
       NotifyStart({'serials.mlb_serial_number': 'C123'}, 'SMT')
-      # Returns {} and state.GetDeviceData('factory.start_SMT') is True.
+      # Returns {} and device_data.GetDeviceData('factory.start_SMT') is True.
 
 A Shopfloor Service implementation for typical Chromebook usually need to
 support at least following stations, which is defined by reference test lists:
@@ -209,11 +209,11 @@ Notifies shopfloor backend that DUT is leaving a manufacturing station.
       - station: string (case-sensitive)
 
     Returns:
-      A struct DeviceData for values to update in the state.GetDeviceData.
+      A struct DeviceData for values to update in the device_data.GetDeviceData.
 
     Example:
       NotifyEnd({'serials.serial_number': 'A123'}, 'FAT')
-      # Returns {} and state.GetDeviceData('factory.end_FAT') is True.
+      # Returns {} and device_data.GetDeviceData('factory.end_FAT') is True.
 
 Similar to `NotifyStart` - see that for details about station names.
 
@@ -237,11 +237,13 @@ point.
       - event: string (case-sensitive)
 
     Returns:
-      A struct DeviceData for values to update in the state.GetDeviceData.
+      A struct DeviceData for values to update in the device_data.GetDeviceData.
 
     Example:
       NotifyEvent({'serials.serial_number': 'A123'}, 'Finalize')
-      # Returns {} and state.GetDeviceData('factory.event_Finalize') is True.
+
+      Returns {} and device_data.GetDeviceData('factory.event_Finalize') is
+      True.
 
 When success, DUT software calling this NotifyEvent should automatically set a
 `factory.event_<event>` value in `DeviceData` to True.
@@ -271,7 +273,7 @@ Gets information about the expected configuration for a DUT.
       - data: struct FactoryDeviceData
 
     Returns:
-      A struct DeviceData for values to update in the state.GetDeviceData.
+      A struct DeviceData for values to update in the device_data.GetDeviceData.
 
     Example:
       GetDeviceInfo({'serials.mlb_serial_number': 'C123'})
@@ -291,11 +293,13 @@ known as ECHO codes) successfully.
       - hwid: A string for HWID of the DUT.
 
     Returns:
-      A struct DeviceData for values to update in the state.GetDeviceData.
+      A struct DeviceData for values to update in the device_data.GetDeviceData.
 
     Example:
       ActivateRegCode('uuu', 'ggg', 'LINK A2C-B3D')
-      # Returns {} and state.GetDeviceData('factory.activate_reg_code') is True.
+
+      Returns {} and device_data.GetDeviceData('factory.activate_reg_code') is
+      True.
 
 This registration code should be marked as "used" and logged on shopfloor
 backend, then sent back to Google CPFE for being activated. Due to privacy
@@ -317,7 +321,7 @@ Sends the specified test result to shopfloor backend.
         reported from the error.
 
     Returns:
-      A struct DeviceData for values to update in the state.GetDeviceData.
+      A struct DeviceData for values to update in the device_data.GetDeviceData.
       If a member 'action' is included, its value will be used to decide
       how to proceed with testing flow.
 

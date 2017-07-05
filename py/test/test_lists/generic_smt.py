@@ -13,8 +13,8 @@ This file implements SMT method to create SMT test list.
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
+from cros.factory.test import device_data
 from cros.factory.test.i18n import _
-from cros.factory.test import state
 from cros.factory.test.test_lists.test_lists import AutomatedSequence
 from cros.factory.test.test_lists.test_lists import FactoryTest
 from cros.factory.test.test_lists.test_lists import HaltStep
@@ -22,7 +22,6 @@ from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import Passed
 from cros.factory.test.test_lists.test_lists import RebootStep
 from cros.factory.test.test_lists.test_lists import TestGroup
-from cros.factory.utils.shelve_utils import DictKey
 
 
 # SMT test items.
@@ -119,9 +118,8 @@ def ScanMLB(args):
     args: A TestListArgs object.
   """
   dargs = dict(
-      device_data_key=DictKey.Join(state.KEY_SERIALS,
-                                   state.KEY_MLB_SERIAL_NUMBER),
-      event_log_key=state.KEY_MLB_SERIAL_NUMBER,
+      device_data_key=device_data.KEY_MLB_SERIAL_NUMBER,
+      event_log_key=device_data.NAME_MLB_SERIAL_NUMBER,
       label=_('MLB Serial Number'),
       regexp=args.smt_mlb_serial_number_pattern)
 
@@ -220,15 +218,7 @@ def SMTShopFloor2(args):
         label=_('Write Device Data To VPD'),
         pytest_name='write_device_data_to_vpd',
         require_run=Passed(
-            args.smt_test_group_id + '.ShopFloor2.UpdateDeviceData'),
-        dargs=dict(
-            key_map={
-                DictKey.Join('factory_device_data', key): key
-                for key in [DictKey.Join(state.KEY_SERIALS,
-                                         state.KEY_MLB_SERIAL_NUMBER),
-                            'smt_complete']
-            },
-            vpd_section='rw'))
+            args.smt_test_group_id + '.ShopFloor2.UpdateDeviceData'))
 
     args.SyncFactoryServer('2', upload_report=True, report_stage='SMT')
 

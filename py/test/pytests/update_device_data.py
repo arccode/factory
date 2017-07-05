@@ -29,33 +29,16 @@ import re
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test import device_data
 from cros.factory.test import factory_task
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.l10n import regions
-from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import shelve_utils
 
-
-# Well-known values.
-# TODO(hungte) Move these to py/test/state.py.
-KEY_SERIAL_NUMBER = shelve_utils.DictKey.Join(
-    state.KEY_SERIALS, state.KEY_SERIAL_NUMBER)
-KEY_MLB_SERIAL_NUMBER = shelve_utils.DictKey.Join(
-    state.KEY_SERIALS, 'mlb_serial_number')
-KEY_VPD_REGION = shelve_utils.DictKey.Join('vpd.ro', 'region')
-KEY_VPD_USER_REGCODE = shelve_utils.DictKey.Join('vpd.rw', 'ubind_attribute')
-KEY_VPD_GROUP_REGCODE = shelve_utils.DictKey.Join('vpd.rw', 'gbind_attribute')
-
-# To prevent failure, only accept device data starting with these names.
-# TODO(hungte) Move these names to py/test/state.py
-_KNOWN_DEVICE_DATA = (
-    'serials.', 'hwid', 'vpd.ro.', 'vpd.rw.', 'factory.', 'component.',
-)
 
 # Known regions to be listed first.
 _KNOWN_REGIONS = (
@@ -63,11 +46,11 @@ _KNOWN_REGIONS = (
 )
 
 _KNOWN_KEY_LABELS = {
-    KEY_SERIAL_NUMBER: _('Device Serial Number'),
-    KEY_MLB_SERIAL_NUMBER: _('Mainboard Serial Number'),
-    KEY_VPD_REGION: _('VPD Region Code'),
-    KEY_VPD_USER_REGCODE: _('User Registration Code'),
-    KEY_VPD_GROUP_REGCODE: _('Group Registration Code'),
+    device_data.KEY_SERIAL_NUMBER: _('Device Serial Number'),
+    device_data.KEY_MLB_SERIAL_NUMBER: _('Mainboard Serial Number'),
+    device_data.KEY_VPD_REGION: _('VPD Region Code'),
+    device_data.KEY_VPD_USER_REGCODE: _('User Registration Code'),
+    device_data.KEY_VPD_GROUP_REGCODE: _('Group Registration Code'),
 }
 
 # UI elements
@@ -113,11 +96,8 @@ class DataEntry(object):
   """Quick access to an entry in DeviceData."""
 
   def __init__(self, key, value=None, display_name=None, value_check=None):
-    if not any(key.startswith(k) for k in _KNOWN_DEVICE_DATA):
-      raise NameError('Key (%s) must start with one of %r.' %
-                      (key, _KNOWN_DEVICE_DATA))
-    self.key = key
-    self.value = state.GetDeviceData(key, None) if value is None else value
+    device_data.CheckValidDeviceDataKey(key)
+    self.value = device_data.GetDeviceData(key, value)
     if display_name is None and key in _KNOWN_KEY_LABELS:
       display_name = _KNOWN_KEY_LABELS[key]
 
@@ -134,13 +114,13 @@ class DataEntry(object):
     elif value_check is not None:
       raise TypeError('value_check (%r) for %s must be either None, '
                       'list of strings, or regex.' % (value_check, key))
-    elif key == KEY_VPD_REGION:
+    elif key == device_data.KEY_VPD_REGION:
       self.value_check = regions.REGIONS.keys()
     else:
       self.value_check = value_check
 
     # Re-order value_check for regions.
-    if key == KEY_VPD_REGION:
+    if key == device_data.KEY_VPD_REGION:
       ordered_values = [v for v in _KNOWN_REGIONS if v in self.value_check]
       other_values = list(set(self.value_check) - set(ordered_values))
       other_values.sort()
@@ -169,7 +149,7 @@ class InputTask(factory_task.FactoryTask):
 
   def OnComplete(self, value):
     if value is not None:
-      state.UpdateDeviceData({self.entry.key: value})
+      device_data.UpdateDeviceData({self.entry.key: value})
     self.Pass()
 
   def OnEnterPressed(self, event):
@@ -202,7 +182,7 @@ class InputTask(factory_task.FactoryTask):
     select_box = ui_templates.SelectBox(self.entry.key, _SELECTION_PER_PAGE,
                                         _SELECT_BOX_STYLE)
     # Special hack for region.
-    if self.entry.key == KEY_VPD_REGION:
+    if self.entry.key == device_data.KEY_VPD_REGION:
       for index, value in enumerate(self.entry.value_check):
         select_box.InsertOption(
             value, '%s - %s; %s' % (
@@ -271,4 +251,4 @@ class UpdateDeviceData(unittest.TestCase):
       factory_task.FactoryTaskManager(self.ui, self.tasks).Run()
     else:
       results = dict((entry.key, entry.value) for entry in self.entries)
-      state.UpdateDeviceData(results)
+      device_data.UpdateDeviceData(results)

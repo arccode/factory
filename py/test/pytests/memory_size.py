@@ -15,9 +15,9 @@ import threading
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test import device_data
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
-from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -82,8 +82,9 @@ class MemorySize(unittest.TestCase):
 
     method_name = self.args.shopfloor_method_name
     method = getattr(shopfloor.get_instance(detect=True), method_name)
-    mlb_serial_number = state.GetSerialNumber(state.KEY_MLB_SERIAL_NUMBER)
-    message = 'Invoking %s(%s)' % (method_name, mlb_serial_number)
+    mlb_serial_number = device_data.GetSerialNumber(
+        device_data.NAME_MLB_SERIAL_NUMBER)
+    message = 'Invoking %s(%r)' % (method_name, mlb_serial_number)
 
     while True:
       logging.info(message)

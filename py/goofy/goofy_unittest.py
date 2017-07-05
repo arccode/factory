@@ -31,6 +31,7 @@ from cros.factory.goofy.test_environment import Environment
 from cros.factory.test.env import goofy_proxy
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
+from cros.factory.test import device_data
 from cros.factory.test import factory
 from cros.factory.test.factory import TestState
 from cros.factory.test import state
@@ -139,9 +140,9 @@ class GoofyTest(unittest.TestCase):
       args.append('--restart')
 
     logging.info('Running goofy with args %r', args)
-    new_goofy.dut.info.Overrides(state.KEY_MLB_SERIAL_NUMBER,
+    new_goofy.dut.info.Overrides(device_data.NAME_MLB_SERIAL_NUMBER,
                                  'mlb_sn_123456789')
-    new_goofy.dut.info.Overrides(state.KEY_SERIAL_NUMBER, 'sn_123456789')
+    new_goofy.dut.info.Overrides(device_data.NAME_SERIAL_NUMBER, 'sn_123456789')
     new_goofy.init(args, self.env or Environment())
     self.goofy = new_goofy
 

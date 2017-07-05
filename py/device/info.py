@@ -15,8 +15,9 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.device import component
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import hwid_utils
+from cros.factory.test import device_data
 from cros.factory.test import factory
-from cros.factory.test import state
+from cros.factory.test.rules import phase
 from cros.factory.utils.sys_utils import MountDeviceAndReadFile
 
 
@@ -123,22 +124,22 @@ class SystemInfo(component.DeviceComponent):
 
   def ClearSerialNumbers(self):
     """Clears any serial numbers from DeviceData."""
-    return state.ClearAllSerialNumbers()
+    return device_data.ClearAllSerialNumbers()
 
   def GetAllSerialNumbers(self):
     """Returns all available serial numbers in a dict."""
-    return state.GetAllSerialNumbers()
+    return device_data.GetAllSerialNumbers()
 
-  def GetSerialNumber(self, name=state.KEY_SERIAL_NUMBER):
+  def GetSerialNumber(self, name=device_data.NAME_SERIAL_NUMBER):
     """Retrieves a serial number from device.
 
     Tries to load the serial number from DeviceData.  If not found, loads
     from DUT storage, and caches into DeviceData.
     """
-    if not state.GetSerialNumber(name):
+    if not device_data.GetSerialNumber(name):
       serial = self._dut.storage.LoadDict().get(name)
-      state.UpdateSerialNumbers({name: serial})
-    return state.GetSerialNumber(name)
+      device_data.UpdateSerialNumbers({name: serial})
+    return device_data.GetSerialNumber(name)
 
   @InfoProperty
   def serial_number(self):
@@ -148,12 +149,15 @@ class SystemInfo(component.DeviceComponent):
   @InfoProperty
   def mlb_serial_number(self):
     """Motherboard serial number."""
-    return self.GetSerialNumber(state.KEY_MLB_SERIAL_NUMBER)
+    return self.GetSerialNumber(device_data.NAME_MLB_SERIAL_NUMBER)
 
   @InfoProperty
   def stage(self):
     """Manufacturing build stage. Examples: PVT, EVT, DVT."""
-    return state.GetDeviceData('stage')
+    # TODO(hungte) Umpire thinks this should be SMT, FATP, etc. Goofy monitor
+    # simply displays this. We should figure out different terms for both and
+    # find out the right way to print this value.
+    return phase.GetPhase()
 
   @InfoProperty
   def factory_image_version(self):

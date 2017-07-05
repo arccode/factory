@@ -31,8 +31,8 @@ class ReadDeviceDataFromVPDUnittest(unittest.TestCase):
     self.assertDictEqual(expected, result)
 
   def testRunTest(self):
-    pytest.state.get_instance = lambda *args, **kwargs: self.state_proxy
-
+    pytest.device_data.state.get_instance = (
+        lambda *args, **kwargs: self.state_proxy)
     test_instance = pytest.ReadDeviceDataFromVPD()
 
     key_map = {
@@ -55,7 +55,7 @@ class ReadDeviceDataFromVPDUnittest(unittest.TestCase):
             'b': {'c': 'foo'},
             'ABC': '123',
         },
-        pytest.state.GetAllDeviceData())
+        pytest.device_data.GetAllDeviceData())
 
 
 if __name__ == '__main__':

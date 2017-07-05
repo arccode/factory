@@ -14,14 +14,12 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
-from cros.factory.test import state
 from cros.factory.test.test_lists.test_lists import AutomatedSequence
 from cros.factory.test.test_lists.test_lists import FactoryTest
 from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import Passed
 from cros.factory.test.test_lists.test_lists import RebootStep
 from cros.factory.test.test_lists.test_lists import TestGroup
-from cros.factory.utils.shelve_utils import DictKey
 
 
 HOURS = 60 * 60
@@ -79,14 +77,7 @@ def RunIn(args, group_suffix=''):
           OperatorTest(
               id='WriteDeviceDataToVPD',
               label=_('Write Device Data To VPD'),
-              pytest_name='write_device_data_to_vpd',
-              dargs=dict(
-                  key_map={
-                      DictKey.Join('factory.device_data', key): key for key in
-                      [DictKey.Join(state.KEY_SERIALS,
-                                    state.KEY_MLB_SERIAL_NUMBER),
-                       'smt_complete']},
-                  vpd_section='rw'))
+              pytest_name='write_device_data_to_vpd')
 
           # Checks image version is not lower than certain version. If it is,
           # flash netboot firmware and do netboot install.
@@ -308,14 +299,7 @@ def RunIn(args, group_suffix=''):
                 id='WriteDeviceDataToVPD',
                 label=_('Write Device Data To VPD'),
                 pytest_name='write_device_data_to_vpd',
-                run_if=args.SelectedForControlRunImageUpdate,
-                dargs=dict(
-                    key_map={
-                        DictKey.Join('factory.device_data', key): key for key in
-                        [DictKey.Join(state.KEY_SERIALS,
-                                      state.KEY_MLB_SERIAL_NUMBER),
-                         'smt_complete']},
-                    vpd_section='rw'))
+                run_if=args.SelectedForControlRunImageUpdate)
 
             # Checks image version is not lower than certain version. If it is,
             # flash control run netboot firmware and do netboot install.

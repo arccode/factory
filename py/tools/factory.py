@@ -25,6 +25,7 @@ import yaml
 from setproctitle import setproctitle  # pylint: disable=no-name-in-module
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import device_data
 from cros.factory.test import factory
 from cros.factory.test.factory import TestState
 from cros.factory.test.rules import phase
@@ -426,10 +427,10 @@ class DeviceDataCommand(Subcommand):
             pass  # No sweat
 
         update[key] = value
-      state.UpdateDeviceData(update)
+      device_data.UpdateDeviceData(update)
 
     if self.args.delete:
-      state.DeleteDeviceData(self.args.delete)
+      device_data.DeleteDeviceData(self.args.delete)
 
     if self.args.set_yaml:
       if self.args.set_yaml == '-':
@@ -439,10 +440,10 @@ class DeviceDataCommand(Subcommand):
           update = yaml.load(f)
       if type(update) != dict:
         sys.exit('Expected a dict but got a %r' % type(update))
-      state.UpdateDeviceData(update)
+      device_data.UpdateDeviceData(update)
 
     sys.stdout.write(
-        yaml.safe_dump(state.GetAllDeviceData(),
+        yaml.safe_dump(device_data.GetAllDeviceData(),
                        default_flow_style=False))
 
 

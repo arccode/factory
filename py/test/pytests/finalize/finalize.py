@@ -26,6 +26,7 @@ import yaml
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.device.links import ssh
+from cros.factory.test import device_data
 from cros.factory.test.env import paths
 from cros.factory.test import event_log
 from cros.factory.test import factory
@@ -428,7 +429,7 @@ class Finalize(unittest.TestCase):
 
     if method == 'shopfloor':
       method = 'shopfloor:%s#%s' % (shopfloor.get_server_url(),
-                                    state.GetSerialNumber())
+                                    device_data.GetSerialNumber())
     logging.info('Using upload method %s', method)
 
     return method

@@ -13,6 +13,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import device_data
 from cros.factory.test import event as test_event
 from cros.factory.test import event_log
 from cros.factory.test.fixture import bft_fixture
@@ -116,13 +117,13 @@ class Scan(unittest.TestCase):
       state.set_shared_data(self.args.shared_data_key, scan_value)
 
     if self.args.device_data_key:
-      state.UpdateDeviceData({self.args.device_data_key: scan_value})
+      device_data.UpdateDeviceData({self.args.device_data_key: scan_value})
 
     if self.args.dut_data_key:
       self.dut.storage.UpdateDict({self.args.dut_data_key: scan_value})
 
     if self.args.check_device_data_key:
-      expected_value = state.GetDeviceData(
+      expected_value = device_data.GetDeviceData(
           self.args.check_device_data_key, None)
 
       if self.args.match_the_last_few_chars != 0:

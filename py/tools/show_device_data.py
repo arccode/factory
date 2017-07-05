@@ -13,11 +13,11 @@ can pretty print the DeviceData.
 import pprint
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import state
+from cros.factory.test import device_data
 
 
 def main():
-  pprint.pprint(state.GetAllDeviceData())
+  pprint.pprint(device_data.GetAllDeviceData())
 
 if __name__ == '__main__':
   main()

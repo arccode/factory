@@ -18,10 +18,10 @@ import xmlrpclib
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import device_data
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rules import privacy
 from cros.factory.test import shopfloor
-from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -57,14 +57,14 @@ class ShopfloorService(unittest.TestCase):
   SERVICE_VERSION = '1.0'
 
   # Domain of values to exchange.
-  DOMAIN_SERIALS = state.KEY_SERIALS
-  DOMAIN_FACTORY = 'factory'
-  DOMAIN_VPD = 'vpd'
-  DOMAIN_COMPONENT = 'component'
-  KEY_HWID = 'hwid'
+  DOMAIN_SERIALS = device_data.KEY_SERIALS
+  DOMAIN_FACTORY = device_data.KEY_FACTORY
+  DOMAIN_VPD = device_data.KEY_VPD
+  DOMAIN_COMPONENT = device_data.KEY_COMPONENT
+  KEY_HWID = device_data.KEY_HWID
 
-  KEY_VPD_USER_ECHO = 'vpd.rw.ubind_attribute'
-  KEY_VPD_GROUP_ECHO = 'vpd.rw.gbind_attribute'
+  KEY_VPD_USER_ECHO = device_data.KEY_VPD_USER_REGCODE
+  KEY_VPD_GROUP_ECHO = device_data.KEY_VPD_GROUP_REGCODE
 
   # Service API method names defined in version 1.0, in {name: has_data} format.
   METHODS = {
@@ -99,7 +99,7 @@ class ShopfloorService(unittest.TestCase):
   def FlattenData(self, data, parent=''):
     items = []
     for k, v in data.iteritems():
-      new_key = shelve_utils.DictKey.Join(parent, k) if parent else k
+      new_key = device_data.JoinKeys(parent, k) if parent else k
       if isinstance(v, collections.Mapping):
         items.extend(self.FlattenData(v, new_key).items())
       else:
@@ -110,10 +110,11 @@ class ShopfloorService(unittest.TestCase):
     """Returns a dictionary in FactoryDeviceData format."""
     data = {}
     for domain in [self.DOMAIN_SERIALS, self.DOMAIN_FACTORY]:
-      flat_data = self.FlattenData(state.GetDeviceData(domain, {}), domain)
+      flat_data = self.FlattenData(device_data.GetDeviceData(domain, {}),
+                                   domain)
       data.update(flat_data)
-    hwid = state.GetDeviceData(self.KEY_HWID,
-                               self.dut.CallOutput('crossystem hwid'))
+    hwid = device_data.GetDeviceData(self.KEY_HWID,
+                                     self.dut.CallOutput('crossystem hwid'))
     if hwid:
       data[self.KEY_HWID] = hwid
     return data
@@ -132,9 +133,9 @@ class ShopfloorService(unittest.TestCase):
     if illegal_keys:
       raise ValueError('Invalid response keys: %r' % illegal_keys)
     keys_to_delete = [k for k, v in data.iteritems() if v is None]
-    state.DeleteDeviceData(keys_to_delete)
+    device_data.DeleteDeviceData(keys_to_delete)
     data = dict((k, v) for k, v in data.iteritems() if k not in keys_to_delete)
-    state.UpdateDeviceData(data)
+    device_data.UpdateDeviceData(data)
 
   @staticmethod
   def FilterDict(data):
@@ -163,7 +164,7 @@ class ShopfloorService(unittest.TestCase):
     args = list(self.args.args or ())
     spec = self.METHODS[method]
     if spec.data_args:
-      args = [state.GetDeviceData(k) for k in spec.data_args] + args
+      args = [device_data.GetDeviceData(k) for k in spec.data_args] + args
     if spec.has_data:
       args.insert(0, self.GetFactoryDeviceData())
 

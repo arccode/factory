@@ -12,9 +12,9 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import hwid_utils
+from cros.factory.test import device_data
 from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -81,7 +81,7 @@ class SelectComponentTest(unittest.TestCase):
       value = string_utils.ParseString(comp[1])
       update_dict[key_name] = value
       factory.console.info('Update device data %r: %r', key_name, value)
-    state.UpdateDeviceData(update_dict)
+    device_data.UpdateDeviceData(update_dict)
 
   def runTest(self):
     table = ui_templates.Table(element_id=None, rows=2, cols=len(self.fields))
@@ -112,7 +112,7 @@ class SelectComponentTest(unittest.TestCase):
         select_box.InsertOption(comp_value, comp_value)
         # Let user choose component even if device data field is not present
         # in device_data.
-        if comp_value == state.GetDeviceData(
+        if comp_value == device_data.GetDeviceData(
             self.component_device_data[field], None):
           selected = index
       if selected is not None:

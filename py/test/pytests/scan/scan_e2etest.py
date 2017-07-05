@@ -6,7 +6,7 @@
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.e2e_test import e2e_test
-from cros.factory.test import state
+from cros.factory.test import device_data
 
 
 class ScanE2ETest(e2e_test.E2ETest):
@@ -27,8 +27,7 @@ class ScanE2ETest(e2e_test.E2ETest):
     self.uictl.PressKey(self.uictl.KEY_ENTER)
 
     self.WaitForPass()
-    self.assertEquals(state.GetSerialNumber(),
-                      serial_number)
+    self.assertEquals(device_data.GetSerialNumber(), serial_number)
 
   @e2e_test.E2ETestCase()
   def testIncorrectSerialNumber(self):

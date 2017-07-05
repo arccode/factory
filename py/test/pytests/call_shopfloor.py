@@ -16,6 +16,7 @@ import unittest
 import xmlrpclib
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test import device_data
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
@@ -30,7 +31,7 @@ from cros.factory.utils import process_utils
 
 
 def UpdateDeviceData(data):
-  state.UpdateDeviceData(data)
+  device_data.UpdateDeviceData(data)
   event_log.Log('update_device_data', data=privacy.FilterDict(data))
 
 

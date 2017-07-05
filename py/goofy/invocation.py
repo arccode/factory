@@ -35,6 +35,7 @@ from cros.factory.test import factory
 from cros.factory.test.factory import TestState
 from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.test import state
+from cros.factory.test import device_data
 from cros.factory.test.test_lists.test_lists import BuildAllTestLists
 from cros.factory.test import test_ui
 from cros.factory.test import testlog_goofy
@@ -81,7 +82,7 @@ class TestArgEnv(object):
 
   def __init__(self):
     self.state = state.get_instance()
-    self.device_data_selector = state.GetDeviceDataSelector()
+    self.device_data_selector = device_data.GetDeviceDataSelector()
 
   def GetMACAddress(self, interface):
     return open('/sys/class/net/%s/address' % interface).read().strip()
@@ -98,21 +99,20 @@ class TestArgEnv(object):
   def GetAllDeviceData(self):
     return self.device_data_selector.Get({})
 
-  def GetSerialNumber(self, key=state.KEY_SERIAL_NUMBER):
+  def GetSerialNumber(self, name=device_data.NAME_SERIAL_NUMBER):
     """Returns serial number.
 
-    Use `key` to specify which type of serial number you want, e.g.
-    'mlb_serial_number'.  The default key will be 'serial_number'.
+    Use `name` to specify which type of serial number you want, e.g.
+    'mlb_serial_number'.  The default name will be 'serial_number'.
 
     Return: str or None (if not found)
     """
-    if not key:
-      raise KeyError('empty key')
-    return self.device_data_selector[
-        state.KEY_SERIALS].GetValue(key, None)
+    if not name:
+      raise KeyError('empty name')
+    return device_data.GetSerialNumber(name)
 
   def GetAllSerialNumbers(self):
-    return self.device_data_selector[state.KEY_SERIALS].Get({})
+    return device_data.GetAllSerialNumbers()
 
   def InEngineeringMode(self):
     """Returns if goofy is in engineering mode."""
@@ -637,7 +637,7 @@ class TestInvocation(object):
       log_args = dict(
           path=self.test.path,
           dargs=resolved_dargs,
-          serial_numbers=state.GetAllSerialNumbers(),
+          serial_numbers=device_data.GetAllSerialNumbers(),
           invocation=self.uuid)
       if self.test.pytest_name:
         log_args['pytest_name'] = self.test.pytest_name

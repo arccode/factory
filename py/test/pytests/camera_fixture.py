@@ -187,6 +187,7 @@ import xmlrpclib
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import device_data
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test.fixture.camera import light_chamber
@@ -723,7 +724,7 @@ class _IQTestDelegate(object):
 
   def _GetLogFilePrefix(self):
     if self.fixture_type == Fixture.FULL:
-      device_sn = state.GetSerialNumber() or 'MISSING_SN'
+      device_sn = device_data.GetSerialNumber() or 'MISSING_SN'
       return '_'.join([re.sub(r'\W+', '_', x) for x in
                        [os.environ.get('CROS_FACTORY_TEST_PATH'),
                         device_sn,

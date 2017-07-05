@@ -5,9 +5,9 @@
 """Factory test automator for 'scan' test."""
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test import device_data
 from cros.factory.test.e2e_test.automator import Automator, AutomationFunction
 from cros.factory.test.e2e_test.common import AutomationMode
-from cros.factory.test import state
 from cros.factory.utils import net_utils
 
 
@@ -22,7 +22,7 @@ class ScanAutomator(Automator):
                           operator_id=None):
     data_key = self.args.device_data_key or self.args.check_device_data_key
     # For scanning MLB serial number.
-    if data_key == state.KEY_MLB_SERIAL_NUMBER:
+    if data_key == device_data.KEY_MLB_SERIAL_NUMBER:
       self.uictl.SetElementValue(
           'scan-value',
           (mlb_serial_number or 'TESTMLB-%s' % net_utils.GetWLANMACAddress()))

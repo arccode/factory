@@ -13,8 +13,8 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import device_data
 from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -54,16 +54,16 @@ class CallShopfloor(unittest.TestCase):
     }
 
     if key_map is None:
-      data['ro'] = state.GetDeviceData('vpd.ro', {}).update(
-          state.GetDeviceData('serials', {}))
-      data['rw'] = state.GetDeviceData('vpd.rw', {})
+      data['ro'] = device_data.GetDeviceData(device_data.KEY_VPD_RO, {})
+      data['ro'].update(device_data.GetDeviceData('serials', {}))
+      data['rw'] = device_data.GetDeviceData(device_data.KEY_VPD_RW, {})
       self.assertEqual(vpd_section, None,
                        'vpd_section must be None when key_map is None.')
     else:
       self.assertIn(vpd_section, data, 'vpd_section (%s) must be in %s' %
                     (vpd_section, data.keys()))
       for k, v in key_map.iteritems():
-        data[vpd_section][k] = state.GetDeviceData(v, None)
+        data[vpd_section][k] = device_data.GetDeviceData(v, None)
 
       missing_keys = [k for k, v in data[vpd_section].iteritems() if v is None]
       if missing_keys:

@@ -23,7 +23,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test.event import Event
+from cros.factory.test import device_data
 from cros.factory.test.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test.factory_task import FactoryTask
@@ -188,7 +188,7 @@ class ShopFloorTask(FactoryTask):
     # When the input is not valid (or temporary network failure), either
     # return False or raise a ValueError with message to be displayed in
     # bottom status line of input window.
-    serial = event.data
+    serial = event.data.strip()
 
     self._test.ui.SetHTML(_MSG_CONTACTING_SERVER, id='errormsg')
     self._test.ui.RunJS('$("serial").disabled = true')
@@ -201,16 +201,14 @@ class ShopFloorTask(FactoryTask):
 
     try:
       # All exceptions
-      shopfloor.check_serial_number(serial.strip())
-      Log(state.KEY_MLB_SERIAL_NUMBER, serial_number=serial)
+      shopfloor.check_serial_number(serial)
+      Log(device_data.NAME_SERIAL_NUMBER, serial_number=serial)
       logging.info('Serial number: %s', serial)
-      state.SetSerialNumber(serial)
-      self._test.ui.event_client.post_event(
-          Event(Event.Type.UPDATE_SYSTEM_INFO))
+      device_data.SetSerialNumber(device_data.NAME_SERIAL_NUMBER, serial)
       self.Pass()
       return True
     except shopfloor.ServerFault as e:
-      ShowErrorMsg('Server error: %s' % test_ui.Escape(e.__str__()))
+      ShowErrorMsg('Server error: %s' % test_ui.Escape(e.faultString))
     except ValueError as e:
       ShowErrorMsg(e.message)
     except socket.gaierror as e:
@@ -255,9 +253,8 @@ class ReadVPDSerialTask(FactoryTask):
           else:
             serial_number[v] = vpd_value
 
-    Log(state.KEY_MLB_SERIAL_NUMBER, serial_number=serial_number)
-    state.SetSerialNumber(serial_number)
-    self._test.ui.event_client.post_event(Event(Event.Type.UPDATE_SYSTEM_INFO))
+    Log(device_data.NAME_SERIAL_NUMBER, serial_number=serial_number)
+    device_data.SetSerialNumber(device_data.NAME_SERIAL_NUMBER, serial_number)
     self.Pass()
 
 

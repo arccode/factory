@@ -17,6 +17,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.device.link import DeviceLink
 from cros.factory.goofy.goofy_rpc import GoofyRPC
+from cros.factory.test import device_data
 from cros.factory.test.pytests import station_entry
 from cros.factory.test import state
 from cros.factory.test import test_ui
@@ -89,12 +90,12 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.test._ui = self.mock_ui
     self.test._template = self.mock_template
 
-    self.mox.StubOutWithMock(state, 'ClearAllSerialNumbers')
+    self.mox.StubOutWithMock(device_data, 'ClearAllSerialNumbers')
     self.mox.StubOutWithMock(sync_utils, 'WaitFor')
     self.mox.StubOutWithMock(self.test, 'SendTestResult')
 
     self.mock_ui.BindKey(test_ui.SPACE_KEY, mox.Func(callable))
-    state.ClearAllSerialNumbers()
+    device_data.ClearAllSerialNumbers()
     self.mock_ui.SetHTML(mox.IsA(basestring),
                          id=mox.IsA(basestring)).MultipleTimes()
 
@@ -127,11 +128,11 @@ class FactoryEntryUnitTest(unittest.TestCase):
                                'invalidate_dut_info': True,
                                'clear_serial_numbers': True, })
 
-    self.mox.StubOutWithMock(state, 'ClearAllSerialNumbers')
+    self.mox.StubOutWithMock(device_data, 'ClearAllSerialNumbers')
     self.mox.StubOutWithMock(sync_utils, 'WaitFor')
 
     self.mock_ui.BindKey(test_ui.SPACE_KEY, mox.Func(callable))
-    state.ClearAllSerialNumbers()
+    device_data.ClearAllSerialNumbers()
     self.mock_template.SetState(mox.IsA(basestring))
     self.mock_ui.SetHTML(mox.IsA(basestring),
                          id=mox.IsA(basestring)).MultipleTimes()

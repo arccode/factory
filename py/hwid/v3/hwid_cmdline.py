@@ -17,7 +17,7 @@ from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import rule
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import hwid_utils
-from cros.factory.test import state
+from cros.factory.test import device_data
 from cros.factory.test.rules import phase
 from cros.factory.tools import build_board
 from cros.factory.utils.argparse_utils import CmdArg
@@ -160,7 +160,7 @@ def GenerateHWIDWrapper(options):
                      'Please specify device info with an input file. If you '
                      'are running with command-line, use --device-info-file')
   else:
-    device_info = state.GetAllDeviceData()
+    device_info = device_data.GetAllDeviceData()
 
   vpd = hwid_utils.GetVPD(probed_results)
 

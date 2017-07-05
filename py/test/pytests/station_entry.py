@@ -15,6 +15,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import countdown_timer
+from cros.factory.test import device_data
 from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
@@ -89,7 +90,7 @@ class StationEntry(unittest.TestCase):
           'To invoke dut.info.Invalidate() or not',
           default=True, optional=True),
       Arg('clear_serial_numbers', bool,
-          'To invoke state.ClearAllSerialNumbers() or not',
+          'To invoke device_data.ClearAllSerialNumbers() or not',
           default=True, optional=True),
   ]
 
@@ -123,10 +124,13 @@ class StationEntry(unittest.TestCase):
         self._dut.info.Invalidate()
       if self.args.clear_serial_numbers:
         factory.console.info('Clearing serial numbers')
-        state.ClearAllSerialNumbers()
+        device_data.ClearAllSerialNumbers()
       self.Start()
       if self.args.load_dut_storage:
-        # TODO(stimim): 1. cache dut.info, 2. load session on dut.
+        # TODO(stimim): We need to do:
+        #  self._dut.info.GetSerialNumber('serial_number')
+        #  self._dut.info.GetSerialNumber('mlb_serial_number')
+        # before load session is implemented.
         pass
     else:
       self.End()
@@ -136,7 +140,7 @@ class StationEntry(unittest.TestCase):
         self._dut.info.Invalidate()
       if self.args.clear_serial_numbers:
         factory.console.info('Clearing serial numbers')
-        state.ClearAllSerialNumbers()
+        device_data.ClearAllSerialNumbers()
 
   def Start(self):
     self._ui.SetHTML(_MSG_INSERT, id=_ID_MSG_DIV)

@@ -16,6 +16,7 @@ import xmlrpclib
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import device_data
 from cros.factory.test.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test.fixture.touchscreen_calibration.fixture import FakeFixture  # pylint: disable=line-too-long
@@ -712,7 +713,7 @@ class TouchscreenCalibration(unittest.TestCase):
 
   def GetSerialNumber(self, unused_event=None):
     """Get the DUT's serial number from the shopfloor."""
-    sn = state.GetSerialNumber()
+    sn = device_data.GetSerialNumber()
     self.ui.CallJSFunction('fillInSerialNumber', sn)
     self.StartCalibration(Event({'sn': sn}))
 

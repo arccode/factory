@@ -62,6 +62,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool import commands
 from cros.factory.goofy import updater
+from cros.factory.test import device_data
 from cros.factory.test import factory
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
@@ -159,8 +160,9 @@ class SyncShopfloor(unittest.TestCase):
 
       if self.args.upload_report:
         blob = commands.CreateReportArchiveBlob()
-        report_serial_number = state.GetSerialNumber(
-            self.args.report_serial_number_name or state.KEY_SERIAL_NUMBER)
+        report_serial_number = device_data.GetSerialNumber(
+            self.args.report_serial_number_name or
+            device_data.NAME_SERIAL_NUMBER)
         tasks += [(_('Upload report'),
                    lambda: server.UploadReport(report_serial_number, blob, None,
                                                self.args.report_stage))]
@@ -191,18 +193,18 @@ class SyncShopfloor(unittest.TestCase):
             # since this may happen repeatedly.
             logging.error('Unable to sync with server: %s', exception_string)
 
-          msg = lambda time_left: i18n_test_ui.MakeI18nLabel(
+          msg = lambda time_left, label_: i18n_test_ui.MakeI18nLabel(
               'Failed in task <b>{label}</b>.<br>'
               'Retry in {time_left} seconds...',
-              time_left=time_left, label=label)
+              time_left=time_left, label=label_)
           template.SetState(
-              '<span id="retry">' + msg(retry_secs) + '</span>'
+              '<span id="retry">' + msg(retry_secs, label) + '</span>'
               + '<p><textarea rows=25 cols=90 readonly class=sync-detail>'
               + test_ui.Escape(exception_string, False) + '</textarea>')
 
           for i in xrange(retry_secs):
             time.sleep(1)
-            ui.SetHTML(msg(retry_secs - i - 1), id='retry')
+            ui.SetHTML(msg(retry_secs - i - 1, label), id='retry')
           retry_secs = min(2 * retry_secs, self.args.retry_secs)
       ui.Pass()
 
