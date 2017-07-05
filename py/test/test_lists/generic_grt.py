@@ -35,24 +35,23 @@ def GRT(args):
                    pass_without_prompt=True,
                    accessibility=True)
 
-    if args.factory_environment:
-      with OperatorTest(label=_('ShopFloor')):
-        # Double checks the serial number is correct.
-        # The one in device_data matches the one on the sticker.
-        OperatorTest(
-            label=_('Scan Serial Number'),
-            has_automator=True,
-            pytest_name='scan',
-            dargs=dict(
-                label=_('Device Serial Number'),
-                check_device_data_key='serial_number',
-                regexp=args.grt_serial_number_format))
+    with OperatorTest(label=_('ShopFloor')):
+      # Double checks the serial number is correct.
+      # The one in device_data matches the one on the sticker.
+      OperatorTest(
+          label=_('Scan Serial Number'),
+          has_automator=True,
+          pytest_name='scan',
+          dargs=dict(
+              label=_('Device Serial Number'),
+              check_device_data_key='serial_number',
+              regexp=args.grt_serial_number_format))
 
-        # Write HWID again in case there is any component replacement or HWID
-        # database change.
-        OperatorTest(label=_('Write HWID'), pytest_name='hwid_v3')
+      # Write HWID again in case there is any component replacement or HWID
+      # database change.
+      OperatorTest(label=_('Write HWID'), pytest_name='hwid_v3')
 
-        args.Barrier('GRTVerifyHWID', pass_without_prompt=True)
+      args.Barrier('GRTVerifyHWID', pass_without_prompt=True)
 
     if args.detailed_cellular_tests:
       # 3G model only. Checks there is no sim card tray.
@@ -93,30 +92,29 @@ def GRT(args):
 
     args.Barrier('GRTReadyToFinalize', pass_without_prompt=True)
 
-    if args.factory_environment:
-      OperatorTest(
-          label=_('Finish'),
-          has_automator=True,
-          pytest_name='message',
-          require_run=(Passed('GoogleRequiredTests.BarrierGRTReadyToFinalize')
-                       if args.grt_require_run_for_finish else None),
-          never_fails=True,
-          dargs=dict(
-              html=_('GRT tests finished, press SPACE to finalize.\n')))
+    OperatorTest(
+        label=_('Finish'),
+        has_automator=True,
+        pytest_name='message',
+        require_run=(Passed('GoogleRequiredTests.BarrierGRTReadyToFinalize')
+                     if args.grt_require_run_for_finish else None),
+        never_fails=True,
+        dargs=dict(
+            html=_('GRT tests finished, press SPACE to finalize.\n')))
 
-      # THIS IS A GOOGLE REQUIRED TEST.
-      # PLEASE DO NOT REMOVE THIS TEST IN PRODUCTION RELEASES.
-      OperatorTest(
-          label=_('Finalize'),
-          has_automator=True,
-          pytest_name='finalize',
-          dargs=dict(
-              allow_force_finalize=args.grt_allow_force_finalize,
-              write_protection=args.grt_write_protect,
-              upload_method=args.grt_report_upload_method,
-              secure_wipe=args.grt_factory_secure_wipe,
-              min_charge_pct=args.grt_finalize_battery_min_pct,
-              sync_event_logs=args.enable_flush_event_logs,
-              waive_tests=args.grt_waive_tests,
-              enforced_release_channels=args.grt_enforced_release_channels
-          ))
+    # THIS IS A GOOGLE REQUIRED TEST.
+    # PLEASE DO NOT REMOVE THIS TEST IN PRODUCTION RELEASES.
+    OperatorTest(
+        label=_('Finalize'),
+        has_automator=True,
+        pytest_name='finalize',
+        dargs=dict(
+            allow_force_finalize=args.grt_allow_force_finalize,
+            write_protection=args.grt_write_protect,
+            upload_method=args.grt_report_upload_method,
+            secure_wipe=args.grt_factory_secure_wipe,
+            min_charge_pct=args.grt_finalize_battery_min_pct,
+            sync_event_logs=args.enable_flush_event_logs,
+            waive_tests=args.grt_waive_tests,
+            enforced_release_channels=args.grt_enforced_release_channels
+        ))

@@ -58,9 +58,6 @@ class TestListArgs(object):
   # - PVT = production of salable units
   phase = 'PROTO'
 
-  # Enable options that apply only in a real factory environment.
-  factory_environment = True
-
   # Enable shopfloor. Note that some factory environment might
   # not need a shopfloor.
   enable_shopfloor = True
@@ -148,11 +145,6 @@ class TestListArgs(object):
   @property
   def smt_thermal_load_duration_secs(self):
     return self.smt_thermal_load_heat_up_timeout_secs + 3
-
-  # Enable requirement for SMT finish test.
-  @property
-  def smt_require_run_for_finish(self):
-    return self.factory_environment
 
   # Update firmware in smt FirmwareUpdate test.
   smt_update_firmware = False
@@ -268,11 +260,6 @@ class TestListArgs(object):
   fatp_usb_performance_block_size = 512 * 1024
   fatp_usb_performance_sequential_block_count = 8
 
-  # Enable requirement for FATP finish test.
-  @property
-  def fatp_require_run_for_finish(self):
-    return self.factory_environment
-
   # AP setting for FATP.WirelessConnection test and FATP.RSSI.WirelessRSSI.
   # 2.4G uses channels 1(2412), 4(2427), 8(2447).
   # 5G uses channels 149(5745), 153(5765), 157(5785).
@@ -298,11 +285,6 @@ class TestListArgs(object):
   # Whether to enable detailed cellular tests. These tests may not apply to all
   # boards.
   detailed_cellular_tests = False
-
-  # Enable requirement for GRT finish test.
-  @property
-  def grt_require_run_for_finish(self):
-    return self.factory_environment
 
   # Enable secure wipe (slow).
   grt_factory_secure_wipe = True
@@ -488,9 +470,6 @@ class TestListArgs(object):
                         report_stage=None):
     """Creates a step to sync with the factory server.
 
-    If factory_environment is False, None is returned (since there is no
-    factory server to sync to).
-
     Args:
       id_suffix: An optional suffix in case multiple SyncFactoryServer steps
         are needed in the same group (since they cannot have the same ID).
@@ -499,9 +478,6 @@ class TestListArgs(object):
         enable_flush_event_logs in TestListArgs.
       run_if: run_if argument passed to OperatorTest.
     """
-    if not self.factory_environment:
-      return
-
     if flush_event_logs is None:
       flush_event_logs = self.enable_flush_event_logs
 
@@ -565,29 +541,27 @@ def SetOptions(options, args):
 
   options.phase = args.phase
 
-  if args.factory_environment:
-    # echo -n 'passwordgoeshere' | sha1sum
-    # Use operator mode by default and require a password to enable
-    # engineering mode. This password is 'cros'.
-    options.engineering_password_sha1 = ('8c19cad459f97de3f8c836c794d9a0060'
-                                         'a795d7b')
+  # echo -n 'passwordgoeshere' | sha1sum
+  # Use operator mode by default and require a password to enable
+  # engineering mode. This password is 'cros'.
+  options.engineering_password_sha1 = '8c19cad459f97de3f8c836c794d9a0060a795d7b'
 
-    # - Default to Chinese language
-    options.ui_locale = 'zh-CN'
+  # - Default to Chinese language
+  options.ui_locale = 'zh-CN'
 
-    # Enable/Disable background event log syncing
-    # Set to None or 0 to disable it.
-    options.sync_event_log_period_secs = 0
-    options.update_period_secs = 5 * MINUTES
-    # - Enable clock syncing with shopfloor server
-    options.sync_time_period_secs = None
-    options.shopfloor_server_url = 'http://%s:%d/' % (
-        args.shopfloor_host, args.shopfloor_port)
-    # - Disable ChromeOS keys.
-    options.disable_cros_shortcut_keys = True
+  # Enable/Disable background event log syncing
+  # Set to None or 0 to disable it.
+  options.sync_event_log_period_secs = 0
+  options.update_period_secs = 5 * MINUTES
+  # - Enable clock syncing with shopfloor server
+  options.sync_time_period_secs = None
+  options.shopfloor_server_url = 'http://%s:%d/' % (
+      args.shopfloor_host, args.shopfloor_port)
+  # - Disable ChromeOS keys.
+  options.disable_cros_shortcut_keys = True
 
-    # Enable/Disable system log syncing
-    options.core_dump_watchlist = []
+  # Enable/Disable system log syncing
+  options.core_dump_watchlist = []
 
 
 def CreateGenericTestList():
@@ -615,7 +589,6 @@ def CreateExperimentTestList():
   TestListArgs object args and test_list.options are modified for experiment.
   """
   args = TestListArgs()
-  args.factory_environment = False
   args.enable_shopfloor = False
   args.fully_imaged = False
   with TestList('generic_experiment', 'Generic Experiment Test') as test_list:

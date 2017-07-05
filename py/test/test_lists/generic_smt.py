@@ -558,8 +558,7 @@ def SMTFinish(args):
       label=_('Finish'),
       has_automator=True,
       pytest_name='message',
-      require_run=(Passed(args.smt_test_group_id + '.BarrierSMT')
-                   if args.smt_require_run_for_finish else None),
+      require_run=Passed(args.smt_test_group_id + '.BarrierSMT'),
       never_fails=True,
       dargs=dict(
           html=_('SMT tests finished, press SPACE to shutdown.\n')))
@@ -627,8 +626,7 @@ def ManualSMTTests(args):
   args.Barrier('SMTTests')
 
   # If all tests pass, mark the DUT as SMT complete.
-  if args.factory_environment:
-    SMTShopFloor2(args)
+  SMTShopFloor2(args)
   args.Barrier('SMT')
   SMTFinish(args)
   HaltStep(label=_('Shutdown'), has_automator=True)

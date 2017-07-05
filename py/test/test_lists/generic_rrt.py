@@ -44,11 +44,7 @@ class TestListArgs(object):
   Nothing in this class is used by the test harness directly, rather
   only used by this file when constructing the test list.
   """
-  # Enable options that apply only in a real factory environment.
-  factory_environment = True
-
-  # Password for engineering mode (only used if factory_environment is
-  # true). This password is 'cros'.
+  # Password for engineering mode.
   engineering_password_sha1 = '8c19cad459f97de3f8c836c794d9a0060a795d7b'
 
   # Host/port for shopfloor communication.
@@ -206,24 +202,23 @@ def SetOptions(test_list, args):
   # Disable CPUFreqManager
   test_list.exclusive_resources = [plugin.RESOURCE.CPU]
 
-  if args.factory_environment:
-    # echo -n 'passwordgoeshere' | sha1sum
-    # - Use operator mode by default and require a password to enable
-    #   engineering mode
-    options.engineering_password_sha1 = args.engineering_password_sha1
-    # - Default to Chinese language
-    options.ui_locale = 'zh-CN'
+  # echo -n 'passwordgoeshere' | sha1sum
+  # - Use operator mode by default and require a password to enable
+  #   engineering mode
+  options.engineering_password_sha1 = args.engineering_password_sha1
+  # - Default to Chinese language
+  options.ui_locale = 'zh-CN'
 
-    options.shopfloor_server_url = 'http://%s:%d/' % (
-        args.shopfloor_host, args.shopfloor_port)
+  options.shopfloor_server_url = 'http://%s:%d/' % (
+      args.shopfloor_host, args.shopfloor_port)
 
-    # - Enable background event log syncing
-    options.sync_event_log_period_secs = None
-    options.update_period_secs = None
+  # - Enable background event log syncing
+  options.sync_event_log_period_secs = None
+  options.update_period_secs = None
 
-    options.disable_cros_shortcut_keys = True
+  options.disable_cros_shortcut_keys = True
 
-    options.plugin_config_name = 'goofy_plugin_chromeos_rrt'
+  options.plugin_config_name = 'goofy_plugin_chromeos_rrt'
 
 
 def Barrier(id_suffix='', pass_without_prompt=False,

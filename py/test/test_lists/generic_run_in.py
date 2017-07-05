@@ -62,261 +62,259 @@ def RunIn(args, group_suffix=''):
                  pass_without_prompt=True,
                  accessibility=True)
 
-    if args.factory_environment:
-      # The image installed on DUT may be outdated since the time between SMT
-      # and Run-In can be several monthgs. In this station we can let DUT do
-      # image re-install using netboot.
-      if args.run_in_update_image_version:
-        with OperatorTest(label=_('Image Update')):
-          args.SyncFactoryServer(update_without_prompt=True)
+    # The image installed on DUT may be outdated since the time between SMT
+    # and Run-In can be several monthgs. In this station we can let DUT do
+    # image re-install using netboot.
+    if args.run_in_update_image_version:
+      with OperatorTest(label=_('Image Update')):
+        args.SyncFactoryServer(update_without_prompt=True)
 
-          # Writes mlb_serial_number and smt_complete into VPD
-          # (Vital Product Data) so it will be availabe after re-imaging.
+        # Writes mlb_serial_number and smt_complete into VPD
+        # (Vital Product Data) so it will be availabe after re-imaging.
+        OperatorTest(
+            label=_('Write Device Data To VPD'),
+            pytest_name='write_device_data_to_vpd')
+
+        # Checks image version is not lower than certain version. If it is,
+        # flash netboot firmware and do netboot install.
+        # Note that VPD will be retained using flash_netboot tool.
+        OperatorTest(
+            label=_('Check Version'),
+            pytest_name='check_image_version',
+            dargs=dict(
+                min_version=args.run_in_update_image_version,
+                loose_version=True,
+                require_space=False))
+
+    if args.run_in_update_firmware:
+      with OperatorTest(label=_('Firmware Update')):
+
+        OperatorTest(
+            label=_('Firmware Update'),
+            pytest_name='update_firmware')
+
+        RebootStep(
+            label=_('Reboot'),
+            iterations=1)
+
+    with OperatorTest(label=_('ShopFloor')):
+      args.SyncFactoryServer()
+
+      # Read device data from VPD (most importantly,
+      # 'mlb_serial_number' and 'smt_complete').  If SMT is
+      # already complete, we need not (and cannot!) run the
+      # shopfloor steps in SMT again.
+      # Note that currently user has to implement the hook to skip all SMT
+      # tests if there is 'smt_complete' in device_data.
+      # If it is not implemented, they only those tests with
+      # run_if='!device.factory.end_SMT' will be skipped.
+      # TODO(cychiang) Let goofy support smt_complete instead of relying on
+      # hooks.
+      OperatorTest(
+          label=_('Read Device Data From VPD'),
+          pytest_name='read_device_data_from_vpd')
+
+      # Note that if there is any device info that is needed from shopfloor,
+      # DUT should get the info in this station. User has to implement
+      # GetDeviceInfo in shopfloor module.
+      # Here we list device informaion that should be fetched from shopfloor
+      # server.
+      # 1. Component that is not probeable from system. For example:
+      #   'component.antenna': antenna vendor
+      #   'component.keyboard': keyboard model
+      #   'color': DUT color.
+      # 2. Device SKU information like 3G or LTE model. Fox example:
+      #   'component.has_cellular': for 3G model. Use this to enable/disable
+      #     some tests in the test list.
+      #   'component.has_lte': for LTE model. Use this to enable/disable
+      #     some tests in the test list.
+      #   'region': The region defined in /usr/share/misc/cros-regions.json
+      # 3. Codes related to group/user like 'gbind_attribute' and
+      #     'ubind_attribute'.
+      # 4. Information that shopfloor has and will be used during the testing
+      #   flow.
+      #   For example:
+      #   'serial_number: system serial number.
+      #   'golden_iccid': The ICCID of LTE SIM card, which will be matched to
+      #     the probed ICCID.
+      #   'golden_imei': The IMEI of LTE module, which will be matched to the
+      #     probed IMEI.
+      #   'line': The line number in multi-line scenario, where we use
+      #     line to decide which AP to associate with.
+      # Note that it is not required these items being fetched from
+      # shopfloor. If user wants to input these items by hand, they can use
+      # select_components pytest for selection.
+      # For items that is not selectable, like gbind_attribute,
+      # ubind_attribute, golden_iccid, golden_imei, serial number, user can
+      # use scan pytest.
+      if args.run_in_set_device_info_from_shopfloor:
+        OperatorTest(
+            pytest_name='shopfloor_service',
+            dargs=dict(method='GetDeviceInfo'))
+
+        # This test has two meaning:
+        # 1. For normal flow, MLB serial number is correct, serial number
+        # fetched from shopfloor using MLB serial number as key is correct.
+        # This test can check if serial number sticker on the machine is
+        # correct.
+        # 2. When a DUT is finalized, factory related device data in RW VPD
+        # like 'mlb_serial_number' and 'smt_complete' are deleted. Operator
+        # needs to type MLB serial number and and add smt_complete, since
+        # MLB serial number sticker is no longer available. We should check if
+        # MLB serial number is correct. We scan serial number on the sticker
+        # of the machine and see if it matches serial number fetched from
+        # shopfloor server using MLB serial number as key.
+        OperatorTest(
+            label=_('Scan'),
+            has_automator=True,
+            pytest_name='scan',
+            dargs=dict(
+                label=_('Device Serial Number'),
+                check_device_data_key='serial_number',
+                regexp=args.grt_serial_number_format))
+
+      else:
+        OperatorTest(
+            label=_('Set Device Info'),
+            pytest_name='select_components',
+            dargs=dict(comps=dict(
+                has_cellular=('component.has_cellular', ['true', 'false']),
+                has_lte=('component.has_lte', ['true', 'false']),
+                color=('color', ['red', 'green', 'blue', 'yellow', 'black']),
+                line=('line', ['A', 'B', 'C', 'D']),
+                region=('region', ['us', 'gb']))))
+
+        OperatorTest(
+            label=_('Scan Serial Number'),
+            pytest_name='scan',
+            dargs=dict(
+                device_data_key='serial_number',
+                event_log_key='serial_number',
+                label=_('Serial Number'),
+                regexp=args.grt_serial_number_format))
+
+        OperatorTest(
+            label=_('Scan GoldenICCID'),
+            pytest_name='scan',
+            run_if=args.HasLTE,
+            dargs=dict(
+                device_data_key='golden_iccid',
+                label=_('golden_iccid'),
+                regexp=args.run_in_golden_iccid_format))
+
+        OperatorTest(
+            label=_('Scan GoldenIMEI'),
+            pytest_name='scan',
+            run_if=args.HasLTE,
+            dargs=dict(
+                device_data_key='golden_imei',
+                label=_('golden_imei'),
+                regexp=args.run_in_golden_imei_format))
+
+        OperatorTest(
+            label=_('Scan Gbind Attribute'),
+            pytest_name='scan',
+            dargs=dict(
+                device_data_key='gbind_attribute', label=_('Group code')))
+
+        OperatorTest(
+            label=_('Scan Ubind Attribute'),
+            pytest_name='scan',
+            dargs=dict(
+                device_data_key='ubind_attribute', label=_('User code')))
+
+      # For LTE model only. Note that different factory can have different
+      # testing sequences of LTE model. The tests set in this test list are
+      # just examples.
+      # LTE model has SIM card inserted after assembly before entering RunIn.
+      # This test checks SIM card tray detection pin is already high.
+      OperatorTest(
+          label=_('Check LTE SIM Card Tray'),
+          pytest_name='probe_sim_card_tray',
+          dargs=dict(tray_already_present=True),
+          run_if=args.HasLTE)
+
+      # For LTE model only. This test item will be skipped if GetDeviceInfo
+      # does not get factory.component.has_lte = True.
+      # In this test, IMEI of LTE module and ICCID of LTE SIM card will be
+      # probed and saved in device_data. They will be matched in hwid rule
+      # to golden IMEI and golden ICCID fetched from shopfloor.
+      OperatorTest(
+          label=_('Probe LTE IMEI ICCID'),
+          pytest_name='probe_cellular_info',
+          run_if=args.HasLTE,
+          dargs=dict(
+              probe_meid=False,
+              probe_imei=False,
+              probe_lte_imei=True,
+              probe_lte_iccid=True))
+
+      # Writes VPD values into RO/RW VPD. This includes at least
+      # 'serial_number', 'region', 'ubind_attribute', 'gbind_attribute'.
+      OperatorTest(
+          label=_('VPD'),
+          pytest_name='write_device_data_to_vpd')
+
+      # For 3G model only. Some modem can only do testing in Generic UMTS
+      # mode.
+      FactoryTest(
+          label=_('Switch To WCDMA Firmware'),
+          pytest_name='cellular_switch_firmware',
+          run_if=args.HasCellular,
+          dargs=dict(target='Generic UMTS'))
+
+      # Enable this station if user wants to do a control run of new factory
+      # image on a range of serial numbers. We put update steps here after
+      # scan so unit gets serial number in their device_data.
+      if args.run_in_control_run_update_image_version:
+        with OperatorTest(label=_('Image Update ControlRun')):
+
+          # Only availabe on DUT which satifies
+          # args.SelectedForControlRunImageUpdate.
+          # Writes mlb_serial_number and smt_complete into VPD so it will be
+          # availabe after re-imaging.
           OperatorTest(
               label=_('Write Device Data To VPD'),
-              pytest_name='write_device_data_to_vpd')
+              pytest_name='write_device_data_to_vpd',
+              run_if=args.SelectedForControlRunImageUpdate)
 
           # Checks image version is not lower than certain version. If it is,
-          # flash netboot firmware and do netboot install.
+          # flash control run netboot firmware and do netboot install.
+          # control run netboot firmware will seek different conf file on
+          # shopfloor server so it will download control images.
           # Note that VPD will be retained using flash_netboot tool.
           OperatorTest(
               label=_('Check Version'),
               pytest_name='check_image_version',
+              run_if=args.SelectedForControlRunImageUpdate,
               dargs=dict(
-                  min_version=args.run_in_update_image_version,
+                  min_version=args.run_in_control_run_update_image_version,
+                  netboot_fw=args.run_in_control_run_netboot_firmware,
                   loose_version=True,
                   require_space=False))
 
-      if args.run_in_update_firmware:
-        with OperatorTest(label=_('Firmware Update')):
-
-          OperatorTest(
-              label=_('Firmware Update'),
-              pytest_name='update_firmware')
-
-          RebootStep(
-              label=_('Reboot'),
-              iterations=1)
-
-    if args.factory_environment:
-      with OperatorTest(label=_('ShopFloor')):
-        args.SyncFactoryServer()
-
-        # Read device data from VPD (most importantly,
-        # 'mlb_serial_number' and 'smt_complete').  If SMT is
-        # already complete, we need not (and cannot!) run the
-        # shopfloor steps in SMT again.
-        # Note that currently user has to implement the hook to skip all SMT
-        # tests if there is 'smt_complete' in device_data.
-        # If it is not implemented, they only those tests with
-        # run_if='!device.factory.end_SMT' will be skipped.
-        # TODO(cychiang) Let goofy support smt_complete instead of relying on
-        # hooks.
+      # Enable this station if user wants to do a control run of new
+      # firmware on a range of serial numbers. We put update steps here after
+      # scan so unit gets serial number.
+      if args.run_in_control_run_firmware_update:
         OperatorTest(
-            label=_('Read Device Data From VPD'),
-            pytest_name='read_device_data_from_vpd')
+            label=_('Firmware Update'),
+            pytest_name='update_firmware',
+            run_if=args.SelectedForControlRunFirmwareUpdate)
 
-        # Note that if there is any device info that is needed from shopfloor,
-        # DUT should get the info in this station. User has to implement
-        # GetDeviceInfo in shopfloor module.
-        # Here we list device informaion that should be fetched from shopfloor
-        # server.
-        # 1. Component that is not probeable from system. For example:
-        #   'component.antenna': antenna vendor
-        #   'component.keyboard': keyboard model
-        #   'color': DUT color.
-        # 2. Device SKU information like 3G or LTE model. Fox example:
-        #   'component.has_cellular': for 3G model. Use this to enable/disable
-        #     some tests in the test list.
-        #   'component.has_lte': for LTE model. Use this to enable/disable
-        #     some tests in the test list.
-        #   'region': The region defined in /usr/share/misc/cros-regions.json
-        # 3. Codes related to group/user like 'gbind_attribute' and
-        #     'ubind_attribute'.
-        # 4. Information that shopfloor has and will be used during the testing
-        #   flow.
-        #   For example:
-        #   'serial_number: system serial number.
-        #   'golden_iccid': The ICCID of LTE SIM card, which will be matched to
-        #     the probed ICCID.
-        #   'golden_imei': The IMEI of LTE module, which will be matched to the
-        #     probed IMEI.
-        #   'line': The line number in multi-line scenario, where we use
-        #     line to decide which AP to associate with.
-        # Note that it is not required these items being fetched from
-        # shopfloor. If user wants to input these items by hand, they can use
-        # select_components pytest for selection.
-        # For items that is not selectable, like gbind_attribute,
-        # ubind_attribute, golden_iccid, golden_imei, serial number, user can
-        # use scan pytest.
-        if args.run_in_set_device_info_from_shopfloor:
-          OperatorTest(
-              pytest_name='shopfloor_service',
-              dargs=dict(method='GetDeviceInfo'))
+        RebootStep(
+            label=_('Reboot'),
+            iterations=1,
+            run_if=args.SelectedForControlRunFirmwareUpdate)
 
-          # This test has two meaning:
-          # 1. For normal flow, MLB serial number is correct, serial number
-          # fetched from shopfloor using MLB serial number as key is correct.
-          # This test can check if serial number sticker on the machine is
-          # correct.
-          # 2. When a DUT is finalized, factory related device data in RW VPD
-          # like 'mlb_serial_number' and 'smt_complete' are deleted. Operator
-          # needs to type MLB serial number and and add smt_complete, since
-          # MLB serial number sticker is no longer available. We should check if
-          # MLB serial number is correct. We scan serial number on the sticker
-          # of the machine and see if it matches serial number fetched from
-          # shopfloor server using MLB serial number as key.
-          OperatorTest(
-              label=_('Scan'),
-              has_automator=True,
-              pytest_name='scan',
-              dargs=dict(
-                  label=_('Device Serial Number'),
-                  check_device_data_key='serial_number',
-                  regexp=args.grt_serial_number_format))
+      # Write HWID to check components are correct.
+      OperatorTest(label=_('Write HWID'), pytest_name='hwid_v3')
 
-        else:
-          OperatorTest(
-              label=_('Set Device Info'),
-              pytest_name='select_components',
-              dargs=dict(comps=dict(
-                  has_cellular=('component.has_cellular', ['true', 'false']),
-                  has_lte=('component.has_lte', ['true', 'false']),
-                  color=('color', ['red', 'green', 'blue', 'yellow', 'black']),
-                  line=('line', ['A', 'B', 'C', 'D']),
-                  region=('region', ['us', 'gb']))))
-
-          OperatorTest(
-              label=_('Scan Serial Number'),
-              pytest_name='scan',
-              dargs=dict(
-                  device_data_key='serial_number',
-                  event_log_key='serial_number',
-                  label=_('Serial Number'),
-                  regexp=args.grt_serial_number_format))
-
-          OperatorTest(
-              label=_('Scan GoldenICCID'),
-              pytest_name='scan',
-              run_if=args.HasLTE,
-              dargs=dict(
-                  device_data_key='golden_iccid',
-                  label=_('golden_iccid'),
-                  regexp=args.run_in_golden_iccid_format))
-
-          OperatorTest(
-              label=_('Scan GoldenIMEI'),
-              pytest_name='scan',
-              run_if=args.HasLTE,
-              dargs=dict(
-                  device_data_key='golden_imei',
-                  label=_('golden_imei'),
-                  regexp=args.run_in_golden_imei_format))
-
-          OperatorTest(
-              label=_('Scan Gbind Attribute'),
-              pytest_name='scan',
-              dargs=dict(
-                  device_data_key='gbind_attribute', label=_('Group code')))
-
-          OperatorTest(
-              label=_('Scan Ubind Attribute'),
-              pytest_name='scan',
-              dargs=dict(
-                  device_data_key='ubind_attribute', label=_('User code')))
-
-        # For LTE model only. Note that different factory can have different
-        # testing sequences of LTE model. The tests set in this test list are
-        # just examples.
-        # LTE model has SIM card inserted after assembly before entering RunIn.
-        # This test checks SIM card tray detection pin is already high.
-        OperatorTest(
-            label=_('Check LTE SIM Card Tray'),
-            pytest_name='probe_sim_card_tray',
-            dargs=dict(tray_already_present=True),
-            run_if=args.HasLTE)
-
-        # For LTE model only. This test item will be skipped if GetDeviceInfo
-        # does not get factory.component.has_lte = True.
-        # In this test, IMEI of LTE module and ICCID of LTE SIM card will be
-        # probed and saved in device_data. They will be matched in hwid rule
-        # to golden IMEI and golden ICCID fetched from shopfloor.
-        OperatorTest(
-            label=_('Probe LTE IMEI ICCID'),
-            pytest_name='probe_cellular_info',
-            run_if=args.HasLTE,
-            dargs=dict(
-                probe_meid=False,
-                probe_imei=False,
-                probe_lte_imei=True,
-                probe_lte_iccid=True))
-
-        # Writes VPD values into RO/RW VPD. This includes at least
-        # 'serial_number', 'region', 'ubind_attribute', 'gbind_attribute'.
-        OperatorTest(
-            label=_('VPD'),
-            pytest_name='write_device_data_to_vpd')
-
-        # For 3G model only. Some modem can only do testing in Generic UMTS
-        # mode.
-        FactoryTest(
-            label=_('Switch To WCDMA Firmware'),
-            pytest_name='cellular_switch_firmware',
-            run_if=args.HasCellular,
-            dargs=dict(target='Generic UMTS'))
-
-        # Enable this station if user wants to do a control run of new factory
-        # image on a range of serial numbers. We put update steps here after
-        # scan so unit gets serial number in their device_data.
-        if args.run_in_control_run_update_image_version:
-          with OperatorTest(label=_('Image Update ControlRun')):
-
-            # Only availabe on DUT which satifies
-            # args.SelectedForControlRunImageUpdate.
-            # Writes mlb_serial_number and smt_complete into VPD so it will be
-            # availabe after re-imaging.
-            OperatorTest(
-                label=_('Write Device Data To VPD'),
-                pytest_name='write_device_data_to_vpd',
-                run_if=args.SelectedForControlRunImageUpdate)
-
-            # Checks image version is not lower than certain version. If it is,
-            # flash control run netboot firmware and do netboot install.
-            # control run netboot firmware will seek different conf file on
-            # shopfloor server so it will download control images.
-            # Note that VPD will be retained using flash_netboot tool.
-            OperatorTest(
-                label=_('Check Version'),
-                pytest_name='check_image_version',
-                run_if=args.SelectedForControlRunImageUpdate,
-                dargs=dict(
-                    min_version=args.run_in_control_run_update_image_version,
-                    netboot_fw=args.run_in_control_run_netboot_firmware,
-                    loose_version=True,
-                    require_space=False))
-
-        # Enable this station if user wants to do a control run of new
-        # firmware on a range of serial numbers. We put update steps here after
-        # scan so unit gets serial number.
-        if args.run_in_control_run_firmware_update:
-          OperatorTest(
-              label=_('Firmware Update'),
-              pytest_name='update_firmware',
-              run_if=args.SelectedForControlRunFirmwareUpdate)
-
-          RebootStep(
-              label=_('Reboot'),
-              iterations=1,
-              run_if=args.SelectedForControlRunFirmwareUpdate)
-
-        # Write HWID to check components are correct.
-        OperatorTest(label=_('Write HWID'), pytest_name='hwid_v3')
-
-        # Machine will be on carousel after this point.
-        # Prompt to continue.
-        args.Barrier('RunInSyncFactoryServer',
-                     pass_without_prompt=False,
-                     accessibility=True)
+      # Machine will be on carousel after this point.
+      # Prompt to continue.
+      args.Barrier('RunInSyncFactoryServer',
+                   pass_without_prompt=False,
+                   accessibility=True)
 
     # After putting on carousel, we need to make sure charger is working.
     OperatorTest(

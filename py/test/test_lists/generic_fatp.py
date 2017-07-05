@@ -562,8 +562,7 @@ def FATP(args):
     OperatorTest(
         label=_('Finish'),
         pytest_name='message',
-        require_run=(Passed('FATP.BarrierFATP')
-                     if args.fatp_require_run_for_finish else None),
+        require_run=Passed('FATP.BarrierFATP'),
         never_fails=True,
         dargs=dict(
             html=_('FATP tests finished. Press SPACE to run GRT,<br>'

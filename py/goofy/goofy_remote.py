@@ -89,8 +89,6 @@ def TweakTestLists(args):
           flags=re.MULTILINE)
 
     new_data = data
-    if args.clear_factory_environment:
-      new_data = SubLine('factory_environment', False, new_data)
     if args.clear_password:
       new_data = SubLine('options.engineering_password_sha1', None, new_data)
     if args.shopfloor_host:
@@ -124,9 +122,6 @@ def main():
                       help='host to run on')
   parser.add_argument('-a', dest='clear_state', action='store_true',
                       help='clear Goofy state and logs on device')
-  parser.add_argument('-e', dest='clear_factory_environment',
-                      action='store_true',
-                      help='set _FACTORY_ENVIRONMENT = False in test_list')
   parser.add_argument('-p', dest='clear_password',
                       action='store_true',
                       help='remove password from test_list')

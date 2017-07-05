@@ -29,9 +29,6 @@ class TestListArgs(object):
   Nothing in this class is used by the test harness directly, rather
   only used by this file when constructing the test list.
   """
-  # Enable options that apply only in a real factory environment.
-  factory_environment = True
-
   # Enable shopfloor. Note that some factory environment might
   # not need a shopfloor.
   enable_shopfloor = False
@@ -181,9 +178,6 @@ class TestListArgs(object):
                         flush_event_logs=None, run_if=None):
     """Creates a step to sync with the shopfloor server.
 
-    If factory_environment is False, None is returned (since there is no
-    factory server to sync to).
-
     Args:
       id_suffix: An optional suffix in case multiple SyncFactoryServer steps
         are needed in the same group (since they cannot have the same ID).
@@ -192,9 +186,6 @@ class TestListArgs(object):
         enable_flush_event_logs in TestListArgs.
       run_if: run_if argument passed to OperatorTest.
     """
-    if not self.factory_environment:
-      return
-
     if flush_event_logs is None:
       flush_event_logs = self.enable_flush_event_logs
 
@@ -299,29 +290,27 @@ def SetOptions(test_list, args):
 
   options = test_list.options
 
-  if args.factory_environment:
-    # echo -n 'passwordgoeshere' | sha1sum
-    # Use operator mode by default and require a password to enable
-    # engineering mode. This password is 'cros'.
-    options.engineering_password_sha1 = (
-        '8c19cad459f97de3f8c836c794d9a0060a795d7b')
+  # echo -n 'passwordgoeshere' | sha1sum
+  # Use operator mode by default and require a password to enable
+  # engineering mode. This password is 'cros'.
+  options.engineering_password_sha1 = '8c19cad459f97de3f8c836c794d9a0060a795d7b'
 
-    # - Default to English language
-    options.ui_locale = 'en-US'
+  # - Default to English language
+  options.ui_locale = 'en-US'
 
-    # Enable/Disable background event log syncing
-    # Set to None or 0 to disable it.
-    options.sync_event_log_period_secs = 0
-    options.update_period_secs = 5 * MINUTES
+  # Enable/Disable background event log syncing
+  # Set to None or 0 to disable it.
+  options.sync_event_log_period_secs = 0
+  options.update_period_secs = 5 * MINUTES
 
-    options.shopfloor_server_url = 'http://%s:%d/' % (
-        args.shopfloor_host, args.shopfloor_port)
-    # - Disable ChromeOS keys.
-    options.disable_cros_shortcut_keys = True
+  options.shopfloor_server_url = 'http://%s:%d/' % (
+      args.shopfloor_host, args.shopfloor_port)
+  # - Disable ChromeOS keys.
+  options.disable_cros_shortcut_keys = True
 
-    test_list.exclusive_resources = [plugin.RESOURCE.CPU]
+  test_list.exclusive_resources = [plugin.RESOURCE.CPU]
 
-    options.plugin_config_name = 'goofy_plugin_chromeos_firmware_stress'
+  options.plugin_config_name = 'goofy_plugin_chromeos_firmware_stress'
 
 
 def CreateFirmwareStressSmallTestList():
