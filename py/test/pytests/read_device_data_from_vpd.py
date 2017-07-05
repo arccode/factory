@@ -1,11 +1,74 @@
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 
-"""Reads device data from the RW VPD, if present.
+"""Setup device data from VPD (Vital Product Data).
 
-Data is all read as strings."""
+Description
+-----------
+Device Data (``cros.factory.test.device_data``) maintains the data during
+manufacturing flow, and will be wiped when device goes to shipping mode (or
+re-flashed for re-run of manufacturing flow).
+
+To rebuild device data, we may want to schedule few ``write_device_data_to_vpd``
+invocations in manufacturing flow, and one ``read_device_data_from_vpd`` in
+beginning of test list to get the data back when a device has been wiped for
+re-run.
+
+This test reads VPD values from specified argument ``ro_key_map`` and
+``rw_key_map``, which are mappings from VPD names to device data keys. For
+example::
+
+  {'foo': 'bar.baz'}
+
+This map indicates we have to read ``foo`` from VPD and write to device data
+using key ``bar.baz``. If VPD name ends with "*", then all keys with the prefix
+will be added to device data. For example::
+
+  {'foo.*': 'bar'}
+
+This map indicates we will read all VPD values starting with ``foo.`` and store
+in VPD as ``bar.*``. In other words, VPD entry ``foo.region`` will become
+``bar.region`` in device data.
+
+``rw_key_map`` works in similar way, except it's reading values from RW VPD.
+
+If the specified VPD keys don't exist, the test will still pass without
+warnings.
+
+The default is to read only ``{'factory.*': 'factory'}`` in ``rw_key_map``,
+device serial number (serial_number) and mainboard serial number
+(mlb_serial_number).
+
+
+Test Procedure
+--------------
+This is an automated test without user interaction.
+
+Start the test and the specified device data values will be fetched from VPD
+and then written to device data.
+
+Dependency
+----------
+This test relies on ``vpd`` component in Device API to access VPD.
+
+Examples
+--------
+To read standard manufacturing information from VPD, add this in test list::
+
+  FactoryTest(pytest_name='read_device_data_from_vpd')
+
+To write and read back component data into VPD, add this in test list::
+
+  FactoryTest(pytest_name='write_device_data_to_vpd',
+              dargs={'rw_key_map': {'component.*': 'component'}})
+
+  ... (reboot) ...
+
+  FactoryTest(pytest_name='read_device_data_from_vpd',
+              dargs={'rw_key_map': {'component.*': 'component'}}
+"""
 
 
 import unittest
@@ -26,19 +89,12 @@ _MSG_READING_VPD = lambda vpd_section: i18n_test_ui.MakeI18nLabel(
 
 class ReadDeviceDataFromVPD(unittest.TestCase):
   ARGS = [
-      Arg('key_map', dict,
-          ('Mapping from VPD key to device data key.  For example, '
-           '{"foo": "bar.baz"} will read value of "foo" from VPD, and '
-           'set device data "bar.baz" to that value.  If VPD key ends with '
-           '"*", then all keys with the prefix will be added to device data '
-           '(In this case, device data key will be treated as a prefix as '
-           'well).  For example, {"foo.*": "bar"} will write all VPD values '
-           'with key starts with "foo" to device data, and change the prefix '
-           '"foo" to "bar"'),
-          default={'factory.device_data.*': ''}, optional=True),
-      Arg('vpd_section', str,
-          'It should be rw or ro which means RW_VPD or RO_VPD to read.',
-          default='rw', optional=True),
+      Arg('ro_key_map', dict,
+          'Mapping of (VPD_NAME, DEVICE_DATA_KEY) to read from RO VPD.',
+          optional=True, default=None),
+      Arg('rw_key_map', dict,
+          'Mapping of (VPD_NAME, DEVICE_DATA_KEY) to read from RW VPD.',
+          optional=True, default=None),
   ]
 
   @staticmethod
@@ -55,26 +111,36 @@ class ReadDeviceDataFromVPD(unittest.TestCase):
     if not expected_key.endswith('*'):
       return rule[1]
 
-    # remove the prefix
+    # Remove the prefix.
     vpd_key = vpd_key[len(expected_key[:-1]):]
 
-    # prepend new prefix
+    # Pre-pend new prefix.
     return device_data.JoinKeys(rule[1], vpd_key)
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
 
   def runTest(self):
-    if self.args.vpd_section not in ['ro', 'rw']:
-      self.fail('Invalid vpd_section: %r, should be %r or %r.' %
-                (self.args.vpd_section, 'ro', 'rw'))
-
     ui = test_ui.UI()
     template = ui_templates.OneSection(ui)
-    template.SetState(_MSG_READING_VPD(self.args.vpd_section))
 
-    vpd_data = getattr(self.dut.vpd, self.args.vpd_section).GetAll()
-    self.UpdateDeviceData(self.args.key_map, vpd_data)
+    sections = {
+        'ro': self.args.ro_key_map,
+        'rw': self.args.rw_key_map
+    }
+
+    if sections['ro'] is None and sections['rw'] is None:
+      sections['ro'] = {
+          device_data.NAME_SERIAL_NUMBER: device_data.KEY_SERIAL_NUMBER,
+          device_data.NAME_MLB_SERIAL_NUMBER: device_data.KEY_MLB_SERIAL_NUMBER}
+      sections['rw'] = {'factory.*': device_data.KEY_FACTORY}
+
+    for name, key_map in sections.iteritems():
+      template.SetState(_MSG_READING_VPD(name))
+      if not key_map:
+        continue
+      vpd = getattr(self.dut.vpd, name)
+      self.UpdateDeviceData(key_map, vpd.GetAll())
 
   def UpdateDeviceData(self, key_map, vpd_data):
     data = {}
