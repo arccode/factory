@@ -741,7 +741,8 @@ class FactoryTest(object):
 
   def __repr__(self, recursive=False):
     if recursive:
-      return json.dumps(self.ToStruct(recursive=True), indent=2)
+      return json.dumps(self.ToStruct(recursive=True), indent=2,
+                        separators=(',', ': '))
     else:
       return json.dumps(self.ToStruct(recursive=False))
 
@@ -1156,6 +1157,27 @@ class FactoryTestList(FactoryTest):
       self.state_change_callback(  # pylint: disable=not-callable
           self.LookupPath(path), ret)
     return ret
+
+  def ToTestListConfig(self, recursive=True):
+    """Output a JSON object that is a valid test_lists.schema.json object."""
+    config = {
+        'inherit': [],
+        'label': self.label,
+        'options': {
+            k: getattr(self.options, k) for k in self.options.__dict__
+        },
+        'constants': {},
+    }
+    if recursive:
+      config['tests'] = [subtest.ToStruct() for subtest in self.subtests]
+    return config
+
+  def __repr__(self, recursive=False):
+    if recursive:
+      return json.dumps(self.ToTestListConfig(recursive=True), indent=2,
+                        separators=(',', ': '))
+    else:
+      return json.dumps(self.ToTestListConfig(recursive=False))
 
 
 class TestGroup(FactoryTest):
