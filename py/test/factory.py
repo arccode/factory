@@ -28,6 +28,7 @@ import yaml
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import i18n
+from cros.factory.test.i18n import _
 from cros.factory.test.i18n import translation
 from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
@@ -540,8 +541,6 @@ class FactoryTest(object):
 
   def __init__(self,
                label=None,
-               label_en='',
-               label_zh='',
                has_automator=False,
                pytest_name=None,
                invocation_target=None,
@@ -663,11 +662,12 @@ class FactoryTest(object):
 
     if label is None:
       # Auto-assign label text.
-      label_en = (label_en or id or
-                  self.PytestNameToLabel(pytest_name or 'test group'))
-      label_zh = label_zh or label_en
-      assert 'en-US' == translation.DEFAULT_LOCALE, 'Unknown default locale'
-      label = {'en-US': label_en, 'zh-CN': label_zh}
+      if id:
+        label = id
+      elif pytest_name:
+        label = self.PytestNameToLabel(pytest_name)
+      else:
+        label = _('Test Group')
 
     self.label = i18n.Translated(label)
 
@@ -1067,7 +1067,7 @@ class FactoryTestList(FactoryTest):
   """
 
   def __init__(self, subtests, state_instance, options, test_list_id=None,
-               label_en=None, label=None, finish_construction=True):
+               label=None, finish_construction=True):
     """Constructor.
 
     Args:
@@ -1081,8 +1081,6 @@ class FactoryTestList(FactoryTest):
           None for test lists, to preserve the invariant that a test's
           path is always starts with the concatenation of all 'id's of its
           ancestors.
-      label_en: An optional label for the test list. Deprecated, use label
-          instead.
       label: An optional label for the test list.
       finish_construction: Whether to immediately finalize the test
           list.  If False, the caller may add modify subtests,
@@ -1096,7 +1094,7 @@ class FactoryTestList(FactoryTest):
     self.test_list_id = test_list_id
     self.state_change_callback = None
     self.options = options
-    self.label = i18n.Translated(label or label_en or 'untitled')
+    self.label = i18n.Translated(label or test_list_id or _('Untitled'))
     self.source_path = None
 
     if finish_construction:

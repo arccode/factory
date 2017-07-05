@@ -133,8 +133,6 @@ def FactoryTest(*args, **kwargs):
 
   Args:
     label: A i18n label.
-    label_en: Deprecated. An English label.
-    label_zh: Deprecated. A Chinese label.
     pytest_name: The name of the pytest to run (relative to
       cros.factory.test.pytests).
     invocation_target: The function to execute to run the test
@@ -227,10 +225,6 @@ def TestGroup(*args, **kwargs):
   Args:
     id: Optional, the ID of the test (see :ref:`test-paths`).
     label: The i18n label of the group.
-    label_en: Deprecated. The label of the group, in English.  This defaults
-      to the value of ``id`` if none is specified.
-    label_zh: Deprecated. The label of the group, in Chinese.  This defaults
-      to the value of ``label_en`` if none is specified.
     run_if: Condition under which the test should be run. Checks the docstring
       of FactoryTest.
   """
@@ -272,7 +266,7 @@ def Passed(name):
 
 
 @contextmanager
-def TestList(id, label_en=None, label=None): # pylint: disable=redefined-builtin
+def TestList(id, label=None): # pylint: disable=redefined-builtin
   """Context manager to create a test list.
 
   This should be used inside a ``CreateTestLists`` function,
@@ -294,7 +288,6 @@ def TestList(id, label_en=None, label=None): # pylint: disable=redefined-builtin
   Args:
     id: The ID of the test list.  By convention, the default test list
       is called 'main'.
-    label_en: An English label for the test list. Deprecated, use label instead.
     label: Label for the test list.
   """
   if id in builder_state.test_lists:
@@ -304,8 +297,7 @@ def TestList(id, label_en=None, label=None): # pylint: disable=redefined-builtin
         'Cannot create test list %r within another test list %r',
         id, builder_state.stack[0].id)
   test_list = factory.FactoryTestList(
-      [], None, factory.Options(), id, label_en=label_en, label=label,
-      finish_construction=False)
+      [], None, factory.Options(), id, label=label, finish_construction=False)
   builder_state.test_lists[id] = test_list
   try:
     builder_state.stack.append(test_list)
