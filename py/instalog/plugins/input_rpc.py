@@ -12,7 +12,6 @@ Waits for events from an output RPC plugin running on another Instalog node.
 from __future__ import print_function
 
 import base64
-import shutil
 import tempfile
 import threading
 import zlib
@@ -21,6 +20,7 @@ import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
 from instalog import plugin_base
 from instalog.utils.arg_utils import Arg
+from instalog.utils import file_utils
 
 # pylint: disable=no-name-in-module
 from instalog.external.jsonrpclib import SimpleJSONRPCServer
@@ -44,15 +44,10 @@ class InputRPC(plugin_base.InputPlugin):
     # Store reference to the JSON RPC server.
     self.server = None
     self.server_thread = None
-    self._tmp_dir = None
     super(InputRPC, self).__init__(*args, **kwargs)
 
   def SetUp(self):
     """Sets up the plugin."""
-    # Create the temporary directory for attachments.
-    self._tmp_dir = tempfile.mkdtemp(prefix='input_rpc_')
-    self.info('Temporary directory for attachments: %s', self._tmp_dir)
-
     # Start the JSON RPC server.  If the port is already used, an exception will
     # be thrown, and plugin will be taken down.
     # TODO(kitching): Writes log messages for every HTTP request.  Figure out
@@ -74,9 +69,6 @@ class InputRPC(plugin_base.InputPlugin):
     else:
       self.warning('Stop: RPC server was never started')
 
-    # Remove the temporary directory.
-    shutil.rmtree(self._tmp_dir)
-
   def Ping(self):
     """Returns 'pong' to verify the connection to this RPC server."""
     return 'pong'
@@ -85,18 +77,22 @@ class InputRPC(plugin_base.InputPlugin):
     """Emits events remotely."""
     # TODO(kitching): Figure out a way to turn down transfers immediately
     #                 when plugin is paused.
-    events = []
-    for event in serialized_events:
-      event = datatypes.Event.Deserialize(event)
-      for att_id, att_data in event.attachments.iteritems():
-        with tempfile.NamedTemporaryFile(
-            'w', dir=self._tmp_dir, delete=False) as f:
-          f.write(zlib.decompress(base64.b64decode(att_data['value'])))
-          event.attachments[att_id] = f.name
-      events.append(event)
-    self.info('Received %d events', len(events))
-    # TODO(kitching): Remove files on failure.
-    return self.Emit(events)
+
+    # Create the temporary directory for attachments.
+    with file_utils.TempDirectory(prefix='input_rpc_') as tmp_dir:
+      self.debug('Temporary directory for attachments: %s', tmp_dir)
+
+      events = []
+      for event in serialized_events:
+        event = datatypes.Event.Deserialize(event)
+        for att_id, att_data in event.attachments.iteritems():
+          with tempfile.NamedTemporaryFile(
+              'w', dir=tmp_dir, delete=False) as f:
+            f.write(zlib.decompress(base64.b64decode(att_data['value'])))
+            event.attachments[att_id] = f.name
+        events.append(event)
+      self.info('Received %d events', len(events))
+      return self.Emit(events)
 
 
 if __name__ == '__main__':

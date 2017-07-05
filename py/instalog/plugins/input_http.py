@@ -56,7 +56,6 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     self._max_bytes = server.context['max_bytes']
     self._gpg = server.context['gpg']
     self._check_format = server.context['check_format']
-    self._tmp_dir = None
     self._enable_multi_event = False
     BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, request,
                                                    client_address, server)
@@ -96,18 +95,14 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     if self.headers.getheader('Multi-Event', 'False') == 'True':
       self._enable_multi_event = True
     # Create the temporary directory for attachments.
-    self._tmp_dir = tempfile.mkdtemp(prefix='input_http_')
-    self.debug('Temporary directory for attachments: %s', self._tmp_dir)
-    self.info('Received POST request from %s:%d',
-              self.client_address[0], self.client_address[1])
-    status_code, resp_reason = self._ProcessRequest()
-    self._SendResponse(status_code, resp_reason)
+    with file_utils.TempDirectory(prefix='input_http_') as tmp_dir:
+      self.debug('Temporary directory for attachments: %s', tmp_dir)
+      self.info('Received POST request from %s:%d',
+                self.client_address[0], self.client_address[1])
+      status_code, resp_reason = self._ProcessRequest(tmp_dir)
+      self._SendResponse(status_code, resp_reason)
 
-    # Remove the temporary directory.
-    self.debug('Removing temporary directory %s...', self._tmp_dir)
-    shutil.rmtree(self._tmp_dir)
-
-  def _ProcessRequest(self):
+  def _ProcessRequest(self, tmp_dir):
     """Checks the request and processes it.
 
     Returns:
@@ -148,9 +143,10 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
             raise ValueError('Attachment(%s) should be used by one event' %
                              att_key)
           remaining_att.remove(att_key)
-          event.attachments[att_id] = self._RecvAttachment(form[att_key])
+          event.attachments[att_id] = self._RecvAttachment(form[att_key],
+                                                           tmp_dir)
           if self._gpg:
-            self._DecryptFile(event.attachments[att_id])
+            self._DecryptFile(event.attachments[att_id], tmp_dir)
 
         self._check_format(event)
         events.append(event)
@@ -167,10 +163,10 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
       self.warning('Emit failed')
       return 400, 'Bad request: Emit failed'
 
-  def _RecvAttachment(self, data):
-    """Receives attachment and saves it as tmp_path in _tmp_dir."""
+  def _RecvAttachment(self, data, target_dir):
+    """Receives attachment and saves it as temporary file in target_dir."""
     with tempfile.NamedTemporaryFile(
-        'w', prefix=data.name + '_', dir=self._tmp_dir, delete=False) as f:
+        'w', prefix=data.name + '_', dir=target_dir, delete=False) as f:
       if data.file:
         shutil.copyfileobj(data.file, f)
       # cgi.MiniFieldStorage does not have attribute 'file', since it stores
@@ -194,15 +190,15 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     self._CheckDecryptedData(decrypted_data)
     return decrypted_data.data
 
-  def _DecryptFile(self, path):
+  def _DecryptFile(self, file_path, target_dir):
     """Decrypts and verifies the file."""
     with file_utils.UnopenedTemporaryFile(prefix='decrypt_',
-                                          dir=self._tmp_dir) as tmp_path:
-      with open(path, 'r') as encrypted_file:
+                                          dir=target_dir) as tmp_path:
+      with open(file_path, 'r') as encrypted_file:
         decrypted_data = self._gpg.decrypt_file(
             encrypted_file, output=tmp_path)
         self._CheckDecryptedData(decrypted_data)
-      shutil.move(tmp_path, path)
+      shutil.move(tmp_path, file_path)
 
   def log_request(self, code='-', size='-'):
     """Overrides log_request to Instalog format."""

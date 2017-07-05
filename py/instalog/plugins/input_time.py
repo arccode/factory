@@ -13,13 +13,12 @@ from __future__ import print_function
 
 import datetime
 import os
-import shutil
-import tempfile
 
 import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
 from instalog import plugin_base
 from instalog.utils.arg_utils import Arg
+from instalog.utils import file_utils
 
 
 _DEFAULT_INTERVAL = 1
@@ -45,63 +44,58 @@ class InputTime(plugin_base.InputPlugin):
   ]
 
   def __init__(self, *args, **kwargs):
-    self._tmp_dir = None
     super(InputTime, self).__init__(*args, **kwargs)
 
   def SetUp(self):
     """Sets up the plugin."""
     # Create the temporary directory for attachments.
-    self._tmp_dir = tempfile.mkdtemp(prefix='input_time_')
-    self.info('Temporary directory for attachments: %s', self._tmp_dir)
     self.store.setdefault('total_events', 0)
     self.store.setdefault('total_attachments', 0)
-
-  def TearDown(self):
-    """Tears down the plugin."""
-    # Remove the temporary directory.
-    shutil.rmtree(self._tmp_dir)
 
   def Main(self):
     """Main thread of the plugin."""
     batch_id = 0
     # Check to make sure plugin should still be running.
     while not self.IsStopping():
-      # Try to emit an event.
-      self.debug('Trying to emit %d events', self.args.num_events)
-      events = []
-      for i in range(self.args.num_events):
-        # Create fake attachment files for the event.
-        attachments = {}
-        for j in range(self.args.num_attachments):
-          att_path = os.path.join(self._tmp_dir, '%d_%d_%d' % (batch_id, i, j))
-          with open(att_path, 'wb') as f:
-            f.write(os.urandom(self.args.attachment_bytes))
-          attachments[j] = att_path
-          self.store['total_attachments'] += 1
+      # Create the temporary directory for attachments.
+      with file_utils.TempDirectory(prefix='input_time_') as tmp_dir:
+        self.debug('Temporary directory for attachments: %s', tmp_dir)
+        # Try to emit an event.
+        self.debug('Trying to emit %d events', self.args.num_events)
+        events = []
+        for i in range(self.args.num_events):
+          # Create fake attachment files for the event.
+          attachments = {}
+          for j in range(self.args.num_attachments):
+            att_path = os.path.join(tmp_dir, '%d_%d_%d' % (batch_id, i, j))
+            with open(att_path, 'wb') as f:
+              f.write(os.urandom(self.args.attachment_bytes))
+            attachments[j] = att_path
+            self.store['total_attachments'] += 1
 
-        # Data for the event.
-        data = {'name': self.args.event_name,
-                'batch_id': batch_id,
-                'id': i,
-                'timestamp': datetime.datetime.now()}
+          # Data for the event.
+          data = {'name': self.args.event_name,
+                  'batch_id': batch_id,
+                  'id': i,
+                  'timestamp': datetime.datetime.now()}
 
-        # Create the event.
-        events.append(datatypes.Event(data, attachments))
-        self.store['total_events'] += 1
+          # Create the event.
+          events.append(datatypes.Event(data, attachments))
+          self.store['total_events'] += 1
 
-      self.info('Emitting batch #%d with %d events',
-                batch_id, self.args.num_events)
-      self.SaveStore()
-      if not self.Emit(events):
-        self.error('Failed to emit %d events, dropping', self.args.num_events)
-        # TODO(kitching): Find a better way to block the plugin when we are in
-        #                 one of the PAUSING, PAUSED, or UNPAUSING states.
-        self.Sleep(1)
+        self.info('Emitting batch #%d with %d events',
+                  batch_id, self.args.num_events)
+        self.SaveStore()
+        if not self.Emit(events):
+          self.error('Failed to emit %d events, dropping', self.args.num_events)
+          # TODO(kitching): Find a better way to block the plugin when we are in
+          #                 one of the PAUSING, PAUSED, or UNPAUSING states.
+          self.Sleep(1)
 
-      # Sleep until next emit interval.
-      self.debug('Sleeping for %s', self.args.interval)
-      self.Sleep(self.args.interval)
-      batch_id += 1
+        # Sleep until next emit interval.
+        self.debug('Sleeping for %s', self.args.interval)
+        self.Sleep(self.args.interval)
+        batch_id += 1
 
 
 if __name__ == '__main__':

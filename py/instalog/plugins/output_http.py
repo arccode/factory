@@ -12,8 +12,6 @@ Sends events to input HTTP plugin.
 from __future__ import print_function
 
 import os
-import shutil
-import tempfile
 import time
 
 import requests
@@ -69,7 +67,6 @@ class OutputHTTP(plugin_base.OutputPlugin):
     # _max_bytes will be updated after _CheckConnect and _PostRequest.
     self._batch_size = 1
     self._max_bytes = http_common.DEFAULT_MAX_BYTES
-    self._tmp_dir = None
     self._target_url = ''
     self._gpg = None
     super(OutputHTTP, self).__init__(*args, **kwargs)
@@ -88,16 +85,9 @@ class OutputHTTP(plugin_base.OutputPlugin):
       self._EncryptData('Checks the target public key is valid.')
       self.info('Finished checking the target public key')
 
-    # Create the temporary directory for attachments.
-    self._tmp_dir = tempfile.mkdtemp(prefix='output_http_')
     self._target_url = 'http://%s:%d/%s' % (self.args.hostname,
                                             self.args.port,
                                             self.args.url_path)
-
-  def TearDown(self):
-    # Remove the temporary directory.
-    self.debug('Removing temporary directory %s...', self._tmp_dir)
-    shutil.rmtree(self._tmp_dir)
 
   def Main(self):
     """Main thread of the plugin."""
@@ -137,38 +127,44 @@ class OutputHTTP(plugin_base.OutputPlugin):
         continue
 
       try:
-        start_time = time.time()
-        request_body = self._PrepareRequestData(events)
-        status_code, reason, clen = self._PostRequest(request_body)
+        # Create the temporary directory for attachments.
+        with file_utils.TempDirectory(prefix='output_http_') as tmp_dir:
+          self.debug('Temporary directory for attachments: %s', tmp_dir)
 
-        if status_code == 413:  # Request Entity Too Large
-          event_stream.Abort()
-          if len(events) == 1:
-            self.error('One event is bigger than input HTTP plugin\'s maximum '
-                       'request limit (event size = %dbytes, input plugin '
-                       'maximum size = %dbytes)', clen, self._max_bytes)
-            return
+          start_time = time.time()
+          request_body = self._PrepareRequestData(events, tmp_dir)
+          status_code, reason, clen = self._PostRequest(request_body)
 
-          self.info('Request entity too large, and trying to send a half of '
-                    'the request')
-          # This won't be 0 since it will stop on above when self._batch_size=1.
-          self._batch_size /= 2
-          continue
+          if status_code == 413:  # Request Entity Too Large
+            event_stream.Abort()
+            if len(events) == 1:
+              self.error('One event is bigger than input HTTP plugin\'s '
+                         'maximum request limit (event size = %dbytes, input '
+                         'plugin maximum size = %dbytes)',
+                         clen, self._max_bytes)
+              return
 
-        elif status_code != 200:  # Bad Request
-          self.error(reason)
-          raise Exception
+            self.info('Request entity too large, and trying to send a half of '
+                      'the request')
+            # This won't be 0 since it will stop on above when
+            # self._batch_size=1.
+            self._batch_size /= 2
+            continue
 
-        event_stream.Commit()
-        self._batch_size = self.args.batch_size
-        elapsed_time = time.time() - start_time
+          elif status_code != 200:  # Bad Request
+            self.error(reason)
+            raise Exception
 
-        # Size and speed information.
-        total_kbytes = clen / 1024.0
-        self.info(
-            'Transmitted %d events, total %.2f kB in %.1f sec (%.2f kB/sec)',
-            len(events), total_kbytes, elapsed_time,
-            total_kbytes / elapsed_time)
+          event_stream.Commit()
+          self._batch_size = self.args.batch_size
+          elapsed_time = time.time() - start_time
+
+          # Size and speed information.
+          total_kbytes = clen / 1024.0
+          self.info(
+              'Transmitted %d events, total %.2f kB in %.1f sec (%.2f kB/sec)',
+              len(events), total_kbytes, elapsed_time,
+              total_kbytes / elapsed_time)
       except requests.ConnectionError as e:
         self.warning('Connection failed: Is input HTTP plugin running?')
         self.debug('Connection error: %s', e)
@@ -181,7 +177,7 @@ class OutputHTTP(plugin_base.OutputPlugin):
         target_available = False
         self.Sleep(1)
 
-  def _PrepareRequestData(self, events):
+  def _PrepareRequestData(self, events, tmp_dir):
     """Converts the list of event to requests' format."""
     request_body = []
     att_seq = 0
@@ -190,7 +186,7 @@ class OutputHTTP(plugin_base.OutputPlugin):
         att_newname = '%s_%03d' % (os.path.basename(att_path), att_seq)
         att_seq += 1
         if self._gpg:
-          att_path = self._EncryptFile(att_path)
+          att_path = self._EncryptFile(att_path, tmp_dir)
         request_body.append((att_newname, open(att_path, 'rb')))
         event.attachments[att_id] = att_newname
       serialized_event = datatypes.Event.Serialize(event)
@@ -246,11 +242,11 @@ class OutputHTTP(plugin_base.OutputPlugin):
       raise Exception('Failed to encrypt data! Log: %s' % encrypted_data.stderr)
     return encrypted_data.data
 
-  def _EncryptFile(self, path):
+  def _EncryptFile(self, file_path, target_dir):
     """Encrypts and signs the file by target key and default secret key."""
     encrypt_path = file_utils.CreateTemporaryFile(prefix='encrypt_',
-                                                  dir=self._tmp_dir)
-    with open(path, 'r') as plaintext_file:
+                                                  dir=target_dir)
+    with open(file_path, 'r') as plaintext_file:
       encrypted_data = self._gpg.encrypt(
           plaintext_file,
           self.args.target_key,
