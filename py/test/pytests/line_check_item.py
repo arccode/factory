@@ -2,10 +2,61 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""A factory test to check a list of commands.
+"""A factory test to interactively check a sequence of shell commands on DUT.
+
+Description
+-----------
+This test is very similar to ``exec_shell`` test, except that
+``line_check_item`` has the ability to get operator confirmation no matter if
+the shell command success or not.
+
+If you simply want to run few commands (and fail if the return value is
+non-zero), especially if you need to run commands on host or station, use
+``exec_shell``.
+
+If you simply want to run few commands and don't care if the commands success
+or not, use ``exec_shell`` and add ``'|| true'`` for all commands.
+
+If you are running some commands and some (at least one) commands need operator
+to judge if that passed or not manually (for example checking if some LED has
+lightened properly), use ``line_check_item``.
+
+``line_check_item`` evaluates and executes the given ``items`` argument, where
+each item is a sequence with 3 elements (instruction, command, judge_to_pass):
+
+1. ``instruction``: A string passed to ``i18n.Translated`` to display on UI.
+2. ``command``: A sequence or str as shell command to be passed to dut.Popen.
+3. ``judge_to_pass``: A boolean value to indicate if these commands need user to
+   judge pass or failure, even if the command returns zero (success).
+
+Test Procedure
+--------------
+The test will go though each item and:
+
+1. Display instruction on UI.
+2. Execute command.
+3. If judge_to_pass is True, wait for operator to confirm if passed or not.
+
+Dependency
+----------
+The commands specified in items must be available on DUT.
+
+Examples
+--------
+To turn on a 'lightbar' component and wait for confirmation, add this to test
+list::
+
+  OperatorTest(pytest_name='line_check_item',
+               dargs={
+                 'title': _('LED Test'),
+                 'items': [
+                   (_('Initialization'), 'lightbar init', False),
+                   (_('Turn on lightbar'), 'lightbar enable', True),
+                   (_('Clean up'), 'lightbar reset', False),
+                 ]})
 """
 
-from collections import namedtuple
+import collections
 import subprocess
 import unittest
 
@@ -19,68 +70,57 @@ from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import process_utils
 
-CheckItem = namedtuple('CheckItem', 'instruction command judge_to_pass')
+CheckItem = collections.namedtuple('CheckItem',
+                                   'instruction command judge_to_pass')
 
 
 class LineCheckItemTest(unittest.TestCase):
-  """Test a list of commands are successful or not.
+  """Test a sequence of commands are successful or not.
+
   Properties:
     _ui: test ui.
     _template: test ui template.
-    _items: A list of CheckItems.
+    _items: A sequence of CheckItem.
     _current: current test item index in _items.
   """
   ARGS = [
       i18n_arg_utils.I18nArg('title', 'test title.'),
-      Arg('items', list,
-          ('A list of item to check. Each item can be either a simple string\n'
-           'as shell command to execute, or a tuple of format:\n'
-           '\n'
-           '  (instruction, command, judge_to_pass)\n'
-           '\n'
-           'The fields are:\n'
-           '\n'
-           '- instruction: instruction, would be passed to i18n.Translated.\n'
-           '- command: (list or str) commands to be passed to Spawn.\n'
-           '- judge_to_pass: (bool) require user to judge pass/fail\n'
-           '  even if command is successful.'),
+      Arg('items', collections.Sequence,
+          ('A sequence of items to check. Each item is a sequence of: '
+           ' (instruction, command, judge_to_pass).'),
           optional=False),
-      Arg('run_locally', bool, 'Run the given commands locally instead of DUT '
-          '- for example doing configuration on Goofy host.', default=False),
-      Arg('use_shell', bool, 'True to execute with shell=True.',
-          default=True, optional=True),
-      Arg('has_ui', bool, 'True if this test runs with goofy UI enabled.',
-          optional=True, default=True)
+      Arg('is_station', bool,
+          ('Run the given commands on station (usually local host) instead of '
+           'DUT, for example preparing connection configuration.'),
+          default=False),
   ]
 
   def setUp(self):
     """Initializes _ui, _template, _current, and _items"""
     i18n_arg_utils.ParseArg(self, 'title')
-    self._ui = (test_ui.UI() if self.args.has_ui
-                else test_ui.DummyUI(self))
-    self._template = (ui_templates.OneSection(self._ui) if self.args.has_ui
-                      else ui_templates.DummyTemplate())
-
-    def _CommandToLabel(command, length=50):
-      return (command[:length] + ' ...') if len(command) > length else command
-
+    self._ui = test_ui.UI()
+    self._template = ui_templates.OneSection(self._ui)
+    self._current = 0
+    self._dut = (device_utils.CreateStationInterface()
+                 if self.args.is_station else
+                 device_utils.CreateDUTInterface())
     self._items = []
+
+    found_judge_to_pass = False
     for item in self.args.items:
-      if isinstance(item, basestring):
-        check_item = CheckItem(
-            i18n.NoTranslation(_CommandToLabel(item)), item, False)
-      elif isinstance(item, tuple) and len(item) == 3:
-        check_item = CheckItem(
-            i18n.Translated(item[0], translate=False), item[1], item[2])
+      if isinstance(item, collections.Sequence) and len(item) == 3:
+        check_item = CheckItem(i18n.Translated(item[0], translate=False),
+                               item[1], item[2])
       else:
         raise ValueError('Unknown item %r in args.items.' % item)
+      if item[2]:
+        found_judge_to_pass = True
       self._items.append(check_item)
 
-    self._current = 0
-    self._dut = (None if self.args.run_locally else
-                 device_utils.CreateDUTInterface())
+    if not found_judge_to_pass:
+      raise ValueError('If judge_to_pass is not needed, use `exec_shell` test.')
+
 
   def NeedToJudgeSubTest(self):
     """Returns whether current subtest needs user to judge pass/fail or not."""
@@ -100,16 +140,9 @@ class LineCheckItemTest(unittest.TestCase):
       instruction = instruction + '<br>' + test_ui.MakePassFailKeyLabel()
     self._template.SetState(instruction)
 
-    if self.args.run_locally:
-      process = process_utils.Spawn(command, read_stdout=True,
-                                    log_stderr_on_error=True,
-                                    shell=self.args.use_shell)
-    else:
-      assert self.args.use_shell, (
-          'DUT API does not support execution without shell')
-      process = self._dut.Popen(command,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
+    process = self._dut.Popen(command,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE)
     stdout, stderr = process.communicate()
     retcode = process.returncode
     event_log.Log('checked_item', command=command, retcode=retcode,
