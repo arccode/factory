@@ -146,7 +146,9 @@ def main():
   parser.add_argument('--shopfloor_port', dest='shopfloor_port', type=int,
                       default=None, help='set shopfloor port')
   parser.add_argument('--board', '-b', dest='board',
-                      help='board to use (default: auto-detect')
+                      help='board to use (default: auto-detect)')
+  parser.add_argument('--project', '-j', dest='project',
+                      help='project name to use (default: auto-detect)')
   parser.add_argument('--norestart', dest='restart', action='store_false',
                       help="don't restart Goofy")
   parser.add_argument('--hwid', action='store_true',
@@ -237,17 +239,21 @@ def main():
                 check_call=True, log=True)
 
   if args.hwid:
-    if not board:
-      sys.exit('Cannot update hwid without board')
-    hwid_board = board.split('_')[-1]
+    project = args.project
+    if not project:
+      # TODO(yhong): Detect the real project name instead of board name.
+      if board:
+        project = board.split('_')[-1]
+    if not project:
+      sys.exit('Cannot update hwid without project name')
     chromeos_hwid_path = os.path.join(
         os.path.dirname(paths.FACTORY_DIR), 'chromeos-hwid')
-    Spawn(['./create_bundle', '--version', '3', hwid_board.upper()],
+    Spawn(['./create_bundle', '--version', '3', project.upper()],
           cwd=chromeos_hwid_path, check_call=True, log=True)
     SpawnSSHToDUT([args.host, 'bash'],
                   stdin=open(os.path.join(
                       chromeos_hwid_path,
-                      'hwid_v3_bundle_%s.sh' % hwid_board.upper())),
+                      'hwid_v3_bundle_%s.sh' % project.upper())),
                   check_call=True, log=True)
 
   # Make sure all the directories and files have correct permissions.  This is
