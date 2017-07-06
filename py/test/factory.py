@@ -1068,7 +1068,7 @@ class FactoryTestList(FactoryTest):
   """
 
   def __init__(self, subtests, state_instance, options, test_list_id=None,
-               label=None, finish_construction=True):
+               label=None, finish_construction=True, constants=None):
     """Constructor.
 
     Args:
@@ -1086,6 +1086,9 @@ class FactoryTestList(FactoryTest):
       finish_construction: Whether to immediately finalize the test
           list.  If False, the caller may add modify subtests,
           state_instance, and options and then call FinishConstruction().
+      constants: A type_utils.AttrDict object, which will be used to resolve
+          'eval! ' dargs.  See test.test_lists.manager.ITestList.ResolveTestArgs
+          for how it is used.
     """
     super(FactoryTestList, self).__init__(_root=True, subtests=subtests)
     self.state_instance = state_instance
@@ -1097,6 +1100,7 @@ class FactoryTestList(FactoryTest):
     self.options = options
     self.label = i18n.Translated(label or test_list_id or _('Untitled'))
     self.source_path = None
+    self.constants = type_utils.AttrDict(constants or {})
 
     if finish_construction:
       self.FinishConstruction()
@@ -1166,7 +1170,7 @@ class FactoryTestList(FactoryTest):
         'options': {
             k: getattr(self.options, k) for k in self.options.__dict__
         },
-        'constants': {},
+        'constants': dict(self.constants),
     }
     if recursive:
       config['tests'] = [subtest.ToStruct() for subtest in self.subtests]

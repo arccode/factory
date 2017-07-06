@@ -397,8 +397,7 @@ class LegacyTestList(ITestList):
 
   @property
   def constants(self):
-    # Legacy test list does not have constants field, return an empty namespace
-    return type_utils.AttrDict()
+    return self.test_list.constans
 
   @property
   def state_instance(self):
