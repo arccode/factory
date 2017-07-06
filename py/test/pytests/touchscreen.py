@@ -1,10 +1,48 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""A factory test to test the functionality of touchscreen."""
+"""A factory test to test the functionality of touchscreen.
+
+Description
+-----------
+Verifies if all cells of touchscreen can sense contacts.
+
+``touchscreen_wrap`` is also a test for touchscreen, and it's preferred than
+this test because:
+
+- ``touchscreen_wrap`` test requires operators to touch the cells in spiral
+  order, thus it can find out more touchscreen issues.
+
+- This test doesn't support end-to-end test (reads touch events from Chrome).
+
+Test Procedure
+--------------
+1. Press spacebar to start.
+2. Touch all cells in touchscreen with one finger to make them all green.
+
+The test will fail if it's not passed in `timeout_secs` seconds.
+
+Dependency
+----------
+- Based on Linux evdev.
+
+Examples
+--------
+To run touchscreen test with default parameters::
+
+  OperatorTest(pytest_name='touchscreen')
+
+If you want to change the time limit to 30 seconds::
+
+  OperatorTest(pytest_name='touchscreen', dargs=dict(timeout_secs=30))
+
+If you have multiple touchscreens and want to specify the one with event id 3::
+
+  OperatorTest(pytest_name='touchscreen', dargs=dict(touchscreen_event_id=3))
+"""
 
 import logging
 import unittest

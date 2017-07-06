@@ -2,7 +2,64 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Touchpad Hover Test."""
+"""Touchpad Hover Test.
+
+Description
+-----------
+Verifies if touchpad set `ABS_DISTANCE` to 1 when being hovered and set
+`ABS_DISTANCE` to 0 when not being hovered.
+
+For more information about `ABS_DISTANCE`, see this document::
+
+  https://www.kernel.org/doc/Documentation/input/event-codes.txt
+
+Some touchpad may need additional initialization before starting hover test,
+for example internal calibration. This test is currently implemented with an
+ability to calibrate touchpad by writing a string '1' to a special file.
+This test may be revised if we see more different requests for how to initialize
+before starting hover test.
+
+If you need to calibrate touchpad before hovering test by writing a string '1'
+to a special file, argument `calibration_trigger` should be set to the path of
+that file. For Elan touchpads, you can try to find the file in a path similar to
+the one in the second example.
+
+Test Procedure
+--------------
+1. DUT will automatically calibrate the touchpad in the beginning.
+   Just do nothing and wait for `calibration_sleep_secs` seconds.
+2. When prompted, put the hover-tool into the holder in `timeout_secs` seconds.
+3. When prompted, pull out the hover-tool from the holder in `timeout_secs`
+   seconds.
+4. Go back to step 2, repeat for `repeat_times` times.
+5. In the end, there will be a false positive check.
+   Just keep the hover-tool and your hands away from the touchpad and wait for
+   `false_positive_check_duration` seconds.
+
+Dependency
+----------
+- Based on Linux evdev.
+- Need a physical hover-tool and a holder to verify touchpad behavior on
+  being hovered.
+- Check with touchpad vendor if there is any initialization should be done
+  before starting this test. For Elan touchpads, we might need to know the path
+  of the calibration trigger file to trigger driver perform internal
+  calibration.
+
+Examples
+--------
+To check touchpad hover with default parameters without calibration::
+
+  OperatorTest(pytest_name='touchpad_hover')
+
+If calibration is required::
+
+  OperatorTest(
+      pytest_name='touchpad_hover',
+      dargs=dict(
+          calibration_trigger=(
+              '/sys/bus/i2c/drivers/elan_i2c/i2c-ELAN0000:00/calibrate')))
+"""
 
 import threading
 import time

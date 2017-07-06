@@ -1,12 +1,42 @@
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 """A factory test to test the functionality of touchpad.
 
-dargs:
-  touchpad_event_id: Touchpad input event id. (default: None)
-  timeout_secs: Timeout for the test. (default: 20 seconds)
+Description
+-----------
+A touchpad test for touching, clicking, and multi-contact.
+
+Test Procedure
+--------------
+1. Take off all your fingers from the touchpad.
+2. Press spacebar to start.
+3. Touch all `x_segments` * `y_segments` areas of touchpad with one finger.
+   The corresponding regions in screen will become green once you touch them.
+4. Scroll up and down with two fingers to make all cells in the right side of
+   screen green.
+5. Click left-top, right-top, left-bottom, and right-bottom corner of touchpad
+   with one finger for `number_to_quadrant` times.
+6. Click anywhere of touchpad with one finger until you have already done that
+   `number_to_click` times.
+7. Click anywhere of touchpad with two fingers for `number_to_click` times.
+
+If you don't pass the test in `timeout_secs` seconds, the test will fail.
+
+Dependency
+----------
+- Based on Linux evdev.
+
+Examples
+--------
+To test touchpad with default parameters::
+
+  OperatorTest(pytest_name='touchpad')
+
+If you want to change the time limit to 100 seconds::
+
+  OperatorTest(pytest_name='touchpad', dargs=dict(timeout_secs=100))
 """
 
 import logging
