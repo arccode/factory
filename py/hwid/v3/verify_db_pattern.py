@@ -7,9 +7,9 @@
 """Verifies that new commits do not alter existing encoding patterns.
 
 This test may be invoked in multiple ways:
-  1. Execute manually. In this case all the v3 boards listed in boards.yaml
+  1. Execute manually. In this case all the v3 projects listed in projects.yaml
      are checked. The test loads and compares new and old databases from HEAD
-     and HEAD~1, respectively, in each corresponding branch of each board.
+     and HEAD~1, respectively, in each corresponding branch of each project.
   2. As a pre-submit check in platform/chromeos-hwid repo. In this case only the
      changed HWID databases in each commit are tested.
   3. VerifyParsedDatabasePattern may be called directly by the HWID Server.
@@ -34,9 +34,9 @@ from cros.factory.tools import build_board
 class HWIDDBsPatternTest(unittest.TestCase):
   """Unit test for HWID database."""
 
-  def __init__(self, board=None, commit=None):
+  def __init__(self, project=None, commit=None):
     super(HWIDDBsPatternTest, self).__init__()
-    self.board = board
+    self.project = project
     self.commit = commit
 
   def runTest(self):
@@ -46,33 +46,34 @@ class HWIDDBsPatternTest(unittest.TestCase):
       print('ValidHWIDDBsTest: ignored, no %s in source tree.' % hwid_dir)
       return
 
-    # Always read boards.yaml from ToT as all boards are required to have an
+    # Always read projects.yaml from ToT as all projects are required to have an
     # entry in it.
-    boards_info = yaml.load(process_utils.CheckOutput(
-        ['git', 'show', 'remotes/cros-internal/master:boards.yaml'],
+    projects_info = yaml.load(process_utils.CheckOutput(
+        ['git', 'show', 'remotes/cros-internal/master:projects.yaml'],
         cwd=hwid_dir))
     files = os.environ.get('PRESUBMIT_FILES')
     if files:
       files = [f.partition('/platform/chromeos-hwid/')[-1]
                for f in files.splitlines()]
     else:
-      # If PRESUBMIT_FILES is not found, defaults to test all v3 boards in
-      # boards.yaml.
-      files = [b['path'] for b in boards_info.itervalues() if b['version'] == 3]
+      # If PRESUBMIT_FILES is not found, defaults to test all v3 projects in
+      # projects.yaml.
+      files = [b['path'] for b in projects_info.itervalues()
+               if b['version'] == 3]
 
     def TestDatabase(db_path):
-      board_name = os.path.basename(db_path)
-      if board_name not in boards_info:
+      project_name = os.path.basename(db_path)
+      if project_name not in projects_info:
         return
       commit = (self.commit or os.environ.get('PRESUBMIT_COMMIT') or
-                'cros-internal/%s' % boards_info[board_name]['branch'])
+                'cros-internal/%s' % projects_info[project_name]['branch'])
       logging.info('Checking %s:%s...', commit, db_path)
       self.VerifyDatabasePattern(hwid_dir, commit, db_path)
 
-    if self.board:
-      if self.board not in boards_info:
-        self.fail('Invalid board %r' % self.board)
-      TestDatabase('v3/%s' % self.board)
+    if self.project:
+      if self.project not in projects_info:
+        self.fail('Invalid project %r' % self.project)
+      TestDatabase('v3/%s' % self.project)
     else:
       for f in files:
         TestDatabase(f)
@@ -114,19 +115,26 @@ class HWIDDBsPatternTest(unittest.TestCase):
           raise common.HWIDException(
               'Bit pattern mismatch found at bit %d (encoded field=%r). '
               'If you are trying to append new bit(s), be sure to create a new '
-              'bit pattern field instead of simply incrementing the last field' %
-              (index, old_bit_mapping[index][0]))
+              'bit pattern field instead of simply incrementing the last '
+              'field' % (index, old_bit_mapping[index][0]))
 
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument('--board', help='the board to test')
+  # TODO(yhong): Deprecate --board argument.
+  parser.add_argument('--board', help='the board to test (deprecated)')
   parser.add_argument('--commit', help='the commit to test')
+  parser.add_argument('--project', type=str, default=None,
+                      help=('name of the project to test, currently '
+                            'default to board name'))
   args = parser.parse_args()
   logging.basicConfig(level=logging.INFO)
 
   if args.board:
     args.board = build_board.BuildBoard(args.board).short_name.upper()
+  if not args.project:
+    args.project = args.board
+
   runner = unittest.TextTestRunner()
-  test = HWIDDBsPatternTest(board=args.board, commit=args.commit)
+  test = HWIDDBsPatternTest(project=args.project, commit=args.commit)
   runner.run(test)

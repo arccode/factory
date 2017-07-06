@@ -43,8 +43,8 @@ EXAMPLES = r"""Examples:
   4. Lists factory bundle info for all boards to a HTML file:
      py/tools/factory_bundle_info.py --html_file=bundle.html
 
-  5. Lists factory bundle info using a local boards.yaml file:
-     py/tools/factory_bundle_info.py --boards_yaml=boards.yaml
+  5. Lists factory bundle info using a local projects.yaml file:
+     py/tools/factory_bundle_info.py --projects_yaml=projects.yaml
 """
 
 
@@ -196,7 +196,7 @@ _ExtractBaseboardAndVersion.static_dict = {
     }
 
 
-def GetFactoryBranchInfo(board, base_board, repo_sync, boards_yaml=None):
+def GetFactoryBranchInfo(board, base_board, repo_sync, projects_yaml=None):
   """Gets factory branch info.
 
   Gets factory branch info for a board, or all boards based on the base_board,
@@ -207,14 +207,14 @@ def GetFactoryBranchInfo(board, base_board, repo_sync, boards_yaml=None):
     base_board: The base board name to get factory branches info for
         all boards base on the base_board.
     repo_sync: whether to 'repo sync' in platform/chromeos-hwid repo.
-    boards_yaml: A local yaml file specifying factory branch info for
+    projects_yaml: A local yaml file specifying factory branch info for
         all boards.
 
   Returns: A list of tuples (board name, factory branch name) sorted by
       factory branch version and group by base board.
   """
-  if boards_yaml:
-    boards_info = yaml.load(open(boards_yaml))
+  if projects_yaml:
+    boards_info = yaml.load(open(projects_yaml))
   else:
     hwid_dir = os.path.join(
         os.environ['CROS_WORKON_SRCROOT'], 'src', 'platform', 'chromeos-hwid')
@@ -228,10 +228,10 @@ def GetFactoryBranchInfo(board, base_board, repo_sync, boards_yaml=None):
           'repo sync -n .',
           log=True, cwd=hwid_dir, shell=True, check_call=True)
 
-    # Always read boards.yaml from ToT as all boards are required to have an
+    # Always read projects.yaml from ToT as all boards are required to have an
     # entry in it.
     boards_info = yaml.load(process_utils.CheckOutput(
-        ['git', 'show', 'remotes/cros-internal/master:boards.yaml'],
+        ['git', 'show', 'remotes/cros-internal/master:projects.yaml'],
         cwd=hwid_dir))
 
   def _LogBaseboardMaxVersion(branch_name, max_version):
@@ -344,9 +344,10 @@ def ParseArgs():
                             'for all boards based on the base board.'))
   parser.add_argument('--html_file', '-f',
                       help='File name to store the output in HTML format.')
-  parser.add_argument('--boards_yaml', '-by',
-                      help=('A local boards.yaml file storing factory branch\n'
-                            'info for all boards. An example of boards.yaml:\n'
+  parser.add_argument('--projects_yaml', '-py',
+                      help=('A local projects.yaml file storing factory\n'
+                            'branch info for all boards. An example of\n'
+                            'projects.yaml:\n'
                             'SQUAWKS:\n'
                             '    board: SQUAWKS\n'
                             '    branch: factory-rambi-5517.B\n'
@@ -371,7 +372,7 @@ def main():
     if not answer or answer[0] not in 'yY':
       sys.exit('Aborting.')
   boards_branch_info = GetFactoryBranchInfo(
-      args.board, args.base_board, args.sync, args.boards_yaml)
+      args.board, args.base_board, args.sync, args.projects_yaml)
   OutputBundleInfo(boards_branch_info, args.html_file, args.sync)
 
 

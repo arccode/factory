@@ -7,14 +7,14 @@
 """Test to verify that all v3 HWID databases are valid.
 
 The test may be invoked in two ways:
-  1. As a unittest in platform/factory repo. In this case all the v3 boards
-     listed in boards.yaml are checked. The test loads and tests database from
+  1. As a unittest in platform/factory repo. In this case all the v3 projects
+     listed in projects.yaml are checked. The test loads and tests database from
      each corresponding branch.
   2. As a pre-submit check in platform/chromeos-hwid repo. In this case only the
      changed files in each commit are tested.
 
-For each board that the test finds, the test checks that:
-  1. The board is listed in boards.yaml.
+For each project that the test finds, the test checks that:
+  1. The project is listed in projects.yaml.
   2. The checksum of the database is correct (if applicable).
   3. If a test file is found, run through each test case listed in the test
      file. Normally a test file contains a list of encoding and decoding tests.
@@ -51,42 +51,43 @@ class ValidHWIDDBsTest(unittest.TestCase):
       print 'ValidHWIDDBsTest: ignored, no %s in source tree.' % hwid_dir
       return
 
-    # Always read boards.yaml from ToT as all boards are required to have an
+    # Always read projects.yaml from ToT as all projects are required to have an
     # entry in it.
-    boards_info = yaml.load(process_utils.CheckOutput(
-        ['git', 'show', 'remotes/cros-internal/master:boards.yaml'],
+    projects_info = yaml.load(process_utils.CheckOutput(
+        ['git', 'show', 'remotes/cros-internal/master:projects.yaml'],
         cwd=hwid_dir))
     # Get the list of modified HWID databases.
     files = os.environ.get('PRESUBMIT_FILES')
     if files:
       files = files.splitlines()
     else:
-      # If PRESUBMIT_FILES is not found, defaults to test all v3 boards in
-      # boards.yaml.
-      files = [b['path'] for b in boards_info.itervalues() if b['version'] == 3]
+      # If PRESUBMIT_FILES is not found, defaults to test all v3 projects in
+      # projects.yaml.
+      files = [b['path'] for b in projects_info.itervalues()
+               if b['version'] == 3]
 
     exception_list = []
     for f in files:
-      board_name = os.path.basename(f)
-      if board_name not in boards_info:
+      project_name = os.path.basename(f)
+      if project_name not in projects_info:
         if self.V3_HWID_DATABASE_PATH_REGEXP.search(f):
-          self.fail(msg='HWID database %r is not listed in boards.yaml' % f)
+          self.fail(msg='HWID database %r is not listed in projects.yaml' % f)
         continue
 
-      board_info = boards_info[board_name]
+      project_info = projects_info[project_name]
 
-      if board_info['version'] != 3:
+      if project_info['version'] != 3:
         # Only check v3 HWID database in this test.
         continue
 
       # If PRESUBMIT_COMMIT is empty, defaults to checking all the HWID database
       # in their corresponding branches.
       commit = (os.environ.get('PRESUBMIT_COMMIT') or
-                'cros-internal/%s' % boards_info[board_name]['branch'])
-      db_path = board_info['path']
+                'cros-internal/%s' % projects_info[project_name]['branch'])
+      db_path = project_info['path']
       test_path = os.path.join(os.path.dirname(db_path), 'testdata',
-                               board_name + '_test.yaml')
-      title = '%s %s:%s' % (board_name, commit, db_path)
+                               project_name + '_test.yaml')
+      title = '%s %s:%s' % (project_name, commit, db_path)
       logging.info('Checking %s', title)
 
       try:
@@ -96,9 +97,9 @@ class ValidHWIDDBsTest(unittest.TestCase):
       except subprocess.CalledProcessError as e:
         if e.returncode == 128:
           logging.info('Cannot find %s. Skip encoding / decoding test for %s.',
-                       test_path, board_name)
+                       test_path, project_name)
           continue
-        logging.error('%s: Load testdata failed.', board_name)
+        logging.error('%s: Load testdata failed.', project_name)
         exception_list.append((title, sys.exc_info()))
         continue
 
@@ -109,7 +110,7 @@ class ValidHWIDDBsTest(unittest.TestCase):
       except subprocess.CalledProcessError as e:
         if e.returncode == 128:
           logging.info('Database %s is removed. Skip test for %s.',
-                       db_path, board_name)
+                       db_path, project_name)
           continue
         exception_list.append((title, sys.exc_info()))
         continue
@@ -134,7 +135,7 @@ class ValidHWIDDBsTest(unittest.TestCase):
             db_yaml, expected_checksum=expected_checksum,
             strict=bool(expected_checksum))
       except Exception:
-        logging.error('%s: Load database failed.', board_name)
+        logging.error('%s: Load database failed.', project_name)
         exception_list.append((title, sys.exc_info()))
         continue
 
@@ -151,7 +152,7 @@ class ValidHWIDDBsTest(unittest.TestCase):
             idx = sample['error']
           else:
             idx = sample['encoded_string']
-          logging.error('Error occurs in %s: %s', board_name, idx)
+          logging.error('Error occurs in %s: %s', project_name, idx)
           exception_list.append((title, sys.exc_info()))
     if exception_list:
       error_msg = []
