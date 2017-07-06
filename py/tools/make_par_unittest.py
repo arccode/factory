@@ -39,7 +39,7 @@ class MakePARTest(unittest.TestCase):
                                      (1, 'raise ValueError')):
       self.assertEquals(
           expected_retcode,
-          Spawn(command + ['execpython', '--args', repr({'script': script})],
+          Spawn(command + ['exec_python', '--args', repr({'script': script})],
                 log=True, call=True, env={}, cwd='/',
                 ignore_stdout=True, ignore_stderr=True).returncode)
 

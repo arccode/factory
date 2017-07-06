@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""A test to run arbitary python scripts.
+"""A test to run arbitrary python scripts.
 
 Description
 -----------
@@ -28,7 +28,7 @@ Examples
 --------
 A test that always pass::
 
-  FactoryTest(pytest_name='execpython',
+  FactoryTest(pytest_name='exec_python',
               dargs=dict(
                   script='assert 1 == 1'))
 

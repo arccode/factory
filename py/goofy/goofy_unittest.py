@@ -517,14 +517,14 @@ class PyTestTest(GoofyTest):
   """Tests the Python test driver.
 
   Note that no mocks are used here, since it's easy enough to just have the
-  Python driver run a 'real' test (execpython).
+  Python driver run a 'real' test (exec_python).
   """
   test_list = """
     test_lists.OperatorTest(
-        id='a', pytest_name='execpython',
+        id='a', pytest_name='exec_python',
         dargs={'script': 'assert "Tomato" == "Tomato"'})
     test_lists.OperatorTest(
-        id='b', pytest_name='execpython',
+        id='b', pytest_name='exec_python',
         dargs={'script': ("assert 'Pa-TAY-to' == 'Pa-TAH-to', "
                           "'Let\\\\\'s call the whole thing off'")})
   """
@@ -552,10 +552,10 @@ class PyTestTest(GoofyTest):
 
 
 class PyLambdaTest(GoofyTest):
-  """A test case that checks the behavior of execpython."""
+  """A test case that checks the behavior of exec_python."""
   test_list = """
     test_lists.OperatorTest(
-        id='a', pytest_name='execpython',
+        id='a', pytest_name='exec_python',
         dargs={'script': lambda env: 'raise ValueError("It"+"Failed")'})
   """
 
@@ -751,10 +751,10 @@ class NoHostTest(GoofyUITest):
 
   test_list = """
     test_lists.OperatorTest(
-        id='a', pytest_name='execpython', no_host=True,
+        id='a', pytest_name='exec_python', no_host=True,
         dargs={'script': 'assert "Tomato" == "Tomato"'})
     test_lists.OperatorTest(
-        id='b', pytest_name='execpython', no_host=False,
+        id='b', pytest_name='exec_python', no_host=False,
         dargs={'script': 'assert "Tomato" == "Tomato"'})
   """
 

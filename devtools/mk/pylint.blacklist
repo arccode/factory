@@ -16,7 +16,7 @@ py/test/event.py
 py/test/gooftools.py
 py/test/leds.py
 py/test/line_item_check.py
-py/test/pytests/execpython.py
+py/test/pytests/exec_python.py
 py/test/state_machine.py
 py/test/state.py
 py/test/state_unittest.py
