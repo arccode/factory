@@ -6,12 +6,12 @@
 # found in the LICENSE file.
 
 import unittest
-import yaml
 import factory_common  # pylint: disable=W0611
 
 from cros.factory.hwid.v3.rule import (
     RuleFunction, Rule, Value, Context, RuleException,
     SetContext, GetContext, GetLogger)
+from cros.factory.hwid.v3 import yaml_wrapper as yaml
 
 
 @RuleFunction(['string'])

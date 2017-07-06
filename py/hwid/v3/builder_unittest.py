@@ -10,11 +10,11 @@ import copy
 import os
 import unittest
 import mock
-import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import builder
 from cros.factory.hwid.v3 import yaml_tags
+from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.utils import yaml_utils
 
 
@@ -85,13 +85,14 @@ class BuilderMethodTest(unittest.TestCase):
 class DatabaseBuilderTest(unittest.TestCase):
 
   def setUp(self):
-    yaml_utils.ParseMappingAsOrderedDict()
+    yaml_utils.ParseMappingAsOrderedDict(loader=yaml.Loader, dumper=yaml.Dumper)
 
     with open(os.path.join(TEST_DATA_PATH, 'test_db_builder.yaml'), 'r') as f:
       self.test_dbs = list(yaml.load_all(f.read()))
 
   def tearDown(self):
-    yaml_utils.ParseMappingAsOrderedDict(False)
+    yaml_utils.ParseMappingAsOrderedDict(False, loader=yaml.Loader,
+                                         dumper=yaml.Dumper)
 
   def testInit(self):
     with self.assertRaises(ValueError):

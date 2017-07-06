@@ -10,7 +10,6 @@
 import logging
 import os
 import unittest
-import yaml
 
 import factory_common   # pylint: disable=W0611
 import cros.factory.hwid.v3.common_rule_functions  # pylint: disable=W0611
@@ -23,6 +22,7 @@ from cros.factory.hwid.v3.hwid_rule_functions import (
     CheckRegistrationCode, GetPhase)
 from cros.factory.hwid.v3.rule import (
     Rule, Context, RuleException, SetContext, GetLogger)
+from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.test.rules import phase
 from cros.factory.test.rules.registration_codes import RegistrationCodeException
 

@@ -10,13 +10,13 @@ import json
 import logging
 import os
 import shutil
-import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.hwid.v3 import common
-from cros.factory.hwid.v3 import rule
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import hwid_utils
+from cros.factory.hwid.v3 import rule
+from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.test import device_data
 from cros.factory.test.rules import phase
 from cros.factory.tools import build_board
@@ -83,7 +83,7 @@ def BuildDatabaseWrapper(options):
     raise IOError('File %s is not found.' % options.probed_results_file)
   if not os.path.isdir(options.hwid_db_path):
     raise IOError('%s is not is directory.' % options.hwid_db_path)
-  yaml_utils.ParseMappingAsOrderedDict()
+  yaml_utils.ParseMappingAsOrderedDict(loader=yaml.Loader, dumper=yaml.Dumper)
   probed_results = hwid_utils.GetProbedResults(options.probed_results_file)
   database_path = os.path.join(options.hwid_db_path, options.board.upper())
   hwid_utils.BuildDatabase(
@@ -120,7 +120,7 @@ def UpdateDatabaseWrapper(options):
     shutil.copyfile(old_db_path, bak_db_path)
 
   # Load the original database as OrderedDict
-  yaml_utils.ParseMappingAsOrderedDict()
+  yaml_utils.ParseMappingAsOrderedDict(loader=yaml.Loader, dumper=yaml.Dumper)
   logging.info('Load the orignal database from %s', old_db_path)
   with open(old_db_path, 'r') as f:
     old_db = yaml.load(f)

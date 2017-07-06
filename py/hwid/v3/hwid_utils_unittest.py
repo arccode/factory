@@ -12,14 +12,13 @@ import mock
 import os
 import tempfile
 import unittest
-import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3 import rule
+from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.hwid.v3.rule import Value
 from cros.factory.test.rules import phase
 from cros.factory.utils import sys_utils
@@ -141,7 +140,7 @@ class HWIDv3UtilsTest(unittest.TestCase):
       'cpu' does not return any result.
       'audio_codec' returns multiple results.
     """
-    probed_results = yaml.load(hwid_tool.ProbeResults(
+    probed_results = yaml.load(hwid_utils.ProbeResultsV3(
         found_probe_value_map={
             'bluetooth': {
                 'idVendor': '0123',
@@ -187,7 +186,7 @@ class HWIDv3UtilsTest(unittest.TestCase):
 
   def testVerifyBadComponents3(self):
     """Tests VerifyComponents with invalid component class name."""
-    probed_results = yaml.load(hwid_tool.ProbeResults(
+    probed_results = yaml.load(hwid_utils.ProbeResultsV3(
         found_probe_value_map={},
         missing_component_classes=[],
         found_volatile_values={},
@@ -422,14 +421,15 @@ class HWIDv3UtilsTest(unittest.TestCase):
 class DatabaseBuilderTest(unittest.TestCase):
 
   def setUp(self):
-    yaml_utils.ParseMappingAsOrderedDict()
+    yaml_utils.ParseMappingAsOrderedDict(loader=yaml.Loader, dumper=yaml.Dumper)
     with open(os.path.join(TEST_DATA_PATH,
                            'test_builder_probe_results.yaml'), 'r') as f:
       self.probed_results = list(yaml.load_all(f.read()))
     self.output_path = tempfile.mktemp()
 
   def tearDown(self):
-    yaml_utils.ParseMappingAsOrderedDict(False)
+    yaml_utils.ParseMappingAsOrderedDict(False, loader=yaml.Loader,
+                                         dumper=yaml.Dumper)
     if os.path.exists(self.output_path):
       os.remove(self.output_path)
 

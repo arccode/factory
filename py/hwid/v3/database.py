@@ -13,13 +13,13 @@ import math
 import os
 import pprint
 import re
-import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import rule
 # Import yaml_tags to decode special YAML tags specific to HWID module.
 from cros.factory.hwid.v3 import yaml_tags  # pylint: disable=W0611
+from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.hwid.v3.base32 import Base32
 from cros.factory.hwid.v3.base8192 import Base8192
 from cros.factory.utils import file_utils

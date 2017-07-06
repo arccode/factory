@@ -17,10 +17,10 @@ import logging
 import re
 import threading
 import time
-import factory_common  # pylint: disable=W0611
 
+import factory_common  # pylint: disable=unused-import
+from cros.factory.hwid.v3 import yaml_tags
 from cros.factory.utils import type_utils
-from cros.factory.utils import yaml_utils
 
 
 _rule_functions = {}
@@ -173,7 +173,7 @@ def RuleFunction(ctx_list):
   return Wrapped
 
 
-class RuleMetaclass(yaml_utils.BaseYAMLTagMetaclass):
+class RuleMetaclass(yaml_tags.HWIDV3YAMLTagMetaclass):
   """The metaclass for Rule class.
 
   This metaclass registers YAML constructor and representer to decode from YAML
@@ -330,7 +330,7 @@ class Rule(object):
       SetContext(None)
 
 
-class RegexpMetaclass(yaml_utils.BaseYAMLTagMetaclass):
+class RegexpMetaclass(yaml_tags.HWIDV3YAMLTagMetaclass):
   """Metaclass for creating regular expression-enabled Value object.
 
   This metaclass registers YAML constructor and representer to decode from YAML

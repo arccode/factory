@@ -12,12 +12,12 @@ import math
 import os
 import re
 import uuid
-import yaml
 
 import factory_common  # pylint: disable=unused-import
 # Register "!rule" and "!re" tag to yaml constructor.
 from cros.factory.hwid.v3 import rule as rule_module
 from cros.factory.hwid.v3 import yaml_tags
+from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils

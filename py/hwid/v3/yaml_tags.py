@@ -4,7 +4,8 @@
 
 """YAML tags used in the HWID database."""
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
+from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.test.l10n import regions
 from cros.factory.utils import yaml_utils
 
@@ -35,7 +36,14 @@ class YamlNode(object):
     self.value = value
 
 
-class RegionFieldMetaclass(yaml_utils.BaseYAMLTagMetaclass):
+# pylint: disable=abstract-method
+class HWIDV3YAMLTagMetaclass(yaml_utils.BaseYAMLTagMetaclass):
+  def __init__(cls, *args, **kwargs):
+    super(HWIDV3YAMLTagMetaclass, cls).__init__(
+        loader=yaml.Loader, dumper=yaml.Dumper, *args, **kwargs)
+
+
+class RegionFieldMetaclass(HWIDV3YAMLTagMetaclass):
   """Metaclass for registering the !region_field YAML tag.
 
   The yaml format of RegionField should be:
@@ -105,7 +113,7 @@ class RegionField(dict):
       self[idx] = {'region': new_region}
 
 
-class RegionComponentMetaclass(yaml_utils.BaseYAMLTagMetaclass):
+class RegionComponentMetaclass(HWIDV3YAMLTagMetaclass):
   """Metaclass for registering the !region_component YAML tag."""
   YAML_TAG = '!region_component'
 

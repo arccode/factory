@@ -7,17 +7,18 @@
 import collections
 import logging
 import re
-import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import probe
+from cros.factory.hwid.v2.yaml_datastore import _DatastoreBase
 from cros.factory.hwid.v3 import builder
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import decoder
 from cros.factory.hwid.v3 import encoder
 from cros.factory.hwid.v3 import rule
+from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
@@ -445,3 +446,36 @@ def GetVPD(probed_results):
 def ComputeDatabaseChecksum(file_name):
   """Computes the checksum of the give database."""
   return database.Database.Checksum(file_name)
+
+
+class _ProbeResultsV3Metaclass(type):
+  """Metaclass for ProbeResultsV3 to initialize yaml representer"""
+  def __init__(cls, name, bases, attrs):
+    yaml.add_representer(cls, lambda yaml_repr, obj: obj.Yrepr(yaml_repr))
+    super(_ProbeResultsV3Metaclass, cls).__init__(name, bases, attrs)
+
+
+# pylint: disable=protected-access
+class ProbeResultsV3(_DatastoreBase):
+  """Define storable object type with a schem and yaml representer.
+
+  This class is to separate the Dumper from the ProbeResults in
+  hwid.v2.hwid_tool.
+  """
+  __metaclass__ = _ProbeResultsV3Metaclass
+  _schema = {
+      'found_probe_value_map': (dict, [(dict, str), (list, (dict, [str]))]),
+      'missing_component_classes': (list, str),
+      'found_volatile_values': (dict, [str, (dict, str)]),
+      'initial_configs': (dict, str),
+  }
+
+  def __init__(self, **field_dict):
+    super(ProbeResultsV3, self).__init__(**field_dict)
+
+  @classmethod
+  def Decode(cls, data, loader=yaml.Loader):
+    return super(ProbeResultsV3, cls).Decode(data, loader)
+
+  def Encode(self, dumper=yaml.Dumper, loader=yaml.Loader):
+    return super(ProbeResultsV3, self).Encode(dumper=dumper, loader=loader)

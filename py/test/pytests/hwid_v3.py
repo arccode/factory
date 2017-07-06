@@ -8,11 +8,11 @@ import json
 import logging
 import os
 import unittest
-import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.hwid.v3 import common
+from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.test import device_data
 from cros.factory.test.event_log import Log
 from cros.factory.test import factory

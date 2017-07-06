@@ -20,13 +20,15 @@ class BaseYAMLTagMetaclass(type):
   def YAMLRepresenter(mcs, dumper, data):
     raise NotImplementedError
 
-  def __init__(cls, name, bases, attrs):
-    yaml.add_constructor(cls.YAML_TAG, cls.YAMLConstructor)
-    yaml.add_representer(cls, cls.YAMLRepresenter)
+  def __init__(cls, name, bases, attrs, loader=yaml.Loader, dumper=yaml.Dumper):
+    yaml.add_constructor(cls.YAML_TAG, cls.YAMLConstructor, Loader=loader)
+    yaml.add_representer(cls, cls.YAMLRepresenter, Dumper=dumper)
     super(BaseYAMLTagMetaclass, cls).__init__(name, bases, attrs)
 
 
-def ParseMappingAsOrderedDict(enable=True):
+def ParseMappingAsOrderedDict(enable=True,
+                              loader=yaml.Loader,
+                              dumper=yaml.Dumper):
   """Treat OrderedDict as the default mapping instance.
 
   While we load a yaml file to a object, modify the object, and dump to a yaml
@@ -52,11 +54,13 @@ def ParseMappingAsOrderedDict(enable=True):
   if enable:
     # Represent OrderedDict object like a dict.
     # Construct the yaml mapping string to OrderedDict.
-    yaml.add_representer(collections.OrderedDict, DictRepresenter)
+    yaml.add_representer(collections.OrderedDict, DictRepresenter,
+                         Dumper=dumper)
     yaml.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-                         OrderedDictConstructor)
+                         OrderedDictConstructor, Loader=loader)
   else:
     # Set back to normal.
-    yaml.add_representer(collections.OrderedDict, OrderedDictRepresenter)
+    yaml.add_representer(collections.OrderedDict, OrderedDictRepresenter,
+                         Dumper=dumper)
     yaml.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-                         DictConstructor)
+                         DictConstructor, Loader=loader)

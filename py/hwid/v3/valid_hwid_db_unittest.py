@@ -28,13 +28,12 @@ import subprocess
 import sys
 import traceback
 import unittest
-import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.hwid.v2.hwid_tool import ProbeResults  # pylint: disable=E0611
 from cros.factory.hwid.v3 import common, database
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3.rule import Context
+from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
@@ -179,7 +178,8 @@ class ValidHWIDDBsTest(unittest.TestCase):
 
     # Pull in probe results (including VPD data) from the given file
     # rather than probing the current system.
-    probe_results = ProbeResults.Decode(yaml.dump(sample_dict['probe_results']))
+    probe_results = hwid_utils.ProbeResultsV3.Decode(
+        yaml.dump(sample_dict['probe_results']))
     vpd = {'ro': {}, 'rw': {}}
     for k, v in probe_results.found_volatile_values.items():
       # Use items(), not iteritems(), since we will be modifying the dict in the

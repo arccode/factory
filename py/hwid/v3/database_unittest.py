@@ -10,13 +10,13 @@
 import copy
 import os
 import unittest
-import yaml
 import factory_common  # pylint: disable=W0611
 
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.common import HWIDException, ProbedComponentResult
 from cros.factory.hwid.v3.database import Database, Components
 from cros.factory.hwid.v3.rule import Value
+from cros.factory.hwid.v3 import yaml_wrapper as yaml
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
@@ -32,8 +32,11 @@ class NewDatabaseTest(unittest.TestCase):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_new_db.yaml'))
     self.results = [
-        yaml.dump(result) for result in yaml.load_all(open(os.path.join(
-            _TEST_DATA_PATH, 'test_probe_result.yaml')).read())]
+        yaml.dump(result)
+        for result in yaml.load_all(
+            open(os.path.join(_TEST_DATA_PATH, 'test_probe_result.yaml'))
+            .read())
+    ]
 
   def testProbeResultToBOM(self):
     result = self.results[0]
@@ -108,8 +111,11 @@ class DatabaseTest(unittest.TestCase):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
     self.results = [
-        yaml.dump(result) for result in yaml.load_all(open(os.path.join(
-            _TEST_DATA_PATH, 'test_probe_result.yaml')).read())]
+        yaml.dump(result)
+        for result in yaml.load_all(
+            open(os.path.join(_TEST_DATA_PATH, 'test_probe_result.yaml'))
+            .read())
+    ]
 
   def testLoadFile(self):
     self.assertIsInstance(Database.LoadFile(os.path.join(
