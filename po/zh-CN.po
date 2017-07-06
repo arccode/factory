@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-07-05 12:52+CST\n"
+"POT-Creation-Date: 2017-07-06 12:32+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -1461,6 +1461,10 @@ msgid ""
 "Please plug ethernet cable into built-in ethernet port<br>Press space to "
 "start."
 msgstr "请插入网路线到内建网路埠<br>压下空白键开始测试"
+
+#: ../py/test/pytests/exec_shell.py
+msgid "Running shell commands..."
+msgstr "正在执行系统指令..."
 
 #: ../py/test/pytests/ext_display/ext_display.py
 msgid "External Display Test"

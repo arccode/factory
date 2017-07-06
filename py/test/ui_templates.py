@@ -276,8 +276,23 @@ class TwoSections(BaseTemplate):
 class DummyTemplate(object):
   """Dummy template for offline test."""
 
-  def SetState(self, msg):
-    logging.info('Set UI state: %s', msg)
+  def SetState(self, *args, **kargs):
+    del args  # unused
+    del kargs  # unused
+    logging.info('Set UI state.')
 
-  def SetTitle(self, msg):
-    logging.info('Set UI title: %s', msg)
+  def SetTitle(self, *args, **kargs):
+    del args  # unused
+    del kargs  # unused
+    logging.info('Set UI title')
+
+  def SetInstruction(self, *args, **kargs):
+    del args  # unused
+    del kargs  # unused
+    logging.info('Set UI instruction.')
+
+  def DrawProgressBar(self):
+    logging.info('Draw UI Progress Bar.')
+
+  def SetProgressBarValue(self, value):
+    logging.info('Set Progress Bar Value to %s.', value)
