@@ -30,8 +30,8 @@ class FactoryModuleTest(unittest.TestCase):
   def test_py_test_name_to_id(self):
     for name, label in (('a', 'A'),
                         ('a.b', 'A B'),
-                        ('ab', 'Ab'),
-                        ('foo_bar', 'Foo Bar')):
+                        ('test', 'Test'),
+                        ('a_long_test_name', 'A Long Test Name')):
       self.assertEqual(label, factory.FactoryTest.PytestNameToLabel(name))
     for label, test_id in (('A test', 'ATest'),
                            ('ab', 'Ab'),

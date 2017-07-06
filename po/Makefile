@@ -6,6 +6,7 @@ MK_DIR := ../devtools/mk
 include $(MK_DIR)/common.mk
 
 GETTEXT = $(MK_DIR)/pygettext.py
+LIST_PYTESTS = ../py/tools/list_pytests.py
 MSGFMT = msgfmt
 MSGMERGE = msgmerge
 MSGCAT = msgcat
@@ -34,10 +35,14 @@ func-get-source-list = \
     $(1)/test/pytests/*/*.js $(1)/test/pytests/*/static/*.js \
     $(1)/test/test_lists/*.test-list.json))
 
+PYTESTS_LABEL_FILE ?= $(BUILD_DIR)/pytests_label_generated.json
+BOARD_PYTESTS_LABEL_FILE ?= $(BUILD_DIR)/board_pytests_label_generated.json
+
 PY_ROOT = ../py
-SRC_LIST = $(call func-get-source-list,$(PY_ROOT))
+SRC_LIST = $(call func-get-source-list,$(PY_ROOT)) $(PYTESTS_LABEL_FILE)
 BOARD_SRC_LIST = $(if $(BOARD_FILES_DIR), \
-  $(call func-get-source-list,$(BOARD_FILES_DIR)/py))
+  $(call func-get-source-list,$(BOARD_FILES_DIR)/py) \
+  $(BOARD_PYTESTS_LABEL_FILE))
 
 SRCS = $(wildcard $(PO_DIR)/*.po) \
   $(if $(BOARD_PO_DIR),$(wildcard $(BOARD_PO_DIR)/*.po))
@@ -63,6 +68,12 @@ func-gettext-and-update-po = \
 
 all: build
 
+update_pytest_list:
+	mkdir -p $(BUILD_DIR)
+	$(LIST_PYTESTS) -l $(PY_ROOT) > $(PYTESTS_LABEL_FILE)
+	$(if $(BOARD_FILES_DIR), $(LIST_PYTESTS) -l $(BOARD_FILES_DIR)/py \
+	  > $(BOARD_PYTESTS_LABEL_FILE))
+
 init:
 	$(if $(LOCALE),, \
 	  $(error "You must specify locale of target translation."))
@@ -73,16 +84,19 @@ init:
 	$(call func-gettext-and-update-po, \
 	  $(BOARD_SRC_LIST) $(SRC_LIST),$(TARGET_PO))
 
-update:
+update: update_pytest_list
 	$(if $(BOARD_PO_DIR), \
+	  $(info Updating overlay-only locales) \
 	  $(call func-gettext-and-update-po,$(BOARD_SRC_LIST) $(SRC_LIST), \
 	    $(foreach locale,$(LOCALES), \
 	      $(if $(wildcard $(PO_DIR)/$(locale).po),, \
 	         $(BOARD_PO_DIR)/$(locale).po))) \
+	  $(info Updating other locales) \
 	  $(call func-gettext-and-update-po,$(BOARD_SRC_LIST), \
 	    $(foreach locale,$(LOCALES), \
 	      $(if $(wildcard $(PO_DIR)/$(locale).po), \
 	        $(BOARD_PO_DIR)/$(locale).po))), \
+	  $(info Updating public locales) \
 	  $(call func-gettext-and-update-po,$(SRC_LIST), \
 	    $(foreach locale,$(LOCALES),$(PO_DIR)/$(locale).po)))
 

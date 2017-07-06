@@ -23,7 +23,7 @@ This shows the workflow for each scenario.
 1. Write codes, and mark text that need to be translated by
    `_("Translatable text")`.
    For static HTML, label tags that need to be translated by class `i18n-label`.
-2. Run `BOARD=board make update` inside this directory.
+2. Run `make update BOARD=board` inside this directory.
 3. Edit `po/${LOCALE}.po` **in board overlay**.
    For each new / changed text, translate them accordingly inside the `.po`
    file.

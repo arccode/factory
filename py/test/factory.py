@@ -539,6 +539,21 @@ class FactoryTest(object):
 
   RUN_IF_REGEXP = re.compile(r'^(!)?(.+)$')
 
+  _PYTEST_LABEL_MAP = {
+      'ac': 'AC',
+      'als': 'ALS',
+      'ec': 'EC',
+      'ek': 'EK',  # acronym Endorsement Key in tpm_verify_ek
+      'emmc': 'eMMC',
+      'hwid': 'HWID',
+      'id': 'ID',
+      'led': 'LED',
+      'lte': 'LTE',
+      'sim': 'SIM',
+      'ui': 'UI',
+      'usb': 'USB',
+  }
+
   def __init__(self,
                label=None,
                has_automator=False,
@@ -688,10 +703,20 @@ class FactoryTest(object):
   @staticmethod
   def PytestNameToLabel(pytest_name):
     """Returns a titled string without duplicated elements."""
+    def _GuessIsAcronym(word):
+      return not word.isalpha() or all(c not in 'aeiouy' for c in word)
+
     pytest_name = pytest_name.replace('.', ' ').replace('_', ' ')
+    parts = []
     seen = set()
-    return ' '.join(name for name in pytest_name.split() if not
-                    (name in seen or seen.add(name))).title()
+    for part in pytest_name.split():
+      if part in seen:
+        continue
+      seen.add(part)
+      parts.append(
+          FactoryTest._PYTEST_LABEL_MAP.get(
+              part, part.upper() if _GuessIsAcronym(part) else part.title()))
+    return ' '.join(parts)
 
   @staticmethod
   def LabelToId(label):

@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"POT-Creation-Date: 2017-07-06 12:32+CST\n"
+"POT-Creation-Date: 2017-07-07 13:23+CST\n"
 "PO-Revision-Date: 2017-01-05 07:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
@@ -13,6 +13,660 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: pygettext.py 1.5\n"
+
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_fatp.py
+msgid "Display Point"
+msgstr "显示点"
+
+#: ../build/pytests_label_generated.json
+msgid "Accelerometers Calibration"
+msgstr "加速度计校正"
+
+#: ../build/pytests_label_generated.json
+msgid "Sample Customized Test"
+msgstr "范例自订测试"
+
+#: ../build/pytests_label_generated.json
+msgid "Hwmon Probe"
+msgstr ""
+
+#: ../build/pytests_label_generated.json ../py/test/pytests/countdown.py
+#: ../py/test/pytests/wifi_rf.py
+#: ../py/test/test_lists/firmware_stress_generic.py
+#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
+#: ../py/test/test_lists/generic_smt.py
+msgid "Countdown"
+msgstr "倒数计时"
+
+#: ../build/pytests_label_generated.json
+msgid "Touchscreen Wrap"
+msgstr "触控面板"
+
+#: ../build/pytests_label_generated.json
+msgid "Sysfs Battery"
+msgstr "Sysfs 电池"
+
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_smt.py
+msgid "Thermal Load"
+msgstr "温度压力"
+
+#: ../build/pytests_label_generated.json
+msgid "Memory Size"
+msgstr "记忆体大小"
+
+#: ../build/pytests_label_generated.json
+msgid "Ectool I2C Dev ID"
+msgstr ""
+
+#: ../build/pytests_label_generated.json
+msgid "Buzzer"
+msgstr "蜂鸣器"
+
+#: ../build/pytests_label_generated.json
+msgid "Clear TPM Owner Request"
+msgstr "清除 TPM"
+
+#: ../build/pytests_label_generated.json
+msgid "HWID V3"
+msgstr ""
+
+#: ../build/pytests_label_generated.json
+msgid "Probe SIM Card Tray"
+msgstr "探測 SIM 卡卡盘"
+
+#: ../build/pytests_label_generated.json
+msgid "Keyboard Backlight"
+msgstr "键盘背光"
+
+#: ../build/pytests_label_generated.json
+msgid "Cellular Switch Firmware"
+msgstr "切换数据机韧体"
+
+#: ../build/pytests_label_generated.json
+msgid "USB Probe"
+msgstr "USB 探測"
+
+#: ../build/pytests_label_generated.json
+msgid "Keyboard SMT"
+msgstr "SMT 键盘"
+
+#: ../build/pytests_label_generated.json
+msgid "EC Battery"
+msgstr "EC 电池"
+
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_fatp.py
+msgid "Bluetooth"
+msgstr "蓝牙"
+
+#: ../build/pytests_label_generated.json
+msgid "MLB Version"
+msgstr "母版版本"
+
+#: ../build/pytests_label_generated.json
+msgid "Thermal Slope"
+msgstr "温度升降速率"
+
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_smt.py
+msgid "TPM Verify EK"
+msgstr "TPM 证书"
+
+#: ../build/pytests_label_generated.json
+msgid "Tablet Mode"
+msgstr "平板模式"
+
+#: ../build/pytests_label_generated.json
+msgid "Verify Touch Device FW"
+msgstr "验证触控装置轫体"
+
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_smt.py
+msgid "Verify Components"
+msgstr "验证元件"
+
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_fatp.py
+#: ../py/test/test_lists/generic_smt.py
+msgid "Touchpad"
+msgstr "触控板"
+
+#: ../build/pytests_label_generated.json
+msgid "Fan Speed"
+msgstr "风扇转速"
+
+#: ../build/pytests_label_generated.json
+msgid "EC Lightbar"
+msgstr "EC 光棒"
+
+#: ../build/pytests_label_generated.json
+msgid "Station Setup"
+msgstr "测站名称"
+
+#: ../build/pytests_label_generated.json
+msgid "Battery Cycle"
+msgstr "电池充放电"
+
+#: ../build/pytests_label_generated.json
+msgid "MRC Cache"
+msgstr "MRC Cache"
+
+#: ../build/pytests_label_generated.json
+msgid "Call Shopfloor"
+msgstr "呼叫 ShopFloor"
+
+#: ../build/pytests_label_generated.json
+msgid "Ethernet"
+msgstr "网路"
+
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_fatp.py
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Write Protect Switch"
+msgstr "写入保护开关"
+
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_smt.py
+msgid "Partition Table"
+msgstr "分区表"
+
+#: ../build/pytests_label_generated.json
+msgid "Simple Storage Stress Test"
+msgstr "储存装置压力测试"
+
+#: ../build/pytests_label_generated.json
+msgid "Audio"
+msgstr "音讯"
+
+#: ../build/pytests_label_generated.json
+msgid "eMMC Check FW Version"
+msgstr "eMMC 检查轫体版本"
+
+#: ../build/pytests_label_generated.json
+msgid "Exec Python"
+msgstr "执行 Python"
+
+#: ../build/pytests_label_generated.json
+#: ../py/test/pytests/update_cr50_firmware.py
+#: ../py/test/pytests/update_firmware.py
+msgid "Update Firmware"
+msgstr "更新韧体"
+
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_fatp.py
+msgid "Touchscreen"
+msgstr "触控面板"
+
+#: ../build/pytests_label_generated.json
+msgid "Webrtc Camera"
+msgstr "WebRTC 相机"
+
+#: ../build/pytests_label_generated.json
+msgid "Display Images"
+msgstr "显示图像"
+
+#: ../build/pytests_label_generated.json
+msgid "Accelerometers Lid Angle"
+msgstr "加速度计上盖角度"
+
+#: ../build/pytests_label_generated.json
+msgid "Exec Shell"
+msgstr "执行指令"
+
+#: ../build/pytests_label_generated.json
+msgid "Verify Value"
+msgstr "验证值"
+
+#: ../build/pytests_label_generated.json
+msgid "Tablet Mode UI"
+msgstr "平版模式"
+
+#: ../build/pytests_label_generated.json
+msgid "TPM Diagnosis"
+msgstr "TPM 诊断"
+
+#: ../build/pytests_label_generated.json
+msgid "Wifi RF"
+msgstr "无线网路收发"
+
+#: ../build/pytests_label_generated.json
+msgid "HWID"
+msgstr "HWID"
+
+#: ../build/pytests_label_generated.json
+msgid "Recovery Button"
+msgstr "恢復按钮"
+
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_fatp.py
+msgid "Audio Quality"
+msgstr "音源品质"
+
+#: ../build/pytests_label_generated.json
+msgid "Fastboot Flash"
+msgstr "烧录 Fastboot"
+
+#: ../build/pytests_label_generated.json
+msgid "Developer Switch"
+msgstr "开发者开关"
+
+#: ../build/pytests_label_generated.json
+msgid "Touch Device FW Update"
+msgstr "触控轫体更新"
+
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_tsab.py
+#: ../py/test/test_lists/generic_vswr.py
+msgid "Sync Factory Server"
+msgstr "同步工厂伺服器"
+
+#: ../build/pytests_label_generated.json
+msgid "Sensor Movement"
+msgstr "感测器移动"
+
+#: ../build/pytests_label_generated.json
+msgid "Raiden CC Flip Check"
+msgstr "Raiden CC 翻转检查"
+
+#: ../build/pytests_label_generated.json
+msgid "Raiden CC2 Pull Test"
+msgstr "Raiden CC2 电压测试"
+
+#: ../build/pytests_label_generated.json
+msgid "Touch Uniformity"
+msgstr "触控均一性"
+
+#: ../build/pytests_label_generated.json
+msgid "Smart Check FW Version"
+msgstr "SMART 检查轫体版本"
+
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_fatp.py
+msgid "Display"
+msgstr "显示"
+
+#: ../build/pytests_label_generated.json
+msgid "Wireless Radiotap"
+msgstr "无线扫描"
+
+#: ../build/pytests_label_generated.json
+msgid "Touchpad Hover"
+msgstr "触控板悬浮"
+
+#: ../build/pytests_label_generated.json
+msgid "Flash Netboot"
+msgstr "烧录 netboot 韧体"
+
+#: ../build/pytests_label_generated.json
+msgid "Display Idle"
+msgstr "显示测试(Idle)"
+
+#: ../build/pytests_label_generated.json
+msgid "Probe Cellular Info"
+msgstr "数据机信息"
+
+#: ../build/pytests_label_generated.json
+msgid "Button"
+msgstr "按钮"
+
+#: ../build/pytests_label_generated.json
+#: ../py/test/pytests/select_components.py
+msgid "Select Components"
+msgstr "选择元件"
+
+#: ../build/pytests_label_generated.json
+msgid "Gyroscope"
+msgstr "陀螺仪"
+
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_fatp.py
+msgid "Probe SIM"
+msgstr "侦测 SIM 卡"
+
+#: ../build/pytests_label_generated.json
+msgid "Tablet Rotation"
+msgstr "平版旋转"
+
+#: ../build/pytests_label_generated.json
+msgid "Ping Test"
+msgstr "连线测试"
+
+#: ../build/pytests_label_generated.json
+#: ../py/test/test_lists/firmware_stress_generic.py
+#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
+msgid "Bad Blocks"
+msgstr "毁损扇区"
+
+#: ../build/pytests_label_generated.json
+msgid "LTE Verify Config"
+msgstr "LTE 验证设定"
+
+#: ../build/pytests_label_generated.json
+msgid "Lightbar"
+msgstr "光棒"
+
+#: ../build/pytests_label_generated.json
+msgid "Spatial Sensor Calibration"
+msgstr "感应器校正"
+
+#: ../build/pytests_label_generated.json
+msgid "Compass"
+msgstr "罗盘"
+
+#: ../build/pytests_label_generated.json ../py/test/pytests/update_kernel.py
+msgid "Update Kernel"
+msgstr "更新 Kernel"
+
+#: ../build/pytests_label_generated.json
+msgid "Video Playback"
+msgstr "音源回放"
+
+#: ../build/pytests_label_generated.json
+#: ../py/test/test_lists/firmware_stress_generic.py
+#: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Camera"
+msgstr "相机"
+
+#: ../build/pytests_label_generated.json
+msgid "Urandom"
+msgstr "乱数产生"
+
+#: ../build/pytests_label_generated.json
+msgid "Robot Movement"
+msgstr ""
+
+#: ../build/pytests_label_generated.json
+#: ../py/test/test_lists/generic_diagnostic.py
+msgid "Audio Diagnostic"
+msgstr "音效诊断"
+
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_fatp.py
+msgid "Backlight"
+msgstr "背光亮度"
+
+#: ../build/pytests_label_generated.json
+msgid "Sync Time"
+msgstr "同步时间"
+
+#: ../build/pytests_label_generated.json
+msgid "Wifi Throughput"
+msgstr "无线频宽"
+
+#: ../build/pytests_label_generated.json
+#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
+msgid "Read Device Data From VPD"
+msgstr "从 VPD 读机器资料"
+
+#: ../build/pytests_label_generated.json
+msgid "Camera Fixture"
+msgstr "Camera 治具"
+
+#: ../build/pytests_label_generated.json
+msgid "I2C Probe"
+msgstr "I2C 侦测"
+
+#: ../build/pytests_label_generated.json
+msgid "Battery Current"
+msgstr "充电放电电流"
+
+#: ../build/pytests_label_generated.json
+msgid "Select For Sampling"
+msgstr "採样选择"
+
+#: ../build/pytests_label_generated.json
+msgid "ALS Fixture"
+msgstr "ALS 治具"
+
+#: ../build/pytests_label_generated.json
+#: ../py/test/pytests/check_image_version.py
+msgid "Check Image Version"
+msgstr "检查映像版本"
+
+#: ../build/pytests_label_generated.json
+msgid "Light Sensor"
+msgstr "光感测器"
+
+#: ../build/pytests_label_generated.json
+msgid "Audio Basic"
+msgstr "基础音源"
+
+#: ../build/pytests_label_generated.json
+msgid "BFT Fixture"
+msgstr "BFT 治具"
+
+#: ../build/pytests_label_generated.json
+msgid "Blocking Charge"
+msgstr "充电"
+
+#: ../build/pytests_label_generated.json
+msgid "Flush Testlog"
+msgstr "同步事件记录"
+
+#: ../build/pytests_label_generated.json
+msgid "Nop"
+msgstr "无动作"
+
+#: ../build/pytests_label_generated.json
+msgid "AC Power"
+msgstr "AC 电源"
+
+#: ../build/pytests_label_generated.json
+msgid "Serial Echo"
+msgstr ""
+
+#: ../build/pytests_label_generated.json
+msgid "Arduino Digital Pins"
+msgstr ""
+
+#: ../build/pytests_label_generated.json
+msgid "Pointing Device"
+msgstr "指向装置"
+
+#: ../build/pytests_label_generated.json
+msgid "Station Entry"
+msgstr "测站开始"
+
+#: ../build/pytests_label_generated.json
+msgid "Stylus"
+msgstr "触控笔"
+
+#: ../build/pytests_label_generated.json
+msgid "eMMC Check Extcsd"
+msgstr "eMMC 检查 EXT_CSD"
+
+#: ../build/pytests_label_generated.json
+msgid "Raiden Display"
+msgstr "Raiden 显示"
+
+#: ../build/pytests_label_generated.json
+msgid "USB"
+msgstr "USB"
+
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_grt.py
+#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
+msgid "Verify Root Partition"
+msgstr "验证根磁区"
+
+#: ../build/pytests_label_generated.json
+msgid "Wireless Antenna"
+msgstr "无线天线"
+
+#: ../build/pytests_label_generated.json
+msgid "Wait External Test"
+msgstr "等待外部測試"
+
+#: ../build/pytests_label_generated.json
+msgid "Update CR50 Firmware"
+msgstr "更新 CR50 韧体"
+
+#: ../build/pytests_label_generated.json
+msgid "Line Check Item"
+msgstr "项目验证"
+
+#: ../build/pytests_label_generated.json
+msgid "Raiden Charge"
+msgstr "Raiden 充电"
+
+#: ../build/pytests_label_generated.json
+msgid "Power Under Stress"
+msgstr "压力电源测试"
+
+#: ../build/pytests_label_generated.json
+msgid "Finalize Accessory"
+msgstr "最终程序"
+
+#: ../build/pytests_label_generated.json
+msgid "Suspend Resume"
+msgstr "暂停/恢复"
+
+#: ../build/pytests_label_generated.json
+msgid "Webgl Aquarium"
+msgstr "WebGL 水族箱"
+
+#: ../build/pytests_label_generated.json
+#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
+msgid "Write Device Data To VPD"
+msgstr "机器资料写入到 VPD"
+
+#: ../build/pytests_label_generated.json
+msgid "Shopfloor Service"
+msgstr "Shopfloor"
+
+#: ../build/pytests_label_generated.json
+msgid "Simple Battery"
+msgstr "简单电池测试"
+
+#: ../build/pytests_label_generated.json
+msgid "EC Temp Sensors"
+msgstr "温度感应器"
+
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_rrt.py
+#: ../py/test/test_lists/generic_smt.py
+msgid "Update Device Data"
+msgstr "更新机器资料"
+
+#: ../build/pytests_label_generated.json
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Charger"
+msgstr "充电器"
+
+#: ../build/pytests_label_generated.json
+msgid "Check Wifi Calibration"
+msgstr "检查无线校正"
+
+#: ../build/pytests_label_generated.json
+msgid "Retrieve Config"
+msgstr "载入设定"
+
+#: ../build/pytests_label_generated.json
+msgid "Hwmon Write"
+msgstr "写入 Hwmon"
+
+#: ../build/pytests_label_generated.json
+msgid "Stressapptest"
+msgstr "压力测试"
+
+#: ../build/pytests_label_generated.json ../py/test/pytests/message/message.py
+msgid "Message"
+msgstr "讯息"
+
+#: ../build/pytests_label_generated.json
+#: ../py/test/test_lists/firmware_stress_generic.py
+#: ../py/test/test_lists/generic_fatp.py
+#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
+msgid "Start"
+msgstr "开始"
+
+#: ../build/pytests_label_generated.json
+msgid "Audio Loop"
+msgstr "音源回放"
+
+#: ../build/pytests_label_generated.json
+msgid "Ext Display"
+msgstr "外接显示"
+
+#: ../build/pytests_label_generated.json
+msgid "Removable Storage"
+msgstr "可移除储存装置"
+
+#: ../build/pytests_label_generated.json
+msgid "Offline Test"
+msgstr "离线测试"
+
+#: ../build/pytests_label_generated.json
+msgid "GPS"
+msgstr "GPS"
+
+#: ../build/pytests_label_generated.json
+msgid "Brightness LCD Backlight"
+msgstr "萤幕背光亮度"
+
+#: ../build/pytests_label_generated.json
+msgid "Brightness LED"
+msgstr "LED 亮度"
+
+#: ../build/pytests_label_generated.json
+msgid "Brightness"
+msgstr "亮度"
+
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_fatp.py
+#: ../py/test/test_lists/generic_smt.py
+msgid "Keyboard"
+msgstr "键盘"
+
+#: ../build/pytests_label_generated.json
+#: ../py/test/test_lists/generic_run_in.py
+msgid "Scan"
+msgstr "扫描机器编号"
+
+#: ../build/pytests_label_generated.json
+msgid "Probe"
+msgstr "侦测"
+
+#: ../build/pytests_label_generated.json
+msgid "Summary"
+msgstr "总结"
+
+#: ../build/pytests_label_generated.json
+msgid "Chameleon"
+msgstr "Chameleon"
+
+#: ../build/pytests_label_generated.json
+msgid "VSWR"
+msgstr "VSWR"
+
+#: ../build/pytests_label_generated.json
+msgid "Interrupt"
+msgstr "中断"
+
+#: ../build/pytests_label_generated.json ../py/test/pytests/led/led.py
+#: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_smt.py
+msgid "LED"
+msgstr "LED"
+
+#: ../build/pytests_label_generated.json
+msgid "Network Setup"
+msgstr "网路设定"
+
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_tsab.py
+msgid "Touchscreen Calibration"
+msgstr "触控面板校正"
+
+#: ../build/pytests_label_generated.json
+msgid "Touchscreen Calibration Sensors Server"
+msgstr ""
+
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_grt.py
+msgid "Finalize"
+msgstr "最终程序"
+
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_smt.py
+msgid "Shutdown"
+msgstr "关机"
+
+#: ../build/pytests_label_generated.json
+msgid "RF Radiated"
+msgstr "无线信号发送强度"
+
+#: ../build/pytests_label_generated.json
+msgid "RF Graphyte"
+msgstr "RF Graphyte"
+
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_fatp.py
+#: ../py/test/test_lists/generic_smt.py
+msgid "Lid Switch"
+msgstr "上盖开关"
 
 #: ../py/goofy/js/diagnosis_tool.js
 msgid "State:"
@@ -1212,10 +1866,6 @@ msgid "Testing discharge"
 msgstr "测试放电中"
 
 #: ../py/test/pytests/check_image_version.py
-msgid "Check Image Version"
-msgstr "检查映像版本"
-
-#: ../py/test/pytests/check_image_version.py
 msgid "Factory image version is incorrect. Please re-image this device."
 msgstr "映像版本不正确，请重新安装。"
 
@@ -1254,13 +1904,6 @@ msgstr "南"
 #: ../py/test/pytests/compass.py
 msgid "Put the DUT towards {direction}"
 msgstr "将机器朝向{direction}方"
-
-#: ../py/test/pytests/countdown.py ../py/test/pytests/wifi_rf.py
-#: ../py/test/test_lists/firmware_stress_generic.py
-#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
-#: ../py/test/test_lists/generic_smt.py
-msgid "Countdown"
-msgstr "倒数计时"
 
 #: ../py/test/pytests/countdown_static/countdown.html
 msgid "Elapsed time:"
@@ -1674,11 +2317,6 @@ msgstr "琥珀色"
 msgid "off"
 msgstr "关闭"
 
-#: ../py/test/pytests/led/led.py ../py/test/test_lists/generic_fatp.py
-#: ../py/test/test_lists/generic_smt.py
-msgid "LED"
-msgstr "LED"
-
 #: ../py/test/pytests/led/led.py
 msgid "power LED"
 msgstr "电源 LED"
@@ -1759,10 +2397,6 @@ msgstr ""
 #: ../py/test/pytests/message/message.py
 msgid "<div>Press <strong>Enter</strong> to continue.</div>"
 msgstr "<div>按<strong>Enter</strong>继续</div>"
-
-#: ../py/test/pytests/message/message.py
-msgid "Message"
-msgstr "讯息"
 
 #: ../py/test/pytests/network_setup/network_setup.py
 msgid "Setup network connection"
@@ -2063,10 +2697,6 @@ msgstr "请扫描{label}后按下 ENTER。"
 #: ../py/test/pytests/select_components.py
 msgid "Select Components:"
 msgstr "选择元件："
-
-#: ../py/test/pytests/select_components.py
-msgid "Select Components"
-msgstr "选择元件"
 
 #: ../py/test/pytests/shutdown/shutdown.py
 msgid "reboot"
@@ -2544,11 +3174,6 @@ msgstr "触控面板测试失败. 请以Gods Touch测试软体加以仔细验证
 msgid "TPM Self-diagnosis"
 msgstr "TPM 自我诊断"
 
-#: ../py/test/pytests/update_cr50_firmware.py
-#: ../py/test/pytests/update_firmware.py
-msgid "Update Firmware"
-msgstr "更新韧体"
-
 #: ../py/test/pytests/update_device_data.py
 #: ../py/test/test_lists/generic_grt.py ../py/test/test_lists/generic_run_in.py
 msgid "Device Serial Number"
@@ -2593,10 +3218,6 @@ msgstr "选择{label}: <br>"
 #: ../py/test/pytests/update_device_data.py
 msgid "<br>(ESC to keep current value)"
 msgstr "<br>(ESC 保持原值不变)"
-
-#: ../py/test/pytests/update_kernel.py
-msgid "Update Kernel"
-msgstr "更新 Kernel"
 
 #: ../py/test/pytests/usb.py
 msgid "Plug device into each USB port, {num_usb_ports} to go...<br>"
@@ -2762,17 +3383,6 @@ msgid "Barrier{suffix}"
 msgstr "检查关卡{suffix}"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
-#: ../py/test/test_lists/generic_fatp.py
-#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
-msgid "Start"
-msgstr "开始"
-
-#: ../py/test/test_lists/firmware_stress_generic.py
-#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
-msgid "Bad Blocks"
-msgstr "毁损扇区"
-
-#: ../py/test/test_lists/firmware_stress_generic.py
 #: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
 msgid "Stress"
 msgstr "集合压力测试"
@@ -2781,12 +3391,6 @@ msgstr "集合压力测试"
 #: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
 msgid "Graphics"
 msgstr "图像"
-
-#: ../py/test/test_lists/firmware_stress_generic.py
-#: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_rrt.py
-#: ../py/test/test_lists/generic_run_in.py
-msgid "Camera"
-msgstr "相机"
 
 #: ../py/test/test_lists/firmware_stress_generic.py
 #: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
@@ -2840,10 +3444,6 @@ msgstr "RunIn 测试结束，按下空白键继续\n"
 msgid "Diagnostic"
 msgstr "诊断"
 
-#: ../py/test/test_lists/generic_diagnostic.py
-msgid "Audio Diagnostic"
-msgstr "音效诊断"
-
 #: ../py/test/test_lists/generic_experiment.py
 #: ../py/test/test_lists/generic_fatp.py
 #: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
@@ -2874,38 +3474,13 @@ msgstr "RF 採样 LTE 机器"
 msgid "Select For LTE Fixture"
 msgstr "LTE 採样"
 
-#: ../py/test/test_lists/generic_fatp.py
-#: ../py/test/test_lists/generic_run_in.py
-msgid "Write Protect Switch"
-msgstr "写入保护开关"
-
 #: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_smt.py
 msgid "Micro USB Performance"
 msgstr "微型 USB 效能测试"
 
-#: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_smt.py
-msgid "Lid Switch"
-msgstr "上盖开关"
-
-#: ../py/test/test_lists/generic_fatp.py
-msgid "Display Point"
-msgstr "显示点"
-
-#: ../py/test/test_lists/generic_fatp.py
-msgid "Display"
-msgstr "显示"
-
-#: ../py/test/test_lists/generic_fatp.py
-msgid "Backlight"
-msgstr "背光亮度"
-
 #: ../py/test/test_lists/generic_fatp.py
 msgid "Camera Probe"
 msgstr "相机侦测"
-
-#: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_smt.py
-msgid "Keyboard"
-msgstr "键盘"
 
 #: ../py/test/test_lists/generic_fatp.py
 msgid "SIM Card"
@@ -2914,10 +3489,6 @@ msgstr "SIM 卡"
 #: ../py/test/test_lists/generic_fatp.py
 msgid "Insert SIM Card Tray"
 msgstr "插入 SIM 卡和卡盘"
-
-#: ../py/test/test_lists/generic_fatp.py
-msgid "Probe SIM"
-msgstr "侦测 SIM 卡"
 
 #: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_grt.py
 msgid "Check No SIM Card Tray"
@@ -2964,10 +3535,6 @@ msgid "LTE RSSI"
 msgstr "LTE 信号接收强度"
 
 #: ../py/test/test_lists/generic_fatp.py
-msgid "Bluetooth"
-msgstr "蓝牙"
-
-#: ../py/test/test_lists/generic_fatp.py
 msgid "Write LTE Chromebook Specific Parameters"
 msgstr "写入 LTE Chromebook 特有参数"
 
@@ -2978,14 +3545,6 @@ msgstr "音源孔"
 #: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_smt.py
 msgid "Speaker/Microphone"
 msgstr "喇叭/麦克风"
-
-#: ../py/test/test_lists/generic_fatp.py ../py/test/test_lists/generic_smt.py
-msgid "Touchpad"
-msgstr "触控板"
-
-#: ../py/test/test_lists/generic_fatp.py
-msgid "Touchscreen"
-msgstr "触控面板"
 
 #: ../py/test/test_lists/generic_fatp.py
 msgid "External Display"
@@ -3006,10 +3565,6 @@ msgid ""
 msgstr ""
 "这台机器被选中做治具测试,<br>请将这台机器移至治具测试站,<br>按下空白键开始治"
 "具测试"
-
-#: ../py/test/test_lists/generic_fatp.py
-msgid "Audio Quality"
-msgstr "音源品质"
 
 #: ../py/test/test_lists/generic_fatp.py
 msgid "Camera Performance"
@@ -3067,11 +3622,6 @@ msgid "Google Required Tests"
 msgstr "Google 必要测试项目(GRT)"
 
 #: ../py/test/test_lists/generic_grt.py ../py/test/test_lists/generic_run_in.py
-#: ../py/test/test_lists/generic_smt.py
-msgid "Verify Root Partition"
-msgstr "验证根磁区"
-
-#: ../py/test/test_lists/generic_grt.py ../py/test/test_lists/generic_run_in.py
 msgid "ShopFloor"
 msgstr "ShopFloor"
 
@@ -3103,10 +3653,6 @@ msgstr "重新开机"
 #: ../py/test/test_lists/generic_grt.py
 msgid "GRT tests finished, press SPACE to finalize.\n"
 msgstr "GRT 测试结束，按下空白键最终程序\n"
-
-#: ../py/test/test_lists/generic_grt.py
-msgid "Finalize"
-msgstr "最终程序"
 
 #: ../py/test/test_lists/generic_rrt.py
 msgid ""
@@ -3140,10 +3686,6 @@ msgstr "扩大硬盘空间"
 #: ../py/test/test_lists/generic_rrt.py
 msgid "Resize File System"
 msgstr "调整硬盘空间"
-
-#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_smt.py
-msgid "Update Device Data"
-msgstr "更新机器资料"
 
 #: ../py/test/test_lists/generic_rrt.py
 msgid "Idle"
@@ -3205,10 +3747,6 @@ msgstr "清除 TPM ({count} 次)"
 msgid "Clear TPM {i}"
 msgstr "清除 TPM {i}"
 
-#: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_smt.py
-msgid "TPM Verify EK"
-msgstr "TPM 证书"
-
 #: ../py/test/test_lists/generic_rrt.py
 msgid "Verify TPM"
 msgstr "验证 TPM"
@@ -3249,10 +3787,6 @@ msgstr "充电器型号识别"
 msgid "Image Update"
 msgstr "映像更新"
 
-#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
-msgid "Write Device Data To VPD"
-msgstr "机器资料写入到 VPD"
-
 #: ../py/test/test_lists/generic_run_in.py
 msgid "Check Version"
 msgstr "检查版本"
@@ -3260,14 +3794,6 @@ msgstr "检查版本"
 #: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
 msgid "Firmware Update"
 msgstr "韧体更新"
-
-#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
-msgid "Read Device Data From VPD"
-msgstr "从 VPD 读机器资料"
-
-#: ../py/test/test_lists/generic_run_in.py
-msgid "Scan"
-msgstr "扫描机器编号"
 
 #: ../py/test/test_lists/generic_run_in.py
 msgid "Set Device Info"
@@ -3329,10 +3855,6 @@ msgstr "SIM 卡卡盘不存在"
 msgid "Thermal Sensor"
 msgstr "温度感应器"
 
-#: ../py/test/test_lists/generic_run_in.py
-msgid "Charger"
-msgstr "充电器"
-
 #: ../py/test/test_lists/generic_smt.py
 msgid "Charge Discharge Current"
 msgstr "充放电电流测试"
@@ -3362,10 +3884,6 @@ msgid "ShopFloor2"
 msgstr "ShopFloor2"
 
 #: ../py/test/test_lists/generic_smt.py
-msgid "Verify Components"
-msgstr "验证元件"
-
-#: ../py/test/test_lists/generic_smt.py
 msgid "Stress/Component Tests"
 msgstr "压力及元件测试"
 
@@ -3386,16 +3904,8 @@ msgid "3G Probing"
 msgstr "3G测试"
 
 #: ../py/test/test_lists/generic_smt.py
-msgid "Thermal Load"
-msgstr "温度压力"
-
-#: ../py/test/test_lists/generic_smt.py
 msgid "Components"
 msgstr "元件"
-
-#: ../py/test/test_lists/generic_smt.py
-msgid "Partition Table"
-msgstr "分区表"
 
 #: ../py/test/test_lists/generic_smt.py
 msgid "SMT tests finished, press SPACE to shutdown.\n"
@@ -3413,21 +3923,9 @@ msgstr "重新开机"
 msgid "Verify EK"
 msgstr "TPM 证书"
 
-#: ../py/test/test_lists/generic_smt.py
-msgid "Shutdown"
-msgstr "关机"
-
 #: ../py/test/test_lists/generic_tsab.py
 msgid "Touchscreen Calibration Sequence"
 msgstr "触控面板校正程序"
-
-#: ../py/test/test_lists/generic_tsab.py
-msgid "Touchscreen Calibration"
-msgstr "触控面板校正"
-
-#: ../py/test/test_lists/generic_tsab.py ../py/test/test_lists/generic_vswr.py
-msgid "Sync Factory Server"
-msgstr "同步工厂伺服器"
 
 #: ../py/test/test_lists/generic_vswr.py
 msgid "Scan the serial number"
