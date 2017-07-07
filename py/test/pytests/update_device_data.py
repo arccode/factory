@@ -3,23 +3,117 @@
 # found in the LICENSE file.
 
 
-"""Manually updates device data (or by predefined input from test list).
+"""Updates Device Data (manually or from predefined values in test list).
 
-This test can determine device data information (usually for VPD) without using
-shopfloor backend, usually including::
+Description
+-----------
+The Device Data (``cros.factory.test.device_data``) is a special data structure
+for manipulating DUT information.  This test can determine Device Data
+information (usually for VPD) without using shopfloor backend, usually
+including:
 
- - 'serials.serial_number': The device serial number.
- - 'vpd.ro.region': Region data (RO region).
- - 'vpd.rw.ubind_attribute' and 'vpd.rw.gbind_attribute': User and group
-   registration codes.
- - Or other values specified in args.manual_input_fields.
+- ``serials.serial_number``: The device serial number.
+- ``vpd.ro.region``: Region data (RO region).
+- ``vpd.rw.ubind_attribute`` and ``vpd.rw.gbind_attribute``: User and group
+  registration codes.
+- Or other values specified in argument ``fields`` or ``config_name``.
 
-If you want to set device data, especially VPD values, using shopfloor or
-pre-defined values::
+When argument `manual_input` is True, every values specified in ``fields`` will
+be displayed on screen with an edit box before written into device data.
+Note all the values will be written as string in manual mode.
 
- 1. Use shopfloor_service method=GetDeviceInfo to retrieve vpd.{ro,rw}.*
- 2. Use update_device_data to write pre-defined values to vpd.{ro,rw}.*
- 3. Use write_device_data_to_vpd to flush data into firmware VPD sections.
+The ``fields`` argument is a sequence in format
+``(data_key, value, display_name, value_check)``:
+
+================ ==============================================================
+Name             Description
+================ ==============================================================
+``data_key``     The Device Data key name to write.
+``value``        The value to be written, can be modified (as string value)
+                 if ``manual_input`` is True.
+``display_name`` The label or name to be displayed on UI.
+``value_check``  To validate the input value. Can be a list of strings, regular
+                 expression, or None to accept everything.
+================ ==============================================================
+
+If you want to manually configure without default values, the sequence can be
+replaced by a simple string of key name.
+
+The ``config_name`` refers to a JSON config file loaded by
+``cros.factory.py.utils.config_utils`` with single dictionary that the keys
+and values will be directly sent to Device Data. This is helpful if you need to
+define board-specific data.
+
+``config_name`` and ``fields`` are both optional, but you must specify at least
+one.
+
+If you want to set device data (especially VPD values) using shopfloor or
+pre-defined values:
+
+1. Use ``shopfloor_service`` test with method=GetDeviceInfo to retrieve
+   ``vpd.{ro,rw}.*``.
+2. Use ``update_device_data`` test to write pre-defined or update values to
+   ``vpd.{ro,rw}.*``.
+3. Use ``write_device_data_to_vpd`` to flush data into firmware VPD sections.
+
+Test Procedure
+--------------
+If argument ``manual_input`` is not True, this will be is an automated test
+without user interaction.
+
+If argument ``manual_input`` is True, the test will go through all the fields:
+
+1. Display the name and key of the value.
+2. Display an input edit box for simple values, or a selection list
+   if the ``value_check`` is a list of strings.
+3. Wait for operator to select or input right value.
+4. If operator presses ESC, abandon changes and keep original value.
+5. If operator clicks Enter, validate the input by ``value_check`` argument.
+   If failed, prompt and go back to 3.
+   Otherwise, write into device data and move to next field.
+6. Pass when all fields were processed.
+
+Dependency
+----------
+None. This test only deals with the ``device_data`` module inside factory
+software framework.
+
+Examples
+--------
+To silently load device-specific data defined in board overlay
+``py/config/default_device_data.json``::
+
+  OperatorTest(pytest_name='update_device_data',
+               dargs={'manual_input': False,
+                      'config_name': 'default'})
+
+To silently set a device data 'component.has_touchscreen' to True::
+
+  OperatorTest(pytest_name='update_device_data',
+               dargs={'manual_input': False,
+                      'fields': [('component.has_touchscreen', True,
+                                  'Device has touch screen', None)]})
+
+For RMA process to set VPD and serial number without shopfloor::
+
+  OperatorTest(pytest_name='update_device_data',
+               dargs={'fields': [
+                 (device_data.KEY_SERIAL_NUMBER, None, 'Device Serial Number',
+                  r'[A-Z0-9]+'),
+                 (device_data.KEY_VPD_REGION, 'us', 'Region', None),
+                 (device_data.KEY_VPD_USER_REGCODE, None, 'User ECHO', None),
+                 (device_data.KEY_VPD_GROUP_REGCODE, None, 'Group ECHO', None),
+                 ]})
+
+If you don't need default values, there's an alternative to list only key
+names::
+
+  OperatorTest(pytest_name='update_device_data',
+               dargs={'fields': [device_data.KEY_SERIAL_NUMBER,
+                                 device_data.KEY_VPD_REGION,
+                                 device_data.KEY_VPD_USER_REGCODE,
+                                 device_data.KEY_VPD_GROUP_REGCODE,
+                                ]})
 """
 
 
@@ -97,7 +191,8 @@ class DataEntry(object):
 
   def __init__(self, key, value=None, display_name=None, value_check=None):
     device_data.CheckValidDeviceDataKey(key)
-    self.value = device_data.GetDeviceData(key, value)
+    self.key = key
+    self.value = device_data.GetDeviceData(key) if value is None else value
     if display_name is None and key in _KNOWN_KEY_LABELS:
       display_name = _KNOWN_KEY_LABELS[key]
 
@@ -224,18 +319,37 @@ class UpdateDeviceData(unittest.TestCase):
           'Set to False to silently updating all values. Otherwise each value '
           'will be prompted before set into Device Data.',
           default=True, optional=True),
+      Arg('config_name', str,
+          'A JSON config name to load representing the device data to update.',
+          optional=True),
       Arg('fields', (list, tuple),
-          'A list of tuples in (data_key, value, display_name, value_check) '
-          'indicating the Device Data field by data_key must be updated to '
-          'specified value.\n'
-          'value_check can be a list of strings, a regexp string, or None. ')]
+          ('A list of sequence as (data_key, value, display_name, value_check) '
+           'indicating the Device Data field by data_key must be updated to '
+           'specified value.'),
+          optional=True),
+  ]
 
   def setUp(self):
     self.ui = None
-    # Syntax sugar: If the tuple was replaced by a simple string, consider that
-    # as data_key only.
+
+    # Either config_name or fields must be specified.
+    if self.args.config_name is None and self.args.fields is None:
+      raise ValueError('Either config_name or fields must be specified.')
+
+    fields = []
+
+    if self.args.config_name:
+      fields += [(k, v, None, None) for k, v in
+                 device_data.LoadConfig(self.args.config_name).iteritems()]
+
+    if self.args.fields:
+      fields += self.args.fields
+
+    # Syntax sugar: If the sequence was replaced by a simple string, consider
+    # that as data_key only.
     entries = [DataEntry(args) if isinstance(args, basestring) else
-               DataEntry(*args) for args in self.args.fields]
+               DataEntry(*args) for args in fields]
+
     if not self.args.manual_input:
       self.entries = entries
       return

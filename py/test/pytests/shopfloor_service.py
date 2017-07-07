@@ -9,7 +9,6 @@ https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/shopfl
 """
 
 
-import collections
 import logging
 import pprint
 import threading
@@ -96,22 +95,12 @@ class ShopfloorService(unittest.TestCase):
     self.done = True
     self.event.set()
 
-  def FlattenData(self, data, parent=''):
-    items = []
-    for k, v in data.iteritems():
-      new_key = device_data.JoinKeys(parent, k) if parent else k
-      if isinstance(v, collections.Mapping):
-        items.extend(self.FlattenData(v, new_key).items())
-      else:
-        items.append((new_key, v))
-    return dict(items)
-
   def GetFactoryDeviceData(self):
     """Returns a dictionary in FactoryDeviceData format."""
     data = {}
     for domain in [self.DOMAIN_SERIALS, self.DOMAIN_FACTORY]:
-      flat_data = self.FlattenData(device_data.GetDeviceData(domain, {}),
-                                   domain)
+      flat_data = device_data.FlattenData(
+          device_data.GetDeviceData(domain, {}), domain)
       data.update(flat_data)
     hwid = device_data.GetDeviceData(self.KEY_HWID,
                                      self.dut.CallOutput('crossystem hwid'))

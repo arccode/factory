@@ -112,6 +112,7 @@ API Spec
 --------
 """
 
+import collections
 import logging
 import os
 
@@ -119,6 +120,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event
 from cros.factory.test.rules import privacy
 from cros.factory.test import state
+from cros.factory.utils import config_utils
 from cros.factory.utils import shelve_utils
 
 
@@ -335,3 +337,38 @@ def UpdateSerialNumbers(dict_):
 
   if keys_to_delete:
     DeleteDeviceData(keys_to_delete, optional=True)
+
+
+def FlattenData(data, parent=''):
+  """An helper utility to flatten multiple layers of dict into one dict.
+
+  For example, {'a': {'b': 'c'}} => {'a.b': 'c'}
+
+  Args:
+    data: The dict type data to be flattened.
+    parent: A string to encode as key prefix for recursion.
+
+  Returns:
+    A flattened dict.
+  """
+  items = []
+  for k, v in data.iteritems():
+    new_key = JoinKeys(parent, k) if parent else k
+    if isinstance(v, collections.Mapping):
+      items.extend(FlattenData(v, new_key).items())
+    else:
+      items.append((new_key, v))
+  return dict(items)
+
+
+def LoadConfig(config_name=None):
+  """Helper utility to load a JSON config that represents device data.
+
+  Args:
+    config_name: A string for name to be passed to config_utils.LoadConfig.
+
+  Returns:
+    A dictionary as device data (already flattened).
+  """
+  return FlattenData(
+      config_utils.LoadConfig(config_name, schema_name='device_data'))

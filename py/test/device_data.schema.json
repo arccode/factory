@@ -1,0 +1,49 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "definitions": {
+      "string_values": {
+        "type": "object",
+        "additionalProperties": false,
+        "patternProperties": {
+          "^[_a-zA-Z0-9]+$": {
+            "type": "string"
+          }
+        }
+      }
+    },
+
+    "additionalProperties": false,
+    "properties": {
+        "component": {
+            "type": "object"
+        },
+        "factory": {
+            "type": "object"
+        },
+        "hwid": {
+            "type": "string"
+        },
+        "serials": {"$ref": "#/definitions/string_values"},
+        "vpd": {
+            "additionalProperties": false,
+            "properties": {
+                "ro": {"$ref": "#/definitions/string_values"},
+                "rw": {"$ref": "#/definitions/string_values"}
+            },
+            "type": "object"
+        }
+    },
+    "patternProperties": {
+      "^serials\\.[_a-zA-Z0-9]*$": {
+        "type": "string"
+      },
+      "^vpd\\.r[ow]\\.[_a-zA-Z0-9]*$": {
+        "type": "string"
+      },
+      "^component\\..*$": {
+      },
+      "^factory\\..*$": {
+      }
+    },
+    "type": "object"
+}
