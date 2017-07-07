@@ -60,14 +60,17 @@ class HWIDV3Test(unittest.TestCase):
     self._dut = device_utils.CreateDUTInterface()
     self.factory_tools = deploy_utils.CreateFactoryTools(self._dut)
     self.tmpdir = self._dut.temp.mktemp(is_dir=True, prefix='hwid_v3')
+    self.ui = test_ui.UI()
+    self.template = ui_templates.OneSection(self.ui)
 
   def tearDown(self):
     self._dut.Call(['rm', '-rf', self.tmpdir])
 
   def runTest(self):
-    ui = test_ui.UI()
-    template = ui_templates.OneSection(ui)
+    self.ui.RunInBackground(self._runTest)
+    self.ui.Run()
 
+  def _runTest(self):
     phase.AssertStartingAtPhase(
         phase.EVT,
         self.args.verify_checksum,
@@ -76,7 +79,7 @@ class HWIDV3Test(unittest.TestCase):
     if not self.args.skip_shopfloor:
       shopfloor.update_local_hwid_data(self._dut)
 
-    template.SetState(i18n_test_ui.MakeI18nLabel('Probing components...'))
+    self.template.SetState(i18n_test_ui.MakeI18nLabel('Probing components...'))
     # check if we are overriding probed results.
     probed_results_file = self._dut.path.join(self.tmpdir,
                                               'probed_results_file')
@@ -105,7 +108,8 @@ class HWIDV3Test(unittest.TestCase):
       self._dut.SendFile(f, device_info_file)
 
     if self.args.generate:
-      template.SetState(i18n_test_ui.MakeI18nLabel('Generating HWID (v3)...'))
+      self.template.SetState(
+          i18n_test_ui.MakeI18nLabel('Generating HWID (v3)...'))
       generate_cmd = ['hwid', 'generate',
                       '--probed-results-file', probed_results_file,
                       '--device-info-file', device_info_file,
@@ -139,7 +143,7 @@ class HWIDV3Test(unittest.TestCase):
     else:
       encoded_string = self.factory_tools.CheckOutput(['hwid', 'read']).strip()
 
-    template.SetState(
+    self.template.SetState(
         i18n_test_ui.MakeI18nLabel(
             'Verifying HWID (v3): {encoded_string}...',
             encoded_string=(encoded_string or _('(unchanged)'))))
@@ -160,7 +164,7 @@ class HWIDV3Test(unittest.TestCase):
     Log('hwid_verified', hwid=encoded_string)
 
     if self.args.generate:
-      template.SetState(
+      self.template.SetState(
           i18n_test_ui.MakeI18nLabel(
               'Setting HWID (v3): {encoded_string}...',
               encoded_string=encoded_string))

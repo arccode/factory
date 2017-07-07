@@ -119,11 +119,14 @@ class ReadDeviceDataFromVPD(unittest.TestCase):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
+    self.ui = test_ui.UI()
+    self.template = ui_templates.OneSection(self.ui)
 
   def runTest(self):
-    ui = test_ui.UI()
-    template = ui_templates.OneSection(ui)
+    self.ui.RunInBackground(self._runTest)
+    self.ui.Run()
 
+  def _runTest(self):
     sections = {
         'ro': self.args.ro_key_map,
         'rw': self.args.rw_key_map
@@ -136,7 +139,7 @@ class ReadDeviceDataFromVPD(unittest.TestCase):
       sections['rw'] = {'factory.*': device_data.KEY_FACTORY}
 
     for name, key_map in sections.iteritems():
-      template.SetState(_MSG_READING_VPD(name))
+      self.template.SetState(_MSG_READING_VPD(name))
       if not key_map:
         continue
       vpd = getattr(self.dut.vpd, name)

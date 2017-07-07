@@ -37,8 +37,15 @@ class VerifyRootPartitionTest(unittest.TestCase):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
+    self.ui = test_ui.UI()
+    self.template = ui_templates.TwoSections(self.ui)
 
   def runTest(self):
+    self.template.DrawProgressBar()
+    self.ui.RunInBackground(self._runTest)
+    self.ui.Run()
+
+  def _runTest(self):
     if not self.args.kern_a_device:
       self.args.kern_a_device = self.dut.partitions.RELEASE_KERNEL.path
     if not self.args.root_device:
@@ -52,14 +59,10 @@ class VerifyRootPartitionTest(unittest.TestCase):
     if not self.args.root_device.startswith('/'):
       self.args.root_device = os.path.join('/dev', self.args.root_device)
 
-    ui = test_ui.UI()
-    template = ui_templates.TwoSections(ui)
-    template.DrawProgressBar()
-
     # Copy out the KERN-A partition to a file, since vbutil_kernel
     # won't operate on a device, only a file
     # (http://crosbug.com/34176)
-    template.SetState('Verifying KERN-A (%s)...' % self.args.kern_a_device)
+    self.template.SetState('Verifying KERN-A (%s)...' % self.args.kern_a_device)
     with self.dut.temp.TempFile() as kern_a_bin:
       self.dut.toybox.dd(if_=self.args.kern_a_device, of=kern_a_bin,
                          conv='fsync')
@@ -123,8 +126,8 @@ class VerifyRootPartitionTest(unittest.TestCase):
           message = 'Read %.1f MiB (%.1f%%) of %s' % (
               bytes_read / 1024. / 1024., pct_done, self.args.root_device)
           logging.info(message)
-          template.SetState(message)
-          template.SetProgressBarValue(round(pct_done))
+          self.template.SetState(message)
+          self.template.SetProgressBarValue(round(pct_done))
     else:
       # for remote link, read out everything at once to save time.
       with tempfile.TemporaryFile() as stderr:
