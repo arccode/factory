@@ -171,8 +171,8 @@ def CheckValidDeviceDataKey(key, key_prefix=None):
   if key_prefix and prefix != key_prefix:
     raise KeyError('Key %s must start with %s.' % (key, key_prefix))
   top_level_keys = [KEY_SERIALS, KEY_HWID, KEY_VPD, KEY_COMPONENT, KEY_FACTORY]
-  if key not in top_level_keys:
-    raise KeyError('Key must start with one of %r' % top_level_keys)
+  if prefix not in top_level_keys:
+    raise KeyError('Key %s must start with one of %r' % (key, top_level_keys))
   if prefix == KEY_SERIALS:
     if '.' in postfix:
       raise KeyError('Serial number name must not contain dots: %s' % postfix)
