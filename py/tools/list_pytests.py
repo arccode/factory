@@ -26,6 +26,7 @@ def _GetPytestList(base_dir):
   pytest_dir = os.path.join(base_dir, 'test', 'pytests')
   files = glob.glob(os.path.join(pytest_dir, '*.py'))
   files.extend(glob.glob(os.path.join(pytest_dir, '*', '*.py')))
+  files.sort()
 
   def _IsExtraFile(filename):
     name = os.path.splitext(os.path.basename(filename))[0]

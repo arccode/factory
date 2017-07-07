@@ -299,8 +299,8 @@ def ParseJSONTestList(filename, options):
       for item in obj:
         RecursiveFindMessages(item)
     elif isinstance(obj, dict):
-      for item in obj.itervalues():
-        RecursiveFindMessages(item)
+      for key in sorted(obj):
+        RecursiveFindMessages(obj[key])
 
       # If key is label, assume that value is a i18n message.
       if 'label' in obj:
