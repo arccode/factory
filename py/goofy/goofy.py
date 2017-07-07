@@ -185,7 +185,7 @@ class Goofy(GoofyBase):
           test = test.GetTopLevelParentOrGroup()
         return test
       else:
-        return self.test_list
+        return self.test_list.ToFactoryTestList()
 
     self.event_handlers = {
         Event.Type.SWITCH_TEST: self.handle_switch_test,
