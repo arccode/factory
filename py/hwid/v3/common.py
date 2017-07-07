@@ -75,6 +75,19 @@ def ProbeProject(hwid=None):
   return ProbeBoard(hwid)
 
 
+def GetHWIDBundleName(project=None):
+  """Returns the filename of the hwid bundle
+
+  Args:
+    project: The project name.
+
+  Returns:
+    Filename of the hwid bundle name as a string.
+  """
+  project = project or ProbeProject()
+  return 'hwid_v3_bundle_%s.sh' % project.upper()
+
+
 def IsMPKeyName(name):
   """Returns True if the key name looks like MP (not pre-MP).
 

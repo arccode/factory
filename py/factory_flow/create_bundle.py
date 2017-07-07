@@ -17,6 +17,7 @@ from cros.factory.factory_flow.common import board_cmd_arg
 from cros.factory.factory_flow.common import FactoryFlowCommand
 from cros.factory.factory_flow.common import LoadBundleManifest
 from cros.factory.factory_flow.common import project_cmd_arg
+from cros.factory.hwid.v3 import common as hwid_common
 from cros.factory.test.env import paths
 from cros.factory.tools.gsutil import GSUtil
 from cros.factory.utils.argparse_utils import CmdArg
@@ -245,8 +246,8 @@ class CreateBundle(FactoryFlowCommand):
               dict(install_into=r'\.',
                    source=r'^.*\.zip$'),
               extra_check=lambda file_spec: (
-                  ('hwid/hwid_v3_bundle_%s.sh' %
-                   self.options.project.upper())
+                  os.path.join('hwid', hwid_common.GetHWIDBundleName(
+                      self.options.project))
                   in file_spec.get('extract_files', [])))
         else:
           raise CreateBundleError(
@@ -413,8 +414,9 @@ class CreateBundle(FactoryFlowCommand):
     if hwid_bundle_url:
       manifest['add_files'].append(
           dict(install_into='.',
-               extract_files=['hwid/hwid_v3_bundle_%s.sh' %
-                              self.options.project.upper()],
+               extract_files=[
+                   os.path.join('hwid', hwid_common.GetHWIDBundleName(
+                       self.options.project))],
                source=hwid_bundle_url,))
 
     # Remove complete script to unblock the DUT after installation is done.

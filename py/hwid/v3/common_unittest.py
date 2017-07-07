@@ -12,6 +12,7 @@ import unittest
 import yaml
 import factory_common  # pylint: disable=W0611
 
+from cros.factory.hwid.v3.common import GetHWIDBundleName
 from cros.factory.hwid.v3.common import HWID
 from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3.common import IsMPKeyName
@@ -19,6 +20,13 @@ from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3.encoder import Encode
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
+
+
+class GetHWIDBundleNameTest(unittest.TestCase):
+
+  def testWithProjectName(self):
+    self.assertEqual(GetHWIDBundleName('abc'), 'hwid_v3_bundle_ABC.sh')
+    self.assertEqual(GetHWIDBundleName('ABC'), 'hwid_v3_bundle_ABC.sh')
 
 
 class IsMPKeyNameTest(unittest.TestCase):

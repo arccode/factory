@@ -23,6 +23,7 @@ from cros.factory.factory_flow.common import board_cmd_arg
 from cros.factory.factory_flow.common import bundle_dir_cmd_arg
 from cros.factory.factory_flow.common import dut_hostname_cmd_arg
 from cros.factory.factory_flow.common import project_cmd_arg
+from cros.factory.hwid.v3 import common as hwid_common
 from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
@@ -131,7 +132,7 @@ class USBInstall(FactoryFlowCommand):
       # Search for HWID bundle shellball.
       hwid_bundle_path = os.path.join(
           self.options.bundle, 'hwid',
-          'hwid_v3_bundle_%s.sh' % self.options.project.upper())
+          hwid_common.GetHWIDBundleName(self.options.project))
       if not os.path.exists(hwid_bundle_path):
         raise USBInstallError('Unable to locate HWID bundle')
 

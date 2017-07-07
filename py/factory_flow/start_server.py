@@ -20,6 +20,7 @@ from cros.factory.factory_flow.common import FactoryFlowCommand
 from cros.factory.factory_flow.common import GetFactoryParPath
 from cros.factory.factory_flow.common import LoadBundleManifest
 from cros.factory.factory_flow.common import project_cmd_arg
+from cros.factory.hwid.v3 import common as hwid_common
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test.env import paths
 from cros.factory.utils.argparse_utils import CmdArg
@@ -457,7 +458,7 @@ class StartServer(FactoryFlowCommand):
 
     logging.info('Creating fake HWID updater for testing')
     hwid_db_name = self.options.project.upper()
-    hwid_updater_filename = 'hwid_v3_bundle_%s.sh' % hwid_db_name
+    hwid_updater_filename = hwid_common.GetHWIDBundleName(hwid_db_name)
     shop_floor_update_dir = os.path.join(
         self.options.bundle, 'shopfloor', 'shopfloor_data', 'update')
     fake_hwid_updater_path = os.path.join(shop_floor_update_dir,
