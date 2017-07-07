@@ -171,6 +171,22 @@ booting the newly-installed image.
 After the image starts downloading and the status message turns green, you can
 remove the SD card—it is not needed after that point.
 
+## Building Chromium OS Factory SDK Document
+The API specification and details of each test are documented in the online
+[Chromium OS Factory SDK](https://storage.googleapis.com/chromeos-factory-docs/sdk/index.html).
+
+You can build with latest source locally:
+
+1. Enter chroot.
+2. Build the SDK documentation
+````
+    make doc
+````
+3. Open the following file in a browser window:
+````
+    build/doc/index.html
+````
+
 ## Booting your (factory) test image via USB
 For development and local testing, it is possible to boot the factory test image
 from a USB memory stick rather than using a network installation. The following
@@ -341,18 +357,47 @@ files to the DUT. The host machine and DUT must be on the same subnet.
   ./bin/goofy_remote DUT_IP_ADDRESS
 ````
 
-For more information on adding test cases, build the **Chromium OS Factory SDK
-documentation**:
+For more information on how to add test cases, read
+[Chromium OS Factory SDK](https://storage.googleapis.com/chromeos-factory-docs/sdk/index.html).
 
-1. Enter chroot.
-2. Build the SDK documentation
-````
-    make doc
-````
-3. Open the following file in a browser window:
-````
-    build/doc/index.html
-````
+## More Resources
+Here are few resources you will want to dig into more details:
+
+### Factory Server Components
+The new generation of factory server consists of few components: the backend
+[Umpire](py/umpire/README.md) and frontend [Dome](py/dome/README.md).
+
+Umpire needs the software bits prepared in a defined structure as
+"[Factory Bundle](setup/BUNDLE.md)".
+
+### Internalization
+The DUT Software (Goofy) and pytests can be localized. Read the
+[Localization Guide](po/README.md) for more information.
+
+### Shopfloor Backend Integration
+To help manufacturing line to track DUT status, and to retrieve information from
+shopfloor backends (for example serial number, vital product data, serial
+number, ... etc), ODM factory has to implement a XMLRPC web service following
+[Shopfloor Service API](py/shopfloor/README.md).
+
+### Test Lists
+Most projects will want to adjust the ordering and parameter of tests. This is
+controlled by a "test list" that will be read by the test harness "Goofy".
+See [Test Lists Document](py/test/test_lists/README.md) for more details.
+
+### HWID
+Chrome OS devices are required to have an unique "hardware identifier (HWID)"
+when leaving factory. This is involved with component qualification,
+probing and verification. In factory there is a file controlling how HWID is
+generated. Read [HWID Database User Guide](py/hwid/README.md) for more details.
+
+### DUT Software Boot Initialization
+When running software on DUT for manufacturing, we may usually need to do
+something different from standard test images - for example disabling
+power-saving control, or starting some special services.
+
+We have a set of scripting controlling this. See [Init System](init/README.md)
+for more details.
 
 ## Developer Notes
 The layout of `/usr/local/factory`, as installed on devices' stateful
@@ -361,6 +406,7 @@ this repository, and follow this repository's directory structure.
 
  - `bin/`: Symbolic links to executable scripts and Python modules.
  - `build/`: Folder to contain build output artifacts.
+ - [`devtools/`](devtools/README.md): Tools and scripts for developers.
  - `doc/`: Document templates and resources.
  - `go/`: Programs written in Go language.
  - [`init/`](init/README.md): Initialization of factory environment for Chrome
@@ -390,9 +436,8 @@ files in this directory will be included in factory bundles built by
 Buildbot.  For example, the shopfloor and mini-Omaha servers are
 placed into this directory.
 
-Within board overlays, the `chromeos-base/factory-board` or
-`chromeos-base/chromeos-factory-board` package may overlay files into this
-directory structure.
+Within board overlays, the `chromeos-base/factory-board` package may overlay
+files into this directory structure.
 
 For instance, a board overlay may install:
 

@@ -1,11 +1,11 @@
-# ChromeOS Factory Bundle Introduction
+# Chromium OS Factory Bundle
 
 [TOC]
 
 ## What's a factory bundle?
 
 A factory bundle is an archive file containing all files you need to setup
-ChromeOS factory environment.
+Chromium OS factory environment.
 
 Here is a list of files in a typical factory bundle:
 
@@ -13,9 +13,6 @@ Here is a list of files in a typical factory bundle:
       complete_script_sample.sh
     factory_shim/
       factory_install_shim.bin
-      pack_partitions.sh
-      partition_script.sh
-      unpack_partitions.sh
     firmware/
       chromeos-firmwareupdate
     firmware_images/
@@ -69,7 +66,7 @@ Here is a list of files in a typical factory bundle:
     doc.zip
     start_download_server.sh
 
-### release\_image/
+### release_image/
 
 There should be exactly one file in this folder, with arbitrary file name.
 
@@ -78,7 +75,7 @@ There should be exactly one file in this folder, with arbitrary file name.
 
 You can get release images from CPFE (select image type `RECOVERY_IMAGE`).
 
-### test\_image/
+### test_image/
 
 There should be exactly one file in this folder, with arbitrary file name.
 
@@ -130,12 +127,12 @@ There could be at most one file in this folder, with arbitrary file name.
 You can find a complete script template in
 `factory/setup/complete_script_sample.sh`.
 
-### firmware\_images/
+### firmware_images/
 
 `finalize_bundle` will extract firmware images from firmware updater and put
 them into this folder.
 
-### factory\_shim/
+### factory_shim/
 
 `finalize_bundle` will extract factory shim image from `FACTORY_IMAGE_ARCHIVE`,
 patch its server address, and put it into this folder.
@@ -161,7 +158,7 @@ contains many useful scripts, such as:
 * `netboot_firmware_settings.py`
 * `resize_image_fs.sh`
 
-### start\_download\_server.sh
+### start_download_server.sh
 
 This script file is only for Mini-Omaha backward compatibility.
 It will invoke `make_factory_package.sh` to prepare files for Mini-Omaha in the
@@ -203,7 +200,7 @@ Here is a template `MANIFEST.yaml`:
 
 #### Field `board`
 
-board name
+Board name.
 
 #### Field `bundle_name`
 
@@ -265,10 +262,10 @@ There are two kinds of valid values:
 
 #### Non-local resources
 
-Currently non-local resources can only be accessed by Googlers inside ChromeOS
-SDK chroot. Partners can only use local resources.
+Currently non-local resources can only be accessed by Google internally.
+Partners can only use local resources.
 
-### finalize\_bundle
+### finalize_bundle
 
 With `MANIFEST.yaml`, we can run `finalize_bundle` now.
 
@@ -294,7 +291,7 @@ Prepare release image if you want to use local release image:
 
 Prepare test image if you want to use local test image:
 
-    tar -JxvC test_image/ < /path/to/ChromeOS-test-R58-9334.72.0-samus.tar.xz
+    tar -JxvC test_image/ </path/to/ChromeOS-test-R58-9334.72.0-samus.tar.xz
 
 Extract factory zip (`FACTORY_IMAGE_ARCHIVE`) if you want to use a local one:
 
