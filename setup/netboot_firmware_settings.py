@@ -205,10 +205,10 @@ class Settings(object):
         self: The instance to initialize.
     """
     # Decode blob if possible.
+    decoded = {}
     if blob.startswith(self.signature):
       offset = len(self.signature)
       format_items = '<I'
-      decoded = {}
       items, = struct.unpack_from(format_items, blob, offset)
       offset += struct.calcsize(format_items)
       for unused_i in xrange(items):
@@ -337,16 +337,21 @@ def main(argv):
 
   new_blob = settings.pack()
   output_name = options.output or options.input
+
+  # If output is specified with different name, always generate output.
+  do_output = output_name != options.input
   if new_blob == image[SETTINGS_FMAP_SECTION][:len(new_blob)]:
-    print('Nothing changed.')
+    print('Settings not changed.')
   else:
-    print('Settings modified. Generating output to %s...' % output_name)
+    print('Settings modified. New settings:')
+    pprint.pprint(settings.attributes)
     image[SETTINGS_FMAP_SECTION] = new_blob
+    do_output = True
+
+  if do_output:
+    print('Generating output to %s...' % output_name)
     with open(output_name, 'w') as f:
       f.write(image.data)
-
-    print('New settings:')
-    pprint.pprint(settings.attributes)
 
 
 if __name__ == '__main__':
