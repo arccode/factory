@@ -4,12 +4,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import collections
 import glob
+import json
 import os
 import shutil
 import tempfile
 import unittest
-import collections
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.test_lists import manager
@@ -126,6 +127,48 @@ class TestListLoaderTest(unittest.TestCase):
     self.assertEqual(
         'NEXT',
         factory_test_list.LookupPath('SMT.Group').action_on_failure)
+
+  def testModifiedDetection(self):
+    test_list = self.manager.GetTestListByID('b')
+    self.assertFalse(test_list.modified)
+
+    # 'b' is modified
+    os.utime(self.loader.GetConfigPath('b'), None)
+    self.assertTrue(test_list.modified)
+
+    # let's go back in time
+    os.utime(self.loader.GetConfigPath('b'), (0, 0))
+    self.assertFalse(test_list.modified)
+
+    # b inherits base
+    os.utime(self.loader.GetConfigPath('base'), None)
+    self.assertTrue(test_list.modified)
+
+  def testAutoReloadTestList(self):
+    # load test list config
+    test_list = self.manager.GetTestListByID('a')
+
+    self.assertTrue(test_list.LookupPath('SMT'))
+
+    # modified content
+    with open(self.loader.GetConfigPath('a'), 'r') as f:
+      json_object = json.load(f)
+    with open(self.loader.GetConfigPath('a'), 'w') as f:
+      json_object['constants']['timestamp'] = 123
+      json_object['tests'] = [
+          {
+              'id': 'RunIn',
+              'subtests': []
+          }
+      ]
+      json.dump(json_object, f)
+    os.utime(self.loader.GetConfigPath('a'), None)
+
+    # test list should be automatically reloaded
+    self.assertEqual(test_list.constants.timestamp, 123)
+    # SMT doesn't exist
+    self.assertIsNone(test_list.LookupPath('SMT'))
+    self.assertTrue(test_list.LookupPath('RunIn'))
 
 
 class CheckerTest(unittest.TestCase):

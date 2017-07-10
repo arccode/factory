@@ -6,7 +6,8 @@
     "phase": "EVT",
     "enable_shopfloor": true,
     "component_list": ["cpu", "audio", "flash_chip"],
-    "timestamp": 1
+    "timestamp": 1,
+    "__comment_timestamp": "this is used by testReloadConfig"
   },
 
   "options": {

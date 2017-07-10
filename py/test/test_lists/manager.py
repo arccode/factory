@@ -14,6 +14,7 @@ import copy
 import glob
 import inspect
 import logging
+import numbers
 import os
 import sys
 
@@ -54,17 +55,26 @@ class TestListConfig(object):
   This is basically a wrapper for JSON object (the content loaded from test list
   JSON file), with some helper functions and caches.
   """
-  def __init__(self, json_object, test_list_id, timestamp):
+  def __init__(self, json_object, test_list_id, timestamp=None):
     self._json_object = json_object
-    self._timestamp = timestamp
     self._test_list_id = test_list_id
+    self._timestamp = timestamp
 
   def GetParents(self):
-    return self._json_object.get('inherit', [])
+    return [p[:-len(Loader.CONFIG_SUFFIX)]
+            for p in self._json_object.get('depend', [])]
 
   @property
   def timestamp(self):
+    """When the config was loaded."""
     return self._timestamp
+
+  @timestamp.setter
+  def timestamp(self, value):
+    if self._timestamp is not None:
+      raise AttributeError('Cannot override timestamp of TestListConfig')
+    assert isinstance(value, numbers.Real), "timestamp must be a number"
+    self._timestamp = value
 
   @property
   def test_list_id(self):
@@ -115,6 +125,11 @@ class ITestList(object):
   @abc.abstractproperty
   def modified(self):
     raise NotImplementedError
+
+  def ReloadIfModified(self):
+    """Reloads the test list (when self.modified == True)."""
+    # default behavior, does nothing
+    return
 
   @abc.abstractproperty
   def constants(self):
@@ -191,26 +206,29 @@ class TestList(ITestList):
   """
 
   # Declare instance variables to make __setattr__ happy.
+  _loader = None
   _config = None
-  _cached_test_list = None
-  _timestamp = 0
-  _options = None
-  _constants = None
   _state_instance = None
   _state_change_callback = None
 
-  def __init__(self, config, checker=None):
+  # variables starts with '_cached_' will be cleared by ReloadIfModified
+  _cached_test_list = None
+  _cached_options = None
+  _cached_constants = None
+
+  def __init__(self, config, checker=None, loader=None):
     super(TestList, self).__init__(checker)
+    self._loader = loader or Loader()
     self._config = config
     self._cached_test_list = None
-    self._timestamp = 0
-    self._options = None
-    self._constants = None
+    self._cached_options = None
+    self._cached_constants = None
     self._state_instance = None
     self._state_change_callback = None
 
   def ToFactoryTestList(self):
-    if not self.modified and self._cached_test_list:
+    self.ReloadIfModified()
+    if self._cached_test_list:
       return self._cached_test_list
 
     subtests = []
@@ -317,29 +335,52 @@ class TestList(ITestList):
       ret.pop('tests', None)
       return ret
 
+  def ReloadIfModified(self):
+    if not self.modified:
+      return
+    logging.debug('reloading test list %s', self._config.test_list_id)
+    try:
+      new_config = self._loader.Load(self._config.test_list_id)
+      self._config = new_config
+      for key in self.__dict__:
+        if key.startswith('_cached_'):
+          self.__dict__[key] = None
+    except Exception:
+      logging.exception('Failed to reload latest test list %s.',
+                        self._config.test_list_id)
+
   @property
   def modified(self):
     """Return True if the test list is considered modified, need to be reloaded.
 
-    Currently, this function always returns False.
+    self._config.timestamp is when was the config last modified, if the config
+    file or any of config files it inherits is changed after the timestamp, this
+    function will return True.
+
+    Returns:
+      True if the test list config is modified, otherwise False.
     """
-    # TODO(stimim): implement this function.
-    return False
+    return (self._config.timestamp <
+            self._loader.GetConfigInheritTreeLastModifiedTime(
+                self._config))
 
   @property
   def constants(self):
-    if not self.modified and self._constants:
-      return self._constants
-    self._constants = type_utils.AttrDict(self._config['constants'])
-    return self._constants
+    self.ReloadIfModified()
+
+    if self._cached_constants:
+      return self._cached_constants
+    self._cached_constants = type_utils.AttrDict(self._config['constants'])
+    return self._cached_constants
 
   # the following functions / properties are required by goofy
   @property
   def options(self):
-    if not self.modified and self._options:
-      return self._options
+    self.ReloadIfModified()
+    if self._cached_options:
+      return self._cached_options
 
-    self._options = factory.Options()
+    self._cached_options = factory.Options()
 
     class NotAccessable(object):
       def __getattribute__(self, name):
@@ -352,8 +393,8 @@ class TestList(ITestList):
         dut=None,
         station=None)
     for key, value in resolved_options.iteritems():
-      setattr(self._options, key, value)
-    return self._options
+      setattr(self._cached_options, key, value)
+    return self._cached_options
 
   @property
   def state_instance(self):
@@ -399,7 +440,7 @@ class LegacyTestList(ITestList):
 
   @property
   def constants(self):
-    return self.test_list.constans
+    return self.test_list.constants
 
   @property
   def state_instance(self):
@@ -444,7 +485,7 @@ class Loader(object):
                                 'py', 'test', 'test_lists')
     self.config_dir = config_dir
 
-  def Load(self, test_list_id):
+  def Load(self, test_list_id, allow_inherit=True):
     """Loads test list config by test list ID.
 
     Returns:
@@ -457,18 +498,23 @@ class Loader(object):
           schema_name=self.schema_name,
           validate_schema=True,
           default_config_dir=self.config_dir,
-          allow_inherit=True)
+          allow_inherit=allow_inherit,
+          generate_depend=allow_inherit)
     except Exception:
       logging.exception('Cannot load test list "%s"', test_list_id)
       return None
 
-    timestamp = os.stat(self.GetConfigPath(test_list_id)).st_mtime
-
-    return TestListConfig(
+    loaded_config = TestListConfig(
         json_object=loaded_config,
-        test_list_id=test_list_id,
-        timestamp=timestamp)
+        test_list_id=test_list_id)
 
+    if allow_inherit:
+      timestamp = self.GetConfigInheritTreeLastModifiedTime(loaded_config)
+    else:
+      timestamp = self.GetConfigLastModifiedTime(test_list_id)
+
+    loaded_config.timestamp = timestamp
+    return loaded_config
   def GetConfigPath(self, test_list_id):
     """Returns the test list config file path of `test_list_id`."""
     return os.path.join(self.config_dir,
@@ -486,6 +532,17 @@ class Loader(object):
     suffix = self.CONFIG_SUFFIX + '.json'
     return [os.path.basename(p)[:-len(suffix)] for p in
             glob.iglob(os.path.join(self.config_dir, '*' + suffix))]
+
+  def GetConfigLastModifiedTime(self, test_list_id):
+    return os.stat(self.GetConfigPath(test_list_id)).st_mtime
+
+  def GetConfigInheritTreeLastModifiedTime(self, loaded_config):
+    last_modified_time = 0
+    for test_list_id in loaded_config.GetParents():
+      last_modified_time = max(
+          last_modified_time,
+          self.GetConfigLastModifiedTime(test_list_id))
+    return last_modified_time
 
 
 class CheckerError(Exception):
@@ -647,8 +704,8 @@ class Manager(object):
 
   def GetTestListByID(self, test_list_id):
     if test_list_id in self.test_lists:
-      if not self.test_lists[test_list_id].modified:
-        return self.test_lists[test_list_id]
+      self.test_lists[test_list_id].ReloadIfModified()
+      return self.test_lists[test_list_id]
 
     config = self.loader.Load(test_list_id)
     if not config:
@@ -656,7 +713,7 @@ class Manager(object):
       return self.test_lists.get(test_list_id, None)
 
     assert isinstance(config, TestListConfig)
-    test_list = TestList(config, self.checker)
+    test_list = TestList(config, self.checker, self.loader)
     self.test_lists[test_list_id] = test_list
     return test_list
 
