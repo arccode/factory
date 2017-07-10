@@ -260,10 +260,20 @@ class ShopfloorServiceDUTCommands(umpire_rpc.UmpireRPC):
     http://umpire_server_address:umpire_port/umpire
   """
 
-  def __init__(self, daemon, service_url):
+  def __init__(self, daemon):
     super(ShopfloorServiceDUTCommands, self).__init__(daemon)
-    self.service = xmlrpclib.ServerProxy(service_url.rstrip('/'),
-                                         allow_none=True)
+    # Reuse ServerProxy so that we don't need to create a new one for every
+    # request.
+    self._url = None
+    self._proxy = None
+
+  @property
+  def service(self):
+    if self._url != self.env.shopfloor_service_url:
+      self._proxy = xmlrpclib.ServerProxy(self.env.shopfloor_service_url,
+                                          allow_none=True)
+      self._url = self.env.shopfloor_service_url
+    return self._proxy
 
   @umpire_rpc.RPCCall
   def GetVersion(self):
