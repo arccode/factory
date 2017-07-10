@@ -33,7 +33,6 @@ import re
 import subprocess
 import sys
 import tempfile
-import time
 
 
 POT_HEADER = r"""# SOME DESCRIPTIVE TITLE.
@@ -43,7 +42,6 @@ POT_HEADER = r"""# SOME DESCRIPTIVE TITLE.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: %(time)s\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -85,8 +83,7 @@ def Normalize(s):
 
 
 def WritePot(fp, messages, width):
-  timestamp = time.strftime('%Y-%m-%d %H:%M+%Z')
-  print >> fp, POT_HEADER % {'time': timestamp}
+  print >> fp, POT_HEADER
 
   # Collect files with same text together.
   message_dict = {}

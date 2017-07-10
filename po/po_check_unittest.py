@@ -149,11 +149,6 @@ class PoCheckTest(unittest.TestCase):
 
 class PoUpdateTest(unittest.TestCase):
   """Check that po update have been run."""
-  def _ReadPoFileNoHeader(self, filename):
-    po_lines = file_utils.ReadLines(filename)
-    # Header is up to the first empty line.
-    return po_lines[po_lines.index('\n') + 1:]
-
   def runTest(self):
     try:
       temp_dir = tempfile.mkdtemp(prefix='po_update_test.')
@@ -172,8 +167,7 @@ class PoUpdateTest(unittest.TestCase):
       err_files = []
       for po_file in po_files:
         new_po_file = os.path.join(po_dir, os.path.basename(po_file))
-        if self._ReadPoFileNoHeader(po_file) != self._ReadPoFileNoHeader(
-            new_po_file):
+        if file_utils.ReadLines(po_file) != file_utils.ReadLines(new_po_file):
           err_files.append(os.path.basename(po_file))
 
       self.assertFalse(
