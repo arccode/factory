@@ -16,7 +16,10 @@ may implement VPD in other locations, for example Android may prefer to use
 /persist partition).
 
 By default, this test writes all device data under ``vpd`` category (for
-example, ``vpd.ro.region``) and device serial number (serials.serial_number).
+example, ``vpd.ro.region`` to ``ro.region``), all device data under ``serial``
+category (for example, ``serials.serial_number`` to ``serial_number``) and all
+device data under ``factory`` category (for example, ``factory.end_SMT`` to
+``factory.end_SMT``).
 To write different values, specify the mapping in ``ro_key_map`` or
 ``rw_key_map``.
 
@@ -97,9 +100,12 @@ class WriteDeviceDataToVPD(unittest.TestCase):
       data['ro'] = device_data.GetDeviceData(device_data.KEY_VPD_RO, {})
       data['rw'] = device_data.GetDeviceData(device_data.KEY_VPD_RW, {})
       # Device serial number is usually not included in vpd.ro.*.
-      serial_number = device_data.GetSerialNumber()
-      if serial_number:
-        data['ro'][device_data.NAME_SERIAL_NUMBER] = serial_number
+      data['ro'].update(device_data.GetAllSerialNumbers())
+
+      data['rw'].update(
+          device_data.FlattenData({
+              'factory': device_data.GetDeviceData(device_data.KEY_FACTORY, {})
+          }))
     else:
       data['ro'] = {vpd_name: device_data.GetDeviceData(data_key)
                     for vpd_name, data_key in self.args.ro_key_map or {}}
