@@ -31,6 +31,19 @@ def IsLidEventDevice(dev):
   """
   return evdev.ecodes.SW_LID in dev.capabilities().get(evdev.ecodes.EV_SW, [])
 
+def IsTabletEventDevice(dev):
+  """Check if a device is with EV_SW and SW_TABLET_MODE capabilities.
+
+  Args:
+    dev: evdev.InputDevice
+
+  Returns:
+    True if dev is a tablet event device.
+  """
+  return evdev.ecodes.SW_TABLET_MODE in dev.capabilities().get(
+      evdev.ecodes.EV_SW, [])
+
+
 
 def IsKeyboardDevice(dev):
   """Check if a device is with EV_KEY and KEY_ENTER capabilities.

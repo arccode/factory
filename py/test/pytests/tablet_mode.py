@@ -42,7 +42,10 @@ class TabletModeTest(unittest.TestCase):
   ARGS = [
       Arg('timeout_secs', int, 'Timeout value for the test.',
           default=_DEFAULT_TIMEOUT, optional=True),
-      Arg('event_id', int, 'Event ID for evdev. None for auto probe.',
+      Arg('lid_event_id', int, 'Lid event ID for evdev. None for auto probe.',
+          default=None, optional=True),
+      Arg('tablet_event_id', int,
+          'Tablet event ID for evdev. None for auto probe.',
           default=None, optional=True),
       Arg('prompt_flip_notebook', bool,
           'After the test, prompt the operator to flip back into notebook '
@@ -56,14 +59,30 @@ class TabletModeTest(unittest.TestCase):
     self.tablet_mode_ui = tablet_mode_ui.TabletModeUI(
         self.ui, _HTML_COUNTDOWN_TIMER, _CSS_COUNTDOWN_TIMER)
 
-    self.event_dev = evdev_utils.FindDevice(self.args.event_id,
-                                            evdev_utils.IsLidEventDevice)
+    self.tablet_mode_switch = False
+    self.lid_event_dev = evdev_utils.FindDevice(self.args.lid_event_id,
+                                                evdev_utils.IsLidEventDevice)
+    try:
+      self.tablet_event_dev = evdev_utils.FindDevice(
+          self.args.tablet_event_id,
+          evdev_utils.IsTabletEventDevice)
+    except evdev_utils.DeviceNotFoundError:
+      self.tablet_event_dev = None
+
     self.tablet_mode_ui.AskForTabletMode(self.HandleConfirmTabletMode)
 
     # Create a thread to monitor evdev events.
-    self.dispatcher = evdev_utils.InputDeviceDispatcher(
-        self.event_dev, self.HandleLidSwitch)
-    self.dispatcher.StartDaemon()
+    self.lid_dispatcher = evdev_utils.InputDeviceDispatcher(
+        self.lid_event_dev, self.HandleSwitchEvent)
+    self.lid_dispatcher.StartDaemon()
+    self.tablet_dispatcher = None
+    # It is possible that a single input device can support both of SW_LID and
+    # SW_TABLET_MODE therefore we can just use the first thread above to monitor
+    # these two EV_SW events. Or we need this second thread.
+    if self.tablet_event_dev and self.tablet_event_dev != self.lid_event_dev:
+      self.tablet_dispatcher = evdev_utils.InputDeviceDispatcher(
+          self.tablet_event_dev, self.HandleSwitchEvent)
+      self.tablet_dispatcher.StartDaemon()
 
     # Create a thread to run countdown timer.
     countdown_timer.StartCountdownTimer(
@@ -72,13 +91,22 @@ class TabletModeTest(unittest.TestCase):
         self.ui,
         _ID_COUNTDOWN_TIMER)
 
-  def HandleLidSwitch(self, event):
+  def HandleSwitchEvent(self, event):
     if event.type == evdev.ecodes.EV_SW and event.code == evdev.ecodes.SW_LID:
       if event.value == 0:  # LID_OPEN
         self.tablet_mode_ui.FlashFailure()
         self.ui.Fail('Lid switch was triggered unexpectedly')
 
+    if (event.type == evdev.ecodes.EV_SW and
+        event.code == evdev.ecodes.SW_TABLET_MODE):
+      self.tablet_mode_switch = event.value == 1
+
   def HandleConfirmTabletMode(self, _):
+    if self.tablet_event_dev and not self.tablet_mode_switch:
+      self.tablet_mode_ui.FlashFailure()
+      self.ui.Fail("Tablet mode switch is off")
+      return
+
     self.tablet_mode_ui.FlashSuccess()
     if self.args.prompt_flip_notebook:
       self.tablet_mode_ui.AskForNotebookMode(self.HandleConfirmNotebookMode)
@@ -86,6 +114,11 @@ class TabletModeTest(unittest.TestCase):
       self.ui.Pass()
 
   def HandleConfirmNotebookMode(self, _):
+    if self.tablet_event_dev and self.tablet_mode_switch:
+      self.tablet_mode_ui.FlashFailure()
+      self.ui.Fail('Tablet mode switch is on')
+      return
+
     self.tablet_mode_ui.FlashSuccess()
     self.ui.Pass()
 
@@ -93,4 +126,6 @@ class TabletModeTest(unittest.TestCase):
     self.ui.Run()
 
   def tearDown(self):
-    self.dispatcher.close()
+    self.lid_dispatcher.close()
+    if self.tablet_dispatcher:
+      self.tablet_dispatcher.close()
