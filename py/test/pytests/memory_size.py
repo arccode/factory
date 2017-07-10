@@ -2,14 +2,68 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-""" Test if the memory size is correctly written in the firmware.
+"""Test if the memory size is correctly written in the firmware.
 
-Test memory size by comparing the result of mosys and kernel meminfo.
-Optionally, we can check memory size by the information on shopfloor if factory
-supports it.
+Description
+-----------
+Linux kernel trusts the available memory region specified from firmware, via
+ACPI or Device Tree. However, it is possible for the firmware to send wrong
+values, for example always only assigning 8GB for kernel while the system
+has 16GB memory installed.
+
+On traditional PC, the memory information is stored on SPD chipset on memory
+module so firmware should read and claim free space for kernel according to SPD.
+On modern Chromebooks, the SPD is replaced by a pre-defined mapping table and
+decided by straps. When the mapping table is out-dated, for example if an old
+firmware is installed, then the allocated memory for kernel would be wrong.
+
+The Chrome OS command, ``mosys``, can read from physical or virtual SPD and
+report expected memory size. So this test tries to compare the value from
+``mosys`` and kernel ``meminfo`` to figure out if firmware has reported wrong
+memory size for kernel.
+
+Usually firmware has to reserve some memory, for example ACPI tables, DMA,
+I/O port mappings, so the kernel is expected to get less memory. This is
+specified by argument ``max_diff_gb``.
+
+Meanwhile, for virtual SPD, it is possible that both firmware and ``mosys`` have
+out-dated information of memory straps, so optionally we support a third source,
+the shopfloor backend, to provide memory size.
+
+If argument ``device_data_key`` is set, we will also check memory size by the
+information from device data (usually retrieved from shopfloor backend if
+factory supports it).
+
+Test Procedure
+--------------
+This is an automated test without user interaction.
+
+When started, the test collects memory size information from different source
+and fail if the difference is too large.
+
+Dependency
+----------
+- Command ``mosys``: ``mosys -k memory spd print geometry``.
+- Kernel to support ``/proc/meminfo``, search for string ``MemTotal``.
+- Optionally, shopfloor integration to save memory in device data.
+
+Examples
+--------
+To compare and check only the memory size from ``mosys`` and kernel::
+
+  OperatorTest(pytest_name='memory_size')
+
+To read device data from Shopfloor Service then compare and check the memory
+size from ``mosys``, kernel, and device data ``component.memory_size``, with
+difference up to 300MB::
+
+  OperatorTest(pytest_name='shopfloor_service',
+               dargs={'method': 'GetDeviceInfo'})
+  OperatorTest(pytest_name='memory_size',
+               dargs={'device_data_key': 'component.memory_size',
+                      'max_diff_gb': 0.3})
 """
 
-import logging
 import re
 import threading
 import unittest
@@ -17,26 +71,20 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data
 from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import debug_utils
 from cros.factory.utils import process_utils
-
-
-_SHOPFLOOR_METHOD_NAME = 'GetMemSize'
 
 
 class MemorySize(unittest.TestCase):
   ARGS = [
-      Arg('compare_with_shopfloor', bool,
-          'compare the memory size info with factory shopfloor', default=True),
-      Arg('shopfloor_method_name', str,
-          'Shopfloor method name for getting memory info',
-          default=_SHOPFLOOR_METHOD_NAME),
+      Arg('device_data_key', str,
+          'Device data key for getting memory size in GB.',
+          default=None),
       Arg('max_diff_gb', float,
-          'maxmum difference between memory size detected by kernel and mosys',
+          ('Maximum tolerance difference between memory size detected by '
+           'kernel and mosys in GB.'),
           default=0.5),
   ]
 
@@ -75,50 +123,14 @@ class MemorySize(unittest.TestCase):
                 '%.1f GB' % diff)
       return
 
-    if not self.args.compare_with_shopfloor:
+    if not self.args.device_data_key:
       return
 
-    self.ui.AddEventHandler('retry', lambda dummy_event: self._event.set())
+    sf_mem_gb = round(float(device_data.GetDeviceData(
+        self.args.device_data_key)), 1)
 
-    method_name = self.args.shopfloor_method_name
-    method = getattr(shopfloor.get_instance(detect=True), method_name)
-    mlb_serial_number = device_data.GetSerialNumber(
-        device_data.NAME_MLB_SERIAL_NUMBER)
-    message = 'Invoking %s(%r)' % (method_name, mlb_serial_number)
-
-    while True:
-      logging.info(message)
-      self.template.SetState(test_ui.Escape(message))
-
-      def HandleError(trace):
-        self.template.SetState(
-            i18n_test_ui.MakeI18nLabelWithClass(
-                'Shop floor exception:',
-                'test-status-failed large') +
-            '<p>' +
-            test_ui.Escape(trace) +
-            '<p><br>' +
-            """<button onclick="test.sendTestEvent('retry')">""" +
-            i18n_test_ui.MakeI18nLabel('Retry') +
-            '</button>')
-        process_utils.WaitEvent(self._event)
-        self._event.clear()
-
-      try:
-        result = method(mlb_serial_number)
-        logging.info('%s: %s', method_name, result)
-      except Exception:
-        exception_str = debug_utils.FormatExceptionOnly()
-        logging.exception('Exception invoking shopfloor method\n' +
-                          exception_str)
-        HandleError(exception_str)
-        continue
-
-      sf_mem_gb = round(float(result['mem_size']), 1)
-
-      # The memory size info in mosys should be the same as that in shopfloor.
-      if abs(mosys_mem_gb - sf_mem_gb) > 10e-6:
-        msg = ('Memory size detected in mosys (%.1f GB) is different from the '
-               'reocrd in shopfloor (%.1f GB)' % (mosys_mem_gb, sf_mem_gb))
-        self.fail(msg)
-      break
+    # The memory size info in mosys should be the same as that in device data.
+    if abs(mosys_mem_gb - sf_mem_gb) > 10e-6:
+      msg = ('Memory size detected in mosys (%.1f GB) is different from the '
+             'record in device data (%.1f GB)' % (mosys_mem_gb, sf_mem_gb))
+      self.fail(msg)
