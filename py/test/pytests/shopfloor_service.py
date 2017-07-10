@@ -2,13 +2,71 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Invoke Shopfloor Service APIs.
+"""Invoke remote procedure call for interaction with shopfloor backend.
 
-For more information, see
+Description
+-----------
+The Chromium OS Factory Software has defined a protocol, "Chrome OS Factory
+Shopfloor Service Specification", to access factory manufacturing line shopfloor
+system (or MES) backend system. This test allows interaction with a server
+following the protocol.
+
+For more information about Chrome OS Factory Shopfloor Service Specification,
+read
 https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/shopfloor/README.md
+
+By default, the protocol has been simplified so you don't need to manually
+generate or process ``FactoryDeviceData`` or ``DeviceData`` - just provide
+the constant arguments from test list.
+
+For example, the method ``NotifyStart(data, station)`` can be invoked by
+(assume station is ``'SMT'``) ``method='NotifyStart'`` and ``args=['SMT']``.
+Also the return value is automatically merged into Device Data (see
+``cros.factory.test.device_data`` for more details).
+
+For OEM Chromebook projects, you should only use the standard methods defined in
+Chrome OS Factory Shopfloor Service Specification. However, if you need to work
+on a customized project or using a fixture with XMLRPC interface, it is possible
+to use this test by setting argument ``raw_invocation`` to True.
+
+When ``raw_invocation`` is True, the invocation will simply run with argument
+``args`` and ``kargs``, no auto-generation of FactoryDeviceData or DeviceData.
+The return value will still be merged to device data.
+
+Test Procedure
+--------------
+This is an automated test without user interaction unless manually 'retry' is
+needed.
+
+When started, the test will connect to remote server and try to invoke specified
+method with given arguments, and will display return (error) messages and wait
+for retry on failure.
+
+Dependency
+----------
+No special dependency on client side, but the server must be implemented with
+needed XMLRPC methods.
+
+Examples
+--------
+To start 'SMT' station tests, add this to test list::
+
+  OperatorTest(pytest_name='shopfloor_service',
+               dargs={'method': 'NotifyStart',
+                      'args': ['SMT']})
+
+To invoke a non-standard call 'DoSomething' with args (1, 2) and keyword args
+{'arg1': 1}, add this into test list::
+
+  OperatorTest(pytest_name='shopfloor_service',
+               dargs={'method': 'DoSomething',
+                      'raw_invocation': True,
+                      'args': (1, 2),
+                      'kargs': {'arg1': 1}})
 """
 
 
+import collections
 import logging
 import pprint
 import threading
@@ -46,8 +104,12 @@ class ShopfloorService(unittest.TestCase):
   ARGS = [
       Arg('method', str,
           'Name of shopfloor service method to call'),
-      Arg('args', (list, tuple), 'Arguments for specified method.',
+      Arg('args', collections.Sequence, 'Arguments for specified method.',
           optional=True),
+      Arg('kargs', collections.Mapping, 'Keyword arguments for method.',
+          optional=True),
+      Arg('raw_invocation', bool, 'Allow invocation of arbitrary calls.',
+          default=False),
       Arg('server_url', str,
           'The URL to shopfloor service server', optional=True),
   ]
@@ -143,24 +205,35 @@ class ShopfloorService(unittest.TestCase):
                                            allow_none=True)
     else:
       server_proxy = shopfloor.get_instance(detect=True)
-
-    if self.args.method not in self.METHODS:
-      raise ValueError('Unknown method for shopfloor service: %s' %
-                       self.args.method)
+      if self.args.raw_invocation:
+        raise ValueError('Argument `raw_invocation` allowed only for external '
+                         'server (need `server_url`).')
 
     # Prepare arguments
     method = self.args.method
     args = list(self.args.args or ())
-    spec = self.METHODS[method]
+    kargs = dict(self.args.kargs or {})
+
+    if self.args.raw_invocation:
+      spec = ServiceSpec(has_data=False)
+    else:
+      if self.args.kargs:
+        raise ValueError('`kargs` only allowed for `raw_invocation`.')
+      spec = self.METHODS.get(method)
+      if not spec:
+        raise ValueError('Unknown method for shopfloor service: %s' % method)
+
     if spec.data_args:
       args = [device_data.GetDeviceData(k) for k in spec.data_args] + args
     if spec.has_data:
       args.insert(0, self.GetFactoryDeviceData())
 
-    log_args = '(...)' if spec.has_privacy_args else tuple(args)
+    log_args = '(...)' if spec.has_privacy_args else repr(tuple(args))
+    log_args += repr(kargs) if kargs else ''
 
-    logging.info('shopfloor_service: invoking %s%r', method, log_args)
-    invocation_message = pprint.pformat({method: args})
+    logging.info('shopfloor_service: invoking %s%s', method, log_args)
+    invocation_message = pprint.pformat({method: args}) + (
+        pprint.pformat(kargs) if kargs else '')
 
     while not self.done:
       def ShowMessage(caption, css, message, retry=False):
@@ -184,8 +257,8 @@ class ShopfloorService(unittest.TestCase):
         self.event.clear()
 
       try:
-        result = getattr(server_proxy, method)(*args)
-        logging.info('shopfloor_service: %r%r => %r',
+        result = getattr(server_proxy, method)(*args, **kargs)
+        logging.info('shopfloor_service: %s%s => %r',
                      method, log_args, self.FilterDict(result))
         self.UpdateAutoResults(method, result, args)
         self.UpdateDeviceData(result)
