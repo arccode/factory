@@ -1,6 +1,6 @@
 checksum: abcdef
 
-board: CHROMEBOOK
+project: CHROMEBOOK
 
 encoding_patterns:
   0: default

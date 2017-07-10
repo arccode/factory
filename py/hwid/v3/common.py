@@ -127,9 +127,9 @@ class HWID(object):
   This class is mainly for internal use. User should not create a HWID object
   directly with the constructor.
 
-  With BOM (obtained from hardware prober) and board-specific component
+  With BOM (obtained from hardware prober) and project-specific component
   database, HWID encoder can derive binary_string and encoded_string.
-  Reversely, with encoded_string and board-specific component database, HWID
+  Reversely, with encoded_string and project-specific component database, HWID
   decoder can derive binary_string and bom. Therefore, we only keep the BOM
   object and calculate the binary_string and encoded_string. But we still keep
   the binary_string while the this object is decoded by the HWID string, because
@@ -141,7 +141,7 @@ class HWID(object):
   encoded_string) lazily.
 
   Attributes:
-    database: A board-specific Database object.
+    database: A project-specific Database object.
     bom: A BOM object.
     binary_string: A string only containing '0' or '1'. When the binary_string
         is needed, return it if it is matched to the BOM.
@@ -180,12 +180,12 @@ class HWID(object):
   def __eq__(self, other):
     """Define the equivalence of HWID.
 
-    Two HWID are equivalent if the boards are the same, and the binary string
+    Two HWID are equivalent if the projects are the same, and the binary string
     is equivalent.
     """
     if not isinstance(other, HWID):
       return False
-    if self.database.board != other.database.board:
+    if self.database.project != other.database.project:
       return False
     return HWID.IsEquivalentBinaryString(self.binary_string,
                                          other.binary_string)
@@ -226,9 +226,9 @@ class HWID(object):
 
   @property
   def encoded_string(self):
-    """An encoded string with board name and checksum.
+    """An encoded string with project name and checksum.
 
-    For example: "CHROMEBOOK ASDF-2345", where CHROMEBOOK is the board name
+    For example: "CHROMEBOOK ASDF-2345", where CHROMEBOOK is the project name
     and 45 is the checksum. Compare to binary_string, it is human-trackable.
     """
     # pylint: disable=W0404
@@ -390,7 +390,7 @@ class BOM(object):
   """A class that holds all the information regarding a BOM.
 
   Attributes:
-    board: A string of board name.
+    project: A string of project name.
     encoding_pattern_index: An int indicating the encoding pattern. Currently,
         only 0 is used.
     image_id: An int indicating the image id.
@@ -416,9 +416,9 @@ class BOM(object):
                                 schema.Scalar('value', rule.Value)]))),
                         schema.Optional(schema.Scalar('error', str))])))
 
-  def __init__(self, board, encoding_pattern_index, image_id,
+  def __init__(self, project, encoding_pattern_index, image_id,
                components, encoded_fields):
-    self.board = board
+    self.project = project
     self.encoding_pattern_index = encoding_pattern_index
     self.image_id = image_id
     self.components = components

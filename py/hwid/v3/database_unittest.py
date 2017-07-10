@@ -41,7 +41,7 @@ class NewDatabaseTest(unittest.TestCase):
   def testProbeResultToBOM(self):
     result = self.results[0]
     bom = self.database.ProbeResultToBOM(result)
-    self.assertEquals('CHROMEBOOK', bom.board)
+    self.assertEquals('CHROMEBOOK', bom.project)
     self.assertEquals(0, bom.encoding_pattern_index)
     self.assertEquals(0, bom.image_id)
     self.assertEquals(bom.components['firmware_keys'],
@@ -130,6 +130,9 @@ class DatabaseTest(unittest.TestCase):
         r'while constructing a mapping\n.*\nfound duplicated key \(1\)',
         Database.LoadFile,
         os.path.join(_TEST_DATA_PATH, 'test_db_duplicated_keys.yaml'))
+    legacy_db = Database.LoadFile(os.path.join(
+        _TEST_DATA_PATH, 'test_db_legacy.yaml'), verify_checksum=True)
+    self.assertEqual(legacy_db.project, 'CHROMEBOOK')
 
   def testDatabaseChecksum(self):
     self.assertEquals(
@@ -141,7 +144,7 @@ class DatabaseTest(unittest.TestCase):
     self.assertRaisesRegexp(
         HWIDException, r'Invalid HWID database', Database.LoadData, '')
     self.assertRaisesRegexp(
-        HWIDException, r"'board' is not specified in component database",
+        HWIDException, r"'project' is not specified in component database",
         Database.LoadData, {'foo': 'bar'})
 
   def testStrict(self):
@@ -200,7 +203,7 @@ class DatabaseTest(unittest.TestCase):
   def testProbeResultToBOM(self):
     result = self.results[0]
     bom = self.database.ProbeResultToBOM(result)
-    self.assertEquals('CHROMEBOOK', bom.board)
+    self.assertEquals('CHROMEBOOK', bom.project)
     self.assertEquals(0, bom.encoding_pattern_index)
     self.assertEquals(0, bom.image_id)
     self.assertEquals({
@@ -406,8 +409,8 @@ class DatabaseTest(unittest.TestCase):
         HWIDException, r'Length of encoded string .* is less than 2 characters',
         self.database.VerifyEncodedString, 'FOO A')
     self.assertRaisesRegexp(
-        HWIDException, r'Invalid board name', self.database.VerifyEncodedString,
-        'FOO AW3L-M7IK-W')
+        HWIDException, r'Invalid project name',
+        self.database.VerifyEncodedString, 'FOO AW3L-M7IK-W')
     self.assertRaisesRegexp(
         HWIDException, r'Checksum of .* mismatch',
         self.database.VerifyEncodedString, 'CHROMEBOOK AW3L-M7IA-B')
@@ -418,12 +421,12 @@ class DatabaseTest(unittest.TestCase):
     bom = self.database.ProbeResultToBOM(self.results[0])
     self.assertEquals(None, self.database.VerifyBOM(bom, True))
 
-    original_value = bom.board
-    bom.board = 'FOO'
+    original_value = bom.project
+    bom.project = 'FOO'
     with self.assertRaisesRegexp(HWIDException,
-                                 r'Invalid board name. Expected .*, got .*'):
+                                 r'Invalid project name. Expected .*, got .*'):
       self.database.VerifyBOM(bom, True)
-    bom.board = original_value
+    bom.project = original_value
 
     original_value = bom.encoding_pattern_index
     bom.encoding_pattern_index = 2
@@ -492,20 +495,23 @@ class DatabaseTest(unittest.TestCase):
              "Invalid 'storage' component found with probe result "
              "{ 'serial': '#1234aa', 'size': '16G', 'type': 'SSD'} "
              '(no matching name in the component DB)')]},
-                      self.database.VerifyComponents(self.results[2], ['storage']))
+                      self.database.VerifyComponents(self.results[2],
+                                                     ['storage']))
     self.assertEquals({
         'storage': [
             ('storage_2', {'type': Value('HDD'), 'size': Value('500G'),
                            'serial': Value(r'^#123\d+$', is_re=True)},
              None)]},
-                      self.database.VerifyComponents(self.results[3], ['storage'],
+                      self.database.VerifyComponents(self.results[3],
+                                                     ['storage'],
                                                      loose_matching=True))
     self.assertEquals({
         'storage': [
             (None, {'foo': 'bar'},
              "Invalid 'storage' component found with probe result "
              "{ 'foo': 'bar'} (no matching name in the component DB)")]},
-                      self.database.VerifyComponents(self.results[4], ['storage'],
+                      self.database.VerifyComponents(self.results[4],
+                                                     ['storage'],
                                                      loose_matching=True))
 
   def testLoadDatabaseWithRegionInfo(self):

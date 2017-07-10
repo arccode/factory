@@ -98,18 +98,18 @@ class DatabaseBuilderTest(unittest.TestCase):
     with self.assertRaises(ValueError):
       builder.DatabaseBuilder()
     db_builder = builder.DatabaseBuilder(db=self.test_dbs[0])
-    db_builder = builder.DatabaseBuilder(board='CHROMEBOOK')
-    self.assertEquals(db_builder.db['board'], 'CHROMEBOOK')
+    db_builder = builder.DatabaseBuilder(project='PROJ')
+    self.assertEquals(db_builder.db['project'], 'PROJ')
 
   def testGetLatestPattern(self):
-    db_builder = builder.DatabaseBuilder(board='CHROMEBOOK')
+    db_builder = builder.DatabaseBuilder(project='CHROMEBOOK')
     self.assertEquals(db_builder.GetLatestPattern(), None)
     db_builder = builder.DatabaseBuilder(db=self.test_dbs[0])
     latest_pattern = db_builder.GetLatestPattern()
     self.assertEquals(latest_pattern['image_ids'], [0, 1])
 
   def testGetLatestFields(self):
-    db_builder = builder.DatabaseBuilder(board='CHROMEBOOK')
+    db_builder = builder.DatabaseBuilder(project='CHROMEBOOK')
     self.assertEquals(db_builder.GetLatestFields(), set())
     db_builder = builder.DatabaseBuilder(db=self.test_dbs[0])
     self.assertEquals(db_builder.GetLatestFields(),
@@ -122,14 +122,14 @@ class DatabaseBuilderTest(unittest.TestCase):
                            'ro_ec_firmware_field']))
 
   def testGetUnprobeableComponents(self):
-    db_builder = builder.DatabaseBuilder(board='CHROMEBOOK')
+    db_builder = builder.DatabaseBuilder(project='CHROMEBOOK')
     self.assertEquals(db_builder.GetUnprobeableComponents(), [])
     db_builder = builder.DatabaseBuilder(db=self.test_dbs[0])
     self.assertEquals(db_builder.GetUnprobeableComponents(),
                       ['display_panel'])
 
   def testAddDefaultComponent(self):
-    db_builder = builder.DatabaseBuilder(board='CHROMEBOOK')
+    db_builder = builder.DatabaseBuilder(project='CHROMEBOOK')
     old_db = copy.deepcopy(db_builder.db)
     db_builder.AddDefaultComponent('foo')
     for key in old_db:
@@ -152,7 +152,7 @@ class DatabaseBuilderTest(unittest.TestCase):
       db_builder.AddDefaultComponent('audio_codec')
 
   def testAddComponent(self):
-    db_builder = builder.DatabaseBuilder(board='CHROMEBOOK')
+    db_builder = builder.DatabaseBuilder(project='CHROMEBOOK')
     old_db = copy.deepcopy(db_builder.db)
     # Add a new component item.
     name = db_builder.AddComponent('foo', {'compact_str': 'FOO_0'}, 'foo_0')
@@ -199,7 +199,7 @@ class DatabaseBuilderTest(unittest.TestCase):
     self.assertEquals(name, 'foo_0')
 
   def testAddComponentWithNameCollision(self):
-    db_builder = builder.DatabaseBuilder(board='CHROMEBOOK')
+    db_builder = builder.DatabaseBuilder(project='CHROMEBOOK')
     # Add two items whose name is determined the same.
     with mock.patch.object(builder, '_DetermineComponentName',
                            return_value='foo_name'):
@@ -236,7 +236,7 @@ class DatabaseBuilderTest(unittest.TestCase):
     db_builder.DeleteComponentClass('foo')
 
   def testAddEncodedField(self):
-    db_builder = builder.DatabaseBuilder(board='CHROMEBOOK')
+    db_builder = builder.DatabaseBuilder(project='CHROMEBOOK')
     name = db_builder.AddComponent('foo', {'compact_str': 'FOO_0'}, 'foo_0')
     idx = db_builder.AddEncodedField('foo', name)
     self.assertEquals(idx, 0)
@@ -266,7 +266,7 @@ class DatabaseBuilderTest(unittest.TestCase):
 
   def testIsNewPatternNeeded(self):  # pylint: disable=
     # New database with no existed pattern.
-    db_builder = builder.DatabaseBuilder(board='CHROMEBOOK')
+    db_builder = builder.DatabaseBuilder(project='CHROMEBOOK')
     self.assertTrue(db_builder._IsNewPatternNeeded(True))
     with self.assertRaises(ValueError):
       db_builder._IsNewPatternNeeded(False)
@@ -346,7 +346,7 @@ class DatabaseBuilderTest(unittest.TestCase):
 
   def testAddRegions(self):
     """Test the AddRegions method."""
-    db_builder = builder.DatabaseBuilder(board='CHROMEBOOK')
+    db_builder = builder.DatabaseBuilder(project='CHROMEBOOK')
     db_builder.AddRegions(['tw', 'jp'])
     self.assertIsInstance(
         db_builder.db['components']['region'], yaml_tags.RegionComponent)
@@ -356,7 +356,7 @@ class DatabaseBuilderTest(unittest.TestCase):
 
   def testAddChassis(self):
     # Add chassis to an empty database.
-    db_builder = builder.DatabaseBuilder(board='CHROMEBOOK')
+    db_builder = builder.DatabaseBuilder(project='CHROMEBOOK')
     db_builder.AddChassis(['FOO', 'BAR'])
     self.assertEquals(
         db_builder.db['components']['chassis']['items'], {

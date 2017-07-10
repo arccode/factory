@@ -1,4 +1,6 @@
-checksum: 71343da7919352cbc255e2c232aca27c1fadbd6d
+# Dummy line before checksum
+checksum: 31b628b9ecef4a5bff9e12b463191b108653b9b7
+# Dummy line after checksum
 board: CHROMEBOOK
 
 encoding_patterns:
@@ -8,64 +10,48 @@ encoding_patterns:
 image_id:
   0: EVT
   1: DVT
-  2: PVT
-  3: PVT2
-  4: PVT3
+  2: MP
 
 pattern:
   - image_ids: [0, 1]
     encoding_scheme: base32
     fields:
+    - firmware: 5             # 5 bits
+
     - audio_codec: 1
     - battery: 2
     - bluetooth: 0
     - cellular: 1
-    - cpu: 1                  # 5 bits
+    - cpu: 1                  # 10 bits
+
     - display_panel: 0
     - dram: 1
     - keyboard: 1
     - video: 0
     - cpu: 1
-    - storage: 2              # 10 bits
-    - cpu: 1
-    - firmware: 1
-    - firmware: 1
-    - dram: 1                 # 14 bits
+    - storage: 2              # 15 bits
 
-  - image_ids: [2, 3]
+    - cpu: 1                  # 16 bits
+
+  - image_ids: [2]
     encoding_scheme: base8192
     fields:
+    - firmware: 5             # 5 bits
+
     - audio_codec: 1
     - battery: 2
     - bluetooth: 0
     - cellular: 1
-    - cpu: 1                  # 5 bits
+    - cpu: 1                  # 10 bits
+
     - display_panel: 0
     - dram: 1
     - keyboard: 1
     - video: 0
     - cpu: 1
-    - storage: 2              # 10 bits
-    - cpu: 1
-    - firmware: 1
-    - firmware: 1
-    - dram: 1                 # 14 bits
+    - storage: 2              # 15 bits
 
-  # Remove display_panel and cellular, and add firmware_keys field
-  # Add SKU that has no audio_codec
-  - image_ids: [4]
-    encoding_scheme: base8192
-    fields:
-    - audio_codec: 3
-    - battery: 2
-    - bluetooth: 0
-    - cpu: 3
-    - dram: 2
-    - keyboard: 1
-    - video: 0
-    - storage: 2
-    - firmware: 2
-    - firmware_keys: 2
+    - cpu: 1                  # 16 bits
 
 encoded_fields:
   audio_codec:
@@ -73,8 +59,6 @@ encoded_fields:
       audio_codec: [codec_0, hdmi_0]
     1:
       audio_codec: [codec_1, hdmi_1]
-    2:
-      audio_codec: NULL
   battery:
     0:
       battery: battery_small
@@ -113,8 +97,6 @@ encoded_fields:
       dram: dram_0
     1:
       dram: dram_1
-    2:
-      dram: dram_2
   ec_flash_chip:
     0:
       ec_flash_chip: ec_flash_chip_0
@@ -142,27 +124,22 @@ encoded_fields:
   firmware:
     0:
       hash_gbb: hash_gbb_0
-      key_recovery: key_recovery_mp
-      key_root: key_root_mp
+      key_recovery: key_recovery_0
+      key_root: key_root_0
       ro_ec_firmware: ro_ec_firmware_0
       ro_main_firmware: ro_main_firmware_0
     1:
       hash_gbb: hash_gbb_0
-      key_recovery: key_recovery_mp
-      key_root: key_root_mp
+      key_recovery: key_recovery_0
+      key_root: key_root_0
       ro_ec_firmware: ro_ec_firmware_0
       ro_main_firmware: ro_main_firmware_1
     2:
       hash_gbb: hash_gbb_0
-      key_recovery: key_recovery_premp
-      key_root: key_root_premp
-      ro_ec_firmware: ro_ec_firmware_0
+      key_recovery: key_recovery_0
+      key_root: key_root_0
+      ro_ec_firmware: ro_ec_firmware_1
       ro_main_firmware: ro_main_firmware_0
-  firmware_keys:
-    0:
-      firmware_keys: firmware_keys_premp
-    1:
-      firmware_keys: firmware_keys_mp
 
 components:
   audio_codec:
@@ -267,12 +244,6 @@ components:
           vendor: DRAM 1
           size: 4G
 
-      dram_2:
-        status: unqualified
-        values:
-          vendor: DRAM 2
-          size: 8G
-
   ec_flash_chip:
     items:
       ec_flash_chip_0:
@@ -303,19 +274,19 @@ components:
         values:
           type: SSD
           size: 16G
-          serial: '#123456'
+          serial: !re '^#123\d+$'
 
       storage_1:
         values:
           type: SSD
           size: 32G
-          serial: '#123456'
+          serial: !re '^#123\d+$'
 
       storage_2:
         values:
           type: HDD
           size: 500G
-          serial: '#123456'
+          serial: !re '^#123\d+$'
 
   video:
     items:
@@ -332,33 +303,21 @@ components:
 
   key_recovery:
     items:
-      key_recovery_mp:
-        values: { compact_str : kv3#key_recovery_mp }
-      key_recovery_premp:
-        values: { compact_str : kv3#key_recovery_premp }
+      key_recovery_0:
+        values: { compact_str : kv3#key_recovery_0 }
 
   key_root:
     items:
-      key_root_mp:
-        values: { compact_str: kv3#key_root_mp }
-      key_root_premp:
-        values: { compact_str: kv3#key_root_premp }
-
-  firmware_keys:
-    items:
-      firmware_keys_premp:
-        values:
-          key_recovery: kv3#key_recovery_premp
-          key_root: kv3#key_root_premp
-      firmware_keys_mp:
-        values:
-          key_recovery: kv3#key_recovery_mp
-          key_root: kv3#key_root_mp
+      key_root_0:
+        values: { compact_str: kv3#key_root_0 }
 
   ro_ec_firmware:
     items:
       ro_ec_firmware_0:
         values: { compact_str: ev2#ro_ec_firmware_0 }
+      ro_ec_firmware_1:
+        status: unsupported
+        values: { compact_str: ev2#ro_ec_firmware_1 }
 
   ro_main_firmware:
     items:
@@ -369,13 +328,101 @@ components:
         values: { compact_str: mv2#ro_main_firmware_1 }
 
 rules:
-- name: device_info.set_image_id
-  evaluate: SetImageId('PVT3')
+- name: device_info.component.has_cellular
+  when: GetDeviceInfo('component.has_cellular')
+  evaluate: SetComponent('cellular', 'cellular_0')
+  otherwise: SetComponent('cellular', None)
 
 - name: device_info.component.keyboard
   evaluate: >
       SetComponent(
-          'keyboard', LookupMap(GetDeviceInfo('component.keyboard'), {
+          'keyboard', LookupMap(GetDeviceInfo('keyboard'), {
               'us': 'keyboard_us',
               'gb': 'keyboard_gb'
           }))
+
+- name: device_info.component.dram
+  evaluate: >
+      SetComponent(
+          'dram', LookupMap(GetDeviceInfo('component.dram'), {
+              'foo': 'dram_0',
+              'bar': 'dram_1'
+          }))
+
+- name: device_info.component.audio_codec
+  evaluate: >
+      SetComponent(
+          'audio_codec', LookupMap(GetDeviceInfo('component.audio_codec'), {
+              'set_0': ['codec_0', 'hdmi_0'],
+              'set_1': ['codec_1', 'hdmi_1']
+          }))
+
+- name: verify.vpd.ro
+  evaluate:
+  - Assert(ValidVPDValue('ro', 'region'))
+  - Assert(ValidVPDValue('ro', 'serial_number'))
+
+- name: verify.vpd.rw
+  evaluate:
+  - CheckRegistrationCode(GetVPDValue('rw', 'gbind_attribute'))
+  - CheckRegistrationCode(GetVPDValue('rw', 'ubind_attribute'))
+
+- name: verify.test.rule_1
+  when: ComponentEq('audio_codec', 'Codec 1') and
+        ComponentEq('audio_codec', 'HDMI 1')
+  evaluate:
+  - Assert(ComponentEq('battery', 'battery_huge'))
+  - Assert(ComponentEq('hash_gbb', 'hash_gbb_0'))
+  - Assert(ComponentEq('key_recovery', 'key_recovery_0'))
+  - Assert(ComponentEq('key_root', 'key_root_0'))
+  - Assert(ComponentEq('ro_ec_firmware', 'ro_ec_firmware_0'))
+  - Assert(ComponentEq('ro_main_firmware', 'ro_main_firmware_0'))
+
+- name: verify.test.rule_2
+  when: ComponentEq('dram', 'dram_0')
+  evaluate:
+  - Assert(ComponentEq('battery', 'battery_huge'))
+  - Assert(ComponentEq('hash_gbb', 'hash_gbb_0'))
+  - Assert(ComponentEq('key_recovery', 'key_recovery_0'))
+  - Assert(ComponentEq('key_root', 'key_root_0'))
+  - Assert(ComponentEq('ro_ec_firmware', 'ro_ec_firmware_0'))
+  - Assert(ComponentEq('ro_main_firmware', 'ro_main_firmware_0'))
+  - Assert(ComponentIn('cpu', ['cpu_1', 'cpu_2']))
+
+- name: verify.test.rule_3
+  when: ComponentEq('dram', 'dram_0') and ComponentEq('cellular', 'cellular_0')
+  evaluate:
+  - Assert(ComponentEq('battery', 'huge_battery'))
+  - Assert(ComponentIn('cpu', ['cpu_1', 'cpu_2']))
+
+- name: verify.test.rule_4
+  when: not ComponentEq('cpu', None)
+  evaluate:
+  - Assert(ComponentEq('storage', ['SSD', '16G']))
+  - Assert((not ComponentEq('battery', 'battery_small')) or
+           (ComponentIn('cpu', ['cpu_1', 'cpu_2', 'cpu_3'])))
+
+- name: verify.test.rule_5
+  when: not ComponentEq('cpu', None)
+  evaluate: Assert(ComponentEq('storage', 'SSD') or
+                   ComponentEq('storage', '16G'))
+
+- name: verify.test.rule_6
+  evaluate: Assert(ComponentEq('storage', 'SSD') or
+                   ComponentEq('storage', '16G'))
+
+- name: verify.sku.us
+  evaluate: >
+      ComponentEq('audio_codec', ['hdmi_1', 'codec_1']) and
+      ComponentEq('cpu', 'cpu_5') and
+      ComponentEq('battery', 'battery_huge') and
+      ComponentEq('keyboard', 'US') and
+      ComponentEq('storage', ['SSD', '16G'])
+
+- name: verify.sku.gb
+  evaluate: >
+      ComponentEq('audio_codec', ['hdmi_1', 'codec_1']) and
+      ComponentEq('cpu', 'cpu_4') and
+      ComponentEq('battery', 'battery_medium') and
+      ComponentEq('keyboard', 'GB') and
+      ComponentEq('storage', ['HDD', '500G'])

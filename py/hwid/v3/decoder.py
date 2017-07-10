@@ -34,7 +34,7 @@ def BinaryStringToBOM(database, binary_string):
   database.VerifyBinaryString(binary_string)
   stripped_binary_string = binary_string[:binary_string.rfind('1')]
 
-  board = database.board
+  project = database.project
   encoding_pattern = int(stripped_binary_string[0], 2)
   image_id = database.pattern.GetImageIdFromBinaryString(binary_string)
 
@@ -74,7 +74,7 @@ def BinaryStringToBOM(database, binary_string):
           components[comp_cls].append(common.ProbedComponentResult(
               attrs['name'], attrs['values'], None))
 
-  return common.BOM(board, encoding_pattern, image_id, components,
+  return common.BOM(project, encoding_pattern, image_id, components,
                     encoded_fields)
 
 

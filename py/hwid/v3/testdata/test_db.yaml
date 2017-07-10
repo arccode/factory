@@ -1,7 +1,7 @@
 # Dummy line before checksum
-checksum: 31b628b9ecef4a5bff9e12b463191b108653b9b7
+checksum: 3ba13057b33d9df01da5c88e7a92beeb3ed9c3a5
 # Dummy line after checksum
-board: CHROMEBOOK
+project: CHROMEBOOK
 
 encoding_patterns:
   0: default

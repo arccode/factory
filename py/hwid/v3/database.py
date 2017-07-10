@@ -74,7 +74,7 @@ class Database(object):
   device-specific component database.
 
   Attributes:
-    board: A string indicating the board name.
+    project: A string indicating the project name.
     encoding_patterns: An EncodingPatterns object.
     image_id: An ImageId object.
     pattern: A Pattern object.
@@ -85,7 +85,7 @@ class Database(object):
   """
   _HWID_FORMAT = {
       common.HWID.ENCODING_SCHEME.base32: re.compile(
-          r'^([A-Z0-9]+)'                 # group(0): Board
+          r'^([A-Z0-9]+)'                 # group(0): Project
           r' ('                           # group(1): Entire BOM.
           r'(?:[A-Z2-7]{4}-)*'            # Zero or more 4-character groups with
           # dash.
@@ -93,7 +93,7 @@ class Database(object):
           r')$'                           # End group(1)
       ),
       common.HWID.ENCODING_SCHEME.base8192: re.compile(
-          r'^([A-Z0-9]+)'                 # group(0): Board
+          r'^([A-Z0-9]+)'                 # group(0): Project
           r' ('                           # group(1): Entire BOM
           r'(?:[A-Z2-7][2-9][A-Z2-7]-)*'  # Zero or more 3-character groups with
           # dash.
@@ -101,9 +101,9 @@ class Database(object):
           r')$'                           # End group(1)
       )}
 
-  def __init__(self, board, encoding_patterns, image_id, pattern,
+  def __init__(self, project, encoding_patterns, image_id, pattern,
                encoded_fields, components, rules, checksum):
-    self.board = board
+    self.project = project
     self.encoding_patterns = encoding_patterns
     self.image_id = image_id
     self.pattern = pattern
@@ -243,7 +243,11 @@ class Database(object):
     """
     if not db_yaml:
       raise common.HWIDException('Invalid HWID database')
-    for key in ['board', 'encoding_patterns', 'image_id', 'pattern',
+
+    if 'board' in db_yaml and 'project' not in db_yaml:
+      db_yaml['project'] = db_yaml['board']
+
+    for key in ['project', 'encoding_patterns', 'image_id', 'pattern',
                 'encoded_fields', 'components', 'rules', 'checksum']:
       if not db_yaml.get(key):
         if (not strict) and key == 'checksum':
@@ -257,9 +261,9 @@ class Database(object):
     if (expected_checksum is not None and
         db_yaml['checksum'] != expected_checksum):
       raise common.HWIDException(
-          'HWID database %r checksum verification failed' % db_yaml['board'])
+          'HWID database %r checksum verification failed' % db_yaml['project'])
 
-    return Database(db_yaml['board'],
+    return Database(db_yaml['project'],
                     EncodingPatterns(db_yaml['encoding_patterns']),
                     ImageId(db_yaml['image_id']),
                     Pattern(db_yaml['pattern']),
@@ -387,7 +391,7 @@ class Database(object):
       encoded_fields[field] = self._GetFieldIndexFromProbedComponents(
           field, probed_components)
 
-    return common.BOM(self.board, encoding_pattern_index, image_id,
+    return common.BOM(self.project, encoding_pattern_index, image_id,
                       probed_components, encoded_fields)
 
   def UpdateComponentsOfBOM(self, bom, updated_components):
@@ -572,7 +576,7 @@ class Database(object):
       image_id = self.pattern.GetImageIdFromEncodedString(encoded_string)
       encoding_scheme = self.pattern.GetPatternByImageId(
           image_id)['encoding_scheme']
-      board, bom_checksum = Database._HWID_FORMAT[encoding_scheme].findall(
+      project, bom_checksum = Database._HWID_FORMAT[encoding_scheme].findall(
           encoded_string)[0]
     except IndexError:
       raise common.HWIDException(
@@ -581,8 +585,8 @@ class Database(object):
       raise common.HWIDException(
           'Length of encoded string %r is less than 2 characters' %
           bom_checksum)
-    if not board == self.board.upper():
-      raise common.HWIDException('Invalid board name: %r' % board)
+    if project != self.project.upper():
+      raise common.HWIDException('Invalid project name: %r' % project)
     # Verify the checksum
     stripped = encoded_string.replace('-', '')
     hwid = stripped[:-2]
@@ -591,7 +595,7 @@ class Database(object):
       expected_checksum = Base32.Checksum(hwid)
     elif encoding_scheme == common.HWID.ENCODING_SCHEME.base8192:
       expected_checksum = Base8192.Checksum(hwid)
-    if not checksum == expected_checksum:
+    if checksum != expected_checksum:
       raise common.HWIDException('Checksum of %r mismatch (expected %r)' % (
           encoded_string, expected_checksum))
 
@@ -615,9 +619,9 @@ class Database(object):
     Raises:
       HWIDException if verification fails.
     """
-    if bom.board != self.board:
-      raise common.HWIDException('Invalid board name. Expected %r, got %r' %
-                                 (self.board, bom.board))
+    if bom.project != self.project:
+      raise common.HWIDException('Invalid project name. Expected %r, got %r' %
+                                 (self.project, bom.project))
 
     if bom.encoding_pattern_index not in self.encoding_patterns:
       raise common.HWIDException('Invalid encoding pattern: %r' %
@@ -1178,7 +1182,7 @@ class Pattern(object):
       for field, length in element.iteritems():
         # Normally when one wants to extend bit length of a field, one should
         # append new pattern field instead of expanding the last field.
-        # However, for some board, we already have cases where last pattern
+        # However, for some project, we already have cases where last pattern
         # fields were expanded directly. See crosbug.com/p/30266.
         #
         # We check for incomplete bit string chunk at the end and adjust bit

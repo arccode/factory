@@ -88,7 +88,7 @@ class DecoderTest(unittest.TestCase):
     has the information of the pattern. Therefore we check bom is the subset
     of the reference_bom.
     """
-    self.assertEquals(reference_bom.board, bom.board)
+    self.assertEquals(reference_bom.project, bom.project)
     self.assertEquals(reference_bom.encoding_pattern_index,
                       bom.encoding_pattern_index)
     self.assertEquals(reference_bom.image_id, bom.image_id)

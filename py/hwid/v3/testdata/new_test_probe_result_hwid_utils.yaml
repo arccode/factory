@@ -1,5 +1,5 @@
 ---
-# Valid probed result for NEW_TEST_BOARD, has audio_codec
+# Valid probed result for NEW_TEST_PROJECT, has audio_codec
 found_probe_value_map:
   audio_codec:
   - compact_str: Codec 1
@@ -63,7 +63,7 @@ missing_component_classes:
 - display_panel
 - ethernet
 ---
-# Valid probed result for NEW_TEST_BOARD, no audio_codec
+# Valid probed result for NEW_TEST_PROJECT, no audio_codec
 found_probe_value_map:
   battery:
     tech: Battery Li-ion

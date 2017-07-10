@@ -1,8 +1,8 @@
 # 0. regular HWID database
 # Dummy line before checksum
-checksum: b59a2d0f33f25f11760b957303026e334c1b8189
+checksum: 32b1123867d46c5a74ecb59ca25573e1c9a8fbfc
 # Dummy line after checksum
-board: CHROMEBOOK
+project: CHROMEBOOK
 
 encoding_patterns:
   0: default

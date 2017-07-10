@@ -30,10 +30,10 @@ def _HWIDMode(rma_mode):
   return common.HWID.OPERATION_MODE.normal
 
 
-def BuildDatabase(database_path, probed_results, board, image_id,
+def BuildDatabase(database_path, probed_results, project, image_id,
                   add_default_comp=None, add_null_comp=None, del_comp=None,
                   region=None, chassis=None):
-  db_builder = builder.DatabaseBuilder(board=board)
+  db_builder = builder.DatabaseBuilder(project=project)
   db_builder.Update(probed_results, image_id, add_default_comp, add_null_comp,
                     del_comp, region, chassis)
   db_builder.Render(database_path)
@@ -61,7 +61,7 @@ def GenerateHWID(db, probed_results, device_info, vpd, rma_mode):
     device_info: A dict of component infomation keys to their corresponding
         values. The format is device-specific and the meanings of each key and
         value vary from device to device. The valid keys and values should be
-        specified in board-specific component database.
+        specified in project-specific component database.
     vpd: A dict of RO and RW VPD values.
     rma_mode: Whether to verify components status in RMA mode.
 
@@ -97,7 +97,7 @@ def DecodeHWID(db, encoded_string):
 def ParseDecodedHWID(hwid):
   """Parses the HWID object into a more compact dict.
 
-  This function returns the board name and binary string from the HWID object,
+  This function returns the project name and binary string from the HWID object,
   along with a generated dict of components to their probed values decoded in
   the HWID object.
 
@@ -105,7 +105,7 @@ def ParseDecodedHWID(hwid):
     hwid: A decoded HWID object.
 
   Returns:
-    A dict containing the board name, the binary string, and the list of
+    A dict containing the project name, the binary string, and the list of
     components.
   """
   output_components = collections.defaultdict(list)
@@ -118,7 +118,7 @@ def ParseDecodedHWID(hwid):
             comp_cls, comp_name).get('values')
       output_components[comp_cls].append(
           {comp_name: probed_values if probed_values else None})
-  return {'board': hwid.database.board,
+  return {'project': hwid.database.project,
           'binary_string': hwid.binary_string,
           'image_id': hwid.database.image_id[hwid.bom.image_id],
           'components': dict(output_components)}
@@ -128,12 +128,12 @@ def VerifyHWID(db, encoded_string, probed_results, vpd, rma_mode,
                current_phase=None):
   """Verifies the given encoded HWID v3 string against the component db.
 
-  A HWID context is built with the encoded HWID string and the board-specific
+  A HWID context is built with the encoded HWID string and the project-specific
   component database. The HWID context is used to verify that the probed
   results match the infomation encoded in the HWID string.
 
   RO and RW VPD are also loaded and checked against the required values stored
-  in the board-specific component database.
+  in the project-specific component database.
 
   Phase checks are enforced; see cros.factory.hwid.common.VerifyPhase for
   details.
@@ -295,7 +295,7 @@ def EnumerateHWID(db, image_id=None, status='supported'):
                 attrs['name'], attrs['values'], None))
       component_list.append(' '.join(comp_items))
     if pass_check:
-      bom = common.BOM(db.board, encoding_pattern, image_id, components,
+      bom = common.BOM(db.project, encoding_pattern, image_id, components,
                        encoded_fields)
       binary_string = encoder.BOMToBinaryString(db, bom)
       encoded_string = encoder.BinaryStringToEncodedString(db, binary_string)

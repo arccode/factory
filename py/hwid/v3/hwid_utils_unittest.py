@@ -37,7 +37,7 @@ class HWIDv3UtilsTestWithNewDatabase(unittest.TestCase):
 
   def setUp(self):
     self.db = database.Database.LoadFile(
-        os.path.join(TEST_DATA_PATH, 'NEW_TEST_BOARD'))
+        os.path.join(TEST_DATA_PATH, 'NEW_TEST_PROJECT'))
     self.probed_results = list(yaml.load_all(open(os.path.join(
         TEST_DATA_PATH, 'new_test_probe_result_hwid_utils.yaml')).read()))
     self.vpd = {
@@ -114,7 +114,7 @@ class HWIDv3UtilsTest(unittest.TestCase):
 
   def setUp(self):
     self.db = database.Database.LoadFile(
-        os.path.join(TEST_DATA_PATH, 'TEST_BOARD'))
+        os.path.join(TEST_DATA_PATH, 'TEST_PROJECT'))
     self.probed_results = yaml.load(open(os.path.join(
         TEST_DATA_PATH, 'test_probe_result_hwid_utils.yaml')).read())
     self.vpd = {
@@ -364,7 +364,7 @@ class HWIDv3UtilsTest(unittest.TestCase):
     self.assertEquals(data, hwid.bom.encoded_fields)
 
     parsed_result = hwid_utils.ParseDecodedHWID(hwid)
-    self.assertEquals(parsed_result['board'], 'CHROMEBOOK')
+    self.assertEquals(parsed_result['project'], 'CHROMEBOOK')
     self.assertEquals(parsed_result['binary_string'], '000111110100000101')
     self.assertEquals(parsed_result['image_id'], 'PVT2')
     self.assertEquals(parsed_result['components'], {
@@ -445,7 +445,7 @@ class DatabaseBuilderTest(unittest.TestCase):
     # Check the value.
     with open(self.output_path, 'r') as f:
       db = yaml.load(f.read())
-    self.assertEquals(db['board'], 'CHROMEBOOK')
+    self.assertEquals(db['project'], 'CHROMEBOOK')
     self.assertEquals(db['image_id'], {0: 'EVT'})
     self.assertEquals(db['pattern'][0]['image_ids'], [0])
     self.assertEquals(db['pattern'][0]['encoding_scheme'], 'base8192')
@@ -487,46 +487,44 @@ class DatabaseBuilderTest(unittest.TestCase):
                         'evaluate': "SetImageId('EVT')"}])
 
     # Add a null component.
-    new_db = copy.deepcopy(db)
     # Choose to add the touchpad without a new image_id.
     with mock.patch('__builtin__.raw_input', return_value='y'):
-      hwid_utils.UpdateDatabase(self.output_path, None, new_db,
+      hwid_utils.UpdateDatabase(self.output_path, None, db,
                                 add_null_comp=['touchpad', 'chassis'])
-    database.Database.LoadFile(self.output_path, verify_checksum)
+    new_db = database.Database.LoadFile(self.output_path, verify_checksum)
     self.assertIn({'touchpad': None},
-                  new_db['encoded_fields']['touchpad_field'].values())
+                  new_db.encoded_fields['touchpad_field'].values())
     self.assertIn({'chassis': None},
-                  new_db['encoded_fields']['chassis_field'].values())
+                  new_db.encoded_fields['chassis_field'].values())
 
     # Add a component without a new image_id.
     probed_result = self.probed_results[0].copy()
     probed_result['found_probe_value_map']['touchpad'] = {'name': 'G_touchpad'}
-    new_db = copy.deepcopy(db)
     with mock.patch('__builtin__.raw_input', return_value='n'):
       with self.assertRaises(ValueError):
-        hwid_utils.UpdateDatabase(self.output_path, probed_result, new_db)
+        hwid_utils.UpdateDatabase(self.output_path, probed_result, db)
 
-    new_db = copy.deepcopy(db)
     with mock.patch('__builtin__.raw_input', return_value='y'):
-      hwid_utils.UpdateDatabase(self.output_path, probed_result, new_db)
-    self.assertIn({'touchpad_field': 0}, new_db['pattern'][0]['fields'])
+      hwid_utils.UpdateDatabase(self.output_path, probed_result, db)
+    new_db = database.Database.LoadFile(self.output_path, verify_checksum)
+    self.assertIn({'touchpad_field': 0}, new_db.pattern.pattern[0]['fields'])
 
     # Delete bluetooth, and add region and chassis.
-    new_db = copy.deepcopy(db)
     hwid_utils.UpdateDatabase(
-        self.output_path, None, new_db, 'DVT',
+        self.output_path, None, db, 'DVT',
         add_default_comp=None, del_comp=['bluetooth'],
         region=['us'], chassis=['NEW'])
-    database.Database.LoadFile(self.output_path, verify_checksum)
+    new_db = database.Database.LoadFile(self.output_path, verify_checksum)
     # Check the value.
-    self.assertEquals(new_db['board'], 'CHROMEBOOK')
-    self.assertEquals(new_db['image_id'], {0: 'EVT', 1: 'DVT'})
-    self.assertNotIn({'bluetooth_field': 0}, new_db['pattern'][1]['fields'])
-    self.assertIn({'region': 'us'},
-                  new_db['encoded_fields']['region_field'].values())
-    self.assertIn('NEW', new_db['components']['chassis']['items'])
-    self.assertIn({'chassis': 'NEW'},
-                  new_db['encoded_fields']['chassis_field'].values())
+    self.assertEquals(new_db.project, 'CHROMEBOOK')
+    self.assertEquals(new_db.image_id, {0: 'EVT', 1: 'DVT'})
+    self.assertNotIn({'bluetooth_field': 0},
+                     new_db.pattern.pattern[1]['fields'])
+    self.assertIn({'region': ['us']},
+                  new_db.encoded_fields['region_field'].values())
+    self.assertIn('NEW', new_db.components.components_dict['chassis']['items'])
+    self.assertIn({'chassis': ['NEW']},
+                  new_db.encoded_fields['chassis_field'].values())
 
   def testBuildDatabaseMissingEssentailComponent(self):
     """Tests the essential component is missing at the probe result."""
@@ -592,8 +590,10 @@ class DatabaseBuilderTest(unittest.TestCase):
          'status': 'unqualified',
          'values': None})
     hwid_utils.UpdateDatabase(self.output_path, self.probed_results[0], db)
+    new_db = database.Database.LoadFile(self.output_path, False)
+    comp_dict = new_db.components.components_dict
     self.assertEquals(
-        db['components']['mainboard']['items']['mainboard_default'],
+        comp_dict['mainboard']['items']['mainboard_default'],
         {'default': True,
          'status': 'unsupported',
          'values': None})

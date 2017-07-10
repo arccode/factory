@@ -6,6 +6,7 @@
 import ast
 from collections import defaultdict
 from collections import OrderedDict
+import copy
 import itertools
 import logging
 import math
@@ -22,8 +23,16 @@ from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
-DB_KEY = type_utils.Enum(['checksum', 'board', 'encoding_patterns', 'image_id',
-                          'pattern', 'encoded_fields', 'components', 'rules'])
+DB_KEY = type_utils.Enum([
+    'checksum',
+    'board',
+    'project',
+    'encoding_patterns',
+    'image_id',
+    'pattern',
+    'encoded_fields',
+    'components',
+    'rules'])
 _NEED_IMAGE_ID_MSG = 'Please assign a image_id by adding "--image-id" argument.'
 
 # The components that are always be created at the front of the pattern,
@@ -207,33 +216,54 @@ class DatabaseBuilder(object):
   FIELD_SUFFIX = '_field'
   DEFAULT_COMPONENT_SUFFIX = '_default'
 
-  def __init__(self, db=None, board=None):
+  def __init__(self, db=None, project=None):
     self.db = None
     self.active_fields = set()
     self.comp_field_map = {}
 
     if db is None:
-      if board is None:
-        raise ValueError('No board name.')
-      self.db = self._BuildEmptyDatabase(board)
+      if project is None:
+        raise ValueError('No project name.')
+      self.db = self._BuildEmptyDatabase(project)
     else:
-      self.db = db
+      self.db = self._ImportDatabase(db)
       self.active_fields = self.GetLatestFields()
       self._SplitEncodedField()
       self._ConvertLegacyRegion()
       self._ConvertLegacyCustomizationID()
 
   @staticmethod
-  def _BuildEmptyDatabase(board):
+  def _BuildEmptyDatabase(project):
     return OrderedDict([
         (DB_KEY.checksum, None),
-        (DB_KEY.board, board),
+        (DB_KEY.project, project),
         (DB_KEY.encoding_patterns, {0: 'default'}),
         (DB_KEY.image_id, OrderedDict()),
         (DB_KEY.pattern, []),
         (DB_KEY.encoded_fields, OrderedDict()),
         (DB_KEY.components, OrderedDict()),
         (DB_KEY.rules, [])])
+
+  @staticmethod
+  def _ImportDatabase(orig_db):
+    """Imports an existing hwid database.
+
+    This function will convert a legacy hwid database to the latest version of
+    hwid database if needs.
+
+    Args:
+      db: An instance of OrderedDict.  The original hwid database.
+
+    Returns:
+      A hwid database as an instance of OrderedDict.
+    """
+    project = orig_db.get('project', orig_db.get('board'))
+    db = DatabaseBuilder._BuildEmptyDatabase(project)
+    for key in db:
+      if key in [DB_KEY.checksum, DB_KEY.board, DB_KEY.project]:
+        continue
+      db[key] = copy.deepcopy(orig_db.get(key))
+    return db
 
   def _SplitEncodedField(self):
     """Splits encoded_field if it has multiple components."""

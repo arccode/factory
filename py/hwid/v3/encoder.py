@@ -55,7 +55,7 @@ def BinaryStringToEncodedString(database, binary_string):
     binary_string: A string of '0's and '1's.
 
   Returns:
-    An encoded string with board name, base32-encoded HWID, and checksum.
+    An encoded string with project name, base32-encoded HWID, and checksum.
   """
   database.VerifyBinaryString(binary_string)
   image_id = database.pattern.GetImageIdFromBinaryString(binary_string)
@@ -63,14 +63,14 @@ def BinaryStringToEncodedString(database, binary_string):
       image_id)['encoding_scheme']
   encoder = _Encoder[encoding_scheme]
   encoded_string = encoder.Encode(binary_string)
-  # Make board name part of the checksum.
+  # Make project name part of the checksum.
   encoded_string += encoder.Checksum(
-      database.board.upper() + ' ' + encoded_string)
+      database.project.upper() + ' ' + encoded_string)
   # Insert dashes to increase readibility.
   encoded_string = ('-'.join(
       [encoded_string[i:i + encoder.DASH_INSERTION_WIDTH]
        for i in xrange(0, len(encoded_string), encoder.DASH_INSERTION_WIDTH)]))
-  return database.board.upper() + ' ' + encoded_string
+  return database.project.upper() + ' ' + encoded_string
 
 
 def Encode(database, bom, mode=common.HWID.OPERATION_MODE.normal,

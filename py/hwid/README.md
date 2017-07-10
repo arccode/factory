@@ -105,7 +105,7 @@ needs to be manually updated in the following scenarios:
 ```shell
 # Build the HWID database
 $ hwid build-database \
-    --board <board name> \
+    --project <project name> \
     --output-database-path <output folder> \
     --probed-results-file <probed result file> \
     [--image-id <IMAGE_ID>] \  # Name of the image_id, default is 'EVT'
@@ -117,7 +117,7 @@ $ hwid build-database \
 
 # Update the HWID database
 $ hwid update-database \
-    --board <board name> \
+    --project <project name> \
     --output-database-path <output folder> \
     [--probed-results-file <probed result file>] \
     [--output-database <output file>] \  # Write into different file
@@ -158,7 +158,7 @@ of generating HWID database are:
 
 1. Confirm the categories of the components that should be encoded into HWID.
 2. Generate the probe result by "gooftool probe"
-3. Confirm the board name and the phase.
+3. Confirm the project name and the phase.
 4. (Optional) Check if there are missing components in the probe result. If so,
    add a default item with the argument "--add-default-component". Please refer
    [Add a Default Item](#add_default_item) for more details.
@@ -179,7 +179,7 @@ $ gooftool probe --include_vpd > /tmp/probe.yaml
 $ hwid build-database \
     --probed-results-file /tmp/probe.yaml \
     --output-database-path /usr/local/factory/hwid \
-    --board GOOGLE \
+    --project GOOGLE \
     --image-id EVT \
     --add-default-component battery \
     --add-null-component cellular
@@ -202,7 +202,7 @@ $ gooftool probe --include_vpd > /tmp/probe.yaml
 $ hwid update-database \
     --probed-results-file /tmp/probe.yaml \
     --output-database-path /usr/local/factory/hwid \
-    --board GOOGLE
+    --project GOOGLE
 ```
 
 ### 3. Add a Default Item {#add_default_item}
@@ -271,14 +271,14 @@ The command for this scenario is:
 # Add a default item with "--add-default-component" argument
 $ hwid build-database \
     --output-database-path /usr/local/factory/hwid \
-    --board GOOGLE \
+    --project GOOGLE \
     --probed-results-file /tmp/probe.yaml \  # the probe result without cellular
     --add-default-component cellular
 
 # Update the database by the probed result
 $ hwid update-database \
     --output-database-path /usr/local/factory/hwid \
-    --board GOOGLE \
+    --project GOOGLE \
     --probed-results-file /tmp/probe.yaml  # the probe result with cellular "aa"
 ```
 
@@ -339,7 +339,7 @@ The command for this scenario is:
 # Add a default item with "--add-null-component" argument.
 $ hwid update-database \
     --output-database-path /usr/local/factory/hwid \
-    --board GOOGLE \
+    --project GOOGLE \
     --add-null-component cellular
 ```
 
@@ -485,14 +485,14 @@ The command for this scenario is:
 # Create the database at EVT build
 $ hwid build-database \
     --output-database-path /usr/local/factory/hwid \
-    --board GOOGLE \
+    --project GOOGLE \
     --image-id EVT \
     --probed-results-file /tmp/probe.yaml  # the probe result without cellular
 
 # Update the database at DVT build.
 $ hwid update-database \
     --output-database-path /usr/local/factory/hwid \
-    --board GOOGLE \
+    --project GOOGLE \
     --image-id DVT \
     --add-null-component cellular \
     --probed-results-file /tmp/probe.yaml  # the probe result with cellular "aa"
@@ -560,7 +560,7 @@ The command for this scenario is:
 # Update the database without assigning the image_id.
 $ hwid update-database \
     --output-database-path /usr/local/factory/hwid \
-    --board GOOGLE \
+    --project GOOGLE \
     --probed-results-file /tmp/probe.yaml  # the probe result with cellular "aa"
 
 WARNING: Extra fields [cellular_field] without assigning a new image_id.
@@ -652,7 +652,7 @@ The command for this scenario is:
 ```shell
 $ hwid update-database \
     --output-database-path /usr/local/factory/hwid \
-    --board GOOGLE \
+    --project GOOGLE \
     --image-id DVT \  # New image_id must be assigned.
     --del-component cellular
 ```

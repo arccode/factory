@@ -290,7 +290,7 @@ def CheckRegistrationCode(code, type=None, device=None):
   # (e.g., "spring", not "daisy_spring"). For Zerg devices this may be chassis
   # or project ID.
   if device is None:
-    device = GetContext().hwid.database.board.lower()
+    device = GetContext().hwid.database.project.lower()
   registration_codes.CheckRegistrationCode(code, type=type, device=device)
 
 

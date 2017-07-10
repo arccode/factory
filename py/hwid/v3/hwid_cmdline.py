@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import shutil
+import sys
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.hwid.v3 import common
@@ -34,8 +35,8 @@ from cros.factory.utils import process_utils
 _COMMON_ARGS = [
     CmdArg('-p', '--hwid-db-path', default=None,
            help='path to the HWID database directory'),
-    CmdArg('-b', '--board', default=None,
-           help=('board name of the HWID database to load.\n'
+    CmdArg('-b', '--board', '-j', '--project', default=None, dest='project',
+           help=('name of the HWID database to load/build.\n'
                  '(required if not running on a DUT)')),
     CmdArg('-v', '--verbose', default=False, action='store_true',
            help='enable verbose output'),
@@ -88,11 +89,11 @@ def BuildDatabaseWrapper(options):
     raise IOError('%s is not is directory.' % options.hwid_db_path)
   yaml_utils.ParseMappingAsOrderedDict(loader=yaml.Loader, dumper=yaml.Dumper)
   probed_results = hwid_utils.GetProbedResults(options.probed_results_file)
-  database_path = os.path.join(options.hwid_db_path, options.board.upper())
+  database_path = os.path.join(options.hwid_db_path, options.project.upper())
   hwid_utils.BuildDatabase(
-      database_path, probed_results, options.board, options.image_id,
-      options.add_default_comp, options.add_null_comp, options.del_comp,
-      options.region, options.chassis)
+      database_path, probed_results, options.project,
+      options.image_id, options.add_default_comp, options.add_null_comp,
+      options.del_comp, options.region, options.chassis)
   logging.info('Output the database to %s', database_path)
 
 
@@ -114,7 +115,7 @@ def UpdateDatabaseWrapper(options):
       raise IOError('File %s is not found.' % options.probed_results_file)
     probed_results = hwid_utils.GetProbedResults(options.probed_results_file)
 
-  old_db_path = os.path.join(options.hwid_db_path, options.board.upper())
+  old_db_path = os.path.join(options.hwid_db_path, options.project.upper())
   if options.output_database is None:
     # If the output path is not assigned, we update the database in place.
     # We backup the original database before update.
@@ -331,7 +332,7 @@ def VerifyHWIDDatabase(options):
   """Verifies the given HWID database."""
   # Do nothing here since all the verifications are done when loading the
   # database with HWID library.
-  print 'Database %s verified' % options.board
+  print 'Database %s verified' % options.project
 
 
 def ParseOptions(args=None):
@@ -343,9 +344,11 @@ def ParseOptions(args=None):
 def InitializeDefaultOptions(options):
   if not options.hwid_db_path:
     options.hwid_db_path = common.DEFAULT_HWID_DATA_PATH
-  if not options.board:
-    # TODO(yhong): Use project name instead of board name.
-    options.board = common.ProbeBoard()
+  if options.project is None:
+    if sys_utils.InChroot():
+      print 'Argument -j/--project is required'
+      sys.exit(1)
+    options.project = common.ProbeProject()
 
   # Build database doesn't need to initialize the database.
   if options.command_name in ['build-database']:
@@ -353,9 +356,9 @@ def InitializeDefaultOptions(options):
 
   # Create the Database object here since it's common to all functions.
   logging.debug('Loading database file %s/%s...', options.hwid_db_path,
-                options.board.upper())
+                options.project.upper())
   options.database = database.Database.LoadFile(
-      os.path.join(options.hwid_db_path, options.board.upper()),
+      os.path.join(options.hwid_db_path, options.project.upper()),
       verify_checksum=(not options.no_verify_checksum))
 
   phase.OverridePhase(options.phase)
