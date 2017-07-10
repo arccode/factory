@@ -13,13 +13,16 @@ import logging
 import os
 import shutil
 import tempfile
+import urlparse
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import common
 from cros.factory.umpire import config
 from cros.factory.umpire import resource
 from cros.factory.utils import file_utils
+from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import type_utils
 
 
 CROS_PAYLOAD = os.path.join(
@@ -157,31 +160,46 @@ class UmpireEnv(object):
   def umpire_instalog_http_port(self):
     return self.umpire_base_port + _INSTALOG_HTTP_PORT_OFFSET
 
-  @property
-  def shopfloor_service_url(self):
-
-    def IsInsideDocker():
+  @type_utils.LazyProperty
+  def is_inside_docker(self):
+    try:
       with open('/proc/1/sched') as f:
         return f.readline().split()[0] != 'init'
+    except Exception:
+      logging.debug('Probably not inside Docker.')
+      return False
 
+  @type_utils.LazyProperty
+  def docker_host_ip(self):
+    try:
+      if self.is_inside_docker:
+        # Docker host should be the default router.
+        # 'ip route' prints default routing in first line: 'default via <IP>'
+        return process_utils.CheckOutput(['ip', 'route']).split()[2]
+    except Exception:
+      logging.debug('Failed to get default router.')
+    return net_utils.LOCALHOST
+
+  @property
+  def shopfloor_service_url(self):
     if not self.config:
       raise common.UmpireError('UmpireConfig not loaded yet.')
-    url = self.config.get('shopfloor_service_url')
-    if url is None:
-      # When running inside Docker, we want to reach the service running outside
-      # Docker so the host should be default router; otherwise host should be
-      # localhost.
-      host = 'localhost'
-      try:
-        if IsInsideDocker():
-          # 'ip route' prints default routing in first line: 'default via <IP>'
-          host = process_utils.CheckOutput([
-              'ip', 'route']).splitlines()[0].split()[2]
-      except Exception:
-        logging.debug('Probably not inside Docker, bind to localhost.')
 
-      url = 'http://%s:%s' % (host, common.DEFAULT_SHOPFLOOR_SERVICE_PORT)
-    return url.rstrip('/')
+    host, port, path = 'localhost', common.DEFAULT_SHOPFLOOR_SERVICE_PORT, '/'
+    url = self.config.get('shopfloor_service_url')
+    if url:
+      try:
+        parsed_url = urlparse.urlparse(url)
+        assert parsed_url.hostname and parsed_url.port
+        host = parsed_url.hostname
+        port = parsed_url.port
+        path = parsed_url.path
+      except Exception:
+        logging.error('Failed to parse shopfloor_service_url %r.', url)
+    if host == 'localhost':
+      # We translate 'localhost' to Docker host when running inside Docker.
+      host = self.docker_host_ip
+    return ('http://%s:%s%s' % (host, port, path)).rstrip('/')
 
   def ReadConfig(self, custom_path=None):
     """Reads Umpire config.

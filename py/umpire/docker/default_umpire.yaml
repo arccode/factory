@@ -14,6 +14,7 @@ services:
     forward:
       enable: false
       args: {}
+shopfloor_service_url: http://localhost:8090
 bundles:
 - id: empty
   note: n/a
