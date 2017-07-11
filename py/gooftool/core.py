@@ -58,7 +58,7 @@ class Gooftool(object):
 
   def __init__(self, probe=None, hwid_version=2,
                hardware_db=None, component_db=None,
-               board=None, hwdb_path=None):
+               project=None, hwdb_path=None):
     """Constructor.
 
     Args:
@@ -71,11 +71,11 @@ class Gooftool(object):
       component_db: The component db to use for both component names and
         component classes lookup. If not specified,
         hardware_db.component.db is used.
-      board: A string indicating which board-specific component database to
-        load. If not specified, the board name will be detected with
-        cros.factory.hwid.ProbeBoard(). Used for HWID v3 only.
-      hwdb_path: The path to load the board-specific component database from. If
-        not specified, cros.factory.hwid.DEFAULT_HWID_DATA_PATH will be used.
+      project: A string indicating which project-specific component database to
+        load. If not specified, the project name will be detected with
+        cros.factory.hwid.ProbeProject(). Used for HWID v3 only.
+      hwdb_path: The path to load the project-specific component database from.
+        If not specified, cros.factory.hwid.DEFAULT_HWID_DATA_PATH will be used.
         Used for HWID v3 only.
     """
     self._hwid_version = hwid_version
@@ -85,10 +85,10 @@ class Gooftool(object):
           hwid_tool.HardwareDb(hwid_tool.DEFAULT_HWID_DATA_PATH))
       self._db_creator = lambda: component_db or self._hardware_db.comp_db
     elif hwid_version == 3:
-      self._board = board or hwid3_common.ProbeBoard()
+      self._project = project or hwid3_common.ProbeProject()
       self._hwdb_path = hwdb_path or hwid3_common.DEFAULT_HWID_DATA_PATH
       self._db_creator = lambda: Database.LoadFile(
-          os.path.join(self._hwdb_path, self._board.upper()))
+          os.path.join(self._hwdb_path, self._project.upper()))
     else:
       raise ValueError('Invalid HWID version: %r' % hwid_version)
 

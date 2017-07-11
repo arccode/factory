@@ -64,9 +64,9 @@ def GetGooftool(options):
 
   if _global_gooftool is None:
     with _gooftool_lock:
-      board = getattr(options, 'board', None)
+      project = getattr(options, 'project', None)
       hwdb_path = getattr(options, 'hwdb_path', None)
-      _global_gooftool = Gooftool(hwid_version=3, board=board,
+      _global_gooftool = Gooftool(hwid_version=3, project=project,
                                   hwdb_path=hwdb_path)
 
   return _global_gooftool
@@ -114,9 +114,9 @@ def WriteHWID(options):
   print 'Wrote HWID: %r' % options.hwid
 
 
-_board_cmd_arg = CmdArg(
-    '--board', metavar='BOARD',
-    default=None, help='Board name to test.')
+_project_cmd_arg = CmdArg(
+    '--project', metavar='PROJECT',
+    default=None, help='Project name to test.')
 
 _hwdb_path_cmd_arg = CmdArg(
     '--hwdb_path', metavar='PATH',
@@ -491,7 +491,7 @@ def WipeInit(options):
                 help='Do not check write protection switch state.'),
          _hwid_status_list_cmd_arg,
          _hwdb_path_cmd_arg,
-         _board_cmd_arg,
+         _project_cmd_arg,
          _probe_results_cmd_arg,
          _hwid_cmd_arg,
          _rma_mode_cmd_arg,
@@ -681,7 +681,6 @@ def UploadReport(options):
          _hwid_status_list_cmd_arg,
          _upload_method_cmd_arg,
          _add_file_cmd_arg,
-         _board_cmd_arg,
          _probe_results_cmd_arg,
          _hwid_cmd_arg,
          _rma_mode_cmd_arg,
