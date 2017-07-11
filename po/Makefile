@@ -33,7 +33,7 @@ func-get-source-list = \
     $(1)/test/pytests/*.html $(1)/test/pytests/*/*.html \
     $(1)/goofy/js/*.js $(1)/goofy/plugins/*/*/*.js \
     $(1)/test/pytests/*/*.js $(1)/test/pytests/*/static/*.js \
-    $(1)/test/test_lists/*.test-list.json))
+    $(1)/config/*.test_list.json $(1)/test/test_lists/*.test_list.json))
 
 PYTESTS_LABEL_FILE ?= $(BUILD_DIR)/pytests_label_generated.json
 BOARD_PYTESTS_LABEL_FILE ?= $(BUILD_DIR)/board_pytests_label_generated.json
