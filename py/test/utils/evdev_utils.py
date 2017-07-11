@@ -118,6 +118,14 @@ def IsTouchscreenDevice(dev):
               dev.capabilities().get(evdev.ecodes.EV_ABS, [])))
 
 
+class DeviceNotFoundError(RuntimeError):
+  pass
+
+
+class MultipleDevicesFoundError(RuntimeError):
+  pass
+
+
 def FindDevice(*args):
   """Find a device that match all arguments.
 
@@ -147,9 +155,9 @@ def FindDevice(*args):
   if len(candidates) == 1:
     return candidates[0]
   elif not candidates:
-    raise ValueError("Can't find device.")
+    raise DeviceNotFoundError("Can't find device.")
   else:
-    raise ValueError('Not having exactly one candidate!')
+    raise MultipleDevicesFoundError('Not having exactly one candidate!')
 
 
 def DeviceReopen(dev):
