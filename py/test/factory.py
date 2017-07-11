@@ -677,10 +677,10 @@ class FactoryTest(object):
 
     if label is None:
       # Auto-assign label text.
-      if id:
-        label = id
-      elif pytest_name:
+      if pytest_name:
         label = self.PytestNameToLabel(pytest_name)
+      elif id:
+        label = id
       else:
         label = _('Test Group')
 
