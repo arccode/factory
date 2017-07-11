@@ -21,7 +21,7 @@ this document).
 
 ODM or CM should implement and maintain the Shopfloor Service to support the
 interface defined in this document. The service does not need to be
-open-sourced nor uploaded to Chrome OS private board overlays source repository.
+open-source nor uploaded to Chrome OS private board overlays source repository.
 The host running service can be a dedicated server running any OS (Windows,
 Linux, etc) or simply the one running Chrome OS Factory Server (can be either
 the legacy server or Umpire & Dome servers). DUTs (Device Under Test) will reach
@@ -52,20 +52,23 @@ configure shopfloor service.
 
 ### Using Umpire
 [Umpire](../umpire/README.md) is the new recommended factory server for ChromeOS
-factory flow. In its configuration, there is a `shopfloor_service` property. To
-set that:
+factory flow. In its configuration, there is a `shopfloor_service_url` property.
+To set that:
 
 ```sh
   # Enter Docker instance
   (host)$ setup/cros_docker.sh umpire shell
   (docker)$ umpire edit
 
-  # Add following as first line:
-  shopfloor_service: http://172.17.0.1:8090
+  # You can configure Shopfloor Service URL here:
+  shopfloor_service_url: http://localhost:8090
 ```
 
-The default URL is set to 'Docker host IP' (usually 172.17.0.1) when Docker
-environment is detected, otherwise http://127.0.0.1:8090.
+Umpire will automatically interpret `localhost` in `shopfloor_service_url` as
+'Docker host IP' when Docker environment is detected. Otherwise, it would keep
+its original meaning (127.0.0.1). Notice that Umpire doesn't translate
+127.0.0.1, so it can be used to refer to Umpire docker container itself (if you
+really want to do this).
 
 ### Using legacy Factory Server (shopfloor_server)
 The legacy factory server, which was known as `shopfloor_server` or `shopfloor`
