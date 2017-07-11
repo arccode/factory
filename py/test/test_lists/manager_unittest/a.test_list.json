@@ -20,8 +20,8 @@
 
   "definitions": {
     "LEDTest": {
-      "inherit": "OperatorTest",
       "pytest_name": "led",
+      "has_ui": true,
       "args": {
         "colors": ["RED", "GREEN", "BLUE"]
       }

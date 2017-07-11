@@ -11,10 +11,6 @@
     "FactoryTest": {
       "inherit": "FactoryTest"
     },
-    "OperatorTest": {
-      "inherit": "FactoryTest",
-      "has_ui": true
-    },
     "ShutdownStep": {
       "inherit": "ShutdownStep",
       "args": {
