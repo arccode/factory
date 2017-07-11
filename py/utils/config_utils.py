@@ -246,7 +246,7 @@ def _GetLogger():
 
 def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
                default_config_dir=None, convert_to_str=True,
-               allow_inherit=False, cached_configs=None):
+               allow_inherit=False, cached_configs=None, generate_depend=False):
   """Loads a configuration as mapping by given file name.
 
   The config files are retrieved and overridden in order:
@@ -286,6 +286,14 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
         reduce the loading time. If a config is still in loading
         process, cached_configs[config_name] should be marked as _DUMMY_CACHE
         for loop detection.
+
+    generate_depend: if allow_inherit is True and this is set to True, will
+        collect all dependencies of the config file, and put into "depend"
+        field.
+
+        For example, if we're loading config "A" with: {"inherit": "B"}, then
+
+           A['depend'] = ['A', 'B', <what B depends on ...>]
 
   Returns:
     The config as mapping object.
@@ -339,6 +347,9 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
     parents = config.get('inherit')
     if isinstance(parents, basestring):
       parents = [parents]
+
+    if generate_depend:
+      deps = {config_name}
     # Ignore if 'inherit' is not a list of parent names.
     if isinstance(parents, list):
       parent_config = {}
@@ -350,9 +361,14 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
             default_config_dir=default_config_dir,
             convert_to_str=convert_to_str,
             allow_inherit=allow_inherit,
-            cached_configs=cached_configs)
+            cached_configs=cached_configs,
+            generate_depend=generate_depend)
+        if generate_depend:
+          deps |= set(current_config['depend'])
         OverrideConfig(parent_config, current_config)
       config = OverrideConfig(parent_config, config)
+    if generate_depend:
+      config['depend'] = list(deps)
 
   # Ideally we should enforce validating schema, but currently many environments
   # where our factory software needs to live (i.e., old ChromeOS test images,

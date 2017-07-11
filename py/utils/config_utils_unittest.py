@@ -27,13 +27,24 @@ class ConfigUtilsUnitTest(unittest.TestCase):
 
   def testLoadConfig(self):
     config_m = config_utils.LoadConfig(
-        'testdata/config_utils_unittest', allow_inherit=True)
+        'testdata/config_utils_unittest',
+        allow_inherit=True,
+        generate_depend=True)
     config = config_utils.GetNamedTuple(config_m)
 
     # default values from ./config_utils_unittest.json
     self.assertEqual(config.sample_int, 1)
     self.assertEqual(config.sample_str, 'test')
     self.assertEqual(config.sample_mapping.contents, 'abc')
+
+    self.assertItemsEqual(
+        config.depend,
+        [
+            'testdata/config_utils_unittest_base',
+            'testdata/config_utils_unittest_middle_b',
+            'testdata/config_utils_unittest_middle_a',
+            'testdata/config_utils_unittest',
+        ])
 
     # the inherited value.
     self.assertEqual(config.sample_base_int, 10)

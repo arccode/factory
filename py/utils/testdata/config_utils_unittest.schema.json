@@ -8,6 +8,10 @@
         {"type": "array"}
       ]
     },
+    "depend": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
     "sample_int": {
       "type": "integer"
     },
