@@ -11,6 +11,9 @@
     "FactoryTest": {
       "inherit": "FactoryTest"
     },
+    "TestGroup": {
+      "inherit": "TestGroup"
+    },
     "ShutdownStep": {
       "inherit": "ShutdownStep",
       "args": {
