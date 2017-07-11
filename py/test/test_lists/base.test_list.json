@@ -23,21 +23,21 @@
     },
     "HaltStep": {
       "inherit": "ShutdownStep",
-      "id": "Halt",
+      "label": "Halt",
       "args": {
         "operation": "halt"
       }
     },
     "RebootStep": {
       "inherit": "ShutdownStep",
-      "id": "Reboot",
+      "label": "Reboot",
       "args": {
         "operation": "reboot"
       }
     },
     "FullRebootStep": {
       "inherit": "ShutdownStep",
-      "id": "FullReboot",
+      "label": "Full Reboot",
       "args": {
         "operation": "full_reboot"
       }

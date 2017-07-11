@@ -3363,6 +3363,22 @@ msgstr "检查频率中..."
 msgid "Writing device data to {vpd_section} VPD..."
 msgstr "机器资料正在写入到 {vpd_section} VPD..."
 
+#: ../py/test/test_lists/base.test_list.json
+msgid "Full Reboot"
+msgstr "深度重启"
+
+#: ../py/test/test_lists/base.test_list.json
+#: ../py/test/test_lists/generic_rrt.py
+msgid "Halt"
+msgstr "关机"
+
+#: ../py/test/test_lists/base.test_list.json
+#: ../py/test/test_lists/generic_experiment.py
+#: ../py/test/test_lists/generic_fatp.py
+#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
+msgid "Reboot"
+msgstr "重新开机"
+
 #: ../py/test/test_lists/firmware_stress.py ../py/test/test_lists/generic.py
 msgid "Sync Factory Server {suffix}"
 msgstr "同步工厂伺服器 {suffix}"
@@ -3433,12 +3449,6 @@ msgstr "RunIn 测试结束，按下空白键继续\n"
 #: ../py/test/test_lists/generic_diagnostic.py
 msgid "Diagnostic"
 msgstr "诊断"
-
-#: ../py/test/test_lists/generic_experiment.py
-#: ../py/test/test_lists/generic_fatp.py
-#: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
-msgid "Reboot"
-msgstr "重新开机"
 
 #: ../py/test/test_lists/generic_fatp.py
 msgid "FATP"
@@ -3700,10 +3710,6 @@ msgstr "关机时冷重启"
 #: ../py/test/test_lists/generic_rrt.py
 msgid "EC Reboot"
 msgstr "EC 重启"
-
-#: ../py/test/test_lists/generic_rrt.py
-msgid "Halt"
-msgstr "关机"
 
 #: ../py/test/test_lists/generic_rrt.py
 msgid "WarmColdReboot ({count} times)"

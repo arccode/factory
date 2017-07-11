@@ -106,14 +106,14 @@ class TestListLoaderTest(unittest.TestCase):
     factory_test_list = test_list.ToFactoryTestList()
 
     expected = collections.OrderedDict([
-        ('SMT.Reboot', 'PARENT'),
-        ('SMT.Group.Reboot', 'PARENT'),
-        ('SMT.Group.Reboot-2', 'PARENT'),
-        ('SMT.Group-2.Reboot', 'STOP'),
-        ('SMT.Group-2.Reboot-2', 'STOP'),
-        ('SMT.Reboot-2', 'PARENT'),
-        ('SMT.Reboot-3', 'PARENT'),
-        ('SMT.Reboot-4', 'STOP')])
+        ('SMT.RebootStep', 'PARENT'),
+        ('SMT.Group.RebootStep', 'PARENT'),
+        ('SMT.Group.RebootStep-2', 'PARENT'),
+        ('SMT.Group-2.RebootStep', 'STOP'),
+        ('SMT.Group-2.RebootStep-2', 'STOP'),
+        ('SMT.RebootStep-2', 'PARENT'),
+        ('SMT.RebootStep-3', 'PARENT'),
+        ('SMT.RebootStep-4', 'STOP')])
 
     self.assertListEqual(
         expected.keys(),
