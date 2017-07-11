@@ -52,7 +52,8 @@
         },
         {
           "id": "Halt",
-          "inherit": "HaltStep"
+          "inherit": "HaltStep",
+          "require_run": "all"
         },
         "LEDTest",
         "LEDTest"

@@ -45,6 +45,12 @@
           "type": "string",
           "enum": ["NEXT", "PARENT", "STOP"]
         },
+        "require_run": {
+          "type": ["string", "array"],
+          "items": {
+            "type": "string"
+          }
+        },
         "__comment": {
           "description": "this field will be completely ignored by test list loader.",
           "type": "string"
