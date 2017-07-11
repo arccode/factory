@@ -9,35 +9,66 @@
           "type": "string",
           "enum": ["NEXT", "PARENT", "STOP"]
         },
-        "args":  {"type": "object"},
-        "disable_abort": {"type": "boolean"},
+        "args": {
+          "type": "object"
+        },
+        "disable_abort": {
+          "type": "boolean"
+        },
         "disable_services": {
           "type": "array",
-          "items": {"type": "string"}
+          "items": {
+            "type": "string"
+          }
         },
         "enable_services": {
           "type": "array",
-          "items": {"type": "string"}
+          "items": {
+            "type": "string"
+          }
         },
         "exclusive_resources": {
           "type": "array",
-          "items": {"type": "string"}
+          "items": {
+            "type": "string"
+          }
         },
-        "has_ui": {"type": "boolean"},
-        "id": {"type": "string"},
-        "iterations": {"type": "number"},
-        "label": {"type": ["string", "object"]},
-        "never_fails": {"type": "boolean"},
-        "parallel": {"type": "boolean"},
-        "pytest_name": {"type": "string"},
-        "retries": {"type": "number"},
-        "run_if": {"type": "string"},
+        "has_ui": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "iterations": {
+          "type": "number"
+        },
+        "label": {
+          "type": ["string", "object"]
+        },
+        "never_fails": {
+          "type": "boolean"
+        },
+        "parallel": {
+          "type": "boolean"
+        },
+        "pytest_name": {
+          "type": "string"
+        },
+        "retries": {
+          "type": "number"
+        },
+        "run_if": {
+          "type": "string"
+        },
         "subtests": {
           "type": "array",
-          "items": {"$ref": "#/definitions/test_object"}
+          "items": {
+            "$ref": "#/definitions/test_object"
+          }
         },
-        "teardown": {"type": "boolean"},
-
+        "teardown": {
+          "type": "boolean"
+        },
         "inherit": {
           "type": "string"
         },
@@ -58,47 +89,45 @@
       },
       "additionalProperties": false
     },
-
     "test_options": {
       "type": "object"
     }
   },
-
   "type": "object",
   "properties": {
     "label": {
       "type": "string"
     },
-
     "inherit": {
       "type": "array",
-      "items": {"type": "string"}
+      "items": {
+        "type": "string"
+      }
     },
     "depend": {
       "type": "array",
-      "items": {"type": "string"}
+      "items": {
+        "type": "string"
+      }
     },
-
     "options": {
       "$ref": "#/definitions/test_options"
     },
-
     "constants": {
       "type": "object"
     },
-
     "definitions": {
       "type": "object",
       "additionalProperties": {
         "$ref": "#/definitions/test_object"
       }
     },
-
     "tests": {
       "type": "array",
-      "items": {"$ref": "#/definitions/test_object"}
+      "items": {
+        "$ref": "#/definitions/test_object"
+      }
     },
-
     "__comment": {
       "description": "this field will be completely ignored by test list loader",
       "type": "string"
