@@ -32,9 +32,9 @@ class CpufreqManager(object):
   cpufreq_path_glob = '/sys/devices/system/cpu/cpu*/cpufreq'
   """Path glob to the cpufreq directories."""
 
-  cpu_speed_hz = 1300000
-  """CPU speed when cpufreq services are disabled.  This defaults (very
-  arbitrarily) to 1.3 GHz but may be modified by board-specific hooks.
+  cpu_speed_hz = None
+  """CPU speed when cpufreq services are disabled if not None, but this is not
+  supported by most CPUs today.
   """
 
   def __init__(self, event_log=None):
@@ -57,7 +57,10 @@ class CpufreqManager(object):
     for retry_count in range(RETRY_COUNT):
       thermal_service_status = (service_utils.Status.START if enabled
                                 else service_utils.Status.STOP)
-      governor = 'interactive' if enabled else 'userspace'
+      # crbug.com/736746 To really set CPU frequency governor should be
+      # 'userspace' but it's not supported by most CPU today so instead we want
+      # CPU to run in full speed.
+      governor = 'powersave' if enabled else 'performance'
       cpu_speed_hz = None if enabled else self.cpu_speed_hz
 
       logging.info('cpufreq: setting thermal_service_status=%s, governor=%s, '
@@ -81,7 +84,7 @@ class CpufreqManager(object):
         try:
           file_utils.WriteFile(os.path.join(path, 'scaling_governor'),
                                governor, log=True)
-          if not enabled:
+          if cpu_speed_hz:
             file_utils.WriteFile(os.path.join(path, 'scaling_setspeed'),
                                  self.cpu_speed_hz, log=True)
         except Exception:
