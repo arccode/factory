@@ -84,10 +84,10 @@ These fields are only meant for new test list loader:
    comment.
 
 ## Expression Evaluation
-For `args` of test object, if a value is a string and starts with `"eval!"`, the
-rest of the string will be interpreted as a python expression.  The expression
-will be evaluated by python `exec` statement.  However, for simplicity, the
-expression has the following restrictions:
+For `args` of test object, if a value is a string and starts with `"eval! "`,
+the rest of the string will be interpreted as a python expression.  The
+expression will be evaluated by python `exec` statement.  However, for
+simplicity, the expression has the following restrictions:
 
 1. Single expression (not necessary single line, but the parsed result is a
    single expression)
@@ -107,10 +107,10 @@ expression has the following restrictions:
    4. `session`
 
 The result of evaluated expression will not be evaluated again even if it starts
-with `"eval!"` as well.
+with `"eval! "` as well.
 
 ## i18n support
-You can use `"i18n!English string"` to specify an i18n string.
+You can use `"i18n! English string"` to specify an i18n string.
 Or, an alternative way to create i18n string is:
 `{"en-US": "English string", "zh-CN": "Chinese string"}`.
 Therefore, both `definitions.Start.label` and `definitions.Start.args.prompt`
@@ -122,7 +122,7 @@ are valid i18n strings.
     "Start": {
       "inherit": "OperatorTest",
       "pytest_name": "start",
-      "label": "i18n!Start",
+      "label": "i18n! Start",
       "args": {
         "prompt": {"en-US": "English prompt", "zh-CN": "Chinese prompt"}
       }
