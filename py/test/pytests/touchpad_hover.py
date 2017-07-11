@@ -21,8 +21,8 @@ before starting hover test.
 
 If you need to calibrate touchpad before hovering test by writing a string '1'
 to a special file, argument `calibration_trigger` should be set to the path of
-that file. For Elan touchpads, you can try to find the file in a path similar to
-the one in the second example.
+that file. In this case, you can try to find the file in a path similar to the
+one in the second example.
 
 Test Procedure
 --------------
@@ -42,7 +42,7 @@ Dependency
 - Need a physical hover-tool and a holder to verify touchpad behavior on
   being hovered.
 - Check with touchpad vendor if there is any initialization should be done
-  before starting this test. For Elan touchpads, we might need to know the path
+  before starting this test. For some touchpads, we might need to know the path
   of the calibration trigger file to trigger driver perform internal
   calibration.
 
@@ -58,7 +58,7 @@ If calibration is required::
       pytest_name='touchpad_hover',
       dargs=dict(
           calibration_trigger=(
-              '/sys/bus/i2c/drivers/elan_i2c/i2c-ELAN0000:00/calibrate')))
+              '/sys/bus/i2c/drivers/xxx_i2c/i2c-xxx0000:00/calibrate')))
 """
 
 import threading
