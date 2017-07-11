@@ -131,6 +131,10 @@ class TabletRotationTest(unittest.TestCase):
           'In addition to checking the ChromeOS screen orientation, also check '
           'accelerometer data to ensure it reports the same orientation.',
           default=False, optional=True),
+      Arg('accelerometer_location', str,
+          'If check_accelerometer is true, the location of accelerometer that '
+          'should be checked. Should be either "lid" or "base"',
+          default='lid', optional=True),
       Arg('degrees_to_orientations', dict,
           'Keys: degree of the orientation, limited to [0, 90, 180, 270]. '
           'Values: a dictionary containing orientation configuration.  Keys '
@@ -171,7 +175,8 @@ class TabletRotationTest(unittest.TestCase):
                   'and spec_ideal_values.')
         return
 
-      self.accel_controller = self.dut.accelerometer.GetController()
+      self.accel_controller = self.dut.accelerometer.GetController(
+          location=self.args.accelerometer_location)
 
     self.ui = test_ui.UI()
     self.state = state.get_instance()
