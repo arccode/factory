@@ -759,28 +759,33 @@ class FinalizeBundle(object):
             raise
 
   def UpdateReadme(self):
+    REQUIRED_SECTIONS = ['VITAL INFORMATION', 'CHANGES']
+
     # Grok the README file; we'll be modifying it.
-    readme_sections = re.findall(
-        # Section header
-        r'(\*\*\*\n\*\n\* (.+?)\n\*\n\*\*\*\n)'
-        # Anything up to (but not including) the next section header
-        r'((?:(?!\*\*\*).)+)', file_utils.ReadFile(self.readme_path), re.DOTALL)
-    # This results in a list of tuples (a, b, c), where a is the whole
-    # section header string; b is the name of the section; and c is the
-    # contents of the section.  Turn each tuple into a list; we'll be
-    # modifying some of them.
-    readme_sections = [list(x) for x in readme_sections]
+    try:
+      readme_sections = re.findall(
+          # Section header
+          r'\*\*\*\n\*\n\* (.+?)\n\*\n\*\*\*\n'
+          # Anything up to (but not including) the next section header
+          r'((?:(?!\*\*\*).)+)',
+          file_utils.ReadFile(self.readme_path), re.DOTALL)
+      # This results in a list of tuples (x, y), where x is the name of the
+      # section, and y is the contents of the section. Turn each tuple into a
+      # list; we'll be modifying some of them.
+      readme_sections = [list(s) for s in readme_sections]
+    except Exception:
+      readme_sections = [[x, '\n'] for x in REQUIRED_SECTIONS]
 
     readme_section_index = {}  # Map of section name to index
     for i, s in enumerate(readme_sections):
-      readme_section_index[s[1]] = i
-    for k in ['VITAL INFORMATION', 'CHANGES']:
-      if k not in readme_section_index:
-        sys.exit('README is missing %s section' % k)
+      readme_section_index[s[0]] = i
+    for x in REQUIRED_SECTIONS:
+      if x not in readme_section_index:
+        sys.exit('README is missing %s section' % x)
 
     # Make sure that the CHANGES section contains this version.
     expected_str = '%s changes:' % self.bundle_name
-    if expected_str not in readme_sections[readme_section_index['CHANGES']][2]:
+    if expected_str not in readme_sections[readme_section_index['CHANGES']][1]:
       logging.warning('The string %r was not found in the CHANGES section. '
                       'Please add a section for it (if this is the first '
                       'version, just say "initial release").', expected_str)
@@ -844,13 +849,17 @@ class FinalizeBundle(object):
     for k, v in vitals:
       vital_lines.append('%s:%s %s' % (k, ' ' * (max_key_length - len(k)), v))
     vital_contents = '\n'.join(vital_lines)
-    readme_sections[readme_section_index['VITAL INFORMATION']][2] = (
+    readme_sections[readme_section_index['VITAL INFORMATION']][1] = (
         vital_contents + '\n\n')
 
     with open(self.readme_path, 'w') as f:
-      for header, _, contents in readme_sections:
-        f.write(header)
-        f.write(contents)
+      for section in readme_sections:
+        f.write('***\n'
+                '*\n'
+                '* %s\n'
+                '*\n'
+                '***\n'
+                '%s' % tuple(section))
     logging.info('\n\nUpdated %s; vital information:\n%s\n',
                  self.readme_path, vital_contents)
 
