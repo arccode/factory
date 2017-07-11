@@ -5,7 +5,6 @@
 """A collective of system-related functions."""
 
 from contextlib import contextmanager
-from distutils import spawn
 import logging
 import os
 import re
@@ -16,7 +15,9 @@ import tempfile
 
 from . import file_utils
 from . import process_utils
+from . import pygpt
 from . import sync_utils
+from . import type_utils
 
 
 class MountPartitionException(Exception):
@@ -310,38 +311,70 @@ def GetPartitions():
       results.append(PartitionInfo(*match_obj.groups()))
   return results
 
-class PartitionManager(object):
+
+class _GPTTool(object):
+  """Abstraction for tool to manipulate GUID Partition Table."""
+
+  def GetPartitionOffsetInSector(self, index):
+    """Returns the partition offset in sectors."""
+    raise NotImplementedError
+
+  def GetPartitionSizeInSector(self, index):
+    """Returns the partition size in sectors."""
+    raise NotImplementedError
+
+  def GetSectorSize(self):
+    """Returns logical sector size in bytes."""
+    raise NotImplementedError
+
+
+class PartitionManager(_GPTTool):
   """Provides disk partition information.
 
-  Implemented as a wrapper for commands (cgpt, partx) to access disk partition.
+  Implemented as a wrapper for commands (pygpt, cgpt, partx) to access disk
+  partition.
   """
 
+  @type_utils.Overrides
   def GetPartitionOffsetInSector(self, index):
     """Returns the partition offset in sectors."""
     return self._runner.GetPartitionOffsetInSector(index)
 
+  @type_utils.Overrides
   def GetPartitionSizeInSector(self, index):
     """Returns the partition size in sectors."""
     return self._runner.GetPartitionSizeInSector(index)
 
-  def GetPartitionAttr(self, index):
-    """Returns the partition flag in integer"""
-    return self._runner.GetPartitionAttr(index)
-
+  @type_utils.Overrides
   def GetSectorSize(self):
-    """Returns sector size in bytes."""
-    try:
-      return int(self._check_output(['blockdev', '--getss', self._path]))
-    except Exception:
-      # blockdev may not exist in PATH or may not support the device.
-      return self._runner.GetSectorSize()
+    """Returns logical sector size in bytes."""
+    return self._runner.GetSectorSize()
 
-  def CreatePartitionTable(self):
-    """Create an empty GPT."""
-    return self._runner.CreatePartitionTable()
+  class _PyGPT(_GPTTool):
+    """Manipulate GPT using cros.factory.utils.pygpt."""
 
-  # TODO(hungte) Support pygpt.
-  class _CGPT(object):
+    def __init__(self, image_path):
+      with open(image_path, 'rb') as f:
+        self._gpt = pygpt.GPT.LoadFromFile(f)
+
+    @type_utils.Overrides
+    def GetPartitionOffsetInSector(self, index):
+      """Returns the partition offset in sectors."""
+      p = self._gpt.partitions[index - 1]
+      return p.FirstLBA
+
+    @type_utils.Overrides
+    def GetPartitionSizeInSector(self, index):
+      """Returns the partition size in sectors."""
+      p = self._gpt.partitions[index - 1]
+      return p.LastLBA - p.FirstLBA + 1
+
+    @type_utils.Overrides
+    def GetSectorSize(self):
+      """Returns logical sector size in bytes."""
+      return self._gpt.BLOCK_SIZE
+
+  class _CGPT(_GPTTool):
     """Wrapper for cgpt."""
 
     def __init__(self, cgpt, check_output, path):
@@ -349,33 +382,22 @@ class PartitionManager(object):
       self.check_output = check_output
       self.path = path
 
+    @type_utils.Overrides
     def GetPartitionOffsetInSector(self, index):
-      return int(self.check_output([self.cgpt, 'show', '-i', str(index), '-b',
-                                    self.path]))
+      return int(self.check_output(
+          [self.cgpt, 'show', '-i', str(index), '-b', self.path]))
 
+    @type_utils.Overrides
     def GetPartitionSizeInSector(self, index):
-      return int(self.check_output([self.cgpt, 'show', '-i', str(index), '-s',
-                                    self.path]))
+      return int(self.check_output(
+          [self.cgpt, 'show', '-i', str(index), '-s', self.path]))
 
-    def GetPartitionAttr(self, index):
-      return int(self.check_output([self.cgpt, 'show', '-i', str(index), '-A',
-                                    self.path]),
-                 16)
-
+    @type_utils.Overrides
     def GetSectorSize(self):
-      total_sectors = self._GetSecPGTHeaderOffsetInSector() + 1
-      file_size = int(self.check_output(['stat', '--format=%s', self.path]))
-      return file_size / total_sectors
+      # Currently cgpt always assumes sector size = 512.
+      return 512
 
-    def _GetSecPGTHeaderOffsetInSector(self):
-      lines = self.check_output([self.cgpt, 'show', '-b', self.path])
-      return int(lines.strip().split('\n')[-1].split()[0])
-
-    def CreatePartitionTable(self):
-      self.check_output([self.cgpt, 'create', self.path])
-      self.check_output([self.cgpt, 'boot', '-p', self.path])
-
-  class _PartX(object):
+  class _PartX(_GPTTool):
     """Wrapper for partx."""
 
     def __init__(self, partx, check_output, path):
@@ -383,63 +405,47 @@ class PartitionManager(object):
       self.check_output = check_output
       self.path = path
 
+    @type_utils.Overrides
     def GetPartitionOffsetInSector(self, index):
       return int(self.check_output([self.partx, '-r', '-g', '-n', str(index),
                                     '-o', 'START', self.path]))
 
+    @type_utils.Overrides
     def GetPartitionSizeInSector(self, index):
       return int(self.check_output([self.partx, '-r', '-g', '-n', str(index),
                                     '-o', 'SECTORS', self.path]))
 
+    @type_utils.Overrides
     def GetSectorSize(self):
-      # TODO(yllin): partx assumes the sector size is 512 always. Provide a
-      #              better way to get the information.
-      #              partx.c: blkid_partition_get_size(par) << 9
-      size, sectors = [long(self.check_output([self.partx, '-r', '-g', '-o',
-                                               flag, '-b', self.path]
-                                             ).split()[0])
-                       for flag in ('SIZE', 'SECTORS')]
-      return int(size / sectors)
-
-    def GetPartitionAttr(self, index):
-      return int(self.check_output([self.partx, '-r', '-g', '-n', str(index),
-                                    '-o', 'FLAGS', self.path]),
-                 16)
-
-    def CreatePartitionTable(self):
-      self.check_output([self.partx, '-a', self.path])
+      # Currently partx always assumes sector size is 512.
+      return 512
 
   def __init__(self, path, dut=None):
-    """Constructor.
+    """Constructor of PartitionManager.
 
     Args:
       path: a path to Deivce which the PartitionManager query on.
       dut: a Device API instance or None to run locally.
 
     Raises:
-      Exception: If cannot find either cgpt or partx in system PATH and
-        envrionment variable CGPT undefined.
+      Exception: If cannot find either cgpt or partx in remote system PATH.
     """
     self._path = path
     local_mode = dut is None
     self._check_output = (process_utils.CheckOutput if local_mode
                           else dut.CheckOutput)
+    # Always use pygpt on local since it has less dependency and best speed.
+    # For remote, use cgpt over partx since it's more compliant for ChromeOS.
     if local_mode:
-      cgpt = 'cgpt' if spawn.find_executable('cgpt') else os.environ.get('CGPT')
-      partx = 'partx' if spawn.find_executable('partx') else None
+      self._runner = PartitionManager._PyGPT(self._path)
+    elif 0 == dut.Call(['which', 'cgpt']):
+      self._runner = PartitionManager._CGPT(
+          'cgpt', self._check_output, self._path)
+    elif 0 == dut.Call(['which', 'partx']):
+      self._runner = PartitionManager._PartX(
+          'partx', self._check_output, self._path)
     else:
-      cgpt = 'cgpt' if (0 == dut.Call(['which', 'cgpt'])) else None
-      partx = 'partx' if (0 == dut.Call(['which', 'partx'])) else None
-
-    # Use cgpt as the default option
-    if cgpt != None:
-      self._runner = PartitionManager._CGPT(cgpt, self._check_output,
-                                            self._path)
-    elif partx != None:
-      self._runner = PartitionManager._PartX(partx, self._check_output,
-                                             self._path)
-    else:
-      raise Exception('Cannot find cgpt or partx')
+      raise Exception('Cannot find cgpt or partx on remote DUT.')
 
 
 def ResetCommitTime():

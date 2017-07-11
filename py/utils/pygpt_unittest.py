@@ -11,8 +11,8 @@ import unittest
 import uuid
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.tools import pygpt
 from cros.factory.utils import file_utils
+from cros.factory.utils import pygpt
 
 
 class GPTTest(unittest.TestCase):
