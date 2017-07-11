@@ -527,8 +527,9 @@ class Goofy(GoofyBase):
             # We've hit this test itself; stop checking
             break
           if ((i.GetState().status == TestState.UNTESTED) or
-              (requirement.passed and i.GetState().status !=
-               TestState.PASSED)):
+              (requirement.passed and
+               i.GetState().status not in [TestState.SKIPPED,
+                                           TestState.PASSED])):
             # Found an untested test; move on to the next
             # element in require_run.
             untested.add(i)
