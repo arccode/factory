@@ -737,8 +737,11 @@ class Manager(object):
       for test_list_id, test_list in legacy_test_lists.iteritems():
         if test_list_id in self.test_lists:
           logging.warning('legacy test list "%s" is not loaded', test_list_id)
-          legacy_failed_files[test_list.source_path] = (
-              'legacy test list "%s" is not loaded' % test_list_id)
+          try:
+            raise factory.TestListError(
+                'legacy test list "%s" is not loaded' % test_list_id)
+          except Exception:
+            legacy_failed_files[test_list.source_path] = sys.exc_info()
         else:
           self.test_lists[test_list_id] = test_list
       failed_files.update(legacy_failed_files)
