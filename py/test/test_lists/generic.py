@@ -282,6 +282,8 @@ class TestListArgs(object):
   #
   #####
 
+  grt_require_run_for_finish = False
+
   # Whether to enable detailed cellular tests. These tests may not apply to all
   # boards.
   detailed_cellular_tests = False
