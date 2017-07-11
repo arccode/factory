@@ -10,10 +10,10 @@
 """Unittest for factory.py."""
 
 
-import factory_common  # pylint: disable=unused-import
-
 import os
 import unittest
+
+import factory_common  # pylint: disable=unused-import
 
 from cros.factory.test import factory
 from cros.factory.test.test_lists import test_lists
@@ -57,6 +57,18 @@ class FactoryTestListTest(unittest.TestCase):
     self.assertEqual(test.GetNextSibling(), test_list.LookupPath('G.G.b'))
     test = test_list.LookupPath('G.G.b')
     self.assertIsNone(test.GetNextSibling())
+
+  def testResolveRequireRun(self):
+    self.assertEqual(
+        'e.f', factory.FactoryTestList.ResolveRequireRun('a.b.c.d', 'e.f'))
+    self.assertEqual(
+        'a.b.c.e.f',
+        factory.FactoryTestList.ResolveRequireRun('a.b.c.d', '.e.f'))
+    self.assertEqual(
+        'a.b.e.f',
+        factory.FactoryTestList.ResolveRequireRun('a.b.c.d', '..e.f'))
+    self.assertEqual(
+        'a.e.f', factory.FactoryTestList.ResolveRequireRun('a.b.c.d', '...e.f'))
 
 
 if __name__ == '__main__':

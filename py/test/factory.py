@@ -31,6 +31,7 @@ from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import translation
 from cros.factory.utils import file_utils
+from cros.factory.utils import shelve_utils
 from cros.factory.utils import type_utils
 
 
@@ -1150,7 +1151,8 @@ class FactoryTestList(FactoryTest):
     # Resolve require_run paths to the actual test objects.
     for test in self.Walk():
       for requirement in test.require_run:
-        requirement.test = self.LookupPath(requirement.path)
+        requirement.test = self.LookupPath(
+            self.ResolveRequireRun(test.path, requirement.path))
         if not requirement.test:
           raise TestListError(
               "Unknown test %s in %s's require_run argument (note "
@@ -1158,6 +1160,30 @@ class FactoryTestList(FactoryTest):
               % (requirement.path, test.path))
 
     self._check()
+
+  @staticmethod
+  def ResolveRequireRun(test_path, requirement_path):
+    """Resolve the test path for a requirement in require_run.
+
+    If the path for the requirement starts with ".", then it will be
+    interpreted as relative path to parent of test similar to Python's relative
+    import syntax.
+
+    For example:
+
+     test_path | requirement_path | returned path
+    -----------+------------------+---------------
+     a.b.c.d   | e.f              | e.f
+     a.b.c.d   | .e.f             | a.b.c.e.f
+     a.b.c.d   | ..e.f            | a.b.e.f
+     a.b.c.d   | ...e.f           | a.e.f
+    """
+    if requirement_path.startswith('.'):
+      while requirement_path.startswith('.'):
+        test_path = shelve_utils.DictKey.GetParent(test_path)
+        requirement_path = requirement_path[1:]
+      requirement_path = shelve_utils.DictKey.Join(test_path, requirement_path)
+    return requirement_path
 
   def GetAllTests(self):
     """Returns all FactoryTest objects."""
