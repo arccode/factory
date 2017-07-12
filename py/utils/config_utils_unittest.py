@@ -13,12 +13,51 @@ from cros.factory.utils import config_utils
 
 class ConfigUtilsUnitTest(unittest.TestCase):
 
-  def testOverrideConfig(self):
-    val = {'a': {'b': 1, 'c': 2}}
-    val_override = {'a': {'c': 3}}
-    val_expected = {'a': {'b': 1, 'c': 3}}
+  def assertOverrideConfigEqual(self, val, val_override, val_expected):
     config_utils.OverrideConfig(val, val_override)
     self.assertEqual(val_expected, val)
+
+  def testOverrideConfig(self):
+    self.assertOverrideConfigEqual(
+        {'a': {'b': 1, 'c': 2}},
+        {'a': {'c': 3}},
+        {'a': {'b': 1, 'c': 3}})
+
+  def testOverrideConfigReplace(self):
+    self.assertOverrideConfigEqual(
+        {'a': {'b': 1, 'c': 2}},
+        {'a': {'__replace__': True, 'c': 3}},
+        {'a': {'c': 3}})
+    self.assertOverrideConfigEqual(
+        {'a': 1},
+        {'a': {'__replace__': True, 'c': 3}},
+        {'a': {'c': 3}})
+    self.assertOverrideConfigEqual(
+        {'a': {'b': 1, 'c': 2}},
+        {'b': {'__replace__': True, 'c': 3}},
+        {'a': {'b': 1, 'c': 2}, 'b': {'c': 3}})
+    self.assertOverrideConfigEqual(
+        {'a': {'b': 1, 'c': 2}},
+        {'a': {'__replace__': True, 'c': {'__replace__': True, 'd': 3}}},
+        {'a': {'c': {'d': 3}}})
+
+  def testOverrideConfigDelete(self):
+    self.assertOverrideConfigEqual(
+        {'a': {'b': 1, 'c': 2}},
+        {'a': {'__delete__': True}},
+        {})
+    self.assertOverrideConfigEqual(
+        {'a': {'b': 1, 'c': 2}},
+        {'a': {'__delete__': True, 'd': 3}},
+        {})
+    self.assertOverrideConfigEqual(
+        {'a': {'b': 1, 'c': 2}},
+        {'a': {'c': {'__delete__': True}, 'd': 3}},
+        {'a': {'b': 1, 'd': 3}})
+    self.assertOverrideConfigEqual(
+        {'a': {'b': 1, 'c': 2}},
+        {'a': {'d': {'__delete__': True}}},
+        {'a': {'b': 1, 'c': 2}})
 
   def testMappingToNamedTuple(self):
     val = {'a': {'b': 1, 'c': 2}}

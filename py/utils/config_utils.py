@@ -79,6 +79,13 @@ _CACHED_CONFIG_UTILS_CONFIG = None
 # Dummy cache for loop dependency detection.
 _DUMMY_CACHE = object()
 
+# Special key to delete a value when overriding config.
+_OVERRIDE_DELETE_KEY = '__delete__'
+
+# Special key to replace a dict value completely without merging with base when
+# overriding config.
+_OVERRIDE_REPLACE_KEY = '__replace__'
+
 
 def _DummyLogger(*unused_arg, **unused_kargs):
   """A dummy log function."""
@@ -97,7 +104,12 @@ def OverrideConfig(base, overrides):
   """
   for k, v in overrides.iteritems():
     if isinstance(v, collections.Mapping):
-      base[k] = OverrideConfig(base.get(k, {}), v)
+      if v.pop(_OVERRIDE_DELETE_KEY, False):
+        base.pop(k, None)
+      elif v.pop(_OVERRIDE_REPLACE_KEY, False):
+        base[k] = OverrideConfig({}, v)
+      else:
+        base[k] = OverrideConfig(base.get(k, {}), v)
     else:
       base[k] = overrides[k]
   return base
