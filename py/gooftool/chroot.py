@@ -99,7 +99,7 @@ class TmpChroot(object):
         sysconfig.get_python_lib(standard_lib=True),
         sysconfig.get_python_inc()]
     files_dirs = filter(os.path.exists, files_dirs)
-    process_utils.Spawn(('tar -c %s | '
+    process_utils.Spawn(('tar -h -c %s | '
                          'tar -C %s -x --skip-old-files' %
                          (' '.join(files_dirs), self.new_root)),
                         shell=True, call=True, log=True)
