@@ -30,6 +30,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import goofy_proxy
 from cros.factory.test.env import paths
 from cros.factory.test import factory
+from cros.factory.utils import config_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import shelve_utils
 from cros.factory.utils import sync_utils
@@ -63,6 +64,43 @@ def clear_state(state_file_dir=DEFAULT_FACTORY_STATE_FILE_DIR):
   logging.warn('Clearing state file path %s', state_file_dir)
   if os.path.exists(state_file_dir):
     shutil.rmtree(state_file_dir)
+
+
+class FactoryStateLayer(object):
+  """Contains two DictShelfView 'tests_shelf' and 'data_shelf'."""
+  def __init__(self, state_dir=None):
+    """Constructor
+
+    Args:
+      state_dir: Where the shelves should be save to.  If this is None, shelves
+        will be in memory shelf.
+    """
+    if state_dir:
+      file_utils.TryMakeDirs(state_dir)
+      self._tests_shelf = shelve_utils.DictShelfView(
+          shelve_utils.OpenShelfOrBackup(os.path.join(state_dir, 'tests')))
+      self._data_shelf = shelve_utils.DictShelfView(
+          shelve_utils.OpenShelfOrBackup(os.path.join(state_dir, 'data')))
+    else:
+      self._tests_shelf = shelve_utils.DictShelfView(
+          shelve_utils.InMemoryShelf())
+      self._data_shelf = shelve_utils.DictShelfView(
+          shelve_utils.InMemoryShelf())
+
+  @property
+  def tests_shelf(self):
+    return self._tests_shelf
+
+  @property
+  def data_shelf(self):
+    return self._data_shelf
+
+  def Close(self):
+    for shelf in [self._tests_shelf, self._data_shelf]:
+      try:
+        shelf.Close()
+      except Exception:
+        logging.exception('Unable to close shelf')
 
 
 # TODO(shunhsingou): move goofy or dut related functions to goofy_rpc so we can
@@ -100,11 +138,9 @@ class FactoryState(object):
       state_file_dir:  External file to store the state information.
     """
     state_file_dir = state_file_dir or DEFAULT_FACTORY_STATE_FILE_DIR
-    file_utils.TryMakeDirs(state_file_dir)
-    self._tests_shelf = shelve_utils.DictShelfView(
-        shelve_utils.OpenShelfOrBackup(state_file_dir + '/tests'))
-    self._data_shelf = shelve_utils.DictShelfView(
-        shelve_utils.OpenShelfOrBackup(state_file_dir + '/data'))
+
+    self.layers = [FactoryStateLayer(state_file_dir)]
+
     self._lock = threading.RLock()
 
     if factory.TestState not in jsonclass.supported_types:
@@ -113,12 +149,8 @@ class FactoryState(object):
   @sync_utils.Synchronized
   def close(self):
     """Shuts down the state instance."""
-    for shelf in [self._tests_shelf,
-                  self._data_shelf]:
-      try:
-        shelf.Close()
-      except Exception:
-        logging.exception('Unable to close shelf')
+    for layer in self.layers:
+      layer.Close()
 
   def _convert_test_path_to_key(self, path):
     return shelve_utils.DictKey.Join(path, self._TEST_STATE_POSTFIX)
@@ -145,20 +177,21 @@ class FactoryState(object):
       state was just changed.
     """
     key = self._convert_test_path_to_key(path)
-    state = self._tests_shelf.GetValue(key, optional=True)
-    old_state_repr = repr(state)
-    changed = False
+    for layer in self.layers:
+      state = layer.tests_shelf.GetValue(key, optional=True)
+      old_state_repr = repr(state)
+      changed = False
 
-    if not state:
-      changed = True
-      state = factory.TestState()
+      if not state:
+        changed = True
+        state = factory.TestState()
 
-    changed = changed | state.update(**kw)  # Don't short-circuit
+      changed = changed | state.update(**kw)  # Don't short-circuit
 
-    if changed:
-      logging.debug('Updating test state for %s: %s -> %s',
-                    path, old_state_repr, state)
-      self._tests_shelf.SetValue(key, state)
+      if changed:
+        logging.debug('Updating test state for %s: %s -> %s',
+                      path, old_state_repr, state)
+        layer.tests_shelf.SetValue(key, state)
 
     return state, changed
 
@@ -166,31 +199,39 @@ class FactoryState(object):
   def get_test_state(self, path):
     """Returns the state of a test."""
     key = self._convert_test_path_to_key(path)
-    return self._tests_shelf.GetValue(key)
+    # when accessing, we need to go from top layer to bottom layer
+    for layer in reversed(self.layers):
+      try:
+        return layer.tests_shelf.GetValue(key)
+      except KeyError:
+        pass
+    raise KeyError(key)
 
   @sync_utils.Synchronized
   def get_test_paths(self):
     """Returns a list of all tests' paths."""
     # GetKeys() only returns keys that are mapped to a value, therefore, all
     # keys returned should end with `self._TEST_STATE_POSTFIX`.
-    keys = self._tests_shelf.GetKeys()
+    keys = set()
+    for layer in self.layers:
+      keys |= set(layer.tests_shelf.GetKeys())
     return [self._convert_key_to_test_path(key) for key in keys]
 
   @sync_utils.Synchronized
   def get_test_states(self):
     """Returns a map of each test's path to its state."""
-    return {path: self.get_test_state(path)
-            for path in self.get_test_paths()}
+    return {path: self.get_test_state(path) for path in self.get_test_paths()}
 
   @sync_utils.Synchronized
   def clear_test_state(self):
     """Clears all test state."""
-    self._tests_shelf.Clear()
+    for layer in self.layers:
+      layer.tests_shelf.Clear()
 
   @sync_utils.Synchronized
   def set_shared_data(self, key, value):
     """Sets shared data item."""
-    self._data_shelf.SetValue(key, value)
+    self.data_shelf_set_value(key, value)
 
   @sync_utils.Synchronized
   def get_shared_data(self, key, optional=False):
@@ -200,12 +241,12 @@ class FactoryState(object):
       key: The key whose value to retrieve.
       optional: True to return None if not found; False to raise a KeyError.
     """
-    return self._data_shelf.GetValue(key, optional)
+    return self.data_shelf_get_value(key, optional)
 
   @sync_utils.Synchronized
   def has_shared_data(self, key):
     """Returns if a shared data item exists."""
-    return self._data_shelf.HasKey(key)
+    return self.data_shelf_has_key(key)
 
   @sync_utils.Synchronized
   def del_shared_data(self, key, optional=False):
@@ -215,7 +256,7 @@ class FactoryState(object):
       key: The key whose value to delete.
       optional: False to raise a KeyError if not found.
     """
-    self._data_shelf.DeleteKeys([key], optional)
+    self.data_shelf_delete_keys([key], optional)
 
   @sync_utils.Synchronized
   def update_shared_data_dict(self, key, new_data):
@@ -238,7 +279,7 @@ class FactoryState(object):
       The updated value.
     """
     self.data_shelf_update_value(key, new_data)
-    return self._data_shelf.GetValue(key, True) or {}
+    return self.data_shelf_get_value(key, True) or {}
 
   @sync_utils.Synchronized
   def delete_shared_data_dict_item(self, shared_data_key,
@@ -271,7 +312,7 @@ class FactoryState(object):
         [shelve_utils.DictKey.Join(shared_data_key, key)
          for key in delete_keys],
         optional)
-    return self._data_shelf.GetValue(shared_data_key, True) or {}
+    return self.data_shelf_get_value(shared_data_key, True) or {}
 
   @sync_utils.Synchronized
   def append_shared_data_list(self, key, new_item):
@@ -293,9 +334,9 @@ class FactoryState(object):
     Returns:
       The updated value.
     """
-    data = self.get_shared_data(key, optional=True) or []
+    data = self.data_shelf_get_value(key, optional=True) or []
     data.append(new_item)
-    self.set_shared_data(key, data)
+    self.data_shelf_set_value(key, data)
     return data
 
   #############################################################################
@@ -303,31 +344,92 @@ class FactoryState(object):
   # In the future, *_shared_data APIs might be deprecated, users shall use
   # `state_proxy.data_shelf.{GetValue, SetValue, GetKeys, ...}`, which use the
   # following functions.
+  #
+  # If there are multiple layers, only the last layer (self.layers[-1]) is
+  # writable, 'set', 'update', 'delete' operations are only applied to the last
+  # layer.
+  #
+  # For 'get' operation, all layers will be queried, and use
+  # `config_utils.OverrideConfig` to merge each layers.  For a given key, if it
+  # is mapped to different types in different layers, then the value will be
+  # replaced without any warning or exception.  This might be confusing when it
+  # is mapped to a dictionary in one of the layer, for example:
+  #
+  #   layers[1].data_shelf: { 'a': '456' }
+  #   layers[0].data_shelf: { 'a': { 'b': '123' }}
+  #
+  #   data_shelf_get_value('a')  => '456'
+  #   # since we will try to find 'a.b' in all layers, so 'a.b' is still valid.
+  #   data_shelf_get_value('a.b') => '123'
+  #
+  # This should be okay since values in data_shelf should not change types.  If
+  # it is a dict, it should always be a dict.
   #############################################################################
   @sync_utils.Synchronized
   def data_shelf_set_value(self, key, value):
-    self._data_shelf.SetValue(key, value)
-
-  @sync_utils.Synchronized
-  def data_shelf_get_value(self, key, optional=False):
-    return self._data_shelf.GetValue(key, optional)
+    """Set key to value on top layer."""
+    self.layers[-1].data_shelf.SetValue(key, value)
 
   @sync_utils.Synchronized
   def data_shelf_update_value(self, key, value):
-    self._data_shelf.UpdateValue(key, value)
-
-  @sync_utils.Synchronized
-  def data_shelf_has_key(self, key):
-    return self._data_shelf.HasKey(key)
+    """Update key by value on top layer."""
+    self.layers[-1].data_shelf.UpdateValue(key, value)
 
   @sync_utils.Synchronized
   def data_shelf_delete_keys(self, keys, optional=False):
-    self._data_shelf.DeleteKeys(keys, optional)
+    """Delete data with keys on top layer."""
+    self.layers[-1].data_shelf.DeleteKeys(keys, optional=optional)
+
+  @sync_utils.Synchronized
+  def data_shelf_has_key(self, key):
+    """Returns True if any layer contains the key."""
+    return any(layer.data_shelf.HasKey(key) for layer in self.layers)
+
+  @sync_utils.Synchronized
+  def data_shelf_get_value(self, key, optional=False):
+    """Get the merged value of given key.
+
+    All layers will be read, and the values are merged by
+    `config_utils.OverrideConfig`.  Therefore, if a key is mapped to different
+    types in different layer, the behavior might seem strange.  For example::
+
+        layers[0].data_shelf: { 'a': { 'b': '123' }}
+        layers[1].data_shelf: { 'a': '456' }
+
+        data_shelf_get_value('a')  => '456'
+        data_shelf_get_value('a.b') => '123'
+
+    Returns:
+      A merged value, can be any JSON supported types.
+    """
+    DUMMY_KEY = 'result'
+    value = {}
+
+    for layer in self.layers:
+      try:
+        v = layer.data_shelf.GetValue(key, optional=False)
+        value = config_utils.OverrideConfig(value, {DUMMY_KEY: v})
+      except KeyError:
+        pass
+    if value:
+      return value[DUMMY_KEY]
+    if optional:
+      return None
+    raise KeyError(key)
 
   @sync_utils.Synchronized
   def data_shelf_get_children(self, key):
-    # Make sure we are returning a list
-    return list(self._data_shelf.GetChildren(key))
+    """Returns children of given path (key)."""
+    if not self.data_shelf_has_key(key):
+      raise KeyError(key)
+
+    ret = set()
+    for layer in self.layers:
+      try:
+        ret |= set(layer.data_shelf.GetChildren(key))
+      except KeyError:
+        pass
+    return list(ret)
 
 
 class DataShelfSelector(object):
@@ -441,10 +543,20 @@ def del_shared_data(key):
   return get_instance().del_shared_data(key)
 
 
+class StubFactoryStateLayer(FactoryStateLayer):
+  """Stub FactoryStateLayer for unittest."""
+  def __init__(self, state_dir=None):
+    del state_dir  # unused
+    # always create in memory shelf
+    self._tests_shelf = shelve_utils.DictShelfView(
+        shelve_utils.InMemoryShelf())
+    self._data_shelf = shelve_utils.DictShelfView(
+        shelve_utils.InMemoryShelf())
+
+
 class StubFactoryState(FactoryState):
   def __init__(self):  # pylint: disable=super-init-not-called
-    self._tests_shelf = shelve_utils.DictShelfView(shelve_utils.InMemoryShelf())
-    self._data_shelf = shelve_utils.DictShelfView(shelve_utils.InMemoryShelf())
+    self.layers = [StubFactoryStateLayer()]
 
     self._lock = threading.RLock()
     self.data_shelf = DataShelfSelector(self)
