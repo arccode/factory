@@ -37,6 +37,8 @@ STATEFUL_PARTITION_PATH = '/mnt/stateful_partition/'
 
 WIPE_MARK_FILE = 'wipe_mark_file'
 
+CRX_CACHE_PAYLOAD_NAME = 'cros_payloads/release_image.crx_cache'
+CRX_CACHE_TAR_PATH = '/tmp/crx_cache.tar'
 
 class WipeError(StandardError):
   """Failed to complete wiping."""
@@ -268,6 +270,7 @@ def _StopAllUpstartJobs(exclude_list=None):
     service_list = process_utils.SpawnOutput(['initctl', 'list']).splitlines()
     service_list = [
         line.split()[0] for line in service_list if 'start/running' in line]
+    logging.info('Going to stop: services: %r', service_list)
     for service in service_list:
       if service in exclude_list or service.startswith('console-'):
         continue
@@ -275,16 +278,22 @@ def _StopAllUpstartJobs(exclude_list=None):
 
 
 def _UnmountStatefulPartition(root, state_dev):
-  logging.debug('unmount stateful partition')
-  # mount points that need chromeos_shutdown to umount
+  logging.debug('Unmount stateful partition.')
 
-  # touch a mark file so we can check if the stateful partition is wiped
-  # successfullly.
-  file_utils.WriteFile(
-      os.path.join(root, STATEFUL_PARTITION_PATH.strip(os.path.sep),
-                   WIPE_MARK_FILE), '')
+  # Expected stateful partition mount point.
+  state_dir = os.path.join(root, STATEFUL_PARTITION_PATH.strip(os.path.sep))
 
-  # 1. find mount points on stateful partition
+  # Touch a mark file so we can check if the stateful partition is wiped
+  # successfully.
+  file_utils.WriteFile(os.path.join(state_dir, WIPE_MARK_FILE), '')
+
+  # Backup extension cache (crx_cache) if available (will be restored after
+  # wiping by clobber-state).
+  crx_cache_path = os.path.join(state_dir, CRX_CACHE_PAYLOAD_NAME)
+  if os.path.exists(crx_cache_path):
+    shutil.copyfile(crx_cache_path, CRX_CACHE_TAR_PATH)
+
+  # Find mount points on stateful partition.
   mount_output = process_utils.SpawnOutput(['mount'], log=True)
 
   mount_point_list = []
@@ -292,9 +301,7 @@ def _UnmountStatefulPartition(root, state_dev):
     fields = line.split()
     if fields[0] == state_dev:
       mount_point_list.append(fields[2])
-
   logging.debug('stateful partitions mounted on: %s', mount_point_list)
-  # 2. find processes that are using stateful partitions
 
   def _ListProcOpening(path_list):
     lsof_cmd = ['lsof', '-t'] + path_list
@@ -308,6 +315,7 @@ def _UnmountStatefulPartition(root, state_dev):
     return [int(line)
             for line in process_utils.SpawnOutput(list_cmd).splitlines()]
 
+  # Find processes that are using stateful partitions.
   proc_list = _ListProcOpening(mount_point_list)
 
   if os.getpid() in proc_list:
@@ -328,6 +336,7 @@ def _UnmountStatefulPartition(root, state_dev):
         logging.exception('killing process %d failed', pid)
     return False  # need to check again
 
+  # Try to kill processes using stateful partition gracefully.
   sync_utils.Retry(10, 0.1, None, _KillOpeningBySignal, signal.SIGTERM)
   sync_utils.Retry(10, 0.1, None, _KillOpeningBySignal, signal.SIGKILL)
 
@@ -363,6 +372,7 @@ def _UnmountStatefulPartition(root, state_dev):
                          '--noudevrules', '--noudevsync'], check_call=True)
     process_utils.Spawn(['losetup', '-D'], check_call=True)
 
+  # Try to unmount all known mount points.
   for mount_point in mount_point_list:
     _Unmount(mount_point, True)
   process_utils.Spawn(['sync'], call=True)
@@ -423,21 +433,31 @@ def _WipeStateDev(release_rootfs, root_disk, wipe_args, state_dev):
   process_utils.Spawn(
       ['clobber-state', wipe_args], env=clobber_state_env, check_call=True)
 
+  logging.info('Checking if stateful partition is mounted...')
   # Check if the stateful partition is wiped.
   if not _IsStateDevMounted(state_dev):
     process_utils.Spawn(['mount', state_dev, STATEFUL_PARTITION_PATH],
-                        check_call=True)
+                        check_call=True, log=True)
 
+  logging.info('Checking wipe mark file %s...', WIPE_MARK_FILE)
   if os.path.exists(
       os.path.join(STATEFUL_PARTITION_PATH, WIPE_MARK_FILE)):
     raise WipeError(WIPE_MARK_FILE + ' still exists')
-  # Check done, stateful partition should be wiped successfully.
+
+  # Restore CRX cache.
+  logging.info('Checking CRX cache %s...', CRX_CACHE_TAR_PATH)
+  if os.path.exists(CRX_CACHE_TAR_PATH):
+    process_utils.Spawn(['tar', '-xpvf', CRX_CACHE_TAR_PATH, '-C',
+                         STATEFUL_PARTITION_PATH], check_call=True, log=True)
 
   # Remove developer flag, which is created by clobber-state after wiping.
   try:
+    # TODO(hungte) Unlink or create developer flag according to gooftool
+    # execution results.
     os.unlink(os.path.join(STATEFUL_PARTITION_PATH, '.developer_mode'))
   except OSError:
     pass
+
   process_utils.Spawn(['umount', STATEFUL_PARTITION_PATH], call=True)
   # Make sure that everything is synced.
   process_utils.Spawn(['sync'], call=True)
@@ -522,6 +542,7 @@ def WipeInit(wipe_args, shopfloor_url, state_dev, release_rootfs,
     _Cutoff()
 
     # should not reach here
+    logging.info('Going to sleep forever!')
     time.sleep(1e8)
   except Exception:
     logging.exception('wipe_init failed')
