@@ -88,6 +88,9 @@ _CSS = """
 }
 """
 
+class WaitForUpdate(Exception):
+  pass
+
 
 class SyncShopfloor(unittest.TestCase):
   ARGS = [
@@ -131,6 +134,7 @@ class SyncShopfloor(unittest.TestCase):
 
       # Note that updateFactory() will kill this test.
       ui.BindKeyJS(test_ui.SPACE_KEY, 'window.test.updateFactory()')
+    raise WaitForUpdate
 
   def runTest(self):
     ui = test_ui.UI()
@@ -184,6 +188,8 @@ class SyncShopfloor(unittest.TestCase):
                 '{label}</span>', label=label))
             time.sleep(0.5)
             break
+          except WaitForUpdate:
+            return
           except shopfloor.Fault as f:
             exception_string = f.faultString
             logging.error('Server fault with message: %s', f.faultString)
