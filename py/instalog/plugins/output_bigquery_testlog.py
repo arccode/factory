@@ -59,6 +59,7 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
         {'name': 'testRunId', 'type': 'STRING'},  # also in station.test_run
 
         # station.test_run
+        {'name': 'testName', 'type': 'STRING'},
         {'name': 'testType', 'type': 'STRING'},
         {'name': 'arguments', 'type': 'RECORD', 'mode': 'REPEATED',
          'fields': [
@@ -161,6 +162,7 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
     row['testRunId'] = event.get('testRunId')  # also in station.test_run
 
     # station.test_run
+    row['testName'] = event.get('testName')
     row['testType'] = event.get('testType')
 
     row['arguments'] = []
