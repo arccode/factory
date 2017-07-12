@@ -474,7 +474,27 @@ add_image_part() {
     dd if="${file}" bs="${bs}" skip="${start}" count="${count}" 2>/dev/null \
       | do_compress "${CROS_PAYLOAD_FORMAT}" | tee "${tmp_file}" | md5sum -b)"
 
-  if [ "${nr}" = 3 ]; then
+
+  if [ "${nr}" = 1 ]; then
+    # Try to archive 'unencrypted' folder which contains CRX cache.
+    local stateful_dir="$(mktemp -d)"
+    local crx_cache_dir="unencrypted/import_extensions"
+    register_tmp_object "${stateful_dir}"
+    if ${SUDO} mount "${file}" "${stateful_dir}" -o \
+      ro,offset=$((start * bs)),sizelimit=$((count * bs)); then
+      if [ -d "${stateful_dir}/${crx_cache_dir}" ]; then
+        local crx_cache_file="$(mktemp -p "${output_dir}" \
+          tmp_XXXXXX."${CROS_PAYLOAD_FORMAT}")"
+        register_tmp_object "${crx_cache_file}"
+        local crx_cache_md5="$(tar -cC "${stateful_dir}" "${crx_cache_dir}" | \
+          do_compress "${CROS_PAYLOAD_FORMAT}" | tee "${crx_cache_file}" | \
+          md5sum -b)"
+        commit_payload "${component}" "crx_cache" "${crx_cache_md5%% *}" \
+          "${crx_cache_file}" "${output_dir}" "${version}"
+      fi
+      ${SUDO} umount "${stateful_dir}"
+    fi
+  elif [ "${nr}" = 3 ]; then
     # Read version from /etc/lsb-release#CHROMEOS_RELEASE_DESCRIPTION
     local rootfs_dir="$(mktemp -d)"
     register_tmp_object "${rootfs_dir}"
@@ -825,11 +845,11 @@ install_components() {
             "${json_file}" "${component}.part${from}"
         done
         ;;
-      test_image.part* | release_image.part*)
+      *_image.part*)
         install_payload "partition" "${json_url}" \
           "${dest}" "${json_file}" "${component}"
         ;;
-      toolkit | hwid | firmware | complete)
+      toolkit | hwid | firmware | complete | *_image.*)
         install_payload "file" "${json_url}" \
           "${dest}" "${json_file}" "${component}"
         ;;
