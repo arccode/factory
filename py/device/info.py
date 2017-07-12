@@ -157,7 +157,7 @@ class SystemInfo(component.DeviceComponent):
     # TODO(hungte) Umpire thinks this should be SMT, FATP, etc. Goofy monitor
     # simply displays this. We should figure out different terms for both and
     # find out the right way to print this value.
-    return phase.GetPhase()
+    return str(phase.GetPhase())
 
   @InfoProperty
   def factory_image_version(self):
