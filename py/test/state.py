@@ -19,6 +19,7 @@ The `state` provides two different data set using shelve_utils.DictShelfView:
 
 from __future__ import print_function
 
+import cPickle as pickle
 import logging
 import os
 import shutil
@@ -53,6 +54,10 @@ _DEFAULT_NOT_SET = object()
 # Key for device data.  This is a dictionary of accumulated data usually from
 # shopfloor calls with information about the configuration of the device.
 KEY_DEVICE_DATA = 'device'
+
+
+class FactoryStateLayerException(Exception):
+  """Exception about FactoryStateLayer."""
 
 
 def clear_state(state_file_dir=DEFAULT_FACTORY_STATE_FILE_DIR):
@@ -101,6 +106,21 @@ class FactoryStateLayer(object):
         shelf.Close()
       except Exception:
         logging.exception('Unable to close shelf')
+
+  def loads(self, serialized_data):
+    o = pickle.loads(serialized_data)
+    if 'tests' in o:
+      self.tests_shelf.SetValue('', o['tests'])
+    if 'data' in o:
+      self.data_shelf.SetValue('', o['data'])
+
+  def dumps(self, include_data, include_tests):
+    o = {}
+    if include_tests:
+      o['tests'] = self.tests_shelf.GetValue('', {})
+    if include_data:
+      o['data'] = self.data_shelf.GetValue('', {})
+    return pickle.dumps(o)
 
 
 # TODO(shunhsingou): move goofy or dut related functions to goofy_rpc so we can
@@ -430,6 +450,45 @@ class FactoryState(object):
       except KeyError:
         pass
     return list(ret)
+
+  #############################################################################
+  # The following functions are exposed for layer APIs
+  #############################################################################
+  # Max number of layers allowed, including base layer.
+  _MAX_LAYER_NUM = 2
+
+  @sync_utils.Synchronized
+  def AppendLayer(self, serialized_data=None):
+    if len(self.layers) == self._MAX_LAYER_NUM:
+      raise FactoryStateLayerException('Max # layers reached')
+
+    self.layers.append(FactoryStateLayer(None))
+    if serialized_data:
+      self.layers[-1].loads(serialized_data)
+
+  @sync_utils.Synchronized
+  def PopLayer(self):
+    if len(self.layers) == 1:
+      raise FactoryStateLayerException('Cannot pop last layer')
+    self.layers.pop()
+
+  @sync_utils.Synchronized
+  def SerializeLayer(self, layer_index, include_data=True, include_tests=True):
+    layer = self.layers[layer_index]
+    return layer.dumps(include_data, include_tests)
+
+  @sync_utils.Synchronized
+  def MergeLayer(self, layer_index):
+    if layer_index <= 0:
+      raise IndexError('layer_index <= 0')
+    if layer_index >= len(self.layers):
+      raise IndexError('layer_index out of range')
+
+    self.layers[layer_index - 1].tests_shelf.UpdateValue(
+        '', self.layers[layer_index].test_shelf.GetValue(''))
+    self.layers[layer_index - 1].data_shelf.UpdateValue(
+        '', self.layers[layer_index].data_shelf.GetValue(''))
+    self.layers.pop()
 
 
 class DataShelfSelector(object):

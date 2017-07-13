@@ -9,6 +9,7 @@ import tempfile
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test import factory
 from cros.factory.test import state
 
 
@@ -115,6 +116,46 @@ class FactoryStateTest(unittest.TestCase):
     self.state.append_shared_data_list('data', 3)
 
     self.assertEqual([1, 2, 3], self.state.get_shared_data('data'))
+
+  def testLayers(self):
+    self.state.data_shelf_set_value('data', {'a': 0, 'b': 2})
+    self.assertEqual({'a': 0, 'b': 2},
+                     self.state.data_shelf_get_value('data'))
+
+    self.state.AppendLayer()
+    self.assertEqual({'a': 0, 'b': 2},
+                     self.state.data_shelf_get_value('data'))
+
+    self.state.data_shelf_set_value('data.c', 5)
+    self.assertEqual({'a': 0, 'b': 2, 'c': 5},
+                     self.state.data_shelf_get_value('data'))
+
+    with self.assertRaises(state.FactoryStateLayerException):
+      self.state.AppendLayer()
+
+    self.state.PopLayer()
+    self.assertEqual({'a': 0, 'b': 2},
+                     self.state.data_shelf_get_value('data'))
+
+    with self.assertRaises(state.FactoryStateLayerException):
+      self.state.PopLayer()
+
+  def testSerializeLayer(self):
+    layer = state.FactoryStateLayer()
+
+    tests = {'tests': factory.TestState()}
+    data = {'data': {'a': 1, 'b': 2}}
+    layer.tests_shelf.SetValue('', tests)
+    layer.data_shelf.SetValue('', data)
+
+    serialized_data = layer.dumps(True, True)
+    self.assertTrue(isinstance(serialized_data, basestring))
+
+    layer = state.FactoryStateLayer()
+    layer.loads(serialized_data)
+
+    self.assertEqual(data, layer.data_shelf.GetValue(''))
+    self.assertEqual(tests, layer.tests_shelf.GetValue(''))
 
 
 if __name__ == '__main__':

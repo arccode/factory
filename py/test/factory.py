@@ -442,6 +442,10 @@ class TestState(object):
       assert isinstance(obj, TestState), type(obj)
       return obj
 
+  def __eq__(self, other):
+    return all(getattr(self, attr) == getattr(other, attr)
+               for attr in self.__dict__)
+
 
 def overall_status(statuses):
   """Returns the "overall status" given a list of statuses.
