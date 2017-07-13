@@ -404,7 +404,8 @@ def RunIn(args, group_suffix=''):
       OperatorTest(
           label=_('Graphics'),
           pytest_name='webgl_aquarium',
-          dargs=dict(duration_secs=args.run_in_stress_duration_secs))
+          dargs=dict(duration_secs=args.run_in_stress_duration_secs,
+                     full_screen=True))
 
       # Runs camera in parallel with other stress tests so it is easier
       # to trigger other possible hardware/software error.

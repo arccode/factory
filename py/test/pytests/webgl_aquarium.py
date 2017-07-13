@@ -17,21 +17,50 @@ from cros.factory.utils import process_utils
 
 
 _HTML_WEBGL_AQUARIUM = (
+    '<link rel="stylesheet" type="text/css" href="goofy_webgl_aquarium.css">'
     '<iframe src="/tests/{0}/aquarium.html", width="100%", height="100%"'
     ' id="webgl-aquarium"></iframe>')
 
 _JS_WEBGL_AQUARIUM = """
+var cls_fullscreen = 'goofy-aquarium-full-screen';
+
+function getWebGlFrame() {
+  return document.getElementById('webgl-aquarium');
+}
+
 function hideOptions() {
-  var webgl_iframe = document.getElementById('webgl-aquarium');
-  var top_ui = webgl_iframe.contentDocument.getElementById('topUI');
+  var top_ui = getWebGlFrame().contentDocument.getElementById('topUI');
   if (!top_ui) {
     return 0;
   }
   top_ui.style.display = 'none';
 }
 
+function enableFullScreen() {
+  window.test.setFullScreen(true);
+  getWebGlFrame().classList.add(cls_fullscreen);
+}
+
+function disableFullScreen() {
+  getWebGlFrame().classList.remove(cls_fullscreen);
+  window.test.setFullScreen(false);
+}
+
+function toggleFullScreen() {
+  var webgl_iframe = getWebGlFrame();
+  var toggle_btn = webgl_iframe.contentDocument
+    .getElementById('fullscreen_toggle');
+
+  if (webgl_iframe.classList.contains(cls_fullscreen)) {
+    disableFullScreen();
+  }
+  else {
+    enableFullScreen();
+  }
+}
+
 function updateUI(time_left, hide_options) {
-  var webgl_iframe = document.getElementById('webgl-aquarium');
+  var webgl_iframe = getWebGlFrame();
   var timer_span = webgl_iframe.contentDocument.getElementById('timer');
 
   if (!timer_span) {
@@ -45,18 +74,27 @@ function updateUI(time_left, hide_options) {
       hideOptions();
     }
 
-    timer_span = document.createElement('span');
-    timer_span.id = 'timer';
+    var fullscreen_btn = document.createElement('button');
+    fullscreen_btn.id = 'fullscreen_toggle';
+    fullscreen_btn.style.fontSize = '1.5em';
+    fullscreen_btn.innerHTML = "Toggle Full Screen";
+    fullscreen_btn.onclick = toggleFullScreen;
 
     var timer_div = document.createElement('div');
     timer_div.style.color = 'white';
     timer_div.style.fontSize = '2em';
     timer_div.innerHTML = 'Time left: ';
+    timer_span = document.createElement('span');
+    timer_span.id = 'timer';
     timer_div.appendChild(timer_span);
+
+    var goofy_addon = document.createElement('div');
+    goofy_addon.appendChild(fullscreen_btn)
+    goofy_addon.appendChild(timer_div)
 
     // First child is the fps.
     fps_container.childNodes[1].style.fontSize = '2em';
-    fps_container.insertBefore(timer_div, fps_container.childNodes[1]);
+    fps_container.insertBefore(goofy_addon, fps_container.childNodes[1]);
   }
 
   timer_span.innerHTML = time_left;
@@ -82,7 +120,9 @@ class WebglAquarium(unittest.TestCase):
       Arg('duration_secs', int, 'Duration of time in seconds to run the test',
           default=60),
       Arg('hide_options', bool, 'Whether to hide the options on UI',
-          default=True)
+          default=True),
+      Arg('full_screen', bool, 'Whether to go full screen mode by default',
+          default=False)
   ]
 
   def setUp(self):
@@ -92,6 +132,9 @@ class WebglAquarium(unittest.TestCase):
     self.ui.RunJS(_JS_WEBGL_AQUARIUM)
     self.end_time = time.time() + self.args.duration_secs
     process_utils.StartDaemonThread(target=self.PeriodicCheck)
+
+    if self.args.full_screen:
+      self.ui.RunJS('enableFullScreen();')
 
   def FormatSeconds(self, secs):
     hours = int(secs / 3600)
