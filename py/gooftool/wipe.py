@@ -204,7 +204,6 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
             '/usr/share/chromeos-assets/images',
             '/usr/share/chromeos-assets/text/boot_messages',
             '/usr/share/misc/chromeos-common.sh',
-            '/usr/share/cros',
             # File required for enable ssh connection.
             '/mnt/stateful_partition/etc/ssh',
             '/root/.ssh',
