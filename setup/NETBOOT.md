@@ -73,11 +73,21 @@ sudo apt-get install dnsmasq
 In the tftp-root, create sub folder under `chrome-bot` using the board name.
 For example, `reef` board should be `/var/tftp/chrome-bot/reef/`.
 
-Copy the netboot kernel (`factory_shim/netboot/vmlinuz` in factory.zip) into
-tftp board folder with name `vmlinuz`.  For example:
+Copy the netboot kernel into tftp board folder with name `vmlinuz`.
 
+If you are setting up with a factory zip, the netboot kernel is in path
+`factory_shim/netboot/vmlinuz`. So you have to copy it into tftp board folder
+manually. For example:
 ```
-cp factory_shim/vmlinuz /var/tftp/chrome-bot/reef/vmlinuz
+cp factory_shim/netboot/vmlinuz /var/tftp/chrome-bot/reef/vmlinuz
+```
+
+If you are setting up with a factory bundle (prepared by `finalize_bundle`
+command and is usually a `tar.bz2` archive), the tftp folder is already prepared
+in `netboot/tftp`. So you have to copy everything to your tftp root,
+or start `dnsmasq` server from there. For example:
+```
+cp -r netboot/tftp/* /var/tftp/
 ```
 
 *** note
@@ -197,8 +207,20 @@ When the device boots from vmlinuz, vmlinuz will connect to miniomaha server and
 download images from the server.  `chromeos-firmwareupdate` will be extracted
 from recovery image, which will be used to install the real firmware.
 `chromeos-firmwareupdate` will preserve the GBB flag from netboot firmware.
-Therefore, you might need to change GBB flag of netboot firmware, e.g.
+Therefore, you might need to change GBB flag of netboot firmware.
+
+If you are setting up with a factory zip, the netboot image is in path
+`factory_shim/netboot/image.net.bin`. You can change GBB flag by `gbb_utility`.
+For example,
 
 ```
-gbb_utility -s --flags 0x1239 factory/factory_shim/netboot/image.net.bin
+gbb_utility -s --flags 0x1239 factory_shim/netboot/image.net.bin
+```
+
+If you are setting up with a factory bundle, the netboot image is in path
+`netboot/image.net.bin`. You can change GBB flag by `gbb_utility`.
+For example,
+
+```
+gbb_utility -s --flags 0x1239 netboot/image.net.bin
 ```
