@@ -6,19 +6,64 @@
 
 """Test external display with optional audio playback test.
 
-Here is a test list example for USB Port 0 Check, we can prompt operator to
-insert which port by display_label in display_info::
+Description
+-----------
+Verify the external display is functional.
+
+The test is defined by a list of tuples: ``(display_label, display_id,
+audio_info, usbpd_port)``. Each tuple represents an external port:
+
+- ``display_label``: I18n display name seen by operator, e.g. ``_('VGA')``.
+- ``display_id``: (str) ID used to identify display in xrandr or modeprint,
+  e.g. VGA1.
+- ``audio_info``: A tuple of ``(audio_card, audio_device, init_actions)``,
+  or None:
+
+  - ``audio_card`` is either the card's name (str), or the card's index (int).
+  - ``audio_device`` is the device's index (int).
+  - ``init_actions`` is a list of tuple ``(card_name, action)`` (list).
+    action is a dict key defined in audio.json (ref: audio.py) to be passed
+    into dut.audio.ApplyAudioConfig.
+
+  e.g. ``[('rt5650', 'init_audio'), ('rt5650', 'enable_hdmi')]``.
+  This argument is optional. If set, the audio playback test is added.
+- ``usbpd_port``: (int) Verify the USB PD TypeC port status, or None.
+
+It can also be configured to run automatically by specifying ``bft_fixture``
+argument, and skip some steps by setting ``connect_only``,
+``start_output_only`` and ``stop_output_only``.
+
+Test Procedure
+--------------
+This test can be manual or automated depends on whether ``bft_fixture``
+is specified. The test loops through all items in ``display_info`` and:
+
+1. Plug an external monitor to the port specified in dargs.
+2. (Optional) If ``audio_info.usbpd_port`` is specified, verify usbpd port
+   status automatically.
+3. Main display will automatically switch to the external one.
+4. Press the number shown on the display to verify display works.
+5. (Optional) If ``audio_info`` is specified, the speaker will play a random
+   number, and operator has to press the number to verify audio functionality.
+6. Unplug the external monitor to finish the test.
+
+Dependency
+----------
+- Python evdev library <https://github.com/gvalkov/python-evdev>.
+- ``display`` component in device API.
+- Optional ``audio`` and ``usb_c`` components in device API.
+- Optional fixture can be used to support automated test.
+
+Examples
+--------
+A test list example for manual checking USB Port 0::
 
     OperatorTest(
-        id='ExtDisplay',
-        label=_('External Display'),
         pytest_name='ext_display',
         dargs={
             'display_info': [
-                (i18n_test_ui.MakeI18nLabel({
-                    'en-US': 'Left HDMI External Display',
-                    'zh-CN': '左边HDMI'}),
-                    'HDMI-A-1', None, 0)],
+                (_('Left HDMI External Display'),
+                 'HDMI-A-1', None, 0)]
         })
 """
 
@@ -91,29 +136,6 @@ def _GetMsgDisconnectTest(display):
 def _GetMsgPromptPassKey(key):
   return i18n_test_ui.MakeI18nLabel(
       'Press <span id="pass_key">{key}</span> to pass the test.', key=key)
-
-
-DISPLAY_INFO_ARG_HELP = """
-A list of tuples: (display_label, display_id, audio_info, usbpd_port)
-Each tuple represents an external port:
-
-  * ``display_label``: (str) display name seen by operator, e.g. VGA.
-  * ``display_id``: (str) ID used to identify display in xrandr or modeprint,
-    e.g. VGA1.
-
-  * ``audio_info``: a tuple of (audio_card, audio_device, init_actions)
-
-    * ``audio_card`` is either the card's name (str), or the card's index (int).
-    * ``audio_device`` is the device's index (int).
-    * ``init_actions`` is a list of tuple (card_name, action) (list).
-      action is a dict key defined in audio.conf (ref: audio.py) to be passed
-      into dut.audio.ApplyAudioConfig.
-      e.g.  [('rt5650', 'init_audio'), ('rt5650', 'enable_hdmi')]
-
-    This argument is optional. If set, the audio playback test is added.
-
-  * ``usbpd_port``: (int) Verify the USB PD TypeC port status.
-"""
 
 
 class ExtDisplayTask(factory_task.InteractiveFactoryTask):
@@ -564,7 +586,10 @@ class ExtDisplayTest(unittest.TestCase):
       Arg('main_display', str,
           "xrandr/modeprint ID for ChromeBook's main display.",
           optional=False),
-      Arg('display_info', list, DISPLAY_INFO_ARG_HELP, optional=False),
+      Arg('display_info', list,
+          'A list of tuples (display_label, display_id, audio_info, '
+          'usbpd_port) represents an external port to test.',
+          optional=False),
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP, default=None,
           optional=True),
       Arg('connect_only', bool,
