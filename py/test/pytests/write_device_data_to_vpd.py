@@ -107,10 +107,14 @@ class WriteDeviceDataToVPD(unittest.TestCase):
               'factory': device_data.GetDeviceData(device_data.KEY_FACTORY, {})
           }))
     else:
-      data['ro'] = {vpd_name: device_data.GetDeviceData(data_key)
-                    for vpd_name, data_key in self.args.ro_key_map or {}}
-      data['rw'] = {vpd_name: device_data.GetDeviceData(data_key)
-                    for vpd_name, data_key in self.args.rw_key_map or {}}
+      data['ro'] = {
+          vpd_name: device_data.GetDeviceData(data_key)
+          for vpd_name, data_key in (self.args.ro_key_map or {}).iteritems()
+      }
+      data['rw'] = {
+          vpd_name: device_data.GetDeviceData(data_key)
+          for vpd_name, data_key in (self.args.rw_key_map or {}).iteritems()
+      }
 
     missing_keys = [k for section in data for k, v in data[section].iteritems()
                     if v is None]
