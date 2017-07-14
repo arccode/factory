@@ -86,7 +86,7 @@ class LineCheckItemTest(unittest.TestCase):
   """
   ARGS = [
       i18n_arg_utils.I18nArg('title', 'test title.'),
-      Arg('items', collections.Sequence,
+      Arg('items', (list, tuple),
           ('A sequence of items to check. Each item is a sequence of: '
            ' (instruction, command, judge_to_pass).'),
           optional=False),
@@ -109,7 +109,7 @@ class LineCheckItemTest(unittest.TestCase):
 
     found_judge_to_pass = False
     for item in self.args.items:
-      if isinstance(item, collections.Sequence) and len(item) == 3:
+      if isinstance(item, (list, tuple)) and len(item) == 3:
         check_item = CheckItem(i18n.Translated(item[0], translate=False),
                                item[1], item[2])
       else:

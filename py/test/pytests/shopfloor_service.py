@@ -104,7 +104,7 @@ class ShopfloorService(unittest.TestCase):
   ARGS = [
       Arg('method', str,
           'Name of shopfloor service method to call'),
-      Arg('args', collections.Sequence, 'Arguments for specified method.',
+      Arg('args', (list, tuple), 'Arguments for specified method.',
           optional=True),
       Arg('kargs', collections.Mapping, 'Keyword arguments for method.',
           optional=True),
