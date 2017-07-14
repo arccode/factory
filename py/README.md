@@ -8,9 +8,6 @@ Standalone Projects
  - [`dome/`](dome/README.md): Factory server management console.
  - `instalog/`: The log pipeline solution.
  - `factory_flow/`: Automated testing of factory flow.
- - `lumberjack/`: A log processing tool.
- - [`minijack/`](minijack/README.md): A console and dashboard for manufacturing
-    status.
  - `testlog/`: The log format.
  - [`umpire/`](umpire/README.md): Unified server to integrate factory imaging
     and various services.

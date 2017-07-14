@@ -1,1 +1,0 @@
-../minijack_common.py

@@ -1,3 +1,0 @@
-data_types:
-  regcode:
-    source_file: py/lumberjack/testdata/raw/file_not_exist

@@ -218,7 +218,7 @@ LENS_SHADING_FPS = 5
 MAX_MESSAGE_SIZE = 60000
 
 
-# Test stages in IQ test. Prefix them with 'cam_' to help query in Minijack.
+# Test stages in IQ test.
 STAGE00_START = 'cam_start'  # start test
 STAGE10_SN = 'cam_sn'  # check serial number
 STAGE15_FW = 'cam_fw'  # check firmware

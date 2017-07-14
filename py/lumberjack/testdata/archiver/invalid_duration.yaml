@@ -1,3 +1,0 @@
-data_types:
-  regcode:
-    duration: yearly # Sould be one of hourly, daily, weekly, monthly

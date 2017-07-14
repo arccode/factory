@@ -82,7 +82,7 @@ from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import type_utils
 
 
-# Test stages in ALS test. Prefix them with 'als_' to help query in Minijack.
+# Test stages in ALS test.
 STAGE00_START = 'als_start'  # start test
 STAGE10_SN = 'als_sn'  # check serial number
 STAGE20_INIT = 'als_init'  # init camera and try to read one image

@@ -1,3 +1,0 @@
-data_types:
-  regcode:
-    compress_format: .tbz2  # Only .tar.xz and .zip are supported

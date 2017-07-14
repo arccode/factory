@@ -5,5 +5,3 @@ bin/generate_rsts
 bin/list_dir_as_yaml
 py/doc
 py/dome
-py/lumberjack
-py/minijack

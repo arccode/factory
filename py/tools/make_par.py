@@ -177,7 +177,6 @@ def main(argv=None):
       rsync_args.extend(['--exclude', 'static',
                          '--exclude', 'testdata',
                          '--exclude', 'goofy',
-                         '--exclude', 'minijack',
                          '--exclude', 'pytests'])
     else:
       rsync_args.extend(['--include', '*.css',
