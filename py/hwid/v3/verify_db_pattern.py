@@ -22,13 +22,14 @@ import logging
 import os
 import subprocess
 import unittest
-import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import process_utils
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import database
+from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.tools import build_board
+from cros.factory.utils.schema import SchemaException
 
 
 class HWIDDBsPatternTest(unittest.TestCase):
@@ -79,6 +80,28 @@ class HWIDDBsPatternTest(unittest.TestCase):
         TestDatabase(f)
 
   def VerifyDatabasePattern(self, hwid_dir, commit, db_path):
+    """Verify the specific HWID database.
+
+    This method checks 2 things:
+      1. Verify whether the newest version of the HWID database is compatible
+          with the current version of HWID module.
+      2. If the previous version of the HWID database exists and is compatible
+          with the current version of HWID module, verify whether all the
+          encoded fields in the previous version of HWID database are not
+          changed.
+
+    Args:
+      hwid_dir: Path of the base directory of HWID databases.
+      commit: The commit hash value of the newest version of HWID database.
+      db_path: Path of the HWID database to be verified.
+    """
+    # A compatible version of HWID database can be loaded successfully.
+    new_db = database.Database.LoadData(
+        yaml.load(process_utils.CheckOutput(
+            ['git', 'show', '%s:%s' % (commit, db_path)],
+            cwd=hwid_dir, ignore_stderr=True)),
+        strict=False)
+
     try:
       old_db = database.Database.LoadData(
           yaml.load(process_utils.CheckOutput(
@@ -91,17 +114,13 @@ class HWIDDBsPatternTest(unittest.TestCase):
                      os.path.basename(db_path))
         return
       raise
+    except SchemaException as e:
+      logging.warning('The previous version of HWID database %s is an '
+                      'incompatible version (exception: %r), ignore the '
+                      'pattern check', db_path, e)
+      return
 
-    new_db = database.Database.LoadData(
-        yaml.load(process_utils.CheckOutput(
-            ['git', 'show', '%s:%s' % (commit, db_path)],
-            cwd=hwid_dir, ignore_stderr=True)),
-        strict=False)
-
-    try:
-      HWIDDBsPatternTest.VerifyParsedDatabasePattern(old_db, new_db)
-    except common.HWIDException as e:
-      self.fail(e.message)
+    HWIDDBsPatternTest.VerifyParsedDatabasePattern(old_db, new_db)
 
   @staticmethod
   def VerifyParsedDatabasePattern(old_db, new_db):
