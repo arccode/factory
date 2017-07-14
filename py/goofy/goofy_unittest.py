@@ -24,6 +24,7 @@ from mox import IgnoreArg
 from ws4py.client import WebSocketBaseClient
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.device import info as device_info
 from cros.factory.goofy import goofy
 from cros.factory.goofy.goofy import Goofy
 from cros.factory.goofy.prespawner import PytestPrespawner
@@ -143,6 +144,10 @@ class GoofyTest(unittest.TestCase):
       args.append('--restart')
 
     logging.info('Running goofy with args %r', args)
+    # Overrides all dut info, so goofy don't try to get those infos which spend
+    # lots of time.
+    for prop in device_info._INFO_PROP_LIST:  # pylint: disable=protected-access
+      new_goofy.dut.info.Overrides(prop, '')
     new_goofy.dut.info.Overrides(device_data.NAME_MLB_SERIAL_NUMBER,
                                  'mlb_sn_123456789')
     new_goofy.dut.info.Overrides(device_data.NAME_SERIAL_NUMBER, 'sn_123456789')
