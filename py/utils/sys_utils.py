@@ -538,18 +538,6 @@ def InCrOSDevice():
   return re.match(r'^CHROMEOS_RELEASE', lsb_release, re.MULTILINE) is not None
 
 
-def IsFreon(dut=None):
-  """Checks if the board is running freon.
-
-  Returns:
-    True if the board is running freon; False otherwise.
-  """
-  # Currently we only enable frecon on freon boards. We might need to revisit
-  # this in the future to find a more deterministic way to probe freon board.
-  return (dut.Call('[ -e /sbin/frecon ]') == 0 if dut else
-          os.path.exists('/sbin/frecon'))
-
-
 def GetVarLogMessages(max_length=256 * 1024,
                       path='/var/log/messages',
                       dut=None):
