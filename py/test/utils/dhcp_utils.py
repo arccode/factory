@@ -15,7 +15,7 @@ import signal
 import sys
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import network
+from cros.factory.test.utils import network_utils
 from cros.factory.utils import jsonrpc_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
@@ -89,7 +89,7 @@ class DHCPManager(object):
 
   def _GetAvailibleInterfaces(self):
     return [InterfaceProperty(interface)
-            for interface in network.GetUnmanagedEthernetInterfaces()
+            for interface in network_utils.GetUnmanagedEthernetInterfaces()
             if interface not in self._interface_blacklist]
 
   def _CollectInterfaceAndIPRange(self):
@@ -247,12 +247,13 @@ def StartDHCPManager(interfaces=None,
 
   # Get bootp parameters from gateway DHCP server
   default_iface = sync_utils.WaitFor(net_utils.GetDefaultGatewayInterface, 10)
-  bootp_params = network.GetDHCPBootParameters(default_iface)
+  bootp_params = network_utils.GetDHCPBootParameters(default_iface)
 
   # arguments for DHCP manager
   kargs = {
       'interfaces': interfaces,
-      'interface_blacklist': network.GetDHCPInterfaceBlacklist(blacklist_file),
+      'interface_blacklist': network_utils.GetDHCPInterfaceBlacklist(
+          blacklist_file),
       'exclude_ip_prefix': exclude_ip_prefix,
       'lease_time': lease_time,
       'bootp': bootp_params,

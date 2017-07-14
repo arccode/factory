@@ -12,6 +12,11 @@ from __future__ import print_function
 
 import logging
 import os
+try:
+  from chromite.lib import remote_access
+  _HAS_REMOTE_ACCESS = True
+except ImportError:
+  _HAS_REMOTE_ACCESS = False
 
 from . import file_utils
 from . import net_utils
@@ -35,10 +40,9 @@ def _Init():
   temp files around.
   """
   # TODO(hungte) Use testing keys from factory repo.
-  # Import chromite here so that importing this module on a DUT does not raise
-  # exception.
-  from chromite.lib import remote_access
   global testing_rsa    # pylint: disable=W0603
+  if not _HAS_REMOTE_ACCESS:
+    raise RuntimeError('chromite.lib.remote_access does not exist.')
   if not testing_rsa:
     target_name = '/tmp/testing_rsa.%s' % os.environ.get('USER', 'default')
     if not os.path.exists(target_name):

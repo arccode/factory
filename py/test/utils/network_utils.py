@@ -15,7 +15,6 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
-from cros.factory.test import factory
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
@@ -144,7 +143,7 @@ def RenewDhcpLease(interface, timeout=3):
   return p.returncode == 0
 
 
-def PrepareNetwork(ip, force_new_ip=False, on_waiting=None):
+def PrepareNetwork(ip, force_new_ip=False, on_waiting=None, logger=None):
   """High-level API to prepare networking.
 
   1. Wait for presence of ethernet connection (e.g., plug-in ethernet dongle).
@@ -156,16 +155,20 @@ def PrepareNetwork(ip, force_new_ip=False, on_waiting=None):
     ip: The ip address to set. (Set to None if DHCP is used.)
     force_new_ip: Force to set new IP addr regardless of existing IP addr.
     on_waiting: Callback function, invoked when waiting for IP.
+    logger: A logger that has method info and error to send verbose messages.
   """
+  logger_info = logger.info if logger else lambda x: None
+  logger_error = logger.error if logger else lambda x: None
+
   def _obtain_IP():
     if ip is None:
       SendDhcpRequest()
     else:
       net_utils.SetEthernetIp(ip, force=force_new_ip,
-                              logger=factory.console.info)
+                              logger=logger_info)
     return True if net_utils.GetEthernetIp() else False
 
-  factory.console.info('Detecting Ethernet device...')
+  logger_info('Detecting Ethernet device...')
 
   try:
     sync_utils.PollForCondition(
@@ -177,13 +180,13 @@ def PrepareNetwork(ip, force_new_ip=False, on_waiting=None):
     if not current_ip or force_new_ip:
       if on_waiting:
         on_waiting()
-      factory.console.info('Setting up IP address...')
+      logger_info('Setting up IP address...')
       sync_utils.PollForCondition(poll_method=_obtain_IP,
                                   condition_name='Setup IP address')
   except Exception:
     exception_string = debug_utils.FormatExceptionOnly()
-    factory.console.error('Unable to setup network: %s', exception_string)
-  factory.console.info('Network prepared. IP: %r', net_utils.GetEthernetIp())
+    logger_error('Unable to setup network: %s', exception_string)
+  logger_info('Network prepared. IP: %r', net_utils.GetEthernetIp())
 
 
 def GetUnmanagedEthernetInterfaces():

@@ -17,8 +17,8 @@ import jsonrpclib
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
-from cros.factory.test import network
 from cros.factory.test.utils import dhcp_utils
+from cros.factory.test.utils import network_utils
 from cros.factory.utils.jsonrpc_utils import JSONRPCServer
 from cros.factory.utils.jsonrpc_utils import TimeoutJSONRPCTransport
 from cros.factory.utils.process_utils import Spawn
@@ -369,10 +369,12 @@ class DUTLinkManager(object):
         on_old=self.OnDHCPEvent)
 
   def _StartOverlordRelay(self):
-    interface_blacklist = network.GetDHCPInterfaceBlacklist()
-    interfaces = [interface
-                  for interface in network.GetUnmanagedEthernetInterfaces()
-                  if interface not in interface_blacklist]
+    interface_blacklist = network_utils.GetDHCPInterfaceBlacklist()
+    interfaces = [
+        interface
+        for interface in network_utils.GetUnmanagedEthernetInterfaces()
+        if interface not in interface_blacklist
+    ]
 
     path = os.path.join(paths.FACTORY_DIR, 'bin',
                         'relay_overlord_discovery_packet')

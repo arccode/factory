@@ -59,7 +59,7 @@ from . import type_utils
 try:
   import jsonschema
   _CAN_VALIDATE_SCHEMA = True
-except Exception:
+except ImportError:
   _CAN_VALIDATE_SCHEMA = False
 
 

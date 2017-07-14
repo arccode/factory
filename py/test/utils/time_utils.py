@@ -8,7 +8,11 @@ import datetime
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.goofy.plugins import plugin_controller
+try:
+  from cros.factory.goofy.plugins import plugin_controller
+  _HAS_PLUGIN_CONTROLLER = True
+except ImportError:
+  _HAS_PLUGIN_CONTROLLER = False
 
 
 def SyncDate(dut=None):
@@ -32,7 +36,9 @@ def SyncTimeWithShopfloorServer():
 
   Returns: False if TimeSanitizer is not running.
   """
-  time_sanitizer = plugin_controller.GetPluginRPCProxy('time_sanitizer')
+  time_sanitizer = None
+  if _HAS_PLUGIN_CONTROLLER:
+    time_sanitizer = plugin_controller.GetPluginRPCProxy('time_sanitizer')
   if time_sanitizer is not None:
     time_sanitizer.SyncTimeWithShopfloorServer()
     return True

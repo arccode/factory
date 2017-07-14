@@ -47,7 +47,7 @@ from cros.factory.external import evdev
 try:
   sys.path.append('/usr/local/lib/flimflam/test')
   import flimflam  # pylint: disable=import-error
-except Exception:
+except ImportError:
   pass
 
 # TODO(tammo): Some tests look for multiple components, some tests

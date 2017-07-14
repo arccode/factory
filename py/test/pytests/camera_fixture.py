@@ -198,12 +198,12 @@ from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import leds
-from cros.factory.test import network
 from cros.factory.test import shopfloor
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test.utils import camera_utils
 from cros.factory.test.utils import media_utils
+from cros.factory.test.utils import network_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import type_utils
 
@@ -466,7 +466,8 @@ class _IQTestDelegate(object):
 
   def _LoadParamsFromShopfloor(self):
     """Loads parameters from shopfloor."""
-    network.PrepareNetwork(ip=self.local_ip, force_new_ip=False)
+    network_utils.PrepareNetwork(
+        ip=self.local_ip, force_new_ip=False, logger=factory.console)
 
     factory.console.info('Reading %s from shopfloor', self.param_pathname)
     shopfloor_client = shopfloor.GetShopfloorConnection()
@@ -769,7 +770,8 @@ class _IQTestDelegate(object):
     Args:
       data_files: list of (filename, file data) pairs.
     """
-    network.PrepareNetwork(ip=self.local_ip, force_new_ip=False)
+    network_utils.PrepareNetwork(
+        ip=self.local_ip, force_new_ip=False, logger=factory.console)
     shopfloor_client = shopfloor.GetShopfloorConnection()
 
     for filename, data in data_files:

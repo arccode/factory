@@ -15,8 +15,8 @@ from cros.factory.utils.type_utils import Obj
 
 try:
   sys.path.append('/usr/local/lib/flimflam/test')
-  import flimflam  # pylint: disable=F0401
-except Exception:
+  import flimflam  # pylint: disable=import-error
+except ImportError:
   pass
 
 

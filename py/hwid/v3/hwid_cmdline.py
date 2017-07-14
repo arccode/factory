@@ -17,7 +17,11 @@ from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3 import rule
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
-from cros.factory.test import device_data
+try:
+  from cros.factory.test import device_data
+  _HAS_DEVICE_DATA = True
+except ImportError:
+  _HAS_DEVICE_DATA = False
 from cros.factory.test.rules import phase
 from cros.factory.tools import build_board
 from cros.factory.utils.argparse_utils import CmdArg
@@ -159,6 +163,8 @@ def GenerateHWIDWrapper(options):
     raise ValueError('Cannot get device info from shopfloor in chroot. '
                      'Please specify device info with an input file. If you '
                      'are running with command-line, use --device-info-file')
+  elif not _HAS_DEVICE_DATA:
+    raise ValueError('The device_data module is not available.')
   else:
     device_info = device_data.GetAllDeviceData()
 

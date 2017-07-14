@@ -12,7 +12,12 @@ import time
 # Import WLAN into this module's namespace, since it may be used by
 # some test lists.
 import factory_common  # pylint: disable=unused-import
-from cros.factory.goofy.plugins import plugin_controller
+try:
+  # This import is not a hard dependency.
+  from cros.factory.goofy.plugins import plugin_controller
+  _HAS_PLUGIN_CONTROLLER = True
+except ImportError:
+  _HAS_PLUGIN_CONTROLLER = False
 from cros.factory.utils import config_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils.net_utils import WLAN  # pylint: disable=unused-import
@@ -52,7 +57,9 @@ _PROFILE_LOCATION = '/var/cache/%s/default.profile'
 
 
 def GetConnectionManagerProxy():
-  proxy = plugin_controller.GetPluginRPCProxy('connection_manager')
+  proxy = None
+  if _HAS_PLUGIN_CONTROLLER:
+    proxy = plugin_controller.GetPluginRPCProxy('connection_manager')
   if proxy is None:
     logging.info('Goofy plugin connection_manager is not running, '
                  'create our own instance')

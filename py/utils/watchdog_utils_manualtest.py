@@ -6,7 +6,10 @@
 import errno
 import logging
 import unittest
-import watchdog_utils
+
+import factory_common  # pylint: disable=unused-import
+# Since this script would be run as main, we can't use relative import here.
+from cros.factory.utils import watchdog_utils
 
 
 def AllowIOError(func):
