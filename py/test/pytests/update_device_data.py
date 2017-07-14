@@ -29,11 +29,11 @@ The ``fields`` argument is a sequence in format
 Name             Description
 ================ ==============================================================
 ``data_key``     The Device Data key name to write.
-``value``        The value to be written, can be modified (as string value)
-                 if ``manual_input`` is True.
+``value``        The value to be written, can be modified if ``manual_input`` is
+                 True.
 ``display_name`` The label or name to be displayed on UI.
-``value_check``  To validate the input value. Can be a list of strings, regular
-                 expression, or None to accept everything.
+``value_check``  To validate the input value. Can be a regular expression,
+                 sequence of string or boolean values, or None for any string.
 ================ ==============================================================
 
 If you want to manually configure without default values, the sequence can be
@@ -64,8 +64,8 @@ without user interaction.
 If argument ``manual_input`` is True, the test will go through all the fields:
 
 1. Display the name and key of the value.
-2. Display an input edit box for simple values, or a selection list
-   if the ``value_check`` is a list of strings.
+2. Display an input edit box for simple values, or a list of selection
+   if the ``value_check`` is a sequence of strings or boolean values.
 3. Wait for operator to select or input right value.
 4. If operator presses ESC, abandon changes and keep original value.
 5. If operator clicks Enter, validate the input by ``value_check`` argument.
@@ -94,7 +94,8 @@ To silently set a device data 'component.has_touchscreen' to True::
                       'fields': [('component.has_touchscreen', True,
                                   'Device has touch screen', None)]})
 
-For RMA process to set VPD and serial number without shopfloor::
+For RMA process to set serial number, region, registration codes, and specify
+if the device has peripherals like touchscreen::
 
   OperatorTest(pytest_name='update_device_data',
                dargs={'fields': [
@@ -103,6 +104,8 @@ For RMA process to set VPD and serial number without shopfloor::
                  (device_data.KEY_VPD_REGION, 'us', 'Region', None),
                  (device_data.KEY_VPD_USER_REGCODE, None, 'User ECHO', None),
                  (device_data.KEY_VPD_GROUP_REGCODE, None, 'Group ECHO', None),
+                 ('component.has_touchscreen', None, 'Has touchscreen',
+                  [True, False]),
                  ]})
 
 If you don't need default values, there's an alternative to list only key
@@ -119,6 +122,7 @@ names::
 
 from __future__ import print_function
 
+import logging
 import re
 import unittest
 
@@ -187,7 +191,18 @@ _JS_SELECT_BOX = lambda ele_id, event_subtype: """
 
 
 class DataEntry(object):
-  """Quick access to an entry in DeviceData."""
+  """Quick access to an entry in DeviceData.
+
+  Properties:
+    key: A string as Device Data key.
+    value: Default value to be set.
+    label: A I18N label to display on UI.
+    value_check: A regular expression string or list of values or None for
+      validation of new value.
+    re_checker: The compiled regular expression to validate input value.
+    codes: A list of string for UI to use as reference to selected values.
+    options: A list of strings for UI to display as option to select from.
+  """
 
   def __init__(self, key, value=None, display_name=None, value_check=None):
     device_data.CheckValidDeviceDataKey(key)
@@ -195,38 +210,84 @@ class DataEntry(object):
     self.value = device_data.GetDeviceData(key) if value is None else value
     if display_name is None and key in _KNOWN_KEY_LABELS:
       display_name = _KNOWN_KEY_LABELS[key]
-
-    self.display_name = display_name
     self.label = (i18n.StringFormat('{name} ({key})', name=display_name,
                                     key=key) if display_name else key)
-    self.re_chcker = None
+
+    self.re_checker = None
     self.value_check = None
+    self.codes = None
+    self.options = None
+
+    if isinstance(value, bool) and value_check is None:
+      value_check = [True, False]
 
     if isinstance(value_check, basestring):
-      self.re_chcker = re.compile(value_check)
+      self.re_checker = re.compile(value_check)
     elif isinstance(value_check, (list, tuple)):
       self.value_check = value_check
-    elif value_check is not None:
-      raise TypeError('value_check (%r) for %s must be either None, '
-                      'list of strings, or regex.' % (value_check, key))
-    elif key == device_data.KEY_VPD_REGION:
-      self.value_check = regions.REGIONS.keys()
-    else:
+      self.codes = [str(v) for v in value_check]
+    elif value_check is None:
       self.value_check = value_check
+    else:
+      raise TypeError('value_check (%r) for %s must be either regex, sequence, '
+                      'or None.' % (value_check, key))
 
-    # Re-order value_check for regions.
+    # Region should be processed differently.
     if key == device_data.KEY_VPD_REGION:
-      ordered_values = [v for v in _KNOWN_REGIONS if v in self.value_check]
-      other_values = list(set(self.value_check) - set(ordered_values))
-      other_values.sort()
-      self.value_check = ordered_values + other_values
+      all_regions = regions.REGIONS.keys()
+      if not value_check:
+        ordered_values = [v for v in _KNOWN_REGIONS if v in all_regions]
+        other_values = list(set(all_regions) - set(ordered_values))
+        other_values.sort()
+        value_check = ordered_values + other_values
+        self.value_check = value_check
 
-  def IsValidValue(self, value):
-    if self.re_chcker:
-      return self.re_chcker.match(value)
+      assert set(self.value_check).issubset(set(all_regions))
+      self.codes = value_check
+      self.options = [
+          '%d - %s; %s' % (i + 1, v, regions.REGIONS[v].description)
+          for i, v in enumerate(self.codes)]
+    elif isinstance(self.value_check, (list, tuple)):
+      self.codes = [str(v) for v in self.value_check]
+      self.options = [
+          '%d - %s' % (i + 1, v) if isinstance(v, basestring) else str(v)
+          for i, v in enumerate(self.value_check)]
+
+  def GetInputList(self):
+    """Returns the list of allowed input, or None for raw input."""
+    return self.codes
+
+  def GetOptionList(self):
+    """Returns the options to display if the allowed input is a list."""
+    return self.options
+
+  def GetValueIndex(self):
+    """Returns the index of current value in input list.
+
+    Raises:
+      ValueError if current value is not in known list.
+    """
+    return self.value_check.index(self.value)
+
+  def IsValidInput(self, input_data):
+    """Checks if input data is valid.
+
+    The input data may be a real string or one of the value in self.codes.
+    """
+    if self.re_checker:
+      logging.info('trying re_checker')
+      return self.re_checker.match(input_data)
     if self.value_check is None:
       return True
-    return value in self.value_check
+    if self.codes:
+      return input_data in self.codes
+    raise ValueError('Unknown value_check: %r' % self.value_check)
+
+  def GetValue(self, input_data):
+    """Returns the real value from input data."""
+    if self.codes:
+      return self.value_check[self.codes.index(input_data)]
+    return input_data
 
 
 class InputTask(factory_task.FactoryTask):
@@ -248,12 +309,12 @@ class InputTask(factory_task.FactoryTask):
     self.Pass()
 
   def OnEnterPressed(self, event):
-    value = event.data
-    if not self.entry.IsValidValue(value):
+    logging.info('got event: %r', event)
+    data = event.data
+    if not self.entry.IsValidInput(data):
       self.test.ui.SetHTML(_ERR_INPUT_INVALID(self.entry.label), id='errormsg')
-      self.test.ui.SetSelected(self.entry.key)
       return
-    self.OnComplete(value)
+    self.OnComplete(self.entry.GetValue(data))
 
   def OnESCPressed(self):
     if self.entry.value is None:
@@ -262,7 +323,7 @@ class InputTask(factory_task.FactoryTask):
       self.OnComplete(None)
 
   def Run(self):
-    if isinstance(self.entry.value_check, (list, tuple)):
+    if self.entry.GetInputList():
       # Renders a select box to list all the possible values.
       self.RenderSelectBox()
     else:
@@ -276,17 +337,15 @@ class InputTask(factory_task.FactoryTask):
     self.test.template.SetState(_MSG_MANUAL_SELECT_PROMPT(self.entry.label))
     select_box = ui_templates.SelectBox(self.entry.key, _SELECTION_PER_PAGE,
                                         _SELECT_BOX_STYLE)
-    # Special hack for region.
-    if self.entry.key == device_data.KEY_VPD_REGION:
-      for index, value in enumerate(self.entry.value_check):
-        select_box.InsertOption(
-            value, '%s - %s; %s' % (
-                index, value, regions.REGIONS[value].description))
-    else:
-      for index, value in enumerate(self.entry.value_check):
-        select_box.InsertOption(value, '%s - %s' % (index, value))
-    index = self.entry.value_check.index(self.entry.value)
-    select_box.SetSelectedIndex(index if index >= 0 else 0)
+    for value, option in zip(self.entry.GetInputList(),
+                             self.entry.GetOptionList()):
+      select_box.InsertOption(value, option)
+
+    try:
+      select_box.SetSelectedIndex(self.entry.GetValueIndex())
+    except ValueError:
+      pass
+
     self._AppendState(select_box.GenerateHTML())
     self._AppendState(_MSG_HOW_TO_SELECT)
     self.test.ui.BindKeyJS(test_ui.ENTER_KEY, _JS_SELECT_BOX(
@@ -319,7 +378,7 @@ class UpdateDeviceData(unittest.TestCase):
           'Set to False to silently updating all values. Otherwise each value '
           'will be prompted before set into Device Data.',
           default=True, optional=True),
-      Arg('config_name', str,
+      Arg('config_name', basestring,
           'A JSON config name to load representing the device data to update.',
           optional=True),
       Arg('fields', (list, tuple),

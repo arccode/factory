@@ -423,11 +423,6 @@ msgid "Scan"
 msgstr "扫描机器编号"
 
 #: ../build/pytests_label_generated.json
-#: ../py/test/pytests/select_components.py
-msgid "Select Components"
-msgstr "选择元件"
-
-#: ../build/pytests_label_generated.json
 msgid "Select For Sampling"
 msgstr "採样选择"
 
@@ -2683,10 +2678,6 @@ msgstr "扫描{label}"
 #: ../py/test/pytests/scan/scan.py
 msgid "Please scan the {label} and press ENTER."
 msgstr "请扫描{label}后按下 ENTER。"
-
-#: ../py/test/pytests/select_components.py
-msgid "Select Components:"
-msgstr "选择元件："
 
 #: ../py/test/pytests/shopfloor_service.py
 msgid "Retry"
