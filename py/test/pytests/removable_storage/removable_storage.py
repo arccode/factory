@@ -34,9 +34,10 @@ from cros.factory.utils import time_utils
 
 _STATE_RW_TEST_WAIT_INSERT = 1
 _STATE_RW_TEST_WAIT_REMOVE = 2
-_STATE_LOCKTEST_WAIT_INSERT = 3
-_STATE_LOCKTEST_WAIT_REMOVE = 4
-_STATE_ACCESSING = 5
+_STATE_RW_TEST_WAIT_REINSERT = 3
+_STATE_LOCKTEST_WAIT_INSERT = 4
+_STATE_LOCKTEST_WAIT_REMOVE = 5
+_STATE_ACCESSING = 6
 
 # The GPT ( http://en.wikipedia.org/wiki/GUID_Partition_Table )
 # occupies the first 34 and the last 33 512-byte blocks.
@@ -64,6 +65,8 @@ _RW_TEST_INSERT_FMT_STR = (
         media=media, extra=extra))
 _REMOVE_FMT_STR = lambda media: i18n_test_ui.MakeI18nLabel(
     'Remove {media} drive...', media=media)
+_FLIP_FMT_STR = lambda media: i18n_test_ui.MakeI18nLabel(
+    'Wrong USB side, please flip over {media}.', media=media)
 _TESTING_FMT_STR = lambda media: i18n_test_ui.MakeI18nLabel(
     'Testing {media}...', media=media)
 _TESTING_RANDOM_RW_FMT_STR = lambda count, bsize: i18n_test_ui.MakeI18nLabel(
@@ -162,6 +165,10 @@ class RemovableStorageTest(unittest.TestCase):
           optional=True),
       Arg('usbpd_port_polarity', tuple,
           'A tuple of integers indicating (port, polarity)', optional=True),
+      Arg('fail_check_polarity', bool,
+          'If set to True, would fail the test directly when polarity is wrong.'
+          ' Otherwise, will prompt operator to flip the storage.',
+          default=False, optional=True),
       Arg('create_partition', bool,
           'Try to create a small partition on the media. This is to check if '
           'all the pins on the sd card reader module are intact. If not '
@@ -214,7 +221,7 @@ class RemovableStorageTest(unittest.TestCase):
     attrs = [device.attributes[key] for key in
              set(device.attributes.keys()) & key_set]
     attr_str = ' '.join(attrs).strip()
-    if len(attr_str):
+    if attr_str:
       attr_str = '/' + attr_str
     return self.GetAttrs(device.parent, key_set) + attr_str
 
@@ -571,14 +578,13 @@ class RemovableStorageTest(unittest.TestCase):
     except Exception:
       self.Fail(_ERR_VERIFY_PARTITION_FMT_STR(self.args.media, dev_path))
 
-  def VerifyUSBPDPolarity(self):
+  def CheckUSBPDPolarity(self):
     """Verifies the USB PD CC line polarity on the port."""
     if not self.args.usbpd_port_polarity:
-      return
+      return True
     port, polarity = self.args.usbpd_port_polarity
     port_status = self._dut.usb_c.GetPDStatus(port)
-    if port_status['polarity'] != 'CC%d' % polarity:
-      self.Fail('USB CC polarity mismatch on port %d' % port)
+    return port_status['polarity'] == 'CC%d' % polarity
 
   def HandleUdevEvent(self, action, device):
     """The udev event handler.
@@ -596,8 +602,14 @@ class RemovableStorageTest(unittest.TestCase):
         if (self.args.create_partition or
             (self.args.media == 'SD' and self.args.create_partition is None)):
           self.CreatePartition()
-        self.VerifyUSBPDPolarity()
-        self.TestReadWrite()
+        if self.CheckUSBPDPolarity():
+          self.TestReadWrite()
+        elif self.args.fail_check_polarity:
+          self.Fail('USB CC polarity mismatch.')
+        else:
+          self._template.SetInstruction(_FLIP_FMT_STR(self.args.media))
+          self._state = _STATE_RW_TEST_WAIT_REINSERT
+          self.SetState(_IMG_HTML_TAG(self._removal_image))
 
       elif self._state == _STATE_LOCKTEST_WAIT_INSERT:
         logging.info('%s device inserted : %s',
@@ -618,6 +630,8 @@ class RemovableStorageTest(unittest.TestCase):
             self.SetState(_IMG_HTML_TAG(self._locktest_insertion_image))
           else:
             self.Pass()
+        elif self._state == _STATE_RW_TEST_WAIT_REINSERT:
+          self.SetWaitInsertState()
         elif self._state == _STATE_LOCKTEST_WAIT_REMOVE:
           self.Pass()
         elif self._state == _STATE_ACCESSING:
@@ -655,6 +669,14 @@ class RemovableStorageTest(unittest.TestCase):
     """Sets the innerHTML attribute of the state div."""
     self._ui.SetHTML(html, append=append, id=_ID_STATE_DIV)
 
+  def SetWaitInsertState(self):
+    self._template.SetInstruction(
+        _RW_TEST_INSERT_FMT_STR(
+            self.args.media,
+            self.args.extra_prompt))
+    self._state = _STATE_RW_TEST_WAIT_INSERT
+    self.SetState(_IMG_HTML_TAG(self._insertion_image))
+
   def runTest(self):
     """Main entrance of removable storage test."""
     random.seed(0)
@@ -671,13 +693,8 @@ class RemovableStorageTest(unittest.TestCase):
                                         self.args.media)
       self._locktest_removal_image = '%s_locktest_remove.png' % self.args.media
 
-    self._template.SetInstruction(
-        _RW_TEST_INSERT_FMT_STR(
-            self.args.media,
-            self.args.extra_prompt))
-    self._state = _STATE_RW_TEST_WAIT_INSERT
     self._template.SetState(_TEST_HTML)
-    self.SetState(_IMG_HTML_TAG(self._insertion_image))
+    self.SetWaitInsertState()
 
     # Initialize progress bar
     self._template.DrawProgressBar()

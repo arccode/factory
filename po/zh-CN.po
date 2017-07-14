@@ -2583,6 +2583,10 @@ msgid "Remove {media} drive..."
 msgstr "提取 {media} 存储..."
 
 #: ../py/test/pytests/removable_storage/removable_storage.py
+msgid "Wrong USB side, please flip over {media}."
+msgstr "USB 方向错误，请将 {media} 反转方向..."
+
+#: ../py/test/pytests/removable_storage/removable_storage.py
 msgid "Testing {media}..."
 msgstr "{media} 检查中..."
 
