@@ -100,6 +100,7 @@ SCRIPT_DIR="$(dirname "$(realpath "$0")")"
 FACTORY_DIR="$(dirname "${SCRIPT_DIR}")"
 UMPIRE_DIR="${FACTORY_DIR}/py/umpire"
 DOME_DIR="${FACTORY_DIR}/py/dome"
+OVERLORD_DIR="${FACTORY_DIR}/go/src/overlord"
 BUILD_DIR="${FACTORY_DIR}/build/docker"
 
 # Directories on host that would be mounted to docker
@@ -660,7 +661,7 @@ do_build_overlord() {
 
   local builder_output_file="$1"
   local builder_workdir="/tmp/build"
-  local builder_dockerfile="${SCRIPT_DIR}/Dockerfile.overlord"
+  local builder_dockerfile="${OVERLORD_DIR}/Dockerfile"
   local builder_container_name="overlord_builder"
   local builder_image_name="cros/overlord-builder"
 
@@ -732,13 +733,12 @@ do_update_docker_image_version() {
 
   local source_list=(
       setup/Dockerfile
-      setup/Dockerfile.overlord
       setup/cros_docker.sh
       sh/cros_payload.sh
       py/dome
       py/instalog
       py/umpire
-      go/src
+      go/src/overlord
   )
 
   git log --oneline ${DOCKER_IMAGE_GITHASH}.. "${source_list[@]}" \
