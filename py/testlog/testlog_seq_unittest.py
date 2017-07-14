@@ -17,8 +17,8 @@ import threading
 import time
 import unittest
 
-import testlog_seq
-from utils import file_utils
+from testlog_pkg import testlog_seq
+from testlog_pkg.utils import file_utils
 
 
 class BootSequenceTest(unittest.TestCase):

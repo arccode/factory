@@ -12,8 +12,8 @@ import pprint
 import re
 import shutil
 
-import testlog_utils
-from utils import time_utils
+from . import testlog_utils
+from .utils import time_utils
 
 
 class Validator(object):
@@ -123,14 +123,13 @@ class Validator(object):
 
   @staticmethod
   def Attachment(inst, key, value, testlog_getter_fn):
+    del inst  # Unused.
     logging.debug('Validator.Attachment is called: %s, %s', key, value)
     # TODO(itspeter): Move constants to a better place.
     PATH = 'path'
     MIME_TYPE = 'mimeType'
-    DESCRIPTION = 'description'
 
     # Verify required fields
-    sub_key = value['key']
     # TODO(itspeter): Figure out a long-term approach to avoid attchments
     #                 are processed twice (one on API call, one on
     #                 testlog.Collect.

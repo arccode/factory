@@ -14,11 +14,11 @@ import shutil
 import tempfile
 import unittest
 
-import testlog
-import testlog_utils
-import testlog_validator
-from utils import schema
-from utils import time_utils
+from testlog_pkg import testlog
+from testlog_pkg import testlog_utils
+from testlog_pkg import testlog_validator
+from testlog_pkg.utils import schema
+from testlog_pkg.utils import time_utils
 
 
 class TestlogValidatorTest(unittest.TestCase):

@@ -15,10 +15,10 @@ import subprocess
 import tempfile
 import unittest
 
-import testlog
-import testlog_utils
-from utils import file_utils
-from utils import time_utils
+from testlog_pkg import testlog
+from testlog_pkg import testlog_utils
+from testlog_pkg.utils import file_utils
+from testlog_pkg.utils import time_utils
 
 
 SAMPLE_DATETIME = datetime.datetime(1989, 8, 8, 8, 8, 8, 888888)

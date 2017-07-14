@@ -9,7 +9,7 @@ import logging
 import sys
 import unittest
 
-import testlog_utils
+from testlog_pkg import testlog_utils
 
 SAMPLE_DATETIME = datetime.datetime(1989, 8, 8, 8, 8, 8, 888888)
 SAMPLE_DATETIME_STRING = '1989-08-08T08:08:08.888Z'

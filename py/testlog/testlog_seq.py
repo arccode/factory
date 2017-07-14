@@ -9,7 +9,7 @@ import logging
 import os
 import time
 
-from utils import file_utils
+from .utils import file_utils
 
 # Each boot, the sequence number increases by this amount, to try to
 # help ensure monotonicity.

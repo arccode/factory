@@ -46,14 +46,14 @@ import re
 import tempfile
 import threading
 
-import testlog_seq
-import testlog_utils
-import testlog_validator
-from utils import file_utils
-from utils import schema
-from utils import sys_utils
-from utils import time_utils
-from utils import type_utils
+from . import testlog_seq
+from . import testlog_utils
+from . import testlog_validator
+from .utils import file_utils
+from .utils import schema
+from .utils import sys_utils
+from .utils import time_utils
+from .utils import type_utils
 
 
 TESTLOG_API_VERSION = '0.1'
