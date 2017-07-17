@@ -6,6 +6,7 @@
 
 from __future__ import print_function
 
+import os
 import collections
 import logging
 import subprocess
@@ -20,6 +21,8 @@ from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient
 from cros.factory.test import factory
 from cros.factory.test.utils.web_socket_utils import WebSocketHandshake
+from cros.factory.utils.file_utils import TryMakeDirs
+from cros.factory.utils.file_utils import TouchFile
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.string_utils import DecodeUTF8
 
@@ -57,6 +60,13 @@ class WebSocketManager(object):
 
     self.event_client = EventClient(callback=self._handle_event,
                                     name='WebSocketManager')
+
+    if not os.path.exists(paths.CONSOLE_LOG_PATH):
+      TryMakeDirs(os.path.dirname(paths.CONSOLE_LOG_PATH))
+      # There's a small chance of race condition. Some data might already
+      # flushed to console log before the 'TouchFile' got executed.
+      # But it's fine though, since TouchFile() uses 'a' append mode.
+      TouchFile(paths.CONSOLE_LOG_PATH)
     self.tail_process = Spawn(
         ['tail', '-F', paths.CONSOLE_LOG_PATH],
         ignore_stdin=True,

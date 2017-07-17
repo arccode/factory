@@ -103,7 +103,11 @@ def get_current_md5sum():
 def _init_console_log():
   console_log_path = paths.CONSOLE_LOG_PATH
   file_utils.TryMakeDirs(os.path.dirname(console_log_path))
+
+  # Note: delay=True is used here, to prevent console log file being
+  #       created at module-loading time.
   handler = logging.FileHandler(console_log_path, 'a', delay=True)
+
   log_format = '[%(levelname)s] %(message)s'
   test_path = get_current_test_path()
   if test_path:
