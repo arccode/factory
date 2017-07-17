@@ -7,45 +7,18 @@
         {"type": "string"},
         {"type": "array"}
       ]
-    },
-    "depend": {
-      "type": "array",
-      "items": {"type": "string"}
-    },
-    "sample_int": {
-      "type": "integer"
-    },
-    "sample_base_int": {
-      "type": "integer"
-    },
-    "sample_base_str_overrided": {
-      "type": "string"
-    },
-    "sample_str": {
-      "type": "string"
-    },
-    "sample_override": {
-      "type": "string"
-    },
-    "sample_runtime": {
-      "type": "string"
-    },
-    "sample_mapping": {
-      "type": "object",
-      "properties": {
-        "contents": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "contents"
-      ]
     }
   },
-  "additionalProperties": false,
-  "required": [
-    "sample_int",
-    "sample_str",
-    "sample_mapping"
-  ]
+  "patternProperties": {
+    "_int$": {
+      "type": "integer"
+    },
+    "_str$": {
+      "type": "string"
+    },
+    "_mapping$": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
 }

@@ -104,6 +104,7 @@ def OverrideConfig(base, overrides):
   """
   for k, v in overrides.iteritems():
     if isinstance(v, collections.Mapping):
+      v = v.copy()
       if v.pop(_OVERRIDE_DELETE_KEY, False):
         base.pop(k, None)
       elif v.pop(_OVERRIDE_REPLACE_KEY, False):
@@ -162,19 +163,28 @@ def _LoadJsonFile(file_path, logger):
   return None
 
 
-def _LoadRawConfig(config_dir, config_name, schema_name=None,
-                   logger=_DummyLogger):
-  """Internal function to load JSON config and schema from specified path.
+def _LoadRawConfig(config_dir, config_name, logger=_DummyLogger):
+  """Internal function to load JSON config from specified path.
 
   Returns:
-    A pair (config, schema) of configuration and schema objects.
+    A configuration object.
+  """
+  config_path = os.path.join(config_dir, config_name + _CONFIG_FILE_EXT)
+  logger('config_utils: Checking %s', config_path)
+  return _LoadJsonFile(config_path, logger)
+
+
+def _LoadRawSchema(config_dir, config_name, schema_name=None,
+                   logger=_DummyLogger):
+  """Internal function to load JSON schema from specified path.
+
+  Returns:
+    A schema object.
   """
   if schema_name is None:
     schema_name = config_name
-  config_path = os.path.join(config_dir, config_name + _CONFIG_FILE_EXT)
   schema_path = os.path.join(config_dir, schema_name + _SCHEMA_FILE_EXT)
-  logger('config_utils: Checking %s', config_path)
-  return _LoadJsonFile(config_path, logger), _LoadJsonFile(schema_path, logger)
+  return _LoadJsonFile(schema_path, logger)
 
 
 def _LoadConfigUtilsConfig():
@@ -189,12 +199,12 @@ def _LoadConfigUtilsConfig():
       config[key] = os.path.normpath(os.path.join(base, config[key]))
 
   def _ApplyConfig(config, key):
-    new_config, new_schema = _LoadRawConfig(
-        config[key] if key else module_dir, module_name)
+    config_dir = config[key] if key else module_dir
+    new_config = _LoadRawConfig(config_dir, module_name)
     OverrideConfig(config, new_config or {})
     _NormalizePath(config, _CONFIG_NAME_BUILD_DIR, module_dir)
     _NormalizePath(config, _CONFIG_NAME_RUNTIME_DIR, module_dir)
-    return new_schema
+    return _LoadRawSchema(config_dir, module_name)
 
   module_dir = os.path.realpath(os.path.dirname(__file__))
   module_name = os.path.splitext(os.path.basename(__file__))[0]
@@ -258,7 +268,7 @@ def _GetLogger():
 
 def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
                default_config_dir=None, convert_to_str=True,
-               allow_inherit=False, cached_configs=None, generate_depend=False):
+               allow_inherit=False, generate_depend=False):
   """Loads a configuration as mapping by given file name.
 
   The config files are retrieved and overridden in order:
@@ -294,11 +304,6 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
 
         Schema check is performed after overriding if validate_schema is True.
 
-    cached_configs: a dict of config names to already loaded configs to
-        reduce the loading time. If a config is still in loading
-        process, cached_configs[config_name] should be marked as _DUMMY_CACHE
-        for loop detection.
-
     generate_depend: if allow_inherit is True and this is set to True, will
         collect all dependencies of the config file, and put into "depend"
         field.
@@ -310,17 +315,6 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
   Returns:
     The config as mapping object.
   """
-  cached_configs = cached_configs or {}
-  if config_name in cached_configs:
-    assert cached_configs[config_name] != _DUMMY_CACHE, (
-        'Detected loop inheritance dependency of %s' % config_name)
-    return cached_configs[config_name]
-
-  # Mark the current config in loading.
-  cached_configs[config_name] = _DUMMY_CACHE
-
-  config = {}
-  schema = {}
   caller = inspect.stack()[1]
   module_file = caller[1]
   # When running as pyc inside ZIP(PAR), getmodule() will fail.
@@ -336,51 +330,14 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
   if not default_config_dir and os.path.islink(module_file):
     config_dirs.insert(0, os.path.dirname(os.path.realpath(module_file)))
 
-  logger = _GetLogger()
   if config_name is None:
     config_name = default_name
   assert config_name, 'LoadConfig() requires a config name.'
 
-  found_config = False
-  for config_dir in config_dirs:
-    new_config, new_schema = _LoadRawConfig(
-        config_dir, config_name, schema_name, logger)
-
-    if new_config is not None:
-      found_config = True
-      OverrideConfig(config, new_config)
-
-    if new_schema is not None:
-      # Config data can be extended, but schema must be self-contained.
-      schema = new_schema
-  assert found_config, 'No configuration files found for %s.' % config_name
-
-  if allow_inherit and isinstance(config, dict):
-    parents = config.get('inherit')
-    if isinstance(parents, basestring):
-      parents = [parents]
-
-    if generate_depend:
-      deps = {config_name}
-    # Ignore if 'inherit' is not a list of parent names.
-    if isinstance(parents, list):
-      parent_config = {}
-      for parent in reversed(parents):
-        current_config = LoadConfig(
-            config_name=parent,
-            schema_name=None,
-            validate_schema=False,
-            default_config_dir=default_config_dir,
-            convert_to_str=convert_to_str,
-            allow_inherit=allow_inherit,
-            cached_configs=cached_configs,
-            generate_depend=generate_depend)
-        if generate_depend:
-          deps |= set(current_config['depend'])
-        OverrideConfig(parent_config, current_config)
-      config = OverrideConfig(parent_config, config)
-    if generate_depend:
-      config['depend'] = list(deps)
+  logger = _GetLogger()
+  raw_config_list = _LoadRawConfigList(config_name, config_dirs, allow_inherit,
+                                       logger, {})
+  config = raw_config_list.Resolve()
 
   # Ideally we should enforce validating schema, but currently many environments
   # where our factory software needs to live (i.e., old ChromeOS test images,
@@ -388,6 +345,13 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
   # we'd like to make _CAN_VALIDATE_SCHEMA optional and enforce it once we have
   # completed migration for config API.
   if validate_schema:
+    schema = {}
+    for config_dir in config_dirs:
+      new_schema = _LoadRawSchema(config_dir, config_name, schema_name, logger)
+
+      if new_schema is not None:
+        # Config data can be extended, but schema must be self-contained.
+        schema = new_schema
     assert schema, 'Need JSON schema file defined for %s.' % config_name
     if _CAN_VALIDATE_SCHEMA:
       jsonschema.validate(config, schema)
@@ -397,7 +361,84 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
   else:
     logger('Skip validating schema for config <%s>.', config_name)
 
+  if generate_depend:
+    config['depend'] = raw_config_list.GetConfigNames()
+
   if convert_to_str:
     config = type_utils.UnicodeToString(config)
-  cached_configs[config_name] = config
+
   return config
+
+
+class _ConfigList(object):
+  """Internal structure to store a list of raw configs."""
+  def __init__(self):
+    self.configs = collections.OrderedDict()
+
+  def Resolve(self):
+    """Returns the final config after overriding."""
+    ret = {}
+    for config in reversed(self.configs.values()):
+      ret = OverrideConfig(ret, config)
+    return ret
+
+  def Add(self, config_dir, config_name, config):
+    """Add a config to the config list."""
+    self.configs[(config_dir, config_name)] = config
+
+  def Merge(self, other):
+    """Merge two config lists."""
+    for config_path, config in other.configs.iteritems():
+      # The first config takes precedence.
+      if config_path not in self.configs:
+        self.configs[config_path] = config
+
+  def GetConfigNames(self):
+    """Gets the config names of configs in the list."""
+    return list(
+        set(config_name for unused_config_dir, config_name in self.configs))
+
+
+def _LoadRawConfigList(config_name, config_dirs, allow_inherit,
+                       logger, cached_configs):
+  """Internal function to load the config list."""
+  if config_name in cached_configs:
+    assert cached_configs[config_name] != _DUMMY_CACHE, (
+        'Detected loop inheritance dependency of %s' % config_name)
+    return cached_configs[config_name]
+
+  # Mark the current config in loading.
+  cached_configs[config_name] = _DUMMY_CACHE
+
+  config_list = _ConfigList()
+
+  found_config = False
+  for config_dir in reversed(config_dirs):
+    new_config = _LoadRawConfig(config_dir, config_name, logger)
+
+    if new_config is not None:
+      found_config = True
+      config_list.Add(config_dir, config_name, new_config)
+  assert found_config, 'No configuration files found for %s.' % config_name
+
+  # Get the current config dict.
+  config = config_list.Resolve()
+
+  if allow_inherit and isinstance(config, dict):
+    parents = config.get('inherit')
+    if isinstance(parents, basestring):
+      parents = [parents]
+
+    # Ignore if 'inherit' is not a list of parent names.
+    if isinstance(parents, list):
+      for parent in parents:
+        current_config = _LoadRawConfigList(
+            config_name=parent,
+            config_dirs=config_dirs,
+            allow_inherit=allow_inherit,
+            cached_configs=cached_configs,
+            logger=logger)
+        config_list.Merge(current_config)
+
+  cached_configs[config_name] = config_list
+  return config_list

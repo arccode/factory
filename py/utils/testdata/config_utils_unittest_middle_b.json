@@ -1,4 +1,11 @@
 {
   "inherit": "testdata/config_utils_unittest_base",
-  "sample_base_str_overrided": "middle_b"
+  "sample_base_overrided_str": "middle_b",
+  "sample_replace_sibling_mapping": {
+    "__replace__": true,
+    "b": 42
+  },
+  "sample_delete_sibling_int": {
+    "__delete__": true
+  }
 }

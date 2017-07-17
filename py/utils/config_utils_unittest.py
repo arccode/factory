@@ -11,7 +11,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.utils import config_utils
 
 
-class ConfigUtilsUnitTest(unittest.TestCase):
+class ConfigUtilsTest(unittest.TestCase):
 
   def assertOverrideConfigEqual(self, val, val_override, val_expected):
     config_utils.OverrideConfig(val, val_override)
@@ -87,11 +87,16 @@ class ConfigUtilsUnitTest(unittest.TestCase):
 
     # the inherited value.
     self.assertEqual(config.sample_base_int, 10)
-    self.assertEqual(config.sample_base_str_overrided, "middle_b")
+    self.assertEqual(config.sample_base_overrided_str, 'middle_b')
+
+    # overrided values
+    self.assertEqual(config.sample_partial_int, 10)
+    self.assertEqual(config_m['sample_replace_sibling_mapping'], {'b': 42})
+    self.assertIsNone(config_m.get('sample_delete_sibling_int'))
 
     # build values from ../config/config_utils_unittest.json
     self.assertEqual(config.sample_mapping.contents, 'abc')
-    self.assertEqual(config_m.get('sample_runtime', None), None)
+    self.assertIsNone(config_m.get('sample_runtime_str'))
 
   def testLoadConfigStringType(self):
     config = config_utils.LoadConfig(

@@ -1,2 +1,5 @@
-{"sample_base_int": 10,
- "sample_base_str_overrided": "base"}
+{
+  "sample_base_int": 10,
+  "sample_partial_int": 10,
+  "sample_base_overrided_str": "base"
+}
