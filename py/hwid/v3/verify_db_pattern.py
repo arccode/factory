@@ -28,7 +28,6 @@ from cros.factory.utils import process_utils
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
-from cros.factory.tools import build_board
 from cros.factory.utils.schema import SchemaException
 
 
@@ -140,19 +139,11 @@ class HWIDDBsPatternTest(unittest.TestCase):
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  # TODO(yhong): Deprecate --board argument.
-  parser.add_argument('--board', help='the board to test (deprecated)')
   parser.add_argument('--commit', help='the commit to test')
   parser.add_argument('--project', type=str, default=None,
-                      help=('name of the project to test, currently '
-                            'default to board name'))
+                      help='name of the project to test')
   args = parser.parse_args()
   logging.basicConfig(level=logging.INFO)
-
-  if args.board:
-    args.board = build_board.BuildBoard(args.board).short_name.upper()
-  if not args.project:
-    args.project = args.board
 
   runner = unittest.TextTestRunner()
   test = HWIDDBsPatternTest(project=args.project, commit=args.commit)

@@ -35,7 +35,7 @@ from cros.factory.utils import process_utils
 _COMMON_ARGS = [
     CmdArg('-p', '--hwid-db-path', default=None,
            help='path to the HWID database directory'),
-    CmdArg('-b', '--board', '-j', '--project', default=None, dest='project',
+    CmdArg('-j', '--project', default=None, dest='project',
            help=('name of the HWID database to load/build.\n'
                  '(required if not running on a DUT)')),
     CmdArg('-v', '--verbose', default=False, action='store_true',
