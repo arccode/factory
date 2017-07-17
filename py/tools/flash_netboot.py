@@ -18,7 +18,6 @@ from contextlib import nested
 import argparse
 import glob
 import logging
-import os
 import shutil
 import subprocess
 import sys
@@ -107,13 +106,8 @@ class FlashNetboot(object):
 
   def _PackVPD(self):
     logging.info('Packing RO/RW VPD into %s', self._fw_main)
-    img_size = os.stat(self._fw_main).st_size
-    self._Flashrom([
-        '-p', 'dummy:image=%s,size=%d,emulate=VARIABLE_SIZE' % (self._fw_main,
-                                                                img_size),
-        '-w', self._fw_main,
-        '-i', 'RO_VPD:%s' % self._ro_vpd,
-        '-i', 'RW_VPD:%s' % self._rw_vpd])
+    Spawn(['futility', 'load_fmap', self._fw_main, 'RO_VPD:%s' % self._ro_vpd,
+           'RW_VPD:%s' % self._rw_vpd], check_call=True)
 
   def _FlashFirmware(self):
     logging.info('Flashing firmware %s...', self._fw_main)
