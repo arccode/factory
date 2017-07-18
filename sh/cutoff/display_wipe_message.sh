@@ -13,7 +13,7 @@ FONT_COLOR="Green"
 # Temp message file for display_boot_message.
 MESSAGE_FILE="$(mktemp --tmpdir)"
 
-: ${TTY:=/run/frecon/vt0}
+: "${TTY:=/run/frecon/vt0}"
 
 on_exit() {
   rm -f "${MESSAGE_FILE}"
@@ -50,10 +50,10 @@ prepare_message() {
     <span font=\"Noto Sans UI ${FONT_SIZE}\"
           foreground=\"${FONT_COLOR}\">"
 
-  printf "${message}\n"
+  printf "%s\n" "${message}"
   # Append messages with newline.
   for message in "$@"; do
-    printf "${message}\n"
+    printf "%s\n" "${message}"
   done
   printf "</span>"
 }
@@ -66,17 +66,31 @@ display_message() {
   local short_message="$1"
   shift
 
-  if has_bin frecon && has_bin pango-view; then
-    prepare_message "$@" >"${MESSAGE_FILE}"
-    if [ "${SHOW_SPINNER}" = "true" ]; then
-      SPINNER_INTERVAL=25 display_boot_message "show_spinner" "${MESSAGE_FILE}"
-    else
-      display_boot_message "show_file" "${MESSAGE_FILE}"
+  # Currently in factory_install image, the fonts and assets were removed by
+  # INSTALL_MASK (for smaller disk size) and the 'frecon' was provided by
+  # frecon-lite, which only has access to the partition before switch_root.
+  # It seems pretty hard to kill frecon-lite and restart frecon, so here we want
+  # to always use figlet when running under factory install shim.
+
+  if ! grep -qw cros_factory_install /proc/cmdline; then
+    # Not in factory shim, try frecon + pango-view.
+    if has_bin frecon && has_bin pango-view; then
+      prepare_message "$@" >"${MESSAGE_FILE}"
+      if [ "${SHOW_SPINNER}" = "true" ]; then
+        SPINNER_INTERVAL=25 display_boot_message show_spinner "${MESSAGE_FILE}"
+      else
+        display_boot_message show_file "${MESSAGE_FILE}"
+      fi
+      return
     fi
-  elif has_bin figlet; then
-    figlet "$short_message"
+  fi
+
+  if has_bin figlet; then
+    figlet "${short_message}"
+    # Figlet may be not easy to read so we want to print message again.
+    echo "${short_message}"
   else
-    echo "$short_message"
+    echo "${short_message}"
   fi
 }
 
