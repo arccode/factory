@@ -110,9 +110,13 @@ def OverrideConfig(base, overrides):
       elif v.pop(_OVERRIDE_REPLACE_KEY, False):
         base[k] = OverrideConfig({}, v)
       else:
-        base[k] = OverrideConfig(base.get(k, {}), v)
+        base_v = base.get(k, {})
+        if isinstance(base_v, collections.Mapping):
+          base[k] = OverrideConfig(base_v, v)
+        else:
+          base[k] = OverrideConfig({}, v)
     else:
-      base[k] = overrides[k]
+      base[k] = v
   return base
 
 

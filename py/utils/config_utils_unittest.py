@@ -22,6 +22,16 @@ class ConfigUtilsTest(unittest.TestCase):
         {'a': {'b': 1, 'c': 2}},
         {'a': {'c': 3}},
         {'a': {'b': 1, 'c': 3}})
+    # override a non-dict value by dict value
+    self.assertOverrideConfigEqual(
+        {'a': {'b': 1, 'c': 2}},
+        {'a': {'b': {'d': 1}}},
+        {'a': {'b': {'d': 1}, 'c': 2}})
+    # override a dict value by non-dict value
+    self.assertOverrideConfigEqual(
+        {'a': {'b': {'d': 1}, 'c': 2}},
+        {'a': {'b': 1}},
+        {'a': {'b': 1, 'c': 2}})
 
   def testOverrideConfigReplace(self):
     self.assertOverrideConfigEqual(
