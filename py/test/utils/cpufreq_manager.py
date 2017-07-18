@@ -13,7 +13,6 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import service_utils
 
 
-THERMAL_SERVICES = ('thermal', 'dptf')
 RETRY_COUNT = 3
 
 
@@ -67,7 +66,7 @@ class CpufreqManager(object):
                    'cpu_speed_hz=%s, retry_count=%d',
                    thermal_service_status, governor, cpu_speed_hz, retry_count)
 
-      for service in THERMAL_SERVICES:
+      for service in self._GetThermalService():
         try:
           current_service_status = service_utils.GetServiceStatus(service)
         except subprocess.CalledProcessError:
@@ -109,3 +108,21 @@ class CpufreqManager(object):
       self.enabled = enabled
     else:
       logging.warn('Gave up on trying to set CPU scaling parameters')
+
+  def _GetThermalService(self):
+    possible_services = ('thermal', 'dptf')
+
+    exist_services = []
+    for service in possible_services:
+      if service_utils.CheckServiceExists(service):
+        exist_services.append(service)
+
+    if len(exist_services) == 0:
+      logging.error("No thermal-control service is available! " +
+                    str(possible_services))
+
+    if len(exist_services) > 1:
+      logging.error("More then one thermal-control service are found: " +
+                    str(exist_services))
+
+    return exist_services

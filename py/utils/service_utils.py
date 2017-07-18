@@ -6,6 +6,7 @@ import logging
 
 from . import type_utils
 from .process_utils import CheckOutput
+from .process_utils import OpenDevNull
 
 
 START_TEXT = 'start/running'
@@ -64,6 +65,29 @@ def GetServiceStatus(service, ignore_failure=False, dut=None):
       raise
     logging.exception('Failed to get service %s.', service)
     return None
+
+
+def CheckServiceExists(service, dut=None):
+  '''Check if the given service name exists or not.
+
+  Use 'status' command and check its return code. If the command
+  excutes successfully, the service is considered existed.
+  And, vice versa.
+
+  Args:
+    service: The service name to test existence
+    dut: optional argument to check the service on the given DUT
+
+  Returns:
+    A boolean flag tells if the given service name exists or not.
+  '''
+  try:
+    check_output = dut.CheckOutput if dut else CheckOutput
+    cmd = ['status', service]
+    check_output(cmd, stderr=OpenDevNull())
+  except Exception:
+    return False
+  return True
 
 
 class ServiceManager(object):
