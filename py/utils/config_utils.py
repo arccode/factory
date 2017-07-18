@@ -312,6 +312,9 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
 
            A['depend'] = ['A', 'B', <what B depends on ...>]
 
+        The order in the list is same as the result of C3 linearization of the
+        inherited config names.
+
   Returns:
     The config as mapping object.
   """
@@ -321,14 +324,14 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
   default_name, default_dir = GetDefaultConfigInfo(
       inspect.getmodule(caller[0]), module_file)
   config_dirs = [
-      default_config_dir or default_dir,
-      GetBuildConfigDirectory(),
       GetRuntimeConfigDirectory(),
+      GetBuildConfigDirectory(),
+      default_config_dir or default_dir,
   ]
 
   # If the file is a symbolic link, we also search it's original path.
   if not default_config_dir and os.path.islink(module_file):
-    config_dirs.insert(0, os.path.dirname(os.path.realpath(module_file)))
+    config_dirs.append(os.path.dirname(os.path.realpath(module_file)))
 
   if config_name is None:
     config_name = default_name
@@ -352,6 +355,7 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
       if new_schema is not None:
         # Config data can be extended, but schema must be self-contained.
         schema = new_schema
+        break
     assert schema, 'Need JSON schema file defined for %s.' % config_name
     if _CAN_VALIDATE_SCHEMA:
       jsonschema.validate(config, schema)
@@ -362,7 +366,7 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
     logger('Skip validating schema for config <%s>.', config_name)
 
   if generate_depend:
-    config['depend'] = raw_config_list.GetConfigNames()
+    config['depend'] = list(raw_config_list)
 
   if convert_to_str:
     config = type_utils.UnicodeToString(config)
@@ -370,33 +374,52 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
   return config
 
 
-class _ConfigList(object):
+class _ConfigList(collections.OrderedDict):
   """Internal structure to store a list of raw configs."""
-  def __init__(self):
-    self.configs = collections.OrderedDict()
-
   def Resolve(self):
     """Returns the final config after overriding."""
     ret = {}
-    for config in reversed(self.configs.values()):
-      ret = OverrideConfig(ret, config)
+    # collections.OrderedDict does support reversed().
+    for key in reversed(self):  # pylint: disable=bad-reversed-sequence
+      for unused_config_dir, config in reversed(self[key]):
+        ret = OverrideConfig(ret, config)
     return ret
 
-  def Add(self, config_dir, config_name, config):
-    """Add a config to the config list."""
-    self.configs[(config_dir, config_name)] = config
 
-  def Merge(self, other):
-    """Merge two config lists."""
-    for config_path, config in other.configs.iteritems():
-      # The first config takes precedence.
-      if config_path not in self.configs:
-        self.configs[config_path] = config
+def _C3Linearization(parent_configs, config_name):
+  """C3 superclass linearization for inherited configs.
 
-  def GetConfigNames(self):
-    """Gets the config names of configs in the list."""
-    return list(
-        set(config_name for unused_config_dir, config_name in self.configs))
+  This is the same as the algorithm used for Python new style class multiple
+  inheritance.
+  """
+  def FirstKey(odict):
+    return next(odict.iterkeys())
+  # We collect all configs into all_configs, and only use keys in parent_configs
+  # as OrderedSet afterward.
+  all_configs = {}
+  parents = collections.OrderedDict()
+  for config_list in parent_configs:
+    all_configs.update(config_list)
+    # Only key is used, value is not important.
+    parents[FirstKey(config_list)] = None
+
+  parent_lists = [l.copy() for l in parent_configs]
+  parent_lists.append(parents)
+
+  def GoodHead(x):
+    return all(x not in l or x == FirstKey(l) for l in parent_lists)
+
+  ret = _ConfigList()
+  while any(parent_lists):
+    head = next((head for head in (FirstKey(l) for l in parent_lists if l)
+                 if GoodHead(head)), None)
+    if head is None:
+      raise RuntimeError('C3 linearization failed for %s' % config_name)
+    ret[head] = all_configs[head]
+    for l in parent_lists:
+      if l and FirstKey(l) == head:
+        l.popitem(last=False)
+  return ret
 
 
 def _LoadRawConfigList(config_name, config_dirs, allow_inherit,
@@ -412,14 +435,14 @@ def _LoadRawConfigList(config_name, config_dirs, allow_inherit,
 
   config_list = _ConfigList()
 
-  found_config = False
-  for config_dir in reversed(config_dirs):
+  found_configs = []
+  for config_dir in config_dirs:
     new_config = _LoadRawConfig(config_dir, config_name, logger)
 
     if new_config is not None:
-      found_config = True
-      config_list.Add(config_dir, config_name, new_config)
-  assert found_config, 'No configuration files found for %s.' % config_name
+      found_configs.append((config_dir, new_config))
+  assert found_configs, 'No configuration files found for %s.' % config_name
+  config_list[config_name] = found_configs
 
   # Get the current config dict.
   config = config_list.Resolve()
@@ -431,6 +454,7 @@ def _LoadRawConfigList(config_name, config_dirs, allow_inherit,
 
     # Ignore if 'inherit' is not a list of parent names.
     if isinstance(parents, list):
+      parent_configs = []
       for parent in parents:
         current_config = _LoadRawConfigList(
             config_name=parent,
@@ -438,7 +462,8 @@ def _LoadRawConfigList(config_name, config_dirs, allow_inherit,
             allow_inherit=allow_inherit,
             cached_configs=cached_configs,
             logger=logger)
-        config_list.Merge(current_config)
+        parent_configs.append(current_config)
+      config_list.update(_C3Linearization(parent_configs, config_name))
 
   cached_configs[config_name] = config_list
   return config_list

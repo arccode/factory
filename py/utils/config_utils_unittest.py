@@ -76,21 +76,19 @@ class ConfigUtilsTest(unittest.TestCase):
     self.assertEqual(config.sample_str, 'test')
     self.assertEqual(config.sample_mapping.contents, 'abc')
 
-    self.assertItemsEqual(
-        config.depend,
-        [
-            'testdata/config_utils_unittest_base',
-            'testdata/config_utils_unittest_middle_b',
-            'testdata/config_utils_unittest_middle_a',
-            'testdata/config_utils_unittest',
-        ])
+    self.assertEqual(config.depend, [
+        'testdata/config_utils_unittest',
+        'testdata/config_utils_unittest_middle_b',
+        'testdata/config_utils_unittest_middle_a',
+        'testdata/config_utils_unittest_base',
+    ])
 
     # the inherited value.
     self.assertEqual(config.sample_base_int, 10)
     self.assertEqual(config.sample_base_overrided_str, 'middle_b')
 
     # overrided values
-    self.assertEqual(config.sample_partial_int, 10)
+    self.assertEqual(config.sample_partial_int, 5)
     self.assertEqual(config_m['sample_replace_sibling_mapping'], {'b': 42})
     self.assertIsNone(config_m.get('sample_delete_sibling_int'))
 
@@ -112,6 +110,14 @@ class ConfigUtilsTest(unittest.TestCase):
         AssertionError, 'Detected loop inheritance dependency .*'):
       config_utils.LoadConfig(
           'testdata/config_utils_unittest_loop',
+          validate_schema=False,
+          allow_inherit=True)
+
+  def testC3LinearizationFail(self):
+    with self.assertRaisesRegexp(
+        RuntimeError, 'C3 linearization failed for .*'):
+      config_utils.LoadConfig(
+          'testdata/config_utils_unittest_c3',
           validate_schema=False,
           allow_inherit=True)
 

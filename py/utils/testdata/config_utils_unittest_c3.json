@@ -1,0 +1,6 @@
+{
+  "inherit": [
+    "testdata/config_utils_unittest_c3_base",
+    "testdata/config_utils_unittest_c3_a"
+  ]
+}
