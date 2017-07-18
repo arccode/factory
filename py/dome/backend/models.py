@@ -32,7 +32,7 @@ import rest_framework.status
 import yaml
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.umpire import resource as umpire_resource
+from cros.factory.umpire.server import resource as umpire_resource
 
 
 # TODO(littlecvr): pull out the common parts between umpire and dome, and put

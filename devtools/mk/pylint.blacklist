@@ -29,5 +29,5 @@ py/test/utils_unittest.py
 py/test/utils/media_utils_unittest.py
 py/test/fixture/camera/grid_mapper.py
 py/proto/%_pb2.py
-py/umpire/e2e_test/testdata/umpire/toolkits/device/%
+py/umpire/server/e2e_test/testdata/umpire/toolkits/device/%
 doc/conf.py

@@ -25,8 +25,8 @@ RUN mkdir -p "${umpire_dir_in_dome}"
 #
 #  pigz, py-pip, py-twisted, py-yaml, python, tar: Used by Umpire
 #  (buzybox tar doesn't support -I, which is used in file_utils.ExtractFile)
-#  gnupg, python-gnupg: Used by umpire/service/dkps and archiver
-#  rsync: Used by umpire/service/rsync
+#  gnupg, python-gnupg: Used by umpire/server/service/dkps and archiver
+#  rsync: Used by umpire/server/service/rsync
 #  jq: Will be used by umpire in future.
 #
 #  nginx, uwsgi-python: Used by Dome.
@@ -91,7 +91,7 @@ RUN ln -s "${instalog_dir}/cli.py" "/usr/bin/instalog"
 ARG dome_builder_output_file="frontend.tar"
 ADD "build/docker/${dome_builder_output_file}" "${dome_dir}/static/"
 
-COPY py/umpire/docker/default_umpire.yaml \
+COPY py/umpire/server/docker/default_umpire.yaml \
   "${server_dir}/default_umpire.yaml"
 COPY py "${server_dir}/py/"
 

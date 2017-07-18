@@ -293,7 +293,7 @@ do_umpire_test() {
   do_build
 
   local umpire_tester_image_name="cros/umpire_tester"
-  local dockerfile="${UMPIRE_DIR}/e2e_test/Dockerfile"
+  local dockerfile="${UMPIRE_DIR}/server/e2e_test/Dockerfile"
 
   fetch_resource "${BUILD_DIR}/docker.tgz" \
     "${RESOURCE_DOCKER_URL}" "${RESOURCE_DOCKER_SHA1}"
@@ -318,7 +318,7 @@ do_umpire_test() {
     --env "TMPDIR=${temp_dir}" \
     --env "LOG_LEVEL=${LOG_LEVEL}" \
     "${umpire_tester_image_name}" \
-    "${DOCKER_UMPIRE_DIR}/e2e_test/e2e_test.py" "$@"
+    "${DOCKER_UMPIRE_DIR}/server/e2e_test/e2e_test.py" "$@"
 }
 
 umpire_usage() {
