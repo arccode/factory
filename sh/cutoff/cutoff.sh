@@ -17,8 +17,13 @@ reset_activate_date() {
 
 # Resets the recovery_count to 0 in RW_VPD.
 reset_recovery_count() {
-  echo "Deleting recovery_count from vpd."
-  vpd -i RW_VPD -d "recovery_count"
+  echo "Checking recovery_count in RW VPD..."
+  if [ -n "$(vpd -i RW_VPD -g recovery_count 2>/dev/null)" ]; then
+    echo "Deleting recovery_count from VPD."
+    vpd -i RW_VPD -d "recovery_count"
+  else
+    echo "OK: no recovery_count found."
+  fi
 }
 
 has_battery() {
