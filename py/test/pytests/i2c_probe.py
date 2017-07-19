@@ -44,16 +44,16 @@ class I2CProbeTest(unittest.TestCase):
                     'You should assign bus or enable auto detect')
     bus, addr_list, r_flag = self.args.bus, self.args.addr, self.args.r_flag
     if self.args.auto_detect_device:
-      if type(self.args.auto_detect_device) != list:
+      if not isinstance(self.args.auto_detect_device, list):
         self.args.auto_detect_device = [self.args.auto_detect_device]
       bus = sys_utils.GetI2CBus(self.args.auto_detect_device)
-      self.assertTrue(type(bus) is int, 'Auto detect bus error')
+      self.assertTrue(isinstance(bus, int), 'Auto detect bus error')
       factory.console.info('Auto detect bus: %d', bus)
 
-    if type(addr_list) != list:
+    if not isinstance(addr_list, list):
       addr_list = [addr_list]
 
-    probe_config = {'i2c_category':{}}
+    probe_config = {'i2c_category': {}}
     for addr in addr_list:
       probe_config['i2c_category']['device_%s' % addr] = {
           'eval': {
@@ -69,10 +69,11 @@ class I2CProbeTest(unittest.TestCase):
         json.dump(probe_config, f)
 
       # Execute Probe.
-      cmd = ['probe', '-v', 'probe', config_file]
+      cmd = ['probe', '-v', 'probe', '--config-file', config_file]
       factory.console.info('Call the command: %s', ' '.join(cmd))
       probed_results = json.loads(self.factory_tools.CheckOutput(cmd))
-      count = sum(len(comps) for comps in probed_results['i2c_category'].values())
+      count = sum(
+          len(comps) for comps in probed_results['i2c_category'].values())
       self.assertGreaterEqual(count, 1,
                               'No I2C device on bus %d addr %s' %
                               (bus, ', '.join(['0x%x' % addr
