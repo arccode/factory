@@ -24,6 +24,7 @@ from instalog import datatypes
 from instalog import flow_policy
 from instalog import plugin_base
 from instalog import plugin_loader
+from instalog.utils import debug_utils
 from instalog.utils import file_utils
 from instalog.utils import sync_utils
 from instalog.utils import time_utils
@@ -277,7 +278,7 @@ class PluginSandbox(plugin_base.PluginAPI):
       is trying to access core functionality that it should not
       (action is self._ERROR).
     """
-    caller_name = inspect.stack()[1][3]
+    caller_name = debug_utils.GetCallerName()
     self.logger.debug('_AskGatekeeper for plugin %s (%s) on function %s',
                       self.plugin_id, self._state, caller_name)
 
@@ -320,7 +321,7 @@ class PluginSandbox(plugin_base.PluginAPI):
     """
     if not isinstance(allowed_states, list):
       allowed_states = [allowed_states]
-    caller_name = inspect.stack()[1][3]
+    caller_name = debug_utils.GetCallerName()
     self.logger.debug(
         '_CheckStateCommand for plugin %s (%s) on function %s',
         self.plugin_id, self._state, caller_name)

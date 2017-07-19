@@ -169,8 +169,12 @@ def GetCallerName(num_frame=1):
   Args:
     num_frame: number of frames to go back, num_frame = 1 will returns name of
         caller, num_frame = 2 will returns name of caller's caller.
+
+  Raises:
+    ValueError if the frame is out of range of the current call stack.
   """
-  return inspect.stack()[num_frame + 1][3]
+  frame = sys._getframe(num_frame + 1)  # pylint: disable=protected-access
+  return inspect.getframeinfo(frame, 1)[2]
 
 
 if __name__ == '__main__':

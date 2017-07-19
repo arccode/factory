@@ -10,7 +10,7 @@ import logging
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.utils.debug_utils import CatchException
+from cros.factory.utils import debug_utils
 
 
 class CatchExceptionTest(unittest.TestCase):
@@ -19,7 +19,7 @@ class CatchExceptionTest(unittest.TestCase):
   def testCatchException(self):
     class Foo(object):
       """A class that should suppress its exception in its function."""
-      @CatchException('Foo')
+      @debug_utils.CatchException('Foo')
       def BadBar(self):
         logging.warning('Bad bar is called.')
         raise Exception('I am bad.')
@@ -30,7 +30,7 @@ class CatchExceptionTest(unittest.TestCase):
   def testCatchExceptionDisable(self):
     class Foo(object):
       """A class that should suppress its exception in its function."""
-      @CatchException('Foo', False)
+      @debug_utils.CatchException('Foo', False)
       def BadBar(self):
         logging.warning('Bad bar is called.')
         raise Exception('I am bad.')
@@ -38,6 +38,23 @@ class CatchExceptionTest(unittest.TestCase):
     f1 = Foo()
     with self.assertRaises(Exception):
       f1.BadBar()
+
+
+class GetCallerNameTest(unittest.TestCase):
+  """Unittest for GetCallerName."""
+
+  def testGetCallerName(self):
+    def A():
+      self.assertEqual('A', debug_utils.GetCallerName(0))
+      self.assertEqual('B', debug_utils.GetCallerName(1))
+      self.assertEqual('testGetCallerName', debug_utils.GetCallerName(2))
+    def B():
+      A()
+    B()
+    # ValueError: call stack is not deep enough
+    with self.assertRaises(ValueError):
+      debug_utils.GetCallerName(50)
+
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)

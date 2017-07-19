@@ -10,13 +10,12 @@ plugins to access.
 
 import inspect
 import os
+import sys
 import time
 
 import instalog_common  # pylint: disable=W0611
-from instalog import json_utils
 from instalog import log_utils
 from instalog.utils import arg_utils
-from instalog.utils import file_utils
 from instalog.utils import time_utils
 
 
@@ -373,7 +372,8 @@ def main():
 
   See plugin_sandbox.main for more details.
   """
-  frame_info = inspect.stack()[1]
-  plugin_type = os.path.splitext(os.path.basename(frame_info[1]))[0]
+  # pylint: disable=protected-access
+  frame_info = inspect.getframeinfo(sys._getframe(1))
+  plugin_type = os.path.splitext(os.path.basename(frame_info[0]))[0]
   from instalog import run_plugin
   run_plugin.main(plugin_type)

@@ -51,6 +51,7 @@ import inspect
 import json
 import logging
 import os
+import sys
 import zipimport
 
 from . import type_utils
@@ -322,11 +323,11 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
   Returns:
     The config as mapping object.
   """
-  caller = inspect.stack()[1]
-  module_file = caller[1]
+  current_frame = sys._getframe(1)  # pylint: disable=protected-access
+  module_file = inspect.getframeinfo(current_frame)[0]
   # When running as pyc inside ZIP(PAR), getmodule() will fail.
   default_name, default_dir = GetDefaultConfigInfo(
-      inspect.getmodule(caller[0]), module_file)
+      inspect.getmodule(current_frame), module_file)
   config_dirs = [
       GetRuntimeConfigDirectory(),
       GetBuildConfigDirectory(),
