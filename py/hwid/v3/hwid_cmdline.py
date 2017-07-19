@@ -23,7 +23,6 @@ try:
 except ImportError:
   _HAS_DEVICE_DATA = False
 from cros.factory.test.rules import phase
-from cros.factory.tools import build_board
 from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils.argparse_utils import Command
 from cros.factory.utils.argparse_utils import ParseCmdline
@@ -352,20 +351,11 @@ def InitializeDefaultOptions(options):
   if options.command_name in ['build-database']:
     return
 
-  board = build_board.BuildBoard(options.board).base
-  board_variant = build_board.BuildBoard(options.board).variant
-  # Use the variant specific HWID db if one exists, else reuse the one
-  # from the base board.
-  if board_variant and os.path.exists(
-      os.path.join(options.hwid_db_path, board_variant.upper())):
-    board = board_variant
-  options.board = board
-
   # Create the Database object here since it's common to all functions.
   logging.debug('Loading database file %s/%s...', options.hwid_db_path,
-                board.upper())
+                options.board.upper())
   options.database = database.Database.LoadFile(
-      os.path.join(options.hwid_db_path, board.upper()),
+      os.path.join(options.hwid_db_path, options.board.upper()),
       verify_checksum=(not options.no_verify_checksum))
 
   phase.OverridePhase(options.phase)
