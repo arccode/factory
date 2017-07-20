@@ -43,7 +43,7 @@ def Provider(api_name, systems):
     api_name: A string for API name.
     systems: A list of supported platform systems.
   """
-  global _PROVIDER_MAP
+  global _PROVIDER_MAP  # pylint: disable=global-variable-not-assigned
   assert not isinstance(systems, basestring), "systems must be list."
   if api_name not in _PROVIDER_MAP:
     _PROVIDER_MAP[api_name] = {}
@@ -101,7 +101,7 @@ def UnixMonotonicTime():
     The system monotonic time in seconds.
   """
   CLOCK_MONOTONIC_RAW = 4
-  global _clock_gettime
+  global _clock_gettime  # pylint: disable=global-statement
 
   if _clock_gettime:
     return _clock_gettime()
@@ -143,12 +143,13 @@ def UnixMonotonicTime():
 @Provider('FileLock', [_SYSTEM_DEFAULT])
 def UnixFileLock(fd, do_lock=True, is_exclusive=True, is_blocking=True):
   if do_lock:
-    fcntl.flock(fd, ((fcntl.LOCK_EX if is_exclusive else 0) |
+    fcntl.flock(fd, ((fcntl.LOCK_EX if is_exclusive else fcntl.LOCK_SH) |
                      (0 if is_blocking else fcntl.LOCK_NB)))
   else:
     fcntl.flock(fd, fcntl.LOCK_UN)
 
 
+# pylint: disable=unused-argument
 @Provider('FileLock', [_SYSTEM_WINDOWS])
 def WindowsFileLock(fd, do_lock=True, is_exclusive=True, is_blocking=True):
   # TODO(hungte) Implement file locking on Windows.
