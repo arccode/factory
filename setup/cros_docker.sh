@@ -319,6 +319,8 @@ do_umpire_test() {
     --env "LOG_LEVEL=${LOG_LEVEL}" \
     "${umpire_tester_image_name}" \
     "${DOCKER_UMPIRE_DIR}/server/e2e_test/e2e_test.py" "$@"
+
+  touch "${UMPIRE_DIR}/.tests-passed"
 }
 
 umpire_usage() {

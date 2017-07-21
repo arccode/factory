@@ -55,6 +55,7 @@ test-backend:
 		--workdir "${DOME_DIR}" \
 		cros/factory_server \
 		sh -c "$(TEST_COVERAGE_CMD)"
+	touch .tests-passed
 
 test-frontend:
 	echo "not implemented yet"

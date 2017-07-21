@@ -110,7 +110,7 @@ PRESUBMIT_FILES := \
     $(shell realpath $$PRESUBMIT_FILES | sed "s'^$$(realpath $$(pwd))/''g"))
 
 PRESUBMIT_TARGETS := \
-  presubmit-deps presubmit-lint presubmit-test presubmit-make-factory-package
+  presubmit-deps presubmit-lint presubmit-test
 
 # Virtual targets. The '.phony' is a special hack to allow making targets with
 # wildchar (for instance, overlay-%) to be treated as .PHONY.
@@ -342,7 +342,7 @@ ifneq ($(filter setup/make_factory_package.sh,$(PRESUBMIT_FILES)),)
 endif
 
 presubmit-test:
-	@$(MK_DIR)/$@.sh $(PRESUBMIT_FILES)
+	@$(MK_DIR)/$@.py $(PRESUBMIT_FILES)
 
 presubmit:
 ifeq ($(wildcard /etc/debian_chroot),)
