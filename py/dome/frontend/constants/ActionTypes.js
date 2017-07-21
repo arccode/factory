@@ -11,14 +11,14 @@ export default Enum([
   'SHOW_ERROR_DIALOG',
   'HIDE_ERROR_DIALOG',
 
-  'SWITCH_BOARD',
+  'SWITCH_PROJECT',
   'SWITCH_APP',
 
-  // boards action
-  'ADD_BOARD',
-  'DELETE_BOARD',
-  'RECEIVE_BOARDS',
-  'UPDATE_BOARD',
+  // projects action
+  'ADD_PROJECT',
+  'DELETE_PROJECT',
+  'RECEIVE_PROJECTS',
+  'UPDATE_PROJECT',
 
   // form actions
   'OPEN_FORM',

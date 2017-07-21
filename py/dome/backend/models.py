@@ -53,7 +53,7 @@ UMPIRE_MATCH_KEY_MAP = {
 FACTORY_SERVER_IMAGE_NAME = 'cros/factory_server'
 DOCKER_SHARED_DIR = '/cros_docker'
 UMPIRE_DOCKER_DIR = '/cros_docker/umpire'
-UMPIRE_DEFAULT_BOARD_FILE = '.default_project'
+UMPIRE_DEFAULT_PROJECT_FILE = '.default_project'
 UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER = '/var/db/factory/umpire'
 
 TFTP_DOCKER_DIR = '/cros_docker/tftp'
@@ -122,7 +122,7 @@ def UploadedFilePath(uploaded_file):
 
 
 @contextlib.contextmanager
-def UmpireAccessibleFile(board, uploaded_file):
+def UmpireAccessibleFile(project, uploaded_file):
   """Make a file uploaded from Dome accessible by a specific Umpire container.
 
   This function:
@@ -139,13 +139,13 @@ def UmpireAccessibleFile(board, uploaded_file):
                     copying (after the issue has been solved).
 
   Args:
-    board: name of the board (used to construct Umpire container's name).
+    project: name of the project (used to construct Umpire container's name).
     uploaded_file: file field of TemporaryUploadedFile.
   """
   # TODO(b/31417203): Use volume container or named volume instead of
   #                   UMPIRE_BASE_DIR.
   with file_utils.TempDirectory(
-      dir=os.path.join(UMPIRE_BASE_DIR, board, 'temp')) as temp_dir:
+      dir=os.path.join(UMPIRE_BASE_DIR, project, 'temp')) as temp_dir:
     old_path = UploadedFilePath(uploaded_file)
     new_path = os.path.join(temp_dir, os.path.basename(uploaded_file.name))
     logger.info('Making file accessible by Umpire, copying %r to %r',
@@ -157,24 +157,25 @@ def UmpireAccessibleFile(board, uploaded_file):
     os.chmod(new_path, stat.S_IRWXU | stat.S_IROTH | stat.S_IXOTH)
 
     # The temp file:
-    #   in Dome:   ${UMPIRE_BASE_DIR}/${board}/temp/${temp_dir}/${name}
+    #   in Dome:   ${UMPIRE_BASE_DIR}/${project}/temp/${temp_dir}/${name}
     #   in Umpire: ${UMPIRE_BASE_DIR}/temp/${temp_dir}/${name}
-    # so need to remove "${board}/"
+    # so need to remove "${project}/"
     tokens = new_path.split('/')
     del tokens[-4]
     yield '/'.join(tokens)
 
 
-def GetUmpireServer(board_name):
-  # get URL of the board
-  board = Board.objects.get(pk=board_name).ReplaceLocalhostWithDockerHostIP()
-  url = 'http://%s:%d' % (board.umpire_host,
-                          board.umpire_port + UMPIRE_RPC_PORT_OFFSET)
+def GetUmpireServer(project_name):
+  # get URL of the project
+  project = Project.objects.get(
+      pk=project_name).ReplaceLocalhostWithDockerHostIP()
+  url = 'http://%s:%d' % (project.umpire_host,
+                          project.umpire_port + UMPIRE_RPC_PORT_OFFSET)
   return xmlrpclib.ServerProxy(url, allow_none=True)
 
 
-def GetUmpireStatus(board_name):
-  return GetUmpireServer(board_name).GetStatus()
+def GetUmpireStatus(project_name):
+  return GetUmpireServer(project_name).GetStatus()
 
 
 def GenerateUploadToPath(unused_instance, filename):
@@ -307,7 +308,7 @@ class TemporaryUploadedFile(django.db.models.Model):
   created = django.db.models.DateTimeField(auto_now_add=True)
 
 
-class Board(django.db.models.Model):
+class Project(django.db.models.Model):
 
   # TODO(littlecvr): max_length should be shared with Umpire and serializer
   name = django.db.models.CharField(max_length=200, primary_key=True)
@@ -325,12 +326,12 @@ class Board(django.db.models.Model):
     # not actually 'localhost', it is the docker host instead of docker
     # container. So we need to transform it to the docker host's IP.
     if self.umpire_host in ['localhost', '127.0.0.1']:
-      self.umpire_host = Board._GetHostIP()
+      self.umpire_host = Project._GetHostIP()
     return self
 
   def AddExistingUmpireContainer(self, host, port):
     """Add an existing Umpire container to the database."""
-    container_name = Board.GetUmpireContainerName(self.name)
+    container_name = Project.GetUmpireContainerName(self.name)
     logger.info('Adding Umpire container %r', container_name)
     if not DoesContainerExist(container_name):
       error_message = (
@@ -348,7 +349,7 @@ class Board(django.db.models.Model):
   def CreateUmpireContainer(self, port):
     """Create a local Umpire container from a factory toolkit."""
     # make sure the container does not exist
-    container_name = Board.GetUmpireContainerName(self.name)
+    container_name = Project.GetUmpireContainerName(self.name)
     logger.info('Creating Umpire container %r', container_name)
     if DoesContainerExist(container_name):
       error_message = (
@@ -384,9 +385,9 @@ class Board(django.db.models.Model):
           FACTORY_SERVER_IMAGE_NAME, UMPIRED_FILEPATH]
       logger.info('Running command %r', cmd)
       subprocess.check_call(cmd)
-      # Update default board for 'cros_docker.sh umpire' commands.
+      # Update default project for 'cros_docker.sh umpire' commands.
       with open(os.path.join(UMPIRE_BASE_DIR,
-                             UMPIRE_DEFAULT_BOARD_FILE), 'w') as f:
+                             UMPIRE_DEFAULT_PROJECT_FILE), 'w') as f:
         f.write(self.name)
     except Exception:
       logger.error('Failed to create Umpire container %r', container_name)
@@ -401,7 +402,7 @@ class Board(django.db.models.Model):
 
   def DeleteUmpireContainer(self):
     logger.info('Deleting Umpire container %r', self.name)
-    container_name = Board.GetUmpireContainerName(self.name)
+    container_name = Project.GetUmpireContainerName(self.name)
     subprocess.call(['docker', 'stop', container_name])
     subprocess.call(['docker', 'rm', container_name])
     self.umpire_enabled = False
@@ -428,43 +429,43 @@ class Board(django.db.models.Model):
 
   @staticmethod
   def CreateOne(name, **kwargs):
-    logger.info('Creating new board %r', name)
-    board = Board.objects.create(name=name)
+    logger.info('Creating new project %r', name)
+    project = Project.objects.create(name=name)
     try:
-      return Board.UpdateOne(board, **kwargs)
+      return Project.UpdateOne(project, **kwargs)
     except Exception:
-      logger.error('Failed to create board %r', name)
+      logger.error('Failed to create project %r', name)
       logger.exception(traceback.format_exc())
       # delete the entry if anything goes wrong
       try:
-        Board.objects.get(pk=name).delete()
+        Project.objects.get(pk=name).delete()
       except django.core.exceptions.ObjectDoesNotExist:
         pass
       except Exception:
         raise
 
   @staticmethod
-  def UpdateOne(board, **kwargs):
-    logger.info('Updating board %r', board.name)
+  def UpdateOne(project, **kwargs):
+    logger.info('Updating project %r', project.name)
     # enable or disable Umpire if necessary
     if ('umpire_enabled' in kwargs and
-        board.umpire_enabled != kwargs['umpire_enabled']):
+        project.umpire_enabled != kwargs['umpire_enabled']):
       if not kwargs['umpire_enabled']:
-        board.DeleteUmpireContainer()
+        project.DeleteUmpireContainer()
       else:
         if kwargs.get('umpire_add_existing_one', False):
-          board.AddExistingUmpireContainer(kwargs['umpire_host'],
-                                           kwargs['umpire_port'])
+          project.AddExistingUmpireContainer(kwargs['umpire_host'],
+                                             kwargs['umpire_port'])
         else:  # create a new local instance
-          board.CreateUmpireContainer(kwargs['umpire_port'])
+          project.CreateUmpireContainer(kwargs['umpire_port'])
 
     # update attributes assigned in kwargs
     for attr, value in kwargs.iteritems():
-      if hasattr(board, attr):
-        setattr(board, attr, value)
-    board.save()
+      if hasattr(project, attr):
+        setattr(project, attr, value)
+    project.save()
 
-    return board
+    return project
 
 
 class Resource(object):
@@ -474,10 +475,10 @@ class Resource(object):
     self.version = version
 
   @staticmethod
-  def CreateOne(board_name, type_name, file_id):
-    umpire_server = GetUmpireServer(board_name)
+  def CreateOne(project_name, type_name, file_id):
+    umpire_server = GetUmpireServer(project_name)
     with UploadedFile(file_id) as f:
-      with UmpireAccessibleFile(board_name, f) as p:
+      with UmpireAccessibleFile(project_name, f) as p:
         payloads = umpire_server.AddPayload(p, type_name)
     return Resource(type_name, payloads[type_name]['version'])
 
@@ -503,16 +504,16 @@ class Bundle(object):
       self.rules[key] = rules[umpire_key]
 
   @staticmethod
-  def _GetNormalizedActiveConfig(board_name):
+  def _GetNormalizedActiveConfig(project_name):
     """Return the normalized version of Umpire active config."""
-    umpire_status = GetUmpireStatus(board_name)
+    umpire_status = GetUmpireStatus(project_name)
     config = yaml.load(umpire_status['active_config'])
     return Bundle._NormalizeConfig(config)
 
   @staticmethod
-  def _UploadAndDeployConfig(board_name, config, force=False):
+  def _UploadAndDeployConfig(project_name, config, force=False):
     """Upload and deploy config atomically."""
-    umpire_server = GetUmpireServer(board_name)
+    umpire_server = GetUmpireServer(project_name)
 
     logger.info('Uploading Umpire config')
     staging_config_path = umpire_server.AddConfigFromBlob(
@@ -598,7 +599,7 @@ class Bundle(object):
     return config
 
   @staticmethod
-  def _FromUmpireBundleAndRuleset(board_name, bundle, ruleset):
+  def _FromUmpireBundleAndRuleset(project_name, bundle, ruleset):
     """Take the target entry in the "bundles" and "rulesets" sections in Umpire
     config, and turns them into the Bundle entity in Dome.
 
@@ -606,7 +607,7 @@ class Bundle(object):
       bundle: the target bundle in the "bundles" section in Umpire config.
       ruleset: ruleset that refers the the target bundle in Umpire config.
     """
-    payloads = GetUmpireServer(board_name).GetPayloadsDict(bundle['payloads'])
+    payloads = GetUmpireServer(project_name).GetPayloadsDict(bundle['payloads'])
     return Bundle(bundle['id'],  # name
                   ruleset['note'],  # note
                   ruleset['active'],  # active
@@ -614,14 +615,14 @@ class Bundle(object):
                   ruleset.get('match', {}))  # matching rules
 
   @staticmethod
-  def DeleteOne(board_name, bundle_name):
+  def DeleteOne(project_name, bundle_name):
     """Delete a bundle in Umpire config.
 
     Args:
-      board_name: name of the board.
+      project_name: name of the project.
       bundle_name: name of the bundle to delete.
     """
-    config = Bundle._GetNormalizedActiveConfig(board_name)
+    config = Bundle._GetNormalizedActiveConfig(project_name)
     if not any(b['id'] == bundle_name for b in config['bundles']):
       raise DomeClientException(
           detail='Bundle %s not found' % bundle_name,
@@ -632,20 +633,20 @@ class Bundle(object):
     config['bundles'] = [
         b for b in config['bundles'] if b['id'] != bundle_name]
 
-    Bundle._UploadAndDeployConfig(board_name, config)
+    Bundle._UploadAndDeployConfig(project_name, config)
 
   @staticmethod
-  def ListOne(board_name, bundle_name):
+  def ListOne(project_name, bundle_name):
     """Return the bundle that matches the search criterion.
 
     Args:
-      board_name: name of the board.
+      project_name: name of the project.
       bundle_name: name of the bundle to find, this corresponds to the "id"
           field in umpire config.
     """
-    config = Bundle._GetNormalizedActiveConfig(board_name)
+    config = Bundle._GetNormalizedActiveConfig(project_name)
 
-    logger.info('Finding bundle %r in board %r', bundle_name, board_name)
+    logger.info('Finding bundle %r in project %r', bundle_name, project_name)
     try:
       ruleset = next(
           r for r in config['rulesets'] if r['bundle_id'] == bundle_name)
@@ -656,10 +657,10 @@ class Bundle(object):
       logger.error(error_message)
       raise DomeClientException(error_message)
 
-    return Bundle._FromUmpireBundleAndRuleset(board_name, bundle, ruleset)
+    return Bundle._FromUmpireBundleAndRuleset(project_name, bundle, ruleset)
 
   @staticmethod
-  def ListAll(board_name):
+  def ListAll(project_name):
     """Return all bundles as a list.
 
     This function lists bundles in the following order:
@@ -667,29 +668,29 @@ class Bundle(object):
     2. bundles in the 'bunedles' section but not in the 'rulesets' section
 
     Args:
-      board_name: name of the board.
+      project_name: name of the project.
 
     Return:
       A list of all bundles.
     """
-    config = Bundle._GetNormalizedActiveConfig(board_name)
+    config = Bundle._GetNormalizedActiveConfig(project_name)
 
     bundle_dict = dict((b['id'], b) for b in config['bundles'])
 
     bundle_list = []
     for r in config['rulesets']:
       b = bundle_dict[r['bundle_id']]
-      bundle_list.append(Bundle._FromUmpireBundleAndRuleset(board_name, b, r))
+      bundle_list.append(Bundle._FromUmpireBundleAndRuleset(project_name, b, r))
 
     return bundle_list
 
   @staticmethod
-  def ModifyOne(board_name, src_bundle_name, dst_bundle_name=None,
+  def ModifyOne(project_name, src_bundle_name, dst_bundle_name=None,
                 note=None, active=None, rules=None, resources=None):
     """Modify a bundle.
 
     Args:
-      board_name: name of the board.
+      project_name: name of the project.
       src_bundle_name: name of the bundle to update.
       dst_bundle_name: if None, do an in-place update; otherwise, duplicate the
           bundle, name it dst_bundle_name, then update it.
@@ -703,7 +704,7 @@ class Bundle(object):
           would be changed to the particular resource, so the client can do
           partial update without listing all resources.
     """
-    config = Bundle._GetNormalizedActiveConfig(board_name)
+    config = Bundle._GetNormalizedActiveConfig(project_name)
 
     try:
       src_bundle = next(
@@ -754,18 +755,18 @@ class Bundle(object):
     # only deploy if at least one thing has changed
     if (dst_bundle_name or note is not None or
         active is not None or rules is not None):
-      Bundle._UploadAndDeployConfig(board_name, config)
+      Bundle._UploadAndDeployConfig(project_name, config)
 
     # update resources
     if resources is not None:
       for resource_key, resource in resources.iteritems():
-        Bundle._UpdateResource(board_name, bundle['id'], resource_key,
+        Bundle._UpdateResource(project_name, bundle['id'], resource_key,
                                resource['file_id'])
 
-    return Bundle.ListOne(board_name, bundle['id'])
+    return Bundle.ListOne(project_name, bundle['id'])
 
   @staticmethod
-  def ReorderBundles(board_name, new_order):
+  def ReorderBundles(project_name, new_order):
     """Reorder the bundles in Umpire config.
 
     TODO(littlecvr): make sure this also works if multiple users are using at
@@ -774,7 +775,7 @@ class Bundle(object):
     Args:
       new_order: a list of bundle names.
     """
-    old_config = Bundle._GetNormalizedActiveConfig(board_name)
+    old_config = Bundle._GetNormalizedActiveConfig(project_name)
 
     # make sure all names are in current config
     old_bundle_set = set(b['id'] for b in old_config['bundles'])
@@ -789,37 +790,37 @@ class Bundle(object):
     new_config = copy.deepcopy(old_config)
     new_config['rulesets'] = [rulesets[n] for n in new_order]
 
-    Bundle._UploadAndDeployConfig(board_name, new_config)
+    Bundle._UploadAndDeployConfig(project_name, new_config)
 
-    return Bundle.ListAll(board_name)
+    return Bundle.ListAll(project_name)
 
   @staticmethod
-  def _UpdateResource(board_name, bundle_name, type_name, resource_file_id):
+  def _UpdateResource(project_name, bundle_name, type_name, resource_file_id):
     """Update resource in a bundle.
 
     Args:
-      board_name: name of the board.
+      project_name: name of the project.
       bundle_name: the bundle to update.
       type_name: An element of umpire_resource.PayloadTypeNames.
       resource_file_id: id of the resource file (id of TemporaryUploadedFile).
     """
-    umpire_server = GetUmpireServer(board_name)
+    umpire_server = GetUmpireServer(project_name)
     with UploadedFile(resource_file_id) as f:
-      with UmpireAccessibleFile(board_name, f) as p:
+      with UmpireAccessibleFile(project_name, f) as p:
         umpire_server.Update([(type_name, p)], bundle_name)
 
     config = yaml.load(umpire_server.GetStatus()['staging_config'])
 
     # config staged before, need the force argument or Umpire will complain
     # TODO(littlecvr): we can actually deploy directly here
-    Bundle._UploadAndDeployConfig(board_name, config, force=True)
+    Bundle._UploadAndDeployConfig(project_name, config, force=True)
 
   @staticmethod
-  def UploadNew(board_name, bundle_name, bundle_note, bundle_file_id):
+  def UploadNew(project_name, bundle_name, bundle_note, bundle_file_id):
     """Upload a new bundle.
 
     Args:
-      board_name: name of the board.
+      project_name: name of the project.
       bundle_name: name of the new bundle, in string. This corresponds to the
           "id" field in umpire config.
       bundle_note: commit message. This corresponds to the "note" field in
@@ -829,10 +830,10 @@ class Bundle(object):
     Return:
       The newly created bundle.
     """
-    umpire_server = GetUmpireServer(board_name)
+    umpire_server = GetUmpireServer(project_name)
 
     with UploadedFile(bundle_file_id) as f:
-      with UmpireAccessibleFile(board_name, f) as p:
+      with UmpireAccessibleFile(project_name, f) as p:
         try:
           umpire_server.ImportBundle(p, bundle_name, bundle_note)
         except xmlrpclib.Fault as e:
@@ -851,7 +852,7 @@ class Bundle(object):
         ruleset['active'] = True
         break
 
-    Bundle._UploadAndDeployConfig(board_name, config, force=True)
+    Bundle._UploadAndDeployConfig(project_name, config, force=True)
 
     # find and return the new bundle
-    return Bundle.ListOne(board_name, bundle_name)
+    return Bundle.ListOne(project_name, bundle_name)

@@ -16,7 +16,7 @@ import FormNames from '../constants/FormNames';
 
 var DashboardApp = React.createClass({
   propTypes: {
-    board: React.PropTypes.instanceOf(Immutable.Map).isRequired,
+    project: React.PropTypes.instanceOf(Immutable.Map).isRequired,
     closeEnablingUmpireForm: React.PropTypes.func.isRequired,
     disableUmpire: React.PropTypes.func.isRequired,
     enableUmpire: React.PropTypes.func.isRequired,
@@ -26,7 +26,7 @@ var DashboardApp = React.createClass({
 
   render() {
     const {
-      board,
+      project,
       closeEnablingUmpireForm,
       disableUmpire,
       enableUmpire,
@@ -54,21 +54,21 @@ var DashboardApp = React.createClass({
                 <TableRow>
                   <TableRowColumn>Umpire (bundle management)</TableRowColumn>
                   <TableRowColumn>
-                    {board.get('umpireEnabled') && 'enabled'}
-                    {!board.get('umpireEnabled') && 'disabled'}
+                    {project.get('umpireEnabled') && 'enabled'}
+                    {!project.get('umpireEnabled') && 'disabled'}
                   </TableRowColumn>
                   <TableRowColumn>
-                    {board.get('umpireEnabled') && <div>
-                      host: {board.get('umpireHost')}<br />
-                      port: {board.get('umpirePort')}
+                    {project.get('umpireEnabled') && <div>
+                      host: {project.get('umpireHost')}<br />
+                      port: {project.get('umpirePort')}
                     </div>}
                   </TableRowColumn>
                   <TableRowColumn>
-                    {board.get('umpireEnabled') && <RaisedButton
+                    {project.get('umpireEnabled') && <RaisedButton
                       label="DISABLE"
-                      onClick={() => disableUmpire(board.get('name'))}
+                      onClick={() => disableUmpire(project.get('name'))}
                     />}
-                    {!board.get('umpireEnabled') && <RaisedButton
+                    {!project.get('umpireEnabled') && <RaisedButton
                       label="ENABLE"
                       onClick={openEnablingUmpireForm}
                     />}
@@ -82,11 +82,11 @@ var DashboardApp = React.createClass({
         {/* TODO(littlecvr): add <SystemInfoPanel /> */}
 
         <EnablingUmpireForm
-          boardName={board.get('name')}
+          projectName={project.get('name')}
           onCancel={closeEnablingUmpireForm}
-          onConfirm={(boardName, umpireSettings) => {
+          onConfirm={(projectName, umpireSettings) => {
             closeEnablingUmpireForm();
-            enableUmpire(boardName, umpireSettings);
+            enableUmpire(projectName, umpireSettings);
           }}
           opened={enablingUmpireFormOpened}
         />
@@ -97,8 +97,8 @@ var DashboardApp = React.createClass({
 
 function mapStateToProps(state) {
   return {
-    board: state.getIn([
-      'dome', 'boards', state.getIn(['dome', 'currentBoard'])
+    project: state.getIn([
+      'dome', 'projects', state.getIn(['dome', 'currentProject'])
     ]),
     enablingUmpireFormOpened: state.getIn([
       'dome', 'formVisibility', FormNames.ENABLING_UMPIRE_FORM
@@ -111,11 +111,12 @@ function mapDispatchToProps(dispatch) {
     closeEnablingUmpireForm: () => dispatch(
         DomeActions.closeForm(FormNames.ENABLING_UMPIRE_FORM)
     ),
-    disableUmpire: boardName => (
-        dispatch(DomeActions.updateBoard(boardName, {'umpireEnabled': false}))
+    disableUmpire: projectName => (
+        dispatch(DomeActions.updateProject(projectName,
+                                           {'umpireEnabled': false}))
     ),
-    enableUmpire: (boardName, umpireSettings) => (
-        dispatch(DomeActions.updateBoard(boardName, Object.assign({
+    enableUmpire: (projectName, umpireSettings) => (
+        dispatch(DomeActions.updateProject(projectName, Object.assign({
           'umpireEnabled': true
         }, umpireSettings)))
     ),

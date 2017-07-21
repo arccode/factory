@@ -94,52 +94,52 @@ class DomeAPITest(rest_framework.test.APITestCase):
 
   TODO(littlecvr): we probably need real unit tests and integration tests.
 
-  Board APIs:
-  - GET /boards/
-      List boards.
-  - POST /boards/
-      Create a new board.
-  - DELETE /boards/${BOARD_NAME}/
-      Delete a specific board.
-  - PUT /boards/${BOARD_NAME}/
-      Add/create/delete Umpire container of the board.
+  Project APIs:
+  - GET projects/
+      List projects.
+  - POST /projects/
+      Create a new project.
+  - DELETE /projects/${PROJECT_NAME}/
+      Delete a specific project.
+  - PUT /projects/${PROJECT_NAME}/
+      Add/create/delete Umpire container of the project.
 
   Bundle APIs:
-  - GET /boards/${BOARD_NAME}/bundles/
+  - GET /projects/${PROJECT_NAME}/bundles/
       List bundles.
-  - POST /boards/${BOARD_NAME/bundles/
+  - POST /projects/${PROJECT_NAME/bundles/
       Upload a new bundle.
-  - PUT /boards/${BOARD_NAME}/bundles/
+  - PUT /projects/${PROJECT_NAME}/bundles/
       Reorder the bundles.
-  - DELETE /boards/${BOARD_NAME}/bundles/${BUNDLE_NAME}/
+  - DELETE /projects/${PROJECT_NAME}/bundles/${BUNDLE_NAME}/
       Delete bundle.
-  - PUT /boards/${BOARD_NAME/bundles/${BUNDLE_NAME}/
+  - PUT /projects/${PROJECT_NAME/bundles/${BUNDLE_NAME}/
       Update bundle resources or rules
 
   Resource APIs:
-  - POST /boards/${BOARD_NAME}/resources/
+  - POST /projects/${PROJECT_NAME}/resources/
      Add a resource to Umpire.
   """
 
-  # TODO(littlecvr): separate tests into different groups (board, bundle,
+  # TODO(littlecvr): separate tests into different groups (project, bundle,
   #                  resource).
 
   @classmethod
   def setUpClass(cls):
     super(DomeAPITest, cls).setUpClass()
 
-    cls.BOARD_WITHOUT_UMPIRE_NAME = 'board_without_umpire'
-    cls.BOARD_WITH_UMPIRE_NAME = 'board_with_umpire'
-    cls.BOARD_WITH_UMPIRE_HOST = 'localhost'
-    cls.BOARD_WITH_UMPIRE_PORT = 8080
+    cls.PROJECT_WITHOUT_UMPIRE_NAME = 'project_without_umpire'
+    cls.PROJECT_WITH_UMPIRE_NAME = 'project_with_umpire'
+    cls.PROJECT_WITH_UMPIRE_HOST = 'localhost'
+    cls.PROJECT_WITH_UMPIRE_PORT = 8080
 
-    models.Board.objects.create(name=cls.BOARD_WITHOUT_UMPIRE_NAME)
-    models.Board.objects.create(name=cls.BOARD_WITH_UMPIRE_NAME,
-                                umpire_enabled=True,
-                                umpire_host=cls.BOARD_WITH_UMPIRE_HOST,
-                                umpire_port=cls.BOARD_WITH_UMPIRE_PORT)
+    models.Project.objects.create(name=cls.PROJECT_WITHOUT_UMPIRE_NAME)
+    models.Project.objects.create(name=cls.PROJECT_WITH_UMPIRE_NAME,
+                                  umpire_enabled=True,
+                                  umpire_host=cls.PROJECT_WITH_UMPIRE_HOST,
+                                  umpire_port=cls.PROJECT_WITH_UMPIRE_PORT)
 
-    os.mkdir(os.path.join(models.UMPIRE_BASE_DIR, cls.BOARD_WITH_UMPIRE_NAME))
+    os.mkdir(os.path.join(models.UMPIRE_BASE_DIR, cls.PROJECT_WITH_UMPIRE_NAME))
 
   def setUp(self):
     self.maxDiff = None  # developer friendly setting
@@ -188,13 +188,13 @@ class DomeAPITest(rest_framework.test.APITestCase):
 
     # pretend we have the container
     self.mocks['subprocess.check_output'].return_value = (
-        models.Board.GetUmpireContainerName(self.BOARD_WITHOUT_UMPIRE_NAME))
+        models.Project.GetUmpireContainerName(self.PROJECT_WITHOUT_UMPIRE_NAME))
 
-    response = self._AddExistingUmpire(self.BOARD_WITHOUT_UMPIRE_NAME,
+    response = self._AddExistingUmpire(self.PROJECT_WITHOUT_UMPIRE_NAME,
                                        UMPIRE_HOST,
                                        UMPIRE_PORT)
     self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
-    self.assertTrue(response.content, {'name': self.BOARD_WITHOUT_UMPIRE_NAME,
+    self.assertTrue(response.content, {'name': self.PROJECT_WITHOUT_UMPIRE_NAME,
                                        'umpireEnabled': True,
                                        'umpireHost': UMPIRE_HOST,
                                        'umpirePort': UMPIRE_PORT})
@@ -207,7 +207,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
     # pretend we don't have the container
     self.mocks['subprocess.check_output'].return_value = ''
 
-    response = self._AddExistingUmpire(self.BOARD_WITHOUT_UMPIRE_NAME,
+    response = self._AddExistingUmpire(self.PROJECT_WITHOUT_UMPIRE_NAME,
                                        'localhost',
                                        8090)
     self.assertEqual(response.status_code,
@@ -218,13 +218,13 @@ class DomeAPITest(rest_framework.test.APITestCase):
     self.mocks['subprocess.call'].assert_not_called()
     self.mocks['subprocess.check_call'].assert_not_called()
 
-  def testCreateBoard(self):
-    BOARD_NAME = 'testing_board'
+  def testCreateProject(self):
+    PROJECT_NAME = 'testing_project'
 
-    response = self._CreateBoard(BOARD_NAME)
+    response = self._CreateProject(PROJECT_NAME)
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_201_CREATED)
-    self.assertJSONEqual(response.content, {'name': BOARD_NAME,
+    self.assertJSONEqual(response.content, {'name': PROJECT_NAME,
                                             'umpireEnabled': False,
                                             'umpireHost': None,
                                             'umpirePort': None})
@@ -234,54 +234,54 @@ class DomeAPITest(rest_framework.test.APITestCase):
     self.mocks['subprocess.check_call'].assert_not_called()
     self.mocks['subprocess.check_output'].assert_not_called()
 
-  def testCreateBoardThatAlreadyExists(self):
-    response = self._CreateBoard(self.BOARD_WITH_UMPIRE_NAME)
+  def testCreateProjectThatAlreadyExists(self):
+    response = self._CreateProject(self.PROJECT_WITH_UMPIRE_NAME)
     # TODO(littlecvr): should expect HTTP_409_CONFLICT
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_400_BAD_REQUEST)
-    # TODO(littlecvr): should expect message like "Board OOO already exists"
+    # TODO(littlecvr): should expect message like "Project OOO already exists"
 
-  def testCreateBoardWithEmptyName(self):
-    response = self._CreateBoard('')
+  def testCreateProjectWithEmptyName(self):
+    response = self._CreateProject('')
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_400_BAD_REQUEST)
 
-  def testCreateBoardWithSlashesInName(self):
-    response = self._CreateBoard('a/b')
+  def testCreateProjectWithSlashesInName(self):
+    response = self._CreateProject('a/b')
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_400_BAD_REQUEST)
 
-  def testCreateBoardWithoutName(self):
-    response = self.client.post('/boards/', data={}, format='json')
+  def testCreateProjectWithoutName(self):
+    response = self.client.post('/projects/', data={}, format='json')
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_400_BAD_REQUEST)
     self.assertTrue('is required' in response.json()['name'])
 
-  def testDeleteAllBoards(self):
-    response = self.client.delete('/boards/')
+  def testDeleteAllProjects(self):
+    response = self.client.delete('/projects/')
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_405_METHOD_NOT_ALLOWED)
 
-  def testDeleteBoard(self):
-    response = self._DeleteBoard(self.BOARD_WITH_UMPIRE_NAME)
+  def testDeleteProject(self):
+    response = self._DeleteProject(self.PROJECT_WITH_UMPIRE_NAME)
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_204_NO_CONTENT)
 
     # make sure the container has also been removed
     self.mocks['subprocess.call'].assert_called_with([
         'docker', 'rm',
-        models.Board.GetUmpireContainerName(self.BOARD_WITH_UMPIRE_NAME)])
+        models.Project.GetUmpireContainerName(self.PROJECT_WITH_UMPIRE_NAME)])
 
-  def testDeleteNonExistingBoard(self):
-    response = self._DeleteBoard('non_existing_board')
+  def testDeleteNonExistingProject(self):
+    response = self._DeleteProject('non_existing_project')
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_404_NOT_FOUND)
 
   def testDisableUmpire(self):
-    response = self._DisableUmpire(self.BOARD_WITH_UMPIRE_NAME)
+    response = self._DisableUmpire(self.PROJECT_WITH_UMPIRE_NAME)
     self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
     self.assertJSONEqual(response.content,
-                         {'name': self.BOARD_WITH_UMPIRE_NAME,
+                         {'name': self.PROJECT_WITH_UMPIRE_NAME,
                           'umpireEnabled': False,
                           'umpireHost': None,
                           'umpirePort': None})
@@ -289,13 +289,13 @@ class DomeAPITest(rest_framework.test.APITestCase):
     # make sure the container has also been removed
     self.mocks['subprocess.call'].assert_called_with([
         'docker', 'rm',
-        models.Board.GetUmpireContainerName(self.BOARD_WITH_UMPIRE_NAME)])
+        models.Project.GetUmpireContainerName(self.PROJECT_WITH_UMPIRE_NAME)])
 
-  def testDisableUmpireOnBoardWithoutUmpire(self):
-    response = self._DisableUmpire(self.BOARD_WITHOUT_UMPIRE_NAME)
+  def testDisableUmpireOnProjectWithoutUmpire(self):
+    response = self._DisableUmpire(self.PROJECT_WITHOUT_UMPIRE_NAME)
     self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
     self.assertJSONEqual(response.content,
-                         {'name': self.BOARD_WITHOUT_UMPIRE_NAME,
+                         {'name': self.PROJECT_WITHOUT_UMPIRE_NAME,
                           'umpireEnabled': False,
                           'umpireHost': None,
                           'umpirePort': None})
@@ -311,19 +311,19 @@ class DomeAPITest(rest_framework.test.APITestCase):
     # pretend there is no containers
     self.mocks['subprocess.check_output'].side_effect = [
         '',
-        models.Board.GetUmpireContainerName(self.BOARD_WITHOUT_UMPIRE_NAME)]
+        models.Project.GetUmpireContainerName(self.PROJECT_WITHOUT_UMPIRE_NAME)]
 
-    response = self._EnableUmpire(self.BOARD_WITHOUT_UMPIRE_NAME, UMPIRE_PORT)
+    response = self._EnableUmpire(self.PROJECT_WITHOUT_UMPIRE_NAME, UMPIRE_PORT)
     self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
     self.assertJSONEqual(response.content,
-                         {'name': self.BOARD_WITHOUT_UMPIRE_NAME,
+                         {'name': self.PROJECT_WITHOUT_UMPIRE_NAME,
                           'umpireEnabled': True,
                           'umpireHost': 'localhost',
                           'umpirePort': UMPIRE_PORT})
 
     # make sure docker run has been called
-    container_name = models.Board.GetUmpireContainerName(
-        self.BOARD_WITHOUT_UMPIRE_NAME)
+    container_name = models.Project.GetUmpireContainerName(
+        self.PROJECT_WITHOUT_UMPIRE_NAME)
     docker_run_called = False
     for call in self.mocks['subprocess.check_call'].call_args_list:
       args, unused_kwargs = call
@@ -333,7 +333,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
     self.assertTrue(docker_run_called)
 
   def testEnableUmpireButUmpireAlreadyEnabled(self):
-    """Test enabling Umpire on a board with Umpire already enabled (and the
+    """Test enabling Umpire on a project with Umpire already enabled (and the
     Umpire container exists).
 
     Nothing should be changed, and no Docker commands except querying for
@@ -344,7 +344,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
     # pretend there is no container
     self.mocks['subprocess.check_output'].return_value = ''
 
-    self._EnableUmpire(self.BOARD_WITH_UMPIRE_NAME, UMPIRE_PORT)
+    self._EnableUmpire(self.PROJECT_WITH_UMPIRE_NAME, UMPIRE_PORT)
 
     # make sure no docker commands (except querying for container name) are
     # called
@@ -352,7 +352,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
     self.mocks['subprocess.check_call'].assert_not_called()
 
   def testEnableUmpireButUmpireAlreadyExists(self):
-    """Test enabling Umpire on a board with Umpire disabled but the Umpire
+    """Test enabling Umpire on a project with Umpire disabled but the Umpire
     container already exists.
 
     An exception should be raised since Dome will not create a new one with the
@@ -362,9 +362,9 @@ class DomeAPITest(rest_framework.test.APITestCase):
 
     # pretend that we already have the container
     self.mocks['subprocess.check_output'].return_value = (
-        models.Board.GetUmpireContainerName(self.BOARD_WITHOUT_UMPIRE_NAME))
+        models.Project.GetUmpireContainerName(self.PROJECT_WITHOUT_UMPIRE_NAME))
 
-    response = self._EnableUmpire(self.BOARD_WITHOUT_UMPIRE_NAME, UMPIRE_PORT)
+    response = self._EnableUmpire(self.PROJECT_WITHOUT_UMPIRE_NAME, UMPIRE_PORT)
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_400_BAD_REQUEST)
     self.assertTrue('already exists' in response.json()['detail'])
@@ -382,7 +382,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
                                    RESOURCE_VERSION,
                                    RESOURCE_HASH))
 
-    response = self._CreateResource(self.BOARD_WITH_UMPIRE_NAME, RESOURCE_TYPE)
+    response = self._CreateResource(self.PROJECT_WITH_UMPIRE_NAME,
+                                    RESOURCE_TYPE)
 
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_201_CREATED)
@@ -395,16 +396,16 @@ class DomeAPITest(rest_framework.test.APITestCase):
     self.mocks['xmlrpclib.ServerProxy']().AddResource.assert_called_with(
         mock.ANY, RESOURCE_TYPE)
 
-  def testUploadResourceToNonExistingBoard(self):
+  def testUploadResourceToNonExistingProject(self):
     RESOURCE_TYPE = 'device_factory_toolkit'
 
-    response = self._CreateResource('non_existing_board', RESOURCE_TYPE)
+    response = self._CreateResource('non_existing_project', RESOURCE_TYPE)
 
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_400_BAD_REQUEST)
 
   def testActivateBundle(self):
-    response = self._ActivateBundle(self.BOARD_WITH_UMPIRE_NAME,
+    response = self._ActivateBundle(self.PROJECT_WITH_UMPIRE_NAME,
                                     'testing_bundle_02')
 
     self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
@@ -414,7 +415,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
       self.assertEqual(r, response.json())
 
   def testActivateNonExistingBundle(self):
-    response = self._ActivateBundle(self.BOARD_WITH_UMPIRE_NAME,
+    response = self._ActivateBundle(self.PROJECT_WITH_UMPIRE_NAME,
                                     'non_existing_bundle')
 
     self.assertEqual(response.status_code,
@@ -423,8 +424,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
 
   def testClearBundleRules(self):
     response = self.client.put(
-        '/boards/%s/bundles/%s/' % (self.BOARD_WITH_UMPIRE_NAME,
-                                    'testing_bundle_01'),
+        '/projects/%s/bundles/%s/' % (self.PROJECT_WITH_UMPIRE_NAME,
+                                      'testing_bundle_01'),
         data={'rules': {}},
         format='json')
 
@@ -435,7 +436,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
       self.assertEqual(r, response.json())
 
   def testDeactivateBundle(self):
-    response = self._DeactivateBundle(self.BOARD_WITH_UMPIRE_NAME,
+    response = self._DeactivateBundle(self.PROJECT_WITH_UMPIRE_NAME,
                                       'testing_bundle_01')
     self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
     with TestData('umpire_config-deactivated.json') as c:
@@ -452,8 +453,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
             'UmpireError: Missing default bundle'))
 
     response = self.client.put(
-        '/boards/%s/bundles/%s/' % (self.BOARD_WITH_UMPIRE_NAME,
-                                    'testing_bundle_03'),
+        '/projects/%s/bundles/%s/' % (self.PROJECT_WITH_UMPIRE_NAME,
+                                      'testing_bundle_03'),
         data={'active': False},
         format='json')
 
@@ -463,8 +464,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
 
   def testDeleteBundle(self):
     response = self.client.delete(
-        '/boards/%s/bundles/%s/' % (self.BOARD_WITH_UMPIRE_NAME,
-                                    'testing_bundle_02'),
+        '/projects/%s/bundles/%s/' % (self.PROJECT_WITH_UMPIRE_NAME,
+                                      'testing_bundle_02'),
         format='json')
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_204_NO_CONTENT)
@@ -473,8 +474,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
 
   def testDeleteNonExistingBundle(self):
     response = self.client.delete(
-        '/boards/%s/bundles/%s/' % (self.BOARD_WITH_UMPIRE_NAME,
-                                    'non_existing_bundle'),
+        '/projects/%s/bundles/%s/' % (self.PROJECT_WITH_UMPIRE_NAME,
+                                      'non_existing_bundle'),
         format='json')
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_404_NOT_FOUND)
@@ -482,7 +483,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
 
   def testListBundlesAndNormalizeUmpireConfig(self):
     response = self.client.get(
-        '/boards/%s/bundles/' % self.BOARD_WITH_UMPIRE_NAME,
+        '/projects/%s/bundles/' % self.PROJECT_WITH_UMPIRE_NAME,
         format='json')
     self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
 
@@ -500,8 +501,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
 
   def testModifyBundleRules(self):
     response = self.client.put(
-        '/boards/%s/bundles/%s/' % (self.BOARD_WITH_UMPIRE_NAME,
-                                    'testing_bundle_02'),
+        '/projects/%s/bundles/%s/' % (self.PROJECT_WITH_UMPIRE_NAME,
+                                      'testing_bundle_02'),
         data={'rules': {'mlbSerialNumbers': ['foofoo123', 'barbar456']}},
         format='json')
 
@@ -512,7 +513,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
       self.assertEqual(r, response.json())
 
   def testReorderBundles(self):
-    response = self._ReorderBundles(self.BOARD_WITH_UMPIRE_NAME,
+    response = self._ReorderBundles(self.PROJECT_WITH_UMPIRE_NAME,
                                     ['testing_bundle_02',
                                      'testing_bundle_01',
                                      'testing_bundle_01_copy',
@@ -526,7 +527,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
       self.assertEqual(r, response.json())
 
   def testReorderBundlesWithoutListingAllBundleNames(self):
-    response = self._ReorderBundles(self.BOARD_WITH_UMPIRE_NAME,
+    response = self._ReorderBundles(self.PROJECT_WITH_UMPIRE_NAME,
                                     ['testing_bundle_02',
                                      'testing_bundle_01',
                                      'testing_bundle_03',
@@ -547,7 +548,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
 
     with TestData('new_bundle.json') as b:
       bundle = b
-    response = self._UploadNewBundle(self.BOARD_WITH_UMPIRE_NAME,
+    response = self._UploadNewBundle(self.PROJECT_WITH_UMPIRE_NAME,
                                      bundle['id'], bundle['note'])
 
     self.assertEqual(response.status_code,
@@ -566,7 +567,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
             -32500,  # application error, doesn't matter actually
             "UmpireError: bundle_id: '%s' already in use" % BUNDLE_NAME))
 
-    response = self._UploadNewBundle(self.BOARD_WITH_UMPIRE_NAME,
+    response = self._UploadNewBundle(self.PROJECT_WITH_UMPIRE_NAME,
                                      BUNDLE_NAME, BUNDLE_NOTE)
 
     self.assertEqual(response.status_code,
@@ -582,7 +583,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
             -32500,  # application error, doesn't matter actually
             'UmpireError: Unknown error'))
 
-    response = self._UploadNewBundle(self.BOARD_WITH_UMPIRE_NAME,
+    response = self._UploadNewBundle(self.PROJECT_WITH_UMPIRE_NAME,
                                      BUNDLE_NAME, BUNDLE_NOTE)
 
     self.assertEqual(response.status_code,
@@ -591,8 +592,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
 
   def testUpdateBundleResource(self):
     response = self.client.put(
-        '/boards/%s/bundles/%s/' % (self.BOARD_WITH_UMPIRE_NAME,
-                                    'testing_bundle_01'),
+        '/projects/%s/bundles/%s/' % (self.PROJECT_WITH_UMPIRE_NAME,
+                                      'testing_bundle_01'),
         data={
             'newName': 'testing_bundle_01_new',
             'note': 'climbing like a monkey',
@@ -618,8 +619,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
 
   def testUpdateBundleResourceInPlace(self):
     response = self.client.put(
-        '/boards/%s/bundles/%s/' % (self.BOARD_WITH_UMPIRE_NAME,
-                                    'testing_bundle_01'),
+        '/projects/%s/bundles/%s/' % (self.PROJECT_WITH_UMPIRE_NAME,
+                                      'testing_bundle_01'),
         data={
             'resources': {
                 'device_factory_toolkit': {
@@ -640,53 +641,55 @@ class DomeAPITest(rest_framework.test.APITestCase):
     # just make sure Update() is called
     self.assertTrue(self.mocks['xmlrpclib.ServerProxy']().Update.called)
 
-  def _ActivateBundle(self, board_name, bundle_name):
-    return self.client.put('/boards/%s/bundles/%s/' % (board_name, bundle_name),
+  def _ActivateBundle(self, project_name, bundle_name):
+    return self.client.put('/projects/%s/bundles/%s/' % (project_name,
+                                                         bundle_name),
                            data={'active': True},
                            format='json')
 
-  def _AddExistingUmpire(self, board_name, umpire_host, umpire_port):
-    return self.client.put('/boards/%s/' % board_name,
+  def _AddExistingUmpire(self, project_name, umpire_host, umpire_port):
+    return self.client.put('/projects/%s/' % project_name,
                            data={'umpireEnabled': True,
                                  'umpireAddExistingOne': True,
                                  'umpireHost': umpire_host,
                                  'umpirePort': umpire_port},
                            format='json')
 
-  def _CreateBoard(self, board_name):
-    return self.client.post('/boards/',
-                            data={'name': board_name},
+  def _CreateProject(self, project_name):
+    return self.client.post('/projects/',
+                            data={'name': project_name},
                             format='json')
 
-  def _CreateResource(self, board_name, resource_type):
-    return self.client.post('/boards/%s/resources/' % board_name,
+  def _CreateResource(self, project_name, resource_type):
+    return self.client.post('/projects/%s/resources/' % project_name,
                             {'file_id': self._UploadFile()['id'],
                              'type': resource_type},
                             format='json')
 
-  def _DeactivateBundle(self, board_name, bundle_name):
-    return self.client.put('/boards/%s/bundles/%s/' % (board_name, bundle_name),
+  def _DeactivateBundle(self, project_name, bundle_name):
+    return self.client.put('/projects/%s/bundles/%s/' % (project_name,
+                                                         bundle_name),
                            data={'active': False},
                            format='json')
 
-  def _DeleteBoard(self, board_name):
-    return self.client.delete('/boards/%s/' % board_name, format='json')
+  def _DeleteProject(self, project_name):
+    return self.client.delete('/projects/%s/' % project_name, format='json')
 
-  def _DisableUmpire(self, board_name):
-    return self.client.put('/boards/%s/' % board_name,
+  def _DisableUmpire(self, project_name):
+    return self.client.put('/projects/%s/' % project_name,
                            data={'umpireEnabled': False},
                            format='json')
 
-  def _EnableUmpire(self, board_name, umpire_port):
+  def _EnableUmpire(self, project_name, umpire_port):
     return self.client.put(
-        '/boards/%s/' % board_name,
+        '/projects/%s/' % project_name,
         data={'umpireEnabled': True,
               'umpirePort': umpire_port,
               'umpireFactoryToolkitFileId': self._UploadFile()['id']},
         format='json')
 
-  def _ReorderBundles(self, board_name, bundle_name_list):
-    return self.client.put('/boards/%s/bundles/' % board_name,
+  def _ReorderBundles(self, project_name, bundle_name_list):
+    return self.client.put('/projects/%s/bundles/' % project_name,
                            data=bundle_name_list, format='json')
 
   def _UploadFile(self):
@@ -694,8 +697,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
       response = self.client.post('/files/', data={'file': f})
     return response.json()
 
-  def _UploadNewBundle(self, board_name, bundle_name, bundle_note):
-    return self.client.post('/boards/%s/bundles/' % board_name,
+  def _UploadNewBundle(self, project_name, bundle_name, bundle_note):
+    return self.client.post('/projects/%s/bundles/' % project_name,
                             data={'name': bundle_name,
                                   'note': bundle_note,
                                   'bundle_file_id': self._UploadFile()['id']},

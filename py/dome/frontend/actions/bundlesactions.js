@@ -9,7 +9,7 @@ import DomeActions from './domeactions';
 import FormNames from '../constants/FormNames';
 
 function baseURL(getState) {
-  return `/boards/${getState().getIn(['dome', 'currentBoard'])}`;
+  return `/projects/${getState().getIn(['dome', 'currentProject'])}`;
 }
 
 function buildOnCancel(dispatch, getState) {
@@ -90,7 +90,7 @@ const activateBundle = (name, active) => (dispatch, getState) => {
 
   // send the request
   var body = {
-    board: getState().getIn(['dome', 'currentBoard']),
+    project: getState().getIn(['dome', 'currentProject']),
     name,
     active
   };
@@ -116,9 +116,9 @@ const changeBundleRules = (name, rules) => (dispatch, getState) => {
 
   // send the request
   var body = {
-    // TODO(littlecvr): refine the back-end API so we don't need board here, the
-    //                  URL already contains board
-    board: getState().getIn(['dome', 'currentBoard']),
+    // TODO(littlecvr): refine the back-end API so we don't need project here,
+    //                  the URL already contains project
+    project: getState().getIn(['dome', 'currentProject']),
     name,
     rules,
   };

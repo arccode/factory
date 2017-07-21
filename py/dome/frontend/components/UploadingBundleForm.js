@@ -14,7 +14,7 @@ import FormNames from '../constants/FormNames';
 
 var UploadingBundleForm = React.createClass({
   propTypes: {
-    board: React.PropTypes.string.isRequired,
+    project: React.PropTypes.string.isRequired,
     show: React.PropTypes.bool.isRequired,
     startUploading: React.PropTypes.func.isRequired,
     cancelUploading: React.PropTypes.func.isRequired
@@ -32,7 +32,7 @@ var UploadingBundleForm = React.createClass({
     }
 
     var data = {
-      board:  this.props.board,
+      project:  this.props.project,
       name:  this.state.nameInputValue,
       note:  this.state.noteInputValue,
       bundleFile:  this.fileInput.files[0]
@@ -106,7 +106,7 @@ var UploadingBundleForm = React.createClass({
 
 function mapStateToProps(state) {
   return {
-    board: state.getIn(['dome', 'currentBoard']),
+    project: state.getIn(['dome', 'currentProject']),
     show: state.getIn([
       'dome', 'formVisibility', FormNames.UPLOADING_BUNDLE_FORM
     ], false)

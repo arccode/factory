@@ -11,7 +11,7 @@ var _SPACE_BETWEEN_COMPONENTS = 24;
 
 var EnablingUmpireForm = React.createClass({
   propTypes: {
-    boardName: React.PropTypes.string.isRequired,
+    projectName: React.PropTypes.string.isRequired,
     onCancel: React.PropTypes.func.isRequired,
     onConfirm: React.PropTypes.func.isRequired,
     opened: React.PropTypes.bool.isRequired
@@ -28,13 +28,13 @@ var EnablingUmpireForm = React.createClass({
   },
 
   handleAdd() {
-    this.props.onConfirm(this.props.boardName, this.buildUmpireSettings(
+    this.props.onConfirm(this.props.projectName, this.buildUmpireSettings(
         true, this.state.hostInputValue, this.state.portInputValue
     ));
   },
 
   handleCreate() {
-    this.props.onConfirm(this.props.boardName, this.buildUmpireSettings(
+    this.props.onConfirm(this.props.projectName, this.buildUmpireSettings(
         false, 'localhost', this.state.portInputValue
     ));
   },

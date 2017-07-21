@@ -27,7 +27,7 @@ from backend import views
 
 
 # TODO(littlecvr): move to common config with umpire.
-BOARD_URL_ARG = r'(?P<board_name>[_a-zA-Z]+)'
+PROJECT_URL_ARG = r'(?P<project_name>[_a-zA-Z]+)'
 BUNDLE_URL_ARG = r'(?P<bundle_name>[^/]+)'  # anything but slash
 
 
@@ -38,15 +38,15 @@ urlpatterns = [
         views.FileCollectionView.as_view()),
     url(r'^config/(?P<id>\d+)/$',
         views.ConfigView.as_view()),
-    url(r'^boards/$',
-        views.BoardCollectionView.as_view()),
-    url(r'^boards/%s/$' % BOARD_URL_ARG,
-        views.BoardElementView.as_view()),
-    url(r'^boards/%s/bundles/$' % BOARD_URL_ARG,
+    url(r'^projects/$',
+        views.ProjectCollectionView.as_view()),
+    url(r'^projects/%s/$' % PROJECT_URL_ARG,
+        views.ProjectElementView.as_view()),
+    url(r'^projects/%s/bundles/$' % PROJECT_URL_ARG,
         views.BundleCollectionView.as_view()),
-    url(r'^boards/%s/bundles/%s/$' % (BOARD_URL_ARG, BUNDLE_URL_ARG),
+    url(r'^projects/%s/bundles/%s/$' % (PROJECT_URL_ARG, BUNDLE_URL_ARG),
         views.BundleElementView.as_view()),
-    url(r'^boards/%s/resources/$' % BOARD_URL_ARG,
+    url(r'^projects/%s/resources/$' % PROJECT_URL_ARG,
         views.ResourceCollectionView.as_view())]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

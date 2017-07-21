@@ -18,7 +18,7 @@ var _NAME_INPUT_VALUE_ERROR_TEST =
 
 var UpdatingResourceForm = React.createClass({
   propTypes: {
-    board: React.PropTypes.string.isRequired,
+    project: React.PropTypes.string.isRequired,
 
     show: React.PropTypes.bool.isRequired,
 
@@ -57,7 +57,7 @@ var UpdatingResourceForm = React.createClass({
 
     let resourceType = this.props.resourceType;
     let data = {
-      board:  this.props.board,
+      project:  this.props.project,
       name:  this.props.bundleName,
       note:  this.state.noteInputValue,
       resources: {
@@ -147,7 +147,7 @@ var UpdatingResourceForm = React.createClass({
 
 function mapStateToProps(state) {
   return {
-    board: state.getIn(['dome', 'currentBoard']),
+    project: state.getIn(['dome', 'currentProject']),
     show: state.getIn([
       'dome', 'formVisibility', FormNames.UPDATING_RESOURCE_FORM
     ], false),

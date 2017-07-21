@@ -10,11 +10,11 @@ from rest_framework import mixins
 from rest_framework.response import Response
 from rest_framework import status
 
-from backend.models import Board
+from backend.models import Project
 from backend.models import Bundle
 from backend.models import DomeConfig
 from backend.models import TemporaryUploadedFile
-from backend.serializers import BoardSerializer
+from backend.serializers import ProjectSerializer
 from backend.serializers import BundleSerializer
 from backend.serializers import ConfigSerializer
 from backend.serializers import ResourceSerializer
@@ -43,23 +43,23 @@ class FileCollectionView(generics.CreateAPIView):
   serializer_class = UploadedFileSerializer
 
 
-class BoardCollectionView(generics.ListCreateAPIView):
+class ProjectCollectionView(generics.ListCreateAPIView):
 
-  queryset = Board.objects.all()
-  serializer_class = BoardSerializer
+  queryset = Project.objects.all()
+  serializer_class = ProjectSerializer
 
 
-class BoardElementView(mixins.DestroyModelMixin,
-                       generics.UpdateAPIView):
+class ProjectElementView(mixins.DestroyModelMixin,
+                         generics.UpdateAPIView):
 
-  queryset = Board.objects.all()
-  serializer_class = BoardSerializer
+  queryset = Project.objects.all()
+  serializer_class = ProjectSerializer
   lookup_field = 'name'
-  lookup_url_kwarg = 'board_name'
+  lookup_url_kwarg = 'project_name'
 
-  def delete(self, request, board_name, request_format=None):
+  def delete(self, request, project_name, request_format=None):
     """Override parent's method."""
-    del board_name, request_format  # unused
+    del project_name, request_format  # unused
     return self.destroy(request)
 
   def perform_destroy(self, instance):
@@ -73,16 +73,16 @@ class BundleCollectionView(generics.ListCreateAPIView):
   serializer_class = BundleSerializer
 
   def get_queryset(self):
-    return Bundle.ListAll(self.kwargs['board_name'])
+    return Bundle.ListAll(self.kwargs['project_name'])
 
   def perform_create(self, serializer):
     """Override parent's method."""
-    serializer.save(board_name=self.kwargs['board_name'])
+    serializer.save(project_name=self.kwargs['project_name'])
 
-  def put(self, request, board_name, request_format=None):
+  def put(self, request, project_name, request_format=None):
     """Override parent's method."""
     del request_format  # unused
-    bundle_list = Bundle.ReorderBundles(board_name, request.data)
+    bundle_list = Bundle.ReorderBundles(project_name, request.data)
     serializer = BundleSerializer(bundle_list, many=True)
     return Response(serializer.data)
 
@@ -92,23 +92,23 @@ class BundleElementView(generics.GenericAPIView):
 
   serializer_class = BundleSerializer
 
-  def delete(self, request, board_name, bundle_name, request_format=None):
+  def delete(self, request, project_name, bundle_name, request_format=None):
     """Override parent's method."""
     del request, request_format  # unused
-    Bundle.DeleteOne(board_name, bundle_name)
+    Bundle.DeleteOne(project_name, bundle_name)
     return Response(status=status.HTTP_204_NO_CONTENT)
 
-  def put(self, request, board_name, bundle_name, request_format=None):
+  def put(self, request, project_name, bundle_name, request_format=None):
     """Override parent's method."""
     del request_format  # unused
-    bundle = Bundle.ListOne(board_name, bundle_name)
+    bundle = Bundle.ListOne(project_name, bundle_name)
 
     data = request.data.copy()
     data['name'] = bundle_name
     serializer = self.get_serializer(bundle, data=data)
 
     serializer.is_valid(raise_exception=True)
-    serializer.save(board_name=board_name)
+    serializer.save(project_name=project_name)
 
     return Response(serializer.data)
 
@@ -118,4 +118,4 @@ class ResourceCollectionView(generics.CreateAPIView):
   serializer_class = ResourceSerializer
 
   def perform_create(self, serializer):
-    serializer.save(board_name=self.kwargs['board_name'])
+    serializer.save(project_name=self.kwargs['project_name'])

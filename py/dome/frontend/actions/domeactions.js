@@ -24,8 +24,8 @@ function checkHTTPStatus(response) {
 }
 
 function buildOnCancel(dispatch, getState) {
-  var boardsSnapshot = getState().getIn(['dome', 'boards']).toList().toJS();
-  return () => dispatch(receiveBoards(boardsSnapshot));
+  var projectsSnapshot = getState().getIn(['dome', 'projects']).toList().toJS();
+  return () => dispatch(receiveProjects(projectsSnapshot));
 }
 
 function recursivelyUploadFileFields(data, queue = null) {
@@ -123,15 +123,15 @@ const setAndShowErrorDialog = message => dispatch => {
   dispatch(showErrorDialog());
 };
 
-const createBoard = name => dispatch => {
-  var description = `Create board "${name}"`;
+const createProject = name => dispatch => {
+  var description = `Create project "${name}"`;
   dispatch(createTask(
-      description, 'POST', '/boards', {name},
-      {onFinish: () => dispatch(fetchBoards())}
+      description, 'POST', '/projects', {name},
+      {onFinish: () => dispatch(fetchProjects())}
   ));
 };
 
-const updateBoard = (name, settings = {}) => (dispatch, getState) => {
+const updateProject = (name, settings = {}) => (dispatch, getState) => {
   let body = {name};
   [
     'umpireEnabled',
@@ -149,60 +149,60 @@ const updateBoard = (name, settings = {}) => (dispatch, getState) => {
 
   // optimistic update
   dispatch({
-    type: ActionTypes.UPDATE_BOARD,
-    board: Object.assign({
+    type: ActionTypes.UPDATE_PROJECT,
+    project: Object.assign({
       name,
       umpireReady: false,
     }, settings)
   });
 
   let onFinish = () => dispatch({
-    type: ActionTypes.UPDATE_BOARD,
-    board: {
+    type: ActionTypes.UPDATE_PROJECT,
+    project: {
       name,
       umpireReady: settings['umpireEnabled'] === true ? true : false
     }
   });
 
-  var description = `Update board "${name}"`;
+  var description = `Update project "${name}"`;
   dispatch(createTask(
-      description, 'PUT', `/boards/${name}`, body, {onCancel, onFinish}
+      description, 'PUT', `/projects/${name}`, body, {onCancel, onFinish}
   ));
 };
 
-const deleteBoard = name => dispatch => {
+const deleteProject = name => dispatch => {
   dispatch(createTask(
-      `Delete board "${name}"`, 'DELETE', `/boards/${name}`, {},
-      {onFinish: () => dispatch(fetchBoards())}
+      `Delete project "${name}"`, 'DELETE', `/projects/${name}`, {},
+      {onFinish: () => dispatch(fetchProjects())}
   ));
 };
 
-const receiveBoards = boards => ({
-  type: ActionTypes.RECEIVE_BOARDS,
-  boards
+const receiveProjects = projects => ({
+  type: ActionTypes.RECEIVE_PROJECTS,
+  projects
 });
 
 // TODO(littlecvr): similar to fetchBundles, refactor code if possible
-const fetchBoards = () => dispatch => {
-  fetch('/boards.json').then(response => {
+const fetchProjects = () => dispatch => {
+  fetch('/projects.json').then(response => {
     response.json().then(json => {
-      dispatch(receiveBoards(json));
+      dispatch(receiveProjects(json));
     }, error => {
       // TODO(littlecvr): better error handling
-      console.error('error parsing board list response');
+      console.error('error parsing project list response');
       console.error(error);
     });
   }, error => {
     // TODO(littlecvr): better error handling
-    console.error('error fetching board list');
+    console.error('error fetching project list');
     console.error(error);
   });
 };
 
-const switchBoard = nextBoard => (dispatch, getState) => dispatch({
-  type: ActionTypes.SWITCH_BOARD,
-  prevBoard: getState().getIn(['dome', 'board']),
-  nextBoard
+const switchProject = nextProject => (dispatch, getState) => dispatch({
+  type: ActionTypes.SWITCH_PROJECT,
+  prevProject: getState().getIn(['dome', 'project']),
+  nextProject
 });
 
 const switchApp = nextApp => (dispatch, getState) => dispatch({
@@ -380,7 +380,7 @@ export default {
   syncConfig, updateConfig, fetchConfig, initializeConfig,
   enableTFTP, disableTFTP,
   setError, showErrorDialog, hideErrorDialog, setAndShowErrorDialog,
-  createBoard, updateBoard, deleteBoard, fetchBoards, switchBoard,
+  createProject, updateProject, deleteProject, fetchProjects, switchProject,
   switchApp,
   openForm, closeForm,
   createTask, removeTask, cancelTaskAndItsDependencies

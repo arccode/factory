@@ -9,9 +9,10 @@ import AppNames from '../constants/AppNames';
 import TaskStates from '../constants/TaskStates';
 
 const INITIAL_STATE = Immutable.fromJS({
-  boards: {},
-  currentBoard: '',
-  currentApp: AppNames.BOARDS_APP,  // default app is the board selection page
+  projects: {},
+  currentProject: '',
+  currentApp: AppNames.PROJECTS_APP,  // default app is the project selection
+                                      // page
   errorDialog: {
     show: false,
     message: '',
@@ -38,28 +39,28 @@ export default function domeReducer(state = INITIAL_STATE, action) {
     case ActionTypes.HIDE_ERROR_DIALOG:
       return state.setIn(['errorDialog', 'show'], false);
 
-    case ActionTypes.ADD_BOARD:
-      return state.setIn(['boards', action.board.name],
-          Immutable.fromJS(action.board));
+    case ActionTypes.ADD_PROJECT:
+      return state.setIn(['projects', action.project.name],
+          Immutable.fromJS(action.project));
 
-    case ActionTypes.DELETE_BOARD:
-      return state.deleteIn(['boards', action.boardName]);
+    case ActionTypes.DELETE_PROJECT:
+      return state.deleteIn(['projects', action.projectName]);
 
-    case ActionTypes.RECEIVE_BOARDS:
-      return state.set('boards', Immutable.Map(action.boards.map(
+    case ActionTypes.RECEIVE_PROJECTS:
+      return state.set('projects', Immutable.Map(action.projects.map(
           b => [b['name'], Immutable.fromJS(b).merge({
             umpireReady: b['umpireEnabled']
           })]
       )));
 
-    case ActionTypes.UPDATE_BOARD:
-      return state.mergeIn(['boards', action.board.name],
-          Immutable.fromJS(action.board));
+    case ActionTypes.UPDATE_PROJECT:
+      return state.mergeIn(['projects', action.project.name],
+          Immutable.fromJS(action.project));
 
-    case ActionTypes.SWITCH_BOARD:
+    case ActionTypes.SWITCH_PROJECT:
       return state.withMutations(s => {
-        s.set('currentBoard', action.nextBoard);
-        // switch to dashboard after switching board by default
+        s.set('currentProject', action.nextProject);
+        // switch to dashboard after switching project by default
         s.set('currentApp', AppNames.DASHBOARD_APP);
       });
 

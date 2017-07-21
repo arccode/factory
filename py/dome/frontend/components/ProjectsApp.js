@@ -15,13 +15,13 @@ import TextField from 'material-ui/TextField';
 
 import DomeActions from '../actions/domeactions';
 
-var BoardsApp = React.createClass({
+var ProjectsApp = React.createClass({
   propTypes: {
-    boards: React.PropTypes.instanceOf(Immutable.Map).isRequired,
-    createBoard: React.PropTypes.func.isRequired,
-    deleteBoard: React.PropTypes.func.isRequired,
-    fetchBoards: React.PropTypes.func.isRequired,
-    switchBoard: React.PropTypes.func.isRequired
+    projects: React.PropTypes.instanceOf(Immutable.Map).isRequired,
+    createProject: React.PropTypes.func.isRequired,
+    deleteProject: React.PropTypes.func.isRequired,
+    fetchProjects: React.PropTypes.func.isRequired,
+    switchProject: React.PropTypes.func.isRequired
   },
 
   handleCreate() {
@@ -32,7 +32,7 @@ var BoardsApp = React.createClass({
       return;
     }
 
-    this.props.createBoard(this.state.nameInputValue);
+    this.props.createProject(this.state.nameInputValue);
     this.setState({nameInputValue: ''});
   },
 
@@ -49,12 +49,12 @@ var BoardsApp = React.createClass({
   },
 
   componentDidMount() {
-    this.props.fetchBoards();
+    this.props.fetchProjects();
   },
 
   render() {
     const style = {margin: 24};
-    const {boards, switchBoard, deleteBoard} = this.props;
+    const {projects, switchProject, deleteProject} = this.props;
     return (
       <Paper style={{
         maxWidth: 400, height: '100%',
@@ -62,24 +62,24 @@ var BoardsApp = React.createClass({
         textAlign: 'center'
       }}>
         {/* TODO(littlecvr): make a logo! */}
-        <h1 style={{textAlign: 'center'}}>Board list</h1>
+        <h1 style={{textAlign: 'center'}}>Project list</h1>
 
         <div style={style}>
           <Divider />
-          {boards.size <= 0 && <div style={{marginTop: 16, marginBottom: 16}}>
-            no boards, create or add an existing one
+          {projects.size <= 0 && <div style={{marginTop: 16, marginBottom: 16}}>
+            no projects, create or add an existing one
           </div>}
-          {boards.size > 0 && <List style={{textAlign: 'left'}}>
-            {boards.keySeq().sort().toArray().map(name => {
+          {projects.size > 0 && <List style={{textAlign: 'left'}}>
+            {projects.keySeq().sort().toArray().map(name => {
               return (
                 <ListItem
                   key={name}
                   primaryText={name}
-                  onTouchTap={() => switchBoard(name)}
+                  onTouchTap={() => switchProject(name)}
                   rightIconButton={
                     <IconButton
-                      tooltip="delete this board"
-                      onTouchTap={() => deleteBoard(name)}
+                      tooltip="delete this project"
+                      onTouchTap={() => deleteProject(name)}
                     >
                       <DeleteIcon />
                     </IconButton>
@@ -100,13 +100,13 @@ var BoardsApp = React.createClass({
           <TextField
             name="name"
             fullWidth={true}
-            floatingLabelText="New board name"
+            floatingLabelText="New project name"
             value={this.state.nameInputValue}
             onChange={e => this.setState({nameInputValue: e.target.value})}
             errorText={this.state.nameInputErrorText}
           />
           <RaisedButton
-            label="CREATE A NEW BOARD"
+            label="CREATE A NEW PROJECT"
             primary={true}
             fullWidth={true}
             onTouchTap={this.handleCreate}
@@ -119,17 +119,18 @@ var BoardsApp = React.createClass({
 
 function mapStateToProps(state) {
   return {
-    boards: state.getIn(['dome', 'boards'])
+    projects: state.getIn(['dome', 'projects'])
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return {
-    createBoard: name => dispatch(DomeActions.createBoard(name)),
-    deleteBoard: name => dispatch(DomeActions.deleteBoard(name)),
-    fetchBoards: () => dispatch(DomeActions.fetchBoards()),
-    switchBoard: nextBoard => dispatch(DomeActions.switchBoard(nextBoard))
+    createProject: name => dispatch(DomeActions.createProject(name)),
+    deleteProject: name => dispatch(DomeActions.deleteProject(name)),
+    fetchProjects: () => dispatch(DomeActions.fetchProjects()),
+    switchProject:
+        nextProject => dispatch(DomeActions.switchProject(nextProject))
   };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(BoardsApp);
+export default connect(mapStateToProps, mapDispatchToProps)(ProjectsApp);

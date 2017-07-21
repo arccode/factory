@@ -1,5 +1,5 @@
 {
-  "board": "testing_board",
+  "project": "testing_project",
   "bundles": [
     {
       "id": "empty_init_bundle",

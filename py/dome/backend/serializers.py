@@ -7,7 +7,7 @@ from rest_framework import exceptions
 from rest_framework import serializers
 from rest_framework import validators
 
-from backend.models import Board
+from backend.models import Project
 from backend.models import Bundle
 from backend.models import DomeConfig
 from backend.models import Resource
@@ -47,26 +47,28 @@ class UploadedFileSerializer(serializers.ModelSerializer):
       validated_data['file'].close()
 
 
-class BoardSerializer(serializers.Serializer):
+class ProjectSerializer(serializers.Serializer):
 
   name = serializers.ModelField(
-      model_field=Board._meta.get_field('name'),  # pylint: disable=W0212
+      model_field=Project._meta.get_field('name'),  # pylint: disable=W0212
       required=False,
       validators=[
-          validators.UniqueValidator(queryset=Board.objects.all()),
+          validators.UniqueValidator(queryset=Project.objects.all()),
           django.core.validators.RegexValidator(
               regex=r'^[^/]+$',
-              message='Slashes are not allowed in board name')])
+              message='Slashes are not allowed in project name')])
 
   umpire_enabled = serializers.ModelField(
       model_field=(
-          Board._meta.get_field('umpire_enabled')),  # pylint: disable=W0212
+          Project._meta.get_field('umpire_enabled')),  # pylint: disable=W0212
       required=False)
   umpire_host = serializers.ModelField(
-      model_field=Board._meta.get_field('umpire_host'),  # pylint: disable=W0212
+      model_field=Project._meta.get_field(  # pylint: disable=W0212
+          'umpire_host'),
       required=False)
   umpire_port = serializers.ModelField(
-      model_field=Board._meta.get_field('umpire_port'),  # pylint: disable=W0212
+      model_field=Project._meta.get_field(  # pylint: disable=W0212
+          'umpire_port'),
       required=False)
 
   # True means the user is trying to add an existing Umpire container; False
@@ -80,11 +82,11 @@ class BoardSerializer(serializers.Serializer):
     if 'name' not in validated_data:
       raise exceptions.ValidationError({'name': 'This field is required'})
     name = validated_data.pop('name')
-    return Board.CreateOne(name, **validated_data)
+    return Project.CreateOne(name, **validated_data)
 
   def update(self, instance, validated_data):
     """Override parent's method."""
-    return Board.UpdateOne(instance, **validated_data)
+    return Project.UpdateOne(instance, **validated_data)
 
 
 class ResourceSerializer(serializers.Serializer):
@@ -94,10 +96,11 @@ class ResourceSerializer(serializers.Serializer):
   file_id = serializers.IntegerField(write_only=True)
 
   def create(self, validated_data):
-    board_name = validated_data['board_name']
-    if not Board.objects.filter(pk=board_name).exists():
-      raise exceptions.ValidationError('Board %s does not exist' % board_name)
-    return Resource.CreateOne(board_name,
+    project_name = validated_data['project_name']
+    if not Project.objects.filter(pk=project_name).exists():
+      raise exceptions.ValidationError(
+          'Project %s does not exist' % project_name)
+    return Resource.CreateOne(project_name,
                               validated_data['type'],
                               validated_data['file_id'])
 
@@ -127,11 +130,11 @@ class BundleSerializer(serializers.Serializer):
 
   def update(self, instance, validated_data):
     """Override parent's method."""
-    board_name = validated_data.pop('board_name')
+    project_name = validated_data.pop('project_name')
     bundle_name = instance.name
     data = {'dst_bundle_name': validated_data.pop('new_name', None),
             'note': validated_data.pop('note', None),
             'active': validated_data.pop('active', None),
             'rules': validated_data.pop('rules', None),
             'resources': validated_data.pop('resources', None)}
-    return Bundle.ModifyOne(board_name, bundle_name, **data)
+    return Bundle.ModifyOne(project_name, bundle_name, **data)

@@ -13,7 +13,7 @@ import React from 'react';
 import Subheader from 'material-ui/Subheader';
 
 import AppNames from '../constants/AppNames';
-import BoardsApp from './BoardsApp';
+import ProjectsApp from './ProjectsApp';
 import BundlesApp from './BundlesApp';
 import ConfigApp from './ConfigApp';
 import DashboardApp from './DashboardApp';
@@ -23,7 +23,7 @@ import FixedAppBar from './FixedAppBar';
 import TaskList from './TaskList';
 
 const _APP_MENU_WIDTH = 250;
-const _BOARD_MENU_ITEM_PADDING_LEFT = 36;
+const _PROJECT_MENU_ITEM_PADDING_LEFT = 36;
 const _SPACE_BEFORE_TASK_LIST = 24;
 const _SPACE_AFTER_TASK_LIST = 24;
 
@@ -43,7 +43,7 @@ const DomeAppBarTitle = () => (
 var DomeApp = React.createClass({
   propTypes: {
     appName: React.PropTypes.string.isRequired,
-    board: React.PropTypes.instanceOf(Immutable.Map).isRequired,
+    project: React.PropTypes.instanceOf(Immutable.Map).isRequired,
     switchApp: React.PropTypes.func.isRequired
   },
 
@@ -70,7 +70,7 @@ var DomeApp = React.createClass({
   },
 
   render() {
-    const {appName, board} = this.props;
+    const {appName, project} = this.props;
 
     // must not let the task list cover the main content
     var paddingBottom = _SPACE_BEFORE_TASK_LIST +
@@ -81,8 +81,8 @@ var DomeApp = React.createClass({
     //                   corresponding app intead of writing a long if-elif-else
     //                   statement.
     var app = null;
-    if (appName == AppNames.BOARDS_APP) {
-      app = <BoardsApp />;
+    if (appName == AppNames.PROJECTS_APP) {
+      app = <ProjectsApp />;
     } else if (appName == AppNames.CONFIG_APP) {
       app = <ConfigApp />;
     } else if (appName == AppNames.DASHBOARD_APP) {
@@ -95,7 +95,7 @@ var DomeApp = React.createClass({
       console.error(`Unknown app ${appName}`);
     }
 
-    const boardName = board.get('name', '');
+    const projectName = project.get('name', '');
 
     return (
       <div style={{paddingBottom}}>
@@ -117,29 +117,29 @@ var DomeApp = React.createClass({
           containerStyle={{top: this.state.appBarHeight, zIndex: 1000}}
           zDepth={1}  // below the AppBar
         >
-          {boardName != '' && <Subheader>{boardName}</Subheader>}
-          {boardName != '' &&
+          {projectName != '' && <Subheader>{projectName}</Subheader>}
+          {projectName != '' &&
             <MenuItem
               onTouchTap={() => this.handleClick(AppNames.DASHBOARD_APP)}
-              innerDivStyle={{paddingLeft: _BOARD_MENU_ITEM_PADDING_LEFT}}
+              innerDivStyle={{paddingLeft: _PROJECT_MENU_ITEM_PADDING_LEFT}}
             >
               Dashboard
             </MenuItem>
           }
-          {boardName != '' && board.get('umpireEnabled') &&
+          {projectName != '' && project.get('umpireEnabled') &&
             <MenuItem
               onTouchTap={() => this.handleClick(AppNames.BUNDLES_APP)}
-              innerDivStyle={{paddingLeft: _BOARD_MENU_ITEM_PADDING_LEFT}}
-              disabled={!board.get('umpireReady')}
+              innerDivStyle={{paddingLeft: _PROJECT_MENU_ITEM_PADDING_LEFT}}
+              disabled={!project.get('umpireReady')}
             >
-              Bundles{!board.get('umpireReady') && ' (activating...)'}
+              Bundles{!project.get('umpireReady') && ' (activating...)'}
             </MenuItem>
           }
 
-          {boardName != '' && <Divider />}
+          {projectName != '' && <Divider />}
 
-          <MenuItem onTouchTap={() => this.handleClick(AppNames.BOARDS_APP)}>
-            Change board
+          <MenuItem onTouchTap={() => this.handleClick(AppNames.PROJECTS_APP)}>
+            Change project
           </MenuItem>
           <Divider />
           <MenuItem onTouchTap={() => this.handleClick(AppNames.CONFIG_APP)}>
@@ -166,8 +166,8 @@ var DomeApp = React.createClass({
 function mapStateToProps(state) {
   return {
     appName: state.getIn(['dome', 'currentApp']),
-    board: state.getIn(
-        ['dome', 'boards', state.getIn(['dome', 'currentBoard'])],
+    project: state.getIn(
+        ['dome', 'projects', state.getIn(['dome', 'currentProject'])],
         Immutable.Map()
     )
   };

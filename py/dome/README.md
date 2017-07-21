@@ -100,7 +100,7 @@ Dome.
 
 *** note
 One thing to note is that already created Umpire instances won't be updated
-automatically. To update, go to Dome and select board, click the "DISABLE"
+automatically. To update, go to Dome and select project, click the "DISABLE"
 action button then "ENABLE" again using same port, then click the "CREATE A NEW
 UMPIRE INSTANCE" button.
 ***
