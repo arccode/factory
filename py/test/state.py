@@ -449,11 +449,11 @@ class FactoryState(object):
   # The following functions are exposed for layer APIs
   #############################################################################
   # Max number of layers allowed, including base layer.
-  _MAX_LAYER_NUM = 2
+  MAX_LAYER_NUM = 2
 
   @sync_utils.Synchronized
   def AppendLayer(self, serialized_data=None):
-    if len(self.layers) == self._MAX_LAYER_NUM:
+    if len(self.layers) == self.MAX_LAYER_NUM:
       raise FactoryStateLayerException('Max # layers reached')
 
     self.layers.append(FactoryStateLayer(None))
@@ -479,10 +479,14 @@ class FactoryState(object):
       raise IndexError('layer_index out of range')
 
     self.layers[layer_index - 1].tests_shelf.UpdateValue(
-        '', self.layers[layer_index].test_shelf.GetValue(''))
+        '', self.layers[layer_index].tests_shelf.GetValue(''))
     self.layers[layer_index - 1].data_shelf.UpdateValue(
         '', self.layers[layer_index].data_shelf.GetValue(''))
     self.layers.pop()
+
+  @sync_utils.Synchronized
+  def GetLayerCount(self):
+    return len(self.layers)
 
 
 def get_instance(address=None, port=None):

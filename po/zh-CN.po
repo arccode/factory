@@ -174,6 +174,10 @@ msgid "External Display"
 msgstr "外接显示"
 
 #: ../build/pytests_label_generated.json
+msgid "Factory State"
+msgstr "工厂测试状态"
+
+#: ../build/pytests_label_generated.json
 msgid "Fan Speed"
 msgstr "风扇转速"
 
