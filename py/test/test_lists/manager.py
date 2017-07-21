@@ -136,11 +136,13 @@ class ITestList(object):
     raise NotImplementedError
 
   def ResolveTestArgs(
-      self, test_args, dut, station, constants=None, options=None):
+      self, test_args, dut, station, constants=None, options=None,
+      locals_=None):
     if constants is None:
       constants = self.constants
     if options is None:
       options = self.options
+    locals_ = type_utils.AttrDict(locals_ or {})
 
     _EVALUATE_PREFIX = 'eval! '
     def ResolveArg(key, value):
@@ -165,18 +167,19 @@ class ITestList(object):
 
         self._checker.AssertExpressionIsValid(expression)
         return self.EvaluateExpression(
-            expression, dut, station, constants, options)
+            expression, dut, station, constants, options, locals_)
 
       return MayTranslate(value)
     return {k: ResolveArg(k, v) for k, v in test_args.iteritems()}
 
   @staticmethod
-  def EvaluateExpression(expression, dut, station, constants, options):
+  def EvaluateExpression(expression, dut, station, constants, options, locals_):
     namespace = {
         'dut': dut,
         'station': station,
         'constants': constants,
-        'options': options, }
+        'options': options,
+        'locals': locals_, }
     # pylint: disable=eval-used
     return eval(expression, namespace)
 
@@ -247,13 +250,27 @@ class TestList(ITestList):
   def MakeTest(self,
                test_object,
                cache,
-               default_action_on_failure=None):
+               default_action_on_failure=None,
+               locals_=None):
     """Convert a test_object to a FactoryTest object."""
 
     test_object = self.ResolveTestObject(
         test_object=test_object,
         test_object_name=None,
         cache=cache)
+
+    if locals_ is None:
+      locals_ = {}
+
+    if 'locals' in test_object:
+      locals_ = config_utils.OverrideConfig(
+          locals_,
+          self.ResolveTestArgs(
+              test_object.pop('locals'),
+              dut=None,
+              station=None,
+              locals_=locals_),
+          copy_on_write=True)
 
     if not test_object.get('action_on_failure', None):
       test_object['action_on_failure'] = default_action_on_failure
@@ -264,11 +281,13 @@ class TestList(ITestList):
 
     subtests = []
     for subtest in test_object.get('subtests', []):
-      subtests.append(self.MakeTest(subtest, cache, default_action_on_failure))
+      subtests.append(self.MakeTest(
+          subtest, cache, default_action_on_failure, locals_))
 
     # replace subtests
     kwargs['subtests'] = subtests
     kwargs['dargs'] = kwargs.pop('args', {})
+    kwargs['locals_'] = locals_
     kwargs.pop('__comment', None)
 
     # syntactic sugar: if `id` is not specified, we will try to generate an id
@@ -641,7 +660,7 @@ class Checker(object):
   *before* actually running tests in the test list.
   """
   _EXPRESSION_VALID_IDENTIFIERS = set(
-      ['constants', 'options', 'dut', 'station', 'session'] +
+      ['constants', 'options', 'dut', 'station', 'session', 'locals'] +
       [key for key, unused_value in inspect.getmembers(__builtin__)])
 
   def AssertExpressionIsValid(self, expression):

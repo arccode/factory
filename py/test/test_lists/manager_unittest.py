@@ -97,7 +97,7 @@ class TestListLoaderTest(unittest.TestCase):
 
   def testListTestListIDs(self):
     self.assertItemsEqual(
-        ['a', 'b', 'base'],
+        ['a', 'b', 'base', 'locals'],
         self.loader.FindTestListIDs())
 
   def testChildActionOnFailure(self):
@@ -169,6 +169,18 @@ class TestListLoaderTest(unittest.TestCase):
     # SMT doesn't exist
     self.assertIsNone(test_list.LookupPath('SMT'))
     self.assertTrue(test_list.LookupPath('RunIn'))
+
+  def testLocals(self):
+    test_list = self.manager.GetTestListByID('locals')
+    self.assertEqual(
+        test_list.LookupPath('SMT.NOP').locals_,
+        {'foo': 'FOO', 'bar': 'BAR'})
+    self.assertEqual(
+        test_list.LookupPath('SMT.NOP-2').locals_,
+        {'foo': 'FOO', 'bar': 'BAZ'})
+    self.assertEqual(
+        test_list.LookupPath('SMT.NOP-3').locals_,
+        {'foo': 'BAR', 'bar': 'BAZ'})
 
 
 class CheckerTest(unittest.TestCase):

@@ -93,32 +93,42 @@ def _DummyLogger(*unused_arg, **unused_kargs):
   pass
 
 
-def OverrideConfig(base, overrides):
+def OverrideConfig(base, overrides, copy_on_write=False):
   """Recursively overrides non-mapping values inside a mapping object.
 
   Args:
     base: A mapping object with existing data.
     overrides: A mapping to override values in base.
+    copy_on_write: if this is True, will make a copy of 'base' before
+      overriding. 'base' itself will not be changed.
 
   Returns:
     The new mapping object with values overridden.
   """
+  changed = False
+  result = base.copy() if copy_on_write else base
+
   for k, v in overrides.iteritems():
     if isinstance(v, collections.Mapping):
       v = v.copy()
       if v.pop(_OVERRIDE_DELETE_KEY, False):
-        base.pop(k, None)
+        if k in result:
+          result.pop(k)
+          changed = True
       elif v.pop(_OVERRIDE_REPLACE_KEY, False):
-        base[k] = OverrideConfig({}, v)
+        result[k] = OverrideConfig({}, v)
+        changed = True
       else:
-        base_v = base.get(k, {})
-        if isinstance(base_v, collections.Mapping):
-          base[k] = OverrideConfig(base_v, v)
+        old_v = result.get(k, {})
+        if isinstance(old_v, collections.Mapping):
+          result[k] = OverrideConfig(old_v, v)
         else:
-          base[k] = OverrideConfig({}, v)
+          result[k] = OverrideConfig({}, v)
+        changed = True
     else:
-      base[k] = v
-  return base
+      result[k] = v
+      changed = True
+  return result if copy_on_write and changed else base
 
 
 def GetNamedTuple(mapping):

@@ -565,6 +565,7 @@ class FactoryTest(object):
                pytest_name=None,
                invocation_target=None,
                dargs=None,
+               locals_=None,
                dut_options=None,
                subtests=None,
                teardown=False,
@@ -609,6 +610,7 @@ class FactoryTest(object):
     self.prepare = prepare
     self.finish = finish
     self.dargs = dargs or {}
+    self.locals_ = locals_ or {}
     self.dut_options = dut_options or {}
     self.no_host = no_host
     self.waived = waived

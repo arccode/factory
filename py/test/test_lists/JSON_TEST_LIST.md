@@ -79,8 +79,11 @@ These fields are only meant for new test list loader:
 
    Please refer to [base test list](./base.test_list.json) for more examples.
 
-2. `child_action_on_failure`: default value of `action_on_failure` of subtests.
-3. `__comment`: this field will be ignored by test list manager, it's just a
+2. `locals`: in JSON style pytest, attribute `locals` of a test object will be
+   passed to its subtests.  And `locals` will be evaluated once before set to
+   `FactoryTest` object.  See `locals.test_list.json` as an example.
+3. `child_action_on_failure`: default value of `action_on_failure` of subtests.
+4. `__comment`: this field will be ignored by test list manager, it's just a
    comment.
 
 ## Expression Evaluation

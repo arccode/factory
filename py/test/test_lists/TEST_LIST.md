@@ -125,6 +125,11 @@ To create a group of tests, you just need to
     ...
 ```
 
+## Locals
+Each `FactoryTest` object can have a `locals` attribute, which is a dictionary
+of key value pairs.  `locals` will be available when Goofy is resolving `dargs`
+that will be passed to pytest.
+
 ## has_ui
 Set `has_ui=True` if this test needs to interact with operator, e.g. showing
 informations or getting user input.

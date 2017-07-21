@@ -45,6 +45,9 @@
         "label": {
           "type": ["string", "object"]
         },
+        "locals": {
+          "type": "object"
+        },
         "never_fails": {
           "type": "boolean"
         },

@@ -119,7 +119,7 @@ class TestArgEnv(object):
     return state.get_shared_data('engineering_mode')
 
 
-def ResolveTestArgs(goofy, dargs, test_list_id, dut_options):
+def ResolveTestArgs(goofy, test, test_list_id, dut_options):
   """Resolves an argument dictionary.
 
   For LegacyTestList, value can be callable, which has function signature:
@@ -156,6 +156,9 @@ def ResolveTestArgs(goofy, dargs, test_list_id, dut_options):
   Returns:
     Resolved dargs dictionary object.
   """
+  dargs = test.dargs
+  locals_ = test.locals_
+
   try:
     test_list = goofy.GetTestList(test_list_id)
   except Exception:
@@ -180,7 +183,8 @@ def ResolveTestArgs(goofy, dargs, test_list_id, dut_options):
   dut = device_utils.CreateDUTInterface(**dut_options)
   # TODO(stimim): might need to override station options?
   station = device_utils.CreateStationInterface()
-  return test_list.ResolveTestArgs(dargs, dut=dut, station=station)
+  return test_list.ResolveTestArgs(
+      dargs, dut=dut, station=station, locals_=locals_)
 
 
 class PytestInfo(object):
@@ -661,7 +665,7 @@ class TestInvocation(object):
         logging.info('test list: %s', self.goofy.options.test_list)
         resolved_dargs = ResolveTestArgs(
             self.goofy,
-            self.test.dargs,
+            self.test,
             test_list_id=self.goofy.options.test_list,
             dut_options=self.dut_options)
       except Exception as e:
