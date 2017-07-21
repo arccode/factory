@@ -8,6 +8,8 @@ Make the host machine discoverable, scan for the host MAC address from the
 DUT, and make the host non-discoverable.
 """
 
+import collections
+import os
 import unittest
 
 import factory_common  # pylint: disable=unused-import
@@ -48,22 +50,37 @@ class BluetoothScanTest(unittest.TestCase):
           'Does not check output of the command.',
           optional=True, default=None),
       Arg('host_hci_device', str,
-          'The target hci device of the host station.',
-          default='hci0'),
+          'The target hci device of the host station. Set to None to bind'
+          'on all interfaces, or set to "hci0" to bind only on specified'
+          'interfaces.',
+          default=None),
       Arg('dut_hci_device', str,
           'The target hci device of the DUT.',
           default='hci0'),
       ]
 
+  HostDeviceType = collections.namedtuple(
+      'HostDevice', ['interface', 'address'])
+
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
     self.host = device_utils.CreateStationInterface()
-    self.host_mac = None
+
+    if self.args.host_hci_device is None:
+      self.host_interfaces = self._GetHostInterfaces()
+    else:
+      self.host_interfaces = [self.args.host_hci_device]
+
+    # The host device to be used for pairing test
+    # This will be filled up after scan test is completed
+    self.host_device_to_pair = None
 
   def tearDown(self):
     # Close host Bluetooth device.
-    self.host.Call(DISABLE_SCAN_CMD % self.args.host_hci_device)
-    self.host.Call(DISABLE_DEVICE_CMD % self.args.host_hci_device)
+    for host_interface in self.host_interfaces:
+      self.host.Call(DISABLE_SCAN_CMD % host_interface)
+      self.host.Call(DISABLE_DEVICE_CMD % host_interface)
+
     # Close DUT Bluetooth device.
     self.dut.Call(DISABLE_DEVICE_CMD % self.args.dut_hci_device)
     if self.args.post_command:
@@ -72,38 +89,58 @@ class BluetoothScanTest(unittest.TestCase):
   def runTest(self):
     if self.dut.link.IsLocal():
       self.fail('This pytest can only be run at station-based style.')
+
     # Setup host Bluetooth device.
-    self.host.CheckCall(ENABLE_DEVICE_CMD % self.args.host_hci_device)
-    self.host.CheckCall(ENABLE_SCAN_CMD % self.args.host_hci_device)
-    self.host_mac = self.GetHostMAC()
+    for host_interface in self.host_interfaces:
+      self.host.CheckCall(ENABLE_DEVICE_CMD % host_interface)
+      self.host.CheckCall(ENABLE_SCAN_CMD % host_interface)
+
     # Setup DUT Bluetooth device
     if self.args.pre_command:
       self.RunCommand(self.args.pre_command, 'pre-command')
     self.dut.CheckCall(ENABLE_DEVICE_CMD % self.args.dut_hci_device)
 
+    # Get addresses of host devices
+    # Note: We can only get addresses after devices are enabled
+    host_devices = self._GetHostDevicesInfo(self.host_interfaces)
+
     # DUT scans the host station.
     self.assertTrue(
-        sync_utils.Retry(self.args.max_retry_times, 0, None, self.ScanTask))
+        sync_utils.Retry(self.args.max_retry_times, 0, None,
+                         lambda: self.ScanTask(host_devices)))
+
     if self.args.enable_pair:
       self.assertTrue(
-          sync_utils.Retry(self.args.max_retry_times, 0, None, self.PairTask))
+          sync_utils.Retry(self.args.max_retry_times, 0, None,
+                           self.PairTask))
 
-  def ScanTask(self):
+  def ScanTask(self, host_devices):
     """Scans the Bluetooth devices and checks the host station is found."""
     scanned_macs = self.ScanDevicesFromDUT()
     factory.console.info('DUT scan results: %s', scanned_macs)
-    return self.host_mac in scanned_macs
+
+    for dev in host_devices:
+      if dev.address in scanned_macs:
+        self.host_device_to_pair = dev
+        factory.console.info('DUT successfully scanned host device: ' +
+                             str(dev))
+        return True
+
+    return False
 
   def PairTask(self):
     """Connects with the Bluetooth devices of the host station."""
-    CONNECT_CMD = 'hcitool cc --role=m %s' % self.host_mac
-    DISCONNECT_CMD = 'hcitool dc %s' % self.host_mac
+
+    host_mac = self.host_device_to_pair.address
+    CONNECT_CMD = 'hcitool cc --role=m %s' % host_mac
+    DISCONNECT_CMD = 'hcitool dc %s' % host_mac
     CHECK_CONNECTION_CMD = 'hcitool con'
 
     self.dut.CheckCall(CONNECT_CMD)
     output = self.dut.CheckOutput(CHECK_CONNECTION_CMD).lower()
-    factory.console.info('DUT connection: %s', output)
-    ret = self.host_mac in output
+    factory.console.info('DUT tried to connect by %s with output %s',
+                         CONNECT_CMD, output)
+    ret = host_mac in output
     if ret:
       self.dut.Call(DISCONNECT_CMD)
     return ret
@@ -133,11 +170,50 @@ class BluetoothScanTest(unittest.TestCase):
     lines = output.splitlines()[1:]  # Skip the first line "Scanning ...".
     return [line.split()[0].lower() for line in lines]
 
-  def GetHostMAC(self):
-    """Gets the MAC address of the host station."""
+  def _GetHostInterfaces(self):
+    # Three options can get all bluetooth devices on host:
+    # 1. hciconfig
+    # 2. hcitool dev
+    #    Does NOT contains interfaces which are down
+    #    For example: hciconfig hci0 down
+    # 3. list files under /sys/class/bluetooth
+
+    # Here we choose to use option (3), since
+    # 1. Output of option (1) is hard to parse, and the format might
+    #    get changed in a future image
+    # 2. Option (2) does NOT contains interface which are 'down'
+    #    For example, after 'hciconfig hci0 down', it vanished from
+    #    the output of 'hcitool dev'
+
+    interfaces = os.listdir('/sys/class/bluetooth')
+    factory.console.info(
+        'Find bluetooth devices from /sys/class/bluetooth: ' +
+        str(interfaces))
+    return interfaces
+
+  def _GetHostDevicesInfo(self, interfaces):
+    """Gets the devices and BD addresses of the host devices."""
+
+    # The output of the hcitool command:
     # Devices:
     # 	hci0	01:02:03:04:05:06
-    GET_MAC_CMD = 'hcitool dev | grep %s' % self.args.host_hci_device
-    host_mac = self.host.CheckOutput(GET_MAC_CMD).split()[1].lower()
-    factory.console.info('Host MAC: %s', host_mac)
-    return host_mac
+    # 	hci1	10:20:30:40:50:60
+    HCITOOL_CMD = 'hcitool dev'
+
+    # Skip the first line "Devices:".
+    devices_lines = self.host.CheckOutput(HCITOOL_CMD).splitlines()[1:]
+
+    host_devices = []
+    for device_line in devices_lines:
+      device = device_line.split()
+      host_device = self.HostDeviceType(
+          device[0].lower(),
+          device[1].lower())
+
+      if host_device.interface not in interfaces:
+        continue
+
+      factory.console.info('Host interface: ' + str(host_device))
+      host_devices.append(host_device)
+
+    return host_devices
