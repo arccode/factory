@@ -62,6 +62,9 @@ To set that:
 
   # You can configure Shopfloor Service URL here:
   shopfloor_service_url: http://localhost:8090
+
+  # Deploy new configuration
+  (docker)$ umpire deploy
 ```
 
 Umpire will automatically interpret `localhost` in `shopfloor_service_url` as
