@@ -129,7 +129,7 @@ class DRMKeysProvisioningServer(object):
     if not os.path.isdir(self.gnupg_homedir):
       self.gpg = None
     else:
-      self.gpg = gnupg.GPG(gnupghome=self.gnupg_homedir)
+      self.gpg = gnupg.GPG(homedir=self.gnupg_homedir)
 
     if not os.path.isfile(self.database_file_path):
       self.db_connection, self.db_cursor = (None, None)
@@ -154,7 +154,7 @@ class DRMKeysProvisioningServer(object):
       RuntimeError is the database and GnuPG home have already been initialized.
     """
     # Create GPG instance and database connection.
-    self.gpg = gnupg.GPG(gnupghome=self.gnupg_homedir)
+    self.gpg = gnupg.GPG(homedir=self.gnupg_homedir)
     self.db_connection, self.db_cursor = GetSQLite3Connection(
         self.database_file_path)
 
@@ -380,7 +380,7 @@ class DRMKeysProvisioningServer(object):
     for drm_key in filtered_drm_key_list:
       encrypted_obj = self.gpg.encrypt(
           json.dumps(drm_key), requester_key_fingerprint,
-          always_trust=True, sign=server_key_fingerprint)
+          always_trust=True, default_key=server_key_fingerprint)
       encrypted_serialized_drm_key_list.append(encrypted_obj.data)
 
     # Insert into the database.
@@ -511,7 +511,7 @@ class DRMKeysProvisioningServer(object):
     """
     with open(key_file_path) as f:
       import_results = self.gpg.import_keys(f.read())
-    key_already_exists = (import_results.imported == 0)
+    key_already_exists = (import_results.counts['imported'] == 0)
     key_fingerprint = import_results.fingerprints[0]
     return (key_fingerprint, key_already_exists)
 
