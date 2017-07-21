@@ -62,13 +62,8 @@ encapsulates a single regional configuration.
 
 Available regions
 -----------------
-Following is a table of known regions.  Unconfirmed
-regions (not ready for use in shipping products) are italicized and
-marked with question marks; if you need to use one of these please see
-http://goto/vpdsettings for review.
-
-For more information on how to choose field values, see
-:ref:`regions-values`.
+Following is a table of known regions. If you need a new region, please first
+check the "Unconfirmed regions" section below.
 
 .. warning::
 
@@ -76,18 +71,20 @@ For more information on how to choose field values, see
   table are provided for reference only; they are not intended to be
   copied-and-pasted from this table into shop floor servers.  Rather,
   shop floor servers should provide only the region code for the
-  device, and the ``vpd`` test should be used to populate the concrete
-  VPD values based on values in the codebase.  See
-  :ref:`region-factory-flow`.
-
-.. warning::
-
-  Launch plans for regions marked with asterisks, if any, may not be
-  publicly known.  Take caution when sharing these values. Check
-  src/platform2/regions/README for how to proceed.
-
+  device. See :ref:`region-factory-flow`.
 
 .. regionslist::
+
+Unconfirmed regions
+-------------------
+Following is a table of unconfirmed regions  (not ready for use in shipping
+products). If you need to use one of these please see http://goto/vpdsettings
+and src/platform2/regions/README for how to proceed.
+
+For more information on how to choose field values, see
+:ref:`regions-values`.
+
+.. unconfirmed_regionslist::
 
 How VPD values affect the CrOS user experience
 ----------------------------------------------
@@ -256,7 +253,6 @@ obtain the device-specific data, including region code in VPD.
 For instance::
 
     OperatorTest(
-        id='GetDeviceInfo',
         pytest_name='shopfloor_service',
         dargs=dict(method='GetDeviceInfo'))
 
@@ -272,7 +268,6 @@ firmware VPD RO region.
 For example::
 
     OperatorTest(
-        id='WriteDeviceDataToVPD',
         pytest_name='write_device_data_to_vpd)
 
 Region API
@@ -301,13 +296,10 @@ The complete set of confirmed regions (regions available for use in
 shipping products) is specified by
 :py:data:`cros.factory.test.l10n.regions.REGIONS_LIST`.
 
-.. autodata:: cros.factory.test.l10n.regions.REGIONS_LIST
-
 In addition, there is a module-level attributes used to accumulate
 region configuration settings that are thought to be correct but have
-not been completely verified yet.
-
-.. autodata:: cros.factory.test.l10n.regions.UNCONFIRMED_REGIONS_LIST
+not been completely verified yet:
+:py:data:`cros.factory.test.l10n.regions.REGIONS_LIST`.
 
 If you cannot add a region to the public factory repository, you may
 add it to the private repository that overrides the REGION_LIST.

@@ -190,7 +190,7 @@ def LoadRegionDatabaseFromSource():
       src_root, 'private-overlays', 'chromeos-partner-overlay',
       'chromeos-base', 'regions-private', 'files', 'regions_overlay.py')
 
-  command = [generator, '--format=json', '--all']
+  command = [generator, '--format=json', '--all', '--notes']
   if os.path.exists(overlay_file):
     command += ['--overlay=%s' % overlay_file]
 
@@ -206,6 +206,8 @@ def LoadRegionDatabase(path=None):
   Returns a list of Regions as [confirmed, unconfirmed] .
   """
   def EncodeUnicode(value):
+    if value is None:
+      return None
     return ([s.encode('utf-8') for s in value] if type(value) is list else
             value.encode('utf-8'))
 
@@ -262,7 +264,7 @@ def LoadRegionDatabase(path=None):
                      EncodeUnicode(r['locales']),
                      EncodeUnicode(r['keyboard_mechanical_layout']),
                      EncodeUnicode(r['description']),
-                     None)
+                     EncodeUnicode(r.get('notes')))
     if r.get('confirmed', True):
       confirmed.append(encoded)
     else:

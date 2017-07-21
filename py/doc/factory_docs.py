@@ -14,16 +14,24 @@ from cros.factory.test.l10n import regions
 
 
 class regionslist(nodes.General, nodes.Element):
-  # pylint: disable=W0232
+  # pylint: disable=no-init
+  pass
+
+
+class unconfirmed_regionslist(nodes.General, nodes.Element):
+  # pylint: disable=no-init
   pass
 
 
 class RegionsList(Directive):
   """List of regions from the regions and regions_overlay modules."""
+  # pylint: disable=no-init
   has_content = True
   required_arguments = 0
   optional_arguments = 0
   option_spec = {}
+  list_name = 'REGIONS_LIST'
+  table_classes = ['factory-regions-list']
 
   def run(self):
     # Create the header row.
@@ -46,49 +54,49 @@ class RegionsList(Directive):
     except ImportError:
       overlay = None
 
-    # For each of the possible names of an attribute containing the
-    # region information... (we add a '?' to fields for unconfirmed regions)
-    for name, confirmed, suffix in (
-        ('REGIONS_LIST', True, ''),
-        ('UNCONFIRMED_REGIONS_LIST', False, '?')):
-      # For both the public repo and the overlay...
-      for module in filter(None, [regions, overlay]):
-        # For each of the elements in the list...
-        for r in sorted(getattr(module, name),
-                        key=lambda x: x.description):
-          # Build a row.
-          row = nodes.row('')
+    name = self.list_name
+    # For both the public repo and the overlay...
+    for module in filter(None, [regions, overlay]):
+      # For each of the elements in the list...
+      for r in sorted(getattr(module, name), key=lambda x: x.description):
+        # Build a row.
+        row = nodes.row('')
 
-          # Add an asterisk to description/region code for
-          # regions from the overlay.
-          overlay_suffix = (
-              '*' if module == overlay else '')
+        row += nodes.entry('', nodes.paragraph(
+            '', r.description, classes=['description']))
 
-          # For each of the columns...
-          for value in [r.description + overlay_suffix,
-                        r.region_code + overlay_suffix,
-                        ', '.join(r.keyboards),
-                        r.time_zone,
-                        ', '.join(r.language_codes),
-                        str(r.keyboard_mechanical_layout),
-                        r.notes or '']:
-            if value:
-              value += suffix
+        # For each of the columns...
+        for value in [r.region_code,
+                      ', '.join(r.keyboards),
+                      r.time_zone,
+                      ', '.join(r.language_codes),
+                      str(r.keyboard_mechanical_layout)]:
+          text = nodes.paragraph('', value)
+          row += nodes.entry('', text)
 
-            if confirmed:
-              text = nodes.paragraph('', value)
-            else:
-              # Italic (since it's not confirmed).
-              text = nodes.emphasis('', value)
-            row += nodes.entry('', text)
-          tbody += row
+        # 'notes' column is very special.
+        notes = r.notes or ''
+        if notes:
+          short_notes = notes if len(notes) < 20 else (notes[:20] + '...')
+          row += nodes.entry(
+              '', nodes.paragraph('', short_notes, classes=['note']),
+              nodes.paragraph('', notes, classes=['spnTooltip']))
+        else:
+          row += nodes.entry('')
+        tbody += row
 
     tgroup = nodes.tgroup('')
     tgroup += [nodes.colspec(colwidth=x) for x in column_widths]
     tgroup += nodes.thead('', thead_row)
     tgroup += tbody
 
-    return [nodes.table('', tgroup, classes=['factory-small'])]
+    return [nodes.table('', tgroup, classes=self.table_classes)]
+
+
+class UnconfirmedRegionsList(RegionsList):
+  # pylint: disable=no-init
+  list_name = 'UNCONFIRMED_REGIONS_LIST'
+  table_classes = ['factory-regions-list factory-unconfirmed-regions-list']
 
 
 def ProcessDocstring(unused_app, what, unused_name, unused_obj,
@@ -143,4 +151,6 @@ def setup(app):
   app.connect('autodoc-process-docstring', ProcessDocstring)
 
   app.add_node(regionslist)
+  app.add_node(unconfirmed_regionslist)
   app.add_directive('regionslist', RegionsList)
+  app.add_directive('unconfirmed_regionslist', UnconfirmedRegionsList)
