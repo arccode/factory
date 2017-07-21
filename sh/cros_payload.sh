@@ -30,7 +30,8 @@
 : "${DEBUG:=}"
 
 # Constants
-COMPONENTS_ALL="test_image release_image toolkit hwid firmware complete"
+COMPONENTS_ALL="test_image release_image toolkit hwid firmware complete \
+netboot_kernel netboot_firmware netboot_cmdline"
 
 # A variable for the file name of tracking temp files.
 TMP_OBJECTS=""
@@ -556,9 +557,17 @@ get_file_component_version() {
       # 'shar' may add leading X on some versions.
       sed -n 's/^X*checksum: //p' "${file}"
       ;;
-    complete)
+    complete | netboot_cmdline)
       local temp="$(md5sum "${file}")"
       echo "${temp%% *}"
+      ;;
+    netboot_kernel)
+      # vmlinuz should be unpacked to get 'Linux Version' string. Fortunately
+      # usually we usually can find 'version' by compiler.
+      strings "${file}" | grep 'version'
+      ;;
+    netboot_firmware)
+      strings "${file}" | grep 'Google_' | uniq
       ;;
   esac
 }
@@ -621,7 +630,7 @@ cmd_add() {
       file="$(get_uncompressed_file "${file}")"
       add_image_component "${json_path}" "${component}" "${file}"
       ;;
-    toolkit | hwid | firmware | complete)
+    toolkit | hwid | firmware | complete | netboot_*)
       file="$(get_uncompressed_file "${file}")"
       add_file_component "${json_path}" "${component}" "${file}"
       ;;
@@ -849,7 +858,7 @@ install_components() {
         install_payload "partition" "${json_url}" \
           "${dest}" "${json_file}" "${component}"
         ;;
-      toolkit | hwid | firmware | complete | *_image.*)
+      toolkit | hwid | firmware | complete | *_image.* | netboot_*)
         install_payload "file" "${json_url}" \
           "${dest}" "${json_file}" "${component}"
         ;;
