@@ -28,15 +28,19 @@ ConfigTypes, ConfigTypeNames = _InitializeTypes([
     ConfigType('umpire_config', 'umpire', 'yaml'),
     ConfigType('payload_config', 'payload', 'json')])
 
-PayloadType = collections.namedtuple('PayloadType', ['type_name'])
+PayloadType = collections.namedtuple('PayloadType',
+                                     ['type_name', 'import_pattern'])
 
 PayloadTypes, PayloadTypeNames = _InitializeTypes([
-    PayloadType('complete'),
-    PayloadType('firmware'),
-    PayloadType('hwid'),
-    PayloadType('release_image'),
-    PayloadType('test_image'),
-    PayloadType('toolkit'),
+    PayloadType('complete', 'complete/*'),
+    PayloadType('firmware', 'firmware/*'),
+    PayloadType('hwid', 'hwid/*'),
+    PayloadType('netboot_cmdline', 'netboot/tftp/chrome-bot/*/cmdline'),
+    PayloadType('netboot_firmware', 'netboot/image.net.bin'),
+    PayloadType('netboot_kernel', 'netboot/tftp/chrome-bot/*/vmlinu*'),
+    PayloadType('release_image', 'release_image/*'),
+    PayloadType('test_image', 'test_image/*'),
+    PayloadType('toolkit', 'toolkit/*')
     ])
 
 
@@ -50,6 +54,18 @@ def GetConfigType(type_name):
     Corresponding ConfigType.
   """
   return getattr(ConfigTypes, type_name)
+
+
+def GetPayloadType(type_name):
+  """Gets the PayloadType object of a type_name.
+
+  Args:
+    type_name: An element of PayloadTypeNames.
+
+  Returns:
+    Corresponding PayloadType.
+  """
+  return getattr(PayloadTypes, type_name)
 
 
 def GetResourceHashFromFile(file_path):

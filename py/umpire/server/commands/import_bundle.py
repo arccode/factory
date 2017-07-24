@@ -10,6 +10,7 @@ updates UmpireConfig.
 See BundleImporter comments for usage.
 """
 
+import glob
 import json
 import os
 import time
@@ -100,12 +101,11 @@ class BundleImporter(object):
   def _GetImportList(cls, bundle_path):
     ret = []
     for type_name in resource.PayloadTypeNames:
-      candidates = os.listdir(os.path.join(bundle_path, type_name))
-      if not candidates:
-        continue
+      target = resource.GetPayloadType(type_name).import_pattern
+      candidates = glob.glob(os.path.join(bundle_path, target))
       if len(candidates) > 1:
         raise common.UmpireError(
             'Multiple %s found: %r' % (type_name, candidates))
-      ret.append((os.path.join(bundle_path, type_name, candidates[0]),
-                  type_name))
+      elif len(candidates) == 1:
+        ret.append((candidates[0], type_name))
     return ret
