@@ -131,6 +131,10 @@
         "$ref": "#/definitions/test_object"
       }
     },
+    "override_args": {
+      "__comment": "To override argument of a test in 'tests', maps the test path to a dictionary",
+      "type": "object"
+    },
     "__comment": {
       "description": "this field will be completely ignored by test list loader",
       "type": "string"

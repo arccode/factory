@@ -97,7 +97,7 @@ class TestListLoaderTest(unittest.TestCase):
 
   def testListTestListIDs(self):
     self.assertItemsEqual(
-        ['a', 'b', 'base', 'locals'],
+        ['a', 'b', 'base', 'locals', 'override_args'],
         self.loader.FindTestListIDs())
 
   def testChildActionOnFailure(self):
@@ -127,6 +127,21 @@ class TestListLoaderTest(unittest.TestCase):
     self.assertEqual(
         'NEXT',
         factory_test_list.LookupPath('SMT.Group').action_on_failure)
+
+  def testOverrideArgs(self):
+    test_list = self.manager.GetTestListByID('override_args')
+    test_list = test_list.ToFactoryTestList()
+
+    expected = {
+        'SMT.FirstLEDTest': ['RED'],
+        'SMT.SecondLEDTest': ['BLUE'],
+        'SMT.LEDTest': ['GREEN'],
+        'SMT.LEDTest-2': ['WHITE'],
+    }
+
+    for path, colors in expected.iteritems():
+      self.assertEqual(
+          colors, test_list.LookupPath(path).dargs['colors'])
 
   def testModifiedDetection(self):
     test_list = self.manager.GetTestListByID('b')

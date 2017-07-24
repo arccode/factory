@@ -244,6 +244,14 @@ class TestList(ITestList):
         test_list_id=self._config.test_list_id,
         label=MayTranslate(self._config['label'], force=True),
         finish_construction=True)
+
+    # Handle override_args
+    if 'override_args' in self._config:
+      for key, override in self._config['override_args'].iteritems():
+        test = self._cached_test_list.LookupPath(key)
+        if test:
+          config_utils.OverrideConfig(test.dargs, override)
+
     self._cached_test_list.state_change_callback = self._state_change_callback
     return self._cached_test_list
 

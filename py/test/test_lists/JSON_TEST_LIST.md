@@ -85,6 +85,8 @@ These fields are only meant for new test list loader:
 3. `child_action_on_failure`: default value of `action_on_failure` of subtests.
 4. `__comment`: this field will be ignored by test list manager, it's just a
    comment.
+5. `override_args`: another way to override arguments of a test specified by its
+   path.  See `override_args.test_list.json` as an example.
 
 ## Expression Evaluation
 For `args` of test object, if a value is a string and starts with `"eval! "`,
