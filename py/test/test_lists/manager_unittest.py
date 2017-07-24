@@ -81,19 +81,26 @@ class TestListLoaderTest(unittest.TestCase):
         'b': 'eval! constants.timestamp',
         'c': 'eval! constants.timestamp + 3',
         'd': 'eval! options.ui_lang.upper()',
-        'e': 'eval! [x * x for x in xrange(3)]', }
+        'e': 'eval! [x * x for x in xrange(3)]',
+        'f': 'eval! constants.some_label', }
 
     test_list = self.manager.GetTestListByID('a')
     constants = test_list.ToTestListConfig()['constants']
     options = test_list.ToTestListConfig()['options']
+    resolved_test_args = test_list.ResolveTestArgs(test_args, None, None)
 
     self.assertDictEqual(
         {'a': 'eval! ',
          'b': constants['timestamp'],
          'c': constants['timestamp'] + 3,
          'd': options['ui_lang'].upper(),
-         'e': [x * x for x in xrange(3)], },
-        test_list.ResolveTestArgs(test_args, None, None))
+         'e': [x * x for x in xrange(3)],
+         'f': {'en-US': 'us', 'zh-CN': 'cn'}, },
+        resolved_test_args)
+
+    # We expect test arguments to be type dict instead of AttrDict, so yaml
+    # serialization of test metadata would work.
+    self.assertEqual(dict, type(resolved_test_args['f']))
 
   def testListTestListIDs(self):
     self.assertItemsEqual(

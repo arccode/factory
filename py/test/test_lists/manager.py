@@ -144,6 +144,18 @@ class ITestList(object):
       options = self.options
     locals_ = type_utils.AttrDict(locals_ or {})
 
+    def ConvertToBasicType(value):
+      if isinstance(value, collections.Mapping):
+        return {k: ConvertToBasicType(v) for k, v in value.iteritems()}
+      elif isinstance(value, basestring):
+        return value
+      elif isinstance(value, (list, tuple)):
+        return type(value)(ConvertToBasicType(v) for v in value)
+      elif isinstance(value, collections.Sequence):
+        return [ConvertToBasicType(v) for v in value]
+      else:
+        return value
+
     _EVALUATE_PREFIX = 'eval! '
     def ResolveArg(key, value):
       if isinstance(value, collections.Mapping):
@@ -170,7 +182,8 @@ class ITestList(object):
             expression, dut, station, constants, options, locals_)
 
       return MayTranslate(value)
-    return {k: ResolveArg(k, v) for k, v in test_args.iteritems()}
+    return ConvertToBasicType(
+        {k: ResolveArg(k, v) for k, v in test_args.iteritems()})
 
   @staticmethod
   def EvaluateExpression(expression, dut, station, constants, options, locals_):

@@ -6,6 +6,8 @@
     "phase": "EVT",
     "enable_shopfloor": true,
     "component_list": ["cpu", "audio", "flash_chip"],
+    "some_label": {"en-US": "us", "zh-CN": "cn"},
+    "__comment_some_label": "real test list should use i18n! prefix instead.",
     "timestamp": 1,
     "__comment_timestamp": "this is used by testReloadConfig"
   },
