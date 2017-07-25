@@ -64,6 +64,10 @@ msgstr "背光亮度"
 msgid "Bad Blocks"
 msgstr "毁损扇区"
 
+#: ../build/pytests_label_generated.json ../py/test/test_lists/generic_smt.py
+msgid "Battery"
+msgstr "电池"
+
 #: ../build/pytests_label_generated.json
 msgid "Battery Current"
 msgstr "充电放电电流"
@@ -172,10 +176,6 @@ msgstr "显示图像"
 #: ../build/pytests_label_generated.json ../py/test/test_lists/generic_fatp.py
 msgid "Display Point"
 msgstr "显示点"
-
-#: ../build/pytests_label_generated.json
-msgid "EC Battery"
-msgstr "EC 电池"
 
 #: ../build/pytests_label_generated.json
 msgid "EC Lightbar"
@@ -3885,10 +3885,6 @@ msgstr "TSU6721"
 #: ../py/test/test_lists/generic_smt.py
 msgid "Probe Camera"
 msgstr "相机"
-
-#: ../py/test/test_lists/generic_smt.py
-msgid "Battery"
-msgstr "电池"
 
 #: ../py/test/test_lists/generic_smt.py
 msgid "3G Probing"
