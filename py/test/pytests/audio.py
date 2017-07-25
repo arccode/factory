@@ -1,10 +1,59 @@
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Tests audio playback and record."""
+"""Tests audio playback.
+
+Description
+-----------
+The test plays a random digit from speaker, and checks if the operator presses
+the correct key.
+
+If ``test_left_right`` is set, left and right output channels are tested
+separately.
+
+If ``check_headphone`` is set, before the digit is played, the test would check
+if the headphone status is same as ``require_headphone`` , and ask the operator
+to plug in / disconnect the headphone otherwise.
+
+A valid ``output_dev`` should be specified, which is in the form of
+``(card_name, sub_device)``. Both value can be obtained from output of
+``aplay -l`` on DUT.
+
+Also, you may need to set ``initial_actions`` for audio to work correctly.
+Refer to the audio.json config file on what actions should be set as
+``initial_actions``.
+
+Test Procedure
+--------------
+1. If ``check_headphone`` is set, operator will be prompted to plug in or
+   disconnect to headphone.
+2. A digit would be played.
+3. Operator presses the key corresponds to the digit played. Test fail if the
+   operator presses the wrong key.
+4. If ``test_left_right``, repeat 2. and 3. on another channel.
+
+Dependency
+----------
+- External program `sox <http://sox.sourceforge.net/>`_.
+- Device API ``cros.factory.device.audio``.
+
+Examples
+--------
+To check if the audio can be played, add this in test list::
+
+  OperatorTest(pytest_name='audio', dargs={'output_dev': ['device', '0']})
+
+To check that headphone is plugged in before audio is played, add this in test
+list::
+
+  OperatorTest(pytest_name='audio',
+               dargs={
+                   'check_headphone': True,
+                   'require_headphone': True,
+                   'output_dev': ['device', '0']
+               })
+"""
 
 from __future__ import print_function
 
@@ -202,17 +251,19 @@ class AudioTest(unittest.TestCase):
   """
   ARGS = [
       Arg('audio_conf', str, 'Audio config file path', optional=True),
-      Arg('initial_actions', list, 'List of tuple (card_name, actions)', []),
-      Arg('output_dev', tuple,
+      Arg('initial_actions', list,
+          'List of sequences (card_name, actions)', default=[]),
+      Arg('output_dev', (list, tuple),
           'Onput ALSA device. (card_name, sub_device).'
-          'For example: ("audio_card", "0").', ('0', '0')),
+          'For example: ("audio_card", "0").', default=('0', '0')),
       i18n_arg_utils.I18nArg(
           'port_label', 'Label of audio.', default=_('Internal Speaker')),
       Arg('test_left_right', bool, 'Test left and right channel.',
           default=True),
-      Arg('require_headphone', bool, 'Require headphone option', False),
+      Arg('require_headphone', bool, 'Require headphone option', default=False),
       Arg('check_headphone', bool,
-          'Check headphone status whether match require_headphone', False),
+          'Check headphone status whether match require_headphone',
+          default=False),
       Arg('sample_rate', int,
           'Required sample rate to be played by the device.',
           optional=True)
