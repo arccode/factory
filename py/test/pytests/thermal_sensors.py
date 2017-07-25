@@ -1,12 +1,39 @@
 #!/usr/bin/python
 #
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 """Test for temperature sensors control.
 
-The test uses cros.factory.device.thermal to probe temperature sensors.
+Description
+-----------
+The test uses device API to check if temperature sensors is connected and the
+temperature lies in the given range `temp_range`.
+
+Test Procedure
+--------------
+This is an automated test without user interaction.
+
+Dependency
+----------
+Device API `cros.factory.device.thermal`.
+
+This is usually implemented in `/sys` with properties like `thermal_zone`
+or command `ectool temps` / `ectool tempsinfo`.
+
+Examples
+--------
+To check if the temperature sensors is connected and temperature is in default
+range ([0, 100]), add this in test list::
+
+  OperatorTest(pytest_name='thermal_sensors')
+
+To check if the temperature is in range [30, 80], add this in test list::
+
+  OperatorTest(
+      pytest_name='thermal_sensors',
+      dargs={'temp_range': [30, 80]})
 """
 
 import logging
@@ -24,7 +51,8 @@ class BoardTempSensorsTest(unittest.TestCase):
           'List of temperature sensor(s) to test, "*" for all sensors. '
           'Default to test only the main sensor (usually CPU).',
           default=None, optional=True),
-      Arg('temp_range', tuple, 'A tuple of (min_temp, max_temp) in Celsius.',
+      Arg('temp_range', (list, tuple),
+          'A sequence of (min_temp, max_temp) in Celsius.',
           default=(0, 100)),
   ]
 

@@ -182,10 +182,6 @@ msgid "EC Lightbar"
 msgstr "EC 光棒"
 
 #: ../build/pytests_label_generated.json
-msgid "EC Temp Sensors"
-msgstr "温度感应器"
-
-#: ../build/pytests_label_generated.json
 msgid "Ectool I2C Dev ID"
 msgstr ""
 
@@ -517,6 +513,10 @@ msgstr "平版旋转"
 #: ../build/pytests_label_generated.json ../py/test/test_lists/generic_smt.py
 msgid "Thermal Load"
 msgstr "温度压力"
+
+#: ../build/pytests_label_generated.json
+msgid "Thermal Sensors"
+msgstr "温度感应器"
 
 #: ../build/pytests_label_generated.json
 msgid "Thermal Slope"
