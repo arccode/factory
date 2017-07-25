@@ -94,11 +94,9 @@ class UtilTest(unittest.TestCase):
 
     self._util._IsDeviceFixed(
         'sda').MultipleTimes().AndReturn(True)
-    self._util._IsDeviceFixed(
-        'sdb').MultipleTimes().AndReturn(False)
 
-    self._util.shell('cgpt find -t rootfs').MultipleTimes().AndReturn(
-        StubStdout('/dev/sda3\n/dev/sda1\n/dev/sdb1'))
+    self._util.shell('rootdev -s -d').MultipleTimes().AndReturn(
+        StubStdout('/dev/sda'))
 
     self.mox.ReplayAll()
 
@@ -110,16 +108,14 @@ class UtilTest(unittest.TestCase):
     self.assertEquals('/dev/sda5', self._util.GetReleaseRootPartitionPath())
     self.assertEquals('/dev/sda4', self._util.GetReleaseKernelPartitionPath())
 
-  def testGetPrimaryDevicePathMultiple(self):
+  def testGetPrimaryDevicePathNotFixed(self):
     """Test for GetPrimaryDevice when multiple primary devices are found."""
 
     self._util._IsDeviceFixed(
-        'sda').MultipleTimes().AndReturn(True)
-    self._util._IsDeviceFixed(
-        'sdb').MultipleTimes().AndReturn(True)
+        'sda').MultipleTimes().AndReturn(False)
 
-    self._util.shell('cgpt find -t rootfs').AndReturn(
-        StubStdout('/dev/sda3\n/dev/sda1\n/dev/sdb1'))
+    self._util.shell('rootdev -s -d').AndReturn(
+        StubStdout('/dev/sda'))
 
     self.mox.ReplayAll()
 

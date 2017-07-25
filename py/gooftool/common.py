@@ -98,25 +98,12 @@ class Util(object):
       points to that partition of the primary device. e.g. /dev/sda1
     """
 
-    alpha_re = re.compile(r'^/dev/([a-zA-Z]+)[0-9]+$')
-    alnum_re = re.compile(r'^/dev/([a-zA-Z]+[0-9]+)p[0-9]+$')
-    matched_alnum = False
-    dev_set = set()
-    for path in self.shell('cgpt find -t rootfs').stdout.strip().split():
-      for dev in alpha_re.findall(path):
-        if self._IsDeviceFixed(dev):
-          dev_set.add(dev)
-          matched_alnum = False
-      for dev in alnum_re.findall(path):
-        if self._IsDeviceFixed(dev):
-          dev_set.add(dev)
-          matched_alnum = True
-    if len(dev_set) != 1:
-      raise Error('zero or multiple primary devs: %s' % dev_set)
-    dev_path = os.path.join('/dev', dev_set.pop())
+    dev_path = self.shell('rootdev -s -d').stdout.strip()
+    if not self._IsDeviceFixed(os.path.basename(dev_path)):
+      raise Error('%s is not a fixed device' % dev_path)
     if partition is None:
       return dev_path
-    fmt_str = '%sp%d' if matched_alnum else '%s%d'
+    fmt_str = '%sp%d' if dev_path[-1].isdigit() else '%s%d'
     return fmt_str % (dev_path, partition)
 
   def GetPartitionDevice(self, path):
