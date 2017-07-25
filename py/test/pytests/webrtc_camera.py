@@ -2,10 +2,43 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""A very simple WebRTC-based camera test.
+"""A factory test to test camera in preview mode.
 
-This test requires the user to click "Allow" to permit access to the camera,
-since there is presently no API to disable this access check.
+Description
+-----------
+A camera test for outputting preview of camera by W3C GetUserMedia API.
+
+Test Procedure
+--------------
+1. In order to get access to the camera, you need to click "Allow" button
+   which will be displayed on the permission prompt after starting this test.
+2. Then there should be a preview of camera shown on the screen and two buttons
+   for judging whether this test is passed or failed.
+3. Depending on value of `is_rear`, the camera will be selected to the one
+   facing the user or away from the user.
+4. If preview of camera is normal then pressing button with label - pass;
+   otherwise press button with label - fail if nothing presented in preview
+   window or the preview stream is from wrong camera.
+
+If you don't pass the test in `timeout_secs` seconds, the test will fail.
+
+Dependency
+----------
+- Based on W3C GetUserMedia API.
+
+Examples
+--------
+To test front camera::
+
+  OperatorTest(pytest_name='webrtc_camera')
+
+To test rear camera::
+
+  OperatorTest(pytest_name='webrtc_camera', dargs={'is_rear': True})
+
+If you want to change the time limit to 100 seconds::
+
+  OperatorTest(pytest_name='webrtc_camera', dargs={'timeout_secs': 100})
 """
 
 import time
@@ -46,9 +79,9 @@ _HTML_CAMERA_TEST = """
         '<a href="javascript:test.fail()">fail</a>.'),
 }
 
-_JS_WEBRTC_CAMERA = """
+_JS_WEBRTC_CAMERA = lambda is_rear: """
     var video = document.getElementById('%(id_image)s');
-    navigator.webkitGetUserMedia({video: true},
+    navigator.webkitGetUserMedia({video: {facingMode: "%(facing_mode)s"}},
         function(stream) {
           video.src = window.webkitURL.createObjectURL(stream);
           $('%(id_prompt1)s').style.display = 'none';
@@ -62,6 +95,7 @@ _JS_WEBRTC_CAMERA = """
     'id_image': _ID_IMAGE,
     'id_prompt1': _ID_PROMPT1,
     'id_prompt2': _ID_PROMPT2,
+    'facing_mode': 'environment' if is_rear else 'user'
 }
 _CSS_CAMERA_TEST = '.camera-test-info { font-size: 2em; }'
 
@@ -69,6 +103,9 @@ _CSS_CAMERA_TEST = '.camera-test-info { font-size: 2em; }'
 class WebrtcCameraTest(unittest.TestCase):
   ARGS = [
       Arg('timeout_secs', int, 'Timeout value for the test.', default=60),
+      Arg('is_rear', bool,
+          'Set to True to test with rear camera, otherwise front camera.',
+          default=False)
   ]
 
   def setUp(self):
@@ -76,7 +113,7 @@ class WebrtcCameraTest(unittest.TestCase):
     self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_CSS_CAMERA_TEST)
     self.template.SetState(_HTML_CAMERA_TEST)
-    self.ui.RunJS(_JS_WEBRTC_CAMERA)
+    self.ui.RunJS(_JS_WEBRTC_CAMERA(self.args.is_rear))
     self.ui.EnablePassFailKeys()
     process_utils.StartDaemonThread(target=self.CountdownTimer)
 
