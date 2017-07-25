@@ -1,18 +1,68 @@
-# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+# Copyright 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""A factory test to test battery charging/discharging current.
 
-"""This is a factory test to test battery charging/discharging current.
+Description
+-----------
+Test battery charging and discharging current.
 
-dargs:
-  min_charging_current: The minimum allowed charging current. In mA.
-  min_discharging_current: The minimum allowed discharging current. In mA.
-  timeout_secs: The timeout of detecting required charging/discharging current.
+If `usbpd_info` is set, also prompt operator to insert a power adapter of given
+voltage to the given USB type C port.
+
+The `usbpd_info` is a sequence `(usbpd_port, min_millivolt, max_millivolt)`,
+represent the USB type C port to insert power adapter:
+
+- ``usbpd_port``: (int) usbpd_port number. Specify which port to insert power
+  line.
+- ``min_millivolt``: (int) The minimum millivolt the power must provide.
+- ``max_millivolt``: (int) The maximum millivolt the power must provide.
+
+Test Procedure
+--------------
+1. If `max_battery_level` is set, check that initial battery level is lower
+   than the value.
+2. If `usbpd_info` is set, prompt the operator to insert a power adapter of
+   given voltage to the given USB type C port, and pass this step when one is
+   detected.
+3. If `min_charging_current` is set, force the power into charging mode, and
+   check if the charging current is larger than the value.
+4. If `min_discharging_current` is set, force the power into discharging mode,
+   and check if the discharging current is larger than the value.
+
+Each step would fail after `timeout_secs` seconds.
+
+Dependency
+----------
+Device API cros.factory.device.power.
+
+If `usbpd_info` is set, device API cros.factory.device.usb_c.GetPDPowerStatus
+is also used.
+
+Examples
+--------
+To check battery can charge and discharge, add this in test list::
+
+  OperatorTest(
+      pytest_name='battery_current',
+      dargs={
+          'min_charging_current': 250,
+          'min_discharging_current': 400
+      })
+
+To check that a 15V USB type C power adapter is connected to port 0, add this
+in test list::
+
+  OperatorTest(
+      pytest_name='battery_current',
+      dargs={
+          'usbpd_info': [0, 14500, 15500],
+          'usbpd_prompt': _('USB TypeC')
+      })
 """
 
 import logging
-import textwrap
 import time
 import unittest
 
@@ -56,17 +106,9 @@ class BatteryCurrentTest(unittest.TestCase):
           'Test timeout value', default=10, optional=True),
       Arg('max_battery_level', int,
           'maximum allowed starting battery level', optional=True),
-      Arg('usbpd_info', tuple, textwrap.dedent("""
-          (usbpd_port, min_millivolt, max_millivolt)
-          Used to select a particular port from a multi-port DUT.
-
-          * ``usbpd_port``: (int) usbpd_port number. Specify which port to
-                            insert power line.
-          * ``min_millivolt``: (int) The minimum millivolt the power must
-                               provide
-          * ``max_millivolt``: (int) The maximum millivolt the power must
-                               provide
-          """),
+      Arg('usbpd_info', (list, tuple),
+          'A sequence (usbpd_port, min_millivolt, max_millivolt) used to '
+          'select a particular port from a multi-port DUT.',
           optional=True),
       i18n_arg_utils.I18nArg('usbpd_prompt',
                              'prompt operator which port to insert',
