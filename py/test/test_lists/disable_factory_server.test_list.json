@@ -1,0 +1,57 @@
+{
+  "inherit": ["generic_common.test_list"],
+  "constants": {
+    "enable_factory_server": false,
+    "__comment_enable_factory_server": "Enable factory_server. Change this to false by adding 'disable_factory_server.test_list' to beginning of inherit list in main test list. Note that some factory environment might not need a shopfloor."
+  },
+  "definitions": {
+    "GetDeviceInfo": {
+      "__replace__": true,
+      "inherit": "UpdateDeviceData",
+      "label": "Set DeviceInfo",
+      "args": {
+        "fields": [
+          [
+            "component.has_cellular",
+            null,
+            "i18n! Has Cellular",
+            [true, false]
+          ],
+          [
+            "component.has_lte",
+            null,
+            "i18n! Has LTE",
+            [true, false]
+          ],
+          [
+            "component.has_touchscreen",
+            null,
+            "i18n! Has Touchscreen",
+            [true, false]
+          ],
+          "vpd.ro.region"
+        ]
+      }
+    },
+    "ShopfloorNotifyEnd": {
+      "__replace__": true,
+      "inherit": "UpdateDeviceData",
+      "args": {
+        "manual_input": false,
+        "fields": [
+          ["eval! 'factory.end_' + locals.station", true]
+        ]
+      }
+    },
+    "ShopfloorNotifyStart": {
+      "__replace__": true,
+      "inherit": "UpdateDeviceData",
+      "args": {
+        "manual_input": false,
+        "fields": [
+          ["eval! 'factory.start_' + locals.station", true]
+        ]
+      }
+    }
+  }
+}

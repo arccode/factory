@@ -39,7 +39,7 @@ _EVALUATE_PREFIX = 'eval! '
 _LOGGED_NAME = 'TestListManager'
 
 
-def MayTranslate(string, force=False):
+def MayTranslate(obj, force=False):
   """Translate a string if it starts with 'i18n! ' or force=True.
 
   Args:
@@ -48,13 +48,15 @@ def MayTranslate(string, force=False):
   Returns:
     A translation dict or string
   """
-  if not isinstance(string, basestring):
+  if isinstance(obj, dict):
+    return obj
+  if not isinstance(obj, basestring):
     raise TypeError('not a string')
   prefix = 'i18n! '
-  if string.startswith(prefix):
-    return i18n.Translated(string[len(prefix):])
+  if obj.startswith(prefix):
+    return i18n.Translated(obj[len(prefix):])
   else:
-    return i18n.Translated(string) if force else string
+    return i18n.Translated(obj) if force else obj
 
 
 class TestListConfig(object):

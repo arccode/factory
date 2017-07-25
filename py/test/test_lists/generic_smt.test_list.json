@@ -1,0 +1,207 @@
+{
+  "inherit": ["generic_common.test_list"],
+  "constants": {
+    "smt": {
+      "component_list": [
+        "audio_codec",
+        "bluetooth",
+        "cpu",
+        "dram",
+        "embedded_controller",
+        "flash_chip",
+        "pmic",
+        "storage",
+        "tpm",
+        "usb_hosts",
+        "wireless"
+      ],
+      "__comment_component_list": "Can also verify firmware here if preflashed firmware for SMT stage can meet the requirements in HWID.",
+      "probe_touchscreen": false,
+      "__comment_probe_touchscreen": "Probe touchscreen in SMT.  We can opt to use device_data to decide whether to probe this in SMT. But it is simpler to setup factory SMT line to probe touch screen in SMT regardless of touch and non-touchscreen SKU. The MLB for touch and non-touch SKUs are the same, only AB covers differ between touch and non-touch SKUs.",
+      "stress_duration_secs": 10,
+      "__comment_stress_duration_secs": "Duration of stress test (SAT, Stressful Application Test) during SMT."
+    }
+  },
+  "definitions": {
+    "SMT": {
+      "inherit": "TestGroup",
+      "id": "SMT",
+      "label": "SMT (SA Test)",
+      "run_if": "not device.factory.end_SMT",
+      "__comment": "The stage of tests performed after SMT and before FA.  This is also known as SA (System Assembly) testing.  After SMT, most factories will do System Assembly (SA) and then System Imaging then perform SA Testing.",
+      "subtests": [
+        "SMTUpdateFirmware",
+        "SMTStart",
+        "SMTShopfloor1",
+        {
+          "label": "Parallel Test Group 1",
+          "parallel": true,
+          "subtests": [
+            "ChargerTypeDetection",
+            "ChargeDischargeCurrent",
+            "SMTVerifyComponents",
+            "PartitionTable",
+            "VerifyRootPartition",
+            "SpeakerDMic"
+          ]
+        },
+        "SMTComponents",
+        "SMTThermalLoad",
+        "LidSwitch",
+        "AudioJack",
+        "LED",
+        "USBTypeCTest",
+        "Keyboard",
+        {
+          "inherit": "Barrier",
+          "id": "BarrierSMT"
+        },
+        "SMTShopfloor2",
+        "SMTFinish",
+        "HaltStep"
+      ]
+    },
+    "SMTComponents": {
+      "inherit": "TestGroup",
+      "label": "Components",
+      "parallel": true,
+      "subtests": [
+        {
+          "inherit": "WifiSSIDList",
+          "args": {
+            "event_log_name": "SMT_basic_ssid_list"
+          }
+        },
+        "CameraProbe",
+        "TouchpadProbe",
+        "BluetoothProbe",
+        "BatterySysfs",
+        {
+          "inherit": "TouchscreenProbe",
+          "run_if": "constants.smt.probe_touchscreen"
+        },
+        "SMTStress",
+        "SMTStressCountdown"
+      ]
+    },
+    "SMTFinish": {
+      "inherit": "Finish",
+      "require_run": ".BarrierSMT",
+      "args": {
+        "html": "i18n! SMT tests finished, press ENTER to shutdown."
+      }
+    },
+    "SMTShopfloor1": {
+      "inherit": "TestGroup",
+      "label": "Shopfloor1",
+      "locals": {
+        "station": "SMT"
+      },
+      "subtests": [
+        "SyncFactoryServer",
+        "ReadDeviceDataFromVPD",
+        {
+          "inherit": "TestGroup",
+          "label": "Preparation",
+          "run_if": "not device.factory.end_SMT",
+          "subtests": [
+            "ScanMLB",
+            "ScanOperatorID",
+            "ScanStationID",
+            "ShopfloorNotifyStart"
+          ]
+        }
+      ]
+    },
+    "SMTShopfloor2": {
+      "inherit": "TestGroup",
+      "label": "Shopfloor2",
+      "locals": {
+        "station": "SMT"
+      },
+      "subtests": [
+        "SyncFactoryServer",
+        "ShopfloorNotifyEnd",
+        {
+          "inherit": "WriteDeviceDataToVPD",
+          "require_run": ".ShopfloorNotifyEnd"
+        },
+        {
+          "inherit": "SyncFactoryServer",
+          "args": {
+            "upload_report": true,
+            "report_stage": "SMT"
+          }
+        }
+      ]
+    },
+    "SMTStart": {
+      "inherit": "Start",
+      "args": {
+        "press_to_continue": false
+      }
+    },
+    "SMTStress": {
+      "inherit": "StressAppTest",
+      "args": {
+        "seconds": "eval! constants.smt.stress_duration_secs"
+      }
+    },
+    "SMTStressCountdown": {
+      "pytest_name": "countdown",
+      "has_ui": true,
+      "args": {
+        "duration_secs": "eval! constants.smt.stress_duration_secs",
+        "title": "i18n! Stress/Component Tests"
+      }
+    },
+    "SMTThermalLoad": {
+      "pytest_name": "thermal_load",
+      "__comment": "Must not be run together with StressAppTest",
+      "args": {
+        "lower_threshold": 40,
+        "temperature_limit": 100,
+        "heat_up_timeout_secs": 12,
+        "duration_secs": 15
+      }
+    },
+    "SMTUpdateFirmware": {
+      "inherit": "TestGroup",
+      "label": "Update Firmware",
+      "subtests": ["SyncFactoryServer", "UpdateFirmware"]
+    },
+    "SMTVerifyComponents": {
+      "inherit": "VerifyComponents",
+      "args": {
+        "component_list": "eval! constants.smt.component_list"
+      }
+    },
+    "ScanMLB": {
+      "inherit": "Scan",
+      "label": "Scan MLB",
+      "args": {
+        "device_data_key": "serials.mlb_serial_number",
+        "event_log_key": "mlb_serial_number",
+        "label": "i18n! MLB Serial Number"
+      }
+    },
+    "ScanOperatorID": {
+      "inherit": "Scan",
+      "label": "Scan Operator ID",
+      "args": {
+        "device_data_key": "factory.smt_operator_id",
+        "event_log_key": "smt_operator_id",
+        "label": "i18n! Operator ID"
+      }
+    },
+    "ScanStationID": {
+      "inherit": "Scan",
+      "label": "ScanStationID",
+      "args": {
+        "device_data_key": "factory.smt_station_id",
+        "event_log_key": "smt_station_id",
+        "label": "i18n! Station ID"
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "inherit": ["generic_common.test_list"],
+  "definitions": {
+    "StationEntry": {
+      "pytest_name": "station_entry",
+      "has_ui": true,
+      "args": {
+        "prompt_start": true
+      }
+    },
+    "StationExit": {
+      "pytest_name": "station_entry",
+      "has_ui": true,
+      "args": {
+        "start_station_tests": false,
+        "disconnect_dut": true
+      }
+    }
+  }
+}

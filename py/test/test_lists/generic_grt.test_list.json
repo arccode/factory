@@ -1,0 +1,53 @@
+{
+  "inherit": ["generic_common.test_list"],
+  "definitions": {
+    "Finalize": {
+      "pytest_name": "finalize",
+      "has_ui": true,
+      "__comment": "*** write_protection IS REQUIRED TO BE TRUE FOR MASS PRODUCTION / SHIPPING DEVICES. ***",
+      "args": {
+        "allow_force_finalize": [],
+        "write_protection": true,
+        "upload_method": "eval! 'shopfloor' if constants.enable_factory_server else 'none'",
+        "secure_wipe": true,
+        "sync_event_logs": "eval! constants.enable_factory_server",
+        "enable_shopfloor": "eval! constants.enable_factory_server",
+        "enforced_release_channels": "eval! ['stable'] if options.phase == 'PVT' else None"
+      }
+    },
+    "GRT": {
+      "label": "Google Required Tests",
+      "subtests": [
+        "VerifyRootPartition",
+        "Barrier",
+        "ClearTPMOwnerRequest",
+        "RebootStep",
+        "Barrier",
+        "GRTShopfloor",
+        "GRTFinish",
+        "Finalize"
+      ]
+    },
+    "GRTFinish": {
+      "inherit": "Finish",
+      "require_run": ".GRTShopfloor.FinishGRT",
+      "args": {
+        "html": "i18n! GRT tests finished, press SPACE to finalize."
+      }
+    },
+    "GRTShopfloor": {
+      "inherit": "TestGroup",
+      "label": "Shopfloor",
+      "subtests": [
+        "SyncFactoryServer",
+        {
+          "inherit": "ShopfloorNotifyEnd",
+          "id": "FinishGRT",
+          "locals": {
+            "station": "GRT"
+          }
+        }
+      ]
+    }
+  }
+}

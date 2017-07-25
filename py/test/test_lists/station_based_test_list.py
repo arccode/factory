@@ -3,6 +3,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+# TODO(pihsun): Remove this file when all test lists are in JSON format.
+
 import factory_common  # pylint: disable=unused-import
 
 from cros.factory.test import i18n

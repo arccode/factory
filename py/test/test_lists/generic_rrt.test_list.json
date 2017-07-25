@@ -1,0 +1,172 @@
+{
+  "inherit": ["generic_common.test_list"],
+  "label": "Generic Rolling Reliability",
+  "constants": {
+    "rrt": {
+      "sat_duration_secs": 28800,
+      "dozing_sat_duration_secs": 600
+    }
+  },
+  "options": {
+    "disable_cros_shortcut_keys": true,
+    "ui_locale": "zh-CN"
+  },
+  "definitions": {
+    "RRTCountdown": {
+      "pytest_name": "countdown",
+      "__comment": "temp_criteria: A list of rules to check that temperature is under the given range, rule format is [name, temp_index, warning_temp, critical_temp]",
+      "args": {
+        "log_interval": 10,
+        "grace_secs": 480,
+        "temp_max_delta": 10,
+        "temp_criteria": [
+          ["CPU", null, 90, 100]
+        ]
+      }
+    },
+    "RRTDozingStress": {
+      "label": "Dozing Stress",
+      "parallel": true,
+      "subtests": [
+        {
+          "inherit": "StressAppTest",
+          "args": {
+            "seconds": "eval! constants.rrt.dozing_sat_duration_secs",
+            "free_memory_only": true,
+            "wait_secs": 60
+          }
+        },
+        {
+          "inherit": "SuspendResume",
+          "retries": 2,
+          "args": {
+            "cycles": 15,
+            "suspend_delay_min_secs": 28,
+            "suspend_delay_max_secs": 30,
+            "resume_early_margin_secs": 1
+          }
+        },
+        {
+          "inherit": "RRTCountdown",
+          "has_ui": true,
+          "args": {
+            "title": "i18n! Dozing Stress Tests",
+            "duration_secs": "eval! constants.rrt.dozing_sat_duration_secs"
+          }
+        }
+      ]
+    },
+    "RRTRebootCheck": {
+      "inherit": "FlattenGroup",
+      "subtests": [
+        {
+          "inherit": "ExecShell",
+          "label": "Check WLAN",
+          "args": {
+            "commands": "ifconfig wlan0"
+          }
+        },
+        {
+          "inherit": "ExecShell",
+          "label": "Check Bluetooth",
+          "args": {
+            "commands": "hciconfig hci0"
+          }
+        }
+      ]
+    },
+    "RRTStressGroup": {
+      "label": "Stress Group",
+      "parallel": true,
+      "subtests": [
+        {
+          "inherit": "WebGLAquarium",
+          "args": {
+            "duration_secs": "eval! constants.rrt.sat_duration_secs"
+          }
+        },
+        {
+          "inherit": "Camera",
+          "has_ui": false,
+          "args": {
+            "timeout_secs": "eval! constants.rrt.sat_duration_secs",
+            "show_image": false,
+            "do_capture_timeout": true
+          }
+        },
+        {
+          "inherit": "URandom",
+          "args": {
+            "duration_secs": "eval! constants.rrt.sat_duration_secs"
+          }
+        },
+        {
+          "inherit": "StressAppTest",
+          "args": {
+            "seconds": "eval! constants.rrt.sat_duration_secs",
+            "free_memory_only": true,
+            "wait_secs": 60
+          }
+        },
+        {
+          "inherit": "RRTCountdown",
+          "args": {
+            "duration_secs": "eval! constants.rrt.sat_duration_secs"
+          }
+        }
+      ]
+    },
+    "RRTWarmColdReboot": {
+      "inherit": "TestGroup",
+      "label": "Warm Cold Reboot",
+      "subtests": [
+        "ColdReset",
+        "RRTRebootCheck",
+        "Barrier",
+        {
+          "inherit": "Idle",
+          "args": {
+            "wait_secs": 60
+          }
+        },
+        "RebootStep",
+        "RRTRebootCheck",
+        "Barrier"
+      ]
+    }
+  },
+  "tests": [
+    {
+      "inherit": "Start",
+      "args": {
+        "require_external_power": true
+      }
+    },
+    {
+      "inherit": "RebootStep",
+      "iterations": 1500
+    },
+    {
+      "inherit": "RRTWarmColdReboot",
+      "iterations": 50
+    },
+    {
+      "inherit": "TestGroup",
+      "label": "RRT",
+      "iterations": 21,
+      "subtests": [
+        "RRTStressGroup",
+        "Barrier",
+        "RebootStep",
+        "RRTDozingStress",
+        "Barrier",
+        {
+          "inherit": "RebootStep",
+          "iterations": 15
+        },
+        "ColdReset",
+        "Barrier"
+      ]
+    }
+  ]
+}
