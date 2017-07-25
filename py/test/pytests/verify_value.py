@@ -2,7 +2,71 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Factory test to verify value of the given command."""
+"""A test to verify value of the given command.
+
+Description
+-----------
+This test evaluates and executes the given `items` argument, where
+each item is a sequence with 3 elements (name, command, expected_value):
+
+1. `name`: A string passed to `i18n.Translated` to display on UI.
+2. `command`: Can be one of:
+
+  * A sequence or str as shell command to be passed to `dut.Popen`. Leading
+    and trailing whitespace of the output would be stripped.
+  * A str starts with `dut.`, which would be transformed into corresponding
+    device API call. e.g. `dut.info.cpu_count`.
+
+3. `expected_value`: A list of possible expected value of output of command,
+   each item can be one of:
+
+  * The expected str or int of output.
+  * A range `[min_value, max_value]`, indicate that the output value should be
+    within the range.
+
+  If `expected_value` only contains a single item of type str or int, the
+  item can be used as `expected_value` directly.
+
+This test will check the output of shell commands given from argument `items`
+one by one, and fail if any command have non-zero return value or have output
+that doesn't match any of the expected values.
+
+Test Procedure
+--------------
+This is an automated test without user interaction.
+
+Start the test and it will run the shell commands or execute the device API
+specified, one by one; and fail if any of the command doesn't match the
+expected values.
+
+Dependency
+----------
+The test uses system shell to execute commands, which may be different per
+platform. Also, the command may be not always available on target system.
+You have to review each command to check if that's provided on DUT.
+
+Examples
+--------
+To check if the ec version match some value, add this in test list::
+
+  OperatorTest(
+      pytest_name='verify_value',
+      dargs={
+          'items': [_('EC Version'), 'dut.info.ec_version', 'board_v1.0.1234']
+      })
+
+To check if the cpu0 mode is in powersave mode, add this in test list::
+
+  OperatorTest(
+      pytest_name='verify_value',
+      dargs={
+          'items': [
+              _('CPU speed'),
+              'cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor',
+              'powersave'
+          ]
+      })
+"""
 
 from collections import namedtuple
 import logging
@@ -24,8 +88,8 @@ Item = namedtuple('CheckItem', 'name command expected_value')
 class VerifyValueTest(unittest.TestCase):
   ARGS = [
       Arg('items', list,
-          'A list of tuples, each representing an item to check. Each tuple\n'
-          'is in format:\n'
+          'A list of sequences, each representing an item to check.\n'
+          'Each sequence is in format:\n'
           '\n'
           '  (name, command/func_name, expected_value)\n'
           '\n'
@@ -75,7 +139,7 @@ class VerifyValueTest(unittest.TestCase):
 
       match = False
       for expected_value in expected_values:
-        if isinstance(expected_value, tuple):
+        if isinstance(expected_value, (list, tuple)):
           v = float(value_str)
           match = expected_value[0] <= v <= expected_value[1]
         elif isinstance(expected_value, int):
