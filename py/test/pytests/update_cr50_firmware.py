@@ -2,7 +2,47 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Update Cr50 firmware."""
+"""Update Cr50 firmware.
+
+Description
+-----------
+This test calls `trunks_send` on DUT to update Cr50 firmware. The Cr50 firmware
+image to update is either from a given path in station or from the release
+partition on DUT.
+
+`trunks_send` is a program with ability to update Cr50 firmware. Notice that
+some older factory branches might have only `usb_updater` but no `trunks_send`.
+
+To prepare Cr50 firmware image on station, download the release image with
+desired Cr50 firmware image and find the image in FIRMWARE_RELATIVE_PATH below.
+
+Test Procedure
+--------------
+This is an automatic test that doesn't need any user interaction.
+
+1. Firstly, this test will create a DUT link.
+2. If Cr50 firmware image source is from station, the image would be sent to
+   DUT. Else, the release partition on DUT will be mounted.
+3. DUT runs `trunks_send` to update Cr50 firmware.
+
+Dependency
+----------
+- DUT link must be ready before running this test.
+- `trunks_send` on DUT.
+- Cr50 firmware image must be prepared.
+
+Examples
+--------
+To update Cr50 firmware with the Cr50 firmware image in DUT release partition::
+
+  OperatorTest(pytest_name='update_cr50_firmware')
+
+To update Cr50 firmware with the Cr50 firmware image in station::
+
+  OperatorTest(pytest_name='update_cr50_firmware',
+               dargs=dict(from_release=False,
+                          firmware_file='/path/on/station/to/cr50.bin.prod'))
+"""
 
 import logging
 import os
