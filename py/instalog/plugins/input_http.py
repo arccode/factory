@@ -227,7 +227,7 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
 
   def _DecryptData(self, data):
     """Decrypts and verifies the data."""
-    decrypted_data = self._gpg.decrypt(data)
+    decrypted_data = self._gpg.decrypt(data, always_trust=False)
     self._CheckDecryptedData(decrypted_data)
     return decrypted_data.data
 
@@ -237,7 +237,7 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
                                           dir=target_dir) as tmp_path:
       with open(file_path, 'r') as encrypted_file:
         decrypted_data = self._gpg.decrypt_file(
-            encrypted_file, output=tmp_path)
+            encrypted_file, output=tmp_path, always_trust=False)
         self._CheckDecryptedData(decrypted_data)
       shutil.move(tmp_path, file_path)
 
@@ -330,7 +330,6 @@ class InputHTTP(plugin_base.InputPlugin):
     if self.args.enable_gnupg:
       self.info('Enable GnuPG to decrypt and verify the data')
       http_common.CheckGnuPG()
-      # pylint: disable=unexpected-keyword-arg
       gpg = gnupg.GPG(homedir=self.args.gnupg_home)
       self.info('GnuPG home directory: %s', gpg.homedir)
       if len(gpg.list_keys(True)) < 1:

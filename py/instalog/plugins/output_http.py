@@ -79,7 +79,6 @@ class OutputHTTP(plugin_base.OutputPlugin):
     if self.args.enable_gnupg:
       self.info('Enable GnuPG to encrypt and sign the data')
       http_common.CheckGnuPG()
-      # pylint: disable=unexpected-keyword-arg
       self._gpg = gnupg.GPG(homedir=self.args.gnupg_home)
       self.info('GnuPG home directory: %s', self._gpg.homedir)
       if not self.args.target_key:
@@ -240,7 +239,8 @@ class OutputHTTP(plugin_base.OutputPlugin):
     encrypted_data = self._gpg.encrypt(
         data,
         self.args.target_key,
-        default_key=self._gpg.list_keys(True)[0]['fingerprint'])
+        default_key=self._gpg.list_keys(True)[0]['fingerprint'],
+        always_trust=False)
     if not encrypted_data.ok:
       raise Exception('Failed to encrypt data! Log: %s' % encrypted_data.stderr)
     return encrypted_data.data
@@ -254,7 +254,8 @@ class OutputHTTP(plugin_base.OutputPlugin):
           plaintext_file,
           self.args.target_key,
           default_key=self._gpg.list_keys(True)[0]['fingerprint'],
-          output=encrypt_path)
+          output=encrypt_path,
+          always_trust=False)
       if not encrypted_data.ok:
         raise Exception(
             'Failed to encrypt file! Log: %s' % encrypted_data.stderr)
