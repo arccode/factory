@@ -34,11 +34,8 @@ TEST_RUNNER_ENV_VAR = 'CROS_FACTORY_TEST_RUNNER'
 TEST_TIMEOUT_SECS = 60
 
 
-def _MaybeRunPytestsOnly(tests, isolated_tests):
+def _MaybeSkipTest(tests, isolated_tests):
   """Filters tests according to changed file.
-
-  If all modified files since last test run are inside py/test/pytests, we
-  don't run unittests outside that directory.
 
   Args:
     tests: unittest paths.
@@ -48,7 +45,6 @@ def _MaybeRunPytestsOnly(tests, isolated_tests):
     A tuple (filtered_tests, filtered_isolated_tests) containing filtered
     tests and isolated tests.
   """
-  PYTEST_PATH = 'py/test/pytests'
   if not os.path.exists(TEST_PASSED_MARK):
     return (tests, isolated_tests)
 
@@ -71,11 +67,7 @@ def _MaybeRunPytestsOnly(tests, isolated_tests):
     # Nothing to test!
     return ([], [])
 
-  if next((f for f in changed_files if not f.startswith(PYTEST_PATH)), None):
-    return (tests, isolated_tests)
-
-  return ([test for test in tests if test.startswith(PYTEST_PATH)],
-          [test for test in isolated_tests if test.startswith(PYTEST_PATH)])
+  return (tests, isolated_tests)
 
 
 class _TestProc(object):
@@ -481,7 +473,7 @@ def main():
 
   test, isolated = ((args.test, args.isolated)
                     if args.nofilter
-                    else _MaybeRunPytestsOnly(args.test, args.isolated))
+                    else _MaybeSkipTest(args.test, args.isolated))
 
   if os.path.exists(TEST_PASSED_MARK):
     os.remove(TEST_PASSED_MARK)
