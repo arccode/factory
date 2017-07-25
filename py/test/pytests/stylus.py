@@ -122,7 +122,7 @@ class StylusTest(unittest.TestCase):
     assert len(self.args.endpoints_ratio) == 2
     assert self.args.endpoints_ratio[0] != self.args.endpoints_ratio[1]
     for point in self.args.endpoints_ratio:
-      assert isinstance(point, tuple) and len(point) == 2
+      assert isinstance(point, (list, tuple)) and len(point) == 2
       assert all(0 <= x_or_y <= 1 for x_or_y in point)
       assert point[0] in [0, 1] or point[1] in [0, 1]
 
