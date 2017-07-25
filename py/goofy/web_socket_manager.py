@@ -19,10 +19,9 @@ from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient
 from cros.factory.test import factory
 from cros.factory.test.utils.web_socket_utils import WebSocketHandshake
-from cros.factory.utils.file_utils import TryMakeDirs
-from cros.factory.utils.file_utils import TouchFile
-from cros.factory.utils.process_utils import Spawn
-from cros.factory.utils.string_utils import DecodeUTF8
+from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
+from cros.factory.utils import string_utils
 
 
 # Number of lines to buffer for new clients.
@@ -60,12 +59,12 @@ class WebSocketManager(object):
                                     name='WebSocketManager')
 
     if not os.path.exists(paths.CONSOLE_LOG_PATH):
-      TryMakeDirs(os.path.dirname(paths.CONSOLE_LOG_PATH))
+      file_utils.TryMakeDirs(os.path.dirname(paths.CONSOLE_LOG_PATH))
       # There's a small chance of race condition. Some data might already
       # flushed to console log before the 'TouchFile' got executed.
       # But it's fine though, since TouchFile() uses 'a' append mode.
-      TouchFile(paths.CONSOLE_LOG_PATH)
-    self.tail_process = Spawn(
+      file_utils.TouchFile(paths.CONSOLE_LOG_PATH)
+    self.tail_process = process_utils.Spawn(
         ['tail', '-F', paths.CONSOLE_LOG_PATH],
         ignore_stdin=True,
         stdout=subprocess.PIPE)
@@ -143,7 +142,7 @@ class WebSocketManager(object):
         # Send the last n lines.
         web_socket.send(
             Event(Event.Type.LOG,
-                  message=DecodeUTF8(line)).to_json())
+                  message=string_utils.DecodeUTF8(line)).to_json())
 
     try:
       with self.lock:
@@ -195,7 +194,7 @@ class WebSocketManager(object):
           self.tail_buffer.popleft()
       self._handle_event(
           Event(Event.Type.LOG,
-                message=DecodeUTF8(line).rstrip('\n')))
+                message=string_utils.DecodeUTF8(line).rstrip('\n')))
 
   def _handle_event(self, event):
     """Sends an event to each open WebSocket client."""
