@@ -65,9 +65,6 @@ class BoardTempSensorsTest(unittest.TestCase):
     Returns:
       Temperature of given sensor.
     """
-    # TODO(hungte) Deprecate the legacy index API.
-    if isinstance(name, int):
-      name = self.thermal.GetTemperatureSensorNames()[name]
     return self.thermal.GetTemperature(name)
 
   def setUp(self):

@@ -133,8 +133,6 @@ class CountDownTest(unittest.TestCase):
       try:
         if sensor is None:
           sensor = self._main_sensor  # _main_sensor is basestring.
-        if isinstance(sensor, int):
-          sensor = self._sensors_index[sensor]
         return status.temperatures[sensor]
       except IndexError:
         return None
@@ -223,8 +221,6 @@ class CountDownTest(unittest.TestCase):
     sensors.sort()
     sensors.insert(0, sensors.pop(sensors.index(self._main_sensor)))
     self._sensors = sensors
-    # TODO(hungte) Remove the fixed-order when migration is finished.
-    self._sensors_index = self._dut.thermal.GetTemperatureSensorNames()
     self._ui = test_ui.UI()
 
   def runTest(self):
