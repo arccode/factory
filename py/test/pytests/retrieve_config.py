@@ -2,12 +2,59 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""A test for retrieving json config file from ether USB disk or Shopfloor.
+"""Retrieve JSON config file from either an USB stick or a factory server.
 
-This pytest will retrieve the config file and place it under
-RuntimeConfigDirectory in config_utils.json (Defaults to /var/factory/config).
-Then after using this test, you can use config_utils to load the specific
-json config file.
+Description
+-----------
+This pytest retrieves the config file from a specified source, so a following
+pytest can use config_utils to load specfic config data.
+
+The config file can be fecthed from two types of sources:
+1. Factory server
+2. USB stick
+
+To fetch a config file from a factory server, you should put the config
+file under the 'parameters' folders, and specify the `data_method` to
+FACTORY_SERVER.
+
+To fetch a config file from a USB stick, you can put the file at any partition
+you want, as long as the partition and file system on the USB stick can be
+recognized by the operating system. The `data_method` should be set to 'USB',
+and if there are several partitions on the USB stick, the argument
+`usb_dev_parition` should be set to specify the partition you placed the config
+file.
+
+Test Procedure
+--------------
+If `data_method` is set to 'FACTORY_SERVER', no action needs to be done.
+
+If `data_method` is set to 'USB', then:
+1. Insert the USB stick
+2. Wait for completion
+
+Dependency
+----------
+Depends on 'udev' and 'pyudev' python module to monitor USB insertion.
+
+Examples
+--------
+Assume the config file is located at 'foo/bar.json' under the remote source
+(i.e., a factory server, or a USB stick).
+
+The JSON config can be loaded from the factory server by::
+
+  FactoryTest(
+      pytest_name='retrieve_config',
+      dargs=dict(
+          config_retrieve_path='foo/bar.json'))
+
+To load the JSON config from a USB stick::
+
+  FactoryTest(
+      pytest_name='retrieve_config',
+      dargs=dict(
+          data_method=DATA_METHOD.USB,
+          config_retrieve_path='foo/bar.json'))
 """
 
 
@@ -27,7 +74,7 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
 
 
-DATA_METHOD = type_utils.Enum(['USB', 'SHOPFLOOR'])
+DATA_METHOD = type_utils.Enum(['USB', 'FACTORY_SERVER'])
 
 
 class RetrieveConfigException(Exception):
@@ -62,7 +109,7 @@ class RetrieveConfig(unittest.TestCase):
       Arg('data_method',
           DATA_METHOD,
           'The method to retrieve config.',
-          default=DATA_METHOD.SHOPFLOOR),
+          default=DATA_METHOD.FACTORY_SERVER),
       Arg('config_retrieve_path',
           str,
           'The path to the config file to retrieve from.',
@@ -81,8 +128,8 @@ class RetrieveConfig(unittest.TestCase):
           optional=True),
       Arg('local_ip',
           str,
-          'Local IP address for connecting shopfloor. '
-          'when data_method = Shopfloor. Set as None to use DHCP.',
+          'Local IP address for connecting to the factory server '
+          'when data_method = FACTORY_SERVER. Set as None to use DHCP.',
           default=None,
           optional=True),
       Arg('usb_dev_partition',
@@ -111,15 +158,15 @@ class RetrieveConfig(unittest.TestCase):
     file_utils.TryMakeDirs(os.path.dirname(self.config_save_path))
     if self.args.data_method == DATA_METHOD.USB:
       self._RetrieveConfigFromUSB()
-    elif self.args.data_method == DATA_METHOD.SHOPFLOOR:
-      self._RetrieveConfigFromShopfloor()
+    elif self.args.data_method == DATA_METHOD.FACTORY_SERVER:
+      self._RetrieveConfigFromFactoryServer()
     else:
       raise ValueError('Unknown data_method.')
 
-  def _RetrieveConfigFromShopfloor(self):
-    """Loads parameters from shopfloor."""
+  def _RetrieveConfigFromFactoryServer(self):
+    """Loads parameters from a factory server."""
     try:
-      factory.console.info('Retrieving %s from shopfloor.',
+      factory.console.info('Retrieving %s from factory server.',
                            self.args.config_retrieve_path)
       shopfloor_client = shopfloor.GetShopfloorConnection()
       content = shopfloor_client.GetParameter(
@@ -128,7 +175,7 @@ class RetrieveConfig(unittest.TestCase):
         f.write(content)
       logging.info('Saved config to %s.', self.config_save_path)
     except Exception as e:
-      logging.exception('Failed to retrieve config from ShopFloor.')
+      logging.exception('Failed to retrieve config from factory server.')
       raise RetrieveConfigException(e.message)
 
   def _RetrieveConfigFromUSB(self):
