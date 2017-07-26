@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -568,7 +566,8 @@ class ExtDisplayTaskArg(object):
 
     self.display_label, self.display_id = info[:2]
     if len(info) >= 3 and info[2] is not None:
-      if not isinstance(info[2], tuple) or not isinstance(info[2][2], list):
+      if (not isinstance(info[2], (list, tuple)) or
+          not isinstance(info[2][2], list)):
         raise ValueError('ERROR: invalid display_info item: ' + str(info))
       self.audio_card = self.dut.audio.GetCardIndexByName(info[2][0])
       self.audio_device = info[2][1]
