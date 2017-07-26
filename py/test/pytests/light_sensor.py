@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+# Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -7,14 +6,71 @@
 
 """A factory test for ambient light sensor.
 
-Tests that ambient light sensor reacts to both darkening by covering w/finger
-as well as brightening.
+Description
+-----------
+Tests that ambient light sensor reacts to both darkening by covering with
+finger as well as brightening by shining with flashlight.
 
-Roughly speaking:
+Test Procedure
+--------------
+When the test starts, all subtests will be listed on the screen.  Operator
+needs to press ``SPACE`` to start subtests.
 
-- indoor ambient lighting: 20-100
-- sunlight direct: 30k-60k
-- flashlight direct: 5k-10k
+After ``SPACE`` is pressed, the first subtest will become ``ACTIVE`` and
+operator should follow the instruction shown on the screen, e.g. "Cover light
+sensor with finger".  The pytest will keep polling light sensor value, as soon
+as the  value meets the requirement, the subtest will be marked as ``PASSED``
+and next subtest will become ``ACTIVE``  When all subtests are ``PASSED`` the
+test will pass and stop.
+
+Dependency
+----------
+The pytest requires ALS driver to expose sensor value as a file under sysfs.  By
+default, the pytest finds the sensor value file with path
+``/sys/bus/iio/devices/*/illuminance0_input``.
+
+
+Examples
+--------
+Minimum runnable example::
+
+    OperatorTest(pytest_name='light_sensor')
+
+This will read ALS value from ``/sys/bus/iio/devices/*/illuminance0_input``.
+There will be 3 subtests,
+
+1. ``'Light sensor dark'`` (belaw 4)
+2. ``'Light sensor exact'`` (between 10 and 15)
+3. ``'Light sensor light'`` (above 200)
+
+Unfortunately, in most of the case, this does not work for you, because
+
+* the exposed sysfs file has different name
+* scale of the sensor value is different
+
+For example, the arguments for your board might be::
+
+    OperatorTest(
+        pytest_name='light_sensor',
+        dargs={
+            'device_input': 'in_illuminance_raw',
+            'subtest_list': [
+                'Light sensor dark', 'Light sensor exact', 'Light sensor light'
+            ],
+            'subtest_instruction': {
+                'Light sensor dark': _('Cover light sensor with finger'),
+                'Light sensor exact': _('Remove finger from light sensor'),
+                'Light sensor light': _('Shine light sensor with flashlight'),
+            },
+            'subtest_cfg': {
+                'Light sensor dark': {'below': 30},
+                'Light sensor exact': {'between': (60, 300)},
+                'Light sensor light': {'above': 500}
+            }
+        })
+
+Note that you have to specify ``subtest_list``, ``subtests_instruction``,
+``subtest_cfg`` at the same time.
 """
 
 from __future__ import print_function
@@ -28,6 +84,8 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import countdown_timer
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
@@ -40,17 +98,17 @@ _DEFAULT_SUBTEST_CFG = {'Light sensor dark': {'below': 4},
                         'Light sensor exact': {'between': (10, 15)},
                         'Light sensor light': {'above': 200}}
 _DEFAULT_SUBTEST_INSTRUCTION = {
-    'Light sensor dark': 'Cover light sensor with finger',
-    'Light sensor exact': 'Remove finger from light sensor',
-    'Light sensor light': 'Shine light sensor with flashlight'}
+    'Light sensor dark': _('Cover light sensor with finger'),
+    'Light sensor exact': _('Remove finger from light sensor'),
+    'Light sensor light': _('Shine light sensor with flashlight')}
 
 _DEFAULT_DEVICE_PATH = '/sys/bus/iio/devices/*/'
 _DEFAULT_DEVICE_INPUT = 'illuminance0_input'
 
-_MSG_PROMPT_FMT = """
+_MSG_PROMPT_FMT = i18n_test_ui.MakeI18nLabel("""
     Use indicated light source to pass each subtest<br>
     Hit "space" to begin...<br><br>
-"""
+""")
 
 _ID_CONTAINER = 'light-sensor-container'
 _ID_COUNTDOWN_TIMER = 'light-sensor-timer'
@@ -222,7 +280,8 @@ class LightSensorTest(unittest.TestCase):
 
     test = 0
     for name in self._subtest_list:
-      self.ui.SetHTML(self._subtest_instruction[name], id='title%d' % test)
+      instruction = i18n_test_ui.MakeI18nLabel(self._subtest_instruction[name])
+      self.ui.SetHTML(instruction, id='title%d' % test)
       desc = '%s (%s)' % (
           name, self.GetConfigDescription(self._subtest_cfg[name]))
       self.ui.SetHTML(desc, id='desc%d' % test)
