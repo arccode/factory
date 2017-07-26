@@ -58,7 +58,7 @@ pre-defined values:
 
 Test Procedure
 --------------
-If argument ``manual_input`` is not True, this will be is an automated test
+If argument ``manual_input`` is not True, this will be an automated test
 without user interaction.
 
 If argument ``manual_input`` is True, the test will go through all the fields:
