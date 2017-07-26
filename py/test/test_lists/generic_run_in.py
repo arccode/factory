@@ -107,7 +107,7 @@ def RunIn(args, group_suffix=''):
       # Note that currently user has to implement the hook to skip all SMT
       # tests if there is 'smt_complete' in device_data.
       # If it is not implemented, they only those tests with
-      # run_if='!device.factory.end_SMT' will be skipped.
+      # run_if='not device.factory.end_SMT' will be skipped.
       # TODO(cychiang) Let goofy support smt_complete instead of relying on
       # hooks.
       OperatorTest(

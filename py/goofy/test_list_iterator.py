@@ -405,14 +405,11 @@ class TestListIterator(object):
     # an active test should always pass the filter (to resume a previous test)
     return status == factory.TestState.ACTIVE or status in self.status_filter
 
-  def CheckRunIf(self, test, test_arg_env=None, get_data=None):
+  def CheckRunIf(self, test, test_arg_env=None):
     if test_arg_env is None:
       test_arg_env = invocation.TestArgEnv()
-    if get_data is None:
-      state_instance = self.test_list.state_instance
-      # state_instance should be the *real* FactoryState object, not proxy
-      get_data = state_instance.data_shelf_get_value
-    return test.EvaluateRunIf(test_arg_env, get_data)
+    return manager.ITestList.EvaluateRunIf(
+        test, self.test_list, test_arg_env)
 
   def _ResetIterations(self, test):
     test.UpdateState(iterations_left=test.iterations,

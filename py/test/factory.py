@@ -521,13 +521,7 @@ class FactoryTest(object):
   with a '.' delimiter.
 
   Properties:
-    Mostly the same as constructor args.  Additionally:
-      run_if_table_name: The table_name portion of the run_if ctor arg.
-      run_if_col: The column name portion of the run_if ctor arg.
-      run_if_not: Whether the sense of the argument is inverted.
-      run_if_expr: A callable function (taking one argument, an
-          invocation.TestArgEnv) that will return True if the test
-          should be run.
+    Mostly the same as constructor args.
   """
 
   # If True, the test never fails, but only returns to an untested state.
@@ -548,8 +542,6 @@ class FactoryTest(object):
       'run_if', 'subtests', 'teardown', 'inherit', ]
 
   ACTION_ON_FAILURE = type_utils.Enum(['STOP', 'NEXT', 'PARENT'])
-
-  RUN_IF_REGEXP = re.compile(r'^(!)?(.+)$')
 
   _PYTEST_LABEL_MAP = {
       'ac': 'AC',
@@ -649,18 +641,7 @@ class FactoryTest(object):
                 require_run)
     self.require_run = require_run
 
-    self.run_if = run_if  # Remember the original value for ToStruct
-    self.run_if_not = False
-    self.run_if_key = None
-    self.run_if_expr = None
-    if callable(run_if):
-      self.run_if_expr = run_if
-    elif run_if:
-      match = self.RUN_IF_REGEXP.match(run_if)
-      assert match, ('In test %s, run_if value %r does not match %s',
-                     self.path, run_if, self.RUN_IF_REGEXP.pattern)
-      self.run_if_not = match.group(1) is not None
-      self.run_if_key = match.group(2)
+    self.run_if = run_if
 
     self._teardown = teardown
     self.path = ''
@@ -1025,48 +1006,12 @@ class FactoryTest(object):
     """Returns this node and children in YAML format."""
     return yaml.dump(self.AsDict(state_map))
 
-  def EvaluateRunIf(self, test_arg_env, get_data):
-    """Evaluate the run_if value of this test.
-
-    Evaluates run_if argument to decide skipping the test or not.  If run_if
-    argument is not set, the test will never be skipped.
-
-    Args:
-      test_arg_env: a cros.factory.goofy.invocation.TestArgEnv object
-      get_data: a function to select data by self.run_if_key, the
-          function should return value corresponding to given key.
-
-    Returns:
-      True if this test should be run, otherwise False
-    """
-    if self.run_if_expr:
-      try:
-        return self.run_if_expr(test_arg_env)
-      except Exception:
-        logging.exception('Unable to evaluate run_if expression for %s',
-                          self.path)
-        # But keep going; we have no choice.  This will end up always activating
-        # the test.
-        return True
-    elif self.run_if_key:
-      try:
-        value = get_data(self.run_if_key)
-      except KeyError:
-        # Cannot find corresponding value, use default value (False)
-        value = False
-      return bool(value) ^ self.run_if_not
-    else:  # run_if is not set
-      return True
-
   def DisableByRunIf(self):
     """Overwrites properties related to run_if to disable a test.
 
-    Modifies run_if_expr, run_if_not, run_if_table_name so the run_if evaluation
-    will always skip the test.
+    Makes self.run_if constant False.
     """
-    self.run_if_expr = lambda _: False
-    self.run_if_not = False
-    self.run_if_key = None
+    self.run_if = 'False'
 
   def Skip(self, forever=False):
     """Skips this test and any subtests that have not already passed.

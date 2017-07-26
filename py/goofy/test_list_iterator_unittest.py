@@ -15,7 +15,6 @@ from cros.factory.test import factory
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager
 from cros.factory.test.test_lists import test_lists
-from cros.factory.utils import shelve_utils
 
 
 class TestListIteratorTest(unittest.TestCase):
@@ -56,7 +55,7 @@ class TestListIteratorTest(unittest.TestCase):
     return deserialized_object
 
   def _AssertTestSequence(self, test_list, expected_sequence,
-                          root=None, test_persistency=False, aux_data=None,
+                          root=None, test_persistency=False, device_data=None,
                           run_test=None, set_state=True, status_filter=None):
     """Helper function to check the test order.
 
@@ -66,12 +65,12 @@ class TestListIteratorTest(unittest.TestCase):
       root: starting from which test
       test_persistency: will serialize and deserialize the iterator between each
           next call.
-      aux_data: initial stub aux_data
+      device_data: initial stub device_data
       run_test: a function will be called for each test returned by the
-          iterator.  The signature is run_test(test_path, current_aux_data).
+          iterator.  The signature is run_test(test_path, current_device_data).
           This function must return True if the test is considered passed, False
-          otherwise.  This function can modify current_aux_data or cause other
-          side effects to affect the next or following tests.
+          otherwise.  This function can modify current_device_data or cause
+          other side effects to affect the next or following tests.
       set_state: override current state of test_list
     """
     if not root:
@@ -82,19 +81,18 @@ class TestListIteratorTest(unittest.TestCase):
         root, test_list=test_list, status_filter=status_filter)
     actual_sequence = []
     if not run_test:
-      run_test = lambda unused_path, unused_aux_data: True
+      run_test = lambda unused_path, unused_device_data: True
 
-    aux_data = aux_data or {}
+    device_data = device_data or {}
     # mock CheckRunIf
     def _MockedCheckRunIf(path):
-      data_shelf = shelve_utils.DictShelfView(shelve_utils.InMemoryShelf())
-      data_shelf.SetValue('', aux_data)
+      if device_data:
+        test_list.state_instance.data_shelf_set_value('device', device_data)
 
       return test_list_iterator.TestListIterator.CheckRunIf(
           iterator,
           path,
-          test_arg_env={},
-          get_data=data_shelf.GetValue)
+          test_arg_env={})
     iterator.CheckRunIf = _MockedCheckRunIf
 
     max_iteration = len(expected_sequence) + 1
@@ -105,7 +103,7 @@ class TestListIteratorTest(unittest.TestCase):
           test_path = iterator.next()
           actual_sequence.append(test_path)
           test = test_list.LookupPath(test_path)
-          if run_test(test_path, aux_data):
+          if run_test(test_path, device_data):
             test.UpdateState(status=factory.TestState.PASSED)
           else:
             test.UpdateState(status=factory.TestState.FAILED)
@@ -293,7 +291,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     test_list = self._BuildTestList(
         """
     test_lists.FactoryTest(id='a', pytest_name='t_a')
-    with test_lists.FactoryTest(id='G', run_if='foo.a'):
+    with test_lists.FactoryTest(id='G', run_if='device.foo.a'):
       test_lists.FactoryTest(id='a', pytest_name='t_Ga')
       with test_lists.TestGroup(id='G'):
         test_lists.FactoryTest(id='a', pytest_name='t_GGa')
@@ -302,7 +300,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     self._AssertTestSequence(
         test_list,
         ['a', 'c'],
-        aux_data={
+        device_data={
             'foo': {
                 'a': False,
             },
@@ -310,7 +308,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     self._AssertTestSequence(
         test_list,
         ['a', 'G.a', 'G.G.a', 'c'],
-        aux_data={
+        device_data={
             'foo': {
                 'a': True,
             },
@@ -320,15 +318,15 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         """
     test_lists.FactoryTest(id='a', pytest_name='t_a')
     with test_lists.FactoryTest(id='G'):
-      test_lists.FactoryTest(id='a', pytest_name='t_Ga', run_if='foo.a')
-      with test_lists.TestGroup(id='G', run_if='!foo.a'):
+      test_lists.FactoryTest(id='a', pytest_name='t_Ga', run_if='device.foo.a')
+      with test_lists.TestGroup(id='G', run_if='not device.foo.a'):
         test_lists.FactoryTest(id='a', pytest_name='t_GGa')
     test_lists.FactoryTest(id='c', pytest_name='t_c')
         """, self.OPTIONS)
     self._AssertTestSequence(
         test_list,
         ['a', 'G.G.a', 'c'],
-        aux_data={
+        device_data={
             'foo': {
                 'a': False,
             },
@@ -336,7 +334,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     self._AssertTestSequence(
         test_list,
         ['a', 'G.a', 'c'],
-        aux_data={
+        device_data={
             'foo': {
                 'a': True,
             },
@@ -402,36 +400,36 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     """
     test_list = self._BuildTestList(
         """
-    with test_lists.FactoryTest(id='G', run_if='foo.a'):
-      test_lists.FactoryTest(id='a', pytest_name='t_Ga', run_if='foo.a')
-      with test_lists.TestGroup(id='G', run_if='foo.a'):
+    with test_lists.FactoryTest(id='G', run_if='device.foo.a'):
+      test_lists.FactoryTest(id='a', pytest_name='t_Ga', run_if='device.foo.a')
+      with test_lists.TestGroup(id='G', run_if='device.foo.a'):
         test_lists.FactoryTest(id='a', pytest_name='t_GGa')
         test_lists.FactoryTest(id='b', pytest_name='t_GGa')
       test_lists.FactoryTest(id='b', pytest_name='t_Gb')
         """, self.OPTIONS)
 
-    def run_test_1(path, aux_data):
+    def run_test_1(path, device_data):
       if path == 'G.G.a':
-        aux_data['foo']['a'] = False
+        device_data['foo']['a'] = False
       return True
     self._AssertTestSequence(
         test_list,
         ['G.a', 'G.G.a', 'G.G.b', 'G.b'],
-        aux_data={
+        device_data={
             'foo': {
                 'a': True,
             },
         },
         run_test=run_test_1)
 
-    def run_test_2(path, aux_data):
+    def run_test_2(path, device_data):
       if path == 'G.a':
-        aux_data['foo']['a'] = False
+        device_data['foo']['a'] = False
       return True
     self._AssertTestSequence(
         test_list,
         ['G.a', 'G.b'],
-        aux_data={
+        device_data={
             'foo': {
                 'a': True,
             },
@@ -447,13 +445,13 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     test_list = self._BuildTestList(
         """
     test_lists.FactoryTest(id='a', pytest_name='t_a')
-    test_lists.FactoryTest(id='b', pytest_name='t_b', run_if='foo.a')
+    test_lists.FactoryTest(id='b', pytest_name='t_b', run_if='device.foo.a')
         """, self.OPTIONS)
 
     # case 1: test 'a' set foo.a to True
-    def run_test_1(path, aux_data):
+    def run_test_1(path, device_data):
       if path == 'a':
-        aux_data['foo'] = {
+        device_data['foo'] = {
             'a': True
         }
       return True
@@ -468,16 +466,16 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         ['a'])
 
     # case 3: foo.a was True, but test 'a' set it to False
-    def run_test_3(path, aux_data):
+    def run_test_3(path, device_data):
       if path == 'a':
-        aux_data['foo'] = {
+        device_data['foo'] = {
             'a': False
         }
       return True
     self._AssertTestSequence(
         test_list,
         ['a'],
-        aux_data={
+        device_data={
             'foo': {
                 'a': True
             },
@@ -530,7 +528,7 @@ class TestListIteratorActionOnFailureTest(TestListIteratorTest):
     self._AssertTestSequence(
         test_list,
         ['G.a', 'G.b', 'c'],
-        run_test=lambda path, unused_aux_data: path not in set(['G.a']))
+        run_test=lambda path, unused_device_data: path not in set(['G.a']))
 
   def testActionOnFailureParentOneLayer(self):
     test_list = self._BuildTestList(
@@ -545,7 +543,7 @@ class TestListIteratorActionOnFailureTest(TestListIteratorTest):
     self._AssertTestSequence(
         test_list,
         ['G.a', 'c'],
-        run_test=lambda path, unused_aux_data: path not in set(['G.a']))
+        run_test=lambda path, unused_device_data: path not in set(['G.a']))
 
   def testActionOnFailureParentTwoLayer(self):
     test_list = self._BuildTestList(
@@ -562,7 +560,7 @@ class TestListIteratorActionOnFailureTest(TestListIteratorTest):
     self._AssertTestSequence(
         test_list,
         ['G.G.a', 'd'],
-        run_test=lambda path, unused_aux_data: path not in set(['G.G.a']))
+        run_test=lambda path, unused_device_data: path not in set(['G.G.a']))
 
   def testActionOnFailureStop(self):
     test_list = self._BuildTestList(
@@ -579,12 +577,12 @@ class TestListIteratorActionOnFailureTest(TestListIteratorTest):
     self._AssertTestSequence(
         test_list,
         ['G.G.a'],
-        run_test=lambda path, unused_aux_data: path not in set(['G.G.a']))
+        run_test=lambda path, unused_device_data: path not in set(['G.G.a']))
 
     self._AssertTestSequence(
         test_list,
         ['G.G.a', 'G.G.b'],
-        run_test=lambda path, unused_aux_data: path not in set(['G.G.b']))
+        run_test=lambda path, unused_device_data: path not in set(['G.G.b']))
 
 
 class TestListIteratorTeardownTest(TestListIteratorTest):
@@ -618,7 +616,7 @@ class TestListIteratorTeardownTest(TestListIteratorTest):
         test_list,
         ['G.G.a', 'G.G.b', 'G.G.w', 'G.G.x', 'G.G.TG.y', 'G.G.TG.z', 'G.c',
          'G.T', 'd'],
-        run_test=lambda path, unused_aux_data: path not in set(['G.G.a']))
+        run_test=lambda path, unused_device_data: path not in set(['G.G.a']))
 
   def testTeardownAfterStop(self):
     test_list = self._BuildTestList(
@@ -646,7 +644,7 @@ class TestListIteratorTeardownTest(TestListIteratorTest):
     self._AssertTestSequence(
         test_list,
         ['G.G.a', 'G.G.w', 'G.G.x', 'G.G.TG.y', 'G.G.TG.z', 'G.T'],
-        run_test=lambda path, unused_aux_data: path not in set(['G.G.a']))
+        run_test=lambda path, unused_device_data: path not in set(['G.G.a']))
 
 
 class TestListIteratorIterationTest(TestListIteratorTest):
@@ -681,12 +679,12 @@ class TestListIteratorIterationTest(TestListIteratorTest):
     self._AssertTestSequence(
         test_list,
         ['G.G.a', 'G.G.a', 'G.G.b', 'G.G.b'] * 4,
-        run_test=lambda unused_path, unused_aux_data: False)
+        run_test=lambda unused_path, unused_device_data: False)
     self._AssertTestSequence(
         test_list,
         ['G.G.a', 'G.G.a', 'G.G.b', 'G.G.b'] * 4,
         root='G',
-        run_test=lambda unused_path, unused_aux_data: False)
+        run_test=lambda unused_path, unused_device_data: False)
 
   def testRetriesWithTeardown(self):
     test_list = self._BuildTestList(
@@ -702,12 +700,12 @@ class TestListIteratorIterationTest(TestListIteratorTest):
     self._AssertTestSequence(
         test_list,
         ['G.G.a', 'G.G.a', 'G.G.b'] * 4,
-        run_test=lambda path, unused_aux_data: path not in set(['G.G.a']))
+        run_test=lambda path, unused_device_data: path not in set(['G.G.a']))
     self._AssertTestSequence(
         test_list,
         ['G.G.a', 'G.G.a', 'G.G.b'] * 4,
         root='G',
-        run_test=lambda path, unused_aux_data: path not in set(['G.G.a']))
+        run_test=lambda path, unused_device_data: path not in set(['G.G.a']))
 
   def testActionOnFailureStop(self):
     test_list = self._BuildTestList(
@@ -726,12 +724,12 @@ class TestListIteratorIterationTest(TestListIteratorTest):
     self._AssertTestSequence(
         test_list,
         ['G.G.a'] * 4,
-        run_test=lambda path, unused_aux_data: path not in set(['G.G.a']))
+        run_test=lambda path, unused_device_data: path not in set(['G.G.a']))
 
     self._AssertTestSequence(
         test_list,
         ['G.G.a', 'G.G.b'] * 4,
-        run_test=lambda path, unused_aux_data: path not in set(['G.G.b']))
+        run_test=lambda path, unused_device_data: path not in set(['G.G.b']))
 
   def testTeardownAfterStop(self):
     test_list = self._BuildTestList(
@@ -759,7 +757,7 @@ class TestListIteratorIterationTest(TestListIteratorTest):
     self._AssertTestSequence(
         test_list,
         ['G.G.a', 'G.G.w', 'G.G.x', 'G.G.TG.y', 'G.G.TG.z', 'G.T'] * 2,
-        run_test=lambda path, unused_aux_data: path not in set(['G.G.a']))
+        run_test=lambda path, unused_device_data: path not in set(['G.G.a']))
 
 
 if __name__ == '__main__':

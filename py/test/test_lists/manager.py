@@ -21,6 +21,7 @@ import sys
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import factory
+from cros.factory.test.utils import selector_utils
 from cros.factory.test import i18n
 from cros.factory.test.test_lists import test_lists
 from cros.factory.utils import config_utils
@@ -193,8 +194,46 @@ class ITestList(object):
         'constants': constants,
         'options': options,
         'locals': locals_, }
-    # pylint: disable=eval-used
-    return eval(expression, namespace)
+    return eval(expression, namespace)  # pylint: disable=eval-used
+
+  @staticmethod
+  def EvaluateRunIf(test, test_list, test_arg_env):
+    """Evaluate the run_if value of this test.
+
+    Evaluates run_if argument to decide skipping the test or not.  If run_if
+    argument is not set, the test will never be skipped.
+
+    Args:
+      test: a FactoryTest object whose run_if will be checked
+      test_list: the test list which is currently running, will get
+        state_instance and constants from it.
+      test_arg_env: a cros.factory.goofy.invocation.TestArgEnv object
+
+    Returns:
+      True if this test should be run, otherwise False
+    """
+    # To support LegacyTestList
+    if callable(test.run_if):
+      try:
+        return bool(test.run_if(test_arg_env))
+      except Exception:
+        logging.exception('Unable to evaluate run_if expression for %s',
+                          test.path)
+        # But keep going; we have no choice.  This will end up always activating
+        # the test.
+        return True
+
+    if not isinstance(test.run_if, basestring):
+      # run_if is not a function, not a string, assume it's not set
+      return True
+
+    state_instance = test_list.state_instance
+    namespace = {
+        'device': selector_utils.DataShelfSelector(
+            state_instance, key='device'),
+        'constants': selector_utils.DictSelector(value=test_list.constants),
+    }
+    return bool(eval(test.run_if, namespace))  # pylint: disable=eval-used
 
   # the following properties are required by goofy
   @abc.abstractproperty
