@@ -2,10 +2,45 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""A count down UI for run-in test.
+"""A count down monitor for better user interface in run-in tests.
 
-It shows count down and system loads for run-in period. It also alarms if
-there's any abnormal status detected during run-in.
+Description
+-----------
+Count down and display system load. This is helpful for run-in phase to run
+multiple stress tests (for example, CPU, memory, disk, GPU, ... etc) in
+background so operator can see how long the run-in has been executed, and a
+quick overview of system status.  It also alarms if there's any abnormal status
+(for example overheat) detected during run-in.
+
+Test Procedure
+--------------
+This test is designed to run in parallel with other background tests.
+No user interaction is needed but if there were abnormal events operator should
+collect debug logs for fault analysis.
+
+Dependency
+----------
+- Thermal in Device API (`cros.factory.device.thermal`) for system thermal
+  sensor readings.
+
+Examples
+--------
+To run a set of tests for 120 seconds in parallel with countdown showing
+progress::
+
+  OperatorTest(pytest_name='countdown',
+               dargs={
+                   'duration_secs': 120,
+               })
+
+To run 8 hours and alert if main sensor (CPU) reaches 60 Celcius and fail when
+exceeding 65 Celcius::
+
+  OperatorTest(pytest_name='countdown',
+               dargs={
+                   'temp_criteria': [('CPU', None, 60, 65)],
+                   'duration_secs': 8 * 60 * 60,
+               })
 """
 
 import collections
@@ -30,10 +65,10 @@ class CountDownTest(unittest.TestCase):
 
   ARGS = [
       i18n_arg_utils.I18nArg('title', 'title.', default=_('Countdown')),
+      Arg('duration_secs', int, 'Duration of time to countdown.'),
       Arg('position_top_right', bool,
           'A workaround for some machines on which graphics test would overlay '
           'countdown info.', False),
-      Arg('duration_secs', int, 'Duration of time to countdown.'),
       Arg('log_interval', int,
           'Interval of time in seconds to log system status.', 120),
       Arg('ui_update_interval', int,
