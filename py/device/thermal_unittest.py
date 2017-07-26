@@ -11,7 +11,6 @@ from __future__ import print_function
 
 import mox
 import os.path
-import subprocess
 import unittest
 
 import factory_common  # pylint: disable=W0611
@@ -202,94 +201,6 @@ class ThermalTest(unittest.TestCase):
     self.assertEquals(self.thermal.GetMainTemperatureIndex(), 1)
     self.assertEquals(self.thermal.GetTemperatures(), [58, 37])
     self.assertEquals(self.thermal.GetTemperatures(), [None, 69])
-    self.mox.VerifyAll()
-
-
-class SysFSThermalTest(unittest.TestCase):
-  """Unittest for SysFSThermal."""
-
-  _MOCK_ZONES = [
-      '/sys/class/thermal/thermal_zone0',
-      '/sys/class/thermal/thermal_zone1']
-
-  _FANS_INFO = [{'fan_id': None, 'path': '/sys/fan'}]
-
-  def setUp(self):
-    self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(board.DeviceBoard)
-    self.board.path = os.path
-
-  def tearDown(self):
-    self.mox.UnsetStubs()
-
-  def testGetTemperatures(self):
-    thermal_obj = thermal.SysFSThermal(self.board, 'cpu')
-
-    self.board.Glob('/sys/class/thermal/thermal_zone*').AndReturn(
-        self._MOCK_ZONES)
-    self.board.ReadFile('/sys/class/thermal/thermal_zone0/temp').AndReturn(
-        55000)
-    self.board.ReadFile('/sys/class/thermal/thermal_zone1/temp').AndReturn(
-        66000)
-
-    self.mox.ReplayAll()
-    self.assertEquals(thermal_obj.GetTemperatures(), [55, 66])
-    self.mox.VerifyAll()
-
-  def testGetTemperaturesFail(self):
-    thermal_obj = thermal.SysFSThermal(self.board, 'cpu')
-
-    self.board.Glob('/sys/class/thermal/thermal_zone*').AndReturn(
-        self._MOCK_ZONES)
-    self.board.ReadFile('/sys/class/thermal/thermal_zone0/temp').AndReturn(
-        55000)
-    self.board.ReadFile('/sys/class/thermal/thermal_zone1/temp').AndRaise(
-        subprocess.CalledProcessError(1, '', ''))
-
-    self.mox.ReplayAll()
-    self.assertEquals(thermal_obj.GetTemperatures(), [55, None])
-    self.mox.VerifyAll()
-
-  def testGetTemperatureSensorNames(self):
-    thermal_obj = thermal.SysFSThermal(self.board, 'cpu')
-
-    self.board.Glob('/sys/class/thermal/thermal_zone*').AndReturn(
-        self._MOCK_ZONES)
-    self.board.ReadFile('/sys/class/thermal/thermal_zone0/type').AndReturn(
-        'cpu')
-    self.board.ReadFile('/sys/class/thermal/thermal_zone1/type').AndReturn(
-        'emmc_therm')
-
-    self.mox.ReplayAll()
-    self.assertEquals(thermal_obj.GetTemperatureSensorNames(),
-                      ['cpu', 'emmc_therm'])
-    self.mox.VerifyAll()
-
-  def testGetTemperatureSensorNamesFail(self):
-    thermal_obj = thermal.SysFSThermal(self.board, 'cpu')
-
-    self.board.Glob('/sys/class/thermal/thermal_zone*').AndReturn(
-        self._MOCK_ZONES)
-    self.board.ReadFile('/sys/class/thermal/thermal_zone0/type').AndRaise(
-        subprocess.CalledProcessError(1, '', ''))
-
-    self.mox.ReplayAll()
-    self.assertRaises(thermal.SysFSThermal.Error,
-                      thermal_obj.GetTemperatureSensorNames)
-    self.mox.VerifyAll()
-
-  def testGetMainTemperatureIndex(self):
-    thermal_obj = thermal.SysFSThermal(self.board, 'cpu')
-
-    self.board.Glob('/sys/class/thermal/thermal_zone*').AndReturn(
-        self._MOCK_ZONES)
-    self.board.ReadFile('/sys/class/thermal/thermal_zone0/type').AndReturn(
-        'cpu')
-    self.board.ReadFile('/sys/class/thermal/thermal_zone1/type').AndReturn(
-        'emmc_therm')
-
-    self.mox.ReplayAll()
-    self.assertEquals(thermal_obj.GetMainTemperatureIndex(), 0)
     self.mox.VerifyAll()
 
 

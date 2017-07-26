@@ -14,6 +14,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import board as board_module
+from cros.factory.device import fan
 from cros.factory.device import power
 from cros.factory.device import status as status_module
 from cros.factory.device import thermal
@@ -38,8 +39,9 @@ class SystemStatusTest(unittest.TestCase):
     board = self.mox.CreateMock(board_module.DeviceBoard)
     board.power = self.mox.CreateMock(power.Power)
     board.power.GetInfoDict().AndReturn({})
-    board.thermal = self.mox.CreateMock(thermal.ECToolThermal)
-    board.thermal.GetFanRPM().AndReturn([2000])
+    board.fan = self.mox.CreateMock(fan.FanControl)
+    board.fan.GetFanRPM().AndReturn([2000])
+    board.thermal = self.mox.CreateMock(thermal.Thermal)
     board.thermal.GetTemperature().AndReturn(37)
     netifaces.interfaces().AndReturn(['lo', 'eth0', 'wlan0'])
     netifaces.ifaddresses('eth0').AndReturn(

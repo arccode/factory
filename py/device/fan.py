@@ -74,7 +74,7 @@ class ECToolFanControl(FanControl):
     """Sets the target fan RPM.
 
     Args:
-      rpm: Target fan RPM, or ECToolThermal.AUTO for auto fan control.
+      rpm: Target fan RPM, or FanControl.AUTO for auto fan control.
       fan_id: The id of the fan.
     """
     try:

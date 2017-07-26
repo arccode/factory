@@ -14,7 +14,6 @@ from cros.factory.device import memory
 from cros.factory.device import path
 from cros.factory.device import storage
 from cros.factory.device import temp
-from cros.factory.device import thermal
 from cros.factory.device import vpd
 from cros.factory.device.boards import linux
 
@@ -60,10 +59,6 @@ class AndroidBoard(linux.LinuxBoard):
   @component.DeviceProperty
   def storage(self):
     return storage.AndroidStorage(self)
-
-  @component.DeviceProperty
-  def thermal(self):
-    return thermal.SysFSThermal(self)
 
   @component.DeviceProperty
   def vpd(self):

@@ -144,7 +144,7 @@ class SystemStatus(component.DeviceComponent):
   @StatusProperty
   def fan_rpm(self):
     """Gets fan speed."""
-    return self._dut.thermal.GetFanRPM()
+    return self._dut.fan.GetFanRPM()
 
   @StatusProperty
   def temperature(self):

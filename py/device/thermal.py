@@ -17,7 +17,6 @@ import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import component
-from cros.factory.utils.type_utils import Enum
 
 
 # Currently SensorSource is only used by thermal sensors. We may move it to
@@ -155,6 +154,9 @@ class ThermalZoneSensors(ThermalSensorSource):
 
   def _Probe(self):
     """Probes thermal zone nodes from sysfs."""
+    # TODO(hungte) Some systems may have sensors disabled (mode='disabled') and
+    # reading 'value' form them will fail. We may need to support that in future
+    # if needed.
     return dict(
         (self._dut.path.basename(node) + ' ' +
          self._dut.ReadFile(self._dut.path.join(node, 'type')).strip(),
@@ -229,9 +231,6 @@ class Thermal(component.DeviceComponent):
     _sources: A cached list of sensor sources.
     _sensor_list: An ordered list of sensor names.
   """
-
-  AUTO = 'auto'
-  """Deprecated by fan.FanControl.AUTO."""
 
   MSR_PKG_ENERGY_STATUS = 0x611
   """MSR location for energy status. See <http://lwn.net/Articles/444887/>."""
@@ -417,118 +416,6 @@ class Thermal(component.DeviceComponent):
   def SetFanRPM(self, rpm, fan_id=None):
     """This function should be deprecated by `fan.SetFanRPM`."""
     return self._dut.fan.SetFanRPM(rpm, fan_id)
-
-
-class ECToolThermal(Thermal):
-  """Backward compatible name."""
-  pass
-
-
-# TODO(hungte) Part of SysFSThermal can be replaced by the ThermalZoneSensors
-# but this is more generic and needs further testing on Android before we can
-# eliminate it.
-class SysFSThermal(Thermal):
-  """System module for thermal sensors (temperature sensors, power usage).
-
-  Implementation for systems which able to control thermal with sysfs api.
-  """
-
-  _SYSFS_THERMAL_PATH = '/sys/class/thermal/'
-
-  Unit = Enum(['MILLI_CELSIUS', 'CELSIUS'])
-
-  def __init__(self, dut, main_temperature_sensor_name='tsens_tz_sensor0',
-               unit=Unit.MILLI_CELSIUS):
-    """Constructor.
-
-    Args:
-      main_temperature_sensor_name: The name of temperature sensor used in
-          GetMainTemperatureIndex(). For example: 'tsens_tz_sensor0' or 'cpu'.
-      unit: The unit of the temperature reported in sysfs, in type
-          SysFSThermal.Unit.
-    """
-    super(SysFSThermal, self).__init__(dut)
-    self._thermal_zones = None
-    self._temperature_sensor_names = None
-    self._main_temperature_sensor_name = main_temperature_sensor_name
-    self._unit = unit
-
-  def _ConvertTemperatureToCelsius(self, value):
-    """
-    Args:
-      value: Temperature value in self._unit.
-
-    Returns:
-      The value in degree Celsius.
-    """
-    conversion_map = {
-        self.Unit.MILLI_CELSIUS: lambda x: x / 1000,
-        self.Unit.CELSIUS: lambda x: x
-    }
-    return conversion_map[self._unit](value)
-
-  def _GetThermalZones(self):
-    """Gets a list of thermal zones.
-
-    Returns:
-      A list of absolute path of thermal zones.
-    """
-    if self._thermal_zones is None:
-      self._thermal_zones = self._dut.Glob(self._dut.path.join(
-          self._SYSFS_THERMAL_PATH, 'thermal_zone*'))
-    return self._thermal_zones
-
-  def GetMainTemperature(self):
-    # TODO(hungte) Improve this by reading only required value.
-    return self.GetTemperatures()[self.GetMainTemperatureIndex()]
-
-  def GetTemperatures(self):
-    """See Thermal.GetTemperatures."""
-    try:
-      temperatures = []
-      for path in self._GetThermalZones():
-        try:
-          temp = self._dut.ReadFile(self._dut.path.join(path, 'temp'))
-          # Convert temperature values to Celsius for output.
-          temperatures.append(self._ConvertTemperatureToCelsius(int(temp)))
-        except component.CalledProcessError:
-          temperatures.append(None)
-      logging.debug("GetTemperatures: %s", temperatures)
-      return temperatures
-    except component.CalledProcessError as e:
-      raise self.Error('Unable to get temperatures: %s' % e)
-
-  def GetMainTemperatureIndex(self):
-    """See Thermal.GetMainTemperatureIndex."""
-    try:
-      names = self.GetTemperatureSensorNames()
-      try:
-        return names.index(self._main_temperature_sensor_name)
-      except ValueError:
-        raise self.Error('The expected index of %s cannot be found',
-                         self._main_temperature_sensor_name)
-    except Exception as e:  # pylint: disable=W0703
-      raise self.Error('Unable to get main temperature index: %s' % e)
-
-  def GetTemperatureSensorNames(self):
-    """See Thermal.GetTemperatureSensorNames."""
-    if self._temperature_sensor_names is None:
-      try:
-        self._temperature_sensor_names = []
-        for path in self._GetThermalZones():
-          name = self._dut.ReadFile(self._dut.path.join(path, 'type'))
-          self._temperature_sensor_names.append(name.strip())
-        logging.debug("GetTemperatureSensorNames: %s",
-                      self._temperature_sensor_names)
-      except component.CalledProcessError as e:
-        raise self.Error('Unable to get temperature sensor names: %s' % e)
-    return self._temperature_sensor_names
-
-  def GetPowerUsage(self, last=None, sensor_id=''):
-    """See Thermal.GetPowerUsage."""
-    sensor = self._dut.hwmon.FindOneDevice('label', sensor_id)
-    power = int(sensor.GetAttribute('power1_input')) / 1000 # convert mW to W
-    return dict(time=time.time(), energy=None, power=power)
 
 
 def main():
