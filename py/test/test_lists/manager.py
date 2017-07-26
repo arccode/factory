@@ -311,14 +311,6 @@ class TestList(ITestList):
     kwargs['locals_'] = locals_
     kwargs.pop('__comment', None)
 
-    # syntactic sugar: if `id` is not specified, we will try to generate an id
-    # for you.
-    if 'id' not in kwargs:
-      if 'pytest_name' in kwargs:
-        kwargs['id'] = kwargs['pytest_name']
-      elif subtests:
-        kwargs['id'] = 'TestGroup'
-
     if kwargs.get('label'):
       kwargs['label'] = MayTranslate(kwargs['label'], force=True)
 
@@ -355,8 +347,15 @@ class TestList(ITestList):
 
     if test_object_name:
       cache[test_object_name] = _DUMMY_CACHE
-      if 'id' not in test_object:
-        test_object['id'] = test_object_name
+      # syntax sugar, if neither id nor label are given, set label as test
+      # object name.
+      # According to test/factory.py, considering I18n, the priority is:
+      # 1. `label` must be specified, or it should come from pytest_name
+      # 2. If not specified, `id` comes from label by stripping spaces and dots.
+      # Resolved id may be changed in _init when there are duplicated id's found
+      # in same path.
+      if 'label' not in test_object and 'id' not in test_object:
+        test_object['label'] = test_object_name
 
     parent_object = self._config['definitions'][parent_name]
     parent_object = self.ResolveTestObject(parent_object, parent_name, cache)
