@@ -34,6 +34,11 @@ example:
 
 Then you can use this by reading `self.args.wait_secs`.
 
+Since JSON serialization doesn't support `tuple` type, new pytests shouldn't
+use `tuple` in argument type, and should use `list` instead. For existing
+pytests with `Arg` of `tuple` type, `list` would be automatically added to
+allowed type by arg_utils.
+
 ## Using user interface
 
 The Chrome OS Factory Software provides a web based user interface.  If you need

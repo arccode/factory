@@ -102,6 +102,12 @@ class Arg(object):
     if default is None and optional and (TYPE(None) not in type):
       type += (TYPE(None),)
 
+    # Allow list if tuple is allowed.
+    # TODO(pihsun): We should cleanup all pytests and use only list instead of
+    # tuple after migrated to JSON test list, then we won't need this hack.
+    if tuple in type and list not in type:
+      type += (list,)
+
     self.name = name
     self.help = help
     self.type = type
