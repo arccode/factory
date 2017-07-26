@@ -300,6 +300,10 @@ msgid "MLB Version"
 msgstr "母版版本"
 
 #: ../build/pytests_label_generated.json
+msgid "Mosys Platform"
+msgstr "确认 SKU 设定"
+
+#: ../build/pytests_label_generated.json
 msgid "MRC Cache"
 msgstr "MRC Cache"
 
@@ -2369,6 +2373,10 @@ msgstr ""
 #: ../py/test/pytests/message/message.py
 msgid "<div>Press <strong>Enter</strong> to continue.</div>"
 msgstr "<div>按<strong>Enter</strong>继续</div>"
+
+#: ../py/test/pytests/mosys_platform.py
+msgid "Please confirm following values"
+msgstr "请确认以下结果"
 
 #: ../py/test/pytests/network_setup/network_setup.py
 msgid "Setup network connection"
