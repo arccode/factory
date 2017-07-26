@@ -16,7 +16,7 @@ This is an automatic test that doesn't need any user interaction.
 
 1. Firstly, this test will create a DUT link.
 2. If the link is not a local link, DUT clock will be set to station clock time.
-3. This test will check the difference betwwen DUT clock time and station clock
+3. This test will check the difference between DUT clock time and station clock
    time, and fail if it exceeds the given tolerance. Otherwise, the test will
    pass.
 
