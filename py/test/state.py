@@ -31,6 +31,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import goofy_proxy
 from cros.factory.test.env import paths
 from cros.factory.test import factory
+from cros.factory.test.utils.selector_utils import DataShelfSelector
 from cros.factory.utils import config_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import shelve_utils
@@ -491,78 +492,6 @@ class FactoryState(object):
     self.layers.pop()
 
 
-class DataShelfSelector(object):
-  """Data selector for data_shelf.
-
-  data_shelf behaves like a recursive dictionary structure.  The
-  DataShelfSelector helps you get data from this dictionary.
-
-  For example, if the data stored in data_shelf is:
-
-      {
-        'a': {
-          'b': {
-            'c': 3
-          }
-        }
-      }
-
-  Then,
-
-      selector.Get() shall return entire dictionary.
-
-      selector['a'] shall return another selector rooted at 'a', thus
-      selector['a'].Get() shall return {'b': {'c': 3}}.
-
-      selector.GetValue('a') shall return {'b': {'c': 3}}
-      selector['a'].GetValue('b') shall return {'c': 3}
-
-      selector['a']['b'] and selector['a.b'] are equivalent, they both return a
-      selector rooted at 'b'.
-  """
-  def __init__(self, proxy, key=''):
-    """Constructor
-
-    Args:
-      :type proxy: FactoryState
-      :type key: basestring
-    """
-    self._proxy = proxy
-    self._key = key
-
-  def SetValue(self, key, value):
-    key = shelve_utils.DictKey.Join(self._key, key)
-
-    self._proxy.data_shelf_set_value(key, value)
-
-  def GetValue(self, key, default=_DEFAULT_NOT_SET):
-    key = shelve_utils.DictKey.Join(self._key, key)
-
-    if default == _DEFAULT_NOT_SET or self._proxy.data_shelf_has_key(key):
-      return self._proxy.data_shelf_get_value(key, False)
-    else:
-      return default
-
-  def Set(self, value):
-    self.SetValue('', value)
-
-  def Get(self, default=_DEFAULT_NOT_SET):
-    return self.GetValue('', default=default)
-
-  def __getitem__(self, key):
-    key = shelve_utils.DictKey.Join(self._key, key)
-    return self.__class__(self._proxy, key)
-
-  def __setitem__(self, key, value):
-    self.SetValue(key, value)
-
-  def __iter__(self):
-    return iter(self._proxy.data_shelf_get_children(self._key))
-
-  def __contains__(self, key):
-    return key in self._proxy.data_shelf_get_children(self._key)
-
-
 def get_instance(address=None, port=None):
   """Gets an instance (for client side) to access the state server.
 
@@ -604,7 +533,7 @@ def del_shared_data(key):
 
 class StubFactoryStateLayer(FactoryStateLayer):
   """Stub FactoryStateLayer for unittest."""
-  def __init__(self, state_dir=None):
+  def __init__(self, state_dir=None):  # pylint: disable=super-init-not-called
     del state_dir  # unused
     # always create in memory shelf
     self._tests_shelf = shelve_utils.DictShelfView(
