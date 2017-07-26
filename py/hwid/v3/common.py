@@ -35,30 +35,6 @@ PRE_MP_KEY_NAME_PATTERN = re.compile('_pre_?mp')
 MP_KEY_NAME_PATTERN = re.compile('_mp[_0-9v]*?[_a-z]*$')
 
 
-def ProbeBoard(hwid=None):
-  """Probes the board name by looking up the CHROMEOS_RELEASE_BOARD variable
-  in /etc/lsb-release.
-
-  If a HWID string is given, this function will try to parse out the board from
-  the given string.
-
-  Args:
-    hwid: A HWID string to parse.
-
-  Returns:
-    The probed board name as a string.
-
-  Raises:
-    HWIDException when probe error.
-  """
-  if hwid:
-    board = hwid.split(' ')[0].upper()
-    if os.path.exists(os.path.join(DEFAULT_HWID_DATA_PATH, board)):
-      return board
-
-  return build_board.BuildBoard().short_name
-
-
 def ProbeProject():
   """Probes the project name.
 
