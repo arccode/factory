@@ -36,10 +36,10 @@ from cros.factory.utils import sync_utils
 
 
 DOCKER_IMAGE_NAME = 'cros/factory_server'
-# Add a timestamp to board name to avoid problem that sometimes container goes
+# Add a timestamp to project name to avoid problem that sometimes container goes
 # dead.
-UMPIRE_BOARD_NAME = 'test_' + time.strftime('%Y%m%d_%H%M%S')
-UMPIRE_CONTAINER_NAME = 'umpire_' + UMPIRE_BOARD_NAME
+UMPIRE_PROJECT_NAME = 'test_' + time.strftime('%Y%m%d_%H%M%S')
+UMPIRE_CONTAINER_NAME = 'umpire_' + UMPIRE_PROJECT_NAME
 
 BASE_DIR = os.path.dirname(__file__)
 SETUP_DIR = os.path.abspath(
@@ -51,7 +51,7 @@ RPC_ADDR_BASE = 'http://localhost:%s' % (PORT + 2)
 
 HOST_BASE_DIR = os.environ.get('TMPDIR', '/tmp')
 HOST_SHARED_DIR = os.path.join(HOST_BASE_DIR, 'cros_docker')
-HOST_UMPIRE_DIR = os.path.join(HOST_SHARED_DIR, 'umpire', UMPIRE_BOARD_NAME)
+HOST_UMPIRE_DIR = os.path.join(HOST_SHARED_DIR, 'umpire', UMPIRE_PROJECT_NAME)
 HOST_RESOURCE_DIR = os.path.join(HOST_UMPIRE_DIR, 'resources')
 
 DOCKER_BASE_DIR = '/var/db/factory/umpire/'
@@ -68,7 +68,7 @@ def _RunCrosDockerCommand(*args):
   subprocess.check_call(
       [SCRIPT_PATH] + list(args),
       env={
-          'BOARD': UMPIRE_BOARD_NAME,
+          'PROJECT': UMPIRE_PROJECT_NAME,
           'UMPIRE_PORT': str(PORT),
           'HOST_SHARED_DIR': HOST_SHARED_DIR
       }
@@ -100,7 +100,7 @@ class UmpireDockerTestCase(unittest.TestCase):
         return False
     try:
       logging.info('Starting umpire container %s on port %s',
-                   UMPIRE_BOARD_NAME, PORT)
+                   UMPIRE_PROJECT_NAME, PORT)
 
       logging.info('Copying test data...')
       shutil.copytree(
@@ -526,15 +526,10 @@ class UmpireServerProxyTest(UmpireDockerTestCase):
   with Umpire."""
   def setUp(self):
     super(UmpireServerProxyTest, self).setUp()
-    # Since UmpireServerProxy read this file to find out what board we're using,
-    # write values for testing.
-    file_utils.WriteFile('/etc/lsb-release',
-                         'CHROMEOS_RELEASE_BOARD=%s' % UMPIRE_BOARD_NAME)
     self.proxy = umpire_server_proxy.UmpireServerProxy(ADDR_BASE)
 
   def tearDown(self):
     super(UmpireServerProxyTest, self).tearDown()
-    file_utils.TryUnlink('/etc/lsb-release')
 
   def testUseUmpire(self):
     self.assertTrue(self.proxy.use_umpire)

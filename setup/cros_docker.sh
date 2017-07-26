@@ -151,10 +151,10 @@ set_docker_image_info() {
 set_docker_image_info
 
 # Things that can be override by environment variable
-: "${BOARD:="$(cat "${HOST_UMPIRE_DIR}/.default_board" 2>/dev/null)"}"
-: "${BOARD:="default"}"
-: "${UMPIRE_CONTAINER_NAME:="umpire_${BOARD}"}"
-: "${UMPIRE_CONTAINER_DIR:="${BOARD}"}"
+: "${PROJECT:="$(cat "${HOST_UMPIRE_DIR}/.default_project" 2>/dev/null)"}"
+: "${PROJECT:="default"}"
+: "${UMPIRE_CONTAINER_NAME:="umpire_${PROJECT}"}"
+: "${UMPIRE_CONTAINER_DIR:="${PROJECT}"}"
 : "${UMPIRE_PORT:="8080"}"  # base port for Umpire
 : "${DOME_PORT:="8000"}"  # port to access Dome
 : "${OVERLORD_HTTP_PORT:="9000"}"  # port to access Overlord

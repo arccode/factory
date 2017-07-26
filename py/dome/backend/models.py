@@ -52,7 +52,7 @@ UMPIRE_MATCH_KEY_MAP = {
 FACTORY_SERVER_IMAGE_NAME = 'cros/factory_server'
 DOCKER_SHARED_DIR = '/cros_docker'
 UMPIRE_DOCKER_DIR = '/cros_docker/umpire'
-UMPIRE_DEFAULT_BOARD_FILE = '.default_board'
+UMPIRE_DEFAULT_BOARD_FILE = '.default_project'
 UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER = '/var/db/factory/umpire'
 
 # Mount point of the Umpire data folder in Dome's container. Note: this is not

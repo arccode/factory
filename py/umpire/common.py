@@ -16,7 +16,10 @@ import factory_common  # pylint: disable=W0611
 UMPIRE_VERSION = 3
 
 # Valid keys in DUT info.
-DUT_INFO_KEYS = set(['sn', 'mlb_sn', 'board', 'firmware', 'ec', 'pd', 'stage'])
+DUT_INFO_KEYS = set(['sn', 'mlb_sn', 'firmware', 'ec', 'pd', 'stage'])
+
+# Deprecated keys in DUT info.
+LEGACY_DUT_INFO_KEYS = set(['board'])
 
 # Required fields in resource map.
 REQUIRED_RESOURCE_MAP_FIELDS = set(['payloads', 'id'])

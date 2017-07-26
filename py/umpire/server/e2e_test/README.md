@@ -42,12 +42,12 @@ The test flow is as follows when `cros_docker.sh umpire test` is executed.
   setUpClass, and destroyed on tearDownClass.
 * Inside Test Docker, when creating a new Umpire Docker, copy
   `testdata/cros_docker` into `${TMPDIR}/cros_docker/`, `testdata/umpire`
-  into `${TMPDIR}/cros_docker/umpire/${BOARD}/`, and set
+  into `${TMPDIR}/cros_docker/umpire/${PROJECT}/`, and set
   `HOST_SHARED_DIR` environment variable to `${TMPDIR}/cros_docker` when
   calling `cros_docker.sh umpire run` inside main test script.
 * The docker service **on Host** would then create Umpire Docker, mount
   `${TMPDIR}/cros_docker` to `/mnt` in Umpire Docker,
-  `${TMPDIR}/cros_docker/umpire/${BOARD}` to `/var/db/factory/umpire` in
+  `${TMPDIR}/cros_docker/umpire/${PROJECT}` to `/var/db/factory/umpire` in
   Umpire Docker.
 * Test is executed by calling other `cros_docker.sh` commands, and interact
   with Umpire Docker.

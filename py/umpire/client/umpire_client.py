@@ -9,7 +9,6 @@ import logging
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
-from cros.factory.tools import build_board
 from cros.factory.umpire import common
 
 # The component keys in the return value of GetUpdate RPC call.
@@ -66,7 +65,6 @@ class UmpireClientInfo(object):
   KEY_TRANSLATION = {
       'sn': 'serial_number',
       'mlb_sn': 'mlb_serial_number',
-      'board': 'board',
       'firmware': 'firmware_version',
       'ec': 'ec_version',
       'pd': 'pd_version',
@@ -83,7 +81,6 @@ class UmpireClientInfo(object):
     # are detected in dut.info.SystemInfo module.
     self.serial_number = None
     self.mlb_serial_number = None
-    self.board = build_board.BuildBoard().full_name
     self.firmware_version = None
     self.ec_version = None
     self.pd_version = None

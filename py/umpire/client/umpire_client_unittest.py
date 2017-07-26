@@ -12,16 +12,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import board
-from cros.factory.tools import build_board
 from cros.factory.umpire.client import umpire_client
-
-
-class MockBuildBoard(object):
-  """Mocked BuildBoard which always return 'test' as full_name."""
-  full_name = 'test'
-
-
-mock_build_board = MockBuildBoard()
 
 
 class MockSystemInfo(object):
@@ -107,10 +98,10 @@ mock_system_info_4 = MockSystemInfo(
 # The output string of X-Umpire-DUT for mock_system_info_1.
 # Note that the keys are sorted.
 OUTPUT_X_UMPIRE_DUT = (
-    'board=test; ec=ec_001; firmware=fw_001; '
+    'ec=ec_001; firmware=fw_001; '
     'mac.eth0=EE:EE:EE:EE:EE:00; mac.eth1=EE:EE:EE:EE:EE:01; '
-    'mac.wlan0=FF:FF:FF:FF:FF:00; mlb_sn=MLB001; pd=pd_001; sn=DEV001; '
-    'stage=SMT')
+    'mac.wlan0=FF:FF:FF:FF:FF:00; mlb_sn=MLB001; pd=pd_001; '
+    'sn=DEV001; stage=SMT')
 
 
 # The return value of GetDUTInfoComponents.
@@ -118,7 +109,6 @@ OUTPUT_GET_UPDATE_DUT_INFO = {
     'x_umpire_dut': {
         'sn': 'DEV001',
         'mlb_sn': 'MLB001',
-        'board': 'test',
         'firmware': 'fw_001',
         'ec': 'ec_001',
         'pd': 'pd_001',
@@ -143,9 +133,6 @@ class UmpireClientInfoTest(unittest.TestCase):
   def setUp(self):
     """Setups mox and mock umpire_client_info used in tests."""
     self.mox = mox.Mox()
-    self.mox.StubOutWithMock(build_board, 'BuildBoard')
-    # pylint: disable=E1101
-    build_board.BuildBoard().MultipleTimes().AndReturn(mock_build_board)
     self.dut = self.mox.CreateMock(board.DeviceBoard)
 
   def tearDown(self):

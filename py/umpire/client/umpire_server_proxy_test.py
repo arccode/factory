@@ -31,7 +31,6 @@ class FakeClientInfo(object):
       dut: A dict containing client info, e.g.
         sn: 'TESTDEV002'
         mlb_sn: 'TESTMLB002'
-        board: 'daisy_spring'
         firmware: '3000.0.0'
         ec: '3000.0.0'
         mac.eth0: 'FF:FF:FF:FF:FF:FF'

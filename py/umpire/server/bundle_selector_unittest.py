@@ -21,9 +21,6 @@ class ParseDUTHeaderTest(unittest.TestCase):
         {'mlb_sn': 'MLB001'},
         bundle_selector.ParseDUTHeader('mlb_sn=MLB001'))
     self.assertDictEqual(
-        {'board': 'spring'},
-        bundle_selector.ParseDUTHeader('board=spring'))
-    self.assertDictEqual(
         {'firmware': 'spring_1.0.1'},
         bundle_selector.ParseDUTHeader('firmware=spring_1.0.1'))
     self.assertDictEqual(
@@ -50,6 +47,9 @@ class ParseDUTHeaderTest(unittest.TestCase):
   def testInvalidKey(self):
     with self.assertRaises(ValueError):
       bundle_selector.ParseDUTHeader('invalid_key=value')
+
+  def testLegacyKey(self):
+    self.assertDictEqual({}, bundle_selector.ParseDUTHeader('board=eve'))
 
 
 class SelectBundleTest(unittest.TestCase):

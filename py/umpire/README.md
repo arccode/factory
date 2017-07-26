@@ -40,7 +40,7 @@ Installation
 
        *** NOTE ***
        - Host directory /cros_docker is mounted under /mnt in the container.
-       - Host directory /cros_docker/umpire/$BOARD is mounted under /var/db/factory/umpire in the container.
+       - Host directory /cros_docker/umpire/$PROJECT is mounted under /var/db/factory/umpire in the container.
        - Umpire service ports is mapped to the local machine.
 
 Check if Umpire is running properly
@@ -140,14 +140,14 @@ Troubleshooting
 There are two places for logs of Umpire.
 
 1. Services hosted by Umpire, especially shopfloor proxy. The logs are
-   accessible outside Docker. Find them in `/cros_docker/umpire/$BOARD/log`.
+   accessible outside Docker. Find them in `/cros_docker/umpire/$PROJECT/log`.
 
    For example, nginx logs are in:
 
-       cd /cros_docker/umpire/$BOARD/log
+       cd /cros_docker/umpire/$PROJECT/log
        less httpd_access.log
        less httpd_error.log
 
 2. Umpire itself. Logs are handled by docker.
 
-       docker logs umpire_$BOARD
+       docker logs umpire_$PROJECT
