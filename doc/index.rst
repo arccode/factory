@@ -12,7 +12,6 @@ Contents:
 
    intro
    regions
-   branding
    device_data
    pytests/index.rst
 

@@ -117,8 +117,7 @@ class Finalize(unittest.TestCase):
           'Enable rma_mode, do not check for deprecated components.',
           default=False, optional=True),
       Arg('is_cros_core', bool,
-          'For ChromeOS Core device, skip verifying branding and setting'
-          'firmware bitmap locale.',
+          'For ChromeOS Core device, skip setting firmware bitmap locale.',
           default=False, optional=True),
       Arg('inform_shopfloor_after_wipe', bool,
           'Inform shopfloor server that the device is finalized after it gets'

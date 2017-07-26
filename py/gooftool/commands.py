@@ -148,7 +148,7 @@ _rma_mode_cmd_arg = CmdArg(
 _cros_core_cmd_arg = CmdArg(
     '--cros_core', action='store_true',
     help='Finalize for ChromeOS Core devices (may add or remove few test '
-         'items. For example, branding verification or firmware bitmap '
+         'items. For example, registration codes or firmware bitmap '
          'locale settings).')
 
 _enforced_release_channels_cmd_arg = CmdArg(
@@ -324,16 +324,13 @@ def VerifyDevSwitch(options):
     event_log.Log('switch_dev', type='virtual switch')
 
 
-@Command('verify_branding')
-def VerifyBranding(options):
-  """Verify that branding fields are properly set.
+@Command('verify_vpd')
+def VerifyVPD(options):
+  """Verify that VPD values are properly set.
 
-  customization_id, if set in the RO VPD, must be of the correct format.
-
-  rlz_brand_code must be set either in the RO VPD or OEM partition, and must
-  be of the correct format.
+  Check if mandatory fields are set, and deprecated fields don't exist.
   """
-  return GetGooftool(options).VerifyBranding()
+  return GetGooftool(options).VerifyVPD()
 
 
 @Command('verify_release_channel',
@@ -519,10 +516,7 @@ def Verify(options):
   VerifyKeys(options)
   VerifyRootFs(options)
   VerifyTPM(options)
-  if options.cros_core:
-    logging.info('VerifyBranding is skipped for ChromeOS Core device.')
-  else:
-    VerifyBranding(options)
+  VerifyVPD(options)
   VerifyReleaseChannel(options)
 
 

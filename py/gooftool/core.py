@@ -30,11 +30,8 @@ from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.hwid.v3 import common as hwid3_common
 from cros.factory.hwid.v3.database import Database
 from cros.factory.test.l10n import regions
-from cros.factory.test.rules import branding
-from cros.factory.test.rules import phase
 from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.utils import file_utils
-from cros.factory.utils import sys_utils
 from cros.factory.utils.type_utils import Error
 
 # A named tuple to store the probed component name and the error if any.
@@ -347,56 +344,36 @@ class Gooftool(object):
     # crosbug.com/p/30283 for more information.
     logging.info('Management Engine is locked.')
 
-  def VerifyBranding(self):
-    """Verify that branding fields are properly set.
+  def VerifyVPD(self):
+    """Verify that mandatory VPD values are set properly.
 
     Returns:
-      A dictionary containing rlz_brand_code and customization_id fields,
-      for testing.
+      A dictionary containing verified mandatory fields, for verification.
     """
     ro_vpd = self._read_ro_vpd()
-    customization_id = ro_vpd.get('customization_id')
-    logging.info('RO VPD customization_id: %r', customization_id)
-    if customization_id is not None:
-      if not branding.CUSTOMIZATION_ID_REGEXP.match(customization_id):
-        raise ValueError(
-            'Bad format for customization_id %r in RO VPD '
-            '(expected it to match regexp %r)' %
-            (customization_id, branding.CUSTOMIZATION_ID_REGEXP.pattern))
 
-    rlz_brand_code = ro_vpd.get('rlz_brand_code')
+    mandatory_fields = [
+        'serial_number', 'region',
+    ]
+    deprecated_fields = [
+        # Region fields (deprecated by single 'region').
+        'initial_locale', 'initial_timezone', 'keyboard_layout',
+        # Platform and branding fields (deprecated by mosys command).
+        'customization_id', 'rlz_brand_code', 'model',
+    ]
+    missing_keys = [key for key in mandatory_fields if key not in ro_vpd]
+    if missing_keys:
+      raise Error('Missing mandatory VPD values: %s' % ','.join(missing_keys))
+    bad_keys = [key for key in deprecated_fields if key in ro_vpd]
+    if bad_keys:
+      raise Error('Deprecated VPD values found: %s' % ','.join(bad_keys))
 
-    logging.info('RO VPD rlz_brand_code: %r', rlz_brand_code)
-    if rlz_brand_code is None:
-      # It must be present as BRAND_CODE_PATH in rootfs.
-      with sys_utils.MountPartition(
-          self._util.GetReleaseRootPartitionPath()) as mount_path:
-        path = os.path.join(mount_path, branding.BRAND_CODE_PATH.lstrip('/'))
-        if not os.path.exists(path):
-          raise ValueError('rlz_brand_code is not present in RO VPD, and %s '
-                           'does not exist in release rootfs' % (
-                               branding.BRAND_CODE_PATH))
-        with open(path) as f:
-          rlz_brand_code = f.read().strip()
-          logging.info('rlz_brand_code from rootfs: %r', rlz_brand_code)
-      rlz_brand_code_source = 'release_rootfs'
-    else:
-      rlz_brand_code_source = 'RO VPD'
+    # Check known value contents.
+    region = ro_vpd['region']
+    if region not in regions.REGIONS:
+      raise ValueError('Unknown region: "%s".' % region)
 
-    if not branding.RLZ_BRAND_CODE_REGEXP.match(rlz_brand_code):
-      raise ValueError('Bad format for rlz_brand_code %r in %s '
-                       '(expected it to match regexp %r)' % (
-                           rlz_brand_code, rlz_brand_code_source,
-                           branding.CUSTOMIZATION_ID_REGEXP.pattern))
-
-    phase.AssertStartingAtPhase(
-        phase.DVT,
-        rlz_brand_code not in branding.TEST_BRAND_CODES,
-        'Brand code is %r, but test brand codes are not allowed' %
-        rlz_brand_code)
-
-    return dict(rlz_brand_code=rlz_brand_code,
-                customization_id=customization_id)
+    return dict((k, v) for k, v in ro_vpd.iteritems() if k in mandatory_fields)
 
   def VerifyReleaseChannel(self, enforced_channels=None):
     """Verify that release image channel is correct.
@@ -586,12 +563,9 @@ class Gooftool(object):
     region = ro_vpd.get('region')
     if region is None:
       raise Error('Missing VPD "region".')
-    deprecated_region_vpds = ['initial_locale', 'initial_timezone',
-                              'keyboard_layout']
-    deprecated_keys = [key for key in deprecated_region_vpds if key in ro_vpd]
-    if deprecated_keys:
-      raise Error('Deprecated VPD found: %s' % ','.join(deprecated_keys))
-    # Use the primary initial locale for the firmware bitmap.
+    if region not in regions.REGIONS:
+      raise ValueError('Unknown region: "%s".' % region)
+    # Use the primary locale for the firmware bitmap.
     locales = regions.REGIONS[region].language_codes
     bitmap_locales = self.GetBitmapLocales(image_file)
 
