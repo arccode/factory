@@ -212,6 +212,12 @@ class Args(object):
         if arg.default is not None:
           value = arg.default
 
+      # Convert tuple to list.
+      # TODO(pihsun): We should cleanup all pytests and use only list instead of
+      # tuple after migrated to JSON test list, then we won't need this hack.
+      if isinstance(value, tuple):
+        value = list(value)
+
       if arg.name in dargs and not arg.ValueMatchesType(value):
         errors.append('Argument %s should have type %r, not %r' % (
             arg.name, arg.type, type(value)))
