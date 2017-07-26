@@ -10,6 +10,7 @@ import collections
 import copy
 import os
 import re
+import subprocess
 import pprint
 
 import factory_common  # pylint: disable=W0611
@@ -17,6 +18,7 @@ from cros.factory.hwid.v3 import base32, base8192
 from cros.factory.hwid.v3 import rule
 from cros.factory.test.rules import phase
 from cros.factory.tools import build_board
+from cros.factory.utils import process_utils
 from cros.factory.utils import schema
 from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
@@ -57,13 +59,12 @@ def ProbeBoard(hwid=None):
   return build_board.BuildBoard().short_name
 
 
-def ProbeProject(hwid=None):
+def ProbeProject():
   """Probes the project name.
 
-  Currently this function is equal to `ProbeBoard(hwid)`.
-
-  Args:
-    hwid: A HWID string to parse.
+  This function will try to run the command `mosys platform chassis` to
+  get the project name.  If the command returns an empty string, this
+  function will return the board name.
 
   Returns:
     The probed project name as a string.
@@ -71,8 +72,16 @@ def ProbeProject(hwid=None):
   Raises:
     HWIDException when probe error.
   """
-  # TODO(yhong): return the real project name instead of board name
-  return ProbeBoard(hwid)
+  try:
+    project = process_utils.CheckOutput(
+        ['mosys', 'platform', 'chassis']).strip().upper()
+    if project:
+      return project
+
+  except subprocess.CalledProcessError as e:
+    raise HWIDException('Failed to run "mosys platform chassis": %r' % e)
+
+  return build_board.BuildBoard().short_name.upper()
 
 
 def GetHWIDBundleName(project=None):
