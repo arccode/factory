@@ -16,6 +16,7 @@ import sys
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
+from cros.factory.hwid.v3 import common as hwid_common
 from cros.factory.proto import reg_code_pb2
 from cros.factory.test.rules import registration_codes
 from cros.factory.test.rules.registration_codes import RegistrationCode
@@ -39,11 +40,9 @@ def Decode(options):
 
 @Command(
     'generate-dummy',
-    CmdArg('--board', '-b', metavar='BOARD', required=True,
-           help=('Board to generate codes for.  This must be exactly the '
-                 'same as the HWID board name, except lowercase.  For '
-                 'boards with variants (like "daisy_spring"), use only '
-                 'the variant name ("spring").')),
+    CmdArg('--project', '-p', metavar='PROJECT', required=True,
+           help=('Project to generate codes for.  This must be exactly the '
+                 'same as the HWID project name, except lowercase.')),
     CmdArg('--type', '-t', metavar='TYPE', required=True,
            choices=['unique', 'group'],
            help='The type of code to generate (choices: %(choices)s)'),
@@ -70,8 +69,9 @@ def GenerateDummy(options):
   proto.content.code = (
       '\xff\xff\xff\xff\xffLD\x93 \xd1\xbf\xff\xff\xff\xff\xff' + ''.join(
           chr(random.getrandbits(8))
-          for i in range(registration_codes.REGISTRATION_CODE_PAYLOAD_BYTES - 16)))
-  proto.content.device = options.board.lower()
+          for i in range(
+              registration_codes.REGISTRATION_CODE_PAYLOAD_BYTES - 16)))
+  proto.content.device = options.project.lower()
   proto.checksum = (
       binascii.crc32(proto.content.SerializeToString()) & 0xFFFFFFFF)
 
@@ -90,17 +90,22 @@ def GenerateDummy(options):
     'check',
     CmdArg(
         '--unique-code', '-u', metavar='UNIQUE_CODE',
-        help='Unique/user code to check (default: ubind_attribute RW VPD value)'),
+        help=('Unique/user code to check (default: ubind_attribute RW VPD '
+              'value)')),
     CmdArg(
         '--group-code', '-g', metavar='GROUP_CODE',
         help='Group code to check (default: gbind_attribute RW VPD value)'),
     CmdArg(
-        '--board', '-b', metavar='BOARD',
-        help='Board to check (default: from .default_board or lsb-release)'))
+        '--project', '-b', metavar='PROJECT',
+        help=('Project to check (default: probed project name if run on DUT; '
+              'board name in .default_board if in chroot)')))
 def Check(options):
-  if not options.board:
-    options.board = BuildBoard().short_name
-  logging.info('Device name: %s', options.board)
+  if not options.project:
+    if sys_utils.InChroot():
+      options.project = BuildBoard().short_name
+    else:
+      options.project = hwid_common.ProbeProject()
+  logging.info('Device name: %s', options.project)
 
   rw_vpd = None
   success = True
@@ -126,7 +131,7 @@ def Check(options):
         sys.exit(1)
 
     try:
-      registration_codes.CheckRegistrationCode(code, code_type, options.board)
+      registration_codes.CheckRegistrationCode(code, code_type, options.project)
       logging.info('%s: success', code_type)
     except registration_codes.RegistrationCodeException as e:
       success = False

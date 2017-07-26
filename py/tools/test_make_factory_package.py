@@ -243,10 +243,11 @@ class MakeFactoryPackageTest(unittest.TestCase):
                                'hwid', 'X86-GENERIC')
       self.assertEquals(expect_hwid, os.path.exists(hwid_file))
       if expect_hwid:
-        assert re.search(
-            '^board:', file_utils.ReadFile(hwid_file), re.MULTILINE), (
-                '%s should be a valid HWID file, but it does not contain a '
-                'line beginning with "board:"' % hwid_file)
+        search_result = re.search(
+            '^(board|project):', file_utils.ReadFile(hwid_file), re.MULTILINE)
+        assert search_result, (
+            '%s should be a valid HWID file, but it does not contain a '
+            'line beginning with "board:" or "project:"' % hwid_file)
 
       # For release builds, there should be a stateful_files.tar.xz
       # archive in the generated stateful partition.

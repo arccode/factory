@@ -208,13 +208,13 @@ def GetFactoryBranchInfo(board, base_board, repo_sync, projects_yaml=None):
         all boards base on the base_board.
     repo_sync: whether to 'repo sync' in platform/chromeos-hwid repo.
     projects_yaml: A local yaml file specifying factory branch info for
-        all boards.
+        all projects.
 
   Returns: A list of tuples (board name, factory branch name) sorted by
       factory branch version and group by base board.
   """
   if projects_yaml:
-    boards_info = yaml.load(open(projects_yaml))
+    projects_info = yaml.load(open(projects_yaml))
   else:
     hwid_dir = os.path.join(
         os.environ['CROS_WORKON_SRCROOT'], 'src', 'platform', 'chromeos-hwid')
@@ -228,9 +228,9 @@ def GetFactoryBranchInfo(board, base_board, repo_sync, projects_yaml=None):
           'repo sync -n .',
           log=True, cwd=hwid_dir, shell=True, check_call=True)
 
-    # Always read projects.yaml from ToT as all boards are required to have an
+    # Always read projects.yaml from ToT as all projects are required to have an
     # entry in it.
-    boards_info = yaml.load(process_utils.CheckOutput(
+    projects_info = yaml.load(process_utils.CheckOutput(
         ['git', 'show', 'remotes/cros-internal/master:projects.yaml'],
         cwd=hwid_dir))
 
@@ -243,22 +243,22 @@ def GetFactoryBranchInfo(board, base_board, repo_sync, projects_yaml=None):
 
   board_branch_list = []
   base_board_max_version = {}
-  for b in boards_info.itervalues():
-    # Only get branch info for boards using v3 HWID.
-    if 'version' in b and b['version'] != 3:
+  for p in projects_info.itervalues():
+    # Only get branch info for projects using v3 HWID.
+    if 'version' in p and p['version'] != 3:
       continue
 
     if board:
-      if b['board'] == board.upper():
-        return [(b['board'], b['branch'])]
+      if p['board'] == board.upper():
+        return [(p['board'], p['branch'])]
     elif base_board:
       # Factory branch should contain base board name.
-      if base_board.lower() in b['branch']:
-        board_branch_list.append((b['board'], b['branch']))
-        _LogBaseboardMaxVersion(b['branch'], base_board_max_version)
+      if base_board.lower() in p['branch']:
+        board_branch_list.append((p['board'], p['branch']))
+        _LogBaseboardMaxVersion(p['branch'], base_board_max_version)
     else:
-      board_branch_list.append((b['board'], b['branch']))
-      _LogBaseboardMaxVersion(b['branch'], base_board_max_version)
+      board_branch_list.append((p['board'], p['branch']))
+      _LogBaseboardMaxVersion(p['branch'], base_board_max_version)
 
   def _key_func(b):
     # Sort by two keys:
@@ -270,7 +270,7 @@ def GetFactoryBranchInfo(board, base_board, repo_sync, projects_yaml=None):
     #   squawks factory-rambi-5517.B.
     #   pi      factory-pit-5499.B
     base_board, version = _ExtractBaseboardAndVersion(b[1])
-    return(base_board_max_version[base_board], version)
+    return (base_board_max_version[base_board], version)
 
   # Reversely sort the list by the above two keys.
   return sorted(board_branch_list, key=_key_func, reverse=True)

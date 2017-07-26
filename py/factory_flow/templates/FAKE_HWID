@@ -3,7 +3,7 @@
 
 checksum: %{CHECKSUM}
 
-board: %{BOARD}
+project: %{PROJECT}
 
 encoding_patterns:
   0: default

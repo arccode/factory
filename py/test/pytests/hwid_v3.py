@@ -26,11 +26,11 @@ from cros.factory.test.utils import deploy_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 
-# If present,  these files will override the board and probe results
+# If present,  these files will override the project and probe results
 # (for testing).
-OVERRIDE_BOARD_PATH = os.path.join(
+OVERRIDE_PROJECT_PATH = os.path.join(
     common.DEFAULT_HWID_DATA_PATH,
-    'OVERRIDE_BOARD')
+    'OVERRIDE_PROJECT')
 # OVERRIDE_PROBED_RESULTS should be generated with:
 #    `gootool probe --include_vpd`
 # to include all the VPD in it.
@@ -92,13 +92,14 @@ class HWIDV3Test(unittest.TestCase):
       self._dut.WriteFile(probed_results_file, probed_results)
       Log('probe', probe_results=probed_results)
 
-    # check if we are overriding the board name.
-    if os.path.exists(OVERRIDE_BOARD_PATH):
-      with open(OVERRIDE_BOARD_PATH) as f:
-        board = f.read().strip()
-      logging.info('overrided board name: %s', board)
+    # check if we are overriding the project name.
+    if os.path.exists(OVERRIDE_PROJECT_PATH):
+      with open(OVERRIDE_PROJECT_PATH) as f:
+        project = f.read().strip()
+      logging.info('overrided project name: %s', project)
+      project_arg = ['--project', project.upper()]
     else:
-      board = None
+      project_arg = []
 
     # pass device info to DUT
     device_info_file = self._dut.path.join(self.tmpdir, 'device_info')
@@ -113,9 +114,7 @@ class HWIDV3Test(unittest.TestCase):
       generate_cmd = ['hwid', 'generate',
                       '--probed-results-file', probed_results_file,
                       '--device-info-file', device_info_file,
-                      '--json-output']
-      if board:
-        generate_cmd += ['-b', board.upper()]
+                      '--json-output'] + project_arg
       if self.args.rma_mode:
         generate_cmd += ['--rma-mode']
       if not self.args.verify_checksum:
@@ -129,8 +128,7 @@ class HWIDV3Test(unittest.TestCase):
       factory.console.info('Generated HWID: %s', encoded_string)
 
       # try to decode HWID
-      decode_cmd = ['hwid', 'decode'] + (['-b', board] if board else [])
-      decode_cmd += [encoded_string]
+      decode_cmd = ['hwid', 'decode'] + project_arg + [encoded_string]
       output = self.factory_tools.CallOutput(decode_cmd)
       self.assertIsNotNone(output, 'HWID decode failed.')
       decoded_hwid = yaml.load(output)
@@ -150,9 +148,7 @@ class HWIDV3Test(unittest.TestCase):
 
     verify_cmd = ['hwid', 'verify',
                   '--probed-results-file', probed_results_file,
-                  '--phase', str(phase.GetPhase())]
-    if board:
-      verify_cmd += ['-b', board]
+                  '--phase', str(phase.GetPhase())] + project_arg
     if self.args.rma_mode:
       verify_cmd += ['--rma-mode']
     if not self.args.verify_checksum:

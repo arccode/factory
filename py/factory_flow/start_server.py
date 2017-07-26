@@ -465,7 +465,7 @@ class StartServer(FactoryFlowCommand):
                                           hwid_updater_filename)
     # Create a temporary directory to build the fake HWID updater.
     with file_utils.TempDirectory(prefix='fake_hwid.') as temp_dir:
-      # Extract the template fake HWID database and fill in the board name in
+      # Extract the template fake HWID database and fill in the project name in
       # the database.
       factory_par_path = GetFactoryParPath()
       if factory_par_path:
@@ -482,9 +482,7 @@ class StartServer(FactoryFlowCommand):
             'FAKE_HWID')
         with open(template_fake_hwid_path) as f:
           fake_hwid_db = f.read()
-      # TODO(yhong): Update the fake hwid template to remove the assumption
-      #     of board=project.
-      fake_hwid_db = re.sub(r'%\{BOARD\}', hwid_db_name, fake_hwid_db)
+      fake_hwid_db = re.sub(r'%\{PROJECT\}', hwid_db_name, fake_hwid_db)
       # Create a temp HWID database and compute the database checksum.
       temp_hwid_db_path = os.path.join(temp_dir, hwid_db_name)
       with open(temp_hwid_db_path, 'w') as f:

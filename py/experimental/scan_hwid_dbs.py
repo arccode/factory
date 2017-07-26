@@ -21,9 +21,16 @@ from cros.factory.utils.process_utils import Spawn
 
 DESCRIPTION = """Scans existing HWID databases files for matching components.
 
-All boards in chromeos-hwid/boards.yaml are scanned, on the corresponding branch
-listed in that file.
+All projects in chromeos-hwid/projects.yaml are scanned, on the corresponding
+branch listed in that file.
 """
+
+
+def _DetectUnknownChoices(choice_name, choices, valid_choices):
+  unknown_choices = set(choices) - set(valid_choices)
+  if unknown_choices:
+    print sys.stderr, 'Unknown %s(s) %r; valid choices are %r' % (
+        choice_name, unknown_choices, sorted(valid_choices))
 
 
 def main():
@@ -33,58 +40,71 @@ def main():
   parser.add_argument('probe_results', metavar='FILE.yaml',
                       help=('A file containing YAML-formatted probe results '
                             'output by "gooftool probe".'))
-  parser.add_argument('--board', '-b', metavar='B',
+  parser.add_argument('--board', '-b', metavar='BOARD',
                       action='append', dest='boards',
                       help=('Board to scan (may be provided multiple times, '
-                            'e.g., "--board A --board B").  If no --board '
-                            'argument is provided, all known boards are '
-                            'scanned.'))
+                            'e.g., "--board A --board B").'))
+  parser.add_argument('--project', '-p', metavar='PROJECT',
+                      action='append', dest='projects',
+                      help=('Project to scan (may be provided multiple times, '
+                            'e.g., "--project A --project B").  If neither '
+                            '--project nor --board arguments are provided, all '
+                            'known projects are scanned.'))
   args = parser.parse_args()
+  args.projects = args.projects or []
+  args.boards = args.boards or []
 
   SetupLogging(level=logging.INFO)
 
   hwid_dir = os.path.dirname(common.DEFAULT_HWID_DATA_PATH)
-  boards_yaml_path = os.path.join(hwid_dir, 'boards.yaml')
-  with open(boards_yaml_path) as f:
-    boards_yaml = yaml.load(f)
+  projects_yaml_path = os.path.join(hwid_dir, 'projects.yaml')
+  with open(projects_yaml_path) as f:
+    projects_yaml = yaml.load(f)
 
-  board_dbs = {}
+  project_dbs = {}
+
+  if args.projects:
+    args.projects = [x.upper() for x in args.projects]
+    _DetectUnknownChoices('project', args.projects, projects_yaml.keys())
 
   if args.boards:
     args.boards = [x.upper() for x in args.boards]
-    missing_boards = set(args.boards) - set(boards_yaml.keys())
-    if missing_boards:
-      print sys.stderr, 'Unknown board(s) %r; valid choices are %r' % (
-          missing_boards, sorted(boards_yaml.keys()))
+    _DetectUnknownChoices('board', args.boards,
+                          [v['board'] for v in projects_yaml.itervalues()])
 
-  for board, board_info in sorted(boards_yaml.items()):
-    if board_info['version'] != 3:
+  only_scan_user_specific = args.projects or args.boards
+
+  for project, project_info in sorted(projects_yaml.items()):
+    if project_info['version'] != 3:
       continue
-    if args.boards and board not in args.boards:
+    if (only_scan_user_specific and
+        project not in args.projects and
+        project_info['board'] not in args.boards):
       continue
-    logging.info('Reading %(path)s on branch %(branch)s', board_info)
-    board_db_yaml = Spawn(
-        ['git', 'show', 'cros-internal/%(branch)s:%(path)s' % board_info],
+    logging.info('Reading %(path)s on branch %(branch)s', project_info)
+    project_db_yaml = Spawn(
+        ['git', 'show', 'cros-internal/%(branch)s:%(path)s' % project_info],
         check_output=True, log_stderr_on_error=True, cwd=hwid_dir).stdout_data
 
-    board_dbs[board] = database.Database.LoadData(yaml.load(board_db_yaml),
-                                                  strict=False)
+    project_dbs[project] = database.Database.LoadData(
+        yaml.load(project_db_yaml), strict=False)
 
   with open(args.probe_results) as f:
     probe_result = f.read()
 
-  # Map from (board, component_class) to the matching probe result.
+  # Map from (project, component_class) to the matching probe result.
   matches = defaultdict(list)
-  # Map from board -> list of matching results.
-  board_matches = defaultdict(list)
+  # Map from project -> list of matching results.
+  project_matches = defaultdict(list)
   # Map from component -> list of matching results.
   component_matches = defaultdict(list)
 
-  # Loop through each board and see what the probe result matches, if anything.
+  # Loop through each project and see what the probe result matches, if
+  # anything.
   boms = {}
-  for board, board_db in sorted(board_dbs.items()):
-    bom = board_db.ProbeResultToBOM(probe_result)
-    boms[board] = bom
+  for project, project_db in sorted(project_dbs.items()):
+    bom = project_db.ProbeResultToBOM(probe_result)
+    boms[project] = bom
     for component_class, results in sorted(bom.components.items()):
       if component_class in ['hash_gbb', 'key_recovery', 'key_root',
                              'ro_main_firmware', 'rw_main_firmware',
@@ -98,17 +118,17 @@ def main():
         if result.component_name == 'opaque':
           # Not a true match
           continue
-        matches[board, component_class].append(result)
-        board_matches[board].append((component_class, result))
-        component_matches[component_class].append((board, result))
+        matches[project, component_class].append(result)
+        project_matches[project].append((component_class, result))
+        component_matches[component_class].append((project, result))
 
   separator = '\n' + ('-' * 40)
 
-  # Summarize to board and component view.
+  # Summarize to project and component view.
   print separator
-  print 'Matches by board:'
-  for board, results in sorted(board_matches.items()):
-    print '  %s matches:' % board
+  print 'Matches by project:'
+  for project, results in sorted(project_matches.items()):
+    print '  %s matches:' % project
     for component_class, r in results:
       print '    %s: %s' % (component_class, r.component_name)
 
@@ -116,17 +136,17 @@ def main():
   print 'Matches by component class:'
   for component_class, results in sorted(component_matches.items()):
     print '  %s matches:' % component_class
-    for board, r in results:
-      print '    %s: %s' % (board, r.component_name)
+    for project, r in results:
+      print '    %s: %s' % (project, r.component_name)
 
   # Detailed view.
   print separator
   print 'Detailed information about matches:'
   yaml_out = {}
   for k, results in sorted(matches.items()):
-    board, component_class = k
+    project, component_class = k
     items = {}
-    yaml_out['%s %s' % (board, component_class)] = items
+    yaml_out['%s %s' % (project, component_class)] = items
     for r in results:
       items[r.component_name] = r.probed_values
 
