@@ -2,12 +2,72 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Tests removable storage devices.
+"""Tests accessing to a removable storage.
 
-The following test functions are supported:
+Description
+-----------
+Perform following tests on a removable storage device:
+1. Random read/write test
+2. Sequential read/write test
+3. Lock (write protection) test
 
-- Random and sequential read / write test
-- Lock (write protection) test
+Test Procedure
+--------------
+1. Insert device (with lock switch off if there's a one)
+2. Read/write test should now start. Wait for completion.
+3. Remove the device
+
+If `perform_locktest` is set, continue these steps:
+4. Insert device with lock switch is on
+5. Lock test should now start. Wait for completion.
+6. Remove the device
+
+If `skip_insert_remove` is set, the device should be inserted
+before running this test, and the above steps 1,3,4,6 should
+be skipped.
+
+Dependency
+----------
+1. Use `udev` to monitor media insertion.
+2. Use `parted` to initialize partitions on SD cards.
+3. Use `dd` to perform read/write test.
+4. Use `blockdev` to get block size and RO status.
+5. Use `ectool` to check USB polarity.
+
+Examples
+--------
+You can do a random read/write test on 3 blocks (each for 1024
+bytes) on an USB stick as::
+
+  OperatorTest(
+      pytest_name='removable_storage',
+      dargs=dict(
+          media='USB',
+          sysfs_path='/sys/devices/s5p-ehci/usb1/1-1/1-1:1.0'))
+
+To do a sequential read/write test on another USB port::
+
+  OperatorTest(
+      pytest_name='removable_storage',
+      dargs=dict(
+          media='USB',
+          sysfs_path='/sys/devices/s5p-ehci/usb1/1-2/1-2.3',
+          block_size=512 * 1024,
+          perform_random_test=False,
+          perform_sequential_test=True,
+          sequential_block_count=8))
+
+Similarly, to test a SD card::
+
+  OperatorTest(
+      pytest_name='removable_storage',
+      dargs=dict(
+          media='SD',
+          sysfs_path='/path/to/sd/device',
+          block_size=512 * 1024,
+          perform_random_test=False,
+          perform_sequential_test=True,
+          sequential_block_count=8))
 """
 
 from __future__ import print_function
@@ -125,7 +185,9 @@ _IMG_HTML_TAG = (
 class RemovableStorageTest(unittest.TestCase):
   """The removable storage factory test."""
   ARGS = [
-      Arg('media', str, 'Media type'),
+      Arg('media', str, 'Media type. '
+          'This is used for several logging messages, and to decide the icons'
+          'shown on UI. Valid values are "SD" or "USB".'),
       Arg('sysfs_path', str,
           'The expected sysfs path that udev events should '
           'come from, ex: /sys/devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1.2',

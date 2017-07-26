@@ -2,7 +2,37 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""This is a recovery button test."""
+"""Test if the recovery button works properly.
+
+Description
+-----------
+For Chromebooks or Chromeboxes with a physical recovery button,
+this test can be used to make sure the recovery button status
+can be fetched properly.
+
+Test Procedure
+--------------
+1. Press spacebar to start.
+2. Press down the recovery button.
+
+If the recovery button works properly, the test passes.
+Otherwise, the test will fail after `timeout_secs` seconds.
+
+Dependency
+----------
+Use `crossystem recoverysw_cur` to get recovery button status.
+
+Examples
+--------
+To test recovery button with default parameters::
+
+  OperatorTest(pytest_name='recovery_button')
+
+One can also set the timeout to 100 seconds by::
+
+  OperatorTest(pytest_name='recovery_button',
+               dargs=dict(timeout_secs=100))
+"""
 
 import time
 import unittest
@@ -43,7 +73,7 @@ class RecoveryButtonTest(unittest.TestCase):
           default=10),
       Arg('polling_interval_secs', float,
           'Interval between checking whether recovery buttion is pressed or '
-          'not.Valid values: 0.2, 0.5 and 1.0', default=0.5)]
+          'not. Valid values: 0.2, 0.5 and 1.0', default=0.5)]
 
   def setUp(self):
     self.ui = test_ui.UI()
