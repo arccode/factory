@@ -36,4 +36,15 @@
   background-color: #5CADFF; }
 .touchscreen-test-block-demo-3 {
   background-color: #70B8FF; }
-
+#touchscreen_countdown_timer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  opacity: 0.3;
+  z-index: 999;
+  font-size: 150;
+  display: flex;
+  align-items: center;
+  justify-content: center; }

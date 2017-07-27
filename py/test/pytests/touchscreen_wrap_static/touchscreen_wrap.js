@@ -102,6 +102,7 @@ TouchscreenTest.prototype.setupFullScreenElement = function() {
   this.fullScreenElement = document.createElement('div');
   var fullScreen = this.fullScreenElement;
   fullScreen.className = 'touchscreen-full-screen';
+
   if(this.e2eMode) {
     fullScreen.addEventListener(
         'touchstart', this.touchStartListener.bind(this), false);
@@ -111,11 +112,14 @@ TouchscreenTest.prototype.setupFullScreenElement = function() {
         'touchend', this.touchEndListener.bind(this), false);
   }
 
-  fullScreen.appendChild(createPrompt());
+  fullScreen.appendChild(createDiv('touchscreen-prompt', 'touchscreen_prompt'));
+
+  fullScreen.appendChild(createDiv('', 'touchscreen_countdown_timer'))
 
   var touchscreenTable = createTable(this.numRows, this.numColumns, 'touch',
-      'touchscreen-test-block-untested');
+                                     'touchscreen-test-block-untested');
   fullScreen.appendChild(touchscreenTable);
+
   $(this.container).appendChild(fullScreen);
 
   this.restartTest();
@@ -537,14 +541,15 @@ TouchscreenTest.prototype.prompt = function(message) {
 };
 
 /**
- * Creates an prompt element.
- *
+ * Creates a div element.
+ * @param {string} className
+ * @param {string} elementId
  * @return {Element} prompt div.
  */
-function createPrompt() {
+function createDiv(className, elementId) {
   var prompt = document.createElement('div');
-  prompt.className = 'touchscreen-prompt';
-  prompt.id = 'touchscreen_prompt';
+  prompt.className = className;
+  prompt.id = elementId;
   return prompt;
 }
 

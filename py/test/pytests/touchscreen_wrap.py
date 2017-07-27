@@ -46,6 +46,8 @@ Test Procedure
    all blocks being green.
 3. If there is any problem with the touch device, press Escape to abort and
    mark this test failed.
+4. If `timeout_secs` is set and the test couldn't be passed in `timeout_secs`
+   seconds, the test will fail automatically.
 
 Dependency
 ----------
@@ -59,10 +61,10 @@ To test touchscreen with 30x20 blocks::
   OperatorTest(pytest_name='touchscreen_wrap',
                dargs=dict(x_segments=20, y_segments=30))
 
-To test touchscreen in end-to-end mode::
+To test touchscreen in end-to-end mode and time limit 10 seconds::
 
   OperatorTest(pytest_name='touchscreen_wrap',
-               dargs=dict(e2e_mode=True))
+               dargs=dict(e2e_mode=True, timeout_secs=10))
 
 To test touchscreen without spiral order restriction::
 
@@ -79,6 +81,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external.evdev import ecodes  # pylint: disable=E0611
+from cros.factory.test import countdown_timer
 from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
 from cros.factory.test.utils import touch_monitor
@@ -188,6 +191,7 @@ class TouchscreenTest(unittest.TestCase):
       Arg('event_id', int, 'Evdev input event id.', optional=True),
       Arg('hover_mode', bool, 'Test hovering or touching (for stylus).',
           default=False),
+      Arg('timeout_secs', int, 'Timeout for the test.', optional=True)
       ]
 
   def setUp(self):
@@ -210,6 +214,11 @@ class TouchscreenTest(unittest.TestCase):
         'setupTouchscreenTest', _ID_CONTAINER, self.args.x_segments,
         self.args.y_segments, self.args.retries, self.args.demo_interval_ms,
         self.args.e2e_mode, self.args.spiral_mode)
+
+    if self.args.timeout_secs:
+      countdown_timer.StartCountdownTimer(
+          self.args.timeout_secs, self.OnFailPressed, self._ui,
+          'touchscreen_countdown_timer')
 
   def tearDown(self):
     if self._dispatcher is not None:
