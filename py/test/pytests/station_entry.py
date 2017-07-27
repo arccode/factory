@@ -5,8 +5,56 @@
 
 """Starts or ends a station-based test.
 
-This factory test invokes functions to setup or teardown a station-based
-test list.
+Description
+-----------
+This pytest initializes (or terminates) the DUT connection in a
+station-based test, and validates (or invalidates) related device
+info. This pytest is mainly used as the first and last pytest to
+wrap around a sequence of station-based tests.
+
+In more detail, if the argument `start_station_tests` is set to True,
+this pytest performs following initialization steps:
+1. Clear DUT info.
+2. Clear serial numbers from device data.
+3. Wait for DUT being connected.
+
+On the other hand, if the argument `start_station_tests` is set to
+False, this pytest performs following cleanup steps:
+1. Wait for DUT being disconnected.
+2. Clear DUT info.
+3. Clear serial numbers from device data.
+
+Test Procedure
+--------------
+If argument `start_station_tests` is set to True, it waits until the
+DUT is connected.
+
+Otherwise, if argument `start_station_tests` is set to False, it waits
+until the DUT is disconnected.
+
+Dependency
+----------
+Depend on Device API (``cros.factory.device.device_utils``) to create
+a DUT interface, and monitor if DUT is connected.
+
+Examples
+--------
+To start a sequence of station-based tests, this pytest can be used as
+the first pytest::
+
+  OperatorTest(pytest_name='station_entry')
+
+If the following pytests should be started until spacebar is hit::
+
+  OperatorTest(
+      pytest_name='station_entry',
+      dargs={'prompt_start': True})
+
+To gracefully terminate a sequence of station-based tests::
+
+  OperatorTest(
+      pytest_name='station_entry',
+      dargs={'start_station_tests': False})
 """
 
 import threading
