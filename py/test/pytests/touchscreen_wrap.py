@@ -1,22 +1,26 @@
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+# Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Tests touchscreen by drawing a warp-in pattern.
+"""Tests touchscreen or stylus by drawing in any order or in spiral pattern.
 
-In this test, we split the screen in C x R blocks. We ask operators to
-draw blocks in sequence. Right now the drawing pattern is:
+Description
+-----------
+In this test, screen area is segmented into `x_segments` x `y_segments` blocks.
+If argument `spiral_mode` is True, the operator has to swipe the blocks in
+clockwise spiral pattern. Otherwise the operator has to touch all the blocks in
+arbitrary order.
+
+In `spiral_mode`, the pattern is:
 
 1. Starting from upper-left block, move to rightmost block.
-2. Then move down, left, up, to draw a outer retangular circle.
+2. Then move down, left, up, to draw a outer rectangular circle.
 3. Move to the inner upper-left block (1, 1), repeat 1-2.
 4. Until the center block is reached.
 
 The index of block (x, y) is defined as::
 
-  index =  x + y * xSegment (number of blocks in x-axis).
+  index =  x + y * x_segments (number of blocks in x-axis).
 
 For, example, a 3x3 grid::
 
@@ -24,10 +28,51 @@ For, example, a 3x3 grid::
   3 4 5
   6 7 8
 
-The drawing sequence is: 0, 1, 2, 5, 8, 7, 6, 3, 4.
+The clockwise spiral drawing sequence is: 0, 1, 2, 5, 8, 7, 6, 3, 4.
 
-It uses Chrome event API or evdev to get touch events.
-Test logic is in touchscreen.js.
+There are two modes available: end-to-end mode and evdev mode.
+
+- End-to-end mode uses Chrome touch event API.
+- Evdev mode uses Linux evdev.
+
+Test logic is in touchscreen_wrap.js.
+
+Test Procedure
+--------------
+1. Once the test started, it would be set to fullscreen and shows
+   `x_segments` x `y_segments` grey blocks.
+2. Draw these blocks green by touching them (or move your stylus to make it
+   hovering on a block in hover mode) in specified order. Test will pass after
+   all blocks being green.
+3. If there is any problem with the touch device, press Escape to abort and
+   mark this test failed.
+
+Dependency
+----------
+- End-to-end mode is based on Chrome touch event API.
+- Non end-to-end mode is based on Linux evdev.
+
+Examples
+--------
+To test touchscreen with 30x20 blocks::
+
+  OperatorTest(pytest_name='touchscreen_wrap',
+               dargs=dict(x_segments=20, y_segments=30))
+
+To test touchscreen in end-to-end mode::
+
+  OperatorTest(pytest_name='touchscreen_wrap',
+               dargs=dict(e2e_mode=True))
+
+To test touchscreen without spiral order restriction::
+
+  OperatorTest(pytest_name='touchscreen_wrap',
+               dargs=dict(spiral_mode=False))
+
+To test stylus in hover mode::
+
+  OperatorTest(pytest_name='touchscreen_wrap',
+               dargs=dict(stylus=True, hover_mode=True))
 """
 
 import unittest
@@ -128,14 +173,18 @@ class TouchscreenTest(unittest.TestCase):
   ARGS = [
       Arg('x_segments', int, 'Number of segments in x-axis.', default=5),
       Arg('y_segments', int, 'Number of segments in y-axis.', default=5),
-      Arg('retries', int, 'Number of retries.', default=5),
+      Arg('retries', int, 'Number of retries (for spiral_mode).', default=5),
       Arg('demo_interval_ms', int,
-          'Interval (ms) to show drawing pattern. <= 0 means no demo.',
+          'Interval (ms) to show drawing pattern (for spiral mode). '
+          '<= 0 means no demo.',
           default=150),
       Arg('stylus', bool, 'Testing stylus or not.', default=False),
       Arg('e2e_mode', bool,
           'Perform end-to-end test or not (for touchscreen).',
           default=False),
+      Arg('spiral_mode', bool,
+          'Do blocks need to be drawn in spiral order or not.',
+          default=True),
       Arg('event_id', int, 'Evdev input event id.', optional=True),
       Arg('hover_mode', bool, 'Test hovering or touching (for stylus).',
           default=False),
@@ -160,7 +209,7 @@ class TouchscreenTest(unittest.TestCase):
     self._ui.CallJSFunction(
         'setupTouchscreenTest', _ID_CONTAINER, self.args.x_segments,
         self.args.y_segments, self.args.retries, self.args.demo_interval_ms,
-        self.args.e2e_mode)
+        self.args.e2e_mode, self.args.spiral_mode)
 
   def tearDown(self):
     if self._dispatcher is not None:

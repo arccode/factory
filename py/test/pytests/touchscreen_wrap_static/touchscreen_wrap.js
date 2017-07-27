@@ -1,4 +1,4 @@
-// Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+// Copyright 2017 The Chromium OS Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -10,16 +10,20 @@
  * @param {number} numRows Number of rows.
  * @param {number} maxRetries Number of retries.
  * @param {number} demoIntervalMsecs Interval (ms) to show drawing pattern.
- *     Negative value means no demo.
+ *     Non-positive value means no demo.
+ * @param {boolean} e2eMode Perform end-to-end test or not (for touchscreen).
+ * @param {boolean} spiralMode Blocks must be drawn in spiral order or not.
  */
 var TouchscreenTest = function(
-    container, numColumns, numRows, maxRetries, demoIntervalMsecs, e2e_mode) {
+    container, numColumns, numRows, maxRetries, demoIntervalMsecs,
+    e2eMode, spiralMode) {
   var _ = cros.factory.i18n.translation;
   this.container = container;
   this.numColumns = numColumns;
   this.numRows = numRows;
   this.maxRetries = maxRetries;
-  this.e2e_mode = e2e_mode;
+  this.e2eMode = e2eMode;
+  this.spiralMode = spiralMode;
 
   this.expectSequence = [];
   this.tries = 0;
@@ -32,7 +36,9 @@ var TouchscreenTest = function(
   this.demoIntervalMsecs = demoIntervalMsecs;
   console.log('demo interval: ' + demoIntervalMsecs);
 
-  this.MSG_INSTRUCTION =
+  this.MSG_ANYORDER_INSTRUCTION =
+      _('Draw blocks in any order; Esc to fail.');
+  this.MSG_SPIRAL_INSTRUCTION =
       _('Draw blocks from upper-left corner in sequence; Esc to fail.');
   this.MSG_START_UPPER_LEFT = _('Please start drawing from upper-left corner.');
   this.MSG_OUT_OF_SEQUENCE =
@@ -55,13 +61,16 @@ var TouchscreenTest = function(
  * @param {number} numRows Number of rows.
  * @param {number} maxRetries Number of retries.
  * @param {number} demoIntervalMsecs Interval (ms) to show drawing pattern.
- *     Negative value means no demo.
- * @param {boolean} e2e_mode Perform end-to-end test or not (for touchscreen).
+ *     Non-positive value means no demo.
+ * @param {boolean} e2eMode Perform end-to-end test or not (for touchscreen).
+ * @param {boolean} spiralMode Blocks must be drawn in spiral order or not.
  */
 function setupTouchscreenTest(
-    container, numColumns, numRows, maxRetries, demoIntervalMsecs, e2e_mode) {
+    container, numColumns, numRows, maxRetries, demoIntervalMsecs,
+    e2eMode, spiralMode) {
   window.touchscreenTest = new TouchscreenTest(
-      container, numColumns, numRows, maxRetries, demoIntervalMsecs, e2e_mode);
+      container, numColumns, numRows, maxRetries, demoIntervalMsecs,
+      e2eMode, spiralMode);
   window.touchscreenTest.init();
 }
 
@@ -79,7 +88,7 @@ TouchscreenTest.prototype.init = function() {
     this.failTest();
   }
 
-  if (this.demoIntervalMsecs > 0) {
+  if (this.spiralMode && this.demoIntervalMsecs > 0) {
     this.startDemo();
   }
 };
@@ -93,7 +102,7 @@ TouchscreenTest.prototype.setupFullScreenElement = function() {
   this.fullScreenElement = document.createElement('div');
   var fullScreen = this.fullScreenElement;
   fullScreen.className = 'touchscreen-full-screen';
-  if(this.e2e_mode) {
+  if(this.e2eMode) {
     fullScreen.addEventListener(
         'touchstart', this.touchStartListener.bind(this), false);
     fullScreen.addEventListener(
@@ -109,7 +118,7 @@ TouchscreenTest.prototype.setupFullScreenElement = function() {
   fullScreen.appendChild(touchscreenTable);
   $(this.container).appendChild(fullScreen);
 
-  this.prompt(this.MSG_INSTRUCTION);
+  this.restartTest();
   window.test.setFullScreen(true);
 };
 
@@ -309,7 +318,7 @@ TouchscreenTest.prototype.touchStartHandler = function(touch) {
   var touchBlockIndex = this.getBlockIndex(touch);
   this.updatePreviousXY(touch);
 
-  if (touchBlockIndex != 0) {
+  if (this.spiralMode && touchBlockIndex != 0) {
     this.prompt(this.MSG_START_UPPER_LEFT);
     this.markBlock(touchBlockIndex, false);
     this.startTouch = false;
@@ -335,7 +344,7 @@ TouchscreenTest.prototype.touchStartHandler = function(touch) {
 TouchscreenTest.prototype.touchMoveHandler = function(touch) {
   var touchBlockIndex = this.getBlockIndex(touch);
 
-  if (!this.checkDirection(touch)) {
+  if (this.spiralMode && !this.checkDirection(touch)) {
     // Failed case. Ask the tester to verify with God's touch test.
     this.prompt(this.MSG_CHECK_GODS_TOUCH);
     this.markBlock(touchBlockIndex, false);
@@ -349,13 +358,16 @@ TouchscreenTest.prototype.touchMoveHandler = function(touch) {
 
   // No need to check block sequence if last one is out-of-sequence.
   if (!this.tryFailed &&
-      this.expectSequence[this.expectBlockIndex].blockIndex ==
-          touchBlockIndex) {
-    // Successful touched a expected block. Expecting next one.
-    this.markBlock(touchBlockIndex, true);
-    this.expectBlockIndex++;
-    this.previousBlockIndex = touchBlockIndex;
-    this.checkTestComplete();
+      (!this.spiralMode ||
+           this.expectSequence[this.expectBlockIndex].blockIndex ==
+           touchBlockIndex)) {
+    if (this.spiralMode || !this.isBlockTested(touchBlockIndex)) {
+      // Successful touched a expected block. Expecting next one.
+      this.markBlock(touchBlockIndex, true);
+      this.expectBlockIndex++;
+      this.previousBlockIndex = touchBlockIndex;
+      this.checkTestComplete();
+    }
   } else {
     // Failed case. Either out-of-sequence touch or early finger leaving.
     // Show stronger prompt for drawing multiple unexpected blocks.
@@ -373,13 +385,15 @@ TouchscreenTest.prototype.touchMoveHandler = function(touch) {
  * @param {Touch} touch
  */
 TouchscreenTest.prototype.touchEndHandler = function(touch) {
-  var touchBlockIndex = this.getBlockIndex(touch);
+  if (this.spiralMode) {
+    var touchBlockIndex = this.getBlockIndex(touch);
 
-  if (!this.tryFailed) {
-    this.prompt(this.MSG_LEAVE_EARLY);
-    this.failThisTry();
+    if (!this.tryFailed) {
+      this.prompt(this.MSG_LEAVE_EARLY);
+      this.failThisTry();
+    }
+    this.markBlock(touchBlockIndex, false);
   }
-  this.markBlock(touchBlockIndex, false);
 };
 
 /**
@@ -388,7 +402,9 @@ TouchscreenTest.prototype.touchEndHandler = function(touch) {
  * Resets test properties to default and blocks to untested.
  */
 TouchscreenTest.prototype.restartTest = function() {
-  this.prompt(this.MSG_INSTRUCTION);
+  this.prompt(this.spiralMode ?
+              this.MSG_SPIRAL_INSTRUCTION :
+              this.MSG_ANYORDER_INSTRUCTION);
   for (var i = 0; i < this.expectSequence.length; i++) {
     $('touch-' + i).className = 'touchscreen-test-block-untested';
   }
@@ -450,7 +466,7 @@ TouchscreenTest.prototype.showDemoIndicator = function() {
 };
 
 /**
- * Sets a block's test state
+ * Sets a block's test state.
  * @param {number} blockIndex
  * @param {boolean} passed false if the block is touched unexpectedly or the
  *     finger left too early.
@@ -458,6 +474,14 @@ TouchscreenTest.prototype.showDemoIndicator = function() {
 TouchscreenTest.prototype.markBlock = function(blockIndex, passed) {
   $('touch-' + blockIndex).className =
       'touchscreen-test-block-' + (passed ? 'tested' : 'failed');
+};
+
+/**
+ * Gets a block's test state.
+ * @param {number} blockIndex
+ */
+TouchscreenTest.prototype.isBlockTested = function(blockIndex) {
+  return $('touch-' + blockIndex).className == 'touchscreen-test-block-tested';
 };
 
 /**
