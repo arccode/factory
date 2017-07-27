@@ -65,10 +65,9 @@ class TestListLoaderTest(unittest.TestCase):
     self.assertEqual('a', factory_test_list.test_list_id)
     options = {
         'engineering_password_sha1': 'dummy_password_sha1',
-        'ui_lang': 'zh',
+        'ui_locale': 'zh-CN',
         'sync_event_log_period_secs': 0,
-        'disable_cros_shortcut_keys': True,
-        'core_dump_watchlist': [], }
+        'disable_cros_shortcut_keys': True, }
 
     for key in options:
       self.assertEqual(
@@ -80,7 +79,7 @@ class TestListLoaderTest(unittest.TestCase):
         'a': 'eval! \'eval! \'',
         'b': 'eval! constants.timestamp',
         'c': 'eval! constants.timestamp + 3',
-        'd': 'eval! options.ui_lang.upper()',
+        'd': 'eval! options.ui_locale.upper()',
         'e': 'eval! [x * x for x in xrange(3)]',
         'f': 'eval! constants.some_label', }
 
@@ -93,7 +92,7 @@ class TestListLoaderTest(unittest.TestCase):
         {'a': 'eval! ',
          'b': constants['timestamp'],
          'c': constants['timestamp'] + 3,
-         'd': options['ui_lang'].upper(),
+         'd': options['ui_locale'].upper(),
          'e': [x * x for x in xrange(3)],
          'f': {'en-US': 'us', 'zh-CN': 'cn'}, },
         resolved_test_args)

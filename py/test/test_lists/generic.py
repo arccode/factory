@@ -543,15 +543,10 @@ def SetOptions(options, args):
   # Set to None or 0 to disable it.
   options.sync_event_log_period_secs = 0
   options.update_period_secs = 5 * MINUTES
-  # - Enable clock syncing with shopfloor server
-  options.sync_time_period_secs = None
   options.shopfloor_server_url = 'http://%s:%d/' % (
       args.shopfloor_host, args.shopfloor_port)
   # - Disable ChromeOS keys.
   options.disable_cros_shortcut_keys = True
-
-  # Enable/Disable system log syncing
-  options.core_dump_watchlist = []
 
 
 def CreateGenericTestList():

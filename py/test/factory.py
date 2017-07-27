@@ -326,24 +326,27 @@ class Options(object):
 
   _types['plugin_config_name'] = (type(None), str)
 
-  def check_valid(self):
+  def CheckValid(self):
     """Throws a TestListError if there are any invalid options."""
     # Make sure no errant options, or options with weird types,
     # were set.
     default_options = Options()
+    errors = []
     for key in sorted(self.__dict__):
       if key.startswith('_'):
         continue
       if not hasattr(default_options, key):
-        raise TestListError('Unknown option %s' % key)
+        errors.append('Unknown option %s' % key)
+        continue
 
       value = getattr(self, key)
       allowable_types = Options._types.get(
           key, [type(getattr(default_options, key))])
       if not any(isinstance(value, x) for x in allowable_types):
-        raise TestListError(
-            'Option %s has unexpected type %s (should be %s)' % (
-                key, type(value), allowable_types))
+        errors.append('Option %s has unexpected type %s (should be %s)' %
+                      (key, type(value), allowable_types))
+    if errors:
+      raise TestListError('\n'.join(errors))
 
 
 class TestState(object):
@@ -1173,6 +1176,8 @@ class FactoryTestList(FactoryTest):
               "Unknown test %s in %s's require_run argument (note "
               'that full paths are required)'
               % (requirement.path, test.path))
+
+    self.options.CheckValid()
 
     self._check()
 

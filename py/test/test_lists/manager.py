@@ -434,6 +434,8 @@ class TestList(ITestList):
         station=None)
     for key, value in resolved_options.iteritems():
       setattr(self._cached_options, key, value)
+
+    self._cached_options.CheckValid()
     return self._cached_options
 
   @property
