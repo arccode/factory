@@ -19,6 +19,7 @@ goog.require('goog.dom.classlist');
 goog.require('goog.dom.iframe');
 goog.require('goog.dom.safe');
 goog.require('goog.events');
+goog.require('goog.events.EventType');
 goog.require('goog.events.KeyCodes');
 goog.require('goog.html.SafeHtml');
 goog.require('goog.html.SafeStyle');
@@ -36,6 +37,9 @@ goog.require('goog.positioning.Overflow');
 goog.require('goog.string');
 goog.require('goog.style');
 goog.require('goog.ui.AdvancedTooltip');
+goog.require('goog.ui.Component.EventType');
+goog.require('goog.ui.Container');
+goog.require('goog.ui.Container.Orientation');
 goog.require('goog.ui.Dialog');
 goog.require('goog.ui.Dialog.ButtonSet');
 goog.require('goog.ui.MenuSeparator');
@@ -44,6 +48,9 @@ goog.require('goog.ui.ProgressBar');
 goog.require('goog.ui.Prompt');
 goog.require('goog.ui.SplitPane');
 goog.require('goog.ui.SubMenu');
+goog.require('goog.ui.Tab');
+goog.require('goog.ui.TabBar');
+goog.require('goog.ui.TabBarRenderer');
 goog.require('goog.ui.tree.TreeControl');
 
 /**
@@ -417,16 +424,30 @@ cros.factory.Invocation = function(goofy, path, uuid, parentUuid) {
   this.test = new cros.factory.Test(this);
 
   if (parentUuid) {
+    var label = this.goofy.pathTestMap[this.path].label;
+    /**
+     * The tab object of the test.
+     * @type {goog.ui.Tab}
+     */
+    this.tab = new goog.ui.Tab(cros.factory.i18n.i18nLabelNode(label));
+
+    this.goofy.tabBar.addChild(this.tab, true);
+
+    var element = this.tab.getElement();
+    element.dataset.testPath = this.path;
+
     /**
      * The iframe containing the test.
      * @type {HTMLIFrameElement}
      */
     this.iframe = goog.dom.iframe.createBlank(new goog.dom.DomHelper(document));
     goog.dom.classlist.add(this.iframe, 'goofy-test-iframe');
-    goog.dom.classlist.enable(
-        this.iframe, 'goofy-test-visible',
-        goofy.pathTestMap[path].state.visible);
-    document.getElementById('goofy-main').appendChild(this.iframe);
+    goog.dom.classlist.enable(this.iframe, 'goofy-test-visible', false);
+
+    this.goofy.mainComponentContainer.getElement().appendChild(this.iframe);
+
+    this.goofy.iframeMap[this.path] = this.iframe;
+
     this.iframe.contentWindow.$ = goog.bind(function(/** string */ id) {
       return this.iframe.contentDocument.getElementById(id);
     }, this);
@@ -435,6 +456,10 @@ cros.factory.Invocation = function(goofy, path, uuid, parentUuid) {
     this.iframe.contentWindow.goog = goog;
     this.iframe.contentWindow.test = this.test;
     this.iframe.contentWindow.focus();
+
+    if (!this.goofy.tabBar.getSelectedTab()) {
+      this.tab.setSelected(true);
+    }
   }
 };
 
@@ -457,12 +482,20 @@ cros.factory.Invocation.prototype.dispose = function() {
   if (this.iframe) {
     goog.log.info(cros.factory.logger, 'Cleaning up invocation ' + this.uuid);
     goog.dom.removeNode(this.iframe);
+    if (this.iframe == this.goofy.selectedIframe) {
+      this.goofy.selectedIframe = null;
+    }
     this.iframe = null;
+    delete this.goofy.iframeMap[this.path];
   }
   if (!this.parentUuid) {
     this.goofy.invocations[this.uuid] = null;
     goog.log.info(
         cros.factory.logger, 'Top-level invocation ' + this.uuid + ' disposed');
+  }
+  if (this.tab) {
+    this.goofy.tabBar.removeChild(this.tab, true);
+    this.tab = null;
   }
 };
 
@@ -708,6 +741,24 @@ cros.factory.Goofy = function() {
    */
   this.pluginMenuItems = null;
 
+  /**
+   * A map from path name to the corresponding iframe.
+   * @type {Object<string, !HTMLIFrameElement>}
+   */
+  this.iframeMap = {};
+
+  /**
+   * Tab bar object.
+   * @type {goog.ui.TabBar}
+   */
+  this.tabBar = null;
+
+  /**
+   * Component object for containing the test frame.
+   * @type {goog.ui.Component}
+   */
+  this.mainComponentContainer = null;
+
   // Set up magic keyboard shortcuts.
   goog.events.listen(
       window, goog.events.EventType.KEYDOWN, this.keyListener, true, this);
@@ -781,10 +832,23 @@ cros.factory.Goofy.prototype.keyListener = function(event) {
  */
 cros.factory.Goofy.prototype.initSplitPanes = function() {
   var viewportSize = goog.dom.getViewportSize(goog.dom.getWindow(document));
+
+  var tabAndMain = new goog.ui.Component();
+  var mainComponentContainer = new goog.ui.Component();
+  this.mainComponentContainer = mainComponentContainer;
+
+  var tabBar = new goog.ui.TabBar();
+  this.tabBar = tabBar;
+
   var mainComponent = new goog.ui.Component();
+
+  tabAndMain.addChild(tabBar, true);
+  tabAndMain.addChild(mainComponentContainer, true);
+  mainComponentContainer.addChild(mainComponent, true);
+
   var consoleComponent = new goog.ui.Component();
   var mainAndConsole = new goog.ui.SplitPane(
-      mainComponent, consoleComponent, goog.ui.SplitPane.Orientation.VERTICAL);
+      tabAndMain, consoleComponent, goog.ui.SplitPane.Orientation.VERTICAL);
 
   mainAndConsole.setInitialSize(
       viewportSize.height -
@@ -834,6 +898,7 @@ cros.factory.Goofy.prototype.initSplitPanes = function() {
   mainComponent.getElement().innerHTML =
       '<img id="goofy-main-logo" src="/images/logo256.png">';
   consoleComponent.getElement().id = 'goofy-console';
+  tabBar.getElement().id = 'goofy-tabbar';
   this.console = consoleComponent.getElement();
   this.main = mainComponent.getElement();
 
@@ -865,6 +930,26 @@ cros.factory.Goofy.prototype.initSplitPanes = function() {
   // dialog is visible).
   goog.events.listen(window, goog.events.EventType.FOCUS, function() {
     goog.Timer.callOnce(this.focusInvocation, 0, this);
+  }, false, this);
+
+  goog.events.listen(this.tabBar,
+    goog.ui.Component.EventType.SELECT, function(event) {
+
+    var selectedTab = this.tabBar.getSelectedTab();
+    if (selectedTab.getElement() != null) {
+      var testPathName = selectedTab.getElement().dataset.testPath;
+
+      if (this.selectedIframe) {
+        goog.dom.classlist.enable(
+            this.selectedIframe, 'goofy-test-visible', false);
+      }
+
+      this.selectedIframe = this.iframeMap[testPathName];
+
+      goog.dom.classlist.enable(
+          this.selectedIframe, 'goofy-test-visible', true);
+    }
+
   }, false, this);
 };
 

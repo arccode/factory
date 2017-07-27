@@ -414,7 +414,7 @@ table + .goofy-history-header {
 /* Elements in the main pane. */
 #goofy-main {
   left: 0; top: 0;
-  width: 100%; height: 100%;
+  width: 100%; height: 95%;
   background: -webkit-linear-gradient(210deg, #cddff0, #85b4df);
 }
 #goofy-main-logo {
@@ -425,8 +425,8 @@ table + .goofy-history-header {
 }
 .goofy-test-iframe {
   position: absolute;
-  left: 0; top: 0;
-  width: 100%; height: 100%;
+  left: 5; top: 35;
+  width: 100%; height: 95%;
   display: none;
 }
 .goofy-test-iframe.goofy-test-visible {
@@ -781,6 +781,10 @@ button {
 
 .terminal * {
   font-family: monospace;
+}
+
+#goofy-tabbar {
+  height: 5%;
 }
 
 /* Fonts. */

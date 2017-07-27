@@ -27,6 +27,8 @@ CSS_SOURCES = \
     goog/css/menuitem.css \
     goog/css/menuseparator.css \
     goog/css/submenu.css \
+    goog/css/tab.css \
+    goog/css/tabbar.css \
     goog/css/tooltip.css \
     goog/css/tree.css
 
