@@ -4,19 +4,52 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Performs consecutive read/write operations.
+"""Performs consecutive read/write operations on a single file.
 
-This is a factory test to perform consecutive read/write operations of a single
-file under a specific directory. The primary purpose is to keep storage busy
-which is required by some reliability test. It can be used as a simple approach
-to stress a storage device as well.
+Description
+-----------
+This pytest performs consecutive read/write operations on a single file under a
+specific directory or mount point. The primary purpose is to keep storage busy
+for some reliability test. It can also be used as a simple approach to stress a
+storage device as well.
 
 Since it operates on a single file under user space, controls over which block
-is exercising are limited (i.e: it might always writing the same block.)
-Should be considered as a test with limited coverage.
+is exercising are limited (e.g., it might always write on the same block.)
+In this sense, this test should be considered as a test with limited coverage.
 
-In addition, unexpected abortion will leave the temporary file uncleaned in the
-specified directory.
+Also noted that, an unexpected abortion will leave the temporary file uncleaned
+in the specified directory or mount point.
+
+Please also refer to the pytest `removable_storage`, which might also be useful
+to test a storage device.
+
+Test Procedure
+--------------
+This is an automated test without user interaction.
+
+Dependency
+----------
+Use `toybox` and `dd` to perform read/write operations.
+Use `/dev/urandom` to generate random data for write.
+
+Examples
+--------
+To test read/write a 10MB file under `/home/root`::
+
+  OperatorTest(
+      pytest_name='simple_storage_stress_test',
+      dargs={'dir': '/home/root',
+             'file_size': 10 * 1024 * 1024,
+             'operations': 1})
+
+To test read/write of a 100MB file 3 times for block device 'mmcblk1p1'::
+
+  OperatorTest(
+      pytest_name='simple_storage_stress_test',
+      dargs={'dir': '.',
+             'file_size': 100 * 1024 * 1024,
+             'operations': 3,
+             'mount_device': '/dev/block/mmcblk1p1'})
 """
 
 import logging
