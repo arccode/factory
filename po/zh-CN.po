@@ -1079,6 +1079,10 @@ msgid "Test Group"
 msgstr "测试群组"
 
 #: ../py/test/factory.py
+msgid "{label} ({iterations} times)"
+msgstr "{label} ({iterations} 次)"
+
+#: ../py/test/factory.py
 msgid "Untitled"
 msgstr "无名"
 

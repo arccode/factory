@@ -696,6 +696,11 @@ class FactoryTest(object):
         label = _('Test Group')
 
     self.label = i18n.Translated(label)
+    if iterations > 1:
+      self.label = i18n.StringFormat(
+          _('{label} ({iterations} times)'),
+          label=self.label,
+          iterations=iterations)
 
     if _root:
       self.id = None
