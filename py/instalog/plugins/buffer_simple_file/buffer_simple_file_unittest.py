@@ -35,6 +35,7 @@ import Queue
 import shutil
 import tempfile
 import threading
+import time
 import unittest
 
 import instalog_common  # pylint: disable=unused-import
@@ -402,6 +403,8 @@ class TestBufferSimpleFile(unittest.TestCase):
 
     for t in threads:
       while t.isAlive():
+        # Add a small sleep to prevent occupying read_lock
+        time.sleep(0.01)
         self.sf.Truncate()
       t.join()
     self.sf.Truncate()
