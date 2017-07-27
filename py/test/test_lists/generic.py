@@ -293,12 +293,6 @@ class TestListArgs(object):
   def grt_report_upload_method(self):
     return 'shopfloor' if self.enable_shopfloor else 'none'
 
-  # Minimum percentage of battery charge level when finalizing.
-  @property
-  def grt_finalize_battery_min_pct(self):
-    # Assume battery will discharge at most 12% during FATP testing.
-    return self.run_in_blocking_charge_pct - 12
-
   # Enforce release channel to be 'stable' in PVT phase.
   @property
   def grt_enforced_release_channels(self):

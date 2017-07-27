@@ -113,7 +113,6 @@ def GRT(args):
             write_protection=args.grt_write_protect,
             upload_method=args.grt_report_upload_method,
             secure_wipe=args.grt_factory_secure_wipe,
-            min_charge_pct=args.grt_finalize_battery_min_pct,
             sync_event_logs=args.enable_flush_event_logs,
             waive_tests=args.grt_waive_tests,
             enforced_release_channels=args.grt_enforced_release_channels

@@ -1,13 +1,98 @@
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 
 """The finalize test is the last step before DUT switching to release image.
 
+Description
+-----------
 The test checks if all tests are passed, and checks the hardware
-write-protection, charge percentage. Then it invoke gooftool finalize with
-specified arguments to switch the machine to release image.
+write-protection. Then it invokes ``gooftool finalize`` with specified arguments
+to switch the machine to shipping state.  The test includes the following steps:
+
+1. Check in pytest
+
+  * test statuses (``waive_tests``, ``untested_tests``)
+  * developer switch (cannot disable it)
+  * hardware write-protection (``write_protection``)
+
+2. Call ``gooftool finalize``, which executes following subcommands in order:
+
+  a. Verify firmware, keys, disk image, hardware components... etc. (equivalent
+     to ``gooftool verify``)
+  b. Clear manufacturing flags in firmware (equivalent to ``gooftool
+     clear_gbb_flags``)
+  c. Enable software write protect (equivalent to ``gooftool write_protect``)
+  d. Start wiping process (equivalent to ``gooftool wipe_in_place``), which will
+     do the following tasks:
+
+    1. Wipe stateful partiton
+    2. Enable release partition
+    3. Notify shopfloor
+    4. Battery cutoff
+
+You can use ``gooftool_waive_list`` and ``gooftool_skip_list`` to waive or skip
+some gooftool steps.
+
+Test Procedure
+--------------
+When started, the pytest checks if test statuses, developer switch, hardware
+write-protection are in correct states.  The check result will be shown on the
+screen, if there are any failure, operator should record failed items and press
+'Mark Failed' to stop the test.  If ``allow_force_finalize`` is set, then
+enigneer and / or operator will be allowed to **force** finalize by pressing
+'F'.
+
+After that, ``gooftool finalize`` will be called, and it will check device's
+state, from hardware to software configuration.
+
+If everything looks good (or waived, skipped by test arguments), ``gooftool``
+will enable shipping mode by clearing firmware manufacturing flags, enabling
+write protection, enabling release image, wiping out manufacturing disk data,
+cutting off battery.
+
+During battery cutoff, operator might be prompted to plug / unplug charger if
+battery charge percentage is too low or too high.
+
+Dependency
+----------
+Almost everything essential to Chrome OS, especially:
+
+* crossystem (developer switch status, hardware WP status)
+* battery driver (read battery percentage from sysfs)
+* flashrom (to turn on software WP)
+* TPM (read from sysfs)
+* frecon (to show wipe progress and instructions)
+* network connection (to notify shopfloor)
+* clobber-state (/sbin/clobber-state, which wipes stateful partition)
+
+Examples
+--------
+A minimum example should be::
+
+    OperatorTest(pytest_name='finalize')
+
+Where,
+
+* ``write_protection`` is ``True``, so hardware WP must be enabled.
+* ``allow_force_finalize`` is ``['operator', 'engineer']``, so both operator and
+  engineer can force finalize.
+* All test should be tested and passed
+* ``enable_shopfloor`` is ``True``, will try to connect to shopfloor and update
+  HWID data, flush event logs.
+* All gooftool verifications are not skipped or waived.
+
+For early builds (PROTO, EVT), you can skip things that are not ready::
+
+    OperatorTest(
+        pytest_name='finalize',
+        dargs=dict(
+            gooftool_waive_list=['verify_tpm', 'verify_hwid'],
+            gooftool_skip_list=['clear_gbb_flags'],
+            write_protection=False
+        ))
+
 """
 
 
@@ -74,14 +159,6 @@ class Finalize(unittest.TestCase):
           'List of users as strings allowed to force finalize, supported '
           'users are operator or engineer.',
           default=['operator', 'engineer']),
-      Arg('min_charge_pct', int,
-          'Minimum battery charge percentage allowed (None to disable '
-          'checking charge level)',
-          optional=True),
-      Arg('max_charge_pct', int,
-          'Maximum battery charge percentage allowed (None to disable '
-          'checking charge level)',
-          optional=True),
       Arg('secure_wipe', bool,
           'Wipe the stateful partition securely (False for a fast wipe).',
           default=True),
