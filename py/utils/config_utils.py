@@ -429,6 +429,10 @@ def _C3Linearization(parent_configs, config_name):
     head = next((head for head in (FirstKey(l) for l in parent_lists if l)
                  if GoodHead(head)), None)
     if head is None:
+      logging.info('original items:\n%s',
+                   "\n".join(repr(l.keys()) for l in parent_configs))
+      logging.info('current items:\n%s',
+                   "\n".join(repr(l.keys()) for l in parent_lists))
       raise RuntimeError('C3 linearization failed for %s' % config_name)
     ret[head] = all_configs[head]
     for l in parent_lists:
