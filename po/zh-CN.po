@@ -150,7 +150,6 @@ msgid "Compass"
 msgstr "罗盘"
 
 #: ../build/pytests_label_generated.json ../py/test/pytests/countdown.py
-#: ../py/test/pytests/wifi_rf.py
 #: ../py/test/test_lists/firmware_stress_generic.py
 #: ../py/test/test_lists/generic_rrt.py ../py/test/test_lists/generic_run_in.py
 #: ../py/test/test_lists/generic_smt.py
@@ -176,14 +175,6 @@ msgstr "显示图像"
 #: ../build/pytests_label_generated.json ../py/test/test_lists/generic_fatp.py
 msgid "Display Point"
 msgstr "显示点"
-
-#: ../build/pytests_label_generated.json
-msgid "EC Lightbar"
-msgstr "EC 光棒"
-
-#: ../build/pytests_label_generated.json
-msgid "Ectool I2C Dev ID"
-msgstr ""
 
 #: ../build/pytests_label_generated.json
 msgid "eMMC Check Extcsd"
@@ -248,14 +239,6 @@ msgstr "HWID"
 #: ../build/pytests_label_generated.json
 msgid "HWID V3"
 msgstr ""
-
-#: ../build/pytests_label_generated.json
-msgid "Hwmon Probe"
-msgstr ""
-
-#: ../build/pytests_label_generated.json
-msgid "Hwmon Write"
-msgstr "写入 Hwmon"
 
 #: ../build/pytests_label_generated.json
 msgid "I2C Probe"
@@ -402,10 +385,6 @@ msgid "RF Graphyte"
 msgstr "RF Graphyte"
 
 #: ../build/pytests_label_generated.json
-msgid "RF Radiated"
-msgstr "无线信号发送强度"
-
-#: ../build/pytests_label_generated.json
 msgid "Robot Movement"
 msgstr ""
 
@@ -421,10 +400,6 @@ msgstr "扫描机器编号"
 #: ../build/pytests_label_generated.json
 msgid "Select For Sampling"
 msgstr "採样选择"
-
-#: ../build/pytests_label_generated.json
-msgid "Sensor Movement"
-msgstr "感测器移动"
 
 #: ../build/pytests_label_generated.json
 msgid "Serial Echo"
@@ -631,10 +606,6 @@ msgstr "WebGL 水族箱"
 #: ../build/pytests_label_generated.json
 msgid "Webrtc Camera"
 msgstr "WebRTC 相机"
-
-#: ../build/pytests_label_generated.json
-msgid "Wifi RF"
-msgstr "无线网路收发"
 
 #: ../build/pytests_label_generated.json
 msgid "Wifi Throughput"
@@ -1151,14 +1122,12 @@ msgid "Calibration is in progress, please do not move device."
 msgstr "校准程序进行中，请勿移动待测物。"
 
 #: ../py/test/pytests/accelerometers_calibration.py
-#: ../py/test/pytests/gyroscope.py ../py/test/pytests/sensor_movement.py
-#: ../py/test/pytests/touch_uniformity.py
+#: ../py/test/pytests/gyroscope.py ../py/test/pytests/touch_uniformity.py
 msgid "PASS"
 msgstr "成功"
 
 #: ../py/test/pytests/accelerometers_calibration.py
-#: ../py/test/pytests/gyroscope.py ../py/test/pytests/sensor_movement.py
-#: ../py/test/pytests/touch_uniformity.py
+#: ../py/test/pytests/gyroscope.py ../py/test/pytests/touch_uniformity.py
 msgid "FAIL"
 msgstr "失败"
 
@@ -3309,22 +3278,6 @@ msgstr ""
 "请点击： <a href=\"javascript:test.pass()\">正常</a> 还是 <a href="
 "\"javascript:test.fail()\">不正常</a>"
 
-#: ../py/test/pytests/wifi_rf.py
-msgid "RMA Factory WiFi RF Test"
-msgstr "RMA 无线网路测试"
-
-#: ../py/test/pytests/wifi_rf.py
-msgid "WiFi RF Chamber Testing."
-msgstr "WiFi RF 测试"
-
-#: ../py/test/pytests/wifi_rf.py
-msgid "Remove device from chamber. Press SPACE when re-attached to network."
-msgstr "将装置从测试箱取出，重新连接网路后按下空白键"
-
-#: ../py/test/pytests/wifi_rf.py
-msgid "Place device in WiFi chamber. When ready to close chamber, press SPACE."
-msgstr "将设备放置在WiFi室。当您准备关闭室，按空白键。"
-
 #: ../py/test/pytests/wifi_throughput.py
 msgid ""
 "Please wait for other DUTs to finish WiFiThroughput test, and press spacebar "
@@ -3885,10 +3838,6 @@ msgstr "ShopFloor2"
 #: ../py/test/test_lists/generic_smt.py
 msgid "Stress/Component Tests"
 msgstr "压力及元件测试"
-
-#: ../py/test/test_lists/generic_smt.py
-msgid "TSU6721"
-msgstr "TSU6721"
 
 #: ../py/test/test_lists/generic_smt.py
 msgid "Probe Camera"

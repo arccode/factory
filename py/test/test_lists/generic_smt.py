@@ -299,23 +299,6 @@ def I2CProbeTouchpad(args):
           addr=[0x25, 0x4b, 0x67]))
 
 
-def I2CProbeTSU671(args):
-  """Creates a test to check EC connected I2C device's ID.
-
-  TSU6721 here is just an example. Replace it and the bus, spec with
-  appropriate device for different boards.
-
-  Args:
-    args: A TestListArgs object.
-  """
-  FactoryTest(
-      label=_('TSU6721'),
-      pytest_name='ectool_i2c_dev_id',
-      dargs=dict(
-          bus=0,
-          spec=[(0x4a, 0x1, 0xa), (0x4a, 0x1, 0x12)]))
-
-
 def CameraProbe(args, retries=None):
   """Creates a test to probe camera on USB bus.
 
@@ -397,7 +380,6 @@ def SMTComponents(args):
     BasicWifi(args)
     I2CProbeThermalSensor(args)
     I2CProbeTouchpad(args)
-    I2CProbeTSU671(args)
     CameraProbe(args)
     SysfsBattery(args)
     if args.smt_expect_3g_modem:
