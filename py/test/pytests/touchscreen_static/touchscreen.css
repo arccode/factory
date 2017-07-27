@@ -4,36 +4,39 @@
  * found in the LICENSE file.
  */
 
-.touchscreen-caption {
+.touchscreen-prompt {
   text-align: center;
-  font-size: 35;
-  position: relative; }
-.touchscreen-full-screen-hide {
+  font-size: 32;
+  position: absolute;
+  top: 20;
+  left: 0;
+  right: 0; }
+.touchscreen-full-screen {
   background-color: white;
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   top: 0;
-  visibility: hidden;}
-.touchscreen-full-screen-show {
-  background-color: white;
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  top: 0;
-  visibility: visible;}
-.touchscreen-test-info {
-  font-size: 2em; }
-.touchscreen-test-sector-untested {
-  background-color: gray;
-  height: 100%; }
-.touchscreen-test-sector-tested {
-  background-color: green;
+  visibility: visible; }
+.touchscreen-test-table {
   height: 100%;
-  opacity: 0.5; }
-#touchscreen-full-screen-countdown-timer {
+  width: 100%; }
+.touchscreen-test-block-untested {
+  background-color: lightgray; }
+.touchscreen-test-block-tested {
+  background-color: lightgreen; }
+.touchscreen-test-block-failed {
+  background-color: lightcoral; }
+.touchscreen-test-block-demo-0 {
+  background-color: #3399FF; }
+.touchscreen-test-block-demo-1 {
+  background-color: #47A3FF; }
+.touchscreen-test-block-demo-2 {
+  background-color: #5CADFF; }
+.touchscreen-test-block-demo-3 {
+  background-color: #70B8FF; }
+#touchscreen_countdown_timer {
   position: fixed;
   left: 0;
   right: 0;

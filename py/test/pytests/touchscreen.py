@@ -1,218 +1,249 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""A factory test to test the functionality of touchscreen.
+"""Tests touchscreen or stylus by drawing in any order or in spiral pattern.
 
 Description
 -----------
-Verifies if all cells of touchscreen can sense contacts.
+In this test, screen area is segmented into `x_segments` x `y_segments` blocks.
+If argument `spiral_mode` is True, the operator has to swipe the blocks in
+clockwise spiral pattern. Otherwise the operator has to touch all the blocks in
+arbitrary order.
 
-``touchscreen_wrap`` is also a test for touchscreen, and it's preferred than
-this test because:
+In `spiral_mode`, the pattern is:
 
-- ``touchscreen_wrap`` test requires operators to touch the cells in spiral
-  order, thus it can find out more touchscreen issues.
+1. Starting from upper-left block, move to rightmost block.
+2. Then move down, left, up, to draw a outer rectangular circle.
+3. Move to the inner upper-left block (1, 1), repeat 1-2.
+4. Until the center block is reached.
 
-- This test doesn't support end-to-end test (reads touch events from Chrome).
+The index of block (x, y) is defined as::
+
+  index =  x + y * x_segments (number of blocks in x-axis).
+
+For, example, a 3x3 grid::
+
+  0 1 2
+  3 4 5
+  6 7 8
+
+The clockwise spiral drawing sequence is: 0, 1, 2, 5, 8, 7, 6, 3, 4.
+
+There are two modes available: end-to-end mode and evdev mode.
+
+- End-to-end mode uses Chrome touch event API.
+- Evdev mode uses Linux evdev.
+
+Test logic is in touchscreen.js.
 
 Test Procedure
 --------------
-1. Press spacebar to start.
-2. Touch all cells in touchscreen with one finger to make them all green.
-
-The test will fail if it's not passed in `timeout_secs` seconds.
+1. Once the test started, it would be set to fullscreen and shows
+   `x_segments` x `y_segments` grey blocks.
+2. Draw these blocks green by touching them (or move your stylus to make it
+   hovering on a block in hover mode) in specified order. Test will pass after
+   all blocks being green.
+3. If there is any problem with the touch device, press Escape to abort and
+   mark this test failed.
+4. If `timeout_secs` is set and the test couldn't be passed in `timeout_secs`
+   seconds, the test will fail automatically.
 
 Dependency
 ----------
-- Based on Linux evdev.
+- End-to-end mode is based on Chrome touch event API.
+- Non end-to-end mode is based on Linux evdev.
 
 Examples
 --------
-To run touchscreen test with default parameters::
+To test touchscreen with 30x20 blocks::
 
-  OperatorTest(pytest_name='touchscreen')
+  OperatorTest(pytest_name='touchscreen',
+               dargs=dict(x_segments=20, y_segments=30))
 
-If you want to change the time limit to 30 seconds::
+To test touchscreen in end-to-end mode and cancel the time limit::
 
-  OperatorTest(pytest_name='touchscreen', dargs=dict(timeout_secs=30))
+  OperatorTest(pytest_name='touchscreen',
+               dargs=dict(e2e_mode=True, timeout_secs=None))
 
-If you have multiple touchscreens and want to specify the one with event id 3::
+To test touchscreen without spiral order restriction::
 
-  OperatorTest(pytest_name='touchscreen', dargs=dict(touchscreen_event_id=3))
+  OperatorTest(pytest_name='touchscreen',
+               dargs=dict(spiral_mode=False))
+
+To test stylus in hover mode::
+
+  OperatorTest(pytest_name='touchscreen',
+               dargs=dict(stylus=True, hover_mode=True))
 """
 
-import logging
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.external import evdev
+from cros.factory.external.evdev import ecodes  # pylint: disable=E0611
 from cros.factory.test import countdown_timer
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
+from cros.factory.test.utils import touch_monitor
 from cros.factory.utils.arg_utils import Arg
 
 
 _ID_CONTAINER = 'touchscreen-test-container'
 
-# The style is in touchscreen.css
+# The style is in touchscreen.css.
 # The layout contains one div for touchscreen.
 _HTML_TOUCHSCREEN = (
     '<link rel="stylesheet" type="text/css" href="touchscreen.css">'
     '<div id="%s"></div>\n' % _ID_CONTAINER)
 
-_X_SEGMENTS = 8
-_Y_SEGMENTS = 8
+
+class StylusMonitor(touch_monitor.SingleTouchMonitor):
+  """Stylus monitor."""
+
+  def __init__(self, device, ui, code):
+    """Initialize.
+
+    Args:
+      device: evdev.InputDevice
+      ui: test_ui.UI
+      code: Which key to monitor: BTN_TOUCH (for touching) or BTN_TOOL_PEN
+        (for hovering).
+    """
+    super(StylusMonitor, self).__init__(device)
+    self._ui = ui
+    self._code = code
+    # A boolean flag indicating if BTN_TOUCH or BTN_TOOL_PEN is on.
+    self._flag = self._state.keys[code]
+
+  def _EmitEvent(self, receiver):
+    state = self.GetState()
+    self._ui.CallJSFunction('goofyTouchListener', receiver, state.x, state.y)
+
+  def OnKey(self, code):
+    """Called by Handler after state of a key changed."""
+    if code == self._code:
+      self._flag = not self._flag
+      if self._flag:
+        self._EmitEvent('touchStartHandler')
+      else:
+        self._EmitEvent('touchEndHandler')
+
+  def OnMove(self):
+    """Called by Handler after X or Y coordinate changes."""
+    if self._flag:
+      self._EmitEvent('touchMoveHandler')
 
 
-class TouchEvent(object):
-  """The class to store touchscreen touch event."""
+class TouchscreenMonitor(touch_monitor.MultiTouchMonitor):
+  """Touchscreen monitor."""
 
-  def __init__(self):
-    self.x = None
-    self.y = None
-    self.sync = None
-    self.leave = None
+  def __init__(self, device, ui):
+    """Initialize.
 
-  def Clear(self):
-    self.x = self.y = self.sync = self.leave = None
+    Args:
+      device: evdev.InputDevice
+      ui: test_ui.UI
+    """
+    super(TouchscreenMonitor, self).__init__(device)
+    self._ui = ui
+
+  def _EmitEvent(self, receiver, slot_id):
+    slot = self.GetState().slots[slot_id]
+    self._ui.CallJSFunction('goofyTouchListener', receiver, slot.x, slot.y)
+
+  def OnNew(self, slot_id):
+    """Called by Handler after a new contact comes."""
+    self._EmitEvent('touchStartHandler', slot_id)
+
+  def OnMove(self, slot_id):
+    """Called by Handler after a contact moved."""
+    self._EmitEvent('touchMoveHandler', slot_id)
+
+  def OnLeave(self, slot_id):
+    """Called by Handler after a contact leaves."""
+    self._EmitEvent('touchEndHandler', slot_id)
 
 
 class TouchscreenTest(unittest.TestCase):
-  """Tests the function of touchscreen.
-
-  The test detects that finger has left on every sector of touchscreen.
+  """Tests touchscreen by drawing blocks in sequence.
 
   Properties:
-    self.ui: test ui.
-    self.template: ui template handling html layout.
-    self.x_max: max grid value of horizontal movement.
-    self.y_max: max grid valud of vertical movement.
-    self.touchscreen_device_name: This can be probed from evdev.
-    self.touch_event: the detected touch event. The event will be drew
-        and reset if there are a sync event AND a leave event.
-    self.checked: user has already pressed spacebar to check touchscreen.
+    self._device: evdev.InputDevice
+    self._dispatcher: evdev_utils.InputDeviceDispatcher
+    self._monitor: StylusMonitor or TouchscreenMonitor
+    self._ui: test_ui.UI
   """
   ARGS = [
-      Arg('touchscreen_event_id', int, 'Touchscreen input event id.',
-          default=None, optional=True),
+      Arg('x_segments', int, 'Number of segments in x-axis.', default=5),
+      Arg('y_segments', int, 'Number of segments in y-axis.', default=5),
+      Arg('retries', int, 'Number of retries (for spiral_mode).', default=5),
+      Arg('demo_interval_ms', int,
+          'Interval (ms) to show drawing pattern (for spiral mode). '
+          '<= 0 means no demo.',
+          default=150),
+      Arg('stylus', bool, 'Testing stylus or not.', default=False),
+      Arg('e2e_mode', bool,
+          'Perform end-to-end test or not (for touchscreen).',
+          default=False),
+      Arg('spiral_mode', bool,
+          'Do blocks need to be drawn in spiral order or not.',
+          default=True),
+      Arg('event_id', int, 'Evdev input event id.', optional=True),
+      Arg('hover_mode', bool, 'Test hovering or touching (for stylus).',
+          default=False),
       Arg('timeout_secs', (int, type(None)),
-          'Timeout for the test, None for no timeout.', default=20)
-  ]
+          'Timeout for the test. None for no time limit.', default=20),
+      ]
 
   def setUp(self):
-    # Initialize frontend presentation
-    self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
-    self.ui.AppendHTML(_HTML_TOUCHSCREEN)
-    self.ui.CallJSFunction('setupTouchscreenTest', _ID_CONTAINER, _X_SEGMENTS,
-                           _Y_SEGMENTS)
+    if self.args.stylus:
+      self._device = evdev_utils.FindDevice(self.args.event_id,
+                                            evdev_utils.IsStylusDevice)
+    else:
+      if self.args.e2e_mode:
+        self._device = None
+      else:
+        self._device = evdev_utils.FindDevice(self.args.event_id,
+                                              evdev_utils.IsTouchscreenDevice)
+    self._dispatcher = None
+    self._monitor = None
 
-    # Initialize properties
-    self.x_max = None
-    self.y_max = None
-    self.touchscreen_device_name = None
-    self.touch_event = TouchEvent()
-    self.checked = False
-    self.touchscreen_device = evdev_utils.FindDevice(
-        self.args.touchscreen_event_id, evdev_utils.IsTouchscreenDevice)
-    self.dispatcher = None
+    # Initialize frontend presentation.
+    self._ui = test_ui.UI()
+    self._ui.AppendHTML(_HTML_TOUCHSCREEN)
+    self._ui.CallJSFunction(
+        'setupTouchscreenTest', _ID_CONTAINER, self.args.x_segments,
+        self.args.y_segments, self.args.retries, self.args.demo_interval_ms,
+        self.args.e2e_mode, self.args.spiral_mode)
 
-    if self.args.timeout_secs is not None:
-      logging.info('start countdown timer daemon thread')
+    if self.args.timeout_secs:
       countdown_timer.StartCountdownTimer(
-          self.args.timeout_secs,
-          lambda: self.ui.CallJSFunction('failTest'),
-          self.ui,
-          ['touchscreen-countdown-timer',
-           'touchscreen-full-screen-countdown-timer'])
+          self.args.timeout_secs, self.OnFailPressed, self._ui,
+          'touchscreen_countdown_timer')
 
   def tearDown(self):
-    """Restores the touchscreen."""
-    if self.dispatcher is not None:
-      self.dispatcher.close()
-    self.touchscreen_device.ungrab()
-
-  def GetSpec(self):
-    """Gets device name, x_max and y_max from evdev."""
-    self.touchscreen_device_name = self.touchscreen_device.name
-    ev_abs_dict = dict(
-        self.touchscreen_device.capabilities()[evdev.ecodes.EV_ABS])
-    self.x_max = ev_abs_dict[evdev.ecodes.ABS_MT_POSITION_X].max
-    self.y_max = ev_abs_dict[evdev.ecodes.ABS_MT_POSITION_Y].max
-    logging.info('get device %s spec , x_max = %d, y_max = %d',
-                 self.touchscreen_device_name, self.x_max, self.y_max)
-
-  def ProcessTouchEvent(self, event):
-    """Processes touch events.
-
-    Processes event, update touch_event and draws it upon receving sync event or
-    leave event.
-
-    Args:
-      event: the event to process.
-    """
-    if event.code == evdev.ecodes.ABS_MT_POSITION_X:
-      self.touch_event.x = event.value
-    elif event.code == evdev.ecodes.ABS_MT_POSITION_Y:
-      self.touch_event.y = event.value
-    elif event.code == evdev.ecodes.ABS_MT_TRACKING_ID:
-      if event.value > 0:
-        self.touch_event.leave = False
-      elif event.value == -1:
-        self.touch_event.leave = True
-    elif event.code == evdev.ecodes.SYN_REPORT:
-      self.touch_event.sync = True
-    elif event.code == evdev.ecodes.ABS_MT_SLOT:
-      self.ui.CallJSFunction('twoFingersException')
-
-    if self.touch_event.sync or self.touch_event.leave:
-      self.DrawTouchEvent()
-      self.touch_event.Clear()
-
-  def DrawTouchEvent(self):
-    """Marks a scroll sector as tested or a move sector as tested."""
-    if self.touch_event.x and self.touch_event.y:
-      x_ratio = float(self.touch_event.x) / float(self.x_max + 1)
-      y_ratio = float(self.touch_event.y) / float(self.y_max + 1)
-      self.MarkSectorTested(x_ratio, y_ratio)
-
-  def MarkSectorTested(self, x_ratio, y_ratio):
-    """Marks a sector as tested.
-
-    Gets the segment from x_ratio and y_ratio then calls Javascript to
-    mark the sector as tested.
-    """
-    x_segment = int(x_ratio * _X_SEGMENTS)
-    y_segment = int(y_ratio * _Y_SEGMENTS)
-    logging.info('mark x-%d y-%d sector tested', x_segment, y_segment)
-    self.ui.CallJSFunction('markSectorTested', x_segment, y_segment)
-
-  def OnSpacePressed(self):
-    """Calls JS function to switch display on/off.
-
-    Delay touchscreen_device.grab() to here so we can use touchscreen to click
-    the space button to start the test.
-    """
-    self.ui.CallJSFunction('switchDisplayOnOff')
-
-    if not self.checked:
-      self.checked = True
-      self.GetSpec()
-      self.touchscreen_device.grab()
-      logging.info('start monitor daemon thread')
-      self.dispatcher = evdev_utils.InputDeviceDispatcher(
-          self.touchscreen_device, self.ProcessTouchEvent)
-      self.dispatcher.StartDaemon()
+    if self._dispatcher is not None:
+      self._dispatcher.close()
+    if self._device is not None:
+      self._device.ungrab()
 
   def OnFailPressed(self):
     """Fails the test."""
-    self.ui.CallJSFunction('failTest')
+    self._ui.CallJSFunction('failTest')
 
   def runTest(self):
-    self.ui.BindKey(test_ui.SPACE_KEY, lambda _: self.OnSpacePressed())
-    self.ui.BindKey(test_ui.ESCAPE_KEY, lambda _: self.OnFailPressed())
-    self.ui.Run()
+    if self._device is not None:
+      self._device = evdev_utils.DeviceReopen(self._device)
+      self._device.grab()
+      if self.args.stylus:
+        self._monitor = StylusMonitor(
+            self._device, self._ui,
+            ecodes.BTN_TOOL_PEN if self.args.hover_mode else ecodes.BTN_TOUCH)
+      else:
+        self._monitor = TouchscreenMonitor(self._device, self._ui)
+      self._dispatcher = evdev_utils.InputDeviceDispatcher(
+          self._device, self._monitor.Handler)
+      self._dispatcher.StartDaemon()
+
+    self._ui.BindKey(test_ui.ESCAPE_KEY, lambda _: self.OnFailPressed())
+    self._ui.Run()
