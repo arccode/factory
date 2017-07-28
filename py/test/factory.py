@@ -539,7 +539,7 @@ class FactoryTest(object):
       'action_on_failure', 'args', 'disable_abort', 'disable_services',
       'enable_services', 'exclusive_resources', 'has_ui', 'id', 'iterations',
       'label', 'never_fails', 'parallel', 'pytest_name', 'retries',
-      'run_if', 'subtests', 'teardown', 'inherit', ]
+      'run_if', 'subtests', 'teardown', 'inherit', 'locals', ]
 
   ACTION_ON_FAILURE = type_utils.Enum(['STOP', 'NEXT', 'PARENT'])
 
@@ -749,6 +749,7 @@ class FactoryTest(object):
     # Fields that needs to remap
     struct['inherit'] = self.__class__.__name__
     struct['args'] = self.dargs.copy()
+    struct['locals'] = self.locals_.copy()
 
     # Fields that need extra processing
     if recursive:
