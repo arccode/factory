@@ -6,8 +6,10 @@
 
 """Umpire resource map web application.
 
-The class handles http://umpire_address:umpire_port/resourcemap' HTTP GET.
+The class handles 'http://umpire_address:umpire_port/resourcemap' HTTP GET.
 """
+
+# TODO(b/64133247): Deprecate resourcemap.
 
 import logging
 

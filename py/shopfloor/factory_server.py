@@ -371,6 +371,11 @@ class FactoryServer(object):
     """Always returns true (for client to check if server is working)."""
     return True
 
+  def GetCROSPayloadURL(self, x_umpire_dut):
+    """Returns URL of cros_payload JSON file on Mini-Omaha."""
+    # TODO(b/62335217): Implement this function.
+    raise NotImplementedError
+
   def ListParameters(self, pattern):
     """Lists files that match the pattern in parameters directory.
 

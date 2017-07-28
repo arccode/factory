@@ -131,6 +131,29 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
 
     return xmlrpc.Binary(file_utils.ReadFile(abspath))
 
+  @umpire_rpc.RPCCall
+  @xmlrpc.withRequest
+  def GetCROSPayloadURL(self, request, x_umpire_dut):
+    """Gets cros_payload JSON file URL of the matched bundle.
+
+    Args:
+      x_umpire_dut: DUT information in GetXUmpireDUT (str) or _GetXUmpireDUTDict
+        (dict) format.
+
+    Returns:
+      URL of cros_payload JSON file, or empty string if no available bundle.
+    """
+    if isinstance(x_umpire_dut, str):
+      dut_info = bundle_selector.ParseDUTHeader(x_umpire_dut)
+    else:
+      dut_info = x_umpire_dut
+    bundle = self.env.config.GetBundle(
+        bundle_selector.SelectBundle(self.env.config, dut_info))
+    if bundle:
+      return 'http://%s:%d/res/%s' % (
+          GetServerIpPortFromRequest(request, self.env) + (bundle['payloads'],))
+    return ''
+
   @staticmethod
   def _CanUpdate(stage, range_start, range_end):
     return ((range_start is None or FACTORY_STAGES.index(stage) >=
@@ -138,6 +161,7 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
             (range_end is None or FACTORY_STAGES.index(stage) <=
              FACTORY_STAGES.index(range_end)))
 
+  # TODO(b/62335217): Deprecate this function.
   @umpire_rpc.RPCCall
   @xmlrpc.withRequest
   def GetUpdate(self, request, device_info):

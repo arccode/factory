@@ -12,6 +12,8 @@ into factory_dir (under state_dir).  It also starts an rsync server
 to serve factory_dir for clients to fetch update files.
 '''
 
+# TODO(b/62335217): Deprecate factory_update_server.
+
 import glob
 import logging
 import os
