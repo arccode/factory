@@ -111,9 +111,6 @@ status_monitor.Status.prototype.start = function() {
       document.getElementById('system-info-hover'),
       this.infoTooltip);
 
-  goofy.sendRpc('get_shared_data', ['system_info', true],
-                goog.bind(this.setSystemInfo, this));
-
   window.setInterval(
       goog.bind(this.updateStatus, this),
       status_monitor.SYSTEM_STATUS_INTERVAL_MSEC);
@@ -144,7 +141,7 @@ status_monitor.Status.prototype.setSystemInfo = function(systemInfo) {
   this.systemInfo = systemInfo || {};
   var rows = [];
   goog.array.forEach(status_monitor.SYSTEM_INFO_LABELS, function(item) {
-    var value = systemInfo[item.key];
+    var value = this.systemInfo[item.key];
     var html;
     if (item.transform) {
       html = item.transform(value);
@@ -155,7 +152,7 @@ status_monitor.Status.prototype.setSystemInfo = function(systemInfo) {
       goog.html.SafeHtml.create('th', {}, item.label),
       goog.html.SafeHtml.create('td', {}, html)
     ]));
-  });
+  }, this);
   rows.push(goog.html.SafeHtml.create('tr', {}, [
     goog.html.SafeHtml.create(
         'th', {}, cros.factory.i18n.i18nLabel('Host Based')),
@@ -182,7 +179,7 @@ status_monitor.Status.prototype.setSystemInfo = function(systemInfo) {
 
   this.updateTime();
 
-  if (systemInfo['update_md5sum']) {
+  if (this.systemInfo['update_md5sum']) {
     console.log('yes');
     $('#update-available-indicator').css({display: 'block'});
   } else {
@@ -206,10 +203,10 @@ status_monitor.Status.PERCENT_BATTERY_FORMAT = new goog.i18n.NumberFormat('0%');
 status_monitor.Status.prototype.updateStatus = function() {
   goofy.sendRpcToPlugin(
       'status_monitor.status_monitor',
-      'GetSystemStatus', [],
-      goog.bind(function(/** SystemStatus */ systemStatus) {
-        var status = systemStatus || {};
-        this.systemInfo['ips'] = status['ips'];
+      'GetSystemInfo', [],
+      goog.bind(function(/** SystemInfo*/ systemInfo) {
+        var status = systemInfo || {};
+        Object.assign(this.systemInfo, status)
         this.setSystemInfo(this.systemInfo);
 
         function setValue(/** string */ id, /** ?string */ value) {

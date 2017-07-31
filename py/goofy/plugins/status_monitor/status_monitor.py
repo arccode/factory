@@ -13,19 +13,34 @@ class StatusMonitor(plugin.Plugin):
   def __init__(self, goofy, used_resources=None):
     super(StatusMonitor, self).__init__(goofy, used_resources)
     self._dut = device_utils.CreateDUTInterface()
+    self._need_update_device_info = True
 
   @type_utils.Overrides
   def HasUI(self):
     return True
 
   @plugin.RPCFunction
-  def GetSystemStatus(self):
+  def UpdateDeviceInfo(self):
+    """The device info is changed, update them on UI."""
+    self._dut.info.Invalidate()
+    self._need_update_device_info = True
+
+  @plugin.RPCFunction
+  def GetSystemInfo(self):
     """Returns system status information.
 
     This may include system load, battery status, etc. See
     cros.factory.device.status.SystemStatus. Return None
     if DUT is not local (station-based).
     """
+
+    data = {}
+
+    if self._need_update_device_info:
+      data.update(self._dut.info.GetAll())
+      self._need_update_device_info = False
+
     if self._dut.link.IsLocal():
-      return self._dut.status.Snapshot().__dict__
-    return None
+      data.update(self._dut.status.Snapshot().__dict__)
+
+    return data
