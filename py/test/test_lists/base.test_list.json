@@ -11,6 +11,9 @@
     "FactoryTest": {
       "inherit": "FactoryTest"
     },
+    "FlattenGroup": {
+      "inherit": "FlattenGroup"
+    },
     "TestGroup": {
       "inherit": "TestGroup"
     },

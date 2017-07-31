@@ -1270,3 +1270,10 @@ class FullRebootStep(ShutdownStep):
 
 
 AutomatedRebootSubTest = RebootStep
+
+
+def FlattenGroup(subtests=None, **kwargs):
+  kwargs.pop('locals_', None)  # test/test_lists/manager handles locals_ for us
+  if kwargs:
+    logging.warning('kwargs: %r will be ignored for FlattenGroup', kwargs)
+  return type_utils.FlattenList(subtests or [])

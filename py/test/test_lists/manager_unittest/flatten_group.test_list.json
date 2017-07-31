@@ -1,0 +1,39 @@
+{
+  "inherit": ["base.test_list"],
+  "label": "Flatten Group",
+
+  "definitions": {
+    "NOP": {
+      "pytest_name": "nop"
+    },
+    "Group1": {
+      "inherit": "FlattenGroup",
+      "locals": {"foo": "FOO"},
+      "subtests": [
+        "NOP"
+      ]
+    },
+    "Group2": {
+      "inherit": "FlattenGroup",
+      "locals": {"bar": "BAR"},
+      "subtests": [
+        "Group1",
+        "Group1"
+      ]
+    },
+    "Group3": {
+      "inherit": "TestGroup",
+      "locals": {"baz": "BAZ"},
+      "subtests": [
+        "Group1",
+        "NOP"
+      ]
+    }
+  },
+
+  "tests": [
+    "Group1",
+    "Group2",
+    "Group3"
+  ]
+}

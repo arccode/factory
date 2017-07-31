@@ -105,7 +105,7 @@ class TestListLoaderTest(unittest.TestCase):
 
   def testListTestListIDs(self):
     self.assertItemsEqual(
-        ['a', 'b', 'base', 'locals', 'override_args'],
+        ['a', 'b', 'base', 'locals', 'override_args', "flatten_group"],
         self.loader.FindTestListIDs())
 
   def testChildActionOnFailure(self):
@@ -204,6 +204,25 @@ class TestListLoaderTest(unittest.TestCase):
     self.assertEqual(
         test_list.LookupPath('SMT.NOP-3').locals_,
         {'foo': 'BAR', 'bar': 'BAZ'})
+
+  def testFlattenGroup(self):
+    test_list = self.manager.GetTestListByID('flatten_group')
+
+    expected = collections.OrderedDict([
+        ("NOP", {"foo": "FOO"}),
+        ("NOP-2", {"foo": "FOO", "bar": "BAR"}),
+        ("NOP-3", {"foo": "FOO", "bar": "BAR"}),
+        ("Group3.NOP", {"foo": "FOO", "baz": "BAZ"}),
+        ("Group3.NOP-2", {"baz": "BAZ"}),
+    ])
+
+    self.assertListEqual(
+        expected.keys(),
+        [test.path for test in test_list.Walk() if test.IsLeaf()])
+
+    for test in test_list.Walk():
+      if test.IsLeaf():
+        self.assertEqual(test.locals_, expected[test.path])
 
 
 class CheckerTest(unittest.TestCase):
