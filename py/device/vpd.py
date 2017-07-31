@@ -68,8 +68,8 @@ class Partition(component.DeviceComponent):
     raise NotImplementedError
 
 
-class ChromeOSPartition(Partition):
-  """A VPD partition that can be accessed by command 'vpd'.
+class CommandVPDPartition(Partition):
+  """A VPD partition that is accessed by command 'vpd'.
 
   The 'vpd' command is usually available on systems using ChromeOS firmware that
   internally calls flashrom to read and set VPD data in firmware SPI flash.
@@ -81,7 +81,7 @@ class ChromeOSPartition(Partition):
     Args:
       name: The name of the partition (e.g., 'RO_VPD').
     """
-    super(ChromeOSPartition, self).__init__(dut)
+    super(CommandVPDPartition, self).__init__(dut)
     self.name = name
 
   def get(self, key, default=None):
@@ -143,17 +143,17 @@ class ChromeOSPartition(Partition):
     self._dut.CheckCall(command)
 
 
-class FileBasedPartition(Partition):
-  """A file-based VPD partition."""
+class ImmutableFileBasedPartition(Partition):
+  """A file-based VPD partition which cannot be updated."""
 
   def __init__(self, dut, path):
     """Constructor.
 
     Args:
       dut: Instance of cros.factory.device.board.DeviceBoard.
-      path: The path of the partition (e.g., '/persist').
+      path: The path of the partition (e.g., '/persist', '/sys/firmware/vpd').
     """
-    super(FileBasedPartition, self).__init__(dut)
+    super(ImmutableFileBasedPartition, self).__init__(dut)
     self._path = path
 
   def get(self, key, default=None):
@@ -164,11 +164,8 @@ class FileBasedPartition(Partition):
     return None
 
   def Delete(self, *keys):
-    """See Partition.Delete."""
-    for key in keys:
-      file_path = self._dut.path.join(self._path, key)
-      if self._dut.path.exists(file_path):
-        return self._dut.CheckCall(['rm', '-f', file_path])
+    """See Partition.Delete. This operation is not supported."""
+    raise NotImplementedError('An immutable partition cannot be updated.')
 
   def GetAll(self):
     """See Partition.GetAll."""
@@ -178,6 +175,25 @@ class FileBasedPartition(Partition):
       name = file_name[len(self._path) + 1:]
       ret[name] = self._dut.ReadFile(file_name)
     return ret
+
+  def Update(self, items, log=True):
+    """See Partition.Update. This operation is not supported."""
+    raise NotImplementedError('An immutable partition cannot be updated.')
+
+
+class MutableFileBasedPartition(ImmutableFileBasedPartition):
+  """A file-based VPD partition."""
+
+  def __init__(self, dut, path):
+    """See ImmutableFileBasedPartition.__init__"""
+    super(MutableFileBasedPartition, self).__init__(dut, path)
+
+  def Delete(self, *keys):
+    """See Partition.Delete."""
+    for key in keys:
+      file_path = self._dut.path.join(self._path, key)
+      if self._dut.path.exists(file_path):
+        return self._dut.CheckCall(['rm', '-f', file_path])
 
   def Update(self, items, log=True):
     """See Partition.Update."""
@@ -193,8 +209,8 @@ class FileBasedPartition(Partition):
     self._dut.CheckCall(['sync'])
 
 
-class VitalProductData(component.DeviceComponent):
-  """System module for Vital Product Data (VPD).
+class VPDSource(component.DeviceComponent):
+  """A source to read Vital Product Data (VPD).
 
   Properties:
     ro: Access to Read-Only partition.
@@ -217,30 +233,116 @@ class VitalProductData(component.DeviceComponent):
     raise component.DeviceException('No %s partition found.' % partition)
 
 
+class CommandVPDSource(VPDSource):
+  """A source to read VPD from command 'vpd'."""
+
+  @component.DeviceProperty
+  def ro(self):
+    return CommandVPDPartition(self._dut, VPD_READONLY_PARTITION_NAME)
+
+  @component.DeviceProperty
+  def rw(self):
+    return CommandVPDPartition(self._dut, VPD_READWRITE_PARTITION_NAME)
+
+
+class FileBasedVPDSource(VPDSource):
+  """A source to read VPD from files."""
+
+  def __init__(self, dut, path):
+    super(FileBasedVPDSource, self).__init__(dut)
+    self._path = path
+    self._partition = MutableFileBasedPartition(self._dut, self._path)
+
+  @component.DeviceProperty
+  def ro(self):
+    return self._partition
+
+  @component.DeviceProperty
+  def rw(self):
+    return self._partition
+
+
+class SysFSVPDSource(VPDSource):
+  """A source to read VPD from sysfs."""
+
+  def __init__(self, dut, path=None):
+    super(SysFSVPDSource, self).__init__(dut)
+    if path is None:
+      path = '/sys/firmware/vpd'
+    self._path = path
+
+  @component.DeviceProperty
+  def ro(self):
+    return ImmutableFileBasedPartition(
+        self._dut,
+        self._dut.path.join(self._path, 'ro'))
+
+  @component.DeviceProperty
+  def rw(self):
+    return ImmutableFileBasedPartition(
+        self._dut,
+        self._dut.path.join(self._path, 'rw'))
+
+
+class VitalProductData(component.DeviceComponent):
+  """System module for Vital Product Data (VPD)."""
+
+  @component.DeviceProperty
+  def live(self):
+    """An VPD source to read live VPD values."""
+    raise NotImplementedError
+
+  @component.DeviceProperty
+  def boot(self):
+    """An VPD source to read VPD values cached at boot time."""
+    raise NotImplementedError
+
+  @component.DeviceProperty
+  def ro(self):
+    """A shortcut to read ro from live VPD source."""
+    return self.live.ro
+
+  @component.DeviceProperty
+  def rw(self):
+    """A shortcut to read rw from live VPD source."""
+    return self.live.rw
+
+  def GetPartition(self, partition):
+    """A shortcut to get partition from live VPD source."""
+    return self.live.GetPartition(partition)
+
+
 class ChromeOSVitalProductData(VitalProductData):
   """System module for Vital Product Data (VPD) on Chrome OS."""
 
-  @component.DeviceProperty
-  def ro(self):
-    return ChromeOSPartition(self._dut, VPD_READONLY_PARTITION_NAME)
+  def __init__(self, dut, path=None):
+    super(ChromeOSVitalProductData, self).__init__(dut)
+    self._sysfs_path = path
+    if self._sysfs_path is None:
+      self._sysfs_path = '/sys/firmware/vpd'
 
   @component.DeviceProperty
-  def rw(self):
-    return ChromeOSPartition(self._dut, VPD_READWRITE_PARTITION_NAME)
+  def live(self):
+    return CommandVPDSource(self._dut)
+
+  @component.DeviceProperty
+  def boot(self):
+    return SysFSVPDSource(self._dut, self._sysfs_path)
 
 
-class FileBasedVitalProductData(VitalProductData):
-  """System module for file-based Vital Product Data."""
+class AndroidVitalProductData(VitalProductData):
+  """System module for Vital Product Data (VPD) on Andoird OS."""
 
-  def __init__(self, dut, path):
-    super(FileBasedVitalProductData, self).__init__(dut)
+  def __init__(self, dut, path=None):
+    super(AndroidVitalProductData, self).__init__(dut)
     self._path = path
-    self._partition = FileBasedPartition(self._dut, self._path)
+    if self._path is None:
+      self._path = '/persist'
 
   @component.DeviceProperty
-  def ro(self):
-    return self._partition
+  def boot(self):
+    raise NotImplementedError
 
   @component.DeviceProperty
-  def rw(self):
-    return self._partition
+  def live(self):
+    return FileBasedVPDSource(self._dut, self._path)

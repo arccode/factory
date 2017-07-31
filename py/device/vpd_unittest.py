@@ -157,6 +157,15 @@ class VPDTest(unittest.TestCase):
     self.assertRaises(ValueError, self.vpd.rw.Delete, 'a')
     self.mox.VerifyAll()
 
+  def testGetPartition(self):
+    self.MockVPDGetAll('RW_VPD', {'foo': 'bar'})
+    self.MockVPDGetAll('RO_VPD', {'bar': 'foo'})
+    self.mox.ReplayAll()
+    self.assertEquals(dict(foo='bar'),
+                      self.vpd.GetPartition('rw').GetAll())
+    self.assertEquals(dict(bar='foo'),
+                      self.vpd.GetPartition('ro').GetAll())
+    self.mox.VerifyAll()
 
 if __name__ == '__main__':
   unittest.main()

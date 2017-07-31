@@ -62,4 +62,4 @@ class AndroidBoard(linux.LinuxBoard):
 
   @component.DeviceProperty
   def vpd(self):
-    return vpd.FileBasedVitalProductData(self, '/persist')
+    return vpd.AndroidVitalProductData(self)
