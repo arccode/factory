@@ -343,9 +343,9 @@ class TestListIteratorBaseTest(TestListIteratorTest):
   def testStatusFilter(self):
     test_list = self._BuildTestList(
         """
-    with test_lists.FactoryTest(id='G'):
+    with test_lists.TestGroup(id='G'):
       test_lists.FactoryTest(id='a', pytest_name='t_Ga')
-      with test_lists.FactoryTest(id='G'):
+      with test_lists.TestGroup(id='G'):
         test_lists.FactoryTest(id='a', pytest_name='t_GGa')
         test_lists.FactoryTest(id='b', pytest_name='t_GGa')
       test_lists.FactoryTest(id='b', pytest_name='t_Gb')
@@ -391,6 +391,45 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         ['G.G.a', 'G.G.b', 'G.b'],
         set_state=False,
         status_filter=[factory.TestState.UNTESTED, factory.TestState.FAILED])
+
+  def testTestGroup(self):
+    """Tests if we can handle TestGroup correctly.
+
+    A test group means that the subtests have no dependency, for example,
+
+      G
+      |- G.a
+      `- G.b
+
+    If we passed G.a and failed G.b, we can retest G.b without running G.a
+    again.
+
+    On the other hand, if G is not a TestGroup, then it is an AutomatedSequence,
+    which means that the subtests depend on each other.  Retesting G.b must
+    retest G.a too.
+    """
+    test_list = self._BuildTestList(
+        """
+    with test_lists.TestGroup(id='G'):
+      test_lists.FactoryTest(id='a', pytest_name='t_Ga')
+      test_lists.FactoryTest(id='b', pytest_name='t_Gb')
+    with test_lists.FactoryTest(id='H'):
+      test_lists.FactoryTest(id='a', pytest_name='t_Ha')
+      test_lists.FactoryTest(id='b', pytest_name='t_Hb')
+        """, self.OPTIONS)
+
+    # G is a test group, H is an AutomatedSequence
+    test_list = self._SetStubStateInstance(test_list)
+    test_list.LookupPath('G.a').UpdateState(status=factory.TestState.PASSED)
+    test_list.LookupPath('G.b').UpdateState(status=factory.TestState.FAILED)
+    test_list.LookupPath('H.a').UpdateState(status=factory.TestState.PASSED)
+    test_list.LookupPath('H.b').UpdateState(status=factory.TestState.FAILED)
+    self._AssertTestSequence(
+        test_list,
+        ['G.b', 'H.a', 'H.b'],
+        set_state=False,
+        # since tests will be reset to UNTESTED, so untested must be included
+        status_filter=[factory.TestState.FAILED, factory.TestState.UNTESTED])
 
   def testRunIfCannotSkipParent(self):
     """Make sure we cannot skip a parent test.
