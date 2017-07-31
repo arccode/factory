@@ -31,6 +31,8 @@ from cros.factory.utils import type_utils
 # used for loop detection
 _DUMMY_CACHE = object()
 
+_EVALUATE_PREFIX = 'eval! '
+
 
 def MayTranslate(string, force=False):
   """Translate a string if it starts with 'i18n! ' or force=True.
@@ -139,6 +141,8 @@ class ITestList(object):
   def ResolveTestArgs(
       self, test_args, dut, station, constants=None, options=None,
       locals_=None):
+    self._checker.AssertValidArgs(test_args)
+
     if constants is None:
       constants = self.constants
     if options is None:
@@ -157,7 +161,6 @@ class ITestList(object):
       else:
         return value
 
-    _EVALUATE_PREFIX = 'eval! '
     def ResolveArg(key, value):
       if isinstance(value, collections.Mapping):
         return {k: ResolveArg('%s[%r]' % (key, k), v)
@@ -178,7 +181,6 @@ class ITestList(object):
         logging.info('Resolving argument %s: %s', key, value)
         expression = value[len(_EVALUATE_PREFIX):]  # remove prefix
 
-        self._checker.AssertExpressionIsValid(expression)
         return self.EvaluateExpression(
             expression, dut, station, constants, options, locals_)
 
@@ -357,6 +359,11 @@ class TestList(ITestList):
 
     if kwargs.get('label'):
       kwargs['label'] = MayTranslate(kwargs['label'], force=True)
+
+    # check if expressions are valid.
+    self._checker.AssertValidArgs(kwargs['dargs'])
+    if 'run_if' in kwargs and isinstance(kwargs['run_if'], basestring):
+      self._checker.AssertValidRunIf(kwargs['run_if'])
 
     return getattr(factory, class_name)(**kwargs)
 
@@ -733,11 +740,47 @@ class Checker(object):
   This class implements functions that help you to find test list errors
   *before* actually running tests in the test list.
   """
-  _EXPRESSION_VALID_IDENTIFIERS = set(
+  _EVAL_VALID_IDENTIFIERS = set(
       ['constants', 'options', 'dut', 'station', 'session', 'locals'] +
       [key for key, unused_value in inspect.getmembers(__builtin__)])
 
-  def AssertExpressionIsValid(self, expression):
+  _RUN_IF_VALID_IDENTIFIERS = set(
+      ['constants', 'device'] +
+      [key for key, unused_value in inspect.getmembers(__builtin__)])
+
+  def AssertValidArgs(self, args):
+    """Check if the "eval! " expressions in an argument is valid."""
+    if not isinstance(args, dict):
+      return
+
+    for value in args.itervalues():
+      if isinstance(value, basestring):
+        if value.startswith(_EVALUATE_PREFIX):
+          self.AssertValidEval(value[len(_EVALUATE_PREFIX):])
+      else:
+        self.AssertValidArgs(value)
+
+  def AssertValidEval(self, expression):
+    """Check if an expression from "eval! ..." is valid.
+
+    This function calls `self.AssertExpressionIsValid` to parse and collect free
+    variables in the expression.  We only allows the following identifiers:
+      - built-in functions
+      - "constants" and "options" defined by test list
+      - "dut", "station" (to get information from DUT and station)
+      - "session" (session is not implemented yet, it will represent a test
+        session on a test station)
+
+    Args:
+      :type expression: basestring
+    """
+    return self._AssertValidExpression(
+        expression, self._EVAL_VALID_IDENTIFIERS)
+
+  def AssertValidRunIf(self, run_if):
+    return self._AssertValidExpression(run_if, self._RUN_IF_VALID_IDENTIFIERS)
+
+  def _AssertValidExpression(self, expression, valid_identifiers):
     """Raise an expression if this expression is not allowed.
 
     The expression is a snippet of python code, which,
@@ -746,12 +789,6 @@ class Checker(object):
         is a single expression)
       * Not all operators are allowed, you cannot use generator or create lambda
         functions.
-      * When executing, the namespace would only contains:
-        - built-in functions
-        - "constants" and "options" defined by test list
-        - "dut", "station" (to get information from DUT and station)
-        - "session" (session is not implemented yet, it will represent a test
-          session on a test station)
 
     This function will raise an exception if you are using an undefined
     variable, e.g. `[x for x in undefined_var]`.  We also assume that target
@@ -760,19 +797,22 @@ class Checker(object):
     though it is a valid expression in Python2.  See TestListExpressionVisitor
     for more details.
 
+    Collected free variables must be a subset of `valid_identifiers`.
+
     Args:
       :type expression: basestring
+      :type valid_identifiers: set
     """
     try:
-      syntax_tree = ast.parse(expression, mode='eval')
+      syntax_tree = ast.parse(expression, filename=repr(expression),
+                              mode='eval')
     except SyntaxError as e:
       raise CheckerError(e)
 
     collector = TestListExpressionVisitor()
     # collect all variables, might raise an exception if there are invalid nodes
     collector.visit(syntax_tree)
-    undefined_identifiers = (
-        collector.free_vars - self._EXPRESSION_VALID_IDENTIFIERS)
+    undefined_identifiers = (collector.free_vars - valid_identifiers)
 
     if undefined_identifiers:
       raise CheckerError('undefined identifiers: %s' % undefined_identifiers)

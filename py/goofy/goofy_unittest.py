@@ -186,7 +186,7 @@ class GoofyTest(unittest.TestCase):
     if self.test_list:
       test_list = test_lists.BuildTestListFromString(self.test_list,
                                                      self.options)
-      test_list = manager.LegacyTestList(test_list, self.test_list_manager)
+      test_list = manager.LegacyTestList(test_list)
       self.test_list_manager.BuildAllTestLists().AndReturn(
           ({'test': test_list}, {}))
 
