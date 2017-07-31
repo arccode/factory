@@ -233,7 +233,12 @@ class ITestList(object):
             state_instance, key='device'),
         'constants': selector_utils.DictSelector(value=test_list.constants),
     }
-    return bool(eval(test.run_if, namespace))  # pylint: disable=eval-used
+    try:
+      return bool(eval(test.run_if, namespace))  # pylint: disable=eval-used
+    except Exception:
+      logging.exception('Unable to evaluate run_if %r for %s',
+                        test.run_if, test.path)
+      return True
 
   # the following properties are required by goofy
   @abc.abstractproperty

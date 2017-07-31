@@ -13,7 +13,9 @@ import tempfile
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test import state
 from cros.factory.test.test_lists import manager
+from cros.factory.utils import type_utils
 
 
 class TestListConfigTest(unittest.TestCase):
@@ -242,6 +244,68 @@ class CheckerTest(unittest.TestCase):
 
     expression = '[([y for y in [x]], x) for x in [1]]'
     self.checker.AssertExpressionIsValid(expression)
+
+class EvaluateRunIfTest(unittest.TestCase):
+  def setUp(self):
+    state_instance = state.StubFactoryState()
+    constants = {}
+
+    self.test = type_utils.AttrDict(run_if=None, path='path.to.test')
+    # run_if function should only use these attributes
+    self.test_list = type_utils.AttrDict(state_instance=state_instance,
+                                         constants=constants)
+
+  def _EvaluateRunIf(self):
+    return manager.ITestList.EvaluateRunIf(self.test, self.test_list, None)
+
+  def testInvalidRunIfString(self):
+    self.test.run_if = '!device.foo.bar'
+    self.assertTrue(self._EvaluateRunIf())
+
+  def testDeviceData(self):
+    self.test.run_if = 'device.foo.bar'
+
+    self.assertFalse(self._EvaluateRunIf())
+
+    self.test_list.state_instance.data_shelf['device.foo.bar'].Set(True)
+    self.assertTrue(self._EvaluateRunIf())
+
+    self.test_list.state_instance.data_shelf['device.foo.bar'].Set(False)
+    self.assertFalse(self._EvaluateRunIf())
+
+  def testConstant(self):
+    self.test.run_if = 'constants.foo.bar'
+
+    self.assertFalse(self._EvaluateRunIf())
+
+    self.test_list.constants['foo'] = {'bar': True}
+    self.assertTrue(self._EvaluateRunIf())
+
+    self.test_list.constants['foo'] = {'bar': False}
+    self.assertFalse(self._EvaluateRunIf())
+
+  def testComplexExpression(self):
+    self.test.run_if = 'not device.foo.bar or constants.x.y'
+
+    self.assertTrue(self._EvaluateRunIf())
+
+    self.test_list.constants['x'] = {'y': True}
+    self.assertTrue(self._EvaluateRunIf())
+
+    self.test_list.constants['x'] = {'y': False}
+    self.assertTrue(self._EvaluateRunIf())
+
+    self.test_list.state_instance.data_shelf['device.foo.bar'].Set(True)
+    self.test_list.constants['x'] = {'y': False}
+    self.assertFalse(self._EvaluateRunIf())
+
+    self.test_list.state_instance.data_shelf['device.foo.bar'].Set(True)
+    self.test_list.constants['x'] = {}
+    self.assertFalse(self._EvaluateRunIf())
+
+    self.test_list.state_instance.data_shelf['device.foo.bar'].Set(True)
+    self.test_list.constants['x'] = {'y': True}
+    self.assertTrue(self._EvaluateRunIf())
 
 
 if __name__ == '__main__':
