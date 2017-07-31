@@ -1168,7 +1168,8 @@ class Goofy(GoofyBase):
     if self.test_list.options.sync_event_log_period_secs:
       self.log_watcher.StartWatchThread()
 
-    self.update_system_info()
+    self.event_client.post_event(
+        Event(Event.Type.UPDATE_SYSTEM_INFO))
 
     os.environ['CROS_FACTORY'] = '1'
     os.environ['CROS_DISABLE_SITE_SYSINFO'] = '1'
