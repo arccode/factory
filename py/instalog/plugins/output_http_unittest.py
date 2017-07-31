@@ -21,6 +21,7 @@ import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
 from instalog import log_utils
 from instalog import plugin_sandbox
+from instalog.plugins import output_http
 from instalog import testing
 from instalog.utils import net_utils
 
@@ -43,6 +44,11 @@ class TestOutputHTTP(unittest.TestCase):
         'output_http', config=output_config, core_api=self.core)
 
     self.output_sandbox.Start(True)
+
+    # Make reconnection tries faster (default is 60 seconds.)
+    # This needs to be set after output_sandbox is started and plugin is loaded.
+    # pylint: disable=protected-access
+    output_http._FAILED_CONNECTION_INTERVAL = 1
 
     # Store a BufferEventStream.
     self.stream = self.core.GetStream(0)
