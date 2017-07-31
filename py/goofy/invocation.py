@@ -463,7 +463,7 @@ class TestInvocation(object):
           if not line:
             break
           log.write(line)
-          sys.stderr.write('%s> %s' % (self.test.path, line))
+          sys.stderr.write('%s> %s' % (self.test.path.encode('utf-8'), line))
 
         self._process.wait()
         with self._lock:
