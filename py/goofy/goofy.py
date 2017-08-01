@@ -814,11 +814,16 @@ class Goofy(GoofyBase):
 
   def update_system_info(self):
     """Updates system info."""
-    info = self.dut.info.GetAll()
-    self.state_instance.set_shared_data('system_info', info)
-    self.event_client.post_event(Event(Event.Type.SYSTEM_INFO,
-                                       system_info=info))
-    logging.info('System info: %r', info)
+    logging.info('Received a notify to update system info.')
+    self.dut.info.Invalidate()
+
+    # Propagate this notify to goofy components
+    try:
+      status_monitor = plugin_controller.GetPluginRPCProxy(
+          'status_monitor.status_monitor')
+      status_monitor.UpdateDeviceInfo()
+    except Exception:
+      logging.debug('Failed to update status monitor plugin.')
 
   def update_factory(self, auto_run_on_restart=False, post_update_hook=None):
     """Commences updating factory software.
