@@ -31,7 +31,7 @@ each item is a sequence with 3 elements (instruction, command, judge_to_pass):
 
 Test Procedure
 --------------
-The test will go though each item and:
+The test will go through each item and:
 
 1. Display instruction on UI.
 2. Execute command.
