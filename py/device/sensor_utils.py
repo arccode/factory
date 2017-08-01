@@ -25,7 +25,7 @@ def FindDevice(dut, path_pattern, **attr_filter):
     Path of the matched device.
 
   Raises:
-    DUTException if not exactly one device found.
+    DeviceException if not exactly one device found.
   """
   devices = []
   for path in dut.Glob(path_pattern):
@@ -41,10 +41,10 @@ def FindDevice(dut, path_pattern, **attr_filter):
       devices.append(path)
 
   if len(devices) == 0:
-    raise board.DUTException(
+    raise board.DeviceException(
         'Device with constraint %r not found' % attr_filter)
   elif len(devices) > 1:
-    raise board.DUTException(
+    raise board.DeviceException(
         'Multiple devices found with constraint %r' % attr_filter)
 
   return devices[0]

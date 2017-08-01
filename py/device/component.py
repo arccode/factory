@@ -56,9 +56,3 @@ class DeviceComponent(object):
     # TODO(hungte) Change _dut to some better name that reflects that it's a
     # board Device instance.
     self._dut = board
-
-
-# Legacy names
-DUTComponent = DeviceComponent
-DUTException = DeviceException
-DUTProperty = DeviceProperty

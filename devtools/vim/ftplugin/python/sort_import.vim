@@ -8,13 +8,13 @@
 " According to python coding style, the import lines are sorted by package
 " path, for example::
 "
-"   from cros.factory.test.dut import info
+"   from cros.factory.test.device import info
 "   from cros.factory.test import pytests
 "
 " rather than::
 "
 "   from cros.factory.test import pytests
-"   from cros.factory.test.dut import info
+"   from cros.factory.test.device import info
 "
 " Also, according to coding style, the following import style is not
 " recommended::

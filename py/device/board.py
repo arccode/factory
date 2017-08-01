@@ -450,9 +450,3 @@ class DeviceBoard(object):
       return glob.glob(pattern)
     results = self.CallOutput('ls -d %s' % pattern)
     return results.splitlines() if results else []
-
-
-# Legacy names
-DUTBoard = DeviceBoard
-DUTProperty = component.DeviceProperty
-DUTException = component.DeviceException
