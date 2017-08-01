@@ -9,14 +9,31 @@ from rest_framework import validators
 
 from backend.models import Board
 from backend.models import Bundle
+from backend.models import DomeConfig
 from backend.models import Resource
 from backend.models import TemporaryUploadedFile
+
+class ConfigSerializer(serializers.ModelSerializer):
+
+  class Meta(object):
+    model = DomeConfig
+
+  def create(self, validated_data):
+    """Override parent's method."""
+    config_count = DomeConfig.objects.all().count()
+    if config_count > 0:
+      raise exceptions.ValidationError('There should be only one Config')
+    instance = super(ConfigSerializer, self).create(validated_data)
+    return DomeConfig.UpdateConfig(instance, **validated_data)
+
+  def update(self, instance, validated_data):
+    """Override parent's method."""
+    return DomeConfig.UpdateConfig(instance, **validated_data)
 
 
 class UploadedFileSerializer(serializers.ModelSerializer):
 
   class Meta(object):
-
     model = TemporaryUploadedFile
 
   def create(self, validated_data):

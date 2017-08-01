@@ -56,6 +56,10 @@ UMPIRE_DOCKER_DIR = '/cros_docker/umpire'
 UMPIRE_DEFAULT_BOARD_FILE = '.default_project'
 UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER = '/var/db/factory/umpire'
 
+TFTP_DOCKER_DIR = '/cros_docker/tftp'
+TFTP_BASE_DIR_IN_TFTP_CONTAINER = '/var/tftp'
+TFTP_CONTAINER_NAME = 'dome_tftp'
+
 # Mount point of the Umpire data folder in Dome's container. Note: this is not
 # Umpire base directory in Umpire's container (which is also
 # '/var/db/factory/umpire', but they have nothing to do with each other). This
@@ -198,6 +202,76 @@ def GenerateUploadToPath(unused_instance, filename):
   return path
 
 
+def DoesContainerExist(container_name):
+  container_list = subprocess.check_output([
+      'docker', 'ps', '--all', '--format', '{{.Names}}']).splitlines()
+  return container_name in container_list
+
+
+class DomeConfig(django.db.models.Model):
+
+  id = django.db.models.IntegerField(default=0, primary_key=True, serialize=False)
+  tftp_enabled = django.db.models.BooleanField(default=False)
+
+  def CreateTFTPContainer(self):
+
+    if DoesContainerExist(TFTP_CONTAINER_NAME):
+      logger.info('TFTP container already exists')
+      return self
+
+    try:
+      cmd = [
+          'docker', 'run', '--detach',
+          '--restart', 'unless-stopped',
+          '--name', TFTP_CONTAINER_NAME,
+          '--volume', '%s:%s' % (TFTP_DOCKER_DIR,
+                                 TFTP_BASE_DIR_IN_TFTP_CONTAINER),
+          '--net', 'host',
+          FACTORY_SERVER_IMAGE_NAME,
+          'dnsmasq', '--user=root', '--port=0',
+          '--enable-tftp', '--tftp-root=%s' % TFTP_BASE_DIR_IN_TFTP_CONTAINER,
+          '--no-daemon', '--no-resolv'
+      ]
+      logger.info('Running command %r', cmd)
+      subprocess.check_call(cmd)
+    except Exception:
+      logger.error('Failed to create TFTP container')
+      logger.exception(traceback.format_exc())
+      self.DeleteTFTPContainer()
+      raise
+
+    self.tftp_enabled = True
+    self.save()
+
+    return self
+
+  def DeleteTFTPContainer(self):
+    logger.info('Deleting TFTP container')
+    subprocess.call(['docker', 'rm', '-f', TFTP_CONTAINER_NAME])
+    self.tftp_enabled = False
+    self.save()
+    return self
+
+  def UpdateConfig(self, **kwargs):
+
+    # enable or disable TFTP if necessary
+    self.tftp_enabled = DoesContainerExist(TFTP_CONTAINER_NAME)
+    if ('tftp_enabled' in kwargs and
+        self.tftp_enabled != kwargs['tftp_enabled']):
+      if kwargs['tftp_enabled']:
+        self.CreateTFTPContainer()
+      else:
+        self.DeleteTFTPContainer()
+
+    # update attributes assigned in kwargs
+    for attr, value in kwargs.iteritems():
+      if hasattr(self, attr):
+        setattr(self, attr, value)
+    self.save()
+
+    return self
+
+
 class TemporaryUploadedFile(django.db.models.Model):
   """Model to hold temporary uploaded files from user.
 
@@ -258,7 +332,7 @@ class Board(django.db.models.Model):
     """Add an existing Umpire container to the database."""
     container_name = Board.GetUmpireContainerName(self.name)
     logger.info('Adding Umpire container %r', container_name)
-    if not Board.DoesUmpireContainerExist(self.name):
+    if not DoesContainerExist(container_name):
       error_message = (
           'Container %s does not exist, Dome will not add a non-existing '
           'container into the database, please create a new one instead' %
@@ -276,7 +350,7 @@ class Board(django.db.models.Model):
     # make sure the container does not exist
     container_name = Board.GetUmpireContainerName(self.name)
     logger.info('Creating Umpire container %r', container_name)
-    if Board.DoesUmpireContainerExist(self.name):
+    if DoesContainerExist(container_name):
       error_message = (
           'Container %s already exists, Dome will not try to create a new one, '
           'please add the existing one instead' % container_name)
@@ -347,13 +421,6 @@ class Board(django.db.models.Model):
     ip = subprocess.check_output(
         'ip route | grep "^default"', shell=True).split()[2]
     return ip.strip()  # remove the trailing newline
-
-  @staticmethod
-  def DoesUmpireContainerExist(name):
-    container_name = Board.GetUmpireContainerName(name)
-    container_list = subprocess.check_output([
-        'docker', 'ps', '--all', '--format', '{{.Names}}']).splitlines()
-    return container_name in container_list
 
   @staticmethod
   def GetUmpireContainerName(name):

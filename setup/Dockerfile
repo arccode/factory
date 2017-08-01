@@ -29,7 +29,7 @@ RUN mkdir -p "${umpire_dir_in_dome}"
 #  rsync: Used by umpire/server/service/rsync
 #  jq: Will be used by umpire in future.
 #
-#  nginx, uwsgi-python: Used by Dome.
+#  nginx, uwsgi-python, dnsmasq: Used by Dome.
 #
 #  apache2-utils, openssl: Used by Overlord setup.sh
 #
@@ -40,6 +40,7 @@ RUN mkdir -p "${umpire_dir_in_dome}"
 RUN apk upgrade --no-cache && apk add --no-cache \
     apache2-utils \
     coreutils \
+    dnsmasq \
     gnupg \
     jq \
     nginx \

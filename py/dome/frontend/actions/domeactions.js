@@ -58,6 +58,52 @@ function recursivelyUploadFileFields(data, queue = null) {
   return queue;
 }
 
+const syncConfig = config => ({
+  type: ActionTypes.SYNC_CONFIG,
+  config
+});
+
+const initializeConfig = () => dispatch => {
+  var body = {};
+  dispatch(updateConfig(body));
+}
+
+const fetchConfig = () => dispatch => {
+  fetch('/config/0').then(response => {
+    response.json().then(json => {
+      dispatch(syncConfig(json));
+    }, error => {
+      console.error('error parsing config response');
+      console.error(error);
+    });
+  }, error => {
+    console.error('error fetching config');
+    console.error(error);
+  });
+};
+
+const updateConfig = body => (dispatch, getState) => {
+  var description = 'Update config';
+  dispatch(createTask(
+      description, 'PUT', '/config/0', body,
+      {onFinish: () => dispatch(fetchConfig())}
+  ));
+};
+
+const enableTFTP = () => dispatch => {
+  var body = {
+    tftp_enabled: true
+  };
+  dispatch(updateConfig(body));
+};
+
+const disableTFTP = () => dispatch => {
+  var body = {
+    tftp_enabled: false
+  };
+  dispatch(updateConfig(body));
+};
+
 const setError = message => ({
   type: ActionTypes.SET_ERROR_MESSAGE,
   message
@@ -331,6 +377,8 @@ const cancelTaskAndItsDependencies = taskID => (dispatch, getState) => {
 };
 
 export default {
+  syncConfig, updateConfig, fetchConfig, initializeConfig,
+  enableTFTP, disableTFTP,
   setError, showErrorDialog, hideErrorDialog, setAndShowErrorDialog,
   createBoard, updateBoard, deleteBoard, fetchBoards, switchBoard,
   switchApp,

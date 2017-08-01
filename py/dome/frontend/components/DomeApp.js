@@ -15,6 +15,7 @@ import Subheader from 'material-ui/Subheader';
 import AppNames from '../constants/AppNames';
 import BoardsApp from './BoardsApp';
 import BundlesApp from './BundlesApp';
+import ConfigApp from './ConfigApp';
 import DashboardApp from './DashboardApp';
 import DomeActions from '../actions/domeactions';
 import ErrorDialog from './ErrorDialog';
@@ -82,6 +83,8 @@ var DomeApp = React.createClass({
     var app = null;
     if (appName == AppNames.BOARDS_APP) {
       app = <BoardsApp />;
+    } else if (appName == AppNames.CONFIG_APP) {
+      app = <ConfigApp />;
     } else if (appName == AppNames.DASHBOARD_APP) {
       app = <DashboardApp />;
     } else if (appName == AppNames.BUNDLES_APP) {
@@ -137,6 +140,10 @@ var DomeApp = React.createClass({
 
           <MenuItem onTouchTap={() => this.handleClick(AppNames.BOARDS_APP)}>
             Change board
+          </MenuItem>
+          <Divider />
+          <MenuItem onTouchTap={() => this.handleClick(AppNames.CONFIG_APP)}>
+            Config
           </MenuItem>
         </Drawer>
         <div

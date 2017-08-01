@@ -12,11 +12,29 @@ from rest_framework import status
 
 from backend.models import Board
 from backend.models import Bundle
+from backend.models import DomeConfig
 from backend.models import TemporaryUploadedFile
 from backend.serializers import BoardSerializer
 from backend.serializers import BundleSerializer
+from backend.serializers import ConfigSerializer
 from backend.serializers import ResourceSerializer
 from backend.serializers import UploadedFileSerializer
+
+
+class ConfigView(mixins.CreateModelMixin,
+                 generics.RetrieveUpdateAPIView):
+
+  queryset = DomeConfig.objects.all()
+  serializer_class = ConfigSerializer
+  lookup_field = 'id'
+  lookup_url_kwarg = 'id'
+
+  def put(self, request, *args, **kwargs):
+    """Override parent's method."""
+    try:
+      return self.update(request, *args, **kwargs)
+    except Exception:
+      return self.create(request, *args, **kwargs)
 
 
 class FileCollectionView(generics.CreateAPIView):
