@@ -162,11 +162,14 @@ class Gyroscope(unittest.TestCase):
           'Seconds to wait before starting the test.',
           default=2, optional=True),
       Arg('autostart', bool, 'Auto start this test.',
-          default=False, optional=True)]
+          default=False, optional=True),
+      Arg('location', str, 'Gyro is located in "base" or "lid".',
+          default='base', optional=True)]
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self.gyroscope = self.dut.gyroscope.GetController()
+    self.gyroscope = self.dut.gyroscope.GetController(
+        location=self.args.location)
     self.ui = test_ui.UI()
     self.template = ui_templates.TwoSections(self.ui)
     self.ui.AppendCSS(_CSS)
