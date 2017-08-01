@@ -33,6 +33,7 @@ import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server import resource as umpire_resource
+from cros.factory.utils import file_utils
 
 
 # TODO(littlecvr): pull out the common parts between umpire and dome, and put
@@ -121,19 +122,15 @@ def UmpireAccessibleFile(board, uploaded_file):
   """Make a file uploaded from Dome accessible by a specific Umpire container.
 
   This function:
-  1. creates a temp folder in UMPIRE_BASE_DIR
-  2. copies the uploaded file to the temp folder
-  3. runs chmod on the folder and file to make sure Umpire is readable
-  4. remove the temp folder at the end
+  1. Creates a temporary folder in the 'temp' folder.
+  2. Copies the uploaded file to the temporary folder.
+  3. Runs chmod on the folder and file to make sure they are Umpire readable.
+  4. Removes the temporary folder in the end.
 
-  Note that we need to rename the file to its original basename. Umpire copies
-  the file into its resources folder without renaming the incoming file (though
-  it appends version and hash). If we don't do this, the umpire resources folder
-  will soon be filled with many 'tmp.XXXXXX#{version}#{hash}', and it'll be hard
-  to tell what the files actually are. Also, due to the way Umpire Docker is
+  Note that we have to keep the original basename, or Umpire will have problem
+  when extracting bundle archive files. Also, due to the way Umpire Docker is
   designed, it's not possible to move the file instead of copy now.
 
-  TODO(b/37257641): make Umpire support renaming when updating.
   TODO(b/31417203): provide an argument to choose from moving file instead of
                     copying (after the issue has been solved).
 
@@ -141,35 +138,27 @@ def UmpireAccessibleFile(board, uploaded_file):
     board: name of the board (used to construct Umpire container's name).
     uploaded_file: file field of TemporaryUploadedFile.
   """
-  # TODO(b/31417203): use volume container or named volume instead of
+  # TODO(b/31417203): Use volume container or named volume instead of
   #                   UMPIRE_BASE_DIR.
-  temp_dir = tempfile.mkdtemp(dir=os.path.join(UMPIRE_BASE_DIR, board))
-
-  try:
+  with file_utils.TempDirectory(
+      dir=os.path.join(UMPIRE_BASE_DIR, board, 'temp')) as temp_dir:
     old_path = UploadedFilePath(uploaded_file)
     new_path = os.path.join(temp_dir, os.path.basename(uploaded_file.name))
     logger.info('Making file accessible by Umpire, copying %r to %r',
                 old_path, new_path)
     shutil.copy(old_path, new_path)
 
-    # make sure they're readable to umpire
+    # Make sure they're readable to Umpire.
     os.chmod(temp_dir, stat.S_IRWXU | stat.S_IROTH | stat.S_IXOTH)
     os.chmod(new_path, stat.S_IRWXU | stat.S_IROTH | stat.S_IXOTH)
 
     # The temp file:
-    #   in Dome:   ${UMPIRE_BASE_DIR}/${board}/${temp_dir}/${name}
-    #   in Umpire: ${UMPIRE_BASE_DIR}/${temp_dir}/${name}
+    #   in Dome:   ${UMPIRE_BASE_DIR}/${board}/temp/${temp_dir}/${name}
+    #   in Umpire: ${UMPIRE_BASE_DIR}/temp/${temp_dir}/${name}
     # so need to remove "${board}/"
     tokens = new_path.split('/')
-    del tokens[-3]
+    del tokens[-4]
     yield '/'.join(tokens)
-  finally:
-    try:
-      shutil.rmtree(temp_dir)
-    except OSError as e:
-      # doesn't matter if the folder is removed already, otherwise, raise
-      if e.errno != errno.ENOENT:
-        raise
 
 
 def GetUmpireServer(board_name):
