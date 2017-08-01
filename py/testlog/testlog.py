@@ -318,6 +318,8 @@ def InitSubSession(log_root, uuid, station_test_run=None):
   }
   with file_utils.FileLockContextManager(session_log_path, 'w') as fd:
     fd.write(station_test_run.ToJSON())
+    fd.flush()
+    os.fsync(fd.fileno())
   return session_log_path
 
 
