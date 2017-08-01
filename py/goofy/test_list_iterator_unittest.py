@@ -416,14 +416,19 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     with test_lists.FactoryTest(id='H'):
       test_lists.FactoryTest(id='a', pytest_name='t_Ha')
       test_lists.FactoryTest(id='b', pytest_name='t_Hb')
+    with test_lists.FactoryTest(id='I'):
+      test_lists.FactoryTest(id='a', pytest_name='t_Ia')
+      test_lists.FactoryTest(id='b', pytest_name='t_Ib')
         """, self.OPTIONS)
 
-    # G is a test group, H is an AutomatedSequence
+    # G is a test group, H, I are AutomatedSequences
     test_list = self._SetStubStateInstance(test_list)
     test_list.LookupPath('G.a').UpdateState(status=factory.TestState.PASSED)
     test_list.LookupPath('G.b').UpdateState(status=factory.TestState.FAILED)
     test_list.LookupPath('H.a').UpdateState(status=factory.TestState.PASSED)
     test_list.LookupPath('H.b').UpdateState(status=factory.TestState.FAILED)
+    test_list.LookupPath('I.a').UpdateState(status=factory.TestState.PASSED)
+    test_list.LookupPath('I.b').UpdateState(status=factory.TestState.PASSED)
     self._AssertTestSequence(
         test_list,
         ['G.b', 'H.a', 'H.b'],

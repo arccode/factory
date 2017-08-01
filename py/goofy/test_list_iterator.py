@@ -283,6 +283,15 @@ class TestListIterator(object):
     if self.CheckSkip(test):
       return self.RETURN_CODE.POP_FRAME, None
 
+    if (test.GetState().status == factory.TestState.PASSED and
+        self.status_filter and
+        factory.TestState.PASSED not in self.status_filter):
+      # This test item / test group is passed, and we don't want to run passed
+      # tests.
+      # TODO(stimim): find a better way to handle this (e.g. peak subtests, and
+      # check if any of them might be run?)
+      return self.RETURN_CODE.POP_FRAME, None
+
     self._ResetIterations(test)
     frame.next_step = self.CheckContinue.__name__
     if test.IsTopLevelTest():
@@ -384,7 +393,7 @@ class TestListIterator(object):
           not self.CheckStatusFilter(test)):
         logging.info('test %s is filtered (skipped) because its status',
                      test.path)
-        logging.info('%s (skip list: %r)',
+        logging.info('%s (status_filter: %r)',
                      test.GetState().status, self.status_filter)
         return True  # we need to skip it
     if not self.CheckRunIf(test):
