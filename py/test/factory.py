@@ -35,10 +35,9 @@ from cros.factory.utils import shelve_utils
 from cros.factory.utils import type_utils
 
 
-# Regexp that all IDs should match.  Currently we just warn if it doesn't
-# match, for backward compatibility.  Note that this allows leading digits
+# Regexp that all IDs should match.  Note that this allows leading digits
 # (for tests like '3G').
-ID_REGEXP = re.compile(r'^\w+$')
+ID_REGEXP = re.compile(r'^[a-zA-Z0-9]+$')
 
 # Special value for require_run meaning "all tests".
 ALL = 'all'
@@ -789,14 +788,14 @@ class FactoryTest(object):
       for subtest in self.parent.subtests:
         if subtest == self:
           break
-        # '-' will only appear when we try to resolve duplicate path issue,
-        # so if the id contains '-', it must be followed by a number.
-        if subtest.id.partition('-')[0] == self.id:
+        # '_' will only appear when we try to resolve duplicate path issue,
+        # so if the id contains '_', it must be followed by a number.
+        if subtest.id.partition('_')[0] == self.id:
           count += 1
       assert count > 1
       # this is the new ID, since FactoryTest constructor will assert ID only
-      # contains [a-zA-Z0-9_], the new ID must be unique.
-      self.id += '-' + str(count)
+      # contains [a-zA-Z0-9], the new ID must be unique.
+      self.id += '_' + str(count)
       self.path = prefix + (self.id or '')
 
     assert self.path not in path_map, 'Duplicate test path %s' % (self.path)

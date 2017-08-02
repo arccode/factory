@@ -62,7 +62,7 @@ class TestListLoaderTest(unittest.TestCase):
     factory_test_list = test_list.ToFactoryTestList()
     self.assertListEqual(
         ['SMT.FirstLEDTest', 'SMT.SecondLEDTest', 'SMT.VerifyComponents',
-         'SMT.Halt', 'SMT.LEDTest', 'SMT.LEDTest-2'],
+         'SMT.Halt', 'SMT.LEDTest', 'SMT.LEDTest_2'],
         [test.path for test in factory_test_list.Walk() if test.IsLeaf()])
     self.assertEqual('a', factory_test_list.test_list_id)
     options = {
@@ -116,12 +116,12 @@ class TestListLoaderTest(unittest.TestCase):
     expected = collections.OrderedDict([
         ('SMT.RebootStep', 'PARENT'),
         ('SMT.Group.RebootStep', 'PARENT'),
-        ('SMT.Group.RebootStep-2', 'PARENT'),
-        ('SMT.Group-2.RebootStep', 'STOP'),
-        ('SMT.Group-2.RebootStep-2', 'STOP'),
-        ('SMT.RebootStep-2', 'PARENT'),
-        ('SMT.RebootStep-3', 'PARENT'),
-        ('SMT.RebootStep-4', 'STOP')])
+        ('SMT.Group.RebootStep_2', 'PARENT'),
+        ('SMT.Group_2.RebootStep', 'STOP'),
+        ('SMT.Group_2.RebootStep_2', 'STOP'),
+        ('SMT.RebootStep_2', 'PARENT'),
+        ('SMT.RebootStep_3', 'PARENT'),
+        ('SMT.RebootStep_4', 'STOP')])
 
     self.assertListEqual(
         expected.keys(),
@@ -144,7 +144,7 @@ class TestListLoaderTest(unittest.TestCase):
         'SMT.FirstLEDTest': ['RED'],
         'SMT.SecondLEDTest': ['BLUE'],
         'SMT.LEDTest': ['GREEN'],
-        'SMT.LEDTest-2': ['WHITE'],
+        'SMT.LEDTest_2': ['WHITE'],
     }
 
     for path, colors in expected.iteritems():
@@ -199,10 +199,10 @@ class TestListLoaderTest(unittest.TestCase):
         test_list.LookupPath('SMT.NOP').locals_,
         {'foo': 'FOO', 'bar': 'BAR'})
     self.assertEqual(
-        test_list.LookupPath('SMT.NOP-2').locals_,
+        test_list.LookupPath('SMT.NOP_2').locals_,
         {'foo': 'FOO', 'bar': 'BAZ'})
     self.assertEqual(
-        test_list.LookupPath('SMT.NOP-3').locals_,
+        test_list.LookupPath('SMT.NOP_3').locals_,
         {'foo': 'BAR', 'bar': 'BAZ'})
 
   def testFlattenGroup(self):
@@ -210,10 +210,10 @@ class TestListLoaderTest(unittest.TestCase):
 
     expected = collections.OrderedDict([
         ("NOP", {"foo": "FOO"}),
-        ("NOP-2", {"foo": "FOO", "bar": "BAR"}),
-        ("NOP-3", {"foo": "FOO", "bar": "BAR"}),
+        ("NOP_2", {"foo": "FOO", "bar": "BAR"}),
+        ("NOP_3", {"foo": "FOO", "bar": "BAR"}),
         ("Group3.NOP", {"foo": "FOO", "baz": "BAZ"}),
-        ("Group3.NOP-2", {"baz": "BAZ"}),
+        ("Group3.NOP_2", {"baz": "BAZ"}),
     ])
 
     self.assertListEqual(

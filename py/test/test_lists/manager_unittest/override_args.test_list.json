@@ -58,7 +58,7 @@
     "SMT.LEDTest": {
       "colors": ["GREEN"]
     },
-    "SMT.LEDTest-2": {
+    "SMT.LEDTest_2": {
       "colors": ["WHITE"]
     }
   }
