@@ -62,15 +62,13 @@ def ProbeBoard(hwid=None):
 def ProbeProject():
   """Probes the project name.
 
-  This function will try to run the command `mosys platform chassis` to
-  get the project name.  If the command returns an empty string, this
-  function will return the board name.
+  This function will try to run the command `mosys platform chassis` to get the
+  project name.  If failed, this function will return the board name as legacy
+  chromebook projects used to assume that the board name is equal to the
+  project name.
 
   Returns:
     The probed project name as a string.
-
-  Raises:
-    HWIDException when probe error.
   """
   try:
     project = process_utils.CheckOutput(
@@ -78,8 +76,8 @@ def ProbeProject():
     if project:
       return project
 
-  except subprocess.CalledProcessError as e:
-    raise HWIDException('Failed to run "mosys platform chassis": %r' % e)
+  except subprocess.CalledProcessError:
+    pass
 
   return build_board.BuildBoard().short_name.upper()
 
