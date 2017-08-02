@@ -1119,7 +1119,7 @@ class Goofy(GoofyBase):
       self.state_instance.set_shared_data('ui_locale', ui_locale)
     self.state_instance.set_shared_data(
         'test_list_options',
-        self.test_list.options.__dict__)
+        self.test_list.options.ToDict())
     self.state_instance.test_list = self.test_list
 
     if self.options.dummy_shopfloor:

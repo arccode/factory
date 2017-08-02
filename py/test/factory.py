@@ -332,8 +332,6 @@ class Options(object):
     default_options = Options()
     errors = []
     for key in sorted(self.__dict__):
-      if key.startswith('_'):
-        continue
       if not hasattr(default_options, key):
         errors.append('Unknown option %s' % key)
         continue
@@ -346,6 +344,18 @@ class Options(object):
                       (key, type(value), allowable_types))
     if errors:
       raise TestListError('\n'.join(errors))
+
+  def ToDict(self):
+    """Returns a dict containing all values of the Options.
+
+    This include default values for keys not set on the Options.
+    """
+    result = {
+        k: v
+        for k, v in self.__class__.__dict__.iteritems() if k[0].islower()
+    }
+    result.update(self.__dict__)
+    return result
 
 
 class TestState(object):
@@ -1183,9 +1193,7 @@ class FactoryTestList(FactoryTest):
     config = {
         'inherit': [],
         'label': self.label,
-        'options': {
-            k: getattr(self.options, k) for k in self.options.__dict__
-        },
+        'options': self.options.ToDict(),
         'constants': dict(self.constants),
     }
     if recursive:
