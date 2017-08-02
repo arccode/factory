@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -101,7 +101,7 @@ class FactoryServer(object):
 
   def __init__(self, data_dir, address, port, auto_archive_logs,
                auto_archive_logs_days, shopfloor_service_url=None,
-               updater=None):
+               miniomaha_payload_url=None, updater=None):
     """Initializes the server.
 
     Args:
@@ -111,6 +111,7 @@ class FactoryServer(object):
       auto_archive_logs: See _auto_archive_logs property.
       auto_archive_logs_days: See _auto_archive_logs_days property.
       shopfloor_service_url: An URL to shopfloor service backend.
+      miniomaha_payload_url: An URL to Mini-Omaha cros_payload JSON file.
       updater: A reference to factory updater. Factory updater provides
                interfaces compatible to FactoryUpdateServer. Including
                Start, Stop, hwid_path, GetTestMD5, NeedsUpdate and rsync_port.
@@ -141,6 +142,13 @@ class FactoryServer(object):
     shopfloor_service_url = shopfloor_service_url.rstrip('/')
     self.service = xmlrpclib.ServerProxy(shopfloor_service_url, allow_none=True)
     logging.info('Using shopfloor service from %s', shopfloor_service_url)
+
+    self.miniomaha_payload_url = (
+        miniomaha_payload_url or
+        config_utils.LoadConfig('factory_server').get(
+            'miniomaha_payload_url', ''))
+    logging.info('Using %r as Mini-Omaha cros_payload JSON URL.',
+                 self.miniomaha_payload_url)
 
     if not os.path.exists(self.data_dir):
       logging.warn('Data directory %s does not exist; creating it',
@@ -373,8 +381,8 @@ class FactoryServer(object):
 
   def GetCROSPayloadURL(self, x_umpire_dut):
     """Returns URL of cros_payload JSON file on Mini-Omaha."""
-    # TODO(b/62335217): Implement this function.
-    raise NotImplementedError
+    del x_umpire_dut  # Unused.
+    return self.miniomaha_payload_url
 
   def ListParameters(self, pattern):
     """Lists files that match the pattern in parameters directory.
@@ -723,6 +731,9 @@ def main():
   parser.add_option('-s', '--shopfloor-service-url',
                     dest='shopfloor_service_url', default=None,
                     help='URL to shopfloor service backend.')
+  parser.add_option('-m', '--miniomaha-payload-url',
+                    dest='miniomaha_payload_url', default=None,
+                    help='URL to cros_payload JSON file on Mini-Omaha.')
   parser.add_option('-v', '--verbose', action='count', dest='verbose',
                     help='increase message verbosity')
   parser.add_option('-q', '--quiet', action='store_true', dest='quiet',
@@ -784,6 +795,7 @@ def main():
                            options.auto_archive_logs,
                            options.auto_archive_logs_days,
                            shopfloor_service_url=options.shopfloor_service_url,
+                           miniomaha_payload_url=options.miniomaha_payload_url,
                            updater=updater)
 
   def handler(signum, frame):

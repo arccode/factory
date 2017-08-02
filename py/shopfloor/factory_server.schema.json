@@ -7,6 +7,10 @@
         "shopfloor_service_url": {
             "id": "/properties/shopfloor_service_url",
             "type": "string"
+        },
+        "miniomaha_payload_url": {
+            "id": "/properties/miniomaha_payload_url",
+            "type": "string"
         }
     },
     "type": "object"

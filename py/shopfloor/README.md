@@ -78,15 +78,23 @@ The legacy factory server, which was known as `shopfloor_server` or `shopfloor`
 and now renamed to `factory_server`, allows specifying shopfloor service using
 `-s` argument or loaded from config file `factory_server.json`.
 
-The default URL is set to local host (http://127.0.0.1:8090).
+The default shopfloor service URL is set to local host (http://127.0.0.1:8090).
+
+It's also required to set up Mini-Omaha cros\_payload JSON URL in
+`factory_server`, or toolkit/hwid/firmware component update would be
+unavailable. This can be configured by `-m` argument or config file
+`factory_server.json`.
 
 To override permanently, in board overlay create a file
-`chromeos-base/factory-board/files/py/config/factory_server.json` with following
-contents, then rebuild toolkit:
+`chromeos-base/factory-board/files/py/config/factory_server.json`, then rebuild
+toolkit.
+
+An example of `factory_server.json`:
 
 ```json
   {
-    "shopfloor_service_url": "http://127.0.0.1:8090"
+    "shopfloor_service_url": "http://127.0.0.1:8090",
+    "miniomaha_payload_url": "http://127.0.0.1:8080/static/samus.json"
   }
 ```
 
