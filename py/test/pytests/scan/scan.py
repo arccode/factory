@@ -2,7 +2,43 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Prompts the operator to input a string of data."""
+"""Prompts the operator to input a string of data.
+
+Description
+-----------
+This test asks the operator to scan or type a string, usually
+for provisioning manufacturing info like device serial number
+or operator's ID.
+
+Test Procedure
+--------------
+1. A prompt message will display on the UI.
+2. Operator enters a string using a barcode scanner, or by
+   typing on keyboard.
+
+Dependency
+----------
+If `bft_fixture` is specified, the ScanBarcode and related functions
+must be implemented to provide scanned data.
+
+Examples
+--------
+To ask the operator to scan the MLB serial number::
+
+  OperatorTest(
+      pytest_name='scan',
+      dargs={label='MLB Serial Number',
+             device_data_key='serials.mlb_serial_number'})
+
+
+A regular expression can also be specified to check the validity::
+
+  OperatorTest(
+      pytest_name='scan',
+      dargs={label='MLB Serial Number',
+             device_data_key='serials.mlb_serial_number'
+             regexp='.+'})
+"""
 
 from __future__ import print_function
 
@@ -74,7 +110,7 @@ class Scan(unittest.TestCase):
           "Interval for repeatedly trigger BFT's barcode scaner",
           default=2.0),
       Arg('match_the_last_few_chars', int,
-          'This is for OP to manually input last few SN chars based on the\n'
+          'This is for OP to manually input last few SN chars based on the '
           'sticker on machine to make sure SN in VPD matches sticker SN.',
           default=0),
       Arg('ignore_case', bool, 'True to ignore case from input.',
