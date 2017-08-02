@@ -3,16 +3,36 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""This is sample code of a board specific test.
+"""This is the sample code of a board specific test.
 
-Board specific test should be put in board overlay. For example, if the overlay
-is ~/trunk/src/private-overlays/overlay-${BOARD}-private then you have to create
-the factory-board package and put files under relative path
-chromeos-base/factory-board/files/py/pytests/.
+Description
+-----------
+This is a sample test code to demostrate how to write a board-specific test.
+
+A board specific test should be put in the board overlay. For example, assuming
+the overlay is located at
+``~/trunk/src/private-overlays/overlay-${BOARD}-private``, then you have to
+create the factory-board package and put files under relative path
+``chromeos-base/factory-board/files/py/pytests/``.
 
 To avoid file name conflict, please name the python script as "${BOARD}_xxx.py".
 For example, if you are implementing your own touchscreen test for board ABC, a
-reasonable file name would be: abc_touchscreen.py.
+reasonable file name would be: ``abc_touchscreen.py``.
+
+Test Procedure
+--------------
+This is only a sample code to demonstrate how to write a board-specific test.
+
+Dependency
+----------
+None.
+
+Examples
+--------
+To run this sample code with default arguments::
+
+  OperatorTest(pytest_name='sample_customized_test',
+               dargs={'foo': 1})
 """
 
 
