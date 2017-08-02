@@ -1,26 +1,92 @@
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""Test that waits the battery to be charged to specific level.
 
-"""This is a factory test that only pass when battery is charged to specific
-level.
+Description
+-----------
+The test waits until the battery is charged to the given level, and pass.
+
+The ``target_charge_pct`` sets the target charge level in percentage.
+``target_charge_pct`` can be set to some special values:
+
+* ``"goofy"``: Use ``min_charge_pct`` from Goofy's charge_manager plugin as
+  target charge level.
+* ``"cutoff"``: Use ``CUTOFF_BATTERY_MIN_PERCENTAGE`` from cutoff.json as
+  target charge level.
+
+If ``target_charge_pct_is_delta`` is True, ``target_charge_pct`` would be
+interpreted as difference to current charge level.
+
+If battery doesn't reach the target level in ``timeout_secs`` seconds, the test
+would fail.
+
+Test Procedure
+--------------
+This is an automated test without user interaction.
+
+1. A screen would be shown with current battery level, target battery level,
+   and time remaining.
+2. Test would pass when battery reach target level, or fail if test run longer
+   than ``timeout_secs``.
+
+Dependency
+----------
+Device API `cros.factory.device.power`.
+
+Examples
+--------
+To charge the device to ``min_charge_pct`` in Goofy charge_manager (default
+behavior), add this in test list::
+
+  OperatorTest(pytest_name='blocking_charge',
+               exclusive_resources=[plugin.RESOURCE.POWER])
+
+To charge the device to minimum battery level needed for cutoff, add this in
+test list::
+
+  OperatorTest(pytest_name='blocking_charge',
+               exclusive_resources=[plugin.RESOURCE.POWER],
+               dargs={'target_charge_pct': 'cutoff'})
+
+To charge the device to 75 percent, add this in test list::
+
+  OperatorTest(pytest_name='blocking_charge',
+               exclusive_resources=[plugin.RESOURCE.POWER],
+               dargs={'target_charge_pct': 75})
+
+To charge the device 10 percent more, and only allow 5 minutes time for
+charging, add this in test list::
+
+  OperatorTest(pytest_name='blocking_charge',
+               exclusive_resources=[plugin.RESOURCE.POWER],
+               dargs={
+                 'target_charge_pct': 20,
+                 'target_charge_pct_is_delta': True,
+                 'timeout_secs': 300
+               })
 """
 
 import logging
-import threading
+import os
 import time
 import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test.env import paths
 from cros.factory.test import event_log
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.test.utils import goofy_plugin_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import config_utils
+from cros.factory.utils import type_utils
 
 _TEST_TITLE = i18n_test_ui.MakeI18nLabel('Charging')
+_DEFAULT_TARGET_CHARGE = 78
 
 
 def FormatTime(seconds):
@@ -42,10 +108,22 @@ def MakeSpriteHTMLTag(src, height, width):
           (src, width, height))
 
 
+def _GetCutoffBatteryMinPercentage():
+  config = config_utils.LoadConfig(
+      config_name='cutoff',
+      default_config_dir=os.path.join(paths.FACTORY_DIR, 'sh', 'cutoff'))
+  return config.get('CUTOFF_BATTERY_MIN_PERCENTAGE', _DEFAULT_TARGET_CHARGE)
+
+
+def _GetGoofyBatteryMinPercentage():
+  config = goofy_plugin_utils.GetPluginArguments('charge_manager') or {}
+  return config.get('min_charge_pct', _DEFAULT_TARGET_CHARGE)
+
+
 class ChargerTest(unittest.TestCase):
   ARGS = [
-      Arg('target_charge_pct', int, 'Target charge level',
-          default=78),
+      Arg('target_charge_pct', (int, type_utils.Enum(['goofy', 'cutoff'])),
+          'Target charge level. ', default='goofy'),
       Arg('target_charge_pct_is_delta', bool,
           'Specify target_charge_pct is a delta of current charge',
           default=False),
@@ -58,7 +136,6 @@ class ChargerTest(unittest.TestCase):
     self._ui = test_ui.UI()
     self._template = ui_templates.TwoSections(self._ui)
     self._template.SetTitle(_TEST_TITLE)
-    self._thread = threading.Thread(target=self._ui.Run)
 
   def CheckPower(self):
     self.assertTrue(self._power.CheckBatteryPresent(), 'Cannot find battery.')
@@ -68,10 +145,20 @@ class ChargerTest(unittest.TestCase):
     start_charge = self._power.GetChargePct()
     self.assertTrue(start_charge, 'Error getting battery state.')
     target_charge = self.args.target_charge_pct
-    if self.args.target_charge_pct_is_delta is True:
+    if self.args.target_charge_pct_is_delta:
+      self.assertIsInstance(target_charge, int,
+                            'target_charge must be int when '
+                            'target_charge_pct_is_delta is True.')
       target_charge = min(target_charge + start_charge, 100)
+    elif target_charge == 'cutoff':
+      target_charge = _GetCutoffBatteryMinPercentage()
+    elif target_charge == 'goofy':
+      target_charge = _GetGoofyBatteryMinPercentage()
+
+    logging.info('Target charge is %d%%', target_charge)
     if start_charge >= target_charge:
       return
+
     self._power.SetChargeState(self._power.ChargeState.CHARGE)
     self._template.SetState(MakeSpriteHTMLTag('charging_sprite.png', 256, 256))
     logging.info('Charging starting at %d%%', start_charge)
@@ -102,16 +189,10 @@ class ChargerTest(unittest.TestCase):
     self.fail('Cannot charge battery to %d%% in %d seconds.' %
               (target_charge, self.args.timeout_secs))
 
-  def runTest(self):
-    self._thread.start()
-    try:
-      self.CheckPower()
-      self.Charge()
-    except Exception, e:
-      self._ui.Fail(str(e))
-      raise
-    else:
-      self._ui.Pass()
+  def _runTest(self):
+    self.CheckPower()
+    self.Charge()
 
-  def tearDown(self):
-    self._thread.join()
+  def runTest(self):
+    self._ui.RunInBackground(self._runTest)
+    self._ui.Run()
