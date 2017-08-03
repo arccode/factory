@@ -30,6 +30,7 @@ from cros.factory.test.env import paths
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import translation
+from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import shelve_utils
 from cros.factory.utils import type_utils
@@ -324,6 +325,32 @@ class Options(object):
   """Name of the config to be loaded for running Goofy plugins."""
 
   _types['plugin_config_name'] = (type(None), str)
+
+  skipped_tests = {}
+  """A list of tests that should be skipped.
+  The content of skipped_tests should be::
+
+      {
+        <phase>: [ <test path> ... ]
+      }
+
+  For example::
+
+      {
+          'PROTO': [
+              'SMT.AudioJack',
+              'SMT.SpeakerDMic'
+          ],
+          'EVT': [
+              'SMT.AudioJack',
+          ]
+      }
+  """
+
+  waived_tests = {}
+  """Tests that should be waived according to current phase.
+  See `skipped_tests` for the format"""
+
 
   def CheckValid(self):
     """Throws a TestListError if there are any invalid options."""
@@ -1083,8 +1110,8 @@ class FactoryTestList(FactoryTest):
           ancestors.
       label: An optional label for the test list.
       finish_construction: Whether to immediately finalize the test
-          list.  If False, the caller may add modify subtests,
-          state_instance, and options and then call FinishConstruction().
+          list.  If False, the caller may add modify subtests and options and
+          then call FinishConstruction().
       constants: A type_utils.AttrDict object, which will be used to resolve
           'eval! ' dargs.  See test.test_lists.manager.ITestList.ResolveTestArgs
           for how it is used.
@@ -1107,14 +1134,16 @@ class FactoryTestList(FactoryTest):
   def FinishConstruction(self):
     """Finishes construction of the test list.
 
-    Performs final validity checks on the test list (e.g., making sure
-    there are no nodes with duplicate IDs) and sets up some internal
-    data structures (like path_map).  This must be invoked after all
-    nodes and options have been added to the test list, and before the
-    test list is used.
+    Performs final validity checks on the test list (e.g., resolve duplicate
+    IDs, check if required tests exist) and sets up some internal data
+    structures (like path_map).  This must be invoked after all nodes and
+    options have been added to the test list, and before the test list is used.
 
     If finish_construction=True in the constructor, this is invoked in
     the constructor and the caller need not invoke it manually.
+
+    When this function is called, self.state_instance might not be set
+    (normally, it is set by goofy **after** FinishConstruction is called).
 
     Raises:
       TestListError: If the test list is invalid for any reason.
@@ -1133,8 +1162,28 @@ class FactoryTestList(FactoryTest):
               % (requirement.path, test.path))
 
     self.options.CheckValid()
-
     self._check()
+
+  @debug_utils.CatchException('FactoryTestList')
+  def SetSkippedAndWaivedTests(self):
+    """Set skipped and waived tests according to phase and options.
+
+    Since SKIPPED status is saved in state_instance, self.state_instance must be
+    available at this moment.
+    """
+    assert self.state_instance is not None
+    # set skipped tests
+    test_paths = self.options.skipped_tests.get(self.options.phase, [])
+    for test_path in test_paths:
+      test = self.LookupPath(test_path)
+      if test:
+        test.Skip(forever=True)
+    # set waived tests
+    test_paths = self.options.waived_tests.get(self.options.phase, [])
+    for test_path in test_paths:
+      test = self.LookupPath(test_path)
+      if test:
+        test.waived = True
 
   @staticmethod
   def ResolveRequireRun(test_path, requirement_path):

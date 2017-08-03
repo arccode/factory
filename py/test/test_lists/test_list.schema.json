@@ -93,6 +93,7 @@
       "additionalProperties": false
     },
     "test_options": {
+      "__comment": "please see cros.factory.test.factory.Options",
       "type": "object"
     }
   },

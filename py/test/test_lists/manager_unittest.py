@@ -105,7 +105,8 @@ class TestListLoaderTest(unittest.TestCase):
 
   def testListTestListIDs(self):
     self.assertItemsEqual(
-        ['a', 'b', 'base', 'locals', 'override_args', "flatten_group"],
+        ['a', 'b', 'base', 'locals', 'override_args', 'flatten_group',
+         'skipped_waived_tests'],
         self.loader.FindTestListIDs())
 
   def testChildActionOnFailure(self):

@@ -466,6 +466,9 @@ class Goofy(GoofyBase):
       logging.warning("Unexpected shutdown.")
       self.dut.hooks.OnUnexpectedReboot()
 
+    # state_instance is initialized, we can mark skipped and waived tests now.
+    self.test_list.SetSkippedAndWaivedTests()
+
   def handle_event(self, event):
     """Handles an event from the event server."""
     handler = self.event_handlers.get(event.type)
