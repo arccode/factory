@@ -419,10 +419,20 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     with test_lists.FactoryTest(id='I'):
       test_lists.FactoryTest(id='a', pytest_name='t_Ia')
       test_lists.FactoryTest(id='b', pytest_name='t_Ib')
-        """, self.OPTIONS)
+    with test_lists.FactoryTest(id='J'):
+      test_lists.FactoryTest(id='a', pytest_name='t_Ja')
+      test_lists.FactoryTest(id='b', pytest_name='t_Jb')
+        """,
+        """
+    options.phase = 'PROTO'
+    options.skipped_tests = {
+        'PROTO': ['J']
+    }
+        """)
 
-    # G is a test group, H, I are AutomatedSequences
+    # G is a test group, H, I, J are AutomatedSequences
     test_list = self._SetStubStateInstance(test_list)
+    test_list.SetSkippedAndWaivedTests()
     test_list.LookupPath('G.a').UpdateState(status=factory.TestState.PASSED)
     test_list.LookupPath('G.b').UpdateState(status=factory.TestState.FAILED)
     test_list.LookupPath('H.a').UpdateState(status=factory.TestState.PASSED)
