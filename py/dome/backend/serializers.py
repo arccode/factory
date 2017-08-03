@@ -70,6 +70,10 @@ class ProjectSerializer(serializers.Serializer):
       model_field=Project._meta.get_field(  # pylint: disable=W0212
           'umpire_port'),
       required=False)
+  netboot_bundle = serializers.ModelField(
+      model_field=Project._meta.get_field(  # pylint: disable=W0212
+          'netboot_bundle'),
+      required=False)
 
   # True means the user is trying to add an existing Umpire container; False
   # means the user asked to create a new one

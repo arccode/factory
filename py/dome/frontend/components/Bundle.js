@@ -3,8 +3,10 @@
 // found in the LICENSE file.
 
 import ContentCopyIcon from 'material-ui/svg-icons/content/content-copy';
+import ChosenIcon from 'material-ui/svg-icons/toggle/star';
 import DeleteIcon from 'material-ui/svg-icons/action/delete';
 import DragHandleIcon from 'material-ui/svg-icons/editor/drag-handle';
+import UnchosenIcon from 'material-ui/svg-icons/toggle/star-border';
 import IconButton from 'material-ui/IconButton';
 import Immutable from 'immutable';
 import React from 'react';
@@ -14,6 +16,7 @@ import {Card, CardHeader, CardTitle, CardText} from 'material-ui/Card';
 import {SortableHandle} from 'react-sortable-hoc';
 
 import BundlesActions from '../actions/bundlesactions';
+import DomeActions from '../actions/domeactions';
 import ResourceTable from './ResourceTable';
 import RuleTable from './RuleTable';
 
@@ -32,7 +35,10 @@ var Bundle = React.createClass({
     activateBundle: React.PropTypes.func.isRequired,
     changeBundleRules: React.PropTypes.func.isRequired,
     deleteBundle: React.PropTypes.func.isRequired,
-    bundle: React.PropTypes.instanceOf(Immutable.Map).isRequired
+    bundle: React.PropTypes.instanceOf(Immutable.Map).isRequired,
+    projectName: React.PropTypes.string.isRequired,
+    projectNetbootBundle: React.PropTypes.string.isRequired,
+    setAsNetboot: React.PropTypes.func.isRequired
   },
 
   handleActivate(event) {
@@ -52,7 +58,13 @@ var Bundle = React.createClass({
   },
 
   render() {
-    const {bundle, deleteBundle} = this.props;
+    const {
+      bundle,
+      projectName,
+      projectNetbootBundle,
+      deleteBundle,
+      setAsNetboot
+    } = this.props;
 
     const INACTIVE_STYLE = {
       opacity: 0.3
@@ -103,6 +115,16 @@ var Bundle = React.createClass({
             >
               <DeleteIcon />
             </IconButton>
+            <IconButton
+              tooltip="use this bundle's netboot resource"
+              onClick={e => e.stopPropagation()}
+              onTouchTap={() => setAsNetboot(bundle.get('name'), projectName)}
+            >
+              {(projectNetbootBundle == bundle.get('name')) &&
+                <ChosenIcon />}
+              {!(projectNetbootBundle == bundle.get('name')) &&
+                <UnchosenIcon />}
+            </IconButton>
           </div>
         </CardTitle>
         <CardHeader title="RESOURCES" expandable={true} />
@@ -123,14 +145,29 @@ var Bundle = React.createClass({
   }
 });
 
+function mapStateToProps(state) {
+  return {
+    projectName: state.getIn(['dome', 'currentProject']),
+    projectNetbootBundle: state.getIn([
+      'dome',
+      'projects',
+      state.getIn(['dome', 'currentProject']),
+      'netbootBundle'
+    ])
+  };
+}
+
 function mapDispatchToProps(dispatch) {
   return {
     activateBundle: (name, active) =>
         dispatch(BundlesActions.activateBundle(name, active)),
     changeBundleRules: (name, rules) =>
         dispatch(BundlesActions.changeBundleRules(name, rules)),
-    deleteBundle: name => dispatch(BundlesActions.deleteBundle(name))
+    deleteBundle: name => dispatch(BundlesActions.deleteBundle(name)),
+    setAsNetboot: (name, projectName)  =>
+        dispatch(DomeActions.updateProject(
+            projectName, {'netbootBundle': name, 'umpireEnabled': true}))
   };
 }
 
-export default connect(null, mapDispatchToProps)(Bundle);
+export default connect(mapStateToProps, mapDispatchToProps)(Bundle);

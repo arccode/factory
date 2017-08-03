@@ -137,7 +137,8 @@ const updateProject = (name, settings = {}) => (dispatch, getState) => {
     'umpireEnabled',
     'umpireAddExistingOne',
     'umpireHost',
-    'umpirePort'
+    'umpirePort',
+    'netbootBundle'
   ].forEach(key => {
     if (key in settings) {
       body[key] = settings[key];

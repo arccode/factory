@@ -58,6 +58,8 @@ UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER = '/var/db/factory/umpire'
 
 TFTP_DOCKER_DIR = '/cros_docker/tftp'
 TFTP_BASE_DIR_IN_TFTP_CONTAINER = '/var/tftp'
+TFTP_ROOT_IN_DOME = '/var/tftp'
+TFTP_ROOT_IN_UMPIRE_CONTAINER = '/mnt/tftp'
 TFTP_CONTAINER_NAME = 'dome_tftp'
 
 # Mount point of the Umpire data folder in Dome's container. Note: this is not
@@ -211,7 +213,8 @@ def DoesContainerExist(container_name):
 
 class DomeConfig(django.db.models.Model):
 
-  id = django.db.models.IntegerField(default=0, primary_key=True, serialize=False)
+  id = django.db.models.IntegerField(
+      default=0, primary_key=True, serialize=False)
   tftp_enabled = django.db.models.BooleanField(default=False)
 
   def CreateTFTPContainer(self):
@@ -315,11 +318,27 @@ class Project(django.db.models.Model):
   umpire_enabled = django.db.models.BooleanField(default=False)
   umpire_host = django.db.models.GenericIPAddressField(null=True)
   umpire_port = django.db.models.PositiveIntegerField(null=True)
+  netboot_bundle = django.db.models.CharField(max_length=200, null=True)
 
   # TODO(littlecvr): add TFTP and Overlord ports
 
   class Meta(object):
     ordering = ['name']
+
+  def MapNetbootResourceToTFTP(self, bundle_name):
+    umpire_server = GetUmpireServer(self.name)
+    netboot_resources = [
+        (umpire_resource.PayloadTypeNames.netboot_kernel, 'vmlinuz'),
+        (umpire_resource.PayloadTypeNames.netboot_cmdline, 'cmdline')
+    ]
+    for (payload_type, file_name) in netboot_resources:
+      tftp_path = os.path.join('chrome-bot', self.name, file_name)
+      # remove old resources
+      file_utils.TryUnlink(os.path.join(TFTP_ROOT_IN_DOME, tftp_path))
+      if Bundle.HasResource(self.name, bundle_name, payload_type):
+        path_in_umpire = os.path.join(TFTP_ROOT_IN_UMPIRE_CONTAINER, tftp_path)
+        umpire_server.ExportPayload(bundle_name, payload_type, path_in_umpire)
+    return self
 
   def ReplaceLocalhostWithDockerHostIP(self):
     # Dome is inside a docker container. If umpire_host is 'localhost', it is
@@ -459,6 +478,11 @@ class Project(django.db.models.Model):
         else:  # create a new local instance
           project.CreateUmpireContainer(kwargs['umpire_port'])
 
+    # replace netboot resource in TFTP root
+    if ('netboot_bundle' in kwargs and
+        project.netboot_bundle != kwargs['netboot_bundle']):
+      project.MapNetbootResourceToTFTP(kwargs['netboot_bundle'])
+
     # update attributes assigned in kwargs
     for attr, value in kwargs.iteritems():
       if hasattr(project, attr):
@@ -502,6 +526,13 @@ class Bundle(object):
       key = next(
           k for (k, v) in UMPIRE_MATCH_KEY_MAP.iteritems() if v == umpire_key)
       self.rules[key] = rules[umpire_key]
+
+  @staticmethod
+  def HasResource(project_name, bundle_name, resource_name):
+    config = Bundle._GetNormalizedActiveConfig(project_name)
+    bundle = next(b for b in config['bundles'] if b['id'] == bundle_name)
+    payloads = GetUmpireServer(project_name).GetPayloadsDict(bundle['payloads'])
+    return resource_name in payloads
 
   @staticmethod
   def _GetNormalizedActiveConfig(project_name):

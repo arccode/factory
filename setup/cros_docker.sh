@@ -107,6 +107,7 @@ BUILD_DIR="${FACTORY_DIR}/build/docker"
 # This would be overriden in integration tests.
 : "${HOST_SHARED_DIR:="/cros_docker"}"
 HOST_DOME_DIR="${HOST_SHARED_DIR}/dome"
+HOST_TFTP_DIR="${HOST_SHARED_DIR}/tftp"
 HOST_UMPIRE_DIR="${HOST_SHARED_DIR}/umpire"
 HOST_OVERLORD_DIR="${HOST_SHARED_DIR}/overlord"
 HOST_OVERLORD_APP_DIR="${HOST_OVERLORD_DIR}/app"
@@ -134,6 +135,9 @@ DOCKER_OVERLORD_APP_DIR="${DOCKER_OVERLORD_DIR}/app"
 
 # Umpire's db directory mount point in Dome
 DOCKER_UMPIRE_DIR_IN_DOME="/var/db/factory/umpire"
+
+# TFTP root mount point in Dome
+DOCKER_TFTP_DIR_IN_DOME="/var/tftp"
 
 # DOCKER_IMAGE_{GITHASH,TIMESTAMP} will be updated when you publish.
 DOCKER_IMAGE_GITHASH="902cfba26e5d73ddb83a6ea6fec7f7555735577f"
@@ -607,6 +611,7 @@ do_run() {
     --volume /run \
     --volume "${HOST_DOME_DIR}/${db_filename}:${docker_db_dir}/${db_filename}" \
     --volume "${host_log_dir}:${docker_log_dir}" \
+    --volume "${HOST_TFTP_DIR}:${DOCKER_TFTP_DIR_IN_DOME}" \
     --volume "${HOST_UMPIRE_DIR}:${DOCKER_UMPIRE_DIR_IN_DOME}" \
     --workdir "${DOCKER_DOME_DIR}" \
     "${DOCKER_IMAGE_NAME}" \
