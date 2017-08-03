@@ -128,9 +128,10 @@ def CatchException(name, enable=True):
       A decorated method that will catch exceptions and only logs reduced
       trace.
     """
+    @functools.wraps(method)
     def Wrap(*args, **kwargs):
       try:
-        method(*args, **kwargs)
+        return method(*args, **kwargs)
       except Exception:
         logging.warning(
             '%s Exception: %s.', name,

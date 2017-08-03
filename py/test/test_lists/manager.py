@@ -34,6 +34,9 @@ _DUMMY_CACHE = object()
 
 _EVALUATE_PREFIX = 'eval! '
 
+# logged name for debug_utils.CatchException
+_LOGGED_NAME = 'TestListManager'
+
 
 def MayTranslate(string, force=False):
   """Translate a string if it starts with 'i18n! ' or force=True.
@@ -113,6 +116,11 @@ class ITestList(object):
       :rtype: cros.factory.test.factory.FactoryTestList
     """
     raise NotImplementedError
+
+  def CheckValid(self):
+    """Check if this can be convert to a FactoryTestList object."""
+    if not self.ToFactoryTestList():
+      raise factory.TestListError('Cannot convert to FactoryTestList')
 
   def __getattr__(self, name):
     """Redirects attribute lookup to ToFactoryTestList()."""
@@ -289,6 +297,7 @@ class TestList(ITestList):
     self._state_instance = None
     self._state_change_callback = None
 
+  @debug_utils.CatchException(_LOGGED_NAME)
   def ToFactoryTestList(self):
     self.ReloadIfModified()
     if self._cached_test_list:
@@ -451,6 +460,15 @@ class TestList(ITestList):
     logging.debug('reloading test list %s', self._config.test_list_id)
     try:
       new_config = self._loader.Load(self._config.test_list_id)
+
+      if not new_config:
+        raise factory.TestListError(
+            'Syntax or schema error in %s' % self._config.test_list_id)
+
+      # make sure the new test list is working, if it's not, will raise an
+      # exception and self._config will not be changed.
+      TestList(new_config, self._checker, self._loader).CheckValid()
+
       self._config = new_config
       for key in self.__dict__:
         if key.startswith('_cached_'):
@@ -485,6 +503,7 @@ class TestList(ITestList):
 
   # the following functions / properties are required by goofy
   @property
+  @debug_utils.CatchException(_LOGGED_NAME)
   def options(self):
     self.ReloadIfModified()
     if self._cached_options:
@@ -510,7 +529,7 @@ class TestList(ITestList):
 
   @property
   def state_instance(self):
-    return self.ToFactoryTestList().state_instance
+    return self._state_instance
 
   @state_instance.setter
   def state_instance(self, state_instance):  # pylint: disable=arguments-differ
@@ -597,6 +616,7 @@ class Loader(object):
                                 'py', 'test', 'test_lists')
     self.config_dir = config_dir
 
+  @debug_utils.CatchException(_LOGGED_NAME)
   def Load(self, test_list_id, allow_inherit=True):
     """Loads test list config by test list ID.
 
@@ -627,6 +647,7 @@ class Loader(object):
 
     loaded_config.timestamp = timestamp
     return loaded_config
+
   def GetConfigPath(self, test_list_id):
     """Returns the test list config file path of `test_list_id`."""
     return os.path.join(self.config_dir,
@@ -848,6 +869,15 @@ class Manager(object):
     self.test_lists = {}
 
   def GetTestListByID(self, test_list_id):
+    """Get test list by test list ID.
+
+    Args:
+      test_list_id: ID of the test list
+
+    Returns:
+      a TestList object if the corresponding test list config is loaded
+      successfully, otherwise None.
+    """
     if test_list_id in self.test_lists:
       self.test_lists[test_list_id].ReloadIfModified()
       return self.test_lists[test_list_id]
@@ -857,10 +887,17 @@ class Manager(object):
       # cannot load config file, return the value we currently have
       return self.test_lists.get(test_list_id, None)
 
-    assert isinstance(config, TestListConfig)
-    test_list = TestList(config, self.checker, self.loader)
-    self.test_lists[test_list_id] = test_list
-    return test_list
+    if not isinstance(config, TestListConfig):
+      logging.critical('Loader is not returning a TestListConfig instance')
+      return None
+
+    try:
+      test_list = TestList(config, self.checker, self.loader)
+      self.test_lists[test_list_id] = test_list
+    except Exception:
+      logging.critical('Failed to build test list %r from config',
+                       test_list_id)
+    return self.test_lists.get(test_list_id, None)
 
   def GetTestListIDs(self):
     return self.test_lists.keys()
@@ -870,7 +907,9 @@ class Manager(object):
     for test_list_id in self.loader.FindTestListIDs():
       logging.info('try to load test list: %s', test_list_id)
       try:
-        self.GetTestListByID(test_list_id)
+        test_list = self.GetTestListByID(test_list_id)
+        if test_list is None:
+          raise factory.TestListError('failed to load test list')
       except Exception:
         path = self.loader.GetConfigPath(test_list_id)
         logging.exception('Unable to import %s', path)
@@ -900,6 +939,12 @@ class Manager(object):
         # (this is a base test list)
         if 'tests' not in test_list.ToTestListConfig():
           continue
+        try:
+          test_list.CheckValid()
+        except Exception:
+          path = self.loader.GetConfigPath(test_list_id)
+          logging.exception('test list %s is invalid', path)
+          failed_files[path] = sys.exc_info()
       valid_test_lists[test_list_id] = test_list
 
     logging.info('loaded test lists: %r', self.test_lists.keys())
