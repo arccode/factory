@@ -331,7 +331,7 @@ class Options(object):
   The content of skipped_tests should be::
 
       {
-        <phase>: [ <test path> ... ]
+        <phase>: [ <pattern> ... ]
       }
 
   For example::
@@ -339,12 +339,18 @@ class Options(object):
       {
           'PROTO': [
               'SMT.AudioJack',
-              'SMT.SpeakerDMic'
+              'SMT.SpeakerDMic',
+              '*.Fingerprint'
           ],
           'EVT': [
               'SMT.AudioJack',
           ]
       }
+
+  If the pattern starts with '*', then it will match for all tests with same
+  suffix.  For example, '*.Fingerprint' matches 'SMT.Fingerprint',
+  'FATP.FingerPrint', 'FOO.BAR.Fingerprint'.  But it does not match for
+  'SMT.Fingerprint-2' (Generated ID when there are duplicate IDs).
   """
 
   waived_tests = {}
@@ -1172,18 +1178,30 @@ class FactoryTestList(FactoryTest):
     available at this moment.
     """
     assert self.state_instance is not None
-    # set skipped tests
+
+    rules = []
+    def _AddRule(pattern, action):
+      if pattern.startswith('*'):
+        rules.append((lambda s: s.endswith(pattern[1:]), action))
+      else:
+        rules.append((lambda s: s == pattern, action))
+
+    def _MarkSkipped(test):
+      test.Skip(forever=True)
     test_paths = self.options.skipped_tests.get(self.options.phase, [])
     for test_path in test_paths:
-      test = self.LookupPath(test_path)
-      if test:
-        test.Skip(forever=True)
-    # set waived tests
+      _AddRule(test_path, _MarkSkipped)
+
+    def _MarkWaived(test):
+      test.waived = True
     test_paths = self.options.waived_tests.get(self.options.phase, [])
     for test_path in test_paths:
-      test = self.LookupPath(test_path)
-      if test:
-        test.waived = True
+      _AddRule(test_path, _MarkWaived)
+
+    for test_path, test in self.path_map.iteritems():
+      for matcher, action in rules:
+        if matcher(test_path):
+          action(test)
 
   @staticmethod
   def ResolveRequireRun(test_path, requirement_path):

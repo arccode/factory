@@ -745,7 +745,7 @@ class WaivedTestTest(GoofyTest):
   def runTest(self):
     PytestPrespawner.spawn = self.mocker.CreateMock(PytestPrespawner.spawn)
     mock_pytest(PytestPrespawner.spawn, 'waived_test',
-                TestState.FAILED_AND_WAIVED, 'Failed and waived')
+                TestState.FAILED, 'Failed')
     mock_pytest(PytestPrespawner.spawn, 'normal_test', TestState.PASSED, '')
     self.mocker.ReplayAll()
 
@@ -768,28 +768,34 @@ class SkippedTestTest(GoofyTest):
     options.stop_on_failure = True
     options.phase = 'PROTO'
     options.skipped_tests = {
-        'PROTO': ['skipped']
+        'PROTO': ['skipped', '*.A']
     }
   """
   test_list = """
-    test_lists.FactoryTest(id='skipped', pytest_name='skipped_test')
+    test_lists.FactoryTest(id='skipped', pytest_name='normal_test')
+    with test_lists.TestGroup(id='G'):
+      test_lists.FactoryTest(id='A', pytest_name='normal_test')
+      # *** NOTE THAT G.A_2 is not skipped ***
+      test_lists.FactoryTest(id='A', pytest_name='normal_test')
     test_lists.FactoryTest(id='normal', pytest_name='normal_test')
   """
 
   def runTest(self):
     PytestPrespawner.spawn = self.mocker.CreateMock(PytestPrespawner.spawn)
     mock_pytest(PytestPrespawner.spawn, 'normal_test', TestState.PASSED, '')
+    mock_pytest(PytestPrespawner.spawn, 'normal_test', TestState.PASSED, '')
     self.mocker.ReplayAll()
 
-    for _ in range(1):
+    for _ in range(2):
       self.assertTrue(self.goofy.run_once())
       self.goofy.wait()
 
     state_instance = state.get_instance()
     self.assertEqual(
-        [TestState.SKIPPED, TestState.PASSED],
+        [TestState.SKIPPED, TestState.SKIPPED, TestState.PASSED,
+         TestState.PASSED],
         [state_instance.get_test_state(x).status
-         for x in ['skipped', 'normal']])
+         for x in ['skipped', 'G.A', 'G.A_2', 'normal']])
     self._wait()
 
 
