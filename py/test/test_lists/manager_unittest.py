@@ -189,10 +189,9 @@ class TestListLoaderTest(unittest.TestCase):
     os.utime(self.loader.GetConfigPath('a'), None)
 
     # test list should be automatically reloaded
-    self.assertEqual(test_list.constants.timestamp, 123)
-    # SMT doesn't exist
     self.assertIsNone(test_list.LookupPath('SMT'))
     self.assertTrue(test_list.LookupPath('RunIn'))
+    self.assertEqual(test_list.constants.timestamp, 123)
 
   def testLocals(self):
     test_list = self.manager.GetTestListByID('locals')

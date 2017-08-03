@@ -25,6 +25,7 @@ from cros.factory.test.utils import selector_utils
 from cros.factory.test import i18n
 from cros.factory.test.test_lists import test_lists
 from cros.factory.utils import config_utils
+from cros.factory.utils import debug_utils
 from cros.factory.utils import type_utils
 
 
@@ -292,14 +293,21 @@ class TestList(ITestList):
     self.ReloadIfModified()
     if self._cached_test_list:
       return self._cached_test_list
+    return self._ConstructFactoryTestList()
 
+  @debug_utils.NoRecursion
+  def _ConstructFactoryTestList(self):
     subtests = []
     cache = {}
     for test_object in self._config['tests']:
       subtests.append(self.MakeTest(test_object, cache))
 
+    # this might cause recursive call if self.options is not implemented
+    # correctly.  Put it in a single line for easier debugging.
+    options = self.options
+
     self._cached_test_list = factory.FactoryTestList(
-        subtests, self._state_instance, self.options,
+        subtests, self._state_instance, options,
         test_list_id=self._config.test_list_id,
         label=MayTranslate(self._config['label'], force=True),
         finish_construction=True)
@@ -436,6 +444,10 @@ class TestList(ITestList):
   def ReloadIfModified(self):
     if not self.modified:
       return
+    self._Reload()
+
+  @debug_utils.NoRecursion
+  def _Reload(self):
     logging.debug('reloading test list %s', self._config.test_list_id)
     try:
       new_config = self._loader.Load(self._config.test_list_id)

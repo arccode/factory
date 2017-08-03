@@ -6,6 +6,7 @@
 
 from __future__ import print_function
 
+import functools
 import inspect
 import logging
 import os
@@ -17,6 +18,7 @@ import traceback
 
 from . import net_utils
 from . import process_utils
+from . import sys_utils
 
 
 def DumpStackTracebacks():
@@ -175,6 +177,37 @@ def GetCallerName(num_frame=1):
   """
   frame = sys._getframe(num_frame + 1)  # pylint: disable=protected-access
   return inspect.getframeinfo(frame, 1)[2]
+
+
+def NoRecursion(func):
+  """Disallow recursive call on a function.
+
+  Note that this is **function** based checking, therefore, the following
+  example still count as recursion and will raise an exception::
+
+      class A(object):
+        @NoRecursion
+        def func(self, other_a):
+          if other_a:
+            other_a.func(None)
+
+      a = A()
+      b = A()
+      a.func(b)  # an exception will be raised
+  """
+  # pylint: disable=protected-access
+  func._running = False
+  @functools.wraps(func)
+  def Wrapped(*args, **kwargs):
+    if func._running and sys_utils.InChroot():
+      logging.error('Detect unexpected recursion: \n%s', DumpStackTracebacks())
+    assert not func._running, 'Recursion for %s is not allowed' % func.__name__
+    try:
+      func._running = True
+      return func(*args, **kwargs)
+    finally:
+      func._running = False
+  return Wrapped
 
 
 if __name__ == '__main__':
