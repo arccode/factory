@@ -28,7 +28,7 @@ RUN mkdir -p "${umpire_dir_in_dome}"
 #  (buzybox tar doesn't support -I, which is used in file_utils.ExtractFile)
 #  gnupg, python-gnupg: Used by umpire/server/service/dkps and archiver
 #  rsync: Used by umpire/server/service/rsync
-#  jq: Will be used by umpire in future.
+#  curl, jq: Used by cros_payload.
 #
 #  nginx, uwsgi-python, dnsmasq: Used by Dome.
 #
@@ -41,6 +41,7 @@ RUN mkdir -p "${umpire_dir_in_dome}"
 RUN apk upgrade --no-cache && apk add --no-cache \
     apache2-utils \
     coreutils \
+    curl \
     dnsmasq \
     gnupg \
     jq \

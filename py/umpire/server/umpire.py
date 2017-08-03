@@ -28,6 +28,26 @@ from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 
 
+@Command('export-payload',
+         CmdArg('bundle_id',
+                help=('ID of the bundle that contains the payload resource '
+                      'to export.')),
+         CmdArg('payload_type',
+                help=('Type name of the payload resource to export.')),
+         CmdArg('file_path',
+                help=('File path to export the specific resource.')))
+def ExportPayload(args, umpire_cli):
+  """Export a specific resource from a bundle
+
+  It reads active config, download the specific resource of a bundle,
+  and install it at the specified file_path.
+  """
+  print 'Exporting...'
+  umpire_cli.ExportPayload(
+      args.bundle_id, args.payload_type, os.path.realpath(args.file_path))
+  print 'Export payload resource successfully.'
+
+
 @Command('import-bundle',
          CmdArg('--id',
                 help=('the target bundle id. If not specified, use '

@@ -8,6 +8,7 @@ import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server.commands import deploy
+from cros.factory.umpire.server.commands import export_payload
 from cros.factory.umpire.server.commands import import_bundle
 from cros.factory.umpire.server.commands import status_reporter
 from cros.factory.umpire.server.commands import update
@@ -29,6 +30,21 @@ class CLICommand(umpire_rpc.UmpireRPC):
                     and translate to xmlrpc.Fault with exception info.
     Other values: return to caller.
   """
+
+  @umpire_rpc.RPCCall
+  def ExportPayload(self, bundle_id, payload_type, file_path):
+    """Export a specific resource from a bundle
+
+    It reads active config, download the specific resource of a bundle,
+    and install it at the specified file_path.
+
+    Args:
+      bundle_id: The ID of the bundle.
+      payload_type: Payload type of the resource.
+      file_path: File path to export the specific resource.
+    """
+    exporter = export_payload.PayloadExporter(self.env)
+    exporter.ExportPayload(bundle_id, payload_type, file_path)
 
   @umpire_rpc.RPCCall
   def Update(self, resources_to_update, source_id=None, dest_id=None):
