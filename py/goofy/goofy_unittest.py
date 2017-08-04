@@ -734,12 +734,14 @@ class WaivedTestTest(GoofyTest):
     options.stop_on_failure = True
     options.phase = 'PROTO'
     options.waived_tests = {
-        'PROTO': ['waived']
+        'PROTO': ['waived', 'G']
     }
   """
   test_list = """
     test_lists.FactoryTest(id='waived', pytest_name='waived_test')
     test_lists.FactoryTest(id='normal', pytest_name='normal_test')
+    with test_lists.TestGroup(id='G'):
+      test_lists.FactoryTest(id='waived', pytest_name='waived_test')
   """
 
   def runTest(self):
@@ -749,14 +751,16 @@ class WaivedTestTest(GoofyTest):
     mock_pytest(PytestPrespawner.spawn, 'normal_test', TestState.PASSED, '')
     self.mocker.ReplayAll()
 
-    for _ in range(2):
+    for _ in range(4):
       self.assertTrue(self.goofy.run_once())
       self.goofy.wait()
 
     state_instance = state.get_instance()
     self.assertEqual(
-        [TestState.FAILED_AND_WAIVED, TestState.PASSED],
-        [state_instance.get_test_state(x).status for x in ['waived', 'normal']])
+        [TestState.FAILED_AND_WAIVED, TestState.PASSED,
+         TestState.FAILED_AND_WAIVED, TestState.FAILED_AND_WAIVED],
+        [state_instance.get_test_state(x).status
+         for x in ['waived', 'normal', 'G', 'G.waived']])
     self._wait()
 
 
