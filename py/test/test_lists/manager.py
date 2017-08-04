@@ -17,6 +17,7 @@ import logging
 import numbers
 import os
 import sys
+import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
@@ -76,10 +77,15 @@ class TestListConfig(object):
     """When the config was loaded."""
     return self._timestamp
 
-  @timestamp.setter
-  def timestamp(self, value):
-    if self._timestamp is not None:
-      raise AttributeError('Cannot override timestamp of TestListConfig')
+  def SetTimestamp(self, value):
+    """Update timestamp value.
+
+    We are not using property.setter because normally you should not override
+    timestamp.  Changing timestamp value might break modification detection and
+    auto reloading.
+
+    *** Don't do it unless you know what you are doing ***
+    """
     assert isinstance(value, numbers.Real), "timestamp must be a number"
     self._timestamp = value
 
@@ -476,6 +482,8 @@ class TestList(ITestList):
     except Exception:
       logging.exception('Failed to reload latest test list %s.',
                         self._config.test_list_id)
+      # update timestamp to prevent reloading the same incorrect file
+      self._config.SetTimestamp(time.time())
 
   @property
   def modified(self):
@@ -645,7 +653,7 @@ class Loader(object):
     else:
       timestamp = self.GetConfigLastModifiedTime(test_list_id)
 
-    loaded_config.timestamp = timestamp
+    loaded_config.SetTimestamp(timestamp)
     return loaded_config
 
   def GetConfigPath(self, test_list_id):

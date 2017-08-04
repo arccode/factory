@@ -205,6 +205,35 @@ class TestListLoaderTest(unittest.TestCase):
         test_list.LookupPath('SMT.NOP_3').locals_,
         {'foo': 'BAR', 'bar': 'BAZ'})
 
+  def testFailedAutoReloadTestList(self):
+    # pylint: disable=protected-access
+    # load test list config
+    test_list = self.manager.GetTestListByID('a')
+
+    self.assertTrue(test_list.LookupPath('SMT'))
+
+    old_timestamp = test_list._config.timestamp
+
+    # modified content
+    with open(self.loader.GetConfigPath('a'), 'r') as f:
+      json_object = json.load(f)
+    with open(self.loader.GetConfigPath('a'), 'w') as f:
+      json_object['constants']['timestamp'] = 123
+      json_object['tests'] = [
+          {
+              'id': 'RunIn',
+              "invalid_key": "invalid_value",
+              'subtests': []
+          }
+      ]
+      json.dump(json_object, f)
+    os.utime(self.loader.GetConfigPath('a'), None)
+
+    # test list reloading should fail, and will keep getting old value
+    self.assertEqual(test_list.constants.timestamp, 1)
+    self.assertTrue(test_list.LookupPath('SMT'))
+    self.assertGreater(test_list._config.timestamp, old_timestamp)
+
   def testFlattenGroup(self):
     test_list = self.manager.GetTestListByID('flatten_group')
 
