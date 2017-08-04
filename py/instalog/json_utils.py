@@ -83,8 +83,8 @@ class JSONDecoder(json.JSONDecoder):
 
 # Class registry maps class name => class reference for Serializable subclasses.
 _class_registry = {}
-_encoder = JSONEncoder()
-_decoder = JSONDecoder(class_registry=_class_registry)
+encoder = JSONEncoder()
+decoder = JSONDecoder(class_registry=_class_registry)
 
 
 class SerializableMeta(type):
@@ -121,12 +121,12 @@ class Serializable(object):
 
   def Serialize(self):
     """Serializes this object to a JSON string."""
-    return _encoder.encode(self)
+    return encoder.encode(self)
 
   @classmethod
   def Deserialize(cls, json_string):
     """Deserializes the JSON string into its corresponding Python object."""
-    ret = _decoder.decode(json_string)
+    ret = decoder.decode(json_string)
     if not isinstance(ret, cls):
       raise ValueError('Given JSON string does not contain "%s" instance'
                        % cls.__name__)
@@ -144,7 +144,7 @@ class Serializable(object):
 
 def Deserialize(json_string):
   """Deserializes any JSON string using json_utils's class registry."""
-  return _decoder.decode(json_string)
+  return decoder.decode(json_string)
 
 
 def WalkJSONPath(json_path, data):

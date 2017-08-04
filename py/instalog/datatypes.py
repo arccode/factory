@@ -27,6 +27,7 @@ class ProcessStage(json_utils.Serializable):
   BUFFER = 'BUFFER'
   EXTERNAL = 'EXTERNAL'
 
+  # pylint: disable=redefined-outer-name
   def __init__(self, node_id, orig_time, time, plugin_id, plugin_type, target):
     self.node_id = node_id
     self.orig_time = orig_time
@@ -96,21 +97,27 @@ class Event(json_utils.Serializable):
   @classmethod
   def Deserialize(cls, json_string):
     """Deserializes an Event object given as a JSON string."""
+    obj = json_utils.decoder.decode(json_string)
+
+    # json_string = '{"__type__": "Event", "payload": {payload}, '
+    #               '"attachments": {attachments}, "history": {history}}'
+    if isinstance(obj, Event):
+      return obj
     # Legacy object serialization.
-    if json_string.startswith('['):
-      dct = json_utils.JSONDecoder().decode(json_string)
+    # json_string = '[{payload}, {attachments}]'
+    elif isinstance(obj, list):
+      if len(obj) != 2:
+        raise ValueError('Given JSON string is a list, but the length is not 2')
       return cls(
-          payload=dct[0],
-          attachments=dct[1])
-
-    dct = json_utils.JSONDecoder().decode(json_string)
-
-    # Use Serializable's default method.
-    if '__type__' in dct and dct['__type__'] == cls.__name__:
-      return super(Event, cls).Deserialize(json_string)
-
+          payload=obj[0],
+          attachments=obj[1])
     # Case of only 'payload' being provided (run_plugin.py).
-    return cls(payload=dct)
+    # json_string = '{payload}'
+    elif isinstance(obj, dict):
+      return cls(payload=obj)
+    else:
+      raise ValueError('Unable to deserialize the JSON string: %s' %
+                       json_string)
 
   def ToDict(self):
     """Returns the dictionary equivalent of the Event object."""
@@ -348,6 +355,8 @@ class EventStreamIterator(object):
 
       # If the current plugin is flushing, we should raise StopIteration
       # regardless of whether self.blocking is set.
+      # TODO(chuntsen): fix pylint error
+      # pylint: disable=protected-access
       if self.event_stream._plugin_api.IsFlushing(self.event_stream._plugin):
         logging.debug('Flushing!')
         raise StopIteration

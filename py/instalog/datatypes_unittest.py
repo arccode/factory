@@ -9,6 +9,7 @@
 from __future__ import print_function
 
 import copy
+import datetime
 import logging
 import mock
 import Queue
@@ -18,6 +19,7 @@ import unittest
 
 import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
+from instalog import json_utils
 from instalog import log_utils
 from instalog import plugin_base
 
@@ -191,9 +193,23 @@ class TestEvent(unittest.TestCase):
     event = datatypes.Event({}, attachments=attachments)
     self.assertEqual(event.attachments, attachments)
 
+  def testDeserialize(self):
+    now_time = datetime.datetime.utcnow()
+    event = datatypes.Event({'a': 1, 'time': now_time})
+    self.assertEqual(event, datatypes.Event.Deserialize(
+        '{"a": 1, "time": {"__type__": "datetime", "value": "%s"}}' %
+        now_time.strftime(json_utils.FORMAT_DATETIME)))
+    self.assertEqual(event, datatypes.Event.Deserialize(
+        '[{"a": 1, "time": {"__type__": "datetime", "value": "%s"}}, {}]' %
+        now_time.strftime(json_utils.FORMAT_DATETIME)))
+    self.assertEqual(event, datatypes.Event.Deserialize(
+        '{"payload": {"a": 1, "time": {"__type__": "datetime", "value": "%s"}},'
+        '"attachments": {}, "history": [], "__type__": "Event"}'%
+        now_time.strftime(json_utils.FORMAT_DATETIME)))
+
   def testRoundTrip(self):
     """Checks that an event can de serialized and deserialized."""
-    payload = {'a': 1, 'b': 2}
+    payload = {'a': 1, 'b': 2, 'time': datetime.datetime.utcnow()}
 
     # Test without attachments.
     event = datatypes.Event(payload)
