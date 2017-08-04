@@ -10,11 +10,11 @@ from __future__ import print_function
 import logging
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 from cros.factory.utils.type_utils import Enum
 
 
-class LED(component.DeviceComponent):
+class LED(types.DeviceComponent):
 
   Color = Enum(['AUTO', 'OFF', 'RED', 'GREEN', 'BLUE', 'YELLOW', 'WHITE',
                 'AMBER'])
@@ -57,7 +57,7 @@ class LED(component.DeviceComponent):
         color_brightness = '%s=%d' % (color.lower(), scaled_brightness)
       else:
         color_brightness = color.lower()
-      self._dut.CheckCall(['ectool', 'led', led_name, color_brightness])
+      self._device.CheckCall(['ectool', 'led', led_name, color_brightness])
     except Exception as e:
       logging.exception('Unable to set LED color: %s', e)
       raise

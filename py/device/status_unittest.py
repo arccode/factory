@@ -13,7 +13,7 @@ import mox
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import board as board_module
+from cros.factory.device import types
 from cros.factory.device import fan
 from cros.factory.device import power
 from cros.factory.device import status as status_module
@@ -36,7 +36,7 @@ class SystemStatusTest(unittest.TestCase):
     netifaces.AF_INET6 = 10
 
     # Set up mocks for Board interface
-    board = self.mox.CreateMock(board_module.DeviceBoard)
+    board = self.mox.CreateMock(types.DeviceBoard)
     board.power = self.mox.CreateMock(power.Power)
     board.power.GetInfoDict().AndReturn({})
     board.fan = self.mox.CreateMock(fan.FanControl)

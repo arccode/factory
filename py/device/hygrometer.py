@@ -4,10 +4,10 @@
 # found in the LICENSE file.
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 
 
-class Hygrometer(component.DeviceComponent):
+class Hygrometer(types.DeviceComponent):
   """System module for hygrometers."""
 
   def GetRelativeHumidity(self):
@@ -25,19 +25,19 @@ class SysFSHygrometer(Hygrometer):
   Implementation for systems which able to read humidities with sysfs api.
   """
 
-  def __init__(self, dut, rh_filename_pattern, rh_map=float):
+  def __init__(self, device, rh_filename_pattern, rh_map=float):
     """Constructor.
 
     Args:
-      dut: Instance of cros.factory.device.board.DeviceBoard.
+      device: Instance of cros.factory.device.types.DeviceInterface.
       rh_filename_pattern: The glob pattern to find the file containing
           relative humidity information.
       rh_map: A function (str -> float) that translates the content of file
           indicated by "rh_filename_pattern" to relative humidity in
-          percentage. default is float.
+          percentage. Default is float.
     """
-    super(SysFSHygrometer, self).__init__(dut)
-    candidates = dut.Glob(rh_filename_pattern)
+    super(SysFSHygrometer, self).__init__(device)
+    candidates = self._device.Glob(rh_filename_pattern)
     assert len(candidates) == 1, 'Not having exactly one candidate.'
     self._rh_filename = candidates[0]
     self._rh_map = rh_map
@@ -45,6 +45,6 @@ class SysFSHygrometer(Hygrometer):
   def GetRelativeHumidity(self):
     """See Hygrometer.GetRelativeHumidity."""
     try:
-      return self._rh_map(self._dut.ReadFile(self._rh_filename))
+      return self._rh_map(self._device.ReadFile(self._rh_filename))
     except Exception as e:
       raise self.Error('Unable to get relative humidity: %s' % e)

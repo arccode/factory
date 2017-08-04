@@ -104,7 +104,7 @@ class ScriptBuilder(object):
     """Constructor of ScriptBuilder.
 
     Args:
-      :type dut: cros.factory.device.board.DeviceBoard
+      :type dut: cros.factory.device.types.DeviceInterface
       dut: used to get data from DUT.
 
       :type data_root: str
@@ -241,6 +241,7 @@ class ScriptBuilder(object):
 
     test.CheckArgs()
     params = test.DetermineParameters()
+    # pylint: disable=protected-access
     self._AddTask('bad_blocks.sh',
                   is_file=('true' if test.args.mode == 'file' else 'false'),
                   **params._asdict())

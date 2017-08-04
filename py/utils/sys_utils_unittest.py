@@ -330,7 +330,7 @@ class TestLogMessagesTest(unittest.TestCase):
           'We are in pursuit of a starship of Ferengi design.\n',
           sys_utils.GetVarLogMessages(max_length=(len(data) + 5), path=f.name))
 
-      dut = linux.LinuxBoard()
+      dut = device_utils.CreateDUTInterface(board_class='LinuxBoard')
       self.assertEquals(
           '<truncated 101 bytes>\n'
           "Captain's log.\xFF\n"
@@ -357,7 +357,7 @@ class TestLogMessagesTest(unittest.TestCase):
         "19:27:56 kernel: [  0.000000] Linux version blahblahblah\n"
         "19:27:56 kernel: [  0.000000] Command line: blahblahblah\n")
 
-    dut = linux.LinuxBoard()
+    dut = device_utils.CreateDUTInterface(board_class='LinuxBoard')
 
     with tempfile.NamedTemporaryFile(bufsize=0) as f:
       f.write(VAR_LOG_MESSAGES)

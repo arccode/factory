@@ -11,10 +11,10 @@ import io
 import struct
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 
 
-class I2CSlave(component.DeviceComponent):
+class I2CSlave(types.DeviceComponent):
   """Access a slave device on I2C bus."""
 
   _I2C_SLAVE_FORCE = 0x0706
@@ -52,7 +52,7 @@ class I2CSlave(component.DeviceComponent):
     Returns:
       A string for data read from device, if read_count is not zero.
     """
-    if not self._dut.link.IsLocal():
+    if not self._device.link.IsLocal():
       raise NotImplementedError('I2CBus currently supports only local targets')
 
     bus = io.open(self._bus, mode='r+b', buffering=0)
@@ -84,7 +84,7 @@ class I2CSlave(component.DeviceComponent):
     return self.WriteRead(self._EncodeRegisterAddress(address) + value)
 
 
-class I2CBus(component.DeviceComponent):
+class I2CBus(types.DeviceComponent):
   """Provides access to devices on I2C bus.
 
   Usage:
@@ -117,5 +117,5 @@ class I2CBus(component.DeviceComponent):
     assert slave & (0xfe) == 0, 'I2C Slave address has only 7 bits.'
     assert reg_width % 8 == 0, 'Register must be aligned with 8 bits.'
     assert reg_width <= 32, 'Only 0~32 bits of reg addresses are supported.'
-    return I2CSlave(self._dut, bus, slave, reg_width)
+    return I2CSlave(self._device, bus, slave, reg_width)
 

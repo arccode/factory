@@ -14,7 +14,7 @@ import os.path
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import board
+from cros.factory.device import types
 from cros.factory.device import fan
 
 
@@ -23,7 +23,7 @@ class ECToolFanControlTest(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(board.DeviceBoard)
+    self.board = self.mox.CreateMock(types.DeviceBoard)
     self.fan = fan.ECToolFanControl(self.board)
 
   def tearDown(self):
@@ -60,7 +60,7 @@ class SysFSFanControlTest(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(board.DeviceBoard)
+    self.board = self.mox.CreateMock(types.DeviceBoard)
     self.board.path = os.path
 
   def tearDown(self):

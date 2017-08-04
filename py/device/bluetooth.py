@@ -6,14 +6,14 @@
 
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 
 
 class BluetoothManagerException(Exception):
   pass
 
 
-class BluetoothManager(component.DeviceComponent):
+class BluetoothManager(types.DeviceComponent):
   """The class to handle bluetooth adapter and device.
 
   Raises:

@@ -5,11 +5,11 @@
 # found in the LICENSE file.
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 from cros.factory.device import sensor_utils
 
 
-class Magnetometer(component.DeviceComponent):
+class Magnetometer(types.DeviceComponent):
   """Base class for magnetometer component module."""
 
   def __init__(self, board):
@@ -21,7 +21,7 @@ class Magnetometer(component.DeviceComponent):
     See sensor_utils.BasicSensorController for more information.
     """
     return sensor_utils.BasicSensorController(
-        self._dut,
+        self._device,
         'cros-ec-mag',
         location,
         ['in_magn_x', 'in_magn_y', 'in_magn_z'])

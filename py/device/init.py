@@ -8,11 +8,11 @@
 import os
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 from cros.factory.test.env import paths
 
 
-class FactoryInit(component.DeviceComponent):
+class FactoryInit(types.DeviceComponent):
   """Provides method to add start up jobs using the factory framework.
 
   The design is to apply the goofy startup flow used in most Chrome OS board.
@@ -30,9 +30,9 @@ class FactoryInit(component.DeviceComponent):
 
   def __init__(self, _dut=None):
     super(FactoryInit, self).__init__(_dut)
-    self._factory_root = self._dut.storage.GetFactoryRoot()
-    self._init_dir = self._dut.path.join(self._factory_root, 'init')
-    self._init_script_dir = self._dut.path.join(self._init_dir, 'main.d')
+    self._factory_root = self._device.storage.GetFactoryRoot()
+    self._init_dir = self._device.path.join(self._factory_root, 'init')
+    self._init_script_dir = self._device.path.join(self._init_dir, 'main.d')
 
   def AddFactoryStartUpApp(self, name, script_path):
     """Add a start up application to the board.
@@ -44,24 +44,24 @@ class FactoryInit(component.DeviceComponent):
     """
     # Chrome OS test image executes '${FACTORY_ROOT}/init/startup' if
     # file '${FACTORY_ROOT}/enabled' exists.
-    self._dut.CheckCall(
-        ['touch', self._dut.path.join(self._factory_root, 'enabled')])
+    self._device.CheckCall(
+        ['touch', self._device.path.join(self._factory_root, 'enabled')])
 
     # we first assume that factory toolkit exists, so we can use its startup
     # mechanism. (see init/main.d/README for more detail)
-    job_path = self._dut.path.join(self._init_script_dir, name + '.sh')
-    self._dut.CheckCall(['mkdir', '-p', self._init_script_dir])
-    self._dut.CheckCall(['ln', '-sf', script_path, job_path])
-    self._dut.CheckCall(['chmod', '+x', job_path])
+    job_path = self._device.path.join(self._init_script_dir, name + '.sh')
+    self._device.CheckCall(['mkdir', '-p', self._init_script_dir])
+    self._device.CheckCall(['ln', '-sf', script_path, job_path])
+    self._device.CheckCall(['chmod', '+x', job_path])
 
-    dut_startup_script = self._dut.path.join(self._init_dir, 'startup')
-    if not self._dut.path.exists(dut_startup_script):
+    dut_startup_script = self._device.path.join(self._init_dir, 'startup')
+    if not self._device.path.exists(dut_startup_script):
       # however, if the default startup script doesn't exists (e.g. factory
       # toolkit is not installed), we will create a stub startup script.
       station_startup_script = os.path.join(paths.FACTORY_DIR, 'sh',
                                             'stub_startup.sh')
-      self._dut.link.Push(station_startup_script, dut_startup_script)
-      self._dut.CheckCall(['chmod', '+x', dut_startup_script])
+      self._device.link.Push(station_startup_script, dut_startup_script)
+      self._device.CheckCall(['chmod', '+x', dut_startup_script])
 
   def RemoveFactoryStartUpApp(self, name):
     """Remove a start up application on the board.
@@ -69,5 +69,5 @@ class FactoryInit(component.DeviceComponent):
     Args:
       name: the name of the job used when creating the job.
     """
-    job_path = self._dut.path.join(self._init_script_dir, name + '.sh')
-    self._dut.CheckCall(['rm', '-f', job_path])
+    job_path = self._device.path.join(self._init_script_dir, name + '.sh')
+    self._device.CheckCall(['rm', '-f', job_path])

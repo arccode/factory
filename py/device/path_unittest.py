@@ -8,14 +8,14 @@ import mock
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import board
+from cros.factory.device import types
 from cros.factory.device import path
 
 
 class PathTest(unittest.TestCase):
 
   def setUp(self):
-    self.dut = mock.Mock(spec=board.DeviceBoard)
+    self.dut = mock.Mock(spec=types.DeviceInterface)
     self.path = path.Path(self.dut)
 
   def testExists(self):
@@ -44,7 +44,7 @@ class PathTest(unittest.TestCase):
 class AndroidPathTest(unittest.TestCase):
 
   def setUp(self):
-    self.dut = mock.Mock(spec=board.DeviceBoard)
+    self.dut = mock.Mock(spec=types.DeviceInterface)
     self.path = path.AndroidPath(self.dut)
 
   def testQuickReturn(self):

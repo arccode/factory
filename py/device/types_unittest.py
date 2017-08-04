@@ -3,15 +3,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Tests for DeviceBoard helper functions."""
+"""Tests for DeviceInterface helper functions."""
 
 import mock
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import link
-from cros.factory.device.board import DeviceBoard
-from cros.factory.device.board import CalledProcessError
+from cros.factory.device import types
 
 
 class MockProcess(object):
@@ -29,8 +27,8 @@ class MockProcess(object):
 class BaseTargetTest(unittest.TestCase):
 
   def setUp(self):
-    self.link = link.DeviceLink()
-    self.dut = DeviceBoard(self.link)
+    self.link = types.DeviceLink()
+    self.dut = types.DeviceInterface(self.link)
 
   def testReadFile(self):
     self.link.Pull = mock.MagicMock(return_value='TEST')
@@ -71,7 +69,7 @@ class BaseTargetTest(unittest.TestCase):
     self.link.Shell.assert_called_with(['ls'], None, None, None)
 
     self.link.Shell = mock.MagicMock(return_value=MockProcess(1))
-    with self.assertRaises(CalledProcessError):
+    with self.assertRaises(types.CalledProcessError):
       self.dut.CheckCall(['ls'])
     self.link.Shell.assert_called_with(['ls'], None, None, None)
 
@@ -87,7 +85,7 @@ class BaseTargetTest(unittest.TestCase):
     self.dut.Call = mock.MagicMock(side_effect=fakeCallSuccess)
     self.assertEquals(self.dut.CheckOutput(['cmd']), 'fake data')
     self.dut.Call = mock.MagicMock(side_effect=fakeCallFailure)
-    with self.assertRaises(CalledProcessError):
+    with self.assertRaises(types.CalledProcessError):
       self.dut.CheckOutput(['cmd'])
 
   def testCallOutput(self):

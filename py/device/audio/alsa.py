@@ -50,7 +50,7 @@ class AlsaAudioControl(base.BaseAudioControl):
     """See BaseAudioControl.GetCardIndexByName"""
     if card_name.isdigit():
       return card_name
-    output = self._dut.CallOutput(['aplay', '-l'])
+    output = self._device.CallOutput(['aplay', '-l'])
     for line in output.splitlines():
       m = self._RE_CARD_INDEX.match(line)
       if m is not None and m.group(2) == card_name:
@@ -71,7 +71,7 @@ class AlsaAudioControl(base.BaseAudioControl):
 
   def GetMixerControls(self, name, card='0'):
     """See BaseAudioControl.GetMixerControls"""
-    list_controls = self._dut.CallOutput(
+    list_controls = self._device.CallOutput(
         ['amixer', '-c%d' % int(card), 'controls'])
     re_control = re.compile(self._CONTROL_RE_STR % name)
     numid = 0
@@ -84,7 +84,7 @@ class AlsaAudioControl(base.BaseAudioControl):
       logging.info('Unable to find mixer control \'%s\'', name)
       return None
 
-    lines = self._dut.CallOutput(
+    lines = self._device.CallOutput(
         ['amixer', '-c%d' % int(card), 'cget', 'numid=%d' % numid])
     logging.info('lines: %s', lines)
     m = re.search(r'^.*: values=(.*)$', lines, re.MULTILINE)
@@ -114,20 +114,20 @@ class AlsaAudioControl(base.BaseAudioControl):
                      name, old_value, card)
       logging.info('Setting \'%s\' to %s on card %s', name, value, card)
       command = ['amixer', '-c', card, 'cset', 'name=%r' % name, value]
-      self._dut.CheckCall(command)
+      self._device.CheckCall(command)
     if store:
       self._restore_mixer_control_stack.append((restore_mixer_settings, card))
 
   def _PlaybackWavFile(self, path, card, device):
     """See BaseAudioControl._PlaybackWavFile"""
-    self._dut.Call(['aplay', '-t', 'wav', '-D',
-                    'plughw:%s,%s' % (card, device), path])
+    self._device.Call(
+        ['aplay', '-t', 'wav', '-D', 'plughw:%s,%s' % (card, device), path])
 
   def _StopPlaybackWavFile(self):
     """See BaseAudioControl._StopPlaybackWavFile"""
     pid = self._GetPIDByName('aplay')
     if pid:
-      self._dut.Call(['kill', pid])
+      self._device.Call(['kill', pid])
 
   def _GetRecordArgs(self, file_type, path, card, device, duration, channels,
                      rate):
@@ -143,7 +143,7 @@ class AlsaAudioControl(base.BaseAudioControl):
       rate: Sampling rate
 
     Returns:
-      An array of the arecord command used by self._dut.Call.
+      An array of the arecord command used by self._device.Call.
     """
     file_type = {self.RecordType.voc: 'voc',
                  self.RecordType.wav: 'wav',
@@ -157,10 +157,10 @@ class AlsaAudioControl(base.BaseAudioControl):
   def RecordWavFile(self, path, card, device, duration, channels, rate):
     """See BaseAudioControl.RecordWavFile"""
 
-    self._dut.Call(self._GetRecordArgs(self.RecordType.wav, path, card, device,
-                                       duration, channels, rate))
+    self._device.Call(self._GetRecordArgs(
+        self.RecordType.wav, path, card, device, duration, channels, rate))
 
   def RecordRawFile(self, path, card, device, duration, channels, rate):
     """See BaseAudioControl.RecordRawFile"""
-    self._dut.Call(self._GetRecordArgs(self.RecordType.raw, path, card, device,
-                                       duration, channels, rate))
+    self._device.Call(self._GetRecordArgs(
+        self.RecordType.raw, path, card, device, duration, channels, rate))

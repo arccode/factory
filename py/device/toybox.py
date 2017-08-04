@@ -7,11 +7,11 @@ from collections import namedtuple
 import pipes
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 from cros.factory.utils import debug_utils
 
 
-class Toybox(component.DeviceComponent):
+class Toybox(types.DeviceComponent):
   """A python wrapper for http://www.landley.net/toybox/.
 
   Toybox combines many common Linux command line utilities together into a
@@ -105,7 +105,7 @@ class Toybox(component.DeviceComponent):
       ignore_non_alphabetic: True to ignore non-alphabetic characters.
       wrap: Wrap output at COLUMNS (default 76).
     """
-    return self._dut.CheckOutput(
+    return self._device.CheckOutput(
         self._BuildCommand('base64',
                            '-d' if decode else None,
                            '-i' if ignore_non_alphabetic else None,
@@ -119,7 +119,7 @@ class Toybox(component.DeviceComponent):
       path: A pathname to retrieve base name.
       suffix: An optional suffix string to remove from path.
     """
-    return self._dut.CheckOutput(
+    return self._device.CheckOutput(
         self._BuildCommand('basename',
                            path,
                            suffix)).strip()
@@ -142,7 +142,7 @@ class Toybox(component.DeviceComponent):
     Returns:
       Concatenated file contents.
     """
-    return self._dut.CheckOutput(
+    return self._device.CheckOutput(
         self._BuildCommand('cat',
                            '-u' if unbuffered else None,
                            files))
@@ -172,14 +172,14 @@ class Toybox(component.DeviceComponent):
     Args:
       number: An integer for virtual terminal number N.
     """
-    self._dut.CheckCall(self._BuildCommand('chvt', str(number)))
+    self._device.CheckCall(self._BuildCommand('chvt', str(number)))
 
   def cksum(self, *args, **kargs):
     raise NotImplementedError
 
   def clear(self):
     """Clear the screen."""
-    self._dut.CheckCall(self._BuildCommand('clear'))
+    self._device.CheckCall(self._BuildCommand('clear'))
 
   def cmp(self, *args, **kargs):
     raise NotImplementedError
@@ -231,7 +231,7 @@ class Toybox(component.DeviceComponent):
         'dd using toybox does not support "conf=%s"')
     if conv:
       conv = ','.join(conv)
-    return self._dut.CheckOutput(self._BuildCommand(
+    return self._device.CheckOutput(self._BuildCommand(
         'dd',
         ['if=%s' % if_] if if_ else None,
         ['ibs=%s' % ibs] if ibs else None,
@@ -257,7 +257,7 @@ class Toybox(component.DeviceComponent):
     Returns:
       A list of DISK_FREE_TUPLE objects representing the file system usage.
     """
-    output = self._dut.CheckOutput(self._BuildCommand(
+    output = self._device.CheckOutput(self._BuildCommand(
         'df',
         ['-t', fs_type] if fs_type else None,
         filesystems)).splitlines()
@@ -277,7 +277,7 @@ class Toybox(component.DeviceComponent):
 
   def dirname(self, path):
     """Show directory portion of path."""
-    return self._dut.CheckOutput(self._BuildCommand('dirname', path)).strip()
+    return self._device.CheckOutput(self._BuildCommand('dirname', path)).strip()
 
   def dmesg(self, *args, **kargs):
     raise NotImplementedError
@@ -323,7 +323,7 @@ class Toybox(component.DeviceComponent):
     if units not in known_units:
       raise ValueError('free: invalid output unit <%s>' % units)
 
-    raw_output = self._dut.CheckOutput(self._BuildCommand(
+    raw_output = self._device.CheckOutput(self._BuildCommand(
         'free',
         '-%s' % units)).splitlines()
 
@@ -345,7 +345,7 @@ class Toybox(component.DeviceComponent):
 
   def fstype(self, devices):
     """Returns a list of types of filesystem on a block device or image."""
-    return self._dut.CheckOutput(self._BuildCommand(
+    return self._device.CheckOutput(self._BuildCommand(
         'fstype',
         devices)).splitlines()
 
@@ -362,7 +362,7 @@ class Toybox(component.DeviceComponent):
       number: Number of lines to return.
       files: Files to read.
     """
-    return self._dut.CheckOutput(self._BuildCommand(
+    return self._device.CheckOutput(self._BuildCommand(
         'head',
         ('-n', str(number)) if number else None,
         files))
@@ -377,9 +377,9 @@ class Toybox(component.DeviceComponent):
       The (new) host name.
     """
     if new_name:
-      self._dut.CheckCall(self._BuildCommand('hostname', new_name))
+      self._device.CheckCall(self._BuildCommand('hostname', new_name))
       return new_name
-    return self._dut.CheckOutput(self._BuildCommand('hostname')).strip()
+    return self._device.CheckOutput(self._BuildCommand('hostname')).strip()
 
   def hwclock(self, *args, **kargs):
     raise NotImplementedError
@@ -416,7 +416,7 @@ class Toybox(component.DeviceComponent):
 
   def logname(self):
     """Returns the current user name."""
-    return self._dut.CheckOutput(self._BuildCommand('logname')).strip()
+    return self._device.CheckOutput(self._BuildCommand('logname')).strip()
 
   def losetup(self, *args, **kargs):
     raise NotImplementedError
@@ -499,7 +499,7 @@ class Toybox(component.DeviceComponent):
         option_str = ','.join(options)
     arg_options = (['-o', option_str], ['-t', fs_type], '-a', '-f', '-r', '-v')
 
-    raw_output = self._dut.CheckOutput(self._BuildCommand(
+    raw_output = self._device.CheckOutput(self._BuildCommand(
         'mount',
         (option for i, option in enumerate(arg_options) if args[i]),
         device, mount_dir)).splitlines()
@@ -539,7 +539,7 @@ class Toybox(component.DeviceComponent):
 
     Redirect tty on stdin to /dev/null, tty on stdout to "nohup.out".
     """
-    self._dut.CheckCall(self._BuildCommand(
+    self._device.CheckCall(self._BuildCommand(
         'nohup',
         command))
 
@@ -557,7 +557,7 @@ class Toybox(component.DeviceComponent):
     Args:
       devices: A string or list for the devices to re-probe.
     """
-    self._dut.CheckCall(self._BuildCommand(
+    self._device.CheckCall(self._BuildCommand(
         'partprobe',
         devices))
 
@@ -609,7 +609,7 @@ class Toybox(component.DeviceComponent):
                    ['-s', str(session)], ['-l', str(signal)],
                    ['-t', str(terminal)], ['-U', uid], pipes.quote(pattern))
 
-    return self._dut.CheckCall(self._BuildCommand(
+    return self._device.CheckCall(self._BuildCommand(
         'pkill',
         *(option for i, option in enumerate(arg_options)
           if args[i] or (args[i] is 0))))
@@ -630,7 +630,7 @@ class Toybox(component.DeviceComponent):
       use_shell: Use shell's path from $PWD (when applicable)
       absolute_path: Print cannonical absolute path
     """
-    return self._dut.CheckOutput(self._BuildCommand(
+    return self._device.CheckOutput(self._BuildCommand(
         'pwd',
         '-L' if shell else None,
         '-P' if absolute_path else None)).strip()
@@ -649,7 +649,7 @@ class Toybox(component.DeviceComponent):
 
   def reset(self):
     """Reset the terminal."""
-    self._dut.CheckCall(self._BuildCommand('reset'))
+    self._device.CheckCall(self._BuildCommand('reset'))
 
   def rev(self, *args, **kargs):
     raise NotImplementedError
@@ -667,9 +667,8 @@ class Toybox(component.DeviceComponent):
       dirnames: A list of directories to remove.
       parents: Remove directory and its ancestors.
     """
-    self._dut.CheckCall(self._BuildCommand('rmdir',
-                                           '-p' if parents else None,
-                                           dirnames))
+    self._device.CheckCall(self._BuildCommand(
+        'rmdir', '-p' if parents else None, dirnames))
 
   def sed(self, *args, **kargs):
     raise NotImplementedError
@@ -706,7 +705,7 @@ class Toybox(component.DeviceComponent):
 
   def sync(self):
     """Write pending cached data to disk (synchronize), blocking until done."""
-    self._dut.CheckCall(self._BuildCommand('sync'))
+    self._device.CheckCall(self._BuildCommand('sync'))
 
   def sysctl(self, *args, **kargs):
     raise NotImplementedError
@@ -752,7 +751,7 @@ class Toybox(component.DeviceComponent):
 
   def unlink(self, path):
     """Deletes one file."""
-    self._dut.CheckCall(self._BuildCommand('unlink', path))
+    self._device.CheckCall(self._BuildCommand('unlink', path))
 
   def unshare(self, *args, **kargs):
     raise NotImplementedError
@@ -765,7 +764,7 @@ class Toybox(component.DeviceComponent):
     Returns:
       A UPTIME_TUPLE named tuple for system load information.
     """
-    raw_output = self._dut.CheckOutput(self._BuildCommand('uptime'))
+    raw_output = self._device.CheckOutput(self._BuildCommand('uptime'))
 
     # Output example:
     # 07:02:03 up 45 days,  4:56,  2 users,  load average: 1.26, 1.37, 1.20
@@ -820,7 +819,7 @@ class Toybox(component.DeviceComponent):
     if not any(args):
       args = default_args
 
-    raw_output = self._dut.CheckOutput(self._BuildCommand(
+    raw_output = self._device.CheckOutput(self._BuildCommand(
         'wc',
         (option for i, option in enumerate(arg_options) if args[i]),
         files)).splitlines()
@@ -843,7 +842,7 @@ class Toybox(component.DeviceComponent):
     Returns:
       A list of matched files.
     """
-    return self._dut.CheckOutput(self._BuildCommand(
+    return self._device.CheckOutput(self._BuildCommand(
         'which',
         '-a' if all_matches else None,
         filenames)).splitlines()
@@ -853,7 +852,7 @@ class Toybox(component.DeviceComponent):
 
   def whoami(self):
     """Returns the current user name."""
-    return self._dut.CheckOutput(self._BuildCommand('whoami')).strip()
+    return self._device.CheckOutput(self._BuildCommand('whoami')).strip()
 
   def xargs(self, *args, **kargs):
     raise NotImplementedError

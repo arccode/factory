@@ -8,10 +8,10 @@
 import posixpath
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 
 
-class Path(component.DeviceComponent):
+class Path(types.DeviceComponent):
   """Provies operations on pathnames, similar to os.path.
 
   If the operation doesn't need to access DUT, e.g. join and split,
@@ -40,19 +40,19 @@ class Path(component.DeviceComponent):
 
   def exists(self, path):
     """Tests whether a path exists. Returns False for broken symbolic links."""
-    return self._dut.Call(['test', '-e', path]) == 0
+    return self._device.Call(['test', '-e', path]) == 0
 
   def isdir(self, path):
     """Returns True if path refers to an existing directory."""
-    return self._dut.Call(['test', '-d', path]) == 0
+    return self._device.Call(['test', '-d', path]) == 0
 
   def isfile(self, path):
     """Returns True if path refers to a regular file."""
-    return self._dut.Call(['test', '-f', path]) == 0
+    return self._device.Call(['test', '-f', path]) == 0
 
   def islink(self, path):
     """Returns True if path refers to a symbolic link."""
-    return self._dut.Call(['test', '-h', path]) == 0
+    return self._device.Call(['test', '-h', path]) == 0
 
   def lexists(self, path):
     """Tests whether a path exists. Returns True for broken symbolic links."""
@@ -75,7 +75,7 @@ class Path(component.DeviceComponent):
     """
 
     # this should never failed, a path should always be returned
-    output = self._dut.CallOutput(['realpath', '-m', path])
+    output = self._device.CallOutput(['realpath', '-m', path])
     return output.splitlines()[0]
 
 
@@ -109,7 +109,7 @@ class AndroidPath(Path):
 
     # Since in many cases, the 'path' actually exists, we can reduce average
     # cost by checking the entire path first.
-    output = self._dut.CallOutput(['realpath', path])
+    output = self._device.CallOutput(['realpath', path])
     if output:
       return output.strip()
 
@@ -119,7 +119,7 @@ class AndroidPath(Path):
       bits = ['./'] + path.split('/')
 
     # This should never fail (we are asking realpath for '/' or './').
-    output = self._dut.CheckOutput(['realpath', bits[0]])
+    output = self._device.CheckOutput(['realpath', bits[0]])
     current = output.strip()
 
     # Try to append each subdirectory to current path.
@@ -131,7 +131,8 @@ class AndroidPath(Path):
         current = self.dirname(current)
         continue
 
-      output = self._dut.CallOutput(['realpath', self.join(current, bits[i])])
+      output = self._device.CallOutput(
+          ['realpath', self.join(current, bits[i])])
       if not output:
         # We can't find realpath of 'current/bits[i]',
         # it might be a symbolic loop or non-existing file,

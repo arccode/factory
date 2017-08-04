@@ -11,7 +11,7 @@ import mox
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import board
+from cros.factory.device import types
 from cros.factory.umpire.client import umpire_client
 
 
@@ -133,7 +133,7 @@ class UmpireClientInfoTest(unittest.TestCase):
   def setUp(self):
     """Setups mox and mock umpire_client_info used in tests."""
     self.mox = mox.Mox()
-    self.dut = self.mox.CreateMock(board.DeviceBoard)
+    self.dut = self.mox.CreateMock(types.DeviceInterface)
 
   def tearDown(self):
     """Clean up for each test."""

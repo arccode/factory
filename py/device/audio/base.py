@@ -13,7 +13,7 @@ from multiprocessing import Process
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 from cros.factory.utils import config_utils
 from cros.factory.utils import type_utils
 
@@ -44,7 +44,7 @@ script_card_index = '999'
 WAV_HEADER_SIZE = 44
 
 
-class BaseAudioControl(component.DeviceComponent):
+class BaseAudioControl(types.DeviceComponent):
   """An abstract class for different target audio utils"""
 
   def __init__(self, dut, config_path=None):
@@ -58,7 +58,7 @@ class BaseAudioControl(component.DeviceComponent):
 
   def _GetPIDByName(self, name):
     """Used to get process ID"""
-    pids = self._dut.CallOutput(['toybox', 'pidof', name]).strip().split()
+    pids = self._device.CallOutput(['toybox', 'pidof', name]).strip().split()
     # we sholud only have one PID.
     if len(pids) > 1:
       raise RuntimeError('Find more than one PID(%r) of %s!' % (pids, name))
@@ -158,11 +158,11 @@ class BaseAudioControl(component.DeviceComponent):
     Returns:
       The full name of the found event device of form /dev/input/event*
     """
-    for evdev in self._dut.Glob('/dev/input/event*'):
-      evdev_name = self._dut.ReadFile(
-          self._dut.path.join('/sys/class/input/',
-                              self._dut.path.basename(evdev),
-                              'device/name'))
+    for evdev in self._device.Glob('/dev/input/event*'):
+      evdev_name = self._device.ReadFile(
+          self._device.path.join(
+              '/sys/class/input/', self._device.path.basename(evdev),
+              'device/name'))
       if evdev_name.find(name) != -1:
         logging.info('Find %s Event Device %s', name, evdev)
         return evdev
@@ -182,7 +182,7 @@ class BaseAudioControl(component.DeviceComponent):
     if card in self.audio_config and HP_JACK_DETECT in self.audio_config[card]:
       command = self.audio_config[card][HP_JACK_DETECT]
       logging.info('Getting headphone jack status by %s', command)
-      jack_status = self._dut.CallOutput(command).strip()
+      jack_status = self._device.CallOutput(command).strip()
       status = True if jack_status == '1' else False
       logging.info('headphone jack status %s', status)
       return status
@@ -205,7 +205,7 @@ class BaseAudioControl(component.DeviceComponent):
       evdev = self.FindEventDeviceByName(hp_jack_name)
       if evdev:
         command = ['evtest', '--query', evdev, 'EV_SW', 'SW_HEADPHONE_INSERT']
-        returncode = self._dut.Call(command)
+        returncode = self._device.Call(command)
         status = (returncode != 0)
         break
 
@@ -229,7 +229,7 @@ class BaseAudioControl(component.DeviceComponent):
     if card in self.audio_config and MIC_JACK_DETECT in self.audio_config[card]:
       command = self.audio_config[card][MIC_JACK_DETECT]
       logging.info('Getting microphone jack status by %s', command)
-      jack_status = self._dut.CallOutput(command).strip()
+      jack_status = self._device.CallOutput(command).strip()
       status = True if jack_status == '1' else False
       logging.info('microphone jack status %s', status)
       return status
@@ -251,7 +251,7 @@ class BaseAudioControl(component.DeviceComponent):
       evdev = self.FindEventDeviceByName(jack_name)
       if evdev:
         command = ['evtest', '--query', evdev, 'EV_SW', 'SW_MICROPHONE_INSERT']
-        returncode = self._dut.Call(command)
+        returncode = self._device.Call(command)
         status = (returncode != 0)
         break
 
@@ -275,7 +275,7 @@ class BaseAudioControl(component.DeviceComponent):
         MIC_JACK_TYPE_DETECT in self.audio_config[card]):
       command = self.audio_config[card][MIC_JACK_TYPE_DETECT]
       logging.info('Getting mic jack type by %s', command)
-      type_status = self._dut.CallOutput(command).strip()
+      type_status = self._device.CallOutput(command).strip()
       if type_status == MIC_JACK_TYPE_RETURN_LRGM:
         mictype = MicJackType.lrgm
       elif type_status == MIC_JACK_TYPE_RETURN_LRMG:
@@ -309,7 +309,7 @@ class BaseAudioControl(component.DeviceComponent):
         if is_script:
           script = self.audio_config[card][action]
           logging.info('Execute \'%s\'', script)
-          self._dut.CheckCall(script)
+          self._device.CheckCall(script)
         else:
           logging.info('\nvvv-- Do(%d) \'%s\' on card %s Start --vvv',
                        self._audio_config_sn, action, card)
@@ -510,7 +510,8 @@ class BaseAudioControl(component.DeviceComponent):
       channels: number of channels
       rate: Sampling rate
     """
-    with self._dut.temp.TempFile() as wav_path:
+    with self._device.temp.TempFile() as wav_path:
       self.RecordWavFile(wav_path, card, device, duration, channels, rate)
-      self._dut.CheckCall(['dd', 'skip=%d' % WAV_HEADER_SIZE,
-                           'if=%s' % wav_path, 'of=%s' % path, 'bs=1'])
+      self._device.CheckCall(
+          ['dd', 'skip=%d' % WAV_HEADER_SIZE, 'if=%s' % wav_path, 'of=%s' %
+           path, 'bs=1'])

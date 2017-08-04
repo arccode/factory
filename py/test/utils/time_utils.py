@@ -19,7 +19,7 @@ def SyncDate(dut=None):
   """Sync DUT datetime with station.
 
   Args:
-    :type dut: cros.factory.device.board.DeviceBoard
+    :type dut: cros.factory.device.types.DeviceInterface
   """
 
   if not dut:

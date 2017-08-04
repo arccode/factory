@@ -33,7 +33,7 @@ import re
 import textwrap
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
@@ -43,7 +43,7 @@ class WiFiError(Exception):
   pass
 
 
-class WiFi(component.DeviceComponent):
+class WiFi(types.DeviceComponent):
   """WiFi system component."""
   _SCAN_TIMEOUT_SECS = 20
   _ACCESS_POINT_RE = re.compile(
@@ -79,8 +79,8 @@ class WiFi(component.DeviceComponent):
       name_patterns = self._WLAN_NAME_PATTERNS
     interfaces = []
     for pattern in name_patterns:
-      interfaces += [self._dut.path.basename(path) for path in
-                     self._dut.Glob('/sys/class/net/' + pattern) or []]
+      interfaces += [self._device.path.basename(path) for path in
+                     self._device.Glob('/sys/class/net/' + pattern) or []]
     return interfaces
 
   def _ValidateInterface(self, interface=None):
@@ -108,12 +108,12 @@ class WiFi(component.DeviceComponent):
       # First, bring the device up.  If it is already up, this will succeed
       # anyways.
       logging.debug('Bringing up interface %s...', interface)
-      self._dut.CheckCall(['ifconfig', interface, 'up'])
+      self._device.CheckCall(['ifconfig', interface, 'up'])
 
-      output = self._dut.CheckOutput(
+      output = self._device.CheckOutput(
           ['iw', 'dev', interface, 'scan']).decode('string_escape')
       return self._ParseScanResult(output)
-    except component.CalledProcessError:
+    except types.CalledProcessError:
       return []
 
   def _ParseScanResult(self, output):
@@ -275,7 +275,7 @@ class WiFi(component.DeviceComponent):
       raise WiFiError('Expected AccessPoint for ap argument: %s' % ap)
     interface = self._ValidateInterface(interface)
     conn = self._NewConnection(
-        dut=self._dut, interface=interface,
+        dut=self._device, interface=interface,
         ap=ap, passkey=passkey,
         connect_timeout=connect_timeout,
         connect_attempt_timeout=connect_attempt_timeout,
@@ -391,7 +391,7 @@ class WiFiChromeOS(WiFi):
     # TODO(kitching): Figure out a better way of either (a) disabling these
     # services temporarily, or (b) using Chrome OS's Shill to make the
     # connection.
-    self._dut.Call('stop wpasupplicant && sleep 0.5')
+    self._device.Call('stop wpasupplicant && sleep 0.5')
     return Connection(*args, **kwargs)
 
 
@@ -408,7 +408,7 @@ class Connection(object):
                dhcp_timeout=None,
                tmp_dir=None, dhcp_method=DHCP_DHCLIENT,
                dhclient_script_path=None):
-    self._dut = dut
+    self._device = dut
     self.interface = interface
     self.ap = ap
     self.passkey = passkey
@@ -441,7 +441,7 @@ class Connection(object):
     disconnect_command = 'iw dev {interface} disconnect'.format(
         interface=self.interface)
     # This call may fail if we are not connected to any network.
-    self._dut.Call(disconnect_command)
+    self._device.Call(disconnect_command)
 
   def _Connect(self, connect_fn=None):
     """Retries the given function to connect to the AP."""
@@ -451,7 +451,7 @@ class Connection(object):
       # some buggy drivers require the scan and connect steps to be in rapid
       # succession for a connect to work properly.
       logging.info('Scanning...')
-      self._dut.Call(['iw', 'dev', self.interface, 'scan'])
+      self._device.Call(['iw', 'dev', self.interface, 'scan'])
       logging.info('Running connect_fn...')
       connect_fn()
       logging.info('Checking for connection...')
@@ -464,7 +464,7 @@ class Connection(object):
     check_command = 'iw dev {interface} link'.format(interface=self.interface)
     logging.info('Waiting to connect to AP...')
     def CheckConnected():
-      return self._dut.CheckOutput(
+      return self._device.CheckOutput(
           check_command).startswith(CHECK_SUCCESS_PREFIX)
     try:
       return sync_utils.WaitFor(CheckConnected, self._connect_attempt_timeout)
@@ -481,13 +481,13 @@ class Connection(object):
     if self._user_tmp_dir:
       self._tmp_dir = self._user_tmp_dir
     else:
-      self._tmp_dir_handle = self._dut.temp.TempDirectory()
+      self._tmp_dir_handle = self._device.temp.TempDirectory()
       self._tmp_dir = self._tmp_dir_handle.__enter__()
 
     # First, bring the device up.  If it is already up, this will succeed
     # anyways.
     logging.debug('Bringing up ifconfig...')
-    self._dut.CheckCall(['ifconfig', self.interface, 'up'])
+    self._device.CheckCall(['ifconfig', self.interface, 'up'])
 
     # Authenticate to the server.
     auth_fns = {
@@ -532,8 +532,8 @@ class Connection(object):
         interface=self.interface)
     try:
       # grep exit with return code 0 when we have retrieved an IP.
-      out = self._dut.CheckOutput(check_command)
-    except component.CalledProcessError:
+      out = self._device.CheckOutput(check_command)
+    except types.CalledProcessError:
       return False
     # ex: inet 192.168.159.78/20 brd 192.168.159.255 scope global wlan0
     return out.split()[1].split('/')[0]
@@ -557,25 +557,25 @@ class Connection(object):
     force_kill_command = 'pgrep dhcpcd | xargs -r kill -9'
 
     logging.info('Killing any existing dhcpcd processes...')
-    self._dut.Call(force_kill_command)
+    self._device.Call(force_kill_command)
 
     logging.info('Clearing any existing ifconfig networks...')
-    self._dut.Call(clear_ifconfig_command)
+    self._device.Call(clear_ifconfig_command)
 
     logging.info('Starting dhcpcd...')
-    self._dut.CheckCall(dhcp_timeout_command)
+    self._device.CheckCall(dhcp_timeout_command)
 
     logging.info('Verifying IP address...')
     ip = self._LeasedIP()
     if not ip:
-      self._dut.Call(force_kill_command)
+      self._device.Call(force_kill_command)
       raise WiFiError('DHCP bind failed')
     logging.info('Success: bound to IP %s', ip)
 
     yield ip  # We have bound an IP; yield back to the caller.
 
     logging.info('Killing any remaining dhcpcd processes...')
-    self._dut.Call(force_kill_command)
+    self._device.Call(force_kill_command)
 
     yield  # We have released the IP.
 
@@ -600,26 +600,26 @@ class Connection(object):
     force_kill_command = 'pgrep dhclient | xargs -r kill -9'
 
     logging.info('Killing any existing dhclient processes...')
-    self._dut.Call(force_kill_command)
+    self._device.Call(force_kill_command)
 
     logging.info('Clearing any existing ifconfig networks...')
-    self._dut.Call(clear_ifconfig_command)
+    self._device.Call(clear_ifconfig_command)
 
     logging.info('Starting dhclient...')
-    self._dut.CheckCall(dhcp_command)
+    self._device.CheckCall(dhcp_command)
 
     logging.info('Waiting to lease an IP...')
     ip = sync_utils.WaitFor(self._LeasedIP, self._dhcp_timeout)
     if not ip:
-      self._dut.Call(kill_command)
+      self._device.Call(kill_command)
       raise WiFiError('DHCP bind failed')
     logging.info('Success: bound to IP %s', ip)
 
     yield ip  # We have bound an IP; yield back to the caller.
 
     logging.info('Stopping dhclient...')
-    self._dut.Call(kill_command)
-    self._dut.Call(force_kill_command)
+    self._device.Call(kill_command)
+    self._device.Call(force_kill_command)
 
     yield  # We have released the IP.
 
@@ -633,7 +633,7 @@ class Connection(object):
     # Pause until connected.  Throws exception if failed.
     def ConnectOpen():
       logging.info('Connecting to open network...')
-      self._dut.CheckCall(connect_command)
+      self._device.CheckCall(connect_command)
     if not self._Connect(ConnectOpen):
       raise WiFiError('Connection to open network failed')
 
@@ -656,7 +656,7 @@ class Connection(object):
     # Pause until connected.  Throws exception if failed.
     def ConnectWEP():
       logging.info('Connecting to WEP network...')
-      self._dut.CheckCall(connect_command)
+      self._device.CheckCall(connect_command)
     if not self._Connect(ConnectWEP):
       raise WiFiError('Connection to WEP network failed')
 
@@ -698,24 +698,24 @@ class Connection(object):
     force_kill_command = 'killall wpa_supplicant'
 
     logging.info('Killing any existing wpa_command processes...')
-    self._dut.Call(force_kill_command)
+    self._device.Call(force_kill_command)
 
     logging.info('Creating wpa.conf...')
-    self._dut.CheckCall(wpa_passphrase_command)
+    self._device.CheckCall(wpa_passphrase_command)
 
     logging.info('Launching wpa_supplicant...')
-    self._dut.CheckCall(wpa_supplicant_command)
+    self._device.CheckCall(wpa_supplicant_command)
 
     # Pause until connected.  Throws exception if failed.
     if not self._Connect():
-      self._dut.Call(kill_command)
+      self._device.Call(kill_command)
       raise WiFiError('Connection to WPA network failed')
 
     yield  # We are connected; yield back to the caller.
 
     logging.info('Stopping wpa_supplicant...')
-    self._dut.Call(kill_command)
-    self._dut.Call(force_kill_command)
+    self._device.Call(kill_command)
+    self._device.Call(force_kill_command)
 
     logging.info('Disconnecting from WPA network...')
     self._DisconnectAP()

@@ -15,7 +15,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import thermal
-from cros.factory.device import board
+from cros.factory.device import types
 
 
 class CoreTempSensorTest(unittest.TestCase):
@@ -23,7 +23,7 @@ class CoreTempSensorTest(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(board.DeviceBoard)
+    self.board = self.mox.CreateMock(types.DeviceBoard)
     self.board.path = os.path
     self.sensor = thermal.CoreTempSensors(self.board)
     self.glob_input = '/sys/devices/platform/coretemp.*/temp*_input'
@@ -82,7 +82,7 @@ class ThermalZoneSensors(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(board.DeviceBoard)
+    self.board = self.mox.CreateMock(types.DeviceBoard)
     self.board.path = os.path
     self.sensor = thermal.ThermalZoneSensors(self.board)
     self.glob_input = '/sys/class/thermal/thermal_zone*'
@@ -112,7 +112,7 @@ class ECToolTemperatureSensors(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(board.DeviceBoard)
+    self.board = self.mox.CreateMock(types.DeviceBoard)
     self.board.path = os.path
     self.sensor = thermal.ECToolTemperatureSensors(self.board)
 
@@ -150,7 +150,7 @@ class ThermalTest(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(board.DeviceBoard)
+    self.board = self.mox.CreateMock(types.DeviceBoard)
     self.board.path = os.path
     self.thermal = thermal.Thermal(self.board)
     self.coretemp1_path = '/sys/devices/platform/coretemp.0/temp1_input'

@@ -8,7 +8,7 @@ import logging
 import os
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.device import component
+from cros.factory.device import types
 from cros.factory.device import sensor_utils
 
 
@@ -35,14 +35,14 @@ class AmbientLightSensorController(sensor_utils.BasicSensorController):
 
   def _SetSysfsValue(self, signal_name, value):
     try:
-      self._dut.WriteSpecialFile(
+      self._device.WriteSpecialFile(
           os.path.join(self._iio_path, signal_name), value)
     except Exception as e:
       raise AmbientLightSensorException(e.message)
 
   def _GetSysfsValue(self, signal_name):
     try:
-      return self._dut.ReadFile(os.path.join(
+      return self._device.ReadFile(os.path.join(
           self._iio_path, signal_name)).strip()
     except Exception as e:
       raise AmbientLightSensorException(e.message)
@@ -79,12 +79,12 @@ class AmbientLightSensorController(sensor_utils.BasicSensorController):
   def ForceLightInit(self):
     """Froce als to apply the vpd value."""
     try:
-      self._dut.CheckCall('/lib/udev/light-init.sh')
+      self._device.CheckCall('/lib/udev/light-init.sh')
     except Exception as e:
       raise AmbientLightSensorException(e.message)
 
 
-class AmbientLightSensor(component.DeviceComponent):
+class AmbientLightSensor(types.DeviceComponent):
   """AmbientLightSensor (ALS) component module."""
 
   def GetController(self, name='cros-ec-light', location='lid'):
@@ -92,4 +92,4 @@ class AmbientLightSensor(component.DeviceComponent):
 
     See AmbientLightSensorController for more information.
     """
-    return AmbientLightSensorController(self._dut, name, location)
+    return AmbientLightSensorController(self._device, name, location)

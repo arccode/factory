@@ -8,10 +8,10 @@
 from contextlib import contextmanager
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 
 
-class TemporaryFiles(component.DeviceComponent):
+class TemporaryFiles(types.DeviceComponent):
   """Provides access to temporary files and directories on DUT-based systems.
 
   Examples:
@@ -43,7 +43,7 @@ class TemporaryFiles(component.DeviceComponent):
       args += ['-d']
     args += ['--tmpdir' if dir is None else '--tmpdir=%s' % dir]
     args += [template]
-    return self._dut.CheckOutput(args).strip()
+    return self._device.CheckOutput(args).strip()
 
   @contextmanager
   def TempFile(self, **kargs):
@@ -60,7 +60,7 @@ class TemporaryFiles(component.DeviceComponent):
     try:
       yield path
     finally:
-      self._dut.Call(['rm', '-f', path])
+      self._device.Call(['rm', '-f', path])
 
 
   @contextmanager
@@ -78,7 +78,7 @@ class TemporaryFiles(component.DeviceComponent):
     try:
       yield path
     finally:
-      self._dut.Call(['rm', '-rf', path])
+      self._device.Call(['rm', '-rf', path])
 
 
 class AndroidTemporaryFiles(TemporaryFiles):
@@ -95,7 +95,7 @@ class AndroidTemporaryFiles(TemporaryFiles):
     if is_dir:
       args += ['-d']
     args += [template]
-    return self._dut.CheckOutput(args).strip()
+    return self._device.CheckOutput(args).strip()
 
 
 class DummyTemporaryFiles(TemporaryFiles):

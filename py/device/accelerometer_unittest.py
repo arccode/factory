@@ -12,9 +12,9 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.device import accelerometer
 
 
-def MockControllerInit(self, board, unused_name, location):
+def MockControllerInit(self, device, unused_name, location):
   # pylint: disable=protected-access
-  self._dut = board
+  self._device = device
   self.location = location
 
 

@@ -12,7 +12,7 @@ import time
 from collections import namedtuple
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 from cros.factory.device import sensor_utils
 
 
@@ -48,7 +48,7 @@ class AccelerometerException(Exception):
   pass
 
 
-class AccelerometerController(component.DeviceComponent):
+class AccelerometerController(types.DeviceComponent):
   """Utility class for the two accelerometers.
 
   Attributes:
@@ -87,13 +87,13 @@ class AccelerometerController(component.DeviceComponent):
     self.trigger_path = None
 
     self.iio_bus_path = sensor_utils.FindDevice(
-        self._dut, self._dut.path.join(_IIO_DEVICES_PATH, 'iio:device*'),
+        self._device, self._device.path.join(_IIO_DEVICES_PATH, 'iio:device*'),
         name=name, location=location)
-    self.iio_bus_id = self._dut.path.basename(self.iio_bus_path)
+    self.iio_bus_id = self._device.path.basename(self.iio_bus_path)
 
     trigger_name = self._GetSysfsValue('trigger/current_trigger')
     self.trigger_path = sensor_utils.FindDevice(
-        self._dut, self._dut.path.join(_IIO_DEVICES_PATH, 'trigger*'),
+        self._device, self._device.path.join(_IIO_DEVICES_PATH, 'trigger*'),
         name=trigger_name)
 
     scan_elements_path = os.path.join(
@@ -125,7 +125,7 @@ class AccelerometerController(component.DeviceComponent):
     if path is None:
       path = self.iio_bus_path
     try:
-      return self._dut.ReadFile(os.path.join(path, filename)).strip()
+      return self._device.ReadFile(os.path.join(path, filename)).strip()
     except Exception:
       pass
 
@@ -141,7 +141,7 @@ class AccelerometerController(component.DeviceComponent):
     if path is None:
       path = self.iio_bus_path
     try:
-      self._dut.WriteFile(os.path.join(path, filename), value)
+      self._device.WriteFile(os.path.join(path, filename), value)
     except Exception:
       if check_call:
         raise
@@ -321,14 +321,14 @@ class AccelerometerController(component.DeviceComponent):
     logging.info('Calibration results: %s.', calib_bias)
     scaled = dict((k, str(int(v * 1024 / _GRAVITY)))
                   for k, v in calib_bias.viewitems())
-    self._dut.vpd.ro.Update(scaled)
+    self._device.vpd.ro.Update(scaled)
     for vpd_entry, sysfs_entry in zip(
         self._GenSignalNames('_' + self.location + '_calibbias'),
         self._GenSignalNames('_calibbias')):
       self._SetSysfsValue(sysfs_entry, scaled[vpd_entry])
 
 
-class Accelerometer(component.DeviceComponent):
+class Accelerometer(types.DeviceComponent):
   """Accelerometer component module."""
 
   def GetController(self, location):
@@ -336,4 +336,4 @@ class Accelerometer(component.DeviceComponent):
 
     See AccelerometerController for more information.
     """
-    return AccelerometerController(self._dut, 'cros-ec-accel', location)
+    return AccelerometerController(self._device, 'cros-ec-accel', location)

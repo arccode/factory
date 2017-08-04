@@ -9,10 +9,10 @@ import struct
 import time
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.device import component
+from cros.factory.device import types
 
 
-class Touch(component.DeviceComponent):
+class Touch(types.DeviceComponent):
   """Touch Component."""
 
   def GetController(self, index):
@@ -27,7 +27,7 @@ class Touch(component.DeviceComponent):
     raise NotImplementedError
 
 
-class TouchController(component.DeviceComponent):
+class TouchController(types.DeviceComponent):
   """Touch Controller."""
 
   def CheckInterface(self):
@@ -80,22 +80,22 @@ class Atmel1664sTouchController(TouchController):
 
   def _ProbeI2CBusId(self):
     candidates = [
-        self._dut.path.basename(path)
-        for path in self._dut.Glob(
-            self._dut.path.join(self._KERNEL_DEBUG_PATH, '*'))]
+        self._device.path.basename(path)
+        for path in self._device.Glob(
+            self._device.path.join(self._KERNEL_DEBUG_PATH, '*'))]
     assert len(candidates) == 1, (
         'Not having exactly one possible device: %s' % candidates)
     return candidates[0]
 
   def CheckInterface(self):
     """See TouchController.CheckInterface."""
-    return self._dut.path.exists(self._object_path)
+    return self._device.path.exists(self._object_path)
 
   def Calibrate(self):
     """See TouchController.Calibrate."""
     logging.info('Calibrating...')
     # Force calibration with T6 instance 0, byte 2 (calibrate), non-zero value.
-    self._dut.WriteFile(self._object_path, '06000201')
+    self._device.WriteFile(self._object_path, '06000201')
     # Empirical value to give the controller some time to finish calibration.
     time.sleep(0.2)
     return True  # TODO(dparker): Figure out how to detect calibration errors.
@@ -112,8 +112,8 @@ class Atmel1664sTouchController(TouchController):
     result = []
     for frame_idx in frame_idx_list:
       file_name = self._FRAME_FILENAMES[frame_idx]
-      file_path = self._dut.path.join(self._kerdbg_path, file_name)
-      buf = self._dut.ReadSpecialFile(file_path, count=nbytes)
+      file_path = self._device.path.join(self._kerdbg_path, file_name)
+      buf = self._device.ReadSpecialFile(file_path, count=nbytes)
       data = struct.unpack(fmt, buf)
       result.append([
           list(data[i * self._cols:(i + 1) * self._cols])

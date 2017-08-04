@@ -5,13 +5,13 @@
 import pipes
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 
 
 """System module for memory."""
 
 
-class BaseMemory(component.DeviceComponent):
+class BaseMemory(types.DeviceComponent):
   """Abstract class for memory component."""
 
   def __init__(self, dut):
@@ -39,15 +39,16 @@ class LinuxMemory(BaseMemory):
 
   def ResizeSharedMemory(self, size='100%'):
     """See BaseMemory.ResizeSharedMemory."""
-    self._dut.CheckCall('mount -o remount,size=%s /dev/shm' % pipes.quote(size))
+    self._device.CheckCall(
+        'mount -o remount,size=%s /dev/shm' % pipes.quote(size))
 
   def GetTotalMemoryKB(self):
     """Gets total memory of system in kB"""
-    return self._dut.toybox.free('k').mem_total
+    return self._device.toybox.free('k').mem_total
 
   def GetFreeMemoryKB(self):
     """Gets free memory of system in kB"""
-    return self._dut.toybox.free('k').mem_max_free
+    return self._device.toybox.free('k').mem_max_free
 
 
 class AndroidMemory(LinuxMemory):

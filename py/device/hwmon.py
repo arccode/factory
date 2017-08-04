@@ -7,7 +7,7 @@
 import pipes
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 
 
 _HWMON_PATH = '/sys/class/hwmon'
@@ -17,20 +17,20 @@ class HardwareMonitorException(Exception):
   pass
 
 
-class HardwareMonitorDevice(component.DeviceComponent):
+class HardwareMonitorDevice(types.DeviceComponent):
   """A class representing a single hwmon device."""
   def __init__(self, dut, path):
     super(HardwareMonitorDevice, self).__init__(dut)
     self._path = path
 
   def GetAttribute(self, name):
-    return self._dut.ReadFile(self._dut.path.join(self._path, name))
+    return self._device.ReadFile(self._device.path.join(self._path, name))
 
   def GetPath(self):
     return self._path
 
 
-class HardwareMonitor(component.DeviceComponent):
+class HardwareMonitor(types.DeviceComponent):
   """Utility class for hardware monitor devices."""
 
   def __init__(self, dut, hwmon_path=_HWMON_PATH):
@@ -66,10 +66,9 @@ class HardwareMonitor(component.DeviceComponent):
     Returns:
       A list of matching hwmon device.
     """
-    search_path = self._dut.path.join(self._hwmon_path, '*',
-                                      pipes.quote(attr_name))
-    output = self._dut.CheckOutput('grep %s -l -e %s' %
-                                   (search_path,
-                                    pipes.quote('^%s$' % attr_value)))
-    return [HardwareMonitorDevice(self._dut, self._dut.path.dirname(path))
+    search_path = self._device.path.join(
+        self._hwmon_path, '*', pipes.quote(attr_name))
+    output = self._device.CheckOutput(
+        'grep %s -l -e %s' % (search_path, pipes.quote('^%s$' % attr_value)))
+    return [HardwareMonitorDevice(self._device, self._device.path.dirname(path))
             for path in output.splitlines()]

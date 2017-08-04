@@ -13,8 +13,8 @@ import os
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.device import component
 from cros.factory.device import device_utils
+from cros.factory.device import types
 from cros.factory.test import factory
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
@@ -150,7 +150,7 @@ class BluetoothScanTest(unittest.TestCase):
     factory.console.info('Running %s: %s', cmd_name, cmd)
     try:
       output = self.dut.CheckOutput(cmd)
-    except component.CalledProcessError as e:
+    except types.CalledProcessError as e:
       factory.console.info('Exit code: %d', e.returncode)
     else:
       factory.console.info('Success. Output: %s', output)

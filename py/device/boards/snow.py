@@ -8,7 +8,7 @@ import logging
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
-from cros.factory.device import component
+from cros.factory.device import types
 from cros.factory.device import power
 from cros.factory.device.boards import chromeos
 
@@ -18,13 +18,13 @@ class SnowPower(power.Power):
   def SetChargeState(self, state):
     try:
       if state == self.ChargeState.CHARGE:
-        self._dut.CheckCall(['ectool', 'gpioset', 'charger_en', '1'])
+        self._device.CheckCall(['ectool', 'gpioset', 'charger_en', '1'])
         logging.info('Enabled the charger.')
       elif state == self.ChargeState.IDLE:
-        self._dut.CheckCall(['ectool', 'gpioset', 'charger_en', '0'])
+        self._device.CheckCall(['ectool', 'gpioset', 'charger_en', '0'])
         logging.info('Disabled the charger.')
       elif state == self.ChargeState.DISCHARGE:
-        self._dut.CheckCall(['ectool', 'gpioset', 'charger_en', '0'])
+        self._device.CheckCall(['ectool', 'gpioset', 'charger_en', '0'])
         factory.console.info('Can not force discharging.'
                              'Disabled the charger instead.'
                              'IF SYSTEM POWER IS OFF, PLEASE UNPLUG AC.')
@@ -41,6 +41,6 @@ class SnowPower(power.Power):
 class SnowBoard(chromeos.ChromeOSBoard):
   """Board interface for Snow."""
 
-  @component.DeviceProperty
+  @types.DeviceProperty
   def power(self):
     return SnowPower(self)

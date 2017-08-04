@@ -42,7 +42,7 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
     options: A list of options to add to the -o argument when mounting, e.g.,
         ['offset=8192', 'sizelimit=1048576'].
     fstype: A string to specify file system type.
-    dut: A board instance, None for local case.
+    dut: a cros.factory.device.types.DeviceInterface instance, None for local.
 
   Raises:
     OSError: if image file or mount point doesn't exist.
@@ -173,7 +173,7 @@ def MountDeviceAndReadFile(device, path, dut=None):
     device: The device like '/dev/mmcblk0p5'.
     path: The file path like '/etc/lsb-release'. The file to read is then
       'mount_point/etc/lsb-release'.
-    dut: a cros.factory.device.board.Board instance, None for local case.
+    dut: a cros.factory.device.types.DeviceInterface instance, None for local.
 
   Returns:
     The content of the file.
@@ -425,7 +425,7 @@ class PartitionManager(_GPTTool):
 
     Args:
       path: a path to Deivce which the PartitionManager query on.
-      dut: a Device API instance or None to run locally.
+      dut: a cros.factory.device.types.DeviceInterface instance, None for local.
 
     Raises:
       Exception: If cannot find either cgpt or partx in remote system PATH.
@@ -546,7 +546,7 @@ def GetVarLogMessages(max_length=256 * 1024,
   Args:
     max_length: Maximum numberssages.
     path: path to /var/log/messages.
-    dut: A board instance, Non of bytes to return.
+    dut: a cros.factory.device.types.DeviceInterface instance, None for local.
   """
   if dut:
     data = dut.CheckOutput(['tail', '-c', str(max_length), path])
@@ -576,7 +576,7 @@ def GetVarLogMessagesBeforeReboot(lines=100,
     lines: number of lines to return.
     max_length: maximum amount of data at end of file to read.
     path: path to /var/log/messages.
-    dut: A board instance, None for local case.
+    dut: a cros.factory.device.types.DeviceInterface instance, None for local.
 
   Returns:
     The last few lines in /var/log/messages before the current boot.
@@ -623,7 +623,7 @@ def GetStartupMessages(dut=None):
   test.
 
   Args:
-    dut: A board instance.
+    dut: a cros.factory.device.types.DeviceInterface instance, None for local.
 
   Returns: a dict that contains logs.
   """

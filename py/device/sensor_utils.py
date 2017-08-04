@@ -7,8 +7,7 @@
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import board
-from cros.factory.device import component
+from cros.factory.device import types
 
 
 _IIO_DEVICES_PATTERN = '/sys/bus/iio/devices/iio:device*'
@@ -41,16 +40,16 @@ def FindDevice(dut, path_pattern, **attr_filter):
       devices.append(path)
 
   if len(devices) == 0:
-    raise board.DeviceException(
+    raise types.DeviceException(
         'Device with constraint %r not found' % attr_filter)
   elif len(devices) > 1:
-    raise board.DeviceException(
+    raise types.DeviceException(
         'Multiple devices found with constraint %r' % attr_filter)
 
   return devices[0]
 
 
-class BasicSensorController(component.DeviceComponent):
+class BasicSensorController(types.DeviceComponent):
   """A sensor controller that only supports direct read."""
 
   def __init__(self, dut, name, location, signal_names):
@@ -64,7 +63,7 @@ class BasicSensorController(component.DeviceComponent):
     """
     super(BasicSensorController, self).__init__(dut)
     self.signal_names = signal_names
-    self._iio_path = FindDevice(self._dut, _IIO_DEVICES_PATTERN,
+    self._iio_path = FindDevice(self._device, _IIO_DEVICES_PATTERN,
                                 name=name, location=location)
 
   def GetData(self, capture_count=1, sample_rate=20):
@@ -81,8 +80,8 @@ class BasicSensorController(component.DeviceComponent):
     for _ in xrange(capture_count):
       time.sleep(1.0 / sample_rate)
       for signal_name in ret:
-        ret[signal_name] += float(self._dut.ReadFile(
-            self._dut.path.join(self._iio_path, signal_name + '_raw')))
+        ret[signal_name] += float(self._device.ReadFile(
+            self._device.path.join(self._iio_path, signal_name + '_raw')))
     for signal_name in ret:
       ret[signal_name] /= capture_count
     return ret

@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Implementation of cros.factory.device.DeviceLink using SSH."""
+"""Implementation of cros.factory.device.types.DeviceLink using SSH."""
 
 import logging
 import os
@@ -15,7 +15,7 @@ import threading
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import link
+from cros.factory.device import types
 from cros.factory.test import state
 from cros.factory.test.utils import dhcp_utils
 from cros.factory.utils import file_utils
@@ -61,7 +61,7 @@ class SSHProcess(object):
       return returncode
 
 
-class SSHLink(link.DeviceLink):
+class SSHLink(types.DeviceLink):
   """A DUT target that is connected via SSH interface.
 
   Properties:
@@ -446,10 +446,10 @@ class SSHLink(link.DeviceLink):
       self._dhcp_server = None
       self._exclude_ip_prefix = exclude_ip_prefix
 
-      self._duts = type_utils.UniqueStack()
+      self._devices = type_utils.UniqueStack()
 
     def _SetLastDUT(self):
-      last_dut = self._duts.Get()
+      last_dut = self._devices.Get()
       if last_dut:
         SSHLink.SetLinkIP(last_dut[0])
       else:
@@ -457,7 +457,7 @@ class SSHLink(link.DeviceLink):
 
     def _OnDHCPAdd(self, ip, mac_address):
       # update last device
-      self._duts.Add((ip, mac_address))
+      self._devices.Add((ip, mac_address))
       self._SetLastDUT()
 
       # invoke callback function
@@ -466,7 +466,7 @@ class SSHLink(link.DeviceLink):
 
     def _OnDHCPOld(self, ip, mac_address):
       # update last device
-      self._duts.Add((ip, mac_address))
+      self._devices.Add((ip, mac_address))
       self._SetLastDUT()
 
       # invoke callback function
@@ -475,7 +475,7 @@ class SSHLink(link.DeviceLink):
 
     def _OnDHCPDel(self, ip, mac_address):
       # remove the device
-      self._duts.Del((ip, mac_address))
+      self._devices.Del((ip, mac_address))
       self._SetLastDUT()
 
       # invoke callback function

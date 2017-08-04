@@ -16,23 +16,23 @@ import struct
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 
 
 # Currently SensorSource is only used by thermal sensors. We may move it to
 # other places if we see more modules having similar request, for example IIO
 # sensors.
-class SensorSource(component.DeviceComponent):
+class SensorSource(types.DeviceComponent):
   """Provides minimal functions for reading sensor input.
 
   Attributes:
-    _dut: A `cros.factory.device.board.DeviceBoard` instance.
+    _device: A `cros.factory.device.types.DeviceInterface` instance.
     _sensors: A dictionary for cached sensor info (from `_Probe`).
   """
 
-  def __init__(self, dut):
+  def __init__(self, device):
     """Constructor."""
-    super(SensorSource, self).__init__(dut)
+    super(SensorSource, self).__init__(device)
     self._sensors = None
 
   def _Probe(self):
@@ -94,7 +94,8 @@ class SensorSource(component.DeviceComponent):
     Returns:
       A processed value from sensor.
     """
-    return self._ConvertRawValue(self._dut.ReadFile(self.GetSensors()[sensor]))
+    return self._ConvertRawValue(
+        self._device.ReadFile(self.GetSensors()[sensor]))
 
   def GetAllValues(self):
     """Gets all available sensor values.
@@ -127,9 +128,9 @@ class CoreTempSensors(ThermalSensorSource):
   def _Probe(self):
     """Probes coretemp sensors."""
     return dict(
-        (self._dut.path.basename(self._dut.path.dirname(path)) + ' ' +
-         self._dut.ReadFile(path.rsplit('_')[0] + '_label').strip(), path)
-        for path in self._dut.Glob(
+        (self._device.path.basename(self._device.path.dirname(path)) + ' ' +
+         self._device.ReadFile(path.rsplit('_')[0] + '_label').strip(), path)
+        for path in self._device.Glob(
             '/sys/devices/platform/coretemp.*/temp*_input'))
 
   def _ConvertRawValue(self, value):
@@ -158,10 +159,10 @@ class ThermalZoneSensors(ThermalSensorSource):
     # reading 'value' form them will fail. We may need to support that in future
     # if needed.
     return dict(
-        (self._dut.path.basename(node) + ' ' +
-         self._dut.ReadFile(self._dut.path.join(node, 'type')).strip(),
-         self._dut.path.join(node, 'temp'))
-        for node in self._dut.Glob('/sys/class/thermal/thermal_zone*'))
+        (self._device.path.basename(node) + ' ' +
+         self._device.ReadFile(self._device.path.join(node, 'type')).strip(),
+         self._device.path.join(node, 'temp'))
+        for node in self._device.Glob('/sys/class/thermal/thermal_zone*'))
 
   def _ConvertRawValue(self, value):
     """Converts thermal zone raw values (milli-Celsius) to Celsius."""
@@ -193,7 +194,7 @@ class ECToolTemperatureSensors(ThermalSensorSource):
     """Probes ectool sensors by "tempsinfo all" command."""
     return dict(('ectool ' + name, sensor_id) for sensor_id, name in
                 self.ECTOOL_TEMPSINFO_ALL_RE.findall(
-                    self._dut.CallOutput('ectool tempsinfo all')))
+                    self._device.CallOutput('ectool tempsinfo all')))
 
   def _ConvertRawValue(self, value):
     """Converts ectool temperatures from Kelvin to Celsius."""
@@ -204,7 +205,8 @@ class ECToolTemperatureSensors(ThermalSensorSource):
     sensor_id = self.GetSensors()[sensor]
     # 'ectool temps' prints a message like Reading 'temperature...(\d+)'
     return self._ConvertRawValue(
-        self._dut.CallOutput('ectool temps %s' % sensor_id).rpartition('.')[2])
+        self._device.CallOutput(
+            'ectool temps %s' % sensor_id).rpartition('.')[2])
 
   def GetAllValues(self):
     """Returns all ectool temps values.
@@ -215,14 +217,14 @@ class ECToolTemperatureSensors(ThermalSensorSource):
     raw_values = dict([
         (sensor_id, value) for sensor_id, value in
         self.ECTOOL_TEMPS_ALL_RE.findall(
-            self._dut.CallOutput('ectool temps all'))])
+            self._device.CallOutput('ectool temps all'))])
 
     # Remap ID to cached names.
     return dict((name, self._ConvertRawValue(raw_values.get(sensor_id)))
                 for name, sensor_id in self.GetSensors().iteritems())
 
 
-class Thermal(component.DeviceComponent):
+class Thermal(types.DeviceComponent):
   """System module for thermal info (temperature sensors, power usage).
 
   Attributes:
@@ -271,11 +273,11 @@ class Thermal(component.DeviceComponent):
     self._sources = []
 
     # CoreTemp should be considered as the better alternative than ThermalZone.
-    self._AddThermalSensorSource(CoreTempSensors(self._dut))
+    self._AddThermalSensorSource(CoreTempSensors(self._device))
     if not self._main_sensor:
-      self._AddThermalSensorSource(ThermalZoneSensors(self._dut))
+      self._AddThermalSensorSource(ThermalZoneSensors(self._device))
     # ECTool provides additional sensors.
-    self._AddThermalSensorSource(ECToolTemperatureSensors(self._dut))
+    self._AddThermalSensorSource(ECToolTemperatureSensors(self._device))
 
   def _GetSensors(self):
     """Gets (cached) available sensors."""
@@ -344,8 +346,8 @@ class Thermal(component.DeviceComponent):
         'power': Average power use in Watt, optional.
     """
     del sensor_id  # Not required for default implementation.
-    pkg_energy_status = self._dut.ReadFile('/dev/cpu/0/msr', count=8,
-                                           skip=self.MSR_PKG_ENERGY_STATUS)
+    pkg_energy_status = self._device.ReadFile(
+        '/dev/cpu/0/msr', count=8, skip=self.MSR_PKG_ENERGY_STATUS)
     pkg_energy_j = (struct.unpack('<Q', pkg_energy_status)[0] *
                     self.ENERGY_UNIT_FACTOR)
 
@@ -360,11 +362,11 @@ class Thermal(component.DeviceComponent):
 
   def GetFanRPM(self, fan_id=None):
     """This function should be deprecated by `fan.GetFanRPM`."""
-    return self._dut.fan.GetFanRPM(fan_id)
+    return self._device.fan.GetFanRPM(fan_id)
 
   def SetFanRPM(self, rpm, fan_id=None):
     """This function should be deprecated by `fan.SetFanRPM`."""
-    return self._dut.fan.SetFanRPM(rpm, fan_id)
+    return self._device.fan.SetFanRPM(rpm, fan_id)
 
 
 def main():

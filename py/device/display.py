@@ -7,7 +7,7 @@
 from __future__ import print_function
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 
 
 class DisplayError(Exception):
@@ -39,7 +39,7 @@ class PortInfo(object):
 
 
 # pylint: disable=abstract-method
-class LinuxDisplay(component.DeviceComponent):
+class LinuxDisplay(types.DeviceComponent):
 
   # syspath for backlight control
   BACKLIGHT_SYSPATH_PATTERN = '/sys/class/backlight/*'
@@ -82,11 +82,13 @@ class LinuxDisplay(component.DeviceComponent):
     """
     if not (level >= 0.0 and level <= 1.0):
       raise ValueError('Invalid brightness level.')
-    interfaces = self._dut.Glob(self.BACKLIGHT_SYSPATH_PATTERN)
+    interfaces = self._device.Glob(self.BACKLIGHT_SYSPATH_PATTERN)
     for i in interfaces:
-      max_value = self._dut.ReadFile(self._dut.path.join(i, 'max_brightness'))
+      max_value = self._device.ReadFile(
+          self._device.path.join(i, 'max_brightness'))
       new_value = int(level * float(max_value.strip()))
-      self._dut.WriteFile(self._dut.path.join(i, 'brightness'), str(new_value))
+      self._device.WriteFile(
+          self._device.path.join(i, 'brightness'), str(new_value))
 
   def DisplayImage(self, image_path):
     """Display image file on the screen.

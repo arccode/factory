@@ -11,7 +11,7 @@ import copy
 import logging
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 
 from cros.factory.external import netifaces
 
@@ -89,7 +89,7 @@ class SystemStatusSnapshot(object):
         dict((name, getattr(status_, name)) for name in _PROP_LIST)))
 
 
-class SystemStatus(component.DeviceComponent):
+class SystemStatus(types.DeviceComponent):
   """Information about the current system status.
 
   This is information that changes frequently, e.g., load average
@@ -129,12 +129,12 @@ class SystemStatus(component.DeviceComponent):
     # If the below calls raise PowerException, the machine probably doesn't
     # have a battery.  Leave the values as `None` in this case.
     try:
-      charge_fraction = self._dut.power.GetChargePct(get_float=True) / 100,
+      charge_fraction = self._device.power.GetChargePct(get_float=True) / 100,
     except Exception:
       charge_fraction = None
 
     try:
-      charge_state = self._dut.power.GetChargeState()
+      charge_state = self._device.power.GetChargeState()
     except Exception:
       charge_state = None
 
@@ -144,21 +144,21 @@ class SystemStatus(component.DeviceComponent):
   @StatusProperty
   def fan_rpm(self):
     """Gets fan speed."""
-    return self._dut.fan.GetFanRPM()
+    return self._device.fan.GetFanRPM()
 
   @StatusProperty
   def temperature(self):
     """Gets main (CPU) temperature from thermal sensor."""
-    return self._dut.thermal.GetTemperature()
+    return self._device.thermal.GetTemperature()
 
   @StatusProperty
   def load_avg(self):
-    return map(float, self._dut.ReadFile('/proc/loadavg').split()[0:3])
+    return map(float, self._device.ReadFile('/proc/loadavg').split()[0:3])
 
   @StatusProperty
   def cpu(self):
     return map(int,
-               self._dut.ReadFile('/proc/stat').splitlines()[0].split()[1:])
+               self._device.ReadFile('/proc/stat').splitlines()[0].split()[1:])
 
   @StatusProperty
   def ips(self):

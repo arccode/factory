@@ -16,7 +16,7 @@ import unittest
 from subprocess import CalledProcessError
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import board
+from cros.factory.device import types
 from cros.factory.device import power
 
 
@@ -25,7 +25,7 @@ class PowerTest(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(board.DeviceBoard)
+    self.board = self.mox.CreateMock(types.DeviceBoard)
     self.power = power.Power(self.board)
 
   def tearDown(self):
@@ -84,7 +84,7 @@ class ECToolPowerTest(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(board.DeviceBoard)
+    self.board = self.mox.CreateMock(types.DeviceBoard)
     self.power = power.ECToolPower(self.board)
 
   def tearDown(self):
@@ -118,6 +118,7 @@ class ECToolPowerTest(unittest.TestCase):
     self.board.CallOutput(['ectool', 'battery']).AndReturn(
         self._MOCK_EC_BATTERY_READ)
     self.mox.ReplayAll()
+    # pylint: disable=protected-access
     self.assertItemsEqual(['0x03', 'AC_PRESENT', 'BATT_PRESENT', 'CHARGING'],
                           self.power._GetECToolBatteryFlags())
     self.mox.VerifyAll()
@@ -126,10 +127,13 @@ class ECToolPowerTest(unittest.TestCase):
     self.board.CallOutput(['ectool', 'battery']).MultipleTimes().AndReturn(
         self._MOCK_EC_BATTERY_READ)
     self.mox.ReplayAll()
+    # pylint: disable=protected-access
     self.assertEqual(3220,
                      self.power._GetECToolBatteryAttribute('Design capacity:'))
+    # pylint: disable=protected-access
     self.assertEqual(4,
                      self.power._GetECToolBatteryAttribute('Cycle count'))
+    # pylint: disable=protected-access
     self.assertEqual(128,
                      self.power._GetECToolBatteryAttribute('Present current'))
     self.mox.VerifyAll()

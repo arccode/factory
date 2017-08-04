@@ -6,10 +6,10 @@ import logging
 import re
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 
 
-class USBTypeC(component.DeviceComponent):
+class USBTypeC(types.DeviceComponent):
   """System module for USB type-C.
 
   System module for controlling or monitoring USB type-C port.
@@ -77,8 +77,8 @@ class USBTypeC(component.DeviceComponent):
     Returns:
       A string of the PD firmware version.
     """
-    return (self._dut.CallOutput(['mosys', 'pd', 'info', '-s', 'fw_version']) or
-            '').strip()
+    return (self._device.CallOutput(
+        ['mosys', 'pd', 'info', '-s', 'fw_version']) or '').strip()
 
   def GetPDGPIOValue(self, gpio_name):
     """Gets PD GPIO value.
@@ -144,7 +144,7 @@ class USBTypeC(component.DeviceComponent):
       status.
     """
     status = {}
-    response = self._dut.CheckOutput(
+    response = self._device.CheckOutput(
         ['ectool'] + self.ECTOOL_PD_ARGS + ['usbpdpower'])
     for line in response.splitlines():
       port_status = {}
@@ -199,8 +199,8 @@ class USBTypeC(component.DeviceComponent):
     """
     logging.info('Set USB type-C port %d to %s', port, function)
     if function not in self.PORT_FUNCTION:
-      raise component.DeviceException('unsupported USB Type-C function: %s' %
-                                      function)
+      raise types.DeviceException(
+          'unsupported USB Type-C function: %s' % function)
     self._CallPD([function], port)
 
   def ResetPortFunction(self, port):
@@ -229,6 +229,6 @@ class USBTypeC(component.DeviceComponent):
     Raises:
       CalledProcessError if the exit code is non-zero.
     """
-    return self._dut.CheckOutput(
+    return self._device.CheckOutput(
         ['ectool'] + self.ECTOOL_PD_ARGS +
         ([] if port is None else ['usbpd', '%d' % port]) + command)

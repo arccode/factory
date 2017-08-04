@@ -6,13 +6,10 @@
 
 from __future__ import print_function
 
-import re
-
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import display
 from cros.factory.external import PIL
 from cros.factory.test.utils import drm_utils
-from cros.factory.utils import sys_utils
 
 
 class DisplayError(Exception):
@@ -51,10 +48,10 @@ class ChromeOSDisplay(display.LinuxDisplay):
     ports = {}
     # TODO(hungte) Currently Freon+DRM can't run remotely. We need a
     # DUT-based implementation.
-    if not self._dut.link.IsLocal():
+    if not self._device.link.IsLocal():
       raise DisplayError('Cannot support Freon+DRM remotely.')
     d = None
-    for p in sorted(self._dut.Glob('/dev/dri/*')):
+    for p in sorted(self._device.Glob('/dev/dri/*')):
       d = drm_utils.DRMFromPath(p)
       if d.resources:
         break

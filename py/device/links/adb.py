@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Implementation of cros.factory.device.link.DeviceLink using ADB."""
+"""Implementation of cros.factory.device.types.DeviceLink using ADB."""
 
 import logging
 import os
@@ -13,7 +13,7 @@ import tempfile
 import uuid
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import link
+from cros.factory.device import types
 from cros.factory.utils import file_utils
 
 
@@ -58,10 +58,11 @@ def RawADBProcess(proxy_object, session_id):
   Similar to LegacyADBProcess. Can be used if both ADB client and DUT Android
   devices are >= Android N.
   """
+  del session_id  # Unused
   return proxy_object
 
 
-class ADBLink(link.DeviceLink):
+class ADBLink(types.DeviceLink):
   """A device that is connected via ADB interface.
 
   Args:

@@ -102,13 +102,13 @@ _KEY_ECTOOL = 'ectool:'
 class GenericButton(object):
   """Base class for buttons."""
 
-  def __init__(self, dut_instance):
+  def __init__(self, dut):
     """Constructor.
 
     Args:
-      dut_instance: the DUT which this button belongs to.
+      dut: the DUT which this button belongs to.
     """
-    self._dut = dut_instance
+    self._dut = dut
 
   def IsPressed(self):
     """Returns True the button is pressed, otherwise False."""
@@ -118,11 +118,11 @@ class GenericButton(object):
 class EvtestButton(GenericButton):
   """Buttons can be probed by evtest using /dev/input/event*."""
 
-  def __init__(self, dut_instance, event_id, name):
+  def __init__(self, dut, event_id, name):
     """Constructor.
 
     Args:
-      dut_instance: the DUT which this button belongs to.
+      dut: the DUT which this button belongs to.
       event_id: /dev/input/event ID.
       name: A string as key name to be captured by evtest.
     """
@@ -131,7 +131,7 @@ class EvtestButton(GenericButton):
       return (evdev.ecodes.__dict__[self._name] in
               dev.capabilities().get(evdev.ecodes.EV_KEY, []))
 
-    super(EvtestButton, self).__init__(dut_instance)
+    super(EvtestButton, self).__init__(dut)
     self._name = name
     self._event_dev = evdev_utils.FindDevice(event_id, dev_filter)
 
@@ -143,16 +143,16 @@ class EvtestButton(GenericButton):
 class GpioButton(GenericButton):
   """GPIO-based buttons."""
 
-  def __init__(self, dut_instance, number, is_active_high):
+  def __init__(self, dut, number, is_active_high):
     """Constructor.
 
     Args:
-      dut_instance: the DUT which this button belongs to.
-      :type dut_instance: cros.factory.device.board.DeviceBoard
+      dut: the DUT which this button belongs to.
+      :type dut: cros.factory.device.types.DeviceInterface
       number: An integer for GPIO number.
       is_active_high: Boolean flag for polarity of GPIO ("active" = "pressed").
     """
-    super(GpioButton, self).__init__(dut_instance)
+    super(GpioButton, self).__init__(dut)
     gpio_base = '/sys/class/gpio'
     self._value_path = self._dut.path.join(gpio_base, 'gpio%d' % number,
                                            'value')
@@ -177,14 +177,15 @@ class GpioButton(GenericButton):
 class CrossystemButton(GenericButton):
   """A crossystem value that can be mapped as virtual button."""
 
-  def __init__(self, dut_instance, name):
+  def __init__(self, dut, name):
     """Constructor.
 
     Args:
-      dut_instance: the DUT which this button belongs to.
+      dut: the DUT which this button belongs to.
+      :type dut: cros.factory.device.types.DeviceInterface
       name: A string as crossystem parameter that outputs 1 or 0.
     """
-    super(CrossystemButton, self).__init__(dut_instance)
+    super(CrossystemButton, self).__init__(dut)
     self._name = name
 
   def IsPressed(self):
@@ -192,8 +193,8 @@ class CrossystemButton(GenericButton):
 
 
 class ECToolButton(GenericButton):
-  def __init__(self, dut_instance, name, active_value):
-    super(ECToolButton, self).__init__(dut_instance)
+  def __init__(self, dut, name, active_value):
+    super(ECToolButton, self).__init__(dut)
     self._name = name
     self._active_value = active_value
 

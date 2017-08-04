@@ -7,11 +7,12 @@
 import logging
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 from cros.factory.utils import sys_utils
 
 
-class DUTHooks(component.DeviceComponent):
+# TODO(hungte) Move this to Goofy Hooks.
+class DeviceHooks(types.DeviceComponent):
   """Utility class managing device-specific callbacks."""
 
   def OnTestStart(self):
@@ -61,4 +62,8 @@ class DUTHooks(component.DeviceComponent):
 
   def OnUnexpectedReboot(self):
     """Callback invoked after the device experiences an unexpected reboot."""
-    logging.info(sys_utils.GetStartupMessages(self._dut))
+    logging.info(sys_utils.GetStartupMessages(self._device))
+
+
+# TODO(hungte) Remove this legacy name.
+DUTHooks = DeviceHooks

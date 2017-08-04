@@ -14,7 +14,7 @@ import textwrap
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import board
+from cros.factory.device import types
 from cros.factory.device import ec
 
 
@@ -29,7 +29,7 @@ class EmbeddedControllerTest(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(board.DeviceBoard)
+    self.board = self.mox.CreateMock(types.DeviceBoard)
     self.ec = ec.EmbeddedController(self.board)
 
   def tearDown(self):

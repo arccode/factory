@@ -7,7 +7,7 @@
 import logging
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 from cros.factory.device import power
 from cros.factory.device.boards import chromeos
 
@@ -25,6 +25,6 @@ class PitPower(power.Power):
 class PitBoard(chromeos.ChromeOSBoard):
   """Board interface for Pit."""
 
-  @component.DeviceProperty
+  @types.DeviceProperty
   def power(self):
     return PitPower(self)

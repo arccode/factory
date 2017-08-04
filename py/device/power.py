@@ -11,23 +11,25 @@ import re
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device.component import DeviceComponent
-from cros.factory.device.component import DeviceProperty
+from cros.factory.device import types
 
 from cros.factory.external import enum
 from cros.factory.external import numpy
 
 
-class PowerException(Exception):
+class PowerException(types.DeviceException):
   pass
 
 
-class Power(DeviceComponent):
+class Power(types.DeviceComponent):
+
+  # pylint: disable=no-init
   class PowerSource(enum.Enum):
     """Power source types"""
     BATTERY = 1
     AC = 2
 
+  # pylint: disable=no-init
   class ChargeState(enum.Enum):
     """An enumeration of possible charge states.
 
@@ -58,7 +60,7 @@ class Power(DeviceComponent):
       String for the first line of file contents.
     """
     # splitlines() does not work on empty string so we have to check.
-    contents = self._dut.ReadSpecialFile(file_path)
+    contents = self._device.ReadSpecialFile(file_path)
     if contents:
       return contents.splitlines()[0].strip()
     return ''
@@ -66,15 +68,16 @@ class Power(DeviceComponent):
   def FindPowerPath(self, power_source):
     """Find battery path in sysfs."""
     if power_source == self.PowerSource.BATTERY:
-      for p in self._dut.Glob(self._dut.path.join(
+      for p in self._device.Glob(self._device.path.join(
           self._sys, 'class/power_supply/*/type')):
         if self.ReadOneLine(p) == 'Battery':
-          return self._dut.path.dirname(p)
+          return self._device.path.dirname(p)
     else:
-      ac_path = self._dut.path.join(self._sys, 'class/power_supply/%s/online')
-      if self._dut.path.exists(ac_path % 'AC'):
-        return self._dut.path.dirname(ac_path % 'AC')
-      p = self._dut.Glob(ac_path % '*')
+      ac_path = self._device.path.join(
+          self._sys, 'class/power_supply/%s/online')
+      if self._device.path.exists(ac_path % 'AC'):
+        return self._device.path.dirname(ac_path % 'AC')
+      p = self._device.Glob(ac_path % '*')
       if p:
         # Systems with multiple USB-C ports may have multiple power sources.
         # Since the end goal is to determine if the system is powered, let's
@@ -82,15 +85,15 @@ class Power(DeviceComponent):
         # return the first in the list.
         for path in p:
           if self.ReadOneLine(path) == '1':
-            return self._dut.path.dirname(path)
-        return self._dut.path.dirname(p[0])
+            return self._device.path.dirname(path)
+        return self._device.path.dirname(p[0])
     raise PowerException('Cannot find %s' % power_source)
 
   def CheckACPresent(self):
     """Check if AC power is present."""
     try:
       p = self.FindPowerPath(self.PowerSource.AC)
-      return self.ReadOneLine(self._dut.path.join(p, 'online')) == '1'
+      return self.ReadOneLine(self._device.path.join(p, 'online')) == '1'
     except (PowerException, IOError):
       return False
 
@@ -98,11 +101,11 @@ class Power(DeviceComponent):
     """Get AC power type."""
     try:
       p = self.FindPowerPath(self.PowerSource.AC)
-      return self.ReadOneLine(self._dut.path.join(p, 'type'))
+      return self.ReadOneLine(self._device.path.join(p, 'type'))
     except (PowerException, IOError):
       return 'Unknown'
 
-  @DeviceProperty
+  @types.DeviceProperty
   def _battery_path(self):
     """Get battery path.
 
@@ -130,8 +133,8 @@ class Power(DeviceComponent):
       Content of the attribute in str.
     """
     try:
-      return self.ReadOneLine(self._dut.path.join(self._battery_path,
-                                                  attribute_name))
+      return self.ReadOneLine(
+          self._device.path.join(self._battery_path, attribute_name))
     except IOError:
       # Battery driver is not fully initialized
       return None
@@ -220,11 +223,11 @@ class Power(DeviceComponent):
     """
     try:
       if state == self.ChargeState.CHARGE:
-        self._dut.CheckCall(['ectool', 'chargecontrol', 'normal'])
+        self._device.CheckCall(['ectool', 'chargecontrol', 'normal'])
       elif state == self.ChargeState.IDLE:
-        self._dut.CheckCall(['ectool', 'chargecontrol', 'idle'])
+        self._device.CheckCall(['ectool', 'chargecontrol', 'idle'])
       elif state == self.ChargeState.DISCHARGE:
-        self._dut.CheckCall(['ectool', 'chargecontrol', 'discharge'])
+        self._device.CheckCall(['ectool', 'chargecontrol', 'discharge'])
       else:
         raise self.Error('Unknown EC charge state: %s' % state)
     except Exception as e:
@@ -237,7 +240,7 @@ class Power(DeviceComponent):
       Interger value in mA.
     """
     re_object = self.EC_CHARGER_RE.findall(
-        self._dut.CheckOutput(['ectool', 'chargestate', 'show']))
+        self._device.CheckOutput(['ectool', 'chargestate', 'show']))
     if re_object:
       return int(re_object[0])
     else:
@@ -293,7 +296,7 @@ class Power(DeviceComponent):
     Raises:
       DeviceException if power information cannot be obtained.
     """
-    return self._dut.CallOutput(['ectool', 'powerinfo'])
+    return self._device.CallOutput(['ectool', 'powerinfo'])
 
   def GetUSBPDPowerInfo(self):
     """Gets USB PD power information.
@@ -305,10 +308,11 @@ class Power(DeviceComponent):
         Port 1: SNK Charger PD 20714mV / 3000mA, max 20000mV / 3000mA / 60000mW
         Port 2: SRC
     """
-    output = self._dut.CheckOutput(['ectool', '--name=cros_pd', 'usbpdpower'])
+    output = self._device.CheckOutput(
+        ['ectool', '--name=cros_pd', 'usbpdpower'])
 
-    USBPortInfo = collections.namedtuple('USBPortInfo',
-                                         'id state voltage current')
+    USBPortInfo = collections.namedtuple(
+        'USBPortInfo', 'id state voltage current')
     ports = []
 
     for line in output.strip().splitlines():
@@ -367,8 +371,8 @@ class Power(DeviceComponent):
       try:
         value = (
             getter() if getter else
-            self._dut.ReadSpecialFile(
-                self._dut.path.join(sysfs_path, k)).strip())
+            self._device.ReadSpecialFile(
+                self._device.path.join(sysfs_path, k)).strip())
         result[k] = item_type(value)
       except Exception as e:
         log_func = logging.debug if optional else logging.error
@@ -377,7 +381,7 @@ class Power(DeviceComponent):
           log_func('sysfs attribute %s is unavailable: %s', k, exc_str)
         else:
           log_func('sysfs path %s is unavailable: %s',
-                   self._dut.path.join(sysfs_path, k), exc_str)
+                   self._device.path.join(sysfs_path, k), exc_str)
     return result
 
 
@@ -392,7 +396,7 @@ class ECToolPower(Power):
 
   def _GetECToolBatteryFlags(self):
     re_object = self.BATTERY_FLAGS_RE.findall(
-        self._dut.CallOutput(['ectool', 'battery']))
+        self._device.CallOutput(['ectool', 'battery']))
     if re_object:
       return re_object[0].split()
     else:
@@ -400,7 +404,7 @@ class ECToolPower(Power):
 
   def _GetECToolBatteryAttribute(self, key_name):
     re_object = re.findall(r'%s\s+(\d+)' % key_name,
-                           self._dut.CallOutput(['ectool', 'battery']))
+                           self._device.CallOutput(['ectool', 'battery']))
     if re_object:
       return int(re_object[0])
     else:

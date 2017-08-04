@@ -13,11 +13,11 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import accelerometer
 from cros.factory.device import ambient_light_sensor
 from cros.factory.device.audio import utils as audio_utils
-from cros.factory.device.board import DeviceBoard
+from cros.factory.device import types
 from cros.factory.device import camera
-from cros.factory.device.component import DeviceProperty
 from cros.factory.device import ec
 from cros.factory.device import gyroscope
+from cros.factory.device import hooks
 from cros.factory.device import hwmon
 from cros.factory.device import i2c
 from cros.factory.device import info
@@ -39,8 +39,10 @@ from cros.factory.device import usb_c
 from cros.factory.device import wifi
 
 
-# pylint: disable=abstract-method
-class LinuxBoard(DeviceBoard):
+DeviceProperty = types.DeviceProperty
+
+
+class LinuxBoard(types.DeviceBoard):
 
   @DeviceProperty
   def accelerometer(self):
@@ -57,16 +59,32 @@ class LinuxBoard(DeviceBoard):
     return audio_utils.CreateAudioControl(self)
 
   @DeviceProperty
+  def bluetooth(self):
+    raise NotImplementedError
+
+  @DeviceProperty
   def camera(self):
     return camera.Camera(self)
+
+  @DeviceProperty
+  def display(self):
+    raise NotImplementedError
 
   @DeviceProperty
   def ec(self):
     return ec.EmbeddedController(self)
 
   @DeviceProperty
+  def fan(self):
+    raise NotImplementedError
+
+  @DeviceProperty
   def gyroscope(self):
     return gyroscope.Gyroscope(self)
+
+  @DeviceProperty
+  def hooks(self):
+    return hooks.DeviceHooks(self)
 
   @DeviceProperty
   def hwmon(self):
@@ -163,3 +181,7 @@ class LinuxBoard(DeviceBoard):
   @DeviceProperty
   def usb_c(self):
     return usb_c.USBTypeC(self)
+
+  @DeviceProperty
+  def vpd(self):
+    raise NotImplementedError

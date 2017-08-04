@@ -12,7 +12,7 @@ import logging
 import re
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import device_data
@@ -47,7 +47,7 @@ def InfoProperty(f):
   return prop
 
 
-class SystemInfo(component.DeviceComponent):
+class SystemInfo(types.DeviceComponent):
   """Static information about the system.
 
   This is mostly static information that changes rarely if ever
@@ -104,13 +104,13 @@ class SystemInfo(component.DeviceComponent):
   @InfoProperty
   def cpu_count(self):
     """Gets number of CPUs on the machine"""
-    output = self._dut.CallOutput('lscpu')
+    output = self._device.CallOutput('lscpu')
     match = re.search(r'^CPU\(s\):\s*(\d+)', output, re.MULTILINE)
     return int(match.group(1)) if match else None
 
   @InfoProperty
   def memory_total_kb(self):
-    return self._dut.memory.GetTotalMemoryKB()
+    return self._device.memory.GetTotalMemoryKB()
 
   @InfoProperty
   def release_image_version(self):
@@ -137,7 +137,7 @@ class SystemInfo(component.DeviceComponent):
     from DUT storage, and caches into DeviceData.
     """
     if not device_data.GetSerialNumber(name):
-      serial = self._dut.storage.LoadDict().get(name)
+      serial = self._device.storage.LoadDict().get(name)
       device_data.UpdateSerialNumbers({name: serial})
     return device_data.GetSerialNumber(name)
 
@@ -162,7 +162,7 @@ class SystemInfo(component.DeviceComponent):
   @InfoProperty
   def factory_image_version(self):
     """Version of the image on factory test partition."""
-    lsb_release = self._dut.ReadFile('/etc/lsb-release')
+    lsb_release = self._device.ReadFile('/etc/lsb-release')
     match = re.search('^GOOGLE_RELEASE=(.+)$', lsb_release, re.MULTILINE)
     return match.group(1) if match else None
 
@@ -170,70 +170,70 @@ class SystemInfo(component.DeviceComponent):
   def wlan0_mac(self):
     """MAC address of first wireless network device."""
     for wlan_interface in ['wlan0', 'mlan0']:
-      address_path = self._dut.path.join('/sys/class/net/',
-                                         wlan_interface, 'address')
-      if self._dut.path.exists(address_path):
-        return self._dut.ReadFile(address_path).strip()
+      address_path = self._device.path.join(
+          '/sys/class/net/', wlan_interface, 'address')
+      if self._device.path.exists(address_path):
+        return self._device.ReadFile(address_path).strip()
 
   @InfoProperty
   def eth_macs(self):
     """MAC addresses of ethernet devices."""
     macs = dict()
-    eth_paths = self._dut.Glob('/sys/class/net/eth*')
+    eth_paths = self._device.Glob('/sys/class/net/eth*')
     for eth_path in eth_paths:
-      address_path = self._dut.path.join(eth_path, 'address')
-      if self._dut.path.exists(address_path):
-        macs[self._dut.path.basename(eth_path)] = self._dut.ReadSpecialFile(
-            address_path).strip()
+      address_path = self._device.path.join(eth_path, 'address')
+      if self._device.path.exists(address_path):
+        interface = self._device.path.basename(eth_path)
+        macs[interface] = self._device.ReadSpecialFile(address_path).strip()
     return macs
 
   @InfoProperty
   def toolkit_version(self):
     """Version of ChromeOS factory toolkit."""
-    return self._dut.ReadFile('/usr/local/factory/TOOLKIT_VERSION').strip()
+    return self._device.ReadFile('/usr/local/factory/TOOLKIT_VERSION').strip()
 
   @InfoProperty
   def kernel_version(self):
     """Version of running kernel."""
-    return self._dut.CallOutput(['uname', '-r']).strip()
+    return self._device.CallOutput(['uname', '-r']).strip()
 
   @InfoProperty
   def architecture(self):
     """System architecture."""
-    return self._dut.CallOutput(['uname', '-m']).strip()
+    return self._device.CallOutput(['uname', '-m']).strip()
 
   @InfoProperty
   def root_device(self):
     """The root partition that boots current system."""
-    return self._dut.CallOutput(['rootdev', '-s']).strip()
+    return self._device.CallOutput(['rootdev', '-s']).strip()
 
   @InfoProperty
   def firmware_version(self):
     """Version of main firmware."""
-    return self._dut.CallOutput(['crossystem', 'fwid']).strip()
+    return self._device.CallOutput(['crossystem', 'fwid']).strip()
 
   @InfoProperty
   def ro_firmware_version(self):
     """Version of RO main firmware."""
-    return self._dut.CallOutput(['crossystem', 'ro_fwid']).strip()
+    return self._device.CallOutput(['crossystem', 'ro_fwid']).strip()
 
   @InfoProperty
   def mainfw_type(self):
     """Type of main firmware."""
-    return self._dut.CallOutput(['crossystem', 'mainfw_type']).strip()
+    return self._device.CallOutput(['crossystem', 'mainfw_type']).strip()
 
   @InfoProperty
   def board_version(self):
-    return self._dut.CallOutput(['mosys', 'platform', 'version']).strip()
+    return self._device.CallOutput(['mosys', 'platform', 'version']).strip()
 
   @InfoProperty
   def ec_version(self):
     """Version of embedded controller."""
-    return self._dut.ec.GetECVersion().strip()
+    return self._device.ec.GetECVersion().strip()
 
   @InfoProperty
   def pd_version(self):
-    return self._dut.usb_c.GetPDVersion().strip()
+    return self._device.usb_c.GetPDVersion().strip()
 
   @InfoProperty
   def factory_md5sum(self):
@@ -251,23 +251,23 @@ class SystemInfo(component.DeviceComponent):
   @InfoProperty
   def _release_lsb_data(self):
     """Returns the lsb-release data in dict from release image partition."""
-    release_rootfs = self._dut.partitions.RELEASE_ROOTFS.path
-    lsb_content = MountDeviceAndReadFile(release_rootfs, '/etc/lsb-release',
-                                         dut=self._dut)
+    release_rootfs = self._device.partitions.RELEASE_ROOTFS.path
+    lsb_content = MountDeviceAndReadFile(
+        release_rootfs, '/etc/lsb-release', dut=self._device)
     return dict(re.findall('^(.+)=(.+)$', lsb_content, re.MULTILINE))
 
   @InfoProperty
   def hwid_database_version(self):
     """Uses checksum of hwid file as hwid database version."""
-    hwid_file_path = self._dut.path.join(common.DEFAULT_HWID_DATA_PATH,
-                                         common.ProbeProject().upper())
+    hwid_file_path = self._device.path.join(
+        common.DEFAULT_HWID_DATA_PATH, common.ProbeProject().upper())
     # TODO(hungte) Support remote DUT.
     return hwid_utils.ComputeDatabaseChecksum(hwid_file_path)
 
   @InfoProperty
   def has_virtual_dev_switch(self):
     """Returns true if the device has virtual dev switch."""
-    vdat_flags = int(self._dut.CheckOutput(['crossystem', 'vdat_flags']), 16)
+    vdat_flags = int(self._device.CheckOutput(['crossystem', 'vdat_flags']), 16)
     return bool(vdat_flags & self._VBSD_HONOR_VIRT_DEV_SWITCH)
 
   @InfoProperty
@@ -281,15 +281,15 @@ class SystemInfo(component.DeviceComponent):
     #
     # Where the second field is the version and the third field is flag we
     # need.
-    nvdata = self._dut.CheckOutput(['tpm_nvread', '-i',
-                                    '%d' % self._FIRMWARE_NV_INDEX])
+    nvdata = self._device.CheckOutput(
+        ['tpm_nvread', '-i', '%d' % self._FIRMWARE_NV_INDEX])
     flag = int(nvdata.split()[2], 16)
     return bool(flag & self._FLAG_VIRTUAL_DEV_MODE_ON)
 
   @InfoProperty
   def pci_device_number(self):
     """Returns number of PCI devices."""
-    res = self._dut.CheckOutput(['busybox', 'lspci'])
+    res = self._device.CheckOutput(['busybox', 'lspci'])
     return len(res.splitlines())
 
 

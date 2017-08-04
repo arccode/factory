@@ -8,7 +8,7 @@ import mock
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.device.board import DeviceBoard as dut
+from cros.factory.device import types
 from cros.factory.test.fixture.robot.algorithm import Algorithm
 from cros.factory.test.fixture.robot.robot import Robot
 from cros.factory.test.pytests import robot_movement
@@ -28,7 +28,7 @@ class RobotMovementTest(unittest.TestCase):
 
   def setUp(self):
     self._test = self.Test()
-    self._test._dut = mock.create_autospec(spec=dut)
+    self._test._dut = mock.create_autospec(spec=types.DeviceInterface)
     self._test._dut.info.serial_number = 'SN123'
     self._test._ui = mock.Mock(spec=test_ui.UI)
     self._test._template = mock.create_autospec(spec=OneSection)

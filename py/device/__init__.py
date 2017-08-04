@@ -5,11 +5,13 @@
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.device import component
+from cros.factory.device import types
 
 
-# Forward the exception for easy access to all DUT (board, component)
-# exceptions.
-DeviceException = component.DeviceException
-DeviceComponent = component.DeviceComponent
-CalledProcessError = component.CalledProcessError
+# Forward the exception for easy access to all device (component, interface,
+# board) exceptions.
+DeviceException = types.DeviceException
+DeviceProperty = types.DeviceProperty
+DeviceComponent = types.DeviceComponent
+DeviceInterface = types.DeviceInterface
+CalledProcessError = types.CalledProcessError

@@ -12,10 +12,10 @@ from __future__ import print_function
 import re
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 
 
-class EmbeddedController(component.DeviceComponent):
+class EmbeddedController(types.DeviceComponent):
   """System module for embedded controller."""
 
   # Regular expression for parsing ectool output.
@@ -24,7 +24,7 @@ class EmbeddedController(component.DeviceComponent):
   RW_VERSION_RE = re.compile(r'^RW version:\s*(\S+)\s*$', re.MULTILINE)
 
   def _GetOutput(self, command):
-    result = self._dut.CallOutput(command)
+    result = self._device.CallOutput(command)
     return result.strip() if result is not None else ''
 
   def GetECVersion(self):
@@ -46,7 +46,8 @@ class EmbeddedController(component.DeviceComponent):
     if match:
       return match.group(1)
     else:
-      raise self.Error('Unexpected output from "ectool version": %s', ec_version)
+      raise self.Error(
+          'Unexpected output from "ectool version": %s', ec_version)
 
   def GetRWVersion(self):
     """Gets the EC RW firmware version.
@@ -59,7 +60,8 @@ class EmbeddedController(component.DeviceComponent):
     if match:
       return match.group(1)
     else:
-      raise self.Error('Unexpected output from "ectool version": %s', ec_version)
+      raise self.Error(
+          'Unexpected output from "ectool version": %s', ec_version)
 
   def GetECConsoleLog(self):
     """Gets the EC console log.
@@ -81,7 +83,8 @@ class EmbeddedController(component.DeviceComponent):
     """Says hello to EC.
     """
     try:
-      if self._dut.CallOutput(['ectool', 'hello']).find('EC says hello') == -1:
+      if self._device.CallOutput(
+          ['ectool', 'hello']).find('EC says hello') == -1:
         raise self.Error('Did not find "EC says hello".')
     except Exception as e:
       raise self.Error('Unable to say hello: %s' % e)
@@ -101,7 +104,7 @@ class EmbeddedController(component.DeviceComponent):
       Integer value read from slave.
     """
     try:
-      ectool_output = self._dut.CheckOutput(
+      ectool_output = self._device.CheckOutput(
           ['ectool', 'i2cread', '16', str(port), str(addr), str(reg)])
       return int(self.I2C_READ_RE.findall(ectool_output)[0], 16)
     except Exception as e:  # pylint: disable=W0703
@@ -119,8 +122,9 @@ class EmbeddedController(component.DeviceComponent):
       value: 16-bit value to write.
     """
     try:
-      self._dut.CheckCall(['ectool', 'i2cwrite', '16', str(port), str(addr),
-                           str(reg), str(value)])
+      self._device.CheckCall(
+          ['ectool', 'i2cwrite', '16', str(port), str(addr), str(reg),
+           str(value)])
     except Exception as e:  # pylint: disable=W0703
       raise self.Error('Unable to write to I2C: %s' % e)
 

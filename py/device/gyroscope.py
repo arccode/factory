@@ -5,11 +5,11 @@
 # found in the LICENSE file.
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 from cros.factory.device import sensor_utils
 
 
-class Gyroscope(component.DeviceComponent):
+class Gyroscope(types.DeviceComponent):
   """Gyroscope component module."""
 
   def GetController(self, location='base'):
@@ -18,7 +18,7 @@ class Gyroscope(component.DeviceComponent):
     See sensor_utils.BasicSensorController for more information.
     """
     return sensor_utils.BasicSensorController(
-        self._dut,
+        self._device,
         'cros-ec-gyro',
         location,
         ['in_anglvel_x', 'in_anglvel_y', 'in_anglvel_z'])

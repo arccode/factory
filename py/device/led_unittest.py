@@ -13,7 +13,7 @@ import mox
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import board
+from cros.factory.device import types
 from cros.factory.device import led
 
 
@@ -22,7 +22,7 @@ class LEDTest(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(board.DeviceBoard)
+    self.board = self.mox.CreateMock(types.DeviceBoard)
     self.led = led.LED(self.board)
 
   def tearDown(self):
@@ -78,7 +78,7 @@ class LEDTest(unittest.TestCase):
     self.board.CheckCall(['ectool', 'led', 'battery', 'red']).AndRaise(
         self.led.Error(msg))
     self.mox.ReplayAll()
-    with self.assertRaisesRegexp(board.DeviceException, msg):
+    with self.assertRaisesRegexp(types.DeviceException, msg):
       self.led.SetColor(self.led.Color.RED, brightness=None)
     self.mox.VerifyAll()
 

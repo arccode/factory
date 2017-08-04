@@ -57,7 +57,7 @@ class TinyalsaAudioControl(base.BaseAudioControl):
     """See BaseAudioControl.GetCardIndexByName"""
     if card_name.isdigit():
       return card_name
-    output = self._dut.CallOutput(['cat', '/proc/asound/cards'])
+    output = self._device.CallOutput(['cat', '/proc/asound/cards'])
     for line in output.splitlines():
       m = self._RE_CARD_INDEX.match(line)
       if m and m.group(2) == card_name:
@@ -97,7 +97,7 @@ class TinyalsaAudioControl(base.BaseAudioControl):
   def GetMixerControls(self, name, card='0'):
     """See BaseAudioControl.GetMixerControls """
     command = ['tinymix', '-D', card, name]
-    lines = self._dut.CheckOutput(command)
+    lines = self._device.CheckOutput(command)
     return self._GetMixerControlsByLines(name, lines)
 
   def _PushAndExecute(self, push_path, pull_path=None):
@@ -111,15 +111,15 @@ class TinyalsaAudioControl(base.BaseAudioControl):
     """
     filename = os.path.basename(push_path)
     remote_path = os.path.join(self._remote_directory, filename)
-    self._dut.link.Push(push_path, remote_path)
-    self._dut.Call(['chmod', '777', remote_path])
-    self._dut.Call(remote_path)
-    self._dut.Call(['rm', '-f', remote_path])
+    self._device.link.Push(push_path, remote_path)
+    self._device.Call(['chmod', '777', remote_path])
+    self._device.Call(remote_path)
+    self._device.Call(['rm', '-f', remote_path])
     if pull_path:
       filename = os.path.basename(pull_path)
       remote_path = os.path.join(self._remote_directory, filename)
-      self._dut.link.Pull(remote_path, pull_path)
-      self._dut.Call(['rm', '-f', remote_path])
+      self._device.link.Pull(remote_path, pull_path)
+      self._device.Call(['rm', '-f', remote_path])
 
   def _GenerateGetOldValueShellScript(self, open_file, output_file,
                                       mixer_settings, card):
@@ -214,7 +214,7 @@ class TinyalsaAudioControl(base.BaseAudioControl):
     # We can workaround it by Spawn with ['adb', 'shell'].
     # It will have problem is the dut is not android device
     command = 'loopback.sh'
-    self._dut.CheckCall(command)
+    self._device.CheckCall(command)
     pid = self._GetPIDByName('tinycap_stdout')
 
     logging.info('Create tinyloop pid %s for input %s,%s output %s,%s',
@@ -225,19 +225,19 @@ class TinyalsaAudioControl(base.BaseAudioControl):
     if pid:
       logging.info('Destroy audio loop with pid %s', pid)
       command = ['kill', pid]
-      self._dut.CheckCall(command)
+      self._device.CheckCall(command)
     else:
       logging.info('Destroy audio loop - not found tinycap_stdout pid')
 
   def _PlaybackWavFile(self, path, card, device):
     """See BaseAudioControl._PlaybackWavFile"""
-    self._dut.Call(['tinyplay', path, '-D', card, '-d', device])
+    self._device.Call(['tinyplay', path, '-D', card, '-d', device])
 
   def _StopPlaybackWavFile(self):
     """See BaseAudioControl._StopPlaybackWavFile"""
     pid = self._GetPIDByName('tinyplay')
     if pid:
-      self._dut.Call(['kill', pid])
+      self._device.Call(['kill', pid])
 
   def RecordWavFile(self, path, card, device, duration, channels, rate):
     """See BaseAudioControl.RecordWavFile
@@ -246,10 +246,10 @@ class TinyalsaAudioControl(base.BaseAudioControl):
     the specified duration, we will send a Ctrl-C singal to the tinycap process
     to let it know it should stop recording and save to .wav file.
     """
-    record_process = Process(target=lambda:
-                             self._dut.Call(['tinycap', path, '-D', card, '-d',
-                                             device, '-c', str(channels), '-r',
-                                             str(rate)]))
+    record_process = Process(
+        target=lambda: self._device.Call(
+            ['tinycap', path, '-D', card, '-d', device, '-c', str(channels),
+             '-r', str(rate)]))
     record_process.start()
     pid = self._GetPIDByName('tinycap')
     logging.info('tinycap pid %s, record duratrion %d seconds', pid, duration)
@@ -258,5 +258,5 @@ class TinyalsaAudioControl(base.BaseAudioControl):
     if not pid:
       raise RuntimeError('Can\'t find tinycap process!')
 
-    self._dut.Call(['kill', '-SIGINT', pid])
+    self._device.Call(['kill', '-SIGINT', pid])
     record_process.join()

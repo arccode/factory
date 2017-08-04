@@ -15,7 +15,7 @@ import mox
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.device.link import DeviceLink
+from cros.factory.device import types
 from cros.factory.goofy.goofy_rpc import GoofyRPC
 from cros.factory.test import device_data
 from cros.factory.test.pytests import station_entry
@@ -75,7 +75,7 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self._testEndStationBasedTest(is_local=False)
 
   def _testEndStationBasedTest(self, is_local):
-    mock_dut_link = self.mox.CreateMock(DeviceLink)
+    mock_dut_link = self.mox.CreateMock(types.DeviceLink)
     self.test._dut = device_utils.CreateDUTInterface()
     self.test._dut.link = mock_dut_link
     mock_state = self.mox.CreateMock(GoofyRPC)
@@ -115,7 +115,7 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.mox.VerifyAll()
 
   def testStartStationBasedTest(self):
-    mock_dut_link = self.mox.CreateMock(DeviceLink)
+    mock_dut_link = self.mox.CreateMock(types.DeviceLink)
     self.test._dut = device_utils.CreateDUTInterface()
     self.test._dut.link = mock_dut_link
     self.test._ui = self.mock_ui

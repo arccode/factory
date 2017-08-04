@@ -13,8 +13,7 @@ import mox
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
-from cros.factory.device import board
+from cros.factory.device import types
 from cros.factory.device import usb_c
 
 
@@ -27,7 +26,7 @@ class USBTypeCTest(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(board.DeviceBoard)
+    self.board = self.mox.CreateMock(types.DeviceBoard)
     self.usb_c = MockUSBTypeC(self.board)
 
   def tearDown(self):
@@ -70,8 +69,9 @@ class USBTypeCTest(unittest.TestCase):
         ['ectool', '--interface=dev', '--dev=1', 'usbpd', '0']).AndReturn(
             'Port C0 is enabled, Role:SRC UFP Polarity:CC1 State:SRC_READY')
     self.board.CheckOutput(
-        ['ectool', '--interface=dev', '--dev=1', 'usbpd', '1']).AndReturn(
-            'Port C1 is disabled, Role:SNK DFP Polarity:CC2 State:SNK_DISCOVERY')
+        ['ectool', '--interface=dev', '--dev=1', 'usbpd', '1']
+    ).AndReturn(
+        'Port C1 is disabled, Role:SNK DFP Polarity:CC2 State:SNK_DISCOVERY')
 
     self.mox.ReplayAll()
 
@@ -170,8 +170,8 @@ class USBTypeCTest(unittest.TestCase):
   def testGetPDPowerStatus(self):
     self.board.CheckOutput(
         ['ectool', '--interface=dev', '--dev=1', 'usbpdpower']).AndReturn(
-            'Port 0: SNK Charger PD 14384mV / 2999mA, max 15000mV / 3000mA / 45000mW\n'
-            'Port 1: Disconnected')
+            'Port 0: SNK Charger PD 14384mV / 2999mA, max 15000mV / 3000mA / '
+            '45000mW\nPort 1: Disconnected')
 
     self.mox.ReplayAll()
 
@@ -191,30 +191,36 @@ class USBTypeCTest(unittest.TestCase):
 
   def testSetHPD(self):
     self.board.CheckOutput(
-        ['ectool', '--interface=dev', '--dev=1', 'gpioset', 'USB_C0_DP_HPD', '1'])
+        ['ectool', '--interface=dev', '--dev=1', 'gpioset', 'USB_C0_DP_HPD',
+         '1'])
     self.mox.ReplayAll()
     self.usb_c.SetHPD(0)
     self.mox.VerifyAll()
 
   def testResetHPD(self):
     self.board.CheckOutput(
-        ['ectool', '--interface=dev', '--dev=1', 'gpioset', 'USB_C1_DP_HPD', '0'])
+        ['ectool', '--interface=dev', '--dev=1', 'gpioset', 'USB_C1_DP_HPD',
+         '0'])
     self.mox.ReplayAll()
     self.usb_c.ResetHPD(1)
     self.mox.VerifyAll()
 
   def testSetPortFunction(self):
-    self.board.CheckOutput(['ectool', '--interface=dev', '--dev=1', 'usbpd', '0', 'dp'])
+    self.board.CheckOutput(
+        ['ectool', '--interface=dev', '--dev=1', 'usbpd', '0', 'dp'])
     self.mox.ReplayAll()
     self.usb_c.SetPortFunction(0, 'dp')
     self.mox.VerifyAll()
 
   def testSetPortFunctionFail(self):
-    self.assertRaises(component.DeviceException, self.usb_c.SetPortFunction, 0, 'display')
+    self.assertRaises(types.DeviceException, self.usb_c.SetPortFunction, 0,
+                      'display')
 
   def testResetPortFunction(self):
-    self.board.CheckOutput(['ectool', '--interface=dev', '--dev=1', 'usbpd', '1', 'toggle'])
-    self.board.CheckOutput(['ectool', '--interface=dev', '--dev=1', 'usbpd', '1', 'usb'])
+    self.board.CheckOutput(
+        ['ectool', '--interface=dev', '--dev=1', 'usbpd', '1', 'toggle'])
+    self.board.CheckOutput(
+        ['ectool', '--interface=dev', '--dev=1', 'usbpd', '1', 'usb'])
     self.mox.ReplayAll()
     self.usb_c.ResetPortFunction(1)
     self.mox.VerifyAll()

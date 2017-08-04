@@ -9,7 +9,7 @@ import tempfile
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.device import board
+from cros.factory.device import types
 from cros.factory.device import memory
 from cros.factory.device import info
 from cros.factory.device import temp
@@ -18,7 +18,7 @@ from cros.factory.test.utils import stress_manager
 # pylint: disable=protected-access
 class StressManagerUnittest(unittest.TestCase):
   def setUp(self):
-    self.dut = mock.Mock(spec=board.DeviceBoard)
+    self.dut = mock.Mock(spec=types.DeviceInterface)
     self.dut.memory = mock.Mock(spec=memory.LinuxMemory)
     self.dut.info = mock.Mock(spec=info.SystemInfo)
     self.dut.temp = temp.DummyTemporaryFiles(self.dut)
@@ -42,7 +42,8 @@ class StressManagerUnittest(unittest.TestCase):
 
     self.dut.memory.GetTotalMemoryKB = mock.Mock(return_value=total_memory)
     self.manager._CallStressAppTest = mock.MagicMock(return_value=None)
-    self.manager._CallStressAppTest.side_effect = self._CallStressAppTestSideEffect
+    self.manager._CallStressAppTest.side_effect = (
+        self._CallStressAppTestSideEffect)
 
     with self.manager.Run(
         duration_secs, num_threads, memory_ratio, disk_thread):

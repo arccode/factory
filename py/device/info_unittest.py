@@ -13,7 +13,7 @@ import mox
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import board
+from cros.factory.device import types
 from cros.factory.device import info as info_module
 from cros.factory.device import partitions
 
@@ -32,7 +32,7 @@ class SystemInfoTest(unittest.TestCase):
 
   def runTest(self):
 
-    dut = self.mox.CreateMock(board.DeviceBoard)
+    dut = self.mox.CreateMock(types.DeviceInterface)
     dut.partitions = self.mox.CreateMock(partitions.Partitions)
     dut.partitions.RELEASE_ROOTFS = self.mox.CreateMock(
         partitions.DiskPartition)

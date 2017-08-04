@@ -10,7 +10,7 @@ import logging
 import re
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 from cros.factory.test.rules import privacy
 
 
@@ -29,7 +29,7 @@ VPD_READONLY_PARTITION_NAME = 'RO_VPD'
 VPD_READWRITE_PARTITION_NAME = 'RW_VPD'
 
 
-class Partition(component.DeviceComponent):
+class Partition(types.DeviceComponent):
   """A VPD partition.
 
   This should not be created by the caller; rather, the caller should use
@@ -86,7 +86,7 @@ class CommandVPDPartition(Partition):
 
   def get(self, key, default=None):
     """See Partition.get."""
-    result = self._dut.CallOutput(['vpd', '-i', self.name, '-g', key])
+    result = self._device.CallOutput(['vpd', '-i', self.name, '-g', key])
     return default if result is None else result
 
   def Delete(self, *keys):
@@ -95,12 +95,12 @@ class CommandVPDPartition(Partition):
       args = ['vpd', '-i', self.name]
       for k in keys:
         args += ['-d', k]
-      self._dut.CheckCall(args)
+      self._device.CheckCall(args)
 
   def GetAll(self):
     """See Partition.GetAll."""
     ret = {}
-    for line in self._dut.CallOutput(
+    for line in self._device.CallOutput(
         ['vpd', '-i', self.name, '-l']).splitlines():
       match = VPD_LIST_PATTERN.match(line)
       if not match:
@@ -140,27 +140,27 @@ class CommandVPDPartition(Partition):
     if not items:
       return
 
-    self._dut.CheckCall(command)
+    self._device.CheckCall(command)
 
 
 class ImmutableFileBasedPartition(Partition):
   """A file-based VPD partition which cannot be updated."""
 
-  def __init__(self, dut, path):
+  def __init__(self, device, path):
     """Constructor.
 
     Args:
-      dut: Instance of cros.factory.device.board.DeviceBoard.
+      device: Instance of cros.factory.device.types.DeviceInterface.
       path: The path of the partition (e.g., '/persist', '/sys/firmware/vpd').
     """
-    super(ImmutableFileBasedPartition, self).__init__(dut)
+    super(ImmutableFileBasedPartition, self).__init__(device)
     self._path = path
 
   def get(self, key, default=None):
     """See Partition.get"""
-    file_path = self._dut.path.join(self._path, key)
-    if self._dut.path.exists(file_path):
-      return self._dut.ReadFile(file_path)
+    file_path = self._device.path.join(self._path, key)
+    if self._device.path.exists(file_path):
+      return self._device.ReadFile(file_path)
     return None
 
   def Delete(self, *keys):
@@ -170,10 +170,10 @@ class ImmutableFileBasedPartition(Partition):
   def GetAll(self):
     """See Partition.GetAll."""
     ret = {}
-    for file_name in self._dut.CheckOutput(
+    for file_name in self._device.CheckOutput(
         ['find', self._path, '-type', 'f']).splitlines():
       name = file_name[len(self._path) + 1:]
-      ret[name] = self._dut.ReadFile(file_name)
+      ret[name] = self._device.ReadFile(file_name)
     return ret
 
   def Update(self, items, log=True):
@@ -191,25 +191,25 @@ class MutableFileBasedPartition(ImmutableFileBasedPartition):
   def Delete(self, *keys):
     """See Partition.Delete."""
     for key in keys:
-      file_path = self._dut.path.join(self._path, key)
-      if self._dut.path.exists(file_path):
-        return self._dut.CheckCall(['rm', '-f', file_path])
+      file_path = self._device.path.join(self._path, key)
+      if self._device.path.exists(file_path):
+        return self._device.CheckCall(['rm', '-f', file_path])
 
   def Update(self, items, log=True):
     """See Partition.Update."""
     for k, v in items.items():
-      file_name = self._dut.path.join(self._path, k)
+      file_name = self._device.path.join(self._path, k)
       if v is not None:
-        dir_name = self._dut.path.dirname(file_name)
-        self._dut.CheckCall(['mkdir', '-p', dir_name])
-        self._dut.WriteFile(file_name, v)
+        dir_name = self._device.path.dirname(file_name)
+        self._device.CheckCall(['mkdir', '-p', dir_name])
+        self._device.WriteFile(file_name, v)
       else:
-        self._dut.CheckCall(['rm', '-f', file_name])
+        self._device.CheckCall(['rm', '-f', file_name])
     # Make sure files are synced to the disk.
-    self._dut.CheckCall(['sync'])
+    self._device.CheckCall(['sync'])
 
 
-class VPDSource(component.DeviceComponent):
+class VPDSource(types.DeviceComponent):
   """A source to read Vital Product Data (VPD).
 
   Properties:
@@ -217,11 +217,11 @@ class VPDSource(component.DeviceComponent):
     rw: Access to Read-Write partition.
   """
 
-  @component.DeviceProperty
+  @types.DeviceProperty
   def ro(self):
     raise NotImplementedError
 
-  @component.DeviceProperty
+  @types.DeviceProperty
   def rw(self):
     raise NotImplementedError
 
@@ -230,19 +230,19 @@ class VPDSource(component.DeviceComponent):
       return self.rw
     elif partition == 'ro':
       return self.ro
-    raise component.DeviceException('No %s partition found.' % partition)
+    raise types.DeviceException('No %s partition found.' % partition)
 
 
 class CommandVPDSource(VPDSource):
   """A source to read VPD from command 'vpd'."""
 
-  @component.DeviceProperty
+  @types.DeviceProperty
   def ro(self):
-    return CommandVPDPartition(self._dut, VPD_READONLY_PARTITION_NAME)
+    return CommandVPDPartition(self._device, VPD_READONLY_PARTITION_NAME)
 
-  @component.DeviceProperty
+  @types.DeviceProperty
   def rw(self):
-    return CommandVPDPartition(self._dut, VPD_READWRITE_PARTITION_NAME)
+    return CommandVPDPartition(self._device, VPD_READWRITE_PARTITION_NAME)
 
 
 class FileBasedVPDSource(VPDSource):
@@ -251,13 +251,13 @@ class FileBasedVPDSource(VPDSource):
   def __init__(self, dut, path):
     super(FileBasedVPDSource, self).__init__(dut)
     self._path = path
-    self._partition = MutableFileBasedPartition(self._dut, self._path)
+    self._partition = MutableFileBasedPartition(self._device, self._path)
 
-  @component.DeviceProperty
+  @types.DeviceProperty
   def ro(self):
     return self._partition
 
-  @component.DeviceProperty
+  @types.DeviceProperty
   def rw(self):
     return self._partition
 
@@ -271,38 +271,38 @@ class SysFSVPDSource(VPDSource):
       path = '/sys/firmware/vpd'
     self._path = path
 
-  @component.DeviceProperty
+  @types.DeviceProperty
   def ro(self):
     return ImmutableFileBasedPartition(
-        self._dut,
-        self._dut.path.join(self._path, 'ro'))
+        self._device,
+        self._device.path.join(self._path, 'ro'))
 
-  @component.DeviceProperty
+  @types.DeviceProperty
   def rw(self):
     return ImmutableFileBasedPartition(
-        self._dut,
-        self._dut.path.join(self._path, 'rw'))
+        self._device,
+        self._device.path.join(self._path, 'rw'))
 
 
-class VitalProductData(component.DeviceComponent):
+class VitalProductData(types.DeviceComponent):
   """System module for Vital Product Data (VPD)."""
 
-  @component.DeviceProperty
+  @types.DeviceProperty
   def live(self):
     """An VPD source to read live VPD values."""
     raise NotImplementedError
 
-  @component.DeviceProperty
+  @types.DeviceProperty
   def boot(self):
     """An VPD source to read VPD values cached at boot time."""
     raise NotImplementedError
 
-  @component.DeviceProperty
+  @types.DeviceProperty
   def ro(self):
     """A shortcut to read ro from live VPD source."""
     return self.live.ro
 
-  @component.DeviceProperty
+  @types.DeviceProperty
   def rw(self):
     """A shortcut to read rw from live VPD source."""
     return self.live.rw
@@ -321,13 +321,13 @@ class ChromeOSVitalProductData(VitalProductData):
     if self._sysfs_path is None:
       self._sysfs_path = '/sys/firmware/vpd'
 
-  @component.DeviceProperty
+  @types.DeviceProperty
   def live(self):
-    return CommandVPDSource(self._dut)
+    return CommandVPDSource(self._device)
 
-  @component.DeviceProperty
+  @types.DeviceProperty
   def boot(self):
-    return SysFSVPDSource(self._dut, self._sysfs_path)
+    return SysFSVPDSource(self._device, self._sysfs_path)
 
 
 class AndroidVitalProductData(VitalProductData):
@@ -339,10 +339,10 @@ class AndroidVitalProductData(VitalProductData):
     if self._path is None:
       self._path = '/persist'
 
-  @component.DeviceProperty
+  @types.DeviceProperty
   def boot(self):
     raise NotImplementedError
 
-  @component.DeviceProperty
+  @types.DeviceProperty
   def live(self):
-    return FileBasedVPDSource(self._dut, self._path)
+    return FileBasedVPDSource(self._device, self._path)

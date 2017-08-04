@@ -10,12 +10,12 @@ This module provides accessing camera devices.
 """
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 from cros.factory.test.utils.camera_utils import CameraDevice
 from cros.factory.test.utils.camera_utils import CVCameraReader
 
 
-class Camera(component.DeviceComponent):
+class Camera(types.DeviceComponent):
   """System module for camera device.
 
     The default implementation contains only one camera device, which is the
@@ -40,4 +40,4 @@ class Camera(component.DeviceComponent):
       cros.factory.test.utils.camera_utils.CameraDevice.
     """
     return self._devices.setdefault(index, CameraDevice(
-        dut=self._dut, sn_format=None, reader=CVCameraReader(index)))
+        dut=self._device, sn_format=None, reader=CVCameraReader(index)))

@@ -11,11 +11,11 @@ import re
 import subprocess
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 from cros.factory.utils import process_utils
 
 
-class Storage(component.DeviceComponent):
+class Storage(types.DeviceComponent):
   """Persistent storage on device."""
 
   _DICT_FILENAME = 'STORAGE_SAVED_DICT.json'
@@ -30,14 +30,14 @@ class Storage(component.DeviceComponent):
 
   def GetDictFilePath(self):
     """Returns the path to saved key-value pairs file on device."""
-    return self._dut.path.join(self.GetDataRoot(), self._DICT_FILENAME)
+    return self._device.path.join(self.GetDataRoot(), self._DICT_FILENAME)
 
   def LoadDict(self):
     """Returns a dictionary of key-value pairs stored in device."""
     data = {}
-    if self._dut.path.exists(self.GetDictFilePath()):
+    if self._device.path.exists(self.GetDictFilePath()):
       try:
-        data = json.loads(self._dut.ReadFile(self.GetDictFilePath()))
+        data = json.loads(self._device.ReadFile(self.GetDictFilePath()))
       except ValueError:
         logging.exception('Failed to load key-value pairs from %s',
                           self.GetDictFilePath())
@@ -70,12 +70,12 @@ class Storage(component.DeviceComponent):
 
     device_data_file_path = self.GetDictFilePath()
 
-    self._dut.CheckCall(['mkdir', '-p',
-                         self._dut.path.dirname(device_data_file_path)])
+    self._device.CheckCall(
+        ['mkdir', '-p', self._device.path.dirname(device_data_file_path)])
     # TODO(stimim): we might need to lock the file while writing.
-    self._dut.WriteFile(self.GetDictFilePath(),
-                        json.dumps(data, sort_keys=True))
-    self._dut.Call(['sync'])
+    self._device.WriteFile(
+        self.GetDictFilePath(), json.dumps(data, sort_keys=True))
+    self._device.Call(['sync'])
     return data
 
   def UpdateDict(self, E, **F):
@@ -115,7 +115,7 @@ class Storage(component.DeviceComponent):
     Unlike GetMountPoint, path is directly passed to df even if it doesn't
     exist.
     """
-    filesystems = self._dut.toybox.df(path)
+    filesystems = self._device.toybox.df(path)
     if not filesystems:
       logging.warn('cannot find mount point of %s', path)
       return None, None
@@ -129,8 +129,8 @@ class Storage(component.DeviceComponent):
     each component in the path until new path exists. Then use
     _GetMountPointByDiskFree to get the mount point and device of new path.
     """
-    while not self._dut.path.exists(path):
-      new_path = self._dut.path.dirname(path)
+    while not self._device.path.exists(path):
+      new_path = self._device.path.dirname(path)
       if new_path == path:
         break
       path = new_path
@@ -156,7 +156,7 @@ class Storage(component.DeviceComponent):
       return False
 
     cmd = ['mount', '-o', 'remount,%s' % options, mount_point]
-    if self._dut.Call(cmd) != 0:
+    if self._device.Call(cmd) != 0:
       logging.error('remount: Cannot remount mount point: %s', mount_point)
       return False
 

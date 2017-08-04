@@ -20,8 +20,8 @@ import re
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.device import component
 from cros.factory.device import device_utils
+from cros.factory.device import types
 from cros.factory.test import event_log
 from cros.factory.utils.arg_utils import Arg
 
@@ -76,7 +76,7 @@ class USBProbeTest(unittest.TestCase):
           self._ProbeUSB('', ['-d', usb_id] + bus_id_option, False)
           event_log.Log('usb_probe', usb_id=usb_id)
           return
-        except component.CalledProcessError:
+        except types.CalledProcessError:
           pass
       self.fail('Cannot found any one of %r in lsusb.'
                 % self.args.usb_id_list)

@@ -13,7 +13,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import partitions
-from cros.factory.device import board
+from cros.factory.device import types
 
 
 class PartitionsTest(unittest.TestCase):
@@ -21,7 +21,7 @@ class PartitionsTest(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.dut = self.mox.CreateMock(board.DeviceBoard)
+    self.dut = self.mox.CreateMock(types.DeviceInterface)
     self.disk1 = partitions.Partitions(self.dut)
     self.disk2 = partitions.Partitions(self.dut)
     self.mox.StubOutWithMock(self.dut, 'CheckOutput')

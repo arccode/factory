@@ -12,11 +12,11 @@ from __future__ import print_function
 import re
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.device import component
+from cros.factory.device import types
 from cros.factory.external import numpy
 
 
-class FanControl(component.DeviceComponent):
+class FanControl(types.DeviceComponent):
   """System module for fan control."""
 
   AUTO = 'auto'
@@ -62,7 +62,7 @@ class ECToolFanControl(FanControl):
       A list of int indicating the RPM of each fan.
     """
     try:
-      ectool_output = self._dut.CallOutput(
+      ectool_output = self._device.CallOutput(
           ['ectool', 'pwmgetfanrpm'] + (['%d' % fan_id] if fan_id is not None
                                         else []))
       return [int(rpm[1])
@@ -81,12 +81,13 @@ class ECToolFanControl(FanControl):
       # For system with multiple fans, ectool controls all the fans
       # simultaneously in one command.
       if rpm == self.AUTO:
-        self._dut.CheckCall((['ectool', 'autofanctrl'] +
-                             (['%d' % fan_id] if fan_id is not None else [])))
+        self._device.CheckCall(
+            (['ectool', 'autofanctrl'] +
+             (['%d' % fan_id] if fan_id is not None else [])))
       else:
-        self._dut.CheckCall((['ectool', 'pwmsetfanrpm'] +
-                             (['%d' % fan_id] if fan_id is not None else []) +
-                             ['%d' % rpm]))
+        self._device.CheckCall(
+            (['ectool', 'pwmsetfanrpm'] +
+             (['%d' % fan_id] if fan_id is not None else []) + ['%d' % rpm]))
     except Exception as e:  # pylint: disable=W0703
       if rpm == self.AUTO:
         raise self.Error('Unable to set auto fan control: %s' % e)
@@ -102,18 +103,18 @@ class MosysFanControl(FanControl):
 
   _DEFAULT_DUTY_CYCLES = [30, 40, 50, 60, 70, 80, 90, 100]
 
-  def __init__(self, dut, rpms, duty_cycles=None):
+  def __init__(self, device, rpms, duty_cycles=None):
     """Constructor.
 
     Args:
-      dut: a `cros.factory.device.board.DeviceBoard` instance.
+      device: a `cros.factory.device.types.DeviceInterface` instance.
       rpms: A list of integers for mapping from RPM to duty cycles (device
           specific), for example [2360, 3040, 3630, 4180, 4655, 5100, 5450,
           5950].
       duty_cycles: A list of integers for duty cycles mapped by argument rpms,
           default to _DEFAULT_DUTY_CYCLES.
     """
-    super(MosysFanControl, self).__init__(dut)
+    super(MosysFanControl, self).__init__(device)
     self._rpms = rpms
     self._duty_cycles = duty_cycles or self._DEFAULT_DUTY_CYCLES
 
@@ -127,7 +128,7 @@ class MosysFanControl(FanControl):
       A list of int indicating the RPM of each fan.
     """
     try:
-      return [int(self._dut.CheckOutput(
+      return [int(self._device.CheckOutput(
           ['mosys', 'sensor', 'print', 'fantach']).split('|')[2].strip())]
     except Exception as e:  # pylint: disable=W0703
       raise self.Error('Unable to get fan speed: %s' % e)
@@ -144,15 +145,17 @@ class MosysFanControl(FanControl):
       if rpm < min_rpm:
         raise self.Error('RPM should be greater than %d' % min_rpm)
       else:
-        duty_cycle = str(int(numpy.interp(rpm, self._rpms, self._duty_cycles)))
+        duty_cycle = str(int(numpy.interp(
+            rpm, self._rpms, self._duty_cycles)))
     try:
-      self._dut.CheckCall(['mosys', 'sensor', 'set', 'fantach', 'system',
-                           'auto' if rpm == self.AUTO else duty_cycle])
+      self._device.CheckCall(
+          ['mosys', 'sensor', 'set', 'fantach', 'system',
+           'auto' if rpm == self.AUTO else duty_cycle])
       if rpm == self.AUTO:
         # This is a workaround for fan speed. We need this command
         # when fan mode from manaul to auto.
         # See more details: http://crosbug.com/p/24562.
-        self._dut.Call(
+        self._device.Call(
             'echo 0 > /sys/class/thermal/cooling_device4/cur_state')
     except Exception as e: # pylint: disable=W0703
       raise self.Error('Unable to set fan speed to RPM %s: %s' % (rpm, e))
@@ -202,7 +205,7 @@ class SysFSFanControl(FanControl):
       ret = []
       for info in self._fans:
         if fan_id is None or info['fan_id'] == fan_id:
-          buf = self._dut.ReadFile(self._dut.path.join(
+          buf = self._device.ReadFile(self._device.path.join(
               info['path'], info['get_speed_filename']))
           ret.append(info['get_speed_map'](buf))
       return ret
@@ -215,13 +218,13 @@ class SysFSFanControl(FanControl):
       for info in self._fans:
         if fan_id is None or info['fan_id'] == fan_id:
           if rpm == self.AUTO:
-            self._dut.WriteFile(self._dut.path.join(
+            self._device.WriteFile(self._device.path.join(
                 info['path'], info['control_mode_filename']), '2')
           else:
-            self._dut.WriteFile(self._dut.path.join(
+            self._device.WriteFile(self._device.path.join(
                 info['path'], info['control_mode_filename']), '1')
             buf = info['set_speed_map'](rpm)
-            self._dut.WriteFile(self._dut.path.join(
+            self._device.WriteFile(self._device.path.join(
                 info['path'], info['set_speed_filename']), buf)
     except Exception as e:  # pylint: disable=W0703
       if rpm == self.AUTO:
