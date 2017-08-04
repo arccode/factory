@@ -4,17 +4,52 @@
 
 """Tests button functionality.
 
-  You can specify the button in multiple ways:
+Description
+-----------
+This test verifies if a button is working properly by checking if its state is
+changed per given instruction.
 
-  - gpio:[-]NUM.
-    A GPIO button. NUM indicates GPIO number, and +/- indicates polarity
-    (- for active low, otherwise active high).
+You can specify the button in different ways using the ``button_key_name``
+argument:
 
-  - crossystem:NAME.
-    A crossystem value (1 or 0) that can be retrived by NAME.
+=================== ============================================================
+Key Name            Description
+=================== ============================================================
+``gpio:[-]NUM``     A GPIO button. ``NUM`` indicates GPIO number, and ``+/-``
+                    indicates polarity (minus for active low, otherwise active
+                    high).
+``crossystem:NAME`` A ``crossystem`` value (1 or 0) that can be retrieved by
+                    NAME.
+``ectool:NAME``     A value for ``ectool gpioget`` to fetch.
+``KEYNAME``         An ``evdev`` key name that can be read from ``/dev/input``.
+                    Try to find the right name by running ``evtest``.
+=================== ============================================================
 
-  - KEYNAME.
-    A /dev/input key matching KEYNAME.
+Test Procedure
+--------------
+When started, the test will prompt operator to press and release given button N
+times, and fail if not finished in given timeout.
+
+Dependency
+----------
+Depends on the driver of specified button source: GPIO, ``crossystem``,
+``ectool``, or ``evdev`` (which also needs ``/dev/input`` and ``evtest``).
+
+Examples
+--------
+To test the recovery button 1 time in 30 seconds, add this into test list::
+
+  OperatorTest(pytest_name='button',
+               dargs={'button_key_name': 'crossystem:recoverysw_cur'})
+
+To test volume down button (using ``evdev``) 3 times in 10 seconds, add this
+into test list::
+
+  OperatorTest(pytest_name='button',
+               dargs={'button_key_name': 'KEY_VOLUMEDOWN',
+                      'timeout_secs': 10,
+                      'repeat_times': 3,
+                     })
 """
 
 import logging
@@ -174,7 +209,7 @@ class ButtonTest(unittest.TestCase):
   ARGS = [
       Arg('timeout_secs', int, 'Timeout value for the test.',
           default=_DEFAULT_TIMEOUT),
-      Arg('button_key_name', str, 'Button key name for evdev.',
+      Arg('button_key_name', str, 'Button key name.',
           optional=False),
       Arg('event_id', int, 'Event ID for evdev. None for auto probe.',
           default=None, optional=True),
