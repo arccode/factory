@@ -2,11 +2,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Raiden CC2 function test for Whale fixture.
+"""Plankton USB type-C CC2 function test for Whale fixture.
 
 Pull high C[0/1]_CC2_DUT on Whale Krill and check PD GPIO reponse to test
-Raiden CC2 functionailty. Note that during pull-high test Raiden port should
-be disconnected.
+USB type-C CC2 functionailty. Note that during pull-high test USB type-C port
+should be disconnected.
 """
 
 import logging
@@ -21,25 +21,26 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Raiden CC2 pull test')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Plankton USB type-C CC2 pull test')
 _DISCONNECT = lambda secs: i18n_test_ui.MakeI18nLabel(
-    'Raiden port is disconnected in {secs:.1f} seconds', secs=secs)
+    'USB type-C port is disconnected in {secs:.1f} seconds', secs=secs)
 _DISCONNECT_OP = lambda secs: i18n_test_ui.MakeI18nLabel(
-    'Please remove Raiden cable in {secs:.1f} seconds', secs=secs)
+    'Please remove USB type-C cable in {secs:.1f} seconds', secs=secs)
 _CONNECT_OP = lambda secs: i18n_test_ui.MakeI18nLabel(
-    'Please attach Raiden cable in {secs:.1f} seconds', secs=secs)
+    'Please attach USB type-C cable in {secs:.1f} seconds', secs=secs)
 _CSS = 'body { font-size: 2em; }'
 
 
-class RaidenCC2PullTest(unittest.TestCase):
+class PlanktonCC2PullTest(unittest.TestCase):
   ARGS = [
       Arg('whale_bft_fixture', dict, bft_fixture.TEST_ARG_HELP),
-      Arg('dolphin_bft_fixture', dict, bft_fixture.TEST_ARG_HELP),
-      Arg('raiden_index', int, 'Index of DUT Raiden port'),
+      Arg('plankton_bft_fixture', dict, bft_fixture.TEST_ARG_HELP),
+      Arg('usb_c_index', int, 'Index of DUT USB type-C port'),
       Arg('disconnect_manually', bool,
-          'Ask for operation to disconnect Raiden cable (just for debug usage)',
+          'Ask for operation to disconnect Plankton cable'
+          ' (just for debug usage)',
           default=False),
-      Arg('disconnect_secs', int, 'Interval for Raiden port disconnection.',
+      Arg('disconnect_secs', int, 'Interval for USB type-C port disconnection.',
           default=5)
   ]
 
@@ -48,27 +49,27 @@ class RaidenCC2PullTest(unittest.TestCase):
     self._ui = test_ui.UI(css=_CSS)
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
-    self._raiden_index = self.args.raiden_index
-    self._pull_gpio = 'C%d_CC2_DUT' % self._raiden_index
+    self._usb_c_index = self.args.usb_c_index
+    self._pull_gpio = 'C%d_CC2_DUT' % self._usb_c_index
 
     self._whale_fixture = bft_fixture.CreateBFTFixture(
         **self.args.whale_bft_fixture)
     self._whale_fixture.SetDeviceEngaged(self._pull_gpio, engage=False)
 
-    self._dolphin_fixture = bft_fixture.CreateBFTFixture(
-        **self.args.dolphin_bft_fixture)
-    self._dolphin_fixture.SetDeviceEngaged('USB3', engage=True)
+    self._plankton_fixture = bft_fixture.CreateBFTFixture(
+        **self.args.plankton_bft_fixture)
+    self._plankton_fixture.SetDeviceEngaged('USB3', engage=True)
     time.sleep(1)  # Wait for CC line
 
   def GetCCPolarity(self):
-    """Gets CC status of the DUT's Raiden port.
+    """Gets CC status of the DUT's USB type-C port.
 
-    Port is specified by args.raiden_index.
+    Port is specified by args.usb_c_index.
 
     Returns:
       'CC1' or 'CC2'.
     """
-    port_status = self._dut.usb_c.GetPDStatus(self._raiden_index)
+    port_status = self._dut.usb_c.GetPDStatus(self._usb_c_index)
     logging.info('Get USBPD status = %s', str(port_status))
     return port_status['polarity']
 
@@ -83,12 +84,12 @@ class RaidenCC2PullTest(unittest.TestCase):
 
     disconnect_half_secs = float(self.args.disconnect_secs)/2
     if self.args.disconnect_manually:
-      # Ask operator to manually un-plug Raiden cable
+      # Ask operator to manually un-plug USB type-C cable
       self._template.SetState(_DISCONNECT_OP(disconnect_half_secs))
     else:
       # Use automation disconnection by Plankton-Raiden
       self._template.SetState(_DISCONNECT(self.args.disconnect_secs))
-      self._dolphin_fixture.SetFakeDisconnection(self.args.disconnect_secs)
+      self._plankton_fixture.SetFakeDisconnection(self.args.disconnect_secs)
 
     time.sleep(disconnect_half_secs)
     # During Whale pull-high CC2 with cable disconnected, check CC is 'CC2'.

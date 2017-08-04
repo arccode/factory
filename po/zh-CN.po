@@ -332,6 +332,22 @@ msgid "Ping Test"
 msgstr "连线测试"
 
 #: ../build/pytests_label_generated.json
+msgid "Plankton CC2 Pull Test"
+msgstr "Plankton CC2 电压测试"
+
+#: ../build/pytests_label_generated.json
+msgid "Plankton CC Flip Check"
+msgstr "Plankton CC 翻转检查"
+
+#: ../build/pytests_label_generated.json
+msgid "Plankton Charge"
+msgstr "Plankton 充电"
+
+#: ../build/pytests_label_generated.json
+msgid "Plankton Display"
+msgstr "Plankton 显示"
+
+#: ../build/pytests_label_generated.json
 msgid "Pointing Device"
 msgstr "指向装置"
 
@@ -354,22 +370,6 @@ msgstr "侦测 SIM 卡"
 #: ../build/pytests_label_generated.json
 msgid "Probe SIM Card Tray"
 msgstr "探測 SIM 卡卡盘"
-
-#: ../build/pytests_label_generated.json
-msgid "Raiden CC2 Pull Test"
-msgstr "Raiden CC2 电压测试"
-
-#: ../build/pytests_label_generated.json
-msgid "Raiden CC Flip Check"
-msgstr "Raiden CC 翻转检查"
-
-#: ../build/pytests_label_generated.json
-msgid "Raiden Charge"
-msgstr "Raiden 充电"
-
-#: ../build/pytests_label_generated.json
-msgid "Raiden Display"
-msgstr "Raiden 显示"
 
 #: ../build/pytests_label_generated.json
 #: ../py/test/test_lists/generic_run_in.py ../py/test/test_lists/generic_smt.py
@@ -2410,6 +2410,78 @@ msgstr "网络介面 {interface} 未成功初始化"
 msgid "Ping test"
 msgstr "连线测试"
 
+#: ../py/test/pytests/plankton_cc2_pull_test.py
+msgid "Plankton USB type-C CC2 pull test"
+msgstr "Plankton USB type-C CC2 电压测试"
+
+#: ../py/test/pytests/plankton_cc2_pull_test.py
+msgid "USB type-C port is disconnected in {secs:.1f} seconds"
+msgstr "USB type-C port 失去连接 {secs:.1f} 秒"
+
+#: ../py/test/pytests/plankton_cc2_pull_test.py
+msgid "Please remove USB type-C cable in {secs:.1f} seconds"
+msgstr "请在 {secs:.1f} 秒内移除 USB type-C 线"
+
+#: ../py/test/pytests/plankton_cc2_pull_test.py
+msgid "Please attach USB type-C cable in {secs:.1f} seconds"
+msgstr "请在 {secs:.1f} 秒内连接 USB type-C 线"
+
+#: ../py/test/pytests/plankton_cc_flip_check.py
+msgid "Plankton USB type-C CC Detect"
+msgstr ""
+
+#: ../py/test/pytests/plankton_cc_flip_check.py
+msgid "Flip USB type-C cable and plug in again..."
+msgstr "将 USB type-C port 头反转后再次插入机器..."
+
+#: ../py/test/pytests/plankton_cc_flip_check.py
+msgid "And press Enter key to continue..."
+msgstr "并按 Enter 键继续..."
+
+#: ../py/test/pytests/plankton_cc_flip_check.py
+msgid "Wait DUT to reconnect"
+msgstr "等待 DUT 重新连接"
+
+#: ../py/test/pytests/plankton_charge.py
+msgid "Plankton-Raiden USB type-C Charging Test"
+msgstr "Plankton-Raiden USB type-C 充电测试"
+
+#: ../py/test/pytests/plankton_charge.py
+msgid "Waiting for ADB device connection..."
+msgstr "等待机器连线..."
+
+#: ../py/test/pytests/plankton_charge.py
+msgid "Checking Plankton INA current for protection..."
+msgstr "检查电流保护..."
+
+#: ../py/test/pytests/plankton_charge.py
+msgid "Testing battery {voltage}V charging..."
+msgstr "测试电池 {voltage}V 充电中..."
+
+#: ../py/test/pytests/plankton_charge.py
+msgid "Testing battery discharging..."
+msgstr "测试电池放电中..."
+
+#: ../py/test/pytests/plankton_display.py
+msgid "Plankton USB type-C Display Test"
+msgstr ""
+
+#: ../py/test/pytests/plankton_display.py
+msgid "Caution: monitor may turn black for a short time."
+msgstr "注意: 萤幕可能会有短暂黑屏"
+
+#: ../py/test/pytests/plankton_display.py
+msgid "Connecting BFT display: {device}"
+msgstr "正在连接 BFT 显示屏: {device}"
+
+#: ../py/test/pytests/plankton_display.py
+msgid "BFT display {device} is connected. Sending image..."
+msgstr "已连接 BFT 显示屏: {device}, 正在传送画面"
+
+#: ../py/test/pytests/plankton_display.py
+msgid "Disconnecting BFT display: {device}"
+msgstr "正在移除 BFT 显示屏: {device}"
+
 #: ../py/test/pytests/pointing_device.py
 msgid "Non-touchpad Pointing Device Test"
 msgstr "非触控板之指向装置测试"
@@ -2481,78 +2553,6 @@ msgstr "请插入SIM卡卡盘"
 #: ../py/test/pytests/probe_sim_card_tray.py
 msgid "Detected! Please remove the SIM card tray"
 msgstr "已经侦测SIM卡卡盘, 请移除SIM卡卡盘"
-
-#: ../py/test/pytests/raiden_cc2_pull_test.py
-msgid "Raiden CC2 pull test"
-msgstr "Raiden CC2 电压测试"
-
-#: ../py/test/pytests/raiden_cc2_pull_test.py
-msgid "Raiden port is disconnected in {secs:.1f} seconds"
-msgstr "Raiden port 失去连接 {secs:.1f} 秒"
-
-#: ../py/test/pytests/raiden_cc2_pull_test.py
-msgid "Please remove Raiden cable in {secs:.1f} seconds"
-msgstr "请在 {secs:.1f} 秒内移除 Raiden 线"
-
-#: ../py/test/pytests/raiden_cc2_pull_test.py
-msgid "Please attach Raiden cable in {secs:.1f} seconds"
-msgstr "请在 {secs:.1f} 秒内连接 Raiden 线"
-
-#: ../py/test/pytests/raiden_cc_flip_check.py
-msgid "Raiden CC Detect"
-msgstr "Raiden CC 检查"
-
-#: ../py/test/pytests/raiden_cc_flip_check.py
-msgid "Flip Raiden cable and plug in again..."
-msgstr "将 Raiden port 头反转后再次插入机器..."
-
-#: ../py/test/pytests/raiden_cc_flip_check.py
-msgid "And press Enter key to continue..."
-msgstr "并按 Enter 键继续..."
-
-#: ../py/test/pytests/raiden_cc_flip_check.py
-msgid "Wait DUT to reconnect"
-msgstr "等待 DUT 重新连接"
-
-#: ../py/test/pytests/raiden_charge.py
-msgid "Raiden Charging Test"
-msgstr "Raiden 充电测试"
-
-#: ../py/test/pytests/raiden_charge.py
-msgid "Waiting for ADB device connection..."
-msgstr "等待机器连线..."
-
-#: ../py/test/pytests/raiden_charge.py
-msgid "Checking Plankton INA current for protection..."
-msgstr "检查电流保护..."
-
-#: ../py/test/pytests/raiden_charge.py
-msgid "Testing battery {voltage}V charging..."
-msgstr "测试电池 {voltage}V 充电中..."
-
-#: ../py/test/pytests/raiden_charge.py
-msgid "Testing battery discharging..."
-msgstr "测试电池放电中..."
-
-#: ../py/test/pytests/raiden_display.py
-msgid "Raiden Display Test"
-msgstr "Raiden 显示测试"
-
-#: ../py/test/pytests/raiden_display.py
-msgid "Caution: monitor may turn black for a short time."
-msgstr "注意: 萤幕可能会有短暂黑屏"
-
-#: ../py/test/pytests/raiden_display.py
-msgid "Connecting BFT display: {device}"
-msgstr "正在连接 BFT 显示屏: {device}"
-
-#: ../py/test/pytests/raiden_display.py
-msgid "BFT display {device} is connected. Sending image..."
-msgstr "已连接 BFT 显示屏: {device}, 正在传送画面"
-
-#: ../py/test/pytests/raiden_display.py
-msgid "Disconnecting BFT display: {device}"
-msgstr "正在移除 BFT 显示屏: {device}"
 
 #: ../py/test/pytests/read_device_data_from_vpd.py
 msgid "Reading device data from {vpd_section} VPD..."

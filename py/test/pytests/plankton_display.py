@@ -2,9 +2,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Tests Raiden DP function with Plankton-Raiden, which links/unlinks DUT Raiden
-port to DP sink. And with Plankton-HDMI as DP sunk to capture DP output to
-verify.
+"""Tests USB type-C DP function with Plankton-Raiden, which links/unlinks DUT
+USB type-C port to DP sink. And with Plankton-HDMI as DP sunk to capture DP
+output to verify.
 """
 
 import logging
@@ -29,17 +29,17 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import sync_utils
 
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Raiden Display Test')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Plankton USB type-C Display Test')
 
 _BLACKSCREEN_STR = i18n_test_ui.MakeI18nLabel(
     'Caution: monitor may turn black for a short time.')
 
-_ID_CONTAINER = 'raiden-display-container'
+_ID_CONTAINER = 'plankton-display-container'
 
-# The style is in raiden_display.css
+# The style is in plankton_display.css
 # The layout contains one div for display.
 _HTML_DISPLAY = (
-    '<link rel="stylesheet" type="text/css" href="raiden_display.css">'
+    '<link rel="stylesheet" type="text/css" href="plankton_display.css">'
     '<div id="%s"></div>\n' % _ID_CONTAINER)
 
 _WAIT_DISPLAY_SIGNAL_SECS = 3
@@ -61,11 +61,11 @@ def _GetDisconnectStr(device):
       'Disconnecting BFT display: {device}', device=device)
 
 
-class RaidenDisplayTest(unittest.TestCase):
-  """Tests Raiden ports display functionality."""
+class PlanktonDisplayTest(unittest.TestCase):
+  """Tests USB type-C ports display functionality."""
   ARGS = [
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP),
-      Arg('raiden_index', int, 'Index of DUT raiden port'),
+      Arg('usb_c_index', int, 'Index of DUT USB type-C port'),
       Arg('bft_media_device', str,
           'Device name of BFT used to insert/remove the media.'),
       Arg('display_id', str,
@@ -94,7 +94,7 @@ class RaidenDisplayTest(unittest.TestCase):
           'wallpaper only (can save more testing time).',
           default=True),
       Arg('force_dp_renegotiated', bool,
-          'Force DP to renegotiate with dolphin by disconnecting TypeC port',
+          'Force DP to renegotiate with plankton by disconnecting TypeC port',
           default=False),
       Arg('fire_hpd_manually', bool, 'Fire HPD manually.', default=False)
   ]
@@ -180,13 +180,13 @@ class RaidenDisplayTest(unittest.TestCase):
       else:
         time.sleep(0.5)
       if self.args.fire_hpd_manually:
-        self._dut.usb_c.SetHPD(self.args.raiden_index)
-        self._dut.usb_c.SetPortFunction(self.args.raiden_index, 'dp')
+        self._dut.usb_c.SetHPD(self.args.usb_c_index)
+        self._dut.usb_c.SetPortFunction(self.args.usb_c_index, 'dp')
       sync_utils.WaitFor(self._PollDisplayConnected, timeout_secs=10)
     else:
       self._template.SetInstruction(_GetDisconnectStr(self._bft_media_device))
       if self.args.fire_hpd_manually:
-        self._dut.usb_c.ResetHPD(self.args.raiden_index)
+        self._dut.usb_c.ResetHPD(self.args.usb_c_index)
       self._bft_fixture.SetDeviceEngaged(self._bft_media_device, engage=False)
       if self.args.force_dp_renegotiated:
         self._bft_fixture.SetFakeDisconnection(1)

@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Test Raiden USB type-C port charging function.
+"""Test USB type-C port charging function with Plankton-Raiden board.
 
 This test can be tested locally or in remote ADB connection manner.
 
@@ -29,7 +29,8 @@ from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Raiden Charging Test')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel(
+    'Plankton-Raiden USB type-C Charging Test')
 _TESTING_ADB_CONNECTION = i18n_test_ui.MakeI18nLabel(
     'Waiting for ADB device connection...')
 _TESTING_PROTECT = i18n_test_ui.MakeI18nLabel(
@@ -41,8 +42,8 @@ _TESTING_DISCHARGE = i18n_test_ui.MakeI18nLabel(
 _CSS = 'body { font-size: 2em; }'
 
 
-class RaidenChargeBFTTest(unittest.TestCase):
-  """Tests raiden port charge functionality."""
+class PlanktonChargeBFTTest(unittest.TestCase):
+  """Tests usb_c port charge functionality."""
   ARGS = [
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP),
       Arg('charge_duration_secs', (int, float),

@@ -106,7 +106,7 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
     self._plankton_conn = None
     self._i2c_address = None
     self._use_proxy = False
-    self._raiden_index = None
+    self._usb_c_index = None
     self._parallel_test = False
     self._double_cc_cable = False
 
@@ -121,7 +121,7 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
           required fields:
           - dolphin_host: Name or IP address of dolphin server host.
           - dolphin_port: TCP port on which dolphin server is listening on.
-          - raiden_index: corresponding serial index on dolphin server.
+          - usb_c_index: corresponding serial index on dolphin server.
 
           2. Dolphin Mini parameters:
           required fields:
@@ -151,11 +151,11 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
         self._plankton_conn = xmlrpclib.ServerProxy(
             remote, verbose=False, allow_none=True)
         self._use_proxy = True
-        self._raiden_index = port_params['raiden_index']
-        self._i2c_address = (self._I2C_ADDR_LEFT if self._raiden_index == 0
+        self._usb_c_index = port_params['usb_c_index']
+        self._i2c_address = (self._I2C_ADDR_LEFT if self._usb_c_index == 0
                              else self._I2C_ADDR_RIGHT)
         # Initialize serial connection on server first
-        self._plankton_conn.InitConnection(self._raiden_index)
+        self._plankton_conn.InitConnection(self._usb_c_index)
         self.SetDefault('set default')
         self.SetOutputBufferChannel(0)  # channel 0: command only
         return
@@ -534,7 +534,7 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
     """
     if self._use_proxy:  # Dolphin(Whale)
       try:
-        self._plankton_conn.Send(self._raiden_index, command)
+        self._plankton_conn.Send(self._usb_c_index, command)
       except Exception as e:
         raise bft_fixture.BFTFixtureException(
             'Dolphin: Send %s command %s failed: %s' %
@@ -563,7 +563,7 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
     """
     if self._use_proxy:  # Dolphin(Whale)
       try:
-        binary_packet = self._plankton_conn.Receive(self._raiden_index, byte)
+        binary_packet = self._plankton_conn.Receive(self._usb_c_index, byte)
         return binary_packet.data
       except Exception as e:
         raise bft_fixture.BFTFixtureException(

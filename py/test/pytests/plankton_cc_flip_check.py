@@ -2,9 +2,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Raiden CC line polarity check and operation flip test.
+"""USB type-C CC line polarity check and operation flip test w/ Plankton-Raiden.
 
-Firstly checks Raiden cable connected direction is right by CC polarity, and
+Firstly checks USB type-C cable connected direction is right by CC polarity, and
 also be able to show operation instruction for cable flipping to test another
 CC line.
 
@@ -32,9 +32,9 @@ from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Raiden CC Detect')
+_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Plankton USB type-C CC Detect')
 _OPERATION = i18n_test_ui.MakeI18nLabel(
-    'Flip Raiden cable and plug in again...')
+    'Flip USB type-C cable and plug in again...')
 _NO_TIMER = i18n_test_ui.MakeI18nLabel('And press Enter key to continue...')
 _WAIT_CONNECTION = i18n_test_ui.MakeI18nLabel('Wait DUT to reconnect')
 _CSS = 'body { font-size: 2em; }'
@@ -47,13 +47,13 @@ _STATE_HTML = '<div id="%s"></div><div id="%s"></div>' % (
 _CC_UNCONNECT = 'UNCONNECTED'
 
 
-class RaidenCCFlipCheck(unittest.TestCase):
-  """Raiden CC line polarity check and operation flip test."""
+class PlanktonCCFlipCheck(unittest.TestCase):
+  """Plankton USB type-C CC line polarity check and operation flip test."""
   ARGS = [
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP),
       Arg('adb_remote_test', bool, 'Run test against remote ADB target.',
           default=False),
-      Arg('raiden_index', int, 'Index of DUT raiden port'),
+      Arg('usb_c_index', int, 'Index of DUT USB_C port'),
       Arg('original_enabled_cc', str, 'Set "CC1" or "CC2" if you want to check '
           'what CC pin is enabled now. There is no check if it is not set.',
           optional=True),
@@ -109,7 +109,7 @@ class RaidenCCFlipCheck(unittest.TestCase):
     logging.info('Initial polarity: %s', self._polarity)
 
   def GetCCPolarity(self):
-    """Gets enabled CC line for raiden port arg.raiden_index.
+    """Gets enabled CC line for USB_C port arg.usb_c_index.
 
     Returns:
       'CC1' or 'CC2', or _CC_UNCONNECT if it doesn't detect SRC_READY.
@@ -127,7 +127,7 @@ class RaidenCCFlipCheck(unittest.TestCase):
     if self._double_cc_quick_check:
       return self._bft_fixture.GetPDState()['polarity']
 
-    port_status = self._dut.usb_c.GetPDStatus(self.args.raiden_index)
+    port_status = self._dut.usb_c.GetPDStatus(self.args.usb_c_index)
     # For newer version EC, port_status[state] will return string instead of
     # state number.
     if self._adb_remote_test or self._bft_fixture.IsParallelTest():
