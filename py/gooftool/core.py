@@ -30,8 +30,10 @@ from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.hwid.v3 import common as hwid3_common
 from cros.factory.hwid.v3.database import Database
 from cros.factory.test.l10n import regions
+from cros.factory.test.rules import phase
 from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.utils import file_utils
+from cros.factory.utils import service_utils
 from cros.factory.utils.type_utils import Error
 
 # A named tuple to store the probed component name and the error if any.
@@ -697,3 +699,56 @@ class Gooftool(object):
       if not self._update_ro_vpd({
           'stable_device_secret_DO_NOT_SHARE': secret_bytes.encode('hex')}):
         raise Error
+
+
+  def Cr50SetBoardId(self):
+    """Set the board id and flag on the Cr50 chip.
+
+    The Cr50 image need to be lock down for a certain subset of devices for
+    security reason. To achieve this, we need to tell the Cr50 which board
+    it is running on, and which phase is it, during the factory flow.
+
+    A script located at /usr/share/cros/cr50-set-board-id.sh helps us
+    to set the board id and phase to the Cr50 ship.
+
+    To the detail design of the lock-down mechanism, please refer to
+    go/cr50-boardid-lock for more details.
+    """
+
+    script_path = '/usr/share/cros/cr50-set-board-id.sh'
+    disable_services = ['trunksd']
+
+    if not os.path.exists(script_path):
+      logging.warn('The Cr50 script is not found, there should be no '
+                   'Cr50 on this device.')
+      return
+
+    if phase.GetPhase() >= phase.PVT_DOGFOOD:
+      arg_phase = 'pvt'
+    else:
+      arg_phase = 'dev'
+
+    service_mgr = service_utils.ServiceManager()
+
+    try:
+      service_mgr.SetupServices(disable_services=disable_services)
+
+      result = self._util.shell([script_path, arg_phase])
+      if result.status == 0:
+        logging.info('Successfully set board ID on Cr50 with phase %s.',
+                     arg_phase)
+      elif result.status == 2:
+        logging.error('Board ID has already been set on Cr50!')
+      elif result.status == 3:
+        raise Error('Board ID and/or flag has been set DIFFERENTLY on Cr50!')
+      else:  # General errors.
+        raise Error('Failed to set board ID and flag on Cr50. '
+                    '(args=%s)' % arg_phase)
+
+    except Exception:
+      logging.exception('Failed to set Cr50 Board ID.')
+      raise
+
+    finally:
+      # Restart stopped service even if something went wrong.
+      service_mgr.RestoreServices()
