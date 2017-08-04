@@ -3,11 +3,37 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Selects whether this device should be sampled for certain tests.
+"""Decide if this device is selected for certain sampling tests.
 
-Uses a hash of the WLAN MAC address (wlan0 or mlan0), and writes a
-"True" or "False" value to a particular element in the device data
-dictionary.
+Description
+-----------
+For some sampling tests, the tests should only be run for a subset of
+DUTs by a given sampling rate. This test uses a hash of the WLAN MAC
+address (wlan0 or mlan0) to decide if we should sample this device or
+not, and writes a "True" or "False" to the device data with the
+(optionally) specified key.
+
+Test Procedure
+--------------
+This is an automated test without user interaction.
+
+Dependency
+----------
+Need the device to have a WiFi interface with non-fixed MAC address.
+
+Examples
+--------
+To select about 10% of the devices and mark devices selected as
+'selected_for_sampling' in device data::
+
+  FactoryTest(pytest_name='select_for_sampling',
+              dargs={'rate': 0.1})
+
+To select about 20% of the devices, and mark using 'run_audio' key::
+
+  FactoryTest(pytest_name='select_for_sampling',
+              dargs={'rate': 0.2,
+                     'device_data_key': 'run_audio'})
 """
 
 import hashlib
