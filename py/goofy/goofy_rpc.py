@@ -214,6 +214,7 @@ class GoofyRPC(object):
 
   def AddNote(self, note):
     note['timestamp'] = int(time.time())
+    # TODO(stimim): log this by testlog.
     self.goofy.event_log.Log('note',
                              name=note['name'],
                              text=note['text'],

@@ -464,6 +464,10 @@ class TestList(ITestList):
   @debug_utils.NoRecursion
   def _Reload(self):
     logging.debug('reloading test list %s', self._config.test_list_id)
+    note = {
+        'name': _LOGGED_NAME
+    }
+
     try:
       new_config = self._loader.Load(self._config.test_list_id)
 
@@ -479,11 +483,20 @@ class TestList(ITestList):
       for key in self.__dict__:
         if key.startswith('_cached_'):
           self.__dict__[key] = None
+      note['level'] = 'INFO'
+      note['text'] = ('Test list %s is reloaded.' % self._config.test_list_id)
     except Exception:
       logging.exception('Failed to reload latest test list %s.',
                         self._config.test_list_id)
       # update timestamp to prevent reloading the same incorrect file
       self._config.SetTimestamp(time.time())
+      note['level'] = 'WARNING'
+      note['text'] = ('Failed to reload latest test list %s.' %
+                      self._config.test_list_id)
+    try:
+      self._state_instance.AddNote(note)
+    except Exception:
+      pass
 
   @property
   def modified(self):

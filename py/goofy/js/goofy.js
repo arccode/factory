@@ -1221,9 +1221,12 @@ cros.factory.Goofy.prototype.updateNote = function(notes) {
     this.noteDisplay = null;
   }
 
-  if (notes && notes.length > 0 &&
-      notes[notes.length - 1].level == 'CRITICAL') {
-    this.noteDisplay = new cros.factory.CriticalNoteDisplay(this, notes);
+  if (notes && notes.length > 0) {
+    if (notes[notes.length - 1].level == 'CRITICAL') {
+      this.noteDisplay = new cros.factory.CriticalNoteDisplay(this, notes);
+    } else if (notes[notes.length - 1].level == 'WARNING') {
+      this.viewNotes();
+    }
   }
 };
 
