@@ -64,10 +64,11 @@ def GetGooftool(options):
 
   if _global_gooftool is None:
     with _gooftool_lock:
-      project = getattr(options, 'project', None)
-      hwdb_path = getattr(options, 'hwdb_path', None)
-      _global_gooftool = Gooftool(hwid_version=3, project=project,
-                                  hwdb_path=hwdb_path)
+      if _global_gooftool is None:
+        project = getattr(options, 'project', None)
+        hwdb_path = getattr(options, 'hwdb_path', None)
+        _global_gooftool = Gooftool(hwid_version=3, project=project,
+                                    hwdb_path=hwdb_path)
 
   return _global_gooftool
 
