@@ -2,11 +2,38 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""A simple battery test.
+"""A basic battery test.
 
-A simple battery test that charges, discharges, and charges a battery on a
-DUT.  The goal of this factory test is to do a quick basic verification of
-battery function (typically less than 30 seconds).
+Description
+-----------
+This is a basic battery test that charges and discharges the battery on DUT.
+The goal of this factory test is to perform a quick basic verification of
+battery functions (typically less than 30 seconds).
+
+Test Procedure
+--------------
+1. Prompt the operator to plug in the AC power source.
+2. The battery current is sampled periodically, and its value is checked.
+3. Prompt the operator to unplug the AC power source.
+4. The battery current is sampled periodically, and its value is checked.
+5. Prompt the operator to plug in the AC power source, again.
+6. The battery current is sampled periodically, and its value is checked.
+
+Dependency
+----------
+Depend on the sysfs driver to control and read information from the battery.
+
+Examples
+--------
+To perform a basic battery test::
+
+  OperatorTest(pytest_name='simple_battery')
+
+To relax the limitation of battery cycle count to 5::
+
+  OperatorTest(pytest_name='simple_battery',
+               dargs={'max_cycle_count': 5}
+
 """
 
 from __future__ import print_function
