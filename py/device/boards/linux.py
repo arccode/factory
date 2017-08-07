@@ -6,8 +6,8 @@
 """Basic linux specific interface."""
 
 
-# Assume most linux devices will be running POSIX os.
-import posixpath
+import logging
+import posixpath  # Assume most linux devices will be running POSIX os.
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import accelerometer
@@ -37,9 +37,12 @@ from cros.factory.device import toybox
 from cros.factory.device import udev
 from cros.factory.device import usb_c
 from cros.factory.device import wifi
+from cros.factory.utils import file_utils
+from cros.factory.utils import type_utils
 
 
 DeviceProperty = types.DeviceProperty
+Overrides = type_utils.Overrides
 
 
 class LinuxBoard(types.DeviceBoard):
@@ -185,3 +188,158 @@ class LinuxBoard(types.DeviceBoard):
   @DeviceProperty
   def vpd(self):
     raise NotImplementedError
+
+  @type_utils.Overrides
+  def ReadFile(self, path, count=None, skip=None):
+    """Returns file contents on target device.
+
+    By default the "most-efficient" way of reading file will be used, which may
+    not work for special files like device node or disk block file. Use
+    ReadSpecialFile for those files instead.
+
+    Meanwhile, if count or skip is specified, the file will also be fetched by
+    ReadSpecialFile.
+
+    Args:
+      path: A string for file path on target device.
+      count: Number of bytes to read. None to read whole file.
+      skip: Number of bytes to skip before reading. None to read from beginning.
+
+    Returns:
+      A string as file contents.
+    """
+    if count is None and skip is None:
+      return self.link.Pull(path)
+    return self.ReadSpecialFile(path, count=count, skip=skip)
+
+  @type_utils.Overrides
+  def ReadSpecialFile(self, path, count=None, skip=None):
+    """Returns contents of special file on target device.
+
+    Reads special files (device node, disk block, or sys driver files) on device
+    using the most portable approach.
+
+    Args:
+      path: A string for file path on target device.
+      count: Number of bytes to read. None to read whole file.
+      skip: Number of bytes to skip before reading. None to read from beginning.
+
+    Returns:
+      A string as file contents.
+    """
+    if self.link.IsLocal():
+      return super(LinuxBoard, self).ReadSpecialFile(path, count, skip)
+
+    args = ['dd', 'bs=1', 'if=%s' % path]
+    if count is not None:
+      args += ['count=%d' % count]
+    if skip is not None:
+      args += ['skip=%d' % skip]
+
+    return self.CheckOutput(args)
+
+  @type_utils.Overrides
+  def WriteFile(self, path, content):
+    """Writes some content into file on target device.
+
+    Args:
+      path: A string for file path on target device.
+      content: A string to be written into file.
+    """
+    # If the link is local, we just open file and write content.
+    if self.link.IsLocal():
+      return super(LinuxBoard, self).WriteFile(path, content)
+
+    with file_utils.UnopenedTemporaryFile() as temp_path:
+      with open(temp_path, 'w') as f:
+        f.write(content)
+      self.link.Push(temp_path, path)
+
+  @type_utils.Overrides
+  def WriteSpecialFile(self, path, content):
+    """Writes some content into a special file on target device.
+
+    Args:
+      path: A string for file path on target device.
+      content: A string to be written into file.
+    """
+    # If the link is local, we just open file and write content.
+    if self.link.IsLocal():
+      return super(LinuxBoard, self).WriteSpecialFile(path, content)
+
+    with file_utils.UnopenedTemporaryFile() as local_temp:
+      with open(local_temp, 'w') as f:
+        f.write(content)
+      with self.temp.TempFile() as remote_temp:
+        self.link.Push(local_temp, remote_temp)
+        self.CheckOutput(['dd', 'if=%s' % remote_temp, 'of=%s' % path])
+
+  @type_utils.Overrides
+  def SendDirectory(self, local, remote):
+    """Copies a local directory to target device.
+
+    `local` should be a local directory, and `remote` should be a non-existing
+    file path on target device.
+
+    Example::
+
+     dut.SendDirectory('/path/to/local/dir', '/remote/path/to/some_dir')
+
+    Will create directory `some_dir` under `/remote/path/to` and copy
+    files and directories under `/path/to/local/dir/` to `some_dir`.
+
+    Args:
+      local: A string for directory path in local.
+      remote: A string for directory path on remote device.
+    """
+    return self.link.PushDirectory(local, remote)
+
+  @type_utils.Overrides
+  def SendFile(self, local, remote):
+    """Copies a local file to target device.
+
+    Args:
+      local: A string for file path in local.
+      remote: A string for file path on remote device.
+    """
+    return self.link.Push(local, remote)
+
+  @type_utils.Overrides
+  def Popen(self, command, stdin=None, stdout=None, stderr=None, log=False):
+    """Executes a command on target device using subprocess.Popen convention.
+
+    This function should be the single entry point for invoking link.Shell
+    because boards that need customization to shell execution (for example,
+    adding PATH or TMPDIR) will override this.
+
+    Args:
+      command: A string or a list of strings for command to execute.
+      stdin: A file object to override standard input.
+      stdout: A file object to override standard output.
+      stderr: A file object to override standard error.
+      log: True (for logging.info) or a logger object to keep logs before
+          running the command.
+
+    Returns:
+      An object similar to subprocess.Popen (see link.Shell).
+    """
+    if log:
+      logger = logging.info if log is True else log
+      logger('%s Running: %r', type(self), command)
+    return self.link.Shell(command, stdin, stdout, stderr)
+
+  @type_utils.Overrides
+  def Glob(self, pattern):
+    """Finds files on target device by pattern, similar to glob.glob.
+
+    Args:
+      pattern: A file path pattern (allows wild-card '*' and '?).
+
+    Returns:
+      A list of files matching pattern on target device.
+    """
+    if self.link.IsLocal():
+      return super(LinuxBoard, self).Glob(pattern)
+
+    results = self.CallOutput('ls -d %s' % pattern)
+    return results.splitlines() if results else []

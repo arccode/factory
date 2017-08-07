@@ -3,13 +3,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Tests for DeviceInterface helper functions."""
+"""Tests for SystemInterface in LinuxBoard."""
 
 import mock
 import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import types
+from cros.factory.device.boards import linux
 
 
 class MockProcess(object):
@@ -24,11 +25,11 @@ class MockProcess(object):
     return self._returncode
 
 
-class BaseTargetTest(unittest.TestCase):
+class LinuxTargetTest(unittest.TestCase):
 
   def setUp(self):
     self.link = types.DeviceLink()
-    self.dut = types.DeviceInterface(self.link)
+    self.dut = linux.LinuxBoard(self.link)
 
   def testReadFile(self):
     self.link.Pull = mock.MagicMock(return_value='TEST')

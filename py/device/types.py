@@ -4,21 +4,19 @@
 
 """Interfaces, classes and types for Device API."""
 
-import glob
-import logging
-import subprocess
-import tempfile
-
 import factory_common  # pylint: disable=W0611
-from cros.factory.utils import file_utils
+from cros.factory.utils import sys_interface
 from cros.factory.utils import type_utils
 
 
 # Default component property - using lazy loaded property implementation.
 DeviceProperty = type_utils.LazyProperty
+# TODO(hungte) Change DeviceProperty to also check if it has overridden an
+# existing component; and NewDeviceProperty to declare new component.
+Overrides = type_utils.Overrides
 
-# Use subprocess.CalledProcessError for invocation exceptions.
-CalledProcessError = subprocess.CalledProcessError
+# Use sys_interface.CalledProcessError for invocation exceptions.
+CalledProcessError = sys_interface.CalledProcessError
 
 
 class DeviceException(Exception):
@@ -151,7 +149,7 @@ class DeviceComponent(object):
     self._dut = device
 
 
-class DeviceInterface(object):
+class DeviceInterface(sys_interface.SystemInterface):
   """Abstract interface for accessing a device.
 
   This class provides an interface for accessing a device, for example reading
@@ -182,10 +180,6 @@ class DeviceInterface(object):
     link: A cros.factory.device.types.DeviceLink instance for accessing device.
   """
 
-  # Special values to make Popen work like subprocess.
-  PIPE = subprocess.PIPE
-  STDOUT = subprocess.STDOUT
-
   def __init__(self, link=None):
     """Constructor.
 
@@ -193,9 +187,8 @@ class DeviceInterface(object):
       link: A cros.factory.device.types.DeviceLink instance for accessing
             device.
     """
+    super(DeviceInterface, self).__init__()
     self.link = link
-
-  # Board modules and properties
 
   @DeviceProperty
   def accelerometer(self):
@@ -342,237 +335,13 @@ class DeviceInterface(object):
     """Interface for read / write Vital Product Data (VPD)."""
     raise NotImplementedError
 
-  # Helper functions to access device via link.
-
   def IsReady(self):
-    """Returns if a device is ready for access."""
+    """Returns True if a device is ready for access.
+
+    This is usually simply forwarded to ``link.IsReady()``, but some devices may
+    need its own readiness check in additional to link layer.
+    """
     return self.link.IsReady()
-
-  def ReadFile(self, path, count=None, skip=None):
-    """Returns file contents on target device.
-
-    By default the "most-efficient" way of reading file will be used, which may
-    not work for special files like device node or disk block file. Use
-    ReadSpecialFile for those files instead.
-
-    Meanwhile, if count or skip is specified, the file will also be fetched by
-    ReadSpecialFile.
-
-    Args:
-      path: A string for file path on target device.
-      count: Number of bytes to read. None to read whole file.
-      skip: Number of bytes to skip before reading. None to read from beginning.
-
-    Returns:
-      A string as file contents.
-    """
-    if count is None and skip is None:
-      return self.link.Pull(path)
-    return self.ReadSpecialFile(path, count=count, skip=skip)
-
-  def ReadSpecialFile(self, path, count=None, skip=None):
-    """Returns contents of special file on target device.
-
-    Reads special files (device node, disk block, or sys driver files) on device
-    using the most portable approach.
-
-    Args:
-      path: A string for file path on target device.
-      count: Number of bytes to read. None to read whole file.
-      skip: Number of bytes to skip before reading. None to read from beginning.
-
-    Returns:
-      A string as file contents.
-    """
-    if self.link.IsLocal():
-      with open(path, 'rb') as f:
-        if skip:
-          try:
-            f.seek(skip)
-          except IOError:
-            f.read(skip)
-        return f.read() if count is None else f.read(count)
-
-    args = ['dd', 'bs=1', 'if=%s' % path]
-    if count is not None:
-      args += ['count=%d' % count]
-    if skip is not None:
-      args += ['skip=%d' % skip]
-
-    return self.CheckOutput(args)
-
-  def WriteFile(self, path, content):
-    """Writes some content into file on target device.
-
-    Args:
-      path: A string for file path on target device.
-      content: A string to be written into file.
-    """
-    # If the link is local, we just open file and write content.
-    if self.link.IsLocal():
-      with open(path, 'w') as f:
-        f.write(content)
-      return
-
-    with file_utils.UnopenedTemporaryFile() as temp_path:
-      with open(temp_path, 'w') as f:
-        f.write(content)
-      self.link.Push(temp_path, path)
-
-  def WriteSpecialFile(self, path, content):
-    """Writes some content into a special file on target device.
-
-    Args:
-      path: A string for file path on target device.
-      content: A string to be written into file.
-    """
-    # If the link is local, we just open file and write content.
-    if self.link.IsLocal():
-      with open(path, 'w') as f:
-        f.write(content)
-      return
-
-    with file_utils.UnopenedTemporaryFile() as local_temp:
-      with open(local_temp, 'w') as f:
-        f.write(content)
-      with self.temp.TempFile() as remote_temp:
-        self.link.Push(local_temp, remote_temp)
-        self.CheckOutput(['dd', 'if=%s' % remote_temp, 'of=%s' % path])
-
-  def SendDirectory(self, local, remote):
-    """Copies a local directory to target device.
-
-    `local` should be a local directory, and `remote` should be a non-existing
-    file path on target device.
-
-    Example::
-
-    SendDirectory('/path/to/local/dir', '/remote/path/to/some_dir')
-
-    Will create directory `some_dir` under `/remote/path/to` and copy
-    files and directories under `/path/to/local/dir/` to `some_dir`.
-
-    Args:
-      local: A string for directory path in local.
-      remote: A string for directory path on remote device.
-    """
-    return self.link.PushDirectory(local, remote)
-
-  def SendFile(self, local, remote):
-    """Copies a local file to target device.
-
-    Args:
-      local: A string for file path in local.
-      remote: A string for file path on remote device.
-    """
-    return self.link.Push(local, remote)
-
-  def Popen(self, command, stdin=None, stdout=None, stderr=None, log=False):
-    """Executes a command on target device using subprocess.Popen convention.
-
-    This function should be the single entry point for invoking link.Shell
-    because boards that need customization to shell execution (for example,
-    adding PATH or TMPDIR) will override this.
-
-    Args:
-      command: A string or a list of strings for command to execute.
-      stdin: A file object to override standard input.
-      stdout: A file object to override standard output.
-      stderr: A file object to override standard error.
-      log: True (for logging.info) or a logger object to keep logs before
-          running the command.
-
-    Returns:
-      An object similiar to subprocess.Popen (see link.Shell).
-    """
-    if log:
-      logger = logging.info if log is True else log
-      logger('%s Running: %r', type(self), command)
-    return self.link.Shell(command, stdin, stdout, stderr)
-
-  def Call(self, *args, **kargs):
-    """Executes a command on target device, using subprocess.call convention.
-
-    The arguments are explained in Popen.
-
-    Returns:
-      Exit code from executed command.
-    """
-    process = self.Popen(*args, **kargs)
-    process.wait()
-    return process.returncode
-
-  def CheckCall(self, command, stdin=None, stdout=None, stderr=None, log=False):
-    """Executes a command on device, using subprocess.check_call convention.
-
-    Args:
-      command: A string or a list of strings for command to execute.
-      stdin: A file object to override standard input.
-      stdout: A file object to override standard output.
-      stderr: A file object to override standard error.
-
-    Returns:
-      Exit code from executed command.
-
-    Raises:
-      CalledProcessError if the exit code is non-zero.
-    """
-    exit_code = self.Call(command, stdin, stdout, stderr, log)
-    if exit_code != 0:
-      raise CalledProcessError(returncode=exit_code, cmd=command)
-    return exit_code
-
-  def CheckOutput(self, command, stdin=None, stderr=None, log=False):
-    """Executes a command on device, using subprocess.check_output convention.
-
-    Args:
-      command: A string or a list of strings for command to execute.
-      stdin: A file object to override standard input.
-      stdout: A file object to override standard output.
-      stderr: A file object to override standard error.
-
-    Returns:
-      The output on STDOUT from executed command.
-
-    Raises:
-      CalledProcessError if the exit code is non-zero.
-    """
-    with tempfile.TemporaryFile() as stdout:
-      exit_code = self.Call(command, stdin, stdout, stderr, log)
-      stdout.flush()
-      stdout.seek(0)
-      output = stdout.read()
-    if exit_code != 0:
-      raise CalledProcessError(
-          returncode=exit_code, cmd=command, output=output)
-    return output
-
-  def CallOutput(self, *args, **kargs):
-    """Runs the command on device and returns standard output if success.
-
-    Returns:
-      If command exits with zero (success), return the standard output;
-      otherwise None. If the command didn't output anything then the result is
-      empty string.
-    """
-    try:
-      return self.CheckOutput(*args, **kargs)
-    except CalledProcessError:
-      return None
-
-  def Glob(self, pattern):
-    """Finds files on target device by pattern, similar to glob.glob.
-
-    Args:
-      pattern: A file path pattern (allows wild-card '*' and '?).
-
-    Returns:
-      A list of files matching pattern on target device.
-    """
-    if self.link.IsLocal():
-      return glob.glob(pattern)
-    results = self.CallOutput('ls -d %s' % pattern)
-    return results.splitlines() if results else []
 
 
 # pylint:disable=abstract-method
