@@ -4,11 +4,54 @@
 
 """Test USB type-C port charging function with Plankton-Raiden board.
 
+Description
+-----------
 This test can be tested locally or in remote ADB connection manner.
 
 Use Plankton-Raiden board control to verify device battery current. It supports
 charge-5V, charge-12V, charge-20V, and discharge. This test also takes INA
 current and voltage value on Plankton-Raiden board into account as a judgement.
+
+Sometimes the charge current may not be stable, we have to wait for several
+seconds until the current stable then sampling the current value.
+
+Test Procedure
+--------------
+This is an automated test without user interaction, but the environment must
+be setup first:
+
+1. Connect the testing USB type-C port to Plankton-Raiden board.
+2. Connect the Plankton-Raiden serial commanding port to Plankton-Raiden board.
+3. Specify the type of the `bft_fixutre` connecting to.
+4. Specify the charging/discharing voltage/current and its minimun/maximun
+   threshold.
+5. Start the test.
+
+Dependency
+----------
+- Connections to Plankton-Raiden board must setup before starting.
+
+Examples
+--------
+Test 5V charge::
+
+  OperatorTest(
+      pytest_name='plankton_usb_c_charge',
+      dargs={
+          'bft_fixture': dolphin_fixture,
+          'min_charge_5V_current_mA': 0
+      })
+
+Test 20V charge without checking the input current::
+
+  OperatorTest(
+      pytest_name='plankton_usb_c_charge',
+      dargs={
+          'bft_fixture': dolphin_fixture,
+          'min_charge_20V_current_mA': 0,
+          'check_ina_current': False
+      })
+
 """
 
 import logging
