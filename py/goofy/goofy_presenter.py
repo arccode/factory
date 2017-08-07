@@ -47,10 +47,8 @@ class GoofyPresenter(GoofyBase):
 
     if sys_utils.InCrOSDevice():
       self.env = test_environment.DUTEnvironment()
-      self.env.has_sockets = self.ui_app_controller.HasWebSockets
     else:
       self.env = test_environment.FakeChrootEnvironment()
-    self.env.launch_chrome()
 
     self.link_manager = DUTLinkManager(
         check_interval=1,

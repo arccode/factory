@@ -105,6 +105,8 @@ class GoofyTest(unittest.TestCase):
     self.mocker.ResetAll()
     self.mockAnything = mox.MockAnything()
 
+    self.after_init_goofy()
+
   def tearDown(self):
     try:
       self.mocker.VerifyAll()
@@ -210,6 +212,9 @@ class GoofyTest(unittest.TestCase):
   def before_init_goofy(self):
     """Hook invoked before init_goofy."""
 
+  def after_init_goofy(self):
+    """Hook invoked after init_goofy."""
+
   def check_one_test(self, spawn, test_id, name, passed, error_msg,
                      trigger=None, does_not_start=False, setup_mocks=True,
                      expected_count=1):
@@ -258,10 +263,7 @@ class GoofyUITest(GoofyTest):
     # Trigger this event once the web socket closes
     self.ws_done = threading.Event()
 
-  def waitForWebSocketClose(self):
-    self.ws_done.wait()
-
-  def setUpWebSocketMock(self):
+  def after_init_goofy(self):
     class MyClient(WebSocketBaseClient):
       """The web socket client class."""
       # pylint: disable=no-self-argument
@@ -284,10 +286,12 @@ class GoofyUITest(GoofyTest):
       ws.connect()
       ws.run()
       self.ws_done.set()
-    # pylint: disable=unnecessary-lambda
-    self.env.controller_ready_for_ui().WithSideEffects(
-        lambda: threading.Thread(target=open_web_socket).start()
-    ).AndReturn(None)
+
+    # After goofy.init(), it should be ready to accept a web socket
+    threading.Thread(target=open_web_socket).start()
+
+  def waitForWebSocketClose(self):
+    self.ws_done.wait()
 
 
 # A simple test list with three tests.
@@ -332,7 +336,6 @@ class WebSocketTest(GoofyUITest):
     PytestPrespawner.spawn = self.mocker.CreateMock(PytestPrespawner.spawn)
 
     self.goofy.link_manager.UpdateStatus = self.mockAnything.UpdateStatus(False)
-    self.setUpWebSocketMock()
 
     self.check_one_test(PytestPrespawner.spawn, 'a', 'a_A', TestState.PASSED,
                         '')
@@ -825,7 +828,6 @@ class NoHostTest(GoofyUITest):
         state.get_instance().get_test_state('a').status)
 
     # Start the UI for test 'b'
-    self.setUpWebSocketMock()
     self.mocker.ReplayAll()
     self.goofy.run_once()
     self._wait()

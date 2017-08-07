@@ -950,12 +950,6 @@ class Goofy(GoofyBase):
     """Initialize UI."""
     self._ui_initialized = True
     if self.options.ui == 'chrome':
-      if self.options.monolithic:
-        self.env.launch_chrome()
-      else:
-        # The presenter is responsible for launching Chrome. Let's just
-        # wait here.
-        self.env.controller_ready_for_ui()
       logging.info('Waiting for a web socket connection')
       self.web_socket_manager.wait()
 
@@ -1057,9 +1051,6 @@ class Goofy(GoofyBase):
     elif self.options.ui == 'chrome':
       self.env = test_environment.DUTEnvironment()
     self.env.goofy = self
-    # web_socket_manager will be initialized later
-    # pylint: disable=unnecessary-lambda
-    self.env.has_sockets = lambda: self.web_socket_manager.has_sockets()
 
     if self.options.restart:
       state.clear_state()
