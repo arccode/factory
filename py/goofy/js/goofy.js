@@ -1327,6 +1327,7 @@ cros.factory.Goofy.prototype.alert = function(message) {
   cros.factory.Goofy.setDialogContent(dialog, html);
   dialog.setVisible(true);
   goog.dom.classlist.add(dialog.getElement(), 'goofy-alert');
+  dialog.reposition();
 };
 
 /**

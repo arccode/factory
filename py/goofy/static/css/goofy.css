@@ -485,6 +485,15 @@ table + .goofy-history-header {
 .modal-dialog-buttons button {
   margin: 0 .5em;
 }
+.goofy-alert {
+  max-width: 75%;
+  max-height: 75%;
+  display: flex;
+  flex-direction: column;
+}
+.goofy-alert .modal-dialog-content {
+  overflow: scroll;
+}
 
 /* Overrides for Closure components. */
 #goofy .goog-menu {
