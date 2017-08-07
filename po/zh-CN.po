@@ -66,6 +66,10 @@ msgid "Battery"
 msgstr "电池"
 
 #: ../build/pytests_label_generated.json
+msgid "Battery Basic"
+msgstr "简单电池测试"
+
+#: ../build/pytests_label_generated.json
 msgid "Battery Current"
 msgstr "充电放电电流"
 
@@ -406,10 +410,6 @@ msgstr "Shopfloor"
 #: ../build/pytests_label_generated.json
 msgid "Shutdown"
 msgstr "关机"
-
-#: ../build/pytests_label_generated.json
-msgid "Simple Battery"
-msgstr "简单电池测试"
 
 #: ../build/pytests_label_generated.json
 msgid "Simple Storage Stress Test"
@@ -1495,6 +1495,26 @@ msgstr "正在测试 {test_size_mb} 的 存储 空间"
 #: ../py/test/pytests/bad_blocks.py
 msgid "Phase {current_phase}/{total_phases}: "
 msgstr "阶段 {current_phase}/{total_phases}: "
+
+#: ../py/test/pytests/battery_basic.py
+msgid "Simple Battery Test"
+msgstr "简单电池测试"
+
+#: ../py/test/pytests/battery_basic.py
+msgid "Unplug AC to proceed"
+msgstr "拔除 AC 电源"
+
+#: ../py/test/pytests/battery_basic.py
+msgid "Plug AC to proceed"
+msgstr "插上 AC 电源"
+
+#: ../py/test/pytests/battery_basic.py
+msgid "Testing battery charge..."
+msgstr "测试电池充电中..."
+
+#: ../py/test/pytests/battery_basic.py
+msgid "Testing battery discharge..."
+msgstr "测试电池放电中..."
 
 #: ../py/test/pytests/battery_current.py
 msgid "Battery Current Test"
@@ -2690,26 +2710,6 @@ msgstr "{operation}后验证系统状态"
 #: ../py/test/pytests/shutdown/shutdown.py
 msgid "Shutdown Test ({operation})"
 msgstr "关机测试 ({operation})"
-
-#: ../py/test/pytests/simple_battery.py
-msgid "Simple Battery Test"
-msgstr "简单电池测试"
-
-#: ../py/test/pytests/simple_battery.py
-msgid "Unplug AC to proceed"
-msgstr "拔除 AC 电源"
-
-#: ../py/test/pytests/simple_battery.py
-msgid "Plug AC to proceed"
-msgstr "插上 AC 电源"
-
-#: ../py/test/pytests/simple_battery.py
-msgid "Testing battery charge..."
-msgstr "测试电池充电中..."
-
-#: ../py/test/pytests/simple_battery.py
-msgid "Testing battery discharge..."
-msgstr "测试电池放电中..."
 
 #: ../py/test/pytests/smart_check_fw_version.py
 msgid "SSD Firmware Version Incorrect"
