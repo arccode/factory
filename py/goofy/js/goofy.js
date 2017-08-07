@@ -17,6 +17,7 @@ goog.require('goog.debug.Logger');
 goog.require('goog.dom');
 goog.require('goog.dom.classlist');
 goog.require('goog.dom.iframe');
+goog.require('goog.dom.safe');
 goog.require('goog.events');
 goog.require('goog.events.KeyCodes');
 goog.require('goog.html.SafeHtml');
@@ -27,6 +28,11 @@ goog.require('goog.json');
 goog.require('goog.math');
 goog.require('goog.net.WebSocket');
 goog.require('goog.net.XhrIo');
+goog.require('goog.positioning');
+goog.require('goog.positioning.AnchoredViewportPosition');
+goog.require('goog.positioning.Corner');
+goog.require('goog.positioning.CornerBit');
+goog.require('goog.positioning.Overflow');
 goog.require('goog.string');
 goog.require('goog.style');
 goog.require('goog.ui.AdvancedTooltip');
@@ -1792,12 +1798,54 @@ cros.factory.Goofy.prototype.showTestPopup = function(
 cros.factory.Goofy.HMS_TIME_FORMAT = new goog.i18n.DateTimeFormat('HH:mm:ss');
 
 /**
+ * Create a scrollable goog.ui.SubMenu.
+ * The menu of returned SubMenu can be scrolled when the menu is too long.
+ * @param {goog.ui.ControlContent} content The content passed to constructor of
+ *     goog.ui.SubMenu.
+ * @return {!goog.ui.SubMenu}
+ */
+cros.factory.Goofy.prototype.createScrollableSubMenu = function(content) {
+  var subMenu = new goog.ui.SubMenu(content);
+  goog.dom.safe.setStyle(
+      /** @type {!Element} */ (subMenu.getMenu().getElement()),
+      goog.html.SafeStyle.create({overflow: 'scroll'}));
+  // Override the positionSubMenu function of subMenu to use RESIZE_HEIGHT, so
+  // it would resize the subMenu's menu when it's too long to fit in the
+  // viewport.
+  subMenu.positionSubMenu = function() {
+    goog.ui.SubMenu.prototype.positionSubMenu.apply(this);
+    var position = new goog.positioning.AnchoredViewportPosition(
+        this.getElement(), goog.positioning.Corner.TOP_END, true);
+    /** @suppress {accessControls} */
+    position.adjustCorner = function(status, corner) {
+      if (status & goog.positioning.OverflowStatus.FAILED_HORIZONTAL) {
+        corner = goog.positioning.flipCornerHorizontal(corner);
+      }
+      // Prefer to anchor to bottom corner, since it works better with
+      // RESIZE_HEIGHT when there's little space downward.
+      if (status & goog.positioning.OverflowStatus.FAILED_VERTICAL &&
+          !(corner & goog.positioning.CornerBit.BOTTOM)) {
+        corner = goog.positioning.flipCornerVertical(corner);
+      }
+      return corner;
+    };
+    position.setLastResortOverflow(
+        goog.positioning.Overflow.ADJUST_X |
+        goog.positioning.Overflow.ADJUST_Y |
+        goog.positioning.Overflow.RESIZE_HEIGHT);
+    position.reposition(
+        this.getMenu().getElement(), goog.positioning.Corner.TOP_START);
+  }.bind(subMenu);
+  return subMenu;
+};
+
+/**
  * Returns a "View logs" submenu for a given test path.
  * @param {string} path
  * @return {!goog.ui.SubMenu}
  */
 cros.factory.Goofy.prototype.createViewLogMenu = function(path) {
-  var subMenu = new goog.ui.SubMenu('View logs');
+  var subMenu = this.createScrollableSubMenu('View logs');
   var loadingItem = new goog.ui.MenuItem('Loading...');
   loadingItem.setEnabled(false);
   subMenu.addItem(loadingItem);
