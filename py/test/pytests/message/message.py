@@ -4,8 +4,50 @@
 
 """Displays a message.
 
-The operator can press the space or enter key to proceed.
-It can also be automatically proceed if we specify argument 'seconds'.
+Description
+-----------
+This test displays a HTML message to the operator, and wait for the operator
+pressing space key to pass the test.
+
+If ``manual_check`` is True, the operator can also press escape key to fail the
+test.
+
+If ``seconds`` is given, the test would pass automatically after ``seconds``
+seconds.
+
+Test Procedure
+--------------
+When started, the test will show a message and wait for operator to press space
+to pass the test, or press escape to fail the test (if ``manual_check`` is set).
+
+Dependency
+----------
+None.
+
+Examples
+--------
+To show a message, add this into test list::
+
+  OperatorTest(pytest_name='message', dargs={'html': _('Hello world!')})
+
+To show a message with some formatting, and give operator ability to fail the
+test, add this into test list::
+
+  OperatorTest(pytest_name='message', dargs={
+      'html': _('Please check if the result is <b>correct</b>.'),
+      'manual_check': True,
+      'show_press_button_hint': True,
+      'text_size': 300,
+      'text_color': 'red'
+  })
+
+To show a message for 20 seconds, and automatically pass, add this into test
+list::
+
+  OperatorTest(pytest_name='message', dargs={
+      'html': _('Waiting for something...'),
+      'seconds': 20
+  })
 """
 
 
@@ -62,7 +104,7 @@ class MessageTest(unittest.TestCase):
       Arg('text_color', str, 'color of message (in CSS)', default='black'),
       Arg('background_color', str, 'background color (in CSS)',
           default='white'),
-      Arg('seconds', int, 'duration to display message.'
+      Arg('seconds', int, 'duration to display message. '
           'Specify None to show until key press.',
           default=None, optional=True),
       Arg('manual_check', bool, 'If set to true, operator can press ESC to '
