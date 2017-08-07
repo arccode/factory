@@ -322,7 +322,7 @@ def SysfsBattery(args):
   """
   FactoryTest(
       label=_('Battery'),
-      pytest_name='sysfs_battery')
+      pytest_name='battery_sysfs')
 
 
 def SMT3G(args, retries=None):

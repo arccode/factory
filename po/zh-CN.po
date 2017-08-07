@@ -77,6 +77,10 @@ msgid "Battery Cycle"
 msgstr "电池充放电"
 
 #: ../build/pytests_label_generated.json
+msgid "Battery Sysfs"
+msgstr "Sysfs 电池"
+
+#: ../build/pytests_label_generated.json
 msgid "BFT Fixture"
 msgstr "BFT 治具"
 
@@ -472,10 +476,6 @@ msgstr "同步工厂伺服器"
 #: ../build/pytests_label_generated.json
 msgid "Sync Time"
 msgstr "同步时间"
-
-#: ../build/pytests_label_generated.json
-msgid "Sysfs Battery"
-msgstr "Sysfs 电池"
 
 #: ../build/pytests_label_generated.json
 msgid "Tablet Mode"
@@ -1542,6 +1542,10 @@ msgstr "放电"
 #: ../py/test/pytests/battery_current.py
 msgid "Insert power to {prompt}({voltage}mV)"
 msgstr "请将电源线插入{prompt}({voltage}mV)"
+
+#: ../py/test/pytests/battery_sysfs.py
+msgid "Battery Self-diagnosis"
+msgstr "电池自我诊断"
 
 #: ../py/test/pytests/blocking_charge.py ../py/test/pytests/charger.py
 msgid "Charging"
@@ -2909,10 +2913,6 @@ msgstr "<span style=\"color: green\">完成任务: {label}</span>"
 #: ../py/test/pytests/sync_factory_server.py
 msgid "Failed in task <b>{label}</b>.<br>Retry in {time_left} seconds..."
 msgstr "任务失败 <b>{label}</b>。<br>将在 {time_left} 秒后重试..."
-
-#: ../py/test/pytests/sysfs_battery.py
-msgid "Battery Self-diagnosis"
-msgstr "电池自我诊断"
 
 #: ../py/test/pytests/tablet_mode_ui.py
 msgid "Flip the lid into tablet mode"

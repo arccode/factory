@@ -21,11 +21,11 @@ Examples
 --------
 To perform a basic battery test::
 
-  OperatorTest(pytest_name='sysfs_battery')
+  OperatorTest(pytest_name='battery_sysfs')
 
 To restrict the limitation of battery cycle count to 5::
 
-  OperatorTest(pytest_name='sysfs_battery',
+  OperatorTest(pytest_name='battery_sysfs',
                dargs={'maxmum_cycle_count': 5}
 """
 
