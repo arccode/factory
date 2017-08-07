@@ -1805,13 +1805,13 @@ cros.factory.Goofy.prototype.createViewLogMenu = function(path) {
   this.sendRpc(
       'GetTestHistory', [path],
       function(/** Array<cros.factory.HistoryMetadata> */ history) {
-        if (subMenu.getMenu().indexOfChild(loadingItem) >= 0) {
-          subMenu.getMenu().removeChild(loadingItem, true);
-        }
-
         if (!history.length) {
           loadingItem.setCaption('No logs available');
           return;
+        }
+
+        if (subMenu.getMenu().indexOfChild(loadingItem) >= 0) {
+          subMenu.getMenu().removeChild(loadingItem, true);
         }
 
         // Arrange in descending order of time (it is returned in
