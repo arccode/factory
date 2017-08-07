@@ -2,9 +2,31 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""A hardware test for checking battery existence.
+"""A hardware test for checking battery existence and its basic status.
 
-This checks the existence and status of battery in sysfs.
+Description
+-----------
+This test checks the battery existence and its status like cycle count,
+wear level, and health status.
+
+Test Procedure
+--------------
+This is an automated test without user interaction.
+
+Dependency
+----------
+Depend on the sysfs driver to read information from the battery.
+
+Examples
+--------
+To perform a basic battery test::
+
+  OperatorTest(pytest_name='sysfs_battery')
+
+To restrict the limitation of battery cycle count to 5::
+
+  OperatorTest(pytest_name='sysfs_battery',
+               dargs={'maxmum_cycle_count': 5}
 """
 
 import threading
