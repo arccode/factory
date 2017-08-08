@@ -4,15 +4,77 @@
 
 """USB type-C CC line polarity check and operation flip test w/ Plankton-Raiden.
 
-Firstly checks USB type-C cable connected direction is right by CC polarity, and
-also be able to show operation instruction for cable flipping to test another
-CC line.
+Description
+-----------
+This test flips the polarity bit of the USB type-C. Usually, the test will come
+along with other USB type-C test, for example, CC1/CC2 USB performance
+(``removable_storage.py``).
 
-For double CC cable, this test can flip CC automatically or you can set Arg
-double_cc_flip_target as 'CC1' or 'CC2' to indicate the final CC position.
-Moreover, if test scheme can guarantee double CC cable connection is not
-twisted, that is, Plankton CC1 is connected to DUT CC1, then it can set Arg
-double_cc_quick_check as True to accelerate the test.
+Automated test is unstable, you may have to retry. The Plankton-Raiden board
+guesses the polarity bit everytime ``SetDeviceEngaged()``. Then it tries to
+flip the CC polarity to the another side. We have found that we need to charge
+the DUT in order to flip, and because of the charge action, the Plankton-Raiden
+board guesses the logical polarity bit again (you can find that the polarity is
+switching between CC1 and CC2 back-and-forth) and thus the flipping is unstable.
+
+Test Procedure
+--------------
+This test can be tested manualy with the help from operator or automatically.
+
+For normal USB type-C cable, this is a manual test with the help from operator:
+
+1. Check USB type-C cable connected direction is right by CC polarity
+2. Show operation instruction for cable flipping to test another CC line.
+
+For double CC cable, this is an automated test:
+
+- This test can flip CC automatically or you can set Arg
+  ``double_cc_flip_target`` as 'CC1' or 'CC2' to indicate the final CC
+  position.
+- If test scheme can guarantee double CC cable connection is not twisted,
+  that is, Plankton CC1 is connected to DUT CC1, then it can set Arg
+  ``double_cc_quick_check`` as True to accelerate the test.
+
+Dependency
+----------
+- For manual test, you need a normal USB type-C cable to connect with
+  Plankton-Raiden board.
+- For automated test, you need a double CC cable to connection with
+  Plankton-Raiden board.
+
+Examples
+--------
+Manual test with a dummy BFTFixture by asking operator to flip the cable::
+
+  OperatorTest(
+    pytest_name='plankton_cc_flip_check',
+    dargs={
+        'usb_c_index': 0,
+        'bft_fixture': {
+            'class_name':
+                'cros.factory.test.fixture.dolphin.dolphin_bft_fixture.'
+                'DummyDolphinBFTFixture',
+            'params': {}
+        },
+        'ask_flip_operation': True,
+        'state_src_ready': 'SNK_READY',
+    })
+
+Automated test with a dolphin BFTFixture and flipping the polarity to CC1::
+
+  OperatorTest(
+    pytest_name='plankton_cc_flip_check',
+    dargs={
+        'bft_fixture': {
+            'class_name':
+                'cros.factory.test.fixture.dolphin.dolphin_bft_fixture.'
+                'DolphinBFTFixture'
+            'params': {}
+        },
+        'usb_c_index': 1,
+        'state_src_ready': 'SNK_READY',
+        'double_cc_flip_target': 'CC1'
+    })
 """
 
 import logging
