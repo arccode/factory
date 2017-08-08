@@ -152,6 +152,16 @@ KEY_COMPONENT_HAS_TOUCHSCREEN = JoinKeys(KEY_COMPONENT, 'has_touchscreen')
 KEY_HWID = 'hwid'
 KEY_FACTORY = 'factory'
 
+# default key mapping from RO_VPD to device data
+DEFAULT_RO_VPD_KEY_MAP = {
+    NAME_SERIAL_NUMBER: KEY_SERIAL_NUMBER,
+    NAME_MLB_SERIAL_NUMBER: KEY_MLB_SERIAL_NUMBER,
+}
+# default key mapping from RW_VPD to device data
+DEFAULT_RW_VPD_KEY_MAP = {
+    'factory.*': KEY_FACTORY
+}
+
 
 def _GetInstance():
   """An internal helper utility to get DEVICE_DATA from state module."""
@@ -371,3 +381,66 @@ def LoadConfig(config_name=None):
   """
   return FlattenData(
       config_utils.LoadConfig(config_name, schema_name='device_data'))
+
+
+def UpdateDeviceDataFromVPD(key_map, vpd_data):
+  """Update device data from VPD data.
+
+  Please see pytest `read_device_data_from_vpd` for more details.
+  For both `key_map` and `vpd_data`, they should be a dictionary, with at most
+  two keys: 'ro' and 'rw' (NAME_RO and NAME_RW).  key_map['ro'] and
+  key_map['rw'] should follow the format of ro_key_map and rw_key_map in
+  `read_device_data_from_vpd`.  If key_map is None, a default key_map will be
+  used.
+  """
+  if key_map is None:
+    key_map = {
+        NAME_RO: DEFAULT_RO_VPD_KEY_MAP,
+        NAME_RW: DEFAULT_RW_VPD_KEY_MAP,
+    }
+  assert isinstance(key_map, dict)
+  assert isinstance(vpd_data, dict)
+
+  def _MatchKey(rule, vpd_key):
+    expected_key = rule[0]
+    if expected_key.endswith('*'):
+      return vpd_key.startswith(expected_key[:-1])
+    else:
+      return vpd_key == expected_key
+
+  data = {}
+  for section in [NAME_RO, NAME_RW]:
+    if section in key_map:
+      vpd_section = vpd_data.get(section, {})
+      for rule in key_map[section].iteritems():
+        for vpd_key in vpd_section:
+          if _MatchKey(rule, vpd_key):
+            data_key = _DeriveDeviceDataKey(rule, vpd_key)
+            if vpd_section[vpd_key].upper() in ['TRUE', 'FALSE']:
+              data[data_key] = (vpd_section[vpd_key].upper() == 'TRUE')
+            else:
+              data[data_key] = vpd_section[vpd_key]
+  UpdateDeviceData(data)
+
+
+def _DeriveDeviceDataKey(rule, vpd_key):
+  """Derive device data key from `vpd_key` according to `rule`.
+
+  This is a helper function for UpdateDeviceDataFromVPD.
+
+  Args:
+    rule: a tuple (<VPD key>, <device data key>), for example:
+      ('serial_number', 'serials.serial_number').  If VPD key ends with '*',
+      maps all VPD starts with the prefix to device data.  For example,
+      ('foo.*', 'bar') will maps all 'foo.*' in VPD to 'bar.*' in device data.
+      That is, 'foo.region' will become 'bar.region'.
+    vpd_key: use this VPD key to derive device key.
+  """
+
+  expected_key = rule[0]
+  if not expected_key.endswith('*'):
+    return rule[1]
+  # Remove the prefix.
+  vpd_key = vpd_key[len(expected_key[:-1]):]
+  # Pre-pend new prefix.
+  return JoinKeys(rule[1], vpd_key)

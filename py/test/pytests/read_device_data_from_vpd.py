@@ -97,26 +97,6 @@ class ReadDeviceDataFromVPD(unittest.TestCase):
           optional=True, default=None),
   ]
 
-  @staticmethod
-  def _MatchKey(rule, vpd_key):
-    expected_key = rule[0]
-    if expected_key.endswith('*'):
-      return vpd_key.startswith(expected_key[:-1])
-    else:
-      return vpd_key == expected_key
-
-  @staticmethod
-  def _DeriveDeviceDataKey(rule, vpd_key):
-    expected_key = rule[0]
-    if not expected_key.endswith('*'):
-      return rule[1]
-
-    # Remove the prefix.
-    vpd_key = vpd_key[len(expected_key[:-1]):]
-
-    # Pre-pend new prefix.
-    return device_data.JoinKeys(rule[1], vpd_key)
-
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI()
@@ -133,26 +113,12 @@ class ReadDeviceDataFromVPD(unittest.TestCase):
     }
 
     if sections['ro'] is None and sections['rw'] is None:
-      sections['ro'] = {
-          device_data.NAME_SERIAL_NUMBER: device_data.KEY_SERIAL_NUMBER,
-          device_data.NAME_MLB_SERIAL_NUMBER: device_data.KEY_MLB_SERIAL_NUMBER}
-      sections['rw'] = {'factory.*': device_data.KEY_FACTORY}
+      sections['ro'] = device_data.DEFAULT_RO_VPD_KEY_MAP
+      sections['rw'] = device_data.DEFAULT_RW_VPD_KEY_MAP
 
     for name, key_map in sections.iteritems():
       self.template.SetState(_MSG_READING_VPD(name))
       if not key_map:
         continue
       vpd = getattr(self.dut.vpd, name)
-      self.UpdateDeviceData(key_map, vpd.GetAll())
-
-  def UpdateDeviceData(self, key_map, vpd_data):
-    data = {}
-    for rule in key_map.iteritems():
-      for vpd_key in vpd_data:
-        if self._MatchKey(rule, vpd_key):
-          data_key = self._DeriveDeviceDataKey(rule, vpd_key)
-          if vpd_data[vpd_key].upper() in ['TRUE', 'FALSE']:
-            data[data_key] = (vpd_data[vpd_key].upper() == 'TRUE')
-          else:
-            data[data_key] = vpd_data[vpd_key]
-    device_data.UpdateDeviceData(data)
+      device_data.UpdateDeviceDataFromVPD({name: key_map}, {name: vpd.GetAll()})

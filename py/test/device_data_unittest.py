@@ -8,7 +8,7 @@
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test.pytests import read_device_data_from_vpd as pytest
+from cros.factory.test import device_data
 from cros.factory.test import state
 
 
@@ -25,15 +25,14 @@ class ReadDeviceDataFromVPDUnittest(unittest.TestCase):
 
     result = {
         # pylint: disable=protected-access
-        key: pytest.ReadDeviceDataFromVPD._DeriveDeviceDataKey(rule, key)
+        key: device_data._DeriveDeviceDataKey(rule, key)
         for key in expected}
 
     self.assertDictEqual(expected, result)
 
   def testRunTest(self):
-    pytest.device_data.state.get_instance = (
+    device_data.state.get_instance = (
         lambda *args, **kwargs: self.state_proxy)
-    test_instance = pytest.ReadDeviceDataFromVPD()
 
     key_map = {
         'factory.device_data.*': '',
@@ -47,7 +46,7 @@ class ReadDeviceDataFromVPDUnittest(unittest.TestCase):
         'def': '456',
     }
 
-    test_instance.UpdateDeviceData(key_map, vpd_data)
+    device_data.UpdateDeviceDataFromVPD({'ro': key_map}, {'ro': vpd_data})
 
     self.assertDictEqual(
         {
@@ -55,7 +54,7 @@ class ReadDeviceDataFromVPDUnittest(unittest.TestCase):
             'b': {'c': 'foo'},
             'ABC': '123',
         },
-        pytest.device_data.GetAllDeviceData())
+        device_data.GetAllDeviceData())
 
 
 if __name__ == '__main__':

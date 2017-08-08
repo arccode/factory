@@ -327,6 +327,9 @@ class Options(object):
 
   _types['plugin_config_name'] = (type(None), str)
 
+  read_device_data_from_vpd_on_init = True
+  """Read device data from VPD in goofy.init_states()."""
+
   skipped_tests = {}
   """A list of tests that should be skipped.
   The content of ``skipped_tests`` should be::

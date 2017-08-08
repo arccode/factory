@@ -31,6 +31,7 @@ from cros.factory.goofy import test_environment
 from cros.factory.goofy.test_list_iterator import TestListIterator
 from cros.factory.goofy import updater
 from cros.factory.goofy.web_socket_manager import WebSocketManager
+from cros.factory.test import device_data
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.e2e_test.common import AutomationModePrompt
 from cros.factory.test.e2e_test.common import ParseAutomationMode
@@ -465,6 +466,17 @@ class Goofy(GoofyBase):
     if is_unexpected_shutdown:
       logging.warning("Unexpected shutdown.")
       self.dut.hooks.OnUnexpectedReboot()
+
+    if self.test_list.options.read_device_data_from_vpd_on_init:
+      vpd_data = {}
+      for section in [device_data.NAME_RO, device_data.NAME_RW]:
+        try:
+          vpd_data[section] = self.dut.vpd.boot.GetPartition(section).GetAll()
+        except Exception:
+          logging.exception('Failed to read %s_VPD, ignored...',
+                            section.upper())
+      # using None for key_map will use default key_map
+      device_data.UpdateDeviceDataFromVPD(None, vpd_data)
 
     # state_instance is initialized, we can mark skipped and waived tests now.
     self.test_list.SetSkippedAndWaivedTests()
