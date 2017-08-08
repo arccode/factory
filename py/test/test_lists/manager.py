@@ -20,6 +20,7 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import factory
+from cros.factory.test.rules import phase
 from cros.factory.test.utils import selector_utils
 from cros.factory.test import i18n
 from cros.factory.test.test_lists import test_lists
@@ -203,6 +204,78 @@ class ITestList(object):
     return ConvertToBasicType(
         {k: ResolveArg(k, v) for k, v in test_args.iteritems()})
 
+  @debug_utils.CatchException(_LOGGED_NAME)
+  def SetSkippedAndWaivedTests(self):
+    """Set skipped and waived tests according to phase and options.
+
+    Since SKIPPED status is saved in state_instance, self.state_instance must be
+    available at this moment.  This functions reads skipped_tests and
+    waived_tests options from self.options, for the format of these options,
+    please check `cros.factory.test.factory.Options`.
+    """
+    assert self.state_instance is not None
+
+    current_phase = self.options.phase
+    patterns = []
+
+    def _AddPattern(pattern, action):
+      if pattern.startswith('*'):
+        patterns.append((lambda s: s.endswith(pattern[1:]), action))
+      else:
+        patterns.append((lambda s: s == pattern, action))
+
+    def _CollectPatterns(option, action):
+      """Collect enabled patterns from test list options.
+
+      Args:
+        option: this should be `self.options.skipped_tests` or
+          `self.options.waived_tests`
+        action: the action that will be passed to _AddPattern
+      """
+
+      for key in option:
+        if key in phase.PHASE_NAMES:
+          if key != current_phase:
+            continue
+        else:  # Assume key is a run_if expression
+          if not self._EvaluateRunIf(
+              run_if=key,
+              source='test list options',
+              test_list=self,
+              test_arg_env=None,
+              default=False):
+            continue
+
+        for pattern in option[key]:
+          _AddPattern(pattern, action)
+
+    def _MarkSkipped(test):
+      """Mark a test as skipped.
+
+      The test (and its subtests) statuses will become SKIPPED if they were not
+      PASSED.  And test.run_if will become constant false.  So Goofy will always
+      skip it.
+      """
+      test.Skip(forever=True)
+
+    def _MarkWaived(test):
+      """Mark all test and its subtests as waived.
+
+      subtests should also be waived, so that subtests will become
+      FAILED_AND_WAIVED when failed.  And the status will be propagated to
+      parents (this test).
+      """
+      for subtest in test.Walk():
+        subtest.waived = True
+
+    _CollectPatterns(self.options.skipped_tests, _MarkSkipped)
+    _CollectPatterns(self.options.waived_tests, _MarkWaived)
+
+    for test_path, test in self.path_map.iteritems():
+      for match, action in patterns:
+        if match(test_path):
+          action(test)
+
   @staticmethod
   def EvaluateExpression(expression, dut, station, constants, options, locals_):
     namespace = {
@@ -229,20 +302,28 @@ class ITestList(object):
     Returns:
       True if this test should be run, otherwise False
     """
-    # To support LegacyTestList
-    if callable(test.run_if):
-      try:
-        return bool(test.run_if(test_arg_env))
-      except Exception:
-        logging.exception('Unable to evaluate run_if expression for %s',
-                          test.path)
-        # But keep going; we have no choice.  This will end up always activating
-        # the test.
-        return True
+    return ITestList._EvaluateRunIf(
+        test.run_if, test.path, test_list, test_arg_env, default=True)
 
-    if not isinstance(test.run_if, basestring):
-      # run_if is not a function, not a string, assume it's not set
-      return True
+  @staticmethod
+  def _EvaluateRunIf(run_if, source, test_list, test_arg_env, default):
+    """Real implementation of EvaluateRunIf.
+
+    If anything went wrong, `default` will be returned.
+    """
+    # To support LegacyTestList
+    if callable(run_if):
+      logging.warning('%s is using callable run_if, try to use string instead',
+                      source)
+      try:
+        return bool(run_if(test_arg_env))
+      except Exception:
+        logging.exception('Unable to evaluate run_if expression for %s', source)
+        return default
+
+    if not isinstance(run_if, basestring):
+      # run_if is not a function, not a string, just return default value
+      return default
 
     state_instance = test_list.state_instance
     namespace = {
@@ -251,11 +332,10 @@ class ITestList(object):
         'constants': selector_utils.DictSelector(value=test_list.constants),
     }
     try:
-      return bool(eval(test.run_if, namespace))  # pylint: disable=eval-used
+      return bool(eval(run_if, namespace))  # pylint: disable=eval-used
     except Exception:
-      logging.exception('Unable to evaluate run_if %r for %s',
-                        test.run_if, test.path)
-      return True
+      logging.exception('Unable to evaluate run_if %r for %s', run_if, source)
+      return default
 
   # the following properties are required by goofy
   @abc.abstractproperty

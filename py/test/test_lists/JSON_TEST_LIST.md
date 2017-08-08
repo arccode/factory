@@ -176,8 +176,8 @@ For simplicity, we provide the following syntactic sugar:
    }
    ```
 
-   The first led test will be: `LEDTest`, the second one will be: `LEDTest-2`
-   (`-2` is automatically appended to resolve path duplication).
+   The first led test will be: `LEDTest`, the second one will be: `LEDTest_2`
+   (`_2` is automatically appended to resolve path duplication).
 
 2. If the test object contains only `inherit` field, you can just write a
    string, so the previous example can be simplified to:

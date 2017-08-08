@@ -730,14 +730,22 @@ class SkippedTestTest(GoofyTest):
     options.stop_on_failure = True
     options.phase = 'PROTO'
     options.skipped_tests = {
-        'PROTO': ['skipped', '*.A']
+        'PROTO': ['skipped'],
+        'not device.has_a': ['*.A'],
+        'constants.has_a2': ['*.A_2']
     }
   """
   test_list = """
+    # To skip *.A_2
+    test_list.constants.has_a2 = True
+
     test_lists.FactoryTest(id='skipped', pytest_name='normal_test')
     with test_lists.TestGroup(id='G'):
+      # This is skipped because device.has_a is not set
       test_lists.FactoryTest(id='A', pytest_name='normal_test')
-      # *** NOTE THAT G.A_2 is not skipped ***
+      # This is skipped because constants.has_a2 is True
+      test_lists.FactoryTest(id='A', pytest_name='normal_test')
+      # This will be A_3, and it should not be skipped
       test_lists.FactoryTest(id='A', pytest_name='normal_test')
     test_lists.FactoryTest(id='normal', pytest_name='normal_test')
   """
@@ -747,16 +755,16 @@ class SkippedTestTest(GoofyTest):
     mock_pytest('normal_test', TestState.PASSED, '')
     self.mocker.ReplayAll()
 
-    for _ in range(2):
+    for _ in range(4):
       self.assertTrue(self.goofy.run_once())
       self.goofy.wait()
 
     state_instance = state.get_instance()
     self.assertEqual(
-        [TestState.SKIPPED, TestState.SKIPPED, TestState.PASSED,
-         TestState.PASSED],
+        [TestState.SKIPPED, TestState.SKIPPED, TestState.SKIPPED,
+         TestState.PASSED, TestState.PASSED],
         [state_instance.get_test_state(x).status
-         for x in ['skipped', 'G.A', 'G.A_2', 'normal']])
+         for x in ['skipped', 'G.A', 'G.A_2', 'G.A_3', 'normal']])
     self._wait()
 
 

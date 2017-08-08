@@ -179,3 +179,8 @@ Tests in teardowns can have their subtests as well.  Those tests will become
 teardown tests as well.  We assume that teardowns will never fail, if a teardown
 test fails, Goofy will ignore the failure, and continue on next teardown test.
 Therefore, for teardown tests, `action_on_failure` will always be set to `NEXT`.
+
+## Test List Options
+The `test_list.options` object will be a `cros.factory.test.factory.Options`
+instance, please refer to the class definition to know the usage of each
+options.
