@@ -12,7 +12,6 @@ import copy
 import cPickle as pickle
 import datetime
 import logging
-from optparse import OptionParser
 import os
 import pprint
 import re
@@ -49,7 +48,7 @@ from cros.factory.utils.service_utils import ServiceManager
 from cros.factory.utils.string_utils import DecodeUTF8
 from cros.factory.utils import time_utils
 
- # pylint: disable=no-name-in-module
+# pylint: disable=no-name-in-module
 from cros.factory.external.setproctitle import setproctitle
 from cros.factory.external import syslog
 
@@ -196,19 +195,17 @@ class PytestInfo(object):
     pytest_name: The name of the factory test to run.
     args: Arguments passing down to the factory test.
     results_path: The path to the result file.
-    test_case_id: The ID of the test case to run.
     automation_mode: The enabled automation mode.
     dut_options: The options to override default DUT target.
   """
 
   def __init__(self, test_list, path, pytest_name, args, results_path,
-               test_case_id=None, automation_mode=None, dut_options=None):
+               automation_mode=None, dut_options=None):
     self.test_list = test_list
     self.path = path
     self.pytest_name = pytest_name
     self.args = args
     self.results_path = results_path
-    self.test_case_id = test_case_id
     self.automation_mode = automation_mode
     self.dut_options = dut_options or {}
 
@@ -812,124 +809,29 @@ class TestInvocation(object):
       self.goofy.run_queue.put(self.on_completion)
 
 
-def _RecursiveApply(func, suite):
-  """Recursively applies a function to all the test cases in a test suite.
-
-  Args:
-    suite: A TestSuite object.
-    func: A callable object to map.
-  """
-  for test in suite:
-    if isinstance(test, unittest.TestSuite):
-      _RecursiveApply(func, test)
-    elif isinstance(test, unittest.TestCase):
-      func(test)
-    else:
-      raise ValueError('Expect only TestSuite and TestCase: %r' % type(test))
-
-
-def GetTestCases(suite):
-  """Gets the list of test case IDs in the given suite.
-
-  Args:
-    suite: A TestSuite instance.
-
-  Retuns:
-    A list of strings of test case IDs.
-  """
-  test_cases = []
-
-  def FilterTestCase(test):
-    # Filter out the test case from base Automator class.
-    if test.id() == 'cros.factory.test.e2e_test.automator.Automator.runTest':
-      return
-    test_cases.append(test.id())
-
-  _RecursiveApply(FilterTestCase, suite)
-  return test_cases
-
-
-def InvokeTestCase(suite, test_case_id, test_info):
-  """Invokes a test case in another process.
-
-  This function is called in the top level of invocation.py.  It recursively
-  searches for the given test case in the given test suite.  A new TestInfo
-  instance with new test_case_id and results_path is prepared along with a new
-  test invocation.  All the new info is passed to a subprocess which actually
-  runs the test case with RunTestCase.
-
-  Args:
-    suite: A TestSuite object.
-    test_case_id: The ID of the test case to invoke.
-    test_info: A PytestInfo object containing information about what to
-      run.
-
-  Returns:
-    The test result of the test case.
-  """
-  results = []
-
-  def _InvokeByID(test_case):
-    if test_case.id() == test_case_id:
-      logging.debug('[%s] Really invoke test case: %s',
-                    os.getpid(), test_case_id)
-      with file_utils.UnopenedTemporaryFile() as info_path, \
-          file_utils.UnopenedTemporaryFile() as results_path:
-        # Update test_info attributes for the test case.
-        new_info = copy.deepcopy(test_info)
-        new_info.test_case_id = test_case_id
-        new_info.results_path = results_path
-        with open(info_path, 'w') as f:
-          pickle.dump(new_info, f)
-
-        # Set up subprocess args.
-        this_file = os.path.realpath(__file__)
-        this_file = re.sub(r'\.pyc$', '.py', this_file)
-        args = [this_file, '--pytest', info_path]
-
-        process = process_utils.Spawn(args)
-        process.wait()
-        with open(results_path) as f:
-          results.append(pickle.load(f))
-
-  _RecursiveApply(_InvokeByID, suite)
-  assert len(results) == 1, 'Should have exactly one test result'
-  return results[0]
-
-
-def RunTestCase(suite, test_case_id):
+def RunTestCase(test_case):
   """Runs the given test case.
 
-  This is the actual test case runner.  It recursively searches for the given
-  test case in the given test suite, runs the test case if found, and returns
-  the test results.
+  This is the actual test case runner.  It runs the test case and returns the
+  test results.
 
   Args:
-    suite: A TestSuite object.
-    test_case_id: The ID of the test case to run.
+    test_case: The test case to run.
 
   Returns:
     The test result of the test case.
   """
-  results = []
-
-  def _RunByID(test_case):
-    if test_case.id() == test_case_id:
-      logging.debug('[%s] Really run test case: %s', os.getpid(),
-                    test_case.id())
-      # We need a new invocation uuid here to have a new UI context for each
-      # test case subprocess.
-      # The parent uuid is stored in CROS_FACTORY_TEST_PARENT_INVOCATION env
-      # variable, and we can properly clean up all associated invocations at
-      # test frontend using the parent invocation uuid.
-      os.environ['CROS_FACTORY_TEST_INVOCATION'] = time_utils.TimedUUID()
-      result = unittest.TestResult()
-      test_case.run(result)
-      results.append(result)
-
-  _RecursiveApply(_RunByID, suite)
-  assert len(results) == 1, 'Should have exactly one test result'
-  return results[0]
+  logging.debug('[%s] Really run test case: %s', os.getpid(),
+                test_case.id())
+  # We need a new invocation uuid here to have a new UI context for each
+  # test case subprocess.
+  # The parent uuid is stored in CROS_FACTORY_TEST_PARENT_INVOCATION env
+  # variable, and we can properly clean up all associated invocations at
+  # test frontend using the parent invocation uuid.
+  os.environ['CROS_FACTORY_TEST_INVOCATION'] = time_utils.TimedUUID()
+  result = unittest.TestResult()
+  test_case.run(result)
+  return result
 
 
 def RunPytest(test_info):
@@ -941,9 +843,6 @@ def RunPytest(test_info):
       run.
   """
   try:
-    module = LoadPytestModule(test_info.pytest_name)
-    suite = unittest.TestLoader().loadTestsFromModule(module)
-
     # Register a handler for SIGTERM, so that Python interpreter has
     # a chance to do clean up procedures when SIGTERM is received.
     def _SIGTERMHandler(signum, frame):  # pylint: disable=unused-argument
@@ -952,83 +851,66 @@ def RunPytest(test_info):
 
     signal.signal(signal.SIGTERM, _SIGTERMHandler)
 
-    test_cases = GetTestCases(suite)
-    # For factory tests where there is only one test case, do not spawn a new
-    # process so that we can reduce latency.
-    if len(test_cases) == 1:
-      test_info.test_case_id = test_cases[0]
+    module = LoadPytestModule(test_info.pytest_name)
+    suite = unittest.TestLoader().loadTestsFromModule(module)
 
-    error_msg = ''
-    if test_info.test_case_id is None:
-      # Top-level test suite: Invoke each TestCase in a separate subprocess.
-      results = []
-      for test in test_cases:
-        logging.debug('[%s] Invoke test case: %s', os.getpid(), test)
-        results.append(InvokeTestCase(suite, test, test_info))
+    # An example of the TestSuite returned by loadTestsFromModule:
+    #   TestSuite
+    #   - TestSuite (class XXXTest(unittest.TestCase))
+    #     - TestCase (XXXTest.runTest)
+    #   - TestSuite (class YYYTest(unittest.TestCase))
+    #     - TestCase (YYYTest.testAAA)
+    #     - TestCase (YYYTest.testBBB)
+    # The countTestCases() would return 3 in this example.
 
-      # The results will be a list of tuples (status, error_msg) for each
-      # test case.
-      error_msgs = []
-      for status, msg in results:
-        if status == TestState.PASSED:
-          continue
-        error_msgs.append(msg)
+    # To simplify things, we only allow one TestCase per pytest.
+    if suite.countTestCases() != 1:
+      raise factory.FactoryTestFailure(
+          'Only one TestCase per pytest is supported. Use factory_task '
+          'if multiple tasks need to be done in a single pytest.')
 
-      if error_msgs:
-        error_msg = '; '.join(error_msgs)
-    else:
-      # Invoked by InvokeTestCase or for factory tests which have only one test
-      # case: Run the specified TestCase.
-      logging.debug('[%s] Start test case: %s',
-                    os.getpid(), test_info.test_case_id)
+    # The first sub-TestCase in the first sub-TestSuite of suite is the target.
+    test = next(iter(next(iter(suite))))
 
-      # Recursively set
-      def SetTestInfo(test):
-        if isinstance(test, unittest.TestCase):
-          test.test_info = test_info
-          if test_info.dut_options:
-            os.environ.update({
-                device_utils.ENV_DUT_OPTIONS: str(test_info.dut_options)})
-          arg_spec = getattr(test, 'ARGS', None)
-          if arg_spec:
-            try:
-              setattr(test, 'args', Args(*arg_spec).Parse(test_info.args))
-            except ValueError as e:
-              # Do not raise exceptions for E2ETest, as 'dargs' is optional
-              # to it.
-              from cros.factory.test.e2e_test import e2e_test
-              if (re.match(r'^Required argument .* not specified$', str(e)) and
-                  isinstance(test, e2e_test.E2ETest)):
-                pass
-              else:
-                raise e
-        elif isinstance(test, unittest.TestSuite):
-          for x in test:
-            SetTestInfo(x)
-      SetTestInfo(suite)
+    logging.debug('[%s] Start test case: %s', os.getpid(), test.id())
 
-      result = RunTestCase(suite, test_info.test_case_id)
+    test.test_info = test_info
+    if test_info.dut_options:
+      os.environ.update({
+          device_utils.ENV_DUT_OPTIONS: str(test_info.dut_options)})
+    arg_spec = getattr(test, 'ARGS', None)
+    if arg_spec:
+      try:
+        setattr(test, 'args', Args(*arg_spec).Parse(test_info.args))
+      except ValueError as e:
+        # Do not raise exceptions for E2ETest, as 'dargs' is optional
+        # to it.
+        from cros.factory.test.e2e_test import e2e_test
+        if (re.match(r'^Required argument .* not specified$', str(e)) and
+            isinstance(test, e2e_test.E2ETest)):
+          pass
+        else:
+          raise e
 
-      def FormatErrorMessage(trace):
-        """Formats a trace so that the actual error message is in the last
-        line.
-        """
-        # The actual error is in the last line.
-        trace, _, error_msg = trace.strip().rpartition('\n')
-        error_msg = error_msg.replace('FactoryTestFailure: ', '')
-        return error_msg + '\n' + trace
+    result = RunTestCase(test)
 
-      all_failures = result.failures + result.errors + test_ui.exception_list
-      if all_failures:
-        error_msg = '\n'.join(FormatErrorMessage(trace)
-                              for test_name, trace in all_failures)
+    def FormatErrorMessage(trace):
+      """Formats a trace so that the actual error message is in the last line.
+      """
+      # The actual error is in the last line.
+      trace, _, error_msg = trace.strip().rpartition('\n')
+      error_msg = error_msg.replace('FactoryTestFailure: ', '')
+      return error_msg + '\n' + trace
 
-    if error_msg:
+    all_failures = result.failures + result.errors + test_ui.exception_list
+    if all_failures:
       status = TestState.FAILED
-      if test_info.test_case_id:
-        logging.info('pytest failure: %s', error_msg)
+      error_msg = '\n'.join(FormatErrorMessage(trace)
+                            for test_name, trace in all_failures)
+      logging.info('pytest failure: %s', error_msg)
     else:
       status = TestState.PASSED
+      error_msg = ''
   except Exception:
     logging.exception('Unable to run pytest')
     status = TestState.FAILED
@@ -1039,26 +921,12 @@ def RunPytest(test_info):
 
 
 def main():
-  parser = OptionParser()
-  parser.add_option('--pytest', dest='pytest_info',
-                    help='Info for pytest to run')
-  parser.add_option('--prespawn-pytest', dest='prespawn_pytest',
-                    action='store_true', default=False,
-                    help='Prespawn pytest process. '
-                    'Read info and env from stdin.')
-  (options, unused_args) = parser.parse_args()
-
-  assert options.pytest_info or options.prespawn_pytest
-
   test_ui.exception_list = []
 
-  if options.prespawn_pytest:
-    env, info = pickle.load(sys.stdin)
-    if not env:
-      sys.exit(0)
-    os.environ.update(env)
-  else:
-    info = pickle.load(open(options.pytest_info))
+  env, info = pickle.load(sys.stdin)
+  if not env:
+    sys.exit(0)
+  os.environ.update(env)
 
   factory.init_logging(info.path)
   if testlog.TESTLOG_ENV_VARIABLE_NAME in os.environ:
