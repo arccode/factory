@@ -378,10 +378,11 @@ def KillProcessTree(process, caption):
   for sig in [signal.SIGTERM, signal.SIGKILL]:
     logging.info('Stopping %s (pid=%s)...', caption, sorted(pids))
 
-    for _ in range(25):  # Try 25 times (200 ms between tries)
+    tries = 25
+    logging.info('Sending signal %s to %r (tries at most %d)', sig, pids, tries)
+    for _ in range(tries):  # 200 ms between tries
       for pid in pids:
         try:
-          logging.info('Sending signal %s to %d', sig, pid)
           os.kill(pid, sig)
         except OSError:
           pass
@@ -390,7 +391,7 @@ def KillProcessTree(process, caption):
         return
       time.sleep(0.2)  # Sleep 200 ms and try again
 
-  logging.warn('Failed to stop %s process. Ignoring.', caption)
+  logging.warn('Failed to stop %s process %r. Ignoring.', caption, pids)
 
 
 def WaitEvent(event):
@@ -412,8 +413,9 @@ def WaitEvent(event):
 def SpawnTee(args, **kwargs):
   """Spawns a process and emulates tee.
 
-  Starts a process with Spawn, redirect_streams stderr of the process to its stdout,
-  and writes stdout of the process to both sys.stdout and the specified file.
+  Starts a process with Spawn, redirect_streams stderr of the process to its
+  stdout, and writes stdout of the process to both sys.stdout and the specified
+  file.
 
   Args:
     args: Same as Spawn.
