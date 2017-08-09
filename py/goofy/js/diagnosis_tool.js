@@ -281,29 +281,21 @@ cros.factory.DiagnosisTool.prototype.sendRpc = function(
  */
 cros.factory.DiagnosisTool.prototype.initWindow = function() {
   // Setup main window.
-  this.mainWindow_ = new goog.ui.Dialog();
-  this.mainWindow_.setModal(false);
-  this.mainWindow_.setTitle('Diagnosis Tool');
-  this.mainWindow_.createDom();
-  var viewportSize =
-      goog.dom.getViewportSize(goog.dom.getWindow(document) || window);
-  var width = viewportSize.width * cros.factory.MAX_DIALOG_SIZE_FRACTION;
-  var height = viewportSize.height * cros.factory.MAX_DIALOG_SIZE_FRACTION;
-  goog.style.setBorderBoxSize(
-      this.mainWindow_.getContentElement(), new goog.math.Size(width, height));
+  this.mainWindow_ =
+      this.goofy.createSimpleDialog('Diagnosis Tool', goog.html.SafeHtml.EMPTY);
   goog.dom.setProperties(
       this.mainWindow_.getElement(),
       {'id': cros.factory.DiagnosisTool.MAIN_WINDOW_ID});
   this.mainWindow_.setButtonSet(null);
-  this.goofy.registerDialog(this.mainWindow_);
   this.mainWindow_.setDisposeOnHide(false);
   // Split the window into left/right pane.
   var horizontalSplitpane = new goog.ui.SplitPane(
       this.initWindowMenu(), new goog.ui.Component(),
       goog.ui.SplitPane.Orientation.HORIZONTAL);
-  var leftWidth = width * cros.factory.DiagnosisTool.FUNC_MENU_WIDTH_FACTOR;
-  horizontalSplitpane.setInitialSize(leftWidth);
   this.mainWindow_.setVisible(true);  // Let the SplitPane know how large it is.
+  var leftWidth = this.mainWindow_.getElement().offsetWidth *
+      cros.factory.DiagnosisTool.FUNC_MENU_WIDTH_FACTOR;
+  horizontalSplitpane.setInitialSize(leftWidth);
   this.mainWindow_.addChild(horizontalSplitpane, true);
   var rightPart = this.initWindowRightPart();
   horizontalSplitpane.getChildAt(1).addChild(rightPart, true);
@@ -338,10 +330,8 @@ cros.factory.DiagnosisTool.prototype.initWindowRightPart = function() {
   var verticalSplitpane = new goog.ui.SplitPane(
       this.initWindowRightUpperPart(), this.initWindowRightLowerPart(),
       goog.ui.SplitPane.Orientation.VERTICAL);
-  var viewportSize =
-      goog.dom.getViewportSize(goog.dom.getWindow(document) || window);
-  var height = viewportSize.height * cros.factory.MAX_DIALOG_SIZE_FRACTION;
-  var upSize = height * (1 - cros.factory.DiagnosisTool.OUTPUT_HEIGHT_FACTOR);
+  var upSize = this.mainWindow_.getElement().offsetHeight *
+      (1 - cros.factory.DiagnosisTool.OUTPUT_HEIGHT_FACTOR);
   verticalSplitpane.setInitialSize(upSize);
   return verticalSplitpane;
 };

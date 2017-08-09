@@ -91,12 +91,6 @@ cros.factory.LOG_PANE_HEIGHT_FRACTION = 0.2;
 cros.factory.LOG_PANE_MIN_HEIGHT = 170;
 
 /**
- * Maximum size of a dialog (width or height) as a fraction of viewport size.
- * @type {number}
- */
-cros.factory.MAX_DIALOG_SIZE_FRACTION = 0.75;
-
-/**
  * Hover delay for a non-failing test.
  * @type {number}
  */
@@ -495,7 +489,7 @@ cros.factory.CriticalNoteDisplay = function(goofy, notes) {
   innerDiv.appendChild(titleDiv);
 
   var noteDiv = goog.dom.createDom('div', 'goofy-fullnote-note');
-  noteDiv.innerHTML = this.goofy.getNotesView();
+  goog.dom.safe.setInnerHtml(noteDiv, this.goofy.getNotesView());
   innerDiv.appendChild(noteDiv);
 };
 
@@ -1261,24 +1255,8 @@ cros.factory.Goofy.prototype.viewNotes = function() {
   if (!this.notes)
     return;
 
-  var dialog = new goog.ui.Dialog();
-  this.registerDialog(dialog);
-  dialog.setModal(false);
-
-  var viewSize =
-      goog.dom.getViewportSize(goog.dom.getWindow(document) || window);
-  var maxWidth = viewSize.width * cros.factory.MAX_DIALOG_SIZE_FRACTION;
-  var maxHeight = viewSize.height * cros.factory.MAX_DIALOG_SIZE_FRACTION;
-
-  dialog.setTitle('Factory Notes');
-  var style = goog.html.SafeStyle.create(
-      {'max-width': maxWidth.toString(), 'max-height': maxHeight.toString()});
-  cros.factory.Goofy.setDialogContent(
-      dialog, goog.html.SafeHtml.create(
-                  'div', {class: 'goofy-note-container', style: style},
-                  this.getNotesView()));
-  dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
-  dialog.setVisible(true);
+  this.createSimpleDialog('Factory Notes', this.getNotesView())
+      .setVisible(true);
 };
 
 /**
@@ -1313,24 +1291,40 @@ cros.factory.Goofy.prototype.registerDialog = function(dialog) {
 };
 
 /**
+ * Creates a simple dialog with an ok button.
+ * @param {string|!goog.html.SafeHtml} title
+ * @param {string|cros.factory.i18n.TranslationDict|!goog.html.SafeHtml} content
+ * @return {!goog.ui.Dialog}
+ */
+cros.factory.Goofy.prototype.createSimpleDialog = function(title, content) {
+  var dialog = new goog.ui.Dialog();
+  this.registerDialog(dialog);
+
+  dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
+  dialog.setModal(false);
+
+  cros.factory.Goofy.setDialogTitle(dialog, title);
+  var /** goog.html.SafeHtml */ html;
+  if (content instanceof goog.html.SafeHtml) {
+    html = content;
+  } else {
+    html = cros.factory.i18n.i18nLabel(content);
+  }
+  cros.factory.Goofy.setDialogContent(dialog, html);
+
+  goog.dom.classlist.add(dialog.getElement(), 'goofy-dialog');
+  dialog.reposition();
+  return dialog;
+};
+
+/**
  * Displays an alert.
  * @param {string|cros.factory.i18n.TranslationDict|!goog.html.SafeHtml} message
  */
 cros.factory.Goofy.prototype.alert = function(message) {
-  var dialog = new goog.ui.Dialog();
-  this.registerDialog(dialog);
-  dialog.setTitle('Alert');
-  dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
-  var /** goog.html.SafeHtml */ html;
-  if (message instanceof goog.html.SafeHtml) {
-    html = message;
-  } else {
-    html = cros.factory.i18n.i18nLabel(message);
-  }
-  cros.factory.Goofy.setDialogContent(dialog, html);
+  var dialog = this.createSimpleDialog('Alert', message);
+  dialog.setModal(true);
   dialog.setVisible(true);
-  goog.dom.classlist.add(dialog.getElement(), 'goofy-alert');
-  dialog.reposition();
 };
 
 /**
@@ -1879,27 +1873,14 @@ cros.factory.Goofy.prototype.createViewLogMenu = function(path) {
  * @param {string} data text to show in the dialog.
  */
 cros.factory.Goofy.prototype.showLogDialog = function(title, data) {
-  var dialog = new goog.ui.Dialog();
-  this.registerDialog(dialog);
-  dialog.setModal(false);
+  var content = goog.html.SafeHtml.concat(
+      goog.html.SafeHtml.create(
+          'div', {class: 'goofy-log-data'},
+          cros.factory.i18n.i18nLabel(data)),
+      goog.html.SafeHtml.create('div', {class: 'goofy-log-time'}));
 
-  var viewSize =
-      goog.dom.getViewportSize(goog.dom.getWindow(document) || window);
-  var maxWidth = viewSize.width * cros.factory.MAX_DIALOG_SIZE_FRACTION;
-  var maxHeight = viewSize.height * cros.factory.MAX_DIALOG_SIZE_FRACTION;
-
-  var style = goog.html.SafeStyle.create(
-      {'max-width': maxWidth.toString(), 'max-height': maxHeight.toString()});
-  cros.factory.Goofy.setDialogContent(
-      dialog, goog.html.SafeHtml.concat(
-                  goog.html.SafeHtml.create(
-                      'div', {class: 'goofy-log-data', style: style},
-                      cros.factory.i18n.i18nLabel(data)),
-                  goog.html.SafeHtml.create('div', {class: 'goofy-log-time'})));
-  dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
-  dialog.setVisible(true);
-  cros.factory.Goofy.setDialogTitle(
-    dialog, cros.factory.i18n.i18nLabel(title));
+  var dialog =
+      this.createSimpleDialog(cros.factory.i18n.i18nLabel(title), content);
 
   var logDataElement =
       goog.dom.getElementByClass('goofy-log-data', dialog.getContentElement());
@@ -1923,6 +1904,7 @@ cros.factory.Goofy.prototype.showLogDialog = function(title, data) {
   goog.events.listen(dialog, goog.ui.Component.EventType.HIDE, function(event) {
     timer.dispose();
   });
+  dialog.setVisible(true);
 };
 
 
@@ -1949,22 +1931,6 @@ cros.factory.Goofy.prototype.addNote = function(name, note, level) {
  * Displays a dialog to modify factory note.
  */
 cros.factory.Goofy.prototype.showNoteDialog = function() {
-  var dialog = new goog.ui.Dialog();
-  this.registerDialog(dialog);
-  dialog.setModal(true);
-  this.noteDialog = dialog;
-
-  var viewSize =
-      goog.dom.getViewportSize(goog.dom.getWindow(document) || window);
-  var maxWidth = viewSize.width * cros.factory.MAX_DIALOG_SIZE_FRACTION;
-  var maxHeight = viewSize.height * cros.factory.MAX_DIALOG_SIZE_FRACTION;
-
-  var style = goog.html.SafeStyle.create(
-      {'max-width': maxWidth.toString(), 'max-height': maxHeight.toString()});
-
-  var widthStyle =
-      goog.html.SafeStyle.create({'max-width': maxWidth.toString()});
-
   var rows = [];
   rows.push(goog.html.SafeHtml.create('tr', {}, [
     goog.html.SafeHtml.create(
@@ -1972,14 +1938,14 @@ cros.factory.Goofy.prototype.showNoteDialog = function() {
     goog.html.SafeHtml.create(
         'td', {},
         goog.html.SafeHtml.create(
-            'input', {id: 'goofy-addnote-name', style: widthStyle}))
+            'input', {id: 'goofy-addnote-name'}))
   ]));
   rows.push(goog.html.SafeHtml.create('tr', {}, [
     goog.html.SafeHtml.create(
         'th', {}, cros.factory.i18n.i18nLabel('Note Content')),
     goog.html.SafeHtml.create(
         'td', {}, goog.html.SafeHtml.create(
-                      'textarea', {id: 'goofy-addnote-text', style: style}))
+                      'textarea', {id: 'goofy-addnote-text'}))
   ]));
 
   var options = [];
@@ -1999,12 +1965,12 @@ cros.factory.Goofy.prototype.showNoteDialog = function() {
 
   var table =
       goog.html.SafeHtml.create('table', {class: 'goofy-addnote-table'}, rows);
-  cros.factory.Goofy.setDialogContent(dialog, table);
   var buttons = goog.ui.Dialog.ButtonSet.createOkCancel();
+
+  var dialog =
+      this.createSimpleDialog(cros.factory.i18n.i18nLabel('Add Note'), table);
+  dialog.setModal(true);
   dialog.setButtonSet(buttons);
-  dialog.setVisible(true);
-  cros.factory.Goofy.setDialogTitle(
-      dialog, cros.factory.i18n.i18nLabel('Add Note'));
 
   var nameBox = /** @type {HTMLInputElement} */ (
       document.getElementById('goofy-addnote-name'));
@@ -2021,6 +1987,7 @@ cros.factory.Goofy.prototype.showNoteDialog = function() {
         }
       },
       false, this);
+  dialog.setVisible(true);
 };
 
 /**
@@ -2298,11 +2265,6 @@ cros.factory.Goofy.prototype.showHistoryEntry = function(path, invocation) {
   this.sendRpc(
       'GetTestHistoryEntry', [path, invocation],
       function(/** cros.factory.HistoryEntry */ entry) {
-        var viewSize =
-            goog.dom.getViewportSize(goog.dom.getWindow(document) || window);
-        var maxWidth = viewSize.width * cros.factory.MAX_DIALOG_SIZE_FRACTION;
-        var maxHeight = viewSize.height * cros.factory.MAX_DIALOG_SIZE_FRACTION;
-
         var metadataRows = [];
         goog.array.forEach(
             /** @type {Array<Array<string>>} */ ([
@@ -2352,18 +2314,10 @@ cros.factory.Goofy.prototype.showHistoryEntry = function(path, invocation) {
         var metadataTable = goog.html.SafeHtml.create(
             'table', {class: 'goofy-history-metadata'}, metadataRows);
 
-        var dialog = new goog.ui.Dialog();
-        this.registerDialog(dialog);
-        dialog.setTitle(
-            entry.metadata.path + ' (invocation ' + entry.metadata.invocation +
-            ')');
-        dialog.setModal(false);
-        var style = goog.html.SafeStyle.create(
-            {'max-width': maxWidth, 'max-height': maxHeight});
-        cros.factory.Goofy.setDialogContent(
-            dialog,
-            goog.html.SafeHtml.concat(goog.html.SafeHtml.create(
-                'div', {class: 'goofy-history', style: style}, [
+        var title = entry.metadata.path + ' (invocation ' +
+            entry.metadata.invocation + ')';
+        var content = goog.html.SafeHtml.concat(goog.html.SafeHtml.create(
+                'div', {class: 'goofy-history'}, [
                   goog.html.SafeHtml.create(
                       'div', {class: 'goofy-history-header'}, 'Test Info'),
                   metadataTable,
@@ -2371,9 +2325,8 @@ cros.factory.Goofy.prototype.showHistoryEntry = function(path, invocation) {
                       'div', {class: 'goofy-history-header'}, 'Log'),
                   goog.html.SafeHtml.create(
                       'div', {class: 'goofy-history-log'}, entry.log)
-                ])));
-        dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
-        dialog.setVisible(true);
+                ]));
+        this.createSimpleDialog(title, content).setVisible(true);
       });
 };
 

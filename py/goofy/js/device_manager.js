@@ -279,31 +279,18 @@ cros.factory.DeviceManager.prototype.getDeviceData = function() {
  * Creates a new dialog to display the device manager.
  */
 cros.factory.DeviceManager.prototype.showWindow = function() {
-
-  var dialog = new goog.ui.Dialog();
-  this.goofy.registerDialog(dialog);
-  dialog.setModal(false);
-
-  var viewSize =
-      goog.dom.getViewportSize(goog.dom.getWindow(document) || window);
-  var maxWidth = viewSize.width * cros.factory.MAX_DIALOG_SIZE_FRACTION;
-  var maxHeight = viewSize.height * cros.factory.MAX_DIALOG_SIZE_FRACTION;
-  var style = {'width': maxWidth.toString(), 'height': maxHeight.toString()};
-
-  dialog.setSafeHtmlContent(goog.html.SafeHtml.create(
-      'div', {'class': 'goofy-log-data', 'style': style}, [
+  var content = goog.html.SafeHtml.create(
+      'div', {}, [
         goog.html.SafeHtml.create('div', {'id': 'goofy-device-data-area'}),
         goog.html.SafeHtml.create(
             'div', {'id': 'goofy-device-list-area'},
             goog.html.SafeHtml.create('table', {'id': 'tree-menu-area'})),
         goog.html.SafeHtml.create(
             'div', {'id': 'goofy-device-manager-refresh'})
-      ]));
-
-  dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
+      ]);
+  var dialog = this.goofy.createSimpleDialog('Device Manager', content);
+  goog.dom.classlist.add(dialog.getElement(), 'goofy-device-manager');
   dialog.setVisible(true);
-  goog.dom.getElementByClass('modal-dialog-title-text', dialog.getElement())
-      .innerHTML = 'Device Manager';
 
   var refreshButton = new goog.ui.Button(
       [

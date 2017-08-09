@@ -315,9 +315,6 @@ h1 {
   font-weight: bold;
   font-size: 125%:
 }
-.goofy-history, .goofy-log-data {
-  overflow: auto;
-}
 .goofy-history table {
   border-spacing: 0;
 }
@@ -331,9 +328,13 @@ table + .goofy-history-header {
 .goofy-history th {
   padding-right: 1em;
 }
-.goofy-history-metadata, .goofy-history-log, .goofy-log-data {
+.goofy-history-metadata, .goofy-history-log, .goofy-log-data,
+.goofy-device-manager {
   white-space: pre;
   font-size: 75%;
+}
+.goofy-log-data {
+  overflow: auto;
 }
 .goofy-log-time {
   font-size: 75%;
@@ -359,9 +360,6 @@ table + .goofy-history-header {
 #goofy-note-list {
   margin-left: auto;
   margin-right: auto;
-}
-.goofy-note-container {
-  overflow: auto;
 }
 .goofy-addnote-table th {
   vertical-align: middle;
@@ -485,14 +483,17 @@ table + .goofy-history-header {
 .modal-dialog-buttons button {
   margin: 0 .5em;
 }
-.goofy-alert {
-  max-width: 75%;
-  max-height: 75%;
+.goofy-dialog {
+  max-width: 85vw;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
 }
-.goofy-alert .modal-dialog-content {
-  overflow: scroll;
+.goofy-dialog .modal-dialog-content {
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  flex-grow: 1;
 }
 
 /* Overrides for Closure components. */
@@ -611,7 +612,14 @@ button {
   display: inline-block;
 }
 
-.goofy-log-data #goofy-device-data-area {
+.goofy-device-manager {
+  width: 85vw;
+  height: 85vh;
+}
+
+/* TODO(pihsun): Change this to not use position: absolute, so we don't need
+ * to set size for .goofy-device-manager. */
+.goofy-device-manager #goofy-device-data-area {
   width: 60%;
   height: 80%;
   overflow: scroll;
@@ -621,45 +629,45 @@ button {
   display: inline-block;
 }
 
-.goofy-log-data #goofy-device-data-area .device-name {
+.goofy-device-manager #goofy-device-data-area .device-name {
   font-size: 240%;
   font-weight: bold;
   padding: 5px;
 }
 
-.goofy-log-data #goofy-device-data-area .device-manager-loading {
+.goofy-device-manager #goofy-device-data-area .device-manager-loading {
   font-size: 200%;
   line-height: 50px;
 }
 
-.goofy-log-data #goofy-device-data-area ul li{
+.goofy-device-manager #goofy-device-data-area ul li{
   line-height: 180%;
   position: relative;
   left: 5px;
 }
 
-.goofy-log-data #goofy-device-data-area table {
+.goofy-device-manager #goofy-device-data-area table {
   border-spacing: 5px;
 }
 
-.goofy-log-data #goofy-device-data-area table tr td {
+.goofy-device-manager #goofy-device-data-area table tr td {
   font-size: 100%;
   padding: 1px;
 }
 
-.goofy-log-data #goofy-device-data-area .two-column-table tr td:first-child {
+.goofy-device-manager #goofy-device-data-area .two-column-table tr td:first-child {
   font-weight: bold;
 }
 
-.goofy-log-data #goofy-device-data-area .multi-column-table tr td {
+.goofy-device-manager #goofy-device-data-area .multi-column-table tr td {
   background-color: #f4f4f4;
 }
 
-.goofy-log-data #goofy-device-data-area .multi-column-table tr th {
+.goofy-device-manager #goofy-device-data-area .multi-column-table tr th {
   font-weight: bold;
 }
 
-.goofy-log-data #goofy-device-list-area {
+.goofy-device-manager #goofy-device-list-area {
   width: 35%;
   height: 80%;
   overflow: scroll;
@@ -667,18 +675,18 @@ button {
   top: 9%;
 }
 
-.goofy-log-data #goofy-device-list-area table tr:hover {
+.goofy-device-manager #goofy-device-list-area table tr:hover {
   background-color: #f4f4f4;
 }
 
-.goofy-log-data .toggle {
+.goofy-device-manager .toggle {
   cursor: pointer;
   cursor: hand;
   background-repeat: none;
   background-position: right;
 }
 
-.goofy-log-data tr.goog-drilldown-expanded .toggle {
+.goofy-device-manager tr.goog-drilldown-expanded .toggle {
   background-image: url('/images/dropdown.png');
   background-position: center;
   background-repeat: no-repeat;
@@ -686,7 +694,7 @@ button {
   padding: 2px;
 }
 
-.goofy-log-data tr.goog-drilldown-collapsed .toggle {
+.goofy-device-manager tr.goog-drilldown-collapsed .toggle {
   background-image: url('/images/dropright.png');
   background-position: center;
   background-repeat: no-repeat;
@@ -694,7 +702,7 @@ button {
   padding: 2px;
 }
 
-.goofy-log-data .goog-flat-button {
+.goofy-device-manager .goog-flat-button {
   color: black;
   cursor: pointer;
 }

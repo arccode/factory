@@ -4,6 +4,11 @@
  * found in the LICENSE file.
  */
 
+#diagnosis-tool {
+  width: 85vw;
+  height: 85vh;
+}
+
 #diagnosis-tool .modal-dialog-content {
   background-color: #fff;
   padding: 8px;
