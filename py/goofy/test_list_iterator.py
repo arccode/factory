@@ -391,9 +391,8 @@ class TestListIterator(object):
       # status filter only applies to leaf tests
       if (self._IsRunnableTest(test) and
           not self.CheckStatusFilter(test)):
-        logging.info('test %s is filtered (skipped) because its status',
-                     test.path)
-        logging.info('%s (status_filter: %r)',
+        logging.info('test %s is skipped because its status '
+                     '%s (status_filter: %r)', test.path,
                      test.GetState().status, self.status_filter)
         return True  # we need to skip it
     if not self.CheckRunIf(test):
