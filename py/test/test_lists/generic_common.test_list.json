@@ -226,6 +226,10 @@
         "method": "GetDeviceInfo"
       }
     },
+    "Gyroscope": {
+      "pytest_name": "gyroscope",
+      "has_ui": true
+    },
     "HWButton": {
       "inherit": "TestGroup",
       "label": "Hardware Button",
@@ -366,6 +370,10 @@
       "pytest_name": "shopfloor_service",
       "has_ui": true,
       "run_if": "constants.enable_factory_server"
+    },
+    "SpatialSensorCalibration": {
+      "pytest_name": "spatial_sensor_calibration",
+      "has_ui": true
     },
     "SpeakerDMic": {
       "pytest_name": "audio_loop",
