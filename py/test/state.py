@@ -39,12 +39,6 @@ from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
 
-# TODO(shunhsingou): Remove the following legacy code.
-# Support legacy code. Now the port and address information is defined in
-# goofy_proxy module instead of here.
-DEFAULT_FACTORY_STATE_PORT = goofy_proxy.DEFAULT_GOOFY_PORT
-DEFAULT_FACTORY_STATE_ADDRESS = goofy_proxy.DEFAULT_GOOFY_ADDRESS
-
 DEFAULT_FACTORY_STATE_FILE_DIR = paths.DATA_STATE_DIR
 
 KEY_POST_SHUTDOWN = '%s.post_shutdown'

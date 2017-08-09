@@ -23,8 +23,10 @@ from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.test.env import goofy_proxy
 from cros.factory.utils import arg_utils
 from cros.factory.utils import file_utils
+from cros.factory.utils import net_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
@@ -323,8 +325,9 @@ class ChameleonDisplayTest(unittest.TestCase):
             scale_height=float(height) / self.IMAGE_TEMPLATE_HEIGHT))
 
     tab_id = self.goofy_rpc.DeviceQueryTabs(window_id)[0]['id']
-    url = 'http://127.0.0.1:%s%s' % (
-        state.DEFAULT_FACTORY_STATE_PORT,
+    url = 'http://%s:%s%s' % (
+        net_utils.LOCALHOST,
+        goofy_proxy.DEFAULT_GOOFY_PORT,
         self.ui.URLForFile(self.image_template_file))
     self.goofy_rpc.DeviceUpdateTab(tab_id, {'url': url})
 

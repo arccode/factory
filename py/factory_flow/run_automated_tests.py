@@ -24,6 +24,7 @@ from cros.factory.goofy import goofy_remote
 from cros.factory.goofy.goofy_rpc import RunState
 from cros.factory.goofy.invocation import OVERRIDE_TEST_LIST_DARGS_FILE
 from cros.factory.test import state
+from cros.factory.test.env import goofy_proxy
 from cros.factory.test.e2e_test.automator import AUTOMATION_FUNCTION_KWARGS_FILE
 from cros.factory.test.utils import connection_manager
 from cros.factory.utils.argparse_utils import CmdArg
@@ -240,12 +241,12 @@ class RunAutomatedTests(FactoryFlowCommand):
       # Create a SSH tunnel to connect to the JSON RPC server on DUT.
       local_port = net_utils.FindUnusedPort()
       self.ssh_tunnel = ssh_utils.SSHTunnelToDUT(
-          self.options.dut, local_port, state.DEFAULT_FACTORY_STATE_PORT)
+          self.options.dut, local_port, goofy_proxy.DEFAULT_GOOFY_PORT)
       self.ssh_tunnel.Establish()
-      goofy_proxy = state.get_instance(
+      goofy_proxy_inst = state.get_instance(
           address=net_utils.LOCALHOST, port=local_port)
-      goofy_proxy.GetGoofyStatus()  # Make sure the proxy works.
-      return goofy_proxy
+      goofy_proxy_inst.GetGoofyStatus()  # Make sure the proxy works.
+      return goofy_proxy_inst
     except (type_utils.TimeoutError,        # Cannot ping DUT.
             subprocess.CalledProcessError,  # Cannot create SSH tunnel.
             socket.error,                   # Cannot connect to Goofy on DUT.
@@ -255,10 +256,10 @@ class RunAutomatedTests(FactoryFlowCommand):
   def WaitForGoofy(self):
     """Waits for Goofy to come up."""
     def PollGoofy():
-      goofy_proxy = self.GetGoofyProxy()
-      if goofy_proxy is None:
+      goofy_proxy_inst = self.GetGoofyProxy()
+      if goofy_proxy_inst is None:
         return False
-      return goofy_proxy.GetGoofyStatus()['status'] == 'RUNNING'
+      return goofy_proxy_inst.GetGoofyStatus()['status'] == 'RUNNING'
 
     logging.info('Waiting for Goofy to come up')
     sync_utils.WaitFor(PollGoofy, timeout_secs=self.WAIT_FOR_GOOFY_TIMEOUT_SECS,
@@ -266,21 +267,21 @@ class RunAutomatedTests(FactoryFlowCommand):
 
   def StartAutomatedTests(self):
     """Starts automated factory tests."""
-    goofy_proxy = self.GetGoofyProxy()
-    if goofy_proxy is None:
+    goofy_proxy_inst = self.GetGoofyProxy()
+    if goofy_proxy_inst is None:
       raise RunAutomatedTestsError('Unable to connect to Goofy on DUT')
     if self.options.run:
-      goofy_proxy.RunTest(self.options.run)
+      goofy_proxy_inst.RunTest(self.options.run)
     else:
-      goofy_proxy.RestartAllTests()
+      goofy_proxy_inst.RestartAllTests()
 
   def WaitForTestsToFinish(self):
     """Waits for the automated test run to finish."""
     finished_tests = []
-    goofy_proxy = self.GetGoofyProxy()
-    if goofy_proxy is None:
+    goofy_proxy_inst = self.GetGoofyProxy()
+    if goofy_proxy_inst is None:
       raise RunAutomatedTestsError('Unable to connect to Goofy on DUT')
-    test_list = goofy_proxy.GetGoofyStatus()['test_list_id']
+    test_list = goofy_proxy_inst.GetGoofyStatus()['test_list_id']
     stop_event = threading.Event()
 
     def KeepSyncingFactoryLogs(stop_event):
@@ -319,8 +320,8 @@ class RunAutomatedTests(FactoryFlowCommand):
 
     def WaitForRun():
       """Waits for test run to finish."""
-      goofy_proxy = self.GetGoofyProxy()
-      if goofy_proxy is None:
+      goofy_proxy_inst = self.GetGoofyProxy()
+      if goofy_proxy_inst is None:
         # Cannot connect to DUT; probably a reboot/suspend test is running,
         # or DUT is finalized.
         finalize_report_spec = glob.glob(
@@ -333,7 +334,7 @@ class RunAutomatedTests(FactoryFlowCommand):
         return False
       try:
         # Fetch run status on the DUT through Goofy RPC.
-        run_status = goofy_proxy.GetTestRunStatus(None)
+        run_status = goofy_proxy_inst.GetTestRunStatus(None)
       except (jsonrpclib.jsonrpc.ProtocolError, socket.error,
               httplib.BadStatusLine):
         # Time out waiting for response from Goofy RPC, or the SSH connection is

@@ -13,7 +13,7 @@ import threading
 from ws4py.websocket import WebSocket
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import state
+from cros.factory.test.env import goofy_proxy
 from cros.factory.test.utils.web_socket_utils import WebSocketHandshake
 from cros.factory.utils import net_utils
 from cros.factory.utils.type_utils import Enum
@@ -102,7 +102,7 @@ class UIAppController(object):
     self._msg_event.set()
 
   def ShowUI(self, dut_ip, dongle_mac_address=None):
-    url = 'http://%s:%d/' % (dut_ip, state.DEFAULT_FACTORY_STATE_PORT)
+    url = 'http://%s:%d/' % (dut_ip, goofy_proxy.DEFAULT_GOOFY_PORT)
     self.SendMessage({'command': UI_APP_COMMAND.CONNECT,
                       'url': url, 'dongle_mac_address': dongle_mac_address})
     # Wait for the UI presenter app to acknowledge

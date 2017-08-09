@@ -79,7 +79,6 @@ class GoofyTest(unittest.TestCase):
     # to grok the logs.
     logging.info('*** Running test %s', type(self).__name__)
     goofy_proxy.DEFAULT_GOOFY_PORT = net_utils.FindUnusedTCPPort()
-    state.DEFAULT_FACTORY_STATE_PORT = goofy_proxy.DEFAULT_GOOFY_PORT
     logging.info('Using port %d for factory state',
                  goofy_proxy.DEFAULT_GOOFY_PORT)
     self.mocker = mox.Mox()
@@ -279,7 +278,7 @@ class GoofyUITest(GoofyTest):
                                  uuid=event.uuid).to_json())
 
     ws = MyClient('ws://%s:%d/event' %
-                  (net_utils.LOCALHOST, state.DEFAULT_FACTORY_STATE_PORT),
+                  (net_utils.LOCALHOST, goofy_proxy.DEFAULT_GOOFY_PORT),
                   protocols=None, extensions=None)
 
     def open_web_socket():
