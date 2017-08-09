@@ -169,7 +169,7 @@ class GoofyTest(unittest.TestCase):
 
     if self.mock_goofy_server:
       server = goofy.goofy_server.GoofyServer((
-          goofy_proxy.DEFAULT_GOOFY_ADDRESS,
+          goofy_proxy.DEFAULT_GOOFY_BIND,
           goofy_proxy.DEFAULT_GOOFY_PORT))
       # We do not use mox for server.serve_forever, since the method is run in
       # another thread, and mox object are NOT thread safe.

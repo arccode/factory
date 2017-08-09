@@ -10,6 +10,7 @@ from cros.factory.utils import net_utils
 # Default address and port that goofy server will bind on.
 DEFAULT_GOOFY_PORT = 0x0FAC
 DEFAULT_GOOFY_ADDRESS = net_utils.LOCALHOST
+DEFAULT_GOOFY_BIND = net_utils.INADDR_ANY
 
 # The URL for state and goofy server.
 # TODO(shunhsingou): currently goofy_rpc and state use the same instance and

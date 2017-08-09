@@ -28,6 +28,7 @@ DEFAULT_TIMEOUT = 10
 # causes unexpected behaviour.  We want to force the numerical IPv4 address, so
 # that these systems run tests under IPv4.
 LOCALHOST = '127.0.0.1'
+INADDR_ANY = '0.0.0.0'
 MAX_PORT = 65535
 FULL_MASK = 2 ** 32 - 1
 FULL_MASK6 = 2 ** 128 - 1

@@ -279,7 +279,7 @@ class Goofy(GoofyBase):
 
   def start_goofy_server(self):
     self.goofy_server = goofy_server.GoofyServer(
-        (goofy_proxy.DEFAULT_GOOFY_ADDRESS, goofy_proxy.DEFAULT_GOOFY_PORT))
+        (goofy_proxy.DEFAULT_GOOFY_BIND, goofy_proxy.DEFAULT_GOOFY_PORT))
     logging.info('Starting goofy server')
     self.goofy_server_thread = threading.Thread(
         target=self.goofy_server.serve_forever,
