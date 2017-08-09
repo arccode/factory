@@ -74,7 +74,7 @@ update_pytest_list:
 	$(if $(BOARD_FILES_DIR), $(LIST_PYTESTS) -l $(BOARD_FILES_DIR)/py \
 	  > $(BOARD_PYTESTS_LABEL_FILE))
 
-init:
+init: update_pytest_list
 	$(if $(LOCALE),, \
 	  $(error "You must specify locale of target translation."))
 	$(if $(wildcard $(PO_DIR)/$(LOCALE).po), \

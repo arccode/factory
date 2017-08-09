@@ -322,7 +322,7 @@ def ParseMultipleFilesWrapper(func):
         messages.extend(((filename, i), msg)
                         for i, msg in enumerate(new_messages))
       except Exception as e:
-        print >> sys.stderr, 'ERROR %s: %s' % (filename, e)
+        sys.exit('ERROR %s: %s' % (filename, e))
     return messages
   return Inner
 
@@ -375,8 +375,7 @@ def main():
     if ext in PARSERS:
       input_files_by_type[ext].append(filename)
     else:
-      print >> sys.stderr, 'Unknown file type %s for file %s' % (
-          ext, filename)
+      sys.exit('Unknown file type %s for file %s' % (ext, filename))
 
   messages = []
   for filetype, files in input_files_by_type.iteritems():
