@@ -401,6 +401,11 @@
       "label": "Stress App Test",
       "exclusive_resources": ["CPU"]
     },
+    "Stylus": {
+      "pytest_name": "stylus",
+      "has_ui": true,
+      "run_if": "device.component.has_touchscreen"
+    },
     "SuspendResume": {
       "pytest_name": "suspend_resume"
     },
