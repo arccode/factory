@@ -249,7 +249,7 @@ WATCH OUT FOR THE CATS!!!"""
     # Checks the year in the license header will be updated.
     # Also checks that (c) is removed.
     content2_before = """\
-# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+# Copyright 2013 (c) The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file."""
     content2_after = """\

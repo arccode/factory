@@ -1,7 +1,4 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -173,7 +170,7 @@ class BatteryCycleTest(unittest.TestCase):
         ('bc-current-cycle', self.completed_cycles + 1),
         ('bc-cycles-remaining', (self.args.num_cycles - self.completed_cycles
                                  if self.args.num_cycles
-                                 else u'∞')),
+                                 else u'\u221e')),
         ('bc-target-charge', '%.2f%%' % target_charge_pct)):
       self._UpdateUI(content, id=elt_id)
 
@@ -253,7 +250,7 @@ class BatteryCycleTest(unittest.TestCase):
                 (now - phase_start_time)
                 if self.args.max_duration_hours else None))):
           self._UpdateUI(time_utils.FormatElapsedTime(elapsed_time)
-                         if elapsed_time else u'∞',
+                         if elapsed_time else u'\u221e',
                          id=elt_id)
         self._UpdateUI('%.2f%%' % self.dut.power.GetChargePct(get_float=True),
                        id='bc-charge')
