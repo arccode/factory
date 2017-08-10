@@ -294,45 +294,46 @@ class ShopfloorServiceDUTCommands(umpire_rpc.UmpireRPC):
   @property
   def service(self):
     if self._url != self.env.shopfloor_service_url:
-      self._proxy = xmlrpclib.ServerProxy(self.env.shopfloor_service_url,
-                                          allow_none=True)
+      self._proxy = xmlrpc.Proxy(self.env.shopfloor_service_url, allowNone=True)
       self._url = self.env.shopfloor_service_url
     return self._proxy
 
   @umpire_rpc.RPCCall
   def GetVersion(self):
     """Returns the version of supported protocol."""
-    return self.service.GetVersion()
+    return self.service.callRemote('GetVersion')
 
   @umpire_rpc.RPCCall
   def NotifyStart(self, data, station):
     """Notifies shopfloor backend that DUT entered a manufacturing station."""
-    return self.service.NotifyStart(data, station)
+    return self.service.callRemote('NotifyStart', data, station)
 
   @umpire_rpc.RPCCall
   def NotifyEnd(self, data, station):
     """Notifies shopfloor backend that DUT leaves a manufacturing station."""
-    return self.service.NotifyEnd(data, station)
+    return self.service.callRemote('NotifyEnd', data, station)
 
   @umpire_rpc.RPCCall
   def NotifyEvent(self, data, event):
     """Notifies shopfloor backend that the DUT has performed an event."""
-    return self.service.NotifyEvent(data, event)
+    return self.service.callRemote('NotifyEvent', data, event)
 
   @umpire_rpc.RPCCall
   def GetDeviceInfo(self, data):
     """Returns information about the device's expected configuration."""
-    return self.service.GetDeviceInfo(data)
+    return self.service.callRemote('GetDeviceInfo', data)
 
   @umpire_rpc.RPCCall
   def ActivateRegCode(self, ubind_attribute, gbind_attribute, hwid):
     """Notifies shopfloor backend that DUT has deployed a registration code."""
-    return self.service.ActivateRegCode(ubind_attribute, gbind_attribute, hwid)
+    return self.service.callRemote('ActivateRegCode', ubind_attribute,
+                                   gbind_attribute, hwid)
 
   @umpire_rpc.RPCCall
   def UpdateTestResult(self, data, test_id, status, details=None):
     """Sends the specified test result to shopfloor backend."""
-    return self.service.UpdateTestResult(data, test_id, status, details)
+    return self.service.callRemote('UpdateTestResult', data, test_id, status,
+                                   details)
 
   @umpire_rpc.RPCCall
   @utils.Deprecate
