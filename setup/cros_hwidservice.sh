@@ -203,7 +203,8 @@ do_cleanup() {
   check_gcloud
   check_credentials
   kubectl delete service "${GKE_HWID_SERVICE_NODE}" || true
-  gcloud container clusters delete "${GKE_HWID_SERVICE_CLUSTER}"
+  gcloud container clusters delete "${GKE_HWID_SERVICE_CLUSTER}" \
+    --zone ${GKE_ZONE}
 }
 
 do_connect() {
