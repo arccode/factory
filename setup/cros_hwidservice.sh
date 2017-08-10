@@ -207,6 +207,14 @@ do_cleanup() {
     --zone ${GKE_ZONE}
 }
 
+do_update() {
+  # Publish the latest image to Google Container Registry.
+  do_publish
+
+  kubectl set image "deployment/${GKE_HWID_SERVICE_NODE}" \
+    "${GKE_HWID_SERVICE_NODE}=${HWID_SERVICE_IMAGE_TAG}:${TIME_TAG}"
+}
+
 do_connect() {
   local kubectl_proxy_port="${DEFAULT_KUBECTL_PROXY_PORT}"
 
@@ -266,7 +274,7 @@ commands:
       Sets up HWID Service Docker image.
 
   $0 publish
-      Run setup and publish to Google Container Registry.
+      Runs setup and publish to Google Container Registry.
 
   $0 run
       Runs HWID Service Docker image.
@@ -282,6 +290,9 @@ commands:
 
   $0 connect [port]
       Connects to Kubectl control panel.
+
+  $0 update
+      Updates the HWID Service image on Google Container Engine.
 
   $0 test
       Test Factory HWID Service in localhost.
@@ -314,6 +325,9 @@ main() {
       ;;
     test)
       do_test
+      ;;
+    update)
+      do_update
       ;;
     *)
       print_usage && exit 1
