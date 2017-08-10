@@ -389,7 +389,6 @@ class TestInvocation(object):
       dut_options = self.test.root.options.dut_options or {}
     self.dut_options = dut_options
 
-  #TODO(yllin): Drop PytestPrespawner. (see http://crbug.com/677368#c5)
   def _invoke_pytest(self, resolved_dargs):
     """Invokes a pyunittest-based test."""
     assert self.test.pytest_name
@@ -809,6 +808,12 @@ class TestInvocation(object):
       self.goofy.run_queue.put(self.on_completion)
 
 
+# The functions above is used when invocation is imported as module, and
+# functions below is used when invocation is run as a standalone script (by
+# prespawner).
+# TODO(pihsun): Move codes below to another file.
+
+
 def RunTestCase(test_case):
   """Runs the given test case.
 
@@ -921,8 +926,6 @@ def RunPytest(test_info):
 
 
 def main():
-  test_ui.exception_list = []
-
   env, info = pickle.load(sys.stdin)
   if not env:
     sys.exit(0)

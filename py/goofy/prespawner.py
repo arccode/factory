@@ -4,6 +4,32 @@
 
 
 """A library to prespawn pytest processes to minimize startup overhead.
+
+There are several possible ways to run pytest in a clean environment:
+
+1. Spawn the pytest runner when the pytest is started.
+   Even for simple pytests like message, the time it takes to start Python and
+   import dependencies takes about 200ms on a ChromeOS laptop, and could take
+   much longer for devices with lower computing power.
+
+2. fork and import the pytest module directly.
+   There are several global objects (logging, event_log) that we need to reset
+   when in the child process, to ensure that the environment when running
+   pytest is clean.
+   Also, Goofy server itself is multithreaded, and it's generally not a good
+   idea to fork from a multithreaded process.
+
+3. Prespawn some process and use them when pytest is started.
+   This is the current approach. We prespawn pytest runner in a background
+   thread. When pytest is started, we get one prespawned process and feed the
+   pytest info to it.
+   This avoid the problem in 1. since most common import can be imported by
+   pytest runner, and would be done in background before pytest is started.
+   Also, it's much easier to ensure that the environment for running pytest is
+   clean.
+
+See https://crbug.com/733545, https://chromium-review.googlesource.com/c/603507
+for discussions.
 """
 
 import cPickle as pickle
@@ -96,9 +122,8 @@ class Prespawner(object):
       self.thread = None
 
 
-#TODO(yllin): Drop PytestPrespawner. (see http://crbug.com/677368#c5)
 class PytestPrespawner(Prespawner):
 
   def __init__(self):
     super(PytestPrespawner, self).__init__(
-        PYTEST_PRESPAWNER_PATH, ['--prespawn-pytest'], pipe_stdout=True)
+        PYTEST_PRESPAWNER_PATH, [], pipe_stdout=True)
