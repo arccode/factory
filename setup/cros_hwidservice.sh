@@ -167,7 +167,7 @@ do_run() {
 
   # Run container if there is no one.
   if ! kubectl get deployment "${GKE_HWID_SERVICE_NODE}" &> /dev/null ; then
-    "Running container..."
+    echo "Running container..."
     kubectl run "${GKE_HWID_SERVICE_NODE}" \
         --image "${HWID_SERVICE_IMAGE}:${TIME_TAG}" \
         --port "${GKE_HWID_SERVICE_EXPOSE_PORT}" \
