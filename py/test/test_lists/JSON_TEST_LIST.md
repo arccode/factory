@@ -7,18 +7,20 @@ following fields:
 * `inherit`: a list of strings, e.g. `["a.test_list", "b.test_list"]`.
     Specifies base config files for this config file, e.g. `a.test_list.json`
     and `b.test_list.json`.  Fields `constants`, `options`, `definitions` will
-    be loaded and merged with current config files, values defined in latter
-    config file will override values defined in former one.  (Current config
-    file is always the last one.)
+    be loaded and merged with current config files.  Inheritance order is
+    resolved by [C3 linearization](https://en.wikipedia.org/wiki/C3_linearization).
 * `constants`: key value pairs to define some constants that could be used
     later.  Please refer to [Evaluation](#Expression-Evaluation) section for
     usage of constants.
 * `options`: test list options, please refer to
-    `cros.factory.test.factory.Option`.
+    `cros.factory.test.factory.Options`.
 * `definitions`: define some reusable [test objects](#Test-Objects).
 * `tests`: a list of [test objects](#Test-Objects), which are the top level
     tests in this test list.
 * `__comment`: just a comment, test list manager will ignore this field.
+* `override_args`: a dictionary where keys are test path you want to override
+    test arguments, values are the test arguments that will be merged with old
+    one.
 
 ## Examples
 You can find examples under `./manager_unittest/` folder,
@@ -27,21 +29,24 @@ e.g. [a.test_list.json](./manager_unittest/a.test_list.json).
 ## Test Objects
 Each test object represents a `cros.factory.test.factory.FactoryTest` object
 (with some additional information).  Please refer to
-[TEST_LIST.md](./TEST_LIST.md) for attributes that are inherit from FactoryTest.
+[TEST_LIST.md](./TEST_LIST.md) for attributes that are inherited from
+FactoryTest.
 
 ### Additional Fields
-These fields are only meant for new test list loader:
+Test list manager will process these fields, they are not directly used by
+`FactoryTest`.
 
-1. `inherit`: a string, name of the base test object, default to `FactoryTest`.
-   The base test object should be defined in `definitions` section.  For
-   example, you can define a `LEDTest` test object in `definitions` section:
+1. `inherit`: a string, the name of the base test object, default to
+   `FactoryTest`.  The base test object should be defined in `definitions`
+   section.  For example, you can define a `LEDTest` test object in
+   `definitions` section:
 
    ```
    {
      "definitions": {
        "LEDTest": {
-         "inherit": "OperatorTest",
          "pytest_name": "led",
+         "has_ui": true,
          "args" : {
            "colors": ["RED", "GREEN"]
          }
@@ -80,18 +85,18 @@ These fields are only meant for new test list loader:
    Please refer to [base test list](./base.test_list.json) for more examples.
 
 2. `locals`: in JSON style pytest, attribute `locals` of a test object will be
-   passed to its subtests.  And `locals` will be evaluated once before set to
+   passed to its subtests.  And `locals` will be evaluated before set to
    `FactoryTest` object.  See `locals.test_list.json` as an example.
 3. `child_action_on_failure`: default value of `action_on_failure` of subtests.
-4. `__comment`: this field will be ignored by test list manager, it's just a
-   comment.
+4. `__comment`: this field will be ignored and discarded by test list manager,
+   it's just a comment.
 5. `override_args`: another way to override arguments of a test specified by its
    path.  See `override_args.test_list.json` as an example.
 
 ## Expression Evaluation
 For `args` of test object, if a value is a string and starts with `"eval! "`,
 the rest of the string will be interpreted as a python expression.  The
-expression will be evaluated by python `exec` statement.  However, for
+expression will be evaluated by python `eval` statement.  However, for
 simplicity, the expression has the following restrictions:
 
 1. Single expression (not necessary single line, but the parsed result is a
@@ -109,7 +114,8 @@ simplicity, the expression has the following restrictions:
    1. built-in functions
    2. `constants` and `options`
    3. `dut`, `station`
-   4. `session`
+   4. `locals`
+   5. `session`  (a state_proxy object created by `state.get_instance()`)
 
 The result of evaluated expression will not be evaluated again even if it starts
 with `"eval! "` as well.
@@ -125,8 +131,8 @@ are valid i18n strings.
 {
   "definitions": {
     "Start": {
-      "inherit": "OperatorTest",
       "pytest_name": "start",
+      "has_ui": true,
       "label": "i18n! Start",
       "args": {
         "prompt": {"en-US": "English prompt", "zh-CN": "Chinese prompt"}
@@ -139,6 +145,13 @@ are valid i18n strings.
 ## Syntactic Sugar
 For simplicity, we provide the following syntactic sugar:
 
+### Label
+1. We support auto generated label from `pytest_name`.  For example, if pytest
+   name is `some_test`, then the label will be `i18n! Some Test` by default.
+
+2. Since label should always be i18n string, so `"label": "Start"` is equivalent
+   to `"label": "i18n! Start"`.
+
 ### Automatic ID
 1. If a test object defined in `definitions` (before merged with base test
    object) does not contain `id` field, the key string will be the default ID,
@@ -148,8 +161,8 @@ For simplicity, we provide the following syntactic sugar:
    {
      "definitions": {
        "LEDTest": {
-         "inherit": "OperatorTest",
          "pytest_name": "led",
+         "has_ui": true,
          "args" : {
            "colors": ["RED", "GREEN"]
          }
@@ -158,7 +171,7 @@ For simplicity, we provide the following syntactic sugar:
    }
    ```
 
-   The test object `LEDTest` will have default `id` `"LEDTest"`.
+   The test object `LEDTest` will have default `"id": "LEDTest"`.
 
    If a test object defined in `tests` does not specify `id` field, it will
    inherit from its parent, therefore, in the following snippet,
@@ -191,21 +204,36 @@ For simplicity, we provide the following syntactic sugar:
    }
    ```
 
-3. On the other hand, if a test object is defined without inheriting anything,
-   then the ID will be it's `pytest_name` (or just `'TestGroup'` if it's a group
-   of tests).
+## Generic Test Lists
+[generic_main.test_list.json](./generic_main.test_list.json) is an example.
+And you should reuse `generic_*.test_list.json` to create a test list for your
+board.
 
-   ```
-   {
-     "tests": [
-       {
-         "pytest_name": "led",
-         "args" : {
-           "colors": ["RED", "GREEN"]
-         }
-       }
-     ]
-   }
-   ```
+### `generic_common.test_list.json`
+This defines all kinds of tests that might be used in Chromebook factory.  By
+inheriting this test list, you can use most pytests directly.
 
-   The test object in above example will have ID `led`.
+### `generic_<station>.test_list.json`
+We have defined `GRT`, `FAT`, `RUN_IN`, `FFT`, `SMT` stations.  All of them are
+based on `generic_common.test_list.json`, with some additional station specific
+tests, or test arguments overriding.
+
+### Create Your Own Test List
+Try to reuse generic test lists if possible.  In general, you need to define the
+following files in private overlay:
+
+1. `common.test_list.json`: this inherits `generic_common.test_list.json`,
+   overrides some test argument, add some board specific pytests.
+2. `<station>.test_list.json`: each of them inherits corresponding
+   `generic_<station>.test_list.json` and `common.test_list.json`.
+3. `main.test_list.json`: this inherits `<station>.test_list.json` and
+   `common.test_list.json` (and `generic_main.test_list.json` if you want to
+   inherit `options` and `constants`).  Defines `override_args`, `constants`,
+   `options` in this file, and also the `tests`.
+
+In most of the case, if you are not adding / removing / reordering any tests,
+you only need to override `constants`, `options` and `override_args`.
+
+### Dump Python Test List in JSON Format
+On machine, you can use `factory dump-test-list <test list id> --format json` to
+dump a test list in JSON format.
