@@ -101,7 +101,9 @@ GKE_HWID_SERVICE_CLUSTER="factory-hwid-service-cluster"
 GKE_HWID_SERVICE_NODE="factory-hwid-service-node"
 GKE_HWID_SERVICE_EXPOSE_PORT="8181"
 GKE_HWID_SERVICE_REPLICAS="2"
-HWID_SERVICE_IMAGE_TAG="gcr.io/chromeos-factory/factory_hwid_service:latest"
+HWID_SERVICE_IMAGE="gcr.io/chromeos-factory/factory_hwid_service"
+TIME_TAG="$(date +%b-%d-%Y_%H%M)"
+LATEST_TAG="latest"
 DEFAULT_KUBECTL_PROXY_PORT="8081"
 
 # Host base directories
@@ -131,7 +133,8 @@ if [ ! -f "${gitcookies_path}" ]; then
 
   ${DOCKER} build \
     --file "${dockerfile}" \
-    --tag "${HWID_SERVICE_IMAGE_TAG}" \
+    --tag "${HWID_SERVICE_IMAGE}:${TIME_TAG}" \
+    --tag "${HWID_SERVICE_IMAGE}:${LATEST_TAG}" \
     "${HOST_HWIDSERVICE_DOCKER_DIR}"
 }
 
@@ -140,12 +143,16 @@ do_publish() {
 
   check_gcloud
   check_credentials
-  gcloud docker -- push "${HWID_SERVICE_IMAGE_TAG}"
+  gcloud docker -- push "${HWID_SERVICE_IMAGE}:${TIME_TAG}"
+  # Won't do push, just tag the image on Google Container Registry.
+  gcloud docker -- push "${HWID_SERVICE_IMAGE}:${LATEST_TAG}"
   echo "Published HWID Service Image to Google Container Registry" \
-       "https://${HWID_SERVICE_IMAGE_TAG}"
+       "https://${HWID_SERVICE_IMAGE}"
 }
 
 do_run() {
+
+  do_publish
   check_gcloud
   check_credentials
 
@@ -162,7 +169,7 @@ do_run() {
   if ! kubectl get deployment "${GKE_HWID_SERVICE_NODE}" &> /dev/null ; then
     "Running container..."
     kubectl run "${GKE_HWID_SERVICE_NODE}" \
-        --image "${HWID_SERVICE_IMAGE_TAG}" \
+        --image "${HWID_SERVICE_IMAGE}:${TIME_TAG}" \
         --port "${GKE_HWID_SERVICE_EXPOSE_PORT}" \
         --replicas "${GKE_HWID_SERVICE_REPLICAS}"
   fi
