@@ -339,6 +339,14 @@ def InitSubSession(log_root, uuid, station_test_run=None):
   return session_log_path
 
 
+def CollectExpiredSessions(log_root, station_test_run=None):
+  session_dir = os.path.join(log_root, _DEFAULT_SESSION_FOLDER)
+  for session_log_path in os.listdir(session_dir):
+    session_log_path = os.path.join(session_dir, session_log_path)
+    if os.path.isfile(session_log_path):
+      LogFinalTestRun(session_log_path, station_test_run)
+
+
 def LogTestRun(session_json_path, station_test_run=None):
   """Merges the session JSON into the primary JSON and logs it.
 
@@ -348,8 +356,6 @@ def LogTestRun(session_json_path, station_test_run=None):
   """
   # TODO(itspeter): Check the file is already closed properly. (i.e.
   #                 no lock exists or other process using it)
-  # TODO(itspeter): Expose another function for collecting tests that
-  #                 crashed during the test.
   with file_utils.FileLockContextManager(session_json_path, 'r') as fd:
     content = fd.read()
     try:
@@ -606,14 +612,14 @@ class LogFormatter(logging.Formatter):
     message = record.getMessage()
     if record.exc_info:
       message += '\n%s' % self.formatException(record.exc_info)
-    time = datetime.datetime.utcfromtimestamp(record.created)
+    time_now = datetime.datetime.utcfromtimestamp(record.created)
 
     data = {
         'filePath': getattr(record, 'pathname', None),
         'lineNumber': getattr(record, 'lineno', None),
         'functionName': getattr(record, 'funcName', None),
         'logLevel': getattr(record, 'levelname', None),
-        'time': time,
+        'time': time_now,
         'message': message}
 
     return StationMessage(data)

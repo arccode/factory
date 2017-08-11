@@ -7,6 +7,7 @@
 
 from __future__ import print_function
 
+import datetime
 import logging
 from optparse import OptionParser
 import os
@@ -415,14 +416,24 @@ class Goofy(object):
                              'on pending tests.',
                              test.path)
       else:
+        def get_unexpected_shutdown_test_run():
+          """Returns a StationTestRun for test not collected properly"""
+          station_test_run = testlog.StationTestRun()
+          station_test_run['status'] = testlog.StationTestRun.STATUS.FAILED
+          station_test_run['endTime'] = datetime.datetime.now()
+          station_test_run.AddFailure(
+              'GoofyErrorMsg', 'Unexpected shutdown while test was running')
+          return station_test_run
+
         is_unexpected_shutdown = True
         error_msg = 'Unexpected shutdown while test was running'
-        # TODO(itspeter): Add testlog to collect expired session infos.
         self.event_log.Log('end_test',
                            path=test.path,
                            status=TestState.FAILED,
                            invocation=test.GetState().invocation,
                            error_msg=error_msg)
+        testlog.CollectExpiredSessions(paths.DATA_LOG_DIR,
+                                       get_unexpected_shutdown_test_run())
         test.UpdateState(
             status=TestState.FAILED,
             error_msg=error_msg)
