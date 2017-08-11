@@ -96,7 +96,7 @@ class SystemInterface(object):
 
     Example::
 
-    SendDirectory('/path/to/local/dir', '/remote/path/to/some_dir')
+     SendDirectory('/path/to/local/dir', '/remote/path/to/some_dir')
 
     Will create directory `some_dir` under `/remote/path/to` and copy
     files and directories under `/path/to/local/dir/` to `some_dir`.

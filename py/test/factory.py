@@ -315,10 +315,12 @@ class Options(object):
 
   dut_options = {}
   """Options for DUT target.  Automatically inherits from parent node.
-  Valid options include:
-  {'link_class': 'LocalLink'},  # To run tests locally.
-  {'link_class': 'ADBLink'},  # To run tests via ADB.
-  {'link_class': 'SSHLink', 'host': TARGET_IP},  # To run tests over SSH.
+  Valid options include::
+
+    {'link_class': 'LocalLink'},  # To run tests locally.
+    {'link_class': 'ADBLink'},  # To run tests via ADB.
+    {'link_class': 'SSHLink', 'host': TARGET_IP},  # To run tests over SSH.
+
   See :py:attr:`cros.factory.device.device_utils` for more information."""
 
   plugin_config_name = 'goofy_plugin_chromeos'
@@ -328,7 +330,7 @@ class Options(object):
 
   skipped_tests = {}
   """A list of tests that should be skipped.
-  The content of skipped_tests should be::
+  The content of ``skipped_tests`` should be::
 
       {
         <phase>: [ <pattern> ... ]
@@ -347,15 +349,15 @@ class Options(object):
           ]
       }
 
-  If the pattern starts with '*', then it will match for all tests with same
-  suffix.  For example, '*.Fingerprint' matches 'SMT.Fingerprint',
-  'FATP.FingerPrint', 'FOO.BAR.Fingerprint'.  But it does not match for
-  'SMT.Fingerprint-2' (Generated ID when there are duplicate IDs).
+  If the pattern starts with ``*``, then it will match for all tests with same
+  suffix.  For example, ``*.Fingerprint`` matches ``SMT.Fingerprint``,
+  ``FATP.FingerPrint``, ``FOO.BAR.Fingerprint``.  But it does not match for
+  ``SMT.Fingerprint-2`` (Generated ID when there are duplicate IDs).
   """
 
   waived_tests = {}
   """Tests that should be waived according to current phase.
-  See `skipped_tests` for the format"""
+  See ``skipped_tests`` for the format"""
 
 
   def CheckValid(self):

@@ -160,13 +160,12 @@ def FactoryTest(*args, **kwargs):
       tests must have been run (and optionally passed) before this
       test may be run.  If the specified path includes this test, then
       all tests up to (but not including) this test must have been run
-      already. For instance, if this test is SMT.FlushEventLogs, and
-      require_run is "SMT", then all tests in SMT before
-      FlushEventLogs must have already been run. ALL may be used to
+      already. For instance, if this test is ``SMT.FlushEventLogs``, and
+      require_run is ``"SMT"``, then all tests in SMT before
+      ``FlushEventLogs`` must have already been run. ALL may be used to
       refer to the root (i.e., all tests in the whole test list before
-      this one must already have been run).
+      this one must already have been run). Examples::
 
-      Examples:
         require_run='x'                 # These three are equivalent;
         require_run=RequireRun('x')     # requires that X has been run
         require_run=[RequireRun('x')]   # (but not necessarily passed)
@@ -179,9 +178,10 @@ def FactoryTest(*args, **kwargs):
 
         require_run=['x', Passed('y')]  # Requires that x has been run
                                         # and y has passed
+
     run_if: Condition under which the test should be run.  This
       must be either a function taking a single argument (an
-      invocation.TestArgsEnv object), or a string of the format
+      ``invocation.TestArgsEnv`` object), or a string of the format::
 
         table_name.col
         !table_name.col
@@ -195,8 +195,8 @@ def FactoryTest(*args, **kwargs):
       and could fail up to twice.
     prepare: A callback function before test starts to run.
     finish: A callback function when test case completed.
-      This function has one parameter indicated test result: TestState.PASSED
-      or TestState.FAILED.
+      This function has one parameter indicated test result:
+      ``TestState.PASSED`` or ``TestState.FAILED``.
     _root: True only if this is the root node (for internal use
       only).
   """

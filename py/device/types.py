@@ -44,7 +44,7 @@ class DeviceLink(object):
 
     Example::
 
-    PushDirectory('/path/to/local/dir', '/remote/path/to/some_dir')
+     PushDirectory('/path/to/local/dir', '/remote/path/to/some_dir')
 
     Will create directory `some_dir` under `/remote/path/to` and copy
     files and directories under `/path/to/local/dir/` to `some_dir`.
