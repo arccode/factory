@@ -292,7 +292,7 @@ class Options(object):
   stop_on_failure = False
   """Whether to stop on any failure."""
 
-  disable_cros_shortcut_keys = False
+  disable_cros_shortcut_keys = True
   """Disable ChromeOS shortcut keys (see ``factory/tools/key_filter.py``)."""
   disable_caps_lock = False
   """Disable the CapsLock key."""

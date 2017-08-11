@@ -8,7 +8,6 @@
   ],
   "label": "All Generic Tests",
   "options": {
-    "disable_cros_shortcut_keys": true,
     "ui_locale": "zh-CN"
   },
   "tests": [

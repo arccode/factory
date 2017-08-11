@@ -69,7 +69,7 @@ class TestListLoaderTest(unittest.TestCase):
         'engineering_password_sha1': 'dummy_password_sha1',
         'ui_locale': 'zh-CN',
         'sync_event_log_period_secs': 0,
-        'disable_cros_shortcut_keys': True, }
+    }
 
     for key in options:
       self.assertEqual(
