@@ -287,17 +287,17 @@ doc:
 publish-docs: clean
 	# Force using an empty database to load whole region set from source
 	CROS_REGIONS_DATABASE="/dev/null" $(MAKE) doc
-	gsutil -h "Cache-Control:public, max-age=3600" -m rsync -d -r $(DOC_OUTPUT_DIR) $(DOC_PUBLISH_URL)
+	gsutil -h "Cache-Control:public, max-age=3600" -m rsync -d -r \
+	  $(DOC_OUTPUT_DIR) $(DOC_PUBLISH_URL)
 
 # Builds everything needed and create the proper bundle folder.
 # Note there may be already few files like HWID, README, and MANIFEST.yaml
 # already installed into $(SYSROOT)/usr/local/factory/bundle.
-bundle: par doc toolkit
+bundle: par toolkit
 	$(MK_DIR)/bundle.sh \
 	  "$(BUNDLE_DIR)" \
 	  "$(TOOLKIT_OUTPUT_DIR)/$(TOOLKIT_FILENAME)" \
 	  "$(PAR_OUTPUT_DIR)/$(PAR_NAME)" \
-	  "$(DOC_ARCHIVE_PATH)" \
 	  "setup"
 	$(call func-apply-board-resources,bundle,$(BUNDLE_DIR))
 	$(info Bundle is created in $(abspath $(BUNDLE_DIR)))

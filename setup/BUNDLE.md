@@ -63,7 +63,6 @@ Here is a list of files in a typical factory bundle:
       start_download_server.sh
     MANIFEST.yaml
     README
-    doc.zip
     start_download_server.sh
 
 ### release_image/

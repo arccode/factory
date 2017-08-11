@@ -32,8 +32,8 @@ bundle_install() {
 }
 
 main() {
-  if [ "$#" != 5 ]; then
-    die "Usage: $0 bundle_dir toolkit par doc_zip setup"
+  if [ "$#" != 4 ]; then
+    die "Usage: $0 bundle_dir toolkit par setup"
   fi
   # We want all files and directories created to be readable by world.
   umask 022
@@ -41,12 +41,10 @@ main() {
   local bundle_dir="$1"
   local toolkit="$2"
   local par="$3"
-  local doc_zip="$4"
-  local setup="$5"
+  local setup="$4"
 
   echo "Creating factory bundle in ${bundle_dir}..."
   mkdir -p "${bundle_dir}"
-  bundle_install "${bundle_dir}" "${doc_zip}" .
   bundle_install "${bundle_dir}" "${toolkit}" toolkit
   bundle_install "${bundle_dir}" "${par}" shopfloor \
     "factory_server shopfloor_server"
