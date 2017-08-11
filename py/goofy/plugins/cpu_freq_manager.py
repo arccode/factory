@@ -25,4 +25,4 @@ class CPUFreqManager(plugin.Plugin):
 
   @type_utils.Overrides
   def OnDestroy(self):
-    self._cpu_freq_manager.stop()
+    self._cpu_freq_manager.Stop()
