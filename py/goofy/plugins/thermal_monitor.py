@@ -41,4 +41,4 @@ class ThermalMonitor(plugin.Plugin):
 
   @type_utils.Overrides
   def OnStop(self):
-    self._thermal_watch.terminate()
+    self._thermal_watcher.terminate()
