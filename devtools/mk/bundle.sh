@@ -14,13 +14,20 @@ bundle_install() {
   local dir="$3"
   local symlinks="$4"
   local src_name="$(basename "${src}")"
-  local name
+  local name output src_command
 
   mkdir -p "${bundle_dir}/${dir}"
   cp -f "${src}" "${bundle_dir}/${dir}"
 
   for name in ${symlinks}; do
-    ln -sf "${src_name}" "${bundle_dir}/${dir}/${name}"
+    # Symlinks do not work well when builbot is packaging for factory.zip so we
+    # want to create shell scripts instead.
+    output="${bundle_dir}/${dir}/${name}"
+    # shellcheck disable=SC2016
+    src_command='"$(dirname "$(readlink -f "$0")")/'"${src_name}"'"'
+    echo '#!/bin/sh' >"${output}"
+    echo "${src_command} ${name} "'"$@"' >>"${output}"
+    chmod a+rx "${output}"
   done
 }
 
