@@ -783,7 +783,9 @@ class NoHostTest(GoofyUITest):
   mock_spawn_pytest = False
 
   def runTest(self):
-    # No UI for test 'a'
+    self.mocker.StubOutWithMock(self.goofy, 'init_ui')
+
+    # No UI for test 'a', should not call init_ui
     self.mocker.ReplayAll()
     self.goofy.run_once()
     self._wait()
@@ -792,6 +794,7 @@ class NoHostTest(GoofyUITest):
         state.get_instance().get_test_state('a').status)
 
     # Start the UI for test 'b'
+    self.goofy.init_ui()
     self.mocker.ReplayAll()
     self.goofy.run_once()
     self._wait()
