@@ -801,6 +801,13 @@ class FactoryTest(object):
 
     # Fields that needs to remap
     struct['inherit'] = self.__class__.__name__
+    if struct['inherit'] == OperatorTest.__name__:
+      # In JSON test list, for OperatorTest you should just write:
+      # {
+      #   "has_ui": true,
+      #   ...
+      # }
+      struct['inherit'] = FactoryTest.__name__
     struct['args'] = self.dargs.copy()
     struct['locals'] = self.locals_.copy()
 
@@ -1248,9 +1255,9 @@ class FactoryTestList(FactoryTest):
   def __repr__(self, recursive=False):
     if recursive:
       return json.dumps(self.ToTestListConfig(recursive=True), indent=2,
-                        separators=(',', ': '))
+                        sort_keys=True, separators=(',', ': '))
     else:
-      return json.dumps(self.ToTestListConfig(recursive=False))
+      return json.dumps(self.ToTestListConfig(recursive=False), sort_keys=True)
 
 
 class TestGroup(FactoryTest):

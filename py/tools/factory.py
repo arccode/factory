@@ -276,7 +276,7 @@ class DumpTestListCommand(Subcommand):
       yaml.dump(test_list.ToTestListConfig(), sys.stdout)
     elif self.args.format == 'json':
       json.dump(test_list.ToTestListConfig(), sys.stdout, indent=2,
-                separators=(',', ': '))
+                sort_keys=True, separators=(',', ': '))
 
 
 class TestListCommand(Subcommand):
