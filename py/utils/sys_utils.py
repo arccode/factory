@@ -538,14 +538,14 @@ def InCrOSDevice():
   return re.match(r'^CHROMEOS_RELEASE', lsb_release, re.MULTILINE) is not None
 
 
-def GetVarLogMessages(max_length=256 * 1024,
-                      path='/var/log/messages',
-                      dut=None):
-  """Returns the last n bytes of /var/log/messages.
+def _GetFileContent(path,
+                    max_length=5 * 1024 * 1024,
+                    dut=None):
+  """Returns the last n bytes of the given file.
 
   Args:
-    max_length: Maximum numberssages.
-    path: path to /var/log/messages.
+    path: path to the file to read
+    max_length: Maximum characters of messages.
     dut: a cros.factory.device.types.DeviceInterface instance, None for local.
   """
   if dut:
@@ -566,6 +566,19 @@ def GetVarLogMessages(max_length=256 * 1024,
   return data
 
 
+def GetVarLogMessages(max_length=256 * 1024,
+                      path='/var/log/messages',
+                      dut=None):
+  """Returns the last n bytes of /var/log/messages.
+
+  Args:
+    max_length: Maximum characters of messages.
+    path: path to /var/log/messages.
+    dut: a cros.factory.device.types.DeviceInterface instance, None for local.
+  """
+  return _GetFileContent(path, max_length, dut)
+
+
 def GetVarLogMessagesBeforeReboot(lines=100,
                                   max_length=5 * 1024 * 1024,
                                   path='/var/log/messages',
@@ -583,13 +596,7 @@ def GetVarLogMessagesBeforeReboot(lines=100,
     Empty if the marker indicating kernel boot could not be found.
   """
 
-  if dut:
-    data = dut.CheckOutput(['tail', '-c', '%d' % max_length, path])
-  else:
-    offset = max(0, os.path.getsize(path) - max_length)
-    with open(path) as f:
-      f.seek(offset)
-      data = f.read()
+  data = _GetFileContent(path, max_length, dut)
 
   # Find the last element matching the RE signaling kernel start.
   matches = list(re.finditer(
@@ -663,5 +670,18 @@ def GetStartupMessages(dut=None):
     res['ec_panic_info'] = ec_panic_info
   except Exception:
     logging.exception('Error retrieving EC panic info')
+
+  try:
+    res['console_ramoops'] = _GetFileContent(
+        '/dev/pstore/console-ramoops')
+  except Exception:
+    logging.exception('Error to retrieve console ramoops log')
+
+  try:
+    res['i915_error_state'] = _GetFileContent(
+        '/sys/kernel/debug/dri/0/i915_error_state')
+  except Exception:
+    logging.info('Error to retrieve i915 error state log. '
+                 '(This is normal on an non-Intel systems.)')
 
   return res
