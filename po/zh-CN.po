@@ -3365,6 +3365,10 @@ msgid "Charger Type Detection"
 msgstr "充电器型号识别"
 
 #: ../py/test/test_lists/generic_common.test_list.json
+msgid "Check Point"
+msgstr "确认关卡"
+
+#: ../py/test/test_lists/generic_common.test_list.json
 msgid "Clear factory VPD entries"
 msgstr "清除工厂 VPD 资讯"
 
@@ -3377,7 +3381,11 @@ msgid "Cold Reset"
 msgstr "冷重启"
 
 #: ../py/test/test_lists/generic_common.test_list.json
+#: ../py/test/test_lists/generic_fat.test_list.json
+#: ../py/test/test_lists/generic_fft.test_list.json
+#: ../py/test/test_lists/generic_grt.test_list.json
 #: ../py/test/test_lists/generic_run_in.test_list.json
+#: ../py/test/test_lists/generic_smt.test_list.json
 msgid "Finish"
 msgstr "结束"
 
@@ -3408,6 +3416,10 @@ msgstr "产生 Cache"
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Verify Cache"
 msgstr "验证 Cache"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Probe Hardware"
+msgstr "侦测硬件"
 
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "QR Scan"
@@ -3506,33 +3518,28 @@ msgid "Write HWID"
 msgstr "硬体代号"
 
 #: ../py/test/test_lists/generic_fat.test_list.json
+msgid "FAT (Final Assembly Test)"
+msgstr "FAT (最终组装测试)"
+
+#: ../py/test/test_lists/generic_fat.test_list.json
+#: ../py/test/test_lists/generic_fft.test_list.json
+#: ../py/test/test_lists/generic_grt.test_list.json
+#: ../py/test/test_lists/generic_run_in.test_list.json
 #: ../py/test/test_lists/generic_smt.test_list.json
-msgid "Preparation"
+msgid "Prepare"
 msgstr "准备程序"
 
-#: ../py/test/test_lists/generic_grt.test_list.json
-msgid "Google Required Tests"
-msgstr "Google 必要测试项目(GRT)"
+#: ../py/test/test_lists/generic_fft.test_list.json
+msgid "FFT (Final Functional Test)"
+msgstr "FFT (最终功能测试)"
 
 #: ../py/test/test_lists/generic_grt.test_list.json
-msgid "GRT tests finished, press SPACE to finalize."
-msgstr "GRT 测试结束，按下空白键最终程序"
-
-#: ../py/test/test_lists/generic_grt.test_list.json
-msgid "Shopfloor"
-msgstr "Shopfloor"
+msgid "GRT (Google Required Tests)"
+msgstr "GRT (Google 必要测试项目)"
 
 #: ../py/test/test_lists/generic_main.test_list.json
-msgid "Run In"
-msgstr "Run In"
-
-#: ../py/test/test_lists/generic_main.test_list.json
-msgid "FATP"
-msgstr "FATP"
-
-#: ../py/test/test_lists/generic_main.test_list.json
-msgid "All Generic Tests"
-msgstr "所有一般测试"
+msgid "Main Test List for a Generic Chromebook."
+msgstr "Chromebook 通用主要测试项目"
 
 #: ../py/test/test_lists/generic_rrt.test_list.json
 #: ../py/test/test_lists/generic_run_in.test_list.json
@@ -3570,36 +3577,16 @@ msgid "Generic Rolling Reliability"
 msgstr "一般稳定性测试 (RRT)"
 
 #: ../py/test/test_lists/generic_run_in.test_list.json
-msgid "RunIn tests finished, press ENTER to continue."
-msgstr "RunIn 测试结束，按下 ENTER 继续"
-
-#: ../py/test/test_lists/generic_smt.test_list.json
-msgid "Parallel Test Group 1"
-msgstr "平行测试群组1"
+msgid "Run-In Test"
+msgstr "Run-In 测试"
 
 #: ../py/test/test_lists/generic_smt.test_list.json
 msgid "SMT (SA Test)"
-msgstr "SMT (SA Test)"
+msgstr "SMT (SA 测试)"
 
 #: ../py/test/test_lists/generic_smt.test_list.json
-msgid "Components"
-msgstr "元件"
-
-#: ../py/test/test_lists/generic_smt.test_list.json
-msgid "SMT tests finished, press ENTER to shutdown."
-msgstr "SMT 测试结束，按下 ENTER 关机"
-
-#: ../py/test/test_lists/generic_smt.test_list.json
-msgid "Shopfloor1"
-msgstr "Shopfloor1"
-
-#: ../py/test/test_lists/generic_smt.test_list.json
-msgid "Shopfloor2"
-msgstr "Shopfloor2"
-
-#: ../py/test/test_lists/generic_smt.test_list.json
-msgid "Stress/Component Tests"
-msgstr "压力及元件测试"
+msgid "Parallel Test"
+msgstr "平行测试群组"
 
 #: ../py/test/test_lists/generic_smt.test_list.json
 msgid "Scan MLB"
@@ -3620,6 +3607,14 @@ msgstr "测站 ID"
 #: ../py/test/test_lists/generic_smt.test_list.json
 msgid "ScanStationID"
 msgstr "扫描测站 ID"
+
+#: ../py/test/test_lists/generic_smt.test_list.json
+msgid "Stress Test"
+msgstr "压力测试"
+
+#: ../py/test/test_lists/generic_smt.test_list.json
+msgid "Stress/Component Tests"
+msgstr "压力及元件测试"
 
 #: ../py/test/test_lists/station_based_test_list.py
 msgid "Start {label}"

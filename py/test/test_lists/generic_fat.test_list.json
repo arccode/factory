@@ -3,12 +3,36 @@
     "generic_common.test_list"
   ],
   "definitions": {
+    "FAT": {
+      "inherit": "TestGroup",
+      "label": "FAT (Final Assembly Test)",
+      "locals": {
+        "station": "FAT"
+      },
+      "subtests": [
+        "FATStart",
+        "Barrier",
+        "FATItems",
+        "CheckPoint",
+        "FATEnd"
+      ]
+    },
+    "FATEnd": {
+      "inherit": "TestGroup",
+      "label": "Finish",
+      "subtests": [
+        "StationEnd",
+        "CheckPoint"
+      ]
+    },
+    "FATFinish": {
+      "inherit": "FATEnd",
+      "__comment": "A legacy test that should be removed in future."
+    },
     "FATItems": {
       "inherit": "FlattenGroup",
       "__comment": "Test plans for Final Assembly Test.  The FAT is the first stage of FATP after Final Assembly, before Run In or Final Functional Testing (FFT). We want to collect system information and quickly probe if peripherals are assembled correctly.",
       "subtests": [
-        "FATStart",
-        "Barrier",
         "ChargerTypeDetection",
         "Barrier",
         "WriteProtectSwitch",
@@ -23,9 +47,9 @@
     },
     "FATStart": {
       "inherit": "TestGroup",
-      "label": "Preparation",
+      "label": "Prepare",
       "subtests": [
-        "SyncFactoryServer",
+        "StationStart",
         "GetDeviceInfo",
         "WriteDeviceDataToVPD",
         "WriteHWID"

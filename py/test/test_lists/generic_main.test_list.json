@@ -1,46 +1,34 @@
 {
   "inherit": [
-    "generic_grt.test_list",
+    "generic_smt.test_list",
     "generic_fat.test_list",
     "generic_run_in.test_list",
     "generic_fft.test_list",
-    "generic_smt.test_list"
+    "generic_grt.test_list"
   ],
-  "label": "All Generic Tests",
+  "label": "Main Test List for a Generic Chromebook.",
   "options": {
+    "skipped_tests": {
+      "device_data.factory.end_SMT": [
+        "SMT"
+      ],
+      "device_data.factory.end_FAT": [
+        "FAT"
+      ],
+      "device_data.factory.end_RUNIN": [
+        "RunIn"
+      ],
+      "device_data.factory.end_FFT": [
+        "FFT"
+      ]
+    },
     "ui_locale": "zh-CN"
   },
   "tests": [
     "SMT",
-    {
-      "inherit": "TestGroup",
-      "label": "Run In",
-      "subtests": [
-        {
-          "inherit": "Start",
-          "args": {
-            "check_factory_install_complete": true,
-            "require_external_power": true
-          }
-        },
-        "FATItems",
-        "RunInItems"
-      ]
-    },
-    {
-      "inherit": "TestGroup",
-      "label": "FATP",
-      "subtests": [
-        {
-          "inherit": "Start",
-          "args": {
-            "press_to_continue": false,
-            "check_factory_install_complete": true
-          }
-        },
-        "FFTItems"
-      ]
-    },
+    "FAT",
+    "RunIn",
+    "FFT",
     "GRT"
   ]
 }

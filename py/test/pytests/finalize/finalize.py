@@ -158,7 +158,7 @@ class Finalize(unittest.TestCase):
       Arg('allow_force_finalize', list,
           'List of users as strings allowed to force finalize, supported '
           'users are operator or engineer.',
-          default=['operator', 'engineer']),
+          default=[]),
       Arg('secure_wipe', bool,
           'Wipe the stateful partition securely (False for a fast wipe).',
           default=True),

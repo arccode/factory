@@ -180,6 +180,13 @@
       "pytest_name": "ac_power",
       "label": "Charger Type Detection"
     },
+    "CheckPoint": {
+      "inherit": "Barrier",
+      "label": "Check Point",
+      "args": {
+        "pass_without_prompt": false
+      }
+    },
     "ClearFactoryVPDEntries": {
       "inherit": "TestGroup",
       "label": "Clear factory VPD entries",
@@ -339,6 +346,7 @@
     },
     "Probe": {
       "pytest_name": "probe",
+      "label": "Probe Hardware",
       "has_ui": true,
       "args": {
         "config_file": "probe.json"
@@ -428,6 +436,22 @@
       "has_ui": true,
       "never_fails": true
     },
+    "StationEnd": {
+      "inherit": "FlattenGroup",
+      "subtests": [
+        "SyncFactoryServer",
+        "ShopfloorNotifyEnd",
+        "Barrier",
+        "WriteDeviceDataToVPD"
+      ]
+    },
+    "StationStart": {
+      "inherit": "FlattenGroup",
+      "subtests": [
+        "SyncFactoryServer",
+        "ShopfloorNotifyStart"
+      ]
+    },
     "StressAppTest": {
       "pytest_name": "stressapptest",
       "label": "Stress App Test",
@@ -446,6 +470,13 @@
       "pytest_name": "sync_factory_server",
       "has_ui": true,
       "run_if": "constants.enable_factory_server"
+    },
+    "SyncFactoryServerUploadReport": {
+      "inherit": "SyncFactoryServer",
+      "args": {
+        "upload_report": true,
+        "report_stage": "eval! locals.station"
+      }
     },
     "TPMVerifyEK": {
       "pytest_name": "tpm_verify_ek"

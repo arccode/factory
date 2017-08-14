@@ -2,53 +2,75 @@
   "inherit": [
     "generic_common.test_list"
   ],
+  "constants": {
+    "grt": {
+      "force_write_protect": false,
+      "__comment_force_write_protect": "*** Write protection is required for mass production and shippable devices. By default we enable write protection starting from PVT stages, but you can start trying write protection earlier by this option.",
+      "gooftool_skip_list": [],
+      "gooftool_waive_list": [],
+      "secure_wipe": true
+    }
+  },
   "definitions": {
-    "Finalize": {
-      "pytest_name": "finalize",
-      "has_ui": true,
-      "__comment": "*** write_protection IS REQUIRED TO BE TRUE FOR MASS PRODUCTION / SHIPPING DEVICES. ***",
-      "args": {
-        "allow_force_finalize": [],
-        "write_protection": true,
-        "upload_method": "eval! 'shopfloor' if constants.enable_factory_server else 'none'",
-        "secure_wipe": true,
-        "sync_event_logs": "eval! constants.enable_factory_server",
-        "enable_shopfloor": "eval! constants.enable_factory_server",
-        "enforced_release_channels": "eval! ['stable'] if options.phase == 'PVT' else None"
-      }
-    },
     "GRT": {
-      "label": "Google Required Tests",
+      "label": "GRT (Google Required Tests)",
+      "locals": {
+        "station": "GRT"
+      },
       "subtests": [
-        "VerifyRootPartition",
-        "Barrier",
-        "ClearTPMOwnerRequest",
-        "RebootStep",
-        "Barrier",
-        "GRTShopfloor",
-        "GRTFinish",
-        "Finalize"
+        "GRTStart",
+        "GRTItems",
+        "CheckPoint",
+        "GRTEnd",
+        "CheckPoint",
+        "GRTFinalize"
       ]
     },
-    "GRTFinish": {
-      "inherit": "Finish",
-      "require_run": ".GRTShopfloor.FinishGRT",
+    "GRTEnd": {
+      "inherit": "TestGroup",
+      "label": "Finish",
+      "subtests": [
+        "StationEnd"
+      ]
+    },
+    "GRTFinalize": {
+      "pytest_name": "finalize",
+      "has_ui": true,
       "args": {
-        "html": "i18n! GRT tests finished, press SPACE to finalize."
+        "enable_shopfloor": "eval! constants.enable_factory_server",
+        "enforced_release_channels": "eval! ['stable'] if options.phase == 'PVT' else None",
+        "gooftool_skip_list": "eval! constants.grt.gooftool_skip_list",
+        "gooftool_waive_list": "eval! constants.grt.gooftool_waive_list",
+        "secure_wipe": "eval! constants.grt.secure_wipe",
+        "sync_event_logs": "eval! constants.enable_factory_server",
+        "upload_method": "eval! 'shopfloor' if constants.enable_factory_server else 'none'",
+        "write_protection": "eval! constants.grt.force_write_protect or options.phase == 'PVT'"
       }
+    },
+    "GRTFinish": {
+      "inherit": "CheckPoint",
+      "__comment": "A legacy test that should be removed in future."
+    },
+    "GRTItems": {
+      "inherit": "FlattenGroup",
+      "subtests": []
     },
     "GRTShopfloor": {
       "inherit": "TestGroup",
-      "label": "Shopfloor",
+      "__comment": "A legacy test that should be removed in future.",
       "subtests": [
-        "SyncFactoryServer",
+        "StationEnd",
         {
-          "inherit": "ShopfloorNotifyEnd",
-          "id": "FinishGRT",
-          "locals": {
-            "station": "GRT"
-          }
+          "inherit": "CheckPoint",
+          "id": "FinishGRT"
         }
+      ]
+    },
+    "GRTStart": {
+      "inherit": "TestGroup",
+      "label": "Prepare",
+      "subtests": [
+        "StationStart"
       ]
     }
   }

@@ -9,6 +9,20 @@
     }
   },
   "definitions": {
+    "RunIn": {
+      "inherit": "TestGroup",
+      "label": "Run-In Test",
+      "locals": {
+        "station": "RUNIN"
+      },
+      "subtests": [
+        "RunInStart",
+        "Barrier",
+        "RunInItems",
+        "CheckPoint",
+        "RunInEnd"
+      ]
+    },
     "RunInBlockingCharge": {
       "inherit": "BlockingCharge",
       "__comment": "Charges battery to min_charge_pct from Goofy's charge_manager. There will be no AC power during FATP process, so we must make sure DUT battery has enough charge before leaving RunIn.",
@@ -63,25 +77,18 @@
         }
       ]
     },
-    "RunInFinish": {
+    "RunInEnd": {
       "inherit": "TestGroup",
       "label": "Finish",
       "subtests": [
-        {
-          "inherit": "ShopfloorNotifyEnd",
-          "locals": {
-            "station": "RUNIN"
-          }
-        },
-        {
-          "inherit": "Finish",
-          "require_run": "..BarrierRunIn",
-          "args": {
-            "html": "i18n! RunIn tests finished, press ENTER to continue."
-          }
-        },
+        "StationEnd",
+        "CheckPoint",
         "RebootStep"
       ]
+    },
+    "RunInFinish": {
+      "inherit": "RunInEnd",
+      "__comment": "A legacy test that should be removed in future."
     },
     "RunInItems": {
       "inherit": "FlattenGroup",
@@ -98,17 +105,19 @@
         "Barrier",
         "VerifyRootPartition",
         "Barrier",
-        "RunInBlockingCharge",
-        {
-          "inherit": "Barrier",
-          "id": "BarrierRunIn"
-        },
-        "RunInFinish"
+        "RunInBlockingCharge"
       ]
     },
     "RunInRebootSequence": {
       "inherit": "RebootStep",
       "iterations": 15
+    },
+    "RunInStart": {
+      "inherit": "TestGroup",
+      "label": "Prepare",
+      "subtests": [
+        "StationStart"
+      ]
     },
     "RunInStressGroup": {
       "label": "Stress Group",

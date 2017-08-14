@@ -11,7 +11,6 @@
         "dram",
         "embedded_controller",
         "flash_chip",
-        "pmic",
         "storage",
         "tpm",
         "usb_hosts",
@@ -25,64 +24,61 @@
   "definitions": {
     "SMT": {
       "inherit": "TestGroup",
-      "id": "SMT",
       "label": "SMT (SA Test)",
       "run_if": "not device.factory.end_SMT",
       "__comment": "The stage of tests performed after SMT and before FA.  This is also known as SA (System Assembly) testing.  After SMT, most factories will do System Assembly (SA) and then System Imaging then perform SA Testing.",
+      "locals": {
+        "station": "SMT"
+      },
       "subtests": [
-        "SMTUpdateFirmware",
         "SMTStart",
-        "SMTShopfloor1",
-        {
-          "label": "Parallel Test Group 1",
-          "parallel": true,
-          "subtests": [
-            "ChargerTypeDetection",
-            "ChargeDischargeCurrent",
-            "SMTVerifyComponents",
-            "PartitionTable",
-            "VerifyRootPartition",
-            "SpeakerDMic"
-          ]
-        },
+        "SMTItems",
+        "CheckPoint",
+        "SMTEnd"
+      ]
+    },
+    "SMTComponents": {
+      "label": "Parallel Test",
+      "parallel": true,
+      "subtests": [
+        "SMTProbe",
+        "ChargerTypeDetection",
+        "ChargeDischargeCurrent",
+        "PartitionTable",
+        "VerifyRootPartition",
+        "SpeakerDMic"
+      ]
+    },
+    "SMTEnd": {
+      "inherit": "TestGroup",
+      "label": "Finish",
+      "subtests": [
+        "StationEnd",
+        "CheckPoint",
+        "HaltStep"
+      ]
+    },
+    "SMTFinish": {
+      "inherit": "CheckPoint",
+      "__comment": "A legacy test that should be removed in future."
+    },
+    "SMTItems": {
+      "inherit": "FlattenGroup",
+      "subtests": [
         "SMTComponents",
+        "SMTStress",
         "SMTThermalLoad",
         "LidSwitch",
         "AudioJack",
         "LED",
         "USBTypeCTest",
-        "Keyboard",
-        {
-          "inherit": "Barrier",
-          "id": "BarrierSMT"
-        },
-        "SMTShopfloor2",
-        "SMTFinish",
-        "HaltStep"
+        "SMTKeyboard"
       ]
     },
-    "SMTComponents": {
-      "inherit": "TestGroup",
-      "label": "Components",
-      "parallel": true,
-      "subtests": [
-        "SMTProbe",
-        {
-          "inherit": "WifiSSIDList",
-          "args": {
-            "event_log_name": "SMT_basic_ssid_list"
-          }
-        },
-        "BatterySysfs",
-        "SMTStress",
-        "SMTStressCountdown"
-      ]
-    },
-    "SMTFinish": {
-      "inherit": "Finish",
-      "require_run": ".BarrierSMT",
+    "SMTKeyboard": {
+      "inherit": "Keyboard",
       "args": {
-        "html": "i18n! SMT tests finished, press ENTER to shutdown."
+        "layout": "ANSI"
       }
     },
     "SMTProbe": {
@@ -91,57 +87,66 @@
         "config_file": "probe_smt.json"
       }
     },
-    "SMTShopfloor1": {
-      "inherit": "TestGroup",
-      "label": "Shopfloor1",
-      "locals": {
-        "station": "SMT"
-      },
-      "subtests": [
-        "SyncFactoryServer",
-        "ReadDeviceDataFromVPD",
-        {
-          "inherit": "TestGroup",
-          "label": "Preparation",
-          "run_if": "not device.factory.end_SMT",
-          "subtests": [
-            "ScanMLB",
-            "ScanOperatorID",
-            "ScanStationID",
-            "ShopfloorNotifyStart"
-          ]
-        }
-      ]
-    },
-    "SMTShopfloor2": {
-      "inherit": "TestGroup",
-      "label": "Shopfloor2",
-      "locals": {
-        "station": "SMT"
-      },
-      "subtests": [
-        "SyncFactoryServer",
-        "ShopfloorNotifyEnd",
-        {
-          "inherit": "WriteDeviceDataToVPD",
-          "require_run": ".ShopfloorNotifyEnd"
-        },
-        {
-          "inherit": "SyncFactoryServer",
-          "args": {
-            "upload_report": true,
-            "report_stage": "SMT"
-          }
-        }
-      ]
-    },
-    "SMTStart": {
-      "inherit": "Start",
+    "SMTScanMLB": {
+      "inherit": "Scan",
+      "label": "Scan MLB",
       "args": {
-        "press_to_continue": false
+        "device_data_key": "serials.mlb_serial_number",
+        "event_log_key": "mlb_serial_number",
+        "label": "i18n! MLB Serial Number"
       }
     },
+    "SMTScanOperatorID": {
+      "inherit": "Scan",
+      "label": "Scan Operator ID",
+      "args": {
+        "device_data_key": "factory.smt_operator_id",
+        "event_log_key": "smt_operator_id",
+        "label": "i18n! Operator ID"
+      }
+    },
+    "SMTScanStationID": {
+      "inherit": "Scan",
+      "label": "ScanStationID",
+      "args": {
+        "device_data_key": "factory.smt_station_id",
+        "event_log_key": "smt_station_id",
+        "label": "i18n! Station ID"
+      }
+    },
+    "SMTShopfloor1": {
+      "inherit": "StationStart",
+      "__comment": "A legacy test that should be removed in future."
+    },
+    "SMTShopfloor2": {
+      "inherit": "StationEnd",
+      "__comment": "A legacy test that should be removed in future."
+    },
+    "SMTStart": {
+      "inherit": "TestGroup",
+      "label": "Prepare",
+      "subtests": [
+        "ReadDeviceDataFromVPD",
+        "SyncFactoryServer",
+        "SMTScanMLB",
+        "SMTScanOperatorID",
+        "SMTScanStationID",
+        "StationStart"
+      ]
+    },
     "SMTStress": {
+      "inherit": "TestGroup",
+      "label": "Stress Test",
+      "parallel": true,
+      "subtests": [
+        "SMTProbe",
+        "SMTWifiSSIDList",
+        "BatterySysfs",
+        "SMTStressAppTest",
+        "SMTStressCountdown"
+      ]
+    },
+    "SMTStressAppTest": {
       "inherit": "StressAppTest",
       "args": {
         "seconds": "eval! constants.smt.stress_duration_secs"
@@ -175,35 +180,15 @@
     },
     "SMTVerifyComponents": {
       "inherit": "VerifyComponents",
+      "__comment": "A legacy test that should be replaced by probe.",
       "args": {
         "component_list": "eval! constants.smt.component_list"
       }
     },
-    "ScanMLB": {
-      "inherit": "Scan",
-      "label": "Scan MLB",
+    "SMTWifiSSIDList": {
+      "inherit": "WifiSSIDList",
       "args": {
-        "device_data_key": "serials.mlb_serial_number",
-        "event_log_key": "mlb_serial_number",
-        "label": "i18n! MLB Serial Number"
-      }
-    },
-    "ScanOperatorID": {
-      "inherit": "Scan",
-      "label": "Scan Operator ID",
-      "args": {
-        "device_data_key": "factory.smt_operator_id",
-        "event_log_key": "smt_operator_id",
-        "label": "i18n! Operator ID"
-      }
-    },
-    "ScanStationID": {
-      "inherit": "Scan",
-      "label": "ScanStationID",
-      "args": {
-        "device_data_key": "factory.smt_station_id",
-        "event_log_key": "smt_station_id",
-        "label": "i18n! Station ID"
+        "event_log_name": "SMT_basic_ssid_list"
       }
     }
   }
