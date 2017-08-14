@@ -671,11 +671,16 @@ def GetStartupMessages(dut=None):
   except Exception:
     logging.exception('Error retrieving EC panic info')
 
+  # The console-ramoops file changed names with linux-3.19+.
   try:
     res['console_ramoops'] = _GetFileContent(
-        '/dev/pstore/console-ramoops')
+        '/dev/pstore/console-ramoops-0')
   except Exception:
-    logging.exception('Error to retrieve console ramoops log')
+    try:
+      res['console_ramoops'] = _GetFileContent(
+          '/dev/pstore/console-ramoops')
+    except Exception:
+      logging.exception('Error to retrieve console ramoops log')
 
   try:
     res['i915_error_state'] = _GetFileContent(

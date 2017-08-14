@@ -26,7 +26,7 @@
           step: 1
           unit: 'lines'
       steps:
-        - command: "tr -cd '\\11\\12\\15\\40-\\176' < /dev/pstore/console-ramoops | tail -n $1"
+        - command: "tr -cd '\\11\\12\\15\\40-\\176' < /dev/pstore/console-ramoops* | tail -n $1"
 
     - name: Rotate logs
       description: 'Rotates the system logs.'
