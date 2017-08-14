@@ -172,7 +172,6 @@ def _LoadJsonFile(file_path, logger):
       logger('config_utils: No PAR/ZIP in %s. Ignore.', file_path)
     except IOError:
       logger('config_utils: PAR path %s does not exist. Ignore.', file_path)
-
   return None
 
 
@@ -317,16 +316,21 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
 
         Schema check is performed after overriding if validate_schema is True.
 
-    generate_depend: if allow_inherit is True and this is set to True, will
-        collect all dependencies of the config file, and put into "depend"
-        field.
+    generate_depend: if this is True, will collect all dependencies of the
+        config file, calling `GetDepend` function will return a list of files
+        loaded to generate this config.  For example, if we're loading config
+        "A" with: {"inherit": "B"}, then
 
-        For example, if we're loading config "A" with: {"inherit": "B"}, then
+           A.GetDepend() = [<path to A>, <path to B>, <what B depends on ...>]
 
-           A['depend'] = ['A', 'B', <what B depends on ...>]
-
-        The order in the list is same as the result of C3 linearization of the
+        The order of paths is same as the result of C3 linearization of the
         inherited config names.
+
+        Note that we are returning "path of config files it depends on", so
+        paths under build config directory and runtime config directory are
+        returned too.
+
+        If `generate_depend` is False, `A.GetDepend()` will be empty.
 
   Returns:
     The config as mapping object.
@@ -378,12 +382,12 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
   else:
     logger('Skip validating schema for config <%s>.', config_name)
 
-  if generate_depend:
-    config['depend'] = list(raw_config_list)
-
   if convert_to_str:
     config = type_utils.UnicodeToString(config)
 
+  config = ResolvedConfig(config)
+  if generate_depend:
+    config.SetDepend(raw_config_list.CollectDepend())
   return config
 
 
@@ -397,6 +401,35 @@ class _ConfigList(collections.OrderedDict):
       for unused_config_dir, config in reversed(self[key]):
         ret = OverrideConfig(ret, config)
     return ret
+
+  def CollectDepend(self):
+    """Returns a list of all files loaded for this config list.
+
+    Returns:
+      a list of paths (strings).
+    """
+    depends = []
+    for config_name in self:
+      for config_dir, unused_config in self[config_name]:
+        depends.append(os.path.join(config_dir, config_name + _CONFIG_FILE_EXT))
+    return depends
+
+
+class ResolvedConfig(dict):
+  """A resolved config with extra information.
+
+  This class inherits dict so all dict operations should work on its instances.
+  """
+  def __init__(self, *args, **kwargs):
+    super(ResolvedConfig, self).__init__(*args, **kwargs)
+    self._recipe = []
+
+  def SetDepend(self, paths):
+    """Set list of files loaded to resolve this config."""
+    self._recipe = paths
+
+  def GetDepend(self):
+    return self._recipe
 
 
 def _C3Linearization(parent_configs, config_name):

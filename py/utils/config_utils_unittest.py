@@ -4,11 +4,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import json
 import logging
 import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import config_utils
+from cros.factory.utils import type_utils
 
 
 class ConfigUtilsTest(unittest.TestCase):
@@ -86,12 +88,15 @@ class ConfigUtilsTest(unittest.TestCase):
     self.assertEqual(config.sample_str, 'test')
     self.assertEqual(config.sample_mapping.contents, 'abc')
 
-    self.assertEqual(config.depend, [
-        'testdata/config_utils_unittest',
-        'testdata/config_utils_unittest_middle_b',
-        'testdata/config_utils_unittest_middle_a',
-        'testdata/config_utils_unittest_base',
-    ])
+    expected = [
+        'config/testdata/config_utils_unittest.json',
+        'utils/testdata/config_utils_unittest.json',
+        'utils/testdata/config_utils_unittest_middle_b.json',
+        'utils/testdata/config_utils_unittest_middle_a.json',
+        'utils/testdata/config_utils_unittest_base.json', ]
+
+    for expected_path, config_path in zip(expected, config_m.GetDepend()):
+      self.assertTrue(config_path.endswith(expected_path))
 
     # the inherited value.
     self.assertEqual(config.sample_base_int, 10)
@@ -130,6 +135,37 @@ class ConfigUtilsTest(unittest.TestCase):
           'testdata/config_utils_unittest_c3',
           validate_schema=False,
           allow_inherit=True)
+
+
+class ResolvedConfigTest(unittest.TestCase):
+  """Test ResolvedConfig"""
+
+  def testSubclass(self):
+    self.assertTrue(issubclass(config_utils.ResolvedConfig, dict))
+
+  def testDictBehavior(self):
+    d = {
+        'a': 1,
+        'b': "string",
+        'c': [1, 2, 3],
+        'd': {'x': 1, 'y': 2}
+    }
+
+    resolved_config = config_utils.ResolvedConfig(d)
+    self.assertEqual(resolved_config, d)
+
+    # it can be serialized, deserialized, as if it's a normal
+    # dictionary.
+    self.assertEqual(json.loads(json.dumps(resolved_config)), d)
+
+    # it can be passed to AttrDict
+    attr_dict = type_utils.AttrDict(resolved_config)
+    self.assertEqual(attr_dict.a, 1)
+    self.assertEqual(attr_dict.b, "string")
+    self.assertEqual(attr_dict.c, [1, 2, 3])
+    self.assertEqual(attr_dict.d, {'x': 1, 'y': 2})
+    self.assertEqual(attr_dict.d.x, 1)
+    self.assertEqual(attr_dict.d.y, 2)
 
 
 if __name__ == '__main__':

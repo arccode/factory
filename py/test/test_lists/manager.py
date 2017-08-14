@@ -12,10 +12,9 @@ import copy
 import glob
 import inspect
 import logging
-import numbers
 import os
 import sys
-import time
+import zipimport
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
@@ -62,47 +61,52 @@ def MayTranslate(obj, force=False):
 class TestListConfig(object):
   """A loaded test list config.
 
-  This is basically a wrapper for JSON object (the content loaded from test list
-  JSON file), with some helper functions and caches.
+  This is a wrapper for ResolvedConfig, with some helper functions and caches.
   """
-  def __init__(self, json_object, test_list_id, timestamp=None):
-    self._json_object = json_object
+  def __init__(self, resolved_config, test_list_id):
+    assert isinstance(resolved_config, config_utils.ResolvedConfig)
+    self._resolved_config = resolved_config
     self._test_list_id = test_list_id
-    self._timestamp = timestamp
+    self._depend = collections.OrderedDict()
+    self.UpdateDependTimestamp()
 
-  def GetParents(self):
-    return [p[:-len(Loader.CONFIG_SUFFIX)]
-            for p in self._json_object.get('depend', [])]
+  def GetDepend(self):
+    return self._depend
 
-  @property
-  def timestamp(self):
-    """When the config was loaded."""
-    return self._timestamp
-
-  def SetTimestamp(self, value):
-    """Update timestamp value.
-
-    We are not using property.setter because normally you should not override
-    timestamp.  Changing timestamp value might break modification detection and
-    auto reloading.
-
-    *** Don't do it unless you know what you are doing ***
-    """
-    assert isinstance(value, numbers.Real), "timestamp must be a number"
-    self._timestamp = value
+  def UpdateDependTimestamp(self):
+    """Updates timestamps of dependency paths."""
+    self._depend.clear()
+    for path in self._resolved_config.GetDepend():
+      self._depend[path] = self.GetTimestamp(path)
 
   @property
   def test_list_id(self):
     return self._test_list_id
 
   def __getitem__(self, key):
-    return self._json_object[key]
+    return self._resolved_config[key]
 
   def __iter__(self):
-    return iter(self._json_object)
+    return iter(self._resolved_config)
 
   def ToDict(self):
-    return self._json_object.copy()
+    return self._resolved_config.copy()
+
+  @staticmethod
+  def GetTimestamp(path):
+    if os.path.exists(path):
+      return os.stat(path).st_mtime
+    if '.par' in path.lower():
+      try:
+        file_dir = os.path.dirname(path)
+        importer = zipimport.zipimporter(file_dir)
+        return os.stat(importer.archive).st_mtime
+      except zipimport.ZipImportError:
+        logging.warning('config_utils: No PAR/ZIP in %s. Ignore.', path)
+      except IOError:
+        logging.warning('config_utils: PAR path %s does not exist. Ignore.',
+                        path)
+    return None
 
 
 class ITestList(object):
@@ -570,8 +574,8 @@ class TestList(ITestList):
     except Exception:
       logging.exception('Failed to reload latest test list %s.',
                         self._config.test_list_id)
-      # update timestamp to prevent reloading the same incorrect file
-      self._config.SetTimestamp(time.time())
+      self._PreventReload()
+
       note['level'] = 'WARNING'
       note['text'] = ('Failed to reload latest test list %s.' %
                       self._config.test_list_id)
@@ -579,6 +583,10 @@ class TestList(ITestList):
       self._state_instance.AddNote(note)
     except Exception:
       pass
+
+  def _PreventReload(self):
+    """Update self._config to prevent reloading invalid test list."""
+    self._config.UpdateDependTimestamp()
 
   @property
   def modified(self):
@@ -591,9 +599,14 @@ class TestList(ITestList):
     Returns:
       True if the test list config is modified, otherwise False.
     """
-    return (self._config.timestamp <
-            self._loader.GetConfigInheritTreeLastModifiedTime(
-                self._config))
+    for config_file, timestamp in self._config.GetDepend().iteritems():
+      if os.path.exists(config_file):
+        if timestamp != os.stat(config_file).st_mtime:
+          return True
+      elif timestamp is not None:
+        # the file doesn't exist, and we think it should exist
+        return True
+    return False
 
   @property
   def constants(self):
@@ -740,15 +753,9 @@ class Loader(object):
       return None
 
     loaded_config = TestListConfig(
-        json_object=loaded_config,
+        resolved_config=loaded_config,
         test_list_id=test_list_id)
 
-    if allow_inherit:
-      timestamp = self.GetConfigInheritTreeLastModifiedTime(loaded_config)
-    else:
-      timestamp = self.GetConfigLastModifiedTime(test_list_id)
-
-    loaded_config.SetTimestamp(timestamp)
     return loaded_config
 
   def GetConfigPath(self, test_list_id):
@@ -768,17 +775,6 @@ class Loader(object):
     suffix = self.CONFIG_SUFFIX + '.json'
     return [os.path.basename(p)[:-len(suffix)] for p in
             glob.iglob(os.path.join(self.config_dir, '*' + suffix))]
-
-  def GetConfigLastModifiedTime(self, test_list_id):
-    return os.stat(self.GetConfigPath(test_list_id)).st_mtime
-
-  def GetConfigInheritTreeLastModifiedTime(self, loaded_config):
-    last_modified_time = 0
-    for test_list_id in loaded_config.GetParents():
-      last_modified_time = max(
-          last_modified_time,
-          self.GetConfigLastModifiedTime(test_list_id))
-    return last_modified_time
 
 
 class CheckerError(Exception):

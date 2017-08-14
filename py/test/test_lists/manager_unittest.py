@@ -17,23 +17,22 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager
+from cros.factory.utils import config_utils
 from cros.factory.utils import type_utils
 
 
 class TestListConfigTest(unittest.TestCase):
   def testTestListConfig(self):
     json_object = {'a': 1, 'b': 2}
+    resolved_config = config_utils.ResolvedConfig(json_object)
     test_list_id = 'test_list_id'
-    timestamp = 123456
 
     config = manager.TestListConfig(
-        json_object=json_object,
-        test_list_id=test_list_id,
-        timestamp=timestamp)
+        resolved_config=resolved_config,
+        test_list_id=test_list_id)
 
     self.assertEqual(config.test_list_id, test_list_id)
-    self.assertEqual(config.timestamp, timestamp)
-    # TestListConfig object should act like json_object.
+    # TestListConfig object should act like a dict.
     self.assertEqual({k: config[k] for k in config}, json_object)
 
 
@@ -172,7 +171,7 @@ class TestListLoaderTest(unittest.TestCase):
 
     # let's go back in time
     os.utime(self.loader.GetConfigPath('b'), (0, 0))
-    self.assertFalse(test_list.modified)
+    self.assertTrue(test_list.modified)
 
     # b inherits base
     os.utime(self.loader.GetConfigPath('base'), None)
@@ -216,13 +215,10 @@ class TestListLoaderTest(unittest.TestCase):
         {'foo': 'BAR', 'bar': 'BAZ'})
 
   def testFailedAutoReloadTestList(self):
-    # pylint: disable=protected-access
     # load test list config
     test_list = self.manager.GetTestListByID('a')
 
     self.assertTrue(test_list.LookupPath('SMT'))
-
-    old_timestamp = test_list._config.timestamp
 
     # modified content
     with open(self.loader.GetConfigPath('a'), 'r') as f:
@@ -242,7 +238,8 @@ class TestListLoaderTest(unittest.TestCase):
     # test list reloading should fail, and will keep getting old value
     self.assertEqual(test_list.constants.timestamp, 1)
     self.assertTrue(test_list.LookupPath('SMT'))
-    self.assertGreater(test_list._config.timestamp, old_timestamp)
+    # reloading invalid test list should be prevented
+    self.assertFalse(test_list.modified)
 
   def testFlattenGroup(self):
     test_list = self.manager.GetTestListByID('flatten_group')
