@@ -4,26 +4,36 @@
 
 """A factory test to initiate and verify recovery mode memory re-train process.
 
-Usage examples::
+Description
+-----------
+The test either request memory retraining on next boot (if ``mode`` is
+``'create'``), or verify the mrc cache trained (if ``mode`` is ``'verify'``).
 
-    with AutomatedSequence(id='MRCCache', label=_('MRC Cache')):
+Test Procedure
+--------------
+This is an automated test without user interaction.
+
+Dependency
+----------
+``flashrom``, ``crossystem`` and ``futility validate_rec_mrc``.
+
+Examples
+--------
+To generate mrc cache on next boot, reboot, and verify the generated mrc cache,
+add this in test list::
+
+    with AutomatedSequence(label=_('MRC Cache')):
       FactoryTest(
-          id='Create',
           label=_('Create Cache'),
           pytest_name='mrc_cache',
           dargs={'mode': 'create'})
 
-      RebootStep(
-          id='Reboot',
-          label=_('Reboot'),
-          iterations=1)
+      RebootStep(label=_('Reboot'))
 
       FactoryTest(
-          id='Verify',
           label=_('Verify'),
           pytest_name='mrc_cache',
           dargs={'mode': 'verify'})
-
 """
 
 import unittest
