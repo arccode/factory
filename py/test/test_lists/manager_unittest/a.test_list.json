@@ -1,33 +1,43 @@
 {
-  "inherit": ["base.test_list"],
+  "inherit": [
+    "base.test_list"
+  ],
   "label": "A",
-
   "constants": {
-    "phase": "EVT",
+    "component_list": [
+      "cpu",
+      "audio",
+      "flash_chip"
+    ],
     "enable_shopfloor": true,
-    "component_list": ["cpu", "audio", "flash_chip"],
-    "some_label": {"en-US": "us", "zh-CN": "cn"},
+    "phase": "EVT",
+    "some_label": {
+      "en-US": "us",
+      "zh-CN": "cn"
+    },
     "__comment_some_label": "real test list should use i18n! prefix instead.",
     "timestamp": 1,
     "__comment_timestamp": "this is used by testReloadConfig"
   },
-
   "options": {
+    "disable_cros_shortcut_keys": true,
     "engineering_password_sha1": "dummy_password_sha1",
-    "ui_locale": "zh-CN",
-    "sync_event_log_period_secs": 0
+    "sync_event_log_period_secs": 0,
+    "ui_locale": "zh-CN"
   },
-
   "definitions": {
     "LEDTest": {
       "pytest_name": "led",
       "has_ui": true,
       "args": {
-        "colors": ["RED", "GREEN", "BLUE"]
+        "colors": [
+          "RED",
+          "GREEN",
+          "BLUE"
+        ]
       }
     }
   },
-
   "tests": [
     {
       "id": "SMT",
@@ -40,7 +50,10 @@
           "inherit": "LEDTest",
           "id": "SecondLEDTest",
           "args": {
-            "colors": ["RED", "GREEN"]
+            "colors": [
+              "RED",
+              "GREEN"
+            ]
           }
         },
         {
@@ -51,8 +64,8 @@
           }
         },
         {
-          "id": "Halt",
           "inherit": "HaltStep",
+          "id": "Halt",
           "require_run": "all"
         },
         "LEDTest",

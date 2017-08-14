@@ -1,5 +1,7 @@
 {
-  "inherit": ["generic_common.test_list"],
+  "inherit": [
+    "generic_common.test_list"
+  ],
   "definitions": {
     "FFTItems": {
       "inherit": "FlattenGroup",

@@ -1,28 +1,36 @@
 {
-  "inherit": ["base.test_list"],
+  "inherit": [
+    "base.test_list"
+  ],
   "constants": {
     "enable_factory_server": true,
     "__comment_enable_factory_server": "Enable factory_server. Change this to false by adding 'disable_factory_server.test_list' to beginning of inherit list in main test list. Note that some factory environment might not need a shopfloor.",
     "sd": {
       "sysfs_path": "/sys/devices/pci0000:00/0000:00:xx.y/mmc_host"
     },
+    "__comment_sd_sysfs_path": "Use 'udevadm monitor' to find out udev sysfs path.",
     "typec_usb": {
       "left": {
         "usb2_sysfs_path": "/sys/devices/pci0000:00/0000:00:xx.y/usb1/?-?",
         "usb3_sysfs_path": "/sys/devices/pci0000:00/0000:00:xx.y/usb2/?-?",
         "uvc_video_dev_port": "?-?",
         "usbpd_id": -1,
-        "display_info": ["DisplayPort", "DP-1"]
+        "display_info": [
+          "DisplayPort",
+          "DP-1"
+        ]
       },
       "right": {
         "usb2_sysfs_path": "/sys/devices/pci0000:00/0000:00:xx.y/usb1/?-?",
         "usb3_sysfs_path": "/sys/devices/pci0000:00/0000:00:xx.y/usb2/?-?",
         "uvc_video_dev_port": "?-?",
         "usbpd_id": -1,
-        "display_info": ["DisplayPort", "DP-2"]
+        "display_info": [
+          "DisplayPort",
+          "DP-2"
+        ]
       }
-    },
-    "__comment_sysfs_path": "Use 'udevadm monitor' to find out udev sysfs path."
+    }
   },
   "definitions": {
     "AccelerometersCalibration": {
@@ -34,14 +42,20 @@
           "in_accel_y": 0,
           "in_accel_z": 1
         },
-        "spec_offset": [0.5, 0.5]
+        "spec_offset": [
+          0.5,
+          0.5
+        ]
       }
     },
     "AccelerometersLidAngle": {
       "pytest_name": "accelerometers_lid_angle",
       "has_ui": true,
       "args": {
-        "spec_offset": [0.5, 0.5]
+        "spec_offset": [
+          0.5,
+          0.5
+        ]
       }
     },
     "AudioJack": {
@@ -55,7 +69,10 @@
           {
             "type": "sinewav",
             "freq_threshold": 300,
-            "rms_threshold": [0.08, null]
+            "rms_threshold": [
+              0.08,
+              null
+            ]
           }
         ]
       }
@@ -101,7 +118,9 @@
     "BlockingCharge": {
       "pytest_name": "blocking_charge",
       "has_ui": true,
-      "exclusive_resources": ["POWER"]
+      "exclusive_resources": [
+        "POWER"
+      ]
     },
     "Bluetooth": {
       "pytest_name": "bluetooth",
@@ -147,7 +166,9 @@
       "pytest_name": "battery_current",
       "label": "Charge Discharge Current",
       "has_ui": true,
-      "exclusive_resources": ["POWER"],
+      "exclusive_resources": [
+        "POWER"
+      ],
       "args": {
         "min_charging_current": 150,
         "min_discharging_current": 400,
@@ -355,7 +376,9 @@
       "label": "Shopfloor Service (NotifyEnd)",
       "args": {
         "method": "NotifyEnd",
-        "args": ["eval! locals.station"]
+        "args": [
+          "eval! locals.station"
+        ]
       }
     },
     "ShopfloorNotifyStart": {
@@ -363,7 +386,9 @@
       "label": "Shopfloor Service (NotifyStart)",
       "args": {
         "method": "NotifyStart",
-        "args": ["eval! locals.station"]
+        "args": [
+          "eval! locals.station"
+        ]
       }
     },
     "ShopfloorService": {
@@ -399,7 +424,9 @@
     "StressAppTest": {
       "pytest_name": "stressapptest",
       "label": "Stress App Test",
-      "exclusive_resources": ["CPU"]
+      "exclusive_resources": [
+        "CPU"
+      ]
     },
     "Stylus": {
       "pytest_name": "stylus",
@@ -484,7 +511,10 @@
           "label": "USB3 CC1 Performance",
           "args": {
             "sysfs_path": "eval! locals.usb.usb3_sysfs_path",
-            "usbpd_port_polarity": ["eval! locals.usb.usbpd_id", 1]
+            "usbpd_port_polarity": [
+              "eval! locals.usb.usbpd_id",
+              1
+            ]
           }
         },
         {
@@ -492,7 +522,10 @@
           "label": "USB3 CC2 Performance",
           "args": {
             "sysfs_path": "eval! locals.usb.usb3_sysfs_path",
-            "usbpd_port_polarity": ["eval! locals.usb.usbpd_id", 2]
+            "usbpd_port_polarity": [
+              "eval! locals.usb.usbpd_id",
+              2
+            ]
           }
         },
         {
@@ -506,7 +539,11 @@
           "inherit": "ChargeDischargeCurrent",
           "label": "20V Charging",
           "args": {
-            "usbpd_info": ["eval! locals.usb.usbpd_id", 19500, 20500],
+            "usbpd_info": [
+              "eval! locals.usb.usbpd_id",
+              19500,
+              20500
+            ],
             "usbpd_prompt": "eval! locals.usb_label"
           }
         },
@@ -514,7 +551,11 @@
           "inherit": "ChargeDischargeCurrent",
           "label": "5V Charging",
           "args": {
-            "usbpd_info": ["eval! locals.usb.usbpd_id", 4500, 5500],
+            "usbpd_info": [
+              "eval! locals.usb.usbpd_id",
+              4500,
+              5500
+            ],
             "usbpd_prompt": "eval! locals.usb_label"
           }
         },
@@ -522,7 +563,9 @@
           "inherit": "ExternalDisplay",
           "label": "USB3 External Display Test",
           "args": {
-            "display_info": ["eval! locals.usb.display_info"]
+            "display_info": [
+              "eval! locals.usb.display_info"
+            ]
           }
         },
         "Barrier"
@@ -546,7 +589,10 @@
     },
     "USBTypeCManualTest": {
       "inherit": "FlattenGroup",
-      "subtests": ["USBTypeCManualLeft", "USBTypeCManualRight"]
+      "subtests": [
+        "USBTypeCManualLeft",
+        "USBTypeCManualRight"
+      ]
     },
     "USBTypeCTest": "USBTypeCManualTest",
     "UpdateDeviceData": {
@@ -587,12 +633,16 @@
     "WirelessAntenna": {
       "pytest_name": "wireless_antenna",
       "has_ui": true,
-      "exclusive_resources": ["NETWORK"]
+      "exclusive_resources": [
+        "NETWORK"
+      ]
     },
     "WirelessRadiotap": {
       "pytest_name": "wireless_radiotap",
       "has_ui": true,
-      "exclusive_resources": ["NETWORK"]
+      "exclusive_resources": [
+        "NETWORK"
+      ]
     },
     "WriteDeviceDataToVPD": {
       "pytest_name": "write_device_data_to_vpd",

@@ -1,5 +1,7 @@
 {
-  "inherit": ["generic_common.test_list"],
+  "inherit": [
+    "generic_common.test_list"
+  ],
   "label": "Generic Rolling Reliability",
   "constants": {
     "rrt": {
@@ -19,7 +21,12 @@
         "grace_secs": 480,
         "temp_max_delta": 10,
         "temp_criteria": [
-          ["CPU", null, 90, 100]
+          [
+            "CPU",
+            null,
+            90,
+            100
+          ]
         ]
       }
     },

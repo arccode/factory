@@ -1,16 +1,15 @@
 {
-  "inherit": ["base.test_list"],
+  "inherit": [
+    "base.test_list"
+  ],
   "label": "Locals",
-
   "constants": {
-    "phase": "EVT",
-    "foo": "FOO"
+    "foo": "FOO",
+    "phase": "EVT"
   },
-
   "options": {
     "ui_locale": "zh-CN"
   },
-
   "definitions": {
     "NOP": {
       "pytest_name": "nop",
@@ -20,7 +19,6 @@
       }
     }
   },
-
   "tests": [
     {
       "id": "SMT",

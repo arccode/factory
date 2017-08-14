@@ -1,11 +1,8 @@
 {
-  "inherit": ["base.test_list"],
+  "inherit": [
+    "base.test_list"
+  ],
   "label": "Skip And Waive",
-  "definitions": {
-    "A": {
-      "pytest_name": "nop"
-    }
-  },
   "options": {
     "skipped_tests": {
       "PROTO": [
@@ -18,6 +15,11 @@
         "A_2",
         "G.A_2"
       ]
+    }
+  },
+  "definitions": {
+    "A": {
+      "pytest_name": "nop"
     }
   },
   "tests": [

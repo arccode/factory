@@ -1,7 +1,8 @@
 {
-  "inherit": ["base.test_list"],
+  "inherit": [
+    "base.test_list"
+  ],
   "label": "B",
-
   "tests": [
     {
       "id": "SMT",

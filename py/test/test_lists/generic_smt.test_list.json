@@ -1,5 +1,7 @@
 {
-  "inherit": ["generic_common.test_list"],
+  "inherit": [
+    "generic_common.test_list"
+  ],
   "constants": {
     "smt": {
       "component_list": [
@@ -168,7 +170,10 @@
     "SMTUpdateFirmware": {
       "inherit": "TestGroup",
       "label": "Update Firmware",
-      "subtests": ["SyncFactoryServer", "UpdateFirmware"]
+      "subtests": [
+        "SyncFactoryServer",
+        "UpdateFirmware"
+      ]
     },
     "SMTVerifyComponents": {
       "inherit": "VerifyComponents",

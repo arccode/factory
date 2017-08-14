@@ -2,11 +2,9 @@
   "constants": {
     "phase": "PROTO"
   },
-
   "options": {
     "phase": "eval! constants.phase"
   },
-
   "definitions": {
     "FactoryTest": {
       "inherit": "FactoryTest"
@@ -14,13 +12,11 @@
     "FlattenGroup": {
       "inherit": "FlattenGroup"
     },
-    "TestGroup": {
-      "inherit": "TestGroup"
-    },
-    "ShutdownStep": {
+    "FullRebootStep": {
       "inherit": "ShutdownStep",
+      "label": "Full Reboot",
       "args": {
-        "delay_secs": 5
+        "operation": "full_reboot"
       }
     },
     "HaltStep": {
@@ -37,12 +33,14 @@
         "operation": "reboot"
       }
     },
-    "FullRebootStep": {
+    "ShutdownStep": {
       "inherit": "ShutdownStep",
-      "label": "Full Reboot",
       "args": {
-        "operation": "full_reboot"
+        "delay_secs": 5
       }
+    },
+    "TestGroup": {
+      "inherit": "TestGroup"
     }
   }
 }
