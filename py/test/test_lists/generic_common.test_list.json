@@ -403,8 +403,7 @@
     },
     "Stylus": {
       "pytest_name": "stylus",
-      "has_ui": true,
-      "run_if": "device.component.has_touchscreen"
+      "has_ui": true
     },
     "SuspendResume": {
       "pytest_name": "suspend_resume"
@@ -443,7 +442,6 @@
     "Touchscreen": {
       "pytest_name": "touchscreen",
       "has_ui": true,
-      "run_if": "device.component.has_touchscreen",
       "args": {
         "x_segments": 8,
         "y_segments": 8
@@ -451,8 +449,7 @@
     },
     "TouchscreenFirmwareVerify": {
       "pytest_name": "verify_touch_device_fw",
-      "label": "Touchscreen Firmware Verify",
-      "run_if": "device.component.has_touchscreen"
+      "label": "Touchscreen Firmware Verify"
     },
     "TouchscreenProbe": {
       "pytest_name": "i2c_probe",
@@ -466,8 +463,7 @@
     "TouchscreenUniformity": {
       "pytest_name": "touch_uniformity",
       "label": "Touchscreen Uniformity",
-      "has_ui": true,
-      "run_if": "device.component.has_touchscreen"
+      "has_ui": true
     },
     "URandom": {
       "pytest_name": "urandom",

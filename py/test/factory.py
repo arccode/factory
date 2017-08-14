@@ -350,7 +350,7 @@ class Options(object):
           'EVT': [
               'SMT.AudioJack',
           ],
-          'not device.components.has_touchscreen': [
+          'not device.component.has_touchscreen': [
               '*.Touchscreen'
           ],
           'device.factory.end_SMT': [
