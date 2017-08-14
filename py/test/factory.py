@@ -519,7 +519,7 @@ def overall_status(statuses):
   status_set = set(statuses)
   for status in [TestState.ACTIVE, TestState.FAILED,
                  TestState.UNTESTED, TestState.FAILED_AND_WAIVED,
-                 TestState.PASSED]:
+                 TestState.SKIPPED, TestState.PASSED]:
     if status in status_set:
       return status
 
