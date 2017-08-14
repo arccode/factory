@@ -115,7 +115,7 @@ simplicity, the expression has the following restrictions:
    2. `constants` and `options`
    3. `dut`, `station`
    4. `locals`
-   5. `session`  (a state_proxy object created by `state.get_instance()`)
+   5. `state_proxy`  (a state_proxy object created by `state.get_instance()`)
 
 The result of evaluated expression will not be evaluated again even if it starts
 with `"eval! "` as well.

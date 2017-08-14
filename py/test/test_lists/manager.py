@@ -20,10 +20,11 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import factory
-from cros.factory.test.rules import phase
-from cros.factory.test.utils import selector_utils
 from cros.factory.test import i18n
+from cros.factory.test.rules import phase
+from cros.factory.test import state
 from cros.factory.test.test_lists import test_lists
+from cros.factory.test.utils import selector_utils
 from cros.factory.utils import config_utils
 from cros.factory.utils import debug_utils
 from cros.factory.utils import type_utils
@@ -283,7 +284,8 @@ class ITestList(object):
         'station': station,
         'constants': constants,
         'options': options,
-        'locals': locals_, }
+        'locals': locals_,
+        'state_proxy': state.get_instance(), }
     return eval(expression, namespace)  # pylint: disable=eval-used
 
   @staticmethod
@@ -875,7 +877,7 @@ class Checker(object):
   *before* actually running tests in the test list.
   """
   _EVAL_VALID_IDENTIFIERS = set(
-      ['constants', 'options', 'dut', 'station', 'session', 'locals'] +
+      ['constants', 'options', 'dut', 'station', 'state_proxy', 'locals'] +
       [key for key, unused_value in inspect.getmembers(__builtin__)])
 
   _RUN_IF_VALID_IDENTIFIERS = set(
@@ -902,8 +904,7 @@ class Checker(object):
       - built-in functions
       - "constants" and "options" defined by test list
       - "dut", "station" (to get information from DUT and station)
-      - "session" (session is not implemented yet, it will represent a test
-        session on a test station)
+      - "state_proxy" (state server proxy returned by state.get_instance())
 
     Args:
       :type expression: basestring

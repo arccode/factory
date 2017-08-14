@@ -7,12 +7,14 @@
 import collections
 import glob
 import json
+import mock
 import os
 import shutil
 import tempfile
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test import device_data
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager
 from cros.factory.utils import type_utils
@@ -76,14 +78,21 @@ class TestListLoaderTest(unittest.TestCase):
           options[key],
           getattr(factory_test_list.options, key))
 
-  def testResolveTestArgs(self):
+  @mock.patch.object(state, 'get_instance')
+  def testResolveTestArgs(self, state_get_instance):
+    state_proxy = state.StubFactoryState()
+    state_get_instance.side_effect = lambda *args, **kwargs: state_proxy
+
+    device_data.UpdateDeviceData({'vpd.ro.region': 'us'})
+
     test_args = {
         'a': 'eval! \'eval! \'',
         'b': 'eval! constants.timestamp',
         'c': 'eval! constants.timestamp + 3',
         'd': 'eval! options.ui_locale.upper()',
         'e': 'eval! [x * x for x in xrange(3)]',
-        'f': 'eval! constants.some_label', }
+        'f': 'eval! constants.some_label',
+        'g': 'eval! state_proxy.data_shelf.device.vpd.ro.region.Get()', }
 
     test_list = self.manager.GetTestListByID('a')
     constants = test_list.ToTestListConfig()['constants']
@@ -96,7 +105,8 @@ class TestListLoaderTest(unittest.TestCase):
          'c': constants['timestamp'] + 3,
          'd': options['ui_locale'].upper(),
          'e': [x * x for x in xrange(3)],
-         'f': {'en-US': 'us', 'zh-CN': 'cn'}, },
+         'f': {'en-US': 'us', 'zh-CN': 'cn'},
+         'g': 'us', },
         resolved_test_args)
 
     # We expect test arguments to be type dict instead of AttrDict, so yaml
