@@ -1106,8 +1106,8 @@ class Goofy(GoofyBase):
       if self.options.ui == 'chrome':
         # Create an empty test list with default options so that the rest of
         # startup can proceed.
-        self.test_list = factory.FactoryTestList(
-            [], self.state_instance, factory.Options())
+        self.test_list = manager.LegacyTestList(factory.FactoryTestList(
+            [], self.state_instance, factory.Options()))
       else:
         # Bail with an error; no point in starting up.
         sys.exit('No valid test list; exiting.')
