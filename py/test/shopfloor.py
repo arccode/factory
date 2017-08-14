@@ -20,7 +20,6 @@ For the protocol details, check:
 """
 
 import contextlib
-import hashlib
 import json
 import logging
 import os
@@ -298,20 +297,6 @@ def get_hwid():
 
 
 @_server_api
-def get_hwid_updater():
-  """Gets HWID updater, if any."""
-  hwid_updater = None
-  proxy = get_instance()
-  if proxy.use_umpire:
-    hwid_updater = get_update.GetUpdateForHWID(proxy)
-  else:
-    hwid_updater = proxy.GetHWIDUpdater()
-    if isinstance(hwid_updater, Binary):
-      hwid_updater = hwid_updater.data
-  return hwid_updater
-
-
-@_server_api
 def get_firmware_updater():
   """Gets firmware updater, if any."""
   firmware_updater = None
@@ -343,32 +328,33 @@ def update_local_hwid_data(dut, target_dir='/usr/local/factory/hwid'):
   Returns:
     True if updated, False if no update was available.
   """
-  updater_data = get_hwid_updater()
-  if updater_data:
-    with dut.temp.TempFile(
-        prefix='hwid_updater.', suffix='.sh') as hwid_updater_sh:
-      dut.WriteFile(hwid_updater_sh, updater_data)
-      dut.CheckCall(['chmod', '0755', hwid_updater_sh])
-      factory.console.info(
-          'Received HWID updater %s from shopfloor server (md5sum %s); '
-          'executing',
-          hwid_updater_sh,
-          hashlib.md5(updater_data).hexdigest())
+  payload, components, downloader = GetUpdateFromCROSPayload('hwid')
 
-      console_log_path = paths.CONSOLE_LOG_PATH
-      file_utils.TryMakeDirs(os.path.dirname(console_log_path))
-      with open(console_log_path, 'a') as log:
-        if not dut.path.isdir(target_dir):
-          dut.CheckCall(['mkdir', '-p', target_dir])
-        dut.CheckCall([hwid_updater_sh, target_dir],
-                      stdout=log, stderr=log)
-        dut.CheckCall('sync')
-      # TODO(youcheng): invalidate cache of dut instance in goofy properly
-      dut.info.Invalidate('hwid_database_version')
-    return True
-  else:
+  if not payload or payload['version'] == components['hwid']:
     factory.log('No HWID update available from shopfloor server')
     return False
+
+  with downloader() as res_path:
+    updater_data = file_utils.ReadFile(res_path)
+
+  with dut.temp.TempFile(
+      prefix='hwid_updater.', suffix='.sh') as hwid_updater_sh:
+    dut.WriteFile(hwid_updater_sh, updater_data)
+    factory.console.info(
+        'Received HWID updater %s from shopfloor server (version %s); '
+        'executing', hwid_updater_sh, payload['version'])
+
+    console_log_path = paths.CONSOLE_LOG_PATH
+    file_utils.TryMakeDirs(os.path.dirname(console_log_path))
+    with open(console_log_path, 'a') as log:
+      dut.CheckCall(['mkdir', '-p', target_dir])
+      dut.CheckCall(['sh', hwid_updater_sh, target_dir], stdout=log, stderr=log)
+      dut.CheckCall(['sync'])
+
+  # TODO(youcheng): Invalidate cache of dut instance in goofy properly.
+  dut.info.Invalidate('hwid_database_version')
+
+  return True
 
 
 @_server_api
