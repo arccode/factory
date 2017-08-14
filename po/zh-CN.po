@@ -291,10 +291,6 @@ msgid "Message"
 msgstr "讯息"
 
 #: ../build/pytests_label_generated.json
-msgid "MLB Version"
-msgstr "母版版本"
-
-#: ../build/pytests_label_generated.json
 msgid "Mosys Platform"
 msgstr "确认 SKU 设定"
 
