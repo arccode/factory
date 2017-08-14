@@ -337,6 +337,13 @@
     "PartitionTable": {
       "pytest_name": "partition_table"
     },
+    "Probe": {
+      "pytest_name": "probe",
+      "has_ui": true,
+      "args": {
+        "config_file": "probe.json"
+      }
+    },
     "QRScan": {
       "inherit": "Camera",
       "label": "QR Scan",
