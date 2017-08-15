@@ -535,30 +535,7 @@
             "sysfs_path": "eval! locals.usb.usb2_sysfs_path"
           }
         },
-        {
-          "inherit": "ChargeDischargeCurrent",
-          "label": "20V Charging",
-          "args": {
-            "usbpd_info": [
-              "eval! locals.usb.usbpd_id",
-              19500,
-              20500
-            ],
-            "usbpd_prompt": "eval! locals.usb_label"
-          }
-        },
-        {
-          "inherit": "ChargeDischargeCurrent",
-          "label": "5V Charging",
-          "args": {
-            "usbpd_info": [
-              "eval! locals.usb.usbpd_id",
-              4500,
-              5500
-            ],
-            "usbpd_prompt": "eval! locals.usb_label"
-          }
-        },
+        "USBTypeCManualChargeItems",
         {
           "inherit": "ExternalDisplay",
           "label": "USB3 External Display Test",
@@ -569,6 +546,36 @@
           }
         },
         "Barrier"
+      ]
+    },
+    "USBTypeCManualCharge": {
+      "inherit": "ChargeDischargeCurrent",
+      "args": {
+        "usbpd_info": [
+          "eval! locals.usb.usbpd_id",
+          "eval! locals.voltage * 1000 - 500",
+          "eval! locals.voltage * 1000 + 500"
+        ],
+        "usbpd_prompt": "eval! locals.usb_label"
+      }
+    },
+    "USBTypeCManualChargeItems": {
+      "inherit": "FlattenGroup",
+      "subtests": [
+        {
+          "inherit": "USBTypeCManualCharge",
+          "label": "20V Charging",
+          "locals": {
+            "voltage": 20
+          }
+        },
+        {
+          "inherit": "USBTypeCManualCharge",
+          "label": "5V Charging",
+          "locals": {
+            "voltage": 5
+          }
+        }
       ]
     },
     "USBTypeCManualLeft": {

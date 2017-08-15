@@ -3470,16 +3470,16 @@ msgid "USB2 Performance"
 msgstr "USB2 效能测试"
 
 #: ../py/test/test_lists/generic_common.test_list.json
+msgid "USB3 External Display Test"
+msgstr "USB3 外接显示"
+
+#: ../py/test/test_lists/generic_common.test_list.json
 msgid "20V Charging"
 msgstr "20V 充电"
 
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "5V Charging"
 msgstr "5V 充电"
-
-#: ../py/test/test_lists/generic_common.test_list.json
-msgid "USB3 External Display Test"
-msgstr "USB3 外接显示"
 
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Left USB TypeC"
