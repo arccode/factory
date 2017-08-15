@@ -4,28 +4,76 @@
 
 """Displays a status summary for all tests in the current section.
 
-The summary includes tests up to, but not including, this test).
+Description
+-----------
+This is a test to display a summary of test results in same test group.
+The summary includes tests up to, but not including, this test itself.
 
-For example, if the test tree is
+For example, if the test tree is::
 
-SMT
-  ...
-Runin
-  A
-  B
-  C
-  report (this test)
-  shutdown
+ SMT
+   ...
+ Runin
+   A
+   B
+   C
+   report (this test)
+   shutdown
 
-...then this test will show the status summary for A, B, and C.
+Then this test will show the status summary for A, B, and C. No shutdown.
 
-dargs:
-  disable_input_on_fail: Disable user input to pass/fail when
-    the overall status is not PASSED. If this argument is True and overall
-    status is PASSED, user can pass the test by clicking the item or hitting
-    space. If this argument is True and overall status is not PASSED,
-    the test will hang there while the control menu can still work to
-    stop/abort the test.
+This test is often used as a "barrier" or "check point" when the argument
+``disable_input_on_fail`` is set, since operators can't skip to next test item
+when the overall status is not PASSED.
+
+Moreover, if argument ``pass_without_prompt`` is ``True``, the test will pass
+silently and move to next test item without user interaction. This is usually
+known as "Barrier" mode. Otherwise, it'll prompt the given message and wait for
+input, which is known as "Check Point" mode.
+
+Test Procedure
+--------------
+1. If all previous tests in same group are passed, this test will display
+   nothing and simply pass when argument ``pass_without_prompt`` is True,
+   otherwise display a table of test names and results, prompt the given (or
+   default) message and wait for input to pass or fail.
+2. Otherwise, if any previous tests in same group failed, a table listing test
+   names and results will be displayed. Depends on argument
+   ``disable_input_on_fail``, operator may choose to continue or will stay in
+   failure screen.
+
+Dependency
+----------
+None.
+
+Examples
+--------
+To list previous tests in same group, and always prompt and wait for input to
+decide if we can move on::
+
+  OperatorTest(pytest_name='summary')
+
+To only stop when any previous tests in same group has failed ("Barrier")::
+
+  OperatorTest(pytest_name='summary',
+               disable_abort=True,
+               never_fails=True,
+               dargs={
+                   'disable_input_on_fail': True,
+                   'pass_without_prompt': True,
+               })
+
+To always prompt but only pass if all previous tests in same group passed
+("Check Point")::
+
+  OperatorTest(pytest_name='summary',
+               disable_abort=True,
+               never_fails=True,
+               dargs={
+                   'disable_input_on_fail': True,
+                   'pass_without_prompt': False,
+                   'prompt_message': _('Press space to shutdown.'),
+               })
 """
 
 import logging
@@ -35,6 +83,8 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test.fixture import bft_fixture
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
 from cros.factory.test import test_ui
@@ -50,6 +100,10 @@ table {
 th, td {
   padding: 0 1em;
 }
+
+.prompt_message {
+  font-size: 200%;
+}
 """
 
 _EXTERNAL_DIR = '/run/factory/external'
@@ -64,6 +118,9 @@ _EXTENED_PASSED_STATE = {
 class Report(unittest.TestCase):
   """A factory test to report test status."""
   ARGS = [
+      i18n_arg_utils.I18nArg(
+          'prompt_message', 'Prompt message in HTML when all tests passed',
+          default=_('Click or press SPACE to continue')),
       Arg('disable_input_on_fail', bool,
           ('Disable user input to pass/fail when the overall status is not '
            'PASSED'),
@@ -99,12 +156,13 @@ class Report(unittest.TestCase):
     self.dut = device_utils.CreateDUTInterface()
 
   def runTest(self):
+    i18n_arg_utils.ParseArg(self, 'prompt_message')
+    ui = test_ui.UI(css=CSS)
+    template = ui_templates.OneSection(ui)
+
     test_list = self.test_info.ReadTestList()
     test = test_list.LookupPath(self.test_info.path)
     states = state.get_instance().get_test_states()
-
-    ui = test_ui.UI(css=CSS)
-    template = ui_templates.OneSection(ui)
 
     statuses = []
 
@@ -154,20 +212,24 @@ class Report(unittest.TestCase):
       return
 
     html = ['<div class="test-vcenter-outer"><div class="test-vcenter-inner">']
+    prompt_class = 'prompt_message'
 
     if not self.args.disable_input_on_fail or all_pass:
       html = html + [
           '<a onclick="onclick:window.test.pass()" href="#">',
-          i18n_test_ui.MakeI18nLabel('Click or press SPACE to continue'),
-          '</a><br>'
+          i18n_test_ui.MakeI18nLabelWithClass(
+              self.args.prompt_message, prompt_class),
+          '</a>'
       ]
     else:
       html = html + [
-          i18n_test_ui.MakeI18nLabel(
-              'Unable to proceed, since some previous tests have not passed.')
+          i18n_test_ui.MakeI18nLabelWithClass(
+              'Unable to proceed, since some previous tests have not passed.',
+              prompt_class)
       ]
 
     html = html + [
+        '<br>',
         i18n_test_ui.MakeI18nLabel(
             'Test Status for {test}:', test=test.parent.path),
         '<div class="test-status-%s" style="font-size: 300%%">%s</div>' %
