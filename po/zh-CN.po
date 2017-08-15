@@ -2129,24 +2129,16 @@ msgid "Flashing {file} to {partition}."
 msgstr "安装 {file} 至 {partition}."
 
 #: ../py/test/pytests/finalize/finalize.py
-msgid "Checking system status for finalization..."
-msgstr "正在检查系统是否已可执行最终程序..."
+msgid ""
+"Build Phase: {phase}<br>Write Protection: {write_protect}<br>Factory Server: "
+"{factory_server}<br>"
+msgstr ""
+"生产阶段: {phase}<br>写入保护: {write_protect}<br>工厂伺服器: "
+"{factory_server}<br>"
 
 #: ../py/test/pytests/finalize/finalize.py
-msgid "System is not ready.<br>Please fix RED tasks and then press SPACE."
-msgstr "系统尚未就绪。<br>请修正红色项目后按空白键重新检查。"
-
-#: ../py/test/pytests/finalize/finalize.py
-msgid "System is NOT ready. Please fix RED tasks."
-msgstr "系统尚未就绪。请修正红色项目。"
-
-#: ../py/test/pytests/finalize/finalize.py
-msgid "Press \"f\" to force starting finalization procedure."
-msgstr "按下 「f」 键以强迫开始最终程序。"
-
-#: ../py/test/pytests/finalize/finalize.py
-msgid "System is READY. Press SPACE to start FINALIZATION."
-msgstr "系统已准备就绪。 请按空白键开始最终程序!"
+msgid "Running preflight tasks to prepare for finalization, please wait..."
+msgstr "正在准备系统以执行最终程序..."
 
 #: ../py/test/pytests/finalize/finalize.py
 msgid ""
@@ -2156,16 +2148,12 @@ msgstr ""
 "正在开始最终程序，请稍等.<br>不要重启机器或停止测试，<br>不然机器将无法开机。"
 
 #: ../py/test/pytests/finalize/finalize.py
-msgid "Verify all tests passed"
-msgstr "确认测试项目都已成功了"
+msgid "Enabled"
+msgstr "启用"
 
 #: ../py/test/pytests/finalize/finalize.py
-msgid "Turn off Developer Switch"
-msgstr "停用开发者开关(DevSwitch)"
-
-#: ../py/test/pytests/finalize/finalize.py
-msgid "Enable write protection pin"
-msgstr "确认硬体写入保护已开启"
+msgid "Disabled"
+msgstr "停用"
 
 #: ../py/test/pytests/finalize_accessory.py
 msgid "Get the final test result..."

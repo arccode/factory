@@ -7,15 +7,14 @@
 
 Description
 -----------
-The test checks if all tests are passed, and checks the hardware
-write-protection. Then it invokes ``gooftool finalize`` with specified arguments
-to switch the machine to shipping state.  The test includes the following steps:
+The test invokes ``gooftool finalize`` with specified arguments to switch the
+machine to shipping state, in following steps:
 
-1. Check in pytest
+1. Run preflight tasks, including:
 
-  * test statuses (``waive_tests``, ``untested_tests``)
-  * developer switch (cannot disable it)
-  * hardware write-protection (``write_protection``)
+  a. Download HWID file from server if available.
+  b. Log test states.
+  c. Log image versions.
 
 2. Call ``gooftool finalize``, which executes following subcommands in order:
 
@@ -37,12 +36,8 @@ some gooftool steps.
 
 Test Procedure
 --------------
-When started, the pytest checks if test statuses, developer switch, hardware
-write-protection are in correct states.  The check result will be shown on the
-screen, if there are any failure, operator should record failed items and press
-'Mark Failed' to stop the test.  If ``allow_force_finalize`` is set, then
-enigneer and / or operator will be allowed to **force** finalize by pressing
-'F'.
+When started, the pytest runs a few preflight tasks, to check configuration or
+prepare logs.
 
 After that, ``gooftool finalize`` will be called, and it will check device's
 state, from hardware to software configuration.
@@ -75,13 +70,10 @@ A minimum example should be::
 
 Where,
 
-* ``write_protection`` is ``True``, so hardware WP must be enabled.
-* ``allow_force_finalize`` is ``['operator', 'engineer']``, so both operator and
-  engineer can force finalize.
-* All test should be tested and passed
+* ``write_protection`` will be ``True`` for PVT phase, otherwise ``False``.
 * ``enable_shopfloor`` is ``True``, will try to connect to shopfloor and update
   HWID data, flush event logs.
-* All gooftool verifications are not skipped or waived.
+* All gooftool verification rules are not skipped or waived.
 
 For early builds (PROTO, EVT), you can skip things that are not ready::
 
@@ -92,7 +84,6 @@ For early builds (PROTO, EVT), you can skip things that are not ready::
             gooftool_skip_list=['clear_gbb_flags'],
             write_protection=False
         ))
-
 """
 
 
@@ -100,7 +91,6 @@ import json
 import logging
 import os
 import random
-import re
 import subprocess
 import threading
 import time
@@ -116,6 +106,8 @@ from cros.factory.test.env import paths
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import gooftools
+from cros.factory.test import i18n
+from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rules import phase
 from cros.factory.test import shopfloor
@@ -130,17 +122,12 @@ from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
 
-MSG_CHECKING = i18n_test_ui.MakeI18nLabel(
-    'Checking system status for finalization...')
-MSG_NOT_READY = i18n_test_ui.MakeI18nLabel(
-    'System is not ready.<br>'
-    'Please fix RED tasks and then press SPACE.')
-MSG_NOT_READY_POLLING = i18n_test_ui.MakeI18nLabel(
-    'System is NOT ready. Please fix RED tasks.')
-MSG_FORCE = i18n_test_ui.MakeI18nLabel(
-    'Press "f" to force starting finalization procedure.')
-MSG_READY = i18n_test_ui.MakeI18nLabel(
-    'System is READY. Press SPACE to start FINALIZATION.')
+MSG_INSTRUCTION = _(
+    'Build Phase: {phase}<br>'
+    'Write Protection: {write_protect}<br>'
+    'Factory Server: {factory_server}<br>')
+MSG_PREFLIGHT = i18n_test_ui.MakeI18nLabel(
+    'Running preflight tasks to prepare for finalization, please wait...')
 MSG_FINALIZING = i18n_test_ui.MakeI18nLabel(
     'Finalizing, please wait.<br>'
     'Do not restart the device or terminate this test,<br>'
@@ -151,57 +138,22 @@ class Finalize(unittest.TestCase):
   """The main class for finalize pytest."""
   ARGS = [
       Arg('write_protection', bool,
-          'Check write protection.', default=True),
-      Arg('polling_seconds', (int, type(None)),
-          'Interval between updating results (None to disable polling).',
-          default=5),
-      Arg('allow_force_finalize', list,
-          'List of users as strings allowed to force finalize, supported '
-          'users are operator or engineer.',
-          default=[]),
+          'Check and enable write protection.', optional=True),
       Arg('secure_wipe', bool,
           'Wipe the stateful partition securely (False for a fast wipe).',
           default=True),
       Arg('upload_method', str,
           'Upload method for "gooftool finalize"',
           optional=True),
-      Arg('waive_tests', list,
-          'Do not require certain tests to pass.  This is a list of elements; '
-          'each element must either be a regular expression of test path, '
-          'or a tuple of regular expression of test path and a regular '
-          'expression that must match the error message in order to waive the '
-          'test. If regular expression of error message is empty, the test '
-          'can be waived if it is either UNTESTED or FAILED. '
-          r'e.g.: [(r"^FATP\.FooBar$", r"Timeout"), (r"Diagnostic\..*")] will '
-          'waive FATP.FooBar test if error message starts with Timeout. It '
-          'will also waive all Diagnostic.* tests, either UNTESTED or FAILED. '
-          'Error messages may be multiline (e.g., stack traces) so this is a '
-          'multiline match.  This is a Python re.match operation, so it will '
-          'match from the beginning of the error string.',
-          default=[]),
-      Arg('untested_tests', list,
-          'A list of tests that should not be tested at this point, e.g. test '
-          'cases which, by design, will be run AFTER finalization. To prevent '
-          'test being added to this list by accident, each element must be'
-          'a exact test path, rather than a regular expression.',
-          default=[]),
       Arg('enable_shopfloor', bool,
           'Perform shopfloor operations: update HWID data and flush event '
           'logs.', default=True),
-      Arg('sync_event_logs', bool, 'Sync event logs to shopfloor',
-          default=True),
       Arg('rma_mode', bool,
           'Enable rma_mode, do not check for deprecated components.',
           default=False, optional=True),
       Arg('is_cros_core', bool,
           'For ChromeOS Core device, skip setting firmware bitmap locale.',
           default=False, optional=True),
-      Arg('inform_shopfloor_after_wipe', bool,
-          'Inform shopfloor server that the device is finalized after it gets'
-          'wiped. For in-place wipe, it is recommended to set to True so'
-          'a shopfloor call can be made AFTER device gets wiped successfully.'
-          'For legacy wipe, shopfloor call is always made before wiping.',
-          default=True),
       Arg('enforced_release_channels', list,
           'A list of string indicating the enforced release image channels. '
           'Each item should be one of "dev", "beta" or "stable".',
@@ -226,7 +178,7 @@ class Finalize(unittest.TestCase):
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
+    self.template = ui_templates.TwoSections(self.ui)
     self.force = False
     self.go_cond = threading.Condition()
     self.test_states_path = os.path.join(paths.DATA_LOG_DIR, 'test_states')
@@ -236,14 +188,6 @@ class Finalize(unittest.TestCase):
     self.dut_response = None
     self.response_listener = None
 
-    # Set of waived tests.
-    self.waived_tests = set()
-
-    # Normalize 0 to None (since various things, e.g.,
-    # Condition.wait(timeout), treat 0 and None differently.
-    if self.args.polling_seconds == 0:
-      self.args.polling_seconds = None
-
   def tearDown(self):
     if self.response_listener:
       self.response_listener.shutdown()
@@ -251,50 +195,11 @@ class Finalize(unittest.TestCase):
       self.response_listener = None
 
   def runTest(self):
-    # Check waived_tests argument.  (It must be empty at DVT and
-    # beyond.)
-    phase.AssertStartingAtPhase(
-        phase.DVT,
-        not self.args.waive_tests,
-        'Tests may not be waived; set of waived tests is %s' % (
-            self.args.waive_tests))
-
+    # TODO(hungte) Should we set a percentage of units to run WP on DVT?
+    if self.args.write_protection is None:
+      self.args.write_protection = phase.GetPhase() >= phase.PVT
     phase.AssertStartingAtPhase(phase.PVT, self.args.write_protection,
                                 'Write protection must be enabled')
-
-    # Check for HWID bundle update from shopfloor.
-    if self.args.enable_shopfloor:
-      shopfloor.update_local_hwid_data(self.dut)
-
-    # Preprocess waive_tests: turn it into a list of tuples where the
-    # first element is the regular expression of test id and the second
-    # is the regular expression of error messages.
-    for i, w in enumerate(self.args.waive_tests):
-      if isinstance(w, str):
-        w = (w, '')  # '' matches anything
-      self.assertTrue(isinstance(w, tuple) and
-                      len(w) == 2,
-                      'Invalid waive_tests element %r' % (w,))
-      self.args.waive_tests[i] = (re.compile(w[0]),
-                                  re.compile(w[1], re.MULTILINE))
-
-    test_list = self.test_info.ReadTestList()
-    test_states = test_list.AsDict(
-        state.get_instance().get_test_states())
-
-    file_utils.TryMakeDirs(os.path.dirname(self.test_states_path))
-    with open(self.test_states_path, 'w') as f:
-      yaml.dump(test_states, f)
-
-    event_log.Log('test_states', test_states=test_states)
-
-    def Go(force=False):
-      with self.go_cond:
-        if self.ForcePermissions():
-          self.force = force
-        self.go_cond.notify()
-    self.ui.BindKey(test_ui.SPACE_KEY, lambda _: Go(False))
-    self.ui.BindKey('F', lambda _: Go(True))
 
     thread = threading.Thread(target=self.Run)
 
@@ -306,12 +211,38 @@ class Finalize(unittest.TestCase):
 
   def Run(self):
     try:
-      self.LogImageVersion()
-      self.RunPreflight()
+      self.template.SetInstruction(
+          '<div style="font-size: 80%;">' +
+          i18n_test_ui.MakeI18nLabel(
+              MSG_INSTRUCTION,
+              phase=i18n.NoTranslation(str(phase.GetPhase())),
+              write_protect=(_('Enabled') if self.args.write_protection else
+                             _('Disabled')),
+              factory_server=(_('Enabled') if self.args.enable_shopfloor else
+                              _('Disabled'))) +
+              '</div>')
+      self.template.SetState(MSG_PREFLIGHT)
+      self.Preflight()
       self.template.SetState(MSG_FINALIZING)
       self.DoFinalize()
     except Exception as e:
       self.ui.Fail('Exception during finalization: %s' % e)
+
+  def Preflight(self):
+    # Check for HWID bundle update from shopfloor.
+    if self.args.enable_shopfloor:
+      shopfloor.update_local_hwid_data(self.dut)
+    self.LogTestStates()
+    self.LogImageVersion()
+
+  def LogTestStates(self):
+    test_list = self.test_info.ReadTestList()
+    test_states = test_list.AsDict(
+        state.get_instance().get_test_states())
+    file_utils.TryMakeDirs(os.path.dirname(self.test_states_path))
+    with open(self.test_states_path, 'w') as f:
+      yaml.dump(test_states, f)
+    event_log.Log('test_states', test_states=test_states)
 
   def LogImageVersion(self):
     release_image_version = self.dut.info.release_image_version
@@ -354,129 +285,6 @@ class Finalize(unittest.TestCase):
     factory.console.info('return code: %d', returncode)
     return returncode == 0
 
-  def RunPreflight(self):
-    def CheckRequiredTests():
-      """Returns True if all tests (except waived tests) have passed."""
-      test_list = self.test_info.ReadTestList()
-      state_map = state.get_instance().get_test_states()
-
-      self.waived_tests = set()
-
-      for k, v in state_map.iteritems():
-        test = test_list.LookupPath(k)
-        if not test:
-          # Test has been removed (e.g., by updater).
-          continue
-
-        if test.subtests:
-          # There are subtests.  Don't check the parent itself (only check
-          # the children).
-          continue
-
-        if v.status == factory.TestState.FAILED_AND_WAIVED:
-          # The test is explicitly waived in the test list.
-          continue
-
-        if v.status == factory.TestState.UNTESTED:
-          if k in self.args.untested_tests:
-            # this is expected
-            continue
-
-          # See if it's been waived. The regular expression of error messages
-          # must be empty string.
-          for regex_path, regex_error_msg in self.args.waive_tests:
-            if regex_path.match(k) and not regex_error_msg.pattern:
-              self.waived_tests.add(k)
-              logging.info('Waived UNTESTED test %r', k)
-              break
-          else:
-            # It has not been waived.
-            return False
-
-        if v.status == factory.TestState.FAILED:
-          # See if it's been waived.
-          for regex_path, regex_error_msg in self.args.waive_tests:
-            if regex_path.match(k) and regex_error_msg.match(v.error_msg):
-              self.waived_tests.add(k)
-              logging.info('Waived FAILED test %r', k)
-              break
-          else:
-            # It has not been waived.
-            return False
-
-      return True
-
-    def CheckDevSwitch():
-      return self._CallGoofTool('gooftool verify_switch_dev')
-
-    items = [(CheckRequiredTests,
-              i18n_test_ui.MakeI18nLabel('Verify all tests passed')),
-             (CheckDevSwitch,
-              i18n_test_ui.MakeI18nLabel('Turn off Developer Switch'))]
-
-    if self.args.write_protection:
-      def CheckWriteProtect():
-        return self._CallGoofTool('gooftool verify_switch_wp')
-
-      items += [(CheckWriteProtect,
-                 i18n_test_ui.MakeI18nLabel('Enable write protection pin'))]
-
-    self.template.SetState(
-        '<table style="margin: auto; font-size: 150%"><tr><td>' +
-        '<div id="finalize-state">%s</div>' % MSG_CHECKING +
-        '<table style="margin: auto"><tr><td>' +
-        '<ul id="finalize-list" style="margin-top: 1em">' +
-        ''.join('<li id="finalize-%d">%s' % (i, item[1])
-                for i, item in enumerate(items)),
-        '</ul>'
-        '</td></tr></table>'
-        '</td></tr></table>')
-
-    def UpdateState():
-      """Polls and updates the states of all checklist items.
-
-      Returns:
-        True if all have passed.
-      """
-      all_passed = True
-      js = []
-      for i, item in enumerate(items):
-        try:
-          passed = item[0]()
-        except Exception:
-          logging.exception('Error evaluating finalization condition')
-          passed = False
-        js.append('$("finalize-%d").className = "test-status-%s"' % (
-            i, 'passed' if passed else 'failed'))
-        all_passed = all_passed and passed
-
-      self.ui.RunJS(';'.join(js))
-      if not all_passed:
-        msg = (MSG_NOT_READY_POLLING if self.args.polling_seconds
-               else MSG_NOT_READY)
-        if self.ForcePermissions():
-          msg += '<div>' + MSG_FORCE + '</div>'
-        self.ui.SetHTML(msg, id='finalize-state')
-
-      return all_passed
-
-    with self.go_cond:
-      first_time = True
-      while not self.force:
-        if UpdateState():
-          # All done!
-          if first_time and not self.args.polling_seconds:
-            # Succeeded on the first try, and we're not polling; wait
-            # for a SPACE keypress.
-            self.ui.SetHTML(MSG_READY, id='finalize-state')
-            self.go_cond.wait()
-          return
-
-        # Wait for a "go" signal, up to polling_seconds (or forever if
-        # not polling).
-        self.go_cond.wait(self.args.polling_seconds)
-        first_time = False
-
   def Warn(self, message, times=3):
     """Alerts user that a required test is bypassed."""
     for i in range(times, 0, -1):
@@ -485,17 +293,6 @@ class Finalize(unittest.TestCase):
           'THIS DEVICE CANNOT BE QUALIFIED. '
           '(will continue in %d seconds)', message, i)
       time.sleep(1)
-
-  def ForcePermissions(self):
-    """Return true if there are permissions to force, false if not."""
-    for user in self.args.allow_force_finalize:
-      self.assertTrue(user in ['engineer', 'operator'],
-                      'Invalid user %r in allow_force_finalize.' % user)
-      if user == 'engineer' and self.ui.InEngineeringMode():
-        return True
-      elif user == 'operator' and not self.ui.InEngineeringMode():
-        return True
-    return False
 
   def NormalizeUploadMethod(self, method):
     """Builds the report file name and resolves variables."""
@@ -514,11 +311,8 @@ class Finalize(unittest.TestCase):
     upload_method = self.NormalizeUploadMethod(self.args.upload_method)
 
     command = 'gooftool -v 4 finalize'
-    if self.waived_tests:
-      self.Warn('TESTS WERE WAIVED: %s.' % sorted(list(self.waived_tests)))
-    event_log.Log('waived_tests', waived_tests=sorted(list(self.waived_tests)))
 
-    if self.args.enable_shopfloor and self.args.sync_event_logs:
+    if self.args.enable_shopfloor:
       state.get_instance().FlushEventLogs()
 
     if not self.args.write_protection:
@@ -527,7 +321,7 @@ class Finalize(unittest.TestCase):
     if not self.args.secure_wipe:
       command += ' --fast'
 
-    if self.args.inform_shopfloor_after_wipe and shopfloor.is_enabled():
+    if self.args.enable_shopfloor:
       server_url = shopfloor.get_server_url()
       if server_url:
         command += ' --shopfloor_url "%s"' % server_url
@@ -551,8 +345,6 @@ class Finalize(unittest.TestCase):
       command += ' --skip_list ' + ' '.join(self.args.gooftool_skip_list)
     command += ' --phase "%s"' % phase.GetPhase()
 
-    if not self.args.inform_shopfloor_after_wipe and shopfloor.is_enabled():
-      shopfloor.finalize()  # notify shopfloor
     self._FinalizeWipeInPlace(command)
 
   def _FinalizeWipeInPlace(self, command):
