@@ -10,29 +10,9 @@ import pprint
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.server.service import umpire_service
-from cros.factory.utils import schema
 
 from cros.factory.external import yaml
 
-
-CONFIG_SCHEMA = {
-    'optional_items': {
-        'archive': schema.FixedDict('archive', optional_items={
-            'enable': schema.Scalar('enable', bool),
-            'args': schema.FixedDict('args', optional_items={
-                'interval': schema.Scalar('interval', int)
-            })
-        }),
-        'forward': schema.FixedDict('forward', optional_items={
-            'enable': schema.Scalar('enable', bool),
-            'args': schema.FixedDict('args', optional_items={
-                'hostname': schema.Scalar('hostname', str),
-                'port': schema.Scalar('port', int),
-                'batch_size': schema.Scalar('batch_size', int)
-            })
-        })
-    }
-}
 
 CLI_HOSTNAME = '0.0.0.0'  # Allows remote connections.
 CLI_PORT = 7000

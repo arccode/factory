@@ -1,0 +1,28 @@
+{
+	"archive": {
+		"type": "object",
+		"properties": {
+			"enable": { "type": "boolean" },
+			"args": {
+				"type": "object",
+				"properties": {
+					"interval": { "type": "integer" }
+				}
+			}
+		}
+	},
+	"forward": {
+		"type": "object",
+		"properties": {
+			"enable": { "type": "boolean" },
+			"args": {
+				"type": "object",
+				"properties": {
+					"hostname": { "type": "string" },
+					"port": { "type": "integer" },
+					"batch_size": { "type": "integer" }
+				}
+			}
+		}
+	}
+}

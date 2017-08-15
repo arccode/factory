@@ -16,6 +16,7 @@ import collections
 import copy
 import importlib
 import inspect
+import json
 import logging
 import os
 from twisted.internet import defer
@@ -26,11 +27,12 @@ import uuid
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import common
 from cros.factory.umpire.server import utils
-from cros.factory.utils.schema import FixedDict
-from cros.factory.utils.schema import Scalar
+from cros.factory.utils.schema import JSONSchemaDict
+from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
 
-
+# A list of all available umpire services
+_SERVICE_LIST = ['http', 'rsync', 'shop_floor', 'instalog', 'overlord', 'dkps']
 # Service package path
 _SERVICE_PACKAGE = 'cros.factory.umpire.server.service'
 # Service restart within _STARTTIME_LIMIT seconds is considered abnormal.
@@ -41,9 +43,17 @@ _STOPTIME_LIMIT = 20
 _MAX_RESTART_COUNT = 3
 # The maximum line of stdout and stderr messages for error logging.
 _MESSAGE_LINES = 10
-# Optional service config schema
-_OPTIONAL_SERVICE_SCHEMA = {
-    'active': Scalar('Default service state on start', bool)}
+# Common service config schema
+_COMMON_SERVICE_SCHEMA = {
+    "description": "Common service config schema",
+    "type": "object",
+    "properties": {
+        "active": {
+            "description": "Default service state on start",
+            "type": "boolean"
+        }
+    }
+}
 # Map service name to module object
 _SERVICE_MAP = {}
 # Map service name to object.
@@ -528,34 +538,42 @@ class UmpireService(object):
     return deferred
 
 
+def GetAllServiceSchemata():
+  """Gets a dictionary of configuration schemata of all available umpire
+    services.
+
+  Returns:
+    A schema.FixedDict items composed of schema of all services.
+  """
+  for service_name in _SERVICE_LIST:
+    LoadServiceModule(service_name)
+  return GetServiceSchemata()
+
+
 def GetServiceSchemata():
   """Gets a dictionary of service configuration schemata.
 
   Returns:
-    A schema.FixedDict items parameter for validating service schemata.
+    A schema.JSONSchemaDict items parameter for validating service schemata.
   """
-  schemata = {}
+  properties = {}
   for name, module in _SERVICE_MAP.iteritems():
-    items = {}
-    optional_items = {}
-    if hasattr(module, 'CONFIG_SCHEMA'):
-      if 'items' in module.CONFIG_SCHEMA:
-        items = copy.deepcopy(module.CONFIG_SCHEMA['items'])
-      if 'optional_items' in module.CONFIG_SCHEMA:
-        optional_items = copy.deepcopy(module.CONFIG_SCHEMA['optional_items'])
-      optional_items.update(copy.deepcopy(_OPTIONAL_SERVICE_SCHEMA))
-      for key in items:
-        if key in optional_items:
-          del items[key]
-      schemata[name] = FixedDict(
-          'Service schema:' + name,
-          items=items,
-          optional_items=optional_items)
-    else:
-      schemata[name] = FixedDict(
-          'Service schema:' + name,
-          optional_items=copy.deepcopy(_OPTIONAL_SERVICE_SCHEMA))
-  return FixedDict('Service schemata', optional_items=schemata)
+    module_path = os.path.dirname(os.path.realpath(module.__file__))
+    config_path = os.path.join(module_path, "%s_config.schema.json" % name)
+    properties[name] = copy.deepcopy(_COMMON_SERVICE_SCHEMA)
+    try:
+      properties[name]["properties"].update(copy.deepcopy(
+          json.loads(file_utils.ReadFile(config_path))))
+    except Exception:
+      pass
+  schemata = {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "description": "Umpire service schemata",
+      "type": "object",
+      "properties": properties,
+      "additionalProperties": False
+  }
+  return JSONSchemaDict('Service schemata', schemata)
 
 
 def LoadServiceModule(module_name):

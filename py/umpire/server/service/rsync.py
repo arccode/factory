@@ -10,6 +10,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server.service import umpire_service
 from cros.factory.utils import file_utils
 
+
 RSYNC_BIN = '/usr/bin/rsync'
 # rsync daemon mode configuration file doesn't need hash in name.
 RSYNCD_CONFIG_FILENAME = 'rsyncd.conf'

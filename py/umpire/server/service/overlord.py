@@ -9,14 +9,7 @@ import os
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.env import paths
 from cros.factory.umpire.server.service import umpire_service
-from cros.factory.utils.schema import Scalar
 
-
-CONFIG_SCHEMA = {
-    'optional_items': {
-        'lan_disc_iface': Scalar('LAN discovery interface', str),
-        'noauth': Scalar('Disable authentication', bool),
-        'tls': Scalar('TLS settings', str)}}
 
 OVERLORDD_BIN = '/usr/bin/overlordd'
 OVERLORD_SERVICE_NAME = 'overlord'

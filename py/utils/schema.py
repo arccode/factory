@@ -49,7 +49,7 @@ For example:
 """
 
 import copy
-
+import jsonschema
 from .type_utils import MakeList
 
 
@@ -250,6 +250,32 @@ class FixedDict(BaseType):
     if data_key_list:
       raise SchemaException('Keys %r are undefined in FixedDict %r' %
                             (data_key_list, self._label))
+
+
+class JSONSchemaDict(BaseType):
+  """JSON schema class.
+
+  This schema class allows mixing JSON schema with other schema types.
+
+  Attributes:
+    label: A human-readable string to describe this JSON schema.
+    schema: a JSON schema object.
+
+  Raises:
+    SchemaException if given schema is invalid.
+    ValidationError if argument format is incorrect.
+  """
+  def __init__(self, label, schema):
+    super(JSONSchemaDict, self).__init__(label)
+    self._label = label
+    jsonschema.Draft4Validator.check_schema(schema)
+    self._schema = schema
+
+  def __repr__(self):
+    return 'JSONSchemaDict(%r, %r)' % (self._label, self._schema)
+
+  def Validate(self, data):
+    jsonschema.validate(data, self._schema)
 
 
 class List(BaseType):

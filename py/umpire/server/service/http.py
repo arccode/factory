@@ -10,18 +10,7 @@ import shutil
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server.service import umpire_service
 from cros.factory.utils import file_utils
-from cros.factory.utils.schema import FixedDict
-from cros.factory.utils.schema import List
-from cros.factory.utils.schema import Scalar
 
-
-CONFIG_SCHEMA = {
-    'optional_items': {
-        'reverse_proxies': List(
-            'Reverse proxy list',
-            FixedDict('Proxy IP range',
-                      items={'proxy_addr': Scalar('IP address', str),
-                             'remoteip': Scalar('DUT ip range', str)}))}}
 
 HTTP_BIN = '/usr/sbin/nginx'
 HTTP_SERVICE_NAME = 'httpsvc'

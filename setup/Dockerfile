@@ -69,6 +69,7 @@ COPY py/instalog/requirements.txt "${instalog_dir}/"
 # TODO(hungte) Move Umpire packages to its own requirements file.
 RUN pip install --no-cache-dir --upgrade pip setuptools && \
     pip install --no-cache-dir \
+      jsonschema==2.6.0 \
       python-gnupg==0.4.0 \
       PyYAML==3.12 \
       zeep==2.3.0 \
