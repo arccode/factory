@@ -2393,7 +2393,7 @@ cros.factory.Goofy.prototype.updateTestToolTip = function(
   tooltip.setText('');
 
   var errorMsg = test.state.error_msg;
-  if ((test.state.status != 'FAILED' ||
+  if ((test.state.status != 'FAILED' &&
        test.state.status != 'FAILED_AND_WAIVED') ||
       this.contextMenu || !errorMsg) {
     // Just show the test path, with a very short hover delay.
@@ -2438,7 +2438,7 @@ cros.factory.Goofy.prototype.updateTestToolTip = function(
       var link = goog.dom.getElementByClass(
           'goofy-test-failure-view-log-link', tooltip.getElement());
       goog.events.listen(link, goog.events.EventType.CLICK, function(event) {
-        tooltip.dispose();
+        tooltip.setVisible(false);
         this.showHistoryEntry(
             test.path, /** @type {string} */ (test.state.invocation));
       }, false, this);
