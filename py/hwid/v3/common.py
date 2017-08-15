@@ -48,7 +48,7 @@ def ProbeProject():
   """
   try:
     project = process_utils.CheckOutput(
-        ['mosys', 'platform', 'chassis']).strip().upper()
+        ['mosys', 'platform', 'model']).strip().upper()
     if project:
       return project
 
