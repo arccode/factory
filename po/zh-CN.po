@@ -3341,6 +3341,10 @@ msgid "Set DeviceInfo"
 msgstr "设定机器资讯"
 
 #: ../py/test/test_lists/generic_common.test_list.json
+msgid "Check Point for All Tests"
+msgstr "最终确认关卡"
+
+#: ../py/test/test_lists/generic_common.test_list.json
 msgid "Audio Jack"
 msgstr "音源孔"
 

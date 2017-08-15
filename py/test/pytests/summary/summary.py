@@ -76,6 +76,7 @@ To always prompt but only pass if all previous tests in same group passed
                })
 """
 
+import itertools
 import logging
 import unittest
 
@@ -137,6 +138,9 @@ class Report(unittest.TestCase):
       Arg('accessibility', bool,
           'Display bright red background when the overall status is not PASSED',
           default=False, optional=True),
+      Arg('include_parents', bool,
+          'Recursively include parent groups in summary',
+          default=False),
       Arg('run_factory_external_name', str,
           'Notify DUT that external test is over, will use DUT interface to '
           'write result file under /run/factory/external/<NAME>.',
@@ -164,15 +168,19 @@ class Report(unittest.TestCase):
     test = test_list.LookupPath(self.test_info.path)
     states = state.get_instance().get_test_states()
 
-    statuses = []
+    previous_tests = []
+    current = test
+    root = test.root if self.args.include_parents else test.parent
+    while current != root:
+      previous_tests = list(itertools.takewhile(
+          lambda t: t != current, current.parent.subtests)) + previous_tests
+      current = current.parent
 
+    # Try to render a table and collect statuses.
     table = []
-    for t in test.parent.subtests:
-      if t == test:
-        break
-
+    statuses = []
+    for t in previous_tests:
       test_state = states.get(t.path)
-
       table.append('<tr class="test-status-%s"><th>%s</th><td>%s</td></tr>'
                    % (test_state.status.replace('_', '-'),
                       test_ui.MakeTestLabel(t),
@@ -200,12 +208,9 @@ class Report(unittest.TestCase):
       if all_pass:
         self.dut.WriteFile(file_path, 'PASS')
       else:
-        report = ''
-        for t in test.parent.Walk():
-          if not t.IsLeaf():
-            continue
-          test_state = states.get(t.path)
-          report += '%s: %s\n' % (t.path, test_state.status)
+        report = ''.join(
+            '%s: %s\n' % (t.path, status) for t, status in
+            zip(previous_tests, statuses))
         self.dut.WriteFile(file_path, report)
 
     if all_pass and self.args.pass_without_prompt:

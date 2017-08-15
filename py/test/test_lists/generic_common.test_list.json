@@ -58,6 +58,13 @@
         ]
       }
     },
+    "AllCheckPoint": {
+      "inherit": "CheckPoint",
+      "label": "Check Point for All Tests",
+      "args": {
+        "include_parents": true
+      }
+    },
     "AudioJack": {
       "pytest_name": "audio_loop",
       "label": "Audio Jack",

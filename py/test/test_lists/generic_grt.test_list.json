@@ -22,7 +22,7 @@
         "GRTItems",
         "CheckPoint",
         "GRTEnd",
-        "CheckPoint",
+        "AllCheckPoint",
         "GRTFinalize"
       ]
     },
@@ -70,6 +70,7 @@
       "inherit": "TestGroup",
       "label": "Prepare",
       "subtests": [
+        "AllCheckPoint",
         "StationStart"
       ]
     }
