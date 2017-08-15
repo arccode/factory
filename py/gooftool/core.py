@@ -738,7 +738,11 @@ class Gooftool(object):
       elif result.status == 2:
         logging.error('Board ID has already been set on Cr50!')
       elif result.status == 3:
-        raise Error('Board ID and/or flag has been set DIFFERENTLY on Cr50!')
+        error_msg = 'Board ID and/or flag has been set DIFFERENTLY on Cr50!'
+        if arg_phase == 'pvt':
+          raise Error(error_msg)
+        else:
+          logging.error(error_msg)
       else:  # General errors.
         raise Error('Failed to set board ID and flag on Cr50. '
                     '(args=%s)' % arg_phase)
