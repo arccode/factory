@@ -228,6 +228,25 @@ cros.factory.Test.prototype.fail = function(errorMsg) {
 };
 
 /**
+ * Try to fail the test from UI by operator. If test parameter 'disable_abort'
+ * is set and not in engineering mode, alert and return.
+ * @export
+ * @param {?string} errorMsg
+ */
+cros.factory.Test.prototype.userAbort = function(errorMsg) {
+  if (!errorMsg) {
+    errorMsg = 'Marked failed by operator';
+  }
+  var goofy = this.invocation.goofy;
+  if (goofy.engineeringMode ||
+      !goofy.pathTestMap[this.invocation.path].disable_abort) {
+    this.fail(errorMsg);
+  } else {
+    goofy.alert('You can only abort this test in engineering mode.');
+  }
+};
+
+/**
  * Sends an event to the test backend.
  * @export
  * @param {string} subtype the event type
