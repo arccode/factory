@@ -10,9 +10,7 @@
 
 ROOT="/mnt/stateful_partition"
 UNUSED_STATEFUL_DIRS="
-  ${ROOT}/var_overlay/db/pkg
   ${ROOT}/dev_image/telemetry
-  ${ROOT}/dev_image/lib/portage
   ${ROOT}/dev_image/lib/debug/
   ${ROOT}/dev_image/*-cros-linux-gnu
 "
