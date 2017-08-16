@@ -834,6 +834,10 @@ msgid "Upload factory logs..."
 msgstr "上载工厂记录"
 
 #: ../py/goofy/js/goofy.js
+msgid "Reload Test List"
+msgstr "重载测试列表"
+
+#: ../py/goofy/js/goofy.js
 msgid "Toggle engineering mode"
 msgstr "切换工程模式"
 

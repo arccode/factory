@@ -547,6 +547,11 @@ class TestList(ITestList):
       return
     self._Reload()
 
+  def ForceReload(self):
+    """Bypass modification detection, force reload."""
+    logging.info('Force reloading test list')
+    self._Reload()
+
   @debug_utils.NoRecursion
   def _Reload(self):
     logging.debug('reloading test list %s', self._config.test_list_id)

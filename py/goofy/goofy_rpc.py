@@ -32,6 +32,7 @@ from cros.factory.test import factory
 from cros.factory.test.i18n import translation
 from cros.factory.test import shopfloor
 from cros.factory.test import state
+from cros.factory.test.test_lists import manager
 from cros.factory.test.test_lists.test_lists import SetActiveTestList
 from cros.factory.tools import factory_bug
 from cros.factory.utils import debug_utils
@@ -276,6 +277,12 @@ class GoofyRPC(object):
     """
     shopfloor.get_instance(
         detect=True, timeout=PING_SHOPFLOOR_TIMEOUT_SECS).Ping()
+
+  def ReloadTestList(self):
+    if isinstance(self.goofy.test_list, manager.TestList):
+      self.goofy.test_list.ForceReload()
+    else:
+      raise NotImplementedError('Not supported for LegacyTestList')
 
   def UploadFactoryLogs(self, name, serial, description):
     """Uploads logs to the shopfloor server.

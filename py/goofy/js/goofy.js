@@ -2131,6 +2131,21 @@ cros.factory.Goofy.prototype.pingShopFloorServer = function(onSuccess) {
 };
 
 /**
+ * Ask goofy to reload current test list to apply local changes.
+ */
+cros.factory.Goofy.prototype.reloadTestList = function() {
+  this.sendRpc(
+      'ReloadTestList', [],
+      /** On success */
+      null,
+      /** On fail */
+      function (response) {
+        this.alert('Failed to reload test list\n' + response.error.message);
+      }
+  );
+};
+
+/**
  * Displays a dialog to upload factory logs to shopfloor server.
  */
 cros.factory.Goofy.prototype.showUploadFactoryLogsDialog = function() {
@@ -2593,6 +2608,9 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                   this.saveFactoryLogsToUSB);
               addExtraItem(_('Upload factory logs...'), function() {
                 this.pingShopFloorServer(this.showUploadFactoryLogsDialog);
+              });
+              addExtraItem(_('Reload Test List'), function() {
+                this.reloadTestList();
               });
               addExtraItem(
                   _('Toggle engineering mode'), this.promptEngineeringPassword);
