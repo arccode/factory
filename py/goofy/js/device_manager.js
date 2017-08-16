@@ -199,12 +199,12 @@ cros.factory.DeviceManager.prototype.createDrilldownMenu = function(
     itemMenuParent, fullPath) {
 
   var itemMenuSubnode = new goog.ui.DrilldownRow({
-    html: goog.html.SafeHtml.create('tr', {},
-        goog.html.SafeHtml.create('td', {},
-            goog.html.SafeHtml.create('div', {
-              'id': 'show-button-' + fullPath,
-              'style': {'display': 'inline-table'}
-            })))
+    html: goog.html.SafeHtml.create(
+        'tr', {},
+        goog.html.SafeHtml.create('td', {}, goog.html.SafeHtml.create('div', {
+          'id': 'show-button-' + fullPath,
+          'style': {'display': 'inline-table'}
+        })))
   });
   itemMenuParent.addChild(itemMenuSubnode, true);
 
@@ -249,45 +249,42 @@ cros.factory.DeviceManager.prototype.getDeviceData = function() {
   // Executes general commands and ignores slower ones in first stage.
   this.goofy.sendRpcToPlugin(
       'device_manager', 'GetDeviceInfo', [], function(data) {
-    this.deviceManager.processData(
-        goog.dom.xml.loadXml(data), '/list', '/list');
-    this.deviceManager.makeMenu();
-    goog.dom.removeChildren(goog.dom.getElement('goofy-device-data-area'));
+        this.deviceManager.processData(
+            goog.dom.xml.loadXml(data), '/list', '/list');
+        this.deviceManager.makeMenu();
+        goog.dom.removeChildren(goog.dom.getElement('goofy-device-data-area'));
 
-    // Executes slower commands in second stage.
-    this.sendRpcToPlugin(
-        'device_manager',
-        'GetDeviceInfo',
-        [JSON.stringify(this.deviceManager.slowCommandsBackendFunction)],
-        function(data) {
-          var parsedData = JSON.parse(data);
+        // Executes slower commands in second stage.
+        this.sendRpcToPlugin(
+            'device_manager', 'GetDeviceInfo',
+            [JSON.stringify(this.deviceManager.slowCommandsBackendFunction)],
+            function(data) {
+              var parsedData = JSON.parse(data);
 
-          for (var i = 0; i < parsedData.length; i++) {
-            this.deviceManager.processData(
-                goog.dom.xml.loadXml(parsedData[i]), '/node',
-                this.deviceManager.slowCommandsFullPath[i]);
-          }
+              for (var i = 0; i < parsedData.length; i++) {
+                this.deviceManager.processData(
+                    goog.dom.xml.loadXml(parsedData[i]), '/node',
+                    this.deviceManager.slowCommandsFullPath[i]);
+              }
 
-          goog.dom.removeChildren(
-              goog.dom.getElement('goofy-device-data-area'));
-          this.deviceManager.makeMenu();
-        });
-  });
+              goog.dom.removeChildren(
+                  goog.dom.getElement('goofy-device-data-area'));
+              this.deviceManager.makeMenu();
+            });
+      });
 };
 
 /**
  * Creates a new dialog to display the device manager.
  */
 cros.factory.DeviceManager.prototype.showWindow = function() {
-  var content = goog.html.SafeHtml.create(
-      'div', {}, [
-        goog.html.SafeHtml.create('div', {'id': 'goofy-device-data-area'}),
-        goog.html.SafeHtml.create(
-            'div', {'id': 'goofy-device-list-area'},
-            goog.html.SafeHtml.create('table', {'id': 'tree-menu-area'})),
-        goog.html.SafeHtml.create(
-            'div', {'id': 'goofy-device-manager-refresh'})
-      ]);
+  var content = goog.html.SafeHtml.create('div', {}, [
+    goog.html.SafeHtml.create('div', {'id': 'goofy-device-data-area'}),
+    goog.html.SafeHtml.create(
+        'div', {'id': 'goofy-device-list-area'},
+        goog.html.SafeHtml.create('table', {'id': 'tree-menu-area'})),
+    goog.html.SafeHtml.create('div', {'id': 'goofy-device-manager-refresh'})
+  ]);
   var dialog = this.goofy.createSimpleDialog('Device Manager', content);
   goog.dom.classlist.add(dialog.getElement(), 'goofy-device-manager');
   dialog.setVisible(true);

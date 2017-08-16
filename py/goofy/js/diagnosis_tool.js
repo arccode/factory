@@ -390,14 +390,17 @@ cros.factory.DiagnosisTool.prototype.initWindowRightUpperPart = function() {
       this.clearButton_.getElement(), {'id': 'diagnosis-tool-clear-button'});
 
   goog.events.listen(
-      this.startButton_, goog.ui.Component.EventType.ACTION,
-      function(event) { this.userRequestStartTask(); }, false, this);
+      this.startButton_, goog.ui.Component.EventType.ACTION, function(event) {
+        this.userRequestStartTask();
+      }, false, this);
   goog.events.listen(
-      this.stopButton_, goog.ui.Component.EventType.ACTION,
-      function(event) { this.userRequestStopTask(); }, false, this);
+      this.stopButton_, goog.ui.Component.EventType.ACTION, function(event) {
+        this.userRequestStopTask();
+      }, false, this);
   goog.events.listen(
-      this.clearButton_, goog.ui.Component.EventType.ACTION,
-      function(event) { this.userClearOutput(); }, false, this);
+      this.clearButton_, goog.ui.Component.EventType.ACTION, function(event) {
+        this.userClearOutput();
+      }, false, this);
   return all;
 };
 
@@ -455,7 +458,9 @@ cros.factory.DiagnosisTool.prototype.setMenu = function(config) {
     goog.events.listen(
         this.menuNodes_[id].getLabelElement(),
         goog.events.EventType.CLICK, function(id) {
-          return function(evt) { this.userRequestLoadTask(id); };
+          return function(evt) {
+            this.userRequestLoadTask(id);
+          };
         }(id), false, this);
   }
 };
@@ -887,7 +892,10 @@ cros.factory.DiagnosisTool.Inputs.prototype.addNumberField = function(
           val = max;
         return val.toFixed(round);
       },
-      function(b) { input['disabled'] = b; }, null, box);
+      function(b) {
+        input['disabled'] = b;
+      },
+      null, box);
 };
 
 
@@ -931,7 +939,9 @@ cros.factory.DiagnosisTool.Inputs.prototype.addSliderField = function(
   goog.events.dispatchEvent(slider, goog.ui.Component.EventType.CHANGE);
   var enabled = true;
   return new cros.factory.DiagnosisTool.Inputs.InputField(
-      function() { return enabled ? slider.getValue().toFixed(round) : null; },
+      function() {
+        return enabled ? slider.getValue().toFixed(round) : null;
+      },
       function(b) {
         enabled = b;
         slider.setEnabled(b);
@@ -966,7 +976,9 @@ cros.factory.DiagnosisTool.Inputs.prototype.addChoicesField = function(
   this.component_.addChild(box, true);
   var enabled = true;
   return new cros.factory.DiagnosisTool.Inputs.InputField(
-      function() { return enabled ? select.getValue() : null; },
+      function() {
+        return enabled ? select.getValue() : null;
+      },
       function(b) {
         enabled = b;
         select.setEnabled(b);
@@ -1007,8 +1019,9 @@ cros.factory.DiagnosisTool.Inputs.prototype.addBoolField = function(
     }
   };
   goog.events.listen(
-      checkBox, goog.ui.Component.EventType.CHANGE,
-      function(event) { onChange(); }, false, this);
+      checkBox, goog.ui.Component.EventType.CHANGE, function(event) {
+        onChange();
+      }, false, this);
   this.component_.addChild(box, true);
   var enabled = true;
   return new cros.factory.DiagnosisTool.Inputs.InputField(
@@ -1062,7 +1075,9 @@ cros.factory.DiagnosisTool.Inputs.prototype.addFileField = function(
   // -- File manager (end) --
   var enabled = true;
   return new cros.factory.DiagnosisTool.Inputs.InputField(
-      function() { return enabled ? filename : null; },
+      function() {
+        return enabled ? filename : null;
+      },
       function(b) {
         enabled = b;
         button.setEnabled(b);
@@ -1090,7 +1105,9 @@ cros.factory.DiagnosisTool.Inputs.prototype.addStringField = function(
   this.component_.addChild(box, true);
   var enabled = true;
   return new cros.factory.DiagnosisTool.Inputs.InputField(
-      function() { return enabled ? field.getValue() : null; },
+      function() {
+        return enabled ? field.getValue() : null;
+      },
       function(b) {
         enabled = b;
         field.setEnabled(b);

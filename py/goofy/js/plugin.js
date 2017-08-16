@@ -10,8 +10,8 @@ goog.require('goog.dom');
  * Plugin object.
  *
  * @constructor
- * @param {cros.factory.Goofy} goofy
- * @param {Node} dom
+ * @param {!cros.factory.Goofy} goofy
+ * @param {!Node} dom
  */
 cros.factory.Plugin = function(goofy, dom) {
   this.goofy = goofy;
@@ -24,24 +24,20 @@ cros.factory.Plugin = function(goofy, dom) {
  * work. This function provides a method to add tooltip to any elements in the
  * plugin DOM.
  *
- * @param {Node} anchor
- * @param {Node} tooltip Dom object of the tooltip content.
+ * @param {!HTMLElement} anchor
+ * @param {!Node} tooltip Dom object of the tooltip content.
  */
 cros.factory.Plugin.prototype.addPluginTooltip = function(anchor, tooltip) {
   var tooltipContainer = goog.dom.createDom('div');
   goog.dom.classlist.add(tooltipContainer, 'goofy-plugin-tooltip');
   tooltipContainer.appendChild(tooltip);
   goog.events.listen(anchor, goog.events.EventType.MOUSEENTER, function() {
-    var offsetLeft = anchor.offsetLeft + anchor.width;
+    var offsetLeft = anchor.offsetLeft + anchor.offsetWidth;
     goog.style.setStyle(
-        tooltipContainer,
-        {'visibility': 'visible',
-         'margin-left': offsetLeft});
+        tooltipContainer, {'visibility': 'visible', 'margin-left': offsetLeft});
   });
   goog.events.listen(anchor, goog.events.EventType.MOUSELEAVE, function() {
-    goog.style.setStyle(
-        tooltipContainer,
-        {'visibility': 'hidden'});
+    goog.style.setStyle(tooltipContainer, {'visibility': 'hidden'});
   });
   goog.dom.appendChild(this.dom, tooltipContainer);
 };

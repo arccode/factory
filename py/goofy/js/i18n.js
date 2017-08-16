@@ -13,7 +13,7 @@ goog.require('goog.html.SafeHtml');
 cros.factory.i18n.FormatFunc;
 
 /**
- * @type {!Object<string, cros.factory.i18n.FormatFunc>}
+ * @type {!Object<string, !cros.factory.i18n.FormatFunc>}
  */
 cros.factory.i18n.formatCache = Object.create(null);
 
@@ -21,11 +21,11 @@ cros.factory.i18n.formatCache = Object.create(null);
  * Parse the format string and return the function for formatting.
  * This function emulates what python str.format() does.
  * @param {string} format the format string.
- * @return {cros.factory.i18n.FormatFunc}
+ * @return {!cros.factory.i18n.FormatFunc}
  */
 cros.factory.i18n.stringFormatImpl = function(format) {
-  let /** Array<string> */ strs = [''];
-  let /** Array<string> */ vars = [];
+  let /** !Array<string> */ strs = [''];
+  let /** !Array<string> */ vars = [];
   let i = 0;
   while (i < format.length) {
     if (format.charAt(i) == '{') {
@@ -57,20 +57,21 @@ cros.factory.i18n.stringFormatImpl = function(format) {
       i++;
     }
   }
-  return (function(/** !Object<string, string> */ dict) {
-    let ret = strs[0];
-    for (let i = 0; i < vars.length; i++) {
-      ret += dict[vars[i]];
-      ret += strs[i + 1];
-    }
-    return ret;
-  });
+  return (
+      /** @return {string} */ function(/** !Object<string, string> */ dict) {
+        let ret = strs[0];
+        for (let i = 0; i < vars.length; i++) {
+          ret += dict[vars[i]];
+          ret += strs[i + 1];
+        }
+        return ret;
+      });
 };
 
 /**
  * Cached version for cros.factory.i18n.stringFormatImpl.
  * @param {string} format the format string.
- * @return {cros.factory.i18n.FormatFunc}
+ * @return {!cros.factory.i18n.FormatFunc}
  */
 cros.factory.i18n.stringFormatCached = function(format) {
   if (!(format in cros.factory.i18n.formatCache)) {
@@ -107,7 +108,7 @@ cros.factory.i18n.locales = [cros.factory.i18n.DEFAULT_LOCALE];
 
 /**
  * Dictionary that contains all translations.
- * @type {!Object<string, cros.factory.i18n.TranslationDict>}
+ * @type {!Object<string, !cros.factory.i18n.TranslationDict>}
  * @private
  */
 cros.factory.i18n.translations_ = Object.create(null);
@@ -123,7 +124,7 @@ if (window['goofy_i18n_data']) {
 /**
  * Returns a text untranslated for all locales.
  * @param {string} text
- * @return {cros.factory.i18n.TranslationDict}
+ * @return {!cros.factory.i18n.TranslationDict}
  */
 cros.factory.i18n.noTranslation = function(text) {
   const ret = Object.create(null);
@@ -136,7 +137,7 @@ cros.factory.i18n.noTranslation = function(text) {
 /**
  * Returns a text translated.
  * @param {string} text the text to be translated.
- * @return {cros.factory.i18n.TranslationDict}
+ * @return {!cros.factory.i18n.TranslationDict}
  */
 cros.factory.i18n.translation = function(text) {
   if (text in cros.factory.i18n.translations_) {
@@ -149,10 +150,10 @@ cros.factory.i18n.translation = function(text) {
 /**
  * Make sure the input is a TranslationDict, pass it to translation or
  * noTranslation if it isn't, based on the value of argument translate.
- * @param {cros.factory.i18n.TranslationDict|string} obj
+ * @param {string|!cros.factory.i18n.TranslationDict} obj
  * @param {boolean=} translate whether string should be passed to translation or
  *     noTranslation.
- * @return {cros.factory.i18n.TranslationDict}
+ * @return {!cros.factory.i18n.TranslationDict}
  */
 cros.factory.i18n.translated = function(obj, translate = true) {
   // Because of type checking for dict object is MUCH harder in JS, we assume
@@ -172,9 +173,9 @@ cros.factory.i18n.translated = function(obj, translate = true) {
 
 /**
  * Do python-like i18n string format.
- * @param {string|cros.factory.i18n.TranslationDict} format the format string.
+ * @param {string|!cros.factory.i18n.TranslationDict} format the format string.
  * @param {!Object<string, string>} dict the arguments in format string.
- * @return {cros.factory.i18n.TranslationDict}
+ * @return {!cros.factory.i18n.TranslationDict}
  */
 cros.factory.i18n.stringFormat = function(format, dict) {
   const format_dict = cros.factory.i18n.translated(format);
@@ -196,7 +197,7 @@ cros.factory.i18n.stringFormat = function(format, dict) {
 
 /**
  * Make a translated label.
- * @param {string|cros.factory.i18n.TranslationDict} text
+ * @param {string|!cros.factory.i18n.TranslationDict} text
  * @param {!Object<string, string>=} dict
  * @return {!goog.html.SafeHtml}
  */
@@ -215,7 +216,7 @@ cros.factory.i18n.i18nLabel = function(text, dict = {}) {
 
 /**
  * Make a translated label.
- * @param {string|cros.factory.i18n.TranslationDict} text
+ * @param {string|!cros.factory.i18n.TranslationDict} text
  * @param {!Object<string, string>=} dict
  * @return {!Node}
  */
@@ -226,7 +227,7 @@ cros.factory.i18n.i18nLabelNode = function(text, dict = {}) {
 /**
  * Get a translation dict of all locales name in respected locale.
  * For example: {'en-US': 'English', 'zh-CN': '中文'}
- * @return {cros.factory.i18n.TranslationDict}
+ * @return {!cros.factory.i18n.TranslationDict}
  */
 cros.factory.i18n.getLocaleNames = function() {
   const _ = cros.factory.i18n.translation;
