@@ -61,7 +61,7 @@ _TEST_TITLE = i18n_test_ui.MakeI18nLabel('Update Firmware')
 _CSS = '#state { text-align: left; }'
 
 TRUNKS_SEND = '/usr/sbin/trunks_send'
-FIRMWARE_RELATIVE_PATH = '/opt/google/cr50/firmware/cr50.bin.prod'
+FIRMWARE_RELATIVE_PATH = 'opt/google/cr50/firmware/cr50.bin.prod'
 
 
 class UpdateCr50FirmwareTest(unittest.TestCase):
