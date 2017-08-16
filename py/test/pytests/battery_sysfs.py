@@ -29,15 +29,14 @@ To restrict the limitation of battery cycle count to 5::
                dargs={'maxmum_cycle_count': 5}
 """
 
-import threading
 import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import event_log
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 
 _TEST_TITLE = i18n_test_ui.MakeI18nLabel('Battery Self-diagnosis')
@@ -103,9 +102,13 @@ class SysfsBatteryTest(unittest.TestCase):
       manufacturer = power.GetBatteryAttribute('manufacturer')
       temp = power.GetBatteryAttribute('temp')
 
-      event_log.Log('battery_checked', wearPct=wearPct, allowed=wearAllowedPct,
-                    health=health, cycleCount=cycleCount, capacity=capacity,
-                    manufacturer=manufacturer, temp=temp, success=success)
+      testlog.AddArgument('wearPct', wearPct)
+      testlog.AddArgument('health', health)
+      testlog.AddArgument('cycleCount', cycleCount)
+      testlog.AddArgument('capacity', capacity)
+      testlog.AddArgument('manufacturer', manufacturer)
+      testlog.AddArgument('temp', temp)
+      testlog.AddArgument('battery_sysfs_info', power.GetInfoDict())
 
     if success:
       self._ui.Pass()
@@ -113,5 +116,5 @@ class SysfsBatteryTest(unittest.TestCase):
       self._ui.Fail('Battery self-diagnose failed: %s.' % msg)
 
   def runTest(self):
-    threading.Thread(target=self.DiagnoseBattery).start()
+    self._ui.RunInBackground(target=self.DiagnoseBattery)
     self._ui.Run()
