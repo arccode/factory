@@ -93,9 +93,12 @@ from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 CSS = """
+#test-status-table-container {
+  display: inline-block;
+  height: 25em;
+  overflow: auto;
+}
 table {
-  margin-left: auto;
-  margin-right: auto;
   padding-bottom: 1em;
 }
 th, td {
@@ -238,8 +241,9 @@ class Report(unittest.TestCase):
         i18n_test_ui.MakeI18nLabel(
             'Test Status for {test}:', test=test.parent.path),
         '<div class="test-status-%s" style="font-size: 300%%">%s</div>' %
-        (overall_status, test_ui.MakeStatusLabel(overall_status)), '<table>'
-    ] + table + ['</table>'] + ['</div></div>']
+        (overall_status, test_ui.MakeStatusLabel(overall_status)),
+        '<div id="test-status-table-container"><table>'
+    ] + table + ['</table></div>'] + ['</div></div>']
 
     if self.args.accessibility and not all_pass:
       html = ['<div class="test-vcenter-accessibility">'] + html + ['</div>']
