@@ -24,6 +24,7 @@ RUN mkdir -p "${umpire_dir_in_dome}"
 # has package signing problem, so we will install them using apk.
 #
 #  pigz, py-pip, py-twisted, py-yaml, python, tar: Used by Umpire
+#  py-lxml: Used by zeep (SOAP), indirectly imported by Umpire
 #  (buzybox tar doesn't support -I, which is used in file_utils.ExtractFile)
 #  gnupg, python-gnupg: Used by umpire/server/service/dkps and archiver
 #  rsync: Used by umpire/server/service/rsync
@@ -46,6 +47,7 @@ RUN apk upgrade --no-cache && apk add --no-cache \
     nginx \
     openssl \
     pigz \
+    py-lxml \
     py-pip \
     py-psutil \
     py-twisted \
@@ -68,6 +70,8 @@ RUN pip install --no-cache-dir --upgrade pip setuptools && \
     pip install --no-cache-dir \
       python-gnupg==0.4.0 \
       PyYAML==3.12 \
+      zeep==2.3.0 \
+      txJSON-RPC==0.5 \
       -r "${dome_dir}/requirements.txt" \
       -r "${instalog_dir}/requirements.txt"
 

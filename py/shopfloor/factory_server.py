@@ -37,6 +37,7 @@ from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import webservice_utils
 
 
 Binary = xmlrpclib.Binary
@@ -139,9 +140,7 @@ class FactoryServer(object):
     if shopfloor_service_url is None:
       shopfloor_service_url = config_utils.LoadConfig('factory_server').get(
           'shopfloor_service_url', DEFAULT_SHOPFLOOR_SERVICE_URL)
-    shopfloor_service_url = shopfloor_service_url.rstrip('/')
-    self.service = xmlrpclib.ServerProxy(shopfloor_service_url, allow_none=True)
-    logging.info('Using shopfloor service from %s', shopfloor_service_url)
+    self.service = webservice_utils.CreateWebServiceProxy(shopfloor_service_url)
 
     self.miniomaha_payload_url = (
         miniomaha_payload_url or
@@ -602,31 +601,33 @@ class FactoryServer(object):
 
   def GetVersion(self):
     """Returns the version of supported protocol."""
-    return self.service.GetVersion()
+    return self.service.callRemote('GetVersion')
 
   def NotifyStart(self, data, station):
     """Notifies shopfloor backend that DUT entered a manufacturing station."""
-    return self.service.NotifyStart(data, station)
+    return self.service.callRemote('NotifyStart', data, station)
 
   def NotifyEnd(self, data, station):
     """Notifies shopfloor backend that DUT leaves a manufacturing station."""
-    return self.service.NotifyEnd(data, station)
+    return self.service.callRemote('NotifyEnd', data, station)
 
   def NotifyEvent(self, data, event):
     """Notifies shopfloor backend that the DUT has performed an event."""
-    return self.service.NotifyEvent(data, event)
+    return self.service.callRemote('NotifyEvent', data, event)
 
   def GetDeviceInfo(self, data):
     """Returns information about the device's expected configuration."""
-    return self.service.GetDeviceInfo(data)
+    return self.service.callRemote('GetDeviceInfo', data)
 
   def ActivateRegCode(self, ubind_attribute, gbind_attribute, hwid):
     """Notifies shopfloor backend that DUT has deployed a registration code."""
-    return self.service.ActivateRegCode(ubind_attribute, gbind_attribute, hwid)
+    return self.service.callRemote(
+        'ActivateRegCode', ubind_attribute, gbind_attribute, hwid)
 
   def UpdateTestResult(self, data, test_id, status, details=None):
     """Sends the specified test result to shopfloor backend."""
-    return self.service.UpdateTestResult(data, test_id, status, details)
+    return self.service.callRemote(
+        'UpdateTestResult', data, test_id, status, details)
 
 
 def _LoadFactoryUpdater(updater_name):

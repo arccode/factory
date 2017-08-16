@@ -100,7 +100,7 @@ An example of `factory_server.json`:
 
 ## Shopfloor Service API
 The "Chrome OS Factory Shopfloor Service" must be implemented as a web service
-using [XMLRPC](http://xmlrpc.scripting.com/spec.html) protocol with
+using [XML-RPC](http://xmlrpc.scripting.com/spec.html) protocol with
 [Nil Extension](https://web.archive.org/web/20050911054235/http://ontosys.com/xml-rpc/extensions.php).
 
 The default recommended port is **8090**.
@@ -118,11 +118,60 @@ An example for how to access Shopfloor Service in Python:
 
   service.NotifyStart({'serials.mlb_serial_number': '123'}, 'SMT')
 ```
+We also support Shopfloor Service implemented in
+[JSON-RPC](http://www.jsonrpc.org/) or [SOAP](https://www.w3.org/TR/soap/) via
+[WSDL](https://www.w3.org/TR/wsdl).
+
+To use JSON-RPC service, add a ``jsonrpc:`` prefix when you setup the URL in
+Chrome OS Factory Software, for example ``json:http://192.168.0.1:8090``. To use
+WSDL, prefix ``wsdl:``, or make sure your URL ends with ``wsdl``, for example
+``http://192.168.0.1:8070?wsdl``.
+
+To verify the server is working properly, use the ``webservice_utils`` module:
+
+```py
+  import factory_common
+  from cros.factory.utils import webservice_utils
+
+  url = 'jsonrpc:http://192.168.0.1:8090'
+  service = webservice_utils.CreateWebServiceProxy(url)
+  print(service.GetDeviceInfo({}))
+```
+
+If you implement the Shopfloor Service in WSDL+SOAP and found that it is pretty
+difficult to describe the data structure in parameter and return value (because
+they are actually [Generic Compound Types](https://www.w3.org/TR/2000/NOTE-SOAP-20000508/#_Toc478383521)),
+there is a special way to implement your service to apply JSON serialization for
+all input arguments and return value. To do that, prefix a ``json:`` in your
+shopfloor service URL and use ``webservice_utils`` to verify. For example:
+
+```py
+  import xmlrpclib
+  import factory_common
+  from cros.factory.utils import webservice_utils
+
+  # Assume your real shopfloor service is here, and all its input and output
+  # must be JSON strings:
+  real_url = 'http://192.168.0.1:8090'
+  proxy = xmlrpclib.ServerProxy(real_url)
+
+  # The input is a JSON string. The output is also JSON, for example
+  # '{"vpd.ro.region": "us"}'
+  print(proxy.GetDeviceInfo('{}'))
+
+  # The webservice_utils provides 'json:' prefix to filter that.
+  url = 'json:http://192.168.0.1:8090'
+  service = webservice_utils.CreateWebServiceProxy(url)
+
+  # Input is real variable, and output is real dict, for example
+  # {'vpd.ro.region': 'us'}
+  print(service.GetDeviceInfo({}))
+```
 
 ### Data Format: FactoryDeviceData
 Most Shopfloor Service functions need a special mapping data structure (`struct`
-in XMLRPC, or `dict` in Python) named `FactoryDeviceData`. All members should be
-scalar values.
+in XML-RPC, or `dict` in Python) named `FactoryDeviceData`. All members should
+be scalar values.
 
 The member names (or keys of dict) are made in hierarchy like "domain names" -
 i.e., built with multiple components and concatenated by period ".".

@@ -23,6 +23,7 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
+from cros.factory.utils import webservice_utils
 
 
 CROS_PAYLOAD = os.path.join(
@@ -185,21 +186,22 @@ class UmpireEnv(object):
     if not self.config:
       raise common.UmpireError('UmpireConfig not loaded yet.')
 
-    host, port, path = 'localhost', common.DEFAULT_SHOPFLOOR_SERVICE_PORT, '/'
-    url = self.config.get('shopfloor_service_url')
-    if url:
-      try:
-        parsed_url = urlparse.urlparse(url)
-        assert parsed_url.hostname and parsed_url.port
-        host = parsed_url.hostname
-        port = parsed_url.port
-        path = parsed_url.path
-      except Exception:
-        logging.error('Failed to parse shopfloor_service_url %r.', url)
-    if host == 'localhost':
-      # We translate 'localhost' to Docker host when running inside Docker.
-      host = self.docker_host_ip
-    return ('http://%s:%s%s' % (host, port, path)).rstrip('/')
+    # Use default URL if config is empty string or None.
+    url = (self.config.get('shopfloor_service_url') or
+           'http://localhost:%s/' % common.DEFAULT_SHOPFLOOR_SERVICE_PORT)
+
+    # The webservice_utils.py module allows having a 'protocol prefix' in URL
+    # string so we have to preserve that first.
+    unused_prefixes, real_url = webservice_utils.ParseURL(url)
+    try:
+      parsed_url = urlparse.urlparse(real_url)
+      if parsed_url.hostname == 'localhost':
+        # We translate 'localhost' to Docker host when running inside Docker.
+        # The prefixes should not contain 'localhost'.
+        url = url.replace('localhost', self.docker_host_ip, 1)
+    except Exception:
+      logging.error('Failed to parse shopfloor_service_url %r.', url)
+    return url.rstrip('/')
 
   def ReadConfig(self, custom_path=None):
     """Reads Umpire config.

@@ -26,6 +26,7 @@ from cros.factory.umpire.server import umpire_env
 from cros.factory.umpire.server import umpire_rpc
 from cros.factory.umpire.server import utils
 from cros.factory.utils import file_utils
+from cros.factory.utils import webservice_utils
 
 
 # Factory stages in running sequence.
@@ -294,8 +295,10 @@ class ShopfloorServiceDUTCommands(umpire_rpc.UmpireRPC):
   @property
   def service(self):
     if self._url != self.env.shopfloor_service_url:
-      self._proxy = xmlrpc.Proxy(self.env.shopfloor_service_url, allowNone=True)
-      self._url = self.env.shopfloor_service_url
+      new_url = self.env.shopfloor_service_url
+      self._proxy = webservice_utils.CreateWebServiceProxy(
+          new_url, use_twisted=True)
+      self._url = new_url
     return self._proxy
 
   @umpire_rpc.RPCCall
