@@ -1332,7 +1332,12 @@ AutomatedRebootSubTest = RebootStep
 
 
 def FlattenGroup(subtests=None, **kwargs):
-  kwargs.pop('locals_', None)  # test/test_lists/manager handles locals_ for us
-  if kwargs:
+  kwargs.pop('locals_', None)  # handles by test list manager
+  kwargs.pop('id', None)  # we don't care if it has id
+  kwargs.pop('action_on_failure', None)  # injected by test list manager
+  if not kwargs.get('dargs'):  # the default value is {}
+    kwargs.pop('dargs', None)
+
+  if kwargs:  # if we still have something not expected
     logging.warning('kwargs: %r will be ignored for FlattenGroup', kwargs)
   return type_utils.FlattenList(subtests or [])

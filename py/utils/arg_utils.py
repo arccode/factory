@@ -221,6 +221,7 @@ class Args(object):
       if arg.name in dargs and not arg.ValueMatchesType(value):
         errors.append('Argument %s should have type %r, not %r' % (
             arg.name, arg.type, type(value)))
+        errors.append('Argument %s=%r' % (arg.name, value))
         continue
 
       attributes[arg.name] = value

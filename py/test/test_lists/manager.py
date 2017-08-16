@@ -195,7 +195,7 @@ class ITestList(object):
         return value
 
       if value.startswith(_EVALUATE_PREFIX):
-        logging.info('Resolving argument %s: %s', key, value)
+        logging.debug('Resolving argument %s: %s', key, value)
         expression = value[len(_EVALUATE_PREFIX):]  # remove prefix
 
         return self.EvaluateExpression(
@@ -1007,7 +1007,7 @@ class Manager(object):
   def BuildAllTestLists(self, load_legacy_test_lists=True):
     failed_files = {}
     for test_list_id in self.loader.FindTestListIDs():
-      logging.info('try to load test list: %s', test_list_id)
+      logging.debug('try to load test list: %s', test_list_id)
       try:
         test_list = self.GetTestListByID(test_list_id)
         if test_list is None:
@@ -1049,7 +1049,7 @@ class Manager(object):
           failed_files[path] = sys.exc_info()
       valid_test_lists[test_list_id] = test_list
 
-    logging.info('loaded test lists: %r', self.test_lists.keys())
+    logging.debug('loaded test lists: %r', self.test_lists.keys())
     return valid_test_lists, failed_files
 
   def BuildAllLegacyTestLists(self):
