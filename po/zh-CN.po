@@ -671,7 +671,7 @@ msgstr ""
 msgid "Shutting down..."
 msgstr "关机中..."
 
-#: ../py/goofy/js/goofy.js
+#: ../py/goofy/js/goofy.js ../py/test/pytests/sync_factory_server.py
 msgid "Cancel"
 msgstr "取消"
 
@@ -2856,12 +2856,44 @@ msgid "Suspend/Resume:"
 msgstr "暂停/恢复:"
 
 #: ../py/test/pytests/sync_factory_server.py
+msgid "Change URL"
+msgstr "变更网址"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Please wait few seconds to edit..."
+msgstr "请等候几秒即可编辑..."
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Change server URL: "
+msgstr "变更伺服器网址: "
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Set"
+msgstr "设定"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Trying to reach server..."
+msgstr "尝试联络工厂伺服器 ..."
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Trying to check server protocol..."
+msgstr "正在检查工厂伺服器..."
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Server URL: "
+msgstr "伺服器网址: "
+
+#: ../py/test/pytests/sync_factory_server.py
 msgid "A software update is available. Press SPACE to update."
 msgstr "有可用的更新。按空白键更新。"
 
 #: ../py/test/pytests/sync_factory_server.py
-msgid "Contacting factory server {server_url}...<br> Current Task: "
-msgstr "正在与工厂伺服器{server_url}连线...<br> 目前任务: "
+msgid "Preparing..."
+msgstr "准备中..."
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Ping"
+msgstr "连线测试"
 
 #: ../py/test/pytests/sync_factory_server.py
 msgid "Sync time"
@@ -2872,6 +2904,14 @@ msgid "Flush Event Logs"
 msgstr "同步事件记录"
 
 #: ../py/test/pytests/sync_factory_server.py
+msgid "Collecting report data..."
+msgstr "收集报告资料..."
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Getting serial number..."
+msgstr "读取序号..."
+
+#: ../py/test/pytests/sync_factory_server.py
 msgid "Upload report"
 msgstr "上传生产报告"
 
@@ -2880,12 +2920,16 @@ msgid "Update Toolkit"
 msgstr "更新测试程序"
 
 #: ../py/test/pytests/sync_factory_server.py
-msgid "<span style=\"color: green\">Server Task Finished: {label}</span>"
-msgstr "<span style=\"color: green\">完成任务: {label}</span>"
+msgid "Running task: {label}"
+msgstr "執行任务: {label}"
 
 #: ../py/test/pytests/sync_factory_server.py
-msgid "Failed in task <b>{label}</b>.<br>Retry in {time_left} seconds..."
-msgstr "任务失败 <b>{label}</b>。<br>将在 {time_left} 秒后重试..."
+msgid "Server Task Finished: {label}"
+msgstr "完成任务: {label}"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Task <b>{label}</b> failed, retry in {time_left} seconds..."
+msgstr "<b>{label}</b>任务失败，将在 {time_left} 秒后重试..."
 
 #: ../py/test/pytests/tablet_mode_ui.py
 msgid "Flip the lid into tablet mode"

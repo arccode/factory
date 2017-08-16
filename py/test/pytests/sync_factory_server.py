@@ -11,14 +11,18 @@ invoke remote procedure calls for syncing data and programs.
 
 This test will sync following items:
 
-1. If `sync_time` is enabled (default True), sync system time with server time.
-2. If `sync_event_logs` is enabled (default True), sync the `event_log` YAML
+1. If ``sync_time`` is enabled (default True), sync system time from server.
+2. If ``sync_event_logs`` is enabled (default True), sync the ``event_log`` YAML
    event logs to factory server.
-3. If `upload_report` is enabled (default False), upload a Gooftool style report
-   collecting various system information and manufacturing logs to server.
-4. If `update_toolkit` is enabled (default True), compare the factory software
+3. If ``upload_report`` is enabled (default False), upload a ``Gooftool`` style
+   report collecting system information and manufacturing logs to server.
+4. If ``update_toolkit`` is enabled (default True), compare the factory software
    (toolkit) installed on DUT with the active version on server, and update
    if needed.
+
+Additionally, if argument ``server_url`` is specified, this test will update the
+stored 'default factory server URL' so all following tests connecting to factory
+server via ``shopfloor.get_instance()`` will use the new URL.
 
 Test Procedure
 --------------
@@ -48,13 +52,36 @@ To only sync time and logs, and never update software (useful for stations)::
   OperatorTest(pytest_name='sync_factory_server',
                dargs={'update_toolkit': False})
 
-To also upload a report::
+To sync time and logs, and then upload a report::
 
   OperatorTest(pytest_name='sync_factory_server',
                dargs={'upload_report': True})
+
+To override default factory server URL for all tests executed after this::
+
+  OperatorTest(pytest_name='sync_factory_server',
+               dargs={'server_url': 'http://192.168.3.11:8080'})
+
+To implement "station specific factory server" in JSON test lists, extend
+``SyncFactoryServer`` from ``generic_common.test_list.json`` as::
+
+  { "inherit": "SyncFactoryServer",
+    "args": {
+      "server_url": "eval! locals.factory_server_url"
+    }
+  }
+
+And then in each station (or stage), override URL in locals::
+
+  {"SMT": {"locals": {"factory_server_url": "http://192.168.3.11:8080" }}},
+  {"FAT": {"locals": {"factory_server_url": "http://10.3.0.11:8080" }}},
+  {"RunIn": {"locals": {"factory_server_url": "http://10.1.2.10:7000" }}},
+  {"FFT": {"locals": {"factory_server_url": "http://10.3.0.11:8080" }}},
+  {"GRT": {"locals": {"factory_server_url": "http://172.30.1.2:8081" }}},
 """
 
 import logging
+import threading
 import time
 import unittest
 
@@ -72,7 +99,6 @@ from cros.factory.test import ui_templates
 from cros.factory.test.utils import time_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
-from cros.factory.utils import process_utils
 
 _CSS = """
 #state {
@@ -85,13 +111,29 @@ _CSS = """
   padding-top: 2em;
   text-align: left;
 }
+
+#text_input_url {
+  width: 18em;
+  font-family: monospace;
+  font-size: 1em;
+  margin: 10px;
+}
 """
+
+
+ID_TEXT_INPUT_URL = 'text_input_url'
+ID_BUTTON_EDIT_URL = 'button_edit_url'
+
+EVENT_SET_URL = 'event_set_url'
+EVENT_CANCEL_SET_URL = 'event_cancel_set_url'
+EVENT_DO_SET_URL = 'event_do_set_url'
+
 
 class WaitForUpdate(Exception):
   pass
 
 
-class SyncShopfloor(unittest.TestCase):
+class SyncFactoryServer(unittest.TestCase):
   ARGS = [
       Arg('first_retry_secs', int,
           'Time to wait after the first attempt; this will increase '
@@ -102,9 +144,9 @@ class SyncShopfloor(unittest.TestCase):
       Arg('retry_secs', int, 'Maximum time to wait between retries.', 10),
       Arg('timeout_secs', int, 'Timeout for XML/RPC operations.', 10),
       Arg('update_toolkit', bool, 'Whether to check factory update.',
-          default=True, optional=True),
+          default=True),
       Arg('update_without_prompt', bool, 'Update without prompting when an '
-          'update is available.', default=False, optional=True),
+          'update is available.', default=False),
       Arg('sync_time', bool, 'Sync system time from factory server.',
           default=True),
       Arg('sync_event_logs', bool, 'Sync event logs to factory server.',
@@ -115,102 +157,199 @@ class SyncShopfloor(unittest.TestCase):
       Arg('report_serial_number_name', str,
           'Name of serial number to use for report file name to use.',
           default=None),
+      Arg('server_url', str, 'Set and keep new factory server URL.',
+          default=None),
   ]
 
-  def UpdateToolkit(self, force_update, timeout_secs, ui, template):
+  def setUp(self):
+    self.ui = test_ui.UI()
+    self.ui_template = ui_templates.TwoSections(self.ui)
+    self.server = None
+    self.do_setup_url = False
+    self.allow_edit_url = True
+    self.event_url_set = threading.Event()
+
+  def runTest(self):
+    self.ui.AppendCSS(_CSS)
+    self.ui_template.DrawProgressBar()
+    self.ui.RunInBackground(self._runTest)
+    self.ui.Run()
+
+  @staticmethod
+  def CreateButton(node_id, message, on_click):
+    return ('<button type="button" id="%s" onClick=%r>%s</button>' %
+            (node_id, on_click, message))
+
+  def CreateChangeURLButton(self):
+    return self.CreateButton(
+        ID_BUTTON_EDIT_URL, i18n_test_ui.MakeI18nLabel('Change URL'),
+        'this.disabled = true; window.test.sendTestEvent("%s");' %
+        EVENT_DO_SET_URL)
+
+  def OnButtonSetClicked(self, event):
+    self.ChangeServerURL(event.data)
+    self.do_setup_url = False
+    self.event_url_set.set()
+
+  def OnButtonCancelClicked(self, event):
+    del event  # Unused.
+    self.do_setup_url = False
+    self.event_url_set.set()
+
+  def OnButtonEditClicked(self, event):
+    del event  # Unused.
+    self.do_setup_url = True
+    self.ui.SetHTML(
+        i18n_test_ui.MakeI18nLabel('Please wait few seconds to edit...'),
+        id=ID_BUTTON_EDIT_URL)
+
+  def EditServerURL(self):
+    current_url = shopfloor.get_server_url()
+    self.ui_template.SetState(
+        i18n_test_ui.MakeI18nLabel('Change server URL: ') + '<br/>' +
+        '<input type="text" id="%s" value="%s"/><br/>' %
+        (ID_TEXT_INPUT_URL, current_url) +
+        self.CreateButton(
+            'btnSet', i18n_test_ui.MakeI18nLabel('Set'),
+            'window.test.sendTestEvent("%s", '
+            'document.getElementById("%s").value)' %
+            (EVENT_SET_URL, ID_TEXT_INPUT_URL)) +
+        self.CreateButton(
+            'btnCancel', i18n_test_ui.MakeI18nLabel('Cancel'),
+            'window.test.sendTestEvent("%s")' % EVENT_CANCEL_SET_URL))
+
+  def Ping(self):
+    if self.do_setup_url:
+      self.event_url_set.clear()
+      self.EditServerURL()
+      self.event_url_set.wait()
+
+    self.ui_template.SetState(
+        i18n_test_ui.MakeI18nLabel('Trying to reach server...') +
+        '<br/><br/>' + self.CreateChangeURLButton())
+    self.server = shopfloor.get_instance(timeout=self.args.timeout_secs)
+    self.ui_template.SetState(
+        i18n_test_ui.MakeI18nLabel('Trying to check server protocol...') +
+        '<br/><br/>' + self.CreateChangeURLButton())
+    self.server.Ping()
+    self.allow_edit_url = False
+
+  def ChangeServerURL(self, new_server_url):
+    server_url = shopfloor.get_server_url()
+
+    if new_server_url and new_server_url != server_url:
+      shopfloor.set_server_url(new_server_url.rstrip('/'))
+      # Read again because shopfloor module may normalize it.
+      new_server_url = shopfloor.get_server_url()
+      factory.console.info(
+          'Factory server URL has been changed from [%s] to [%s].',
+          server_url, new_server_url)
+      server_url = new_server_url
+
+    self.ui_template.SetInstruction(
+        i18n_test_ui.MakeI18nLabel('Server URL: ') + server_url)
+    if not server_url:
+      self.do_setup_url = True
+
+  def UpdateToolkit(self, force_update, timeout_secs):
     unused_toolkit_version, has_update = updater.CheckForUpdate(timeout_secs)
     if not has_update:
       return
 
     # Update necessary.
     if force_update:
-      ui.RunJS('window.test.updateFactory()')
+      self.ui.RunJS('window.test.updateFactory()')
     else:
       # Display message and require update.
-      template.SetState(
-          i18n_test_ui.MakeI18nLabel('A software update is available. '
-                                     'Press SPACE to update.'))
+      self.ui_template.SetState(i18n_test_ui.MakeI18nLabel(
+          'A software update is available. Press SPACE to update.'))
       # Note that updateFactory() will kill this test.
-      ui.BindKeyJS(test_ui.SPACE_KEY, 'window.test.updateFactory()')
+      self.ui.BindKeyJS(test_ui.SPACE_KEY, 'window.test.updateFactory()')
     raise WaitForUpdate
 
-  def runTest(self):
-    ui = test_ui.UI()
-    template = ui_templates.OneSection(ui)
-    ui.AppendCSS(_CSS)
-    if not self.args.update_toolkit:
-      factory.console.info('Update is disabled.')
+  def _runTest(self):
+    label_prepare = i18n_test_ui.MakeI18nLabel('Preparing...')
+    self.ui_template.SetInstruction(label_prepare)
+    retry_secs = self.args.first_retry_secs
+    goofy = state.get_instance()
 
-    def target():
-      retry_secs = self.args.first_retry_secs
-      goofy = state.get_instance()
-      server_url = shopfloor.get_server_url()
-      server = shopfloor.get_instance()
+    self.ui.AddEventHandler(EVENT_SET_URL, self.OnButtonSetClicked)
+    self.ui.AddEventHandler(EVENT_CANCEL_SET_URL, self.OnButtonCancelClicked)
+    self.ui.AddEventHandler(EVENT_DO_SET_URL, self.OnButtonEditClicked)
 
-      connect_label = i18n_test_ui.MakeI18nLabel(
-          'Contacting factory server {server_url}...<br> Current Task: ',
-          server_url=server_url or '')
+    # Setup tasks to perform.
+    tasks = [(_('Ping'), self.Ping)]
 
-      # Setup tasks to perform.
-      tasks = []
+    if self.args.sync_time:
+      tasks += [(_('Sync time'), time_utils.SyncTimeWithShopfloorServer)]
 
-      if self.args.sync_time:
-        tasks += [(_('Sync time'), time_utils.SyncTimeWithShopfloorServer)]
+    if self.args.sync_event_logs:
+      tasks += [(_('Flush Event Logs'), goofy.FlushEventLogs)]
 
-      if self.args.sync_event_logs:
-        tasks += [(_('Flush Event Logs'), goofy.FlushEventLogs)]
+    if self.args.upload_report:
+      # To prevent creating blob multiple times in retry, we want to do this
+      # before real task starts.
+      self.ui_template.SetInstruction(i18n_test_ui.MakeI18nLabel(
+          'Collecting report data...'))
+      blob = commands.CreateReportArchiveBlob()
+      self.ui_template.SetInstruction(i18n_test_ui.MakeI18nLabel(
+          'Getting serial number...'))
+      report_serial_number = device_data.GetSerialNumber(
+          self.args.report_serial_number_name or
+          device_data.NAME_SERIAL_NUMBER)
+      self.ui_template.SetInstruction(label_prepare)
+      tasks += [(_('Upload report'),
+                 lambda: self.server.UploadReport(
+                     report_serial_number, blob, None, self.args.report_stage))]
 
-      if self.args.upload_report:
-        blob = commands.CreateReportArchiveBlob()
-        report_serial_number = device_data.GetSerialNumber(
-            self.args.report_serial_number_name or
-            device_data.NAME_SERIAL_NUMBER)
-        tasks += [(_('Upload report'),
-                   lambda: server.UploadReport(report_serial_number, blob, None,
-                                               self.args.report_stage))]
+    if self.args.update_toolkit:
+      tasks += [(_('Update Toolkit'),
+                 lambda: self.UpdateToolkit(
+                     self.args.update_without_prompt, self.args.timeout_secs))]
+    else:
+      factory.console.info('Toolkit update is disabled.')
 
-      if self.args.update_toolkit:
-        tasks += [(_('Update Toolkit'),
-                   lambda: self.UpdateToolkit(self.args.update_without_prompt,
-                                              self.args.timeout_secs, ui,
-                                              template))]
+    # Setup new server URL
+    self.ChangeServerURL(self.args.server_url)
 
-      for label, task in tasks:
-        while True:
-          try:
-            template.SetState(connect_label)
-            template.SetState(i18n_test_ui.MakeI18nLabel(label), append=True)
-            task()
-            template.SetState(i18n_test_ui.MakeI18nLabel(
-                '<span style="color: green">Server Task Finished: '
-                '{label}</span>', label=label))
-            time.sleep(0.5)
-            break
-          except WaitForUpdate:
-            return
-          except shopfloor.Fault as f:
-            exception_string = f.faultString
-            logging.error('Server fault with message: %s', f.faultString)
-          except Exception:
-            exception_string = debug_utils.FormatExceptionOnly()
-            # Log only the exception string, not the entire exception,
-            # since this may happen repeatedly.
-            logging.error('Unable to sync with server: %s', exception_string)
+    for i, (label, task) in enumerate(tasks):
+      progress = int(i * 100.0 / len(tasks))
+      self.ui_template.SetProgressBarValue(progress)
+      while True:
+        try:
+          self.ui_template.SetState(i18n_test_ui.MakeI18nLabel(
+              'Running task: {label}', label=label) + '<br>')
+          task()
+          self.ui_template.SetState(
+              '<span style="color: green">' +
+              i18n_test_ui.MakeI18nLabel(
+                  'Server Task Finished: {label}', label=label) +
+              '</span>')
+          time.sleep(0.5)
+          break
+        except WaitForUpdate:
+          return
+        except shopfloor.Fault as f:
+          exception_string = f.faultString
+          logging.error('Server fault with message: %s', f.faultString)
+        except Exception:
+          exception_string = debug_utils.FormatExceptionOnly()
+          # Log only the exception string, not the entire exception,
+          # since this may happen repeatedly.
+          logging.error('Unable to sync with server: %s', exception_string)
 
-          msg = lambda time_left, label_: i18n_test_ui.MakeI18nLabel(
-              'Failed in task <b>{label}</b>.<br>'
-              'Retry in {time_left} seconds...',
-              time_left=time_left, label=label_)
-          template.SetState(
-              '<span id="retry">' + msg(retry_secs, label) + '</span>'
-              + '<p><textarea rows=25 cols=90 readonly class=sync-detail>'
-              + test_ui.Escape(exception_string, False) + '</textarea>')
+        msg = lambda time_left, label_: i18n_test_ui.MakeI18nLabel(
+            'Task <b>{label}</b> failed, retry in {time_left} seconds...',
+            time_left=time_left, label=label_)
+        edit_url_button = (('<p>' + self.CreateChangeURLButton() + '</p>')
+                           if self.allow_edit_url else '')
+        self.ui_template.SetState(
+            '<span id="retry">' + msg(retry_secs, label) + '</span>'
+            + edit_url_button
+            + '<p><textarea rows=25 cols=90 readonly class=sync-detail>'
+            + test_ui.Escape(exception_string, False) + '</textarea>')
 
-          for i in xrange(retry_secs):
-            time.sleep(1)
-            ui.SetHTML(msg(retry_secs - i - 1, label), id='retry')
-          retry_secs = min(2 * retry_secs, self.args.retry_secs)
-      ui.Pass()
-
-    process_utils.StartDaemonThread(target=target)
-    ui.Run()
+        for i in xrange(retry_secs):
+          time.sleep(1)
+          self.ui.SetHTML(msg(retry_secs - i - 1, label), id='retry')
+        retry_secs = min(2 * retry_secs, self.args.retry_secs)
