@@ -23,9 +23,9 @@ import socket
 import sys
 import time
 import yaml
-from setproctitle import setproctitle  # pylint: disable=no-name-in-module
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.external import setproctitle
 from cros.factory.test import device_data
 from cros.factory.test import factory
 from cros.factory.test.factory import TestState
@@ -341,7 +341,11 @@ class TestListCommand(Subcommand):
         uuid = None
 
       # Set the proc title so factory_restart won't kill us.
-      setproctitle('factory set-active-test-list')
+      if setproctitle.MODULE_READY:
+        setproctitle.setproctitle('factory set-active-test-list')
+      else:
+        sys.stderr.write(
+            'WARNING: setproctitle not available, factory_restart may fail.\n')
 
       # Restart goofy, clearing its state
       Spawn(['factory_restart'] +
