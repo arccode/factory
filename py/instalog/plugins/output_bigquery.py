@@ -16,29 +16,24 @@ Limits to keep in mind:
 
 from __future__ import print_function
 
-import httplib2
 import os
-import StringIO
+import shutil
 import time
+
+# pylint: disable=import-error
+from google.cloud import bigquery
+from google.oauth2 import service_account
 
 import instalog_common  # pylint: disable=W0611
 from instalog import plugin_base
 from instalog.utils.arg_utils import Arg
-
-from googleapiclient.http import MediaIoBaseUpload
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-# pylint: disable=no-name-in-module
-from oauth2client.service_account import ServiceAccountCredentials
+from instalog.utils import file_utils
 
 
-_HTTP_TIMEOUT = 60
-_JSON_MIMETYPE = 'application/json'
-_UPLOAD_CHUNK_SIZE = 1024 * 1024  # 1mb
-_JOB_NAME_PREFIX = 'instalog_'
-_BIGQUERY_REQUEST_INTERVAL = 5
-_BIGQUERY_REQUEST_MAX_FAILURES = 20
 _BIGQUERY_SCOPE = 'https://www.googleapis.com/auth/bigquery'
+_BIGQUERY_REQUEST_MAX_FAILURES = 20
+_JOB_NAME_PREFIX = 'instalog_'
+_JSON_MIMETYPE = 'NEWLINE_DELIMITED_JSON'
 _DEFAULT_INTERVAL = 90
 _DEFAULT_BATCH_SIZE = 10000
 
@@ -66,27 +61,39 @@ class OutputBigQuery(plugin_base.OutputPlugin):
   ]
 
   def __init__(self, *args, **kwargs):
-    self.service = None
+    self.client = None
+    self.table = None
     super(OutputBigQuery, self).__init__(*args, **kwargs)
 
   def SetUp(self):
-    """Stores the service object to run BigQuery API calls."""
-    self.service = self.BuildService()
+    """Builds the client object and the table object to run BigQuery calls."""
+    self.client = self.BuildClient()
+    self.table = self.BuildTable()
 
   def Main(self):
     """Main thread of the plugin."""
     while not self.IsStopping():
-      if not self.PrepareAndUploadBatch():
+      if not self.PrepareAndUpload():
         # TODO(kitching): Find a better way to block the plugin when we are in
         #                 one of the PAUSING, PAUSED, or UNPAUSING states.
         self.Sleep(1)
 
-  def BuildService(self):
-    """Builds a BigQuery service object."""
-    credentials = ServiceAccountCredentials.from_json_keyfile_name(
+  def BuildClient(self):
+    """Builds a BigQuery client object."""
+    credentials = service_account.Credentials.from_service_account_file(
         self.args.key_path, scopes=(_BIGQUERY_SCOPE,))
-    http = credentials.authorize(httplib2.Http(timeout=_HTTP_TIMEOUT))
-    return build('bigquery', 'v2', http=http)
+    return bigquery.Client(project=self.args.project_id,
+                           credentials=credentials)
+
+  def BuildTable(self):
+    """Builds a BigQuery table object."""
+    dataset = bigquery.Dataset(self.args.dataset_id, self.client)
+    table = bigquery.Table(self.args.table_id, dataset, self.GetTableSchema())
+    if table.exists():
+      table.reload()
+    else:
+      table.create()
+    return table
 
   def GetTableSchema(self):
     """Returns a list of fields in the table schema.
@@ -106,128 +113,6 @@ class OutputBigQuery(plugin_base.OutputPlugin):
     """
     raise NotImplementedError
 
-  def GetLoadConfig(self):
-    """Returns a load config dictionary to be used in the load job."""
-    load_config = {
-        'destinationTable': {
-            'projectId': self.args.project_id,
-            'datasetId': self.args.dataset_id,
-            'tableId': self.args.table_id
-        }
-    }
-    load_config['schema'] = {
-        'fields': self.GetTableSchema()
-    }
-    load_config['sourceFormat'] = 'NEWLINE_DELIMITED_JSON'
-    return load_config
-
-  def StartLoadJob(self, job_id, media):
-    """Starts a BigQuery load job with provided media.
-
-    Args:
-      job_id: The Job ID that should be assigned to this job.
-      media: MediaIoBaseUpload object with JSON data.
-
-    Raises:
-      Exception if there was a problem with the request, or if there was a
-      connection failure.
-    """
-    try:
-      self.info('Starting load job %s...', job_id)
-      self.service.jobs().insert(
-          projectId=self.args.project_id,
-          body={
-              'jobReference': {
-                  'jobId': job_id
-              },
-              'configuration': {
-                  'load': self.GetLoadConfig()
-              }
-          },
-          media_body=media).execute()
-    except HttpError as e:
-      # Succeeded already in starting the job?
-      self.info('HttpError returned by job queue request: %s', e.resp.status)
-      if e.resp.status == 409:
-        # Response code 409/duplicate: "This error returns when trying to
-        # create a job, dataset or table that already exists.  The error also
-        # returns when a job's writeDisposition property is set to WRITE_EMPTY
-        # and the destination table accessed by the job already exists."
-        #
-        # If this is due to the job existing, we should report success to
-        # continue checking the job status.
-        self.warning('Response code 409/duplicate: job, dataset, or table '
-                     'may already exist.  If this error keeps occurring, '
-                     'it is probably one of the latter two.')
-      else:
-        raise e
-    return job_id
-
-  def GetJobResult(self, job_id):
-    """Gets the results of a particular job ID.
-
-    Raises:
-      Exception if there was a problem with the request, or if there was a
-      connection failure.
-    """
-    return self.service.jobs().get(
-        projectId=self.args.project_id, jobId=job_id).execute()
-
-  def UploadBatch(self, media):
-    """Uploads a batch of JSON data to BigQuery.
-
-    Waits for the job to complete until returning.  Aborts either StartLoadJob
-    or GetJobResult fails more than _BIGQUERY_REQUEST_MAX_FAILURES times.
-
-    Returns:
-      True on success, False on failure.
-    """
-    # Attempt to start the job.
-    job_id = '%s%d' % (_JOB_NAME_PREFIX, time.time())
-    for exception_count in xrange(1, _BIGQUERY_REQUEST_MAX_FAILURES + 1):
-      try:
-        self.StartLoadJob(job_id, media)
-        break
-      except Exception:
-        self.warning('Error retrieving load job %s result (%d/%d)',
-                     job_id, exception_count, _BIGQUERY_REQUEST_MAX_FAILURES,
-                     exc_info=True)
-      if exception_count != _BIGQUERY_REQUEST_MAX_FAILURES:
-        time.sleep(_BIGQUERY_REQUEST_INTERVAL)
-    else:
-      self.error(
-          'Give up starting load job %s result after %d attempts',
-          job_id, _BIGQUERY_REQUEST_MAX_FAILURES)
-      return False
-
-    # Wait for the job to report completion.
-    for exception_count in xrange(1, _BIGQUERY_REQUEST_MAX_FAILURES + 1):
-      try:
-        result = self.GetJobResult(job_id)
-        self.debug('Load job %s result: %s', job_id, result)
-        if result['status']['state'] not in ('PENDING', 'RUNNING', 'DONE'):
-          self.error('Load job %s has unexpected state %s; aborting',
-                     job_id, result['status']['state'])
-          return False
-        if 'errorResult' in result['status']:
-          self.error('Load job %s failed in state %s: %s',
-                     job_id, result['status']['state'],
-                     result['status']['errorResult'])
-          return False
-        if result['status']['state'] == 'DONE':
-          self.info('Load job %s successful', job_id)
-          return True
-      except Exception:
-        self.warning('Error retrieving load job %s result (%d/%d)',
-                     job_id, exception_count, _BIGQUERY_REQUEST_MAX_FAILURES,
-                     exc_info=True)
-      if exception_count != _BIGQUERY_REQUEST_MAX_FAILURES:
-        time.sleep(_BIGQUERY_REQUEST_INTERVAL)
-    self.error(
-        'Give up retrieving load job %s result after %d attempts',
-        job_id, exception_count)
-    return False
-
   def ConvertEventToRow(self, event):
     """Converts an event to its corresponding BigQuery table row JSON string.
 
@@ -241,53 +126,84 @@ class OutputBigQuery(plugin_base.OutputPlugin):
     """
     raise NotImplementedError
 
-  def PrepareAndUploadBatch(self):
+  def PrepareFile(self, event_stream, json_path):
+    """Retrieves events from event_stream and dumps them to the json_path.
+
+    Returns:
+      A tuple of (event_count, row_count), where:
+        event_count: The number of events from event_stream.
+        row_count: The number of BigQuery format events from event_stream.
+    """
+    event_count = 0
+    row_count = 0
+    with open(json_path, 'w') as f:
+      for event in event_stream.iter(timeout=self.args.interval,
+                                     count=self.args.batch_size):
+        json_row = None
+        try:
+          json_row = self.ConvertEventToRow(event)
+        except Exception:
+          self.warning('Error converting event to row: %s',
+                       event, exc_info=True)
+        if json_row is not None:
+          f.write(json_row + '\n')
+          row_count += 1
+        event_count += 1
+
+    return event_count, row_count
+
+  def PrepareAndUpload(self):
     """Retrieves events, converts them to BigQuery format, and uploads them."""
     event_stream = self.NewStream()
     if not event_stream:
       return False
 
-    json_stream = StringIO.StringIO()
-    event_count = 0
-    row_count = 0
-    for event in event_stream.iter(timeout=self.args.interval,
-                                   count=self.args.batch_size):
-      json_row = None
+    with file_utils.UnopenedTemporaryFile(
+        prefix='output_bigquery_') as json_path:
+      event_count, row_count = self.PrepareFile(event_stream, json_path)
+
+      # No processed events result in BigQuery table rows.
+      if row_count == 0:
+        self.info('Commit %d events (%d rows)', event_count, row_count)
+        event_stream.Commit()
+        return False
+
+      self.info('Uploading %d rows into BigQuery...', row_count)
       try:
-        json_row = self.ConvertEventToRow(event)
+        with open(json_path, 'rb') as f:
+          job_id = '%s%d' % (_JOB_NAME_PREFIX, time.time())
+          # No need to run job.begin() since upload_from_file() takes care of
+          # this.
+          job = self.table.upload_from_file(
+              file_obj=f,
+              source_format=_JSON_MIMETYPE,
+              num_retries=_BIGQUERY_REQUEST_MAX_FAILURES,
+              job_name=job_id,
+              size=os.path.getsize(json_path))
+
+        # Wait for job to complete.
+        job.result()
+
       except Exception:
-        self.warning('Error converting event to row: %s', event, exc_info=True)
-      if json_row is not None:
-        json_stream.write(json_row + '\n')
-        row_count += 1
-      event_count += 1
+        event_stream.Abort()
+        self.exception('Insert failed')
+        self.info('Abort %d events (%d rows)', event_count, row_count)
+        return False
+      else:
+        if job.state == 'DONE':
+          if job.output_rows != row_count:
+            shutil.copyfile(json_path, json_path + '.backup')
+            self.error('Row count is not equal to output rows! This should not'
+                       'happen! Copy the json file to %s.backup!', json_path)
 
-    # No processed events result in BigQuery table rows.
-    if row_count == 0 and event_count > 0:
-      self.info('Commit %d events (no BigQuery rows)', event_count)
-      event_stream.Commit()
-      return True
-
-    if event_count == 0:
-      event_stream.Commit()
-      self.info('Commit %d events', event_count)
-      return False
-
-    # Write the current import job to disk for debugging purposes.
-    with open(os.path.join(self.GetDataDir(), 'last_batch.json'), 'w') as f:
-      f.write(json_stream.getvalue())
-
-    media = MediaIoBaseUpload(json_stream, mimetype=_JSON_MIMETYPE,
-                              chunksize=_UPLOAD_CHUNK_SIZE, resumable=False)
-    self.info('Uploading BigQuery batch with %d events...', event_count)
-    if self.UploadBatch(media):
-      self.info('Commit %d events', event_count)
-      event_stream.Commit()
-      return True
-    else:
-      event_stream.Abort()
-      self.info('Abort %d events', event_count)
-      return False
+          self.info('Commit %d events (%d rows)', event_count, row_count)
+          event_stream.Commit()
+          return True
+        else:
+          event_stream.Abort()
+          self.warning('Insert failed with errors: %s', job.errors)
+          self.info('Abort %d events (%d rows)', event_count, row_count)
+          return False
 
 
 if __name__ == '__main__':

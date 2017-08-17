@@ -15,6 +15,9 @@ import json
 import math
 import time
 
+# pylint: disable=import-error
+from google.cloud.bigquery.schema import SchemaField
+
 import instalog_common  # pylint: disable=W0611
 from instalog import plugin_base
 from instalog.plugins import output_bigquery
@@ -26,94 +29,93 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
     """Returns a list of fields in the table schema."""
     return [
         # history
-        {'name': 'history', 'type': 'RECORD', 'mode': 'REPEATED',
-         'fields': [
-             {'name': 'node_id', 'type': 'STRING'},
-             {'name': 'orig_time', 'type': 'TIMESTAMP'},
-             {'name': 'time', 'type': 'TIMESTAMP'},
-             {'name': 'plugin_id', 'type': 'STRING'},
-             {'name': 'plugin_type', 'type': 'STRING'},
-             {'name': 'target', 'type': 'STRING'}]},
+        SchemaField(u'history', u'record', u'REPEATED', None, (
+            SchemaField(u'node_id', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'orig_time', u'timestamp', 'NULLABLE', None, ()),
+            SchemaField(u'time', u'timestamp', 'NULLABLE', None, ()),
+            SchemaField(u'plugin_id', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'plugin_type', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'target', u'string', 'NULLABLE', None, ())
+        )),
 
         # station
-        {'name': 'uuid', 'type': 'STRING'},
-        {'name': 'type', 'type': 'STRING'},
-        {'name': 'apiVersion', 'type': 'STRING'},
-        {'name': 'time', 'type': 'TIMESTAMP'},
-        {'name': 'stationName', 'type': 'STRING'},
-        {'name': 'seq', 'type': 'INTEGER'},
-        {'name': 'stationDeviceId', 'type': 'STRING'},
-        {'name': 'stationInstallationId', 'type': 'STRING'},
+        SchemaField(u'uuid', u'string', 'NULLABLE', None, ()),
+        SchemaField(u'type', u'string', 'NULLABLE', None, ()),
+        SchemaField(u'apiVersion', u'string', 'NULLABLE', None, ()),
+        SchemaField(u'time', u'timestamp', 'NULLABLE', None, ()),
+        SchemaField(u'stationName', u'string', 'NULLABLE', None, ()),
+        SchemaField(u'seq', u'integer', 'NULLABLE', None, ()),
+        SchemaField(u'stationDeviceId', u'string', 'NULLABLE', None, ()),
+        SchemaField(u'stationInstallationId', u'string', 'NULLABLE', None, ()),
 
         # station.init
-        {'name': 'count', 'type': 'INTEGER'},
-        {'name': 'success', 'type': 'BOOLEAN'},
-        {'name': 'failureMessage', 'type': 'STRING'},
+        SchemaField(u'count', u'integer', 'NULLABLE', None, ()),
+        SchemaField(u'success', u'boolean', 'NULLABLE', None, ()),
+        SchemaField(u'failureMessage', u'string', 'NULLABLE', None, ()),
 
         # station.message
-        {'name': 'message', 'type': 'STRING'},
-        {'name': 'filePath', 'type': 'STRING'},
-        {'name': 'lineNumber', 'type': 'INTEGER'},
-        {'name': 'functionName', 'type': 'STRING'},
-        {'name': 'logLevel', 'type': 'STRING'},
-        {'name': 'testRunId', 'type': 'STRING'},  # also in station.test_run
+        SchemaField(u'message', u'string', 'NULLABLE', None, ()),
+        SchemaField(u'filePath', u'string', 'NULLABLE', None, ()),
+        SchemaField(u'lineNumber', u'integer', 'NULLABLE', None, ()),
+        SchemaField(u'functionName', u'string', 'NULLABLE', None, ()),
+        SchemaField(u'logLevel', u'string', 'NULLABLE', None, ()),
+        SchemaField(u'testRunId', u'string', 'NULLABLE', None, ()),
 
-        # station.test_run
-        {'name': 'testName', 'type': 'STRING'},
-        {'name': 'testType', 'type': 'STRING'},
-        {'name': 'arguments', 'type': 'RECORD', 'mode': 'REPEATED',
-         'fields': [
-             {'name': 'key', 'type': 'STRING'},
-             {'name': 'description', 'type': 'STRING'},
-             {'name': 'value', 'type': 'STRING'}]},
-        {'name': 'status', 'type': 'STRING'},
-        {'name': 'startTime', 'type': 'TIMESTAMP'},
-        {'name': 'endTime', 'type': 'TIMESTAMP'},
-        {'name': 'duration', 'type': 'FLOAT'},
-        {'name': 'operatorId', 'type': 'STRING'},
-        {'name': 'attachments', 'type': 'RECORD', 'mode': 'REPEATED',
-         'fields': [
-             {'name': 'key', 'type': 'STRING'},
-             {'name': 'description', 'type': 'STRING'},
-             {'name': 'path', 'type': 'STRING'},
-             {'name': 'mimeType', 'type': 'STRING'}]},
-        {'name': 'failures', 'type': 'RECORD', 'mode': 'REPEATED',
-         'fields': [
-             {'name': 'id', 'type': 'INTEGER'},
-             {'name': 'code', 'type': 'STRING'},
-             {'name': 'details', 'type': 'STRING'}]},
-        {'name': 'serialNumbers', 'type': 'RECORD', 'mode': 'REPEATED',
-         'fields': [
-             {'name': 'key', 'type': 'STRING'},
-             {'name': 'value', 'type': 'STRING'}]},
-        {'name': 'parameters', 'type': 'RECORD', 'mode': 'REPEATED',
-         'fields': [
-             {'name': 'key', 'type': 'STRING'},
-             {'name': 'description', 'type': 'STRING'},
-             {'name': 'group', 'type': 'STRING'},
-             {'name': 'status', 'type': 'STRING'},
-             {'name': 'valueUnit', 'type': 'STRING'},
-             {'name': 'numericValue', 'type': 'FLOAT'},
-             {'name': 'expectedMinimum', 'type': 'FLOAT'},
-             {'name': 'expectedMaximum', 'type': 'FLOAT'},
-             {'name': 'textValue', 'type': 'STRING'},
-             {'name': 'expectedRegex', 'type': 'STRING'}]},
-        {'name': 'series', 'type': 'RECORD', 'mode': 'REPEATED',
-         'fields': [
-             {'name': 'key', 'type': 'STRING'},
-             {'name': 'description', 'type': 'STRING'},
-             {'name': 'group', 'type': 'STRING'},
-             {'name': 'keyUnit', 'type': 'STRING'},
-             {'name': 'valueUnit', 'type': 'STRING'},
-             {'name': 'data', 'type': 'RECORD', 'mode': 'REPEATED',
-              'fields': [
-                  {'name': 'id', 'type': 'INTEGER'},
-                  {'name': 'key', 'type': 'FLOAT'},
-                  {'name': 'status', 'type': 'STRING'},
-                  {'name': 'numericValue', 'type': 'FLOAT'},
-                  {'name': 'expectedMinimum', 'type': 'FLOAT'},
-                  {'name': 'expectedMaximum', 'type': 'FLOAT'}]}]},
-        {'name': 'serialized', 'type': 'STRING'}]
+        # station.test_run (also use testRunId)
+        SchemaField(u'testName', u'string', 'NULLABLE', None, ()),
+        SchemaField(u'testType', u'string', 'NULLABLE', None, ()),
+        SchemaField(u'arguments', u'record', u'REPEATED', None, (
+            SchemaField(u'key', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'description', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'value', u'string', 'NULLABLE', None, ())
+        )),
+        SchemaField(u'status', u'string', 'NULLABLE', None, ()),
+        SchemaField(u'startTime', u'timestamp', 'NULLABLE', None, ()),
+        SchemaField(u'endTime', u'timestamp', 'NULLABLE', None, ()),
+        SchemaField(u'duration', u'float', 'NULLABLE', None, ()),
+        SchemaField(u'operatorId', u'string', 'NULLABLE', None, ()),
+        SchemaField(u'attachments', u'record', u'REPEATED', None, (
+            SchemaField(u'key', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'description', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'path', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'mimeType', u'string', 'NULLABLE', None, ())
+        )),
+        SchemaField(u'failures', u'record', u'REPEATED', None, (
+            SchemaField(u'id', u'integer', 'NULLABLE', None, ()),
+            SchemaField(u'code', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'details', u'string', 'NULLABLE', None, ()))),
+        SchemaField(u'serialNumbers', u'record', u'REPEATED', None, (
+            SchemaField(u'key', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'value', u'string', 'NULLABLE', None, ()))),
+        SchemaField(u'parameters', u'record', u'REPEATED', None, (
+            SchemaField(u'key', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'description', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'group', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'status', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'valueUnit', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'numericValue', u'float', 'NULLABLE', None, ()),
+            SchemaField(u'expectedMinimum', u'float', 'NULLABLE', None, ()),
+            SchemaField(u'expectedMaximum', u'float', 'NULLABLE', None, ()),
+            SchemaField(u'textValue', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'expectedRegex', u'string', 'NULLABLE', None, ())
+        )),
+        SchemaField(u'series', u'record', u'REPEATED', None, (
+            SchemaField(u'key', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'description', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'group', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'keyUnit', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'valueUnit', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'data', u'record', u'REPEATED', None, (
+                SchemaField(u'id', u'integer', 'NULLABLE', None, ()),
+                SchemaField(u'key', u'float', 'NULLABLE', None, ()),
+                SchemaField(u'status', u'string', 'NULLABLE', None, ()),
+                SchemaField(u'numericValue', u'float', 'NULLABLE', None, ()),
+                SchemaField(u'expectedMinimum', u'float', 'NULLABLE', None, ()),
+                SchemaField(u'expectedMaximum', u'float', 'NULLABLE', None, ())
+            ))
+        )),
+        SchemaField(u'serialized', u'string', 'NULLABLE', None, ())
+    ]
 
   def ConvertEventToRow(self, event):
     """Converts an event to its corresponding BigQuery table row JSON string."""
