@@ -7,9 +7,10 @@
 
 from __future__ import print_function
 
-import mock
 import os
 import unittest
+
+import mock
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event
@@ -23,11 +24,9 @@ class TestUIUnittest(unittest.TestCase):
   def setUp(self):
     self.test_path = 'test.path'
     self.invocation = 'test_invocation'
-    self.parent_invocation = 'parent_invocation'
 
     os.environ['CROS_FACTORY_TEST_PATH'] = self.test_path
     os.environ['CROS_FACTORY_TEST_INVOCATION'] = self.invocation
-    os.environ['CROS_FACTORY_TEST_PARENT_INVOCATION'] = self.parent_invocation
 
     self.event_client_patcher = mock.patch.object(event, 'EventClient',
                                                   autospec=True)

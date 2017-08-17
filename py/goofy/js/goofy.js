@@ -217,7 +217,6 @@ cros.factory.Test.prototype.pass = function() {
     'invocation': this.invocation.uuid,
     'test': this.invocation.path
   });
-  this.invocation.dispose();
 };
 
 /**
@@ -232,7 +231,6 @@ cros.factory.Test.prototype.fail = function(errorMsg) {
     'invocation': this.invocation.uuid,
     'test': this.invocation.path
   });
-  this.invocation.dispose();
 };
 
 /**
@@ -388,9 +386,8 @@ cros.factory.Test.prototype.setFullScreen = function(enable) {
  * @param {!cros.factory.Goofy} goofy
  * @param {string} path
  * @param {string} uuid
- * @param {?string} parentUuid
  */
-cros.factory.Invocation = function(goofy, path, uuid, parentUuid) {
+cros.factory.Invocation = function(goofy, path, uuid) {
   /**
    * Reference to the Goofy object.
    * @type {!cros.factory.Goofy}
@@ -410,67 +407,53 @@ cros.factory.Invocation = function(goofy, path, uuid, parentUuid) {
   this.uuid = uuid;
 
   /**
-   * UUID of the parent invocation; null if this is a top-level invocation.
-   * @type {?string}
-   */
-  this.parentUuid = parentUuid;
-
-  /**
-   * Sub-invocations of this invocation.
-   * @type {!Object<string, ?cros.factory.Invocation>}
-   */
-  this.subInvocations = {};
-
-  /**
    * Test API for the invocation.
    * @type {!cros.factory.Test}
    */
   this.test = new cros.factory.Test(this);
 
-  if (parentUuid) {
-    var label = this.goofy.pathTestMap[this.path].label;
-    /**
-     * The tab object of the test.
-     * @type {goog.ui.Tab}
-     */
-    this.tab = new goog.ui.Tab(cros.factory.i18n.i18nLabelNode(label));
+  var label = this.goofy.pathTestMap[this.path].label;
+  /**
+   * The tab object of the test.
+   * @type {goog.ui.Tab}
+   */
+  this.tab = new goog.ui.Tab(cros.factory.i18n.i18nLabelNode(label));
 
-    this.goofy.tabBar.addChild(this.tab, true);
+  this.goofy.tabBar.addChild(this.tab, true);
 
-    var element = /** @type {!HTMLElement} */ (this.tab.getElement());
-    element.dataset.testPath = this.path;
+  var element = /** @type {!HTMLElement} */ (this.tab.getElement());
+  element.dataset.testPath = this.path;
 
-    /**
-     * The iframe containing the test.
-     * @type {?HTMLIFrameElement}
-     */
-    this.iframe = goog.dom.iframe.createBlank(new goog.dom.DomHelper(document));
-    goog.dom.classlist.add(this.iframe, 'goofy-test-iframe');
-    goog.dom.classlist.enable(this.iframe, 'goofy-test-visible', false);
+  /**
+   * The iframe containing the test.
+   * @type {?HTMLIFrameElement}
+   */
+  this.iframe = goog.dom.iframe.createBlank(new goog.dom.DomHelper(document));
+  goog.dom.classlist.add(this.iframe, 'goofy-test-iframe');
+  goog.dom.classlist.enable(this.iframe, 'goofy-test-visible', false);
 
-    this.goofy.mainComponentContainer.getElement().appendChild(this.iframe);
+  this.goofy.mainComponentContainer.getElement().appendChild(this.iframe);
 
-    this.goofy.iframeMap[this.path] = this.iframe;
+  this.goofy.iframeMap[this.path] = this.iframe;
 
-    document.getElementById('goofy-main').appendChild(this.iframe);
-    this.iframe.contentWindow.$ = goog.bind(
-        /**
-         * @this {!cros.factory.Goofy}
-         * @return {?Element}
-         */
-        function(/** string */ id) {
-          return this.iframe.contentDocument.getElementById(id);
-        },
-        this);
-    // Export the libraries to test iframe.
-    this.iframe.contentWindow.cros = cros;
-    this.iframe.contentWindow.goog = goog;
-    this.iframe.contentWindow.test = this.test;
-    this.iframe.contentWindow.focus();
+  document.getElementById('goofy-main').appendChild(this.iframe);
+  this.iframe.contentWindow.$ = goog.bind(
+      /**
+       * @this {!cros.factory.Goofy}
+       * @return {?Element}
+       */
+      function(/** string */ id) {
+        return this.iframe.contentDocument.getElementById(id);
+      },
+      this);
+  // Export the libraries to test iframe.
+  this.iframe.contentWindow.cros = cros;
+  this.iframe.contentWindow.goog = goog;
+  this.iframe.contentWindow.test = this.test;
+  this.iframe.contentWindow.focus();
 
-    if (!this.goofy.tabBar.getSelectedTab()) {
-      this.tab.setSelected(true);
-    }
+  if (!this.goofy.tabBar.getSelectedTab()) {
+    this.tab.setSelected(true);
   }
 };
 
@@ -486,10 +469,6 @@ cros.factory.Invocation.prototype.getState = function() {
  * Dispose the invocation (and destroys the iframe).
  */
 cros.factory.Invocation.prototype.dispose = function() {
-  for (var i in this.subInvocations) {
-    this.subInvocations[i].dispose();
-    this.subInvocations[i] = null;
-  }
   if (this.iframe) {
     goog.log.info(cros.factory.logger, 'Cleaning up invocation ' + this.uuid);
     goog.dom.removeNode(this.iframe);
@@ -499,15 +478,13 @@ cros.factory.Invocation.prototype.dispose = function() {
     this.iframe = null;
     delete this.goofy.iframeMap[this.path];
   }
-  if (!this.parentUuid) {
-    this.goofy.invocations[this.uuid] = null;
-    goog.log.info(
-        cros.factory.logger, 'Top-level invocation ' + this.uuid + ' disposed');
-  }
   if (this.tab) {
     this.goofy.tabBar.removeChild(this.tab, true);
     this.tab = null;
   }
+  this.goofy.invocations[this.uuid] = null;
+  goog.log.info(
+      cros.factory.logger, 'Top-level invocation ' + this.uuid + ' disposed');
 };
 
 /**
@@ -1203,33 +1180,20 @@ cros.factory.Goofy.prototype.setAutomationMode = function(mode) {
  * Gets an invocation for a test (creating it if necessary).
  * @param {string} path
  * @param {string} invocationUuid
- * @param {string} parentUuid
  * @return {?cros.factory.Invocation} the invocation, or null if the invocation
  *     has already been created and deleted.
  */
 cros.factory.Goofy.prototype.getOrCreateInvocation = function(
-    path, invocationUuid, parentUuid) {
-  if (invocationUuid in this.invocations) {
-    return this.invocations[invocationUuid];
-  }
-
-  if (!(parentUuid in this.invocations)) {
-    cros.factory.logger.info(
-        'Creating top-level invocation ' +
-        '(invocation ' + parentUuid + ')');
-    this.invocations[parentUuid] =
-        new cros.factory.Invocation(this, path, parentUuid, null);
-  }
-
-  var subInvocations = this.invocations[parentUuid].subInvocations;
-  if (!(invocationUuid in subInvocations)) {
+    path, invocationUuid) {
+  if (!(invocationUuid in this.invocations)) {
     cros.factory.logger.info(
         'Creating UI for test ' + path + ' (invocation ' + invocationUuid +
         ')');
-    subInvocations[invocationUuid] =
-        new cros.factory.Invocation(this, path, invocationUuid, parentUuid);
+    this.invocations[invocationUuid] =
+        new cros.factory.Invocation(this, path, invocationUuid);
   }
-  return subInvocations[invocationUuid];
+
+  return this.invocations[invocationUuid];
 };
 
 /**
@@ -1291,22 +1255,12 @@ cros.factory.Goofy.prototype.updateCSSClassesInDocument = function(doc) {
 cros.factory.Goofy.prototype.updateCSSClasses = function() {
   this.updateCSSClassesInDocument(document);
   this.fixSelectElements(document);
-  /**
-   * @this {!cros.factory.Goofy}
-   * @param {!Object<string, ?cros.factory.Invocation>} invocations
-   */
-  var recursiveUpdate = function(invocations) {
-    goog.object.forEach(invocations, function(i) {
-      if (i && i.iframe && i.iframe.contentDocument) {
-        this.updateCSSClassesInDocument(i.iframe.contentDocument);
-        this.fixSelectElements(i.iframe.contentDocument);
-      }
-      if (i && i.subInvocations) {
-        recursiveUpdate.call(this, i.subInvocations);
-      }
-    }, this);
-  };
-  recursiveUpdate.call(this, this.invocations);
+  goog.object.forEach(this.invocations, function(i) {
+    if (i && i.iframe && i.iframe.contentDocument) {
+      this.updateCSSClassesInDocument(i.iframe.contentDocument);
+      this.fixSelectElements(i.iframe.contentDocument);
+    }
+  }, this);
 };
 
 /**
@@ -3100,11 +3054,10 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
   } else if (messageType == 'goofy:init_test_ui') {
     const message =
         /**
-         * @type {{test: string, invocation: string, parent_invocation: string,
-         *     html: string}}
+         * @type {{test: string, invocation: string, html: string}}
          */ (untypedMessage);
-    let invocation = this.getOrCreateInvocation(
-        message.test, message.invocation, message.parent_invocation);
+    let invocation =
+        this.getOrCreateInvocation(message.test, message.invocation);
     if (invocation && invocation.iframe) {
       var doc = /** @type {!Document} */ (invocation.iframe.contentDocument);
       doc.open();
@@ -3122,11 +3075,11 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
   } else if (messageType == 'goofy:set_html') {
     const message =
         /**
-         * @type {{test: string, invocation: string, parent_invocation: string,
-         *     id: ?string, append: boolean, html: string}}
+         * @type {{test: string, invocation: string, id: ?string,
+         *     append: boolean, html: string}}
          */ (untypedMessage);
-    let invocation = this.getOrCreateInvocation(
-        message.test, message.invocation, message.parent_invocation);
+    let invocation =
+        this.getOrCreateInvocation(message.test, message.invocation);
     if (invocation && invocation.iframe) {
       if (message.id) {
         var element = /** @type {?Element} */ (
@@ -3152,11 +3105,10 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
   } else if (messageType == 'goofy:run_js') {
     const message =
         /**
-         * @type {{test: string, invocation: string, parent_invocation: string,
-         *     args: !Object, js: string}}
+         * @type {{test: string, invocation: string, args: !Object, js: string}}
          */ (untypedMessage);
-    var invocation = this.getOrCreateInvocation(
-        message.test, message.invocation, message.parent_invocation);
+    var invocation =
+        this.getOrCreateInvocation(message.test, message.invocation);
     if (invocation && invocation.iframe) {
       // We need to evaluate the code in the context of the content window, but
       // we also need to give it a variable.  Stash it in the window and load
@@ -3171,11 +3123,11 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
   } else if (messageType == 'goofy:call_js_function') {
     const message =
         /**
-         * @type {{test: string, invocation: string, parent_invocation: string,
-         *     name: string, args: !Object}}
+         * @type {{test: string, invocation: string, name: string,
+         *     args: !Object}}
          */ (untypedMessage);
-    let invocation = this.getOrCreateInvocation(
-        message.test, message.invocation, message.parent_invocation);
+    let invocation =
+        this.getOrCreateInvocation(message.test, message.invocation);
     if (invocation && invocation.iframe) {
       var func =
           /** @type {function(?)} */ (

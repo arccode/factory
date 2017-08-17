@@ -208,8 +208,7 @@ def GetGlobalLogger():
         if not path:
           raise ValueError("CROS_FACTORY_TEST_PATH environment"
                            "variable is not set")
-        test_uuid = (os.environ.get("CROS_FACTORY_TEST_PARENT_INVOCATION") or
-                     os.environ.get("CROS_FACTORY_TEST_INVOCATION") or
+        test_uuid = (os.environ.get("CROS_FACTORY_TEST_INVOCATION") or
                      time_utils.TimedUUID())
         _global_event_logger = EventLog(path, test_uuid)
 

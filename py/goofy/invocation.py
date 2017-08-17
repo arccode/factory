@@ -287,7 +287,7 @@ class TestInvocation(object):
 
     self.metadata_file = os.path.join(self.output_dir, 'metadata')
     self.env_additions = {'CROS_FACTORY_TEST_PATH': self.test.path,
-                          'CROS_FACTORY_TEST_PARENT_INVOCATION': self.uuid,
+                          'CROS_FACTORY_TEST_INVOCATION': self.uuid,
                           'CROS_FACTORY_TEST_METADATA': self.metadata_file}
 
     # Resuming from an active shutdown test, try to restore its metadata file.
@@ -828,12 +828,6 @@ def RunTestCase(test_case):
   """
   logging.debug('[%s] Really run test case: %s', os.getpid(),
                 test_case.id())
-  # We need a new invocation uuid here to have a new UI context for each
-  # test case subprocess.
-  # The parent uuid is stored in CROS_FACTORY_TEST_PARENT_INVOCATION env
-  # variable, and we can properly clean up all associated invocations at
-  # test frontend using the parent invocation uuid.
-  os.environ['CROS_FACTORY_TEST_INVOCATION'] = time_utils.TimedUUID()
   result = unittest.TestResult()
   test_case.run(result)
   return result
