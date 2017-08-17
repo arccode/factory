@@ -946,8 +946,14 @@ cros.factory.Goofy.prototype.initSplitPanes = function() {
           goog.dom.classlist.enable(
               this.selectedIframe, 'goofy-test-visible', true);
         }
-
       }, false, this);
+
+  // Remove the maximize splitpane when double-click on splitpane handle
+  // behavior, since it's pretty easy to misclick, and not very useful.
+  for (const handle of document.querySelectorAll(
+           '#goofy-div .goog-splitpane-handle')) {
+    goog.events.removeAll(handle, 'dblclick');
+  }
 };
 
 /**
