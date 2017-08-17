@@ -20,7 +20,7 @@ import sys
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
-from cros.factory.tools import build_board
+from cros.factory.utils import cros_board_utils
 from cros.factory.utils import process_utils
 
 
@@ -48,7 +48,7 @@ def GetFactoryRepoInfo(options):
 
 def GetBoardRepoInfo(options):
   board = options.board
-  files_dir = build_board.GetChromeOSFactoryBoardPath(board)
+  files_dir = cros_board_utils.GetChromeOSFactoryBoardPath(board)
   if not files_dir:
     raise RuntimeError('cannot find private overlay for board: ' + board)
 

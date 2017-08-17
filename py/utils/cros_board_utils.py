@@ -2,17 +2,16 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Tools to get various representations of a board name."""
+"""Utils to get various representations of a ChromeOS board name."""
 
 import logging
 import os
 import re
 import subprocess
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.utils import process_utils
-from cros.factory.utils import sys_utils
-from cros.factory.utils import type_utils
+from . import process_utils
+from . import sys_utils
+from . import type_utils
 
 
 def GetChromeOSFactoryBoardPath(board):
@@ -198,7 +197,3 @@ class BuildBoard(object):
         if uname_machine.startswith(key):
           return value
       return None
-
-
-if __name__ == '__main__':
-  BuildBoard()

@@ -13,7 +13,7 @@ import re
 import sys
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.tools import build_board
+from cros.factory.utils import cros_board_utils
 from cros.factory.utils.process_utils import CheckOutput, Spawn
 
 
@@ -71,7 +71,7 @@ def main():
 
   all_files = GetFileToLint()
   if args.overlay:
-    overlay_path = build_board.GetChromeOSFactoryBoardPath(args.overlay)
+    overlay_path = cros_board_utils.GetChromeOSFactoryBoardPath(args.overlay)
     if overlay_path:
       all_files |= GetFileToLint(os.path.join(overlay_path, '../..'))
     CheckOutput(['make', 'overlay-%s' % args.overlay])

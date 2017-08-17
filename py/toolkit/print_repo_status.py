@@ -15,7 +15,7 @@ import argparse
 import os
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.tools.build_board import BuildBoard
+from cros.factory.utils.cros_board_utils import BuildBoard
 from cros.factory.utils.process_utils import CheckOutput
 
 

@@ -11,9 +11,9 @@ import sys
 import yaml
 
 import factory_common   # pylint: disable=W0611
-from cros.factory.tools import build_board
 from cros.factory.umpire import common as umpire_common
 from cros.factory.utils.argparse_utils import CmdArg
+from cros.factory.utils import cros_board_utils
 from cros.factory.utils import file_utils
 
 
@@ -92,16 +92,17 @@ class FactoryFlowCommand(object):
     if board_cmd_arg in self.args:
       par_bundle_dir = GetEnclosingFactoryBundle()
       if self.options.board:
-        self.options.board = build_board.BuildBoard(self.options.board)
+        self.options.board = cros_board_utils.BuildBoard(self.options.board)
       elif os.environ.get(BOARD_ENVVAR):
-        self.options.board = build_board.BuildBoard(os.environ[BOARD_ENVVAR])
+        self.options.board = cros_board_utils.BuildBoard(
+            os.environ[BOARD_ENVVAR])
       elif par_bundle_dir:
-        self.options.board = build_board.BuildBoard(
+        self.options.board = cros_board_utils.BuildBoard(
             umpire_common.LoadBundleManifest(
                 os.path.join(par_bundle_dir, 'MANIFEST.yaml'))['board'])
       else:
         # Use the value in src/scripts/.default_board.
-        self.options.board = build_board.BuildBoard(None)
+        self.options.board = cros_board_utils.BuildBoard(None)
 
   def _ParseBundleDir(self):
     """Parses bundle directory path name if args has --bundle argument.

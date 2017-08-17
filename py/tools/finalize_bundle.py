@@ -22,9 +22,9 @@ import urlparse
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.tools import build_board
 from cros.factory.tools import get_version
 from cros.factory.tools import gsutil
+from cros.factory.utils import cros_board_utils
 from cros.factory.utils.file_utils import TryUnlink, ExtractFile, WriteWithSudo
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
@@ -224,7 +224,7 @@ class FinalizeBundle(object):
                    'toolkit', 'test_image', 'release_image', 'firmware', 'hwid',
                    'has_firmware'])
 
-    self.build_board = build_board.BuildBoard(self.manifest['board'])
+    self.build_board = cros_board_utils.BuildBoard(self.manifest['board'])
     self.board = self.build_board.full_name
     self.simple_board = self.build_board.short_name
     self.gsutil = gsutil.GSUtil(self.board)

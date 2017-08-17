@@ -18,7 +18,7 @@ from cros.factory.hwid.v3 import common as hwid_common
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.env import paths
 from cros.factory.test.test_lists import test_lists
-from cros.factory.tools import build_board
+from cros.factory.utils import cros_board_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.ssh_utils import SpawnRsyncToDUT
@@ -222,7 +222,7 @@ def main():
       cwd=paths.FACTORY_DIR, check_call=True, log=True)
   SetHostBasedRole()
 
-  private_path = build_board.GetChromeOSFactoryBoardPath(board)
+  private_path = cros_board_utils.GetChromeOSFactoryBoardPath(board)
   if private_path:
     SpawnRsyncToDUT(
         ['-azlKC', '--exclude', 'bundle'] +

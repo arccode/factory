@@ -13,7 +13,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test.e2e_test import common as e2e_common
 from cros.factory.test.e2e_test import e2e_test
 from cros.factory.test.env import paths
-from cros.factory.tools import build_board
+from cros.factory.utils import cros_board_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
@@ -81,7 +81,7 @@ class Automator(e2e_test.E2ETest):
     if sys_utils.InChroot():
       board = e2e_common.CHROOT
     else:
-      board = build_board.BuildBoard().short_name
+      board = cros_board_utils.BuildBoard().short_name
 
     automator_setting = None
     path = self.test_info.path

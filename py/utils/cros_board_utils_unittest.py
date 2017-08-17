@@ -3,12 +3,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Unit tests for build_board module."""
+"""Unit tests for cros_board_utils module."""
 
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.tools.build_board import BuildBoard, BuildBoardException
+from cros.factory.utils.cros_board_utils import BuildBoard, BuildBoardException
 
 
 class BuildBoardTest(unittest.TestCase):

@@ -27,10 +27,10 @@ from email.mime.text import MIMEText
 import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow import common
 from cros.factory.factory_flow import test_runner_common
-from cros.factory.tools import build_board
 from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils.argparse_utils import ParseCmdline
 from cros.factory.utils.argparse_utils import verbosity_cmd_arg
+from cros.factory.utils import cros_board_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
@@ -94,7 +94,7 @@ class TestResult(object):
 
   def __init__(self, board_name, plan_name, plan_config, base_log_dir,
                bundle_dir):
-    self.board_name = build_board.BuildBoard(board_name)
+    self.board_name = cros_board_utils.BuildBoard(board_name)
     self.test_plan_name = plan_name
     self.test_plan_config = plan_config
     self.base_log_dir = base_log_dir
@@ -389,7 +389,7 @@ class FactoryFlowRunner(object):
                                self.bundle_dir)
       test_result.SetTestPlanRunning(True)
 
-      def RunTestItem(item):
+      def RunTestItem(item, dut_info_dict, test_env, test_result):
         """Runs a give test item.
 
         Args:
@@ -455,7 +455,7 @@ class FactoryFlowRunner(object):
                 item)
             continue
           logging.info('Running test item %r...', item)
-          if not RunTestItem(item):
+          if not RunTestItem(item, dut_info_dict, test_env, test_result):
             test_item_failed = True
       except Exception:
         logging.exception('Error when running test item %s', item)
@@ -471,7 +471,7 @@ class FactoryFlowRunner(object):
         for item in config['clean_up']:
           logging.info('Running clean-up item %r...', item)
           try:
-            RunTestItem(item)
+            RunTestItem(item, dut_info_dict, test_env, test_result)
           except Exception:
             logging.exception('Error when running clean-up item %s', item)
 
@@ -486,7 +486,7 @@ class FactoryFlowRunner(object):
       dut: The ID of the DUT to get factory logs from.
       output_path: The output path of the log archive.
     """
-    bundle_dir = LocateBundleDir(build_board.BuildBoard(self.board),
+    bundle_dir = LocateBundleDir(cros_board_utils.BuildBoard(self.board),
                                  self.bundle_dir)
     finalize_report_spec = glob.glob(
         os.path.join(bundle_dir, 'shopfloor', 'shopfloor_data',
@@ -564,7 +564,7 @@ def LoadConfig(board=None, filepath=None):
     raise FactoryFlowTestError('Must specify either board or filepath')
 
   if not filepath:
-    board = build_board.BuildBoard(board)
+    board = cros_board_utils.BuildBoard(board)
     if sys_utils.InChroot():
       filepath = CONFIG_FILE_PATH_IN_CHROOT(board.short_name)
     else:

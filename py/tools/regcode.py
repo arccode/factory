@@ -20,10 +20,10 @@ from cros.factory.hwid.v3 import common as hwid_common
 from cros.factory.proto import reg_code_pb2
 from cros.factory.test.rules import registration_codes
 from cros.factory.test.rules.registration_codes import RegistrationCode
-from cros.factory.tools.build_board import BuildBoard
 from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils.argparse_utils import Command
 from cros.factory.utils.argparse_utils import ParseCmdline
+from cros.factory.utils.cros_board_utils import BuildBoard
 from cros.factory.utils import sys_utils
 
 

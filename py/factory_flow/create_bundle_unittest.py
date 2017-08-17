@@ -16,7 +16,7 @@ import unittest
 import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow import create_bundle
 from cros.factory.factory_flow.common import LoadBundleManifest
-from cros.factory.tools import build_board
+from cros.factory.utils import cros_board_utils
 
 
 TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -117,7 +117,7 @@ class CreateBundleUnittest(unittest.TestCase):
                                                          'MANIFEST_test.yaml'))
     self.output_dir = tempfile.mkdtemp(prefix='create_bundle.')
     self.create_bundle = create_bundle.CreateBundle()
-    board = build_board.BuildBoard('spring')
+    board = cros_board_utils.BuildBoard('spring')
     self.create_bundle.options = type(
         'Namespace', (object,),
         {'board': board,

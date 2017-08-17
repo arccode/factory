@@ -12,7 +12,7 @@ import shutil
 from distutils import version
 
 import factory_common   # pylint: disable=W0611
-from cros.factory.tools import build_board
+from cros.factory.utils import cros_board_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
@@ -35,7 +35,7 @@ class GSUtil(object):
   IMAGE_TYPES = type_utils.Enum(['factory', 'firmware', 'recovery', 'test'])
 
   def __init__(self, board):
-    self.board = build_board.BuildBoard(board)
+    self.board = cros_board_utils.BuildBoard(board)
     self.gs_output_cache = {}
 
   def _InvokeCommand(self, *args):
@@ -196,7 +196,7 @@ class GSUtil(object):
 
       def __init__(self, channel, board, image_version, image_type, key=None):
         self.channel = channel
-        self.board = build_board.BuildBoard(board).full_name
+        self.board = cros_board_utils.BuildBoard(board).full_name
         self.image_version = image_version
         self.image_type = image_type
         self.key = key

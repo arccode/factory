@@ -17,7 +17,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.hwid.v3 import base32, base8192
 from cros.factory.hwid.v3 import rule
 from cros.factory.test.rules import phase
-from cros.factory.tools import build_board
+from cros.factory.utils import cros_board_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import schema
 from cros.factory.utils import sys_utils
@@ -55,7 +55,7 @@ def ProbeProject():
   except subprocess.CalledProcessError:
     pass
 
-  return build_board.BuildBoard().short_name.upper()
+  return cros_board_utils.BuildBoard().short_name.upper()
 
 
 def GetHWIDBundleName(project=None):

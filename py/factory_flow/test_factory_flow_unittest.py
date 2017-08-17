@@ -17,7 +17,7 @@ import yaml
 import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow import test_factory_flow
 from cros.factory.factory_flow.test_factory_flow import TestStatus
-from cros.factory.tools import build_board
+from cros.factory.utils import cros_board_utils
 from cros.factory.utils import file_utils
 
 
@@ -243,7 +243,7 @@ class LocateBundleDirUnittest(unittest.TestCase):
 
   def setUp(self):
     self.base_dir = tempfile.mkdtemp(prefix='bundle_dir.')
-    self.board = build_board.BuildBoard('rambi')
+    self.board = cros_board_utils.BuildBoard('rambi')
 
   def tearDown(self):
     shutil.rmtree(self.base_dir)

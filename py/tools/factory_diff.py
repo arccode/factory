@@ -26,8 +26,8 @@ import subprocess
 import sys
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.utils import cros_board_utils
 from cros.factory.utils.process_utils import CheckOutput, Spawn
-from cros.factory.tools import build_board
 
 DiffEntry = namedtuple('DiffEntry',
                        ['left_right', 'hash', 'author', 'subject'])
@@ -299,7 +299,7 @@ def main():
 
   args.board = args.board or GetDefaultBoardOrNone()
   if args.board:
-    args.board = build_board.BuildBoard(args.board)
+    args.board = cros_board_utils.BuildBoard(args.board)
 
   if not args.branch:
     args.branch = GetBranch(args.board.short_name)
