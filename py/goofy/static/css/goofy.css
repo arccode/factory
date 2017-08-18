@@ -82,7 +82,6 @@ body {
 }
 #goofy-control, #goofy-status-bar {
   cursor: default;
-  -webkit-user-select: none;
   user-select: none;
 }
 #goofy-control, #goofy-main-and-console .goog-splitpane-second-container {
@@ -181,19 +180,11 @@ body {
   background-image: url('/images/wlan_on.png');
 }
 /* Elements in the control pane. */
-h1 {
-  font-size: 20px;
-  font-weight: normal;
-  border-bottom: 1px solid #cddff0;
-  height: 34px;
-  padding-top: 7px;
-}
 #goofy-logo {
   height: 18px;
   vertical-align: -3px;
   padding: 0 3px 0 7px;
   min-width: 18px;
-  display: inline-block;
   background-color: white;
   background-image: url('/images/logo128.png');
   background-repeat: no-repeat;
@@ -209,24 +200,30 @@ h1 {
   cursor: pointer;
 }
 #goofy-logo-text {
-  vertical-align: middle;
   cursor: pointer;
+  font-size: 20px;
+  white-space: nowrap;
+  overflow: hidden;
 }
 #goofy-logo-down-arrow {
-  font-size: 60%;
   vertical-align: 3px;
 }
-#goofy-upper-right {
-  float: right;
-  padding: 8px 5px 4px;
-  min-width: 25%;
+#goofy-header {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #cddff0;
+  padding: 2px 0;
+}
+#goofy-title {
+  flex: 1;
+  overflow: hidden;
   display: flex;
   align-items: center;
 }
 #goofy-locale-selector {
-  display: inline-block;
-  flex-grow: 1;
-  padding-right: 4px;
+  flex: none;
+  display: flex;
+  align-items: center;
 }
 .goofy-locale-toggle {
   text-align: center;
@@ -238,6 +235,7 @@ h1 {
 }
 #goofy-go, #goofy-terminal, #goofy-locale-selector {
   cursor: pointer;
+  padding: 2px;
 }
 #goofy-go:hover, #goofy-locale-selector:hover {
   text-decoration: underline;
@@ -493,7 +491,7 @@ table + .goofy-history-header {
   display: flex;
   flex-direction: column;
   overflow: auto;
-  flex-grow: 1;
+  flex: 1;
 }
 
 /* Overrides for Closure components. */
