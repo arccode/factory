@@ -1,17 +1,57 @@
-# Copyright 2012 The Chromium OS Authors. All rights reserved.
+# Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Runs chromeos-firmwareupdate to force update EC/firmware."""
+"""Runs chromeos-firmwareupdate to force update Main(AP)/EC/PD firmwares.
+
+Description
+-----------
+This test runs local or remote factory server (e.g., Mini-Omaha or Umpire)
+firmware updater to update Main(AP)/EC/PD firmwares.
+
+Test Procedure
+--------------
+This is an automatic test that doesn't need any user interaction.
+
+1. If argument ``download_from_server`` is set to True, this test will try to
+   download firmware updater from factory server. If firmware update is not
+   available, this test will just pass and exit. If argument
+   ``download_from_server`` is set to False and the path indicated by argument
+   ``firmware_updater`` doesn't exist, this test will abort.
+2. This test will fail if there is another firmware updater running in the same
+   time. Else, start running firmware updater.
+3. If firmware updater finished successfully, this test will pass.
+   Otherwise, fail.
+
+Dependency
+----------
+- If argument ``download_from_server`` is set to True, firmware updater needs to
+  be available on factory server. If ``download_from_server`` is set to False,
+  firmware updater must be prepared in the path that argument
+  ``firmware_updater`` indicated.
+
+Examples
+--------
+To update all firmwares using local firmware updater, which is located in
+'/usr/local/factory/board/chromeos-firmwareupdate'::
+
+  OperatorTest(pytest_name='update_firmware')
+
+To update only RW Main(AP) firmware using remote firmware updater::
+
+  OperatorTest(pytest_name='update_firmware',
+               dargs=dict(download_from_server=True, rw_only=True,
+                          update_ec=False, update_pd=False))
+"""
 
 import logging
 import os
+import shutil
 import subprocess
 import threading
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.device import device_utils
 from cros.factory.test.env import paths
 from cros.factory.test import event
 from cros.factory.test.i18n import test_ui as i18n_test_ui
@@ -21,6 +61,9 @@ from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
+_FIRMWARE_LABELS = ['bios', 'ec', 'pd']
+_FIRMWARE_DOWNLOAD_PATH = paths.FACTORY_FIRMWARE_UPDATER_PATH
+
 _TEST_TITLE = i18n_test_ui.MakeI18nLabel('Update Firmware')
 _CSS = '#state {text-align:left;}'
 
@@ -28,24 +71,20 @@ _CSS = '#state {text-align:left;}'
 class UpdateFirmwareTest(unittest.TestCase):
   ARGS = [
       Arg('firmware_updater', str, 'Full path of chromeos-firmwareupdate.',
-          default='/usr/local/factory/board/chromeos-firmwareupdate'),
+          default=paths.FACTORY_FIRMWARE_UPDATER_PATH),
       Arg('rw_only', bool, 'Update only RW firmware', default=False),
       Arg('update_ec', bool, 'Update EC firmware.', default=True),
       Arg('update_pd', bool, 'Update PD firmware.', default=True),
-      Arg('umpire', bool, 'Update firmware updater from Umpire server',
+      Arg('download_from_server', bool, 'Download firmware updater from server',
           default=False),
-      Arg('update_main', bool, 'Update main firmware.', default=True),
-      Arg('apply_customization_id', bool,
-          'Update root key based on the customization_id stored in VPD.',
-          default=False, optional=True),
+      Arg('update_main', bool, 'Update main firmware.', default=True)
   ]
 
   def setUp(self):
-    self.dut = device_utils.CreateDUTInterface()
     self.just_pass = False
-    if self.args.umpire:
-      if shopfloor.get_firmware_updater():
-        self.args.firmware_updater = paths.FACTORY_FIRMWARE_UPDATER_PATH
+    if self.args.download_from_server:
+      if self.DownloadFirmware():
+        self.args.firmware_updater = _FIRMWARE_DOWNLOAD_PATH
       else:
         self.just_pass = True
     else:
@@ -55,6 +94,24 @@ class UpdateFirmwareTest(unittest.TestCase):
     self._template = ui_templates.OneScrollableSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
     self._ui.AppendCSS(_CSS)
+
+  def DownloadFirmware(self):
+    """Downloads firmware updater from server to _FIRMWARE_DOWNLOAD_PATH."""
+    payload, components, downloader = (
+        shopfloor.GetUpdateFromCROSPayload('firmware'))
+    if payload:
+      remote_versions = payload['version'].split(';')[:len(_FIRMWARE_LABELS)]
+      local_versions = [components['firmware_%s' % label]
+                        for label in _FIRMWARE_LABELS]
+      if remote_versions != local_versions:
+        logging.info('Writing firmware updater from server to %r.',
+                     _FIRMWARE_DOWNLOAD_PATH)
+        with downloader() as res_path:
+          shutil.move(res_path, _FIRMWARE_DOWNLOAD_PATH)
+        os.chmod(_FIRMWARE_DOWNLOAD_PATH, 0755)
+        return True
+    logging.info('No firmware updater available on server.')
+    return False
 
   def UpdateFirmware(self):
     """Runs firmware updater.
@@ -85,20 +142,9 @@ class UpdateFirmwareTest(unittest.TestCase):
     else:
       command += ['--mode=factory']
 
-    if self.args.apply_customization_id:
-      customization_id = self.dut.vpd.ro.get('customization_id')
-      if customization_id is None:
-        self._ui.Fail('Customization_id not found in VPD.')
-        return
-      if not self.args.update_main:
-        self._ui.Fail(
-            'Main firmware must be updated when apply customization_id.')
-        return
-      command += ['--customization_id', customization_id]
-
     p = process_utils.Spawn(
         command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, log=True)
-    for line in iter(p.stdout.readline, ''):
+    for line in p.stdout:
       logging.info(line.strip())
       self._template.SetState(test_ui.Escape(line), append=True)
 

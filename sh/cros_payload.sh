@@ -550,6 +550,7 @@ get_file_component_version() {
       sh "${file}" --lsm
       ;;
     firmware)
+      # TODO(b/64322603) Extract more firmware versions.
       head -n 50 "${file}" | sed -n 's/^ *TARGET_.*FWID="\(.*\)"/\1/p' | \
         uniq | paste -sd ';' -
       ;;

@@ -34,7 +34,6 @@ from cros.factory.test.env import paths
 from cros.factory.test import device_data
 from cros.factory.test import factory
 from cros.factory.test import state
-from cros.factory.umpire.client import get_update
 from cros.factory.umpire.client import umpire_client
 from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.utils import debug_utils
@@ -294,29 +293,6 @@ def check_serial_number(serial_number):
 def get_hwid():
   """Gets HWID associated with current pinned serial number."""
   return get_instance().GetHWID(device_data.GetSerialNumber())
-
-
-@_server_api
-def get_firmware_updater():
-  """Gets firmware updater, if any."""
-  firmware_updater = None
-  proxy = get_instance()
-  if proxy.use_umpire:
-    firmware_updater = get_update.GetUpdateForFirmware(proxy)
-  else:
-    raise Exception('Firmware update from network is only supported by Umpire')
-
-  if not firmware_updater:
-    logging.info('No firmware updater available on shopfloor')
-    return False
-
-  with open(paths.FACTORY_FIRMWARE_UPDATER_PATH, 'wb') as f:
-    f.write(firmware_updater)
-
-  logging.info('Writing firmware updater from shopfloor to %s',
-               paths.FACTORY_FIRMWARE_UPDATER_PATH)
-  os.chmod(paths.FACTORY_FIRMWARE_UPDATER_PATH, 0755)
-  return True
 
 
 def update_local_hwid_data(dut, target_dir='/usr/local/factory/hwid'):
