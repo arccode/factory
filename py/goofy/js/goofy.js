@@ -1054,7 +1054,8 @@ cros.factory.Goofy.prototype.init = function() {
         this.setEngineeringMode(this.engineeringPasswordSHA1 == null);
       });
   this.sendRpc(
-      'get_shared_data', ['startup_error'], function(/** string */ error) {
+      'get_shared_data', ['startup_error'],
+      function(/** string */ error) {
         var alertHtml = goog.html.SafeHtml.concat(
             cros.factory.i18n.i18nLabel(
                 'An error occurred while starting the factory test system\n' +
@@ -1062,6 +1063,9 @@ cros.factory.Goofy.prototype.init = function() {
             goog.html.SafeHtml.create(
                 'div', {class: 'goofy-startup-error'}, error));
         this.alert(alertHtml);
+      },
+      function() {
+        // Unable to retrieve the key; that's fine, no startup error!
       });
   this.sendRpc(
       'get_shared_data', ['automation_mode'], function(/** string */ mode) {
