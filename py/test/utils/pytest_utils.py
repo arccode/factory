@@ -4,8 +4,10 @@
 
 import logging
 import os
+import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test import factory
 
 
 def LoadPytestModule(pytest_name):
@@ -82,3 +84,29 @@ def LoadPytestModule(pytest_name):
       logging.error('cannot find any pytest module named %s or %s.%s',
                     pytest_name, pytest_base_name, pytest_name)
       raise
+
+
+def LoadPytest(pytest_name):
+  """Load pytest instance from pytest_name.
+
+  See `LoadPytestModule` to know how pytest_name is resolved.  Also notice that
+  there should be one and only one test case in each pytest.
+  """
+  pytest_module = LoadPytestModule(pytest_name)
+  suite = unittest.TestLoader().loadTestsFromModule(pytest_module)
+
+  # An example of the TestSuite returned by loadTestsFromModule:
+  #   TestSuite
+  #   - TestSuite (class XXXTest(unittest.TestCase))
+  #     - TestCase (XXXTest.runTest)
+  #   - TestSuite (class YYYTest(unittest.TestCase))
+  #     - TestCase (YYYTest.testAAA)
+  #     - TestCase (YYYTest.testBBB)
+  # The countTestCases() would return 3 in this example.
+  # To simplify things, we only allow one TestCase per pytest.
+  if suite.countTestCases() != 1:
+    raise factory.FactoryTestFailure(
+        'Only one TestCase per pytest is supported. Use factory_task '
+        'if multiple tasks need to be done in a single pytest.')
+  # The first sub-TestCase in the first sub-TestSuite of suite is the target.
+  return next(iter(next(iter(suite))))

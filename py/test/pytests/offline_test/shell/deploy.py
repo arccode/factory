@@ -233,8 +233,7 @@ class ScriptBuilder(object):
       Please refer to `cros.factory.test.pytests.bad_blocks.BadBlocksTest.ARGS`
       for the argument list.
     """
-    module = pytest_utils.LoadPytestModule('bad_blocks')
-    test = module.BadBlocksTest()
+    test = pytest_utils.LoadPytest('bad_blocks')
     test.dut = self.dut
     test.args = Args(*test.ARGS).Parse(kargs)
 

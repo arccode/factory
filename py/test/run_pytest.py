@@ -14,7 +14,6 @@ from __future__ import print_function
 
 import argparse
 import ast
-import inspect
 import logging
 import os
 import pickle
@@ -29,10 +28,7 @@ from cros.factory.utils.arg_utils import Args
 
 def _GetTestCase(pytest):
   """Returns the first test case class found in a given pytest."""
-  module = pytest_utils.LoadPytestModule(pytest)
-  _, test_case = inspect.getmembers(module, lambda obj: (
-      inspect.isclass(obj) and issubclass(obj, unittest.TestCase)))[0]
-  return test_case
+  return pytest_utils.LoadPytest(pytest)
 
 
 def _FormatErrorMessage(trace):
@@ -93,7 +89,7 @@ def _RunPytestRaw(pytest, args, dut_options):
   """
   # Create a test case instance.
   if isinstance(pytest, str):
-    test = _GetTestCase(pytest)()
+    test = _GetTestCase(pytest)
   else:
     test = pytest()
 

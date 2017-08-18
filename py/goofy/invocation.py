@@ -38,7 +38,7 @@ from cros.factory.test import state
 from cros.factory.test.test_lists import manager
 from cros.factory.test import test_ui
 from cros.factory.test import testlog_goofy
-from cros.factory.test.utils.pytest_utils import LoadPytestModule
+from cros.factory.test.utils import pytest_utils
 from cros.factory.testlog import testlog
 from cros.factory.testlog import testlog_utils
 from cros.factory.utils.arg_utils import Args
@@ -850,26 +850,7 @@ def RunPytest(test_info):
 
     signal.signal(signal.SIGTERM, _SIGTERMHandler)
 
-    module = LoadPytestModule(test_info.pytest_name)
-    suite = unittest.TestLoader().loadTestsFromModule(module)
-
-    # An example of the TestSuite returned by loadTestsFromModule:
-    #   TestSuite
-    #   - TestSuite (class XXXTest(unittest.TestCase))
-    #     - TestCase (XXXTest.runTest)
-    #   - TestSuite (class YYYTest(unittest.TestCase))
-    #     - TestCase (YYYTest.testAAA)
-    #     - TestCase (YYYTest.testBBB)
-    # The countTestCases() would return 3 in this example.
-
-    # To simplify things, we only allow one TestCase per pytest.
-    if suite.countTestCases() != 1:
-      raise factory.FactoryTestFailure(
-          'Only one TestCase per pytest is supported. Use factory_task '
-          'if multiple tasks need to be done in a single pytest.')
-
-    # The first sub-TestCase in the first sub-TestSuite of suite is the target.
-    test = next(iter(next(iter(suite))))
+    test = pytest_utils.LoadPytest(test_info.pytest_name)
 
     logging.debug('[%s] Start test case: %s', os.getpid(), test.id())
 
