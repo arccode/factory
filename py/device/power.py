@@ -64,26 +64,33 @@ class Power(types.DeviceComponent):
 
   def FindPowerPath(self, power_source):
     """Find battery path in sysfs."""
+    def GetValue(path, sub_path):
+      full_path = self._device.path.join(path, sub_path)
+      if not self._device.path.exists(full_path):
+        return None
+      return self.ReadOneLine(full_path)
+
+    power_supplies = self._device.Glob(
+        self._device.path.join(self._sys, 'class/power_supply/*'))
     if power_source == self.PowerSource.BATTERY:
-      for p in self._device.Glob(self._device.path.join(
-          self._sys, 'class/power_supply/*/type')):
-        if self.ReadOneLine(p) == 'Battery':
-          return self._device.path.dirname(p)
+      power_supplies = [
+          p for p in power_supplies if GetValue(p, 'type') == 'Battery'
+      ]
     else:
-      ac_path = self._device.path.join(
-          self._sys, 'class/power_supply/%s/online')
-      if self._device.path.exists(ac_path % 'AC'):
-        return self._device.path.dirname(ac_path % 'AC')
-      p = self._device.Glob(ac_path % '*')
-      if p:
-        # Systems with multiple USB-C ports may have multiple power sources.
-        # Since the end goal is to determine if the system is powered, let's
-        # just return the first powered AC path if there's any; otherwise
-        # return the first in the list.
-        for path in p:
-          if self.ReadOneLine(path) == '1':
-            return self._device.path.dirname(path)
-        return self._device.path.dirname(p[0])
+      power_supplies = [
+          p for p in power_supplies if GetValue(p, 'type') != 'Battery'
+      ]
+
+    if power_supplies:
+      # Systems with multiple USB-C ports may have multiple power sources.
+      # Since the end goal is to determine if the system is powered, let's
+      # just return the first powered AC path if there's any; otherwise
+      # return the first in the list.
+      for p in power_supplies:
+        if GetValue(p, 'online') == '1':
+          return p
+      return power_supplies[0]
+
     raise PowerException('Cannot find %s' % power_source)
 
   def CheckACPresent(self):
