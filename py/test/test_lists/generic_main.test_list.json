@@ -9,16 +9,16 @@
   "label": "Main Test List for a Generic Chromebook.",
   "options": {
     "skipped_tests": {
-      "device_data.factory.end_SMT": [
+      "device.factory.end_SMT": [
         "SMT"
       ],
-      "device_data.factory.end_FAT": [
+      "device.factory.end_FAT": [
         "FAT"
       ],
-      "device_data.factory.end_RUNIN": [
+      "device.factory.end_RUNIN": [
         "RunIn"
       ],
-      "device_data.factory.end_FFT": [
+      "device.factory.end_FFT": [
         "FFT"
       ]
     },
