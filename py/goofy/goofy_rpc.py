@@ -229,6 +229,11 @@ class GoofyRPC(object):
         'factory_note', note)
     self.PostEvent(Event(Event.Type.UPDATE_NOTES))
 
+  def ClearNotes(self):
+    logging.info('Clearing factory note')
+    self.goofy.state_instance.del_shared_data('factory_note')
+    self.PostEvent(Event(Event.Type.UPDATE_NOTES))
+
   def LogStackTraces(self):
     """Logs the stack backtraces of all threads."""
     logging.info(debug_utils.DumpStackTracebacks())

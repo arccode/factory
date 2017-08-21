@@ -1998,9 +1998,7 @@ cros.factory.Goofy.prototype.addNote = function(name, note, level) {
     return false;
   }
   // The timestamp for Note is set in the RPC call AddNote.
-  this.sendRpc(
-      'AddNote', [new cros.factory.Note(name, note, 0, level)],
-      this.updateNote);
+  this.sendRpc('AddNote', [new cros.factory.Note(name, note, 0, level)]);
   return true;
 };
 
@@ -2577,6 +2575,8 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                 extraItems.push(new goog.ui.MenuSeparator());
                 addExtraItem(_('Save note on device'), this.showNoteDialog);
                 addExtraItem(_('View notes'), this.viewNotes);
+                addExtraItem(
+                    _('Clear notes'), () => this.sendRpc('ClearNotes', []));
                 extraItems.push(new goog.ui.MenuSeparator());
                 if (cros.factory.ENABLE_DIAGNOSIS_TOOL) {
                   addExtraItem(

@@ -818,6 +818,10 @@ msgid "View notes"
 msgstr "检视注记"
 
 #: ../py/goofy/js/goofy.js
+msgid "Clear notes"
+msgstr "清除注记"
+
+#: ../py/goofy/js/goofy.js
 msgid "Diagnosis Tool"
 msgstr "诊断工具"
 
