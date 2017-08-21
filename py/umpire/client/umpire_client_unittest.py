@@ -1,5 +1,4 @@
-#!/usr/bin/python
-#
+#!/usr/bin/env python
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -10,7 +9,7 @@ import logging
 import mox
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 from cros.factory.umpire.client import umpire_client
 
@@ -21,7 +20,7 @@ class MockSystemInfo(object):
   def __init__(self, serial_number, mlb_serial_number, firmware_version,
                ec_version, pd_version, stage, eth_macs, wlan0_mac,
                factory_image_version, release_image_version,
-               hwid_database_version, factory_md5sum):
+               hwid_database_version, toolkit_version):
     self.serial_number = serial_number
     self.mlb_serial_number = mlb_serial_number
     self.firmware_version = firmware_version
@@ -33,7 +32,7 @@ class MockSystemInfo(object):
     self.factory_image_version = factory_image_version
     self.release_image_version = release_image_version
     self.hwid_database_version = hwid_database_version
-    self.factory_md5sum = factory_md5sum
+    self.toolkit_version = toolkit_version
 
 mock_system_info_1 = MockSystemInfo(
     serial_number='DEV001',
@@ -47,7 +46,7 @@ mock_system_info_1 = MockSystemInfo(
     factory_image_version='factory_001',
     release_image_version='release_001',
     hwid_database_version='hwid_001',
-    factory_md5sum='md5_001')
+    toolkit_version='ver_001')
 
 # Uses a different serial_number than mock_system_info_1.
 mock_system_info_2 = MockSystemInfo(
@@ -62,7 +61,7 @@ mock_system_info_2 = MockSystemInfo(
     factory_image_version='factory_001',
     release_image_version='release_001',
     hwid_database_version='hwid_001',
-    factory_md5sum='md5_001')
+    toolkit_version='ver_001')
 
 # Uses a different eth0 MAC address than mock_system_info_2.
 mock_system_info_3 = MockSystemInfo(
@@ -77,7 +76,7 @@ mock_system_info_3 = MockSystemInfo(
     factory_image_version='factory_001',
     release_image_version='release_001',
     hwid_database_version='hwid_001',
-    factory_md5sum='md5_001')
+    toolkit_version='ver_001')
 
 # Uses a different factory_image than mock_system_info_3.
 mock_system_info_4 = MockSystemInfo(
@@ -92,7 +91,7 @@ mock_system_info_4 = MockSystemInfo(
     factory_image_version='factory_002',
     release_image_version='release_001',
     hwid_database_version='hwid_001',
-    factory_md5sum='md5_001')
+    toolkit_version='ver_001')
 
 
 # The output string of X-Umpire-DUT for mock_system_info_1.
@@ -124,7 +123,7 @@ OUTPUT_GET_UPDATE_DUT_INFO = {
         'firmware_pd': 'pd_001',
         'netboot_firmware': None,
         'hwid': 'hwid_001',
-        'device_factory_toolkit': 'md5_001'}}
+        'device_factory_toolkit': 'ver_001'}}
 
 
 class UmpireClientInfoTest(unittest.TestCase):

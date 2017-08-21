@@ -494,6 +494,13 @@ class EventLog(object):
 
     Requires that the lock has already been acquired.
     """
+
+    def get_toolkit_version():
+      try:
+        return factory.get_toolkit_version()
+      except IOError:
+        return None  # Ignore IOError for unittests.
+
     parent_dir = os.path.dirname(EVENTS_PATH)
     if not os.path.exists(parent_dir):
       try:
@@ -515,7 +522,7 @@ class EventLog(object):
                       device_id=testlog_goofy.GetDeviceID(),
                       reimage_id=GetReimageId(),
                       boot_sequence=GetBootSequence(),
-                      factory_md5sum=factory.get_current_md5sum())
+                      toolkit_version=get_toolkit_version())
 
   def _LogUnlocked(self, event_name, **kwargs):
     """Same as Log, but requires that the lock has already been acquired.

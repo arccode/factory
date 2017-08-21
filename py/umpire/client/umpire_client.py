@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -7,7 +6,7 @@
 
 import logging
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.umpire import common
 
@@ -125,13 +124,13 @@ class UmpireClientInfo(object):
 
     Returns:
       A component dict:
-        ‘rootfs_test’: version_string,
-        ‘rootfs_release’: version_string,
-        ‘firmware_ec’: version_string,
-        ‘firmware_bios’: version_string,
-        ‘firmware_pd’: version_string,
-        ‘hwid’: version_string (checksum in hwid db)
-        ‘device_factory_toolkit’: md5sum_hash_string.
+        'rootfs_test': version_string,
+        'rootfs_release': version_string,
+        'firmware_ec': version_string,
+        'firmware_bios': version_string,
+        'firmware_pd': version_string,
+        'hwid': version_string (checksum in hwid db)
+        'device_factory_toolkit': md5sum_hash_string.
     """
     components = {}
     system_info = self.dut.info
@@ -141,7 +140,7 @@ class UmpireClientInfo(object):
     components['firmware_bios'] = system_info.firmware_version
     components['firmware_pd'] = system_info.pd_version
     components['hwid'] = system_info.hwid_database_version
-    components['device_factory_toolkit'] = system_info.factory_md5sum
+    components['device_factory_toolkit'] = system_info.toolkit_version
     # We don't really care about the version of netboot firmware. A DUT only
     # requests for netboot firmware when it wants to re-image itself.
     components['netboot_firmware'] = None

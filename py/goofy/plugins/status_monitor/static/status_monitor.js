@@ -30,13 +30,10 @@ status_monitor.SYSTEM_INFO_LABELS = [
     label: cros.factory.i18n.i18nLabel('MLB Serial Number')
   },
   {key: 'serial_number', label: cros.factory.i18n.i18nLabel('Serial Number')},
-  {key: 'stage', label: cros.factory.i18n.i18nLabel('Stage')}, {
+  {key: 'stage', label: cros.factory.i18n.i18nLabel('Stage')},
+  {
     key: 'factory_image_version',
     label: cros.factory.i18n.i18nLabel('Factory Image Version')
-  },
-  {
-    key: 'toolkit_version',
-    label: cros.factory.i18n.i18nLabel('Factory Toolkit Version')
   },
   {
     key: 'release_image_version',
@@ -47,13 +44,15 @@ status_monitor.SYSTEM_INFO_LABELS = [
   {key: 'kernel_version', label: cros.factory.i18n.i18nLabel('Kernel')},
   {key: 'architecture', label: cros.factory.i18n.i18nLabel('Architecture')},
   {key: 'ec_version', label: cros.factory.i18n.i18nLabel('EC')},
-  {key: 'pd_version', label: cros.factory.i18n.i18nLabel('PD')}, {
+  {key: 'pd_version', label: cros.factory.i18n.i18nLabel('PD')},
+  {
     key: 'firmware_version',
     label: cros.factory.i18n.i18nLabel('Main Firmware')
   },
-  {key: 'root_device', label: cros.factory.i18n.i18nLabel('Root Device')}, {
-    key: 'factory_md5sum',
-    label: cros.factory.i18n.i18nLabel('Factory MD5SUM'),
+  {key: 'root_device', label: cros.factory.i18n.i18nLabel('Root Device')},
+  {
+    key: 'toolkit_version',
+    label: cros.factory.i18n.i18nLabel('Factory Toolkit Version'),
     transform: function(/** ?string */ value) {
       if (value == null) {
         return cros.factory.i18n.i18nLabel('(no update)');
@@ -179,7 +178,7 @@ status_monitor.Status.prototype.setSystemInfo = function(systemInfo) {
 
   this.updateTime();
 
-  if (this.systemInfo['update_md5sum']) {
+  if (this.systemInfo['update_toolkit_version']) {
     console.log('yes');
     $('#update-available-indicator').css({display: 'block'});
   } else {

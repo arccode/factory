@@ -87,16 +87,9 @@ def get_lsb_data():
   return data
 
 
-def get_current_md5sum():
-  """Returns MD5SUM of the current autotest directory.
-
-  Returns None if there has been no update (i.e., unable to read
-  the MD5SUM file).
-  """
-  if os.path.exists(paths.FACTORY_MD5SUM_PATH):
-    return open(paths.FACTORY_MD5SUM_PATH, 'r').read().strip()
-  else:
-    return None
+def get_toolkit_version():
+  """Returns TOOLKIT_VERSION of the factory directory."""
+  return file_utils.ReadFile(paths.FACTORY_TOOLKIT_VERSION_PATH).rstrip()
 
 
 def _init_console_log():

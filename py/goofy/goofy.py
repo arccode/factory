@@ -648,18 +648,20 @@ class Goofy(GoofyBase):
 
     self.last_update_check = now
 
-    def handle_check_for_update(reached_shopfloor, md5sum, needs_update):
+    def handle_check_for_update(
+        reached_shopfloor, toolkit_version, needs_update):
       if reached_shopfloor:
-        new_update_md5sum = md5sum if needs_update else None
-        if self.dut.info.update_md5sum != new_update_md5sum:
-          logging.info('Received new update MD5SUM: %s', new_update_md5sum)
-          self.dut.info.Overrides('update_md5sum', new_update_md5sum)
+        new_update_toolkit_version = toolkit_version if needs_update else None
+        if self.dut.info.update_toolkit_version != new_update_toolkit_version:
+          logging.info('Received new update TOOLKIT_VERSION: %s',
+                       new_update_toolkit_version)
+          self.dut.info.Overrides('update_toolkit_version',
+                                  new_update_toolkit_version)
           self.run_enqueue(self.update_system_info)
-      else:
-        if not self._suppress_periodic_update_messages:
-          logging.warning('Suppress error messages for periodic update checking'
-                          ' after the first one.')
-          self._suppress_periodic_update_messages = True
+      elif not self._suppress_periodic_update_messages:
+        logging.warning('Suppress error messages for periodic update checking '
+                        'after the first one.')
+        self._suppress_periodic_update_messages = True
 
     updater.CheckForUpdateAsync(
         handle_check_for_update,

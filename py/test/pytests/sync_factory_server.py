@@ -118,7 +118,7 @@ class SyncShopfloor(unittest.TestCase):
   ]
 
   def UpdateToolkit(self, force_update, timeout_secs, ui, template):
-    unused_md5sum, has_update = updater.CheckForUpdate(timeout_secs)
+    unused_toolkit_version, has_update = updater.CheckForUpdate(timeout_secs)
     if not has_update:
       return
 
@@ -130,7 +130,6 @@ class SyncShopfloor(unittest.TestCase):
       template.SetState(
           i18n_test_ui.MakeI18nLabel('A software update is available. '
                                      'Press SPACE to update.'))
-
       # Note that updateFactory() will kill this test.
       ui.BindKeyJS(test_ui.SPACE_KEY, 'window.test.updateFactory()')
     raise WaitForUpdate

@@ -11,12 +11,12 @@ import copy
 import logging
 import re
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import device_data
-from cros.factory.test import factory
+from cros.factory.test.env import paths
 from cros.factory.test.rules import phase
 from cros.factory.utils.sys_utils import MountDeviceAndReadFile
 
@@ -93,7 +93,7 @@ class SystemInfo(types.DeviceComponent):
   def Overrides(self, name, value):
     """Overrides an information property to given value.
 
-    This is useful for setting shared information like update_md5sum.
+    This is useful for setting shared information like update_toolkit_version.
 
     Args:
       name: A string for the property to override.
@@ -190,7 +190,7 @@ class SystemInfo(types.DeviceComponent):
   @InfoProperty
   def toolkit_version(self):
     """Version of ChromeOS factory toolkit."""
-    return self._device.ReadFile('/usr/local/factory/TOOLKIT_VERSION').strip()
+    return self._device.ReadFile(paths.FACTORY_TOOLKIT_VERSION_PATH).rstrip()
 
   @InfoProperty
   def kernel_version(self):
@@ -236,16 +236,13 @@ class SystemInfo(types.DeviceComponent):
     return self._device.usb_c.GetPDVersion().strip()
 
   @InfoProperty
-  def factory_md5sum(self):
-    """MD5 checksum of factory software."""
-    return factory.get_current_md5sum()
-
-  @InfoProperty
-  def update_md5sum(self):
+  def update_toolkit_version(self):
     """Indicates if an update is available on server.
 
     Usually set by using Overrides after checking shopfloor server.
     """
+    # TODO(youcheng) Implement this in another way. Probably move this to goofy
+    # state variables.
     return None
 
   @InfoProperty

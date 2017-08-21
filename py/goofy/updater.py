@@ -6,53 +6,21 @@
 import logging
 import os
 import shutil
-import subprocess
 import sys
-import threading
 import traceback
-from urlparse import urlparse
 import uuid
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
-from cros.factory.umpire.client import get_update
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
 
 
 class UpdaterException(Exception):
   pass
-
-
-def CheckCriticalFiles(new_path):
-  """Raises an exception if certain critical files are missing."""
-  critical_files = [
-      os.path.join(new_path, f)
-      for f in ['factory/MD5SUM',
-                'factory/py_pkg/cros/factory/goofy/goofy.py',
-                'factory/py/test/pytests/finalize/finalize.py']]
-  missing_files = [f for f in critical_files
-                   if not os.path.exists(f)]
-  if missing_files:
-    raise UpdaterException(
-        'Aborting update: Missing critical files %r' % missing_files)
-
-
-def RunRsync(*rsync_command):
-  """Runs rsync with the given command."""
-  rsync = Spawn(rsync_command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                log=factory.console)
-  stdout, _ = rsync.communicate()
-  if stdout:
-    factory.console.info('rsync output: %s', stdout)
-  if rsync.returncode:
-    raise UpdaterException('rsync returned status %d; aborting' %
-                           rsync.returncode)
-  factory.console.info('rsync succeeded')
 
 
 def TryUpdate(pre_update_hook=None, timeout=15):
@@ -64,97 +32,71 @@ def TryUpdate(pre_update_hook=None, timeout=15):
 
   Args:
     pre_update_hook: A routine to be invoked before the
-      autotest directory is swapped out.
-    timeout: This timeout serves at two places.
-      1. Timeout in seconds for RPC calls on the proxy which provides
-        remote services on shopfloor server.
-      2. I/O timeout of rsync in seconds.
+      factory directory is swapped out.
+    timeout: Timeout in seconds for RPC calls on the proxy which provides
+      remote services on shopfloor server.
 
   Returns:
     True if an update was performed and the machine should be
     rebooted.
 
   Raises:
-    UpdaterException: If update scheme is not rsync when using Umpire, since
-      scheme other than rsync is not supported yet.
+    UpdaterException
   """
-  # On a real device, this will resolve to 'factory' (since 'client'
-  # is a symlink to that).  In the chroot, this will resolve to the
-  # 'client' directory.
-  # Determine whether an update is necessary.
-  current_md5sum = factory.get_current_md5sum()
-
-  url = shopfloor.get_server_url() or shopfloor.detect_default_server_url()
   factory.console.info(
-      'Checking for updates at <%s>... (current MD5SUM is %s)',
-      url, current_md5sum)
+      'Checking for updates at <%s>... (current TOOLKIT_VERSION is %s)',
+      shopfloor.get_server_url(), factory.get_toolkit_version())
 
-  new_md5sum = None
-  factory_src_path = None
+  payload, unused_components, downloader = shopfloor.GetUpdateFromCROSPayload(
+      'toolkit', proxy=shopfloor.get_instance(detect=True, timeout=timeout))
+  del unused_components
 
-  # Calls shopfloor method to get new_md5sum and determines if an update
-  # is needed, then sets factory_src_path.
-  shopfloor_client = shopfloor.get_instance(detect=True, timeout=timeout)
-  # Uses GetUpdate API provided by Umpire server.
-  if shopfloor_client.use_umpire:
-    update_info = get_update.GetUpdateForDeviceFactoryToolkit(shopfloor_client)
-    new_md5sum = update_info.md5sum
-    if update_info.scheme != 'rsync':
-      raise UpdaterException('Scheme other than rsync is not supported.')
-    factory.console.info('MD5SUM from server is %s', new_md5sum)
-    if not update_info.needs_update:
-      factory.console.info('Factory software is up to date')
-      return False
-    factory_src_path = '%s/usr/local/factory' % update_info.url
+  if not payload:
+    return False
 
-  # Uses GetTestMd5sum API provided by v1 or v2 shopfloor.
-  else:
-    new_md5sum = shopfloor_client.GetTestMd5sum()
-    factory.console.info('MD5SUM from server is %s', new_md5sum)
-    if current_md5sum == new_md5sum or new_md5sum is None:
-      factory.console.info('Factory software is up to date')
-      return False
-    # An update is necessary.  Construct the rsync command.
-    update_port = shopfloor_client.GetUpdatePort()
-    factory_src_path = 'rsync://%s:%d/factory/%s/factory' % (
-        urlparse(url).hostname,
-        update_port,
-        new_md5sum)
+  factory.console.info('TOOLKIT_VERSION from server is %s', payload['version'])
+  if payload['version'] == factory.get_toolkit_version():
+    factory.console.info('Factory software is up to date')
+    return False
 
   # /usr/local on the device (parent to factory)
   parent_dir = os.path.dirname(paths.FACTORY_DIR)
 
-  new_path = os.path.join(parent_dir, 'updater.new')
-  # rsync --link-dest considers any existing files to be definitive,
-  # so wipe anything that's already there.
-  if os.path.exists(new_path):
-    shutil.rmtree(new_path)
+  src_path = os.path.join(parent_dir, 'updater.new')
+  shutil.rmtree(src_path, ignore_errors=True)
+  with downloader() as toolkit_path:
+    process_utils.Spawn(['sh', toolkit_path, '--noexec', '--target', src_path],
+                        log=True, check_call=True)
+  src_path = os.path.join(src_path, 'usr', 'local', 'factory')
 
-  RunRsync(
-      'rsync',
-      '-a', '--delete', '--stats',
-      '--timeout=%s' % timeout,
-      # Use hard links of identical files from the old directories to
-      # save network bandwidth and temporary space on disk.
-      '--link-dest=%s' % parent_dir,
-      factory_src_path,
-      '%s/' % new_path)
-
-  hwid_path = os.path.join(paths.FACTORY_DIR, 'hwid')
-  new_hwid_path = os.path.join(new_path, 'factory', 'hwid')
-  if os.path.exists(hwid_path) and not os.path.exists(new_hwid_path):
-    RunRsync(
-        'rsync', '-a',
-        hwid_path, '%s/factory' % new_path)
-
-  CheckCriticalFiles(new_path)
-
-  new_md5sum_path = os.path.join(new_path, 'factory', 'MD5SUM')
-  new_md5sum_from_fs = open(new_md5sum_path).read().strip()
-  if new_md5sum != new_md5sum_from_fs:
+  new_version_path = os.path.join(src_path, 'TOOLKIT_VERSION')
+  new_version_from_fs = file_utils.ReadFile(new_version_path).rstrip()
+  if payload['version'] != new_version_from_fs:
     raise UpdaterException(
-        'Unexpected MD5SUM in %s: expected %s but found %s' %
-        (new_md5sum_path, new_md5sum, new_md5sum_from_fs))
+        'Unexpected TOOLKIT_VERSION in %s: expected %s but found %s' %
+        (new_version_path, payload['version'], new_version_from_fs))
+
+  # Raises an exception if certain critical files are missing.
+  critical_files = [
+      os.path.join(src_path, f)
+      for f in ['py_pkg/cros/factory/goofy/goofy.py',
+                'py/test/pytests/finalize/finalize.py']]
+  missing_files = [f for f in critical_files if not os.path.exists(f)]
+  if missing_files:
+    raise UpdaterException(
+        'Aborting update: Missing critical files %r' % missing_files)
+
+  # Some files should be kept.
+  # TODO(crbug.com/756275): We should move ALL runtime generated files outside
+  # of the toolkit folder.
+  for file_to_keep in ['py/test/test_lists/ACTIVE', 'hwid']:
+    old_path = os.path.join(paths.FACTORY_DIR, file_to_keep)
+    new_path = os.path.join(src_path, file_to_keep)
+    if os.path.exists(old_path) and not os.path.exists(new_path):
+      if os.path.isdir(old_path):
+        shutil.copytree(old_path, new_path, symlinks=True)
+      else:
+        shutil.copy2(old_path, new_path)
 
   if sys_utils.InChroot():
     raise UpdaterException('Aborting update: In chroot')
@@ -165,12 +107,11 @@ def TryUpdate(pre_update_hook=None, timeout=15):
 
   old_path = os.path.join(parent_dir, 'updater.old.%s' % uuid.uuid4())
   # If one of these fails, we're screwed.
-  for d in ['factory']:
-    shutil.move(os.path.join(parent_dir, d), old_path)
-    shutil.move(os.path.join(new_path, d), parent_dir)
+  shutil.move(paths.FACTORY_DIR, old_path)
+  shutil.move(src_path, parent_dir)
   # Delete the old and new trees
   shutil.rmtree(old_path, ignore_errors=True)
-  shutil.rmtree(new_path, ignore_errors=True)
+  shutil.rmtree(src_path, ignore_errors=True)
   factory.console.info('Update successful')
   return True
 
@@ -184,29 +125,24 @@ def CheckForUpdate(timeout, quiet=False):
     quiet: Suppresses error messages when shopfloor can not be reached.
 
   Returns:
-    A tuple (md5sum, needs_update):
-      md5sum: the MD5SUM returned by shopfloor server, or None if it is not
-        available or test environment is not installed on the shopfloor server
-        yet.
-      needs_update: is True if an update is necessary (i.e., md5sum is not None,
-        and md5sum isn't the same as the MD5SUM in the current factory
-        directory).
+    A tuple (toolkit_version, needs_update):
+      toolkit_version: the TOOLKIT_VERSION returned by shopfloor server, or
+        None if it is not available or test environment is not installed on the
+        shopfloor server yet.
+      needs_update: is True if an update is necessary (i.e., toolkit_version is
+        not None, and toolkit_version isn't the same as the TOOLKIT_VERSION in
+        the current factory directory).
 
   Raises:
     An exception if unable to contact the shopfloor server.
   """
-  shopfloor_client = shopfloor.get_instance(
-      detect=True, timeout=timeout, quiet=quiet)
-  # Use GetUpdate API provided by Umpire server.
-  if shopfloor_client.use_umpire:
-    update_info = get_update.GetUpdateForDeviceFactoryToolkit(shopfloor_client)
-    needs_update = update_info.needs_update
-    new_md5sum = update_info.md5sum
-  else:
-    new_md5sum = shopfloor_client.GetTestMd5sum()
-    current_md5sum = factory.get_current_md5sum()
-    needs_update = shopfloor_client.NeedsUpdate(current_md5sum)
-  return (new_md5sum, needs_update)
+  payload, unused_components, _ = shopfloor.GetUpdateFromCROSPayload(
+      'toolkit',
+      proxy=shopfloor.get_instance(detect=True, timeout=timeout, quiet=quiet))
+  del unused_components
+  return ((None, False) if not payload else
+          (payload['version'],
+           payload['version'] != factory.get_toolkit_version()))
 
 
 def CheckForUpdateAsync(callback, timeout, quiet=False):
@@ -215,12 +151,13 @@ def CheckForUpdateAsync(callback, timeout, quiet=False):
   Launches a separate thread, checks for an update, and invokes callback (in
   at most timeout seconds) in that separate thread with the following arguments:
 
-    callback(reached_shopfloor, md5sum, needs_update)
+    callback(reached_shopfloor, toolkit_version, needs_update)
 
   reached_shopfloor is True if the updater was actually able to communicate
   with the shopfloor server, or False on timeout.
 
-  md5sum and needs_update are as in the return value for CheckForUpdate.
+  toolkit_version and needs_update are as in the return value for
+  CheckForUpdate.
 
   Args:
     callback: Callback function to run in the separate thread as explained
@@ -241,8 +178,4 @@ def CheckForUpdateAsync(callback, timeout, quiet=False):
             '\n'.join(traceback.format_exception_only(
                 *sys.exc_info()[:2])).strip())
       callback(False, None, False)
-
-  update_thread = threading.Thread(target=Run, name='UpdateThread')
-  update_thread.daemon = True
-  update_thread.start()
-  return
+  process_utils.StartDaemonThread(target=Run, name='UpdateThread')

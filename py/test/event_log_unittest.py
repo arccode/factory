@@ -253,8 +253,8 @@ class EventLogTest(unittest.TestCase):
 
     self.assertEqual(
         ['EVENT', 'LOG_ID', 'PREFIX', 'SEQ',
-         'boot_id', 'boot_sequence', 'device_id',
-         'factory_md5sum', 'reimage_id'],
+         'boot_id', 'boot_sequence', 'device_id', 'reimage_id',
+         'toolkit_version'],
         sorted(log_data[0].keys()))
     self.assertEqual('preamble', log_data[0]['EVENT'])
     self.assertEqual('test', log_data[0]['PREFIX'])
@@ -279,7 +279,7 @@ class EventLogTest(unittest.TestCase):
              boot_id=event_log.GetBootId(),
              boot_sequence=-1,
              device_id=testlog_goofy.GetDeviceID(),
-             factory_md5sum=None,
+             toolkit_version=None,
              reimage_id=event_log.GetReimageId()),
         log_data[2])
     # Check the preamble and event from the second logger

@@ -15,7 +15,7 @@ FACTORY_DIR = os.path.realpath(
     os.path.join(SCRIPT_PATH, '..', '..', '..', '..'))
 FACTORY_PYTHON_PACKAGE_DIR = os.path.join(
     FACTORY_DIR, 'py_pkg', 'cros', 'factory')
-FACTORY_MD5SUM_PATH = os.path.join(FACTORY_DIR, 'MD5SUM')
+FACTORY_TOOLKIT_VERSION_PATH = os.path.join(FACTORY_DIR, 'TOOLKIT_VERSION')
 FACTORY_FIRMWARE_UPDATER_PATH = os.path.join(
     FACTORY_DIR, 'board', 'chromeos-firmwareupdate')
 

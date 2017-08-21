@@ -1,5 +1,4 @@
-#!/usr/bin/python -u
-#
+#!/usr/bin/env python
 # Copyright 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -23,35 +22,30 @@ class CheckForUpdateTest(unittest.TestCase):
   def tearDown(self):
     self.mox.UnsetStubs()
 
-  def testMustUpdate(self):
+  def _testUpdate(self, local_version):
+    self.mox.StubOutWithMock(factory, 'get_toolkit_version')
+    factory.get_toolkit_version().AndReturn(local_version)
+
     self.mox.StubOutWithMock(shopfloor, 'get_instance')
-    self.mox.StubOutWithMock(factory, 'get_current_md5sum')
     fake_shopfloor = self.mox.CreateMockAnything()
-    fake_shopfloor.use_umpire = False
     shopfloor.get_instance(
-        detect=True, timeout=3, quiet=False).AndReturn(
-            fake_shopfloor)
-    fake_shopfloor.GetTestMd5sum().AndReturn('11111')
-    factory.get_current_md5sum().AndReturn('00000')
-    fake_shopfloor.NeedsUpdate('00000').AndReturn(True)
+        detect=True, timeout=3, quiet=False).AndReturn(fake_shopfloor)
+
+    self.mox.StubOutWithMock(shopfloor, 'GetUpdateFromCROSPayload')
+    shopfloor.GetUpdateFromCROSPayload(
+        'toolkit', proxy=fake_shopfloor).AndReturn(
+            ({'version': '11111'}, {}, NotImplemented))
+
     self.mox.ReplayAll()
-    self.assertEquals(updater.CheckForUpdate(3), ('11111', True))
+    self.assertEquals(updater.CheckForUpdate(3),
+                      ('11111', '11111' != local_version))
     self.mox.VerifyAll()
 
+  def testMustUpdate(self):
+    self._testUpdate('00000')
+
   def testNotUpdate(self):
-    self.mox.StubOutWithMock(shopfloor, 'get_instance')
-    fake_shopfloor = self.mox.CreateMockAnything()
-    fake_shopfloor.use_umpire = False
-    shopfloor.get_instance(
-        detect=True, timeout=3, quiet=False).AndReturn(
-            fake_shopfloor)
-    fake_shopfloor.GetTestMd5sum().AndReturn('11111')
-    self.mox.StubOutWithMock(factory, 'get_current_md5sum')
-    factory.get_current_md5sum().AndReturn('11111')
-    fake_shopfloor.NeedsUpdate('11111').AndReturn(False)
-    self.mox.ReplayAll()
-    self.assertEquals(updater.CheckForUpdate(3), ('11111', False))
-    self.mox.VerifyAll()
+    self._testUpdate('11111')
 
 
 class CheckForUpdateAsyncTest(unittest.TestCase):
@@ -74,8 +68,8 @@ class CheckForUpdateAsyncTest(unittest.TestCase):
     self.mox.StubOutWithMock(updater, 'CheckForUpdate')
     updater.CheckForUpdate(1).AndReturn(('11111', available))
     callback = self.mox.CreateMockAnything()
-    callback(True, '11111', available).WithSideEffects(  # pylint: disable=not-callable
-        self.CallbackCalled)
+    # pylint: disable=not-callable
+    callback(True, '11111', available).WithSideEffects(self.CallbackCalled)
     self.mox.ReplayAll()
     updater.CheckForUpdateAsync(callback, 1)
 
@@ -98,8 +92,8 @@ class CheckForUpdateAsyncTest(unittest.TestCase):
     updater.CheckForUpdate(1).AndRaise(
         Exception('Can not contact shopfloorserver'))
     callback = self.mox.CreateMockAnything()
-    callback(False, None, False).WithSideEffects(  # pylint: disable=not-callable
-        self.CallbackCalled)
+    # pylint: disable=not-callable
+    callback(False, None, False).WithSideEffects(self.CallbackCalled)
     self.mox.ReplayAll()
     updater.CheckForUpdateAsync(callback, 1)
 
