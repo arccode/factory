@@ -432,8 +432,6 @@ cros.factory.Invocation = function(goofy, path, uuid) {
   goog.dom.classlist.add(this.iframe, 'goofy-test-iframe');
   goog.dom.classlist.enable(this.iframe, 'goofy-test-visible', false);
 
-  this.goofy.mainComponentContainer.getElement().appendChild(this.iframe);
-
   this.goofy.iframeMap[this.path] = this.iframe;
 
   document.getElementById('goofy-main').appendChild(this.iframe);
@@ -820,115 +818,99 @@ cros.factory.Goofy.prototype.keyListener = function(event) {
 };
 
 /**
- * Initializes the split panes.
+ * Initializes a splitpane and decorate it on an element.
+ * @param {string} id
+ * @param {!goog.ui.SplitPane.Orientation} orientation
+ * @return {!goog.ui.SplitPane}
  */
-cros.factory.Goofy.prototype.initSplitPanes = function() {
-  var viewportSize = goog.dom.getViewportSize(goog.dom.getWindow(document));
+cros.factory.Goofy.prototype.initSplitPane = function(id, orientation) {
+  const splitPane = new goog.ui.SplitPane(
+      new goog.ui.Component(), new goog.ui.Component(), orientation);
+  const element = document.getElementById(id);
+  splitPane.decorate(element);
 
-  var tabAndMain = new goog.ui.Component();
-  var mainComponentContainer = new goog.ui.Component();
-  this.mainComponentContainer = mainComponentContainer;
+  // Remove the inline size style set by splitPane.decorate, so resizing works
+  // better. Note that the goog-splitpane-{first,second}-container would still
+  // have inline size style.
+  element.removeAttribute('style');
 
-  var tabBar = new goog.ui.TabBar();
-  this.tabBar = tabBar;
+  // Remove the maximize splitpane when double-click on splitpane handle
+  // behavior, since it's pretty easy to misclick, and not very useful.
+  const handle = element.querySelector(':scope > .goog-splitpane-handle');
+  goog.events.removeAll(handle, 'dblclick');
 
-  var mainComponent = new goog.ui.Component();
+  return splitPane;
+};
 
-  tabAndMain.addChild(tabBar, true);
-  tabAndMain.addChild(mainComponentContainer, true);
-  mainComponentContainer.addChild(mainComponent, true);
+/**
+ * Initializes the split panes and the tab bar.
+ */
+cros.factory.Goofy.prototype.initUIComponents = function() {
+  const viewportSize = goog.dom.getViewportSize(goog.dom.getWindow(document));
 
-  var consoleComponent = new goog.ui.Component();
-  var mainAndConsole = new goog.ui.SplitPane(
-      tabAndMain, consoleComponent, goog.ui.SplitPane.Orientation.VERTICAL);
+  const topSplitPane = this.initSplitPane(
+      'goofy-splitpane', goog.ui.SplitPane.Orientation.HORIZONTAL);
+  topSplitPane.setFirstComponentSize(Math.max(
+      cros.factory.CONTROL_PANEL_MIN_WIDTH,
+      viewportSize.width * cros.factory.CONTROL_PANEL_WIDTH_FRACTION));
 
-  mainAndConsole.setInitialSize(
+  const mainAndConsole = this.initSplitPane(
+      'goofy-main-and-console', goog.ui.SplitPane.Orientation.VERTICAL);
+  mainAndConsole.setFirstComponentSize(
       viewportSize.height -
       Math.max(
           cros.factory.LOG_PANE_MIN_HEIGHT,
           viewportSize.height * cros.factory.LOG_PANE_HEIGHT_FRACTION));
 
   goog.debug.catchErrors(
-      goog.bind(
-          function(
-              /** {fileName: string, line: string, message: string} */ info) {
-            try {
-              this.logToConsole(
-                  'JavaScript error (' + info.fileName + ', line ' + info.line +
-                      '): ' + info.message,
-                  'goofy-internal-error');
-            } catch (e) {
-              // Oof... error while logging an error!  Maybe the DOM isn't set
-              // up properly yet; just ignore.
-            }
-          },
-          this),
-      false);
+      (/** {fileName: string, line: string, message: string} */ info) => {
+        try {
+          this.logToConsole(
+              'JavaScript error (' + info.fileName + ', line ' + info.line +
+                  '): ' + info.message,
+              'goofy-internal-error');
+        } catch (e) {
+          // Oof... error while logging an error!  Maybe the DOM isn't set
+          // up properly yet; just ignore.
+        }
+      });
 
-  var controlComponent = new goog.ui.Component();
-  var topSplitPane = new goog.ui.SplitPane(
-      controlComponent, mainAndConsole,
-      goog.ui.SplitPane.Orientation.HORIZONTAL);
-  topSplitPane.setInitialSize(Math.max(
-      cros.factory.CONTROL_PANEL_MIN_WIDTH,
-      viewportSize.width * cros.factory.CONTROL_PANEL_WIDTH_FRACTION));
-  // Decorate the uppermost splitpane and disable its context menu.
-  var topSplitPaneElement = document.getElementById('goofy-splitpane');
-  topSplitPane.decorate(topSplitPaneElement);
+  const fixSplitPaneSize = (/** !goog.ui.SplitPane */ splitPane) => {
+    splitPane.setFirstComponentSize(splitPane.getFirstComponentSize());
+  };
+
+  // Recalculate the sub-container size when the window is resized.
+  goog.events.listen(window, goog.events.EventType.RESIZE, () => {
+    fixSplitPaneSize(topSplitPane);
+    fixSplitPaneSize(mainAndConsole);
+  });
+
+  goog.events.listen(
+      topSplitPane, goog.ui.SplitPane.EventType.HANDLE_DRAG,
+      () => fixSplitPaneSize(mainAndConsole));
+
   // Disable context menu except in engineering mode.
   goog.events.listen(
-      topSplitPaneElement, goog.events.EventType.CONTEXTMENU,
-      function(/** !goog.events.Event */ event) {
+      window, goog.events.EventType.CONTEXTMENU,
+      (/** !goog.events.Event */ event) => {
         if (!this.engineeringMode) {
           event.stopPropagation();
           event.preventDefault();
         }
-      },
-      false, this);
-
-  mainComponent.getElement().id = 'goofy-main';
-  mainComponent.getElement().innerHTML =
-      '<img id="goofy-main-logo" src="/images/logo256.png">';
-  consoleComponent.getElement().id = 'goofy-console';
-  tabBar.getElement().id = 'goofy-tabbar';
-  this.console = consoleComponent.getElement();
-  this.main = mainComponent.getElement();
-
-  var propagate = true;
-  goog.events.listen(
-      topSplitPane, goog.ui.Component.EventType.CHANGE, function() {
-        if (!propagate) {
-          // Prevent infinite recursion
-          return;
-        }
-
-        propagate = false;
-        mainAndConsole.setFirstComponentSize(
-            mainAndConsole.getFirstComponentSize());
-        propagate = true;
-      }, false, this);
-  mainAndConsole.setFirstComponentSize(mainAndConsole.getFirstComponentSize());
-  goog.events.listen(window, goog.events.EventType.RESIZE, function() {
-    var viewportSize =
-        goog.dom.getViewportSize(goog.dom.getWindow(document) || window);
-    if (this.automationEnabled) {
-      var indicator =
-          /** @type {!HTMLElement} */ (
-              document.getElementById('goofy-automation-div'));
-      viewportSize.height -= indicator.offsetHeight;
-    }
-    topSplitPane.setSize(viewportSize);
-  }, false, this);
+      });
 
   // Whenever we get focus, try to focus any visible iframe (if no modal dialog
   // is visible).
-  goog.events.listen(window, goog.events.EventType.FOCUS, function() {
+  goog.events.listen(window, goog.events.EventType.FOCUS, () => {
     goog.Timer.callOnce(this.focusInvocation, 0, this);
-  }, false, this);
+  });
+
+  var tabBar = new goog.ui.TabBar();
+  tabBar.decorate(document.getElementById('goofy-tabbar'));
+  this.tabBar = tabBar;
 
   goog.events.listen(
-      this.tabBar, goog.ui.Component.EventType.SELECT, function() {
-
+      this.tabBar, goog.ui.Component.EventType.SELECT, () => {
         var selectedTab = /** @type {?HTMLElement} */ (
             this.tabBar.getSelectedTab().getElement());
         if (selectedTab) {
@@ -946,14 +928,9 @@ cros.factory.Goofy.prototype.initSplitPanes = function() {
           goog.dom.classlist.enable(
               this.selectedIframe, 'goofy-test-visible', true);
         }
-      }, false, this);
+      });
 
-  // Remove the maximize splitpane when double-click on splitpane handle
-  // behavior, since it's pretty easy to misclick, and not very useful.
-  for (const handle of document.querySelectorAll(
-           '#goofy-div .goog-splitpane-handle')) {
-    goog.events.removeAll(handle, 'dblclick');
-  }
+  this.console = document.getElementById('goofy-console');
 };
 
 /**
@@ -1025,7 +1002,7 @@ cros.factory.Goofy.prototype.preInit = function() {
  */
 cros.factory.Goofy.prototype.init = function() {
   this.initLocaleSelector();
-  this.initSplitPanes();
+  this.initUIComponents();
 
   this.sendRpc(
       'GetTestLists', [],
