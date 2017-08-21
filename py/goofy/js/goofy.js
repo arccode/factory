@@ -415,9 +415,10 @@ cros.factory.Invocation = function(goofy, path, uuid) {
   this.test = new cros.factory.Test(this);
 
   var label = this.goofy.pathTestMap[this.path].label;
+
   /**
    * The tab object of the test.
-   * @type {goog.ui.Tab}
+   * @type {!goog.ui.Tab}
    */
   this.tab = new goog.ui.Tab(cros.factory.i18n.i18nLabelNode(label));
 
@@ -428,13 +429,11 @@ cros.factory.Invocation = function(goofy, path, uuid) {
 
   /**
    * The iframe containing the test.
-   * @type {?HTMLIFrameElement}
+   * @type {!HTMLIFrameElement}
    */
   this.iframe = goog.dom.iframe.createBlank(new goog.dom.DomHelper(document));
-  goog.dom.classlist.add(this.iframe, 'goofy-test-iframe');
-  goog.dom.classlist.enable(this.iframe, 'goofy-test-visible', false);
 
-  this.goofy.iframeMap[this.path] = this.iframe;
+  goog.dom.classlist.add(this.iframe, 'goofy-test-iframe');
 
   document.getElementById('goofy-main').appendChild(this.iframe);
   this.iframe.contentWindow.$ = goog.bind(
@@ -450,10 +449,20 @@ cros.factory.Invocation = function(goofy, path, uuid) {
   this.iframe.contentWindow.cros = cros;
   this.iframe.contentWindow.goog = goog;
   this.iframe.contentWindow.test = this.test;
-  this.iframe.contentWindow.focus();
 
-  if (!this.goofy.tabBar.getSelectedTab()) {
-    this.tab.setSelected(true);
+  var visible = goofy.pathTestMap[path].state.visible;
+  this.setVisible(visible);
+};
+
+/**
+ * Sets whether the invocation is visible.
+ * @param {boolean} visible
+ */
+cros.factory.Invocation.prototype.setVisible = function(visible) {
+  goog.dom.classlist.enable(this.iframe, 'goofy-test-visible', visible);
+  this.tab.setSelected(visible);
+  if (visible) {
+    this.iframe.contentWindow.focus();
   }
 };
 
@@ -469,20 +478,12 @@ cros.factory.Invocation.prototype.getState = function() {
  * Dispose the invocation (and destroys the iframe).
  */
 cros.factory.Invocation.prototype.dispose = function() {
-  if (this.iframe) {
-    goog.log.info(cros.factory.logger, 'Cleaning up invocation ' + this.uuid);
-    goog.dom.removeNode(this.iframe);
-    if (this.iframe == this.goofy.selectedIframe) {
-      this.goofy.selectedIframe = null;
-    }
-    this.iframe = null;
-    delete this.goofy.iframeMap[this.path];
-  }
-  if (this.tab) {
-    this.goofy.tabBar.removeChild(this.tab, true);
-    this.tab = null;
-  }
+  goog.log.info(cros.factory.logger, 'Cleaning up invocation ' + this.uuid);
+
+  goog.dom.removeNode(this.iframe);
+  this.goofy.tabBar.removeChild(this.tab, true);
   this.goofy.invocations[this.uuid] = null;
+
   goog.log.info(
       cros.factory.logger, 'Top-level invocation ' + this.uuid + ' disposed');
 };
@@ -721,18 +722,6 @@ cros.factory.Goofy = function() {
   this.pluginMenuItems = null;
 
   /**
-   * A map from path name to the corresponding iframe.
-   * @type {Object<string, !HTMLIFrameElement>}
-   */
-  this.iframeMap = {};
-
-  /**
-   * The iframe corresponds to the selected tab.
-   * @type {?HTMLIFrameElement}
-   */
-  this.selectedIframe = null;
-
-  /**
    * Tab bar object.
    * @type {goog.ui.TabBar}
    */
@@ -911,26 +900,13 @@ cros.factory.Goofy.prototype.initUIComponents = function() {
   tabBar.decorate(document.getElementById('goofy-tabbar'));
   this.tabBar = tabBar;
 
-  goog.events.listen(
-      this.tabBar, goog.ui.Component.EventType.SELECT, () => {
-        var selectedTab = /** @type {?HTMLElement} */ (
-            this.tabBar.getSelectedTab().getElement());
-        if (selectedTab) {
-          var testPathName =
-              (/** @type {{testPath: string}} */ (selectedTab.dataset))
-                  .testPath;
-
-          if (this.selectedIframe) {
-            goog.dom.classlist.enable(
-                this.selectedIframe, 'goofy-test-visible', false);
-          }
-
-          this.selectedIframe = this.iframeMap[testPathName];
-
-          goog.dom.classlist.enable(
-              this.selectedIframe, 'goofy-test-visible', true);
-        }
-      });
+  goog.events.listen(this.tabBar, goog.ui.Component.EventType.SELECT, () => {
+    var selectedTab =
+        /** @type {?HTMLElement} */ (this.tabBar.getSelectedTab().getElement());
+    var testPath =
+        (/** @type {{testPath: string}} */ (selectedTab.dataset)).testPath;
+    this.sendEvent('goofy:set_visible_test', {path: testPath});
+  });
 
   this.console = document.getElementById('goofy-console');
 };
@@ -1653,13 +1629,6 @@ cros.factory.Goofy.prototype.showTestPopup = function(
        goog.ui.PopupBase.DEBOUNCE_DELAY_MS)) {
     // We just hid it; don't reshow.
     return false;
-  }
-
-  // If it's a leaf node, and it's the active but not the visible test, ask the
-  // backend to make it visible.
-  if (test.state.status == 'ACTIVE' && !test.state.visible &&
-      !test.subtests.length) {
-    this.sendEvent('goofy:set_visible_test', {path: path});
   }
 
   // Hide all tooltips so that they don't fight with the context menu.
@@ -2827,10 +2796,7 @@ cros.factory.Goofy.prototype.setTestState = function(path, state) {
   goog.dom.classlist.enable(elt, 'goofy-test-visible', visible);
   goog.object.forEach(this.invocations, function(invoc) {
     if (invoc && invoc.path == path) {
-      goog.dom.classlist.enable(invoc.iframe, 'goofy-test-visible', visible);
-      if (visible) {
-        invoc.iframe.contentWindow.focus();
-      }
+      invoc.setVisible(visible);
     }
   });
 

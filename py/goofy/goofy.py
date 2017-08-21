@@ -338,10 +338,10 @@ class Goofy(GoofyBase):
     if test and not test.has_ui:
       return
 
-    if test:
-      test.UpdateState(visible=True)
     if self.visible_test:
       self.visible_test.UpdateState(visible=False)
+    if test:
+      test.UpdateState(visible=True)
     self.visible_test = test
 
   def shutdown(self, operation):
