@@ -2,20 +2,74 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# DESCRIPTION :
-# This factory test checks image version in lsb-release. If the version doesn't
-# match what's provided in the test argument, flash netboot firmware if it is
-# provided.
+"""Check release or test OS image version on internal storage.
+
+Description
+-----------
+This test checks if Chrome OS test image or release image version in
+'/etc/lsb-release' are greater than or equal to the value of argument
+``min_version``. If the version is too old and argument ``reimage`` is set to
+True, reflash either local netboot firmware or remote netboot firmware from
+factory server (e.g., Mini-Omaha or Umpire). After that, the DUT will reboot
+into netboot firmware and start network image installation process to reimage.
+
+Test Procedure
+--------------
+1. This test will first check if test image (when ``check_release_image`` is
+   False) or release image (when ``check_release_image`` is True) version >=
+   ``min_version``. If so, this test will pass.
+2. If ``reimage`` is set to False, this test will fail.
+3. If ``require_space`` is set to True, this test will wait for the user presses
+   spacebar.
+4. If ``download_from_server`` is set to True, this test will try to download
+   netboot firmware from factory server to the path indicated by argument
+   ``netboot_fw``. If there is no available netboot firmware on factory server,
+   this test will fail.
+5. Main firmware will be flashed with the firmware image in path ``netboot_fw``.
+6. The DUT will then reboot into netboot firmware and start network image
+   installation process to reimage.
+
+Dependency
+----------
+- If argument ``reimage`` is set to True, factory server must be set up and be
+  ready for network image installation.
+- If argument ``download_from_server`` is set to True, netboot firmware must be
+  available on factory server. If ``download_from_server`` is set to False,
+  netboot firmware must be prepared in the path that argument ``netboot_fw``
+  indicated.
+
+Examples
+--------
+To check test image version is greater than or equal to 9876.5.4::
+
+  OperatorTest(pytest_name='check_image_version',
+               dargs=dict(min_version='9876.5.4', reimage=False))
+
+Reimage if release image version is older than 9876.5.4 by flashing local
+netboot firmware, which is located in '/usr/local/factory/board/image.net.bin',
+and make pressing spacebar not needed::
+
+  OperatorTest(pytest_name='check_image_version',
+               dargs=dict(check_release_image=True, min_version='9876.5.4',
+                          require_space=False))
+
+Reimage if test image version is greater than or equal to 9876.5.2012_12_21_2359
+(loose format version) by flashing netboot firmware image on factory server::
+
+  OperatorTest(pytest_name='check_image_version',
+               dargs=dict(min_version='9876.5.2012_12_21_2359',
+                          loose_version=True, download_from_server=True))
+"""
 
 from distutils import version
 import logging
+import shutil
 import time
 import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
-from cros.factory.test import factory
 from cros.factory.test import factory_task
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
@@ -23,10 +77,7 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
 from cros.factory.tools import flash_netboot
-from cros.factory.umpire.client import get_update
-from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import debug_utils
 
 
 _TEST_TITLE = i18n_test_ui.MakeI18nLabel('Check Image Version')
@@ -39,19 +90,18 @@ _CSS = """
 
 # Messages for tasks
 _MSG_VERSION_MISMATCH = i18n_test_ui.MakeI18nLabelWithClass(
-    'Factory image version is incorrect. Please re-image this device.',
+    'Image version is incorrect. Please re-image this device.',
     'start-font-size test-error')
 _MSG_NETWORK = i18n_test_ui.MakeI18nLabel('Please connect to ethernet.')
+_MSG_NO_FIRMWARE_ON_SERVER = i18n_test_ui.MakeI18nLabel(
+    'Netboot firmware not available on factory server.')
 _MSG_NETBOOT = i18n_test_ui.MakeI18nLabel(
-    'Factory image version is incorrect. Press space to re-image.')
+    'Image version is incorrect. Press space to re-image.')
 _MSG_REIMAGING = i18n_test_ui.MakeI18nLabel('Flashing netboot firmware...')
 _MSG_FLASH_ERROR = i18n_test_ui.MakeI18nLabelWithClass(
     'Error flashing netboot firmware!', 'start-font-size test-error')
 
-_LSB_RELEASE_PATH = '/etc/lsb-release'
-
 _SHOPFLOOR_TIMEOUT_SECS = 10
-_RETRY_INTERVAL_SECS = 3
 
 
 class ImageCheckTask(factory_task.FactoryTask):
@@ -71,49 +121,31 @@ class ImageCheckTask(factory_task.FactoryTask):
     self._test.ui.BindKey(test_ui.SPACE_KEY, self.Reimage)
 
   def Reimage(self):
-    if self._test.args.umpire:
-      shopfloor_proxy = shopfloor.get_instance(
-          detect=True, timeout=_SHOPFLOOR_TIMEOUT_SECS)
-      netboot_firmware = get_update.GetUpdateForNetbootFirmware(shopfloor_proxy)
-      if netboot_firmware:
-        with open(flash_netboot.DEFAULT_NETBOOT_FIRMWARE_PATH, 'wb') as f:
-          f.write(netboot_firmware)
+    # TODO(b/64881268): Run cros_payload to update release image directly.
+    if self._test.args.download_from_server:
+      payload, unused_components, downloader = (
+          shopfloor.GetUpdateFromCROSPayload(
+              'netboot_firmware',
+              proxy=shopfloor.get_instance(
+                  detect=True, timeout=_SHOPFLOOR_TIMEOUT_SECS)))
+      del unused_components
+      if not payload:
+        self._test.template.SetState(_MSG_NO_FIRMWARE_ON_SERVER)
+        return
+      with downloader() as res_path:
+        shutil.move(res_path, self._test.args.netboot_fw)
 
-    firmware_path = (self._test.args.netboot_fw or
-                     flash_netboot.DEFAULT_NETBOOT_FIRMWARE_PATH)
     self._test.template.SetState(_MSG_REIMAGING)
     try:
       with self.dut.temp.TempFile() as temp_file:
-        self.dut.link.Push(firmware_path, temp_file)
+        self.dut.link.Push(self._test.args.netboot_fw, temp_file)
         factory_par = deploy_utils.CreateFactoryTools(self.dut)
         factory_par.CheckCall(
-            ['flash_netboot', '-y', '-i', temp_file, '--no-reboot'],
-            log=True)
-
+            ['flash_netboot', '-y', '-i', temp_file, '--no-reboot'], log=True)
       self.dut.CheckCall(['reboot'], log=True)
-
       self.Fail('Incorrect image version, DUT is rebooting to reimage.')
     except Exception:
       self._test.template.SetState(_MSG_FLASH_ERROR)
-
-  def CheckImageFromUmpire(self):
-    factory.console.info('Connecting to Umpire server...')
-    shopfloor_client = None
-    while True:
-      try:
-        shopfloor_client = shopfloor.get_instance(
-            detect=True, timeout=_SHOPFLOOR_TIMEOUT_SECS)
-        need_update = get_update.NeedImageUpdate(shopfloor_client)
-        if need_update:
-          logging.info('Umpire decide to update this DUT')
-        else:
-          logging.info('Umpire decide not to update this DUT')
-        return need_update
-      except umpire_server_proxy.UmpireServerProxyException:
-        exception_string = debug_utils.FormatExceptionOnly()
-        logging.info('Unable to sync with shopfloor server: %s',
-                     exception_string)
-      time.sleep(_RETRY_INTERVAL_SECS)
 
   def CheckImageVersion(self):
     if self._test.args.check_release_image:
@@ -121,17 +153,15 @@ class ImageCheckTask(factory_task.FactoryTask):
     else:
       ver = self.dut.info.factory_image_version
     Log('image_version', version=ver)
-    version_format = (version.LooseVersion if self._test.args.loose_version
-                      else version.StrictVersion)
+    version_format = (version.LooseVersion if self._test.args.loose_version else
+                      version.StrictVersion)
     logging.info('Using version format: %r', version_format.__name__)
     logging.info('current version: %r', ver)
     logging.info('expected version: %r', self._test.args.min_version)
     return version_format(ver) < version_format(self._test.args.min_version)
 
   def Run(self):
-    need_update = (self.CheckImageFromUmpire if self._test.args.umpire else
-                   self.CheckImageVersion)
-    if need_update():
+    if self.CheckImageVersion():
       if self._test.args.reimage:
         self.CheckNetwork()
         if self._test.args.require_space:
@@ -146,22 +176,19 @@ class ImageCheckTask(factory_task.FactoryTask):
 
 class CheckImageVersionTest(unittest.TestCase):
   ARGS = [
-      Arg('min_version', str,
-          'Minimum allowed factory or release image version. If umpire is set, '
-          ' this args will be neglected.', default=None, optional=True),
+      Arg('min_version', str, 'Minimum allowed test or release image version.'),
       Arg('loose_version', bool, 'Allow any version number representation.',
           default=False),
       Arg('netboot_fw', str, 'The path to netboot firmware image.',
-          default=None, optional=True),
+          default=flash_netboot.DEFAULT_NETBOOT_FIRMWARE_PATH),
       Arg('reimage', bool, 'True to re-image when image version mismatch.',
-          default=True, optional=True),
+          default=True),
       Arg('require_space', bool,
-          'True to require a space key press before reimaging.',
-          default=True, optional=True),
+          'True to require a space key press before reimaging.', default=True),
       Arg('check_release_image', bool,
-          'True to check release image instead of factory image.',
-          default=False, optional=True),
-      Arg('umpire', bool, 'True to check image update from Umpire server',
+          'True to check release image instead of test image.', default=False),
+      Arg('download_from_server', bool,
+          'True to download netboot firmware image from factory server.',
           default=False)]
 
   def setUp(self):

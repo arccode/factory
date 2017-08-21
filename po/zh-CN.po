@@ -1825,7 +1825,7 @@ msgid "Testing discharge"
 msgstr "测试放电中"
 
 #: ../py/test/pytests/check_image_version.py
-msgid "Factory image version is incorrect. Please re-image this device."
+msgid "Image version is incorrect. Please re-image this device."
 msgstr "映像版本不正确，请重新安装。"
 
 #: ../py/test/pytests/check_image_version.py
@@ -1833,7 +1833,11 @@ msgid "Please connect to ethernet."
 msgstr "请连接到以太网。"
 
 #: ../py/test/pytests/check_image_version.py
-msgid "Factory image version is incorrect. Press space to re-image."
+msgid "Netboot firmware not available on factory server."
+msgstr "工厂伺服器无可用之网路开机固件。"
+
+#: ../py/test/pytests/check_image_version.py
+msgid "Image version is incorrect. Press space to re-image."
 msgstr "映像版本不正确，请按空白键重新安装。"
 
 #: ../py/test/pytests/check_image_version.py
