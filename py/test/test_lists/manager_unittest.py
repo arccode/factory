@@ -261,52 +261,6 @@ class TestListLoaderTest(unittest.TestCase):
         self.assertEqual(test.locals_, expected[test.path])
 
 
-class CheckerTest(unittest.TestCase):
-  def setUp(self):
-    self.checker = manager.Checker()
-
-  def testAssertValidEval(self):
-    expression = 'while True: a = a + 3'
-    with self.assertRaises(manager.CheckerError):
-      self.checker.AssertValidEval(expression)
-
-    expression = 'dut.info.serial_number + station.var + abs(options.value)'
-    self.checker.AssertValidEval(expression)
-
-    expression = '[(a, d, c) for a in dut.arr for c in a for d in c]'
-    self.checker.AssertValidEval(expression)
-
-    expression = '[(a, d, c) for a in dut.arr for d in c for c in a]'
-    # failed because c is used before define
-    with self.assertRaises(manager.CheckerError):
-      self.checker.AssertValidEval(expression)
-
-    expression = '{k: str(k) for k in dut.arr}'
-    self.checker.AssertValidEval(expression)
-
-    expression = '{k: v for (k, v) in dut.dct.itertiems() if v}'
-    self.checker.AssertValidEval(expression)
-
-    expression = '(x * x for x in xrange(3))'
-    # generator is not allowed
-    with self.assertRaises(manager.CheckerError):
-      self.checker.AssertValidEval(expression)
-
-    expression = '({x for x in [1]}, x)'
-    # the second x is not defined
-    with self.assertRaises(manager.CheckerError):
-      self.checker.AssertValidEval(expression)
-
-    expression = '[([y for y in [x]], x) for x in [1]]'
-    self.checker.AssertValidEval(expression)
-
-  def testAssertValidRunIf(self):
-    expression = 'dut.info.serial_number + station.var + abs(options.value)'
-    with self.assertRaises(manager.CheckerError):
-      self.checker.AssertValidRunIf(expression)
-    expression = 'device.serials.serial_number + constants.foo.bar'
-    self.checker.AssertValidRunIf(expression)
-
 class EvaluateRunIfTest(unittest.TestCase):
   def setUp(self):
     state_instance = state.StubFactoryState()

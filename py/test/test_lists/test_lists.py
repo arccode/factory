@@ -57,6 +57,9 @@ builder_state = threading.local()
 #   1.0: 100% sampling rate
 SamplingRate = namedtuple('SamplingRate', ['key', 'rate'])
 
+# String prefix to indicate this value needs to be evaluated
+EVALUATE_PREFIX = 'eval! '
+
 
 class TestListError(Exception):
   """TestList exception"""
