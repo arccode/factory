@@ -6,7 +6,6 @@
 
 from __future__ import print_function
 
-import copy
 import glob
 import logging
 import mox
@@ -19,14 +18,12 @@ from twisted.web import server
 from twisted.web import xmlrpc
 import xmlrpclib
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
-from cros.factory.umpire.server import bundle_selector
 from cros.factory.umpire.server import daemon
 from cros.factory.umpire.server import resource
 from cros.factory.umpire.server import rpc_dut
 from cros.factory.umpire.server import umpire_env
-from cros.factory.umpire.server import utils
 from cros.factory.umpire.server.web import xmlrpc as umpire_xmlrpc
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
@@ -111,45 +108,6 @@ class DUTRPCTest(unittest.TestCase):
     d = self.Call('ListParameters', 'parameters_*')
     d.addCallback(CheckList)
     return d
-
-  def testGetUpdateNoUpdate(self):
-    def CheckNoUpdate(result):
-      logging.debug('no update result: %s', str(result))
-      for unused_component_name, update_info in result.iteritems():
-        self.assertFalse(update_info['needs_update'])
-      return result
-
-    deferreds = []
-    for stage in rpc_dut.FACTORY_STAGES:
-      noupdate_info = copy.deepcopy(self.device_info)
-      noupdate_info['x_umpire_dut']['stage'] = stage
-      d = self.Call('GetUpdate', noupdate_info)
-      d.addCallback(CheckNoUpdate)
-      deferreds.append(d)
-    return utils.ConcentrateDeferreds(deferreds)
-
-  def testGetUpdate(self):
-    def CheckSingleComponentUpdate(result):
-      logging.debug('update result:\n\t%r', result)
-      self.assertEqual(1, sum(result[component]['needs_update']
-                              for component in result))
-      return result
-
-    update_info = copy.deepcopy(self.device_info)
-    ruleset = bundle_selector.SelectRuleset(self.env.config,
-                                            update_info['x_umpire_dut'])
-    logging.debug('selected ruleset: %s', ruleset)
-    deferreds = []
-    for component, stage_range in ruleset['enable_update'].iteritems():
-      # Make a new copy.
-      update_info = copy.deepcopy(self.device_info)
-      update_info['x_umpire_dut']['stage'] = stage_range[0]
-      update_info['components'][component] = 'force update'
-      deferred = self.Call('GetUpdate', update_info)
-      # There's only one component needs update.
-      deferred.addCallback(CheckSingleComponentUpdate)
-      deferreds.append(deferred)
-    return utils.ConcentrateDeferreds(deferreds)
 
   def testUploadReport(self):
     def CheckTrue(result):

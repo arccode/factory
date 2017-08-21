@@ -10,18 +10,6 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.umpire import common
 
-# The component keys in the return value of GetUpdate RPC call.
-COMPONENT_KEYS = {
-    'rootfs_test',
-    'rootfs_release',
-    'firmware_ec',
-    'firmware_bios',
-    'firmware_pd',
-    'netboot_firmware',
-    'hwid',
-    'device_factory_toolkit'
-}
-
 
 class UmpireClientInfoInterface(object):
   """The interface that provide client info for Umpire server proxy."""
@@ -43,7 +31,7 @@ class UmpireClientInfoInterface(object):
     raise NotImplementedError
 
   def GetDUTInfoComponents(self):
-    """Gets DUT info and components for Umpire GetUpdate call.
+    """Gets DUT info and components for GetUpdateFromCROSPayload call.
 
     Returns:
       {'x_umpire_dut': X-Umpire-DUT header in dict form,
@@ -120,7 +108,7 @@ class UmpireClientInfo(object):
     return changed
 
   def _GetComponentsDict(self):
-    """Gets information needed for Umpire GetUpdate call.
+    """Gets information needed for GetUpdateFromCROSPayload call.
 
     Returns:
       A component dict:
@@ -173,16 +161,15 @@ class UmpireClientInfo(object):
     return info_dict
 
   def GetDUTInfoComponents(self):
-    """Gets DUT info and components for Umpire GetUpdate call.
+    """Gets DUT info and components for GetUpdateFromCROSPayload call.
 
     Returns:
       {'x_umpire_dut': X-Umpire-DUT header in dict form,
        'components': components' version/hash for update lookup.}
     """
-    dut_info = {}
-    dut_info['x_umpire_dut'] = self._GetXUmpireDUTDict()
-    dut_info['components'] = self._GetComponentsDict()
-    return dut_info
+    return {
+        'x_umpire_dut': self._GetXUmpireDUTDict(),
+        'components': self._GetComponentsDict()}
 
   def GetXUmpireDUT(self):
     """Outputs client info for request header X-Umpire-DUT.

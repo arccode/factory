@@ -467,41 +467,6 @@ class RPCDUTTest(UmpireDockerTestCase):
     version = proxy.Ping()
     self.assertEqual({'version': 3}, version)
 
-  def testGetUpdate(self):
-    # Deploy a config that have resources with proper versions for GetUpdate
-    # to work.
-    rpc_proxy = xmlrpclib.ServerProxy(RPC_ADDR_BASE)
-    conf = rpc_proxy.AddConfigFromBlob(
-        file_utils.ReadFile(
-            os.path.join(CONFIG_TESTDATA_DIR, 'umpire_with_resource.yaml')),
-        'umpire_config')
-    rpc_proxy.StageConfigFile(conf)
-    rpc_proxy.Deploy(conf)
-
-    device_info = {
-        'x_umpire_dut': {
-            'mac': 'aa:bb:cc:dd:ee:ff',
-            'sn': '0C1234567890',
-            'mlb_sn': 'SN001',
-            'stage': 'SMT'},
-        'components': {
-            'device_factory_toolkit': 'deadbeefdeadbeef0123456789abcdef',
-            'hwid': 'hwid_v2',
-            'firmware_ec': 'firmware_v2',
-            'firmware_pd': 'firmware_v2',
-            'firmware_bios': 'firmware_v1'}}
-    need_update = ['device_factory_toolkit', 'firmware_bios']
-    update_info = self.proxy.GetUpdate(device_info)
-    self.assertItemsEqual(device_info['components'].keys(), update_info.keys())
-    for resource_type, info in update_info.iteritems():
-      self.assertEqual(resource_type in need_update, info['needs_update'])
-      logging.debug('Checking resource %s is available for download...',
-                    info['url'])
-      if info['scheme'] == 'http':
-        self.assertTrue(requests.get(info['url']).ok)
-      elif info['scheme'] == 'rsync':
-        subprocess.check_output(['rsync', info['url']])
-
   def testGetFactoryLogPort(self):
     self.assertEqual(PORT + 4, self.proxy.GetFactoryLogPort())
 

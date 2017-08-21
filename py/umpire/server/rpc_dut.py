@@ -7,11 +7,9 @@
 """Common Umpire RPC Commands."""
 
 import glob
-import logging
 import os
 import shutil
 import time
-import urllib
 import xmlrpclib
 
 from twisted.internet import threads
@@ -20,8 +18,6 @@ from twisted.web import xmlrpc
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server import bundle_selector
-from cros.factory.umpire.server import resource
-from cros.factory.umpire.server.service import umpire_service
 from cros.factory.umpire.server import umpire_env
 from cros.factory.umpire.server import umpire_rpc
 from cros.factory.umpire.server import utils
@@ -154,128 +150,6 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
       return 'http://%s:%d/res/%s' % (
           GetServerIpPortFromRequest(request, self.env) + (bundle['payloads'],))
     return ''
-
-  @staticmethod
-  def _CanUpdate(stage, range_start, range_end):
-    return ((range_start is None or FACTORY_STAGES.index(stage) >=
-             FACTORY_STAGES.index(range_start)) and
-            (range_end is None or FACTORY_STAGES.index(stage) <=
-             FACTORY_STAGES.index(range_end)))
-
-  # TODO(b/62335217): Deprecate this function.
-  @umpire_rpc.RPCCall
-  @xmlrpc.withRequest
-  def GetUpdate(self, request, device_info):
-    """Gets factory toolkit update.
-
-    Args:
-      device_info: device info dictionary:
-        {'x_umpire_dut': {...},
-         'components': {
-            'rootfs_test': <test_rootfs_version>,
-            'rootfs_release': <release_rootfs_version>,
-            'firmware_ec': <ec_firmware_version>,
-            'firmware_pd': <pd_firmware_version>,
-            'firmware_bios': <bios_firmware_version>,
-            'hwid': <md5sum_hexstring>,
-            'device_factory_toolkit': <md5sum_hexstring>}}
-
-    Returns:
-      A dictionary lists update scheme and URL for each requested component:
-        {<component_name>: {
-            'needs_update': boolean flag,
-            'scheme': update protocol scheme, http, rsync or zsync,
-            'url': URL to the requested resource,
-            'md5sum': MD5SUM hex string for the resource},
-         <...>
-        }
-      Or xmlrpc.Fault() on input parsing error.
-
-    Raises:
-      KeyError: when required key not in dictionary.
-      All exceptions will be caught by umpire.web.xmlrpc and translate to
-      proper xmlrpc.Fault() before return.
-    """
-    update_matrix = {}
-    current_stage = device_info['x_umpire_dut']['stage']
-    ruleset = bundle_selector.SelectRuleset(
-        self.env.config, device_info['x_umpire_dut'])
-    logging.debug('ruleset = %s', ruleset)
-    bundle_id = ruleset['bundle_id']
-    bundle = self.env.config.GetBundle(bundle_id)
-    payloads = self.env.GetPayloadsDict(bundle['payloads'])
-    enable_update = ruleset.get('enable_update', {})
-
-    for dut_component_name, dut_component_tag in device_info[
-        'components'].iteritems():
-      # TODO(youcheng): Support release_image.
-      try:
-        if dut_component_name == 'device_factory_toolkit':
-          type_name = resource.PayloadTypeNames.toolkit
-        elif dut_component_name == 'hwid':
-          type_name = resource.PayloadTypeNames.hwid
-        elif dut_component_name.startswith('firmware_'):
-          type_name = resource.PayloadTypeNames.firmware
-        else:
-          continue
-        payload = payloads[type_name]
-        res_hash = resource.GetFilePayloadHash(payload)
-        res_name = payload['file']
-        if type_name == resource.PayloadTypeNames.toolkit:
-          # TODO(b/36083439): Use version to determine if toolkit update is
-          #                   necessary.
-          res_tag = res_hash
-        else:
-          # TODO(youcheng): Needs special rule for firmware. cros_payload
-          #                 doesn't provide firmware version in desired format.
-          #                 This will always report needs_update=True for now.
-          res_tag = payload['version']
-      except Exception:
-        continue
-
-      needs_update = False
-
-      if dut_component_tag != res_tag:
-        # Check if DUT needs an update.
-        stage_start, stage_end = enable_update.get(dut_component_name,
-                                                   (None, None))
-        if self._CanUpdate(current_stage, stage_start, stage_end):
-          needs_update = True
-
-      # Calculate resource
-      res_scheme = None
-      res_url = None
-
-      # Use the ip and port from request headers, since the ip and port in
-      # self.env.{umpire_ip, umpire_base_port} are ip / port inside docker,
-      # but we need to return the ip / port used outside docker.
-      server_ip, server_port = GetServerIpPortFromRequest(request, self.env)
-
-      # TODO(crosbug.com/p/52705): no special case should be allowed here.
-      if dut_component_name == 'device_factory_toolkit':
-        # Select first service provides 'toolkit_update' property.
-        iterable = umpire_service.FindServicesWithProperty(
-            self.env.config, 'toolkit_update')
-        instance = next(iterable, None)
-        if instance and hasattr(instance, 'GetServiceURL'):
-          res_scheme = instance.properties.get('update_scheme', None)
-          res_url = instance.GetServiceURL(server_ip, server_port)
-          if res_url:
-            res_url = '%s/%s' % (res_url, res_hash)
-      else:
-        res_scheme = 'http'
-        res_url = 'http://%(ip)s:%(port)d/res/%(filename)s' % {
-            'ip': server_ip,
-            'port': server_port,
-            'filename': urllib.quote(res_name)}
-
-      update_matrix[dut_component_name] = {
-          'needs_update': needs_update,
-          'md5sum': res_hash,
-          'scheme': res_scheme,
-          'url': res_url}
-
-    return update_matrix
 
 
 class ShopfloorServiceDUTCommands(umpire_rpc.UmpireRPC):

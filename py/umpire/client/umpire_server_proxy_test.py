@@ -1,5 +1,4 @@
-#!/usr/bin/python
-#
+#!/usr/bin/env python
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -11,7 +10,7 @@ import logging
 import os
 import yaml
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.client import umpire_client
 from cros.factory.umpire.client import umpire_server_proxy
 
@@ -22,7 +21,7 @@ DEFAULT_SERVER_URI = 'http://10.3.0.1:9090'
 
 class FakeClientInfo(object):
   """Fake client info which implements UmpireClientInfoInterface."""
-  __implements__ = (umpire_client.UmpireClientInfoInterface)
+  __implements__ = umpire_client.UmpireClientInfoInterface
 
   def __init__(self, dut):
     """Initializes a fake client info.
@@ -62,12 +61,13 @@ class FakeClientInfo(object):
     return ret
 
   def GetDUTInfoComponents(self):
-    """Gets dut_info argument for GetUpdate method.
+    """Gets dut_info argument for GetUpdateFromCROSPayload method.
 
     Returns:
       A dict containing x_umpire_dut and components.
     """
-    # TODO(cychiang) Implement this method so we can test GetUpdate method.
+    # TODO(cychiang) Implement this method so we can test
+    # GetUpdateFromCROSPayload method.
     raise NotImplementedError
 
 
