@@ -1777,6 +1777,17 @@ cros.factory.Goofy.prototype.showTestPopup = function(
         true);
   }
 
+  if (!test.subtests.length && test.state.status == 'ACTIVE') {
+    addSeparator();
+    var item =
+        new goog.ui.MenuItem(cros.factory.i18n.i18nLabelNode('Show test UI'));
+    goog.events.listen(item, goog.ui.Component.EventType.ACTION, function() {
+      this.sendEvent('goofy:set_visible_test', {path: test.path});
+    }, false, this);
+    item.setEnabled(!test.state.visible);
+    menu.addChild(item, true);
+  }
+
   if (this.engineeringMode && !test.subtests.length) {
     addSeparator();
     menu.addChild(this.createViewLogMenu(path), true);

@@ -728,6 +728,10 @@ msgid "Abort active test \"{test}\" and continue testing"
 msgstr "取消执行中的测试「{test}」并继续"
 
 #: ../py/goofy/js/goofy.js
+msgid "Show test UI"
+msgstr "显示测试画面"
+
+#: ../py/goofy/js/goofy.js
 msgid "System time: "
 msgstr "系统时间："
 
