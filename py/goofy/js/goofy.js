@@ -309,7 +309,9 @@ cros.factory.Test.prototype.unbindKey = function(keyCode) {
 cros.factory.Test.prototype.unbindAllKeys = function() {
   // We don't actually remove the handler, just let it does nothing should be
   // good enough.
-  this.keyHandlers = {};
+  if (this.keyHandlers) {
+    this.keyHandlers = {};
+  }
 };
 
 /**
