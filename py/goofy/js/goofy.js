@@ -1737,20 +1737,20 @@ cros.factory.Goofy.prototype.showTestPopup = function(
       }
     }
     if (test.subtests.length) {
+      var status = ['UNTESTED', 'ACTIVE', 'FAILED', 'FAILED_AND_WAIVED'];
+      var count = 0;
+      goog.array.forEach(status, function(s) {
+        count += numLeavesByStatus[s] || 0;
+      });
       // Only show for parents.
       menu.addChild(
           this.makeMenuItem(
               _('Restart {count} tests in "{test}" that have not passed'), '',
-              (numLeavesByStatus['UNTESTED'] || 0) +
-                  (numLeavesByStatus['ACTIVE'] || 0) +
-                  (numLeavesByStatus['FAILED'] || 0),
-              test,
+              count, test,
               function() {
-                this.sendEvent('goofy:run_tests_with_status', {
-                  'status':
-                      ['UNTESTED', 'ACTIVE', 'FAILED', 'FAILED_AND_WAIVED'],
-                  'path': path
-                });
+                this.sendEvent(
+                    'goofy:run_tests_with_status',
+                    {'status': status, 'path': path});
               }),
           true);
     }
