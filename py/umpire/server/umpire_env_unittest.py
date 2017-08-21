@@ -1,18 +1,15 @@
-#!/usr/bin/python
-#
+#!/usr/bin/env python
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import json
 import mox
 import os
 import shutil
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
-from cros.factory.umpire.server.commands import update
 from cros.factory.umpire.server import resource
 from cros.factory.umpire.server import umpire_env
 from cros.factory.utils import file_utils
@@ -142,49 +139,6 @@ class UmpireEnvTest(unittest.TestCase):
     # Dirname mismatch.
     self.assertFalse(self.env.InResource(
         os.path.join('/path/not/in/res', resource_name)))
-
-  def PrepareBundleDeviceToolkit(self):
-    """Sets a device_factory_toolkit in the default bundle.
-
-    Returns:
-      Unpacked toolkit path.
-    """
-    self.env.LoadConfig(custom_path=TEST_CONFIG)
-
-    # Add the toolkit to resources and get hash value.
-    updater = update.ResourceUpdater(self.env)
-    updater.Update([('toolkit', TOOLKIT_DIR)])
-    # After updating resources, we need to reload the staging config.
-    self.env.ActivateConfigFile()
-    self.env.LoadConfig()
-
-    # Get hash value to compose expected toolkit dir.
-    bundle = self.env.config.GetDefaultBundle()
-    payloads = json.loads(file_utils.ReadFile(
-        self.env.GetResourcePath(bundle['payloads'])))
-    toolkit_hash = payloads['toolkit']['file'].split('.')[-2]
-    return os.path.join(self.env.device_toolkits_dir, toolkit_hash)
-
-  def testGetBundleDeviceToolkit(self):
-    expected_toolkit_dir = self.PrepareBundleDeviceToolkit()
-
-    self.assertTrue(os.path.isdir(expected_toolkit_dir))
-    bundle = self.env.config.GetDefaultBundle()
-    self.assertEqual(expected_toolkit_dir,
-                     self.env.GetBundleDeviceToolkit(bundle['id']))
-
-  def testGetBundleDeviceToolkitInvalidBundleID(self):
-    # Same environment, but looking up an invalid bundle ID.
-    self.PrepareBundleDeviceToolkit()
-    self.assertIsNone(self.env.GetBundleDeviceToolkit('invalid_bundle'))
-
-  def testGetBundleDeviceToolkitMissingToolkitPath(self):
-    # Same environment, but force remove toolkit dir.
-    self.PrepareBundleDeviceToolkit()
-    shutil.rmtree(self.env.device_toolkits_dir)
-
-    bundle = self.env.config.GetDefaultBundle()
-    self.assertIsNone(self.env.GetBundleDeviceToolkit(bundle['id']))
 
 
 if __name__ == '__main__':

@@ -34,7 +34,6 @@ _ACTIVE_UMPIRE_CONFIG = 'active_umpire.yaml'
 _STAGING_UMPIRE_CONFIG = 'staging_umpire.yaml'
 _UMPIRED_PID_FILE = 'umpired.pid'
 _UMPIRED_LOG_FILE = 'umpired.log'
-_DEVICE_TOOLKITS_DIR = os.path.join('toolkits', 'device')
 _UMPIRE_DATA_DIR = 'umpire_data'
 _RESOURCES_DIR = 'resources'
 _CONFIG_DIR = 'conf'
@@ -75,7 +74,7 @@ class UmpireEnv(object):
   # List of Umpire mandatory subdirectories.
   # Use tuple to avoid modifying.
   SUB_DIRS = ('bin', 'conf', 'dashboard', 'log', 'resources', 'run', 'temp',
-              'toolkits', 'umpire_data', 'updates')
+              'umpire_data', 'updates')
 
   def __init__(self, root_dir='/'):
     self.base_dir = os.path.join(root_dir, common.DEFAULT_BASE_DIR)
@@ -83,10 +82,6 @@ class UmpireEnv(object):
     self.config_path = None
     self.config = None
     self.staging_config = None
-
-  @property
-  def device_toolkits_dir(self):
-    return os.path.join(self.base_dir, _DEVICE_TOOLKITS_DIR)
 
   @property
   def resources_dir(self):
@@ -358,11 +353,6 @@ class UmpireEnv(object):
       for filename in os.listdir(temp_dir):
         self._AddResource(os.path.join(temp_dir, filename), filename, True)
 
-    # TODO(b/38512373): Remove this part.
-    if type_name == resource.PayloadTypeNames.toolkit:
-      resource.UnpackFactoryToolkit(
-          self, file_path, resource.GetFilePayloadHash(payloads[type_name]))
-
     return payloads
 
   def AddConfig(self, file_path, type_name):
@@ -439,27 +429,6 @@ class UmpireEnv(object):
       return False
     return os.path.isfile(path)
 
-  def GetBundleDeviceToolkit(self, bundle_id):
-    """Gets a bundle's device toolkit path.
-
-    Args:
-      bundle_id: bundle ID.
-
-    Returns:
-      Full path of extracted device toolkit path.
-      None if bundle_id is invalid.
-    """
-    try:
-      bundle = self.config.GetBundle(bundle_id)
-      payloads = self.GetPayloadsDict(bundle['payloads'])
-      payload = payloads[resource.PayloadTypeNames.toolkit]
-      toolkit_path = os.path.join(self.device_toolkits_dir,
-                                  resource.GetFilePayloadHash(payload))
-      assert os.path.isdir(toolkit_path)
-      return toolkit_path
-    except Exception:
-      return None
-
 
 class UmpireEnvForTest(UmpireEnv):
   """An UmpireEnv for other unittests.
@@ -484,5 +453,4 @@ class UmpireEnvForTest(UmpireEnv):
     self.AddConfigFromBlob('{}', resource.ConfigTypeNames.payload_config)
 
   def Close(self):
-    if os.path.isdir(self.root_dir):
-      shutil.rmtree(self.root_dir)
+    shutil.rmtree(self.root_dir, ignore_errors=True)

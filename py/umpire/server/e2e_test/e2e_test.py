@@ -352,7 +352,7 @@ class UmpireRPCTest(UmpireDockerTestCase):
 
   def testStopStartService(self):
     test_rsync_cmd = (
-        'rsync rsync://localhost:%d/toolkit >/dev/null 2>&1' % (PORT + 4))
+        'rsync rsync://localhost:%d/system_logs >/dev/null 2>&1' % (PORT + 4))
 
     self.proxy.StopServices(['rsync'])
     self.assertNotEqual(0, subprocess.call(test_rsync_cmd, shell=True))

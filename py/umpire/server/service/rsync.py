@@ -6,9 +6,8 @@
 
 import os
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server.service import umpire_service
-from cros.factory.umpire.server import umpire_env
 from cros.factory.utils import file_utils
 
 RSYNC_BIN = '/usr/bin/rsync'
@@ -28,7 +27,6 @@ RSYNCD_CONFIG_MODULE_PATH_TEMPLATE = """[%(module)s]
   read only = %(readonly)s
 """
 RSYNC_URL_TEMPLATE = 'rsync://%(ip)s:%(port)d/%(module)s'
-TOOLKIT_MODULE = 'toolkit'
 AUXLOG_MODULE = 'system_logs'
 
 
@@ -63,11 +61,6 @@ class RsyncService(umpire_service.UmpireService):
     pid_path = os.path.join(env.pid_dir, RSYNCD_PID_FILENAME)
     rsyncd_config = RSYNCD_CONFIG_TEMPLATE % {
         'port': env.umpire_rsync_port, 'pidfile': pid_path, 'logfile': log_path}
-    # Add toolkit modules.
-    rsyncd_config += RSYNCD_CONFIG_MODULE_PATH_TEMPLATE % {
-        'module': TOOLKIT_MODULE,
-        'path': env.device_toolkits_dir,
-        'readonly': 'yes'}
     # Add deprecated auxiliary log support.
     system_logs_dir = os.path.join(env.log_dir, 'dut_upload')
     file_utils.TryMakeDirs(system_logs_dir)
@@ -83,10 +76,3 @@ class RsyncService(umpire_service.UmpireService):
     proc = umpire_service.ServiceProcess(self)
     proc.SetConfig(proc_config)
     return [proc]
-
-  # TODO(crosbug.com/p/52705): not needed if the issue has been fixed.
-  def GetServiceURL(self, ip, base_port):
-    return RSYNC_URL_TEMPLATE % {
-        'ip': ip,
-        'port': umpire_env.GetRsyncPortFromBasePort(base_port),
-        'module': TOOLKIT_MODULE}
