@@ -8,7 +8,6 @@ goog.require('cros.factory.DeviceManager');
 goog.require('cros.factory.DiagnosisTool');
 goog.require('cros.factory.Plugin');
 goog.require('cros.factory.i18n');
-goog.require('goog.Uri');
 goog.require('goog.crypt');
 goog.require('goog.crypt.Sha1');
 goog.require('goog.date.DateTime');
@@ -24,7 +23,7 @@ goog.require('goog.events.KeyCodes');
 goog.require('goog.html.SafeHtml');
 goog.require('goog.html.SafeStyle');
 goog.require('goog.i18n.DateTimeFormat');
-goog.require('goog.i18n.NumberFormat');
+goog.require('goog.i18n.NumberFormat'); // Used by status_monitor.js
 goog.require('goog.json');
 goog.require('goog.math');
 goog.require('goog.net.WebSocket');
@@ -39,7 +38,6 @@ goog.require('goog.style');
 goog.require('goog.ui.AdvancedTooltip');
 goog.require('goog.ui.Component.EventType');
 goog.require('goog.ui.Container');
-goog.require('goog.ui.Container.Orientation');
 goog.require('goog.ui.Dialog');
 goog.require('goog.ui.Dialog.ButtonSet');
 goog.require('goog.ui.MenuSeparator');
@@ -50,7 +48,6 @@ goog.require('goog.ui.SplitPane');
 goog.require('goog.ui.SubMenu');
 goog.require('goog.ui.Tab');
 goog.require('goog.ui.TabBar');
-goog.require('goog.ui.TabBarRenderer');
 goog.require('goog.ui.tree.TreeControl');
 
 /**
