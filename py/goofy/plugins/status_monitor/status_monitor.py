@@ -12,7 +12,7 @@ class StatusMonitor(plugin.Plugin):
 
   def __init__(self, goofy, used_resources=None):
     super(StatusMonitor, self).__init__(goofy, used_resources)
-    self._dut = device_utils.CreateDUTInterface()
+    self._device = device_utils.CreateStationInterface()
     self._need_update_device_info = True
 
   @type_utils.Overrides
@@ -22,7 +22,7 @@ class StatusMonitor(plugin.Plugin):
   @plugin.RPCFunction
   def UpdateDeviceInfo(self):
     """The device info is changed, update them on UI."""
-    self._dut.info.Invalidate()
+    self._device.info.Invalidate()
     self._need_update_device_info = True
 
   @plugin.RPCFunction
@@ -37,10 +37,10 @@ class StatusMonitor(plugin.Plugin):
     data = {}
 
     if self._need_update_device_info:
-      data.update(self._dut.info.GetAll())
+      data.update(self._device.info.GetAll())
       self._need_update_device_info = False
 
-    if self._dut.link.IsLocal():
-      data.update(self._dut.status.Snapshot().__dict__)
+    if self._device.link.IsLocal():
+      data.update(self._device.status.Snapshot().__dict__)
 
     return data
