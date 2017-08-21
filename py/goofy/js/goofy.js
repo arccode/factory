@@ -274,9 +274,10 @@ cros.factory.Test.prototype.sendTestEvent = function(subtype, data) {
 cros.factory.Test.prototype.bindKey = function(keyCode, handler) {
   if (!this.keyHandlers) {
     this.keyHandlers = {};
-    // Set up the listener.
+    // Set up the listener. We listen on KEYDOWN instead of KEYUP, so it won't
+    // be accidentally triggered after a dialog is dismissed.
     goog.events.listen(
-        this.invocation.iframe.contentWindow, goog.events.EventType.KEYUP,
+        this.invocation.iframe.contentWindow, goog.events.EventType.KEYDOWN,
         function(/** !goog.events.KeyEvent */ event) {
           handler = this.keyHandlers[event.keyCode];
           if (handler) {
