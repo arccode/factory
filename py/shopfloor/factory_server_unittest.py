@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -20,16 +19,12 @@ import xmlrpclib
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.shopfloor import factory_server
-from cros.factory.shopfloor import factory_update_server
 from cros.factory.test.env import paths
 from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
-
-
-TESTDATA_MD5SUM = 'd9d51c02d1b40da5c7ddae311ff52597'
 
 
 class FactoryServerTest(unittest.TestCase):
@@ -59,10 +54,7 @@ class FactoryServerTest(unittest.TestCase):
 
     shutil.copyfile(csv_source, csv_work)
     shutil.copyfile(aux_csv_source, aux_csv_work)
-    os.mkdir(os.path.join(self.data_dir, factory_server.UPDATE_DIR))
-    os.mkdir(os.path.join(self.data_dir, factory_server.UPDATE_DIR, 'factory'))
 
-    factory_update_server.poll_interval_sec = 0.1
     self.server_port = net_utils.FindUnusedTCPPort()
     # Use factory_server.py (or the SHOPFLOOR_SERVER_CMD environment
     # variable if set).
@@ -74,8 +66,6 @@ class FactoryServerTest(unittest.TestCase):
     cmd.extend([
         '-a', net_utils.LOCALHOST, '-p', str(self.server_port),
         '-d', self.data_dir,
-        '--updater', 'cros.factory.shopfloor.dummy_updater',
-        '--updater-dir', os.path.join(self.data_dir, 'update'),
         '--auto-archive-logs', os.path.join(self.auto_archive_logs,
                                             'logs.DATE.tar.bz2')])
     self.process = process_utils.Spawn(cmd, log=True)
@@ -136,35 +126,6 @@ class FactoryServerTest(unittest.TestCase):
     # Get parameter outside parameters folder.
     self.assertRaises(
         xmlrpclib.Fault, self.proxy.GetParameter, '../devices.csv')
-
-  def testGetHWIDUpdater(self):
-    self.assertEquals(None, self.proxy.GetHWIDUpdater())
-
-    # Add a HWID updater; the update server will start serving it within
-    # a second.
-    with open(os.path.join(self.data_dir, factory_server.UPDATE_DIR,
-                           'hwid_updater.sh'), 'w') as f:
-      f.write('foobar')
-
-    for _ in xrange(20):
-      updater = self.proxy.GetHWIDUpdater()
-      if updater:
-        self.assertEqual('foobar', updater.data)
-        break
-      time.sleep(0.1)
-    else:
-      self.fail('HWID updater was never picked up')
-
-    # Add another file; now there should be no updater returned since
-    # this is an invalid state.
-    open(os.path.join(self.data_dir, factory_server.UPDATE_DIR,
-                      'hwid_updater2.sh'), 'w').close()
-    for _ in xrange(20):
-      if self.proxy.GetHWIDUpdater() is None:
-        break  # Good!
-      time.sleep(0.1)
-    else:
-      self.fail('HWID updater never reverted to None')
 
   def testSaveAuxLog(self):
     self.proxy.SaveAuxLog('foo/bar', factory_server.Binary('Blob'))
@@ -246,25 +207,6 @@ class FactoryServerTest(unittest.TestCase):
     def _CheckArchive():
       return os.path.exists(dest_path)
     sync_utils.WaitFor(_CheckArchive, 3)
-
-  def testGetTestMd5sum(self):
-    shutil.copyfile(os.path.join(os.path.dirname(__file__),
-                                 'testdata', 'factory.tar.bz2'),
-                    os.path.join(self.data_dir, factory_server.UPDATE_DIR,
-                                 'factory.tar.bz2'))
-
-    # It should be unpacked within a second.
-    for _ in xrange(20):
-      md5sum = self.proxy.GetTestMd5sum()
-      if md5sum:
-        self.assertEqual(TESTDATA_MD5SUM, md5sum)
-        break
-      time.sleep(0.1)
-    else:
-      self.fail('No update found')
-
-  def testGetTestMd5sumWithoutMd5sumFile(self):
-    self.assertTrue(self.proxy.GetTestMd5sum() is None)
 
   def testLogRegistrationCode(self):
     valid_code = ('000000000000000000000000000000000000'

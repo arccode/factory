@@ -28,15 +28,16 @@ import threading
 import time
 import xmlrpclib
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.shopfloor import factory_update_server, factory_log_server
+import factory_common  # pylint: disable=unused-import
+from cros.factory.shopfloor import factory_log_server
 from cros.factory.test.env import paths
 from cros.factory.test.rules.registration_codes import CheckRegistrationCode
 from cros.factory.utils import config_utils
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.process_utils import Spawn, StartDaemonThread
+from cros.factory.utils import sync_utils
 from cros.factory.utils import webservice_utils
 
 
@@ -61,7 +62,6 @@ EVENTS_DIR = 'events'
 INCREMENTAL_EVENTS_DIR = 'events_incremental'
 REPORTS_DIR = 'reports'
 AUX_LOGS_DIR = 'aux_logs'
-UPDATE_DIR = 'update'
 PARAMETERS_DIR = 'parameters'
 FACTORY_LOG_DIR = 'system_logs'
 REGISTRATION_CODE_LOG_CSV = 'registration_code_log.csv'
@@ -79,13 +79,31 @@ class ServerException(Exception):
   pass
 
 
+class _LogArchiver(object):
+
+  def __init__(self, auto_save_logs):
+    self._auto_save_logs = auto_save_logs
+    self._stop_event = threading.Event()
+
+  def Start(self):
+    StartDaemonThread(target=self._Run)
+
+  def Stop(self):
+    self._stop_event.set()
+
+  def _Run(self):
+    sync_utils.WaitFor(
+        lambda: self._auto_save_logs() or self._stop_event.is_set(),
+        None,
+        poll_interval=1)
+
+
 class FactoryServer(object):
   """A Factory Server for ChromeOS Manufacturing (deprecated by Umpire).
 
   :ivar data_dir: The top-level directory for shopfloor data.
   :ivar address: The IP address for the shopfloor server to bind on.
   :ivar port: The port for the shopfloor server to bind on.
-  :ivar update_server: An FactoryUpdateServer for factory environment update.
   :ivar log_server: An FactoryLogServer for factory log files to be uploaded
    from DUT.
   :ivar _auto_archive_logs: An optional path to use for auto-archiving
@@ -102,7 +120,7 @@ class FactoryServer(object):
 
   def __init__(self, data_dir, address, port, auto_archive_logs,
                auto_archive_logs_days, shopfloor_service_url=None,
-               miniomaha_payload_url=None, updater=None):
+               miniomaha_payload_url=None):
     """Initializes the server.
 
     Args:
@@ -113,16 +131,11 @@ class FactoryServer(object):
       auto_archive_logs_days: See _auto_archive_logs_days property.
       shopfloor_service_url: An URL to shopfloor service backend.
       miniomaha_payload_url: An URL to Mini-Omaha cros_payload JSON file.
-      updater: A reference to factory updater. Factory updater provides
-               interfaces compatible to FactoryUpdateServer. Including
-               Start, Stop, hwid_path, GetTestMD5, NeedsUpdate and rsync_port.
     """
     self.data_dir = data_dir
     self.address = address
     self.port = port
 
-    self.update_dir = None
-    self.update_server = None
     self.factory_log_dir = None
     self.log_server = None
     self.events_rotate_hourly = False
@@ -130,6 +143,7 @@ class FactoryServer(object):
     self._auto_archive_logs = None
     self._auto_archive_logs_days = None
     self._auto_archive_logs_dir_exists = None
+    self._auto_archiver = _LogArchiver(self._AutoSaveLogs)
 
     if auto_archive_logs_days > 0 and auto_archive_logs:
       assert 'DATE' in auto_archive_logs, (
@@ -159,45 +173,24 @@ class FactoryServer(object):
         os.path.join(self.data_dir, PARAMETERS_DIR))
     file_utils.TryMakeDirs(self.parameters_dir)
 
-    if updater is None:
-      # Dynamic test directory for holding updates is called "update" in
-      # data_dir.
-      self.update_dir = os.path.join(self.data_dir, UPDATE_DIR)
-      file_utils.TryMakeDirs(self.update_dir)
-      self.update_dir = os.path.realpath(self.update_dir)
-      self.update_server = factory_update_server.FactoryUpdateServer(
-          self.update_dir,
-          rsyncd_addr=self.address,
-          rsyncd_port=(self.port + 1),
-          on_idle=(self._AutoSaveLogs if self._auto_archive_logs else None))
-      # Create factory log directory
-      self.factory_log_dir = os.path.join(self.data_dir, FACTORY_LOG_DIR)
-      file_utils.TryMakeDirs(self.factory_log_dir)
-      self.factory_log_dir = os.path.realpath(self.factory_log_dir)
-      self.log_server = factory_log_server.FactoryLogServer(
-          self.factory_log_dir,
-          rsyncd_addr=self.address,
-          rsyncd_port=(self.port + 2))
-    else:
-      # Use external update server and log server
-      self.update_server = updater
-      self.log_server = updater
-      # When using external updater, events and reports rotate hourly
-      self.reports_rotate_hourly = True
-      self.events_rotate_hourly = True
+    # Create factory log directory
+    self.factory_log_dir = os.path.join(self.data_dir, FACTORY_LOG_DIR)
+    file_utils.TryMakeDirs(self.factory_log_dir)
+    self.factory_log_dir = os.path.realpath(self.factory_log_dir)
+    self.log_server = factory_log_server.FactoryLogServer(
+        self.factory_log_dir,
+        rsyncd_addr=self.address,
+        rsyncd_port=(self.port + 2))
 
   def _Start(self):
     """Starts the base class."""
-    if self.update_server:
-      logging.debug('Starting factory update server...')
-      self.update_server.Start()
+    self._auto_archiver.Start()
     logging.debug('Starting factory log server...')
     self.log_server.Start()
 
   def _Stop(self):
     """Stops the base class."""
-    if self.update_server:
-      self.update_server.Stop()
+    self._auto_archiver.Stop()
     self.log_server.Stop()
 
   def _AutoSaveLogs(self):
@@ -428,19 +421,6 @@ class FactoryServer(object):
 
     return xmlrpclib.Binary(open(abspath).read())
 
-  def GetHWIDUpdater(self):
-    """Returns a HWID updater bundle, if available.
-
-    Rgeturns:
-      The binary-encoded contents of a file named 'hwid_*' in the data
-      directory.  If there are no such files, returns None.
-
-    Raises:
-      ServerException if there are >1 HWID bundles available.
-    """
-    path = self.update_server.hwid_path
-    return xmlrpclib.Binary(open(path).read()) if path else None
-
   def UploadReport(self, serial, report_blob, report_name=None, stage=None):
     """Uploads a report file.
 
@@ -531,26 +511,6 @@ class FactoryServer(object):
     """
     return self.log_server.rsyncd_port if self.log_server else None
 
-  def GetTestMd5sum(self):
-    """Gets the latest md5sum of dynamic test tarball.
-
-    Returns:
-      A string of md5sum.  None if no dynamic test tarball is installed.
-    """
-    return self.update_server.GetTestMd5sum()
-
-  def NeedsUpdate(self, device_md5sum):
-    """Checks if the device with device_md5sum needs an update."""
-    return self.update_server.NeedsUpdate(device_md5sum)
-
-  def GetUpdatePort(self):
-    """Returns the port to use for rsync updates.
-
-    Returns:
-      The port, or None if there is no update server available.
-    """
-    return self.update_server.rsyncd_port if self.update_server else None
-
   def UploadEvent(self, log_name, chunk):
     """Uploads a chunk of events.
 
@@ -630,20 +590,6 @@ class FactoryServer(object):
         'UpdateTestResult', data, test_id, status, details)
 
 
-def _LoadFactoryUpdater(updater_name):
-  """Loads factory updater module.
-
-  Args:
-    updater_name: Name of updater module containing a FactoryUpdateServer class.
-
-  Returns:
-    Module reference.
-  """
-  logging.debug('_LoadUpdater: trying %s', updater_name)
-  return __import__(updater_name,
-                    fromlist=['FactoryUpdater']).FactoryUpdater
-
-
 class MyXMLRPCServer(SocketServer.ThreadingMixIn,
                      SimpleXMLRPCServer):
   """XML/RPC server subclass that logs method calls."""
@@ -651,7 +597,7 @@ class MyXMLRPCServer(SocketServer.ThreadingMixIn,
   # _dispatch.
   local = threading.local()
 
-  def _marshaled_dispatch(  # pylint: disable=W0221
+  def _marshaled_dispatch(
       self, data, dispatch_method=None, path=None):
     self.local.method = None
     self.local.exception = None
@@ -711,7 +657,6 @@ def _GetServer(address, port, instance):
 def main():
   """Main entry when being invoked by command line."""
   default_data_dir = 'shopfloor_data'
-  external_updater_dir = 'updates'
   if not os.path.exists(default_data_dir) and (
       'CROS_WORKON_SRCROOT' in os.environ):
     default_data_dir = os.path.join(
@@ -749,15 +694,6 @@ def main():
   parser.add_option(
       '--auto-archive-logs-days', metavar='NUM_DAYS', type=int,
       default=3, help="Number of previous days' logs to save to USB.")
-  parser.add_option('-u', '--updater', dest='updater', metavar='UPDATER',
-                    default=None,
-                    help=('factory updater module to load, in'
-                          'PACKAGE.MODULE.CLASS format. E.g.: '
-                          'cros.factory.shopfloor.launcher.external_updater '
-                          '(default: %default)'))
-  parser.add_option('--updater-dir', dest='updater_dir', metavar='UPDATE_DIR',
-                    default=external_updater_dir,
-                    help='external updater module dir. (default: %default)')
   (options, args) = parser.parse_args()
   if args:
     parser.error('Invalid args: %s' % ' '.join(args))
@@ -787,17 +723,11 @@ def main():
     return name or 'localhost'
   socket.getfqdn = FakeGetFQDN
 
-  updater = None
-  if options.updater:
-    logging.debug('Loading factory updater: %s', options.updater)
-    updater = _LoadFactoryUpdater(options.updater)(options.updater_dir)
-
   instance = FactoryServer(options.data_dir, options.address, options.port,
                            options.auto_archive_logs,
                            options.auto_archive_logs_days,
                            shopfloor_service_url=options.shopfloor_service_url,
-                           miniomaha_payload_url=options.miniomaha_payload_url,
-                           updater=updater)
+                           miniomaha_payload_url=options.miniomaha_payload_url)
 
   def handler(signum, frame):
     del signum, frame  # Unused.
@@ -811,9 +741,7 @@ def main():
   try:
     instance._Start()  # pylint: disable=protected-access
     logging.debug('Starting RPC server...')
-    thread = threading.Thread(target=server.serve_forever)
-    thread.daemon = True
-    thread.start()
+    thread = StartDaemonThread(target=server.serve_forever)
     logging.info('Server started: http://%s:%s "%s" version %s',
                  options.address, options.port, instance.NAME,
                  instance.VERSION)
