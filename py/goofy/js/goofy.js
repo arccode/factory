@@ -23,7 +23,7 @@ goog.require('goog.events.KeyCodes');
 goog.require('goog.html.SafeHtml');
 goog.require('goog.html.SafeStyle');
 goog.require('goog.i18n.DateTimeFormat');
-goog.require('goog.i18n.NumberFormat'); // Used by status_monitor.js
+goog.require('goog.i18n.NumberFormat');  // Used by status_monitor.js
 goog.require('goog.json');
 goog.require('goog.math');
 goog.require('goog.net.WebSocket');
@@ -447,7 +447,7 @@ cros.factory.Invocation = function(goofy, path, uuid) {
   this.iframe.contentWindow.goog = goog;
   this.iframe.contentWindow.test = this.test;
 
-  var visible = goofy.pathTestMap[path].state.visible;
+  var visible = this.getState().visible;
   this.setVisible(visible);
 };
 
@@ -1706,8 +1706,8 @@ cros.factory.Goofy.prototype.showTestPopup = function(
     }
     if (test.subtests.length) {
       var status = ['UNTESTED', 'ACTIVE', 'FAILED', 'FAILED_AND_WAIVED'];
-      var count = 0;
-      goog.array.forEach(status, function(s) {
+      var /** number */ count = 0;
+      goog.array.forEach(status, function(/** string */ s) {
         count += numLeavesByStatus[s] || 0;
       });
       // Only show for parents.
