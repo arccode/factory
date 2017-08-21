@@ -30,6 +30,11 @@ DEFAULT_HEADPHONE_JACK_NAMES = ['Headphone Jack', 'Headset Jack']
 # The input device event may be on Headphone Jack
 DEFAULT_MIC_JACK_NAMES = ['Mic Jack'] + DEFAULT_HEADPHONE_JACK_NAMES
 
+InputDevices = type_utils.Enum(['Dmic', 'Dmic2', 'MLBDmic', 'Extmic'])
+OutputDevices = type_utils.Enum(['Speaker', 'Headphone'])
+AudioDeviceType = type_utils.Enum(
+    list(InputDevices) + list(OutputDevices))
+
 MicJackType = type_utils.Enum(['none', 'lrgm', 'lrmg'])
 # Used for external command return value
 MIC_JACK_TYPE_RETURN_LRGM = '1'
@@ -326,77 +331,119 @@ class BaseAudioControl(types.DeviceComponent):
   def InitialSetting(self, card='0'):
     self.ApplyAudioConfig('initial', card)
 
+  def _GetConfigPostfix(self, device):
+    switcher = {
+        AudioDeviceType.Speaker: "speaker",
+        AudioDeviceType.Headphone: "headphone",
+        AudioDeviceType.Dmic: "dmic",
+        AudioDeviceType.Dmic2: "dmic2",
+        AudioDeviceType.MLBDmic: "mlb_dmic",
+        AudioDeviceType.Extmic: "extmic"}
+    return switcher[device]
+
+  def EnableDevice(self, device, card='0'):
+    """Enable the specified audio device.
+
+    Args:
+      device: Audio device to control. Should be of type AudioDeviceType.
+    """
+    self.ApplyAudioConfig("enable_" + self._GetConfigPostfix(device), card)
+
+  def MuteLeftDevice(self, device, card='0'):
+    """Mute left the specified audio device.
+
+    Args:
+      device: Audio device to control. Should be of type AudioDeviceType.
+    """
+    self.ApplyAudioConfig("mute_left_" + self._GetConfigPostfix(device), card)
+
+  def MuteRightDevice(self, device, card='0'):
+    """Mute left the specified audio device.
+
+    Args:
+      device: Audio device to control. Should be of type AudioDeviceType.
+    """
+    self.ApplyAudioConfig("mute_right_" + self._GetConfigPostfix(device), card)
+
+  def DisableDevice(self, device, card='0'):
+    """Mute left the specified audio device.
+
+    Args:
+      device: Audio device to control. Should be of type AudioDeviceType.
+    """
+    self.ApplyAudioConfig("disable_" + self._GetConfigPostfix(device), card)
+
   def EnableSpeaker(self, card='0'):
-    self.ApplyAudioConfig('enable_speaker', card)
+    self.EnableDevice(AudioDeviceType.Speaker, card)
 
   def MuteLeftSpeaker(self, card='0'):
-    self.ApplyAudioConfig('mute_left_speaker', card)
+    self.MuteLeftDevice(AudioDeviceType.Speaker, card)
 
   def MuteRightSpeaker(self, card='0'):
-    self.ApplyAudioConfig('mute_right_speaker', card)
+    self.MuteRightDevice(AudioDeviceType.Speaker, card)
 
   def DisableSpeaker(self, card='0'):
-    self.ApplyAudioConfig('disable_speaker', card)
+    self.DisableDevice(AudioDeviceType.Speaker, card)
 
   def EnableHeadphone(self, card='0'):
-    self.ApplyAudioConfig('enable_headphone', card)
+    self.EnableDevice(AudioDeviceType.Headphone, card)
 
   def MuteLeftHeadphone(self, card='0'):
-    self.ApplyAudioConfig('mute_left_headphone', card)
+    self.MuteLeftDevice(AudioDeviceType.Headphone, card)
 
   def MuteRightHeadphone(self, card='0'):
-    self.ApplyAudioConfig('mute_right_headphone', card)
+    self.MuteRightDevice(AudioDeviceType.Headphone, card)
 
   def DisableHeadphone(self, card='0'):
-    self.ApplyAudioConfig('disable_headphone', card)
+    self.DisableDevice(AudioDeviceType.Headphone, card)
 
   def EnableDmic(self, card='0'):
-    self.ApplyAudioConfig('enable_dmic', card)
+    self.EnableDevice(AudioDeviceType.Dmic, card)
 
   def MuteLeftDmic(self, card='0'):
-    self.ApplyAudioConfig('mute_left_dmic', card)
+    self.MuteLeftDevice(AudioDeviceType.Dmic, card)
 
   def MuteRightDmic(self, card='0'):
-    self.ApplyAudioConfig('mute_right_dmic', card)
+    self.MuteRightDevice(AudioDeviceType.Dmic, card)
 
   def DisableDmic(self, card='0'):
-    self.ApplyAudioConfig('disable_dmic', card)
+    self.DisableDevice(AudioDeviceType.Dmic, card)
 
   def EnableDmic2(self, card='0'):
-    self.ApplyAudioConfig('enable_dmic2', card)
+    self.EnableDevice(AudioDeviceType.Dmic2, card)
 
   def MuteLeftDmic2(self, card='0'):
-    self.ApplyAudioConfig('mute_left_dmic2', card)
+    self.MuteLeftDevice(AudioDeviceType.Dmic2, card)
 
   def MuteRightDmic2(self, card='0'):
-    self.ApplyAudioConfig('mute_right_dmic2', card)
+    self.MuteRightDevice(AudioDeviceType.Dmic2, card)
 
   def DisableDmic2(self, card='0'):
-    self.ApplyAudioConfig('disable_dmic2', card)
+    self.DisableDevice(AudioDeviceType.Dmic2, card)
 
   def EnableMLBDmic(self, card='0'):
-    self.ApplyAudioConfig('enable_mlb_dmic', card)
+    self.EnableDevice(AudioDeviceType.MLBDmic, card)
 
   def MuteLeftMLBDmic(self, card='0'):
-    self.ApplyAudioConfig('mute_left_mlb_dmic', card)
+    self.MuteLeftDevice(AudioDeviceType.MLBDmic, card)
 
   def MuteRightMLBDmic(self, card='0'):
-    self.ApplyAudioConfig('mute_right_mlb_dmic', card)
+    self.MuteRightDevice(AudioDeviceType.MLBDmic, card)
 
   def DisableMLBDmic(self, card='0'):
-    self.ApplyAudioConfig('disable_mlb_dmic', card)
+    self.DisableDevice(AudioDeviceType.MLBDmic, card)
 
   def EnableExtmic(self, card='0'):
-    self.ApplyAudioConfig('enable_extmic', card)
+    self.EnableDevice(AudioDeviceType.Extmic, card)
 
   def MuteLeftExtmic(self, card='0'):
-    self.ApplyAudioConfig('mute_left_extmic', card)
+    self.MuteLeftDevice(AudioDeviceType.Extmic, card)
 
   def MuteRightExtmic(self, card='0'):
-    self.ApplyAudioConfig('mute_right_extmic', card)
+    self.MuteRightDevice(AudioDeviceType.Extmic, card)
 
   def DisableExtmic(self, card='0'):
-    self.ApplyAudioConfig('disable_extmic', card)
+    self.DisableDevice(AudioDeviceType.Extmic, card)
 
   def SetSpeakerVolume(self, volume=0, card='0'):
     if not isinstance(volume, int) or volume < 0:
@@ -424,15 +471,13 @@ class BaseAudioControl(types.DeviceComponent):
 
   def DisableAllAudioInputs(self, card):
     """Disable all audio inputs"""
-    self.DisableDmic(card)
-    self.DisableDmic2(card)
-    self.DisableMLBDmic(card)
-    self.DisableExtmic(card)
+    for audio_dev in InputDevices:
+      self.DisableDevice(audio_dev, card)
 
   def DisableAllAudioOutputs(self, card):
     """Disable all audio outputs"""
-    self.DisableHeadphone(card)
-    self.DisableSpeaker(card)
+    for audio_dev in OutputDevices:
+      self.DisableDevice(audio_dev, card)
 
   def _PlaybackWavFile(self, path, card, device):
     """Playback .wav file.
