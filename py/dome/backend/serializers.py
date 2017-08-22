@@ -11,6 +11,7 @@ from backend.models import Project
 from backend.models import Bundle
 from backend.models import DomeConfig
 from backend.models import Resource
+from backend.models import Service
 from backend.models import TemporaryUploadedFile
 
 class ConfigSerializer(serializers.ModelSerializer):
@@ -142,3 +143,9 @@ class BundleSerializer(serializers.Serializer):
             'rules': validated_data.pop('rules', None),
             'resources': validated_data.pop('resources', None)}
     return Bundle.ModifyOne(project_name, bundle_name, **data)
+
+
+class ServiceSerializer(serializers.Serializer):
+
+  class Meta(object):
+    model = Service

@@ -13,11 +13,13 @@ from rest_framework import status
 from backend.models import Project
 from backend.models import Bundle
 from backend.models import DomeConfig
+from backend.models import Service
 from backend.models import TemporaryUploadedFile
 from backend.serializers import ProjectSerializer
 from backend.serializers import BundleSerializer
 from backend.serializers import ConfigSerializer
 from backend.serializers import ResourceSerializer
+from backend.serializers import ServiceSerializer
 from backend.serializers import UploadedFileSerializer
 
 
@@ -41,6 +43,30 @@ class FileCollectionView(generics.CreateAPIView):
 
   queryset = TemporaryUploadedFile.objects.all()
   serializer_class = UploadedFileSerializer
+
+
+class ServiceSchemaView(generics.ListAPIView):
+
+  serializer_class = ServiceSerializer
+
+  def list(self, request, *args, **kwargs):
+    """Override parent's method."""
+    return Response(Service.GetServiceSchemata())
+
+
+class ServiceCollectionView(mixins.UpdateModelMixin,
+                            generics.ListAPIView):
+
+  serializer_class = ServiceSerializer
+
+  def list(self, request, *args, **kwargs):
+    """Override parent's method."""
+    return Response(
+        Service.ListAll(self.kwargs['project_name']))
+
+  def put(self, request, project_name, request_format=None):
+    """Override parent's method."""
+    return Response(Service.Update(project_name, request.data))
 
 
 class ProjectCollectionView(generics.ListCreateAPIView):

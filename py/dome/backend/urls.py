@@ -50,7 +50,11 @@ urlpatterns = [
     url(r'^projects/%s/bundles/%s/$' % (PROJECT_URL_ARG, BUNDLE_URL_ARG),
         views.BundleElementView.as_view()),
     url(r'^projects/%s/resources/$' % PROJECT_URL_ARG,
-        views.ResourceCollectionView.as_view())]
+        views.ResourceCollectionView.as_view()),
+    url(r'^projects/%s/services/$' % PROJECT_URL_ARG,
+        views.ServiceCollectionView.as_view()),
+    url(r'^projects/%s/services/schema$' % PROJECT_URL_ARG,
+        views.ServiceSchemaView.as_view())]
 
 urlpatterns = format_suffix_patterns(urlpatterns)
 urlpatterns += staticfiles_urlpatterns()

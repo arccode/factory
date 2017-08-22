@@ -40,5 +40,10 @@ export default Enum([
   'DELETE_BUNDLE',
   'RECEIVE_BUNDLES',
   'REORDER_BUNDLES',
-  'UPDATE_BUNDLE'
+  'UPDATE_BUNDLE',
+
+  // service action
+  'RECEIVE_SERVICE_SCHEMATA',
+  'RECEIVE_SERVICES',
+  'UPDATE_SERVICE'
 ]);

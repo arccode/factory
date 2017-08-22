@@ -22,6 +22,7 @@ import {reducer as FormReducer} from 'redux-form/immutable'
 import DomeApp from './components/DomeApp';
 import BundlesReducer from './reducers/bundlesreducer';
 import DomeReducer from './reducers/domereducer';
+import ServiceReducer from './reducers/servicereducer'
 
 // Needed for onTouchTap, see:
 // http://www.material-ui.com/#/get-started/installation
@@ -37,6 +38,7 @@ const store = createStore(
   combineReducers({
     dome: DomeReducer,
     bundles: BundlesReducer,
+    service: ServiceReducer,
     form: FormReducer
   }),
   Immutable.Map(),  // initial state will be determined by each reducer

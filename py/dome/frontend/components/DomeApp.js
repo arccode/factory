@@ -132,13 +132,14 @@ var DomeApp = React.createClass({
                 Dashboard
               </MenuItem>
             }
-            {projectName != '' && project.get('umpireEnabled') &&
+            {projectName != '' &&
               <MenuItem
                 onTouchTap={() => this.handleClick(AppNames.BUNDLES_APP)}
                 innerDivStyle={{paddingLeft: _PROJECT_MENU_ITEM_PADDING_LEFT}}
                 disabled={!project.get('umpireReady')}
               >
-                Bundles{!project.get('umpireReady') && ' (activating...)'}
+                Bundles{project.get('umpireEnabled') &&
+                    !project.get('umpireReady') && ' (activating...)'}
               </MenuItem>
             }
 
@@ -150,8 +151,7 @@ var DomeApp = React.createClass({
             </MenuItem>
             <Divider />
             <MenuItem
-              onTouchTap={() => this.handleClick(AppNames.CONFIG_APP)}
-            >
+              onTouchTap={() => this.handleClick(AppNames.CONFIG_APP)}>
               Config
             </MenuItem>
           </div>}

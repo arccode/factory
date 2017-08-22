@@ -3,16 +3,21 @@
 // found in the LICENSE file.
 
 import {Card, CardTitle, CardText} from 'material-ui/Card';
+import Divider from 'material-ui/Divider';
 import {connect} from 'react-redux';
+import {List, ListItem} from 'material-ui/List';
 import Immutable from 'immutable';
 import RaisedButton from 'material-ui/RaisedButton';
 import React from 'react';
+import Subheader from 'material-ui/Subheader';
+import Toggle from 'material-ui/Toggle';
 import {Table, TableBody, TableHeader, TableHeaderColumn,
         TableRow, TableRowColumn} from 'material-ui/Table';
 
 import DomeActions from '../actions/domeactions';
 import EnablingUmpireForm from './EnablingUmpireForm';
 import FormNames from '../constants/FormNames';
+import ServiceList from './ServiceList';
 
 var DashboardApp = React.createClass({
   propTypes: {
@@ -21,7 +26,13 @@ var DashboardApp = React.createClass({
     disableUmpire: React.PropTypes.func.isRequired,
     enableUmpire: React.PropTypes.func.isRequired,
     enablingUmpireFormOpened: React.PropTypes.bool.isRequired,
-    openEnablingUmpireForm: React.PropTypes.func.isRequired
+    openEnablingUmpireForm: React.PropTypes.func.isRequired,
+  },
+
+  handleToggle() {
+    if (this.props.project.get('umpireEnabled'))
+      this.props.disableUmpire(this.props.project.get('name'));
+    else this.props.openEnablingUmpireForm();
   },
 
   render() {
@@ -34,48 +45,44 @@ var DashboardApp = React.createClass({
       openEnablingUmpireForm
     } = this.props;
 
+    const styles = {
+      regularText: {
+        fontSize: 1 + 'em',
+        margin: 1 + 'em',
+        lineHeight: 1.5 + 'em'
+      }
+    };
+
     return (
       <div>
         {/* TODO(littlecvr): add <ProductionLineInfoPanel /> */}
 
         <Card>
-          <CardTitle title={'Applications'}></CardTitle>
+          <CardTitle title={'Dashboard'}></CardTitle>
           <CardText>
-            <Table selectable={false}>
-              <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
-                <TableRow>
-                  <TableHeaderColumn>application</TableHeaderColumn>
-                  <TableHeaderColumn>status</TableHeaderColumn>
-                  <TableHeaderColumn>info</TableHeaderColumn>
-                  <TableHeaderColumn>actions</TableHeaderColumn>
-                </TableRow>
-              </TableHeader>
-              <TableBody displayRowCheckbox={false}>
-                <TableRow>
-                  <TableRowColumn>Umpire (bundle management)</TableRowColumn>
-                  <TableRowColumn>
-                    {project.get('umpireEnabled') && 'enabled'}
-                    {!project.get('umpireEnabled') && 'disabled'}
-                  </TableRowColumn>
-                  <TableRowColumn>
-                    {project.get('umpireEnabled') && <div>
-                      host: {project.get('umpireHost')}<br />
-                      port: {project.get('umpirePort')}
-                    </div>}
-                  </TableRowColumn>
-                  <TableRowColumn>
-                    {project.get('umpireEnabled') && <RaisedButton
-                      label="DISABLE"
-                      onClick={() => disableUmpire(project.get('name'))}
-                    />}
-                    {!project.get('umpireEnabled') && <RaisedButton
-                      label="ENABLE"
-                      onClick={openEnablingUmpireForm}
-                    />}
-                  </TableRowColumn>
-                </TableRow>
-              </TableBody>
-            </Table>
+            <List>
+              <ListItem
+                rightToggle={
+                  <Toggle
+                    toggled={project.get('umpireEnabled')}
+                    onToggle={this.handleToggle}
+                  />
+                }
+                primaryText="Enable Umpire"
+              />
+              {project.get('umpireEnabled') && project.get('umpireReady') &&
+              <div>
+                <Subheader>Info</Subheader>
+                <Divider/>
+                <div style={styles.regularText}>
+                  <div>host: {project.get('umpireHost')}</div>
+                  <div>port: {project.get('umpirePort')}</div>
+                </div>
+                <Subheader>Services</Subheader>
+                <Divider/>
+                  <ServiceList/>
+              </div>}
+            </List>
           </CardText>
         </Card>
 

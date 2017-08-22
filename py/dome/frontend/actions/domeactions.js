@@ -197,13 +197,18 @@ const updateProject = (name, settings = {}) => (dispatch, getState) => {
     }, settings)
   });
 
-  let onFinish = () => dispatch({
-    type: ActionTypes.UPDATE_PROJECT,
-    project: {
-      name,
-      umpireReady: settings['umpireEnabled'] === true ? true : false
-    }
-  });
+  // WORKAROUND: Umpire is not ready as soon as it should be,
+  // wait for 1 second to prevent the request from failing.
+  // TODO(b/65393817): remove the timeout after the issue has been solved.
+  let onFinish = () => setTimeout(() => {
+    dispatch({
+      type: ActionTypes.UPDATE_PROJECT,
+      project: {
+        name,
+        umpireReady: settings['umpireEnabled'] === true ? true : false
+      }
+    });
+  }, 1000);
 
   var description = `Update project "${name}"`;
   dispatch(createTask(
@@ -421,6 +426,7 @@ const cancelTaskAndItsDependencies = taskID => (dispatch, getState) => {
 };
 
 export default {
+  authorizedFetch,
   tryLogin, logout,
   recieveConfig, updateConfig, fetchConfig, initializeConfig,
   enableTFTP, disableTFTP,

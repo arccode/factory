@@ -33,6 +33,7 @@ import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server import resource as umpire_resource
+from cros.factory.umpire.server.service import umpire_service
 from cros.factory.utils import file_utils
 
 
@@ -897,3 +898,45 @@ class Bundle(object):
 
     # find and return the new bundle
     return Bundle.ListOne(project_name, bundle_name)
+
+
+class Service(object):
+  """Represent a service config in Umpire."""
+
+  def __init__(self, name, config):
+    self.name = name
+    self.config = config
+
+  @staticmethod
+  def GetServiceSchemata():
+    schemata = umpire_service.GetAllServiceSchemata()._schema['properties']
+    url_schema = {
+        "service_url": {"type": "string"}
+    }
+    # include shopfloor_service_url in shopfloor config
+    schemata['shop_floor']['properties'].update(url_schema)
+    return schemata
+
+  @staticmethod
+  def ListAll(project_name):
+    project = Project.objects.get(pk=project_name)
+    config = project.GetNormalizedActiveConfig()
+    services = config['services']
+    # include shopfloor_service_url in shopfloor config
+    if 'shopfloor_service_url' in config:
+      if not 'shop_floor' in services:
+        services['shop_floor'] = {}
+      services['shop_floor']['service_url'] = config['shopfloor_service_url']
+    return services
+
+  @staticmethod
+  def Update(project_name, data):
+    project = Project.GetProjectByName(project_name)
+    config = project.GetNormalizedActiveConfig()
+    # get shopfloor_service_url from shopfloor config
+    if 'shop_floor' in data and 'service_url' in data['shop_floor']:
+      url = data['shop_floor']['service_url']
+      del data['shop_floor']['service_url']
+      config['shopfloor_service_url'] = url
+    config['services'].update(data)
+    return project.UploadAndDeployConfig(config)
