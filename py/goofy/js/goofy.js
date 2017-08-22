@@ -487,6 +487,14 @@ cros.factory.Invocation.prototype.dispose = function() {
   goog.dom.removeNode(this.iframe);
   this.goofy.tabBar.removeChild(this.tab, true);
   this.goofy.invocations[this.uuid] = null;
+  if (this.goofy.tabBar.getChildCount()) {
+    // Select the first tab if there's any tab. This does not actually change
+    // the visibility of iframe, as the visibility would be changed by Goofy
+    // backend. Since Goofy backend always choose the first tab, this is to
+    // minimize the tab flickering time between the tab is disposed and we
+    // receive backend event.
+    this.goofy.tabBar.setSelectedTabIndex(0);
+  }
 
   goog.log.info(
       cros.factory.logger, 'Top-level invocation ' + this.uuid + ' disposed');
