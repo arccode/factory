@@ -11,7 +11,9 @@ import xmlrpclib
 # This is a top level helper so it can't use cros.factory.external.
 try:
   import zeep
+  import zeep.cache
   import zeep.helpers
+  import zeep.transports
   HAVE_ZEEP = True
 except ImportError:
   HAVE_ZEEP = False
@@ -70,7 +72,16 @@ def ParseURL(url):
 
 
 class WebServiceProxy(object):
-  """An abstract class for proxy to web services."""
+  """An abstract class for proxy to web services.
+
+  Most web services are using HTTP as transport instance, which may cause race
+  condition (CannotSendRequest) if we try to send new requests before some
+  previous response was fully processed.
+
+  As a result, most WebServiceProxy implementations should try to keep only
+  URL in constructor, and create the real proxy object when the callRemote is
+  invoked.
+  """
 
   def callRemote(self, method, *args, **kargs):
     raise NotImplementedError
@@ -80,10 +91,11 @@ class XMLRPCProxy(WebServiceProxy):
   """A proxy for web service implemented in XML-RPC."""
 
   def __init__(self, url):
-    self._proxy = xmlrpclib.ServerProxy(url, allow_none=True)
+    self._url = url
 
   def callRemote(self, method, *args, **kargs):
-    return getattr(self._proxy, method)(*args, **kargs)
+    proxy = xmlrpclib.ServerProxy(self._url, allow_none=True)
+    return getattr(proxy, method)(*args, **kargs)
 
 
 class TwistedXMLRPCProxy(WebServiceProxy):
@@ -91,10 +103,11 @@ class TwistedXMLRPCProxy(WebServiceProxy):
 
   def __init__(self, url):
     CheckPackage(url, HAVE_TWISTED, 'twisted')
-    self._proxy = xmlrpc.Proxy(url, allowNone=True)
+    self._url = url
 
   def callRemote(self, method, *args, **kargs):
-    return self._proxy.callRemote(method, *args, **kargs)
+    proxy = xmlrpc.Proxy(self._url, allowNone=True)
+    return proxy.callRemote(method, *args, **kargs)
 
 
 class JSONRPCProxy(WebServiceProxy):
@@ -102,20 +115,22 @@ class JSONRPCProxy(WebServiceProxy):
 
   def __init__(self, url):
     CheckPackage(url, HAVE_JSONRPCLIB, 'jsonrpclib')
-    self._proxy = jsonrpclib.Server(url)
+    self._url = url
 
   def callRemote(self, method, *args, **kargs):
-    return getattr(self._proxy, method)(*args, **kargs)
+    proxy = jsonrpclib.Server(self._url)
+    return getattr(proxy, method)(*args, **kargs)
 
 
 class TXJSONRPCProxy(WebServiceProxy):
 
   def __init__(self, url):
     CheckPackage(url, HAVE_TXJSONRPC, 'txJSON-RPC')
-    self._proxy = jsonrpc.Proxy(url)
+    self._url = url
 
   def callRemote(self, method, *args, **kargs):
-    return self._proxy.callRemote(method, *args, **kargs)
+    proxy = jsonrpc.Proxy(self._url)
+    return proxy.callRemote(method, *args, **kargs)
 
 
 class ZeepProxy(WebServiceProxy):
@@ -123,12 +138,14 @@ class ZeepProxy(WebServiceProxy):
 
   def __init__(self, url):
     CheckPackage(url, HAVE_ZEEP, 'zeep')
-    # zeep will connect immediately when Client is created.
-    logging.info('Trying WSDL web service via Zeep: %s', url)
-    self._proxy = zeep.Client(url).service
+    self._url = url
+    # Without cache, zeep will retrieve WSDL on every connection.
+    self._cache = zeep.cache.InMemoryCache()
 
   def callRemote(self, method, *args, **kargs):
-    result = self._proxy[method](*args, **kargs)
+    transport = zeep.transports.Transport(cache=self._cache)
+    proxy = zeep.Client(self._url, transport=transport).service
+    result = proxy[method](*args, **kargs)
     # By default zeep returns collections.OrderedDict.
     return zeep.helpers.serialize_object(result, target_cls=dict)
 

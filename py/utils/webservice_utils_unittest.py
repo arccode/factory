@@ -17,7 +17,18 @@ class MockZeep(object):
 
   def __init__(self):
     self.service = None
-    self.Client = lambda url: self
+    self.transports = self
+    self.cache = self
+
+  def InMemoryCache(self):
+    return {}
+
+  def Client(self):
+    return self
+
+  def Transport(self, cache=None):
+    del cache  # Unused argument.
+    return self
 
 
 class WebServiceUtilsTest(unittest.TestCase):
