@@ -180,6 +180,12 @@ cros.factory.PluginMenuItem;
 cros.factory.PluginMenuReturnData;
 
 /**
+ * Config for goofy plugin frontend UI.
+ * @typedef {{url: string, location: string}}
+ */
+cros.factory.PluginFrontendConfig;
+
+/**
  * Public API for tests.
  * @constructor
  * @param {!cros.factory.Invocation} invocation
@@ -998,7 +1004,7 @@ cros.factory.Goofy.prototype.init = function() {
       function(/** !Array<!cros.factory.PluginMenuItem> */ menuItems) {
         this.pluginMenuItems = menuItems;
       });
-  this.sendRpc('GetPluginFrontendURLs', [], this.setPluginUI);
+  this.sendRpc('GetPluginFrontendConfigs', [], this.setPluginUI);
   this.sendRpc('get_shared_data', ['factory_note', true], this.updateNote);
   this.sendRpc(
       'get_shared_data', ['test_list_options', true],
@@ -2137,10 +2143,10 @@ cros.factory.Goofy.prototype.pingShopFloorServer = function(onSuccess) {
 cros.factory.Goofy.prototype.reloadTestList = function() {
   this.sendRpc(
       'ReloadTestList', [],
-      /** On success */
+      // On success
       null,
-      /** On fail */
-      function (response) {
+      // On fail
+      function (/** {error: {message: string}} */ response) {
         this.alert('Failed to reload test list\n' + response.error.message);
       }
   );
@@ -2979,9 +2985,7 @@ cros.factory.Goofy.prototype.logToConsole = function(message, opt_attributes) {
 
   // Scroll to bottom.  TODO(jsalz): Scroll only if already at the bottom,
   // or add scroll lock.
-  var scrollPane = goog.dom.getAncestorByClass(
-      this.console, 'goog-splitpane-second-container');
-  scrollPane.scrollTop = scrollPane.scrollHeight;
+  this.console.scrollTop = this.console.scrollHeight;
 };
 
 /**
@@ -3373,22 +3377,32 @@ cros.factory.Goofy.prototype.hideTerminal = function() {
 
 /**
  * Setup the UI for plugin.
- * @param {!Array<string>} urls
+ * @param {!Array<!cros.factory.PluginFrontendConfig>} configs
  */
-cros.factory.Goofy.prototype.setPluginUI = function(urls) {
-  var goofy = this;
-  urls.forEach(function(/** string */ url) {
-    var pluginArea = document.getElementById('goofy-plugin-area');
-    var newPlugin = goog.dom.createDom('div', {'class': 'goofy-plugin'});
-    var iframe = /** @type {!HTMLIFrameElement} */ (goog.dom.createDom(
-        'iframe', {'class': 'goofy-plugin-iframe', 'src': url}));
+cros.factory.Goofy.prototype.setPluginUI = function(configs) {
+  let hasFullUI = false;
+  configs.forEach((config) => {
+    const pluginArea =
+        document.getElementById('goofy-plugin-area-' + config.location);
+    const newPlugin = goog.dom.createDom('div', {'class': 'goofy-plugin'});
+    const iframe = /** @type {!HTMLIFrameElement} */ (goog.dom.createDom(
+        'iframe', {'class': 'goofy-plugin-iframe', 'src': config.url}));
     pluginArea.appendChild(newPlugin);
     newPlugin.appendChild(iframe);
-    iframe.contentWindow.plugin = new cros.factory.Plugin(goofy, newPlugin);
+    iframe.contentWindow.plugin = new cros.factory.Plugin(this, newPlugin);
     iframe.contentWindow.cros = cros;
     iframe.contentWindow.goog = goog;
-    iframe.contentWindow.goofy = goofy;
+    iframe.contentWindow.goofy = this;
+    if (config.location == 'goofy-full') {
+      hasFullUI = true;
+    }
   });
+  if (hasFullUI) {
+    // We need to trigger a window resize event if there's a UI with full
+    // width, so the top level splitpane would be sized properly.
+    goog.events.fireListeners(
+        window, goog.events.EventType.RESIZE, false, null);
+  }
 };
 
 goog.events.listenOnce(window, goog.events.EventType.LOAD, function() {

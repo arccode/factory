@@ -64,7 +64,7 @@ class PluginController(object):
     """
     self._plugins = {}
     self._menu_items = {}
-    self._frontend_urls = []
+    self._frontend_configs = []
 
     plugin_config = config_utils.LoadConfig(
         config_name, 'plugins')
@@ -114,12 +114,17 @@ class PluginController(object):
       goofy_server.RegisterPath(url_base_path, full_file_path)
 
       try:
-        if not instance.HasUI():
+        location = instance.GetUILocation()
+        if not location:
           continue
-        self._frontend_urls.append(
-            '%s/%s.html' % (url_base_path, plugin_paths[-1]))
+        if location is True:
+          location = 'testlist'
+        self._frontend_configs.append({
+            'url': '%s/%s.html' % (url_base_path, plugin_paths[-1]),
+            'location': location
+        })
       except Exception:
-        logging.exception('Failed to check HasUI from %s.', name)
+        logging.exception('Failed to check GetUILocation from %s.', name)
 
 
   def StartAllPlugins(self):
@@ -170,9 +175,9 @@ class PluginController(object):
     """Returns a list all plugins menu items."""
     return self._menu_items.values()
 
-  def GetFrontendURLs(self):
-    """Returns a list of URLs of all plugin's UI."""
-    return self._frontend_urls
+  def GetFrontendConfigs(self):
+    """Returns a list of configs of all plugin's UI."""
+    return self._frontend_configs
 
   def OnMenuItemClicked(self, item_id):
     """Called when a plugin menu item is clicked."""

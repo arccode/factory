@@ -57,6 +57,11 @@ body {
   right: 0;
   bottom: 0;
   top: 0;
+  display: flex;
+  flex-flow: column;
+}
+#goofy-splitpane-container {
+  flex: 1;
 }
 .goofy-horizontal-border {
   position: relative;
@@ -92,50 +97,23 @@ body {
   cursor: default;
   user-select: none;
 }
-#goofy-control, #goofy-main-and-console .goog-splitpane-second-container {
+#goofy-control, #goofy-console {
   overflow: auto;
 }
 
 /* Overrides for status bar. */
-#goofy-status-bar {
-  border-top: 1px solid lightgray;
-  font-size: 75%;
-  width: 100%;
-}
-.goofy-plugin {
-  height: 24px; width: 100%;
-  border-top: 1px solid lightgray;
-  position: relative;
-}
-.goofy-plugin iframe {
-  height: 100%; width: 100%;
-  background-color: white;
-}
-.goofy-plugin-tooltip {
-  position: absolute;
-  bottom: 100%;
-  left: 0%;
-  visibility: hidden;
-  z-index: 10000;
-  background: #ffe;
-  padding: 4px;
-  border: 1px solid lightgray;
-}
 .goofy-indicator {
+  border-top: 1px solid lightgray;
   color: white;
   display: none;
   height: 24px;
   line-height: 24px;
   text-align: center;
-  left: 0; right: 0;
-}
-.goofy-indicator a {
-  color: white;
 }
 #goofy-engineering-mode-indicator {
   background-color: red;
   font-weight: bold;
-  font-size: 150%;
+  font-size: 110%;
 }
 .goofy-engineering-mode #goofy-engineering-mode-indicator {
   display: block;
@@ -165,28 +143,6 @@ body {
   top: 36px;
 }
 
-#goofy-eth-indicator {
-  background-image: url('/images/eth_off.png');
-  background-repeat: no-repeat;
-  background-position: center;
-  vertical-align: -4px;
-  width: 18px; height: 18px;
-  padding-left: 0.15em;
-}
-.goofy-eth-enabled#goofy-eth-indicator {
-  background-image: url('/images/eth_on.png');
-}
-#goofy-wlan-indicator {
-  background-image: url('/images/wlan_off.png');
-  background-repeat: no-repeat;
-  background-position: center;
-  vertical-align: -4px;
-  width: 18px; height: 18px;
-  padding-left: 0.15em;
-}
-.goofy-wlan-enabled#goofy-wlan-indicator {
-  background-image: url('/images/wlan_on.png');
-}
 /* Elements in the control pane. */
 #goofy-splitpane-left {
   display: flex;
@@ -216,6 +172,7 @@ body {
   font-size: 20px;
   white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 #goofy-logo-down-arrow {
   vertical-align: 3px;
@@ -422,7 +379,7 @@ table + .goofy-history-header {
 }
 
 /* Elements in the main pane. */
-#goofy-tab-and-main {
+#goofy-tab-and-main, #goofy-main-and-console-container {
   display: flex;
   flex-flow: column;
 }
@@ -459,14 +416,45 @@ table + .goofy-history-header {
 }
 
 /* Elements in the console pane. */
+#goofy-console-container {
+  display: flex;
+  flex-flow: column;
+}
 #goofy-console {
   padding: .5em .5em 0 .5em;
+  flex: 1;
 }
 .goofy-internal-log {
   font-style: italic;
 }
 .goofy-internal-error {
   color: red;
+}
+
+/* Plugins UI */
+.goofy-plugin-area {
+  display: flex;
+  flex: none;
+}
+.goofy-plugin {
+  height: 24px; width: 100%;
+  flex: none;
+  border-top: 1px solid lightgray;
+  position: relative;
+}
+.goofy-plugin iframe {
+  height: 100%; width: 100%;
+  background-color: white;
+}
+.goofy-plugin-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 0%;
+  visibility: hidden;
+  z-index: 10000;
+  background: #ffe;
+  padding: 4px;
+  border: 1px solid lightgray;
 }
 
 /* Dialogs. */
@@ -559,9 +547,8 @@ button {
 
 /* Definitions for closure components not included in Closure. */
 .goog-splitpane {
-  position: absolute;
+  flex: 1;
   overflow: hidden;
-  left: 0; right: 0; top: 0; bottom: 0;
 }
 .goog-splitpane-handle {
   background: #cddff0;

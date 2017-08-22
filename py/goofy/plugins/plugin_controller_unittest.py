@@ -40,9 +40,10 @@ class PluginControllerTest(unittest.TestCase):
   def testInit(self):
     controller = self.CreateController()
     self.assertItemsEqual(controller._plugins.keys(), [self.BASE_PLUGIN_MODULE])
-    self.assertItemsEqual(
-        controller._frontend_urls,
-        ['/plugin/mock_plugin_mock_plugin/mock_plugin.html'])
+    self.assertItemsEqual(controller._frontend_configs, [{
+        'url': '/plugin/mock_plugin_mock_plugin/mock_plugin.html',
+        'location': 'testlist'
+    }])
     self._goofy.goofy_server.RegisterPath.assert_called_once_with(
         '/plugin/mock_plugin_mock_plugin',
         os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR,
@@ -111,11 +112,12 @@ class PluginControllerTest(unittest.TestCase):
     controller._menu_items[item.id] = item
     self.assertEqual([item], controller.GetPluginMenuItems())
 
-  def testGetFrontendURLs(self):
+  def testGetFrontendConfigs(self):
     controller = self.CreateController()
     url = '/plugin/mock_plugin_mock_plugin/mock_plugin.html'
-    controller._frontend_urls = [url]
-    self.assertEqual([url], controller.GetFrontendURLs())
+    config = {'url': url, 'location': 'testlist'}
+    controller._frontend_configs = [config]
+    self.assertEqual([config], controller.GetFrontendConfigs())
 
 if __name__ == '__main__':
   unittest.main()

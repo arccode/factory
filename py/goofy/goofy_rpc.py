@@ -801,9 +801,9 @@ class GoofyRPC(object):
     """Called when a plugin menu item is clicked."""
     return self.goofy.plugin_controller.OnMenuItemClicked(item_id)
 
-  def GetPluginFrontendURLs(self):
-    """Returns a list of URLs of all plugin's UI."""
-    return self.goofy.plugin_controller.GetFrontendURLs()
+  def GetPluginFrontendConfigs(self):
+    """Returns a list of configs of all plugin's UI."""
+    return self.goofy.plugin_controller.GetFrontendConfigs()
 
   def IsPluginEnabled(self, plugin_name):
     """Returns whether a plugin is enabled."""

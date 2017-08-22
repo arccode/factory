@@ -9,5 +9,5 @@ from cros.factory.utils import type_utils
 
 class MockPlugin(plugin.Plugin):
   @type_utils.Overrides
-  def HasUI(self):
+  def GetUILocation(self):
     return True

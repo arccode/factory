@@ -136,8 +136,8 @@ class StationSetup(plugin.Plugin):
         data='this.showStationSetupDialog();')
 
   @type_utils.Overrides
-  def HasUI(self):
-    return True
+  def GetUILocation(self):
+    return 'testlist'
 
   @type_utils.Overrides
   def GetMenuItems(self):

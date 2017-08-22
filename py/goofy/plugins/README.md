@@ -182,17 +182,20 @@ Once loaded, Goofy server maps URL `/plugin/<plugin_name>` to
 ### Show Plugin UI ###
 
 The plugin UI is shown as an `<iframe>` at the bottom-left corner of the
-Goofy Web UI.  To provide frontend UI, simply return `True` in function `HasUI`.
-For example,
+Goofy Web UI.  To provide frontend UI, simply return `True` in function
+`GetUILocation`.  For example,
 
     class MyPlugin(plugin.Plugin):
 
       @type_utils.Overrides
-      def HasUI(self):
+      def GetUILocation(self):
         return True
 
 Goofy would link the `<iframe>` to URL
 `/plugin/<plugin_name>/<plugin_python_name>.html` as the entry point.
+
+The UI location can be changed by returning one of `'testlist'`, `'console'`,
+`'goofy-full'`.  Returning `True` has same effect as `'testlist'`.
 
 Plugin can have its own Javascript file. During the plugin `<iframe>` creation,
 the namespace `cros` and `goog` is set by Goofy. Therefore, plugin Javascript

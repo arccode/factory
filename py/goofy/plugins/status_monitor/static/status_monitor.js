@@ -179,12 +179,10 @@ status_monitor.Status.prototype.setSystemInfo = function(systemInfo) {
   this.updateTime();
 
   if (this.systemInfo['update_toolkit_version']) {
-    console.log('yes');
     $('#update-available-indicator').css({display: 'block'});
   } else {
     $('#update-available-indicator').css({display: 'none'});
   }
-  $(this.plugin.dom).height($('body').height());
 };
 
 /** @type {goog.i18n.NumberFormat} */
@@ -205,7 +203,7 @@ status_monitor.Status.prototype.updateStatus = function() {
       'GetSystemInfo', [],
       goog.bind(function(/** SystemInfo*/ systemInfo) {
         var status = systemInfo || {};
-        Object.assign(this.systemInfo, status)
+        Object.assign(this.systemInfo, status);
         this.setSystemInfo(this.systemInfo);
 
         function setValue(/** string */ id, /** ?string */ value) {

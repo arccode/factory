@@ -16,8 +16,8 @@ class StatusMonitor(plugin.Plugin):
     self._need_update_device_info = True
 
   @type_utils.Overrides
-  def HasUI(self):
-    return True
+  def GetUILocation(self):
+    return 'goofy-full'
 
   @plugin.RPCFunction
   def UpdateDeviceInfo(self):

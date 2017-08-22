@@ -20,64 +20,70 @@
     <script type="text/javascript" src="/js/jquery.ba-resize.min.js" ></script>
   </head>
   <body>
-   <div id='goofy-div-wait'>
-     Chrome OS Factory: Loading...
-   </div>
-   <div id='goofy-div'>
-    <div class="goofy-automation-indicator" id="goofy-automation-div"></div>
-    <div class="goog-splitpane" id="goofy-splitpane">
-      <div class="goog-splitpane-first-container" id="goofy-splitpane-left">
-        <div class="goofy-horizontal-border">
-          <div class="goofy-horizontal-border-1"></div>
-          <div class="goofy-horizontal-border-2"></div>
-          <div class="goofy-horizontal-border-3"></div>
-          <div class="goofy-horizontal-border-4"></div>
-        </div>
-        <div id="goofy-header">
-          <div id="goofy-title">
-            <span id="goofy-logo" onclick="goofy.viewNotes()"></span>
-            <span id="goofy-logo-text">CrOS Factory</span>
-            <span id="goofy-logo-down-arrow"> ▼</span>
+    <div id='goofy-div-wait'>
+      Chrome OS Factory: Loading...
+    </div>
+    <div id='goofy-div'>
+      <div class="goofy-automation-indicator" id="goofy-automation-div"></div>
+      <div class="goog-splitpane" id="goofy-splitpane">
+        <div class="goog-splitpane-first-container" id="goofy-splitpane-left">
+          <div class="goofy-horizontal-border">
+            <div class="goofy-horizontal-border-1"></div>
+            <div class="goofy-horizontal-border-2"></div>
+            <div class="goofy-horizontal-border-3"></div>
+            <div class="goofy-horizontal-border-4"></div>
           </div>
-          <div id="goofy-locale-selector">
-          </div>
-          <img id="goofy-go" src="images/play.svg" width="32" height="32"
-               onclick="goofy.startAutoTest()">
-          <img id="goofy-terminal" src="images/terminal.svg" width="32" height="32"
-               onclick="goofy.launchTerminal()">
-        </div>
-
-        <div id="goofy-control">
-          <div id="goofy-loading"><img src="images/active.gif">Loading test list...</img></div>
-          <div id="goofy-test-tree"></div>
-        </div>
-        <div id="goofy-status-bar">
-          <div id="goofy-plugin-area"></div>
-          <div class="goofy-indicator" id="goofy-engineering-mode-indicator">
-            <span class="i18n-label">Engineering mode</span>
-            <img id="goofy-disable-engineering-mode" style="display: none"
-                 onclick="goofy.setEngineeringMode(false)"
-                 src="images/white_close.png">
-          </div>
-        </div>
-      </div>
-      <div class="goog-splitpane-handle"></div>
-      <div class="goog-splitpane-second-container">
-        <div id="goofy-main-and-console" class="goog-splitpane">
-          <div id="goofy-tab-and-main" class="goog-splitpane-first-container">
-            <div id="goofy-tabbar" class="goog-tab-bar-top"></div>
-            <div id="goofy-background">
-              <img id="goofy-main-logo" src="/images/logo256.png">
+          <div id="goofy-header">
+            <div id="goofy-title">
+              <span id="goofy-logo" onclick="goofy.viewNotes()"></span>
+              <span id="goofy-logo-text">CrOS Factory</span>
+              <span id="goofy-logo-down-arrow"> ▼</span>
             </div>
-            <div id="goofy-main"></div>
+            <div id="goofy-locale-selector">
+            </div>
+            <img id="goofy-go" src="images/play.svg" width="32" height="32"
+              onclick="goofy.startAutoTest()">
+            <img id="goofy-terminal" src="images/terminal.svg" width="32"
+              height="32" onclick="goofy.launchTerminal()">
           </div>
-          <div class="goog-splitpane-handle"></div>
-          <div class="goog-splitpane-second-container">
-            <div id="goofy-console"></div>
+
+          <div id="goofy-control">
+            <div id="goofy-loading">
+              <img src="images/active.gif">Loading test list...</img>
+            </div>
+            <div id="goofy-test-tree"></div>
+          </div>
+          <div id="goofy-status-bar">
+            <div id="goofy-plugin-area-testlist" class="goofy-plugin-area"></div>
+            <div class="goofy-indicator" id="goofy-engineering-mode-indicator">
+              <span class="i18n-label">Engineering mode</span>
+              <img id="goofy-disable-engineering-mode" style="display: none"
+                onclick="goofy.setEngineeringMode(false)"
+                src="images/white_close.png">
+            </div>
+          </div>
+        </div>
+        <div class="goog-splitpane-handle"></div>
+        <div id="goofy-main-and-console-container"
+          class="goog-splitpane-second-container">
+          <div id="goofy-main-and-console" class="goog-splitpane">
+            <div id="goofy-tab-and-main" class="goog-splitpane-first-container">
+              <div id="goofy-tabbar" class="goog-tab-bar-top"></div>
+              <div id="goofy-background">
+                <img id="goofy-main-logo" src="/images/logo256.png">
+              </div>
+              <div id="goofy-main"></div>
+            </div>
+            <div class="goog-splitpane-handle"></div>
+            <div class="goog-splitpane-second-container"
+              id="goofy-console-container">
+              <div id="goofy-console"></div>
+              <div id="goofy-plugin-area-console" class="goofy-plugin-area"></div>
+            </div>
           </div>
         </div>
       </div>
-     </div>
+      <div id="goofy-plugin-area-goofy-full" class="goofy-plugin-area"></div>
     </div>
   </body>
 </html>
