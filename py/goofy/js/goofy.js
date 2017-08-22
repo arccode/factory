@@ -897,7 +897,9 @@ cros.factory.Goofy.prototype.initUIComponents = function() {
   tabBar.decorate(document.getElementById('goofy-tabbar'));
   this.tabBar = tabBar;
 
-  goog.events.listen(this.tabBar, goog.ui.Component.EventType.SELECT, () => {
+  // We listen on ACTION instead of SELECT, so it would only be triggered by
+  // user select, not tab.setSelected(true).
+  goog.events.listen(this.tabBar, goog.ui.Component.EventType.ACTION, () => {
     var selectedTab =
         /** @type {?HTMLElement} */ (this.tabBar.getSelectedTab().getElement());
     var testPath =
