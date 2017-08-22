@@ -25,19 +25,19 @@ cros.factory.Plugin = function(goofy, dom) {
  * plugin DOM.
  *
  * @param {!HTMLElement} anchor
- * @param {!Node} tooltip Dom object of the tooltip content.
+ * @param {!Node} content Dom object of the tooltip content.
  */
-cros.factory.Plugin.prototype.addPluginTooltip = function(anchor, tooltip) {
-  var tooltipContainer = goog.dom.createDom('div');
-  goog.dom.classlist.add(tooltipContainer, 'goofy-plugin-tooltip');
-  tooltipContainer.appendChild(tooltip);
-  goog.events.listen(anchor, goog.events.EventType.MOUSEENTER, function() {
-    var offsetLeft = anchor.offsetLeft + anchor.offsetWidth;
-    goog.style.setStyle(
-        tooltipContainer, {'visibility': 'visible', 'margin-left': offsetLeft});
+cros.factory.Plugin.prototype.addPluginTooltip = function(anchor, content) {
+  const domHelper = goog.dom.getDomHelper(this.dom);
+  const tooltip = new goog.ui.Tooltip(null, null, domHelper);
+  tooltip.getElement().appendChild(content);
+
+  goog.events.listen(anchor, goog.events.EventType.MOUSEENTER, () => {
+    const position = new goog.positioning.AnchoredViewportPosition(
+        anchor, goog.positioning.Corner.TOP_RIGHT, true);
+    tooltip.showForElement(anchor, position);
   });
-  goog.events.listen(anchor, goog.events.EventType.MOUSELEAVE, function() {
-    goog.style.setStyle(tooltipContainer, {'visibility': 'hidden'});
+  goog.events.listen(anchor, goog.events.EventType.MOUSELEAVE, () => {
+    tooltip.detach();
   });
-  goog.dom.appendChild(this.dom, tooltipContainer);
 };
