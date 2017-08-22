@@ -204,6 +204,10 @@ class UI(object):
     html = GetAutoload('html', '<html><body></body></html>')
     html = AddGoofyHeaderTransformer(self.test).Run(html)
     html = html_translator.TranslateHTML(html)
+    # We need to call INIT_TEST_UI instead of SET_HTML, even if the UI is
+    # already initialized by goofy.py, since SET_HTML only sets the body of
+    # html, and would cause the css set here be overriden by template files.
+    # TODO(pihsun): Fix the SET_HTML method so we can use SET_HTML here.
     self.PostEvent(
         test_event.Event(test_event.Event.Type.INIT_TEST_UI, html=html))
 

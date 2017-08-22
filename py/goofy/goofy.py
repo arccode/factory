@@ -603,8 +603,18 @@ class Goofy(GoofyBase):
           visible=(self.visible_test == test))
       invoc.count = new_state.count
       self.invocations[test] = invoc
-      if self.visible_test is None and test.has_ui:
-        self.set_visible_test(test)
+      if test.has_ui:
+        if self.visible_test is None:
+          self.set_visible_test(test)
+        # Send a INIT_TEST_UI event here, so the test UI are initialized in
+        # order, and the tab order would be same as test list order when there
+        # are parallel tests with UI.
+        self.event_client.post_event(
+            Event(
+                Event.Type.INIT_TEST_UI,
+                html='',
+                test=test.path,
+                invocation=invoc.uuid))
       self.check_plugins()
       invoc.start()
     elif test.parallel:
