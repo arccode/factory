@@ -30,8 +30,7 @@ status_monitor.SYSTEM_INFO_LABELS = [
     label: cros.factory.i18n.i18nLabel('MLB Serial Number')
   },
   {key: 'serial_number', label: cros.factory.i18n.i18nLabel('Serial Number')},
-  {key: 'stage', label: cros.factory.i18n.i18nLabel('Stage')},
-  {
+  {key: 'stage', label: cros.factory.i18n.i18nLabel('Stage')}, {
     key: 'factory_image_version',
     label: cros.factory.i18n.i18nLabel('Factory Image Version')
   },
@@ -44,13 +43,11 @@ status_monitor.SYSTEM_INFO_LABELS = [
   {key: 'kernel_version', label: cros.factory.i18n.i18nLabel('Kernel')},
   {key: 'architecture', label: cros.factory.i18n.i18nLabel('Architecture')},
   {key: 'ec_version', label: cros.factory.i18n.i18nLabel('EC')},
-  {key: 'pd_version', label: cros.factory.i18n.i18nLabel('PD')},
-  {
+  {key: 'pd_version', label: cros.factory.i18n.i18nLabel('PD')}, {
     key: 'firmware_version',
     label: cros.factory.i18n.i18nLabel('Main Firmware')
   },
-  {key: 'root_device', label: cros.factory.i18n.i18nLabel('Root Device')},
-  {
+  {key: 'root_device', label: cros.factory.i18n.i18nLabel('Root Device')}, {
     key: 'toolkit_version',
     label: cros.factory.i18n.i18nLabel('Factory Toolkit Version'),
     transform: function(/** ?string */ value) {
@@ -107,8 +104,7 @@ status_monitor.Status = function(plugin) {
  */
 status_monitor.Status.prototype.start = function() {
   this.plugin.addPluginTooltip(
-      document.getElementById('system-info-hover'),
-      this.infoTooltip);
+      document.getElementById('system-info-hover'), this.infoTooltip);
 
   window.setInterval(
       goog.bind(this.updateStatus, this),
@@ -116,8 +112,7 @@ status_monitor.Status.prototype.start = function() {
   this.updateStatus();
 
   var timer = new goog.Timer(1000);
-  goog.events.listen(
-      timer, goog.Timer.TICK, this.updateTime, false, this);
+  goog.events.listen(timer, goog.Timer.TICK, this.updateTime, false, this);
   timer.dispatchTick();
   timer.start();
 };
@@ -163,18 +158,15 @@ status_monitor.Status.prototype.setSystemInfo = function(systemInfo) {
     goog.html.SafeHtml.create('td', {id: 'time'})
   ]));
 
-  var table =
-      goog.html.SafeHtml.create('table', {id: 'system-info'}, rows);
+  var table = goog.html.SafeHtml.create('table', {id: 'system-info'}, rows);
   goog.dom.safe.setInnerHtml(this.infoTooltip, table);
   $(this.infoTooltip).find('th, td').css({
-      'font-size': '75%',
-      'text-align': 'left',
-      'padding': '0 .1em 0 .1em',
-      'white-space': 'nowrap'
+    'font-size': '75%',
+    'text-align': 'left',
+    'padding': '0 .1em 0 .1em',
+    'white-space': 'nowrap'
   });
-  $(this.infoTooltip).find('th').css({
-      'padding-right': '1em'
-  });
+  $(this.infoTooltip).find('th').css({'padding-right': '1em'});
 
   this.updateTime();
 
@@ -199,8 +191,7 @@ status_monitor.Status.PERCENT_BATTERY_FORMAT = new goog.i18n.NumberFormat('0%');
  */
 status_monitor.Status.prototype.updateStatus = function() {
   goofy.sendRpcToPlugin(
-      'status_monitor.status_monitor',
-      'GetSystemInfo', [],
+      'status_monitor.status_monitor', 'GetSystemInfo', [],
       goog.bind(function(/** SystemInfo*/ systemInfo) {
         var status = systemInfo || {};
         Object.assign(this.systemInfo, status);
@@ -208,8 +199,7 @@ status_monitor.Status.prototype.updateStatus = function() {
 
         function setValue(/** string */ id, /** ?string */ value) {
           var element = document.getElementById(id);
-          goog.dom.classlist.enable(
-              element, 'value-known', value != null);
+          goog.dom.classlist.enable(element, 'value-known', value != null);
           goog.dom.setTextContent(
               goog.dom.getElementByClass('value', element), value || '');
         }
@@ -224,14 +214,14 @@ status_monitor.Status.prototype.updateStatus = function() {
         }
 
         setValue(
-            'load-average', status['load_avg'] ?
+            'load-average',
+            status['load_avg'] ?
                 status_monitor.Status.LOAD_AVERAGE_FORMAT.format(
                     status['load_avg'][0]) :
                 null);
 
         if (canCalculateCpuStatus(this.lastStatus, status)) {
-          var lastCpu = goog.math.sum.apply(
-              this, this.lastStatus['cpu']);
+          var lastCpu = goog.math.sum.apply(this, this.lastStatus['cpu']);
           var currentCpu = goog.math.sum.apply(this, status['cpu']);
           var /** number */ lastIdle = this.lastStatus['cpu'][3];
           var /** number */ currentIdle = status['cpu'][3];

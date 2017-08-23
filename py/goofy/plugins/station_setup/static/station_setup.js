@@ -73,8 +73,8 @@ class StationSetup {
         await StationSetup.updateDisplayInfo();
       } else {
         goog.dom.safe.setInnerHtml(
-          element.getElementsByClassName('error-msg')[0],
-          cros.factory.i18n.i18nLabel(ret.error_msg));
+            element.getElementsByClassName('error-msg')[0],
+            cros.factory.i18n.i18nLabel(ret.error_msg));
       }
       return ret;
     };

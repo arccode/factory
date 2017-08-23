@@ -8,14 +8,15 @@ var macAddressList = [];
 var connectedDongle = [];
 var lock = false;
 
-var countdown = {}
+var countdown = {};
 
 function setMessage(msg, color, dongle_mac_address) {
+  var msg_div;
   // if the dongle_mac_address is undefined, set msg to default UI message
   if (dongle_mac_address) {
-    msg_div = document.getElementById(dongle_mac_address + '_goofy-message')
+    msg_div = document.getElementById(dongle_mac_address + '_goofy-message');
   } else {
-    msg_div = document.getElementById('goofy-message')
+    msg_div = document.getElementById('goofy-message');
   }
 
   msg_div.innerText = msg;
@@ -23,11 +24,11 @@ function setMessage(msg, color, dongle_mac_address) {
 }
 
 function setInfo(msg, dongle_mac_address) {
-  setMessage(msg, "black", dongle_mac_address);
+  setMessage(msg, 'black', dongle_mac_address);
 }
 
 function setError(msg, dongle_mac_address) {
-  setMessage(msg, "red", dongle_mac_address);
+  setMessage(msg, 'red', dongle_mac_address);
 }
 
 function setDisplay(id, display) {
@@ -42,23 +43,23 @@ function stopCountdown(dongle_mac_address) {
 }
 
 function countdownCallback(dongle_mac_address) {
-  countdown_div = document.getElementById(dongle_mac_address
-                                          + '_goofy-countdown');
+  var countdown_div =
+      document.getElementById(dongle_mac_address + '_goofy-countdown');
   if (countdown[dongle_mac_address].timeout > 0) {
-    countdown_div.innerText = countdown[dongle_mac_address].timeout
-                              + " seconds remaining";
+    countdown_div.innerText =
+        countdown[dongle_mac_address].timeout + ' seconds remaining';
     countdown[dongle_mac_address].timeout--;
   } else {
-    setMessage(countdown[dongle_mac_address].end_msg,
-               countdown[dongle_mac_address].end_msg_color,
-               dongle_mac_address);
-    countdown_div.innerText = "";
+    setMessage(
+        countdown[dongle_mac_address].end_msg,
+        countdown[dongle_mac_address].end_msg_color, dongle_mac_address);
+    countdown_div.innerText = '';
     stopCountdown(dongle_mac_address);
   }
 }
 
-function startCountdown(msg, dongle_mac_address, timeout, end_msg,
-                        end_msg_color) {
+function startCountdown(
+    msg, dongle_mac_address, timeout, end_msg, end_msg_color) {
   if (dongle_mac_address in countdown)
     stopCountdown(dongle_mac_address);
 
@@ -68,16 +69,18 @@ function startCountdown(msg, dongle_mac_address, timeout, end_msg,
     timeout: timeout,
     end_msg: end_msg,
     end_msg_color: end_msg_color,
-    interval_id: window.setInterval(function() {
-      countdownCallback(dongle_mac_address);
-    }, 1000),
+    interval_id: window.setInterval(
+        function() {
+          countdownCallback(dongle_mac_address);
+        },
+        1000),
   };
   countdownCallback(dongle_mac_address);
 }
 
 function handleDisconnect(dongle_mac_address) {
   if (dongle_mac_address in countdown) {
-    var iframe = document.getElementById(dongle_mac_address + "_iframe");
+    var iframe = document.getElementById(dongle_mac_address + '_iframe');
     iframe.src = 'about:blank';
     setDisplay(dongle_mac_address + '_countdown-container', '');
     setDisplay(dongle_mac_address + '_iframe', 'none');
@@ -87,16 +90,16 @@ function handleDisconnect(dongle_mac_address) {
   if (connectedDongle.indexOf(dongle_mac_address) != -1) {
     var index = macAddressList.indexOf(dongle_mac_address);
     if (lock) {
-      var iframe = document.getElementById(dongle_mac_address + "_iframe");
+      var iframe = document.getElementById(dongle_mac_address + '_iframe');
       iframe.src = 'about:blank';
       iframe.onload = function() {
-        $("#tabs").tabs("disable", '#' + dongle_mac_address);
+        $('#tabs').tabs('disable', '#' + dongle_mac_address);
       };
-      var tab = document.getElementById(dongle_mac_address + "_list");
-      tab.style.backgroundColor = "#fff";
+      var tab = document.getElementById(dongle_mac_address + '_list');
+      tab.style.backgroundColor = '#fff';
     } else {
       document.getElementById(dongle_mac_address).remove();
-      document.getElementById(dongle_mac_address + "_list").remove();
+      document.getElementById(dongle_mac_address + '_list').remove();
 
       macAddressList.splice(index, 1);
 
@@ -112,7 +115,7 @@ function handleDisconnect(dongle_mac_address) {
     connectedDongle.splice(connectedDongle.indexOf(dongle_mac_address), 1);
 
     var flag = false;
-    if ($("#tabs").tabs('option', 'active') == index) {
+    if ($('#tabs').tabs('option', 'active') == index) {
       for (var i = index - 1; i >= 0; i--) {
         var address = macAddressList[i];
         if (connectedDongle.indexOf(address) != -1) {
@@ -147,14 +150,14 @@ function handleConnect(serverUrl, dongle_mac_address) {
 
     if (lock) {
       if (macAddressList.indexOf(dongle_mac_address) == -1) {
-        alert("Can't add device under lock.");
+        alert('Can\'t add device under lock.');
         return;
       } else {
-        var iframe = document.getElementById(dongle_mac_address + "_iframe");
+        var iframe = document.getElementById(dongle_mac_address + '_iframe');
         iframe.src = serverUrl;
         iframe.onload = function() {
           var index = macAddressList.indexOf(dongle_mac_address);
-          $("#tabs").tabs("enable", '#' + dongle_mac_address);
+          $('#tabs').tabs('enable', '#' + dongle_mac_address);
           $('#tabs').tabs('option', 'active', index);
           iframe.focus();
         };
@@ -164,23 +167,23 @@ function handleConnect(serverUrl, dongle_mac_address) {
 
       var tabs = document.getElementById('tab-names');
       var newLi = document.createElement('li');
-      newLi.id = dongle_mac_address + "_list";
+      newLi.id = dongle_mac_address + '_list';
       var newTab = document.createElement('a');
-      newTab.id = dongle_mac_address + "_name";
+      newTab.id = dongle_mac_address + '_name';
       newTab.href = '#' + dongle_mac_address;
-      newTab.innerHTML = "device";
+      newTab.innerHTML = 'device';
 
       newLi.appendChild(newTab);
       tabs.appendChild(newLi);
 
-      var tabContents = document.getElementById("tab-contents");
+      var tabContents = document.getElementById('tab-contents');
       var newTabContent = document.createElement('div');
       newTabContent.id = dongle_mac_address;
       newTabContent.className = 'goofy-content';
-      var iframe = document.createElement("IFRAME");
+      var iframe = document.createElement('IFRAME');
 
       iframe.src = serverUrl;
-      iframe.id = dongle_mac_address + "_iframe";
+      iframe.id = dongle_mac_address + '_iframe';
       iframe.onload = function() {
         var index = macAddressList.indexOf(dongle_mac_address);
         $('#tabs').tabs('refresh');
@@ -192,22 +195,22 @@ function handleConnect(serverUrl, dongle_mac_address) {
 
       /* for countdown message */
       var logo = document.createElement('div');
-      logo.className = "goofy-countdown-logo";
+      logo.className = 'goofy-countdown-logo';
 
       var countdownMessage = document.createElement('div');
-      countdownMessage.className = "countdown-message";
-      countdownMessage.id = dongle_mac_address + "_goofy-message";
+      countdownMessage.className = 'countdown-message';
+      countdownMessage.id = dongle_mac_address + '_goofy-message';
 
       var goofyCountdown = document.createElement('div');
-      goofyCountdown.className = "goofy-countdown";
-      goofyCountdown.id = dongle_mac_address + "_goofy-countdown";
+      goofyCountdown.className = 'goofy-countdown';
+      goofyCountdown.id = dongle_mac_address + '_goofy-countdown';
 
       /* for vertical align */
       var centerAligned = document.createElement('div');
-      centerAligned.className = "center-aligned";
+      centerAligned.className = 'center-aligned';
 
       var countdownContainer = document.createElement('div');
-      countdownContainer.id = dongle_mac_address + "_countdown-container";
+      countdownContainer.id = dongle_mac_address + '_countdown-container';
 
       countdownContainer.appendChild(logo);
       countdownContainer.appendChild(centerAligned);
@@ -217,32 +220,32 @@ function handleConnect(serverUrl, dongle_mac_address) {
       newTabContent.appendChild(countdownContainer);
       tabContents.appendChild(newTabContent);
 
-      if (dongle_mac_address == 'standalone'){
+      if (dongle_mac_address == 'standalone') {
         /* in standalone mode, hide the tabs */
-        logo.style.height = "100%";
-        tabContents.style.height = "100%";
+        logo.style.height = '100%';
+        tabContents.style.height = '100%';
         setDisplay('tab-names', 'none');
       }
     }
   } else {
     /* successfully rebooted or reconnected after reboot fail */
     stopCountdown(dongle_mac_address);
-    var iframe = document.getElementById(dongle_mac_address + "_iframe");
+    var iframe = document.getElementById(dongle_mac_address + '_iframe');
     iframe.src = serverUrl;
     iframe.onload = function() {
       var index = macAddressList.indexOf(dongle_mac_address);
-      $("#tabs").tabs("enable", '#' + dongle_mac_address);
+      $('#tabs').tabs('enable', '#' + dongle_mac_address);
       $('#tabs').tabs('option', 'active', index);
       iframe.focus();
     };
   }
 
-  setDisplay(dongle_mac_address + "_iframe", '');
-  setDisplay(dongle_mac_address + "_countdown-container", 'none');
+  setDisplay(dongle_mac_address + '_iframe', '');
+  setDisplay(dongle_mac_address + '_countdown-container', 'none');
 }
 
 function updateTabColor(dongle_mac_address, all_pass) {
-  var tab = document.getElementById(dongle_mac_address + "_list");
+  var tab = document.getElementById(dongle_mac_address + '_list');
   if (all_pass) {
     tab.style.background = '#C8FFC8';
   } else {
@@ -253,8 +256,8 @@ function updateTabColor(dongle_mac_address, all_pass) {
 function lockTabs() {
   for (var i = 0; i < macAddressList.length; i++) {
     var dongle_mac_address = macAddressList[i];
-    var tab = document.getElementById(dongle_mac_address + "_name");
-    tab.innerHTML = "device " + (i + 1);
+    var tab = document.getElementById(dongle_mac_address + '_name');
+    tab.innerHTML = 'device ' + (i + 1);
   }
 }
 
@@ -262,11 +265,11 @@ function unlockTabs() {
   for (var i = 0; i < macAddressList.length; i++) {
     var dongle_mac_address = macAddressList[i];
     if (connectedDongle.indexOf(dongle_mac_address) != -1) {
-      var tab = document.getElementById(dongle_mac_address + "_name");
-      tab.innerHTML = "device";
+      var tab = document.getElementById(dongle_mac_address + '_name');
+      tab.innerHTML = 'device';
     } else {
       document.getElementById(dongle_mac_address).remove();
-      document.getElementById(dongle_mac_address + "_list").remove();
+      document.getElementById(dongle_mac_address + '_list').remove();
       macAddressList.splice(i, 1);
       i--;
     }
@@ -289,14 +292,14 @@ function checkDUT(serverUrl, serverUuid) {
     if (xmlHttp.readyState != 4)
       return;
     if (xmlHttp.status && xmlHttp.status < 400) {
-      mySocket.send("OK");
+      mySocket.send('OK');
       handleConnect(serverUrl, serverUuid);
     } else {
-      mySocket.send("ERROR");
+      mySocket.send('ERROR');
     }
-  }
+  };
 
-  xmlHttp.open("GET", serverUrl, true);
+  xmlHttp.open('GET', serverUrl, true);
   xmlHttp.send(null);
 }
 
@@ -305,16 +308,16 @@ function connectWebSocket() {
   // used for communication between GoofyPresenter and the UI presenter
   // extension.
 
-  $("#tabs").tabs();
+  $('#tabs').tabs();
   setDisplay('tabs', 'none');
   var button = document.getElementById('lock');
   button.onclick = function() {
-    if (button.innerHTML == "Lock") {
-      button.innerHTML = "Unlock";
+    if (button.innerHTML == 'Lock') {
+      button.innerHTML = 'Unlock';
       lock = true;
       lockTabs();
     } else {
-      button.innerHTML = "Lock";
+      button.innerHTML = 'Lock';
       lock = false;
       unlockTabs();
     }
@@ -323,26 +326,26 @@ function connectWebSocket() {
   mySocket = new WebSocket('ws://127.0.0.1:4010/');
 
   mySocket.onclose = function(e) {
-    console.log("Web socket connection failed. Retry in 3 seconds...");
-    setError("UI presenter backend disconnected. Retrying...");
+    console.log('Web socket connection failed. Retry in 3 seconds...');
+    setError('UI presenter backend disconnected. Retrying...');
     window.setTimeout(connectWebSocket, 3000);
   };
   mySocket.onmessage = function(e) {
-    console.log("Server says:", e.data);
-    message = JSON.parse(e.data);
-    if (message.command == "DISCONNECT") {
+    console.log('Server says:', e.data);
+    var message = JSON.parse(e.data);
+    if (message.command == 'DISCONNECT') {
       handleDisconnect(message.dongle_mac_address);
-    } else if (message.command == "CONNECT") {
+    } else if (message.command == 'CONNECT') {
       // Check the URL given by the backend and connect to it if
       // it's alive.
       checkDUT(message.url, message.dongle_mac_address);
-    } else if (message.command == "INFO") {
+    } else if (message.command == 'INFO') {
       // Show info message.
       setInfo(message.str);
-    } else if (message.command == "ERROR") {
+    } else if (message.command == 'ERROR') {
       // Show error message in red.
       setError(message.str);
-    } else if (message.command == "START_COUNTDOWN") {
+    } else if (message.command == 'START_COUNTDOWN') {
       // Start a countdown timer.  The argument is a JSON object with the
       // following attribute:
       //   message: Text to show during countdown.
@@ -357,28 +360,28 @@ function connectWebSocket() {
       //                     "end_message": "Reboot test failed!",
       //                     "end_message_color": "red"}
 
-      startCountdown(message.message,
-                     message.dongle_mac_address,
-                     message.timeout,
-                     message.end_message,
-                     message.end_message_color);
-    } else if (message.command == "STOP_COUNTDOWN") {
+      startCountdown(
+          message.message, message.dongle_mac_address, message.timeout,
+          message.end_message, message.end_message_color);
+    } else if (message.command == 'STOP_COUNTDOWN') {
       // Aborts the specific countdown.  Has no effect if the specific
       // countdown is not on-going.
 
       stopCountdown(message.dongle_mac_address);
-    } else if (message.command == "UPDATE_STATUS") {
+    } else if (message.command == 'UPDATE_STATUS') {
       // When a DUT finish tests, update the color of its tab.
       updateTabColor(message.dongle_mac_address, message.all_pass);
     } else {
-      console.log("Unknown command:", e.data);
+      console.log('Unknown command:', e.data);
     }
   };
   mySocket.onopen = function(e) {
-    console.log("Opened web socket");
-    setInfo("Waiting for device...");
+    console.log('Opened web socket');
+    setInfo('Waiting for device...');
   };
-  mySocket.onerror = function(e) { console.log(e); };
+  mySocket.onerror = function(e) {
+    console.log(e);
+  };
 }
 
 if (window.name != myWindowName) {

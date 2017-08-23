@@ -2146,10 +2146,9 @@ cros.factory.Goofy.prototype.reloadTestList = function() {
       // On success
       null,
       // On fail
-      function (/** {error: {message: string}} */ response) {
+      function(/** {error: {message: string}} */ response) {
         this.alert('Failed to reload test list\n' + response.error.message);
-      }
-  );
+      });
 };
 
 /**
