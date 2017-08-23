@@ -233,7 +233,7 @@ def main():
       dest='local_test',
       help='local testing')
   arg_parser.add_argument(
-      '--update-minutes', type=int, dest='update_minutes', default=14400)
+      '--update-minutes', type=int, dest='update_minutes', default=1440)
   arg_parser.add_argument(
       '-p', '--port', type=int, dest='port', default=DEFAULT_HWIDSERVICE_PORT)
   args = arg_parser.parse_args()
