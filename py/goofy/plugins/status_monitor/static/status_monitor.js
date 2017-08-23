@@ -169,12 +169,6 @@ status_monitor.Status.prototype.setSystemInfo = function(systemInfo) {
   $(this.infoTooltip).find('th').css({'padding-right': '1em'});
 
   this.updateTime();
-
-  if (this.systemInfo['update_toolkit_version']) {
-    $('#update-available-indicator').css({display: 'block'});
-  } else {
-    $('#update-available-indicator').css({display: 'none'});
-  }
 };
 
 /** @type {goog.i18n.NumberFormat} */

@@ -930,10 +930,6 @@ msgstr "{key}的值不能为空"
 msgid "Station with same {keys!r} found."
 msgstr "测站已存在"
 
-#: ../py/goofy/plugins/status_monitor/static/status_monitor.html
-msgid "Update available. Click to update."
-msgstr "有可用的更新。点击更新"
-
 #: ../py/goofy/plugins/status_monitor/static/status_monitor.js
 #: ../py/test/test_lists/generic_smt.test_list.json
 msgid "MLB Serial Number"

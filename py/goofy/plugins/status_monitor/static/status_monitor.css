@@ -58,15 +58,6 @@ body {
 .wlan-enabled#wlan-indicator {
   background-image: url('images/wlan_on.png');
 }
-#update-available-indicator {
-  height: 24px;
-  display: none;
-  background-color: green;
-  text-align: center;
-}
-#update-available-indicator a {
-  color: #fff;
-}
 .battery-charging:before {
   content: '↑';
 }
