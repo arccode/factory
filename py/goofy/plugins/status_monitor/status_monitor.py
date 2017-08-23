@@ -13,7 +13,6 @@ class StatusMonitor(plugin.Plugin):
   def __init__(self, goofy, used_resources=None):
     super(StatusMonitor, self).__init__(goofy, used_resources)
     self._device = device_utils.CreateStationInterface()
-    self._need_update_device_info = True
 
   @type_utils.Overrides
   def GetUILocation(self):
@@ -23,7 +22,6 @@ class StatusMonitor(plugin.Plugin):
   def UpdateDeviceInfo(self):
     """The device info is changed, update them on UI."""
     self._device.info.Invalidate()
-    self._need_update_device_info = True
 
   @plugin.RPCFunction
   def GetSystemInfo(self):
@@ -36,9 +34,7 @@ class StatusMonitor(plugin.Plugin):
 
     data = {}
 
-    if self._need_update_device_info:
-      data.update(self._device.info.GetAll())
-      self._need_update_device_info = False
+    data.update(self._device.info.GetAll())
 
     if self._device.link.IsLocal():
       data.update(self._device.status.Snapshot().__dict__)

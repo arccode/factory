@@ -1,44 +1,43 @@
 <html>
   <head>
     <link rel="stylesheet" type="text/css" href="status_monitor.css">
+    <link rel="stylesheet" type="text/css" href="/css/i18n.css">
     <script type="text/javascript" src="/js/jquery.min.js"></script>
     <script type="text/javascript" src="status_monitor.js"></script>
   </head>
   <body>
     <div id="status-bar-main">
-      <span class="status-bar-section">
-        <img src="images/chip.png">
-        <span class="status-bar-item" id="load-average">
-          <span class="value"></span>
-          <span class="unknown">N/A</span>
+      <div id="status-bar-left">
+        <span class="status-bar-section">
+          <img src="images/chip.png">
+          <span class="status-bar-item" id="percent-cpu">
+            <span class="value"></span>
+            <span class="unknown">N/A</span>
+          </span>
         </span>
-        <span class="status-bar-item" id="percent-cpu">
-          <span class="value"></span>
-          <span class="unknown">N/A</span>
-        </span>
-      </span>
 
-      <span class="status-bar-section">
-        <img src="images/battery.png">
-        <span class="status-bar-item" id="percent-battery">
-          <span class="value"></span>
-          <span class="unknown">N/A</span>
-          <span id="battery-charge-indicator"></span>
+        <span class="status-bar-section">
+          <img src="images/battery.png">
+          <span class="status-bar-item" id="percent-battery">
+            <span class="value"></span>
+            <span class="unknown">N/A</span>
+            <span id="battery-charge-indicator"></span>
+          </span>
         </span>
-      </span>
 
-      <span class="status-bar-section">
-        <img src="images/thermometer.png" style="padding-left: 0.5em">
-        <span class="status-bar-item" id="temperature">
-          <span class="value"></span>
-          <span class="unknown">N/A</span>
-          <span id="temperature-indicator"></span>
+        <span class="status-bar-section">
+          <img src="images/thermometer.png" style="padding-left: 0.5em">
+          <span class="status-bar-item" id="temperature">
+            <span class="value"></span>
+            <span class="unknown">N/A</span>
+            <span id="temperature-indicator"></span>
+          </span>
         </span>
-      </span>
+      </div>
 
       <span class="status-bar-icons">
-        <span class="status-bar-section" id="eth-indicator"></span>
-        <span class="status-bar-section" id="wlan-indicator"></span>
+        <span id="eth-indicator"></span>
+        <span id="wlan-indicator"></span>
         <img id="system-info-hover" src="/images/info.png">
       </span>
     </div>

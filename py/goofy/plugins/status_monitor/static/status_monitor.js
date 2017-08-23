@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 var status_monitor = {};
+var _ = cros.factory.i18n.translation;
 
 /**
  * Time interval for each status update checking.
@@ -25,31 +26,20 @@ status_monitor.SystemStatus;
  *     transform: ?function(?string): !goog.html.SafeHtml}>}
  */
 status_monitor.SYSTEM_INFO_LABELS = [
-  {
-    key: 'mlb_serial_number',
-    label: cros.factory.i18n.i18nLabel('MLB Serial Number')
-  },
-  {key: 'serial_number', label: cros.factory.i18n.i18nLabel('Serial Number')},
-  {key: 'stage', label: cros.factory.i18n.i18nLabel('Stage')}, {
-    key: 'factory_image_version',
-    label: cros.factory.i18n.i18nLabel('Factory Image Version')
-  },
-  {
-    key: 'release_image_version',
-    label: cros.factory.i18n.i18nLabel('Release Image Version')
-  },
-  {key: 'wlan0_mac', label: cros.factory.i18n.i18nLabel('WLAN MAC')},
-  {key: 'ips', label: cros.factory.i18n.i18nLabel('IP Addresses')},
-  {key: 'kernel_version', label: cros.factory.i18n.i18nLabel('Kernel')},
-  {key: 'architecture', label: cros.factory.i18n.i18nLabel('Architecture')},
-  {key: 'ec_version', label: cros.factory.i18n.i18nLabel('EC')},
-  {key: 'pd_version', label: cros.factory.i18n.i18nLabel('PD')}, {
-    key: 'firmware_version',
-    label: cros.factory.i18n.i18nLabel('Main Firmware')
-  },
-  {key: 'root_device', label: cros.factory.i18n.i18nLabel('Root Device')}, {
+  {key: 'mlb_serial_number', label: _('MLB Serial Number')},
+  {key: 'serial_number', label: _('Serial Number')},
+  {key: 'stage', label: _('Stage')},
+  {key: 'factory_image_version', label: _('Factory Image Version')},
+  {key: 'release_image_version', label: _('Release Image Version')},
+  {key: 'wlan0_mac', label: _('WLAN MAC')},
+  {key: 'ips', label: _('IP Addresses')},
+  {key: 'kernel_version', label: _('Kernel')},
+  {key: 'architecture', label: _('Architecture')},
+  {key: 'ec_version', label: _('EC')}, {key: 'pd_version', label: _('PD')},
+  {key: 'firmware_version', label: _('Main Firmware')},
+  {key: 'root_device', label: _('Root Device')}, {
     key: 'toolkit_version',
-    label: cros.factory.i18n.i18nLabel('Factory Toolkit Version'),
+    label: _('Factory Toolkit Version'),
     transform: function(/** ?string */ value) {
       if (value == null) {
         return cros.factory.i18n.i18nLabel('(no update)');
@@ -57,10 +47,7 @@ status_monitor.SYSTEM_INFO_LABELS = [
       return goog.html.SafeHtml.htmlEscape(value);
     }
   },
-  {
-    key: 'hwid_database_version',
-    label: cros.factory.i18n.i18nLabel('HWID Database Version')
-  }
+  {key: 'hwid_database_version', label: _('HWID Database Version')}
 ];
 
 /** @type {!goog.html.SafeHtml} */
@@ -74,12 +61,6 @@ status_monitor.UNKNOWN_LABEL = goog.html.SafeHtml.create(
  * @param {cros.factory.Plugin} plugin
  */
 status_monitor.Status = function(plugin) {
-
-  /**
-   * @type {?SystemStatus}
-   */
-  this.lastStatus = null;
-
   /**
    * Tooltip for showing system information.
    */
@@ -94,7 +75,7 @@ status_monitor.Status = function(plugin) {
 
   /**
    * Last system info received.
-   * @type {Object<string, string>}
+   * @type {Object<string, *>}
    */
   this.systemInfo = {};
 };
@@ -106,6 +87,8 @@ status_monitor.Status.prototype.start = function() {
   this.plugin.addPluginTooltip(
       document.getElementById('system-info-hover'), this.infoTooltip);
 
+  this.initUI();
+
   window.setInterval(
       goog.bind(this.updateStatus, this),
       status_monitor.SYSTEM_STATUS_INTERVAL_MSEC);
@@ -115,6 +98,25 @@ status_monitor.Status.prototype.start = function() {
   goog.events.listen(timer, goog.Timer.TICK, this.updateTime, false, this);
   timer.dispatchTick();
   timer.start();
+
+  goog.events.listen(window, goog.events.EventType.RESIZE, this.updateTooltip);
+};
+
+/**
+ * Initialize the UI.
+ */
+status_monitor.Status.prototype.initUI = function() {
+  const container = document.getElementById('status-bar-left');
+  status_monitor.SYSTEM_INFO_LABELS.forEach(({key, label}) => {
+    const div =
+        goog.dom.createDom('div', {'id': key, 'class': 'status-bar-section'}, [
+          goog.dom.createDom(
+              'div', {'class': 'status-bar-label'},
+              cros.factory.i18n.i18nLabelNode(label)),
+          goog.dom.createDom('div', {'class': 'status-bar-value'})
+        ]);
+    container.appendChild(div);
+  });
 };
 
 /**
@@ -128,11 +130,13 @@ status_monitor.Status.prototype.updateTime = function() {
 };
 
 /**
- * Updates the system info tooltip.
- * @param {Object<string, string>} systemInfo
+ * Updates the tooltip and status-bar items.
  */
-status_monitor.Status.prototype.setSystemInfo = function(systemInfo) {
-  this.systemInfo = systemInfo || {};
+status_monitor.Status.prototype.updateTooltip = function() {
+  const viewportHeight = window.innerHeight;
+  const isOutsideViewport = (element) =>
+      element.getBoundingClientRect().top >= viewportHeight;
+
   var rows = [];
   goog.array.forEach(status_monitor.SYSTEM_INFO_LABELS, function(item) {
     var value = this.systemInfo[item.key];
@@ -142,10 +146,19 @@ status_monitor.Status.prototype.setSystemInfo = function(systemInfo) {
     } else {
       html = value == undefined ? status_monitor.UNKNOWN_LABEL : value;
     }
-    rows.push(goog.html.SafeHtml.create('tr', {}, [
-      goog.html.SafeHtml.create('th', {}, item.label),
-      goog.html.SafeHtml.create('td', {}, html)
-    ]));
+    html = goog.html.SafeHtml.htmlEscape(html);
+
+    var element = document.getElementById(item.key);
+    goog.dom.safe.setInnerHtml(
+        element.getElementsByClassName('status-bar-value')[0], html);
+
+    if (isOutsideViewport(element)) {
+      rows.push(goog.html.SafeHtml.create('tr', {}, [
+        goog.html.SafeHtml.create(
+            'th', {}, cros.factory.i18n.i18nLabel(item.label)),
+        goog.html.SafeHtml.create('td', {}, html)
+      ]));
+    }
   }, this);
   rows.push(goog.html.SafeHtml.create('tr', {}, [
     goog.html.SafeHtml.create(
@@ -186,10 +199,14 @@ status_monitor.Status.PERCENT_BATTERY_FORMAT = new goog.i18n.NumberFormat('0%');
 status_monitor.Status.prototype.updateStatus = function() {
   goofy.sendRpcToPlugin(
       'status_monitor.status_monitor', 'GetSystemInfo', [],
-      goog.bind(function(/** SystemInfo*/ systemInfo) {
-        var status = systemInfo || {};
-        Object.assign(this.systemInfo, status);
-        this.setSystemInfo(this.systemInfo);
+      goog.bind(function(/** ?Object<string, *> */ systemInfo) {
+        var lastStatus = this.systemInfo;
+        systemInfo = systemInfo || {};
+        this.systemInfo = systemInfo;
+        this.updateTooltip();
+
+        var status =
+            /** @type {!status_monitor.SystemStatus} */ (systemInfo);
 
         function setValue(/** string */ id, /** ?string */ value) {
           var element = document.getElementById(id);
@@ -207,17 +224,10 @@ status_monitor.Status.prototype.updateStatus = function() {
           return !!oldStatus && !!oldStatus['cpu'] && !!newStatus['cpu'];
         }
 
-        setValue(
-            'load-average',
-            status['load_avg'] ?
-                status_monitor.Status.LOAD_AVERAGE_FORMAT.format(
-                    status['load_avg'][0]) :
-                null);
-
-        if (canCalculateCpuStatus(this.lastStatus, status)) {
-          var lastCpu = goog.math.sum.apply(this, this.lastStatus['cpu']);
+        if (canCalculateCpuStatus(lastStatus, status)) {
+          var lastCpu = goog.math.sum.apply(this, lastStatus['cpu']);
           var currentCpu = goog.math.sum.apply(this, status['cpu']);
-          var /** number */ lastIdle = this.lastStatus['cpu'][3];
+          var /** number */ lastIdle = lastStatus['cpu'][3];
           var /** number */ currentIdle = status['cpu'][3];
           var deltaIdle = currentIdle - lastIdle;
           var deltaTotal = currentCpu - lastCpu;
@@ -261,12 +271,13 @@ status_monitor.Status.prototype.updateStatus = function() {
         var wlan_indicator = document.getElementById('wlan-indicator');
         goog.dom.classlist.enable(
             wlan_indicator, 'wlan-enabled', status['wlan_on']);
-
-        this.lastStatus = status;
       }, this));
 };
 
 $(function() {
   var statusPlugin = new status_monitor.Status(plugin);
   statusPlugin.start();
+  window.onI18nLocaleChange = function() {
+    statusPlugin.updateTooltip();
+  };
 });

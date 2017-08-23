@@ -731,12 +731,6 @@ cros.factory.Goofy = function() {
    */
   this.tabBar = null;
 
-  /**
-   * Component object for containing the test frame.
-   * @type {goog.ui.Component}
-   */
-  this.mainComponentContainer = null;
-
   // Set up magic keyboard shortcuts.
   goog.events.listen(
       window, goog.events.EventType.KEYDOWN, this.keyListener, true, this);
@@ -1041,6 +1035,25 @@ cros.factory.Goofy.prototype.init = function() {
 };
 
 /**
+ * Sets the locale of Goofy.
+ * @param {string} locale
+ */
+cros.factory.Goofy.prototype.setLocale = function(locale) {
+  this.locale = locale;
+  this.updateCSSClasses();
+  this.sendRpc('set_shared_data', ['ui_locale', this.locale]);
+  goog.array.forEach(
+      /** @type {!NodeList<!HTMLIFrameElement>} */ (
+          document.querySelectorAll('iframe')),
+      (i) => {
+        if (i.contentWindow) {
+          i.contentWindow.eval(
+              'if (this.onI18nLocaleChange) this.onI18nLocaleChange();');
+        }
+      });
+};
+
+/**
  * Sets up the locale selector.
  */
 cros.factory.Goofy.prototype.initLocaleSelector = function() {
@@ -1065,9 +1078,8 @@ cros.factory.Goofy.prototype.initLocaleSelector = function() {
             'div', {class: 'goofy-locale-toggle'},
             cros.factory.i18n.i18nLabelNode(label)));
     goog.events.listen(rootNode, goog.events.EventType.CLICK, function() {
-      this.locale = this.locale == locale0 ? locale1 : locale0;
-      this.updateCSSClasses();
-      this.sendRpc('set_shared_data', ['ui_locale', this.locale]);
+      var locale = this.locale == locale0 ? locale1 : locale0;
+      this.setLocale(locale);
     }, false, this);
   } else if (locales.length > 2) {
     // Show a dropdown menu for locale selection.
@@ -1100,9 +1112,7 @@ cros.factory.Goofy.prototype.initLocaleSelector = function() {
             var item = new goog.ui.MenuItem(localeNames[locale]);
             goog.events.listen(
                 item, goog.ui.Component.EventType.ACTION, function() {
-                  this.locale = locale;
-                  this.updateCSSClasses();
-                  this.sendRpc('set_shared_data', ['ui_locale', this.locale]);
+                  this.setLocale(locale);
                 }, false, this);
             menu.addChild(item, true);
           }, this);
@@ -1226,12 +1236,20 @@ cros.factory.Goofy.prototype.updateCSSClassesInDocument = function(doc) {
 cros.factory.Goofy.prototype.updateCSSClasses = function() {
   this.updateCSSClassesInDocument(document);
   this.fixSelectElements(document);
-  goog.object.forEach(this.invocations, function(i) {
+  goog.object.forEach(this.invocations, (i) => {
     if (i && i.iframe && i.iframe.contentDocument) {
       this.updateCSSClassesInDocument(i.iframe.contentDocument);
       this.fixSelectElements(i.iframe.contentDocument);
     }
-  }, this);
+  });
+  var pluginIframes = /** @type {!NodeList<!HTMLIFrameElement>} */ (
+      document.querySelectorAll('.goofy-plugin iframe'));
+  goog.array.forEach(pluginIframes, (i) => {
+    if (i.contentDocument) {
+      this.updateCSSClassesInDocument(i.contentDocument);
+      this.fixSelectElements(i.contentDocument);
+    }
+  });
 };
 
 /**
@@ -3392,6 +3410,11 @@ cros.factory.Goofy.prototype.setPluginUI = function(configs) {
     iframe.contentWindow.cros = cros;
     iframe.contentWindow.goog = goog;
     iframe.contentWindow.goofy = this;
+    iframe.onload = () => {
+      this.updateCSSClassesInDocument(
+          /** @type {!Document} */ (iframe.contentDocument));
+    };
+
     if (config.location == 'goofy-full') {
       hasFullUI = true;
     }
