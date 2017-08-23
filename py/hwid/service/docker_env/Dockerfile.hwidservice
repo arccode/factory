@@ -11,7 +11,7 @@ RUN apk upgrade --no-cache && \
     PyYaml==3.12
 
 Add ${gitcookies} "${workdir}"/"${gitcookies}"
-Run git config --global http.cookiefile "${gitcookies}"
+Run git config --global http.cookiefile "${workdir}/${gitcookies}"
 
 # Add standalone program service_manager.py
 Add service_manager.py "${workdir}"
