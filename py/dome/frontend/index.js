@@ -47,13 +47,26 @@ const store = createStore(
   )
 );
 
-const App = () => (
-  <MuiThemeProvider muiTheme={getMuiTheme(THEME)}>
-    <Provider store={store}>
-      <DomeApp />
-    </Provider>
-  </MuiThemeProvider>
-);
+var App = React.createClass({
+  componentDidMount() {
+    // check if user's using Chrome/Chromium
+    if (navigator.userAgent.indexOf("Chrome") == -1) {
+      window.alert("Warning!!\n\n" +
+                   "To visit Dome, please use Chrome/Chromium to " +
+                   "avoid unnecessary issues.");
+    }
+  },
+
+  render() {
+    return (
+      <MuiThemeProvider muiTheme={getMuiTheme(THEME)}>
+        <Provider store={store}>
+          <DomeApp />
+        </Provider>
+      </MuiThemeProvider>
+    );
+  }
+});
 
 ReactDOM.render(
   <App />,
