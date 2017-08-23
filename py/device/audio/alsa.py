@@ -11,6 +11,7 @@ import re
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device.audio import base
+from cros.factory.device.audio import config_manager
 from cros.factory.utils.type_utils import Enum
 
 # Configuration file is put under overlay directory and it can be customized
@@ -33,42 +34,13 @@ from cros.factory.utils.type_utils import Enum
 # =========================================================
 
 
-class AlsaAudioControl(base.BaseAudioControl):
-  """This class is used for setting audio related configuration.
-  It reads audio.conf initially to decide how to enable/disable each
-  component by amixer.
-  """
-  _RE_CARD_INDEX = re.compile(r'^card (\d+):.*?\[(.+?)\]')
-  _RE_DEV_NAME = re.compile(r'.*?hw:([0-9]+),([0-9]+)')
+class AlsaMixerController(base.BaseMixerController):
+  """Mixer controller for alsa."""
   _CONTROL_RE_STR = r'numid=(\d+).*?name=\'%s\''
-  # Just list all supported options. But we only use wav and raw types.
-  RecordType = Enum(['voc', 'wav', 'raw', 'au'])
-
-  def GetCardIndexByName(self, card_name):
-    """See BaseAudioControl.GetCardIndexByName"""
-    if card_name.isdigit():
-      return card_name
-    output = self._device.CallOutput(['aplay', '-l'])
-    for line in output.splitlines():
-      m = self._RE_CARD_INDEX.match(line)
-      if m is not None and m.group(2) == card_name:
-        return m.group(1)
-    raise ValueError('device name %s is incorrect' % card_name)
-
-  def GetCardIndex(self, device):
-    """Gets the card index from given device names.
-
-    Args:
-      device: ALSA device name
-    """
-    match = self._RE_DEV_NAME.match(device)
-    if match:
-      return match.group(1)
-    else:
-      raise ValueError('device name %s is incorrect' % device)
+  _RE_CARD_INDEX = re.compile(r'^card (\d+):.*?\[(.+?)\]')
 
   def GetMixerControls(self, name, card='0'):
-    """See BaseAudioControl.GetMixerControls"""
+    """See BaseMixerController.GetMixerControls"""
     list_controls = self._device.CallOutput(
         ['amixer', '-c%d' % int(card), 'controls'])
     re_control = re.compile(self._CONTROL_RE_STR % name)
@@ -94,14 +66,7 @@ class AlsaAudioControl(base.BaseAudioControl):
       return None
 
   def SetMixerControls(self, mixer_settings, card='0', store=True):
-    """Sets all mixer controls listed in the mixer settings on card.
-
-    Args:
-      mixer_settings: A dict of mixer settings to set.
-      card: The index of audio card
-      store: Store the current value so it can be restored later using
-        RestoreMixerControls.
-    """
+    """See BaseMixerController.SetMixerControls"""
     logging.info('Setting mixer control values on card %s', card)
     restore_mixer_settings = dict()
     for name, value in mixer_settings.items():
@@ -115,6 +80,32 @@ class AlsaAudioControl(base.BaseAudioControl):
       self._device.CheckCall(command)
     if store:
       self._restore_mixer_control_stack.append((restore_mixer_settings, card))
+
+  def GetCardIndexByName(self, card_name):
+    """See BaseMixerController.GetCardIndexByName"""
+    if card_name.isdigit():
+      return card_name
+    output = self._device.CallOutput(['aplay', '-l'])
+    for line in output.splitlines():
+      m = self._RE_CARD_INDEX.match(line)
+      if m is not None and m.group(2) == card_name:
+        return m.group(1)
+    raise ValueError('device name %s is incorrect' % card_name)
+
+
+class AlsaAudioControl(base.BaseAudioControl):
+  """This class is used for setting audio related configuration.
+  It reads audio.conf initially to decide how to enable/disable each
+  component by amixer.
+  """
+  # Just list all supported options. But we only use wav and raw types.
+  RecordType = Enum(['voc', 'wav', 'raw', 'au'])
+
+  def __init__(self, dut, config_name=None):
+    mixer_controller = AlsaMixerController(dut)
+    config_mgr = config_manager.FactoryAudioConfManager(
+        mixer_controller, config_name)
+    super(AlsaAudioControl, self).__init__(dut, config_mgr, mixer_controller)
 
   def _PlaybackWavFile(self, path, card, device):
     """See BaseAudioControl._PlaybackWavFile"""

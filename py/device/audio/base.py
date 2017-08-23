@@ -4,117 +4,27 @@
 
 """This is audio control utility base module """
 
+import abc
 import logging
-import os
 from multiprocessing import Process
-
-import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import types
-from cros.factory.utils import config_utils
-from cros.factory.utils import type_utils
+from cros.factory.device.audio import config_manager
 
-
-DEFAULT_YAML_CONFIG_PATH = '/usr/local/factory/py/test/audio.conf'
-DEFAULT_JSON_CONFIG_NAME = 'audio'
-
-# Strings for key in audio.conf
-HP_JACK_NAME = 'headphone_jack'
-MIC_JACK_NAME = 'mic_jack'
-HP_JACK_DETECT = 'headphone_jack_detect'
-MIC_JACK_DETECT = 'mic_jack_detect'
-MIC_JACK_TYPE_DETECT = 'mic_jack_type_detect'
-
-DEFAULT_HEADPHONE_JACK_NAMES = ['Headphone Jack', 'Headset Jack']
-# The input device event may be on Headphone Jack
-DEFAULT_MIC_JACK_NAMES = ['Mic Jack'] + DEFAULT_HEADPHONE_JACK_NAMES
-
-InputDevices = type_utils.Enum(['Dmic', 'Dmic2', 'MLBDmic', 'Extmic'])
-OutputDevices = type_utils.Enum(['Speaker', 'Headphone'])
-AudioDeviceType = type_utils.Enum(
-    list(InputDevices) + list(OutputDevices))
-
-MicJackType = type_utils.Enum(['none', 'lrgm', 'lrmg'])
-# Used for external command return value
-MIC_JACK_TYPE_RETURN_LRGM = '1'
-MIC_JACK_TYPE_RETURN_LRMG = '2'
-
-# Virtual Card Index for script.
-script_card_index = '999'
 
 # The bytes of the WAV header
 WAV_HEADER_SIZE = 44
 
 
-class BaseAudioControl(types.DeviceComponent):
-  """An abstract class for different target audio utils"""
+class BaseMixerController:
+  __metaclass__ = abc.ABCMeta
 
-  def __init__(self, dut, config_path=None):
-    super(BaseAudioControl, self).__init__(dut)
-    # used for audio config logging.
-    self._playback_process = None
-    self._audio_config_sn = 0
+  def __init__(self, device):
+    self._device = device
     self._restore_mixer_control_stack = []
-    self.audio_config = None
-    self.ApplyConfig(config_path)
 
-  def _GetPIDByName(self, name):
-    """Used to get process ID"""
-    pids = self._device.CallOutput(['toybox', 'pidof', name]).strip().split()
-    # we sholud only have one PID.
-    if len(pids) > 1:
-      raise RuntimeError('Find more than one PID(%r) of %s!' % (pids, name))
-    return pids[0] if pids else None
-
-  def ApplyConfig(self, config_path):
-    """Loads system config for audio cards.
-
-    The config may come from JSON config (config_utils) or legacy YAML files.
-    If config_path is a string that ends with ".conf", it will be evaluated as
-    YAML; otherwise it will be used as the config name for config_utils.
-
-    Args:
-      config_path: A string for YAML config file path or JSON config name.
-    """
-
-    if config_path is None:
-      # Use YAML file if that exists.
-      config_path = DEFAULT_YAML_CONFIG_PATH
-      if not os.path.exists(config_path):
-        config_path = DEFAULT_JSON_CONFIG_NAME
-
-    if config_path.endswith('.conf'):
-      with open(config_path, 'r') as config_file:
-        config = yaml.load(config_file)
-    else:
-      config = config_utils.LoadConfig(config_path)
-
-    # Convert names to indexes.
-    card_names = [name for name in config if not name.isdigit()]
-    for name in card_names:
-      index = self.GetCardIndexByName(name)
-      config[index] = config[name]
-
-    if not config:
-      logging.info('audio: No configuration file (%s).', config_path)
-    self.audio_config = config
-
-  def GetCardIndexByName(self, card_name):
-    """Get audio card index by card name. If the card_name is already an index,
-    the function will just return it.
-
-    Args:
-      card_name: Audio card name.
-
-    Returns:
-      Card index of the card name.
-
-    Raises:
-      ValueError when card name does not exist.
-    """
-    raise NotImplementedError
-
+  @abc.abstractmethod
   def GetMixerControls(self, name, card='0'):
     """Gets the value for mixer control.
 
@@ -124,6 +34,7 @@ class BaseAudioControl(types.DeviceComponent):
     """
     raise NotImplementedError
 
+  @abc.abstractmethod
   def SetMixerControls(self, mixer_settings, card='0', store=True):
     """Sets all mixer controls listed in the mixer settings on card.
 
@@ -152,24 +63,38 @@ class BaseAudioControl(types.DeviceComponent):
     for card, mixer_settings in final_settings.items():
       self.SetMixerControls(mixer_settings, card, False)
 
-  def FindEventDeviceByName(self, name):
-    """Finds the event device by matching name.
+  def GetCardIndexByName(self, card_name):
+    """Get audio card index by card name. If the card_name is already an index,
+    the function will just return it.
 
     Args:
-      name: The name to look up event device by substring matching.
+      card_name: Audio card name.
 
     Returns:
-      The full name of the found event device of form /dev/input/event*
+      Card index of the card name.
+
+    Raises:
+      ValueError when card name does not exist.
     """
-    for evdev in self._device.Glob('/dev/input/event*'):
-      evdev_name = self._device.ReadFile(
-          self._device.path.join(
-              '/sys/class/input/', self._device.path.basename(evdev),
-              'device/name'))
-      if evdev_name.find(name) != -1:
-        logging.info('Find %s Event Device %s', name, evdev)
-        return evdev
-    return None
+    raise NotImplementedError
+
+
+class BaseAudioControl(types.DeviceComponent):
+  """An abstract class for different target audio utils"""
+
+  def __init__(self, dut, config_mgr, mixer_controller):
+    super(BaseAudioControl, self).__init__(dut)
+    self._playback_process = None
+    self.config_mgr = config_mgr
+    self.mixer_controller = mixer_controller
+
+  def ApplyConfig(self, config_name):
+    """See BaseConfigManager.ApplyConfig."""
+    self.config_mgr.ApplyConfig(config_name)
+
+  def GetCardIndexByName(self, card_name):
+    """See BaseMixerController.GetCardIndexByName."""
+    return self.mixer_controller.GetCardIndexByName(card_name)
 
   def GetHeadphoneJackStatus(self, card='0'):
     """Gets the plug/unplug status of headphone jack.
@@ -180,26 +105,18 @@ class BaseAudioControl(types.DeviceComponent):
     Returns:
       True if headphone jack is plugged, False otherwise.
     """
-    status = None
+    try:
+      return self.config_mgr.GetHeadphoneJackStatus(card)
+    except Exception:
+      pass
 
-    if card in self.audio_config and HP_JACK_DETECT in self.audio_config[card]:
-      command = self.audio_config[card][HP_JACK_DETECT]
-      logging.info('Getting headphone jack status by %s', command)
-      jack_status = self._device.CallOutput(command).strip()
-      status = True if jack_status == '1' else False
-      logging.info('headphone jack status %s', status)
-      return status
-
-    possible_names = []
-    if card in self.audio_config and HP_JACK_NAME in self.audio_config[card]:
-      possible_names = [self.audio_config[card][HP_JACK_NAME]]
-    else:
-      possible_names = DEFAULT_HEADPHONE_JACK_NAMES
+    possible_names = self.config_mgr.GetHeadphoneJackPossibleNames(card)
 
     # Loops through possible names. Uses mixer control or evtest
     # to query jack status.
+    status = None
     for hp_jack_name in possible_names:
-      values = self.GetMixerControls(hp_jack_name, card)
+      values = self.mixer_controller.GetMixerControls(hp_jack_name, card)
       if values:
         status = True if values == 'on' else False
         break
@@ -214,7 +131,7 @@ class BaseAudioControl(types.DeviceComponent):
 
     logging.info('Getting headphone jack status %s', status)
     if status is None:
-      raise ValueError('No methods to get headphone jack status')
+      raise ValueError('No method can get headphone jack status')
 
     return status
 
@@ -227,26 +144,18 @@ class BaseAudioControl(types.DeviceComponent):
     Returns:
       True if mic jack is plugged, False otherwise.
     """
-    status = None
+    try:
+      return self.config_mgr.GetMicJackStatus(card)
+    except Exception:
+      pass
 
-    if card in self.audio_config and MIC_JACK_DETECT in self.audio_config[card]:
-      command = self.audio_config[card][MIC_JACK_DETECT]
-      logging.info('Getting microphone jack status by %s', command)
-      jack_status = self._device.CallOutput(command).strip()
-      status = True if jack_status == '1' else False
-      logging.info('microphone jack status %s', status)
-      return status
-
-    possible_names = []
-    if card in self.audio_config and MIC_JACK_NAME in self.audio_config[card]:
-      possible_names = [self.audio_config[card][MIC_JACK_NAME]]
-    else:
-      possible_names = DEFAULT_MIC_JACK_NAMES
+    possible_names = self.config_mgr.GetMicJackPossibleNames(card)
 
     # Loops through possible names. Uses mixer control or evtest
     # to query jack status.
+    status = None
     for jack_name in possible_names:
-      values = self.GetMixerControls(jack_name, card)
+      values = self.mixer_controller.GetMixerControls(jack_name, card)
       if values:
         status = True if values == 'on' else False
         break
@@ -265,218 +174,112 @@ class BaseAudioControl(types.DeviceComponent):
     return status
 
   def GetMicJackType(self, card='0'):
-    """Gets the mic jack type.
-
-    Args:
-      card: The index of audio card.
-
-    Returns:
-      MicJackType enum value to indicate the mic jack type.
-    """
-    mictype = None
-    if (card in self.audio_config and
-        MIC_JACK_TYPE_DETECT in self.audio_config[card]):
-      command = self.audio_config[card][MIC_JACK_TYPE_DETECT]
-      logging.info('Getting mic jack type by %s', command)
-      type_status = self._device.CallOutput(command).strip()
-      if type_status == MIC_JACK_TYPE_RETURN_LRGM:
-        mictype = MicJackType.lrgm
-      elif type_status == MIC_JACK_TYPE_RETURN_LRMG:
-        mictype = MicJackType.lrmg
-      else:
-        mictype = MicJackType.none
-
-    logging.info('Getting mic jack type %s', mictype)
-    if mictype is None:
-      raise ValueError('No methods to get mic jack type')
-
-    return mictype
+    return self.config_mgr.GetMicJackType(card)
 
   def ApplyAudioConfig(self, action, card='0', is_script=False):
-    """Apply audio configuration to dut.
+    return self.config_mgr.ApplyAudioConfig(action, card, is_script)
 
-    Args:
-      action: action key in audio configuration file
-      card: The index of audio card.
-        If is_script=True The card argument is not used.
-      is_script: True for shell script. False for mixer controls
-
-    Returns:
-      True for applying to dut. False for not.
-    """
-    if is_script:
-      card = script_card_index
-
-    if card in self.audio_config:
-      if action in self.audio_config[card]:
-        if is_script:
-          script = self.audio_config[card][action]
-          logging.info('Execute \'%s\'', script)
-          self._device.CheckCall(script)
-        else:
-          logging.info('\nvvv-- Do(%d) \'%s\' on card %s Start --vvv',
-                       self._audio_config_sn, action, card)
-          self.SetMixerControls(self.audio_config[card][action], card)
-          logging.info('\n^^^-- Do(%d) \'%s\' on card %s End   --^^^',
-                       self._audio_config_sn, action, card)
-          self._audio_config_sn += 1
-        return True
-      else:
-        logging.info('Action %s cannot be found in card %s', action, card)
-        return False
-    else:
-      logging.info('Card %s does not exist', card)
-      return False
-
-  def InitialSetting(self, card='0'):
-    self.ApplyAudioConfig('initial', card)
-
-  def _GetConfigPostfix(self, device):
-    switcher = {
-        AudioDeviceType.Speaker: "speaker",
-        AudioDeviceType.Headphone: "headphone",
-        AudioDeviceType.Dmic: "dmic",
-        AudioDeviceType.Dmic2: "dmic2",
-        AudioDeviceType.MLBDmic: "mlb_dmic",
-        AudioDeviceType.Extmic: "extmic"}
-    return switcher[device]
+  def RestoreMixerControls(self):
+    return self.mixer_controller.RestoreMixerControls()
 
   def EnableDevice(self, device, card='0'):
-    """Enable the specified audio device.
-
-    Args:
-      device: Audio device to control. Should be of type AudioDeviceType.
-    """
-    self.ApplyAudioConfig("enable_" + self._GetConfigPostfix(device), card)
+    self.config_mgr.EnableDevice(device, card)
 
   def MuteLeftDevice(self, device, card='0'):
-    """Mute left the specified audio device.
-
-    Args:
-      device: Audio device to control. Should be of type AudioDeviceType.
-    """
-    self.ApplyAudioConfig("mute_left_" + self._GetConfigPostfix(device), card)
+    self.config_mgr.MuteLeftDevice(device, card)
 
   def MuteRightDevice(self, device, card='0'):
-    """Mute left the specified audio device.
-
-    Args:
-      device: Audio device to control. Should be of type AudioDeviceType.
-    """
-    self.ApplyAudioConfig("mute_right_" + self._GetConfigPostfix(device), card)
+    self.config_mgr.MuteRightDevice(device, card)
 
   def DisableDevice(self, device, card='0'):
-    """Mute left the specified audio device.
-
-    Args:
-      device: Audio device to control. Should be of type AudioDeviceType.
-    """
-    self.ApplyAudioConfig("disable_" + self._GetConfigPostfix(device), card)
+    self.config_mgr.DisableDevice(device, card)
 
   def EnableSpeaker(self, card='0'):
-    self.EnableDevice(AudioDeviceType.Speaker, card)
+    self.EnableDevice(config_manager.AudioDeviceType.Speaker, card)
 
   def MuteLeftSpeaker(self, card='0'):
-    self.MuteLeftDevice(AudioDeviceType.Speaker, card)
+    self.MuteLeftDevice(config_manager.AudioDeviceType.Speaker, card)
 
   def MuteRightSpeaker(self, card='0'):
-    self.MuteRightDevice(AudioDeviceType.Speaker, card)
+    self.MuteRightDevice(config_manager.AudioDeviceType.Speaker, card)
 
   def DisableSpeaker(self, card='0'):
-    self.DisableDevice(AudioDeviceType.Speaker, card)
+    self.DisableDevice(config_manager.AudioDeviceType.Speaker, card)
 
   def EnableHeadphone(self, card='0'):
-    self.EnableDevice(AudioDeviceType.Headphone, card)
+    self.EnableDevice(config_manager.AudioDeviceType.Headphone, card)
 
   def MuteLeftHeadphone(self, card='0'):
-    self.MuteLeftDevice(AudioDeviceType.Headphone, card)
+    self.MuteLeftDevice(config_manager.AudioDeviceType.Headphone, card)
 
   def MuteRightHeadphone(self, card='0'):
-    self.MuteRightDevice(AudioDeviceType.Headphone, card)
+    self.MuteRightDevice(config_manager.AudioDeviceType.Headphone, card)
 
   def DisableHeadphone(self, card='0'):
-    self.DisableDevice(AudioDeviceType.Headphone, card)
+    self.DisableDevice(config_manager.AudioDeviceType.Headphone, card)
 
   def EnableDmic(self, card='0'):
-    self.EnableDevice(AudioDeviceType.Dmic, card)
+    self.EnableDevice(config_manager.AudioDeviceType.Dmic, card)
 
   def MuteLeftDmic(self, card='0'):
-    self.MuteLeftDevice(AudioDeviceType.Dmic, card)
+    self.MuteLeftDevice(config_manager.AudioDeviceType.Dmic, card)
 
   def MuteRightDmic(self, card='0'):
-    self.MuteRightDevice(AudioDeviceType.Dmic, card)
+    self.MuteRightDevice(config_manager.AudioDeviceType.Dmic, card)
 
   def DisableDmic(self, card='0'):
-    self.DisableDevice(AudioDeviceType.Dmic, card)
+    self.DisableDevice(config_manager.AudioDeviceType.Dmic, card)
 
   def EnableDmic2(self, card='0'):
-    self.EnableDevice(AudioDeviceType.Dmic2, card)
+    self.EnableDevice(config_manager.AudioDeviceType.Dmic2, card)
 
   def MuteLeftDmic2(self, card='0'):
-    self.MuteLeftDevice(AudioDeviceType.Dmic2, card)
+    self.MuteLeftDevice(config_manager.AudioDeviceType.Dmic2, card)
 
   def MuteRightDmic2(self, card='0'):
-    self.MuteRightDevice(AudioDeviceType.Dmic2, card)
+    self.MuteRightDevice(config_manager.AudioDeviceType.Dmic2, card)
 
   def DisableDmic2(self, card='0'):
-    self.DisableDevice(AudioDeviceType.Dmic2, card)
+    self.DisableDevice(config_manager.AudioDeviceType.Dmic2, card)
 
   def EnableMLBDmic(self, card='0'):
-    self.EnableDevice(AudioDeviceType.MLBDmic, card)
+    self.EnableDevice(config_manager.AudioDeviceType.MLBDmic, card)
 
   def MuteLeftMLBDmic(self, card='0'):
-    self.MuteLeftDevice(AudioDeviceType.MLBDmic, card)
+    self.MuteLeftDevice(config_manager.AudioDeviceType.MLBDmic, card)
 
   def MuteRightMLBDmic(self, card='0'):
-    self.MuteRightDevice(AudioDeviceType.MLBDmic, card)
+    self.MuteRightDevice(config_manager.AudioDeviceType.MLBDmic, card)
 
   def DisableMLBDmic(self, card='0'):
-    self.DisableDevice(AudioDeviceType.MLBDmic, card)
+    self.DisableDevice(config_manager.AudioDeviceType.MLBDmic, card)
 
   def EnableExtmic(self, card='0'):
-    self.EnableDevice(AudioDeviceType.Extmic, card)
+    self.EnableDevice(config_manager.AudioDeviceType.Extmic, card)
 
   def MuteLeftExtmic(self, card='0'):
-    self.MuteLeftDevice(AudioDeviceType.Extmic, card)
+    self.MuteLeftDevice(config_manager.AudioDeviceType.Extmic, card)
 
   def MuteRightExtmic(self, card='0'):
-    self.MuteRightDevice(AudioDeviceType.Extmic, card)
+    self.MuteRightDevice(config_manager.AudioDeviceType.Extmic, card)
 
   def DisableExtmic(self, card='0'):
-    self.DisableDevice(AudioDeviceType.Extmic, card)
+    self.DisableDevice(config_manager.AudioDeviceType.Extmic, card)
 
   def SetSpeakerVolume(self, volume=0, card='0'):
-    if not isinstance(volume, int) or volume < 0:
-      raise ValueError('Volume should be positive integer.')
-    if card in self.audio_config:
-      if 'set_speaker_volume' in self.audio_config[card]:
-        for name in self.audio_config[card]['set_speaker_volume'].keys():
-          if 'Volume' in name:
-            self.audio_config[card]['set_speaker_volume'][name] = str(volume)
-            self.SetMixerControls(
-                self.audio_config[card]['set_speaker_volume'], card)
-            break
+    self.config_mgr.SetSpeakerVolume(volume, card)
 
   def SetHeadphoneVolume(self, volume=0, card='0'):
-    if not isinstance(volume, int) or volume < 0:
-      raise ValueError('Volume should be positive integer.')
-    if card in self.audio_config:
-      if 'set_headphone_volume' in self.audio_config[card]:
-        for name in self.audio_config[card]['set_headphone_volume'].keys():
-          if 'Volume' in name:
-            self.audio_config[card]['set_headphone_volume'][name] = str(volume)
-            self.SetMixerControls(
-                self.audio_config[card]['set_headphone_volume'], card)
-            break
+    self.config_mgr.SetHeadphoneVolume(volume, card)
 
   def DisableAllAudioInputs(self, card):
     """Disable all audio inputs"""
-    for audio_dev in InputDevices:
+    for audio_dev in config_manager.InputDevices:
       self.DisableDevice(audio_dev, card)
 
   def DisableAllAudioOutputs(self, card):
     """Disable all audio outputs"""
-    for audio_dev in OutputDevices:
+    for audio_dev in config_manager.OutputDevices:
       self.DisableDevice(audio_dev, card)
 
   def _PlaybackWavFile(self, path, card, device):
@@ -558,3 +361,31 @@ class BaseAudioControl(types.DeviceComponent):
       self._device.CheckCall(
           ['dd', 'skip=%d' % WAV_HEADER_SIZE, 'if=%s' % wav_path, 'of=%s' %
            path, 'bs=1'])
+
+  def _GetPIDByName(self, name):
+    """Used to get process ID"""
+    pids = self._device.CallOutput(['toybox', 'pidof', name]).strip().split()
+    # we sholud only have one PID.
+    if len(pids) > 1:
+      raise RuntimeError('Find more than one PID(%r) of %s!' % (pids, name))
+    return pids[0] if pids else None
+
+  def FindEventDeviceByName(self, name):
+    """Finds the event device by matching name.
+
+    Args:
+      name: The name to look up event device by substring matching.
+
+    Returns:
+      The full name of the found event device of form /dev/input/event*
+    """
+    for evdev in self._device.Glob('/dev/input/event*'):
+      evdev_name = self._device.ReadFile(
+          self._device.path.join(
+              '/sys/class/input/', self._device.path.basename(evdev),
+              'device/name'))
+      if evdev_name.find(name) != -1:
+        logging.info('Find %s Event Device %s', name, evdev)
+        return evdev
+    return None
+
