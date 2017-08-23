@@ -25,8 +25,10 @@ def ReadProperties():
 
 
 def UpdateDeviceProperties(update):
-  with open(DEVICE_GOOFY_GHOST_PROPERTIES_FILE, 'r') as fin:
-    properties = json.load(fin)
+  properties = {}
+  if os.path.exists(DEVICE_GOOFY_GHOST_PROPERTIES_FILE):
+    with open(DEVICE_GOOFY_GHOST_PROPERTIES_FILE, 'r') as fin:
+      properties = json.load(fin)
   properties.update(update)
   with open(DEVICE_GOOFY_GHOST_PROPERTIES_FILE, 'w') as fout:
     json.dump(properties, fout, indent=2)
