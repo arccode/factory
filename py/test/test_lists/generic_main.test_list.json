@@ -24,11 +24,19 @@
     },
     "ui_locale": "zh-CN"
   },
+  "definitions": {
+    "FATP": {
+      "inherit": "FlattenGroup",
+      "subtests": [
+        "FAT",
+        "RunIn",
+        "FFT",
+        "GRT"
+      ]
+    }
+  },
   "tests": [
     "SMT",
-    "FAT",
-    "RunIn",
-    "FFT",
-    "GRT"
+    "FATP"
   ]
 }
