@@ -740,6 +740,7 @@ do_update_docker_image_version() {
       py/dome
       py/instalog
       py/umpire
+      ':(exclude)py/umpire/client'
       go/src/overlord
   )
 
