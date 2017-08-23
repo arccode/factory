@@ -325,6 +325,103 @@ class Project(django.db.models.Model):
   class Meta(object):
     ordering = ['name']
 
+  @staticmethod
+  def GetProjectByName(project_name):
+    return Project.objects.get(pk=project_name)
+
+  def UploadAndDeployConfig(self, config, force=False):
+    """Upload and deploy config atomically."""
+    umpire_server = GetUmpireServer(self.name)
+
+    logger.info('Uploading Umpire config')
+    staging_config_path = umpire_server.AddConfigFromBlob(
+        yaml.safe_dump(config, default_flow_style=False),
+        umpire_resource.ConfigTypeNames.umpire_config)
+
+    logger.info('Staging Umpire config')
+    try:
+      umpire_server.StageConfigFile(staging_config_path, force)
+    except Exception as e:
+      raise DomeServerException(
+          'Cannot stage config file, make sure no one is editing Umpire config '
+          'at the same time, and there is no staging config exists. Error '
+          'message: %r' % e)
+
+    logger.info('Deploying Umpire config')
+    try:
+      umpire_server.Deploy(staging_config_path)
+    except xmlrpclib.Fault as e:
+      logger.error('Deploying failed, will unstage Umpire config now, '
+                   'error message from Umpire: %r', e.faultString)
+      try:
+        umpire_server.UnstageConfigFile()
+      except xmlrpclib.Fault as e:
+        logger.warning("Unstaging failed, doesn't matter, ignored, "
+                       'error message from Umpire: %r', e.faultString)
+
+      # TODO(littlecvr): we should probably refine Umpire's error message so
+      #                  Dome has to forward the message to the user only
+      #                  without knowing what's really happened
+      if 'Missing default bundle' in e.faultString:
+        raise DomeClientException(
+            detail='Cannot remove or deactivate default bundle')
+      else:
+        raise DomeServerException(detail=e.faultString)
+
+  def GetNormalizedActiveConfig(self):
+    """Return the normalized version of Umpire active config."""
+    umpire_status = GetUmpireStatus(self.name)
+    config = yaml.load(umpire_status['active_config'])
+    return self.NormalizeConfig(config)
+
+  @staticmethod
+  def NormalizeConfig(config):
+    bundle_id_set = set(b['id'] for b in config['bundles'])
+
+    # We do not allow multiple rulesets referring to the same bundle, so
+    # duplicate the bundle if we have found such cases.
+    ruleset_id_set = set()
+    for r in config['rulesets']:
+      # TODO(littlecvr): how to deal with a ruleset that refers to a
+      #                  non-existing bundle?
+
+      if r['bundle_id'] not in ruleset_id_set:
+        ruleset_id_set.add(r['bundle_id'])
+      else:  # need to duplicate
+        # generate a new name, may generate very long _copy_copy_copy... at the
+        # end if there are many conflicts
+        new_name = r['bundle_id']
+        while True:
+          new_name = '%s_copy' % new_name
+          if new_name not in ruleset_id_set and new_name not in bundle_id_set:
+            ruleset_id_set.add(new_name)
+            bundle_id_set.add(new_name)
+            break
+
+        # find the original bundle and duplicate it
+        src_bundle = next(
+            b for b in config['bundles'] if b['id'] == r['bundle_id'])
+        dst_bundle = copy.deepcopy(src_bundle)
+        dst_bundle['id'] = new_name
+        config['bundles'].append(dst_bundle)
+
+        # update the ruleset
+        r['bundle_id'] = new_name
+
+    # sort 'bundles' section by their IDs
+    config['bundles'].sort(key=lambda b: b['id'])
+
+    # We do not allow bundles exist in 'bundles' section but not in 'ruleset'
+    # section.
+    for b in config['bundles']:
+      if b['id'] not in ruleset_id_set:
+        ruleset_id_set.add(b['id'])
+        config['rulesets'].append({'active': False,
+                                   'bundle_id': b['id'],
+                                   'note': b['note']})
+
+    return config
+
   def MapNetbootResourceToTFTP(self, bundle_name):
     umpire_server = GetUmpireServer(self.name)
     netboot_resources = [
@@ -529,105 +626,11 @@ class Bundle(object):
 
   @staticmethod
   def HasResource(project_name, bundle_name, resource_name):
-    config = Bundle._GetNormalizedActiveConfig(project_name)
+    project = Project.GetProjectByName(project_name)
+    config = project.GetNormalizedActiveConfig()
     bundle = next(b for b in config['bundles'] if b['id'] == bundle_name)
     payloads = GetUmpireServer(project_name).GetPayloadsDict(bundle['payloads'])
     return resource_name in payloads
-
-  @staticmethod
-  def _GetNormalizedActiveConfig(project_name):
-    """Return the normalized version of Umpire active config."""
-    umpire_status = GetUmpireStatus(project_name)
-    config = yaml.load(umpire_status['active_config'])
-    return Bundle._NormalizeConfig(config)
-
-  @staticmethod
-  def _UploadAndDeployConfig(project_name, config, force=False):
-    """Upload and deploy config atomically."""
-    umpire_server = GetUmpireServer(project_name)
-
-    logger.info('Uploading Umpire config')
-    staging_config_path = umpire_server.AddConfigFromBlob(
-        yaml.dump(config, default_flow_style=False),
-        umpire_resource.ConfigTypeNames.umpire_config)
-
-    logger.info('Staging Umpire config')
-    try:
-      umpire_server.StageConfigFile(staging_config_path, force)
-    except Exception as e:
-      raise DomeServerException(
-          'Cannot stage config file, make sure no one is editing Umpire config '
-          'at the same time, and there is no staging config exists. Error '
-          'message: %r' % e)
-
-    logger.info('Deploying Umpire config')
-    try:
-      umpire_server.Deploy(staging_config_path)
-    except xmlrpclib.Fault as e:
-      logger.error('Deploying failed, will unstage Umpire config now, '
-                   'error message from Umpire: %r', e.faultString)
-      try:
-        umpire_server.UnstageConfigFile()
-      except xmlrpclib.Fault as e:
-        logger.warning("Unstaging failed, doesn't matter, ignored, "
-                       'error message from Umpire: %r', e.faultString)
-
-      # TODO(littlecvr): we should probably refine Umpire's error message so
-      #                  Dome has to forward the message to the user only
-      #                  without knowing what's really happened
-      if 'Missing default bundle' in e.faultString:
-        raise DomeClientException(
-            detail='Cannot remove or deactivate default bundle')
-      else:
-        raise DomeServerException(detail=e.faultString)
-
-  @staticmethod
-  def _NormalizeConfig(config):
-    bundle_id_set = set(b['id'] for b in config['bundles'])
-
-    # We do not allow multiple rulesets referring to the same bundle, so
-    # duplicate the bundle if we have found such cases.
-    ruleset_id_set = set()
-    for r in config['rulesets']:
-      # TODO(littlecvr): how to deal with a ruleset that refers to a
-      #                  non-existing bundle?
-
-      if r['bundle_id'] not in ruleset_id_set:
-        ruleset_id_set.add(r['bundle_id'])
-      else:  # need to duplicate
-        # generate a new name, may generate very long _copy_copy_copy... at the
-        # end if there are many conflicts
-        new_name = r['bundle_id']
-        while True:
-          new_name = '%s_copy' % new_name
-          if new_name not in ruleset_id_set and new_name not in bundle_id_set:
-            ruleset_id_set.add(new_name)
-            bundle_id_set.add(new_name)
-            break
-
-        # find the original bundle and duplicate it
-        src_bundle = next(
-            b for b in config['bundles'] if b['id'] == r['bundle_id'])
-        dst_bundle = copy.deepcopy(src_bundle)
-        dst_bundle['id'] = new_name
-        config['bundles'].append(dst_bundle)
-
-        # update the ruleset
-        r['bundle_id'] = new_name
-
-    # sort 'bundles' section by their IDs
-    config['bundles'].sort(key=lambda b: b['id'])
-
-    # We do not allow bundles exist in 'bundles' section but not in 'ruleset'
-    # section.
-    for b in config['bundles']:
-      if b['id'] not in ruleset_id_set:
-        ruleset_id_set.add(b['id'])
-        config['rulesets'].append({'active': False,
-                                   'bundle_id': b['id'],
-                                   'note': b['note']})
-
-    return config
 
   @staticmethod
   def _FromUmpireBundleAndRuleset(project_name, bundle, ruleset):
@@ -653,7 +656,8 @@ class Bundle(object):
       project_name: name of the project.
       bundle_name: name of the bundle to delete.
     """
-    config = Bundle._GetNormalizedActiveConfig(project_name)
+    project = Project.GetProjectByName(project_name)
+    config = project.GetNormalizedActiveConfig()
     if not any(b['id'] == bundle_name for b in config['bundles']):
       raise DomeClientException(
           detail='Bundle %s not found' % bundle_name,
@@ -664,7 +668,7 @@ class Bundle(object):
     config['bundles'] = [
         b for b in config['bundles'] if b['id'] != bundle_name]
 
-    Bundle._UploadAndDeployConfig(project_name, config)
+    project.UploadAndDeployConfig(config)
 
   @staticmethod
   def ListOne(project_name, bundle_name):
@@ -675,7 +679,8 @@ class Bundle(object):
       bundle_name: name of the bundle to find, this corresponds to the "id"
           field in umpire config.
     """
-    config = Bundle._GetNormalizedActiveConfig(project_name)
+    project = Project.GetProjectByName(project_name)
+    config = project.GetNormalizedActiveConfig()
 
     logger.info('Finding bundle %r in project %r', bundle_name, project_name)
     try:
@@ -704,7 +709,8 @@ class Bundle(object):
     Return:
       A list of all bundles.
     """
-    config = Bundle._GetNormalizedActiveConfig(project_name)
+    project = Project.GetProjectByName(project_name)
+    config = project.GetNormalizedActiveConfig()
 
     bundle_dict = dict((b['id'], b) for b in config['bundles'])
 
@@ -735,7 +741,8 @@ class Bundle(object):
           would be changed to the particular resource, so the client can do
           partial update without listing all resources.
     """
-    config = Bundle._GetNormalizedActiveConfig(project_name)
+    project = Project.GetProjectByName(project_name)
+    config = project.GetNormalizedActiveConfig()
 
     try:
       src_bundle = next(
@@ -762,7 +769,7 @@ class Bundle(object):
       # TODO(b/34264367): support unicode.
       ruleset['bundle_id'] = str(dst_bundle_name)
       config['rulesets'].insert(0, ruleset)
-      config = Bundle._NormalizeConfig(config)
+      config = project.NormalizeConfig(config)
 
     if note is not None:
       # TODO(b/34264367): support unicode.
@@ -786,7 +793,7 @@ class Bundle(object):
     # only deploy if at least one thing has changed
     if (dst_bundle_name or note is not None or
         active is not None or rules is not None):
-      Bundle._UploadAndDeployConfig(project_name, config)
+      project.UploadAndDeployConfig(config)
 
     # update resources
     if resources is not None:
@@ -806,7 +813,8 @@ class Bundle(object):
     Args:
       new_order: a list of bundle names.
     """
-    old_config = Bundle._GetNormalizedActiveConfig(project_name)
+    project = Project.GetProjectByName(project_name)
+    old_config = project.GetNormalizedActiveConfig()
 
     # make sure all names are in current config
     old_bundle_set = set(b['id'] for b in old_config['bundles'])
@@ -821,7 +829,7 @@ class Bundle(object):
     new_config = copy.deepcopy(old_config)
     new_config['rulesets'] = [rulesets[n] for n in new_order]
 
-    Bundle._UploadAndDeployConfig(project_name, new_config)
+    project.UploadAndDeployConfig(new_config)
 
     return Bundle.ListAll(project_name)
 
@@ -844,7 +852,8 @@ class Bundle(object):
 
     # config staged before, need the force argument or Umpire will complain
     # TODO(littlecvr): we can actually deploy directly here
-    Bundle._UploadAndDeployConfig(project_name, config, force=True)
+    project = Project.GetProjectByName(project_name)
+    project.UploadAndDeployConfig(config, force=True)
 
   @staticmethod
   def UploadNew(project_name, bundle_name, bundle_note, bundle_file_id):
@@ -883,7 +892,8 @@ class Bundle(object):
         ruleset['active'] = True
         break
 
-    Bundle._UploadAndDeployConfig(project_name, config, force=True)
+    project = Project.GetProjectByName(project_name)
+    project.UploadAndDeployConfig(config, force=True)
 
     # find and return the new bundle
     return Bundle.ListOne(project_name, bundle_name)
