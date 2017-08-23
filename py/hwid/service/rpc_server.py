@@ -2,10 +2,7 @@
 # Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-
-
 """The RPC fuctions and classes for HWIDService."""
-
 
 import argparse
 import inspect
@@ -18,8 +15,10 @@ import uuid
 
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 
-import factory_common # pylint: disable=unused-import
-from cros.factory.hwid.service.common import Command, CreateResponse
+import factory_common  # pylint: disable=unused-import
+from cros.factory.hwid.service.common import Command
+from cros.factory.hwid.service.common import CreateResponse
+from cros.factory.hwid.service.common import InitLogger
 from cros.factory.hwid.service import validator
 from cros.factory.hwid.v3 import builder
 from cros.factory.utils import file_utils
@@ -27,17 +26,20 @@ from cros.factory.utils import file_utils
 
 def DecorateAllMethods(decorator):
   """The class decorator that decorates all the public methods."""
+
   def _Decorate(cls):
     for func_name, func in inspect.getmembers(cls, inspect.ismethod):
       if not func_name.startswith('_'):
         setattr(cls, func_name, decorator(func))
     return cls
+
   return _Decorate
 
 
 # TODO(yllin): Add performance profiling test.
 def _LogRPC(method):
   """A decorator that logs the rpc"""
+
   def _LogRPCFunction(*args, **kwargs):
     rpc_unique_id = uuid.uuid4()
     t1 = time.time()
@@ -53,14 +55,17 @@ def _LogRPC(method):
         'return': rpc_return
     })
     return rpc_return
+
   return _LogRPCFunction
 
 
 def _RPCReturn(method):
   """A decorator that creates rpc returning dict."""
+
   def _CreateRPCReturn(*args, **kwargs):
     success, ret = method(*args, **kwargs)
     return {'success': bool(success), 'ret': unicode(ret) if ret else None}
+
   return _CreateRPCReturn
 
 
@@ -78,11 +83,7 @@ class HWIDRPCServer(SimpleXMLRPCServer):
       addr: A (string, int) tuple where the server serves on.
     """
     SimpleXMLRPCServer.__init__(
-        self,
-        addr=addr,
-        logRequests=True,
-        allow_none=True,
-        encoding='UTF-8')
+        self, addr=addr, logRequests=True, allow_none=True, encoding='UTF-8')
     self.register_instance(HWIDRPCInstance())
     self.register_introspection_functions()
 
@@ -146,6 +147,7 @@ class HWIDRPCInstance(object):
            {'success': True, 'ret': '...###### BEGIN CHECKSUM BLOCK....'}
 
     """
+
     def _UpdateChecksum(hwid_config):
       with file_utils.UnopenedTemporaryFile() as filename:
         with open(filename, 'w') as f:
@@ -237,8 +239,7 @@ class HWIDService(object):
       response = CreateResponse(
           request=request, success=True, msg='HWID Service Terminated.')
     except Exception as e:
-      response = CreateResponse(
-          request=request, success=False, msg=e.message)
+      response = CreateResponse(request=request, success=False, msg=e.message)
     finally:
       self._cmd_conn.send(response)
       self._cmd_conn.close()
@@ -284,12 +285,19 @@ def _ParseArgs():
       default=False,
       dest='standalone',
       help='for debuggin purpose, runs without ServiceManager')
+  arg_pser.add_argument(
+      '--verbose',
+      action='store_true',
+      default=None,
+      dest='verbose',
+      help='for debuggin purpose, verbose debug output')
   return arg_pser.parse_args()
 
 
 def main():
   args = _ParseArgs()
 
+  InitLogger(args.verbose)
   service = HWIDService(
       address=(args.ip, args.port),
       cmd_conn_address=(args.sm_ip, args.sm_port),

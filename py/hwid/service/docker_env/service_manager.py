@@ -16,12 +16,11 @@ import logging  # TODO(yllin): Replace logging with testlog
 from multiprocessing.connection import Listener
 import os
 import subprocess
-import sys
 import threading
 import time
 import traceback
 
-from common import Command, CreateRequest
+from common import Command, CreateRequest, InitLogger
 
 # Paths in docker host.
 _CROS_ROOT = '/usr/src/app/cros/'
@@ -68,8 +67,7 @@ class Repository(object):
 
   def Clone(self):
     try:
-      logging.info('Cloning repository %s to %s', self.repo_url,
-                   self.directory)
+      logging.info('Cloning repository %s to %s', self.repo_url, self.directory)
       subprocess.check_call(['git', 'clone', self.repo_url, self.directory])
     except subprocess.CalledProcessError:
       logging.error(traceback.format_exc())
@@ -91,7 +89,10 @@ class ServiceManager(object):
   by sending Terminate request via synchronized _cmd_conn.
   """
 
-  def __init__(self, port=DEFAULT_HWIDSERVICE_PORT, update_minutes=24*60):
+  def __init__(self,
+               port=DEFAULT_HWIDSERVICE_PORT,
+               update_minutes=24 * 60,
+               verbose=None):
     """Constructor.
 
     Args:
@@ -100,19 +101,18 @@ class ServiceManager(object):
     Attributes:
       _poll_seconds: An int, a time interval for polling repo for updating.
       _port: An int, the port which HWID Service listens to.
-      _repos:
-      _service:
-      _service_path:
-
+      _verbose: Verbose output.
+      _repos: A list of Repository objects.
+      _service: A Popen object of the service.
     """
     ToSeconds = lambda minutes: minutes * 60
     self._poll_seconds = ToSeconds(update_minutes)
+    self._verbose = verbose
     self._port = port
     self._repos = []
     for _repo, _target in _MANAGED_REPOS:
       self._repos.append(Repository(_repo, _target))
     self._service = None
-    self._service_path = _RPC_SERVER
 
     # Synchronized command connection
     self._authkey = None
@@ -128,14 +128,14 @@ class ServiceManager(object):
       return
 
     cmd = [
-        'python', '-u', self._service_path,
-        '--port', str(self._port),
-        '--sm-ip', self._cmd_listen_address[0],
-        '--sm-port', str(self._cmd_listen_address[1])
+        'python', '-u', _RPC_SERVER, '--port',
+        str(self._port), '--sm-ip', self._cmd_listen_address[0], '--sm-port',
+        str(self._cmd_listen_address[1])
     ]
+    if self._verbose:
+      cmd.append('--verbose')
     try:
-      self._service = subprocess.Popen(
-          cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+      self._service = subprocess.Popen(cmd)
       logging.info('HWID Service up, listing to port %d. '
                    'Will update in %d seconds.', self._port, self._poll_seconds)
     except OSError:
@@ -206,22 +206,16 @@ class ServiceManager(object):
 
 class TestServiceManager(ServiceManager):
   """A ServiceManager for off-line test."""
-  def __init__(self, port=DEFAULT_HWIDSERVICE_PORT, update_minutes=1):
-    super(TestServiceManager, self).__init__(port, update_minutes)
+
+  def __init__(self,
+               port=DEFAULT_HWIDSERVICE_PORT,
+               update_minutes=1,
+               verbose=None):
+    super(TestServiceManager, self).__init__(port, update_minutes, verbose)
     self._repos = []  # Clean up the repos
 
   def _Setup(self):
     logging.info('Setting up HWID Service')
-
-
-def _SetupLogger():
-  """Logging to file and stdout."""
-  logger = logging.getLogger()
-  stream_handler = logging.StreamHandler(sys.stdout)
-  formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-  stream_handler.setFormatter(formatter)
-  logger.addHandler(stream_handler)
-  logger.setLevel(logging.INFO)
 
 
 def main():
@@ -236,15 +230,21 @@ def main():
       '--update-minutes', type=int, dest='update_minutes', default=1440)
   arg_parser.add_argument(
       '-p', '--port', type=int, dest='port', default=DEFAULT_HWIDSERVICE_PORT)
+  arg_parser.add_argument(
+      '--verbose',
+      action='store_true',
+      default=None,
+      dest='verbose',
+      help='for debuggin purpose, verbose debug output')
   args = arg_parser.parse_args()
 
-  _SetupLogger()
+  InitLogger(args.verbose)
 
   sm = None
   if args.local_test:
-    sm = TestServiceManager(port=args.port, update_minutes=args.update_minutes)
+    sm = TestServiceManager(args.port, args.update_minutes, args.verbose)
   else:
-    sm = ServiceManager(port=args.port, update_minutes=args.update_minutes)
+    sm = ServiceManager(args.port, args.update_minutes, args.verbose)
   sm.RunForever()
 
 

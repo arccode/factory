@@ -16,6 +16,8 @@ from the module import paths that socket uses, we use dictonary object to pass
 the information.
 """
 
+import logging
+import sys
 import time
 import uuid
 
@@ -41,3 +43,14 @@ def CreateResponse(request, success, msg):
       'success': success,
       'message': msg
   }
+
+
+def InitLogger(verbose=None):
+  """Init the logger"""
+  logger = logging.getLogger()
+  logger.setLevel(logging.DEBUG if verbose else logging.INFO)
+  handler = logging.StreamHandler(sys.stdout)
+  log_format = '%(asctime)s [%(levelname)s] %(message)s'
+  formatter = logging.Formatter(log_format, '%Y/%m/%d %H:%M:%S')
+  handler.setFormatter(formatter)
+  logger.addHandler(handler)

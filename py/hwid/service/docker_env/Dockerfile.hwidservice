@@ -19,7 +19,7 @@ Add service_manager.py "${workdir}"
 Add common.py "${workdir}"
 
 ENV CROS_WORKON_SRCROOT "${workdir}/cros"
+ENV LOGFILE="/var/log/hwidservice.log"
 
 RUN ln -s "${workdir}"/service_manager.py /usr/bin/service_manager
-
-CMD ["/usr/bin/service_manager"]
+CMD ["/bin/sh", "-c", "/usr/bin/service_manager 2>&1 | tee -a ${LOGFILE}"]
