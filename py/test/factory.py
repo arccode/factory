@@ -225,10 +225,6 @@ class Options(object):
   """If set to True, the test harness will perform an auto-run whenever
   the operator switches to any test."""
 
-  ui_lang = None
-  """The default UI language (must be ``'en'`` for English or ``'zh'``
-  for Chinese. Deprecated."""
-
   ui_locale = translation.DEFAULT_LOCALE
   """The default UI locale."""
 
@@ -279,9 +275,6 @@ class Options(object):
   """The shopfloor server URL."""
   _types['shopfloor_server_url'] = (type(None), str)
 
-  shopfloor_server_url_for_stage = {}
-  """Test stage to shopfloor URL mapping."""
-
   stop_on_failure = False
   """Whether to stop on any failure."""
 
@@ -296,9 +289,6 @@ class Options(object):
   hooks_class = 'cros.factory.test.factory.Hooks'
   """Hooks class for the factory test harness.  Defaults to a dummy
   class."""
-
-  check_if_mlb_changed = False
-  """Check if MLB has been changed, and reset all tests if so."""
 
   phase = None
   """Name of a phase to set.  If None, the phase is unset and the

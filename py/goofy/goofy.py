@@ -1123,12 +1123,7 @@ class Goofy(GoofyBase):
     phase.SetPersistentPhase(self.test_list.options.phase)
 
     if not self.state_instance.has_shared_data('ui_locale'):
-      if self.test_list.options.ui_lang is not None:
-        # For backward compatibility
-        ui_locale = ('en-US'
-                     if self.test_list.options.ui_lang == 'en' else 'zh-CN')
-      else:
-        ui_locale = self.test_list.options.ui_locale
+      ui_locale = self.test_list.options.ui_locale
       self.state_instance.set_shared_data('ui_locale', ui_locale)
     self.state_instance.set_shared_data(
         'test_list_options',
