@@ -95,16 +95,33 @@ class AlsaMixerController(base.BaseMixerController):
 
 class AlsaAudioControl(base.BaseAudioControl):
   """This class is used for setting audio related configuration.
-  It reads audio.conf initially to decide how to enable/disable each
-  component by amixer.
+  It reads ALSA UCM configs to control the hardware components.
+  If an audio.conf exists, the operations defined in that config
+  file will override the behavior.
   """
   # Just list all supported options. But we only use wav and raw types.
   RecordType = Enum(['voc', 'wav', 'raw', 'au'])
 
-  def __init__(self, dut, config_name=None):
+  def __init__(self, dut, config_name=None,
+               ucm_card_map=None, ucm_device_map=None, ucm_verb=None):
     mixer_controller = AlsaMixerController(dut)
-    config_mgr = config_manager.CreateAudioConfigManager(
-        mixer_controller, config_name)
+
+    # Use UCM config manager by default
+    config_mgr = None
+    try:
+      config_mgr = config_manager.UCMConfigManager(
+          dut, mixer_controller, ucm_card_map, ucm_device_map,
+          ucm_verb, config_name)
+    except Exception:
+      if any(v is not None for v in (ucm_card_map, ucm_device_map, ucm_verb)):
+        # User intended to use UCM. Raise an exception
+        logging.error('Failed to construct a UCM config manager')
+        raise
+
+    if config_mgr is None:
+      # Fallback to use factory audio conf
+      config_mgr = config_manager.CreateAudioConfigManager(
+          mixer_controller, config_name)
     super(AlsaAudioControl, self).__init__(dut, config_mgr, mixer_controller)
 
   def _PlaybackWavFile(self, path, card, device):
