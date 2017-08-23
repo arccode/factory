@@ -126,7 +126,7 @@ status_monitor.Status.prototype.start = function() {
  * Updates the current time.
  */
 status_monitor.Status.prototype.updateTime = function() {
-  var element = $(this.plugin.dom).find('#time').get(0);
+  var element = $(this.infoTooltip).find('#time').get(0);
   if (element) {
     element.innerHTML = new goog.date.DateTime().toUTCIsoString(true) + ' UTC';
   }
