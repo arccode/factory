@@ -272,7 +272,10 @@ def GetUpdateFromCROSPayload(payload_type_name, proxy=None):
       yield os.path.join(target_path, payload_type_name)
 
   dut_info = umpire_client.UmpireClientInfo().GetDUTInfoComponents()
-  url = (proxy or get_instance()).GetCROSPayloadURL(dut_info['x_umpire_dut'])
+  # xmlrpclib.ServerProxy does not have __nonzero__ so we can't pass it to 'if'.
+  if proxy is None:
+    proxy = get_instance()
+  url = proxy.GetCROSPayloadURL(dut_info['x_umpire_dut'])
   payload = (None if not url else
              json.loads(urllib2.urlopen(url).read()).get(payload_type_name))
   return (payload, dut_info['components'], downloader)

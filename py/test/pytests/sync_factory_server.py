@@ -204,7 +204,7 @@ class SyncFactoryServer(unittest.TestCase):
         id=ID_BUTTON_EDIT_URL)
 
   def EditServerURL(self):
-    current_url = shopfloor.get_server_url()
+    current_url = shopfloor.get_server_url() or ''
     self.ui_template.SetState(
         i18n_test_ui.MakeI18nLabel('Change server URL: ') + '<br/>' +
         '<input type="text" id="%s" value="%s"/><br/>' %
@@ -235,7 +235,7 @@ class SyncFactoryServer(unittest.TestCase):
     self.allow_edit_url = False
 
   def ChangeServerURL(self, new_server_url):
-    server_url = shopfloor.get_server_url()
+    server_url = shopfloor.get_server_url() or ''
 
     if new_server_url and new_server_url != server_url:
       shopfloor.set_server_url(new_server_url.rstrip('/'))
