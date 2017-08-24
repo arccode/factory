@@ -760,7 +760,6 @@ msgid "Uploading factory logs.  Please wait..."
 msgstr "正在上载工厂记录 。 请稍等..."
 
 #: ../py/goofy/js/goofy.js
-#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
 msgid "Serial Number"
 msgstr "序号"
 
@@ -931,29 +930,32 @@ msgid "Station with same {keys!r} found."
 msgstr "测站已存在"
 
 #: ../py/goofy/plugins/status_monitor/static/status_monitor.js
-#: ../py/test/test_lists/generic_smt.test_list.json
-msgid "MLB Serial Number"
-msgstr "母板编号"
+msgid "MLB S/N"
+msgstr "母板序号"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "S/N"
+msgstr "序号"
 
 #: ../py/goofy/plugins/status_monitor/static/status_monitor.js
 msgid "Stage"
 msgstr "阶段"
 
 #: ../py/goofy/plugins/status_monitor/static/status_monitor.js
-msgid "Factory Image Version"
-msgstr "工厂作业系统版本"
+msgid "IP Address"
+msgstr "IP 位址"
 
 #: ../py/goofy/plugins/status_monitor/static/status_monitor.js
-msgid "Release Image Version"
-msgstr "出厂作业系统版本"
+msgid "Test Image"
+msgstr "测试系统"
 
 #: ../py/goofy/plugins/status_monitor/static/status_monitor.js
-msgid "WLAN MAC"
-msgstr ""
+msgid "Release Image"
+msgstr "出厂系统"
 
 #: ../py/goofy/plugins/status_monitor/static/status_monitor.js
-msgid "IP Addresses"
-msgstr "IP 位置"
+msgid "Main Firmware"
+msgstr "主轫体"
 
 #: ../py/goofy/plugins/status_monitor/static/status_monitor.js
 msgid "Kernel"
@@ -972,12 +974,12 @@ msgid "PD"
 msgstr "PD"
 
 #: ../py/goofy/plugins/status_monitor/static/status_monitor.js
-msgid "Main Firmware"
-msgstr "主轫体"
-
-#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
 msgid "Root Device"
 msgstr "根目录装置"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Device ID"
+msgstr "装置辨识码"
 
 #: ../py/goofy/plugins/status_monitor/static/status_monitor.js
 msgid "Factory Toolkit Version"
@@ -994,10 +996,6 @@ msgstr "HWID 资料库版本"
 #: ../py/goofy/plugins/status_monitor/static/status_monitor.js
 msgid "Unknown"
 msgstr "未知"
-
-#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
-msgid "Host Based"
-msgstr "Host based"
 
 #: ../py/goofy/plugins/status_monitor/static/status_monitor.js
 msgid "System time"
@@ -3661,8 +3659,12 @@ msgid "Parallel Test"
 msgstr "平行测试群组"
 
 #: ../py/test/test_lists/generic_smt.test_list.json
+msgid "MLB Serial Number"
+msgstr "母板序号"
+
+#: ../py/test/test_lists/generic_smt.test_list.json
 msgid "Scan MLB"
-msgstr "扫描母板编号"
+msgstr "扫描母板序号"
 
 #: ../py/test/test_lists/generic_smt.test_list.json
 msgid "Operator ID"

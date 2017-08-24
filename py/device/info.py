@@ -18,6 +18,7 @@ from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import device_data
 from cros.factory.test.env import paths
 from cros.factory.test.rules import phase
+from cros.factory.test import testlog_goofy
 from cros.factory.utils.sys_utils import MountDeviceAndReadFile
 
 
@@ -67,8 +68,8 @@ class SystemInfo(types.DeviceComponent):
   _FIRMWARE_NV_INDEX = 0x1007
   _FLAG_VIRTUAL_DEV_MODE_ON = 0x02
 
-  def __init__(self, _dut=None):
-    super(SystemInfo, self).__init__(_dut)
+  def __init__(self, device=None):
+    super(SystemInfo, self).__init__(device)
     self._cached = {}
     self._overrides = {}
 
@@ -160,11 +161,19 @@ class SystemInfo(types.DeviceComponent):
     return str(phase.GetPhase())
 
   @InfoProperty
-  def factory_image_version(self):
+  def test_image_version(self):
     """Version of the image on factory test partition."""
     lsb_release = self._device.ReadFile('/etc/lsb-release')
     match = re.search('^GOOGLE_RELEASE=(.+)$', lsb_release, re.MULTILINE)
     return match.group(1) if match else None
+
+  @InfoProperty
+  def factory_image_version(self):
+    """Version of the image on factory test partition.
+
+    This is same as test_image_version.
+    """
+    return self.test_image_version
 
   @InfoProperty
   def wlan0_mac(self):
@@ -288,6 +297,11 @@ class SystemInfo(types.DeviceComponent):
     """Returns number of PCI devices."""
     res = self._device.CheckOutput(['busybox', 'lspci'])
     return len(res.splitlines())
+
+  @InfoProperty
+  def device_id(self):
+    """Returns the device ID of the device."""
+    return self._device.ReadFile(testlog_goofy.DEVICE_ID_PATH).strip()
 
 
 if __name__ == '__main__':

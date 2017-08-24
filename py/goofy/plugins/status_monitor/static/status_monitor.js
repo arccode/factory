@@ -26,18 +26,18 @@ status_monitor.SystemStatus;
  *     transform: ?function(?string): !goog.html.SafeHtml}>}
  */
 status_monitor.SYSTEM_INFO_LABELS = [
-  {key: 'mlb_serial_number', label: _('MLB Serial Number')},
-  {key: 'serial_number', label: _('Serial Number')},
+  {key: 'mlb_serial_number', label: _('MLB S/N')},
+  {key: 'serial_number', label: _('S/N')},
   {key: 'stage', label: _('Stage')},
-  {key: 'factory_image_version', label: _('Factory Image Version')},
-  {key: 'release_image_version', label: _('Release Image Version')},
-  {key: 'wlan0_mac', label: _('WLAN MAC')},
-  {key: 'ips', label: _('IP Addresses')},
+  {key: 'ip', label: _('IP Address')},
+  {key: 'test_image_version', label: _('Test Image')},
+  {key: 'release_image_version', label: _('Release Image')},
+  {key: 'firmware_version', label: _('Main Firmware')},
   {key: 'kernel_version', label: _('Kernel')},
   {key: 'architecture', label: _('Architecture')},
   {key: 'ec_version', label: _('EC')}, {key: 'pd_version', label: _('PD')},
-  {key: 'firmware_version', label: _('Main Firmware')},
-  {key: 'root_device', label: _('Root Device')}, {
+  {key: 'root_device', label: _('Root Device')},
+  {key: 'device_id', label: _('Device ID')}, {
     key: 'toolkit_version',
     label: _('Factory Toolkit Version'),
     transform: function(/** ?string */ value) {
@@ -160,11 +160,6 @@ status_monitor.Status.prototype.updateTooltip = function() {
       ]));
     }
   }, this);
-  rows.push(goog.html.SafeHtml.create('tr', {}, [
-    goog.html.SafeHtml.create(
-        'th', {}, cros.factory.i18n.i18nLabel('Host Based')),
-    goog.html.SafeHtml.create('td', {}, '1')
-  ]));
   rows.push(goog.html.SafeHtml.create('tr', {}, [
     goog.html.SafeHtml.create(
         'th', {}, cros.factory.i18n.i18nLabel('System time')),

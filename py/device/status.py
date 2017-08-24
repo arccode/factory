@@ -96,8 +96,8 @@ class SystemStatus(types.DeviceComponent):
   or battery information.
   """
 
-  def __init__(self, dut=None):
-    super(SystemStatus, self).__init__(dut)
+  def __init__(self, device=None):
+    super(SystemStatus, self).__init__(device)
     self._overrides = {}
 
   def Snapshot(self):
@@ -114,6 +114,15 @@ class SystemStatus(types.DeviceComponent):
       value: The value to return in future for given property.
     """
     self._overrides[name] = value
+
+  def _GetDefaultRouteInterface(self):
+    """Returns the interface for default route."""
+    routes = self._device.CallOutput('ip route | grep default')
+    if routes is None:
+      return None
+    # The output looks like 'default via 123.12.0.1 dev eth0 metric 1', and we
+    # want the 'eth0' field.
+    return routes.split()[4]
 
   @StatusProperty
   def charge_manager(self):
@@ -171,6 +180,13 @@ class SystemStatus(types.DeviceComponent):
   @StatusProperty
   def wlan_on(self):
     return IsInterfaceConnected('mlan') or IsInterfaceConnected('wlan')
+
+  @StatusProperty
+  def ip(self):
+    default_interface = self._GetDefaultRouteInterface()
+    if default_interface is None:
+      return None
+    return GetIPv4InterfaceAddresses(default_interface)
 
 
 if __name__ == '__main__':
