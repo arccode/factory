@@ -94,9 +94,13 @@ An example of `factory_server.json`:
 ```json
   {
     "shopfloor_service_url": "http://127.0.0.1:8090",
-    "miniomaha_payload_url": "http://127.0.0.1:8080/static/samus.json"
+    "miniomaha_payload_url": "http://192.168.12.34:8080/static/samus.json"
   }
 ```
+
+**Note:** `miniomaha_payload_url` is the URL interpreted by DUT to connect into
+Mini-Omaha server, so we shouldn't use '127.0.0.1' or 'localhost', which will
+make DUTs try to connect to itself for resources.
 
 ## Shopfloor Service API
 The "Chrome OS Factory Shopfloor Service" must be implemented as a web service
