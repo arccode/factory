@@ -190,6 +190,7 @@ bundle.
 Here is a template `MANIFEST.yaml`:
 
     board: samus
+    project: samus
     bundle_name: 20170628_dvt
     server_url: http://12.34.56.78:8080/
     firmware: local
@@ -200,6 +201,31 @@ Here is a template `MANIFEST.yaml`:
 #### Field `board`
 
 Board name.
+
+#### Field `project`
+
+The Public Code Name (can be found on Golden Eye), or the "Google Name". Also
+should be same as the "Model Name" displayed in firmware screen (which is
+actually HWID), or reported on by command `mosys platform model`.
+
+The `project` is made for projects sharing one board (overlay), especially for
+Zerg projects.
+
+For example, the projects `electro` and `basking` both share images built using
+`BOARD=reef`, so you will set:
+
+    board: reef
+    project: electro
+
+For projects having its own overlay, `board` and `project` may be same name.
+For example, `pyro` is using `reef` as reference design but it does have its
+own overlay, so you will need to set:
+
+    board: pyro
+    project: pyro
+
+The `project` will be used to decide which HWID config file to use, and to
+find right firmware (and signing keys).
 
 #### Field `bundle_name`
 

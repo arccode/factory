@@ -25,7 +25,6 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.tools import get_version
 from cros.factory.tools import gsutil
 from cros.factory.utils import cros_board_utils
-from cros.factory.utils.file_utils import TryUnlink, ExtractFile, WriteWithSudo
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils.process_utils import Spawn
@@ -105,6 +104,7 @@ tars up the bundle.
 The input is a MANIFEST.yaml file like the following:
 
   board: link
+  project: link
   bundle_name: 20121115_pvt
 
   # Specify the version of test image directly.
@@ -115,14 +115,6 @@ The input is a MANIFEST.yaml file like the following:
 
   # Specify the version of factory toolkit directly.
   toolkit: 9678.12.0
-
-  # Files to download and add to the bundle.
-  add_files:
-  - install_into: release
-    source: "gs://.../chromeos_recovery_image.bin"
-  - install_into: firmware_images
-    extract_files: [ec.bin, image.bin]
-    source: 'gs://.../ChromeOS-firmware-...tar.bz2'
 """
 
 
@@ -135,9 +127,6 @@ class FinalizeBundle(object):
     bundle_name: Name of the bundle (e.g., 20121115_proto).
     build_board: The BuildBoard object for the board.
     board: Board name (e.g., link).
-    simple_board: For board name like "base_variant", simple_board is "variant".
-      simple_board == board if board is not a variant board.
-      This name is used in firmware and hwid.
     manifest: Parsed YAML manifest.
     readme_path: Path to the README file within the bundle.
     install_shim_version: Build of the install shim.
@@ -158,11 +147,11 @@ class FinalizeBundle(object):
   bundle_name = None
   build_board = None
   board = None
-  simple_board = None
   manifest = None
   readme_path = None
   install_shim_version = None
   new_factory_par = None
+  project = None
   test_image_source = None
   test_image_path = None
   test_image_version = None
@@ -181,7 +170,6 @@ class FinalizeBundle(object):
     self.LocateResources()
     self.DownloadResources()
     self.AddDefaultCompleteScript()
-    self.CheckAndAddDummyHWID()
     self.AddFirmwareUpdaterAndImages()
     self.GetAndSetResourceVersions()
     self.PrepareNetboot()
@@ -220,14 +208,15 @@ class FinalizeBundle(object):
       manifest_path = self.args.manifest
     self.manifest = yaml.load(file_utils.ReadFile(manifest_path))
     CheckDictKeys(self.manifest,
-                  ['board', 'bundle_name', 'add_files', 'server_url',
+                  ['board', 'project', 'bundle_name', 'server_url',
                    'toolkit', 'test_image', 'release_image', 'firmware', 'hwid',
                    'has_firmware'])
 
     self.build_board = cros_board_utils.BuildBoard(self.manifest['board'])
     self.board = self.build_board.full_name
-    self.simple_board = self.build_board.short_name
     self.gsutil = gsutil.GSUtil(self.board)
+    # assume project=board for backward compatibility
+    self.project = self.manifest.get('project', self.board).lower()
 
     self.bundle_name = self.manifest['bundle_name']
     if not re.match(r'\d{8}_', self.bundle_name):
@@ -242,7 +231,8 @@ class FinalizeBundle(object):
     # working directory (this is also needed if any of the resource is assigned
     # as local). Otherwise, we'll create a directory with expected name under
     # the working directory.
-    expected_dir_name = 'factory_bundle_%s_%s' % (self.board, self.bundle_name)
+    expected_dir_name = 'factory_bundle_%s_%s' % (self.project,
+                                                  self.bundle_name)
     logging.info('Expected bundle directory name is %r', expected_dir_name)
     if expected_dir_name == os.path.basename(work_dir):
       self.bundle_dir = work_dir
@@ -406,8 +396,7 @@ class FinalizeBundle(object):
     #                         factory.zip.
     need_toolkit = (self.toolkit_source != LOCAL)
 
-    if (not 'add_files' in self.manifest and
-        not need_test_image and not need_release_image and not need_toolkit):
+    if not need_test_image and not need_release_image and not need_toolkit:
       return
 
     # Make sure gsutil is up to date; older versions are pretty broken.
@@ -431,35 +420,6 @@ class FinalizeBundle(object):
       if need_toolkit:
         self.toolkit_path = self._DownloadFactoryToolkit(self.toolkit_source,
                                                          self.bundle_dir)
-
-    # TODO(b/36702884): remove this section once finalize_bundle supports
-    #                   grabbing firmware from different sources
-    # TODO(littlecvr): merge LocateResources(), DownloadResources(), and
-    #                  GetAndSetResourceVersions(). If this section is removed,
-    #                  DownloadResources() becomes simple enough to be merged.
-    #                  One thing to note is that we should make finalize_bundle
-    #                  workable without gsutil if all resources come from LOCAL.
-    #                  Therefore, when merging these function, make sure we
-    #                  don't call self._CheckGSUtilVersion() if not necessary.
-    for f in self.manifest.get('add_files', []):
-      CheckDictKeys(f, ['install_into', 'source', 'extract_files'])
-      dest_dir = os.path.join(self.bundle_dir, f['install_into'])
-      file_utils.TryMakeDirs(dest_dir)
-
-      source = f['source'].replace('${BOARD}', self.simple_board.upper())
-
-      if self.args.download:
-        cached_file = self._DownloadResource([source])
-
-      if f.get('extract_files'):
-        install_into = os.path.join(self.bundle_dir, f['install_into'])
-        if self.args.download:
-          ExtractFile(cached_file, install_into,
-                      only_extracts=f['extract_files'])
-      else:
-        dest_path = os.path.join(dest_dir, os.path.basename(source))
-        if self.args.download:
-          shutil.copyfile(cached_file, dest_path)
 
   def GetAndSetResourceVersions(self):
     """Gets and sets versions of test, release image, and factory toolkit."""
@@ -491,39 +451,6 @@ class FinalizeBundle(object):
         self.bundle_dir, 'setup', 'complete_script_sample.sh')
     shutil.copy(default_complete_script, complete_dir)
 
-  def CheckAndAddDummyHWID(self):
-    """Check number of files in hwid/, and add dummy HWID bundle if there is no
-    file and given 'hwid: none'."""
-    dummy_name = 'hwid_v3_bundle_DUMMY.sh'
-    hwid_dir = os.path.join(self.bundle_dir, 'hwid')
-    hwid_lst = os.listdir(hwid_dir)
-    hwid_num = len(hwid_lst)
-    if hwid_num > 1:
-      raise Exception('There are multiple files under %s.' % hwid_dir)
-    elif self.manifest.get('hwid') == 'none':
-      if hwid_num == 1:
-        # We should check if it is a real HWID bundle for local toolkit.
-        # Or users might always use 'hwid: none'.
-        if self.toolkit_source == LOCAL and hwid_lst[0] != dummy_name:
-          raise Exception(
-              'hwid is set to none but found a non-dummy HWID bundle.')
-      else:
-        file_utils.WriteFile(
-            os.path.join(hwid_dir, dummy_name),
-            '\n'.join([
-                '#!/bin/sh',
-                'exit',
-                'checksum: DUMMY',
-                '']))
-    else:  # hwid: real
-      if hwid_num == 0:
-        raise Exception(
-            "Please add 'hwid: none' in manifest file explicitly if you don't "
-            "have a real HWID bundle now.")
-      elif hwid_lst[0] == dummy_name:
-        raise Exception(
-            'hwid is not set to none but found a dummy HWID bundle.')
-
   def AddFirmwareUpdaterAndImages(self):
     """Add firmware updater into bundle directory, and extract firmware images
     into firmware_images/."""
@@ -543,11 +470,18 @@ class FinalizeBundle(object):
 
     firmware_images_dir = os.path.join(self.bundle_dir, 'firmware_images')
     file_utils.TryMakeDirs(firmware_images_dir)
-    Spawn(['sh', os.path.join(firmware_dir, updaters[0]),
-           '--sb_extract', firmware_images_dir], log=True, check_call=True)
-    for filename in os.listdir(firmware_images_dir):
-      if not filename.endswith('.bin'):
-        file_utils.TryUnlink(os.path.join(firmware_images_dir, filename))
+    with file_utils.TempDirectory() as temp_dir:
+      Spawn(['sh', os.path.join(firmware_dir, updaters[0]),
+             '--sb_extract', temp_dir], log=True, check_call=True)
+
+      if os.path.isdir(os.path.join(temp_dir, 'model')):  # unified build
+        temp_firmware_dir = os.path.join(temp_dir, 'model', self.project)
+      else:
+        temp_firmware_dir = temp_dir
+      for filename in os.listdir(temp_firmware_dir):
+        if filename.endswith('.bin'):
+          shutil.copy(os.path.join(temp_firmware_dir, filename),
+                      firmware_images_dir)
 
   def PrepareNetboot(self):
     """Prepares netboot resource for TFTP setup."""
@@ -645,7 +579,7 @@ class FinalizeBundle(object):
 
       if lsb_factory == orig_lsb_factory:
         return False  # No changes
-      WriteWithSudo(lsb_factory_path, lsb_factory)
+      file_utils.WriteWithSudo(lsb_factory_path, lsb_factory)
       return True
 
     def PatchInstallShim(shim):
@@ -799,6 +733,7 @@ class FinalizeBundle(object):
     # Get some vital information
     vitals = [
         ('Board', self.board),
+        ('Project', self.project),
         ('Bundle', '%s (created by %s, %s)' % (
             self.bundle_name, os.environ['USER'],
             time.strftime('%a %Y-%m-%d %H:%M:%S %z')))]
@@ -939,7 +874,7 @@ class FinalizeBundle(object):
     try:
       yield (downloaded_path, found_url)
     finally:
-      TryUnlink(downloaded_path)
+      file_utils.TryUnlink(downloaded_path)
 
   def _DownloadAndExtractImage(self, image_name, possible_urls, target_dir):
     with self._DownloadResource(
@@ -969,7 +904,7 @@ class FinalizeBundle(object):
               "Don't know how to handle file extension of %r" % downloaded_path)
         return dst_path
       finally:
-        TryUnlink(downloaded_path)
+        file_utils.TryUnlink(downloaded_path)
 
   def _DownloadTestImage(self, requested_version, target_dir):
     possible_urls = []
