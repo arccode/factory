@@ -36,7 +36,6 @@
     },
     "GRTFinalize": {
       "pytest_name": "finalize",
-      "has_ui": true,
       "args": {
         "enable_shopfloor": "eval! constants.enable_factory_server",
         "enforced_release_channels": "eval! ['stable'] if options.phase == 'PVT' else None",

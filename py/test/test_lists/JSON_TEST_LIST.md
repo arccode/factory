@@ -46,7 +46,6 @@ Test list manager will process these fields, they are not directly used by
      "definitions": {
        "LEDTest": {
          "pytest_name": "led",
-         "has_ui": true,
          "args" : {
            "colors": ["RED", "GREEN"]
          }
@@ -132,7 +131,6 @@ are valid i18n strings.
   "definitions": {
     "Start": {
       "pytest_name": "start",
-      "has_ui": true,
       "label": "i18n! Start",
       "args": {
         "prompt": {"en-US": "English prompt", "zh-CN": "Chinese prompt"}
@@ -162,7 +160,6 @@ For simplicity, we provide the following syntactic sugar:
      "definitions": {
        "LEDTest": {
          "pytest_name": "led",
-         "has_ui": true,
          "args" : {
            "colors": ["RED", "GREEN"]
          }

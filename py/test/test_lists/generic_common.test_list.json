@@ -35,7 +35,6 @@
   "definitions": {
     "AccelerometersCalibration": {
       "pytest_name": "accelerometers_calibration",
-      "has_ui": true,
       "args": {
         "orientation": {
           "in_accel_x": 0,
@@ -50,7 +49,6 @@
     },
     "AccelerometersLidAngle": {
       "pytest_name": "accelerometers_lid_angle",
-      "has_ui": true,
       "args": {
         "spec_offset": [
           0.5,
@@ -68,7 +66,6 @@
     "AudioJack": {
       "pytest_name": "audio_loop",
       "label": "Audio Jack",
-      "has_ui": true,
       "args": {
         "require_dongle": true,
         "check_dongle": true,
@@ -85,12 +82,10 @@
       }
     },
     "Backlight": {
-      "pytest_name": "backlight",
-      "has_ui": true
+      "pytest_name": "backlight"
     },
     "BadBlocks": {
       "pytest_name": "bad_blocks",
-      "has_ui": true,
       "__comment": "When run alone, this takes ~.5s/MiB (for four passes).  We'll do a gigabyte, which takes about about 9 minutes.",
       "args": {
         "timeout_secs": 120,
@@ -101,7 +96,6 @@
     "Barrier": {
       "pytest_name": "summary",
       "label": "Barrier",
-      "has_ui": true,
       "never_fails": true,
       "action_on_failure": "STOP",
       "disable_abort": true,
@@ -125,14 +119,12 @@
     },
     "BlockingCharge": {
       "pytest_name": "blocking_charge",
-      "has_ui": true,
       "exclusive_resources": [
         "POWER"
       ]
     },
     "Bluetooth": {
       "pytest_name": "bluetooth",
-      "has_ui": true,
       "args": {
         "expected_adapter_count": 1,
         "scan_devices": true,
@@ -148,14 +140,12 @@
     },
     "Button": {
       "pytest_name": "button",
-      "has_ui": true,
       "args": {
         "timeout_secs": 120
       }
     },
     "Camera": {
-      "pytest_name": "camera",
-      "has_ui": true
+      "pytest_name": "camera"
     },
     "CameraManual": {
       "inherit": "Camera",
@@ -173,7 +163,6 @@
     "ChargeDischargeCurrent": {
       "pytest_name": "battery_current",
       "label": "Charge Discharge Current",
-      "has_ui": true,
       "exclusive_resources": [
         "POWER"
       ],
@@ -227,23 +216,19 @@
       ]
     },
     "Display": {
-      "pytest_name": "display",
-      "has_ui": true
+      "pytest_name": "display"
     },
     "DisplayPoint": {
       "pytest_name": "display_point",
-      "has_ui": true,
       "args": {
         "max_point_count": 5
       }
     },
     "ExecShell": {
-      "pytest_name": "exec_shell",
-      "has_ui": true
+      "pytest_name": "exec_shell"
     },
     "ExternalDisplay": {
       "pytest_name": "ext_display",
-      "has_ui": true,
       "args": {
         "main_display": "eDP-1"
       }
@@ -253,8 +238,7 @@
       "label": "Finish"
     },
     "FlashNetboot": {
-      "pytest_name": "flash_netboot",
-      "has_ui": true
+      "pytest_name": "flash_netboot"
     },
     "FlushTestlog": {
       "inherit": "SyncFactoryServer",
@@ -272,8 +256,7 @@
       }
     },
     "Gyroscope": {
-      "pytest_name": "gyroscope",
-      "has_ui": true
+      "pytest_name": "gyroscope"
     },
     "HWButton": {
       "inherit": "TestGroup",
@@ -311,14 +294,12 @@
     },
     "Keyboard": {
       "pytest_name": "keyboard",
-      "has_ui": true,
       "args": {
         "allow_multi_keys": true
       }
     },
     "LED": {
       "pytest_name": "led",
-      "has_ui": true,
       "args": {
         "challenge": true
       }
@@ -330,8 +311,7 @@
       }
     },
     "LidSwitch": {
-      "pytest_name": "lid_switch",
-      "has_ui": true
+      "pytest_name": "lid_switch"
     },
     "MRCCache": {
       "label": "MRC Cache",
@@ -355,7 +335,6 @@
     },
     "Message": {
       "pytest_name": "message",
-      "has_ui": true,
       "never_fails": true
     },
     "ModelSKU": {
@@ -370,7 +349,6 @@
     "Probe": {
       "pytest_name": "probe",
       "label": "Probe Hardware",
-      "has_ui": true,
       "args": {
         "config_file": "probe.json"
       }
@@ -384,12 +362,10 @@
       }
     },
     "ReadDeviceDataFromVPD": {
-      "pytest_name": "read_device_data_from_vpd",
-      "has_ui": true
+      "pytest_name": "read_device_data_from_vpd"
     },
     "RemovableStorage": {
       "pytest_name": "removable_storage",
-      "has_ui": true,
       "args": {
         "block_size": 524288,
         "perform_random_test": false,
@@ -406,8 +382,7 @@
       }
     },
     "Scan": {
-      "pytest_name": "scan",
-      "has_ui": true
+      "pytest_name": "scan"
     },
     "ShopfloorNotifyEnd": {
       "inherit": "ShopfloorService",
@@ -431,17 +406,14 @@
     },
     "ShopfloorService": {
       "pytest_name": "shopfloor_service",
-      "has_ui": true,
       "run_if": "constants.enable_factory_server"
     },
     "SpatialSensorCalibration": {
-      "pytest_name": "spatial_sensor_calibration",
-      "has_ui": true
+      "pytest_name": "spatial_sensor_calibration"
     },
     "SpeakerDMic": {
       "pytest_name": "audio_loop",
       "label": "Speaker/Microphone",
-      "has_ui": true,
       "args": {
         "require_dongle": false,
         "check_dongle": true,
@@ -456,7 +428,6 @@
     },
     "Start": {
       "pytest_name": "start",
-      "has_ui": true,
       "never_fails": true
     },
     "StationEnd": {
@@ -483,15 +454,13 @@
       ]
     },
     "Stylus": {
-      "pytest_name": "stylus",
-      "has_ui": true
+      "pytest_name": "stylus"
     },
     "SuspendResume": {
       "pytest_name": "suspend_resume"
     },
     "SyncFactoryServer": {
       "pytest_name": "sync_factory_server",
-      "has_ui": true,
       "run_if": "constants.enable_factory_server"
     },
     "SyncFactoryServerUploadReport": {
@@ -505,19 +474,16 @@
       "pytest_name": "tpm_verify_ek"
     },
     "TabletMode": {
-      "pytest_name": "tablet_mode",
-      "has_ui": true
+      "pytest_name": "tablet_mode"
     },
     "TabletRotation": {
-      "pytest_name": "tablet_rotation",
-      "has_ui": true
+      "pytest_name": "tablet_rotation"
     },
     "ThermalSensors": {
       "pytest_name": "thermal_sensors"
     },
     "Touchpad": {
-      "pytest_name": "touchpad",
-      "has_ui": true
+      "pytest_name": "touchpad"
     },
     "TouchpadProbe": {
       "pytest_name": "i2c_probe",
@@ -529,7 +495,6 @@
     },
     "Touchscreen": {
       "pytest_name": "touchscreen",
-      "has_ui": true,
       "args": {
         "x_segments": 8,
         "y_segments": 8
@@ -550,8 +515,7 @@
     },
     "TouchscreenUniformity": {
       "pytest_name": "touch_uniformity",
-      "label": "Touchscreen Uniformity",
-      "has_ui": true
+      "label": "Touchscreen Uniformity"
     },
     "URandom": {
       "pytest_name": "urandom",
@@ -664,34 +628,29 @@
     },
     "USBTypeCTest": "USBTypeCManualTest",
     "UpdateDeviceData": {
-      "pytest_name": "update_device_data",
-      "has_ui": true
+      "pytest_name": "update_device_data"
     },
     "UpdateFirmware": {
       "label": "Update Firmware",
       "subtests": [
         {
-          "pytest_name": "update_firmware",
-          "has_ui": true
+          "pytest_name": "update_firmware"
         },
         "Barrier",
         "RebootStep"
       ]
     },
     "VerifyComponents": {
-      "pytest_name": "verify_components",
-      "has_ui": true
+      "pytest_name": "verify_components"
     },
     "VerifyRootPartition": {
       "pytest_name": "verify_root_partition",
-      "has_ui": true,
       "args": {
         "max_bytes": 1048576
       }
     },
     "WebGLAquarium": {
-      "pytest_name": "webgl_aquarium",
-      "has_ui": true
+      "pytest_name": "webgl_aquarium"
     },
     "WifiSSIDList": {
       "pytest_name": "wifi_throughput",
@@ -700,26 +659,22 @@
     "Wireless": "WirelessRadiotap",
     "WirelessAntenna": {
       "pytest_name": "wireless_antenna",
-      "has_ui": true,
       "exclusive_resources": [
         "NETWORK"
       ]
     },
     "WirelessRadiotap": {
       "pytest_name": "wireless_radiotap",
-      "has_ui": true,
       "exclusive_resources": [
         "NETWORK"
       ]
     },
     "WriteDeviceDataToVPD": {
-      "pytest_name": "write_device_data_to_vpd",
-      "has_ui": true
+      "pytest_name": "write_device_data_to_vpd"
     },
     "WriteHWID": {
       "pytest_name": "hwid_v3",
       "label": "Write HWID",
-      "has_ui": true,
       "args": {
         "skip_shopfloor": "eval! not constants.enable_factory_server"
       }

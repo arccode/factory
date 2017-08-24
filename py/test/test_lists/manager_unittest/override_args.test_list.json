@@ -23,7 +23,6 @@
   "definitions": {
     "LEDTest": {
       "pytest_name": "led",
-      "has_ui": true,
       "args": {
         "colors": [
           "RED",

@@ -154,7 +154,6 @@
     },
     "SMTStressCountdown": {
       "pytest_name": "countdown",
-      "has_ui": true,
       "args": {
         "duration_secs": "eval! constants.smt.stress_duration_secs",
         "title": "i18n! Stress/Component Tests"

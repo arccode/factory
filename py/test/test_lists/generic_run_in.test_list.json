@@ -69,7 +69,6 @@
         },
         {
           "inherit": "RunInCountdown",
-          "has_ui": true,
           "args": {
             "title": "i18n! Dozing Stress Tests",
             "duration_secs": "eval! constants.run_in.dozing_sat_duration_secs"
@@ -131,7 +130,6 @@
         },
         {
           "inherit": "Camera",
-          "has_ui": false,
           "args": {
             "timeout_secs": "eval! constants.run_in.sat_duration_secs",
             "show_image": false,

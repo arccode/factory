@@ -146,10 +146,7 @@ def FactoryTest(*args, **kwargs):
       to make conditional construction easier, this may contain None items
       (which are removed) or nested arrays (which are flattened).
     id: A unique ID for the test.
-    has_ui: True if the test has a UI. (This defaults to True for
-      OperatorTest.) If has_ui is not True, then when the test is
-      running, the statuses of the test and its siblings will be shown in
-      the test UI area instead.
+    has_ui: Deprecated. Has no effect now.
     never_fails: True if the test never fails, but only returns to an
       untested state.
     disable_abort: True if the test can not be aborted
@@ -234,18 +231,10 @@ def TestGroup(*args, **kwargs):
   return Add(factory.TestGroup(*args, **kwargs))
 
 
-def OperatorTest(*args, **kwargs):
-  """Adds an operator test (a test with a UI) to the test list.
-
-  This is simply a synonym for
-  :py:func:`cros.factory.test.test_lists.test_lists.FactoryTest`, with
-  ``has_ui=True``.  It should be used instead of ``FactoryTest`` for
-  tests that have a UI to be displayed to the operator.
-
-  See :py:func:`cros.factory.test.test_lists.FactoryTest` for a
-  description of all arguments.
-  """
-  return Add(factory.OperatorTest(*args, **kwargs))
+# This is same as
+# :py:func:`cros.factory.test.test_lists.test_lists.FactoryTest`, and is kept
+# here for backward compatibility.
+OperatorTest = FactoryTest
 
 
 def HaltStep(*args, **kwargs):

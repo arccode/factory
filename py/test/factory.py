@@ -783,13 +783,6 @@ class FactoryTest(object):
 
     # Fields that needs to remap
     struct['inherit'] = self.__class__.__name__
-    if struct['inherit'] == OperatorTest.__name__:
-      # In JSON test list, for OperatorTest you should just write:
-      # {
-      #   "has_ui": true,
-      #   ...
-      # }
-      struct['inherit'] = FactoryTest.__name__
     struct['args'] = self.dargs.copy()
     struct['locals'] = self.locals_.copy()
 
@@ -1249,15 +1242,13 @@ class TestGroup(FactoryTest):
   pass
 
 
-class OperatorTest(FactoryTest):
-  """Factory test with UI to interact with operators."""
-  has_ui = True
+OperatorTest = FactoryTest
 
 
 AutomatedSequence = FactoryTest
 
 
-class ShutdownStep(OperatorTest):
+class ShutdownStep(FactoryTest):
   """A shutdown (halt, reboot, or full_reboot) step.
 
   Properties:
