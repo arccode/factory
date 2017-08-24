@@ -39,6 +39,9 @@ body {
 .status-bar-item.value-known .unknown {
   display: none;
 }
+.status-bar-item {
+  min-width: 5.5ch;
+}
 .status-bar-icons {
   display: flex;
   align-items: center;
