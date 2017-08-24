@@ -129,7 +129,7 @@ cros.factory.MAX_LINE_CONSOLE_LOG = 1024;
  * An item in the test list.
  * @typedef {{path: string, label: cros.factory.i18n.TranslationDict,
  *     disable_abort: boolean, subtests: !Array<cros.factory.TestListEntry>,
- *     state: cros.factory.TestState}}
+ *     state: cros.factory.TestState, args: Object, pytest_name: ?string}}
  */
 cros.factory.TestListEntry;
 
@@ -1166,14 +1166,14 @@ cros.factory.Goofy.prototype.setAutomationMode = function(mode) {
 };
 
 /**
- * Gets an invocation for a test (creating it if necessary).
+ * Create an invocation for a test.
  * @param {string} path
  * @param {string} invocationUuid
  * @return {?cros.factory.Invocation} the invocation, or null if the invocation
  *     has already been created and deleted.
  */
-cros.factory.Goofy.prototype.getOrCreateInvocation = function(
-    path, invocationUuid) {
+cros.factory.Goofy.prototype.createInvocation = function(path, invocationUuid) {
+  // TODO(pihsun): Remove this check when test_ui.py doesn't call init_test_ui.
   if (!(invocationUuid in this.invocations)) {
     cros.factory.logger.info(
         'Creating UI for test ' + path + ' (invocation ' + invocationUuid +
@@ -3069,12 +3069,11 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
         /**
          * @type {{test: string, invocation: string, html: string}}
          */ (untypedMessage);
-    let invocation =
-        this.getOrCreateInvocation(message.test, message.invocation);
+    let invocation = this.createInvocation(message.test, message.invocation);
     if (invocation && invocation.iframe) {
       var doc = /** @type {!Document} */ (invocation.iframe.contentDocument);
       doc.open();
-      doc.write(message['html']);
+      doc.write(message.html);
       doc.close();
       this.updateCSSClassesInDocument(doc);
       invocation.iframe.onload = goog.bind(function() {
@@ -3091,8 +3090,7 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
          * @type {{test: string, invocation: string, id: ?string,
          *     append: boolean, html: string}}
          */ (untypedMessage);
-    let invocation =
-        this.getOrCreateInvocation(message.test, message.invocation);
+    let invocation = this.invocations[message.invocation];
     if (invocation && invocation.iframe) {
       if (message.id) {
         var element = /** @type {?Element} */ (
@@ -3120,8 +3118,7 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
         /**
          * @type {{test: string, invocation: string, args: !Object, js: string}}
          */ (untypedMessage);
-    var invocation =
-        this.getOrCreateInvocation(message.test, message.invocation);
+    var invocation = this.invocations[message.invocation];
     if (invocation && invocation.iframe) {
       // We need to evaluate the code in the context of the content window, but
       // we also need to give it a variable.  Stash it in the window and load
@@ -3139,8 +3136,7 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
          * @type {{test: string, invocation: string, name: string,
          *     args: !Object}}
          */ (untypedMessage);
-    let invocation =
-        this.getOrCreateInvocation(message.test, message.invocation);
+    let invocation = this.invocations[message.invocation];
     if (invocation && invocation.iframe) {
       var func =
           /** @type {function(?)} */ (

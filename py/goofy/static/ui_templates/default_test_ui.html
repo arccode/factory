@@ -1,0 +1,40 @@
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="/css/goofy.css">
+    <link rel="stylesheet" type="text/css" href="/css/i18n.css">
+    <link rel="stylesheet" type="text/css" href="/css/test.css">
+  </head>
+  <body>
+    <!-- Put this in body so that real test can override this. -->
+    <link rel="stylesheet" type="text/css" href="/css/default_test_ui.css">
+    <div id="test-info-container">
+      <table id="test-info-table">
+        <tr>
+          <th><span class="i18n-label">Test Path</span></th>
+          <td id="test-info-path"></td>
+        </tr>
+        <tr>
+          <th><span class="i18n-label">Test Label</span></th>
+          <td id="test-info-title"></td>
+        </tr>
+        <tr>
+          <th><span class="i18n-label">Invocation ID</span></th>
+          <td id="test-info-invocation"></td>
+        </tr>
+        <tr>
+          <th><span class="i18n-label">Elapsed Time</span></th>
+          <td id="test-info-time"></td>
+        </tr>
+        <tr>
+          <th><span class="i18n-label">Test Name</span></th>
+          <td id="test-info-pytest"></td>
+        </tr>
+        <tr>
+          <th><span class="i18n-label">Test Arguments</span></th>
+          <td id="test-info-args"></td>
+        </tr>
+      </table>
+    </div>
+    <script src="/js/default_test_ui.js"></script>
+  </body>
+</html>

@@ -1,0 +1,44 @@
+body {
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+  justify-content: center;
+}
+
+#test-info-container {
+  width: 80%;
+  height: 80%;
+  padding: 5vh 5vw;
+  background: #ffffffd0;
+  overflow-y: auto;
+  visibility: hidden;
+}
+
+#test-info-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#test-info-table tr {
+  border-bottom: 1px solid gray;
+}
+
+#test-info-table th {
+  width: 30%;
+  text-align: center;
+  padding: .5em 0;
+}
+
+#test-info-table td {
+  width: 70%;
+  padding: .5em 0;
+  max-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+#test-info-table #test-info-args,
+#test-info-table #test-info-invocation {
+  white-space: pre;
+  font-family: monospace;
+}

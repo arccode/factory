@@ -1007,6 +1007,34 @@ msgstr "系统时间"
 msgid "Engineering mode"
 msgstr "工程模式"
 
+#: ../py/goofy/static/js/default_test_ui.js
+msgid "{seconds} seconds"
+msgstr "{seconds}秒"
+
+#: ../py/goofy/static/ui_templates/default_test_ui.html
+msgid "Test Path"
+msgstr "测项路径"
+
+#: ../py/goofy/static/ui_templates/default_test_ui.html
+msgid "Test Label"
+msgstr "测项标籤"
+
+#: ../py/goofy/static/ui_templates/default_test_ui.html
+msgid "Invocation ID"
+msgstr "测试识别号"
+
+#: ../py/goofy/static/ui_templates/default_test_ui.html
+msgid "Elapsed Time"
+msgstr "经过时间"
+
+#: ../py/goofy/static/ui_templates/default_test_ui.html
+msgid "Test Name"
+msgstr "测项名称"
+
+#: ../py/goofy/static/ui_templates/default_test_ui.html
+msgid "Test Arguments"
+msgstr "测项参数"
+
 #: ../py/goofy/static/ui_templates/template_one_scrollable_section.html
 #: ../py/goofy/static/ui_templates/template_one_section.html
 #: ../py/goofy/static/ui_templates/template_two_sections.html
