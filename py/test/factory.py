@@ -566,8 +566,7 @@ class FactoryTest(object):
   # If True, the test can not be aborted.
   disable_abort = False
 
-  # If True, the test has a UI, so if it is active factory_ui will not
-  # display the summary of running tests.
+  # Deprecated, and has no effect.
   has_ui = False
 
   # Fields of test_object defined by test_list.schema.json

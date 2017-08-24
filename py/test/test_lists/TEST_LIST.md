@@ -43,7 +43,6 @@ def CreateTestLists():
           label=_('LED Test'),
           pytest_name='led',
           action_on_failure='PARENT',
-          has_ui=True,
           dargs={
               'colors': ['RED', 'BLUE', 'GREEN']
           })
@@ -129,10 +128,6 @@ To create a group of tests, you just need to
 Each `FactoryTest` object can have a `locals` attribute, which is a dictionary
 of key value pairs.  `locals` will be available when Goofy is resolving `dargs`
 that will be passed to pytest.
-
-## has_ui
-Set `has_ui=True` if this test needs to interact with operator, e.g. showing
-informations or getting user input.
 
 ## never_fails
 Set `never_fails=True` if you don't want this test to fail in any case.
