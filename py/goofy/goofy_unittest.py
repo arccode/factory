@@ -490,8 +490,8 @@ class NoAutoRunTest(GoofyTest):
     # Tell Goofy to run 'b'.
     self.check_one_test(
         'b', 'b_B', TestState.PASSED, '',
-        trigger=lambda: self.goofy.handle_switch_test(
-            Event(Event.Type.SWITCH_TEST, path='b')))
+        trigger=lambda: self.goofy.handle_event(
+            Event(Event.Type.RESTART_TESTS, path='b')))
 
   def runTest(self):
     self._runTestB()

@@ -67,8 +67,6 @@ class Event(object):
       'STATE_CHANGE': 'goofy:state_change',
       # The UI has come up.
       'UI_READY': 'goofy:ui_ready',
-      # Tells goofy to switch to a new test.
-      'SWITCH_TEST': 'goofy:switch_test',
       # Tells goofy to show a particular test.
       'SET_VISIBLE_TEST': 'goofy:set_visible_test',
       # Tells goofy to clear all state and restart testing.

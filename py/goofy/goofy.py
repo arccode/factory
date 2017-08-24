@@ -189,7 +189,6 @@ class Goofy(GoofyBase):
         return self.test_list.ToFactoryTestList()
 
     self.event_handlers = {
-        Event.Type.SWITCH_TEST: self.handle_switch_test,
         Event.Type.RESTART_TESTS:
             lambda event: self.restart_tests(root=test_or_root(event)),
         Event.Type.AUTO_RUN:
@@ -1335,31 +1334,6 @@ class Goofy(GoofyBase):
     root = root or self.test_list
     self.run_tests_with_status([TestState.UNTESTED, TestState.ACTIVE],
                                root=root)
-
-  def handle_switch_test(self, event):
-    """Switches to a particular test.
-
-    Args:
-      event: The SWITCH_TEST event.
-    """
-    test = self.test_list.LookupPath(event.path)
-    if not test:
-      logging.error('Unknown test %r', event.key)
-      return
-
-    invoc = self.invocations.get(test)
-    if invoc:
-      # Already running: just bring to the front if it
-      # has a UI.
-      logging.info('Setting visible test to %s', test.path)
-      self.set_visible_test(test)
-      return
-
-    self.abort_active_tests('Operator requested abort (switch_test)')
-    for t in test.Walk():
-      t.UpdateState(status=TestState.UNTESTED)
-
-    self.run_tests(test)
 
   def handle_key_filter_mode(self, event):
     if self.key_filter:
