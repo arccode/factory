@@ -7,9 +7,7 @@ import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
-from cros.factory.test import factory
 from cros.factory.test.i18n import html_translator
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.utils import file_utils
 
 _UI_TEMPLATE_PATH = '/ui_templates'
@@ -152,9 +150,6 @@ class BaseTemplate(object):
     js_file = os.path.join(template_base, template_name + '.js')
     if os.path.exists(js_file):
       self._ui.RunJS(open(js_file).read())
-
-    metadata = factory.get_current_test_metadata()
-    self.SetTitle(i18n_test_ui.MakeI18nLabel(metadata.get('label', '')))
 
   def SetTitle(self, html):
     """Sets the title of the test UI.
