@@ -14,9 +14,42 @@ import json
 import traceback
 
 
+# If you change the format of date/time/datetime, you have to also change the
+# FastStringParseDate/Time/Datetime function below.
 FORMAT_DATETIME = '%Y-%m-%dT%H:%M:%S.%fZ'
 FORMAT_DATE = '%Y-%m-%d'
 FORMAT_TIME = '%H:%M:%S.%f'
+
+
+def FastStringParseDate(date_string):
+  """Parses the date_string with FORMAT_DATE to datetime.date"""
+  if len(date_string) != 10 or date_string[4] != '-' or date_string[7] != '-':
+    raise ValueError('Wrong format string: %s' % date_string)
+  return datetime.date(
+      int(date_string[0:4]),
+      int(date_string[5:7]),
+      int(date_string[8:10]))
+
+
+def FastStringParseTime(date_string):
+  """Parses the date_string with FORMAT_TIME to datetime.time"""
+  if (len(date_string) != 15 or date_string[2] != ':' or
+      date_string[5] != ':' or date_string[8] != '.'):
+    raise ValueError('Wrong format string: %s' % date_string)
+  return datetime.time(
+      int(date_string[0:2]),
+      int(date_string[3:5]),
+      int(date_string[6:8]),
+      int(date_string[9:15]))
+
+
+def FastStringParseDatetime(date_string):
+  """Parses the date_string with FORMAT_DATETIME to datetime.datetime"""
+  if len(date_string) != 27 or date_string[10] != 'T' or date_string[26] != 'Z':
+    raise ValueError('Wrong format string: %s' % date_string)
+  return datetime.datetime.combine(
+      FastStringParseDate(date_string[0:10]),
+      FastStringParseTime(date_string[11:26]))
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -73,11 +106,23 @@ class JSONDecoder(json.JSONDecoder):
       return self._class_registry[dct['__type__']].FromDict(dct)
     # TODO(kitching): Remove legacy __datetime__, __date__, and __time__ checks.
     if dct.get('__type__') == 'datetime' or '__datetime__' in dct:
-      return datetime.datetime.strptime(dct['value'], FORMAT_DATETIME)
+      try:
+        return FastStringParseDatetime(dct['value'])
+      except ValueError:
+        self.warning('Fast strptime failed: %s', dct['value'])
+        return datetime.datetime.strptime(dct['value'], FORMAT_DATETIME)
     if dct.get('__type__') == 'date' or '__date__' in dct:
-      return datetime.datetime.strptime(dct['value'], FORMAT_DATE).date()
+      try:
+        return FastStringParseDate(dct['value'])
+      except ValueError:
+        self.warning('Fast strptime failed: %s', dct['value'])
+        return datetime.datetime.strptime(dct['value'], FORMAT_DATE).date()
     if dct.get('__type__') == 'time' or '__time__' in dct:
-      return datetime.datetime.strptime(dct['value'], FORMAT_TIME).time()
+      try:
+        return FastStringParseTime(dct['value'])
+      except ValueError:
+        self.warning('Fast strptime failed: %s', dct['value'])
+        return datetime.datetime.strptime(dct['value'], FORMAT_TIME).time()
     return dct
 
 

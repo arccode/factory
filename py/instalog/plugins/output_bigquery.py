@@ -40,6 +40,7 @@ _BIGQUERY_REQUEST_INTERVAL = 5
 _BIGQUERY_REQUEST_MAX_FAILURES = 20
 _BIGQUERY_SCOPE = 'https://www.googleapis.com/auth/bigquery'
 _DEFAULT_INTERVAL = 90
+_DEFAULT_BATCH_SIZE = 10000
 
 
 class OutputBigQuery(plugin_base.OutputPlugin):
@@ -50,6 +51,9 @@ class OutputBigQuery(plugin_base.OutputPlugin):
           'only allows 1000 imports per day per table, a value above 86.4 '
           'seconds is recommended to guarantee this limit will not be reached.',
           optional=True, default=_DEFAULT_INTERVAL),
+      Arg('batch_size', int,
+          'How many events to queue before transmitting.',
+          optional=True, default=_DEFAULT_BATCH_SIZE),
       Arg('key_path', (str, unicode),
           'Path to BigQuery service account JSON key file.',
           optional=False),
@@ -246,7 +250,8 @@ class OutputBigQuery(plugin_base.OutputPlugin):
     json_stream = StringIO.StringIO()
     event_count = 0
     row_count = 0
-    for event in event_stream.iter(timeout=self.args.interval):
+    for event in event_stream.iter(timeout=self.args.interval,
+                                   count=self.args.batch_size):
       json_row = None
       try:
         json_row = self.ConvertEventToRow(event)

@@ -103,6 +103,71 @@ class TestWalkJSONPath(unittest.TestCase):
                      json_utils.WalkJSONPath('.', data))
 
 
+class TestFastStringParseDatetime(unittest.TestCase):
+
+  def testFastStringParseDate(self):
+    time_now = _SAMPLE_DATE
+    time_now_string = time_now.strftime(json_utils.FORMAT_DATE)
+    self.assertEqual(time_now,
+                     json_utils.FastStringParseDate(time_now_string))
+
+    # Wrong length.
+    with self.assertRaises(ValueError):
+      json_utils.FastStringParseDate(time_now_string + ' ')
+    # Wrong symbol.
+    with self.assertRaises(ValueError):
+      wrong_time_string = time_now_string[:4] + ':' + time_now_string[5:]
+      json_utils.FastStringParseDate(wrong_time_string)
+    # Year with non-integer.
+    with self.assertRaises(ValueError):
+      wrong_time_string = time_now_string[:3] + '?' + time_now_string[4:]
+      json_utils.FastStringParseDate(wrong_time_string)
+    # The 13th month.
+    with self.assertRaises(ValueError):
+      wrong_time_string = time_now_string[:5] + '13' + time_now_string[7:]
+      json_utils.FastStringParseDate(wrong_time_string)
+
+  def testFastStringParseTime(self):
+    time_now = _SAMPLE_TIME
+    time_now_string = time_now.strftime(json_utils.FORMAT_TIME)
+    self.assertEqual(time_now,
+                     json_utils.FastStringParseTime(time_now_string))
+
+    # Wrong length.
+    with self.assertRaises(ValueError):
+      json_utils.FastStringParseDate(time_now_string + ' ')
+    # Wrong symbol.
+    with self.assertRaises(ValueError):
+      wrong_time_string = time_now_string[:2] + '-' + time_now_string[3:]
+      json_utils.FastStringParseDate(wrong_time_string)
+    # Microsecond with non-integer.
+    with self.assertRaises(ValueError):
+      wrong_time_string = time_now_string[:-1] + '?'
+      json_utils.FastStringParseDate(wrong_time_string)
+    # The 60th second.
+    with self.assertRaises(ValueError):
+      wrong_time_string = time_now_string[:6] + '60' + time_now_string[8:]
+      json_utils.FastStringParseDate(wrong_time_string)
+
+  def testFastStringParseDatetime(self):
+    time_now = _SAMPLE_DATETIME
+    time_now_string = time_now.strftime(json_utils.FORMAT_DATETIME)
+    self.assertEqual(time_now,
+                     json_utils.FastStringParseDatetime(time_now_string))
+
+    # Wrong length.
+    with self.assertRaises(ValueError):
+      json_utils.FastStringParseDate(time_now_string + ' ')
+    # Wrong alphabet.
+    with self.assertRaises(ValueError):
+      wrong_time_string = time_now_string[:-1] + 'Y'
+      json_utils.FastStringParseDate(wrong_time_string)
+    # The 13th month.
+    with self.assertRaises(ValueError):
+      wrong_time_string = time_now_string[:5] + '13' + time_now_string[7:]
+      json_utils.FastStringParseDate(wrong_time_string)
+
+
 if __name__ == '__main__':
   logging.basicConfig(level=logging.DEBUG, format=log_utils.LOG_FORMAT)
   unittest.main()
