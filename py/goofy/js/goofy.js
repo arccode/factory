@@ -1050,15 +1050,6 @@ cros.factory.Goofy.prototype.setLocale = function(locale) {
   this.locale = locale;
   this.updateCSSClasses();
   this.sendRpc('set_shared_data', ['ui_locale', this.locale]);
-  goog.array.forEach(
-      /** @type {!NodeList<!HTMLIFrameElement>} */ (
-          document.querySelectorAll('iframe')),
-      (i) => {
-        if (i.contentWindow) {
-          i.contentWindow.eval(
-              'if (this.onI18nLocaleChange) this.onI18nLocaleChange();');
-        }
-      });
 };
 
 /**

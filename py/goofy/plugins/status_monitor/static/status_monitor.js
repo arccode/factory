@@ -98,8 +98,6 @@ status_monitor.Status.prototype.start = function() {
   goog.events.listen(timer, goog.Timer.TICK, this.updateTime, false, this);
   timer.dispatchTick();
   timer.start();
-
-  goog.events.listen(window, goog.events.EventType.RESIZE, this.updateTooltip);
 };
 
 /**
@@ -133,10 +131,6 @@ status_monitor.Status.prototype.updateTime = function() {
  * Updates the tooltip and status-bar items.
  */
 status_monitor.Status.prototype.updateTooltip = function() {
-  const viewportHeight = window.innerHeight;
-  const isOutsideViewport = (element) =>
-      element.getBoundingClientRect().top >= viewportHeight;
-
   var rows = [];
   goog.array.forEach(status_monitor.SYSTEM_INFO_LABELS, function(item) {
     var value = this.systemInfo[item.key];
@@ -152,13 +146,11 @@ status_monitor.Status.prototype.updateTooltip = function() {
     goog.dom.safe.setInnerHtml(
         element.getElementsByClassName('status-bar-value')[0], html);
 
-    if (isOutsideViewport(element)) {
-      rows.push(goog.html.SafeHtml.create('tr', {}, [
-        goog.html.SafeHtml.create(
-            'th', {}, cros.factory.i18n.i18nLabel(item.label)),
-        goog.html.SafeHtml.create('td', {}, html)
-      ]));
-    }
+    rows.push(goog.html.SafeHtml.create('tr', {}, [
+      goog.html.SafeHtml.create(
+          'th', {}, cros.factory.i18n.i18nLabel(item.label)),
+      goog.html.SafeHtml.create('td', {}, html)
+    ]));
   }, this);
   rows.push(goog.html.SafeHtml.create('tr', {}, [
     goog.html.SafeHtml.create(
@@ -272,7 +264,4 @@ status_monitor.Status.prototype.updateStatus = function() {
 $(function() {
   var statusPlugin = new status_monitor.Status(plugin);
   statusPlugin.start();
-  window.onI18nLocaleChange = function() {
-    statusPlugin.updateTooltip();
-  };
 });
