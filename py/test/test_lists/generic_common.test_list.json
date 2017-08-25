@@ -256,6 +256,15 @@
       "pytest_name": "flash_netboot",
       "has_ui": true
     },
+    "FlushTestlog": {
+      "inherit": "SyncFactoryServer",
+      "args": {
+        "sync_event_logs": false,
+        "update_toolkit": false,
+        "upload_report": false,
+        "flush_testlog": true
+      }
+    },
     "GetDeviceInfo": {
       "inherit": "ShopfloorService",
       "args": {

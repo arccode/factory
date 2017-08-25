@@ -219,10 +219,6 @@ msgid "Flash Netboot"
 msgstr "烧录 netboot 韧体"
 
 #: ../build/pytests_label_generated.json
-msgid "Flush Testlog"
-msgstr "同步事件记录"
-
-#: ../build/pytests_label_generated.json
 msgid "GPS"
 msgstr "GPS"
 
@@ -2201,14 +2197,6 @@ msgstr "检查系统最终测试结果..."
 msgid "Flash Netboot Firmware"
 msgstr "烧录 netboot 韧体"
 
-#: ../py/test/pytests/flush_testlog.py
-msgid "Attempting to flush logs upstream..."
-msgstr "同步测试记录..."
-
-#: ../py/test/pytests/flush_testlog.py
-msgid "Unable to flush logs. Will try again in {secs} seconds."
-msgstr "无法同步测试记录，将于 {secs} 秒后自动重试。"
-
 #: ../py/test/pytests/gyroscope.py
 msgid "Please do not move the device."
 msgstr "请勿移动待测物。"
@@ -2936,6 +2924,10 @@ msgstr "同步时间"
 #: ../py/test/pytests/sync_factory_server.py
 msgid "Flush Event Logs"
 msgstr "同步事件记录"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Flush Test Log"
+msgstr "同步测试记录(TestLog)"
 
 #: ../py/test/pytests/sync_factory_server.py
 msgid "Create Report"

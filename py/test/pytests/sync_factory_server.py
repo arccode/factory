@@ -14,9 +14,11 @@ This test will sync following items:
 1. If ``sync_time`` is enabled (default True), sync system time from server.
 2. If ``sync_event_logs`` is enabled (default True), sync the ``event_log`` YAML
    event logs to factory server.
-3. If ``upload_report`` is enabled (default False), upload a ``Gooftool`` style
+3. If ``flush_testlog`` is enabled (default False), flush TestLog to factory
+   server (which should have Instalog node running).
+4. If ``upload_report`` is enabled (default False), upload a ``Gooftool`` style
    report collecting system information and manufacturing logs to server.
-4. If ``update_toolkit`` is enabled (default True), compare the factory software
+5. If ``update_toolkit`` is enabled (default True), compare the factory software
    (toolkit) installed on DUT with the active version on server, and update
    if needed.
 
@@ -160,6 +162,10 @@ class SyncFactoryServer(unittest.TestCase):
           default=True),
       Arg('sync_event_logs', bool, 'Sync event logs to factory server.',
           default=True),
+      Arg('flush_testlog', bool, 'Flush test logs to factory server.',
+          # TODO(hungte) Change flush_testlog to default True when Umpire is
+          # officially deployed.
+          default=False),
       Arg('upload_report', bool, 'Upload a factory report to factory server.',
           default=False),
       Arg('report_stage', str, 'Stage of report to upload.', default=None),
@@ -262,6 +268,10 @@ class SyncFactoryServer(unittest.TestCase):
     if not server_url:
       self.do_setup_url = True
 
+  def FlushTestlog(self):
+    # TODO(hungte) goofy.FlushTestlog should reload factory_server_url.
+    self.goofy.FlushTestlog(timeout=self.args.timeout_secs)
+
   def CreateReport(self):
     self.ui_template.SetState(i18n_test_ui.MakeI18nLabel(
         'Collecting report data...'))
@@ -309,6 +319,9 @@ class SyncFactoryServer(unittest.TestCase):
 
     if self.args.sync_event_logs:
       tasks += [(_('Flush Event Logs'), self.goofy.FlushEventLogs)]
+
+    if self.args.flush_testlog:
+      tasks += [(_('Flush Test Log'), self.FlushTestlog)]
 
     if self.args.upload_report:
       tasks += [(_('Create Report'), self.CreateReport)]
