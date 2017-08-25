@@ -13,7 +13,7 @@ import shutil
 import tempfile
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.utils.process_utils import Spawn
 
@@ -42,11 +42,11 @@ class ShopFloorStandaloneTest(unittest.TestCase):
            'PAR_TEMP_DIR=%s' % self.tmp_build_dir],
           log=True, check_call=True)
 
-    shopfloor_server_path = os.path.join(self.tmp, 'shopfloor_server')
+    factory_server_path = os.path.join(self.tmp, 'factory_server')
     os.symlink(os.path.realpath(os.path.join(self.tmp, 'factory.par')),
-               shopfloor_server_path)
+               factory_server_path)
 
-    os.environ['SHOPFLOOR_SERVER_CMD'] = shopfloor_server_path
+    os.environ['SHOPFLOOR_SERVER_CMD'] = factory_server_path
     # Disable all site directories to simulate a plain-vanilla Python.
     os.environ['CROS_SHOPFLOOR_PYTHON_OPTS'] = '-sS'
 
