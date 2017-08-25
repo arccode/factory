@@ -61,7 +61,6 @@ from cros.factory.utils import config_utils
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
-from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
@@ -135,7 +134,6 @@ class Goofy(GoofyBase):
     self.plugin_controller = None
     self.pytest_prespawner = None
     self._ui_initialized = False
-    self.dummy_shopfloor = None
     self.invocations = {}
     self.visible_test = None
     self.chrome = None
@@ -227,9 +225,6 @@ class Goofy(GoofyBase):
     if self.chrome:
       self.chrome.kill()
       self.chrome = None
-    if self.dummy_shopfloor:
-      self.dummy_shopfloor.kill()
-      self.dummy_shopfloor = None
     if self.web_socket_manager:
       logging.info('Stopping web sockets')
       self.web_socket_manager.close()
@@ -1004,8 +999,6 @@ class Goofy(GoofyBase):
     parser.add_option('--test_list', dest='test_list',
                       metavar='TEST_LIST_ID',
                       help='Use test list whose id is TEST_LIST_ID')
-    parser.add_option('--dummy_shopfloor', action='store_true',
-                      help='Use a dummy shopfloor server')
     parser.add_option('--automation-mode',
                       choices=[m.lower() for m in AutomationMode],
                       default='none', help='Factory test automation mode.')
@@ -1141,14 +1134,7 @@ class Goofy(GoofyBase):
         self.test_list.options.ToDict())
     self.state_instance.test_list = self.test_list
 
-    if self.options.dummy_shopfloor:
-      os.environ[shopfloor.SHOPFLOOR_SERVER_ENV_VAR_NAME] = (
-          'http://%s:%d/' %
-          (net_utils.LOCALHOST, shopfloor.DEFAULT_SERVER_PORT))
-      self.dummy_shopfloor = process_utils.Spawn(
-          [os.path.join(paths.FACTORY_DIR, 'bin', 'shopfloor_server'),
-           '--dummy'])
-    elif self.test_list.options.shopfloor_server_url:
+    if self.test_list.options.shopfloor_server_url:
       shopfloor.set_server_url(self.test_list.options.shopfloor_server_url)
       shopfloor.set_enabled(True)
 
