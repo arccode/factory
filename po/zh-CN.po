@@ -2163,12 +2163,24 @@ msgid "Flashing {file} to {partition}."
 msgstr "安装 {file} 至 {partition}."
 
 #: ../py/test/pytests/finalize/finalize.py
-msgid ""
-"Build Phase: {phase}<br>Write Protection: {write_protect}<br>Factory Server: "
-"{factory_server}<br>"
-msgstr ""
-"生产阶段: {phase}<br>写入保护: {write_protect}<br>工厂伺服器: "
-"{factory_server}<br>"
+msgid "Build Phase"
+msgstr "生产阶段"
+
+#: ../py/test/pytests/finalize/finalize.py
+msgid "Write Protection"
+msgstr "写入保护"
+
+#: ../py/test/pytests/finalize/finalize.py
+msgid "Factory Server"
+msgstr "工厂伺服器"
+
+#: ../py/test/pytests/finalize/finalize.py
+msgid "Enabled"
+msgstr "启用"
+
+#: ../py/test/pytests/finalize/finalize.py
+msgid "Disabled"
+msgstr "停用"
 
 #: ../py/test/pytests/finalize/finalize.py
 msgid "Running preflight tasks to prepare for finalization, please wait..."
@@ -2180,14 +2192,6 @@ msgid ""
 "<br>or the device may become unusable."
 msgstr ""
 "正在开始最终程序，请稍等.<br>不要重启机器或停止测试，<br>不然机器将无法开机。"
-
-#: ../py/test/pytests/finalize/finalize.py
-msgid "Enabled"
-msgstr "启用"
-
-#: ../py/test/pytests/finalize/finalize.py
-msgid "Disabled"
-msgstr "停用"
 
 #: ../py/test/pytests/finalize_accessory.py
 msgid "Get the final test result..."

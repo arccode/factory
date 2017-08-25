@@ -106,8 +106,6 @@ from cros.factory.test.env import paths
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import gooftools
-from cros.factory.test import i18n
-from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rules import phase
 from cros.factory.test import shopfloor
@@ -122,10 +120,11 @@ from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
 
-MSG_INSTRUCTION = _(
-    'Build Phase: {phase}<br>'
-    'Write Protection: {write_protect}<br>'
-    'Factory Server: {factory_server}<br>')
+MSG_BUILD_PHASE = i18n_test_ui.MakeI18nLabel('Build Phase')
+MSG_WRITE_PROTECTION = i18n_test_ui.MakeI18nLabel('Write Protection')
+MSG_FACTORY_SERVER = i18n_test_ui.MakeI18nLabel('Factory Server')
+MSG_ENABLED = i18n_test_ui.MakeI18nLabel('Enabled')
+MSG_DISABLED = i18n_test_ui.MakeI18nLabel('Disabled')
 MSG_PREFLIGHT = i18n_test_ui.MakeI18nLabel(
     'Running preflight tasks to prepare for finalization, please wait...')
 MSG_FINALIZING = i18n_test_ui.MakeI18nLabel(
@@ -210,17 +209,17 @@ class Finalize(unittest.TestCase):
     self.ui.Run()
 
   def Run(self):
+
+    def GetState(v):
+      return ('<b style="color: green;">' + MSG_ENABLED + '</b>' if v else
+              '<b style="color: red;">' + MSG_DISABLED + '</b>')
+
     try:
       self.template.SetInstruction(
-          '<div style="font-size: 80%;">' +
-          i18n_test_ui.MakeI18nLabel(
-              MSG_INSTRUCTION,
-              phase=i18n.NoTranslation(str(phase.GetPhase())),
-              write_protect=(_('Enabled') if self.args.write_protection else
-                             _('Disabled')),
-              factory_server=(_('Enabled') if self.args.enable_shopfloor else
-                              _('Disabled'))) +
-              '</div>')
+          MSG_WRITE_PROTECTION + ': ' + GetState(self.args.write_protection) +
+          '<br>' +
+          MSG_BUILD_PHASE + ': ' + str(phase.GetPhase()) + ', ' +
+          MSG_FACTORY_SERVER + ': ' + GetState(self.args.enable_shopfloor))
       self.template.SetState(MSG_PREFLIGHT)
       self.Preflight()
       self.template.SetState(MSG_FINALIZING)
