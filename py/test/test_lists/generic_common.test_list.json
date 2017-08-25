@@ -103,6 +103,7 @@
       "label": "Barrier",
       "has_ui": true,
       "never_fails": true,
+      "action_on_failure": "STOP",
       "disable_abort": true,
       "args": {
         "disable_input_on_fail": true,

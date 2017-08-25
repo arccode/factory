@@ -13,6 +13,7 @@
   },
   "definitions": {
     "GRT": {
+      "inherit": "TestGroup",
       "label": "GRT (Google Required Tests)",
       "locals": {
         "station": "GRT"
