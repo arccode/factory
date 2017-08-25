@@ -2910,6 +2910,14 @@ msgid "Server URL: "
 msgstr "伺服器网址: "
 
 #: ../py/test/pytests/sync_factory_server.py
+msgid "Collecting report data..."
+msgstr "收集报告资料..."
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Getting serial number..."
+msgstr "读取序号..."
+
+#: ../py/test/pytests/sync_factory_server.py
 msgid "A software update is available. Press SPACE to update."
 msgstr "有可用的更新。按空白键更新。"
 
@@ -2930,12 +2938,8 @@ msgid "Flush Event Logs"
 msgstr "同步事件记录"
 
 #: ../py/test/pytests/sync_factory_server.py
-msgid "Collecting report data..."
-msgstr "收集报告资料..."
-
-#: ../py/test/pytests/sync_factory_server.py
-msgid "Getting serial number..."
-msgstr "读取序号..."
+msgid "Create Report"
+msgstr "产生报告"
 
 #: ../py/test/pytests/sync_factory_server.py
 msgid "Upload report"

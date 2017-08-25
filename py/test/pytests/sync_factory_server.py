@@ -133,6 +133,15 @@ class WaitForUpdate(Exception):
   pass
 
 
+class Report(object):
+  """A structure for reports uploaded to factory server."""
+
+  def __init__(self, serial_number, blob, station):
+    self.serial_number = serial_number
+    self.blob = blob
+    self.station = station
+
+
 class SyncFactoryServer(unittest.TestCase):
   ARGS = [
       Arg('first_retry_secs', int,
@@ -168,6 +177,8 @@ class SyncFactoryServer(unittest.TestCase):
     self.do_setup_url = False
     self.allow_edit_url = True
     self.event_url_set = threading.Event()
+    self.goofy = state.get_instance()
+    self.report = Report(None, None, self.args.report_stage)
 
   def runTest(self):
     self.ui.AppendCSS(_CSS)
@@ -251,13 +262,28 @@ class SyncFactoryServer(unittest.TestCase):
     if not server_url:
       self.do_setup_url = True
 
-  def UpdateToolkit(self, force_update, timeout_secs):
-    unused_toolkit_version, has_update = updater.CheckForUpdate(timeout_secs)
+  def CreateReport(self):
+    self.ui_template.SetState(i18n_test_ui.MakeI18nLabel(
+        'Collecting report data...'))
+    self.report.blob = commands.CreateReportArchiveBlob()
+    self.ui_template.SetState(i18n_test_ui.MakeI18nLabel(
+        'Getting serial number...'))
+    self.report.serial_number = device_data.GetSerialNumber(
+        self.args.report_serial_number_name or
+        device_data.NAME_SERIAL_NUMBER)
+
+  def UploadReport(self):
+    self.server.UploadReport(
+        self.report.serial_number, self.report.blob, self.report.station)
+
+  def UpdateToolkit(self):
+    unused_toolkit_version, has_update = updater.CheckForUpdate(
+        self.args.timeout_secs)
     if not has_update:
       return
 
     # Update necessary.
-    if force_update:
+    if self.args.update_without_prompt:
       self.ui.RunJS('window.test.updateFactory()')
     else:
       # Display message and require update.
@@ -268,10 +294,8 @@ class SyncFactoryServer(unittest.TestCase):
     raise WaitForUpdate
 
   def _runTest(self):
-    label_prepare = i18n_test_ui.MakeI18nLabel('Preparing...')
-    self.ui_template.SetInstruction(label_prepare)
+    self.ui_template.SetInstruction(i18n_test_ui.MakeI18nLabel('Preparing...'))
     retry_secs = self.args.first_retry_secs
-    goofy = state.get_instance()
 
     self.ui.AddEventHandler(EVENT_SET_URL, self.OnButtonSetClicked)
     self.ui.AddEventHandler(EVENT_CANCEL_SET_URL, self.OnButtonCancelClicked)
@@ -284,28 +308,14 @@ class SyncFactoryServer(unittest.TestCase):
       tasks += [(_('Sync time'), time_utils.SyncTimeWithShopfloorServer)]
 
     if self.args.sync_event_logs:
-      tasks += [(_('Flush Event Logs'), goofy.FlushEventLogs)]
+      tasks += [(_('Flush Event Logs'), self.goofy.FlushEventLogs)]
 
     if self.args.upload_report:
-      # To prevent creating blob multiple times in retry, we want to do this
-      # before real task starts.
-      self.ui_template.SetInstruction(i18n_test_ui.MakeI18nLabel(
-          'Collecting report data...'))
-      blob = commands.CreateReportArchiveBlob()
-      self.ui_template.SetInstruction(i18n_test_ui.MakeI18nLabel(
-          'Getting serial number...'))
-      report_serial_number = device_data.GetSerialNumber(
-          self.args.report_serial_number_name or
-          device_data.NAME_SERIAL_NUMBER)
-      self.ui_template.SetInstruction(label_prepare)
-      tasks += [(_('Upload report'),
-                 lambda: self.server.UploadReport(
-                     report_serial_number, blob, None, self.args.report_stage))]
+      tasks += [(_('Create Report'), self.CreateReport)]
+      tasks += [(_('Upload report'), self.UploadReport)]
 
     if self.args.update_toolkit:
-      tasks += [(_('Update Toolkit'),
-                 lambda: self.UpdateToolkit(
-                     self.args.update_without_prompt, self.args.timeout_secs))]
+      tasks += [(_('Update Toolkit'), self.UpdateToolkit)]
     else:
       factory.console.info('Toolkit update is disabled.')
 
