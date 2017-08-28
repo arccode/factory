@@ -39,7 +39,7 @@
 
 .template-prompt-container {
   flex: none;
-  padding: 8px;
+  margin: 0px 8px;
   background-color: white;
 }
 
@@ -53,8 +53,9 @@
 
 .template-progress-bar {
   position: absolute;
-  left: 75%; top: 15%;
+  left: 75%;
   width: 20%; height: 100%;
+  padding-right: 12px;
   display: none;
 }
 
