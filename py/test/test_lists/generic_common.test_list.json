@@ -358,6 +358,12 @@
       "has_ui": true,
       "never_fails": true
     },
+    "ModelSKU": {
+      "pytest_name": "model_sku",
+      "label": "Model and SKU",
+      "has_ui": true,
+      "action_on_failure": "STOP"
+    },
     "PartitionTable": {
       "pytest_name": "partition_table"
     },

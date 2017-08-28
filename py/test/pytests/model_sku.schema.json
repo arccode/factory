@@ -1,0 +1,19 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "definitions": {},
+    "id": "http://example.com/example.json",
+    "additionalProperties": false,
+    "properties": {
+        "model": {
+            "id": "/properties/model",
+            "properties": {},
+            "type": "object"
+        },
+        "sku": {
+            "id": "/properties/sku",
+            "properties": {},
+            "type": "object"
+        }
+    },
+    "type": "object"
+}
