@@ -15,15 +15,6 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
-_ID_CONTAINER = 'display-point-test-container'
-
-# The style is in display_point.css
-# The layout contains one div for display.
-_HTML_DISPLAY = """
-   <link rel="stylesheet" type="text/css" href="display_point.css">
-   <div id="%s">
-   </div>\n"""  % _ID_CONTAINER
-
 
 class DisplayPointTest(unittest.TestCase):
   """Tests the function of display panel using some points.
@@ -51,13 +42,13 @@ class DisplayPointTest(unittest.TestCase):
       raise ValueError('>= 10 points is not supported')
 
     self.ui = test_ui.UI()
+    self.ui.AppendCSSLink('display_point.css')
     self.template = ui_templates.OneSection(self.ui)
-    self.ui.AppendHTML(_HTML_DISPLAY)
     self.list_number_point = [
         random.randint(1, self.args.max_point_count) for _ in xrange(2)]
     logging.info('testing point: %s',
                  ', '.join([str(x) for x in self.list_number_point]))
-    self.ui.CallJSFunction('setupDisplayPointTest', _ID_CONTAINER,
+    self.ui.CallJSFunction('setupDisplayPointTest', ui_templates.STATE_ID,
                            self.list_number_point, float(self.args.point_size))
 
   def runTest(self):

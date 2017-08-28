@@ -16,14 +16,6 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
-_ID_CONTAINER = 'backlight-test-container'
-
-# The style is in backlight.css
-# The layout contains one div for display.
-_HTML_BACKLIGHT = """
-   <link rel="stylesheet" type="text/css" href="backlight.css">
-   <div id="%s">
-   </div>\n""" % _ID_CONTAINER
 _DEFAULT_ADJUST_LEVEL = 0.05
 _DEFAULT_RESET_LEVEL = 0.5
 
@@ -66,15 +58,15 @@ class BacklightTest(unittest.TestCase):
     """Initializes frontend presentation and properties."""
     self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI()
+    self.ui.AppendCSSLink('backlight.css')
     self.template = ui_templates.OneSection(self.ui)
-    self.ui.AppendHTML(_HTML_BACKLIGHT)
     # Randomly sets the testing sequence.
     self.sequence = ['low', 'high'] if random.randint(0, 1) else ['high', 'low']
     logging.info('testing sequence: %r', self.sequence)
     self.index = 0
     self.current_level = 0
     self.ResetBrightness()
-    self.ui.CallJSFunction('setupBacklightTest', _ID_CONTAINER)
+    self.ui.CallJSFunction('setupBacklightTest', ui_templates.STATE_ID)
 
   def tearDown(self):
     self.ResetBrightness()

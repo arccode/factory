@@ -36,12 +36,6 @@ _BLACKSCREEN_STR = i18n_test_ui.MakeI18nLabel(
 
 _ID_CONTAINER = 'plankton-display-container'
 
-# The style is in plankton_display.css
-# The layout contains one div for display.
-_HTML_DISPLAY = (
-    '<link rel="stylesheet" type="text/css" href="plankton_display.css">'
-    '<div id="%s"></div>\n' % _ID_CONTAINER)
-
 _WAIT_DISPLAY_SIGNAL_SECS = 3
 _WAIT_RETEST_SECS = 2
 
@@ -102,16 +96,21 @@ class PlanktonDisplayTest(unittest.TestCase):
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
     self._ui = test_ui.UI()
+    self._ui.AppendCSSLink('plankton_display.css')
     self._template = ui_templates.TwoSections(self._ui)
     self._template.SetTitle(_TEST_TITLE)
-    self._ui.AppendHTML(_HTML_DISPLAY)
 
     self._static_dir = self._ui.GetStaticDirectoryPath()
     self._display_image_path = os.path.join(self._static_dir, 'template.png')
     self._golden_image_path = os.path.join(self._static_dir, 'golden.png')
     self.ExtractTestImage()
 
-    self._ui.CallJSFunction('setupDisplayTest', _ID_CONTAINER)
+    self._template.SetState(
+        _BLACKSCREEN_STR + '<br/>' +
+        '<div id="%s"></div>' % _ID_CONTAINER)
+
+
+    self._ui.CallJSFunction('setupDisplayTest', ui_templates.STATE_ID)
 
     self._total_tests = 0
     self._finished_tests = 0
@@ -334,10 +333,9 @@ class PlanktonDisplayTest(unittest.TestCase):
     self.assertTrue(os.path.isfile(self._golden_image_path))
 
     self._template.DrawProgressBar()
+    self._template.SetProgressBarValue(0)
     # Connect, video playback, capture, disconnect
     self._total_tests = 4
-    self._template.SetProgressBarValue(0)
-    self._template.SetState(_BLACKSCREEN_STR)
 
     logging.info('Testing device: %s', self._bft_media_device)
 

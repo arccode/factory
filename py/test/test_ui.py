@@ -240,6 +240,12 @@ class UI(object):
     self.AppendHTML('<style type="text/css">%s</style>' % css,
                     id='head')
 
+  def AppendCSSLink(self, css_link):
+    """Append CSS link in the test pane."""
+    self.AppendHTML(
+        '<link rel="stylesheet" type="text/css" href="%s">' % css_link,
+        id='head')
+
   def RunJS(self, js, **kwargs):
     """Runs JavaScript code in the UI.
 

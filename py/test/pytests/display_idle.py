@@ -17,14 +17,6 @@ from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
-_ID_CONTAINER = 'display-test-container'
-
-# The style is in display.css
-# The layout contains one div for display.
-_HTML_DISPLAY = (
-    '<link rel="stylesheet" type="text/css" href="display_idle.css">'
-    '<div id="%s"></div>\n' % _ID_CONTAINER)
-
 
 class DisplayIdleTest(unittest.TestCase):
   """Tests the function of display.
@@ -46,8 +38,8 @@ class DisplayIdleTest(unittest.TestCase):
     """Initializes frontend presentation and properties."""
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)
-    self.ui.AppendHTML(_HTML_DISPLAY)
-    self.ui.CallJSFunction('setupDisplayTest', _ID_CONTAINER)
+    self.ui.AppendCSSLink('display_idle.css')
+    self.ui.CallJSFunction('setupDisplayTest', ui_templates.STATE_ID)
     self.checked = False
     self.fullscreen = False
 

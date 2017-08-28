@@ -12,6 +12,8 @@ from cros.factory.utils import file_utils
 
 _UI_TEMPLATE_PATH = '/ui_templates'
 
+STATE_ID = 'state'
+
 
 class Option(object):
   """Utility class for generating and manipulating HTML option tag.
@@ -180,7 +182,7 @@ class OneSection(BaseTemplate):
 
     Args:
       html: The html to write."""
-    self._ui.SetHTML(html, append=append, id='state')
+    self._ui.SetHTML(html, append=append, id=STATE_ID)
 
 
 class OneScrollableSection(BaseTemplate):
@@ -207,10 +209,11 @@ class OneScrollableSection(BaseTemplate):
       append: Append html at the end.
       scroll_down: Scroll down if needed.
     """
-    self._ui.SetHTML(html, append=append, id='state')
+    self._ui.SetHTML(html, append=append, id=STATE_ID)
     if scroll_down:
-      self._ui.RunJS("var s = document.getElementById('state');"
-                     's.scrollTop = s.scrollHeight;')
+      self._ui.RunJS(
+          'var s = document.getElementById("%s");'
+          's.scrollTop = s.scrollHeight;' % STATE_ID)
 
 
 class TwoSections(BaseTemplate):
@@ -248,7 +251,7 @@ class TwoSections(BaseTemplate):
     Args:
       html: The html to write.
     """
-    self._ui.SetHTML(html, append=append, id='state')
+    self._ui.SetHTML(html, append=append, id=STATE_ID)
 
   def DrawProgressBar(self):
     """Draw the progress bar and set it visible on the Chrome test UI.

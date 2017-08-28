@@ -15,14 +15,6 @@ from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 
-_ID_CONTAINER = 'display-test-container'
-
-# The style is in display.css
-# The layout contains one div for display.
-_HTML_DISPLAY = (
-    '<link rel="stylesheet" type="text/css" href="display.css">'
-    '<div id="%s"></div>\n' % _ID_CONTAINER)
-
 
 class DisplayTest(unittest.TestCase):
   """Tests the function of display.
@@ -74,14 +66,15 @@ class DisplayTest(unittest.TestCase):
   def setUp(self):
     """Initializes frontend presentation and properties."""
     self.ui = test_ui.UI()
+    self.ui.AppendCSSLink('display.css')
     self.template = ui_templates.OneSection(self.ui)
-    self.ui.AppendHTML(_HTML_DISPLAY)
     self.static_dir = self.FindFileStaticDirectory()
     if self.args.images:
       for image in self.args.images:
         self.args.colors.append('image-%s' % image)
       self.ExtractTestImages()
-    self.ui.CallJSFunction('setupDisplayTest', _ID_CONTAINER, self.args.colors)
+    self.ui.CallJSFunction(
+        'setupDisplayTest', ui_templates.STATE_ID, self.args.colors)
     self.checked = False
     self.fullscreen = False
 
