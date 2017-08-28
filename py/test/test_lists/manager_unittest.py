@@ -91,7 +91,8 @@ class TestListLoaderTest(unittest.TestCase):
         'd': 'eval! options.ui_locale.upper()',
         'e': 'eval! [x * x for x in xrange(3)]',
         'f': 'eval! constants.some_label',
-        'g': 'eval! state_proxy.data_shelf.device.vpd.ro.region.Get()', }
+        'g': 'eval! state_proxy.data_shelf.device.vpd.ro.region.Get()',
+        'h': 'eval! device.vpd.ro.region + "_testing"', }
 
     test_list = self.manager.GetTestListByID('a')
     constants = test_list.ToTestListConfig()['constants']
@@ -105,7 +106,8 @@ class TestListLoaderTest(unittest.TestCase):
          'd': options['ui_locale'].upper(),
          'e': [x * x for x in xrange(3)],
          'f': {'en-US': 'us', 'zh-CN': 'cn'},
-         'g': 'us', },
+         'g': 'us',
+         'h': 'us_testing', },
         resolved_test_args)
 
     # We expect test arguments to be type dict instead of AttrDict, so yaml

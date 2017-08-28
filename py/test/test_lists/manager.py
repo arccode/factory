@@ -5,6 +5,7 @@
 """Loader of test_list.json"""
 
 import abc
+import ast
 import collections
 import copy
 import glob
@@ -105,6 +106,60 @@ class TestListConfig(object):
         logging.warning('config_utils: PAR path %s does not exist. Ignore.',
                         path)
     return None
+
+
+class NodeTransformer_AddGet(ast.NodeTransformer):
+  """Given a list of names, we will call `Get` function for you.
+
+  For example, name_list=['device']::
+
+    "device.foo.bar"  ==> "device.foo.bar.Get(None)"
+
+  where `None` is the default value for `Get` function.
+  And `device.foo.bar.Get` will still be `device.foo.bar.Get`.
+  """
+  def __init__(self, name_list):
+    super(NodeTransformer_AddGet, self).__init__()
+    if not isinstance(name_list, list):
+      name_list = [name_list]
+    self.name_list = name_list
+
+  def visit_Attribute(self, node):
+    """Convert the attribute.
+
+    An attribute node will be: `var.foo.bar.baz`, and the node we got is the
+    last attribute node (that is, we will visit `var.foo.bar.baz`, not
+    `var.foo.bar` or its prefix).  And NodeTransformer will not recursively
+    process a node if it is processed, so we only need to worry about process a
+    node twice.
+
+    This will fail for code like::
+
+      "eval! any(v.baz.Get() for v in [device.foo, device.bar])"
+
+    But you can always rewrite it to::
+
+      "eval! any(v for v in [device.foo.baz, device.bar.baz])"
+
+    So it should be fine.
+    """
+    if isinstance(node.ctx, ast.Load) and node.attr != 'Get':
+      v = node
+      while isinstance(v, ast.Attribute):
+        v = v.value
+      if isinstance(v, ast.Name) and v.id in self.name_list:
+        new_node = ast.Call(
+            func=ast.Attribute(
+                attr='Get',
+                value=node,
+                ctx=node.ctx),
+            # Use `None` as default value
+            args=[ast.Name(id='None', ctx=ast.Load())],
+            kwargs=None,
+            keywords=[])
+        ast.copy_location(new_node, node)
+        return ast.fix_missing_locations(new_node)
+    return node
 
 
 class ITestList(object):
@@ -290,8 +345,13 @@ class ITestList(object):
         'constants': constants,
         'options': options,
         'locals': locals_,
-        'state_proxy': state_proxy, }
-    return eval(expression, namespace)  # pylint: disable=eval-used
+        'state_proxy': state_proxy,
+        'device': state_proxy.data_shelf.device, }
+
+    syntax_tree = ast.parse(expression, mode='eval')
+    syntax_tree = NodeTransformer_AddGet(['device']).visit(syntax_tree)
+    code_object = compile(syntax_tree, '<string>', 'eval')
+    return eval(code_object, namespace)  # pylint: disable=eval-used
 
   @staticmethod
   def EvaluateRunIf(test, test_list, test_arg_env):
@@ -339,7 +399,11 @@ class ITestList(object):
         'constants': selector_utils.DictSelector(value=test_list.constants),
     }
     try:
-      return bool(eval(run_if, namespace))  # pylint: disable=eval-used
+      syntax_tree = ast.parse(run_if, mode='eval')
+      syntax_tree = NodeTransformer_AddGet(
+          ['device', 'constant']).visit(syntax_tree)
+      code_object = compile(syntax_tree, '<string>', 'eval')
+      return eval(code_object, namespace)  # pylint: disable=eval-used
     except Exception:
       logging.exception('Unable to evaluate run_if %r for %s', run_if, source)
       return default

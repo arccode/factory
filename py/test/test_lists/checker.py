@@ -22,6 +22,11 @@ class UnresolvableNamespace(object):
 
   Accessing anything under the namespace will cause an UnresolvableException.
   """
+  def __init__(self):
+    # for state_proxy.data_shelf.device
+    self.data_shelf = self
+    self.data_shelf.device = self
+
   def __getattr__(self, attr_name):
     raise UnresolvableException
 
@@ -136,7 +141,8 @@ class Checker(object):
   """
 
   _EVAL_VALID_IDENTIFIERS = set(
-      ['constants', 'options', 'dut', 'station', 'state_proxy', 'locals'] +
+      ['constants', 'options', 'dut', 'station', 'state_proxy', 'locals',
+       'device'] +
       [key for key, unused_value in inspect.getmembers(__builtin__)])
 
   _RUN_IF_VALID_IDENTIFIERS = set(
@@ -163,7 +169,9 @@ class Checker(object):
       - built-in functions
       - "constants" and "options" defined by test list
       - "dut", "station" (to get information from DUT and station)
+      - "locals" the `locals_` attribute of current test
       - "state_proxy" (state server proxy returned by state.get_instance())
+      - "device" (a short cut for `state_proxy.data_shelf.device`)
 
     Args:
       :type expression: basestring
