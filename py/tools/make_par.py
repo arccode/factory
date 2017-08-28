@@ -10,22 +10,22 @@ DESCRIPTION = """Creates a self-extracting Python executable.
 
 The generated executable contains a copy of the entire factory code
 and can be used to executed any "well-behaved" executable, in
-particular the shopfloor server and tools like mount_partition.  Simply
+particular the factory server and tools like mount_partition.  Simply
 generate an output file whose name is the same as any symlink in the bin
 directory, or create a symlink to the generated archive with such a name.
 
 For instance:
 
-  make_par -o shopfloor_server
-  # ./shopfloor_server is now a fully-functional, standalone shopfloor server
+  make_par -o factory_server
+  # ./factory_server is now a fully-functional, standalone factory server
   # including all dependencies.
 
 or:
 
   make_par  # Generates factory.par
-  ln -s factory.par shopfloor_server
+  ln -s factory.par factory_server
   ln -s factory.par mount_partition
-  # You can now run either ./shopfloor_server or ./mount_partition.
+  # You can now run either ./factory_server or ./mount_partition.
 """
 
 import argparse

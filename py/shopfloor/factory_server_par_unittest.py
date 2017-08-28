@@ -50,8 +50,8 @@ class ShopFloorStandaloneTest(unittest.TestCase):
     # Disable all site directories to simulate a plain-vanilla Python.
     os.environ['CROS_SHOPFLOOR_PYTHON_OPTS'] = '-sS'
 
-    shopfloor_unittest = os.path.join(script_dir, 'factory_server_unittest.py')
-    self.process = Spawn([shopfloor_unittest], check_call=True, log=True)
+    server_unittest = os.path.join(script_dir, 'factory_server_unittest.py')
+    self.process = Spawn([server_unittest], check_call=True, log=True)
 
 
 if __name__ == '__main__':

@@ -107,7 +107,6 @@ files:
 - shopfloor/shopfloor_data/mlbs.csv
 - shopfloor/shopfloor_data/update/factory.tar.bz2
 - shopfloor/shopfloor_module.txt
-- shopfloor/shopfloor_server
 - shopfloor/spring_mock_shopfloor_backend
 - shopfloor/start_mock_shopfloor
 - shopfloor/shopfloor.template

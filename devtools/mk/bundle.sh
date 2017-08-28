@@ -47,7 +47,7 @@ main() {
   mkdir -p "${bundle_dir}"
   bundle_install "${bundle_dir}" "${toolkit}" toolkit
   bundle_install "${bundle_dir}" "${par}" shopfloor \
-    "factory_server shopfloor_server"
+    "factory_server"
   if [ -n "${BUNDLE_FACTORY_FLOW}" ]; then
     bundle_install "${bundle_dir}" "${par}" factory_flow \
       "factory_flow finalize_bundle test_factory_flow"

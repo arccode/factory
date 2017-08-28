@@ -73,7 +73,7 @@ its original meaning (127.0.0.1). Notice that Umpire doesn't translate
 127.0.0.1, so it can be used to refer to Umpire docker container itself (if you
 really want to do this).
 
-### Using legacy Factory Server (shopfloor_server)
+### Using legacy Factory Server
 The legacy factory server, which was known as `shopfloor_server` or `shopfloor`
 and now renamed to `factory_server`, allows specifying shopfloor service using
 `-s` argument or loaded from config file `factory_server.json`.
