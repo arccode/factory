@@ -199,7 +199,6 @@ class ShopFloorTask(FactoryTask):
 
     try:
       # All exceptions
-      shopfloor.check_serial_number(serial)
       Log(device_data.NAME_SERIAL_NUMBER, serial_number=serial)
       logging.info('Serial number: %s', serial)
       device_data.SetSerialNumber(device_data.NAME_SERIAL_NUMBER, serial)
@@ -309,12 +308,6 @@ class StartTest(unittest.TestCase):
 
     if self.args.init_shared_data:
       self._task_list.append(InitializeSharedData(self))
-
-    # Reset shop floor data only if require_shop_floor is explicitly
-    # defined, for test lists using factory_Start multiple times between
-    # groups (ex, to prompt for space or check power adapter).
-    if self.args.require_shop_floor is not None:
-      shopfloor.set_enabled(self.args.require_shop_floor)
 
     if (self.args.require_shop_floor and
         self.args.require_shop_floor != 'defer'):

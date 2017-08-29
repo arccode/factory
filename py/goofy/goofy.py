@@ -1136,7 +1136,6 @@ class Goofy(GoofyBase):
 
     if self.test_list.options.shopfloor_server_url:
       shopfloor.set_server_url(self.test_list.options.shopfloor_server_url)
-      shopfloor.set_enabled(True)
 
     self.init_states()
     self.start_event_server()
