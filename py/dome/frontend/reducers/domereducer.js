@@ -22,13 +22,23 @@ const INITIAL_STATE = Immutable.fromJS({
   formPayload: {
   },
   tasks: {},
-  TFTPEnabled: false
+  config: {
+    updating: false,
+    TFTPEnabled: false
+  }
 });
 
 export default function domeReducer(state = INITIAL_STATE, action) {
   switch (action.type) {
-    case ActionTypes.SYNC_CONFIG:
-      return state.set('TFTPEnabled', action.config.tftpEnabled);
+    case ActionTypes.RECIEVE_CONFIG:
+      return state.setIn(['config', 'TFTPEnabled'],
+          action.config.tftpEnabled);
+
+    case ActionTypes.START_UPDATING_CONFIG:
+      return state.setIn(['config', 'updating'], true);
+
+    case ActionTypes.FINISH_UPDATING_CONFIG:
+      return state.setIn(['config', 'updating'], false);
 
     case ActionTypes.SET_ERROR_MESSAGE:
       return state.setIn(['errorDialog', 'message'], action.message);

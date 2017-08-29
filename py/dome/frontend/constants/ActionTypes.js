@@ -5,7 +5,9 @@
 import Enum from '../utils/enum';
 
 export default Enum([
-  'SYNC_CONFIG',
+  'START_UPDATING_CONFIG',
+  'FINISH_UPDATING_CONFIG',
+  'RECIEVE_CONFIG',
 
   'SET_ERROR_MESSAGE',
   'SHOW_ERROR_DIALOG',

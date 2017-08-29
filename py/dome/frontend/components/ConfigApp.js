@@ -13,6 +13,7 @@ import DomeActions from '../actions/domeactions';
 var ConfigApp = React.createClass({
   propTypes: {
     TFTPEnabled: React.PropTypes.bool.isRequired,
+    configUpdating: React.PropTypes.bool.isRequired,
     disableTFTP: React.PropTypes.func.isRequired,
     enableTFTP: React.PropTypes.func.isRequired,
     initializeConfig: React.PropTypes.func.isRequired
@@ -25,6 +26,7 @@ var ConfigApp = React.createClass({
   render() {
     const {
       TFTPEnabled,
+      configUpdating,
       disableTFTP,
       enableTFTP,
       initializeConfig
@@ -39,6 +41,7 @@ var ConfigApp = React.createClass({
               label="TFTP server"
               toggled={TFTPEnabled}
               onToggle={TFTPEnabled ? disableTFTP : enableTFTP}
+              disabled={configUpdating}
             />
           </CardText>
         </Card>
@@ -49,7 +52,8 @@ var ConfigApp = React.createClass({
 
 function mapStateToProps(state) {
   return {
-    TFTPEnabled: state.getIn(['dome', 'TFTPEnabled'])
+    TFTPEnabled: state.getIn(['dome', 'config', 'TFTPEnabled']),
+    configUpdating: state.getIn(['dome', 'config', 'updating'])
   };
 }
 

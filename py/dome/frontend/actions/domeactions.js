@@ -58,8 +58,8 @@ function recursivelyUploadFileFields(data, queue = null) {
   return queue;
 }
 
-const syncConfig = config => ({
-  type: ActionTypes.SYNC_CONFIG,
+const recieveConfig = config => ({
+  type: ActionTypes.RECIEVE_CONFIG,
   config
 });
 
@@ -71,7 +71,7 @@ const initializeConfig = () => dispatch => {
 const fetchConfig = () => dispatch => {
   fetch('/config/0').then(response => {
     response.json().then(json => {
-      dispatch(syncConfig(json));
+      dispatch(recieveConfig(json));
     }, error => {
       console.error('error parsing config response');
       console.error(error);
@@ -79,10 +79,13 @@ const fetchConfig = () => dispatch => {
   }, error => {
     console.error('error fetching config');
     console.error(error);
+  }).then( () => {
+    dispatch({type: ActionTypes.FINISH_UPDATING_CONFIG});
   });
 };
 
 const updateConfig = body => (dispatch, getState) => {
+  dispatch({type: ActionTypes.START_UPDATING_CONFIG});
   var description = 'Update config';
   dispatch(createTask(
       description, 'PUT', '/config/0', body,
@@ -378,7 +381,7 @@ const cancelTaskAndItsDependencies = taskID => (dispatch, getState) => {
 };
 
 export default {
-  syncConfig, updateConfig, fetchConfig, initializeConfig,
+  recieveConfig, updateConfig, fetchConfig, initializeConfig,
   enableTFTP, disableTFTP,
   setError, showErrorDialog, hideErrorDialog, setAndShowErrorDialog,
   createProject, updateProject, deleteProject, fetchProjects, switchProject,
