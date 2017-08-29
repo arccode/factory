@@ -43,7 +43,6 @@ To ask the operator to fill the properties of the station when needed::
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -94,7 +93,6 @@ class StationSetup(unittest.TestCase):
         state.get_instance().IsPluginEnabled('station_setup.station_setup'),
         'This pytest needs the station_setup Goofy plugin to be enabled.')
 
-    self._template.SetTitle(i18n_test_ui.MakeI18nLabel('Setup Station'))
     self._template.SetState(_HTML)
     self._ui.BindKeyJS(test_ui.ENTER_KEY, 'onEnter();')
     self._ui.RunJS(_JS)

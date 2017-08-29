@@ -29,8 +29,6 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import sync_utils
 
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Plankton USB type-C Display Test')
-
 _BLACKSCREEN_STR = i18n_test_ui.MakeI18nLabel(
     'Caution: monitor may turn black for a short time.')
 
@@ -98,7 +96,6 @@ class PlanktonDisplayTest(unittest.TestCase):
     self._ui = test_ui.UI()
     self._ui.AppendCSSLink('plankton_display.css')
     self._template = ui_templates.TwoSections(self._ui)
-    self._template.SetTitle(_TEST_TITLE)
 
     self._static_dir = self._ui.GetStaticDirectoryPath()
     self._display_image_path = os.path.join(self._static_dir, 'template.png')

@@ -23,7 +23,6 @@ from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
 from cros.factory.utils.arg_utils import Arg
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Components Verification Test')
 _MESSAGE_CHECKING_COMPONENTS = i18n_test_ui.MakeI18nLabelWithClass(
     'Checking components...', 'progress-message')
 
@@ -63,7 +62,6 @@ class VerifyComponentsTest(unittest.TestCase):
       self._ui = test_ui.UI()
       self._ui.AppendCSS('.progress-message {font-size: 2em;}')
       self.template = ui_templates.OneSection(self._ui)
-      self.template.SetTitle(_TEST_TITLE)
 
   def tearDown(self):
     phase.OverridePhase(None)

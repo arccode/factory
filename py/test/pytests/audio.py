@@ -75,8 +75,6 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Audio Test')
-
 _DIV_CENTER_INSTRUCTION = """
 <div id='instruction-center' class='template-instruction'></div>"""
 _CSS = '#pass_key {font-size:36px; font-weight:bold;}'
@@ -291,7 +289,6 @@ class AudioTest(unittest.TestCase):
 
     Sets test title and draw progress bar.
     """
-    self._template.SetTitle(_TEST_TITLE)
     self._template.SetState(_DIV_CENTER_INSTRUCTION)
     self._template.DrawProgressBar()
     self._ui.AppendCSS(_CSS)

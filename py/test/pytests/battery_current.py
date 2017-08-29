@@ -76,8 +76,6 @@ from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Battery Current Test')
-
 
 def _PROMPT_TEXT(charge, current, target):
   return i18n_test_ui.MakeI18nLabel(
@@ -124,7 +122,6 @@ class BatteryCurrentTest(unittest.TestCase):
     self._power = self._dut.power
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
-    self._template.SetTitle(_TEST_TITLE)
     if self.args.usbpd_info:
       self._CheckUSBPDInfoArg(self.args.usbpd_info)
       self._usbpd_port = self.args.usbpd_info[0]

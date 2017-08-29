@@ -205,8 +205,6 @@ class ChameleonDisplayTest(unittest.TestCase):
     self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI(css=DEFAULT_CSS)
     self.ui_template = ui_templates.OneSection(self.ui)
-    self.ui_template.SetTitle(
-        i18n_test_ui.MakeI18nLabel('Automated External Display Test'))
     self.chameleon = Chameleon(
         self.args.chameleon_host, self.args.chameleon_port)
     self.goofy_rpc = state.get_instance()

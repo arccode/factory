@@ -15,8 +15,6 @@ from cros.factory.test import ui_templates
 from cros.factory.utils import process_utils
 
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Keyboard Backlight Test')
-
 _SUBTESTS = (
     (_('If the keyboard backlight lights up, press ENTER. '), '100'),
     (_('If the keyboard backlight is off, press ENTER. '), '0'))
@@ -48,7 +46,6 @@ class KeyboardBacklightTest(unittest.TestCase):
 
   def runTest(self):
     """Main entrance of keyboard backlight test."""
-    self._template.SetTitle(_TEST_TITLE)
     self._ui.BindKeyJS(test_ui.ENTER_KEY,
                        'test.sendTestEvent("pass_subtest", {});')
     self._ui.BindStandardKeys(bind_pass_keys=False)

@@ -40,7 +40,6 @@ from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Bluetooth functional Test')
 _MSG_DETECT_ADAPTER = i18n_test_ui.MakeI18nLabel('Detect bluetooth adapter')
 _MSG_TURN_ON_DEVICE = i18n_test_ui.MakeI18nLabelWithClass(
     'Enable the connection ability of bluetooth device and press Enter',
@@ -1138,7 +1137,6 @@ class BluetoothTest(unittest.TestCase):
     self.ui = test_ui.UI()
     self.ui.AppendCSS('.start-font-size {font-size: 2em;}')
     self.template = ui_templates.TwoSections(self.ui)
-    self.template.SetTitle(_TEST_TITLE)
     self._task_list = []
     self._strongest_rssi_mac = None
     self.fixture = None

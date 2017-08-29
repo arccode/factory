@@ -54,7 +54,6 @@ from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
 
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Simple Battery Test')
 _UNPLUG_AC = i18n_test_ui.MakeI18nLabel('Unplug AC to proceed')
 _PLUG_AC = i18n_test_ui.MakeI18nLabel('Plug AC to proceed')
 _TESTING_CHARGE = i18n_test_ui.MakeI18nLabel('Testing battery charge...')
@@ -89,7 +88,6 @@ class SimpleBatteryTest(unittest.TestCase):
     self.VerifyArgs()
     self._ui = test_ui.UI(css=_CSS)
     self._template = ui_templates.OneSection(self._ui)
-    self._template.SetTitle(_TEST_TITLE)
 
   def VerifyArgs(self):
     if self.args.min_charge_current_mA:

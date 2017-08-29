@@ -24,8 +24,6 @@ from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('LED Test')
-
 # True to test all colors regardless of failure.
 _FAIL_LATER = True
 _SHOW_RESULT_SECONDS = 0.5
@@ -322,8 +320,6 @@ class LEDTest(unittest.TestCase):
       self._fixture.Disconnect()
 
   def runTest(self):
-    self._template.SetTitle(_TEST_TITLE)
-
     tasks = []
     colors = self.args.colors
 

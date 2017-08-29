@@ -44,8 +44,6 @@ from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
 
-_TITLE = i18n_test_ui.MakeI18nLabel('Setup network connection')
-
 _ID_SUBTITLE_DIV = 'subtitle'
 _ID_MESSAGE_DIV = 'message'
 _ID_INSTRUCTION_DIV = 'instruction'
@@ -95,7 +93,6 @@ class NetworkConnectionSetup(unittest.TestCase):
     self.space_pressed = threading.Event()
 
   def runTest(self):
-    self.ui_template.SetTitle(_TITLE)
     self.ui_template.SetState(_STATE_HTML)
     self.ui.BindKey(test_ui.SPACE_KEY, lambda _: self.space_pressed.set())
     process_utils.StartDaemonThread(target=self.SetInterfaces)

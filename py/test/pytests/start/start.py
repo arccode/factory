@@ -40,8 +40,6 @@ from cros.factory.utils import process_utils
 from cros.factory.utils.type_utils import Enum
 
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Start Factory Test')
-
 _CSS = """
 .start-font-size {
   font-size: 2em;
@@ -306,7 +304,6 @@ class StartTest(unittest.TestCase):
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_CSS)
-    self.template.SetTitle(_TEST_TITLE)
 
   def runTest(self):
 

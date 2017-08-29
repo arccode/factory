@@ -21,7 +21,6 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Plankton USB type-C CC2 pull test')
 _DISCONNECT = lambda secs: i18n_test_ui.MakeI18nLabel(
     'USB type-C port is disconnected in {secs:.1f} seconds', secs=secs)
 _DISCONNECT_OP = lambda secs: i18n_test_ui.MakeI18nLabel(
@@ -48,7 +47,6 @@ class PlanktonCC2PullTest(unittest.TestCase):
     self._dut = device_utils.CreateDUTInterface()
     self._ui = test_ui.UI(css=_CSS)
     self._template = ui_templates.OneSection(self._ui)
-    self._template.SetTitle(_TEST_TITLE)
     self._usb_c_index = self.args.usb_c_index
     self._pull_gpio = 'C%d_CC2_DUT' % self._usb_c_index
 

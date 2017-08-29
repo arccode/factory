@@ -72,8 +72,6 @@ from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel(
-    'Plankton-Raiden USB type-C Charging Test')
 _TESTING_ADB_CONNECTION = i18n_test_ui.MakeI18nLabel(
     'Waiting for ADB device connection...')
 _TESTING_PROTECT = i18n_test_ui.MakeI18nLabel(
@@ -169,7 +167,6 @@ class PlanktonChargeBFTTest(unittest.TestCase):
     self.VerifyArgs()
     self._ui = test_ui.UI(css=_CSS)
     self._template = ui_templates.OneSection(self._ui)
-    self._template.SetTitle(_TEST_TITLE)
     self._bft_fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
     self._adb_remote_test = isinstance(self._dut.link, adb.ADBLink)
     self._remote_test = not self._dut.link.IsLocal()

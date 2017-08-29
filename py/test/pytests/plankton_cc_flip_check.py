@@ -94,7 +94,6 @@ from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Plankton USB type-C CC Detect')
 _OPERATION = i18n_test_ui.MakeI18nLabel(
     'Flip USB type-C cable and plug in again...')
 _NO_TIMER = i18n_test_ui.MakeI18nLabel('And press Enter key to continue...')
@@ -149,7 +148,6 @@ class PlanktonCCFlipCheck(unittest.TestCase):
     self._dut = device_utils.CreateDUTInterface()
     self._ui = test_ui.UI(css=_CSS)
     self._template = ui_templates.OneSection(self._ui)
-    self._template.SetTitle(_TEST_TITLE)
     if self.args.ask_flip_operation and self.args.timeout_secs == 0:
       self._ui.BindKey(test_ui.ENTER_KEY, lambda _: self.OnEnterPressed())
     self._bft_fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)

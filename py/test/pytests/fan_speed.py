@@ -37,7 +37,6 @@ from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Fan Speed Test')
 _MSG_FAN_SPEED = i18n_test_ui.MakeI18nLabel('Fan speed (RPM):')
 _ID_STATUS = 'fs_status'
 _ID_RPM = 'fs_rpm'
@@ -86,7 +85,6 @@ class FanSpeedTest(unittest.TestCase):
         'Either set a valid target_rpm or spin_max_then_half=True.')
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
-    self._template.SetTitle(_TEST_TITLE)
     self._template.SetState(_TEST_BODY)
     self._fan = device_utils.CreateDUTInterface().fan
     if isinstance(self.args.target_rpm, int):

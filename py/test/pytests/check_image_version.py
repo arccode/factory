@@ -80,8 +80,6 @@ from cros.factory.tools import flash_netboot
 from cros.factory.utils.arg_utils import Arg
 
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Check Image Version')
-
 _CSS = """
 .start-font-size {
   font-size: 2em;
@@ -197,7 +195,6 @@ class CheckImageVersionTest(unittest.TestCase):
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS(_CSS)
-    self.template.SetTitle(_TEST_TITLE)
 
   def runTest(self):
     factory_task.FactoryTaskManager(self.ui, self._task_list).Run()

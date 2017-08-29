@@ -20,8 +20,6 @@ from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
 
-_MSG_TEST_TITLE = i18n_test_ui.MakeI18nLabel(
-    'Non-touchpad Pointing Device Test')
 _MSG_INSTRUCTION = i18n_test_ui.MakeI18nLabel(
     'Please move the pointer over four quarters.')
 _MSG_MOVE_HERE = i18n_test_ui.MakeI18nLabel('Move Here!')
@@ -191,7 +189,6 @@ class PointingDeviceTest(unittest.TestCase):
 
   def runTest(self):
     ui = self._ui
-    ui.SetTitle(_MSG_TEST_TITLE)
     ui.AddQuarters()
     ui.AppendHTML(_INSTRUCTION_HTML)
     ui.BindStandardKeys(bind_pass_key=False, bind_fail_key=True)

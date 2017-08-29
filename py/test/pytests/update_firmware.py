@@ -54,7 +54,6 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import event
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -64,7 +63,6 @@ from cros.factory.utils import process_utils
 _FIRMWARE_LABELS = ['bios', 'ec', 'pd']
 _FIRMWARE_DOWNLOAD_PATH = paths.FACTORY_FIRMWARE_UPDATER_PATH
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Update Firmware')
 _CSS = '#state {text-align:left;}'
 
 
@@ -92,7 +90,6 @@ class UpdateFirmwareTest(unittest.TestCase):
                       msg='%s is missing.' % self.args.firmware_updater)
     self._ui = test_ui.UI()
     self._template = ui_templates.OneScrollableSection(self._ui)
-    self._template.SetTitle(_TEST_TITLE)
     self._ui.AppendCSS(_CSS)
 
   def DownloadFirmware(self):

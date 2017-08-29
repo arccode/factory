@@ -30,7 +30,6 @@ from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('SIM Card Tray Test')
 _INSERT_TRAY_INSTRUCTION = i18n_test_ui.MakeI18nLabelWithClass(
     'Please insert the SIM card tray', 'instruction-font-size')
 _REMOVE_TRAY_INSTRUCTION = i18n_test_ui.MakeI18nLabelWithClass(
@@ -251,7 +250,6 @@ class ProbeSimCardTrayTest(unittest.TestCase):
              'insert' if self.args.tray_already_present else 'remove')))
 
   def runTest(self):
-    self.template.SetTitle(_TEST_TITLE)
     self._detection_gpio_path = os.path.join(
         _GPIO_PATH, 'gpio%d' % self.args.tray_detection_gpio)
     self.ExportGPIO()

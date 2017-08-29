@@ -134,7 +134,6 @@ class MessageTest(unittest.TestCase):
         press_button_hint = i18n_test_ui.MakeI18nLabel(
             '<div>Press <strong>Enter</strong> to continue.</div>')
 
-    template.SetTitle(i18n_test_ui.MakeI18nLabel('Message'))
     template.SetState(
         '<div class="state">' +
         i18n_test_ui.MakeI18nLabelWithClass(self.args.html, 'message') +

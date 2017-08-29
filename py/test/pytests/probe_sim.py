@@ -34,7 +34,6 @@ from cros.factory.utils import process_utils
 _SIM_PRESENT_RE = r'IMSI: (\d{14,15})'
 _SIM_NOT_PRESENT_RE = r'SIM: /$'
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('SIM Card Test')
 _INSERT_SIM_INSTRUCTION = i18n_test_ui.MakeI18nLabel(
     'Please insert the SIM card')
 _REMOVE_SIM_INSTRUCTION = i18n_test_ui.MakeI18nLabel(
@@ -226,7 +225,6 @@ class ProbeSIMCardTest(unittest.TestCase):
     self._task_manager = None
 
   def runTest(self):
-    self.template.SetTitle(_TEST_TITLE)
 
     def Done():
       self.force_stop.set()

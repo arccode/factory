@@ -24,8 +24,6 @@ from cros.factory.test import ui_templates
 from cros.factory.test.utils import stress_manager
 from cros.factory.utils.arg_utils import Arg
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Charger Test')
-
 
 def _REGULATE_CHARGE_TEXT(charge, target, timeout, load,
                           battery_current, use_percentage):
@@ -125,7 +123,6 @@ class ChargerTest(unittest.TestCase):
     self._power = self._dut.power
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
-    self._template.SetTitle(_TEST_TITLE)
     self._thread = threading.Thread(target=self._ui.Run)
     self._min_starting_charge = float(self.args.min_starting_charge_pct)
     self._max_starting_charge = float(self.args.max_starting_charge_pct)

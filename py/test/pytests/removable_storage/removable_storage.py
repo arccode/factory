@@ -168,8 +168,6 @@ _ERR_BFT_ACTION_STR = (
     'BFT fixture failed to %s %s device %s. Reason: %s' % (
         action, test_type, target_dev, reason))
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Removable Storage Test')
-
 # Regex used for find execution time from dd output.
 _RE_DD_EXECUTION_TIME = re.compile(
     r'^.* copied, ([0-9]+\.[0-9]+) s(?:econds)?, .*$', re.MULTILINE)
@@ -745,7 +743,6 @@ class RemovableStorageTest(unittest.TestCase):
 
     logging.info('media = %s', self.args.media)
 
-    self._template.SetTitle(_TEST_TITLE)
     self._insertion_image = '%s_insert.png' % self.args.media
     self._removal_image = '%s_remove.png' % self.args.media
     self._testing_image = '%s_testing.png' % self.args.media

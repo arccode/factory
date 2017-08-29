@@ -21,7 +21,6 @@ from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Lightbar Test')
 _TEST_PROMPT = lambda color: i18n_test_ui.MakeI18nLabel(
     'Is the lightbar {color}?<br>Press SPACE if yes, "f" if no.', color=color)
 _CSS = 'body { font-size: 2em; }'
@@ -46,7 +45,6 @@ class LightbarTest(unittest.TestCase):
   def setUp(self):
     self._ui = test_ui.UI(css=_CSS)
     self._template = ui_templates.OneSection(self._ui)
-    self._template.SetTitle(_TEST_TITLE)
     self._test_color_index = 0
     self._ui.BindKey(test_ui.SPACE_KEY, self.TestNextColorOrPass)
     self._ui.BindKey('F', self.FailTest)

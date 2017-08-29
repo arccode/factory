@@ -88,7 +88,6 @@ from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
 
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('External Display Test')
 _DIV_CENTER_INSTRUCTION = """
 <div id='instruction-center' class='template-instruction'></div>"""
 _CSS = '#pass_key {font-size:36px; font-weight:bold;}'
@@ -156,7 +155,7 @@ class ExtDisplayTask(factory_task.InteractiveFactoryTask):
     self._instruction = instruction
     self._pass_key = pass_key
 
-  def _SetTitleInstruction(self):
+  def _SetInstruction(self):
     """Sets title and instruction.
 
     Shows task title on the upper left corner and instruction at the center
@@ -177,7 +176,7 @@ class ExtDisplayTask(factory_task.InteractiveFactoryTask):
     Args:
       fail_later: True to fail later when fail key is pressed.
     """
-    self._SetTitleInstruction()
+    self._SetInstruction()
     self.BindPassFailKeys(pass_key=self._pass_key, fail_later=fail_later)
 
 
@@ -620,7 +619,6 @@ class ExtDisplayTest(unittest.TestCase):
 
     Sets test title and draw progress bar.
     """
-    self._template.SetTitle(_TEST_TITLE)
     self._template.SetState(_DIV_CENTER_INSTRUCTION)
     self._template.DrawProgressBar()
     self._ui.AppendCSS(_CSS)

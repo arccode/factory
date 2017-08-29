@@ -85,7 +85,6 @@ from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import config_utils
 from cros.factory.utils import type_utils
 
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Charging')
 _DEFAULT_TARGET_CHARGE = 78
 
 
@@ -135,7 +134,6 @@ class ChargerTest(unittest.TestCase):
     self._power = device_utils.CreateDUTInterface().power
     self._ui = test_ui.UI()
     self._template = ui_templates.TwoSections(self._ui)
-    self._template.SetTitle(_TEST_TITLE)
 
   def CheckPower(self):
     self.assertTrue(self._power.CheckBatteryPresent(), 'Cannot find battery.')

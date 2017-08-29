@@ -134,7 +134,6 @@ msgid "Charger"
 msgstr "充电器"
 
 #: ../build/pytests_label_generated.json
-#: ../py/test/pytests/check_image_version.py
 msgid "Check Image Version"
 msgstr "检查映像版本"
 
@@ -282,7 +281,7 @@ msgstr "LTE 验证设定"
 msgid "Memory Size"
 msgstr "记忆体大小"
 
-#: ../build/pytests_label_generated.json ../py/test/pytests/message/message.py
+#: ../build/pytests_label_generated.json
 msgid "Message"
 msgstr "讯息"
 
@@ -520,14 +519,12 @@ msgid "Update Device Data"
 msgstr "更新机器资料"
 
 #: ../build/pytests_label_generated.json
-#: ../py/test/pytests/update_cr50_firmware.py
-#: ../py/test/pytests/update_firmware.py
 #: ../py/test/test_lists/generic_common.test_list.json
 #: ../py/test/test_lists/generic_smt.test_list.json
 msgid "Update Firmware"
 msgstr "更新韧体"
 
-#: ../build/pytests_label_generated.json ../py/test/pytests/update_kernel.py
+#: ../build/pytests_label_generated.json
 msgid "Update Kernel"
 msgstr "更新 Kernel"
 
@@ -1262,10 +1259,6 @@ msgid "Fixture UNAVAILABLE"
 msgstr "治具未连接"
 
 #: ../py/test/pytests/audio.py
-msgid "Audio Test"
-msgstr "音讯测试"
-
-#: ../py/test/pytests/audio.py
 msgid ""
 "Press the number you hear from {device} to pass the test.<br>Press \"{key}\" "
 "to replay."
@@ -1519,10 +1512,6 @@ msgid "Phase {current_phase}/{total_phases}: "
 msgstr "阶段 {current_phase}/{total_phases}: "
 
 #: ../py/test/pytests/battery_basic.py
-msgid "Simple Battery Test"
-msgstr "简单电池测试"
-
-#: ../py/test/pytests/battery_basic.py
 msgid "Unplug AC to proceed"
 msgstr "拔除 AC 电源"
 
@@ -1537,10 +1526,6 @@ msgstr "测试电池充电中..."
 #: ../py/test/pytests/battery_basic.py
 msgid "Testing battery discharge..."
 msgstr "测试电池放电中..."
-
-#: ../py/test/pytests/battery_current.py
-msgid "Battery Current Test"
-msgstr "充电放电电流测试"
 
 #: ../py/test/pytests/battery_current.py
 msgid ""
@@ -1562,14 +1547,6 @@ msgstr "放电"
 msgid "Insert power to {prompt}({voltage}mV)"
 msgstr "请将电源线插入{prompt}({voltage}mV)"
 
-#: ../py/test/pytests/battery_sysfs.py
-msgid "Battery Self-diagnosis"
-msgstr "电池自我诊断"
-
-#: ../py/test/pytests/blocking_charge.py ../py/test/pytests/charger.py
-msgid "Charging"
-msgstr "充电"
-
 #: ../py/test/pytests/blocking_charge.py
 msgid ""
 "Charging to {target}% (Start: {start}%. Current: {current}%.)<br>Time "
@@ -1579,10 +1556,6 @@ msgstr ""
 "充电至 {target}% (起始电量: {start}%. 当前电量: {current}%.)<br>经过时间: "
 "{elapsed}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;剩余时间: "
 "{remaining}"
-
-#: ../py/test/pytests/bluetooth.py
-msgid "Bluetooth functional Test"
-msgstr "蓝牙功能测试"
 
 #: ../py/test/pytests/bluetooth.py
 msgid "Detect bluetooth adapter"
@@ -1791,10 +1764,6 @@ msgid "Switching firmware to {target!r}<br>"
 msgstr "切换数据机至{target!r}韧体"
 
 #: ../py/test/pytests/chameleon/chameleon.py
-msgid "Automated External Display Test"
-msgstr "自动外接显示测试"
-
-#: ../py/test/pytests/chameleon/chameleon.py
 msgid "Please plug in the display to test"
 msgstr "请拔下耳机"
 
@@ -1814,12 +1783,12 @@ msgid "Captured images mismatch"
 msgstr "撷取的图片不相符"
 
 #: ../py/test/pytests/charger.py
-msgid "Charger Test"
-msgstr "充电放电测试"
-
-#: ../py/test/pytests/charger.py
 msgid "Discharging"
 msgstr "放电"
+
+#: ../py/test/pytests/charger.py
+msgid "Charging"
+msgstr "充电"
 
 #: ../py/test/pytests/charger.py
 msgid ""
@@ -2091,10 +2060,6 @@ msgid "Running shell commands..."
 msgstr "正在执行系统指令..."
 
 #: ../py/test/pytests/ext_display/ext_display.py
-msgid "External Display Test"
-msgstr "外接显示屏测试"
-
-#: ../py/test/pytests/ext_display/ext_display.py
 msgid "{display} Connect"
 msgstr "{display} 连接"
 
@@ -2129,10 +2094,6 @@ msgstr "通过请按 <span id=\"pass_key\">{key}</span> 键"
 #: ../py/test/pytests/ext_display/ext_display.py
 msgid "{display_label} Audio"
 msgstr " {display_label} 音讯"
-
-#: ../py/test/pytests/fan_speed.py
-msgid "Fan Speed Test"
-msgstr "风扇转速测试"
 
 #: ../py/test/pytests/fan_speed.py
 msgid "Fan speed (RPM):"
@@ -2193,10 +2154,6 @@ msgstr ""
 msgid "Get the final test result..."
 msgstr "检查系统最终测试结果..."
 
-#: ../py/test/pytests/flash_netboot.py
-msgid "Flash Netboot Firmware"
-msgstr "烧录 netboot 韧体"
-
 #: ../py/test/pytests/gyroscope.py
 msgid "Please do not move the device."
 msgstr "请勿移动待测物。"
@@ -2235,10 +2192,6 @@ msgid "Press one key at a time."
 msgstr "一次只能按一个键"
 
 #: ../py/test/pytests/keyboard_backlight.py
-msgid "Keyboard Backlight Test"
-msgstr "键盘背光测试"
-
-#: ../py/test/pytests/keyboard_backlight.py
 msgid "If the keyboard backlight lights up, press ENTER. "
 msgstr "检查键盘背光是否亮起，是请按ENTER。"
 
@@ -2249,10 +2202,6 @@ msgstr "检查键盘背光是否熄灭，是请按ENTER。"
 #: ../py/test/pytests/keyboard_smt.py
 msgid "Expected keycode sequence:"
 msgstr "目标键序："
-
-#: ../py/test/pytests/led/led.py
-msgid "LED Test"
-msgstr "LED 测试"
 
 #: ../py/test/pytests/led/led.py
 msgid "yellow"
@@ -2359,10 +2308,6 @@ msgstr ""
 "    按 \"空白键\" 开始测试...<br><br>\n"
 
 #: ../py/test/pytests/lightbar.py
-msgid "Lightbar Test"
-msgstr "光棒测试"
-
-#: ../py/test/pytests/lightbar.py
 msgid "Is the lightbar {color}?<br>Press SPACE if yes, \"f\" if no."
 msgstr "光棒是否为{color}？<br>是请按空白键，不是请按 f 。"
 
@@ -2390,10 +2335,6 @@ msgid "Please confirm following values"
 msgstr "请确认以下结果"
 
 #: ../py/test/pytests/network_setup/network_setup.py
-msgid "Setup network connection"
-msgstr "设定网络连线"
-
-#: ../py/test/pytests/network_setup/network_setup.py
 msgid "Setting up interface {interface}"
 msgstr "正在设定网络介面 {interface}"
 
@@ -2413,14 +2354,6 @@ msgstr "找不到网络介面 {interface}"
 msgid "Interface {interface} not initialized"
 msgstr "网络介面 {interface} 未成功初始化"
 
-#: ../py/test/pytests/ping_test.py
-msgid "Ping test"
-msgstr "连线测试"
-
-#: ../py/test/pytests/plankton_cc2_pull_test.py
-msgid "Plankton USB type-C CC2 pull test"
-msgstr "Plankton USB type-C CC2 电压测试"
-
 #: ../py/test/pytests/plankton_cc2_pull_test.py
 msgid "USB type-C port is disconnected in {secs:.1f} seconds"
 msgstr "USB type-C port 失去连接 {secs:.1f} 秒"
@@ -2434,10 +2367,6 @@ msgid "Please attach USB type-C cable in {secs:.1f} seconds"
 msgstr "请在 {secs:.1f} 秒内连接 USB type-C 线"
 
 #: ../py/test/pytests/plankton_cc_flip_check.py
-msgid "Plankton USB type-C CC Detect"
-msgstr ""
-
-#: ../py/test/pytests/plankton_cc_flip_check.py
 msgid "Flip USB type-C cable and plug in again..."
 msgstr "将 USB type-C port 头反转后再次插入机器..."
 
@@ -2448,10 +2377,6 @@ msgstr "并按 Enter 键继续..."
 #: ../py/test/pytests/plankton_cc_flip_check.py
 msgid "Wait DUT to reconnect"
 msgstr "等待 DUT 重新连接"
-
-#: ../py/test/pytests/plankton_charge.py
-msgid "Plankton-Raiden USB type-C Charging Test"
-msgstr "Plankton-Raiden USB type-C 充电测试"
 
 #: ../py/test/pytests/plankton_charge.py
 msgid "Waiting for ADB device connection..."
@@ -2470,10 +2395,6 @@ msgid "Testing battery discharging..."
 msgstr "测试电池放电中..."
 
 #: ../py/test/pytests/plankton_display.py
-msgid "Plankton USB type-C Display Test"
-msgstr ""
-
-#: ../py/test/pytests/plankton_display.py
 msgid "Caution: monitor may turn black for a short time."
 msgstr "注意: 萤幕可能会有短暂黑屏"
 
@@ -2488,10 +2409,6 @@ msgstr "已连接 BFT 显示屏: {device}, 正在传送画面"
 #: ../py/test/pytests/plankton_display.py
 msgid "Disconnecting BFT display: {device}"
 msgstr "正在移除 BFT 显示屏: {device}"
-
-#: ../py/test/pytests/pointing_device.py
-msgid "Non-touchpad Pointing Device Test"
-msgstr "非触控板之指向装置测试"
 
 #: ../py/test/pytests/pointing_device.py
 msgid "Please move the pointer over four quarters."
@@ -2534,10 +2451,6 @@ msgid "Press SPACE to continue"
 msgstr "按空白键继续"
 
 #: ../py/test/pytests/probe_sim.py
-msgid "SIM Card Test"
-msgstr "SIM卡测试"
-
-#: ../py/test/pytests/probe_sim.py
 msgid "Please insert the SIM card"
 msgstr "请插入SIM卡"
 
@@ -2548,10 +2461,6 @@ msgstr "已经侦测SIM卡, 请移除SIM卡"
 #: ../py/test/pytests/probe_sim.py
 msgid "Checking SIM card is present or not..."
 msgstr "检查SIM卡是否存在"
-
-#: ../py/test/pytests/probe_sim_card_tray.py
-msgid "SIM Card Tray Test"
-msgstr "SIM卡卡盘测试"
 
 #: ../py/test/pytests/probe_sim_card_tray.py
 msgid "Please insert the SIM card tray"
@@ -2614,10 +2523,6 @@ msgstr "提取 {media} 存储并关闭写保护开关..."
 #: ../py/test/pytests/removable_storage/removable_storage.py
 msgid "Device removed too early ({media})."
 msgstr "太早移除外部储存装置 ({media})."
-
-#: ../py/test/pytests/removable_storage/removable_storage.py
-msgid "Removable Storage Test"
-msgstr "可移除储存装置测试"
 
 #: ../py/test/pytests/rf_graphyte/rf_graphyte.py
 msgid "Fetching config files from shopfloor"
@@ -2758,10 +2663,6 @@ msgid "Writing calibration data..."
 msgstr "正在写入校正结果..."
 
 #: ../py/test/pytests/start/start.py
-msgid "Start Factory Test"
-msgstr "开始工厂测试"
-
-#: ../py/test/pytests/start/start.py
 msgid ""
 "Factory install process did not complete. Auto-testing stopped."
 "<br><br>Please install the factory test image using the mini-Omaha "
@@ -2837,10 +2738,6 @@ msgstr "REMOVE 请移除测试装置。"
 msgid "Restarting all tests..."
 msgstr "RESTARTING 测试结束，正在重设测试列表..."
 
-#: ../py/test/pytests/station_setup.py
-msgid "Setup Station"
-msgstr "设定测站"
-
 #: ../py/test/pytests/stylus.py
 msgid ""
 "Please extend the green line with stylus to the other end.<br>Stay between "
@@ -2860,10 +2757,6 @@ msgstr "之前所有的测试必须通过才能通过此项目"
 #: ../py/test/pytests/summary/summary.py
 msgid "Test Status for {test}:"
 msgstr "{test} 测试结果列表："
-
-#: ../py/test/pytests/suspend_resume.py
-msgid "Suspend/Resume Test"
-msgstr "暂停/恢复测试"
 
 #: ../py/test/pytests/suspend_resume.py
 msgid "Suspend/Resume:"
@@ -3192,10 +3085,6 @@ msgstr "手指太早离开！请重来"
 msgid "Test failed! Please test this panel carefully with Gods Touch test."
 msgstr "触控面板测试失败. 请以Gods Touch测试软体加以仔细验证"
 
-#: ../py/test/pytests/tpm_diagnosis.py
-msgid "TPM Self-diagnosis"
-msgstr "TPM 自我诊断"
-
 #: ../py/test/pytests/update_device_data.py
 msgid "Device Serial Number"
 msgstr "机器编号"
@@ -3243,10 +3132,6 @@ msgstr "<br>(ESC 保持原值不变)"
 #: ../py/test/pytests/usb.py
 msgid "Plug device into each USB port, {num_usb_ports} to go...<br>"
 msgstr "在每个 USB 端口插入装置, 还有 {num_usb_ports} 个待测试...<br>"
-
-#: ../py/test/pytests/verify_components.py
-msgid "Components Verification Test"
-msgstr "元件验证测试"
 
 #: ../py/test/pytests/verify_components.py
 msgid "Checking components..."
