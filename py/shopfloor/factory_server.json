@@ -1,3 +1,4 @@
 {
-  "shopfloor_service_url": "http://127.0.0.1:8090"
+  "shopfloor_service_url": "http://localhost:8090",
+  "miniomaha_payload_url": ""
 }

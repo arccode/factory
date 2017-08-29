@@ -1,17 +1,21 @@
 {
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "additionalProperties": false,
-    "definitions": {},
-    "id": "http://example.com/example.json",
-    "properties": {
-        "shopfloor_service_url": {
-            "id": "/properties/shopfloor_service_url",
-            "type": "string"
-        },
-        "miniomaha_payload_url": {
-            "id": "/properties/miniomaha_payload_url",
-            "type": "string"
-        }
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "definitions": {},
+  "properties": {
+    "shopfloor_service_url": {
+      "default": "",
+      "description": "The URL to manufacturing line shop floor service backend.",
+      "id": "/properties/shopfloor_service_url",
+      "title": "The shopfloor_service_url schema",
+      "type": "string"
     },
-    "type": "object"
+    "miniomaha_payload_url": {
+      "default": "",
+      "description": "Legacy: the URL to find Mini-Omaha server payloads.",
+      "id": "/properties/miniomaha_payload_url",
+      "title": "The miniomaha_payload_url schema",
+      "type": "string"
+    }
+  },
+  "type": "object"
 }

@@ -27,6 +27,7 @@ from xmlrpclib import Binary
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import factory
+from cros.factory.test import server_proxy
 from cros.factory.test import state
 from cros.factory.umpire.client import umpire_client
 from cros.factory.umpire.client import umpire_server_proxy
@@ -34,17 +35,6 @@ from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
-
-# Name of the factory shared data key that maps to session info.
-KEY_SHOPFLOOR_SESSION = 'shopfloor.session'
-
-# Session data will be serialized, so we're not using class/namedtuple. The
-# session is a simple dictionary with following keys:
-SESSION_SERVER_URL = 'server_url'
-SESSION_ENABLED = 'enabled'
-
-# Exception message when shopfloor server is not configured.
-SHOPFLOOR_NOT_CONFIGURED_STR = 'Shop floor server URL is not configured'
 
 # Default timeout and retry interval for getting a valid shopfloor instance.
 SHOPFLOOR_TIMEOUT_SECS = 10  # Timeout for shopfloor connection.
@@ -58,50 +48,14 @@ Fault = xmlrpclib.Fault
 # Utility Functions
 
 
-def _fetch_current_session():
-  """Gets current shop floor session from factory states shared data.
-
-  If no session is stored yet, create a new default session.
-  """
-  if state.has_shared_data(KEY_SHOPFLOOR_SESSION):
-    session = state.get_shared_data(KEY_SHOPFLOOR_SESSION)
-  else:
-    session = {
-        SESSION_SERVER_URL: None,
-        SESSION_ENABLED: False,
-    }
-    state.set_shared_data(KEY_SHOPFLOOR_SESSION, session)
-  return session
-
-
-def _set_session(key, value):
-  """Sets shop floor session value to factory states shared data."""
-  # Currently there's no locking/transaction mechanism in state shared_data,
-  # so there may be race-condition issue if multiple background tests try to
-  # set shop floor session data at the same time. However since shop floor
-  # session should be singularily configured in the very beginning, let's fix
-  # this only if that really becomes an issue.
-  session = _fetch_current_session()
-  assert key in session, 'Unknown session key: %s' % key
-  session[key] = value
-  state.set_shared_data(KEY_SHOPFLOOR_SESSION, session)
-
-
-def _get_session(key):
-  """Gets shop floor session value from factory states shared data."""
-  session = _fetch_current_session()
-  assert key in session, 'Unknown session key: %s' % key
-  return session[key]
-
-
 def set_server_url(url):
   """Sets default shop floor server URL for further calls."""
-  _set_session(SESSION_SERVER_URL, url)
+  server_proxy.SetServerURL(url)
 
 
 def get_server_url():
   """Gets shop floor server URL."""
-  return _get_session(SESSION_SERVER_URL)
+  return server_proxy.GetServerURL()
 
 
 def get_instance(url=None, timeout=None, quiet=False):
@@ -118,12 +72,7 @@ def get_instance(url=None, timeout=None, quiet=False):
     A TimeoutUmpireServerProxy object that can work with either
     simple XMLRPC server or Umpire server.
   """
-  if not url:
-    url = get_server_url()
-  if not url:
-    raise Exception(SHOPFLOOR_NOT_CONFIGURED_STR)
-  return umpire_server_proxy.TimeoutUmpireServerProxy(
-      url, quiet=quiet, allow_none=True, verbose=False, timeout=timeout)
+  return server_proxy.GetServerProxy(url=url, timeout=timeout, quiet=quiet)
 
 
 def GetUpdateFromCROSPayload(payload_type_name, proxy=None):

@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "additionalProperties": false,
+  "definitions": {},
+  "properties": {
+    "server_protocol": {
+      "default": "auto",
+      "description": "The protocol to access factory server.",
+      "id": "/properties/server_protocol",
+      "title": "The server_protocol schema",
+      "type": "string"
+    },
+    "server_timeout": {
+      "default": 10,
+      "description": "Timeout in seconds when accessing factory server.",
+      "id": "/properties/server_timeout",
+      "title": "The server_timeout schema",
+      "type": "integer"
+    },
+    "server_url": {
+      "default": "",
+      "description": "The URL to access factory server.",
+      "id": "/properties/server_url",
+      "title": "The server_url schema",
+      "type": "string"
+    },
+    "shopfloor_service_url": {
+      "default": "",
+      "description": "The URL to manufacturing line shop floor service backend.",
+      "id": "/properties/shopfloor_service_url",
+      "title": "The shopfloor_service_url schema",
+      "type": "string"
+    },
+    "miniomaha_payload_url": {
+      "default": "",
+      "description": "Legacy: the URL to find Mini-Omaha server payloads.",
+      "id": "/properties/miniomaha_payload_url",
+      "title": "The miniomaha_payload_url schema",
+      "type": "string"
+    }
+  },
+  "type": "object"
+}
