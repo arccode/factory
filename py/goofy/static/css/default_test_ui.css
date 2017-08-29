@@ -9,7 +9,7 @@ body {
   width: 80%;
   height: 80%;
   padding: 5vh 5vw;
-  background: #ffffd0;
+  background: rgba(255, 255, 255, 0.5);
   overflow-y: auto;
   visibility: hidden;
 }
