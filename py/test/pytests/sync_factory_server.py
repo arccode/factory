@@ -106,12 +106,22 @@ _CSS = """
 #state {
   font-size: 200%;
 }
+
 .sync-detail {
   font-size: 40%;
   width: 75%;
   margin-left: 12.5%;
   padding-top: 2em;
   text-align: left;
+}
+
+.warning_label {
+  font-weight: bold;
+  color: red;
+}
+
+.warning_message {
+  color: #ca0;
 }
 
 #text_input_url {
@@ -129,6 +139,14 @@ ID_BUTTON_EDIT_URL = 'button_edit_url'
 EVENT_SET_URL = 'event_set_url'
 EVENT_CANCEL_SET_URL = 'event_cancel_set_url'
 EVENT_DO_SET_URL = 'event_do_set_url'
+
+# TODO(hungte) Add message when we can't connect to factory server.
+_LABEL_NO_FACTORY_SERVER_URL = i18n_test_ui.MakeI18nLabelWithClass(
+    'No factor server URL configured.', 'warning_label')
+
+_MSG_DEBUG_HINT = i18n_test_ui.MakeI18nLabelWithClass(
+    'For debugging or development, '
+    'enter engineering mode to start individual tests.', 'warning_message')
 
 
 class Report(object):
@@ -218,8 +236,16 @@ class SyncFactoryServer(unittest.TestCase):
 
   def EditServerURL(self):
     current_url = shopfloor.get_server_url() or ''
+    if current_url:
+      prompt = ''
+    else:
+      prompt = '<br/>'.join([
+          _LABEL_NO_FACTORY_SERVER_URL,
+          _MSG_DEBUG_HINT,
+          ''])
+
     self.ui_template.SetState(
-        i18n_test_ui.MakeI18nLabel('Change server URL: ') + '<br/>' +
+        prompt + i18n_test_ui.MakeI18nLabel('Change server URL: ') + '<br/>' +
         '<input type="text" id="%s" value="%s"/><br/>' %
         (ID_TEXT_INPUT_URL, current_url) +
         self.CreateButton(

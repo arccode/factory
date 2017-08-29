@@ -2680,25 +2680,6 @@ msgid "Hit SPACE to start testing..."
 msgstr "按 \"空白键\" 开始测试..."
 
 #: ../py/test/pytests/start/start.py
-msgid ""
-"No shop floor server URL. Auto-testing stopped.<br><br>Please install the "
-"factory test image using the mini-Omaha server<br>rather than booting from a "
-"USB drive.<br><br>For debugging or development, use the listed hot-keys to "
-"start<br>individual tests."
-msgstr ""
-"未指定 shop floor 服务器位址，停止自动测试。<br><br>请使用完整的 mini-Omaha "
-"服务器安装测试程式，<br>不要直接从 USB 碟开机执行。<br><br>若想除错或执行部份"
-"测试，请直接按下对应热键。"
-
-#: ../py/test/pytests/start/start.py
-msgid "Reading VPD..."
-msgstr "读取 VPD 中..."
-
-#: ../py/test/pytests/start/start.py
-msgid "Contacting shop floor server..."
-msgstr "正在和 shop floor server 联络..."
-
-#: ../py/test/pytests/start/start.py
 msgid "Initialize some shared data..."
 msgstr "重设旧有共用资料..."
 
@@ -2761,6 +2742,16 @@ msgstr "{test} 测试结果列表："
 #: ../py/test/pytests/suspend_resume.py
 msgid "Suspend/Resume:"
 msgstr "暂停/恢复:"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "No factor server URL configured."
+msgstr "未指定工厂伺服器服务器网址。"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid ""
+"For debugging or development, enter engineering mode to start individual "
+"tests."
+msgstr "若想除错或执行部份测试，请進入工程模式。"
 
 #: ../py/test/pytests/sync_factory_server.py
 msgid "Change URL"

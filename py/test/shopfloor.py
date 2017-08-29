@@ -55,15 +55,6 @@ SHOPFLOOR_RETRY_INTERVAL_SECS = 10  # Seconds to wait between retries.
 Fault = xmlrpclib.Fault
 
 # ----------------------------------------------------------------------------
-# Exception Types
-
-
-class ServerFault(Exception):
-  """Server fault exception."""
-  pass
-
-
-# ----------------------------------------------------------------------------
 # Utility Functions
 
 
