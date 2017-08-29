@@ -131,10 +131,6 @@ EVENT_CANCEL_SET_URL = 'event_cancel_set_url'
 EVENT_DO_SET_URL = 'event_do_set_url'
 
 
-class WaitForUpdate(Exception):
-  pass
-
-
 class Report(object):
   """A structure for reports uploaded to factory server."""
 
@@ -245,6 +241,10 @@ class SyncFactoryServer(unittest.TestCase):
         i18n_test_ui.MakeI18nLabel('Trying to reach server...') +
         '<br/><br/>' + self.CreateChangeURLButton())
     self.server = shopfloor.get_instance(timeout=self.args.timeout_secs)
+
+    if self.do_setup_url:
+      raise Exception('Edit URL clicked.')
+
     self.ui_template.SetState(
         i18n_test_ui.MakeI18nLabel('Trying to check server protocol...') +
         '<br/><br/>' + self.CreateChangeURLButton())
@@ -292,16 +292,21 @@ class SyncFactoryServer(unittest.TestCase):
     if not has_update:
       return
 
-    # Update necessary.
+    # Update necessary. Note that updateFactory() will kill this test.
     if self.args.update_without_prompt:
       self.ui.RunJS('window.test.updateFactory()')
     else:
       # Display message and require update.
       self.ui_template.SetState(i18n_test_ui.MakeI18nLabel(
           'A software update is available. Press SPACE to update.'))
-      # Note that updateFactory() will kill this test.
       self.ui.BindKeyJS(test_ui.SPACE_KEY, 'window.test.updateFactory()')
-    raise WaitForUpdate
+
+    # Let this test sleep forever, and wait for either the SPACE event, or the
+    # factory update to complete. Note that we want the test to neither pass or
+    # fail, so we won't be accidentally running other tests when the
+    # updateFactory is running.
+    while True:
+      time.sleep(1000)
 
   def _runTest(self):
     self.ui_template.SetInstruction(i18n_test_ui.MakeI18nLabel('Preparing...'))
@@ -350,8 +355,6 @@ class SyncFactoryServer(unittest.TestCase):
               '</span>')
           time.sleep(0.5)
           break
-        except WaitForUpdate:
-          return
         except shopfloor.Fault as f:
           exception_string = f.faultString
           logging.error('Server fault with message: %s', f.faultString)
