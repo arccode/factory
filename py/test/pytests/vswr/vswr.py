@@ -33,7 +33,6 @@ import Queue
 import random
 import re
 import string
-import time
 import unittest
 import uuid
 import xmlrpclib
@@ -269,35 +268,6 @@ class VSWR(unittest.TestCase):
         'threshold': [min_value, max_value],
         'diff': difference}
     return check_pass
-
-  def _UploadToShopfloor(
-      self, file_path, log_name, ignore_on_fail=False, timeout=10):
-    """Uploads a file to shopfloor server.
-
-    Args:
-      file_path: local file to upload.
-      log_name: file_name that will be saved under shopfloor.
-      ignore_on_fail: if exception will be raised when upload fails.
-      timeout: maximal time allowed for getting shopfloor instance.
-    """
-    try:
-      with open(file_path, 'r') as f:
-        chunk = f.read()
-      description = 'aux_logs (%s, %d bytes)' % (log_name, len(chunk))
-      start_time = time.time()
-      shopfloor_client = shopfloor.get_instance(timeout=timeout)
-      shopfloor_client.SaveAuxLog(log_name, xmlrpclib.Binary(chunk))
-      logging.info(
-          'Successfully uploaded %s in %.03f s',
-          description, time.time() - start_time)
-    except Exception as e:
-      if ignore_on_fail:
-        factory.console.info(
-            'Failed to sync with shopfloor for [%s], ignored', log_name)
-        return False
-      else:
-        raise e
-    return True
 
   def _TestAntennas(self, measurement_sequence, default_thresholds):
     """Tests either main or aux antenna for both cellular and wifi."""
