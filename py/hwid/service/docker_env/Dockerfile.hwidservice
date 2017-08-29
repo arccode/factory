@@ -4,13 +4,13 @@ ARG workdir="/usr/src/app"
 ARG gitcookies=".gitcookies"
 WORKDIR "${workdir}"
 
+ADD requirements.txt "${workdir}"
 RUN apk upgrade --no-cache && \
     apk add --no-cache git py-pip python && \
     pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir \
-    PyYaml==3.12
+    pip install --no-cache-dir -r requirements.txt
 
-Add ${gitcookies} "${workdir}"/"${gitcookies}"
+Add "${gitcookies}" "${workdir}/${gitcookies}"
 Run git config --global http.cookiefile "${workdir}/${gitcookies}"
 
 # Add standalone program service_manager.py
