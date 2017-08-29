@@ -13,6 +13,7 @@ import React from 'react';
 import Subheader from 'material-ui/Subheader';
 
 import AppNames from '../constants/AppNames';
+import LoginApp from './LoginApp';
 import ProjectsApp from './ProjectsApp';
 import BundlesApp from './BundlesApp';
 import ConfigApp from './ConfigApp';
@@ -42,6 +43,7 @@ const DomeAppBarTitle = () => (
 
 var DomeApp = React.createClass({
   propTypes: {
+    isLoggedIn: React.PropTypes.bool.isRequired,
     appName: React.PropTypes.string.isRequired,
     project: React.PropTypes.instanceOf(Immutable.Map).isRequired,
     switchApp: React.PropTypes.func.isRequired
@@ -70,7 +72,7 @@ var DomeApp = React.createClass({
   },
 
   render() {
-    const {appName, project} = this.props;
+    const {isLoggedIn, appName, project} = this.props;
 
     // must not let the task list cover the main content
     var paddingBottom = _SPACE_BEFORE_TASK_LIST +
@@ -81,7 +83,9 @@ var DomeApp = React.createClass({
     //                   corresponding app intead of writing a long if-elif-else
     //                   statement.
     var app = null;
-    if (appName == AppNames.PROJECTS_APP) {
+    if (!isLoggedIn) {
+      app = <LoginApp />;
+    } else if (appName == AppNames.PROJECTS_APP) {
       app = <ProjectsApp />;
     } else if (appName == AppNames.CONFIG_APP) {
       app = <ConfigApp />;
@@ -105,6 +109,7 @@ var DomeApp = React.createClass({
           onHeightChange={h => this.setState({appBarHeight: h})}
           zDepth={2}  // above the drawer
         />
+
         <Drawer
           docked={true}
           width={_APP_MENU_WIDTH}
@@ -117,35 +122,41 @@ var DomeApp = React.createClass({
           containerStyle={{top: this.state.appBarHeight, zIndex: 1000}}
           zDepth={1}  // below the AppBar
         >
-          {projectName != '' && <Subheader>{projectName}</Subheader>}
-          {projectName != '' &&
-            <MenuItem
-              onTouchTap={() => this.handleClick(AppNames.DASHBOARD_APP)}
-              innerDivStyle={{paddingLeft: _PROJECT_MENU_ITEM_PADDING_LEFT}}
-            >
-              Dashboard
-            </MenuItem>
-          }
-          {projectName != '' && project.get('umpireEnabled') &&
-            <MenuItem
-              onTouchTap={() => this.handleClick(AppNames.BUNDLES_APP)}
-              innerDivStyle={{paddingLeft: _PROJECT_MENU_ITEM_PADDING_LEFT}}
-              disabled={!project.get('umpireReady')}
-            >
-              Bundles{!project.get('umpireReady') && ' (activating...)'}
-            </MenuItem>
-          }
+          {isLoggedIn && <div>
+            {projectName != '' && <Subheader>{projectName}</Subheader>}
+            {projectName != '' &&
+              <MenuItem
+                onTouchTap={() => this.handleClick(AppNames.DASHBOARD_APP)}
+                innerDivStyle={{paddingLeft: _PROJECT_MENU_ITEM_PADDING_LEFT}}
+              >
+                Dashboard
+              </MenuItem>
+            }
+            {projectName != '' && project.get('umpireEnabled') &&
+              <MenuItem
+                onTouchTap={() => this.handleClick(AppNames.BUNDLES_APP)}
+                innerDivStyle={{paddingLeft: _PROJECT_MENU_ITEM_PADDING_LEFT}}
+                disabled={!project.get('umpireReady')}
+              >
+                Bundles{!project.get('umpireReady') && ' (activating...)'}
+              </MenuItem>
+            }
 
-          {projectName != '' && <Divider />}
+            {projectName != '' && <Divider />}
 
-          <MenuItem onTouchTap={() => this.handleClick(AppNames.PROJECTS_APP)}>
-            Change project
-          </MenuItem>
-          <Divider />
-          <MenuItem onTouchTap={() => this.handleClick(AppNames.CONFIG_APP)}>
-            Config
-          </MenuItem>
+            <MenuItem
+              onTouchTap={() => this.handleClick(AppNames.PROJECTS_APP)}>
+              Change project
+            </MenuItem>
+            <Divider />
+            <MenuItem
+              onTouchTap={() => this.handleClick(AppNames.CONFIG_APP)}
+            >
+              Config
+            </MenuItem>
+          </div>}
         </Drawer>
+
         <div
           style={{paddingLeft: this.state.appMenuOpened ? _APP_MENU_WIDTH : 0}}
         >
@@ -165,6 +176,7 @@ var DomeApp = React.createClass({
 
 function mapStateToProps(state) {
   return {
+    isLoggedIn: state.getIn(['dome', 'isLoggedIn']),
     appName: state.getIn(['dome', 'currentApp']),
     project: state.getIn(
         ['dome', 'projects', state.getIn(['dome', 'currentProject'])],

@@ -34,7 +34,9 @@ const fetchBundles = () => (dispatch, getState) => {
   //                  get rid of _taskOnFinishes in DomeActions since we only
   //                  have to add a hidden task after the main task as the
   //                  onFinish callback.)
-  fetch(`${baseURL(getState)}/bundles.json`).then(response => {
+  fetch(`${baseURL(getState)}/bundles.json`, {
+    headers: { 'Authorization': 'Token ' + localStorage.token }
+  }).then(response => {
     // a response can only be read once, workaround to read the response twice
     // if needed
     let responseCopy = response.clone();

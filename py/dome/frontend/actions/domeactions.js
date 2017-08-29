@@ -28,6 +28,15 @@ function buildOnCancel(dispatch, getState) {
   return () => dispatch(receiveProjects(projectsSnapshot));
 }
 
+// add authentication token to header
+function authorizedFetch(url, req) {
+  if (!req.hasOwnProperty('headers')) {
+    req['headers'] = {};
+  }
+  req['headers']['Authorization'] = 'Token ' + localStorage.token;
+  return fetch(url, req);
+}
+
 function recursivelyUploadFileFields(data, queue = null) {
   if (queue === null) {
     // create a queue one if none is given
@@ -42,7 +51,10 @@ function recursivelyUploadFileFields(data, queue = null) {
       let formData = new FormData();
       formData.append('file', data[key]);
       queue = queue
-          .then(() => fetch('/files/', {method: 'POST', body: formData}))
+          .then(() => authorizedFetch('/files/', {
+            method: 'POST',
+            body: formData
+          }))
           .then(checkHTTPStatus)
           .then(response => response.json())
           .then(json => {
@@ -58,6 +70,30 @@ function recursivelyUploadFileFields(data, queue = null) {
   return queue;
 }
 
+const tryLogin = data => dispatch => {
+  data = data.toJS();
+  fetch('/auth', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  })
+  .then(response => response.json())
+  .then(json => {
+    if (json.hasOwnProperty('token')) {
+      localStorage.token = json['token'];
+      dispatch({type: ActionTypes.LOGIN_SUCCEED});
+    } else {
+      dispatch({type: ActionTypes.LOGIN_FAILED});
+      window.alert('\nLogin failed :(');
+    }
+  })
+};
+
+const logout = () => dispatch => {
+  localStorage.token = '';
+  dispatch({type: ActionTypes.LOGOUT});
+};
+
 const recieveConfig = config => ({
   type: ActionTypes.RECIEVE_CONFIG,
   config
@@ -69,7 +105,8 @@ const initializeConfig = () => dispatch => {
 }
 
 const fetchConfig = () => dispatch => {
-  fetch('/config/0').then(response => {
+  authorizedFetch('/config/0', {})
+  .then(response => {
     response.json().then(json => {
       dispatch(recieveConfig(json));
     }, error => {
@@ -188,7 +225,8 @@ const receiveProjects = projects => ({
 
 // TODO(littlecvr): similar to fetchBundles, refactor code if possible
 const fetchProjects = () => dispatch => {
-  fetch('/projects.json').then(response => {
+  authorizedFetch('/projects.json', {})
+  .then(response => {
     response.json().then(json => {
       dispatch(receiveProjects(json));
     }, error => {
@@ -321,10 +359,12 @@ const startTask = taskID => (dispatch, getState) => {
   queue = queue.then(() => {
     let request = {
       method: task.get('method'),
-      headers: {'Content-Type': 'application/json'},  // always send in JSON
+      headers: {
+        'Content-Type': 'application/json',  // always send in JSON
+      },
       body: JSON.stringify(body)
     };
-    return fetch(`${task.get('url')}/`, request);
+    return authorizedFetch(`${task.get('url')}/`, request);
   }).then(checkHTTPStatus).then(_taskOnFinishes[taskID]);
 
   // if all sub-tasks succeeded, mark it as succeeded, and start the next task
@@ -381,6 +421,7 @@ const cancelTaskAndItsDependencies = taskID => (dispatch, getState) => {
 };
 
 export default {
+  tryLogin, logout,
   recieveConfig, updateConfig, fetchConfig, initializeConfig,
   enableTFTP, disableTFTP,
   setError, showErrorDialog, hideErrorDialog, setAndShowErrorDialog,

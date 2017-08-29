@@ -7,6 +7,7 @@ import {connect} from 'react-redux';
 import Immutable from 'immutable';
 import React from 'react';
 import Toggle from 'material-ui/Toggle';
+import RaisedButton from 'material-ui/RaisedButton';
 
 import DomeActions from '../actions/domeactions';
 
@@ -16,7 +17,8 @@ var ConfigApp = React.createClass({
     configUpdating: React.PropTypes.bool.isRequired,
     disableTFTP: React.PropTypes.func.isRequired,
     enableTFTP: React.PropTypes.func.isRequired,
-    initializeConfig: React.PropTypes.func.isRequired
+    initializeConfig: React.PropTypes.func.isRequired,
+    logout: React.PropTypes.func.isRequired
   },
 
   componentDidMount() {
@@ -29,7 +31,8 @@ var ConfigApp = React.createClass({
       configUpdating,
       disableTFTP,
       enableTFTP,
-      initializeConfig
+      initializeConfig,
+      logout
     } = this.props;
 
     return (
@@ -42,6 +45,14 @@ var ConfigApp = React.createClass({
               toggled={TFTPEnabled}
               onToggle={TFTPEnabled ? disableTFTP : enableTFTP}
               disabled={configUpdating}
+            />
+            <br/>
+            <RaisedButton
+              type="button"
+              label="Logout"
+              onClick={logout}
+              primary={true}
+              style={{margin: 1 + "em"}}
             />
           </CardText>
         </Card>
@@ -61,7 +72,8 @@ function mapDispatchToProps(dispatch) {
   return {
     disableTFTP: () => dispatch(DomeActions.disableTFTP()),
     enableTFTP: () => dispatch(DomeActions.enableTFTP()),
-    initializeConfig: () => dispatch(DomeActions.initializeConfig())
+    initializeConfig: () => dispatch(DomeActions.initializeConfig()),
+    logout: () => dispatch(DomeActions.logout())
   };
 }
 

@@ -22,6 +22,7 @@ from django.conf.urls import url
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.views.generic import TemplateView
 from rest_framework.urlpatterns import format_suffix_patterns
+from rest_framework.authtoken import views as drf_views
 
 from backend import views
 
@@ -34,6 +35,8 @@ BUNDLE_URL_ARG = r'(?P<bundle_name>[^/]+)'  # anything but slash
 urlpatterns = [
     url(r'^$',
         TemplateView.as_view(template_name='index.html')),
+    url(r'^auth$',
+        drf_views.obtain_auth_token, name='auth'),
     url(r'^files/$',
         views.FileCollectionView.as_view()),
     url(r'^config/(?P<id>\d+)/$',

@@ -9,6 +9,7 @@ import AppNames from '../constants/AppNames';
 import TaskStates from '../constants/TaskStates';
 
 const INITIAL_STATE = Immutable.fromJS({
+  isLoggedIn: false,
   projects: {},
   currentProject: '',
   currentApp: AppNames.PROJECTS_APP,  // default app is the project selection
@@ -30,6 +31,15 @@ const INITIAL_STATE = Immutable.fromJS({
 
 export default function domeReducer(state = INITIAL_STATE, action) {
   switch (action.type) {
+    case ActionTypes.LOGIN_SUCCEED:
+      return state.set('isLoggedIn', true);
+
+    case ActionTypes.LOGIN_FAILED:
+      return state.set('isLoggedIn', false);
+
+    case ActionTypes.LOGOUT:
+      return state.set('isLoggedIn', false);
+
     case ActionTypes.RECIEVE_CONFIG:
       return state.setIn(['config', 'TFTPEnabled'],
           action.config.tftpEnabled);

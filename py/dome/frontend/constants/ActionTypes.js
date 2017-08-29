@@ -5,6 +5,10 @@
 import Enum from '../utils/enum';
 
 export default Enum([
+  'LOGIN_SUCCEED',
+  'LOGIN_FAILED',
+  'LOGOUT',
+
   'START_UPDATING_CONFIG',
   'FINISH_UPDATING_CONFIG',
   'RECIEVE_CONFIG',

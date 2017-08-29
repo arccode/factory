@@ -17,6 +17,7 @@ import thunkMiddleware from 'redux-thunk';
 import createLogger from 'redux-logger';
 import getMuiTheme from 'material-ui/styles/getMuiTheme';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
+import {reducer as FormReducer} from 'redux-form/immutable'
 
 import DomeApp from './components/DomeApp';
 import BundlesReducer from './reducers/bundlesreducer';
@@ -35,7 +36,8 @@ const THEME = {
 const store = createStore(
   combineReducers({
     dome: DomeReducer,
-    bundles: BundlesReducer
+    bundles: BundlesReducer,
+    form: FormReducer
   }),
   Immutable.Map(),  // initial state will be determined by each reducer
   applyMiddleware(
