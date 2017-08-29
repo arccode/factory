@@ -94,6 +94,7 @@ from instalog.utils import file_utils
 _BUFFER_SIZE_BYTES = 4 * 1024  # 4kb
 _DEFAULT_TRUNCATE_INTERVAL = 0  # truncating disabled
 _DEFAULT_COPY_ATTACHMENTS = False  # use move instead of copy by default
+_DEFAULT_ENABLE_FSYNC = True  # fsync when it receives events
 
 
 class SimpleFileException(Exception):
@@ -138,6 +139,10 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
           'Instead of moving an attachment into the buffer, perform a copy '
           'operation, and leave the source file intact.',
           optional=True, default=_DEFAULT_COPY_ATTACHMENTS),
+      Arg('enable_fsync', bool,
+          'Synchronize the buffer file when it receives events.  '
+          'Default is True.',
+          optional=True, default=_DEFAULT_ENABLE_FSYNC)
   ]
 
   def __init__(self, *args, **kwargs):
@@ -473,6 +478,15 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
             f.write(output)
             cur_seq += 1
             cur_pos += len(output)
+
+          if self.args.enable_fsync:
+            # Fsync the file and the containing directory to make sure it
+            # is flushed to disk.
+            f.flush()
+            os.fdatasync(f)
+            dirfd = os.open(os.path.dirname(self.data_path), os.O_DIRECTORY)
+            os.fsync(dirfd)
+            os.close(dirfd)
         self.last_seq = cur_seq - 1
         self.end_pos = self.start_pos + cur_pos
         self._SaveMetadata()
