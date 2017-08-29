@@ -196,8 +196,7 @@ class TimeSanitizer(object):
     Raises:
       Exception if unable to contact the shopfloor server.
     """
-    proxy = self._shopfloor.get_instance(detect=True,
-                                         timeout=timeout)
+    proxy = self._shopfloor.get_instance(timeout=timeout)
     shopfloor_time = proxy.GetTime()
     logging.info('Got time %s GMT from shopfloor server',
                  _FormatTime(shopfloor_time))

@@ -198,9 +198,8 @@ class SystemLogManager(plugin.Plugin):
     Returns:
       The rsync destination path for system logs.
     """
-    url = (shopfloor.get_server_url() or
-           shopfloor.detect_default_server_url())
-    proxy = shopfloor.get_instance(detect=True, timeout=self._shopfloor_timeout,
+    url = shopfloor.get_server_url()
+    proxy = shopfloor.get_instance(timeout=self._shopfloor_timeout,
                                    quiet=quiet)
     factory_log_port = proxy.GetFactoryLogPort()
     folder_name = (

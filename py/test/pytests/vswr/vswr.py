@@ -285,7 +285,7 @@ class VSWR(unittest.TestCase):
         chunk = f.read()
       description = 'aux_logs (%s, %d bytes)' % (log_name, len(chunk))
       start_time = time.time()
-      shopfloor_client = shopfloor.get_instance(detect=True, timeout=timeout)
+      shopfloor_client = shopfloor.get_instance(timeout=timeout)
       shopfloor_client.SaveAuxLog(log_name, xmlrpclib.Binary(chunk))
       logging.info(
           'Successfully uploaded %s in %.03f s',

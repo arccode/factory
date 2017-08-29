@@ -221,7 +221,7 @@ class TestSystemLogManager(unittest.TestCase):
     """
     shopfloor.get_server_url().AndReturn(MOCK_SERVER_URL)
     shopfloor.get_instance(
-        detect=True, timeout=MOCK_SHOPFLOOR_TIMEOUT, quiet=False).AndReturn(
+        timeout=MOCK_SHOPFLOOR_TIMEOUT, quiet=False).AndReturn(
             self.fake_shopfloor)
     self.fake_shopfloor.GetFactoryLogPort().AndReturn(MOCK_PORT)
     testlog_goofy.GetDeviceID().AndReturn(MOCK_DEVICE_ID)

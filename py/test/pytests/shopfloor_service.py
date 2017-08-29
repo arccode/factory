@@ -204,7 +204,7 @@ class ShopfloorService(unittest.TestCase):
       server_proxy = xmlrpclib.ServerProxy(self.args.server_url,
                                            allow_none=True)
     else:
-      server_proxy = shopfloor.get_instance(detect=True)
+      server_proxy = shopfloor.get_instance()
       if self.args.raw_invocation:
         raise ValueError('Argument `raw_invocation` allowed only for external '
                          'server (need `server_url`).')

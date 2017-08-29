@@ -28,8 +28,7 @@ class CheckForUpdateTest(unittest.TestCase):
 
     self.mox.StubOutWithMock(shopfloor, 'get_instance')
     fake_shopfloor = self.mox.CreateMockAnything()
-    shopfloor.get_instance(
-        detect=True, timeout=3, quiet=False).AndReturn(fake_shopfloor)
+    shopfloor.get_instance(timeout=3, quiet=False).AndReturn(fake_shopfloor)
 
     self.mox.StubOutWithMock(shopfloor, 'GetUpdateFromCROSPayload')
     shopfloor.GetUpdateFromCROSPayload(

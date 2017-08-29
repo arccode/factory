@@ -21,7 +21,6 @@ import json
 import os
 import time
 import urllib2
-import urlparse
 import xmlrpclib
 from xmlrpclib import Binary
 
@@ -43,14 +42,6 @@ KEY_SHOPFLOOR_SESSION = 'shopfloor.session'
 # session is a simple dictionary with following keys:
 SESSION_SERVER_URL = 'server_url'
 SESSION_ENABLED = 'enabled'
-
-# Default port number from factory_server.py.
-DEFAULT_SERVER_PORT = 8082
-
-# Environment variable containing the shopfloor server URL (for
-# testing). Setting this overrides the shopfloor server URL and
-# causes the shopfloor server to be considered enabled.
-SHOPFLOOR_SERVER_ENV_VAR_NAME = 'CROS_SHOPFLOOR_SERVER_URL'
 
 # Exception message when shopfloor server is not configured.
 SHOPFLOOR_NOT_CONFIGURED_STR = 'Shop floor server URL is not configured'
@@ -117,43 +108,17 @@ def set_server_url(url):
   _set_session(SESSION_SERVER_URL, url)
 
 
-def get_server_url(detect=True):
-  """Gets shop floor server URL.
-
-  Args:
-    detect: If True, attempts to detect the URL with
-      detect_default_server_url().
-  """
-  url = (os.environ.get(SHOPFLOOR_SERVER_ENV_VAR_NAME) or
-         _get_session(SESSION_SERVER_URL))
-  if detect:
-    url = url or detect_default_server_url()
-  return url
+def get_server_url():
+  """Gets shop floor server URL."""
+  return _get_session(SESSION_SERVER_URL)
 
 
-def detect_default_server_url():
-  """Tries to find a default shop floor server URL.
-
-    Searches from lsb-* files and deriving from mini-omaha server location.
-  """
-  lsb_values = factory.get_lsb_data()
-  # FACTORY_OMAHA_URL is written by factory_install/factory_install.sh
-  omaha_url = lsb_values.get('FACTORY_OMAHA_URL', None)
-  if omaha_url:
-    omaha = urlparse.urlsplit(omaha_url)
-    netloc = '%s:%s' % (omaha.netloc.split(':')[0], DEFAULT_SERVER_PORT)
-    return urlparse.urlunsplit((omaha.scheme, netloc, '/', '', ''))
-  return None
-
-
-def get_instance(url=None, detect=False, timeout=None, quiet=False):
+def get_instance(url=None, timeout=None, quiet=False):
   """Gets an instance (for client side) to access the shop floor server.
 
   Args:
     url: URL of the shop floor server. If None, use the value in
       factory shared data.
-    detect: If True, attempt to detect the server URL if none is
-      specified.
     timeout: If not None, the timeout in seconds. This timeout is for RPC
       calls on the proxy, not for get_instance() itself.
     quiet: Suppresses error messages when shopfloor can not be reached.
@@ -163,7 +128,7 @@ def get_instance(url=None, detect=False, timeout=None, quiet=False):
     simple XMLRPC server or Umpire server.
   """
   if not url:
-    url = get_server_url(detect=detect)
+    url = get_server_url()
   if not url:
     raise Exception(SHOPFLOOR_NOT_CONFIGURED_STR)
   return umpire_server_proxy.TimeoutUmpireServerProxy(
@@ -288,8 +253,7 @@ def GetShopfloorConnection(
   while True:
     iteration += 1
     try:
-      shopfloor_client = get_instance(
-          detect=True, timeout=timeout_secs)
+      shopfloor_client = get_instance(timeout=timeout_secs)
       shopfloor_client.Ping()
       break
     except Exception:

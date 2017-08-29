@@ -275,8 +275,7 @@ class GoofyRPC(object):
     Raises:
       Exception if unable to contact shop floor server.
     """
-    shopfloor.get_instance(
-        detect=True, timeout=PING_SHOPFLOOR_TIMEOUT_SECS).Ping()
+    shopfloor.get_instance(timeout=PING_SHOPFLOOR_TIMEOUT_SECS).Ping()
 
   def ReloadTestList(self):
     if isinstance(self.goofy.test_list, manager.TestList):
@@ -303,9 +302,8 @@ class GoofyRPC(object):
       with open(output_file) as f:
         data = f.read()
       shopfloor.get_instance(
-          detect=True, timeout=UPLOAD_FACTORY_LOGS_TIMEOUT_SECS
-      ).SaveAuxLog(os.path.basename(output_file),
-                   shopfloor.Binary(data))
+          timeout=UPLOAD_FACTORY_LOGS_TIMEOUT_SECS).SaveAuxLog(
+              os.path.basename(output_file), shopfloor.Binary(data))
       return {'name': os.path.basename(output_file),
               'size': os.path.getsize(output_file),
               'key': archive_key}

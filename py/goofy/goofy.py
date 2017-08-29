@@ -1254,7 +1254,6 @@ class Goofy(GoofyBase):
         description = 'event logs (%s)' % str(chunk)
         start_time = time.time()
         shopfloor_client = shopfloor.get_instance(
-            detect=True,
             timeout=self.test_list.options.shopfloor_timeout_secs,
             quiet=quiet)
         shopfloor_client.UploadEvent(chunk.log_name + '.' +

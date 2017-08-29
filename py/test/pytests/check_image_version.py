@@ -124,8 +124,7 @@ class ImageCheckTask(factory_task.FactoryTask):
       payload, unused_components, downloader = (
           shopfloor.GetUpdateFromCROSPayload(
               'netboot_firmware',
-              proxy=shopfloor.get_instance(
-                  detect=True, timeout=_SHOPFLOOR_TIMEOUT_SECS)))
+              proxy=shopfloor.get_instance(timeout=_SHOPFLOOR_TIMEOUT_SECS)))
       del unused_components
       if not payload:
         self._test.template.SetState(_MSG_NO_FIRMWARE_ON_SERVER)

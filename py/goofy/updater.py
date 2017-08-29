@@ -48,7 +48,7 @@ def TryUpdate(pre_update_hook=None, timeout=15):
       shopfloor.get_server_url(), factory.get_toolkit_version())
 
   payload, unused_components, downloader = shopfloor.GetUpdateFromCROSPayload(
-      'toolkit', proxy=shopfloor.get_instance(detect=True, timeout=timeout))
+      'toolkit', proxy=shopfloor.get_instance(timeout=timeout))
   del unused_components
 
   if not payload:
@@ -138,7 +138,7 @@ def CheckForUpdate(timeout, quiet=False):
   """
   payload, unused_components, _ = shopfloor.GetUpdateFromCROSPayload(
       'toolkit',
-      proxy=shopfloor.get_instance(detect=True, timeout=timeout, quiet=quiet))
+      proxy=shopfloor.get_instance(timeout=timeout, quiet=quiet))
   del unused_components
   return ((None, False) if not payload else
           (payload['version'],

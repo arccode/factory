@@ -80,7 +80,7 @@ class TimeSanitizerShopfloor(TimeSanitizerTestBase):
   def _RunWithShopfloorUnavailable(self):
     """Simulate trying to contact the shopfloor server but failing."""
     self.mox.ResetAll()
-    self.fake_shopfloor.get_instance(detect=True, timeout=5).AndRaise(
+    self.fake_shopfloor.get_instance(timeout=5).AndRaise(
         OSError())
     self.mox.ReplayAll()
 
@@ -99,7 +99,7 @@ class TimeSanitizerShopfloor(TimeSanitizerTestBase):
     self.mox.ResetAll()
     proxy = self.mox.CreateMockAnything()
     self.fake_time.Time().AndReturn(BASE_TIME)
-    self.fake_shopfloor.get_instance(detect=True, timeout=5).AndReturn(proxy)
+    self.fake_shopfloor.get_instance(timeout=5).AndReturn(proxy)
     proxy.GetTime().AndReturn(shopfloor_time)
     self.fake_time.Time().AndReturn(BASE_TIME)
     if adjust:
