@@ -49,8 +49,14 @@ For example:
 """
 
 import copy
-import jsonschema
 from .type_utils import MakeList
+
+# To simplify portability issues, validating JSON schema is optional.
+try:
+  import jsonschema
+  _HAVE_JSONSCHEMA = True
+except ImportError:
+  _HAVE_JSONSCHEMA = False
 
 
 class SchemaException(Exception):
@@ -268,14 +274,16 @@ class JSONSchemaDict(BaseType):
   def __init__(self, label, schema):
     super(JSONSchemaDict, self).__init__(label)
     self._label = label
-    jsonschema.Draft4Validator.check_schema(schema)
+    if _HAVE_JSONSCHEMA:
+      jsonschema.Draft4Validator.check_schema(schema)
     self._schema = schema
 
   def __repr__(self):
     return 'JSONSchemaDict(%r, %r)' % (self._label, self._schema)
 
   def Validate(self, data):
-    jsonschema.validate(data, self._schema)
+    if _HAVE_JSONSCHEMA:
+      jsonschema.validate(data, self._schema)
 
 
 class List(BaseType):
