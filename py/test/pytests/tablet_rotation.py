@@ -94,10 +94,8 @@ _HTML = """
 
 _CSS_COUNTDOWN_TIMER = """
 .countdown-timer {
-  position: absolute;
-  bottom: .3em;
-  right: .5em;
   font-size: 2em;
+  align-self: flex-end;
 }
 """
 _CSS = """

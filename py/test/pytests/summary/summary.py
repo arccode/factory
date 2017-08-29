@@ -94,13 +94,17 @@ from cros.factory.utils.arg_utils import Arg
 
 CSS = """
 #test-status-table-container {
-  display: inline-block;
-  height: 25em;
   overflow: auto;
 }
+
+#state.test-accessibility {
+  background-color: #F77;
+}
+
 table {
   padding-bottom: 1em;
 }
+
 th, td {
   padding: 0 1em;
 }
@@ -219,7 +223,7 @@ class Report(unittest.TestCase):
     if all_pass and self.args.pass_without_prompt:
       return
 
-    html = ['<div class="test-vcenter-outer"><div class="test-vcenter-inner">']
+    html = []
     prompt_class = 'prompt_message'
 
     if not self.args.disable_input_on_fail or all_pass:
@@ -243,10 +247,8 @@ class Report(unittest.TestCase):
         '<div class="test-status-%s" style="font-size: 300%%">%s</div>' %
         (overall_status, test_ui.MakeStatusLabel(overall_status)),
         '<div id="test-status-table-container"><table>'
-    ] + table + ['</table></div>'] + ['</div></div>']
+    ] + table + ['</table></div>']
 
-    if self.args.accessibility and not all_pass:
-      html = ['<div class="test-vcenter-accessibility">'] + html + ['</div>']
 
     if not self.args.disable_input_on_fail:
       ui.EnablePassFailKeys()
@@ -256,5 +258,9 @@ class Report(unittest.TestCase):
       ui.BindStandardKeys(bind_fail_keys=False)
 
     template.SetState(''.join(html))
+    if self.args.accessibility and not all_pass:
+      ui.RunJS(
+          'document.getElementById("%s").classList.add("test-accessibility")' %
+          ui_templates.STATE_ID)
     logging.info('starting ui.Run with overall_status %r', overall_status)
     ui.Run()

@@ -36,6 +36,7 @@ _HTML_KEYBOARD = (
     (_ID_IMAGE, _ID_COUNTDOWN_TIMER))
 
 _KEYBOARD_TEST_DEFAULT_CSS = (
+    '#keyboard-test-image { text-align: center; }\n'
     '#keyboard-test-timer { font-size: 2em; }\n'
     '.keyboard-test-key-untested { background-color: white; opacity: 0.5; }\n'
     '.keyboard-test-keydown { background-color: yellow; opacity: 0.5; }\n'

@@ -49,27 +49,14 @@ function setupTouchpadTest(
  * Also initialize the content in click table, which is built in html.
  */
 TouchpadTest.prototype.init = function() {
-  var table = document.createElement('table');
-  var tableBody = document.createElement('tbody');
-  table.style.width = '100%';
-  table.style.height = '100%';
-  var row = document.createElement('tr');
-
-  var touchTableCell = document.createElement('td');
   var touchTable = createTable(
       this.ySegments, this.xSegments, 'touch', 'touchpad-test-sector-untested');
-  touchTableCell.appendChild(touchTable);
-  row.appendChild(touchTableCell);
+  $(this.container).appendChild(touchTable);
 
-  var scrollTableCell = document.createElement('td');
   var scrollTable = createTable(
       this.ySegments, 1, 'scroll', 'touchpad-test-sector-untested');
-  scrollTableCell.appendChild(scrollTable);
-  row.appendChild(scrollTableCell);
+  $(this.container).appendChild(scrollTable);
 
-  tableBody.appendChild(row);
-  table.appendChild(tableBody);
-  $(this.container).appendChild(table);
   this.updateCircleCountText();
 
   /* This is for SMT test, operator cannot click for each quadrant */
@@ -267,24 +254,21 @@ TouchpadTest.prototype.getClassArray = function(className) {
  * @return {Element}
  */
 function createTable(rowNumber, colNumber, prefix, className) {
-  var table = document.createElement('table');
-  table.style.width = '100%';
-  table.style.height = '100%';
-  var tableBody = document.createElement('tbody');
+  var table = document.createElement('div');
+  table.style.flex = colNumber;
+  table.className = 'touchpad-test-table';
   for (var y = 0; y < rowNumber; ++y) {
-    var row = document.createElement('tr');
+    var row = document.createElement('div');
+    row.className = 'touchpad-test-table-row';
     for (var x = 0; x < colNumber; ++x) {
-      var cell = document.createElement('td');
       var div = document.createElement('div');
       div.id = prefix + '-x-' + x + '-' + 'y-' + y;
       div.innerHTML = div.id;
       div.className = className;
-      cell.appendChild(div);
-      row.appendChild(cell);
+      row.appendChild(div);
     }
-    tableBody.appendChild(row);
+    table.appendChild(row);
   }
-  table.appendChild(tableBody);
   return table;
 }
 

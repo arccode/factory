@@ -69,8 +69,8 @@ _HTML_PROMPT = i18n_test_ui.MakeI18nLabelWithClass(
 # The layout contains one div for touchpad touch and scroll,
 # one table for left/right click, and one div for countdown timer.
 _HTML_TOUCHPAD = """
-<div id="%s" style="position: relative; width: 100%%; height: 60%%;"></div>
-<table style="width: 100%%; height: 30%%;">
+<div id="%s"></div>
+<table style="width: 100%%; flex: none;">
   <tbody>
     <tr>
       <td style="width: 65%%;">
@@ -132,40 +132,6 @@ _HTML_TOUCHPAD = """
 </table>
 %s
 """ % (_ID_CONTAINER, _HTML_TIMER)
-
-# The styles for each item on ui.
-# For sectors (moving and scrolling event):
-#   touchpad-test-sector-untested: sector not touched.
-#   touchpad-test-sector-tested: sector touched.
-# For circles (click event):
-#   touchpad-test-circle-untested: the style to show before click.
-#   touchpad-test-circle-down: click down.
-#   touchpad-test-circle-tested: release click.
-_TOUCHPAD_TEST_DEFAULT_CSS = """
-    .touchpad-test-prompt { font-size: 2em; }
-    #touchpad-test-timer { font-size: 2em; }
-    .touchpad-test-sector-untested {
-      background-color: gray;
-      height: 100%; }
-    .touchpad-test-sector-tested {
-      background-color: green; height: 100%;
-      opacity: 0.5; }
-    .touchpad-test-circle-untested {
-      border: 3px solid gray;
-      border-radius: 50%;
-      width: 20px; height: 20px;
-      box-sizing: border-box; }
-    .touchpad-test-circle-down {
-      border: 3px solid yellow;
-      border-radius: 50%;
-      width: 20px; height: 20px;
-      box-sizing: border-box; }
-    .touchpad-test-circle-tested {
-      border: 3px solid green;
-      border-radius: 50%;
-      width: 20px; height: 20px;
-      box-sizing: border-box; }
-"""
 
 
 class TouchpadMonitor(touch_monitor.MultiTouchMonitor):
@@ -269,7 +235,7 @@ class TouchpadTest(unittest.TestCase):
     # Initialize frontend presentation
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)
-    self.ui.AppendCSS(_TOUCHPAD_TEST_DEFAULT_CSS)
+    self.ui.AppendCSSLink('touchpad.css')
     self.template.SetState(_HTML_PROMPT)
 
     # Initialize properties

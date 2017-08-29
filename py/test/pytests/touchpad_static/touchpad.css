@@ -1,0 +1,60 @@
+#touchpad-test-container {
+  width: 100%;
+  flex: 1;
+  display: flex;
+}
+
+.touchpad-test-table {
+  display: flex;
+  flex-flow: column;
+  margin: 3px;
+}
+
+.touchpad-test-table-row {
+  display: flex;
+  flex: 1;
+}
+
+.touchpad-test-prompt {
+  font-size: 2em;
+}
+
+#touchpad-test-timer {
+  font-size: 2em;
+}
+
+.touchpad-test-sector-untested {
+  background-color: gray;
+  flex: 1;
+}
+
+.touchpad-test-sector-tested {
+  background-color: green;
+  opacity: 0.5;
+  flex: 1;
+}
+
+.touchpad-test-circle-untested {
+  border: 3px solid gray;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+}
+
+.touchpad-test-circle-down {
+  border: 3px solid yellow;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+}
+
+.touchpad-test-circle-tested {
+  border: 3px solid green;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+}
+

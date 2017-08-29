@@ -18,23 +18,19 @@
   padding-top: 4px;
 }
 
-.template-state-container-1,
-.template-state-container-2 {
+.template-state-container {
   margin: 0 8px;
+  padding: 1em;
   flex: 1;
   background-color: white;
-  text-align: center;
   display: flex;
+  flex-flow: column;
   align-items: center;
   justify-content: center;
 }
 
 .template-state-scrollable {
-  box-sizing: border-box;
-  height: 100%;
   overflow: auto;
-  padding: 10px;
-  width: 100%;
 }
 
 .template-prompt-container {

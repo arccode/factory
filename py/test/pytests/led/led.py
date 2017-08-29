@@ -85,16 +85,15 @@ _CSS = """
 }
 
 .led-btn {
-  display: inline-block;
   width: 50px;
   height: 50px;
-  line-height: 50px;
   font-size: 200%;
   padding: 5px;
   margin: 3px;
   border-radius: 3px;
   font-weight: bold;
   border: 1px solid #7D7D7D;
+  text-align: center;
 }
 
 strong {
@@ -209,11 +208,11 @@ class CheckLEDTaskChallenge(CheckLEDTask):
         'color',
         test_id=self._nth, name=self._index_label)
 
-    btn_ui = ''.join([
+    btn_ui = '<div>' + ''.join([
         _HTML_KEY_TEMPLATE % (_COLOR_CODE[c] + (_SELECT_COLOR_EVENT, j, j + 1))
-        for j, c in enumerate(self._color_options)])
+        for j, c in enumerate(self._color_options)]) + '</div>'
 
-    ui = [desc, '<br><br>', btn_ui, _HTML_RESULT]
+    ui = [desc, '<br>', btn_ui, _HTML_RESULT]
 
     def _Judge(event):
       if event.data == target:
