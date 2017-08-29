@@ -278,6 +278,23 @@ def _GetLogger():
           _DummyLogger)
 
 
+def SaveRuntimeConfig(config_name, value):
+  """Saves a configuration to Runtime config directory.
+
+  Args:
+    config_name: a string for config file name (without extension) to write.
+    value: the config data to write (will be serialized by ``json.dumps``).
+  """
+  runtime_dir = GetRuntimeConfigDirectory()
+  if not os.path.exists(runtime_dir):
+    os.makedirs(runtime_dir)
+  save_path = os.path.join(
+      GetRuntimeConfigDirectory(), config_name + _CONFIG_FILE_EXT)
+
+  with open(save_path, 'w') as output:
+    output.write(json.dumps(value))
+
+
 def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
                default_config_dir=None, convert_to_str=True,
                allow_inherit=False, generate_depend=False):
