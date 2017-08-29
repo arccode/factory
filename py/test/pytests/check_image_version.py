@@ -99,8 +99,6 @@ _MSG_REIMAGING = i18n_test_ui.MakeI18nLabel('Flashing netboot firmware...')
 _MSG_FLASH_ERROR = i18n_test_ui.MakeI18nLabelWithClass(
     'Error flashing netboot firmware!', 'start-font-size test-error')
 
-_SHOPFLOOR_TIMEOUT_SECS = 10
-
 
 class ImageCheckTask(factory_task.FactoryTask):
 
@@ -124,7 +122,7 @@ class ImageCheckTask(factory_task.FactoryTask):
       payload, unused_components, downloader = (
           shopfloor.GetUpdateFromCROSPayload(
               'netboot_firmware',
-              proxy=shopfloor.get_instance(timeout=_SHOPFLOOR_TIMEOUT_SECS)))
+              proxy=shopfloor.get_instance()))
       del unused_components
       if not payload:
         self._test.template.SetState(_MSG_NO_FIRMWARE_ON_SERVER)

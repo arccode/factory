@@ -49,8 +49,6 @@ _PORT = 8888
 _LOCAL_IP = '192.168.1.2'
 
 # Setting
-_SHOPFLOOR_TIMEOUT_SECS = 10  # Timeout for shopfloor connection.
-_SHOPFLOOR_RETRY_INTERVAL_SECS = 10  # Seconds to wait between retries.
 _CHECK_FIXTURE_COMPLETE_SECS = 1  # Seconds to check fixture test.
 _REMOVE_ETHERNET_TIMEOUT_SECS = 30  # Timeout for inserting dongle.
 _FIXTURE_PARAMETERS = ['audio/audio_md5', 'audio/audio.zip']
