@@ -16,7 +16,7 @@ machine to shipping state, in following steps:
   b. Log test states.
   c. Log image versions.
 
-2. Call ``gooftool finalize``, which executes following subcommands in order:
+2. Call ``gooftool finalize``, which executes following sub commands in order:
 
   a. Verify firmware, keys, disk image, hardware components... etc. (equivalent
      to ``gooftool verify``)
@@ -28,7 +28,7 @@ machine to shipping state, in following steps:
 
     1. Wipe stateful partiton
     2. Enable release partition
-    3. Notify shopfloor
+    3. Notify factory server
     4. Battery cutoff
 
 You can use ``gooftool_waive_list`` and ``gooftool_skip_list`` to waive or skip
@@ -59,7 +59,7 @@ Almost everything essential to Chrome OS, especially:
 * flashrom (to turn on software WP)
 * TPM (read from sysfs)
 * frecon (to show wipe progress and instructions)
-* network connection (to notify shopfloor)
+* network connection (to notify factory server)
 * clobber-state (/sbin/clobber-state, which wipes stateful partition)
 
 Examples
@@ -71,8 +71,8 @@ A minimum example should be::
 Where,
 
 * ``write_protection`` will be ``True`` for PVT phase, otherwise ``False``.
-* ``enable_shopfloor`` is ``True``, will try to connect to shopfloor and update
-  HWID data, flush event logs.
+* ``enable_factory_server`` is ``True``, will try to connect to factory server
+  and update HWID data, flush event logs.
 * All gooftool verification rules are not skipped or waived.
 
 For early builds (PROTO, EVT), you can skip things that are not ready::
@@ -108,6 +108,7 @@ from cros.factory.test import factory
 from cros.factory.test import gooftools
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rules import phase
+from cros.factory.test import server_proxy
 from cros.factory.test import shopfloor
 from cros.factory.test import state
 from cros.factory.test import test_ui
@@ -144,8 +145,8 @@ class Finalize(unittest.TestCase):
       Arg('upload_method', str,
           'Upload method for "gooftool finalize"',
           optional=True),
-      Arg('enable_shopfloor', bool,
-          'Perform shopfloor operations: update HWID data and flush event '
+      Arg('enable_factory_server', bool,
+          'Perform factory server operations: update HWID data and flush event '
           'logs.', default=True),
       Arg('rma_mode', bool,
           'Enable rma_mode, do not check for deprecated components.',
@@ -219,7 +220,7 @@ class Finalize(unittest.TestCase):
           MSG_WRITE_PROTECTION + ': ' + GetState(self.args.write_protection) +
           '<br>' +
           MSG_BUILD_PHASE + ': ' + str(phase.GetPhase()) + ', ' +
-          MSG_FACTORY_SERVER + ': ' + GetState(self.args.enable_shopfloor))
+          MSG_FACTORY_SERVER + ': ' + GetState(self.args.enable_factory_server))
       self.template.SetState(MSG_PREFLIGHT)
       self.Preflight()
       self.template.SetState(MSG_FINALIZING)
@@ -228,8 +229,8 @@ class Finalize(unittest.TestCase):
       self.ui.Fail('Exception during finalization: %s' % e)
 
   def Preflight(self):
-    # Check for HWID bundle update from shopfloor.
-    if self.args.enable_shopfloor:
+    # Check for HWID bundle update from factory server.
+    if self.args.enable_factory_server:
       shopfloor.update_local_hwid_data(self.dut)
     self.LogTestStates()
     self.LogImageVersion()
@@ -300,7 +301,7 @@ class Finalize(unittest.TestCase):
       return 'none'
 
     if method == 'shopfloor':
-      method = 'shopfloor:%s#%s' % (shopfloor.get_server_url(),
+      method = 'shopfloor:%s#%s' % (server_proxy.GetServerURL(),
                                     device_data.GetSerialNumber())
     logging.info('Using upload method %s', method)
 
@@ -311,7 +312,7 @@ class Finalize(unittest.TestCase):
 
     command = 'gooftool -v 4 finalize'
 
-    if self.args.enable_shopfloor:
+    if self.args.enable_factory_server:
       state.get_instance().FlushEventLogs()
 
     if not self.args.write_protection:
@@ -320,8 +321,8 @@ class Finalize(unittest.TestCase):
     if not self.args.secure_wipe:
       command += ' --fast'
 
-    if self.args.enable_shopfloor:
-      server_url = shopfloor.get_server_url()
+    if self.args.enable_factory_server:
+      server_url = server_proxy.GetServerURL()
       if server_url:
         command += ' --shopfloor_url "%s"' % server_url
 

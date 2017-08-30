@@ -15,7 +15,7 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
-from cros.factory.test import shopfloor
+from cros.factory.test import server_proxy
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
@@ -109,13 +109,13 @@ class TimeSanitizer(object):
     self.base_time = base_time
     self.lock = threading.RLock()
 
-    # Whether to avoid re-raising exceptions from unsuccessful shopfloor
+    # Whether to avoid re-raising exceptions from unsuccessful factory server
     # operations.  Set to False for testing.
     self.__exceptions = True
     # Set time object.  This may be mocked out.
     self._time = Time()
-    # Set shopfloor.  This may be mocked out.
-    self._shopfloor = shopfloor
+    # Set server proxy module.  This may be mocked out.
+    self._server_proxy = server_proxy
 
     file_utils.TryMakeDirs(os.path.dirname(self.state_file))
 
@@ -185,8 +185,8 @@ class TimeSanitizer(object):
                       _FormatTime(now), self.state_file)
         print >> f, now
 
-  def SyncWithShopfloor(self, timeout=5):
-    """Attempts to synchronize the clock with the shopfloor server.
+  def SyncWithFactoryServer(self, timeout=5):
+    """Attempts to synchronize the clock with the factory server.
 
     Thread-safe.
 
@@ -194,26 +194,26 @@ class TimeSanitizer(object):
       True if synced, False if not (e.g., time is before current time).
 
     Raises:
-      Exception if unable to contact the shopfloor server.
+      Exception if unable to contact the factory server.
     """
-    proxy = self._shopfloor.get_instance(timeout=timeout)
-    shopfloor_time = proxy.GetTime()
-    logging.info('Got time %s GMT from shopfloor server',
-                 _FormatTime(shopfloor_time))
+    proxy = self._server_proxy.GetServerProxy(timeout=timeout)
+    server_time = proxy.GetTime()
+    logging.info('Got time %s GMT from factory server',
+                 _FormatTime(server_time))
 
     with self.lock:
       self.RunOnce()
       now = self._time.Time()
-      if shopfloor_time < now:
+      if server_time < now:
         logging.warn('Shopfloor server time is before current time %s; '
                      'not syncing', _FormatTime(now))
         return False
       else:
-        self._time.SetTime(shopfloor_time)
+        self._time.SetTime(server_time)
         with open(self.state_file, 'w') as f:
-          logging.debug('Recording shopfloor time %s into %s',
-                        _FormatTime(shopfloor_time), self.state_file)
-          print >> f, shopfloor_time
+          logging.debug('Recording factory server time %s into %s',
+                        _FormatTime(server_time), self.state_file)
+          print >> f, server_time
         return True
 
 
@@ -266,7 +266,7 @@ if __name__ == '__main__':
           # installation, so it should have a good time obtained from
           # the mini-Omaha server.  If it's not available, we'll use
           # /etc/lsb-factory (which will be much older, but reasonably
-          # sane) and rely on a shopfloor sync to set a more accurate
+          # sane) and rely on a sync to factory server to set a more accurate
           # time.
           '/usr/local/etc/lsb-factory',
           '/etc/lsb-release'))

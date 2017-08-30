@@ -37,7 +37,7 @@
     "GRTFinalize": {
       "pytest_name": "finalize",
       "args": {
-        "enable_shopfloor": "eval! constants.enable_factory_server",
+        "enable_factory_server": "eval! constants.enable_factory_server",
         "enforced_release_channels": "eval! ['stable'] if options.phase == 'PVT' else None",
         "gooftool_skip_list": "eval! constants.grt.gooftool_skip_list",
         "gooftool_waive_list": "eval! constants.grt.gooftool_waive_list",

@@ -71,20 +71,20 @@ import logging
 import pprint
 import threading
 import unittest
-import xmlrpclib
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rules import privacy
-from cros.factory.test import shopfloor
+from cros.factory.test import server_proxy
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import shelve_utils
+from cros.factory.utils import webservice_utils
 
 
 class ServiceSpec(object):
@@ -201,10 +201,9 @@ class ShopfloorService(unittest.TestCase):
   def _runTest(self):
     self.ui.AddEventHandler('retry', lambda unused_event: self.event.set())
     if self.args.server_url:
-      server_proxy = xmlrpclib.ServerProxy(self.args.server_url,
-                                           allow_none=True)
+      server = webservice_utils.CreateWebServiceProxy(self.args.server_url)
     else:
-      server_proxy = shopfloor.get_instance()
+      server = server_proxy.GetServerProxy()
       if self.args.raw_invocation:
         raise ValueError('Argument `raw_invocation` allowed only for external '
                          'server (need `server_url`).')
@@ -257,13 +256,13 @@ class ShopfloorService(unittest.TestCase):
         self.event.clear()
 
       try:
-        result = getattr(server_proxy, method)(*args, **kargs)
+        result = getattr(server, method)(*args, **kargs)
         logging.info('shopfloor_service: %s%s => %r',
                      method, log_args, self.FilterDict(result))
         self.UpdateAutoResults(method, result, args)
         self.UpdateDeviceData(result)
         self.done = True
-      except xmlrpclib.Fault as f:
+      except server_proxy.Fault as f:
         logging.exception('Server fault occurred.')
         HandleError(f.faultString)
       except Exception:

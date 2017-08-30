@@ -11,7 +11,7 @@ import yaml
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.env import paths
-from cros.factory.test import shopfloor
+from cros.factory.test import server_proxy
 from cros.factory.test import testlog_goofy
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
@@ -30,16 +30,17 @@ _TESTLOG_JSON_MAX_BYTES = 10 * 1024 * 1024  # 10mb
 class Instalog(plugin.Plugin):
   """Run Instalog as a Goofy plugin."""
 
-  def __init__(self, goofy, uplink_hostname, uplink_port, uplink_use_shopfloor):
+  def __init__(self, goofy, uplink_hostname, uplink_port,
+               uplink_use_factory_server):
     """Constructor.
 
     Args:
       goofy: The goofy instance.
       uplink_hostname: Hostname of the target for uploading logs.
       uplink_port: Port of the target for uploading logs.
-      uplink_use_shopfloor: Use the configured Shopfloor's IP and port instead.
-                            If unable to properly retrieve the IP and port, fall
-                            back to uplink_hostname and uplink_port.
+      uplink_use_factory_server: Use the configured factory server's IP and port
+          instead. If unable to properly retrieve the IP and port, fall back to
+          uplink_hostname and uplink_port.
     """
     super(Instalog, self).__init__(goofy)
     self._instalog_process = None
@@ -53,23 +54,24 @@ class Instalog(plugin.Plugin):
     cli_hostname = _CLI_HOSTNAME
     cli_port = _CLI_PORT
     testlog_json_path = goofy.testlog.primary_json.path
-    uplink_enabled = uplink_use_shopfloor or (uplink_hostname and uplink_port)
-    if uplink_use_shopfloor:
+    uplink_enabled = uplink_use_factory_server or (uplink_hostname and
+                                                   uplink_port)
+    if uplink_use_factory_server:
       url = None
       try:
-        url = shopfloor.get_server_url()
+        url = server_proxy.GetServerURL()
       except Exception:
         pass
       if url:
         uplink_hostname = urlparse.urlparse(url).hostname
         uplink_port = urlparse.urlparse(url).port
       elif uplink_hostname and uplink_port:
-        logging.error('Instalog: Could not retrieve Shopfloor IP and port; '
-                      'falling back to provided uplink "%s:%d"',
+        logging.error('Instalog: Could not retrieve factory server IP and port;'
+                      ' falling back to provided uplink "%s:%d"',
                       uplink_hostname, uplink_port)
       else:
-        logging.error('Instalog: Could not retrieve Shopfloor IP and port; '
-                      'no fallback provided; disabling uplink functionality')
+        logging.error('Instalog: Could not retrieve factory server IP and port;'
+                      ' no fallback provided; disabling uplink functionality')
         uplink_enabled = False
 
     config = {

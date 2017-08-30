@@ -31,7 +31,7 @@ class TimeSanitizerTestBase(unittest.TestCase):
   def setUp(self):
     self.mox = mox.Mox()
     self.fake_time = self.mox.CreateMock(time_sanitizer.Time)
-    self.fake_shopfloor = self.mox.CreateMockAnything()
+    self.fake_server_proxy = self.mox.CreateMockAnything()
 
     self.sanitizer = time_sanitizer.TimeSanitizer(
         self.state_file,
@@ -40,7 +40,7 @@ class TimeSanitizerTestBase(unittest.TestCase):
         max_leap_secs=SECONDS_PER_DAY)
     self.sanitizer._time = self.fake_time
     self.sanitizer._suppress_exceptions = False
-    self.sanitizer._shopfloor = self.fake_shopfloor
+    self.sanitizer._server_proxy = self.fake_server_proxy
 
   def run(self, result=None):
     with file_utils.TempDirectory(
@@ -75,54 +75,54 @@ class TimeSanitizerBaseTimeTest(TimeSanitizerTestBase):
         time_sanitizer.GetBaseTimeFromFile('/some-nonexistent-file'))
 
 
-class TimeSanitizerShopfloor(TimeSanitizerTestBase):
+class TimeSanitizerFactoryServer(TimeSanitizerTestBase):
 
-  def _RunWithShopfloorUnavailable(self):
-    """Simulate trying to contact the shopfloor server but failing."""
+  def _RunWithServerUnavailable(self):
+    """Simulate trying to contact the factory server but failing."""
     self.mox.ResetAll()
-    self.fake_shopfloor.get_instance(timeout=5).AndRaise(
+    self.fake_server_proxy.GetServerProxy(timeout=5).AndRaise(
         OSError())
     self.mox.ReplayAll()
 
-    self.assertRaises(OSError, self.sanitizer.SyncWithShopfloor)
+    self.assertRaises(OSError, self.sanitizer.SyncWithFactoryServer)
     self.assertFalse(os.path.exists(self.state_file))
     self.mox.VerifyAll()
 
-  def _RunWithShopfloor(self, shopfloor_time, adjust):
-    '''Simulate successfully contacting the shopfloor server.
+  def _RunWithServer(self, server_time, adjust):
+    """Simulate successfully contacting the factory server.
 
     Args:
-      shopfloor_time: The time to be reported by the shopfloor server.
+      server_time: The time to be reported by the factory server.
       adjust: Whether we expect that the sanitizer will actually adjust
         the time.
-    '''
+    """
     self.mox.ResetAll()
     proxy = self.mox.CreateMockAnything()
     self.fake_time.Time().AndReturn(BASE_TIME)
-    self.fake_shopfloor.get_instance(timeout=5).AndReturn(proxy)
-    proxy.GetTime().AndReturn(shopfloor_time)
+    self.fake_server_proxy.GetServerProxy(timeout=5).AndReturn(proxy)
+    proxy.GetTime().AndReturn(server_time)
     self.fake_time.Time().AndReturn(BASE_TIME)
     if adjust:
-      self.fake_time.SetTime(shopfloor_time)
+      self.fake_time.SetTime(server_time)
     self.mox.ReplayAll()
 
-    self.assertEquals(adjust, self.sanitizer.SyncWithShopfloor())
+    self.assertEquals(adjust, self.sanitizer.SyncWithFactoryServer())
     self.mox.VerifyAll()
 
-  def testPastShopfloor(self):
-    self._RunWithShopfloorUnavailable()
+  def testPastServer(self):
+    self._RunWithServerUnavailable()
 
-    # Now shopfloor server is available,
+    # Now factory server is available,
     # but time is earlier than the BASE_TIME.  No adjustment.
-    self._RunWithShopfloor(BASE_TIME - 10, False)
+    self._RunWithServer(BASE_TIME - 10, False)
     self.assertEquals(BASE_TIME, self._ReadStateFile())
 
-  def testFutureShopfloor(self):
-    self._RunWithShopfloorUnavailable()
+  def testFuturefloor(self):
+    self._RunWithServerUnavailable()
 
-    # Now shopfloor server is available,
+    # Now factory server is available,
     # and time is later than the BASE_TIME.  Adjust the time.
-    self._RunWithShopfloor(BASE_TIME + 10, True)
+    self._RunWithServer(BASE_TIME + 10, True)
     self.assertEquals(BASE_TIME + 10, self._ReadStateFile())
 
 

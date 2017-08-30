@@ -23,7 +23,7 @@ class TimeSanitizer(plugin.Plugin):
     """Constructor
 
     Args:
-      sync_period_secs: seconds between each sync with shopfloor server. If set
+      sync_period_secs: seconds between each sync with factory server. If set
           to None, no periodic sync would be performed. Once successfully sync,
           no periodic task would be performed again.
       base_time_files: the based file for time reference.
@@ -57,7 +57,7 @@ class TimeSanitizer(plugin.Plugin):
     while True:
       try:
         self._time_sanitizer.SaveTime()
-        self.SyncTimeWithShopfloorServer()
+        self.SyncTimeWithFactoryServer()
       except Exception as error:
         logging.exception(error)
 
@@ -65,14 +65,14 @@ class TimeSanitizer(plugin.Plugin):
         return
 
   @plugin.RPCFunction
-  def SyncTimeWithShopfloorServer(self):
-    """Syncs time with shopfloor server.
+  def SyncTimeWithFactoryServer(self):
+    """Syncs time with factory server.
 
     Raises:
-      Exception if unable to contact the shopfloor server.
+      Exception if unable to contact the factory server.
     """
-    logging.info("Sync time from shopfloor")
+    logging.info("Sync time from factory server")
     with self._lock:
       if not self._time_synced:
-        self._time_sanitizer.SyncWithShopfloor()
+        self._time_sanitizer.SyncWithFactoryServer()
         self._time_synced = True

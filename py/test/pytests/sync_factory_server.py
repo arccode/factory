@@ -24,7 +24,7 @@ This test will sync following items:
 
 Additionally, if argument ``server_url`` is specified, this test will update the
 stored 'default factory server URL' so all following tests connecting to factory
-server via ``shopfloor.get_instance()`` will use the new URL.
+server via ``server_proxy.GetServerProxy()`` will use the new URL.
 
 Test Procedure
 --------------
@@ -94,7 +94,7 @@ from cros.factory.test import device_data
 from cros.factory.test import factory
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import shopfloor
+from cros.factory.test import server_proxy
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -235,7 +235,7 @@ class SyncFactoryServer(unittest.TestCase):
         id=ID_BUTTON_EDIT_URL)
 
   def EditServerURL(self):
-    current_url = shopfloor.get_server_url() or ''
+    current_url = server_proxy.GetServerURL() or ''
     if current_url:
       prompt = ''
     else:
@@ -266,7 +266,7 @@ class SyncFactoryServer(unittest.TestCase):
     self.ui_template.SetState(
         i18n_test_ui.MakeI18nLabel('Trying to reach server...') +
         '<br/><br/>' + self.CreateChangeURLButton())
-    self.server = shopfloor.get_instance(timeout=self.args.timeout_secs)
+    self.server = server_proxy.GetServerProxy(timeout=self.args.timeout_secs)
 
     if self.do_setup_url:
       raise Exception('Edit URL clicked.')
@@ -278,12 +278,12 @@ class SyncFactoryServer(unittest.TestCase):
     self.allow_edit_url = False
 
   def ChangeServerURL(self, new_server_url):
-    server_url = shopfloor.get_server_url() or ''
+    server_url = server_proxy.GetServerURL() or ''
 
     if new_server_url and new_server_url != server_url:
-      shopfloor.set_server_url(new_server_url.rstrip('/'))
-      # Read again because shopfloor module may normalize it.
-      new_server_url = shopfloor.get_server_url()
+      server_proxy.SetServerURL(new_server_url.rstrip('/'))
+      # Read again because server_proxy module may normalize it.
+      new_server_url = server_proxy.GetServerURL()
       factory.console.info(
           'Factory server URL has been changed from [%s] to [%s].',
           server_url, new_server_url)
@@ -381,7 +381,7 @@ class SyncFactoryServer(unittest.TestCase):
               '</span>')
           time.sleep(0.5)
           break
-        except shopfloor.Fault as f:
+        except server_proxy.Fault as f:
           exception_string = f.faultString
           logging.error('Server fault with message: %s', f.faultString)
         except Exception:
