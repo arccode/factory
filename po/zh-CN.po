@@ -916,11 +916,11 @@ msgstr "测站编号"
 
 #: ../py/goofy/plugins/station_setup/station_setup.py
 msgid "{key} can't be empty!"
-msgstr "{key}的值不能为空"
+msgstr "{key} 的值不能为空!"
 
 #: ../py/goofy/plugins/station_setup/station_setup.py
 msgid "Station with same {keys!r} found."
-msgstr "测站已存在"
+msgstr "测站 {keys!r} 已存在。"
 
 #: ../py/goofy/plugins/status_monitor/static/status_monitor.js
 msgid "MLB S/N"
