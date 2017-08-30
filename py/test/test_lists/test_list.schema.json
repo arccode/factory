@@ -46,6 +46,7 @@
           "type": ["string", "object"]
         },
         "locals": {
+          "$ref": "#/definitions/test_constants",
           "type": "object"
         },
         "never_fails": {
@@ -95,6 +96,31 @@
     "test_options": {
       "__comment": "please see cros.factory.test.factory.Options",
       "type": "object"
+    },
+    "test_constants": {
+      "anyOf": [
+        {
+          "type": ["string", "number", "boolean", "null"]
+        },
+        {
+          "type": "object",
+          "patternProperties": {
+            "^__comment_[A-Za-z0-9_-]+$": {
+              "type": "string"
+            },
+            "^[A-Za-z0-9][A-Za-z0-9_-]*$": {
+              "$ref": "#/definitions/test_constants"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/test_constants"
+          }
+        }
+      ]
     }
   },
   "type": "object",
@@ -112,6 +138,7 @@
       "$ref": "#/definitions/test_options"
     },
     "constants": {
+      "$ref": "#/definitions/test_constants",
       "type": "object"
     },
     "definitions": {
