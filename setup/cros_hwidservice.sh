@@ -94,25 +94,27 @@ check_credentials() {
   gcloud auth application-default --project "${GKE_PROJECT}" login
 }
 
-# GKE and Docker variables
-GKE_ZONE="asia-east1-c"
-GKE_PROJECT="chromeos-factory"
-GKE_HWID_SERVICE_CLUSTER="factory-hwid-service-cluster"
-GKE_HWID_SERVICE_NODE="factory-hwid-service-node"
-GKE_HWID_SERVICE_EXPOSE_PORT="8181"
-GKE_HWID_SERVICE_REPLICAS="2"
-HWID_SERVICE_IMAGE="gcr.io/chromeos-factory/factory_hwid_service"
-TIME_TAG="$(date +%b-%d-%Y_%H%M)"
-LATEST_TAG="latest"
-DEFAULT_KUBECTL_PROXY_PORT="8081"
-
 # Host base directories
 HOST_SCRIPT_DIR="$(dirname "$(realpath "$0")")"
 HOST_FACTORY_DIR="$(dirname "${HOST_SCRIPT_DIR}")"
 HOST_CROS_PLATFORM_DIR="$(dirname "${HOST_FACTORY_DIR}")"
 HOST_CROS_SRC_DIR="$(dirname "${HOST_CROS_PLATFORM_DIR}")"
 HOST_HWIDSERVICE_DIR="${HOST_FACTORY_DIR}/py/hwid/service"
+HOST_HWIDSERVICE_CONFIG_DIR="${HOST_HWIDSERVICE_DIR}/config"
 HOST_HWIDSERVICE_DOCKER_DIR="${HOST_HWIDSERVICE_DIR}/docker_env"
+
+# GKE and Docker variables
+GKE_ZONE="asia-east1-c"
+GKE_PROJECT="chromeos-factory"
+GKE_HWID_SERVICE_CLUSTER="factory-hwid-service-cluster"
+GKE_HWID_SERVICE="factory-hwid-service-node"
+GKE_HWID_SERVICE_DEPLOY="factory-hwid-service-deploy-node"
+GKE_SERVICE_CONFIG="${HOST_HWIDSERVICE_CONFIG_DIR}/service.yaml"
+GKE_DEPLOYMENT_CONFIG="${HOST_HWIDSERVICE_CONFIG_DIR}/deployment.yaml"
+HWID_SERVICE_IMAGE="gcr.io/chromeos-factory/factory_hwid_service"
+TIME_TAG="$(date +%b-%d-%Y_%H%M)"
+LATEST_TAG="latest"
+DEFAULT_KUBECTL_PROXY_PORT="8081"
 
 do_setup() {
   check_docker
@@ -166,25 +168,21 @@ do_run() {
   fi
 
   # Run container if there is no one.
-  if ! kubectl get deployment "${GKE_HWID_SERVICE_NODE}" &> /dev/null ; then
-    echo "Running container..."
-    kubectl run "${GKE_HWID_SERVICE_NODE}" \
-        --image "${HWID_SERVICE_IMAGE}:${TIME_TAG}" \
-        --port "${GKE_HWID_SERVICE_EXPOSE_PORT}" \
-        --replicas "${GKE_HWID_SERVICE_REPLICAS}"
+  if ! kubectl get deployment "${GKE_HWID_SERVICE_DEPLOY}" &> /dev/null ; then
+    echo "Deploying container image..."
+    # Replace the <VERSION-TAG> with time tag string and pipes to kubectl
+    sed "s/<VERSION-TAG>/${TIME_TAG}/" "${GKE_DEPLOYMENT_CONFIG}" \
+        | kubectl create -f -
   fi
 
-  # Expose container
-  if ! kubectl get services "${GKE_HWID_SERVICE_NODE}" &> /dev/null ; then
-    echo "Exposing container..."
-    kubectl expose deployment "${GKE_HWID_SERVICE_NODE}" --type="LoadBalancer"
-  fi
+  # Create the service.
+  kubectl create -f "${GKE_SERVICE_CONFIG}"
 
   # Show the current status of the service
-  kubectl get services "${GKE_HWID_SERVICE_NODE}"
+  kubectl get services "${GKE_HWID_SERVICE}"
 
   echo "It may take a while to lauch HWID Service; waitting for EXTERNAL-IP..."
-  echo "run 'kubectl get services ${GKE_HWID_SERVICE_NODE} --watch'"
+  echo "run 'kubectl get services ${GKE_HWID_SERVICE} --watch'"
 }
 
 do_status() {
@@ -196,13 +194,15 @@ do_status() {
 do_stop() {
   check_gcloud
   check_credentials
-  kubectl delete service "${GKE_HWID_SERVICE_NODE}" || true
+  kubectl delete service "${GKE_HWID_SERVICE}" || true
+  kubectl delete deployment "${GKE_HWID_SERVICE_DEPLOY}" || true
 }
 
 do_cleanup() {
   check_gcloud
   check_credentials
-  kubectl delete service "${GKE_HWID_SERVICE_NODE}" || true
+  kubectl delete service "${GKE_HWID_SERVICE}" || true
+  kubectl delete deployment "${GKE_HWID_SERVICE_DEPLOY}" || true
   gcloud container clusters delete "${GKE_HWID_SERVICE_CLUSTER}" \
     --zone ${GKE_ZONE}
 }
@@ -211,8 +211,8 @@ do_update() {
   # Publish the latest image to Google Container Registry.
   do_publish
 
-  kubectl set image "deployment/${GKE_HWID_SERVICE_NODE}" \
-    "${GKE_HWID_SERVICE_NODE}=${HWID_SERVICE_IMAGE_TAG}:${TIME_TAG}"
+  kubectl set image "deployment/${GKE_HWID_SERVICE_DEPLOY}" \
+    "${GKE_HWID_SERVICE_DEPLOY}=${HWID_SERVICE_IMAGE}:${TIME_TAG}"
 }
 
 do_connect() {
