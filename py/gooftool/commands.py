@@ -352,43 +352,30 @@ def EnableFwWp(options):
   """Enable then verify firmware write protection."""
   del options  # Unused.
 
-  def CalculateLegacyRange(fw_type, length, section_data,
-                           section_name):
-    ro_size = length / 2
-    ro_a = int(section_data[0] / ro_size)
-    ro_b = int((section_data[0] + section_data[1] - 1) / ro_size)
-    if ro_a != ro_b:
-      raise Error('%s firmware section %s has illegal size' %
-                  (fw_type, section_name))
-    ro_offset = ro_a * ro_size
-    return (ro_offset, ro_size)
-
-  def WriteProtect(fw_file_path, fw_type, legacy_section=None):
+  def WriteProtect(fw):
     """Calculate protection size, then invoke flashrom.
 
-    Our supported chips only allow write protecting half their total
-    size, so we partition the flash chipset space accordingly.
+    The region (offset and size) to write protect may be different per chipset
+    and firmware layout, so we have to read the WP_RO section from FMAP to
+    decide that.
     """
-    raw_image = open(fw_file_path, 'rb').read()
     wp_section = 'WP_RO'
-    image = crosfw.FirmwareImage(raw_image)
-    if image.has_section(wp_section):
-      section_data = image.get_section_area(wp_section)
-      ro_offset = section_data[0]
-      ro_size = section_data[1]
-    elif legacy_section is not None and image.has_section(legacy_section):
-      section_data = image.get_section_area(legacy_section)
-      (ro_offset, ro_size) = CalculateLegacyRange(
-          fw_type, len(raw_image), section_data, legacy_section)
-    else:
-      raise Error('Could not find %s firmware section: %s %s' %
-                  (fw_type, wp_section, legacy_section or ''))
 
-    logging.debug('write protecting %s [off=%x size=%x]', fw_type,
+    fmap_image = fw.GetFirmwareImage(
+        sections=(['FMAP'] if fw.target == crosfw.TARGET_MAIN else None))
+    if not fmap_image.has_section(wp_section):
+      raise Error('Could not find %s firmware section: %s' %
+                  (fw.target.upper(), wp_section))
+
+    section_data = fw.GetFirmwareImage(
+        sections=[wp_section]).get_section_area(wp_section)
+    ro_offset, ro_size = section_data[0 : 2]
+
+    logging.debug('write protecting %s [off=%x size=%x]', fw.target.upper(),
                   ro_offset, ro_size)
-    crosfw.Flashrom(fw_type).EnableWriteProtection(ro_offset, ro_size)
+    crosfw.Flashrom(fw.target).EnableWriteProtection(ro_offset, ro_size)
 
-  WriteProtect(crosfw.LoadMainFirmware().GetFileName(), 'main', 'RO_SECTION')
+  WriteProtect(crosfw.LoadMainFirmware())
   event_log.Log('wp', fw='main')
 
   # Some EC (mostly PD) does not support "RO NOW". Instead they will only set
@@ -399,17 +386,13 @@ def EnableFwWp(options):
   # If you don't reboot, returned range will be (0, 0), and running command
   # "ectool flashprotect" will not have RO_NOW.
 
-  targets = [
-      ('EC', crosfw.TARGET_EC, crosfw.LoadEcFirmware, 'EC_RO'),
-      ('PD', crosfw.TARGET_PD, crosfw.LoadPDFirmware, None)]
-  for (name, fw_type, provider, legacy_section) in targets:
-    fw_file = provider().GetFileName()
-    if fw_file is None:
+  for fw in [crosfw.LoadEcFirmware(), crosfw.LoadPDFirmware()]:
+    if fw.GetChipId() is None:
       logging.warning('%s not write protected (seems there is no %s flash).',
-                      name, name)
+                      fw.target.upper(), fw.target.upper())
       continue
-    WriteProtect(fw_file, fw_type, legacy_section)
-    event_log.Log('wp', fw=fw_type)
+    WriteProtect(fw)
+    event_log.Log('wp', fw=fw.target)
 
 
 @Command('clear_gbb_flags')

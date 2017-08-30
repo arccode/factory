@@ -283,9 +283,16 @@ class FirmwareContent(object):
         return
     raise ValueError('%r is not found in the cached files' % (filename,))
 
-  def GetFirmwareImage(self):
-    """Returns a FirmwareImage instance."""
-    with open(self.GetFileName(), 'rb') as image:
+  def GetFirmwareImage(self, sections=None):
+    """Returns a FirmwareImage instance.
+
+    Args:
+      sections: Restrict the sections of firmware data to be stored in the file.
+
+    Returns:
+      An instance of FormwareImage.
+    """
+    with open(self.GetFileName(sections=sections), 'rb') as image:
       return FirmwareImage(image.read())
 
 
