@@ -207,7 +207,7 @@ def WriteHWID(encoded_string):
   main_fw = crosfw.LoadMainFirmware()
   process_utils.Spawn(
       ['futility', 'gbb', '--set', '--hwid=%s' % encoded_string,
-       '%s' % main_fw.GetFileName()], check_call=True, log=True)
+       '%s' % main_fw.GetFileName(sections=['GBB'])], check_call=True, log=True)
   main_fw.Write(sections=['GBB'])
 
 
@@ -411,7 +411,7 @@ def GetHWIDString():
   """Get HWID string from GBB on a DUT."""
   if sys_utils.InChroot():
     raise ValueError('Cannot read HWID from GBB in chroot')
-  main_fw_file = crosfw.LoadMainFirmware().GetFileName()
+  main_fw_file = crosfw.LoadMainFirmware().GetFileName(sections=['GBB'])
   gbb_result = process_utils.CheckOutput(
       ['futility', 'gbb', '-g', '--hwid', '%s' % main_fw_file])
   return re.findall(r'hardware_id:(.*)', gbb_result)[0].strip()
