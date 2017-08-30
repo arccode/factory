@@ -110,7 +110,7 @@ HOST_DOME_DIR="${HOST_SHARED_DIR}/dome"
 HOST_TFTP_DIR="${HOST_SHARED_DIR}/tftp"
 HOST_UMPIRE_DIR="${HOST_SHARED_DIR}/umpire"
 HOST_OVERLORD_DIR="${HOST_SHARED_DIR}/overlord"
-HOST_OVERLORD_APP_DIR="${HOST_OVERLORD_DIR}/app"
+HOST_OVERLORD_CONFIG_DIR="${HOST_OVERLORD_DIR}/config"
 
 # Publish tools
 PREBUILT_IMAGE_SITE="https://storage.googleapis.com"
@@ -131,7 +131,7 @@ DOCKER_UMPIRE_DIR="${DOCKER_BASE_DIR}/py/umpire"
 DOCKER_INSTALOG_DIR="${DOCKER_BASE_DIR}/py/instalog"
 
 DOCKER_OVERLORD_DIR="${DOCKER_BASE_DIR}/bin/overlord"
-DOCKER_OVERLORD_APP_DIR="${DOCKER_OVERLORD_DIR}/app"
+DOCKER_OVERLORD_CONFIG_DIR="${DOCKER_OVERLORD_DIR}/config"
 
 # Umpire's db directory mount point in Dome
 DOCKER_UMPIRE_DIR_IN_DOME="/var/db/factory/umpire"
@@ -399,18 +399,8 @@ do_overlord_setup() {
 
   echo "Doing setup for Overlord, you'll be asked for root permission ..."
   sudo rm -rf "${HOST_OVERLORD_DIR}"
-  ensure_dir "${HOST_OVERLORD_DIR}"
+  ensure_dir "${HOST_OVERLORD_CONFIG_DIR}"
   ensure_dir_acl "${HOST_SHARED_DIR}"
-
-  local temp_docker_id
-  temp_docker_id=$(${DOCKER} create ${DOCKER_IMAGE_NAME})
-
-  # We always need sudo for this command for writing permission for
-  # HOST_OVERLORD_DIR.
-  sudo docker cp \
-    "${temp_docker_id}:${DOCKER_OVERLORD_APP_DIR}" \
-    "${HOST_OVERLORD_DIR}"
-  ${DOCKER} rm "${temp_docker_id}"
 
   echo "Running setup script ..."
   echo
@@ -420,7 +410,7 @@ do_overlord_setup() {
     --tty \
     --rm \
     --name "${overlord_setup_container_name}" \
-    --volume "${HOST_OVERLORD_APP_DIR}:${DOCKER_OVERLORD_APP_DIR}" \
+    --volume "${HOST_OVERLORD_CONFIG_DIR}:${DOCKER_OVERLORD_CONFIG_DIR}" \
     "${DOCKER_IMAGE_NAME}" \
     "${DOCKER_OVERLORD_DIR}/setup.sh" || \
     (echo "Setup failed... removing Overlord settings."; \
@@ -429,7 +419,7 @@ do_overlord_setup() {
 
   # Copy the certificate to script directory, and set it's permission to all
   # readable, so it's easier to use (since the file is owned by root).
-  sudo cp "${HOST_OVERLORD_DIR}/app/cert.pem" "${SCRIPT_DIR}/cert.pem"
+  sudo cp "${HOST_OVERLORD_DIR}/config/cert.pem" "${SCRIPT_DIR}/cert.pem"
   sudo chmod 644 "${SCRIPT_DIR}/cert.pem"
 
   echo
@@ -459,13 +449,14 @@ do_overlord_run() {
     --detach \
     --restart unless-stopped \
     --name "${overlord_container_name}" \
-    --volume "${HOST_OVERLORD_APP_DIR}:${DOCKER_OVERLORD_APP_DIR}" \
+    --volume "${HOST_OVERLORD_CONFIG_DIR}:${DOCKER_OVERLORD_CONFIG_DIR}" \
     --volume "${HOST_SHARED_DIR}:/mnt" \
     --publish "4455:4455" \
     --publish "${OVERLORD_HTTP_PORT}:9000" \
     --workdir "${DOCKER_OVERLORD_DIR}" \
     "${DOCKER_IMAGE_NAME}" \
-    "./overlordd" -tls "app/cert.pem,app/key.pem" -no-lan-disc || \
+    "./overlordd" -tls "config/cert.pem,config/key.pem" \
+    -htpasswd-path "config/overlord.htpasswd" -no-lan-disc || \
     (echo "Removing stale container due to error ..."; \
      ${DOCKER} rm "${overlord_container_name}"; \
      die "Can't start overlord docker. Possibly wrong port binding?")
@@ -505,7 +496,7 @@ commands:
 
 commands for developers:
   $0 overlord setup
-      Run first-time setup for Overlord. Would reset everything in app
+      Run first-time setup for Overlord. Would reset everything in config
       directory to the one in docker image.
 __EOF__
 }
