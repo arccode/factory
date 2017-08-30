@@ -247,32 +247,36 @@ TouchscreenTest.prototype.updatePreviousXY = function(touch) {
 TouchscreenTest.prototype.checkDirection = function(touch) {
   var diffX = touch.screenX - this.previousX;
   var diffY = touch.screenY - this.previousY;
-  var checkX = false;
-  var checkY = false;
-  switch (this.expectSequence[this.expectBlockIndex].directionX) {
-    case 1:
-      checkX = diffX + this.MOVE_TOLERANCE > 0;
-      break;
-    case 0:
-      checkX = Math.abs(diffX) < this.MOVE_TOLERANCE;
-      break;
-    case -1:
-      checkX = diffX < this.MOVE_TOLERANCE;
-      break;
-  }
-  switch (this.expectSequence[this.expectBlockIndex].directionY) {
-    case 1:
-      checkY = diffY + this.MOVE_TOLERANCE > 0;
-      break;
-    case 0:
-      checkY = Math.abs(diffY) < this.MOVE_TOLERANCE;
-      break;
-    case -1:
-      checkY = diffY < this.MOVE_TOLERANCE;
-      break;
-  }
   this.updatePreviousXY(touch);
-  return checkX && checkY;
+  if (this.expectBlockIndex < this.expectSequence.length) {
+    var checkX = false;
+    var checkY = false;
+    switch (this.expectSequence[this.expectBlockIndex].directionX) {
+      case 1:
+        checkX = diffX + this.MOVE_TOLERANCE > 0;
+        break;
+      case 0:
+        checkX = Math.abs(diffX) < this.MOVE_TOLERANCE;
+        break;
+      case -1:
+        checkX = diffX < this.MOVE_TOLERANCE;
+        break;
+    }
+    switch (this.expectSequence[this.expectBlockIndex].directionY) {
+      case 1:
+        checkY = diffY + this.MOVE_TOLERANCE > 0;
+        break;
+      case 0:
+        checkY = Math.abs(diffY) < this.MOVE_TOLERANCE;
+        break;
+      case -1:
+        checkY = diffY < this.MOVE_TOLERANCE;
+        break;
+    }
+    return checkX && checkY;
+  } else {
+    return true;
+  }
 };
 
 /**
