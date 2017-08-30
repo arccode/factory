@@ -745,8 +745,8 @@ class AudioQualityTest(unittest.TestCase):
     factory.console.info('Start downloading parameters...')
     self._ui.CallJSFunction('setMessage', _LABEL_CONNECT_SHOPFLOOR)
     shopfloor_client = shopfloor.GetShopfloorConnection(retry_interval_secs=3)
-    logging.info('Syncing time with shopfloor...')
-    time_utils.SyncTimeWithShopfloorServer()
+    logging.info('Syncing time with factory server...')
+    time_utils.SyncTimeWithFactoryServer()
 
     self._ui.CallJSFunction('setMessage', _LABEL_DOWNLOADING_PARAMETERS)
     download_list = []

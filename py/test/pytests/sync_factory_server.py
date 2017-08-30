@@ -346,7 +346,7 @@ class SyncFactoryServer(unittest.TestCase):
     tasks = [(_('Ping'), self.Ping)]
 
     if self.args.sync_time:
-      tasks += [(_('Sync time'), time_utils.SyncTimeWithShopfloorServer)]
+      tasks += [(_('Sync time'), time_utils.SyncTimeWithFactoryServer)]
 
     if self.args.sync_event_logs:
       tasks += [(_('Flush Event Logs'), self.goofy.FlushEventLogs)]

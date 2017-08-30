@@ -29,8 +29,8 @@ def SyncDate(dut=None):
     dut.CheckCall(['date', '-u', '{:%m%d%H%M%Y.%S}'.format(now)], log=True)
 
 
-def SyncTimeWithShopfloorServer():
-  """Sync time with shopfloor server.
+def SyncTimeWithFactoryServer():
+  """Sync time with factory server.
 
   Returns: False if TimeSanitizer is not running.
   """
@@ -38,7 +38,7 @@ def SyncTimeWithShopfloorServer():
   if _HAS_PLUGIN_CONTROLLER:
     time_sanitizer = plugin_controller.GetPluginRPCProxy('time_sanitizer')
   if time_sanitizer is not None:
-    time_sanitizer.SyncTimeWithShopfloorServer()
+    time_sanitizer.SyncTimeWithFactoryServer()
     return True
   else:
     return False
