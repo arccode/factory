@@ -9,7 +9,7 @@
       "audio",
       "flash_chip"
     ],
-    "enable_shopfloor": true,
+    "enable_factory_server": true,
     "phase": "EVT",
     "timestamp": 1,
     "__comment_timestamp": "this is used by testReloadConfig"

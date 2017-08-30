@@ -19,12 +19,12 @@ Test Procedure
 --------------
 This is an automated test without user interaction.
 
-1. If the argument `enable_shopfloor` is True, fetch the config files from the
-   Google shopfloor server. The folder name is assigned by the argument
+1. If the argument `enable_factory_server` is True, fetch the config files from
+   the Chrome OS factory server. The folder name is assigned by the argument
    `shopfloor_parameter_dir`.
 2. Start running Graphyte framework with the assigned config file.
-3. If the argument `enable_shopfloor` is True, upload the log file and the
-   result file to the Google shopfloor server. The folder name is assigned by
+3. If the argument `enable_factory_server` is True, upload the log file and the
+   result file to the Chrome OS factory server. The folder name is assigned by
    the argument `shopfloor_log_dir`.
 4. Parse the result and upload them via testlog.
 
@@ -46,7 +46,7 @@ this into the test list::
       dargs={
           'graphyte_config_file': 'conductive_config.json',
           'verbose': True,
-          'enable_shopfloor': True,
+          'enable_factory_server': True,
           'shopfoor_parameter_dir': 'rf_conductive',
           'shopfloor_log_dir': 'rf_conductive'})
 """
@@ -99,11 +99,11 @@ _STATE_HTML = """
 """ % (_ID_MSG_DIV, _ID_DEBUG_DIV)
 
 _MSG_FETCH_CONFIG = i18n_test_ui.MakeI18nLabelWithClass(
-    'Fetching config files from shopfloor', 'message')
+    'Fetching config files from factory server', 'message')
 _MSG_EXECUTE_GRAPHYTE = i18n_test_ui.MakeI18nLabelWithClass(
     'Executing Graphyte', 'message')
 _MSG_UPLOAD_RESULT = i18n_test_ui.MakeI18nLabelWithClass(
-    'Uploading result files to shopfloor', 'message')
+    'Uploading result files to factory server', 'message')
 
 class RFGraphyteTest(unittest.TestCase):
 
@@ -119,20 +119,20 @@ class RFGraphyteTest(unittest.TestCase):
           default=False, optional=True),
       Arg('verbose', bool, 'Enable Graphyte debug logging',
           default=True, optional=True),
-      Arg('enable_shopfloor', bool,
-          'Whether or not to use shopfloor. If True, the test will try to '
-          'update config files from shopfloor, and upload the log and result '
-          'file to shopfloor server. If False, the test will load config file '
-          'from local disk and does not upload log.',
+      Arg('enable_factory_server', bool,
+          'Whether or not to use Chrome OS factory server. '
+          'If True, the test will try to update config files from server, '
+          'and upload the log and result file to factory server. '
+          'If False, load config file from local disk and does not upload log.',
           default=True, optional=False),
       Arg('shopfloor_parameter_dir', str,
           'Directory in which to place the updated config files. All the files '
           'in this folder will be downloaded to `test/pytests/rf_graphyte` '
-          'folder. Only takes effect if "enable_shopfloor" is set to True.',
+          'folder if argument "enable_factory_server" is True.',
           default='rf_graphyte', optional=True),
       Arg('shopfloor_log_dir', str, 'Directory in which to save logs on '
           'shopfloor.  For example: "wifi_radiated".  Only takes effect if '
-          '"enable_shopfloor" is set to True.',
+          '"enable_factory_server" is set to True.',
           default='rf_graphyte', optional=True),
       ]
 
@@ -143,8 +143,8 @@ class RFGraphyteTest(unittest.TestCase):
     self._template.SetState(_STATE_HTML)
     self._dut = device_utils.CreateDUTInterface()
     self.process = None
-    if self.args.enable_shopfloor:
-      self._shopfloor_proxy = shopfloor.GetShopfloorConnection()
+    if self.args.enable_factory_server:
+      self._server_proxy = shopfloor.GetShopfloorConnection()
 
     timestamp = time.strftime('%H%M%S')
     self.config_file_path = os.path.join(
@@ -163,8 +163,8 @@ class RFGraphyteTest(unittest.TestCase):
     self._ui.Run()
 
   def _runTest(self):
-    # Update the config file from shopfloor.
-    self.FetchConfigFromShopfloor()
+    # Update the config file from factory server.
+    self.FetchConfigFromFactoryServer()
 
     # Check the config file exists.
     if not os.path.exists(self.config_file_path):
@@ -298,29 +298,29 @@ class RFGraphyteTest(unittest.TestCase):
     with open(self.config_file_path, 'w') as f:
       json.dump(global_config, f)
 
-  def FetchConfigFromShopfloor(self):
-    """Fetch all config files from shopfloor.
+  def FetchConfigFromFactoryServer(self):
+    """Fetch all config files from factory server.
 
     The Graphyte config file lists other needed files, such as port config, test
     plan, and DUT/instrument config file. Since we don't only need one config
-    file, we fetch all config files at the shopfloor to local side.
+    file, we fetch all config files from the factory server to local side.
     """
-    if not self.args.enable_shopfloor:
+    if not self.args.enable_factory_server:
       return
 
     self._ui.SetHTML(_MSG_FETCH_CONFIG, id=_ID_MSG_DIV)
-    config_file_paths = self._shopfloor_proxy.ListParameters(
+    config_file_paths = self._server_proxy.ListParameters(
         os.path.join(self.args.shopfloor_parameter_dir, '*'))
     for file_path in config_file_paths:
       factory.console.info('Fetch config file from shopfloor: %s', file_path)
-      content = self._shopfloor_proxy.GetParameter(file_path).data
+      content = self._server_proxy.GetParameter(file_path).data
       file_name = os.path.basename(file_path)
       with open(os.path.join(LOCAL_CONFIG_DIR, file_name), 'w') as f:
         f.write(content)
 
   def UploadResultToShopfloor(self):
-    """Upload Graphyte log and result to shopfloor."""
-    if not self.args.enable_shopfloor:
+    """Upload Graphyte log and result to factory server."""
+    if not self.args.enable_factory_server:
       return
 
     self._ui.SetHTML(_MSG_UPLOAD_RESULT, id=_ID_MSG_DIV)

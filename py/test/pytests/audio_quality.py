@@ -130,7 +130,8 @@ class AudioQualityTest(unittest.TestCase):
           optional=True),
       Arg('fixture_param', list, 'Fixture parameters', _FIXTURE_PARAMETERS,
           optional=True),
-      Arg('use_shopfloor', bool, 'Use shopfloor', True, optional=True),
+      Arg('enable_factory_server', bool, 'Get parameters from factory server',
+          True, optional=True),
       Arg('network_setting', dict, 'Network setting to define *local_ip*, \n'
           '*port*, *gateway_ip*', {}, optional=True),
       Arg('audio_conf', str, 'Audio config file path', None, optional=True),
@@ -202,7 +203,7 @@ class AudioQualityTest(unittest.TestCase):
     self._use_multitone = self.args.use_multitone
     self._loop_buffer_count = self.args.loop_buffer_count
     self._parameters = self.args.fixture_param
-    self._use_shopfloor = self.args.use_shopfloor
+    self._enable_factory_server = self.args.enable_factory_server
     self._local_ip = self.args.network_setting.get('local_ip', _LOCAL_IP)
     self._port = self.args.network_setting.get('port', _PORT)
 
@@ -371,7 +372,7 @@ class AudioQualityTest(unittest.TestCase):
 
   def HandleVersion(self, *args):
     """Returns the md5 checksum of configuration file."""
-    if self._use_shopfloor:
+    if self._enable_factory_server:
       self.InitAudioParameter()
 
     file_path = os.path.join(self._caches_dir, self._parameters[0])
@@ -549,7 +550,7 @@ class AudioQualityTest(unittest.TestCase):
     """Handles test completion.
     Runs post test script before ends this test
     """
-    if self._use_shopfloor:
+    if self._enable_factory_server:
       self.UploadAuxlog()
 
     self.SendResponse(None, args)
@@ -732,7 +733,7 @@ class AudioQualityTest(unittest.TestCase):
         break
 
   def InitAudioParameter(self):
-    """Downloads parameters from shopfloor and saved to state/caches.
+    """Downloads parameters from factory server and saved to state/caches.
 
     The parameters include a ZIP file and a md5 checksum file.
     ZIP file is including all the files which are needed by Audio
@@ -756,7 +757,7 @@ class AudioQualityTest(unittest.TestCase):
     factory.console.info('Download list prepared:\n%s',
                          '\n'.join(download_list))
     if len(download_list) < len(self._parameters):
-      factory.console.warn('Parameters cannot be found on shopfloor:\n%s',
+      factory.console.warn('Parameters cannot be found on factory server:\n%s',
                            self._parameters)
       return
 
@@ -791,9 +792,7 @@ class AudioQualityTest(unittest.TestCase):
       time.sleep(_CHECK_FIXTURE_COMPLETE_SECS)
 
   def UploadAuxlog(self):
-    """Uploads files which are sent from DUT by send_file command to
-    shopfloor.
-    """
+    """Uploads files from DUT to factory server."""
     factory.console.info('Start uploading logs...')
     self._ui.CallJSFunction('setMessage', _LABEL_UPLOAD_AUXLOG)
     shopfloor.UploadAuxLogs(self._auxlogs, dir_name='audio')
@@ -811,7 +810,7 @@ class AudioQualityTest(unittest.TestCase):
       self._ui.Pass()
       factory.console.info('Test passed')
     else:
-      if self._use_shopfloor:
+      if self._enable_factory_server:
         factory.console.info(
             'Test failed. Force to flush event logs...')
         goofy_instance = state.get_instance()

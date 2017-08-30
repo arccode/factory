@@ -20,7 +20,7 @@ them are installed into the system.
         dargs={
             'graphyte_config_file': 'conductive_config.json',
             'verbose': True,
-            'enable_shopfloor': True,
+            'enable_factory_server': True,
             'shopfoor_parameter_dir': 'rf_conductive',
             'shopfloor_log_dir': 'rf_conductive'})
 
