@@ -18,6 +18,7 @@ import re
 import tempfile
 import time
 import uuid
+import xmlrpclib
 
 import yaml
 
@@ -30,7 +31,7 @@ from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient
 from cros.factory.test import factory
 from cros.factory.test.i18n import translation
-from cros.factory.test import shopfloor
+from cros.factory.test import server_proxy
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager
 from cros.factory.test.test_lists.test_lists import SetActiveTestList
@@ -45,7 +46,7 @@ from cros.factory.utils import type_utils
 
 DEFAULT_GOOFY_RPC_TIMEOUT_SECS = 10
 REBOOT_AFTER_UPDATE_DELAY_SECS = 5
-PING_SHOPFLOOR_TIMEOUT_SECS = 2
+PING_SERVER_TIMEOUT_SECS = 2
 UPLOAD_FACTORY_LOGS_TIMEOUT_SECS = 20
 RunState = type_utils.Enum(['UNINITIALIZED', 'STARTING', 'NOT_ACTIVE_RUN',
                             'RUNNING', 'FINISHED'])
@@ -269,13 +270,13 @@ class GoofyRPC(object):
       logging.exception('Unable to save logs to USB')
       raise
 
-  def PingShopFloorServer(self):
-    """Pings the shop floor server.
+  def PingFactoryServer(self):
+    """Pings the factory server.
 
     Raises:
-      Exception if unable to contact shop floor server.
+      Exception if unable to contact factory server.
     """
-    shopfloor.get_instance(timeout=PING_SHOPFLOOR_TIMEOUT_SECS).Ping()
+    server_proxy.GetServerProxy(timeout=PING_SERVER_TIMEOUT_SECS).Ping()
 
   def ReloadTestList(self):
     if isinstance(self.goofy.test_list, manager.TestList):
@@ -284,7 +285,7 @@ class GoofyRPC(object):
       raise NotImplementedError('Not supported for LegacyTestList')
 
   def UploadFactoryLogs(self, name, serial, description):
-    """Uploads logs to the shopfloor server.
+    """Uploads logs to the factory server.
 
     Returns:
       {'name': archive_name, 'size': archive_size, 'key': archive_key}
@@ -301,9 +302,10 @@ class GoofyRPC(object):
     try:
       with open(output_file) as f:
         data = f.read()
-      shopfloor.get_instance(
+      server_proxy.GetServerProxy(
           timeout=UPLOAD_FACTORY_LOGS_TIMEOUT_SECS).SaveAuxLog(
-              os.path.basename(output_file), shopfloor.Binary(data))
+              os.path.basename(output_file),
+              xmlrpclib.Binary(data))
       return {'name': os.path.basename(output_file),
               'size': os.path.getsize(output_file),
               'key': archive_key}

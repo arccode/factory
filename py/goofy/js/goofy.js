@@ -2092,7 +2092,7 @@ cros.factory.Goofy.prototype.showNoteDialog = function() {
 };
 
 /**
- * Uploads factory logs to the shop floor server.
+ * Uploads factory logs to the factory server.
  * @param {string} name name of the person uploading logs
  * @param {string} serial serial number of this device
  * @param {string} description bug description
@@ -2142,15 +2142,15 @@ cros.factory.Goofy.prototype.uploadFactoryLogs = function(
 };
 
 /**
- * Pings the shopfloor server, displayed an alert if it cannot be reached.
+ * Pings the factory server, displayed an alert if it cannot be reached.
  * @param {function()} onSuccess function to execute on success
  */
-cros.factory.Goofy.prototype.pingShopFloorServer = function(onSuccess) {
+cros.factory.Goofy.prototype.pingFactoryServer = function(onSuccess) {
   this.sendRpc(
-      'PingShopFloorServer', [], onSuccess,
+      'PingFactoryServer', [], onSuccess,
       function(/** {error: {message: string}} */ response) {
         this.alert(
-            'Unable to contact shopfloor server.\n' + response.error.message);
+            'Unable to contact factory server.\n' + response.error.message);
       });
 };
 
@@ -2169,7 +2169,7 @@ cros.factory.Goofy.prototype.reloadTestList = function() {
 };
 
 /**
- * Displays a dialog to upload factory logs to shopfloor server.
+ * Displays a dialog to upload factory logs to factory server.
  */
 cros.factory.Goofy.prototype.showUploadFactoryLogsDialog = function() {
   var dialog = new goog.ui.Dialog();
@@ -2630,7 +2630,7 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                   _('Save factory logs to USB drive...'),
                   this.saveFactoryLogsToUSB);
               addExtraItem(_('Upload factory logs...'), function() {
-                this.pingShopFloorServer(this.showUploadFactoryLogsDialog);
+                this.pingFactoryServer(this.showUploadFactoryLogsDialog);
               });
               addExtraItem(_('Reload Test List'), function() {
                 this.reloadTestList();
