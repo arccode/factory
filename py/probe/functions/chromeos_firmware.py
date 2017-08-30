@@ -107,13 +107,15 @@ class ChromeosFirmwareFunction(function.ProbeFunction):
       return function.NOTHING
 
     if self.args.field == FIELDS.firmware_keys:
-      fw_file_path = crosfw.LoadMainFirmware().GetFileName()
+      fw_file_path = crosfw.LoadMainFirmware().GetFileName(
+          sections=['RO_SECTION'])
       return {
           'key_recovery': _FwKeyHash(fw_file_path, 'recoverykey'),
           'key_root': _FwKeyHash(fw_file_path, 'rootkey')}
 
     if self.args.field == FIELDS.ro_main_firmware:
-      fw_file_path = crosfw.LoadMainFirmware().GetFileName()
+      fw_file_path = crosfw.LoadMainFirmware().GetFileName(
+          sections=['RO_SECTION'])
     if self.args.field == FIELDS.ro_ec_firmware:
       fw_file_path = crosfw.LoadEcFirmware().GetFileName()
     if self.args.field == FIELDS.ro_pd_firmware:

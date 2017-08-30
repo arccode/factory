@@ -100,7 +100,7 @@ class Flashrom(object):
     if filename is None:
       with tempfile.NamedTemporaryFile(prefix='fw_%s_' % self._target) as f:
         return self.Read(f.name)
-    sections_param = [name % '-i %s' for name in sections or []]
+    sections_param = ['-i %s' % name for name in sections or []]
     self._InvokeCommand("-r '%s' %s %s" % (filename, ' '.join(sections_param),
                                            self._READ_FLAGS))
     with open(filename, 'rb') as file_handle:
@@ -240,6 +240,7 @@ class FirmwareContent(object):
     obj = cls()
     obj.target = target
     obj.flashrom = Flashrom(target)
+    obj.cached_files = []
     cls._target_cache[target] = obj
     return obj
 
@@ -250,16 +251,29 @@ class FirmwareContent(object):
       self.chip_id = ' '.join([info['vendor'], info['name']]) if info else None
     return self.chip_id
 
-  def GetFileName(self):
-    """Filename containing firmware data.  None if no chip is present."""
+  def GetFileName(self, sections=None):
+    """Filename containing firmware data.  None if no chip is present.
+
+    Args:
+      sections: Restrict the sections of firmware data to be stored in the file.
+
+    Returns:
+      Name of the file which contains the firmware data.
+    """
     if self.GetChipId() is None:
       return None
-    if not hasattr(self, 'filename'):
-      fileref = tempfile.NamedTemporaryFile(prefix='fw_%s_' % self.target)
-      self.flashrom.Read(filename=fileref.name)
-      self.fileref = fileref
-      self.filename = fileref.name
-    return self.filename
+
+    sections = set(sections) if sections else None
+
+    for (fileref, sections_in_file) in self.cached_files:
+      if sections_in_file is None or (
+          sections is not None and sections.issubset(sections_in_file)):
+        return fileref.name
+
+    fileref = tempfile.NamedTemporaryFile(prefix='fw_%s_' % self.target)
+    self.flashrom.Read(filename=fileref.name, sections=sections)
+    self.cached_files.append((fileref, sections))
+    return fileref.name
 
   def Write(self, sections=None):
     """Call flashrom write for specific sections."""
