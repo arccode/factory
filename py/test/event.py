@@ -118,6 +118,8 @@ class Event(object):
       'HIDE_TOOLTIPS': 'goofy:hide_tooltips',
       # Enable/disable key filtering
       'KEY_FILTER_MODE': 'goofy:key_filter_mode',
+      # Notifies that factory server config (URL, timeout) is changed.
+      'FACTORY_SERVER_CONFIG_CHANGED': 'factory_server:config_changed',
   })
 
   def __init__(self, type, **kw):  # pylint: disable=redefined-builtin

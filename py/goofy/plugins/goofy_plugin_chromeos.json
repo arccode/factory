@@ -86,7 +86,7 @@
       "args": {
         "uplink_hostname": "localhost",
         "uplink_port": 8086,
-        "uplink_use_shopfloor": true
+        "uplink_use_factory_server": true
       }
     },
     "device_manager": {},

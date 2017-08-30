@@ -28,9 +28,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import factory
 from cros.factory.test import server_proxy
-from cros.factory.test import state
 from cros.factory.umpire.client import umpire_client
-from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils

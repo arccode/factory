@@ -23,6 +23,7 @@ For what functions are available on factory server, please check
 import xmlrpclib
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test import event
 from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.utils import config_utils
 from cros.factory.utils import webservice_utils
@@ -48,7 +49,14 @@ def GetServerConfig():
 def UpdateServerConfig(new_config):
   """Updates server config to the new value."""
   config_utils.SaveRuntimeConfig(FACTORY_SERVER_CONFIG_NAME, new_config)
-  # TODO(hungte) Notify Goofy plugins that factory server config is updated.
+  # Notify config changes.
+  try:
+    with event.EventClient() as client:
+      client.post_event(event.Event(
+          event.Event.Type.FACTORY_SERVER_CONFIG_CHANGED,
+          **new_config))
+  except Exception:
+    pass
 
 
 def GetServerURL():

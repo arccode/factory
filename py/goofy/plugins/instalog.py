@@ -11,6 +11,7 @@ import yaml
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.env import paths
+from cros.factory.test import event
 from cros.factory.test import server_proxy
 from cros.factory.test import testlog_goofy
 from cros.factory.utils import process_utils
@@ -47,16 +48,38 @@ class Instalog(plugin.Plugin):
     self._config_path = os.path.join(paths.RUNTIME_VARIABLE_DATA_DIR,
                                      'instalog.yaml')
 
+    self._uplink_hostname = uplink_hostname
+    self._uplink_port = uplink_port
+    self._uplink_use_factory_server = uplink_use_factory_server
+
+    self._event_client = event.EventClient(callback=self._HandleEvent)
+
+    # Set reference to the Instalog plugin for testlog
+    self.goofy.testlog.SetInstalogPlugin(self)
+
+  def _HandleEvent(self, event_):
+    """Handle an event from event server.
+
+    Args:
+      :type event_: cros.factory.test.event.Event
+    """
+    if event_.type == event.Event.Type.FACTORY_SERVER_CONFIG_CHANGED:
+      if self._state == self.STATE.RUNNING:
+        # restart myself
+        self.Stop()
+        self.Start()
+
+  def _CreateInstalogConfig(self):
     node_id = testlog_goofy.GetDeviceID()
     data_dir = os.path.join(paths.DATA_LOG_DIR, 'instalog')
     pid_file = os.path.join(paths.RUNTIME_VARIABLE_DATA_DIR, 'instalog.pid')
     log_file = os.path.join(paths.DATA_LOG_DIR, 'instalog.log')
     cli_hostname = _CLI_HOSTNAME
     cli_port = _CLI_PORT
-    testlog_json_path = goofy.testlog.primary_json.path
-    uplink_enabled = uplink_use_factory_server or (uplink_hostname and
-                                                   uplink_port)
-    if uplink_use_factory_server:
+    testlog_json_path = self.goofy.testlog.primary_json.path
+    uplink_enabled = self._uplink_use_factory_server or (
+        self._uplink_hostname and self._uplink_port)
+    if self._uplink_use_factory_server:
       url = None
       try:
         url = server_proxy.GetServerURL()
@@ -116,9 +139,6 @@ class Instalog(plugin.Plugin):
     logging.info('Instalog: Saving config YAML to: %s', self._config_path)
     with open(self._config_path, 'w') as f:
       yaml.dump(config, f, default_flow_style=False)
-
-    # Set reference to the Instalog plugin for testlog
-    self.goofy.testlog.SetInstalogPlugin(self)
 
   def _GetLastSeqProcessed(self):
     """Retrieves the last sequence number processed by Testlog input plugin.
@@ -195,6 +215,7 @@ class Instalog(plugin.Plugin):
   @type_utils.Overrides
   def OnStart(self):
     """Called when the plugin starts."""
+    self._CreateInstalogConfig()
     self._RunCommand(['start', '--no-daemon'],
                      stdout=_DEV_NULL, stderr=_DEV_NULL)
 
@@ -202,3 +223,7 @@ class Instalog(plugin.Plugin):
   def OnStop(self):
     """Called when the plugin stops."""
     self._RunCommand(['stop'], check_output=True, verbose=True)
+
+  @type_utils.Overrides
+  def OnDestroy(self):
+    self._event_client.close()
