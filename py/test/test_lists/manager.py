@@ -454,7 +454,6 @@ class TestList(ITestList):
     self._state_instance = None
     self._state_change_callback = None
 
-  @debug_utils.CatchException(_LOGGED_NAME)
   def ToFactoryTestList(self):
     self.ReloadIfModified()
     if self._cached_test_list:
@@ -689,7 +688,6 @@ class TestList(ITestList):
 
   # the following functions / properties are required by goofy
   @property
-  @debug_utils.CatchException(_LOGGED_NAME)
   def options(self):
     self.ReloadIfModified()
     if self._cached_options:
@@ -802,7 +800,6 @@ class Loader(object):
                                 'py', 'test', 'test_lists')
     self.config_dir = config_dir
 
-  @debug_utils.CatchException(_LOGGED_NAME)
   def Load(self, test_list_id, allow_inherit=True):
     """Loads test list config by test list ID.
 
