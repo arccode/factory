@@ -21,7 +21,7 @@ import mox
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
-from cros.factory.test import shopfloor
+from cros.factory.test import server_proxy
 from cros.factory.test import state
 from cros.factory.test import testlog_goofy
 from cros.factory.utils import debug_utils
@@ -47,7 +47,6 @@ MOCK_SYNC_PERIOD_SEC = 0.6
 MOCK_MIN_SYNC_PERIOD_SEC = 0.5
 MOCK_SCAN_PERIOD_SEC = 0.2
 MOCK_RSYNC_IO_TIMEOUT = 0
-MOCK_SHOPFLOOR_TIMEOUT = 0
 MOCK_POLLING_PERIOD = 0.05
 MOCK_POLLING_FAIL_TRIES = 3
 MOCK_POLLING_DURATION = 3.8 * MOCK_POLLING_PERIOD
@@ -149,7 +148,7 @@ class TestSystemLogManager(unittest.TestCase):
     self.mox = mox.Mox()
     self.goofy = None
     self.manager = None
-    self.fake_shopfloor = None
+    self.fake_server_proxy = None
     self.fake_process = None
     self.abort_time = None
     self.requests = []
@@ -186,13 +185,13 @@ class TestSystemLogManager(unittest.TestCase):
 
   def SetMock(self):
     """Sets mocked methods and objects."""
-    self.mox.StubOutWithMock(shopfloor, 'get_server_url')
-    self.mox.StubOutWithMock(shopfloor, 'get_instance')
+    self.mox.StubOutWithMock(server_proxy, 'GetServerURL')
+    self.mox.StubOutWithMock(server_proxy, 'GetServerProxy')
     self.mox.StubOutWithMock(testlog_goofy, 'GetDeviceID')
     self.mox.StubOutWithMock(event_log, 'GetReimageId')
     self.mox.StubOutWithMock(system_log_manager, 'Spawn')
     self.mox.StubOutWithMock(system_log_manager, 'TerminateOrKillProcess')
-    self.fake_shopfloor = self.mox.CreateMockAnything()
+    self.fake_server_proxy = self.mox.CreateMockAnything()
     self.fake_process = self.mox.CreateMockAnything()
     self.goofy = self.mox.CreateMockAnything()
     self.goofy.state_instance = state.StubFactoryState()
@@ -219,11 +218,9 @@ class TestSystemLogManager(unittest.TestCase):
       code: code argument to MockPollToFinish.
       terminated: terminated argument to MockPollToFinish.
     """
-    shopfloor.get_server_url().AndReturn(MOCK_SERVER_URL)
-    shopfloor.get_instance(
-        timeout=MOCK_SHOPFLOOR_TIMEOUT, quiet=False).AndReturn(
-            self.fake_shopfloor)
-    self.fake_shopfloor.GetFactoryLogPort().AndReturn(MOCK_PORT)
+    server_proxy.GetServerURL().AndReturn(MOCK_SERVER_URL)
+    server_proxy.GetServerProxy(quiet=False).AndReturn(self.fake_server_proxy)
+    self.fake_server_proxy.GetFactoryLogPort().AndReturn(MOCK_PORT)
     testlog_goofy.GetDeviceID().AndReturn(MOCK_DEVICE_ID)
     event_log.GetReimageId().AndReturn(MOCK_IMAGE_ID)
     if extra_files:
@@ -295,7 +292,7 @@ class TestSystemLogManager(unittest.TestCase):
 
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, MOCK_SYNC_PERIOD_SEC,
-        MOCK_SCAN_PERIOD_SEC, MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
+        MOCK_SCAN_PERIOD_SEC, MOCK_RSYNC_IO_TIMEOUT,
         MOCK_POLLING_PERIOD)
     self.manager.Start()
     self.manager.Stop()
@@ -312,7 +309,7 @@ class TestSystemLogManager(unittest.TestCase):
 
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, MOCK_SYNC_PERIOD_SEC,
-        MOCK_SCAN_PERIOD_SEC, MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
+        MOCK_SCAN_PERIOD_SEC, MOCK_RSYNC_IO_TIMEOUT,
         MOCK_POLLING_PERIOD)
     self.manager.Start()
     self.manager.Stop()
@@ -343,7 +340,7 @@ class TestSystemLogManager(unittest.TestCase):
 
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, MOCK_SYNC_PERIOD_SEC,
-        MOCK_SCAN_PERIOD_SEC, MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
+        MOCK_SCAN_PERIOD_SEC, MOCK_RSYNC_IO_TIMEOUT,
         mock_polling_period)
     self.manager.Start()
     self.manager.Stop()
@@ -373,7 +370,7 @@ class TestSystemLogManager(unittest.TestCase):
 
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, MOCK_SYNC_PERIOD_SEC,
-        MOCK_SCAN_PERIOD_SEC, MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
+        MOCK_SCAN_PERIOD_SEC, MOCK_RSYNC_IO_TIMEOUT,
         mock_polling_period)
     self.manager.Start()
     self.manager.Stop()
@@ -394,7 +391,7 @@ class TestSystemLogManager(unittest.TestCase):
 
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, MOCK_SYNC_PERIOD_SEC,
-        MOCK_SCAN_PERIOD_SEC, MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
+        MOCK_SCAN_PERIOD_SEC, MOCK_RSYNC_IO_TIMEOUT,
         MOCK_POLLING_PERIOD)
     self.manager.Start()
     self.manager.Stop()
@@ -417,8 +414,7 @@ class TestSystemLogManager(unittest.TestCase):
 
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, None, MOCK_SCAN_PERIOD_SEC,
-        MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
-        MOCK_POLLING_PERIOD, [])
+        MOCK_RSYNC_IO_TIMEOUT, MOCK_POLLING_PERIOD, [])
     self.manager.Start()
     self.ReplayKicks()
     self.manager.Stop()
@@ -440,8 +436,7 @@ class TestSystemLogManager(unittest.TestCase):
 
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, MOCK_SYNC_PERIOD_SEC,
-        MOCK_SCAN_PERIOD_SEC, MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
-        MOCK_POLLING_PERIOD)
+        MOCK_SCAN_PERIOD_SEC, MOCK_RSYNC_IO_TIMEOUT, MOCK_POLLING_PERIOD)
     self.manager.Start()
     self.ReplayKicks()
     self.manager.Stop()
@@ -468,8 +463,7 @@ class TestSystemLogManager(unittest.TestCase):
 
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, None, MOCK_SCAN_PERIOD_SEC,
-        MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
-        MOCK_POLLING_PERIOD, [])
+        MOCK_RSYNC_IO_TIMEOUT, MOCK_POLLING_PERIOD, [])
     self.manager.Start()
     self.ReplayKicks()
     self.manager.Stop()
@@ -509,8 +503,7 @@ class TestSystemLogManager(unittest.TestCase):
 
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, MOCK_SYNC_PERIOD_SEC,
-        MOCK_SCAN_PERIOD_SEC, MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
-        MOCK_POLLING_PERIOD)
+        MOCK_SCAN_PERIOD_SEC, MOCK_RSYNC_IO_TIMEOUT, MOCK_POLLING_PERIOD)
     self.manager.Start()
     self.ReplayKicks()
     self.manager.Stop()
@@ -551,8 +544,7 @@ class TestSystemLogManager(unittest.TestCase):
 
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, MOCK_SYNC_PERIOD_SEC,
-        MOCK_SCAN_PERIOD_SEC, MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
-        MOCK_POLLING_PERIOD)
+        MOCK_SCAN_PERIOD_SEC, MOCK_RSYNC_IO_TIMEOUT, MOCK_POLLING_PERIOD)
     self.manager.Start()
     self.ReplayKicks()
     self.manager.Stop()
@@ -573,8 +565,8 @@ class TestSystemLogManager(unittest.TestCase):
 
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, MOCK_SYNC_PERIOD_SEC,
-        MOCK_SCAN_PERIOD_SEC, MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
-        MOCK_POLLING_PERIOD, clear_file_paths)
+        MOCK_SCAN_PERIOD_SEC, MOCK_RSYNC_IO_TIMEOUT, MOCK_POLLING_PERIOD,
+        clear_file_paths)
     self.manager.Start()
     self.manager.Stop()
 
@@ -595,8 +587,7 @@ class TestSystemLogManager(unittest.TestCase):
 
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, None, MOCK_SCAN_PERIOD_SEC,
-        MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
-        MOCK_POLLING_PERIOD, clear_file_paths)
+        MOCK_RSYNC_IO_TIMEOUT, MOCK_POLLING_PERIOD, clear_file_paths)
     self.manager.Start()
     self.manager.Stop()
 
@@ -618,8 +609,7 @@ class TestSystemLogManager(unittest.TestCase):
 
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, None, MOCK_SCAN_PERIOD_SEC,
-        MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
-        MOCK_POLLING_PERIOD, clear_file_paths)
+        MOCK_RSYNC_IO_TIMEOUT, MOCK_POLLING_PERIOD, clear_file_paths)
     self.manager.Start()
     self.ReplayKicks()
     self.manager.Stop()
@@ -647,8 +637,8 @@ class TestSystemLogManager(unittest.TestCase):
 
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, None, MOCK_SCAN_PERIOD_SEC,
-        MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
-        MOCK_POLLING_PERIOD, clear_file_paths, clear_file_excluded_paths)
+        MOCK_RSYNC_IO_TIMEOUT, MOCK_POLLING_PERIOD, clear_file_paths,
+        clear_file_excluded_paths)
     self.manager.Start()
     self.ReplayKicks()
     self.manager.Stop()
@@ -672,49 +662,42 @@ class TestSystemLogManager(unittest.TestCase):
     with self.assertRaises(system_log_manager.SystemLogManagerException):
       self.GetSystemLogManagerWithStub(
           self.goofy, mock_sync_log_paths, 0.5 * MOCK_MIN_SYNC_PERIOD_SEC,
-          MOCK_SCAN_PERIOD_SEC, MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
-          MOCK_POLLING_PERIOD, [])
+          MOCK_SCAN_PERIOD_SEC, MOCK_RSYNC_IO_TIMEOUT, MOCK_POLLING_PERIOD, [])
 
     # scan_log_period_secs is greater than sync_log_period_secs.
     with self.assertRaises(system_log_manager.SystemLogManagerException):
       self.GetSystemLogManagerWithStub(
           self.goofy, mock_sync_log_paths, MOCK_SYNC_PERIOD_SEC,
-          1.5 * MOCK_SYNC_PERIOD_SEC,
-          MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
+          1.5 * MOCK_SYNC_PERIOD_SEC, MOCK_RSYNC_IO_TIMEOUT,
           MOCK_POLLING_PERIOD, [])
 
     # clear_log_paths should be a list.
     with self.assertRaises(system_log_manager.SystemLogManagerException):
       self.GetSystemLogManagerWithStub(
           self.goofy, ['/foo/bar1', '/foo/bar2'], MOCK_SYNC_PERIOD_SEC,
-          MOCK_SCAN_PERIOD_SEC,
-          MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
-          MOCK_POLLING_PERIOD, '/foo/bar1')
+          MOCK_SCAN_PERIOD_SEC, MOCK_RSYNC_IO_TIMEOUT, MOCK_POLLING_PERIOD,
+          '/foo/bar1')
 
     # clear_log_excluded_paths should be a list.
     with self.assertRaises(system_log_manager.SystemLogManagerException):
       self.GetSystemLogManagerWithStub(
           self.goofy, ['/foo/bar1', '/foo/bar2'], MOCK_SYNC_PERIOD_SEC,
-          MOCK_SCAN_PERIOD_SEC,
-          MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
-          MOCK_POLLING_PERIOD, ['/foo/bar3'], '/foo/bar4')
+          MOCK_SCAN_PERIOD_SEC, MOCK_RSYNC_IO_TIMEOUT, MOCK_POLLING_PERIOD,
+          ['/foo/bar3'], '/foo/bar4')
 
     # clear_log_paths and sync_log_paths have paths in common.
     with self.assertRaises(system_log_manager.SystemLogManagerException):
       self.GetSystemLogManagerWithStub(
           self.goofy, ['/foo/bar1', '/foo/bar2'], MOCK_SYNC_PERIOD_SEC,
-          MOCK_SCAN_PERIOD_SEC,
-          MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
-          MOCK_POLLING_PERIOD, ['/foo/bar1', '/foo/bar3'])
+          MOCK_SCAN_PERIOD_SEC, MOCK_RSYNC_IO_TIMEOUT, MOCK_POLLING_PERIOD,
+          ['/foo/bar1', '/foo/bar3'])
 
     # clear_log_paths and clear_log_excluded_paths have paths in common.
     with self.assertRaises(system_log_manager.SystemLogManagerException):
       self.GetSystemLogManagerWithStub(
           self.goofy, ['/foo/bar1', '/foo/bar2'], MOCK_SYNC_PERIOD_SEC,
-          MOCK_SCAN_PERIOD_SEC,
-          MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
-          MOCK_POLLING_PERIOD, ['/foo/bar1', '/foo/bar2'],
-          ['/foo/bar1', '/foo/bar3'])
+          MOCK_SCAN_PERIOD_SEC, MOCK_RSYNC_IO_TIMEOUT, MOCK_POLLING_PERIOD,
+          ['/foo/bar1', '/foo/bar2'], ['/foo/bar1', '/foo/bar3'])
 
 
 if __name__ == '__main__':

@@ -20,7 +20,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.env import paths
 from cros.factory.test import event_log
-from cros.factory.test import shopfloor
+from cros.factory.test import server_proxy
 from cros.factory.test import testlog_goofy
 from cros.factory.utils.debug_utils import CatchException
 from cros.factory.utils import file_utils
@@ -55,7 +55,6 @@ class SystemLogManager(plugin.Plugin):
       larger than MIN_SYNC_LOG_PERIOD_SECS.
     scan_log_period_secs: The time period in seconds between consecutive scans.
       A scan includes clearing logs and optionally syncing logs.
-    shopfloor_timeout: Timeout to get shopfloor instance.
     rsync_io_timeout: I/O timeout argument in rsync command. When file is
       large, system needs more time to compute the difference. Sets it to
       20 seconds which is enough to compute the difference on a 300M file.
@@ -78,14 +77,13 @@ class SystemLogManager(plugin.Plugin):
   """
 
   def __init__(self, goofy, sync_log_paths, sync_log_period_secs=300,
-               scan_log_period_secs=120, shopfloor_timeout=5,
+               scan_log_period_secs=120,
                rsync_io_timeout=20, polling_period=1, clear_log_paths=None,
                clear_log_excluded_paths=None, enable_foreground_sync=True):
     super(SystemLogManager, self).__init__(goofy)
     self._sync_log_paths = sync_log_paths
     self._sync_log_period_secs = sync_log_period_secs
     self._scan_log_period_secs = scan_log_period_secs
-    self._shopfloor_timeout = shopfloor_timeout
     self._rsync_io_timeout = rsync_io_timeout
     self._polling_period = polling_period
     self._clear_log_paths = clear_log_paths if clear_log_paths else []
@@ -96,7 +94,7 @@ class SystemLogManager(plugin.Plugin):
     self._main_thread = None
     self._aborted = threading.Event()
     self._queue = Queue.Queue()
-    self._suppress_periodic_shopfloor_messages = False
+    self._suppress_periodic_server_messages = False
 
     # For unittest stubbing
     self._timer = time.time
@@ -193,14 +191,13 @@ class SystemLogManager(plugin.Plugin):
     """Gets rsync destination including server url, module, and folder name.
 
     Args:
-      quiet: Suppresses error messages when shopfloor can not be reached.
+      quiet: Suppresses error messages when factory server can not be reached.
 
     Returns:
       The rsync destination path for system logs.
     """
-    url = shopfloor.get_server_url()
-    proxy = shopfloor.get_instance(timeout=self._shopfloor_timeout,
-                                   quiet=quiet)
+    url = server_proxy.GetServerURL()
+    proxy = server_proxy.GetServerProxy(quiet=quiet)
     factory_log_port = proxy.GetFactoryLogPort()
     folder_name = (
         '%s_%s' %
@@ -244,10 +241,10 @@ class SystemLogManager(plugin.Plugin):
       try:
         self._SyncLogsImpl(extra_files, callback, abort_time, periodic)
       except Exception:
-        if not self._suppress_periodic_shopfloor_messages:
-          logging.warning('Suppress periodic shopfloor error messages '
+        if not self._suppress_periodic_server_messages:
+          logging.warning('Suppress periodic server error messages '
                           'after the first one.')
-          self._suppress_periodic_shopfloor_messages = True
+          self._suppress_periodic_server_messages = True
           raise
         else:
           return
@@ -269,9 +266,9 @@ class SystemLogManager(plugin.Plugin):
     """
     logging.debug('Starts _SyncLogsImpl.')
     # If in periodic sync, show error messages if
-    # _suppress_periodic_shopfloor_message is not set.
+    # _suppress_periodic_server_message is not set.
     # If not in periodic sync, always show error messages.
-    quiet = self._suppress_periodic_shopfloor_messages if periodic else False
+    quiet = self._suppress_periodic_server_messages if periodic else False
     rsync_command = ['rsync', '-azR', '--stats', '--chmod=o-t',
                      '--timeout=%s' % self._rsync_io_timeout]
     rsync_command += sum([glob.glob(x) for x in self._sync_log_paths], [])
