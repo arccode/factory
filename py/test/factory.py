@@ -258,7 +258,7 @@ class Options(object):
   _types['engineering_password_sha1'] = (type(None), str)
 
   sync_event_log_period_secs = None
-  """Send events to the shopfloor server when it is reachable at this
+  """Send events to the factory server when it is reachable at this
   interval.  Set to ``None`` to disable."""
   _types['sync_event_log_period_secs'] = (type(None), int)
 
@@ -266,14 +266,6 @@ class Options(object):
   """Automatically check for updates at the given interval.  Set to
   ``None`` to disable."""
   _types['update_period_secs'] = (type(None), int)
-
-  shopfloor_timeout_secs = 10
-  """Timeout when talking to shopfloor server for background
-  operations."""
-
-  shopfloor_server_url = None
-  """The shopfloor server URL."""
-  _types['shopfloor_server_url'] = (type(None), str)
 
   stop_on_failure = False
   """Whether to stop on any failure."""

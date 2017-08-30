@@ -50,7 +50,7 @@ from cros.factory.test.i18n import html_translator
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.i18n import translation
 from cros.factory.test.rules import phase
-from cros.factory.test import shopfloor
+from cros.factory.test import server_proxy
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager
 from cros.factory.test.test_lists import test_lists
@@ -655,8 +655,8 @@ class Goofy(GoofyBase):
     self.last_update_check = now
 
     def handle_check_for_update(
-        reached_shopfloor, toolkit_version, needs_update):
-      if reached_shopfloor:
+        reached_server, toolkit_version, needs_update):
+      if reached_server:
         new_update_toolkit_version = toolkit_version if needs_update else None
         if self.dut.info.update_toolkit_version != new_update_toolkit_version:
           logging.info('Received new update TOOLKIT_VERSION: %s',
@@ -670,9 +670,7 @@ class Goofy(GoofyBase):
         self._suppress_periodic_update_messages = True
 
     updater.CheckForUpdateAsync(
-        handle_check_for_update,
-        self.test_list.options.shopfloor_timeout_secs,
-        self._suppress_periodic_update_messages)
+        handle_check_for_update, None, self._suppress_periodic_update_messages)
 
   def cancel_pending_tests(self):
     """Cancels any tests in the run queue."""
@@ -1134,9 +1132,6 @@ class Goofy(GoofyBase):
         self.test_list.options.ToDict())
     self.state_instance.test_list = self.test_list
 
-    if self.test_list.options.shopfloor_server_url:
-      shopfloor.set_server_url(self.test_list.options.shopfloor_server_url)
-
     self.init_states()
     self.start_event_server()
 
@@ -1235,7 +1230,7 @@ class Goofy(GoofyBase):
   def handle_event_logs(self, chunks, periodic=False):
     """Callback for event watcher.
 
-    Attempts to upload the event logs to the shopfloor server.
+    Attempts to upload the event logs to the factory server.
 
     Args:
       chunks: A list of Chunk objects.
@@ -1253,12 +1248,10 @@ class Goofy(GoofyBase):
       try:
         description = 'event logs (%s)' % str(chunk)
         start_time = time.time()
-        shopfloor_client = shopfloor.get_instance(
-            timeout=self.test_list.options.shopfloor_timeout_secs,
-            quiet=quiet)
-        shopfloor_client.UploadEvent(chunk.log_name + '.' +
-                                     event_log.GetReimageId(),
-                                     Binary(chunk.chunk))
+        proxy = server_proxy.GetServerProxy(quiet=quiet)
+        proxy.UploadEvent(
+            chunk.log_name + '.' + event_log.GetReimageId(),
+            Binary(chunk.chunk))
         logging.info(
             'Successfully synced %s in %.03f s',
             description, time.time() - start_time)
@@ -1278,7 +1271,7 @@ class Goofy(GoofyBase):
       if periodic:
         if not self._suppress_event_log_error_messages:
           self._suppress_event_log_error_messages = True
-          logging.warning('Suppress periodic shopfloor error messages for '
+          logging.warning('Suppress periodic factory server error messages for '
                           'event log syncing after the first one.')
           raise Exception(msg)
       # For event log syncing by request, show the error messages.

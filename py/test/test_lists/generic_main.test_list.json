@@ -27,12 +27,25 @@
   "definitions": {
     "FATP": {
       "inherit": "FlattenGroup",
+      "locals": {
+        "factory_server_url": "eval! constants.default_factory_server_url"
+      },
       "subtests": [
         "FAT",
         "RunIn",
         "FFT",
         "GRT"
       ]
+    },
+    "SMT": {
+      "locals": {
+        "factory_server_url": "eval! constants.default_factory_server_url"
+      }
+    },
+    "SyncFactoryServer": {
+      "args": {
+        "server_url": "eval! locals.factory_server_url"
+      }
     }
   },
   "tests": [

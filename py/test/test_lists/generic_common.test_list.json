@@ -3,6 +3,8 @@
     "base.test_list"
   ],
   "constants": {
+    "default_factory_server_url": "",
+    "__comment_default_factory_server_url": "The default URL to factory server, if not defined in locals.",
     "enable_factory_server": true,
     "__comment_enable_factory_server": "Enable factory_server. Change this to false by adding 'disable_factory_server.test_list' to beginning of inherit list in main test list. Note that some factory environment might not need a shopfloor.",
     "sd": {
@@ -461,7 +463,9 @@
     },
     "SyncFactoryServer": {
       "pytest_name": "sync_factory_server",
-      "run_if": "constants.enable_factory_server"
+      "args": {
+        "server_url": "eval! constants.default_factory_server_url"
+      }
     },
     "SyncFactoryServerUploadReport": {
       "inherit": "SyncFactoryServer",
