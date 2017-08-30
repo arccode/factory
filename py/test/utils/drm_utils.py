@@ -17,7 +17,7 @@ import os
 
 import factory_common  # pylint: disable=unused-import
 
-from cros.factory.external import PIL
+from cros.factory.external import Image
 
 
 class DRMError(Exception):
@@ -449,15 +449,15 @@ class DRMModeFB(DRMModeBaseStruct):
       self.unmap()
 
   def AsRGBImage(self):
-    """Converts the contents of the framebuffer to a RGB PIL.Image() instance.
+    """Converts the contents of the framebuffer to a RGB Image() instance.
 
     Returns:
-      A PIL.Image() instance with mode='RGB' of the converted framebuffer.
+      A Image() instance with mode='RGB' of the converted framebuffer.
     """
     if self.depth != 24:
       raise DRMError('Unable to convert depth %s' % self.depth)
 
-    return PIL.Image.fromstring(
+    return Image.fromstring(
         'RGB', (self.width, self.height), self.contents, 'raw', 'BGRX')
 
   def map(self):
