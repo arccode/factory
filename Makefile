@@ -153,7 +153,7 @@ $(WEBGL_AQUARIUM_DIR):
 overlord: $(OVERLORD_DEPS_DIR)
 	$(MAKE) -C go/src/overlord DEPS=false STATIC=$(STATIC) \
 	  GOPATH=$(realpath $(OVERLORD_DEPS_DIR)):$(realpath go)
-	# To install, get go/bin/{overlord,ghost}, and go/src/overlord/app.
+	# To install, get go/bin/{overlordd,ghost}, and go/src/overlord/app.
 
 ovl-bin:
 	# Create virtualenv environment
