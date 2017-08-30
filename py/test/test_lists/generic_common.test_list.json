@@ -676,7 +676,7 @@
       "pytest_name": "hwid_v3",
       "label": "Write HWID",
       "args": {
-        "skip_shopfloor": "eval! not constants.enable_factory_server"
+        "enable_factory_server": "eval! constants.enable_factory_server"
       }
     },
     "WriteProtectSwitch": {

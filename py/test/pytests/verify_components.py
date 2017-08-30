@@ -37,10 +37,9 @@ class VerifyComponentsTest(unittest.TestCase):
           'checks the RO EC and main firmware version and does not compute'
           'firmware hashes.',
           default=True, optional=True),
-      Arg('skip_shopfloor', bool,
-          'Set this value to True to skip updating hwid data from shopfloor '
-          'server.',
-          default=False, optional=True),
+      Arg('enable_factory_server', bool,
+          'Updating hwid data from factory server.',
+          default=True, optional=True),
       Arg('with_goofy', bool,
           'Set this value to False if the test is not running with goofy. '
           'Without goofy, test_ui and event_log will not work, thus will be '
@@ -74,7 +73,7 @@ class VerifyComponentsTest(unittest.TestCase):
       self._runTest()
 
   def _runTest(self):
-    if not self.args.skip_shopfloor:
+    if self.args.enable_factory_server:
       shopfloor.update_local_hwid_data(self._dut)
 
     if self.args.phase:

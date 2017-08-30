@@ -9,7 +9,7 @@
       "audio",
       "flash_chip"
     ],
-    "enable_shopfloor": true,
+    "enable_factory_server": true,
     "phase": "EVT",
     "some_label": {
       "en-US": "us",
@@ -59,7 +59,7 @@
           "pytest_name": "verify_components",
           "args": {
             "component_list": "eval! constants.component_list",
-            "skip_shopfloor": "eval! not constants.enable_shopfloor"
+            "enable_factory_server": "eval! constants.enable_factory_server"
           }
         },
         {

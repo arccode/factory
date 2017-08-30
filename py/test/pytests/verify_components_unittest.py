@@ -49,7 +49,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     self._mock_test.args = FakeArgs({
         'component_list': ['camera', 'cpu'],
         'fast_fw_probe': False,
-        'skip_shopfloor': True,
+        'enable_factory_server': False,
         'with_goofy': True,
         'phase': self.fake_phase})
     command = ['hwid', 'verify-components', '--json_output',
@@ -90,7 +90,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     self._mock_test.args = FakeArgs({
         'component_list': ['camera', 'cpu'],
         'fast_fw_probe': False,
-        'skip_shopfloor': True,
+        'enable_factory_server': False,
         'with_goofy': True,
         'phase': self.fake_phase})
     command = ['hwid', 'verify-components', '--json_output',
@@ -127,7 +127,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     self._mock_test.args = FakeArgs({
         'component_list': ['camera', 'cpu'],
         'fast_fw_probe': False,
-        'skip_shopfloor': True,
+        'enable_factory_server': False,
         'with_goofy': True,
         'phase': self.fake_phase})
     command = ['hwid', 'verify-components', '--json_output',

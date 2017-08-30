@@ -45,10 +45,9 @@ class HWIDV3Test(unittest.TestCase):
       Arg('generate', bool,
           'Generate and write the HWID (if False, only verify it).',
           True),
-      Arg('skip_shopfloor', bool,
-          'Set this value to True to skip updating hwid data from shopfloor '
-          'server.',
-          default=False, optional=True),
+      Arg('enable_factory_server', bool,
+          'Update hwid data from factory server.',
+          default=True, optional=True),
       Arg('rma_mode', bool,
           'Enable rma_mode, do not check for deprecated components.',
           default=False, optional=True),
@@ -76,7 +75,7 @@ class HWIDV3Test(unittest.TestCase):
         self.args.verify_checksum,
         'HWID checksum must be verified')
 
-    if not self.args.skip_shopfloor:
+    if self.args.enable_factory_server:
       shopfloor.update_local_hwid_data(self._dut)
 
     self.template.SetState(i18n_test_ui.MakeI18nLabel('Probing components...'))
