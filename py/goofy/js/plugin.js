@@ -32,12 +32,13 @@ cros.factory.Plugin.prototype.addPluginTooltip = function(anchor, content) {
   const tooltip = new goog.ui.Tooltip(null, null, domHelper);
   tooltip.getElement().appendChild(content);
 
-  goog.events.listen(anchor, goog.events.EventType.MOUSEENTER, () => {
+  goog.events.listen(anchor, goog.events.EventType.MOUSEOVER, () => {
     const position = new goog.positioning.AnchoredViewportPosition(
         anchor, goog.positioning.Corner.TOP_RIGHT, true);
     tooltip.showForElement(anchor, position);
   });
-  goog.events.listen(anchor, goog.events.EventType.MOUSELEAVE, () => {
+  goog.events.listen(anchor, goog.events.EventType.MOUSEOUT, () => {
     tooltip.detach();
+    tooltip.setVisible(false);
   });
 };
