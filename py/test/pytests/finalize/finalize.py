@@ -109,11 +109,11 @@ from cros.factory.test import gooftools
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rules import phase
 from cros.factory.test import server_proxy
-from cros.factory.test import shopfloor
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
+from cros.factory.test.utils import update_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
@@ -231,7 +231,7 @@ class Finalize(unittest.TestCase):
   def Preflight(self):
     # Check for HWID bundle update from factory server.
     if self.args.enable_factory_server:
-      shopfloor.update_local_hwid_data(self.dut)
+      update_utils.UpdateHWIDDatabase(self.dut)
     self.LogTestStates()
     self.LogImageVersion()
 

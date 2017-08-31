@@ -19,10 +19,10 @@ from cros.factory.test import factory
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rules import phase
-from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
+from cros.factory.test.utils import update_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 
@@ -76,7 +76,7 @@ class HWIDV3Test(unittest.TestCase):
         'HWID checksum must be verified')
 
     if self.args.enable_factory_server:
-      shopfloor.update_local_hwid_data(self._dut)
+      update_utils.UpdateHWIDDatabase(self._dut)
 
     self.template.SetState(i18n_test_ui.MakeI18nLabel('Probing components...'))
     # check if we are overriding probed results.

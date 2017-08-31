@@ -3,15 +3,16 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import threading
 import unittest
+import threading
 
 import mox
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import updater
 from cros.factory.test import factory
-from cros.factory.test import shopfloor
+from cros.factory.test import server_proxy
+from cros.factory.test.utils import update_utils
 
 
 class CheckForUpdateTest(unittest.TestCase):
@@ -26,18 +27,21 @@ class CheckForUpdateTest(unittest.TestCase):
     self.mox.StubOutWithMock(factory, 'get_toolkit_version')
     factory.get_toolkit_version().AndReturn(local_version)
 
-    self.mox.StubOutWithMock(shopfloor, 'get_instance')
-    fake_shopfloor = self.mox.CreateMockAnything()
-    shopfloor.get_instance(timeout=3, quiet=False).AndReturn(fake_shopfloor)
+    self.mox.StubOutWithMock(server_proxy, 'GetServerProxy')
+    fake_proxy = self.mox.CreateMockAnything()
+    server_proxy.GetServerProxy(timeout=3, quiet=False).AndReturn(fake_proxy)
 
-    self.mox.StubOutWithMock(shopfloor, 'GetUpdateFromCROSPayload')
-    shopfloor.GetUpdateFromCROSPayload(
-        'toolkit', proxy=fake_shopfloor).AndReturn(
-            ({'version': '11111'}, {}, NotImplemented))
+    self.mox.StubOutWithMock(update_utils, 'Updater')
+    fake_updater = self.mox.CreateMockAnything()
+    update_utils.Updater(
+        'toolkit', proxy=fake_proxy).AndReturn(fake_updater)
+    fake_updater.GetUpdateVersion().AndReturn('11111')
+    fake_updater.IsUpdateAvailable(local_version).AndReturn(
+        '11111' != local_version)
 
     self.mox.ReplayAll()
-    self.assertEquals(updater.CheckForUpdate(3),
-                      ('11111', '11111' != local_version))
+    self.assertEquals(
+        updater.CheckForUpdate(3), ('11111', '11111' != local_version))
     self.mox.VerifyAll()
 
   def testMustUpdate(self):
@@ -89,7 +93,7 @@ class CheckForUpdateAsyncTest(unittest.TestCase):
   def testCanNotReach(self):
     self.mox.StubOutWithMock(updater, 'CheckForUpdate')
     updater.CheckForUpdate(1).AndRaise(
-        Exception('Can not contact shopfloorserver'))
+        Exception('Can not contact factory server'))
     callback = self.mox.CreateMockAnything()
     # pylint: disable=not-callable
     callback(False, None, False).WithSideEffects(self.CallbackCalled)

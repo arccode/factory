@@ -46,21 +46,20 @@ To update only RW Main(AP) firmware using remote firmware updater::
 
 import logging
 import os
-import shutil
 import subprocess
 import threading
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.device import device_utils
 from cros.factory.test.env import paths
 from cros.factory.test import event
-from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.test.utils import update_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
-_FIRMWARE_LABELS = ['bios', 'ec', 'pd']
 _FIRMWARE_DOWNLOAD_PATH = paths.FACTORY_FIRMWARE_UPDATER_PATH
 
 _CSS = '#state {text-align:left;}'
@@ -91,24 +90,29 @@ class UpdateFirmwareTest(unittest.TestCase):
     self._ui = test_ui.UI()
     self._template = ui_templates.OneScrollableSection(self._ui)
     self._ui.AppendCSS(_CSS)
+    self._dut = device_utils.CreateDUTInterface()
 
   def DownloadFirmware(self):
     """Downloads firmware updater from server to _FIRMWARE_DOWNLOAD_PATH."""
-    payload, components, downloader = (
-        shopfloor.GetUpdateFromCROSPayload('firmware'))
-    if payload:
-      remote_versions = payload['version'].split(';')[:len(_FIRMWARE_LABELS)]
-      local_versions = [components['firmware_%s' % label]
-                        for label in _FIRMWARE_LABELS]
-      if remote_versions != local_versions:
-        logging.info('Writing firmware updater from server to %r.',
-                     _FIRMWARE_DOWNLOAD_PATH)
-        with downloader() as res_path:
-          shutil.move(res_path, _FIRMWARE_DOWNLOAD_PATH)
-        os.chmod(_FIRMWARE_DOWNLOAD_PATH, 0755)
-        return True
-    logging.info('No firmware updater available on server.')
-    return False
+    updater = update_utils.Updater(update_utils.COMPONENTS.firmware)
+    if not updater.IsUpdateAvailable():
+      logging.warn('No firmware updater available on server.')
+      return False
+
+    rw_version = self._dut.info.firmware_version
+    ro_version = self._dut.info.ro_firmware_version
+    # Currently the version string in updates (via cros_payload) will merge RO
+    # and RW firmware version if they are the same, otherwise joined by ';'.
+    current_version = (
+        ';'.join([ro_version, rw_version]) if ro_version != rw_version else
+        ro_version)
+
+    if not updater.IsUpdateAvailable(current_version):
+      logging.info('Your firmware is already in same version as server (%s)',
+                   updater.GetUpdateVersion())
+
+    updater.PerformUpdate(destination=_FIRMWARE_DOWNLOAD_PATH)
+    os.chmod(_FIRMWARE_DOWNLOAD_PATH, 0755)
 
   def UpdateFirmware(self):
     """Runs firmware updater.

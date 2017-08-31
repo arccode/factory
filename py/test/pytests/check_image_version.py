@@ -63,7 +63,6 @@ Reimage if test image version is greater than or equal to 9876.5.2012_12_21_2359
 
 from distutils import version
 import logging
-import shutil
 import time
 import unittest
 
@@ -71,11 +70,11 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
 from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import shopfloor
 from cros.factory.test import test_task
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
+from cros.factory.test.utils import update_utils
 from cros.factory.tools import flash_netboot
 from cros.factory.utils.arg_utils import Arg
 
@@ -119,16 +118,11 @@ class ImageCheckTask(test_task.TestTask):
   def Reimage(self):
     # TODO(b/64881268): Run cros_payload to update release image directly.
     if self._test.args.download_from_server:
-      payload, unused_components, downloader = (
-          shopfloor.GetUpdateFromCROSPayload(
-              'netboot_firmware',
-              proxy=shopfloor.get_instance()))
-      del unused_components
-      if not payload:
+      updater = update_utils.Updater(update_utils.COMPONENTS.netboot_firmware)
+      if not updater.IsUpdateAvailable():
         self._test.template.SetState(_MSG_NO_FIRMWARE_ON_SERVER)
         return
-      with downloader() as res_path:
-        shutil.move(res_path, self._test.args.netboot_fw)
+      updater.PerformUpdate(destination=self._test.args.netboot_fw)
 
     self._test.template.SetState(_MSG_REIMAGING)
     try:

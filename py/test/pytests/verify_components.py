@@ -17,10 +17,10 @@ from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rules import phase
-from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
+from cros.factory.test.utils import update_utils
 from cros.factory.utils.arg_utils import Arg
 
 _MESSAGE_CHECKING_COMPONENTS = i18n_test_ui.MakeI18nLabelWithClass(
@@ -53,7 +53,6 @@ class VerifyComponentsTest(unittest.TestCase):
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
     self.factory_par = deploy_utils.CreateFactoryTools(self._dut)
-    self._shopfloor = shopfloor
     self.probed_results = None
     self._allow_unqualified = None
 
@@ -74,7 +73,7 @@ class VerifyComponentsTest(unittest.TestCase):
 
   def _runTest(self):
     if self.args.enable_factory_server:
-      shopfloor.update_local_hwid_data(self._dut)
+      update_utils.UpdateHWIDDatabase(self._dut)
 
     if self.args.phase:
       phase.OverridePhase(self.args.phase)

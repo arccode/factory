@@ -6,14 +6,13 @@
 import logging
 import os
 import shutil
-import sys
-import traceback
 import uuid
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import factory
-from cros.factory.test import shopfloor
+from cros.factory.test import server_proxy
+from cros.factory.test.utils import update_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
@@ -34,7 +33,7 @@ def TryUpdate(pre_update_hook=None, timeout=15):
     pre_update_hook: A routine to be invoked before the
       factory directory is swapped out.
     timeout: Timeout in seconds for RPC calls on the proxy which provides
-      remote services on shopfloor server.
+      remote services on factory server.
 
   Returns:
     True if an update was performed and the machine should be
@@ -45,36 +44,39 @@ def TryUpdate(pre_update_hook=None, timeout=15):
   """
   factory.console.info(
       'Checking for updates at <%s>... (current TOOLKIT_VERSION is %s)',
-      shopfloor.get_server_url(), factory.get_toolkit_version())
+      server_proxy.GetServerURL(), factory.get_toolkit_version())
 
-  payload, unused_components, downloader = shopfloor.GetUpdateFromCROSPayload(
-      'toolkit', proxy=shopfloor.get_instance(timeout=timeout))
-  del unused_components
-
-  if not payload:
-    return False
-
-  factory.console.info('TOOLKIT_VERSION from server is %s', payload['version'])
-  if payload['version'] == factory.get_toolkit_version():
-    factory.console.info('Factory software is up to date')
+  proxy = server_proxy.GetServerProxy(timeout=timeout)
+  updater = update_utils.Updater(update_utils.COMPONENTS.toolkit, proxy=proxy)
+  current_version = factory.get_toolkit_version()
+  if not updater.IsUpdateAvailable(current_version):
+    factory.console.info('Factory software is up to date: %s', current_version)
     return False
 
   # /usr/local on the device (parent to factory)
   parent_dir = os.path.dirname(paths.FACTORY_DIR)
 
-  src_path = os.path.join(parent_dir, 'updater.new')
-  shutil.rmtree(src_path, ignore_errors=True)
-  with downloader() as toolkit_path:
-    process_utils.Spawn(['sh', toolkit_path, '--noexec', '--target', src_path],
-                        log=True, check_call=True)
-  src_path = os.path.join(src_path, 'usr', 'local', 'factory')
+  src_base_path = os.path.join(parent_dir, 'updater.new')
+  shutil.rmtree(src_base_path, ignore_errors=True)
 
+  def _ExtractToolkit(target_dir, component, destination, url):
+    logging.info('Extracting %s#%s to %s...', url, component, target_dir)
+    process_utils.Spawn(
+        ['sh', os.path.join(destination, component), '--noexec',
+         '--target', target_dir], log=True, check_call=True)
+
+  update_version = updater.GetUpdateVersion()
+  updater.PerformUpdate(
+      callback=lambda *args, **kargs: _ExtractToolkit(
+          src_base_path, *args, **kargs))
+
+  src_path = os.path.join(src_base_path, 'usr', 'local', 'factory')
   new_version_path = os.path.join(src_path, 'TOOLKIT_VERSION')
   new_version_from_fs = file_utils.ReadFile(new_version_path).rstrip()
-  if payload['version'] != new_version_from_fs:
+  if update_version != new_version_from_fs:
     raise UpdaterException(
         'Unexpected TOOLKIT_VERSION in %s: expected %s but found %s' %
-        (new_version_path, payload['version'], new_version_from_fs))
+        (new_version_path, update_version, new_version_from_fs))
 
   # Raises an exception if certain critical files are missing.
   critical_files = [
@@ -122,27 +124,26 @@ def CheckForUpdate(timeout, quiet=False):
   Args:
     timeout: If not None, the timeout in seconds. This timeout is for RPC
              calls on the proxy, not for get_instance() itself.
-    quiet: Suppresses error messages when shopfloor can not be reached.
+    quiet: Suppresses error messages when factory server can not be reached.
 
   Returns:
     A tuple (toolkit_version, needs_update):
-      toolkit_version: the TOOLKIT_VERSION returned by shopfloor server, or
+      toolkit_version: the TOOLKIT_VERSION returned by factory server, or
         None if it is not available or test environment is not installed on the
-        shopfloor server yet.
+        factory server yet.
       needs_update: is True if an update is necessary (i.e., toolkit_version is
         not None, and toolkit_version isn't the same as the TOOLKIT_VERSION in
         the current factory directory).
 
   Raises:
-    An exception if unable to contact the shopfloor server.
+    An exception if unable to contact the factory server.
   """
-  payload, unused_components, _ = shopfloor.GetUpdateFromCROSPayload(
-      'toolkit',
-      proxy=shopfloor.get_instance(timeout=timeout, quiet=quiet))
-  del unused_components
-  return ((None, False) if not payload else
-          (payload['version'],
-           payload['version'] != factory.get_toolkit_version()))
+  proxy = server_proxy.GetServerProxy(timeout=timeout, quiet=quiet)
+  updater = update_utils.Updater(update_utils.COMPONENTS.toolkit, proxy=proxy)
+  remote_version = updater.GetUpdateVersion()
+  current_version = factory.get_toolkit_version()
+
+  return (remote_version, updater.IsUpdateAvailable(current_version))
 
 
 def CheckForUpdateAsync(callback, timeout, quiet=False):
@@ -151,10 +152,10 @@ def CheckForUpdateAsync(callback, timeout, quiet=False):
   Launches a separate thread, checks for an update, and invokes callback (in
   at most timeout seconds) in that separate thread with the following arguments:
 
-    callback(reached_shopfloor, toolkit_version, needs_update)
+    callback(reached_server, toolkit_version, needs_update)
 
-  reached_shopfloor is True if the updater was actually able to communicate
-  with the shopfloor server, or False on timeout.
+  reached_server is True if the updater was actually able to communicate
+  with the factory server, or False on timeout.
 
   toolkit_version and needs_update are as in the return value for
   CheckForUpdate.
@@ -164,7 +165,7 @@ def CheckForUpdateAsync(callback, timeout, quiet=False):
               above.
     timeout: If not None, the timeout in seconds. This timeout is for RPC
              calls on the proxy, not for get_instance() itself.
-    quiet: Suppresses error messages when shopfloor can not be reached.
+    quiet: Suppresses error messages when factory server can not be reached.
   """
   def Run():
     try:
@@ -173,9 +174,7 @@ def CheckForUpdateAsync(callback, timeout, quiet=False):
       # Just an info, not a trace, since this is pretty common (and not
       # necessarily an error) and we don't want logs to get out of control.
       if not quiet:
-        logging.info(
-            'Unable to contact shopfloor server to check for updates: %s',
-            '\n'.join(traceback.format_exception_only(
-                *sys.exc_info()[:2])).strip())
+        logging.exception(
+            'Unable to contact factory server to check for updates.')
       callback(False, None, False)
   process_utils.StartDaemonThread(target=Run, name='UpdateThread')
