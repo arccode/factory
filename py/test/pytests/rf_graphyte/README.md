@@ -21,8 +21,7 @@ them are installed into the system.
             'graphyte_config_file': 'conductive_config.json',
             'verbose': True,
             'enable_factory_server': True,
-            'shopfoor_parameter_dir': 'rf_conductive',
-            'shopfloor_log_dir': 'rf_conductive'})
+            'server_parameter_dir': 'rf_conductive'})
 
 Note that the config files should be placed in this folder, including
 Graphyte global config, port config, test plan, and device config.
@@ -38,4 +37,4 @@ Graphyte global config, port config, test plan, and device config.
 4. Move all config files into `py/test/pytests/rf_graphyte/` folder.
 5. (Optional) If you need to update the config in the factory, place
    the latest config files in shopfloor
-   `shopfloor_data/parameters/<shopfloor_parameter_dir>/` folder.
+   `shopfloor_data/parameters/<server_parameter_dir>/` folder.

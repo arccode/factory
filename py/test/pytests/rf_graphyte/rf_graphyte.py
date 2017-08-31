@@ -21,12 +21,9 @@ This is an automated test without user interaction.
 
 1. If the argument `enable_factory_server` is True, fetch the config files from
    the Chrome OS factory server. The folder name is assigned by the argument
-   `shopfloor_parameter_dir`.
+   `server_parameter_dir`.
 2. Start running Graphyte framework with the assigned config file.
-3. If the argument `enable_factory_server` is True, upload the log file and the
-   result file to the Chrome OS factory server. The folder name is assigned by
-   the argument `shopfloor_log_dir`.
-4. Parse the result and upload them via testlog.
+3. Parse the result and upload them via testlog.
 
 Dependency
 ----------
@@ -47,8 +44,7 @@ this into the test list::
           'graphyte_config_file': 'conductive_config.json',
           'verbose': True,
           'enable_factory_server': True,
-          'shopfoor_parameter_dir': 'rf_conductive',
-          'shopfloor_log_dir': 'rf_conductive'})
+          'server_parameter_dir': 'rf_conductive'})
 """
 
 import csv
@@ -102,8 +98,6 @@ _MSG_FETCH_CONFIG = i18n_test_ui.MakeI18nLabelWithClass(
     'Fetching config files from factory server', 'message')
 _MSG_EXECUTE_GRAPHYTE = i18n_test_ui.MakeI18nLabelWithClass(
     'Executing Graphyte', 'message')
-_MSG_UPLOAD_RESULT = i18n_test_ui.MakeI18nLabelWithClass(
-    'Uploading result files to factory server', 'message')
 
 class RFGraphyteTest(unittest.TestCase):
 
@@ -125,14 +119,10 @@ class RFGraphyteTest(unittest.TestCase):
           'and upload the log and result file to factory server. '
           'If False, load config file from local disk and does not upload log.',
           default=True, optional=False),
-      Arg('shopfloor_parameter_dir', str,
+      Arg('server_parameter_dir', str,
           'Directory in which to place the updated config files. All the files '
           'in this folder will be downloaded to `test/pytests/rf_graphyte` '
           'folder if argument "enable_factory_server" is True.',
-          default='rf_graphyte', optional=True),
-      Arg('shopfloor_log_dir', str, 'Directory in which to save logs on '
-          'shopfloor.  For example: "wifi_radiated".  Only takes effect if '
-          '"enable_factory_server" is set to True.',
           default='rf_graphyte', optional=True),
       ]
 
@@ -234,13 +224,7 @@ class RFGraphyteTest(unittest.TestCase):
       if failed_results:
         factory.console.error('Failed result:\n%s', '\n'.join(failed_results))
 
-    # Upload the log to shopfloor and testlog.
-    try:
-      self.UploadResultToShopfloor()
-    except Exception as e:
-      logging.exception(e)
-      logging.error('Error uploading logs to shopfloor: %s: %s',
-                    e.__class__.__name__, e)
+    # Upload the log by testlog.
     try:
       self.SaveParamsToTestlog()
     except Exception as e:
@@ -310,30 +294,13 @@ class RFGraphyteTest(unittest.TestCase):
 
     self._ui.SetHTML(_MSG_FETCH_CONFIG, id=_ID_MSG_DIV)
     config_file_paths = self._server_proxy.ListParameters(
-        os.path.join(self.args.shopfloor_parameter_dir, '*'))
+        os.path.join(self.args.server_parameter_dir, '*'))
     for file_path in config_file_paths:
       factory.console.info('Fetch config file from shopfloor: %s', file_path)
       content = self._server_proxy.GetParameter(file_path).data
       file_name = os.path.basename(file_path)
       with open(os.path.join(LOCAL_CONFIG_DIR, file_name), 'w') as f:
         f.write(content)
-
-  def UploadResultToShopfloor(self):
-    """Upload Graphyte log and result to factory server."""
-    if not self.args.enable_factory_server:
-      return
-
-    self._ui.SetHTML(_MSG_UPLOAD_RESULT, id=_ID_MSG_DIV)
-    output_files = [self.result_file_path, self.log_file_path]
-    factory.console.info('Upload the result to shopfloor: %s', output_files)
-    for output_file in output_files:
-      try:
-        shopfloor.UploadAuxLogs([output_file], True,
-                                dir_name=self.args.shopfloor_log_dir)
-      except Exception as e:
-        logging.exception(e)
-        logging.error('Could not upload %s: %s: %s',
-                      output_file, e.__class__.__name__, e)
 
   def SaveParamsToTestlog(self):
     def _ConvertToNumber(value):

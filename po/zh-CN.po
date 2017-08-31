@@ -2532,10 +2532,6 @@ msgstr "从工厂伺服器下载测试参数"
 msgid "Executing Graphyte"
 msgstr "执行 Graphyte"
 
-#: ../py/test/pytests/rf_graphyte/rf_graphyte.py
-msgid "Uploading result files to factory server"
-msgstr "上传测试纪录到工厂伺服器"
-
 #: ../py/test/pytests/robot_movement.py
 msgid "Initializing Robot..."
 msgstr "正在初始化机器手臂..."
