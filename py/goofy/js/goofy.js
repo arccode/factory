@@ -3247,7 +3247,7 @@ jQuery.Type.prototype.width;
 /** @type {function(): number} */
 jQuery.Type.prototype.height;
 
-/** @type {function()} */
+/** @type {function(!Object=)} */
 jQuery.Type.prototype.resizable;
 
 /** @type {function(string, function())} */
@@ -3301,61 +3301,33 @@ cros.factory.Goofy.prototype.launchTerminal = function() {
       term.write(Base64.decode(msg.data));
     };
 
-    var terminalWindow = /** @type {!Element} */ (
-        document.getElementById('goofy-terminal-window'));
-    var $terminalWindow = jQuery(terminalWindow);
-    var $terminal = $terminalWindow.find('.terminal');
-    var totalWidthOffset = $terminalWindow.width() - term.element.clientWidth;
-    var totalHeightOffset =
-        $terminalWindow.height() - term.element.clientHeight;
+    var $terminal = jQuery(term.element);
+    var widthPerChar = term.element.clientWidth / term.cols;
+    var heightPerChar = term.element.clientHeight / term.rows;
 
-    // hide terminal right and bottom border
-    $terminal.css('border-right-width', '0px');
-    $terminal.css('border-bottom-width', '0px');
+    $terminal.resizable({
+      grid: [widthPerChar, heightPerChar],
+      minWidth: 20 * widthPerChar,
+      minHeight: 5 * heightPerChar,
+      resize: function(
+          /** ? */ event, /** {size: {width: number, height: number}} */ ui) {
+        var newCols = Math.round(ui.size.width / widthPerChar);
+        var newRows = Math.round(ui.size.height / heightPerChar);
+        if (newCols != term.cols || newRows != term.rows) {
+          term.resize(newCols, newRows);
+          term.refresh(0, term.rows - 1);
 
-    // initial terminal-window size
-    terminalWindow.style.width = term.element.clientWidth + totalWidthOffset;
-    terminalWindow.style.height = term.element.clientHeight + totalHeightOffset;
-
-    $terminalWindow.resizable();
-    $terminalWindow.bind('resize', function() {
-      // Ghost uses the CONTROL_START and CONTROL_END to know the control
-      // string.
-      // format: CONTROL_START ControlString CONTROL_END
-      var CONTROL_START = 128;
-      var CONTROL_END = 129;
-
-      // If there is no terminal now, just return.
-      // It may happen when we close the window
-      if (term.element.clientWidth == 0 || term.element.clientHeight == 0) {
-        return;
-      }
-
-      // convert to cols/rows
-      var widthToColsFactor = term.cols / term.element.clientWidth;
-      var heightToRowsFactor = term.rows / term.element.clientHeight;
-      var newTermWidth =
-          parseInt(terminalWindow.style.width, 10) - totalWidthOffset;
-      var newTermHeight =
-          parseInt(terminalWindow.style.height, 10) - totalHeightOffset;
-      var newCols = Math.floor(newTermWidth * widthToColsFactor);
-      var newRows = Math.floor(newTermHeight * heightToRowsFactor);
-      if (newCols != term.cols || newRows != term.rows) {
-        var msg = {command: 'resize', params: [newRows, newCols]};
-        term.resize(newCols, newRows);
-        term.refresh(0, term.rows - 1);
-
-        // Fine tune terminal-window size to match terminal.
-        // Prevent white space between terminal-window and terminal.
-        terminalWindow.style.width =
-            term.element.clientWidth + totalWidthOffset;
-        terminalWindow.style.height =
-            term.element.clientHeight + totalHeightOffset;
-
-        // Send to ghost to set new size
-        sock.send((new Uint8Array([CONTROL_START])).buffer);
-        sock.send(JSON.stringify(msg));
-        sock.send((new Uint8Array([CONTROL_END])).buffer);
+          // Ghost uses the CONTROL_START and CONTROL_END to know the control
+          // string.
+          // format: CONTROL_START ControlString CONTROL_END
+          var CONTROL_START = 128;
+          var CONTROL_END = 129;
+          var msg = {command: 'resize', params: [newRows, newCols]};
+          // Send to ghost to set new size
+          sock.send((new Uint8Array([CONTROL_START])).buffer);
+          sock.send(JSON.stringify(msg));
+          sock.send((new Uint8Array([CONTROL_END])).buffer);
+        }
       }
     });
   };
