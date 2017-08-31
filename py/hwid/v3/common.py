@@ -8,10 +8,10 @@
 
 import collections
 import copy
+import json
 import os
 import re
 import subprocess
-import pprint
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.hwid.v3 import base32, base8192
@@ -89,11 +89,11 @@ UNPROBEABLE_COMPONENT_ERROR = lambda comp_cls: (
 MISSING_COMPONENT_ERROR = lambda comp_cls: 'Missing %r component' % comp_cls
 AMBIGUOUS_COMPONENT_ERROR = lambda comp_cls, probed_value, comp_names: (
     'Ambiguous probe values %s of %r component. Possible components are: %r' %
-    (pprint.pformat(probed_value, indent=2), comp_cls, sorted(comp_names)))
+    (json.dumps(probed_value, indent=2), comp_cls, sorted(comp_names)))
 INVALID_COMPONENT_ERROR = lambda comp_cls, probed_value: (
     'Invalid %r component found with probe result %s '
     '(no matching name in the component DB)' % (
-        comp_cls, pprint.pformat(probed_value, indent=2)))
+        comp_cls, json.dumps(probed_value, indent=2)))
 UNSUPPORTED_COMPONENT_ERROR = lambda comp_cls, comp_name, comp_status: (
     'Component %r of %r is %s' % (comp_name, comp_cls, comp_status))
 
@@ -357,13 +357,16 @@ class HWID(object):
 
     # MP-key checking applies only in PVT and above
     if current_phase >= phase.PVT:
+      if 'firmware_keys' in self.bom.components:
+        key_types = ['firmware_keys']
+      else:
+        key_types = ['key_recovery', 'key_root']
+
       errors = []
-      for key_type in ('recovery', 'root'):
-        name = self.bom.components['key_%s' % key_type][0].component_name
+      for key_type in key_types:
+        name = self.bom.components[key_type][0].component_name
         if not IsMPKeyName(name):
-          errors.append(
-              'key_%s component name is %r'
-              % (key_type, name))
+          errors.append('%s component name is %r' % (key_type, name))
       if errors:
         raise HWIDException('MP keys are required in %s, but %s' % (
             current_phase, ' and '.join(errors)))

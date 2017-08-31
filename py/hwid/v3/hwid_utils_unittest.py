@@ -171,17 +171,15 @@ class HWIDv3UtilsTest(unittest.TestCase):
         results['cpu'])
     self.assertEquals(
         [(None, {'compact_str': 'fake value'},
-          ("Invalid 'battery' component found with probe result "
-           "{ 'compact_str': 'fake value'} "
-           '(no matching name in the component DB)'))],
+          common.INVALID_COMPONENT_ERROR(
+              'battery', {'compact_str': 'fake value'}))],
         results['battery'])
     self.assertEquals(
         [('codec_1', {'compact_str': rule.Value('Codec 1')}, None),
          ('hdmi_1', {'compact_str': rule.Value('HDMI 1')}, None),
          (None, {'compact_str': 'fake value'},
-          ("Invalid 'audio_codec' component found with probe result "
-           "{ 'compact_str': 'fake value'} "
-           '(no matching name in the component DB)'))],
+          common.INVALID_COMPONENT_ERROR(
+              'audio_codec', {'compact_str': 'fake value'}))],
         results['audio_codec'])
 
   def testVerifyBadComponents3(self):

@@ -485,16 +485,16 @@ class DatabaseTest(unittest.TestCase):
         'audio_codec': [
             ('codec_1', {'compact_str': Value('Codec 1')}, None),
             (None, {'compact_str': 'HDMI 3'},
-             "Invalid 'audio_codec' component found with probe result "
-             "{ 'compact_str': 'HDMI 3'} (no matching name in the "
-             'component DB)')
+             common.INVALID_COMPONENT_ERROR(
+                 'audio_codec', {'compact_str': 'HDMI 3'}))
         ]}, self.database.VerifyComponents(self.results[1], ['audio_codec']))
     self.assertEquals({
         'storage': [
             (None, {'type': 'SSD', 'size': '16G', 'serial': '#1234aa'},
-             "Invalid 'storage' component found with probe result "
-             "{ 'serial': '#1234aa', 'size': '16G', 'type': 'SSD'} "
-             '(no matching name in the component DB)')]},
+             common.INVALID_COMPONENT_ERROR(
+                 'storage', {'type': 'SSD',
+                             'size': '16G',
+                             'serial': '#1234aa'}))]},
                       self.database.VerifyComponents(self.results[2],
                                                      ['storage']))
     self.assertEquals({
@@ -508,8 +508,7 @@ class DatabaseTest(unittest.TestCase):
     self.assertEquals({
         'storage': [
             (None, {'foo': 'bar'},
-             "Invalid 'storage' component found with probe result "
-             "{ 'foo': 'bar'} (no matching name in the component DB)")]},
+             common.INVALID_COMPONENT_ERROR('storage', {'foo': 'bar'}))]},
                       self.database.VerifyComponents(self.results[4],
                                                      ['storage'],
                                                      loose_matching=True))
