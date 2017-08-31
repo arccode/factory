@@ -3289,7 +3289,15 @@ cros.factory.Goofy.prototype.launchTerminal = function() {
   sock.onerror = function(/** !Error */ e) {
     goog.log.info(cros.factory.logger, 'socket error', e);
   };
-  jQuery(win).draggable({cancel: '.terminal'});
+  jQuery(win).draggable({
+    handle: '.goofy-terminal-title',
+    stop: function(/** ? */ event, /** {helper: jQuery.Type} */ ui) {
+      // Remove the width and height set by draggable, so the size is same as
+      // child size.
+      ui.helper.css('width', '');
+      ui.helper.css('height', '');
+    }
+  });
   sock.onopen = function() {
     var term =
         new Terminal({cols: 80, rows: 24, useStyle: true, screenKeys: true});
