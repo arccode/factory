@@ -51,8 +51,11 @@ class EthernetTest(unittest.TestCase):
           default=1000),
       Arg('iface', str, 'Interface name for testing.', default=None,
           optional=True),
-      Arg('interface_name_patterns', list, 'The ethernet interface name patterns',
-          default=net_utils.DEFAULT_ETHERNET_NAME_PATTERNS, optional=True),
+      Arg('interface_name_patterns',
+          list,
+          'The ethernet interface name patterns',
+          default=net_utils.DEFAULT_ETHERNET_NAME_PATTERNS,
+          optional=True),
       Arg('link_only', bool, 'Only test if link is up or not', default=False),
       Arg('use_swconfig', bool, 'Use swconfig for polling link status.',
           default=False),
@@ -169,8 +172,10 @@ class EthernetTest(unittest.TestCase):
     else:
       swconfig_expected_speed = self.args.swconfig_expected_speed
 
-    self.assertEqual(len(self.args.swconfig_ports),
-                     len(swconfig_expected_speed))
+    self.assertEqual(
+        len(self.args.swconfig_ports),
+        len(swconfig_expected_speed),
+        "Length of swconfig_ports and swconfig_expcted_speed doesn't match.")
 
     for port, speed in zip(self.args.swconfig_ports, swconfig_expected_speed):
       status = self.dut.CheckOutput(
