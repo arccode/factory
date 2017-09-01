@@ -447,16 +447,6 @@ table + .goofy-history-header {
   height: 100%; width: 100%;
   background-color: white;
 }
-.goofy-plugin-tooltip {
-  position: absolute;
-  bottom: 100%;
-  left: 0%;
-  visibility: hidden;
-  z-index: 10000;
-  background: #ffe;
-  padding: 4px;
-  border: 1px solid lightgray;
-}
 
 /* Dialogs. */
 .goofy-shutdown-dialog .modal-dialog-content {
@@ -540,10 +530,10 @@ button {
   padding: 6px 16px;
 }
 .modal-dialog-bg {
-  z-index: 3;
+  z-index: 10;
 }
 .modal-dialog {
-  z-index: 4;
+  z-index: 11;
 }
 
 /* Definitions for closure components not included in Closure. */
@@ -722,7 +712,7 @@ button {
   position: fixed;
   top: 15%;
   left: 25%;
-  z-index: 100;
+  z-index: 5;
   float: left;
   border: 5px solid #eee;
   box-shadow: 0px 0px 20px 5px rgba(0,0,0,0.8);
