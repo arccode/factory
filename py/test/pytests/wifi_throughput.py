@@ -81,10 +81,10 @@ from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test.fixture import arduino
 from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import leds
 from cros.factory.test import test_ui
 from cros.factory.test import testlog_goofy
 from cros.factory.test.ui_templates import OneSection
+from cros.factory.test.utils import kbd_leds
 from cros.factory.testlog import testlog
 from cros.factory.utils import arg_utils
 from cros.factory.utils.arg_utils import Arg
@@ -816,8 +816,9 @@ class WiFiThroughput(unittest.TestCase):
     # In case we're in a chamber without a monitor, store blinking keyboard LEDs
     # object to inform the operator that we're still working.
     if self.args.blink_leds:
-      self._leds_blinker = leds.Blinker(
-          [(0, 0.5), (leds.LED_NUM | leds.LED_CAP | leds.LED_SCR, 0.5)])
+      self._leds_blinker = kbd_leds.Blinker(
+          [(0, 0.5),
+           (kbd_leds.LED_NUM | kbd_leds.LED_CAP | kbd_leds.LED_SCR, 0.5)])
       # This starts a thread running in the background until
       # self._leds_blinker.Stop is called in self._EndOperatorFeedback.
       # We must ensure that Stop will always be called, otherwise the test will

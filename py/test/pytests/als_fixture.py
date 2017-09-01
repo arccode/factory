@@ -72,10 +72,10 @@ from cros.factory.test.fixture import fixture_connection
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import leds
 from cros.factory.test import server_proxy
 from cros.factory.test import state
 from cros.factory.test import test_ui
+from cros.factory.test.utils import kbd_leds
 from cros.factory.test.utils import media_utils
 from cros.factory.test.utils import network_utils
 from cros.factory.utils.arg_utils import Arg
@@ -127,7 +127,7 @@ MSG_TEST_STATUS = {
 
 
 # LED pattern.
-LED_PATTERN = ((leds.LED_NUM | leds.LED_CAP, 0.05), (0, 0.05))
+LED_PATTERN = ((kbd_leds.LED_NUM | kbd_leds.LED_CAP, 0.05), (0, 0.05))
 
 
 # Data structures.
@@ -727,7 +727,7 @@ class ALSFixture(unittest.TestCase):
     while True:
       event = self._PopInternalQueue(wait=True)
       if event.event_type == EventType.START_TEST:
-        with leds.Blinker(LED_PATTERN):
+        with kbd_leds.Blinker(LED_PATTERN):
           input_sn = ''
           if event.aux_data is not None:
             input_sn = event.aux_data.data.get('input_sn', '')
