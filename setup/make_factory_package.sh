@@ -300,8 +300,6 @@ build_payloads() {
 
   local json_path="${dest}/${FLAGS_board}.json"
   echo "{}" >"${json_path}"
-  local empty_file="$(mktemp)"
-  image_add_temp "${empty_file}"
 
   if [ "${ENABLE_FIRMWARE_UPDATER}" = "${FLAGS_TRUE}" ] &&
      [ -z "${FLAGS_firmware}" ]; then
@@ -325,8 +323,7 @@ build_payloads() {
       echo "Generating ${component} payloads from ${resource}..."
       "${CROS_PAYLOAD}" add "${json_path}" "${component}" "${resource}"
     else
-      echo "Adding empty ${component} payload..."
-      "${CROS_PAYLOAD}" add "${json_path}" "${component}" "${empty_file}"
+      echo "Leaving ${component} payload as empty."
     fi
   done
 }
