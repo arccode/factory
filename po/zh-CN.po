@@ -30,10 +30,6 @@ msgid "ALS Fixture"
 msgstr "ALS 治具"
 
 #: ../build/pytests_label_generated.json
-msgid "Arduino Digital Pins"
-msgstr ""
-
-#: ../build/pytests_label_generated.json
 msgid "Audio"
 msgstr "音讯"
 
@@ -118,10 +114,6 @@ msgid "Camera"
 msgstr "相机"
 
 #: ../build/pytests_label_generated.json
-msgid "Camera Fixture"
-msgstr "Camera 治具"
-
-#: ../build/pytests_label_generated.json
 msgid "Cellular Switch Firmware"
 msgstr "切换数据机韧体"
 
@@ -172,14 +164,6 @@ msgstr "显示图像"
 #: ../build/pytests_label_generated.json
 msgid "Display Point"
 msgstr "显示点"
-
-#: ../build/pytests_label_generated.json
-msgid "eMMC Check Extcsd"
-msgstr "eMMC 检查 EXT_CSD"
-
-#: ../build/pytests_label_generated.json
-msgid "eMMC Check FW Version"
-msgstr "eMMC 检查轫体版本"
 
 #: ../build/pytests_label_generated.json
 msgid "Ethernet"
@@ -405,10 +389,6 @@ msgstr "关机"
 #: ../build/pytests_label_generated.json
 msgid "Simple Storage Stress Test"
 msgstr "储存装置压力测试"
-
-#: ../build/pytests_label_generated.json
-msgid "Smart Check FW Version"
-msgstr "SMART 检查轫体版本"
 
 #: ../build/pytests_label_generated.json
 msgid "Spatial Sensor Calibration"
@@ -1142,15 +1122,15 @@ msgstr "正在确认角度……"
 msgid "ALS Sensor Calibration"
 msgstr "光感应器校正"
 
-#: ../py/test/pytests/als_fixture.py ../py/test/pytests/camera_fixture.py
+#: ../py/test/pytests/als_fixture.py
 msgid "Starting the test"
 msgstr "开始测试"
 
-#: ../py/test/pytests/als_fixture.py ../py/test/pytests/camera_fixture.py
+#: ../py/test/pytests/als_fixture.py
 msgid "Reading serial number"
 msgstr "读取序号"
 
-#: ../py/test/pytests/als_fixture.py ../py/test/pytests/camera_fixture.py
+#: ../py/test/pytests/als_fixture.py
 msgid "Initializing camera"
 msgstr "初始化摄像头"
 
@@ -1178,21 +1158,19 @@ msgstr "写入ALS校正结果"
 msgid "Validating the calibrated ALS value"
 msgstr "验证已完成校正灯光 ALS数值"
 
-#: ../py/test/pytests/als_fixture.py ../py/test/pytests/camera_fixture.py
+#: ../py/test/pytests/als_fixture.py
 msgid "All tests are complete"
 msgstr "测试已全部完成"
 
-#: ../py/test/pytests/als_fixture.py ../py/test/pytests/camera_fixture.py
+#: ../py/test/pytests/als_fixture.py
 msgid "Test data saved"
 msgstr "记录档已写入"
 
 #: ../py/test/pytests/als_fixture_static/als_fixture.html
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
 msgid "Please insert the USB stick to load test parameters"
 msgstr "请插入U盘读取测试参数"
 
 #: ../py/test/pytests/als_fixture_static/als_fixture.html
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
 msgid "Please insert ethernet dongle to load test parameters"
 msgstr "请插入网路介面卡读取测试参数"
 
@@ -1201,59 +1179,47 @@ msgid "ALS Calibration"
 msgstr "光感应器校正"
 
 #: ../py/test/pytests/als_fixture_static/als_fixture.html
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
 msgid "USB Stick:"
 msgstr "测试参数U盘:"
 
 #: ../py/test/pytests/als_fixture_static/als_fixture.html
 #: ../py/test/pytests/als_fixture_static/als_fixture.js
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.js
 msgid "USB UNLOADED"
 msgstr "U盘已载入"
 
 #: ../py/test/pytests/als_fixture_static/als_fixture.html
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
 msgid "Serial Number:"
 msgstr "待测物序号:"
 
 #: ../py/test/pytests/als_fixture_static/als_fixture.html
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
 msgid "Fixture:"
 msgstr "治具链接:"
 
 #: ../py/test/pytests/als_fixture_static/als_fixture.html
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
 msgid "UNAVAILABLE"
 msgstr "未连接"
 
 #: ../py/test/pytests/als_fixture_static/als_fixture.html
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
 msgid "Start Test"
 msgstr "开始测试"
 
 #: ../py/test/pytests/als_fixture_static/als_fixture.html
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
 msgid "Exit Test"
 msgstr "离开测试"
 
 #: ../py/test/pytests/als_fixture_static/als_fixture.html
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
 msgid "IDLE"
 msgstr "閒置中"
 
 #: ../py/test/pytests/als_fixture_static/als_fixture.js
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.js
 msgid "USB LOADED"
 msgstr "U盘未载入"
 
 #: ../py/test/pytests/als_fixture_static/als_fixture.js
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.js
 msgid "Fixture CONNECTED"
 msgstr "治具已连接"
 
 #: ../py/test/pytests/als_fixture_static/als_fixture.js
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.js
 msgid "Fixture UNAVAILABLE"
 msgstr "治具未连接"
 
@@ -1718,46 +1684,6 @@ msgid ""
 "Press 0 if LED is flickering, 1 if LED is constantly lit,<br>or ESC to fail."
 msgstr "LED 闪烁请按 0，一直亮着请按 1，没亮请按 ESC"
 
-#: ../py/test/pytests/camera_fixture.py
-msgid "Camera Fixture Calibration"
-msgstr "相机治具校正"
-
-#: ../py/test/pytests/camera_fixture.py
-msgid "Camera Lens Shading Test"
-msgstr "相机镜头黑点测试"
-
-#: ../py/test/pytests/camera_fixture.py
-msgid "Camera Image Quality Test"
-msgstr "相机影像品质测试"
-
-#: ../py/test/pytests/camera_fixture.py
-msgid "Checking firmware version"
-msgstr "检查韧体版本"
-
-#: ../py/test/pytests/camera_fixture.py
-msgid "Adjusting white balance"
-msgstr "白平衡调试"
-
-#: ../py/test/pytests/camera_fixture.py
-msgid "Reading test image"
-msgstr "读取测试影像"
-
-#: ../py/test/pytests/camera_fixture.py
-msgid "Locating test pattern"
-msgstr "定位测试图样"
-
-#: ../py/test/pytests/camera_fixture.py
-msgid "Checking vignetting level"
-msgstr "检测影像暗角"
-
-#: ../py/test/pytests/camera_fixture.py
-msgid "Checking image sharpness"
-msgstr "检测影像清晰度"
-
-#: ../py/test/pytests/camera_fixture_static/camera_fixture.html
-msgid "Camera Performance Test"
-msgstr "相机效能测试"
-
 #: ../py/test/pytests/cellular_switch_firmware.py
 msgid "Switching firmware to {target!r}<br>"
 msgstr "切换数据机至{target!r}韧体"
@@ -2035,18 +1961,6 @@ msgid ""
 msgstr ""
 "按空白键显示;\n"
 "检查后按Enter键通过; 按Esc键失败。"
-
-#: ../py/test/pytests/emmc_check_fw_version.py
-msgid "eMMC Firmware Version Incorrect"
-msgstr "eMMC 韧体版本不对"
-
-#: ../py/test/pytests/emmc_check_fw_version.py
-msgid ""
-"The eMMC firmware version ({version}) is incorrect. <br>Please run the eMMC "
-"firmware update tool."
-msgstr ""
-"eMMC 韧体版（{version}）版本不对。<br>必须更新 eMMC 韧体并重新安装工厂测试软"
-"件。"
 
 #: ../py/test/pytests/ethernet.py
 msgid ""
@@ -2615,18 +2529,6 @@ msgstr "{operation}后验证系统状态"
 #: ../py/test/pytests/shutdown/shutdown.py
 msgid "Shutdown Test ({operation})"
 msgstr "关机测试 ({operation})"
-
-#: ../py/test/pytests/smart_check_fw_version.py
-msgid "SSD Firmware Version Incorrect"
-msgstr "SSD 韧体版本不对"
-
-#: ../py/test/pytests/smart_check_fw_version.py
-msgid ""
-"The SSD firmware version ({fw_version}) is incorrect. <br>Please run the SSD "
-"firmware update tool."
-msgstr ""
-"SSD 韧体版（{fw_version}）版本不对。<br>必须更新 SSD 韧体并重新安装工厂测试软"
-"件。"
 
 #: ../py/test/pytests/spatial_sensor_calibration.py
 msgid "Accelerometer"
