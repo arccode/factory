@@ -389,15 +389,25 @@ update_json() {
   chmod a+r "${json_path}"
 }
 
+# Updates JSON meta data.
+# Usage: update_json_meta JSON_PATH COMPONENT NAME VALUE
+update_json_meta() {
+  local json_path="$1"
+  local component="$2"
+  local name="$3"
+  local value="$4"
+  update_json "${json_path}" \
+    "{\"${component}\": {\"${name}\": $(json_encode_str "${value}")}}"
+}
+
 # Commits a payload into given location.
-# Usage: commit_payload COMPONENT SUBTYPE MD5SUM TEMP_PAYLOAD DIR VERSION
+# Usage: commit_payload COMPONENT SUBTYPE MD5SUM TEMP_PAYLOAD DIR
 commit_payload() {
   local component="$1"
   local subtype="$2"
   local md5sum="$3"
   local temp_payload="$4"
   local dir="$5"
-  local version="$6"
   local json output_name
 
   # Derived variables
@@ -411,10 +421,7 @@ commit_payload() {
     output_name="${component}.${md5sum}.${ext}"
     subtype="file"
   fi
-  if [ -n "${version}" ]; then
-    version="\"version\": $(json_encode_str "${version}"),"
-  fi
-  json="{\"${component}\": {${version} \"${subtype}\": \"${output_name}\"}}"
+  json="{\"${component}\": {\"${subtype}\": \"${output_name}\"}}"
   local output="${dir}/${output_name}"
 
   # Ideally TEMP_PAYLOAD should be deleted by cleanup, and we do want to prevent
@@ -491,7 +498,7 @@ add_image_part() {
           do_compress "${CROS_PAYLOAD_FORMAT}" | tee "${crx_cache_file}" | \
           md5sum -b)"
         commit_payload "${component}" "crx_cache" "${crx_cache_md5%% *}" \
-          "${crx_cache_file}" "${output_dir}" "${version}"
+          "${crx_cache_file}" "${output_dir}"
       fi
       ${SUDO} umount "${stateful_dir}"
     fi
@@ -507,7 +514,12 @@ add_image_part() {
   fi
 
   commit_payload "${component}" "part${nr}" "${md5sum%% *}" \
-    "${tmp_file}" "${output_dir}" "${version}"
+    "${tmp_file}" "${output_dir}"
+
+  if [ -n "${version}" ]; then
+    update_json_meta "${json_path}" "${component}" version "${version}"
+  fi
+
 }
 
 # Adds an disk image type payload.
@@ -529,6 +541,9 @@ add_image_component() {
   else
     die "Missing partition tools - please install cgpt or partx."
   fi
+
+  # Reset version because add_image_part ignores partitions without version.
+  update_json_meta "${json_path}" "${component}" version ""
 
   # TODO(hungte) Add part0 as GPT itself.
   ${part_command} "${file}" | while read start sectors nr uuid; do
@@ -608,8 +623,9 @@ add_file_component() {
       tee "${tmp_file}" | md5sum -b)"
   fi
   version="$(get_file_component_version "${component}" "${file}")"
-  commit_payload "${component}" "" "${md5sum%% *}" "${tmp_file}" \
-    "${output_dir}" "${version}"
+  commit_payload "${component}" "" "${md5sum%% *}" \
+    "${tmp_file}" "${output_dir}"
+  update_json_meta "${json_path}" "${component}" version "${version}"
 }
 
 # Cache sudo session earlier.
@@ -661,8 +677,7 @@ cmd_add_meta() {
     die "Invalid JSON config path: ${json_path}"
   fi
 
-  update_json "${json_path}" \
-    "{\"${component}\": {\"${name}\": $(json_encode_str "${value}")}}"
+  update_json_meta "${json_path}" "${component}" "${name}" "${value}"
 }
 
 # Adds a stub file for component installation.
