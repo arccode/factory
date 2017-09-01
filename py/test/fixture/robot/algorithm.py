@@ -54,6 +54,6 @@ class Algorithm(object):
     """Put the result to the target_dir."""
     raise NotImplementedError
 
-  def UploadLog(self, dut, shopfloor):
-    """Upload log to the shopfloor."""
+  def UploadLog(self, dut, server):
+    """Upload log to the factory server."""
     raise NotImplementedError

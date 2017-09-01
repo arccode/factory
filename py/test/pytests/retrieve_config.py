@@ -66,7 +66,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import factory
-from cros.factory.test import shopfloor
+from cros.factory.test import server_proxy
 from cros.factory.test.utils import media_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import config_utils
@@ -168,8 +168,8 @@ class RetrieveConfig(unittest.TestCase):
     try:
       factory.console.info('Retrieving %s from factory server.',
                            self.args.config_retrieve_path)
-      shopfloor_client = shopfloor.GetShopfloorConnection()
-      content = shopfloor_client.GetParameter(
+      proxy = server_proxy.GetServerProxy()
+      content = proxy.GetParameter(
           self.args.config_retrieve_path).data
       with open(self.config_save_path, 'w') as f:
         f.write(content)

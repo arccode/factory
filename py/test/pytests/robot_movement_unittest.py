@@ -39,7 +39,7 @@ class RobotMovementTest(unittest.TestCase):
         'period_between_movement': 0,
         'period_after_movement': 0,
         'result_dir': '/persist/data',
-        'upload_to_shopfloor': True})
+        'upload_to_server': False})
 
   def testSetUp(self):
     pass

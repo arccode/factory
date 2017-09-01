@@ -59,7 +59,7 @@ from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test.fixture import utils as fixture_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import shopfloor
+from cros.factory.test import server_proxy
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -127,8 +127,8 @@ class RobotMovement(unittest.TestCase):
           'The pause period after the final movements.', default=0.0),
       Arg('positions', list,
           'A list of position index for the robot to move.'),
-      Arg('upload_to_shopfloor', bool,
-          'If true, upload log to shopfloor after running.',
+      Arg('upload_to_server', bool,
+          'If true, upload log to factory server after running.',
           default=False),
       ]
 
@@ -236,8 +236,8 @@ class RobotMovement(unittest.TestCase):
     self.StartMoving()
     self.Compute()
     self.PushResult()
-    if self.args.upload_to_shopfloor:
-      self._algorithm.UploadLog(self._dut, shopfloor)
+    if self.args.upload_to_server:
+      self._algorithm.UploadLog(self._dut, server_proxy.GetServerProxy())
 
   def runTest(self):
     self._ui.RunInBackground(self._runTest)

@@ -27,20 +27,13 @@ from cros.factory.test.pytests.touchscreen_calibration import sensors_server
 from cros.factory.test.pytests.touchscreen_calibration.touchscreen_calibration_utils import IsSuccessful  # pylint: disable=line-too-long
 from cros.factory.test.pytests.touchscreen_calibration.touchscreen_calibration_utils import NetworkStatus  # pylint: disable=line-too-long
 from cros.factory.test.pytests.touchscreen_calibration.touchscreen_calibration_utils import SimpleSystem  # pylint: disable=line-too-long
-from cros.factory.test import shopfloor
+from cros.factory.test import server_proxy
 from cros.factory.test import state
 from cros.factory.test.test_ui import UI
 from cros.factory.test.utils.media_utils import MountedMedia
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
-
-# Temporary file to store stdout for commands executed in this test.
-# Note that this file is to be examined only when needed, or just let it
-# be overridden.
-# Use shopfloor.UploadAuxLogs(_TMP_STDOUT) to upload this file to shopfloor
-# server for future process and analyze when needed.
-_TMP_STDOUT = '/tmp/stdout.txt'
 
 # __name__ looks like "cros.factory.test.pytests.touchscreen_calibration".
 # test_name is "touchscreen_calibration"
@@ -424,11 +417,11 @@ class TouchscreenCalibration(unittest.TestCase):
                          fail_msg='Failed to shutdown the host')
 
   def _UploadLog(self, log_name, log_data):
-    """Upload the data to shopfloor server as a file."""
+    """Upload the data to factory server as a file."""
     if self.use_shopfloor:
       log_path = os.path.join(self.aux_log_path, log_name)
-      shopfloor_client = shopfloor.GetShopfloorConnection()
-      shopfloor_client.SaveAuxLog(log_path, xmlrpclib.Binary(log_data))
+      proxy = server_proxy.GetServerProxy()
+      proxy.SaveAuxLog(log_path, xmlrpclib.Binary(log_data))
       factory.console.info('Uploaded sensor data as %s', log_path)
 
   def _DumpOneFrameToLog(self, logger, category, sn, frame_no):
@@ -712,7 +705,7 @@ class TouchscreenCalibration(unittest.TestCase):
     return True
 
   def GetSerialNumber(self, unused_event=None):
-    """Get the DUT's serial number from the shopfloor."""
+    """Get the DUT's serial number from device data."""
     sn = device_data.GetSerialNumber()
     self.ui.CallJSFunction('fillInSerialNumber', sn)
     self.StartCalibration(Event({'sn': sn}))

@@ -6,7 +6,8 @@
 #
 # This test case is used to communicate with audio fixture and parse
 # the result of CLIO which is audio quality analysis software.
-# DUT will connect to 2 subnets, one is for shopfloor the other is for fixture.
+# DUT will connect to 2 subnets, one is for factory server and the other is for
+# fixture.
 
 from __future__ import print_function
 
@@ -20,6 +21,7 @@ import tempfile
 import threading
 import time
 import unittest
+import xmlrpclib
 import zipfile
 
 import yaml
@@ -31,7 +33,7 @@ from cros.factory.test.env import paths
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import shopfloor
+from cros.factory.test import server_proxy
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test.utils import audio_utils
@@ -744,7 +746,7 @@ class AudioQualityTest(unittest.TestCase):
     """
     factory.console.info('Start downloading parameters...')
     self._ui.CallJSFunction('setMessage', _LABEL_CONNECT_SHOPFLOOR)
-    shopfloor_client = shopfloor.GetShopfloorConnection(retry_interval_secs=3)
+    proxy = server_proxy.GetServerProxy()
     logging.info('Syncing time with factory server...')
     time_utils.SyncTimeWithFactoryServer()
 
@@ -753,7 +755,7 @@ class AudioQualityTest(unittest.TestCase):
     for glob_expression in self._parameters:
       logging.info('Listing %s', glob_expression)
       download_list.extend(
-          shopfloor_client.ListParameters(glob_expression))
+          proxy.ListParameters(glob_expression))
     factory.console.info('Download list prepared:\n%s',
                          '\n'.join(download_list))
     if len(download_list) < len(self._parameters):
@@ -765,7 +767,7 @@ class AudioQualityTest(unittest.TestCase):
     for filepath in download_list:
       path = os.path.join(self._caches_dir, filepath)
       file_utils.TryMakeDirs(os.path.dirname(path))
-      binary_obj = shopfloor_client.GetParameter(filepath)
+      binary_obj = proxy.GetParameter(filepath)
       with open(path, 'wb') as fd:
         fd.write(binary_obj.data)
 
@@ -793,9 +795,14 @@ class AudioQualityTest(unittest.TestCase):
 
   def UploadAuxlog(self):
     """Uploads files from DUT to factory server."""
+    # TODO(chuntsen) Replace this by testlog.
     factory.console.info('Start uploading logs...')
     self._ui.CallJSFunction('setMessage', _LABEL_UPLOAD_AUXLOG)
-    shopfloor.UploadAuxLogs(self._auxlogs, dir_name='audio')
+    proxy = server_proxy.GetServerProxy()
+    for log_file in self._auxlogs:
+      proxy.SaveAuxLog(
+          os.path.join('audio', os.path.basename(log_file)),
+          xmlrpclib.Binary(file_utils.ReadFile(log_file)))
 
   def StartRun(self, event):
     """Runs the testing flow after user press 'space'.

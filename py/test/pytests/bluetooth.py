@@ -28,13 +28,13 @@ from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import shopfloor
 from cros.factory.test import state
 from cros.factory.test import test_task
 from cros.factory.test import test_ui
 from cros.factory.test import testlog_goofy
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import bluetooth_utils
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
@@ -167,35 +167,19 @@ def _ResetAdapter():
   time.sleep(RESET_ADAPTER_SLEEP_TIME)
 
 
-def _SaveLocalLog(log_file, data):
-  """Save the log locally on a test host."""
+def _AppendLog(log_file, data):
+  """Appends the log file on the local station."""
+  if not log_file:
+    return
+
+  # Prepend the current timestamp to each line.
+  data = ''.join([(GetCurrentTime() + ' ' + line + '\n') if line else '\n'
+                  for line in data.splitlines()])
   log_dir = os.path.dirname(log_file)
   if not os.path.isdir(log_dir):
     os.makedirs(log_dir)
   with open(log_file, 'a') as log:
     log.write(str(data))
-
-
-def _SaveAuxLogOnShopfloor(aux_log_file, data):
-  """Save the local log file to shopfloor."""
-  try:
-    shopfloor_client = shopfloor.GetShopfloorConnection()
-    shopfloor_client.SaveAuxLog(aux_log_file, str(data))
-  except Exception as e:
-    # It is only a logging error. Do not fail the test.
-    logging.warning('Save aux log failure: %s', e)
-
-
-def _SaveLogs(log_file, aux_log_file, data):
-  """Save the log files on the local test host and on the shopfloor."""
-  # Prepend the current timestamp to each line.
-  data = ''.join([(GetCurrentTime() + ' ' + line + '\n') if line else '\n'
-                  for line in data.splitlines()])
-  if log_file:
-    _SaveLocalLog(log_file, data)
-    if aux_log_file:
-      with open(log_file) as log:
-        _SaveAuxLogOnShopfloor(aux_log_file, log.read())
 
 
 def RetryWithProgress(template, template_message, action_string,
@@ -550,7 +534,7 @@ class DetectRSSIofTargetMACTask(test_task.TestTask):
                                         self._average_rssi_upper_threshold))
       data = ('Average RSSI: %.2f %s  (%s)\n' %
               (average_rssi, map(int, rssis), status))
-      _SaveLogs(self._test.log_file, self._test.aux_log_file, data)
+      _AppendLog(self._test.log_file, data)
 
       if fail_msg:
         factory.console.error(fail_msg)
@@ -650,7 +634,7 @@ class CheckDisconnectionOfPairedDeviceTask(test_task.TestTask):
       msg = 'Shift-P-A-I-R: not done'
       self.Fail(msg)
     factory.console.info(msg)
-    _SaveLogs(self._test.log_file, self._test.aux_log_file, msg)
+    _AppendLog(self._test.log_file, msg)
 
 
 def _ExecuteFixtureMethod(fixture, operation, post_sleep=0):
@@ -744,7 +728,7 @@ class ReadBatteryLevelTask(test_task.TestTask):
     else:
       data = ''
     data += '%s: %s\n' % (self._step, battery_level)
-    _SaveLogs(self._test.log_file, self._test.aux_log_file, data)
+    _AppendLog(self._test.log_file, data)
 
     if self._test.args.battery_log:
       _SaveLocalBatteryLog(self._test.args.base_enclosure_serial_number,
@@ -878,7 +862,7 @@ class CheckFirmwareRevisionTestTask(test_task.TestTask):
     state.set_shared_data(self._test.args.firmware_revision_string_key, fw)
 
     data = 'FW: %s\n' % fw
-    _SaveLogs(self._test.log_file, self._test.aux_log_file, data)
+    _AppendLog(self._test.log_file, data)
 
     if fw == self._test.args.firmware_revision_string:
       self.Pass()
@@ -980,7 +964,7 @@ class InputTestTask(test_task.TestTask):
     def SaveLogAndFail(fail_reason):
       """Save the fail log and invoke Fail()."""
       data = 'Pairing fail: %s\n' % fail_reason
-      _SaveLogs(self._test.log_file, self._test.aux_log_file, data)
+      _AppendLog(self._test.log_file, data)
       self.Fail(fail_reason)
 
     input_count_before_connection = CheckInputCount()
@@ -1018,7 +1002,7 @@ class InputTestTask(test_task.TestTask):
       # We leave the device paired
       self._need_to_cleanup = False
       data = 'Pairing finished\n'
-      _SaveLogs(self._test.log_file, self._test.aux_log_file, data)
+      _AppendLog(self._test.log_file, data)
       self.Pass()
       return
 
@@ -1113,8 +1097,6 @@ class BluetoothTest(unittest.TestCase):
           'the expected battery level', default=100, optional=True),
       Arg('log_path', str, 'the directory of the log on the local test host',
           optional=True),
-      Arg('aux_log_path', str, 'the path of the aux log on shopfloor',
-          optional=True),
       Arg('test_host_id_file', str, 'the file storing the id of the test host',
           optional=True),
   ]
@@ -1163,18 +1145,18 @@ class BluetoothTest(unittest.TestCase):
       filename = '.'.join([self.args.base_enclosure_serial_number,
                            str(test_host_id)])
       self.log_file = None
-      self.aux_log_file = None
       if self.args.log_path:
         self.log_file = os.path.join(self.args.log_path, filename)
-        # Note: aux_log_file is generated from log_file
-        #       Not all projects would generate aux_log_file.
-        if self.args.aux_log_path:
-          self.aux_log_file = os.path.join(self.args.aux_log_path, filename)
 
   def tearDown(self):
     """Close the charge test fixture."""
     if self.args.use_charge_fixture:
       self.fixture.Close()
+    if self.log_file:
+      testlog.AttachFile(
+          self.log_file, 'text/plain',
+          'bluetooth_%s.txt' % os.path.dirname(self.log_file),
+          description='Raw execution logs')
 
   def runTest(self):
     if self.args.use_charge_fixture:

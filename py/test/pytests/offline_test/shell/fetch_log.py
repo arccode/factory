@@ -10,12 +10,13 @@ import shutil
 import tempfile
 import time
 import unittest
+import xmlrpclib
 import zipfile
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
-from cros.factory.test import shopfloor
+from cros.factory.test import server_proxy
 from cros.factory.test.pytests.offline_test.shell import common
 from cros.factory.utils import file_utils
 from cros.factory.utils.arg_utils import Arg
@@ -105,8 +106,12 @@ class OfflineTestFetchLog(unittest.TestCase):
     if self.args.upload_to_shopfloor:
       dir_name = os.path.join(self.args.shopfloor_dir_name,
                               self.dut.info.mlb_serial_number)
-      shopfloor.UploadAuxLogs([self._CompressLog(upload_files)],
-                              dir_name=dir_name)
+      # TODO(hungte) Change this by test log?
+      proxy = server_proxy.GetServerProxy()
+      zip_file = self._CompressLog(upload_files)
+      proxy.SaveAuxLog(
+          os.path.join(dir_name, os.path.basename(zip_file)),
+          xmlrpclib.Binary(file_utils.ReadFile(zip_file)))
     else:
       logging.info('DUT mlb_serial_number: %s',
                    self.dut.info.mlb_serial_number)

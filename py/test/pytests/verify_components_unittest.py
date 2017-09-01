@@ -16,7 +16,6 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test.factory import FactoryTestFailure
 from cros.factory.test.pytests import verify_components
-from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils.deploy_utils import FactoryPythonArchive
@@ -36,7 +35,6 @@ class VerifyComponentsUnitTest(unittest.TestCase):
 
     self._mock_test = verify_components.VerifyComponentsTest()
     self._mock_test.factory_par = self._mox.CreateMock(FactoryPythonArchive)
-    self._mock_shopfloor = self._mox.CreateMock(shopfloor)
     self._mock_test.template = self._mox.CreateMock(OneSection)
     self._mock_test._ui = self._mox.CreateMock(test_ui.UI)
     self._mox.StubOutWithMock(event_log, 'Log')

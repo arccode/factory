@@ -49,7 +49,7 @@ from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import rf
 from cros.factory.test.rf import e5071c_scpi
-from cros.factory.test import shopfloor
+from cros.factory.test import server_proxy
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test.utils import connection_manager
@@ -165,11 +165,11 @@ class VSWR(unittest.TestCase):
     logging.info('Connected to ENA %s.', self.log['network_analyzer']['id'])
 
   def _DownloadParametersFromShopfloor(self):
-    """Downloads parameters from shopfloor."""
-    logging.info('Downloading parameters from shopfloor...')
+    """Downloads parameters from factory server."""
+    logging.info('Downloading parameters from factory server...')
 
-    shopfloor_server = shopfloor.GetShopfloorConnection(retry_interval_secs=3)
-    config_content = shopfloor_server.GetParameter(self.args.config_path)
+    proxy = server_proxy.GetServerProxy()
+    config_content = proxy.GetParameter(self.args.config_path)
 
     logging.info('Parameters downloaded.')
     # Parse and load parameters.
@@ -349,9 +349,9 @@ class VSWR(unittest.TestCase):
     event_log_fields.update(self.log)
     event_log.Log(self.args.event_log_name, **event_log_fields)
 
-    logging.info('Uploading aux log onto shopfloor.')
-    shopfloor_server = shopfloor.GetShopfloorConnection()
-    shopfloor_server.SaveAuxLog(
+    logging.info('Uploading aux log onto factory server.')
+    proxy = server_proxy.GetServerProxy()
+    proxy.SaveAuxLog(
         posixpath.join(self.args.shopfloor_log_dir,
                        log_file_name),
         xmlrpclib.Binary(log_content))

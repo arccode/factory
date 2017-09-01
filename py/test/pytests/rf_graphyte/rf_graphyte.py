@@ -60,7 +60,7 @@ from cros.factory.device import device_utils
 from cros.factory.test.env import paths
 from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import shopfloor
+from cros.factory.test import server_proxy
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.testlog import testlog
@@ -134,7 +134,7 @@ class RFGraphyteTest(unittest.TestCase):
     self._dut = device_utils.CreateDUTInterface()
     self.process = None
     if self.args.enable_factory_server:
-      self._server_proxy = shopfloor.GetShopfloorConnection()
+      self._server_proxy = server_proxy.GetServerProxy()
 
     timestamp = time.strftime('%H%M%S')
     self.config_file_path = os.path.join(
@@ -296,7 +296,7 @@ class RFGraphyteTest(unittest.TestCase):
     config_file_paths = self._server_proxy.ListParameters(
         os.path.join(self.args.server_parameter_dir, '*'))
     for file_path in config_file_paths:
-      factory.console.info('Fetch config file from shopfloor: %s', file_path)
+      factory.console.info('Fetch config file from server: %s', file_path)
       content = self._server_proxy.GetParameter(file_path).data
       file_name = os.path.basename(file_path)
       with open(os.path.join(LOCAL_CONFIG_DIR, file_name), 'w') as f:

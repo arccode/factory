@@ -15,9 +15,9 @@ Data methods:
   test results.
 - USB: reads parameter file from USB drive, and saves test results in USB drive
   in subfolders ordered by date.
-- Shopfloor: reads param file from shopfloor, and saves test results in
-  shopfloor aux_logs. This is recommended over USB when there is
-  Shopfloor environment because USB drive is not reliable.
+- Shopfloor: reads param file from factory server, and saves test results in
+  factory server aux_logs. This is recommended over USB when there is
+  factory server environment because USB drive is not reliable.
 
 Test parameters:
 
@@ -73,7 +73,7 @@ from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import leds
-from cros.factory.test import shopfloor
+from cros.factory.test import server_proxy
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test.utils import media_utils
@@ -347,17 +347,17 @@ class ALSFixture(unittest.TestCase):
       time.sleep(0.5)
 
   def _LoadParamsFromShopfloor(self):
-    """Loads parameters from shopfloor."""
+    """Loads parameters from factory server."""
     network_utils.PrepareNetwork(
         ip=self.args.local_ip, force_new_ip=False, logger=factory.console)
 
-    factory.console.info('Reading %s from shopfloor', self.args.param_pathname)
-    shopfloor_client = shopfloor.GetShopfloorConnection()
+    factory.console.info('Reading %s from server', self.args.param_pathname)
+    proxy = server_proxy.GetServerProxy()
     return ast.literal_eval(
-        shopfloor_client.GetParameter(self.args.param_pathname).data)
+        proxy.GetParameter(self.args.param_pathname).data)
 
   def _Log(self, text):
-    """Custom log function to log to factory console and USB/shopfloor later."""
+    """Custom log function to log to factory console and USB/server later."""
     factory.console.info(text)
     self.logs.append(text)
 
@@ -555,7 +555,7 @@ class ALSFixture(unittest.TestCase):
                 traceback.format_exc())
       return False, FAIL_UNKNOWN
     else:
-      # (8) Logs to event log, and save to USB and shopfloor.
+      # (8) Logs to event log, and save to USB and server.
       update_progress(STAGE100_SAVED)
       self._UploadALSCalibData(
           test_status[STAGE90_END] == TestStatus.PASSED,
@@ -689,14 +689,14 @@ class ALSFixture(unittest.TestCase):
     self._ShowProgressBar(self.timing[test_stage])
 
   def _UploadALSCalibData(self, test_passed, result):
-    """Upload ALS calibration data to shopfloor.
+    """Upload ALS calibration data to factory server.
 
     Args:
       test_passed: whether the ALS test has passed the criteria.
     """
     if test_passed:
-      shopfloor_client = shopfloor.GetShopfloorConnection()
-      shopfloor_client.SaveAuxLog(
+      proxy = server_proxy.GetServerProxy()
+      proxy.SaveAuxLog(
           os.path.join('als', '%s.als' % self.module_sn),
           str(result))
 
