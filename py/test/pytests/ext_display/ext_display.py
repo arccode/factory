@@ -77,11 +77,11 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.external import evdev
 from cros.factory.test import event
-from cros.factory.test import factory_task
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.pytests import audio
 from cros.factory.test import state
+from cros.factory.test import test_task
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
@@ -135,7 +135,7 @@ def _GetMsgPromptPassKey(key):
       'Press <span id="pass_key">{key}</span> to pass the test.', key=key)
 
 
-class ExtDisplayTask(factory_task.InteractiveFactoryTask):
+class ExtDisplayTask(test_task.InteractiveTestTask):
   """Base class of tasks for external display test.
 
   Args:
@@ -510,7 +510,7 @@ class VideoTask(ExtDisplayTask):
       self._check_display.Stop()
 
 
-class AudioSetupTask(factory_task.FactoryTask):
+class AudioSetupTask(test_task.TestTask):
   """A task to setup audio initial configuration.
 
   Args:
@@ -624,10 +624,10 @@ class ExtDisplayTest(unittest.TestCase):
     self._ui.AppendCSS(_CSS)
 
   def ComposeTasks(self):
-    """Composes test tasks acoording to display_info dargs.
+    """Composes tasks acoording to display_info dargs.
 
     Returns:
-      A list of test tasks derived from ExtDisplayTask.
+      A list of tasks derived from ExtDisplayTask.
 
     Raises:
       ValueError if args.display_info is invalid.
@@ -664,7 +664,7 @@ class ExtDisplayTest(unittest.TestCase):
 
   def runTest(self):
     self.InitUI()
-    self._task_manager = factory_task.FactoryTaskManager(
+    self._task_manager = test_task.TestTaskManager(
         self._ui, self.ComposeTasks(),
         update_progress=self._template.SetProgressBarValue)
     self._task_manager.Run()

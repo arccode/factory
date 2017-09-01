@@ -56,9 +56,9 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import factory_task
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test import test_task
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -71,7 +71,7 @@ CSS_TEMPLATE = """
 _HTML_REMAIN = '<br><div id="remain"></div>'
 
 
-class ShowingTask(factory_task.FactoryTask):
+class ShowingTask(test_task.TestTask):
   """The task to show message for seconds """
   def __init__(self, ui, seconds, manual_check):
     super(ShowingTask, self).__init__()
@@ -142,7 +142,7 @@ class MessageTest(unittest.TestCase):
         '</div>')
     if self.args.seconds:
       task = ShowingTask(ui, self.args.seconds, self.args.manual_check)
-      factory_task.FactoryTaskManager(ui, [task]).Run()
+      test_task.TestTaskManager(ui, [task]).Run()
     else:
       ui.BindStandardKeys(bind_fail_keys=self.args.manual_check)
       ui.Run()

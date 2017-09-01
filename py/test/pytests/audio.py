@@ -64,10 +64,10 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import factory_task
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test import test_task
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -92,7 +92,7 @@ _SOUND_DIRECTORY = os.path.join(
     'static', 'sounds')
 
 
-class AudioDigitPlaybackTask(factory_task.InteractiveFactoryTask):
+class AudioDigitPlaybackTask(test_task.InteractiveTestTask):
   """Task to verify audio playback function.
 
   It randomly picks a digit to play and checks if the operator presses the
@@ -190,7 +190,7 @@ class AudioDigitPlaybackTask(factory_task.InteractiveFactoryTask):
     self.UnbindDigitKeys()
 
 
-class DetectHeadphoneTask(factory_task.InteractiveFactoryTask):
+class DetectHeadphoneTask(test_task.InteractiveTestTask):
   """Task to wait for headphone connect/disconnect.
 
   Args:
@@ -330,7 +330,7 @@ class AudioTest(unittest.TestCase):
 
   def runTest(self):
     self.InitUI()
-    self._task_manager = factory_task.FactoryTaskManager(
+    self._task_manager = test_task.TestTaskManager(
         self._ui, self.ComposeTasks(),
         update_progress=self._template.SetProgressBarValue)
     self._task_manager.Run()

@@ -24,8 +24,8 @@ import uuid
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event
 from cros.factory.test import event_log
-from cros.factory.test import factory_task
 from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test import test_task
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -121,7 +121,7 @@ class WaitSIMCardThread(threading.Thread):
     self._done.set()
 
 
-class ProbeSIMCardTask(factory_task.FactoryTask):
+class ProbeSIMCardTask(test_task.TestTask):
   """Probe SIM card task."""
   INSERT_SIM_CARD = 'Insertion'
   REMOVE_SIM_CARD = 'Removal'
@@ -166,7 +166,7 @@ class RemoveSIMTask(ProbeSIMCardTask):
                                         ProbeSIMCardTask.REMOVE_SIM_CARD)
 
 
-class CheckSIMTask(factory_task.FactoryTask):
+class CheckSIMTask(test_task.TestTask):
   """Task to check SIM card state"""
 
   def __init__(self, test):
@@ -235,7 +235,7 @@ class ProbeSIMCardTest(unittest.TestCase):
     else:
       task_list = [InsertSIMTask(self), RemoveSIMTask(self)]
 
-    self._task_manager = factory_task.FactoryTaskManager(
+    self._task_manager = test_task.TestTaskManager(
         self.ui, task_list, on_finish=Done)
 
     self._task_manager.Run()

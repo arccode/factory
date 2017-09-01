@@ -70,9 +70,9 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
-from cros.factory.test import factory_task
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
+from cros.factory.test import test_task
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
@@ -100,7 +100,7 @@ _MSG_FLASH_ERROR = i18n_test_ui.MakeI18nLabelWithClass(
     'Error flashing netboot firmware!', 'start-font-size test-error')
 
 
-class ImageCheckTask(factory_task.FactoryTask):
+class ImageCheckTask(test_task.TestTask):
 
   def __init__(self, test):
     super(ImageCheckTask, self).__init__()
@@ -194,4 +194,4 @@ class CheckImageVersionTest(unittest.TestCase):
     self.ui.AppendCSS(_CSS)
 
   def runTest(self):
-    factory_task.FactoryTaskManager(self.ui, self._task_list).Run()
+    test_task.TestTaskManager(self.ui, self._task_list).Run()

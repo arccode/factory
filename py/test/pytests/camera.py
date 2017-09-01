@@ -84,9 +84,9 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import factory_task
 from cros.factory.test.fixture.camera import barcode
 from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test import test_task
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -153,7 +153,7 @@ CaptureTaskType = type_utils.Enum(
     ['QR', 'FACE', 'TIMEOUT', 'MANUAL', 'FRAME_COUNT'])
 
 
-class CaptureTask(factory_task.InteractiveFactoryTask):
+class CaptureTask(test_task.InteractiveTestTask):
   """Test task to test camera image capture functionality. It has 3 operating
   modes, which can be adjusted through CameraTest dargs:
   1. Automatically detect faces to pass the test, or
@@ -272,7 +272,7 @@ class CaptureTask(factory_task.InteractiveFactoryTask):
     self.camera_test.camera_device.DisableCamera()
 
 
-class LEDTask(factory_task.InteractiveFactoryTask):
+class LEDTask(test_task.InteractiveTestTask):
   """Test task to test camera LED.
 
   Args:
@@ -414,7 +414,7 @@ class CameraTest(unittest.TestCase):
     if not self.task_list:
       raise ValueError('must choose at least one test type')
 
-    self.task_manager = factory_task.FactoryTaskManager(self.ui, self.task_list)
+    self.task_manager = test_task.TestTaskManager(self.ui, self.task_list)
     process_utils.StartDaemonThread(target=self._CountdownTimer,
                                     interrupt_on_crash=True)
 

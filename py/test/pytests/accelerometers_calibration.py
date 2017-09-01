@@ -61,8 +61,8 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import accelerometer
 from cros.factory.device import device_utils
-from cros.factory.test import factory_task
 from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test import test_task
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -93,7 +93,7 @@ _CSS = """
 """
 
 
-class HorizontalCalibrationTask(factory_task.FactoryTask):
+class HorizontalCalibrationTask(test_task.TestTask):
   """Horizontal calibration for accelerometers.
 
   Attributes:
@@ -160,7 +160,7 @@ class HorizontalCalibrationTask(factory_task.FactoryTask):
     self.test.ui.BindKey(test_ui.SPACE_KEY, lambda _: self.StartCalibration())
 
 
-class SixSidedCalibrationTask(factory_task.FactoryTask):
+class SixSidedCalibrationTask(test_task.TestTask):
   """Six-sided calibration for accelerometers."""
 
   def __init__(self, test):
@@ -251,5 +251,5 @@ class AccelerometersCalibration(unittest.TestCase):
           self.args.sample_rate_hz)]
     else:
       task_list = [SixSidedCalibrationTask(self.args.orientation)]
-    self._task_manager = factory_task.FactoryTaskManager(self.ui, task_list)
+    self._task_manager = test_task.TestTaskManager(self.ui, task_list)
     self._task_manager.Run()

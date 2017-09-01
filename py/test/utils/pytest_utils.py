@@ -106,7 +106,7 @@ def LoadPytest(pytest_name):
   # To simplify things, we only allow one TestCase per pytest.
   if suite.countTestCases() != 1:
     raise factory.FactoryTestFailure(
-        'Only one TestCase per pytest is supported. Use factory_task '
+        'Only one TestCase per pytest is supported. Use test_task '
         'if multiple tasks need to be done in a single pytest.')
   # The first sub-TestCase in the first sub-TestSuite of suite is the target.
   return next(iter(next(iter(suite))))

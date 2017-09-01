@@ -22,12 +22,12 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
 from cros.factory.test import factory
-from cros.factory.test.factory_task import FactoryTask
-from cros.factory.test.factory_task import FactoryTaskManager
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
+from cros.factory.test.test_task import TestTask
+from cros.factory.test.test_task import TestTaskManager
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -67,8 +67,8 @@ _MSG_INIT_SHARED_DATA = i18n_test_ui.MakeI18nLabelWithClass(
 _LSB_FACTORY_PATH = '/usr/local/etc/lsb-factory'
 
 
-class PressSpaceTask(FactoryTask):
-  """A factory task to wait for space press event."""
+class PressSpaceTask(TestTask):
+  """A task to wait for space press event."""
 
   def __init__(self, test):  # pylint: disable=super-init-not-called
     self._test = test
@@ -78,8 +78,8 @@ class PressSpaceTask(FactoryTask):
     self._test.ui.BindKeyJS(test_ui.SPACE_KEY, 'window.test.pass();')
 
 
-class ExternalPowerTask(FactoryTask):
-  """A factory task to wait for external power."""
+class ExternalPowerTask(TestTask):
+  """A task to wait for external power."""
   AC_CONNECTED = 1
   AC_DISCONNECTED = 2
   AC_CHECK_PERIOD = 0.5
@@ -108,8 +108,8 @@ class ExternalPowerTask(FactoryTask):
       return self.AC_DISCONNECTED
 
 
-class FactoryInstallCompleteTask(FactoryTask):
-  """A factory task to check if factory install is complete."""
+class FactoryInstallCompleteTask(TestTask):
+  """A task to check if factory install is complete."""
 
   def __init__(self, test):  # pylint: disable=super-init-not-called
     self._test = test
@@ -123,7 +123,7 @@ class FactoryInstallCompleteTask(FactoryTask):
     self.Pass()
 
 
-class InitializeSharedData(FactoryTask):
+class InitializeSharedData(TestTask):
   """Initialize shared data."""
 
   def __init__(self, test):  # pylint: disable=super-init-not-called
@@ -175,4 +175,4 @@ class StartTest(unittest.TestCase):
     if self.args.press_to_continue:
       self._task_list.append(PressSpaceTask(self))
 
-    FactoryTaskManager(self.ui, self._task_list).Run()
+    TestTaskManager(self.ui, self._task_list).Run()

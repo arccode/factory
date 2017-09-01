@@ -35,8 +35,8 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.external import numpy
 from cros.factory.test import event_log
-from cros.factory.test import factory_task
 from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test import test_task
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.testlog import testlog
@@ -65,7 +65,7 @@ CheckItem = collections.namedtuple(
     'CheckItem', ['frame_idx', 'label', 'min_val', 'max_val', 'rows', 'cols'])
 
 
-class CalibrateTask(factory_task.FactoryTask):
+class CalibrateTask(test_task.TestTask):
   """Recalibrates the touch controller."""
 
   def __init__(self, test):
@@ -84,7 +84,7 @@ class CalibrateTask(factory_task.FactoryTask):
       self.Fail('Touch device calibration failed.')
 
 
-class CheckRawDataTask(factory_task.FactoryTask):
+class CheckRawDataTask(test_task.TestTask):
   """Checks raw controler data is in an expected range.
 
   Args:
@@ -167,7 +167,7 @@ class CheckRawDataTask(factory_task.FactoryTask):
       self.Pass()
 
 
-class CheckInterfaceTask(factory_task.FactoryTask):
+class CheckInterfaceTask(test_task.TestTask):
   """Verifies that the touch controler interface exists."""
 
   def __init__(self, test):
@@ -207,7 +207,7 @@ class TouchUniformity(unittest.TestCase):
     self.controller = self.dut.touch.GetController(self.args.device_index)
 
   def runTest(self):
-    factory_task.FactoryTaskManager(self.ui, [
+    test_task.TestTaskManager(self.ui, [
         CheckInterfaceTask(self),
         CalibrateTask(self),
         CheckRawDataTask(self),

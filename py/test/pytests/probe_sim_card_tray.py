@@ -22,8 +22,8 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test import countdown_timer
 from cros.factory.test import event
 from cros.factory.test import factory
-from cros.factory.test import factory_task
 from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test import test_task
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -87,7 +87,7 @@ class WaitTrayThread(threading.Thread):
     self._on_success()
 
 
-class ProbeTrayTask(factory_task.FactoryTask):
+class ProbeTrayTask(test_task.TestTask):
   """Probe SIM card tray task."""
   INSERTED = 'Inserted'
   REMOVED = 'Removed'
@@ -274,5 +274,5 @@ class ProbeSimCardTrayTest(unittest.TestCase):
       if self.args.remove:
         task_list.append(RemoveTrayTask(self))
 
-    self._task_manager = factory_task.FactoryTaskManager(self.ui, task_list)
+    self._task_manager = test_task.TestTaskManager(self.ui, task_list)
     self._task_manager.Run()

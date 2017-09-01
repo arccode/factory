@@ -27,10 +27,10 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test import factory
-from cros.factory.test import factory_task
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import shopfloor
 from cros.factory.test import state
+from cros.factory.test import test_task
 from cros.factory.test import test_ui
 from cros.factory.test import testlog_goofy
 from cros.factory.test import ui_templates
@@ -229,7 +229,7 @@ def RetryWithProgress(template, template_message, action_string,
   return target_result
 
 
-class DetectAdapterTask(factory_task.FactoryTask):
+class DetectAdapterTask(test_task.TestTask):
   """The task checking number of adapters.
 
   Detects adapters from dbus and checks if the number of adapters matches the
@@ -256,7 +256,7 @@ class DetectAdapterTask(factory_task.FactoryTask):
                 (self._expected_adapter_count, len(adapters)))
 
 
-class TurnOnTask(factory_task.FactoryTask):
+class TurnOnTask(test_task.TestTask):
   """The task to ask operator to turn on bluetooth device and press enter.
 
   Args:
@@ -300,7 +300,7 @@ def SetAndStartScanProgressBar(template, timeout_secs, scan_event=None):
       target=UpdateProgressBar, name='ProgressThread')
 
 
-class ScanDevicesTask(factory_task.FactoryTask):
+class ScanDevicesTask(test_task.TestTask):
   """The task to scan bluetooth devices around.
 
   In this task, the test will control the first adapter from BluetoothManager
@@ -455,7 +455,7 @@ class ScanDevicesTask(factory_task.FactoryTask):
       self.Pass()
 
 
-class DetectRSSIofTargetMACTask(factory_task.FactoryTask):
+class DetectRSSIofTargetMACTask(test_task.TestTask):
   """The task to detect the RSSI strength at a given target MAC address.
 
   In this task, a generic test host uses the first adapter from
@@ -559,7 +559,7 @@ class DetectRSSIofTargetMACTask(factory_task.FactoryTask):
         self.Pass()
 
 
-class UnpairTask(factory_task.FactoryTask):
+class UnpairTask(test_task.TestTask):
   """A task to unpair from bluetooth devices.
 
   Args:
@@ -607,7 +607,7 @@ class UnpairTask(factory_task.FactoryTask):
       self.Pass()
 
 
-class CheckDisconnectionOfPairedDeviceTask(factory_task.FactoryTask):
+class CheckDisconnectionOfPairedDeviceTask(test_task.TestTask):
   """A task to check whether a paired device has disconnected.
 
   Args:
@@ -667,7 +667,7 @@ def _ExecuteFixtureMethod(fixture, operation, post_sleep=0):
   time.sleep(post_sleep)
 
 
-class FixtureControlTask(factory_task.FactoryTask):
+class FixtureControlTask(test_task.TestTask):
   """The task to control the charge test fixture.
 
   Args:
@@ -698,7 +698,7 @@ def _SaveLocalBatteryLog(base_enclosure_serial_number, mac, step,
              battery_level))
 
 
-class ReadBatteryLevelTask(factory_task.FactoryTask):
+class ReadBatteryLevelTask(test_task.TestTask):
   """A class to read battery level."""
 
   MSG_DICT = {READ_BATTERY_STEP_1: _MSG_READ_BATTERY_1,
@@ -754,7 +754,7 @@ class ReadBatteryLevelTask(factory_task.FactoryTask):
     self.Pass()
 
 
-class CheckBatteryLevelTask(factory_task.FactoryTask):
+class CheckBatteryLevelTask(test_task.TestTask):
   """This battery level test checks whether the following condistions
   are satisfied:
 
@@ -791,7 +791,7 @@ class CheckBatteryLevelTask(factory_task.FactoryTask):
     self.Fail(fail_msg % (battery_level_1, battery_level_2))
 
 
-class ChargeTestTask(factory_task.FactoryTask):
+class ChargeTestTask(test_task.TestTask):
 
   def __init__(self, test, mac, step):
     super(ChargeTestTask, self).__init__()
@@ -848,8 +848,8 @@ class ChargeTestTask(factory_task.FactoryTask):
         self.Fail('ChargeTestTask: the battery is not charging!')
 
 
-class CheckFirmwareRevisionTestTask(factory_task.FactoryTask):
-  """A factory task class to read firmware revision string."""
+class CheckFirmwareRevisionTestTask(test_task.TestTask):
+  """A task class to read firmware revision string."""
 
   def __init__(self, test, mac):
     super(CheckFirmwareRevisionTestTask, self).__init__()
@@ -887,7 +887,7 @@ class CheckFirmwareRevisionTestTask(factory_task.FactoryTask):
                 (self._test.args.firmware_revision_string, fw))
 
 
-class InputTestTask(factory_task.FactoryTask):
+class InputTestTask(test_task.TestTask):
   """The task to test bluetooth input device functionality.
 
   The task will try to pair with the device given by the test,
@@ -1263,4 +1263,4 @@ class BluetoothTest(unittest.TestCase):
         self._task_list.append(
             TurnOnTask(self, _MSG_STOP_CHARGE, test_ui.SPACE_KEY))
 
-    factory_task.FactoryTaskManager(self.ui, self._task_list).Run()
+    test_task.TestTaskManager(self.ui, self._task_list).Run()

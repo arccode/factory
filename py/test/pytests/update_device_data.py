@@ -128,11 +128,11 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data
-from cros.factory.test import factory_task
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.l10n import regions
+from cros.factory.test import test_task
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -290,7 +290,7 @@ class DataEntry(object):
     return input_data
 
 
-class InputTask(factory_task.FactoryTask):
+class InputTask(test_task.TestTask):
   """Factory task to let user manually enter value for the given data.
 
   Args:
@@ -421,7 +421,7 @@ class UpdateDeviceData(unittest.TestCase):
 
   def runTest(self):
     if self.args.manual_input:
-      factory_task.FactoryTaskManager(self.ui, self.tasks).Run()
+      test_task.TestTaskManager(self.ui, self.tasks).Run()
     else:
       results = dict((entry.key, entry.value) for entry in self.entries)
       device_data.UpdateDeviceData(results)

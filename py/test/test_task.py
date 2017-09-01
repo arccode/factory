@@ -15,12 +15,12 @@ TaskState = type_utils.Enum(['NOT_STARTED', 'RUNNING', 'FINISHED'])
 FinishReason = type_utils.Enum(['PASSED', 'FAILED', 'STOPPED'])
 
 
-class FactoryTaskManager(object):
-  """Manages the execution of factory tasks in the context of the given UI.
+class TestTaskManager(object):
+  """Manages the execution of tasks in the context of the given UI.
 
   Args:
     ui: The test UI object that the manager depends on.
-    task_list: A list of factory tasks to be executed.
+    task_list: A list of tasks to be executed.
     update_progress: Optional callback to update progress bar. Passing
         percent progress as parameter.
     on_finish: Optional callback to run when ui ends.
@@ -62,8 +62,8 @@ class FactoryTaskManager(object):
     self._ui.Run(on_finish=self._on_finish)
 
 
-class FactoryTask(object):
-  """Base class for factory tasks.
+class TestTask(object):
+  """Base class for tasks.
 
   Subclass should implement Run(), and possibly Cleanup() if the user
   wants to do some cleaning jobs.
@@ -163,8 +163,8 @@ class FactoryTask(object):
     return p.returncode == 0
 
 
-class InteractiveFactoryTask(FactoryTask):  # pylint: disable=abstract-method
-  """A FactoryTask class for interactive tasks.
+class InteractiveTestTask(TestTask):  # pylint: disable=abstract-method
+  """A TestTask class for interactive tasks.
 
   It provides common key binding methods for interactive tasks.
 
@@ -173,7 +173,7 @@ class InteractiveFactoryTask(FactoryTask):  # pylint: disable=abstract-method
   """
 
   def __init__(self, ui):
-    super(InteractiveFactoryTask, self).__init__()
+    super(InteractiveTestTask, self).__init__()
     self._ui = ui
 
   def BindPassFailKeys(self, pass_key=True, fail_later=True):
