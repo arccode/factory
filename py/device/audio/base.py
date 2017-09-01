@@ -43,6 +43,9 @@ class BaseMixerController:
       card: The index of audio card
       store: Store the current value so it can be restored later using
         RestoreMixerControls.
+
+    Raises:
+      Raise CalledProcessError if failed to apply mixer commands.
     """
     raise NotImplementedError
 

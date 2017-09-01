@@ -118,7 +118,10 @@ class BaseConfigManager:
       is_script: True for shell script. False for mixer controls
 
     Returns:
-      True for applying to dut. False for not.
+      True if the operation is supported; False if not.
+
+    Raises:
+      Raise CalledProcessError if failed to apply config.
     """
     raise NotImplementedError
 
@@ -223,7 +226,12 @@ class FactoryAudioConfManager(BaseConfigManager):
     self.audio_config = config
 
   def Initialize(self, card='0'):
-    self.ApplyAudioConfig('initial', card)
+    """Initialize sound card.
+
+    Returns:
+      A boolean value indicating if the operation succeeded or not.
+    """
+    return self.ApplyAudioConfig('initial', card)
 
   def _GetConfigPostfix(self, device):
     switcher = {
@@ -240,35 +248,51 @@ class FactoryAudioConfManager(BaseConfigManager):
 
     Args:
       device: Audio device to control. Should be of type AudioDeviceType.
+
+    Returns:
+      A boolean value indicating if the operation succeeded or not.
     """
-    self.ApplyAudioConfig("enable_" + self._GetConfigPostfix(device), card)
+    return self.ApplyAudioConfig(
+        "enable_" + self._GetConfigPostfix(device), card)
 
   def MuteLeftDevice(self, device, card='0'):
     """Mute left the specified audio device.
 
     Args:
       device: Audio device to control. Should be of type AudioDeviceType.
+
+    Returns:
+      A boolean value indicating if the operation succeeded or not.
     """
-    self.ApplyAudioConfig("mute_left_" + self._GetConfigPostfix(device), card)
+    return self.ApplyAudioConfig(
+        "mute_left_" + self._GetConfigPostfix(device), card)
 
   def MuteRightDevice(self, device, card='0'):
     """Mute left the specified audio device.
 
     Args:
       device: Audio device to control. Should be of type AudioDeviceType.
+
+    Returns:
+      A boolean value indicating if the operation succeeded or not.
     """
-    self.ApplyAudioConfig("mute_right_" + self._GetConfigPostfix(device), card)
+    return self.ApplyAudioConfig(
+        "mute_right_" + self._GetConfigPostfix(device), card)
 
   def DisableDevice(self, device, card='0'):
     """Mute left the specified audio device.
 
     Args:
       device: Audio device to control. Should be of type AudioDeviceType.
+
+    Returns:
+      A boolean value indicating if the operation succeeded or not.
     """
-    self.ApplyAudioConfig("disable_" + self._GetConfigPostfix(device), card)
+    return self.ApplyAudioConfig(
+        "disable_" + self._GetConfigPostfix(device), card)
 
   def ApplyAudioConfig(self, action, card='0', is_script=False):
-    """Base.ApplyAudioConfig."""
+    """BaseConfigManager.ApplyAudioConfig."""
     if is_script:
       card = _SCRIPT_CARD_INDEX
 
