@@ -80,10 +80,12 @@ class WebServiceUtilsTest(unittest.TestCase):
     proxy = f('jsonrpc:' + self.url)
     self.assertTrue(isinstance(proxy, webservice_utils.JSONRPCProxy))
     self.assertDictEqual(expected, proxy.callRemote(method1, param))
+    self.assertDictEqual(expected, proxy.GetDeviceInfo(param))
 
     proxy = f('json:jsonrpc:' + self.url)
     self.assertTrue(isinstance(proxy, webservice_utils.JSONProxyFilter))
     self.assertDictEqual(expected, proxy.callRemote(method2, param))
+    self.assertDictEqual(expected, proxy.JSONGetDeviceInfo(param))
 
     proxy = f('jsonrpc:json:' + self.url)
     self.assertTrue(isinstance(proxy, webservice_utils.JSONProxyFilter))

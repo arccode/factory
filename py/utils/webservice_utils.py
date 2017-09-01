@@ -86,6 +86,11 @@ class WebServiceProxy(object):
   def callRemote(self, method, *args, **kargs):
     raise NotImplementedError
 
+  def __getattr__(self, name):
+    def _wrapper(*args, **kargs):
+      return self.callRemote(name, *args, **kargs)
+    return _wrapper
+
 
 class XMLRPCProxy(WebServiceProxy):
   """A proxy for web service implemented in XML-RPC."""
