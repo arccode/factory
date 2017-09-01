@@ -344,17 +344,16 @@ class WebSocketTest(GoofyUITest):
     self.assertEqual(1, len(events_by_type[Event.Type.HELLO]))
 
     # Each test will first reset their iteration count (status == UNTESTED), And
-    # then have a transition to active, a transition to active + visible, and
-    # then to its final state.
+    # then have a transition to active, and then to its final state.
     for path, final_status in (('a', TestState.PASSED),
                                ('b', TestState.FAILED),
                                ('c', TestState.FAILED)):
-      expected = ['UNTESTED', 'ACTIVE', 'ACTIVE', final_status]
+      expected = ['UNTESTED', 'ACTIVE', final_status]
       statuses = [
           event.state['status']
           for event in events_by_type[Event.Type.STATE_CHANGE]
           if event.path == path]
-      if len(statuses) == 4:
+      if len(statuses) == 3:
         self.assertEqual(expected, statuses)
       elif path == 'a':
         # Since there's a high probability that the first test (a) starts

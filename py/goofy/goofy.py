@@ -135,7 +135,6 @@ class Goofy(GoofyBase):
     self.pytest_prespawner = None
     self._ui_initialized = False
     self.invocations = {}
-    self.visible_test = None
     self.chrome = None
     self.hooks = None
 
@@ -203,9 +202,9 @@ class Goofy(GoofyBase):
             lambda event: self.stop(root=test_or_root(event, False),
                                     fail=getattr(event, 'fail', False),
                                     reason=getattr(event, 'reason', None)),
-        Event.Type.SET_VISIBLE_TEST:
-            lambda event: self.set_visible_test(
-                self.test_list.LookupPath(event.path)),
+        Event.Type.SET_TEST_VISIBILITY:
+            lambda event: self.test_list.LookupPath(
+                event.path).UpdateState(visible=event.visible),
         Event.Type.CLEAR_STATE:
             lambda event: self.clear_state(
                 self.test_list.LookupPath(event.path)),
@@ -331,15 +330,6 @@ class Goofy(GoofyBase):
     self.web_socket_manager = WebSocketManager(self.uuid)
     self.goofy_server.AddHTTPGetHandler(
         '/event', self.web_socket_manager.handle_web_socket)
-
-  def set_visible_test(self, test):
-    if self.visible_test == test:
-      return
-    if self.visible_test:
-      self.visible_test.UpdateState(visible=False)
-    if test:
-      test.UpdateState(visible=True)
-    self.visible_test = test
 
   def shutdown(self, operation):
     """Starts shutdown procedure.
@@ -596,12 +586,9 @@ class Goofy(GoofyBase):
       new_state = test.UpdateState(
           status=TestState.ACTIVE, increment_count=1, error_msg='',
           invocation=invoc.uuid, iterations_left=iterations_left,
-          retries_left=retries_left,
-          visible=(self.visible_test == test))
+          retries_left=retries_left)
       invoc.count = new_state.count
       self.invocations[test] = invoc
-      if self.visible_test is None:
-        self.set_visible_test(test)
       # Send a INIT_TEST_UI event here, so the test UI are initialized in
       # order, and the tab order would be same as test list order when there
       # are parallel tests with UI.
@@ -710,8 +697,6 @@ class Goofy(GoofyBase):
 
   def reap_completed_tests(self):
     """Removes completed tests from the set of active tests.
-
-    Also updates the visible test if it was reaped.
     """
     test_completed = False
     for t, v in dict(self.invocations).iteritems():
@@ -740,15 +725,6 @@ class Goofy(GoofyBase):
 
     if test_completed:
       self.log_watcher.KickWatchThread()
-
-    if (self.visible_test is None or
-        self.visible_test not in self.invocations):
-      self.set_visible_test(None)
-      # Make the first running test, if any, the visible test
-      for t in self.test_list.Walk():
-        if t in self.invocations:
-          self.set_visible_test(t)
-          break
 
   def kill_active_tests(self, abort, root=None, reason=None):
     """Kills and waits for all active tests.

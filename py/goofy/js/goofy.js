@@ -8,6 +8,8 @@ goog.require('cros.factory.DeviceManager');
 goog.require('cros.factory.DiagnosisTool');
 goog.require('cros.factory.Plugin');
 goog.require('cros.factory.i18n');
+goog.require('cros.factory.testUI.Manager');
+goog.require('cros.factory.testUI.TabManager');
 goog.require('goog.crypt');
 goog.require('goog.crypt.Sha1');
 goog.require('goog.date.DateTime');
@@ -46,8 +48,6 @@ goog.require('goog.ui.ProgressBar');
 goog.require('goog.ui.Prompt');
 goog.require('goog.ui.SplitPane');
 goog.require('goog.ui.SubMenu');
-goog.require('goog.ui.Tab');
-goog.require('goog.ui.TabBar');
 goog.require('goog.ui.tree.TreeControl');
 
 /**
@@ -421,17 +421,6 @@ cros.factory.Invocation = function(goofy, path, uuid) {
   var label = this.goofy.pathTestMap[this.path].label;
 
   /**
-   * The tab object of the test.
-   * @type {!goog.ui.Tab}
-   */
-  this.tab = new goog.ui.Tab(cros.factory.i18n.i18nLabelNode(label));
-
-  this.goofy.tabBar.addChild(this.tab, true);
-
-  var element = /** @type {!HTMLElement} */ (this.tab.getElement());
-  element.dataset.testPath = this.path;
-
-  /**
    * The iframe containing the test.
    * @type {!HTMLIFrameElement}
    */
@@ -439,7 +428,8 @@ cros.factory.Invocation = function(goofy, path, uuid) {
 
   goog.dom.classlist.add(this.iframe, 'goofy-test-iframe');
 
-  document.getElementById('goofy-main').appendChild(this.iframe);
+  this.goofy.testUIManager.addTestUI(this.path, label, this.iframe);
+
   this.iframe.contentWindow.$ = goog.bind(
       /**
        * @this {!cros.factory.Goofy}
@@ -453,21 +443,6 @@ cros.factory.Invocation = function(goofy, path, uuid) {
   this.iframe.contentWindow.cros = cros;
   this.iframe.contentWindow.goog = goog;
   this.iframe.contentWindow.test = this.test;
-
-  var visible = this.getState().visible;
-  this.setVisible(visible);
-};
-
-/**
- * Sets whether the invocation is visible.
- * @param {boolean} visible
- */
-cros.factory.Invocation.prototype.setVisible = function(visible) {
-  goog.dom.classlist.enable(this.iframe, 'goofy-test-visible', visible);
-  this.tab.setSelected(visible);
-  if (visible) {
-    this.iframe.contentWindow.focus();
-  }
 };
 
 /**
@@ -484,17 +459,9 @@ cros.factory.Invocation.prototype.getState = function() {
 cros.factory.Invocation.prototype.dispose = function() {
   goog.log.info(cros.factory.logger, 'Cleaning up invocation ' + this.uuid);
 
+  this.goofy.testUIManager.removeTestUI(this.path);
   goog.dom.removeNode(this.iframe);
-  this.goofy.tabBar.removeChild(this.tab, true);
   this.goofy.invocations[this.uuid] = null;
-  if (this.goofy.tabBar.getChildCount()) {
-    // Select the first tab if there's any tab. This does not actually change
-    // the visibility of iframe, as the visibility would be changed by Goofy
-    // backend. Since Goofy backend always choose the first tab, this is to
-    // minimize the tab flickering time between the tab is disposed and we
-    // receive backend event.
-    this.goofy.tabBar.setSelectedTabIndex(0);
-  }
 
   goog.log.info(
       cros.factory.logger, 'Top-level invocation ' + this.uuid + ' disposed');
@@ -734,10 +701,10 @@ cros.factory.Goofy = function() {
   this.pluginMenuItems = null;
 
   /**
-   * Tab bar object.
-   * @type {goog.ui.TabBar}
+   * The UI manager for invocations.
+   * @type {?cros.factory.testUI.Manager}
    */
-  this.tabBar = null;
+  this.testUIManager = null;
 
   // Set up magic keyboard shortcuts.
   goog.events.listen(
@@ -840,7 +807,27 @@ cros.factory.Goofy.prototype.initSplitPane = function(id, orientation) {
 };
 
 /**
- * Initializes the split panes and the tab bar.
+ * Create a callback object to be passed to test UI manager.
+ * @return {!cros.factory.testUI.CallBacks}
+ */
+cros.factory.Goofy.prototype.createTestUICallbacks = function() {
+  return {
+    /**
+     * @param {string} path
+     * @param {boolean} visible
+     */
+    notifyTestVisible: (path, visible) => {
+      // Change the background color of the node in tree.
+      const elt = this.pathNodeMap[path].getElement();
+      goog.dom.classlist.enable(elt, 'goofy-test-visible', visible);
+
+      this.sendEvent('goofy:set_test_visibility', {path, visible});
+    }
+  };
+};
+
+/**
+ * Initializes the split panes and the test ui.
  */
 cros.factory.Goofy.prototype.initUIComponents = function() {
   const viewportSize = goog.dom.getViewportSize(goog.dom.getWindow(document));
@@ -902,19 +889,9 @@ cros.factory.Goofy.prototype.initUIComponents = function() {
     goog.Timer.callOnce(this.focusInvocation, 0, this);
   });
 
-  var tabBar = new goog.ui.TabBar();
-  tabBar.decorate(document.getElementById('goofy-tabbar'));
-  this.tabBar = tabBar;
-
-  // We listen on ACTION instead of SELECT, so it would only be triggered by
-  // user select, not tab.setSelected(true).
-  goog.events.listen(this.tabBar, goog.ui.Component.EventType.ACTION, () => {
-    var selectedTab =
-        /** @type {?HTMLElement} */ (this.tabBar.getSelectedTab().getElement());
-    var testPath =
-        (/** @type {{testPath: string}} */ (selectedTab.dataset)).testPath;
-    this.sendEvent('goofy:set_visible_test', {path: testPath});
-  });
+  this.testUIManager = new cros.factory.testUI.TabManager(
+      /** @type {!Element} */ (document.getElementById('goofy-test-ui-main')),
+      this.createTestUICallbacks());
 
   this.console = document.getElementById('goofy-console');
 };
@@ -931,7 +908,7 @@ cros.factory.Goofy.prototype.focusInvocation = function() {
   }
 
   goog.object.forEach(this.invocations, function(i) {
-    if (i && i.iframe && i.getState().visible) {
+    if (i && i.iframe && this.testUIManager.isVisible(i.path)) {
       goog.Timer.callOnce(goog.bind(function() {
         if (!this.contextMenu) {
           i.iframe.focus();
@@ -1805,9 +1782,9 @@ cros.factory.Goofy.prototype.showTestPopup = function(
     var item =
         new goog.ui.MenuItem(cros.factory.i18n.i18nLabelNode('Show test UI'));
     goog.events.listen(item, goog.ui.Component.EventType.ACTION, function() {
-      this.sendEvent('goofy:set_visible_test', {path: test.path});
+      this.testUIManager.showTest(test.path);
     }, false, this);
-    item.setEnabled(!test.state.visible);
+    item.setEnabled(!this.testUIManager.isVisible(test.path));
     menu.addChild(item, true);
   }
 
@@ -2842,14 +2819,6 @@ cros.factory.Goofy.prototype.setTestState = function(path, state) {
           }));
   goog.dom.classlist.add(
       elt, 'goofy-status-' + state.status.toLowerCase().replace(/_/g, '-'));
-
-  var visible = state.visible;
-  goog.dom.classlist.enable(elt, 'goofy-test-visible', visible);
-  goog.object.forEach(this.invocations, function(invoc) {
-    if (invoc && invoc.path == path) {
-      invoc.setVisible(visible);
-    }
-  });
 
   if (state.status == 'ACTIVE') {
     // Automatically show the test if it is running.

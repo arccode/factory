@@ -15,7 +15,9 @@ JS_SOURCES = \
     diagnosis_tool.js \
     goofy.js \
     i18n.js \
-    plugin.js
+    plugin.js \
+    test_ui/manager.js \
+    test_ui/tab_manager.js
 
 JS_SOURCE_PATHS = $(addprefix ../js/,$(JS_SOURCES))
 
