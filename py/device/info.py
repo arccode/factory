@@ -139,7 +139,8 @@ class SystemInfo(types.DeviceComponent):
     """
     if not device_data.GetSerialNumber(name):
       serial = self._device.storage.LoadDict().get(name)
-      device_data.UpdateSerialNumbers({name: serial})
+      if serial:
+        device_data.UpdateSerialNumbers({name: serial})
     return device_data.GetSerialNumber(name)
 
   @InfoProperty
