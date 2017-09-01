@@ -612,6 +612,13 @@ add_file_component() {
     "${output_dir}" "${version}"
 }
 
+# Cache sudo session earlier.
+cache_sudo() {
+  if [ -n "${SUDO}" ]; then
+    ${SUDO} -v
+  fi
+}
+
 # Command "add", to add a component into payloads.
 # Usage: cmd_add JSON_PATH COMPONENT FILE
 cmd_add() {
@@ -628,6 +635,7 @@ cmd_add() {
 
   case "${component}" in
     release_image | test_image)
+      cache_sudo
       file="$(get_uncompressed_file "${file}")"
       add_image_component "${json_path}" "${component}" "${file}"
       ;;
