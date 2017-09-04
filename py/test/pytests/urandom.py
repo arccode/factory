@@ -4,24 +4,50 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""A factory test to stress CPU.
+"""A factory test to stress CPU, by generating pseudo random numbers.
 
+Description
+-----------
 It stresses CPU by generating random number using /dev/urandom for a specified
-period of time.
+period of time (specified by ``duration_secs``).
 
-Test parameter:
-  duration_secs: Number of seconds to stress CPU.
+Test Procedure
+--------------
+This is an automated test without user interaction.
+
+Start the test and it will run for the time specified in argument
+``duration_secs``, and pass if no errors found; otherwise fail with error
+messages and logs.
+
+Dependency
+----------
+No dependencies.  This test does not support remote DUT.
+
+Examples
+--------
+You should create an ``urandom`` test like this::
+
+  FactoryTest(pytest_name='urandom',
+              dargs={
+                  'duration_secs': 4 * 60 * 60,  # run for 4 hours
+              })
 """
 
 import logging
 import time
 import unittest
 
+import factory_common  # pylint: disable=unused-import
+from cros.factory.utils import arg_utils
+
 
 class UrandomTest(unittest.TestCase):
+  ARGS = [
+      arg_utils.Arg('duration_secs', int, help='How long this test will take?'),
+  ]
 
   def runTest(self):
-    duration_secs = self.test_info.args['duration_secs']
+    duration_secs = self.args.duration_secs
     logging.info('Getting /dev/urandom for %d seconds', duration_secs)
 
     with open('/dev/urandom') as f:
