@@ -50,45 +50,6 @@ def get_current_test_path():
   return os.environ.get('CROS_FACTORY_TEST_PATH')
 
 
-def get_current_test_metadata():
-  """Returns metadata for the currently executing test, if any."""
-  path = os.environ.get('CROS_FACTORY_TEST_METADATA')
-  if not path or not os.path.exists(path):
-    return {}
-
-  with open(path) as f:
-    return yaml.load(f)
-
-
-def get_lsb_data():
-  """Reads all key-value pairs from system lsb-* configuration files."""
-  # TODO(hungte) Re-implement using regex.
-  # lsb-* file format:
-  # [#]KEY="VALUE DATA"
-  lsb_files = ('/etc/lsb-release',
-               '/usr/local/etc/lsb-release',
-               '/usr/local/etc/lsb-factory')
-
-  def unquote(entry):
-    for c in ('"', "'"):
-      if entry.startswith(c) and entry.endswith(c):
-        return entry[1:-1]
-    return entry
-
-  data = {}
-  for lsb_file in lsb_files:
-    if not os.path.exists(lsb_file):
-      continue
-    with open(lsb_file, 'r') as lsb_handle:
-      for line in lsb_handle.readlines():
-        line = line.strip()
-        if ('=' not in line) or line.startswith('#'):
-          continue
-        (key, value) = line.split('=', 1)
-        data[unquote(key)] = unquote(value)
-  return data
-
-
 def get_toolkit_version():
   """Returns TOOLKIT_VERSION of the factory directory."""
   return file_utils.ReadFile(paths.FACTORY_TOOLKIT_VERSION_PATH).rstrip()
