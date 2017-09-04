@@ -761,6 +761,10 @@ class GoofyRPC(object):
     if self.goofy.link_manager:
       self.goofy.link_manager.UpdateStatus(all_pass)
 
+  def PostHookEvent(self, event_name, *args, **kargs):
+    """Posts an event to Goofy hooks."""
+    return self.goofy.hooks.OnEvent(event_name, *args, **kargs)
+
   def GetTestHistory(self, *test_paths):
     """Returns metadata for all previous (and current) runs of a test."""
     ret = []

@@ -155,7 +155,7 @@ class StationEntry(unittest.TestCase):
     self._state.ScheduleRestart()
 
   def SendTestResult(self):
-    self._dut.hooks.SendTestResult(self._state.get_test_states())
+    self._state.PostHookEvent('TestResult', self._state.get_test_states())
 
   def runTest(self):
     self._ui.RunInBackground(self._runTest)

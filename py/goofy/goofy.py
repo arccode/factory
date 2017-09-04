@@ -452,7 +452,7 @@ class Goofy(GoofyBase):
 
     if is_unexpected_shutdown:
       logging.warning("Unexpected shutdown.")
-      self.dut.hooks.OnUnexpectedReboot()
+      self.hooks.OnUnexpectedReboot()
 
     if self.test_list.options.read_device_data_from_vpd_on_init:
       vpd_data = {}
@@ -688,7 +688,7 @@ class Goofy(GoofyBase):
       status_filter: List of available test states. Only run the tests which
         states are in the list. Set to None if all test states are available.
     """
-    self.dut.hooks.OnTestStart()
+    self.hooks.OnTestStart()
     self.test_list_iterator = TestListIterator(
         subtree, status_filter, self.test_list)
     if subtree is not None:
@@ -1180,7 +1180,7 @@ class Goofy(GoofyBase):
     self.state_instance.set_shared_data(TESTS_AFTER_SHUTDOWN, None)
     self.restore_active_run_state()
 
-    self.dut.hooks.OnTestStart()
+    self.hooks.OnTestStart()
 
     self.may_disable_cros_shortcut_keys()
 
@@ -1309,7 +1309,7 @@ class Goofy(GoofyBase):
       self.reap_completed_tests()
 
   def test_fail(self, test):
-    self.dut.hooks.OnTestFailure(test)
+    self.hooks.OnTestFailure(test)
     if self.link_manager:
       self.link_manager.UpdateStatus(False)
 

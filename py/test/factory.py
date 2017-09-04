@@ -26,6 +26,7 @@ import sys
 import yaml
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.device import device_utils
 from cros.factory.test.env import paths
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
@@ -33,6 +34,7 @@ from cros.factory.test.i18n import translation
 from cros.factory.utils import file_utils
 from cros.factory.utils import shelve_utils
 from cros.factory.utils import type_utils
+from cros.factory.utils import sys_utils
 
 
 # Regexp that all IDs should match.  Note that this allows leading digits
@@ -193,6 +195,43 @@ class Hooks(object):
   def OnCreatedTestList(self):
     """Invoked right after Goofy creates test_list."""
     pass
+
+  def OnTestStart(self):
+    """Callback invoked a factory test starts.
+
+    This method is called when goofy starts or when the operator
+    starts a test manually. This can be used to light up a green
+    LED or send a notification to a remote server.
+    """
+    pass
+
+  def OnTestFailure(self, test):
+    """Callback invoked when a test fails.
+
+    This method can be used to bring the attention of the operators
+    when a display is not available. For example, lighting up a red
+    LED may help operators identify failing device on the run-in
+    rack easily.
+    """
+    pass
+
+  def OnEvent(self, event_name, *args, **kargs):
+    """A general handler for events to Goofy hooks.
+
+    This method can be used by pytests to trigger some customized hooks,
+    for example to notify the operator if a device has finished a test section,
+    e.g. run-in.
+
+    A real use case is 'SummaryGood' event for lighting up a green LED here and
+    the operators may be instructed to move all devices with a green LED to FATP
+    testing; 'SummaryBad' if the summary test founds failure.
+    """
+    logging.info('Goofy hook event: %s%r%r', event_name, args, kargs)
+
+  def OnUnexpectedReboot(self):
+    """Callback invoked after the device experiences an unexpected reboot."""
+    logging.info(sys_utils.GetStartupMessages(
+        device_utils.CreateDUTInterface()))
 
 
 class Options(object):

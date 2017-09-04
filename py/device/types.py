@@ -231,11 +231,6 @@ class DeviceInterface(sys_interface.SystemInterface):
     raise NotImplementedError
 
   @DeviceProperty
-  def hooks(self):
-    """Utility class managing device-specific callbacks."""
-    raise NotImplementedError
-
-  @DeviceProperty
   def hwmon(self):
     """Hardware monitor devices."""
     raise NotImplementedError

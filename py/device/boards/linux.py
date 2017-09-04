@@ -17,7 +17,6 @@ from cros.factory.device import types
 from cros.factory.device import camera
 from cros.factory.device import ec
 from cros.factory.device import gyroscope
-from cros.factory.device import hooks
 from cros.factory.device import hwmon
 from cros.factory.device import i2c
 from cros.factory.device import info
@@ -84,10 +83,6 @@ class LinuxBoard(types.DeviceBoard):
   @DeviceProperty
   def gyroscope(self):
     return gyroscope.Gyroscope(self)
-
-  @DeviceProperty
-  def hooks(self):
-    return hooks.DeviceHooks(self)
 
   @DeviceProperty
   def hwmon(self):

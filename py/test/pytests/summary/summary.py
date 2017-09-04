@@ -197,13 +197,11 @@ class Report(unittest.TestCase):
     overall_status = factory.overall_status(statuses)
     all_pass = overall_status in _EXTENED_PASSED_STATE
 
-    if all_pass:
-      self.dut.hooks.OnSummaryGood()
-    else:
-      self.dut.hooks.OnSummaryBad()
+    goofy = state.get_instance()
+    goofy.PostHookEvent('Summary', 'Good' if all_pass else 'Bad')
     # state.get_instance().UpdateStatus(all_pass) will call UpdateStatus in
     # goofy_rpc.py, and notify ui to update the color of dut's tab.
-    state.get_instance().UpdateStatus(all_pass)
+    goofy.UpdateStatus(all_pass)
 
     if self.args.bft_fixture:
       self._SetFixtureStatusLight(all_pass)
