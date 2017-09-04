@@ -26,10 +26,10 @@ from cros.factory.test.pytests.touchscreen_calibration import sensors_server
 from cros.factory.test.pytests.touchscreen_calibration.touchscreen_calibration_utils import IsSuccessful  # pylint: disable=line-too-long
 from cros.factory.test.pytests.touchscreen_calibration.touchscreen_calibration_utils import NetworkStatus  # pylint: disable=line-too-long
 from cros.factory.test.pytests.touchscreen_calibration.touchscreen_calibration_utils import SimpleSystem  # pylint: disable=line-too-long
-from cros.factory.test import server_proxy
 from cros.factory.test import state
 from cros.factory.test.test_ui import UI
 from cros.factory.test.utils.media_utils import MountedMedia
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
@@ -86,6 +86,9 @@ class TouchscreenCalibration(unittest.TestCase):
       Arg('fw_config', str, 'The firmware config', None),
       Arg('hid_tool', str, 'The hid tool to query version information', None),
       Arg('tool', str, 'The test tool', ''),
+      Arg('keep_raw_logs', bool,
+          'Whether to attach the log by Testlog',
+          default=True, optional=True),
   ]
 
   def setUp(self):
@@ -414,13 +417,13 @@ class TouchscreenCalibration(unittest.TestCase):
     self._ExecuteCommand('shutdown -H 0',
                          fail_msg='Failed to shutdown the host')
 
-  def _UploadLog(self, log_name, log_data):
-    """Upload the data to factory server as a file."""
-    if self.use_shopfloor:
-      log_path = os.path.join(self.aux_log_path, log_name)
-      proxy = server_proxy.GetServerProxy()
-      proxy.SaveAuxLog(log_path, xmlrpclib.Binary(log_data))
-      session.console.info('Uploaded sensor data as %s', log_path)
+  def _AttachLog(self, log_name, log_data):
+    """Attachs the data by Testlog."""
+    if self.args.keep_raw_logs:
+      testlog.AttachContent(
+          content=log_data,
+          name=log_name,
+          description='plain text log of %s' % log_name)
 
   def _DumpOneFrameToLog(self, logger, category, sn, frame_no):
     """Dumps one frame to log.
@@ -438,8 +441,7 @@ class TouchscreenCalibration(unittest.TestCase):
     self.log('touchscreen_calibration_before_touched_%d' % frame_no,
              category=category, sn=sn, sensor_data=str(data))
 
-    log_name = '%s_%s_%s_pre%d' % (self.start_time, sn, category, frame_no)
-    self._UploadLog(log_name, str(data))
+    self._AttachLog('touchscreen_calibration_before_touched.log', str(data))
 
   def _WriteLog(self, filename, content):
     """Writes the content to the file and display the message in the log.
@@ -490,14 +492,13 @@ class TouchscreenCalibration(unittest.TestCase):
     """Write the summary line to the summary file of the serial number.
 
     If a device is tested multiple times, the summary lines are accumulated.
-    Both the summary files on the local host and on the shopfloor are updated.
+    The summary file on the local host is updated and it will be attached by
+    Testlog in FinishTest.
     """
     self.summary_file = 'summary_%s.txt' % sn
     if summary_line.strip():
       summary_line += '  (time: %s)\n' % self._GetTime()
     self._WriteLog(self.summary_file, summary_line)
-    with open(os.path.join(self._local_log_dir, self.summary_file)) as f:
-      self._UploadLog(self.summary_file, f.read())
 
   def _ReadAndVerifyTRxData(self, sn, phase, category, verify_method):
     # Get data based on the category, i.e., REFS or DELTAS.
@@ -517,8 +518,7 @@ class TouchscreenCalibration(unittest.TestCase):
     self.log('touchscreen_calibration', sn=sn, phase=phase,
              test_pass=self.test_pass, sensor_data=str(data))
     result = 'pass' if self.test_pass else 'fail'
-    log_name = '%s_%s_%s_%s' % (sn, self.start_time, phase, result)
-    self._UploadLog(log_name, str(data))
+    self._AttachLog('touchscreen_calibration.log', str(data))
     summary_line = '%s: %s (%s)' % (sn, result, phase)
     self._UpdateSummaryFile(sn, summary_line)
 
@@ -549,8 +549,7 @@ class TouchscreenCalibration(unittest.TestCase):
     self.log('touchscreen_calibration', sn=sn, phase=phase,
              test_pass=self.test_pass, sensor_data=str(data))
     result = 'pass' if self.test_pass else 'fail'
-    log_name = '%s_%s_%s_%s' % (sn, self.start_time, phase, result)
-    self._UploadLog(log_name, str(data))
+    self._AttachLog('touchscreen_calibration.log', str(data))
     summary_line = ('%s: %s (%s) [min: %d, max: %d]' %
                     (sn, result, phase, min_value, max_value))
     self._UpdateSummaryFile(sn, summary_line)
@@ -673,6 +672,8 @@ class TouchscreenCalibration(unittest.TestCase):
     Args:
       event: the event that triggers this callback function
     """
+    with open(os.path.join(self._local_log_dir, self.summary_file)) as f:
+      self._AttachLog('summary.log', f.read())
     self.sensors.PostTest()
     self.fixture.DriveProbeUpDone()
 

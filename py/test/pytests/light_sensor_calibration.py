@@ -53,7 +53,6 @@ from collections import namedtuple
 import json
 import logging
 import numpy as np
-import os
 import Queue
 import time
 import unittest
@@ -75,7 +74,6 @@ from cros.factory.test.utils import media_utils
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import config_utils
-from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
 
 
@@ -183,6 +181,9 @@ class ALSFixture(unittest.TestCase):
       Arg('config_dict', dict, 'The config dictionary. '
           'If None, then the config is loaded by config_utils.LoadConfig().',
           default=None, optional=True),
+      Arg('keep_raw_logs', bool,
+          'Whether to attach the log by Testlog',
+          default=True, optional=True),
 
   ]
 
@@ -265,15 +266,11 @@ class ALSFixture(unittest.TestCase):
     self._Log("%s=%s" % (key, value))
 
   def _LogConfig(self):
-    with file_utils.UnopenedTemporaryFile() as config_file_path:
-      with open(config_file_path, 'w') as config_file:
-        json.dump(self.config, config_file)
+    if self.args.keep_raw_logs:
       testlog.AttachFile(
-          path=config_file_path,
-          mime_type='application/json',
+          content=json.dumps(self.config),
           name='light_sensor_calibration_config.json',
-          description=os.path.basename(config_file_path),
-          delete=False)
+          description='json of light sensor calibration config')
 
   def _LogFailure(self, code, details):
     testlog.AddFailure(code, details)

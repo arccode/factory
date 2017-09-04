@@ -149,7 +149,7 @@ class CheckRawDataTask(test_task.TestTask):
         to_log.append([dict(item._asdict()), 'FAIL', matrix])
     time.sleep(_MESSAGE_DELAY_SECS)
 
-    if self.test.args.upload_log:
+    if self.test.args.keep_raw_logs:
       serial_number = self.test.dut.info.GetSerialNumber()
       with file_utils.UnopenedTemporaryFile() as temp_path:
         with open(temp_path, 'w') as f:
@@ -196,7 +196,7 @@ class TouchUniformity(unittest.TestCase):
           'max_val: Upper bound for values in this frame.\n'
           'rows: Number of rows from top to check, or zero to check all.\n'
           'cols: Number of columns from left to check, or zero to check all.'),
-      Arg('upload_log', bool, 'To upload log file via testlog or not.',
+      Arg('keep_raw_logs', bool, 'Whether to attach the log by Testlog',
           default=True)]
 
   def setUp(self):

@@ -77,6 +77,7 @@ To pair, connect with, and disconnect with the bluetooth input device::
 import glob
 import logging
 import os
+import shutil
 import sys
 import threading
 import time
@@ -94,6 +95,7 @@ from cros.factory.test import ui_templates
 from cros.factory.test.utils import bluetooth_utils
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
@@ -593,7 +595,7 @@ class DetectRSSIofTargetMACTask(test_task.TestTask):
                                         self._average_rssi_upper_threshold))
       data = ('Average RSSI: %.2f %s  (%s)\n' %
               (average_rssi, map(int, rssis), status))
-      _AppendLog(self._test.log_file, data)
+      _AppendLog(self._test.log_tmp_file, data)
 
       if fail_msg:
         session.console.error(fail_msg)
@@ -693,7 +695,7 @@ class CheckDisconnectionOfPairedDeviceTask(test_task.TestTask):
       msg = 'Shift-P-A-I-R: not done'
       self.Fail(msg)
     session.console.info(msg)
-    _AppendLog(self._test.log_file, msg)
+    _AppendLog(self._test.log_tmp_file, msg)
 
 
 def _ExecuteFixtureMethod(fixture, operation, post_sleep=0):
@@ -787,7 +789,7 @@ class ReadBatteryLevelTask(test_task.TestTask):
     else:
       data = ''
     data += '%s: %s\n' % (self._step, battery_level)
-    _AppendLog(self._test.log_file, data)
+    _AppendLog(self._test.log_tmp_file, data)
 
     if self._test.args.battery_log:
       _SaveLocalBatteryLog(self._test.args.base_enclosure_serial_number,
@@ -921,7 +923,7 @@ class CheckFirmwareRevisionTestTask(test_task.TestTask):
     state.set_shared_data(self._test.args.firmware_revision_string_key, fw)
 
     data = 'FW: %s\n' % fw
-    _AppendLog(self._test.log_file, data)
+    _AppendLog(self._test.log_tmp_file, data)
 
     if fw == self._test.args.firmware_revision_string:
       self.Pass()
@@ -1023,7 +1025,7 @@ class InputTestTask(test_task.TestTask):
     def SaveLogAndFail(fail_reason):
       """Save the fail log and invoke Fail()."""
       data = 'Pairing fail: %s\n' % fail_reason
-      _AppendLog(self._test.log_file, data)
+      _AppendLog(self._test.log_tmp_file, data)
       self.Fail(fail_reason)
 
     input_count_before_connection = CheckInputCount()
@@ -1061,7 +1063,7 @@ class InputTestTask(test_task.TestTask):
       # We leave the device paired
       self._need_to_cleanup = False
       data = 'Pairing finished\n'
-      _AppendLog(self._test.log_file, data)
+      _AppendLog(self._test.log_tmp_file, data)
       self.Pass()
       return
 
@@ -1190,6 +1192,9 @@ class BluetoothTest(unittest.TestCase):
       Arg('log_path', str,
           'The directory of the log on the local test host.',
           optional=True),
+      Arg('keep_raw_logs', bool,
+          'Whether to attach the log by Testlog.',
+          default=True, optional=True),
       Arg('test_host_id_file', str,
           'The file storing the id of the test host.',
           optional=True),
@@ -1230,6 +1235,8 @@ class BluetoothTest(unittest.TestCase):
     self.log_file = None
 
     if self.args.base_enclosure_serial_number:
+      self.log_tmp_file = file_utils.CreateTemporaryFile()
+
       if (self.args.test_host_id_file and
           os.path.isfile(self.args.test_host_id_file)):
         with open(self.args.test_host_id_file) as f:
@@ -1247,10 +1254,15 @@ class BluetoothTest(unittest.TestCase):
     if self.args.use_charge_fixture:
       self.fixture.Close()
     if self.log_file:
+      shutil.copyfile(self.log_tmp_file, self.log_file)
+    if self.args.keep_raw_logs:
       testlog.AttachFile(
-          self.log_file, 'text/plain',
-          'bluetooth_%s.txt' % os.path.dirname(self.log_file),
-          description='Raw execution logs')
+          path=self.log_tmp_file,
+          mime_type='text/plain',
+          name='bluetooth.log',
+          description='plain text log of bluetooth',
+          delete=False)
+    os.remove(self.log_tmp_file)
 
   def runTest(self):
     if self.args.use_charge_fixture:

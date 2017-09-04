@@ -28,14 +28,12 @@ This test measures VSWR value using an Agilent E5071C Network Analyzer (ENA).
 import datetime
 import logging
 import os
-import posixpath
 import Queue
 import random
 import re
 import string
 import unittest
 import uuid
-import xmlrpclib
 
 import yaml
 
@@ -69,9 +67,6 @@ class VSWR(unittest.TestCase):
   ARGS = [
       Arg('event_log_name', str, 'Name of the event_log, like '
           '"vswr_prepressed" or "vswr_postpressed".', optional=False),
-      Arg('shopfloor_log_dir', str, 'Directory in which to save logs on '
-          'shopfloor.  For example: "vswr_prepressed" or "vswr_postpressed".',
-          optional=False),
       Arg('config_path', str, 'Configuration path relative to the root of '
           'either (1) pytest vswr folder (if load_from_shopfloor is False) or '
           '(2) shopfloor parameters directory (if load_from_shopfloor is True).'
@@ -83,7 +78,10 @@ class VSWR(unittest.TestCase):
       Arg('serial_number_key', str, 'The key referring to the serial number in '
           'question. This key will be used to retrieve the serial number from '
           'the shared data. Default key is `serial_number`.',
-          default='serial_number')
+          default='serial_number'),
+      Arg('keep_raw_logs', bool,
+          'Whether to attach the log by Testlog',
+          default=True, optional=True)
   ]
 
   def setUp(self):
@@ -337,11 +335,6 @@ class VSWR(unittest.TestCase):
     """Saves the logs and writes event log."""
     logging.info('Writing log with SN: %s.', self._serial_number)
 
-    log_file_name = 'log_%s_%s.yaml' % (
-        datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')[:-3],  # time
-        self._serial_number)
-    log_content = yaml.dump(self.log, default_flow_style=False)
-
     # Feed into event log.
     logging.info('Feeding into event log.')
     event_log_fields = {
@@ -350,12 +343,11 @@ class VSWR(unittest.TestCase):
     event_log_fields.update(self.log)
     event_log.Log(self.args.event_log_name, **event_log_fields)
 
-    logging.info('Uploading aux log onto factory server.')
-    proxy = server_proxy.GetServerProxy()
-    proxy.SaveAuxLog(
-        posixpath.join(self.args.shopfloor_log_dir,
-                       log_file_name),
-        xmlrpclib.Binary(log_content))
+    if self.args.keep_raw_logs:
+      testlog.AttachContent(
+          content=yaml.dump(self.log, default_flow_style=False),
+          name='vswr.yaml',
+          description='plain text log of vswr')
 
   def _SetUpNetwork(self, host_config):
     """Sets up the local network.

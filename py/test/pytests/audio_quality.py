@@ -179,6 +179,9 @@ class AudioQualityTest(unittest.TestCase):
       Arg('audio_conf', str, 'Audio config file path', None, optional=True),
       Arg('wav_file', str, 'Wav file path for playback_wav_file command.',
           None, optional=True),
+      Arg('keep_raw_logs', bool,
+          'Whether to attach the log by Testlog.',
+          default=True, optional=True)
   ]
 
   def setUpAudioDevice(self):
@@ -478,17 +481,19 @@ class AudioQualityTest(unittest.TestCase):
     with open(write_path, 'wb') as f:
       f.write(real_data)
 
-    testlog.AttachFile(
-        path=write_path,
-        name=file_name,
-        mime_type='application/octet-stream')
+    if self.args.keep_raw_logs:
+      testlog.AttachFile(
+          path=write_path,
+          name=file_name,
+          mime_type='application/octet-stream')
 
     if self.DecompressZip(write_path, tempfile.gettempdir()):
       file_path = os.path.join(tempfile.gettempdir(), 'description.yaml')
-      testlog.AttachFile(
-          path=file_path,
-          name='audio_quality_result.yaml',
-          mime_type='text/plain')
+      if self.args.keep_raw_logs:
+        testlog.AttachFile(
+            path=file_path,
+            name='audio_quality_result.yaml',
+            mime_type='text/plain')
 
     self.SendResponse(None, args)
 
@@ -509,10 +514,11 @@ class AudioQualityTest(unittest.TestCase):
     with open(write_path, 'wb') as f:
       f.write(received_data)
 
-    testlog.AttachFile(
-        path=write_path,
-        name=file_name,
-        mime_type='application/octet-stream')
+    if self.args.keep_raw_logs:
+      testlog.AttachFile(
+          path=write_path,
+          name=file_name,
+          mime_type='application/octet-stream')
 
     logging.info('Received file %s with size %d', file_name, size)
 
