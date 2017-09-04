@@ -77,8 +77,8 @@ def LoadPytestModule(pytest_name):
     try:
       __import__('cros.factory.test.pytests.%s.%s' %
                  (pytest_base_name, pytest_name))
-      logging.warn('recommend to use pytest_name=%r instead of pytest_name=%r',
-                   ('%s.%s' % (pytest_base_name, pytest_name)), pytest_name)
+      logging.debug('recommend to use pytest_name=%r instead of pytest_name=%r',
+                    ('%s.%s' % (pytest_base_name, pytest_name)), pytest_name)
       return getattr(getattr(pytests, pytest_base_name), pytest_name)
     except ImportError:
       logging.error('cannot find any pytest module named %s or %s.%s',
