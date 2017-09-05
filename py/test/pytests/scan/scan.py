@@ -12,7 +12,7 @@ or operator's ID.
 
 Test Procedure
 --------------
-1. A prompt message will display on the UI.
+1. A prompt message will be displayed on the UI.
 2. Operator enters a string using a barcode scanner, or by
    typing on keyboard.
 

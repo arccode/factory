@@ -2,18 +2,60 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# DESCRIPTION:
-# This test is used to verify the functionality of bluetooth device.
-# The functionality under test are:
-# 1. Detect the specified number of bluetooth adapter on dut.
-# 2. Scan remote bluetooth device and try to find at least one device.
-# 3. If a remote device keyword is given, the test will only care
-#    the devices whose 'Name' contains keyword. This applies to item 4 as well.
-# 4. If an RSSI threshold value is given, check that the largest average RSSI
-#    among all scanned devices >= threshold.
-# 5. Try to pair and connect with the bluetooth input device. Now it supports
-#    mouse.
-# Check the ARGS in BluetoothTest for the detail of arguments.
+"""A factory test to verify the functionality of bluetooth device.
+
+Description
+-----------
+A bluetooth test to detect adapter, scan bluetooth device, check average RSSI
+value, and connect with the bluetooth input device.
+
+To run this bluetooth test, the DUT most have at least one bluetooth adapter.
+
+If argument ``scan_devices`` is set, there should be at least one remote
+bluetooth device.
+
+If argument ``pair_with_match`` is set, there should be a bluetooth input
+device like a mouse.
+
+Test Procedure
+--------------
+1. Setup a bluetooth input device (like a mouse) if needed.
+2. Enable the connection ability of bluetooth on DUT.
+3. A prompt message will be displayed on the UI if ``prompt_scan_message`` and
+   ``scan_devices`` is set.
+4. The bluetooth test will run automatically.
+
+Dependency
+----------
+- Device API (``cros.factory.device.chromeos.bluetooth``).
+- Bluetooth utility (``cros.factory.test.utils.bluetooth_utils``).
+
+Examples
+--------
+To detect the specified number of bluetooth adapter on DUT::
+
+  OperatorTest(pytest_name='bluetooth',
+               dargs={'expected_adapter_count': 1})
+
+To scan remote bluetooth device and try to find at least one deivce whose name
+contains 'KEY_WORD'::
+
+  OperatorTest(pytest_name='bluetooth',
+               dargs={'scan_devices': True,
+                      'keyword': 'KEY_WORD'})
+
+To check the the largest average RSSI among all scanned devices is bigger than
+threshold::
+
+  OperatorTest(pytest_name='bluetooth',
+               dargs={'scan_devices': True,
+                      'average_rssi_threshold': -65.0})
+
+To pair, connect with, and disconnect with the bluetooth input device::
+
+  OperatorTest(pytest_name='bluetooth',
+               dargs={'pair_with_match': True})
+"""
 
 import glob
 import logging
@@ -1019,85 +1061,120 @@ class InputTestTask(test_task.TestTask):
 
 class BluetoothTest(unittest.TestCase):
   ARGS = [
-      Arg('expected_adapter_count', int, 'Number of bluetooth adapters'
-          ' on the machine.', default=0),
-      Arg('manufacturer_id', int, 'manufacturer id', optional=True),
-      Arg('detect_adapters_retry_times', int, 'Maximum retry time to'
-          ' detect adapters', default=10),
-      Arg('detect_adapters_interval_secs', int, 'Interval in seconds between'
-          ' each retry to detect adapters', default=2),
-      Arg('read_bluetooth_uuid_timeout_secs', int,
-          'Timeout to read bluetooth characteristics via uuid', default=None,
+      Arg('expected_adapter_count', int,
+          'Number of bluetooth adapters on the machine.',
+          default=0),
+      Arg('manufacturer_id', int,
+          'ID of the manufacturer.',
           optional=True),
-      Arg('scan_devices', bool, 'Scan bluetooth device.',
+      Arg('detect_adapters_retry_times', int,
+          'Maximum retry time to detect adapters.',
+          default=10),
+      Arg('detect_adapters_interval_secs', int,
+          'Interval in seconds between each retry to detect adapters.',
+          default=2),
+      Arg('read_bluetooth_uuid_timeout_secs', int,
+          'Timeout to read bluetooth characteristics via uuid.',
+          default=None, optional=True),
+      Arg('scan_devices', bool,
+          'Scan bluetooth device.',
           default=False),
-      Arg('prompt_scan_message', bool, 'Prompts a message to tell user to'
-          ' enable remote devices discovery mode', default=True),
-      Arg('keyword', str, 'Only cares remote devices whose "Name" contains'
-          ' keyword.', default=None, optional=True),
-      Arg('average_rssi_threshold', float, 'Checks the largest average RSSI'
-          ' among scanned device is equal to or greater than '
-          ' average_rssi_threshold.',
+      Arg('prompt_scan_message', bool,
+          'Prompts a message to tell user to enable remote devices discovery '
+          'mode.',
+          default=True),
+      Arg('keyword', str,
+          'Only cares remote devices whose "Name" contains keyword.',
           default=None, optional=True),
-      Arg('scan_counts', int, 'Number of scans to calculate average RSSI',
+      Arg('average_rssi_threshold', float,
+          'Checks the largest average RSSI among scanned device is equal to or '
+          'greater than average_rssi_threshold.',
+          default=None, optional=True),
+      Arg('scan_counts', int,
+          'Number of scans to calculate average RSSI.',
           default=3),
-      Arg('scan_timeout_secs', int, 'Timeout to do one scan', default=5),
-      Arg('input_device_mac', str, 'The mac address of bluetooth input device',
+      Arg('scan_timeout_secs', int,
+          'Timeout to do one scan.',
+          default=5),
+      Arg('input_device_mac', str,
+          'The mac address of bluetooth input device.',
           default=None, optional=True),
-      Arg('input_device_mac_key', str, 'A key for factory shared data '
-          'containing the mac address', default=None, optional=True),
-      Arg('input_device_rssi_key', str, 'A key for factory shared data '
-          'containing the rssi value', default=None, optional=True),
+      Arg('input_device_mac_key', str,
+          'A key for factory shared data containing the mac address.',
+          default=None, optional=True),
+      Arg('input_device_rssi_key', str,
+          'A key for factory shared data containing the rssi value.',
+          default=None, optional=True),
       Arg('firmware_revision_string_key', str,
-          'A key of factory shared data containing firmware revision string',
+          'A key of factory shared data containing firmware revision string.',
           optional=True),
       Arg('firmware_revision_string', str,
-          'the firmware revision string', optional=True),
-      Arg('average_rssi_lower_threshold', (float, dict), 'Checks the average'
-          ' RSSI of the target mac is equal to or greater than this threshold.',
+          'The firmware revision string.',
+          optional=True),
+      Arg('average_rssi_lower_threshold', (float, dict),
+          'Checks the average RSSI of the target mac is equal to or '
+          'greater than this threshold.',
           default=None, optional=True),
-      Arg('average_rssi_upper_threshold', (float, dict), 'Checks the average'
-          ' RSSI of the target mac is equal to or less than this threshold.',
+      Arg('average_rssi_upper_threshold', (float, dict),
+          'Checks the average RSSI of the target mac is equal to or '
+          'less than this threshold.',
           default=None, optional=True),
-      Arg('pair_with_match', bool, 'Whether to pair with the strongest match.',
+      Arg('pair_with_match', bool,
+          'Whether to pair with the strongest match.',
           default=False, optional=True),
-      Arg('finish_after_pair', bool, 'Whether the test should end immediately '
-          'after pairing completes', default=False),
-      Arg('unpair', bool, 'Whether to unpair matching devices instead of pair',
+      Arg('finish_after_pair', bool,
+          'Whether the test should end immediately after pairing completes.',
+          default=False),
+      Arg('unpair', bool,
+          'Whether to unpair matching devices instead of pair.',
           default=False, optional=True),
       Arg('check_shift_pair_keys', bool,
-          'check if shift-p-a-i-r keys are pressed.',
+          'Check if shift-p-a-i-r keys are pressed.',
           default=False, optional=True),
       Arg('check_battery_charging', bool,
-          'Whether to check if the battery is charging',
+          'Whether to check if the battery is charging.',
           default=False, optional=True),
-      Arg('read_battery_level', int, 'read the battery level',
+      Arg('read_battery_level', int,
+          'Read the battery level.',
           default=None, optional=True),
-      Arg('check_battery_level', bool, 'Whether to check the battery level',
+      Arg('check_battery_level', bool,
+          'Whether to check the battery level.',
           default=False, optional=True),
-      Arg('prompt_into_fixture', bool, 'Prompt the user to place the base into '
-          'the test fixture', default=False, optional=True),
-      Arg('use_charge_fixture', bool, 'whether a charge fixture is employed',
+      Arg('prompt_into_fixture', bool,
+          'Prompt the user to place the base into the test fixture.',
           default=False, optional=True),
-      Arg('reset_fixture', bool, 'whether to reset the fixture',
+      Arg('use_charge_fixture', bool,
+          'Whether a charge fixture is employed.',
           default=False, optional=True),
-      Arg('start_charging', bool, 'Prompt the user to start charging the base',
+      Arg('reset_fixture', bool,
+          'Whether to reset the fixture.',
           default=False, optional=True),
-      Arg('enable_magnet', bool, 'enable the base',
+      Arg('start_charging', bool,
+          'Prompt the user to start charging the base.',
           default=False, optional=True),
-      Arg('reset_magnet', bool, 'reset the base',
+      Arg('enable_magnet', bool,
+          'Enable the base.',
           default=False, optional=True),
-      Arg('stop_charging', bool, 'Prompt the user to stop charging the base',
+      Arg('reset_magnet', bool,
+          'Reset the base.',
+          default=False, optional=True),
+      Arg('stop_charging', bool,
+          'Prompt the user to stop charging the base.',
           default=False, optional=True),
       Arg('base_enclosure_serial_number', unicode,
-          'the base enclosure serial number', default=None, optional=True),
+          'The base enclosure serial number.',
+          default=None, optional=True),
       Arg('battery_log', str,
-          'the battery log file', default=None, optional=True),
+          'The battery log file.',
+          default=None, optional=True),
       Arg('expected_battery_level', int,
-          'the expected battery level', default=100, optional=True),
-      Arg('log_path', str, 'the directory of the log on the local test host',
+          'The expected battery level.',
+          default=100, optional=True),
+      Arg('log_path', str,
+          'The directory of the log on the local test host.',
           optional=True),
-      Arg('test_host_id_file', str, 'the file storing the id of the test host',
+      Arg('test_host_id_file', str,
+          'The file storing the id of the test host.',
           optional=True),
   ]
 
