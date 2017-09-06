@@ -64,8 +64,11 @@ class Updater(object):
       return self._payload
 
     # GetServerProxy() may hang for few seconds so we don't want to do it in
-    # __init__.
-    proxy = self._proxy or server_proxy.GetServerProxy()
+    # __init__. Also, _proxy may be a proxy object that will forward __nonzero__
+    # to remote so we should check if it's None explicitly.
+    proxy = self._proxy
+    if proxy is None:
+      proxy = server_proxy.GetServerProxy()
     payloads = {}
     dut_info = umpire_client.UmpireClientInfo().GetDUTInfoComponents()
     url = proxy.GetCROSPayloadURL(dut_info['x_umpire_dut'])
