@@ -162,6 +162,11 @@ class OutputBigQuery(plugin_base.OutputPlugin):
         prefix='output_bigquery_') as json_path:
       event_count, row_count = self.PrepareFile(event_stream, json_path)
 
+      if self.IsStopping():
+        self.info('Plugin is stopping! Abort %d events', event_count)
+        event_stream.Abort()
+        return False
+
       # No processed events result in BigQuery table rows.
       if row_count == 0:
         self.info('Commit %d events (%d rows)', event_count, row_count)

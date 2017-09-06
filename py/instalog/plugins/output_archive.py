@@ -141,6 +141,11 @@ class OutputArchive(plugin_base.OutputPlugin):
           if total_size >= self.args.max_size:
             break
 
+      if self.IsStopping():
+        self.info('Plugin is stopping! Abort %d events', num_events)
+        event_stream.Abort()
+        return False
+
       # Create the archive.
       if num_events > 0:
         cur_time = datetime.datetime.now()
