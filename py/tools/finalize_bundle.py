@@ -26,8 +26,8 @@ from cros.factory.tools import get_version
 from cros.factory.tools import gsutil
 from cros.factory.utils import cros_board_utils
 from cros.factory.utils import file_utils
-from cros.factory.utils import sys_utils
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import sys_utils
 from cros.factory.utils.sys_utils import MountPartition
 from cros.factory.utils.type_utils import CheckDictKeys
 
@@ -206,11 +206,16 @@ class FinalizeBundle(object):
       manifest_path = os.path.join(self.args.manifest, 'MANIFEST.yaml')
     else:
       manifest_path = self.args.manifest
-    self.manifest = yaml.load(file_utils.ReadFile(manifest_path))
-    CheckDictKeys(self.manifest,
-                  ['board', 'project', 'bundle_name', 'server_url',
-                   'toolkit', 'test_image', 'release_image', 'firmware', 'hwid',
-                   'has_firmware'])
+    try:
+      self.manifest = yaml.load(file_utils.ReadFile(manifest_path))
+      CheckDictKeys(self.manifest,
+                    ['board', 'project', 'bundle_name', 'server_url',
+                     'toolkit', 'test_image', 'release_image', 'firmware',
+                     'hwid', 'has_firmware'])
+    except Exception:
+      logging.exception('Failed to load manifest: %s', manifest_path)
+      logging.error('Please refer to setup/BUNDLE.md (https://goo.gl/pM1pxo)')
+      sys.exit(1)
 
     self.build_board = cros_board_utils.BuildBoard(self.manifest['board'])
     self.board = self.build_board.full_name
