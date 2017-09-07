@@ -102,13 +102,6 @@ var Bundle = React.createClass({
             <div style={{display: 'inline-block', width: 48}}></div>
             <DragHandle />
             <IconButton
-              tooltip="copy this bundle"
-              onClick={e => e.stopPropagation()}
-              onTouchTap={() => console.warn('not implemented')}
-            >
-              <ContentCopyIcon />
-            </IconButton>
-            <IconButton
               tooltip="delete this bundle"
               onClick={e => e.stopPropagation()}
               onTouchTap={() => deleteBundle(bundle.get('name'))}

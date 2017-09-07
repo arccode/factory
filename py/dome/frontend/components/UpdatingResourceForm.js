@@ -14,7 +14,7 @@ import DomeActions from '../actions/domeactions';
 import FormNames from '../constants/FormNames';
 
 var _NAME_INPUT_VALUE_ERROR_TEST =
-    'This field is required if inplace updating is unchecked';
+    'This field is required';
 
 var UpdatingResourceForm = React.createClass({
   propTypes: {
@@ -36,20 +36,8 @@ var UpdatingResourceForm = React.createClass({
     this.setState({dialogOpened: true});
   },
 
-  handleCheck(event, checked) {
-    this.setState({
-      isInPlaceUpdate: checked,
-
-      // Whether inplace updating is checked or not, the name input error text
-      // should always be cleared. If it's unchecked -> checked, name doesn't
-      // matter; if it's checked -> unchecked, the error text should already be
-      // empty, and thus no hard to clear it again.
-      nameInputErrorText: ''
-    });
-  },
-
   handleConfirm() {
-    if (!this.state.isInPlaceUpdate && this.state.nameInputValue == '') {
+    if (this.state.nameInputValue == '') {
       // TODO: Chinese support
       this.setState({nameInputErrorText: _NAME_INPUT_VALUE_ERROR_TEST});
       return;
@@ -67,9 +55,7 @@ var UpdatingResourceForm = React.createClass({
         }
       }
     };
-    if (!this.state.isInPlaceUpdate) {
-      data['newName'] = this.state.nameInputValue;
-    }
+    data['newName'] = this.state.nameInputValue;
 
     this.props.startUpdating(this.props.resourceKey, data);
   },
@@ -81,7 +67,6 @@ var UpdatingResourceForm = React.createClass({
   getInitialState() {
     return {
       dialogOpened: false,
-      isInPlaceUpdate: false,
       nameInputValue: '',
       noteInputValue: ''
     };
@@ -92,7 +77,6 @@ var UpdatingResourceForm = React.createClass({
       // reset file input and text fields
       this.formElement.reset();
       this.setState({
-        isInPlaceUpdate: false,
         nameInputValue: '',
         noteInputValue: ''
       });
@@ -122,14 +106,8 @@ var UpdatingResourceForm = React.createClass({
             <RaisedButton label="cancel" onTouchTap={this.handleCancel} />
           ]}
         >
-          <Checkbox
-            label="in-place update"
-            checked={this.state.isInPlaceUpdate}
-            onCheck={this.handleCheck}
-          />
           <TextField
             floatingLabelText="New Bundle Name"
-            disabled={this.state.isInPlaceUpdate}
             errorText={this.state.nameInputErrorText}
             value={this.state.nameInputValue}
             onChange={c => this.setState({nameInputValue: c.target.value})}
