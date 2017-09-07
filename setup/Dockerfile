@@ -37,7 +37,7 @@ RUN mkdir -p "${umpire_dir_in_dome}"
 #  util-linux: For GNU mount since busybox mount doesn't support offset.
 #  coreutils: For GNU mktemp since busybox mktemp doesn't support --tmpdir.
 #
-#  py-psutil: Dependencies for Python package gnupg that is used by instalog.
+#  py-psutil: Dependencies for Python package gnupg that is used by Instalog.
 RUN apk upgrade --no-cache && apk add --no-cache \
     apache2-utils \
     coreutils \
