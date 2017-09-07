@@ -4,6 +4,7 @@
 
 import {connect} from 'react-redux';
 import Checkbox from 'material-ui/Checkbox';
+import DateAndTime from 'date-and-time';
 import Dialog from 'material-ui/Dialog';
 import RaisedButton from 'material-ui/RaisedButton';
 import React from 'react';
@@ -13,8 +14,7 @@ import BundlesActions from '../actions/bundlesactions';
 import DomeActions from '../actions/domeactions';
 import FormNames from '../constants/FormNames';
 
-var _NAME_INPUT_VALUE_ERROR_TEST =
-    'This field is required';
+var _NAME_INPUT_VALUE_ERROR_TEST = 'This field is required';
 
 var UpdatingResourceForm = React.createClass({
   propTypes: {
@@ -73,15 +73,29 @@ var UpdatingResourceForm = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
+    // the form was hidden but about to be visible
     if (nextProps.show && !this.props.show) {
       // reset file input and text fields
       this.formElement.reset();
+
+      // replace the timestamp in the old bundle name with current timestamp
+      let regexp = /\d{14}$/;
+      let newBundleName = nextProps.bundleName;
+      let timeString = DateAndTime.format(new Date(), 'YYYYMMDDHHmmss');
+      if (regexp.test(nextProps.bundleName)) {
+        newBundleName = nextProps.bundleName.replace(regexp, timeString);
+      } else {
+        newBundleName = `${nextProps.bundleName}-${timeString}`;
+      }
       this.setState({
-        nameInputValue: '',
-        noteInputValue: ''
+        nameInputValue: newBundleName,
+        noteInputValue: `Update ${nextProps.resourceType}`
       });
+
+      // bring up the file dialog
       this.fileInput.click();
     }
+    // the form was visible but about to be hidden
     else if (!nextProps.show && this.props.show) {
       this.setState({dialogOpened: false});
     }
