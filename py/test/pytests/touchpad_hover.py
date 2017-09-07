@@ -97,9 +97,9 @@ _HTML = """
 class TouchpadHoverTest(unittest.TestCase):
   """Touchpad Hover Test."""
   ARGS = [
-      Arg('touchpad_event_id', int,
-          'Touchpad input event id. The test will probe for event id '
-          'if it is not given.', optional=True),
+      Arg('touchpad_filter', (int, str),
+          'Touchpad input event id or evdev name. The test will probe for '
+          'event id if it is not given.', optional=True),
       Arg('calibration_trigger', str,
           'The file path of the touchpad calibration trigger. '
           'If not set, calibration step will be skipped.', optional=True),
@@ -120,7 +120,7 @@ class TouchpadHoverTest(unittest.TestCase):
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetState(_HTML)
     self._timer_disabler = None
-    self._touchpad = evdev_utils.FindDevice(self.args.touchpad_event_id,
+    self._touchpad = evdev_utils.FindDevice(self.args.touchpad_filter,
                                             evdev_utils.IsTouchpadDevice)
 
   def _SetMessage(self, msg, timeout_secs):

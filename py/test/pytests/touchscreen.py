@@ -188,7 +188,8 @@ class TouchscreenTest(unittest.TestCase):
       Arg('spiral_mode', bool,
           'Do blocks need to be drawn in spiral order or not.',
           default=True),
-      Arg('event_id', int, 'Evdev input event id.', optional=True),
+      Arg('device_filter', (int, str), 'Evdev input event id or name.',
+          optional=True),
       Arg('hover_mode', bool, 'Test hovering or touching (for stylus).',
           default=False),
       Arg('timeout_secs', (int, type(None)),
@@ -197,13 +198,13 @@ class TouchscreenTest(unittest.TestCase):
 
   def setUp(self):
     if self.args.stylus:
-      self._device = evdev_utils.FindDevice(self.args.event_id,
+      self._device = evdev_utils.FindDevice(self.args.device_filter,
                                             evdev_utils.IsStylusDevice)
     else:
       if self.args.e2e_mode:
         self._device = None
       else:
-        self._device = evdev_utils.FindDevice(self.args.event_id,
+        self._device = evdev_utils.FindDevice(self.args.device_filter,
                                               evdev_utils.IsTouchscreenDevice)
     self._dispatcher = None
     self._monitor = None

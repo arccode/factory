@@ -51,8 +51,9 @@ class KeyboardSMTTest(unittest.TestCase):
   if the upcoming keyup events matche the expected keycode sequence.
   """
   ARGS = [
-      Arg(
-          'keyboard_event_id', int, 'Keyboard input event id.', default=None,
+      Arg('device_filter', (int, str),
+          'Keyboard input event id or evdev name.',
+          default=None,
           optional=True),
       Arg('timeout_secs', int, 'Timeout for the test.', default=30),
       Arg(
@@ -80,7 +81,7 @@ class KeyboardSMTTest(unittest.TestCase):
       self.fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
 
     # Get the keyboard input device.
-    self.event_dev = evdev_utils.FindDevice(self.args.keyboard_event_id,
+    self.event_dev = evdev_utils.FindDevice(self.args.device_filter,
                                             evdev_utils.IsKeyboardDevice)
 
     # Monitor keyboard event within specified time period.

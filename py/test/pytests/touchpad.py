@@ -221,8 +221,8 @@ class TouchpadTest(unittest.TestCase):
     self.quadrant: This represents the current quadrant of mouse.
   """
   ARGS = [
-      Arg('touchpad_event_id', int,
-          'Touchpad input event id. The test will probe'
+      Arg('device_filter', (int, str),
+          'Touchpad input event id or evdev name. The test will probe'
           ' for event id if it is not given.', default=None, optional=True),
       Arg('timeout_secs', int, 'Timeout for the test.', default=20),
       Arg('number_to_click', int, 'Target number to click.', default=10),
@@ -242,7 +242,7 @@ class TouchpadTest(unittest.TestCase):
     self.touchpad_device_name = None
     self.touchpad_has_right_btn = False
     self.quadrant = Quadrant()
-    self.touchpad_device = evdev_utils.FindDevice(self.args.touchpad_event_id,
+    self.touchpad_device = evdev_utils.FindDevice(self.args.device_filter,
                                                   evdev_utils.IsTouchpadDevice)
     self.monitor = None
     self.dispatcher = None

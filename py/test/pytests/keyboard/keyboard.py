@@ -73,7 +73,8 @@ class KeyboardTest(unittest.TestCase):
       Arg('board', str,
           'If presents, in filename, the board name is appended after layout.',
           default=''),
-      Arg('name_fragment', str, 'If present, a substring of the input device '
+      Arg('device_filter', (int, str),
+          'If present, the input event ID or a substring of the input device '
           'name specifying which keyboard to test.',
           default=None, optional=True),
       Arg('skip_power_key', bool, 'Skip power button testing', default=False),
@@ -105,7 +106,7 @@ class KeyboardTest(unittest.TestCase):
 
     # Get the keyboard input device.
     self.keyboard_device = evdev_utils.FindDevice(
-        self.args.name_fragment, evdev_utils.IsKeyboardDevice)
+        self.args.device_filter, evdev_utils.IsKeyboardDevice)
 
     # Initialize keyboard layout and bindings
     self.layout = self.GetKeyboardLayout()

@@ -118,12 +118,12 @@ class GenericButton(object):
 class EvtestButton(GenericButton):
   """Buttons can be probed by evtest using /dev/input/event*."""
 
-  def __init__(self, dut, event_id, name):
+  def __init__(self, dut, device_filter, name):
     """Constructor.
 
     Args:
       dut: the DUT which this button belongs to.
-      event_id: /dev/input/event ID.
+      device_filter: /dev/input/event ID or evdev name.
       name: A string as key name to be captured by evtest.
     """
 
@@ -133,7 +133,7 @@ class EvtestButton(GenericButton):
 
     super(EvtestButton, self).__init__(dut)
     self._name = name
-    self._event_dev = evdev_utils.FindDevice(event_id, dev_filter)
+    self._event_dev = evdev_utils.FindDevice(device_filter, dev_filter)
 
   def IsPressed(self):
     return self._dut.Call(['evtest', '--query', self._event_dev.fn, 'EV_KEY',
@@ -212,7 +212,8 @@ class ButtonTest(unittest.TestCase):
           default=_DEFAULT_TIMEOUT),
       Arg('button_key_name', str, 'Button key name.',
           optional=False),
-      Arg('event_id', int, 'Event ID for evdev. None for auto probe.',
+      Arg('device_filter', (int, str),
+          'Event ID or name for evdev. None for auto probe.',
           default=None, optional=True),
       Arg('repeat_times', int, 'Number of press/release cycles to test',
           default=1),
@@ -249,7 +250,7 @@ class ButtonTest(unittest.TestCase):
       self.button = ECToolButton(
           self.dut, gpio_name, active_value)
     else:
-      self.button = EvtestButton(self.dut, self.args.event_id,
+      self.button = EvtestButton(self.dut, self.args.device_filter,
                                  self.args.button_key_name)
 
     # Timestamps of starting, pressing, and releasing

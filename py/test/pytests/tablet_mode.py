@@ -42,10 +42,11 @@ class TabletModeTest(unittest.TestCase):
   ARGS = [
       Arg('timeout_secs', int, 'Timeout value for the test.',
           default=_DEFAULT_TIMEOUT, optional=True),
-      Arg('lid_event_id', int, 'Lid event ID for evdev. None for auto probe.',
+      Arg('lid_filter', (int, str),
+          'Lid event ID or name for evdev. None for auto probe.',
           default=None, optional=True),
-      Arg('tablet_event_id', int,
-          'Tablet event ID for evdev. None for auto probe.',
+      Arg('tablet_filter', (int, str),
+          'Tablet event ID or name for evdev. None for auto probe.',
           default=None, optional=True),
       Arg('prompt_flip_notebook', bool,
           'After the test, prompt the operator to flip back into notebook '
@@ -60,11 +61,11 @@ class TabletModeTest(unittest.TestCase):
         self.ui, _HTML_COUNTDOWN_TIMER, _CSS_COUNTDOWN_TIMER)
 
     self.tablet_mode_switch = False
-    self.lid_event_dev = evdev_utils.FindDevice(self.args.lid_event_id,
+    self.lid_event_dev = evdev_utils.FindDevice(self.args.lid_filter,
                                                 evdev_utils.IsLidEventDevice)
     try:
       self.tablet_event_dev = evdev_utils.FindDevice(
-          self.args.tablet_event_id,
+          self.args.tablet_filter,
           evdev_utils.IsTabletEventDevice)
     except evdev_utils.DeviceNotFoundError:
       self.tablet_event_dev = None

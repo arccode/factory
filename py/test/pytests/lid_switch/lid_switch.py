@@ -62,7 +62,8 @@ class LidSwitchTest(unittest.TestCase):
       Arg('audio_volume', int,
           'Percentage of audio volume to use when playing OK audio file.',
           default=100),
-      Arg('event_id', int, 'Event ID for evdev. None for auto probe.',
+      Arg('device_filter', (int, str),
+          'Event ID or name for evdev. None for auto probe.',
           default=None, optional=True),
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP,
           default=None, optional=True),
@@ -107,7 +108,7 @@ class LidSwitchTest(unittest.TestCase):
     audio_utils.CRAS().SetActiveOutputNodeVolume(100)
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)
-    self.event_dev = evdev_utils.FindDevice(self.args.event_id,
+    self.event_dev = evdev_utils.FindDevice(self.args.device_filter,
                                             evdev_utils.IsLidEventDevice)
     self.ui.AppendCSS(_LID_SWITCH_TEST_DEFAULT_CSS)
     self.template.SetState(_HTML_LID_SWITCH)

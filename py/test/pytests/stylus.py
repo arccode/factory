@@ -80,7 +80,8 @@ class StylusTest(unittest.TestCase):
   """Stylus factory test."""
 
   ARGS = [
-      Arg('stylus_event_id', int, 'Stylus input event id.', optional=True),
+      Arg('device_filter', (int, str), 'Stylus input event id or evdev name.',
+          optional=True),
       Arg('error_margin', int,
           'Maximum tolerable distance to the diagonal line (in pixel).',
           default=25),
@@ -110,7 +111,7 @@ class StylusTest(unittest.TestCase):
       ]
 
   def setUp(self):
-    self._device = evdev_utils.FindDevice(self.args.stylus_event_id,
+    self._device = evdev_utils.FindDevice(self.args.device_filter,
                                           evdev_utils.IsStylusDevice)
     self._monitor = None
     self._dispatcher = None
