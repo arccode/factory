@@ -11,6 +11,7 @@ ENV PYTHONPATH="/usr/local/lib/python2.7/site-packages"
 ARG server_dir="/usr/local/factory"
 ARG dome_dir="${server_dir}/py/dome"
 ARG instalog_dir="${server_dir}/py/instalog"
+ARG umpire_dir="${server_dir}/py/umpire"
 ARG umpire_dir_in_dome
 ARG alpine_repository="http://dl-3.alpinelinux.org/alpine/edge/testing/"
 
@@ -66,14 +67,10 @@ RUN apk upgrade --no-cache && apk add --no-cache \
 # Prepare requirements file and install pip packages.
 COPY py/dome/requirements.txt "${dome_dir}/"
 COPY py/instalog/requirements.txt "${instalog_dir}/"
-# TODO(hungte) Move Umpire packages to its own requirements file.
+COPY py/umpire/server/requirements.txt "${umpire_dir}/requirements.txt"
 RUN pip install --no-cache-dir --upgrade pip setuptools && \
     pip install --no-cache-dir \
-      jsonschema==2.6.0 \
-      python-gnupg==0.4.0 \
-      PyYAML==3.12 \
-      zeep==2.3.0 \
-      txJSON-RPC==0.5 \
+      -r "${umpire_dir}/requirements.txt" \
       -r "${dome_dir}/requirements.txt" \
       -r "${instalog_dir}/requirements.txt"
 

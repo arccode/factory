@@ -1,0 +1,5 @@
+jsonschema==2.6.0
+python-gnupg==0.4.0
+PyYAML==3.12
+zeep==2.3.0
+txJSON-RPC==0.5
