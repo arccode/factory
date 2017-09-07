@@ -240,7 +240,7 @@ class AudioLoopTest(unittest.TestCase):
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
     if self.args.audio_conf:
-      self._dut.audio.ApplyConfig(self.args.audio_conf)
+      self._dut.audio.LoadConfig(self.args.audio_conf)
 
     # Tansfer input and output device format
     self._in_card = self._dut.audio.GetCardIndexByName(self.args.input_dev[0])

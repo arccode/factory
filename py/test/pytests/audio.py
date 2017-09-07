@@ -271,7 +271,7 @@ class AudioTest(unittest.TestCase):
     i18n_arg_utils.ParseArg(self, 'port_label')
     self._dut = device_utils.CreateDUTInterface()
     if self.args.audio_conf:
-      self._dut.audio.ApplyConfig(self.args.audio_conf)
+      self._dut.audio.LoadConfig(self.args.audio_conf)
     # Tansfer output device format
     self._out_card = self._dut.audio.GetCardIndexByName(self.args.output_dev[0])
     self._out_device = self.args.output_dev[1]

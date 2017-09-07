@@ -144,7 +144,7 @@ class AudioQualityTest(unittest.TestCase):
   def setUpAudioDevice(self):
     logging.info('audio conf %s', self.args.audio_conf)
     if self.args.audio_conf:
-      self._dut.audio.ApplyConfig(self.args.audio_conf)
+      self._dut.audio.LoadConfig(self.args.audio_conf)
 
     # Devices Type check
     if not isinstance(self.args.input_dev, tuple):

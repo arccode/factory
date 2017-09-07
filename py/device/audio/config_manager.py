@@ -101,7 +101,7 @@ class BaseConfigManager:
     raise NotImplementedError
 
   @abc.abstractmethod
-  def ApplyConfig(self, config_name):
+  def LoadConfig(self, config_name):
     """Loads system config for audio cards.
 
     Args:
@@ -192,10 +192,10 @@ class AudioConfigManager(BaseConfigManager):
     self._audio_config_sn = 0 # used for audio config logging.
     self._mixer_controller = mixer_controller
     self.audio_config = None
-    self.ApplyConfig(config_name)
+    self.LoadConfig(config_name)
 
   @abc.abstractmethod
-  def ApplyConfig(self, config_path):
+  def LoadConfig(self, config_path):
     """Loads system config for audio cards.
 
     The config may come from JSON config (config_utils) or legacy YAML files.
@@ -698,12 +698,12 @@ class UCMConfigManager(BaseConfigManager):
         card,
         'set _disdev %s' % self._GetDeviceName(device))
 
-  def ApplyConfig(self, config_name):
+  def LoadConfig(self, config_name):
     if self._factory_config_mgr is None:
       self._factory_config_mgr = CreateAudioConfigManager(
           self._mixer_controller, config_name)
     else:
-      self._InvokeFactoryConfMgr('ApplyConfig', config_name)
+      self._InvokeFactoryConfMgr('LoadConfig', config_name)
 
   def ApplyAudioConfig(self, *args, **kwargs):
     """Base.ApplyAudioConfig."""
