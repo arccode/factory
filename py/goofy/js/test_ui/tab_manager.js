@@ -107,6 +107,8 @@ cros.factory.testUI.TabManager = class {
   removeTestUI(path) {
     this.tabBar.removeChild(this.pathTabMap[path], true);
     delete this.pathTabMap[path];
+
+    this.mainContainer.removeChild(this.pathIFrameMap[path]);
     delete this.pathIFrameMap[path];
 
     if (path == this.selectedPath) {
