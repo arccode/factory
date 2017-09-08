@@ -10,6 +10,7 @@ goog.require('cros.factory.Plugin');
 goog.require('cros.factory.i18n');
 goog.require('cros.factory.testUI.Manager');
 goog.require('cros.factory.testUI.TabManager');
+goog.require('cros.factory.testUI.TileManager');
 goog.require('goog.crypt');
 goog.require('goog.crypt.Sha1');
 goog.require('goog.date.DateTime');

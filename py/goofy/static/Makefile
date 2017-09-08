@@ -17,7 +17,8 @@ JS_SOURCES = \
     i18n.js \
     plugin.js \
     test_ui/manager.js \
-    test_ui/tab_manager.js
+    test_ui/tab_manager.js \
+    test_ui/tile_manager.js
 
 JS_SOURCE_PATHS = $(addprefix ../js/,$(JS_SOURCES))
 

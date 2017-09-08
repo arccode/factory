@@ -23,6 +23,12 @@ cros.factory.testUI.Manager = class {
   constructor(root, callbacks) {}
 
   /**
+   * Set additional options for the manager.
+   * @param {!Object} options
+   */
+  setOptions(options) {}
+
+  /**
    * Add a test iframe to the manager.
    * @param {string} path
    * @param {!cros.factory.i18n.TranslationDict} label

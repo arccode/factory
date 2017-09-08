@@ -793,6 +793,34 @@ button {
   flex: 1;
 }
 
+/* Style for cros.factory.testUI.TileManager */
+/* TODO(pihsun): Move these CSS rules for testUI to separate files */
+#goofy-test-ui-main .goofy-tile-main-container {
+  display: grid;
+  flex: 1;
+  align-items: stretch;
+  justify-items: stretch;
+}
+
+.goofy-tile-main-container .goofy-tile-block {
+  display: none;
+  flex-flow: column;
+  border: 1px gray solid;
+}
+
+.goofy-tile-main-container .goofy-tile-block.goofy-test-visible {
+  display: flex;
+}
+
+.goofy-tile-main-container .goofy-tile-block .goofy-tile-title {
+  text-align: center;
+  background: #dddddd;
+}
+
+.goofy-tile-main-container .goofy-tile-block iframe {
+  flex: 1;
+}
+
 /* Fonts. */
 @font-face {
   font-family: 'Open Sans';
