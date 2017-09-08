@@ -103,7 +103,7 @@ class AlsaAudioControl(base.BaseAudioControl):
 
   def __init__(self, dut, config_name=None):
     mixer_controller = AlsaMixerController(dut)
-    config_mgr = config_manager.FactoryAudioConfManager(
+    config_mgr = config_manager.CreateAudioConfigManager(
         mixer_controller, config_name)
     super(AlsaAudioControl, self).__init__(dut, config_mgr, mixer_controller)
 

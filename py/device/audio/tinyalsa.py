@@ -198,7 +198,7 @@ class TinyalsaAudioControl(base.BaseAudioControl):
 
   def __init__(self, dut, config_name=None, remote_directory='/data'):
     mixer_controller = TinyalsaMixerController(dut, remote_directory)
-    config_mgr = config_manager.FactoryAudioConfManager(
+    config_mgr = config_manager.CreateAudioConfigManager(
         mixer_controller, config_name)
     super(TinyalsaAudioControl, self).__init__(
         dut, config_mgr, mixer_controller)

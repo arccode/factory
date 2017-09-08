@@ -182,16 +182,17 @@ class BaseConfigManager:
     raise NotImplementedError
 
 
-class FactoryAudioConfManager(BaseConfigManager):
+class AudioConfigManager(BaseConfigManager):
   """Loads config files which are defined by our factory toolkit."""
 
   def __init__(self, mixer_controller, config_name=None):
-    super(FactoryAudioConfManager, self).__init__()
+    super(AudioConfigManager, self).__init__()
     self._audio_config_sn = 0 # used for audio config logging.
     self._mixer_controller = mixer_controller
     self.audio_config = None
     self.ApplyConfig(config_name)
 
+  @abc.abstractmethod
   def ApplyConfig(self, config_path):
     """Loads system config for audio cards.
 
@@ -202,28 +203,7 @@ class FactoryAudioConfManager(BaseConfigManager):
     Args:
       config_path: A string for YAML config file path or JSON config name.
     """
-
-    if config_path is None:
-      # Use YAML file if that exists.
-      config_path = DEFAULT_YAML_CONFIG_PATH
-      if not os.path.exists(config_path):
-        config_path = DEFAULT_JSON_CONFIG_NAME
-
-    if config_path.endswith('.conf'):
-      with open(config_path, 'r') as config_file:
-        config = yaml.load(config_file)
-    else:
-      config = config_utils.LoadConfig(config_path)
-
-    # Convert names to indexes.
-    card_names = [name for name in config if not name.isdigit()]
-    for name in card_names:
-      index = self._mixer_controller.GetCardIndexByName(name)
-      config[index] = config[name]
-
-    if not config:
-      logging.info('audio: No configuration file (%s).', config_path)
-    self.audio_config = config
+    raise NotImplementedError()
 
   def Initialize(self, card='0'):
     """Initialize sound card.
@@ -390,3 +370,51 @@ class FactoryAudioConfManager(BaseConfigManager):
 
     logging.info('Getting mic jack type %s', mictype)
     return mictype
+
+
+class JSONAudioConfigManager(AudioConfigManager):
+  """Load JSON audio configs."""
+
+  def LoadConfig(self, config_path):
+    config = config_utils.LoadConfig(config_path)
+
+    # Convert names to indexes.
+    card_names = [name for name in config if not name.isdigit()]
+    for name in card_names:
+      index = self._mixer_controller.GetCardIndexByName(name)
+      config[index] = config[name]
+
+    if not config:
+      logging.info('audio: No configuration file (%s).', config_path)
+    self.audio_config = config
+
+
+class YAMLAudioConfigManager(AudioConfigManager):
+  """Load YAML audio configs."""
+
+  def LoadConfig(self, config_path):
+    with open(config_path, 'r') as config_file:
+      config = yaml.load(config_file)
+
+    # Convert names to indexes.
+    card_names = [name for name in config if not name.isdigit()]
+    for name in card_names:
+      index = self._mixer_controller.GetCardIndexByName(name)
+      config[index] = config[name]
+
+    if not config:
+      logging.info('audio: No configuration file (%s).', config_path)
+    self.audio_config = config
+
+
+def CreateAudioConfigManager(mixer_controller, config_path):
+  if config_path is None:
+    # Use YAML file if that exists.
+    config_path = DEFAULT_YAML_CONFIG_PATH
+    if not os.path.exists(config_path):
+      config_path = DEFAULT_JSON_CONFIG_NAME
+
+  if config_path.endswith('.conf'):
+    return YAMLAudioConfigManager(mixer_controller, config_path)
+  else:
+    return JSONAudioConfigManager(mixer_controller, config_path)
