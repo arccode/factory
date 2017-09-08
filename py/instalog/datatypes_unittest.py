@@ -22,6 +22,7 @@ from instalog import datatypes
 from instalog import json_utils
 from instalog import log_utils
 from instalog import plugin_base
+from instalog.utils import time_utils
 
 
 class RuntimeBound(object):
@@ -44,19 +45,19 @@ class RuntimeBound(object):
     return WrappedFn
 
   def __enter__(self):
-    self._start = time.time()
+    self._start = time_utils.MonotonicTime()
 
   def __exit__(self, exc_type, exc_val, exc_tb):
     # If an exception was thrown within the block, pass it up the stack.
     if exc_type:
       raise
-    self._end = time.time()
+    self._end = time_utils.MonotonicTime()
     self._elapsed = self._end - self._start
     if self._elapsed < self._min_seconds:
-      raise ValueError('Only %.2fs elapsed (min %.2fs)'
+      raise ValueError('Only %.5fs elapsed (min %.2fs)'
                        % (self._elapsed, self._min_seconds))
     if self._elapsed > self._max_seconds:
-      raise ValueError('Already %.2fs elapsed (max %.2fs)'
+      raise ValueError('Already %.5fs elapsed (max %.2fs)'
                        % (self._elapsed, self._max_seconds))
 
 
@@ -342,7 +343,7 @@ class TestEventStreamIterator(unittest.TestCase):
           # Sanity check to make sure that the EventStreamIterator next() loop
           # is running fast enough.  On my machine I consistently get ~46000
           # results.  Tone this down to the safe amount of 10000.
-          self.assertTrue(len(results) > 10000)
+          self.assertGreater(len(results), 10000)
 
   def testBlockUntilWaitException(self):
     """Tests that iterator aborts before its timeout on WaitException."""
