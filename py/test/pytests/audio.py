@@ -97,7 +97,7 @@ class AudioDigitPlaybackTask(test_task.InteractiveTestTask):
 
   It randomly picks a digit to play and checks if the operator presses the
   correct digit. It also prevents key-swiping cheating.
-  Note: ext_display.py uses this class to test HDMI audio.
+  Note: external_display.py uses this class to test HDMI audio.
 
   Args:
     _dut: dut instance

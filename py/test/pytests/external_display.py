@@ -57,7 +57,7 @@ Examples
 A test list example for manual checking USB Port 0::
 
     OperatorTest(
-        pytest_name='ext_display',
+        pytest_name='external_display',
         dargs={
             'display_info': [
                 (_('Left HDMI External Display'),

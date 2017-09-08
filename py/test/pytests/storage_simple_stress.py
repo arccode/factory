@@ -37,7 +37,7 @@ Examples
 To test read/write a 10MB file under `/home/root`::
 
   OperatorTest(
-      pytest_name='simple_storage_stress_test',
+      pytest_name='storage_simple_stress',
       dargs={'dir': '/home/root',
              'file_size': 10 * 1024 * 1024,
              'operations': 1})
@@ -45,7 +45,7 @@ To test read/write a 10MB file under `/home/root`::
 To test read/write of a 100MB file 3 times for block device 'mmcblk1p1'::
 
   OperatorTest(
-      pytest_name='simple_storage_stress_test',
+      pytest_name='storage_simple_stress',
       dargs={'dir': '.',
              'file_size': 100 * 1024 * 1024,
              'operations': 3,

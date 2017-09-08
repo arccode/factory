@@ -201,7 +201,7 @@
       ]
     },
     "ClearTPMOwnerRequest": {
-      "pytest_name": "clear_tpm_owner_request"
+      "pytest_name": "tpm_clear_owner"
     },
     "ColdReset": {
       "inherit": "TestGroup",
@@ -230,7 +230,7 @@
       "pytest_name": "exec_shell"
     },
     "ExternalDisplay": {
-      "pytest_name": "ext_display",
+      "pytest_name": "external_display",
       "args": {
         "main_display": "eDP-1"
       }

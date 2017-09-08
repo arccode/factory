@@ -114,6 +114,10 @@ msgid "Camera"
 msgstr "相机"
 
 #: ../build/pytests_label_generated.json
+msgid "Camera Webrtc"
+msgstr "相机 (WebRTC)"
+
+#: ../build/pytests_label_generated.json
 msgid "Cellular Switch Firmware"
 msgstr "切换数据机韧体"
 
@@ -128,14 +132,6 @@ msgstr "充电器"
 #: ../build/pytests_label_generated.json
 msgid "Check Image Version"
 msgstr "检查映像版本"
-
-#: ../build/pytests_label_generated.json
-msgid "Check Wifi Calibration"
-msgstr "检查无线校正"
-
-#: ../build/pytests_label_generated.json
-msgid "Clear TPM Owner Request"
-msgstr "清除 TPM"
 
 #: ../build/pytests_label_generated.json
 msgid "Compass"
@@ -178,7 +174,7 @@ msgid "Exec Shell"
 msgstr "执行指令"
 
 #: ../build/pytests_label_generated.json
-msgid "Ext Display"
+msgid "External Display"
 msgstr "外接显示"
 
 #: ../build/pytests_label_generated.json
@@ -387,10 +383,6 @@ msgid "Shutdown"
 msgstr "关机"
 
 #: ../build/pytests_label_generated.json
-msgid "Simple Storage Stress Test"
-msgstr "储存装置压力测试"
-
-#: ../build/pytests_label_generated.json
 msgid "Spatial Sensor Calibration"
 msgstr "感应器校正"
 
@@ -405,6 +397,10 @@ msgstr "测站开始"
 #: ../build/pytests_label_generated.json
 msgid "Station Setup"
 msgstr "测站名称"
+
+#: ../build/pytests_label_generated.json
+msgid "Storage Simple Stress"
+msgstr "储存装置压力测试"
 
 #: ../build/pytests_label_generated.json
 msgid "Stressapptest"
@@ -483,6 +479,10 @@ msgid "Touchscreen Calibration"
 msgstr "触控面板校正"
 
 #: ../build/pytests_label_generated.json
+msgid "TPM Clear Owner"
+msgstr "清除 TPM"
+
+#: ../build/pytests_label_generated.json
 msgid "TPM Diagnosis"
 msgstr "TPM 诊断"
 
@@ -553,8 +553,8 @@ msgid "Webgl Aquarium"
 msgstr "WebGL 水族箱"
 
 #: ../build/pytests_label_generated.json
-msgid "Webrtc Camera"
-msgstr "WebRTC 相机"
+msgid "Wifi Check Calibration"
+msgstr "检查无线校正"
 
 #: ../build/pytests_label_generated.json
 msgid "Wifi Throughput"
@@ -1621,7 +1621,7 @@ msgid "<br>Press ENTER to pass, or ESC to fail."
 msgstr "<br>测试正常请按 ENTER ，不正常请按 ESC"
 
 #: ../py/test/pytests/brightness/brightness.py ../py/test/pytests/camera.py
-#: ../py/test/pytests/webrtc_camera.py
+#: ../py/test/pytests/camera_webrtc.py
 msgid "Time remaining: {time}"
 msgstr "剩余时间：{time}"
 
@@ -1683,6 +1683,18 @@ msgstr "侦测人脸中..."
 msgid ""
 "Press 0 if LED is flickering, 1 if LED is constantly lit,<br>or ESC to fail."
 msgstr "LED 闪烁请按 0，一直亮着请按 1，没亮请按 ESC"
+
+#: ../py/test/pytests/camera_webrtc.py
+msgid "Click \"Allow\" at the top of the screen."
+msgstr "点击上面的 \"Allow\" 按钮"
+
+#: ../py/test/pytests/camera_webrtc.py
+msgid ""
+"Click <a href=\"javascript:test.pass()\">pass</a> or <a href=\"javascript:"
+"test.fail()\">fail</a>."
+msgstr ""
+"请点击： <a href=\"javascript:test.pass()\">正常</a> 还是 <a href="
+"\"javascript:test.fail()\">不正常</a>"
 
 #: ../py/test/pytests/cellular_switch_firmware.py
 msgid "Switching firmware to {target!r}<br>"
@@ -1759,10 +1771,6 @@ msgstr "烧录网路开机固件..."
 #: ../py/test/pytests/check_image_version.py
 msgid "Error flashing netboot firmware!"
 msgstr "烧录网路开机固件失败"
-
-#: ../py/test/pytests/check_wifi_calibration.py
-msgid "Calibration data doesn't meet requirement"
-msgstr ""
 
 #: ../py/test/pytests/compass.py ../py/test/pytests/tablet_mode_ui.py
 msgid "Success!"
@@ -1972,39 +1980,39 @@ msgstr "请插入网路线到内建网路埠<br>压下空白键开始测试"
 msgid "Running shell commands..."
 msgstr "正在执行系统指令..."
 
-#: ../py/test/pytests/ext_display/ext_display.py
+#: ../py/test/pytests/external_display.py
 msgid "{display} Connect"
 msgstr "{display} 连接"
 
-#: ../py/test/pytests/ext_display/ext_display.py
+#: ../py/test/pytests/external_display.py
 msgid "{display} Video"
 msgstr "{display} 视讯"
 
-#: ../py/test/pytests/ext_display/ext_display.py
+#: ../py/test/pytests/external_display.py
 msgid "{display} Disconnect"
 msgstr "{display} 移除"
 
-#: ../py/test/pytests/ext_display/ext_display.py
+#: ../py/test/pytests/external_display.py
 msgid "Connect external display: {display}"
 msgstr "请接上外接显示屏: {display}"
 
-#: ../py/test/pytests/ext_display/ext_display.py
+#: ../py/test/pytests/external_display.py
 msgid "Do you see video on {display}?"
 msgstr "外接显示屏 {display} 是否有画面?"
 
-#: ../py/test/pytests/ext_display/ext_display.py
+#: ../py/test/pytests/external_display.py
 msgid "Fixture is checking if video is displayed on {display}?"
 msgstr "治具正在测试外接显示屏 {display} 是否有画面?"
 
-#: ../py/test/pytests/ext_display/ext_display.py
+#: ../py/test/pytests/external_display.py
 msgid "Disconnect external display: {display}"
 msgstr "移除外接显示屏: {display}"
 
-#: ../py/test/pytests/ext_display/ext_display.py
+#: ../py/test/pytests/external_display.py
 msgid "Press <span id=\"pass_key\">{key}</span> to pass the test."
 msgstr "通过请按 <span id=\"pass_key\">{key}</span> 键"
 
-#: ../py/test/pytests/ext_display/ext_display.py
+#: ../py/test/pytests/external_display.py
 msgid "{display_label} Audio"
 msgstr " {display_label} 音讯"
 
@@ -3093,17 +3101,9 @@ msgstr "等待外部測試"
 msgid "Please run external test: {name}"
 msgstr "請執行外部測試: {name}"
 
-#: ../py/test/pytests/webrtc_camera.py
-msgid "Click \"Allow\" at the top of the screen."
-msgstr "点击上面的 \"Allow\" 按钮"
-
-#: ../py/test/pytests/webrtc_camera.py
-msgid ""
-"Click <a href=\"javascript:test.pass()\">pass</a> or <a href=\"javascript:"
-"test.fail()\">fail</a>."
+#: ../py/test/pytests/wifi_check_calibration.py
+msgid "Calibration data doesn't meet requirement"
 msgstr ""
-"请点击： <a href=\"javascript:test.pass()\">正常</a> 还是 <a href="
-"\"javascript:test.fail()\">不正常</a>"
 
 #: ../py/test/pytests/wifi_throughput.py
 msgid ""

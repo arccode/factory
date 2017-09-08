@@ -30,15 +30,15 @@ Examples
 --------
 To test front camera::
 
-  OperatorTest(pytest_name='webrtc_camera')
+  OperatorTest(pytest_name='camera_webrtc')
 
 To test rear camera::
 
-  OperatorTest(pytest_name='webrtc_camera', dargs={'is_rear': True})
+  OperatorTest(pytest_name='camera_webrtc', dargs={'is_rear': True})
 
 If you want to change the time limit to 100 seconds::
 
-  OperatorTest(pytest_name='webrtc_camera', dargs={'timeout_secs': 100})
+  OperatorTest(pytest_name='camera_webrtc', dargs={'timeout_secs': 100})
 """
 
 import time
