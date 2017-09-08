@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""ALS fixture test.
+"""Calibration test for light sensor (a chamber is needed).
 
 Hot keys:
 
@@ -21,7 +21,7 @@ Data methods:
 
 Test parameters:
 
-- Please check als_fixture_static/als.params.sample
+- Please check light_sensor_calibration/als.params.sample
 
 Control Chamber:
 
@@ -32,10 +32,8 @@ Control Chamber:
 
 Usage examples::
 
-    # ALS (Ambient Light Sensor) test
     OperatorTest(
-      id='ALSCalibration',
-      pytest_name='als_fixture',
+      pytest_name='light_sensor_calibration',
       dargs={
         'mock_mode': False,
         'control_chamber': True,
@@ -67,7 +65,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test import factory
-from cros.factory.test.fixture.camera import als_light_chamber
+from cros.factory.test.fixture.light_sensor import light_chamber
 from cros.factory.test.fixture import fixture_connection
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
@@ -270,7 +268,7 @@ class ALSFixture(unittest.TestCase):
     self.usb_ready_event = None  # Internal flag is true if USB drive is ready
     self.usb_dev_path = None
 
-    self.chamber = als_light_chamber.ALSLightChamber(
+    self.chamber = light_chamber.LightChamber(
         dut=self.dut,
         val_path=self.als_val_path,
         scale_path=None,

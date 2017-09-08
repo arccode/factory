@@ -6,24 +6,24 @@ import logging
 import time
 
 
-# Mock ALS device value.
-_ALS_MOCK_VALUE = 10
-# Mock ALS scale factor.
-_ALS_MOCK_SCALE_FACTOR = 0.5
+# Mock device value.
+_MOCK_VALUE = 10
+# Mock scale factor.
+_MOCK_SCALE_FACTOR = 0.5
 
 
-class ALSLightChamberError(Exception):
+class LightChamberError(Exception):
   pass
 
 
-class ALSLightChamber(object):
+class LightChamber(object):
   """Interfaces the ambient light sensor over iio."""
   # Default min delay seconds.
   _DEFAULT_MIN_DELAY = 0.178
 
   def __init__(self, dut, val_path, scale_path, fixture_conn, fixture_cmd,
                mock_mode=False, retries=3):
-    """Initializes ALSLightChamber.
+    """Initializes LightChamber.
 
     Args:
       fixture_conn: A FixtureConnection instance for controlling the fixture.
@@ -78,7 +78,7 @@ class ALSLightChamber(object):
       The light sensor values in a list.
     """
     if self._mock_mode:
-      return _ALS_MOCK_VALUE
+      return _MOCK_VALUE
 
     if samples < 1:
       samples = 1
@@ -98,7 +98,7 @@ class ALSLightChamber(object):
 
   def ReadMean(self, delay=None, samples=1):
     if self._mock_mode:
-      return _ALS_MOCK_VALUE
+      return _MOCK_VALUE
 
     buf = self._Read(delay, samples)
     return int(round(float(sum(buf)) / len(buf)))
@@ -119,7 +119,7 @@ class ALSLightChamber(object):
 
   def GetScaleFactor(self):
     if self._mock_mode:
-      return _ALS_MOCK_SCALE_FACTOR
+      return _MOCK_SCALE_FACTOR
 
     if self._scale_path is None:
       raise RuntimeError('ALS scaling is not supported')
@@ -138,4 +138,4 @@ class ALSLightChamber(object):
         if response is None or ret.strip() == response:
           return
 
-    raise ALSLightChamberError('SetLight: fixture fault')
+    raise LightChamberError('SetLight: fixture fault')
