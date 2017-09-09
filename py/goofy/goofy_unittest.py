@@ -767,6 +767,40 @@ class SkippedTestTest(GoofyTest):
     self._wait()
 
 
+class EndlessLoopTest(GoofyTest):
+  """A test to verify that a waived test does not block test list execution."""
+
+  options = """
+    options.auto_run_on_start = True
+  """
+  test_list = """
+    with test_lists.TestGroup(id='G', iterations=-1, retries=-1):
+      test_lists.FactoryTest(id='A', pytest_name='normal_test')
+  """
+
+  def runTest(self):
+    self.goofy.link_manager.UpdateStatus = self.mockAnything.UpdateStatus(False)
+    for unused_i in xrange(4):
+      mock_pytest('normal_test', TestState.PASSED, '')
+    for unused_i in xrange(4):
+      mock_pytest('normal_test', TestState.FAILED, '')
+    self.mocker.ReplayAll()
+
+    state_instance = state.get_instance()
+
+    for i in range(8):
+      self.assertTrue(self.goofy.run_once())
+      self.goofy.wait()
+      self.assertEqual(
+          state_instance.get_test_state('G').iterations_left, float('inf'))
+      self.assertEqual(
+          state_instance.get_test_state('G').retries_left, float('inf'))
+      self.assertEqual(state_instance.get_test_state('G.A').count, i + 1)
+      self.assertEqual(state_instance.get_test_state('G.A').status,
+                       TestState.PASSED if i < 4 else TestState.FAILED)
+    self._wait()
+
+
 class NoHostTest(GoofyUITest):
   """A test to verify that tests marked 'no_host' run without host UI."""
 

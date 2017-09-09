@@ -44,6 +44,8 @@ ID_REGEXP = re.compile(r'^[a-zA-Z0-9]+$')
 # Special value for require_run meaning "all tests".
 ALL = 'all'
 
+INF = float('inf')
+
 
 def get_current_test_path():
   """Returns the path of the currently executing test, if any."""
@@ -669,15 +671,20 @@ class FactoryTest(object):
     self.path = ''
     self.parent = None
     self.root = None
-    self.iterations = iterations
-
-    assert isinstance(self.iterations, int) and self.iterations > 0, (
-        'In test %s, Iterations must be a positive integer, not %r' % (
-            self.path, self.iterations))
-    self.retries = retries
-    assert isinstance(self.retries, int) and self.retries >= 0, (
-        'In test %s, Retries must be a positive integer or 0, not %r' % (
-            self.path, self.retries))
+    if iterations == -1:
+      self.iterations = INF
+    else:
+      self.iterations = iterations
+      assert isinstance(self.iterations, int) and self.iterations > 0, (
+          'In test %s, Iterations must be a positive integer, not %r' % (
+              self.path, self.iterations))
+    if retries == -1:
+      self.retries = INF
+    else:
+      self.retries = retries
+      assert isinstance(self.retries, int) and self.retries >= 0, (
+          'In test %s, Retries must be a positive integer or 0, not %r' % (
+              self.path, self.retries))
 
     if has_ui is not None:
       self.has_ui = has_ui
@@ -772,6 +779,10 @@ class FactoryTest(object):
     struct['inherit'] = self.__class__.__name__
     struct['args'] = self.dargs.copy()
     struct['locals'] = self.locals_.copy()
+    if self.iterations == INF:
+      struct['iterations'] = -1
+    if self.retries == INF:
+      struct['retries'] = -1
 
     # Fields that need extra processing
     if recursive:
