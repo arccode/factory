@@ -7,12 +7,14 @@ from rest_framework import exceptions
 from rest_framework import serializers
 from rest_framework import validators
 
+from backend import common
 from backend.models import Project
 from backend.models import Bundle
 from backend.models import DomeConfig
 from backend.models import Resource
 from backend.models import Service
 from backend.models import TemporaryUploadedFile
+
 
 class ConfigSerializer(serializers.ModelSerializer):
 
@@ -56,8 +58,8 @@ class ProjectSerializer(serializers.Serializer):
       validators=[
           validators.UniqueValidator(queryset=Project.objects.all()),
           django.core.validators.RegexValidator(
-              regex=r'^[^/]+$',
-              message='Slashes are not allowed in project name')])
+              regex=r'^%s$' % common.PROJECT_NAME_RE,
+              message='Invalid project name')])
 
   umpire_enabled = serializers.ModelField(
       model_field=(
