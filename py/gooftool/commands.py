@@ -710,16 +710,16 @@ def Finalize(options):
   - Wipes the testing kernel, rootfs, and stateful partition
   """
   Verify(options)
+  Cr50SetBoardId(options)
   LogSourceHashes(options)
   UntarStatefulFiles(options)
   if options.cros_core:
     logging.info('SetFirmwareBitmapLocale is skipped for ChromeOS Core device.')
   else:
     SetFirmwareBitmapLocale(options)
-  ClearGBBFlags(options)
   ClearFactoryVPDEntries(options)
   GenerateStableDeviceSecret(options)
-  Cr50SetBoardId(options)
+  ClearGBBFlags(options)
   if options.no_write_protect:
     logging.warn('WARNING: Firmware Write Protection is SKIPPED.')
     event_log.Log('wp', fw='both', status='skipped')
