@@ -1,0 +1,47 @@
+{
+  "__comment": "This is an example of RF station test list.",
+  "inherit": [
+    "station_based.test_list"
+  ],
+  "label": "Generic RF Station",
+  "options": {
+    "dut_options": {
+      "link_class": "SSHLink",
+      "host": null,
+      "identity": "/usr/local/factory/misc/sshkeys/testing_rsa",
+      "use_ping": true,
+      "start_dhcp_server": true,
+      "dhcp_server_args": {
+        "exclude_ip_prefix": [
+          [
+            "10.3.0.0",
+            24
+          ]
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "RFGraphyte": {
+      "pytest_name": "rf_graphyte",
+      "args": {
+        "verbose": true,
+        "patch_dhcp_ssh_dut_ip": true,
+        "enable_shopfloor": true,
+        "graphyte_config_file": "eval! 'rf_%s_config.json' % locals.type",
+        "shopfloor_log_dir": "eval! 'rf_%s' % locals.type"
+      }
+    },
+    "RFGraphyteConductive": {
+      "inherit": "RFGraphyte",
+      "locals": {
+        "type": "conductive"
+      }
+    },
+    "StationLoopMain": {
+      "subtests": [
+        "RFGraphyteConductive"
+      ]
+    }
+  }
+}

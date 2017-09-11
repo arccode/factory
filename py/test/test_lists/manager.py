@@ -475,7 +475,8 @@ class TestList(ITestList):
         subtests, self._state_instance, options,
         test_list_id=self._config.test_list_id,
         label=MayTranslate(self._config['label'], force=True),
-        finish_construction=True)
+        finish_construction=True,
+        constants=self.constants)
 
     # Handle override_args
     if 'override_args' in self._config:

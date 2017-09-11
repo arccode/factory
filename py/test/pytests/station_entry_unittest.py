@@ -106,7 +106,6 @@ class FactoryEntryUnitTest(unittest.TestCase):
 
     self.mock_template.SetState(mox.IsA(basestring))
     self.test.SendTestResult()
-    mock_state.ScheduleRestart()
 
     self.mox.ReplayAll()
 
@@ -129,10 +128,13 @@ class FactoryEntryUnitTest(unittest.TestCase):
                                'clear_serial_numbers': True, })
 
     self.mox.StubOutWithMock(device_data, 'ClearAllSerialNumbers')
+    self.mox.StubOutWithMock(self.test._dut.info, 'GetSerialNumber')
     self.mox.StubOutWithMock(sync_utils, 'WaitFor')
 
     self.mock_ui.BindKey(test_ui.SPACE_KEY, mox.Func(callable))
     device_data.ClearAllSerialNumbers()
+    self.test._dut.info.GetSerialNumber('serial_number')
+    self.test._dut.info.GetSerialNumber('mlb_serial_number')
     self.mock_template.SetState(mox.IsA(basestring))
     self.mock_ui.SetHTML(mox.IsA(basestring),
                          id=mox.IsA(basestring)).MultipleTimes()

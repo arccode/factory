@@ -54,6 +54,9 @@ To gracefully terminate a sequence of station-based tests::
   OperatorTest(
       pytest_name='station_entry',
       dargs={'start_station_tests': False})
+
+Please refer to station_based.test_list.json and STATION_BASED.md about how to
+do station based testing.
 """
 
 import threading
@@ -108,9 +111,6 @@ _MSG_SEND_RESULT = i18n_test_ui.MakeI18nLabelWithClass(
 _MSG_REMOVE_DUT = i18n_test_ui.MakeI18nLabelWithClass(
     'Please remove DUT.', 'prompt')
 
-_MSG_RESTART_TESTS = i18n_test_ui.MakeI18nLabelWithClass(
-    'Restarting all tests...', 'prompt')
-
 
 class StationEntry(unittest.TestCase):
   """The factory test to start station test process."""
@@ -151,9 +151,6 @@ class StationEntry(unittest.TestCase):
                             _TITLE_END)
     self._space_event = threading.Event()
 
-  def RestartAllTests(self):
-    self._state.ScheduleRestart()
-
   def SendTestResult(self):
     self._state.PostHookEvent('TestResult', self._state.get_test_states())
 
@@ -174,11 +171,8 @@ class StationEntry(unittest.TestCase):
         device_data.ClearAllSerialNumbers()
       self.Start()
       if self.args.load_dut_storage:
-        # TODO(stimim): We need to do:
-        #  self._dut.info.GetSerialNumber('serial_number')
-        #  self._dut.info.GetSerialNumber('mlb_serial_number')
-        # before load session is implemented.
-        pass
+        self._dut.info.GetSerialNumber('serial_number')
+        self._dut.info.GetSerialNumber('mlb_serial_number')
     else:
       self.End()
       # Clear dut.info data.
@@ -233,7 +227,3 @@ class StationEntry(unittest.TestCase):
         self._ui.SetHTML(_MSG_PRESS_SPACE_TO_END, id=_ID_MSG_DIV)
         sync_utils.WaitFor(self._space_event.isSet, None)
         self._space_event.clear()
-
-    self._ui.SetHTML(_MSG_RESTART_TESTS, id=_ID_MSG_DIV)
-    # TODO(hungte): Clear all device data.
-    self.RestartAllTests()

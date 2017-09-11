@@ -348,6 +348,10 @@
     "PartitionTable": {
       "pytest_name": "partition_table"
     },
+    "Placeholder": {
+      "pytest_name": "nop",
+      "label": "Placeholder"
+    },
     "Probe": {
       "pytest_name": "probe",
       "label": "Probe Hardware",

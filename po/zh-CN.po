@@ -2619,10 +2619,6 @@ msgstr "SENDING 传送测试结果给服务器..."
 msgid "Please remove DUT."
 msgstr "REMOVE 请移除测试装置。"
 
-#: ../py/test/pytests/station_entry.py
-msgid "Restarting all tests..."
-msgstr "RESTARTING 测试结束，正在重设测试列表..."
-
 #: ../py/test/pytests/stylus.py
 msgid ""
 "Please extend the green line with stylus to the other end.<br>Stay between "
@@ -3264,6 +3260,10 @@ msgid "Model and SKU"
 msgstr "组态与样式(SKU)"
 
 #: ../py/test/test_lists/generic_common.test_list.json
+msgid "Placeholder"
+msgstr "未定义测项"
+
+#: ../py/test/test_lists/generic_common.test_list.json
 msgid "Probe Hardware"
 msgstr "侦测硬件"
 
@@ -3387,6 +3387,10 @@ msgstr "GRT (Google 必要测试项目)"
 msgid "Main Test List for a Generic Chromebook."
 msgstr "Chromebook 通用主要测试项目"
 
+#: ../py/test/test_lists/generic_rf_station.test_list.json
+msgid "Generic RF Station"
+msgstr "一般射频測試站"
+
 #: ../py/test/test_lists/generic_rrt.test_list.json
 #: ../py/test/test_lists/generic_run_in.test_list.json
 msgid "Dozing Stress"
@@ -3456,6 +3460,46 @@ msgstr "扫描测站 ID"
 #: ../py/test/test_lists/generic_smt.test_list.json
 msgid "Stress Test"
 msgstr "压力测试"
+
+#: ../py/test/test_lists/station_based.test_list.json
+msgid "Connect Device"
+msgstr "接上装置"
+
+#: ../py/test/test_lists/station_based.test_list.json
+msgid "Disconnect Device"
+msgstr "移除装置"
+
+#: ../py/test/test_lists/station_based.test_list.json
+msgid "Copy Factory State From DUT"
+msgstr "从装置复制测试状态"
+
+#: ../py/test/test_lists/station_based.test_list.json
+msgid "Copy Factory State To DUT"
+msgstr "复制测试状态到装置"
+
+#: ../py/test/test_lists/station_based.test_list.json
+msgid "Merge Factory State On DUT"
+msgstr "汇整工厂测试状态"
+
+#: ../py/test/test_lists/station_based.test_list.json
+msgid "Pop Factory State On Station"
+msgstr "清除暂存测试状态"
+
+#: ../py/test/test_lists/station_based.test_list.json
+msgid "Placeholder: AfterDisconnection"
+msgstr "离线后测项（未定义）"
+
+#: ../py/test/test_lists/station_based.test_list.json
+msgid "Placeholder: BeforeConnection"
+msgstr "连线前测项（未定义）"
+
+#: ../py/test/test_lists/station_based.test_list.json
+msgid "Placeholder: Main"
+msgstr "主测项（未定义）"
+
+#: ../py/test/test_lists/station_based.test_list.json
+msgid "Station-Based Test Template"
+msgstr "测试站模板"
 
 #: ../py/test/test_lists/station_based_test_list.py
 msgid "Start {label}"

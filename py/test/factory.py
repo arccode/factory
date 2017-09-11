@@ -838,8 +838,10 @@ class FactoryTest(object):
     # subtests of a teardown test should be part of teardown as well
     if self.teardown:
       if self.action_on_failure != self.ACTION_ON_FAILURE.NEXT:
-        logging.warning('`action_on_failure` of a teardown test must be `NEXT`')
-        logging.warning('The value will be overwritten.')
+        logging.warning(
+            '%s: action_on_failure=%s, `action_on_failure` of a teardown test '
+            'must be `NEXT`, the value will be overwritten.', self.path,
+            self.action_on_failure)
         self.action_on_failure = self.ACTION_ON_FAILURE.NEXT
       for subtest in self.subtests:
         subtest.SetTeardown()
