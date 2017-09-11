@@ -1133,6 +1133,7 @@ class BluetoothTest(unittest.TestCase):
     self.host_mac = self.btmgmt.GetMac()
     logging.info('manufacturer_id %s: %s %s',
                  self.args.manufacturer_id, self.hci_device, self.host_mac)
+    self.log_file = None
 
     if self.args.base_enclosure_serial_number:
       if (self.args.test_host_id_file and
@@ -1144,7 +1145,6 @@ class BluetoothTest(unittest.TestCase):
 
       filename = '.'.join([self.args.base_enclosure_serial_number,
                            str(test_host_id)])
-      self.log_file = None
       if self.args.log_path:
         self.log_file = os.path.join(self.args.log_path, filename)
 
