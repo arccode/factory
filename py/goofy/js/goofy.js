@@ -908,16 +908,16 @@ cros.factory.Goofy.prototype.focusInvocation = function() {
     return;
   }
 
-  goog.object.forEach(this.invocations, function(i) {
-    if (i && i.iframe && this.testUIManager.isVisible(i.path)) {
-      goog.Timer.callOnce(goog.bind(function() {
-        if (!this.contextMenu) {
-          i.iframe.focus();
-          i.iframe.contentWindow.focus();
-        }
-      }, this));
+  if (!this.contextMenu) {
+    for (const path of Object.keys(this.invocations)) {
+      const i = this.invocations[path];
+      if (i && i.iframe && this.testUIManager.isVisible(i.path)) {
+        i.iframe.focus();
+        i.iframe.contentWindow.focus();
+        break;
+      }
     }
-  }, this);
+  }
 };
 
 /**
