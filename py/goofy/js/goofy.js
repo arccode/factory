@@ -2320,13 +2320,13 @@ cros.factory.Goofy.prototype.saveFactoryLogsToUSB = function() {
   waitForUSBDialog.setButtonSet(new goog.ui.Dialog.ButtonSet().addButton(
       goog.ui.Dialog.ButtonSet.DefaultButtons.CANCEL, false, true));
   cros.factory.Goofy.setDialogTitle(waitForUSBDialog, title);
+  waitForUSBDialog.setVisible(true);
+  this.positionOverConsole(waitForUSBDialog.getElement());
 
   /** @this {!cros.factory.Goofy} */
   function waitForUSB() {
     /** @this {!cros.factory.Goofy} */
     function restartWaitForUSB() {
-      waitForUSBDialog.setVisible(true);
-      this.positionOverConsole(waitForUSBDialog.getElement());
       timer = goog.Timer.callOnce(
           goog.bind(waitForUSB, this), cros.factory.MOUNT_USB_DELAY_MSEC);
     }
