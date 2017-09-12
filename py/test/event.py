@@ -67,8 +67,6 @@ class Event(object):
       'STATE_CHANGE': 'goofy:state_change',
       # The UI has come up.
       'UI_READY': 'goofy:ui_ready',
-      # Tells goofy that a test visibility changes.
-      'SET_TEST_VISIBILITY': 'goofy:set_test_visibility',
       # Tells goofy to clear all state and restart testing.
       'RESTART_TESTS': 'goofy:restart_tests',
       # Tells goofy to run all tests that haven't been run yet.

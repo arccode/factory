@@ -796,8 +796,9 @@ class TestInvocation(object):
 
     with self._lock:
       self.update_state_on_completion = dict(
-          status=status, error_msg=error_msg,
-          visible=False, decrement_iterations_left=decrement_iterations_left,
+          status=status,
+          error_msg=error_msg,
+          decrement_iterations_left=decrement_iterations_left,
           decrement_retries_left=decrement_retries_left)
       self._completed = True
 

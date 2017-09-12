@@ -202,9 +202,6 @@ class Goofy(GoofyBase):
             lambda event: self.stop(root=test_or_root(event, False),
                                     fail=getattr(event, 'fail', False),
                                     reason=getattr(event, 'reason', None)),
-        Event.Type.SET_TEST_VISIBILITY:
-            lambda event: self.test_list.LookupPath(
-                event.path).UpdateState(visible=event.visible),
         Event.Type.CLEAR_STATE:
             lambda event: self.clear_state(
                 self.test_list.LookupPath(event.path)),
@@ -407,7 +404,7 @@ class Goofy(GoofyBase):
     for test in self.test_list.GetAllTests():
       # Make sure the state server knows about all the tests,
       # defaulting to an untested state.
-      test.UpdateState(update_parent=False, visible=False)
+      test.UpdateState(update_parent=False)
 
     is_unexpected_shutdown = False
 

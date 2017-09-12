@@ -156,7 +156,7 @@ cros.factory.HistoryEntry;
 
 /**
  * TestState object in an event or RPC response.
- * @typedef {{status: string, skip: boolean, visible: boolean, count: number,
+ * @typedef {{status: string, skip: boolean, count: number,
  *     error_msg: string, invocation: ?string, iterations_left: number,
  *     retries_left: number, shutdown_count: number}}
  */
@@ -821,8 +821,6 @@ cros.factory.Goofy.prototype.createTestUICallbacks = function() {
       // Change the background color of the node in tree.
       const elt = this.pathNodeMap[path].getElement();
       goog.dom.classlist.enable(elt, 'goofy-test-visible', visible);
-
-      this.sendEvent('goofy:set_test_visibility', {path, visible});
     }
   };
 };

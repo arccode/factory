@@ -34,7 +34,7 @@ class TestListIteratorTest(unittest.TestCase):
     state_instance = state.StubFactoryState()
     test_list.state_instance = state_instance
     for test in test_list.GetAllTests():
-      test.UpdateState(update_parent=False, visible=False)
+      test.UpdateState(update_parent=False)
     return test_list
 
   def _testPickleSerializable(self, iterator):

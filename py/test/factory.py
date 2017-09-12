@@ -385,7 +385,6 @@ class TestState(object):
     count: The number of times the test has been run.
     error_msg: The last error message that caused a test failure.
     shutdown_count: The number of times the test has caused a shutdown.
-    visible: Whether the test is the currently visible test.
     invocation: The currently executing invocation.
     iterations_left: For an active test, the number of remaining iterations
         after the current one.
@@ -398,12 +397,11 @@ class TestState(object):
   FAILED_AND_WAIVED = 'FAILED_AND_WAIVED'
   SKIPPED = 'SKIPPED'
 
-  def __init__(self, status=UNTESTED, count=0, visible=False, error_msg=None,
+  def __init__(self, status=UNTESTED, count=0, error_msg=None,
                shutdown_count=0, invocation=None, iterations_left=0,
                retries_left=0):
     self.status = status
     self.count = count
-    self.visible = visible
     self.error_msg = error_msg
     self.shutdown_count = shutdown_count
     self.invocation = invocation
@@ -414,7 +412,7 @@ class TestState(object):
     return type_utils.StdRepr(self)
 
   def update(self, status=None, increment_count=0, error_msg=None,
-             shutdown_count=None, increment_shutdown_count=0, visible=None,
+             shutdown_count=None, increment_shutdown_count=0,
              invocation=None,
              decrement_iterations_left=0, iterations_left=None,
              decrement_retries_left=0, retries_left=None):
@@ -426,7 +424,6 @@ class TestState(object):
       error_msg: If non-None, the new error message for the test.
       shutdown_count: If non-None, the new shutdown count.
       increment_shutdown_count: An amount by which to increment shutdown_count.
-      visible: If non-None, whether the test should become visible.
       invocation: The currently executing or last invocation, if any.
       iterations_left: If non-None, the new iterations_left.
       decrement_iterations_left: An amount by which to decrement
@@ -451,8 +448,6 @@ class TestState(object):
       self.iterations_left = iterations_left
     if retries_left is not None:
       self.retries_left = retries_left
-    if visible is not None:
-      self.visible = visible
 
     if invocation is not None:
       self.invocation = invocation
