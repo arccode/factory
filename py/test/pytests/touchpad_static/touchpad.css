@@ -1,18 +1,23 @@
-#touchpad-test-container {
-  width: 100%;
+#touchpad-test-first-container {
   flex: 1;
   display: flex;
+  align-self: stretch;
+}
+
+#touchpad-test-second-container {
+  display: flex;
+  align-self: stretch;
 }
 
 .touchpad-test-table {
-  display: flex;
-  flex-flow: column;
+  display: grid;
   margin: 3px;
 }
 
-.touchpad-test-table-row {
+.touchpad-test-table div {
   display: flex;
-  flex: 1;
+  align-items: center;
+  justify-content: center;
 }
 
 .touchpad-test-prompt {
@@ -23,38 +28,44 @@
   font-size: 2em;
 }
 
-.touchpad-test-sector-untested {
+.touchpad-test-sector {
   background-color: gray;
-  flex: 1;
 }
 
-.touchpad-test-sector-tested {
+.touchpad-test-sector.tested {
   background-color: green;
   opacity: 0.5;
-  flex: 1;
 }
 
-.touchpad-test-circle-untested {
+.touchpad-test-circle {
   border: 3px solid gray;
   border-radius: 50%;
   width: 20px;
   height: 20px;
   box-sizing: border-box;
+  display: inline-block;
+  margin-right: .5em;
 }
 
-.touchpad-test-circle-down {
+.touchpad-test-circle.down {
   border: 3px solid yellow;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  box-sizing: border-box;
 }
 
-.touchpad-test-circle-tested {
+.touchpad-test-circle.tested {
   border: 3px solid green;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  box-sizing: border-box;
 }
 
+#quadrant-table {
+  display: grid;
+  grid: 1fr 1fr / 1fr 1fr;
+  flex: 4;
+  text-align: center;
+  margin: 3px;
+}
+
+.touchpad-test-click {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

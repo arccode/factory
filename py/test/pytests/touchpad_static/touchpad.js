@@ -5,70 +5,105 @@
 /**
  * API for touchpad test.
  * @constructor
- * @param {string} container
  * @param {number} xSegments
  * @param {number} ySegments
  * @param {number} countTarget
  * @param {number} quadCountTarget
  */
 var TouchpadTest = function(
-    container, xSegments, ySegments, countTarget, quadCountTarget) {
-  this.container = container;
+    xSegments, ySegments, countTarget, quadCountTarget) {
   this.xSegments = xSegments;
   this.ySegments = ySegments;
   this.leftCount = 0;
   this.rightCount = 0;
   this.countTarget = countTarget;
   this.quadCountTarget = quadCountTarget;
-  this.quadrant_count = {};
-  this.quadrant_total_count = 0;
+  this.quadrantCount = Array(4).fill(0);
 };
 
 /**
  * Creates a touchpad test and runs it.
- * @param {string} container
  * @param {number} xSegments
  * @param {number} ySegments
  * @param {number} countTarget
  * @param {number} quadCountTarget
  */
-function setupTouchpadTest(
-    container, xSegments, ySegments, countTarget, quadCountTarget) {
-  window.touchpadTest = new TouchpadTest(
-      container, xSegments, ySegments, countTarget, quadCountTarget);
+function setupTouchpadTest(xSegments, ySegments, countTarget, quadCountTarget) {
+  window.touchpadTest =
+      new TouchpadTest(xSegments, ySegments, countTarget, quadCountTarget);
   window.touchpadTest.init();
 }
 
 /**
- * Initializes touchpad div elements for touch and scroll.
- * The div contains a table with one row and two columns.
- * The first td contains a touch table, and the second td contains
- * a scroll table.
- * The touch table contains xSegment by ySegment divs
- * The scroll table contains 1 by ySegment divs
- * Also initialize the content in click table, which is built in html.
+ * Initialize the touchpad UI.
  */
 TouchpadTest.prototype.init = function() {
-  var touchTable = createTable(
-      this.ySegments, this.xSegments, 'touch', 'touchpad-test-sector-untested');
-  $(this.container).appendChild(touchTable);
+  const container = document.getElementById('state');
 
-  var scrollTable = createTable(
-      this.ySegments, 1, 'scroll', 'touchpad-test-sector-untested');
-  $(this.container).appendChild(scrollTable);
+  const secondContainer =
+      goog.dom.createDom('div', {'id': 'touchpad-test-second-container'});
+  container.prepend(secondContainer);
+  this.initQuadrantClickTable(secondContainer);
 
-  this.updateCircleCountText();
+  const firstContainer =
+      goog.dom.createDom('div', {'id': 'touchpad-test-first-container'});
+  container.prepend(firstContainer);
+  this.initTouchScrollTables(firstContainer);
+};
 
-  /* This is for SMT test, operator cannot click for each quadrant */
-  if (this.quadCountTarget == 0) {
-    var element = document.getElementById('quadrant_table');
-    if (element) {
-      element.style.display = 'none';
+/**
+ * Initialize the touch and scroll tables.
+ * @param {!Element} container The parent element.
+ */
+TouchpadTest.prototype.initTouchScrollTables = function(container) {
+  const touchTable = createTable(
+      this.ySegments, this.xSegments, 'touch', 'touchpad-test-sector');
+  touchTable.style.flex = this.xSegments;
+  container.appendChild(touchTable);
+
+  const scrollTable =
+      createTable(this.ySegments, 1, 'scroll', 'touchpad-test-sector');
+  scrollTable.style.flex = 1;
+  container.appendChild(scrollTable);
+};
+
+/**
+ * Initialize the quadrant click table.
+ * @param {!Element} container The parent element.
+ */
+TouchpadTest.prototype.initQuadrantClickTable = function(container) {
+  // This is for SMT test, operator cannot click for each quadrant
+  if (this.quadCountTarget) {
+    const quadrantTable = goog.dom.createDom('div', {'id': 'quadrant-table'});
+    container.appendChild(quadrantTable);
+
+    const quadrants = [
+      [2, 'Left-Top'], [1, 'Right-Top'], [3, 'Left-Bottom'],
+      [4, 'Right-Bottom']
+    ];
+    for (const [quad, text] of quadrants) {
+      const div = goog.dom.createDom(
+          'div', {'id': 'quadrant' + quad, 'class': 'touchpad-test-sector'},
+          'Click ' + text + ' Corner',
+          goog.dom.createDom('div', {'id': 'quadrant' + quad + '-count'}));
+      quadrantTable.appendChild(div);
     }
-    for (var i = 1; i <= 4; i++) {
-      window.touchpadTest.markQuadrantSectorTested(i);
+    for (let i = 1; i <= 4; i++) {
+      this.updateQuadrantCountText(i);
     }
   }
+
+  for (const button of ['left', 'right']) {
+    const div = goog.dom.createDom(
+        'div', 'touchpad-test-click', goog.dom.createDom('div', {
+          'id': button + '-circle',
+          'class': 'touchpad-test-circle'
+        }),
+        goog.dom.createDom('span', {'id': button + '-text-cell'}));
+    container.appendChild(div);
+  }
+
+  this.updateCircleCountText();
 };
 
 /**
@@ -80,7 +115,7 @@ TouchpadTest.prototype.markSectorTested = function(x, y) {
   var id = 'touch-x-' + x + '-y-' + y;
   var element = document.getElementById(id);
   if (element) {
-    element.className = 'touchpad-test-sector-tested';
+    element.classList.add('tested');
   }
   this.checkTestComplete();
 };
@@ -93,7 +128,7 @@ TouchpadTest.prototype.markScrollSectorTested = function(y) {
   var id = 'scroll-x-0-y-' + y;
   var element = document.getElementById(id);
   if (element) {
-    element.className = 'touchpad-test-sector-tested';
+    element.classList.add('tested');
   }
   this.checkTestComplete();
 };
@@ -106,80 +141,9 @@ TouchpadTest.prototype.markQuadrantSectorTested = function(quadrant) {
   var id = 'quadrant' + quadrant;
   var element = document.getElementById(id);
   if (element) {
-    element.className = 'touchpad-test-sector-tested';
+    element.classList.add('tested');
   }
   this.checkTestComplete();
-};
-
-/**
- * Marks the given circle as "tested" on the test ui.
- * @param {string} id
- */
-TouchpadTest.prototype.markCircleTested = function(id) {
-  var element = document.getElementById(id);
-  if (element) {
-    element.className = 'touchpad-test-circle-tested';
-  }
-  this.checkTestComplete();
-};
-
-/**
- * Updates the text of the circle cells on the test ui.
- */
-TouchpadTest.prototype.updateCircleCountText = function() {
-  $('left-text-cell').innerHTML =
-      this.leftCount.toString() + ' / ' + this.countTarget.toString();
-  $('right-text-cell').innerHTML =
-      this.rightCount.toString() + ' / ' + this.countTarget.toString();
-};
-
-/**
- * Adds one count to the left circle count.
- */
-TouchpadTest.prototype.updateLeftCount = function() {
-  if (this.leftCount < this.countTarget) {
-    this.leftCount = this.leftCount + 1;
-  }
-};
-
-/**
- * Adds one count to the right circle count.
- */
-TouchpadTest.prototype.updateRightCount = function() {
-  if (this.rightCount < this.countTarget) {
-    this.rightCount = this.rightCount + 1;
-  }
-};
-
-/**
- * Adds a mark to quadrant.
- * @param {number} quad
- */
-TouchpadTest.prototype.updateQuadrant = function(quad) {
-  if (!this.quadrant_count[quad]) {
-    this.quadrant_count[quad] = 0;
-  }
-  if (this.quadrant_count[quad] < this.quadCountTarget) {
-    this.quadrant_count[quad] = this.quadrant_count[quad] + 1;
-    this.quadrant_total_count = this.quadrant_total_count + 1;
-  }
-  if (this.quadrant_count[quad] == this.quadCountTarget) {
-    window.touchpadTest.markQuadrantSectorTested(quad);
-  }
-};
-
-/**
- * Update the number of click for each quadrant
- * @param {number} quad
- */
-TouchpadTest.prototype.updateQuadrantCount = function(quad) {
-  var id = 'quadrant' + quad + '_count';
-  var element = document.getElementById(id);
-
-  if (element) {
-    element.innerHTML = this.quadrant_count[quad].toString() + ' / ' +
-        this.quadCountTarget.toString();
-  }
 };
 
 /**
@@ -189,8 +153,90 @@ TouchpadTest.prototype.updateQuadrantCount = function(quad) {
 TouchpadTest.prototype.markCircleDown = function(id) {
   var element = document.getElementById(id);
   if (element) {
-    element.className = 'touchpad-test-circle-down';
+    element.classList.remove('tested');
+    element.classList.add('down');
   }
+};
+
+/**
+ * Marks the given circle as "tested" on the test ui.
+ * @param {string} id
+ */
+TouchpadTest.prototype.markCircleTested = function(id) {
+  var element = document.getElementById(id);
+  if (element) {
+    element.classList.remove('down');
+    element.classList.add('tested');
+  }
+  this.checkTestComplete();
+};
+
+/**
+ * Updates the text of the circle cells on the test ui.
+ */
+TouchpadTest.prototype.updateCircleCountText = function() {
+  document.getElementById('left-text-cell').innerText =
+      this.leftCount + ' / ' + this.countTarget;
+  document.getElementById('right-text-cell').innerText =
+      this.rightCount + ' / ' + this.countTarget;
+};
+
+/**
+ * Adds one count to the left circle count.
+ */
+TouchpadTest.prototype.updateLeftCount = function() {
+  if (this.leftCount < this.countTarget) {
+    this.leftCount++;
+    this.updateCircleCountText();
+  }
+  this.markCircleTested('left-circle');
+};
+
+/**
+ * Adds one count to the right circle count.
+ */
+TouchpadTest.prototype.updateRightCount = function() {
+  if (this.rightCount < this.countTarget) {
+    this.rightCount++;
+    this.updateCircleCountText();
+  }
+  this.markCircleTested('right-circle');
+};
+
+/**
+ * Adds a mark to quadrant.
+ * @param {number} quad
+ */
+TouchpadTest.prototype.updateQuadrant = function(quad) {
+  if (this.quadrantCount[quad - 1] < this.quadCountTarget) {
+    this.quadrantCount[quad - 1]++;
+    this.updateQuadrantCountText(quad);
+    if (this.quadrantCount[quad - 1] == this.quadCountTarget) {
+      this.markQuadrantSectorTested(quad);
+    }
+  }
+};
+
+/**
+ * Update the number of click for each quadrant
+ * @param {number} quad
+ */
+TouchpadTest.prototype.updateQuadrantCountText = function(quad) {
+  var id = 'quadrant' + quad + '-count';
+  var element = document.getElementById(id);
+
+  if (element) {
+    element.innerText =
+        this.quadrantCount[quad - 1] + ' / ' + this.quadCountTarget;
+  }
+};
+
+/**
+ * Get list of all untested sectors.
+ * @return {!NodeList}
+ */
+TouchpadTest.prototype.getUntestedSectors = function() {
+  return document.querySelectorAll('.touchpad-test-sector:not(.tested)');
 };
 
 /**
@@ -198,10 +244,8 @@ TouchpadTest.prototype.markCircleDown = function(id) {
  * haven't passed the test. Also check that click counts reach target or not.
  */
 TouchpadTest.prototype.checkTestComplete = function() {
-  if ((this.getClassArray('touchpad-test-sector-untested').length == 0) &&
-      (this.leftCount == this.countTarget) &&
-      (this.rightCount == this.countTarget) &&
-      (this.quadrant_total_count == this.quadCountTarget * 4)) {
+  if (!this.getUntestedSectors().length && this.leftCount == this.countTarget &&
+      this.rightCount == this.countTarget) {
     window.test.pass();
   }
 };
@@ -210,37 +254,25 @@ TouchpadTest.prototype.checkTestComplete = function() {
  * Fails the test and prints out all the failed items.
  */
 TouchpadTest.prototype.failTest = function() {
-  var failedSectors = new Array();
+  var failedSectors = [];
 
-  this.getClassArray('touchpad-test-sector-untested').forEach(
-    function(element) {
-      failedSectors.push((element.id));
-    }
-  );
+  this.getUntestedSectors().forEach(function(element) {
+    failedSectors.push(element.id);
+  });
 
-  this.failMsg = 'Touchpad test failed. Malfunction sectors:';
-  failedSectors.forEach(function(element, index, array) {
-    this.failMsg += ' ' + element;
-    if (index != array.length - 1) {
-      this.failMsg += ',';
-    }
-  }, this);
+  var failMsg = 'Touchpad test failed. Malfunction sectors: ';
+  failMsg += failedSectors.join(', ');
+
   if (this.leftCount < this.countTarget) {
-    this.failMsg += ' left click count: ' + $('left-text-cell').innerHTML;
+    failMsg += ' left click count: ' +
+        document.getElementById('left-text-cell').innerText;
   }
   if (this.rightCount < this.countTarget) {
-    this.failMsg += ' right click count: ' + $('right-text-cell').innerHTML;
+    failMsg += ' right click count: ' +
+        document.getElementById('right-text-cell').innerText;
   }
-  window.test.fail(this.failMsg);
-};
 
-/**
- * Returns an Array coverted from the NodeList of the given class.
- * @param {string} className
- * @return {Array}
- */
-TouchpadTest.prototype.getClassArray = function(className) {
-  return Array.prototype.slice.call(document.getElementsByClassName(className));
+  window.test.fail(failMsg);
 };
 
 /**
@@ -251,29 +283,26 @@ TouchpadTest.prototype.getClassArray = function(className) {
  * @param {number} colNumber
  * @param {string} prefix
  * @param {string} className
- * @return {Element}
+ * @return {!Element}
  */
 function createTable(rowNumber, colNumber, prefix, className) {
-  var table = document.createElement('div');
-  table.style.flex = colNumber;
-  table.className = 'touchpad-test-table';
+  var table = goog.dom.createDom('div', {
+    'class': 'touchpad-test-table',
+    'style':
+        'grid: repeat(' + rowNumber + ', 1fr) / repeat(' + colNumber + ', 1fr)'
+  });
   for (var y = 0; y < rowNumber; ++y) {
-    var row = document.createElement('div');
-    row.className = 'touchpad-test-table-row';
     for (var x = 0; x < colNumber; ++x) {
-      var div = document.createElement('div');
-      div.id = prefix + '-x-' + x + '-' + 'y-' + y;
-      div.innerHTML = div.id;
-      div.className = className;
-      row.appendChild(div);
+      var id = prefix + '-x-' + x + '-y-' + y;
+      var div = goog.dom.createDom('div', {'class': className, 'id': id}, id);
+      table.appendChild(div);
     }
-    table.appendChild(row);
   }
   return table;
 }
 
 /**
- * Marks a secotr as tested.
+ * Marks a sector as tested.
  * @param {number} x
  * @param {number} y
  */
@@ -303,11 +332,7 @@ function markSingleClickDown(quadrant) {
  */
 function markSingleClickUp(quadrant) {
   window.touchpadTest.updateLeftCount();
-  window.touchpadTest.updateCircleCountText();
-  window.touchpadTest.markCircleTested('left-circle');
-
   window.touchpadTest.updateQuadrant(quadrant);
-  window.touchpadTest.updateQuadrantCount(quadrant);
 }
 
 /**
@@ -322,15 +347,13 @@ function markDoubleClickDown() {
  */
 function markDoubleClickUp() {
   window.touchpadTest.updateRightCount();
-  window.touchpadTest.updateCircleCountText();
-  window.touchpadTest.markCircleTested('right-circle');
 }
 
 /**
  * Fails the test.
  */
 function failTest() {
-  if (window.touchpadTest === undefined) {
+  if (!window.touchpadTest) {
     window.test.fail('Timeout while waiting for SPACE');
   } else {
     window.touchpadTest.failTest();

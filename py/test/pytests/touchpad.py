@@ -55,7 +55,6 @@ from cros.factory.test.utils import touch_monitor
 from cros.factory.utils.arg_utils import Arg
 
 
-_ID_CONTAINER = 'touchpad-test-container'
 _ID_COUNTDOWN_TIMER = 'touchpad-test-timer'
 
 # The countdown timer will set the innerHTML later, so we should put some text
@@ -65,73 +64,6 @@ _HTML_TIMER = '<div id="%s">&nbsp;</div>' % _ID_COUNTDOWN_TIMER
 _HTML_PROMPT = i18n_test_ui.MakeI18nLabelWithClass(
     'Please take off your fingers and then press SPACE to start testing...',
     'touchpad-test-prompt') + _HTML_TIMER
-
-# The layout contains one div for touchpad touch and scroll,
-# one table for left/right click, and one div for countdown timer.
-_HTML_TOUCHPAD = """
-<div id="%s"></div>
-<table style="width: 100%%; flex: none;">
-  <tbody>
-    <tr>
-      <td style="width: 65%%;">
-        <table id="quadrant_table" style="width: 100%%;">
-          <tbody>
-            <tr>
-              <td>
-                <div id="quadrant2" class="touchpad-test-sector-untested" align="center">
-                  Click Left-Top Corner
-                  <div id="quadrant2_count" align="center">0/3</div>
-                </div>
-              </td>
-              <td>
-                <div id="quadrant1" class="touchpad-test-sector-untested" align="center">
-                  Click Right-Top Corner
-                  <div id="quadrant1_count" align="center">0/3</div>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div id="quadrant3" class="touchpad-test-sector-untested" align="center">
-                  Click Left-Bottom Corner
-                  <div id="quadrant3_count" align="center">0/3</div>
-                </div>
-              </td>
-              <td>
-                <div id="quadrant4" class="touchpad-test-sector-untested" align="center">
-                  Click Right-Bottom Corner
-                  <div id="quadrant4_count" align="center">0/3</div>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </td>
-      <td>
-        <table style="width: 100%%;">
-          <tbody>
-            <tr>
-              <td align="right" valign="center">
-                <div id="left-circle" class="touchpad-test-circle-untested"></div>
-              </td>
-              <td align="left" valign="center">
-                <div id="left-text-cell"></div>
-              </td>
-              <td align="right" valign="center">
-                <div id="right-circle" class="touchpad-test-circle-untested"></div>
-              </td>
-              <td align="left" valign="center">
-                <div id="right-text-cell"></div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </td>
-    </tr>
-  </tbody>
-</table>
-%s
-""" % (_ID_CONTAINER, _HTML_TIMER)
 
 
 class TouchpadMonitor(touch_monitor.MultiTouchMonitor):
@@ -340,8 +272,6 @@ class TouchpadTest(unittest.TestCase):
     """
     del event  # Unused.
 
-    self.ui.UnbindKey(test_ui.SPACE_KEY)
-
     self.touchpad_device = evdev_utils.DeviceReopen(self.touchpad_device)
     self.touchpad_device.grab()
     self.monitor = TouchpadMonitor(self.touchpad_device, self)
@@ -353,11 +283,10 @@ class TouchpadTest(unittest.TestCase):
       self.ui.Fail('Ghost finger detected.')
       return
 
-    self.template.SetState(_HTML_TOUCHPAD)
-    self.ui.CallJSFunction(
-        'setupTouchpadTest', _ID_CONTAINER, self.args.x_segments,
-        self.args.y_segments, self.args.number_to_click,
-        self.args.number_to_quadrant)
+    self.template.SetState(_HTML_TIMER)
+    self.ui.CallJSFunction('setupTouchpadTest', self.args.x_segments,
+                           self.args.y_segments, self.args.number_to_click,
+                           self.args.number_to_quadrant)
 
     self.GetSpec()
     self.dispatcher = evdev_utils.InputDeviceDispatcher(self.touchpad_device,
@@ -366,5 +295,5 @@ class TouchpadTest(unittest.TestCase):
     self.dispatcher.StartDaemon()
 
   def runTest(self):
-    self.ui.BindKey(test_ui.SPACE_KEY, self.StartTest)
+    self.ui.BindKey(test_ui.SPACE_KEY, self.StartTest, once=True)
     self.ui.Run()
