@@ -29,9 +29,6 @@ tbody tr:last-child * {
   flex-flow: column;
   padding: 5vh 0;
 }
-.float-right {
-  float: right;
-}
 .cd-log, .cd-legend {
   margin-top: 10px;
   margin-left: auto;

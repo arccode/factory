@@ -52,9 +52,6 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test import factory
-from cros.factory.test.i18n import _
-from cros.factory.test.i18n import arg_utils as i18n_arg_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import time_utils
@@ -64,11 +61,7 @@ class CountDownTest(unittest.TestCase):
   """A countdown test that monitors and logs various system status."""
 
   ARGS = [
-      i18n_arg_utils.I18nArg('title', 'title.', default=_('Countdown')),
       Arg('duration_secs', int, 'Duration of time to countdown.'),
-      Arg('position_top_right', bool,
-          'A workaround for some machines on which graphics test would overlay '
-          'countdown info.', False),
       Arg('log_interval', int,
           'Interval of time in seconds to log system status.', 120),
       Arg('ui_update_interval', int,
@@ -212,7 +205,6 @@ class CountDownTest(unittest.TestCase):
                        self._dut.fan.GetFanRPM())
 
   def setUp(self):
-    i18n_arg_utils.ParseArg(self, 'title')
     self.Status = collections.namedtuple('Status', ['temperatures', 'fan_rpm'])
     self._dut = device_utils.CreateDUTInterface()
     self._main_sensor = self._dut.thermal.GetMainSensorName()
@@ -229,15 +221,6 @@ class CountDownTest(unittest.TestCase):
 
   def _runTest(self):
     # pylint: disable=attribute-defined-outside-init
-    self._ui.SetHTML(i18n_test_ui.MakeI18nLabel(self.args.title),
-                     id='cd-title')
-
-    # A workaround for some machines in which graphics test would
-    # overlay countdown info.
-    if self.args.position_top_right:
-      self._ui.RunJS('document.getElementById("cd-container").className'
-                     ' = "float-right";')
-
     self._verbose_log = factory.get_verbose_log_file()
     self._start_secs = time.time()
     self._elapsed_secs = 0
