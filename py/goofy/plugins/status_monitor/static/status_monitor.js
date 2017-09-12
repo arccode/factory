@@ -109,9 +109,9 @@ status_monitor.Status.prototype.initUI = function() {
     const div =
         goog.dom.createDom('div', {'id': key, 'class': 'status-bar-section'}, [
           goog.dom.createDom(
-              'div', {'class': 'status-bar-label'},
+              'div', 'status-bar-label',
               cros.factory.i18n.i18nLabelNode(label)),
-          goog.dom.createDom('div', {'class': 'status-bar-value'})
+          goog.dom.createDom('div', 'status-bar-value')
         ]);
     container.appendChild(div);
   });

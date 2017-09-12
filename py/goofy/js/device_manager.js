@@ -94,8 +94,7 @@ cros.factory.DeviceManager.prototype.processData = function(
 
   var subnode = [];
   var deviceDataHtml = goog.dom.createDom('div');
-  var deviceDataTable =
-      goog.dom.createDom('table', {'class': 'two-column-table'});
+  var deviceDataTable = goog.dom.createDom('table', 'two-column-table');
 
   for (var childNode = node.firstChild; childNode != null;
        childNode = childNode.nextSibling) {
@@ -181,8 +180,7 @@ cros.factory.DeviceManager.prototype.createButton = function(fullPath) {
             /** @type {!Node} */ (
                 goog.dom.getElement('goofy-device-data-area')),
             goog.dom.createDom(
-                'div', {'class': 'device-name'},
-                this.mapToDescription[fullPath]));
+                'div', 'device-name', this.mapToDescription[fullPath]));
         goog.dom.appendChild(
             goog.dom.getElement('goofy-device-data-area'),
             this.mapToDeviceData[fullPath]);
@@ -243,8 +241,7 @@ cros.factory.DeviceManager.prototype.getDeviceData = function() {
   goog.dom.appendChild(
       goog.dom.getElement('goofy-device-data-area'),
       goog.dom.createDom(
-          'div', {'class': 'device-manager-loading'},
-          'Loading Device Manager...'));
+          'div', 'device-manager-loading', 'Loading Device Manager...'));
 
   // Executes general commands and ignores slower ones in first stage.
   this.goofy.sendRpcToPlugin(

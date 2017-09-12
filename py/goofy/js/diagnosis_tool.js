@@ -348,7 +348,7 @@ cros.factory.DiagnosisTool.prototype.initWindowRightUpperPart = function() {
   all.createDom();
   var all_element = /** @type {!Node} */ (all.getElement());
 
-  this.nameElement_ = goog.dom.createDom('div', {'class': 'name'});
+  this.nameElement_ = goog.dom.createDom('div', 'name');
   goog.dom.appendChild(all_element, this.nameElement_);
 
   this.stateRowComponent_ = new goog.ui.Component();
@@ -366,7 +366,7 @@ cros.factory.DiagnosisTool.prototype.initWindowRightUpperPart = function() {
   this.descriptionPromptElement_ = goog.dom.createDom(
       'div', {}, cros.factory.i18n.i18nLabelNode('Description:'));
   this.descriptionElement_ =
-      goog.dom.createDom('div', {'class': 'description'});
+      goog.dom.createDom('div', 'description');
   goog.dom.appendChild(all_element, this.descriptionPromptElement_);
   goog.dom.appendChild(all_element, this.descriptionElement_);
 
@@ -924,10 +924,9 @@ cros.factory.DiagnosisTool.Inputs.prototype.addSliderField = function(
   var sliderClassName = 'input-slider-horizontal-line';
   goog.dom.append(
       /** @type {!Element} */ (slider.getElement()),
-      goog.dom.createDom('div', {'class': sliderClassName}));
+      goog.dom.createDom('div', sliderClassName));
   var text = goog.dom.createDom('span');
-  var all = goog.dom.createDom(
-      'div', {'class': 'input-div'}, slider.getElement(), text);
+  var all = goog.dom.createDom('div', 'input-div', slider.getElement(), text);
   var box =
       cros.factory.DiagnosisTool.Inputs.addFieldPrompt(prpt, unit, help, all);
   this.component_.addChild(box, true);

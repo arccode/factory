@@ -36,8 +36,7 @@ cros.factory.testUI.TileManager = class {
      * Main container for test iframes.
      * @type {!Element}
      */
-    this.mainContainer =
-        goog.dom.createDom('div', {'class': 'goofy-tile-main-container'});
+    this.mainContainer = goog.dom.createDom('div', 'goofy-tile-main-container');
     this.root.appendChild(this.mainContainer);
 
     /**
@@ -138,10 +137,9 @@ cros.factory.testUI.TileManager = class {
    * @param {!HTMLIFrameElement} iframe
    */
   addTestUI(path, label, iframe) {
-    const block = goog.dom.createDom('div', {'class': 'goofy-tile-block'});
+    const block = goog.dom.createDom('div', 'goofy-tile-block');
     const title = goog.dom.createDom(
-        'div', {'class': 'goofy-tile-title'},
-        cros.factory.i18n.i18nLabelNode(label));
+        'div', 'goofy-tile-title', cros.factory.i18n.i18nLabelNode(label));
     block.appendChild(title);
     block.appendChild(iframe);
 

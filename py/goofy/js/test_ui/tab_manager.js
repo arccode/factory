@@ -45,8 +45,7 @@ cros.factory.testUI.TabManager = class {
      * Main container for test iframes.
      * @type {!Element}
      */
-    this.mainContainer =
-        goog.dom.createDom('div', {'class': 'goofy-tab-main-container'});
+    this.mainContainer = goog.dom.createDom('div', 'goofy-tab-main-container');
     this.root.appendChild(this.mainContainer);
 
     /**

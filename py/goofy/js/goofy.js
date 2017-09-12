@@ -3346,7 +3346,7 @@ cros.factory.Goofy.prototype.setPluginUI = function(configs) {
   configs.forEach((config) => {
     const pluginArea =
         document.getElementById('goofy-plugin-area-' + config.location);
-    const newPlugin = goog.dom.createDom('div', {'class': 'goofy-plugin'});
+    const newPlugin = goog.dom.createDom('div', 'goofy-plugin');
     const iframe = /** @type {!HTMLIFrameElement} */ (goog.dom.createDom(
         'iframe', {'class': 'goofy-plugin-iframe', 'src': config.url}));
     pluginArea.appendChild(newPlugin);
