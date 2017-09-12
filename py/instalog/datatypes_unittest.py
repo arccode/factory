@@ -11,18 +11,17 @@ from __future__ import print_function
 import copy
 import datetime
 import logging
-import mock
 import Queue
 import tempfile
-import time
 import unittest
 
-import instalog_common  # pylint: disable=W0611
+import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
 from instalog import json_utils
 from instalog import log_utils
 from instalog import plugin_base
 from instalog.utils import time_utils
+import mock
 
 
 class RuntimeBound(object):
@@ -31,7 +30,7 @@ class RuntimeBound(object):
   Can be used either as a decorator or as a context manager.
   """
 
-  def __init__(self, min=None, max=None):  # pylint: disable=W0622
+  def __init__(self, min=None, max=None):  # pylint: disable=redefined-builtin
     self._min_seconds = min if min is not None else float('-inf')
     self._max_seconds = max if max is not None else float('inf')
     self._start = None
@@ -61,7 +60,7 @@ class RuntimeBound(object):
                        % (self._elapsed, self._max_seconds))
 
 
-# pylint: disable=W0223
+# pylint: disable=abstract-method
 class FakePluginAPI(plugin_base.PluginAPI):
   """Implements a fake PluginAPI.
 
@@ -288,7 +287,6 @@ class TestEventStreamIterator(unittest.TestCase):
 
   def testNonBlockingWithEvent(self):
     """Tests non-blocking operations with finite events in the queue."""
-    # pylint: disable=W0106
     self.q.put(1)
     with RuntimeBound(max=0.1):
       results = [x for x in self.event_stream.iter(
@@ -312,7 +310,6 @@ class TestEventStreamIterator(unittest.TestCase):
 
   def testInfiniteItems(self):
     """Tests operations with infinite events in the queue."""
-    # pylint: disable=W0106
     with mock.patch.object(self.q, 'empty', return_value=False):
       with mock.patch.object(self.q, 'get', return_value=1):
         with RuntimeBound(max=0.1):
@@ -347,11 +344,10 @@ class TestEventStreamIterator(unittest.TestCase):
 
   def testBlockUntilWaitException(self):
     """Tests that iterator aborts before its timeout on WaitException."""
-    # pylint: disable=W0106
-    wait_exception_begin = time.time() + 1
+    wait_exception_begin = time_utils.MonotonicTime() + 1
     def DelayedWaitException(plugin, event_stream):
       del plugin, event_stream
-      if time.time() > wait_exception_begin:
+      if time_utils.MonotonicTime() > wait_exception_begin:
         raise plugin_base.WaitException
       else:
         return None
@@ -367,11 +363,10 @@ class TestEventStreamIterator(unittest.TestCase):
 
   def testBlockUntilCountFulfilled(self):
     """Tests that an iterator ends when its count is fulfilled."""
-    # pylint: disable=W0106
-    wait_event_begin = time.time() + 1
+    wait_event_begin = time_utils.MonotonicTime() + 1
     def DelayedEvent(plugin, event_stream):
       del plugin, event_stream
-      if time.time() > wait_event_begin:
+      if time_utils.MonotonicTime() > wait_event_begin:
         return 'delayed_event'
       else:
         return None
