@@ -120,6 +120,7 @@ cros.factory.testUI.TabManager = class {
     if (path == this.selectedPath) {
       this.selectedPath = null;
     }
+    this.callbacks.notifyTestVisible(path, false);
   }
 
   /**
