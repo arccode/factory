@@ -1,0 +1,6 @@
+{
+  "service_url": {
+    "description": "URL to Shop Floor Service.",
+    "type": "string"
+  }
+}

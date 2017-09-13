@@ -121,7 +121,7 @@ def ValidateConfig(config):
       optional_items={
           'ip': Scalar('IP address to bind', basestring),
           'port': Scalar('Base port', int),
-          'shopfloor_service_url': Scalar('Shopfloor Service URL', basestring)})
+      })
   schema.Validate(config)
 
 

@@ -17,7 +17,7 @@ from cros.factory.utils import process_utils
 
 
 # Version for Umpire internal environment migrations.
-UMPIRE_ENV_VERSION = 3
+UMPIRE_ENV_VERSION = 4
 
 _ENV_DIR = os.path.join('/', umpire_env.DEFAULT_BASE_DIR)
 _SESSION_JSON_PATH = os.path.join(_ENV_DIR, umpire_env.SESSION_JSON_FILE)

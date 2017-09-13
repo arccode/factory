@@ -178,8 +178,10 @@ class UmpireEnv(object):
       raise common.UmpireError('UmpireConfig not loaded yet.')
 
     # Use default URL if config is empty string or None.
-    url = (self.config.get('shopfloor_service_url') or
-           'http://localhost:%s/' % common.DEFAULT_SHOPFLOOR_SERVICE_PORT)
+    key = 'services.shop_floor.service_url'
+    url = type_utils.GetDict(
+        self.config, key,
+        'http://localhost:%s/' % common.DEFAULT_SHOPFLOOR_SERVICE_PORT)
 
     # The webservice_utils.py module allows having a 'protocol prefix' in URL
     # string so we have to preserve that first.
@@ -191,7 +193,7 @@ class UmpireEnv(object):
         # The prefixes should not contain 'localhost'.
         url = url.replace('localhost', self.docker_host_ip, 1)
     except Exception:
-      logging.error('Failed to parse shopfloor_service_url %r.', url)
+      logging.error('Failed to parse %s: %r.', key, url)
     return url.rstrip('/')
 
   def ReadConfig(self, custom_path=None):

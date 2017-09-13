@@ -876,34 +876,16 @@ class Service(object):
 
   @staticmethod
   def GetServiceSchemata():
-    schemata = umpire_service.GetAllServiceSchemata()._schema['properties']
-    url_schema = {
-        "service_url": {"type": "string"}
-    }
-    # include shopfloor_service_url in shopfloor config
-    schemata['shop_floor']['properties'].update(url_schema)
-    return schemata
+    return umpire_service.GetAllServiceSchemata()._schema['properties']
 
   @staticmethod
   def ListAll(project_name):
     project = Project.objects.get(pk=project_name)
-    config = project.GetNormalizedActiveConfig()
-    services = config['services']
-    # include shopfloor_service_url in shopfloor config
-    if 'shopfloor_service_url' in config:
-      if not 'shop_floor' in services:
-        services['shop_floor'] = {}
-      services['shop_floor']['service_url'] = config['shopfloor_service_url']
-    return services
+    return project.GetNormalizedActiveConfig()['services']
 
   @staticmethod
   def Update(project_name, data):
     project = Project.GetProjectByName(project_name)
     config = project.GetNormalizedActiveConfig()
-    # get shopfloor_service_url from shopfloor config
-    if 'shop_floor' in data and 'service_url' in data['shop_floor']:
-      url = data['shop_floor']['service_url']
-      del data['shop_floor']['service_url']
-      config['shopfloor_service_url'] = url
     config['services'].update(data)
     return project.UploadAndDeployConfig(config)
