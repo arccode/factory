@@ -2,15 +2,40 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""The 'start' factory test.
+"""A test to make sure everything is set for the following test in test list.
 
-This factory test runs at the start of a test sequence to verify the DUT has
-been setup correctly.
+Description
+-----------
+This test checks everything is set for the following tests in the test list,
+including make sure an external power supplier is presence, checking factory
+software is installed, etc.
 
-The start provides several settings (set via darg):
-  'require_external_power': Prompts and waits for external power to be applied.
-  'check_factory_install_complete': Check factory install process was complete.
-  'press_to_continue': Prompts and waits for a key press (SPACE) to continue.
+Normally, this test should be placed as the first one in a test list, to make
+sure everything is set before performing any other tests.
+
+Test Procedure
+--------------
+It checks several conditions as specified by the options, and ask the operator
+to press a key to pass.
+
+Dependency
+----------
+If argument ``require_external_power`` is set, it reads
+``/sys/class/power_supply/`` to determine if an external power supply is
+connected.
+
+Examples
+--------
+To initialize shared data, then ask the operator to press a key to continue::
+
+  OperatorTest(pytest_name='start')
+
+To also ensure if an external power supply is connected, and check factory
+toolkit is properly installed::
+
+  OperatorTest(pytest_name='start',
+               dargs={'require_external_power': True,
+                      'check_factory_install_complete': True})
 """
 
 import logging
