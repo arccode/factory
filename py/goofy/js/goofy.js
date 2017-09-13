@@ -462,7 +462,7 @@ cros.factory.Invocation.prototype.dispose = function() {
 
   this.goofy.testUIManager.removeTestUI(this.path);
   goog.dom.removeNode(this.iframe);
-  this.goofy.invocations[this.uuid] = null;
+  this.goofy.invocations.delete(this.uuid);
 
   goog.log.info(
       cros.factory.logger, 'Top-level invocation ' + this.uuid + ' disposed');
@@ -604,9 +604,10 @@ cros.factory.Goofy = function() {
 
   /**
    * UIs for individual test invocations (by UUID).
-   * @type {!Object<string, ?cros.factory.Invocation>}
+   * Use a Map to guarantee that the iteration order is same as insertion order.
+   * @type {!Map<string, !cros.factory.Invocation>}
    */
-  this.invocations = {};
+  this.invocations = new Map();
 
   /**
    * Eng mode prompt.
@@ -907,8 +908,7 @@ cros.factory.Goofy.prototype.focusInvocation = function() {
   }
 
   if (!this.contextMenu) {
-    for (const path of Object.keys(this.invocations)) {
-      const i = this.invocations[path];
+    for (const i of this.invocations.values()) {
       if (i && i.iframe && this.testUIManager.isVisible(i.path)) {
         i.iframe.focus();
         i.iframe.contentWindow.focus();
@@ -1141,15 +1141,16 @@ cros.factory.Goofy.prototype.setAutomationMode = function(mode) {
  */
 cros.factory.Goofy.prototype.createInvocation = function(path, invocationUuid) {
   // TODO(pihsun): Remove this check when test_ui.py doesn't call init_test_ui.
-  if (!(invocationUuid in this.invocations)) {
+  if (!this.invocations.has(invocationUuid)) {
     cros.factory.logger.info(
         'Creating UI for test ' + path + ' (invocation ' + invocationUuid +
         ')');
-    this.invocations[invocationUuid] =
-        new cros.factory.Invocation(this, path, invocationUuid);
+    this.invocations.set(
+        invocationUuid,
+        new cros.factory.Invocation(this, path, invocationUuid));
   }
 
-  return this.invocations[invocationUuid];
+  return this.invocations.get(invocationUuid);
 };
 
 /**
@@ -1211,12 +1212,12 @@ cros.factory.Goofy.prototype.updateCSSClassesInDocument = function(doc) {
 cros.factory.Goofy.prototype.updateCSSClasses = function() {
   this.updateCSSClassesInDocument(document);
   this.fixSelectElements(document);
-  goog.object.forEach(this.invocations, (i) => {
+  for (const i of this.invocations.values()) {
     if (i && i.iframe && i.iframe.contentDocument) {
       this.updateCSSClassesInDocument(i.iframe.contentDocument);
       this.fixSelectElements(i.iframe.contentDocument);
     }
-  });
+  }
   var pluginIframes = /** @type {!NodeList<!HTMLIFrameElement>} */ (
       document.querySelectorAll('.goofy-plugin iframe'));
   goog.array.forEach(pluginIframes, (i) => {
@@ -3049,7 +3050,7 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
          * @type {{test: string, invocation: string, id: ?string,
          *     append: boolean, html: string}}
          */ (untypedMessage);
-    let invocation = this.invocations[message.invocation];
+    const invocation = this.invocations.get(message.invocation);
     if (invocation && invocation.iframe) {
       if (message.id) {
         var element = /** @type {?Element} */ (
@@ -3077,7 +3078,7 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
         /**
          * @type {{test: string, invocation: string, args: !Object, js: string}}
          */ (untypedMessage);
-    var invocation = this.invocations[message.invocation];
+    const invocation = this.invocations.get(message.invocation);
     if (invocation && invocation.iframe) {
       // We need to evaluate the code in the context of the content window, but
       // we also need to give it a variable.  Stash it in the window and load
@@ -3095,7 +3096,7 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
          * @type {{test: string, invocation: string, name: string,
          *     args: !Object}}
          */ (untypedMessage);
-    let invocation = this.invocations[message.invocation];
+    const invocation = this.invocations.get(message.invocation);
     if (invocation && invocation.iframe) {
       var func =
           /** @type {function(?)} */ (
@@ -3134,7 +3135,7 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
     cros.factory.logger.info(
         'Received destroy_test event for top-level invocation ' +
         message.invocation);
-    let invocation = this.invocations[message.invocation];
+    const invocation = this.invocations.get(message.invocation);
     if (invocation) {
       invocation.dispose();
     }
