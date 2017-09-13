@@ -16,6 +16,7 @@ TODO(littlecvr): make umpire config complete such that it contains all the
 import contextlib
 import copy
 import errno
+import json
 import logging
 import os
 import shutil
@@ -177,8 +178,17 @@ def GetUmpireServer(project_name):
   return xmlrpclib.ServerProxy(url, allow_none=True)
 
 
-def GetUmpireStatus(project_name):
-  return GetUmpireServer(project_name).GetStatus()
+def GetUmpireConfig(project_name, config_name):
+  status = GetUmpireServer(project_name).GetStatus()
+  assert config_name in ['active_config', 'staging_config']
+  res_name = config_name + '_res'
+  config_str = status[config_name]
+  if not config_str:
+    return {}
+  elif status[res_name].endswith('.yaml'):
+    return yaml.load(config_str)
+  else:
+    return json.loads(config_str)
 
 
 def GenerateUploadToPath(unused_instance, filename):
@@ -335,9 +345,18 @@ class Project(django.db.models.Model):
     umpire_server = GetUmpireServer(self.name)
 
     logger.info('Uploading Umpire config')
+
+    # TODO(hungte) Currently Umpire is still using YAML config files.
+    # In future we may change it to JSON, and to help Dome supporting both
+    # during migration, here we'll double check the format to use,
+    # although this is decided by compile time instead of runtime.
+    if umpire_resource.ConfigTypes.umpire_config.fn_suffix == 'yaml':
+      value = yaml.safe_dump(config, default_flow_style=False)
+    else:
+      value = json.dumps(config, indent=1, separators=(',', ': '))
+
     staging_config_path = umpire_server.AddConfigFromBlob(
-        yaml.safe_dump(config, default_flow_style=False),
-        umpire_resource.ConfigTypeNames.umpire_config)
+        value, umpire_resource.ConfigTypeNames.umpire_config)
 
     logger.info('Staging Umpire config')
     try:
@@ -371,8 +390,7 @@ class Project(django.db.models.Model):
 
   def GetNormalizedActiveConfig(self):
     """Return the normalized version of Umpire active config."""
-    umpire_status = GetUmpireStatus(self.name)
-    config = yaml.load(umpire_status['active_config'])
+    config = GetUmpireConfig(self.name, 'active_config')
     return self.NormalizeConfig(config)
 
   @staticmethod
@@ -849,7 +867,7 @@ class Bundle(object):
       with UmpireAccessibleFile(project_name, f) as p:
         umpire_server.Update([(type_name, p)], bundle_name)
 
-    config = yaml.load(umpire_server.GetStatus()['staging_config'])
+    config = GetUmpireConfig(project_name, 'staging_config')
 
     # config staged before, need the force argument or Umpire will complain
     # TODO(littlecvr): we can actually deploy directly here
@@ -885,7 +903,7 @@ class Bundle(object):
           else:
             raise DomeServerException(detail=e.faultString)
 
-    config = yaml.load(umpire_server.GetStatus()['staging_config'])
+    config = GetUmpireConfig(project_name, 'staging_config')
     for ruleset in config['rulesets']:
       if ruleset['bundle_id'] == bundle_name:
         # TODO(b/34264367): support unicode.
