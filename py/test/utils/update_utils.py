@@ -163,7 +163,8 @@ def UpdateHWIDDatabase(dut=None, target_dir=None):
       # Only set target_dir for remote DUT since we will need to invoke mkdir.
       target_dir = '/usr/local/factory/hwid'
 
-  if not updater.IsUpdateAvailable(current_version):
+  update_version = updater.GetUpdateVersion()
+  if not update_version or current_version in update_version.splitlines():
     return False
 
   with file_utils.UnopenedTemporaryFile() as local_path:
