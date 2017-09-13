@@ -70,7 +70,6 @@
         {
           "inherit": "RunInCountdown",
           "args": {
-            "title": "i18n! Dozing Stress Tests",
             "duration_secs": "eval! constants.run_in.dozing_sat_duration_secs"
           }
         }

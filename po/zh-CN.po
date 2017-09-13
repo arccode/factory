@@ -3389,11 +3389,6 @@ msgstr "Chromebook 通用主要测试项目"
 
 #: ../py/test/test_lists/generic_rrt.test_list.json
 #: ../py/test/test_lists/generic_run_in.test_list.json
-msgid "Dozing Stress Tests"
-msgstr "睡眠内存压力测试"
-
-#: ../py/test/test_lists/generic_rrt.test_list.json
-#: ../py/test/test_lists/generic_run_in.test_list.json
 msgid "Dozing Stress"
 msgstr "睡眠内存压力测试"
 
@@ -3461,10 +3456,6 @@ msgstr "扫描测站 ID"
 #: ../py/test/test_lists/generic_smt.test_list.json
 msgid "Stress Test"
 msgstr "压力测试"
-
-#: ../py/test/test_lists/generic_smt.test_list.json
-msgid "Stress/Component Tests"
-msgstr "压力及元件测试"
 
 #: ../py/test/test_lists/station_based_test_list.py
 msgid "Start {label}"

@@ -55,7 +55,6 @@
         {
           "inherit": "RRTCountdown",
           "args": {
-            "title": "i18n! Dozing Stress Tests",
             "duration_secs": "eval! constants.rrt.dozing_sat_duration_secs"
           }
         }
