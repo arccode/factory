@@ -75,6 +75,22 @@ To test stylus in hover mode::
 
   OperatorTest(pytest_name='touchscreen',
                dargs=dict(stylus=True, hover_mode=True))
+
+Trouble Shooting
+----------------
+If you find the spiral test keeps failing, here are some tips:
+
+1. Use end-to-end mode to see if it helps.
+2. Use the tool `evtest` to check touch events reported by driver.
+
+If seeing unexpected touch events in `evtest`, here are some thoughts:
+
+1. Check if the motherboard and operator are properly grounded.
+2. Remove all external connections to the DUT (including power adaptor, ethernet
+   cable, usb hub).
+3. Check if there are noises coming from the grounding line. Maybe move the DUT
+   out of the manufacturing line to see if it helps.
+4. Flash touchscreen firmware to a different version. Maybe it's too sensitive.
 """
 
 import unittest
