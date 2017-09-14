@@ -794,7 +794,7 @@ class Loader(object):
     if not config_dir:
       # paths.FACTORY_DIR does not work in factory par, however, currently, we
       # should not run Goofy and test list manager in factory par.
-      # The default_config_dir config_utils.LoadConfig will find should be the
+      # The default_config_dirs config_utils.LoadConfig will find should be the
       # same one we compute here, however, we also need this path to check file
       # state, so let's figure out the path by ourselves.
       config_dir = os.path.join(paths.FACTORY_DIR,
@@ -813,7 +813,7 @@ class Loader(object):
           config_name=config_name,
           schema_name=self.schema_name,
           validate_schema=True,
-          default_config_dir=self.config_dir,
+          default_config_dirs=self.config_dir,
           allow_inherit=allow_inherit,
           generate_depend=allow_inherit)
     except Exception:

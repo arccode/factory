@@ -1,7 +1,8 @@
 {
   "inherit":
       ["testdata/config_utils_unittest_middle_b",
-       "testdata/config_utils_unittest_middle_a"],
+       "testdata/config_utils_unittest_middle_a",
+       "config_utils_unittest_extra_dir"],
   "sample_int": 1,
   "sample_str": "test",
   "sample_mapping": {

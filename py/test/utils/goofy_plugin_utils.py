@@ -21,8 +21,8 @@ def GetPluginArguments(plugin_name):
   config = config_utils.LoadConfig(
       config_name=config_name,
       schema_name='plugins',
-      default_config_dir=os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR, 'goofy',
-                                      'plugins'))
+      default_config_dirs=os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR,
+                                       'goofy', 'plugins'))
   try:
     return config['plugins'][plugin_name].get('args', {})
   except KeyError:

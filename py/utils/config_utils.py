@@ -88,6 +88,10 @@ _OVERRIDE_REPLACE_KEY = '__replace__'
 # Special key to list dependent configs.
 _INHERIT_KEY = 'inherit'
 
+# Special flag represents for the path of the directory where the caller module
+# is located.
+CALLER_DIR = None
+
 
 def _DummyLogger(*unused_arg, **unused_kargs):
   """A dummy log function."""
@@ -254,6 +258,7 @@ def GetDefaultConfigInfo(module, module_file=None):
 
   path = (module.__file__ if module and getattr(module, '__file__') else
           module_file)
+  path = os.path.realpath(path)
 
   if path:
     default_dir = os.path.dirname(path)
@@ -298,16 +303,35 @@ def SaveRuntimeConfig(config_name, value):
     output.write(json.dumps(value))
 
 
+def _ResolveConfigInfo(config_name, frame, extra_config_dirs):
+  config_dirs = [
+      GetRuntimeConfigDirectory(),
+      GetBuildConfigDirectory(),
+  ]
+
+  module_file = inspect.getframeinfo(frame)[0]
+  # When running as pyc inside ZIP(PAR), getmodule() will fail.
+  default_config_name, caller_dir = GetDefaultConfigInfo(
+      inspect.getmodule(frame), module_file)
+
+  caller_dirs = [caller_dir]
+  # If the file is a symbolic link, we also search it's original path.
+  if os.path.islink(module_file):
+    caller_dirs.append(os.path.dirname(os.path.realpath(module_file)))
+
+  for config_dir in reversed(extra_config_dirs):
+    config_dirs += caller_dirs if config_dir == CALLER_DIR else [config_dir]
+
+  return (config_name or default_config_name, config_dirs)
+
+
 def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
-               default_config_dir=None, convert_to_str=True,
+               default_config_dirs=CALLER_DIR, convert_to_str=True,
                allow_inherit=False, generate_depend=False):
   """Loads a configuration as mapping by given file name.
 
   The config files are retrieved and overridden in order:
-   1. Default config directory: The arg 'default_config_dir' or the directory of
-      caller module (or current folder if no caller module). If the caller
-      module is a symbolic link, we search its original path first, and
-      override it with the config beside the symbolic link if exists.
+   1. Default config directory(s): See "Args" section for detail.
    2. Build config directory: The 'BuildConfigDirectory' in config_utils.json,
       should be set to 'root of project files'. Defaults to
       /usr/local/factory/py/config.
@@ -318,6 +342,15 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
     config_name: a string for config file name (without extension) to read.
     schema_name: a string for schema file name (without extension) to read.
     validate_schema: boolean to indicate if schema should be checked.
+    default_config_dirs: A list of directories in which the config files are
+        retrieved.  If the caller only want to specify one directory, it can
+        also specify the directory directly instead of wrap it into a list with
+        single element.  Each element of the list could be either a string or
+        `config_util.CALLER_DIR`.  A string represents the path of the
+        directory.  The special flag `config_util.CALLER_DIR` means the
+        directory of caller module (or current folder if no caller module).  If
+        the caller module is a symbolic link, we search its original path first,
+        and override it with the config beside the symbolic link if exists.
     convert_to_str: True to convert the result from unicode to str.
     allow_inherit: if set to True, try to read 'inherit' from the
         config loaded. It should be the name of the parent config to be loaded,
@@ -355,23 +388,13 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
   Returns:
     The config as mapping object.
   """
+  if not isinstance(default_config_dirs, list):
+    default_config_dirs = [default_config_dirs]
+
   current_frame = sys._getframe(1)  # pylint: disable=protected-access
-  module_file = inspect.getframeinfo(current_frame)[0]
-  # When running as pyc inside ZIP(PAR), getmodule() will fail.
-  default_name, default_dir = GetDefaultConfigInfo(
-      inspect.getmodule(current_frame), module_file)
-  config_dirs = [
-      GetRuntimeConfigDirectory(),
-      GetBuildConfigDirectory(),
-      default_config_dir or default_dir,
-  ]
+  config_name, config_dirs = _ResolveConfigInfo(
+      config_name, current_frame, default_config_dirs)
 
-  # If the file is a symbolic link, we also search it's original path.
-  if not default_config_dir and os.path.islink(module_file):
-    config_dirs.append(os.path.dirname(os.path.realpath(module_file)))
-
-  if config_name is None:
-    config_name = default_name
   assert config_name, 'LoadConfig() requires a config name.'
 
   logger = _GetLogger()

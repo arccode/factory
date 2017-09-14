@@ -4,20 +4,15 @@
   "patternProperties": {
     "^.+$": {
       "type": "object",
-      "patternProperties": {
-        "^.+$": {
+      "properties": {
+        "generic": {
           "type": "object",
           "properties": {
             "eval": {
               "type": [
                 "string",
-                "object"
-              ]
-            },
-            "expect": {
-              "type": [
-                "string",
-                "object"
+                "object",
+                "array"
               ]
             }
           },
@@ -27,6 +22,9 @@
           "additionalProperties": false
         }
       },
+      "required": [
+        "generic"
+      ],
       "additionalProperties": false
     }
   },

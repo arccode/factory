@@ -6,6 +6,7 @@
 
 import json
 import logging
+import os
 import unittest
 
 import factory_common  # pylint: disable=W0611
@@ -79,6 +80,9 @@ class ConfigUtilsTest(unittest.TestCase):
   def testLoadConfig(self):
     config_m = config_utils.LoadConfig(
         'testdata/config_utils_unittest',
+        default_config_dirs=[os.path.join(os.path.dirname(__file__),
+                                          'testdata', 'extra_dir'),
+                             config_utils.CALLER_DIR],
         allow_inherit=True,
         generate_depend=True)
     config = config_utils.GetNamedTuple(config_m)

@@ -19,7 +19,6 @@ from cros.factory.probe import common
 from cros.factory.probe import function
 from cros.factory.probe import search
 from cros.factory.utils import config_utils
-from cros.factory.utils import type_utils
 
 
 _sub_cmd_list = []
@@ -160,10 +159,9 @@ class ProbeCmd(SubCommand):
       config_utils.OverrideConfig(
           statement_dict, common.LoadVolatileStatement())
     if options.config_file is not None:
-      # TODO(yhong): use config_utils to load config file as well.
-      with open(options.config_file, 'r') as f:
-        config_utils.OverrideConfig(
-            statement_dict, type_utils.UnicodeToString(json.load(f)))
+      config_utils.OverrideConfig(
+          statement_dict,
+          common.LoadUserProbeStatementFile(options.config_file))
 
     results = {}
     for comp_cls in statement_dict:

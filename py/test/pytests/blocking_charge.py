@@ -110,7 +110,7 @@ def MakeSpriteHTMLTag(src, height, width):
 def _GetCutoffBatteryMinPercentage():
   config = config_utils.LoadConfig(
       config_name='cutoff',
-      default_config_dir=os.path.join(paths.FACTORY_DIR, 'sh', 'cutoff'))
+      default_config_dirs=os.path.join(paths.FACTORY_DIR, 'sh', 'cutoff'))
   return config.get('CUTOFF_BATTERY_MIN_PERCENTAGE', _DEFAULT_TARGET_CHARGE)
 
 
