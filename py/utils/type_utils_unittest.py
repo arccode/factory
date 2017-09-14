@@ -178,6 +178,25 @@ class UniqueSetTest(unittest.TestCase):
     self.assertEqual(self.container.Get(), 1)
 
 
+class GetDictTest(unittest.TestCase):
+
+  def testGet(self):
+    GetDict = type_utils.GetDict
+    data = {
+        'blah': 1,
+        'services': {
+            'shop_floor': {
+            }
+        }
+    }
+    self.assertEquals(GetDict(data, 'blah'), 1)
+    self.assertEquals(GetDict(data, 'non_exist'), None)
+    self.assertEquals(GetDict(data, 'non_exist', True), True)
+    self.assertEquals(GetDict(data, 'services.non_exist', 'N/A'), 'N/A')
+    self.assertEquals(GetDict(data, 'services.shop_floor', 'FAIL'), {})
+    self.assertEquals(GetDict(
+        data, 'services.shop_floor.service_url', 'DEFAULT'), 'DEFAULT')
+
 class UnicodeToStringTest(unittest.TestCase):
 
   def isSame(self, a, b):

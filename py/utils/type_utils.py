@@ -124,6 +124,26 @@ def CheckDictKeys(dict_to_check, allowed_keys):
     raise ValueError('Found extra keys: %s' % list(extra_keys))
 
 
+def GetDict(data, key_path, default_value=None):
+  """A simplified getter function to retrieve values inside dictionary.
+
+  This function is very similar to `dict.get`, except it accepts a key path
+  (can be a list or string delimited by dot, for example ['a', 'b'] or 'a.b')
+
+  Args:
+    data: A dictionary that may contain sub-dictionaries.
+    key_path: A list of keys, or one simple string delimited by dot.
+    default_value: The value to return if key_path does not exist.
+  """
+  if isinstance(key_path, basestring):
+    key_path = key_path.split('.')
+  for key in key_path:
+    if key not in data:
+      return default_value
+    data = data[key]
+  return data
+
+
 class AttrDict(dict):
   """Attribute dictionary.
 
