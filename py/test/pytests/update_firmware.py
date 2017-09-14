@@ -42,6 +42,12 @@ To update only RW Main(AP) firmware using remote firmware updater::
   OperatorTest(pytest_name='update_firmware',
                dargs=dict(download_from_server=True, rw_only=True,
                           update_ec=False, update_pd=False))
+
+Not to update firmwares if the version is the same with current one
+in the DUT::
+
+  OperatorTest(pytest_name='update_firmware',
+               dargs=dict(force_update=False))
 """
 
 import logging
@@ -74,22 +80,17 @@ class UpdateFirmwareTest(unittest.TestCase):
       Arg('update_pd', bool, 'Update PD firmware.', default=True),
       Arg('download_from_server', bool, 'Download firmware updater from server',
           default=False),
-      Arg('update_main', bool, 'Update main firmware.', default=True)
+      Arg('update_main', bool, 'Update main firmware.', default=True),
+      Arg('force_update', bool,
+          'force to update firmwares even if the version is the same.',
+          default=True)
   ]
 
   def setUp(self):
-    self.just_pass = False
-    if self.args.download_from_server:
-      if self.DownloadFirmware():
-        self.args.firmware_updater = _FIRMWARE_DOWNLOAD_PATH
-      else:
-        self.just_pass = True
-    else:
-      self.assertTrue(os.path.isfile(self.args.firmware_updater),
-                      msg='%s is missing.' % self.args.firmware_updater)
     self._ui = test_ui.UI()
     self._template = ui_templates.OneScrollableSection(self._ui)
     self._ui.AppendCSS(_CSS)
+
     self._dut = device_utils.CreateDUTInterface()
 
   def DownloadFirmware(self):
@@ -110,9 +111,12 @@ class UpdateFirmwareTest(unittest.TestCase):
     if not updater.IsUpdateAvailable(current_version):
       logging.info('Your firmware is already in same version as server (%s)',
                    updater.GetUpdateVersion())
+      if not self.args.force_update:
+        return False
 
     updater.PerformUpdate(destination=_FIRMWARE_DOWNLOAD_PATH)
     os.chmod(_FIRMWARE_DOWNLOAD_PATH, 0755)
+    return True
 
   def UpdateFirmware(self):
     """Runs firmware updater.
@@ -160,7 +164,14 @@ class UpdateFirmwareTest(unittest.TestCase):
       self._ui.Pass()
 
   def runTest(self):
-    if self.just_pass:
-      return
+    if self.args.download_from_server:
+      if self.DownloadFirmware():
+        self.args.firmware_updater = _FIRMWARE_DOWNLOAD_PATH
+      else:
+        return
+    else:
+      self.assertTrue(os.path.isfile(self.args.firmware_updater),
+                      msg='%s is missing.' % self.args.firmware_updater)
+
     threading.Thread(target=self.UpdateFirmware).start()
     self._ui.Run()
