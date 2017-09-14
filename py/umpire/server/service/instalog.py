@@ -18,6 +18,7 @@ CLI_HOSTNAME = '0.0.0.0'  # Allows remote connections.
 CLI_PORT = 7000
 NODE_ID = 'factory_server'
 SERVICE_NAME = 'instalog'
+KEY_FINGERPRINT_LENGTH = 40
 
 
 class InstalogService(umpire_service.UmpireService):
@@ -41,15 +42,28 @@ class InstalogService(umpire_service.UmpireService):
       env: UmpireEnv object.
     """
     if update_info.get('forward', {}).get('enable', False):
-      instalog_config['output']['forward'] = {
-          'plugin': 'output_socket',
-          'args': update_info.get('forward', {}).get('args', {}).copy()
-      }
+      args = update_info.get('forward', {}).get('args', {}).copy()
       # If no hostname or port is provided, we should fail.
-      if ('hostname' not in instalog_config['output']['forward']['args'] or
-          'port' not in instalog_config['output']['forward']['args']):
+      if 'hostname' not in args or 'port' not in args:
         raise ValueError('Instalog forwarding is enabled; hostname and port '
                          'must be provided')
+      if args.get('enable_gnupg', False):
+        args['gnupg_home'] = os.path.join(env.umpire_data_dir,
+                                          'instalog', 'gnupg')
+        if not os.path.isdir(args['gnupg_home']):
+          raise ValueError('GnuPG in Instalog HTTP is enabled; GnuPG home (%s) '
+                           'should be set up. (1. Create GnuPG home. 2. '
+                           'Generate a key. 3. Import and sign the target '
+                           'public key.)' % args['gnupg_home'])
+        if ('target_key' not in args or len(args['target_key']) !=
+            KEY_FINGERPRINT_LENGTH):
+          raise ValueError('GnuPG in Instalog HTTP is enabled; a valid '
+                           'target_key must be provided')
+
+      instalog_config['output']['forward'] = {
+          'plugin': 'output_http',
+          'args': args
+      }
       for input_name in instalog_config['input']:
         instalog_config['input'][input_name]['targets'].append('forward')
     if update_info.get('archive', {}).get('enable', False):
@@ -146,7 +160,8 @@ class InstalogService(umpire_service.UmpireService):
         # Have to use --no-daemon when starting instalog, because Umpire will
         # supervise the process by its pid.
         'args': ['--config', config_path, 'start', '--no-daemon'],
-        'path': '/tmp'}
+        'path': '/tmp',
+        'env': os.environ}
     proc = umpire_service.ServiceProcess(self)
     proc.SetConfig(proc_config)
     return [proc]
