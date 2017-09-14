@@ -11,10 +11,13 @@ Scans given python modules and see their dependency. Usage:
 
 from __future__ import print_function
 
+import argparse
 import ast
 from distutils import sysconfig
+import functools
 import imp
 import json
+import multiprocessing
 import os
 import re
 import subprocess
@@ -369,40 +372,57 @@ def CheckDependencyList(rules, module, import_list):
   return result
 
 
-def main(argv):
-  """Main entry point for command line invocation.
+def Check(filename, rules):
+  """Check the file dependency by rule."""
+  if os.path.splitext(filename)[1] != '.py':
+    return None
+  if filename.endswith('_unittest.py'):
+    return None
 
-  Args:
-    argv: list of files to check dependency.
-  """
+  try:
+    filename = os.path.abspath(filename)
+    module_name = GuessModule(filename)
+    if module_name is None:
+      raise ValueError("%s is not in factory Python directory." % filename)
 
-  return_value = 0
+    import_list = GetImportList(filename, module_name)
+    import_list = [x for x in import_list if not GuessIsBuiltin(x)]
+
+    bad_imports = CheckDependencyList(rules, module_name, import_list)
+    if bad_imports:
+      raise ValueError('\n'.join('  x %s' % x for x in bad_imports))
+    return None
+  except Exception as e:
+    error_msg = '--- %s (%s) ---\n%s' % (os.path.relpath(filename), module_name,
+                                         e)
+    return error_msg
+
+
+def main():
+  parser = argparse.ArgumentParser()
+  parser.add_argument(
+      'sources', metavar='SOURCE_CODE', nargs='+',
+      help='The Python source code to check dependencies')
+  parser.add_argument(
+      '--parallel', '-p',
+      action='store_true',
+      help='Run the dependency checks in parallel')
+  args = parser.parse_args()
+
   rules = LoadRules(os.path.join(os.path.dirname(__file__), 'deps.conf'))
 
-  for filename in argv:
-    if os.path.splitext(filename)[1] != '.py':
-      continue
-    if filename.endswith('_unittest.py'):
-      continue
+  pool = multiprocessing.Pool(multiprocessing.cpu_count()
+                              if args.parallel else 1)
 
-    try:
-      filename = os.path.abspath(filename)
-      module_name = GuessModule(filename)
-      if module_name is None:
-        raise ValueError("%s is not in factory Python directory." % filename)
-
-      import_list = GetImportList(filename, module_name)
-      import_list = [x for x in import_list if not GuessIsBuiltin(x)]
-
-      bad_imports = CheckDependencyList(rules, module_name, import_list)
-      if bad_imports:
-        raise ValueError('\n'.join('  x %s' % x for x in bad_imports))
-    except Exception as e:
-      print('--- %s (%s) ---' % (os.path.relpath(filename), module_name))
-      print(str(e))
+  return_value = 0
+  for error_msg in pool.imap_unordered(
+      functools.partial(Check, rules=rules), args.sources):
+    if error_msg is not None:
+      print(error_msg)
       return_value = 1
+  pool.close()
   sys.exit(return_value)
 
 
 if __name__ == '__main__':
-  main(sys.argv[1:])
+  main()
