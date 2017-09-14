@@ -8,10 +8,9 @@ try:
   import cv
   import cv2
   import zbar
+  import numpy as np
 except ImportError:
   pass
-
-import numpy as np
 
 
 def ScanQRCode(cv_img):
