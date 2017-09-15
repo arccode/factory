@@ -4,143 +4,129 @@
 
 """Fixtureless camera test.
 
-This test supports combinations of one or multiple choices from these five test
-types:
+Description
+-----------
+This pytest test if camera is working by one of the following method (choose
+by argument ``mode``):
 
-  (A) do_QR_scan
-  (B) do_facial_recognition
-  (C) do_capture_timeout
-  (D) do_capture_manual
-  (E) do_led_manual
+* ``'qr'``: Scan QR code of given string.
 
-(A), (B) and (C) do not requires intervention of operator. It passes or fails
-automatically.
+* ``'face'``: Recognize a human face.
 
-(D) and (E) requires operator to judge test passing / failing manually. Note
-that it may yield false positivity.
+* ``'timeout'``: Run camera capture until timeout.
 
-Usage examples::
+* ``'frame_count'``: Run camera capture for specified frames.
 
-  # Manual capture test + manual LED test (the typical use case).
-  OperatorTest(
-      id='CameraManual',
-      pytest_name='camera',
-      dargs={
-          'do_capture_manual': True,
-          'do_led_manual': True,
-          'resize_ratio': 0.4,
-          'camera_args':{'resolution': (1920, 1280)}})
+* ``'manual'``: Show captured image.
 
-  # Automatic QR scan test + manual capture test + manual LED test.
-  OperatorTest(
-      id='CameraQR',
-      pytest_name='camera',
-      dargs={
-          'do_QR_scan': True,
-          'do_capture_manual': True,
-          'do_led_manual': True,
-          'resize_ratio': 0.4,
-          'camera_args':{'resolution': (1920, 1280)}})
+* ``'manual_led'``: Light or blink camera LED.
 
-  # Automatic facial recognition test + manual LED test.
-  OperatorTest(
-      id='CameraFacial',
-      pytest_name='camera',
-      dargs={
-          'do_facial_recognition': True,
-          'do_led_manual': True,
-          'resize_ratio': 0.4,
-          'camera_args':{'resolution': (1920, 1280)}})
+``e2e_mode`` can be set to use Chrome Media API instead of device API.
 
-  # Stress camera capturing until timeout without UI.
+Test Procedure
+--------------
+If ``e2e_mode`` is ``True``, the operator may be prompt to click on the 'Allow'
+button on Chrome notification to give Chrome camera permission.
+
+The test procedure differs for each different modes:
+
+* ``'qr'``: Operator put a QR code with content specified by ``QR_string``.
+  Test would pass automatically after ``num_frames_to_pass`` frames with QR code
+  are captured.
+
+* ``'face'``: Operator show a face to the camera. Test would pass automatically
+  after ``num_frames_to_pass`` frames with detected face are captured.
+
+* ``'timeout'``: No user interaction is required, the test pass after
+  ``timeout_secs`` seconds.
+
+* ``'frame_count'``: No user interaction is required, the test pass after
+  ``num_frames_to_pass`` frames are captured.
+
+* ``'manual'``: Screen would show the image captured by camera, and operator
+  judge whether the image looks good. Note that this methods require judgement
+  by operator, so may yield false positivity.
+
+* ``'manual_led'``: The LED light of camera would either be constant on or
+  blinking, and operator need to press the correct key to pass the test.
+
+Except ``'timeout'`` mode, the test would fail after ``timeout_secs`` seconds.
+
+Dependency
+----------
+OpenCV and numpy.
+
+If ``e2e_mode`` is false, also depend on device API
+``cros.factory.device.camera``.
+
+Examples
+--------
+To run a manual capture test. (The default case)::
+
+  FactoryTest(pytest_name='camera')
+
+To run QR scan test, and specify camera resolution to 1920 x 1080::
+
   FactoryTest(
-      id='CameraTimeout',
       pytest_name='camera',
       dargs={
-          'do_capture_timeout': True,
+          'mode': 'qr',
+          'camera_args': {'resolution': (1920, 1280)}})
+
+To run facial recognition test, and use Chrome API instead of device API::
+
+  FactoryTest(
+      pytest_name='camera',
+      dargs={
+          'mode': 'face',
+          'e2e_mode': True})
+
+To stress camera for 1000 seconds, and don't show the image::
+
+  FactoryTest(
+      pytest_name='camera',
+      dargs={
+          'mode': 'timeout',
           'timeout_secs': 1000,
-          'show_image': False,
-          'camera_args':{'resolution': (1920, 1280)}})
+          'show_image': False})
 
-  # Stress camera capturing until given number of frames captured.
+To stress camera capturing for 100 frames, have a timeout of 1000 seconds, and
+don't show the image::
+
   FactoryTest(
-      id='CameraCount',
       pytest_name='camera',
       dargs={
-          'do_capture_frame_count': True,
+          'mode': 'frame_count'
           'num_frames_to_pass': 100,
           'timeout_secs': 1000,
-          'show_image': False,
-          'camera_args':{'resolution': (1920, 1280)}})
-
+          'show_image': False})
 """
 
 
+import numbers
+import Queue
 import random
 import tempfile
 import threading
 import time
 import unittest
+import uuid
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import test_task
+from cros.factory.test import countdown_timer
+from cros.factory.test import i18n
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import barcode
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
 
 from cros.factory.external import cv
 from cros.factory.external import cv2
+from cros.factory.external import numpy as np
 
-
-_MSG_CAMERA_MANUAL_CAPTURE = i18n_test_ui.MakeI18nLabelWithClass(
-    'Capturing image...', 'camera-test-info')
-_MSG_CAMERA_MANUAL_TEST = i18n_test_ui.MakeI18nLabelWithClass(
-    'Press ENTER to pass or ESC to fail.', 'camera-test-info')
-_MSG_CAMERA_TIMEOUT_TEST = i18n_test_ui.MakeI18nLabelWithClass(
-    'Running the camera until timeout.', 'camera-test-info')
-_MSG_CAMERA_FRAME_COUNT_TEST = i18n_test_ui.MakeI18nLabelWithClass(
-    'Running the camera until expected number of frames captured.',
-    'camera-test-info')
-_MSG_CAMERA_QR_SCAN = i18n_test_ui.MakeI18nLabelWithClass(
-    'Scanning QR code...', 'camera-test-info')
-_MSG_CAMERA_QR_FOUND_STRING = lambda text: i18n_test_ui.MakeI18nLabelWithClass(
-    'Scanned QR code: "{text}"', 'camera-test-info', text=text)
-_MSG_CAMERA_FACIAL_RECOGNITION = i18n_test_ui.MakeI18nLabelWithClass(
-    'Detecting faces...', 'camera-test-info')
-_MSG_LED_TEST = i18n_test_ui.MakeI18nLabelWithClass(
-    'Press 0 if LED is flickering, 1 if LED is constantly lit,'
-    '<br>or ESC to fail.', 'camera-test-info')
-_MSG_TIME_REMAINING = lambda time: i18n_test_ui.MakeI18nLabelWithClass(
-    'Time remaining: {time}', 'camera-test-info', time=time)
-
-_ID_IMAGE = 'camera-test-image'
-_ID_PROMPT = 'camera-test-prompt'
-_ID_COUNTDOWN_TIMER = 'camera-test-timer'
-_HTML_CAMERA_TEST = """
-    <img id="%(image)s"/>
-    <div id="%(prompt)s"></div>
-    <div id="%(timer)s"></div>
-""" % {'image': _ID_IMAGE, 'prompt': _ID_PROMPT, 'timer': _ID_COUNTDOWN_TIMER}
-_JS_CAMERA_TEST = """
-    function showJpegImage(jpeg_binary) {
-      var element = $("%(image)s");
-      if (element) {
-        element.src = "data:image/jpeg;base64," + jpeg_binary;
-      }
-    }
-    function hideImage(hide) {
-      var element = $("%(image)s");
-      if (element) {
-        element.style.display = hide ? 'none' : '';
-      }
-    }
-""" % {'image': _ID_IMAGE}
-_CSS_CAMERA_TEST = '.camera-test-info { font-size: 2em; }'
 
 # Set JPEG image compression quality to 70 so that the image can be transferred
 # through websocket.
@@ -148,33 +134,141 @@ _JPEG_QUALITY = 70
 _HAAR_CASCADE_PATH = (
     '/usr/local/share/opencv/haarcascades/haarcascade_frontalface_default.xml')
 
-# Test types of capture task.
-CaptureTaskType = type_utils.Enum(
-    ['QR', 'FACE', 'TIMEOUT', 'MANUAL', 'FRAME_COUNT'])
 
+class CameraTest(unittest.TestCase):
+  """Main class for camera test."""
+  ARGS = [
+      Arg('mode',
+          type_utils.Enum(['qr', 'face', 'timeout', 'frame_count', 'manual',
+                           'manual_led']),
+          'The test mode to test camera.', default='manual'),
+      Arg('num_frames_to_pass', int,
+          'The number of frames with faces in mode "face", '
+          'QR code presented in mode "qr", '
+          'or any frames in mode "frame_count" to pass the test.', default=10),
+      Arg('process_rate', numbers.Real,
+          'The process rate of face recognition or '
+          'QR code scanning in times per second.', default=5),
+      Arg('QR_string', str, 'Encoded string in QR code.',
+          default='Hello ChromeOS!'),
+      Arg('capture_fps', numbers.Real,
+          'Camera capture rate in frames per second.', default=30),
+      Arg('timeout_secs', int, 'Timeout value for the test.', default=20),
+      Arg('resize_ratio', float,
+          'The resize ratio of captured image on screen.', default=0.4),
+      Arg('show_image', bool,
+          'Whether to actually show the image on screen.', default=True),
+      Arg('e2e_mode', bool, 'Perform end-to-end test or not (for camera).',
+          default=False),
+      Arg('device_index', (int, type_utils.Enum(['front', 'rear'])),
+          'If in normal mode, index of video device (0 for default). '
+          'If in e2e mode, string "front" or "rear" for the camera to test '
+          '(default is "front").',
+          default=None),
+      Arg('camera_args', dict, 'Dict of args used for enabling the camera '
+          'device. Only "resolution" is supported in e2e mode.', default={})]
 
-class CaptureTask(test_task.InteractiveTestTask):
-  """Test task to test camera image capture functionality. It has 3 operating
-  modes, which can be adjusted through CameraTest dargs:
-  1. Automatically detect faces to pass the test, or
-  2. Let operator manually select whether camera capture function is working or
-     not.
-  3. Run for a specified amount of time, pass if there are no errors.
+  def Pass(self):
+    self.done_event.set()
+    self.ui.Pass()
 
-  Args:
-    camera_test: The main CameraTest object.
-    task_type: (CaptureTaskType enum) The test type of this capture task.
-  """
-  _CAPTURE_THREAD_NAME = 'TestCaptureThread'
+  def Fail(self, msg):
+    self.done_event.set()
+    self.ui.Fail(msg)
 
-  def __init__(self, camera_test, task_type):
-    super(CaptureTask, self).__init__(camera_test.ui)
-    self.camera_test = camera_test
-    self.task_type = task_type
-    self.args = camera_test.args
-    self.finished = False
-    self.img_buffer = tempfile.NamedTemporaryFile(suffix='.jpg', delete=True)
-    self.capture_thread = None
+  def _Timeout(self):
+    if self.mode == 'timeout':
+      # If it keeps capturing images until timeout, the test passes.
+      self.Pass()
+    else:
+      self.Fail('Camera test failed due to timeout.')
+
+  def ShowInstruction(self, msg):
+    self.ui.CallJSFunction('showInstruction', msg)
+
+  # TODO(pihsun): Put this in test_ui.
+  def RunJSBlocking(self, js):
+    wait_event = threading.Event()
+    event_name = 'wait_js_%s' % uuid.uuid4()
+    self.ui.AddEventHandler(event_name, lambda unused_event: wait_event.set())
+    self.ui.RunJS('try { %s; test.sendTestEvent(%r, ""); }'
+                  'catch(e) { failWithError(e); }' % (js, event_name))
+    wait_event.wait()
+
+  # TODO(pihsun): Put this in test_ui.
+  def RunJSPromiseBlocking(self, js):
+    wait_event = threading.Event()
+    event_name = 'wait_js_promise_%s' % uuid.uuid4()
+    self.ui.AddEventHandler(
+        event_name, lambda unused_event: wait_event.set())
+    self.ui.RunJS('runPromise(%s, %r)' % (js, event_name))
+    wait_event.wait()
+
+  def EnableDevice(self):
+    if self.e2e_mode:
+      self.RunJSPromiseBlocking('camera.enable()')
+    else:
+      self.camera_device.EnableCamera(**self.args.camera_args)
+
+  def DisableDevice(self):
+    if self.e2e_mode:
+      self.RunJSBlocking('camera.disable()')
+    else:
+      self.camera_device.DisableCamera()
+
+  def ReadSingleFrame(self, need_result=True):
+    if self.e2e_mode:
+      if need_result:
+        # TODO(pihsun): Move this to test_ui if used by others.
+        data_event_name = 'camera_image_data_%s' % uuid.uuid4()
+        data_queue = Queue.Queue()
+        self.ui.AddEventHandler(
+            data_event_name, lambda event: data_queue.put(event.data))
+        self.RunJSPromiseBlocking('camera.grabFrameAndTransmitBack(%r)' %
+                                  data_event_name)
+        buf = []
+        while not data_queue.empty():
+          buf.append(data_queue.get())
+        blob = ''.join(buf).decode('base64')
+        return cv2.imdecode(
+            np.fromstring(blob, dtype=np.uint8), cv2.CV_LOAD_IMAGE_COLOR)
+      else:
+        self.RunJSPromiseBlocking('camera.grabFrame()')
+    else:
+      return self.camera_device.ReadSingleFrame()
+
+  def LEDTest(self):
+    flicker = bool(random.randint(0, 1))
+
+    self.ui.BindStandardKeys(bind_pass_keys=False)
+    for i in range(2):
+      if i == flicker:
+        self.ui.BindKey(str(i), lambda unused_event: self.Pass())
+      else:
+        self.ui.BindKey(
+            str(i), lambda unused_event: self.Fail('Wrong key pressed.'))
+    self.ShowInstruction(
+        _('Press 0 if LED is constantly lit, 1 if LED is flickering,\n'
+          'or ESC to fail.'))
+    self.ui.CallJSFunction('hideImage', True)
+
+    if flicker:
+      while True:
+        # Flickers the LED
+        self.EnableDevice()
+        self.ReadSingleFrame(need_result=False)
+        if self.done_event.wait(0.5):
+          break
+        self.DisableDevice()
+        if self.done_event.wait(0.5):
+          break
+    else:
+      # Constantly lights the LED
+      self.EnableDevice()
+      while True:
+        self.ReadSingleFrame(need_result=False)
+        if self.done_event.wait(0.5):
+          break
 
   def DetectFaces(self, cv_image):
     storage = cv.CreateMemStorage()
@@ -185,238 +279,132 @@ class CaptureTask(test_task.InteractiveTestTask):
       for loc, _ in detected:
         x, y, w, h = loc
         cv.Rectangle(cv_image, (x, y), (x + w, y + h), 255)
-    return detected != []
+    return bool(detected)
 
   def ScanQRCode(self, cv_image):
     scan_results = barcode.ScanQRCode(cv_image)
-    if len(scan_results) > 0:
+    if scan_results:
       scanned_text = scan_results[0]
     else:
       scanned_text = None
     if scanned_text:
-      self.camera_test.ui.SetHTML(_MSG_CAMERA_QR_FOUND_STRING(scanned_text),
-                                  id=_ID_PROMPT)
+      self.ShowInstruction(
+          i18n.StringFormat(_('Scanned QR code: "{text}"'), text=scanned_text))
+
     return scanned_text == self.args.QR_string
 
-  def TestCapture(self):
+  def CaptureTest(self, mode):
     frame_count = 0
     detected_frame_count = 0
     tick = 1.0 / float(self.args.capture_fps)
     tock = time.time()
     process_interval = 1.0 / float(self.args.process_rate)
     resize_ratio = self.args.resize_ratio
-    if self.task_type == CaptureTaskType.MANUAL:
-      self.camera_test.ui.SetHTML(_MSG_CAMERA_MANUAL_TEST, id=_ID_PROMPT)
-      self.BindPassFailKeys()
-    while not self.finished:
-      cv_img = self.camera_test.camera_device.ReadSingleFrame()
-      if self.task_type == CaptureTaskType.FRAME_COUNT:
-        frame_count += 1
-        if frame_count >= self.args.num_frames_to_pass:
-          self.Pass()
-          return
-      if (self.task_type in [CaptureTaskType.QR, CaptureTaskType.FACE] and
-          time.time() - tock > process_interval):
-        # Doing face recognition based on process_rate due to performance
-        # consideration.
-        tock = time.time()
-        if ((self.task_type == CaptureTaskType.QR and
-             self.ScanQRCode(cv_img)) or
-            (self.task_type == CaptureTaskType.FACE and
-             self.DetectFaces(cv_img))):
-          detected_frame_count += 1
-        if detected_frame_count >= self.args.num_frames_to_pass:
-          self.Pass()
-          return
-      cv_img = cv2.resize(cv_img, None, fx=resize_ratio, fy=resize_ratio,
-                          interpolation=cv2.INTER_AREA)
-      cv_img = cv2.flip(cv_img, 1)
 
-      self.img_buffer.seek(0)
-      cv2.imwrite(self.img_buffer.name, cv_img,
-                  (cv.CV_IMWRITE_JPEG_QUALITY, _JPEG_QUALITY))
-      if self.args.show_image:
-        try:
-          self.camera_test.ui.CallJSFunction(
-              'showJpegImage',
-              self.img_buffer.read().encode('base64'))
-        except AttributeError:
-          # The websocket is closed because test has passed/failed.
-          return
-      time.sleep(tick)
+    instructions = {
+        'manual': _('Press ENTER to pass or ESC to fail.'),
+        'timeout': _('Running the camera until timeout.'),
+        'frame_count': _(
+            'Running the camera until expected number of frames captured.'),
+        'qr': _('Scanning QR code...'),
+        'face': _('Detecting faces...')
+    }
+    self.ShowInstruction(instructions[mode])
+    if mode == 'manual':
+      self.ui.BindStandardKeys()
 
-  def Run(self):
-    if self.task_type == CaptureTaskType.QR:
-      self.camera_test.ui.SetHTML(_MSG_CAMERA_QR_SCAN, id=_ID_PROMPT)
-    elif self.task_type == CaptureTaskType.FACE:
-      self.camera_test.ui.SetHTML(_MSG_CAMERA_FACIAL_RECOGNITION, id=_ID_PROMPT)
-    elif self.task_type == CaptureTaskType.TIMEOUT:
-      self.camera_test.ui.SetHTML(_MSG_CAMERA_TIMEOUT_TEST, id=_ID_PROMPT)
-    elif self.task_type == CaptureTaskType.FRAME_COUNT:
-      self.camera_test.ui.SetHTML(_MSG_CAMERA_FRAME_COUNT_TEST, id=_ID_PROMPT)
-    else:
-      self.camera_test.ui.SetHTML(_MSG_CAMERA_MANUAL_CAPTURE, id=_ID_PROMPT)
+    self.EnableDevice()
+    try:
+      while True:
+        start_time = time.time()
+        cv_img = self.ReadSingleFrame()
+        if mode == 'frame_count':
+          frame_count += 1
+          if frame_count >= self.args.num_frames_to_pass:
+            self.Pass()
+            return
+        elif (mode in ['qr', 'face'] and time.time() - tock > process_interval):
+          # Doing face recognition based on process_rate due to performance
+          # consideration.
+          tock = time.time()
+          if ((mode == 'qr' and self.ScanQRCode(cv_img)) or
+              (mode == 'face' and self.DetectFaces(cv_img))):
+            detected_frame_count += 1
+          if detected_frame_count >= self.args.num_frames_to_pass:
+            self.Pass()
+            return
 
-    self.camera_test.ui.CallJSFunction('hideImage', False)
-    self.camera_test.EnableDevice()
-    self.capture_thread = process_utils.StartDaemonThread(
-        target=self.TestCapture, name=self._CAPTURE_THREAD_NAME,
-        interrupt_on_crash=True)
+        if self.args.show_image:
+          cv_img = cv2.resize(cv_img, None, fx=resize_ratio, fy=resize_ratio,
+                              interpolation=cv2.INTER_AREA)
+          cv_img = cv2.flip(cv_img, 1)
 
-  def Cleanup(self):
-    self.finished = True
-    # If Cleanup() is called from capture thread, no need to join() it.
-    if (self.capture_thread and
-        threading.current_thread().name != self._CAPTURE_THREAD_NAME):
-      self.capture_thread.join(1.0)
-    self.camera_test.camera_device.DisableCamera()
+          with tempfile.NamedTemporaryFile(suffix='.jpg') as img_buffer:
+            cv2.imwrite(img_buffer.name, cv_img,
+                        (cv.CV_IMWRITE_JPEG_QUALITY, _JPEG_QUALITY))
+            try:
+              self.ui.CallJSFunction(
+                  'showJpegImage',
+                  img_buffer.read().encode('base64'))
+            except AttributeError:
+              # The websocket is closed because test has passed/failed.
+              return
 
-
-class LEDTask(test_task.InteractiveTestTask):
-  """Test task to test camera LED.
-
-  Args:
-    camera_test: The main CameraTest object.
-  """
-  LED_FLICKERING = 0
-  LED_CONSTANTLY_LIT = 1
-
-  def __init__(self, camera_test):
-    super(LEDTask, self).__init__(camera_test.ui)
-    self.camera_test = camera_test
-    self.pass_key = random.randint(self.LED_FLICKERING, self.LED_CONSTANTLY_LIT)
-    self.finished = False
-
-  def TestLED(self):
-    while not self.finished:
-      if self.pass_key == self.LED_FLICKERING:
-        # Flickers the LED
-        if self.camera_test.camera_device.IsEnabled():
-          self.camera_test.camera_device.DisableCamera()
-        else:
-          self.camera_test.EnableDevice()
-          self.camera_test.camera_device.ReadSingleFrame()
-      else:
-        # Constantly lights the LED
-        if not self.camera_test.camera_device.IsEnabled():
-          self.camera_test.EnableDevice()
-        self.camera_test.camera_device.ReadSingleFrame()
-      time.sleep(0.5)
-
-  def Run(self):
-    self.camera_test.ui.SetHTML(_MSG_LED_TEST, id=_ID_PROMPT)
-    self.camera_test.ui.CallJSFunction('hideImage', True)
-    self.BindPassFailKeys(pass_key=False)
-    self.BindDigitKeys(self.pass_key, max_digit=1)
-    process_utils.StartDaemonThread(target=self.TestLED,
-                                    interrupt_on_crash=True)
-
-  def Cleanup(self):
-    self.finished = True
-    self.UnbindDigitKeys()
-
-
-class CameraTest(unittest.TestCase):
-  """Main class for camera test."""
-  ARGS = [
-      Arg('do_QR_scan', bool, 'Automates camera check by scanning QR Code.',
-          default=False),
-      Arg('do_facial_recognition', bool,
-          'Automates camera check by using '
-          'face recognition.', default=False),
-      Arg('do_capture_timeout', bool,
-          'Just run camera capturing for '
-          "'timeout_secs' without manual intervention of operator. "
-          'This is usually used in run-in stress test. ', default=False),
-      Arg('do_capture_manual', bool,
-          'Manually checks if camera capturing is '
-          'working.', default=False),
-      Arg('do_capture_frame_count', bool,
-          'Just run camera capturing for a given number of frames.',
-          default=False),
-      Arg('do_led_manual', bool, 'Manully tests LED on camera.',
-          default=False),
-      Arg('num_frames_to_pass', int,
-          'The number of frames with faces, QR code presented or any frames '
-          'when do_capture_frame_count to pass the test.', default=10),
-      Arg('process_rate', (int, float),
-          'The process rate of face recognition or '
-          'QR code scanning in times per second.', default=5),
-      Arg('QR_string', str, 'Encoded string in QR code.',
-          default='Hello ChromeOS!'),
-      Arg('capture_fps', (int, float),
-          'Camera capture rate in frames per second.', default=30),
-      Arg('timeout_secs', int, 'Timeout value for the test.', default=20),
-      Arg('resize_ratio', float,
-          'The resize ratio of captured image '
-          'on screen.', default=0.4),
-      Arg('show_image', bool,
-          'Whether to actually show the image on screen.', default=True),
-      Arg('device_index', int, 'Index of video device (0 for default).',
-          default=0),
-      Arg('camera_args', dict, 'Dict of args used for enabling the camera '
-          'device.', optional=True)]
-
-  def _CountdownTimer(self):
-    """Starts countdown timer and fails the test if timer reaches zero,
-    unless in timeout_run mode, than it just passes."""
-    end_time = time.time() + self.args.timeout_secs
-    while True:
-      remaining_time = end_time - time.time()
-      if remaining_time <= 0:
-        break
-      self.ui.SetHTML(_MSG_TIME_REMAINING(remaining_time),
-                      id=_ID_COUNTDOWN_TIMER)
-      time.sleep(1)
-
-    if self.args.do_capture_timeout:
-      # If it keeps capturing images until timeout, the test passes.
-      self.ui.Pass()
-    else:
-      self.ui.Fail('Camera test failed due to timeout.')
-
-  def EnableDevice(self):
-    if self.args.camera_args:
-      self.camera_device.EnableCamera(**self.args.camera_args)
-    else:
-      self.camera_device.EnableCamera()
+        if self.done_event.wait(max(0, tick - (time.time() - start_time))):
+          break
+    finally:
+      self.DisableDevice()
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self.camera_device = self.dut.camera.GetCameraDevice(
-        self.args.device_index)
+
+    self.mode = self.args.mode
+    self.e2e_mode = self.args.e2e_mode
+    self.done_event = threading.Event()
 
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)
-    self.ui.AppendCSS(_CSS_CAMERA_TEST)
-    self.template.SetState(_HTML_CAMERA_TEST)
-    self.ui.RunJS(_JS_CAMERA_TEST)
+    self.ui.CallJSFunction('setupUI')
+    self.ui.AppendCSSLink('camera.css')
 
-    exclusive_check = False
-    self.task_list = []
-    if self.args.do_QR_scan:
-      self.task_list.append(CaptureTask(self, CaptureTaskType.QR))
-    if self.args.do_facial_recognition:
-      self.task_list.append(CaptureTask(self, CaptureTaskType.FACE))
-    if self.args.do_capture_timeout:
-      self.task_list.append(CaptureTask(self, CaptureTaskType.TIMEOUT))
-      exclusive_check = True
-    if self.args.do_capture_frame_count:
-      self.task_list.append(CaptureTask(self, CaptureTaskType.FRAME_COUNT))
-      exclusive_check = True
-    if self.args.do_capture_manual:
-      self.task_list.append(CaptureTask(self, CaptureTaskType.MANUAL))
-    if self.args.do_led_manual:
-      self.task_list.append(LEDTask(self))
-    if exclusive_check and len(self.task_list) > 1:
-      raise ValueError('do_capture_timeout or do_capture_frame_count '
-                       'can not coexist with other test types')
-    if not self.task_list:
-      raise ValueError('must choose at least one test type')
-
-    self.task_manager = test_task.TestTaskManager(self.ui, self.task_list)
-    process_utils.StartDaemonThread(target=self._CountdownTimer,
-                                    interrupt_on_crash=True)
+    if self.e2e_mode:
+      if not self.dut.link.IsLocal():
+        raise ValueError('e2e mode does not work on remote DUT.')
+      device_index = ('front' if self.args.device_index is None else
+                      self.args.device_index)
+      if not isinstance(device_index, basestring):
+        raise ValueError('device_index should be string in e2e mode.')
+      options = {
+          'facingMode': {
+              'front': 'user',
+              'rear': 'environment'
+          }[device_index]
+      }
+      resolution = self.args.camera_args.get('resolution')
+      if resolution:
+        options['width'], options['height'] = resolution
+      self.ui.CallJSFunction('setupCamera', options)
+      self.camera_device = None
+    else:
+      device_index = (0 if self.args.device_index is None else
+                      self.args.device_index)
+      if not isinstance(device_index, int):
+        raise ValueError('device_index should be integer in normal mode.')
+      self.camera_device = self.dut.camera.GetCameraDevice(device_index)
 
   def runTest(self):
-    self.task_manager.Run()
+    self.ui.RunInBackground(self._runTest)
+    self.ui.Run()
+
+  def _runTest(self):
+    if self.e2e_mode:
+      self.ShowInstruction(_('Click "Allow" at the top of the screen.'))
+      self.RunJSPromiseBlocking('camera.checkPermission()')
+
+    countdown_timer.StartCountdownTimer(self.args.timeout_secs, self._Timeout,
+                                        self.ui, 'camera-test-timer')
+
+    if self.mode == 'manual_led':
+      self.LEDTest()
+    else:
+      self.CaptureTest(self.mode)
