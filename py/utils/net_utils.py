@@ -828,3 +828,26 @@ def ShutdownTCPServer(server):
   server._BaseServer__shutdown_request = True
   _ProbePort(server.server_address, server.address_family, server.socket_type)
   server._BaseServer__is_shut_down.wait()
+
+
+def GetDefaultGatewayIP():
+  """Gets address of the default gateway."""
+  # An easy way to get IP of the default gateway. It's possible to use python
+  # packages such as netifaces or pynetinfo, but on DUT shill may override the
+  # behavior of them.
+  return IP(process_utils.CheckOutput(
+      'ip route | grep "^default"', shell=True).split()[2])
+
+
+_cached_docker_host_ip = None
+def GetDockerHostIP(force_reload=False):
+  """Gets address of the Docker host inside a container.
+
+  Args:
+    force_reload: boolean. If False, the function will try to use cached value
+      when possible. Otherwise, (True or cache is None), will force reload.
+  """
+  global _cached_docker_host_ip  # pylint: disable=global-statement
+  if force_reload or not _cached_docker_host_ip:
+    _cached_docker_host_ip = GetDefaultGatewayIP()
+  return _cached_docker_host_ip

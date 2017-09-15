@@ -36,6 +36,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server import resource as umpire_resource
 from cros.factory.umpire.server.service import umpire_service
 from cros.factory.utils import file_utils
+from cros.factory.utils import net_utils
 
 
 # TODO(littlecvr): pull out the common parts between umpire and dome, and put
@@ -461,7 +462,7 @@ class Project(django.db.models.Model):
     # not actually 'localhost', it is the docker host instead of docker
     # container. So we need to transform it to the docker host's IP.
     if self.umpire_host in ['localhost', '127.0.0.1']:
-      self.umpire_host = Project._GetHostIP()
+      self.umpire_host = str(net_utils.GetDockerHostIP())
     return self
 
   def AddExistingUmpireContainer(self, host, port):
@@ -545,18 +546,6 @@ class Project(django.db.models.Model):
     self.umpire_port = None
     self.save()
     return self
-
-  @staticmethod
-  def _GetHostIP():
-    # An easy way to get IP of the host. It's possible to install python
-    # packages such as netifaces or pynetinfo into the container, but that
-    # requires gcc to be installed and will thus increase the size of the
-    # container (which we don't want). Alpine itself provides the package as
-    # well, but it's on the edge branch and cannot be easily installed using the
-    # apk command.
-    ip = subprocess.check_output(
-        'ip route | grep "^default"', shell=True).split()[2]
-    return ip.strip()  # remove the trailing newline
 
   @staticmethod
   def GetUmpireContainerName(name):
