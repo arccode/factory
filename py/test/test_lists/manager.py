@@ -93,6 +93,9 @@ class TestListConfig(object):
   def test_list_id(self):
     return self._test_list_id
 
+  def get(self, key, default=None):
+    return self._resolved_config.get(key, default)
+
   def __getitem__(self, key):
     return self._resolved_config[key]
 

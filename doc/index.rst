@@ -14,6 +14,7 @@ Contents:
    regions
    device_data
    pytests/index.rst
+   test_lists/index.rst
 
 APIs:
 
