@@ -10,7 +10,6 @@ This is a minimalist umpired implementation.
 
 import glob
 import logging
-import optparse
 import os
 
 import factory_common  # pylint: disable=unused-import
@@ -74,20 +73,15 @@ def InitDaemon(env):
   InitConfig()
 
 
-def StartServer(config_file=None):
-  """Starts Umpire daemon.
-
-  Args:
-    test_mode: True to enable test mode.
-    config_file: If specified, uses it as config file.
-  """
+def StartServer():
+  """Starts Umpire daemon."""
   # Instantiate environment and load default configuration file.
   env = umpire_env.UmpireEnv()
 
   # Make sure that the environment for running the daemon is set.
   InitDaemon(env)
 
-  env.LoadConfig(custom_path=config_file)
+  env.LoadConfig()
 
   if env.config is None:
     raise common.UmpireError('Umpire config was not loaded.')
@@ -128,11 +122,7 @@ def main():
       level=logging.DEBUG,
       format=('%(asctime)s %(levelname)s %(filename)s %(funcName)s:%(lineno)d '
               '%(message)s'))
-  parser = optparse.OptionParser()
-  parser.add_option(
-      '-c', '--config', dest='config_file', help='path to UmpireConfig file')
-  (options, unused_args) = parser.parse_args()
-  StartServer(config_file=options.config_file)
+  StartServer()
 
 
 if __name__ == '__main__':
