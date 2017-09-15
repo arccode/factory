@@ -11,6 +11,7 @@ from __future__ import print_function
 import datetime
 import inspect
 import json
+import logging
 import traceback
 
 
@@ -109,19 +110,19 @@ class JSONDecoder(json.JSONDecoder):
       try:
         return FastStringParseDatetime(dct['value'])
       except ValueError:
-        self.warning('Fast strptime failed: %s', dct['value'])
+        logging.warning('Fast strptime failed: %s', dct['value'])
         return datetime.datetime.strptime(dct['value'], FORMAT_DATETIME)
     if dct.get('__type__') == 'date' or '__date__' in dct:
       try:
         return FastStringParseDate(dct['value'])
       except ValueError:
-        self.warning('Fast strptime failed: %s', dct['value'])
+        logging.warning('Fast strptime failed: %s', dct['value'])
         return datetime.datetime.strptime(dct['value'], FORMAT_DATE).date()
     if dct.get('__type__') == 'time' or '__time__' in dct:
       try:
         return FastStringParseTime(dct['value'])
       except ValueError:
-        self.warning('Fast strptime failed: %s', dct['value'])
+        logging.warning('Fast strptime failed: %s', dct['value'])
         return datetime.datetime.strptime(dct['value'], FORMAT_TIME).time()
     return dct
 

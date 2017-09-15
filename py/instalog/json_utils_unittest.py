@@ -17,7 +17,7 @@ from instalog import json_utils
 from instalog import log_utils
 
 
-_SAMPLE_DATETIME = datetime.datetime(1989, 12, 12, 12, 12, 12, 12)
+_SAMPLE_DATETIME = datetime.datetime(1989, 12, 12, 12, 12, 12, 120)
 _SAMPLE_DATE = _SAMPLE_DATETIME.date()
 _SAMPLE_TIME = _SAMPLE_DATETIME.time()
 
@@ -112,18 +112,18 @@ class TestFastStringParseDatetime(unittest.TestCase):
                      json_utils.FastStringParseDate(time_now_string))
 
     # Wrong length.
-    with self.assertRaises(ValueError):
+    with self.assertRaisesRegexp(ValueError, r'Wrong format string'):
       json_utils.FastStringParseDate(time_now_string + ' ')
     # Wrong symbol.
-    with self.assertRaises(ValueError):
+    with self.assertRaisesRegexp(ValueError, r'Wrong format string'):
       wrong_time_string = time_now_string[:4] + ':' + time_now_string[5:]
       json_utils.FastStringParseDate(wrong_time_string)
     # Year with non-integer.
-    with self.assertRaises(ValueError):
+    with self.assertRaisesRegexp(ValueError, r'invalid literal for int'):
       wrong_time_string = time_now_string[:3] + '?' + time_now_string[4:]
       json_utils.FastStringParseDate(wrong_time_string)
     # The 13th month.
-    with self.assertRaises(ValueError):
+    with self.assertRaisesRegexp(ValueError, r'month must be in 1..12'):
       wrong_time_string = time_now_string[:5] + '13' + time_now_string[7:]
       json_utils.FastStringParseDate(wrong_time_string)
 
@@ -134,20 +134,20 @@ class TestFastStringParseDatetime(unittest.TestCase):
                      json_utils.FastStringParseTime(time_now_string))
 
     # Wrong length.
-    with self.assertRaises(ValueError):
-      json_utils.FastStringParseDate(time_now_string + ' ')
+    with self.assertRaisesRegexp(ValueError, r'Wrong format string'):
+      json_utils.FastStringParseTime(time_now_string + ' ')
     # Wrong symbol.
-    with self.assertRaises(ValueError):
+    with self.assertRaisesRegexp(ValueError, r'Wrong format string'):
       wrong_time_string = time_now_string[:2] + '-' + time_now_string[3:]
-      json_utils.FastStringParseDate(wrong_time_string)
+      json_utils.FastStringParseTime(wrong_time_string)
     # Microsecond with non-integer.
-    with self.assertRaises(ValueError):
+    with self.assertRaisesRegexp(ValueError, r'invalid literal for int'):
       wrong_time_string = time_now_string[:-1] + '?'
-      json_utils.FastStringParseDate(wrong_time_string)
+      json_utils.FastStringParseTime(wrong_time_string)
     # The 60th second.
-    with self.assertRaises(ValueError):
+    with self.assertRaisesRegexp(ValueError, r'second must be in 0..59'):
       wrong_time_string = time_now_string[:6] + '60' + time_now_string[8:]
-      json_utils.FastStringParseDate(wrong_time_string)
+      json_utils.FastStringParseTime(wrong_time_string)
 
   def testFastStringParseDatetime(self):
     time_now = _SAMPLE_DATETIME
@@ -156,16 +156,23 @@ class TestFastStringParseDatetime(unittest.TestCase):
                      json_utils.FastStringParseDatetime(time_now_string))
 
     # Wrong length.
-    with self.assertRaises(ValueError):
-      json_utils.FastStringParseDate(time_now_string + ' ')
+    with self.assertRaisesRegexp(ValueError, r'Wrong format string'):
+      json_utils.FastStringParseDatetime(time_now_string + ' ')
     # Wrong alphabet.
-    with self.assertRaises(ValueError):
+    with self.assertRaisesRegexp(ValueError, r'Wrong format string'):
       wrong_time_string = time_now_string[:-1] + 'Y'
-      json_utils.FastStringParseDate(wrong_time_string)
+      json_utils.FastStringParseDatetime(wrong_time_string)
     # The 13th month.
-    with self.assertRaises(ValueError):
+    with self.assertRaisesRegexp(ValueError, r'month must be in 1..12'):
       wrong_time_string = time_now_string[:5] + '13' + time_now_string[7:]
-      json_utils.FastStringParseDate(wrong_time_string)
+      json_utils.FastStringParseDatetime(wrong_time_string)
+
+  def testSlowParse(self):
+    dec = json_utils.JSONDecoder()
+    time_dct = _SAMPLE_DATETIME
+    wrong_time_string = (
+        '{"__type__": "datetime", "value": "1989-12-12T12:12:12.00012Z"}')
+    self.assertEqual(time_dct, dec.decode(wrong_time_string))
 
 
 if __name__ == '__main__':
