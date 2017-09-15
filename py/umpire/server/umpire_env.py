@@ -15,7 +15,7 @@ import shutil
 import tempfile
 import urlparse
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server import config
 from cros.factory.umpire.server import resource
@@ -73,8 +73,7 @@ class UmpireEnv(object):
   """
   # List of Umpire mandatory subdirectories.
   # Use tuple to avoid modifying.
-  SUB_DIRS = ('bin', 'conf', 'dashboard', 'log', 'resources', 'run', 'temp',
-              'umpire_data', 'updates')
+  SUB_DIRS = ('bin', 'conf', 'log', 'resources', 'run', 'temp', 'umpire_data')
 
   def __init__(self, root_dir='/'):
     self.base_dir = os.path.join(root_dir, common.DEFAULT_BASE_DIR)
