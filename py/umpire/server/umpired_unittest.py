@@ -61,25 +61,16 @@ class InitDaemonTest(unittest.TestCase):
         self.root_dir, 'var', 'db', 'factory', 'umpire', 'active_umpire.yaml')))
     self.assertTrue(self.env.InResource(UMPIRE_CONFIG_RESOURCE))
 
-  def VerifyGlobalSymlink(self):
-    umpire_default_symlink = os.path.join(
-        self.root_dir, 'usr', 'local', 'bin', 'umpire')
-    self.assertTrue(os.path.lexists(umpire_default_symlink))
-    self.assertEqual(self.umpire_bin_path,
-                     os.path.realpath(umpire_default_symlink))
-
   def testDefault(self):
-    umpired.InitDaemon(self.env, root_dir=self.root_dir)
+    umpired.InitDaemon(self.env)
 
     self.VerifyDirectories()
     self.VerifyConfig()
-    self.VerifyGlobalSymlink()
 
   def testReInit(self):
-    umpired.InitDaemon(self.env, root_dir=self.root_dir)
+    umpired.InitDaemon(self.env)
 
     self.VerifyConfig()
-    self.VerifyGlobalSymlink()
 
     # Write active config.
     active_config = config.UmpireConfig(self.env.active_config_file,
@@ -89,10 +80,9 @@ class InitDaemonTest(unittest.TestCase):
     active_config.GetDefaultBundle()['note'] = 'modified active config'
     active_config_yaml = active_config.Dump()
 
-    umpired.InitDaemon(self.env, root_dir=self.root_dir)
+    umpired.InitDaemon(self.env)
 
     self.VerifyConfig()
-    self.VerifyGlobalSymlink()
 
     active_config = config.UmpireConfig(active_config_yaml, validate=False)
     self.assertEqual('modified active config',

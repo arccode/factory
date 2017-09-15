@@ -13,7 +13,7 @@ import logging
 import optparse
 import os
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server import daemon
 from cros.factory.umpire.server import resource
@@ -25,11 +25,10 @@ from cros.factory.utils import file_utils
 
 
 # Relative path of Umpire CLI / Umpired in toolkit directory.
-_UMPIRE_CLI_IN_TOOLKIT_PATH = os.path.join('bin', 'umpire')
 _DEFAULT_CONFIG_NAME = 'default_umpire.yaml'
 
 
-def InitDaemon(env, root_dir='/'):
+def InitDaemon(env):
   """Initializes an Umpire working environment.
 
   It creates base directory (specified in env.base_dir) and sets up daemon
@@ -37,7 +36,6 @@ def InitDaemon(env, root_dir='/'):
 
   Args:
     env: UmpireEnv object.
-    root_dir: Root directory. Used for testing purpose.
   """
   def SetUpDir():
     """Sets up Umpire directory structure.
@@ -51,21 +49,6 @@ def InitDaemon(env, root_dir='/'):
     TryMkdir(env.base_dir)
     for sub_dir in env.SUB_DIRS:
       TryMkdir(os.path.join(env.base_dir, sub_dir))
-
-  def SymlinkBinary():
-    """Creates symlink to umpire executable.
-
-    It symlinks /usr/local/bin/umpire to $toolkit_base/bin/umpire.
-
-    Note that root '/'  can be overridden by arg 'root_dir' for testing.
-    """
-    umpire_binary = os.path.join(
-        env.server_toolkit_dir, _UMPIRE_CLI_IN_TOOLKIT_PATH)
-    default_symlink = os.path.join(root_dir, 'usr', 'local', 'bin', 'umpire')
-
-    if not os.path.lexists(default_symlink):
-      os.symlink(umpire_binary, default_symlink)
-      logging.info('Symlink %r -> %r', default_symlink, umpire_binary)
 
   def InitConfig():
     """Prepares the very first UmpireConfig and PayloadConfig, and marks the
@@ -89,7 +72,6 @@ def InitDaemon(env, root_dir='/'):
 
   SetUpDir()
   InitConfig()
-  SymlinkBinary()
 
 
 def StartServer(config_file=None):
