@@ -152,7 +152,7 @@
     "CameraManual": {
       "inherit": "Camera",
       "args": {
-        "do_capture_manual": true
+        "mode": "manual"
       }
     },
     "CameraProbe": {
@@ -363,7 +363,7 @@
       "inherit": "Camera",
       "label": "QR Scan",
       "args": {
-        "do_QR_scan": true,
+        "mode": "qr",
         "QR_string": "Hello ChromeOS!"
       }
     },

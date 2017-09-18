@@ -92,9 +92,9 @@
         {
           "inherit": "Camera",
           "args": {
+            "mode": "timeout",
             "timeout_secs": "eval! constants.rrt.sat_duration_secs",
-            "show_image": false,
-            "do_capture_timeout": true
+            "show_image": false
           }
         },
         {
