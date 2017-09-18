@@ -401,7 +401,7 @@ def Check(filename, rules):
 def main():
   parser = argparse.ArgumentParser()
   parser.add_argument(
-      'sources', metavar='SOURCE_CODE', nargs='+',
+      'sources', metavar='SOURCE_CODE', nargs='*',
       help='The Python source code to check dependencies')
   parser.add_argument(
       '--parallel', '-p',
