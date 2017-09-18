@@ -3,9 +3,6 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "inherit": {
-      "type": "string"
-    },
     "plugins": {
       "type": "object",
       "patternProperties": {

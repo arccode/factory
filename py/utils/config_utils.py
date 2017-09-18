@@ -85,6 +85,9 @@ _OVERRIDE_DELETE_KEY = '__delete__'
 # overriding config.
 _OVERRIDE_REPLACE_KEY = '__replace__'
 
+# Special key to list dependent configs.
+_INHERIT_KEY = 'inherit'
+
 
 def _DummyLogger(*unused_arg, **unused_kargs):
   """A dummy log function."""
@@ -376,6 +379,9 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
                                        logger, {})
   config = raw_config_list.Resolve()
 
+  # Remove the special key so that we don't need to write schema for this field.
+  config.pop(_INHERIT_KEY, None)
+
   # Ideally we should enforce validating schema, but currently many environments
   # where our factory software needs to live (i.e., old ChromeOS test images,
   # Windows, Ubuntu, or Android) may not have jsonschema library installed, so
@@ -514,13 +520,16 @@ def _LoadRawConfigList(config_name, config_dirs, allow_inherit,
   # Get the current config dict.
   config = config_list.Resolve()
 
-  if allow_inherit and isinstance(config, dict):
-    parents = config.get('inherit')
+  if allow_inherit and isinstance(config, dict) and _INHERIT_KEY in config:
+    parents = config[_INHERIT_KEY]
     if isinstance(parents, basestring):
       parents = [parents]
 
     # Ignore if 'inherit' is not a list of parent names.
-    if isinstance(parents, list):
+    if not isinstance(parents, list):
+      logging.warning('Key "inherit" is reserved for listing dependent '
+                      'configurations.')
+    else:
       parent_configs = []
       for parent in parents:
         current_config = _LoadRawConfigList(
