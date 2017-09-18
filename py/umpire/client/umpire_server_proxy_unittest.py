@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -23,7 +23,7 @@ import tempfile
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.client import umpire_client
 from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.umpire import common
@@ -165,7 +165,7 @@ def HandlerFunctionWrapper(handler_name, use_umpire=False):
 
 def PingOfUmpire():
   """Ping method served on Umpire base XMLRPC handler."""
-  return {'version': common.UMPIRE_VERSION}
+  return {'version': common.UMPIRE_DUT_RPC_VERSION}
 
 
 def PingOfLegacyServer():

@@ -9,11 +9,11 @@ This module provides constants and common Umpire classes.
 
 import os
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 
 
 # "version" in Ping method return value to indicate server is Umpire server.
-UMPIRE_VERSION = 3
+UMPIRE_DUT_RPC_VERSION = 3
 
 # Valid keys in DUT info.
 DUT_INFO_KEYS = set(['sn', 'mlb_sn', 'firmware', 'ec', 'pd', 'stage'])

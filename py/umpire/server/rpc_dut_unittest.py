@@ -58,7 +58,7 @@ class DUTRPCTest(unittest.TestCase):
     xmlrpc_resource.AddHandler(root_commands)
     xmlrpc_resource.AddHandler(umpire_dut_commands)
     xmlrpc_resource.AddHandler(log_dut_commands)
-    self.twisted_port = reactor.listenTCP(  # pylint: disable=E1101
+    self.twisted_port = reactor.listenTCP(
         TEST_RPC_PORT, server.Site(xmlrpc_resource))
     # The device info that matches TESTCONFIG
     self.device_info = {
@@ -81,7 +81,7 @@ class DUTRPCTest(unittest.TestCase):
 
   def testPing(self):
     def CheckResult(result):
-      self.assertEqual(result, {'version': common.UMPIRE_VERSION})
+      self.assertEqual(result, {'version': common.UMPIRE_DUT_RPC_VERSION})
       return result
 
     d = self.Call('Ping')

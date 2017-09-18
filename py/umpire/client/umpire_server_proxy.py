@@ -12,7 +12,7 @@ import traceback
 import urllib2
 import xmlrpclib
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import factory
 from cros.factory.umpire.client import umpire_client
 from cros.factory.umpire import common
@@ -55,7 +55,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
   If server is an Umpire server, then UmpireServerProxy will handle
   extra tasks for Umpire server.
   Whether a server is an Umpire server can be found by "Ping" it. If the return
-  value is a dict with 'version=UMPIRE_VERSION', it is an Umpire server;
+  value is a dict with 'version=UMPIRE_DUT_RPC_VERSION', it is an Umpire server;
   otherwise, it is a simple XMPRPC server instance.
 
   At least four services running on an Umpire server the class needs to work
@@ -231,7 +231,6 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     """
     logging.debug('Using base class __request method with methodname: %r, '
                   'params: %r', methodname, params)
-    # pylint: disable=E1101
     return xmlrpclib.ServerProxy._ServerProxy__request(self, methodname, params)
 
   def _CheckUsingUmpire(self):
@@ -258,7 +257,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
                 traceback.format_exception_only(*sys.exc_info()[:2])).strip())
       return None
     if isinstance(result, dict) and (
-        result.get('version') == common.UMPIRE_VERSION):
+        result.get('version') == common.UMPIRE_DUT_RPC_VERSION):
       logging.debug('Got Umpire server version %r', result.get('version'))
       return True
     else:
@@ -501,7 +500,8 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
   def __getattr__(self, name):
     # Same magic dispatcher as that in xmlrpclib.ServerProxybase but using
     # self._Request instead of _request in the base class.
-    return xmlrpclib._Method(self._Request, name)  # pylint: disable=W0212
+    # pylint: disable=protected-access
+    return xmlrpclib._Method(self._Request, name)
 
 
 class TimeoutUmpireServerProxy(UmpireServerProxy):
