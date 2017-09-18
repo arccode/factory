@@ -4,57 +4,50 @@
 
 """A factory test for accelerometers calibration.
 
-This is a calibration test for two tri-axis (x, y, and z) accelerometers
-in a ChromeOS device. From one accelerometer, we can obtain digital output
-proportional to the linear acceleration in each axis. For example, the
-ideal value of a sensor having 12-bit analog-to-digital resolution and
-+/- 2G detection range will be 1024 count/g. If we put it on a flat table
-we can get (x, y, z) = (0, 0, 1024) at an ideal case. For upside down
-we'll have (x, y, z) = (0, 0, -1024).
+Description
+-----------
+This is a calibration test for tri-axis (x, y, and z) accelerometers.
+
+From one accelerometer, we can obtain digital output proportional to the linear
+acceleration in each axis. If we put it on a flat table we can get
+(x, y, z) = (0, 0, 9.8) at an ideal case. For upside down we'll have
+(x, y, z) = (0, 0, -9.8).
 
 Since accelerometer is very sensitive, the digital output will be different
-for each query. For example, (34, -29, 998), (-31, 24, 979), (4, 9, 1003), etc.
+for each query. For example, (0.325, -0.278, 9.55).
 In addition, temperature or the assembly quality may impact the accuracy
-of the accelerometer during manufacturing (ex, position is tilt). To
-mitigate this kind of errors, we'll sample several records of raw data
-and compute its average value under an ideal environment.
-Then store the offset as a calibrated value for future calculation.
+of the accelerometer during manufacturing (ex, position is tilt). To mitigate
+this kind of errors, we'll sample several records of raw data and compute
+its average value under an ideal environment. Then store the offset as
+a calibrated value for future calculation.
 
-For each signal, there is an equation in the driver:
+In a horizontal calibration, we'll put accelerometers on a flat position then
+sample 100 records of raw data. In this position, two axes are under 0g and
+one axis is under 1g. Then we'll update the calibration bias using the
+difference between the ideal value (0 and +/-9.8 in the example above) and
+the average value of 100 samples.
 
-- _input = (_raw * _calibscale / 1024) + _calibbias.
+Test Procedure
+--------------
+1. Put the device (base/lid) on a horizontal plane then press space.
+2. Wait for completion.
 
-In a horizontal calibration, we'll put accelerometers on a flat
-position then sample 100 records of raw data.
-In this position, two axes are under 0G and one axis is under 1G.
-Then we'll store the difference between the ideal value (0 and -/+1024)
-and the average value of 100 samples as '_calibbias'. For '_calibscale',
-we'll set it as default value: 1024.
+Dependency
+----------
+- Device API (``cros.factory.device.accelerometer``).
 
-Below is an example of test list. There are some mandatory arguments:
+Examples
+--------
+To run horizontal calibration on base accelerometer::
 
-- orientation: A dict of { signal_name: orientation in gravity }
-  indicates which signal is under 0G and which signal is under -/+1G
-  during calibration.
-
-- spec_offset: A tuple of two numbers, ex: (0.5, 0.5) indicating the
-  tolerance in m/s^2 for the digital output of sensors under 0G and -/+1G.
-
-Usage examples::
-
-    {
-      "pytest_name": "accelerometers_calibration",
-      "args": {
-        "orientation": {
-          "in_accel_z": 1,
-          "in_accel_y": 0,
-          "in_accel_x": 0
-        },
-        "spec_offset": [0.5, 0.5],
-        "location": "base"
-      }
-    }
-
+  OperatorTest(
+      pytest_name='accelerometers_calibration',
+      dargs={'orientation': {
+                 'in_accel_x': 0,
+                 'in_accel_y': 0,
+                 'in_accel_z': 1},
+             'spec_offset': (0.5, 0.5),
+             'location': 'base'})
 """
 
 import time
