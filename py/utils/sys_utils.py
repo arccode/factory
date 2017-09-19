@@ -12,6 +12,7 @@ import stat
 import struct
 import subprocess
 import tempfile
+import uuid
 
 from . import file_utils
 from . import process_utils
@@ -327,6 +328,34 @@ class _GPTTool(object):
     """Returns logical sector size in bytes."""
     raise NotImplementedError
 
+  def GetTypeGUID(self, index):
+    """Returns the type GUID string."""
+    raise NotImplementedError
+
+  def IsChromeOsKernelPartition(self, index):
+    """Check if the partition is a Chrome OS kernel partition."""
+    return self.GetTypeGUID(index) == 'FE3A2A5D-4F32-41A7-B725-ACCC3285A309'
+
+  def IsChromeOsRootFsPartition(self, index):
+    """Check if the partition is a Chrome OS rootfs partition."""
+    return self.GetTypeGUID(index) == '3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC'
+
+  def GetAttribute(self, index):
+    """Returns the Attribute value."""
+    raise NotImplementedError
+
+  def GetAttributeSuccess(self, index):
+    """Returns the Success attribute."""
+    return pygpt.GPT.GetAttributeSuccess(self.GetAttribute(index))
+
+  def GetAttributeTries(self, index):
+    """Returns the Tries attribute."""
+    return pygpt.GPT.GetAttributeTries(self.GetAttribute(index))
+
+  def GetAttributePriority(self, index):
+    """Returns the Priority attribute."""
+    return pygpt.GPT.GetAttributePriority(self.GetAttribute(index))
+
 
 class PartitionManager(_GPTTool):
   """Provides disk partition information.
@@ -350,29 +379,51 @@ class PartitionManager(_GPTTool):
     """Returns logical sector size in bytes."""
     return self._runner.GetSectorSize()
 
+  @type_utils.Overrides
+  def GetTypeGUID(self, index):
+    """Returns the type GUID string """
+    return self._runner.GetTypeGUID(index)
+
+  @type_utils.Overrides
+  def GetAttribute(self, index):
+    """Returns the Attribute value."""
+    return self._runner.GetAttribute(index)
+
   class _PyGPT(_GPTTool):
     """Manipulate GPT using cros.factory.utils.pygpt."""
 
     def __init__(self, image_path):
       with open(image_path, 'rb') as f:
         self._gpt = pygpt.GPT.LoadFromFile(f)
+        self._partitions = self._gpt.GetValidPartitions()
 
     @type_utils.Overrides
     def GetPartitionOffsetInSector(self, index):
       """Returns the partition offset in sectors."""
-      p = self._gpt.partitions[index - 1]
+      p = self._partitions[index - 1]
       return p.FirstLBA
 
     @type_utils.Overrides
     def GetPartitionSizeInSector(self, index):
       """Returns the partition size in sectors."""
-      p = self._gpt.partitions[index - 1]
+      p = self._partitions[index - 1]
       return p.LastLBA - p.FirstLBA + 1
 
     @type_utils.Overrides
     def GetSectorSize(self):
       """Returns logical sector size in bytes."""
       return self._gpt.BLOCK_SIZE
+
+    @type_utils.Overrides
+    def GetTypeGUID(self, index):
+      """Returns the type GUID string."""
+      partition = self._partitions[index - 1]
+      return str(uuid.UUID(bytes_le=partition.TypeGUID)).upper()
+
+    @type_utils.Overrides
+    def GetAttribute(self, index):
+      """Returns the Attribute value."""
+      return self._partitions[index - 1].Attributes
 
   class _CGPT(_GPTTool):
     """Wrapper for cgpt."""
@@ -397,6 +448,20 @@ class PartitionManager(_GPTTool):
       # Currently cgpt always assumes sector size = 512.
       return 512
 
+    @type_utils.Overrides
+    def GetTypeGUID(self, index):
+      s = str(self.check_output(
+          [self.cgpt, 'show', '-i', str(index), '-t', self.path]))
+      return s.strip().upper()
+
+    @type_utils.Overrides
+    def GetAttribute(self, index):
+      s = str(self.check_output([self.cgpt, 'show', '-i', str(index), '-A',
+                                 self.path]))
+      v = int(s.strip(), 0)
+      v = v << 48  # The returned value is only the bits 48-63
+      return v
+
   class _PartX(_GPTTool):
     """Wrapper for partx."""
 
@@ -420,6 +485,17 @@ class PartitionManager(_GPTTool):
       # Currently partx always assumes sector size is 512.
       return 512
 
+    @type_utils.Overrides
+    def GetTypeGUID(self, index):
+      return str(self.check_output([self.partx, '-r', '-g', '-n', str(index),
+                                    '-o', 'TYPE', self.path])).strip().upper()
+
+    @type_utils.Overrides
+    def GetAttribute(self, index):
+      s = self.check_output([self.partx, '-r', '-g', '-n', str(index),
+                             '-o', 'FLAGS', self.path])
+      return int(s.strip(), 0)
+
   def __init__(self, path, dut=None):
     """Constructor of PartitionManager.
 
@@ -431,7 +507,7 @@ class PartitionManager(_GPTTool):
       Exception: If cannot find either cgpt or partx in remote system PATH.
     """
     self._path = path
-    local_mode = dut is None
+    local_mode = dut is None or dut.link.IsLocal()
     self._check_output = (process_utils.CheckOutput if local_mode
                           else dut.CheckOutput)
     # Always use pygpt on local since it has less dependency and best speed.

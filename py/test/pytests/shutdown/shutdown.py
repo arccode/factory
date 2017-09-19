@@ -6,6 +6,7 @@
 
 import logging
 import os
+import re
 import time
 import unittest
 
@@ -102,6 +103,8 @@ class ShutdownTest(unittest.TestCase):
       Arg('check_audio_devices', int,
           ('Check total number of audio devices. None for non-check.'),
           default=None, optional=True),
+      Arg('check_gpt', bool,
+          'Check GPT info before shutdown/reboot.', default=True)
   ]
 
   def setUp(self):
@@ -270,6 +273,8 @@ class ShutdownTest(unittest.TestCase):
     # second
     POLLING_PERIOD = 0.1
 
+    self.PreShutdown()
+
     end_time = time.time() + self.args.wait_shutdown_secs
     if self.args.operation in (factory.ShutdownStep.REBOOT,
                                factory.ShutdownStep.FULL_REBOOT):
@@ -309,9 +314,55 @@ class ShutdownTest(unittest.TestCase):
         raise ShutdownError(post_shutdown['goofy_error'])
       self.PostShutdown()
     else:
+      self.PreShutdown()
       self.template.SetState(
           _SHUTDOWN_COMMENCING_MSG(self.args.operation, self.args.delay_secs))
       self.Shutdown()
+
+  def PreShutdown(self):
+    if self.args.check_gpt:
+      self.CheckGPT()
+
+  def _GetActiveKernelPartition(self):
+    rootfs_path = str(self.dut.CheckOutput(['rootdev', '-s'])).strip()
+    rootfs_idx = int(re.search(r'\d+$', rootfs_path).group(0))
+    kernel_idx = rootfs_idx - 1
+    return kernel_idx
+
+  def CheckGPT(self):
+    """Check GPT to see if the layout looks good for the next boot."""
+    kernel_partitions = [2, 4]  # KERN-A/B
+    dev = str(self.dut.CheckOutput(['rootdev', '-s', '-d'])).strip()
+    pm = sys_utils.PartitionManager(dev, self.dut)
+
+    for idx in kernel_partitions:
+      if not pm.IsChromeOsKernelPartition(idx):
+        raise ShutdownError(
+            'Partition %d should be a Chrome OS kernel partition' % idx)
+      if not pm.IsChromeOsRootFsPartition(idx+1):
+        raise ShutdownError(
+            'Partition %d should be a Chrome OS rootfs partition' % (idx+1))
+
+    active_partition = self._GetActiveKernelPartition()
+    if active_partition not in kernel_partitions:
+      raise ShutdownError(
+          'Active partition %d should be one of %r' % (
+              active_partition, kernel_partitions))
+
+    if not pm.GetAttributeSuccess(active_partition):
+      raise ShutdownError(
+          'Active partition %d should be marked success.' % active_partition)
+
+    active_partition_priority = pm.GetAttributePriority(active_partition)
+    for idx in kernel_partitions:
+      if idx == active_partition:
+        continue
+      idx_priority = pm.GetAttributePriority(idx)
+      if idx_priority >= active_partition_priority:
+        raise ShutdownError(
+            'Active kernel partition %d is with priority %d, which should not '
+            'be lower (or equal) to other kernel partition %d (priority=%d)' %
+            (active_partition, active_partition_priority, idx, idx_priority))
 
   def runTest(self):
     if self.dut.link.IsLocal():
