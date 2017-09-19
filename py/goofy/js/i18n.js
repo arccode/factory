@@ -2,28 +2,86 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+goog.provide('_');
 goog.provide('cros.factory.i18n');
 
 goog.require('goog.dom');
 goog.require('goog.html.SafeHtml');
 
+goog.scope(() => {
+
+const ns = cros.factory.i18n;
+
 /**
  * @typedef {function(!Object<string, string>): string}
  */
-cros.factory.i18n.FormatFunc;
+ns.FormatFunc;
 
 /**
- * @type {!Object<string, !cros.factory.i18n.FormatFunc>}
+ * Type that most i18n functions return.
+ * @typedef {!Object<string, string>}
  */
-cros.factory.i18n.formatCache = Object.create(null);
+ns.TranslationDict;
+
+/**
+ * The cache for format strings.
+ * @type {!Object<string, !cros.factory.i18n.FormatFunc>}
+ * @private
+ */
+ns.formatCache_ = Object.create(null);
+
+/**
+ * Default locale to use when no translation found.
+ * @type {string}
+ * @const
+ */
+ns.DEFAULT_LOCALE = 'en-US';
+
+/**
+ * All support locales.
+ * @type {!Array<string>}
+ */
+ns.locales = [ns.DEFAULT_LOCALE];
+
+/**
+ * Dictionary that contains all translations.
+ * @type {!Object<string, !cros.factory.i18n.TranslationDict>}
+ * @private
+ */
+ns.translations_ = Object.create(null);
+
+/**
+ * Initialize locales and translations.
+ *
+ * The window['goofy_i18n_data'] is set in goofy-translations.js.
+ */
+ns.initI18nData = () => {
+  const globalI18nData =
+      /**
+       * @type {{locales: !Array<string>,
+       * translations: !Array<!cros.factory.i18n.TranslationDict>}}
+       */
+      (window['goofy_i18n_data']);
+
+  if (globalI18nData) {
+    ns.locales = globalI18nData['locales'];
+    for (const text of globalI18nData['translations']) {
+      const key = text[ns.DEFAULT_LOCALE];
+      ns.translations_[key] = text;
+    }
+  }
+};
+
+ns.initI18nData();
 
 /**
  * Parse the format string and return the function for formatting.
  * This function emulates what python str.format() does.
  * @param {string} format the format string.
  * @return {!cros.factory.i18n.FormatFunc}
+ * @private
  */
-cros.factory.i18n.stringFormatImpl = function(format) {
+ns.stringFormatImpl_ = (format) => {
   let /** !Array<string> */ strs = [''];
   let /** !Array<string> */ vars = [];
   let i = 0;
@@ -69,16 +127,17 @@ cros.factory.i18n.stringFormatImpl = function(format) {
 };
 
 /**
- * Cached version for cros.factory.i18n.stringFormatImpl.
+ * Cached version for cros.factory.i18n.stringFormatImpl_.
  * @param {string} format the format string.
  * @return {!cros.factory.i18n.FormatFunc}
+ * @private
  */
-cros.factory.i18n.stringFormatCached = function(format) {
-  if (!(format in cros.factory.i18n.formatCache)) {
-    cros.factory.i18n.formatCache[format] =
-        cros.factory.i18n.stringFormatImpl(format);
+ns.stringFormatCached_ = (format) => {
+  if (!(format in cros.factory.i18n.formatCache_)) {
+    cros.factory.i18n.formatCache_[format] =
+        cros.factory.i18n.stringFormatImpl_(format);
   }
-  return cros.factory.i18n.formatCache[format];
+  return cros.factory.i18n.formatCache_[format];
 };
 
 /**
@@ -88,47 +147,13 @@ cros.factory.i18n.stringFormatCached = function(format) {
  */
 
 /**
- * Type that most i18n functions return.
- * @typedef {!Object<string, string>}
- */
-cros.factory.i18n.TranslationDict;
-
-/**
- * Default locale to use when no translation found.
- * @type {string}
- * @const
- */
-cros.factory.i18n.DEFAULT_LOCALE = 'en-US';
-
-/**
- * All support locales.
- * @type {!Array<string>}
- */
-cros.factory.i18n.locales = [cros.factory.i18n.DEFAULT_LOCALE];
-
-/**
- * Dictionary that contains all translations.
- * @type {!Object<string, !cros.factory.i18n.TranslationDict>}
- * @private
- */
-cros.factory.i18n.translations_ = Object.create(null);
-if (window['goofy_i18n_data']) {
-  cros.factory.i18n.locales = window['goofy_i18n_data']['locales'];
-  for (const text of /** @type {!Array<cros.factory.i18n.TranslationDict>} */ (
-           window['goofy_i18n_data']['translations'])) {
-    const key = text[cros.factory.i18n.DEFAULT_LOCALE];
-    cros.factory.i18n.translations_[key] = text;
-  }
-}
-
-/**
  * Returns a text untranslated for all locales.
  * @param {string} text
  * @return {!cros.factory.i18n.TranslationDict}
  */
-cros.factory.i18n.noTranslation = function(text) {
+ns.noTranslation = (text) => {
   const ret = Object.create(null);
-  for (const locale of cros.factory.i18n.locales) {
+  for (const locale of ns.locales) {
     ret[locale] = text;
   }
   return ret;
@@ -139,11 +164,11 @@ cros.factory.i18n.noTranslation = function(text) {
  * @param {string} text the text to be translated.
  * @return {!cros.factory.i18n.TranslationDict}
  */
-cros.factory.i18n.translation = function(text) {
-  if (text in cros.factory.i18n.translations_) {
-    return cros.factory.i18n.translations_[text];
+ns.translation = (text) => {
+  if (text in ns.translations_) {
+    return ns.translations_[text];
   } else {
-    return cros.factory.i18n.noTranslation(text);
+    return ns.noTranslation(text);
   }
 };
 
@@ -151,46 +176,44 @@ cros.factory.i18n.translation = function(text) {
  * Make sure the input is a TranslationDict, pass it to translation or
  * noTranslation if it isn't, based on the value of argument translate.
  * @param {string|!cros.factory.i18n.TranslationDict} obj
- * @param {boolean=} translate whether string should be passed to translation or
- *     noTranslation.
+ * @param {boolean=} translate whether string should be passed to translation
+ *     or noTranslation.
  * @return {!cros.factory.i18n.TranslationDict}
  */
-cros.factory.i18n.translated = function(obj, translate = true) {
-  // Because of type checking for dict object is MUCH harder in JS, we assume
-  // that passed in obj is a TranslationDict if it's an object.
+ns.translated = (obj, translate = true) => {
+  // Because of type checking for dict object is MUCH harder in JavaScript,
+  // we assume that passed in obj is a TranslationDict if it's an object.
   if (typeof obj === 'object') {
     const ret = Object.create(null);
-    for (const locale of cros.factory.i18n.locales) {
-      ret[locale] =
-          (locale in obj) ? obj[locale] : obj[cros.factory.i18n.DEFAULT_LOCALE];
+    for (const locale of ns.locales) {
+      ret[locale] = (locale in obj) ? obj[locale] : obj[ns.DEFAULT_LOCALE];
     }
     return ret;
   } else {
-    return translate ? cros.factory.i18n.translation(obj) :
-                       cros.factory.i18n.noTranslation(obj);
+    return translate ? ns.translation(obj) : ns.noTranslation(obj);
   }
 };
 
 /**
  * Do python-like i18n string format.
- * @param {string|!cros.factory.i18n.TranslationDict} format the format string.
+ * @param {string|!cros.factory.i18n.TranslationDict} format the format
+ *     string.
  * @param {!Object<string, string>} dict the arguments in format string.
  * @return {!cros.factory.i18n.TranslationDict}
  */
-cros.factory.i18n.stringFormat = function(format, dict) {
-  const format_dict = cros.factory.i18n.translated(format);
+ns.stringFormat = (format, dict) => {
+  const format_dict = ns.translated(format);
   const translated_dict = Object.create(null);
   for (const key of Object.keys(dict)) {
-    translated_dict[key] = cros.factory.i18n.translated(dict[key], false);
+    translated_dict[key] = ns.translated(dict[key], false);
   }
   const ret = Object.create(null);
-  for (const locale of cros.factory.i18n.locales) {
+  for (const locale of ns.locales) {
     const args = Object.create(null);
     for (const key of Object.keys(translated_dict)) {
       args[key] = translated_dict[key][locale];
     }
-    ret[locale] =
-        cros.factory.i18n.stringFormatCached(format_dict[locale])(args);
+    ret[locale] = ns.stringFormatCached_(format_dict[locale])(args);
   }
   return ret;
 };
@@ -201,12 +224,12 @@ cros.factory.i18n.stringFormat = function(format, dict) {
  * @param {!Object<string, string>=} dict
  * @return {!goog.html.SafeHtml}
  */
-cros.factory.i18n.i18nLabel = function(text, dict = {}) {
-  let label = cros.factory.i18n.stringFormat(text, dict);
+ns.i18nLabel = (text, dict = {}) => {
+  let label = ns.stringFormat(text, dict);
   let children = [];
-  for (const locale of cros.factory.i18n.locales) {
+  for (const locale of ns.locales) {
     const translated_label = label[locale];
-    const html_class = 'goofy-label-' + locale;
+    const html_class = `goofy-label-${locale}`;
     children.push(goog.html.SafeHtml.create(
         'span', {class: html_class},
         goog.html.SafeHtml.htmlEscapePreservingNewlines(translated_label)));
@@ -215,13 +238,13 @@ cros.factory.i18n.i18nLabel = function(text, dict = {}) {
 };
 
 /**
- * Make a translated label.
+ * Make a translated label as DOM node.
  * @param {string|!cros.factory.i18n.TranslationDict} text
  * @param {!Object<string, string>=} dict
  * @return {!Node}
  */
-cros.factory.i18n.i18nLabelNode = function(text, dict = {}) {
-  return goog.dom.safeHtmlToNode(cros.factory.i18n.i18nLabel(text, dict));
+ns.i18nLabelNode = (text, dict = {}) => {
+  return goog.dom.safeHtmlToNode(ns.i18nLabel(text, dict));
 };
 
 /**
@@ -229,20 +252,29 @@ cros.factory.i18n.i18nLabelNode = function(text, dict = {}) {
  * For example: {'en-US': 'English', 'zh-CN': '中文'}
  * @return {!cros.factory.i18n.TranslationDict}
  */
-cros.factory.i18n.getLocaleNames = function() {
-  const _ = cros.factory.i18n.translation;
+ns.getLocaleNames = () => {
   // Note: this should be translated to, for example,
   // 'currentLocaleName#zh-CN#中文'.
-  let dict = _('currentLocaleName#en-US#English');
-  for (const locale of cros.factory.i18n.locales) {
+  const dict = _('currentLocaleName#en-US#English');
+  let ret = Object.create(null);
+  for (const locale of ns.locales) {
     const val = dict[locale];
-    const idx = val.indexOf('#' + locale + '#');
+    const idx = val.indexOf(`#${locale}#`);
     if (idx == -1) {
-      // The entry is probably not translated, fallback to use the locale name.
-      dict[locale] = locale;
+      // The entry is probably not translated, fallback to use the locale
+      // name.
+      ret[locale] = locale;
     } else {
-      dict[locale] = val.substr(idx + 2 + locale.length);
+      ret[locale] = val.substr(idx + 2 + locale.length);
     }
   }
-  return dict;
+  return ret;
 };
+
+});
+
+/**
+ * @type {function(string): cros.factory.i18n.TranslationDict}
+ * @export
+ */
+const _ = cros.factory.i18n.translation.bind(cros.factory.i18n);

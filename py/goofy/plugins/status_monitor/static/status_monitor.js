@@ -197,7 +197,7 @@ status_monitor.Status.prototype.updateStatus = function() {
 
         function setValue(/** string */ id, /** ?string */ value) {
           var element = document.getElementById(id);
-          goog.dom.classlist.enable(element, 'value-known', value != null);
+          element.classList.toggle('value-known', value != null);
           goog.dom.setTextContent(
               goog.dom.getElementByClass('value', element), value || '');
         }
@@ -242,8 +242,7 @@ status_monitor.Status.prototype.updateStatus = function() {
           }
         }
         setValue('percent-battery', percent);
-        goog.dom.classlist.set(
-            chargeIndicator, 'battery-' + batteryChargeState);
+        chargeIndicator.className = 'battery-' + batteryChargeState;
 
         var /** ?number */ temperature = status['temperature'];
         var temp = null;
@@ -253,11 +252,9 @@ status_monitor.Status.prototype.updateStatus = function() {
         setValue('temperature', temp);
 
         var eth_indicator = document.getElementById('eth-indicator');
-        goog.dom.classlist.enable(
-            eth_indicator, 'eth-enabled', status['eth_on']);
+        eth_indicator.classList.toggle('eth-enabled', status['eth_on']);
         var wlan_indicator = document.getElementById('wlan-indicator');
-        goog.dom.classlist.enable(
-            wlan_indicator, 'wlan-enabled', status['wlan_on']);
+        wlan_indicator.classList.toggle('wlan-enabled', status['wlan_on']);
       }, this));
 };
 

@@ -8,7 +8,6 @@ goog.require('cros.factory.i18n');
 goog.require('cros.factory.testUI.Manager');
 goog.require('goog.asserts');
 goog.require('goog.dom');
-goog.require('goog.dom.classlist');
 goog.require('goog.ui.Tab');
 goog.require('goog.ui.TabBar');
 
@@ -131,7 +130,7 @@ cros.factory.testUI.TabManager = class {
   _setTestVisible(path, visible) {
     const iframe = this.pathIFrameMap[path];
     if (iframe) {
-      goog.dom.classlist.enable(iframe, 'goofy-test-visible', visible);
+      iframe.classList.toggle('goofy-test-visible', visible);
       if (visible) {
         iframe.contentWindow.focus();
       }
@@ -144,7 +143,9 @@ cros.factory.testUI.TabManager = class {
    * @param {string} path
    */
   showTest(path) {
-    this.pathTabMap[path].setSelected(true);
+    if (path in this.pathTabMap) {
+      this.pathTabMap[path].setSelected(true);
+    }
   }
 
   /**

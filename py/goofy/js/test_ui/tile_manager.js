@@ -8,7 +8,6 @@ goog.require('cros.factory.i18n');
 goog.require('cros.factory.testUI.Manager');
 goog.require('goog.array');
 goog.require('goog.dom');
-goog.require('goog.dom.classlist');
 
 /**
  * UI that use tiled view to run multiple invocations.
@@ -115,8 +114,8 @@ cros.factory.testUI.TileManager = class {
 
       const block = this.pathBlockMap[path];
       const iframe = this._getIframe(path);
-      goog.dom.classlist.enable(block, 'goofy-test-visible', newVisibility);
-      goog.dom.classlist.enable(iframe, 'goofy-test-visible', newVisibility);
+      block.classList.toggle('goofy-test-visible', newVisibility);
+      iframe.classList.toggle('goofy-test-visible', newVisibility);
       block.style.order = idx;
 
       const oldVisibility = this.pathVisibleMap[path];
@@ -170,7 +169,7 @@ cros.factory.testUI.TileManager = class {
    * @param {string} path
    */
   showTest(path) {
-    if (this.pathVisibleMap[path]) {
+    if (!(path in this.pathVisibleMap) || this.pathVisibleMap[path]) {
       return;
     }
     goog.array.moveItem(

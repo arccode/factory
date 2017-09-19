@@ -42,7 +42,6 @@ CLOSURE_BUILD = \
     --root $(CLOSURE_LIB_DIR) \
     --root ../js \
     -n cros.factory.Goofy \
-    -n cros.factory.DeviceManager \
     -n cros.factory.Plugin \
     --compiler_jar=$(CLOSURE_COMPILER_JAR) \
     -f \
@@ -68,7 +67,11 @@ check_js: | check_deps
 	# For now, we just use the compiler (--output_mode=compiled) to check
 	# the correctness of our code, and we actually deploy the version that
 	# is the concatenation of all the dependencies (--output_mode=script).
-	$(CLOSURE_BUILD) --output_mode=compiled --compiler_flags="--checks-only"
+	$(CLOSURE_BUILD) --output_mode=compiled \
+	  --compiler_flags="--checks-only" \
+	  --compiler_flags="--jscomp_warning=lintChecks" \
+	  --compiler_flags="--hide_warnings_for=$(CLOSURE_LIB_DIR)" \
+	  --compiler_flags="--externs ../js/externs.js"
 
 $(OUTPUT_JS): $(JS_SOURCE_PATHS) | check_deps
 	mkdir -p "$(shell dirname "$@")"

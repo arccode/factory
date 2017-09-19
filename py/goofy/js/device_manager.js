@@ -283,7 +283,7 @@ cros.factory.DeviceManager.prototype.showWindow = function() {
     goog.html.SafeHtml.create('div', {'id': 'goofy-device-manager-refresh'})
   ]);
   var dialog = this.goofy.createSimpleDialog('Device Manager', content);
-  goog.dom.classlist.add(dialog.getElement(), 'goofy-device-manager');
+  dialog.getElement().classList.add('goofy-device-manager');
   dialog.setVisible(true);
 
   var refreshButton = new goog.ui.Button(
