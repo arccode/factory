@@ -90,6 +90,12 @@ class Camera {
   }
 
   async grabFrame() {
+    // Sometimes when the system is buzy, the videoStream become muted.
+    // Restarting the stream solves the issue.
+    if (this.videoStream.muted) {
+      this.disable();
+      await this.enable();
+    }
     return await this.imageCapture.grabFrame();
   }
 
