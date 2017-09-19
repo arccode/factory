@@ -1580,7 +1580,7 @@ msgstr "侦测 QR 码中..."
 msgid "Detecting faces..."
 msgstr "侦测人脸中..."
 
-#: ../py/test/pytests/camera.py ../py/test/pytests/camera_webrtc.py
+#: ../py/test/pytests/camera_webrtc.py
 msgid "Click \"Allow\" at the top of the screen."
 msgstr "点击上面的 \"Allow\" 按钮"
 

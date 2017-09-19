@@ -20,11 +20,7 @@ const hideImage = (hide) => {
 };
 
 const failWithError = (reason) => {
-  if (reason.name != null && reason.message != null) {
-    test.fail(`${reason.name}: ${reason.message}`);
-  } else {
-    test.fail(reason.toString());
-  }
+  test.fail(`${reason.name}: ${reason.message}`);
 };
 
 // TODO(pihsun): Move this to util.js
@@ -70,11 +66,6 @@ class Camera {
       this.videoStream = null;
     }
     this.imageCapture = null;
-  }
-
-  async checkPermission() {
-    await this.enable();
-    this.disable();
   }
 
   async getVideoStreamTrack() {

@@ -397,10 +397,6 @@ class CameraTest(unittest.TestCase):
     self.ui.Run()
 
   def _runTest(self):
-    if self.e2e_mode:
-      self.ShowInstruction(_('Click "Allow" at the top of the screen.'))
-      self.RunJSPromiseBlocking('camera.checkPermission()')
-
     countdown_timer.StartCountdownTimer(self.args.timeout_secs, self._Timeout,
                                         self.ui, 'camera-test-timer')
 
