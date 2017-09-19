@@ -129,14 +129,11 @@ if __name__ == '__main__':
   if len(sys.argv) != 3:
     exit('Usage: %s method_name json_params' % sys.argv[0])
 
-  # When Chrome started, the activate page is type 'other'; and after it has
-  # loaded first page, the type will be 'page', so we want to control the page
-  # with logic "try page first then other[0]".
   chrome = ChromeRemoteDebugger()
-  pages = chrome.GetPages()
-  targets = [p for p in pages if p['type'] == 'page']
-  if not targets:
-    targets = [chrome.GetPages('other')[0]]
+  pages = chrome.GetPages('page')
+  # Pages with type 'page' contains page like "chrome://app-list", which we
+  # don't want to redirect.
+  targets = [p for p in pages if not p['url'].startswith('chrome://')]
 
   page_command = {'method': sys.argv[1], 'params': json.loads(sys.argv[2])}
   for target in targets:
