@@ -29,6 +29,7 @@ from __future__ import print_function
 
 import BaseHTTPServer
 import cgi
+import logging
 import shutil
 import tempfile
 import threading
@@ -42,8 +43,10 @@ from instalog.plugins import http_common
 from instalog.utils.arg_utils import Arg
 from instalog.utils import file_utils
 from instalog.utils import net_utils
+from instalog.utils import time_utils
 
 
+_HTTP_SUMMARY_INTERVAL = 60  # 60sec
 _DEFAULT_HOSTNAME = '0.0.0.0'
 
 
@@ -56,6 +59,7 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     self._max_bytes = server.context['max_bytes']
     self._gpg = server.context['gpg']
     self._check_format = server.context['check_format']
+    self._log_summary = server.context['log_summary']
     self._enable_multi_event = False
     BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, request,
                                                    client_address, server)
@@ -97,12 +101,13 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     # Create the temporary directory for attachments.
     with file_utils.TempDirectory(prefix='input_http_') as tmp_dir:
       self.debug('Temporary directory for attachments: %s', tmp_dir)
-      self.info('Received POST request from %s:%d',
-                self.client_address[0], self.client_address[1])
-      status_code, resp_reason = self._ProcessRequest(tmp_dir)
+      self.debug('Received POST request from %s:%d',
+                 self.client_address[0], self.client_address[1])
+      status_code, resp_reason = self._ProcessRequest(tmp_dir,
+                                                      int(content_length))
       self._SendResponse(status_code, resp_reason)
 
-  def _ProcessRequest(self, tmp_dir):
+  def _ProcessRequest(self, tmp_dir, content_length):
     """Checks the request and processes it.
 
     Returns:
@@ -158,6 +163,7 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     if len(events) == 0:
       return 200, 'OK'
     elif self._plugin_api.Emit(events):
+      self._log_summary(len(events), content_length)
       return 200, 'OK'
     else:
       self.warning('Emit failed')
@@ -202,7 +208,7 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
 
   def log_request(self, code='-', size='-'):
     """Overrides log_request to Instalog format."""
-    self.info('Send response: %s %d', self.requestline, code)
+    self.debug('Send response: %s %d', self.requestline, code)
 
   def log_message(self, format, *args):  # pylint: disable=W0622
     """Overrides log_message to Instalog format."""
@@ -275,10 +281,16 @@ class InputHTTP(plugin_base.InputPlugin):
 
   def __init__(self, *args, **kwargs):
     self._http_server = None
+    self._summary_lock = None
+    self._last_summary_time = None
+    self._request_count = 0
+    self._event_count = 0
+    self._byte_count = 0
     super(InputHTTP, self).__init__(*args, **kwargs)
 
   def SetUp(self):
     """Sets up the plugin."""
+    logging.getLogger('gnupg').setLevel(logging.WARNING)
     gpg = None
     if self.args.enable_gnupg:
       self.info('Enable GnuPG to decrypt and verify the data')
@@ -296,10 +308,14 @@ class InputHTTP(plugin_base.InputPlugin):
         'gpg': gpg,
         'logger': self.logger,
         'plugin_api': self,
-        'check_format': self._CheckFormat}
+        'check_format': self._CheckFormat,
+        'log_summary': self._LogSummary}
     self._http_server.StartServer()
     self.info('http now listening on %s:%d...',
               self.args.hostname, self.args.port)
+
+    self._summary_lock = threading.Lock()
+    self._last_summary_time = time_utils.MonotonicTime()
 
   def TearDown(self):
     """Tears down the plugin."""
@@ -313,6 +329,24 @@ class InputHTTP(plugin_base.InputPlugin):
       Exception: the event is not conform to the format.
     """
     pass
+
+  def _LogSummary(self, event_num, size):
+    """Logs summary after at least a period of time."""
+    with self._summary_lock:
+      self._request_count += 1
+      self._event_count += event_num
+      self._byte_count += size
+      time_now = time_utils.MonotonicTime()
+
+      if time_now - self._last_summary_time >= _HTTP_SUMMARY_INTERVAL:
+        self.info('Over last %.1f sec, received %d requests, total %d events '
+                  '(%.2f kB)', time_now - self._last_summary_time,
+                  self._request_count, self._event_count,
+                  self._byte_count / 1024.0)
+        self._last_summary_time = time_now
+        self._request_count = 0
+        self._event_count = 0
+        self._byte_count = 0
 
 
 if __name__ == '__main__':

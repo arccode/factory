@@ -11,6 +11,7 @@ Sends events to input HTTP plugin.
 
 from __future__ import print_function
 
+import logging
 import os
 import time
 
@@ -73,6 +74,8 @@ class OutputHTTP(plugin_base.OutputPlugin):
 
   def SetUp(self):
     """Sets up the plugin."""
+    logging.getLogger('requests').setLevel(logging.WARNING)
+    logging.getLogger('gnupg').setLevel(logging.WARNING)
     if self.args.enable_gnupg:
       self.info('Enable GnuPG to encrypt and sign the data')
       http_common.CheckGnuPG()

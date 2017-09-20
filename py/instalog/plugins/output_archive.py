@@ -38,7 +38,7 @@ from instalog.utils import file_utils
 from instalog.utils import time_utils
 
 
-_ARCHIVE_MESSAGE_INTERVAL = 15  # 15sec
+_ARCHIVE_MESSAGE_INTERVAL = 60  # 60sec
 _DEFAULT_INTERVAL = 1 * 60 * 60  # 1hr
 _DEFAULT_MAX_SIZE = 200 * 1024 * 1024  # 200mb
 

@@ -435,4 +435,5 @@ class TestHTTPAE(unittest.TestCase):
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO, format=log_utils.LOG_FORMAT)
+  logging.getLogger('requests').setLevel(logging.WARNING)
   unittest.main()
