@@ -2,7 +2,39 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Shutdown factory test."""
+"""Shutdown/Reboot the device.
+
+Description
+-----------
+This test halts or reboots the device.
+
+Test Procedure
+--------------
+If argument `check_gpt` is set to True (default), it checks if partitions are
+good for the next boot. Then, it reboots / halts the device according to the
+argument `operation`.
+
+Dependency
+----------
+* If DUT is a remote device, and argument `check_gpt` is set to True( default),
+  it depends on the external binary 'cgpt' or 'partx' to read GPT info.
+* Depends on the external binary 'shutdown' to perform the operation.
+* Depends on the external binary 'ectool' to perform a full reboot.
+
+Examples
+--------
+To reboot the device after a 5-second delay::
+
+  OperatorTest(pytest_name='shutdown',
+               dargs={'operation': 'reboot'})
+
+This also checks the GPT info to ensure partitions look good for the next boot.
+
+To shutdown the device with a maximum 60-second waiting::
+
+  OperatorTest(pytest_name='shutdown',
+               dargs={'operation': 'halt'})
+"""
 
 import logging
 import os
