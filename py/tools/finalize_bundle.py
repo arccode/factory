@@ -475,18 +475,26 @@ class FinalizeBundle(object):
 
     firmware_images_dir = os.path.join(self.bundle_dir, 'firmware_images')
     file_utils.TryMakeDirs(firmware_images_dir)
+
+    # TODO(phoenixshen): remove this when we don't need to support old
+    # firmware updater.
     with file_utils.TempDirectory() as temp_dir:
       Spawn(['sh', os.path.join(firmware_dir, updaters[0]),
              '--sb_extract', temp_dir], log=True, check_call=True)
 
-      if os.path.isdir(os.path.join(temp_dir, 'model')):  # unified build
-        temp_firmware_dir = os.path.join(temp_dir, 'model', self.project)
-      else:
-        temp_firmware_dir = temp_dir
-      for filename in os.listdir(temp_firmware_dir):
-        if filename.endswith('.bin'):
-          shutil.copy(os.path.join(temp_firmware_dir, filename),
-                      firmware_images_dir)
+      for root, unused_dirs, files in os.walk(temp_dir):
+        for filename in files:
+          if filename.endswith('.bin'):
+            shutil.copy(os.path.join(root, filename),
+                        firmware_images_dir)
+
+    # Try to use "chromeos-firmwareupdate --mode=output" to extract bios/ec
+    # firmware. This option is available for updaters extracted from image
+    # version >= 9962.0.0.
+    Spawn(['sudo', 'sh', os.path.join(firmware_dir, updaters[0]),
+           '--mode', 'output', '--model', self.project,
+           '--output_dir', firmware_images_dir],
+          log=True, call=True)
 
   def PrepareNetboot(self):
     """Prepares netboot resource for TFTP setup."""
