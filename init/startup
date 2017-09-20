@@ -126,17 +126,8 @@ factory_init() {
     return
   fi
 
-  # Determine Goofy roles (device or presenter).
-  local tag_presenter="${INIT_BASE}/run_goofy_presenter"
-  local tag_device="${INIT_BASE}/run_goofy_device"
-  local role
-
-  [ -f "${tag_device}" ] && GOOFY_ROLES="${GOOFY_ROLES} device"
-  [ -f "${tag_presenter}" ] && GOOFY_ROLES="${GOOFY_ROLES} presenter"
-  [ -z "${GOOFY_ROLES}" ] && GOOFY_ROLES="${GOOFY_ROLES} device monolithic"
-  log "Goofy roles: ${GOOFY_ROLES}"
-
-  for role in ${GOOFY_ROLES}; do
+  # TODO(hungte) Clean up and merge device / monolithic.
+  for role in device monolithic; do
     execute_rules "goofy.d/${role}"
   done
   log "All initialization finished."

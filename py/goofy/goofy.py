@@ -24,7 +24,6 @@ from cros.factory.goofy.goofy_base import GoofyBase
 from cros.factory.goofy.goofy_rpc import GoofyRPC
 from cros.factory.goofy import goofy_server
 from cros.factory.goofy.invocation import TestInvocation
-from cros.factory.goofy.link_manager import PresenterLinkManager
 from cros.factory.goofy.plugins import plugin_controller
 from cros.factory.goofy import prespawner
 from cros.factory.goofy import test_environment
@@ -111,8 +110,6 @@ class Goofy(GoofyBase):
       to the handler.
     hooks: A Hooks object containing hooks for various Goofy actions.
     status: The current Goofy status (a member of the Status enum).
-    link_manager: Instance of PresenterLinkManager for communicating
-      with GoofyPresenter
   """
 
   def __init__(self):
@@ -151,7 +148,6 @@ class Goofy(GoofyBase):
     self.key_filter = None
     self.status = Status.UNINITIALIZED
     self.ready_for_ui_connection = False
-    self.link_manager = None
     self.is_restart_requested = False
     self.test_list_iterator = None
 
@@ -256,9 +252,6 @@ class Goofy(GoofyBase):
       self.testlog = None
     if self.key_filter:
       self.key_filter.Stop()
-    if self.link_manager:
-      self.link_manager.Stop()
-      self.link_manager = None
     if self.plugin_controller:
       self.plugin_controller.StopAndDestroyAllPlugins()
       self.plugin_controller = None
@@ -969,17 +962,6 @@ class Goofy(GoofyBase):
                       help=('do not automatically run the test list on goofy '
                             'start; this is only valid when factory test '
                             'automation is enabled'))
-    parser.add_option('--handshake_timeout', dest='handshake_timeout',
-                      type='float', default=0.3,
-                      help=('RPC timeout when doing handshake between device '
-                            'and presenter.'))
-    parser.add_option('--standalone', dest='standalone',
-                      action='store_true', default=False,
-                      help=('Assume the presenter is running on the same '
-                            'machines.'))
-    parser.add_option('--monolithic', dest='monolithic',
-                      action='store_true', default=False,
-                      help='Run in monolithic mode (without presenter)')
     return parser
 
   def init(self, args=None, env=None):
@@ -1042,12 +1024,6 @@ class Goofy(GoofyBase):
       state.clear_state()
 
     logging.info('Started')
-
-    if not self.options.monolithic:
-      self.link_manager = PresenterLinkManager(
-          check_interval=1,
-          handshake_timeout=self.options.handshake_timeout,
-          standalone=self.options.standalone)
 
     self.start_goofy_server()
     self.init_state_instance()
@@ -1304,8 +1280,6 @@ class Goofy(GoofyBase):
 
   def test_fail(self, test):
     self.hooks.OnTestFailure(test)
-    if self.link_manager:
-      self.link_manager.UpdateStatus(False)
 
 
 def main():

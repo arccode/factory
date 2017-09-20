@@ -24,7 +24,6 @@ import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.goofy import goofy_remote
 from cros.factory.test.diagnosis.diagnosis_tool import DiagnosisToolRPC
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
@@ -166,26 +165,8 @@ class GoofyRPC(object):
         error_msg: An error message (on failure).
     """
     ret_value = Queue.Queue()
-    # Record the existence of the host-based tag files, so we can restore them
-    # after the update.
-    device_tag = os.path.join(
-        paths.FACTORY_DIR, 'init', goofy_remote.DEVICE_TAG)
-    presenter_tag = os.path.join(
-        paths.FACTORY_DIR, 'init', goofy_remote.PRESENTER_TAG)
-    is_device = os.path.exists(device_tag)
-    is_presenter = os.path.exists(presenter_tag)
 
     def PostUpdateHook():
-      def _RestoreTag(tag_status, tag_path):
-        if tag_status:
-          file_utils.TouchFile(tag_path)
-        else:
-          file_utils.TryUnlink(tag_path)
-
-      # Restore all the host-based tag files after update.
-      _RestoreTag(is_device, device_tag)
-      _RestoreTag(is_presenter, presenter_tag)
-
       # After update, wait REBOOT_AFTER_UPDATE_DELAY_SECS before the
       # update, and return a value to the caller.
       now = time.time()
@@ -380,46 +361,6 @@ class GoofyRPC(object):
   def GetLastShutdownTime(self):
     """Gets last shutdown time detected by Goofy."""
     return self.goofy.last_shutdown_time
-
-  def UIPresenterCountdown(self, message, timeout_secs, timeout_message,
-                           timeout_is_error=True):
-    """Starts a countdown on the presenter UI.
-
-    In situations like a reboot, Goofy is not available and on the UI
-    presenter side, it looks like a disconnected state. To avoid confusing
-    operators, this method may be used to inform the current status of Goofy
-    and set a timeout by which Goofy is expected to come back alive.
-
-    Args:
-      message: The text to show while counting down.
-      timeout_secs: The timeout for countdown.
-      timeout_message: The text to show when countdown ends.
-      timeout_is_error: True for red timeout message; False for black.
-    """
-    if self.goofy.link_manager:
-      self.goofy.link_manager.StartCountdown(
-          message, timeout_secs, timeout_message,
-          'red' if timeout_is_error else 'black')
-
-  def SuspendDUTMonitoring(self, interval_sec):
-    """Suspends monitoring of DUT connection.
-
-    For some tests, DUT is expected to go offline for a short period without
-    rebooting. In this case, we don't want the presenter to reload the UI;
-    otherwise, we lose the UI of the current running tests. By suspending
-    monitoring, the link manager on the presenter side knows to ignore
-    connection failure for a given amount of time.
-
-    Args:
-      interval_sec: Number of seconds to suspend.
-    """
-    if self.goofy.link_manager:
-      self.goofy.link_manager.SuspendMonitoring(interval_sec)
-
-  def ResumeDUTMonitoring(self):
-    """Immediately resume suspended monitoring of DUT connection."""
-    if self.goofy.link_manager:
-      self.goofy.link_manager.ResumeMonitoring()
 
   def _GetTests(self):
     """Helper method to get a list of all tests and their states."""
@@ -751,15 +692,6 @@ class GoofyRPC(object):
     """
     self.CallExtension('UpdateTab', timeout=timeout,
                        tab_id=tab_id, update_info=update_info)
-
-  def UpdateStatus(self, all_pass):
-    """Updates the color of tab in presenter.
-
-    Args:
-      all_pass: A boolean value. True if no failed test.
-    """
-    if self.goofy.link_manager:
-      self.goofy.link_manager.UpdateStatus(all_pass)
 
   def PostHookEvent(self, event_name, *args, **kargs):
     """Posts an event to Goofy hooks."""

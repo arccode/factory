@@ -20,7 +20,6 @@ import yaml
 import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow.common import (
     board_cmd_arg, bundle_dir_cmd_arg, dut_hostname_cmd_arg, FactoryFlowCommand)
-from cros.factory.goofy import goofy_remote
 from cros.factory.goofy.goofy_rpc import RunState
 from cros.factory.goofy.invocation import OVERRIDE_TEST_LIST_DARGS_FILE
 from cros.factory.test import state
@@ -85,8 +84,6 @@ class RunAutomatedTests(FactoryFlowCommand):
       CmdArg('--automation-function-kwargs-yaml',
              help=('a YAML file containing a dict of test paths to '
                    'their kwargs for their automation functions')),
-      CmdArg('--role', choices=goofy_remote.HOST_BASED_ROLES.keys(),
-             help='the host-based role to enable on the DUT'),
   ]
 
   WAIT_FOR_GOOFY_TIMEOUT_SECS = 120
@@ -201,8 +198,6 @@ class RunAutomatedTests(FactoryFlowCommand):
       goofy_remote_args += ['-s', self.options.shopfloor_ip]
     if self.options.shopfloor_port:
       goofy_remote_args += ['--shopfloor_port=%s' % self.options.shopfloor_port]
-    if self.options.role:
-      goofy_remote_args += ['--role=%s' % self.options.role]
     ssh_utils.SpawnSSHToDUT(goofy_remote_args, log=True, check_call=True)
     ssh_utils.SpawnSSHToDUT(
         [self.options.dut, FACTORY_RESTART, '--automation-mode',

@@ -199,9 +199,6 @@ class Report(unittest.TestCase):
 
     goofy = state.get_instance()
     goofy.PostHookEvent('Summary', 'Good' if all_pass else 'Bad')
-    # state.get_instance().UpdateStatus(all_pass) will call UpdateStatus in
-    # goofy_rpc.py, and notify ui to update the color of dut's tab.
-    goofy.UpdateStatus(all_pass)
 
     if self.args.bft_fixture:
       self._SetFixtureStatusLight(all_pass)

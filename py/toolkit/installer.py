@@ -111,8 +111,7 @@ class FactoryToolkitInstaller(object):
   # Whether to sudo when rsyncing; set to False for testing.
   _sudo = True
 
-  def __init__(self, src, dest, no_enable, enable_presenter,
-               enable_device, non_cros=False, system_root='/',
+  def __init__(self, src, dest, no_enable, non_cros=False, system_root='/',
                apps=None, active_test_list=None):
     self._src = src
     self._system_root = system_root
@@ -131,11 +130,10 @@ class FactoryToolkitInstaller(object):
             '\n'
             'for help.\n'
             '\n'
-            'If you want to install the presenter on a non-CrOS host,\n'
+            'If you want to install on a non-CrOS host,\n'
             'please run\n'
             '\n'
-            '  install_factory_toolkit.run -- \\\n'
-            '      --non-cros --enable-presenter\n'
+            '  install_factory_toolkit.run -- --non-cros \n'
             '\n')
         sys.exit(1)
       if os.getuid() != 0:
@@ -152,13 +150,6 @@ class FactoryToolkitInstaller(object):
     self._no_enable = no_enable
     self._tag_file = os.path.join(self._usr_local_dest, 'factory', 'enabled')
 
-    self._enable_presenter = enable_presenter
-    self._presenter_tag_file = os.path.join(self._usr_local_dest, 'factory',
-                                            'init', 'run_goofy_presenter')
-
-    self._enable_device = enable_device
-    self._device_tag_file = os.path.join(self._usr_local_dest, 'factory',
-                                         'init', 'run_goofy_device')
     self._apps = apps
     self._active_test_list = active_test_list
 
@@ -314,9 +305,6 @@ class FactoryToolkitInstaller(object):
         sudo=self._sudo)
 
     self._SetTagFile('factory', self._tag_file, not self._no_enable)
-    self._SetTagFile('presenter', self._presenter_tag_file,
-                     self._enable_presenter)
-    self._SetTagFile('device', self._device_tag_file, self._enable_device)
 
     self._SetActiveTestList()
     self._EnableApps()
@@ -338,8 +326,7 @@ def PrintBuildInfo(src_root):
   print file_utils.ReadFile(info_file)
 
 
-def PackFactoryToolkit(src_root, output_path, initial_version,
-                       enable_device, enable_presenter):
+def PackFactoryToolkit(src_root, output_path, initial_version):
   """Packs the files containing this script into a factory toolkit."""
   if initial_version is None:
     complete_version = '%s  repacked by %s@%s at %s\n' % (
@@ -361,10 +348,6 @@ def PackFactoryToolkit(src_root, output_path, initial_version,
            '--help-header', help_header.name,
            src_root, output_path, initial_version + modified_msg,
            INSTALLER_PATH, '--in-exe']
-    if not enable_device:
-      cmd.append('--no-enable-device')
-    if not enable_presenter:
-      cmd.append('--no-enable-presenter')
     Spawn(cmd, check_call=True, log=True)
   with file_utils.TempDirectory() as tmp_dir:
     version_path = os.path.join(tmp_dir, VERSION_PATH)
@@ -438,23 +421,10 @@ def main():
   parser.add_argument('--version', metavar='VERSION',
                       help='String to write into TOOLKIT_VERSION when packing')
 
-  parser.add_argument('--enable-presenter', dest='enable_presenter',
-                      action='store_true',
-                      help='Run goofy in presenter mode on startup')
-  parser.add_argument('--no-enable-presenter', dest='enable_presenter',
-                      action='store_false', help=argparse.SUPPRESS)
-  parser.set_defaults(enable_presenter=False)
-
   parser.add_argument('--non-cros', dest='non_cros',
                       action='store_true',
                       help='Install on non-ChromeOS host.')
 
-  parser.add_argument('--enable-device', dest='enable_device',
-                      action='store_true',
-                      help='Run goofy in device mode on startup')
-  parser.add_argument('--no-enable-device', dest='enable_device',
-                      action='store_false', help=argparse.SUPPRESS)
-  parser.set_defaults(enable_device=False)
 
   parser.add_argument('--exe-path', dest='exe_path',
                       nargs='?', default=None,
@@ -489,8 +459,7 @@ def main():
   # --pack-into may be called directly so this must be done before changing
   # working directory to OLDPWD.
   if args.pack_into and args.repack is None:
-    PackFactoryToolkit(src_root, args.pack_into, args.version,
-                       args.enable_device, args.enable_presenter)
+    PackFactoryToolkit(src_root, args.pack_into, args.version)
     return
 
   if not in_archive:
@@ -525,9 +494,8 @@ def main():
 
     installer = FactoryToolkitInstaller(
         src=src_root, dest=dest, no_enable=args.no_enable,
-        enable_presenter=args.enable_presenter,
-        enable_device=args.enable_device, non_cros=args.non_cros,
-        apps=args.apps, active_test_list=args.active_test_list)
+        non_cros=args.non_cros, apps=args.apps,
+        active_test_list=args.active_test_list)
 
     print installer.WarningMessage(args.dest if patch_test_image else None)
 

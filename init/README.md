@@ -44,8 +44,7 @@ disable) new rules into each stage.
 
  - `common.d`: Rules applied on all systems in system init.
  - `iptables.d`: Rules applied for network setup.
- - `goofy.d`: Rules applied according to factory configuration (run presenter,
-   device, or monolithic mode).
+ - `goofy.d`: Rules applied according to factory configuration.
  - `main.d`: Rules applied for factory main service (`factory.conf`).
 
 

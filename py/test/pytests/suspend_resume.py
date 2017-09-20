@@ -374,10 +374,6 @@ class SuspendResumeTest(unittest.TestCase):
       self.assertTrue(self.alarm_started.wait(_MIN_SUSPEND_MARGIN_SECS),
                       'Alarm thread timed out.')
       messages_start = os.path.getsize(_MESSAGES)
-      self.goofy.SuspendDUTMonitoring(suspend_time +
-                                      self.args.resume_worst_case_secs)
-      logging.info('Monitoring suspended for %d seconds',
-                   suspend_time + self.args.resume_worst_case_secs)
       self._Suspend()
       wake_time = self._ReadCurrentTime()
       wake_source = self._HandleMessages(messages_start)
@@ -388,13 +384,6 @@ class SuspendResumeTest(unittest.TestCase):
       logging.info('Resumed %d of %d for %d seconds.',
                    self.run, self.args.cycles, resume_time)
       time.sleep(resume_time)
-
-      try:
-        logging.info('Resuming monitoring')
-        self.goofy.ResumeDUTMonitoring()
-      except Exception:
-        # Monitoring suspension will time out eventually
-        logging.exception('Failed to resume monitoring. Ignore.')
 
       while self.alarm_thread.isAlive():
         alarm_suspend_delays += 1

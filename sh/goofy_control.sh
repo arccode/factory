@@ -25,7 +25,6 @@ export PATH="/usr/local/factory/bin:${PATH}"
 
 # Default args for Goofy.
 GOOFY_ARGS=""
-PRESENTER_ARGS=""
 
 # Default implementation for factory_setup (no-op).  May be overriden
 # by board_setup_factory.sh.
@@ -231,36 +230,12 @@ start_factory() {
   export DISPLAY=":0"
   export XAUTHORITY="/home/chronos/.Xauthority"
 
-  # Rules to start Goofy. Not this has to sync with init/startup.
-  local tag_device="${RUN_GOOFY_DEVICE_TAG_FILE}"
-  local tag_presenter="${RUN_GOOFY_PRESENTER_TAG_FILE}"
-  local run_device=true
-
-  if [ -f "${tag_presenter}" ]; then
-    if [ -f "${tag_device}" ]; then
-      PRESENTER_ARGS="${PRESENTER_ARGS} --standalone"
-      GOOFY_ARGS="${GOOFY_ARGS} --standalone"
-    else
-      # Presenter-only.
-      run_device=false
-    fi
-    # Note presenter output is only kept in SESSION_LOG_FILE.
-    echo "Starting Goofy Presenter... ($PRESENTER_ARGS)"
-    # shellcheck disable=SC2086
-    "$FACTORY/bin/goofy_presenter" $PRESENTER_ARGS &
-  elif [ ! -f "${tag_device}" ]; then
-    # Monolithic mode.
-    GOOFY_ARGS="${GOOFY_ARGS} --monolithic"
-  fi
-
-  if "${run_device}"; then
-    echo "Starting Goofy Device... ($GOOFY_ARGS)"
-    echo "
-    --- $(date +'%Y%m%d %H:%M:%S') Starting new Goofy session ($GOOFY_ARGS) ---
-         " >>"$FACTORY_LOG_FILE"
-    # shellcheck disable=SC2086
-    "$FACTORY/bin/goofy" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1 &
-  fi
+  echo "Starting Goofy... ($GOOFY_ARGS)"
+  echo "
+  --- $(date +'%Y%m%d %H:%M:%S') Starting new Goofy session ($GOOFY_ARGS) ---
+       " >>"$FACTORY_LOG_FILE"
+  # shellcheck disable=SC2086
+  "$FACTORY/bin/goofy" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1 &
 
   wait
 }

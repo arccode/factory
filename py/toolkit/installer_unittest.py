@@ -62,11 +62,9 @@ class ToolkitInstallerTest(unittest.TestCase):
     os.makedirs(os.path.join(self.dest, 'usr/local'))
 
   def createInstaller(self, enabled_tag=True, system_root='/',
-                      enable_presenter=True, enable_device=False,
                       non_cros=False, apps=None):
     self._installer = installer.FactoryToolkitInstaller(
-        self.src, self.dest, not enabled_tag, enable_presenter,
-        enable_device, non_cros=non_cros,
+        self.src, self.dest, not enabled_tag, non_cros=non_cros,
         system_root=system_root, apps=apps)
     self._installer._sudo = False # pylint: disable=W0212
 
@@ -87,10 +85,6 @@ class ToolkitInstallerTest(unittest.TestCase):
       self.assertEqual(f.read(), 'install me!')
     self.assertTrue(os.path.exists(
         os.path.join(self.dest, 'usr/local/factory/enabled')))
-    self.assertTrue(os.path.exists(
-        os.path.join(self.dest, 'usr/local/factory/init/run_goofy_presenter')))
-    self.assertFalse(os.path.exists(
-        os.path.join(self.dest, 'usr/local/factory/init/run_goofy_device')))
     self.assertEquals(
         '../factory/bin/gooftool',
         os.readlink(os.path.join(self.dest, 'usr/local/bin/gooftool')))
@@ -118,13 +112,8 @@ class ToolkitInstallerTest(unittest.TestCase):
     self.makeLiveDevice()
     os.getuid = lambda: 0  # root
     self._override_in_cros_device = True
-    self.createInstaller(system_root=self.dest,
-                         enable_presenter=False, enable_device=True)
+    self.createInstaller(system_root=self.dest)
     self._installer.Install()
-    self.assertFalse(os.path.exists(
-        os.path.join(self.dest, 'usr/local/factory/init/run_goofy_presenter')))
-    self.assertTrue(os.path.exists(
-        os.path.join(self.dest, 'usr/local/factory/init/run_goofy_device')))
 
   def testIncorrectPatch(self):
     with self.assertRaises(Exception):

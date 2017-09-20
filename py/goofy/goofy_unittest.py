@@ -89,7 +89,6 @@ class GoofyTest(unittest.TestCase):
     if self.mock_goofy_server:
       self.mocker.StubOutClassWithMocks(goofy.goofy_server, 'GoofyServer')
       state.get_instance = lambda: self.state
-    self.mocker.StubOutClassWithMocks(goofy, 'PresenterLinkManager')
     self.mocker.StubOutWithMock(state, 'clear_state')
     self.mocker.StubOutWithMock(state, 'FactoryState')
     self.mocker.StubOutWithMock(goofy.test_lists, 'BuildAllTestLists')
@@ -156,11 +155,6 @@ class GoofyTest(unittest.TestCase):
     self.goofy = new_goofy
 
   def record_goofy_init(self, restart=True):
-    goofy.PresenterLinkManager(
-        check_interval=1,
-        handshake_timeout=0.3,
-        standalone=False)
-
     if restart:
       state.clear_state()
 
@@ -191,8 +185,6 @@ class GoofyTest(unittest.TestCase):
           ({'test': test_list}, {}))
 
   def record_goofy_destroy(self):
-    if self.goofy.link_manager:
-      self.goofy.link_manager.Stop()
     if self.mock_goofy_server:
       self.goofy.goofy_server.shutdown()
       self.goofy.goofy_server.server_close()
@@ -304,7 +296,6 @@ class BasicTest(GoofyTest):
   """A simple test case that checks that tests are run in the correct order."""
   test_list = ABC_TEST_LIST
   def runTest(self):
-    self.goofy.link_manager.UpdateStatus = self.mockAnything.UpdateStatus(False)
     self.check_one_test('a', 'a_A', TestState.PASSED, '')
     self.check_one_test('b', 'b_B', TestState.FAILED, 'Uh-oh')
     self.check_one_test('c', 'c_C', TestState.FAILED, 'Uh-oh')
@@ -324,7 +315,6 @@ class WebSocketTest(GoofyUITest):
   """A test case that checks the behavior of web sockets."""
   test_list = ABC_TEST_LIST
   def runTest(self):
-    self.goofy.link_manager.UpdateStatus = self.mockAnything.UpdateStatus(False)
 
     self.check_one_test('a', 'a_A', TestState.PASSED, '')
     self.check_one_test('b', 'b_B', TestState.FAILED, 'Uh-oh')
@@ -569,7 +559,6 @@ class MultipleIterationsTest(GoofyTest):
   """
 
   def runTest(self):
-    self.goofy.link_manager.UpdateStatus = self.mockAnything.UpdateStatus(False)
     self.check_one_test('a', 'a_A', TestState.PASSED, '')
 
     mock_pytest('b_B', TestState.PASSED, '')
@@ -622,7 +611,6 @@ class RequireRunPassedTest(GoofyTest):
   """
 
   def runTest(self):
-    self.goofy.link_manager.UpdateStatus = self.mockAnything.UpdateStatus(False)
     self.check_one_test('a', 'a_A', TestState.FAILED, '')
     self.check_one_test('b', 'b_B', TestState.FAILED,
                         'Required tests [a] have not been run yet',
@@ -643,7 +631,6 @@ class StopOnFailureTest(GoofyTest):
   """
 
   def runTest(self):
-    self.goofy.link_manager.UpdateStatus = self.mockAnything.UpdateStatus(False)
     mock_pytest('a_A', TestState.PASSED, '')
     mock_pytest('b_B', TestState.FAILED, 'Oops!')
     self.mocker.ReplayAll()
@@ -779,7 +766,6 @@ class EndlessLoopTest(GoofyTest):
   """
 
   def runTest(self):
-    self.goofy.link_manager.UpdateStatus = self.mockAnything.UpdateStatus(False)
     for unused_i in xrange(4):
       mock_pytest('normal_test', TestState.PASSED, '')
     for unused_i in xrange(4):

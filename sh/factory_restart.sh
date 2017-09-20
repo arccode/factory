@@ -132,8 +132,7 @@ main() {
   local vpd=""
   local services="factory"
   local stop_auto_run_on_start=false automation_mode="none"
-  # TODO(hungte) Find right URL for presenter mode.
-  local chrome_url="http://127.0.0.1:4012"
+  local chrome_url="http://localhost:4012"
 
   while [ $# -gt 0 ]; do
     opt="$1"

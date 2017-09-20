@@ -29,12 +29,6 @@ from cros.factory.utils.sys_utils import InChroot
 
 SRCROOT = os.environ.get('CROS_WORKON_SRCROOT')
 
-DEVICE_TAG = 'run_goofy_device'
-PRESENTER_TAG = 'run_goofy_presenter'
-HOST_BASED_ROLES = {'device': [DEVICE_TAG],
-                    'presenter': [PRESENTER_TAG],
-                    'both': [DEVICE_TAG, PRESENTER_TAG]}
-
 
 class GoofyRemoteException(Exception):
   """Goofy remote exception."""
@@ -128,9 +122,6 @@ def main():
                       help='remove password from test_list')
   parser.add_argument('-s', dest='shopfloor_host',
                       help='set shopfloor host')
-  parser.add_argument('--role', dest='role',
-                      help=('Set the role of the device. Must be one of: ' +
-                            ', '.join(HOST_BASED_ROLES)))
   parser.add_argument('--automation-mode',
                       choices=[m.lower() for m in AutomationMode],
                       default='none', help='Factory test automation mode.')
@@ -165,29 +156,10 @@ def main():
 
   logging.basicConfig(level=logging.INFO)
 
-  if args.role and args.role not in HOST_BASED_ROLES:
-    sys.exit('--role must be one of ' + ', '.join(HOST_BASED_ROLES))
-
-  def RunLocallyOrRemotely(cmds):
-    if args.local:
-      Spawn(cmds, check_call=True, log=True)
-    else:
-      SpawnSSHToDUT([args.host] + cmds, check_call=True, log=True)
-
-  def SetHostBasedRole():
-    if args.role:
-      for tag in [DEVICE_TAG, PRESENTER_TAG]:
-        if tag in HOST_BASED_ROLES[args.role]:
-          RunLocallyOrRemotely(['touch', '/usr/local/factory/init/%s' % tag])
-        else:
-          RunLocallyOrRemotely(
-              ['rm', '--force', '/usr/local/factory/init/%s' % tag])
-
   if args.local:
     if InChroot():
       sys.exit('--local must be used only on the target device')
     TweakTestLists(args)
-    SetHostBasedRole()
     return
 
   if not SRCROOT:
@@ -220,7 +192,6 @@ def main():
       ['-az', 'overlay-%s/build/par/factory.par' % board,
        '%s:/usr/local/factory/' % args.host],
       cwd=paths.FACTORY_DIR, check_call=True, log=True)
-  SetHostBasedRole()
 
   private_path = cros_board_utils.GetChromeOSFactoryBoardPath(board)
   if private_path:

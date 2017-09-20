@@ -4,7 +4,6 @@
 
 """Shutdown factory test."""
 
-import jsonrpclib
 import logging
 import os
 import time
@@ -171,22 +170,6 @@ class ShutdownTest(unittest.TestCase):
       event_log.Log('reboot_cancelled')
       raise ShutdownError('Shutdown aborted by operator')
 
-    try:
-      if self.args.operation == factory.ShutdownStep.HALT:
-        self.goofy.UIPresenterCountdown(
-            'Shutdown test in progress...',
-            self.args.wait_shutdown_secs,
-            'Shutdown test succeeded.',
-            False)
-      else:
-        self.goofy.UIPresenterCountdown(
-            'Reboot test in progress...',
-            self.args.max_reboot_time_secs,
-            'Reboot test failed.')
-    except jsonrpclib.ProtocolError:
-      # The presenter may be absent (e.g. during run-in). Ignore error
-      # in this case.
-      pass
     try:
       self.goofy.Shutdown(self.args.operation)
 
