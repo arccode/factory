@@ -85,7 +85,10 @@ var UpdatingResourceForm = React.createClass({
       if (regexp.test(nextProps.bundleName)) {
         newBundleName = nextProps.bundleName.replace(regexp, timeString);
       } else {
-        newBundleName = `${nextProps.bundleName}-${timeString}`;
+        if (newBundleName == 'empty') {
+          newBundleName = nextProps.project;
+        }
+        newBundleName += '-' + timeString;
       }
       this.setState({
         nameInputValue: newBundleName,
