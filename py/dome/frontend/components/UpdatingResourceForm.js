@@ -92,7 +92,7 @@ var UpdatingResourceForm = React.createClass({
       }
       this.setState({
         nameInputValue: newBundleName,
-        noteInputValue: `Update ${nextProps.resourceType}`
+        noteInputValue: `Updated "${nextProps.resourceType}" type resource`
       });
 
       // bring up the file dialog
