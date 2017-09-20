@@ -190,48 +190,64 @@ const startUpdatingResource = (resourceKey, data) => (dispatch, getState) => {
 
   var onCancel = buildOnCancel(dispatch, getState);
   var srcBundleName = data.name;
-  var dstBundleName = 'newName' in data ? data.newName : '';
+  var dstBundleName = data.newName;
 
   // optimistic update
   var bundle = findBundle(srcBundleName, getState);
+  bundle['name'] = dstBundleName;
   bundle['note'] = data.note;
   // reset hash and version of the resource currently being update
   bundle['resources'][resourceKey]['hash'] = '(waiting for update)';
   bundle['resources'][resourceKey]['version'] = '(waiting for update)';
-  if (dstBundleName != '') {
-    // duplicate the src bundle if it's not an in-place update
-    bundle['name'] = dstBundleName;
-    dispatch({
-      type: ActionTypes.ADD_BUNDLE,
-      bundle
-    });
-  } else {
-    dispatch({
-      type: ActionTypes.UPDATE_BUNDLE,
-      name: srcBundleName,
-      bundle
-    });
-  }
+  dispatch({
+    type: ActionTypes.ADD_BUNDLE,
+    bundle
+  });
+
+  // for better user experience:
+  // - collapse and deactivate the old bundle
+  // - expand and activate the new bundle
+  // (but we cannot activate the new bundle here because the bundle is not ready
+  //  yet, we have to activate it after the task finished)
+  dispatch(collapseBundle(srcBundleName));
+  dispatch(expandBundle(dstBundleName));
+  dispatch(activateBundle(srcBundleName, false));
 
   // need to fill in the real data after the request has finished
-  var onFinish = response => response.json().then(json => dispatch({
-    type: ActionTypes.UPDATE_BUNDLE,
-    name: dstBundleName == '' ? srcBundleName : dstBundleName,
-    bundle: json
-  }));
+  var onFinish = response => response.json().then(
+    json => dispatch({
+      type: ActionTypes.UPDATE_BUNDLE,
+      name: dstBundleName,
+      bundle: json
+    })
+  ).then(
+    // activate the new bundle by default for convenience
+    () => dispatch(
+      activateBundle(dstBundleName, true)
+    )
+  );
 
   // send the request
-  var description = `Update bundle "${srcBundleName}"`;
-  if (dstBundleName != '') {
-    description += ` to bundle "${dstBundleName}"`;
-  }
+  var description =
+      `Update bundle "${srcBundleName}" to bundle "${dstBundleName}"`;
   dispatch(DomeActions.createTask(
       description, 'PUT', `${baseURL(getState)}/bundles/${srcBundleName}`, data,
       {onFinish, onCancel}
   ));
 };
 
+const expandBundle = name => ({
+  type: ActionTypes.EXPAND_BUNDLE,
+  name
+});
+
+const collapseBundle = name => ({
+  type: ActionTypes.COLLAPSE_BUNDLE,
+  name
+});
+
 export default {
   fetchBundles, reorderBundles, activateBundle, changeBundleRules, deleteBundle,
-  startUploadingBundle, startUpdatingResource
+  startUploadingBundle, startUpdatingResource,
+  expandBundle, collapseBundle
 };

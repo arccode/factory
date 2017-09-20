@@ -41,6 +41,8 @@ export default Enum([
   'RECEIVE_BUNDLES',
   'REORDER_BUNDLES',
   'UPDATE_BUNDLE',
+  'EXPAND_BUNDLE',
+  'COLLAPSE_BUNDLE',
 
   // service action
   'RECEIVE_SERVICE_SCHEMATA',

@@ -38,7 +38,10 @@ var Bundle = React.createClass({
     bundle: React.PropTypes.instanceOf(Immutable.Map).isRequired,
     projectName: React.PropTypes.string.isRequired,
     projectNetbootBundle: React.PropTypes.string.isRequired,
-    setAsNetboot: React.PropTypes.func.isRequired
+    setAsNetboot: React.PropTypes.func.isRequired,
+    expanded: React.PropTypes.bool.isRequired,
+    expandBundle: React.PropTypes.func.isRequired,
+    collapseBundle: React.PropTypes.func.isRequired,
   },
 
   handleActivate(event) {
@@ -48,18 +51,17 @@ var Bundle = React.createClass({
   },
 
   toggleExpand() {
-    this.setState({expanded: !this.state.expanded});
-  },
-
-  getInitialState() {
-    return {
-      expanded: false,
-    };
+    if (this.props.expanded) {
+      this.props.collapseBundle(this.props.bundle.get('name'));
+    } else {
+      this.props.expandBundle(this.props.bundle.get('name'));
+    }
   },
 
   render() {
     const {
       bundle,
+      expanded,
       projectName,
       projectNetbootBundle,
       deleteBundle,
@@ -73,7 +75,7 @@ var Bundle = React.createClass({
     return (
       <Card
         className="bundle"
-        expanded={this.state.expanded}
+        expanded={expanded}
         containerStyle={bundle.get('active') ? {} : INACTIVE_STYLE}
       >
         <CardTitle
@@ -138,8 +140,13 @@ var Bundle = React.createClass({
   }
 });
 
-function mapStateToProps(state) {
+function mapStateToProps(state, ownProps) {
   return {
+    expanded: state.getIn([
+      'bundles',
+      'expanded',
+      ownProps.bundle.get('name')
+    ]),
     projectName: state.getIn(['dome', 'currentProject']),
     projectNetbootBundle: state.getIn([
       'dome',
@@ -159,7 +166,9 @@ function mapDispatchToProps(dispatch) {
     deleteBundle: name => dispatch(BundlesActions.deleteBundle(name)),
     setAsNetboot: (name, projectName)  =>
         dispatch(DomeActions.updateProject(
-            projectName, {'netbootBundle': name, 'umpireEnabled': true}))
+            projectName, {'netbootBundle': name, 'umpireEnabled': true})),
+    expandBundle: name => dispatch(BundlesActions.expandBundle(name)),
+    collapseBundle: name => dispatch(BundlesActions.collapseBundle(name))
   };
 }
 
