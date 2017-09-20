@@ -7,8 +7,8 @@
 # scripts inside device_id/ folder.
 
 SCRIPT="$(readlink -f "$0")"
-ON_CHANGE_DIR="${SCRIPT%.sh}"
-FACTORY_DIR="$(readlink -f "$(dirname "$(readlink -f "$0")")/../../../")"
+CHANGED_DIR="${SCRIPT%.sh}_changed"
+FACTORY_DIR="$(readlink -f "$(dirname "$(readlink -f "$0")")/../..")"
 DATA_DIR=/var/factory
 
 DEVICE_ID_FILE="${DATA_DIR}/.device_id"
@@ -24,7 +24,7 @@ fi
 if [ -f "${LAST_DEVICE_ID_FILE}" ]; then
   if [ "$(cat "${DEVICE_ID_FILE}")" != "$(cat "${LAST_DEVICE_ID_FILE}")" ]; then
     echo "Device ID changed!"
-    for file in "${ON_CHANGE_DIR}"/*; do
+    for file in "${CHANGED_DIR}"/*.sh; do
       if [ -x "${file}" ]; then
         echo "Invoke ${file}..."
         "${file}"

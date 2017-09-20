@@ -126,10 +126,7 @@ factory_init() {
     return
   fi
 
-  # TODO(hungte) Clean up and merge device / monolithic.
-  for role in device monolithic; do
-    execute_rules "goofy.d/${role}"
-  done
+  execute_rules "goofy.d"
   log "All initialization finished."
 }
 

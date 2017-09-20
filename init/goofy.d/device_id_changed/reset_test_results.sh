@@ -7,4 +7,9 @@
 # Note we can't call 'factory clear' because goofy (providing goofy_rpc) is not
 # available at the moment.
 echo "Device ID change detected, resetting all test results..."
-rm -f /var/factory/state/tests
+TESTS_DATA="/var/factory/state/tests"
+BACKUP_TESTS_DATA="${TESTS_DATA}.bak"
+if [ -e "${TESTS_DATA}" ]; then
+  rm -rf "${BACKUP_TESTS_DATA}"
+  mv -f "${TESTS_DATA}" "${BACKUP_TESTS_DATA}"
+fi

@@ -4,10 +4,8 @@
 # found in the LICENSE file.
 
 # Ensure the misc/sshkeys files have right file permission 600.
-# TODO(hungte) Remove this once we've confirmed that all install procedure
-# (toolkit installer, goofy_remote, ...) handle these keys properly.
 
-FACTORY_DIR="$(readlink -f "$(dirname "$(readlink -f "$0")")/../../..")"
+FACTORY_DIR="$(readlink -f "$(dirname "$(readlink -f "$0")")/../..")"
 
 if [ -d "${FACTORY_DIR}/misc/sshkeys" ]; then
   chmod 600 "${FACTORY_DIR}/misc/sshkeys/testing_rsa"
