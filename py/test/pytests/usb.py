@@ -131,7 +131,7 @@ class USBTest(unittest.TestCase):
     if action not in [_UDEV_ACTION_INSERT, _UDEV_ACTION_REMOVE]:
       return
 
-    factory.log('USB %s device path %s' % (action, device.sys_path))
+    factory.console.info('USB %s device path %s' % (action, device.sys_path))
     if self._expected_paths and device.sys_path not in self._expected_paths:
       return
 

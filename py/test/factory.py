@@ -98,16 +98,6 @@ def get_verbose_log_file():
   return open(log_path, 'a')
 
 
-def log(message):
-  """Logs a message to the console.
-
-  Deprecated; use the 'console' property instead.
-
-  TODO(jsalz): Remove references throughout factory tests.
-  """
-  console.info(message)
-
-
 _inited_logging = False
 
 
