@@ -16,8 +16,8 @@ import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
-from cros.factory.test import factory
 from cros.factory.test import testlog_goofy
+from cros.factory.test.utils import update_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import platform_utils
 from cros.factory.utils import time_utils
@@ -497,7 +497,7 @@ class EventLog(object):
 
     def get_toolkit_version():
       try:
-        return factory.get_toolkit_version()
+        return update_utils.GetToolkitVersion()
       except IOError:
         return None  # Ignore IOError for unittests.
 

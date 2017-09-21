@@ -42,13 +42,13 @@ def TryUpdate(pre_update_hook=None, timeout=15):
   Raises:
     UpdaterException
   """
+  current_version = update_utils.GetToolkitVersion()
   factory.console.info(
       'Checking for updates at <%s>... (current TOOLKIT_VERSION is %s)',
-      server_proxy.GetServerURL(), factory.get_toolkit_version())
+      server_proxy.GetServerURL(), current_version)
 
   proxy = server_proxy.GetServerProxy(timeout=timeout)
   updater = update_utils.Updater(update_utils.COMPONENTS.toolkit, proxy=proxy)
-  current_version = factory.get_toolkit_version()
   if not updater.IsUpdateAvailable(current_version):
     factory.console.info('Factory software is up to date: %s', current_version)
     return False
@@ -141,7 +141,7 @@ def CheckForUpdate(timeout, quiet=False):
   proxy = server_proxy.GetServerProxy(timeout=timeout, quiet=quiet)
   updater = update_utils.Updater(update_utils.COMPONENTS.toolkit, proxy=proxy)
   remote_version = updater.GetUpdateVersion()
-  current_version = factory.get_toolkit_version()
+  current_version = update_utils.GetToolkitVersion()
 
   return (remote_version, updater.IsUpdateAvailable(current_version))
 

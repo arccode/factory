@@ -10,7 +10,6 @@ import mox
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import updater
-from cros.factory.test import factory
 from cros.factory.test import server_proxy
 from cros.factory.test.utils import update_utils
 
@@ -24,8 +23,8 @@ class CheckForUpdateTest(unittest.TestCase):
     self.mox.UnsetStubs()
 
   def _testUpdate(self, local_version):
-    self.mox.StubOutWithMock(factory, 'get_toolkit_version')
-    factory.get_toolkit_version().AndReturn(local_version)
+    self.mox.StubOutWithMock(update_utils, 'GetToolkitVersion')
+    update_utils.GetToolkitVersion().AndReturn(local_version)
 
     self.mox.StubOutWithMock(server_proxy, 'GetServerProxy')
     fake_proxy = self.mox.CreateMockAnything()
@@ -69,7 +68,8 @@ class CheckForUpdateAsyncTest(unittest.TestCase):
   def _testUpdate(self, available):
     """Provides basic testing flow for testMustUpdate and testNotUpdate."""
     self.mox.StubOutWithMock(updater, 'CheckForUpdate')
-    updater.CheckForUpdate(1).AndReturn(('11111', available))
+    updater.CheckForUpdate(timeout=1, quiet=False).AndReturn((
+        '11111', available))
     callback = self.mox.CreateMockAnything()
     # pylint: disable=not-callable
     callback(True, '11111', available).WithSideEffects(self.CallbackCalled)
@@ -92,7 +92,7 @@ class CheckForUpdateAsyncTest(unittest.TestCase):
 
   def testCanNotReach(self):
     self.mox.StubOutWithMock(updater, 'CheckForUpdate')
-    updater.CheckForUpdate(1).AndRaise(
+    updater.CheckForUpdate(timeout=1, quiet=False).AndRaise(
         Exception('Can not contact factory server'))
     callback = self.mox.CreateMockAnything()
     # pylint: disable=not-callable

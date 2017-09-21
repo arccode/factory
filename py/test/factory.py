@@ -41,11 +41,6 @@ ALL = 'all'
 INF = float('inf')
 
 
-def get_toolkit_version():
-  """Returns TOOLKIT_VERSION of the factory directory."""
-  return file_utils.ReadFile(paths.FACTORY_TOOLKIT_VERSION_PATH).rstrip()
-
-
 class Console(object):
   """A wrapper for sending messages to UI global console using Logger API."""
 
