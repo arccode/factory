@@ -33,7 +33,6 @@ from cros.factory.test.i18n import translation
 from cros.factory.test import server_proxy
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager
-from cros.factory.test.test_lists.test_lists import SetActiveTestList
 from cros.factory.tools import factory_bug
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
@@ -511,7 +510,7 @@ class GoofyRPC(object):
     """
     # Have goofy throw an error if the test list ID is invalid.
     self.goofy.GetTestList(test_list_id)
-    SetActiveTestList(test_list_id)
+    manager.Manager.SetActiveTestList(test_list_id)
 
     if sys_utils.InChroot():
       raise GoofyRPCException(

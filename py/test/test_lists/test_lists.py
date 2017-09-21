@@ -16,29 +16,17 @@ import os
 import re
 import sys
 import threading
-import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import factory
 
 
-# Directory for new-style test lists.
-TEST_LISTS_PATH = os.path.join(
-    paths.FACTORY_PYTHON_PACKAGE_DIR, 'test', 'test_lists')
-
-# File identifying the active test list.
-ACTIVE_PATH = os.path.join(TEST_LISTS_PATH, 'ACTIVE')
+# Directory for test lists.
+TEST_LISTS_PATH = os.path.join(paths.FACTORY_DIR, 'py', 'test', 'test_lists')
 
 # File listing test list modules to be ignored.
 IGNORE_PATH = os.path.join(TEST_LISTS_PATH, 'IGNORE')
-
-# Main test list name.
-MAIN_TEST_LIST_ID = 'main'
-
-# Old symlinked custom directory (which may contain test lists).
-# For backward compatibility only.
-CUSTOM_DIR = os.path.join(paths.FACTORY_DIR, 'custom')
 
 # State used to build test lists.
 #
@@ -481,48 +469,6 @@ def BuildTestList(id):  # pylint: disable=redefined-builtin
   return test_list
 
 
-def GetActiveTestListId():
-  """Returns the ID of the active test list.
-
-  This is read from the py/test/test_lists/ACTIVE file, if it exists.
-  If there is no ACTIVE file, then 'main' is returned.
-  """
-  # Make sure it's a real file (and the user isn't trying to use the
-  # old symlink method).
-  if os.path.islink(ACTIVE_PATH):
-    raise TestListError(
-        '%s is a symlink (should be a file containing a '
-        'test list ID)' % ACTIVE_PATH)
-
-  # Make sure "active" doesn't exist; it should be ACTIVE.
-  wrong_caps_file = os.path.join(os.path.dirname(ACTIVE_PATH),
-                                 os.path.basename(ACTIVE_PATH).lower())
-  if os.path.lexists(wrong_caps_file):
-    raise TestListError('Wrong spelling (%s) for active test list file ('
-                        'should be %s)' % (wrong_caps_file, ACTIVE_PATH))
-
-  if not os.path.exists(ACTIVE_PATH):
-    return MAIN_TEST_LIST_ID
-
-  with open(ACTIVE_PATH) as f:
-    test_list_id = f.read().strip()
-    if re.search(r'\s', test_list_id):
-      raise TestListError('%s should contain only a test list ID' %
-                          test_list_id)
-    return test_list_id
-
-
-def SetActiveTestList(id):  # pylint: disable=redefined-builtin
-  """Sets the active test list.
-
-  This writes the name of the new active test list to ACTIVE_PATH.
-  """
-  with open(ACTIVE_PATH, 'w') as f:
-    f.write(id + '\n')
-    f.flush()
-    os.fdatasync(f)
-
-
 def GetIgnoredTestListModules():
   """Returns module names of ignored test lists.
 
@@ -568,32 +514,3 @@ def SetIgnoredTestListModules(modules):
     f.write(' '.join(modules) + '\n')
     f.flush()
     os.fdatasync(f)
-
-
-def YamlDumpTestListDestructive(test_list, stream=None):
-  """Dumps a test list in YAML format.
-
-  This modifies the test list in certain ways that makes it useless,
-  hence "Destructive".
-
-  Args:
-    test_list: The test list to be dumped.
-    stream: A stream to serialize into, or None to return a string
-        (same as yaml.dump).
-  """
-  del test_list.path_map
-  del test_list.state_instance
-  del test_list.test_list_id
-  for t in test_list.Walk():
-    del t.parent
-    del t.root
-    for r in t.require_run:
-      # Delete the test object.  But r.path is still present, so we'll
-      # still verify that.
-      del r.test
-    for k, v in t.dargs.items():
-      if callable(v):
-        # Replace all lambdas with "lambda: None" to make them
-        # consistent
-        t.dargs[k] = lambda: None
-  return yaml.safe_dump(test_list, stream)

@@ -32,7 +32,6 @@ from cros.factory.test.factory import TestState
 from cros.factory.test.rules import phase
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager
-from cros.factory.test.test_lists import test_lists
 from cros.factory.utils import debug_utils
 from cros.factory.utils.process_utils import Spawn
 
@@ -311,15 +310,15 @@ class TestListCommand(Subcommand):
       if self.args.id not in all_test_lists:
         sys.exit('Unknown test list ID %r (use "factory test-list --list" to '
                  'see available test lists' % self.args.id)
-      test_lists.SetActiveTestList(self.args.id)
+      mgr.SetActiveTestList(self.args.id)
       print 'Set active test list to %s (wrote %r to %s)' % (
-          self.args.id, self.args.id, test_lists.ACTIVE_PATH)
+          self.args.id, self.args.id, manager.ACTIVE_PATH)
       sys.stdout.flush()
     else:
-      print test_lists.GetActiveTestListId()
+      print mgr.GetActiveTestListId()
 
     if self.args.list:
-      active_id = test_lists.GetActiveTestListId()
+      active_id = mgr.GetActiveTestListId()
 
       line_format = '%-8s %-20s %s'
       print line_format % ('ACTIVE?', 'ID', 'PATH')

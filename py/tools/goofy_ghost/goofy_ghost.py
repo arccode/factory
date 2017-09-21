@@ -9,7 +9,7 @@ import subprocess
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
-from cros.factory.test.test_lists import test_lists
+from cros.factory.test.test_lists import manager
 from cros.factory.tools.goofy_ghost import ghost_prop
 from cros.factory.utils import argparse_utils
 from cros.factory.utils import config_utils
@@ -18,7 +18,7 @@ from cros.factory.utils import file_utils
 
 def _WriteGhostProperties():
   properties = config_utils.LoadConfig('goofy_ghost')
-  properties['active_test_list'] = test_lists.GetActiveTestListId()
+  properties['active_test_list'] = manager.Manager.GetActiveTestListId()
   file_utils.TryMakeDirs(
       os.path.dirname(ghost_prop.GOOFY_GHOST_PROPERTIES_FILE))
   file_utils.WriteFile(ghost_prop.GOOFY_GHOST_PROPERTIES_FILE,

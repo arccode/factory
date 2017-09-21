@@ -17,6 +17,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common as hwid_common
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.env import paths
+from cros.factory.test.test_lists import manager
 from cros.factory.test.test_lists import test_lists
 from cros.factory.utils import cros_board_utils
 from cros.factory.utils import file_utils
@@ -100,9 +101,9 @@ def TweakTestLists(args):
         f.write(new_data)
 
   if args.test_list:
-    test_lists.SetActiveTestList(args.test_list)
+    manager.Manager.SetActiveTestList(args.test_list)
   else:
-    file_utils.TryUnlink(test_lists.ACTIVE_PATH)
+    file_utils.TryUnlink(manager.ACTIVE_PATH)
 
   if args.ignore_test_lists:
     test_lists.SetIgnoredTestListModules(args.ignore_test_lists.split(','))

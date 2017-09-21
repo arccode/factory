@@ -893,7 +893,7 @@ class Goofy(GoofyBase):
                               % (f, exc_string))
 
     if not self.options.test_list:
-      self.options.test_list = test_lists.GetActiveTestListId()
+      self.options.test_list = self.test_list_manager.GetActiveTestListId()
 
     # Check for a non-existent test list ID.
     try:

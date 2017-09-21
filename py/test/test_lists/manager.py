@@ -11,6 +11,7 @@ import copy
 import glob
 import logging
 import os
+import re
 import sys
 import zipimport
 
@@ -31,10 +32,20 @@ from cros.factory.utils import type_utils
 # used for loop detection
 _DUMMY_CACHE = object()
 
+# String prefix to indicate this value needs to be evaluated
 _EVALUATE_PREFIX = test_lists.EVALUATE_PREFIX
 
 # logged name for debug_utils.CatchException
 _LOGGED_NAME = 'TestListManager'
+
+# Directory for test lists.
+TEST_LISTS_PATH = os.path.join(paths.FACTORY_DIR, 'py', 'test', 'test_lists')
+
+# File identifying the active test list.
+ACTIVE_PATH = os.path.join(TEST_LISTS_PATH, 'ACTIVE')
+
+# Default test list.
+DEFAULT_TEST_LIST_ID = 'main'
 
 
 def MayTranslate(obj, force=False):
@@ -954,3 +965,46 @@ class Manager(object):
       legacy_test_lists[key] = LegacyTestList(test_list, self.checker)
 
     return legacy_test_lists, legacy_failed_files
+
+  @staticmethod
+  def GetActiveTestListId():
+    """Returns the ID of the active test list.
+
+    This is read from the py/test/test_lists/ACTIVE file, if it exists.
+    If there is no ACTIVE file, then 'main' is returned.
+    """
+    # Make sure it's a real file (and the user isn't trying to use the
+    # old symlink method).
+    if os.path.islink(ACTIVE_PATH):
+      raise factory.TestListError(
+          '%s is a symlink (should be a file containing a test list ID)' %
+          ACTIVE_PATH)
+
+    # Make sure "active" doesn't exist; it should be ACTIVE.
+    wrong_caps_file = os.path.join(
+        os.path.dirname(ACTIVE_PATH), os.path.basename(ACTIVE_PATH).lower())
+    if os.path.lexists(wrong_caps_file):
+      raise factory.TestListError(
+          'Wrong spelling (%s) for active test list file (should be %s)' %
+          (wrong_caps_file, ACTIVE_PATH))
+
+    if not os.path.exists(ACTIVE_PATH):
+      return DEFAULT_TEST_LIST_ID
+
+    with open(ACTIVE_PATH) as f:
+      test_list_id = f.read().strip()
+      if re.search(r'\s', test_list_id):
+        raise factory.TestListError(
+            '%s should contain only a test list ID' % test_list_id)
+      return test_list_id
+
+  @staticmethod
+  def SetActiveTestList(new_id):
+    """Sets the active test list.
+
+    This writes the name of the new active test list to ACTIVE_PATH.
+    """
+    with open(ACTIVE_PATH, 'w') as f:
+      f.write(new_id + '\n')
+      f.flush()
+      os.fdatasync(f)
