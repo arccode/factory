@@ -65,26 +65,6 @@ def Escape(text, preserve_line_breaks=True):
   return html
 
 
-def MakeLabel(en, zh=None, css_class=None):
-  """Returns a label which will appear in the active language.
-
-  For optional zh, if it is None or empty, the Chinese label will fallback to
-  use English version.
-
-  This function is deprecated and cros.factory.i18n.test_ui.MakeI18nLabel should
-  be used instead. This function is keep here for some old codes in overlay.
-
-  Args:
-    en: The English-language label.
-    zh: The Chinese-language label (or None if unspecified).
-    css_class: The CSS class to decorate the label (or None if unspecified).
-  """
-  return ('<span class="goofy-label-en-US %s">%s</span>'
-          '<span class="goofy-label-zh-CN %s">%s</span>' %
-          ('' if css_class is None else css_class, en,
-           '' if css_class is None else css_class, zh if zh else en))
-
-
 def MakeTestLabel(test):
   """Returns label for a test name in the active language.
 
