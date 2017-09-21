@@ -299,14 +299,11 @@ class BasicTest(GoofyTest):
     self.check_one_test('a', 'a_A', TestState.PASSED, '')
     self.check_one_test('b', 'b_B', TestState.FAILED, 'Uh-oh')
     self.check_one_test('c', 'c_C', TestState.FAILED, 'Uh-oh')
-    self.assertEqual(
-        'id: null\n'
-        'path: null\n'
-        'subtests:\n'
-        '- {count: 1, error_msg: null, id: a, path: a, status: PASSED}\n'
-        '- {count: 1, error_msg: Uh-oh, id: b, path: b, status: FAILED}\n'
-        '- {count: 1, error_msg: Uh-oh, id: c, path: c, status: FAILED}\n',
-        self.goofy.test_list.ToFactoryTestList().AsYaml(
+    self.assertEqual(dict(id=None, path=None, subtests=[
+        dict(count=1, error_msg=None, id='a', path='a', status='PASSED'),
+        dict(count=1, error_msg='Uh-oh', id='b', path='b', status='FAILED'),
+        dict(count=1, error_msg='Uh-oh', id='c', path='c', status='FAILED'),]),
+        self.goofy.test_list.ToFactoryTestList().AsDict(
             state.get_instance().get_test_states()))
     self.mockAnything.VerifyAll()
 

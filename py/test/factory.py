@@ -17,8 +17,6 @@ import logging
 import os
 import re
 
-import yaml
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.env import paths
@@ -991,10 +989,6 @@ class FactoryTest(object):
     if self.subtests:
       node['subtests'] = [x.AsDict(state_map) for x in self.subtests]
     return node
-
-  def AsYaml(self, state_map=None):
-    """Returns this node and children in YAML format."""
-    return yaml.dump(self.AsDict(state_map))
 
   def DisableByRunIf(self):
     """Overwrites properties related to run_if to disable a test.
