@@ -18,7 +18,6 @@ from cros.factory.hwid.v3 import common as hwid_common
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.env import paths
 from cros.factory.test.test_lists import manager
-from cros.factory.test.test_lists import test_lists
 from cros.factory.utils import cros_board_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
@@ -55,7 +54,7 @@ def TweakTestLists(args):
   Args:
     args: The arguments from argparse.
   """
-  for path in glob.glob(os.path.join(test_lists.TEST_LISTS_PATH, '*.py')):
+  for path in glob.glob(os.path.join(manager.TEST_LISTS_PATH, '*.py')):
     with open(path) as f:
       data = f.read()
 
@@ -105,11 +104,6 @@ def TweakTestLists(args):
   else:
     file_utils.TryUnlink(manager.ACTIVE_PATH)
 
-  if args.ignore_test_lists:
-    test_lists.SetIgnoredTestListModules(args.ignore_test_lists.split(','))
-  else:
-    file_utils.TryUnlink(test_lists.IGNORE_PATH)
-
 
 def main():
   parser = argparse.ArgumentParser(
@@ -146,9 +140,6 @@ def main():
   parser.add_argument('--test_list',
                       help=('test list to activate (defaults to the main test '
                             'list)'))
-  parser.add_argument('--ignore_test_lists',
-                      help='Comma-separated list of test lists to ignore '
-                           '(defaults to empty)')
   parser.add_argument('--local', action='store_true',
                       help=('Rather than syncing the source tree, only '
                             'perform test list modifications locally. '
