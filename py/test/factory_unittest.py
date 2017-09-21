@@ -72,5 +72,4 @@ class FactoryTestListTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  factory.init_logging('factory_unittest')
   unittest.main()

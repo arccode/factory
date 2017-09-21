@@ -14,7 +14,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.goofy_base import GoofyBase
-from cros.factory.test import factory
+from cros.factory.utils import log_utils
 
 
 def call_counter():
@@ -92,5 +92,5 @@ class DrainThreadsTest(GoofyBaseTest):
 
 
 if __name__ == '__main__':
-  factory.init_logging('goofy_base_unittest')
+  log_utils.InitLogging()
   unittest.main()

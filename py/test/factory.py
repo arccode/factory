@@ -21,7 +21,6 @@ import json
 import logging
 import os
 import re
-import sys
 
 import yaml
 
@@ -96,38 +95,6 @@ def get_verbose_log_file():
   file_utils.TryMakeDirs(os.path.dirname(log_path))
   console.info('Raw log stored at %s', log_path)
   return open(log_path, 'a')
-
-
-_inited_logging = False
-
-
-def init_logging(prefix=None, verbose=False):
-  """Initializes logging.
-
-  Args:
-    prefix: A prefix to display for each log line, e.g., the program name.
-    verbose: True for debug logging, false for info logging.
-  """
-  global _inited_logging  # pylint: disable=global-statement
-  assert not _inited_logging, 'May only call init_logging once'
-  _inited_logging = True
-
-  if not prefix:
-    prefix = os.path.basename(sys.argv[0])
-
-  # Make sure that nothing else has initialized logging yet (e.g.,
-  # autotest, whose logging_config does basicConfig).
-  assert not logging.getLogger().handlers, (
-      'Logging has already been initialized')
-
-  level = logging.DEBUG if verbose else logging.INFO
-  logging.basicConfig(
-      format=('[%(levelname)s] ' + prefix +
-              ' %(filename)s:%(lineno)d %(asctime)s.%(msecs)03d %(message)s'),
-      level=level,
-      datefmt='%Y-%m-%d %H:%M:%S')
-
-  logging.debug('Initialized logging')
 
 
 class Hooks(object):

@@ -8,7 +8,7 @@ import logging
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory
+from cros.factory.utils import log_utils
 from cros.factory.utils import process_utils
 
 
@@ -74,7 +74,7 @@ def main():
   parser.add_argument('--period_secs', '-p', help='Interval between checks',
                       type=int, required=False, default=120)
   args = parser.parse_args()
-  factory.init_logging()
+  log_utils.InitLogging()
 
   # TODO(hungte) This currently only reads from local system. We need to expore
   # DUT options and allow reading from remote in future.

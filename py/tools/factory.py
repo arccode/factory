@@ -27,12 +27,12 @@ import yaml
 import factory_common  # pylint: disable=W0611
 from cros.factory.external import setproctitle
 from cros.factory.test import device_data
-from cros.factory.test import factory
 from cros.factory.test.factory import TestState
 from cros.factory.test.rules import phase
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager
 from cros.factory.utils import debug_utils
+from cros.factory.utils import log_utils
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -490,7 +490,7 @@ class PhaseCommand(Subcommand):
 
 
 def main():
-  factory.init_logging()
+  log_utils.InitLogging()
   parser = argparse.ArgumentParser(
       description=(
           'Miscellaneous factory commands for use on DUTs (devices under '

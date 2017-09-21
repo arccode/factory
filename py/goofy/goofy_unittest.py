@@ -33,11 +33,11 @@ from cros.factory.test import device_data
 from cros.factory.test.env import goofy_proxy
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
-from cros.factory.test import factory
 from cros.factory.test.factory import TestState
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager
 from cros.factory.test.test_lists import test_lists
+from cros.factory.utils import log_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import Spawn
 
@@ -823,7 +823,7 @@ class NoHostTest(GoofyUITest):
 
 
 if __name__ == '__main__':
-  factory.init_logging('goofy_unittest')
+  log_utils.InitLogging()
   goofy.suppress_chroot_warning = True
 
   unittest.main()

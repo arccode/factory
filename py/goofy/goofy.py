@@ -59,6 +59,7 @@ from cros.factory.tools.key_filter import KeyFilter
 from cros.factory.utils import config_utils
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
+from cros.factory.utils import log_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
@@ -1285,7 +1286,7 @@ class Goofy(GoofyBase):
 def main():
   # Logging should be solved first.
   (options, unused_args) = Goofy.GetCommandLineArgsParser().parse_args()
-  factory.init_logging('goofy', verbose=options.verbose)
+  log_utils.InitLogging(verbose=options.verbose)
 
   Goofy.run_main_and_exit()
 

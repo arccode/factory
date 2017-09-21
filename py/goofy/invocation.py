@@ -43,6 +43,7 @@ from cros.factory.testlog import testlog
 from cros.factory.testlog import testlog_utils
 from cros.factory.utils.arg_utils import Args
 from cros.factory.utils import file_utils
+from cros.factory.utils import log_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils.service_utils import ServiceManager
 from cros.factory.utils.string_utils import DecodeUTF8
@@ -907,7 +908,7 @@ def main():
     sys.exit(0)
   os.environ.update(env)
 
-  factory.init_logging(info.path)
+  log_utils.InitLogging(info.path)
   if testlog.TESTLOG_ENV_VARIABLE_NAME in os.environ:
     testlog.Testlog(
         stationDeviceId=testlog_goofy.GetDeviceID(),

@@ -37,7 +37,7 @@ except Exception:
   _has_Xlib = False
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory
+from cros.factory.utils import log_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils import sys_utils
 
@@ -246,7 +246,7 @@ def main():
                       help='Power button keycode; default 124.')
   args = parser.parse_args()
 
-  factory.init_logging('key_filter', verbose=args.verbose)
+  log_utils.InitLogging(verbose=args.verbose)
 
   if not _has_Xlib:
     logging.warning('Python Xlib module does not exist, probably on Freon.')

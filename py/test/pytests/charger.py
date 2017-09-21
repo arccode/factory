@@ -299,7 +299,7 @@ class ChargerTest(unittest.TestCase):
     self._verbose_log.flush()
 
   def _Log(self, charge, charger_current, battery_current):
-    """Log data to factory log"""
+    """Log data"""
     logging.info('Charge = %.2f%s', charge, self._unit)
     if charger_current is not None:
       logging.info('Charger current = %d', charger_current)
