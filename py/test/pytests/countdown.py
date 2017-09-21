@@ -44,6 +44,7 @@ exceeding 65 Celcius::
 """
 
 import collections
+import logging
 import os
 import time
 import unittest
@@ -53,7 +54,9 @@ from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import test_ui
+from cros.factory.test.utils import test_invocation
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import file_utils
 from cros.factory.utils import time_utils
 
 
@@ -221,7 +224,10 @@ class CountDownTest(unittest.TestCase):
 
   def _runTest(self):
     # pylint: disable=attribute-defined-outside-init
-    self._verbose_log = factory.get_verbose_log_file()
+    verbose_log_path = test_invocation.GetVerboseTestLogPath()
+    file_utils.TryMakeDirs(os.path.dirname(verbose_log_path))
+    logging.info('Raw verbose logs saved in %s', verbose_log_path)
+    self._verbose_log = open(verbose_log_path, 'a')
     self._start_secs = time.time()
     self._elapsed_secs = 0
     self._remaining_secs = self.args.duration_secs

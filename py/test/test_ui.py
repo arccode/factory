@@ -23,6 +23,7 @@ from cros.factory.test.i18n import _
 from cros.factory.test.i18n import html_translator
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
+from cros.factory.test.utils import test_invocation
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
@@ -111,8 +112,8 @@ class UI(object):
     self.event_client = test_event.EventClient(
         callback=self._HandleEvent,
         event_loop=test_event.EventClient.EVENT_LOOP_WAIT)
-    self.test = os.environ['CROS_FACTORY_TEST_PATH']
-    self.invocation = os.environ['CROS_FACTORY_TEST_INVOCATION']
+    self.test = test_invocation.GetCurrentTestPath()
+    self.invocation = test_invocation.GetCurrentTestInvocation()
     self.event_handlers = {}
     self.task_hook = None
     self.static_dir_path = None

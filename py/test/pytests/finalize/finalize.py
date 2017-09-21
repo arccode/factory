@@ -113,6 +113,7 @@ from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
+from cros.factory.test.utils import test_invocation
 from cros.factory.test.utils import update_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
@@ -419,8 +420,8 @@ class Finalize(unittest.TestCase):
           'Remote DUT not response in %d seconds' % self.FINALIZE_TIMEOUT)
 
     # save log files in test data directory
-    output_dir = os.path.join(paths.DATA_TESTS_DIR,
-                              factory.get_current_test_path())
+    output_dir = os.path.join(
+        paths.DATA_TESTS_DIR, test_invocation.GetCurrentTestPath())
     with open(os.path.join(output_dir, 'wipe_in_tmpfs.log'), 'w') as f:
       f.write(self.dut_response.get('wipe_in_tmpfs_log', ''))
     with open(os.path.join(output_dir, 'wipe_init.log'), 'w') as f:

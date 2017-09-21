@@ -53,6 +53,7 @@ from cros.factory.test import server_proxy
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test.utils import connection_manager
+from cros.factory.test.utils import test_invocation
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import net_utils
@@ -106,8 +107,8 @@ class VSWR(unittest.TestCase):
             'fixture_id': None,
             # TODO(littlecvr): These 2 will always be the same everytime,
             #                  consider removing them?
-            'path': os.environ.get('CROS_FACTORY_TEST_PATH'),
-            'invocation': os.environ.get('CROS_FACTORY_TEST_INVOCATION'),
+            'path': test_invocation.GetCurrentTestPath(),
+            'invocation': test_invocation.GetCurrentTestInvocation(),
             'hash': str(uuid.uuid4()),  # new hash for this iteration
             'traces': {},  # wifi_main, wifi_aux, lte_main, lte_aux
             'results': {},  # wifi_main, wifi_aux, lte_main, lte_aux

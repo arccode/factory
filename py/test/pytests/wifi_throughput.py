@@ -66,7 +66,6 @@ from __future__ import print_function
 import contextlib
 import json
 import logging
-import os
 import string  # pylint: disable=deprecated-module
 import subprocess
 import sys
@@ -85,6 +84,7 @@ from cros.factory.test import test_ui
 from cros.factory.test import testlog_goofy
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils import kbd_leds
+from cros.factory.test.utils import test_invocation
 from cros.factory.testlog import testlog
 from cros.factory.utils import arg_utils
 from cros.factory.utils.arg_utils import Arg
@@ -930,8 +930,8 @@ class WiFiThroughput(unittest.TestCase):
     self.log = {
         'args': self.args.ToDict(),
         'run': {
-            'path': os.environ.get('CROS_FACTORY_TEST_PATH'),
-            'invocation': os.environ.get('CROS_FACTORY_TEST_INVOCATION')},
+            'path': test_invocation.GetCurrentTestPath(),
+            'invocation': test_invocation.GetCurrentTestInvocation()},
         'dut': {
             'device_id': testlog_goofy.GetDeviceID(),
             'serial_number': self._dut.storage.LoadDict().get(

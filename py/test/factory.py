@@ -41,11 +41,6 @@ ALL = 'all'
 INF = float('inf')
 
 
-def get_current_test_path():
-  """Returns the path of the currently executing test, if any."""
-  return os.environ.get('CROS_FACTORY_TEST_PATH')
-
-
 def get_toolkit_version():
   """Returns TOOLKIT_VERSION of the factory directory."""
   return file_utils.ReadFile(paths.FACTORY_TOOLKIT_VERSION_PATH).rstrip()
@@ -87,24 +82,6 @@ class Console(object):
 
 
 console = Console()
-
-
-def get_verbose_log_file():
-  """Returns an opened log file.
-
-  Note that this returns a file instead of a logger (so the verbose log is not
-  picked up by root logger.) Therefore, the caller is responsible for flushing
-  and closing this file.
-
-  The log file name will contain test invocation ID and thus this method
-  can only be called from a test.
-  """
-  invocation = os.environ['CROS_FACTORY_TEST_INVOCATION']
-  log_name = '%s-log-%s' % (get_current_test_path(), invocation)
-  log_path = os.path.join(paths.DATA_LOG_DIR, log_name)
-  file_utils.TryMakeDirs(os.path.dirname(log_path))
-  console.info('Raw log stored at %s', log_path)
-  return open(log_path, 'a')
 
 
 class Hooks(object):

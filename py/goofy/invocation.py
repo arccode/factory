@@ -39,6 +39,7 @@ from cros.factory.test.test_lists import manager
 from cros.factory.test import test_ui
 from cros.factory.test import testlog_goofy
 from cros.factory.test.utils import pytest_utils
+from cros.factory.test.utils import test_invocation
 from cros.factory.testlog import testlog
 from cros.factory.testlog import testlog_utils
 from cros.factory.utils.arg_utils import Args
@@ -287,9 +288,10 @@ class TestInvocation(object):
       logging.exception('Unable to create symlink %s', latest_symlink)
 
     self.metadata_file = os.path.join(self.output_dir, 'metadata')
-    self.env_additions = {'CROS_FACTORY_TEST_PATH': self.test.path,
-                          'CROS_FACTORY_TEST_INVOCATION': self.uuid,
-                          'CROS_FACTORY_TEST_METADATA': self.metadata_file}
+    self.env_additions = {
+        test_invocation.ENV_TEST_INVOCATION: self.uuid,
+        test_invocation.ENV_TEST_PATH: self.test.path,
+        test_invocation.ENV_TEST_METADATA: self.metadata_file}
 
     # Resuming from an active shutdown test, try to restore its metadata file.
     if state.get_shared_data(key_post_shutdown):

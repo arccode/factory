@@ -16,6 +16,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event
 from cros.factory.test import factory
 from cros.factory.test import test_ui
+from cros.factory.test.utils import test_invocation
 
 
 class TestUIUnittest(unittest.TestCase):
@@ -25,8 +26,8 @@ class TestUIUnittest(unittest.TestCase):
     self.test_path = 'test.path'
     self.invocation = 'test_invocation'
 
-    os.environ['CROS_FACTORY_TEST_PATH'] = self.test_path
-    os.environ['CROS_FACTORY_TEST_INVOCATION'] = self.invocation
+    os.environ[test_invocation.ENV_TEST_PATH] = self.test_path
+    os.environ[test_invocation.ENV_TEST_INVOCATION] = self.invocation
 
     self.event_client_patcher = mock.patch.object(event, 'EventClient',
                                                   autospec=True)
