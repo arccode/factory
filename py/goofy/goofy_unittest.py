@@ -838,7 +838,6 @@ class NoHostTest(GoofyUITest):
 
 if __name__ == '__main__':
   factory.init_logging('goofy_unittest')
-  goofy._inited_logging = True  # pylint: disable=protected-access
   goofy.suppress_chroot_warning = True
 
   unittest.main()

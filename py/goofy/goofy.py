@@ -80,9 +80,6 @@ TESTS_AFTER_SHUTDOWN = 'tests_after_shutdown'
 Status = type_utils.Enum(['UNINITIALIZED', 'INITIALIZING', 'RUNNING',
                           'TERMINATING', 'TERMINATED'])
 
-_inited_logging = False
-
-
 class Goofy(GoofyBase):
   """The main factory flow.
 
@@ -944,15 +941,9 @@ class Goofy(GoofyBase):
       logging.info('Waiting for a web socket connection')
       self.web_socket_manager.wait()
 
-  def init(self, args=None, env=None):
-    """Initializes Goofy.
-
-    Args:
-      args: A list of command-line arguments.  Uses sys.argv if
-        args is None.
-      env: An Environment instance to use (or None to choose
-        FakeChrootEnvironment or DUTEnvironment as appropriate).
-    """
+  @staticmethod
+  def GetCommandLineArgsParser():
+    """Returns a parser for Goofy command line arguments."""
     parser = OptionParser()
     parser.add_option('-v', '--verbose', dest='verbose',
                       action='store_true',
@@ -989,7 +980,18 @@ class Goofy(GoofyBase):
     parser.add_option('--monolithic', dest='monolithic',
                       action='store_true', default=False,
                       help='Run in monolithic mode (without presenter)')
-    (self.options, self.args) = parser.parse_args(args)
+    return parser
+
+  def init(self, args=None, env=None):
+    """Initializes Goofy.
+
+    Args:
+      args: A list of command-line arguments.  Uses sys.argv if
+        args is None.
+      env: An Environment instance to use (or None to choose
+        FakeChrootEnvironment or DUTEnvironment as appropriate).
+    """
+    (self.options, self.args) = self.GetCommandLineArgsParser().parse_args(args)
 
     signal.signal(signal.SIGINT, self.handle_signal)
     signal.signal(signal.SIGTERM, self.handle_signal)
@@ -1000,11 +1002,6 @@ class Goofy(GoofyBase):
     for path in [
         paths.DATA_LOG_DIR, paths.DATA_STATE_DIR, paths.DATA_TESTS_DIR]:
       file_utils.TryMakeDirs(path)
-
-    global _inited_logging  # pylint: disable=global-statement
-    if not _inited_logging:
-      factory.init_logging('goofy', verbose=self.options.verbose)
-      _inited_logging = True
 
     try:
       goofy_default_options = config_utils.LoadConfig(validate_schema=False)
@@ -1311,5 +1308,13 @@ class Goofy(GoofyBase):
       self.link_manager.UpdateStatus(False)
 
 
-if __name__ == '__main__':
+def main():
+  # Logging should be solved first.
+  (options, unused_args) = Goofy.GetCommandLineArgsParser().parse_args()
+  factory.init_logging('goofy', verbose=options.verbose)
+
   Goofy.run_main_and_exit()
+
+
+if __name__ == '__main__':
+  main()
