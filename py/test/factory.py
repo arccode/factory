@@ -7,11 +7,6 @@
 This library provides common types and routines for the factory test
 infrastructure. This library explicitly does not import gtk, to
 allow its use by the autotest control process.
-
-To log to the factory console, use:
-
- from cros.factory.test import factory
- factory.console.info('...')  # Or warn, or error
 """
 
 from __future__ import print_function
@@ -56,27 +51,42 @@ def get_toolkit_version():
   return file_utils.ReadFile(paths.FACTORY_TOOLKIT_VERSION_PATH).rstrip()
 
 
-def _init_console_log():
-  console_log_path = paths.CONSOLE_LOG_PATH
-  file_utils.TryMakeDirs(os.path.dirname(console_log_path))
+class Console(object):
+  """A wrapper for sending messages to UI global console using Logger API."""
 
-  # Note: delay=True is used here, to prevent console log file being
-  #       created at module-loading time.
-  handler = logging.FileHandler(console_log_path, 'a', delay=True)
+  def __init__(self, log_path=None, level=logging.INFO):
+    self._logger = None
+    self._level = level
+    self._log_path = log_path or paths.CONSOLE_LOG_PATH
 
-  log_format = '[%(levelname)s] %(message)s'
-  test_path = get_current_test_path()
-  if test_path:
-    log_format = test_path + ': ' + log_format
-  handler.setFormatter(logging.Formatter(log_format))
+  def _InitLogger(self):
+    file_utils.TryMakeDirs(os.path.dirname(self._log_path))
 
-  ret = logging.getLogger('console')
-  ret.addHandler(handler)
-  ret.setLevel(logging.INFO)
-  return ret
+    # Note: delay=True is used here, to prevent console log file being
+    #       created at module-loading time.
+    handler = logging.FileHandler(self._log_path, 'a', delay=True)
+    log_format = '[%(levelname)s] %(message)s'
+
+    # TODO(hungte) Move test_path logic to a 'test environment' module.
+    test_path = os.environ.get('CROS_FACTORY_TEST_PATH')
+    if test_path:
+      log_format = test_path + ': ' + log_format
+    handler.setFormatter(logging.Formatter(log_format))
+
+    ret = logging.getLogger('console')
+    ret.addHandler(handler)
+    ret.setLevel(self._level)
+    return ret
+
+  def __getattr__(self, name):
+    if not self._logger:
+      self._logger = self._InitLogger()
+    attr = getattr(self._logger, name)
+    setattr(self, name, attr)
+    return attr
 
 
-console = _init_console_log()
+console = Console()
 
 
 def get_verbose_log_file():
