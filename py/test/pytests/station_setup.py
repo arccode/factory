@@ -69,14 +69,14 @@ function onEnter() {
   });
 }
 (async () => {
-  const need_update = await StationSetup.needUpdate();
-  if (!need_update) {
+  const needUpdate = await StationSetup.needUpdate();
+  if (!needUpdate) {
     test.pass();
     return;
   }
-  const {form_html, update} = await StationSetup.run();
+  const {html, update} = await StationSetup.run();
   window.update = update;
-  goog.dom.safe.setInnerHtml($('main'), form_html);
+  goog.dom.safe.setInnerHtml($('main'), html);
 })();
 """
 

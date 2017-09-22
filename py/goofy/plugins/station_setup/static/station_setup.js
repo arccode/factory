@@ -56,15 +56,15 @@ class StationSetup {
     goog.dom.setTextContent(element, status.join(' / '));
   }
   static async run() {
-    const station_setup = new StationSetup();
-    await station_setup.init();
+    const stationSetup = new StationSetup();
+    await stationSetup.init();
 
-    const html = station_setup.getUpdateFormHtml();
+    const html = stationSetup.getUpdateFormHtml();
     const update = async (element) => {
       for (const input of element.getElementsByTagName('input')) {
         input.disabled = true;
       }
-      const ret = await station_setup.updateProperties(element);
+      const ret = await stationSetup.updateProperties(element);
       for (const input of element.getElementsByTagName('input')) {
         input.disabled = false;
       }
@@ -78,7 +78,7 @@ class StationSetup {
       return ret;
     };
 
-    return {'form_html': html, 'update': update};
+    return {html, update};
   }
   static async needUpdate() {
     return StationSetup.callRpc('NeedUpdate');
@@ -94,36 +94,34 @@ goofy.StationSetup = StationSetup;
 /**
  * Show the popup for updating station properties.
  */
-goofy.showStationSetupDialog = function() {
-  (async () => {
-    const dialog = new goog.ui.Dialog();
-    goofy.registerDialog(dialog);
+goofy.showStationSetupDialog = async () => {
+  const dialog = new goog.ui.Dialog();
+  goofy.registerDialog(dialog);
 
-    cros.factory.Goofy.setDialogTitle(
-        dialog, cros.factory.i18n.i18nLabel('Update Station Properties'));
-    dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOkCancel());
+  cros.factory.Goofy.setDialogTitle(
+      dialog, cros.factory.i18n.i18nLabel('Update Station Properties'));
+  dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOkCancel());
 
-    const {form_html, update} = await StationSetup.run();
-    dialog.setSafeHtmlContent(form_html);
+  const {html, update} = await StationSetup.run();
+  dialog.setSafeHtmlContent(html);
 
-    dialog.setVisible(true);
+  dialog.setVisible(true);
 
-    dialog.listen(goog.ui.Dialog.EventType.SELECT, (event) => {
-      if (event.key !== goog.ui.Dialog.ButtonSet.DefaultButtons.OK.key) {
-        return;
+  dialog.listen(goog.ui.Dialog.EventType.SELECT, (event) => {
+    if (event.key !== goog.ui.Dialog.ButtonSet.DefaultButtons.OK.key) {
+      return;
+    }
+    dialog.getButtonSet().setAllButtonsEnabled(false);
+    event.preventDefault();
+
+    update(dialog.getElement()).then((ret) => {
+      if (ret.success) {
+        dialog.dispose();
+      } else {
+        dialog.getButtonSet().setAllButtonsEnabled(true);
       }
-      dialog.getButtonSet().setAllButtonsEnabled(false);
-      event.preventDefault();
-
-      update(dialog.getElement()).then((ret) => {
-        if (ret.success) {
-          dialog.dispose();
-        } else {
-          dialog.getButtonSet().setAllButtonsEnabled(true);
-        }
-      });
     });
-  })();
+  });
 };
 
 StationSetup.updateDisplayInfo();

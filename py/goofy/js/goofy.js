@@ -447,6 +447,7 @@ cros.factory.Invocation = class {
     this.iframe.contentWindow.cros = cros;
     this.iframe.contentWindow.goog = goog;
     this.iframe.contentWindow.test = this.test;
+    this.iframe.contentWindow._ = _;
   }
 
   /**
@@ -3176,6 +3177,7 @@ cros.factory.Goofy = class {
       iframe.contentWindow.cros = cros;
       iframe.contentWindow.goog = goog;
       iframe.contentWindow.goofy = this;
+      iframe.contentWindow._ = _;
       iframe.onload = () => {
         this.updateCSSClassesInDocument(
             goog.asserts.assert(iframe.contentDocument));
