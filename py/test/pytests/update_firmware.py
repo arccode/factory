@@ -14,10 +14,11 @@ Test Procedure
 This is an automatic test that doesn't need any user interaction.
 
 1. If argument ``download_from_server`` is set to True, this test will try to
-   download firmware updater from factory server. If firmware update is not
-   available, this test will just pass and exit. If argument
-   ``download_from_server`` is set to False and the path indicated by argument
-   ``firmware_updater`` doesn't exist, this test will abort.
+   download firmware updater from factory server and ignore argument
+   ``firmware_updater``. If firmware update is not available, this test will
+   just pass and exit. If argument ``download_from_server`` is set to False and
+   the path indicated by argument ``firmware_updater`` doesn't exist, this test
+   will abort.
 2. This test will fail if there is another firmware updater running in the same
    time. Else, start running firmware updater.
 3. If firmware updater finished successfully, this test will pass.
@@ -35,24 +36,37 @@ Examples
 To update all firmwares using local firmware updater, which is located in
 '/usr/local/factory/board/chromeos-firmwareupdate'::
 
-  OperatorTest(pytest_name='update_firmware')
+  {
+    "pytest_name": "update_firmware"
+  }
 
 To update only RW Main(AP) firmware using remote firmware updater::
 
-  OperatorTest(pytest_name='update_firmware',
-               dargs=dict(download_from_server=True, rw_only=True,
-                          update_ec=False, update_pd=False))
+  {
+    "pytest_name": "update_firmware",
+    "args": {
+      "download_from_server": true,
+      "rw_only": true,
+      "update_ec": false,
+      "update_pd": false
+    }
+  }
 
 Not to update firmwares if the version is the same with current one
 in the DUT::
 
-  OperatorTest(pytest_name='update_firmware',
-               dargs=dict(force_update=False))
+  {
+    "pytest_name": "update_firmware",
+    "args": {
+      "force_update": false
+    }
+  }
 """
 
 import logging
 import os
 import subprocess
+import tempfile
 import threading
 import unittest
 
@@ -66,14 +80,14 @@ from cros.factory.test.utils import update_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
-_FIRMWARE_DOWNLOAD_PATH = paths.FACTORY_FIRMWARE_UPDATER_PATH
+_FIRMWARE_UPDATER_NAME = 'chromeos-firmwareupdate'
 
 _CSS = '#state {text-align:left;}'
 
 
 class UpdateFirmwareTest(unittest.TestCase):
   ARGS = [
-      Arg('firmware_updater', str, 'Full path of chromeos-firmwareupdate.',
+      Arg('firmware_updater', str, 'Full path of %s.' % _FIRMWARE_UPDATER_NAME,
           default=paths.FACTORY_FIRMWARE_UPDATER_PATH),
       Arg('rw_only', bool, 'Update only RW firmware', default=False),
       Arg('update_ec', bool, 'Update EC firmware.', default=True),
@@ -94,7 +108,7 @@ class UpdateFirmwareTest(unittest.TestCase):
     self._dut = device_utils.CreateDUTInterface()
 
   def DownloadFirmware(self):
-    """Downloads firmware updater from server to _FIRMWARE_DOWNLOAD_PATH."""
+    """Downloads firmware updater from server."""
     updater = update_utils.Updater(update_utils.COMPONENTS.firmware)
     if not updater.IsUpdateAvailable():
       logging.warn('No firmware updater available on server.')
@@ -114,8 +128,8 @@ class UpdateFirmwareTest(unittest.TestCase):
       if not self.args.force_update:
         return False
 
-    updater.PerformUpdate(destination=_FIRMWARE_DOWNLOAD_PATH)
-    os.chmod(_FIRMWARE_DOWNLOAD_PATH, 0755)
+    updater.PerformUpdate(destination=self.args.firmware_updater)
+    os.chmod(self.args.firmware_updater, 0755)
     return True
 
   def UpdateFirmware(self):
@@ -125,9 +139,9 @@ class UpdateFirmwareTest(unittest.TestCase):
     """
     # Remove /tmp/chromeos-firmwareupdate-running if the process
     # doesn't seem to be alive anymore.  (http://crosbug.com/p/15642)
-    LOCK_FILE = '/tmp/chromeos-firmwareupdate-running'
+    LOCK_FILE = '/tmp/%s-running' % _FIRMWARE_UPDATER_NAME
     if os.path.exists(LOCK_FILE):
-      process = process_utils.Spawn(['pgrep', '-f', 'chromeos-firmwareupdate'],
+      process = process_utils.Spawn(['pgrep', '-f', _FIRMWARE_UPDATER_NAME],
                                     call=True, log=True, read_stdout=True)
       if process.returncode == 0:
         # Found a chromeos-firmwareupdate alive.
@@ -165,9 +179,9 @@ class UpdateFirmwareTest(unittest.TestCase):
 
   def runTest(self):
     if self.args.download_from_server:
-      if self.DownloadFirmware():
-        self.args.firmware_updater = _FIRMWARE_DOWNLOAD_PATH
-      else:
+      self.args.firmware_updater = os.path.join(tempfile.mkdtemp(),
+                                                _FIRMWARE_UPDATER_NAME)
+      if not self.DownloadFirmware():
         return
     else:
       self.assertTrue(os.path.isfile(self.args.firmware_updater),
