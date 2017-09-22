@@ -54,10 +54,12 @@ Except ``'timeout'`` mode, the test would fail after ``timeout_secs`` seconds.
 
 Dependency
 ----------
-OpenCV and numpy.
+End-to-end ``'qr'`` or ``'face'`` modes depend on OpenCV and numpy.
 
-If ``e2e_mode`` is false, also depend on device API
+If not end-to-end mode, depend on OpenCV and device API
 ``cros.factory.device.camera``.
+
+``'qr'`` mode also depends on library ``zbar``.
 
 Examples
 --------
@@ -135,12 +137,14 @@ _HAAR_CASCADE_PATH = (
     '/usr/local/share/opencv/haarcascades/haarcascade_frontalface_default.xml')
 
 
+TestModes = type_utils.Enum(['qr', 'face', 'timeout', 'frame_count', 'manual',
+                             'manual_led'])
+
+
 class CameraTest(unittest.TestCase):
   """Main class for camera test."""
   ARGS = [
-      Arg('mode',
-          type_utils.Enum(['qr', 'face', 'timeout', 'frame_count', 'manual',
-                           'manual_led']),
+      Arg('mode', TestModes,
           'The test mode to test camera.', default='manual'),
       Arg('num_frames_to_pass', int,
           'The number of frames with faces in mode "face", '
@@ -177,7 +181,7 @@ class CameraTest(unittest.TestCase):
     self.ui.Fail(msg)
 
   def _Timeout(self):
-    if self.mode == 'timeout':
+    if self.mode == TestModes.timeout:
       # If it keeps capturing images until timeout, the test passes.
       self.Pass()
     else:
@@ -197,34 +201,37 @@ class CameraTest(unittest.TestCase):
 
   # TODO(pihsun): Put this in test_ui.
   def RunJSPromiseBlocking(self, js):
-    wait_event = threading.Event()
     event_name = 'wait_js_promise_%s' % uuid.uuid4()
+    return_queue = Queue.Queue()
     self.ui.AddEventHandler(
-        event_name, lambda unused_event: wait_event.set())
+        event_name, lambda event: return_queue.put(event.data))
     self.ui.RunJS('runPromise(%s, %r)' % (js, event_name))
-    wait_event.wait()
+    return return_queue.get()
 
   def EnableDevice(self):
     if self.e2e_mode:
-      self.RunJSPromiseBlocking('camera.enable()')
+      self.RunJSPromiseBlocking('cameraTest.enable()')
     else:
       self.camera_device.EnableCamera(**self.args.camera_args)
 
   def DisableDevice(self):
     if self.e2e_mode:
-      self.RunJSBlocking('camera.disable()')
+      self.RunJSBlocking('cameraTest.disable()')
     else:
       self.camera_device.DisableCamera()
 
-  def ReadSingleFrame(self, need_result=True):
+  def ReadSingleFrame(self):
     if self.e2e_mode:
-      if need_result:
-        # TODO(pihsun): Move this to test_ui if used by others.
+      if self.need_postprocess:
+        # TODO(pihsun): The shape detection API (face / barcode detection) are
+        # not implemented on desktop Chrome yet. We don't need to transmit the
+        # image back after these APIs are implemented, and can do all
+        # postprocessing on JavaScript.
         data_event_name = 'camera_image_data_%s' % uuid.uuid4()
         data_queue = Queue.Queue()
         self.ui.AddEventHandler(
             data_event_name, lambda event: data_queue.put(event.data))
-        self.RunJSPromiseBlocking('camera.grabFrameAndTransmitBack(%r)' %
+        self.RunJSPromiseBlocking('cameraTest.grabFrameAndTransmitBack(%r)' %
                                   data_event_name)
         buf = []
         while not data_queue.empty():
@@ -233,7 +240,7 @@ class CameraTest(unittest.TestCase):
         return cv2.imdecode(
             np.fromstring(blob, dtype=np.uint8), cv2.CV_LOAD_IMAGE_COLOR)
       else:
-        self.RunJSPromiseBlocking('camera.grabFrame()')
+        self.RunJSPromiseBlocking('cameraTest.grabFrame()')
     else:
       return self.camera_device.ReadSingleFrame()
 
@@ -256,7 +263,7 @@ class CameraTest(unittest.TestCase):
       while True:
         # Flickers the LED
         self.EnableDevice()
-        self.ReadSingleFrame(need_result=False)
+        self.ReadSingleFrame()
         if self.done_event.wait(0.5):
           break
         self.DisableDevice()
@@ -266,32 +273,62 @@ class CameraTest(unittest.TestCase):
       # Constantly lights the LED
       self.EnableDevice()
       while True:
-        self.ReadSingleFrame(need_result=False)
+        self.ReadSingleFrame()
         if self.done_event.wait(0.5):
           break
 
   def DetectFaces(self, cv_image):
-    storage = cv.CreateMemStorage()
-    cascade = cv.Load(_HAAR_CASCADE_PATH)
-    detected = cv.HaarDetectObjects(cv_image, cascade, storage, 1.2, 2,
-                                    cv.CV_HAAR_DO_CANNY_PRUNING, (20, 20))
-    if detected:
-      for loc, _ in detected:
-        x, y, w, h = loc
-        cv.Rectangle(cv_image, (x, y), (x + w, y + h), 255)
-    return bool(detected)
+    # This condition is currently always False since face detection API in
+    # Chrome is not ready.
+    if self.e2e_mode and not self.need_postprocess:
+      return self.RunJSPromiseBlocking('cameraTest.detectFaces()')
+    else:
+      storage = cv.CreateMemStorage()
+      cascade = cv.Load(_HAAR_CASCADE_PATH)
+      detected = cv.HaarDetectObjects(cv_image, cascade, storage, 1.2, 2,
+                                      cv.CV_HAAR_DO_CANNY_PRUNING, (20, 20))
+      if detected:
+        for loc, unused_n in detected:
+          x, y, w, h = loc
+          cv.Rectangle(cv_image, (x, y), (x + w, y + h), 255)
+      return bool(detected)
 
   def ScanQRCode(self, cv_image):
-    scan_results = barcode.ScanQRCode(cv_image)
-    if scan_results:
-      scanned_text = scan_results[0]
+    scanned_text = None
+    # This condition is currently always False since barcode detection API in
+    # Chrome is not ready.
+    if self.e2e_mode and not self.need_postprocess:
+      scanned_text = self.RunJSPromiseBlocking('cameraTest.scanQRCode()')
     else:
-      scanned_text = None
+      scan_results = barcode.ScanQRCode(cv_image)
+      if scan_results:
+        scanned_text = scan_results[0]
+
     if scanned_text:
       self.ShowInstruction(
           i18n.StringFormat(_('Scanned QR code: "{text}"'), text=scanned_text))
 
     return scanned_text == self.args.QR_string
+
+  def ShowImage(self, cv_image):
+    resize_ratio = self.args.resize_ratio
+    if self.e2e_mode and not self.need_postprocess:
+      self.RunJSBlocking('cameraTest.showImage(%s)' % resize_ratio)
+    else:
+      cv_image = cv2.resize(cv_image, None, fx=resize_ratio, fy=resize_ratio,
+                            interpolation=cv2.INTER_AREA)
+      cv_image = cv2.flip(cv_image, 1)
+
+      with tempfile.NamedTemporaryFile(suffix='.jpg') as img_buffer:
+        cv2.imwrite(img_buffer.name, cv_image,
+                    (cv.CV_IMWRITE_JPEG_QUALITY, _JPEG_QUALITY))
+        try:
+          self.ui.CallJSFunction(
+              'showImage',
+              'data:image/jpeg;base64,' + img_buffer.read().encode('base64'))
+        except AttributeError:
+          # The websocket is closed because test has passed/failed.
+          return
 
   def CaptureTest(self, mode):
     frame_count = 0
@@ -299,56 +336,47 @@ class CameraTest(unittest.TestCase):
     tick = 1.0 / float(self.args.capture_fps)
     tock = time.time()
     process_interval = 1.0 / float(self.args.process_rate)
-    resize_ratio = self.args.resize_ratio
 
     instructions = {
-        'manual': _('Press ENTER to pass or ESC to fail.'),
-        'timeout': _('Running the camera until timeout.'),
-        'frame_count': _(
-            'Running the camera until expected number of frames captured.'),
-        'qr': _('Scanning QR code...'),
-        'face': _('Detecting faces...')
+        TestModes.manual:
+            _('Press ENTER to pass or ESC to fail.'),
+        TestModes.timeout:
+            _('Running the camera until timeout.'),
+        TestModes.frame_count:
+            _('Running the camera until expected number of frames captured.'),
+        TestModes.qr:
+            _('Scanning QR code...'),
+        TestModes.face:
+            _('Detecting faces...')
     }
     self.ShowInstruction(instructions[mode])
-    if mode == 'manual':
+    if mode == TestModes.manual:
       self.ui.BindStandardKeys()
 
     self.EnableDevice()
     try:
       while True:
         start_time = time.time()
-        cv_img = self.ReadSingleFrame()
-        if mode == 'frame_count':
+        cv_image = self.ReadSingleFrame()
+        if mode == TestModes.frame_count:
           frame_count += 1
           if frame_count >= self.args.num_frames_to_pass:
             self.Pass()
             return
-        elif (mode in ['qr', 'face'] and time.time() - tock > process_interval):
+        elif (mode in [TestModes.qr, TestModes.face] and
+              time.time() - tock > process_interval):
           # Doing face recognition based on process_rate due to performance
           # consideration.
           tock = time.time()
-          if ((mode == 'qr' and self.ScanQRCode(cv_img)) or
-              (mode == 'face' and self.DetectFaces(cv_img))):
+          if ((mode == TestModes.qr and self.ScanQRCode(cv_image)) or
+              (mode == TestModes.face and self.DetectFaces(cv_image))):
             detected_frame_count += 1
           if detected_frame_count >= self.args.num_frames_to_pass:
             self.Pass()
             return
 
         if self.args.show_image:
-          cv_img = cv2.resize(cv_img, None, fx=resize_ratio, fy=resize_ratio,
-                              interpolation=cv2.INTER_AREA)
-          cv_img = cv2.flip(cv_img, 1)
-
-          with tempfile.NamedTemporaryFile(suffix='.jpg') as img_buffer:
-            cv2.imwrite(img_buffer.name, cv_img,
-                        (cv.CV_IMWRITE_JPEG_QUALITY, _JPEG_QUALITY))
-            try:
-              self.ui.CallJSFunction(
-                  'showJpegImage',
-                  img_buffer.read().encode('base64'))
-            except AttributeError:
-              # The websocket is closed because test has passed/failed.
-              return
+          self.ShowImage(cv_image)
 
         if self.done_event.wait(max(0, tick - (time.time() - start_time))):
           break
@@ -367,6 +395,11 @@ class CameraTest(unittest.TestCase):
     self.ui.CallJSFunction('setupUI')
     self.ui.AppendCSSLink('camera.css')
 
+    # Whether we need to postprocess the image from e2e mode.
+    # TODO(pihsun): This can be removed after the desktop Chrome implements
+    # shape detection API.
+    self.need_postprocess = False
+
     if self.e2e_mode:
       if not self.dut.link.IsLocal():
         raise ValueError('e2e mode does not work on remote DUT.')
@@ -383,8 +416,10 @@ class CameraTest(unittest.TestCase):
       resolution = self.args.camera_args.get('resolution')
       if resolution:
         options['width'], options['height'] = resolution
-      self.ui.CallJSFunction('setupCamera', options)
+      self.ui.CallJSFunction('setupCameraTest', options)
       self.camera_device = None
+      if self.mode in [TestModes.qr, TestModes.face]:
+        self.need_postprocess = True
     else:
       device_index = (0 if self.args.device_index is None else
                       self.args.device_index)
@@ -400,7 +435,7 @@ class CameraTest(unittest.TestCase):
     countdown_timer.StartCountdownTimer(self.args.timeout_secs, self._Timeout,
                                         self.ui, 'camera-test-timer')
 
-    if self.mode == 'manual_led':
+    if self.mode == TestModes.manual_led:
       self.LEDTest()
     else:
       self.CaptureTest(self.mode)

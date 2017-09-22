@@ -110,10 +110,6 @@ msgid "Camera"
 msgstr "相机"
 
 #: ../build/pytests_label_generated.json
-msgid "Camera Webrtc"
-msgstr "相机 (WebRTC)"
-
-#: ../build/pytests_label_generated.json
 msgid "Cellular Switch Firmware"
 msgstr "切换数据机韧体"
 
@@ -1520,7 +1516,6 @@ msgid "<br>Press ENTER to pass, or ESC to fail."
 msgstr "<br>测试正常请按 ENTER ，不正常请按 ESC"
 
 #: ../py/test/pytests/brightness/brightness.py
-#: ../py/test/pytests/camera_webrtc.py
 msgid "Time remaining: {time}"
 msgstr "剩余时间：{time}"
 
@@ -1579,18 +1574,6 @@ msgstr "侦测 QR 码中..."
 #: ../py/test/pytests/camera.py
 msgid "Detecting faces..."
 msgstr "侦测人脸中..."
-
-#: ../py/test/pytests/camera_webrtc.py
-msgid "Click \"Allow\" at the top of the screen."
-msgstr "点击上面的 \"Allow\" 按钮"
-
-#: ../py/test/pytests/camera_webrtc.py
-msgid ""
-"Click <a href=\"javascript:test.pass()\">pass</a> or <a href=\"javascript:"
-"test.fail()\">fail</a>."
-msgstr ""
-"请点击： <a href=\"javascript:test.pass()\">正常</a> 还是 <a href="
-"\"javascript:test.fail()\">不正常</a>"
 
 #: ../py/test/pytests/cellular_switch_firmware.py
 msgid "Switching firmware to {target!r}<br>"
