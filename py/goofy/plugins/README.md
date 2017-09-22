@@ -132,7 +132,7 @@ To call the function, one can use the following snippet in Python:
 
 , or in Javascript:
 
-    goofy.sendRpcToPlugin('log_plugin.log_plugin', 'FlushLog', [], callback)
+    goofy.sendRpcToPlugin('log_plugin.log_plugin', 'FlushLog').then(callback)
 
 
 ## Menu Item ##

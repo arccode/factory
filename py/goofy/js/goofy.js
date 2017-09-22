@@ -12,6 +12,7 @@ goog.require('cros.factory.i18n');
 goog.require('cros.factory.testUI.Manager');
 goog.require('cros.factory.testUI.TabManager');
 goog.require('cros.factory.testUI.TileManager');
+goog.require('cros.factory.utils');
 goog.require('goog.crypt');
 goog.require('goog.crypt.Sha1');
 goog.require('goog.date.DateTime');
@@ -27,7 +28,6 @@ goog.require('goog.html.SafeHtml');
 goog.require('goog.html.SafeStyle');
 goog.require('goog.i18n.DateTimeFormat');
 goog.require('goog.i18n.NumberFormat');  // Used by status_monitor.js
-goog.require('goog.json');
 goog.require('goog.math');
 goog.require('goog.net.WebSocket');
 goog.require('goog.net.XhrIo');
@@ -53,14 +53,9 @@ goog.require('goog.ui.tree.TreeControl');
 
 /**
  * @type {?goog.debug.Logger}
+ * @const
  */
 cros.factory.logger = goog.log.getLogger('cros.factory');
-
-/**
- * @define {boolean} Whether to automatically collapse items once tests have
- *     completed.
- */
-cros.factory.AUTO_COLLAPSE = false;
 
 /**
  * Keep-alive interval for the WebSocket.  (Chrome times out WebSockets every
@@ -85,30 +80,35 @@ cros.factory.CONTROL_PANEL_WIDTH_FRACTION = 0.21;
 
 /**
  * Minimum width of the control panel, in pixels.
+ * @const
  * @type {number}
  */
 cros.factory.CONTROL_PANEL_MIN_WIDTH = 320;
 
 /**
  * Height of the log pane, as a fraction of the viewport size.
+ * @const
  * @type {number}
  */
 cros.factory.LOG_PANE_HEIGHT_FRACTION = 0.2;
 
 /**
  * Minimum height of the log pane, in pixels.
+ * @const
  * @type {number}
  */
 cros.factory.LOG_PANE_MIN_HEIGHT = 170;
 
 /**
  * Hover delay for a non-failing test.
+ * @const
  * @type {number}
  */
 cros.factory.NON_FAILING_TEST_HOVER_DELAY_MSEC = 250;
 
 /**
  * Factory Test Extension ID to support calling chrome API via RPC.
+ * @const
  * @type {string}
  */
 cros.factory.EXTENSION_ID = 'pngocaclmlmihmhokaeejfiklacihcmb';
@@ -123,11 +123,15 @@ cros.factory.ENABLE_DIAGNOSIS_TOOL = false;
 /**
  * Maximum lines of console log to be shown in the UI.
  * @type {number}
+ * @const
  */
 cros.factory.MAX_LINE_CONSOLE_LOG = 1024;
 
 /**
  * An item in the test list.
+ * closure-compiler typedef can't handle recursive typedef, so the subtests
+ * type is unchecked.
+ * TODO(pihsun): Rewrite this type so the subtests can have correct type.
  * @typedef {{path: string, label: !cros.factory.i18n.TranslationDict,
  *     disable_abort: boolean, subtests: !Array<!cros.factory.TestListEntry>,
  *     state: !cros.factory.TestState, args: Object, pytest_name: ?string}}
@@ -221,9 +225,9 @@ cros.factory.Test = class {
    */
   pass() {
     this.invocation.goofy.sendEvent('goofy:end_test', {
-      'status': 'PASSED',
+      'test': this.invocation.path,
       'invocation': this.invocation.uuid,
-      'test': this.invocation.path
+      'status': 'PASSED'
     });
   }
 
@@ -234,10 +238,10 @@ cros.factory.Test = class {
    */
   fail(errorMsg) {
     this.invocation.goofy.sendEvent('goofy:end_test', {
-      'status': 'FAILED',
-      'error_msg': errorMsg,
+      'test': this.invocation.path,
       'invocation': this.invocation.uuid,
-      'test': this.invocation.path
+      'status': 'FAILED',
+      'error_msg': errorMsg
     });
   }
 
@@ -282,7 +286,7 @@ cros.factory.Test = class {
    */
   bindKey(keyCode, handler) {
     if (!this.keyHandlers_) {
-      this.keyHandlers_ = {};
+      this.keyHandlers_ = Object.create(null);
       // Set up the listener. We listen on KEYDOWN instead of KEYUP, so it won't
       // be accidentally triggered after a dialog is dismissed.
       goog.events.listen(
@@ -316,7 +320,7 @@ cros.factory.Test = class {
     // We don't actually remove the handler, just let it does nothing should be
     // good enough.
     if (this.keyHandlers_) {
-      this.keyHandlers_ = {};
+      this.keyHandlers_ = Object.create(null);
     }
   }
 
@@ -868,6 +872,17 @@ cros.factory.Goofy = class {
       }
     });
 
+    window.addEventListener('unhandledrejection', (event) => {
+      try {
+        this.logToConsole(
+            `Unhandled promise rejection: ${event.reason}`,
+            'goofy-internal-error');
+      } catch (e) {
+        // Oof... error while logging an error!  Maybe the DOM isn't set
+        // up properly yet; just ignore.
+      }
+    });
+
     const fixSplitPaneSize = (/** !goog.ui.SplitPane */ splitPane) => {
       splitPane.setFirstComponentSize(splitPane.getFirstComponentSize());
     };
@@ -954,57 +969,62 @@ cros.factory.Goofy = class {
   /**
    * Waits for the Goofy backend to be ready, and then starts UI.
    */
-  preInit() {
-    this.sendRpc('IsReadyForUIConnection', [], (/** boolean */ is_ready) => {
-      if (is_ready) {
-        this.init();
-      } else {
-        window.console.log('Waiting for the Goofy backend to be ready...');
-        window.setTimeout(this.preInit.bind(this), 500);
+  async preInit() {
+    while (true) {
+      const /** boolean */ isReady =
+          await this.sendRpc('IsReadyForUIConnection');
+      if (isReady) {
+        await this.init();
+        return;
       }
-    });
+      window.console.log('Waiting for the Goofy backend to be ready...');
+      await cros.factory.utils.delay(500);
+    }
   }
 
   /**
    * Starts the UI.
    */
-  init() {
-    this.initLocaleSelector();
+  async init() {
     this.initUIComponents();
+    await this.initLocaleSelector();
+    const testList = await this.sendRpc('GetTestList');
+    await this.setTestList(testList);
+    this.initWebSocket();
+    document.getElementById('goofy-div-wait').style.display = 'none';
 
-    this.sendRpc(
-        'GetTestLists', [],
-        (/** !Array<!cros.factory.TestListInfo> */ testLists) => {
-          this.testLists = testLists;
-        });
-    this.sendRpc(
-        'GetTestList', [], (/** !cros.factory.TestListEntry */ testList) => {
-          this.setTestList(testList);
-          document.getElementById('goofy-div-wait').style.display = 'none';
-          this.initWebSocket();
-        });
-    this.sendRpc(
-        'GetPluginMenuItems', [],
-        (/** !Array<!cros.factory.PluginMenuItem> */ menuItems) => {
-          this.pluginMenuItems = menuItems;
-        });
-    this.sendRpc('GetPluginFrontendConfigs', [], this.setPluginUI);
-    this.sendRpc('get_shared_data', ['factory_note', true], this.updateNote);
-    this.sendRpc(
-        'get_shared_data', ['test_list_options', true],
-        (/** ?Object<string, ?string> */ options) => {
-          options = options || {};
-          this.engineeringPasswordSHA1 = options['engineering_password_sha1'];
-          // If no password, enable eng mode, and don't show the 'disable' link,
-          // since there is no way to enable it.
-          goog.style.setElementShown(
-              document.getElementById('goofy-disable-engineering-mode'),
-              this.engineeringPasswordSHA1 != null);
-          this.setEngineeringMode(this.engineeringPasswordSHA1 == null);
-        });
-    this.sendRpc(
-        'get_shared_data', ['startup_error'],
-        (/** string */ error) => {
+    await Promise.all([
+      (async () => {
+        this.testLists = await this.sendRpc('GetTestLists');
+      })(),
+      (async () => {
+        this.pluginMenuItems = await this.sendRpc('GetPluginMenuItems');
+      })(),
+      (async () => {
+        const configs = await this.sendRpc('GetPluginFrontendConfigs');
+        this.setPluginUI(configs);
+      })(),
+      (async () => {
+        const notes =
+            await this.sendRpc('get_shared_data', 'factory_note', true);
+        this.updateNote(notes);
+      })(),
+      (async () => {
+        const options =
+            await this.sendRpc('get_shared_data', 'test_list_options', true);
+        this.engineeringPasswordSHA1 =
+            options ? options['engineering_password_sha1'] : null;
+        // If no password, enable eng mode, and don't show the 'disable'
+        // link, since there is no way to enable it.
+        goog.style.setElementShown(
+            document.getElementById('goofy-disable-engineering-mode'),
+            this.engineeringPasswordSHA1 != null);
+        this.setEngineeringMode(this.engineeringPasswordSHA1 == null);
+      })(),
+      (async () => {
+        const error =
+            await this.sendRpc('get_shared_data', 'startup_error', true);
+        if (error) {
           const alertHtml = goog.html.SafeHtml.concat(
               cros.factory.i18n.i18nLabel(
                   'An error occurred while starting the factory test system\n' +
@@ -1012,30 +1032,29 @@ cros.factory.Goofy = class {
               goog.html.SafeHtml.create(
                   'div', {class: 'goofy-startup-error'}, error));
           this.alert(alertHtml);
-        },
-        () => {
-            // Unable to retrieve the key; that's fine, no startup error!
-        });
-    this.sendRpc(
-        'get_shared_data', ['automation_mode'], (/** string */ mode) => {
-          this.setAutomationMode(mode);
-        });
+        }
+      })(),
+      (async () => {
+        const mode = await this.sendRpc('get_shared_data', 'automation_mode');
+        await this.setAutomationMode(mode);
+      })()
+    ]);
   }
 
   /**
    * Sets the locale of Goofy.
    * @param {string} locale
    */
-  setLocale(locale) {
+  async setLocale(locale) {
     this.locale = locale;
     this.updateCSSClasses();
-    this.sendRpc('set_shared_data', ['ui_locale', this.locale]);
+    await this.sendRpc('set_shared_data', 'ui_locale', this.locale);
   }
 
   /**
    * Sets up the locale selector.
    */
-  initLocaleSelector() {
+  async initLocaleSelector() {
     const rootNode = goog.asserts.assertElement(
         document.getElementById('goofy-locale-selector'));
 
@@ -1110,24 +1129,22 @@ cros.factory.Goofy = class {
     }
 
     this.updateCSSClasses();
-    this.sendRpc('get_shared_data', ['ui_locale'], (/** string */ locale) => {
-      this.locale = locale;
-      this.updateCSSClasses();
-    });
+    const /** string */ locale =
+        await this.sendRpc('get_shared_data', 'ui_locale');
+    this.locale = locale;
+    this.updateCSSClasses();
   }
 
   /**
    * Sets up the automation mode indicator bar.
    * @param {string} mode
    */
-  setAutomationMode(mode) {
+  async setAutomationMode(mode) {
     if (mode !== 'NONE') {
       this.automationEnabled = true;
-      this.sendRpc(
-          'get_shared_data', ['automation_mode_prompt'],
-          (/** string */ prompt) => {
-            document.getElementById('goofy-automation-div').innerHTML = prompt;
-          });
+      const prompt =
+          await this.sendRpc('get_shared_data', 'automation_mode_prompt');
+      document.getElementById('goofy-automation-div').innerHTML = prompt;
     }
     this.updateCSSClasses();
     goog.events.fireListeners(
@@ -1223,9 +1240,10 @@ cros.factory.Goofy = class {
 
   /**
    * Updates notes.
-   * @param {!Array<!cros.factory.Note>} notes
+   * @param {?Array<!cros.factory.Note>} notes
    */
   updateNote(notes) {
+    notes = notes || [];
     this.notes = notes;
     const currentLevel = notes.length ? notes[notes.length - 1].level : '';
 
@@ -1252,19 +1270,17 @@ cros.factory.Goofy = class {
    * @return {!goog.html.SafeHtml}
    */
   getNotesView() {
-    const rows =
-        this.notes
-            .map(({timestamp, name, text}) => {
-              const d = new Date(0);
-              d.setUTCSeconds(timestamp);
-              return goog.html.SafeHtml.create('tr', {}, [
-                goog.html.SafeHtml.create(
-                    'td', {}, cros.factory.Goofy.MDHMS_TIME_FORMAT.format(d)),
-                goog.html.SafeHtml.create('th', {}, name),
-                goog.html.SafeHtml.create('td', {}, text)
-              ]);
-            })
-            .reverse();
+    const createRowHTML = ({timestamp, name, text}) => {
+      const d = new Date(0);
+      d.setUTCSeconds(timestamp);
+      return goog.html.SafeHtml.create('tr', {}, [
+        goog.html.SafeHtml.create(
+            'td', {}, cros.factory.Goofy.MDHMS_TIME_FORMAT.format(d)),
+        goog.html.SafeHtml.create('th', {}, name),
+        goog.html.SafeHtml.create('td', {}, text)
+      ]);
+    };
+    const rows = this.notes.map(createRowHTML).reverse();
     return goog.html.SafeHtml.create('table', {id: 'goofy-note-list'}, rows);
   }
 
@@ -1412,7 +1428,7 @@ cros.factory.Goofy = class {
   setEngineeringMode(enabled) {
     this.engineeringMode = enabled;
     this.updateCSSClasses();
-    this.sendRpc('set_shared_data', ['engineering_mode', enabled]);
+    this.sendRpc('set_shared_data', 'engineering_mode', enabled);
   }
 
   /**
@@ -1463,11 +1479,7 @@ cros.factory.Goofy = class {
             cros.factory.i18n.i18nLabel(
                 '{action} in {seconds_left} seconds ({times_text}).\n' +
                     'To cancel, press the Escape key.',
-                {
-                  action,
-                  times_text: timesText,
-                  seconds_left: secondsLeft
-                }));
+                {action, times_text: timesText, seconds_left: secondsLeft}));
       } else if (now - endTime < shutdownInfo.wait_shutdown_secs) {
         cros.factory.Goofy.setDialogContent(
             shutdownDialog, cros.factory.i18n.i18nLabel('Shutting down...'));
@@ -1863,67 +1875,66 @@ cros.factory.Goofy = class {
     loadingItem.setEnabled(false);
     subMenu.addItem(loadingItem);
 
-    this.sendRpc(
-        'GetTestHistory', [path],
-        (/** !Array<!cros.factory.HistoryMetadata> */ history) => {
-          if (!history.length) {
-            loadingItem.setCaption('No logs available');
-            return;
-          }
+    (async () => {
+      const history = await this.sendRpc('GetTestHistory', path);
+      if (!history.length) {
+        loadingItem.setCaption('No logs available');
+        return;
+      }
 
-          if (subMenu.getMenu().indexOfChild(loadingItem) >= 0) {
-            subMenu.getMenu().removeChild(loadingItem, true);
-          }
+      if (subMenu.getMenu().indexOfChild(loadingItem) >= 0) {
+        subMenu.getMenu().removeChild(loadingItem, true);
+      }
 
-          // Arrange in descending order of time (it is returned in ascending
-          // order).
-          history.reverse();
+      // Arrange in descending order of time (it is returned in ascending
+      // order).
+      history.reverse();
 
-          let count = history.length;
-          for (const entry of history) {
-            const status =
-                entry.status ? entry.status.toLowerCase() : 'started';
-            let title = `${count}.`;
-            count--;
+      let count = history.length;
+      for (const entry of history) {
+        const status = entry.status ? entry.status.toLowerCase() : 'started';
+        let title = `${count}.`;
+        count--;
 
-            if (entry.init_time) {
-              // TODO(jsalz): Localize (but not that important since this is not
-              // for operators)
+        if (entry.init_time) {
+          // TODO(jsalz): Localize (but not that important since this is not
+          // for operators)
 
-              title += ` Run at ${cros.factory.Goofy.HMS_TIME_FORMAT.format(
+          title += ` Run at ${
+              cros.factory.Goofy.HMS_TIME_FORMAT.format(
                   new Date(entry.init_time * 1000))}`;
-            }
-            title += ` (${status}`;
+        }
+        title += ` (${status}`;
 
-            const time = entry.end_time || entry.init_time;
-            if (time) {
-              let secondsAgo = +new Date() / 1000 - time;
+        const time = entry.end_time || entry.init_time;
+        if (time) {
+          let secondsAgo = +new Date() / 1000 - time;
 
-              const hoursAgo = Math.floor(secondsAgo / 3600);
-              secondsAgo -= hoursAgo * 3600;
+          const hoursAgo = Math.floor(secondsAgo / 3600);
+          secondsAgo -= hoursAgo * 3600;
 
-              const minutesAgo = Math.floor(secondsAgo / 60);
-              secondsAgo -= minutesAgo * 60;
+          const minutesAgo = Math.floor(secondsAgo / 60);
+          secondsAgo -= minutesAgo * 60;
 
-              if (hoursAgo) {
-                title += ` ${hoursAgo} h`;
-              }
-              if (minutesAgo) {
-                title += ` ${minutesAgo} m`;
-              }
-              title += ` ${Math.floor(secondsAgo)} s ago`;
-            }
-            title += ')…';
-
-            const item = new goog.ui.MenuItem(goog.dom.createDom(
-                'span', `goofy-view-logs-status-${status}`, title));
-            goog.events.listen(item, goog.ui.Component.EventType.ACTION, () => {
-              this.showHistoryEntry(entry.path, entry.invocation);
-            });
-
-            subMenu.addItem(item);
+          if (hoursAgo) {
+            title += ` ${hoursAgo} h`;
           }
+          if (minutesAgo) {
+            title += ` ${minutesAgo} m`;
+          }
+          title += ` ${Math.floor(secondsAgo)} s ago`;
+        }
+        title += ')…';
+
+        const item = new goog.ui.MenuItem(goog.dom.createDom(
+            'span', `goofy-view-logs-status-${status}`, title));
+        goog.events.listen(item, goog.ui.Component.EventType.ACTION, () => {
+          this.showHistoryEntry(entry.path, entry.invocation);
         });
+
+        subMenu.addItem(item);
+      }
+    })();
 
     return subMenu;
   }
@@ -1985,7 +1996,7 @@ cros.factory.Goofy = class {
       return false;
     }
     // The timestamp for Note is set in the RPC call AddNote.
-    this.sendRpc('AddNote', [new cros.factory.Note(name, note, 0, level)]);
+    this.sendRpc('AddNote', new cros.factory.Note(name, note, 0, level));
     return true;
   }
 
@@ -2057,9 +2068,8 @@ cros.factory.Goofy = class {
    * @param {string} name name of the person uploading logs
    * @param {string} serial serial number of this device
    * @param {string} description bug description
-   * @param {function()} onSuccess function to execute on success
    */
-  uploadFactoryLogs(name, serial, description, onSuccess) {
+  async uploadFactoryLogs(name, serial, description) {
     const dialog = new goog.ui.Dialog();
     this.registerDialog(dialog);
     cros.factory.Goofy.setDialogTitle(
@@ -2071,59 +2081,40 @@ cros.factory.Goofy = class {
     dialog.setButtonSet(null);
     dialog.setVisible(true);
 
-    this.sendRpc(
-        'UploadFactoryLogs', [name, serial, description],
-        ({/** number */ size, /** string */ key}) => {
-          cros.factory.Goofy.setDialogContent(
-              dialog,
-              goog.html.SafeHtml.concat(
-                  goog.html.SafeHtml.htmlEscapePreservingNewlines(
-                      `Success! Uploaded factory logs (${
-                          size} bytes).\nThe archive key is `),
-                  goog.html.SafeHtml.create(
-                      'span', {class: 'goofy-ul-archive-key'}, key),
-                  goog.html.SafeHtml.htmlEscapePreservingNewlines(
-                      '.\nPlease use this key when filing bugs\n' +
-                      'or corresponding with the factory team.')));
-          dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
-          dialog.reposition();
-
-          onSuccess();
-        },
-        (/** {error: {message: string}} */ response) => {
-          cros.factory.Goofy.setDialogContent(
-              dialog,
-              `Unable to upload factory logs:\n${response.error.message}`);
-          dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
-          dialog.reposition();
-        });
-  }
-
-  /**
-   * Pings the factory server, displayed an alert if it cannot be reached.
-   * @param {function()} onSuccess function to execute on success
-   */
-  pingFactoryServer(onSuccess) {
-    this.sendRpc(
-        'PingFactoryServer', [], onSuccess,
-        (/** {error: {message: string}} */ response) => {
-          this.alert(
-              `Unable to contact factory server.\n${response.error.message}`);
-        });
+    try {
+      const {/** number */ size, /** string */ key} =
+          await this.sendRpc('UploadFactoryLogs', name, serial, description);
+      cros.factory.Goofy.setDialogContent(
+          dialog,
+          goog.html.SafeHtml.concat(
+              goog.html.SafeHtml.htmlEscapePreservingNewlines(
+                  `Success! Uploaded factory logs (${
+                      size} bytes).\nThe archive key is `),
+              goog.html.SafeHtml.create(
+                  'span', {class: 'goofy-ul-archive-key'}, key),
+              goog.html.SafeHtml.htmlEscapePreservingNewlines(
+                  '.\nPlease use this key when filing bugs\n' +
+                  'or corresponding with the factory team.')));
+      dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
+      dialog.reposition();
+    } catch (error) {
+      cros.factory.Goofy.setDialogContent(
+          dialog, `Unable to upload factory logs:\n${error.message}`);
+      dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
+      dialog.reposition();
+    }
   }
 
   /**
    * Ask goofy to reload current test list to apply local changes.
    */
-  reloadTestList() {
-    this.sendRpc(
-        'ReloadTestList', [],
-        // On success
-        null,
-        // On fail
-        (/** {error: {message: string}} */ response) => {
-          this.alert(`Failed to reload test list\n${response.error.message}`);
-        });
+  async reloadTestList() {
+    try {
+      await this.sendRpc('ReloadTestList');
+    } catch (error) {
+      this.alert(`Failed to reload test list\n${error.message}`);
+      throw error;
+    }
   }
 
   /**
@@ -2200,7 +2191,8 @@ cros.factory.Goofy = class {
           }
 
           this.uploadFactoryLogs(
-              nameElt.value, serialElt.value, descriptionElt.value, () => {
+                  nameElt.value, serialElt.value, descriptionElt.value)
+              .then(() => {
                 dialog.dispose();
               });
 
@@ -2211,11 +2203,11 @@ cros.factory.Goofy = class {
   /**
    * Saves factory logs to a USB drive.
    */
-  saveFactoryLogsToUSB() {
+  async saveFactoryLogsToUSB() {
     const title = cros.factory.i18n.i18nLabel('Save Factory Logs to USB');
 
     const doSave = () => {
-      const callback = (/** ?string */ id) => {
+      const callback = async (/** ?string */ id) => {
         if (id == null) {
           // Cancelled.
           return;
@@ -2230,37 +2222,32 @@ cros.factory.Goofy = class {
         dialog.setButtonSet(null);
         dialog.setVisible(true);
         this.positionOverConsole(dialog.getElement());
-        this.sendRpc(
-            'SaveLogsToUSB', [id],
-            (/**
-              * {dev: string, name: string, size: number, temporary: boolean}
-              */ info) => {
-              const {dev, name: filename, size, temporary} = info;
-              if (temporary) {
-                cros.factory.Goofy.setDialogContent(
-                    dialog,
-                    cros.factory.i18n.i18nLabel(
-                        'Success! Saved factory logs ({size}) bytes) to ' +
-                            '{dev} as\n{filename}. ' +
-                            'The drive has been unmounted.',
-                        {size: size.toString(), dev, filename}));
-              } else {
-                cros.factory.Goofy.setDialogContent(
-                    dialog,
-                    cros.factory.i18n.i18nLabel(
-                        'Success! Saved factory logs ({size}) bytes) to ' +
-                            '{dev} as\n{filename}.',
-                        {size: size.toString(), dev, filename}));
-              }
-              dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
-              this.positionOverConsole(dialog.getElement());
-            },
-            (/** {error: {message: string}} */ response) => {
-              cros.factory.Goofy.setDialogContent(
-                  dialog, `Unable to save logs: ${response.error.message}`);
-              dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
-              this.positionOverConsole(dialog.getElement());
-            });
+        try {
+          const {dev, name: filename, size, temporary} = /**
+                * @type {{dev: string, name: string, size: number,
+                *     temporary: boolean}}
+                */ (await this.sendRpc('SaveLogsToUSB', id));
+          if (temporary) {
+            cros.factory.Goofy.setDialogContent(
+                dialog,
+                cros.factory.i18n.i18nLabel(
+                    'Success! Saved factory logs ({size}) bytes) to {dev} as' +
+                        '\n{filename}. The drive has been unmounted.',
+                    {size: size.toString(), dev, filename}));
+          } else {
+            cros.factory.Goofy.setDialogContent(
+                dialog,
+                cros.factory.i18n.i18nLabel(
+                    'Success! Saved factory logs ({size}) bytes) to {dev} as' +
+                        '\n{filename}.',
+                    {size: size.toString(), dev, filename}));
+          }
+        } catch (error) {
+          cros.factory.Goofy.setDialogContent(
+              dialog, `Unable to save logs: ${error.message}`);
+        }
+        dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
+        this.positionOverConsole(dialog.getElement());
       };
 
       const idDialog = new goog.ui.Prompt('', '', callback.bind(this));
@@ -2273,9 +2260,6 @@ cros.factory.Goofy = class {
       idDialog.getElement().classList.add('goofy-log-identifier-prompt');
       this.positionOverConsole(idDialog.getElement());
     };
-
-    // Active timer, if any.
-    let timer = null;
 
     const waitForUSBDialog = new goog.ui.Dialog();
     this.registerDialog(waitForUSBDialog);
@@ -2290,27 +2274,16 @@ cros.factory.Goofy = class {
     waitForUSBDialog.setVisible(true);
     this.positionOverConsole(waitForUSBDialog.getElement());
 
-    const waitForUSB = () => {
-      const restartWaitForUSB = () => {
-        timer =
-            goog.Timer.callOnce(waitForUSB, cros.factory.MOUNT_USB_DELAY_MSEC);
-      };
-      this.sendRpc('IsUSBDriveAvailable', [], (/** boolean */ available) => {
-        if (available) {
-          waitForUSBDialog.dispose();
-          doSave();
-        } else {
-          restartWaitForUSB();
-        }
-      }, restartWaitForUSB);
-    };
-    goog.events.listen(
-        waitForUSBDialog, goog.ui.Component.EventType.HIDE, () => {
-          if (timer) {
-            goog.Timer.clear(timer);
-          }
-        });
-    waitForUSB();
+    while (waitForUSBDialog.isVisible()) {
+      const /** boolean */ available =
+          await this.sendRpc('IsUSBDriveAvailable');
+      if (available) {
+        waitForUSBDialog.dispose();
+        doSave();
+        return;
+      }
+      await cros.factory.utils.delay(cros.factory.MOUNT_USB_DELAY_MSEC);
+    }
   }
 
   /**
@@ -2318,61 +2291,59 @@ cros.factory.Goofy = class {
    * @param {string} path
    * @param {string} invocation
    */
-  showHistoryEntry(path, invocation) {
-    this.sendRpc(
-        'GetTestHistoryEntry', [path, invocation],
-        (/** !cros.factory.HistoryEntry */ entry) => {
-          const metadataRows = [];
-          for (const [name, title] of /** @type {!Array<!Array<string>>} */ ([
-                 ['status', 'Status'], ['init_time', 'Creation time'],
-                 ['start_time', 'Start time'], ['end_time', 'End time']
-               ])) {
-            if (entry.metadata[name]) {
-              let /** string|number */ value = entry.metadata[name];
-              delete entry.metadata[name];
-              if (name.endsWith('_time')) {
-                value = cros.factory.Goofy.FULL_TIME_FORMAT.format(
-                    new Date(value * 1000));
-              }
-              metadataRows.push(goog.html.SafeHtml.create('tr', {}, [
-                goog.html.SafeHtml.create('th', {}, title),
-                goog.html.SafeHtml.create('td', {}, value)
-              ]));
-            }
-          }
+  async showHistoryEntry(path, invocation) {
+    const /** !cros.factory.HistoryEntry */ entry =
+        await this.sendRpc('GetTestHistoryEntry', path, invocation);
+    const metadataRows = [];
+    for (const [name, title] of /** @type {!Array<!Array<string>>} */ ([
+           ['status', 'Status'], ['init_time', 'Creation time'],
+           ['start_time', 'Start time'], ['end_time', 'End time']
+         ])) {
+      if (entry.metadata[name]) {
+        let /** string|number */ value = entry.metadata[name];
+        delete entry.metadata[name];
+        if (name.endsWith('_time')) {
+          value = cros.factory.Goofy.FULL_TIME_FORMAT.format(
+              new Date(value * 1000));
+        }
+        metadataRows.push(goog.html.SafeHtml.create('tr', {}, [
+          goog.html.SafeHtml.create('th', {}, title),
+          goog.html.SafeHtml.create('td', {}, value)
+        ]));
+      }
+    }
 
-          const keys = Object.keys(entry.metadata).sort();
-          for (const key of keys) {
-            if (key === 'log_tail') {
-              // Skip log_tail, since we already have the entire log.
-              continue;
-            }
-            const /** string|number|!Object */ value = entry.metadata[key];
-            const /** string|number */ valueRepr =
-                goog.isObject(value) ? JSON.stringify(value) : value;
-            metadataRows.push(goog.html.SafeHtml.create('tr', {}, [
-              goog.html.SafeHtml.create('th', {}, key),
-              goog.html.SafeHtml.create('td', {}, valueRepr)
-            ]));
-          }
+    const keys = Object.keys(entry.metadata).sort();
+    for (const key of keys) {
+      if (key === 'log_tail') {
+        // Skip log_tail, since we already have the entire log.
+        continue;
+      }
+      const /** string|number|!Object */ value = entry.metadata[key];
+      const /** string|number */ valueRepr =
+          goog.isObject(value) ? JSON.stringify(value) : value;
+      metadataRows.push(goog.html.SafeHtml.create('tr', {}, [
+        goog.html.SafeHtml.create('th', {}, key),
+        goog.html.SafeHtml.create('td', {}, valueRepr)
+      ]));
+    }
 
-          const metadataTable = goog.html.SafeHtml.create(
-              'table', {class: 'goofy-history-metadata'}, metadataRows);
+    const metadataTable = goog.html.SafeHtml.create(
+        'table', {class: 'goofy-history-metadata'}, metadataRows);
 
-          const title = `${entry.metadata.path} (invocation ${
-              entry.metadata.invocation})`;
-          const content = goog.html.SafeHtml.concat(
-              goog.html.SafeHtml.create('div', {class: 'goofy-history'}, [
-                goog.html.SafeHtml.create(
-                    'div', {class: 'goofy-history-header'}, 'Test Info'),
-                metadataTable,
-                goog.html.SafeHtml.create(
-                    'div', {class: 'goofy-history-header'}, 'Log'),
-                goog.html.SafeHtml.create(
-                    'div', {class: 'goofy-history-log'}, entry.log)
-              ]));
-          this.createSimpleDialog(title, content).setVisible(true);
-        });
+    const title =
+        `${entry.metadata.path} (invocation ${entry.metadata.invocation})`;
+    const content = goog.html.SafeHtml.concat(
+        goog.html.SafeHtml.create('div', {class: 'goofy-history'}, [
+          goog.html.SafeHtml.create(
+              'div', {class: 'goofy-history-header'}, 'Test Info'),
+          metadataTable,
+          goog.html.SafeHtml.create(
+              'div', {class: 'goofy-history-header'}, 'Log'),
+          goog.html.SafeHtml.create(
+              'div', {class: 'goofy-history-log'}, entry.log)
+        ]));
+    this.createSimpleDialog(title, content).setVisible(true);
   }
 
   /**
@@ -2449,7 +2420,7 @@ cros.factory.Goofy = class {
    * @param {!cros.factory.TestListEntry} testList the test list (the return
    *     value of the GetTestList RPC call).
    */
-  setTestList(testList) {
+  async setTestList(testList) {
     cros.factory.logger.info(
         `Received test list: ${goog.debug.expose(testList)}`);
     document.getElementById('goofy-loading').style.display = 'none';
@@ -2500,6 +2471,73 @@ cros.factory.Goofy = class {
       addListener(path, labelElement, rowElement);
     }
 
+    const buildTitleExtras = () => {
+      const extraItems = [];
+      const addExtraItem =
+          (/** !cros.factory.i18n.TranslationDict */ label,
+           /** function() */ action) => {
+            const item =
+                new goog.ui.MenuItem(cros.factory.i18n.i18nLabelNode(label));
+            goog.events.listen(
+                item, goog.ui.Component.EventType.ACTION, action, false, this);
+            extraItems.push(item);
+          };
+
+      if (this.engineeringMode) {
+        addExtraItem(_('Update factory software'), this.updateFactory);
+        extraItems.push(this.makeSwitchTestListMenu());
+        extraItems.push(new goog.ui.MenuSeparator());
+        addExtraItem(_('Save note on device'), this.showNoteDialog);
+        addExtraItem(_('View notes'), this.viewNotes);
+        addExtraItem(_('Clear notes'), () => this.sendRpc('ClearNotes'));
+        extraItems.push(new goog.ui.MenuSeparator());
+        if (cros.factory.ENABLE_DIAGNOSIS_TOOL) {
+          addExtraItem(
+              _('Diagnosis Tool'),
+              this.diagnosisTool.showWindow.bind(this.diagnosisTool));
+        }
+      }
+
+      addExtraItem(
+          _('Save factory logs to USB drive...'), this.saveFactoryLogsToUSB);
+      addExtraItem(_('Upload factory logs...'), async () => {
+        try {
+          await this.sendRpc('PingFactoryServer');
+        } catch (error) {
+          this.alert(`Unable to contact factory server.\n${error.message}`);
+          return;
+        }
+        this.showUploadFactoryLogsDialog();
+      });
+      addExtraItem(_('Reload Test List'), () => {
+        this.reloadTestList();
+      });
+      addExtraItem(
+          _('Toggle engineering mode'), this.promptEngineeringPassword);
+
+      if (this.pluginMenuItems) {
+        extraItems.push(new goog.ui.MenuSeparator());
+        const engineeringMode = this.engineeringMode;
+        for (const item of this.pluginMenuItems) {
+          if (item.eng_mode_only && !engineeringMode) {
+            return;
+          }
+          addExtraItem(item.text, async () => {
+            const /** !cros.factory.PluginMenuReturnData */ return_data =
+                await this.sendRpc('OnPluginMenuItemClicked', item.id);
+            if (return_data.action === 'SHOW_IN_DIALOG') {
+              this.showLogDialog(item.text, return_data.data);
+            } else if (return_data.action === 'RUN_AS_JS') {
+              eval(return_data.data);
+            } else {
+              this.alert(`Unknown return action: ${return_data.action}`);
+            }
+          });
+        }
+      }
+      return extraItems;
+    };
+
     for (const eventType of /** @type {!Array<string>} */ ([
            goog.events.EventType.MOUSEDOWN, goog.events.EventType.CONTEXTMENU
          ])) {
@@ -2516,74 +2554,9 @@ cros.factory.Goofy = class {
               return;
             }
 
-            const extraItems = [];
-            const addExtraItem =
-                (/** !cros.factory.i18n.TranslationDict */ label,
-                 /** function() */ action) => {
-                  const item = new goog.ui.MenuItem(
-                      cros.factory.i18n.i18nLabelNode(label));
-                  goog.events.listen(
-                      item, goog.ui.Component.EventType.ACTION, action, false,
-                      this);
-                  extraItems.push(item);
-                };
-
-            if (this.engineeringMode) {
-              addExtraItem(_('Update factory software'), this.updateFactory);
-              extraItems.push(this.makeSwitchTestListMenu());
-              extraItems.push(new goog.ui.MenuSeparator());
-              addExtraItem(_('Save note on device'), this.showNoteDialog);
-              addExtraItem(_('View notes'), this.viewNotes);
-              addExtraItem(
-                  _('Clear notes'), () => this.sendRpc('ClearNotes', []));
-              extraItems.push(new goog.ui.MenuSeparator());
-              if (cros.factory.ENABLE_DIAGNOSIS_TOOL) {
-                addExtraItem(
-                    _('Diagnosis Tool'),
-                    this.diagnosisTool.showWindow.bind(this.diagnosisTool));
-              }
-            }
-
-            addExtraItem(
-                _('Save factory logs to USB drive...'),
-                this.saveFactoryLogsToUSB);
-            addExtraItem(_('Upload factory logs...'), () => {
-              this.pingFactoryServer(this.showUploadFactoryLogsDialog);
-            });
-            addExtraItem(_('Reload Test List'), () => {
-              this.reloadTestList();
-            });
-            addExtraItem(
-                _('Toggle engineering mode'), this.promptEngineeringPassword);
-
-            if (this.pluginMenuItems) {
-              extraItems.push(new goog.ui.MenuSeparator());
-              const engineeringMode = this.engineeringMode;
-              for (const item of this.pluginMenuItems) {
-                if (item.eng_mode_only && !engineeringMode) {
-                  return;
-                }
-                addExtraItem(item.text, () => {
-                  this.sendRpc(
-                      'OnPluginMenuItemClicked', [item.id],
-                      (/** !cros.factory.PluginMenuReturnData */
-                       return_data) => {
-                        if (return_data.action === 'SHOW_IN_DIALOG') {
-                          this.showLogDialog(item.text, return_data.data);
-                        } else if (return_data.action === 'RUN_AS_JS') {
-                          eval(return_data.data);
-                        } else {
-                          this.alert(
-                              `Unknonw return action: ${return_data.action}`);
-                        }
-                      });
-                });
-              }
-            }
-
             const logo = goog.asserts.assertElement(
                 document.getElementById('goofy-logo-text'));
-            this.showTestPopup('', logo, extraItems);
+            this.showTestPopup('', logo, buildTitleExtras());
 
             event.stopPropagation();
             event.preventDefault();
@@ -2591,15 +2564,13 @@ cros.factory.Goofy = class {
     }
 
     this.testTree.collapseAll();
-    this.sendRpc(
-        'get_test_states', [],
-        (/** !Object<string, !cros.factory.TestState> */ stateMap) => {
-          for (const path of Object.keys(stateMap)) {
-            if (!path.startsWith('_')) {  // e.g., __jsonclass__
-              this.setTestState(path, stateMap[path]);
-            }
-          }
-        });
+    const /** !Object<string, !cros.factory.TestState> */ stateMap =
+        await this.sendRpc('GetTestStates');
+    for (const path of Object.keys(stateMap)) {
+      if (!path.startsWith('_')) {  // e.g., __jsonclass__
+        this.setTestState(path, stateMap[path]);
+      }
+    }
   }
 
   /**
@@ -2651,14 +2622,10 @@ cros.factory.Goofy = class {
               if (e.key === goog.ui.Dialog.DefaultButtonKeys.OK) {
                 const dialog = this.showIndefiniteActionDialog(
                     title, _('Switching test list. Please wait...'));
-                this.sendRpc(
-                    'SwitchTestList', [id],
-                    null,  // No action on success; wait to die.
-                    (/** {error: {message: string}} */ response) => {
-                      dialog.dispose();
-                      this.alert(`Unable to switch test list:\n${
-                          response.error.message}`);
-                    });
+                this.sendRpc('SwitchTestList', id).catch((error) => {
+                  dialog.dispose();
+                  this.alert(`Unable to switch test list:\n${error.message}`);
+                });
               }
             });
       });
@@ -2689,36 +2656,31 @@ cros.factory.Goofy = class {
   /**
    * Sends an event to update factory software.
    */
-  updateFactory() {
+  async updateFactory() {
     const dialog = this.showIndefiniteActionDialog(
         _('Software update'), _('Updating factory software. Please wait...'));
 
-    this.sendRpc(
-        'UpdateFactory', [], (/**
-           * {success: boolean, updated: boolean, error_msg: ?string}
-           */ ret) => {
-          const {success, updated, error_msg: errorMsg} = ret;
-          if (updated) {
-            dialog.setTitle('Update succeeded');
-            cros.factory.Goofy.setDialogContent(
-                dialog,
-                cros.factory.i18n.i18nLabel('Update succeeded. Restarting.'));
-          } else if (success) {  // but not updated
-            cros.factory.Goofy.setDialogContent(
-                dialog,
-                cros.factory.i18n.i18nLabel(
-                    'No update is currently necessary.'));
-            dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
-          } else {
-            cros.factory.Goofy.setDialogContent(
-                dialog,
-                goog.html.SafeHtml.concat(
-                    cros.factory.i18n.i18nLabel('Update failed:'),
-                    goog.html.SafeHtml.create('pre', {}, errorMsg || '')));
-            dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
-          }
-          dialog.reposition();
-        });
+    const {success, updated, error_msg: errorMsg} = /**
+           * @type {{success: boolean, updated: boolean, error_msg: ?string}}
+           */ (await this.sendRpc('UpdateFactory'));
+    if (updated) {
+      dialog.setTitle('Update succeeded');
+      cros.factory.Goofy.setDialogContent(
+          dialog, cros.factory.i18n.i18nLabel('Update succeeded. Restarting.'));
+    } else if (success) {  // but not updated
+      cros.factory.Goofy.setDialogContent(
+          dialog,
+          cros.factory.i18n.i18nLabel('No update is currently necessary.'));
+      dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
+    } else {
+      cros.factory.Goofy.setDialogContent(
+          dialog,
+          goog.html.SafeHtml.concat(
+              cros.factory.i18n.i18nLabel('Update failed:'),
+              goog.html.SafeHtml.create('pre', {}, errorMsg || '')));
+      dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
+    }
+    dialog.reposition();
   }
 
   /**
@@ -2749,15 +2711,6 @@ cros.factory.Goofy = class {
     if (state.status === 'ACTIVE') {
       // Automatically show the test if it is running.
       node.reveal();
-    } else if (cros.factory.AUTO_COLLAPSE) {
-      // If collapsible, then collapse it in 250ms if still inactive.
-      if (node.getChildCount()) {
-        window.setTimeout(() => {
-          if (test.state.status !== 'ACTIVE') {
-            node.collapse();
-          }
-        }, 250);
-      }
     }
   }
 
@@ -2803,64 +2756,55 @@ cros.factory.Goofy = class {
     }
   }
 
+
   /**
-   * Calls an RPC function and invokes callback with the result.
+   * Calls an RPC function.
    * @param {string} method
-   * @param {!Object} args
-   * @param {?function(?)=} callback
-   * @param {?function(?)=} opt_errorCallback
-   * @param {string=} path
+   * @param {...?} args
+   * @returns {Promise}
    */
-  sendRpc(method, args, callback, opt_errorCallback, path = '/goofy') {
-    const request = goog.json.serialize({method, params: args, id: 1});
-    goog.log.info(cros.factory.logger, `RPC request: ${request}`);
-    const factoryThis = this;
-    goog.net.XhrIo.send(path, function() {
-      cros.factory.logger.info(
-          `RPC response for ${method}: ${this.getResponseText()}`);
-
-      if (this.getLastErrorCode() != goog.net.ErrorCode.NO_ERROR) {
-        const message = (`RPC error calling ${method}: ${
-            goog.net.ErrorCode.getDebugMessage(this.getLastErrorCode())}`);
-        factoryThis.logToConsole(message, 'goofy-internal-error');
-        if (opt_errorCallback) {
-          opt_errorCallback.call(factoryThis, {error: {message}});
-        }
-        return;
-      }
-
-      const response =
-          /** @type {{error: !Object, result: !Object}} */ (
-              goog.json.unsafeParse(this.getResponseText()));
-      if (response.error) {
-        if (opt_errorCallback) {
-          opt_errorCallback.call(factoryThis, response);
-        } else {
-          factoryThis.logToConsole(
-              `RPC error calling ${method}: ${
-                  goog.debug.expose(response.error)}`,
-              'goofy-internal-error');
-        }
-      } else {
-        if (callback) {
-          callback.call(factoryThis, response.result);
-        }
-      }
-    }, 'POST', request);
+  sendRpc(method, ...args) {
+    return this.sendRpcImpl_(method, args, '/goofy');
   }
 
   /**
-   * Calls an RPC function and invokes callback with the result.
+   * Calls an RPC function for plugin.
    * @param {string} pluginName
    * @param {string} method
-   * @param {!Object} args
-   * @param {?function(?)=} callback
-   * @param {?function(?)=} opt_errorCallback
+   * @param {...?} args
+   * @returns {Promise}
    */
-  sendRpcToPlugin(pluginName, method, args, callback, opt_errorCallback) {
-    this.sendRpc(
-        method, args, callback, opt_errorCallback,
-        `/plugin/${pluginName.replace('.', '_')}`);
+  sendRpcToPlugin(pluginName, method, ...args) {
+    return this.sendRpcImpl_(
+        method, args, `/plugin/${pluginName.replace('.', '_')}`);
+  }
+
+  /**
+   * Implementation for sendRpc and sendRpcToPlugin.
+   * @param {string} method
+   * @param {!Array<?Object>} params
+   * @param {string} path
+   * @returns {Promise}
+   * @private
+   */
+  async sendRpcImpl_(method, params, path) {
+    const body = JSON.stringify({method, params, id: 1});
+    let response;
+    try {
+      response = await fetch(path, {body, method: 'POST'});
+    } catch (error) {
+      const message = `RPC error calling ${method}: ${error.message}`;
+      this.logToConsole(message, 'goofy-internal-error');
+      throw error;
+    }
+    const /** {error: ?{message: string}, result: ?Object} */ json =
+        await response.json();
+    cros.factory.logger.info(
+        `RPC response for ${method}: ${JSON.stringify(json)}`);
+    if (json.error) {
+      throw new Error(json.error.message);
+    }
+    return json.result;
   }
 
   /**
@@ -2879,19 +2823,21 @@ cros.factory.Goofy = class {
    *     to the div element containing the log entry.
    */
   logToConsole(message, opt_attributes) {
-    const div = goog.dom.createDom('div', opt_attributes);
-    div.classList.add('goofy-log-line');
-    div.appendChild(document.createTextNode(message));
-    this.console.appendChild(div);
+    if (this.console) {
+      const div = goog.dom.createDom('div', opt_attributes);
+      div.classList.add('goofy-log-line');
+      div.appendChild(document.createTextNode(message));
+      this.console.appendChild(div);
 
-    // Restrict the size of the log to avoid UI lag.
-    if (this.console.childNodes.length > cros.factory.MAX_LINE_CONSOLE_LOG) {
-      this.console.removeChild(this.console.firstChild);
+      // Restrict the size of the log to avoid UI lag.
+      if (this.console.childNodes.length > cros.factory.MAX_LINE_CONSOLE_LOG) {
+        this.console.removeChild(this.console.firstChild);
+      }
+
+      // Scroll to bottom.  TODO(jsalz): Scroll only if already at the bottom,
+      // or add scroll lock.
+      this.console.scrollTop = this.console.scrollHeight;
     }
-
-    // Scroll to bottom.  TODO(jsalz): Scroll only if already at the bottom,
-    // or add scroll lock.
-    this.console.scrollTop = this.console.scrollHeight;
   }
 
   /**
@@ -2921,150 +2867,181 @@ cros.factory.Goofy = class {
   handleBackendEvent(jsonMessage) {
     goog.log.info(cros.factory.logger, `Got message: ${jsonMessage}`);
     const untypedMessage =
-        /** @type {{type: string}} */ (goog.json.unsafeParse(jsonMessage));
+        /** @type {{type: string}} */ (JSON.parse(jsonMessage));
     const messageType = untypedMessage.type;
 
-    if (messageType === 'goofy:hello') {
-      const message = /** @type {{uuid: string}} */ (untypedMessage);
-      if (this.uuid && message.uuid !== this.uuid) {
-        // The goofy process has changed; reload the page.
-        goog.log.info(cros.factory.logger, 'Incorrect UUID; reloading');
-        window.location.reload();
-        return;
-      } else {
-        this.uuid = message.uuid;
-        // Send a keepAlive to confirm the UUID with the backend.
-        this.keepAlive();
+    switch (messageType) {
+      case 'goofy:hello': {
+        const message = /** @type {{uuid: string}} */ (untypedMessage);
+        if (this.uuid && message.uuid !== this.uuid) {
+          // The goofy process has changed; reload the page.
+          goog.log.info(cros.factory.logger, 'Incorrect UUID; reloading');
+          window.location.reload();
+          return;
+        } else {
+          this.uuid = message.uuid;
+          // Send a keepAlive to confirm the UUID with the backend.
+          this.keepAlive();
+        }
+        break;
       }
-    } else if (messageType === 'goofy:log') {
-      const message = /** @type {{message: string}} */ (untypedMessage);
-      this.logToConsole(message.message);
-    } else if (messageType === 'goofy:state_change') {
-      const message =
-          /** @type {{path: string, state: !cros.factory.TestState}} */ (
-              untypedMessage);
-      this.setTestState(message.path, message.state);
-    } else if (messageType === 'goofy:init_test_ui') {
-      const message =
-          /** @type {{test: string, invocation: string, html: string}} */ (
-              untypedMessage);
-      const invocation =
-          this.createInvocation(message.test, message.invocation);
-      if (invocation) {
-        const doc = goog.asserts.assert(invocation.iframe.contentDocument);
-        doc.open();
-        doc.write(message.html);
-        doc.close();
-        this.updateCSSClassesInDocument(doc);
-        invocation.iframe.onload = () => {
-          this.fixSelectElements(doc);
-        };
-        // In the content window's evaluation context, add our keydown listener.
-        invocation.iframe.contentWindow.eval(
-            'window.addEventListener("keydown", ' +
-            'window.test.invocation.goofy.boundKeyListener)');
+      case 'goofy:log': {
+        const message = /** @type {{message: string}} */ (untypedMessage);
+        this.logToConsole(message.message);
+        break;
       }
-    } else if (messageType === 'goofy:set_html') {
-      const message = /**
+      case 'goofy:state_change': {
+        const message =
+            /** @type {{path: string, state: !cros.factory.TestState}} */ (
+                untypedMessage);
+        this.setTestState(message.path, message.state);
+        break;
+      }
+      case 'goofy:init_test_ui': {
+        const message =
+            /** @type {{test: string, invocation: string, html: string}} */ (
+                untypedMessage);
+        const invocation =
+            this.createInvocation(message.test, message.invocation);
+        if (invocation) {
+          const doc = goog.asserts.assert(invocation.iframe.contentDocument);
+          doc.open();
+          doc.write(message.html);
+          doc.close();
+          this.updateCSSClassesInDocument(doc);
+          invocation.iframe.onload = () => {
+            this.fixSelectElements(doc);
+          };
+          // In the content window's evaluation context, add our keydown
+          // listener.
+          invocation.iframe.contentWindow.eval(
+              'window.addEventListener("keydown", ' +
+              'window.test.invocation.goofy.boundKeyListener)');
+        }
+        break;
+      }
+      case 'goofy:set_html': {
+        const message = /**
          * @type {{test: string, invocation: string, id: ?string,
          *     append: boolean, html: string}}
          */ (untypedMessage);
-      const invocation = this.invocations.get(message.invocation);
-      if (invocation) {
-        if (message.id) {
-          const element =
-              invocation.iframe.contentDocument.getElementById(message.id);
-          if (element) {
-            if (!message.append) {
-              element.innerHTML = '';
+        const invocation = this.invocations.get(message.invocation);
+        if (invocation) {
+          if (message.id) {
+            const element =
+                invocation.iframe.contentDocument.getElementById(message.id);
+            if (element) {
+              if (!message.append) {
+                element.innerHTML = '';
+              }
+              element.innerHTML += message.html;
             }
-            element.innerHTML += message.html;
-          }
-        } else {
-          const body = invocation.iframe.contentDocument.body;
-          if (body) {
-            if (!message.append) {
-              body.innerHTML = '';
-            }
-            body.innerHTML += message.html;
           } else {
-            this.logToConsole(
-                'Test UI not initialized.', 'goofy-internal-error');
+            const body = invocation.iframe.contentDocument.body;
+            if (body) {
+              if (!message.append) {
+                body.innerHTML = '';
+              }
+              body.innerHTML += message.html;
+            } else {
+              this.logToConsole(
+                  'Test UI not initialized.', 'goofy-internal-error');
+            }
           }
         }
+        break;
       }
-    } else if (messageType === 'goofy:run_js') {
-      const message = /**
+      case 'goofy:run_js': {
+        const message = /**
          * @type {{test: string, invocation: string, args: !Object, js: string}}
          */ (untypedMessage);
-      const invocation = this.invocations.get(message.invocation);
-      if (invocation) {
-        // We need to evaluate the code in the context of the content window,
-        // but we also need to give it a variable.  Stash it in the window and
-        // load it directly in the eval command.
-        invocation.iframe.contentWindow.__goofy_args = message.args;
-        invocation.iframe.contentWindow.eval(
-            `const args = window.__goofy_args; ${message.js}`);
+        const invocation = this.invocations.get(message.invocation);
         if (invocation) {
-          delete invocation.iframe.contentWindow.__goofy_args;
+          // We need to evaluate the code in the context of the content window,
+          // but we also need to give it a variable.  Stash it in the window and
+          // load it directly in the eval command.
+          invocation.iframe.contentWindow.__goofy_args = message.args;
+          invocation.iframe.contentWindow.eval(
+              `const args = window.__goofy_args; ${message.js}`);
+          if (invocation) {
+            delete invocation.iframe.contentWindow.__goofy_args;
+          }
         }
+        break;
       }
-    } else if (messageType === 'goofy:call_js_function') {
-      const message = /**
+      case 'goofy:call_js_function': {
+        const message = /**
          * @type {{test: string, invocation: string, name: string,
          *     args: !Object}}
          */ (untypedMessage);
-      const invocation = this.invocations.get(message.invocation);
-      if (invocation) {
-        const func =
-            /** @type {function(?)} */ (
-                invocation.iframe.contentWindow.eval(message.name));
-        if (func) {
-          func.apply(invocation.iframe.contentWindow, message.args);
-        } else {
-          cros.factory.logger.severe(
-              `Unable to find function ${func} in UI for test ${message.test}`);
+        const invocation = this.invocations.get(message.invocation);
+        if (invocation) {
+          const func =
+              /** @type {function(?)} */ (
+                  invocation.iframe.contentWindow.eval(message.name));
+          if (func) {
+            func.apply(invocation.iframe.contentWindow, message.args);
+          } else {
+            cros.factory.logger.severe(`Unable to find function ${
+                func} in UI for test ${message.test}`);
+          }
         }
+        break;
       }
-    } else if (messageType === 'goofy:extension_rpc') {
-      const message = /**
+      case 'goofy:extension_rpc': {
+        const message = /**
          * @type {{is_response: boolean, name: string, args: !Object,
          *     rpc_id: string}}
          */ (untypedMessage);
-      if (!message.is_response) {
-        window.chrome.runtime.sendMessage(
-            cros.factory.EXTENSION_ID, {name: message.name, args: message.args},
-            (/** * */ result) => {
-              this.sendEvent(messageType, {
-                name: message.name,
-                rpc_id: message.rpc_id,
-                is_response: true,
-                args: result
+        if (!message.is_response) {
+          window.chrome.runtime.sendMessage(
+              cros.factory.EXTENSION_ID,
+              {name: message.name, args: message.args}, (/** * */ result) => {
+                this.sendEvent(messageType, {
+                  name: message.name,
+                  rpc_id: message.rpc_id,
+                  is_response: true,
+                  args: result
+                });
               });
+        }
+        break;
+      }
+      case 'goofy:destroy_test': {
+        const message = /** @type {{invocation: string}} */ (untypedMessage);
+        // We send destroy_test event only in the top-level invocation from
+        // Goofy backend.
+        cros.factory.logger.info(
+            `Received destroy_test event for top-level invocation ${
+                message.invocation}`);
+        const invocation = this.invocations.get(message.invocation);
+        if (invocation) {
+          invocation.dispose();
+        }
+        break;
+      }
+      case 'goofy:pending_shutdown': {
+        const message =
+            /** @type {?cros.factory.PendingShutdownEvent} */ (untypedMessage);
+        this.setPendingShutdown(message);
+        break;
+      }
+      case 'goofy:update_notes': {
+        this.sendRpc('get_shared_data', 'factory_note', true)
+            .then((/** !Array<!cros.factory.Note> */ notes) => {
+              this.updateNote(notes);
             });
+        break;
       }
-    } else if (messageType === 'goofy:destroy_test') {
-      const message = /** @type {{invocation: string}} */ (untypedMessage);
-      // We send destroy_test event only in the top-level invocation from Goofy
-      // backend.
-      cros.factory.logger.info(
-          `Received destroy_test event for top-level invocation ${
-              message.invocation}`);
-      const invocation = this.invocations.get(message.invocation);
-      if (invocation) {
-        invocation.dispose();
+      case 'goofy:diagnosis_tool:event': {
+        const message = /** @type {!Object} */ (untypedMessage);
+        this.diagnosisTool.handleBackendEvent(message);
+        break;
       }
-    } else if (messageType === 'goofy:pending_shutdown') {
-      const message =
-          /** @type {?cros.factory.PendingShutdownEvent} */ (untypedMessage);
-      this.setPendingShutdown(message);
-    } else if (messageType === 'goofy:update_notes') {
-      this.sendRpc('get_shared_data', ['factory_note', true], this.updateNote);
-    } else if (messageType === 'goofy:diagnosis_tool:event') {
-      const message = /** @type {!Object} */ (untypedMessage);
-      this.diagnosisTool.handleBackendEvent(message);
-    } else if (messageType === 'goofy:hide_tooltips') {
-      this.hideTooltips();
+      case 'goofy:hide_tooltips': {
+        this.hideTooltips();
+        break;
+      }
     }
   }
 

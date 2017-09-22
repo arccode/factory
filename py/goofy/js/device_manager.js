@@ -244,29 +244,30 @@ cros.factory.DeviceManager.prototype.getDeviceData = function() {
           'div', 'device-manager-loading', 'Loading Device Manager...'));
 
   // Executes general commands and ignores slower ones in first stage.
-  this.goofy.sendRpcToPlugin(
-      'device_manager', 'GetDeviceInfo', [], function(data) {
-        this.deviceManager.processData(
+  this.goofy.sendRpcToPlugin('device_manager', 'GetDeviceInfo')
+      .then((data) => {
+        this.processData(
             goog.dom.xml.loadXml(data), '/list', '/list');
-        this.deviceManager.makeMenu();
+        this.makeMenu();
         goog.dom.removeChildren(goog.dom.getElement('goofy-device-data-area'));
 
         // Executes slower commands in second stage.
-        this.sendRpcToPlugin(
-            'device_manager', 'GetDeviceInfo',
-            [JSON.stringify(this.deviceManager.slowCommandsBackendFunction)],
-            function(data) {
+        this.goofy
+            .sendRpcToPlugin(
+                'device_manager', 'GetDeviceInfo',
+                JSON.stringify(this.slowCommandsBackendFunction))
+            .then((data) => {
               var parsedData = JSON.parse(data);
 
               for (var i = 0; i < parsedData.length; i++) {
-                this.deviceManager.processData(
+                this.processData(
                     goog.dom.xml.loadXml(parsedData[i]), '/node',
-                    this.deviceManager.slowCommandsFullPath[i]);
+                    this.slowCommandsFullPath[i]);
               }
 
               goog.dom.removeChildren(
                   goog.dom.getElement('goofy-device-data-area'));
-              this.deviceManager.makeMenu();
+              this.makeMenu();
             });
       });
 };

@@ -184,9 +184,8 @@ status_monitor.Status.PERCENT_BATTERY_FORMAT = new goog.i18n.NumberFormat('0%');
  * Update system status.
  */
 status_monitor.Status.prototype.updateStatus = function() {
-  goofy.sendRpcToPlugin(
-      'status_monitor.status_monitor', 'GetSystemInfo', [],
-      goog.bind(function(/** ?Object<string, *> */ systemInfo) {
+  goofy.sendRpcToPlugin('status_monitor.status_monitor', 'GetSystemInfo')
+      .then((/** ?Object<string, *> */ systemInfo) => {
         var lastStatus = this.systemInfo;
         systemInfo = systemInfo || {};
         this.systemInfo = systemInfo;
@@ -255,7 +254,7 @@ status_monitor.Status.prototype.updateStatus = function() {
         eth_indicator.classList.toggle('eth-enabled', status['eth_on']);
         var wlan_indicator = document.getElementById('wlan-indicator');
         wlan_indicator.classList.toggle('wlan-enabled', status['wlan_on']);
-      }, this));
+      });
 };
 
 $(function() {

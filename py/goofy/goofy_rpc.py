@@ -213,7 +213,7 @@ class GoofyRPC(object):
 
   def ClearNotes(self):
     logging.info('Clearing factory note')
-    self.goofy.state_instance.del_shared_data('factory_note')
+    self.goofy.state_instance.del_shared_data('factory_note', optional=True)
     self.PostEvent(Event(Event.Type.UPDATE_NOTES))
 
   def LogStackTraces(self):
@@ -414,6 +414,11 @@ class GoofyRPC(object):
     """Returns the test list in JSON serializable struct."""
     # goofy.js will need 'path'
     return self.goofy.test_list.ToStruct(extra_fields=['path'])
+
+  def GetTestStates(self):
+    """Returns the test states in JSON serializable struct."""
+    states = self.goofy.state_instance.get_test_states()
+    return {key: state.ToStruct() for key, state in states.iteritems()}
 
   def GetGoofyStatus(self):
     """Returns a dictionary containing Goofy status information.

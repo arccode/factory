@@ -242,15 +242,16 @@ cros.factory.DiagnosisTool.getStateId = function(state) {
 /**
  * Calls an RPC function using goofy.sendRpc() function.
  * @param {string} method
- * @param {Object} args
+ * @param {!Array<?>} args
  * @param {function(this:cros.factory.Goofy, ?)=} callback
  * @param {function(this:cros.factory.Goofy, ?)=} opt_errorCallback
  */
 cros.factory.DiagnosisTool.prototype.sendRpc = function(
     method, args, callback, opt_errorCallback) {
-  this.goofy.sendRpc(
-      'DiagnosisToolRpc', goog.array.concat([method], args), callback,
-      opt_errorCallback);
+  this.goofy.sendRpc('DiagnosisToolRpc', method, ...args)
+      .then(
+          callback ? callback.bind(this.goofy) : null,
+          opt_errorCallback ? opt_errorCallback.bind(this.goofy) : null);
 };
 
 

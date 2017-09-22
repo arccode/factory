@@ -71,6 +71,7 @@ check_js: | check_deps
 	  --compiler_flags="--checks-only" \
 	  --compiler_flags="--jscomp_warning=lintChecks" \
 	  --compiler_flags="--hide_warnings_for=$(CLOSURE_LIB_DIR)" \
+	  --compiler_flags="--language_in ECMASCRIPT_NEXT" \
 	  --compiler_flags="--externs ../js/externs.js"
 
 $(OUTPUT_JS): $(JS_SOURCE_PATHS) | check_deps

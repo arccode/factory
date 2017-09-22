@@ -1125,7 +1125,10 @@ class Goofy(GoofyBase):
 
     def state_change_callback(test, test_state):
       self.event_client.post_event(
-          Event(Event.Type.STATE_CHANGE, path=test.path, state=test_state))
+          Event(
+              Event.Type.STATE_CHANGE,
+              path=test.path,
+              state=test_state.ToStruct()))
     self.test_list.state_change_callback = state_change_callback
 
     self.pytest_prespawner = prespawner.PytestPrespawner()

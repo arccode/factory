@@ -9,9 +9,8 @@ class StationSetup {
     this.keyDesc = {};
   }
   static callRpc(funcName, ...args) {
-    return new Promise(
-        (resolve, reject) => goofy.sendRpcToPlugin(
-            'station_setup.station_setup', funcName, args, resolve, reject));
+    return goofy.sendRpcToPlugin(
+        'station_setup.station_setup', funcName, ...args);
   }
   async init() {
     const obj = await StationSetup.callRpc('GetProperties');
