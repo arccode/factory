@@ -57,7 +57,7 @@ class GenerateDocsTest(unittest.TestCase):
            '     - int',
            '     - (optional; default: ``1``) A',
            '   * - b',
-           '     - [b1, b2]',
+           "     - ['b1', 'b2']",
            '     - (optional; default: ``\'b1\'``) Foo:',
            '       ',
            '         - bar',

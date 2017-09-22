@@ -94,7 +94,7 @@ def WriteTestArgs(args, out):
 
     def FormatArgType(arg_type):
       if isinstance(arg_type, Enum):
-        return '[' + ', '.join(str(x) for x in sorted(arg_type)) + ']'
+        return repr(sorted(arg_type))
       elif arg_type == type(None):
         return 'None'
       else:
