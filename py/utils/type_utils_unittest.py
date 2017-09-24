@@ -131,6 +131,34 @@ class LazyPropertyTest(unittest.TestCase):
     self.assertEqual(obj.derived_prop, 789)
 
 
+class LazyObjectTest(unittest.TestCase):
+
+  class BaseClass(object):
+
+    def __init__(self, output):
+      self.x = 0
+      self.output = output
+      self.output['init'] = True
+
+    def inc(self):
+      self.x += 1
+      self.output['inc'] = True
+
+  def testLazyCreation(self):
+    o = {}
+    a = type_utils.LazyObject(self.BaseClass, o)
+    self.assertEqual(o.get('init'), None)
+    self.assertEqual(a.x, 0)
+    self.assertEqual(o.get('init'), True)
+
+  def testVariableMember(self):
+    o = {}
+    a = type_utils.LazyObject(self.BaseClass, o)
+    self.assertEqual(a.x, 0)
+    a.inc()
+    self.assertEqual(a.x, 1)
+
+
 class UniqueSetTest(unittest.TestCase):
   def setUp(self):
     self.container = type_utils.UniqueStack()

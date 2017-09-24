@@ -23,8 +23,8 @@ from cros.factory.test.env import paths
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import translation
-from cros.factory.utils import file_utils
 from cros.factory.utils import shelve_utils
+from cros.factory.utils import log_utils
 from cros.factory.utils import type_utils
 from cros.factory.utils import sys_utils
 
@@ -39,42 +39,10 @@ ALL = 'all'
 INF = float('inf')
 
 
-class Console(object):
-  """A wrapper for sending messages to UI global console using Logger API."""
-
-  def __init__(self, log_path=None, level=logging.INFO):
-    self._logger = None
-    self._level = level
-    self._log_path = log_path or paths.CONSOLE_LOG_PATH
-
-  def _InitLogger(self):
-    file_utils.TryMakeDirs(os.path.dirname(self._log_path))
-
-    # Note: delay=True is used here, to prevent console log file being
-    #       created at module-loading time.
-    handler = logging.FileHandler(self._log_path, 'a', delay=True)
-    log_format = '[%(levelname)s] %(message)s'
-
-    # TODO(hungte) Move test_path logic to a 'test environment' module.
-    test_path = os.environ.get('CROS_FACTORY_TEST_PATH')
-    if test_path:
-      log_format = test_path + ': ' + log_format
-    handler.setFormatter(logging.Formatter(log_format))
-
-    ret = logging.getLogger('console')
-    ret.addHandler(handler)
-    ret.setLevel(self._level)
-    return ret
-
-  def __getattr__(self, name):
-    if not self._logger:
-      self._logger = self._InitLogger()
-    attr = getattr(self._logger, name)
-    setattr(self, name, attr)
-    return attr
-
-
-console = Console()
+console = type_utils.LazyObject(
+    log_utils.FileLogger, 'console', paths.CONSOLE_LOG_PATH,
+    os.environ.get('CROS_FACTORY_TEST_PATH'))
+"""A wrapper for sending messages to UI global console using Logger API."""
 
 
 class Hooks(object):

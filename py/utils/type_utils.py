@@ -319,6 +319,23 @@ class LazyProperty(object):
     setattr(obj, cls.PROP_NAME_PREFIX + prop_name, value)
 
 
+class LazyObject(object):
+  """A proxy object for creating an object on demand.."""
+
+  def __init__(self, constructor, *args, **kargs):
+    self._proxy_constructor = lambda: constructor(*args, **kargs)
+    self._proxy_object = None
+
+  def __getattr__(self, name):
+    if self._proxy_constructor is not None:
+      self._proxy_object = self._proxy_constructor()
+      self._proxy_constructor = None
+    attr = getattr(self._proxy_object, name)
+    # We can't do 'setattr' here to speed up processing because the members in
+    # the proxy object may be volatile.
+    return attr
+
+
 class UniqueStack(object):
   """ A data structure very similar to a stack, but objects inside are unique.
 
