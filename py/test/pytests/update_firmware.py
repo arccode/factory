@@ -179,6 +179,8 @@ class UpdateFirmwareTest(unittest.TestCase):
 
   def runTest(self):
     if self.args.download_from_server:
+      # The temporary folder will not be removed after this test finished
+      # for the convenient of debugging.
       self.args.firmware_updater = os.path.join(tempfile.mkdtemp(),
                                                 _FIRMWARE_UPDATER_NAME)
       if not self.DownloadFirmware():
