@@ -127,6 +127,8 @@ def FactoryTest(*args, **kwargs):
       (within the Goofy process).
     dargs: pytest arguments.
     parallel: Whether the subtests should run in parallel.
+    layout: The layout to be used for parallel test. Should be either a string
+      or a dict like {"type": "tiled", "options": {"rows": 1, "columns": 2}}.
     subtests: A list of tests to run inside this test.  In order
       to make conditional construction easier, this may contain None items
       (which are removed) or nested arrays (which are flattened).

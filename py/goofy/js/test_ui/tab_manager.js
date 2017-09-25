@@ -57,18 +57,18 @@ cros.factory.testUI.TabManager = class {
      * Map from test path to iframe.
      * @type {!Object<string, !HTMLIFrameElement>}
      */
-    this.pathIFrameMap = {};
+    this.pathIFrameMap = Object.create(null);
 
     /**
      * Map from test path to tab.
      * @type {!Object<string, !goog.ui.Tab>}
      */
-    this.pathTabMap = {};
+    this.pathTabMap = Object.create(null);
 
     goog.events.listen(this.tabBar, goog.ui.Component.EventType.SELECT, () => {
       const selectedTab = this.tabBar.getSelectedTab();
       const testPath =
-          goog.object.findKey(this.pathTabMap, (t) => t == selectedTab);
+          goog.object.findKey(this.pathTabMap, (t) => t === selectedTab);
       goog.asserts.assert(testPath, 'Got select event with non-exist tab!');
       if (this.selectedPath) {
         this._setTestVisible(this.selectedPath, false);
@@ -86,6 +86,14 @@ cros.factory.testUI.TabManager = class {
   setOptions(options) {}
 
   /**
+   * Dispose the manager and remove all related UI.
+   */
+  dispose() {
+    this.tabBar.dispose();
+    this.mainContainer.remove();
+  }
+
+  /**
    * Add a test iframe to the manager.
    * @param {string} path
    * @param {!cros.factory.i18n.TranslationDict} label
@@ -100,7 +108,7 @@ cros.factory.testUI.TabManager = class {
     this.pathTabMap[path] = tab;
     this.pathIFrameMap[path] = iframe;
 
-    if (this.tabBar.getChildCount() == 1) {
+    if (this.tabBar.getChildCount() === 1) {
       tab.setSelected(true);
     }
   }
@@ -116,7 +124,7 @@ cros.factory.testUI.TabManager = class {
     this.mainContainer.removeChild(this.pathIFrameMap[path]);
     delete this.pathIFrameMap[path];
 
-    if (path == this.selectedPath) {
+    if (path === this.selectedPath) {
       this.selectedPath = null;
     }
     this.callbacks.notifyTestVisible(path, false);
@@ -154,6 +162,6 @@ cros.factory.testUI.TabManager = class {
    * @return {boolean}
    */
   isVisible(path) {
-    return path == this.selectedPath;
+    return path === this.selectedPath;
   }
 };

@@ -558,7 +558,8 @@ class Goofy(GoofyBase):
         self._run_test(test, test.iterations, test.retries)
       return  # to leave while
 
-  def _run_test(self, test, iterations_left=None, retries_left=None):
+  def _run_test(self, test, iterations_left=None, retries_left=None,
+                set_layout=True):
     """Invokes the test.
 
     The argument `test` should be either a leaf test (no subtests) or a parallel
@@ -566,6 +567,13 @@ class Goofy(GoofyBase):
     """
     if not self._ui_initialized and not test.IsNoHost():
       self.init_ui()
+
+    if set_layout:
+      self.event_client.post_event(
+          Event(
+              Event.Type.SET_TEST_UI_LAYOUT,
+              layout_type=test.layout_type,
+              layout_options=test.layout_options))
 
     if test.IsLeaf():
       invoc = TestInvocation(
@@ -595,7 +603,8 @@ class Goofy(GoofyBase):
 
         # Make sure we don't need to skip it:
         if not self.test_list_iterator.CheckSkip(subtest):
-          self._run_test(subtest, subtest.iterations, subtest.retries)
+          self._run_test(subtest, subtest.iterations, subtest.retries,
+                         set_layout=False)
     else:
       # This should never happen, there must be something wrong.
       # However, we can't raise an exception, otherwise goofy will be closed

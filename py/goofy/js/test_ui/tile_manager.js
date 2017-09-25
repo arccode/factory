@@ -42,7 +42,7 @@ cros.factory.testUI.TileManager = class {
      * Map from test path to the block.
      * @type {!Object<string, !Element>}
      */
-    this.pathBlockMap = {};
+    this.pathBlockMap = Object.create(null);
 
     /**
      * The order of tests displayed.
@@ -55,7 +55,7 @@ cros.factory.testUI.TileManager = class {
      * Would be updated in _redraw().
      * @type {!Object<string, boolean>}
      */
-    this.pathVisibleMap = {};
+    this.pathVisibleMap = Object.create(null);
 
     /**
      * Number of rows in the layout.
@@ -76,9 +76,16 @@ cros.factory.testUI.TileManager = class {
    */
   setOptions(options) {
     const typedOptions =
-        /** @type {{rows: number, columns: number}} */ (options);
+        /** @type {{rows: ?number, columns: ?number}} */ (options);
     const {rows, columns} = typedOptions;
-    this._setLayoutSize(rows, columns);
+    this._setLayoutSize(rows || 2, columns || 2);
+  }
+
+  /**
+   * Dispose the manager and remove all related UI.
+   */
+  dispose() {
+    this.mainContainer.remove();
   }
 
   /**

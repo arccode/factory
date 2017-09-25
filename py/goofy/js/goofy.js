@@ -436,8 +436,7 @@ cros.factory.Invocation = class {
 
     this.iframe.classList.add('goofy-test-iframe');
 
-    const label = this.goofy.pathTestMap[this.path].label;
-    this.goofy.testUIManager.addTestUI(this.path, label, this.iframe);
+    this.goofy.addInvocationUI(this);
 
     // TODO(pihsun): Remove this.
     this.iframe.contentWindow.$ = (/** string */ id) =>
@@ -464,7 +463,7 @@ cros.factory.Invocation = class {
   dispose() {
     goog.log.info(cros.factory.logger, `Cleaning up invocation ${this.uuid}`);
 
-    this.goofy.testUIManager.removeTestUI(this.path);
+    this.goofy.removeInvocationUI(this);
     this.iframe.remove();
     this.goofy.invocations.delete(this.uuid);
 
@@ -720,6 +719,12 @@ cros.factory.Goofy = class {
      */
     this.testUIManager = null;
 
+    /**
+     * The type of UI manager.
+     * @type {?string}
+     */
+    this.testUIManagerType = null;
+
     // Set up magic keyboard shortcuts.
     goog.events.listen(
         window, goog.events.EventType.KEYDOWN, this.keyListener, true, this);
@@ -915,13 +920,56 @@ cros.factory.Goofy = class {
       goog.Timer.callOnce(this.focusInvocation, 0, this);
     });
 
-    this.testUIManager = new cros.factory.testUI.TabManager(
-        goog.asserts.assertElement(
-            document.getElementById('goofy-test-ui-main')),
-        this.createTestUICallbacks());
+    this.setTestUILayout('tab', {});
 
     this.console =
         goog.asserts.assertElement(document.getElementById('goofy-console'));
+  }
+
+  /**
+   * Sets the test UI layout to use.
+   * @param {string} type the type of layout, should be ['tab', 'tiled'].
+   * @param {!Object} options
+   */
+  setTestUILayout(type, options) {
+    goog.asserts.assert(['tab', 'tiled'].includes(type));
+    goog.asserts.assert(this.invocations.size === 0);
+    if (type !== this.testUIManagerType) {
+      if (this.testUIManager) {
+        this.testUIManager.dispose();
+      }
+
+      const testUIMainDiv = goog.asserts.assertElement(
+          document.getElementById('goofy-test-ui-main'));
+
+      if (type === 'tab') {
+        this.testUIManager = new cros.factory.testUI.TabManager(
+            testUIMainDiv, this.createTestUICallbacks());
+      } else if (type === 'tiled') {
+        this.testUIManager = new cros.factory.testUI.TileManager(
+            testUIMainDiv, this.createTestUICallbacks());
+      }
+      this.testUIManagerType = type;
+    }
+    this.testUIManager.setOptions(options);
+  }
+
+  /**
+   * Add the invocation to UI manager.
+   * @param {!cros.factory.Invocation} invocation
+   */
+  addInvocationUI(invocation) {
+    const {path, iframe} = invocation;
+    const label = this.pathTestMap[path].label;
+    this.testUIManager.addTestUI(path, label, iframe);
+  }
+
+  /**
+   * Remove the invocation to UI manager.
+   * @param {!cros.factory.Invocation} invocation
+   */
+  removeInvocationUI(invocation) {
+    this.testUIManager.removeTestUI(invocation.path);
   }
 
   /**
@@ -3041,6 +3089,13 @@ cros.factory.Goofy = class {
       }
       case 'goofy:hide_tooltips': {
         this.hideTooltips();
+        break;
+      }
+      case 'goofy:set_test_ui_layout': {
+        const message =
+            /** @type {{layout_type: string, layout_options: !Object}} */ (
+                untypedMessage);
+        this.setTestUILayout(message.layout_type, message.layout_options);
         break;
       }
     }

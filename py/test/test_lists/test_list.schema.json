@@ -45,6 +45,9 @@
         "label": {
           "type": ["string", "object"]
         },
+        "layout": {
+          "$ref": "#/definitions/test_ui_layout"
+        },
         "locals": {
           "$ref": "#/definitions/test_constants",
           "type": "object"
@@ -91,6 +94,15 @@
           "type": "string"
         }
       },
+      "dependencies": {
+        "layout": {
+          "properties": {
+            "parallel": {
+              "enum": [true]
+            }
+          }
+        }
+      },
       "additionalProperties": false
     },
     "test_options": {
@@ -119,6 +131,29 @@
           "items": {
             "$ref": "#/definitions/test_constants"
           }
+        }
+      ]
+    },
+    "test_ui_layout_type": {
+      "type": "string",
+      "enum": ["tab", "tiled"]
+    },
+    "test_ui_layout": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/test_ui_layout_type"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "$ref": "#/definitions/test_ui_layout_type"
+            },
+            "options": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false
         }
       ]
     }

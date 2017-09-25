@@ -86,6 +86,8 @@ class Event(object):
       'KEEPALIVE': 'goofy:keepalive',
       # Initializes the test UI.
       'INIT_TEST_UI': 'goofy:init_test_ui',
+      # Sets layout for the test UI.
+      'SET_TEST_UI_LAYOUT': 'goofy:set_test_ui_layout',
       # Sets the UI in the test pane.
       'SET_HTML': 'goofy:set_html',
       # Runs JavaScript in the test pane.

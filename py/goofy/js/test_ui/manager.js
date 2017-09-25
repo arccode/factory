@@ -29,6 +29,11 @@ cros.factory.testUI.Manager = class {
   setOptions(options) {}
 
   /**
+   * Dispose the manager and remove all related UI.
+   */
+  dispose() {}
+
+  /**
    * Add a test iframe to the manager.
    * @param {string} path
    * @param {!cros.factory.i18n.TranslationDict} label

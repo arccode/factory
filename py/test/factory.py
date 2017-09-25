@@ -554,6 +554,7 @@ class FactoryTest(object):
                finish=None,
                waived=False,
                parallel=False,
+               layout=None,
                action_on_failure=None,
                _root=None):
     """Constructor.
@@ -588,6 +589,13 @@ class FactoryTest(object):
     else:
       self.exclusive_resources = exclusive_resources or []
     self._parallel = parallel
+    layout = layout or {}
+    if isinstance(layout, str):
+      self.layout_type = layout
+      self.layout_options = {}
+    else:
+      self.layout_type = layout.get('type', 'tab')
+      self.layout_options = layout.get('options', {})
     self.action_on_failure = action_on_failure or self.ACTION_ON_FAILURE.NEXT
     if isinstance(enable_services, str):
       self.enable_services = [enable_services]
