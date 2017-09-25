@@ -1,9 +1,11 @@
 Umpire
 ======
 
-Umpire stands for *Unified MES Proxy, Imaging, and Reimaging Engine*. It is
-designed to be the replacement of Mini-Omaha server and Shopfloor (proxy) for
-Google ChromeOS Factory Software Platform.
+Umpire, standing for *Unified MES Proxy, Imaging, and Reimaging Engine*, is an
+unified service management framework to serve Chrome devices' manufacturing
+process, including image downloading, factory testing, finalization, and
+event/report uploading. It is designed to be the replacement of Mini-Omaha
+server and Shopfloor (proxy) for Google ChromeOS Factory Software Platform.
 
 Umpire is created as a command-line tool. A web-based management console (with
 better deployment process) is created as standalone project *Dome*.
