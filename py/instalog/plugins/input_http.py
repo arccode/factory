@@ -34,6 +34,11 @@ import shutil
 import tempfile
 import threading
 
+try:
+  import cStringIO as StringIO
+except ImportError:
+  import StringIO
+
 import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
 from instalog.external import gnupg
@@ -48,6 +53,48 @@ from instalog.utils import time_utils
 
 _HTTP_SUMMARY_INTERVAL = 60  # 60sec
 _DEFAULT_HOSTNAME = '0.0.0.0'
+
+
+class InstalogFieldStorage(cgi.FieldStorage):
+  """A special version of FieldStorage dedicated for Instalog plugins.
+
+  This class always reads 'events' into memory, and attachments into disk.
+
+  Note curreny implementation is using few internal functions and variables from
+  Python 2.7 cgi module, and may not work for different Python versions.
+  """
+
+  def __init__(self, tmp_dir, *args, **kargs):
+    self.tmp_dir = tmp_dir
+    self.FieldStorageClass = lambda *args, **kargs: InstalogFieldStorage(
+        self.tmp_dir, *args, **kargs)
+    cgi.FieldStorage.__init__(self, *args, **kargs)
+
+  def read_lines(self):
+    # Never use fast cache (__file) and always use make_file.
+    # pylint: disable=attribute-defined-outside-init
+    self._FieldStorage__file = None
+    self.file = self.make_file()
+    if self.outerboundary:
+      self.read_lines_to_outerboundary()
+    else:
+      self.read_lines_to_eof()
+
+  def make_file(self, binary=None):
+    """Always use memory.
+
+    When the content is larger than 1k, FieldStorage will call make_file to
+    create a real file on disk for. For Instalog, we want to always use
+    in-memory buffer. Note there will still be one copy in __write, but
+    there won't be system calls for creating or deleting files (and no fd used).
+    """
+    del binary  # Unused.
+    if not self.name or self.name == 'event':
+      return StringIO.StringIO()
+
+    # Save attachments.
+    return tempfile.NamedTemporaryFile(
+        'wb', prefix=self.name + '_', dir=self.tmp_dir, delete=False)
 
 
 class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
@@ -115,7 +162,8 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     """
     events = []
     try:
-      form = cgi.FieldStorage(
+      form = InstalogFieldStorage(
+          tmp_dir=tmp_dir,
           fp=self.rfile,
           headers=self.headers,
           environ={'REQUEST_METHOD': 'POST'}
@@ -148,13 +196,13 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
             raise ValueError('Attachment(%s) should be used by one event' %
                              att_key)
           remaining_att.remove(att_key)
-          event.attachments[att_id] = self._RecvAttachment(form[att_key],
-                                                           tmp_dir)
+          event.attachments[att_id] = form[att_key].file.name
           if self._gpg:
             self._DecryptFile(event.attachments[att_id], tmp_dir)
 
         self._check_format(event)
         events.append(event)
+      del form  # Free memory earlier.
       if remaining_att:
         raise ValueError('Additional fields: %s' % list(remaining_att))
     except Exception as e:
@@ -168,19 +216,6 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     else:
       self.warning('Emit failed')
       return 400, 'Bad request: Emit failed'
-
-  def _RecvAttachment(self, data, target_dir):
-    """Receives attachment and saves it as temporary file in target_dir."""
-    with tempfile.NamedTemporaryFile(
-        'w', prefix=data.name + '_', dir=target_dir, delete=False) as f:
-      if data.file:
-        shutil.copyfileobj(data.file, f)
-      # cgi.MiniFieldStorage does not have attribute 'file', since it stores
-      # the binary data in-memory.
-      else:
-        f.write(data.value)
-      self.debug('Temporary save the attachment to: %s', f.name)
-      return f.name
 
   def _CheckDecryptedData(self, decrypted_data):
     """Checks if the data is decrypted and verified."""
