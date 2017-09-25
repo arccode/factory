@@ -59,26 +59,31 @@
   flex: none;
   padding: 0 8px;
   display: flex;
-  justify-content: space-between;
+  min-height: min-content;
+  max-height: 3em;
+  height: 10vh;
 }
 
 .template-button-container button {
-  width: 72px;
-  height: 52px;
-  margin: 4px;
-  padding: 4px;
+  max-width: 8ch;
+  min-height: min-content;
+  margin: 2px;
+  padding: 0;
+  border: 0;
+  font-size: 1em;
+}
+
+.template-button-container button span {
+  line-height: 1;
 }
 
 #virtualkey-button-container {
   display: flex;
-  width: 100%;
+  flex: 1;
 }
 
 #virtualkey-button-container button {
-  font-size: 18px;
-  width: auto;
-  max-width: 72px;
-  flex-basis: 100%;
+  flex: 1 1 100%;
 }
 
 /* For progress bar */
