@@ -28,6 +28,7 @@ main() {
 
   if [ ! -d "${overlay}" ]; then
     # Safely migrate from existing (or newly created) /var/factory.
+    mkdir -p "$(dirname "${overlay}")"
     mv "${dest}" "${overlay}"
     mkdir -p "${dest}"
   fi
