@@ -39,8 +39,8 @@ _HTML_KEYBOARD = '<br>\n'.join([
 
 _KEYBOARD_TEST_DEFAULT_CSS = (
     '.test-info { font-size: 1.4em; }\n'
-    '#expected-sequence { color: grey; font-size: 1.4em }\n'
-    '#matched-sequence { color: black; font-size: 1.4em }\n')
+    '#expected-sequence { color: grey; font-size: 1.4em; }\n'
+    '#matched-sequence { color: black; font-size: 1.4em; }\n')
 
 
 class KeyboardSMTTest(unittest.TestCase):

@@ -97,7 +97,7 @@ _WIFI_TIMEOUT_SECS = 20
 _DEFAULT_POLL_INTERVAL_SECS = 1
 _IPERF_TIMEOUT_SECS = 5
 
-_DEFAULT_WIRELESS_TEST_CSS = '.wireless-info {font-size: 2em;}'
+_DEFAULT_WIRELESS_TEST_CSS = '.wireless-info { font-size: 2em; }'
 
 _MSG_SPACE = i18n_test_ui.MakeI18nLabelWithClass(
     'Please wait for other DUTs to finish WiFiThroughput test, '

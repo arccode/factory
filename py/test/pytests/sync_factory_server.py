@@ -104,11 +104,11 @@ from cros.factory.utils import debug_utils
 
 _CSS = """
 #state {
-  font-size: 200%;
+  font-size: 2em;
 }
 
 .sync-detail {
-  font-size: 40%;
+  font-size: 0.4em;
   width: 75%;
   margin-left: 12.5%;
   padding-top: 2em;

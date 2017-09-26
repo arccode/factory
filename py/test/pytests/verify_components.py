@@ -58,7 +58,7 @@ class VerifyComponentsTest(unittest.TestCase):
 
     if self.args.with_goofy:
       self._ui = test_ui.UI()
-      self._ui.AppendCSS('.progress-message {font-size: 2em;}')
+      self._ui.AppendCSS('.progress-message { font-size: 2em; }')
       self.template = ui_templates.OneSection(self._ui)
 
   def tearDown(self):

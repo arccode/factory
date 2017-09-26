@@ -117,9 +117,7 @@
 
 #diagnosis-tool .goog-checkbox {
   border: 1px solid #1C5180;
-  display: -moz-inline-box;
   display: inline-block;
-  font-size: 1px;  /* Fixes the height in IE6 */
   height: 11px;
   margin: 0 4px 0 1px;
   vertical-align: text-bottom;

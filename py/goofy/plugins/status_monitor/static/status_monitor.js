@@ -159,7 +159,7 @@ statusMonitor.Status = class {
     const table = goog.html.SafeHtml.create('table', {id: 'system-info'}, rows);
     goog.dom.safe.setInnerHtml(this.infoTooltip, table);
     $(this.infoTooltip).find('th, td').css({
-      'font-size': '75%',
+      'font-size': '0.75em',
       'text-align': 'left',
       'padding': '0 .1em 0 .1em',
       'white-space': 'nowrap'

@@ -43,7 +43,7 @@ EDIDS = {
         ('1920x1080', '60Hz'): 'HDMI_1920x1080_60Hz',
     }
 }
-DEFAULT_CSS = 'body { font-size: 32px; }'
+DEFAULT_CSS = 'body { font-size: 2em; }'
 
 
 class Chameleon(object):

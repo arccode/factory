@@ -151,7 +151,7 @@ class CheckWifiCalibrationTest(unittest.TestCase):
         i18n_test_ui.MakeI18nLabel("Calibration data doesn't meet requirement"))
     template.SetState(
         '<div class=test-status-failed '
-        'style="font-size: 100%; white-space: pre-wrap">' +
+        'style="white-space: pre-wrap">' +
         '2.4G = %s\n' % pprint.pformat(low_band_table, width=200) +
         '5G = %s\n' % pprint.pformat(high_band_table, width=200) +
         '</div>')

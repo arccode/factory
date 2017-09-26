@@ -66,13 +66,13 @@ _CSS = """
   background-image: url('/images/active.gif');
   background-repeat: no-repeat;
   padding-left: 18px;
-  font-size: 12px;
+  font-size: 0.75em;
   color: gray;
 }
 #errormsg {
   margin-top: 12px;
   min-height: 2em;
-  font-size: 150%;
+  font-size: 1.5em;
 }
 """
 

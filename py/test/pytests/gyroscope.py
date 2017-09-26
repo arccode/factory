@@ -54,9 +54,9 @@ _MSG_FAIL = i18n_test_ui.MakeI18nLabelWithClass('FAIL', 'test-fail')
 _BR = '<br>'
 
 _CSS = """
-  .test-info {font-size: 2em;}
-  .test-pass {font-size: 2em; color:green;}
-  .test-fail {font-size: 2em; color:red;}
+  .test-info { font-size: 2em; }
+  .test-pass { font-size: 2em; color: green; }
+  .test-fail { font-size: 2em; color: red; }
 """
 
 

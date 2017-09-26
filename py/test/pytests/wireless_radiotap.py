@@ -44,7 +44,7 @@ try:
 except ImportError:
   pass
 
-_DEFAULT_WIRELESS_TEST_CSS = '.wireless-info {font-size: 2em;}'
+_DEFAULT_WIRELESS_TEST_CSS = '.wireless-info { font-size: 2em; }'
 
 _MSG_SWITCHING_AP = lambda ap: i18n_test_ui.MakeI18nLabelWithClass(
     'Switching to AP {ap}: ', 'wireless-info', ap=ap)

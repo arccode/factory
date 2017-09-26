@@ -152,7 +152,7 @@ _KNOWN_KEY_LABELS = {
 }
 
 # UI elements
-_DEFAULT_TEST_CSS = '.value-field {font-size: 2em;}'
+_DEFAULT_TEST_CSS = '.value-field { font-size: 2em; }'
 _ERR_INPUT_INVALID = lambda label: i18n_test_ui.MakeI18nLabelWithClass(
     'Invalid value for {label}.', 'value-field test-error', label=label)
 _ERR_NO_VALID_DATA = lambda label: i18n_test_ui.MakeI18nLabelWithClass(

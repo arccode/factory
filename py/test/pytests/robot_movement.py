@@ -65,8 +65,8 @@ from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
-_TEST_CSS = ('.info {font-size: 2em;}'
-             '.warn {font-size: 3em; color: red;}')
+_TEST_CSS = ('.info { font-size: 2em; }'
+             '.warn { font-size: 3em; color: red; }')
 
 _MSG_INIT = i18n_test_ui.MakeI18nLabelWithClass('Initializing Robot...', 'info')
 

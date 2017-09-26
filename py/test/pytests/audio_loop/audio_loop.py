@@ -145,7 +145,7 @@ _DEFAULT_TRIM_SECONDS = 0.5
 
 _UI_HTML = ("""
 <h1 id="message" style="position:absolute; top:45%">
-<center style="font-size: 20pt">
+<center style="font-size: 1.25em">
     <div id="test_title">
     </div>
     <div id="require_dongle">

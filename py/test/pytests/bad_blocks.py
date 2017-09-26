@@ -35,8 +35,8 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 
 HTML = """
-<div id="bb-phase" style="font-size: 200%"></div>
-<div id="bb-status" style="font-size: 150%"></div>
+<div id="bb-phase" style="font-size: 2em"></div>
+<div id="bb-status" style="font-size: 1.5em"></div>
 <div id="bb-progress"></div>
 """
 

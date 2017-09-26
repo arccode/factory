@@ -77,7 +77,7 @@ from cros.factory.utils import sync_utils
 
 _DIV_CENTER_INSTRUCTION = """
 <div id='instruction-center' class='template-instruction'></div>"""
-_CSS = '#pass_key {font-size:36px; font-weight:bold;}'
+_CSS = '#pass_key { font-size: 2.25em; font-weight: bold; }'
 
 _INSTRUCTION_AUDIO_RANDOM_TEST = lambda device, key: i18n_test_ui.MakeI18nLabel(
     'Press the number you hear from {device} to pass the test.<br>'

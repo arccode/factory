@@ -32,7 +32,7 @@ from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
-_DEFAULT_WIRELESS_TEST_CSS = '.wireless-info {font-size: 2em;}'
+_DEFAULT_WIRELESS_TEST_CSS = '.wireless-info { font-size: 2em; }'
 
 _MSG_SWITCHING_ANTENNA = lambda antenna: i18n_test_ui.MakeI18nLabelWithClass(
     'Switching to antenna {antenna}: ', 'wireless-info', antenna=antenna)

@@ -5,9 +5,9 @@
  */
 
 .display-caption {
-  text-align : center;
-  font-size : 35;
-  position : relative; }
+  text-align: center;
+  font-size: 2.25em;
+  position: relative; }
 .display-table {
   margin-left: auto;
   margin-right: auto;

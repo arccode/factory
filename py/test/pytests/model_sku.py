@@ -80,7 +80,7 @@ _TABLE_CSS = '''
 }
 
 #state {
-  font-size: 150%;
+  font-size: 1.5em;
 }
 '''
 

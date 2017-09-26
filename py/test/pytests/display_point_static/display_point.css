@@ -27,9 +27,9 @@
   text-align: center;
 }
 .display-point-caption {
-  text-align : center;
-  font-size : 35;
-  position : relative; }
+  text-align: center;
+  font-size: 2.25em;
+  position: relative; }
 .display-full-screen-hide {
   background-color: white;
   position: fixed;

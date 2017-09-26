@@ -91,7 +91,7 @@ class MemorySize(unittest.TestCase):
   def setUp(self):
     self._event = threading.Event()
     self.ui = test_ui.UI()
-    self.ui.AppendCSS('.large { font-size: 200% }')
+    self.ui.AppendCSS('.large { font-size: 2em; }')
     self.template = ui_templates.OneSection(self.ui)
 
   def Done(self):

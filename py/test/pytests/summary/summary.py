@@ -110,7 +110,7 @@ th, td {
 }
 
 .prompt_message {
-  font-size: 200%;
+  font-size: 2em;
 }
 """
 
@@ -239,7 +239,7 @@ class Report(unittest.TestCase):
         '<br>',
         i18n_test_ui.MakeI18nLabel(
             'Test Status for {test}:', test=test.parent.path),
-        '<div class="test-status-%s" style="font-size: 300%%">%s</div>' %
+        '<div class="test-status-%s" style="font-size: 3em">%s</div>' %
         (overall_status, test_ui.MakeStatusLabel(overall_status)),
         '<div id="test-status-table-container"><table>'
     ] + table + ['</table></div>']

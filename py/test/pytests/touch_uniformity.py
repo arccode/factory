@@ -56,9 +56,9 @@ _MESSAGE_DELAY_SECS = 1
 _BR = '<br>'
 
 _CSS = """
-  .test-info {font-size: 2em;}
-  .test-pass {font-size: 2em; color:green;}
-  .test-fail {font-size: 2em; color:red;}
+  .test-info { font-size: 2em; }
+  .test-pass { font-size: 2em; color: green; }
+  .test-fail { font-size: 2em; color: red; }
 """
 
 CheckItem = collections.namedtuple(

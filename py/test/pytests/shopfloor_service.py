@@ -146,7 +146,7 @@ class ShopfloorService(unittest.TestCase):
     self.dut = device_utils.CreateDUTInterface()
     self.event = threading.Event()
     self.ui = test_ui.UI()
-    self.ui.AppendCSS('.large { font-size: 200% }')
+    self.ui.AppendCSS('.large { font-size: 2em; }')
     self.template = ui_templates.OneSection(self.ui)
 
   def runTest(self):

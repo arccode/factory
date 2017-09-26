@@ -90,7 +90,7 @@ from cros.factory.utils.arg_utils import Arg
 
 _DIV_CENTER_INSTRUCTION = """
 <div id='instruction-center' class='template-instruction'></div>"""
-_CSS = '#pass_key {font-size:36px; font-weight:bold;}'
+_CSS = '#pass_key { font-size: 2.25em; font-weight: bold; }'
 
 # Interval (seconds) of probing connection state.
 _CONNECTION_CHECK_PERIOD_SECS = 2

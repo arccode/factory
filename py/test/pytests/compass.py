@@ -26,7 +26,7 @@ _COMPASS_CSS = """
   height: 300px;
   border: 2px solid black;
   border-radius: 50%;
-  font-size: 200%;
+  font-size: 2em;
   margin: auto;
   position: relative
 }
