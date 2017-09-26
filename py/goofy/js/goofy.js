@@ -917,7 +917,7 @@ cros.factory.Goofy = class {
     // Whenever we get focus, try to focus any visible iframe (if no modal
     // dialog is visible).
     goog.events.listen(window, goog.events.EventType.FOCUS, () => {
-      goog.Timer.callOnce(this.focusInvocation, 0, this);
+      this.focusInvocation();
     });
 
     this.setTestUILayout('tab', {});
@@ -985,7 +985,9 @@ cros.factory.Goofy = class {
       for (const i of this.invocations.values()) {
         if (i && i.iframe && this.testUIManager.isVisible(i.path)) {
           i.iframe.focus();
-          i.iframe.contentWindow.focus();
+          setTimeout(() => {
+            i.iframe.contentWindow.focus();
+          }, 0);
           break;
         }
       }
@@ -1370,7 +1372,7 @@ cros.factory.Goofy = class {
     });
 
     goog.events.listen(dialog, goog.ui.Component.EventType.HIDE, () => {
-      goog.Timer.callOnce(this.focusInvocation.bind(this));
+      this.focusInvocation();
       goog.array.remove(this.dialogs, dialog);
     });
   }
@@ -2961,6 +2963,7 @@ cros.factory.Goofy = class {
           invocation.iframe.onload = () => {
             this.fixSelectElements(doc);
           };
+          this.testUIManager.onInitTestUI(invocation.path);
           // In the content window's evaluation context, add our keydown
           // listener.
           invocation.iframe.contentWindow.eval(

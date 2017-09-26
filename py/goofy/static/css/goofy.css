@@ -816,6 +816,10 @@ button {
   background: #dddddd;
 }
 
+.goofy-tile-main-container .goofy-tile-block .goofy-tile-title.focused {
+  background: #aaaaaa;
+}
+
 .goofy-tile-main-container .goofy-tile-block iframe {
   flex: 1;
 }
