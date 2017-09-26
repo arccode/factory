@@ -22,7 +22,8 @@ class GoofyJSTest(unittest.TestCase):
         ['make', '-C', static_dir, 'check_js'], stderr=subprocess.STDOUT)
     self.assertNotIn(
         ' WARNING ', output,
-        "There's warning in closure compiler output, please fix them.")
+        "There's warning in closure compiler output, please fix them.\n"
+        'output:\n%s' % output)
 
 
 if __name__ == '__main__':
