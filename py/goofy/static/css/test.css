@@ -6,6 +6,55 @@
 
 /* Declarations useful in test UI. */
 
+/* Dynamically adjust the base font size with the size of the viewport, so
+ * test looks better on small area (for example, tiled layout.)
+ *
+ * On default browser setting, 1rem = 16px, and this CSS rule would set the
+ * base font size linearly to the viewport width and viewport height.
+ *
+ * font-size =
+ *   0.6rem * min(1, max(0.625, height / 32rem)) +
+ *   0.4rem * min(1, max(0.625, width / 48rem))
+ *
+ * So the font size would be at 1rem (16px) maximum when viewport size is
+ * larger than 768 x 512, and at 0.625rem (10px) minimum when viewport size is
+ * smaller than 480 x 320.
+ *
+ * Since CSS doesn't support min / max function yet, we have to manually expand
+ * the above equation using media query.
+ */
+
+html {
+  --width-font-size: calc(0.4 * 1rem);
+  --height-font-size: calc(0.6 * 1rem);
+  font-size: calc(var(--width-font-size) + var(--height-font-size));
+}
+
+@media screen and (max-width: 48rem) {
+  html {
+    --width-font-size: calc(0.4 * (1rem - 0.375 * (48rem - 100vw) / (48 - 30)));
+  }
+}
+
+@media screen and (max-width: 30rem) {
+  html {
+    --width-font-size: calc(0.4 * 0.625rem);
+  }
+}
+
+@media screen and (max-height: 32rem) {
+  html {
+    --height-font-size: calc(0.6 * (1rem - 0.375 * (32rem - 100vh) / (32 - 20)));
+  }
+}
+
+@media screen and (max-height: 20rem) {
+  html {
+    --height-font-size: calc(0.6 * 0.625rem);
+  }
+}
+
+
 th {
   text-align: left;
 }
@@ -14,6 +63,9 @@ th {
  * <div class="test-vcenter-outer"><div class="test-vcenter-inner">
  *   ... content ...
  * </div></div>
+ *
+ * Note: This is old CSS trick, new code should use flex layout to achieve the
+ * same effect.
  */
 .test-vcenter-outer {
   display: table;
