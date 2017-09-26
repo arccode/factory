@@ -661,11 +661,6 @@ cros.factory.Goofy = class {
     this.debugWindow.init();
 
     /**
-     * Key listener bound to this object.
-     */
-    this.boundKeyListener = this.keyListener.bind(this);
-
-    /**
      * Various tests lists that can be enabled in engineering mode.
      * @type {!Array<!cros.factory.TestListInfo>}
      */
@@ -2964,11 +2959,10 @@ cros.factory.Goofy = class {
             this.fixSelectElements(doc);
           };
           this.testUIManager.onInitTestUI(invocation.path);
-          // In the content window's evaluation context, add our keydown
-          // listener.
-          invocation.iframe.contentWindow.eval(
-              'window.addEventListener("keydown", ' +
-              'window.test.invocation.goofy.boundKeyListener)');
+
+          goog.events.listen(
+              invocation.iframe.contentWindow, goog.events.EventType.KEYDOWN,
+              this.keyListener.bind(this));
         }
         break;
       }
