@@ -33,7 +33,10 @@ _MSG_INSTRUCTION_SCROLL_DOWN = i18n_test_ui.MakeI18nLabel(
     'Please scroll down with the pointing device.')
 
 _CSS = """
-.pd-quarter { height: 50%; width: 50%; position: absolute; display: table;}
+.pd-quarter {
+  height: 50%; width: 50%; position: absolute;
+  display: flex; justify-content: center; align-items: center;
+}
 #pd-quarter-1 { top: 0; right: 0; }
 #pd-quarter-2 { top: 0; left: 0; }
 #pd-quarter-3 { bottom: 0; left: 0; }
@@ -54,7 +57,7 @@ def _QuarterHTML(nth_quarter):
   return string.Template(
       "<div id='$quarter_id' class='pd-quarter'\n"
       "     onmouseover='pd.quarterMouseOver(\"$quarter_id\");'>\n"
-      "  <div class='test-vcenter-inner'>$caption</div>\n"
+      "  $caption\n"
       "</div>").substitute(quarter_id='pd-quarter-%d' % nth_quarter,
                            caption=_MSG_MOVE_HERE)
 
@@ -191,7 +194,8 @@ class PointingDeviceTest(unittest.TestCase):
     ui = self._ui
     ui.AddQuarters()
     ui.AppendHTML(_INSTRUCTION_HTML)
-    ui.BindStandardKeys(bind_pass_key=False, bind_fail_key=True)
+    # pylint: disable=protected-access
+    ui._ui.BindStandardKeys(bind_pass_key=False, bind_fail_key=True)
     ui.Run()
 
   def SetXinputDeviceEnabled(self, device, enabled):

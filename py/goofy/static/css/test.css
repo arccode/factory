@@ -59,24 +59,6 @@ th {
   text-align: left;
 }
 
-/* To vertically center, use
- * <div class="test-vcenter-outer"><div class="test-vcenter-inner">
- *   ... content ...
- * </div></div>
- *
- * Note: This is old CSS trick, new code should use flex layout to achieve the
- * same effect.
- */
-.test-vcenter-outer {
-  display: table;
-  height: 100%; width: 100%;
-}
-.test-vcenter-inner {
-  display: table-cell;
-  vertical-align: middle;
-  text-align: center;
-}
-
 /* Colors for test statuses. */
 .test-status-passed {
   color: #0A0;

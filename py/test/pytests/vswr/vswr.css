@@ -1,5 +1,11 @@
 @charset "UTF-8";
 
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 #state {
   margin: 30px;
   font-size: 1.875em;
