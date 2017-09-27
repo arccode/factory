@@ -212,8 +212,6 @@ class UmpireServerProxyTest(unittest.TestCase):
     umpire_http_server_process: Process for Umpire http server.
     umpire_base_handler_process: Process for Umpire base xmlrpc handler.
     umpire_handler_process: Process for Umpire xmlrpc handler.
-    mock_resourcemap: A ResourceMapWrapper object to control which resourcemap
-      Umpire http server should serve.
   """
   umpire_http_server = None
   umpire_base_handler = None
@@ -229,8 +227,6 @@ class UmpireServerProxyTest(unittest.TestCase):
   NUMBER_OF_PORTS = 5
   UMPIRE_SERVER_URI = None
   SHOPFLOOR_SERVER_URI = None
-
-  mock_resourcemap = ResourceMapWrapper()
 
   @classmethod
   def setUpClass(cls):
@@ -344,15 +340,12 @@ class UmpireServerProxyTest(unittest.TestCase):
     self.ClearErrorFiles()
     self.mox.UnsetStubs()
 
-  def testGetResourceMapAndConnectToUmpireHandler(self):
+  def testConnectToUmpireHandler(self):
     """Inits an UmpireServerProxy and connects to Umpire xmlrpc handler."""
     umpire_client.UmpireClientInfo().AndReturn(self.fake_umpire_client_info)
-    self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO')
     self.fake_umpire_client_info.Update().AndReturn(False)
 
     self.mox.ReplayAll()
-
-    UmpireServerProxyTest.mock_resourcemap.SetPath('resourcemap1')
 
     proxy = umpire_server_proxy.UmpireServerProxy(
         server_uri=self.UMPIRE_SERVER_URI,
@@ -374,12 +367,10 @@ class UmpireServerProxyTest(unittest.TestCase):
     invoked through proxy.
     """
     umpire_client.UmpireClientInfo().AndReturn(self.fake_umpire_client_info)
-    self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO')
     self.fake_umpire_client_info.Update().AndReturn(False)
 
     self.mox.ReplayAll()
 
-    UmpireServerProxyTest.mock_resourcemap.SetPath('resourcemap1')
     # Lets base handler generates 111 Connection refused error.
     # Proxy can not decide server version at its init time.
     SetHandlerError('base_handler', 111, 'Connection refused')
@@ -428,12 +419,9 @@ class UmpireServerProxyTest(unittest.TestCase):
   def testTimeoutUmpireServerProxy(self):
     """Proxy is working with ordinary shopfloor handler."""
     umpire_client.UmpireClientInfo().AndReturn(self.fake_umpire_client_info)
-    self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO')
     self.fake_umpire_client_info.Update().AndReturn(False)
 
     self.mox.ReplayAll()
-
-    UmpireServerProxyTest.mock_resourcemap.SetPath('resourcemap1')
 
     # Uses TimeoutUmpireServerProxy with timeout set to 1.
     proxy = umpire_server_proxy.TimeoutUmpireServerProxy(

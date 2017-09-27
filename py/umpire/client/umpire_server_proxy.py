@@ -17,7 +17,6 @@ from cros.factory.test import factory
 from cros.factory.umpire.client import umpire_client
 from cros.factory.umpire import common
 from cros.factory.utils import net_utils
-from cros.factory.utils import string_utils
 
 
 class UmpireServerError(object):
@@ -62,10 +61,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
   with:
   1. Base Umpire XMLRPC handler to serve basic methods like Ping. Client can
     identify the version of server through this call.
-  2. HTTP server for resource map and other resources like device toolkit.
-    DUT needs to pass DUT info in X-Umpire-DUT in the header of GET request
-    for resource map. The replied resource map contains all resource info that
-    is suitable for DUT.
+  2. HTTP server for resources like cros_payload data.
   3. Umpire XMLRPC handler to serve methods that are not specific to bundle,
     e.g. NeedUpdate. The supported list of methods is queried by introspection.
 
@@ -197,7 +193,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     xmlrpclib.ServerProxy.__init__(self, self._umpire_handler_uri,
                                    *self._args, **self._kwargs)
     # Gets resource map and sets handlers.
-    self._RequestUmpireForResourceMapAndSetHandler()
+    self._RequestUmpireForHandler()
 
   @property
   def use_umpire(self):
@@ -263,20 +259,6 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     else:
       logging.debug('Got factory server response %r', result)
       return False
-
-  def _GetResourceMap(self):
-    """Sends a GET request to Umpire server URI and gets resource map.
-
-    Returns:
-      contents in resource map.
-    """
-    logging.debug('Getting resource map from Umpire server')
-    request = urllib2.Request(
-        '%s/resourcemap' % self._umpire_http_server_uri,
-        headers={'X-Umpire-DUT': self._umpire_client_info.GetXUmpireDUT()})
-    content = urllib2.urlopen(request).read()
-    logging.debug('Got resource map: %r', content)
-    return content
 
   def _SetUmpireUri(self):
     """Sets Umpire Handler URI.
@@ -391,49 +373,8 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     """Guesses file type by filename."""
     return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
 
-  def _ParseResourceMap(self, resource_map_content):
-    """Parses resource map and returns a dict.
-
-    The resource map contains the resources which belong to a bundle that
-    should serve this DUT. E.g.
-
-    id: 'spring_lte_fw1.44.31'
-    note: 'Bundle for Spring LTE with firmware 1.44.31'
-    payloads: 'payload.99914b932bd37a50b983c5e7c90ae93b.json'
-
-    Args:
-      resource_map_content: The content of resource map.
-
-    Returns:
-      A dict parsed from resource map.
-
-    Raises:
-      UmpireServerProxyException: If resource map is missing any
-        field in common.REQUIRED_RESOURCE_MAP_FIELDS.
-    """
-    result = string_utils.ParseDict(lines=resource_map_content.splitlines(),
-                                    delimeter=':')
-    missing_fields = common.REQUIRED_RESOURCE_MAP_FIELDS - set(result)
-    if missing_fields:
-      logging.error('Missing fields in resource map: %r', missing_fields)
-      raise UmpireServerProxyException(
-          'Missing fields in resource map: %r' % missing_fields)
-    logging.debug('Getting parsed resource map: %r', result)
-    return result
-
-  def _GetResources(self):
-    """Gets resource map from umpire and set self._resources."""
-    logging.debug('Requesting Umpire for resource map')
-    resourcemap = self._GetResourceMap()
-    self._resources = self._ParseResourceMap(resourcemap)
-
-  def _RequestUmpireForResourceMapAndSetHandler(self):
-    """Refresh supported methods and resources.
-
-    Also, update Umpire handler methods queried from Umpire handler
-    introspection.
-    """
-    self._GetResources()
+  def _RequestUmpireForHandler(self):
+    """Refresh supported methods."""
     self._umpire_methods = set(self.__request('system.listMethods', ()))
     logging.debug('Umpire server methods: %r', self._umpire_methods)
 
@@ -493,7 +434,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     # Checks if there is change in client info.
     if self._umpire_client_info.Update():
       logging.info('Client info has changed')
-      self._RequestUmpireForResourceMapAndSetHandler()
+      self._RequestUmpireForHandler()
 
     return self._CallHandler(methodname, params)
 
