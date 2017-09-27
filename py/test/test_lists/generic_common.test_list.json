@@ -133,13 +133,6 @@
         "average_rssi_threshold": -55.0
       }
     },
-    "BluetoothProbe": {
-      "inherit": "ExecShell",
-      "label": "Bluetooth Probe",
-      "args": {
-        "commands": "hciconfig hci0"
-      }
-    },
     "Button": {
       "pytest_name": "button",
       "args": {
@@ -153,13 +146,6 @@
       "inherit": "Camera",
       "args": {
         "mode": "manual"
-      }
-    },
-    "CameraProbe": {
-      "pytest_name": "usb_probe",
-      "label": "Camera Probe",
-      "args": {
-        "search_string": "Camera"
       }
     },
     "ChargeDischargeCurrent": {
@@ -493,14 +479,6 @@
     "Touchpad": {
       "pytest_name": "touchpad"
     },
-    "TouchpadProbe": {
-      "pytest_name": "i2c_probe",
-      "label": "Touchpad Probe",
-      "args": {
-        "addr": [],
-        "auto_detect_device": "Touchpad"
-      }
-    },
     "Touchscreen": {
       "pytest_name": "touchscreen",
       "args": {
@@ -511,15 +489,6 @@
     "TouchscreenFirmwareVerify": {
       "pytest_name": "verify_touch_device_fw",
       "label": "Touchscreen Firmware Verify"
-    },
-    "TouchscreenProbe": {
-      "pytest_name": "i2c_probe",
-      "label": "Touchscreen Probe",
-      "args": {
-        "addr": [],
-        "auto_detect_device": "Touchscreen",
-        "r_flag": true
-      }
     },
     "TouchscreenUniformity": {
       "pytest_name": "touch_uniformity",

@@ -210,10 +210,6 @@ msgid "HWID V3"
 msgstr ""
 
 #: ../build/pytests_label_generated.json
-msgid "I2C Probe"
-msgstr "I2C 侦测"
-
-#: ../build/pytests_label_generated.json
 msgid "Interrupt"
 msgstr "中断"
 
@@ -515,10 +511,6 @@ msgstr "乱数产生"
 #: ../build/pytests_label_generated.json
 msgid "USB"
 msgstr "USB"
-
-#: ../build/pytests_label_generated.json
-msgid "USB Probe"
-msgstr "USB 探測"
 
 #: ../build/pytests_label_generated.json
 msgid "Verify Components"
@@ -3106,14 +3098,6 @@ msgid "Barrier"
 msgstr "检查关卡"
 
 #: ../py/test/test_lists/generic_common.test_list.json
-msgid "Bluetooth Probe"
-msgstr "藍牙侦测"
-
-#: ../py/test/test_lists/generic_common.test_list.json
-msgid "Camera Probe"
-msgstr "相机侦测"
-
-#: ../py/test/test_lists/generic_common.test_list.json
 msgid "Charge Discharge Current"
 msgstr "充放电电流测试"
 
@@ -3211,16 +3195,8 @@ msgid "Stress App Test"
 msgstr "压力测试"
 
 #: ../py/test/test_lists/generic_common.test_list.json
-msgid "Touchpad Probe"
-msgstr "触控板侦测"
-
-#: ../py/test/test_lists/generic_common.test_list.json
 msgid "Touchscreen Firmware Verify"
 msgstr "确认触屏韧体"
-
-#: ../py/test/test_lists/generic_common.test_list.json
-msgid "Touchscreen Probe"
-msgstr "触控面板侦测"
 
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Touchscreen Uniformity"
