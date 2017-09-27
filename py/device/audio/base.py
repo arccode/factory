@@ -17,6 +17,9 @@ from cros.factory.device.audio import config_manager
 WAV_HEADER_SIZE = 44
 
 
+MicJackType = config_manager.MicJackType
+
+
 class BaseMixerController:
   __metaclass__ = abc.ABCMeta
 
