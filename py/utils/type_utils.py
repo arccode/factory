@@ -96,6 +96,28 @@ def MakeList(value):
   return [value]
 
 
+def MakeTuple(value):
+  """Converts the given value to a tuple recursively.
+
+  This is helpful for using an iterable argument as dict keys especially
+  that arguments from JSON will always be list instead of tuple.
+
+  Returns:
+    A tuple of elements from "value" if it is iterable (except string)
+    recursively; otherwise, a tuple with only one element.
+  """
+  def ShouldExpand(v):
+    return (isinstance(v, collections.Iterable) and
+            not isinstance(v, basestring))
+
+  def Expand(v):
+    return tuple(Expand(e) if ShouldExpand(e) else e for e in v)
+
+  if ShouldExpand(value):
+    return Expand(value)
+  return (value,)
+
+
 def MakeSet(value):
   """Converts the given value to a set.
 

@@ -32,6 +32,17 @@ class MakeListTest(unittest.TestCase):
     self.assertEquals(['a', 'b'], type_utils.MakeList(['a', 'b']))
     self.assertEquals(['a', 'b'], type_utils.MakeList({'a': 'foo', 'b': 'bar'}))
 
+class MakeTupleTest(unittest.TestCase):
+  def runTest(self):
+    self.assertEquals(('a',), type_utils.MakeTuple('a'))
+    self.assertEquals(('abc',), type_utils.MakeTuple('abc'))
+    self.assertEquals(('a', 'b'), type_utils.MakeTuple(['a', 'b']))
+    self.assertEquals(
+        ('a', 'b'), type_utils.MakeTuple({'a': 'foo', 'b': 'bar'}))
+    self.assertEquals(
+        (1, 2, (3, 4, ('str',))),
+        type_utils.MakeTuple([1, 2, (3, 4, ['str'])]))
+
 class MakeSetTest(unittest.TestCase):
   def runTest(self):
     self.assertEquals(set(['ab']), type_utils.MakeSet('ab'))
