@@ -2566,7 +2566,7 @@ cros.factory.Goofy = class {
         const engineeringMode = this.engineeringMode;
         for (const item of this.pluginMenuItems) {
           if (item.eng_mode_only && !engineeringMode) {
-            return;
+            continue;
           }
           addExtraItem(item.text, async () => {
             const /** !cros.factory.PluginMenuReturnData */ return_data =
