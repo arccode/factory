@@ -348,6 +348,14 @@ class CachedGetter(object):
     return self._cached_value
 
 
+def OverrideCacheableGetter(getter, value):
+  """Overrides a function decorated by CacheableGetter with some value."""
+  assert hasattr(getter, 'has_cached'), 'Need a CacheableGetter target.'
+  assert hasattr(getter, 'cached_value'), 'Need a CacheableGetter target.'
+  getter.has_cached = True
+  getter.cached_value = value
+
+
 class LazyProperty(object):
   """A decorator for lazy loading properties.
 

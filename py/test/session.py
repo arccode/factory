@@ -11,8 +11,7 @@ convention here to invoke a test.
 import logging
 import os
 import subprocess
-import threading
-from uuid import uuid4
+import uuid
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
@@ -45,14 +44,6 @@ and the content should be different when re-generated.
 INIT_COUNT_PATH = os.path.join(LOG_ROOT, 'init_count')
 """File containing the number of times session (Goofy) has been initialized."""
 
-# TODO(hungte) Add a better cache decorator for cache-able values.
-# Cache the DEVICE_ID and INSTALLATION_ID after being read from disk or
-# after being generated (if they do not yet exist).
-_device_id = None
-_installation_id = None
-
-_session_lock = threading.Lock()
-
 
 console = type_utils.LazyObject(
     log_utils.FileLogger, 'console', paths.CONSOLE_LOG_PATH,
@@ -60,47 +51,40 @@ console = type_utils.LazyObject(
 """A wrapper for sending messages to global (UI) console using logging API."""
 
 
+@type_utils.CachedGetter
 def GetDeviceID():
   """Returns the device ID.
 
-  The device ID is created and stored by init/goofy.d/device/device_id.sh on
-  system startup. Read and cache it in the global variable _device_id.
+  The device ID is created and stored by init/goofy.d/device/device_id.sh
+  calling bin/device_id on system startup.
   """
-  with _session_lock:
-    global _device_id  # pylint: disable=global-statement
-    if _device_id is None:
-      if os.path.exists(DEVICE_ID_PATH):
-        _device_id = file_utils.ReadFile(DEVICE_ID_PATH).strip()
-      else:
-        # The device_id file doesn't exist, we probably are not on DUT, just
-        # run bin/device_id once and return the result.
-        device_id_bin = os.path.join(paths.FACTORY_DIR, 'bin', 'device_id')
-        _device_id = subprocess.check_output(device_id_bin).strip()
-    return _device_id
+  if os.path.exists(DEVICE_ID_PATH):
+    return file_utils.ReadFile(DEVICE_ID_PATH).strip()
+  else:
+    # The device_id file doesn't exist, we probably are not on DUT, just
+    # run bin/device_id once and return the result.
+    device_id_bin = os.path.join(paths.FACTORY_DIR, 'bin', 'device_id')
+    return subprocess.check_output(device_id_bin).strip()
 
 
+@type_utils.CachedGetter
 def GetInstallationID():
   """Returns the installation ID.
 
   This is stored in INSTALLATION_ID_PATH; one is generated if not available.
   """
-  with _session_lock:
-    global _installation_id  # pylint: disable=global-statement
-    if not _installation_id:
-      if os.path.exists(INSTALLATION_ID_PATH):
-        _installation_id = file_utils.ReadFile(INSTALLATION_ID_PATH).strip()
-      if not _installation_id:
-        _installation_id = str(uuid4())
-        logging.info('No installation_id available yet: generated %s',
-                     _installation_id)
-
-        # Save the installation ID to INSTALLATION_ID_PATH for future reloading.
-        file_utils.TryMakeDirs(os.path.dirname(INSTALLATION_ID_PATH))
-        with open(INSTALLATION_ID_PATH, 'w') as f:
-          f.write(_installation_id)
-          f.flush()
-          os.fsync(f)
-    return _installation_id
+  value = None
+  if os.path.exists(INSTALLATION_ID_PATH):
+    value = file_utils.ReadFile(INSTALLATION_ID_PATH).strip()
+  if not value:
+    value = str(uuid.uuid4())
+    file_utils.TryMakeDirs(os.path.dirname(INSTALLATION_ID_PATH))
+    # There may be race condition here, but that is unlikely to happen due to
+    # how we use GetInstallationID today.
+    with file_utils.AtomicWrite(INSTALLATION_ID_PATH) as f:
+      f.write(value)
+    logging.info('No installation_id available yet: generated %s', value)
+  return value
 
 
 def GetInitCount(path=INIT_COUNT_PATH):
@@ -123,12 +107,11 @@ def IncrementInitCount(path=INIT_COUNT_PATH):
   logging.info('Session (Goofy) init count = %d', init_count)
 
   file_utils.TryMakeDirs(os.path.dirname(path))
-  with open(path, 'w') as f:
+  with file_utils.AtomicWrite(path) as f:
     f.write('%d' % init_count)
-    f.flush()
-    os.fsync(f.fileno())
 
 
+@type_utils.CachedGetter
 def GetBootID():
   """Returns the boot ID."""
   return file_utils.ReadFile('/proc/sys/kernel/random/boot_id').strip()
@@ -139,16 +122,27 @@ def GetToolkitVersion():
   return file_utils.ReadFile(paths.FACTORY_TOOLKIT_VERSION_PATH).rstrip()
 
 
+@type_utils.CachedGetter
 def GetCurrentTestPath():
-  """Returns the path of the currently executing test, if any."""
+  """Returns the path of the currently executing test, if any.
+
+  This function may be cached because each invocation process should not have
+  test path changed during execution.
+  """
   return os.environ.get(ENV_TEST_PATH)
 
 
+@type_utils.CachedGetter
 def GetCurrentTestInvocation():
-  """Returns the invocation UUID of current running test, if any."""
+  """Returns the invocation UUID of current running test, if any.
+
+  This function may be cached because each invocation process should not have
+  test path changed during execution.
+  """
   return os.environ.get(ENV_TEST_INVOCATION)
 
 
+@type_utils.CachedGetter
 def GetVerboseTestLogPath():
   """Returns a path for verbose logging of current test.
 

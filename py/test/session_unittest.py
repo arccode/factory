@@ -68,6 +68,7 @@ class SessionTest(unittest.TestCase):
     # *different* back.
     session._installation_id = None  # pylint: disable=protected-access
     os.unlink(session.INSTALLATION_ID_PATH)
+    session.GetInstallationID.InvalidateCache()
     self.assertNotEqual(installation_id, session.GetInstallationID())
 
   def testInitCount(self):
