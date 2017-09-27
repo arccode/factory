@@ -37,6 +37,7 @@ from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import type_utils
 
 try:
   sys.path.append('/usr/local/lib/flimflam/test')
@@ -626,14 +627,15 @@ class WirelessRadiotapTest(unittest.TestCase):
     self.PreCheck(self.args.services)
 
     antenna_info = {}
-    for service in self.args.services:
+    services = type_utils.MakeTuple(self.args.services)
+    for service in services:
       antenna_info[service] = self.ScanSignal(service, self.args.scan_count)
     average_signal = {}
     for service, signals in antenna_info.iteritems():
       average_signal[service] = self.AverageSignals(signals)
 
     # Gets the service with the largest strength to test for each spec.
-    test_service = self.ChooseMaxStrengthService(self.args.services,
+    test_service = self.ChooseMaxStrengthService(services,
                                                  average_signal)
     if test_service is None:
       self.fail('Services %s are not valid.' % self.args.services)
