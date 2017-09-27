@@ -22,18 +22,26 @@ Examples
 To generate mrc cache on next boot, reboot, and verify the generated mrc cache,
 add this in test list::
 
-    with AutomatedSequence(label=_('MRC Cache')):
-      FactoryTest(
-          label=_('Create Cache'),
-          pytest_name='mrc_cache',
-          dargs={'mode': 'create'})
-
-      RebootStep(label=_('Reboot'))
-
-      FactoryTest(
-          label=_('Verify'),
-          pytest_name='mrc_cache',
-          dargs={'mode': 'verify'})
+  {
+    "label": "i18n! MRC Cache",
+    "subtests": [
+      {
+        "pytest_name": "mrc_cache",
+        "label": "i18n! Create Cache",
+        "args": {
+          "mode": "create"
+        }
+      },
+      "RebootStep",
+      {
+        "pytest_name": "mrc_cache",
+        "label": "i18n! Verify Cache",
+        "args": {
+          "mode": "verify"
+        }
+      }
+    ]
+  }
 """
 
 import unittest

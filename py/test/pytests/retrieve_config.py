@@ -43,18 +43,22 @@ Assume the config file is located at 'foo/bar.json' under the remote source
 
 The JSON config can be loaded from the factory server by::
 
-  FactoryTest(
-      pytest_name='retrieve_config',
-      dargs=dict(
-          config_retrieve_path='foo/bar.json'))
+  {
+    "pytest_name": "retrieve_config",
+    "args": {
+      "config_retrieve_path": "foo/bar.json"
+    }
+  }
 
-To load the JSON config from a USB stick::
+To load the JSON config from a USB stick, add this in test list::
 
-  FactoryTest(
-      pytest_name='retrieve_config',
-      dargs=dict(
-          data_method=DATA_METHOD.USB,
-          config_retrieve_path='foo/bar.json'))
+  {
+    "pytest_name": "retrieve_config",
+    "args": {
+      "data_method": "USB",
+      "config_retrieve_path": "foo/bar.json"
+    }
+  }
 """
 
 

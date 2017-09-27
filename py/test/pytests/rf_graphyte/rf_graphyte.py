@@ -34,17 +34,17 @@ Dependency
 Examples
 --------
 To run Graphyte framework with the config file `conductive_config.json`, add
-this into the test list::
+this in test list::
 
-  FactoryTest(
-      id='RFConductive',
-      label=_('RF Conductive'),
-      pytest_name='rf_graphyte',
-      dargs={
-          'graphyte_config_file': 'conductive_config.json',
-          'verbose': True,
-          'enable_factory_server': True,
-          'server_parameter_dir': 'rf_conductive'})
+  {
+    "pytest_name": "rf_graphyte",
+    "args": {
+      "graphyte_config_file": "conductive_config.json",
+      "server_parameter_dir": "rf_conductive",
+      "enable_factory_server": true,
+      "verbose": true
+    }
+  }
 """
 
 import csv

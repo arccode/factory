@@ -63,45 +63,57 @@ If not end-to-end mode, depend on OpenCV and device API
 
 Examples
 --------
-To run a manual capture test. (The default case)::
+To run a manual capture test. (The default case), add this in test list::
 
-  FactoryTest(pytest_name='camera')
+  {
+    "pytest_name": "camera"
+  }
 
 To run QR scan test, and specify camera resolution to 1920 x 1080::
 
-  FactoryTest(
-      pytest_name='camera',
-      dargs={
-          'mode': 'qr',
-          'camera_args': {'resolution': (1920, 1280)}})
+  {
+    "pytest_name": "camera",
+    "args": {
+      "camera_args": {
+        "resolution": [1920, 1280]
+      },
+      "mode": "qr"
+    }
+  }
 
 To run facial recognition test, and use Chrome API instead of device API::
 
-  FactoryTest(
-      pytest_name='camera',
-      dargs={
-          'mode': 'face',
-          'e2e_mode': True})
+  {
+    "pytest_name": "camera",
+    "args": {
+      "e2e_mode": true,
+      "mode": "face"
+    }
+  }
 
 To stress camera for 1000 seconds, and don't show the image::
 
-  FactoryTest(
-      pytest_name='camera',
-      dargs={
-          'mode': 'timeout',
-          'timeout_secs': 1000,
-          'show_image': False})
+  {
+    "pytest_name": "camera",
+    "args": {
+      "mode": "timeout",
+      "timeout_secs": 1000,
+      "show_image": false
+    }
+  }
 
 To stress camera capturing for 100 frames, have a timeout of 1000 seconds, and
 don't show the image::
 
-  FactoryTest(
-      pytest_name='camera',
-      dargs={
-          'mode': 'frame_count'
-          'num_frames_to_pass': 100,
-          'timeout_secs': 1000,
-          'show_image': False})
+  {
+    "pytest_name": "camera",
+    "args": {
+      "num_frames_to_pass": 100,
+      "mode": "frame_count",
+      "timeout_secs": 1000,
+      "show_image": false
+    }
+  }
 """
 
 

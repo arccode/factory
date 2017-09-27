@@ -40,25 +40,41 @@ Dependency
 
 Examples
 --------
-To check test image version is greater than or equal to 9876.5.4::
+To check test image version is greater than or equal to 9876.5.4, add this in
+test list::
 
-  OperatorTest(pytest_name='check_image_version',
-               dargs=dict(min_version='9876.5.4', reimage=False))
+  {
+    "pytest_name": "check_image_version",
+    "args": {
+      "min_version": "9876.5.4",
+      "reimage": false
+    }
+  }
 
 Reimage if release image version is older than 9876.5.4 by flashing local
 netboot firmware, which is located in '/usr/local/factory/board/image.net.bin',
 and make pressing spacebar not needed::
 
-  OperatorTest(pytest_name='check_image_version',
-               dargs=dict(check_release_image=True, min_version='9876.5.4',
-                          require_space=False))
+  {
+    "pytest_name": "check_image_version",
+    "args": {
+      "min_version": "9876.5.4",
+      "check_release_image": true,
+      "require_space": false
+    }
+  }
 
 Reimage if test image version is greater than or equal to 9876.5.2012_12_21_2359
 (loose format version) by flashing netboot firmware image on factory server::
 
-  OperatorTest(pytest_name='check_image_version',
-               dargs=dict(min_version='9876.5.2012_12_21_2359',
-                          loose_version=True, download_from_server=True))
+  {
+    "pytest_name": "check_image_version",
+    "args": {
+      "min_version": "9876.5.2012_12_21_2359",
+      "loose_version": true,
+      "download_from_server": true
+    }
+  }
 """
 
 from distutils import version

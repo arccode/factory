@@ -26,21 +26,27 @@ Dependency
 Examples
 --------
 To run a set of tests for 120 seconds in parallel with countdown showing
-progress::
+progress, add this in test list::
 
-  OperatorTest(pytest_name='countdown',
-               dargs={
-                   'duration_secs': 120,
-               })
+  {
+    "pytest_name": "countdown",
+    "args": {
+      "duration_secs": 120
+    }
+  }
 
 To run 8 hours and alert if main sensor (CPU) reaches 60 Celcius and fail when
 exceeding 65 Celcius::
 
-  OperatorTest(pytest_name='countdown',
-               dargs={
-                   'temp_criteria': [('CPU', None, 60, 65)],
-                   'duration_secs': 8 * 60 * 60,
-               })
+  {
+    "pytest_name": "countdown",
+    "args": {
+      "duration_secs": 28800,
+      "temp_criteria": [
+        ["CPU", null, 60, 65]
+      ]
+    }
+  }
 """
 
 import collections

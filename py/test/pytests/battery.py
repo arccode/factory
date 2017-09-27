@@ -25,14 +25,19 @@ Examples
 To check if the battery design capacity lies in default range ([1000, 10000]),
 add this in test list::
 
-  OperatorTest(pytest_name='battery')
+  {
+    "pytest_name": "battery"
+  }
 
 To check if the battery design capacity lies in [4000, 5000], add this in test
 list::
 
-  OperatorTest(
-      pytest_name='battery',
-      dargs={'design_capacity_range': [4000, 5000]})
+  {
+    "pytest_name": "battery",
+    "args": {
+      "design_capacity_range": [4000, 5000]
+    }
+  }
 """
 
 import logging

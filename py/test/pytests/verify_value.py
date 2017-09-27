@@ -49,23 +49,25 @@ Examples
 --------
 To check if the ec version match some value, add this in test list::
 
-  OperatorTest(
-      pytest_name='verify_value',
-      dargs={
-          'items': [_('EC Version'), 'dut.info.ec_version', 'board_v1.0.1234']
-      })
+  {
+    "pytest_name": "verify_value",
+    "args": {
+      "items": ["i18n! EC Version", "dut.info.ec_version", "board_v1.0.1234"]
+    }
+  }
 
-To check if the cpu0 mode is in powersave mode, add this in test list::
+To check if the cpu0 mode is in powersave mode::
 
-  OperatorTest(
-      pytest_name='verify_value',
-      dargs={
-          'items': [
-              _('CPU speed'),
-              'cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor',
-              'powersave'
-          ]
-      })
+  {
+    "pytest_name": "verify_value",
+    "args": {
+      "items": [
+        "i18n! CPU speed",
+        "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor",
+        "powersave"
+      ]
+    }
+  }
 """
 
 from collections import namedtuple

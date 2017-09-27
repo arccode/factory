@@ -37,19 +37,25 @@ Depends on the driver of specified button source: GPIO, ``crossystem``,
 
 Examples
 --------
-To test the recovery button 1 time in 30 seconds, add this into test list::
+To test the recovery button 1 time in 30 seconds, add this in test list::
 
-  OperatorTest(pytest_name='button',
-               dargs={'button_key_name': 'crossystem:recoverysw_cur'})
+  {
+    "pytest_name": "button",
+    "args": {
+      "button_key_name": "crossystem:recoverysw_cur"
+    }
+  }
 
-To test volume down button (using ``evdev``) 3 times in 10 seconds, add this
-into test list::
+To test volume down button (using ``evdev``) 3 times in 10 seconds::
 
-  OperatorTest(pytest_name='button',
-               dargs={'button_key_name': 'KEY_VOLUMEDOWN',
-                      'timeout_secs': 10,
-                      'repeat_times': 3,
-                     })
+  {
+    "pytest_name": "button",
+    "args": {
+      "timeout_secs": 10,
+      "button_key_name": "KEY_VOLUMEDOWN",
+      "repeat_times": 3
+    }
+  }
 """
 
 import logging

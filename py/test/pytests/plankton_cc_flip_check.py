@@ -44,37 +44,38 @@ Dependency
 
 Examples
 --------
-Manual test with a dummy BFTFixture by asking operator to flip the cable::
+To manual test with a dummy BFTFixture by asking operator to flip the cable,
+add this in test list::
 
-  OperatorTest(
-    pytest_name='plankton_cc_flip_check',
-    dargs={
-        'usb_c_index': 0,
-        'bft_fixture': {
-            'class_name':
-                'cros.factory.test.fixture.dolphin.dolphin_bft_fixture.'
-                'DummyDolphinBFTFixture',
-            'params': {}
-        },
-        'ask_flip_operation': True,
-        'state_src_ready': 'SNK_READY',
-    })
+  {
+    "pytest_name": "plankton_cc_flip_check",
+    "args": {
+      "bft_fixture": {
+        "class_name":
+          "cros.factory.test.fixture.dummy_bft_fixture.DummyBFTFixture",
+        "params": {}
+      },
+      "ask_flip_operation": true,
+      "usb_c_index": 0,
+      "state_src_ready": "SNK_READY"
+    }
+  }
 
 Automated test with a dolphin BFTFixture and flipping the polarity to CC1::
 
-  OperatorTest(
-    pytest_name='plankton_cc_flip_check',
-    dargs={
-        'bft_fixture': {
-            'class_name':
-                'cros.factory.test.fixture.dolphin.dolphin_bft_fixture.'
-                'DolphinBFTFixture'
-            'params': {}
-        },
-        'usb_c_index': 1,
-        'state_src_ready': 'SNK_READY',
-        'double_cc_flip_target': 'CC1'
-    })
+  {
+    "pytest_name": "plankton_cc_flip_check",
+    "args": {
+      "bft_fixture": {
+        "class_name":
+          "cros.factory.test.fixture.dummy_bft_fixture.DummyBFTFixture",
+        "params": {}
+      },
+      "double_cc_flip_target": "CC1",
+      "usb_c_index": 1,
+      "state_src_ready": "SNK_READY"
+    }
+  }
 """
 
 import logging

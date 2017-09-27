@@ -31,14 +31,20 @@ Dependency
 
 Examples
 --------
-To flash netboot firmware in provided default location::
+To flash netboot firmware in provided default location, add this in test list::
 
-  OperatorTest(pytest_name='flash_netboot')
+  {
+    "pytest_name": "flash_netboot"
+  }
 
 To flash netboot firmware from a special location::
 
-  OperatorTest(pytest_name='flash_netboot',
-               dargs={'image': '/usr/local/factory/3rdparty/netboot.bin'})
+  {
+    "pytest_name": "flash_netboot",
+    "args": {
+      "image": "/usr/local/factory/3rdparty/netboot.bin"
+    }
+  }
 """
 
 import logging

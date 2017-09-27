@@ -34,7 +34,9 @@ Examples
 --------
 Minimum runnable example::
 
-    OperatorTest(pytest_name='light_sensor')
+  {
+    "pytest_name": "light_sensor"
+  }
 
 This will read ALS value from ``/sys/bus/iio/devices/*/illuminance0_input``.
 There will be 3 subtests,
@@ -50,24 +52,33 @@ Unfortunately, in most of the case, this does not work for you, because
 
 For example, the arguments for your board might be::
 
-    OperatorTest(
-        pytest_name='light_sensor',
-        dargs={
-            'device_input': 'in_illuminance_raw',
-            'subtest_list': [
-                'Light sensor dark', 'Light sensor exact', 'Light sensor light'
-            ],
-            'subtest_instruction': {
-                'Light sensor dark': _('Cover light sensor with finger'),
-                'Light sensor exact': _('Remove finger from light sensor'),
-                'Light sensor light': _('Shine light sensor with flashlight'),
-            },
-            'subtest_cfg': {
-                'Light sensor dark': {'below': 30},
-                'Light sensor exact': {'between': (60, 300)},
-                'Light sensor light': {'above': 500}
-            }
-        })
+  {
+    "pytest_name": "light_sensor",
+    "args": {
+      "subtest_list": [
+        "Light sensor dark",
+        "Light sensor exact",
+        "Light sensor light"
+      ],
+      "subtest_cfg": {
+        "Light sensor exact": {
+          "between": [60, 300]
+        },
+        "Light sensor light": {
+          "above": 500
+        },
+        "Light sensor dark": {
+          "below": 30
+        }
+      },
+      "device_input": "in_illuminance_raw",
+      "subtest_instruction": {
+        "Light sensor exact": "i18n! Remove finger from light sensor",
+        "Light sensor light": "i18n! Shine light sensor with flashlight",
+        "Light sensor dark": "i18n! Cover light sensor with finger"
+      }
+    }
+  }
 
 Note that you have to specify ``subtest_list``, ``subtests_instruction``,
 ``subtest_cfg`` at the same time.

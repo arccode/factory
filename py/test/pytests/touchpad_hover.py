@@ -48,17 +48,22 @@ Dependency
 
 Examples
 --------
-To check touchpad hover with default parameters without calibration::
+To check touchpad hover with default parameters without calibration, add this
+in test list::
 
-  OperatorTest(pytest_name='touchpad_hover')
+  {
+    "pytest_name": "touchpad_hover"
+  }
 
 If calibration is required::
 
-  OperatorTest(
-      pytest_name='touchpad_hover',
-      dargs=dict(
-          calibration_trigger=(
-              '/sys/bus/i2c/drivers/xxx_i2c/i2c-xxx0000:00/calibrate')))
+  {
+    "pytest_name": "touchpad_hover",
+    "args": {
+      "calibration_trigger":
+        "/sys/bus/i2c/drivers/xxx_i2c/i2c-xxx0000:00/calibrate"
+    }
+  }
 """
 
 import threading

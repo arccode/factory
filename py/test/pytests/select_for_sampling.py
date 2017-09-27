@@ -23,16 +23,24 @@ Need the device to have a WiFi interface with non-fixed MAC address.
 Examples
 --------
 To select about 10% of the devices and mark devices selected as
-'selected_for_sampling' in device data::
+'selected_for_sampling' in device data, add this in test list::
 
-  FactoryTest(pytest_name='select_for_sampling',
-              dargs={'rate': 0.1})
+  {
+    "pytest_name": "select_for_sampling",
+    "args": {
+      "rate": 0.1
+    }
+  }
 
 To select about 20% of the devices, and mark using 'run_audio' key::
 
-  FactoryTest(pytest_name='select_for_sampling',
-              dargs={'rate': 0.2,
-                     'device_data_key': 'run_audio'})
+  {
+    "pytest_name": "select_for_sampling",
+    "args": {
+      "rate": 0.2,
+      "device_data_key": "run_audio"
+    }
+  }
 """
 
 import hashlib

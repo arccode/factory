@@ -56,22 +56,24 @@ None.
 
 Examples
 --------
-To add an entry for external fixture with name ``RF1``::
+To add an entry for external fixture with name ``RF1``, add this in test list::
 
-  OperatorTest(
-      pytest_name='wait_external_test',
-      dargs={
-          'run_factory_external_name': 'RF1',
-      })
+  {
+    "pytest_name": "wait_external_test",
+    "args": {
+      "run_factory_external_name": "RF1"
+    }
+  }
 
 To add a test for external fixture with name ``VSWR``, with customized message::
 
-  OperatorTest(
-      pytest_name='wait_external_test',
-      dargs={
-          'run_factory_external_name': 'VSWR',
-          'msg': _('Move DUT to station {name}')
-      })
+  {
+    "pytest_name": "wait_external_test",
+    "args": {
+      "msg": "i18n! Move DUT to station {name}",
+      "run_factory_external_name": "VSWR"
+    }
+  }
 
 In the fixture side, it should do something like this:
 

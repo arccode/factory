@@ -29,10 +29,14 @@ None.
 
 Examples
 --------
-To run this sample code with default arguments::
+To run this sample code with default arguments, add this in test list::
 
-  OperatorTest(pytest_name='sample_customized_test',
-               dargs={'foo': 1})
+  {
+    "pytest_name": "sample_customized_test",
+    "args": {
+      "foo": 1
+    }
+  }
 """
 
 

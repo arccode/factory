@@ -66,7 +66,9 @@ Examples
 --------
 A minimum example should be::
 
-    OperatorTest(pytest_name='finalize')
+  {
+    "pytest_name": "finalize"
+  }
 
 Where,
 
@@ -77,13 +79,14 @@ Where,
 
 For early builds (PROTO, EVT), you can skip things that are not ready::
 
-    OperatorTest(
-        pytest_name='finalize',
-        dargs=dict(
-            gooftool_waive_list=['verify_tpm', 'verify_hwid'],
-            gooftool_skip_list=['clear_gbb_flags'],
-            write_protection=False
-        ))
+  {
+    "pytest_name": "finalize",
+    "args": {
+      "gooftool_skip_list": ["clear_gbb_flags"],
+      "write_protection": false,
+      "gooftool_waive_list": ["verify_tpm", "verify_hwid"]
+    }
+  }
 """
 
 

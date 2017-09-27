@@ -20,9 +20,14 @@ None.
 
 Examples
 --------
-To wait for 5 seconds::
+To wait for 5 seconds, add this in test list::
 
-  FactoryTest(pytest_name='nop', dargs={'wait_secs': 5})
+  {
+    "pytest_name": "nop",
+    "args": {
+      "wait_secs": 5
+    }
+  }
 """
 
 import time

@@ -46,14 +46,17 @@ Examples
 To turn on a 'lightbar' component and wait for confirmation, add this to test
 list::
 
-  OperatorTest(pytest_name='line_check_item',
-               dargs={
-                 'title': _('LED Test'),
-                 'items': [
-                   (_('Initialization'), 'lightbar init', False),
-                   (_('Turn on lightbar'), 'lightbar enable', True),
-                   (_('Clean up'), 'lightbar reset', False),
-                 ]})
+  {
+    "pytest_name": "line_check_item",
+    "args": {
+      "items": [
+        ["i18n! Initialization", "lightbar init", false],
+        ["i18n! Turn on lightbar", "lightbar enable", true],
+        ["i18n! Clean up", "lightbar reset", false]
+      ],
+      "title": "i18n! LED Test"
+    }
+  }
 """
 
 import collections

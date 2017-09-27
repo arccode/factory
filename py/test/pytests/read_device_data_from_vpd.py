@@ -57,17 +57,31 @@ Examples
 --------
 To read standard manufacturing information from VPD, add this in test list::
 
-  FactoryTest(pytest_name='read_device_data_from_vpd')
+  {
+    "pytest_name": "read_device_data_from_vpd"
+  }
 
 To write and read back component data into VPD, add this in test list::
 
-  FactoryTest(pytest_name='write_device_data_to_vpd',
-              dargs={'rw_key_map': {'component.*': 'component'}})
+  {
+    "pytest_name": "write_device_data_to_vpd",
+    "args": {
+      "rw_key_map": {
+        "component.*": "component"
+      }
+    }
+  }
 
   ... (reboot) ...
 
-  FactoryTest(pytest_name='read_device_data_from_vpd',
-              dargs={'rw_key_map': {'component.*': 'component'}}
+  {
+    "pytest_name": "read_device_data_from_vpd",
+    "args": {
+      "rw_key_map": {
+        "component.*": "component"
+      }
+    }
+  }
 """
 
 

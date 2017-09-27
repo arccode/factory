@@ -26,13 +26,21 @@ Dependency
 
 Examples
 --------
-To sync the clock of DUT with the clock of station with default tolerance::
+To sync the clock of DUT with the clock of station with default tolerance, add
+this in test list::
 
-  FactoryTest(pytest_name='sync_time')
+  {
+    "pytest_name": "sync_time"
+  }
 
 To sync with tolerance time set to 3 seconds::
 
-  FactoryTest(pytest_name='sync_time', dargs=dict(tolerance=3.0))
+  {
+    "pytest_name": "sync_time",
+    "args": {
+      "tolerance": 3.0
+    }
+  }
 """
 
 import datetime

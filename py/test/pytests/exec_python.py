@@ -28,9 +28,12 @@ Examples
 --------
 A test that always pass::
 
-  FactoryTest(pytest_name='exec_python',
-              dargs=dict(
-                  script='assert 1 == 1'))
+  {
+    "pytest_name": "exec_python",
+    "args": {
+      "script": "assert 1 == 1"
+    }
+  }
 
 """
 

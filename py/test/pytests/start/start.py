@@ -26,16 +26,23 @@ connected.
 
 Examples
 --------
-To initialize shared data, then ask the operator to press a key to continue::
+To initialize shared data, then ask the operator to press a key to continue,
+add this in test list::
 
-  OperatorTest(pytest_name='start')
+  {
+    "pytest_name": "start"
+  }
 
 To also ensure if an external power supply is connected, and check factory
 toolkit is properly installed::
 
-  OperatorTest(pytest_name='start',
-               dargs={'require_external_power': True,
-                      'check_factory_install_complete': True})
+  {
+    "pytest_name": "start",
+    "args": {
+      "check_factory_install_complete": true,
+      "require_external_power": true
+    }
+  }
 """
 
 import logging

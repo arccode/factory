@@ -42,17 +42,24 @@ Examples
 --------
 To check if the audio can be played, add this in test list::
 
-  OperatorTest(pytest_name='audio', dargs={'output_dev': ['device', '0']})
+  {
+    "pytest_name": "audio",
+    "args": {
+      "output_dev": ["device", "0"]
+    }
+  }
 
 To check that headphone is plugged in before audio is played, add this in test
 list::
 
-  OperatorTest(pytest_name='audio',
-               dargs={
-                   'check_headphone': True,
-                   'require_headphone': True,
-                   'output_dev': ['device', '0']
-               })
+  {
+    "pytest_name": "audio",
+    "args": {
+      "check_headphone": true,
+      "output_dev": ["device", "0"],
+      "require_headphone": true
+    }
+  }
 """
 
 from __future__ import print_function

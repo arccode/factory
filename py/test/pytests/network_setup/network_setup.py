@@ -45,7 +45,7 @@ An example of the config file::
       }
     }
 
-To set up the network using the config file above, add this to test list::
+To set up the network using the config file above, add this in test list::
 
     {
       "pytest_name": "network_setup",
@@ -55,7 +55,7 @@ To set up the network using the config file above, add this to test list::
     }
 
 To set up the network using the same config file, but have a 30 seconds timeout
-before retries, add this to test list::
+before retries::
 
     {
       "pytest_name": "network_setup",

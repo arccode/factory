@@ -26,28 +26,38 @@ None.
 
 Examples
 --------
-To show a message, add this into test list::
+To show a message, add this in test list::
 
-  OperatorTest(pytest_name='message', dargs={'html': _('Hello world!')})
+  {
+    "pytest_name": "message",
+    "args": {
+      "html": "i18n! Hello world!"
+    }
+  }
 
 To show a message with some formatting, and give operator ability to fail the
-test, add this into test list::
+test::
 
-  OperatorTest(pytest_name='message', dargs={
-      'html': _('Please check if the result is <b>correct</b>.'),
-      'manual_check': True,
-      'show_press_button_hint': True,
-      'text_size': 300,
-      'text_color': 'red'
-  })
+  {
+    "pytest_name": "message",
+    "args": {
+      "text_size": 300,
+      "manual_check": true,
+      "show_press_button_hint": true,
+      "html": "i18n! Please check if the result is <b>correct</b>.",
+      "text_color": "red"
+    }
+  }
 
-To show a message for 20 seconds, and automatically pass, add this into test
-list::
+To show a message for 20 seconds, and automatically pass::
 
-  OperatorTest(pytest_name='message', dargs={
-      'html': _('Waiting for something...'),
-      'seconds': 20
-  })
+  {
+    "pytest_name": "message",
+    "args": {
+      "seconds": 20,
+      "html": "i18n! Waiting for something..."
+    }
+  }
 """
 
 

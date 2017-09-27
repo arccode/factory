@@ -23,21 +23,27 @@ must be implemented to provide scanned data.
 
 Examples
 --------
-To ask the operator to scan the MLB serial number::
+To ask the operator to scan the MLB serial number, add this in test list::
 
-  OperatorTest(
-      pytest_name='scan',
-      dargs={label='MLB Serial Number',
-             device_data_key='serials.mlb_serial_number'})
+  {
+    "pytest_name": "scan",
+    "args": {
+      "device_data_key": "serials.mlb_serial_number",
+      "label": "MLB Serial Number"
+    }
+  }
 
 
 A regular expression can also be specified to check the validity::
 
-  OperatorTest(
-      pytest_name='scan',
-      dargs={label='MLB Serial Number',
-             device_data_key='serials.mlb_serial_number'
-             regexp='.+'})
+  {
+    "pytest_name": "scan",
+    "args": {
+      "regexp": ".+",
+      "device_data_key": "serials.mlb_serial_number",
+      "label": "MLB Serial Number"
+    }
+  }
 """
 
 from __future__ import print_function

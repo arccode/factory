@@ -31,13 +31,22 @@ Examples
 To check stylus functionality by drawing a diagonal line, add this in test
 list::
 
-  OperatorTest(pytest_name='stylus')
+  {
+    "pytest_name": "stylus"
+  }
 
 To check if the magnet in left side will cause problems, add this in test list
 to draw a line from left-top to left-bottom::
 
-  OperatorTest(pytest_name='stylus',
-               dargs=dict(endpoints_ratio=[(0, 0), (0, 1)]))
+  {
+    "pytest_name": "stylus",
+    "args": {
+      "endpoints_ratio": [
+        [0, 0],
+        [0, 1]
+      ]
+    }
+  }
 """
 
 import unittest

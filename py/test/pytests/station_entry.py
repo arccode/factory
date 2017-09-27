@@ -39,21 +39,29 @@ a DUT interface, and monitor if DUT is connected.
 Examples
 --------
 To start a sequence of station-based tests, this pytest can be used as
-the first pytest::
+the first pytest, add this in test list::
 
-  OperatorTest(pytest_name='station_entry')
+  {
+    "pytest_name": "station_entry"
+  }
 
 If the following pytests should be started until spacebar is hit::
 
-  OperatorTest(
-      pytest_name='station_entry',
-      dargs={'prompt_start': True})
+  {
+    "pytest_name": "station_entry",
+    "args": {
+      "prompt_start": true
+    }
+  }
 
 To gracefully terminate a sequence of station-based tests::
 
-  OperatorTest(
-      pytest_name='station_entry',
-      dargs={'start_station_tests': False})
+  {
+    "pytest_name": "station_entry",
+    "args": {
+      "start_station_tests": false
+    }
+  }
 
 Please refer to station_based.test_list.json and STATION_BASED.md about how to
 do station based testing.

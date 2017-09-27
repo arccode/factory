@@ -33,15 +33,22 @@ Dependency
 
 Examples
 --------
-To update Cr50 firmware with the Cr50 firmware image in DUT release partition::
+To update Cr50 firmware with the Cr50 firmware image in DUT release partition,
+add this in test list::
 
-  OperatorTest(pytest_name='update_cr50_firmware')
+  {
+    "pytest_name": "update_cr50_firmware"
+  }
 
 To update Cr50 firmware with the Cr50 firmware image in station::
 
-  OperatorTest(pytest_name='update_cr50_firmware',
-               dargs=dict(from_release=False,
-                          firmware_file='/path/on/station/to/cr50.bin.prod'))
+  {
+    "pytest_name": "update_cr50_firmware",
+    "args": {
+      "firmware_file": "/path/on/station/to/cr50.bin.prod",
+      "from_release": false
+    }
+  }
 """
 
 import logging

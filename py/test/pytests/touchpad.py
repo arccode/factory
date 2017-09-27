@@ -30,13 +30,20 @@ Dependency
 
 Examples
 --------
-To test touchpad with default parameters::
+To test touchpad with default parameters, add this in test list::
 
-  OperatorTest(pytest_name='touchpad')
+  {
+    "pytest_name": "touchpad"
+  }
 
 If you want to change the time limit to 100 seconds::
 
-  OperatorTest(pytest_name='touchpad', dargs=dict(timeout_secs=100))
+  {
+    "pytest_name": "touchpad",
+    "args": {
+      "timeout_secs": 100
+    }
+  }
 """
 
 import logging

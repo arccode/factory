@@ -54,15 +54,16 @@ Dependency
 
 Examples
 --------
-A test list example for manual checking USB Port 0::
+To manual checking external display at USB Port 0, add this in test list::
 
-    OperatorTest(
-        pytest_name='external_display',
-        dargs={
-            'display_info': [
-                (_('Left HDMI External Display'),
-                 'HDMI-A-1', None, 0)]
-        })
+  {
+    "pytest_name": "external_display",
+    "args": {
+      "display_info": [
+        ["i18n! Left HDMI External Display", "HDMI-A-1", null, 0]
+      ]
+    }
+  }
 """
 
 from __future__ import print_function

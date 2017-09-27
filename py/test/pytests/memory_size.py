@@ -49,19 +49,31 @@ Dependency
 
 Examples
 --------
-To compare and check only the memory size from ``mosys`` and kernel::
+To compare and check only the memory size from ``mosys`` and kernel, add this
+in test list::
 
-  OperatorTest(pytest_name='memory_size')
+  {
+    "pytest_name": "memory_size"
+  }
 
 To read device data from Shopfloor Service then compare and check the memory
 size from ``mosys``, kernel, and device data ``component.memory_size``, with
 difference up to 300MB::
 
-  OperatorTest(pytest_name='shopfloor_service',
-               dargs={'method': 'GetDeviceInfo'})
-  OperatorTest(pytest_name='memory_size',
-               dargs={'device_data_key': 'component.memory_size',
-                      'max_diff_gb': 0.3})
+  {
+    "pytest_name": "shopfloor_service",
+    "args": {
+      "method": "GetDeviceInfo"
+    }
+  }
+
+  {
+    "pytest_name": "memory_size",
+    "args": {
+      "device_data_key": "component.memory_size",
+      "max_diff_gb": 0.3
+    }
+  }
 """
 
 import re

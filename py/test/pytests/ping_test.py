@@ -24,7 +24,7 @@ The program ``ping``.
 Examples
 --------
 To ping 192.168.0.1 every 2 seconds for 10 seconds, and checks the successful
-pings are >= 70% at the end of the test (The default values), add this to test
+pings are >= 70% at the end of the test (The default values), add this in test
 list::
 
   {
@@ -35,7 +35,7 @@ list::
   }
 
 To ping 192.168.0.1 every 10 seconds for 120 seconds, and checks the successful
-pings are >= 60% at the end of the test, add this to test list::
+pings are >= 60% at the end of the test::
 
   {
     "pytest_name": "ping_test",
@@ -49,7 +49,7 @@ pings are >= 60% at the end of the test, add this to test list::
 
 To ping 192.168.0.1 on interface eth0 every 10 seconds for 120 seconds, checks
 the successful pings are >= 70% within the moving window of 5 pings, and also
-checks the successful pings are >= 70% overall, add this to test list::
+checks the successful pings are >= 70% overall::
 
   {
     "pytest_name": "ping_test",

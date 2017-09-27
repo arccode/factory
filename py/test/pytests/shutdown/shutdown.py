@@ -23,17 +23,25 @@ Dependency
 
 Examples
 --------
-To reboot the device after a 5-second delay::
+To reboot the device after a 5-second delay, add this in test list::
 
-  OperatorTest(pytest_name='shutdown',
-               dargs={'operation': 'reboot'})
+  {
+    "pytest_name": "shutdown",
+    "args": {
+      "operation": "reboot"
+    }
+  }
 
 This also checks the GPT info to ensure partitions look good for the next boot.
 
 To shutdown the device with a maximum 60-second waiting::
 
-  OperatorTest(pytest_name='shutdown',
-               dargs={'operation': 'halt'})
+  {
+    "pytest_name": "shutdown",
+    "args": {
+      "operation": "halt"
+    }
+  }
 """
 
 import logging

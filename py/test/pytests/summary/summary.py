@@ -49,31 +49,37 @@ None.
 Examples
 --------
 To list previous tests in same group, and always prompt and wait for input to
-decide if we can move on::
+decide if we can move on, add this in test list::
 
-  OperatorTest(pytest_name='summary')
+  {
+    "pytest_name": "summary"
+  }
 
 To only stop when any previous tests in same group has failed ("Barrier")::
 
-  OperatorTest(pytest_name='summary',
-               disable_abort=True,
-               never_fails=True,
-               dargs={
-                   'disable_input_on_fail': True,
-                   'pass_without_prompt': True,
-               })
+  {
+    "pytest_name": "summary",
+    "never_fails": true,
+    "disable_abort": true,
+    "args": {
+      "disable_input_on_fail": true,
+      "pass_without_prompt": true
+    }
+  }
 
 To always prompt but only pass if all previous tests in same group passed
 ("Check Point")::
 
-  OperatorTest(pytest_name='summary',
-               disable_abort=True,
-               never_fails=True,
-               dargs={
-                   'disable_input_on_fail': True,
-                   'pass_without_prompt': False,
-                   'prompt_message': _('Press space to shutdown.'),
-               })
+  {
+    "pytest_name": "summary",
+    "never_fails": true,
+    "disable_abort": true,
+    "args": {
+      "prompt_message": "i18n! Press space to shutdown.",
+      "disable_input_on_fail": true,
+      "pass_without_prompt": false
+    }
+  }
 """
 
 import itertools

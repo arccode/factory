@@ -24,14 +24,20 @@ Use `crossystem recoverysw_cur` to get recovery button status.
 
 Examples
 --------
-To test recovery button with default parameters::
+To test recovery button with default parameters, add this in test list::
 
-  OperatorTest(pytest_name='recovery_button')
+  {
+    "pytest_name": "recovery_button"
+  }
 
 One can also set the timeout to 100 seconds by::
 
-  OperatorTest(pytest_name='recovery_button',
-               dargs=dict(timeout_secs=100))
+  {
+    "pytest_name": "recovery_button",
+    "args": {
+      "timeout_secs": 100
+    }
+  }
 """
 
 import time

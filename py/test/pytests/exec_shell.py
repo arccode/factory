@@ -29,15 +29,25 @@ Examples
 --------
 To add multiple ports to iptables, add this in test list::
 
-  OperatorTest(pytest_name='exec_shell',
-               dargs={'commands': ['iptables -A input -p tcp --dport 4020',
-                                   'iptables -A input -p tcp --dport 4021',
-                                   'iptables -A input -p tcp --dport 4022']})
+  {
+    "pytest_name": "exec_shell",
+    "args": {
+      "commands": [
+        "iptables -A input -p tcp --dport 4020",
+        "iptables -A input -p tcp --dport 4021",
+        "iptables -A input -p tcp --dport 4022"
+      ]
+    }
+  }
 
 To load module 'i2c-dev' (and never fails), add this in test list::
 
-  OperatorTest(pytest_name='exec_shell',
-               dargs={'commands': 'modprobe i2c-dev || true'})
+  {
+    "pytest_name": "exec_shell",
+    "args": {
+      "commands": "modprobe i2c-dev || true"
+    }
+  }
 """
 
 import logging

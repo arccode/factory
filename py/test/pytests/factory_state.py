@@ -39,37 +39,65 @@ Examples
 --------
 Here is an example of station based test list::
 
-  with TestGroup(label=_('Main Loop')) as test_group:
-    test_group.dut_options = {
-        'link_class': 'SSHLink',
-        'host': '1.2.3.4',
-    }
-    FactoryTest(pytest_name='station_entry')
-    FactoryTest(  # copy DUT state to a new layer
-        pytest_name='factory_state',
-        dargs={
-            'action': 'COPY',
-            'device': 'DUT'})
-    # Do the test ...
-    FactoryTest(pytest_name='summary')  # show a summary
-    FactoryTest(  # copy new state back to DUT
-        pytest_name='factory_stateer',
-        dargs={
-            'action': 'COPY',
-            'device': 'STATION')
-    FactoryTest(  # merge new state with old state
-        pytest_name='factory_state',
-        dargs={
-            'action': 'MERGE',
-            'device': 'DUT'})
-    FactoryTest(  # pop dut state
-        pytest_name='factory_state',
-        dargs={
-            'action': 'POP',
-            'device': 'STATION'})
-    FactoryTest(  # wait for DUT to disconnect
-        pytest_name='station_entry',
-        dargs={'start_station_tests': False})
+  {
+    "options": {
+      "dut_options": {
+        "link_class": "SSHLink",
+        "host": "1.2.3.4"
+      }
+    },
+    "tests": [
+      {
+        "inherit": "TestGroup",
+        "label": "i18n! Main Loop",
+        "iterations": -1,
+        "retries": -1,
+        "subtests": [
+          {
+            "pytest_name": "station_entry"
+          },
+          {
+            "pytest_name": "factory_state",
+            "args": {
+              "action": "COPY",
+              "device": "DUT"
+            }
+          },
+          # Do the test ...
+          {
+            "pytest_name": "summary"
+          },
+          {
+            "pytest_name": "factory_stateer",
+            "args": {
+              "action": "COPY",
+              "device": "STATION"
+            }
+          },
+          {
+            "pytest_name": "factory_state",
+            "args": {
+              "action": "MERGE",
+              "device": "DUT"
+            }
+          },
+          {
+            "pytest_name": "factory_state",
+            "args": {
+              "action": "POP",
+              "device": "STATION"
+            }
+          },
+          {
+            "pytest_name": "station_entry",
+            "args": {
+              "start_station_tests": false
+            }
+          }
+        ]
+      }
+    ]
+  }
 """
 
 import logging

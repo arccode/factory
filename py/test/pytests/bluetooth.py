@@ -32,29 +32,46 @@ Dependency
 
 Examples
 --------
-To detect the specified number of bluetooth adapter on DUT::
+To detect the specified number of bluetooth adapter on DUT, add this in test
+list::
 
-  OperatorTest(pytest_name='bluetooth',
-               dargs={'expected_adapter_count': 1})
+  {
+    "pytest_name": "bluetooth",
+    "args": {
+      "expected_adapter_count": 1
+    }
+  }
 
 To scan remote bluetooth device and try to find at least one deivce whose name
 contains 'KEY_WORD'::
 
-  OperatorTest(pytest_name='bluetooth',
-               dargs={'scan_devices': True,
-                      'keyword': 'KEY_WORD'})
+  {
+    "pytest_name": "bluetooth",
+    "args": {
+      "scan_devices": true,
+      "keyword": "KEY_WORD"
+    }
+  }
 
 To check the the largest average RSSI among all scanned devices is bigger than
 threshold::
 
-  OperatorTest(pytest_name='bluetooth',
-               dargs={'scan_devices': True,
-                      'average_rssi_threshold': -65.0})
+  {
+    "pytest_name": "bluetooth",
+    "args": {
+      "scan_devices": true,
+      "average_rssi_threshold": -65.0
+    }
+  }
 
 To pair, connect with, and disconnect with the bluetooth input device::
 
-  OperatorTest(pytest_name='bluetooth',
-               dargs={'pair_with_match': True})
+  {
+    "pytest_name": "bluetooth",
+    "args": {
+      "pair_with_match": true
+    }
+  }
 """
 
 import glob

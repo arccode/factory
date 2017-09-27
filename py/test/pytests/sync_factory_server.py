@@ -45,24 +45,39 @@ This test uses only server components in Chrome OS Factory Software.
 
 Examples
 --------
-To connect to default server and sync time, event logs, and update software::
+To connect to default server and sync time, event logs, and update software,
+add this in test list::
 
-  OperatorTest(pytest_name='sync_factory_server')
+  {
+    "pytest_name": "sync_factory_server"
+  }
 
 To only sync time and logs, and never update software (useful for stations)::
 
-  OperatorTest(pytest_name='sync_factory_server',
-               dargs={'update_toolkit': False})
+  {
+    "pytest_name": "sync_factory_server",
+    "args": {
+      "update_toolkit": false
+    }
+  }
 
 To sync time and logs, and then upload a report::
 
-  OperatorTest(pytest_name='sync_factory_server',
-               dargs={'upload_report': True})
+  {
+    "pytest_name": "sync_factory_server",
+    "args": {
+      "upload_report": true
+    }
+  }
 
 To override default factory server URL for all tests executed after this::
 
-  OperatorTest(pytest_name='sync_factory_server',
-               dargs={'server_url': 'http://192.168.3.11:8080'})
+  {
+    "pytest_name": "sync_factory_server",
+    "args": {
+      "server_url": "http://192.168.3.11:8080"
+    }
+  }
 
 To implement "station specific factory server" in JSON test lists, extend
 ``SyncFactoryServer`` from ``generic_common.test_list.json`` as::

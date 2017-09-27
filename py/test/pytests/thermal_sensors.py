@@ -25,13 +25,18 @@ Examples
 To check if the temperature sensors is connected and temperature is in default
 range ([0, 100]), add this in test list::
 
-  OperatorTest(pytest_name='thermal_sensors')
+  {
+    "pytest_name": "thermal_sensors"
+  }
 
 To check if the temperature is in range [30, 80], add this in test list::
 
-  OperatorTest(
-      pytest_name='thermal_sensors',
-      dargs={'temp_range': [30, 80]})
+  {
+    "pytest_name": "thermal_sensors",
+    "args": {
+      "temp_range": [30, 80]
+    }
+  }
 """
 
 import logging

@@ -36,38 +36,44 @@ Dependency
 
 Examples
 --------
-You can do a random read/write test on 3 blocks (each for 1024
-bytes) on an USB stick as::
+To do a random read/write test on 3 blocks (each for 1024 bytes) on an USB
+stick, add this in test list::
 
-  OperatorTest(
-      pytest_name='removable_storage',
-      dargs=dict(
-          media='USB',
-          sysfs_path='/sys/devices/s5p-ehci/usb1/1-1/1-1:1.0'))
+  {
+    "pytest_name": "removable_storage",
+    "args": {
+      "media": "USB",
+      "sysfs_path": "/sys/devices/s5p-ehci/usb1/1-1/1-1:1.0"
+    }
+  }
 
 To do a sequential read/write test on another USB port::
 
-  OperatorTest(
-      pytest_name='removable_storage',
-      dargs=dict(
-          media='USB',
-          sysfs_path='/sys/devices/s5p-ehci/usb1/1-2/1-2.3',
-          block_size=512 * 1024,
-          perform_random_test=False,
-          perform_sequential_test=True,
-          sequential_block_count=8))
+  {
+    "pytest_name": "removable_storage",
+    "args": {
+      "media": "USB",
+      "sysfs_path": "/sys/devices/s5p-ehci/usb1/1-2/1-2.3",
+      "perform_sequential_test": true,
+      "sequential_block_count": 8,
+      "block_size": 524288,
+      "perform_random_test": false
+    }
+  }
 
 Similarly, to test a SD card::
 
-  OperatorTest(
-      pytest_name='removable_storage',
-      dargs=dict(
-          media='SD',
-          sysfs_path='/path/to/sd/device',
-          block_size=512 * 1024,
-          perform_random_test=False,
-          perform_sequential_test=True,
-          sequential_block_count=8))
+  {
+    "pytest_name": "removable_storage",
+    "args": {
+      "media": "SD",
+      "sysfs_path": "/path/to/sd/device",
+      "perform_sequential_test": true,
+      "sequential_block_count": 8,
+      "block_size": 524288,
+      "perform_random_test": false
+    }
+  }
 """
 
 from __future__ import print_function

@@ -35,9 +35,12 @@ This test depends on the plugin named ``"station_setup.station_setup"``.
 
 Examples
 --------
-To ask the operator to fill the properties of the station when needed::
+To ask the operator to fill the properties of the station when needed, add this
+in test list::
 
-  OperatorTest(pytest_name='station_setup')
+  {
+    "pytest_name": "station_setup"
+  }
 """
 
 import unittest

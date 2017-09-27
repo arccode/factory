@@ -27,25 +27,35 @@ verify the result.
 
 Examples
 --------
-To use `robot.foo` to control the robot fixture, and use `algo.bar`
-to calculate and verify the sensor data::
+To use `robot.foo` to control the robot fixture, and use `algo.bar` to
+calculate and verify the sensor data, add this in test list::
 
-  OperatorTest(
-      pytest_name='robot_movement',
-      dargs={'robot_fixture': 'robot.foo',
-             'algorithm': 'algo.bar',
-             'positions': [0, 1, 2, 3, 4, 5])
+  {
+    "pytest_name": "robot_movement",
+    "args": {
+      "positions": [0, 1, 2, 3, 4, 5],
+      "robot_fixture": "robot.foo",
+      "algorithm": "algo.bar"
+    }
+  }
 
-One can also pass parameters to the classes specified in `robot_fixture`
-and `algorithm`::
+One can also pass parameters to the classes specified in `robot_fixture` and
+`algorithm`::
 
-  OperatorTest(
-      pytest_name='robot_movement',
-      dargs={'robot_fixture': 'robot.foo',
-             'robot_fixture_args': {'speed': 30},
-             'algorithm': 'algo.bar',
-             'algorithm_args': {'trajectory_id': 'bar1'},
-             'positions': [0, 1, 2, 3, 4, 5])
+  {
+    "pytest_name": "robot_movement",
+    "args": {
+      "positions": [0, 1, 2, 3, 4, 5],
+      "robot_fixture": "robot.foo",
+      "robot_fixture_args": {
+        "speed": 30
+      },
+      "algorithm_args": {
+        "trajectory_id": "bar1"
+      },
+      "algorithm": "algo.bar"
+    }
+  }
 
 """
 

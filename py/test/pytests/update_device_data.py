@@ -81,42 +81,73 @@ software framework.
 Examples
 --------
 To silently load device-specific data defined in board overlay
-``py/config/default_device_data.json``::
+``py/config/default_device_data.json``, add this in test list::
 
-  OperatorTest(pytest_name='update_device_data',
-               dargs={'manual_input': False,
-                      'config_name': 'default'})
+  {
+    "pytest_name": "update_device_data",
+    "args": {
+      "config_name": "default",
+      "manual_input": false
+    }
+  }
 
 To silently set a device data 'component.has_touchscreen' to True::
 
-  OperatorTest(pytest_name='update_device_data',
-               dargs={'manual_input': False,
-                      'fields': [('component.has_touchscreen', True,
-                                  'Device has touch screen', None)]})
+  {
+    "pytest_name": "update_device_data",
+    "args": {
+      "fields": [
+        [
+          "component.has_touchscreen",
+          true,
+          "Device has touch screen",
+          null
+        ]
+      ],
+      "manual_input": false
+    }
+  }
 
 For RMA process to set serial number, region, registration codes, and specify
 if the device has peripherals like touchscreen::
 
-  OperatorTest(pytest_name='update_device_data',
-               dargs={'fields': [
-                 (device_data.KEY_SERIAL_NUMBER, None, 'Device Serial Number',
-                  r'[A-Z0-9]+'),
-                 (device_data.KEY_VPD_REGION, 'us', 'Region', None),
-                 (device_data.KEY_VPD_USER_REGCODE, None, 'User ECHO', None),
-                 (device_data.KEY_VPD_GROUP_REGCODE, None, 'Group ECHO', None),
-                 ('component.has_touchscreen', None, 'Has touchscreen',
-                  [True, False]),
-                 ]})
+  {
+    "pytest_name": "update_device_data",
+    "args": {
+      "fields": [
+        [
+          "serials.serial_number",
+          null,
+          "Device Serial Number",
+          "[A-Z0-9]+"
+        ],
+        ["vpd.ro.region", "us", "Region", null],
+        ["vpd.rw.ubind_attribute", null, "User ECHO", null],
+        ["vpd.rw.gbind_attribute", null, "Group ECHO", null],
+        [
+          "component.has_touchscreen",
+          null,
+          "Has touchscreen",
+          [true, false]
+        ]
+      ]
+    }
+  }
 
 If you don't need default values, there's an alternative to list only key
 names::
 
-  OperatorTest(pytest_name='update_device_data',
-               dargs={'fields': [device_data.KEY_SERIAL_NUMBER,
-                                 device_data.KEY_VPD_REGION,
-                                 device_data.KEY_VPD_USER_REGCODE,
-                                 device_data.KEY_VPD_GROUP_REGCODE,
-                                ]})
+  {
+    "pytest_name": "update_device_data",
+    "args": {
+      "fields": [
+        "serials.serial_number",
+        "vpd.ro.region",
+        "vpd.rw.ubind_attribute",
+        "vpd.rw.gbind_attribute"
+      ]
+    }
+  }
 """
 
 

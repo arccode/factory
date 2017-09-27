@@ -25,12 +25,14 @@ No dependencies.  This test does not support remote DUT.
 
 Examples
 --------
-You should create an ``urandom`` test like this::
+To generate random number and stress CPU for 4 hours, add this in test list::
 
-  FactoryTest(pytest_name='urandom',
-              dargs={
-                  'duration_secs': 4 * 60 * 60,  # run for 4 hours
-              })
+  {
+    "pytest_name": "urandom",
+    "args": {
+      "duration_secs": 14400
+    }
+  }
 """
 
 import logging

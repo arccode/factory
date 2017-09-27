@@ -56,25 +56,44 @@ Dependency
 
 Examples
 --------
-To test touchscreen with 30x20 blocks::
+To test touchscreen with 30x20 blocks, add this in test list::
 
-  OperatorTest(pytest_name='touchscreen',
-               dargs=dict(x_segments=20, y_segments=30))
+  {
+    "pytest_name": "touchscreen",
+    "args": {
+      "y_segments": 30,
+      "x_segments": 20
+    }
+  }
 
 To test touchscreen in end-to-end mode and cancel the time limit::
 
-  OperatorTest(pytest_name='touchscreen',
-               dargs=dict(e2e_mode=True, timeout_secs=None))
+  {
+    "pytest_name": "touchscreen",
+    "args": {
+      "e2e_mode": true,
+      "timeout_secs": null
+    }
+  }
 
 To test touchscreen without spiral order restriction::
 
-  OperatorTest(pytest_name='touchscreen',
-               dargs=dict(spiral_mode=False))
+  {
+    "pytest_name": "touchscreen",
+    "args": {
+      "spiral_mode": false
+    }
+  }
 
 To test stylus in hover mode::
 
-  OperatorTest(pytest_name='touchscreen',
-               dargs=dict(stylus=True, hover_mode=True))
+  {
+    "pytest_name": "touchscreen",
+    "args": {
+      "stylus": true,
+      "hover_mode": true
+    }
+  }
 
 Trouble Shooting
 ----------------

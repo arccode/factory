@@ -48,9 +48,11 @@ Dependency
 
 Examples
 --------
-There's no options for this test::
+To ask OP to confirm sku information, add this in test list::
 
-  OperatorTest(pytest_name='mosys_platform')
+  {
+    "pytest_name": "mosys_platform"
+  }
 
 """
 

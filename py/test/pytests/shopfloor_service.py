@@ -49,20 +49,30 @@ needed XMLRPC methods.
 
 Examples
 --------
-To start 'SMT' station tests, add this to test list::
+To start 'SMT' station tests, add this in test list::
 
-  OperatorTest(pytest_name='shopfloor_service',
-               dargs={'method': 'NotifyStart',
-                      'args': ['SMT']})
+  {
+    "pytest_name": "shopfloor_service",
+    "args": {
+      "args": ["SMT"],
+      "method": "NotifyStart"
+    }
+  }
 
 To invoke a non-standard call 'DoSomething' with args (1, 2) and keyword args
-{'arg1': 1}, add this into test list::
+{'arg1': 1}::
 
-  OperatorTest(pytest_name='shopfloor_service',
-               dargs={'method': 'DoSomething',
-                      'raw_invocation': True,
-                      'args': (1, 2),
-                      'kargs': {'arg1': 1}})
+  {
+    "pytest_name": "shopfloor_service",
+    "args": {
+      "args": [1, 2],
+      "raw_invocation": true,
+      "kargs": {
+        "arg1": 1
+      },
+      "method": "DoSomething"
+    }
+  }
 """
 
 

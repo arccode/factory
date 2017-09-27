@@ -39,16 +39,21 @@ Dependency
 Examples
 --------
 To stress CPU, memory (90% of free memory), and the disk using stateful
-partition for 60 seconds, add this into test list::
+partition for 60 seconds, add this in test list::
 
-  FactoryTest(pytest_name='stressapptest')
+  {
+    "pytest_name": "stressapptest"
+  }
 
 To stress for one day without accessing disk::
 
-  FactoryTest(pytest_name='stressapptest',
-              dargs=dict(
-                  seconds=86400,
-                  disk_thread=False))
+  {
+    "pytest_name": "stressapptest",
+    "args": {
+      "seconds": 86400,
+      "disk_thread": false
+    }
+  }
 """
 
 import logging

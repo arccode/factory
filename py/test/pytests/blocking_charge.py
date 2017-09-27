@@ -40,32 +40,44 @@ Examples
 To charge the device to ``min_charge_pct`` in Goofy charge_manager (default
 behavior), add this in test list::
 
-  OperatorTest(pytest_name='blocking_charge',
-               exclusive_resources=[plugin.RESOURCE.POWER])
+  {
+    "pytest_name": "blocking_charge",
+    "exclusive_resources": ["POWER"]
+  }
 
 To charge the device to minimum battery level needed for cutoff, add this in
 test list::
 
-  OperatorTest(pytest_name='blocking_charge',
-               exclusive_resources=[plugin.RESOURCE.POWER],
-               dargs={'target_charge_pct': 'cutoff'})
+  {
+    "pytest_name": "blocking_charge",
+    "exclusive_resources": ["POWER"],
+    "args": {
+      "target_charge_pct": "cutoff"
+    }
+  }
 
 To charge the device to 75 percent, add this in test list::
 
-  OperatorTest(pytest_name='blocking_charge',
-               exclusive_resources=[plugin.RESOURCE.POWER],
-               dargs={'target_charge_pct': 75})
+  {
+    "pytest_name": "blocking_charge",
+    "exclusive_resources": ["POWER"],
+    "args": {
+      "target_charge_pct": 75
+    }
+  }
 
 To charge the device 10 percent more, and only allow 5 minutes time for
 charging, add this in test list::
 
-  OperatorTest(pytest_name='blocking_charge',
-               exclusive_resources=[plugin.RESOURCE.POWER],
-               dargs={
-                 'target_charge_pct': 20,
-                 'target_charge_pct_is_delta': True,
-                 'timeout_secs': 300
-               })
+  {
+    "pytest_name": "blocking_charge",
+    "exclusive_resources": ["POWER"],
+    "args": {
+      "target_charge_pct_is_delta": true,
+      "timeout_secs": 300,
+      "target_charge_pct": 20
+    }
+  }
 """
 
 import logging

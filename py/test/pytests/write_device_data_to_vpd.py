@@ -48,13 +48,20 @@ Examples
 --------
 To write all VPD values from device data to VPD, add this in test list::
 
-  FactoryTest(pytest_name='write_device_data_to_vpd')
+  {
+    "pytest_name": "write_device_data_to_vpd"
+  }
 
 To write a calibration data value to RO VPD::
 
-  FactoryTest(pytest_name='write_device_data_to_vpd',
-              dargs={'ro_key_map': {'modem_calibration':
-                                    'component.cellular.calibration_data'}})
+  {
+    "pytest_name": "write_device_data_to_vpd",
+    "args": {
+      "ro_key_map": {
+        "modem_calibration": "component.cellular.calibration_data"
+      }
+    }
+  }
 """
 
 

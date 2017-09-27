@@ -33,24 +33,34 @@ Dependency
 
 Examples
 --------
-Test 5V charge::
+To test 5V charge, add this in test list::
 
-  OperatorTest(
-      pytest_name='plankton_usb_c_charge',
-      dargs={
-          'bft_fixture': dolphin_fixture,
-          'min_charge_5V_current_mA': 0
-      })
+  {
+    "pytest_name": "plankton_usb_c_charge",
+    "args": {
+      "bft_fixture": {
+        "class_name":
+          "cros.factory.test.fixture.dummy_bft_fixture.DummyBFTFixture",
+        "params": {}
+      },
+      "min_charge_5V_current_mA": 0
+    }
+  }
 
 Test 20V charge without checking the input current::
 
-  OperatorTest(
-      pytest_name='plankton_usb_c_charge',
-      dargs={
-          'bft_fixture': dolphin_fixture,
-          'min_charge_20V_current_mA': 0,
-          'check_ina_current': False
-      })
+  {
+    "pytest_name": "plankton_usb_c_charge",
+    "args": {
+      "bft_fixture": {
+        "class_name":
+          "cros.factory.test.fixture.dummy_bft_fixture.DummyBFTFixture",
+        "params": {}
+      },
+      "min_charge_20V_current_mA": 0,
+      "check_ina_current": false
+    }
+  }
 
 """
 

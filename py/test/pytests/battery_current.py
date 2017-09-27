@@ -44,22 +44,24 @@ Examples
 --------
 To check battery can charge and discharge, add this in test list::
 
-  OperatorTest(
-      pytest_name='battery_current',
-      dargs={
-          'min_charging_current': 250,
-          'min_discharging_current': 400
-      })
+  {
+    "pytest_name": "battery_current",
+    "args": {
+      "min_charging_current": 250,
+      "min_discharging_current": 400
+    }
+  }
 
 To check that a 15V USB type C power adapter is connected to port 0, add this
 in test list::
 
-  OperatorTest(
-      pytest_name='battery_current',
-      dargs={
-          'usbpd_info': [0, 14500, 15500],
-          'usbpd_prompt': _('USB TypeC')
-      })
+  {
+    "pytest_name": "battery_current",
+    "args": {
+      "usbpd_info": [0, 14500, 15500],
+      "usbpd_prompt": "i18n! USB TypeC"
+    }
+  }
 """
 
 import logging
