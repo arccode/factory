@@ -4,36 +4,63 @@
 
 """Ping connection test.
 
-Tests network connection by pinging a host for a period of time.  Then
-checks the percentage of successful pings is above some threshold or not.
-If moving_window_size is set, it will check the percentage within the
-moving window during the test.  It always checks the percentage of
-successful pings for the whole duration at the end of the test.
+Description
+-----------
+Tests network connection by pinging a host for a period of time. Then checks
+the percentage of successful pings is above some threshold or not.
 
-Usage examples::
+If moving_window_size is set, it will check the percentage within the moving
+window during the test. It always checks the percentage of successful pings for
+the whole duration at the end of the test.
 
-    # Pings 192.168.0.1 every 10 seconds for 120 seconds.
-    # Checks the successful pings are >= 60% at the end of the test.
-    OperatorTest(
-        id='ping_test',
-        pytest_name='ping_test',
-        dargs={'host': '192.168.0.1',
-               'interval_secs': 10,
-               'duration_secs': 120,
-               'ping_success_percent': 60})
+Test Procedure
+--------------
+This is an automated test without user interaction.
 
-    # Pings 192.168.0.1 every 10 seconds for 120 seconds.
-    # Checks the successful pings are >= 60% within the moving
-    # window of 5 pings.  It also checks the successful pings
-    # are >= 60% overall.
-    OperatorTest(
-        id='ping_test',
-        pytest_name='ping_test',
-        dargs={'host': '192.168.0.1',
-               'interval_secs': 10,
-               'duration_secs': 120,
-               'ping_success_percent': 60,
-               'moving_window_size': 5})
+Dependency
+----------
+The program ``ping``.
+
+Examples
+--------
+To ping 192.168.0.1 every 2 seconds for 10 seconds, and checks the successful
+pings are >= 70% at the end of the test (The default values), add this to test
+list::
+
+  {
+    "pytest_name": "ping_test",
+    "args": {
+      "host": "192.168.0.1"
+    }
+  }
+
+To ping 192.168.0.1 every 10 seconds for 120 seconds, and checks the successful
+pings are >= 60% at the end of the test, add this to test list::
+
+  {
+    "pytest_name": "ping_test",
+    "args": {
+      "duration_secs": 120,
+      "host": "192.168.0.1",
+      "interval_secs": 10,
+      "ping_success_percent": 60
+    }
+  }
+
+To ping 192.168.0.1 on interface eth0 every 10 seconds for 120 seconds, checks
+the successful pings are >= 70% within the moving window of 5 pings, and also
+checks the successful pings are >= 70% overall, add this to test list::
+
+  {
+    "pytest_name": "ping_test",
+    "args": {
+      "duration_secs": 120,
+      "host": "192.168.0.1",
+      "interface": "eth0",
+      "interval_secs": 10,
+      "moving_window_size": 5
+    }
+  }
 """
 
 from __future__ import print_function
