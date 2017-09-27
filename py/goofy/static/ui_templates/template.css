@@ -35,24 +35,20 @@
 
 .template-prompt-container {
   flex: none;
-  margin: 0px 8px;
+  margin: 0 8px;
   background-color: white;
+  display: flex;
+  padding: 0 8px;
 }
 
 .template-instruction {
-  position: absolute;
-  left: 0;
-  width: 75%;
   font-size: 1.5em;
-  padding-left: 12px;
+  flex: 3;
 }
 
 .template-progress-bar {
-  position: absolute;
-  left: 75%;
-  width: 20%; height: 100%;
-  padding-right: 12px;
   display: none;
+  flex: 1;
 }
 
 .template-button-container {
@@ -87,12 +83,6 @@
 }
 
 /* For progress bar */
-.progress-bar-thumb {
-  position: relative;
-  overflow: hidden;
-  width: 100%; height: 100%;
-}
-
 #template-progress-bar-indicator {
   position: absolute;
   top: 0;
