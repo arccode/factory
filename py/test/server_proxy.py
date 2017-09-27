@@ -73,7 +73,7 @@ def SetServerURL(new_url):
   UpdateServerConfig(config)
 
 
-def GetServerProxy(url=None, timeout=None, quiet=False):
+def GetServerProxy(url=None, timeout=None, quiet=True):
   """Gets a proxy object to access the Chrome OS Factory Server.
 
   Args:

@@ -270,12 +270,12 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     Returns:
       contents in resource map.
     """
-    logging.info('Getting resource map from Umpire server')
+    logging.debug('Getting resource map from Umpire server')
     request = urllib2.Request(
         '%s/resourcemap' % self._umpire_http_server_uri,
         headers={'X-Umpire-DUT': self._umpire_client_info.GetXUmpireDUT()})
     content = urllib2.urlopen(request).read()
-    logging.info('Got resource map: %r', content)
+    logging.debug('Got resource map: %r', content)
     return content
 
   def _SetUmpireUri(self):
@@ -423,7 +423,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
 
   def _GetResources(self):
     """Gets resource map from umpire and set self._resources."""
-    logging.info('Requesting Umpire for resource map')
+    logging.debug('Requesting Umpire for resource map')
     resourcemap = self._GetResourceMap()
     self._resources = self._ParseResourceMap(resourcemap)
 

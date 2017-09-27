@@ -82,6 +82,7 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
+from cros.factory.utils import log_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import shelve_utils
 from cros.factory.utils import webservice_utils
@@ -203,7 +204,7 @@ class ShopfloorService(unittest.TestCase):
     if self.args.server_url:
       server = webservice_utils.CreateWebServiceProxy(self.args.server_url)
     else:
-      server = server_proxy.GetServerProxy()
+      server = server_proxy.GetServerProxy(quiet=True)
       if self.args.raw_invocation:
         raise ValueError('Argument `raw_invocation` allowed only for external '
                          'server (need `server_url`).')
@@ -234,6 +235,10 @@ class ShopfloorService(unittest.TestCase):
     invocation_message = pprint.pformat({method: args}) + (
         pprint.pformat(kargs) if kargs else '')
 
+    # Reduce messages.
+    logger = log_utils.NoisyLogger(
+        lambda fault, prompt: logging.exception(prompt, fault))
+
     while not self.done:
       def ShowMessage(caption, css, message, retry=False):
         retry_button = ('<button onclick="test.sendTestEvent(\'retry\')">' +
@@ -248,10 +253,10 @@ class ShopfloorService(unittest.TestCase):
       ShowMessage('Invoking shopfloor service', 'test-status-active large',
                   invocation_message)
 
-      def HandleError(trace):
+      def HandleError(message):
         ShowMessage('Shop floor exception:', 'test-status-failed large',
-                    '\n'.join((trace.splitlines()[-1], invocation_message,
-                               trace)), True)
+                    '\n'.join((message.splitlines()[-1],
+                               invocation_message, message)), True)
         process_utils.WaitEvent(self.event)
         self.event.clear()
 
@@ -262,11 +267,12 @@ class ShopfloorService(unittest.TestCase):
         self.UpdateAutoResults(method, result, args)
         self.UpdateDeviceData(result)
         self.done = True
+        # Should then exit the loop and pass test.
       except server_proxy.Fault as f:
-        logging.exception('Server fault occurred.')
-        HandleError(f.faultString)
+        message = f.faultString
+        logger.Log(message, 'Server fault occurred: %s')
+        HandleError(message)
       except Exception:
-        logging.exception('Exception invoking shopfloor service.')
-        exception_str = debug_utils.FormatExceptionOnly()
-        HandleError(exception_str)
-        continue
+        message = debug_utils.FormatExceptionOnly()
+        logger.Log(message, 'Exception invoking shopfloor service: %s')
+        HandleError(message)

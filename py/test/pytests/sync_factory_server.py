@@ -101,6 +101,7 @@ from cros.factory.test import ui_templates
 from cros.factory.test.utils import time_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
+from cros.factory.utils import log_utils
 
 _CSS = """
 #state {
@@ -266,7 +267,8 @@ class SyncFactoryServer(unittest.TestCase):
     self.ui_template.SetState(
         i18n_test_ui.MakeI18nLabel('Trying to reach server...') +
         '<br/><br/>' + self.CreateChangeURLButton())
-    self.server = server_proxy.GetServerProxy(timeout=self.args.timeout_secs)
+    self.server = server_proxy.GetServerProxy(
+        timeout=self.args.timeout_secs, quiet=True)
 
     if self.do_setup_url:
       raise Exception('Edit URL clicked.')
@@ -366,6 +368,12 @@ class SyncFactoryServer(unittest.TestCase):
     # Setup new server URL
     self.ChangeServerURL(self.args.server_url)
 
+    # It's very often that a DUT under FA is left without network connected for
+    # hours to days, so we should not log (which will increase TestLog events)
+    # if the exception string is not changed.
+    logger = log_utils.NoisyLogger(
+        lambda fault, prompt: logging.exception(prompt, fault))
+
     for i, (label, task) in enumerate(tasks):
       progress = int(i * 100.0 / len(tasks))
       self.ui_template.SetProgressBarValue(progress)
@@ -382,13 +390,11 @@ class SyncFactoryServer(unittest.TestCase):
           time.sleep(0.5)
           break
         except server_proxy.Fault as f:
-          exception_string = f.faultString
-          logging.error('Server fault with message: %s', f.faultString)
+          message = f.faultString
+          logger.Log(message, 'Server fault with message: %s')
         except Exception:
-          exception_string = debug_utils.FormatExceptionOnly()
-          # Log only the exception string, not the entire exception,
-          # since this may happen repeatedly.
-          logging.error('Unable to sync with server: %s', exception_string)
+          message = debug_utils.FormatExceptionOnly()
+          logger.Log(message, 'Unable to sync with server: %s')
 
         msg = lambda time_left, label_: i18n_test_ui.MakeI18nLabel(
             'Task <b>{label}</b> failed, retry in {time_left} seconds...',
@@ -399,7 +405,7 @@ class SyncFactoryServer(unittest.TestCase):
             '<span id="retry">' + msg(retry_secs, label) + '</span>'
             + edit_url_button
             + '<p><textarea rows=25 cols=90 readonly class=sync-detail>'
-            + test_ui.Escape(exception_string, False) + '</textarea>')
+            + test_ui.Escape(message, False) + '</textarea>')
 
         for i in xrange(retry_secs):
           time.sleep(1)
