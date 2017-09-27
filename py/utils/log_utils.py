@@ -80,3 +80,64 @@ def FileLogger(logger, log_path, log_prefix=None, log_format=None, level=None):
   ret.addHandler(handler)
   ret.setLevel(level)
   return ret
+
+
+class NoisyLogger(object):
+  """A processor for handling logs that repeats quickly.
+
+  Most tests implementing retry (or do something periodically) will easily
+  produce lots of same messages and we may want them being suppressed if the
+  message is not changed.
+  """
+
+  def __init__(self, logger, suppress_limit=None, suppress_logger=None):
+    """Constructor.
+
+    Args:
+      logger: A logger function, for example logging.info.
+      suppress_limit: An integer for limit of times to suppress, or None to
+        suppress until message is changed.
+      suppress_logger: A logger function to be invoked when first time a message
+        is suppressed. None to use default (``_DefaultSuppressLogger``).
+    """
+    if suppress_logger is None:
+      suppress_logger = self._DefaultSuppressLogger
+    self._logger = logger
+    self._suppress_limit = suppress_limit
+    self._suppress_logger = suppress_logger
+    self._suppress_times = 0
+    self._last_message = None
+    # TODO(hungte) Support time-based suppress limit, and a function to be
+    # invoked for each suppressed message, for exampling routing to
+    # logging.debug.
+
+  def _DefaultSuppressLogger(self, message, *args, **kargs):
+    """The default logger when the message is first time suppressed."""
+    del args  # Unused
+    del kargs  # Unused
+    logging.info('Suppressed repeating message(s): %s', message)
+
+  def ShouldSuppress(self, message):
+    """Returns if the new message should be suppressed or not."""
+    if message != self._last_message:
+      return False
+    if self._suppress_limit is None:
+      return True
+    return self._suppress_times < self._suppress_limit
+
+  def Log(self, message, *args, **kargs):
+    """Logs the new message.
+
+    Args:
+      message: An object to be logged.
+      args: Extra arguments sent to logger.
+      kargs: Keyword arguments sent to logger.
+    """
+    if self.ShouldSuppress(message):
+      if self._suppress_times == 0:
+        self._suppress_logger(message)
+      self._suppress_times += 1
+    else:
+      self._suppress_times = 0
+      self._last_message = message
+      self._logger(message, *args, **kargs)
