@@ -14,21 +14,18 @@ from cros.factory.goofy import test_list_iterator
 from cros.factory.test import factory
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager
-from cros.factory.test.test_lists import test_lists
 
 
 class TestListIteratorTest(unittest.TestCase):
-  OPTIONS = ''  # Overriden by subclasses
-  TEST_LIST = ''  # Overriden by subclasses
+  TEST_LIST = {}  # Overriden by subclasses
 
   def setUp(self):
     self.test_list_manager = mock.MagicMock(spec=manager.Manager)
-    self.test_list = self._BuildTestList(self.TEST_LIST, self.OPTIONS)
+    self.test_list = self._BuildTestList(self.TEST_LIST)
 
-  def _BuildTestList(self, test_list_code, options_code):
-    return manager.LegacyTestList(
-        test_lists.BuildTestListFromString(test_list_code, options_code),
-        self.test_list_manager)
+  def _BuildTestList(self, test_list_config):
+    return manager.BuildTestListForUnittest(
+        test_list_config=test_list_config)
 
   def _SetStubStateInstance(self, test_list):
     state_instance = state.StubFactoryState()
@@ -126,18 +123,25 @@ class TestListIteratorBaseTest(TestListIteratorTest):
   https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/test/test_lists/TEST_LIST.md
   """
 
-  OPTIONS = ''
-  TEST_LIST = """
-    test_lists.FactoryTest(id='a', pytest_name='t_a')
-    test_lists.FactoryTest(id='b', pytest_name='t_b')
-    with test_lists.FactoryTest(id='G'):
-      test_lists.FactoryTest(id='a', pytest_name='t_Ga')
-      test_lists.FactoryTest(id='b', pytest_name='t_Gb')
-      with test_lists.TestGroup(id='G'):
-        test_lists.FactoryTest(id='a', pytest_name='t_GGa')
-        test_lists.FactoryTest(id='b', pytest_name='t_GGb')
-    test_lists.FactoryTest(id='c', pytest_name='t_c')
-  """
+  TEST_LIST = {
+      'tests': [
+          {'id': 'a', 'pytest_name': 't_a'},
+          {'id': 'b', 'pytest_name': 't_b'},
+          {'id': 'G',
+           'subtests': [
+               {'id': 'a', 'pytest_name': 't_Ga'},
+               {'id': 'b', 'pytest_name': 't_Gb'},
+               {'id': 'G',
+                'subtests': [
+                    {'id': 'a', 'pytest_name': 't_GGa'},
+                    {'id': 'b', 'pytest_name': 't_GGb'},
+                ]
+               },
+           ]
+          },
+          {'id': 'c', 'pytest_name': 't_c'},
+      ]
+  }
 
   def testInitFromRoot(self):
     root_path = self.test_list.ToFactoryTestList().path
@@ -175,17 +179,23 @@ class TestListIteratorBaseTest(TestListIteratorTest):
 
   def testStop(self):
     test_list = self._BuildTestList(
-        """
-    with test_lists.FactoryTest(id='G', iterations=2):
-      with test_lists.FactoryTest(id='G', iterations=2):
-        with test_lists.Subtests():
-          test_lists.FactoryTest(id='a', pytest_name='t_Ga', iterations=2)
-          test_lists.FactoryTest(id='b', pytest_name='t_Gb', iterations=2)
-      with test_lists.FactoryTest(id='H', iterations=2):
-        with test_lists.Subtests():
-          test_lists.FactoryTest(id='a', pytest_name='t_Ga', iterations=2)
-          test_lists.FactoryTest(id='b', pytest_name='t_Gb', iterations=2)
-        """, self.OPTIONS)
+        {
+            'tests': [
+                {'id': 'G', 'iterations': 2,
+                 'subtests': [
+                     {'id': 'G', 'iterations': 2,
+                      'subtests': [
+                          {'id': 'a', 'pytest_name': 't_Ga', 'iterations':2},
+                          {'id': 'b', 'pytest_name': 't_Gb', 'iterations':2},
+                      ]},
+                     {'id': 'H', 'iterations': 2,
+                      'subtests': [
+                          {'id': 'a', 'pytest_name': 't_Ha', 'iterations':2},
+                          {'id': 'b', 'pytest_name': 't_Hb', 'iterations':2},
+                      ]},
+                 ]}
+            ]
+        })
     test_list = self._SetStubStateInstance(test_list)
     iterator = test_list_iterator.TestListIterator(
         root=test_list, test_list=test_list)
@@ -248,18 +258,27 @@ class TestListIteratorBaseTest(TestListIteratorTest):
 
     # switch to new test list
     test_list = self._BuildTestList(
-        """
-    test_lists.FactoryTest(id='a', pytest_name='t_a')
-    test_lists.FactoryTest(id='b', pytest_name='t_b')
-    with test_lists.FactoryTest(id='G'):
-      test_lists.FactoryTest(id='a', pytest_name='t_Ga')  # <- at here
-      # test_lists.FactoryTest(id='b', pytest_name='t_Gb')  # removed
-      with test_lists.TestGroup(id='G'):
-        test_lists.FactoryTest(id='a', pytest_name='t_GGa')
-        test_lists.FactoryTest(id='b', pytest_name='t_GGb')
-        test_lists.FactoryTest(id='c', pytest_name='t_GGc')  # new
-    test_lists.FactoryTest(id='c', pytest_name='t_c')
-        """, self.OPTIONS)
+        {
+            'tests': [
+                {'id': 'a', 'pytest_name': 't_a'},
+                {'id': 'b', 'pytest_name': 't_b'},
+                {'id': 'G',
+                 'subtests': [
+                     {'id': 'a', 'pytest_name': 't_Ga'},  # at here
+                     # {'id': 'b', 'pytest_name': 't_Gb'},  # removed
+                     {'id': 'G',
+                      'subtests': [
+                          {'id': 'a', 'pytest_name': 't_GGa'},
+                          {'id': 'b', 'pytest_name': 't_GGb'},
+                          {'id': 'c', 'pytest_name': 't_GGc'},  # new
+                      ]
+                     },
+                 ]
+                },
+                {'id': 'c', 'pytest_name': 't_c'},
+            ]
+        }
+    )
     test_list = self._SetStubStateInstance(test_list)
     iterator.SetTestList(test_list)
 
@@ -289,14 +308,18 @@ class TestListIteratorBaseTest(TestListIteratorTest):
 
   def testRunIf(self):
     test_list = self._BuildTestList(
-        """
-    test_lists.FactoryTest(id='a', pytest_name='t_a')
-    with test_lists.FactoryTest(id='G', run_if='device.foo.a'):
-      test_lists.FactoryTest(id='a', pytest_name='t_Ga')
-      with test_lists.TestGroup(id='G'):
-        test_lists.FactoryTest(id='a', pytest_name='t_GGa')
-    test_lists.FactoryTest(id='c', pytest_name='t_c')
-        """, self.OPTIONS)
+        {
+            'tests': [
+                {'id': 'a', 'pytest_name': 't_a'},
+                {'id': 'G', 'run_if': 'device.foo.a', 'subtests': [
+                    {'id': 'a', 'pytest_name': 't_Ga'},
+                    {'id': 'G', 'subtests': [
+                        {'id': 'a', 'pytest_name': 't_GGa'},
+                    ]},
+                ]},
+                {'id': 'c', 'pytest_name': 't_c'},
+            ]
+        })
     self._AssertTestSequence(
         test_list,
         ['a', 'c'],
@@ -315,14 +338,19 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         })
 
     test_list = self._BuildTestList(
-        """
-    test_lists.FactoryTest(id='a', pytest_name='t_a')
-    with test_lists.FactoryTest(id='G'):
-      test_lists.FactoryTest(id='a', pytest_name='t_Ga', run_if='device.foo.a')
-      with test_lists.TestGroup(id='G', run_if='not device.foo.a'):
-        test_lists.FactoryTest(id='a', pytest_name='t_GGa')
-    test_lists.FactoryTest(id='c', pytest_name='t_c')
-        """, self.OPTIONS)
+        {
+            'tests': [
+                {'id': 'a', 'pytest_name': 't_a'},
+                {'id': 'G', 'subtests': [
+                    {'id': 'a', 'run_if': 'device.foo.a',
+                     'pytest_name': 't_Ga'},
+                    {'id': 'G', 'run_if': 'not device.foo.a', 'subtests': [
+                        {'id': 'a', 'pytest_name': 't_GGa'},
+                    ]},
+                ]},
+                {'id': 'c', 'pytest_name': 't_c'},
+            ]
+        })
     self._AssertTestSequence(
         test_list,
         ['a', 'G.G.a', 'c'],
@@ -342,14 +370,18 @@ class TestListIteratorBaseTest(TestListIteratorTest):
 
   def testStatusFilter(self):
     test_list = self._BuildTestList(
-        """
-    with test_lists.TestGroup(id='G'):
-      test_lists.FactoryTest(id='a', pytest_name='t_Ga')
-      with test_lists.TestGroup(id='G'):
-        test_lists.FactoryTest(id='a', pytest_name='t_GGa')
-        test_lists.FactoryTest(id='b', pytest_name='t_GGa')
-      test_lists.FactoryTest(id='b', pytest_name='t_Gb')
-        """, self.OPTIONS)
+        {
+            'tests': [
+                {'id': 'G', 'inherit': 'TestGroup', 'subtests': [
+                    {'id': 'a', 'pytest_name': 't_Ga'},
+                    {'id': 'G', 'inherit': 'TestGroup', 'subtests': [
+                        {'id': 'a', 'pytest_name': 't_GGa'},
+                        {'id': 'b', 'pytest_name': 't_GGb'},
+                    ]},
+                    {'id': 'b', 'pytest_name': 't_Gb'},
+                ]},
+            ]
+        })
 
     # no filter, all tests should be run
     test_list = self._SetStubStateInstance(test_list)
@@ -409,27 +441,30 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     retest G.a too.
     """
     test_list = self._BuildTestList(
-        """
-    with test_lists.TestGroup(id='G'):
-      test_lists.FactoryTest(id='a', pytest_name='t_Ga')
-      test_lists.FactoryTest(id='b', pytest_name='t_Gb')
-    with test_lists.FactoryTest(id='H'):
-      test_lists.FactoryTest(id='a', pytest_name='t_Ha')
-      test_lists.FactoryTest(id='b', pytest_name='t_Hb')
-    with test_lists.FactoryTest(id='I'):
-      test_lists.FactoryTest(id='a', pytest_name='t_Ia')
-      test_lists.FactoryTest(id='b', pytest_name='t_Ib')
-    with test_lists.FactoryTest(id='J'):
-      test_lists.FactoryTest(id='a', pytest_name='t_Ja')
-      test_lists.FactoryTest(id='b', pytest_name='t_Jb')
-        """,
-        """
-    options.phase = 'PROTO'
-    options.skipped_tests = {
-        'PROTO': ['J']
-    }
-        """)
-
+        {
+            'options': {
+                'phase': 'PROTO',
+                'skipped_tests': {'PROTO': ['J']},
+            },
+            'tests': [
+                {'inherit': 'TestGroup', 'id': 'G', 'subtests': [
+                    {'id': 'a', 'pytest_name': 'a'},
+                    {'id': 'b', 'pytest_name': 'b'},
+                ]},
+                {'inherit': 'FactoryTest', 'id': 'H', 'subtests': [
+                    {'id': 'a', 'pytest_name': 'a'},
+                    {'id': 'b', 'pytest_name': 'b'},
+                ]},
+                {'inherit': 'FactoryTest', 'id': 'I', 'subtests': [
+                    {'id': 'a', 'pytest_name': 'a'},
+                    {'id': 'b', 'pytest_name': 'b'},
+                ]},
+                {'inherit': 'FactoryTest', 'id': 'J', 'subtests': [
+                    {'id': 'a', 'pytest_name': 'a'},
+                    {'id': 'b', 'pytest_name': 'b'},
+                ]},
+            ]
+        })
     # G is a test group, H, I, J are AutomatedSequences
     test_list = self._SetStubStateInstance(test_list)
     test_list.SetSkippedAndWaivedTests()
@@ -453,14 +488,18 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     reset of its child stop running.
     """
     test_list = self._BuildTestList(
-        """
-    with test_lists.FactoryTest(id='G', run_if='device.foo.a'):
-      test_lists.FactoryTest(id='a', pytest_name='t_Ga', run_if='device.foo.a')
-      with test_lists.TestGroup(id='G', run_if='device.foo.a'):
-        test_lists.FactoryTest(id='a', pytest_name='t_GGa')
-        test_lists.FactoryTest(id='b', pytest_name='t_GGa')
-      test_lists.FactoryTest(id='b', pytest_name='t_Gb')
-        """, self.OPTIONS)
+        {
+            'tests': [
+                {'id': 'G', 'run_if': 'device.foo.a', 'subtests': [
+                    {'id': 'a', 'pytest_name': 'a', 'run_if': 'device.foo.a'},
+                    {'id': 'G', 'run_if': 'device.foo.a', 'subtests': [
+                        {'id': 'a', 'pytest_name': 'a'},
+                        {'id': 'b', 'pytest_name': 'b'},
+                    ]},
+                    {'id': 'b', 'pytest_name': 'b'},
+                ]},
+            ]
+        })
 
     def run_test_1(path, device_data):
       if path == 'G.G.a':
@@ -497,10 +536,12 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     B.
     """
     test_list = self._BuildTestList(
-        """
-    test_lists.FactoryTest(id='a', pytest_name='t_a')
-    test_lists.FactoryTest(id='b', pytest_name='t_b', run_if='device.foo.a')
-        """, self.OPTIONS)
+        {
+            'tests': [
+                {'id': 'a', 'pytest_name': 'a'},
+                {'id': 'b', 'pytest_name': 'b', 'run_if': 'device.foo.a'},
+            ]
+        })
 
     # case 1: test 'a' set foo.a to True
     def run_test_1(path, device_data):
@@ -538,20 +579,25 @@ class TestListIteratorBaseTest(TestListIteratorTest):
 
 
 class TestListIteratorParallelTest(TestListIteratorTest):
-  TEST_LIST = """
-    test_lists.FactoryTest(id='a', pytest_name='t_a')
-    test_lists.FactoryTest(id='b', pytest_name='t_b')
-    with test_lists.FactoryTest(id='G'):
-      test_lists.FactoryTest(id='a', pytest_name='t_Ga')
-      test_lists.FactoryTest(id='b', pytest_name='t_Gb')
-      with test_lists.FactoryTest(id='G', parallel=True):
-        test_lists.FactoryTest(id='a', pytest_name='t_GGa')
-        test_lists.FactoryTest(id='b', pytest_name='t_GGb')
-      with test_lists.FactoryTest(id='H'):
-        test_lists.FactoryTest(id='a', pytest_name='t_GHa')
-        test_lists.FactoryTest(id='b', pytest_name='t_GHb')
-    test_lists.FactoryTest(id='c', pytest_name='t_c')
-  """
+  TEST_LIST = {
+      'tests': [
+          {'id': 'a', 'pytest_name': 't_a'},
+          {'id': 'b', 'pytest_name': 't_b'},
+          {'id': 'G', 'subtests': [
+              {'id': 'a', 'pytest_name': 't_a'},
+              {'id': 'b', 'pytest_name': 't_b'},
+              {'id': 'G', 'parallel': True, 'subtests': [
+                  {'id': 'a', 'pytest_name': 't_a'},
+                  {'id': 'b', 'pytest_name': 't_b'},
+              ]},
+              {'id': 'H', 'subtests': [
+                  {'id': 'a', 'pytest_name': 't_a'},
+                  {'id': 'b', 'pytest_name': 't_b'},
+              ]},
+          ]},
+          {'id': 'c', 'pytest_name': 't_c'},
+      ]
+  }
   def testParallel(self):
     """Test cases for FactoryTest.parallel option.
 
@@ -569,16 +615,18 @@ class TestListIteratorActionOnFailureTest(TestListIteratorTest):
   """
   def testActionOnFailureNext(self):
     test_list = self._BuildTestList(
-        """
-    with test_lists.FactoryTest(id='G'):
-      test_lists.FactoryTest(id='a', pytest_name='t_Ga',
-                             action_on_failure='NEXT')
-      test_lists.FactoryTest(id='b', pytest_name='t_Gb',
-                             action_on_failure='NEXT')
-    test_lists.FactoryTest(id='c', pytest_name='t_Gc',
-                           action_on_failure='NEXT')
-        """,
-        self.OPTIONS)
+        {
+            'tests': [
+                {'id': 'G', 'subtests': [
+                    {'id': 'a', 'pytest_name': 'a',
+                     'action_on_failure': 'NEXT'},
+                    {'id': 'b', 'pytest_name': 'b',
+                     'action_on_failure': 'NEXT'},
+                ]},
+                {'id': 'c', 'pytest_name': 'c',
+                 'action_on_failure': 'NEXT'},
+            ]
+        })
     self._AssertTestSequence(
         test_list,
         ['G.a', 'G.b', 'c'],
@@ -586,14 +634,16 @@ class TestListIteratorActionOnFailureTest(TestListIteratorTest):
 
   def testActionOnFailureParentOneLayer(self):
     test_list = self._BuildTestList(
-        """
-    with test_lists.FactoryTest(id='G'):
-      test_lists.FactoryTest(id='a', pytest_name='t_Ga',
-                             action_on_failure='PARENT')
-      test_lists.FactoryTest(id='b', pytest_name='t_Gb')
-    test_lists.FactoryTest(id='c', pytest_name='t_Gc')
-        """,
-        self.OPTIONS)
+        {
+            'tests': [
+                {'id': 'G', 'subtests': [
+                    {'id': 'a', 'pytest_name': 'a',
+                     'action_on_failure': 'PARENT'},
+                    {'id': 'b', 'pytest_name': 'b'},
+                ]},
+                {'id': 'c', 'pytest_name': 'c'},
+            ]
+        })
     self._AssertTestSequence(
         test_list,
         ['G.a', 'c'],
@@ -601,16 +651,19 @@ class TestListIteratorActionOnFailureTest(TestListIteratorTest):
 
   def testActionOnFailureParentTwoLayer(self):
     test_list = self._BuildTestList(
-        """
-    with test_lists.FactoryTest(id='G'):
-      with test_lists.FactoryTest(id='G', action_on_failure='PARENT'):
-        test_lists.FactoryTest(id='a', pytest_name='t_Ga',
-                               action_on_failure='PARENT')
-        test_lists.FactoryTest(id='b', pytest_name='t_Gb')
-      test_lists.FactoryTest(id='c', pytest_name='t_Gc')
-    test_lists.FactoryTest(id='d', pytest_name='t_Gd')
-        """,
-        self.OPTIONS)
+        {
+            'tests': [
+                {'id': 'G', 'subtests': [
+                    {'id': 'G', 'action_on_failure': 'PARENT', 'subtests': [
+                        {'id': 'a', 'pytest_name': 'a',
+                         'action_on_failure': 'PARENT'},
+                        {'id': 'b', 'pytest_name': 'b'},
+                    ]},
+                    {'id': 'c', 'pytest_name': 'c'},
+                ]},
+                {'id': 'd', 'pytest_name': 'd'},
+            ]
+        })
     self._AssertTestSequence(
         test_list,
         ['G.G.a', 'd'],
@@ -618,16 +671,19 @@ class TestListIteratorActionOnFailureTest(TestListIteratorTest):
 
   def testActionOnFailureStop(self):
     test_list = self._BuildTestList(
-        """
-    with test_lists.FactoryTest(id='G'):
-      with test_lists.FactoryTest(id='G', action_on_failure='STOP'):
-        test_lists.FactoryTest(id='a', pytest_name='t_Ga',
-                               action_on_failure='STOP')
-        test_lists.FactoryTest(id='b', pytest_name='t_Gb')
-      test_lists.FactoryTest(id='c', pytest_name='t_Gc')
-    test_lists.FactoryTest(id='d', pytest_name='t_Gd')
-        """,
-        self.OPTIONS)
+        {
+            'tests': [
+                {'id': 'G', 'subtests': [
+                    {'id': 'G', 'action_on_failure': 'STOP', 'subtests': [
+                        {'id': 'a', 'pytest_name': 'a',
+                         'action_on_failure': 'STOP'},
+                        {'id': 'b', 'pytest_name': 'b'},
+                    ]},
+                    {'id': 'c', 'pytest_name': 'c'},
+                ]},
+                {'id': 'd', 'pytest_name': 'd'},
+            ]
+        })
     self._AssertTestSequence(
         test_list,
         ['G.G.a'],
@@ -646,26 +702,25 @@ class TestListIteratorTeardownTest(TestListIteratorTest):
   """
   def testTeardown(self):
     test_list = self._BuildTestList(
-        """
-    with test_lists.FactoryTest(id='G'):
-      with test_lists.FactoryTest(id='G'):
-        with test_lists.Subtests():
-          test_lists.FactoryTest(id='a', pytest_name='t_Ga')
-          test_lists.FactoryTest(id='b', pytest_name='t_Gb')
-        with test_lists.Teardowns():
-          test_lists.FactoryTest(id='w', pytest_name='t_W')
-          test_lists.FactoryTest(id='x', pytest_name='t_X')
-          with test_lists.FactoryTest(id='TG'):
-            # the subtests of teardown test are teardown tests as well
-            test_lists.FactoryTest(id='y', pytest_name='t_Y')
-            test_lists.FactoryTest(id='z', pytest_name='t_Z')
-      test_lists.FactoryTest(id='c', pytest_name='t_Gc')
-      with test_lists.Teardowns():
-        test_lists.FactoryTest(id='T', pytest_name='t_T')
-    test_lists.FactoryTest(id='d', pytest_name='t_Gd')
-        """,
-        self.OPTIONS)
-
+        {
+            'tests': [
+                {'id': 'G', 'subtests': [
+                    {'id': 'G', 'subtests': [
+                        {'id': 'a', 'pytest_name': 'a'},
+                        {'id': 'b', 'pytest_name': 'b'},
+                        {'id': 'w', 'pytest_name': 'w', 'teardown': True},
+                        {'id': 'x', 'pytest_name': 'x', 'teardown': True},
+                        {'id': 'TG', 'teardown': True, 'subtests': [
+                            {'id': 'y', 'pytest_name': 'y'},
+                            {'id': 'z', 'pytest_name': 'z'},
+                        ]}
+                    ]},
+                    {'id': 'c', 'pytest_name': 'c'},
+                    {'id': 'T', 'pytest_name': 'T', 'teardown': True},
+                ]},
+                {'id': 'd', 'pytest_name': 'd'},
+            ]
+        })
     self._AssertTestSequence(
         test_list,
         ['G.G.a', 'G.G.b', 'G.G.w', 'G.G.x', 'G.G.TG.y', 'G.G.TG.z', 'G.c',
@@ -674,26 +729,26 @@ class TestListIteratorTeardownTest(TestListIteratorTest):
 
   def testTeardownAfterStop(self):
     test_list = self._BuildTestList(
-        """
-    with test_lists.FactoryTest(id='G'):
-      with test_lists.FactoryTest(id='G'):
-        with test_lists.Subtests():
-          test_lists.FactoryTest(id='a', pytest_name='t_Ga',
-                                 action_on_failure='STOP')
-          test_lists.FactoryTest(id='b', pytest_name='t_Gb')
-        with test_lists.Teardowns():
-          test_lists.FactoryTest(id='w', pytest_name='t_W')
-          test_lists.FactoryTest(id='x', pytest_name='t_X')
-          with test_lists.FactoryTest(id='TG'):
-            # the subtests of teardown test are teardown tests as well
-            test_lists.FactoryTest(id='y', pytest_name='t_Y')
-            test_lists.FactoryTest(id='z', pytest_name='t_Z')
-      test_lists.FactoryTest(id='c', pytest_name='t_Gc')
-      with test_lists.Teardowns():
-        test_lists.FactoryTest(id='T', pytest_name='t_T')
-    test_lists.FactoryTest(id='d', pytest_name='t_Gd')
-        """,
-        self.OPTIONS)
+        {
+            'tests': [
+                {'id': 'G', 'subtests': [
+                    {'id': 'G', 'subtests': [
+                        {'id': 'a', 'pytest_name': 'a',
+                         'action_on_failure': 'STOP'},
+                        {'id': 'b', 'pytest_name': 'b'},
+                        {'id': 'w', 'pytest_name': 'w', 'teardown': True},
+                        {'id': 'x', 'pytest_name': 'x', 'teardown': True},
+                        {'id': 'TG', 'teardown': True, 'subtests': [
+                            {'id': 'y', 'pytest_name': 'y'},
+                            {'id': 'z', 'pytest_name': 'z'},
+                        ]}
+                    ]},
+                    {'id': 'c', 'pytest_name': 'c'},
+                    {'id': 'T', 'pytest_name': 'T', 'teardown': True},
+                ]},
+                {'id': 'd', 'pytest_name': 'd'},
+            ]
+        })
 
     self._AssertTestSequence(
         test_list,
@@ -704,14 +759,16 @@ class TestListIteratorTeardownTest(TestListIteratorTest):
 class TestListIteratorIterationTest(TestListIteratorTest):
   def testIterations(self):
     test_list = self._BuildTestList(
-        """
-    with test_lists.FactoryTest(id='G', iterations=2):
-      with test_lists.FactoryTest(id='G', iterations=2):
-        with test_lists.Subtests():
-          test_lists.FactoryTest(id='a', pytest_name='t_Ga', iterations=2)
-          test_lists.FactoryTest(id='b', pytest_name='t_Gb', iterations=2)
-        """,
-        self.OPTIONS)
+        {
+            'tests': [
+                {'id': 'G', 'iterations': 2, 'subtests': [
+                    {'id': 'G', 'iterations': 2, 'subtests': [
+                        {'id': 'a', 'pytest_name': 'a', 'iterations': 2},
+                        {'id': 'b', 'pytest_name': 'b', 'iterations': 2},
+                    ]},
+                ]},
+            ]
+        })
     self._AssertTestSequence(
         test_list,
         ['G.G.a', 'G.G.a', 'G.G.b', 'G.G.b'] * 4)
@@ -722,14 +779,16 @@ class TestListIteratorIterationTest(TestListIteratorTest):
 
   def testRetries(self):
     test_list = self._BuildTestList(
-        """
-    with test_lists.FactoryTest(id='G', retries=1):
-      with test_lists.FactoryTest(id='G', retries=1):
-        with test_lists.Subtests():
-          test_lists.FactoryTest(id='a', pytest_name='t_Ga', retries=1)
-          test_lists.FactoryTest(id='b', pytest_name='t_Gb', retries=1)
-        """,
-        self.OPTIONS)
+        {
+            'tests': [
+                {'id': 'G', 'retries': 1, 'subtests': [
+                    {'id': 'G', 'retries': 1, 'subtests': [
+                        {'id': 'a', 'pytest_name': 'a', 'retries': 1},
+                        {'id': 'b', 'pytest_name': 'b', 'retries': 1},
+                    ]},
+                ]},
+            ]
+        })
     self._AssertTestSequence(
         test_list,
         ['G.G.a', 'G.G.a', 'G.G.b', 'G.G.b'] * 4,
@@ -742,15 +801,17 @@ class TestListIteratorIterationTest(TestListIteratorTest):
 
   def testRetriesWithTeardown(self):
     test_list = self._BuildTestList(
-        """
-    with test_lists.FactoryTest(id='G', retries=1):
-      with test_lists.FactoryTest(id='G', retries=1):
-        with test_lists.Subtests():
-          test_lists.FactoryTest(id='a', pytest_name='t_Ga', retries=1)
-        with test_lists.Teardowns():
-          test_lists.FactoryTest(id='b', pytest_name='t_Ga', retries=1)
-        """,
-        self.OPTIONS)
+        {
+            'tests': [
+                {'id': 'G', 'retries': 1, 'subtests': [
+                    {'id': 'G', 'retries': 1, 'subtests': [
+                        {'id': 'a', 'pytest_name': 'a', 'retries': 1},
+                        {'id': 'b', 'pytest_name': 'b', 'retries': 1,
+                         'teardown': True},
+                    ]},
+                ]},
+            ]
+        })
     self._AssertTestSequence(
         test_list,
         ['G.G.a', 'G.G.a', 'G.G.b'] * 4,
@@ -763,18 +824,20 @@ class TestListIteratorIterationTest(TestListIteratorTest):
 
   def testActionOnFailureStop(self):
     test_list = self._BuildTestList(
-        """
-    with test_lists.FactoryTest(id='G', retries=1):
-      with test_lists.FactoryTest(id='G', retries=1,
-                                  action_on_failure='STOP'):
-        test_lists.FactoryTest(id='a',
-                               pytest_name='t_Ga',
-                               action_on_failure='STOP')
-        test_lists.FactoryTest(id='b', pytest_name='t_Gb')
-      test_lists.FactoryTest(id='c', pytest_name='t_Gc')
-    test_lists.FactoryTest(id='d', pytest_name='t_Gd')
-        """,
-        self.OPTIONS)
+        {
+            'tests': [
+                {'id': 'G', 'retries': 1, 'subtests': [
+                    {'id': 'G', 'retries': 1, 'action_on_failure': 'STOP',
+                     'subtests': [
+                         {'id': 'a', 'pytest_name': 'a',
+                          'action_on_failure': 'STOP'},
+                         {'id': 'b', 'pytest_name': 'b'},
+                     ]},
+                    {'id': 'c', 'pytest_name': 'c'},
+                ]},
+                {'id': 'd', 'pytest_name': 'd'},
+            ]
+        })
     self._AssertTestSequence(
         test_list,
         ['G.G.a'] * 4,
@@ -787,26 +850,26 @@ class TestListIteratorIterationTest(TestListIteratorTest):
 
   def testTeardownAfterStop(self):
     test_list = self._BuildTestList(
-        """
-    with test_lists.FactoryTest(id='G', retries=1):
-      with test_lists.FactoryTest(id='G'):
-        with test_lists.Subtests():
-          test_lists.FactoryTest(id='a', pytest_name='t_Ga',
-                                 action_on_failure='STOP')
-          test_lists.FactoryTest(id='b', pytest_name='t_Gb')
-        with test_lists.Teardowns():
-          test_lists.FactoryTest(id='w', pytest_name='t_W')
-          test_lists.FactoryTest(id='x', pytest_name='t_X')
-          with test_lists.FactoryTest(id='TG'):
-            # the subtests of teardown test are teardown tests as well
-            test_lists.FactoryTest(id='y', pytest_name='t_Y')
-            test_lists.FactoryTest(id='z', pytest_name='t_Z')
-      test_lists.FactoryTest(id='c', pytest_name='t_Gc')
-      with test_lists.Teardowns():
-        test_lists.FactoryTest(id='T', pytest_name='t_T')
-    test_lists.FactoryTest(id='d', pytest_name='t_Gd')
-        """,
-        self.OPTIONS)
+        {
+            'tests': [
+                {'id': 'G', 'retries': 1, 'subtests': [
+                    {'id': 'G', 'subtests': [
+                        {'id': 'a', 'pytest_name': 'a',
+                         'action_on_failure': 'STOP'},
+                        {'id': 'b', 'pytest_name': 'b'},
+                        {'id': 'w', 'pytest_name': 'w', 'teardown': True},
+                        {'id': 'x', 'pytest_name': 'x', 'teardown': True},
+                        {'id': 'TG', 'teardown': True, 'subtests': [
+                            {'id': 'y', 'pytest_name': 'y'},
+                            {'id': 'z', 'pytest_name': 'z'},
+                        ]}
+                    ]},
+                    {'id': 'c', 'pytest_name': 'c'},
+                    {'id': 'T', 'pytest_name': 'T', 'teardown': True},
+                ]},
+                {'id': 'd', 'pytest_name': 'd'},
+            ]
+        })
 
     self._AssertTestSequence(
         test_list,

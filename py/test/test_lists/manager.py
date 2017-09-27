@@ -1008,3 +1008,28 @@ class Manager(object):
       f.write(new_id + '\n')
       f.flush()
       os.fdatasync(f)
+
+
+def BuildTestListForUnittest(test_list_config, manager=None):
+  """Build a test list from loaded config.
+
+  This function should only be used by unittests.
+  """
+  if not manager:
+    manager = Manager()
+
+  base_config = Loader().Load('base', False).ToDict()
+  # Provide more default values for base_config.
+  base_config = config_utils.OverrideConfig(
+      {
+          'label': 'label',
+          'options': {
+              'plugin_config_name': 'goofy_plugin_goofy_unittest'
+          }
+      },
+      base_config)
+  config = config_utils.OverrideConfig(base_config, test_list_config)
+  config = config_utils.ResolvedConfig(config)
+  config = TestListConfig(config, test_list_id='test')
+  test_list = TestList(config, manager.checker, manager.loader)
+  return test_list

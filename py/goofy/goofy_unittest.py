@@ -36,7 +36,6 @@ from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager
-from cros.factory.test.test_lists import test_lists
 from cros.factory.utils import log_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import Spawn
@@ -65,9 +64,8 @@ def mock_pytest(name, test_state, error_msg, func=None):
 
 class GoofyTest(unittest.TestCase):
   """Base class for Goofy test cases."""
-  options = ''
+  test_list = {}  # Overridden by subclasses
   ui = 'none'
-  test_list = None  # Overridden by subclasses
   mock_goofy_server = True
   mock_spawn_pytest = True
 
@@ -178,9 +176,8 @@ class GoofyTest(unittest.TestCase):
       server.RegisterData('/css/i18n.css', 'text/css', IgnoreArg()).InAnyOrder()
 
     if self.test_list:
-      test_list = test_lists.BuildTestListFromString(self.test_list,
-                                                     self.options)
-      test_list = manager.LegacyTestList(test_list)
+      test_list = manager.BuildTestListForUnittest(
+          test_list_config=self.test_list)
       self.test_list_manager.BuildAllTestLists().AndReturn(
           ({'test': test_list}, {}))
 
@@ -285,16 +282,18 @@ class GoofyUITest(GoofyTest):
 
 
 # A simple test list with three tests.
-ABC_TEST_LIST = """
-    test_lists.OperatorTest(id='a', pytest_name='a_A')
-    test_lists.OperatorTest(id='b', pytest_name='b_B')
-    test_lists.OperatorTest(id='c', pytest_name='c_C')
-"""
+ABC_TEST_LIST = [
+    {'id': 'a', 'pytest_name': 'a_A', },
+    {'id': 'b', 'pytest_name': 'b_B', },
+    {'id': 'c', 'pytest_name': 'c_C', },
+]
 
 
 class BasicTest(GoofyTest):
   """A simple test case that checks that tests are run in the correct order."""
-  test_list = ABC_TEST_LIST
+  test_list = {
+      'tests': ABC_TEST_LIST
+  }
   def runTest(self):
     self.check_one_test('a', 'a_A', TestState.PASSED, '')
     self.check_one_test('b', 'b_B', TestState.FAILED, 'Uh-oh')
@@ -303,14 +302,16 @@ class BasicTest(GoofyTest):
         dict(count=1, error_msg=None, id='a', path='a', status='PASSED'),
         dict(count=1, error_msg='Uh-oh', id='b', path='b', status='FAILED'),
         dict(count=1, error_msg='Uh-oh', id='c', path='c', status='FAILED'),]),
-        self.goofy.test_list.ToFactoryTestList().AsDict(
-            state.get_instance().get_test_states()))
+                     self.goofy.test_list.ToFactoryTestList().AsDict(
+                         state.get_instance().get_test_states()))
     self.mockAnything.VerifyAll()
 
 
 class WebSocketTest(GoofyUITest):
   """A test case that checks the behavior of web sockets."""
-  test_list = ABC_TEST_LIST
+  test_list = {
+      'tests': ABC_TEST_LIST
+  }
   def runTest(self):
 
     self.check_one_test('a', 'a_A', TestState.PASSED, '')
@@ -354,10 +355,12 @@ class WebSocketTest(GoofyUITest):
 
 class ShutdownTest(GoofyTest):
   """A test case that checks the behavior of shutdown."""
-  test_list = """
-    test_lists.RebootStep(id='shutdown', iterations=3),
-    test_lists.OperatorTest(id='a', pytest_name='a_A')
-  """
+  test_list = {
+      'tests': [
+          {'inherit': 'RebootStep', 'iterations': 3},
+          {'id': 'a', 'pytest_name': 'a_A'},
+      ]
+  }
 
   def runTest(self):
     # Expect a reboot request.
@@ -375,7 +378,7 @@ class ShutdownTest(GoofyTest):
     # There should be a list of tests to run on wake-up.
     test_list_iterator = self.state.get_shared_data(
         goofy.TESTS_AFTER_SHUTDOWN, True)
-    self.assertEqual('shutdown', test_list_iterator.Top().node)
+    self.assertEqual('RebootStep', test_list_iterator.Top().node)
     self._wait()
 
     # Kill and restart Goofy to simulate the first two shutdown iterations.
@@ -414,9 +417,11 @@ class ShutdownTest(GoofyTest):
 
 class RebootFailureTest(GoofyTest):
   """A test case that checks the behavior of reboot failure."""
-  test_list = """
-    test_lists.RebootStep(id='shutdown'),
-  """
+  test_list = {
+      'tests': [
+          'RebootStep'
+      ]
+  }
 
   def runTest(self):
     # Expect a reboot request
@@ -453,7 +458,7 @@ class RebootFailureTest(GoofyTest):
     self.goofy.run_once()
     self._wait()
 
-    test_state = state.get_instance().get_test_state('shutdown')
+    test_state = state.get_instance().get_test_state('RebootStep')
     self.assertEqual(TestState.FAILED, test_state.status)
     logging.info('%s', test_state.error_msg)
     self.assertTrue(test_state.error_msg.startswith(
@@ -462,8 +467,10 @@ class RebootFailureTest(GoofyTest):
 
 class NoAutoRunTest(GoofyTest):
   """A test case that checks the behavior when auto_run_on_start is False."""
-  test_list = ABC_TEST_LIST
-  options = 'options.auto_run_on_start = False'
+  test_list = {
+      'tests': ABC_TEST_LIST,
+      'options': {'auto_run_on_start': False}
+  }
 
   def _runTestB(self):
     # There shouldn't be anything to do at startup, since auto_run_on_start
@@ -493,15 +500,24 @@ class PyTestTest(GoofyTest):
   Note that no mocks are used here, since it's easy enough to just have the
   Python driver run a 'real' test (exec_python).
   """
-  test_list = """
-    test_lists.OperatorTest(
-        id='a', pytest_name='exec_python',
-        dargs={'script': 'assert "Tomato" == "Tomato"'})
-    test_lists.OperatorTest(
-        id='b', pytest_name='exec_python',
-        dargs={'script': ("assert 'Pa-TAY-to' == 'Pa-TAH-to', "
-                          "'Let\\\\\'s call the whole thing off'")})
-  """
+  test_list = {
+      'tests': [
+          {
+              'id': 'a',
+              'pytest_name': 'exec_python',
+              'args': {
+                  'script': 'assert "Tomato" == "Tomato"'
+              }
+          },
+          {
+              'id': 'b',
+              'pytest_name': 'exec_python',
+              'args': {
+                  'script': 'assert "Pa-TAY-to" == "Pa-TAH-to", "TAY-TAH"'
+              }
+          }
+      ]
+  }
 
   mock_goofy_server = False
   mock_spawn_pytest = False
@@ -522,38 +538,20 @@ class PyTestTest(GoofyTest):
     failed_state = state.get_instance().get_test_state('b')
     self.assertEqual(TestState.FAILED, failed_state.status)
     self.assertTrue(
-        """Let's call the whole thing off""" in failed_state.error_msg,
-        failed_state.error_msg)
-
-
-class PyLambdaTest(GoofyTest):
-  """A test case that checks the behavior of exec_python."""
-  test_list = """
-    test_lists.OperatorTest(
-        id='a', pytest_name='exec_python',
-        dargs={'script': lambda env: 'raise ValueError("It"+"Failed")'})
-  """
-
-  mock_spawn_pytest = False
-
-  def runTest(self):
-    self.goofy.run_once()
-    self.goofy.wait()
-    failed_state = state.get_instance().get_test_state('a')
-    self.assertEqual(TestState.FAILED, failed_state.status)
-    self.assertTrue(
-        """ItFailed""" in failed_state.error_msg,
+        'TAY-TAH' in failed_state.error_msg,
         failed_state.error_msg)
 
 
 class MultipleIterationsTest(GoofyTest):
   """Tests running a test multiple times."""
-  test_list = """
-    test_lists.OperatorTest(id='a', pytest_name='a_A'),
-    test_lists.OperatorTest(id='b', pytest_name='b_B', iterations=3),
-    test_lists.OperatorTest(id='c', pytest_name='c_C', iterations=3),
-    test_lists.OperatorTest(id='d', pytest_name='d_D'),
-  """
+  test_list = {
+      'tests': [
+          {'id': 'a', 'pytest_name': 'a_A'},
+          {'id': 'b', 'pytest_name': 'b_B', 'iterations': 3},
+          {'id': 'c', 'pytest_name': 'c_C', 'iterations': 3},
+          {'id': 'd', 'pytest_name': 'd_D'},
+      ]
+  }
 
   def runTest(self):
     self.check_one_test('a', 'a_A', TestState.PASSED, '')
@@ -576,13 +574,15 @@ class MultipleIterationsTest(GoofyTest):
 
 class RequireRunTest(GoofyTest):
   """Tests FactoryTest require_run argument."""
-  options = """
-    options.auto_run_on_start = False
-  """
-  test_list = """
-    test_lists.OperatorTest(id='a', pytest_name='a_A')
-    test_lists.OperatorTest(id='b', pytest_name='b_B', require_run='a')
-  """
+  test_list = {
+      'options': {
+          'auto_run_on_start': False
+      },
+      'tests': [
+          {'id': 'a', 'pytest_name': 'a_A'},
+          {'id': 'b', 'pytest_name': 'b_B', 'require_run': 'a'},
+      ]
+  }
 
   def runTest(self):
     self.goofy.restart_tests(
@@ -596,36 +596,15 @@ class RequireRunTest(GoofyTest):
     self.check_one_test('b', 'b_B', TestState.PASSED, '')
 
 
-class RequireRunPassedTest(GoofyTest):
-  """Tests FactoryTest require_run argument with Passed syntax."""
-  options = """
-    options.auto_run_on_start = True
-  """
-  test_list = """
-    test_lists.OperatorTest(id='a', pytest_name='a_A')
-    test_lists.OperatorTest(id='b', pytest_name='b_B',
-                            require_run=test_lists.Passed('a'))
-  """
-
-  def runTest(self):
-    self.check_one_test('a', 'a_A', TestState.FAILED, '')
-    self.check_one_test('b', 'b_B', TestState.FAILED,
-                        'Required tests [a] have not been run yet',
-                        does_not_start=True)
-
-    self.goofy.restart_tests()
-    self.check_one_test('a', 'a_A', TestState.PASSED, '', expected_count=2)
-    self.check_one_test('b', 'b_B', TestState.PASSED, '')
-    self.mockAnything.VerifyAll()
-
-
 class StopOnFailureTest(GoofyTest):
   """A unittest that checks if the goofy will stop after a test fails."""
-  test_list = ABC_TEST_LIST
-  options = """
-    options.auto_run_on_start = True
-    options.stop_on_failure = True
-  """
+  test_list = {
+      'options': {
+          'auto_run_on_start': True,
+          'stop_on_failure': True
+      },
+      'tests': ABC_TEST_LIST
+  }
 
   def runTest(self):
     mock_pytest('a_A', TestState.PASSED, '')
@@ -647,12 +626,19 @@ class StopOnFailureTest(GoofyTest):
 class ParallelTest(GoofyTest):
   """A test for parallel tests, goofy should run them in parallel."""
 
-  test_list = """
-    with test_lists.FactoryTest(id='parallel', parallel=True):
-      test_lists.OperatorTest(id='a', pytest_name='a_A')
-      test_lists.OperatorTest(id='b', pytest_name='b_B')
-      test_lists.OperatorTest(id='c', pytest_name='c_C')
-  """
+  test_list = {
+      'tests': [
+          {
+              'id': 'parallel',
+              'parallel': True,
+              'subtests': [
+                  {'id':'a', 'pytest_name': 'a_A'},
+                  {'id':'b', 'pytest_name': 'b_B'},
+                  {'id':'c', 'pytest_name': 'c_C'},
+              ]
+          }
+      ]
+  }
 
   def runTest(self):
     mock_pytest('a_A', TestState.PASSED, '')
@@ -671,21 +657,26 @@ class ParallelTest(GoofyTest):
 
 class WaivedTestTest(GoofyTest):
   """A test to verify that a waived test does not block test list execution."""
-
-  options = """
-    options.auto_run_on_start = True
-    options.stop_on_failure = True
-    options.phase = 'PROTO'
-    options.waived_tests = {
-        'PROTO': ['waived', 'G']
-    }
-  """
-  test_list = """
-    test_lists.FactoryTest(id='waived', pytest_name='waived_test')
-    test_lists.FactoryTest(id='normal', pytest_name='normal_test')
-    with test_lists.TestGroup(id='G'):
-      test_lists.FactoryTest(id='waived', pytest_name='waived_test')
-  """
+  test_list = {
+      'options': {
+          'auto_run_on_start': True,
+          'stop_on_failure': True,
+          'phase': 'PROTO',
+          'waived_tests': {
+              'PROTO': ['waived', 'G']
+          },
+      },
+      'tests': [
+          {'id': 'waived', 'pytest_name': 'waived_test'},
+          {'id': 'normal', 'pytest_name': 'normal_test'},
+          {
+              'id': 'G',
+              'subtests': [
+                  {'id': 'waived', 'pytest_name': 'waived_test'},
+              ]
+          }
+      ]
+  }
 
   def runTest(self):
     mock_pytest('waived_test', TestState.FAILED, 'Failed')
@@ -708,30 +699,33 @@ class WaivedTestTest(GoofyTest):
 class SkippedTestTest(GoofyTest):
   """A test to verify that a waived test does not block test list execution."""
 
-  options = """
-    options.auto_run_on_start = True
-    options.stop_on_failure = True
-    options.phase = 'PROTO'
-    options.skipped_tests = {
-        'PROTO': ['skipped'],
-        'not device.has_a': ['*.A'],
-        'constants.has_a2': ['*.A_2']
-    }
-  """
-  test_list = """
-    # To skip *.A_2
-    test_list.constants.has_a2 = True
-
-    test_lists.FactoryTest(id='skipped', pytest_name='normal_test')
-    with test_lists.TestGroup(id='G'):
-      # This is skipped because device.has_a is not set
-      test_lists.FactoryTest(id='A', pytest_name='normal_test')
-      # This is skipped because constants.has_a2 is True
-      test_lists.FactoryTest(id='A', pytest_name='normal_test')
-      # This will be A_3, and it should not be skipped
-      test_lists.FactoryTest(id='A', pytest_name='normal_test')
-    test_lists.FactoryTest(id='normal', pytest_name='normal_test')
-  """
+  test_list = {
+      'constants': {'has_a2': True},
+      'options': {
+          'auto_run_on_start': True,
+          'stop_on_failure': True,
+          'phase': 'PROTO',
+          'skipped_tests': {
+              'PROTO': ['skipped'],
+              'not device.has_a': ['*.A'],
+              'constants.has_a2': ['*.A_2']
+          }
+      },
+      'tests': [
+          {'id': 'skipped', 'pytest_name': 'normal_test'},
+          {'id': 'G',
+           'subtests': [
+               # This is skipped because device.has_a is not set
+               {'id': 'A', 'pytest_name': 'normal_test'},
+               # This is skipped because constants.has_a2 is True
+               {'id': 'A', 'pytest_name': 'normal_test'},
+               # This will be A_3, and it should not be skipped
+               {'id': 'A', 'pytest_name': 'normal_test'},
+           ]
+          },
+          {'id': 'normal', 'pytest_name': 'normal_test'},
+      ],
+  }
 
   def runTest(self):
     mock_pytest('normal_test', TestState.PASSED, '')
@@ -754,13 +748,17 @@ class SkippedTestTest(GoofyTest):
 class EndlessLoopTest(GoofyTest):
   """A test to verify that a waived test does not block test list execution."""
 
-  options = """
-    options.auto_run_on_start = True
-  """
-  test_list = """
-    with test_lists.TestGroup(id='G', iterations=-1, retries=-1):
-      test_lists.FactoryTest(id='A', pytest_name='normal_test')
-  """
+  test_list = {
+      'options': {'auto_run_on_start': True},
+      'tests': [
+          {'id': 'G',
+           'iterations': -1,
+           'retries': -1,
+           'subtests': [
+               {'id': 'A', 'pytest_name': 'normal_test'}
+           ]}
+      ]
+  }
 
   def runTest(self):
     for unused_i in xrange(4):
@@ -787,14 +785,14 @@ class EndlessLoopTest(GoofyTest):
 class NoHostTest(GoofyUITest):
   """A test to verify that tests marked 'no_host' run without host UI."""
 
-  test_list = """
-    test_lists.OperatorTest(
-        id='a', pytest_name='exec_python', no_host=True,
-        dargs={'script': 'assert "Tomato" == "Tomato"'})
-    test_lists.OperatorTest(
-        id='b', pytest_name='exec_python', no_host=False,
-        dargs={'script': 'assert "Tomato" == "Tomato"'})
-  """
+  test_list = {
+      'tests': [
+          {'id': 'a', 'pytest_name': 'exec_python', 'no_host': True,
+           'args': {'script': 'assert "Tomato" == "Tomato"'}},
+          {'id': 'b', 'pytest_name': 'exec_python', 'no_host': False,
+           'args': {'script': 'assert "Tomato" == "Tomato"'}},
+      ]
+  }
 
   mock_spawn_pytest = False
 

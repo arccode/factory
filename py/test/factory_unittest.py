@@ -16,7 +16,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 
 from cros.factory.test import factory
-from cros.factory.test.test_lists import test_lists
+from cros.factory.test.test_lists import manager
 
 
 SRCROOT = os.environ.get('CROS_WORKON_SRCROOT')
@@ -43,14 +43,22 @@ class FactoryModuleTest(unittest.TestCase):
 class FactoryTestListTest(unittest.TestCase):
 
   def testGetNextSibling(self):
-    test_list = test_lists.BuildTestListFromString(
-        """
-    with test_lists.FactoryTest(id='G'):
-      with test_lists.FactoryTest(id='G'):
-        test_lists.FactoryTest(id='a', pytest_name='t_GGa')
-        test_lists.FactoryTest(id='b', pytest_name='t_GGa')
-      test_lists.FactoryTest(id='b', pytest_name='t_Gb')
-        """, '')
+    test_list = manager.BuildTestListForUnittest(
+        test_list_config={
+            'tests': [
+                {'id': 'G',
+                 'subtests': [
+                     {'id': 'G',
+                      'subtests': [
+                          {'id': 'a', 'pytest_name': 't_GGa'},
+                          {'id': 'b', 'pytest_name': 't_GGb'},
+                      ]
+                     },
+                     {'id': 'b', 'pytest_name': 't_Gb'},
+                 ]
+                }
+            ]
+        })
     test = test_list.LookupPath('G.G')
     self.assertEqual(test.GetNextSibling(), test_list.LookupPath('G.b'))
     test = test_list.LookupPath('G.G.a')
