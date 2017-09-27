@@ -34,7 +34,6 @@ import urllib2
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test.env import paths
 from cros.factory.test import server_proxy
 from cros.factory.umpire.client import umpire_client
 from cros.factory.utils import file_utils
@@ -182,8 +181,3 @@ def UpdateHWIDDatabase(dut=None, target_dir=None):
   # TODO(hungte) Send event to Goofy that info is changed.
   dut.info.Invalidate('hwid_database_version')
   return True
-
-
-def GetToolkitVersion():
-  """Returns TOOLKIT_VERSION of the factory directory."""
-  return file_utils.ReadFile(paths.FACTORY_TOOLKIT_VERSION_PATH).rstrip()

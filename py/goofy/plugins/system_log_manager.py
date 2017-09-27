@@ -21,7 +21,7 @@ from cros.factory.goofy.plugins import plugin
 from cros.factory.test.env import paths
 from cros.factory.test import event_log
 from cros.factory.test import server_proxy
-from cros.factory.test import testlog_goofy
+from cros.factory.test import session
 from cros.factory.utils.debug_utils import CatchException
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
@@ -201,7 +201,7 @@ class SystemLogManager(plugin.Plugin):
     factory_log_port = proxy.GetFactoryLogPort()
     folder_name = (
         '%s_%s' %
-        (testlog_goofy.GetDeviceID(), event_log.GetReimageId()))
+        (session.GetDeviceID(), event_log.GetReimageId()))
     return ['rsync://%s:%s/system_logs/%s' %
             (urlparse(url).hostname, factory_log_port, folder_name)]
 

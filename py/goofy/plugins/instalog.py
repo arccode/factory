@@ -13,7 +13,7 @@ from cros.factory.goofy.plugins import plugin
 from cros.factory.test.env import paths
 from cros.factory.test import event
 from cros.factory.test import server_proxy
-from cros.factory.test import testlog_goofy
+from cros.factory.test import session
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
@@ -70,7 +70,7 @@ class Instalog(plugin.Plugin):
         self.Start()
 
   def _CreateInstalogConfig(self):
-    node_id = testlog_goofy.GetDeviceID()
+    node_id = session.GetDeviceID()
     data_dir = os.path.join(paths.DATA_LOG_DIR, 'instalog')
     pid_file = os.path.join(paths.RUNTIME_VARIABLE_DATA_DIR, 'instalog.pid')
     log_file = os.path.join(paths.DATA_LOG_DIR, 'instalog.log')

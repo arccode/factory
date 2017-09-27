@@ -18,7 +18,7 @@ from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import device_data
 from cros.factory.test.env import paths
 from cros.factory.test.rules import phase
-from cros.factory.test import testlog_goofy
+from cros.factory.test import session
 from cros.factory.utils.sys_utils import MountDeviceAndReadFile
 
 
@@ -302,7 +302,7 @@ class SystemInfo(types.DeviceComponent):
   @InfoProperty
   def device_id(self):
     """Returns the device ID of the device."""
-    return self._device.ReadFile(testlog_goofy.DEVICE_ID_PATH).strip()
+    return self._device.ReadFile(session.DEVICE_ID_PATH).strip()
 
 
 if __name__ == '__main__':

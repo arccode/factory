@@ -11,6 +11,7 @@ import mox
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import updater
 from cros.factory.test import server_proxy
+from cros.factory.test import session
 from cros.factory.test.utils import update_utils
 
 
@@ -23,8 +24,8 @@ class CheckForUpdateTest(unittest.TestCase):
     self.mox.UnsetStubs()
 
   def _testUpdate(self, local_version):
-    self.mox.StubOutWithMock(update_utils, 'GetToolkitVersion')
-    update_utils.GetToolkitVersion().AndReturn(local_version)
+    self.mox.StubOutWithMock(session, 'GetToolkitVersion')
+    session.GetToolkitVersion().AndReturn(local_version)
 
     self.mox.StubOutWithMock(server_proxy, 'GetServerProxy')
     fake_proxy = self.mox.CreateMockAnything()

@@ -50,10 +50,10 @@ from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.i18n import translation
 from cros.factory.test.rules import phase
 from cros.factory.test import server_proxy
+from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager
 from cros.factory.test.test_lists import test_lists
-from cros.factory.test import testlog_goofy
 from cros.factory.testlog import testlog
 from cros.factory.tools.key_filter import KeyFilter
 from cros.factory.utils import config_utils
@@ -775,9 +775,9 @@ class Goofy(GoofyBase):
                          success=True)
       testlog.Log(
           testlog.StationInit({
-              'stationDeviceId': testlog_goofy.GetDeviceID(),
-              'stationInstallationId': testlog_goofy.GetInstallationID(),
-              'count': testlog_goofy.GetInitCount(),
+              'stationDeviceId': session.GetDeviceID(),
+              'stationInstallationId': session.GetInstallationID(),
+              'count': session.GetInitCount(),
               'success': True}))
     except Exception:
       try:
@@ -788,9 +788,9 @@ class Goofy(GoofyBase):
         if self.testlog:
           testlog.Log(
               testlog.StationInit({
-                  'stationDeviceId': testlog_goofy.GetDeviceID(),
-                  'stationInstallationId': testlog_goofy.GetInstallationID(),
-                  'count': testlog_goofy.GetInitCount(),
+                  'stationDeviceId': session.GetDeviceID(),
+                  'stationInstallationId': session.GetInstallationID(),
+                  'count': session.GetInitCount(),
                   'success': False,
                   'failureMessage': traceback.format_exc()}))
       except Exception:
@@ -800,7 +800,7 @@ class Goofy(GoofyBase):
     self.status = Status.RUNNING
     syslog.syslog('Goofy (factory test harness) starting')
     syslog.syslog('Boot sequence = %d' % GetBootSequence())
-    syslog.syslog('Goofy init count = %d' % testlog_goofy.GetInitCount())
+    syslog.syslog('Goofy init count = %d' % session.GetInitCount())
     self.run()
 
   def update_system_info(self):
@@ -1012,15 +1012,15 @@ class Goofy(GoofyBase):
       sys.exit(0)
 
     event_log.IncrementBootSequence()
-    testlog_goofy.IncrementInitCount()
+    session.IncrementInitCount()
 
     # Don't defer logging the initial event, so we can make sure
     # that device_id, reimage_id, etc. are all set up.
     self.event_log = EventLog('goofy', defer=False)
     self.testlog = testlog.Testlog(
         log_root=paths.DATA_LOG_DIR, uuid=self.uuid,
-        stationDeviceId=testlog_goofy.GetDeviceID(),
-        stationInstallationId=testlog_goofy.GetInstallationID())
+        stationDeviceId=session.GetDeviceID(),
+        stationInstallationId=session.GetInstallationID())
 
     if env:
       self.env = env

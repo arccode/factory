@@ -14,17 +14,15 @@ from __future__ import print_function
 import itertools
 import json
 import logging
-import os
 import re
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test.env import paths
 from cros.factory.test import i18n
+from cros.factory.test import session
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import translation
 from cros.factory.utils import shelve_utils
-from cros.factory.utils import log_utils
 from cros.factory.utils import type_utils
 from cros.factory.utils import sys_utils
 
@@ -39,10 +37,8 @@ ALL = 'all'
 INF = float('inf')
 
 
-console = type_utils.LazyObject(
-    log_utils.FileLogger, 'console', paths.CONSOLE_LOG_PATH,
-    os.environ.get('CROS_FACTORY_TEST_PATH'))
-"""A wrapper for sending messages to UI global console using Logger API."""
+# TODO(hungte) Remove this when everyone is using new location session.console.
+console = session.console
 
 
 class Hooks(object):

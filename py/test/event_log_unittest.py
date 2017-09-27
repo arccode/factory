@@ -25,7 +25,7 @@ import yaml
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.common import ProbedComponentResult
 from cros.factory.test import event_log
-from cros.factory.test import testlog_goofy
+from cros.factory.test import session
 from cros.factory.utils import file_utils
 
 from cros.factory.external import dbus
@@ -38,7 +38,7 @@ def Reset():
   # Deletes state files and resets global variables.
   event_log.device_id = event_log.reimage_id = None
   shutil.rmtree(event_log.EVENT_LOG_DIR, ignore_errors=True)
-  for f in [testlog_goofy.DEVICE_ID_PATH, event_log.SEQUENCE_PATH,
+  for f in [session.DEVICE_ID_PATH, event_log.SEQUENCE_PATH,
             event_log.BOOT_SEQUENCE_PATH, event_log.EVENTS_PATH]:
     file_utils.TryUnlink(f)
 
@@ -261,7 +261,7 @@ class EventLogTest(unittest.TestCase):
     self.assertEqual(0, log_data[0]['SEQ'])
     self.assertEqual(event_log.GetBootId(), log_data[0]['boot_id'])
     self.assertEqual(-1, log_data[0]['boot_sequence'])
-    self.assertEqual(testlog_goofy.GetDeviceID(), log_data[0]['device_id'])
+    self.assertEqual(session.GetDeviceID(), log_data[0]['device_id'])
     self.assertEqual(event_log.GetReimageId(), log_data[0]['reimage_id'])
     log_id = log_data[0]['LOG_ID']
     uuid.UUID(log_id)  # Make sure UUID is well-formed
@@ -278,7 +278,7 @@ class EventLogTest(unittest.TestCase):
              SEQ=2,
              boot_id=event_log.GetBootId(),
              boot_sequence=-1,
-             device_id=testlog_goofy.GetDeviceID(),
+             device_id=session.GetDeviceID(),
              toolkit_version=None,
              reimage_id=event_log.GetReimageId()),
         log_data[2])

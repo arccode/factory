@@ -12,7 +12,7 @@ Here's an example of input arguments::
 
   ARGS={
       'station_name': 'gps_fatp',
-      'fixture_id': testlog_goofy.GetDeviceID(),
+      'fixture_id': session.GetDeviceID(),
       'timeout': 30,
       'init_timeout': 30,
       'warmup_count': 1,

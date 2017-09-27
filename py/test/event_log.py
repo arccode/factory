@@ -16,8 +16,7 @@ import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
-from cros.factory.test import testlog_goofy
-from cros.factory.test.utils import update_utils
+from cros.factory.test import session
 from cros.factory.utils import file_utils
 from cros.factory.utils import platform_utils
 from cros.factory.utils import time_utils
@@ -266,15 +265,15 @@ def GetReimageId():
 
 
 def GetBootSequence():
-  return testlog_goofy.GetInitCount(path=BOOT_SEQUENCE_PATH)
+  return session.GetInitCount(path=BOOT_SEQUENCE_PATH)
 
 
 def IncrementBootSequence():
-  return testlog_goofy.IncrementInitCount(path=BOOT_SEQUENCE_PATH)
+  return session.IncrementInitCount(path=BOOT_SEQUENCE_PATH)
 
 
 def GetBootId():
-  return testlog_goofy.GetBootID()
+  return session.GetBootID()
 
 
 class GlobalSeq(object):
@@ -497,7 +496,7 @@ class EventLog(object):
 
     def get_toolkit_version():
       try:
-        return update_utils.GetToolkitVersion()
+        return session.GetToolkitVersion()
       except IOError:
         return None  # Ignore IOError for unittests.
 
@@ -519,7 +518,7 @@ class EventLog(object):
     self.file = open(EVENTS_PATH, "a")
     self._LogUnlocked("preamble",
                       boot_id=GetBootId(),
-                      device_id=testlog_goofy.GetDeviceID(),
+                      device_id=session.GetDeviceID(),
                       reimage_id=GetReimageId(),
                       boot_sequence=GetBootSequence(),
                       toolkit_version=get_toolkit_version())

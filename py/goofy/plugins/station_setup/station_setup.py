@@ -15,7 +15,7 @@ from cros.factory.goofy.plugins import plugin
 from cros.factory.test.env import paths
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
-from cros.factory.test import testlog_goofy
+from cros.factory.test import session
 from cros.factory.tools.goofy_ghost import ghost_prop
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
@@ -123,7 +123,7 @@ class StationSetup(plugin.Plugin):
     match_clients = process_utils.CheckOutput(ls_cmd, log=True).splitlines()
 
     # Filter self out.
-    my_device_id = testlog_goofy.GetDeviceID()
+    my_device_id = session.GetDeviceID()
     match_clients = [mid for mid in match_clients if mid != my_device_id]
     if match_clients:
       logging.info('duplicate clients: %r', match_clients)

@@ -61,9 +61,9 @@ from cros.factory.test.env import paths
 from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import server_proxy
+from cros.factory.test import session
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.utils import test_invocation
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 
@@ -259,7 +259,7 @@ class RFGraphyteTest(unittest.TestCase):
         mlb_serial_number, timestamp, suffix)
     # save the log under /var/factory/tests/<TestID>-<UUID>/
     current_test_dir = os.path.join(
-        paths.DATA_TESTS_DIR, test_invocation.GetCurrentTestPath())
+        paths.DATA_TESTS_DIR, session.GetCurrentTestPath())
     return os.path.join(current_test_dir, file_name)
 
   def PatchSSHLinkConfig(self):

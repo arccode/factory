@@ -12,6 +12,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import factory
 from cros.factory.test import server_proxy
+from cros.factory.test import session
 from cros.factory.test.utils import update_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
@@ -42,7 +43,7 @@ def TryUpdate(pre_update_hook=None, timeout=15):
   Raises:
     UpdaterException
   """
-  current_version = update_utils.GetToolkitVersion()
+  current_version = session.GetToolkitVersion()
   factory.console.info(
       'Checking for updates at <%s>... (current TOOLKIT_VERSION is %s)',
       server_proxy.GetServerURL(), current_version)
@@ -141,7 +142,7 @@ def CheckForUpdate(timeout, quiet=False):
   proxy = server_proxy.GetServerProxy(timeout=timeout, quiet=quiet)
   updater = update_utils.Updater(update_utils.COMPONENTS.toolkit, proxy=proxy)
   remote_version = updater.GetUpdateVersion()
-  current_version = update_utils.GetToolkitVersion()
+  current_version = session.GetToolkitVersion()
 
   return (remote_version, updater.IsUpdateAvailable(current_version))
 

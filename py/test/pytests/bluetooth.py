@@ -70,10 +70,10 @@ from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test import test_task
 from cros.factory.test import test_ui
-from cros.factory.test import testlog_goofy
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import bluetooth_utils
 from cros.factory.testlog import testlog
@@ -517,7 +517,7 @@ class DetectRSSIofTargetMACTask(test_task.TestTask):
       self.fail_msg += 'Wrong type of RSSI threshold: %s\n' % str(threshold)
 
   def Run(self):
-    fid = testlog_goofy.GetDeviceID()
+    fid = session.GetDeviceID()
     self._average_rssi_lower_threshold = self._DeriveRSSIThreshold(
         self._test.args.average_rssi_lower_threshold, fid)
     self._average_rssi_upper_threshold = self._DeriveRSSIThreshold(

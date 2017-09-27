@@ -22,8 +22,8 @@ import mox
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test import server_proxy
+from cros.factory.test import session
 from cros.factory.test import state
-from cros.factory.test import testlog_goofy
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 
@@ -187,7 +187,7 @@ class TestSystemLogManager(unittest.TestCase):
     """Sets mocked methods and objects."""
     self.mox.StubOutWithMock(server_proxy, 'GetServerURL')
     self.mox.StubOutWithMock(server_proxy, 'GetServerProxy')
-    self.mox.StubOutWithMock(testlog_goofy, 'GetDeviceID')
+    self.mox.StubOutWithMock(session, 'GetDeviceID')
     self.mox.StubOutWithMock(event_log, 'GetReimageId')
     self.mox.StubOutWithMock(system_log_manager, 'Spawn')
     self.mox.StubOutWithMock(system_log_manager, 'TerminateOrKillProcess')
@@ -221,7 +221,7 @@ class TestSystemLogManager(unittest.TestCase):
     server_proxy.GetServerURL().AndReturn(MOCK_SERVER_URL)
     server_proxy.GetServerProxy(quiet=False).AndReturn(self.fake_server_proxy)
     self.fake_server_proxy.GetFactoryLogPort().AndReturn(MOCK_PORT)
-    testlog_goofy.GetDeviceID().AndReturn(MOCK_DEVICE_ID)
+    session.GetDeviceID().AndReturn(MOCK_DEVICE_ID)
     event_log.GetReimageId().AndReturn(MOCK_IMAGE_ID)
     if extra_files:
       logging.debug('Mocks getting extra_files %r', extra_files)

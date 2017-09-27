@@ -19,10 +19,10 @@ from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test import session
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import stress_manager
-from cros.factory.test.utils import test_invocation
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 
@@ -129,7 +129,7 @@ class ChargerTest(unittest.TestCase):
     self._min_starting_charge = float(self.args.min_starting_charge_pct)
     self._max_starting_charge = float(self.args.max_starting_charge_pct)
     self._unit = '%' if self.args.use_percentage else 'mAh'
-    verbose_log_path = test_invocation.GetVerboseTestLogPath()
+    verbose_log_path = session.GetVerboseTestLogPath()
     file_utils.TryMakeDirs(os.path.dirname(verbose_log_path))
     logging.info('Raw verbose logs saved in %s', verbose_log_path)
     self._verbose_log = open(verbose_log_path, 'a')

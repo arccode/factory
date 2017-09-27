@@ -34,12 +34,11 @@ from cros.factory.test.event import Event
 from cros.factory.test import factory
 from cros.factory.test.factory import TestState
 from cros.factory.test.rules.privacy import FilterDict
+from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager
 from cros.factory.test import test_ui
-from cros.factory.test import testlog_goofy
 from cros.factory.test.utils import pytest_utils
-from cros.factory.test.utils import test_invocation
 from cros.factory.testlog import testlog
 from cros.factory.testlog import testlog_utils
 from cros.factory.utils.arg_utils import Args
@@ -289,9 +288,9 @@ class TestInvocation(object):
 
     self.metadata_file = os.path.join(self.output_dir, 'metadata')
     self.env_additions = {
-        test_invocation.ENV_TEST_INVOCATION: self.uuid,
-        test_invocation.ENV_TEST_PATH: self.test.path,
-        test_invocation.ENV_TEST_METADATA: self.metadata_file}
+        session.ENV_TEST_INVOCATION: self.uuid,
+        session.ENV_TEST_PATH: self.test.path,
+        session.ENV_TEST_METADATA: self.metadata_file}
 
     # Resuming from an active shutdown test, try to restore its metadata file.
     if state.get_shared_data(key_post_shutdown):
@@ -538,8 +537,8 @@ class TestInvocation(object):
     status = _status_conversion.get(status, status)
 
     kwargs = {
-        'stationDeviceId': testlog_goofy.GetDeviceID(),
-        'stationInstallationId': testlog_goofy.GetInstallationID(),
+        'stationDeviceId': session.GetDeviceID(),
+        'stationInstallationId': session.GetInstallationID(),
         'testRunId': self.uuid,
         'testName': test_name,
         'testType': test_type,
@@ -913,8 +912,8 @@ def main():
   log_utils.InitLogging(info.path)
   if testlog.TESTLOG_ENV_VARIABLE_NAME in os.environ:
     testlog.Testlog(
-        stationDeviceId=testlog_goofy.GetDeviceID(),
-        stationInstallationId=testlog_goofy.GetInstallationID())
+        stationDeviceId=session.GetDeviceID(),
+        stationInstallationId=session.GetInstallationID())
   else:
     # If the testlog.TESTLOG_ENV_VARIABLE_NAME environment variable doesn't
     # exist, assume invocation is being called by run_test.py.  In this case,

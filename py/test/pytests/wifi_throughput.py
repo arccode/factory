@@ -80,11 +80,10 @@ from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test.fixture import arduino
 from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test import session
 from cros.factory.test import test_ui
-from cros.factory.test import testlog_goofy
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils import kbd_leds
-from cros.factory.test.utils import test_invocation
 from cros.factory.testlog import testlog
 from cros.factory.utils import arg_utils
 from cros.factory.utils.arg_utils import Arg
@@ -930,10 +929,10 @@ class WiFiThroughput(unittest.TestCase):
     self.log = {
         'args': self.args.ToDict(),
         'run': {
-            'path': test_invocation.GetCurrentTestPath(),
-            'invocation': test_invocation.GetCurrentTestInvocation()},
+            'path': session.GetCurrentTestPath(),
+            'invocation': session.GetCurrentTestInvocation()},
         'dut': {
-            'device_id': testlog_goofy.GetDeviceID(),
+            'device_id': session.GetDeviceID(),
             'serial_number': self._dut.storage.LoadDict().get(
                 'serial_number', None),
             'sub_serial_number': self._dut.storage.LoadDict().get(
