@@ -15,8 +15,9 @@ import logging
 import traceback
 
 
-# If you change the format of date/time/datetime, you have to also change the
-# FastStringParseDate/Time/Datetime function below.
+# This is ISO 8601 format of date/time/datetime. If you want to change this,
+# you have to also change the FastStringParseDate/Time/Datetime function
+# and isoformat() below.
 FORMAT_DATETIME = '%Y-%m-%dT%H:%M:%S.%fZ'
 FORMAT_DATE = '%Y-%m-%d'
 FORMAT_TIME = '%H:%M:%S.%f'
@@ -66,17 +67,23 @@ class JSONEncoder(json.JSONEncoder):
       dct['__type__'] = obj.__class__.__name__
       return dct
     if isinstance(obj, datetime.datetime):
+      assert obj.tzinfo == None
+      # obj.isoformat() will ignore microsecond if obj.microsecond is 0.
       return {
           '__type__': 'datetime',
-          'value': obj.strftime(FORMAT_DATETIME)}
+          'value': obj.isoformat() + (
+              '.000000Z' if obj.microsecond == 0 else 'Z')}
     if isinstance(obj, datetime.date):
       return {
           '__type__': 'date',
-          'value': obj.strftime(FORMAT_DATE)}
+          'value': obj.isoformat()}
     if isinstance(obj, datetime.time):
+      assert obj.tzinfo == None
+      # obj.isoformat() will ignore microsecond if obj.microsecond is 0.
       return {
           '__type__': 'time',
-          'value': obj.strftime(FORMAT_TIME)}
+          'value': obj.isoformat() + (
+              '.000000' if obj.microsecond == 0 else '')}
     if inspect.istraceback(obj):
       tb = ''.join(traceback.format_tb(obj))
       return tb.strip()
