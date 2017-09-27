@@ -298,6 +298,56 @@ def Overrides(method):
   return method
 
 
+class CachedGetter(object):
+  """A decorator for a cacheable getter function.
+
+  This is helpful for caching results for getter functions. For example::
+
+  @CacheGetter
+  def ReadDeviceID():
+    with open('/var/device_id') as f:
+      return f.read()
+
+  The real file I/O will occur only on first invocation of ``ReadDeviceID()``,
+  until ``ReadDeviceID.InvalidateCache()`` is called.
+
+  In current implementation, the getter may accept arguments, but the arguments
+  are ignored if there is already cache available. In other words::
+
+  @CacheGetter
+  def m(v):
+    return v + 1
+
+  m(0)  # First call: returns 1
+  m(1)  # Second call: return previous cached answer, 1.
+  """
+
+  def __init__(self, getter):
+    self.__name__ = getter.__name__
+    self.__doc__ = getter.__doc__
+    self._getter = getter
+    self._has_cached = False
+    self._cached_value = None
+
+  def InvalidateCache(self):
+    self._has_cached = False
+    self._cached_value = None
+
+  def Override(self, value):
+    self._has_cached = True
+    self._cached_value = value
+
+  def HasCached(self):
+    return self._has_cached
+
+  def __call__(self, *args, **kargs):
+    # TODO(hungte) Cache args/kargs as well, to return different values when the
+    # arguments are different.
+    if not self.HasCached():
+      self.Override(self._getter(*args, **kargs))
+    return self._cached_value
+
+
 class LazyProperty(object):
   """A decorator for lazy loading properties.
 

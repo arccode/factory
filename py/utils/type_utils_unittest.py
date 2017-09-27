@@ -170,6 +170,62 @@ class LazyObjectTest(unittest.TestCase):
     self.assertEqual(a.x, 1)
 
 
+class CachedGetterTest(unittest.TestCase):
+
+  def setUp(self):
+    self.data = {'init': 0}
+
+    @type_utils.CachedGetter
+    def simple_getter():
+      self.data['init'] += 1
+      return self.data['init']
+
+    @type_utils.CachedGetter
+    def args_getter(v):
+      return v + 1
+
+    self.simple_getter = simple_getter
+    self.args_getter = args_getter
+
+  def testSimpleGetter(self):
+    self.assertEquals(self.simple_getter(), 1)
+    self.assertEquals(self.data['init'], 1)
+    self.assertEquals(self.simple_getter(), 1)
+    self.assertEquals(self.data['init'], 1)
+
+    self.simple_getter.InvalidateCache()
+    self.assertEquals(self.simple_getter(), 2)
+    self.assertEquals(self.data['init'], 2)
+    self.assertEquals(self.simple_getter(), 2)
+    self.assertEquals(self.data['init'], 2)
+
+    self.simple_getter.Override(3)
+    self.assertEquals(self.simple_getter(), 3)
+    self.assertEquals(self.data['init'], 2)
+    self.assertEquals(self.simple_getter(), 3)
+    self.assertEquals(self.data['init'], 2)
+
+  def testArgsGetter(self):
+    """Test getter with arguments.
+
+    Currently we ignore different arguments and always return first cached
+    value. The goal of this unit test function is to make sure this behavior
+    won't change unexpectedly.
+
+    If we decide to support multiple cached values, or invalidate whenever
+    arguments are changed, please first make sure all users of CachedGetter
+    won't have problem and then change this unit test.
+    """
+    self.assertEquals(self.args_getter(0), 1)
+    self.assertEquals(self.args_getter(1), 1)
+    self.assertEquals(self.args_getter(2), 1)
+
+    self.args_getter.InvalidateCache()
+    self.assertEquals(self.args_getter(2), 3)
+    self.assertEquals(self.args_getter(1), 3)
+    self.assertEquals(self.args_getter(0), 3)
+
+
 class UniqueSetTest(unittest.TestCase):
   def setUp(self):
     self.container = type_utils.UniqueStack()
