@@ -211,7 +211,8 @@ const startUpdatingResource = (resourceKey, data) => (dispatch, getState) => {
   //  yet, we have to activate it after the task finished)
   dispatch(collapseBundle(srcBundleName));
   dispatch(expandBundle(dstBundleName));
-  dispatch(activateBundle(srcBundleName, false));
+  // we can't deactivate the old bundle now or it will fail if there is only
+  // one bundle before this update operation.
 
   // need to fill in the real data after the request has finished
   var onFinish = response => response.json().then(
@@ -222,9 +223,10 @@ const startUpdatingResource = (resourceKey, data) => (dispatch, getState) => {
     })
   ).then(
     // activate the new bundle by default for convenience
-    () => dispatch(
-      activateBundle(dstBundleName, true)
-    )
+    () => {
+      dispatch(activateBundle(dstBundleName, true));
+      dispatch(activateBundle(srcBundleName, false));
+    }
   );
 
   // send the request
