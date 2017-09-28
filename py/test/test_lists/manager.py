@@ -910,7 +910,7 @@ class Manager(object):
   def GetTestListIDs(self):
     return self.test_lists.keys()
 
-  def BuildAllTestLists(self, load_legacy_test_lists=True):
+  def BuildAllTestLists(self):
     failed_files = {}
     for test_list_id in self.loader.FindTestListIDs():
       logging.debug('try to load test list: %s', test_list_id)
@@ -922,21 +922,6 @@ class Manager(object):
         path = self.loader.GetConfigPath(test_list_id)
         logging.exception('Unable to import %s', path)
         failed_files[path] = sys.exc_info()
-
-    if load_legacy_test_lists:
-      legacy_test_lists, legacy_failed_files = self.BuildAllLegacyTestLists()
-
-      for test_list_id, test_list in legacy_test_lists.iteritems():
-        if test_list_id in self.test_lists:
-          logging.warning('legacy test list "%s" is not loaded', test_list_id)
-          try:
-            raise factory.TestListError(
-                'legacy test list "%s" is not loaded' % test_list_id)
-          except Exception:
-            legacy_failed_files[test_list.source_path] = sys.exc_info()
-        else:
-          self.test_lists[test_list_id] = test_list
-      failed_files.update(legacy_failed_files)
 
     valid_test_lists = {}  # test lists that will be returned
     for test_list_id, test_list in self.test_lists.iteritems():
@@ -957,17 +942,6 @@ class Manager(object):
 
     logging.debug('loaded test lists: %r', self.test_lists.keys())
     return valid_test_lists, failed_files
-
-  def BuildAllLegacyTestLists(self):
-    """Build all legacy test lists (test lists in python)."""
-    test_lists_, legacy_failed_files = test_lists.BuildAllTestLists(True)
-
-    legacy_test_lists = {}
-
-    for key, test_list in test_lists_.iteritems():
-      legacy_test_lists[key] = LegacyTestList(test_list, self.checker)
-
-    return legacy_test_lists, legacy_failed_files
 
   @staticmethod
   def GetActiveTestListId():

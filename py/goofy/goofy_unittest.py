@@ -89,7 +89,6 @@ class GoofyTest(unittest.TestCase):
       state.get_instance = lambda: self.state
     self.mocker.StubOutWithMock(state, 'clear_state')
     self.mocker.StubOutWithMock(state, 'FactoryState')
-    self.mocker.StubOutWithMock(goofy.test_lists, 'BuildAllTestLists')
 
     self.test_list_manager = self.mocker.CreateMock(manager.Manager)
 

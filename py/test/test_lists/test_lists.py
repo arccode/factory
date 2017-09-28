@@ -8,13 +8,7 @@
 
 from collections import namedtuple
 from contextlib import contextmanager
-import glob
-import imp
-import importlib
-import logging
 import os
-import re
-import sys
 import threading
 
 import factory_common  # pylint: disable=unused-import
@@ -290,146 +284,6 @@ def TestList(id, label=None): # pylint: disable=redefined-builtin
     assert test_list == popped
 
 
-def BuildTestListFromString(test_items, options=''):
-  """Build a test list from string for *unittests*.
-
-  Args:
-    test_items: the body of "with test_lists.TestList(...)" statement.  The
-      'test_lists' module is imported, so you can use test_lists.FactoryTest or
-      other functions to generate test items.  The top level should indent "4"
-      spaces.
-    options: set test list options, the "options" variable is imported.  Should
-      indent "4" spaces.
-  """
-
-  _TEST_LIST_TEMPLATE = """
-import factory_common
-from cros.factory.test.test_lists import test_lists
-from cros.factory.utils.net_utils import WLAN
-
-def CreateTestLists():
-  with test_lists.TestList(id='id', label='label') as test_list:
-    options = test_list.options
-
-    # Load dummy plugin config as default.
-    options.plugin_config_name = 'goofy_plugin_goofy_unittest'
-    {options}
-    {test_items}
-  """
-  source = _TEST_LIST_TEMPLATE.format(test_items=test_items, options=options)
-  module = imp.new_module('stub_test_list')
-  module.__file__ = '/dev/null'
-  exec source in module.__dict__
-
-  created_test_lists = BuildTestLists(module)
-  assert len(created_test_lists) == 1
-  return created_test_lists.values()[0]
-
-
-def BuildTestLists(module):
-  """Creates test lists from a module.
-
-  This runs the CreateTestLists function in the module, which should look like:
-
-  def CreateTestLists():
-    # Add tests for the 'main' test list
-    with TestList('main', 'All Tests'):
-      with TestGroup(...):
-        ...
-      OperatorTest(...)
-
-    # Add tests for the 'alternate' test list
-    with TestList('alternate', 'Alternate'):
-      ...
-
-  Args:
-    module: The name of the module to load the tests from, or any module
-      or object with a CreateTestLists method.  If None, main.py will be
-      read (from the overlay) if it exists; otherwise generic.py will be
-      read (from the factory repo).
-  """
-  builder_state.stack = []
-  builder_state.test_lists = {}
-  builder_state.in_teardown = False
-
-  try:
-    if isinstance(module, str):
-      module = __import__(module, fromlist=['CreateTestLists'])
-    module.CreateTestLists()
-    if not builder_state.test_lists:
-      raise TestListError('No test lists were created by %r' %
-                          getattr(module, '__name__', module))
-
-    for v in builder_state.test_lists.values():
-      # Set the source path, replacing .pyc with .py
-      v.source_path = re.sub(r'\.pyc$', '.py', module.__file__)
-    return builder_state.test_lists
-  finally:
-    # Clear out the state, to avoid unnecessary references or
-    # accidental reuse.
-    builder_state.__dict__.clear()
-
-
-def BuildAllTestLists(force_generic=False):
-  """Builds all test lists in this package.
-
-  See README for an explanation of the test-list loading process.
-
-  Args:
-    force_generic: Whether to force loading generic test list.  Defaults to
-      False so that generic test list is loaded only when there is no main test
-      list.
-
-  Returns:
-    A 2-element tuple, containing: (1) A dict mapping test list IDs to test list
-    objects.  Values are TestList objects.  (2) A dict mapping files that failed
-    to load to the output of sys.exc_info().
-  """
-  test_lists = {}
-  failed_files = {}
-
-  def IsGenericTestList(f):
-    return os.path.basename(f) == 'generic.py'
-
-  def MainTestListExists():
-    return ('main' in test_lists or
-            os.path.exists(os.path.join(TEST_LISTS_PATH, 'main.py')))
-
-  test_list_files = glob.glob(os.path.join(TEST_LISTS_PATH, '*.py'))
-  test_list_files.sort(key=lambda f: (IsGenericTestList(f), f))
-  for f in test_list_files:
-    if f.endswith('_unittest.py') or os.path.basename(f) == '__init__.py':
-      continue
-    # Skip generic test list if there is already a main test list loaded
-    # and generic test list is not forced.
-    if (IsGenericTestList(f) and MainTestListExists() and
-        not force_generic):
-      continue
-
-    module_name = ('cros.factory.test.test_lists.' +
-                   os.path.splitext(os.path.basename(f))[0])
-    try:
-      module = importlib.import_module(module_name)
-    except Exception:
-      logging.exception('Unable to import %s', module_name)
-      failed_files[f] = sys.exc_info()
-      continue
-
-    method = getattr(module, 'CreateTestLists', None)
-    if method:
-      try:
-        new_test_lists = BuildTestLists(module)
-        dups = set(new_test_lists) & set(test_lists.keys())
-        if dups:
-          logging.warning('Duplicate test lists: %s', dups)
-        test_lists.update(new_test_lists)
-      except Exception:
-        logging.exception('Unable to read test lists from %s', module_name)
-        failed_files[f] = sys.exc_info()
-
-  return test_lists, failed_files
-
-
 def DescribeTestLists(test_lists):
   """Returns a friendly description of a dict of test_lists.
 
@@ -444,20 +298,3 @@ def DescribeTestLists(test_lists):
   for k in sorted(test_lists.keys()):
     ret.append(k)
   return ', '.join(ret)
-
-
-def BuildTestList(id):  # pylint: disable=redefined-builtin
-  """Builds only a single test list.
-
-  Args:
-    id: ID of the test list to build.
-
-  Raises:
-    KeyError: If the test list cannot be found.
-  """
-  test_lists, _ = BuildAllTestLists()
-  test_list = test_lists.get(id)
-  if not test_list:
-    raise KeyError('Unknown test list %r; available test lists are: [%s]' % (
-        id, DescribeTestLists(test_lists)))
-  return test_list
