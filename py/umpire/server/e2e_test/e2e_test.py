@@ -111,6 +111,8 @@ class UmpireDockerTestCase(unittest.TestCase):
           UMPIRE_TESTDATA_DIR,
           HOST_UMPIRE_DIR,
           symlinks=True)
+      for sub_dir in ('conf', 'log', 'run', 'temp', 'umpire_data'):
+        os.mkdir(os.path.join(HOST_UMPIRE_DIR, sub_dir))
 
       logging.info('Starting umpire...')
       _RunCrosDockerCommand('umpire', 'run')

@@ -29,6 +29,13 @@ from cros.factory.utils import webservice_utils
 CROS_PAYLOAD = os.path.join(
     os.path.dirname(os.path.realpath(__file__)),
     '..', '..', '..', 'bin', 'cros_payload')
+
+# Default Umpire base directory relative to root dir.
+DEFAULT_BASE_DIR = os.path.join('var', 'db', 'factory', 'umpire')
+DEFAULT_SERVER_DIR = os.path.join('usr', 'local', 'factory')
+
+ENV_JSON_FILE = 'env.json'
+
 # File name under base_dir
 _ACTIVE_UMPIRE_CONFIG = 'active_umpire.yaml'
 _STAGING_UMPIRE_CONFIG = 'staging_umpire.yaml'
@@ -71,13 +78,10 @@ class UmpireEnv(object):
     config: Active UmpireConfig object
     staging_config: Staging UmpireConfig object
   """
-  # List of Umpire mandatory subdirectories.
-  # Use tuple to avoid modifying.
-  SUB_DIRS = ('bin', 'conf', 'log', 'resources', 'run', 'temp', 'umpire_data')
 
   def __init__(self, root_dir='/'):
-    self.base_dir = os.path.join(root_dir, common.DEFAULT_BASE_DIR)
-    self.server_toolkit_dir = os.path.join(root_dir, common.DEFAULT_SERVER_DIR)
+    self.base_dir = os.path.join(root_dir, DEFAULT_BASE_DIR)
+    self.server_toolkit_dir = os.path.join(root_dir, DEFAULT_SERVER_DIR)
     self.config_path = None
     self.config = None
     self.staging_config = None

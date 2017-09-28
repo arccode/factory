@@ -7,11 +7,6 @@
 This module provides constants and common Umpire classes.
 """
 
-import os
-
-import factory_common  # pylint: disable=unused-import
-
-
 # "version" in Ping method return value to indicate server is Umpire server.
 UMPIRE_DUT_RPC_VERSION = 3
 
@@ -33,10 +28,6 @@ SCALAR_MATCHERS = set(['sn', 'mlb_sn', 'stage'])
 RANGE_MATCHERS = set(['sn_range', 'mlb_sn_range'])
 # A set of scalar matchers. It checks DUT value which's key's prefix matches.
 SCALAR_PREFIX_MATCHERS = set(['mac'])
-
-# Default Umpire base directory relative to root dir.
-DEFAULT_BASE_DIR = os.path.join('var', 'db', 'factory', 'umpire')
-DEFAULT_SERVER_DIR = os.path.join('usr', 'local', 'factory')
 
 # IP should be decided by host IP inside Docker.
 DEFAULT_SHOPFLOOR_SERVICE_PORT = 8090

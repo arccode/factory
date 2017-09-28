@@ -15,71 +15,19 @@ import os
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server import daemon
-from cros.factory.umpire.server import resource
+from cros.factory.umpire.server import migrate
 from cros.factory.umpire.server import rpc_cli
 from cros.factory.umpire.server import rpc_dut
 from cros.factory.umpire.server import umpire_env
 from cros.factory.umpire.server import webapp_resourcemap
-from cros.factory.utils import file_utils
-
-
-# Relative path of Umpire CLI / Umpired in toolkit directory.
-_DEFAULT_CONFIG_NAME = 'default_umpire.yaml'
-
-
-def InitDaemon(env):
-  """Initializes an Umpire working environment.
-
-  It creates base directory (specified in env.base_dir) and sets up daemon
-  running environment.
-
-  Args:
-    env: UmpireEnv object.
-  """
-  def SetUpDir():
-    """Sets up Umpire directory structure.
-
-    It figures out Umpire base dir, creates it and its sub directories.
-    """
-    def TryMkdir(path):
-      if not os.path.isdir(path):
-        os.makedirs(path)
-
-    TryMkdir(env.base_dir)
-    for sub_dir in env.SUB_DIRS:
-      TryMkdir(os.path.join(env.base_dir, sub_dir))
-
-  def InitConfig():
-    """Prepares the very first UmpireConfig and PayloadConfig, and marks the
-    UmpireConfig as active.
-
-    An active config is necessary for the second step, import-bundle.
-    """
-    env.AddConfigFromBlob('{}', resource.ConfigTypeNames.payload_config)
-
-    # Do not override existing active config.
-    if not os.path.exists(env.active_config_file):
-      template_path = os.path.join(env.server_toolkit_dir, _DEFAULT_CONFIG_NAME)
-      config_in_resource = env.GetResourcePath(
-          env.AddConfig(template_path, resource.ConfigTypeNames.umpire_config))
-      file_utils.SymlinkRelative(config_in_resource, env.active_config_file,
-                                 base=env.base_dir)
-      logging.info('Init UmpireConfig %r and set it as active.',
-                   config_in_resource)
-
-  logging.info('Init umpire to %r', env.base_dir)
-
-  SetUpDir()
-  InitConfig()
 
 
 def StartServer():
   """Starts Umpire daemon."""
+  migrate.RunMigrations()
+
   # Instantiate environment and load default configuration file.
   env = umpire_env.UmpireEnv()
-
-  # Make sure that the environment for running the daemon is set.
-  InitDaemon(env)
 
   env.LoadConfig()
 

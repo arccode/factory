@@ -96,8 +96,6 @@ ARG dome_builder_output_file="frontend.tar"
 ADD "build/docker/${dome_builder_output_file}" "${dome_dir}/static/"
 
 RUN ln -s "${server_dir}/bin/umpire" /usr/local/bin/
-COPY py/umpire/server/docker/default_umpire.yaml \
-  "${server_dir}/default_umpire.yaml"
 COPY py "${server_dir}/py/"
 
 COPY sh/cros_payload.sh "${server_dir}/sh/"
