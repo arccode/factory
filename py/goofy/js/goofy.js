@@ -265,7 +265,7 @@ cros.factory.Test = class {
   /**
    * Sends an event to the test backend.
    * @param {string} subtype the event type
-   * @param {string} data the event data
+   * @param {?string} data the event data
    * @export
    */
   sendTestEvent(subtype, data) {
