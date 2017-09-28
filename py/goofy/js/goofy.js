@@ -909,8 +909,8 @@ cros.factory.Goofy = class {
           }
         });
 
-    // Whenever we get focus, try to focus any visible iframe (if no modal
-    // dialog is visible).
+    // Whenever we get focus, try to focus any visible iframe (if there's no
+    // dialog or context menu).
     goog.events.listen(window, goog.events.EventType.FOCUS, () => {
       this.focusInvocation();
     });
@@ -971,22 +971,24 @@ cros.factory.Goofy = class {
    * Returns focus to any visible invocation.
    */
   focusInvocation() {
-    if (this.dialogs.some((dialog) => dialog.isVisible())) {
-      // Don't divert focus, since a dialog is visible.
-      return;
-    }
+    // We need a setTimeout(, 0) since the i.iframe.contentWindow.focus()
+    // doesn't work directly in the onfocus handler of window.
+    setTimeout(() => {
+      if (this.dialogs.length) {
+        // Don't divert focus, since there's a dialog.
+        return;
+      }
+      if (this.contextMenu) {
+        return;
+      }
 
-    if (!this.contextMenu) {
       for (const i of this.invocations.values()) {
         if (i && i.iframe && this.testUIManager.isVisible(i.path)) {
-          i.iframe.focus();
-          setTimeout(() => {
-            i.iframe.contentWindow.focus();
-          }, 0);
+          i.iframe.contentWindow.focus();
           break;
         }
       }
-    }
+    }, 0);
   }
 
   /**
@@ -1143,15 +1145,12 @@ cros.factory.Goofy = class {
             // showTestPopup. Choose some path that would never collide with any
             // test.
             const localeSelectorPath = '..fake.path.localeSelector';
-            if (localeSelectorPath === this.lastContextMenuPath &&
-                (+new Date() - this.lastContextMenuHideTime <
-                 goog.ui.PopupBase.DEBOUNCE_DELAY_MS)) {
-              // We just hid it; don't reshow.
+            const menu = new goog.ui.PopupMenu();
+            if (!this.registerMenu(menu, localeSelectorPath)) {
+              menu.dispose();
               return;
             }
-            this.lastContextMenuPath = localeSelectorPath;
 
-            const menu = new goog.ui.PopupMenu();
             for (const locale of locales) {
               const item = new goog.ui.MenuItem(localeNames[locale]);
               goog.events.listen(
@@ -1165,12 +1164,6 @@ cros.factory.Goofy = class {
             menu.showAtElement(
                 rootNode, goog.positioning.Corner.BOTTOM_LEFT,
                 goog.positioning.Corner.TOP_LEFT);
-            goog.events.listen(menu, goog.ui.Component.EventType.HIDE, () => {
-              menu.dispose();
-              this.lastContextMenuHideTime = +new Date();
-              // Return focus to visible test, if any.
-              this.focusInvocation();
-            });
           });
     }
 
@@ -1352,7 +1345,6 @@ cros.factory.Goofy = class {
     dialog.setDisposeOnHide(true);
 
     goog.events.listen(dialog, goog.ui.Component.EventType.SHOW, () => {
-      window.focus();
       // Hack: if the dialog contains an input element or button, focus it. (For
       // instance, Prompt only calls select(), not focus(), on the text field,
       // which causes ESC and Enter shortcuts not to work.)
@@ -1367,9 +1359,44 @@ cros.factory.Goofy = class {
     });
 
     goog.events.listen(dialog, goog.ui.Component.EventType.HIDE, () => {
-      this.focusInvocation();
       goog.array.remove(this.dialogs, dialog);
+      this.focusInvocation();
     });
+  }
+
+  /**
+   * Registers a context menu. Returns focus to any running invocation when the
+   * menu is hidden/disposed. Return false if the menu is hid recently.
+   * @param {!goog.ui.PopupMenu} menu
+   * @param {string} path
+   * @return {boolean}
+   */
+  registerMenu(menu, path) {
+    if (path === this.lastContextMenuPath &&
+        (+new Date() - this.lastContextMenuHideTime <
+         goog.ui.PopupBase.DEBOUNCE_DELAY_MS)) {
+      // We just hid it; don't reshow.
+      return false;
+    }
+
+    // Hide all tooltips so that they don't fight with the context menu.
+    this.hideTooltips();
+
+    this.contextMenu = menu;
+    this.lastContextMenuPath = path;
+    goog.events.listen(menu, goog.ui.Component.EventType.HIDE, (event) => {
+      if (event.target !== menu) {
+        // We also receive HIDE events for submenus, but we're interested
+        // only in events for this top-level menu.
+        return;
+      }
+      menu.dispose();
+      this.contextMenu = null;
+      this.lastContextMenuHideTime = +new Date();
+      // Return focus to visible test, if any.
+      this.focusInvocation();
+    });
+    return true;
   }
 
   /**
@@ -1665,18 +1692,11 @@ cros.factory.Goofy = class {
   showTestPopup(path, labelElement, extraItems) {
     const test = this.pathTestMap[path];
 
-    if (path === this.lastContextMenuPath &&
-        (+new Date() - this.lastContextMenuHideTime <
-         goog.ui.PopupBase.DEBOUNCE_DELAY_MS)) {
-      // We just hid it; don't reshow.
+    const menu = new goog.ui.PopupMenu();
+    if (!this.registerMenu(menu, path)) {
+      menu.dispose();
       return false;
     }
-
-    // Hide all tooltips so that they don't fight with the context menu.
-    this.hideTooltips();
-
-    const menu = new goog.ui.PopupMenu();
-    this.contextMenu = menu;
 
     const addSeparator = () => {
       if (menu.getChildCount() &&
@@ -1685,8 +1705,6 @@ cros.factory.Goofy = class {
         menu.addChild(new goog.ui.MenuSeparator(), true);
       }
     };
-
-    this.lastContextMenuPath = path;
 
     let numLeaves = 0;
     const /** !Object<string, number> */ numLeavesByStatus = {};
@@ -1846,20 +1864,6 @@ cros.factory.Goofy = class {
     menu.showAtElement(
         labelElement, goog.positioning.Corner.BOTTOM_LEFT,
         goog.positioning.Corner.TOP_LEFT);
-    goog.events.listen(
-        menu, goog.ui.Component.EventType.HIDE,
-        (/** !goog.events.Event */ event) => {
-          if (event.target !== menu) {
-            // We also receive HIDE events for submenus, but we're interested
-            // only in events for this top-level menu.
-            return;
-          }
-          menu.dispose();
-          this.contextMenu = null;
-          this.lastContextMenuHideTime = +new Date();
-          // Return focus to visible test, if any.
-          this.focusInvocation();
-        });
     return true;
   }
 
@@ -3234,6 +3238,9 @@ cros.factory.Goofy = class {
         this.updateCSSClassesInDocument(
             goog.asserts.assert(iframe.contentDocument));
       };
+      iframe.contentWindow.addEventListener('focus', () => {
+        this.focusInvocation();
+      });
     }
     if (configs.some(({location}) => location === 'goofy-full')) {
       // We need to trigger a window resize event if there's a UI with full

@@ -157,7 +157,6 @@ cros.factory.testUI.TileManager = class {
     this.pathOrder.push(path);
 
     title.addEventListener('focus', () => {
-      iframe.focus();
       setTimeout(() => {
         iframe.contentWindow.focus();
       }, 0);
