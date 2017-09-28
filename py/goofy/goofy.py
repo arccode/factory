@@ -860,8 +860,8 @@ class Goofy(GoofyBase):
       return self.test_lists[test_list_id]
     except KeyError:
       raise test_lists.TestListError(
-          '%r is not a valid test list ID (available IDs are [%s])' % (
-              test_list_id, ', '.join(sorted(self.test_lists.keys()))))
+          '%r is not a valid test list ID (available IDs are %r)' % (
+              test_list_id, sorted(self.test_lists.keys())))
 
   def _RecordStartError(self, error_message):
     """Appends the startup error message into the shared data."""
@@ -880,8 +880,7 @@ class Goofy(GoofyBase):
 
     self.test_lists, failed_files = self.test_list_manager.BuildAllTestLists()
 
-    logging.info('Loaded test lists: [%s]',
-                 test_lists.DescribeTestLists(self.test_lists))
+    logging.info('Loaded test lists: %r', sorted(self.test_lists.keys()))
 
     # Check for any syntax errors in test list files.
     if failed_files:

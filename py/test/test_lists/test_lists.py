@@ -282,19 +282,3 @@ def TestList(id, label=None): # pylint: disable=redefined-builtin
   finally:
     popped = builder_state.stack.pop()
     assert test_list == popped
-
-
-def DescribeTestLists(test_lists):
-  """Returns a friendly description of a dict of test_lists.
-
-  Args:
-    test_lists: A dict of test_list_id->test_lists (as returned by
-        BuildAllTestLists)
-
-  Returns:
-    A string like "bar, foo (old-style), main".
-  """
-  ret = []
-  for k in sorted(test_lists.keys()):
-    ret.append(k)
-  return ', '.join(ret)
