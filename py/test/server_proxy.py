@@ -20,6 +20,7 @@ For what functions are available on factory server, please check
  ``py/umpire/server/dut_rpc.py`` and ``py/shopfloor/README.md``.
 """
 
+import logging
 import xmlrpclib
 
 import factory_common  # pylint: disable=unused-import
@@ -44,6 +45,22 @@ class ServerProxyError(Exception):
 def GetServerConfig():
   """Returns current configuration for connection to factory server."""
   return config_utils.LoadConfig(FACTORY_SERVER_CONFIG_NAME)
+
+
+def ValidateServerConfig():
+  """Validates factory server config.
+
+  Factory server config is usually stored in runtime directory and may have been
+  corrupted, so this is a helper function to delete runtime configuration if
+  needed.
+  """
+  try:
+    GetServerConfig()
+  except ValueError:
+    logging.exception('Failed reading factory server config, retry by '
+                      'removing runtime config...')
+    config_utils.DeleteRuntimeConfig(FACTORY_SERVER_CONFIG_NAME)
+    GetServerConfig()
 
 
 def UpdateServerConfig(new_config):

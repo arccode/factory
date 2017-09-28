@@ -381,6 +381,7 @@ class SyncFactoryServer(unittest.TestCase):
       factory.console.info('Toolkit update is disabled.')
 
     # Setup new server URL
+    server_proxy.ValidateServerConfig()
     self.ChangeServerURL(self.args.server_url)
 
     # It's very often that a DUT under FA is left without network connected for

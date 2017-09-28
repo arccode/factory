@@ -163,8 +163,12 @@ def _LoadJsonFile(file_path, logger):
   """
   if os.path.exists(file_path):
     logger('config_utils: Loading from %s', file_path)
-    with open(file_path) as f:
-      return json.load(f)
+    try:
+      with open(file_path) as f:
+        return json.load(f)
+    except ValueError as e:
+      raise ValueError('%s: %s' % (e.message, file_path), *e.args[1:])
+
 
   # file_path does not exist, but it may be a PAR virtual path.
   if '.par' in file_path.lower():
@@ -284,6 +288,20 @@ def _GetLogger():
   """
   return (logging.debug if _LoadConfigUtilsConfig()[_CONFIG_NAME_LOGGING] else
           _DummyLogger)
+
+
+def DeleteRuntimeConfig(config_name):
+  """Removes the configuration in Runtime config directory.
+
+  This is helpful for tests to reset or delete corrupted configurations.
+
+  Args:
+    config_name: a string for config file name (without extension) to delete.
+  """
+  file_path = os.path.join(
+      GetRuntimeConfigDirectory(), config_name + _CONFIG_FILE_EXT)
+  if os.path.exists(file_path):
+    os.remove(file_path)
 
 
 def SaveRuntimeConfig(config_name, value):
