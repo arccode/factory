@@ -14,8 +14,6 @@ the following:
 
 * A container for other tests (like a folder in the filesystem).  When
   a container is run, the tests that it contains are run in sequence.
-* An autotest within in the ``third_party/autotest`` repository (e.g.,
-  ``hardware_SAT``, which runs the stress app test).
 * A pytest, which is a test written using the standard Python unit test API.
 
 Each test lists has an ID (like ``main`` or ``manual_smt``) that
@@ -82,132 +80,126 @@ referring to.
 
 Declaring test lists
 --------------------
-.. note::
+Each test list should be defined by a JSON file with file name
+``<test_list_id>.test_list.json`` under ``py/test/test_lists/`` directory.  The
+generic test list is defined by
+``py/test/test_lists/generic_main.test_list.json``.
 
-   Test lists were previously declared as single Python expressions,
-   like ``TEST_LIST = [...]``, and placed in files called
-   ``test_list`` for the main test list, or :samp:`test_list.{foo}`
-   for a variant named "foo".  That type of test list is deprecated,
-   and test lists are now declared in Python source files as described
-   in the following documentation.
+In general, when you start working on your own test list, you need to define
+two test list files, ``common.test_list.json`` and ``main.test_list.json``.
 
-   See :ref:`converting-test-lists` for more information.
+``common.test_list.json``::
 
-Each module in the
-:py:mod:`cros.factory.test.test_lists` package can declare any number of
-test lists.  There is a
-generic test list in the :py:mod:`cros.factory.test.test_lists.generic`
-module; this test list is used only if no other module in that directory
-declares a test with with the ID ``main``.
+  {
+    "inherit": [
+      "generic_common.test_list"
+    ],
+    "constants": {
+      # Common constants for your project.
+    },
+    "options": {
+      # Common test list options for your project.
+    },
+    "definitions": {
+      # Define new pytests, or override pytest arguments.
+    }
+  }
 
-In general, you will want to create the test list for your board by
-copying the generic test list into your board overlay: use a file name
-like
-``private-overlays/overlay-foo/chromeos-base/factory-board/files/py/test/test_lists/main.py``
-to create a :py:mod:`cros.factory.test.test_lists.main` module there.
+``main.test_list.json``::
 
-In order to declare test lists, your module must provide a
-``CreateTestLists`` function that takes no arguments.  This function
-can then call the building-block functions listed in
-:ref:`test-list-building-block-functions` to create one or more test
-lists.
-
-Test lists are simply Python code, so you can modularize test list
-creation by splitting it up into separate functions or modules.  Using
-helper functions to create test lists may be very useful, for example,
-to create test lists that are similar but contain certain differences
-(e.g., some skipping certain tests or using different shop floor
-configurations).
+  {
+    "inherit": [
+      "common.test_list",
+      "generic_main.test_list"
+    ],
+    "constants": {
+      # Constants for this test list.
+    }
+    "options": {
+      # Options for this test list.
+    },
+    "definitions": {
+      "FATItems": [
+        # Redefine FATItems (adding, removing, reordering)
+      ],
+      ...
+    }
+  }
 
 .. _test-list-creation-sample:
 
 Test list creation sample
 -------------------------
-A sample module to create two test lists (``main`` and
-``another_test_list``) follows::
+Board specific test lists should be placed in board overlay
+(:samp:`src/private-overlays/overlay-{board}-private/chromeos-base/factory-board/files/py/test/test_lists/`).
+And they should reuse test lists in public repository (i.e.
+``generic_*.test_list.json``).
 
-  # Import factory_common to set up import paths.
-  import factory_common
-  # Import the necessary building blocks for creating test lists.
-  from cros.factory.test.test_lists.test_lists import (
-    FactoryTest,
-    OperatorTest,
-    TestGroup,
-    TestList)
+For example ``common.test_list.json``::
 
-  # The function named CreateTestLists is invoked by the factory
-  # test harness to declare test lists.
-  def CreateTestLists():
-    # Create the main test list (which must have id 'main').
-    with TestList('main', 'Test List 1') as test_list:
-      # First set various test list options.
-      test_list.options.auto_run_on_start = False
-      test_list.options.ui_lang = 'zh'
+  {
+    "inherit": [
+      "generic_common.test_list"
+    ],
+    "constants": {
+      "allow_force_finalize": [],  # Not allowed.
+      "enable_factory_server": true,
+      "led_colors": [
+        "WHITE",
+        "AMBER",
+        "OFF"
+      ],
+      "lid_switch_event_id": 1,
+      "light_sensor_input": "in_illuminance_input",
+      "min_release_image_version": "9777.0",
+      "sysfs_path_sd": "/sys/devices/pci0000:00/0000:00:1e.6/mmc_host/",
+      "typec_usb": {
+        "left": {
+          "usb2_sysfs_path": "/sys/devices/pci0000:00/0000:00:14.0/usb1/1-1",
+          "usb3_sysfs_path": "/sys/devices/pci0000:00/0000:00:14.0/usb2/2-1",
+          "usbpd_id": 0,
+          "display_info": [
+            "DisplayPort",
+            "DP-1"
+          ]
+        },
+        "right": {
+          "usb2_sysfs_path": "/sys/devices/pci0000:00/0000:00:14.0/usb1/1-5",
+          "usb3_sysfs_path": "/sys/devices/pci0000:00/0000:00:14.0/usb2/2-2",
+          "usbpd_id": 1,
+          "display_info": [
+            "DisplayPort",
+            "DP-2"
+          ]
+        }
+      }
+    }
+  }
 
-      # Now declare tests in the test list using FactoryTest,
-      # OperatorTest, and TestGroup.
-      FactoryTest(id='FirstTest', pytest_name='first_test')
-      OperatorTest(id='SecondTest', pytest_name='second_test')
-      with TestGroup(id='ATestGroup'):
-        FactoryTest(id='FirstTest', ...)
-        OperatorTest(id='SecondTest', ...)
+Sample ``main.test_list.json``::
 
-    # Create another test list.
-    with TestList('another_test_list', Another Test List') as test_list:
-      FactoryTest(...)
-      OperatorTest(...)
+  {
+    "inherit": [
+      "common.test_list",
+      "generic_main.test_list"
+    ],
+    "constants": {
+      "default_factory_server_url": "http://192.168.111.222:8888/"
+    },
+    "options": {
+      "skipped_tests": {
+        "PROTO": [
+          "*.AudioJack",
+          "*.SpeakerDMic"
+        ]
+      }
+    }
+  }
 
 Note the following crucial parts:
 
-* *Import statements* to import the necessary building-block functions from
-  the :py:mod:`cros.factory.test.test_lists.main` module.
-* A ``CreateTestLists`` function, which the test harness will invoke to
-  create the test list.
-* Within ``CreateTestLists``, a series of ``with TestList(...) as test_list``
-  statements, each of which "opens" a new test list.
-* Within the ``TestList`` contexts, statements to customize the test
-  list options, as described in :ref:`test-list-options`.
-* Also within the ``TestList`` contexts, statements to actually create the
-  tests (``FactoryTest``, ``OperatorTest``, etc.).
-
-.. _adding-a-new-test-list:
-
-Adding a new test list
-----------------------
-To add a new new-style test list, you have two options:
-
-* **Create a brand new module.** The module must be in the
-  :py:mod:`cros.factory.test.test_lists` package. Within the source
-  tree, you can do this in one of two places:
-
-  * In the public repo (:samp:`platform/factory/py/test/test_lists/{test_list_name}.py`).
-    Naturally, this test list would apply to all boards.
-
-  * In the board overlay
-    (:samp:`src/private-overlays/overlay-{board}-private/chromeos-base/factory-board/files/py/test/test_lists/{test_list_name}.py`).
-
-  Note that the module name (:samp:`{test_list_name}` in the examples
-  above) is not necessarily the test list's ID: since a single module
-  can define any number of test lists, you must specify the test
-  list's ID as an argument to the ``TestList`` function, not as the
-  module name. If you're only defining one test list in your module,
-  though, it's probably a good idea to use the ID as the module name.
-
-  You could start by just copy-and-pasting an existing test list and
-  changing its ID, but of course this has the big caveat that it will
-  permanently diverge from the main test list! If you want to keep
-  multiple test lists "in sync", you'll probably want to choose the
-  next option.
-
-* **Create a variant of an existing test list.** You can factor the
-  commonalities between the test lists out into separate functions
-  or modules, which you can then re-use.
-
-  This is obviously harder than copy-and-pasting, since you have to
-  think carefully about how to characterize the differences between
-  test lists. Sometimes copy-and-pasting will be the right approach
-  (e.g., for quick hacks), but carefully parameterizing your test
-  lists may be worth the extra effort for code reuse.
+* ``options`` is a dictionary that defines test list options, as described in
+  :ref:`test-list-options`.
 
 Test arguments
 --------------
@@ -216,33 +208,60 @@ as specifying the amount of time that a test should run, or which device
 it should use.  For this reason, tests can accept arguments that modify
 their functionality.
 
-This arguments are passed as the ``dargs`` argument to one of the
-building-block functions, e.g.::
+Most pytests should already be defined by ``generic_common``, you only need to
+override test arguments.  For example, in your ``common.test_list.json``::
 
-  FactoryTest(id='Camera',
-              pytest_name='camera',
-              dargs=dict(face_recognition=False,
-                         resize_ratio=0.7,
-                         capture_resolution=(640, 480)))
+  {
+    ...,
+    "definitions": {
+      "QRScan": {
+        "args": {
+          # Only override "camera_args".
+          "camera_args": {
+            "resolution": [
+              1280,
+              720
+            ]
+          }
+        }
+      }
+    }
+  }
+
+In this case, test arguments for QRScan will be::
+
+  {
+    # defined by generic_common.test_list.json
+    "mode": "qr",
+    "QR_string": "Hello ChromeOS!",
+    # defined by common.test_list.json
+    "camera_args": {
+      "resolution": [
+        1280,
+        720
+      ]
+    }
+  }
+
+If you want to **replace** ``args`` completely, instead of updating, you should
+use ``__replace__`` keyword::
+
+  {
+    ...,
+    "definitions": {
+      "QRScan": {
+        "args": {
+          "__replace__": true,
+          # definitions in generic_common will be disgarded
+          ...
+        }
+      }
+    }
+  }
 
 A description of the permissible arguments for each test, and their
 defaults, is included in the ``ARGS`` property in the class that
 implements the test.
-
-.. _test-list-building-block-functions:
-
-Building-block functions
-------------------------
-
-.. py:module:: cros.factory.test.test_lists.test_lists
-
-.. autofunction:: TestList(id, label_en)
-
-.. autofunction:: FactoryTest
-
-.. autofunction:: OperatorTest
-
-.. autofunction:: TestGroup
 
 .. _test-list-options:
 
@@ -253,96 +272,3 @@ Test list options
 
 .. autoclass:: Options
    :members:
-
-.. _converting-test-lists:
-
-Converting old-style test lists
--------------------------------
-In the past, each test list was a single giant Python expression. This
-gave rise to a number of problems:
-
-* It was hard to add conditional logic to create test list variants.
-
-* It was hard to pinpoint syntax errors in tests (am I missing a
-  parenthesis? where?)
-
-* It was hard to find logic errors and typos, since test lists are not
-  lint-able.
-
-* It was hard to factor test lists as re-usable code.
-
-The main differences between the old and new format are:
-
-* Rather than being single expressions, test lists are now Python code
-  within a ``CreateTestLists()`` function.  They can now comprise
-  multiple statements, which means that they can be decomposed into
-  multiple modules and functions, and it is easy to reuse code to
-  create test lists that vary in well-defined ways.
-
-* You use ``with TestList(...)`` instead of ``TEST_LIST = [`` to "open"
-  a test list.
-
-* To define nested tests, you use the ``with`` keyword rather than
-  the ``subtests`` argument.  For example, this::
-
-     FactoryTest(id='SMT', subtests=[
-       FactoryTest(id='A', ...),
-       FactoryTest(id='B', ...),
-       ...
-     ]
-
-  becomes this::
-
-    with FactoryTest(id='SMT'):
-      FactoryTest(id='A', ...)
-      FactoryTest(id='B', ...)
-
-To convert from an old-style to new-style test list, here's the basic
-idea:
-
-#. Create a new module in the :py:mod:`cros.factory.test.test_lists`
-   package (that's the ``py/test/test_lists directory``).
-   Copy-and-paste your test list to the new file.
-
-#. Put this at the top of your test list (replacing ``test_list_id`` and
-   ``Test List Description`` as appropriate)::
-
-      import factory_common
-      # Import the necessary building blocks for creating test lists.
-      from cros.factory.test.test_lists.test_lists import (
-        FactoryTest,
-        OperatorTest,
-        TestGroup,
-        TestList)
-
-      def CreateTestLists():
-        with TestList('test_list_id', 'Test List Description'):
-          ...old test list contents goes here...
-
-#. Remove ``TEST_LIST_NAME``; it's not used anymore (put the name in
-   the ``TestList`` statement above).
-
-#. Get rid of the ``TEST_LIST = [`` line (and the matching ``]`` at the
-   end).  Whenever you see the ``subtests`` keyword, change the line to
-   start with ``with`` instead, and indent the subtests within the
-   enclosing context.
-
-To make sure that your old and new test lists, are identify, you can use
-the ``factory dump-test-list`` command as follows:
-
-#. Before starting to convert your test list, run :samp:`make
-   overlay-{board}` to make a complete copy of the public repository,
-   overlaid with the private repository, in the
-   :samp:`overlay-{board}` directory.  Then run
-   :samp:`overlay-{board}/bin/factory dump-test-list
-   {old_test_list_id} > /tmp/old.yaml` to obtain a complete dump of
-   the old test list as a YAML document.  The format of this dump is
-   not important, but its contents can be compared to the dump from
-   your new test list.
-
-#. As you convert your test list, run :samp:`make overlay-{board} ;
-   overlay-{board}/bin/factory dump-test-list {new_test_list_id} >
-   /tmp/new.yaml`.  You can then compare the contents of
-   ``/tmp/old.yaml`` and ``/tmp/new.yaml`` (e.g., by running ``diff -u
-   /tmp/old.yaml /tmp/new.yaml``) to see if there are any functional
-   differences between your old and new test lists.

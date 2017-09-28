@@ -521,8 +521,71 @@ class FactoryTest(object):
                _root=None):
     """Constructor.
 
-    See cros.factory.test.test_lists.FactoryTest for argument
-    documentation.
+    Args:
+      label: An i18n label.
+      pytest_name: The name of the pytest to run (relative to
+        ``cros.factory.test.pytests``).
+      invocation_target: The function to execute to run the test
+        (within the Goofy process).
+      dargs: pytest arguments.
+      parallel: Whether the subtests should run in parallel.
+      layout: The layout to be used for parallel test. Should be either a string
+        or a dict like {"type": "tiled", "options": {"rows": 1, "columns": 2}}.
+      subtests: A list of tests to run inside this test.  In order
+        to make conditional construction easier, this may contain None items
+        (which are removed) or nested arrays (which are flattened).
+      id: A unique ID for the test.
+      has_ui: Deprecated. Has no effect now.
+      never_fails: True if the test never fails, but only returns to an
+        untested state.
+      disable_abort: True if the test can not be aborted
+        while it is running.
+      exclusive_resources: Resources that the test may require exclusive access
+        to. May be a list or a single string. Items must all be in
+        ``cros.factory.goofy.plugins.plugin.RESOURCE``.
+      enable_services: Services to enable for the test to run correctly.
+      disable_services: Services to disable for the test to run correctly.
+      require_run: A list of test paths indicating which tests must have been
+        passed before this test may be run.  If the specified path includes this
+        test, then all tests up to (but not including) this test must have been
+        passed already.  For instance, if this test is ``STM.FlushTestlogs``,
+        and require_run is ``SMT``, then all tests in SMT before
+        ``FlushTestlogs`` must have already been passed.  ``"all"`` may be used
+        to refer to the root (i.e., all tests in the whole test list before this
+        one must already have been run).  Examples::
+
+          require_run="x"             # These two are equivalent; requires that
+          require_run=["x"]           # "X" has been passed.
+
+          require_run=["x", "y"]      # Require both "X" and "Y" are passed.
+
+          require_run=[".x", "..y"]   # Require "X" under same group and "Y"
+                                      # under parent group to be passed.  See
+                                      # ``FactoryTestList.ResolveRequireRun()``
+
+          require_run="all"           # Require all tests before current test to
+                                      # be passed.
+
+      run_if: Condition under which the test should be run.  This
+        must be either a function taking a single argument (an
+        ``invocation.TestArgsEnv`` object), or a string of the format::
+
+          table_name.col
+          !table_name.col
+
+        If the auxiliary table 'table_name' is available, then its column 'col'
+        is used to determine whether the test should be run.
+      iterations: Number of times to run the test.
+      retries: Maximum number of retries allowed to pass the test.
+        If it's 0, then no retries are allowed (the usual case). If, for
+        example, iterations=60 and retries=2, then the test would be run up to
+        62 times and could fail up to twice.
+      prepare: A callback function before test starts to run.
+      finish: A callback function when test case completed.
+        This function has one parameter indicated test result:
+        ``TestState.PASSED`` or ``TestState.FAILED``.
+      _root: True only if this is the root node (for internal use
+        only).
     """
     self.pytest_name = pytest_name
     self.invocation_target = invocation_target

@@ -3396,14 +3396,6 @@ msgstr "主测项（未定义）"
 msgid "Station-Based Test Template"
 msgstr "测试站模板"
 
-#: ../py/test/test_lists/station_based_test_list.py
-msgid "Start {label}"
-msgstr "开始 {label}"
-
-#: ../py/test/test_lists/station_based_test_list.py
-msgid "End {label}"
-msgstr "结束 {label}"
-
 #: ../py/test/test_ui.py
 msgid "Enter"
 msgstr "ENTER"
