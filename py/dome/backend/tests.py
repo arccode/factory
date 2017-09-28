@@ -15,6 +15,9 @@ import yaml
 
 from backend import models
 
+import factory_common  # pylint: disable=unused-import
+from cros.factory.umpire.server import resource as umpire_resource
+
 
 SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -139,7 +142,11 @@ class DomeAPITest(rest_framework.test.APITestCase):
                                   umpire_host=cls.PROJECT_WITH_UMPIRE_HOST,
                                   umpire_port=cls.PROJECT_WITH_UMPIRE_PORT)
 
-    os.mkdir(os.path.join(models.UMPIRE_BASE_DIR, cls.PROJECT_WITH_UMPIRE_NAME))
+    # We need the Umpire folder, and we need the temp folder to upload either
+    # bundle or resource files. Taking advantage of makedirs() here to create
+    # both of them at once.
+    os.makedirs(os.path.join(
+        models.UMPIRE_BASE_DIR, cls.PROJECT_WITH_UMPIRE_NAME, 'temp'))
 
   def setUp(self):
     self.maxDiff = None  # developer friendly setting
@@ -158,25 +165,39 @@ class DomeAPITest(rest_framework.test.APITestCase):
       self.patchers.append(mock.patch(entity))
       self.mocks[entity] = self.patchers[-1].start()
 
-    def MockUmpireConfig():
+    def MockUmpireGetStatus():
       """Mock the GetStatus() call because it's used so often."""
-      upload_config_mock = self.mocks['xmlrpclib.ServerProxy']().UploadConfig
+      add_config_from_blob_mock = (
+          self.mocks['xmlrpclib.ServerProxy']().AddConfigFromBlob)
 
       config = {}
-      # If UploadConfig() has been called, return the lastest config; otherwise,
-      # return the default config.
-      if upload_config_mock.called:
-        args, unused_kwargs = upload_config_mock.call_args
-        config = yaml.load(args[1])  # config uploaded to Umpire
+      # Emulate Umpire to some extend: if new config has been uploaded, return
+      # it; otherwise, return the default config.
+      if add_config_from_blob_mock.called:
+        args, unused_kwargs = add_config_from_blob_mock.call_args
+        config_str = args[0]
+        if umpire_resource.ConfigTypes.umpire_config.fn_suffix == 'yaml':
+          config = yaml.load(config_str)
+        else:
+          config = json.loads(config_str)
       else:
         with TestData('umpire_config.json') as c:
           config = c
-      config_str = yaml.dump(config)
+      config_str = json.dumps(config)
       return {'active_config': config_str,
-              'staging_config': config_str}
+              'active_config_res': '.json',
+              'staging_config': config_str,
+              'staging_config_res': '.json'}
+
+    def MockUmpireGetPayloadsDict(file_name):
+      """Mock the GetPayloadsDict() RPC call in Umpire."""
+      with TestData(file_name) as c:
+        return c
 
     self.mocks['xmlrpclib.ServerProxy']().GetStatus = (
-        mock.MagicMock(side_effect=MockUmpireConfig))
+        mock.MagicMock(side_effect=MockUmpireGetStatus))
+    self.mocks['xmlrpclib.ServerProxy']().GetPayloadsDict = (
+        mock.MagicMock(side_effect=MockUmpireGetPayloadsDict))
 
   def tearDown(self):
     for patcher in self.patchers:
@@ -227,7 +248,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
     self.assertJSONEqual(response.content, {'name': PROJECT_NAME,
                                             'umpireEnabled': False,
                                             'umpireHost': None,
-                                            'umpirePort': None})
+                                            'umpirePort': None,
+                                            'netbootBundle': None})
 
     # no docker commands should be called
     self.mocks['subprocess.call'].assert_not_called()
@@ -284,7 +306,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
                          {'name': self.PROJECT_WITH_UMPIRE_NAME,
                           'umpireEnabled': False,
                           'umpireHost': None,
-                          'umpirePort': None})
+                          'umpirePort': None,
+                          'netbootBundle': None})
 
     # make sure the container has also been removed
     self.mocks['subprocess.call'].assert_called_with([
@@ -298,7 +321,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
                          {'name': self.PROJECT_WITHOUT_UMPIRE_NAME,
                           'umpireEnabled': False,
                           'umpireHost': None,
-                          'umpirePort': None})
+                          'umpirePort': None,
+                          'netbootBundle': None})
 
     # nothing should be changed and nothing should be called
     self.mocks['subprocess.call'].assert_not_called()
@@ -319,7 +343,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
                          {'name': self.PROJECT_WITHOUT_UMPIRE_NAME,
                           'umpireEnabled': True,
                           'umpireHost': 'localhost',
-                          'umpirePort': UMPIRE_PORT})
+                          'umpirePort': UMPIRE_PORT,
+                          'netbootBundle': None})
 
     # make sure docker run has been called
     container_name = models.Project.GetUmpireContainerName(
@@ -370,30 +395,24 @@ class DomeAPITest(rest_framework.test.APITestCase):
     self.assertTrue('already exists' in response.json()['detail'])
 
   def testUploadResource(self):
-    RESOURCE_TYPE = 'device_factory_toolkit'
-    RESOURCE_UPDATABLE = RESOURCE_TYPE in models.UMPIRE_UPDATABLE_RESOURCE
-    RESOURCE_BASENAME = 'install_factory_toolkit.run'
+    RESOURCE_TYPE = 'toolkit'
     RESOURCE_VERSION = '1234.5678'
-    RESOURCE_HASH = '123abc'
+    EXPECTED_RETURN_VALUE = {'type': RESOURCE_TYPE,
+                             'version': RESOURCE_VERSION}
 
     # mock Umpire AddResource() call
-    self.mocks['xmlrpclib.ServerProxy']().AddResource = mock.MagicMock(
-        return_value='%s#%s#%s' % (RESOURCE_BASENAME,
-                                   RESOURCE_VERSION,
-                                   RESOURCE_HASH))
+    self.mocks['xmlrpclib.ServerProxy']().AddPayload = mock.MagicMock(
+        return_value={RESOURCE_TYPE: EXPECTED_RETURN_VALUE})
 
     response = self._CreateResource(self.PROJECT_WITH_UMPIRE_NAME,
                                     RESOURCE_TYPE)
 
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_201_CREATED)
-    self.assertJSONEqual(response.content, {'type': RESOURCE_TYPE,
-                                            'hash': RESOURCE_HASH,
-                                            'version': RESOURCE_VERSION,
-                                            'updatable': RESOURCE_UPDATABLE})
+    self.assertJSONEqual(response.content, EXPECTED_RETURN_VALUE)
 
     # make sure AddResource() is called
-    self.mocks['xmlrpclib.ServerProxy']().AddResource.assert_called_with(
+    self.mocks['xmlrpclib.ServerProxy']().AddPayload.assert_called_with(
         mock.ANY, RESOURCE_TYPE)
 
   def testUploadResourceToNonExistingProject(self):
@@ -541,10 +560,12 @@ class DomeAPITest(rest_framework.test.APITestCase):
     # Cannot use the default mock because UploadNew() probes the staging config.
     # We'll have to mock ourselves here.
     with TestData('umpire_config-uploaded.json') as c:
-      config_str = yaml.dump(c)
+      config_str = json.dumps(c)
       self.mocks['xmlrpclib.ServerProxy']().GetStatus = mock.MagicMock(
           return_value={'active_config': config_str,
-                        'staging_config': config_str})
+                        'active_config_res': '.json',
+                        'staging_config': config_str,
+                        'staging_config_res': '.json'})
 
     with TestData('new_bundle.json') as b:
       bundle = b
@@ -706,9 +727,16 @@ class DomeAPITest(rest_framework.test.APITestCase):
 
   def _GetUploadedConfig(self, index):
     call_args_list = (
-        self.mocks['xmlrpclib.ServerProxy']().UploadConfig.call_args_list)
+        self.mocks['xmlrpclib.ServerProxy']().AddConfigFromBlob.call_args_list)
     args, unused_kwargs = call_args_list[index]
-    return yaml.load(args[1])  # the 2nd argument of UploadConfig()
+    config_str = args[0]  # the 1st argument of AddConfigFromBlob()
+
+    if umpire_resource.ConfigTypes.umpire_config.fn_suffix == 'yaml':
+      config = yaml.load(config_str)
+    else:
+      config = json.loads(config_str)
+
+    return config
 
   def _GetLastestUploadedConfig(self):
     return self._GetUploadedConfig(-1)

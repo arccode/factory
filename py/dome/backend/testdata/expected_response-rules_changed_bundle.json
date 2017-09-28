@@ -3,16 +3,40 @@
   "name": "testing_bundle_02",
   "note": "swimming like a whale",
   "resources": {
-    "completeScript": {
-      "hash": "aabbccdd",
-      "type": "complete_script",
-      "updatable": false,
+    "complete": {
+      "type": "complete",
       "version": "1.2.3"
     },
-    "deviceFactoryToolkit": {
-      "hash": "ddccbbaa",
-      "type": "device_factory_toolkit",
-      "updatable": true,
+    "firmware": {
+      "type": "firmware",
+      "version": "N/A"
+    },
+    "hwid": {
+      "type": "hwid",
+      "version": "N/A"
+    },
+    "netbootCmdline": {
+      "type": "netboot_cmdline",
+      "version": "N/A"
+    },
+    "netbootFirmware": {
+      "type": "netboot_firmware",
+      "version": "N/A"
+    },
+    "netbootKernel": {
+      "type": "netboot_kernel",
+      "version": "N/A"
+    },
+    "releaseImage": {
+      "type": "release_image",
+      "version": "N/A"
+    },
+    "testImage": {
+      "type": "test_image",
+      "version": "N/A"
+    },
+    "toolkit": {
+      "type": "toolkit",
       "version": "3.2.1"
     }
   },
