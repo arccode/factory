@@ -82,6 +82,9 @@ Open your browser to port 8000 of the Dome server, and you should see the
 welcome page. For example, if you're using the same machine and had the desktop
 environment set up, open the browser to `http://localhost:8000`.
 
+The default login credential is admin/test0000. The password can be changed by
+`./cros_docker.sh passwd`.
+
 *** note
 **Note**: using Chrome/Chromium is highly recommended. If you want to use other
 browsers such as Firefox, you'll have to make sure the timeout setting is long

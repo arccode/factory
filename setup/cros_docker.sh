@@ -165,6 +165,9 @@ set_docker_image_info
 : "${OVERLORD_LAN_DISC_IFACE:=""}"  # The network interface that Overlord LAN
                                     # discovery should be run on.
 
+DOME_UWSGI_CONTAINER_NAME="dome_uwsgi"
+DOME_NGINX_CONTAINER_NAME="dome_nginx"
+
 ensure_dir() {
   local dir="$1"
   if [ ! -d "${dir}" ]; then
@@ -276,7 +279,7 @@ do_umpire_destroy() {
   echo "done"
 }
 
-check_umpire_status() {
+check_container_status() {
   local container_name="$1"
   if ! ${DOCKER} ps --format "{{.Names}} {{.Status}}" \
     | grep -q "${container_name} Up "; then
@@ -286,7 +289,7 @@ check_umpire_status() {
 
 do_umpire_shell() {
   check_docker
-  check_umpire_status "${UMPIRE_CONTAINER_NAME}"
+  check_container_status "${UMPIRE_CONTAINER_NAME}"
 
   ${DOCKER} exec -it "${UMPIRE_CONTAINER_NAME}" sh
 }
@@ -541,6 +544,11 @@ do_install() {
   ${DOCKER} load <"${DOCKER_IMAGE_FILEPATH}"
 }
 
+stop_and_remove_container() {
+  ${DOCKER} stop "$1" 2>/dev/null || true
+  ${DOCKER} rm "$1" 2>/dev/null || true
+}
+
 do_run() {
   check_docker
 
@@ -548,14 +556,10 @@ do_run() {
   local db_filename="db.sqlite3"
   local docker_log_dir="/var/log/dome"
   local host_log_dir="${HOST_DOME_DIR}/log"
-  local uwsgi_container_name="dome_uwsgi"
-  local nginx_container_name="dome_nginx"
 
   # stop and remove old containers
-  ${DOCKER} stop "${uwsgi_container_name}" 2>/dev/null || true
-  ${DOCKER} rm "${uwsgi_container_name}" 2>/dev/null || true
-  ${DOCKER} stop "${nginx_container_name}" 2>/dev/null || true
-  ${DOCKER} rm "${nginx_container_name}" 2>/dev/null || true
+  stop_and_remove_container "${DOME_UWSGI_CONTAINER_NAME}"
+  stop_and_remove_container "${DOME_NGINX_CONTAINER_NAME}"
 
   # make sure database file exists or mounting volume will fail
   if [[ ! -f "${HOST_DOME_DIR}/${db_filename}" ]]; then
@@ -597,7 +601,7 @@ do_run() {
   ${DOCKER} run \
     --detach \
     --restart unless-stopped \
-    --name "${uwsgi_container_name}" \
+    --name "${DOME_UWSGI_CONTAINER_NAME}" \
     --volume /var/run/docker.sock:/var/run/docker.sock \
     --volume /run \
     --volume "${HOST_DOME_DIR}/${db_filename}:${docker_db_dir}/${db_filename}" \
@@ -612,8 +616,8 @@ do_run() {
   ${DOCKER} run \
     --detach \
     --restart unless-stopped \
-    --name "${nginx_container_name}" \
-    --volumes-from "${uwsgi_container_name}" \
+    --name "${DOME_NGINX_CONTAINER_NAME}" \
+    --volumes-from "${DOME_UWSGI_CONTAINER_NAME}" \
     --publish "${DOME_PORT}:80" \
     --workdir "${DOCKER_DOME_DIR}" \
     "${DOCKER_IMAGE_NAME}" \
@@ -852,6 +856,16 @@ do_update() {
   exec ${prefix} mv -f "${temp_file}" "${script_file}"
 }
 
+do_passwd() {
+  local username="${1:-admin}"
+
+  check_docker
+  check_container_status "${DOME_UWSGI_CONTAINER_NAME}"
+
+  ${DOCKER} exec -it "${DOME_UWSGI_CONTAINER_NAME}" \
+    python manage.py changepassword "${username}"
+}
+
 usage() {
   cat << __EOF__
 Chrome OS Factory Server Deployment Script
@@ -882,11 +896,15 @@ commands:
 
       will bind port 1234 instead of ${DOME_PORT}.
 
+  $0 passwd [username]
+      Change the password of a given username. Default username is 'admin'.
+
 common use case:
   - Run "$0 pull" to download docker images, and copy files listed on screen
     to the target computer.
   - Run "$0 install" on the target computer to load docker images.
   - Run "$0 run" to start Dome.
+  - Run "$0 passwd" to change password (default: admin/test0000).
 
 commands for developers:
   $0 build
@@ -916,6 +934,10 @@ main() {
       ;;
     run)
       do_run
+      ;;
+    passwd)
+      shift
+      do_passwd "$@"
       ;;
     build)
       do_build
