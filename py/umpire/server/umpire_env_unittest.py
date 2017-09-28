@@ -69,22 +69,6 @@ class UmpireEnvTest(unittest.TestCase):
     self.assertEqual(os.path.join(self.env.resources_dir, 'foobar'),
                      self.env.GetResourcePath('foobar', check=False))
 
-  def testInResource(self):
-    # Prepare a resource file.
-    resource_path = self.env.AddConfigFromBlob(
-        'hello', resource.ConfigTypeNames.umpire_config)
-    resource_name = os.path.basename(resource_path)
-
-    # Either full path or resource filename are okay.
-    self.assertTrue(self.env.InResource(resource_path))
-    self.assertTrue(self.env.InResource(resource_name))
-
-    # Filename not in resources.
-    self.assertFalse(self.env.InResource('some_resource'))
-    # Dirname mismatch.
-    self.assertFalse(self.env.InResource(
-        os.path.join('/path/not/in/res', resource_name)))
-
 
 if __name__ == '__main__':
   unittest.main()

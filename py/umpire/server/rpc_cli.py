@@ -116,18 +116,6 @@ class CLICommand(umpire_rpc.UmpireRPC):
     return self.env.AddConfigFromBlob(blob, type_name)
 
   @umpire_rpc.RPCCall
-  def InResource(self, file_name):
-    """Queries if the file is in resources repository.
-
-    Args:
-      file_name: either full path or file name.
-
-    Returns:
-      True if the file is in resources repository.
-    """
-    return self.env.InResource(file_name)
-
-  @umpire_rpc.RPCCall
   def GetPayloadsDict(self, payloads_name):
     """Gets a payload config.
 

@@ -321,17 +321,6 @@ class UmpireRPCTest(UmpireDockerTestCase):
 
     os.unlink(os.path.join(HOST_RESOURCE_DIR, resource))
 
-  def testInResource(self):
-    self.assertTrue(self.proxy.InResource(
-        'toolkit.067f0398c038261d7f4ab9706850c280.gz'))
-    self.assertTrue(self.proxy.InResource(
-        os.path.join(DOCKER_RESOURCE_DIR,
-                     'toolkit.067f0398c038261d7f4ab9706850c280.gz')))
-    self.assertFalse(self.proxy.InResource(
-        'toolkit.deadbeefdeadbeef0123456789abcdef.gz'))
-    self.assertFalse(self.proxy.InResource(
-        '/tmp/toolkit.067f0398c038261d7f4ab9706850c280.gz'))
-
   def testImportBundle(self):
     resources = {
         'complete': 'complete.d41d8cd98f00b204e9800998ecf8427e.gz',
@@ -349,7 +338,6 @@ class UmpireRPCTest(UmpireDockerTestCase):
     new_payload = self.proxy.GetPayloadsDict(new_bundle['payloads'])
 
     for resource_type, resource in resources.iteritems():
-      self.assertTrue(self.proxy.InResource(resource))
       self.assertTrue(
           os.path.exists(os.path.join(HOST_RESOURCE_DIR, resource)))
       self.assertEqual(new_payload[resource_type]['file'], resource)

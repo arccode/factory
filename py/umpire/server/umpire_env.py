@@ -356,22 +356,6 @@ class UmpireEnv(object):
       file_utils.CheckPath(path, 'resource')
     return path
 
-  def InResource(self, path):
-    """Checks if path points to a file in resources directory.
-
-    Args:
-      path: Either a full-path of a file or a file's basename.
-
-    Returns:
-      True if the path points to a file in resources directory.
-    """
-    dirname = os.path.dirname(path)
-    if not dirname:
-      path = self.GetResourcePath(path, check=False)
-    elif dirname != self.resources_dir:
-      return False
-    return os.path.isfile(path)
-
 
 class UmpireEnvForTest(UmpireEnv):
   """An UmpireEnv for other unittests.
