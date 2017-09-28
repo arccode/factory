@@ -893,6 +893,24 @@ class FileLockContextManager(object):
     self.opened = True
 
 
+def SyncDirectory(dir_path):
+  """Flush and sync directory on file system.
+
+  Python 2.7 does not support os.sync() so this is the closest way to flush file
+  system meta data changes.
+  """
+  try:
+    dir_fd = os.open(dir_path, os.O_DIRECTORY)
+    os.fsync(dir_fd)
+  except Exception:
+    logging.exception('Failed syncing in directory: %s', dir_path)
+  finally:
+    try:
+      os.close(dir_fd)
+    except Exception:
+      pass
+
+
 @contextlib.contextmanager
 def AtomicWrite(path, binary=False, fsync=True):
   """Atomically writes to the given file.
@@ -925,10 +943,8 @@ def AtomicWrite(path, binary=False, fsync=True):
     # os.rename is an atomic operation as long as src and dst are on the
     # same filesystem.
     os.rename(tmp_path, path)
-    if fsync:
-      dirfd = os.open(path_dir, os.O_DIRECTORY)
-      os.fsync(dirfd)
-      os.close(dirfd)
+  if fsync:
+    SyncDirectory(path_dir)
 
 
 def SymlinkRelative(target, link_path, base=None, force=False):
