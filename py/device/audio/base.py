@@ -281,12 +281,18 @@ class BaseAudioControl(types.DeviceComponent):
   def DisableAllAudioInputs(self, card):
     """Disable all audio inputs"""
     for audio_dev in config_manager.InputDevices:
-      self.DisableDevice(audio_dev, card)
+      try:
+        self.DisableDevice(audio_dev, card)
+      except Exception:
+        pass  # Not all types of input devices are present
 
   def DisableAllAudioOutputs(self, card):
     """Disable all audio outputs"""
     for audio_dev in config_manager.OutputDevices:
-      self.DisableDevice(audio_dev, card)
+      try:
+        self.DisableDevice(audio_dev, card)
+      except Exception:
+        pass  # Not all types of output devices are present
 
   def _PlaybackWavFile(self, path, card, device):
     """Playback .wav file.
