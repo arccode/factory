@@ -299,8 +299,31 @@ def SaveRuntimeConfig(config_name, value):
   save_path = os.path.join(
       GetRuntimeConfigDirectory(), config_name + _CONFIG_FILE_EXT)
 
-  with open(save_path, 'w') as output:
+  # Try to save in atomic way. This is similar to file_utils.AtomicWrite but we
+  # want to have a dedicated implementation here to reduce dependency.
+  tmp_path = save_path + '~'
+  old_path = save_path + '.old'
+  with open(tmp_path, 'w') as output:
     output.write(json.dumps(value))
+    output.flush()
+    os.fdatasync(output.fileno())
+  if os.path.exists(old_path):
+    # Remove old files first so we can use os.rename instead of shutil.move.
+    os.remove(old_path)
+  if os.path.exists(save_path):
+    os.rename(save_path, old_path)
+  os.rename(tmp_path, save_path)
+  # Python 2.7 does not have os.sync so let's sync the folder. This is same
+  # as file_utils.SyncDirectory but we want a dedicated implementation here to
+  # reduce module dependency.
+  try:
+    dir_fd = os.open(os.path.dirname(save_path), os.O_DIRECTORY)
+    os.fsync(dir_fd)
+  finally:
+    try:
+      os.close(dir_fd)
+    except Exception:
+      pass
 
 
 def _ResolveConfigInfo(config_name, frame, extra_config_dirs):
