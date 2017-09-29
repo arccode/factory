@@ -4,17 +4,14 @@
 
 """Umpired RPC command class."""
 
-import os
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server.commands import deploy
 from cros.factory.umpire.server.commands import export_payload
 from cros.factory.umpire.server.commands import import_bundle
-from cros.factory.umpire.server.commands import status_reporter
 from cros.factory.umpire.server.commands import update
 from cros.factory.umpire.server import config
-from cros.factory.umpire.server import resource
 from cros.factory.umpire.server import umpire_rpc
+from cros.factory.utils import file_utils
 
 
 class CLICommand(umpire_rpc.UmpireRPC):
@@ -50,7 +47,7 @@ class CLICommand(umpire_rpc.UmpireRPC):
   def Update(self, resources_to_update, source_id=None, dest_id=None):
     """Updates resource(s) in a bundle.
 
-    It modifies active config and saves the result to staging.
+    It modifies and deploys active config.
 
     Args:
       resources_to_update: list of (resource_type, resource_path) to update.
@@ -58,31 +55,25 @@ class CLICommand(umpire_rpc.UmpireRPC):
       dest_id: If specified, it copies source bundle with ID dest_id and
           replaces the specified resource(s). Otherwise, it replaces
           resource(s) in place.
-
-    Returns:
-      Path to updated Umpire config file, which is marked as staging.
     """
-    updater = update.ResourceUpdater(self.env)
-    return updater.Update(resources_to_update, source_id, dest_id)
+    update.ResourceUpdater(self.daemon).Update(
+        resources_to_update, source_id, dest_id)
 
   @umpire_rpc.RPCCall
   def ImportBundle(self, bundle_path, bundle_id=None, note=None):
     """Imports a bundle.
 
     It reads a factory bundle and copies resources to Umpire.
-    It also adds a bundle in UmpireConfig's bundles section and
-    writes it to a staging config file.
+    It also adds a bundle in UmpireConfig's bundles section and deploys the
+    updated config.
 
     Args:
       bundle_path: A bundle's path (could be a directory or a zip file).
       bundle_id: The ID of the bundle. If omitted, use bundle_name in
           factory bundle's manifest.
       note: A note.
-
-    Returns:
-      Path to staging config.
     """
-    return import_bundle.BundleImporter(self.env).Import(
+    import_bundle.BundleImporter(self.daemon).Import(
         bundle_path, bundle_id, note)
 
   @umpire_rpc.RPCCall
@@ -149,48 +140,6 @@ class CLICommand(umpire_rpc.UmpireRPC):
     return self.env.GetPayloadsDict(payloads_name)
 
   @umpire_rpc.RPCCall
-  def GetStagingConfig(self):
-    """Gets the staging config.
-
-    Returns:
-      Staging config file's content.
-      None if there's no staging config
-    """
-    return status_reporter.StatusReporter(self.daemon).GetStagingConfig()
-
-  @umpire_rpc.RPCCall
-  def StageConfigFile(self, config_path=None, force=False):
-    """Stages a config file.
-
-    If a config file is not in resources directory, it will first add it
-    to resources.
-
-    Args:
-      config_path: path to a config file to mark as staging. None means
-          stage active config.
-      force: True to replace current staging config if exists.
-    """
-    if config_path is None:
-      # Stage active config file.
-      self.env.StageConfigFile(force=force)
-      return
-
-    res_name = (
-        os.path.basename(config_path) if self.env.InResource(config_path) else
-        self.AddConfig(config_path, resource.ConfigTypeNames.umpire_config))
-    config_path = self.env.GetResourcePath(res_name)
-    self.env.StageConfigFile(config_path, force=force)
-
-  @umpire_rpc.RPCCall
-  def UnstageConfigFile(self):
-    """Unstages the current staging config file.
-
-    Returns:
-      Real path of the staging file being unstaged.
-    """
-    return self.env.UnstageConfigFile()
-
-  @umpire_rpc.RPCCall
   def ValidateConfig(self, umpire_config):
     """Validates a config.
 
@@ -211,7 +160,7 @@ class CLICommand(umpire_rpc.UmpireRPC):
     """Deploys a config file.
 
     It first verifies the config again, then tries reloading Umpire with the
-    new config. If okay, removes current staging file and active the config.
+    new config. If okay, active the config.
 
     Args:
       config_res: a config file (base name, in resource folder) to deploy.
@@ -232,10 +181,14 @@ class CLICommand(umpire_rpc.UmpireRPC):
     self.daemon.Stop()
 
   @umpire_rpc.RPCCall
-  def GetStatus(self):
-    """Gets Umpire daemon status."""
-    reporter = status_reporter.StatusReporter(self.daemon)
-    return reporter.Report()
+  def IsDeploying(self):
+    """Returns if Umpire is now deploying a config."""
+    return self.daemon.deploying
+
+  @umpire_rpc.RPCCall
+  def GetActiveConfig(self):
+    """Returns the active config."""
+    return file_utils.ReadFile(self.daemon.env.active_config_file)
 
   @umpire_rpc.RPCCall
   def StartServices(self, services):

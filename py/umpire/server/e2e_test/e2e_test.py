@@ -95,7 +95,7 @@ class UmpireDockerTestCase(unittest.TestCase):
       try:
         proxy = xmlrpclib.ServerProxy(RPC_ADDR_BASE)
         # Wait until the initial config is deployed.
-        return not proxy.GetStatus()['deploying']
+        return not proxy.IsDeploying()
       except Exception:
         return False
     try:
@@ -195,86 +195,32 @@ class UmpireRPCTest(UmpireDockerTestCase):
   def setUp(self):
     super(UmpireRPCTest, self).setUp()
     self.proxy = xmlrpclib.ServerProxy(RPC_ADDR_BASE)
-    if self.proxy.GetStagingConfig() is not None:
-      self.proxy.UnstageConfigFile()
     self.default_config = yaml.load(
         self.ReadConfigTestdata('umpire_default.yaml'))
     # Deploy an empty default config.
     conf = self.proxy.AddConfigFromBlob(
         yaml.dump(self.default_config), 'umpire_config')
-    self.proxy.StageConfigFile(conf)
     self.proxy.Deploy(conf)
 
   def ReadConfigTestdata(self, name):
     return file_utils.ReadFile(os.path.join(CONFIG_TESTDATA_DIR, name))
 
   def testListMethods(self):
-    self.assertIn('GetStatus', self.proxy.system.listMethods())
+    self.assertIn('IsDeploying', self.proxy.system.listMethods())
 
   def testEndingSlashInProxyAddress(self):
     proxy = xmlrpclib.ServerProxy(RPC_ADDR_BASE + '/')
-    self.assertIn('GetStatus', proxy.system.listMethods())
+    self.assertIn('IsDeploying', proxy.system.listMethods())
 
-  def testGetStatus(self):
-    status = self.proxy.GetStatus()
-    self.assertIn('active_config', status)
+  def testGetActiveConfig(self):
     self.assertEqual(self.default_config,
-                     yaml.load(status['active_config']))
+                     yaml.load(self.proxy.GetActiveConfig()))
 
   def testAddConfigFromBlob(self):
     test_add_config_blob = 'test config blob'
     conf = self.proxy.AddConfigFromBlob(test_add_config_blob, 'umpire_config')
     self.assertEqual(test_add_config_blob, file_utils.ReadFile(
         os.path.join(HOST_RESOURCE_DIR, conf)))
-
-  def testStageConfigFile(self):
-    self.assertIsNone(self.proxy.GetStagingConfig())
-
-    test_stage_config = 'test staging config'
-    conf = self.proxy.AddConfigFromBlob(test_stage_config, 'umpire_config')
-    self.proxy.StageConfigFile(conf)
-
-    self.assertEqual(test_stage_config, self.proxy.GetStagingConfig())
-
-    status = self.proxy.GetStatus()
-    self.assertEqual(test_stage_config, status['staging_config'])
-    staging_config_res = status['staging_config_res']
-    self.assertEqual(test_stage_config, file_utils.ReadFile(
-        os.path.join(HOST_RESOURCE_DIR, staging_config_res)))
-    self.assertRegexpMatches(staging_config_res, r'^umpire\..*\.yaml$')
-
-  def testStageConfigFileActive(self):
-    self.proxy.StageConfigFile()
-    self.assertEqual(self.default_config,
-                     yaml.load(self.proxy.GetStagingConfig()))
-
-    status = self.proxy.GetStatus()
-    self.assertEqual(status['active_config'], status['staging_config'])
-    self.assertEqual(status['active_config_res'], status['staging_config_res'])
-
-  def testStageConfigFileRepeated(self):
-    conf = self.proxy.AddConfigFromBlob('test staging config', 'umpire_config')
-    self.proxy.StageConfigFile(conf)
-
-    test_repeated_stage_config = 'test repeated staging config'
-    conf_repeated = self.proxy.AddConfigFromBlob(test_repeated_stage_config,
-                                                 'umpire_config')
-    with self.assertRPCRaises('another config is already staged'):
-      self.proxy.StageConfigFile(conf_repeated)
-
-    self.proxy.StageConfigFile(conf_repeated, True)
-    self.assertEqual(self.proxy.GetStagingConfig(), test_repeated_stage_config)
-
-  def testUnstageConfigFile(self):
-    with self.assertRPCRaises('no staging config file'):
-      self.proxy.UnstageConfigFile()
-
-    conf = self.proxy.AddConfigFromBlob('test unstage config', 'umpire_config')
-    self.proxy.StageConfigFile(conf)
-    self.assertIsNotNone(self.proxy.GetStagingConfig())
-
-    self.proxy.UnstageConfigFile()
-    self.assertIsNone(self.proxy.GetStagingConfig())
 
   def testValidateConfig(self):
     with self.assertRPCRaises('ValueError'):
@@ -295,25 +241,19 @@ class UmpireRPCTest(UmpireDockerTestCase):
   def testDeployConfig(self):
     to_deploy_config = self.ReadConfigTestdata('umpire_deploy.yaml')
     conf = self.proxy.AddConfigFromBlob(to_deploy_config, 'umpire_config')
-    self.proxy.StageConfigFile(conf)
     self.proxy.Deploy(conf)
 
-    self.assertIsNone(self.proxy.GetStagingConfig())
-
-    status = self.proxy.GetStatus()
-    active_config = yaml.load(status['active_config'])
+    active_config = yaml.load(self.proxy.GetActiveConfig())
     self.assertEqual(yaml.load(to_deploy_config), active_config)
 
   def testDeployServiceConfigChanged(self):
     to_deploy_config = self.ReadConfigTestdata('umpire_deploy.yaml')
     conf = self.proxy.AddConfigFromBlob(to_deploy_config, 'umpire_config')
-    self.proxy.StageConfigFile(conf)
     self.proxy.Deploy(conf)
 
     to_deploy_config = self.ReadConfigTestdata(
         'umpire_deploy_service_config_changed.yaml')
     conf = self.proxy.AddConfigFromBlob(to_deploy_config, 'umpire_config')
-    self.proxy.StageConfigFile(conf)
     self.proxy.Deploy(conf)
 
     # TODO(pihsun): Figure out a better way to detect if services are restarted
@@ -341,15 +281,10 @@ class UmpireRPCTest(UmpireDockerTestCase):
     # You need a config with "unable to start some service" for this fail.
     to_deploy_config = self.ReadConfigTestdata('umpire_deploy_fail.yaml')
     conf = self.proxy.AddConfigFromBlob(to_deploy_config, 'umpire_config')
-    self.proxy.StageConfigFile(conf)
     with self.assertRPCRaises('Deploy failed'):
       self.proxy.Deploy(conf)
 
-    staging_config = yaml.load(self.proxy.GetStagingConfig())
-    self.assertEqual(yaml.load(to_deploy_config), staging_config)
-
-    status = self.proxy.GetStatus()
-    active_config = yaml.load(status['active_config'])
+    active_config = yaml.load(self.proxy.GetActiveConfig())
     self.assertEqual(self.default_config, active_config)
 
   def testStopStartService(self):
@@ -377,12 +312,11 @@ class UmpireRPCTest(UmpireDockerTestCase):
   def testUpdate(self):
     payload = self.proxy.AddPayload('/mnt/hwid.gz', 'hwid')
     resource = payload['hwid']['file']
-    self.proxy.Update([
-        ('hwid', os.path.join(DOCKER_RESOURCE_DIR, resource))])
+    self.proxy.Update([('hwid', os.path.join(DOCKER_RESOURCE_DIR, resource))])
 
-    staging_config = yaml.load(self.proxy.GetStagingConfig())
+    active_config = yaml.load(self.proxy.GetActiveConfig())
     payload = self.proxy.GetPayloadsDict(
-        staging_config['bundles'][0]['payloads'])
+        active_config['bundles'][0]['payloads'])
     self.assertEqual(resource, payload['hwid']['file'])
 
     os.unlink(os.path.join(HOST_RESOURCE_DIR, resource))
@@ -409,18 +343,18 @@ class UmpireRPCTest(UmpireDockerTestCase):
 
     self.proxy.ImportBundle('/mnt/bundle_for_import.zip', 'umpire_test')
 
-    staging_config = yaml.load(self.proxy.GetStagingConfig())
-    new_bundle = next(bundle for bundle in staging_config['bundles']
+    active_config = yaml.load(self.proxy.GetActiveConfig())
+    new_bundle = next(bundle for bundle in active_config['bundles']
                       if bundle['id'] == 'umpire_test')
     new_payload = self.proxy.GetPayloadsDict(new_bundle['payloads'])
 
     for resource_type, resource in resources.iteritems():
       self.assertTrue(self.proxy.InResource(resource))
-      self.assertTrue(os.path.exists(
-          os.path.join(HOST_RESOURCE_DIR, resource)))
+      self.assertTrue(
+          os.path.exists(os.path.join(HOST_RESOURCE_DIR, resource)))
       self.assertEqual(new_payload[resource_type]['file'], resource)
 
-    for ruleset in staging_config['rulesets']:
+    for ruleset in active_config['rulesets']:
       if ruleset['bundle_id'] == 'umpire_test':
         self.assertFalse(ruleset['active'])
         self.assertIn('update match rule in ruleset', ruleset['note'])
@@ -436,7 +370,6 @@ class UmpireHTTPTest(UmpireDockerTestCase):
     to_deploy_config = file_utils.ReadFile(
         os.path.join(CONFIG_TESTDATA_DIR, 'umpire_deploy_proxy.yaml'))
     conf = self.proxy.AddConfigFromBlob(to_deploy_config, 'umpire_config')
-    self.proxy.StageConfigFile(conf)
     self.proxy.Deploy(conf)
 
     response = requests.get(

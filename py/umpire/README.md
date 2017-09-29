@@ -11,8 +11,8 @@ Umpire is created as a command-line tool. A web-based management console (with
 better deployment process) is created as standalone project *Dome*.
 
 Umpire controls what it serves by YAML config file. To make changes, you can do
-`umpire edit`. After editing, the file will be temporarily saved as "staging".
-You have to run the command `umpire deploy` so the new config will be activated.
+`umpire edit`. After editing, it automatically runs command `umpire deploy` with
+the modified config so the new config can be activated.
 
 Data generated (or the resources to be delivered) are stored in
 `/var/db/factory/umpire/.....`.
@@ -67,7 +67,6 @@ with the `finalize_bundle` command. When a bundle ZIP file is available, do:
     setup/cros_docker.sh umpire shell
      umpire import-bundle /mnt/factory_bundle.zip
      umpire edit  # and mark the bundle in rulesets as active.
-     umpire deploy
 
 Updating resources
 ------------------

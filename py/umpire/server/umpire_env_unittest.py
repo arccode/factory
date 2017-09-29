@@ -9,7 +9,6 @@ import shutil
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.umpire import common
 from cros.factory.umpire.server import resource
 from cros.factory.umpire.server import umpire_env
 from cros.factory.utils import file_utils
@@ -46,66 +45,12 @@ class UmpireEnvTest(unittest.TestCase):
     self.env.LoadConfig(custom_path=custom_path)
     self.assertEqual(custom_path, self.env.config_path)
 
-  def testStageConfigFile(self):
-    config_to_stage = os.path.join(self.env.base_dir, 'to_stage.yaml')
-    file_utils.TouchFile(config_to_stage)
-
-    self.assertFalse(os.path.exists(self.env.staging_config_file))
-    self.env.StageConfigFile(config_to_stage)
-    self.assertTrue(os.path.exists(self.env.staging_config_file))
-
-  def testStageConfigFileConfigAlreadyExist(self):
-    # Staging config already exists.
-    file_utils.TouchFile(self.env.staging_config_file)
-    config_to_stage = os.path.join(self.env.base_dir, 'to_stage.yaml')
-    file_utils.TouchFile(config_to_stage)
-
-    self.assertRaisesRegexp(common.UmpireError, 'already staged',
-                            self.env.StageConfigFile, config_to_stage)
-
-  def testStageConfigFileForceStaging(self):
-    # Staging config already exists.
-    file_utils.TouchFile(self.env.staging_config_file)
-    config_to_stage = os.path.join(self.env.base_dir, 'to_stage.yaml')
-    file_utils.WriteFile(config_to_stage, 'new stage file')
-
-    self.env.StageConfigFile(config_to_stage, force=True)
-    self.assertTrue(os.path.exists(self.env.staging_config_file))
-    self.assertEqual('new stage file',
-                     file_utils.ReadFile(self.env.staging_config_file))
-
-  def testStageConfigFileSourceNotFound(self):
-    config_to_stage = os.path.join(self.env.base_dir, 'to_stage.yaml')
-
-    self.assertRaisesRegexp(common.UmpireError, "doesn't exist",
-                            self.env.StageConfigFile, config_to_stage)
-
-  def testUnstageConfigFile(self):
-    file_utils.TouchFile(self.env.staging_config_file)
-
-    self.assertTrue(os.path.exists(self.env.staging_config_file))
-    self.env.UnstageConfigFile()
-    self.assertFalse(os.path.exists(self.env.staging_config_file))
-
-  def testUnstageConfigFileNoStagingConfig(self):
-    self.assertRaises(common.UmpireError, self.env.UnstageConfigFile)
-
   def testActivateConfigFile(self):
+    file_utils.TouchFile(self.env.active_config_file)
     config_to_activate = os.path.join(self.env.base_dir, 'to_activate.yaml')
     file_utils.TouchFile(config_to_activate)
 
     self.env.ActivateConfigFile(config_path=config_to_activate)
-    self.assertTrue(os.path.exists(self.env.active_config_file))
-    self.assertEqual(config_to_activate,
-                     os.path.realpath(self.env.active_config_file))
-
-  def testActivateConfigFileDefaultStaging(self):
-    config_to_activate = os.path.join(self.env.base_dir, 'to_activate.yaml')
-    file_utils.TouchFile(config_to_activate)
-    # First prepare a staging config file.
-    self.env.StageConfigFile(config_to_activate)
-
-    self.env.ActivateConfigFile()
     self.assertTrue(os.path.exists(self.env.active_config_file))
     self.assertEqual(config_to_activate,
                      os.path.realpath(self.env.active_config_file))

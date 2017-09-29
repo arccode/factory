@@ -4,7 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# pylint: disable=E1101
+# pylint: disable=no-member
 
 from __future__ import print_function
 
@@ -17,7 +17,7 @@ from twisted.trial import unittest
 from twisted.web import server
 from twisted.web import xmlrpc
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server.commands import import_bundle
 from cros.factory.umpire.server.commands import update
@@ -75,20 +75,19 @@ class CommandTest(unittest.TestCase):
     updated_config = '/umpire/resources/config.yaml#12345678'
 
     self.mox.StubOutClassWithMocks(update, 'ResourceUpdater')
-    mock_updater = update.ResourceUpdater(mox.IsA(umpire_env.UmpireEnv))
+    mock_updater = update.ResourceUpdater(mox.IsA(daemon.UmpireDaemon))
     mock_updater.Update(resource_to_update, 'sid', 'did').AndReturn(
         updated_config)
     self.mox.ReplayAll()
 
     d = self.Call('Update', resource_to_update, 'sid', 'did')
-    d.addCallback(lambda r: self.assertEqual(updated_config, r))
     return self.AssertSuccess(d)
 
   def testUpdateFailure(self):
     resource_to_update = [['factory_toolkit', '/tmp/factory_toolkit.tar.bz']]
 
     self.mox.StubOutClassWithMocks(update, 'ResourceUpdater')
-    mock_updater = update.ResourceUpdater(mox.IsA(umpire_env.UmpireEnv))
+    mock_updater = update.ResourceUpdater(mox.IsA(daemon.UmpireDaemon))
     mock_updater.Update(resource_to_update, 'sid', 'did').AndRaise(
         common.UmpireError('mock error'))
     self.mox.ReplayAll()
@@ -103,7 +102,7 @@ class CommandTest(unittest.TestCase):
     note = 'test note'
     self.mox.StubOutWithMock(import_bundle, 'BundleImporter')
     mock_importer = self.mox.CreateMockAnything()
-    import_bundle.BundleImporter(mox.IsA(umpire_env.UmpireEnv)).AndReturn(
+    import_bundle.BundleImporter(mox.IsA(daemon.UmpireDaemon)).AndReturn(
         mock_importer)
     mock_importer.Import(bundle_path, bundle_id, note)
     self.mox.ReplayAll()
@@ -117,7 +116,7 @@ class CommandTest(unittest.TestCase):
     note = 'test note'
     self.mox.StubOutWithMock(import_bundle, 'BundleImporter')
     mock_importer = self.mox.CreateMockAnything()
-    import_bundle.BundleImporter(mox.IsA(umpire_env.UmpireEnv)).AndReturn(
+    import_bundle.BundleImporter(mox.IsA(daemon.UmpireDaemon)).AndReturn(
         mock_importer)
     mock_importer.Import(bundle_path, bundle_id, note).AndRaise(
         common.UmpireError('mock error'))
@@ -143,123 +142,6 @@ class CommandTest(unittest.TestCase):
         self.Call('AddConfig', '/path/to/nowhere',
                   resource.ConfigTypeNames.umpire_config),
         'IOError:.*/path/to/nowhere')
-
-  def testGetStagingConfig(self):
-    # Prepare a staging config.
-    active_config_path = os.path.join(self.env.base_dir, 'active_config')
-    with file(active_config_path, 'w') as f:
-      f.write('config\nfile')
-    self.env.ActivateConfigFile(
-        self.env.GetResourcePath(
-            self.env.AddConfig(active_config_path,
-                               resource.ConfigTypeNames.umpire_config)))
-    self.env.StageConfigFile()
-
-    d = self.Call('GetStagingConfig')
-    d.addCallback(lambda result: self.assertEqual('config\nfile', result))
-    return self.AssertSuccess(d)
-
-  def testGetStagingConfigNotFound(self):
-    # No staging config prepared.
-    d = self.Call('GetStagingConfig')
-    d.addCallback(self.assertIsNone)
-    return self.AssertSuccess(d)
-
-  def testStageConfigFile(self):
-    # Prepare a file in resource to stage.
-    config_to_stage = os.path.join(self.env.base_dir, 'config_to_stage')
-    file_utils.WriteFile(config_to_stage, '...')
-
-    config_to_stage_res_name = self.env.AddConfig(
-        config_to_stage, resource.ConfigTypeNames.umpire_config)
-
-    d = self.Call('StageConfigFile', config_to_stage_res_name)
-    d.addCallback(
-        lambda _: self.assertEqual(
-            self.env.GetResourcePath(config_to_stage_res_name),
-            os.path.realpath(self.env.staging_config_file)))
-    return self.AssertSuccess(d)
-
-  def testStageConfigFileDefaultActive(self):
-    # Prepare active config.
-    active_config_path = os.path.join(self.env.base_dir, 'active_config')
-    file_utils.WriteFile(active_config_path, 'config\nfile')
-
-    self.env.ActivateConfigFile(
-        self.env.GetResourcePath(
-            self.env.AddConfig(active_config_path,
-                               resource.ConfigTypeNames.umpire_config)))
-
-    d = self.Call('StageConfigFile')
-    d.addCallback(
-        lambda _: self.assertEqual(
-            'config\nfile',
-            file_utils.ReadFile(self.env.staging_config_file)))
-    return self.AssertSuccess(d)
-
-  def testStageConfigFileNotInResource(self):
-    # Prepare a file not in resources to stage.
-    config_to_stage = os.path.join(self.env.base_dir, 'config_to_stage')
-    file_utils.WriteFile(config_to_stage, '...')
-
-    d = self.Call('StageConfigFile', config_to_stage)
-    d.addCallback(lambda _: self.assertRegexpMatches(
-        os.path.realpath(self.env.staging_config_file),
-        resource.GetResourceHashFromFile(config_to_stage)))
-    return self.AssertSuccess(d)
-
-  def testStageConfigFileFailFileAlreadyExists(self):
-    # Prepare a file in resource to stage.
-    config_to_stage = os.path.join(self.env.base_dir, 'config_to_stage')
-    file_utils.WriteFile(config_to_stage, '...')
-
-    config_to_stage_res_full_path = self.env.AddConfig(
-        config_to_stage, resource.ConfigTypeNames.umpire_config)
-    config_to_stage_res_name = os.path.basename(config_to_stage_res_full_path)
-
-    # Set a stage config first.
-    staged_config = os.path.join(self.env.base_dir, 'staged_config')
-    file_utils.WriteFile(staged_config, 'staged...')
-
-    self.env.StageConfigFile(staged_config)
-
-    return self.AssertFailure(self.Call('StageConfigFile',
-                                        config_to_stage_res_name),
-                              'UmpireError:.*another config is already staged')
-
-  def testStageConfigFileForce(self):
-    # Prepare a file in resource to stage.
-    config_to_stage = os.path.join(self.env.base_dir, 'config_to_stage')
-    file_utils.WriteFile(config_to_stage, '...')
-
-    config_to_stage_res_name = self.env.AddConfig(
-        config_to_stage, resource.ConfigTypeNames.umpire_config)
-
-    # Set a stage config first.
-    staged_config = os.path.join(self.env.base_dir, 'staged_config')
-    file_utils.WriteFile(staged_config, 'staged...')
-
-    self.env.StageConfigFile(staged_config)
-
-    # Force override current staging config file.
-    d = self.Call('StageConfigFile', config_to_stage_res_name, True)
-    d.addCallback(
-        lambda _: self.assertEqual(
-            self.env.GetResourcePath(config_to_stage_res_name),
-            os.path.realpath(self.env.staging_config_file)))
-    return self.AssertSuccess(d)
-
-  def testUnstageConfigFile(self):
-    # Prepare a file in resource and stage it.
-    staged_config = os.path.join(self.env.base_dir, 'staged_config')
-    file_utils.WriteFile(staged_config, 'staged...')
-
-    self.env.StageConfigFile(staged_config)
-
-    self.assertTrue(self.env.HasStagingConfigFile())
-    d = self.Call('UnstageConfigFile')
-    d.addCallback(lambda _: self.assertFalse(self.env.HasStagingConfigFile()))
-    return self.AssertSuccess(d)
 
   def testValidateConfig(self):
     config_path = '/path/to/config'

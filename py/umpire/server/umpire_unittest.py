@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -9,9 +9,12 @@ import mox
 import os
 import sys
 import unittest
+import yaml
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
+from cros.factory.umpire.server import config
+from cros.factory.umpire.server import resource
 from cros.factory.umpire.server import umpire
 from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
@@ -139,14 +142,14 @@ class ImportBundleTest(unittest.TestCase):
     self.assertListEqual(
         ['Importing bundle %r with specified bundle ID %r' % (
             self.BUNDLE_PATH, 'new_bundle'),
-         "Import bundle successfully. Staging config 'umpire.yaml##00000000'"],
+         "Import bundle successfully."],
         GetStdout())
 
 
 class DeployTest(unittest.TestCase):
   ACTIVE_CONFIG_PATH = os.path.join(
       TESTDATA_DIR, 'minimal_empty_services_with_enable_update_umpire.yaml')
-  STAGING_CONFIG_PATH = os.path.join(TESTDATA_DIR, 'minimal_umpire.yaml')
+  NEW_CONFIG_PATH = os.path.join(TESTDATA_DIR, 'minimal_umpire.yaml')
 
   def setUp(self):
     self.args = type_utils.Obj()
@@ -157,56 +160,55 @@ class DeployTest(unittest.TestCase):
     self.mox.UnsetStubs()
     self.mox.VerifyAll()
 
-  def testDeployNoStaging(self):
-    self.mock_cli.GetStatus().AndReturn({'staging_config': ''})
-    self.mox.ReplayAll()
-
-    self.assertRaisesRegexp(common.UmpireError, 'no staging file',
-                            umpire.Deploy, self.args, self.mock_cli)
-
   def testDeploy(self):
     active_config = file_utils.ReadFile(self.ACTIVE_CONFIG_PATH)
-    staging_config = file_utils.ReadFile(self.STAGING_CONFIG_PATH)
-    self.mox.StubOutWithMock(__builtin__, 'raw_input')
+    new_config = file_utils.ReadFile(self.NEW_CONFIG_PATH)
 
-    self.mock_cli.GetStatus().AndReturn(
-        {'staging_config': staging_config,
-         'staging_config_res': 'mock_staging##00000000',
-         'active_config': active_config})
-    self.mock_cli.ValidateConfig(staging_config)
+    self.mox.StubOutWithMock(config, 'UmpireConfig')
+    config.UmpireConfig('new_config').AndReturn(yaml.load(new_config))
+    config.UmpireConfig(active_config).AndReturn(yaml.load(active_config))
+
+    self.mox.StubOutWithMock(__builtin__, 'raw_input')
     raw_input('Ok to deploy [y/n]? ').AndReturn('Y')
-    self.mock_cli.Deploy('mock_staging##00000000')
+
+    self.mock_cli.GetActiveConfig().AndReturn(active_config)
+    self.mock_cli.AddConfig(
+        'new_config',
+        resource.ConfigTypeNames.umpire_config).AndReturn('umpire.123.yaml')
+    self.mock_cli.Deploy('umpire.123.yaml')
     self.mox.ReplayAll()
 
+    self.args.config_path = 'new_config'
     umpire.Deploy(self.args, self.mock_cli)
     self.assertListEqual(
-        ['Getting status...',
-         'Validating staging config for deployment...',
+        ["Validating config 'new_config' for deployment...",
          'Changes for this deploy: ', '',
-         "Deploying config 'mock_staging##00000000'",
+         "Deploying config 'new_config'",
          'Deploy successfully.'],
         GetStdout())
 
   def testDeployUserSayNo(self):
     active_config = file_utils.ReadFile(self.ACTIVE_CONFIG_PATH)
-    staging_config = file_utils.ReadFile(self.STAGING_CONFIG_PATH)
-    self.mox.StubOutWithMock(__builtin__, 'raw_input')
+    new_config = file_utils.ReadFile(self.NEW_CONFIG_PATH)
 
-    self.mock_cli.GetStatus().AndReturn(
-        {'staging_config': staging_config,
-         'staging_config_res': 'mock_staging##00000000',
-         'active_config': active_config})
-    self.mock_cli.ValidateConfig(staging_config)
+    self.mox.StubOutWithMock(config, 'UmpireConfig')
+    config.UmpireConfig('new_config').AndReturn(yaml.load(new_config))
+    config.UmpireConfig(active_config).AndReturn(yaml.load(active_config))
+
+    self.mox.StubOutWithMock(__builtin__, 'raw_input')
     raw_input('Ok to deploy [y/n]? ').AndReturn('x')
+
+    self.mock_cli.GetActiveConfig().AndReturn(active_config)
     # No mock.cli.Deploy is called
     self.mox.ReplayAll()
 
+    self.args.config_path = 'new_config'
     umpire.Deploy(self.args, self.mock_cli)
-    self.assertListEqual(['Getting status...',
-                          'Validating staging config for deployment...',
-                          'Changes for this deploy: ', '',
-                          'Abort by user.'],
-                         GetStdout())
+    self.assertListEqual(
+        ["Validating config 'new_config' for deployment...",
+         'Changes for this deploy: ', '',
+         'Abort by user.'],
+        GetStdout())
 
 
 if __name__ == '__main__':

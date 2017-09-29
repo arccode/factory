@@ -17,6 +17,7 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
+from cros.factory.umpire.server.commands import deploy
 from cros.factory.umpire.server import config as umpire_config
 from cros.factory.umpire.server import resource
 from cros.factory.utils import file_utils
@@ -27,20 +28,19 @@ class BundleImporter(object):
 
   It reads a factory bundle and copies resources to Umpire.
 
-  It also updates active UmpireConfig and saves it to staging. Note that if
-  staging config already exists, it refuses to import the bundle.
+  It also try to update active UmpireConfig and deploy it.
 
   Usage:
-    BundleImporter(env).Import('/path/to/bundle', 'bundle_id')
+    BundleImporter(daemon).Import('/path/to/bundle', 'bundle_id')
   """
 
-  def __init__(self, env):
+  def __init__(self, daemon):
     """Constructor.
 
     Args:
-      env: UmpireEnv object.
+      daemon: UmpireDaemon object.
     """
-    self._env = env
+    self._daemon = daemon
 
   def Import(self, bundle_path, bundle_id=None, note=None):
     """Imports a bundle.
@@ -49,22 +49,13 @@ class BundleImporter(object):
       bundle_path: A bundle's path (could be a directory or a zip file).
       bundle_id: The ID of the bundle. If omitted, use timestamp.
       note: A description of this bundle. If omitted, use bundle_id.
-
-    Returns:
-      Updated staging config path.
     """
-    if self._env.HasStagingConfigFile():
-      raise common.UmpireError(
-          'Cannot import bundle as staging config exists. '
-          'Please run "umpire unstage" to unstage or "umpire deploy" to '
-          'deploy the staging config first.')
-
     if not bundle_id:
       bundle_id = time.strftime('factory_bundle_%Y%m%d_%H%M%S')
     if not note:
       note = 'n/a'
 
-    config = umpire_config.UmpireConfig(self._env.config)
+    config = umpire_config.UmpireConfig(self._daemon.env.config)
     if config.GetBundle(bundle_id):
       raise common.UmpireError('bundle_id %r already in use' % bundle_id)
 
@@ -77,8 +68,8 @@ class BundleImporter(object):
     import_list = BundleImporter._GetImportList(bundle_path)
     payloads = {}
     for path, type_name in import_list:
-      payloads.update(self._env.AddPayload(path, type_name))
-    payload_json_name = self._env.AddConfigFromBlob(
+      payloads.update(self._daemon.env.AddPayload(path, type_name))
+    payload_json_name = self._daemon.env.AddConfigFromBlob(
         json.dumps(payloads), resource.ConfigTypeNames.payload_config)
 
     config['bundles'].append({
@@ -91,11 +82,9 @@ class BundleImporter(object):
         'note': 'Please update match rule in ruleset',
         'active': False,
         })
-    cfg_path = self._env.GetResourcePath(
-        self._env.AddConfigFromBlob(config.Dump(),
-                                    resource.ConfigTypeNames.umpire_config))
-    self._env.StageConfigFile(cfg_path)
-    return cfg_path
+    deploy.ConfigDeployer(self._daemon).Deploy(
+        self._daemon.env.AddConfigFromBlob(
+            config.Dump(), resource.ConfigTypeNames.umpire_config))
 
   @classmethod
   def _GetImportList(cls, bundle_path):

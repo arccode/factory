@@ -12,11 +12,11 @@ Umpire daemon (umpired).
 
 import logging
 import os
+import subprocess
 import xmlrpclib
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
-from cros.factory.umpire.server.commands import edit
 from cros.factory.umpire.server import config
 from cros.factory.umpire.server import resource
 from cros.factory.umpire.server import umpire_env
@@ -58,19 +58,18 @@ def ExportPayload(args, umpire_cli):
 def ImportBundle(args, umpire_cli):
   """Imports a factory bundle to Umpire.
 
-  It does the following: 1) sanity check for Umpire config; 2) copy bundle
-  resources; 3) add a bundle item in bundles section in Umpire config;
-  4) prepend a ruleset for the new bundle; 5) mark the updated config as
-  staging and prompt user to edit it.
+  It does the following: 1) copy bundle resources; 2) add a bundle item in
+  bundles section in Umpire config; 3) prepend a ruleset for the new bundle;
+  4) deploy the updated config.
   """
   message = 'Importing bundle %r' % args.bundle_path
   if args.id:
     message += ' with specified bundle ID %r' % args.id
   print message
 
-  staging_config_path = umpire_cli.ImportBundle(
+  umpire_cli.ImportBundle(
       os.path.realpath(args.bundle_path), args.id, args.note)
-  print 'Import bundle successfully. Staging config %r' % staging_config_path
+  print 'Import bundle successfully.'
 
 
 @Command('update',
@@ -116,108 +115,67 @@ def Update(args, umpire_cli):
   print 'Update successfully.'
 
 
-@Command('edit',
-         CmdArg('--config',
-                help=('Path to Umpire config file to edit. Default uses '
-                      'current staging config. If there is no staging config, '
-                      'stage the active config.')))
+@Command('edit')
 def Edit(args, umpire_cli):
   """Edits the Umpire config file.
 
-  It calls user's default EDITOR to edit the config file and verifies the
+  It calls editor (determined by environment variable VISUAL and EDITOR,
+  defaults to vi) to edit the active config file and run deploy command with
   modified result afterward.
   """
-  with edit.ConfigEditor(umpire_cli, max_retry=3) as editor:
-    editor.Edit(config_file=args.config)
+  del args  # Unused.
+  with file_utils.UnopenedTemporaryFile() as temp_path:
+    file_utils.WriteFile(temp_path, umpire_cli.GetActiveConfig())
+    # Use subprocess.call to avoid redirect stdin/stdout from terminal to pipe.
+    # Most editors need stdin/stdout as terminal.
+    ret = subprocess.call(
+        os.getenv('VISUAL', os.getenv('EDITOR', 'vi')).split() + [temp_path])
+    if ret == 0:
+      _Deploy(temp_path, umpire_cli)
+    else:
+      raise common.UmpireError('Editor returned non-zero exit code %d' % ret)
 
 
-@Command('deploy')
+@Command('deploy',
+         CmdArg('config_path', help='Path of Umpire config file to deploy.'))
 def Deploy(args, umpire_cli):
   """Deploys an Umpire service.
 
-  It deploys current staging config to Umpire service.
-  If users want to run a specific config, stage it first.
+  It deploys the indicated config to Umpire service.
   """
-  del args  # Unused.
-  print 'Getting status...'
-  umpire_status = umpire_cli.GetStatus()
-  if not umpire_status['staging_config']:
-    raise common.UmpireError('Unable to deploy as there is no staging file')
-  config_to_deploy_text = umpire_status['staging_config']
-  config_to_deploy_res = umpire_status['staging_config_res']
+  _Deploy(args.config_path, umpire_cli)
 
+
+def _Deploy(config_path, umpire_cli):
   # First, ask Umpire daemon to validate config.
-  print 'Validating staging config for deployment...'
-  umpire_cli.ValidateConfig(config_to_deploy_text)
+  print 'Validating config %r for deployment...' % config_path
+  config_to_deploy = config.UmpireConfig(config_path)
+
+  active_config = config.UmpireConfig(umpire_cli.GetActiveConfig())
 
   # Then, double confirm the user to deploy the config.
   print 'Changes for this deploy: '
-  active_config_text = umpire_status['active_config']
-  config_to_deploy = config.UmpireConfig(config_to_deploy_text,
-                                         validate=False)
-  active_config = config.UmpireConfig(active_config_text,
-                                      validate=False)
   print '\n'.join(config.ShowDiff(active_config, config_to_deploy))
   if raw_input('Ok to deploy [y/n]? ') not in ['y', 'Y']:
     print 'Abort by user.'
     return
 
   # Deploying, finally.
-  print 'Deploying config %r' % config_to_deploy_res
-  umpire_cli.Deploy(config_to_deploy_res)
+  print 'Deploying config %r' % config_path
+  umpire_cli.Deploy(
+      umpire_cli.AddConfig(config_path, resource.ConfigTypeNames.umpire_config))
   print 'Deploy successfully.'
 
 
-@Command('status',
-         CmdArg('--verbose', action='store_true',
-                help='Show detailed status.'))
+@Command('status')
 def Status(args, umpire_cli):
   """Shows Umpire server status.
 
-  Shows staging config status.
-  In verbose mode, show active config content and diff it with staging.
+  Show active config content.
   """
-  status = umpire_cli.GetStatus()
-  if not status:
-    raise common.UmpireError('Unable to get status from Umpire server')
-
-  if args.verbose:
-    print 'Active config (%s):' % status['active_config_res']
-    print status['active_config']
-    print
-
-  if status['staging_config']:
-    print 'Staging config exists (%s)' % status['staging_config_res']
-    if args.verbose:
-      active_config = config.UmpireConfig(status['active_config'])
-      staging_config = config.UmpireConfig(status['staging_config'])
-      print 'Diff between active and staging config:'
-      print '\n'.join(config.ShowDiff(active_config, staging_config))
-  else:
-    print 'No staging config'
-
-
-@Command('stage',
-         CmdArg('--config',
-                help=('Path to Umpire config file. Default uses current active '
-                      'config.')))
-def Stage(args, umpire_cli):
-  """Stages an Umpire config file for edit."""
-  if args.config:
-    umpire_cli.StageConfigFile(args.config)
-    print 'Stage config %s successfully.' % args.config
-  else:
-    print (
-        'ERROR: For "umpire stage", --config must be specified. '
-        'If you want to edit active config. Just run "umpire edit" '
-        'and it stages active config for you to edit.')
-
-
-@Command('unstage')
-def Unstage(args, umpire_cli):
-  """Unstages staging Umpire config file."""
   del args  # Unused.
-  print 'Unstage config %r successfully.' % umpire_cli.UnstageConfigFile()
+  print 'Active config:'
+  print umpire_cli.GetActiveConfig()
 
 
 @Command('start-service',

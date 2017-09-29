@@ -13,7 +13,7 @@ import logging
 
 from twisted.python import failure as twisted_failure
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server import config as umpire_config
 from cros.factory.utils import file_utils
@@ -52,8 +52,7 @@ class ConfigDeployer(object):
   def _HandleDeploySuccess(self, result):
     """Handles deploy success.
 
-    Activates the new config and unstage staging file. Makes netboot image
-    symlink.
+    Activates the new config.
 
     Returns:
       A string indicating deploy success.
@@ -61,7 +60,6 @@ class ConfigDeployer(object):
     del result  # Unused.
 
     self._env.ActivateConfigFile(self._config_path_to_deploy)
-    self._env.UnstageConfigFile()
     logging.info('Config %r deployed. Set it as activate config.',
                  self._config_path_to_deploy)
     return 'Deploy success'
@@ -114,11 +112,10 @@ class ConfigDeployer(object):
     Umpire daemon will stop.
 
     It should be used in Twisted server as it returns a deferred object. Once
-    the deploy is okay, it activates the config and unstages the current staging
-    config.
+    the deploy is okay, it activates the config.
 
     Args:
-     config_res: config file in resources.
+      config_res: config file in resources.
 
     Returns:
       Twisted deferred object. It eventually returns either a string for a
@@ -130,7 +127,6 @@ class ConfigDeployer(object):
     self._ValidateConfigToDeploy()
 
     # Load new config and let daemon deploy it.
-    # Note that it shall not init ShopFloorManager here.
     self._env.LoadConfig(custom_path=self._config_path_to_deploy)
     logging.info('Config %r validated. Try deploying...',
                  self._config_path_to_deploy)

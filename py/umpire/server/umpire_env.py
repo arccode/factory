@@ -38,7 +38,6 @@ SESSION_JSON_FILE = 'session.json'
 
 # File name under base_dir
 _ACTIVE_UMPIRE_CONFIG = 'active_umpire.yaml'
-_STAGING_UMPIRE_CONFIG = 'staging_umpire.yaml'
 _UMPIRED_PID_FILE = 'umpired.pid'
 _UMPIRED_LOG_FILE = 'umpired.log'
 _UMPIRE_DATA_DIR = 'umpire_data'
@@ -76,7 +75,6 @@ class UmpireEnv(object):
     base_dir: Umpire base directory
     config_path: Path of the Umpire Config file
     config: Active UmpireConfig object
-    staging_config: Staging UmpireConfig object
   """
 
   def __init__(self, root_dir='/'):
@@ -84,7 +82,6 @@ class UmpireEnv(object):
     self.server_toolkit_dir = os.path.join(root_dir, DEFAULT_SERVER_DIR)
     self.config_path = None
     self.config = None
-    self.staging_config = None
 
   @property
   def resources_dir(self):
@@ -113,10 +110,6 @@ class UmpireEnv(object):
   @property
   def active_config_file(self):
     return os.path.join(self.base_dir, _ACTIVE_UMPIRE_CONFIG)
-
-  @property
-  def staging_config_file(self):
-    return os.path.join(self.base_dir, _STAGING_UMPIRE_CONFIG)
 
   @property
   def umpire_ip(self):
@@ -240,75 +233,21 @@ class UmpireEnv(object):
     self.config = _LoadValidateConfig(config_path)
     self.config_path = config_path
 
-  def HasStagingConfigFile(self):
-    """Checks if a staging config file exists.
-
-    Returns:
-      True if a staging config file exists.
-    """
-    return os.path.isfile(self.staging_config_file)
-
-  def StageConfigFile(self, config_path=None, force=False):
-    """Stages a config file.
-
-    Args:
-      config_path: a config file to mark as staging. Default: active file.
-      force: True to stage the file even if it already has staging file.
-    """
-    if not force and self.HasStagingConfigFile():
-      raise common.UmpireError(
-          'Unable to stage a config file as another config is already staged. '
-          'Check %r to decide if it should be deployed (use "umpire deploy"), '
-          'edited again ("umpire edit") or discarded ("umpire unstage").' %
-          self.staging_config_file)
-
-    if config_path is None:
-      config_path = self.active_config_file
-
-    source = os.path.realpath(config_path)
-    if not os.path.isfile(source):
-      raise common.UmpireError(
-          "Unable to stage config %s as it doesn't exist." % source)
-    if force and self.HasStagingConfigFile():
-      logging.info('Force staging, unstage existing one first.')
-      self.UnstageConfigFile()
-    logging.info('Stage config: ' + source)
-    file_utils.SymlinkRelative(source, self.staging_config_file,
-                               base=self.base_dir)
-
-  def UnstageConfigFile(self):
-    """Unstage the current staging config file.
-
-    Returns:
-      Real path of the staging file being unstaged.
-    """
-    if not self.HasStagingConfigFile():
-      raise common.UmpireError(
-          "Unable to unstage as there's no staging config file.")
-    staging_real_path = os.path.realpath(self.staging_config_file)
-    logging.info('Unstage config: ' + staging_real_path)
-    os.unlink(self.staging_config_file)
-    return staging_real_path
-
-  def ActivateConfigFile(self, config_path=None):
+  def ActivateConfigFile(self, config_path):
     """Activates a config file.
 
     Args:
-      config_path: a config file to mark as active. Default: use staging file.
+      config_path: a config file to mark as active.
     """
-    if config_path is None:
-      config_path = self.staging_config_file
-
     if not os.path.isfile(config_path):
       raise common.UmpireError(
           'Unable to activate missing config: ' + config_path)
 
     config_to_activate = os.path.realpath(config_path)
-    if os.path.isfile(self.active_config_file):
-      logging.info('Deactivate config: ' +
-                   os.path.realpath(self.active_config_file))
-      os.unlink(self.active_config_file)
-    logging.info('Activate config: ' + config_to_activate)
+    logging.info(
+        'Deactivate config: %s', os.path.realpath(self.active_config_file))
+    os.unlink(self.active_config_file)
+    logging.info('Activate config: %s', config_to_activate)
     file_utils.SymlinkRelative(config_to_activate, self.active_config_file,
                                base=self.base_dir)
 
