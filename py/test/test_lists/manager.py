@@ -23,11 +23,14 @@ from cros.factory.test.rules import phase
 from cros.factory.test import state
 from cros.factory.test.test_lists import checker as checker_module
 from cros.factory.test.test_lists import test_lists
+from cros.factory.test.test_lists import test_object as test_object_module
 from cros.factory.test.utils import selector_utils
 from cros.factory.utils import config_utils
 from cros.factory.utils import debug_utils
 from cros.factory.utils import type_utils
 
+
+TestListError = test_lists.TestListError
 
 # used for loop detection
 _DUMMY_CACHE = object()
@@ -189,17 +192,17 @@ class ITestList(object):
 
   @abc.abstractmethod
   def ToFactoryTestList(self):
-    """Convert this object to a factory.FactoryTestList object.
+    """Convert this object to a FactoryTestList object.
 
     Returns:
-      :rtype: cros.factory.test.factory.FactoryTestList
+      :rtype: cros.factory.test.test_lists.test_object.FactoryTestList
     """
     raise NotImplementedError
 
   def CheckValid(self):
     """Check if this can be convert to a FactoryTestList object."""
     if not self.ToFactoryTestList():
-      raise factory.TestListError('Cannot convert to FactoryTestList')
+      raise TestListError('Cannot convert to FactoryTestList')
 
   def __getattr__(self, name):
     """Redirects attribute lookup to ToFactoryTestList()."""
@@ -443,8 +446,8 @@ class ITestList(object):
 class TestList(ITestList):
   """A test list object represented by test list config.
 
-  This object should act like a cros.factory.test.factory.FactoryTestList
-  object.
+  This object should act like a
+  ``cros.factory.test.test_lists.test_object.FactoryTestList`` object.
   """
 
   # Declare instance variables to make __setattr__ happy.
@@ -485,7 +488,7 @@ class TestList(ITestList):
     # correctly.  Put it in a single line for easier debugging.
     options = self.options
 
-    self._cached_test_list = factory.FactoryTestList(
+    self._cached_test_list = test_object_module.FactoryTestList(
         subtests, self._state_instance, options,
         test_list_id=self._config.test_list_id,
         label=MayTranslate(self._config['label'], force=True),
@@ -553,13 +556,13 @@ class TestList(ITestList):
     if 'run_if' in kwargs and isinstance(kwargs['run_if'], basestring):
       self._checker.AssertValidRunIf(kwargs['run_if'])
 
-    return getattr(factory, class_name)(**kwargs)
+    return getattr(test_object_module, class_name)(**kwargs)
 
   def ResolveTestObject(self, test_object, test_object_name, cache):
     """Returns a test object inherits all its parents field."""
     if test_object_name in cache:
       if cache[test_object_name] == _DUMMY_CACHE:
-        raise factory.TestListError(
+        raise TestListError(
             'Detected loop inheritance dependency of %s' % test_object_name)
       else:
         return cache[test_object_name]
@@ -574,12 +577,12 @@ class TestList(ITestList):
 
     parent_name = test_object.get('inherit', 'FactoryTest')
     if parent_name not in self._config['definitions']:
-      raise factory.TestListError(
+      raise TestListError(
           '%s inherits %s, which is not defined' % (test_object_name,
                                                     parent_name))
     if parent_name == test_object_name:
       # this test object inherits itself, it means that this object is a class
-      # defined in cros.factory.test.factory
+      # defined in cros.factory.test.test_lists.test_object
       # just save the object and return
       cache[test_object_name] = test_object
       return test_object
@@ -588,7 +591,7 @@ class TestList(ITestList):
       cache[test_object_name] = _DUMMY_CACHE
       # syntax sugar, if id is not given, set id as test object name.
       #
-      # According to test/factory.py, considering I18n, the priority is:
+      # According to test_object.py, considering I18n, the priority is:
       # 1. `label` must be specified, or it should come from pytest_name
       # 2. If not specified, `id` comes from label by stripping spaces and dots.
       # Resolved id may be changed in _init when there are duplicated id's found
@@ -642,7 +645,7 @@ class TestList(ITestList):
       new_config = self._loader.Load(self._config.test_list_id)
 
       if not new_config:
-        raise factory.TestListError(
+        raise TestListError(
             'Syntax or schema error in %s' % self._config.test_list_id)
 
       # make sure the new test list is working, if it's not, will raise an
@@ -747,7 +750,7 @@ class TestList(ITestList):
 
 
 class LegacyTestList(ITestList):
-  """Wrap a factory.FactoryTestList object into ITestList object."""
+  """Wrap a FactoryTestList object into ITestList object."""
 
   # Declare instance variables to make __setattr__ happy.
   test_list = None
@@ -756,7 +759,7 @@ class LegacyTestList(ITestList):
     """Constructor
 
     Args:
-      :type test_list: cros.factory.test.factory.FactoryTestList
+      :type test_list: cros.factory.test.test_lists.test_object.FactoryTestList
     """
     super(LegacyTestList, self).__init__(checker)
     self.test_list = test_list
@@ -917,7 +920,7 @@ class Manager(object):
       try:
         test_list = self.GetTestListByID(test_list_id)
         if test_list is None:
-          raise factory.TestListError('failed to load test list')
+          raise TestListError('failed to load test list')
       except Exception:
         path = self.loader.GetConfigPath(test_list_id)
         logging.exception('Unable to import %s', path)
@@ -953,7 +956,7 @@ class Manager(object):
     # Make sure it's a real file (and the user isn't trying to use the
     # old symlink method).
     if os.path.islink(ACTIVE_PATH):
-      raise factory.TestListError(
+      raise TestListError(
           '%s is a symlink (should be a file containing a test list ID)' %
           ACTIVE_PATH)
 
@@ -961,7 +964,7 @@ class Manager(object):
     wrong_caps_file = os.path.join(
         os.path.dirname(ACTIVE_PATH), os.path.basename(ACTIVE_PATH).lower())
     if os.path.lexists(wrong_caps_file):
-      raise factory.TestListError(
+      raise TestListError(
           'Wrong spelling (%s) for active test list file (should be %s)' %
           (wrong_caps_file, ACTIVE_PATH))
 
@@ -971,7 +974,7 @@ class Manager(object):
     with open(ACTIVE_PATH) as f:
       test_list_id = f.read().strip()
       if re.search(r'\s', test_list_id):
-        raise factory.TestListError(
+        raise TestListError(
             '%s should contain only a test list ID' % test_list_id)
       return test_list_id
 

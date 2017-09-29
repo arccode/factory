@@ -17,7 +17,7 @@ import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
-from cros.factory.test import factory
+from cros.factory.test.test_lists import test_object
 
 _BLACKLIST_SUFFIX = ['_unittest', '_automator', '_e2etest', '_utils', '_host']
 
@@ -41,7 +41,7 @@ def _GetPytestList(base_dir):
 
 def _ToI18nLabel(name):
   name = os.path.splitext(name)[0]
-  return 'i18n! %s' % factory.FactoryTest.PytestNameToLabel(
+  return 'i18n! %s' % test_object.FactoryTest.PytestNameToLabel(
       name.replace('/', '.'))
 
 

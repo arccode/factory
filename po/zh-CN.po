@@ -1012,18 +1012,6 @@ msgstr "测试进度:"
 msgid "Time remaining: {time:.0f}"
 msgstr "剩余时间：{time:.0f}"
 
-#: ../py/test/factory.py
-msgid "Test Group"
-msgstr "测试群组"
-
-#: ../py/test/factory.py
-msgid "{label} ({iterations} times)"
-msgstr "{label} ({iterations} 次)"
-
-#: ../py/test/factory.py
-msgid "Untitled"
-msgstr "无名"
-
 #: ../py/test/fixture/touchscreen_calibration/fixture.py
 msgid "Pull the lever down."
 msgstr "拉下把手"
@@ -3407,6 +3395,18 @@ msgstr "主测项（未定义）"
 #: ../py/test/test_lists/station_based.test_list.json
 msgid "Station-Based Test Template"
 msgstr "测试站模板"
+
+#: ../py/test/test_lists/test_object.py
+msgid "Test Group"
+msgstr "测试群组"
+
+#: ../py/test/test_lists/test_object.py
+msgid "{label} ({iterations} times)"
+msgstr "{label} ({iterations} 次)"
+
+#: ../py/test/test_lists/test_object.py
+msgid "Untitled"
+msgstr "无名"
 
 #: ../py/test/test_ui.py
 msgid "Enter"

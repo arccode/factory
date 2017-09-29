@@ -10,6 +10,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test import factory
 from cros.factory.test.test_lists import checker
 from cros.factory.test.test_lists import manager
+from cros.factory.test.test_lists import test_object
 from cros.factory.utils import arg_utils
 
 
@@ -64,13 +65,13 @@ class CheckerTest(unittest.TestCase):
         'foo': 'FOO',
         'bar': 'BAR',
     }
-    test = factory.FactoryTest(
+    test = test_object.FactoryTest(
         pytest_name='message',
         dargs={
             'html': 'eval! constants.foo + constants.bar',
             'text_size': 'eval! dut.CheckOutput("bc 1 + 1")', })
     options = factory.Options()
-    test_list = factory.FactoryTestList(
+    test_list = test_object.FactoryTestList(
         subtests=[test], state_instance=None,
         test_list_id='main', constants=constants, options=options)
     test_list = manager.LegacyTestList(test_list, self.checker)
@@ -94,12 +95,12 @@ class CheckerTest(unittest.TestCase):
         'foo': 'FOO',
         'bar': 'BAR',
     }
-    test = factory.FactoryTest(
+    test = test_object.FactoryTest(
         pytest_name='message',
         dargs={
             'html': 'eval! constants.foo + constants.bar + ', })
     options = factory.Options()
-    test_list = factory.FactoryTestList(
+    test_list = test_object.FactoryTestList(
         subtests=[test], state_instance=None,
         test_list_id='main', constants=constants, options=options)
     test_list = manager.LegacyTestList(test_list, self.checker)

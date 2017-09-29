@@ -37,6 +37,7 @@ from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager
+from cros.factory.test.test_lists import test_object
 from cros.factory.test.utils import pytest_utils
 from cros.factory.testlog import testlog
 from cros.factory.testlog import testlog_utils
@@ -630,7 +631,7 @@ class TestInvocation(object):
           invocation=self.uuid)
       if self.test.pytest_name:
         log_args['pytest_name'] = self.metadata['pytest_name']
-      if isinstance(self.test, factory.ShutdownStep):
+      if isinstance(self.test, test_object.ShutdownStep):
         log_args['tag'] = 'post-shutdown'
 
       try:
@@ -680,7 +681,7 @@ class TestInvocation(object):
           invocation=self.uuid)
       if self.test.pytest_name:
         log_args['pytest_name'] = self.test.pytest_name
-      if isinstance(self.test, factory.ShutdownStep):
+      if isinstance(self.test, test_object.ShutdownStep):
         log_args['tag'] = 'pre-shutdown'
 
       self.start_time = time.time()
@@ -767,7 +768,7 @@ class TestInvocation(object):
 
     service_manager.RestoreServices()
 
-    if isinstance(self.test, factory.ShutdownStep):
+    if isinstance(self.test, test_object.ShutdownStep):
       logging.info(u'Test %s%s (%s) %s', self.test.path, iteration_string,
                    ('post-shutdown' if self.resume_test else 'pre-shutdown'),
                    ': '.join([status, error_msg]))

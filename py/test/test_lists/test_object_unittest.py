@@ -15,33 +15,29 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 
-from cros.factory.test import factory
 from cros.factory.test.test_lists import manager
+from cros.factory.test.test_lists import test_object
 
 
 SRCROOT = os.environ.get('CROS_WORKON_SRCROOT')
 
 
-class FactoryModuleTest(unittest.TestCase):
+class FactoryTestTest(unittest.TestCase):
   """Unittest for Factory module."""
-
-  # TODO(stimim): test FactoryTestList
-
   def test_py_test_name_to_id(self):
     for name, label in (('a', 'A'),
                         ('a.b', 'A B'),
                         ('test', 'Test'),
                         ('a_long_test_name', 'A Long Test Name')):
-      self.assertEqual(label, factory.FactoryTest.PytestNameToLabel(name))
+      self.assertEqual(label, test_object.FactoryTest.PytestNameToLabel(name))
     for label, test_id in (('A test', 'ATest'),
                            ('ab', 'Ab'),
                            ('a_b', 'AB'),
                            ('foo_bar', 'FooBar')):
-      self.assertEqual(test_id, factory.FactoryTest.LabelToId(label))
+      self.assertEqual(test_id, test_object.FactoryTest.LabelToId(label))
 
 
 class FactoryTestListTest(unittest.TestCase):
-
   def testGetNextSibling(self):
     test_list = manager.BuildTestListForUnittest(
         test_list_config={
@@ -68,15 +64,16 @@ class FactoryTestListTest(unittest.TestCase):
 
   def testResolveRequireRun(self):
     self.assertEqual(
-        'e.f', factory.FactoryTestList.ResolveRequireRun('a.b.c.d', 'e.f'))
+        'e.f', test_object.FactoryTestList.ResolveRequireRun('a.b.c.d', 'e.f'))
     self.assertEqual(
         'a.b.c.e.f',
-        factory.FactoryTestList.ResolveRequireRun('a.b.c.d', '.e.f'))
+        test_object.FactoryTestList.ResolveRequireRun('a.b.c.d', '.e.f'))
     self.assertEqual(
         'a.b.e.f',
-        factory.FactoryTestList.ResolveRequireRun('a.b.c.d', '..e.f'))
+        test_object.FactoryTestList.ResolveRequireRun('a.b.c.d', '..e.f'))
     self.assertEqual(
-        'a.e.f', factory.FactoryTestList.ResolveRequireRun('a.b.c.d', '...e.f'))
+        'a.e.f',
+        test_object.FactoryTestList.ResolveRequireRun('a.b.c.d', '...e.f'))
 
 
 if __name__ == '__main__':

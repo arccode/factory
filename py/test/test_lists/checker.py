@@ -8,7 +8,6 @@ import copy
 import inspect
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import factory
 from cros.factory.test.test_lists import test_lists
 from cros.factory.test.utils import pytest_utils
 from cros.factory.utils import arg_utils
@@ -229,7 +228,7 @@ class Checker(object):
     if not args_spec:
       # no argument for this pytest
       if test.dargs:
-        raise factory.TestListError(
+        raise test_lists.TestListError(
             '%s does not accept any arguments' % test.pytest_name)
 
     for arg in args_spec:
@@ -245,7 +244,7 @@ class Checker(object):
 
     Args:
       test: the test object whose dargs will be resolved.
-      :type test: cros.factory.test.factory.FactoryTest
+      :type test: cros.factory.test.test_lists.test_object.FactoryTest
       test_list: the test list this test object belongs to.
       :type test_list: cros.factory.test.test_lists.manager.ITestList
     """

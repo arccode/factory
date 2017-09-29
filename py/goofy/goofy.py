@@ -54,6 +54,7 @@ from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager
 from cros.factory.test.test_lists import test_lists
+from cros.factory.test.test_lists import test_object
 from cros.factory.testlog import testlog
 from cros.factory.tools.key_filter import KeyFilter
 from cros.factory.utils import config_utils
@@ -336,7 +337,7 @@ class Goofy(GoofyBase):
         active_tests.append(test)
 
     if not (len(active_tests) == 1 and
-            isinstance(active_tests[0], factory.ShutdownStep)):
+            isinstance(active_tests[0], test_object.ShutdownStep)):
       logging.error(
           'Calling Goofy shutdown outside of the shutdown factory test')
       return
@@ -410,7 +411,7 @@ class Goofy(GoofyBase):
       test_state = test.GetState()
       if test_state.status != TestState.ACTIVE:
         continue
-      if isinstance(test, factory.ShutdownStep):
+      if isinstance(test, test_object.ShutdownStep):
         # Shutdown while the test was active - that's good.
         self.handle_shutdown_complete(test)
       else:
@@ -546,7 +547,7 @@ class Goofy(GoofyBase):
           continue
 
       # okay, let's run the test
-      if (isinstance(test, factory.ShutdownStep) and
+      if (isinstance(test, test_object.ShutdownStep) and
           self.state_instance.get_shared_data(
               state.KEY_POST_SHUTDOWN % test.path, optional=True)):
         # Invoking post shutdown method of shutdown test. We should retain the
@@ -1054,7 +1055,7 @@ class Goofy(GoofyBase):
       # Create an empty test list with default options so that the rest of
       # startup can proceed.
       # A message box will pop up in UI for the error details.
-      self.test_list = manager.LegacyTestList(factory.FactoryTestList(
+      self.test_list = manager.LegacyTestList(test_object.FactoryTestList(
           [], self.state_instance, factory.Options()))
 
     self.init_hooks()

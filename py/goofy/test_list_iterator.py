@@ -9,6 +9,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import invocation
 from cros.factory.test import factory
 from cros.factory.test.test_lists import manager
+from cros.factory.test.test_lists import test_object
 from cros.factory.utils import type_utils
 
 
@@ -138,7 +139,7 @@ class TestListIterator(object):
     self.status_filter = status_filter or []
     self.teardown_only = False
 
-    if isinstance(root, factory.FactoryTest):
+    if isinstance(root, test_object.FactoryTest):
       self.Push(root.path)
     elif isinstance(root, basestring):
       self.Push(root)
@@ -225,7 +226,8 @@ class TestListIterator(object):
     Since we are not serializing test list when pickling TestListIterator, users
     need to invoke SetTestList to set current test list of the runner.
     """
-    assert isinstance(test_list, (factory.FactoryTestList, manager.ITestList))
+    assert isinstance(test_list, (test_object.FactoryTestList,
+                                  manager.ITestList))
     self.test_list = test_list
 
   def Stop(self, subtree_root=None):
@@ -346,7 +348,7 @@ class TestListIterator(object):
       success = self._DetermineSuccess(subtest)
       if not success:
         # create an alias
-        ACTION_ON_FAILURE = factory.FactoryTest.ACTION_ON_FAILURE
+        ACTION_ON_FAILURE = test_object.FactoryTest.ACTION_ON_FAILURE
         if subtest.action_on_failure == ACTION_ON_FAILURE.NEXT:
           pass  # does nothing, just find the next test
         elif subtest.action_on_failure == ACTION_ON_FAILURE.PARENT:
@@ -427,7 +429,7 @@ class TestListIterator(object):
   def _GetTestFromFrame(self, frame):
     """Returns test object corresponding to `frame`.
 
-    :rtype: cros.factory.test.factory.FactoryTest
+    :rtype: cros.factory.test.test_lists.test_object.FactoryTest
     """
     return self.test_list.LookupPath(frame.node)
 
