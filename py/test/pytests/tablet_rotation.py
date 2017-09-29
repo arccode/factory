@@ -6,54 +6,101 @@
 
 """Tests screen rotation through ChromeOS and accelerometer data.
 
+Description
+-----------
 Tests that ChromeOS properly rotates the screen when the device is physically
-rotated in tablet mode, and also checks that the orientation matches up with
-accelerometer data if configured.
+rotated in tablet mode.
 
-Usage example::
+If ``check_accelerometer`` is set, also checks that the orientation matches up
+with accelerometer data.
 
-    # Only test ChromeOS rotation value.
-    {
-      "pytest_name": "tablet_rotation",
-      "args": {
-        "prompt_flip_tablet": false,
-        "prompt_flip_notebook": true,
-        "timeout_secs": 86400
-        # Include to also check accelerometer data.
-        # "check_accelerometer": true,
-        # "degrees_to_orientations": {
-        #   0: {"in_accel_x_base": -1,
-        #       "in_accel_y_base": 0,
-        #       "in_accel_z_base": 0,
-        #       "in_accel_x_lid": -1,
-        #       "in_accel_y_lid": 0,
-        #       "in_accel_z_lid": 0},
-        #   90: {"in_accel_x_base": 0,
-        #        "in_accel_y_base": 1,
-        #        "in_accel_z_base": 0,
-        #        "in_accel_x_lid": 0,
-        #        "in_accel_y_lid": 1,
-        #        "in_accel_z_lid": 0},
-        #   180: {"in_accel_x_base": 1,
-        #         "in_accel_y_base": 0,
-        #         "in_accel_z_base": 0,
-        #         "in_accel_x_lid": 1,
-        #         "in_accel_y_lid": 0,
-        #         "in_accel_z_lid": 0},
-        #   270: {"in_accel_x_base": 0,
-        #         "in_accel_y_base": -1,
-        #         "in_accel_z_base": 0,
-        #         "in_accel_x_lid": 0,
-        #         "in_accel_y_lid": -1,
-        #         "in_accel_z_lid": 0}
-        # },
-        # "spec_offset": [92, 152],
-        # "spec_ideal_values": [0, 1024]
-      }
+Test Procedure
+--------------
+1. If ``prompt_flip_tablet`` is set, operator would be prompted to flip the
+   Chromebook to tablet mode.
+2. A picture would be shown on the screen. Operator should rotate the tablet to
+   align with the image. This would repeat four times with each orientations,
+   and the test automatically pass when the desired orientation is reached.
+
+   If ``check_accelerometer`` is set, the test would also check if the value of
+   accelerometer is within acceptable range for each orientation.
+3. If ``prompt_flip_notebook`` is set, operator would be prompted to flip the
+   Chromebook back to notebook mode.
+
+Dependency
+----------
+``chrome.display.system.getInfo`` in Chrome extension to get screen orientation.
+
+If ``check_accelerometer`` is set, also depends on device API
+``cros.factory.device.accelerometer``.
+
+Examples
+--------
+To test screen rotation for Chrome and prompt operator to flip before and after
+the test (The default), add this in test list::
+
+  {
+    "pytest_name": "tablet_rotation"
+  }
+
+To test screen rotation, assume that the Chromebook is already in tablet mode,
+and have a timeout of 10 minutes::
+
+  {
+    "pytest_name": "tablet_rotation",
+    "args": {
+      "prompt_flip_tablet": false,
+      "timeout_secs": 600
     }
+  }
+
+To also check accelerometer when testing screen rotation::
+
+  {
+    "pytest_name": "tablet_rotation",
+    "args": {
+      "check_accelerometer": true,
+      "degrees_to_orientations": [
+        [
+          0,
+          {
+            "in_accel_x": 0,
+            "in_accel_y": 1,
+            "in_accel_z": 0
+          }
+        ],
+        [
+          90,
+          {
+            "in_accel_x": 1,
+            "in_accel_y": 0,
+            "in_accel_z": 0
+          }
+        ],
+        [
+          180,
+          {
+            "in_accel_x": 0,
+            "in_accel_y": -1,
+            "in_accel_z": 0
+          }
+        ],
+        [
+          270,
+          {
+            "in_accel_x": -1,
+            "in_accel_y": 0,
+            "in_accel_z": 0
+          }
+        ]
+      ],
+      "spec_offset": [0.5, 0.5]
+    }
+  }
 """
 
 import random
+import threading
 import time
 import unittest
 
@@ -66,7 +113,6 @@ from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import process_utils
 
 
 _DEFAULT_TIMEOUT = 30
@@ -133,27 +179,18 @@ class TabletRotationTest(unittest.TestCase):
           'If check_accelerometer is true, the location of accelerometer that '
           'should be checked. Should be either "lid" or "base"',
           default='lid', optional=True),
-      # TODO(pihsun): numeric key doesn't work in JSON test list, should change
-      # this argument type.
-      Arg('degrees_to_orientations', dict,
+      Arg('degrees_to_orientations', list,
+          'A list of [key, value] pairs. '
           'Keys: degree of the orientation, limited to [0, 90, 180, 270]. '
           'Values: a dictionary containing orientation configuration.  Keys '
-          'should be the name of the accelerometer signal. For example, '
-          '"in_accel_x_base" or "in_accel_x_lid". The possible keys are '
-          '"in_accel_(x|y|z)_(base|lid)". Values should be one of [0, 1, -1], '
+          'should be the name of the accelerometer signal. The possible keys '
+          'are "in_accel_(x|y|z)". Values should be one of [0, 1, -1], '
           'representing the ideal value for gravity under such orientation.',
-          default={}, optional=True),
+          default=[], optional=True),
       Arg('spec_offset', tuple,
-          'A tuple of two integers, ex: (128, 230) '
+          'A tuple of two numbers, ex: (1.5, 1.5) '
           'indicating the tolerance for the digital output of sensors under '
-          'zero gravity and one gravity. Those values are vendor-specific '
-          'and should be provided by the vendor.', optional=True),
-      Arg('spec_ideal_values', tuple,
-          'A tuple of two integers, ex: (0, 1024) indicating the ideal value '
-          'of digital output corresponding to 0G and 1G, respectively. For '
-          'example, if a sensor has a 12-bit digital output and -/+ 2G '
-          'detection range so the sensitivity is 1024 count/G. The value '
-          'should be provided by the vendor.', optional=True),
+          'zero gravity and one gravity.', optional=True),
       Arg('sample_rate_hz', int,
           'The sample rate in Hz to get raw data from '
           'accelerometers.', default=20, optional=True),
@@ -163,42 +200,24 @@ class TabletRotationTest(unittest.TestCase):
     # args.check_accelerometer implies the following required arguments:
     #   degrees_to_orientations
     #   spec_offset
-    #   spec_ideal_values
     self.dut = device_utils.CreateDUTInterface()
     self.accel_controller = None
     if self.args.check_accelerometer:
       if not all([self.args.degrees_to_orientations,
-                  self.args.spec_offset,
-                  self.args.spec_ideal_values]):
+                  self.args.spec_offset]):
         self.fail('If running in check_accelerometer mode, please provide '
-                  'arguments degrees_to_orientations, spec_offset '
-                  'and spec_ideal_values.')
+                  'arguments degrees_to_orientations and spec_offset.')
         return
 
       self.accel_controller = self.dut.accelerometer.GetController(
           location=self.args.accelerometer_location)
+      self.degrees_to_orientations = dict(self.args.degrees_to_orientations)
 
     self.ui = test_ui.UI()
     self.state = state.get_instance()
     self.tablet_mode_ui = tablet_mode_ui.TabletModeUI(self.ui,
                                                       _HTML_COUNTDOWN_TIMER,
                                                       _CSS_COUNTDOWN_TIMER)
-
-    # Create a thread to run countdown timer.
-    countdown_timer.StartCountdownTimer(
-        self.args.timeout_secs,
-        lambda: self.ui.Fail('Tablet rotation test failed due to timeout.'),
-        self.ui,
-        _ID_COUNTDOWN_TIMER)
-
-    # Create a thread to control UI flow.
-    def _UIFlow():
-      if self.args.prompt_flip_tablet:
-        self.tablet_mode_ui.AskForTabletMode(
-            lambda _: self.TestRotationUIFlow())
-      else:
-        self.TestRotationUIFlow()
-    process_utils.StartDaemonThread(target=_UIFlow)
 
   def TestRotationUIFlow(self, degrees_targets=None):
     if degrees_targets is None:
@@ -210,19 +229,15 @@ class TabletRotationTest(unittest.TestCase):
       template.SetState(_HTML + _HTML_COUNTDOWN_TIMER)
       self.ui.AppendCSS(_CSS + _CSS_COUNTDOWN_TIMER)
 
-      try:
-        self._PromptAndWaitForRotation(degrees_target)
-      except Exception as e:
-        self.ui.Fail(e.msg)
-        return
+      self._PromptAndWaitForRotation(degrees_target)
 
       self.tablet_mode_ui.FlashSuccess()
 
     if self.args.prompt_flip_notebook:
-      self.tablet_mode_ui.AskForNotebookMode(lambda _: self.ui.Pass())
-    else:
-      self.ui.Pass()
-
+      wait_event = threading.Event()
+      self.tablet_mode_ui.AskForNotebookMode(
+          lambda unused_event: wait_event.set())
+      wait_event.wait()
 
   def _PromptAndWaitForRotation(self, degrees_target):
     # Choose a new picture and set the prompt message.
@@ -263,13 +278,12 @@ class TabletRotationTest(unittest.TestCase):
       # Check accelerometer if necessary.
       if (success and
           self.accel_controller and
-          degrees_target in self.args.degrees_to_orientations):
-        orientations = self.args.degrees_to_orientations[degrees_target]
+          degrees_target in self.degrees_to_orientations):
+        orientations = self.degrees_to_orientations[degrees_target]
         cal_data = self.accel_controller.GetData(
             sample_rate=self.args.sample_rate_hz)
         if not self.accel_controller.IsWithinOffsetRange(
-            cal_data, orientations, self.args.spec_ideal_values,
-            self.args.spec_offset):
+            cal_data, orientations, self.args.spec_offset):
           success = False
 
       # Are we currently at our target?
@@ -301,4 +315,21 @@ class TabletRotationTest(unittest.TestCase):
     return display_info[0]['rotation']
 
   def runTest(self):
+    # Create a thread to run countdown timer.
+    countdown_timer.StartCountdownTimer(
+        self.args.timeout_secs,
+        lambda: self.ui.Fail('Tablet rotation test failed due to timeout.'),
+        self.ui,
+        _ID_COUNTDOWN_TIMER)
+
+    # Create a thread to control UI flow.
+    def _UIFlow():
+      if self.args.prompt_flip_tablet:
+        wait_event = threading.Event()
+        self.tablet_mode_ui.AskForTabletMode(
+            lambda unused_event: wait_event.set())
+        wait_event.wait()
+      self.TestRotationUIFlow()
+
+    self.ui.RunInBackground(_UIFlow)
     self.ui.Run()
