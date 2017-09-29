@@ -187,7 +187,6 @@ class StartTest(unittest.TestCase):
           default={}, optional=True)]
 
   def setUp(self):
-    i18n_arg_utils.ParseArg(self, 'prompt')
     self.dut = device_utils.CreateDUTInterface()
     self._task_list = []
     self.ui = test_ui.UI()

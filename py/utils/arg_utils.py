@@ -43,7 +43,7 @@ class Arg(object):
   # pylint: disable=W0622
 
   def __init__(self, name, type, help,
-               default=_DEFAULT_NOT_SET, optional=False):
+               default=_DEFAULT_NOT_SET, optional=False, _transform=None):
     """Constructs a test argument.
 
     Args:
@@ -76,6 +76,8 @@ class Arg(object):
       optional: Whether the argument is optional. If a default value
         is provided, the argument is always optional and you need not set this
         to ``True``.
+      _transform: A transform function to be applied to the value after the
+        argument is resolved.
     """
     if not name:
       raise ArgError('Argument is missing a name')
@@ -113,6 +115,7 @@ class Arg(object):
     self.type = type
     self.default = default
     self.optional = optional
+    self.transform = _transform
 
     # Check type of default.
     if optional and not self.ValueMatchesType(default):
@@ -223,6 +226,9 @@ class Args(object):
             arg.name, arg.type, type(value)))
         errors.append('Argument %s=%r' % (arg.name, value))
         continue
+
+      if arg.transform:
+        value = arg.transform(value)
 
       attributes[arg.name] = value
 

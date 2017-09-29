@@ -42,7 +42,6 @@ class BrightnessTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    i18n_arg_utils.ParseArg(self, 'msg')
     self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)

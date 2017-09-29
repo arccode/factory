@@ -231,7 +231,6 @@ class ButtonTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    i18n_arg_utils.ParseArg(self, 'button_name')
     self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)

@@ -125,8 +125,6 @@ class MessageTest(unittest.TestCase):
   ]
 
   def runTest(self):
-    i18n_arg_utils.ParseArg(self, 'html')
-
     css = (CSS_TEMPLATE %
            dict(text_size=self.args.text_size,
                 text_color=self.args.text_color,

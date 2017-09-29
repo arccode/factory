@@ -173,7 +173,6 @@ class Report(unittest.TestCase):
     self.dut = device_utils.CreateDUTInterface()
 
   def runTest(self):
-    i18n_arg_utils.ParseArg(self, 'prompt_message')
     ui = test_ui.UI(css=CSS)
     template = ui_templates.OneSection(ui)
 

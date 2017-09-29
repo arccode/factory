@@ -275,7 +275,6 @@ class AudioTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    i18n_arg_utils.ParseArg(self, 'port_label')
     self._dut = device_utils.CreateDUTInterface()
     if self.args.audio_conf:
       self._dut.audio.LoadConfig(self.args.audio_conf)

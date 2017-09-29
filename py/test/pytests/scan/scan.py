@@ -214,7 +214,6 @@ class Scan(unittest.TestCase):
     self.ui.Pass()
 
   def setUp(self):
-    i18n_arg_utils.ParseArg(self, 'label')
     self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI()
     self.auto_scan_timer = None

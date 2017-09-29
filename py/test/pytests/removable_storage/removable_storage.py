@@ -250,7 +250,6 @@ class RemovableStorageTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    i18n_arg_utils.ParseArg(self, 'extra_prompt')
     self._dut = device_utils.CreateDUTInterface()
     self._ui = test_ui.UI()
     self._template = ui_templates.TwoSections(self._ui)

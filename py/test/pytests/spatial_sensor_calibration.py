@@ -81,7 +81,6 @@ class SpatialSensorCalibration(unittest.TestCase):
   ]
 
   def setUp(self):
-    i18n_arg_utils.ParseArg(self, 'sensor_name')
     self._dut = device_utils.CreateDUTInterface()
     self._device_path = None
     for path in self._dut.Glob('/sys/bus/iio/devices/iio:device*'):

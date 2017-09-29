@@ -118,8 +118,6 @@ class BatteryCurrentTest(unittest.TestCase):
   def setUp(self):
     """Sets the test ui, template and the thread that runs ui. Initializes
     _power."""
-    i18n_arg_utils.ParseArg(self, 'usbpd_prompt')
-
     self._dut = device_utils.CreateDUTInterface()
     self._power = self._dut.power
     self._ui = test_ui.UI()

@@ -126,7 +126,6 @@ class DisplayImageTest(unittest.TestCase):
 
   def setUp(self):
     """Initializes frontend presentation and properties."""
-    i18n_arg_utils.ParseArg(self, 'title')
     self._dut = device_utils.CreateDUTInterface()
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)

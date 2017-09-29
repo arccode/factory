@@ -26,36 +26,31 @@ class MockPyTest(object):
 
 class ArgUtilsTest(unittest_test_case.I18nTestCase):
 
-  def _ParsePyTest(self, test, i18n_arg_name, dargs):
-    test.Parse(dargs)
-    i18n_arg_utils.ParseArg(test, i18n_arg_name)
-
   def testI18nArg(self):
     test = MockPyTest([i18n_arg_utils.I18nArg('text', 'text.')])
-    self._ParsePyTest(test, 'text', {'text': translation._('text 1')})
+    test.Parse({'text': translation._('text 1')})
     self.assertEqual({'en-US': 'text 1', 'zh-CN': 'text-1'}, test.args.text)
 
-    self._ParsePyTest(test, 'text', {'text': 'text 1'})
+    test.Parse({'text': 'text 1'})
     self.assertEqual({'en-US': 'text 1', 'zh-CN': 'text-1'}, test.args.text)
 
-    self.assertRaisesRegexp(ValueError, 'text is mandatory',
-                            self._ParsePyTest, test, 'text', {})
+    self.assertRaisesRegexp(ValueError, 'Required argument text not specified',
+                            test.Parse, {})
 
   def testI18nArgWithDefault(self):
     test = MockPyTest([
         i18n_arg_utils.I18nArg('text', 'text.',
                                default={'en-US': 'en', 'zh-CN': 'zh'})])
 
-    self._ParsePyTest(test, 'text', {'text': translation._('text 1')})
+    test.Parse({'text': translation._('text 1')})
     self.assertEqual({'en-US': 'text 1', 'zh-CN': 'text-1'}, test.args.text)
 
-    self._ParsePyTest(test, 'text', {'text': 'text 1'})
+    test.Parse({'text': 'text 1'})
     self.assertEqual({'en-US': 'text 1', 'zh-CN': 'text-1'}, test.args.text)
 
-    self._ParsePyTest(test, 'text', {})
+    test.Parse({})
     self.assertEqual({'en-US': 'en', 'zh-CN': 'zh'}, test.args.text)
 
-  # ParseArg is already tested in previous two tests.
 
 if __name__ == '__main__':
   unittest.main()

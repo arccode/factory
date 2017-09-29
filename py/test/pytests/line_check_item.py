@@ -101,7 +101,6 @@ class LineCheckItemTest(unittest.TestCase):
 
   def setUp(self):
     """Initializes _ui, _template, _current, and _items"""
-    i18n_arg_utils.ParseArg(self, 'title')
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
     self._current = 0
