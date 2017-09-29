@@ -88,12 +88,11 @@ In test list, a test can ask Goofy to stop plugins using specific resources.
 
 For example:
 
-    OperatorTest(
-        id='BatteryCharging',
-        label=_('Battery Charging'),
-        pytest_name='battery_charging',
-        exclusive_resources=[plugin.RESOURCE.POWER],
-        darg={...})
+    {
+      "pytest_name": "battery_charging",
+      "exclusive_resources": ["POWER"],
+      "args": {...}
+    }
 
 Before the test starts, Goofy calls `OnStop` of `BatteryMonitor`. And `OnStart`
 will be called again after the test finishes.

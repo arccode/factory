@@ -13,15 +13,15 @@ them are installed into the system.
 
 ## Usage example
 
-    FactoryTest(
-        id='RFConductive',
-        label=_('RF Conductive'),
-        pytest_name='rf_graphyte',
-        dargs={
-            'graphyte_config_file': 'conductive_config.json',
-            'verbose': True,
-            'enable_factory_server': True,
-            'server_parameter_dir': 'rf_conductive'})
+    {
+      "pytest_name": "rf_graphyte",
+      "args": {
+        "graphyte_config_file": "conductive_config.json",
+        "server_parameter_dir": "rf_conductive",
+        "enable_factory_server": true,
+        "verbose": true
+      }
+    }
 
 Note that the config files should be placed in this folder, including
 Graphyte global config, port config, test plan, and device config.

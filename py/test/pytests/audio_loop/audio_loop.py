@@ -22,68 +22,97 @@ Since this test is sensitive to different loopback dongles, user can set a list
 of output volume candidates. The test can pass if it can pass at any one of
 output volume candidates.
 
-Here are some test list examples for different test cases::
+Here are some test list examples for different test cases:
 
-    # Audiofuntest for all mics of input_dev and all speakers of output_dev.
-    OperatorTest(
-        id='SpeakerDMic',
-        label=_('SpeakerDMic'),
-        pytest_name='audio_loop',
-        dargs={'require_dongle': False,
-               'check_dongle': True,
-               'output_volume': 10,
-               'initial_actions': [('1', 'init_speakerdmic')],
-               'input_dev': ('Audio Card', '0'),
-               'output_dev': ('Audio Card', '0'),
-               'tests_to_conduct': [{'type': 'audiofun',
-                                     'duration': 4,
-                                     'threshold': 80}]})
+Audiofuntest for all mics of input_dev and all speakers of output_dev::
 
-    # Audiofuntest on 'mlb' mics of input_dev and speaker channel 0 of
-    # output_dev.
-    OperatorTest(
-        id='Speaker0DMicMlb',
-        label=_('Speaker0DMicMlb'),
-        pytest_name='audio_loop',
-        dargs={'require_dongle': False,
-               'check_dongle': True,
-               'output_volume': 10,
-               'initial_actions': [('1', 'init_speakerdmic')],
-               'mic_source': 'mlb',
-               'input_dev': ('Audio Card', '0'),
-               'output_dev': ('Audio Card', '0'),
-               'tests_to_conduct': [{'type': 'audiofun',
-                                     'capture_rate': 16000,
-                                     'output_channels': [0],
-                                     'threshold': 80}]})
+    {
+      "pytest_name": "audio_loop",
+      "args": {
+        "input_dev": ["Audio Card", "0"],
+        "output_volume": 10,
+        "check_dongle": true,
+        "initial_actions": [
+          ["1", "init_speakerdmic"]
+        ],
+        "tests_to_conduct": [
+          {
+            "duration": 4,
+            "threshold": 80,
+            "type": "audiofun"
+          }
+        ],
+        "require_dongle": false,
+        "output_dev": ["Audio Card", "0"]
+      }
+    }
 
-    OperatorTest(
-        id='Noise',
-        label=_('Noise'),
-        pytest_name='audio_loop',
-        dargs={'require_dongle': False,
-               'check_dongle': True,
-               'initial_actions': [('1', 'init_speakerdmic')],
-               'input_dev': ('Audio Card', '0'),
-               'output_dev': ('Audio Card', '0'),
-               'tests_to_conduct': [{'type': 'noise',
-                                     'duration': 2,
-                                     'rms_threshold': (None, 0.5),
-                                     'amplitude_threshold': (-0.9, 0.9)}]})
+Audiofuntest on 'mlb' mics of input_dev and speaker channel 0 of output_dev::
 
-    OperatorTest(
-        id='AudioJack',
-        label=_('Audio Jack'),
-        pytest_name='audio_loop',
-        dargs={'require_dongle': True,
-               'check_dongle': True,
-               'output_volume': 15,
-               'initial_actions': [('1', 'init_audiojack')],
-               'input_dev': ('Audio Card', '0'),
-               'output_dev': ('Audio Card', '0'),
-               'tests_to_conduct': [{'type': 'sinewav',
-                                     'freq_threshold': 50,
-                                     'rms_threshold': (0.08, None)}]})
+    {
+      "pytest_name": "audio_loop",
+      "args": {
+        "input_dev": ["Audio Card", "0"],
+        "check_dongle": true,
+        "output_dev": ["Audio Card", "0"],
+        "mic_source": "mlb",
+        "initial_actions": [
+          ["1", "init_speakerdmic"]
+        ],
+        "tests_to_conduct": [
+          {
+            "threshold": 80,
+            "capture_rate": 16000,
+            "type": "audiofun",
+            "output_channels": [0]
+          }
+        ],
+        "require_dongle": false,
+        "output_volume": 10
+      }
+    }
+
+    {
+      "pytest_name": "audio_loop",
+      "args": {
+        "input_dev": ["Audio Card", "0"],
+        "output_dev": ["Audio Card", "0"],
+        "tests_to_conduct": [
+          {
+            "duration": 2,
+            "amplitude_threshold": [-0.9, 0.9],
+            "type": "noise",
+            "rms_threshold": [null, 0.5]
+          }
+        ],
+        "check_dongle": true,
+        "require_dongle": false,
+        "initial_actions": [
+          ["1", "init_speakerdmic"]
+        ]
+      }
+    }
+
+    {
+      "pytest_name": "audio_loop",
+      "args": {
+        "input_dev": ["Audio Card", "0"],
+        "output_volume": 15,
+        "check_dongle": true,
+        "initial_actions": [
+          ["1", "init_audiojack"]
+        ],
+        "tests_to_conduct": [
+          {
+            "freq_threshold": 50,
+            "type": "sinewav",
+            "rms_threshold": [0.08, null]
+          }
+        ],
+        "require_dongle": true,
+        "output_dev": ["Audio Card", "0"]
+      }
+    }
 """
 
 from __future__ import print_function

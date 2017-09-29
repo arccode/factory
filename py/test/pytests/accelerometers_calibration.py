@@ -42,16 +42,18 @@ Below is an example of test list. There are some mandatory arguments:
 
 Usage examples::
 
-    OperatorTest(
-        id='AccelerometersCalibration',
-        label=_('Accelerometers Calibration'),
-        pytest_name='accelerometers_calibration',
-        dargs={'orientation': {
-                   'in_accel_x': 0,
-                   'in_accel_y': 0,
-                   'in_accel_z': 1},
-               'spec_offset': (0.5, 0.5),
-               'location': 'base'})
+    {
+      "pytest_name": "accelerometers_calibration",
+      "args": {
+        "orientation": {
+          "in_accel_z": 1,
+          "in_accel_y": 0,
+          "in_accel_x": 0
+        },
+        "spec_offset": [0.5, 0.5],
+        "location": "base"
+      }
+    }
 
 """
 

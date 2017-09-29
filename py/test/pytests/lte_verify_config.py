@@ -6,19 +6,21 @@
 
 Usage example::
 
-  FactoryTest(
-      exclusive=[plugin.RESOURCE.NETWORKING],
-      id='LTEVerifyConfig',
-      label=_('LTE Verify Config'),
-      pytest_name='lte_verify_config',
-      dargs={
-          'modem_path': 'ttyACM0',
-          'attempts': 3,
-          'config_to_check': [
-              # Single line response example.
-              ('AT_COMMAND_1', 'RESPONSE_1'),
-              # Multi-line response example.
-              ('AT_COMMAND_2', ['RESPONSE_2_LINE_1', RESPONSE_2_LINE_2])]})
+  {
+    "pytest_name": "lte_verify_config",
+    "exclusive_resources": ["NETWORK"],
+    "args": {
+      "config_to_check": [
+        ["AT_COMMAND_1", "RESPONSE_1"],
+        [
+          "AT_COMMAND_2",
+          ["RESPONSE_2_LINE_1", "RESPONSE_2_LINE_2"]
+        ]
+      ],
+      "modem_path": "ttyACM0",
+      "attempts": 3
+    }
+  }
 """
 
 import unittest

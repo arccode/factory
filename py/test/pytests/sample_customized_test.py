@@ -76,13 +76,16 @@ class SampleCustomizedTest(unittest.TestCase):
   list of `cros.factory.utils.arg_utils.Arg` object.  You can specify the value
   of each argument in the test list:
 
-      FactoryTest(
-          ...,
-          dargs={
-              'foo': 123,
-              'bar': 'value of bar',
-              # not setting value of 'baz', it will use default value.
-          })
+      {
+        "pytest_name": "sample_customized_test",
+        "args": {
+          "foo": 123,
+          "bar": "value of bar"
+        }
+      }
+
+  The value for argument "baz" is not set in the above example, so it will use
+  default value "BAZ".
   """
 
   def setUp(self):

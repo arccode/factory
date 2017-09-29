@@ -7,17 +7,21 @@
 This pytest uses probe module to probe the components, and verifies the
 component count of each category. The default rule is the count should be equal
 to 1. If the required count is not 1, we can set the rule in "overridden_rules"
-argument. For example::
+argument.
 
-  FactoryTest(
-      id='Probe',
-      label=_('Probe'),
-      pytest_name='probe',
-      dargs={
-          'config_file': 'probe_rule.json',
-          'overridden_rules': [
-              ('usb', '==', 2),         # There shoule be 2 USB components.
-              ('lte', 'in', [1, 2])]})  # There should be 1 or 2 LTE components.
+For example, if we want to override the rule so that there should be 2 USB
+components and 1 to 2 LTE components, add this in test list::
+
+  {
+    "pytest_name": "probe",
+    "args": {
+      "config_file": "probe_rule.json",
+      "overridden_rules": [
+        ["usb", "==", 2],
+        ["lte", "in", [1, 2]]
+      ]
+    }
+  }
 
 The format of the config file::
 

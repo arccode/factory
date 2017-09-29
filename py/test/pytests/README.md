@@ -20,7 +20,9 @@ Tests should be implemented using Python
 
 To use your test (say `mytest.py`), define an entry in test list:
 ```python
-  OperatorTest(pytest_name='mytest')
+  {
+    "pytest_name": "mytest"
+  }
 ```
 
 ## Using arguments

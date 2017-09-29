@@ -20,16 +20,15 @@ case for those exception cases.
 
 ## Usage Example
 
-    FactoryTest(
-        id='ProbeComponent',
-        label=_('Probe Components'),
-        pytest_name='probe',
-        dargs={
-            'config_file': 'probe_board_smt.json',
-            'overridden_rules': [
-                ('flash_chip', '==', 2)
-            ]
-        })
+    {
+      "pytest_name": "probe",
+      "args": {
+        "config_file": "probe_board_smt.json",
+        "overridden_rules": [
+          ["flash_chip", "==", 2]
+        ]
+      }
+    }
 
 
 ## Notes for Migration from Legacy Pytests
@@ -44,12 +43,14 @@ function to probe I2C component. Here is a example:
 
 The declaration of i2c_probe pytest:
 
-    FactoryTest(
-        id='TouchpadProbe',
-        pytest_name='i2c_probe',
-        dargs={'bus': 8,
-               'addr': [0x49, 0x50],
-               'r_flag': True})
+    {
+      "pytest_name": "i2c_probe",
+      "args": {
+        "bus": 8,
+        "addr": [73, 80],
+        "r_flag": true
+      }
+    }
 
 Then the config file of probe pytest should be:
 

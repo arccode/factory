@@ -13,44 +13,44 @@ accelerometer data if configured.
 Usage example::
 
     # Only test ChromeOS rotation value.
-    OperatorTest(
-        id='TabletRotation',
-        label=_('Tablet Rotation'),
-        pytest_name='tablet_rotation',
-        dargs={
-            'timeout_secs': HOURS_24,
-            'prompt_flip_tablet': False,
-            'prompt_flip_notebook': True,
-            # Include to also check accelerometer data.
-            # 'check_accelerometer': True,
-            # 'degrees_to_orientations': {
-            #      0: {'in_accel_x_base': -1,
-            #            'in_accel_y_base': 0,
-            #            'in_accel_z_base': 0,
-            #            'in_accel_x_lid': -1,
-            #            'in_accel_y_lid': 0,
-            #            'in_accel_z_lid': 0},
-            #      90: {'in_accel_x_base': 0,
-            #             'in_accel_y_base': 1,
-            #             'in_accel_z_base': 0,
-            #             'in_accel_x_lid': 0,
-            #             'in_accel_y_lid': 1,
-            #             'in_accel_z_lid': 0},
-            #      180: {'in_accel_x_base': 1,
-            #              'in_accel_y_base': 0,
-            #              'in_accel_z_base': 0,
-            #              'in_accel_x_lid': 1,
-            #              'in_accel_y_lid': 0,
-            #              'in_accel_z_lid': 0},
-            #      270: {'in_accel_x_base': 0,
-            #              'in_accel_y_base': -1,
-            #              'in_accel_z_base': 0,
-            #              'in_accel_x_lid': 0,
-            #              'in_accel_y_lid': -1,
-            #              'in_accel_z_lid': 0}},
-            #      'spec_offset': (92, 91 + 61),
-            #      'spec_ideal_values': (0, 1024)})
-        })
+    {
+      "pytest_name": "tablet_rotation",
+      "args": {
+        "prompt_flip_tablet": false,
+        "prompt_flip_notebook": true,
+        "timeout_secs": 86400
+        # Include to also check accelerometer data.
+        # "check_accelerometer": true,
+        # "degrees_to_orientations": {
+        #   0: {"in_accel_x_base": -1,
+        #       "in_accel_y_base": 0,
+        #       "in_accel_z_base": 0,
+        #       "in_accel_x_lid": -1,
+        #       "in_accel_y_lid": 0,
+        #       "in_accel_z_lid": 0},
+        #   90: {"in_accel_x_base": 0,
+        #        "in_accel_y_base": 1,
+        #        "in_accel_z_base": 0,
+        #        "in_accel_x_lid": 0,
+        #        "in_accel_y_lid": 1,
+        #        "in_accel_z_lid": 0},
+        #   180: {"in_accel_x_base": 1,
+        #         "in_accel_y_base": 0,
+        #         "in_accel_z_base": 0,
+        #         "in_accel_x_lid": 1,
+        #         "in_accel_y_lid": 0,
+        #         "in_accel_z_lid": 0},
+        #   270: {"in_accel_x_base": 0,
+        #         "in_accel_y_base": -1,
+        #         "in_accel_z_base": 0,
+        #         "in_accel_x_lid": 0,
+        #         "in_accel_y_lid": -1,
+        #         "in_accel_z_lid": 0}
+        # },
+        # "spec_offset": [92, 152],
+        # "spec_ideal_values": [0, 1024]
+      }
+    }
 """
 
 import random
@@ -133,6 +133,8 @@ class TabletRotationTest(unittest.TestCase):
           'If check_accelerometer is true, the location of accelerometer that '
           'should be checked. Should be either "lid" or "base"',
           default='lid', optional=True),
+      # TODO(pihsun): numeric key doesn't work in JSON test list, should change
+      # this argument type.
       Arg('degrees_to_orientations', dict,
           'Keys: degree of the orientation, limited to [0, 90, 180, 270]. '
           'Values: a dictionary containing orientation configuration.  Keys '

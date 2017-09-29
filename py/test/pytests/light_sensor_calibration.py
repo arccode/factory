@@ -23,18 +23,28 @@ Control Chamber:
 
 Usage examples::
 
-    OperatorTest(
-      pytest_name='light_sensor_calibration',
-      dargs={
-        'mock_mode': False,
-        'control_chamber': True,
-        'chamber_conn_params': 'default',
-        'chamber_cmd': {
-          'LUX1': [('LUX1_ON\\n', 'LUX1_READY')],
-          'LUX2': [('LUX2_ON\\n', 'LUX2_READY')],
-          'LUX3': [('LUX3_ON\\n', 'LUX3_READY')],
-          'OFF': [('OFF\\n', 'OFF_READY')]
-        })
+    {
+      "pytest_name": "light_sensor_calibration",
+      "args": {
+        "chamber_conn_params": "default",
+        "chamber_cmd": {
+          "OFF": [
+            ["OFF\\n", "OFF_READY"]
+          ],
+          "LUX1": [
+            ["LUX1_ON\\n", "LUX1_READY"]
+          ],
+          "LUX3": [
+            ["LUX3_ON\\n", "LUX3_READY"]
+          ],
+          "LUX2": [
+            ["LUX2_ON\\n", "LUX2_READY"]
+          ]
+        },
+        "mock_mode": false,
+        "control_chamber": true
+      }
+    }
 
 """
 

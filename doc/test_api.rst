@@ -128,12 +128,13 @@ This declares two arguments: ``path`` is a required string, and
 
 The test list might contain an entry like::
 
-  FactoryTest(
-      id='BadBlocks',
-      pytest_name='bad_blocks',
-      dargs={'path': '/usr/local/foo',
-             'max_bytes': 8*1024*1024}
-  )
+  {
+    "pytest_name": "bad_blocks",
+    "args": {
+      "path": "/usr/local/foo",
+      "max_bytes": 8388608
+    }
+  }
 
 The factory test runner will check that:
 

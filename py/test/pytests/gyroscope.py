@@ -6,13 +6,13 @@
 
 Usage examples::
 
-    OperatorTest(
-        id='Gyroscope',
-        pytest_name='gyroscope',
-        dargs={
-            'rotation_threshold': 1.0,
-            'stop_threshold': 0.1
-        })
+    {
+      "pytest_name": "gyroscope",
+      "args": {
+        "rotation_threshold": 1.0,
+        "stop_threshold": 0.1
+      }
+    }
 """
 
 import collections

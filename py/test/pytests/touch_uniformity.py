@@ -12,15 +12,15 @@ baseline - current reading) are also checked.
 
 Sample test_list entry::
 
-  OperatorTest(
-    id='TouchUniformity',
-    pytest_name='touch_uniformity',
-    dargs={
-        'check_list': [
-            (0, {'en-US': u'References', 'zh-CN': u'参考值'},
-             23400, 25100, 0, 0),
-            (1, {'en-US': u'Deltas', 'zh-CN': u'差量'}, -30, 40, 0, 0)
-            ]})
+  {
+    "pytest_name": "touch_uniformity",
+    "args": {
+      "check_list": [
+        [0, "i18n! References", 23400, 25100, 0, 0],
+        [1, "i18n! Deltas", -30, 40, 0, 0]
+      ]
+    }
+  }
 
 The args thresholds in need to be experimentally determined by checking
 a set of machines. The test logs the actual max and min values found.

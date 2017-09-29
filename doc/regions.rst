@@ -252,9 +252,12 @@ In general, the test list should contain an invocation of the
 obtain the device-specific data, including region code in VPD.
 For instance::
 
-    OperatorTest(
-        pytest_name='shopfloor_service',
-        dargs=dict(method='GetDeviceInfo'))
+    {
+      "pytest_name": "shopfloor_service",
+      "args": {
+        "method": "GetDeviceInfo"
+      }
+    }
 
 The returned data from remote Shopfloor Service should return a dictionary to be
 stored in factory state data shelve (DeviceData) with region for VPD as::
@@ -267,8 +270,9 @@ firmware VPD RO region.
 
 For example::
 
-    OperatorTest(
-        pytest_name='write_device_data_to_vpd)
+    {
+      "pytest_name": "write_device_data_to_vpd"
+    }
 
 Region API
 ----------

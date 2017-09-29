@@ -11,13 +11,14 @@ Please notice this test requires the hinge to be in a horizontal plane.
 
 Usage examples::
 
-    OperatorTest(
-        id='accelerometers_lid_angle',
-        label=_('Accelerometers Lid Angle Test'),
-        pytest_name='accelerometers_lid_angle',
-        dargs={'angle': 180,
-               'tolerance': 5,
-               'spec_offset': (0.5, 0.5)})
+    {
+      "pytest_name": "accelerometers_lid_angle",
+      "args": {
+        "angle": 180,
+        "tolerance": 5,
+        "spec_offset": [0.5, 0.5]
+      }
+    }
 """
 
 import logging

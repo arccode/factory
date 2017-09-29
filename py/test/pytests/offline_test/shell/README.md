@@ -16,45 +16,43 @@ booting.
 
 ## Example
 
-    test_spec = [
-        {
-          'shtest_name': 'stressapptest',  # first stress test
-          'dargs': {
-            'memory_ratio': 0.5,
-            'seconds': 60 * 10,  # run for 10 minutes.
-            'disk_thread': True
+    {
+      "pytest_name": "offline_test.shell.deploy",
+      "args": {
+        "start_up_service": true,
+        "shutdown": "poweroff",
+        "test_spec": [
+          {
+            "shtest_name": "stressapptest",
+            "dargs": {
+              "seconds": 600,
+              "memory_ratio": 0.5,
+              "disk_thread": true
+            }
+          },
+          {
+            "shtest_name": "wait_for",
+            "dargs": {
+              "wait_seconds": 10
+            }
+          },
+          {
+            "shtest_name": "stressapptest",
+            "dargs": {
+              "seconds": 600,
+              "memory_ratio": 0.5,
+              "disk_thread": true
+            }
+          },
+          {
+            "pytest_name": "verify_components",
+            "dargs": {
+              # arguments for pytest `verify_components`
+            }
           }
-        },
-        {
-          'shtest_name': 'wait_for',
-          'dargs': {
-            'wait_seconds': 10  # wait 10 seconds before next test.
-          }
-        },
-        {
-          'shtest_name': 'stressapptest',  # second stress test
-          'dargs': {
-            'memory_ratio': 0.5,
-            'seconds': 60 * 10,  # run for 10 minutes.
-            'disk_thread': True
-          }
-        },
-        {
-          'pytest_name': 'verify_components',
-          'dargs': {
-            # arguments for pytest `verify_components`
-          }
-        }
-    ]
-
-    FactoryTest(
-        id='DeployRunInTest',
-        label=_('Deploy RunIn Test'),
-        pytest_name='offline_test.shell.deploy',
-        dargs=dict(
-            test_spec=test_spec,
-            start_up_service=True,
-            shutdown='POWEROFF')
+        ]
+      }
+    }
 
 
 ## How To Write a New Test
