@@ -153,6 +153,14 @@ _AUDIOFUNTEST_RUN_START_RE = re.compile('^carrier')
 _DEFAULT_AUDIOFUN_TEST_THRESHOLD = 50
 # Default iterations to do the audiofun test.
 _DEFAULT_AUDIOFUN_TEST_ITERATION = 10
+# Default channels of the input_dev to be tested.
+_DEFAULT_AUDIOFUN_TEST_INPUT_CHANNELS = [0, 1]
+# Default channels of the output_dev to be tested.
+_DEFAULT_AUDIOFUN_TEST_OUTPUT_CHANNELS = [0, 1]
+# Default capture sample rate used for audiofuntest.
+_DEFAULT_AUDIOFUN_TEST_SAMPLE_RATE = 48000
+# Default audio gain used for audiofuntest.
+_DEFAULT_AUDIOFUN_TEST_VOLUME_GAIN = 100
 # Default duration to do the sinewav test, in seconds.
 _DEFAULT_SINEWAV_TEST_DURATION = 2
 # Default frequency tolerance, in Hz.
@@ -163,12 +171,6 @@ _DEFAULT_NOISE_TEST_DURATION = 1
 _DEFAULT_SOX_RMS_THRESHOLD = (0.08, None)
 # Default Amplitude thresholds when checking recorded file.
 _DEFAULT_SOX_AMPLITUDE_THRESHOLD = (None, None)
-# Default channels of the input_dev to be tested.
-_DEFAULT_AUDIOFUN_TEST_INPUT_CHANNELS = [0, 1]
-# Default channels of the output_dev to be tested.
-_DEFAULT_AUDIOFUN_TEST_OUTPUT_CHANNELS = [0, 1]
-# Default capture sample rate used for audiofuntest.
-_DEFAULT_AUDIOFUN_TEST_SAMPLE_RATE = 48000
 # Default duration in seconds to trim in the beginning of recorded file.
 _DEFAULT_TRIM_SECONDS = 0.5
 
@@ -238,6 +240,9 @@ class AudioLoopTest(unittest.TestCase):
           '  - **input_channels**: A list of input channels to be tested.\n'
           '  - **output_channels**: A list of output channels to be tested.\n'
           '  - **capture_rate**: The capturing sample rate use for testing.\n'
+          '  - **volume_gain**: The volume gain set to audiofuntest for \n'
+          '        controlling the volume of generated audio frames. The \n'
+          '        range is from 0 to 100.'
           '\n'
           'If type is **sinewav**, the dict can optionally contain:\n'
           '  - **duration**: The test duration, in seconds.\n'
@@ -447,6 +452,10 @@ class AudioLoopTest(unittest.TestCase):
     iteration = self._current_test_args.get(
         'iteration', _DEFAULT_AUDIOFUN_TEST_ITERATION)
 
+    volume_gain = self._current_test_args.get(
+        'volume_gain', _DEFAULT_AUDIOFUN_TEST_VOLUME_GAIN)
+    assert 0 <= volume_gain and volume_gain <= 100
+
     player_cmd = 'aplay -D %s -r %d -f s16 -t raw -c 2 -B 0 -' % (
         self._alsa_output_device, capture_rate)
     recorder_cmd = 'arecord -D %s -r %d -f s16 -t raw -c %d -B 0 -' % (
@@ -461,7 +470,8 @@ class AudioLoopTest(unittest.TestCase):
          '-T', '%d' % iteration,
          '-a', '%d' % output_channel,
          '-m', ','.join(map(str, input_channels)),
-         '-c', '%d' % self.args.num_input_channels],
+         '-c', '%d' % self.args.num_input_channels,
+         '-g', '%d' % volume_gain],
         stdout=process_utils.PIPE, stderr=process_utils.PIPE)
 
     last_success_rate = None
