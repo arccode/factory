@@ -20,7 +20,7 @@ from cros.factory.utils import process_utils
 UMPIRE_ENV_VERSION = 1
 
 _ENV_DIR = os.path.join('/', umpire_env.DEFAULT_BASE_DIR)
-_ENV_JSON_PATH = os.path.join(_ENV_DIR, umpire_env.ENV_JSON_FILE)
+_SESSION_JSON_PATH = os.path.join(_ENV_DIR, umpire_env.SESSION_JSON_FILE)
 
 _WIP_KEY = 'migrate_in_progress'
 
@@ -31,13 +31,14 @@ def _GetEnvironmentVersionAndData():
     return (-1, None)
 
   try:
-    env = json_utils.JSONDatabase(_ENV_JSON_PATH)
+    env = json_utils.JSONDatabase(_SESSION_JSON_PATH)
   except IOError:
     logging.info(
-        '%s not found. Assuming before migration mechanism.', _ENV_JSON_PATH)
+        '%s not found. Assuming before migration mechanism.',
+        _SESSION_JSON_PATH)
     return (0, None)
 
-  logging.info('%r : %s', _ENV_JSON_PATH, json_utils.DumpStr(env))
+  logging.info('%r : %s', _SESSION_JSON_PATH, json_utils.DumpStr(env))
   return (env['version'], env)
 
 
@@ -62,7 +63,7 @@ def _RunMigration(migration_id):
   if env:
     if env.get(_WIP_KEY):
       raise "Please remove field %r from %r before running migrations." % (
-          _WIP_KEY, _ENV_JSON_PATH)
+          _WIP_KEY, _SESSION_JSON_PATH)
     env[_WIP_KEY] = True
     env.Save()
 
@@ -73,7 +74,7 @@ def _RunMigration(migration_id):
     logging.error(
         'Migration %s failed. Please manually fix it and remember to remove '
         'field %r from %r before re-run it.',
-        migration_name, _WIP_KEY, _ENV_JSON_PATH)
+        migration_name, _WIP_KEY, _SESSION_JSON_PATH)
     raise
   logging.info('Migration %s finished successfully.', migration_name)
 

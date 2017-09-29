@@ -34,7 +34,7 @@ CROS_PAYLOAD = os.path.join(
 DEFAULT_BASE_DIR = os.path.join('var', 'db', 'factory', 'umpire')
 DEFAULT_SERVER_DIR = os.path.join('usr', 'local', 'factory')
 
-ENV_JSON_FILE = 'env.json'
+SESSION_JSON_FILE = 'session.json'
 
 # File name under base_dir
 _ACTIVE_UMPIRE_CONFIG = 'active_umpire.yaml'

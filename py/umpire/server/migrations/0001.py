@@ -10,4 +10,4 @@ _ENV_DIR = '/var/db/factory/umpire'
 
 def Migrate():
   os.rmdir(os.path.join(_ENV_DIR, 'bin'))
-  shutil.copy('env.json', _ENV_DIR)
+  shutil.copy('session.json', _ENV_DIR)
