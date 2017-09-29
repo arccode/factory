@@ -196,7 +196,7 @@ def WriteTestObjectDetail(
 
 def GenerateTestListDoc(output_dir):
   manager_ = manager.Manager()
-  manager_.BuildAllTestLists(False)
+  manager_.BuildAllTestLists()
   index_rst = os.path.join(output_dir, 'index.rst')
 
   with open(index_rst, 'w') as index_file:
