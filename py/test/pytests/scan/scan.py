@@ -68,7 +68,6 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
-from cros.factory.utils import process_utils
 
 
 class Scan(unittest.TestCase):
@@ -269,10 +268,10 @@ class Scan(unittest.TestCase):
           'window.test.sendTestEvent("scan_value", "%d")' % fixture_id)
     elif self.args.bft_scan_barcode:
       logging.info('Triggering barcode scanner...')
-      process_utils.StartDaemonThread(target=self.ScanBarcode)
+      self.ui.RunInBackground(self.ScanBarcode)
     elif self.args.bft_save_barcode:
       logging.info('Triggering barcode scanner...')
-      process_utils.StartDaemonThread(target=self.BFTScanSaveBarcode)
+      self.ui.RunInBackground(self.BFTScanSaveBarcode)
     elif self.args.bft_get_barcode:
       logging.info('Getting barcode from BFT...')
       saved_barcode_path = None

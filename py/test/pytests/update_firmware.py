@@ -67,7 +67,6 @@ import logging
 import os
 import subprocess
 import tempfile
-import threading
 import unittest
 
 import factory_common  # pylint: disable=unused-import
@@ -172,10 +171,7 @@ class UpdateFirmwareTest(unittest.TestCase):
     self._ui.event_client.post_event(
         event.Event(event.Event.Type.UPDATE_SYSTEM_INFO))
 
-    if p.poll() != 0:
-      self._ui.Fail('Firmware update failed: %d.' % p.returncode)
-    else:
-      self._ui.Pass()
+    self.assertEqual(p.poll(), 0, 'Firmware update failed: %d.' % p.returncode)
 
   def runTest(self):
     if self.args.download_from_server:
@@ -189,5 +185,5 @@ class UpdateFirmwareTest(unittest.TestCase):
       self.assertTrue(os.path.isfile(self.args.firmware_updater),
                       msg='%s is missing.' % self.args.firmware_updater)
 
-    threading.Thread(target=self.UpdateFirmware).start()
+    self._ui.RunInBackground(self.UpdateFirmware)
     self._ui.Run()

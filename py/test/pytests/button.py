@@ -75,7 +75,6 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
 _DEFAULT_TIMEOUT = 30
@@ -268,15 +267,6 @@ class ButtonTest(unittest.TestCase):
       self._fixture = None
 
     self._disable_timer = threading.Event()
-    # Create a thread to monitor button events.
-    process_utils.StartDaemonThread(target=self._MonitorButtonEvent)
-    # Create a thread to run countdown timer.
-    countdown_timer.StartCountdownTimer(
-        self.args.timeout_secs,
-        lambda: self.ui.Fail('Button test failed due to timeout.'),
-        self.ui,
-        _ID_COUNTDOWN_TIMER,
-        disable_event=self._disable_timer)
 
   def tearDown(self):
     timestamps = self._action_timestamps + [float('inf')]
@@ -322,7 +312,15 @@ class ButtonTest(unittest.TestCase):
       self._PollForCondition(lambda: not self.button.IsPressed(),
                              'WaitForRelease')
     self._disable_timer.set()
-    self.ui.Pass()
 
   def runTest(self):
+    # Create a thread to run countdown timer.
+    countdown_timer.StartCountdownTimer(
+        self.args.timeout_secs,
+        lambda: self.ui.Fail('Button test failed due to timeout.'),
+        self.ui,
+        _ID_COUNTDOWN_TIMER,
+        disable_event=self._disable_timer)
+    # Create a thread to monitor button events.
+    self.ui.RunInBackground(self._MonitorButtonEvent)
     self.ui.Run()

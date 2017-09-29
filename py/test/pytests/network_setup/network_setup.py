@@ -68,7 +68,6 @@ before retries::
 
 import os
 import threading
-import traceback
 import unittest
 
 import factory_common  # pylint: disable=unused-import
@@ -77,7 +76,6 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import connection_manager
 from cros.factory.utils import arg_utils
-from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
 
@@ -132,56 +130,52 @@ class NetworkConnectionSetup(unittest.TestCase):
   def runTest(self):
     self.ui_template.SetState(_STATE_HTML)
     self.ui.BindKey(test_ui.SPACE_KEY, lambda _: self.space_pressed.set())
-    process_utils.StartDaemonThread(target=self.SetInterfaces)
+    self.ui.RunInBackground(self.SetInterfaces)
     self.ui.Run()
 
   def SetInterfaces(self):
-    try:
-      # make config_name absolute path, however, this might not work in PAR
-      config_path = os.path.join(os.path.dirname(__file__),
-                                 self.args.config_path)
-      settings = connection_manager.LoadNetworkConfig(config_path)
+    # make config_name absolute path, however, this might not work in PAR
+    config_path = os.path.join(os.path.dirname(__file__),
+                               self.args.config_path)
+    settings = connection_manager.LoadNetworkConfig(config_path)
 
-      proxy = connection_manager.GetConnectionManagerProxy()
+    proxy = connection_manager.GetConnectionManagerProxy()
 
-      for interface in settings:
-        interface_name = settings[interface].pop('interface_name', interface)
-        self.ui.SetHTML(_GetSubtitleForInterface(interface),
-                        id=_ID_SUBTITLE_DIV)
+    for interface in settings:
+      interface_name = settings[interface].pop('interface_name', interface)
+      self.ui.SetHTML(_GetSubtitleForInterface(interface),
+                      id=_ID_SUBTITLE_DIV)
 
-        def _TryOnce(interface=interface, interface_name=interface_name):
-          try:
-            error_code = proxy.SetStaticIP(interface_or_path=interface,
-                                           **settings[interface])
-          except connection_manager.ConnectionManagerException as e:
-            # if proxy is actually a connection manager instance, error code is
-            # raised as an exception, rather than return value.
-            error_code = e.error_code
-
-          if error_code is None:
-            return True
-          # Hint operators what might go wrong.
-          self.ui.SetHTML(_ErrorCodeToMessage(error_code, interface_name),
-                          id=_ID_MESSAGE_DIV)
-
-        # Try once first, if we success, we don't need to ask operators to do
-        # anything.
+      def _TryOnce(interface=interface, interface_name=interface_name):
         try:
-          success = _TryOnce()
-        except Exception:
-          success = False
+          error_code = proxy.SetStaticIP(interface_or_path=interface,
+                                         **settings[interface])
+        except connection_manager.ConnectionManagerException as e:
+          # if proxy is actually a connection manager instance, error code is
+          # raised as an exception, rather than return value.
+          error_code = e.error_code
 
-        if not success:
-          # Failed, wait operators to press space when they think cables are
-          # connected correctly.
-          self.ui.SetHTML(_PRESS_SPACE, id=_ID_INSTRUCTION_DIV)
-          self.space_pressed.clear()
-          self.space_pressed.wait()
+        if error_code is None:
+          return True
+        # Hint operators what might go wrong.
+        self.ui.SetHTML(_ErrorCodeToMessage(error_code, interface_name),
+                        id=_ID_MESSAGE_DIV)
 
-          # Polling until success or timeout (operators don't need to press
-          # space anymore).
-          sync_utils.PollForCondition(_TryOnce,
-                                      timeout_secs=self.args.timeout_secs)
-      self.ui.Pass()
-    except Exception:
-      self.ui.Fail(traceback.format_exc())
+      # Try once first, if we success, we don't need to ask operators to do
+      # anything.
+      try:
+        success = _TryOnce()
+      except Exception:
+        success = False
+
+      if not success:
+        # Failed, wait operators to press space when they think cables are
+        # connected correctly.
+        self.ui.SetHTML(_PRESS_SPACE, id=_ID_INSTRUCTION_DIV)
+        self.space_pressed.clear()
+        self.space_pressed.wait()
+
+        # Polling until success or timeout (operators don't need to press
+        # space anymore).
+        sync_utils.PollForCondition(_TryOnce,
+                                    timeout_secs=self.args.timeout_secs)

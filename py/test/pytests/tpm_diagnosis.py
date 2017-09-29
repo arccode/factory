@@ -7,7 +7,6 @@
 import logging
 import os
 import subprocess
-import threading
 import unittest
 
 import factory_common  # pylint: disable=unused-import
@@ -52,14 +51,12 @@ class TpmDiagnosisTest(unittest.TestCase):
         success = True
 
     p.poll()
-    if success:
-      self._ui.Pass()
-    else:
-      self._ui.Fail(
-          'TPM self-diagnose failed: Cannot find a success pattern: "%s". '
-          'tpm_selftest returncode: %d.' % (self.args.success_pattern,
-                                            p.returncode))
+    self.assertTrue(
+        success,
+        'TPM self-diagnose failed: Cannot find a success pattern: "%s". '
+        'tpm_selftest returncode: %d.' % (self.args.success_pattern,
+                                          p.returncode))
 
   def runTest(self):
-    threading.Thread(target=self.DiagnoseTpm).start()
+    self._ui.RunInBackground(self.DiagnoseTpm)
     self._ui.Run()

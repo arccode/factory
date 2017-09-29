@@ -10,7 +10,6 @@ of change within certain time under certain load.
 from collections import namedtuple
 import logging
 import os
-import threading
 import time
 import unittest
 
@@ -85,7 +84,6 @@ class ChargerTest(unittest.TestCase):
     _power: The Power object to get AC/Battery info and charge percentage.
     _ui: Test UI.
     _template: Test template.
-    _thread: The thread to run ui.
   """
   ARGS = [
       Arg('min_starting_charge_pct', (int, float),
@@ -125,7 +123,6 @@ class ChargerTest(unittest.TestCase):
     self._power = self._dut.power
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
-    self._thread = threading.Thread(target=self._ui.Run)
     self._min_starting_charge = float(self.args.min_starting_charge_pct)
     self._max_starting_charge = float(self.args.max_starting_charge_pct)
     self._unit = '%' if self.args.use_percentage else 'mAh'
@@ -350,41 +347,37 @@ class ChargerTest(unittest.TestCase):
     return Spec(charge_change, timeout_secs, load)
 
   def runTest(self):
+    self._ui.RunInBackground(self._runTest)
+    self._ui.Run()
+
+  def _runTest(self):
     """Main entrance of charger test."""
-    self._thread.start()
-    try:
-      self._CheckPower()
-      charge = self._GetCharge(self.args.use_percentage)
+    self._CheckPower()
+    charge = self._GetCharge(self.args.use_percentage)
 
-      min_charge = self._NormalizeCharge(self._min_starting_charge)
-      max_charge = self._NormalizeCharge(self._max_starting_charge)
+    min_charge = self._NormalizeCharge(self._min_starting_charge)
+    max_charge = self._NormalizeCharge(self._max_starting_charge)
 
-      if charge < min_charge:
-        start_charge_diff = min_charge - charge
-      elif charge > max_charge:
-        start_charge_diff = max_charge - charge
-      else:
-        start_charge_diff = None
-
-      # Try to meet start_charge_diff as soon as possible.
-      # When trying to charge, use 0 load.
-      # When trying to discharge, use full load.
-      if start_charge_diff:
-        self._RegulateCharge(
-            self._GetSpec(start_charge_diff,
-                          self.args.starting_timeout_secs,
-                          0 if start_charge_diff > 0 else None))
-      # Start testing the specs when battery charge is between
-      # min_starting_charge_pct and max_starting_charge_pct.
-      for spec in self.args.spec_list:
-        self._RegulateCharge(self._GetSpec(*spec))
-    except Exception, e:
-      self._ui.Fail(str(e))
-      raise
+    if charge < min_charge:
+      start_charge_diff = min_charge - charge
+    elif charge > max_charge:
+      start_charge_diff = max_charge - charge
     else:
-      self._ui.Pass()
+      start_charge_diff = None
+
+    # Try to meet start_charge_diff as soon as possible.
+    # When trying to charge, use 0 load.
+    # When trying to discharge, use full load.
+    if start_charge_diff:
+      self._RegulateCharge(
+          self._GetSpec(start_charge_diff,
+                        self.args.starting_timeout_secs,
+                        0 if start_charge_diff > 0 else None))
+    # Start testing the specs when battery charge is between
+    # min_starting_charge_pct and max_starting_charge_pct.
+    for spec in self.args.spec_list:
+      self._RegulateCharge(self._GetSpec(*spec))
 
   def tearDown(self):
     # Must enable charger to charge or we will drain the battery!
     self._SetCharge(update_ui=False)
-    self._thread.join()

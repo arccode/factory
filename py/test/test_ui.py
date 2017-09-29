@@ -332,6 +332,11 @@ class UI(object):
     self.BindStandardKeys()
 
   def RunInBackground(self, target):
+    """Run a function in background daemon thread.
+
+    Pass the test if the function ends without exception, and fails the test if
+    there's any exception raised.
+    """
     def _target():
       try:
         target()

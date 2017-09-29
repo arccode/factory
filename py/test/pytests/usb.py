@@ -12,9 +12,9 @@
 
 import logging
 import os
-import pyudev
-import threading
 import unittest
+
+import pyudev
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import factory
@@ -36,23 +36,6 @@ _ID_CONTAINER = 'usb-test-container'
 _HTML_USB = '<div id="%s"></div>\n' % (_ID_CONTAINER)
 
 _CSS_USB_TEST = '.usb-test-info { font-size: 2em; }'
-
-
-class PyudevThread(threading.Thread):
-  """A thread class for monitoring udev events in the background."""
-
-  def __init__(self, callback, **udev_filters):
-    threading.Thread.__init__(self)
-    self._callback = callback
-    self._udev_filters = dict(udev_filters)
-
-  def run(self):
-    """Create a loop to monitor udev events and invoke callback function."""
-    context = pyudev.Context()
-    monitor = pyudev.Monitor.from_netlink(context)
-    monitor.filter_by(**self._udev_filters)
-    for action, device in monitor:
-      self._callback(action, device)
 
 
 class USBTest(unittest.TestCase):
@@ -137,12 +120,15 @@ class USBTest(unittest.TestCase):
 
     self.record_path(device.sys_path)
 
-  def runTest(self):
-    # Create a daemon pyudev thread to listen to device events
-    self._pyudev_thread = PyudevThread(
-        self.usb_event_cb, subsystem='usb',
-        device_type='usb_device')
-    self._pyudev_thread.daemon = True
-    self._pyudev_thread.start()
+  def _runTest(self):
+    """Create a loop to monitor udev events and invoke callback function."""
+    # TODO(pihsun): Should use media_utils.MediaMonitor instead of this.
+    context = pyudev.Context()
+    monitor = pyudev.Monitor.from_netlink(context)
+    monitor.filter_by(subsystem='usb', device_type='usb_device')
+    for action, device in monitor:
+      self.usb_event_cb(action, device)
 
+  def runTest(self):
+    self.ui.RunInBackground(self._runTest)
     self.ui.Run()

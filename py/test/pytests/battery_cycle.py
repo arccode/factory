@@ -24,7 +24,6 @@ from cros.factory.test import ui_templates
 from cros.factory.test.utils import stress_manager
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
-from cros.factory.utils import process_utils
 from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
 
@@ -114,7 +113,7 @@ class BatteryCycleTest(unittest.TestCase):
 
   def runTest(self):
     if self.args.has_ui:
-      process_utils.StartDaemonThread(target=self._Run)
+      self.ui.RunInBackground(self._Run)
       self.ui.Run()
     else:
       self._Run()

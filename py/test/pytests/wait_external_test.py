@@ -98,7 +98,6 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
-from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
 
@@ -167,11 +166,9 @@ class WaitExternalTest(unittest.TestCase):
     with open(self._file_path) as f:
       result = f.read().strip()
 
-    if result.lower() == 'pass':
-      self.ui.Pass()
-    else:
-      self.ui.Fail('Test %s completed with failure: %s' %
-                   (self._name, result or 'unknown'))
+    self.assertEqual(result.lower(), 'pass',
+                     'Test %s completed with failure: %s' %
+                     (self._name, result or 'unknown'))
 
   def RemoveFile(self, file_path):
     try:
@@ -183,5 +180,5 @@ class WaitExternalTest(unittest.TestCase):
         raise
 
   def runTest(self):
-    process_utils.StartDaemonThread(target=self.MonitorResultFile)
+    self.ui.RunInBackground(self.MonitorResultFile)
     self.ui.Run()

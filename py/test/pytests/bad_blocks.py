@@ -18,7 +18,6 @@ import logging
 import re
 from select import select
 import subprocess
-import threading
 import time
 import unittest
 
@@ -30,7 +29,6 @@ from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 
@@ -91,8 +89,7 @@ class BadBlocksTest(unittest.TestCase):
     self.CheckArgs()
 
   def runTest(self):
-    thread = threading.Thread(target=self._CheckBadBlocks)
-    thread.start()
+    self.ui.RunInBackground(self._CheckBadBlocks)
     self.ui.Run()
 
   def tearDown(self):
@@ -105,15 +102,6 @@ class BadBlocksTest(unittest.TestCase):
     if self.message_monitor:
       self.message_monitor.kill()
       self.message_monitor = None
-
-  def _CheckBadBlocks(self):
-    try:
-      self._CheckBadBlocksImpl()
-    except Exception:
-      self.ui.Fail(debug_utils.FormatExceptionOnly())
-      raise
-    else:
-      self.ui.Pass()
 
   def CheckArgs(self):
     if self.args.max_bytes:
@@ -227,7 +215,7 @@ class BadBlocksTest(unittest.TestCase):
     return Parameters(first_block, last_block, sector_size,
                       self.args.device_path, self.args.max_errors)
 
-  def _CheckBadBlocksImpl(self):
+  def _CheckBadBlocks(self):
     self.assertFalse(sys_utils.InChroot(),
                      'badblocks test may not be run within the chroot')
 

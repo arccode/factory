@@ -51,10 +51,10 @@ class BrightnessTest(unittest.TestCase):
     self.ui.SetHTML(i18n_test_ui.MakeI18nLabelWithClass(
         self.args.msg, _MSG_CSS_CLASS), id=_ID_PROMPT)
     self.ui.SetHTML(_MSG_PASS_FAIL_PROMPT, append=True, id=_ID_PROMPT)
-    process_utils.StartDaemonThread(target=self._BrightnessChangeLoop)
-    process_utils.StartDaemonThread(target=self._CountdownTimer)
 
   def runTest(self):
+    self.ui.RunInBackground(self._BrightnessChangeLoop)
+    process_utils.StartDaemonThread(target=self._CountdownTimer)
     self.ui.Run()
 
   def tearDown(self):
