@@ -19,4 +19,5 @@ class Gyroscope(types.DeviceComponent):
         self._device,
         'cros-ec-gyro',
         location,
-        ['in_anglvel_x', 'in_anglvel_y', 'in_anglvel_z'])
+        ['in_anglvel_x', 'in_anglvel_y', 'in_anglvel_z'],
+        scale=True)

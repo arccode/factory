@@ -51,7 +51,7 @@ def FindDevice(dut, path_pattern, **attr_filter):
 class BasicSensorController(types.DeviceComponent):
   """A sensor controller that only supports direct read."""
 
-  def __init__(self, dut, name, location, signal_names):
+  def __init__(self, dut, name, location, signal_names, scale=False):
     """Constructor.
 
     Args:
@@ -59,11 +59,14 @@ class BasicSensorController(types.DeviceComponent):
       name: The name attribute of sensor.
       location: The location attribute of sensor.
       signal_names: A list of signals to read.
+      scale: Whether to scale the return value.
     """
     super(BasicSensorController, self).__init__(dut)
     self.signal_names = signal_names
     self._iio_path = FindDevice(self._device, _IIO_DEVICES_PATTERN,
                                 name=name, location=location)
+    self.scale = 1.0 if not scale else float(
+        self._device.ReadFile(self._device.path.join(self._iio_path, 'scale')))
 
   def GetData(self, capture_count=1, sample_rate=20):
     """Reads several records of raw data and returns the average.
@@ -82,5 +85,6 @@ class BasicSensorController(types.DeviceComponent):
         ret[signal_name] += float(self._device.ReadFile(
             self._device.path.join(self._iio_path, signal_name + '_raw')))
     for signal_name in ret:
+      ret[signal_name] *= self.scale
       ret[signal_name] /= capture_count
     return ret
