@@ -90,6 +90,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import factory
 from cros.factory.test.fixture import bft_fixture
+from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
@@ -172,6 +173,16 @@ class Report(unittest.TestCase):
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
 
+  def MakeStatusLabel(self, status):
+    """Returns the label for test state."""
+    STATUS_LABEL = {
+        factory.TestState.PASSED: _('passed'),
+        factory.TestState.FAILED: _('failed'),
+        factory.TestState.ACTIVE: _('active'),
+        factory.TestState.UNTESTED: _('untested')
+    }
+    return i18n_test_ui.MakeI18nLabel(STATUS_LABEL.get(status, status))
+
   def runTest(self):
     ui = test_ui.UI(css=CSS)
     template = ui_templates.OneSection(ui)
@@ -195,8 +206,8 @@ class Report(unittest.TestCase):
       test_state = states.get(t.path)
       table.append('<tr class="test-status-%s"><th>%s</th><td>%s</td></tr>'
                    % (test_state.status.replace('_', '-'),
-                      test_ui.MakeTestLabel(t),
-                      test_ui.MakeStatusLabel(test_state.status)))
+                      i18n_test_ui.MakeI18nLabel(i18n.HTMLEscape(t.label)),
+                      self.MakeStatusLabel(test_state.status)))
       statuses.append(test_state.status)
 
     overall_status = factory.overall_status(statuses)
@@ -245,13 +256,13 @@ class Report(unittest.TestCase):
         i18n_test_ui.MakeI18nLabel(
             'Test Status for {test}:', test=test.parent.path),
         '<div class="test-status-%s" style="font-size: 3em">%s</div>' %
-        (overall_status, test_ui.MakeStatusLabel(overall_status)),
+        (overall_status, self.MakeStatusLabel(overall_status)),
         '<div id="test-status-table-container"><table>'
     ] + table + ['</table></div>']
 
 
     if not self.args.disable_input_on_fail:
-      ui.EnablePassFailKeys()
+      ui.BindStandardKeys()
     # If disable_input_on_fail is True, and overall status is PASSED, user
     # can only pass the test.
     elif all_pass:

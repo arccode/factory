@@ -114,8 +114,6 @@ class Event(object):
       'UPDATE_NOTES': 'goofy:update_notes',
       # Diagnosis Tool's events
       'DIAGNOSIS_TOOL_EVENT': 'goofy:diagnosis_tool:event',
-      # Tells UI to hide tooltips.
-      'HIDE_TOOLTIPS': 'goofy:hide_tooltips',
       # Enable/disable key filtering
       'KEY_FILTER_MODE': 'goofy:key_filter_mode',
       # Notifies that factory server config (URL, timeout) is changed.

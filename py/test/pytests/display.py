@@ -113,12 +113,11 @@ class DisplayTest(unittest.TestCase):
       file_utils.TryUnlink(os.path.join(self.static_dir, image))
 
   def OnSpacePressed(self, event):
-    """Sets self.checked to True.Calls JS function to switch display on/off."""
+    """Sets self.checked to True. Calls JS function to switch display on/off."""
     del event  # Unused.
     self.checked = True
     self.ui.CallJSFunction('switchDisplayOnOff')
     self.fullscreen = not self.fullscreen
-    self.ui.HideTooltips()
 
   def OnEnterPressed(self, event):
     """Passes the subtest only if self.checked is True."""

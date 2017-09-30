@@ -16,7 +16,6 @@ import tempfile
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import factory
-from cros.factory.test import test_ui
 from cros.factory.utils import file_utils
 
 
@@ -82,6 +81,6 @@ def run(command, ignore_status=False):
     exception_message = '\n'.join(
         [error_message for error_message in err.splitlines()
          if error_message.startswith('ERROR')]) or message
-    raise test_ui.FactoryTestFailure(exception_message)
+    raise factory.FactoryTestFailure(exception_message)
 
   return (out, err, return_code)

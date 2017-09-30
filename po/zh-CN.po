@@ -2539,6 +2539,22 @@ msgid "Click or press SPACE to continue"
 msgstr "点击或按空白键继续"
 
 #: ../py/test/pytests/summary/summary.py
+msgid "passed"
+msgstr "良好"
+
+#: ../py/test/pytests/summary/summary.py
+msgid "failed"
+msgstr "不良"
+
+#: ../py/test/pytests/summary/summary.py
+msgid "active"
+msgstr "正在测"
+
+#: ../py/test/pytests/summary/summary.py
+msgid "untested"
+msgstr "未测"
+
+#: ../py/test/pytests/summary/summary.py
 msgid "Unable to proceed, since some previous tests have not passed."
 msgstr "之前所有的测试必须通过才能通过此项目"
 
@@ -3411,19 +3427,3 @@ msgstr "通过请按ENTER键。"
 #: ../py/test/test_ui.py
 msgid "Press ESC to fail."
 msgstr "失败请按ESC键。"
-
-#: ../py/test/test_ui.py
-msgid "passed"
-msgstr "良好"
-
-#: ../py/test/test_ui.py
-msgid "failed"
-msgstr "不良"
-
-#: ../py/test/test_ui.py
-msgid "active"
-msgstr "正在测"
-
-#: ../py/test/test_ui.py
-msgid "untested"
-msgstr "未测"

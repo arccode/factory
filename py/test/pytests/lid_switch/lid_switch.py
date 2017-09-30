@@ -5,6 +5,7 @@
 """Tests lid switch functionality."""
 
 import datetime
+import os
 import time
 import unittest
 
@@ -276,7 +277,7 @@ class LidSwitchTest(unittest.TestCase):
     if self.args.ok_audio_path:
       self.ui.PlayAudioFile(self.args.ok_audio_path)
     else:
-      self.ui.PlayAudioFile('ok_%s.ogg' % self.ui.GetUILanguage())
+      self.ui.PlayAudioFile(os.path.join(self.ui.GetUILocale(), 'ok.ogg'))
 
   def runTest(self):
     self.ui.Run()

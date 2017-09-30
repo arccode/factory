@@ -37,7 +37,6 @@ from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager
-from cros.factory.test import test_ui
 from cros.factory.test.utils import pytest_utils
 from cros.factory.testlog import testlog
 from cros.factory.testlog import testlog_utils
@@ -885,7 +884,7 @@ def RunPytest(test_info):
       error_msg = error_msg.replace('FactoryTestFailure: ', '')
       return error_msg + '\n' + trace
 
-    all_failures = result.failures + result.errors + test_ui.exception_list
+    all_failures = result.failures + result.errors
     if all_failures:
       status = TestState.FAILED
       error_msg = '\n'.join(FormatErrorMessage(trace)

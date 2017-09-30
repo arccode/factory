@@ -77,7 +77,6 @@ difference up to 300MB::
 """
 
 import re
-import threading
 import unittest
 
 import factory_common  # pylint: disable=unused-import
@@ -101,17 +100,13 @@ class MemorySize(unittest.TestCase):
   ]
 
   def setUp(self):
-    self._event = threading.Event()
     self.ui = test_ui.UI()
     self.ui.AppendCSS('.large { font-size: 2em; }')
     self.template = ui_templates.OneSection(self.ui)
 
-  def Done(self):
-    self._event.set()
-
   def runTest(self):
     self.ui.RunInBackground(self._runTest)
-    self.ui.Run(on_finish=self.Done)
+    self.ui.Run()
 
   def _runTest(self):
     self.template.SetState(

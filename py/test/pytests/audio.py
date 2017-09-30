@@ -151,14 +151,16 @@ class AudioDigitPlaybackTask(test_task.InteractiveTestTask):
       self._ui.SetHTML(_PLAYBACK_IS_RUNNING(self._port_label),
                        id=self._instruction_id)
 
-      lang = self._ui.GetUILanguage()
-      base_name = '%d_%s.ogg' % (num, lang)
+      locale = self._ui.GetUILocale()
       with file_utils.UnopenedTemporaryFile(suffix='.wav') as wav_path:
         # Prepare played .wav file
         with file_utils.UnopenedTemporaryFile(suffix='.wav') as temp_wav_path:
           # We genereate stereo sound by default. and mute one channel by sox
           # if needed.
-          cmd = ['sox', os.path.join(_SOUND_DIRECTORY, base_name), '-c2']
+          cmd = [
+              'sox',
+              os.path.join(_SOUND_DIRECTORY, locale, '%d.ogg' % num), '-c2'
+          ]
           if self._sample_rate is not None:
             cmd += ['-r %d' % self._sample_rate]
           cmd += [temp_wav_path]

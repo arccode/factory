@@ -12,7 +12,6 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import invocation
 from cros.factory.test.e2e_test import ui_actuator
 from cros.factory.test import factory
-from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Args
 
 
@@ -113,8 +112,7 @@ class E2ETest(unittest.TestCase):
       self.pytest_state = factory.TestState.ACTIVE
       result = runner.run(suite)
 
-      self._pytest_failures += (
-          result.failures + result.errors + test_ui.exception_list)
+      self._pytest_failures += result.failures + result.errors
       if self._pytest_failures:
         self.pytest_state = factory.TestState.FAILED
       else:

@@ -3088,10 +3088,6 @@ cros.factory.Goofy = class {
         this.diagnosisTool.handleBackendEvent(message);
         break;
       }
-      case 'goofy:hide_tooltips': {
-        this.hideTooltips();
-        break;
-      }
       case 'goofy:set_test_ui_layout': {
         const message =
             /** @type {{layout_type: string, layout_options: !Object}} */ (

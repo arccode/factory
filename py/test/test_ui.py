@@ -10,7 +10,6 @@ import cgi
 import json
 import logging
 import os
-import threading
 import traceback
 import uuid
 
@@ -28,9 +27,6 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 
-# For compatibility; moved to factory.
-FactoryTestFailure = factory.FactoryTestFailure
-
 # Keycodes
 ENTER_KEY = 13
 ESCAPE_KEY = 27
@@ -42,12 +38,6 @@ _KEY_NAME_MAP = {
     SPACE_KEY: _('Space')
 }
 
-
-# A list of tuple (exception-source, exception-desc):
-#   exception-source: Source of exception. For example, 'ui-thread' if the
-#     exception comes from UI thread.
-#   exception-desc: Exception message.
-exception_list = []
 
 # HTML for spinner icon.
 SPINNER_HTML_16x16 = '<img src="/images/active.gif" width=16 height=16>'
@@ -66,15 +56,7 @@ def Escape(text, preserve_line_breaks=True):
   return html
 
 
-def MakeTestLabel(test):
-  """Returns label for a test name in the active language.
-
-  Args:
-    test: A test object from the test list.
-  """
-  return i18n_test_ui.MakeI18nLabel(i18n.HTMLEscape(test.label))
-
-
+# TODO(pihsun): This function can be replaced with two constants.
 def MakePassFailKeyLabel(pass_key=True, fail_key=True):
   """Returns label for an instruction of pressing pass key in the active
   language.
@@ -89,26 +71,10 @@ def MakePassFailKeyLabel(pass_key=True, fail_key=True):
   return i18n_test_ui.MakeI18nLabel(label)
 
 
-def MakeStatusLabel(status):
-  """Returns label for a test status in the active language.
-
-  Args:
-    status: One of [PASSED, FAILED, ACTIVE, UNTESTED]
-  """
-  STATUS_LABEL = {
-      factory.TestState.PASSED: _('passed'),
-      factory.TestState.FAILED: _('failed'),
-      factory.TestState.ACTIVE: _('active'),
-      factory.TestState.UNTESTED: _('untested')
-  }
-  return i18n_test_ui.MakeI18nLabel(STATUS_LABEL.get(status, status))
-
-
 class UI(object):
   """Web UI for a factory test."""
 
   def __init__(self, css=None, setup_static_files=True):
-    self.lock = threading.RLock()
     self.event_client = test_event.EventClient(
         callback=self._HandleEvent,
         event_loop=test_event.EventClient.EVENT_LOOP_WAIT)
@@ -136,28 +102,29 @@ class UI(object):
                          [base + '_static',
                           os.path.join(os.path.dirname(py_script), 'static')])
     if len(static_dirs) > 1:
-      raise FactoryTestFailure('Cannot have both of %s - delete one!' %
-                               static_dirs)
+      raise factory.FactoryTestFailure(
+          'Cannot have both of %s - delete one!' % static_dirs)
     if static_dirs:
-      goofy_proxy.get_rpc_proxy(url=goofy_proxy.GOOFY_SERVER_URL).RegisterPath(
-          '/tests/%s' % self.test, static_dirs[0])
-      autoload_bases.append(
-          os.path.join(static_dirs[0], os.path.basename(base)))
       self.static_dir_path = static_dirs[0]
+      goofy_proxy.get_rpc_proxy(url=goofy_proxy.GOOFY_SERVER_URL).RegisterPath(
+          '/tests/%s' % self.test, self.static_dir_path)
+      autoload_bases.append(
+          os.path.join(self.static_dir_path, os.path.basename(base)))
 
     def GetAutoload(extension, default=''):
-      autoload = filter(os.path.exists,
-                        [x + '.' + extension for x in autoload_bases])
-      if not autoload:
+      autoloads = filter(os.path.exists,
+                         [x + '.' + extension for x in autoload_bases])
+      if not autoloads:
         return default
-      if len(autoload) > 1:
-        raise FactoryTestFailure(
-            'Cannot have both of %s - delete one!' % autoload)
+      if len(autoloads) > 1:
+        raise factory.FactoryTestFailure(
+            'Cannot have both of %s - delete one!' % autoloads)
 
+      autoload_path = autoloads[0]
       goofy_proxy.get_rpc_proxy(url=goofy_proxy.GOOFY_SERVER_URL).RegisterPath(
-          '/tests/%s/%s' % (self.test, os.path.basename(autoload[0])),
-          autoload[0])
-      return file_utils.ReadFile(autoload[0]).decode('UTF-8')
+          '/tests/%s/%s' % (self.test, os.path.basename(autoload_path)),
+          autoload_path)
+      return file_utils.ReadFile(autoload_path).decode('UTF-8')
 
     class AddGoofyHeaderTransformer(html_translator.BaseHTMLTransformer):
       def __init__(self, test):
@@ -214,7 +181,7 @@ class UI(object):
 
   def AppendHTML(self, html, **kwargs):
     """Append to the UI in the test pane."""
-    self.SetHTML(html, True, **kwargs)
+    self.SetHTML(html, append=True, **kwargs)
 
   def AppendCSS(self, css):
     """Append CSS in the test pane."""
@@ -287,21 +254,6 @@ class UI(object):
     return goofy_proxy.get_rpc_proxy(
         url=goofy_proxy.GOOFY_SERVER_URL).URLForFile(path)
 
-  def URLForData(self, mime_type, data, expiration=None):
-    """Returns a URL that can be used to serve a static collection
-    of bytes.
-
-    Args:
-      mime_type: MIME type for the data
-      data: Data to serve
-      expiration: If not None, the number of seconds in which the data will
-          expire.
-    """
-    return goofy_proxy.get_rpc_proxy(
-        url=goofy_proxy.GOOFY_SERVER_URL).URLForData(mime_type,
-                                                     data,
-                                                     expiration)
-
   def GetStaticDirectoryPath(self):
     """Gets static directory os path.
 
@@ -322,14 +274,11 @@ class UI(object):
                                     error_msg=error_msg))
 
   def FailLater(self, error_msg):
-    """Appends a error message to the error message list, which causes
-    the test to fail later.
+    """Appends a error message to the error message list.
+
+    This would cause the test to fail when Run() finished.
     """
     self.error_msgs.append(error_msg)
-
-  def EnablePassFailKeys(self):
-    """Allows space/enter to pass the test, and escape to fail it."""
-    self.BindStandardKeys()
 
   def RunInBackground(self, target):
     """Run a function in background daemon thread.
@@ -371,9 +320,9 @@ class UI(object):
       elif event.status == factory.TestState.FAILED or self.error_msgs:
         error_msg = getattr(event, 'error_msg', '')
         if self.error_msgs:
-          error_msg += ('\n'.join([''] + self.error_msgs))
+          error_msg += '\n'.join([''] + self.error_msgs)
 
-        raise FactoryTestFailure(error_msg)
+        raise factory.FactoryTestFailure(error_msg)
       else:
         raise ValueError('Unexpected status in event %r' % event)
     finally:
@@ -477,29 +426,20 @@ class UI(object):
     self.RunJS('window.test.unbindKey(%d); window.test.removeVirtualkey(%d);' %
                (key_code, key_code))
 
-  def InEngineeringMode(self):
-    """Returns True if in engineering mode."""
-    return state.get_shared_data('engineering_mode')
-
   def _HandleEvent(self, event):
     """Handles an event sent by a test UI."""
     if (event.type == test_event.Event.Type.TEST_UI_EVENT and
         event.test == self.test and
         event.invocation == self.invocation):
-      with self.lock:
-        for handler in self.event_handlers.get(event.subtype, []):
-          try:
-            handler(event)
-          except Exception as e:
-            self.Fail(str(e))
+      for handler in self.event_handlers.get(event.subtype, []):
+        try:
+          handler(event)
+        except Exception as e:
+          self.Fail(str(e))
 
   def GetUILocale(self):
     """Returns current enabled locale in UI."""
     return state.get_shared_data('ui_locale')
-
-  def GetUILanguage(self):
-    """Returns current enabled language in UI."""
-    return self.GetUILocale().split('-')[0]
 
   def PlayAudioFile(self, audio_file):
     """Plays an audio file in the given path."""
@@ -515,19 +455,15 @@ class UI(object):
 
   def SetFocus(self, element_id):
     """Set focus to the element specified by element_id"""
-    self.RunJS('$("%s").focus()' % element_id)
+    self.RunJS('document.getElementById("%s").focus()' % element_id)
 
   def SetSelected(self, element_id):
     """Set the specified element as selected"""
-    self.RunJS('$("%s").select()' % element_id)
-
-  def HideTooltips(self):
-    """Hides tooltips."""
-    self.PostEvent(test_event.Event(test_event.Event.Type.HIDE_TOOLTIPS))
+    self.RunJS('document.getElementById("%s").select()' % element_id)
 
   def Alert(self, text):
     """Show an alert box."""
-    self.RunJS('window.test.invocation.goofy.alert(%s)' % json.dumps(text))
+    self.RunJS('window.test.invocation.goofy.alert(args.text)', text=text)
 
 
 class DummyUI(object):
