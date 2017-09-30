@@ -19,37 +19,40 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
+from cros.factory.utils import type_utils
 
 _COMPASS_CSS = """
 .compass {
-  width: 300px;
-  height: 300px;
+  width: 10em;
+  height: 10em;
   border: 2px solid black;
   border-radius: 50%;
   font-size: 2em;
-  margin: auto;
-  position: relative
+  text-align: center;
+  margin: 0.5em;
 }
 
 .success {
   background: #afa;
   font-size: 4em;
 }
+
+#state {
+  flex-flow: row;
+}
 """
 
 _STATE_TEMPLATE = """
 <div>
-  <div style='position: absolute; text-align: left'>
-    in_magn_x: {in_magn_x}<br>
-    in_magn_y: {in_magn_y}<br>
-    in_magn_z: {in_magn_z}<br>
-    degree: {degree:.1f}<br>
-  </div>
-  <div class=compass style='transform: rotate({degree}deg)'>
-    <div style='color: red'>N</div>
-    <div style='position: absolute; bottom: 0; width: 300px'>S</div>
-  </div>
-<div>
+  in_magn_x: {in_magn_x}<br>
+  in_magn_y: {in_magn_y}<br>
+  in_magn_z: {in_magn_z}<br>
+  degree: {degree:.1f}<br>
+</div>
+<div class='compass' style='transform: rotate({degree}deg)'>
+  <div style='color: red'>N</div>
+  <div style='position: absolute; bottom: 0; left: 0; right: 0'>S</div>
+</div>
 """
 
 _MSG_STATUS_SUCCESS = i18n_test_ui.MakeI18nLabel('Success!')
@@ -64,12 +67,16 @@ _FLASH_STATUS_TIME = 1
 class CompassTest(unittest.TestCase):
   ARGS = [
       Arg('tolerance', int, 'The tolerance in degree.',
-          default=5, optional=True)
+          default=5, optional=True),
+      Arg('location', type_utils.Enum(['base', 'lid']),
+          'Where the compass is located.',
+          default='base', optional=True)
   ]
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self.controller = self.dut.magnetometer.GetController()
+    self.controller = self.dut.magnetometer.GetController(
+        location=self.args.location)
     self.ui = test_ui.UI()
     self.ui.AppendCSS(_COMPASS_CSS)
     self._template = ui_templates.TwoSections(self.ui)
