@@ -6,6 +6,7 @@ import deepcopy from 'deepcopy';
 
 import ActionTypes from '../constants/ActionTypes';
 import TaskStates from '../constants/TaskStates';
+import TaskUtils from '../utils/task';
 
 // Objects that cannot be serialized in the store.
 // TODO(littlecvr): probably should move this into a TaskQueue class.
@@ -300,12 +301,12 @@ const createTask = (description, method, url, body, {
                       onFinish = function() {}
                     } = {}) => (
   (dispatch, getState) => {
-    var tasks = getState().getIn(['dome', 'tasks']);
-    var taskIDs = tasks.keySeq().sort().toArray();
+    const tasks = getState().getIn(['dome', 'tasks']);
+    const taskIDs = TaskUtils.getSortedTaskIDs(tasks);
 
-    var taskID = String(1);
+    let taskID = String(1);
     if (taskIDs.length > 0) {
-      taskID = String(1 + Math.max(...taskIDs.map(x => parseInt(x))));
+      taskID = String(1 + Math.max(...taskIDs.map(x => parseInt(x, 10))));
     }
 
     _taskBodies[taskID] = body;
@@ -320,9 +321,9 @@ const createTask = (description, method, url, body, {
     });
 
     // if all tasks except this one succeeded, start this task now
-    var startNow = true;
+    let startNow = true;
     for (const id of taskIDs) {
-      let s = tasks.getIn([id, 'state']);
+      const s = tasks.getIn([id, 'state']);
       if (id != taskID && s != TaskStates.SUCCEEDED) {
         startNow = false;
         break;
@@ -352,8 +353,8 @@ const startTask = taskID => (dispatch, getState) => {
   taskID = String(taskID);  // make sure taskID is always a string
   dispatch(changeTaskState(taskID, TaskStates.RUNNING));
 
-  let task = getState().getIn(['dome', 'tasks', taskID]);
-  let body = deepcopy(_taskBodies[taskID]);  // make a copy
+  const task = getState().getIn(['dome', 'tasks', taskID]);
+  const body = deepcopy(_taskBodies[taskID]);  // make a copy
 
   let queue = Promise.resolve();  // task queue powered by Promise
 
@@ -362,7 +363,7 @@ const startTask = taskID => (dispatch, getState) => {
 
   // send the end request
   queue = queue.then(() => {
-    let request = {
+    const request = {
       method: task.get('method'),
       headers: {
         'Content-Type': 'application/json',  // always send in JSON
@@ -377,18 +378,18 @@ const startTask = taskID => (dispatch, getState) => {
     dispatch(changeTaskState(taskID, TaskStates.SUCCEEDED));
 
     // find the next task and start it
-    let tasks = getState().getIn(['dome', 'tasks']);
-    let taskIDs = tasks.keySeq().sort().toArray();
-    let nextIndex = 1 + taskIDs.indexOf(taskID);
+    const tasks = getState().getIn(['dome', 'tasks']);
+    const taskIDs = TaskUtils.getSortedTaskIDs(tasks);
+    const nextIndex = 1 + taskIDs.indexOf(taskID);
     if (nextIndex > 0 && nextIndex < taskIDs.length) {
-      let nextID = taskIDs[nextIndex];
+      const nextID = taskIDs[nextIndex];
       dispatch(startTask(nextID));
     }
   });
 
   // if any sub-task above failed, display the error message
   queue = queue.catch(error => {
-    let setAndShow = response => {
+    const setAndShow = response => {
       dispatch(setAndShowErrorDialog(`${error.message}\n\n${response}`));
     };
     if (error.response.headers.get('Content-Type') == 'application/json') {
@@ -407,14 +408,14 @@ const cancelTaskAndItsDependencies = taskID => (dispatch, getState) => {
   //                  This would likely to be confused with removeTask().
   // This action tries to cancel all waiting tasks below and include taskID.
   taskID = String(taskID);  // make sure taskID is always a string
-  var tasks = getState().getIn(['dome', 'tasks']);
-  var taskIDs = tasks.keySeq().sort().toArray();
-  var index = taskIDs.indexOf(taskID);
+  const tasks = getState().getIn(['dome', 'tasks']);
+  const taskIDs = TaskUtils.getSortedTaskIDs(tasks);
+  const index = taskIDs.indexOf(taskID);
 
   // cancel all tasks below and include the target task
   if (index >= 0) {
     for (let i = taskIDs.length - 1; i >= index; --i) {
-      let state = tasks.getIn([taskIDs[i], 'state']);
+      const state = tasks.getIn([taskIDs[i], 'state']);
       if (state == TaskStates.WAITING || state == TaskStates.FAILED) {
         if (_taskOnCancels[taskIDs[i]]) {
           _taskOnCancels[taskIDs[i]]();

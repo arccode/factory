@@ -16,6 +16,7 @@ import React from 'react';
 import DomeActions from '../actions/domeactions';
 import Task from './Task';
 import TaskStates from '../constants/TaskStates';
+import TaskUtils from '../utils/task';
 
 var TaskList = React.createClass({
   propTypes: {
@@ -97,7 +98,9 @@ var TaskList = React.createClass({
       // if the mouse is on one of the delete icon (except the one on title
       // bar), determine whether to change color or not by the state of the task
       var mouseOnDeleteIconTaskState = tasks.getIn([
-        tasks.keySeq().sort().get(this.state.mouseOnDeleteIconIndex - 1),
+        TaskUtils.getSortedTaskIDs(tasks)[
+            this.state.mouseOnDeleteIconIndex - 1
+        ],
         'state'
       ]);
       // change when state is WAITING or FAILED because only waiting or failed
@@ -184,7 +187,7 @@ var TaskList = React.createClass({
 
         {/* task list */}
         {!this.props.collapsed &&
-          tasks.keySeq().sort().toArray().map((taskID, index) => {
+          TaskUtils.getSortedTaskIDs(tasks).map((taskID, index) => {
             // make this 1-based array since 0 is reserved for the title bar
             index = index + 1;
             var task = tasks.get(taskID);
