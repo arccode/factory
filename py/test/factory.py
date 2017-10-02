@@ -11,75 +11,14 @@ allow its use by the autotest control process.
 
 from __future__ import print_function
 
-import logging
-
 import factory_common  # pylint: disable=unused-import
-from cros.factory.device import device_utils
 from cros.factory.test.i18n import translation
 from cros.factory.test import session
-from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
 
 # TODO(hungte) Remove this when everyone is using new location session.console.
 console = session.console
-
-
-class Hooks(object):
-  """Goofy hooks.
-
-  This class is a dummy implementation, but methods may be overridden
-  by the subclass.
-
-  Properties (initialized by Goofy):
-    test_list: The test_list object.
-  """
-  test_list = None
-
-  def OnStartup(self):
-    """Invoked on Goofy startup (just before the UI is started)."""
-    pass
-
-  def OnCreatedTestList(self):
-    """Invoked right after Goofy creates test_list."""
-    pass
-
-  def OnTestStart(self):
-    """Callback invoked a factory test starts.
-
-    This method is called when goofy starts or when the operator
-    starts a test manually. This can be used to light up a green
-    LED or send a notification to a remote server.
-    """
-    pass
-
-  def OnTestFailure(self, test):
-    """Callback invoked when a test fails.
-
-    This method can be used to bring the attention of the operators
-    when a display is not available. For example, lighting up a red
-    LED may help operators identify failing device on the run-in
-    rack easily.
-    """
-    pass
-
-  def OnEvent(self, event_name, *args, **kargs):
-    """A general handler for events to Goofy hooks.
-
-    This method can be used by pytests to trigger some customized hooks,
-    for example to notify the operator if a device has finished a test section,
-    e.g. run-in.
-
-    A real use case is 'SummaryGood' event for lighting up a green LED here and
-    the operators may be instructed to move all devices with a green LED to FATP
-    testing; 'SummaryBad' if the summary test founds failure.
-    """
-    logging.info('Goofy hook event: %s%r%r', event_name, args, kargs)
-
-  def OnUnexpectedReboot(self):
-    """Callback invoked after the device experiences an unexpected reboot."""
-    logging.info(sys_utils.GetStartupMessages(
-        device_utils.CreateDUTInterface()))
 
 
 class Options(object):
@@ -165,9 +104,8 @@ class Options(object):
   """The CapsLock key code (used in conjunction with
   :py:attr:`cros.factory.test.factory.Options.disable_caps_lock`)."""
 
-  hooks_class = 'cros.factory.test.factory.Hooks'
-  """Hooks class for the factory test harness.  Defaults to a dummy
-  class."""
+  hooks_class = 'cros.factory.goofy.hooks.Hooks'
+  """Hooks class for the factory test harness.  Defaults to a dummy class."""
 
   phase = None
   """Name of a phase to set.  If None, the phase is unset and the

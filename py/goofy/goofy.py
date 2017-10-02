@@ -23,6 +23,7 @@ from cros.factory.device import device_utils
 from cros.factory.goofy.goofy_base import GoofyBase
 from cros.factory.goofy.goofy_rpc import GoofyRPC
 from cros.factory.goofy import goofy_server
+from cros.factory.goofy import hooks
 from cros.factory.goofy.invocation import TestInvocation
 from cros.factory.goofy.plugins import plugin_controller
 from cros.factory.goofy import prespawner
@@ -933,7 +934,7 @@ class Goofy(GoofyBase):
     """
     module, cls = self.test_list.options.hooks_class.rsplit('.', 1)
     self.hooks = getattr(__import__(module, fromlist=[cls]), cls)()
-    assert isinstance(self.hooks, factory.Hooks), (
+    assert isinstance(self.hooks, hooks.Hooks), (
         'hooks should be of type Hooks but is %r' % type(self.hooks))
     self.hooks.test_list = self.test_list
     self.hooks.OnCreatedTestList()
