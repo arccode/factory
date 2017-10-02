@@ -370,7 +370,7 @@ class InputTask(test_task.TestTask):
                                         _SELECT_BOX_STYLE)
     for value, option in zip(self.entry.GetInputList(),
                              self.entry.GetOptionList()):
-      select_box.InsertOption(value, option)
+      select_box.AppendOption(value, option)
 
     try:
       select_box.SetSelectedIndex(self.entry.GetValueIndex())

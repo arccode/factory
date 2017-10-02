@@ -10,7 +10,6 @@ from cros.factory.test.env import paths
 from cros.factory.test.i18n import html_translator
 from cros.factory.utils import file_utils
 
-_UI_TEMPLATE_PATH = '/ui_templates'
 
 STATE_ID = 'state'
 
@@ -39,8 +38,8 @@ class Option(object):
 
   def GenerateHTML(self):
     """Generate HTML tag."""
-    return '<option value="%s" %s>%s</option>' % (
-        self._value, 'selected' if self._selected else '', self._display)
+    return '<option value="%s"%s>%s</option>' % (
+        self._value, ' selected' if self._selected else '', self._display)
 
 
 class SelectBox(object):
@@ -58,18 +57,14 @@ class SelectBox(object):
     self._style = style
     self._option_list = []
 
-  def InsertOption(self, value, display, index=None):
-    """Inserts a option into the select box.
+  def AppendOption(self, value, display):
+    """Appends a option into the select box.
 
     Args:
       value: Text value of the option. This is the value inside option tag.
       display: Displayed value of the option. This is the value shown on page.
     """
-    option = Option(value, display)
-    if index:
-      self._option_list.insert(index, option)
-    else:
-      self._option_list.append(option)
+    self._option_list.append(Option(value, display))
 
   def SetSelectedIndex(self, index):
     """Set the given index as selected."""
@@ -79,12 +74,12 @@ class SelectBox(object):
 
   def GenerateHTML(self):
     """Generate HTML tags."""
-    ele_list = ['<select id="%s" size=%d style="%s">' % (
+    html = ['<select id="%s" size=%d style="%s">' % (
         self._element_id, self._size, self._style)]
-    for opt in self._option_list:
-      ele_list += [opt.GenerateHTML()]
-    ele_list += ['</select>']
-    return '\n'.join(ele_list)
+    for option in self._option_list:
+      html += [option.GenerateHTML()]
+    html += ['</select>']
+    return '\n'.join(html)
 
 
 class Table(object):
@@ -151,13 +146,14 @@ class BaseTemplate(object):
     # Load template JS if it exists
     js_file = os.path.join(template_base, template_name + '.js')
     if os.path.exists(js_file):
-      self._ui.RunJS(open(js_file).read())
+      self._ui.RunJS(file_utils.ReadFile(js_file))
 
   def SetTitle(self, html):
     """Sets the title of the test UI.
 
     Args:
-      html: The html content to write."""
+      html: The html content to write.
+    """
     self._ui.SetHTML(html, id='title')
 
 
@@ -174,7 +170,7 @@ class OneSection(BaseTemplate):
     operator.
   """
 
-  def __init__(self, ui):  # pylint: disable=super-init-not-called
+  def __init__(self, ui):
     super(OneSection, self).__init__(ui, 'template_one_section')
 
   def SetState(self, html, append=False):
@@ -197,7 +193,7 @@ class OneScrollableSection(BaseTemplate):
   * SetState: For displaying the state of the test.
   """
 
-  def __init__(self, ui):  # pylint: disable=super-init-not-called
+  def __init__(self, ui):
     super(OneScrollableSection, self).__init__(
         ui, 'template_one_scrollable_section')
 
@@ -234,7 +230,7 @@ class TwoSections(BaseTemplate):
     is hidden by default.
   """
 
-  def __init__(self, ui):  # pylint: disable=super-init-not-called
+  def __init__(self, ui):
     super(TwoSections, self).__init__(ui, 'template_two_sections')
 
   def SetInstruction(self, html, append=False):
