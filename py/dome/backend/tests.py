@@ -23,10 +23,13 @@ SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
 @contextlib.contextmanager
-def TestData(file_name):
+def TestData(file_name, deserialize=True):
   """Load a JSON file under the testdata folder using the with statement."""
   with open(os.path.join(SCRIPT_DIR, 'testdata', file_name)) as f:
-    yield json.load(f)
+    if deserialize:
+      yield json.load(f)
+    else:
+      yield f.read()
 
 
 class UploadedFileTest(rest_framework.test.APITestCase):
@@ -165,37 +168,27 @@ class DomeAPITest(rest_framework.test.APITestCase):
       self.patchers.append(mock.patch(entity))
       self.mocks[entity] = self.patchers[-1].start()
 
-    def MockUmpireGetStatus():
-      """Mock the GetStatus() call because it's used so often."""
+    def MockUmpireGetActiveConfig():
+      """Mock the GetActiveConfig() call because it's used so often."""
       add_config_from_blob_mock = (
           self.mocks['xmlrpclib.ServerProxy']().AddConfigFromBlob)
 
-      config = {}
       # Emulate Umpire to some extend: if new config has been uploaded, return
       # it; otherwise, return the default config.
       if add_config_from_blob_mock.called:
         args, unused_kwargs = add_config_from_blob_mock.call_args
-        config_str = args[0]
-        if umpire_resource.ConfigTypes.umpire_config.fn_suffix == 'yaml':
-          config = yaml.load(config_str)
-        else:
-          config = json.loads(config_str)
+        return args[0]
       else:
-        with TestData('umpire_config.json') as c:
-          config = c
-      config_str = json.dumps(config)
-      return {'active_config': config_str,
-              'active_config_res': '.json',
-              'staging_config': config_str,
-              'staging_config_res': '.json'}
+        with TestData('umpire_config.json', deserialize=False) as config_str:
+          return config_str
 
     def MockUmpireGetPayloadsDict(file_name):
       """Mock the GetPayloadsDict() RPC call in Umpire."""
       with TestData(file_name) as c:
         return c
 
-    self.mocks['xmlrpclib.ServerProxy']().GetStatus = (
-        mock.MagicMock(side_effect=MockUmpireGetStatus))
+    self.mocks['xmlrpclib.ServerProxy']().GetActiveConfig = (
+        mock.MagicMock(side_effect=MockUmpireGetActiveConfig))
     self.mocks['xmlrpclib.ServerProxy']().GetPayloadsDict = (
         mock.MagicMock(side_effect=MockUmpireGetPayloadsDict))
 
@@ -559,13 +552,10 @@ class DomeAPITest(rest_framework.test.APITestCase):
   def testUploadBundle(self):
     # Cannot use the default mock because UploadNew() probes the staging config.
     # We'll have to mock ourselves here.
-    with TestData('umpire_config-uploaded.json') as c:
-      config_str = json.dumps(c)
-      self.mocks['xmlrpclib.ServerProxy']().GetStatus = mock.MagicMock(
-          return_value={'active_config': config_str,
-                        'active_config_res': '.json',
-                        'staging_config': config_str,
-                        'staging_config_res': '.json'})
+    with TestData(
+        'umpire_config-uploaded.json', deserialize=False) as config_str:
+      self.mocks['xmlrpclib.ServerProxy']().GetActiveConfig = mock.MagicMock(
+          return_value=config_str)
 
     with TestData('new_bundle.json') as b:
       bundle = b
@@ -634,30 +624,6 @@ class DomeAPITest(rest_framework.test.APITestCase):
     # the new name
     with TestData('umpire_config-resource_updated.json') as c:
       self.assertEqual(c, self._GetUploadedConfig(0))
-
-    # just make sure Update() is called
-    self.assertTrue(self.mocks['xmlrpclib.ServerProxy']().Update.called)
-
-  def testUpdateBundleResourceInPlace(self):
-    response = self.client.put(
-        '/projects/%s/bundles/%s/' % (self.PROJECT_WITH_UMPIRE_NAME,
-                                      'testing_bundle_01'),
-        data={
-            'resources': {
-                'device_factory_toolkit': {
-                    'type': 'device_factory_toolkit',
-                    'file_id': self._UploadFile()['id']
-                }
-            }
-        },
-        format='json'
-    )
-
-    self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
-
-    with TestData('umpire_config.json') as c:
-      # since we don't mock the Update() call, nothing should be changed
-      self.assertEqual(c, self._GetLastestUploadedConfig())
 
     # just make sure Update() is called
     self.assertTrue(self.mocks['xmlrpclib.ServerProxy']().Update.called)

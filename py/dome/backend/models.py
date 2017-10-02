@@ -179,14 +179,9 @@ def GetUmpireServer(project_name):
   return xmlrpclib.ServerProxy(url, allow_none=True)
 
 
-def GetUmpireConfig(project_name, config_name):
-  status = GetUmpireServer(project_name).GetStatus()
-  assert config_name in ['active_config', 'staging_config']
-  res_name = config_name + '_res'
-  config_str = status[config_name]
-  if not config_str:
-    return {}
-  elif status[res_name].endswith('.yaml'):
+def GetUmpireConfig(project_name):
+  config_str = GetUmpireServer(project_name).GetActiveConfig()
+  if umpire_resource.ConfigTypes.umpire_config.fn_suffix == 'yaml':
     return yaml.load(config_str)
   else:
     return json.loads(config_str)
@@ -230,7 +225,6 @@ class DomeConfig(django.db.models.Model):
   tftp_enabled = django.db.models.BooleanField(default=False)
 
   def CreateTFTPContainer(self):
-
     if DoesContainerExist(TFTP_CONTAINER_NAME):
       logger.info('TFTP container already exists')
       return self
@@ -269,7 +263,6 @@ class DomeConfig(django.db.models.Model):
     return self
 
   def UpdateConfig(self, **kwargs):
-
     # enable or disable TFTP if necessary
     self.tftp_enabled = DoesContainerExist(TFTP_CONTAINER_NAME)
     if ('tftp_enabled' in kwargs and
@@ -341,7 +334,7 @@ class Project(django.db.models.Model):
   def GetProjectByName(project_name):
     return Project.objects.get(pk=project_name)
 
-  def UploadAndDeployConfig(self, config, force=False):
+  def UploadAndDeployConfig(self, config):
     """Upload and deploy config atomically."""
     umpire_server = GetUmpireServer(self.name)
 
@@ -356,30 +349,15 @@ class Project(django.db.models.Model):
     else:
       value = json.dumps(config, indent=1, separators=(',', ': '))
 
-    staging_config_path = umpire_server.AddConfigFromBlob(
+    new_config_path = umpire_server.AddConfigFromBlob(
         value, umpire_resource.ConfigTypeNames.umpire_config)
-
-    logger.info('Staging Umpire config')
-    try:
-      umpire_server.StageConfigFile(staging_config_path, force)
-    except Exception as e:
-      raise DomeServerException(
-          'Cannot stage config file, make sure no one is editing Umpire config '
-          'at the same time, and there is no staging config exists. Error '
-          'message: %r' % e)
 
     logger.info('Deploying Umpire config')
     try:
-      umpire_server.Deploy(staging_config_path)
+      umpire_server.Deploy(new_config_path)
     except xmlrpclib.Fault as e:
-      logger.error('Deploying failed, will unstage Umpire config now, '
-                   'error message from Umpire: %r', e.faultString)
-      try:
-        umpire_server.UnstageConfigFile()
-      except xmlrpclib.Fault as e:
-        logger.warning("Unstaging failed, doesn't matter, ignored, "
-                       'error message from Umpire: %r', e.faultString)
-
+      logger.error(
+          'Deploying failed. Error message from Umpire: %r', e.faultString)
       # TODO(littlecvr): we should probably refine Umpire's error message so
       #                  Dome has to forward the message to the user only
       #                  without knowing what's really happened
@@ -391,8 +369,7 @@ class Project(django.db.models.Model):
 
   def GetNormalizedActiveConfig(self):
     """Return the normalized version of Umpire active config."""
-    config = GetUmpireConfig(self.name, 'active_config')
-    return self.NormalizeConfig(config)
+    return self.NormalizeConfig(GetUmpireConfig(self.name))
 
   @staticmethod
   def NormalizeConfig(config):
@@ -854,14 +831,10 @@ class Bundle(object):
     umpire_server = GetUmpireServer(project_name)
     with UploadedFile(resource_file_id) as f:
       with UmpireAccessibleFile(project_name, f) as p:
-        umpire_server.Update([(type_name, p)], bundle_name)
-
-    config = GetUmpireConfig(project_name, 'staging_config')
-
-    # config staged before, need the force argument or Umpire will complain
-    # TODO(littlecvr): we can actually deploy directly here
-    project = Project.GetProjectByName(project_name)
-    project.UploadAndDeployConfig(config, force=True)
+        try:
+          umpire_server.Update([(type_name, p)], bundle_name)
+        except xmlrpclib.Fault as e:
+          raise DomeServerException(detail=e.faultString)
 
   @staticmethod
   def UploadNew(project_name, bundle_name, bundle_note, bundle_file_id):
@@ -892,7 +865,7 @@ class Bundle(object):
           else:
             raise DomeServerException(detail=e.faultString)
 
-    config = GetUmpireConfig(project_name, 'staging_config')
+    config = GetUmpireConfig(project_name)
     for ruleset in config['rulesets']:
       if ruleset['bundle_id'] == bundle_name:
         # TODO(b/34264367): support unicode.
@@ -901,7 +874,7 @@ class Bundle(object):
         break
 
     project = Project.GetProjectByName(project_name)
-    project.UploadAndDeployConfig(config, force=True)
+    project.UploadAndDeployConfig(config)
 
     # find and return the new bundle
     return Bundle.ListOne(project_name, bundle_name)
