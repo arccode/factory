@@ -977,10 +977,8 @@ class Goofy(GoofyBase):
     """Initializes Goofy.
 
     Args:
-      args: A list of command-line arguments.  Uses sys.argv if
-        args is None.
-      env: An Environment instance to use (or None to choose
-        FakeChrootEnvironment or DUTEnvironment as appropriate).
+      args: A list of command-line arguments.  Uses sys.argv if args is None.
+      env: An Environment instance to use (or None to use DUTEnvironment).
     """
     (self.options, self.args) = self.GetCommandLineArgsParser().parse_args(args)
 
@@ -1023,9 +1021,7 @@ class Goofy(GoofyBase):
 
     if env:
       self.env = env
-    elif sys_utils.InChroot():
-      self.env = test_environment.FakeChrootEnvironment()
-    elif self.options.ui == 'chrome':
+    else:
       self.env = test_environment.DUTEnvironment()
     self.env.goofy = self
 

@@ -80,12 +80,3 @@ class DUTEnvironment(Environment):
     # really gracefully shutdown. We should do "on exit" instead.
     time.sleep(30)
     assert False, 'Never reached (should %s)' % operation
-
-
-class FakeChrootEnvironment(Environment):
-  """A chroot environment that doesn't actually shutdown."""
-
-  def shutdown(self, operation):
-    assert operation in ['reboot', 'full_reboot', 'halt']
-    logging.warn('In chroot: skipping %s', operation)
-    return False
