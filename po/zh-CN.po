@@ -1507,10 +1507,6 @@ msgstr "按 {key} 再按回车"
 msgid "<br>Press ENTER to pass, or ESC to fail."
 msgstr "<br>测试正常请按 ENTER ，不正常请按 ESC"
 
-#: ../py/test/pytests/brightness/brightness.py
-msgid "Time remaining: {time}"
-msgstr "剩余时间：{time}"
-
 #: ../py/test/pytests/brightness/lcd_backlight.py
 msgid "Please check if backlight brightness is changing from dark to bright."
 msgstr "请检查萤幕亮度是否由暗变亮"
