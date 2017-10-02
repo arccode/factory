@@ -328,7 +328,6 @@
     "ModelSKU": {
       "pytest_name": "model_sku",
       "label": "Model and SKU",
-      "has_ui": true,
       "action_on_failure": "STOP"
     },
     "PartitionTable": {

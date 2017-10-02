@@ -463,13 +463,10 @@ class FactoryTest(object):
   # If True, the test can not be aborted.
   disable_abort = False
 
-  # Deprecated, and has no effect.
-  has_ui = False
-
   # Fields of test_object defined by test_list.schema.json
   TEST_OBJECT_FIELDS = [
       'action_on_failure', 'args', 'disable_abort', 'disable_services',
-      'enable_services', 'exclusive_resources', 'has_ui', 'id', 'iterations',
+      'enable_services', 'exclusive_resources', 'id', 'iterations',
       'label', 'never_fails', 'parallel', 'pytest_name', 'retries',
       'run_if', 'subtests', 'teardown', 'inherit', 'locals', ]
 
@@ -501,7 +498,6 @@ class FactoryTest(object):
                subtests=None,
                teardown=False,
                id=None,  # pylint: disable=redefined-builtin
-               has_ui=None,
                no_host=False,
                never_fails=None,
                disable_abort=None,
@@ -535,7 +531,6 @@ class FactoryTest(object):
         to make conditional construction easier, this may contain None items
         (which are removed) or nested arrays (which are flattened).
       id: A unique ID for the test.
-      has_ui: Deprecated. Has no effect now.
       never_fails: True if the test never fails, but only returns to an
         untested state.
       disable_abort: True if the test can not be aborted
@@ -665,8 +660,6 @@ class FactoryTest(object):
           'In test %s, Retries must be a positive integer or 0, not %r' % (
               self.path, self.retries))
 
-    if has_ui is not None:
-      self.has_ui = has_ui
     if never_fails is not None:
       self.never_fails = never_fails
     if disable_abort is not None:

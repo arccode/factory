@@ -33,9 +33,6 @@
             "type": "string"
           }
         },
-        "has_ui": {
-          "type": "boolean"
-        },
         "id": {
           "type": "string"
         },
