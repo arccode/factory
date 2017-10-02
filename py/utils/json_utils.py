@@ -37,21 +37,36 @@ def LoadFile(file_path):
     return json.load(f)
 
 
-def DumpStr(obj, pretty=False):
+def DumpStr(obj, pretty=False, newline=None, **json_dumps_kwargs):
   """Serialize a Python object to a JSON string.
 
   Args:
+    obj: a Python object to be serialized.
     pretty: True to output in human-friendly pretty format.
+    newline: True to append a newline in the end of result, default to the
+      previous argument ``pretty``.
+    json_dumps_kwargs: Any allowable arguments to json.dumps.
 
   Returns:
     The serialized JSON string.
   """
+  if newline is None:
+    newline = pretty
+
   if pretty:
-    return json.dumps(obj, indent=2, separators=(',', ': '), sort_keys=True)
-  return json.dumps(obj)
+    kwargs = dict(indent=2, separators=(',', ': '), sort_keys=True)
+  else:
+    kwargs = {}
+  kwargs.update(json_dumps_kwargs)
+  result = json.dumps(obj, **kwargs)
+
+  if newline:
+    result += '\n'
+
+  return result
 
 
-def DumpFile(file_path, obj, pretty=True, newline=None):
+def DumpFile(file_path, obj, pretty=True, newline=None, **json_dumps_kwargs):
   """Write serialized JSON string of a Python object to a given file.
 
   Args:
@@ -60,14 +75,10 @@ def DumpFile(file_path, obj, pretty=True, newline=None):
     pretty: True to output in human-friendly pretty format.
     newline: True to append a newline in the end of output, default to the
       previous argument ``pretty``.
+    json_dumps_kwargs: Any allowable arguments to json.dumps.
   """
-  if newline is None:
-    newline = pretty
-
   with open(file_path, 'w') as f:
-    f.write(DumpStr(obj, pretty=pretty))
-    if newline:
-      f.write('\n')
+    f.write(DumpStr(obj, pretty=pretty, newline=newline, **json_dumps_kwargs))
 
 
 class JSONDatabase(dict):
