@@ -1051,17 +1051,14 @@ class Goofy(GoofyBase):
         AutomationModePrompt[self.options.automation_mode])
 
     success = False
-    exc_info = None
     try:
       success = self.InitTestLists()
     except Exception:
-      exc_info = sys.exc_info()
+      logging.exception('Unable to initialize test lists')
+      self._RecordStartError(
+          'Unable to initialize test lists\n%s' % traceback.format_exc())
 
     if not success:
-      if exc_info:
-        logging.exception('Unable to initialize test lists')
-        self._RecordStartError(
-            'Unable to initialize test lists\n%s' % traceback.format_exc())
       if self.options.ui == 'chrome':
         # Create an empty test list with default options so that the rest of
         # startup can proceed.
