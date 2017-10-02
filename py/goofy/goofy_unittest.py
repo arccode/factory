@@ -135,7 +135,7 @@ class GoofyTest(unittest.TestCase):
   def init_goofy(self, restart=True):
     """Initializes and returns a Goofy."""
     new_goofy = Goofy()
-    args = ['--ui', self.ui, '--test_list', 'test']
+    args = ['--test_list', 'test']
     if restart:
       args.append('--restart')
 
@@ -288,7 +288,7 @@ ABC_TEST_LIST = [
 ]
 
 
-class BasicTest(GoofyTest):
+class BasicTest(GoofyUITest):
   """A simple test case that checks that tests are run in the correct order."""
   test_list = {
       'tests': ABC_TEST_LIST
@@ -352,7 +352,7 @@ class WebSocketTest(GoofyUITest):
     self.mockAnything.VerifyAll()
 
 
-class ShutdownTest(GoofyTest):
+class ShutdownTest(GoofyUITest):
   """A test case that checks the behavior of shutdown."""
   test_list = {
       'tests': [
@@ -394,7 +394,9 @@ class ShutdownTest(GoofyTest):
       self.record_goofy_init(restart=False)
       self.mocker.ReplayAll()
       self.goofy.destroy()
+      self.before_init_goofy()
       self.init_goofy(restart=False)
+      self.after_init_goofy()
       self.goofy.run_once()
       self._wait()
 
@@ -406,7 +408,9 @@ class ShutdownTest(GoofyTest):
     self.record_goofy_init(restart=False)
     self.mocker.ReplayAll()
     self.goofy.destroy()
+    self.before_init_goofy()
     self.init_goofy(restart=False)
+    self.after_init_goofy()
     self.goofy.run_once()
     self._wait()
 
@@ -414,7 +418,7 @@ class ShutdownTest(GoofyTest):
     self.check_one_test('a', 'a_A', TestState.PASSED, '')
 
 
-class RebootFailureTest(GoofyTest):
+class RebootFailureTest(GoofyUITest):
   """A test case that checks the behavior of reboot failure."""
   test_list = {
       'tests': [
@@ -453,7 +457,9 @@ class RebootFailureTest(GoofyTest):
     mock_pytest('shutdown', TestState.FAILED, 'Reboot failed.')
     self.record_goofy_init(restart=False)
     self.mocker.ReplayAll()
+    self.before_init_goofy()
     self.init_goofy(restart=False)
+    self.after_init_goofy()
     self.goofy.run_once()
     self._wait()
 
@@ -464,7 +470,7 @@ class RebootFailureTest(GoofyTest):
         'Reboot failed.'))
 
 
-class NoAutoRunTest(GoofyTest):
+class NoAutoRunTest(GoofyUITest):
   """A test case that checks the behavior when auto_run_on_start is False."""
   test_list = {
       'tests': ABC_TEST_LIST,
@@ -493,7 +499,7 @@ class NoAutoRunTest(GoofyTest):
     self.assertEqual({}, self.goofy.invocations)
 
 
-class PyTestTest(GoofyTest):
+class PyTestTest(GoofyUITest):
   """Tests the Python test driver.
 
   Note that no mocks are used here, since it's easy enough to just have the
@@ -541,7 +547,7 @@ class PyTestTest(GoofyTest):
         failed_state.error_msg)
 
 
-class MultipleIterationsTest(GoofyTest):
+class MultipleIterationsTest(GoofyUITest):
   """Tests running a test multiple times."""
   test_list = {
       'tests': [
@@ -571,7 +577,7 @@ class MultipleIterationsTest(GoofyTest):
     self.mockAnything.VerifyAll()
 
 
-class RequireRunTest(GoofyTest):
+class RequireRunTest(GoofyUITest):
   """Tests FactoryTest require_run argument."""
   test_list = {
       'options': {
@@ -595,7 +601,7 @@ class RequireRunTest(GoofyTest):
     self.check_one_test('b', 'b_B', TestState.PASSED, '')
 
 
-class StopOnFailureTest(GoofyTest):
+class StopOnFailureTest(GoofyUITest):
   """A unittest that checks if the goofy will stop after a test fails."""
   test_list = {
       'options': {
@@ -622,7 +628,7 @@ class StopOnFailureTest(GoofyTest):
     self.mockAnything.VerifyAll()
 
 
-class ParallelTest(GoofyTest):
+class ParallelTest(GoofyUITest):
   """A test for parallel tests, goofy should run them in parallel."""
 
   test_list = {
@@ -654,7 +660,7 @@ class ParallelTest(GoofyTest):
     self.mocker.ResetAll()
 
 
-class WaivedTestTest(GoofyTest):
+class WaivedTestTest(GoofyUITest):
   """A test to verify that a waived test does not block test list execution."""
   test_list = {
       'options': {
@@ -695,7 +701,7 @@ class WaivedTestTest(GoofyTest):
     self._wait()
 
 
-class SkippedTestTest(GoofyTest):
+class SkippedTestTest(GoofyUITest):
   """A test to verify that a waived test does not block test list execution."""
 
   test_list = {
@@ -744,7 +750,7 @@ class SkippedTestTest(GoofyTest):
     self._wait()
 
 
-class EndlessLoopTest(GoofyTest):
+class EndlessLoopTest(GoofyUITest):
   """A test to verify that a waived test does not block test list execution."""
 
   test_list = {

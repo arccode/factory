@@ -938,10 +938,9 @@ class Goofy(GoofyBase):
 
   def init_ui(self):
     """Initialize UI."""
+    logging.info('Waiting for a web socket connection')
+    self.web_socket_manager.wait()
     self._ui_initialized = True
-    if self.options.ui == 'chrome':
-      logging.info('Waiting for a web socket connection')
-      self.web_socket_manager.wait()
 
   @staticmethod
   def GetCommandLineArgsParser():
@@ -956,10 +955,6 @@ class Goofy(GoofyBase):
     parser.add_option('--restart', dest='restart',
                       action='store_true',
                       help='Clear all test state')
-    parser.add_option('--ui', dest='ui', type='choice',
-                      choices=['none', 'chrome'],
-                      default='chrome',
-                      help='UI to use')
     parser.add_option('--test_list', dest='test_list',
                       metavar='TEST_LIST_ID',
                       help='Use test list whose id is TEST_LIST_ID')
@@ -1055,14 +1050,11 @@ class Goofy(GoofyBase):
           'Unable to initialize test lists\n%s' % traceback.format_exc())
 
     if not success:
-      if self.options.ui == 'chrome':
-        # Create an empty test list with default options so that the rest of
-        # startup can proceed.
-        self.test_list = manager.LegacyTestList(factory.FactoryTestList(
-            [], self.state_instance, factory.Options()))
-      else:
-        # Bail with an error; no point in starting up.
-        sys.exit('No valid test list; exiting.')
+      # Create an empty test list with default options so that the rest of
+      # startup can proceed.
+      # A message box will pop up in UI for the error details.
+      self.test_list = manager.LegacyTestList(factory.FactoryTestList(
+          [], self.state_instance, factory.Options()))
 
     self.init_hooks()
 
