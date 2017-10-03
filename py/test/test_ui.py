@@ -75,9 +75,8 @@ class UI(object):
   """Web UI for a factory test."""
 
   def __init__(self, css=None, setup_static_files=True):
-    self.event_client = test_event.EventClient(
-        callback=self._HandleEvent,
-        event_loop=test_event.EventClient.EVENT_LOOP_WAIT)
+    self.event_client = test_event.BlockingEventClient(
+        callback=self._HandleEvent)
     self.test = session.GetCurrentTestPath()
     self.invocation = session.GetCurrentTestInvocation()
     self.event_handlers = {}

@@ -52,7 +52,7 @@ class Instalog(plugin.Plugin):
     self._uplink_port = uplink_port
     self._uplink_use_factory_server = uplink_use_factory_server
 
-    self._event_client = event.EventClient(callback=self._HandleEvent)
+    self._event_client = event.ThreadingEventClient(callback=self._HandleEvent)
 
     # Set reference to the Instalog plugin for testlog
     self.goofy.testlog.SetInstalogPlugin(self)

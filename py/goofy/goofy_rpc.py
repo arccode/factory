@@ -27,7 +27,7 @@ from cros.factory.device import device_utils
 from cros.factory.test.diagnosis.diagnosis_tool import DiagnosisToolRPC
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
-from cros.factory.test.event import EventClient
+from cros.factory.test.event import SendEvent
 from cros.factory.test import factory
 from cros.factory.test.i18n import translation
 from cros.factory.test import server_proxy
@@ -583,15 +583,14 @@ class GoofyRPC(object):
     rpc_id = str(uuid.uuid4())
     rpc_event = Event(Event.Type.EXTENSION_RPC, name=name, is_response=False,
                       rpc_id=rpc_id, args=kwargs)
-    with EventClient() as event_client:
-      result = event_client.request_response(
-          rpc_event,
-          lambda e: (e.type == rpc_event.type and e.rpc_id == rpc_id and
-                     e.is_response),
-          timeout)
-      if result is None:
-        raise type_utils.TimeoutError('Failed calling Extension RPC <%r>', name)
-      return result.args
+    result = SendEvent(
+        rpc_event,
+        lambda e: (e.type == rpc_event.type and e.rpc_id == rpc_id and
+                   e.is_response),
+        timeout)
+    if result is None:
+      raise type_utils.TimeoutError('Failed calling Extension RPC <%r>', name)
+    return result.args
 
   def DeviceGetDisplayInfo(self, timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
     """Returns display information on the device (by calling extension RPC).

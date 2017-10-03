@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import abc
 import cPickle as pickle
 import errno
 import json
@@ -292,16 +293,22 @@ class EventServer(SocketServer.ThreadingUnixStreamServer):
         q.put(message)
 
 
-class EventClient(object):
-  EVENT_LOOP_WAIT = 'EVENT_LOOP_WAIT'
+class EventClientBase(object):
+  __metaclass__ = abc.ABCMeta
 
   """A client used to post and receive messages from an event server.
 
   All events sent through this class must be subclasses of Event. It
   marshals Event classes through the server by pickling them.
-  """
 
-  def __init__(self, path=None, callback=None, event_loop=None, name=None):
+  The _process_event() need to be called periodically.
+
+  Inherit graph:
+  EventClientBase:
+    |-- ThreadingEventClient: A daemon thread to process events.
+    |-- BlockingEventClient: A while-loop on calling thread to process events.
+  """
+  def __init__(self, path=None, callback=None, event_queue=None):
     """Constructor.
 
     Args:
@@ -309,19 +316,20 @@ class EventClient(object):
           the CROS_FACTORY_EVENT environment variable.
       callback: A callback to call when events occur. The callback
           takes one argument: the received event.
-      event_loop: An event loop to use to post the events. May be one of:
-          - A Queue object, in which case a lambda invoking the callback is
-            written to the queue.
-          - EVENT_LOOP_WAIT, in which case the caller must invoke wait() to
-            handle incoming messages.
-          - None, similar to a threaded verison of EVENT_LOOP_WAIT that may
-            discard events before you call wait().
-      name: An optional name for the client
+      event_queue: A queue object. A lambda invoking the callback will be
+          pushed to the queue.
     """
     self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
     self.callbacks = set()
-    self.event_loop = event_loop
     logging.debug('Initializing event client')
+
+    if callback:
+      if isinstance(event_queue, Queue.Queue):
+        self.callbacks.add(
+            lambda event: event_queue.put(
+                lambda: callback(event)))
+      else:
+        self.callbacks.add(callback)
 
     path = path or os.environ[CROS_FACTORY_EVENT]
     self.socket.connect(path)
@@ -333,32 +341,12 @@ class EventClient(object):
 
     self._lock = threading.Lock()
 
-    if callback:
-      if isinstance(event_loop, Queue.Queue):
-        self.callbacks.add(
-            lambda event: event_loop.put(
-                lambda: callback(event)))
-      else:
-        self.callbacks.add(callback)
-
-    if event_loop != self.EVENT_LOOP_WAIT:
-      self.recv_thread = threading.Thread(
-          target=self._run_recv_thread,
-          name='EventServerRecvThread-%s' % (name or get_unique_id()))
-      self.recv_thread.daemon = True
-      self.recv_thread.start()
-    else:
-      self.recv_thread = None
-
   def close(self):
     """Closes the client, waiting for any threads to terminate."""
     if not self.socket:
       return
 
-    # Shutdown the socket to cause recv_thread to terminate.
     self.socket.shutdown(socket.SHUT_RDWR)
-    if self.recv_thread:
-      self.recv_thread.join()
     self.socket.close()
     self.socket = None
 
@@ -393,8 +381,7 @@ class EventClient(object):
       return event_repr
 
   def post_event(self, event):
-    """Posts an event to the server.
-    """
+    """Posts an event to the server."""
     if logging.getLogger().isEnabledFor(logging.DEBUG):
       logging.debug('Event client: sending event %s',
                     self._truncate_event_for_debug_log(event))
@@ -406,74 +393,7 @@ class EventClient(object):
       raise IOError('Message too large (%d bytes)' % len(message))
     self.socket.sendall(message)
 
-  def request_response(self, request_event, check_response, timeout=None):
-    """Starts a request-response communication: sends a request event and waits
-    for an valid response event until timeout.
-
-    Args:
-      request_event: An event to start protocol. None to send no events.
-      check_response: A function to evaluate if given event is an expected
-          response. The function takes one argument (an event to evaluate) and
-          returns whether it is valid. Note it may also get events "before"
-          request_event is sent, including the request_event itself.
-      timeout: A timeout in seconds, or None to wait forever.
-
-    Returns:
-      The valid response event, or None if the connection was closed or timeout.
-    """
-    if self.event_loop == self.EVENT_LOOP_WAIT:
-      assert not timeout, 'Timeout is not currently supported for LOOP_WAIT.'
-
-      # We are the event loop.
-      if request_event:
-        self.post_event(request_event)
-      while True:
-        keep_going, event = self._read_one_message()
-        if not keep_going:  # Closed
-          return None
-        if event and check_response(event):
-          return event
-
-    queue = Queue.Queue()
-
-    def check_response_callback(event):
-      if check_response(event):
-        queue.put(event)
-
-    try:
-      with self._lock:
-        self.callbacks.add(check_response_callback)
-        if request_event:
-          self.post_event(request_event)
-      return queue.get(timeout=timeout)
-    except Queue.Empty:
-      return None
-    finally:
-      with self._lock:
-        self.callbacks.remove(check_response_callback)
-
-  def wait(self, condition, timeout=None):
-    """Waits for an event matching a condition.
-
-    Args:
-      condition: A function to evaluate. The function takes one
-          argument (an event to evaluate) and returns whether the condition
-          applies.
-      timeout: A timeout in seconds, or None to wait forever.
-
-    Returns:
-      The event that matched the condition, or None if the connection
-      was closed or timeout.
-    """
-    return self.request_response(None, condition, timeout)
-
-  def _run_recv_thread(self):
-    """Thread to receive messages and broadcast them to callbacks.
-    """
-    while self._read_one_message()[0]:
-      pass
-
-  def _read_one_message(self):
+  def _process_event(self):
     """Handles one incoming message from the socket.
 
     Returns:
@@ -511,3 +431,147 @@ class EventClient(object):
         # Keep going
 
     return True, event
+
+  @abc.abstractmethod
+  def request_response(self, request_event, check_response, timeout=None):
+    """Starts a request-response communication: sends a request event and waits
+    for an valid response event until timeout.
+
+    Args:
+      request_event: An event to start protocol. None to send no events.
+      check_response: A function to evaluate if given event is an expected
+          response. The function takes one argument (an event to evaluate) and
+          returns whether it is valid. Note it may also get events "before"
+          request_event is sent, including the request_event itself.
+      timeout: A timeout in seconds, or None to wait forever.
+
+    Returns:
+      The valid response event, or None if the connection was closed or timeout.
+    """
+    raise NotImplementedError
+
+
+class BlockingEventClient(EventClientBase):
+  """A blocking event client.
+
+  A while-loop is used to serve as the event loop. This will block the
+  calling thread, until the specified condition is met.
+
+  Note that, the event loop only runs in request_response() and wait() calls,
+  so the callbacks will be called only when these calls are invoked.
+  """
+  def request_response(self, request_event, check_response, timeout=None):
+    """See EventClientBase.request_response."""
+    assert not timeout, 'Timeout is not currently supported in Blocking mode.'
+
+    if request_event:
+      self.post_event(request_event)
+
+    while True:
+      keep_going, event = self._process_event()
+      if not keep_going:  # Closed
+        return None
+      if event and check_response(event):
+        return event
+
+  def wait(self, condition, timeout=None):
+    """Waits for an event matching a condition.
+
+    Args:
+      condition: A function to evaluate. The function takes one
+          argument (an event to evaluate) and returns whether the condition
+          applies.
+      timeout: A timeout in seconds, or None to wait forever.
+
+    Returns:
+      The event that matched the condition, or None if the connection
+      was closed or timeout.
+    """
+    return self.request_response(None, condition, timeout)
+
+
+class ThreadingEventClient(EventClientBase):
+  """A threaded event client.
+
+  A daemon thread is created in constructor to process events. After instance is
+  constructed, callbacks will be called from that thread with incoming events.
+  """
+  def __init__(self, path=None, callback=None, event_queue=None, name=None):
+    """Constructor.
+
+    Args:
+      path: See EventClientBase.__init__.
+      callback: See EventClientBase.__init__.
+      event_queue: See EventClientBase.__init__.
+      name: An optional name for the receving thread.
+    """
+    super(ThreadingEventClient, self).__init__(path, callback, event_queue)
+
+    self.recv_thread = threading.Thread(
+        target=self._run_recv_thread,
+        name='EventServerRecvThread-%s' % (name or get_unique_id()))
+    self.recv_thread.daemon = True
+    self.recv_thread.start()
+
+  def close(self):
+    super(ThreadingEventClient, self).close()
+    if self.recv_thread:
+      self.recv_thread.join()
+      self.recv_thread = None
+
+  def _run_recv_thread(self):
+    """Thread to receive messages and broadcast them to callbacks."""
+    while self._process_event()[0]:
+      pass
+
+  def request_response(self, request_event, check_response, timeout=None):
+    """See EventClientBase.request_response."""
+    queue = Queue.Queue()
+
+    def check_response_callback(event):
+      if check_response(event):
+        queue.put(event)
+
+    try:
+      with self._lock:
+        self.callbacks.add(check_response_callback)
+        if request_event:
+          self.post_event(request_event)
+      return queue.get(timeout=timeout)
+    except Queue.Empty:
+      return None
+    finally:
+      with self._lock:
+        self.callbacks.remove(check_response_callback)
+
+
+def PostEvent(event):
+  """Post the specified event to the server."""
+  # Use a BlockingEventClient is sufficient, since we don't need to call the
+  # callbacks from another thread.
+  with BlockingEventClient() as event_client:
+    # This will not blocked, since it's just a 'post' operation.
+    event_client.post_event(event)
+
+
+def PostNewEvent(event_type, *args, **kwargs):
+  """Constructs an event from given type and parameters, and post it."""
+  return PostEvent(Event(event_type, *args, **kwargs))
+
+
+def SendEvent(request_event, check_response, timeout=None):
+  """Send request_event to the server, and wait for a response until timeout.
+
+  Args:
+    request_event: An event to start protocol. None to send no events.
+    check_response: A function to evaluate if given event is an expected
+        response. The function takes one argument (an event to evaluate) and
+        returns whether it is valid. Note it may also get events "before"
+        request_event is sent, including the request_event itself.
+    timeout: A timeout in seconds, or None to wait forever.
+
+  Returns:
+    The valid response event, or None if the connection was closed or timeout.
+  """
+  with BlockingEventClient() as event_client:
+    return event_client.request_response(request_event, check_response, timeout)

@@ -37,7 +37,7 @@ from cros.factory.test.e2e_test.common import ParseAutomationMode
 from cros.factory.test.env import goofy_proxy
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
-from cros.factory.test.event import EventClient
+from cros.factory.test.event import ThreadingEventClient
 from cros.factory.test.event import EventServer
 from cros.factory.test import event_log
 from cros.factory.test.event_log import EventLog
@@ -312,8 +312,8 @@ class Goofy(GoofyBase):
         name='EventServer')
     self.event_server_thread.start()
 
-    self.event_client = EventClient(
-        callback=self.handle_event, event_loop=self.run_queue)
+    self.event_client = ThreadingEventClient(
+        callback=self.handle_event, event_queue=self.run_queue)
 
     self.web_socket_manager = WebSocketManager(self.uuid)
     self.goofy_server.AddHTTPGetHandler(

@@ -237,9 +237,7 @@ def _PostUpdateSystemInfo():
     return
 
   try:
-    with event.EventClient() as event_client:
-      event_client.post_event(
-          event.Event(event.Event.Type.UPDATE_SYSTEM_INFO))
+    event.PostNewEvent(event.Event.Type.UPDATE_SYSTEM_INFO)
   except Exception:
     logging.exception('Failed to post update event')
 

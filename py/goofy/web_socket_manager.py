@@ -16,7 +16,7 @@ from ws4py.websocket import WebSocket
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
-from cros.factory.test.event import EventClient
+from cros.factory.test.event import ThreadingEventClient
 from cros.factory.test import factory
 from cros.factory.test.utils.web_socket_utils import WebSocketHandshake
 from cros.factory.utils import file_utils
@@ -55,8 +55,8 @@ class WebSocketManager(object):
     self.tail_process = None
     self.has_confirmed_socket = threading.Event()
 
-    self.event_client = EventClient(callback=self._handle_event,
-                                    name='WebSocketManager')
+    self.event_client = ThreadingEventClient(callback=self._handle_event,
+                                             name='WebSocketManager')
 
     if not os.path.exists(paths.CONSOLE_LOG_PATH):
       file_utils.TryMakeDirs(os.path.dirname(paths.CONSOLE_LOG_PATH))

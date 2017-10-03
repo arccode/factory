@@ -68,10 +68,8 @@ def UpdateServerConfig(new_config):
   config_utils.SaveRuntimeConfig(FACTORY_SERVER_CONFIG_NAME, new_config)
   # Notify config changes.
   try:
-    with event.EventClient() as client:
-      client.post_event(event.Event(
-          event.Event.Type.FACTORY_SERVER_CONFIG_CHANGED,
-          **new_config))
+    event.PostNewEvent(event.Event.Type.FACTORY_SERVER_CONFIG_CHANGED,
+                       **new_config)
   except Exception:
     pass
 

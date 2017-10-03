@@ -179,9 +179,7 @@ class ShutdownTest(unittest.TestCase):
         'wait_shutdown_secs': self.args.wait_shutdown_secs,
     }
 
-    # Create a new (threaded) event client since we
-    # don't want to use the event loop for this.
-    with test_event.EventClient() as event_client:
+    with test_event.BlockingEventClient() as event_client:
       event_client.post_event(
           test_event.Event(
               test_event.Event.Type.PENDING_SHUTDOWN, **pending_shutdown_data))
