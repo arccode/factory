@@ -2,17 +2,17 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   labels:
-    name: factory-hwid-service-deploy-node
-  name: factory-hwid-service-deploy-node
+    name: hwid-node<SUFFIX>
+  name: hwid-node<SUFFIX>
 spec:
   replicas: 2
   template:
     metadata:
       labels:
-        name: factory-hwid-service-deploy-node
+        name: hwid-node<SUFFIX>
     spec:
       containers:
-      - image: gcr.io/chromeos-factory/factory_hwid_service:<VERSION-TAG>
-        name: factory-hwid-service-deploy-node
+      - image: gcr.io/google.com/croshwid<SUFFIX>/factory_hwid_service:<VERSION-TAG>
+        name: hwid-node<SUFFIX>
         ports:
         - containerPort: 8181

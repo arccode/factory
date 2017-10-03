@@ -2,14 +2,14 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    name: factory-hwid-service-node
-  name: factory-hwid-service-node
+    name: hwid-service<SUFFIX>
+  name: hwid-service<SUFFIX>
 spec:
   ports:
   - protocol: TCP
     port: 8181
     targetPort: 8181
   selector:
-    name: factory-hwid-service-deploy-node
+    name: hwid-node<SUFFIX>
   type: LoadBalancer
-  loadBalancerIP: 35.194.251.111
+  loadBalancerIP: <IP>

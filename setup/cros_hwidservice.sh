@@ -91,7 +91,20 @@ check_credentials() {
       return 0
     fi
   done
-  gcloud auth application-default --project "${GKE_PROJECT}" login
+  gcloud auth application-default --project "${GCP_PROJECT}" login
+}
+
+get_ip_from_gcloud() {
+  local temp_ip_file="$(mktemp)"
+  TEMP_OBJECTS=("${temp_ip_file}" "${TEMP_OBJECTS[@]}")
+
+  gsutil cp "${HWID_SERVICE_IP_FILE_URL}" "${temp_ip_file}"
+
+  # The file pattern is:
+  # prod: 1.2.3.4
+  # staging: 2.3.4.5
+  # dev: 3.4.5.6
+  grep "${GCP_PROJECT_ABBREV}:" "${temp_ip_file}" | awk '{ print $2 }'
 }
 
 # Host base directories
@@ -103,20 +116,27 @@ HOST_HWIDSERVICE_DIR="${HOST_FACTORY_DIR}/py/hwid/service"
 HOST_HWIDSERVICE_CONFIG_DIR="${HOST_HWIDSERVICE_DIR}/config"
 HOST_HWIDSERVICE_DOCKER_DIR="${HOST_HWIDSERVICE_DIR}/docker_env"
 
+# Available project names: google.com:croshwid, google.com:croshwid-dev,
+# google.com:croshwid-staging
+GCP_PROJECT_PROD="google.com:croshwid"
+GCP_PROJECT=""
+GCP_PROJECT_ABBREV=""
+GCP_PROJECT_SUFFIX=""
+HWID_SERVICE_IP_FILE_URL="gs://hwid-service/ip.txt"
+
 # GKE and Docker variables
-GKE_ZONE="asia-east1-c"
-GKE_PROJECT="chromeos-factory"
-GKE_HWID_SERVICE_CLUSTER="factory-hwid-service-cluster"
-GKE_HWID_SERVICE="factory-hwid-service-node"
-GKE_HWID_SERVICE_DEPLOY="factory-hwid-service-deploy-node"
+GKE_ZONE="us-central1-b"
+GKE_HWID_SERVICE=""
+GKE_HWID_SERVICE_CLUSTER=""
+GKE_HWID_SERVICE_DEPLOY=""
 GKE_SERVICE_CONFIG="${HOST_HWIDSERVICE_CONFIG_DIR}/service.yaml"
 GKE_DEPLOYMENT_CONFIG="${HOST_HWIDSERVICE_CONFIG_DIR}/deployment.yaml"
-HWID_SERVICE_IMAGE="gcr.io/chromeos-factory/factory_hwid_service"
+HWID_SERVICE_IMAGE=""
 TIME_TAG="$(date +%b-%d-%Y_%H%M)"
 LATEST_TAG="latest"
 DEFAULT_KUBECTL_PROXY_PORT="8081"
 
-do_setup() {
+do_build() {
   check_docker
 
   # Used for pulling internal repos.
@@ -125,7 +145,7 @@ do_setup() {
   local dockerfile="${HOST_HWIDSERVICE_DOCKER_DIR}/Dockerfile.hwidservice"
 
 if [ ! -f "${gitcookies_path}" ]; then
-    echo "HWID Service setup failed. No such file ${gitcookies_path}" && false
+    echo "HWID Service build failed. No such file ${gitcookies_path}" && false
   fi
 
   # Prepare out of Docker context file.
@@ -141,7 +161,7 @@ if [ ! -f "${gitcookies_path}" ]; then
 }
 
 do_publish() {
-  do_setup
+  do_build
 
   check_gcloud
   check_credentials
@@ -159,24 +179,28 @@ do_run() {
   check_credentials
 
   # Create cluster if there is no one.
-  if ! gcloud container clusters --project "${GKE_PROJECT}" --zone \
+  if ! gcloud container clusters --project "${GCP_PROJECT}" --zone \
       "${GKE_ZONE}" describe "${GKE_HWID_SERVICE_CLUSTER}" &> /dev/null ; then
     gcloud container clusters \
-        --project "${GKE_PROJECT}" \
+        --project "${GCP_PROJECT}" \
         --zone "${GKE_ZONE}" \
         create "${GKE_HWID_SERVICE_CLUSTER}"
   fi
 
+  local ip=$(get_ip_from_gcloud)
+
+  set_kubectl_context
   # Run container if there is no one.
   if ! kubectl get deployment "${GKE_HWID_SERVICE_DEPLOY}" &> /dev/null ; then
     echo "Deploying container image..."
-    # Replace the <VERSION-TAG> with time tag string and pipes to kubectl
-    sed "s/<VERSION-TAG>/${TIME_TAG}/" "${GKE_DEPLOYMENT_CONFIG}" \
-        | kubectl create -f -
+    # Replace the <...> with correct information and pipes to kubectl
+    sed "s/<SUFFIX>/${GCP_PROJECT_SUFFIX}/; s/<VERSION-TAG>/${TIME_TAG}/" \
+      "${GKE_DEPLOYMENT_CONFIG}" | kubectl create -f -
   fi
 
   # Create the service.
-  kubectl create -f "${GKE_SERVICE_CONFIG}"
+  sed "s/<SUFFIX>/${GCP_PROJECT_SUFFIX}/; s/<IP>/${ip}/" \
+      "${GKE_SERVICE_CONFIG}" | kubectl create -f -
 
   # Show the current status of the service
   kubectl get services "${GKE_HWID_SERVICE}"
@@ -188,21 +212,20 @@ do_run() {
 do_status() {
   check_gcloud
   check_credentials
+  set_kubectl_context
   kubectl get -o wide all
 }
 
 do_stop() {
   check_gcloud
   check_credentials
+  set_kubectl_context
   kubectl delete service "${GKE_HWID_SERVICE}" || true
   kubectl delete deployment "${GKE_HWID_SERVICE_DEPLOY}" || true
 }
 
 do_cleanup() {
-  check_gcloud
-  check_credentials
-  kubectl delete service "${GKE_HWID_SERVICE}" || true
-  kubectl delete deployment "${GKE_HWID_SERVICE_DEPLOY}" || true
+  do_stop
   gcloud container clusters delete "${GKE_HWID_SERVICE_CLUSTER}" \
     --zone ${GKE_ZONE}
 }
@@ -211,6 +234,7 @@ do_update() {
   # Publish the latest image to Google Container Registry.
   do_publish
 
+  set_kubectl_context
   kubectl set image "deployment/${GKE_HWID_SERVICE_DEPLOY}" \
     "${GKE_HWID_SERVICE_DEPLOY}=${HWID_SERVICE_IMAGE}:${TIME_TAG}"
 }
@@ -226,9 +250,10 @@ do_connect() {
 
   gcloud container clusters \
     get-credentials "${GKE_HWID_SERVICE_CLUSTER}" \
-    --project "${GKE_PROJECT}" \
+    --project "${GCP_PROJECT}" \
     --zone "${GKE_ZONE}"
 
+  set_kubectl_context
   echo "Open browser to visit http://localhost:${kubectl_proxy_port}/ui"
   echo "Press Ctrl+C to stop proxying"
   kubectl proxy --port "${kubectl_proxy_port}"
@@ -262,19 +287,49 @@ do_test() {
     "${hwidservice_test_image_tag}"
 }
 
+set_project() {
+  case "$1" in
+    prod)
+      GCP_PROJECT_SUFFIX=""
+      ;;
+    staging|dev)
+      GCP_PROJECT_SUFFIX="-$1"
+      ;;
+    *)
+      print_usage && exit 1
+  esac
+  GCP_PROJECT_ABBREV="$1"
+  GCP_PROJECT="${GCP_PROJECT_PROD}${GCP_PROJECT_SUFFIX}"
+  HWID_SERVICE_IMAGE="gcr.io/${GCP_PROJECT/:/\/}/factory_hwid_service"
+  GKE_HWID_SERVICE="hwid-service"${GCP_PROJECT_SUFFIX}
+  GKE_HWID_SERVICE_CLUSTER="hwid-cluster${GCP_PROJECT_SUFFIX}"
+  GKE_HWID_SERVICE_DEPLOY="hwid-node"${GCP_PROJECT_SUFFIX}
+}
+
+set_kubectl_context() {
+  # To use a speicific kubectl context, we must designate the context first.
+  # The command will fail if the cluster haven't created yet.
+  gcloud container clusters get-credentials \
+    "${GKE_HWID_SERVICE_CLUSTER}" \
+    --zone "${GKE_ZONE}" \
+    --project "${GCP_PROJECT}"
+}
+
 print_usage() {
   cat << __EOF__
 HWID Service: HWID Validating Service
+
+usage: $0 [-p=prod | staging | dev] commands
 
 commands:
   $0 help
       Shows this help message.
 
-  $0 setup
+  $0 build
       Sets up HWID Service Docker image.
 
   $0 publish
-      Runs setup and publish to Google Container Registry.
+      Runs build and publish to Google Container Registry.
 
   $0 run
       Runs HWID Service Docker image.
@@ -300,9 +355,24 @@ __EOF__
 }
 
 main() {
+  while getopts "p:" flag; do
+    case ${flag} in
+      p)
+        set_project "${OPTARG}"
+        ;;
+      *)
+        print_usage && exit 1
+        ;;
+    esac
+  done
+  shift "$((OPTIND - 1))"
+
   case "$1" in
-    setup)
-      do_setup
+    build)
+      do_build
+      ;;
+    test)
+      do_test
       ;;
     publish)
       do_publish
@@ -322,9 +392,6 @@ main() {
     connect)
       shift
       do_connect "$@"
-      ;;
-    test)
-      do_test
       ;;
     update)
       do_update
