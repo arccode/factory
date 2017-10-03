@@ -13,7 +13,7 @@ following fields:
     later.  Please refer to [Evaluation](#Expression-Evaluation) section for
     usage of constants.
 * `options`: test list options, please refer to
-    `cros.factory.test.factory.Options`.
+    `cros.factory.test.test_lists.test_list.Options`.
 * `definitions`: define some reusable [test objects](#Test-Objects).
 * `tests`: a list of [test objects](#Test-Objects), which are the top level
     tests in this test list.

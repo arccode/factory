@@ -7,9 +7,9 @@
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import factory
 from cros.factory.test.test_lists import checker
 from cros.factory.test.test_lists import manager
+from cros.factory.test.test_lists import test_list as test_list_module
 from cros.factory.test.test_lists import test_object
 from cros.factory.utils import arg_utils
 
@@ -70,7 +70,7 @@ class CheckerTest(unittest.TestCase):
         dargs={
             'html': 'eval! constants.foo + constants.bar',
             'text_size': 'eval! dut.CheckOutput("bc 1 + 1")', })
-    options = factory.Options()
+    options = test_list_module.Options()
     test_list = test_object.FactoryTestList(
         subtests=[test], state_instance=None,
         test_list_id='main', constants=constants, options=options)
@@ -99,7 +99,7 @@ class CheckerTest(unittest.TestCase):
         pytest_name='message',
         dargs={
             'html': 'eval! constants.foo + constants.bar + ', })
-    options = factory.Options()
+    options = test_list_module.Options()
     test_list = test_object.FactoryTestList(
         subtests=[test], state_instance=None,
         test_list_id='main', constants=constants, options=options)

@@ -22,7 +22,7 @@ from cros.factory.test.factory import TestState
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import translation
-from cros.factory.test.test_lists.test_lists import TestListError
+from cros.factory.test.test_lists.test_list import TestListError
 from cros.factory.utils import shelve_utils
 from cros.factory.utils import type_utils
 

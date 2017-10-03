@@ -17,12 +17,11 @@ import zipimport
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
-from cros.factory.test import factory
 from cros.factory.test import i18n
 from cros.factory.test.rules import phase
 from cros.factory.test import state
 from cros.factory.test.test_lists import checker as checker_module
-from cros.factory.test.test_lists import test_lists
+from cros.factory.test.test_lists import test_list as test_list_module
 from cros.factory.test.test_lists import test_object as test_object_module
 from cros.factory.test.utils import selector_utils
 from cros.factory.utils import config_utils
@@ -30,13 +29,13 @@ from cros.factory.utils import debug_utils
 from cros.factory.utils import type_utils
 
 
-TestListError = test_lists.TestListError
+TestListError = test_list_module.TestListError
 
 # used for loop detection
 _DUMMY_CACHE = object()
 
 # String prefix to indicate this value needs to be evaluated
-_EVALUATE_PREFIX = test_lists.EVALUATE_PREFIX
+_EVALUATE_PREFIX = test_list_module.EVALUATE_PREFIX
 
 # logged name for debug_utils.CatchException
 _LOGGED_NAME = 'TestListManager'
@@ -288,7 +287,7 @@ class ITestList(object):
     Since SKIPPED status is saved in state_instance, self.state_instance must be
     available at this moment.  This functions reads skipped_tests and
     waived_tests options from self.options, for the format of these options,
-    please check `cros.factory.test.factory.Options`.
+    please check `cros.factory.test.test_lists.test_list.Options`.
     """
     assert self.state_instance is not None
 
@@ -711,7 +710,7 @@ class TestList(ITestList):
     if self._cached_options:
       return self._cached_options
 
-    self._cached_options = factory.Options()
+    self._cached_options = test_list_module.Options()
 
     class NotAccessable(object):
       def __getattribute__(self, name):

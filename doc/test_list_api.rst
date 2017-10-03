@@ -268,7 +268,7 @@ implements the test.
 Test list options
 -----------------
 
-.. py:module:: cros.factory.test.factory
+.. py:module:: cros.factory.test.test_lists.test_list
 
 .. autoclass:: Options
    :members:

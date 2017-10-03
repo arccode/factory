@@ -8,12 +8,12 @@ import copy
 import inspect
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test.test_lists import test_lists
+from cros.factory.test.test_lists import test_list as test_list_module
 from cros.factory.test.utils import pytest_utils
 from cros.factory.utils import arg_utils
 
 
-_EVALUATE_PREFIX = test_lists.EVALUATE_PREFIX
+_EVALUATE_PREFIX = test_list_module.EVALUATE_PREFIX
 
 
 class UnresolvableNamespace(object):
@@ -228,7 +228,7 @@ class Checker(object):
     if not args_spec:
       # no argument for this pytest
       if test.dargs:
-        raise test_lists.TestListError(
+        raise test_list_module.TestListError(
             '%s does not accept any arguments' % test.pytest_name)
 
     for arg in args_spec:

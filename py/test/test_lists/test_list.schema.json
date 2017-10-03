@@ -103,7 +103,7 @@
       "additionalProperties": false
     },
     "test_options": {
-      "__comment": "please see cros.factory.test.factory.Options",
+      "__comment": "please see cros.factory.test.test_lists.test_list.Options",
       "type": "object"
     },
     "test_constants": {
