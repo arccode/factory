@@ -41,7 +41,6 @@ class PayloadExporter(object):
       payload_type: Payload type of the resource.
       file_path: File path to export the specific resource.
     """
-
     config = umpire_config.UmpireConfig(self._env.config)
     bundle = config.GetBundle(bundle_id)
     if not bundle:

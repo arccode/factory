@@ -128,11 +128,11 @@ class CLICommand(umpire_rpc.UmpireRPC):
     return self.env.GetPayloadsDict(payloads_name)
 
   @umpire_rpc.RPCCall
-  def ValidateConfig(self, umpire_config):
+  def ValidateConfig(self, config_str):
     """Validates a config.
 
     Args:
-      umpire_config: UmpireConfig content or file path.
+      config_str: Umpire config in JSON string.
 
     Raises:
       TypeError: when 'services' is not a dict.
@@ -140,8 +140,7 @@ class CLICommand(umpire_rpc.UmpireRPC):
       SchemaException: on schema validation failed.
       UmpireError if there's any resources for active bundles missing.
     """
-    config_to_validate = config.UmpireConfig(umpire_config)
-    config.ValidateResources(config_to_validate, self.env)
+    config.ValidateResources(config.UmpireConfig(config_str), self.env)
 
   @umpire_rpc.RPCCall
   def Deploy(self, config_res):

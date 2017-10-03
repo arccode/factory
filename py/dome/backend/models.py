@@ -16,7 +16,6 @@ TODO(littlecvr): make umpire config complete such that it contains all the
 import contextlib
 import copy
 import errno
-import json
 import logging
 import os
 import shutil
@@ -30,12 +29,12 @@ import xmlrpclib
 import django
 import rest_framework.exceptions
 import rest_framework.status
-import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server import resource as umpire_resource
 from cros.factory.umpire.server.service import umpire_service
 from cros.factory.utils import file_utils
+from cros.factory.utils import json_utils
 from cros.factory.utils import net_utils
 
 
@@ -180,11 +179,7 @@ def GetUmpireServer(project_name):
 
 
 def GetUmpireConfig(project_name):
-  config_str = GetUmpireServer(project_name).GetActiveConfig()
-  if umpire_resource.ConfigTypes.umpire_config.fn_suffix == 'yaml':
-    return yaml.load(config_str)
-  else:
-    return json.loads(config_str)
+  return json_utils.LoadStr(GetUmpireServer(project_name).GetActiveConfig())
 
 
 def GenerateUploadToPath(unused_instance, filename):
@@ -340,17 +335,9 @@ class Project(django.db.models.Model):
 
     logger.info('Uploading Umpire config')
 
-    # TODO(hungte) Currently Umpire is still using YAML config files.
-    # In future we may change it to JSON, and to help Dome supporting both
-    # during migration, here we'll double check the format to use,
-    # although this is decided by compile time instead of runtime.
-    if umpire_resource.ConfigTypes.umpire_config.fn_suffix == 'yaml':
-      value = yaml.safe_dump(config, default_flow_style=False)
-    else:
-      value = json.dumps(config, indent=1, separators=(',', ': '))
-
     new_config_path = umpire_server.AddConfigFromBlob(
-        value, umpire_resource.ConfigTypeNames.umpire_config)
+        json_utils.DumpStr(config, pretty=True),
+        umpire_resource.ConfigTypeNames.umpire_config)
 
     logger.info('Deploying Umpire config')
     try:

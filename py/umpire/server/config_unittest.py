@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -8,9 +8,8 @@ import copy
 import os
 import re
 import unittest
-import yaml
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server import config
 from cros.factory.umpire.server import resource
@@ -18,12 +17,12 @@ from cros.factory.umpire.server import umpire_env
 from cros.factory.utils import file_utils
 
 TESTDATA_DIR = os.path.join(os.path.dirname(__file__), 'testdata')
-MINIMAL_CONFIG = os.path.join(TESTDATA_DIR, 'minimal_umpire.yaml')
+MINIMAL_CONFIG = os.path.join(TESTDATA_DIR, 'minimal_umpire.json')
 EMPTY_SERVICES_CONFIG = os.path.join(TESTDATA_DIR,
-                                     'minimal_empty_services_umpire.yaml')
+                                     'minimal_empty_services_umpire.json')
 RESOURCE_CHECK_CONFIG = os.path.join(TESTDATA_DIR,
-                                     'umpire_resource_check.yaml')
-RULESET_CONFIG = os.path.join(TESTDATA_DIR, 'rulesets_umpire.yaml')
+                                     'umpire_resource_check.json')
+RULESET_CONFIG = os.path.join(TESTDATA_DIR, 'rulesets_umpire.json')
 
 _RE_COMMENT = re.compile(r'\s*# .+')
 
@@ -31,7 +30,7 @@ _RE_COMMENT = re.compile(r'\s*# .+')
 class UmpireConfigTest(unittest.TestCase):
 
   def testLoadConfig(self):
-    conf = config.UmpireConfig(EMPTY_SERVICES_CONFIG)
+    conf = config.UmpireConfig(file_path=EMPTY_SERVICES_CONFIG)
     self.assertEqual(1, len(conf['rulesets']))
     ruleset = conf['rulesets'][0]
     self.assertDictEqual(
@@ -46,12 +45,11 @@ class UmpireConfigTest(unittest.TestCase):
     self.assertEqual('bundle for test', bundle['note'])
 
   def testLoadConfigNotFound(self):
-    self.assertRaises(IOError, config.UmpireConfig, '/path/to/no/where')
+    self.assertRaises(
+        IOError, config.UmpireConfig, file_path='/path/to/no/where')
 
   def testLoadConfigFromDict(self):
-    with open(EMPTY_SERVICES_CONFIG) as f:
-      config_dict = yaml.load(f)
-    conf = config.UmpireConfig(config_dict)
+    conf = config.UmpireConfig(file_path=EMPTY_SERVICES_CONFIG)
     self.assertEqual(1, len(conf['rulesets']))
     ruleset = conf['rulesets'][0]
     self.assertDictEqual(
@@ -82,7 +80,7 @@ class UmpireConfigTest(unittest.TestCase):
     self.assertEqual('bundle for test', bundle['note'])
 
   def testLoadConfigFromConfigDeepCopy(self):
-    conf = config.UmpireConfig(EMPTY_SERVICES_CONFIG)
+    conf = config.UmpireConfig(file_path=EMPTY_SERVICES_CONFIG)
     original_payloads = conf['bundles'][0]['payloads']
 
     dup_conf = config.UmpireConfig(conf)
@@ -92,7 +90,7 @@ class UmpireConfigTest(unittest.TestCase):
     self.assertEqual(original_payloads, conf['bundles'][0]['payloads'])
 
   def testLoadConfigRuleMatcher(self):
-    conf = config.UmpireConfig(RULESET_CONFIG)
+    conf = config.UmpireConfig(file_path=RULESET_CONFIG)
     self.assertEqual(2, len(conf['rulesets']))
     ruleset = conf['rulesets'][0]
     self.assertDictEqual(
@@ -127,7 +125,7 @@ class UmpireConfigTest(unittest.TestCase):
       return [_RE_COMMENT.sub('', line.rstrip()) for line in lines]
 
     # TODO(deanliao): remove validate=False once services are implemented.
-    conf = config.UmpireConfig(MINIMAL_CONFIG, validate=False)
+    conf = config.UmpireConfig(file_path=MINIMAL_CONFIG, validate=False)
     new_config_lines = conf.Dump().splitlines()
     # TODO(deanliao): remove this once we can dump comments.
     config_lines = RemoveComments(file_utils.ReadLines(MINIMAL_CONFIG))
@@ -136,7 +134,7 @@ class UmpireConfigTest(unittest.TestCase):
     self.assertListEqual(config_lines, new_config_lines)
 
   def testGetDefaultBundle(self):
-    conf = config.UmpireConfig(EMPTY_SERVICES_CONFIG)
+    conf = config.UmpireConfig(file_path=EMPTY_SERVICES_CONFIG)
     self.assertEqual('test', conf.GetDefaultBundle()['id'])
 
     conf['rulesets'].insert(0, {'bundle_id': 'new_bundle', 'active': True})
@@ -151,7 +149,7 @@ class UmpireConfigTest(unittest.TestCase):
     self.assertEqual('test', conf.GetDefaultBundle()['id'])
 
   def testGetDefaultBundleNotFound(self):
-    conf = config.UmpireConfig(EMPTY_SERVICES_CONFIG)
+    conf = config.UmpireConfig(file_path=EMPTY_SERVICES_CONFIG)
 
     # A default bundle ID derived from rulesets doesn't exist in bundles
     # section.
@@ -167,7 +165,7 @@ class UmpireConfigTest(unittest.TestCase):
     self.assertIsNone(conf.GetDefaultBundle())
 
   def testGetBundle(self):
-    conf = config.UmpireConfig(EMPTY_SERVICES_CONFIG)
+    conf = config.UmpireConfig(file_path=EMPTY_SERVICES_CONFIG)
     new_bundle = copy.deepcopy(conf['bundles'][0])
     new_bundle['id'] = 'new_bundle'
     new_bundle['note'] = 'new bundle for test'
@@ -189,7 +187,7 @@ class UmpireConfigTest(unittest.TestCase):
     self.assertIsNone(conf.GetBundle('nonexist_bundle'))
 
   def testGetActiveBundles(self):
-    conf = config.UmpireConfig(EMPTY_SERVICES_CONFIG)
+    conf = config.UmpireConfig(file_path=EMPTY_SERVICES_CONFIG)
     conf['rulesets'] = [
         {'bundle_id': 'id_1', 'active': True},
         {'bundle_id': 'id_2', 'active': False},
@@ -209,7 +207,8 @@ class ValidateResourcesTest(unittest.TestCase):
 
   def setUp(self):
     self.env = umpire_env.UmpireEnvForTest()
-    self.conf = config.UmpireConfig(RESOURCE_CHECK_CONFIG, validate=False)
+    self.conf = config.UmpireConfig(
+        file_path=RESOURCE_CHECK_CONFIG, validate=False)
     self.env.AddConfigFromBlob('{}', resource.ConfigTypeNames.payload_config)
     self.env.AddConfigFromBlob('{"hwid":{"file":"hwid.404.gz"}}',
                                resource.ConfigTypeNames.payload_config)
@@ -242,13 +241,17 @@ class ShowDiffTest(unittest.TestCase):
              'active': True}]}
     self.assertListEqual(
         ['Newly added rulesets:',
-         '  bundle_id: new_bundle',
-         '  note: ruleset 1',
-         '  active: true',
+         '  {',
+         '    "active": true,',
+         '    "bundle_id": "new_bundle",',
+         '    "note": "ruleset 1"',
+         '  }',
          'Deleted rulesets:',
-         '  bundle_id: original_bundle',
-         '  note: ruleset 1',
-         '  active: true'],
+         '  {',
+         '    "active": true,',
+         '    "bundle_id": "original_bundle",',
+         '    "note": "ruleset 1"',
+         '  }'],
         config.ShowDiff(original, new))
 
   def testInactive(self):
@@ -271,9 +274,11 @@ class ShowDiffTest(unittest.TestCase):
 
     self.assertListEqual(
         ['Deleted rulesets:',
-         '  bundle_id: bundle_1',
-         '  note: ruleset 1',
-         '  active: true'],
+         '  {',
+         '    "active": true,',
+         '    "bundle_id": "bundle_1",',
+         '    "note": "ruleset 1"',
+         '  }'],
         config.ShowDiff(original, new))
 
   def testActive(self):
@@ -296,9 +301,11 @@ class ShowDiffTest(unittest.TestCase):
 
     self.assertListEqual(
         ['Newly added rulesets:',
-         '  bundle_id: bundle_1',
-         '  note: ruleset 1 active',
-         '  active: true'],
+         '  {',
+         '    "active": true,',
+         '    "bundle_id": "bundle_1",',
+         '    "note": "ruleset 1 active"',
+         '  }'],
         config.ShowDiff(original, new))
 
 

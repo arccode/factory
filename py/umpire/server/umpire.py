@@ -49,9 +49,10 @@ def ExportPayload(args, umpire_cli):
 
 
 @Command('import-bundle',
-         CmdArg('--id',
-                help=('the target bundle id. If not specified, use '
-                      'bundle_name in bundle\'s MANIFEST.yaml')),
+         CmdArg(
+             '--id',
+             help=('the target bundle id. '
+                   'If not specified, use "factory_bundle_YYYYMMDD_hhmmss".')),
          CmdArg('--note', help='a note for the bundle'),
          CmdArg('bundle_path', default='.',
                 help='Bundle path. If not specified, use local path.'))
@@ -149,7 +150,7 @@ def Deploy(args, umpire_cli):
 def _Deploy(config_path, umpire_cli):
   # First, ask Umpire daemon to validate config.
   print 'Validating config %r for deployment...' % config_path
-  config_to_deploy = config.UmpireConfig(config_path)
+  config_to_deploy = config.UmpireConfig(file_path=config_path)
 
   active_config = config.UmpireConfig(umpire_cli.GetActiveConfig())
 

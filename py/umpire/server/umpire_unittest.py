@@ -5,11 +5,11 @@
 # found in the LICENSE file.
 
 import __builtin__  # Used for mocking raw_input().
+import json
 import mox
 import os
 import sys
 import unittest
-import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
@@ -128,9 +128,7 @@ class ImportBundleTest(unittest.TestCase):
 
   def testImportBundle(self):
     # Expect XMLRPC call.
-    self.mock_cli.ImportBundle(
-        self.BUNDLE_PATH, 'new_bundle', 'new bundle').AndReturn(
-            'umpire.yaml##00000000')
+    self.mock_cli.ImportBundle(self.BUNDLE_PATH, 'new_bundle', 'new bundle')
 
     self.mox.ReplayAll()
 
@@ -148,8 +146,8 @@ class ImportBundleTest(unittest.TestCase):
 
 class DeployTest(unittest.TestCase):
   ACTIVE_CONFIG_PATH = os.path.join(
-      TESTDATA_DIR, 'minimal_empty_services_with_enable_update_umpire.yaml')
-  NEW_CONFIG_PATH = os.path.join(TESTDATA_DIR, 'minimal_umpire.yaml')
+      TESTDATA_DIR, 'minimal_empty_services_with_enable_update_umpire.json')
+  NEW_CONFIG_PATH = os.path.join(TESTDATA_DIR, 'minimal_umpire.json')
 
   def setUp(self):
     self.args = type_utils.Obj()
@@ -165,8 +163,9 @@ class DeployTest(unittest.TestCase):
     new_config = file_utils.ReadFile(self.NEW_CONFIG_PATH)
 
     self.mox.StubOutWithMock(config, 'UmpireConfig')
-    config.UmpireConfig('new_config').AndReturn(yaml.load(new_config))
-    config.UmpireConfig(active_config).AndReturn(yaml.load(active_config))
+    config.UmpireConfig(file_path='new_config').AndReturn(
+        json.loads(new_config))
+    config.UmpireConfig(active_config).AndReturn(json.loads(active_config))
 
     self.mox.StubOutWithMock(__builtin__, 'raw_input')
     raw_input('Ok to deploy [y/n]? ').AndReturn('Y')
@@ -174,8 +173,8 @@ class DeployTest(unittest.TestCase):
     self.mock_cli.GetActiveConfig().AndReturn(active_config)
     self.mock_cli.AddConfig(
         'new_config',
-        resource.ConfigTypeNames.umpire_config).AndReturn('umpire.123.yaml')
-    self.mock_cli.Deploy('umpire.123.yaml')
+        resource.ConfigTypeNames.umpire_config).AndReturn('umpire.123.json')
+    self.mock_cli.Deploy('umpire.123.json')
     self.mox.ReplayAll()
 
     self.args.config_path = 'new_config'
@@ -192,8 +191,9 @@ class DeployTest(unittest.TestCase):
     new_config = file_utils.ReadFile(self.NEW_CONFIG_PATH)
 
     self.mox.StubOutWithMock(config, 'UmpireConfig')
-    config.UmpireConfig('new_config').AndReturn(yaml.load(new_config))
-    config.UmpireConfig(active_config).AndReturn(yaml.load(active_config))
+    config.UmpireConfig(file_path='new_config').AndReturn(
+        json.loads(new_config))
+    config.UmpireConfig(active_config).AndReturn(json.loads(active_config))
 
     self.mox.StubOutWithMock(__builtin__, 'raw_input')
     raw_input('Ok to deploy [y/n]? ').AndReturn('x')

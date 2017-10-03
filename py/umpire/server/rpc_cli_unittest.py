@@ -68,16 +68,11 @@ class CommandTest(unittest.TestCase):
     return deferred
 
   def testUpdate(self):
-    # TODO(deanliao): figure out why proxy.callRemote converts [(a, b)] to
-    #     [[a, b]].
-    # resource_to_update = [['factory_toolkit', '/tmp/factory_toolkit.tar.bz']]
     resource_to_update = [['factory_toolkit', '/tmp/factory_toolkit.tar.bz']]
-    updated_config = '/umpire/resources/config.yaml#12345678'
 
     self.mox.StubOutClassWithMocks(update, 'ResourceUpdater')
     mock_updater = update.ResourceUpdater(mox.IsA(daemon.UmpireDaemon))
-    mock_updater.Update(resource_to_update, 'sid', 'did').AndReturn(
-        updated_config)
+    mock_updater.Update(resource_to_update, 'sid', 'did')
     self.mox.ReplayAll()
 
     d = self.Call('Update', resource_to_update, 'sid', 'did')
@@ -144,25 +139,25 @@ class CommandTest(unittest.TestCase):
         'IOError:.*/path/to/nowhere')
 
   def testValidateConfig(self):
-    config_path = '/path/to/config'
+    config_str = 'umpire config'
     self.mox.StubOutClassWithMocks(config, 'UmpireConfig')
     self.mox.StubOutWithMock(config, 'ValidateResources')
-    mock_config = config.UmpireConfig(config_path)
+    mock_config = config.UmpireConfig(config_str)
     config.ValidateResources(mock_config, self.env)
     self.mox.ReplayAll()
 
-    return self.AssertSuccess(self.Call('ValidateConfig', config_path))
+    return self.AssertSuccess(self.Call('ValidateConfig', config_str))
 
   def testValidateConfigFailure(self):
-    config_path = '/path/to/config'
+    config_str = 'umpire config'
     self.mox.StubOutClassWithMocks(config, 'UmpireConfig')
     self.mox.StubOutWithMock(config, 'ValidateResources')
-    mock_config = config.UmpireConfig(config_path)
+    mock_config = config.UmpireConfig(config_str)
     config.ValidateResources(mock_config, self.env).AndRaise(
         common.UmpireError('mock error'))
     self.mox.ReplayAll()
 
-    return self.AssertFailure(self.Call('ValidateConfig', config_path),
+    return self.AssertFailure(self.Call('ValidateConfig', config_str),
                               'UmpireError: mock error')
 
 

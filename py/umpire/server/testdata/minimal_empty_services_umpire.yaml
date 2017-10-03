@@ -1,9 +1,0 @@
-rulesets:
-- bundle_id: test
-  note: ruleset for test
-  active: true
-services: {}
-bundles:
-- id: test
-  note: bundle for test
-  payloads: payload.99914b932bd37a50b983c5e7c90ae93b.json

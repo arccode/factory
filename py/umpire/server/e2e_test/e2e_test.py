@@ -16,6 +16,7 @@ umpire test`, and should not be run directly.
 import contextlib
 import glob
 import gzip
+import json
 import logging
 import os
 import re
@@ -26,7 +27,6 @@ import unittest
 import xmlrpclib
 
 import requests  # pylint: disable=import-error
-import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.client import umpire_server_proxy
@@ -195,11 +195,11 @@ class UmpireRPCTest(UmpireDockerTestCase):
   def setUp(self):
     super(UmpireRPCTest, self).setUp()
     self.proxy = xmlrpclib.ServerProxy(RPC_ADDR_BASE)
-    self.default_config = yaml.load(
-        self.ReadConfigTestdata('umpire_default.yaml'))
+    self.default_config = json.loads(
+        self.ReadConfigTestdata('umpire_default.json'))
     # Deploy an empty default config.
     conf = self.proxy.AddConfigFromBlob(
-        yaml.dump(self.default_config), 'umpire_config')
+        json.dumps(self.default_config), 'umpire_config')
     self.proxy.Deploy(conf)
 
   def ReadConfigTestdata(self, name):
@@ -214,7 +214,7 @@ class UmpireRPCTest(UmpireDockerTestCase):
 
   def testGetActiveConfig(self):
     self.assertEqual(self.default_config,
-                     yaml.load(self.proxy.GetActiveConfig()))
+                     json.loads(self.proxy.GetActiveConfig()))
 
   def testAddConfigFromBlob(self):
     test_add_config_blob = 'test config blob'
@@ -224,35 +224,35 @@ class UmpireRPCTest(UmpireDockerTestCase):
 
   def testValidateConfig(self):
     with self.assertRPCRaises('ValueError'):
-      self.proxy.ValidateConfig('not a\n valid config file.')
+      self.proxy.ValidateConfig('not a valid config.')
 
     with self.assertRPCRaises('KeyError'):
       self.proxy.ValidateConfig(
-          self.ReadConfigTestdata('umpire_no_service.yaml'))
+          self.ReadConfigTestdata('umpire_no_service.json'))
 
     with self.assertRPCRaises('SchemaException'):
       self.proxy.ValidateConfig(
-          self.ReadConfigTestdata('umpire_wrong_schema.yaml'))
+          self.ReadConfigTestdata('umpire_wrong_schema.json'))
 
     with self.assertRPCRaises('Missing resource'):
       self.proxy.ValidateConfig(
-          self.ReadConfigTestdata('umpire_missing_resource.yaml'))
+          self.ReadConfigTestdata('umpire_missing_resource.json'))
 
   def testDeployConfig(self):
-    to_deploy_config = self.ReadConfigTestdata('umpire_deploy.yaml')
+    to_deploy_config = self.ReadConfigTestdata('umpire_deploy.json')
     conf = self.proxy.AddConfigFromBlob(to_deploy_config, 'umpire_config')
     self.proxy.Deploy(conf)
 
-    active_config = yaml.load(self.proxy.GetActiveConfig())
-    self.assertEqual(yaml.load(to_deploy_config), active_config)
+    active_config = json.loads(self.proxy.GetActiveConfig())
+    self.assertEqual(json.loads(to_deploy_config), active_config)
 
   def testDeployServiceConfigChanged(self):
-    to_deploy_config = self.ReadConfigTestdata('umpire_deploy.yaml')
+    to_deploy_config = self.ReadConfigTestdata('umpire_deploy.json')
     conf = self.proxy.AddConfigFromBlob(to_deploy_config, 'umpire_config')
     self.proxy.Deploy(conf)
 
     to_deploy_config = self.ReadConfigTestdata(
-        'umpire_deploy_service_config_changed.yaml')
+        'umpire_deploy_service_config_changed.json')
     conf = self.proxy.AddConfigFromBlob(to_deploy_config, 'umpire_config')
     self.proxy.Deploy(conf)
 
@@ -279,12 +279,12 @@ class UmpireRPCTest(UmpireDockerTestCase):
 
   def testDeployConfigFail(self):
     # You need a config with "unable to start some service" for this fail.
-    to_deploy_config = self.ReadConfigTestdata('umpire_deploy_fail.yaml')
+    to_deploy_config = self.ReadConfigTestdata('umpire_deploy_fail.json')
     conf = self.proxy.AddConfigFromBlob(to_deploy_config, 'umpire_config')
     with self.assertRPCRaises('Deploy failed'):
       self.proxy.Deploy(conf)
 
-    active_config = yaml.load(self.proxy.GetActiveConfig())
+    active_config = json.loads(self.proxy.GetActiveConfig())
     self.assertEqual(self.default_config, active_config)
 
   def testStopStartService(self):
@@ -314,7 +314,7 @@ class UmpireRPCTest(UmpireDockerTestCase):
     resource = payload['hwid']['file']
     self.proxy.Update([('hwid', os.path.join(DOCKER_RESOURCE_DIR, resource))])
 
-    active_config = yaml.load(self.proxy.GetActiveConfig())
+    active_config = json.loads(self.proxy.GetActiveConfig())
     payload = self.proxy.GetPayloadsDict(
         active_config['bundles'][0]['payloads'])
     self.assertEqual(resource, payload['hwid']['file'])
@@ -332,7 +332,7 @@ class UmpireRPCTest(UmpireDockerTestCase):
 
     self.proxy.ImportBundle('/mnt/bundle_for_import.zip', 'umpire_test')
 
-    active_config = yaml.load(self.proxy.GetActiveConfig())
+    active_config = json.loads(self.proxy.GetActiveConfig())
     new_bundle = next(bundle for bundle in active_config['bundles']
                       if bundle['id'] == 'umpire_test')
     new_payload = self.proxy.GetPayloadsDict(new_bundle['payloads'])
@@ -356,7 +356,7 @@ class UmpireHTTPTest(UmpireDockerTestCase):
 
   def testReverseProxy(self):
     to_deploy_config = file_utils.ReadFile(
-        os.path.join(CONFIG_TESTDATA_DIR, 'umpire_deploy_proxy.yaml'))
+        os.path.join(CONFIG_TESTDATA_DIR, 'umpire_deploy_proxy.json'))
     conf = self.proxy.AddConfigFromBlob(to_deploy_config, 'umpire_config')
     self.proxy.Deploy(conf)
 

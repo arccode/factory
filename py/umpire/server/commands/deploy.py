@@ -45,7 +45,8 @@ class ConfigDeployer(object):
     """
     file_utils.CheckPath(self._config_path_to_deploy, 'config')
 
-    config_to_validate = umpire_config.UmpireConfig(self._config_path_to_deploy)
+    config_to_validate = umpire_config.UmpireConfig(
+        file_path=self._config_path_to_deploy)
     umpire_config.ValidateResources(config_to_validate, self._env)
     self._config_to_deploy = config_to_validate
 

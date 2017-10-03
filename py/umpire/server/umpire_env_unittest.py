@@ -15,8 +15,7 @@ from cros.factory.utils import file_utils
 
 
 TESTDATA_DIR = os.path.join(os.path.dirname(__file__), 'testdata')
-TEST_CONFIG = os.path.join(TESTDATA_DIR,
-                           'minimal_empty_services_umpire.yaml')
+TEST_CONFIG = os.path.join(TESTDATA_DIR, 'minimal_empty_services_umpire.json')
 TOOLKIT_DIR = os.path.join(TESTDATA_DIR, 'install_factory_toolkit.run')
 
 
@@ -32,14 +31,14 @@ class UmpireEnvTest(unittest.TestCase):
     self.env.Close()
 
   def testLoadConfigDefault(self):
-    default_path = os.path.join(self.env.base_dir, 'active_umpire.yaml')
+    default_path = os.path.join(self.env.base_dir, 'active_umpire.json')
     shutil.copy(TEST_CONFIG, default_path)
 
     self.env.LoadConfig()
     self.assertEqual(default_path, self.env.config_path)
 
   def testLoadConfigCustomPath(self):
-    custom_path = os.path.join(self.env.base_dir, 'custom_config.yaml')
+    custom_path = os.path.join(self.env.base_dir, 'custom_config.json')
     shutil.copy(TEST_CONFIG, custom_path)
 
     self.env.LoadConfig(custom_path=custom_path)
@@ -47,7 +46,7 @@ class UmpireEnvTest(unittest.TestCase):
 
   def testActivateConfigFile(self):
     file_utils.TouchFile(self.env.active_config_file)
-    config_to_activate = os.path.join(self.env.base_dir, 'to_activate.yaml')
+    config_to_activate = os.path.join(self.env.base_dir, 'to_activate.json')
     file_utils.TouchFile(config_to_activate)
 
     self.env.ActivateConfigFile(config_path=config_to_activate)

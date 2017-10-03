@@ -1,0 +1,22 @@
+{
+  "bundles": [
+    {
+      "id": "non_default_test",
+      "note": "another bundle (not default)",
+      "payloads": "payload.99914b932bd37a50b983c5e7c90ae93b.json"
+    },
+    {
+      "id": "default_test",
+      "note": "default bundle for test",
+      "payloads": "payload.99914b932bd37a50b983c5e7c90ae93b.json"
+    }
+  ],
+  "rulesets": [
+    {
+      "active": true,
+      "bundle_id": "default_test",
+      "note": "ruleset for test"
+    }
+  ],
+  "services": {}
+}

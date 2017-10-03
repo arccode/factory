@@ -37,7 +37,7 @@ DEFAULT_SERVER_DIR = os.path.join('usr', 'local', 'factory')
 SESSION_JSON_FILE = 'session.json'
 
 # File name under base_dir
-_ACTIVE_UMPIRE_CONFIG = 'active_umpire.yaml'
+_ACTIVE_UMPIRE_CONFIG = 'active_umpire.json'
 _UMPIRED_PID_FILE = 'umpired.pid'
 _UMPIRED_LOG_FILE = 'umpired.log'
 _UMPIRE_DATA_DIR = 'umpire_data'
@@ -207,7 +207,7 @@ class UmpireEnv(object):
       UmpireConfig object.
     """
     config_path = custom_path or self.active_config_file
-    return config.UmpireConfig(config_path)
+    return config.UmpireConfig(file_path=config_path)
 
   def LoadConfig(self, custom_path=None, validate=True):
     """Loads Umpire config file and validates it.
@@ -220,7 +220,7 @@ class UmpireEnv(object):
       UmpireError if it fails to load the config file.
     """
     def _LoadValidateConfig(path):
-      result = config.UmpireConfig(path)
+      result = config.UmpireConfig(file_path=path)
       if validate:
         config.ValidateResources(result, self)
       return result

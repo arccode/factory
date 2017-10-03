@@ -1,0 +1,35 @@
+{
+  "duts": [
+    {
+      "X-Umpire-DUT": {
+        "ec": "3000.0.0",
+        "firmware": "3000.0.0",
+        "mac.eth0": "FF:FF:FF:FF:FF:FF",
+        "mac.wlan0": "EE:EE:EE:EE:EE:EE",
+        "mlb_sn": "TESTMLB001",
+        "sn": "TESTDEV001"
+      },
+      "name": "dut1"
+    },
+    {
+      "X-Umpire-DUT": {
+        "ec": "3000.0.0",
+        "firmware": "3000.0.0",
+        "mac.eth0": "FF:FF:FF:FF:FF:FF",
+        "mac.wlan0": "EE:EE:EE:EE:EE:EE",
+        "mlb_sn": "TESTMLB002",
+        "sn": "TESTDEV002"
+      },
+      "name": "dut2"
+    }
+  ],
+  "methods": [
+    {
+      "name": "MethodWithOutArgs"
+    },
+    {
+      "args": "argument 1",
+      "name": "MethodWithArgs"
+    }
+  ]
+}

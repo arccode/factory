@@ -22,7 +22,7 @@ ConfigType = collections.namedtuple('ConfigType',
                                     ['type_name', 'fn_prefix', 'fn_suffix'])
 
 ConfigTypes, ConfigTypeNames = _InitializeTypes([
-    ConfigType('umpire_config', 'umpire', 'yaml'),
+    ConfigType('umpire_config', 'umpire', 'json'),
     ConfigType('payload_config', 'payload', 'json')])
 
 PayloadType = collections.namedtuple('PayloadType',

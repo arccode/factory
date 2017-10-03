@@ -1,0 +1,26 @@
+{
+    "bundles": [
+        {
+            "id": "empty_init_bundle",
+            "note": "n/a",
+            "payloads": "payload.489a1c39af84e02926c0937ae95e4f23.json"
+        }
+    ],
+    "rulesets": [
+        {
+            "active": true,
+            "bundle_id": "empty_init_bundle",
+            "note": "n/a"
+        }
+    ],
+    "services": {
+        "http": {},
+        "instalog": {
+            "archive": {
+                "enable": true
+            }
+        },
+        "rsync": {},
+        "shop_floor": {}
+    }
+}

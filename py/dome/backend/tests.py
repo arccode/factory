@@ -11,7 +11,6 @@ import xmlrpclib
 import mock
 import rest_framework.status
 import rest_framework.test
-import yaml
 
 from backend import models
 
@@ -500,8 +499,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
     self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
 
     bundle_list = response.json()
-    # See testdata/umpire.yaml and testdata/get_bundle_list_expected.json, we
-    # enforce a one-to-one mapping between 'rulesets' and 'bundles' sections,
+    # See testdata/expected_response-get_bundle_list.json,
+    # we enforce a one-to-one mapping between 'rulesets' and 'bundles' sections,
     # after normalization:
     # - 'testing_bundle_01' appears twice in the rulesets sections, so it should
     #   be duplicated, becoming 'testing_bundle_01_copy'
@@ -696,13 +695,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
         self.mocks['xmlrpclib.ServerProxy']().AddConfigFromBlob.call_args_list)
     args, unused_kwargs = call_args_list[index]
     config_str = args[0]  # the 1st argument of AddConfigFromBlob()
-
-    if umpire_resource.ConfigTypes.umpire_config.fn_suffix == 'yaml':
-      config = yaml.load(config_str)
-    else:
-      config = json.loads(config_str)
-
-    return config
+    return json.loads(config_str)
 
   def _GetLastestUploadedConfig(self):
     return self._GetUploadedConfig(-1)

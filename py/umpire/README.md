@@ -10,7 +10,7 @@ server and Shopfloor (proxy) for Google ChromeOS Factory Software Platform.
 Umpire is created as a command-line tool. A web-based management console (with
 better deployment process) is created as standalone project *Dome*.
 
-Umpire controls what it serves by YAML config file. To make changes, you can do
+Umpire controls what it serves by JSON config file. To make changes, you can do
 `umpire edit`. After editing, it automatically runs command `umpire deploy` with
 the modified config so the new config can be activated.
 

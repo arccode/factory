@@ -30,8 +30,8 @@ from cros.factory.utils import net_utils
 
 TEST_RPC_PORT = net_utils.FindUnusedPort()
 TESTDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), 'testdata'))
-TESTCONFIG = os.path.join(TESTDIR, 'enable_update.yaml')
-TESTPAYLOAD = os.path.join(TESTDIR, 'enable_update.json')
+TESTCONFIG = os.path.join(TESTDIR, 'enable_update.umpire.json')
+TESTPAYLOAD = os.path.join(TESTDIR, 'enable_update.payload.json')
 
 
 class DUTRPCTest(unittest.TestCase):

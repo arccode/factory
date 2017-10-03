@@ -1,13 +1,12 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 import unittest
-import yaml
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server import bundle_selector
 
 
@@ -55,36 +54,46 @@ class ParseDUTHeaderTest(unittest.TestCase):
 class SelectBundleTest(unittest.TestCase):
 
   def testDefault(self):
-    config = yaml.load(
-        "rulesets:\n"
-        "- bundle_id: 'default'\n"
-        "  note: 'Default bundle'\n"
-        "  active: true")
+    config = {
+        'rulesets': [{
+            'bundle_id': 'default',
+            'note': 'Default bundle',
+            'active': True
+        }]
+    }
     self.assertEqual(
         'default',
         bundle_selector.SelectBundle(config, 'mac:aa:bb:cc:dd:ee:ff'))
 
   def testScalarMatcher(self):
-    config = yaml.load(
-        "rulesets:\n"
-        "- bundle_id: 'sn_matcher'\n"
-        "  active: true\n"
-        "  match:\n"
-        "    sn: ['SN001']\n"
-        "- bundle_id: 'mlb_sn_matcher'\n"
-        "  active: true\n"
-        "  match:\n"
-        "    mlb_sn: ['MLBSN001']\n"
-        "- bundle_id: 'for_smt'\n"
-        "  active: true\n"
-        "  match:\n"
-        "    stage: ['SMT']\n"
-        "- bundle_id: 'for_fatp'\n"
-        "  active: true\n"
-        "  match:\n"
-        "    stage: ['FATP']\n"
-        "- bundle_id: 'default'\n"
-        "  active: true")
+    config = {
+        'rulesets': [
+            {
+                'bundle_id': 'sn_matcher',
+                'active': True,
+                'match': {'sn': ['SN001']}
+            },
+            {
+                'bundle_id': 'mlb_sn_matcher',
+                'active': True,
+                'match': {'mlb_sn': ['MLBSN001']}
+            },
+            {
+                'bundle_id': 'for_smt',
+                'active': True,
+                'match': {'stage': ['SMT']}
+            },
+            {
+                'bundle_id': 'for_fatp',
+                'active': True,
+                'match': {'stage': ['FATP']}
+            },
+            {
+                'bundle_id': 'default',
+                'active': True
+            }
+        ]
+    }
     self.assertEqual(
         'sn_matcher',
         bundle_selector.SelectBundle(config, {'sn': 'SN001'}))
@@ -113,18 +122,24 @@ class SelectBundleTest(unittest.TestCase):
                                               'sn': 'SN002'}))
 
   def testScalarPrefixMatcher(self):
-    config = yaml.load(
-        "rulesets:\n"
-        "- bundle_id: 'ethernet_mac_matcher'\n"
-        "  active: true\n"
-        "  match:\n"
-        "    mac: ['aa:bb:cc:dd:ee:ff']\n"
-        "- bundle_id: 'wireless_mac_matcher'\n"
-        "  active: true\n"
-        "  match:\n"
-        "    mac: ['00:11:22:33:44:55']\n"
-        "- bundle_id: 'default'\n"
-        "  active: true")
+    config = {
+        'rulesets': [
+            {
+                'bundle_id': 'ethernet_mac_matcher',
+                'active': True,
+                'match': {'mac': ['aa:bb:cc:dd:ee:ff']}
+            },
+            {
+                'bundle_id': 'wireless_mac_matcher',
+                'active': True,
+                'match': {'mac': ['00:11:22:33:44:55']}
+            },
+            {
+                'bundle_id': 'default',
+                'active': True
+            }
+        ]
+    }
     self.assertEqual(
         'ethernet_mac_matcher',
         bundle_selector.SelectBundle(config, {'mac': 'aa:bb:cc:dd:ee:ff'}))
@@ -149,46 +164,60 @@ class SelectBundleTest(unittest.TestCase):
                                       'mac.wlan0': '00:11:22:33:44:55'}))
 
   def testInactiveMatcher(self):
-    config = yaml.load(
-        "rulesets:\n"
-        "- bundle_id: 'sn_matcher'\n"
-        "  active: false\n"
-        "  match:\n"
-        "    sn: ['SN001']\n"
-        "- bundle_id: 'default'\n"
-        "  active: true")
+    config = {
+        'rulesets': [
+            {
+                'bundle_id': 'sn_matcher',
+                'active': False,
+                'match': {'sn': ['SN001']}
+            },
+            {
+                'bundle_id': 'default',
+                'active': True
+            }
+        ]
+    }
     # sn_matcher is inactive.
     self.assertEqual('default',
                      bundle_selector.SelectBundle(config, {'sn': 'SN001'}))
 
   def testNotMatchedScalarMatcher(self):
-    config = yaml.load(
-        "rulesets:\n"
-        "- bundle_id: 'sn_matcher'\n"
-        "  active: true\n"
-        "  match:\n"
-        "    sn: ['SN001']\n"
-        "- bundle_id: 'mac_matcher'\n"
-        "  active: true\n"
-        "  match:\n"
-        "    mac: ['aa:bb:cc:dd:ee:ff']")
+    config = {
+        'rulesets': [
+            {
+                'bundle_id': 'sn_matcher',
+                'active': True,
+                'match': {'sn': ['SN001']}
+            },
+            {
+                'bundle_id': 'mac_matcher',
+                'active': True,
+                'match': {'mac': ['aa:bb:cc:dd:ee:ff']}
+            }
+        ]
+    }
     self.assertIsNone(bundle_selector.SelectBundle(config, {'sn': 'SN002'}))
 
   def testSnRangeMatcher(self):
-    config = yaml.load(
-        "rulesets:\n"
-        "- bundle_id: 'sn_range_001_005'\n"
-        "  active: true\n"
-        "  match:\n"
-        "    sn_range: ['SN001', 'SN005']\n"
-        "- bundle_id: 'sn_range_open_010'\n"
-        "  active: true\n"
-        "  match:\n"
-        "    sn_range: ['-', 'SN010']\n"
-        "- bundle_id: 'sn_range_020_open'\n"
-        "  active: true\n"
-        "  match:\n"
-        "    sn_range: ['SN020', '-']")
+    config = {
+        'rulesets': [
+            {
+                'bundle_id': 'sn_range_001_005',
+                'active': True,
+                'match': {'sn_range': ['SN001', 'SN005']}
+            },
+            {
+                'bundle_id': 'sn_range_open_010',
+                'active': True,
+                'match': {'sn_range': ['-', 'SN010']}
+            },
+            {
+                'bundle_id': 'sn_range_020_open',
+                'active': True,
+                'match': {'sn_range': ['SN020', '-']}
+            }
+        ]
+    }
     self.assertEqual('sn_range_001_005',
                      bundle_selector.SelectBundle(config, {'sn': 'SN001'}))
     self.assertEqual('sn_range_001_005',
@@ -213,20 +242,25 @@ class SelectBundleTest(unittest.TestCase):
     self.assertIsNone(bundle_selector.SelectBundle(config, {'sn': 'SN011'}))
 
   def testMlbSnRangeMatcher(self):
-    config = yaml.load(
-        "rulesets:\n"
-        "- bundle_id: 'mlb_sn_range_001_005'\n"
-        "  active: true\n"
-        "  match:\n"
-        "    mlb_sn_range: ['MLBSN001', 'MLBSN005']\n"
-        "- bundle_id: 'mlb_sn_range_open_010'\n"
-        "  active: true\n"
-        "  match:\n"
-        "    mlb_sn_range: ['-', 'MLBSN010']\n"
-        "- bundle_id: 'mlb_sn_range_020_open'\n"
-        "  active: true\n"
-        "  match:\n"
-        "    mlb_sn_range: ['MLBSN020', '-']")
+    config = {
+        'rulesets': [
+            {
+                'bundle_id': 'mlb_sn_range_001_005',
+                'active': True,
+                'match': {'mlb_sn_range': ['MLBSN001', 'MLBSN005']}
+            },
+            {
+                'bundle_id': 'mlb_sn_range_open_010',
+                'active': True,
+                'match': {'mlb_sn_range': ['-', 'MLBSN010']}
+            },
+            {
+                'bundle_id': 'mlb_sn_range_020_open',
+                'active': True,
+                'match': {'mlb_sn_range': ['MLBSN020', '-']}
+            }
+        ]
+    }
     self.assertEqual(
         'mlb_sn_range_001_005',
         bundle_selector.SelectBundle(config, {'mlb_sn': 'MLBSN001'}))
@@ -263,17 +297,20 @@ class SelectBundleTest(unittest.TestCase):
         bundle_selector.SelectBundle(config, {'mlb_sn': 'MLBSN011'}))
 
   def testMultipleScalarMatcher(self):
-    config = yaml.load(
-        "rulesets:\n"
-        "- bundle_id: 'sn_and_mac_matcher'\n"
-        "  active: true\n"
-        "  match:\n"
-        "    sn: ['SN001']\n"
-        "    mac: ['aa:bb:cc:dd:ee:ff']\n"
-        "- bundle_id: 'sn_matcher'\n"
-        "  active: true\n"
-        "  match:\n"
-        "    sn: ['SN001', 'SN002']")
+    config = {
+        'rulesets': [
+            {
+                'bundle_id': 'sn_and_mac_matcher',
+                'active': True,
+                'match': {'mac': ['aa:bb:cc:dd:ee:ff'], 'sn': ['SN001']}
+            },
+            {
+                'bundle_id': 'sn_matcher',
+                'active': True,
+                'match': {'sn': ['SN001', 'SN002']}
+            }
+        ]
+    }
     self.assertEqual(
         'sn_and_mac_matcher',
         bundle_selector.SelectBundle(config, {'sn': 'SN001',

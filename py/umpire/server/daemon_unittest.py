@@ -4,8 +4,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# pylint: disable=E1101
-
 from __future__ import print_function
 
 import copy
@@ -20,7 +18,7 @@ from twisted.web import client
 from twisted.web import http_headers
 from twisted.web import xmlrpc
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server import daemon
 from cros.factory.umpire.server import umpire_env
@@ -31,7 +29,7 @@ from cros.factory.utils import type_utils
 
 
 TESTDIR = os.path.abspath(os.path.join(os.path.split(__file__)[0], 'testdata'))
-TESTCONFIG = os.path.join(TESTDIR, 'minimal_empty_services_umpire.yaml')
+TESTCONFIG = os.path.join(TESTDIR, 'minimal_empty_services_umpire.json')
 
 
 class _ReadContentProtocol(protocol.Protocol):
@@ -73,7 +71,7 @@ class TestWebApplication(object):
     self.session = session
     logging.debug('test webapp is called: %s', session)
     if callable(self.callback):
-      return self.callback(self.session)  # pylint: disable=E1102
+      return self.callback(self.session)
     return session.Respond(
         '\n  - REQUEST_METHOD=%s\n  - remote_address=%s\n  - PATH_INFO=%s' %
         (session.REQUEST_METHOD, session.remote_address, session.PATH_INFO))

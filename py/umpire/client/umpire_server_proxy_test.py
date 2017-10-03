@@ -6,16 +6,16 @@
 """A command line tool using UmpireServerProxy to connect to Umpire server."""
 
 import argparse
+import json
 import logging
 import os
-import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.client import umpire_client
 from cros.factory.umpire.client import umpire_server_proxy
 
 
-DEFAULT_TEST_DATA = 'testdata/umpire_test_data.yaml'
+DEFAULT_TEST_DATA = 'testdata/umpire_test_data.json'
 DEFAULT_SERVER_URI = 'http://10.3.0.1:9090'
 
 
@@ -76,14 +76,14 @@ class UmpireServerProxyCLI(object):
 
   This tool let user test Umpire server proxy and Umpire server
   connection and method calls. Fake client info can be specified in the test
-  data yaml file. Method can be specified in command line argument.
-  If the method to call has arguments, they can be specified in test data yaml
+  data json file. Method can be specified in command line argument.
+  If the method to call has arguments, they can be specified in test data json
   file.
 
   Properties:
     args: Parsed command line arguments.
     fake_client_info: A FakeClientInfo object.
-    data: Data read from test data yaml file.
+    data: Data read from test data json file.
     proxy: An UmpireServerProxy object.
   """
 
@@ -105,14 +105,14 @@ class UmpireServerProxyCLI(object):
     parser = argparse.ArgumentParser(
         description='Using UmpireServerProxy to connect to an Umpire server '
         'for testing. Fake client info and method arguments can be specified '
-        'in test data yaml file.')
+        'in test data json file.')
     parser.add_argument(
         '--test-data', '-t', default=None,
-        help='Path to the test data yaml file. The default file '
+        help='Path to the test data json file. The default file '
              ' is %s' % DEFAULT_TEST_DATA)
     parser.add_argument(
         '--dut', '-d', default=None,
-        help='Name of the testing dut specified in test data yaml file.')
+        help='Name of the testing dut specified in test data json file.')
     parser.add_argument(
         '--server-uri', '-s', default=DEFAULT_SERVER_URI,
         help='Umpire server URI')
@@ -140,7 +140,7 @@ class UmpireServerProxyCLI(object):
           os.path.dirname(__file__), DEFAULT_TEST_DATA)
     logging.debug('Using test data %r', self.args.test_data)
     with open(self.args.test_data) as f:
-      self.data = yaml.load(f)
+      self.data = json.load(f)
 
   def SetActiveDUT(self):
     """Sets active DUT.
