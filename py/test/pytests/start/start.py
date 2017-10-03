@@ -63,6 +63,7 @@ from cros.factory.test.test_task import TestTaskManager
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import log_utils
 
 
 _CSS = """
@@ -118,6 +119,7 @@ class ExternalPowerTask(TestTask):
 
   def __init__(self, test):  # pylint: disable=super-init-not-called
     self._test = test
+    self._logger = log_utils.NoisyLogger(logging.info)
 
   def Run(self):
     self._test.template.SetState(_MSG_TASK_POWER)
@@ -127,7 +129,7 @@ class ExternalPowerTask(TestTask):
 
   def CheckEvent(self):
     power_state = self.GetExternalPowerState()
-    logging.info('power state: %s', power_state)
+    self._logger.Log('power state: %s', power_state)
     Log('power_state', state=power_state)
     if power_state == self.AC_CONNECTED:
       return True

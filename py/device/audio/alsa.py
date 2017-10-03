@@ -56,7 +56,7 @@ class AlsaMixerController(base.BaseMixerController):
 
     lines = self._device.CallOutput(
         ['amixer', '-c%d' % int(card), 'cget', 'numid=%d' % numid])
-    logging.info('lines: %s', lines)
+    logging.debug('lines: %s', lines)
     m = re.search(r'^.*: values=(.*)$', lines, re.MULTILINE)
     if m:
       return m.group(1)
@@ -67,15 +67,15 @@ class AlsaMixerController(base.BaseMixerController):
 
   def SetMixerControls(self, mixer_settings, card='0', store=True):
     """See BaseMixerController.SetMixerControls"""
-    logging.info('Setting mixer control values on card %s', card)
+    logging.debug('Setting mixer control values on card %s', card)
     restore_mixer_settings = dict()
     for name, value in mixer_settings.items():
       if store:
         old_value = self.GetMixerControls(name, card)
         restore_mixer_settings[name] = old_value
-        logging.info('Saving \'%s\' with value %s on card %s',
+        logging.debug('Saving \'%s\' with value %s on card %s',
                      name, old_value, card)
-      logging.info('Setting \'%s\' to %s on card %s', name, value, card)
+      logging.debug('Setting \'%s\' to %s on card %s', name, value, card)
       command = ['amixer', '-c', card, 'cset', 'name=%r' % name, value]
       self._device.CheckCall(command)
     if store:

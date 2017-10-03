@@ -253,7 +253,7 @@ class TouchpadTest(unittest.TestCase):
     as tested.
     """
     y_segment = int(y_ratio * self.args.y_segments)
-    logging.info('mark %d scroll segment tested', y_segment)
+    logging.debug('mark %d scroll segment tested', y_segment)
     self.ui.CallJSFunction('markScrollSectorTested', y_segment)
 
   def MarkSectorTested(self, x_ratio, y_ratio):
@@ -264,7 +264,7 @@ class TouchpadTest(unittest.TestCase):
     """
     x_segment = int(x_ratio * self.args.x_segments)
     y_segment = int(y_ratio * self.args.y_segments)
-    logging.info('mark x-%d y-%d sector tested', x_segment, y_segment)
+    logging.debug('mark x-%d y-%d sector tested', x_segment, y_segment)
     self.ui.CallJSFunction('markSectorTested', x_segment, y_segment)
 
   def StartTest(self, event):

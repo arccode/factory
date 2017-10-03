@@ -352,7 +352,7 @@ class SSHLink(types.DeviceLink):
       self._proc_queue.put((pid, ppid))
 
     def Run(self):
-      logging.info('start monitoring control master')
+      logging.debug('start monitoring control master')
 
       # an alias to prevent duplicated pylint warnings
       # pylint: disable=protected-access
@@ -399,7 +399,8 @@ class SSHLink(types.DeviceLink):
         # get a new process from queue to monitor
         # since Queue.get will block if queue is empty, we don't need to sleep
         pid, ppid = self._proc_queue.get()
-        logging.info('start monitoring control master until %d terminates', pid)
+        logging.debug('start monitoring control master until %d terminates',
+                      pid)
 
         sync_utils.PollForCondition(
             lambda: process_utils.IsProcessAlive(pid, ppid),
