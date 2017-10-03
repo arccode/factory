@@ -558,6 +558,11 @@ class TestlogLogHandler(logging.Handler):
       # until this call finishes.
       return
 
+    if record.name == 'console':
+      # logs sent to console (py/test/session.py@console) may be noisy and
+      # should be displayed only and not logged.
+      return
+
     self._thread_data.in_emit = True
     event = self.format(record)
     result = self._callback(event)
