@@ -145,7 +145,7 @@ class ECToolPowerTest(unittest.TestCase):
         Port 2: SRC
         """)
 
-    self.board.CheckOutput(['ectool', '--name=cros_pd',
+    self.board.CheckOutput(['ectool',
                             'usbpdpower']).AndReturn(_USB_PD_POWER_INFO)
     self.mox.ReplayAll()
     self.assertEqual(
@@ -158,7 +158,7 @@ class ECToolPowerTest(unittest.TestCase):
   def testUSBPDPowerInfoCommandFailed(self):
     exception = CalledProcessError(
         returncode=1, cmd='cmd', output='output')
-    self.board.CheckOutput(['ectool', '--name=cros_pd',
+    self.board.CheckOutput(['ectool',
                             'usbpdpower']).AndRaise(exception)
     self.mox.ReplayAll()
 
@@ -170,7 +170,7 @@ class ECToolPowerTest(unittest.TestCase):
 
   def testUSBPDPowerInfoEmptyString(self):
     _USB_PD_POWER_INFO = ""
-    self.board.CheckOutput(['ectool', '--name=cros_pd',
+    self.board.CheckOutput(['ectool',
                             'usbpdpower']).AndReturn(_USB_PD_POWER_INFO)
     self.mox.ReplayAll()
     self.assertEqual([], self.power.GetUSBPDPowerInfo())
@@ -184,7 +184,7 @@ class ECToolPowerTest(unittest.TestCase):
         Port 3: SRC
         """)
 
-    self.board.CheckOutput(['ectool', '--name=cros_pd',
+    self.board.CheckOutput(['ectool',
                             'usbpdpower']).AndReturn(_USB_PD_POWER_INFO)
     self.mox.ReplayAll()
     self.assertRaisesRegexp(self.power.Error, 'unexpected PD state',
@@ -198,7 +198,7 @@ class ECToolPowerTest(unittest.TestCase):
         Port 2: SRC
         """)
 
-    self.board.CheckOutput(['ectool', '--name=cros_pd',
+    self.board.CheckOutput(['ectool',
                             'usbpdpower']).AndReturn(_USB_PD_POWER_INFO)
     self.mox.ReplayAll()
     self.assertRaisesRegexp(self.power.Error, 'unexpected output for SNK',

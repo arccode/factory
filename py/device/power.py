@@ -43,9 +43,10 @@ class Power(types.DeviceComponent):
 
   _sys = '/sys'
 
-  def __init__(self, dut):
+  def __init__(self, dut, pd_name=None):
     super(Power, self).__init__(dut)
     self._current_state = None
+    self._pd_name = pd_name
 
   def ReadOneLine(self, file_path):
     """Reads one stripped line from given file on DUT.
@@ -312,8 +313,11 @@ class Power(types.DeviceComponent):
         Port 1: SNK Charger PD 20714mV / 3000mA, max 20000mV / 3000mA / 60000mW
         Port 2: SRC
     """
-    output = self._device.CheckOutput(
-        ['ectool', '--name=cros_pd', 'usbpdpower'])
+
+    command = ['ectool', 'usbpdpower']
+    if self._pd_name:
+      command.append('--name=' + self._pd_name)
+    output = self._device.CheckOutput(command)
 
     USBPortInfo = collections.namedtuple(
         'USBPortInfo', 'id state voltage current')
