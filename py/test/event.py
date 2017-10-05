@@ -308,7 +308,7 @@ class EventClientBase(object):
     |-- ThreadingEventClient: A daemon thread to process events.
     |-- BlockingEventClient: A while-loop on calling thread to process events.
   """
-  def __init__(self, path=None, callback=None, event_queue=None):
+  def __init__(self, path=None, callback=None):
     """Constructor.
 
     Args:
@@ -316,20 +316,13 @@ class EventClientBase(object):
           the CROS_FACTORY_EVENT environment variable.
       callback: A callback to call when events occur. The callback
           takes one argument: the received event.
-      event_queue: A queue object. A lambda invoking the callback will be
-          pushed to the queue.
     """
     self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
     self.callbacks = set()
     logging.debug('Initializing event client')
 
     if callback:
-      if isinstance(event_queue, Queue.Queue):
-        self.callbacks.add(
-            lambda event: event_queue.put(
-                lambda: callback(event)))
-      else:
-        self.callbacks.add(callback)
+      self.callbacks.add(callback)
 
     path = path or os.environ[CROS_FACTORY_EVENT]
     self.socket.connect(path)
@@ -496,16 +489,15 @@ class ThreadingEventClient(EventClientBase):
   A daemon thread is created in constructor to process events. After instance is
   constructed, callbacks will be called from that thread with incoming events.
   """
-  def __init__(self, path=None, callback=None, event_queue=None, name=None):
+  def __init__(self, path=None, callback=None, name=None):
     """Constructor.
 
     Args:
       path: See EventClientBase.__init__.
       callback: See EventClientBase.__init__.
-      event_queue: See EventClientBase.__init__.
       name: An optional name for the receving thread.
     """
-    super(ThreadingEventClient, self).__init__(path, callback, event_queue)
+    super(ThreadingEventClient, self).__init__(path, callback)
 
     self.recv_thread = threading.Thread(
         target=self._run_recv_thread,

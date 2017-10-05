@@ -313,7 +313,8 @@ class Goofy(GoofyBase):
     self.event_server_thread.start()
 
     self.event_client = ThreadingEventClient(
-        callback=self.handle_event, event_queue=self.run_queue)
+        callback=lambda event: self.run_queue.put(
+            lambda: self.handle_event(event)))
 
     self.web_socket_manager = WebSocketManager(self.uuid)
     self.goofy_server.AddHTTPGetHandler(
