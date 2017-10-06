@@ -15,8 +15,8 @@ from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
-
 
 _TEST_TITLE_PLUG = i18n_test_ui.MakeI18nLabel('Connect AC')
 _TEST_TITLE_UNPLUG = i18n_test_ui.MakeI18nLabel('Remove AC')
@@ -31,9 +31,16 @@ _PROBE_TIMES_MSG = lambda times, total: i18n_test_ui.MakeI18nLabel(
     'Probed {times} / {total}', times=times, total=total)
 
 _AC_STATUS_ID = 'ac_status'
+_AC_POWER_ID = 'ac_power'
 _NO_AC = i18n_test_ui.MakeI18nLabel('No AC adapter')
 _AC_TYPE_PROBING = i18n_test_ui.MakeI18nLabel('Identifying AC adapter...')
 _AC_TYPE = i18n_test_ui.MakeI18nLabel('AC adapter type: ')
+_AC_POWER = lambda watt, min_watt, max_watt: i18n_test_ui.MakeI18nLabel(
+    'Detected power {watt}, required power range ({min_watt}, {max_watt})',
+    watt=watt,
+    min_watt=min_watt,
+    max_watt=max_watt)
+_AC_TYPE_USB_PD = 'USB_PD'
 
 
 class ACPowerTest(unittest.TestCase):
@@ -41,6 +48,8 @@ class ACPowerTest(unittest.TestCase):
 
   Args:
     power_type: The type of the power. None to skip power type check.
+    usbpd_power_range: The required usbpd power range (min, max). None to skip
+        power range check.
     online: True if expecting AC power. Otherwise, False.
     bft_fixture: If assigned, it commands the BFT fixture to
         plug/unplug an AC adapter.
@@ -52,6 +61,9 @@ class ACPowerTest(unittest.TestCase):
 
   ARGS = [
       Arg('power_type', str, 'Type of the power source', optional=True),
+      Arg('usbpd_power_range', list,
+          'The required power usbpd power range [usbpd_port, min, max]',
+          default=None, optional=True),
       Arg('online', bool, 'True if expecting AC power', default=True),
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP, optional=True),
       Arg('retries', int,
@@ -80,14 +92,20 @@ class ACPowerTest(unittest.TestCase):
     if self.args.retries is not None:
       probe_count_message = _PROBE_TIMES_MSG(0, self.args.retries)
     self._template.SetState(
-        '%s<br><span id="%s">%s</span><div id="%s"></div>' %
-        (instruction, _PROBE_TIMES_ID, probe_count_message, _AC_STATUS_ID))
+        '%s<br><span id="%s">%s</span><div id="%s"></div><br><div id=%s></div>'
+        % (instruction, _PROBE_TIMES_ID, probe_count_message, _AC_STATUS_ID,
+           _AC_POWER_ID))
 
     self._power_state = {}
     self._done = threading.Event()
     self._last_type = None
     self._last_ac_present = None
     self._skip_warning_remains = self.args.silent_warning
+    if self.args.usbpd_power_range is not None:
+      self._power_series = testlog.CreateSeries(
+          name='usbpdpower',
+          description='Detected usbpd power.',
+          value_unit='mW')
 
     # Prepare fixture auto test if needed.
     self.fixture = None
@@ -96,6 +114,9 @@ class ACPowerTest(unittest.TestCase):
 
   def Done(self):
     self._done.set()
+
+  def UpdateACPower(self, power):
+    self._ui.SetHTML(power, id=_AC_POWER_ID)
 
   def UpdateACStatus(self, status):
     self._ui.SetHTML(status, id=_AC_STATUS_ID)
@@ -126,6 +147,25 @@ class ACPowerTest(unittest.TestCase):
         factory.console.warning(
             'Expecting %s but see %s', self.args.power_type, current_type)
         self._last_type = current_type
+      return False
+
+    if self.args.usbpd_power_range and self.args.power_type == _AC_TYPE_USB_PD:
+      usbpd_power_infos = self._power.GetUSBPDPowerInfo()
+      port, power_min, power_max = self.args.usbpd_power_range
+      # USBPortInfo: (id, state, voltage (mV), current (mA))
+      for info in usbpd_power_infos:
+        if info.id != port:
+          continue
+        dummy_index = 0
+        power_watt = info.voltage * info.current / 1000000
+        self.UpdateACPower(_AC_POWER(power_watt, power_min, power_max))
+        result = self._power_series.CheckValue(dummy_index, power_watt,
+                                               power_min, power_max)
+        if not result:
+          factory.console.warning(
+              'Expecting (%s, %s) watt usbpd power but see %s' %
+              (power_min, power_max, power_watt))
+        return result
       return False
     return True
 
