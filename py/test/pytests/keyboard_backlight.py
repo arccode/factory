@@ -29,8 +29,7 @@ class KeyboardBacklightTest(unittest.TestCase):
 
   def NextSubTest(self):
     inst = _SUBTESTS[self._current][0]
-    instruction = (i18n_test_ui.MakeI18nLabel(inst) +
-                   test_ui.MakePassFailKeyLabel(pass_key=False))
+    instruction = i18n_test_ui.MakeI18nLabel(inst) + test_ui.FAIL_KEY_LABEL
     self._template.SetState(instruction)
     process_utils.Spawn(['ectool', 'pwmsetkblight',
                          _SUBTESTS[self._current][1]], ignore_stdout=True,

@@ -142,7 +142,7 @@ class PlatformSKUModelTest(unittest.TestCase):
       table.SetContent(i, 1, output)
 
     self._template.SetState(
-        table.GenerateHTML() + '<br/>' + test_ui.MakePassFailKeyLabel())
+        table.GenerateHTML() + '<br/>' + test_ui.PASS_FAIL_KEY_LABEL)
 
     self._ui.Run()
 

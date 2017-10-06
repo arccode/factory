@@ -56,19 +56,9 @@ def Escape(text, preserve_line_breaks=True):
   return html
 
 
-# TODO(pihsun): This function can be replaced with two constants.
-def MakePassFailKeyLabel(pass_key=True, fail_key=True):
-  """Returns label for an instruction of pressing pass key in the active
-  language.
-  """
-  if not pass_key and not fail_key:
-    return ''
-  label = ''
-  if pass_key:
-    label = i18n.StringJoin(label, _('Press Enter to pass.'))
-  if fail_key:
-    label = i18n.StringJoin(label, _('Press ESC to fail.'))
-  return i18n_test_ui.MakeI18nLabel(label)
+PASS_KEY_LABEL = i18n_test_ui.MakeI18nLabel('Press Enter to pass.')
+FAIL_KEY_LABEL = i18n_test_ui.MakeI18nLabel('Press ESC to fail.')
+PASS_FAIL_KEY_LABEL = PASS_KEY_LABEL + FAIL_KEY_LABEL
 
 
 class UI(object):

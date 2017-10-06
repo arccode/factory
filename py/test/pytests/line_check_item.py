@@ -139,7 +139,7 @@ class LineCheckItemTest(unittest.TestCase):
     command = self._items[self._current].command
     instruction = i18n_test_ui.MakeI18nLabel(inst)
     if self.NeedToJudgeSubTest():
-      instruction = instruction + '<br>' + test_ui.MakePassFailKeyLabel()
+      instruction = instruction + '<br>' + test_ui.PASS_FAIL_KEY_LABEL
     self._template.SetState(instruction)
 
     process = self._dut.Popen(command,

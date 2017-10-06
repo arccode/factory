@@ -184,7 +184,7 @@ class AudioDigitPlaybackTask(test_task.InteractiveTestTask):
 
       self._ui.SetHTML(
           '%s<br>%s' % (_INSTRUCTION_AUDIO_RANDOM_TEST(self._port_label, 'R'),
-                        test_ui.MakePassFailKeyLabel(pass_key=False)),
+                        test_ui.FAIL_KEY_LABEL),
           id=self._instruction_id)
       self._ui.BindKey(
           'R', lambda _: _PlayDigit(self._pass_digit, self._channel),
@@ -231,8 +231,7 @@ class DetectHeadphoneTask(test_task.InteractiveTestTask):
   def _InitUI(self):
     self._ui.SetHTML(self._title, id=self._title_id)
     self._ui.SetHTML(
-        '%s<br>%s' % (self._instruction,
-                      test_ui.MakePassFailKeyLabel(pass_key=False)),
+        '%s<br>%s' % (self._instruction, test_ui.FAIL_KEY_LABEL),
         id=self._instruction_id)
     self.BindPassFailKeys(pass_key=False, fail_later=False)
 

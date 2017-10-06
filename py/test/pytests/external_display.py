@@ -147,14 +147,13 @@ class ExtDisplayTask(test_task.InteractiveTestTask):
   """
   # pylint: disable=abstract-method
 
-  def __init__(self, args, title, instruction, pass_key=True):
+  def __init__(self, args, title, instruction):
     super(ExtDisplayTask, self).__init__(args.ui)
     self._args = args
     self._ui = args.ui
     self._template = args.template
     self._title = title
     self._instruction = instruction
-    self._pass_key = pass_key
 
   def _SetInstruction(self):
     """Sets title and instruction.
@@ -164,8 +163,7 @@ class ExtDisplayTask(test_task.InteractiveTestTask):
     """
     self._template.SetInstruction(self._title)
     self._ui.SetHTML(
-        '%s<br>%s' % (self._instruction,
-                      test_ui.MakePassFailKeyLabel(pass_key=self._pass_key)),
+        '%s<br>%s' % (self._instruction, test_ui.FAIL_KEY_LABEL),
         id='instruction-center')
 
   def InitUI(self, fail_later=True):
@@ -178,7 +176,7 @@ class ExtDisplayTask(test_task.InteractiveTestTask):
       fail_later: True to fail later when fail key is pressed.
     """
     self._SetInstruction()
-    self.BindPassFailKeys(pass_key=self._pass_key, fail_later=fail_later)
+    self.BindPassFailKeys(pass_key=False, fail_later=fail_later)
 
 
 class WaitDisplayThread(threading.Thread):
@@ -261,8 +259,7 @@ class DetectDisplayTask(ExtDisplayTask):
   DISCONNECT = 'disconnected'
 
   def __init__(self, args, title, instruction, connect):
-    super(DetectDisplayTask, self).__init__(args, title, instruction,
-                                            pass_key=False)
+    super(DetectDisplayTask, self).__init__(args, title, instruction)
     self._wait_display = WaitDisplayThread(args.display_id, connect,
                                            self.PostSuccessEvent,
                                            args.usbpd_port,
@@ -427,8 +424,7 @@ class VideoTask(ExtDisplayTask):
 
     super(VideoTask, self).__init__(args,
                                     _GetTitleVideoTest(args.display_label),
-                                    instruction,
-                                    pass_key=False)
+                                    instruction)
 
   def _GetDisplayId(self, is_primary=True):
     for info in state.get_instance().DeviceGetDisplayInfo():
