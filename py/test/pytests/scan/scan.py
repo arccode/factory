@@ -258,14 +258,13 @@ class Scan(unittest.TestCase):
     self.ui.AddEventHandler('scan_value', self.HandleScanValue)
 
     if self.args.value_assigned is not None:
-      self.ui.RunJS(
-          'window.test.sendTestEvent("scan_value", "%s")' %
-          self.args.value_assigned)
+      self.ui.CallJSFunction(
+          'test.sendTestEvent', 'scan_value', self.args.value_assigned)
     elif self.args.bft_scan_fixture_id:
       logging.info('Getting fixture ID...')
       fixture_id = self.fixture.GetFixtureId()
-      self.ui.RunJS(
-          'window.test.sendTestEvent("scan_value", "%d")' % fixture_id)
+      self.ui.CallJSFunction('test.sendTestEvent', 'scan_value',
+                             str(fixture_id))
     elif self.args.bft_scan_barcode:
       logging.info('Triggering barcode scanner...')
       self.ui.RunInBackground(self.ScanBarcode)
@@ -278,7 +277,6 @@ class Scan(unittest.TestCase):
       if isinstance(self.args.bft_get_barcode, str):
         saved_barcode_path = self.args.bft_get_barcode
       barcode = self.fixture.ScanBarcode(saved_barcode_path)
-      self.ui.RunJS(
-          'window.test.sendTestEvent("scan_value", "%s")' % barcode)
+      self.ui.CallJSFunction('test.sendTestEvent', 'scan_value', barcode)
 
     self.ui.Run()

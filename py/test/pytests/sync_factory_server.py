@@ -337,7 +337,7 @@ class SyncFactoryServer(unittest.TestCase):
 
     # Update necessary. Note that updateFactory() will kill this test.
     if self.args.update_without_prompt:
-      self.ui.RunJS('window.test.updateFactory()')
+      self.ui.CallJSFunction('test.updateFactory')
     else:
       # Display message and require update.
       self.ui_template.SetState(i18n_test_ui.MakeI18nLabel(

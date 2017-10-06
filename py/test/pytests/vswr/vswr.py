@@ -433,7 +433,7 @@ class VSWR(unittest.TestCase):
     This function also hides other message blocks as well. Leaving html_id the
     only block to display.
     """
-    self._ui.RunJS('showMessageBlock("%s")' % html_id)
+    self._ui.CallJSFunction('showMessageBlock', html_id)
 
   def runTest(self):
     self._ui.RunInBackground(self._runTest)

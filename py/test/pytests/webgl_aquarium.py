@@ -134,7 +134,7 @@ class WebglAquarium(unittest.TestCase):
     process_utils.StartDaemonThread(target=self.PeriodicCheck)
 
     if self.args.full_screen:
-      self.ui.RunJS('enableFullScreen();')
+      self.ui.CallJSFunction('enableFullScreen')
 
   def FormatSeconds(self, secs):
     hours = int(secs / 3600)

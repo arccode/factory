@@ -93,8 +93,6 @@ class Event(object):
       'SET_HTML': 'goofy:set_html',
       # Runs JavaScript in the test pane.
       'RUN_JS': 'goofy:run_js',
-      # Calls a JavaScript function in the test pane.
-      'CALL_JS_FUNCTION': 'goofy:call_js_function',
       # Performs a remote procedure call to the Chrome extension inside UI.
       'EXTENSION_RPC': 'goofy:extension_rpc',
       # Event from a test UI.

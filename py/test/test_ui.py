@@ -201,15 +201,21 @@ class UI(object):
   def CallJSFunction(self, name, *args):
     """Calls a JavaScript function in the test pane.
 
-    This will be run within window scope (i.e., 'this' will be the
-    test pane window).
+    This is implemented by calling to RunJS, so the 'this' variable in
+    JavaScript function would be 'correct'.
+
+    For example, calling CallJSFunction('test.alert', '123') is same as calling
+    RunJS('test.alert(args.arg_1)', arg_1='123'), and the 'this' when the
+    'test.alert' function is running would be test instead of window.
 
     Args:
       name: The name of the function to execute.
       args: Arguments to the function.
     """
-    self.PostEvent(test_event.Event(test_event.Event.Type.CALL_JS_FUNCTION,
-                                    name=name, args=args))
+    keys = ['arg_%d' % i for i in range(len(args))]
+    kwargs = dict(zip(keys, args))
+    self.RunJS('%s(%s)' % (name, ','.join('arg.%s' % key for key in keys)),
+               **kwargs)
 
   def AddEventHandler(self, subtype, handler):
     """Adds an event handler.
@@ -452,7 +458,7 @@ class UI(object):
 
   def Alert(self, text):
     """Show an alert box."""
-    self.RunJS('window.test.invocation.goofy.alert(args.text)', text=text)
+    self.CallJSFunction('test.invocation.goofy.alert', text)
 
 
 class DummyUI(object):

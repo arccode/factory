@@ -3019,25 +3019,6 @@ cros.factory.Goofy = class {
         }
         break;
       }
-      case 'goofy:call_js_function': {
-        const message = /**
-         * @type {{test: string, invocation: string, name: string,
-         *     args: !Object}}
-         */ (untypedMessage);
-        const invocation = this.invocations.get(message.invocation);
-        if (invocation) {
-          const func =
-              /** @type {function(?)} */ (
-                  invocation.iframe.contentWindow.eval(message.name));
-          if (func) {
-            func.apply(invocation.iframe.contentWindow, message.args);
-          } else {
-            cros.factory.logger.severe(`Unable to find function ${
-                func} in UI for test ${message.test}`);
-          }
-        }
-        break;
-      }
       case 'goofy:extension_rpc': {
         const message = /**
          * @type {{is_response: boolean, name: string, args: !Object,
