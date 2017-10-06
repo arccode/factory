@@ -70,18 +70,6 @@ _CSS = """
 .start-font-size {
   font-size: 2em;
 }
-.start-contacting-server {
-  background-image: url('/images/active.gif');
-  background-repeat: no-repeat;
-  padding-left: 18px;
-  font-size: 0.75em;
-  color: gray;
-}
-#errormsg {
-  margin-top: 12px;
-  min-height: 2em;
-  font-size: 1.5em;
-}
 """
 
 # Messages for tasks

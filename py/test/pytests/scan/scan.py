@@ -185,10 +185,7 @@ class Scan(unittest.TestCase):
 
     if self.args.rw_vpd_key or self.args.ro_vpd_key:
       self.ui.SetHTML(
-          ' '.join([
-              i18n_test_ui.MakeI18nLabel('Writing to VPD. Please wait...'),
-              test_ui.SPINNER_HTML_16x16
-          ]),
+          i18n_test_ui.MakeI18nLabel('Writing to VPD. Please wait...'),
           id='scan-status')
       try:
         if self.args.rw_vpd_key:
