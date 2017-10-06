@@ -232,22 +232,22 @@ body {
   width: 16px; height: 16px;
 }
 .goofy-status-passed > div > .goofy-test-icon {
-  background-image: url(/images/passed.gif);
+  background-image: url('/images/passed.gif');
 }
 .goofy-status-active > div > .goofy-test-icon {
-  background-image: url(/images/active.gif);
+  background-image: url('/images/active.gif');
 }
 .goofy-status-failed > div > .goofy-test-icon {
-  background-image: url(/images/failed.gif);
+  background-image: url('/images/failed.gif');
 }
 .goofy-status-failed-and-waived > div > .goofy-test-icon {
-  background-image: url(/images/failed_and_waived.gif);
+  background-image: url('/images/failed_and_waived.gif');
 }
 .goofy-status-untested > div > .goofy-test-icon {
-  background-image: url(/images/untested.gif);
+  background-image: url('/images/untested.gif');
 }
 .goofy-status-skipped > div > .goofy-test-icon {
-  background-image: url(/images/passed.gif);
+  background-image: url('/images/passed.gif');
 }
 .goofy-status-skipped > div > .goog-tree-item-label {
   text-decoration: line-through;
@@ -750,14 +750,14 @@ button {
 }
 
 .goofy-terminal-close {
-  background-image: url(/images/close.png);
+  background-image: url('/images/close.png');
   width: 20px;
   height: 20px;
   opacity: 0.5;
 }
 
 .goofy-terminal-minimize {
-  background-image: url(/images/minimize.png);
+  background-image: url('/images/minimize.png');
   width: 20px;
   height: 20px;
   opacity: 0.5;
