@@ -44,7 +44,6 @@ function init() {
 }
 
 function displayDebugData(data) {
-  data = eval(data);
   var displayArea = document.getElementById('display-area');
   displayArea.innerHTML = '';
   var max = -1;

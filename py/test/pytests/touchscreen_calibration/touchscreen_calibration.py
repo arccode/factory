@@ -5,7 +5,6 @@
 from __future__ import print_function
 
 import collections
-import json
 import os
 import re
 import StringIO
@@ -229,7 +228,6 @@ class TouchscreenCalibration(unittest.TestCase):
     if self.sensors:
       data = self.sensors.Read(self.DELTAS)
       factory.console.info('Get data %s', data)
-      data = json.dumps(data)
       self.ui.CallJSFunction('displayDebugData', data)
     else:
       factory.console.info('No sensors service found.')
@@ -504,7 +502,7 @@ class TouchscreenCalibration(unittest.TestCase):
   def _ReadAndVerifyTRxData(self, sn, phase, category, verify_method):
     # Get data based on the category, i.e., REFS or DELTAS.
     data = self.sensors.ReadTRx(category)
-    self.ui.CallJSFunction('displayDebugData', json.dumps(data))
+    self.ui.CallJSFunction('displayDebugData', data)
     factory.console.debug('%s: get %s data: %s', phase, category, data)
     time.sleep(1)
 
@@ -532,7 +530,7 @@ class TouchscreenCalibration(unittest.TestCase):
   def _ReadAndVerifySensorData(self, sn, phase, category, verify_method):
     # Get data based on the category, i.e., REFS or DELTAS.
     data = self.sensors.Read(category)
-    self.ui.CallJSFunction('displayDebugData', json.dumps(data))
+    self.ui.CallJSFunction('displayDebugData', data)
     factory.console.debug('%s: get %s data: %s', phase, category, data)
     time.sleep(1)
 
@@ -730,7 +728,7 @@ class TouchscreenCalibration(unittest.TestCase):
     sn = event.data.get('sn', '')
     if len(sn) == 0:
       self.ui.Alert(_('Please enter SN first'))
-      self.ui.CallJSFunction('displayDebugData', '[]')
+      self.ui.CallJSFunction('displayDebugData', [])
       return
 
     self._calibration_thread = threading.Thread(target=self._DoTest,
