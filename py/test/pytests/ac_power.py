@@ -2,7 +2,55 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""A test to instruct the operator / BFT fixture to plug/unplug AC power."""
+"""A test to ensure the power type and status of device under test.
+
+Description
+-----------
+The test detects the power type of the underlying device. It is also used to
+ask operator to unplug the AC from the device.
+
+Test Procedure
+--------------
+To test if plugged AC power is detected properly:
+
+1. Plug the designated power source to the device, and unplug all the other
+   power sources.
+2. Starts the test.
+
+To test AC power unplugged:
+
+1. Starts the test.
+2. Follow the instruction on the UI to unplug the power.
+
+Dependency
+----------
+- Need a power source.
+
+For plugged with required power range:
+- Need a USB PD power source with required power range.
+
+Examples
+--------
+To test AC unplugged, add this to test list::
+
+  {
+    "pytest_name": "ac_power",
+    "args": {
+      "online": false
+    }
+  }
+
+To test USBPD 45W plugged on usbpd port 0::
+
+  {
+    "pytest_name": "ac_power",
+    "args": {
+      "power_type": "USB_PD",
+      "usbpd_power_range": [0, 45, 45],
+      "online": true
+    }
+  }
+"""
 
 import numbers
 
