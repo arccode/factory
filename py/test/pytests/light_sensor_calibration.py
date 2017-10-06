@@ -2,50 +2,138 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+# pylint: disable=line-too-long
 """Calibration test for light sensor (a chamber is needed).
 
-Hot keys:
+Description
+-----------
+This is a station-based test which calibrates light sensors.
+The test controls a light chamber to switch light intensity between different
+light preset and reads the value from the light sensor of a DUT.
 
-- Press Enter or Space keys to start test
-- Press ESC to leave the test.
+The calibration method is linear regression. The test samples multiple
+data points (e.g., LUX1, LUX2) and find out a new linear equation to fit the
+validating data point (e.g., LUX3). The calibrated coefficients scale factor and
+bias will be saved to the VPD.
 
-Test configs:
+The default chamber connection driver is PL2303 over RS232. You can speicify a
+new driver to ``chamber_conn_params``. You also need to provide the
+``chamber_cmd`` with which a station can command the light chamber.
 
-- Please check light_sensor_calibration.json and
-  light_sensor_calibration.schema.json
+Besides the arguments, there are still many configurations in the
+light_sensor_calibration.json. For examples:
 
-Control Chamber:
+  {
+    "version": "v0.01",
+    "light_seq": ["LUX1", "LUX2", "LUX3"],
+    "n_samples": 5,
+    "read_delay": 2.0,
+    "light_delay": 6.0,
+    "luxs": [40, 217],
+    "validating_light": "LUX3",
+    "validating_lux": 316,
+    "validating_err_limit": 0.2,
+    "force_light_init": false
 
-- If control_chamber is True, chamber_conn_params must also be set.
-- If chamber_conn_params is set to the string 'default', the default parameter
-  CHAMBER_CONN_PARAMS_DEFAULT is used. Otherwise chamber_conn_params should be
-  specified as a dict.
+  }
 
-Usage examples::
+The most important entries are ``luxs`` and ``validating_lux``. They are the
+preset illuminance value of a light chamber fixture. You need a lux meter
+to evaluate the preset light settings from the light chamber fixture to get
+these values. After you have these values, don't forget to update the runtime
+configuration by calling
+``cros.factory.utils.config_utils.SaveRuntimeConfig('light_sensor_calibration', new_config)``
+so that you have the correct preset light information. There are many things
+that influence the preset light value of the light chamber. It could be the
+unstable elecrtic environment or if the light chamber's bulb is broken.
 
-    {
-      "pytest_name": "light_sensor_calibration",
-      "args": {
-        "chamber_conn_params": "default",
-        "chamber_cmd": {
-          "OFF": [
-            ["OFF\\n", "OFF_READY"]
-          ],
-          "LUX1": [
-            ["LUX1_ON\\n", "LUX1_READY"]
-          ],
-          "LUX3": [
-            ["LUX3_ON\\n", "LUX3_READY"]
-          ],
-          "LUX2": [
-            ["LUX2_ON\\n", "LUX2_READY"]
+Test Procedure
+--------------
+This is an automated test. Before you start the test, prepare the
+physical setup and calibrate the light chamber itself by a lux meter:
+
+1. Connects the station and the DUT.
+2. Connects the station and the light chamber.
+3. Press start test.
+4. After finishing the test, disconnects the station and the DUT.
+
+Dependency
+----------
+- A light chamber with at least three luminance settings.
+
+Examples
+--------
+To automatically calibrate the light_sensor with the given ``chamber_cmd``, add
+this into test list::
+
+  {
+    "pytest_name": "light_sensor_calibration",
+    "args": {
+      "control_chamber": true,
+      "assume_chamber_connected": true,
+      "chamber_cmd": {
+        "LUX1": [
+          [
+            "LUX1_ON",
+            "LUX1_READY"
           ]
-        },
-        "mock_mode": false,
-        "control_chamber": true
+        ],
+        "LUX2": [
+          [
+            "LUX2_ON",
+            "LUX2_READY"
+          ]
+        ],
+        "LUX3": [
+          [
+            "LUX3_ON",
+            "LUX3_READY"
+          ]
+        ],
+        "OFF": [
+          [
+            "OFF",
+            "OFF_READY"
+          ]
+        ]
       }
     }
+  }
 
+To debug and use a mocked light chamber::
+
+  {
+    "pytest_name": "light_sensor_calibration",
+    "args": {
+      "control_chamber": true,
+      "mock_mode": true
+    }
+  }
+
+To manually switch chamber light::
+
+  {
+    "pytest_name": "light_sensor_calibration",
+    "args": {
+      "control_chamber": false
+    }
+  }
+
+Trouble Shooting
+----------------
+If you found error related to load configuration file:
+
+- This is probably your runtime config format is incorrect.
+
+If you found error connecting to light chamber:
+
+1. Make sure the chamber and station are connected.
+2. Make sure the dongle is correct one. If you are not using the dongle with
+   PL2303 driver, you need to provide one.
+
+If you found the calibrated coefficients are skewd:
+
+1. This is probably you don't calibrate the light chamber recently.
 """
 
 
