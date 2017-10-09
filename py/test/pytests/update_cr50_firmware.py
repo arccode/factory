@@ -74,7 +74,9 @@ class UpdateCr50FirmwareTest(unittest.TestCase):
       Arg('firmware_file', str, 'The full path of the firmware.',
           optional=True),
       Arg('from_release', bool, 'Find the firmware from release rootfs.',
-          optional=True, default=True)
+          optional=True, default=True),
+      Arg('force', bool, 'Force update',
+          optional=True, default=False),
   ]
 
   def setUp(self):
@@ -102,9 +104,12 @@ class UpdateCr50FirmwareTest(unittest.TestCase):
         self._UpdateCr50Firmware(firmware_path)
 
   def _UpdateCr50Firmware(self, firmware_file):
+    if self.args.force:
+      cmd = [TRUNKS_SEND, '--force', '--update', firmware_file]
+    else:
+      cmd = [TRUNKS_SEND, '--update', firmware_file]
     p = self.dut.Popen(
-        [TRUNKS_SEND, '--update', firmware_file],
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, log=True)
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, log=True)
 
     for line in iter(p.stdout.readline, ''):
       logging.info(line.strip())
