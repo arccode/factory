@@ -79,21 +79,22 @@ _HTML_RESULT = (
 
 _CSS = """
 .sub-title {
-  font-size: 200%;
+  font-size: 2em;
   font-weight: bold;
-  line-height: 100px;
+  line-height: 3em;
 }
 
 .led-btn {
-  width: 50px;
-  height: 50px;
-  font-size: 200%;
+  width: 1.5em;
+  height: 1.5em;
+  font-size: 2em;
   padding: 5px;
   margin: 3px;
   border-radius: 3px;
   font-weight: bold;
   border: 1px solid #7D7D7D;
   text-align: center;
+  display: inline-block;
 }
 
 strong {
@@ -104,7 +105,7 @@ strong {
 }
 
 .result-line {
-  margin-top: 30px;
+  margin-top: 2em;
 }
 
 .result-pass {
