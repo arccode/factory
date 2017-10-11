@@ -195,7 +195,7 @@ class PointingDeviceTest(unittest.TestCase):
     ui.AddQuarters()
     ui.AppendHTML(_INSTRUCTION_HTML)
     # pylint: disable=protected-access
-    ui._ui.BindStandardKeys(bind_pass_key=False, bind_fail_key=True)
+    ui._ui.BindStandardFailKeys()
     ui.Run()
 
   def SetXinputDeviceEnabled(self, device, enabled):

@@ -99,8 +99,7 @@ class TestTask(object):
         'Trying to finish %s which is not running.' % (self.__class__.__name__))
     self._execution_status = TaskState.FINISHED
     self._ui.task_hook = None
-    self._ui.RunJS('window.test.unbindAllKeys();'
-                   'window.test.removeAllVirtualkeys();')
+    self._ui.UnbindAllKeys()
     self._ui.event_handlers = {}
     self.Cleanup()
     self._task_manager.TaskFinished(abort)

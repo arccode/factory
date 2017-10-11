@@ -17,8 +17,6 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import goofy_proxy
 from cros.factory.test import event as test_event
 from cros.factory.test import factory
-from cros.factory.test import i18n
-from cros.factory.test.i18n import _
 from cros.factory.test.i18n import html_translator
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import session
@@ -31,12 +29,6 @@ from cros.factory.utils import process_utils
 ENTER_KEY = 13
 ESCAPE_KEY = 27
 SPACE_KEY = 32
-
-_KEY_NAME_MAP = {
-    ENTER_KEY: _('Enter'),
-    ESCAPE_KEY: _('ESC'),
-    SPACE_KEY: _('Space')
-}
 
 
 def Escape(text, preserve_line_breaks=True):
@@ -320,63 +312,17 @@ class UI(object):
       if on_finish:
         on_finish()
 
-  def BindStandardKeys(self, bind_pass_keys=True, bind_fail_keys=True):
-    """Binds standard pass and/or fail keys.
+  def BindStandardPassKeys(self):
+    """Binds standard pass keys (enter, space, 'P')."""
+    self.CallJSFunction('test.bindStandardPassKeys')
 
-    Args:
-      bind_pass_keys: True if binding pass keys, including enter, space,
-          and 'P'.
-      bind_fail_keys: True if binding fail keys, including ESC and 'F'.
-    """
-    items = []
-    virtual_key_items = []
-    if bind_pass_keys:
-      items.extend([(key, 'window.test.pass()') for key in [SPACE_KEY, 'P']])
-      virtual_key_items.extend([(ENTER_KEY, 'window.test.pass()')])
-    if bind_fail_keys:
-      items.extend([('F', 'window.test.fail()')])
-      virtual_key_items.extend([(ESCAPE_KEY, 'window.test.fail()')])
-    self.BindKeysJS(items, virtual_key=False)
-    self.BindKeysJS(virtual_key_items, virtual_key=True)
+  def BindStandardFailKeys(self):
+    """Binds standard fail keys (ESC, 'F')."""
+    self.CallJSFunction('test.bindStandardFailKeys')
 
-  def _GetKeyName(self, key_code):
-    """Get i18n names to be displayed for key_code.
-
-    Args:
-      key: An integer character code.
-    """
-    return _KEY_NAME_MAP.get(key_code, i18n.NoTranslation(chr(key_code)))
-
-  def BindKeysJS(self, items, once=False, virtual_key=True):
-    """Binds keys to JavaScript code.
-
-    Args:
-      items: A list of tuples (key, js), where
-        key: The key to bind (if a string), or an integer character code.
-        js: The JavaScript to execute when pressed.
-      once: If true, the keys would be unbinded after first key press.
-      virtual_key: If true, also show a button on screen.
-    """
-    js_list = []
-    for key, js in items:
-      key_code = key if isinstance(key, int) else ord(key)
-      if chr(key_code).islower():
-        logging.warn('Got BindKey with lowercase character key %r, but '
-                     "javascript's keycode is always uppercase. Please "
-                     'fix it.', chr(key_code))
-        key_code = ord(chr(key_code).upper())
-
-      if once:
-        js = 'window.test.unbindKey(%d);' % key_code + js
-        if virtual_key:
-          js = 'window.test.removeVirtualkey(%d);' % key_code + js
-      js_list.append('window.test.bindKey(%d, function(event) { %s });' %
-                     (key_code, js))
-      if virtual_key:
-        key_name = self._GetKeyName(key_code)
-        js_list.append('window.test.addVirtualkey(%d, %s);' %
-                       (key_code, json.dumps(key_name)))
-    self.RunJS(''.join(js_list))
+  def BindStandardKeys(self):
+    """Binds standard pass and fail keys."""
+    self.CallJSFunction('test.bindStandardKeys')
 
   def BindKeyJS(self, key, js, once=False, virtual_key=True):
     """Sets a JavaScript function to invoke if a key is pressed.
@@ -387,7 +333,10 @@ class UI(object):
       once: If true, the key would be unbinded after first key press.
       virtual_key: If true, also show a button on screen.
     """
-    self.BindKeysJS([(key, js)], once=once, virtual_key=virtual_key)
+    self.RunJS(
+        'test.bindKey(args.key, (event) => { %s }, args.once, args.virtual_key)'
+        % js,
+        key=key, once=once, virtual_key=virtual_key)
 
   def BindKey(self, key, handler, args=None, once=False, virtual_key=True):
     """Sets a key binding to invoke the handler if the key is pressed.
@@ -408,14 +357,16 @@ class UI(object):
                    once=once, virtual_key=virtual_key)
 
   def UnbindKey(self, key):
-    """Removes a key binding in frontend Javascript.
+    """Removes a key binding in frontend JavaScript.
 
     Args:
       key: The key to unbind.
     """
-    key_code = key if isinstance(key, int) else ord(key)
-    self.RunJS('window.test.unbindKey(%d); window.test.removeVirtualkey(%d);' %
-               (key_code, key_code))
+    self.CallJSFunction('test.unbindKey', key)
+
+  def UnbindAllKeys(self):
+    """Removes all key bindings in frontend JavaScript."""
+    self.CallJSFunction('test.unbindAllKeys')
 
   def _HandleEvent(self, event):
     """Handles an event sent by a test UI."""
@@ -435,26 +386,23 @@ class UI(object):
   def PlayAudioFile(self, audio_file):
     """Plays an audio file in the given path."""
     js = """
-        var audio_element = new Audio("%s");
-        audio_element.addEventListener(
-            "canplaythrough",
-            function () {
-              audio_element.play();
-            });
-    """ % os.path.join('/sounds', audio_file)
-    self.RunJS(js)
+      const audioElement = new Audio(args.path);
+      audioElement.addEventListener(
+          "canplaythrough", () => { audioElement.play(); });
+    """
+    self.RunJS(js, path=os.path.join('/sounds', audio_file))
 
   def SetFocus(self, element_id):
     """Set focus to the element specified by element_id"""
-    self.RunJS('document.getElementById("%s").focus()' % element_id)
+    self.RunJS('document.getElementById(args.id).focus()', id=element_id)
 
   def SetSelected(self, element_id):
     """Set the specified element as selected"""
-    self.RunJS('document.getElementById("%s").select()' % element_id)
+    self.RunJS('document.getElementById(args.id).select()', id=element_id)
 
   def Alert(self, text):
     """Show an alert box."""
-    self.CallJSFunction('test.invocation.goofy.alert', text)
+    self.CallJSFunction('test.alert', text)
 
 
 class DummyUI(object):

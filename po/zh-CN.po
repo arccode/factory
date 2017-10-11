@@ -581,6 +581,18 @@ msgid "Time remaining: "
 msgstr "剩余时间: "
 
 #: ../py/goofy/js/goofy.js
+msgid "Enter"
+msgstr "ENTER"
+
+#: ../py/goofy/js/goofy.js
+msgid "ESC"
+msgstr "ESC"
+
+#: ../py/goofy/js/goofy.js
+msgid "Space"
+msgstr "空白"
+
+#: ../py/goofy/js/goofy.js
 msgid "Factory tests stopped"
 msgstr "工厂测试已停止"
 
@@ -3403,18 +3415,6 @@ msgstr "{label} ({iterations} 次)"
 #: ../py/test/test_lists/test_object.py
 msgid "Untitled"
 msgstr "无名"
-
-#: ../py/test/test_ui.py
-msgid "Enter"
-msgstr "ENTER"
-
-#: ../py/test/test_ui.py
-msgid "ESC"
-msgstr "ESC"
-
-#: ../py/test/test_ui.py
-msgid "Space"
-msgstr "空白"
 
 #: ../py/test/test_ui.py
 msgid "Press Enter to pass."

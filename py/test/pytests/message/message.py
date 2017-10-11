@@ -152,5 +152,7 @@ class MessageTest(unittest.TestCase):
       task = ShowingTask(ui, self.args.seconds, self.args.manual_check)
       test_task.TestTaskManager(ui, [task]).Run()
     else:
-      ui.BindStandardKeys(bind_fail_keys=self.args.manual_check)
+      ui.BindStandardPassKeys()
+      if self.args.manual_check:
+        ui.BindStandardFailKeys()
       ui.Run()

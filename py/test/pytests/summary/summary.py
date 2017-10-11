@@ -265,7 +265,7 @@ class Report(unittest.TestCase):
     # If disable_input_on_fail is True, and overall status is PASSED, user
     # can only pass the test.
     elif all_pass:
-      ui.BindStandardKeys(bind_fail_keys=False)
+      ui.BindStandardPassKeys()
 
     template.SetState(''.join(html))
     if self.args.accessibility and not all_pass:

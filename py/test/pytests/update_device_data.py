@@ -398,10 +398,6 @@ class InputTask(test_task.TestTask):
     self.test.ui.SetSelected(self.entry.key)
     self.test.ui.SetFocus(self.entry.key)
 
-  def Cleanup(self):
-    self.test.ui.UnbindKey(test_ui.ENTER_KEY)
-    self.test.ui.UnbindKey(test_ui.ESCAPE_KEY)
-
 
 class UpdateDeviceData(unittest.TestCase):
   ARGS = [

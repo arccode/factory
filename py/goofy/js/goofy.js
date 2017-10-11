@@ -190,6 +190,21 @@ cros.factory.PluginMenuReturnData;
  */
 cros.factory.PluginFrontendConfig;
 
+// Keycodes
+const ENTER_KEY = 13;
+const ESCAPE_KEY = 27;
+const SPACE_KEY = 32;
+
+/**
+ * The i18n name of special keys.
+ * @type {!Map<number, !cros.factory.i18n.TranslationDict>}
+ */
+const KEY_NAME_MAP = new Map([
+  [ENTER_KEY, _('Enter')],
+  [ESCAPE_KEY, _('ESC')],
+  [SPACE_KEY, _('Space')]
+]);
+
 /**
  * Public API for tests.
  */
@@ -205,18 +220,18 @@ cros.factory.Test = class {
     this.invocation = invocation;
 
     /**
-     * Map of char codes to handlers. Null if not yet initialized.
-     * @type {?Object<number, function(?goog.events.KeyEvent)>}
+     * Map of char codes to handlers.
+     * @type {!Map<number, {callback: function(?goog.events.KeyEvent),
+     *                      button: ?Element}>}
      * @private
      */
-    this.keyHandlers_ = null;
+    this.keyHandlers_ = new Map();
 
     /**
-     * Map of char codes to virtualkey buttons.
-     * @type {!Map<number, !Element>}
-     * @private
+     * Whether the keydown listener is set on the contentWindow.
+     * @type {boolean}
      */
-    this.keyButtons_ = new Map();
+    this.keyListenerSet_ = false;
   }
 
   /**
@@ -279,37 +294,59 @@ cros.factory.Test = class {
 
   /**
    * Binds a key to a handler.
-   * @param {number} keyCode the key code to bind.
-   * @param {function(?goog.events.KeyEvent)} handler the function to call when
+   * @param {number|string} key the key code or key name to bind.
+   * @param {function(?goog.events.KeyEvent)} callback the function to call when
    *     the key is pressed.
+   * @param {boolean=} once whether the callback should only be triggered once.
+   * @param {boolean=} virtual whether a virtual key button should be added.
    * @export
    */
-  bindKey(keyCode, handler) {
-    if (!this.keyHandlers_) {
-      this.keyHandlers_ = Object.create(null);
+  bindKey(key, callback, once = false, virtual = true) {
+    if (!this.keyListenerSet_) {
       // Set up the listener. We listen on KEYDOWN instead of KEYUP, so it won't
       // be accidentally triggered after a dialog is dismissed.
       goog.events.listen(
           this.invocation.iframe.contentWindow, goog.events.EventType.KEYDOWN,
           (/** !goog.events.KeyEvent */ event) => {
-            handler = this.keyHandlers_[event.keyCode];
+            const handler = this.keyHandlers_.get(event.keyCode);
             if (handler) {
-              handler(event);
+              handler.callback(event);
             }
           });
+      this.keyListenerSet_ = true;
     }
-    this.keyHandlers_[keyCode] = handler;
+    const /** number */ keyCode =
+        goog.isString(key) ? key.toUpperCase().charCodeAt(0) : key;
+    const handler = {};
+    if (once) {
+      handler.callback = (event) => {
+        callback(event);
+        this.unbindKey(keyCode);
+      };
+    } else {
+      handler.callback = callback;
+    }
+    if (virtual) {
+      const button = this.addVirtualKey_(keyCode);
+      if (button) {
+        handler.button = button;
+      }
+    }
+    this.keyHandlers_.set(keyCode, handler);
   }
 
   /**
    * Unbinds a key and removes its handler.
-   * @param {number} keyCode the key code to unbind.
+   * @param {number|string} key the key code or key name to unbind.
    * @export
    */
-  unbindKey(keyCode) {
-    if (this.keyHandlers_ && keyCode in this.keyHandlers_) {
-      delete this.keyHandlers_[keyCode];
+  unbindKey(key) {
+    const /** number */ keyCode = goog.isString(key) ? key.charCodeAt(0) : key;
+    const handler = this.keyHandlers_.get(keyCode);
+    if (handler && handler.button) {
+      handler.button.remove();
     }
+    this.keyHandlers_.delete(keyCode);
   }
 
   /**
@@ -317,61 +354,43 @@ cros.factory.Test = class {
    * @export
    */
   unbindAllKeys() {
+    for (const {button} of this.keyHandlers_.values()) {
+      if (button) {
+        button.remove();
+      }
+    }
     // We don't actually remove the handler, just let it does nothing should be
     // good enough.
-    if (this.keyHandlers_) {
-      this.keyHandlers_ = Object.create(null);
+    this.keyHandlers_.clear();
+  }
+
+  /**
+   * Binds standard pass keys (enter, space, 'P').
+   * @export
+   */
+  bindStandardPassKeys() {
+    this.bindKey(ENTER_KEY, () => { this.pass(); });
+    for (const key of [SPACE_KEY, 'P']) {
+      this.bindKey(key, () => { this.pass(); }, false, false);
     }
   }
 
   /**
-   * Add a virtualkey button.
-   * @param {number} keyCode the keycode which handler should be triggered when
-   *     clicking the button.
-   * @param {!cros.factory.i18n.TranslationDict} label label of the button.
+   * Binds standard fail keys (ESC, 'F').
    * @export
    */
-  addVirtualkey(keyCode, label) {
-    const container = this.invocation.iframe.contentDocument.getElementById(
-        'virtualkey-button-container');
-    // container may not exist if test is using non-standard template.
-    if (container) {
-      const button = goog.dom.createDom(
-          'button', 'virtualkey-button',
-          cros.factory.i18n.i18nLabelNode(label));
-      this.keyButtons_.set(keyCode, button);
-      goog.events.listen(button, goog.events.EventType.CLICK, () => {
-        const handler = this.keyHandlers_[keyCode];
-        if (handler) {
-          // Not a key event, passing null in.
-          handler(null);
-        }
-      });
-      container.appendChild(button);
-    }
+  bindStandardFailKeys() {
+    this.bindKey(ESCAPE_KEY, () => { this.userAbort(); });
+    this.bindKey('F', () => { this.userAbort(); }, false, false);
   }
 
   /**
-   * Remove a virtualkey button.
-   * @param {number} keyCode the keycode which button should be removed.
+   * Binds standard pass and fail keys.
    * @export
    */
-  removeVirtualkey(keyCode) {
-    if (this.keyButtons_.has(keyCode)) {
-      this.keyButtons_.get(keyCode).remove();
-      this.keyButtons_.delete(keyCode);
-    }
-  }
-
-  /**
-   * Remove all virtualkey buttons.
-   * @export
-   */
-  removeAllVirtualkeys() {
-    for (const button of this.keyButtons_.values()) {
-      button.remove();
-    }
-    this.keyButtons_.clear();
+  bindStandardKeys() {
+    this.bindStandardPassKeys();
+    this.bindStandardFailKeys();
   }
 
   /**
@@ -383,6 +402,16 @@ cros.factory.Test = class {
   }
 
   /**
+   * Displays an alert.
+   * @param {string|!cros.factory.i18n.TranslationDict|!goog.html.SafeHtml}
+   *     message
+   * @export
+   */
+  alert(message) {
+    this.invocation.goofy.alert(message);
+  }
+
+  /**
    * Sets iframe to fullscreen size.
    * Also iframe gets higher z-index than test panel so it will cover all other
    * stuffs in goofy.
@@ -391,6 +420,45 @@ cros.factory.Test = class {
    */
   setFullScreen(enable) {
     this.invocation.iframe.classList.toggle('goofy-test-fullscreen', enable);
+  }
+
+  /**
+   * Get the i18n name to be displayed for keyCode.
+   * @param {number} keyCode
+   * @return {!cros.factory.i18n.TranslationDict}
+   * @private
+   */
+  getKeyName_(keyCode) {
+    return KEY_NAME_MAP.get(keyCode) ||
+        cros.factory.i18n.noTranslation(String.fromCharCode(keyCode));
+  }
+
+  /**
+   * Add a virtualkey button, and return the button.
+   * @param {number} keyCode the keycode which handler should be triggered when
+   *     clicking the button.
+   * @return {?Element}
+   * @private
+   */
+  addVirtualKey_(keyCode) {
+    const container = this.invocation.iframe.contentDocument.getElementById(
+        'virtualkey-button-container');
+    // container may not exist if test is using non-standard template.
+    if (!container) {
+      return null;
+    }
+    const label = this.getKeyName_(keyCode);
+    const button = goog.dom.createDom(
+        'button', 'virtualkey-button', cros.factory.i18n.i18nLabelNode(label));
+    goog.events.listen(button, goog.events.EventType.CLICK, () => {
+      const handler = this.keyHandlers_.get(keyCode);
+      if (handler) {
+        // Not a key event, passing null to callback.
+        handler.callback(null);
+      }
+    });
+    container.appendChild(button);
+    return button;
   }
 };
 
@@ -423,12 +491,6 @@ cros.factory.Invocation = class {
     this.uuid = uuid;
 
     /**
-     * Test API for the invocation.
-     * @type {!cros.factory.Test}
-     */
-    this.test = new cros.factory.Test(this);
-
-    /**
      * The iframe containing the test.
      * @type {!HTMLIFrameElement}
      */
@@ -438,7 +500,14 @@ cros.factory.Invocation = class {
 
     this.goofy.addInvocationUI(this);
 
-    // TODO(pihsun): Remove this.
+    /**
+     * Test API for the invocation.
+     * @type {!cros.factory.Test}
+     */
+    this.test = new cros.factory.Test(this);
+
+    // TODO(pihsun): Remove this and use getElementById directly, since $ is
+    // typically used as jQuery, not getElementById.
     this.iframe.contentWindow.$ = (/** string */ id) =>
         this.iframe.contentDocument.getElementById(id);
 
@@ -2953,21 +3022,19 @@ cros.factory.Goofy = class {
                 untypedMessage);
         const invocation =
             this.createInvocation(message.test, message.invocation);
-        if (invocation) {
-          const doc = goog.asserts.assert(invocation.iframe.contentDocument);
-          doc.open();
-          doc.write(message.html);
-          doc.close();
-          this.updateCSSClassesInDocument(doc);
-          invocation.iframe.onload = () => {
-            this.fixSelectElements(doc);
-          };
-          this.testUIManager.onInitTestUI(invocation.path);
+        const doc = goog.asserts.assert(invocation.iframe.contentDocument);
+        doc.open();
+        doc.write(message.html);
+        doc.close();
+        this.updateCSSClassesInDocument(doc);
+        invocation.iframe.onload = () => {
+          this.fixSelectElements(doc);
+        };
+        this.testUIManager.onInitTestUI(invocation.path);
 
-          goog.events.listen(
-              invocation.iframe.contentWindow, goog.events.EventType.KEYDOWN,
-              this.keyListener.bind(this));
-        }
+        goog.events.listen(
+            invocation.iframe.contentWindow, goog.events.EventType.KEYDOWN,
+            this.keyListener.bind(this));
         break;
       }
       case 'goofy:set_html': {

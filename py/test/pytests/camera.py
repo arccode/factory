@@ -259,7 +259,7 @@ class CameraTest(unittest.TestCase):
   def LEDTest(self):
     flicker = bool(random.randint(0, 1))
 
-    self.ui.BindStandardKeys(bind_pass_keys=False)
+    self.ui.BindStandardFailKeys()
     for i in range(2):
       if i == flicker:
         self.ui.BindKey(str(i), lambda unused_event: self.Pass())

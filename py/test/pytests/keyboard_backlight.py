@@ -47,7 +47,7 @@ class KeyboardBacklightTest(unittest.TestCase):
     """Main entrance of keyboard backlight test."""
     self._ui.BindKeyJS(test_ui.ENTER_KEY,
                        'test.sendTestEvent("pass_subtest", {});')
-    self._ui.BindStandardKeys(bind_pass_keys=False)
+    self._ui.BindStandardFailKeys()
     self._ui.AddEventHandler('pass_subtest', self.PassSubtest)
     self.NextSubTest()
     self._ui.Run()
