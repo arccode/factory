@@ -210,7 +210,7 @@ class UI(object):
     """
     keys = ['arg_%d' % i for i in range(len(args))]
     kwargs = dict(zip(keys, args))
-    self.RunJS('%s(%s)' % (name, ','.join('arg.%s' % key for key in keys)),
+    self.RunJS('%s(%s)' % (name, ','.join('args.%s' % key for key in keys)),
                **kwargs)
 
   def AddEventHandler(self, subtype, handler):
