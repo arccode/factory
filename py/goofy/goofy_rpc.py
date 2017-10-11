@@ -578,8 +578,6 @@ class GoofyRPC(object):
     Raises:
       type_utils.TimeoutError: if no response until timeout reached.
     """
-    # To support timeout (and to avoid race condition), we need a dedicated
-    # event client.
     rpc_id = str(uuid.uuid4())
     rpc_event = Event(Event.Type.EXTENSION_RPC, name=name, is_response=False,
                       rpc_id=rpc_id, args=kwargs)

@@ -563,5 +563,6 @@ def SendEvent(request_event, check_response, timeout=None):
   Returns:
     The valid response event, or None if the connection was closed or timeout.
   """
-  with BlockingEventClient() as event_client:
+  # To support timeout, we need to use ThreadingEventClient.
+  with ThreadingEventClient() as event_client:
     return event_client.request_response(request_event, check_response, timeout)
