@@ -42,7 +42,7 @@ import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
 from instalog import log_utils
 from instalog import plugin_base
-from instalog.plugins.buffer_simple_file import buffer_simple_file
+from instalog.plugins import buffer_simple_file
 from instalog.utils import file_utils
 
 # pylint: disable=protected-access
@@ -51,8 +51,9 @@ from instalog.utils import file_utils
 def _WithBufferSize(buffer_size):
   def ModifyFn(fn):
     def Wrapper(*args, **kwargs):
-      old_buffer_size_bytes = buffer_simple_file._BUFFER_SIZE_BYTES
-      buffer_simple_file._BUFFER_SIZE_BYTES = buffer_size
+      old_buffer_size_bytes = (
+          buffer_simple_file.buffer_file_common._BUFFER_SIZE_BYTES)
+      buffer_simple_file.buffer_file_common._BUFFER_SIZE_BYTES = buffer_size
       try:
         fn(*args, **kwargs)
       finally:
@@ -67,7 +68,7 @@ class TestBufferSimpleFile(unittest.TestCase):
     # Remove previous temporary folder if any.
     if self.data_dir is not None:
       shutil.rmtree(self.data_dir)
-    self.data_dir = tempfile.mkdtemp(prefix='simple_file.')
+    self.data_dir = tempfile.mkdtemp(prefix='buffer_simple_file')
     logging.info('Create state directory: %s', self.data_dir)
     self.sf = buffer_simple_file.BufferSimpleFile(
         config={} if config is None else config,
@@ -94,7 +95,8 @@ class TestBufferSimpleFile(unittest.TestCase):
     SEQ = 1989
     RECORD = 'hello world'
     # pylint: disable=unpacking-non-sequence
-    seq, record = self.sf.ParseRecord(self.sf._FormatRecord(SEQ, RECORD))
+    seq, record = self.sf.buffer_file.ParseRecord(
+        self.sf.buffer_file._FormatRecord(SEQ, RECORD))
     self.assertEqual(SEQ, seq)
     self.assertEqual(RECORD, record)
 
@@ -117,10 +119,12 @@ class TestBufferSimpleFile(unittest.TestCase):
     """Tests reading from a data store with a long corrupted record."""
     # Ensure that the size of the event is greater than _BUFFER_SIZE_BYTES.
     # pylint: disable=protected-access
-    e = datatypes.Event({'data': 'x' * buffer_simple_file._BUFFER_SIZE_BYTES})
+    e = datatypes.Event(
+        {'data':
+         'x' * buffer_simple_file.buffer_file_common._BUFFER_SIZE_BYTES})
     self.sf.Produce([e])
     # Purposely corrupt the data file.
-    with open(self.sf.data_path, 'r+') as f:
+    with open(self.sf.buffer_file.data_path, 'r+') as f:
       f.seek(1)
       f.write('x')
     self.sf.Produce([self.e2])
@@ -155,12 +159,12 @@ class TestBufferSimpleFile(unittest.TestCase):
     case, the length of e2(GARBAGE) would be included in the length of event e.
     """
     self.sf.Produce([self.e1])
-    e1_end = os.path.getsize(self.sf.data_path)
+    e1_end = os.path.getsize(self.sf.buffer_file.data_path)
     self.sf.Produce([self.e2])
-    e2_end = os.path.getsize(self.sf.data_path)
+    e2_end = os.path.getsize(self.sf.buffer_file.data_path)
 
     # Corrupt event e2 by writing garbage at the end.
-    with open(self.sf.data_path, 'r+') as f:
+    with open(self.sf.buffer_file.data_path, 'r+') as f:
       f.seek(e2_end - 10)
       f.write('x' * 5)
 
@@ -184,7 +188,7 @@ class TestBufferSimpleFile(unittest.TestCase):
     """Tests reading from a data store that has appended junk."""
     self.sf.Produce([self.e1])
     # Purposely append junk to the data store
-    with open(self.sf.data_path, 'a') as f:
+    with open(self.sf.buffer_file.data_path, 'a') as f:
       f.write('xxxxxxxx')
     self.sf.Produce([self.e2])
     self.sf.AddConsumer('a')
@@ -214,67 +218,67 @@ class TestBufferSimpleFile(unittest.TestCase):
 
   def testFirstLastSeq(self):
     """Checks the proper tracking of first_seq and last_seq."""
-    self.assertEqual(self.sf.first_seq, 1)
-    self.assertEqual(self.sf.last_seq, 0)
+    self.assertEqual(self.sf.buffer_file.first_seq, 1)
+    self.assertEqual(self.sf.buffer_file.last_seq, 0)
 
-    first_seq, _ = self.sf._GetFirstUnconsumedRecord()
+    first_seq, _ = self.sf.buffer_file._GetFirstUnconsumedRecord()
     self.assertEqual(first_seq, 1)
 
-    self.sf.Truncate()
-    self.assertEqual(self.sf.first_seq, 1)
-    self.assertEqual(self.sf.last_seq, 0)
+    self.sf.buffer_file.Truncate()
+    self.assertEqual(self.sf.buffer_file.first_seq, 1)
+    self.assertEqual(self.sf.buffer_file.last_seq, 0)
 
-    first_seq, _ = self.sf._GetFirstUnconsumedRecord()
+    first_seq, _ = self.sf.buffer_file._GetFirstUnconsumedRecord()
     self.assertEqual(first_seq, 1)
 
     self.sf.Produce([self.e1])
-    self.assertEqual(self.sf.first_seq, 1)
-    self.assertEqual(self.sf.last_seq, 1)
+    self.assertEqual(self.sf.buffer_file.first_seq, 1)
+    self.assertEqual(self.sf.buffer_file.last_seq, 1)
 
-    first_seq, _ = self.sf._GetFirstUnconsumedRecord()
+    first_seq, _ = self.sf.buffer_file._GetFirstUnconsumedRecord()
     self.assertEqual(first_seq, 2)
 
     self.sf.Produce([self.e1])
-    self.assertEqual(self.sf.first_seq, 1)
-    self.assertEqual(self.sf.last_seq, 2)
+    self.assertEqual(self.sf.buffer_file.first_seq, 1)
+    self.assertEqual(self.sf.buffer_file.last_seq, 2)
 
-    first_seq, _ = self.sf._GetFirstUnconsumedRecord()
+    first_seq, _ = self.sf.buffer_file._GetFirstUnconsumedRecord()
     self.assertEqual(first_seq, 3)
 
   def testTruncate(self):
     """Checks that Truncate truncates up to the last unread event."""
     self.sf.AddConsumer('a')
-    self.assertEqual(self.sf.first_seq, 1)
-    self.assertEqual(self.sf.last_seq, 0)
+    self.assertEqual(self.sf.buffer_file.first_seq, 1)
+    self.assertEqual(self.sf.buffer_file.last_seq, 0)
 
     self.sf.Produce([self.e1, self.e2])
-    self.assertEqual(self.sf.first_seq, 1)
-    self.assertEqual(self.sf.last_seq, 2)
+    self.assertEqual(self.sf.buffer_file.first_seq, 1)
+    self.assertEqual(self.sf.buffer_file.last_seq, 2)
 
-    self.sf.Truncate()
-    self.assertEqual(self.sf.first_seq, 1)
-    self.assertEqual(self.sf.last_seq, 2)
+    self.sf.buffer_file.Truncate()
+    self.assertEqual(self.sf.buffer_file.first_seq, 1)
+    self.assertEqual(self.sf.buffer_file.last_seq, 2)
 
     stream = self.sf.Consume('a')
     self.assertEquals(self.e1, stream.Next())
     stream.Commit()
 
-    self.sf.Truncate()
-    self.assertEqual(self.sf.first_seq, 2)
-    self.assertEqual(self.sf.last_seq, 2)
+    self.sf.buffer_file.Truncate()
+    self.assertEqual(self.sf.buffer_file.first_seq, 2)
+    self.assertEqual(self.sf.buffer_file.last_seq, 2)
 
   def testSeqOrder(self):
     """Checks that the order of sequence keys is consistent."""
     self.sf.AddConsumer('a')
 
-    self.sf.Truncate()
+    self.sf.buffer_file.Truncate()
     self.sf.Produce([self.e1])
     stream = self.sf.Consume('a')
     seq, _ = stream._Next()
     self.assertEquals(seq, 1)
     stream.Commit()
 
-    self.sf.Truncate()
+    self.sf.buffer_file.Truncate()
     self.sf.Produce([self.e1, self.e1])
     stream = self.sf.Consume('a')
     seq, _ = stream._Next()
@@ -297,7 +301,7 @@ class TestBufferSimpleFile(unittest.TestCase):
     # of Next and Truncate.
     self.assertEqual(1, len(stream2._Buffer()))
     self.assertEqual(self.e2, stream2.Next())
-    self.sf.Truncate()
+    self.sf.buffer_file.Truncate()
     self.assertEqual(self.e3, stream2.Next())
     stream2.Commit()
 
@@ -330,7 +334,7 @@ class TestBufferSimpleFile(unittest.TestCase):
     self.assertEqual(self.e2, stream2.Next())
     stream2.Commit()
 
-    self.sf.Truncate()
+    self.sf.buffer_file.Truncate()
     # Verify that the metadata is consistent after running Truncate.
     self.sf.SetUp()
 
@@ -405,10 +409,10 @@ class TestBufferSimpleFile(unittest.TestCase):
       while t.isAlive():
         # Add a small sleep to prevent occupying read_lock
         time.sleep(0.01)
-        self.sf.Truncate()
+        self.sf.buffer_file.Truncate()
       t.join()
-    self.sf.Truncate()
-    self.assertEqual(25 * 3 + 1, self.sf.first_seq)
+    self.sf.buffer_file.Truncate()
+    self.assertEqual(25 * 3 + 1, self.sf.buffer_file.first_seq)
 
     while not record_count_queue.empty():
       record_count = record_count_queue.get()
@@ -416,7 +420,7 @@ class TestBufferSimpleFile(unittest.TestCase):
       self.assertTrue(all([x == 25 for x in record_count.values()]))
 
   def _CountAttachmentsInBuffer(self, sf):
-    return len(os.listdir(sf.attachments_dir))
+    return len(os.listdir(sf.buffer_file.attachments_dir))
 
   def _TestAttachment(self, with_copy):
     """Helper function to test basic attachment functionality."""
@@ -489,7 +493,7 @@ class TestBufferSimpleFile(unittest.TestCase):
       event = datatypes.Event({}, {'a': path})
       self.sf.Produce([event])
     self.assertEqual(1, self._CountAttachmentsInBuffer(self.sf))
-    self.sf.Truncate()
+    self.sf.buffer_file.Truncate()
     self.assertEqual(0, self._CountAttachmentsInBuffer(self.sf))
 
   def testTruncateAttachmentsOnSetUp(self):
@@ -501,7 +505,7 @@ class TestBufferSimpleFile(unittest.TestCase):
       event = datatypes.Event({}, {'a': path})
       self.sf.Produce([event])
     self.assertEqual(1, self._CountAttachmentsInBuffer(self.sf))
-    self.sf.Truncate(_truncate_attachments=False)
+    self.sf.buffer_file.Truncate(_truncate_attachments=False)
     self.assertEqual(1, self._CountAttachmentsInBuffer(self.sf))
     self.sf.SetUp()
     self.assertEqual(0, self._CountAttachmentsInBuffer(self.sf))

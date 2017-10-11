@@ -1,12 +1,12 @@
 #!/usr/bin/python2
 #
-# Copyright 2016 The Chromium OS Authors. All rights reserved.
+# Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Simple file-based buffer.
+"""File-based buffer common.
 
-A simple buffer plugin which writes its events to a single file on disk, and
+A file-based buffer which writes its events to a single file on disk, and
 separately maintains metadata.
 
 There are three files maintained, plus one for each consumer created:
@@ -86,15 +86,11 @@ import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
 from instalog import log_utils
 from instalog import plugin_base
-from instalog.utils.arg_utils import Arg
 from instalog.utils import file_utils
 
 
 # The number of bytes to buffer when retrieving events from a file.
 _BUFFER_SIZE_BYTES = 4 * 1024  # 4kb
-_DEFAULT_TRUNCATE_INTERVAL = 0  # truncating disabled
-_DEFAULT_COPY_ATTACHMENTS = False  # use move instead of copy by default
-_DEFAULT_ENABLE_FSYNC = True  # fsync when it receives events
 
 
 class SimpleFileException(Exception):
@@ -128,33 +124,29 @@ def TryLoadJSON(path, logger=logging):
     raise
 
 
-class BufferSimpleFile(plugin_base.BufferPlugin):
+class BufferFile(log_utils.LoggerMixin):
 
-  ARGS = [
-      Arg('truncate_interval', (int, float),
-          'How often truncating the buffer file should be attempted.  '
-          'If set to 0, truncating functionality will be disabled (default).',
-          default=_DEFAULT_TRUNCATE_INTERVAL),
-      Arg('copy_attachments', bool,
-          'Instead of moving an attachment into the buffer, perform a copy '
-          'operation, and leave the source file intact.',
-          default=_DEFAULT_COPY_ATTACHMENTS),
-      Arg('enable_fsync', bool,
-          'Synchronize the buffer file when it receives events.  '
-          'Default is True.',
-          default=_DEFAULT_ENABLE_FSYNC)
-  ]
+  def __init__(self, args, logger, data_dir):
+    """Sets up the plugin."""
+    self.args = args
+    self.logger = logger
 
-  def __init__(self, *args, **kwargs):
-    self.data_path = None
-    self.metadata_path = None
-    self.consumers_list_path = None
-    self.consumer_path_format = None
-    self.attachments_dir = None
+    self.data_path = os.path.join(
+        data_dir, 'data.json')
+    self.metadata_path = os.path.join(
+        data_dir, 'metadata.json')
+    self.consumers_list_path = os.path.join(
+        data_dir, 'consumers.json')
+    self.consumer_path_format = os.path.join(
+        data_dir, 'consumer_%s.json')
+    self.attachments_dir = os.path.join(
+        data_dir, 'attachments')
+    if not os.path.exists(self.attachments_dir):
+      os.makedirs(self.attachments_dir)
 
     # Lock for writing to the self.data_path file.  Used by
     # Produce and Truncate.
-    self._lock = threading.Lock()
+    self.data_write_lock = threading.Lock()
 
     # Lock for modifying the self.consumers variable or for
     # preventing other threads from changing it.
@@ -173,24 +165,6 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
     self.start_pos = 0
     self.end_pos = 0
 
-    super(BufferSimpleFile, self).__init__(*args, **kwargs)
-
-  def SetUp(self):
-    """Sets up the plugin."""
-    self.data_path = os.path.join(
-        self.GetDataDir(), 'data.json')
-    self.metadata_path = os.path.join(
-        self.GetDataDir(), 'metadata.json')
-    self.consumers_list_path = os.path.join(
-        self.GetDataDir(), 'consumers.json')
-    self.consumer_path_format = os.path.join(
-        self.GetDataDir(), 'consumer_%s.json')
-    self.attachments_dir = os.path.join(
-        self.GetDataDir(), 'attachments')
-
-    if not os.path.exists(self.attachments_dir):
-      os.makedirs(self.attachments_dir)
-
     # Try restoring metadata, if it exists.
     self._RestoreMetadata()
     if self.version:
@@ -199,26 +173,6 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
 
     # Try truncating any attachments from any partial Truncate operations.
     self._TruncateAttachments()
-
-  def Main(self):
-    """Main thread of the plugin."""
-    while not self.IsStopping():
-      if not self.args.truncate_interval:
-        # Truncating is disabled.  But we should keep the main thread running,
-        # or else PluginSandbox will assume the plugin has crashed, and will
-        # take the plugin down.
-        # TODO(kitching): Consider altering PluginSandbox to allow Main to
-        #                 return some particular value which signifies "I am
-        #                 exiting of my own free will and I should be allowed to
-        #                 continue running normally."
-        self.Sleep(100)
-        continue
-
-      self.info('Truncating database...')
-      self.Truncate()
-      self.info('Truncating complete.  Sleeping %d secs...',
-                self.args.truncate_interval)
-      self.Sleep(self.args.truncate_interval)
 
   def _SaveMetadata(self):
     """Writes metadata of main database to disk."""
@@ -431,7 +385,7 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
     Note the careful edge cases with attachment files.  We want them *all* to
     be either moved or copied into the buffer's database, or *none* at all.
     """
-    with self._lock:
+    with self.data_write_lock:
       delete_on_success = []  # source attachment files
       delete_on_fail = []  # attachments in attachments_dir
 
@@ -529,7 +483,7 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
       _truncate_attachments: Whether or not to truncate attachments.
                              For testing.
     """
-    with self._lock, self._consumer_lock:
+    with self.data_write_lock, self._consumer_lock:
       # Does the buffer already have data in it?
       if not self.version:
         return
@@ -812,7 +766,3 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
       # TODO(kitching): Instalog core or PluginSandbox should catch this
       #                 exception and attempt to safely shut down.
       self.exception('Abort: Internal error occurred')
-
-
-if __name__ == '__main__':
-  plugin_base.main()
