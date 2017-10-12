@@ -148,14 +148,4 @@ def overall_status(statuses):
 
 
 class FactoryTestFailure(Exception):
-  """Failure of a factory test.
-
-  Args:
-    message: The exception message.
-    status: The status to report for the failure (usually FAILED but possibly
-        UNTESTED).
-  """
-
-  def __init__(self, message=None, status=TestState.FAILED):
-    super(FactoryTestFailure, self).__init__(message)
-    self.status = status
+  """Failure of a factory test."""

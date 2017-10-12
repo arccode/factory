@@ -495,13 +495,7 @@ class TestInvocation(object):
       return TestState.PASSED, ''
     except Exception:
       logging.exception('Exception while invoking target')
-
-      if sys.exc_info()[0] == factory.FactoryTestFailure:
-        # Use the status from the exception.
-        status = sys.exc_info()[1].status
-      else:
-        status = TestState.FAILED
-
+      status = TestState.FAILED
       return status, traceback.format_exc()
 
   def _convert_log_args(self, log_args, status):
