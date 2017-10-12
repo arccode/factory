@@ -186,10 +186,6 @@ msgid "Finalize"
 msgstr "最终程序"
 
 #: ../build/pytests_label_generated.json
-msgid "Finalize Accessory"
-msgstr "最终程序"
-
-#: ../build/pytests_label_generated.json
 msgid "Flash Netboot"
 msgstr "烧录 netboot 韧体"
 
@@ -1929,10 +1925,6 @@ msgid ""
 "<br>or the device may become unusable."
 msgstr ""
 "正在开始最终程序，请稍等.<br>不要重启机器或停止测试，<br>不然机器将无法开机。"
-
-#: ../py/test/pytests/finalize_accessory.py
-msgid "Get the final test result..."
-msgstr "检查系统最终测试结果..."
 
 #: ../py/test/pytests/gyroscope.py
 msgid "Please do not move the device."
