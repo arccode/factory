@@ -11,7 +11,6 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import test_list_iterator
-from cros.factory.test import factory
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager
 
@@ -101,9 +100,9 @@ class TestListIteratorTest(unittest.TestCase):
           actual_sequence.append(test_path)
           test = test_list.LookupPath(test_path)
           if run_test(test_path, device_data):
-            test.UpdateState(status=factory.TestState.PASSED)
+            test.UpdateState(status=state.TestState.PASSED)
           else:
-            test.UpdateState(status=factory.TestState.FAILED)
+            test.UpdateState(status=state.TestState.FAILED)
           if test_persistency:
             iterator = self._testPickleSerializable(iterator)
             # the persistency of state instance is provided by
@@ -169,9 +168,9 @@ class TestListIteratorBaseTest(TestListIteratorTest):
 
   def testInitWithStatusFilter(self):
     for status_filter in ([],
-                          [factory.TestState.FAILED],
-                          [factory.TestState.FAILED,
-                           factory.TestState.UNTESTED]):
+                          [state.TestState.FAILED],
+                          [state.TestState.FAILED,
+                           state.TestState.UNTESTED]):
       iterator = test_list_iterator.TestListIterator(
           root=self.test_list, status_filter=status_filter)
       self.assertListEqual(status_filter, iterator.status_filter)
@@ -252,7 +251,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
       test_path = iterator.next()
       actual_sequence.append(test_path)
       test = test_list.LookupPath(test_path)
-      test.UpdateState(status=factory.TestState.PASSED)
+      test.UpdateState(status=state.TestState.PASSED)
 
     self.assertListEqual(['a', 'b', 'G.a'], actual_sequence)
 
@@ -287,7 +286,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         test_path = iterator.next()
         actual_sequence.append(test_path)
         test = test_list.LookupPath(test_path)
-        test.UpdateState(status=factory.TestState.PASSED)
+        test.UpdateState(status=state.TestState.PASSED)
 
     self.assertListEqual(
         ['a', 'b', 'G.a', 'G.G.a', 'G.G.b', 'G.G.c', 'c'], actual_sequence)
@@ -385,8 +384,8 @@ class TestListIteratorBaseTest(TestListIteratorTest):
 
     # no filter, all tests should be run
     test_list = self._SetStubStateInstance(test_list)
-    test_list.LookupPath('G.a').UpdateState(status=factory.TestState.PASSED)
-    test_list.LookupPath('G.G.a').UpdateState(status=factory.TestState.FAILED)
+    test_list.LookupPath('G.a').UpdateState(status=state.TestState.PASSED)
+    test_list.LookupPath('G.G.a').UpdateState(status=state.TestState.FAILED)
     self._AssertTestSequence(
         test_list,
         ['G.a', 'G.G.a', 'G.G.b', 'G.b'],
@@ -395,34 +394,34 @@ class TestListIteratorBaseTest(TestListIteratorTest):
 
     # only UNTESTED tests will be run
     test_list = self._SetStubStateInstance(test_list)
-    test_list.LookupPath('G.a').UpdateState(status=factory.TestState.PASSED)
-    test_list.LookupPath('G.G.a').UpdateState(status=factory.TestState.FAILED)
+    test_list.LookupPath('G.a').UpdateState(status=state.TestState.PASSED)
+    test_list.LookupPath('G.G.a').UpdateState(status=state.TestState.FAILED)
     self._AssertTestSequence(
         test_list,
         ['G.G.b', 'G.b'],
         set_state=False,
-        status_filter=[factory.TestState.UNTESTED])
+        status_filter=[state.TestState.UNTESTED])
 
     # UNTESTED or FAILED
     test_list = self._SetStubStateInstance(test_list)
-    test_list.LookupPath('G.a').UpdateState(status=factory.TestState.PASSED)
-    test_list.LookupPath('G.G.a').UpdateState(status=factory.TestState.FAILED)
+    test_list.LookupPath('G.a').UpdateState(status=state.TestState.PASSED)
+    test_list.LookupPath('G.G.a').UpdateState(status=state.TestState.FAILED)
     self._AssertTestSequence(
         test_list,
         ['G.G.a', 'G.G.b', 'G.b'],
         set_state=False,
-        status_filter=[factory.TestState.UNTESTED, factory.TestState.FAILED])
+        status_filter=[state.TestState.UNTESTED, state.TestState.FAILED])
 
     # filter doesn't apply on non-leaf tests
     test_list = self._SetStubStateInstance(test_list)
-    test_list.LookupPath('G.a').UpdateState(status=factory.TestState.PASSED)
-    test_list.LookupPath('G.G.a').UpdateState(status=factory.TestState.FAILED)
-    test_list.LookupPath('G').UpdateState(status=factory.TestState.FAILED)
+    test_list.LookupPath('G.a').UpdateState(status=state.TestState.PASSED)
+    test_list.LookupPath('G.G.a').UpdateState(status=state.TestState.FAILED)
+    test_list.LookupPath('G').UpdateState(status=state.TestState.FAILED)
     self._AssertTestSequence(
         test_list,
         ['G.G.a', 'G.G.b', 'G.b'],
         set_state=False,
-        status_filter=[factory.TestState.UNTESTED, factory.TestState.FAILED])
+        status_filter=[state.TestState.UNTESTED, state.TestState.FAILED])
 
   def testTestGroup(self):
     """Tests if we can handle TestGroup correctly.
@@ -468,18 +467,18 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     # G is a test group, H, I, J are AutomatedSequences
     test_list = self._SetStubStateInstance(test_list)
     test_list.SetSkippedAndWaivedTests()
-    test_list.LookupPath('G.a').UpdateState(status=factory.TestState.PASSED)
-    test_list.LookupPath('G.b').UpdateState(status=factory.TestState.FAILED)
-    test_list.LookupPath('H.a').UpdateState(status=factory.TestState.PASSED)
-    test_list.LookupPath('H.b').UpdateState(status=factory.TestState.FAILED)
-    test_list.LookupPath('I.a').UpdateState(status=factory.TestState.PASSED)
-    test_list.LookupPath('I.b').UpdateState(status=factory.TestState.PASSED)
+    test_list.LookupPath('G.a').UpdateState(status=state.TestState.PASSED)
+    test_list.LookupPath('G.b').UpdateState(status=state.TestState.FAILED)
+    test_list.LookupPath('H.a').UpdateState(status=state.TestState.PASSED)
+    test_list.LookupPath('H.b').UpdateState(status=state.TestState.FAILED)
+    test_list.LookupPath('I.a').UpdateState(status=state.TestState.PASSED)
+    test_list.LookupPath('I.b').UpdateState(status=state.TestState.PASSED)
     self._AssertTestSequence(
         test_list,
         ['G.b', 'H.a', 'H.b'],
         set_state=False,
         # since tests will be reset to UNTESTED, so untested must be included
-        status_filter=[factory.TestState.FAILED, factory.TestState.UNTESTED])
+        status_filter=[state.TestState.FAILED, state.TestState.UNTESTED])
 
   def testRunIfCannotSkipParent(self):
     """Make sure we cannot skip a parent test.

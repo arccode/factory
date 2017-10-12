@@ -16,6 +16,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event
 from cros.factory.test import factory
 from cros.factory.test import session
+from cros.factory.test import state
 from cros.factory.test import test_ui
 
 
@@ -42,7 +43,7 @@ class TestUIUnittest(unittest.TestCase):
     ui_abort_event.type = event.Event.Type.END_TEST
     ui_abort_event.invocation = self.invocation
     ui_abort_event.test = self.test_path
-    ui_abort_event.status = factory.TestState.FAILED
+    ui_abort_event.status = state.TestState.FAILED
     ui_abort_event.error_msg = 'Aborted by operator'
 
     # The UI main thread should exit when it sees the failed event.

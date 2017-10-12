@@ -11,7 +11,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import invocation
 from cros.factory.test.e2e_test import ui_actuator
-from cros.factory.test import factory
+from cros.factory.test import state
 from cros.factory.utils.arg_utils import Args
 
 
@@ -109,14 +109,14 @@ class E2ETest(unittest.TestCase):
             SetTestInfo(x)
 
       SetTestInfo(suite)
-      self.pytest_state = factory.TestState.ACTIVE
+      self.pytest_state = state.TestState.ACTIVE
       result = runner.run(suite)
 
       self._pytest_failures += result.failures + result.errors
       if self._pytest_failures:
-        self.pytest_state = factory.TestState.FAILED
+        self.pytest_state = state.TestState.FAILED
       else:
-        self.pytest_state = factory.TestState.PASSED
+        self.pytest_state = state.TestState.PASSED
 
     # pylint: disable=access-member-before-definition
     # Update dargs with override dargs.
@@ -167,7 +167,7 @@ class E2ETest(unittest.TestCase):
         raise E2ETestError('Factory test did not finish in %d seconds' %
                            timeout_secs)
 
-  def WaitTestStateEquals(self, state, timeout_secs=5, msg=None):
+  def WaitTestStateEquals(self, test_state, timeout_secs=5, msg=None):
     """Waits until the test state equals to the given state.
 
     The test fails if the state is not correct within the given amount of time.
@@ -180,8 +180,8 @@ class E2ETest(unittest.TestCase):
     """
     self.StartFactoryTest()
 
-    if state not in factory.TestState.__dict__:
-      raise E2ETestError('Invalid test state: %r' % state)
+    if test_state not in state.TestState.__dict__:
+      raise E2ETestError('Invalid test state: %r' % test_state)
     if timeout_secs:
       self.WaitForFactoryTest(timeout_secs, raise_exception=False)
 
@@ -191,7 +191,7 @@ class E2ETest(unittest.TestCase):
     else:
       result_msg = failure_msg
 
-    self.assertEquals(state, self.pytest_state, result_msg)
+    self.assertEquals(test_state, self.pytest_state, result_msg)
 
   def WaitForPass(self, timeout_secs=5, msg=None):
     """Waits until the test state is passed.
@@ -201,7 +201,7 @@ class E2ETest(unittest.TestCase):
           test to finish.
       msg: A message to display if the function fails.
     """
-    self.WaitTestStateEquals(factory.TestState.PASSED,
+    self.WaitTestStateEquals(state.TestState.PASSED,
                              timeout_secs=timeout_secs,
                              msg=msg)
 
@@ -213,7 +213,7 @@ class E2ETest(unittest.TestCase):
           test to finish.
       msg: A message to display if the function fails.
     """
-    self.WaitTestStateEquals(factory.TestState.FAILED,
+    self.WaitTestStateEquals(state.TestState.FAILED,
                              timeout_secs=timeout_secs,
                              msg=msg)
 
@@ -225,7 +225,7 @@ class E2ETest(unittest.TestCase):
           test to finish.
       msg: A message to display if the function fails.
     """
-    self.WaitTestStateEquals(factory.TestState.ACTIVE,
+    self.WaitTestStateEquals(state.TestState.ACTIVE,
                              timeout_secs=timeout_secs,
                              msg=msg)
 

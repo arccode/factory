@@ -256,12 +256,12 @@ class UI(object):
   def Pass(self):
     """Passes the test."""
     self.PostEvent(test_event.Event(test_event.Event.Type.END_TEST,
-                                    status=factory.TestState.PASSED))
+                                    status=state.TestState.PASSED))
 
   def Fail(self, error_msg):
     """Fails the test immediately."""
     self.PostEvent(test_event.Event(test_event.Event.Type.END_TEST,
-                                    status=factory.TestState.FAILED,
+                                    status=state.TestState.FAILED,
                                     error_msg=error_msg))
 
   def FailLater(self, error_msg):
@@ -306,9 +306,9 @@ class UI(object):
     self.event_client.close()
 
     try:
-      if event.status == factory.TestState.PASSED and not self.error_msgs:
+      if event.status == state.TestState.PASSED and not self.error_msgs:
         pass
-      elif event.status == factory.TestState.FAILED or self.error_msgs:
+      elif event.status == state.TestState.FAILED or self.error_msgs:
         error_msg = getattr(event, 'error_msg', '')
         if self.error_msgs:
           error_msg += '\n'.join([''] + self.error_msgs)

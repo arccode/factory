@@ -326,7 +326,7 @@ class VSWR(unittest.TestCase):
       self.log['test']['results'][antenna_name] = results
 
       self._results[antenna_name] = (
-          factory.TestState.PASSED if all_passed else factory.TestState.FAILED)
+          state.TestState.PASSED if all_passed else state.TestState.FAILED)
       self.test_passed = self.test_passed and all_passed
 
   def _GenerateFinalResult(self):
@@ -398,7 +398,7 @@ class VSWR(unittest.TestCase):
     for measurement_sequence in self._sn_config['measurement_sequence']:
       for port in measurement_sequence:
         antenna_name = measurement_sequence[port]['name']
-        if self._results[antenna_name] == factory.TestState.PASSED:
+        if self._results[antenna_name] == state.TestState.PASSED:
           result_html_string += (
               '<tr><td>%s</td><td>%s</td><td>%s</td></tr>' % (
                   row_count, antenna_name, self._results[antenna_name]))

@@ -33,8 +33,8 @@ from cros.factory.test import device_data
 from cros.factory.test.env import goofy_proxy
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
-from cros.factory.test.factory import TestState
 from cros.factory.test import state
+from cros.factory.test.state import TestState
 from cros.factory.test.test_lists import manager
 from cros.factory.utils import log_utils
 from cros.factory.utils import net_utils

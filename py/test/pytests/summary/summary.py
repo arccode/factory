@@ -88,7 +88,6 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import factory
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
@@ -125,9 +124,9 @@ _EXTERNAL_DIR = '/run/factory/external'
 
 # The following test states are considered passed
 _EXTENED_PASSED_STATE = {
-    factory.TestState.PASSED,
-    factory.TestState.FAILED_AND_WAIVED,
-    factory.TestState.SKIPPED, }
+    state.TestState.PASSED,
+    state.TestState.FAILED_AND_WAIVED,
+    state.TestState.SKIPPED, }
 
 
 class Report(unittest.TestCase):
@@ -176,10 +175,10 @@ class Report(unittest.TestCase):
   def MakeStatusLabel(self, status):
     """Returns the label for test state."""
     STATUS_LABEL = {
-        factory.TestState.PASSED: _('passed'),
-        factory.TestState.FAILED: _('failed'),
-        factory.TestState.ACTIVE: _('active'),
-        factory.TestState.UNTESTED: _('untested')
+        state.TestState.PASSED: _('passed'),
+        state.TestState.FAILED: _('failed'),
+        state.TestState.ACTIVE: _('active'),
+        state.TestState.UNTESTED: _('untested')
     }
     return i18n_test_ui.MakeI18nLabel(STATUS_LABEL.get(status, status))
 
@@ -210,7 +209,7 @@ class Report(unittest.TestCase):
                       self.MakeStatusLabel(test_state.status)))
       statuses.append(test_state.status)
 
-    overall_status = factory.overall_status(statuses)
+    overall_status = state.TestState.OverallStatus(statuses)
     all_pass = overall_status in _EXTENED_PASSED_STATE
 
     goofy = state.get_instance()

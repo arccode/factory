@@ -9,7 +9,6 @@ import tempfile
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import factory
 from cros.factory.test import state
 
 
@@ -33,13 +32,13 @@ class FactoryStateTest(unittest.TestCase):
     """
     # Pick some of the fields and update them.
     test_state, changed = self.state.update_test_state(
-        'a.b.c', status=factory.TestState.PASSED)
-    self.assertEqual(factory.TestState.PASSED, test_state.status)
+        'a.b.c', status=state.TestState.PASSED)
+    self.assertEqual(state.TestState.PASSED, test_state.status)
     self.assertTrue(changed)
 
     test_state, changed = self.state.update_test_state(
-        'a.b.c', status=factory.TestState.PASSED)
-    self.assertEqual(factory.TestState.PASSED, test_state.status)
+        'a.b.c', status=state.TestState.PASSED)
+    self.assertEqual(state.TestState.PASSED, test_state.status)
     self.assertFalse(changed)
 
   def testGetTestPaths(self):
@@ -50,19 +49,19 @@ class FactoryStateTest(unittest.TestCase):
     self.assertItemsEqual(test_paths, self.state.get_test_paths())
 
   def testGetTestStates(self):
-    self.state.update_test_state('a', status=factory.TestState.PASSED)
-    self.state.update_test_state('a.b', status=factory.TestState.PASSED)
-    self.state.update_test_state('a.b.c', status=factory.TestState.SKIPPED)
+    self.state.update_test_state('a', status=state.TestState.PASSED)
+    self.state.update_test_state('a.b', status=state.TestState.PASSED)
+    self.state.update_test_state('a.b.c', status=state.TestState.SKIPPED)
 
     states = self.state.get_test_states()
-    self.assertEqual(factory.TestState.PASSED, states['a'].status)
-    self.assertEqual(factory.TestState.PASSED, states['a.b'].status)
-    self.assertEqual(factory.TestState.SKIPPED, states['a.b.c'].status)
+    self.assertEqual(state.TestState.PASSED, states['a'].status)
+    self.assertEqual(state.TestState.PASSED, states['a.b'].status)
+    self.assertEqual(state.TestState.SKIPPED, states['a.b.c'].status)
 
   def testClearTestState(self):
-    self.state.update_test_state('a', status=factory.TestState.PASSED)
-    self.state.update_test_state('a.b', status=factory.TestState.PASSED)
-    self.state.update_test_state('a.b.c', status=factory.TestState.SKIPPED)
+    self.state.update_test_state('a', status=state.TestState.PASSED)
+    self.state.update_test_state('a.b', status=state.TestState.PASSED)
+    self.state.update_test_state('a.b.c', status=state.TestState.SKIPPED)
     self.state.clear_test_state()
 
     self.assertSequenceEqual([], self.state.get_test_paths())
@@ -145,7 +144,7 @@ class FactoryStateTest(unittest.TestCase):
   def testSerializeLayer(self):
     layer = state.FactoryStateLayer()
 
-    tests = {'tests': factory.TestState()}
+    tests = {'tests': state.TestState()}
     data = {'data': {'a': 1, 'b': 2}}
     layer.tests_shelf.SetValue('', tests)
     layer.data_shelf.SetValue('', data)

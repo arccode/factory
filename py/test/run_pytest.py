@@ -63,14 +63,14 @@ def _RunPytestGoofy(pytest, args, dut_options):
   # dependencies.
   from cros.factory.utils import file_utils
   from cros.factory.goofy import invocation
-  from cros.factory.test import factory
+  from cros.factory.test import state
 
   with file_utils.UnopenedTemporaryFile(prefix='results') as results:
     info = invocation.PytestInfo(None, None, pytest, args, results,
                                  dut_options=dut_options)
     invocation.RunPytest(info)
     status, error_msg = pickle.load(open(results))
-    return (status == factory.TestState.PASSED, error_msg)
+    return (status == state.TestState.PASSED, error_msg)
 
 
 def _RunPytestRaw(pytest, args, dut_options):

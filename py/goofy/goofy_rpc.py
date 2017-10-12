@@ -28,7 +28,6 @@ from cros.factory.test.diagnosis.diagnosis_tool import DiagnosisToolRPC
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
 from cros.factory.test.event import SendEvent
-from cros.factory.test import factory
 from cros.factory.test.i18n import translation
 from cros.factory.test import server_proxy
 from cros.factory.test import state
@@ -493,7 +492,7 @@ class GoofyRPC(object):
         ret_val['scheduled_tests'] = scheduled_tests_status
 
         if (self.goofy.test_list_iterator.GetPendingTests() or
-            any(t['status'] == factory.TestState.ACTIVE
+            any(t['status'] == state.TestState.ACTIVE
                 for t in scheduled_tests_status)):
           ret_val['status'] = RunState.RUNNING
         else:

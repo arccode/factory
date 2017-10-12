@@ -32,10 +32,10 @@ from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
 from cros.factory.test import factory
-from cros.factory.test.factory import TestState
 from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.test import session
 from cros.factory.test import state
+from cros.factory.test.state import TestState
 from cros.factory.test.test_lists import manager
 from cros.factory.test.test_lists import test_object
 from cros.factory.test.utils import pytest_utils

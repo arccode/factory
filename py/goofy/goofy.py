@@ -45,7 +45,6 @@ from cros.factory.test.event_log import EventLog
 from cros.factory.test.event_log import GetBootSequence
 from cros.factory.test.event_log_watcher import EventLogWatcher
 from cros.factory.test import factory
-from cros.factory.test.factory import TestState
 from cros.factory.test.i18n import html_translator
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.i18n import translation
@@ -53,6 +52,7 @@ from cros.factory.test.rules import phase
 from cros.factory.test import server_proxy
 from cros.factory.test import session
 from cros.factory.test import state
+from cros.factory.test.state import TestState
 from cros.factory.test.test_lists import manager
 from cros.factory.test.test_lists import test_list as test_list_module
 from cros.factory.test.test_lists import test_object

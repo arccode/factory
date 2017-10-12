@@ -398,7 +398,7 @@ Sends the specified test result to shopfloor backend.
                        {'error_msg': 'Unknown'})
       # Returns {'action': 're-run'}
 
-`TestState` is defined in [cros.factory.test.factory](../test/factory.py)
+`TestState` is defined in [cros.factory.test.state](../test/state.py)
 and the `status` parameter should be one of the following values:
 `PASSED, FAILED, SKIPPED, or FAILED_AND_WAIVED`.
 

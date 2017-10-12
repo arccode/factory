@@ -7,7 +7,7 @@ import logging
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import invocation
-from cros.factory.test import factory
+from cros.factory.test import state
 from cros.factory.test.test_lists import manager
 from cros.factory.test.test_lists import test_object
 from cros.factory.utils import type_utils
@@ -284,9 +284,9 @@ class TestListIterator(object):
     if self.CheckSkip(test):
       return self.RETURN_CODE.POP_FRAME, None
 
-    if (test.GetState().status == factory.TestState.PASSED and
+    if (test.GetState().status == state.TestState.PASSED and
         self.status_filter and
-        factory.TestState.PASSED not in self.status_filter):
+        state.TestState.PASSED not in self.status_filter):
       # This test item / test group is passed, and we don't want to run passed
       # tests.
       # TODO(stimim): find a better way to handle this (e.g. peak subtests, and
@@ -309,14 +309,14 @@ class TestListIterator(object):
       if success:
         test.UpdateState(decrement_iterations_left=1)
       else:
-        state = test.UpdateState(decrement_retries_left=1)
-        if state.retries_left >= 0:
+        test_state = test.UpdateState(decrement_retries_left=1)
+        if test_state.retries_left >= 0:
           # since you allow try, let's reset teardown_only flags
           self.teardown_only = False
           frame.locals.pop('teardown_only', None)
 
-    state = test.GetState()
-    if state.iterations_left > 0 and state.retries_left >= 0:
+    test_state = test.GetState()
+    if test_state.iterations_left > 0 and test_state.retries_left >= 0:
       # should continue
       frame.next_step = self.Body.__name__
       if frame.locals.get('executed', False):
@@ -403,7 +403,7 @@ class TestListIterator(object):
       return True  # we need to skip it
     elif test.IsSkipped():
       # this test was skipped before, but now we might need to run it
-      test.UpdateState(status=factory.TestState.UNTESTED)
+      test.UpdateState(status=state.TestState.UNTESTED)
       # check again (for status filter)
       return self.CheckSkip(test)
     return False
@@ -413,7 +413,7 @@ class TestListIterator(object):
       return True
     status = test.GetState().status
     # an active test should always pass the filter (to resume a previous test)
-    return status == factory.TestState.ACTIVE or status in self.status_filter
+    return status == state.TestState.ACTIVE or status in self.status_filter
 
   def CheckRunIf(self, test, test_arg_env=None):
     if test_arg_env is None:
@@ -442,8 +442,8 @@ class TestListIterator(object):
     A test is considered fail iff. it really FAILED.  All other statuses
     (SKIPPED, FAILED_AND_WAIVED, UNTESTED) are not.
     """
-    return test.GetState().status != factory.TestState.FAILED
+    return test.GetState().status != state.TestState.FAILED
 
   def _ResetSubtestStatus(self, test):
     for subtest in test.Walk():
-      subtest.UpdateState(status=factory.TestState.UNTESTED)
+      subtest.UpdateState(status=state.TestState.UNTESTED)

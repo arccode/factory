@@ -12,7 +12,6 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.e2e_test import e2e_test
-from cros.factory.test import factory
 from cros.factory.test.pytests.shutdown import shutdown
 from cros.factory.test import state
 
@@ -104,7 +103,7 @@ class ShutdownE2ETest(e2e_test.E2ETest):
     mock_get_state_instance.assert_called_with()
     mock_log.assert_called_with('rebooted',
                                 duration=mock.ANY,
-                                status=factory.TestState.PASSED,
+                                status=state.TestState.PASSED,
                                 error_msg=None)
     _goofy.get_shared_data.assert_called_with(self.key_post_shutdown, True)
     _goofy.del_shared_data.assert_called_with(self.key_post_shutdown)
@@ -124,7 +123,7 @@ class ShutdownE2ETest(e2e_test.E2ETest):
 
     mock_get_state_instance.assert_called_with()
     mock_log.assert_called_with(
-        'rebooted', status=factory.TestState.FAILED,
+        'rebooted', status=state.TestState.FAILED,
         error_msg=('Unable to read shutdown_time; '
                    'unexpected shutdown during reboot?'))
     _goofy.get_shared_data.assert_called_with(self.key_post_shutdown, True)
@@ -145,7 +144,7 @@ class ShutdownE2ETest(e2e_test.E2ETest):
 
     mock_get_state_instance.assert_called_with()
     mock_log.assert_called_with('rebooted',
-                                status=factory.TestState.FAILED,
+                                status=state.TestState.FAILED,
                                 error_msg='Time moved backward during reboot')
     _goofy.get_shared_data.assert_called_with(self.key_post_shutdown, True)
     _goofy.del_shared_data.assert_called_with(self.key_post_shutdown)
@@ -166,7 +165,7 @@ class ShutdownE2ETest(e2e_test.E2ETest):
     mock_get_state_instance.assert_called_with()
     mock_log.assert_called_with('rebooted',
                                 duration=mock.ANY,
-                                status=factory.TestState.FAILED,
+                                status=state.TestState.FAILED,
                                 error_msg=RegExpMatcher(
                                     r'More than \d+ s elapsed during reboot'))
     _goofy.get_shared_data.assert_called_with(self.key_post_shutdown, True)

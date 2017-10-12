@@ -27,7 +27,7 @@ import yaml
 import factory_common  # pylint: disable=W0611
 from cros.factory.external import setproctitle
 from cros.factory.test import device_data
-from cros.factory.test.factory import TestState
+from cros.factory.test.state import TestState
 from cros.factory.test.rules import phase
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager

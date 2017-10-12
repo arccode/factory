@@ -17,11 +17,10 @@ import logging
 import re
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test.factory import overall_status
-from cros.factory.test.factory import TestState
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import translation
+from cros.factory.test.state import TestState
 from cros.factory.test.test_lists.test_list import TestListError
 from cros.factory.utils import shelve_utils
 from cros.factory.utils import type_utils
@@ -553,7 +552,8 @@ class FactoryTest(object):
 
     # If there are any active tests, consider it active; if any failed,
     # consider it failed, etc. The order is important!
-    status = overall_status([x.GetState().status for x in self.subtests])
+    status = TestState.OverallStatus(
+        [x.GetState().status for x in self.subtests])
     if status != self.GetState().status:
       self.UpdateState(status=status)
 

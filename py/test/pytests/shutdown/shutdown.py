@@ -251,12 +251,12 @@ class ShutdownTest(unittest.TestCase):
       event_log.Log('rebooted', status=status, error_msg=error_msg, **kw)
       logging.info('Rebooted: status=%s, %s', status,
                    (('error_msg=%s' % error_msg) if error_msg else None))
-      if status == factory.TestState.FAILED:
+      if status == state.TestState.FAILED:
         raise ShutdownError(error_msg)
 
     last_shutdown_time = self.goofy.GetLastShutdownTime()
     if not last_shutdown_time:
-      LogAndEndTest(status=factory.TestState.FAILED,
+      LogAndEndTest(status=state.TestState.FAILED,
                     error_msg=('Unable to read shutdown_time; '
                                'unexpected shutdown during reboot?'))
 
@@ -264,7 +264,7 @@ class ShutdownTest(unittest.TestCase):
     logging.info('%.03f s passed since reboot', now - last_shutdown_time)
 
     if last_shutdown_time > now:
-      LogAndEndTest(status=factory.TestState.FAILED,
+      LogAndEndTest(status=state.TestState.FAILED,
                     error_msg='Time moved backward during reboot')
     elif (self.args.operation == factory.ShutdownStep.REBOOT and
           self.args.max_reboot_time_secs and
@@ -274,7 +274,7 @@ class ShutdownTest(unittest.TestCase):
       # very long time, and even unplugged with battery backup,
       # thus hosing the clock.)
       LogAndEndTest(
-          status=factory.TestState.FAILED,
+          status=state.TestState.FAILED,
           error_msg=('More than %d s elapsed during reboot '
                      '(%.03f s, from %s to %s)' % (
                          self.args.max_reboot_time_secs,
@@ -285,16 +285,16 @@ class ShutdownTest(unittest.TestCase):
       logging.info(sys_utils.GetStartupMessages(self.dut))
     elif self.test_state.shutdown_count > self.test.iterations:
       # Shut down too many times
-      LogAndEndTest(status=factory.TestState.FAILED,
+      LogAndEndTest(status=state.TestState.FAILED,
                     error_msg='Too many shutdowns')
       logging.info(sys_utils.GetStartupMessages(self.dut))
 
     elif self.args.check_tag_file and self.CheckShutdownFailureTagFile():
-      LogAndEndTest(status=factory.TestState.FAILED,
+      LogAndEndTest(status=state.TestState.FAILED,
                     error_msg='Found shutdown fail tag file')
 
     # Good!
-    LogAndEndTest(status=factory.TestState.PASSED,
+    LogAndEndTest(status=state.TestState.PASSED,
                   duration=(now - last_shutdown_time),
                   error_msg=None)
 
