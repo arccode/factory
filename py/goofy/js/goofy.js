@@ -2791,8 +2791,7 @@ cros.factory.Goofy = class {
 
     // Assign the appropriate class to the node, and remove all other status
     // classes.
-    elt.classList.remove(...Array.from(elt.classList)
-                             .filter((cls) => cls.startsWith('goofy-status-')));
+    cros.factory.utils.removeClassesWithPrefix(elt, 'goofy-status-');
     elt.classList.add(
         `goofy-status-${state.status.toLowerCase().replace(/_/g, '-')}`);
 

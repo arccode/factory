@@ -5,84 +5,91 @@
 """A factory test to test the function of display."""
 
 import os
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import countdown_timer
+from cros.factory.test.i18n import _
+from cros.factory.test.i18n import translation
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 
 
-class DisplayTest(unittest.TestCase):
+# The _() is necessary for pygettext to get translatable strings correctly.
+_ALL_ITEMS = [
+    _('solid-gray-170'),
+    _('solid-gray-127'),
+    _('solid-gray-63'),
+    _('solid-red'),
+    _('solid-green'),
+    _('solid-blue'),
+    _('solid-white'),
+    _('solid-gray'),
+    _('solid-black'),
+    _('grid'),
+    _('rectangle'),
+    _('gradient-red'),
+    _('gradient-green'),
+    _('gradient-blue'),
+    _('gradient-white'),
+    _('image-complex'),
+    _('image-black'),
+    _('image-white'),
+    _('image-crosstalk-black'),
+    _('image-crosstalk-white'),
+    _('image-gray-63'),
+    _('image-gray-127'),
+    _('image-gray-170'),
+    _('image-horizontal-rgbw'),
+    _('image-vertical-rgbw')
+]
+_ALL_ITEMS = [x[translation.DEFAULT_LOCALE] for x in _ALL_ITEMS]
+_IMAGE_PREFIX = 'image-'
+
+
+class DisplayTest(test_ui.TestCaseWithUI):
   """Tests the function of display.
 
   Properties:
     ui: test ui.
-    template: ui template handling html layout.
     checked: user has check the display of current subtest.
     fullscreen: the test ui is in fullscreen or not.
     static_dir: string of static file directory.
   """
   ARGS = [
-      Arg('colors', list,
-          'Set colors. Available colors are\n'
-          '        "solid-gray-170",\n'
-          '        "solid-gray-127",\n'
-          '        "solid-gray-63",\n'
-          '        "solid-red",\n'
-          '        "solid-green",\n'
-          '        "solid-blue",\n'
-          '        "solid-white",\n'
-          '        "solid-gray",\n'
-          '        "solid-black",\n'
-          '        "grid",\n'
-          '        "rectangle",\n'
-          '        "gradient-red",\n'
-          '        "gradient-green",\n'
-          '        "gradient-blue",\n'
-          '        "gradient-white"',
+      Arg('items', list,
+          'Set items to be shown on screen. Available items are:\n%s\n' %
+          '\n'.join('  * ``"%s"``' % x for x in _ALL_ITEMS),
           default=['solid-gray-170', 'solid-gray-127', 'solid-gray-63',
                    'solid-red', 'solid-green', 'solid-blue']),
-      Arg('images', list,
-          'Set customized images. Available images are\n'
-          '        "complex.bmp",\n'
-          '        "BLACK.BMP",\n'
-          '        "WHITE.BMP",\n'
-          '        "CrossTalk(black).bmp",\n'
-          '        "CrossTalk(white).bmp",\n'
-          '        "gray(63).bmp",\n'
-          '        "gray(127).bmp",\n'
-          '        "gray(170).bmp",\n'
-          '        "Horizontal(RGBW).bmp",\n'
-          '        "Vertical(RGBW).bmp"\n',
-          default=[]),
-      Arg('idle_timeout', int,
+      Arg('idle_timeout',
+          int,
           'If given, the test would be start automatically, run for '
           'idle_timeout seconds, and pass itself. '
-          'Note that colors and images should contain exactly one item total '
-          'in this mode.', default=None)
+          'Note that items should contain exactly one item in this mode.',
+          default=None)
   ]
 
   def setUp(self):
     """Initializes frontend presentation and properties."""
-    self.ui = test_ui.UI()
-    self.ui.AppendCSSLink('display.css')
-    self.template = ui_templates.OneSection(self.ui)
-    self.static_dir = self.FindFileStaticDirectory()
+    self.static_dir = self.ui.GetStaticDirectoryPath()
 
     self.idle_timeout = self.args.idle_timeout
-    if (self.idle_timeout is not None and
-        len(self.args.colors) + len(self.args.images) != 1):
-      raise ValueError(
-          'colors and images should have exactly one item total in idle mode.')
+    if self.idle_timeout is not None and len(self.args.items) != 1:
+      raise ValueError('items should have exactly one item in idle mode.')
 
-    if self.args.images:
-      for image in self.args.images:
-        self.args.colors.append('image-%s' % image)
+    unknown_items = set(self.args.items) - set(_ALL_ITEMS)
+    if unknown_items:
+      raise ValueError('Unknown item %r in items.' % list(unknown_items))
+
+    self.items = self.args.items
+    self.images = [
+        '%s.bmp' % item[len(_IMAGE_PREFIX):] for item in self.items
+        if item.startswith(_IMAGE_PREFIX)
+    ]
+    if self.images:
       self.ExtractTestImages()
-    self.ui.CallJSFunction('setupDisplayTest', self.args.colors)
+    self.ui.CallJSFunction('setupDisplayTest', self.items)
     self.checked = False
     self.fullscreen = False
 
@@ -90,40 +97,28 @@ class DisplayTest(unittest.TestCase):
     self.RemoveTestImages()
 
   def runTest(self):
-    """Sets the callback function of keys and run the test."""
+    """Sets the callback function of keys."""
     if self.idle_timeout is None:
       self.ui.BindKey(test_ui.SPACE_KEY, self.OnSpacePressed)
       self.ui.BindKey(test_ui.ENTER_KEY, self.OnEnterPressed)
-      self.ui.AddEventHandler('OnFullscreenClicked', self.OnSpacePressed)
+      self.ui.AddEventHandler('onFullscreenClicked', self.OnSpacePressed)
     else:
       # Automatically enter fullscreen mode in idle mode.
       self.ToggleFullscreen()
-      self.ui.AddEventHandler('OnFullscreenClicked', self.OnFailPressed)
+      self.ui.AddEventHandler('onFullscreenClicked', self.OnFailPressed)
       countdown_timer.StartCountdownTimer(self.idle_timeout, self.ui.Pass,
                                           self.ui, [])
     self.ui.BindKey(test_ui.ESCAPE_KEY, self.OnFailPressed)
-    self.ui.Run()
-
-  def FindFileStaticDirectory(self):
-    """Finds static file directory.
-
-    Returns:
-      String of static file directory
-    """
-    file_path = os.path.realpath(__file__)
-    file_dir, file_name = os.path.split(file_path)
-    file_static_dir = os.path.join(file_dir,
-                                   os.path.splitext(file_name)[0] + '_static')
-    return file_static_dir
+    return test_ui.WAIT_FRONTEND
 
   def ExtractTestImages(self):
-    """Extracts selected test images from test_images.tar.gz."""
-    file_utils.ExtractFile(os.path.join(self.static_dir, 'test_images.tar.gz'),
-                           self.static_dir, self.args.images)
+    """Extracts selected test images from test_images.tar.bz2."""
+    file_utils.ExtractFile(os.path.join(self.static_dir, 'test_images.tar.bz2'),
+                           self.static_dir, only_extracts=self.images)
 
   def RemoveTestImages(self):
     """Removes extracted image files after test finished."""
-    for image in self.args.images:
+    for image in self.images:
       file_utils.TryUnlink(os.path.join(self.static_dir, image))
 
   def OnSpacePressed(self, event):
@@ -133,14 +128,14 @@ class DisplayTest(unittest.TestCase):
 
   def ToggleFullscreen(self):
     self.checked = True
-    self.ui.CallJSFunction('switchDisplayOnOff')
+    self.ui.CallJSFunction('window.displayTest.toggleFullscreen')
     self.fullscreen = not self.fullscreen
 
   def OnEnterPressed(self, event):
     """Passes the subtest only if self.checked is True."""
     del event  # Unused.
     if self.checked:
-      self.ui.CallJSFunction('passSubTest')
+      self.ui.CallJSFunction('window.displayTest.judgeSubTest', True)
       # If the next subtest will be in fullscreen mode, checked should be True
       self.checked = self.fullscreen
 
@@ -148,6 +143,6 @@ class DisplayTest(unittest.TestCase):
     """Fails the subtest only if self.checked is True."""
     del event  # Unused.
     if self.checked:
-      self.ui.CallJSFunction('failSubTest')
+      self.ui.CallJSFunction('window.displayTest.judgeSubTest', False)
       # If the next subtest will be in fullscreen mode, checked should be True
       self.checked = self.fullscreen

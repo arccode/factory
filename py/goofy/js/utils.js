@@ -12,3 +12,13 @@ goog.provide('cros.factory.utils');
 cros.factory.utils.delay = (ms) => new Promise((resolve) => {
   setTimeout(resolve, ms);
 });
+
+/**
+ * Removes all classes from DOM element with given prefix.
+ * @param {!Element} element
+ * @param {string} prefix
+ */
+cros.factory.utils.removeClassesWithPrefix = (element, prefix) => {
+  element.classList.remove(
+      ...Array.from(element.classList).filter((cls) => cls.startsWith(prefix)));
+};

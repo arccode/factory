@@ -1661,6 +1661,106 @@ msgstr "DEV SW 开发者开关目前为<b class=\"on\">开启</b>状态"
 msgid "Develop switch is currently <b class=\"off\">OFF</b>."
 msgstr "DEV SW 开发者开关目前为<b class=\"off\">关闭</b>状态"
 
+#: ../py/test/pytests/display.py
+msgid "solid-gray-170"
+msgstr "灰色170"
+
+#: ../py/test/pytests/display.py
+msgid "solid-gray-127"
+msgstr "灰色127"
+
+#: ../py/test/pytests/display.py
+msgid "solid-gray-63"
+msgstr "灰色63"
+
+#: ../py/test/pytests/display.py
+msgid "solid-red"
+msgstr "红色"
+
+#: ../py/test/pytests/display.py
+msgid "solid-green"
+msgstr "绿色"
+
+#: ../py/test/pytests/display.py
+msgid "solid-blue"
+msgstr "蓝色"
+
+#: ../py/test/pytests/display.py
+msgid "solid-white"
+msgstr "白色"
+
+#: ../py/test/pytests/display.py
+msgid "solid-gray"
+msgstr "灰色"
+
+#: ../py/test/pytests/display.py
+msgid "solid-black"
+msgstr "黑色"
+
+#: ../py/test/pytests/display.py
+msgid "grid"
+msgstr "格框"
+
+#: ../py/test/pytests/display.py
+msgid "rectangle"
+msgstr "矩形"
+
+#: ../py/test/pytests/display.py
+msgid "gradient-red"
+msgstr "渐红"
+
+#: ../py/test/pytests/display.py
+msgid "gradient-green"
+msgstr "渐绿"
+
+#: ../py/test/pytests/display.py
+msgid "gradient-blue"
+msgstr "渐蓝"
+
+#: ../py/test/pytests/display.py
+msgid "gradient-white"
+msgstr "渐白"
+
+#: ../py/test/pytests/display.py
+msgid "image-complex"
+msgstr "影像-复杂"
+
+#: ../py/test/pytests/display.py
+msgid "image-black"
+msgstr "影像-黑色"
+
+#: ../py/test/pytests/display.py
+msgid "image-white"
+msgstr "影像-白色"
+
+#: ../py/test/pytests/display.py
+msgid "image-crosstalk-black"
+msgstr "影像-方形-黑色"
+
+#: ../py/test/pytests/display.py
+msgid "image-crosstalk-white"
+msgstr "影像-方形-白色"
+
+#: ../py/test/pytests/display.py
+msgid "image-gray-63"
+msgstr "影像-灰色63"
+
+#: ../py/test/pytests/display.py
+msgid "image-gray-127"
+msgstr "影像-灰色127"
+
+#: ../py/test/pytests/display.py
+msgid "image-gray-170"
+msgstr "影像-灰色170"
+
+#: ../py/test/pytests/display.py
+msgid "image-horizontal-rgbw"
+msgstr "影像-水平"
+
+#: ../py/test/pytests/display.py
+msgid "image-vertical-rgbw"
+msgstr "影像-垂直"
+
 #: ../py/test/pytests/display_images.py
 msgid ""
 "Press space to show each image on display<br>Press Enter to PASS after "
@@ -1683,105 +1783,13 @@ msgstr ""
 "按空白键显示;\n"
 "检查后按下正确的点数按键通过。"
 
-#: ../py/test/pytests/display_static/display.js
-msgid "solid-gray-170"
-msgstr "灰色170"
+#: ../py/test/pytests/display_static/display.html
+msgid "Press Space to display;<br>After checking, Enter to pass; Esc to fail."
+msgstr "按空白键显示;<br>检查后按Enter键通过; 按Esc键失败。"
 
 #: ../py/test/pytests/display_static/display.js
-msgid "solid-gray-127"
-msgstr "灰色127"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "solid-gray-63"
-msgstr "灰色63"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "solid-red"
-msgstr "红色"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "solid-green"
-msgstr "绿色"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "solid-blue"
-msgstr "蓝色"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "solid-white"
-msgstr "白色"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "solid-gray"
-msgstr "灰色"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "solid-black"
-msgstr "黑色"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "grid"
-msgstr "格框"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "rectangle"
-msgstr "矩形"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "gradient-red"
-msgstr "渐红"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "gradient-green"
-msgstr "渐绿"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "gradient-blue"
-msgstr "渐蓝"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "gradient-white"
-msgstr "渐白"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "image-complex.bmp"
-msgstr "影像-复杂"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "image-BLACK.BMP"
-msgstr "影像-黑色"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "image-WHITE.BMP"
-msgstr "影像-白色"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "image-CrossTalk(black).bmp"
-msgstr "影像-方形-黑色"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "image-CrossTalk(white).bmp"
-msgstr "影像-方形-白色"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "image-gray(63).bmp"
-msgstr "影像-灰色63"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "image-gray(127).bmp"
-msgstr "影像-灰色127"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "image-gray(170).bmp"
-msgstr "影像-灰色170"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "image-Horizontal(RGBW).bmp"
-msgstr "影像-水平"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "image-Vertical(RGBW).bmp"
-msgstr "影像-垂直"
+msgid "Untested"
+msgstr "未经测试"
 
 #: ../py/test/pytests/display_static/display.js
 msgid "Passed"
@@ -1790,18 +1798,6 @@ msgstr "通过"
 #: ../py/test/pytests/display_static/display.js
 msgid "Failed"
 msgstr "失败"
-
-#: ../py/test/pytests/display_static/display.js
-msgid "Untested"
-msgstr "未经测试"
-
-#: ../py/test/pytests/display_static/display.js
-msgid ""
-"Press Space to display;\n"
-"After checking, Enter to pass; Esc to fail."
-msgstr ""
-"按空白键显示;\n"
-"检查后按Enter键通过; 按Esc键失败。"
 
 #: ../py/test/pytests/ethernet.py
 msgid ""
