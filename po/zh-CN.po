@@ -142,10 +142,6 @@ msgid "Display"
 msgstr "显示"
 
 #: ../build/pytests_label_generated.json
-msgid "Display Idle"
-msgstr "显示测试(Idle)"
-
-#: ../build/pytests_label_generated.json
 msgid "Display Images"
 msgstr "显示图像"
 
@@ -1683,34 +1679,6 @@ msgstr "DEV SW 开发者开关目前为<b class=\"on\">开启</b>状态"
 msgid "Develop switch is currently <b class=\"off\">OFF</b>."
 msgstr "DEV SW 开发者开关目前为<b class=\"off\">关闭</b>状态"
 
-#: ../py/test/pytests/display_idle_static/display_idle.js
-#: ../py/test/pytests/display_static/display.js
-msgid "solid-white"
-msgstr "白色"
-
-#: ../py/test/pytests/display_idle_static/display_idle.js
-#: ../py/test/pytests/display_static/display.js
-msgid "Passed"
-msgstr "通过"
-
-#: ../py/test/pytests/display_idle_static/display_idle.js
-#: ../py/test/pytests/display_static/display.js
-msgid "Failed"
-msgstr "失败"
-
-#: ../py/test/pytests/display_idle_static/display_idle.js
-#: ../py/test/pytests/display_static/display.js
-msgid "Untested"
-msgstr "未经测试"
-
-#: ../py/test/pytests/display_idle_static/display_idle.js
-msgid ""
-"Press Space to display;\n"
-"Esc to fail. Test will pass itself after timeout."
-msgstr ""
-"按空白键显示;\n"
-"按Esc键失败。时间到测试会自行结束"
-
 #: ../py/test/pytests/display_images.py
 msgid ""
 "Press space to show each image on display<br>Press Enter to PASS after "
@@ -1756,6 +1724,10 @@ msgstr "绿色"
 #: ../py/test/pytests/display_static/display.js
 msgid "solid-blue"
 msgstr "蓝色"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "solid-white"
+msgstr "白色"
 
 #: ../py/test/pytests/display_static/display.js
 msgid "solid-gray"
@@ -1828,6 +1800,18 @@ msgstr "影像-水平"
 #: ../py/test/pytests/display_static/display.js
 msgid "image-Vertical(RGBW).bmp"
 msgstr "影像-垂直"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "Passed"
+msgstr "通过"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "Failed"
+msgstr "失败"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "Untested"
+msgstr "未经测试"
 
 #: ../py/test/pytests/display_static/display.js
 msgid ""

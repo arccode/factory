@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -10,6 +8,7 @@ import os
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test import countdown_timer
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -45,8 +44,7 @@ class DisplayTest(unittest.TestCase):
           '        "gradient-blue",\n'
           '        "gradient-white"',
           default=['solid-gray-170', 'solid-gray-127', 'solid-gray-63',
-                   'solid-red', 'solid-green', 'solid-blue'],
-          optional=True),
+                   'solid-red', 'solid-green', 'solid-blue']),
       Arg('images', list,
           'Set customized images. Available images are\n'
           '        "complex.bmp",\n'
@@ -59,8 +57,12 @@ class DisplayTest(unittest.TestCase):
           '        "gray(170).bmp",\n'
           '        "Horizontal(RGBW).bmp",\n'
           '        "Vertical(RGBW).bmp"\n',
-          default=[],
-          optional=True),
+          default=[]),
+      Arg('idle_timeout', int,
+          'If given, the test would be start automatically, run for '
+          'idle_timeout seconds, and pass itself. '
+          'Note that colors and images should contain exactly one item total '
+          'in this mode.', default=None)
   ]
 
   def setUp(self):
@@ -69,6 +71,13 @@ class DisplayTest(unittest.TestCase):
     self.ui.AppendCSSLink('display.css')
     self.template = ui_templates.OneSection(self.ui)
     self.static_dir = self.FindFileStaticDirectory()
+
+    self.idle_timeout = self.args.idle_timeout
+    if (self.idle_timeout is not None and
+        len(self.args.colors) + len(self.args.images) != 1):
+      raise ValueError(
+          'colors and images should have exactly one item total in idle mode.')
+
     if self.args.images:
       for image in self.args.images:
         self.args.colors.append('image-%s' % image)
@@ -80,14 +89,20 @@ class DisplayTest(unittest.TestCase):
 
   def tearDown(self):
     self.RemoveTestImages()
-    return
 
   def runTest(self):
     """Sets the callback function of keys and run the test."""
-    self.ui.BindKey(test_ui.SPACE_KEY, self.OnSpacePressed)
-    self.ui.BindKey(test_ui.ENTER_KEY, self.OnEnterPressed)
+    if self.idle_timeout is None:
+      self.ui.BindKey(test_ui.SPACE_KEY, self.OnSpacePressed)
+      self.ui.BindKey(test_ui.ENTER_KEY, self.OnEnterPressed)
+      self.ui.AddEventHandler('OnFullscreenClicked', self.OnSpacePressed)
+    else:
+      # Automatically enter fullscreen mode in idle mode.
+      self.ToggleFullscreen()
+      self.ui.AddEventHandler('OnFullscreenClicked', self.OnFailPressed)
+      countdown_timer.StartCountdownTimer(self.idle_timeout, self.ui.Pass,
+                                          self.ui, [])
     self.ui.BindKey(test_ui.ESCAPE_KEY, self.OnFailPressed)
-    self.ui.AddEventHandler('OnSpacePressed', self.OnSpacePressed)
     self.ui.Run()
 
   def FindFileStaticDirectory(self):
@@ -115,6 +130,9 @@ class DisplayTest(unittest.TestCase):
   def OnSpacePressed(self, event):
     """Sets self.checked to True. Calls JS function to switch display on/off."""
     del event  # Unused.
+    self.ToggleFullscreen()
+
+  def ToggleFullscreen(self):
     self.checked = True
     self.ui.CallJSFunction('switchDisplayOnOff')
     self.fullscreen = not self.fullscreen
