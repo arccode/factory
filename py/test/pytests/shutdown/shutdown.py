@@ -58,6 +58,7 @@ from cros.factory.test import factory
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
+from cros.factory.test.test_lists import test_object
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import audio_utils
@@ -148,9 +149,9 @@ class ShutdownTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    assert self.args.operation in (factory.ShutdownStep.REBOOT,
-                                   factory.ShutdownStep.FULL_REBOOT,
-                                   factory.ShutdownStep.HALT)
+    assert self.args.operation in (test_object.ShutdownStep.REBOOT,
+                                   test_object.ShutdownStep.FULL_REBOOT,
+                                   test_object.ShutdownStep.HALT)
     self.dut = device_utils.CreateDUTInterface()
     self.ui = test_ui.UI(css=_CSS)
     self.template = ui_templates.OneSection(self.ui)
@@ -179,7 +180,7 @@ class ShutdownTest(unittest.TestCase):
         'wait_shutdown_secs': self.args.wait_shutdown_secs,
     }
 
-    with test_event.BlockingEventClient() as event_client:
+    with test_event.ThreadingEventClient() as event_client:
       event_client.post_event(
           test_event.Event(
               test_event.Event.Type.PENDING_SHUTDOWN, **pending_shutdown_data))
@@ -266,7 +267,7 @@ class ShutdownTest(unittest.TestCase):
     if last_shutdown_time > now:
       LogAndEndTest(status=state.TestState.FAILED,
                     error_msg='Time moved backward during reboot')
-    elif (self.args.operation == factory.ShutdownStep.REBOOT and
+    elif (self.args.operation == test_object.ShutdownStep.REBOOT and
           self.args.max_reboot_time_secs and
           (now - last_shutdown_time > self.args.max_reboot_time_secs)):
       # A reboot took too long; fail.  (We don't check this for
@@ -314,17 +315,18 @@ class ShutdownTest(unittest.TestCase):
     self.PreShutdown()
 
     end_time = time.time() + self.args.wait_shutdown_secs
-    if self.args.operation in (factory.ShutdownStep.REBOOT,
-                               factory.ShutdownStep.FULL_REBOOT):
+    if self.args.operation in (test_object.ShutdownStep.REBOOT,
+                               test_object.ShutdownStep.FULL_REBOOT):
       checkpoints = [DUT_NOT_READY_CHECKPOINT, DUT_READY_CHECKPOINT]
     else:
       checkpoints = [DUT_NOT_READY_CHECKPOINT, DUT_WAIT_SHUTDOWN]
     # TODO(akahuang): Make shutdown command as system module
     command_table = {
-        factory.ShutdownStep.REBOOT: ['shutdown -r now'],
-        factory.ShutdownStep.FULL_REBOOT: ['ectool reboot_ec cold at-shutdown',
-                                           'shutdown -r now'],
-        factory.ShutdownStep.HALT: ['shutdown -h now']}
+        test_object.ShutdownStep.REBOOT: ['shutdown -r now'],
+        test_object.ShutdownStep.FULL_REBOOT: [
+            'ectool reboot_ec cold at-shutdown',
+            'shutdown -r now'],
+        test_object.ShutdownStep.HALT: ['shutdown -h now']}
     for command in command_table[self.args.operation]:
       self.dut.Call(command)
     while checkpoints:

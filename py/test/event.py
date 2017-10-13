@@ -441,6 +441,21 @@ class EventClientBase(object):
     """
     raise NotImplementedError
 
+  def wait(self, condition, timeout=None):
+    """Waits for an event matching a condition.
+
+    Args:
+      condition: A function to evaluate. The function takes one
+          argument (an event to evaluate) and returns whether the condition
+          applies.
+      timeout: A timeout in seconds, or None to wait forever.
+
+    Returns:
+      The event that matched the condition, or None if the connection
+      was closed or timeout.
+    """
+    return self.request_response(None, condition, timeout)
+
 
 class BlockingEventClient(EventClientBase):
   """A blocking event client.
@@ -464,21 +479,6 @@ class BlockingEventClient(EventClientBase):
         return None
       if event and check_response(event):
         return event
-
-  def wait(self, condition, timeout=None):
-    """Waits for an event matching a condition.
-
-    Args:
-      condition: A function to evaluate. The function takes one
-          argument (an event to evaluate) and returns whether the condition
-          applies.
-      timeout: A timeout in seconds, or None to wait forever.
-
-    Returns:
-      The event that matched the condition, or None if the connection
-      was closed or timeout.
-    """
-    return self.request_response(None, condition, timeout)
 
 
 class ThreadingEventClient(EventClientBase):

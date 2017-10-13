@@ -7,7 +7,7 @@
 import logging
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import factory
+from cros.factory.test.test_lists import test_object
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.e2e_test.automator import Automator, AutomationFunction
 
@@ -20,7 +20,7 @@ class ShutdownAutomator(Automator):
   @AutomationFunction(automation_mode=AutomationMode.FULL,
                       wait_for_factory_test=False)
   def automateSkipHalt(self):
-    if self.args.operation == factory.ShutdownStep.HALT:
+    if self.args.operation == test_object.ShutdownStep.HALT:
       # Skip the test right after it is loaded.
       logging.info('Skip halt in full automation mode.')
       self.uictl.WaitForContent(search_text='Shutdown Test')

@@ -55,7 +55,7 @@ class ShutdownE2ETest(e2e_test.E2ETest):
   @e2e_test.E2ETestCase()
   @mock.patch.object(state, 'get_instance',
                      return_value=_goofy)
-  @mock.patch.object(shutdown, 'BlockingEventClient',
+  @mock.patch.object(shutdown, 'ThreadingEventClient',
                      return_value=_event_client)
   def testReboot(self, mock_event_client, mock_get_state_instance):
     # Set 'post_shutdown' to None.
@@ -73,7 +73,7 @@ class ShutdownE2ETest(e2e_test.E2ETest):
   @e2e_test.E2ETestCase()
   @mock.patch.object(state, 'get_instance',
                      return_value=_goofy)
-  @mock.patch.object(shutdown, 'BlockingEventClient',
+  @mock.patch.object(shutdown, 'ThreadingEventClient',
                      return_value=_event_client)
   def testRebootAborted(self, mock_event_client, mock_get_state_instance):
     # Set 'post_shutdown' to None.
