@@ -239,6 +239,8 @@ class ALSFixture(unittest.TestCase):
     self.light_index = -1  # ALS test stage
     self.dummy_index = 0  # Dummy index key for Series with only one log
 
+    self.monitor = media_utils.MediaMonitor('usb-serial', None)
+
     self.ui = test_ui.UI()
     self.ui.AppendCSS(CSS)
     self.template = ui_templates.OneSection(self.ui)
@@ -356,8 +358,8 @@ class ALSFixture(unittest.TestCase):
                        'Error validating calibrated ALS: %s' % e.message)
       raise e
 
-  def _OnU2SInsertion(self, dev_path):
-    del dev_path  # unused
+  def _OnU2SInsertion(self, device):
+    del device  # unused
     cnt = 0
     while cnt < self.args.chamber_n_retries:
       try:
@@ -370,8 +372,8 @@ class ALSFixture(unittest.TestCase):
         time.sleep(self.args.chamber_retry_delay)
     raise light_chamber.LightChamberError('Error connecting to light chamber')
 
-  def _OnU2SRemoval(self, dev_path):
-    del dev_path  # unused
+  def _OnU2SRemoval(self, device):
+    del device  # unused
     self._SetFixtureStatus(FIXTURE_STATUS.DISCONNECTED)
 
   def _SetFixtureStatus(self, status):
@@ -538,9 +540,12 @@ class ALSFixture(unittest.TestCase):
     self.ui.RunInBackground(self._RunTest)
     self.ui.Run()
 
+  def tearDown(self):
+    self.monitor.Stop()
+
   def _RunTest(self):
     """Main routine for ALS test."""
-    media_utils.MediaMonitor('usb-serial', None).Start(
+    self.monitor.Start(
         on_insert=self._OnU2SInsertion, on_remove=self._OnU2SRemoval)
 
     if self.args.assume_chamber_connected:

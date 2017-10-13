@@ -7,7 +7,6 @@ import logging
 import os
 import shutil
 import tempfile
-import threading
 
 import factory_common  # pylint: disable=unused-import
 
@@ -16,49 +15,6 @@ from cros.factory.external import pyudev
 # udev constants
 _UDEV_ACTION_INSERT = 'add'
 _UDEV_ACTION_REMOVE = 'remove'
-
-
-class _PyudevThread(threading.Thread):
-  """Monitoring udev events in the background.
-
-  This is a temporary class to asynchronously monitor udev events. Because only
-  the new version of pyudev module provides asynchronous observer, the version
-  we currently use does not. We can deprecate this class after the module has
-  been upgraded.
-
-  Note that due to pyudev's limited functionality. This thread won't stop once
-  it has been started. Thus setting this thread to daemon is necessary. And of
-  course we can not really stop receiving udev events, either. So the only way
-  to pretend stop monitoring is to ignore all the events in the callback
-  function.
-
-  Usage example:
-    pyudev_thread = _PyudevThread(UdevEventCallback,
-                                  subsystem='block',
-                                  device_type='disk')
-    pyudev_thread.daemon = True
-    pyudev_thread.start()
-  """
-
-  def __init__(self, callback, **udev_filters):
-    """Constructor.
-
-    Args:
-      callback: Function to invoke when receiving udev events.
-      udev_filters: Will be pass to pyudev.Monitor.filter_by(). Please refer to
-          pyudev's doc to see what kind of filters it provides.
-    """
-    threading.Thread.__init__(self)
-    self._callback = callback
-    self._udev_filters = dict(udev_filters)
-
-  def run(self):
-    """Create an infinite loop to monitor udev events and invoke callbacks."""
-    context = pyudev.Context()
-    monitor = pyudev.Monitor.from_netlink(context)
-    monitor.filter_by(**self._udev_filters)
-    for action, device in monitor:
-      self._callback(action, device)
 
 
 class MediaMonitor(object):
@@ -85,7 +41,6 @@ class MediaMonitor(object):
     self.on_remove = None
     self.is_monitoring = False
     self._observer = None
-    self._pyudev_thread = None
     self._subsystem = subsystem
     self._device_type = device_type
 
@@ -95,11 +50,11 @@ class MediaMonitor(object):
     if action == _UDEV_ACTION_INSERT:
       logging.info('Device inserted: %s', device.device_node)
       if self.on_insert:
-        self.on_insert(device.device_node)
+        self.on_insert(device)
     elif action == _UDEV_ACTION_REMOVE:
       logging.info('Device removed: %s', device.device_node)
       if self.on_remove:
-        self.on_remove(device.device_node)
+        self.on_remove(device)
 
   def Start(self, on_insert, on_remove):
     if self.is_monitoring:
@@ -107,37 +62,19 @@ class MediaMonitor(object):
     self.on_insert = on_insert
     self.on_remove = on_remove
     # Setup the media monitor,
-    # TODO(littlecvr): Use pyudev.MonitorObserver instead of writing our
-    #                  own observer (PyudevThread) after pyudev module has
-    #                  been upgraded. The right code is here, just uncomment
-    #                  them and delete lines related to PyudevThread.
-    # context = pyudev.Context()
-    # monitor = pyudev.Monitor.from_netlink(context)
-    # monitor.filter_by(subsystem='block', device_type='disk')
-    # self._observer = pyudev.MonitorObserver(monitor, self._UdevEventCallback)
-    # self._observer.start()
-    if self._pyudev_thread == None:
-      self._pyudev_thread = _PyudevThread(self._UdevEventCallback,
-                                          subsystem=self._subsystem,
-                                          device_type=self._device_type)
-      self._pyudev_thread.daemon = True
-      self._pyudev_thread.start()
+    context = pyudev.Context()
+    monitor = pyudev.Monitor.from_netlink(context)
+    monitor.filter_by(subsystem=self._subsystem, device_type=self._device_type)
+    self._observer = pyudev.MonitorObserver(monitor, self._UdevEventCallback)
+    self._observer.start()
     self.is_monitoring = True
     logging.info('Start monitoring media actitivities.')
 
   def Stop(self):
-    # TODO(littlecvr): Use pyudev.MonitorObserver instead of writing our
-    #                  own observer (PyudevThread) after pyudev module has
-    #                  been upgraded. The right code is here, just uncomment
-    #                  them and delete lines related to PyudevThread.
-    # self._observer.stop()
-
-    # Due to pyudev's limited functionality. We can't really stop here. So we
-    # simply set is_monitoring to False and ignore any event in the calback to
-    # pretend we have stopped. This problem should be fixed after pyudev has
-    # been upgraded.
-    self.is_monitoring = False
-    logging.info('Stop monitoring media actitivities.')
+    if self.is_monitoring:
+      self._observer.stop()
+      self.is_monitoring = False
+      logging.info('Stop monitoring media actitivities.')
 
 
 class RemovableDiskMonitor(MediaMonitor):

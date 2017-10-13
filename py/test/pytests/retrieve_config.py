@@ -185,12 +185,14 @@ class RetrieveConfig(unittest.TestCase):
   def _RetrieveConfigFromUSB(self):
     """Loads json config from USB drive."""
     self.usb_ready_event = threading.Event()
-    media_utils.RemovableDiskMonitor().Start(
-        on_insert=self._OnUSBInsertion, on_remove=self._OnUSBRemoval)
+    monitor = media_utils.RemovableDiskMonitor()
+    monitor.Start(on_insert=self._OnUSBInsertion, on_remove=self._OnUSBRemoval)
 
-    while self.usb_ready_event.wait():
+    try:
+      self.usb_ready_event.wait()
       self._MountUSBAndCopyFile()
-      time.sleep(0.5)
+    finally:
+      monitor.Stop()
     logging.info('Saved config to %s.', self.config_save_path)
 
   def _MountUSBAndCopyFile(self):
@@ -211,11 +213,11 @@ class RetrieveConfig(unittest.TestCase):
                       self.config_save_path, e)
         raise RetrieveConfigException(e.message)
 
-  def _OnUSBInsertion(self, dev_path):
-    self.usb_dev_path = dev_path
+  def _OnUSBInsertion(self, device):
+    self.usb_dev_path = device.device_node
     self.usb_ready_event.set()
 
-  def _OnUSBRemoval(self, dev_path):
-    del dev_path  # unused
+  def _OnUSBRemoval(self, device):
+    del device  # unused
     self.usb_ready_event.clear()
     self.usb_dev_path = None

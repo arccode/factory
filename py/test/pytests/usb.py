@@ -14,18 +14,14 @@ import logging
 import os
 import unittest
 
-import pyudev
-
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.test.utils import media_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import file_utils
 
-
-_UDEV_ACTION_INSERT = 'add'
-_UDEV_ACTION_REMOVE = 'remove'
 
 _MSG_PROMPT_FMT = lambda num_usb_ports: i18n_test_ui.MakeI18nLabelWithClass(
     'Plug device into each USB port, {num_usb_ports} to go...<br>',
@@ -46,7 +42,6 @@ class USBTest(unittest.TestCase):
           optional=True),
       Arg('num_usb3_ports', int, 'number of USB 3.0 ports', None,
           optional=True)]
-  version = 1
 
   def setUp(self):
     self.ui = test_ui.UI()
@@ -70,19 +65,21 @@ class USBTest(unittest.TestCase):
     self._seen_usb2_paths = set()
     self._seen_usb3_paths = set()
 
+    self.monitor = media_utils.MediaMonitor('usb', 'usb_device')
+
     if self._expected_paths:
       for path in self._expected_paths:
         if os.path.exists(path):
-          self.record_path(path)
+          self.RecordPath(path)
 
     self.template.SetState(_HTML_USB)
     self.ui.AppendCSS(_CSS_USB_TEST)
     self.ui.SetHTML(_MSG_PROMPT_FMT(self._num_usb_ports), id=_ID_CONTAINER)
 
-  def record_path(self, sys_path):
+  def RecordPath(self, sys_path):
     bus_path = os.path.dirname(sys_path)
     bus_ver_path = os.path.join(bus_path, 'version')
-    bus_version = int(float(open(bus_ver_path, 'r').read().strip()))
+    bus_version = int(float(file_utils.ReadFile(bus_ver_path).strip()))
 
     if bus_version == 2:
       self._seen_usb2_paths.add(sys_path)
@@ -110,25 +107,12 @@ class USBTest(unittest.TestCase):
       self.ui.SetHTML(_MSG_PROMPT_FMT(self._num_usb_ports - total_count),
                       id=_ID_CONTAINER)
 
-  def usb_event_cb(self, action, device):
-    if action not in [_UDEV_ACTION_INSERT, _UDEV_ACTION_REMOVE]:
-      return
-
-    factory.console.info('USB %s device path %s' % (action, device.sys_path))
-    if self._expected_paths and device.sys_path not in self._expected_paths:
-      return
-
-    self.record_path(device.sys_path)
-
-  def _runTest(self):
-    """Create a loop to monitor udev events and invoke callback function."""
-    # TODO(pihsun): Should use media_utils.MediaMonitor instead of this.
-    context = pyudev.Context()
-    monitor = pyudev.Monitor.from_netlink(context)
-    monitor.filter_by(subsystem='usb', device_type='usb_device')
-    for action, device in monitor:
-      self.usb_event_cb(action, device)
+  def _Callback(self, device):
+    self.RecordPath(device.sys_path)
 
   def runTest(self):
-    self.ui.RunInBackground(self._runTest)
+    self.monitor.Start(on_insert=self._Callback, on_remove=self._Callback)
     self.ui.Run()
+
+  def tearDown(self):
+    self.monitor.Stop()
