@@ -42,6 +42,7 @@ import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
 from instalog import log_utils
 from instalog import plugin_base
+# pylint: disable=no-name-in-module
 from instalog.plugins import buffer_simple_file
 from instalog.utils import file_utils
 
@@ -94,7 +95,6 @@ class TestBufferSimpleFile(unittest.TestCase):
     """Tests internal format and parse of data.json record."""
     SEQ = 1989
     RECORD = 'hello world'
-    # pylint: disable=unpacking-non-sequence
     seq, record = self.sf.buffer_file.ParseRecord(
         self.sf.buffer_file._FormatRecord(SEQ, RECORD))
     self.assertEqual(SEQ, seq)

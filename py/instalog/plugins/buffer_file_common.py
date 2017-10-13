@@ -124,12 +124,42 @@ def TryLoadJSON(path, logger=logging):
     raise
 
 
+def CopyAttachmentsToTempDir(att_paths, tmp_dir):
+  """Copys attachments to the temporary directory."""
+  try:
+    for att_path in att_paths:
+      # Check that the source file exists.
+      if not os.path.isfile(att_path):
+        raise ValueError('Attachment path `%s` specified in event does not '
+                         'exist' % att_path)
+      target_path = os.path.join(tmp_dir, att_path.replace('/', '_'))
+      logging.debug('Copying attachment: %s --> %s',
+                    att_path, target_path)
+      with open(target_path, 'w') as dst_f:
+        with open(att_path, 'r') as src_f:
+          shutil.copyfileobj(src_f, dst_f)
+        # Fsync the file and the containing directory to make sure it
+        # is flushed to disk.
+        dst_f.flush()
+        os.fdatasync(dst_f)
+    # Fsync the containing directory to make sure all attachments are flushed
+    # to disk.
+    dirfd = os.open(tmp_dir, os.O_DIRECTORY)
+    os.fsync(dirfd)
+    os.close(dirfd)
+    return True
+  except Exception:
+    logging.exception('Exception encountered when copying attachments')
+    return False
+
+
 class BufferFile(log_utils.LoggerMixin):
 
   def __init__(self, args, logger, data_dir):
     """Sets up the plugin."""
     self.args = args
     self.logger = logger
+    self.data_dir = data_dir
 
     self.data_path = os.path.join(
         data_dir, 'data.json')
@@ -234,14 +264,14 @@ class BufferFile(log_utils.LoggerMixin):
     cur_pos = 0
     with open(self.data_path, 'r') as f:
       for line in f:
-        ret = self.ParseRecord(line)
-        if not first_record and ret:
-          self.first_seq = ret[0]
+        seq, _unused_record = self.ParseRecord(line)
+        if not first_record and seq:
+          self.first_seq = seq
           self.start_pos = cur_pos
           first_record = True
         cur_pos += len(line)
-        if ret:
-          self.last_seq = ret[0]
+        if seq:
+          self.last_seq = seq
           self.end_pos = cur_pos
     self.info('Finished recovering metadata; sequence range found: %d to %d',
               self.first_seq, self.last_seq)
@@ -298,65 +328,11 @@ class BufferFile(log_utils.LoggerMixin):
     seq, _, record = data.partition(', ')
     if not seq or not record:
       self.warning('Parsing error for record %s', line.rstrip())
-      return None
+      return None, None
     if checksum != GetChecksum(data):
       self.warning('Checksum error for record %s', line.rstrip())
-      return None
+      return None, None
     return int(seq), record
-
-  def _CopyAttachments(self, cur_seq, event):
-    """Copies attachments of an event to attachments_dir.
-
-    Also updates attachment paths in the provided event.
-
-    Returns:
-      On success, a tuple with two lists:
-        (1) List of source paths provided in original Events
-        (2) List of target paths in attachments_dir
-      Otherwise, False on failure.
-    """
-    source_paths = []
-    target_paths = []
-    fail = False
-    for att_id, att_path in event.attachments.iteritems():
-      # Check that the source file exists.
-      if not os.path.isfile(att_path):
-        self.error('Attachment path `%s` specified in event does not exist'
-                   % att_path)
-        fail = True
-        break
-
-      target_name = '%s_%s' % (cur_seq, att_id)
-      target_path = os.path.join(self.attachments_dir, target_name)
-      event.attachments[att_id] = target_name
-      self.debug('Relocating attachment %s: %s --> %s',
-                 att_id, att_path, target_path)
-      # Note: This could potentially overwrite an existing file that got
-      # written just before Instalog process stopped unexpectedly.
-      try:
-        with open(target_path, 'w') as dst_f:
-          with open(att_path, 'r') as src_f:
-            shutil.copyfileobj(src_f, dst_f)
-          # Fsync the file and the containing directory to make sure it
-          # is flushed to disk.
-          dst_f.flush()
-          os.fdatasync(dst_f)
-          dirfd = os.open(self.attachments_dir, os.O_DIRECTORY)
-          os.fsync(dirfd)
-          os.close(dirfd)
-      except Exception:
-        self.exception('Exception encountered when copying attachment')
-        fail = True
-        break
-      source_paths.append(att_path)
-      target_paths.append(target_path)
-
-    if fail:
-      # One of the attachments failed to copy -- abort.
-      for path in target_paths:
-        os.unlink(path)
-      return False
-    return source_paths, target_paths
 
   def _TruncateAttachments(self):
     """Deletes attachments of events no longer stored within data.json."""
@@ -364,11 +340,12 @@ class BufferFile(log_utils.LoggerMixin):
       fpath = os.path.join(self.attachments_dir, fname)
       if not os.path.isfile(fpath):
         continue
-      seq, _, _ = fname.partition('_')
+      seq, _unused_underscore, _att_id = fname.partition('_')
       if not seq.isdigit():
         continue
-      if int(seq) < self.first_seq:
-        self.debug('Truncating attachment (<seq=%d): %s', self.first_seq, fname)
+      if int(seq) < self.first_seq or int(seq) > self.last_seq:
+        self.debug('Truncating attachment (<seq=%d or >seq=%d): %s',
+                   self.first_seq, self.last_seq, fname)
         os.unlink(fpath)
 
   def ExternalizeEvent(self, event):
@@ -379,87 +356,56 @@ class BufferFile(log_utils.LoggerMixin):
           self.attachments_dir, event.attachments[att_id]))
     return event
 
-  def Produce(self, events):
-    """See BufferPlugin.Produce.
-
-    Note the careful edge cases with attachment files.  We want them *all* to
-    be either moved or copied into the buffer's database, or *none* at all.
-    """
+  def ProduceEvents(self, events):
+    """Moves attachments, serializes events and writes them to the data_path."""
     with self.data_write_lock:
-      delete_on_success = []  # source attachment files
-      delete_on_fail = []  # attachments in attachments_dir
+      # Truncate the size of the file in case of a previously unfinished
+      # transaction.
+      with open(self.data_path, 'a') as f:
+        f.truncate(self.end_pos - self.start_pos)
 
-      try:
-        # Truncate the size of the file in case of a previously unfinished
-        # transaction.
-        with open(self.data_path, 'a') as f:
-          f.truncate(self.end_pos - self.start_pos)
-
-        # Step 1: Relocate attachments.
-        staged_events = []
-        cur_seq = self.last_seq + 1
+      cur_seq = self.last_seq + 1
+      cur_pos = self.end_pos - self.start_pos
+      with open(self.data_path, 'a') as f:
+        # On some machines, the file handle offset isn't set to EOF until
+        # a write occurs.  Thus we must manually seek to the end to ensure
+        # that f.tell() will return useful results.
+        f.seek(0, 2)  # 2 means use EOF as the reference point.
+        assert f.tell() == cur_pos
         for event in events:
-          staged_event = event.Copy()
-          staged_events.append(staged_event)
-          att_ret = self._CopyAttachments(cur_seq, staged_event)
-          if att_ret is False:
-            # One of the attachments failed to copy -- abort.
-            for path in delete_on_fail:
-              os.unlink(path)
-            return False
-          delete_on_success.extend(att_ret[0])
-          delete_on_fail.extend(att_ret[1])
+          for att_id, att_path in event.attachments.iteritems():
+            target_name = '%s_%s' % (cur_seq, att_id)
+            target_path = os.path.join(self.attachments_dir, target_name)
+            event.attachments[att_id] = target_name
+            self.debug('Relocating attachment %s: %s --> %s',
+                       att_id, att_path, target_path)
+            # Note: This could potentially overwrite an existing file that got
+            # written just before Instalog process stopped unexpectedly.
+            os.rename(att_path, target_path)
+
+          self.debug('Writing event with cur_seq=%d, cur_pos=%d',
+                     cur_seq, cur_pos)
+          output = self._FormatRecord(cur_seq, event.Serialize())
+
+          # Store the version for SaveMetadata to use.
+          if cur_pos == 0:
+            self._StoreVersion(output)
+
+          f.write(output)
           cur_seq += 1
+          cur_pos += len(output)
 
-        # Step 2: Write the new events to the file.
-        cur_seq = self.last_seq + 1
-        cur_pos = self.end_pos - self.start_pos
-        with open(self.data_path, 'a') as f:
-          # On some machines, the file handle offset isn't set to EOF until
-          # a write occurs.  Thus we must manually seek to the end to ensure
-          # that f.tell() will return useful results.
-          f.seek(0, 2)  # 2 means use EOF as the reference point.
-          assert f.tell() == cur_pos
-          for staged_event in staged_events:
-            self.debug('Writing event with cur_seq=%d, cur_pos=%d',
-                       cur_seq, cur_pos)
-            output = self._FormatRecord(cur_seq, staged_event.Serialize())
-
-            # Store the version for SaveMetadata to use.
-            if cur_pos == 0:
-              self._StoreVersion(output)
-
-            f.write(output)
-            cur_seq += 1
-            cur_pos += len(output)
-
-          if self.args.enable_fsync:
-            # Fsync the file and the containing directory to make sure it
-            # is flushed to disk.
-            f.flush()
-            os.fdatasync(f)
-            dirfd = os.open(os.path.dirname(self.data_path), os.O_DIRECTORY)
-            os.fsync(dirfd)
-            os.close(dirfd)
-        self.last_seq = cur_seq - 1
-        self.end_pos = self.start_pos + cur_pos
-        self._SaveMetadata()
-
-      except Exception:
-        self.exception('Exception encountered in Produce')
-        for path in delete_on_fail:
-          os.unlink(path)
-        raise
-
-      # Step 3: Remove source attachment files if necessary.
-      try:
-        if not self.args.copy_attachments:
-          for path in delete_on_success:
-            os.unlink(path)
-      except Exception:
-        self.exception('Some of source attachment files could not be '
-                       'deleted; silently ignoring')
-      return True
+        if self.args.enable_fsync:
+          # Fsync the file and the containing directory to make sure it
+          # is flushed to disk.
+          f.flush()
+          os.fdatasync(f)
+          dirfd = os.open(os.path.dirname(self.data_path), os.O_DIRECTORY)
+          os.fsync(dirfd)
+          os.close(dirfd)
+      self.last_seq = cur_seq - 1
+      self.end_pos = self.start_pos + cur_pos
+      self._SaveMetadata()
 
   def _GetFirstUnconsumedRecord(self):
     """Returns the seq and pos of the first unprocessed record.
@@ -692,14 +638,13 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
           cur += size
           if cur > (self.simple_file.end_pos - self.simple_file.start_pos):
             break
-          ret = self.simple_file.ParseRecord(line)
-          if ret is None:
+          seq, record = self.simple_file.ParseRecord(line)
+          if seq is None:
             # Parsing of this line failed for some reason.
             skipped_bytes += size
             continue
           # Only add to total_bytes for a valid line.
           total_bytes += size
-          seq, record = ret
           # Include any skipped bytes from previously skipped records in the
           # "size" of this record, in order to allow the consumer to skip to the
           # proper offset.
