@@ -2,7 +2,56 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Uses HWID v3 to generate, encode, and verify the device's HWID."""
+"""Uses HWID v3 to generate, encode, and verify the device's HWID.
+
+Description
+-----------
+This test generates and verifies HWID of device under testing.
+
+Test Procedure
+--------------
+This test does not require operator interaction.
+When ``generate`` is ``True``, this test will do the following:
+
+1. If ``enable_factory_server`` is ``True``, it downloads latest HWID database
+   from Google Factory Server.
+2. Probe components on the device, which is equivalent to executing ``gooftool
+   probe --include_vpd`` in shell.
+3. Get device data from ``device_data`` module.
+4. Generate HWID by command ``hwid generate --probed-results-file
+   <probed-results> --device-info-file <device-info> --json-output``.
+5. Verify generated HWID by ``hwid verify --probed-results-file <probed-results>
+   --phase <phase>``.
+6. Write HWID to GBB by ``hwid write <generated-hwid>``.
+
+If ``generate`` is ``False``, then instead of running ``hwid generate`` in step
+4, it will just use ``hwid read`` to read saved HWID from the device.  And step
+6 will be skipped.
+
+Dependency
+----------
+It requires ``yaml`` python module.
+
+Examples
+--------
+To generate and verify HWID, add this to your test list::
+
+  {
+    "pytest_name": "hwid_v3",
+    "label": "Write HWID",
+  }
+
+If you are doing RMA, to allow ``deprecated`` components, you need to enable RMA
+mode::
+
+  {
+    "pytest_name": "hwid_v3",
+    "label": "Write HWID",
+    "args": {
+      "rma_mode": True
+    }
+  }
+"""
 
 import json
 import logging
@@ -14,7 +63,6 @@ from cros.factory.device import device_utils
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.test import device_data
-from cros.factory.test.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
@@ -23,6 +71,7 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
 from cros.factory.test.utils import update_utils
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 
@@ -84,12 +133,19 @@ class HWIDV3Test(unittest.TestCase):
                                               'probed_results_file')
     if os.path.exists(OVERRIDE_PROBED_RESULTS_PATH):
       self._dut.SendFile(OVERRIDE_PROBED_RESULTS_PATH, probed_results_file)
-      Log('probe', probe_results=yaml.load(open(OVERRIDE_PROBED_RESULTS_PATH)))
+      probed_results = file_utils.ReadFile(OVERRIDE_PROBED_RESULTS_PATH)
+      testlog.LogParam(
+          name='probed_results',
+          value=probed_results,
+          description='gooftool probe result (overriden)')
     else:
       probed_results = self.factory_tools.CallOutput(
           ['gooftool', 'probe', '--include_vpd'])
       self._dut.WriteFile(probed_results_file, probed_results)
-      Log('probe', probe_results=probed_results)
+      testlog.LogParam(
+          name='probed_results',
+          value=probed_results,
+          description='gooftool probe result')
 
     # check if we are overriding the project name.
     if os.path.exists(OVERRIDE_PROJECT_PATH):
@@ -128,14 +184,15 @@ class HWIDV3Test(unittest.TestCase):
 
       # try to decode HWID
       decode_cmd = ['hwid', 'decode'] + project_arg + [encoded_string]
-      output = self.factory_tools.CallOutput(decode_cmd)
-      self.assertIsNotNone(output, 'HWID decode failed.')
-      decoded_hwid = yaml.load(output)
+      decoded_hwid = self.factory_tools.CallOutput(decode_cmd)
+      self.assertIsNotNone(decoded_hwid, 'HWID decode failed.')
 
       logging.info('HWDB checksum: %s', hwid['hwdb_checksum'])
-      Log('hwid', hwid=encoded_string,
-          hwdb_checksum=hwid['hwdb_checksum'],
-          components=decoded_hwid)
+
+      testlog.LogParam(name='generated_hwid', value=encoded_string)
+      testlog.LogParam(name='hwdb_checksum', value=hwid['hwdb_checksum'])
+      testlog.LogParam(name='decoded_hwid', value=decoded_hwid)
+
       device_data.UpdateDeviceData({'hwid': encoded_string})
     else:
       encoded_string = self.factory_tools.CheckOutput(['hwid', 'read']).strip()
@@ -156,7 +213,7 @@ class HWIDV3Test(unittest.TestCase):
 
     output = self.factory_tools.CheckOutput(verify_cmd)
     self.assertTrue('Verification passed.' in output)
-    Log('hwid_verified', hwid=encoded_string)
+    testlog.LogParam(name='verified_hwid', value=encoded_string)
 
     if self.args.generate:
       self.template.SetState(
