@@ -910,10 +910,6 @@ class Goofy(GoofyBase):
                         self.options.test_list)
       startup_errors.append(e.message)
 
-    # We may have failed loading the active test list.
-    if self.test_list:
-      self.test_list.state_instance = self.state_instance
-
     # Show all startup errors.
     if startup_errors:
       self._RecordStartError('\n\n'.join(startup_errors))
@@ -1052,8 +1048,9 @@ class Goofy(GoofyBase):
       # Create an empty test list with default options so that the rest of
       # startup can proceed.
       # A message box will pop up in UI for the error details.
-      self.test_list = manager.LegacyTestList(test_object.FactoryTestList(
-          [], self.state_instance, test_list_module.Options()))
+      self.test_list = manager.DummyTestList(self.test_list_manager)
+
+    self.test_list.state_instance = self.state_instance
 
     self.init_hooks()
 

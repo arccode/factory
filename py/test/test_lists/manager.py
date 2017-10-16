@@ -1013,3 +1013,18 @@ def BuildTestListForUnittest(test_list_config, manager=None):
   config = TestListConfig(config, test_list_id='test')
   test_list = TestList(config, manager.checker, manager.loader)
   return test_list
+
+
+def DummyTestList(manager):
+  config = Loader().Load('base', False).ToDict()
+  config = config_utils.OverrideConfig(
+      {
+          'label': 'Dummy',
+          'tests': []
+      },
+      config)
+  config = config_utils.ResolvedConfig(config)
+  return TestList(
+      TestListConfig(config, test_list_id='dummy'),
+      manager.checker,
+      manager.loader)
