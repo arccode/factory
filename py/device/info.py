@@ -278,22 +278,6 @@ class SystemInfo(types.DeviceComponent):
     return bool(vdat_flags & self._VBSD_HONOR_VIRT_DEV_SWITCH)
 
   @InfoProperty
-  def virtual_dev_mode_on(self):
-    """Returns true if the virtual dev mode is on."""
-
-    # We use tpm_nvread to read the virtual dev mode flag stored in TPM.
-    # An example output of tpm_nvread looks like:
-    #
-    # 00000000  02 03 01 00 01 00 00 00 00 7a
-    #
-    # Where the second field is the version and the third field is flag we
-    # need.
-    nvdata = self._device.CheckOutput(
-        ['tpm_nvread', '-i', '%d' % self._FIRMWARE_NV_INDEX])
-    flag = int(nvdata.split()[2], 16)
-    return bool(flag & self._FLAG_VIRTUAL_DEV_MODE_ON)
-
-  @InfoProperty
   def pci_device_number(self):
     """Returns number of PCI devices."""
     res = self._device.CheckOutput(['busybox', 'lspci'])
