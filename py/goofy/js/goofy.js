@@ -1266,17 +1266,11 @@ cros.factory.Goofy = class {
    * @return {!cros.factory.Invocation} the invocation.
    */
   createInvocation(path, invocationUuid) {
-    // TODO(pihsun): Remove this check when test_ui.py doesn't call
-    // init_test_ui.
-    if (!this.invocations.has(invocationUuid)) {
-      cros.factory.logger.info(
-          `Creating UI for test ${path} (invocation ${invocationUuid})`);
-      this.invocations.set(
-          invocationUuid,
-          new cros.factory.Invocation(this, path, invocationUuid));
-    }
-
-    return this.invocations.get(invocationUuid);
+    cros.factory.logger.info(
+        `Creating UI for test ${path} (invocation ${invocationUuid})`);
+    const invocation = new cros.factory.Invocation(this, path, invocationUuid);
+    this.invocations.set(invocationUuid, invocation);
+    return invocation;
   }
 
   /**
@@ -3044,25 +3038,14 @@ cros.factory.Goofy = class {
          */ (untypedMessage);
         const invocation = this.invocations.get(message.invocation);
         if (invocation) {
-          if (message.id) {
-            const element =
-                invocation.iframe.contentDocument.getElementById(message.id);
-            if (element) {
-              if (!message.append) {
-                element.innerHTML = '';
-              }
+          const document = invocation.iframe.contentDocument;
+          const element =
+              message.id ? document.getElementById(message.id) : document.body;
+          if (element) {
+            if (message.append) {
               element.innerHTML += message.html;
-            }
-          } else {
-            const body = invocation.iframe.contentDocument.body;
-            if (body) {
-              if (!message.append) {
-                body.innerHTML = '';
-              }
-              body.innerHTML += message.html;
             } else {
-              this.logToConsole(
-                  'Test UI not initialized.', 'goofy-internal-error');
+              element.innerHTML = message.html;
             }
           }
         }

@@ -275,6 +275,8 @@ function init() {
   navigator.webkitGetUserMedia({audio: true}, gotStream, onErr);
 }
 
+document.addEventListener('load', init);
+
 /**
  * Handles the event when a media stream is acquired by
  * navigator.webkitGetUserMedia().

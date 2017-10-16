@@ -103,38 +103,14 @@ class UI(object):
           autoload_path)
       return file_utils.ReadFile(autoload_path).decode('UTF-8')
 
-    class AddGoofyHeaderTransformer(html_translator.BaseHTMLTransformer):
-      def __init__(self, test):
-        super(AddGoofyHeaderTransformer, self).__init__()
-        self.test = test
-        self.goofy_header = (
-            '<base href="/tests/%s/">\n'
-            '<link rel="stylesheet" type="text/css" href="/css/goofy.css">\n'
-            '<link rel="stylesheet" type="text/css" href="/css/i18n.css">\n'
-            '<link rel="stylesheet" type="text/css" href="/css/test.css">\n' % (
-                self.test))
-        self.head_seen = False
+    self.SetHTML(
+        html='<base href="/tests/%s/">' % self.test, id='head', append=True)
 
-      def handle_starttag(self, tag, attrs):
-        if tag == 'head':
-          attrs = self._AddKeyValueToAttrs(attrs, 'id', 'head')
-          self.head_seen = True
-        elif tag == 'body' and not self.head_seen:
-          self._EmitOutput('<head id="head">%s</head>' % self.goofy_header)
-          self.head_seen = True
-        super(AddGoofyHeaderTransformer, self).handle_starttag(tag, attrs)
-        if tag == 'head':
-          self._EmitOutput(self.goofy_header)
-
-    html = GetAutoload('html', '<html><body></body></html>')
-    html = AddGoofyHeaderTransformer(self.test).Run(html)
+    html = GetAutoload('html', '')
     html = html_translator.TranslateHTML(html)
-    # We need to call INIT_TEST_UI instead of SET_HTML, even if the UI is
-    # already initialized by goofy.py, since SET_HTML only sets the body of
-    # html, and would cause the css set here be overriden by template files.
-    # TODO(pihsun): Fix the SET_HTML method so we can use SET_HTML here.
-    self.PostEvent(
-        test_event.Event(test_event.Event.Type.INIT_TEST_UI, html=html))
+    # default CSS files are set in default_test_ui.html by goofy.py, and we
+    # only set the HTML of body here.
+    self.SetHTML(html)
 
     js = GetAutoload('js')
     if js:
