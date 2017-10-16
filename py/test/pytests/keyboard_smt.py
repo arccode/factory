@@ -15,7 +15,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
 from cros.factory.test import countdown_timer
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
@@ -114,7 +114,7 @@ class KeyboardSMTTest(unittest.TestCase):
     """
     if event.type == evdev.ecodes.EV_KEY and event.value == 0:
       if self.args.debug:
-        factory.console.info('keycode: %s', event.code)
+        session.console.info('keycode: %s', event.code)
       self.ui.CallJSFunction('markKeyup', event.code)
 
   def runTest(self):

@@ -10,7 +10,7 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.i18n import _
 from cros.factory.test.utils import serial_utils
 
@@ -81,10 +81,10 @@ class FixutreNativeUSB(serial_utils.SerialDevice):
     try:
       self.Connect(port=port, timeout=self.timeout)
       msg = 'Connect to native USB port "%s" for monitoring internal state.'
-      factory.console.info(msg, port)
+      session.console.info(msg, port)
     except Exception:
       msg = 'FixtureNativeUSB: failed to connect to native usb port: %s'
-      factory.console.warn(msg, port)
+      session.console.warn(msg, port)
 
   def _CheckReconnection(self):
     """Reconnect the native usb port if it has been refreshed."""
@@ -93,7 +93,7 @@ class FixutreNativeUSB(serial_utils.SerialDevice):
       self.Disconnect()
       self._Connect(curr_port)
       self.port = curr_port
-      factory.console.info('Reconnect to new port: %s', curr_port)
+      session.console.info('Reconnect to new port: %s', curr_port)
 
   def GetState(self):
     """Get the fixture state from the native usb port.
@@ -176,12 +176,12 @@ class FakeFixture(BaseFixture):
 
   def DriveProbeDown(self):
     """Drives the probe to the 'down' position."""
-    factory.console.info('Drive Probe Down....')
+    session.console.info('Drive Probe Down....')
     self.ui.Alert(_('Pull the lever down.'))
 
   def DriveProbeUp(self):
     """Drives the probe to the 'up' position."""
-    factory.console.info('Drive Probe Up....')
+    session.console.info('Drive Probe Up....')
     self.ui.Alert(_('Pull the lever up.'))
     self.final_calibration_lock.wait(self.TIMEOUT)
     self.ui.PostEvent(event.Event(event.Event.Type.TEST_UI_EVENT,
@@ -203,8 +203,8 @@ class FixtureSerialDevice(BaseFixture):
       port = serial_utils.FindTtyByDriver(driver, interface_protocol)
       self.Connect(port=port, timeout=timeout)
       msg = 'Connect to programming port "%s" for issuing commands.'
-      factory.console.info(msg, port)
-      factory.console.info('Wait up to %d seconds for arduino initialization.',
+      session.console.info(msg, port)
+      session.console.info('Wait up to %d seconds for arduino initialization.',
                            timeout)
     except Exception:
       raise FixtureException('Failed to connect the test fixture.')
@@ -239,9 +239,9 @@ class FixtureSerialDevice(BaseFixture):
     while True:
       result, state = self._AssertState(expected_states)
       if result is True:
-        factory.console.info('state: %s (expected)', state)
+        session.console.info('state: %s (expected)', state)
         return
-      factory.console.info('state: %s (transient, probe still moving)', state)
+      session.console.info('state: %s (transient, probe still moving)', state)
       time.sleep(1)
       timeout -= 1
       if timeout == 0:
@@ -271,7 +271,7 @@ class FixtureSerialDevice(BaseFixture):
     """Drives the probe to the 'down' position."""
     try:
       response = self.SendReceive(COMMAND.DOWN)
-      factory.console.info('Send COMMAND.DOWN(%s). Receive state(%s).',
+      session.console.info('Send COMMAND.DOWN(%s). Receive state(%s).',
                            COMMAND.DOWN, response)
     except Exception:
       raise FixtureException('DriveProbeDown failed.')
@@ -282,7 +282,7 @@ class FixtureSerialDevice(BaseFixture):
     """Drives the probe to the 'up' position."""
     try:
       response = self.SendReceive(COMMAND.UP)
-      factory.console.info('Send COMMAND.UP(%s). Receive state(%s).',
+      session.console.info('Send COMMAND.UP(%s). Receive state(%s).',
                            COMMAND.UP, response)
     except Exception:
       raise FixtureException('DriveProbeUp failed.')

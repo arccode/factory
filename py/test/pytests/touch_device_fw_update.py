@@ -13,7 +13,7 @@ import os
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
@@ -30,7 +30,7 @@ class UpdateTouchDeviceFWTest(unittest.TestCase):
   ]
 
   def run_updater_command(self, command):
-    factory.console.info('Running: %s', command)
+    session.console.info('Running: %s', command)
     updater = process_utils.Spawn(command,
                                   log=True, read_stdout=True, shell=True)
     updater.wait()

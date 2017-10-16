@@ -25,7 +25,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -132,7 +132,7 @@ def IwSetAntenna(devname, phyname, tx_bitmap, rx_bitmap, max_retries=10,
     # Do ifconfig down again may solve this problem.
     elif retcode == 161:
       try_count += 1
-      factory.console.info('Retry...')
+      session.console.info('Retry...')
       IfconfigDown(devname)
     else:
       raise IwException('Failed to set antenna. ret code: %d. stderr: %s' %
@@ -277,13 +277,13 @@ class WirelessTest(unittest.TestCase):
     for service in services:
       strength = service_strengths[service]
       if strength:
-        factory.console.info('Service %s signal strength %f.', service,
+        session.console.info('Service %s signal strength %f.', service,
                              strength)
         event_log.Log('service_signal', service=service, strength=strength)
         if strength > max_strength:
           max_strength_service, max_strength = service, strength
       else:
-        factory.console.info('Service %s has no valid signal strength.',
+        session.console.info('Service %s has no valid signal strength.',
                              service)
 
     if max_strength_service:
@@ -345,13 +345,13 @@ class WirelessTest(unittest.TestCase):
     if len(parsed_tuples) == 1:
       return parsed_tuples[0]
     elif len(parsed_tuples) == 0:
-      factory.console.warning('Can not scan service %s.', service_ssid)
+      session.console.warning('Can not scan service %s.', service_ssid)
       return (None, None, None, None)
     else:
-      factory.console.warning('There are more than one results for ssid %s.',
+      session.console.warning('There are more than one results for ssid %s.',
                               service_ssid)
       for mac, freq, signal, last_seen in parsed_tuples:
-        factory.console.warning(
+        session.console.warning(
             'mac: %s, ssid: %s, freq: %d, signal %f, '
             'last_seen %d ms', mac, service_ssid, freq, signal, last_seen)
       return (None, None, None, None)
@@ -426,7 +426,7 @@ class WirelessTest(unittest.TestCase):
             # iw returns the scan results of other frequencies as well.
             if freq_scanned != freq:
               continue
-            factory.console.info(
+            session.console.info(
                 'scan : %s %s %d %f %d ms.', service_ssid, mac, freq_scanned,
                 strength, last_seen)
             scan_results[service].append(strength)
@@ -446,12 +446,12 @@ class WirelessTest(unittest.TestCase):
       services: A list of (service_ssid, freq) tuples to scan.
       antenna: The antenna config to scan.
     """
-    factory.console.info('Testing antenna %s.', antenna)
+    session.console.info('Testing antenna %s.', antenna)
     self._template.SetState(_MSG_SWITCHING_ANTENNA(antenna))
     self.SwitchAntenna(antenna)
     self._antenna_service_strength[antenna] = self.ScanAndAverageSignals(
         services, times=self.args.scan_count)
-    factory.console.info(
+    session.console.info(
         'Average scan result: %s.', self._antenna_service_strength[antenna])
 
   def CheckSpec(self, service, spec_antenna_strength, antenna):
@@ -462,7 +462,7 @@ class WirelessTest(unittest.TestCase):
       spec_antenna_strength: A dict of minimal signal strengths.
       antenna: The antenna config to check.
     """
-    factory.console.info('Checking antenna %s spec', antenna)
+    session.console.info('Checking antenna %s spec', antenna)
     scanned_service_strength = self._antenna_service_strength[antenna]
     scanned_strength = scanned_service_strength[service]
     spec_strength = spec_antenna_strength[antenna]
@@ -479,7 +479,7 @@ class WirelessTest(unittest.TestCase):
           'Antenna %s, service: %s: The scanned strength %f < spec strength'
           ' %f' % (antenna, service, scanned_strength, spec_strength))
     else:
-      factory.console.info(
+      session.console.info(
           'Antenna %s, service: %s: The scanned strength %f > spec strength'
           ' %f', antenna, service, scanned_strength, spec_strength)
 

@@ -9,7 +9,7 @@ import re
 import subprocess
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.rf.modem import Modem
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
@@ -56,16 +56,16 @@ def SwitchModemFirmware(target):
     the firmware version before switching.
   """
   firmware_info = GetModemFirmware()
-  factory.console.info('Firmware version = %r', firmware_info)
+  session.console.info('Firmware version = %r', firmware_info)
   try:
     if firmware_info != target:
-      factory.console.info('Switching firmware to %r', target)
+      session.console.info('Switching firmware to %r', target)
       stdout = process_utils.Spawn(
           ['modem', 'set-carrier', target], read_stdout=True,
           log_stderr_on_error=True, check_call=True).stdout_data
       logging.info('Output when switching to %r =\n%s', target, stdout)
   except subprocess.CalledProcessError:
-    factory.console.info('%r switching failed.', target)
+    session.console.info('%r switching failed.', target)
     raise
   return firmware_info
 
@@ -82,11 +82,11 @@ def EnterFactoryMode(modem_path):
   Raises:
     subprocess.CalledProcessError: if switching fails.
   """
-  factory.console.info('Entering factory test mode(FTM)')
+  session.console.info('Entering factory test mode(FTM)')
   modem = Modem(modem_path)
   modem.SendCommand(ENABLE_FACTORY_TEST_MODE_COMMAND)
   modem.ExpectLine('OK')
-  factory.console.info('Entered factory test mode')
+  session.console.info('Entered factory test mode')
   return modem
 
 
@@ -96,6 +96,6 @@ def ExitFactoryMode(modem):
   Args:
     modem_path: path to the modem.
   """
-  factory.console.info('Exiting factory test mode(FTM)')
+  session.console.info('Exiting factory test mode(FTM)')
   modem.SendCommand(DISABLE_FACTORY_TEST_MODE_COMMAND)
-  factory.console.info('Exited factory test mode')
+  session.console.info('Exited factory test mode')

@@ -433,7 +433,7 @@ class Goofy(GoofyBase):
         if not test.never_fails:
           # For "never_fails" tests (such as "Start"), don't cancel
           # pending tests, since reboot is expected.
-          factory.console.info('Unexpected shutdown while test %s '
+          session.console.info('Unexpected shutdown while test %s '
                                'running; cancelling any pending tests',
                                test.path)
           # cancel pending tests by replace the iterator with an empty one
@@ -533,7 +533,7 @@ class Goofy(GoofyBase):
         if self.state_instance.get_shared_data('engineering_mode',
                                                optional=True):
           # In engineering mode, we'll let it go.
-          factory.console.warn('In engineering mode; running '
+          session.console.warn('In engineering mode; running '
                                '%s even though required tests '
                                '[%s] have not completed',
                                test.path, untested_paths)
@@ -541,7 +541,7 @@ class Goofy(GoofyBase):
           # Not in engineering mode; mark it failed.
           error_msg = ('Required tests [%s] have not been run yet'
                        % untested_paths)
-          factory.console.error('Not running %s: %s',
+          session.console.error('Not running %s: %s',
                                 test.path, error_msg)
           test.UpdateState(status=TestState.FAILED,
                            error_msg=error_msg)
@@ -614,7 +614,7 @@ class Goofy(GoofyBase):
       logging.critical(
           'Goofy should not get a non-leaf test that is not parallel: %r',
           test)
-      factory.console.critical(
+      session.console.critical(
           'Goofy should not get a non-leaf test that is not parallel: %r',
           test)
 
@@ -710,7 +710,7 @@ class Goofy(GoofyBase):
             new_state.retries_left < 0 and
             new_state.status == TestState.FAILED):
           # Clean all the tests to cause goofy to stop.
-          factory.console.info('Stop on failure triggered. Empty the queue.')
+          session.console.info('Stop on failure triggered. Empty the queue.')
           self.cancel_pending_tests()
 
         if new_state.iterations_left and new_state.status == TestState.PASSED:
@@ -741,9 +741,9 @@ class Goofy(GoofyBase):
       if root and not test.HasAncestor(root):
         continue
 
-      factory.console.info('Killing active test %s...', test.path)
+      session.console.info('Killing active test %s...', test.path)
       invoc.abort_and_join(reason)
-      factory.console.info('Killed %s', test.path)
+      session.console.info('Killed %s', test.path)
       test.UpdateState(**invoc.update_state_on_completion)
       del self.invocations[test]
 

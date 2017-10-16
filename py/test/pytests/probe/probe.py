@@ -100,7 +100,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -173,7 +173,7 @@ class ProbeTest(unittest.TestCase):
 
     # Execute Probe.
     cmd = ['probe', '-v', 'probe', '--config-file', self.config_file_path]
-    factory.console.info('Call the command: %s', ' '.join(cmd))
+    session.console.info('Call the command: %s', ' '.join(cmd))
     probed_results = json.loads(self.factory_tools.CheckOutput(cmd))
 
     # Generate the rules of each category.
@@ -203,7 +203,7 @@ class ProbeTest(unittest.TestCase):
       summary_str = '<br>'.join(summary) if summary else 'No component found.'
       rule_str = 'count (%s) %s %s' % (count, op_str, value)
       status_str = 'passed' if status else 'failed'
-      factory.console.info('Category "%s" %s %s, %s.',
+      session.console.info('Category "%s" %s %s, %s.',
                            category, summary_str, rule_str, status_str)
       table_html.SetContent(row_idx, 0, category)
       table_html.SetContent(row_idx, 1, summary_str)

@@ -17,7 +17,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
 from cros.factory.test import countdown_timer
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.l10n import regions
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -201,7 +201,7 @@ class KeyboardTest(unittest.TestCase):
         self.MarkKeyup(event.code)
       elif self.args.detect_long_press and event.value == 2:
         fail_msg = 'Got events on keycode %d pressed too long.' % event.code
-        factory.console.error(fail_msg)
+        session.console.error(fail_msg)
         self.ui.CallJSFunction('failTest', fail_msg)
 
   def MarkKeydown(self, keycode):
@@ -213,7 +213,7 @@ class KeyboardTest(unittest.TestCase):
     if not self.args.allow_multi_keys and len(self.key_down):
       fail_msg = ('Got key down event on keycode %d but there are other keys '
                   'pressed: %s' % (keycode, self.key_down))
-      factory.console.error(fail_msg)
+      session.console.error(fail_msg)
       self.ui.CallJSFunction('failTest', fail_msg)
     self.ui.CallJSFunction('markKeydown', keycode)
     self.key_down.add(keycode)
@@ -225,7 +225,7 @@ class KeyboardTest(unittest.TestCase):
     if keycode not in self.key_down:
       fail_msg = ('Got key up event for keycode %d '
                   'but did not get key down event' % keycode)
-      factory.console.error(fail_msg)
+      session.console.error(fail_msg)
       self.ui.CallJSFunction('failTest', fail_msg)
     else:
       self.key_down.remove(keycode)

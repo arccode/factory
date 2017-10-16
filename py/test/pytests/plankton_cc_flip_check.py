@@ -86,7 +86,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import countdown_timer
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
@@ -177,7 +177,7 @@ class PlanktonCCFlipCheck(unittest.TestCase):
     """
     if not self._dut.IsReady():
       self._ui.SetHTML(_WAIT_CONNECTION, id=_ID_OPERATION_DIV)
-      factory.console.info(
+      session.console.info(
           'Lose connection to DUT, waiting for DUT to reconnect')
       sync_utils.WaitFor(lambda: self._dut.Call(['true']) == 0,
                          self.args.wait_dut_reconnect_secs,
@@ -279,7 +279,7 @@ class PlanktonCCFlipCheck(unittest.TestCase):
             disable_event=disable_event)
 
       def do_flip():
-        factory.console.info('Double CC test, doing CC flip...')
+        session.console.info('Double CC test, doing CC flip...')
         #TODO(yllin): Remove this if solve the plankton firmware issue
         def charge_check_flip():
           self._bft_fixture.SetDeviceEngaged('CHARGE_5V', True)

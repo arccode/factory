@@ -274,25 +274,25 @@ class Finalize(unittest.TestCase):
     if self.dut.link.IsLocal() and self.args.use_local_gooftool:
       (out, unused_err, returncode) = gooftools.run(command)
       # since STDERR is logged, we only need to log STDOUT
-      factory.console.info('========= STDOUT ========')
-      factory.console.info(out)
+      session.console.info('========= STDOUT ========')
+      session.console.info(out)
     else:
-      factory.console.info('call factory.par: %s', command)
-      factory.console.info('=== STDOUT and STDERR ===')
+      session.console.info('call factory.par: %s', command)
+      session.console.info('=== STDOUT and STDERR ===')
       # append STDOUT and STDERR to console log.
       console_log_path = paths.CONSOLE_LOG_PATH
       file_utils.TryMakeDirs(os.path.dirname(console_log_path))
       with open(console_log_path, 'a') as output:
         returncode = self.factory_par.Call(command, stdout=output,
                                            stderr=subprocess.STDOUT)
-    factory.console.info('=========================')
-    factory.console.info('return code: %d', returncode)
+    session.console.info('=========================')
+    session.console.info('return code: %d', returncode)
     return returncode == 0
 
   def Warn(self, message, times=3):
     """Alerts user that a required test is bypassed."""
     for i in range(times, 0, -1):
-      factory.console.warn(
+      session.console.warn(
           '%s. '
           'THIS DEVICE CANNOT BE QUALIFIED. '
           '(will continue in %d seconds)', message, i)
@@ -416,7 +416,7 @@ class Finalize(unittest.TestCase):
     if not self._CallGoofTool(command):
       raise factory.FactoryTestFailure('finalize command failed')
 
-    factory.console.info('wait DUT to finish wiping')
+    session.console.info('wait DUT to finish wiping')
 
     if not dut_finished.wait(self.FINALIZE_TIMEOUT):
       raise factory.FactoryTestFailure(

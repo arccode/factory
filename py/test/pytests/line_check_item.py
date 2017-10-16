@@ -66,7 +66,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test import i18n
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
@@ -151,14 +151,14 @@ class LineCheckItemTest(unittest.TestCase):
                   stdout=stdout, stderr=stderr)
 
     if retcode:
-      factory.console.info('%s: Exit code %d\nstdout: %s\nstderr: %s',
+      session.console.info('%s: Exit code %d\nstdout: %s\nstderr: %s',
                            command, retcode, stdout, stderr)
       self._ui.Fail('%s: Exit code %d\nstdout: %s\nstderr: %s' %
                     (command, retcode, stdout, stderr))
     else:
-      factory.console.info('%s: stdout: %s\n', command, stdout)
+      session.console.info('%s: stdout: %s\n', command, stdout)
       if stderr:
-        factory.console.info('stderr: %s', stderr)
+        session.console.info('stderr: %s', stderr)
       if not self.NeedToJudgeSubTest():
         self.PassSubTest()
 

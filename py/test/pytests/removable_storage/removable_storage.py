@@ -89,7 +89,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import countdown_timer
 from cros.factory.test.event_log import Log
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
@@ -448,7 +448,7 @@ class RemovableStorageTest(unittest.TestCase):
           for unused_x in range(loop):
             # Select one random block as starting point.
             random_block = random.randint(random_head, random_tail)
-            factory.console.info(
+            session.console.info(
                 'Perform %s read / write test from the %dth block.',
                 'random' if mode == _RW_TEST_MODE_RANDOM else 'sequential',
                 random_block)
@@ -458,12 +458,12 @@ class RemovableStorageTest(unittest.TestCase):
                                        count=block_count,
                                        skip=random_block)
             try:
-              factory.console.info('Reading %d %d-bytes block(s) from %s.',
+              session.console.info('Reading %d %d-bytes block(s) from %s.',
                                    block_count, self.args.block_size, dev_path)
               output = self._dut.CheckOutput(dd_cmd, stderr=subprocess.STDOUT)
               read_time = _GetExecutionTime(output)
             except Exception as e:
-              factory.console.error('Failed to read block %s', e)
+              session.console.error('Failed to read block %s', e)
               ok = False
               break
 
@@ -496,12 +496,12 @@ class RemovableStorageTest(unittest.TestCase):
                                        seek=random_block,
                                        conv='fsync')
             try:
-              factory.console.info('Writing %d %d-bytes block(s) to %s.',
+              session.console.info('Writing %d %d-bytes block(s) to %s.',
                                    block_count, self.args.block_size, dev_path)
               output = self._dut.CheckOutput(dd_cmd, stderr=subprocess.STDOUT)
               write_time = _GetExecutionTime(output)
             except Exception as e:
-              factory.console.error('Failed to write block %s', e)
+              session.console.error('Failed to write block %s', e)
               ok = False
               break
 
@@ -515,7 +515,7 @@ class RemovableStorageTest(unittest.TestCase):
               self._dut.CheckCall(
                   ' '.join(dd_cmd) + ' | toybox cmp %s -' % write_buf)
             except Exception as e:
-              factory.console.error('Failed to write block %s', e)
+              session.console.error('Failed to write block %s', e)
               ok = False
               break
 
@@ -527,7 +527,7 @@ class RemovableStorageTest(unittest.TestCase):
             try:
               self._dut.CheckCall(dd_cmd)
             except Exception as e:
-              factory.console.error('Failed to write back block %s', e)
+              session.console.error('Failed to write back block %s', e)
               ok = False
               break
 
@@ -537,7 +537,7 @@ class RemovableStorageTest(unittest.TestCase):
       self.AdvanceProgress()
       if ok is False:
         if self.GetDeviceRo(dev_path) is True:
-          factory.console.warn('Is write protection on?')
+          session.console.warn('Is write protection on?')
           self._ui.FailLater(_ERR_DEVICE_READ_ONLY_STR(dev_path))
         test_name = ''
         if mode == _RW_TEST_MODE_RANDOM:

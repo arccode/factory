@@ -31,7 +31,7 @@ from cros.factory.device import device_utils
 from cros.factory.goofy import goofy
 from cros.factory.test.env import paths
 from cros.factory.test import event_log
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import server_proxy
 from cros.factory.test import state
@@ -252,11 +252,11 @@ class AudioQualityTest(unittest.TestCase):
       for key in self._handlers.iterkeys():
         if key.match(instruction):
           match_command = True
-          factory.console.info('match command %s', instruction)
+          session.console.info('match command %s', instruction)
           self._handlers[key](conn, attr_list)
           break
       if not match_command:
-        factory.console.error('Command %s cannot find', instruction)
+        session.console.error('Command %s cannot find', instruction)
         conn.send(instruction + '\x05' + 'Active_End' + '\x05' +
                   'Fail' + '\x04\x03')
 
@@ -310,9 +310,9 @@ class AudioQualityTest(unittest.TestCase):
       self._HandleCommands(conn, command_list)
 
       if self._test_complete:
-        factory.console.info('Test completed')
+        session.console.info('Test completed')
         break
-    factory.console.info('Connection disconnect')
+    session.console.info('Connection disconnect')
     return False
 
   def RestoreConfiguration(self):
@@ -383,7 +383,7 @@ class AudioQualityTest(unittest.TestCase):
         rawstring = md5_file.read()
         self.SendResponse(rawstring.strip(), args)
     except IOError:
-      factory.console.error('No such file or directory: %s', file_path)
+      session.console.error('No such file or directory: %s', file_path)
       self.SendResponse('NO_VERSION', args)
 
   def HandleConfigFile(self, *args):
@@ -402,7 +402,7 @@ class AudioQualityTest(unittest.TestCase):
 
         self.SendResponse(rawdata, args)
     except IOError:
-      factory.console.error('No such file or directory: %s', file_path)
+      session.console.error('No such file or directory: %s', file_path)
       self.SendResponse('NO_CONFIG;0;%s' % binascii.b2a_hex(''), args)
 
   def DecompressZip(self, file_path, target_path):
@@ -437,7 +437,7 @@ class AudioQualityTest(unittest.TestCase):
 
     write_path = os.path.join(paths.DATA_LOG_DIR, 'aux', 'audio', file_name)
     file_utils.TryMakeDirs(os.path.dirname(write_path))
-    factory.console.info('save file: %s', write_path)
+    session.console.info('save file: %s', write_path)
     with open(write_path, 'wb') as f:
       f.write(real_data)
     self._auxlogs.append(write_path)
@@ -463,7 +463,7 @@ class AudioQualityTest(unittest.TestCase):
 
     write_path = os.path.join(paths.DATA_LOG_DIR, 'aux', 'audio', file_name)
     file_utils.TryMakeDirs(os.path.dirname(write_path))
-    factory.console.info('save file: %s', write_path)
+    session.console.info('save file: %s', write_path)
     with open(write_path, 'wb') as f:
       f.write(received_data)
     self._auxlogs.append(write_path)
@@ -605,7 +605,7 @@ class AudioQualityTest(unittest.TestCase):
 
   def HandleLoopJack(self, *args):
     """External mic loop to headphone."""
-    factory.console.info('Audio Loop Mic Jack->Headphone')
+    session.console.info('Audio Loop Mic Jack->Headphone')
     self.RestoreConfiguration()
     if not self._dut.audio.ApplyAudioConfig(_JACK_HP_SCRIPT, 0, True):
       self._dut.audio.EnableExtmic(self._in_card)
@@ -621,7 +621,7 @@ class AudioQualityTest(unittest.TestCase):
 
   def HandleLoopFromDmicToJack(self, *args):
     """LCD mic loop to headphone."""
-    factory.console.info('Audio Loop DMIC->Headphone')
+    session.console.info('Audio Loop DMIC->Headphone')
     self.RestoreConfiguration()
     self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_DMIC_ON)
     if not self._dut.audio.ApplyAudioConfig(_DMIC_JACK_SCRIPT, 0, True):
@@ -632,7 +632,7 @@ class AudioQualityTest(unittest.TestCase):
 
   def HandleLoopFromDmic2ToJack(self, *args):
     """LCD mic loop to headphone."""
-    factory.console.info('Audio Loop DMIC2->Headphone')
+    session.console.info('Audio Loop DMIC2->Headphone')
     self.RestoreConfiguration()
     self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_DMIC_ON)
     if not self._dut.audio.ApplyAudioConfig(_DMIC2_JACK_SCRIPT, 0, True):
@@ -643,7 +643,7 @@ class AudioQualityTest(unittest.TestCase):
 
   def HandleLoopFromJackToSpeaker(self, *args):
     """External mic loop to speaker."""
-    factory.console.info('Audio Loop Mic Jack->Speaker')
+    session.console.info('Audio Loop Mic Jack->Speaker')
     self.RestoreConfiguration()
     self._ui.CallJSFunction('setMessage',
                             _LABEL_AUDIOLOOP + _LABEL_SPEAKER_MUTE_OFF)
@@ -660,7 +660,7 @@ class AudioQualityTest(unittest.TestCase):
 
   def HandleLoopFromKeyboardDmicToJack(self, *args):
     """Keyboard mic loop to headphone."""
-    factory.console.info('Audio Loop MLB DMIC->Headphone')
+    session.console.info('Audio Loop MLB DMIC->Headphone')
     self.RestoreConfiguration()
     self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_MLBDMIC_ON)
     if not self._dut.audio.ApplyAudioConfig(_KDMIC_JACK_SCRIPT, 0, True):
@@ -689,13 +689,13 @@ class AudioQualityTest(unittest.TestCase):
 
   def HandleMuteSpeakerLeft(self, *args):
     """Mute Left Speaker."""
-    factory.console.info('Mute Speaker Left')
+    session.console.info('Mute Speaker Left')
     self._dut.audio.MuteLeftSpeaker(self._out_card)
     self.SendResponse(None, args)
 
   def HandleMuteSpeakerRight(self, *args):
     """Mute Left Speaker."""
-    factory.console.info('Mute Speaker Right')
+    session.console.info('Mute Speaker Right')
     self._dut.audio.MuteRightSpeaker(self._out_card)
     self.SendResponse(None, args)
 
@@ -744,7 +744,7 @@ class AudioQualityTest(unittest.TestCase):
     If the version is mismatch, analysis software can download
     latest parameter and apply it.
     """
-    factory.console.info('Start downloading parameters...')
+    session.console.info('Start downloading parameters...')
     self._ui.CallJSFunction('setMessage', _LABEL_CONNECT_SHOPFLOOR)
     proxy = server_proxy.GetServerProxy()
     logging.info('Syncing time with factory server...')
@@ -756,10 +756,10 @@ class AudioQualityTest(unittest.TestCase):
       logging.info('Listing %s', glob_expression)
       download_list.extend(
           proxy.ListParameters(glob_expression))
-    factory.console.info('Download list prepared:\n%s',
+    session.console.info('Download list prepared:\n%s',
                          '\n'.join(download_list))
     if len(download_list) < len(self._parameters):
-      factory.console.warn('Parameters cannot be found on factory server:\n%s',
+      session.console.warn('Parameters cannot be found on factory server:\n%s',
                            self._parameters)
       return
 
@@ -796,7 +796,7 @@ class AudioQualityTest(unittest.TestCase):
   def UploadAuxlog(self):
     """Uploads files from DUT to factory server."""
     # TODO(chuntsen) Replace this by testlog.
-    factory.console.info('Start uploading logs...')
+    session.console.info('Start uploading logs...')
     self._ui.CallJSFunction('setMessage', _LABEL_UPLOAD_AUXLOG)
     proxy = server_proxy.GetServerProxy()
     for log_file in self._auxlogs:
@@ -815,10 +815,10 @@ class AudioQualityTest(unittest.TestCase):
 
     if self._test_passed:
       self._ui.Pass()
-      factory.console.info('Test passed')
+      session.console.info('Test passed')
     else:
       if self._enable_factory_server:
-        factory.console.info(
+        session.console.info(
             'Test failed. Force to flush event logs...')
         goofy_instance = state.get_instance()
         goofy_instance.FlushEventLogs()

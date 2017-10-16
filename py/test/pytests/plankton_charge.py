@@ -74,6 +74,7 @@ from cros.factory.device.links import adb
 from cros.factory.test import factory
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test import session
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import stress_manager
@@ -282,7 +283,7 @@ class PlanktonChargeBFTTest(unittest.TestCase):
       return True
     except type_utils.TimeoutError:
       ina_voltage = self._bft_fixture.ReadINAValues()['voltage']
-      factory.console.error('Expected voltage: %d mV, got: %d mV',
+      session.console.error('Expected voltage: %d mV, got: %d mV',
                             testing_volt * 1000, ina_voltage)
       return False
 
@@ -484,9 +485,9 @@ class PlanktonChargeBFTTest(unittest.TestCase):
     if self._remote_test:
       # Get remote target battery capacity and warn if almost full
       capacity = self._power.GetChargePct()
-      factory.console.info('Current battery capacity = %d %%', capacity)
+      session.console.info('Current battery capacity = %d %%', capacity)
       if capacity > 95:
-        factory.console.warning('Current battery capacity is almost full. '
+        session.console.warning('Current battery capacity is almost full. '
                                 'It may cause charge failure!!')
     else:
       # Set charge state to 'charge'

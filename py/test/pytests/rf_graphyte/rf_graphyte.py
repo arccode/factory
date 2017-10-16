@@ -181,7 +181,7 @@ class RFGraphyteTest(unittest.TestCase):
            '--log-file', self.log_file_path]
     if self.args.verbose:
       cmd.append('-v')
-    factory.console.info('Call the Graphyte command: %s', ' '.join(cmd))
+    session.console.info('Call the Graphyte command: %s', ' '.join(cmd))
     self.process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
     # Output to UI
@@ -219,11 +219,11 @@ class RFGraphyteTest(unittest.TestCase):
     with open(self.result_file_path) as result_file:
       result_data = result_file.read()
       logging.debug('Graphyte result: %s', result_data)
-      factory.console.info('Graphyte result:\n%s', result_data)
+      session.console.info('Graphyte result:\n%s', result_data)
       failed_results = [result for result in result_data.splitlines()
                         if 'FAIL' in result]
       if failed_results:
-        factory.console.error('Failed result:\n%s', '\n'.join(failed_results))
+        session.console.error('Failed result:\n%s', '\n'.join(failed_results))
 
     # Upload the log by testlog.
     try:
@@ -297,7 +297,7 @@ class RFGraphyteTest(unittest.TestCase):
     config_file_paths = self._server_proxy.ListParameters(
         os.path.join(self.args.server_parameter_dir, '*'))
     for file_path in config_file_paths:
-      factory.console.info('Fetch config file from server: %s', file_path)
+      session.console.info('Fetch config file from server: %s', file_path)
       content = self._server_proxy.GetParameter(file_path).data
       file_name = os.path.basename(file_path)
       with open(os.path.join(LOCAL_CONFIG_DIR, file_name), 'w') as f:

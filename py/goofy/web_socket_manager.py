@@ -17,7 +17,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
 from cros.factory.test.event import ThreadingEventClient
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.utils.web_socket_utils import WebSocketHandshake
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
@@ -179,7 +179,7 @@ class WebSocketManager(object):
     # tail directly in Python.
     def target():
       time.sleep(0.5)
-      factory.console.info('Opened console.')
+      session.console.info('Opened console.')
     thread = threading.Thread(target=target)
     thread.daemon = True
     thread.start()

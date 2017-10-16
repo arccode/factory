@@ -66,7 +66,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.fixture import utils as fixture_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import server_proxy
@@ -149,7 +149,7 @@ class RobotMovement(unittest.TestCase):
         self.args.robot_fixture, self.args.robot_fixture_args)
     self._algorithm = fixture_utils.CreateFixture(
         self.args.algorithm, self.args.algorithm_args)
-    self._algorithm.SetLogger(factory.console)
+    self._algorithm.SetLogger(session.console)
 
     self._ui.AppendCSS(_TEST_CSS)
     self._template = ui_templates.OneSection(self._ui)
@@ -182,7 +182,7 @@ class RobotMovement(unittest.TestCase):
     Intializes robot and move it to the LOAD / UNLOAD position.
     """
     self._template.SetState(_MSG_INIT)
-    factory.console.info('Intializing robot.')
+    session.console.info('Intializing robot.')
     self._robot.Connect()
     self._robot.SetMotor(True)
 
@@ -190,9 +190,9 @@ class RobotMovement(unittest.TestCase):
     """Ask operator to load DUT."""
     self._template.SetState(_MSG_LOAD)
     self._robot.LoadDevice(False)
-    factory.console.info('Wait for operators to press SPACE.')
+    session.console.info('Wait for operators to press SPACE.')
     self.WaitForSpace()
-    factory.console.info('SPACE pressed by operator.')
+    session.console.info('SPACE pressed by operator.')
     self._template.SetState(_MSG_PREPARE_MOVEMENT)
     self._robot.LoadDevice(True)
 
@@ -200,12 +200,12 @@ class RobotMovement(unittest.TestCase):
     """Starts movement process."""
     self._template.SetState(_MSG_MOVING_TO_START_POSITION)
 
-    factory.console.info('Start to move.')
+    session.console.info('Start to move.')
     self._robot.SetLED(True)
     self._algorithm.OnStartMoving(self._dut)
 
     for position in self.args.positions:
-      factory.console.info('Move to position %d.', position)
+      session.console.info('Move to position %d.', position)
       self._robot.MoveTo(position)
       time.sleep(self.args.period_between_movement)
 
@@ -224,13 +224,13 @@ class RobotMovement(unittest.TestCase):
   def Compute(self):
     """Starts computing after the movement."""
     self._template.SetState(_MSG_COMPUTING)
-    factory.console.info('Compute for %s', self._dut.info.serial_number)
+    session.console.info('Compute for %s', self._dut.info.serial_number)
     self._algorithm.Compute(self._dut)
 
   def PushResult(self):
     """Pushes the result to the DUT."""
     self._template.SetState(_MSG_PUSHING_RESULT)
-    factory.console.info('Pushing the result.')
+    session.console.info('Pushing the result.')
 
     self._algorithm.PullResult(self._dut)
 
@@ -239,7 +239,7 @@ class RobotMovement(unittest.TestCase):
     if not serial_number:
       self.fail('Failed to get the device SN')
 
-    factory.console.info('SN: %s', serial_number)
+    session.console.info('SN: %s', serial_number)
     logging.info('SN: %s', serial_number)
     self.Initialize()
     self.LoadDevice()

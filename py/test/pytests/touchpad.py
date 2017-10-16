@@ -52,7 +52,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
 from cros.factory.test import countdown_timer
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
@@ -103,7 +103,7 @@ class TouchpadMonitor(touch_monitor.MultiTouchMonitor):
       self.test.already_alerted = True
       msg = 'number_fingers = %d' % state.num_fingers
       logging.error(msg)
-      factory.console.error(msg)
+      session.console.error(msg)
       self.test.ui.Alert(_(
           "Please don't put your third finger on the touchpad.\n"
           "If you didn't do that,\n"

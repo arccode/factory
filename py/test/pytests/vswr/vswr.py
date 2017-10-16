@@ -255,7 +255,7 @@ class VSWR(unittest.TestCase):
 
     if (not check_pass) and print_on_failure:
       # Highlight the failed freqs in console.
-      factory.console.info(
+      session.console.info(
           '%10s failed at %.0f MHz[%9.3f dB], %9.3f dB '
           'away from threshold[%s, %s]',
           title, freq.MHzi(), float(extracted_value),
@@ -495,7 +495,7 @@ class VSWR(unittest.TestCase):
     for measurement_sequence in self._sn_config['measurement_sequence']:
       # Pick a random letter to prevent the operator from pressing too fast.
       letter = random.choice(string.ascii_uppercase)
-      factory.console.info('Press %s to continue', letter)
+      session.console.info('Press %s to continue', letter)
       # TODO(littlecvr): Should not construct HTML string here.
       html_string = ''
       for port in measurement_sequence:

@@ -21,7 +21,7 @@ import uuid
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import countdown_timer
 from cros.factory.test import event
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_task
 from cros.factory.test import test_ui
@@ -83,7 +83,7 @@ class WaitTrayThread(threading.Thread):
   def Detected(self):
     """Reports detected and stops the thread."""
     logging.info('%s detected', self._tray_event)
-    factory.console.info('%s detected', self._tray_event)
+    session.console.info('%s detected', self._tray_event)
     self._on_success()
 
 
@@ -256,7 +256,7 @@ class ProbeSimCardTrayTest(unittest.TestCase):
     self.CheckPresence()
 
     if self.args.only_check_presence:
-      factory.console.info('Passes the test that only checks presence is %s.',
+      session.console.info('Passes the test that only checks presence is %s.',
                            self.args.tray_already_present)
       return
 

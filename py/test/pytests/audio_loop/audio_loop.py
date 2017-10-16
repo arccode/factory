@@ -127,7 +127,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device.audio import base
 from cros.factory.device import device_utils
 from cros.factory.test import event as test_event
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -364,7 +364,7 @@ class AudioLoopTest(unittest.TestCase):
         'Under output volume %r' % self._output_volumes[
             self._output_volume_index])
     self._test_message.append(error_message)
-    factory.console.error(error_message)
+    session.console.error(error_message)
 
   def _MatchPatternLines(self, in_stream, re_pattern, num_lines=None):
     """Try to match the re pattern in the given number of lines.
@@ -447,7 +447,7 @@ class AudioLoopTest(unittest.TestCase):
       output_channel: output device channel used for testing
     """
 
-    factory.console.info('Test output channel %d', output_channel)
+    session.console.info('Test output channel %d', output_channel)
 
     iteration = self._current_test_args.get(
         'iteration', _DEFAULT_AUDIOFUN_TEST_ITERATION)
@@ -499,7 +499,7 @@ class AudioLoopTest(unittest.TestCase):
   def AudioFunTest(self):
     """Setup speaker and microphone test pairs and run audiofuntest program."""
 
-    factory.console.info('Run audiofuntest from %r to %r',
+    session.console.info('Run audiofuntest from %r to %r',
                          self._alsa_output_device, self._alsa_input_device)
 
     input_channels = self._current_test_args.get(
@@ -535,7 +535,7 @@ class AudioLoopTest(unittest.TestCase):
       sine_wav_path = '/tmp/%d_%d.wav' % (self._freq, channel)
       dut_sine_wav_path = self._dut.path.join(self._dut_temp_dir,
                                               'sine_%d.wav' % channel)
-      factory.console.info('DUT sine wav path %s', dut_sine_wav_path)
+      session.console.info('DUT sine wav path %s', dut_sine_wav_path)
 
       # Generate sine .wav file locally and push it to the DUT.
       # It's hard to estimate the overhead in audio record thing of different
@@ -588,7 +588,7 @@ class AudioLoopTest(unittest.TestCase):
       file_path: The file path to recorded file in host.
       trim: If not None, the number of seconds in the beginning to trim.
     """
-    factory.console.info('RecordFile : %s.', file_path)
+    session.console.info('RecordFile : %s.', file_path)
     record_path = (tempfile.NamedTemporaryFile(delete=False).name if trim
                    else file_path)
     with self._dut.temp.TempFile() as dut_record_path:
@@ -603,7 +603,7 @@ class AudioLoopTest(unittest.TestCase):
 
   def CheckRecordedAudio(self, sox_output):
     rms_value = audio_utils.GetAudioRms(sox_output)
-    factory.console.info('Got audio RMS value: %f.', rms_value)
+    session.console.info('Got audio RMS value: %f.', rms_value)
     rms_threshold = self._current_test_args.get(
         'rms_threshold', _DEFAULT_SOX_RMS_THRESHOLD)
     if rms_threshold[0] is not None and rms_threshold[0] > rms_value:
@@ -616,7 +616,7 @@ class AudioLoopTest(unittest.TestCase):
     amplitude_threshold = self._current_test_args.get(
         'amplitude_threshold', _DEFAULT_SOX_AMPLITUDE_THRESHOLD)
     min_value = audio_utils.GetAudioMinimumAmplitude(sox_output)
-    factory.console.info('Got audio min amplitude: %f.', min_value)
+    session.console.info('Got audio min amplitude: %f.', min_value)
     if (amplitude_threshold[0] is not None and
         amplitude_threshold[0] > min_value):
       self.AppendErrorMessage(
@@ -624,7 +624,7 @@ class AudioLoopTest(unittest.TestCase):
               min_value, amplitude_threshold[0]))
 
     max_value = audio_utils.GetAudioMaximumAmplitude(sox_output)
-    factory.console.info('Got audio max amplitude: %f.', max_value)
+    session.console.info('Got audio max amplitude: %f.', max_value)
     if (amplitude_threshold[1] is not None and
         amplitude_threshold[1] < max_value):
       self.AppendErrorMessage(
@@ -635,19 +635,19 @@ class AudioLoopTest(unittest.TestCase):
       freq = audio_utils.GetRoughFreq(sox_output)
       freq_threshold = self._current_test_args.get(
           'freq_threshold', _DEFAULT_SINEWAV_FREQ_THRESHOLD)
-      factory.console.info('Extected frequency %r +- %d',
+      session.console.info('Extected frequency %r +- %d',
                            self._freq, freq_threshold)
       if freq is None or (abs(freq - self._freq) > freq_threshold):
         self.AppendErrorMessage('Test Fail at frequency %r' % freq)
       else:
-        factory.console.info('Got frequency %d', freq)
+        session.console.info('Got frequency %d', freq)
 
   def MayPassTest(self):
     """Checks if test can pass with result of one output volume.
 
     Returns: True if test passes, False otherwise.
     """
-    factory.console.info('Test results for output volume %r: %r',
+    session.console.info('Test results for output volume %r: %r',
                          self._output_volumes[self._output_volume_index],
                          self._test_results[self._output_volume_index])
     if self._test_results[self._output_volume_index]:
@@ -659,7 +659,7 @@ class AudioLoopTest(unittest.TestCase):
 
   def FailTest(self):
     """Fails test."""
-    factory.console.info('Test results for each output volumes: %r',
+    session.console.info('Test results for each output volumes: %r',
                          zip(self._output_volumes, self._test_results))
     self._ui.Fail('; '.join(self._test_message))
 
@@ -675,24 +675,24 @@ class AudioLoopTest(unittest.TestCase):
       # audiofuntest with HP/MIC jack
       if plug_status is True:
         if any((t['type'] == 'audiofun') for t in self.args.tests_to_conduct):
-          factory.console.info('Audiofuntest does not require dongle.')
+          session.console.info('Audiofuntest does not require dongle.')
           raise ValueError('Audiofuntest does not require dongle.')
         if self.args.require_dongle is False:
-          factory.console.info('Dongle Status is wrong, don\'t need dongle.')
+          session.console.info('Dongle Status is wrong, don\'t need dongle.')
           raise ValueError('Dongle Status is wrong.')
 
       # for require dongle case, we need to check both microphone and headphone
       # are all detected.
       if self.args.require_dongle:
         if (mic_status and headphone_status) is False:
-          factory.console.info('Dongle Status is wrong. mic %s, headphone %s',
+          session.console.info('Dongle Status is wrong. mic %s, headphone %s',
                                mic_status, headphone_status)
           raise ValueError('Dongle Status is wrong.')
 
     if self._mic_jack_type:
       mictype = self._dut.audio.GetMicJackType(self._in_card)
       if mictype != self._mic_jack_type:
-        factory.console.info('Mic Jack Type is wrong. need %s, but %s',
+        session.console.info('Mic Jack Type is wrong. need %s, but %s',
                              self._mic_jack_type,
                              mictype)
         raise ValueError('Mic Jack Type is wrong.')

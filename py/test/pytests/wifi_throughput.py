@@ -130,7 +130,7 @@ class Iperf3Server(object):
     self._process = None
 
   def __enter__(self):
-    factory.console.info('Start iperf3 server at local side')
+    session.console.info('Start iperf3 server at local side')
     net_utils.EnablePort(self._port)
     self._process = subprocess.Popen(
         ['iperf3', '--server', '--port', str(self._port)])
@@ -141,7 +141,7 @@ class Iperf3Server(object):
   def __exit__(self, exc_type, exc_value, exc_tb):
     del exc_type, exc_value, exc_tb
     if self._process:
-      factory.console.info('Stop iperf3 server at local side')
+      session.console.info('Stop iperf3 server at local side')
       self._process.kill()
       self._process.wait()
 
@@ -301,7 +301,7 @@ class _ServiceTest(object):
 
   Provides a "flow" mechanism for tests to be run on each service, with the
   overall control in the self.Run method.  Takes care of utility objects,
-  carrying forward state, and logging to factory console.
+  carrying forward state, and logging to session.console.
 
   Each test should be contained within a method.  If the test passes, it should
   return None or optionally a string containing a success message.  If the test
@@ -340,7 +340,7 @@ class _ServiceTest(object):
 
   def _Log(self, text, *args):
     f_name = sys._getframe(1).f_code.co_name  # pylint: disable=protected-access
-    factory.console.info(u'[%s] INFO [%s] ' + text,
+    session.console.info(u'[%s] INFO [%s] ' + text,
                          self._ap_config.ssid, f_name, *args)
 
   def Run(self, ap_config):
@@ -380,7 +380,7 @@ class _ServiceTest(object):
         'failures': []}
 
     def DoTest(fn, abort=False, **kwargs):
-      """Runs a test and reports its success/failure to the factory console.
+      """Runs a test and reports its success/failure to the session.console.
 
       Args:
         fn: Reference to function to be run.
@@ -395,14 +395,14 @@ class _ServiceTest(object):
         logging.info('running %s(**kwargs=%s)', fn.__name__, kwargs)
         status = fn(**kwargs)
         if status:
-          factory.console.info('[%s] PASS [%s] %s',
+          session.console.info('[%s] PASS [%s] %s',
                                ap_config.ssid, fn.__name__, status)
       except self._TestException as e:
         logging.exception('Failed to run %s(**kwargs=%s)', fn.__name__, kwargs)
         e.message = '[%s] FAIL [%s] %s' % (
             ap_config.ssid, fn.__name__, e.message)
         self._log['failures'].append(e.message)
-        factory.console.error(e.message)
+        session.console.error(e.message)
         if abort:
           raise e
 
@@ -843,7 +843,7 @@ class WiFiThroughput(unittest.TestCase):
     try:
       found_aps = self._wifi.FilterAccessPoints(interface=self.args.interface)
       found_ssids = list(set([ap.ssid for ap in found_aps]))
-      factory.console.info('Found services: %s', ', '.join(found_ssids))
+      session.console.info('Found services: %s', ', '.join(found_ssids))
     except self._wifi.WiFiError:
       error_msg = 'Timed out while searching for WiFi services'
       self.log['failures'].append(error_msg)
@@ -866,13 +866,13 @@ class WiFiThroughput(unittest.TestCase):
                   '`enable_iperf_server` argument is enabled')
       ip, _unused_char, prefix = self.args.iperf_host.partition('/')
       cidr = net_utils.CIDR(ip, int(prefix))
-      factory.console.info('Try to find the host IP in CIDR: %s...', cidr)
+      session.console.info('Try to find the host IP in CIDR: %s...', cidr)
       for interface in net_utils.GetNetworkInterfaces():
         ip = net_utils.GetEthernetIp(interface)
         if ip is None:
           continue
         if net_utils.IP(ip).IsIn(cidr):
-          factory.console.info('Set the iperf host IP: %s', ip)
+          session.console.info('Set the iperf host IP: %s', ip)
           self.args.iperf_host = str(ip)
           break
       else:
@@ -917,13 +917,13 @@ class WiFiThroughput(unittest.TestCase):
 
     # Run our pre-command.
     if self.args.pre_command:
-      factory.console.info('Running pre-command: %s', self.args.pre_command)
+      session.console.info('Running pre-command: %s', self.args.pre_command)
       try:
         output = self._dut.CheckOutput(self.args.pre_command)
       except CalledProcessError as e:
-        factory.console.info('Exit code: %d', e.returncode)
+        session.console.info('Exit code: %d', e.returncode)
       else:
-        factory.console.info('Success. Output: %s', output)
+        session.console.info('Success. Output: %s', output)
 
     # Initialize the log dict, which will later be fed into event log.
     self.log = {
@@ -972,13 +972,13 @@ class WiFiThroughput(unittest.TestCase):
 
     # Run our post-command.
     if self.args.post_command:
-      factory.console.info('Running post-command: %s', self.args.post_command)
+      session.console.info('Running post-command: %s', self.args.post_command)
       try:
         output = self._dut.CheckOutput(self.args.post_command)
       except CalledProcessError as e:
-        factory.console.info('Exit code: %d', e.returncode)
+        session.console.info('Exit code: %d', e.returncode)
       else:
-        factory.console.info('Success. Output: %s', output)
+        session.console.info('Success. Output: %s', output)
 
     # Enable ethernet interfaces if needed.
     if self.args.disable_eth:
@@ -1018,7 +1018,7 @@ class WiFiThroughput(unittest.TestCase):
     # Choose the WLAN interface to use for this test, either from the test
     # arguments, or by choosing the first one listed on the device.
     self._interface = self._SelectInterface()
-    factory.console.info('Selected interface: %s', self._interface)
+    session.console.info('Selected interface: %s', self._interface)
 
     # Run a basic SSID list test (if none found will fail).
     found_ssids = self._RunBasicSSIDList()
@@ -1064,8 +1064,8 @@ class WiFiThroughput(unittest.TestCase):
     if all_failures:
       error_msg = ('Error in connecting and/or running iperf3 '
                    'on one or more services')
-      factory.console.error(error_msg)
-      factory.console.error('Error summary:')
+      session.console.error(error_msg)
+      session.console.error('Error summary:')
       for (ssid, failure) in all_failures:
-        factory.console.error(failure)
+        session.console.error(failure)
       self.fail(error_msg)

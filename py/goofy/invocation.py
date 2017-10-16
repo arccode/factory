@@ -777,7 +777,7 @@ class TestInvocation(object):
       if self.test.waived:
         status = TestState.FAILED_AND_WAIVED
       reason = error_msg.split('\n')[0]
-      factory.console.error('Test %s%s %s: %s', self.test.path,
+      session.console.error('Test %s%s %s: %s', self.test.path,
                             iteration_string, status, reason)
       decrement_retries_left = 1
     elif status == TestState.PASSED:

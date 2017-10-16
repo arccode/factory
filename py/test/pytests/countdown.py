@@ -207,7 +207,7 @@ class CountDownTest(unittest.TestCase):
                     in_grace_period=in_grace_period, warnings=warnings)
       if not in_grace_period:
         for w in warnings:
-          factory.console.warn(w)
+          session.console.warn(w)
 
   def SnapshotStatus(self):
     return self.Status(self._dut.thermal.GetAllTemperatures(),

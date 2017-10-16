@@ -221,7 +221,7 @@ def _ResetAdapter():
   This is because the adapter may be down anytime for some unknown reason.
   """
   cmd = 'hciconfig hci0 reset'
-  factory.console.info('Reset adapter and wait 5 seconds....: %s', cmd)
+  session.console.info('Reset adapter and wait 5 seconds....: %s', cmd)
   process_utils.Spawn(cmd.split(), log=True, check_call=True)
   time.sleep(RESET_ADAPTER_SLEEP_TIME)
 
@@ -445,7 +445,7 @@ class ScanDevicesTask(test_task.TestTask):
 
     logging.info('Found %d candidate device(s) in %s scans.',
                  len(candidate_rssis), self._scan_counts)
-    factory.console.info('Candidate devices scan results: %s',
+    session.console.info('Candidate devices scan results: %s',
                          dict((str(k), [int(r) for r in v])
                               for k, v in candidate_rssis.iteritems()))
 
@@ -483,7 +483,7 @@ class ScanDevicesTask(test_task.TestTask):
       # Test is uninterested in RSSI thresholds
       self.Pass()
     elif self._average_rssi_threshold > max_average_rssi:
-      factory.console.error('The largest average RSSI %f does not meet'
+      session.console.error('The largest average RSSI %f does not meet'
                             ' threshold %f. Please ensure that the test BT '
                             'device is \'visible\' and close to the DUT '
                             'antenna.',
@@ -493,7 +493,7 @@ class ScanDevicesTask(test_task.TestTask):
                     max_average_rssi, str(max_average_rssi_mac),
                     self._average_rssi_threshold))
     else:
-      factory.console.info('The largest average RSSI %f meets threshold %f.',
+      session.console.info('The largest average RSSI %f meets threshold %f.',
                            max_average_rssi, self._average_rssi_threshold)
       self.Pass()
 
@@ -540,7 +540,7 @@ class DetectRSSIofTargetMACTask(test_task.TestTask):
     self._average_rssi_upper_threshold = self._DeriveRSSIThreshold(
         self._test.args.average_rssi_upper_threshold, fid)
     if self.fail_msg:
-      factory.console.error(self.fail_msg)
+      session.console.error(self.fail_msg)
       self.Fail(self.fail_msg)
       return
 
@@ -565,7 +565,7 @@ class DetectRSSIofTargetMACTask(test_task.TestTask):
       self._progress_thread.join()
       for mac, props in devices.iteritems():
         if mac == self._mac_to_scan and 'RSSI' in props:
-          factory.console.info('RSSI of count %d: %.2f', i, props['RSSI'])
+          session.console.info('RSSI of count %d: %.2f', i, props['RSSI'])
           rssis.append(props['RSSI'])
 
     if len(rssis) == 0:
@@ -575,7 +575,7 @@ class DetectRSSIofTargetMACTask(test_task.TestTask):
       average_rssi = float(sum(rssis)) / len(rssis)
       state.set_shared_data(self._input_device_rssi_key, average_rssi)
       logging.info('RSSIs at MAC %s: %s', self._mac_to_scan, rssis)
-      factory.console.info('Average RSSI: %.2f', average_rssi)
+      session.console.info('Average RSSI: %.2f', average_rssi)
 
       fail_msg = ''
       if (self._average_rssi_lower_threshold is not None and
@@ -596,7 +596,7 @@ class DetectRSSIofTargetMACTask(test_task.TestTask):
       _AppendLog(self._test.log_file, data)
 
       if fail_msg:
-        factory.console.error(fail_msg)
+        session.console.error(fail_msg)
         self.Fail(fail_msg)
       else:
         self.Pass()
@@ -692,7 +692,7 @@ class CheckDisconnectionOfPairedDeviceTask(test_task.TestTask):
     else:
       msg = 'Shift-P-A-I-R: not done'
       self.Fail(msg)
-    factory.console.info(msg)
+    session.console.info(msg)
     _AppendLog(self._test.log_file, msg)
 
 
@@ -705,7 +705,7 @@ def _ExecuteFixtureMethod(fixture, operation, post_sleep=0):
                          'ENABLE_MAGNET': 'EnableMagnet',
                          'DISABLE_MAGNET': 'DisableMagnet'}
   fixture_method = getattr(fixture, FIXTURE_METHOD_DICT.get(operation))
-  factory.console.info('Executing fixture method: %s', fixture_method.__name__)
+  session.console.info('Executing fixture method: %s', fixture_method.__name__)
   fixture_method()
   time.sleep(post_sleep)
 
@@ -756,7 +756,7 @@ class ReadBatteryLevelTask(test_task.TestTask):
   def Run(self):
     self._test.template.SetState(self.MSG_DICT.get(self._step))
 
-    factory.console.info('%s via %s ...', self._step, self._test.hci_device)
+    session.console.info('%s via %s ...', self._step, self._test.hci_device)
     try:
       battery_level = int(RetryWithProgress(
           self._test.template, self.MSG_DICT.get(self._step), self._step,
@@ -764,7 +764,7 @@ class ReadBatteryLevelTask(test_task.TestTask):
           bluetooth_utils.GattTool.GetDeviceInfo,
           self._mac, 'battery level', hci_device=self._test.hci_device,
           timeout=self._test.args.read_bluetooth_uuid_timeout_secs))
-      factory.console.info('%s: %d', self._step, battery_level)
+      session.console.info('%s: %d', self._step, battery_level)
     except bluetooth_utils.BluetoothUtilsError as e:
       self.Fail('%s failed to get battery level: %s' % (self._step, e))
       return
@@ -815,8 +815,8 @@ class CheckBatteryLevelTask(test_task.TestTask):
 
     battery_level_1 = state.get_shared_data(READ_BATTERY_STEP_1)
     battery_level_2 = state.get_shared_data(READ_BATTERY_STEP_2)
-    factory.console.info('%s: %s', READ_BATTERY_STEP_1, str(battery_level_1))
-    factory.console.info('%s: %s', READ_BATTERY_STEP_2, str(battery_level_2))
+    session.console.info('%s: %s', READ_BATTERY_STEP_1, str(battery_level_1))
+    session.console.info('%s: %s', READ_BATTERY_STEP_2, str(battery_level_2))
 
     if not battery_level_1 or not battery_level_2:
       fail_msg = 'Battery levels should be read twice. read_1: %s, read_2: %s'
@@ -846,13 +846,13 @@ class ChargeTestTask(test_task.TestTask):
     _ResetAdapter()
     if self._test.args.use_charge_fixture:
       _ExecuteFixtureMethod(self._test.fixture, 'ENABLE_MAGNET')
-    factory.console.info('Begin reading battery level...')
+    session.console.info('Begin reading battery level...')
     value = bluetooth_utils.GattTool.GetDeviceInfo(
         self._mac, 'battery level', hci_device=self._test.hci_device,
         timeout=self._test.args.read_bluetooth_uuid_timeout_secs)
     if self._test.args.use_charge_fixture:
       _ExecuteFixtureMethod(self._test.fixture, 'DISABLE_MAGNET')
-    factory.console.info('%s: %s', step, value)
+    session.console.info('%s: %s', step, value)
     return int(value)
 
   def Run(self):
@@ -902,7 +902,7 @@ class CheckFirmwareRevisionTestTask(test_task.TestTask):
   def Run(self):
     self._test.template.SetState(_MSG_READ_FIRMWARE_REVISION_STRING)
 
-    factory.console.info('Begin reading firmware revision string via %s...',
+    session.console.info('Begin reading firmware revision string via %s...',
                          self._test.hci_device)
     try:
       fw = RetryWithProgress(
@@ -915,9 +915,9 @@ class CheckFirmwareRevisionTestTask(test_task.TestTask):
       self.Fail('Failed to get firmware revision string: %s' % e)
       return
 
-    factory.console.info('Expected firmware: %s',
+    session.console.info('Expected firmware: %s',
                          self._test.args.firmware_revision_string)
-    factory.console.info('Actual firmware: %s', fw)
+    session.console.info('Actual firmware: %s', fw)
     state.set_shared_data(self._test.args.firmware_revision_string_key, fw)
 
     data = 'FW: %s\n' % fw

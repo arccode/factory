@@ -26,7 +26,7 @@ Usage example::
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.rf import modem
 from cros.factory.utils.arg_utils import Arg
 
@@ -58,18 +58,18 @@ class LTEVerifyConfig(unittest.TestCase):
       self.modem = modem_utils.GetModem()
 
   def EnterFactoryMode(self):
-    factory.console.info('LTE: Entering factory test mode')
+    session.console.info('LTE: Entering factory test mode')
     self.modem = modem_utils.EnterFactoryMode(
         attempts=self.args.attempts)
-    factory.console.info('LTE: Entered factory test mode')
+    session.console.info('LTE: Entered factory test mode')
 
   def ExitFactoryMode(self):
-    factory.console.info('LTE: Exiting factory test mode')
+    session.console.info('LTE: Exiting factory test mode')
     if self.modem:
       modem_utils.ExitFactoryMode(self.modem)
-      factory.console.info('LTE: Exited factory test mode')
+      session.console.info('LTE: Exited factory test mode')
     else:
-      factory.console.info('No modem object exists to exit')
+      session.console.info('No modem object exists to exit')
 
   def runTest(self):
     try:

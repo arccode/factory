@@ -76,7 +76,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test import i18n
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
@@ -126,14 +126,14 @@ class VerifyValueTest(unittest.TestCase):
       self._template.SetState(name)
       command = item.command
 
-      factory.console.info('Try to get value from: %s', command)
+      session.console.info('Try to get value from: %s', command)
       logging.info('Get value from: %s', command)
       if isinstance(command, str) and command.startswith('dut.'):
         value = eval('self._dut.%s' % command[4:])  # pylint: disable=eval-used
       else:
         value = self._dut.CheckOutput(command)
       value_str = str(value).strip()
-      factory.console.info('%s', value_str)
+      session.console.info('%s', value_str)
 
       expected_values = (item.expected_value
                          if isinstance(item.expected_value, list)

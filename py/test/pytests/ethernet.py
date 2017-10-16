@@ -12,7 +12,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event as test_event
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -116,7 +116,7 @@ class EthernetTest(unittest.TestCase):
     else:
       for dev in devices:
         if 'usb' not in self.dut.path.realpath('/sys/class/net/%s' % dev):
-          factory.console.info('Built-in ethernet device %s found.', dev)
+          session.console.info('Built-in ethernet device %s found.', dev)
           self.dut.CheckCall(['ifconfig', dev, 'up'], log=True)
           return dev
     return None
@@ -129,17 +129,17 @@ class EthernetTest(unittest.TestCase):
       self.dut.CheckCall(['wget', '-O', _LOCAL_FILE_PATH, '-T', '2',
                           self.args.test_url], log=True)
     except Exception as e:
-      factory.console.info('Failed to get file: %s', e)
+      session.console.info('Failed to get file: %s', e)
     else:
       md5sum_output = self.dut.CheckOutput(
           ['md5sum', _LOCAL_FILE_PATH], log=True).strip().split()[0]
       logging.info('Got local file md5sum %s', md5sum_output)
       logging.info('Golden file md5sum %s', self.args.md5sum)
       if md5sum_output == self.args.md5sum:
-        factory.console.info('Successfully connected to %s', self.args.test_url)
+        session.console.info('Successfully connected to %s', self.args.test_url)
         return True
       else:
-        factory.console.info('md5 checksum error')
+        session.console.info('md5 checksum error')
     return False
 
   def CheckLinkSimple(self, dev):
@@ -182,7 +182,7 @@ class EthernetTest(unittest.TestCase):
           ['swconfig', 'dev', self.args.swconfig_switch,
            'port', str(port), 'get', 'link'])
       if 'up' in status:
-        factory.console.info('Link is up on switch %s port %d',
+        session.console.info('Link is up on switch %s port %d',
                              self.args.swconfig_switch, port)
         if speed:
           speed_str = '{0}baseT'.format(speed)
@@ -214,7 +214,7 @@ class EthernetTest(unittest.TestCase):
           if self.args.test_url is None:
             ethernet_ip = self.GetEthernetIp(eth)
             if ethernet_ip:
-              factory.console.info('Get ethernet IP %s for %s',
+              session.console.info('Get ethernet IP %s for %s',
                                    ethernet_ip, eth)
               self.ui.Pass()
               break

@@ -106,7 +106,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool import commands
 from cros.factory.goofy import updater
 from cros.factory.test import device_data
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import server_proxy
@@ -301,7 +301,7 @@ class SyncFactoryServer(unittest.TestCase):
       server_proxy.SetServerURL(new_server_url.rstrip('/'))
       # Read again because server_proxy module may normalize it.
       new_server_url = server_proxy.GetServerURL()
-      factory.console.info(
+      session.console.info(
           'Factory server URL has been changed from [%s] to [%s].',
           server_url, new_server_url)
       server_url = new_server_url
@@ -378,7 +378,7 @@ class SyncFactoryServer(unittest.TestCase):
     if self.args.update_toolkit:
       tasks += [(_('Update Toolkit'), self.UpdateToolkit)]
     else:
-      factory.console.info('Toolkit update is disabled.')
+      session.console.info('Toolkit update is disabled.')
 
     # Setup new server URL
     server_proxy.ValidateServerConfig()

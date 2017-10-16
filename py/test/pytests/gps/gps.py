@@ -45,7 +45,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory import device
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
@@ -134,8 +134,8 @@ class GPS(unittest.TestCase):
     self._mlb_serial_number = (self.dut.info.mlb_serial_number or
                                SERIAL_NOT_AVAILABLE)
     self._serial_number = (self.dut.info.serial_number or SERIAL_NOT_AVAILABLE)
-    factory.console.info('Got MLB serial number: %s', self._mlb_serial_number)
-    factory.console.info('Got serial number: %s', self._serial_number)
+    session.console.info('Got MLB serial number: %s', self._mlb_serial_number)
+    session.console.info('Got serial number: %s', self._serial_number)
 
     # Create a list for test-level failures.
     self._failures = []
@@ -143,7 +143,7 @@ class GPS(unittest.TestCase):
 
   def _PushConfigFile(self):
     # Push the jobs config so we can start the job <self.args.gps_config_job>.
-    factory.console.info('Pushing config file...')
+    session.console.info('Pushing config file...')
     config_path = None
 
     if self.args.gps_config_file.startswith('/'):
@@ -203,7 +203,7 @@ class GPS(unittest.TestCase):
           # This is the first set of valid values we are getting.
           init = True
         else:
-          factory.console.info('[%d] Waiting for initialization...', time_left)
+          session.console.info('[%d] Waiting for initialization...', time_left)
           continue
 
       # Warmup.
@@ -214,7 +214,7 @@ class GPS(unittest.TestCase):
           start_time = time_utils.MonotonicTime()
           time_left = timeout = self.args.timeout
         else:
-          factory.console.info('[%d] Warming up...', time_left)
+          session.console.info('[%d] Warming up...', time_left)
           warmup_count -= 1
           continue
 
@@ -239,7 +239,7 @@ class GPS(unittest.TestCase):
       current_values_str = ' '.join(
           '%s=%.1f' % (key, value)
           for key, value in current_values.iteritems())
-      factory.console.info('[%d] %s', time_left, current_values_str)
+      session.console.info('[%d] %s', time_left, current_values_str)
 
     logging.debug('Timeout has been reached (%d secs)', self.args.timeout)
     return all_values
@@ -270,7 +270,7 @@ class GPS(unittest.TestCase):
         field_stats_str = ' '.join(
             '%s=%.1f' % (k, v)
             for k, v in field_stats[key].iteritems())
-        factory.console.info('%s: %s', key, field_stats_str)
+        session.console.info('%s: %s', key, field_stats_str)
 
     # Do limit testing.
     limit_results = {}
@@ -288,7 +288,7 @@ class GPS(unittest.TestCase):
                    % (nmea_field, stat_fn, cmp_fn_key, limit_value))
       result_str = '%s %s' % (passed_str, limit_str)
       limit_results[limit_str] = {'test_value': test_value, 'passed': passed}
-      factory.console.info(result_str)
+      session.console.info(result_str)
       if not passed:
         limit_failures_str.append(result_str)
     logging.debug('Results to be logged: %s', limit_results)
@@ -302,11 +302,11 @@ class GPS(unittest.TestCase):
     self._KillGLGPS()
 
     # Stop gpsd if it's already running.
-    factory.console.info('Stopping gpsd...')
+    session.console.info('Stopping gpsd...')
     self.dut.Call('stop gpsd')
 
     # Run glgps for <args.timeout> seconds with <self.args.gps_config_job>.
-    factory.console.info('Starting %s job...', self.args.gps_config_job)
+    session.console.info('Starting %s job...', self.args.gps_config_job)
     def StartGLGPS():
       self.dut.Call([GLGPS_BINARY,
                      DEVICE_GPS_CONFIG_PATH,
@@ -330,7 +330,7 @@ class GPS(unittest.TestCase):
       self.fail('%s was not running' % GLGPS_BINARY)
 
     # Get the latest readings from the NMEA output file.
-    factory.console.info('Reading from NMEA output file...')
+    session.console.info('Reading from NMEA output file...')
     # TODO(kitching): Move this into AdbTarget so we can use something like
     # self.dut.Popen() instead of calling adb directly.
     cat_process = subprocess.Popen(
@@ -366,7 +366,7 @@ class GPS(unittest.TestCase):
     self._KillGLGPS()
 
     # Restart normal gpsd operation.
-    factory.console.info('Restarting normal gpsd...')
+    session.console.info('Restarting normal gpsd...')
     self.dut.Call('start gpsd')
 
 
@@ -376,13 +376,13 @@ class GPS(unittest.TestCase):
       ps_line = self.dut.CheckOutput('ps | grep %s' % GLGPS_BINARY)
     except device.CalledProcessError:
       # Process is not running.  Don't kill it!
-      factory.console.info('%s already stopped', GLGPS_BINARY)
+      session.console.info('%s already stopped', GLGPS_BINARY)
       return
     glgps_pid = re.split(r' *', ps_line)[1]
     if not glgps_pid:
       # Process is not running.  Don't kill it!
-      factory.console.info('%s already stopped', GLGPS_BINARY)
+      session.console.info('%s already stopped', GLGPS_BINARY)
     else:
-      factory.console.info('Killing %s pid %d...', GLGPS_BINARY, int(glgps_pid))
+      session.console.info('Killing %s pid %d...', GLGPS_BINARY, int(glgps_pid))
       self.dut.CheckOutput(['kill', glgps_pid])
       # TODO(kitching): Join the GLGPS thread before sending a kill signal?

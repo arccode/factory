@@ -15,7 +15,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.device import types
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
 
@@ -117,12 +117,12 @@ class BluetoothScanTest(unittest.TestCase):
   def ScanTask(self, host_devices):
     """Scans the Bluetooth devices and checks the host station is found."""
     scanned_macs = self.ScanDevicesFromDUT()
-    factory.console.info('DUT scan results: %s', scanned_macs)
+    session.console.info('DUT scan results: %s', scanned_macs)
 
     for dev in host_devices:
       if dev.address in scanned_macs:
         self.host_device_to_pair = dev
-        factory.console.info('DUT successfully scanned host device: ' +
+        session.console.info('DUT successfully scanned host device: ' +
                              str(dev))
         return True
 
@@ -138,7 +138,7 @@ class BluetoothScanTest(unittest.TestCase):
 
     self.dut.CheckCall(CONNECT_CMD)
     output = self.dut.CheckOutput(CHECK_CONNECTION_CMD).lower()
-    factory.console.info('DUT tried to connect by %s with output %s',
+    session.console.info('DUT tried to connect by %s with output %s',
                          CONNECT_CMD, output)
     ret = host_mac in output
     if ret:
@@ -147,13 +147,13 @@ class BluetoothScanTest(unittest.TestCase):
 
   def RunCommand(self, cmd, cmd_name):
     """Logs and runs the command."""
-    factory.console.info('Running %s: %s', cmd_name, cmd)
+    session.console.info('Running %s: %s', cmd_name, cmd)
     try:
       output = self.dut.CheckOutput(cmd)
     except types.CalledProcessError as e:
-      factory.console.info('Exit code: %d', e.returncode)
+      session.console.info('Exit code: %d', e.returncode)
     else:
-      factory.console.info('Success. Output: %s', output)
+      session.console.info('Success. Output: %s', output)
 
   def ScanDevicesFromDUT(self):
     """Scans for nearby BT devices from the DUT.
@@ -186,7 +186,7 @@ class BluetoothScanTest(unittest.TestCase):
     #    the output of 'hcitool dev'
 
     interfaces = os.listdir('/sys/class/bluetooth')
-    factory.console.info(
+    session.console.info(
         'Find bluetooth devices from /sys/class/bluetooth: ' +
         str(interfaces))
     return interfaces
@@ -213,7 +213,7 @@ class BluetoothScanTest(unittest.TestCase):
       if host_device.interface not in interfaces:
         continue
 
-      factory.console.info('Host interface: ' + str(host_device))
+      session.console.info('Host interface: ' + str(host_device))
       host_devices.append(host_device)
 
     return host_devices

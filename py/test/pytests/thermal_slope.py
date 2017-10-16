@@ -39,7 +39,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.utils import stress_manager
 from cros.factory.utils.arg_utils import Arg
 
@@ -92,7 +92,7 @@ class ThermalSlopeTest(unittest.TestCase):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self.log = factory.console if self.args.console_log else logging
+    self.log = session.console if self.args.console_log else logging
 
     # Process to terminate in tear-down.
     self.process = None
@@ -107,7 +107,7 @@ class ThermalSlopeTest(unittest.TestCase):
   def _Log(self):
     """Logs the current stage and status.
 
-    Writes an entry to the event log, and either to the factory console
+    Writes an entry to the event log, and either to the session.console
     (if the console_log arg is True) or to the default log (if console_log
     is False).
     """
@@ -214,13 +214,13 @@ class ThermalSlopeTest(unittest.TestCase):
     slope = (float(one_core_temp - base_temp) /
              (one_core_power_w - base_power_w) /
              one_core_duration_secs)
-    # Always use factory.console for this one, since we're done and
+    # Always use session.console for this one, since we're done and
     # don't need to worry about conserving CPU cycles.
-    factory.console.info(u'Δtemp=%d°C, Δpower=%.03f W, duration=%s s',
+    session.console.info(u'Δtemp=%d°C, Δpower=%.03f W, duration=%s s',
                          one_core_temp - base_temp,
                          one_core_power_w - base_power_w,
                          one_core_duration_secs)
-    factory.console.info(u'slope=%.5f°C/J', slope)
+    session.console.info(u'slope=%.5f°C/J', slope)
     event_log.Log('result', slope=slope)
 
     errors = []

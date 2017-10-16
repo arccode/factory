@@ -10,7 +10,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
@@ -144,7 +144,7 @@ class ACPowerTest(unittest.TestCase):
         self._skip_warning_remains -= 1
       elif self._last_type != current_type:
         self.UpdateACStatus(_AC_TYPE + current_type)
-        factory.console.warning(
+        session.console.warning(
             'Expecting %s but see %s', self.args.power_type, current_type)
         self._last_type = current_type
       return False
@@ -162,7 +162,7 @@ class ACPowerTest(unittest.TestCase):
         result = self._power_series.CheckValue(dummy_index, power_watt,
                                                power_min, power_max)
         if not result:
-          factory.console.warning(
+          session.console.warning(
               'Expecting (%s, %s) watt usbpd power but see %s' %
               (power_min, power_max, power_watt))
         return result

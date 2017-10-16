@@ -16,6 +16,7 @@ import tempfile
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.utils import file_utils
 
 
@@ -36,7 +37,7 @@ def run(command, ignore_status=False):
     error.TestError: The error message in "ERROR:.*" form by command.
   """
 
-  factory.console.info('Running gooftool: %s', command)
+  session.console.info('Running gooftool: %s', command)
 
   # We want the stderr goes to CONSOLE_LOG_PATH immediately, but tee only
   # works with stdout; so here's a tiny trick to swap the handles.
@@ -74,7 +75,7 @@ def run(command, ignore_status=False):
   message = ('gooftool result: %s (%s), message: %s' %
              (('FAILED' if return_code else 'SUCCESS'),
               return_code, '\n'.join([out, err]) or '(None)'))
-  factory.console.info(message)
+  session.console.info(message)
 
   if return_code and (not ignore_status):
     # try to parse "ERROR.*" from err & out.

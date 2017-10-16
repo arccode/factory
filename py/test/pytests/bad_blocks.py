@@ -24,7 +24,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -282,7 +282,7 @@ class BadBlocksTest(unittest.TestCase):
       self._UpdateSATALinkSpeed()
 
       if end_time - start_time > self.args.log_threshold_secs:
-        factory.console.warn('Delay of %.2f s between badblocks progress lines',
+        session.console.warn('Delay of %.2f s between badblocks progress lines',
                              end_time - start_time)
         event_log.Log('delay', duration_secs=end_time - start_time)
 

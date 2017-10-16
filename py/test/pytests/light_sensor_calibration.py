@@ -61,7 +61,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import ambient_light_sensor
 from cros.factory.device import device_utils
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.fixture import fixture_connection
 from cros.factory.test.fixture.light_sensor import light_chamber
 from cros.factory.test import i18n
@@ -254,7 +254,7 @@ class ALSFixture(unittest.TestCase):
   def _Log(self, text):
     """Custom log function to log."""
     logging.info(text)
-    factory.console.info(text)
+    session.console.info(text)
 
   def _LogSerialNumber(self):
     testlog.AddArgument(device_data.KEY_SERIALS,
@@ -279,12 +279,12 @@ class ALSFixture(unittest.TestCase):
     testlog.AddFailure(code, details)
     message = 'FAIL %r: %r' % (code, details)
     logging.exception(message)
-    factory.console.info(message)
+    session.console.info(message)
 
   def _LogValue(self, srs, key, value, call_update=True, prefix=''):
     """Custom log function to log."""
     srs.LogValue(key=key, value=value, call_update=call_update)
-    factory.console.info('%s%r: %r', prefix, key, value)
+    session.console.info('%s%r: %r', prefix, key, value)
 
   def _CheckValue(self, srs, key, value, vmin, vmax, call_update=True):
     """Using testlog to check value is within the boundary"""

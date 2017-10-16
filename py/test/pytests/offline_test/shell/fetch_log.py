@@ -15,7 +15,7 @@ import zipfile
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test import server_proxy
 from cros.factory.test.pytests.offline_test.shell import common
 from cros.factory.utils import file_utils
@@ -131,7 +131,7 @@ class OfflineTestFetchLog(unittest.TestCase):
 
       fail_msg = 'offline test failed on test %s (%d/%d)' % (
           failed_test_name, last_task_id, total_tasks)
-      factory.console.error(fail_msg)
+      session.console.error(fail_msg)
       # show content of logfile in factory.log
       if self.args.upload_to_shopfloor:
         logging.error('logfile: %s',

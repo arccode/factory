@@ -33,6 +33,7 @@ from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test import session
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -160,7 +161,7 @@ class SpatialSensorCalibration(unittest.TestCase):
       value = int(self._dut.ReadFile(self._dut.path.join(self._device_path,
                                                          key)))
       if value <= _range[0] or value >= _range[1]:
-        factory.console.error(
+        session.console.error(
             'Device not in correct position: %s-axis value: %d. '
             'Valid range (%d, %d)', axis, value, _range[0], _range[1])
         raise InvalidPositionError
@@ -171,7 +172,7 @@ class SpatialSensorCalibration(unittest.TestCase):
       try:
         self._dut.WriteFile(self._dut.path.join(path, 'calibrate'), '1')
       except Exception:
-        factory.console.info('calibrate activation failed, retrying')
+        session.console.info('calibrate activation failed, retrying')
         time.sleep(1)
       else:
         break

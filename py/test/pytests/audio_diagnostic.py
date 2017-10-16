@@ -16,7 +16,7 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test import test_ui
 from cros.factory.test.utils import audio_utils
 
@@ -51,7 +51,7 @@ class AudioDiagnosticTest(unittest.TestCase):
     self.UpdateCrasNodes()
 
   def UpdateCrasNodes(self):
-    factory.console.info('UpdateCrasNodes called! once')
+    session.console.info('UpdateCrasNodes called! once')
     self._cras.UpdateIONodes()
     self._ui.CallJSFunction('showCrasNodes', 'output',
                             json.dumps(self._cras.output_nodes,

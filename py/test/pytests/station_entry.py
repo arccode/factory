@@ -74,7 +74,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import countdown_timer
 from cros.factory.test import device_data
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
 from cros.factory.test import test_ui
@@ -172,10 +172,10 @@ class StationEntry(unittest.TestCase):
     if self.args.start_station_tests:
       # Clear dut.info data.
       if self.args.invalidate_dut_info:
-        factory.console.info('Clearing dut.info data...')
+        session.console.info('Clearing dut.info data...')
         self._dut.info.Invalidate()
       if self.args.clear_serial_numbers:
-        factory.console.info('Clearing serial numbers')
+        session.console.info('Clearing serial numbers')
         device_data.ClearAllSerialNumbers()
       self.Start()
       if self.args.load_dut_storage:
@@ -185,10 +185,10 @@ class StationEntry(unittest.TestCase):
       self.End()
       # Clear dut.info data.
       if self.args.invalidate_dut_info:
-        factory.console.info('Clearing dut.info data...')
+        session.console.info('Clearing dut.info data...')
         self._dut.info.Invalidate()
       if self.args.clear_serial_numbers:
-        factory.console.info('Clearing serial numbers')
+        session.console.info('Clearing serial numbers')
         device_data.ClearAllSerialNumbers()
 
   def Start(self):

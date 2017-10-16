@@ -11,7 +11,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -87,7 +87,7 @@ class BacklightTest(unittest.TestCase):
     """
     logging.info('Pressed %r', answer)
     if answer == self.sequence[self.index]:
-      factory.console.info('Passed for %r', answer)
+      session.console.info('Passed for %r', answer)
       self.index = self.index + 1
       self.ResetBrightness()
       if self.index == len(self.sequence):

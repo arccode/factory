@@ -57,6 +57,7 @@ from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test.test_lists import test_object
 from cros.factory.test import test_ui
@@ -208,7 +209,7 @@ class ShutdownTest(unittest.TestCase):
         raise ShutdownError(message)
 
     if self.PromptCancelShutdown(self.test_state.shutdown_count + 1):
-      factory.console.info('Shutdown aborted by operator')
+      session.console.info('Shutdown aborted by operator')
       event_log.Log('reboot_cancelled')
       raise ShutdownError('Shutdown aborted by operator')
 

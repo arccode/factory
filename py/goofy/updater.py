@@ -44,14 +44,14 @@ def TryUpdate(pre_update_hook=None, timeout=15):
     UpdaterException
   """
   current_version = session.GetToolkitVersion()
-  factory.console.info(
+  session.console.info(
       'Checking for updates at <%s>... (current TOOLKIT_VERSION is %s)',
       server_proxy.GetServerURL(), current_version)
 
   proxy = server_proxy.GetServerProxy(timeout=timeout)
   updater = update_utils.Updater(update_utils.COMPONENTS.toolkit, proxy=proxy)
   if not updater.IsUpdateAvailable(current_version):
-    factory.console.info('Factory software is up to date: %s', current_version)
+    session.console.info('Factory software is up to date: %s', current_version)
     return False
 
   # /usr/local on the device (parent to factory)
@@ -115,7 +115,7 @@ def TryUpdate(pre_update_hook=None, timeout=15):
   # Delete the old and new trees
   shutil.rmtree(old_path, ignore_errors=True)
   shutil.rmtree(src_path, ignore_errors=True)
-  factory.console.info('Update successful')
+  session.console.info('Update successful')
   return True
 
 

@@ -17,7 +17,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -48,7 +48,7 @@ def CheckRefPowerRange(table, expected_range_dict, band_name):
     ref_power = int(single_row[1])
     expected_range = expected_range_dict[chain]
     if not IsInRange(ref_power, expected_range[0], expected_range[1]):
-      factory.console.info(
+      session.console.info(
           'Ref power of %s, row[%d], chain[%d] is out of range',
           band_name, row_idx, chain)
       return False
@@ -58,7 +58,7 @@ def CheckRefPowerRange(table, expected_range_dict, band_name):
 def CheckCalibratedUnits(table, min_required_units, band_name):
   """Checks min_required_units presented in calibration table."""
   if len(table) < min_required_units:
-    factory.console.info(
+    session.console.info(
         '%s table has only %d calibrated units, %d required',
         band_name, len(table), min_required_units)
     return False
@@ -116,9 +116,9 @@ class CheckWifiCalibrationTest(unittest.TestCase):
     high_band_table = self.readCalibrationTable(
         eep_power_path, ANCHOR_FOR_HIGH_BAND_CALIBRATION_DATA)
 
-    factory.console.info('2.4GHz table=%s',
+    session.console.info('2.4GHz table=%s',
                          pprint.pformat(low_band_table, width=200))
-    factory.console.info('5GHz table=%s',
+    session.console.info('5GHz table=%s',
                          pprint.pformat(high_band_table, width=200))
     event_log.Log('low_band_table', value=low_band_table)
     event_log.Log('high_band_table', value=high_band_table)

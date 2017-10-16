@@ -5,7 +5,7 @@
 import time
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.fixture import bft_fixture
 
 
@@ -72,7 +72,7 @@ class DummyBFTFixture(bft_fixture.BFTFixture):
     self._delay_secs = delay_secs
 
   def _Log(self, message):
-    factory.console.info('Dummy BFT: ' + message)
+    session.console.info('Dummy BFT: ' + message)
 
   def _Prompt(self, prompt):
     """Asks user to do something to ack like a real fixture.

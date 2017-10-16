@@ -53,7 +53,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
@@ -138,7 +138,7 @@ class FactoryInstallCompleteTask(TestTask):
 
   def Run(self):
     if not os.path.exists(_LSB_FACTORY_PATH):
-      factory.console.error('%s is missing', _LSB_FACTORY_PATH)
+      session.console.error('%s is missing', _LSB_FACTORY_PATH)
       self._test.template.SetState(_MSG_INSTALL_INCOMPLETE)
       return
     Log('factory_installed')
@@ -154,7 +154,7 @@ class InitializeSharedData(TestTask):
   def Run(self):
     self._test.template.SetState(_MSG_INIT_SHARED_DATA)
     for key, value in self._test.args.init_shared_data.iteritems():
-      factory.console.debug('set_shared_data[%s] = "%s"', key, value)
+      session.console.debug('set_shared_data[%s] = "%s"', key, value)
       state.set_shared_data(key, value)
     self.Pass()
 

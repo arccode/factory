@@ -69,7 +69,7 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test import server_proxy
 from cros.factory.test.utils import media_utils
 from cros.factory.utils.arg_utils import Arg
@@ -170,7 +170,7 @@ class RetrieveConfig(unittest.TestCase):
   def _RetrieveConfigFromFactoryServer(self):
     """Loads parameters from a factory server."""
     try:
-      factory.console.info('Retrieving %s from factory server.',
+      session.console.info('Retrieving %s from factory server.',
                            self.args.config_retrieve_path)
       proxy = server_proxy.GetServerProxy()
       content = proxy.GetParameter(
@@ -196,13 +196,13 @@ class RetrieveConfig(unittest.TestCase):
     logging.info('Saved config to %s.', self.config_save_path)
 
   def _MountUSBAndCopyFile(self):
-    factory.console.info('Mounting USB (%s, %s).', self.usb_dev_path,
+    session.console.info('Mounting USB (%s, %s).', self.usb_dev_path,
                          self.args.usb_dev_partition)
     with media_utils.MountedMedia(self.usb_dev_path,
                                   self.args.usb_dev_partition) as mount_point:
       time.sleep(0.5)
       pathname = os.path.join(mount_point, self.args.config_retrieve_path)
-      factory.console.info('Retrieving %s from USB.', pathname)
+      session.console.info('Retrieving %s from USB.', pathname)
       if not os.path.exists(pathname):
         raise ValueError('File %r does not exist or it is not a file.',
                          pathname)

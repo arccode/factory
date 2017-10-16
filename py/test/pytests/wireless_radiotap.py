@@ -30,7 +30,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
-from cros.factory.test import factory
+from cros.factory.test import session
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -409,7 +409,7 @@ class WirelessRadiotapTest(unittest.TestCase):
     """
     self._connect_service = FlimGetService(self._flim, service_name)
     if self._connect_service is None:
-      factory.console.info('Unable to find service %s', service_name)
+      session.console.info('Unable to find service %s', service_name)
       return False
     if FlimGetServiceProperty(self._connect_service, 'IsActive'):
       logging.warning('Already connected to %s', service_name)
@@ -419,11 +419,11 @@ class WirelessRadiotapTest(unittest.TestCase):
       success, diagnostics = self._flim.ConnectService(
           service=self._connect_service)
       if not success:
-        factory.console.info('Unable to connect to %s, diagnostics %s',
+        session.console.info('Unable to connect to %s, diagnostics %s',
                              service_name, diagnostics)
         return False
       else:
-        factory.console.info(
+        session.console.info(
             'Successfully connected to service %s', service_name)
     return True
 
@@ -431,7 +431,7 @@ class WirelessRadiotapTest(unittest.TestCase):
     """Disconnect wifi AP."""
     if self._connect_service:
       self._flim.DisconnectService(service=self._connect_service)
-      factory.console.info(
+      session.console.info(
           'Disconnect to service %s',
           FlimGetServiceProperty(self._connect_service, 'Name'))
       self._connect_service = None
@@ -462,13 +462,13 @@ class WirelessRadiotapTest(unittest.TestCase):
     for service in services:
       strength = service_strengths[service]['all']
       if strength:
-        factory.console.info('Service %s signal strength %f.', service,
+        session.console.info('Service %s signal strength %f.', service,
                              strength)
         event_log.Log('service_signal', service=service, strength=strength)
         if strength > max_strength:
           max_strength_service, max_strength = service, strength
       else:
-        factory.console.info('Service %s has no valid signal strength.',
+        session.console.info('Service %s has no valid signal strength.',
                              service)
 
     if max_strength_service:
@@ -569,7 +569,7 @@ class WirelessRadiotapTest(unittest.TestCase):
             'Antenna %s, service: %s: The scanned strength %f < spec strength'
             ' %f' % (antenna, service, scanned_strength, spec_strength))
       else:
-        factory.console.info(
+        session.console.info(
             'Antenna %s, service: %s: The scanned strength %f > spec strength'
             ' %f', antenna, service, scanned_strength, spec_strength)
 
