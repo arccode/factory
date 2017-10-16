@@ -74,7 +74,7 @@ class AlsaMixerController(base.BaseMixerController):
         old_value = self.GetMixerControls(name, card)
         restore_mixer_settings[name] = old_value
         logging.debug('Saving \'%s\' with value %s on card %s',
-                     name, old_value, card)
+                      name, old_value, card)
       logging.debug('Setting \'%s\' to %s on card %s', name, value, card)
       command = ['amixer', '-c', card, 'cset', 'name=%r' % name, value]
       self._device.CheckCall(command)
@@ -102,21 +102,28 @@ class AlsaAudioControl(base.BaseAudioControl):
   # Just list all supported options. But we only use wav and raw types.
   RecordType = Enum(['voc', 'wav', 'raw', 'au'])
 
-  def __init__(self, dut, config_name=None,
+  def __init__(self, dut, config_name=None, use_ucm=None,
                ucm_card_map=None, ucm_device_map=None, ucm_verb=None):
     mixer_controller = AlsaMixerController(dut)
-
-    # Use UCM config manager by default
     config_mgr = None
-    try:
-      config_mgr = config_manager.UCMConfigManager(
-          dut, mixer_controller, ucm_card_map, ucm_device_map,
-          ucm_verb, config_name)
-    except Exception:
-      if any(v is not None for v in (ucm_card_map, ucm_device_map, ucm_verb)):
-        # User intended to use UCM. Raise an exception
-        logging.error('Failed to construct a UCM config manager')
-        raise
+
+    if use_ucm is None:
+      use_ucm = True  # Use UCM configs by default
+
+    most_use_ucm = False
+    if any(v is not None for v in (ucm_card_map, ucm_device_map, ucm_verb)):
+      most_use_ucm = True
+
+    if use_ucm:
+      try:
+        config_mgr = config_manager.UCMConfigManager(
+            dut, mixer_controller, ucm_card_map, ucm_device_map,
+            ucm_verb, config_name)
+      except Exception:
+        if most_use_ucm:
+          logging.error('Intended to use UCM configs, but failed to construct '
+                        'a UCM config manager')
+          raise
 
     if config_mgr is None:
       # Fallback to use factory audio conf
