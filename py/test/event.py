@@ -19,6 +19,7 @@ import traceback
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import file_utils
+from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
 
 
@@ -384,14 +385,18 @@ class EventClientBase(object):
       raise IOError('Message too large (%d bytes)' % len(message))
     self.socket.sendall(message)
 
-  def _process_event(self):
+  def _process_event(self, timeout=None):
     """Handles one incoming message from the socket.
+
+    Throws:
+      socket.timeout: If no event is received within timeout.
 
     Returns:
       (keep_going, event), where:
         keep_going: True if event processing should continue (i.e., not EOF).
         event: The message if any.
     """
+    self.socket.settimeout(timeout)
     msg_bytes = self.socket.recv(_MAX_MESSAGE_SIZE + 1)
     if len(msg_bytes) > _MAX_MESSAGE_SIZE:
       # The message may have been truncated - ignore it
@@ -468,15 +473,30 @@ class BlockingEventClient(EventClientBase):
   """
   def request_response(self, request_event, check_response, timeout=None):
     """See EventClientBase.request_response."""
-    assert not timeout, 'Timeout is not currently supported in Blocking mode.'
+
+    start = None
+    if timeout is not None:
+      start = time_utils.MonotonicTime()
 
     if request_event:
       self.post_event(request_event)
 
     while True:
-      keep_going, event = self._process_event()
+      next_timeout = None
+      if timeout is not None:
+        elapsed = time_utils.MonotonicTime() - start
+        next_timeout = timeout - elapsed
+        if next_timeout <= 0.0:
+          return None  # timed out since specified event is not received
+
+      try:
+        keep_going, event = self._process_event(timeout=next_timeout)
+      except socket.timeout:
+        return None  # timed out since no event received
+
       if not keep_going:  # Closed
         return None
+
       if event and check_response(event):
         return event
 
@@ -563,6 +583,5 @@ def SendEvent(request_event, check_response, timeout=None):
   Returns:
     The valid response event, or None if the connection was closed or timeout.
   """
-  # To support timeout, we need to use ThreadingEventClient.
-  with ThreadingEventClient() as event_client:
+  with BlockingEventClient() as event_client:
     return event_client.request_response(request_event, check_response, timeout)

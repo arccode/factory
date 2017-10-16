@@ -180,7 +180,7 @@ class ShutdownTest(unittest.TestCase):
         'wait_shutdown_secs': self.args.wait_shutdown_secs,
     }
 
-    with test_event.ThreadingEventClient() as event_client:
+    with test_event.BlockingEventClient() as event_client:
       event_client.post_event(
           test_event.Event(
               test_event.Event.Type.PENDING_SHUTDOWN, **pending_shutdown_data))
