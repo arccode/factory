@@ -121,7 +121,7 @@ def TryLoadJSON(path, logger_name=None):
   """
   logger = logging.getLogger(logger_name)
   if not os.path.isfile(path):
-    logger.info('%s: does not exist', path)
+    logger.debug('%s: does not exist', path)
     return None
   try:
     with open(path, 'r') as f:
@@ -588,7 +588,7 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
     self.new_pos = self.cur_pos
 
     # Try restoring metadata, if it exists.
-    self._RestoreMetadata()
+    self.RestoreMetadata()
     self._SaveMetadata()
 
   def CreateStream(self):
@@ -609,7 +609,7 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
     with file_utils.AtomicWrite(self.metadata_path, fsync=True) as f:
       json.dump(data, f)
 
-  def _RestoreMetadata(self):
+  def RestoreMetadata(self):
     """Restores metadata for this Consumer from disk (seq and pos).
 
     On each restore, ensure that the available window of records on disk has
