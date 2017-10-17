@@ -275,9 +275,13 @@ class FirmwareContent(object):
     self.cached_files.append((fileref, sections))
     return fileref.name
 
-  def Write(self, sections=None):
+  def Write(self, filename):
     """Call flashrom write for specific sections."""
-    self.flashrom.Write(filename=self.GetFileName(), sections=sections)
+    for (fileref, sections_in_file) in self.cached_files:
+      if fileref.name == filename:
+        self.flashrom.Write(filename=filename, sections=sections_in_file)
+        return
+    raise ValueError('%r is not found in the cached files' % (filename,))
 
   def GetFirmwareImage(self):
     """Returns a FirmwareImage instance."""

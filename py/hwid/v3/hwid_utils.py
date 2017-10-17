@@ -205,10 +205,11 @@ def WriteHWID(encoded_string):
     encoded_string: An encoded HWID string to write.
   """
   main_fw = crosfw.LoadMainFirmware()
+  fw_filename = main_fw.GetFileName(sections=['GBB'])
   process_utils.Spawn(
-      ['futility', 'gbb', '--set', '--hwid=%s' % encoded_string,
-       '%s' % main_fw.GetFileName(sections=['GBB'])], check_call=True, log=True)
-  main_fw.Write(sections=['GBB'])
+      ['futility', 'gbb', '--set', '--hwid=%s' % encoded_string, fw_filename],
+      check_call=True, log=True)
+  main_fw.Write(fw_filename)
 
 
 def ListComponents(db, comp_class=None):

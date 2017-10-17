@@ -42,8 +42,8 @@ class MockMainFirmware(object):
   """Mock main firmware object."""
 
   def __init__(self, image=None):
-    self.GetFileName = lambda: 'firmware'
-    self.Write = lambda sections: sections == ['GBB']
+    self.GetFileName = lambda *args, **kwargs: 'firmware'
+    self.Write = lambda filename: filename == 'firmware'
     self.GetFirmwareImage = lambda: image
 
 

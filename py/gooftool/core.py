@@ -236,8 +236,8 @@ class Gooftool(object):
       rootkey_hash = _TmpExec(
           'unpack rootkey', 'futility vbutil_key --unpack %s' % key_root,
           regex=r'(?<=Key sha1sum:).*').strip()
-      _TmpExec(
-          'unpack recoverykey','futility vbutil_key --unpack %s' % key_recovery)
+      _TmpExec('unpack recoverykey',
+               'futility vbutil_key --unpack %s' % key_recovery)
 
       # Pre-scan for well-known problems.
       if rootkey_hash == 'b11d74edd286c144e1135b49e7f0bc20cf041f10':
@@ -478,9 +478,10 @@ class Gooftool(object):
 
     assert hwid
     main_fw = self._crosfw.LoadMainFirmware()
-    self._util.shell('futility gbb --set --hwid="%s" "%s"' %
-                     (hwid, main_fw.GetFileName()))
-    main_fw.Write(sections=['GBB'])
+    fw_filename = main_fw.GetFileName(sections=['GBB'])
+    self._util.shell(
+        'futility gbb --set --hwid="%s" "%s"' % (hwid, fw_filename))
+    main_fw.Write(fw_filename)
 
   def VerifyWPSwitch(self):
     """Verifies hardware write protection switch is enabled.
