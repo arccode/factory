@@ -156,10 +156,10 @@ VOID_ELEMENTS = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
 
 
 class HTMLMessageParser(HTMLParser.HTMLParser, object):
-  def __init__(self, html_classes):
+  def __init__(self, html_tags):
     super(HTMLMessageParser, self).__init__()
     self.messages = []
-    self.html_classes = set(html_classes)
+    self.html_tags = set(html_tags)
     self.tags = []
     self.data = []
     self.in_keyword_tag = False
@@ -177,9 +177,7 @@ class HTMLMessageParser(HTMLParser.HTMLParser, object):
       if self.in_keyword_tag:
         self.tags.append((tag, False))
       else:
-        classes = ' '.join(value for key, value in attrs if key == 'class')
-        classes = classes.split()
-        is_keyword = any(cls in self.html_classes for cls in classes)
+        is_keyword = tag in self.html_tags
         self.tags.append((tag, is_keyword))
         if is_keyword:
           self.in_keyword_tag = True
@@ -208,7 +206,7 @@ class HTMLMessageParser(HTMLParser.HTMLParser, object):
 
   def handle_data(self, data):
     if self.in_keyword_tag:
-      self.data.append(re.sub(r'\s+', ' ', data))
+      self.data.append(data)
 
   def handle_entityref(self, name):
     if self.in_keyword_tag:
@@ -225,7 +223,7 @@ class HTMLMessageParser(HTMLParser.HTMLParser, object):
 
   @classmethod
   def ParseFile(cls, filename, options):
-    parser = cls(options.html_classes)
+    parser = cls(options.html_tags)
     with open(filename) as fp:
       parser.feed(fp.read())
     parser.close()
@@ -343,9 +341,9 @@ def main():
       help=('Keywords to look for in python source code. '
             'You can have multiple -k flags on the command line.'))
   parser.add_argument(
-      '-c', '--class', dest='html_classes', action='append', default=[],
-      help=('HTML classes to look for in HTML. '
-            'You can have multiple -c flags on the command line.'))
+      '-t', '--tags', dest='html_tags', action='append', default=[],
+      help=('HTML custom tag names to look for in HTML. '
+            'You can have multiple -t flags on the command line.'))
   parser.add_argument(
       '-j', '--js-keyword', dest='js_keywords', action='append', default=[],
       help=('Keywords to look for in javascript source code. '

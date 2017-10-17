@@ -17,7 +17,6 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import goofy_proxy
 from cros.factory.test import event as test_event
 from cros.factory.test import factory
-from cros.factory.test.i18n import html_translator
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import session
 from cros.factory.test import state
@@ -106,11 +105,9 @@ class UI(object):
     self.SetHTML(
         html='<base href="/tests/%s/">' % self.test, id='head', append=True)
 
-    html = GetAutoload('html', '')
-    html = html_translator.TranslateHTML(html)
     # default CSS files are set in default_test_ui.html by goofy.py, and we
     # only set the HTML of body here.
-    self.SetHTML(html)
+    self.SetHTML(GetAutoload('html', ''))
 
     js = GetAutoload('js')
     if js:

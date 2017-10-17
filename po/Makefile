@@ -11,7 +11,7 @@ MSGFMT = msgfmt
 MSGMERGE = msgmerge
 MSGCAT = msgcat
 
-KEYWORDS = -k _ -k MakeI18nLabel -k MakeI18nLabelWithClass -c i18n-label \
+KEYWORDS = -k _ -k MakeI18nLabel -k MakeI18nLabelWithClass -t i18n-label \
   -j _ -j i18nLabel -j i18nLabelNode -J "i18n! "
 
 DOMAIN = factory

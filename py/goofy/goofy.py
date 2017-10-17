@@ -44,8 +44,6 @@ from cros.factory.test import event_log
 from cros.factory.test.event_log import EventLog
 from cros.factory.test.event_log import GetBootSequence
 from cros.factory.test.event_log_watcher import EventLogWatcher
-from cros.factory.test import factory
-from cros.factory.test.i18n import html_translator
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.i18n import translation
 from cros.factory.test.rules import phase
@@ -275,15 +273,10 @@ class Goofy(GoofyBase):
     static_path = os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR, 'goofy/static')
     # Setup static file path
     self.goofy_server.RegisterPath('/', static_path)
-    # index.html needs to be preprocessed.
-    index_path = os.path.join(static_path, 'index.html')
-    index_html = html_translator.TranslateHTML(file_utils.ReadFile(index_path))
-    self.goofy_server.RegisterData('/index.html', 'text/html', index_html)
 
     default_test_ui_path = os.path.join(static_path,
                                         'ui_templates/default_test_ui.html')
-    self._default_test_ui_html = html_translator.TranslateHTML(
-        file_utils.ReadFile(default_test_ui_path))
+    self._default_test_ui_html = file_utils.ReadFile(default_test_ui_path)
 
   def init_state_instance(self):
     # Before starting state server, remount stateful partitions with

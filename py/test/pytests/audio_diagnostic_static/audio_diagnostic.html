@@ -4,7 +4,7 @@
   <td colspan="2">
     <div id="tone_gen" class="ctl-panel">
       <h2>
-        <span class="i18n-label">Tone generator</span>
+        <i18n-label>Tone generator</i18n-label>
       </h2>
       <table style="width: 100%">
         <tr>
@@ -12,16 +12,16 @@
             <button id="tone_btn" class="btn-off"
                 onclick="toneButtonClicked()">
               <span class="btn-on-text">
-                <span class="i18n-label">Tone off</span>
+                <i18n-label>Tone off</i18n-label>
               </span>
               <span class="btn-off-text">
-                <span class="i18n-label">Tone On</span>
+                <i18n-label>Tone On</i18n-label>
               </span>
             </button>
             <select id="tone_type" onchange="toneTypeChanged()">
-              <option value="sine" class="i18n-label">Sine wave</option>
-              <option value="square" class="i18n-label">Square wave</option>
-              <option value="triangle" class="i18n-label">Triangle wave</option>
+              <option value="sine">Sine wave</option>
+              <option value="square">Square wave</option>
+              <option value="triangle">Triangle wave</option>
             </select>
             <div>
               <input id="freq_bar" type="range" min="1" max="500"
@@ -53,10 +53,10 @@
   <td rowspan="2">
     <div id="test_result" class="ctl-panel">
       <button onclick="test.sendTestEvent('pass')">
-        <div class="i18n-label">Pass</div>
+        <i18n-label>Pass</i18n-label>
       </button>
       <button onclick="test.sendTestEvent('fail')">
-        <div class="i18n-label">Fail</div>
+        <i18n-label>Fail</i18n-label>
       </button>
     </div>
   </td>
@@ -65,23 +65,23 @@
   <td>
     <div id="recorder" class="ctl-panel">
       <h2>
-        <span class="i18n-label">Manual record</span>
+        <i18n-label>Manual record</i18n-label>
       </h2>
       <button id="record_btn" class="btn-off" onclick="recordButtonClicked()">
         <span class="btn-on-text">
-          <span class="i18n-label">Stop record</span>
+          <i18n-label>Stop record</i18n-label>
         </span>
         <span class="btn-off-text">
-          <span class="i18n-label">Start record</span>
+          <i18n-label>Start record</i18n-label>
         </span>
       </button>
       <button id="record_playback_btn" class="btn-off"
           onclick="recordPlaybackButtonClicked()">
         <span class="btn-on-text">
-          <span class="i18n-label">Stop playback</span>
+          <i18n-label>Stop playback</i18n-label>
         </span>
         <span class="btn-off-text">
-          <span class="i18n-label">Start playback</span>
+          <i18n-label>Start playback</i18n-label>
         </span>
       </button>
     </div>
@@ -89,14 +89,14 @@
   <td>
     <div id="loopback" class="ctl-panel">
       <h2>
-        <span class="i18n-label">Audio loopback</span>
+        <i18n-label>Audio loopback</i18n-label>
       </h2>
       <button id="loopback_btn" class="btn-off" onclick="loopbackButtonClicked()">
         <span class="btn-on-text">
-          <span class="i18n-label">Loopback off</span>
+          <i18n-label>Loopback off</i18n-label>
         </span>
         <span class="btn-off-text">
-          <span class="i18n-label">Loopback on</span>
+          <i18n-label>Loopback on</i18n-label>
         </span>
       </button>
     </div>
@@ -105,13 +105,13 @@
 <tr>
   <td class="ctl-panel">
     <h2>
-      <span class="i18n-label">Output Nodes</span>
+      <i18n-label>Output Nodes</i18n-label>
     </h2>
     <div id="output-nodes"></div>
   </td>
   <td class="ctl-panel">
     <h2>
-      <span class="i18n-label">Input Nodes</span>
+      <i18n-label>Input Nodes</i18n-label>
     </h2>
     <div id="input-nodes"></div>
   </td>

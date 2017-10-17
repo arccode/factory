@@ -7,7 +7,6 @@ import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
-from cros.factory.test.i18n import html_translator
 from cros.factory.utils import file_utils
 
 
@@ -140,8 +139,7 @@ class BaseTemplate(object):
         'Template %s does not exist.' % template_name)
 
     # Load template HTML
-    self._ui.SetHTML(html_translator.TranslateHTML(
-        file_utils.ReadFile(html_file)))
+    self._ui.SetHTML(file_utils.ReadFile(html_file))
 
     # Load template JS if it exists
     js_file = os.path.join(template_base, template_name + '.js')

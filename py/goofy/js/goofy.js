@@ -1274,33 +1274,6 @@ cros.factory.Goofy = class {
   }
 
   /**
-   * For each select in document, if the selected option is hidden (probably
-   * because locale is switched), try to find another shown option with same
-   * value and select it.
-   * @param {!Document} doc
-   */
-  fixSelectElements(doc) {
-    const /** function(!Element): boolean */ isDisplayNone = (node) =>
-        goog.style.getComputedStyle(node, 'display') === 'none';
-    for (const selectDom of /** @type {!NodeList<!HTMLSelectElement>} */ (
-             doc.getElementsByTagName('select'))) {
-      if (!selectDom.selectedOptions.length) {
-        continue;
-      }
-      const selectedOption = selectDom.selectedOptions[0];
-      if (isDisplayNone(selectedOption)) {
-        const /** string */ value = selectedOption.value;
-        const options = Array.from(selectDom.options);
-        const newIndex = options.findIndex(
-            (option) => option.value == value && !isDisplayNone(option));
-        if (newIndex !== -1) {
-          selectDom.selectedIndex = newIndex;
-        }
-      }
-    }
-  }
-
-  /**
    * Updates classes in a document based on the current settings.
    * @param {!Document} doc
    */
@@ -1317,25 +1290,21 @@ cros.factory.Goofy = class {
   }
 
   /**
-   * Updates classes in the UI based on the current settings, and fix select
-   * element if the selected option is hidden.
+   * Updates classes in the UI based on the current settings.
    */
   updateCSSClasses() {
     this.updateCSSClassesInDocument(document);
-    this.fixSelectElements(document);
     document.getElementById('goofy-terminal')
         .classList.toggle('goofy-engineering-mode', this.engineeringMode);
     for (const i of this.invocations.values()) {
       if (i && i.iframe && i.iframe.contentDocument) {
         this.updateCSSClassesInDocument(i.iframe.contentDocument);
-        this.fixSelectElements(i.iframe.contentDocument);
       }
     }
     for (const i of /** @type {!NodeList<!HTMLIFrameElement>} */ (
              document.querySelectorAll('.goofy-plugin iframe'))) {
       if (i.contentDocument) {
         this.updateCSSClassesInDocument(i.contentDocument);
-        this.fixSelectElements(i.contentDocument);
       }
     }
   }
@@ -3020,9 +2989,8 @@ cros.factory.Goofy = class {
         doc.open();
         doc.write(message.html);
         doc.close();
-        this.updateCSSClassesInDocument(doc);
         invocation.iframe.onload = () => {
-          this.fixSelectElements(doc);
+          this.updateCSSClassesInDocument(doc);
         };
         this.testUIManager.onInitTestUI(invocation.path);
 
@@ -3257,6 +3225,7 @@ cros.factory.Goofy = class {
       pluginArea.appendChild(newPlugin);
       newPlugin.appendChild(iframe);
       iframe.contentWindow.plugin = new cros.factory.Plugin(this, newPlugin);
+      // TODO(pihsun): Extract these exports to iframe to a function.
       iframe.contentWindow.cros = cros;
       iframe.contentWindow.goog = goog;
       iframe.contentWindow.goofy = this;

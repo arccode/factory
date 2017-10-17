@@ -82,8 +82,8 @@ ns.initI18nData();
  * @private
  */
 ns.stringFormatImpl_ = (format) => {
-  let /** !Array<string> */ strs = [''];
-  let /** !Array<string> */ vars = [];
+  const /** !Array<string> */ strs = [''];
+  const /** !Array<string> */ vars = [];
   let i = 0;
   while (i < format.length) {
     if (format.charAt(i) == '{') {
@@ -225,8 +225,8 @@ ns.stringFormat = (format, dict) => {
  * @return {!goog.html.SafeHtml}
  */
 ns.i18nLabel = (text, dict = {}) => {
-  let label = ns.stringFormat(text, dict);
-  let children = [];
+  const label = ns.stringFormat(text, dict);
+  const children = [];
   for (const locale of ns.locales) {
     const translated_label = label[locale];
     const html_class = `goofy-label-${locale}`;
@@ -256,7 +256,7 @@ ns.getLocaleNames = () => {
   // Note: this should be translated to, for example,
   // 'currentLocaleName#zh-CN#中文'.
   const dict = _('currentLocaleName#en-US#English');
-  let ret = Object.create(null);
+  const ret = Object.create(null);
   for (const locale of ns.locales) {
     const val = dict[locale];
     const idx = val.indexOf(`#${locale}#`);
