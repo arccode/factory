@@ -38,16 +38,14 @@ function setupTouchpadTest(xSegments, ySegments, countTarget, quadCountTarget) {
  * Initialize the touchpad UI.
  */
 TouchpadTest.prototype.init = function() {
-  const container = document.getElementById('state');
-
   const secondContainer =
       goog.dom.createDom('div', {'id': 'touchpad-test-second-container'});
-  container.prepend(secondContainer);
+  window.template.prepend(secondContainer);
   this.initQuadrantClickTable(secondContainer);
 
   const firstContainer =
       goog.dom.createDom('div', {'id': 'touchpad-test-first-container'});
-  container.prepend(firstContainer);
+  window.template.prepend(firstContainer);
   this.initTouchScrollTables(firstContainer);
 };
 

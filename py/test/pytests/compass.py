@@ -37,21 +37,25 @@ _COMPASS_CSS = """
   font-size: 4em;
 }
 
-#state {
+.container {
+  display: flex;
   flex-flow: row;
+  align-items: center;
 }
 """
 
 _STATE_TEMPLATE = """
-<div>
-  in_magn_x: {in_magn_x}<br>
-  in_magn_y: {in_magn_y}<br>
-  in_magn_z: {in_magn_z}<br>
-  degree: {degree:.1f}<br>
-</div>
-<div class='compass' style='transform: rotate({degree}deg)'>
-  <div style='color: red'>N</div>
-  <div style='position: absolute; bottom: 0; left: 0; right: 0'>S</div>
+<div class="container">
+  <div>
+    in_magn_x: {in_magn_x}<br>
+    in_magn_y: {in_magn_y}<br>
+    in_magn_z: {in_magn_z}<br>
+    degree: {degree:.1f}<br>
+  </div>
+  <div class='compass' style='transform: rotate({degree}deg)'>
+    <div style='color: red'>N</div>
+    <div style='position: absolute; bottom: 0; left: 0; right: 0'>S</div>
+  </div>
 </div>
 """
 
@@ -77,8 +81,7 @@ class CompassTest(unittest.TestCase):
     self.dut = device_utils.CreateDUTInterface()
     self.controller = self.dut.magnetometer.GetController(
         location=self.args.location)
-    self.ui = test_ui.UI()
-    self.ui.AppendCSS(_COMPASS_CSS)
+    self.ui = test_ui.UI(css=_COMPASS_CSS)
     self._template = ui_templates.TwoSections(self.ui)
 
   def runTest(self):

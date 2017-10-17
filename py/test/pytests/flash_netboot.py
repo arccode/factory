@@ -56,7 +56,7 @@ from cros.factory.test import ui_templates
 from cros.factory.tools import flash_netboot
 from cros.factory.utils.arg_utils import Arg
 
-_CSS = '#state {text-align:left;}'
+_CSS = 'template-one-section { text-align: left; }'
 
 
 class FlashNetbootTest(unittest.TestCase):
@@ -68,14 +68,12 @@ class FlashNetbootTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self._ui = test_ui.UI()
+    self._ui = test_ui.UI(css=_CSS)
     self._template = ui_templates.OneScrollableSection(self._ui)
-    self._ui.AppendCSS(_CSS)
 
   def ShowResult(self, message):
     logging.info(message.strip())
-    self._template.SetState(test_ui.Escape(message),
-                            append=True, scroll_down=True)
+    self._template.SetState(test_ui.Escape(message), append=True)
 
   def runTest(self):
     self._ui.RunInBackground(self._runTest)

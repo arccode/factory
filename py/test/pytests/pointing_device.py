@@ -97,7 +97,7 @@ def _GenerateJS(scroll, scroll_threshold):
   click_test = (
       "pd.startClickTest = function() {\n"
       "  pd.setInstruction('%s');\n"
-      "  document.getElementById('state').onclick = function(event) {\n"
+      "  window.template.onclick = function(event) {\n"
       "    event.target.onclick = '';\n"
       "    pd.startRightClickTest();\n"
       "  };\n"
@@ -105,7 +105,7 @@ def _GenerateJS(scroll, scroll_threshold):
   right_click_test = (
       "pd.startRightClickTest = function() {\n"
       "  pd.setInstruction('%s');\n"
-      "  document.getElementById('state').oncontextmenu = function(event) {\n"
+      "  window.template.oncontextmenu = function(event) {\n"
       "    if (event.which == 3) {\n"
       "      event.target.oncontextmenu = '';\n"
       "      %s\n"

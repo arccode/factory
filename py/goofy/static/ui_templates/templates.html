@@ -1,0 +1,144 @@
+<html>
+  <head>
+    <script src="/js/templates.js" defer></script>
+  </head>
+  <body>
+    <template id="template-one-section">
+      <style>
+        #info-container {
+          display: flex;
+          width: 100%;
+          height: 100%;
+          flex-flow: column;
+          padding: 0 8px;
+          box-sizing: border-box;
+        }
+
+        #title-container {
+          flex: none;
+          font-size: 2rem;
+          font-weight: bold;
+          padding-left: 0.5rem;
+          margin: 4px 0;
+        }
+
+        #state-container {
+          padding: 1rem;
+          flex: 1;
+          background-color: var(--template-background-color, white);
+          display: flex;
+          flex-flow: column;
+          align-items: center;
+          justify-content: center;
+        }
+
+        :host(.scrollable) #state-container {
+          overflow: auto;
+          justify-content: flex-start;
+        }
+
+        #button-container {
+          flex: none;
+          display: flex;
+          min-height: min-content;
+          max-height: 3rem;
+          height: 10vh;
+          margin: 4px 0;
+        }
+
+        #button-container > button, ::slotted(button[slot="extra-button"]) {
+          max-width: 8ch;
+          min-height: min-content;
+          padding: 0;
+          border: 0;
+          font-size: 1rem;
+          line-height: 1;
+        }
+
+        #extra-button-container {
+          display: flex;
+          flex: 1;
+        }
+
+        ::slotted(button[slot="extra-button"]) {
+          margin-right: 4px;
+          flex: 1 1 100%;
+        }
+
+        ::slotted(span.inline) {
+          display: inline;
+        }
+      </style>
+      <div id="info-container">
+        <div id="title-container">
+          <slot name="title"></slot>
+        </div>
+        <div id="state-container">
+          <slot></slot>
+        </div>
+        <div id="button-container">
+          <div id="extra-button-container">
+            <slot name="extra-button"></slot>
+          </div>
+          <button id="button-mark-failed">
+            <i18n-label>Mark Failed</i18n-label>
+          </button>
+        </div>
+      </div>
+    </template>
+
+    <template id="template-two-sections-extra">
+      <style>
+        #prompt-container {
+          flex: none;
+          background-color: white;
+          display: flex;
+          padding: 0 8px;
+        }
+
+        #instruction {
+          font-size: 1.5em;
+          flex: 3;
+        }
+
+        #progress-bar-container {
+          display: none;
+          flex: 1;
+        }
+
+        #progress-bar {
+          width: 100%;
+          height: 1.5em;
+          position: relative;
+          border: 1px solid #949dad;
+          background: white;
+          overflow: hidden;
+        }
+
+        #progress-bar-indicator {
+          position: absolute;
+          top: 0;
+          width: 100%;
+          text-align: center;
+          z-index: 1;
+        }
+
+        .progress-bar-thumb {
+          background: #d4e4ff;
+          height: 100%;
+        }
+      </style>
+      <div id="prompt-container">
+        <span id="instruction">
+          <slot name="instruction"></slot>
+        </span>
+        <span id="progress-bar-container">
+          <i18n-label>Test Progress:</i18n-label>
+          <div id="progress-bar">
+            <div id="progress-bar-indicator"></div>
+          </div>
+        </span>
+      </div>
+    </template>
+  </body>
+</html>

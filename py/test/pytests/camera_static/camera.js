@@ -31,10 +31,12 @@ const runPromise = (promise, eventName) => {
 };
 
 const setupUI = () => {
-  const state = document.getElementById('state');
-  state.appendChild(goog.dom.createDom('img', {'id': 'camera-test-image'}));
-  state.appendChild(goog.dom.createDom('div', {'id': 'camera-test-prompt'}));
-  state.appendChild(goog.dom.createDom('div', {'id': 'camera-test-timer'}));
+  window.template.appendChild(
+      goog.dom.createDom('img', {'id': 'camera-test-image'}));
+  window.template.appendChild(
+      goog.dom.createDom('div', {'id': 'camera-test-prompt'}));
+  window.template.appendChild(
+      goog.dom.createDom('div', {'id': 'camera-test-timer'}));
 };
 
 const showInstruction = (instruction) => {

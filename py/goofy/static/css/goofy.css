@@ -526,7 +526,7 @@ table + .goofy-history-header {
 #goofy-control .goofy-test-visible .goog-tree-item-label {
   background-color: #cddff0;
 }
-button {
+.modal-dialog button {
   padding: 6px 16px;
 }
 .modal-dialog-bg {

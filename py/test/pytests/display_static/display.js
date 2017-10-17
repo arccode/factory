@@ -5,11 +5,9 @@
 /**
  * API for display test.
  * @constructor
- * @param {string} container
  * @param {Array.<string>} colors
  */
-var DisplayTest = function(container, colors) {
-  this.container = container;
+var DisplayTest = function(colors) {
   this.display = false;
   this.focusItem = 0;
   this.styleDiv = null;
@@ -101,11 +99,10 @@ var DisplayTest = function(container, colors) {
 
 /**
  * Creates a display test and runs it.
- * @param {string} container
  * @param {Array.<string>} colors
  */
-function setupDisplayTest(container, colors) {
-  window.displayTest = new DisplayTest(container, colors);
+function setupDisplayTest(colors) {
+  window.displayTest = new DisplayTest(colors);
   window.displayTest.init();
   window.displayTest.setupFullScreenElement();
   window.displayTest.setupGridStyle();
@@ -121,7 +118,7 @@ DisplayTest.prototype.init = function() {
   var caption = document.createElement('div');
   caption.className = 'display-caption';
   caption.appendChild(cros.factory.i18n.i18nLabelNode(this.instruct));
-  $(this.container).appendChild(caption);
+  window.template.appendChild(caption);
 
   var table = document.createElement('table');
   table.className = 'display-table';
@@ -145,7 +142,7 @@ DisplayTest.prototype.init = function() {
     tableBody.appendChild(row);
   }
   table.appendChild(tableBody);
-  $(this.container).appendChild(table);
+  window.template.appendChild(table);
 };
 
 /**
@@ -154,7 +151,7 @@ DisplayTest.prototype.init = function() {
 DisplayTest.prototype.setupFullScreenElement = function() {
   this.fullScreenElement = document.createElement('div');
   this.fullScreenElement.className = 'display-full-screen-hide';
-  $(this.container).appendChild(this.fullScreenElement);
+  window.template.appendChild(this.fullScreenElement);
 };
 
 /**

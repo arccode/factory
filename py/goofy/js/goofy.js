@@ -441,15 +441,12 @@ cros.factory.Test = class {
    * @private
    */
   addVirtualKey_(keyCode) {
-    const container = this.invocation.iframe.contentDocument.getElementById(
-        'virtualkey-button-container');
-    // container may not exist if test is using non-standard template.
-    if (!container) {
+    const template = this.invocation.iframe.contentWindow['template'];
+    if (!template) {
       return null;
     }
     const label = this.getKeyName_(keyCode);
-    const button = goog.dom.createDom(
-        'button', 'virtualkey-button', cros.factory.i18n.i18nLabelNode(label));
+    const button = template.addButton(label);
     goog.events.listen(button, goog.events.EventType.CLICK, () => {
       const handler = this.keyHandlers_.get(keyCode);
       if (handler) {
@@ -457,7 +454,6 @@ cros.factory.Test = class {
         handler.callback(null);
       }
     });
-    container.appendChild(button);
     return button;
   }
 };

@@ -48,7 +48,7 @@ class DisplayPointTest(unittest.TestCase):
         random.randint(1, self.args.max_point_count) for _ in xrange(2)]
     logging.info('testing point: %s',
                  ', '.join([str(x) for x in self.list_number_point]))
-    self.ui.CallJSFunction('setupDisplayPointTest', ui_templates.STATE_ID,
+    self.ui.CallJSFunction('setupDisplayPointTest',
                            self.list_number_point, float(self.args.point_size))
 
   def runTest(self):

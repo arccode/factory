@@ -24,8 +24,7 @@
     connectedCallback() {
       const callback = () => {
         const text = this.innerHTML.trim();
-        for (const dom of Array.from(
-                 this.shadowRoot.querySelectorAll('span'))) {
+        for (const dom of this.shadowRoot.querySelectorAll('span')) {
           dom.remove();
         }
         this.shadowRoot.appendChild(cros.factory.i18n.i18nLabelNode(text));

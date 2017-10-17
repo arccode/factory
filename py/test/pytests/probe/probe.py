@@ -159,7 +159,7 @@ class ProbeTest(unittest.TestCase):
 
   def setUp(self):
     self._ui = test_ui.UI(css=_CSS)
-    self._template = ui_templates.OneScrollableSection(self._ui)
+    self._template = ui_templates.OneSection(self._ui)
 
     self._dut = device_utils.CreateDUTInterface()
     self.factory_tools = deploy_utils.CreateFactoryTools(self._dut)

@@ -15,7 +15,7 @@ from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
-_CSS = '#state {text-align:left;}'
+_CSS = 'template-one-section { text-align: left; }'
 
 
 class TpmDiagnosisTest(unittest.TestCase):
@@ -31,9 +31,8 @@ class TpmDiagnosisTest(unittest.TestCase):
   def setUp(self):
     self.assertTrue(os.path.isfile(self.args.tpm_selftest),
                     msg='%s is missing.' % self.args.tpm_selftest)
-    self._ui = test_ui.UI()
+    self._ui = test_ui.UI(css=_CSS)
     self._template = ui_templates.OneScrollableSection(self._ui)
-    self._ui.AppendCSS(_CSS)
 
   def DiagnoseTpm(self):
     """Runs tpm_selftest.

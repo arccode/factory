@@ -91,7 +91,15 @@ from cros.factory.utils.arg_utils import Arg
 
 _DIV_CENTER_INSTRUCTION = """
 <div id='instruction-center' class='template-instruction'></div>"""
-_CSS = '#pass_key { font-size: 2.25em; font-weight: bold; }'
+_CSS = """
+  #pass_key {
+    font-size: 2.25em;
+    font-weight: bold;
+  }
+  template-two-sections.green-background {
+    --template-background-color: #00ff00;
+  }
+"""
 
 # Interval (seconds) of probing connection state.
 _CONNECTION_CHECK_PERIOD_SECS = 2
@@ -491,7 +499,7 @@ class VideoTask(ExtDisplayTask):
     if self._fixture:
       # Show light green background for Fixture's light sensor checking.
       self._ui.RunJS(
-          'document.getElementById("state").style.backgroundColor = "#00ff00";')
+          'window.template.classList.add("green-background")')
 
     if self._manual:
       self.BindDigitKeys(self._pass_digit)

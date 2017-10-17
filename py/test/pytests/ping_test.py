@@ -76,7 +76,10 @@ from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import time_utils
 
-_CSS = '#state {text-align:left;}'
+# TODO(pihsun): Lots of pytests that are displaying a scrollable message using
+# OneScrollableSection are having this CSS. Should have a simpler UI to show a
+# scrollable message.
+_CSS = 'template-one-section { text-align: left; }'
 
 
 class PingTest(unittest.TestCase):
@@ -106,9 +109,8 @@ class PingTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self._ui = test_ui.UI()
+    self._ui = test_ui.UI(css=_CSS)
     self._template = ui_templates.OneScrollableSection(self._ui)
-    self._ui.AppendCSS(_CSS)
 
   def _CheckSuccessPercentage(self, success_count, total_count, title=''):
     """Checks the percentage of successful pings is within the range."""

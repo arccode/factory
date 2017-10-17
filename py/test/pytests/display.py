@@ -82,8 +82,7 @@ class DisplayTest(unittest.TestCase):
       for image in self.args.images:
         self.args.colors.append('image-%s' % image)
       self.ExtractTestImages()
-    self.ui.CallJSFunction(
-        'setupDisplayTest', ui_templates.STATE_ID, self.args.colors)
+    self.ui.CallJSFunction('setupDisplayTest', self.args.colors)
     self.checked = False
     self.fullscreen = False
 

@@ -17,7 +17,7 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 
-_CSS = '#state {text-align:left;}'
+_CSS = 'template-one-section { text-align: left; }'
 _DEVKEY = 'b11d74edd286c144e1135b49e7f0bc20cf041f10'
 
 
@@ -44,9 +44,8 @@ class UpdateFirmwareTest(unittest.TestCase):
       self.assertTrue(os.path.isfile(self.args.kernel_config),
                       msg='%s is missing.' % self.args.kernel_config)
 
-    self._ui = test_ui.UI()
+    self._ui = test_ui.UI(css=_CSS)
     self._template = ui_templates.OneScrollableSection(self._ui)
-    self._ui.AppendCSS(_CSS)
 
   def UpdateKernel(self):
     """Apply new kernel.

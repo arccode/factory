@@ -39,12 +39,8 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
-
-_CSS = '#state {text-align:left;}'
 
 
 class SysfsBatteryTest(unittest.TestCase):
@@ -62,12 +58,10 @@ class SysfsBatteryTest(unittest.TestCase):
 
   def setUp(self):
     self._power = device_utils.CreateDUTInterface().power
-    self._ui = test_ui.UI()
-    self._template = ui_templates.OneScrollableSection(self._ui)
-    self._ui.AppendCSS(_CSS)
 
-  def DiagnoseBattery(self):
+  def runTest(self):
     success = False
+    msg = ''
     wearAllowedPct = self.args.percent_battery_wear_allowed
     wearPct = None
     power = self._power
@@ -113,11 +107,4 @@ class SysfsBatteryTest(unittest.TestCase):
       testlog.AddArgument('temp', temp)
       testlog.AddArgument('battery_sysfs_info', power.GetInfoDict())
 
-    if success:
-      self._ui.Pass()
-    else:
-      self._ui.Fail('Battery self-diagnose failed: %s.' % msg)
-
-  def runTest(self):
-    self._ui.RunInBackground(target=self.DiagnoseBattery)
-    self._ui.Run()
+    self.assertTrue(success, msg)

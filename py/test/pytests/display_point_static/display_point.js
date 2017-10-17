@@ -6,12 +6,10 @@
 /**
  * API for display_point test.
  * @constructor
- * @param {string} container
  * @param {Array.<number>} arrayNumberPoint
  * @param {number} pointSize
  */
-var DisplayPointTest = function(container, arrayNumberPoint, pointSize) {
-  this.container = container;
+var DisplayPointTest = function(arrayNumberPoint, pointSize) {
   this.arrayNumberPoint = arrayNumberPoint;
   this.pointSize = pointSize;
   this.display = false;
@@ -40,7 +38,7 @@ DisplayPointTest.prototype.init = function() {
   var caption = document.createElement('div');
   caption.className = 'display-point-caption';
   caption.appendChild(cros.factory.i18n.i18nLabelNode(this.instruct));
-  $(this.container).appendChild(caption);
+  window.template.appendChild(caption);
 };
 
 /**
@@ -49,7 +47,7 @@ DisplayPointTest.prototype.init = function() {
 DisplayPointTest.prototype.initFullScreenElement = function() {
   this.fullScreenElement = document.createElement('div');
   this.fullScreenElement.className = 'display-full-screen-hide';
-  $(this.container).appendChild(this.fullScreenElement);
+  window.template.appendChild(this.fullScreenElement);
 };
 
 /**
@@ -180,13 +178,11 @@ DisplayPointTest.prototype.failTest = function(number) {
 
 /**
  * Creates a display point test and runs it.
- * @param {string} container
  * @param {Array.<number>} arrayNumberPoint
  * @param {number} pointSize
  */
-function setupDisplayPointTest(container, arrayNumberPoint, pointSize) {
-  window.displayPointTest = new DisplayPointTest(container, arrayNumberPoint,
-                                                 pointSize);
+function setupDisplayPointTest(arrayNumberPoint, pointSize) {
+  window.displayPointTest = new DisplayPointTest(arrayNumberPoint, pointSize);
   window.displayPointTest.init();
   window.displayPointTest.initFullScreenElement();
   window.displayPointTest.initDisplayDiv();

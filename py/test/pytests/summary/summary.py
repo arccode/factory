@@ -103,8 +103,8 @@ CSS = """
   overflow: auto;
 }
 
-#state.test-accessibility {
-  background-color: #F77;
+template-one-section.test-accessibility {
+  --template-background-color: #F77;
 }
 
 table {
@@ -269,8 +269,6 @@ class Report(unittest.TestCase):
 
     template.SetState(''.join(html))
     if self.args.accessibility and not all_pass:
-      ui.RunJS(
-          'document.getElementById("%s").classList.add("test-accessibility")' %
-          ui_templates.STATE_ID)
+      ui.RunJS('window.template.classList.add("test-accessibility")')
     logging.info('starting ui.Run with overall_status %r', overall_status)
     ui.Run()

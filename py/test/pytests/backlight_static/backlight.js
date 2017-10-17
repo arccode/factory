@@ -5,11 +5,8 @@
 /**
  * API for backlight test.
  * @constructor
- * @param {string} container
  */
-var BacklightTest = function(container) {
-  this.container = container;
-  var _ = cros.factory.i18n.translation;
+var BacklightTest = function() {
   this.instruct =
       _('Press Space to change backlight brightness;\n' +
         'Press Esc to reset backlight brightness to original;\n' +
@@ -26,8 +23,10 @@ var BacklightTest = function(container) {
  * There is a caption for instructions.
  */
 BacklightTest.prototype.init = function() {
-  $(this.container).appendChild(cros.factory.i18n.i18nLabelNode(this.instruct));
-  $(this.container).className = 'backlight-caption';
+  var div = document.createElement('div');
+  div.className = 'backlight-caption';
+  div.appendChild(cros.factory.i18n.i18nLabelNode(this.instruct));
+  window.template.appendChild(div);
 };
 
 

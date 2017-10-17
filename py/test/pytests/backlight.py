@@ -66,7 +66,7 @@ class BacklightTest(unittest.TestCase):
     self.index = 0
     self.current_level = 0
     self.ResetBrightness()
-    self.ui.CallJSFunction('setupBacklightTest', ui_templates.STATE_ID)
+    self.ui.CallJSFunction('setupBacklightTest')
 
   def tearDown(self):
     self.ResetBrightness()

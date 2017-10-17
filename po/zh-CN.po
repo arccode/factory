@@ -1002,13 +1002,11 @@ msgstr "测项名称"
 msgid "Test Arguments"
 msgstr "测项参数"
 
-#: ../py/goofy/static/ui_templates/template_one_scrollable_section.html
-#: ../py/goofy/static/ui_templates/template_one_section.html
-#: ../py/goofy/static/ui_templates/template_two_sections.html
+#: ../py/goofy/static/ui_templates/templates.html
 msgid "Mark Failed"
 msgstr "标记失败"
 
-#: ../py/goofy/static/ui_templates/template_two_sections.html
+#: ../py/goofy/static/ui_templates/templates.html
 msgid "Test Progress:"
 msgstr "测试进度:"
 

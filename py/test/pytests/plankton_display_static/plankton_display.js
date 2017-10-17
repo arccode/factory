@@ -5,10 +5,8 @@
 /**
  * API for display test.
  * @constructor
- * @param {string} container
  */
-var DisplayTest = function(container) {
-  this.container = container;
+var DisplayTest = function() {
   this.display = false;
   this.styleDiv = null;
   this.fullScreenElement = null;
@@ -18,8 +16,8 @@ var DisplayTest = function(container) {
  * Creates a display test and runs it.
  * @param {string} container
  */
-function setupDisplayTest(container) {
-  window.displayTest = new DisplayTest(container);
+function setupDisplayTest() {
+  window.displayTest = new DisplayTest();
   window.displayTest.setupFullScreenElement();
   window.displayTest.setupDisplayDiv();
   window.displayTest.setDisplayDivClass();
@@ -31,7 +29,7 @@ function setupDisplayTest(container) {
 DisplayTest.prototype.setupFullScreenElement = function() {
   this.fullScreenElement = document.createElement('div');
   this.fullScreenElement.className = 'display-full-screen-hide';
-  $(this.container).appendChild(this.fullScreenElement);
+  window.template.appendChild(this.fullScreenElement);
 };
 
 /**

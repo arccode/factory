@@ -81,7 +81,7 @@ _TABLE_CSS = '''
   padding-right: 20px;
 }
 
-#state {
+template-two-sections > :not([slot]) {
   font-size: 1.5em;
 }
 '''

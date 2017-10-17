@@ -63,7 +63,7 @@ from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sys_utils
 
-_CSS = '#state { text-align: left; }'
+_CSS = 'template-one-section { text-align: left; }'
 
 TRUNKS_SEND = '/usr/sbin/trunks_send'
 FIRMWARE_RELATIVE_PATH = 'opt/google/cr50/firmware/cr50.bin.prod'
@@ -81,9 +81,8 @@ class UpdateCr50FirmwareTest(unittest.TestCase):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self._ui = test_ui.UI()
+    self._ui = test_ui.UI(css=_CSS)
     self._template = ui_templates.OneScrollableSection(self._ui)
-    self._ui.AppendCSS(_CSS)
 
   def UpdateCr50Firmware(self):
     """Update Cr50 firmware."""

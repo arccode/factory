@@ -81,7 +81,7 @@ from cros.factory.utils import process_utils
 
 _FIRMWARE_UPDATER_NAME = 'chromeos-firmwareupdate'
 
-_CSS = '#state {text-align:left;}'
+_CSS = 'template-one-section { text-align: left; }'
 
 
 class UpdateFirmwareTest(unittest.TestCase):
@@ -100,9 +100,8 @@ class UpdateFirmwareTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self._ui = test_ui.UI()
+    self._ui = test_ui.UI(css=_CSS)
     self._template = ui_templates.OneScrollableSection(self._ui)
-    self._ui.AppendCSS(_CSS)
 
     self._dut = device_utils.CreateDUTInterface()
 

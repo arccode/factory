@@ -107,7 +107,7 @@ class PlanktonDisplayTest(unittest.TestCase):
         '<div id="%s"></div>' % _ID_CONTAINER)
 
 
-    self._ui.CallJSFunction('setupDisplayTest', ui_templates.STATE_ID)
+    self._ui.CallJSFunction('setupDisplayTest')
 
     self._total_tests = 0
     self._finished_tests = 0

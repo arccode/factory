@@ -3,14 +3,6 @@
 # found in the LICENSE file.
 
 import logging
-import os
-
-import factory_common  # pylint: disable=unused-import
-from cros.factory.test.env import paths
-from cros.factory.utils import file_utils
-
-
-STATE_ID = 'state'
 
 
 class Option(object):
@@ -129,22 +121,15 @@ class Table(object):
 class BaseTemplate(object):
   """Base class for test UI template."""
 
-  def __init__(self, ui, template_name):
+  def __init__(self, ui, template_name, extra_classes=''):
     self._ui = ui
 
-    template_base = os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR,
-                                 'goofy/static/ui_templates')
-    html_file = os.path.join(template_base, template_name + '.html')
-    assert os.path.exists(html_file), (
-        'Template %s does not exist.' % template_name)
+    extra_attrs = ''
+    if extra_classes:
+      extra_attrs = ' class="%s"' % extra_classes
 
-    # Load template HTML
-    self._ui.SetHTML(file_utils.ReadFile(html_file))
-
-    # Load template JS if it exists
-    js_file = os.path.join(template_base, template_name + '.js')
-    if os.path.exists(js_file):
-      self._ui.RunJS(file_utils.ReadFile(js_file))
+    self._ui.SetHTML('<{tag}{extra_attrs}></{tag}>'.format(
+        tag=template_name.replace('_', '-'), extra_attrs=extra_attrs))
 
   def SetTitle(self, html):
     """Sets the title of the test UI.
@@ -152,7 +137,16 @@ class BaseTemplate(object):
     Args:
       html: The html content to write.
     """
-    self._ui.SetHTML(html, id='title')
+    self._ui.CallJSFunction('window.template.setTitle', html)
+
+  def SetState(self, html, append=False):
+    """Sets the state section in the test UI.
+
+    Args:
+      html: The html to write.
+      append: Append html at the end.
+    """
+    self._ui.CallJSFunction('window.template.setState', html, append)
 
 
 class OneSection(BaseTemplate):
@@ -171,19 +165,11 @@ class OneSection(BaseTemplate):
   def __init__(self, ui):
     super(OneSection, self).__init__(ui, 'template_one_section')
 
-  def SetState(self, html, append=False):
-    """Sets the state section in the test UI.
-
-    Args:
-      html: The html to write."""
-    self._ui.SetHTML(html, append=append, id=STATE_ID)
-
 
 class OneScrollableSection(BaseTemplate):
   """Like OneSection, but is used to show more info.
 
-  Instead of central-aligned state window, it shows state in a scrollable
-  element and state is left-aligned.
+  It shows state in a scrollable element and state is left-aligned.
 
   This template provides the following sections:
 
@@ -192,22 +178,8 @@ class OneScrollableSection(BaseTemplate):
   """
 
   def __init__(self, ui):
-    super(OneScrollableSection, self).__init__(
-        ui, 'template_one_scrollable_section')
-
-  def SetState(self, html, append=False, scroll_down=False):
-    """Sets the state section in the test UI.
-
-    Args:
-      html: The html to write.
-      append: Append html at the end.
-      scroll_down: Scroll down if needed.
-    """
-    self._ui.SetHTML(html, append=append, id=STATE_ID)
-    if scroll_down:
-      self._ui.RunJS(
-          'var s = document.getElementById("%s");'
-          's.scrollTop = s.scrollHeight;' % STATE_ID)
+    super(OneScrollableSection, self).__init__(ui, 'template_one_section',
+                                               'scrollable')
 
 
 class TwoSections(BaseTemplate):
@@ -231,21 +203,13 @@ class TwoSections(BaseTemplate):
   def __init__(self, ui):
     super(TwoSections, self).__init__(ui, 'template_two_sections')
 
-  def SetInstruction(self, html, append=False):
+  def SetInstruction(self, html):
     """Sets the instruction to operator.
 
     Args:
       html: The html content to write.
     """
-    self._ui.SetHTML(html, append=append, id='instruction')
-
-  def SetState(self, html, append=False):
-    """Sets the state section in the test UI.
-
-    Args:
-      html: The html to write.
-    """
-    self._ui.SetHTML(html, append=append, id=STATE_ID)
+    self._ui.CallJSFunction('window.template.setInstruction', html)
 
   def DrawProgressBar(self):
     """Draw the progress bar and set it visible on the Chrome test UI.
@@ -253,7 +217,7 @@ class TwoSections(BaseTemplate):
     Best practice is that if the operator needs to wait more than 5 seconds,
     we should show the progress bar to indicate test progress.
     """
-    self._ui.CallJSFunction('DrawProgressBar')
+    self._ui.CallJSFunction('window.template.drawProgressBar')
 
   def SetProgressBarValue(self, value):
     """Set the value of the progress bar.
@@ -261,7 +225,7 @@ class TwoSections(BaseTemplate):
     Args:
       value: A value between 0 and 100 to indicate test progress.
     """
-    self._ui.CallJSFunction('SetProgressBarValue', value)
+    self._ui.CallJSFunction('window.template.setProgressBarValue', value)
 
 
 class DummyTemplate(object):
