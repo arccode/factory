@@ -163,13 +163,19 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
         print >> f, '\nectool version:'
         f.flush()
         Spawn(['ectool', 'version'], stdout=f, check_call=True)
+      files += ['crossystem']
 
     with open(os.path.join(tmp, 'dmesg'), 'w') as f:
       Spawn('dmesg', stdout=f, check_call=True)
+      files += ['dmesg']
 
     with open(os.path.join(tmp, 'mosys_eventlog'), 'w') as f:
-      Spawn(['mosys', 'eventlog', 'list'],
-            stdout=f, stderr=f, call=True)
+      Spawn(['mosys', 'eventlog', 'list'], stdout=f, stderr=f, call=True)
+      files += ['mosys_eventlog']
+
+    with open(os.path.join(tmp, 'audio_diagnostics'), 'w') as f:
+      Spawn('audio_diagnostics', stdout=f, stderr=f, call=True)
+      files += 'audio_diagnostics'
 
     if has_ec:
       with open(os.path.join(tmp, 'ec_console'), 'w') as f:
@@ -177,7 +183,7 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
               stdout=f, stderr=f, call=True)
       files += ['ec_console']
 
-    files += ['crossystem', 'dmesg', 'mosys_eventlog'] + sum(
+    files += sum(
         [glob(x) for x in [
             os.path.join(var, 'log'),
             os.path.join(var, 'factory'),
