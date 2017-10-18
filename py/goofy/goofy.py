@@ -439,7 +439,7 @@ class Goofy(object):
 
     if is_unexpected_shutdown:
       logging.warning("Unexpected shutdown.")
-      self.hooks.OnUnexpectedReboot()
+      self.hooks.OnUnexpectedReboot(self)
 
     if self.test_list.options.read_device_data_from_vpd_on_init:
       vpd_data = {}
@@ -974,6 +974,9 @@ class Goofy(object):
     except Exception:
       logging.debug('Failed to update status monitor plugin.')
 
+  def set_force_auto_run(self):
+    self.state_instance.set_shared_data(TESTS_AFTER_SHUTDOWN, FORCE_AUTO_RUN)
+
   def update_factory(self, auto_run_on_restart=False, post_update_hook=None):
     """Commences updating factory software.
 
@@ -991,8 +994,7 @@ class Goofy(object):
 
     def pre_update_hook():
       if auto_run_on_restart:
-        self.state_instance.set_shared_data(TESTS_AFTER_SHUTDOWN,
-                                            FORCE_AUTO_RUN)
+        self.set_force_auto_run()
       self.state_instance.close()
 
     if updater.TryUpdate(pre_update_hook=pre_update_hook):

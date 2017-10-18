@@ -6,7 +6,7 @@
 import logging
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.device import device_utils
+from cros.factory.test.state import TestState
 from cros.factory.utils import sys_utils
 
 
@@ -61,9 +61,21 @@ class Hooks(object):
     """
     logging.info('Goofy hook event: %s%r%r', event_name, args, kargs)
 
-  def OnUnexpectedReboot(self):
+  def OnUnexpectedReboot(self, goofy_instance):
     """Callback invoked after the device experiences an unexpected reboot."""
-    logging.info(sys_utils.GetStartupMessages(
-        device_utils.CreateDUTInterface()))
+    logging.info(sys_utils.GetStartupMessages(goofy_instance.dut))
 
 
+class StationTestListHooks(Hooks):
+  """Sample for station based test lists."""
+  def OnUnexpectedReboot(self, goofy_instance):
+    super(StationTestListHooks, self).OnUnexpectedReboot(goofy_instance)
+
+    # This is a test stations, when the station reboots unexpectedly, we should
+    # restart from the beginning.  We cannot call
+    # ``goofy_instance.schedule_restart()`` or
+    # ``goofy_instance.restart_tests()`` because this function is called before
+    # goofy starts running tests.
+    for test in goofy_instance.test_list.Walk():
+      test.UpdateState(status=TestState.UNTESTED)
+    goofy_instance.set_force_auto_run()
