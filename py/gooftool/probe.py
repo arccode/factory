@@ -692,7 +692,7 @@ class _TouchpadData(_TouchInputData):
       return Obj(ident_str=model, fw_version=firmware)
 
     def SynapticsByName():
-      return cls.SynapticsInput(r'^SYNA.*', ['fw_version'])
+      return cls.SynapticsInput(r'^SYNA.*|^PNP0C50.*', ['fw_version'])
 
     return SynapticsSyndetect() or SynapticsByName()
 
