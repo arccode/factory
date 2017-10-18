@@ -4,7 +4,6 @@
 # found in the LICENSE file.
 
 INIT_BASE="$(dirname "$(readlink -f "$0")")"
-GOOFY_ROLES=""
 
 # The request file contains the path to the factory toolkit. If this file
 # exists, and the path it points to also exists, the script will try to install
@@ -12,7 +11,7 @@ GOOFY_ROLES=""
 INSTALL_REQUEST_FILE="${INIT_BASE}/install"
 IS_PARALLEL=
 
-export INIT_BASE GOOFY_ROLES
+export INIT_BASE
 
 log() {
   echo "[$(date)] $*"
