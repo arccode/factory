@@ -97,7 +97,8 @@
             "parallel": {
               "enum": [true]
             }
-          }
+          },
+          "required": ["parallel"]
         }
       },
       "additionalProperties": false
