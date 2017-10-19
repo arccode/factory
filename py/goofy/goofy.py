@@ -270,6 +270,7 @@ class Goofy(GoofyBase):
         name='GoofyServer')
     self.goofy_server_thread.start()
 
+  def init_static_files(self):
     static_path = os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR, 'goofy/static')
     # Setup static file path
     self.goofy_server.RegisterPath('/', static_path)
@@ -1022,8 +1023,10 @@ class Goofy(GoofyBase):
     logging.info('Started')
 
     self.start_goofy_server()
-    self.init_state_instance()
+    # The i18n files need to be ready before index.html is loaded.
     self.init_i18n()
+    self.init_static_files()
+    self.init_state_instance()
     self.last_shutdown_time = (
         self.state_instance.get_shared_data('shutdown_time', optional=True))
     self.state_instance.del_shared_data('shutdown_time', optional=True)
