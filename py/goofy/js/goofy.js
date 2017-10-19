@@ -494,11 +494,20 @@ cros.factory.Invocation = class {
      * The iframe containing the test.
      * @type {!HTMLIFrameElement}
      */
-    this.iframe = goog.dom.iframe.createBlank(new goog.dom.DomHelper(document));
-
+    this.iframe = goog.asserts.assertInstanceof(
+        document.createElement('iframe'), HTMLIFrameElement);
+    this.iframe.src = '/ui_templates/default_test_ui.html';
     this.iframe.classList.add('goofy-test-iframe');
 
     this.goofy.addInvocationUI(this);
+
+    /**
+     * A promise that would be resolved after the test iframe is loaded.
+     * @type {!Promise}
+     */
+    this.loaded = new Promise((resolve) => {
+      this.iframe.onload = resolve;
+    });
 
     /**
      * Test API for the invocation.
@@ -2991,18 +3000,14 @@ cros.factory.Goofy = class {
       }
       case 'goofy:init_test_ui': {
         const message =
-            /** @type {{test: string, invocation: string, html: string}} */ (
-                untypedMessage);
+            /** @type {{test: string, invocation: string}} */ (untypedMessage);
         const invocation =
             this.createInvocation(message.test, message.invocation);
-        const doc = goog.asserts.assert(invocation.iframe.contentDocument);
-        doc.open();
-        doc.write(message.html);
-        doc.close();
-        invocation.iframe.onload = () => {
+
+        invocation.loaded.then(() => {
+          const doc = goog.asserts.assert(invocation.iframe.contentDocument);
           this.updateCSSClassesInDocument(doc);
-        };
-        this.testUIManager.onInitTestUI(invocation.path);
+        });
 
         goog.events.listen(
             invocation.iframe.contentWindow, goog.events.EventType.KEYDOWN,
@@ -3016,16 +3021,18 @@ cros.factory.Goofy = class {
          */ (untypedMessage);
         const invocation = this.invocations.get(message.invocation);
         if (invocation) {
-          const document = invocation.iframe.contentDocument;
-          const element =
-              message.id ? document.getElementById(message.id) : document.body;
-          if (element) {
-            if (message.append) {
-              element.innerHTML += message.html;
-            } else {
-              element.innerHTML = message.html;
+          invocation.loaded.then(() => {
+            const document = invocation.iframe.contentDocument;
+            const element = message.id ? document.getElementById(message.id) :
+                                         document.body;
+            if (element) {
+              if (message.append) {
+                element.innerHTML += message.html;
+              } else {
+                element.innerHTML = message.html;
+              }
             }
-          }
+          });
         }
         break;
       }
@@ -3035,15 +3042,17 @@ cros.factory.Goofy = class {
          */ (untypedMessage);
         const invocation = this.invocations.get(message.invocation);
         if (invocation) {
-          // We need to evaluate the code in the context of the content window,
-          // but we also need to give it a variable.  Stash it in the window and
-          // load it directly in the eval command.
-          invocation.iframe.contentWindow.__goofy_args = message.args;
-          invocation.iframe.contentWindow.eval(
-              `const args = window.__goofy_args; ${message.js}`);
-          if (invocation) {
-            delete invocation.iframe.contentWindow.__goofy_args;
-          }
+          invocation.loaded.then(() => {
+            // We need to evaluate the code in the context of the content
+            // window, but we also need to give it a variable.  Stash it in the
+            // window and load it directly in the eval command.
+            invocation.iframe.contentWindow.__goofy_args = message.args;
+            invocation.iframe.contentWindow.eval(
+                `const args = window.__goofy_args; ${message.js}`);
+            if (invocation) {
+              delete invocation.iframe.contentWindow.__goofy_args;
+            }
+          });
         }
         break;
       }

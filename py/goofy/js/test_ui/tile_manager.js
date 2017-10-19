@@ -161,7 +161,12 @@ cros.factory.testUI.TileManager = class {
         iframe.contentWindow.focus();
       }, 0);
     });
-    this._setFocusListener(title, iframe);
+    iframe.contentWindow.addEventListener('focus', () => {
+      title.classList.add('focused');
+    });
+    iframe.contentWindow.addEventListener('blur', () => {
+      title.classList.remove('focused');
+    });
 
     this._redraw();
   }
@@ -178,37 +183,6 @@ cros.factory.testUI.TileManager = class {
 
     this.callbacks.notifyTestVisible(path, false);
     this._redraw();
-  }
-
-  /**
-   * Called by Goofy after init_test_ui event, and the contentWindow of iframe
-   * is initialized.
-   * This is useful to add event listener on iframe contentWindow, since the
-   * init_test_ui event would reset the whole contentWindow.
-   * @param {string} path
-   */
-  onInitTestUI(path) {
-    const block = this.pathBlockMap[path];
-    const title = goog.asserts.assertElement(
-        block.getElementsByClassName('goofy-tile-title')[0]);
-    const iframe = goog.asserts.assertInstanceof(
-        block.getElementsByTagName('iframe')[0], HTMLIFrameElement);
-    this._setFocusListener(title, iframe);
-  }
-
-  /**
-   * Set onfocus listeners.
-   * @param {!Element} title
-   * @param {!HTMLIFrameElement} iframe
-   * @private
-   */
-  _setFocusListener(title, iframe) {
-    iframe.contentWindow.addEventListener('focus', () => {
-      title.classList.add('focused');
-    });
-    iframe.contentWindow.addEventListener('blur', () => {
-      title.classList.remove('focused');
-    });
   }
 
   /**

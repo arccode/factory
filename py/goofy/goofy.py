@@ -154,8 +154,6 @@ class Goofy(GoofyBase):
 
     self.test_list_manager = manager.Manager()
 
-    self._default_test_ui_html = None
-
     # TODO(hungte) Support controlling remote DUT.
     self.dut = device_utils.CreateDUTInterface()
 
@@ -274,10 +272,6 @@ class Goofy(GoofyBase):
     static_path = os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR, 'goofy/static')
     # Setup static file path
     self.goofy_server.RegisterPath('/', static_path)
-
-    default_test_ui_path = os.path.join(static_path,
-                                        'ui_templates/default_test_ui.html')
-    self._default_test_ui_html = file_utils.ReadFile(default_test_ui_path)
 
   def init_state_instance(self):
     # Before starting state server, remount stateful partitions with
@@ -588,7 +582,6 @@ class Goofy(GoofyBase):
       self.event_client.post_event(
           Event(
               Event.Type.INIT_TEST_UI,
-              html=self._default_test_ui_html,
               test=test.path,
               invocation=invoc.uuid))
       self.check_plugins()

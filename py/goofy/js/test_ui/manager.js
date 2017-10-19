@@ -48,15 +48,6 @@ cros.factory.testUI.Manager = class {
   removeTestUI(path) {}
 
   /**
-   * Called by Goofy after init_test_ui event, and the contentWindow of iframe
-   * is initialized.
-   * This is useful to add event listener on iframe contentWindow, since the
-   * init_test_ui event would reset the whole contentWindow.
-   * @param {string} path
-   */
-  onInitTestUI(path) {}
-
-  /**
    * Show a test.
    * @param {string} path
    */
