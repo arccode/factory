@@ -196,13 +196,14 @@ interaction_menu() {
   read choice
   case "$choice" in
     1 )
-      local host="$(sed -n 's"^CHROMEOS_DEVSERVER=http://\([^:]*\).*"\1"p' \
+      local host="$(sed -n 's"^CHROMEOS_DEVSERVER=http://\([^/]*\).*"\1"p' \
                     "$edit_file")"
-      echo "- Current mini-Omaha server host/IP: $host"
-      echo -n "Enter new mini-Omaha server host/IP: "
+      echo "- Current mini-Omaha server host address: $host"
+      echo -n "Enter new mini-Omaha server host address: "
       read ans
       [ -n "$ans" ] || return $FLAGS_TRUE
-      local new_url="http://$ans:8080/update"
+      [[ "$ans" == *':'* ]] || ans="${ans}:8080"
+      local new_url="http://$ans/update"
       replace_or_append "CHROMEOS_AUSERVER" "$new_url" "$edit_file"
       replace_or_append "CHROMEOS_DEVSERVER" "$new_url" "$edit_file"
       ;;
