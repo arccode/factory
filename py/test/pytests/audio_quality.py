@@ -146,12 +146,6 @@ class AudioQualityTest(unittest.TestCase):
     if self.args.audio_conf:
       self._dut.audio.LoadConfig(self.args.audio_conf)
 
-    # Devices Type check
-    if not isinstance(self.args.input_dev, tuple):
-      raise ValueError('input_dev type is incorrect, need tuple')
-    if not isinstance(self.args.output_dev, tuple):
-      raise ValueError('output_dev type is incorrect, need tuple')
-
     # Tansfer input and output device format
     self._in_card = self._dut.audio.GetCardIndexByName(self.args.input_dev[0])
     self._in_device = self.args.input_dev[1]
