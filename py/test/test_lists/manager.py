@@ -940,6 +940,7 @@ class Manager(object):
           path = self.loader.GetConfigPath(test_list_id)
           logging.exception('test list %s is invalid', path)
           failed_files[path] = sys.exc_info()
+          continue
       valid_test_lists[test_list_id] = test_list
 
     logging.debug('loaded test lists: %r', self.test_lists.keys())

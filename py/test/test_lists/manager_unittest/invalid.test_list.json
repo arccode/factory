@@ -1,0 +1,76 @@
+{
+  "inherit": [
+    "base.test_list"
+  ],
+  "label": "Invalid",
+  "constants": {
+    "component_list": [
+      "cpu",
+      "audio",
+      "flash_chip"
+    ],
+    "enable_factory_server": true,
+    "phase": "EVT",
+    "some_label": {
+      "en-US": "us",
+      "zh-CN": "cn"
+    },
+    "__comment_some_label": "real test list should use i18n! prefix instead.",
+    "timestamp": 1,
+    "__comment_timestamp": "this is used by testReloadConfig"
+  },
+  "options": {
+    "disable_cros_shortcut_keys": true,
+    "engineering_password_sha1": "dummy_password_sha1",
+    "sync_event_log_period_secs": 0,
+    "ui_locale": "zh-CN"
+  },
+  "definitions": {
+    "LEDTest": {
+      "pytest_name": "led",
+      "args": {
+        "colors": [
+          "RED",
+          "GREEN",
+          "BLUE"
+        ]
+      }
+    }
+  },
+  "tests": [
+    {
+      "id": "SMT",
+      "subtests": [
+        {
+          "inherit": "LEDTest",
+          "id": "FirstLEDTest"
+        },
+        {
+          "inherit": "LEDTest",
+          "id": "SecondLEDTest",
+          "args": {
+            "colors": [
+              "RED",
+              "GREEN"
+            ]
+          }
+        },
+        {
+          "pytest_name": "verify_components",
+          "args": {
+            "component_list": "eval! constants.component_list",
+            "enable_factory_server": "eval! constants.enable_factory_server"
+          }
+        },
+        {
+          "inherit": "HaltStep",
+          "id": "Halt",
+          "require_run": "all"
+        },
+        "LEDTest",
+        "LEDTest",
+        "NotDefined"
+      ]
+    }
+  ]
+}

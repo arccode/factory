@@ -117,8 +117,14 @@ class TestListLoaderTest(unittest.TestCase):
   def testListTestListIDs(self):
     self.assertItemsEqual(
         ['a', 'b', 'base', 'locals', 'override_args', 'flatten_group',
-         'skipped_waived_tests'],
+         'skipped_waived_tests', 'invalid'],
         self.loader.FindTestListIDs())
+
+  def testBuildAllTestLists(self):
+    test_lists, unused_error = self.manager.BuildAllTestLists()
+    self.assertItemsEqual(
+        ['a', 'b', 'locals', 'override_args', 'flatten_group',
+         'skipped_waived_tests'], test_lists)
 
   def testChildActionOnFailure(self):
     """Test if `child_action_on_failure` is properly propagated."""
