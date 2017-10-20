@@ -58,6 +58,13 @@
         ]
       }
     },
+    "ActivateRegCode": {
+      "inherit": "ShopfloorService",
+      "label": "Activate Registration Code",
+      "args": {
+        "method": "ActivateRegCode"
+      }
+    },
     "AllCheckPoint": {
       "inherit": "CheckPoint",
       "label": "Check Point for All Tests",

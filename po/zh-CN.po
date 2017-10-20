@@ -3069,6 +3069,10 @@ msgid "Set DeviceInfo"
 msgstr "设定机器资讯"
 
 #: ../py/test/test_lists/generic_common.test_list.json
+msgid "Activate Registration Code"
+msgstr "激活注册码(ECHO Code)"
+
+#: ../py/test/test_lists/generic_common.test_list.json
 msgid "Check Point for All Tests"
 msgstr "最终确认关卡"
 

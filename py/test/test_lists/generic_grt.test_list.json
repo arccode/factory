@@ -23,6 +23,7 @@
         "GRTItems",
         "CheckPoint",
         "GRTEnd",
+        "ActivateRegCode",
         "AllCheckPoint",
         "GRTFinalize"
       ]
