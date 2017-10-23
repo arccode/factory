@@ -11,7 +11,7 @@
       display: none;
     }
   ` + cros.factory.i18n.locales.map((locale) => `
-    :host-context(.goofy-locale-${locale}) > span.goofy-label-${locale} {
+    :host-context(.goofy-locale-${locale}) > span.${locale} {
       display: inline;
     }
   `).join('');
@@ -27,7 +27,16 @@
         for (const dom of this.shadowRoot.querySelectorAll('span')) {
           dom.remove();
         }
-        this.shadowRoot.appendChild(cros.factory.i18n.i18nLabelNode(text));
+        // We can't use cros.factory.i18n.i18nLabelNode here, since the
+        // JavaScript i18n API doesn't allow HTML tags in i18n label, but we
+        // allow HTML tags here.
+        const translation = cros.factory.i18n.translation(text);
+        for (const locale of cros.factory.i18n.locales) {
+          const span = document.createElement('span');
+          span.classList.add(locale);
+          span.innerHTML = translation[locale];
+          this.shadowRoot.appendChild(span);
+        }
       };
 
       const observer = new MutationObserver(callback);
