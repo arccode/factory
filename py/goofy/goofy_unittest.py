@@ -65,7 +65,6 @@ def mock_pytest(name, test_state, error_msg, func=None):
 class GoofyTest(unittest.TestCase):
   """Base class for Goofy test cases."""
   test_list = {}  # Overridden by subclasses
-  ui = 'none'
   mock_goofy_server = True
   mock_spawn_pytest = True
 
@@ -235,7 +234,6 @@ class GoofyTest(unittest.TestCase):
 
 
 class GoofyUITest(GoofyTest):
-  ui = 'chrome'
   mock_goofy_server = False
 
   def __init__(self, *args, **kwargs):

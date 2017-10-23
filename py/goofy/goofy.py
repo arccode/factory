@@ -221,7 +221,7 @@ class Goofy(GoofyBase):
       self.web_socket_manager = None
     if self.goofy_server_thread:
       logging.info('Stopping goofy server')
-      self.goofy_server.shutdown()
+      net_utils.ShutdownTCPServer(self.goofy_server)
       self.goofy_server_thread.join()
       self.goofy_server.server_close()
       self.goofy_server_thread = None
