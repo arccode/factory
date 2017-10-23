@@ -56,7 +56,7 @@ class DisplayPointTest(unittest.TestCase):
     self.ui.BindKey(test_ui.SPACE_KEY, self.OnSpacePressed)
     self.ui.BindKey(test_ui.ESCAPE_KEY, self.OnFailPressed)
     for num in range(1, self.args.max_point_count + 1):
-      self.ui.BindKeyJS(ord('0') + num, 'judgeSubTest(%d);' % num)
+      self.ui.BindKeyJS(str(num), 'judgeSubTest(%d);' % num)
     self.ui.Run()
 
   def OnSpacePressed(self, event):

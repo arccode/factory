@@ -190,19 +190,14 @@ cros.factory.PluginMenuReturnData;
  */
 cros.factory.PluginFrontendConfig;
 
-// Keycodes
-const ENTER_KEY = 13;
-const ESCAPE_KEY = 27;
-const SPACE_KEY = 32;
-
 /**
  * The i18n name of special keys.
- * @type {!Map<number, !cros.factory.i18n.TranslationDict>}
+ * @type {!Map<string, !cros.factory.i18n.TranslationDict>}
  */
 const KEY_NAME_MAP = new Map([
-  [ENTER_KEY, _('Enter')],
-  [ESCAPE_KEY, _('ESC')],
-  [SPACE_KEY, _('Space')]
+  ['ENTER', _('Enter')],
+  ['ESCAPE', _('ESC')],
+  [' ', _('Space')]
 ]);
 
 /**
@@ -220,8 +215,8 @@ cros.factory.Test = class {
     this.invocation = invocation;
 
     /**
-     * Map of char codes to handlers.
-     * @type {!Map<number, {callback: function(?goog.events.KeyEvent),
+     * Map of key values to handlers.
+     * @type {!Map<string, {callback: function(?goog.events.KeyEvent),
      *                      button: ?Element}>}
      * @private
      */
@@ -294,7 +289,7 @@ cros.factory.Test = class {
 
   /**
    * Binds a key to a handler.
-   * @param {number|string} key the key code or key name to bind.
+   * @param {string} key the key to bind.
    * @param {function(?goog.events.KeyEvent)} callback the function to call when
    *     the key is pressed.
    * @param {boolean=} once whether the callback should only be triggered once.
@@ -302,51 +297,50 @@ cros.factory.Test = class {
    * @export
    */
   bindKey(key, callback, once = false, virtual = true) {
+    key = key.toUpperCase();
     if (!this.keyListenerSet_) {
       // Set up the listener. We listen on KEYDOWN instead of KEYUP, so it won't
       // be accidentally triggered after a dialog is dismissed.
       goog.events.listen(
           this.invocation.iframe.contentWindow, goog.events.EventType.KEYDOWN,
           (/** !goog.events.KeyEvent */ event) => {
-            const handler = this.keyHandlers_.get(event.keyCode);
+            const handler = this.keyHandlers_.get(event.key.toUpperCase());
             if (handler) {
               handler.callback(event);
             }
           });
       this.keyListenerSet_ = true;
     }
-    const /** number */ keyCode =
-        goog.isString(key) ? key.toUpperCase().charCodeAt(0) : key;
     const handler = {};
     if (once) {
       handler.callback = (event) => {
         callback(event);
-        this.unbindKey(keyCode);
+        this.unbindKey(key);
       };
     } else {
       handler.callback = callback;
     }
     if (virtual) {
-      const button = this.addVirtualKey_(keyCode);
+      const button = this.addVirtualKey_(key);
       if (button) {
         handler.button = button;
       }
     }
-    this.keyHandlers_.set(keyCode, handler);
+    this.keyHandlers_.set(key, handler);
   }
 
   /**
    * Unbinds a key and removes its handler.
-   * @param {number|string} key the key code or key name to unbind.
+   * @param {string} key the key to unbind.
    * @export
    */
   unbindKey(key) {
-    const /** number */ keyCode = goog.isString(key) ? key.charCodeAt(0) : key;
-    const handler = this.keyHandlers_.get(keyCode);
+    key = key.toUpperCase();
+    const handler = this.keyHandlers_.get(key);
     if (handler && handler.button) {
       handler.button.remove();
     }
-    this.keyHandlers_.delete(keyCode);
+    this.keyHandlers_.delete(key);
   }
 
   /**
@@ -369,8 +363,8 @@ cros.factory.Test = class {
    * @export
    */
   bindStandardPassKeys() {
-    this.bindKey(ENTER_KEY, () => { this.pass(); });
-    for (const key of [SPACE_KEY, 'P']) {
+    this.bindKey('ENTER', () => { this.pass(); });
+    for (const key of [' ', 'P']) {
       this.bindKey(key, () => { this.pass(); }, false, false);
     }
   }
@@ -380,7 +374,7 @@ cros.factory.Test = class {
    * @export
    */
   bindStandardFailKeys() {
-    this.bindKey(ESCAPE_KEY, () => { this.userAbort(); });
+    this.bindKey('ESCAPE', () => { this.userAbort(); });
     this.bindKey('F', () => { this.userAbort(); }, false, false);
   }
 
@@ -424,31 +418,30 @@ cros.factory.Test = class {
 
   /**
    * Get the i18n name to be displayed for keyCode.
-   * @param {number} keyCode
+   * @param {string} key
    * @return {!cros.factory.i18n.TranslationDict}
    * @private
    */
-  getKeyName_(keyCode) {
-    return KEY_NAME_MAP.get(keyCode) ||
-        cros.factory.i18n.noTranslation(String.fromCharCode(keyCode));
+  getKeyName_(key) {
+    return KEY_NAME_MAP.get(key) || cros.factory.i18n.noTranslation(key);
   }
 
   /**
    * Add a virtualkey button, and return the button.
-   * @param {number} keyCode the keycode which handler should be triggered when
+   * @param {string} key the key name which handler should be triggered when
    *     clicking the button.
    * @return {?Element}
    * @private
    */
-  addVirtualKey_(keyCode) {
+  addVirtualKey_(key) {
     const template = this.invocation.iframe.contentWindow['template'];
     if (!template) {
       return null;
     }
-    const label = this.getKeyName_(keyCode);
+    const label = this.getKeyName_(key);
     const button = template.addButton(label);
     goog.events.listen(button, goog.events.EventType.CLICK, () => {
-      const handler = this.keyHandlers_.get(keyCode);
+      const handler = this.keyHandlers_.get(key);
       if (handler) {
         // Not a key event, passing null to callback.
         handler.callback(null);

@@ -24,10 +24,10 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 
-# Keycodes
-ENTER_KEY = 13
-ESCAPE_KEY = 27
-SPACE_KEY = 32
+# Key values
+ENTER_KEY = 'ENTER'
+ESCAPE_KEY = 'ESCAPE'
+SPACE_KEY = ' '
 
 
 def Escape(text, preserve_line_breaks=True):
