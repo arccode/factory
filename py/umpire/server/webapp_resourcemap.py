@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 #
-# pylint: disable=E1101
+# pylint: disable=no-member
 
 """Umpire resource map web application.
 
@@ -13,9 +13,10 @@ The class handles 'http://umpire_address:umpire_port/resourcemap' HTTP GET.
 
 import logging
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server import bundle_selector
 from cros.factory.umpire.server.web import wsgi
+from cros.factory.utils import type_utils
 
 
 _PATH_INFO = '/resourcemap'
@@ -40,7 +41,7 @@ class ResourceMapApp(object):
       resource_map = bundle_selector.GetResourceMap(dut_info, self.env)
       if resource_map is None:
         return session.BadRequest400()
-      return session.Respond(resource_map)
+      return session.Respond(type_utils.UnicodeToString(resource_map))
     return session.BadRequest400()
 
   def GetPathInfo(self):
