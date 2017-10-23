@@ -101,7 +101,7 @@ class CompassTest(unittest.TestCase):
   def _SetInstruction(self, direction):
     label = i18n_test_ui.MakeI18nLabel(
         'Put the DUT towards {direction}', direction=direction)
-    self._template.SetTitle(label)
+    self._template.SetInstruction(label)
 
   def _CalculateDirection(self, x, y):
     """Calculate the absolute direction of the compass in degree.
