@@ -1321,10 +1321,6 @@ msgstr "等待网路介面卡连接到 audio 置具"
 msgid "Ready for connection"
 msgstr "准备完成,等待链接"
 
-#: ../py/test/pytests/audio_quality.py
-msgid "Upload log"
-msgstr "上传记录档"
-
 #: ../py/test/pytests/backlight_static/backlight.js
 msgid ""
 "Press Space to change backlight brightness;\n"

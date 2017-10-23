@@ -42,13 +42,13 @@ Here is an example, assuming your audio device is ``<audio_device>``::
       "initial_actions": [["<audio_device>", "initial"]],
       "input_dev": ["<audio_device>", "1"],
       "output_dev": ["<audio_device>", "0"],
-      "use_shopfloor": true,
+      "enable_factory_server": true,
       "wav_file": "/usr/local/factory/third_party/SPK48k.wav"
     }
   }
 
-Set ``use_shopfloor`` to ``false`` if you don't want to upload files received by
-``send_file`` command.
+Set ``enable_factory_server`` to ``false`` if you don't want to download
+parameters from factory server.
 """
 
 from __future__ import print_function
@@ -119,7 +119,6 @@ _LABEL_REMOVE_ETHERNET = i18n_test_ui.MakeI18nLabel(
 _LABEL_WAITING_ETHERNET = i18n_test_ui.MakeI18nLabel(
     'Waiting for Ethernet connectivity to audio fixture')
 _LABEL_READY = i18n_test_ui.MakeI18nLabel('Ready for connection')
-_LABEL_UPLOAD_AUXLOG = i18n_test_ui.MakeI18nLabel('Upload log')
 _LABEL_FAIL_LOGS = 'Test fail, find more detail in log.'
 
 # Regular expression to match external commands.
@@ -252,7 +251,10 @@ class AudioQualityTest(unittest.TestCase):
     base = os.path.dirname(os.path.realpath(__file__))
     self._file_path = os.path.join(base, '..', '..', 'goofy', 'static',
                                    'sounds')
-    self._auxlogs = []
+
+    # /var/factory/tests/<TestID>-<UUID>/
+    self._test_dir = os.path.join(
+        paths.DATA_TESTS_DIR, session.GetCurrentTestPath())
 
     self._ui = test_ui.UI()
     self._ui.CallJSFunction('setMessage', _LABEL_SPACE_TO_START)
@@ -470,12 +472,16 @@ class AudioQualityTest(unittest.TestCase):
     logging.info('Received file %s with size %d', file_name, size)
     real_data = binascii.a2b_hex(received_data)
 
-    write_path = os.path.join(paths.DATA_LOG_DIR, 'aux', 'audio', file_name)
+    write_path = os.path.join(self._test_dir, file_name)
     file_utils.TryMakeDirs(os.path.dirname(write_path))
     session.console.info('save file: %s', write_path)
     with open(write_path, 'wb') as f:
       f.write(real_data)
-    self._auxlogs.append(write_path)
+
+    testlog.AttachFile(
+        path=write_path,
+        name=file_name,
+        mime_type='application/octet-stream')
 
     if self.DecompressZip(write_path, tempfile.gettempdir()):
       file_path = os.path.join(tempfile.gettempdir(), 'description.yaml')
@@ -497,12 +503,16 @@ class AudioQualityTest(unittest.TestCase):
     size = int(attr_list[2])
     received_data = attr_list[3].replace('\x00', ' ')
 
-    write_path = os.path.join(paths.DATA_LOG_DIR, 'aux', 'audio', file_name)
+    write_path = os.path.join(self._test_dir, file_name)
     file_utils.TryMakeDirs(os.path.dirname(write_path))
     session.console.info('save file: %s', write_path)
     with open(write_path, 'wb') as f:
       f.write(received_data)
-    self._auxlogs.append(write_path)
+
+    testlog.AttachFile(
+        path=write_path,
+        name=file_name,
+        mime_type='application/octet-stream')
 
     logging.info('Received file %s with size %d', file_name, size)
 
@@ -600,9 +610,6 @@ class AudioQualityTest(unittest.TestCase):
     """Handles test completion.
     Runs post test script before ends this test
     """
-    if self._enable_factory_server:
-      self.UploadAuxlog()
-
     self.SendResponse(None, args)
     self._test_complete = True
 
@@ -841,16 +848,6 @@ class AudioQualityTest(unittest.TestCase):
         break
       time.sleep(_CHECK_FIXTURE_COMPLETE_SECS)
 
-  def UploadAuxlog(self):
-    """Uploads files from DUT to factory server."""
-    session.console.info('Start uploading logs...')
-    self._ui.CallJSFunction('setMessage', _LABEL_UPLOAD_AUXLOG)
-    for log_file in self._auxlogs:
-      testlog.AttachFile(
-          path=log_file,
-          name=os.path.basename(log_file),
-          mime_type='application/octet-stream')
-
   def StartRun(self, event):
     """Runs the testing flow after user press 'space'.
 
@@ -865,8 +862,7 @@ class AudioQualityTest(unittest.TestCase):
       session.console.info('Test passed')
     else:
       if self._enable_factory_server:
-        session.console.info(
-            'Test failed. Force to flush event logs...')
+        session.console.info('Test failed. Force to flush event logs...')
         goofy_instance = state.get_instance()
         goofy_instance.FlushEventLogs()
       self._ui.Fail(_LABEL_FAIL_LOGS)
