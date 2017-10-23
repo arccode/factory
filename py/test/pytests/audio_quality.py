@@ -2,12 +2,54 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# DESCRIPTION :
-#
-# This test case is used to communicate with audio fixture and parse
-# the result of CLIO which is audio quality analysis software.
-# DUT will connect to 2 subnets, one is for factory server and the other is for
-# fixture.
+"""Audio Quality Test the use audio fixture.
+
+Description
+-----------
+This test case is used to communicate with audio fixture and parse
+the result of CLIO which is audio quality analysis software.
+DUT will connect to 2 subnets, one is for factory server and the other is for
+fixture.
+
+This pytest starts a socket server listening on port 8888 (can be overriden by
+argument ``network_setting``).  Third party fixture will connect to this port
+and communicate with this pytest in a speical protocol.  See
+``HandleConnection`` and ``setupLoopHandler`` for more details.
+
+The test flow is controlled by the third party fixture, this pytest is command
+driven, it does whatever third party fixture asks it to do.
+
+Test Procedure
+--------------
+This test does not require operator interaction.
+
+1. Connect DUT with fixture
+2. Press ``SPACE`` to start testing
+3. The test will judge PASS / FAIL result by itself
+
+Dependency
+----------
+No extra dependency.
+
+Examples
+--------
+Here is an example, assuming your audio device is ``<audio_device>``::
+
+  "AudioQuality": {
+    "label": "AudioQuality",
+    "pytest_name": "audio_quality",
+    "args": {
+      "initial_actions": [["<audio_device>", "initial"]],
+      "input_dev": ["<audio_device>", "1"],
+      "output_dev": ["<audio_device>", "0"],
+      "use_shopfloor": true,
+      "wav_file": "/usr/local/factory/third_party/SPK48k.wav"
+    }
+  }
+
+Set ``use_shopfloor`` to ``false`` if you don't want to upload files received by
+``send_file`` command.
+"""
 
 from __future__ import print_function
 
@@ -21,7 +63,6 @@ import tempfile
 import threading
 import time
 import unittest
-import xmlrpclib
 import zipfile
 
 import yaml
@@ -30,14 +71,14 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.goofy import goofy
 from cros.factory.test.env import paths
-from cros.factory.test import event_log
-from cros.factory.test import session
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import server_proxy
+from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test.utils import audio_utils
 from cros.factory.test.utils import time_utils
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
@@ -438,9 +479,10 @@ class AudioQualityTest(unittest.TestCase):
 
     if self.DecompressZip(write_path, tempfile.gettempdir()):
       file_path = os.path.join(tempfile.gettempdir(), 'description.yaml')
-      with open(file_path, 'r') as f:
-        test_result = yaml.load(f)
-      event_log.Log('audio_quality_result', **test_result)
+      testlog.AttachFile(
+          path=file_path,
+          name='audio_quality_result.yaml',
+          mime_type='text/plain')
 
     self.SendResponse(None, args)
 
@@ -507,17 +549,23 @@ class AudioQualityTest(unittest.TestCase):
 
       test_result = {}
       # Remarks:
-      # 1. cros.factory.test.event_log requires special format for key string
-      # 2. because the harmonic of some frequencies are not valid, we may
+      # 1. because the harmonic of some frequencies are not valid, we may
       #    have empty values in certain fields
-      # 3. The missing fields are always in the last columns
+      # 2. The missing fields are always in the last columns
       frequencies = dict((row[0], row[1:]) for row in table)
       test_result['frequencies'] = frequencies
       test_result['header_row'] = header_row
       test_result['serial_number'] = serial_number
       test_result['timestamp'] = timestamp
+      test_result['test_index'] = test_index
 
-      event_log.Log(('audio_quality_test_%s' % test_index), **test_result)
+      with file_utils.UnopenedTemporaryFile() as path:
+        with open(path, 'w') as f:
+          yaml.dump(test_result, f)
+        testlog.AddArgument(
+            path=path,
+            name='audio_quality_test_%s' % test_index,
+            mime_type='text/plain')
     elif match2:
       serial_number, timestamp = match2.groups()
 
@@ -526,7 +574,13 @@ class AudioQualityTest(unittest.TestCase):
       final_result['timestamp'] = timestamp
       final_result['data'] = received_data.replace('\r', '')
 
-      event_log.Log('audio_quality_final_result', **final_result)
+      with file_utils.UnopenedTemporaryFile() as path:
+        with open(path, 'w') as f:
+          yaml.dump(final_result, f)
+        testlog.AddArgument(
+            path=path,
+            name='audio_quality_final_result',
+            mime_type='text/plain')
     else:
       logging.info('Unrecognizable filename %s', file_name)
 
@@ -789,14 +843,13 @@ class AudioQualityTest(unittest.TestCase):
 
   def UploadAuxlog(self):
     """Uploads files from DUT to factory server."""
-    # TODO(chuntsen) Replace this by testlog.
     session.console.info('Start uploading logs...')
     self._ui.CallJSFunction('setMessage', _LABEL_UPLOAD_AUXLOG)
-    proxy = server_proxy.GetServerProxy()
     for log_file in self._auxlogs:
-      proxy.SaveAuxLog(
-          os.path.join('audio', os.path.basename(log_file)),
-          xmlrpclib.Binary(file_utils.ReadFile(log_file)))
+      testlog.AttachFile(
+          path=log_file,
+          name=os.path.basename(log_file),
+          mime_type='application/octet-stream')
 
   def StartRun(self, event):
     """Runs the testing flow after user press 'space'.
