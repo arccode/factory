@@ -93,11 +93,14 @@ class WriteDeviceDataToVPD(unittest.TestCase):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
+    self.ui = test_ui.UI()
+    self.template = ui_templates.OneSection(self.ui)
 
   def runTest(self):
-    ui = test_ui.UI()
-    template = ui_templates.OneSection(ui)
+    self.ui.RunInBackground(self._runTest)
+    self.ui.Run()
 
+  def _runTest(self):
     data = {
         'ro': {},
         'rw': {},
@@ -129,7 +132,7 @@ class WriteDeviceDataToVPD(unittest.TestCase):
       self.fail('Missing device data keys: %r' % sorted(missing_keys))
 
     for section, entries in data.iteritems():
-      template.SetState(_MSG_WRITING_VPD(section))
+      self.template.SetState(_MSG_WRITING_VPD(section))
       if not entries:
         continue
       # Normalize boolean and integer types to strings.
