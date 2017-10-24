@@ -217,6 +217,7 @@ class DRMModeConnector(DRMModeBaseStruct):
   DRM_MODE_CONNECTOR_eDP = 14
   DRM_MODE_CONNECTOR_VIRTUAL = 15
   DRM_MODE_CONNECTOR_DSI = 16
+  DRM_MODE_CONNECTOR_DPI = 17
 
   # We use the same connector names as in modetest.
   CONNECTOR_TYPE_NAMES = {
@@ -235,6 +236,9 @@ class DRMModeConnector(DRMModeBaseStruct):
       DRM_MODE_CONNECTOR_HDMIB: 'HDMI-B',
       DRM_MODE_CONNECTOR_TV: 'TV',
       DRM_MODE_CONNECTOR_eDP: 'eDP',
+      DRM_MODE_CONNECTOR_VIRTUAL: 'Virtual',
+      DRM_MODE_CONNECTOR_DSI: 'DSI',
+      DRM_MODE_CONNECTOR_DPI: 'DPI',
   }
 
   _fields_ = [
