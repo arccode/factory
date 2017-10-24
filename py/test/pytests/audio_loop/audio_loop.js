@@ -2,41 +2,42 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-var init = function(require_dongle, test_title) {
-  if (!require_dongle) {
-    document.getElementById('require_dongle').style.display = 'None';
+const init = (requireDongle, testTitle) => {
+  if (!requireDongle) {
+    document.getElementById('require_dongle').style.display = 'none';
   }
-  document.getElementById('test_title').innerHTML = test_title;
+  document.getElementById('test_title').innerHTML = testTitle;
 };
 
-var testInProgress = function(success_rate) {
-  var msgs = document.getElementById('message');
-  var _ = cros.factory.i18n.translation;
-  msgs.innerHTML = '';
-  if (success_rate != null) {
-    msgs.appendChild(
-        cros.factory.i18n.i18nLabelNode(cros.factory.i18n.stringFormat(
-            _('Loopback testing...\nSuccess Rate: {success_rate}'),
-              {'success_rate': success_rate})));
+const testInProgress = (successRate) => {
+  window.template.innerHTML = '';
+  if (successRate != null) {
+    window.template.appendChild(cros.factory.i18n.i18nLabelNode(
+        'Loopback testing...\nSuccess Rate: {successRate}', {successRate}));
   } else {
-    msgs.appendChild(
+    window.template.appendChild(
         cros.factory.i18n.i18nLabelNode('Loopback testing...'));
   }
 };
 
-var testFailResult = function(success_rate) {
-  var msgs = document.getElementById('message');
-  var _ = cros.factory.i18n.translation;
-  msgs.innerHTML = '';
-  msgs.appendChild(
-      cros.factory.i18n.i18nLabelNode(cros.factory.i18n.stringFormat(
-          _('Testing Result: Fail\nSuccess Rate: {success_rate}'),
-            {'success_rate': success_rate})));
+const testFailResult = (successRate) => {
+  window.template.innerHTML = '';
+  window.template.appendChild(cros.factory.i18n.i18nLabelNode(
+      'Testing Result: Fail\nSuccess Rate: {successRate}', {successRate}));
 };
 
-var testPassResult = function(success_rate) {
-  var msgs = document.getElementById('message');
-  msgs.innerHTML = '';
-  msgs.appendChild(
+const testPassResult = () => {
+  window.template.innerHTML = '';
+  window.template.appendChild(
       cros.factory.i18n.i18nLabelNode('Testing Result: Success!'));
 };
+
+const exports = {
+  init,
+  testInProgress,
+  testFailResult,
+  testPassResult
+};
+for (const key of Object.keys(exports)) {
+  window[key] = exports[key];
+}

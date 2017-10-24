@@ -121,16 +121,12 @@ import os
 import re
 import tempfile
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device.audio import base
 from cros.factory.device import device_utils
-from cros.factory.test import event as test_event
 from cros.factory.test import session
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import audio_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
@@ -174,24 +170,10 @@ _DEFAULT_SOX_AMPLITUDE_THRESHOLD = (None, None)
 # Default duration in seconds to trim in the beginning of recorded file.
 _DEFAULT_TRIM_SECONDS = 0.5
 
-_UI_HTML = ("""
-<h1 id="message" style="position:absolute; top:45%">
-<center style="font-size: 1.25em">
-    <div id="test_title">
-    </div>
-    <div id="require_dongle">
-""" + i18n_test_ui.MakeI18nLabel('Plug in audio jack dongle') + """
-    </div>
-    <br>
-""" + i18n_test_ui.MakeI18nLabel('Hit s to start loopback test') + """
-</center>
-</h1>
-""")
-
 MicSource = type_utils.Enum(['external', 'panel', 'mlb'])
 
 
-class AudioLoopTest(unittest.TestCase):
+class AudioLoopTest(test_ui.TestCaseWithUI):
   """Audio Loop test to test two kind of situations.
   1. Speaker to digital microphone.
   2. Headphone out to headphone in.
@@ -321,22 +303,18 @@ class AudioLoopTest(unittest.TestCase):
 
     self._current_test_args = None
 
-    # Setup HTML UI
-    self._ui = test_ui.UI()
-    self._ui_template = ui_templates.OneSection(self._ui)
-    self._ui_template.SetState(_UI_HTML)
-
     if self.args.check_cras:
       # Check cras status
       if self.args.cras_enabled:
         cras_status = 'start/running'
       else:
         cras_status = 'stop/waiting'
-      if cras_status not in self._dut.CallOutput(['status', 'cras']):
-        self._ui.Fail('cras status is wrong (expected status: %s). '
-                      'Please make sure that you have appropriate setting for '
-                      '"disable_services=[\'cras\']" in the test item.' %
-                      cras_status)
+      self.assertIn(
+          cras_status,
+          self._dut.CallOutput(['status', 'cras']),
+          'cras status is wrong (expected status: %s). '
+          'Please make sure that you have appropriate setting for '
+          '\'"disable_services": ["cras"]\' in the test item.' % cras_status)
     self._dut_temp_dir = self._dut.temp.mktemp(True, '', 'audio_loop')
 
   def tearDown(self):
@@ -346,16 +324,40 @@ class AudioLoopTest(unittest.TestCase):
   def runTest(self):
     # If autostart, JS triggers start_run_test event.
     # Otherwise, it binds start_run_test with 's' key pressed.
-    self._ui.CallJSFunction('init',
-                            self.args.require_dongle, self.args.test_title)
+    self.ui.CallJSFunction('init',
+                           self.args.require_dongle, self.args.test_title)
     if self.args.autostart:
-      self._ui.RunJS('document.getElementById("message").innerHTML = "";')
-      self._ui.AddEventHandler('start_run_test', self.StartRunTest)
-      self._ui.PostEvent(test_event.Event(test_event.Event.Type.TEST_UI_EVENT,
-                                          subtype='start_run_test'))
+      self.ui.RunJS('window.template.innerHTML = "";')
     else:
-      self._ui.BindKey('S', self.StartRunTest, once=True)
-    self._ui.Run()
+      self.ui.WaitKeysOnce('S')
+
+    self.CheckDongleStatus()
+    self.SetupAudio()
+
+    # Run each tests to conduct under each output volume candidate.
+    for self._output_volume_index, output_volume in enumerate(
+        self._output_volumes):
+      if self.args.require_dongle:
+        self._dut.audio.SetHeadphoneVolume(output_volume, self._out_card)
+      else:
+        self._dut.audio.SetSpeakerVolume(output_volume, self._out_card)
+
+      for test in self.args.tests_to_conduct:
+        self._current_test_args = test
+        if test['type'] == 'audiofun':
+          self.AudioFunTest()
+        elif test['type'] == 'sinewav':
+          self.SinewavTest()
+        elif test['type'] == 'noise':
+          self.NoiseTest()
+        else:
+          raise ValueError('Test type "%s" not supported.' % test['type'])
+
+      if self.MayPassTest():
+        return
+
+    self.FailTest()
+
 
   def AppendErrorMessage(self, error_message):
     """Sets the test result to fail and append a new error message."""
@@ -485,7 +487,7 @@ class AudioLoopTest(unittest.TestCase):
       rate_msg = ', '.join(
           'Mic %d: %.1f%%' %
           (channel, rate) for channel, rate in last_success_rate.viewitems())
-      self._ui.CallJSFunction('testInProgress', rate_msg)
+      self.ui.CallJSFunction('testInProgress', rate_msg)
 
     threshold = self._current_test_args.get(
         'threshold', _DEFAULT_AUDIOFUN_TEST_THRESHOLD)
@@ -493,7 +495,7 @@ class AudioLoopTest(unittest.TestCase):
       self.AppendErrorMessage(
           'For output device channel %s, the success rate is "'
           '%s", too low!' % (output_channel, rate_msg))
-      self._ui.CallJSFunction('testFailResult', rate_msg)
+      self.ui.CallJSFunction('testFailResult', rate_msg)
     time.sleep(1)
 
   def AudioFunTest(self):
@@ -559,13 +561,13 @@ class AudioLoopTest(unittest.TestCase):
       os.unlink(record_file_path)
 
   def SinewavTest(self):
-    self._ui.CallJSFunction('testInProgress', None)
+    self.ui.CallJSFunction('testInProgress', None)
 
     # Playback sine tone and check the recorded audio frequency.
     self.TestLoopbackChannel(audio_utils.DEFAULT_NUM_CHANNELS)
 
   def NoiseTest(self):
-    self._ui.CallJSFunction('testInProgress', None)
+    self.ui.CallJSFunction('testInProgress', None)
     # Record the noise file.
     duration = self._current_test_args.get(
         'duration', _DEFAULT_NOISE_TEST_DURATION)
@@ -651,9 +653,9 @@ class AudioLoopTest(unittest.TestCase):
                          self._output_volumes[self._output_volume_index],
                          self._test_results[self._output_volume_index])
     if self._test_results[self._output_volume_index]:
-      self._ui.CallJSFunction('testPassResult')
+      self.ui.CallJSFunction('testPassResult')
       time.sleep(0.5)
-      self._ui.Pass()
+      self.ui.Pass()
       return True
     return False
 
@@ -661,7 +663,7 @@ class AudioLoopTest(unittest.TestCase):
     """Fails test."""
     session.console.info('Test results for each output volumes: %r',
                          zip(self._output_volumes, self._test_results))
-    self._ui.Fail('; '.join(self._test_message))
+    self.ui.Fail('; '.join(self._test_message))
 
   def CheckDongleStatus(self):
     # When audio jack detection feature is ready on a platform, we can
@@ -715,32 +717,3 @@ class AudioLoopTest(unittest.TestCase):
       self._dut.audio.EnableDmic(self._in_card)
     elif self._mic_source == MicSource.mlb:
       self._dut.audio.EnableMLBDmic(self._in_card)
-
-  def StartRunTest(self, event):
-    del event  # Unused.
-    self.CheckDongleStatus()
-    self.SetupAudio()
-
-    # Run each tests to conduct under each output volume candidate.
-    for self._output_volume_index, output_volume in enumerate(
-        self._output_volumes):
-      if self.args.require_dongle:
-        self._dut.audio.SetHeadphoneVolume(output_volume, self._out_card)
-      else:
-        self._dut.audio.SetSpeakerVolume(output_volume, self._out_card)
-
-      for test in self.args.tests_to_conduct:
-        self._current_test_args = test
-        if test['type'] == 'audiofun':
-          self.AudioFunTest()
-        elif test['type'] == 'sinewav':
-          self.SinewavTest()
-        elif test['type'] == 'noise':
-          self.NoiseTest()
-        else:
-          raise ValueError('Test type "%s" not supported.' % test['type'])
-
-      if self.MayPassTest():
-        return
-
-    self.FailTest()

@@ -1227,13 +1227,21 @@ msgstr "输出设备"
 msgid "Input Nodes"
 msgstr "输入设备"
 
+#: ../py/test/pytests/audio_loop/audio_loop.html
+msgid "Plug in audio jack dongle"
+msgstr "请放入音源孔测试置具"
+
+#: ../py/test/pytests/audio_loop/audio_loop.html
+msgid "Hit s to start loopback test"
+msgstr "请按下s键开始音源回放测试"
+
 #: ../py/test/pytests/audio_loop/audio_loop.js
 msgid ""
 "Loopback testing...\n"
-"Success Rate: {success_rate}"
+"Success Rate: {successRate}"
 msgstr ""
 "音源回放测试中...\n"
-"成功率: {success_rate}"
+"成功率: {successRate}"
 
 #: ../py/test/pytests/audio_loop/audio_loop.js
 msgid "Loopback testing..."
@@ -1242,22 +1250,14 @@ msgstr "音源回放测试中..."
 #: ../py/test/pytests/audio_loop/audio_loop.js
 msgid ""
 "Testing Result: Fail\n"
-"Success Rate: {success_rate}"
+"Success Rate: {successRate}"
 msgstr ""
 "测试结果: 失败\n"
-"成功率: {success_rate}"
+"成功率: {successRate}"
 
 #: ../py/test/pytests/audio_loop/audio_loop.js
 msgid "Testing Result: Success!"
 msgstr "测试结果: 成功!"
-
-#: ../py/test/pytests/audio_loop/audio_loop.py
-msgid "Plug in audio jack dongle"
-msgstr "请放入音源孔测试置具"
-
-#: ../py/test/pytests/audio_loop/audio_loop.py
-msgid "Hit s to start loopback test"
-msgstr "请按下s键开始音源回放测试"
 
 #: ../py/test/pytests/audio_quality.py
 msgid "Press 'Space' to start test"
