@@ -464,6 +464,11 @@ class TestInvocation(object):
           sys.stderr.write('%s> %s' % (self.test.path.encode('utf-8'), line))
 
         self._process.wait()
+        # Try to kill all subprocess created by the test.
+        try:
+          os.kill(-self._process.pid, signal.SIGKILL)
+        except OSError:
+          pass
         with self._lock:
           if self._aborted:
             return TestState.FAILED, self._aborted_message()
@@ -901,6 +906,7 @@ def main():
   env, info = pickle.load(sys.stdin)
   if not env:
     sys.exit(0)
+  os.setpgrp()
   os.environ.update(env)
 
   log_utils.InitLogging(info.path)
