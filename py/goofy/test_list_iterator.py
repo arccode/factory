@@ -382,6 +382,10 @@ class TestListIterator(object):
     return self.RETURN_CODE.CONTINUE, None
 
   def OnLeave(self):
+    # Before we leave current frame, if this is a group, we need to compute
+    # overall status again.
+    test = self._GetTestFromFrame(self.Top())
+    test.UpdateStatusFromChildren()
     return self.RETURN_CODE.POP_FRAME, None
 
   ####################

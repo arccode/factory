@@ -480,6 +480,42 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         # since tests will be reset to UNTESTED, so untested must be included
         status_filter=[state.TestState.FAILED, state.TestState.UNTESTED])
 
+  def testSkippedAndRerun(self):
+    test_list = self._BuildTestList(
+        {
+            'options': {
+                'phase': 'PROTO',
+                'skipped_tests': {'PROTO': ['G.a']},
+            },
+            'tests': [
+                {'inherit': 'TestGroup', 'id': 'G', 'subtests': [
+                    {'id': 'a', 'pytest_name': 'a'},
+                ]},
+            ]
+        })
+    test_list = self._SetStubStateInstance(test_list)
+    test_list.SetSkippedAndWaivedTests()
+    self._AssertTestSequence(
+        test_list,
+        [],
+        set_state=False,
+        # status_filter used by "PLAY" button.
+        status_filter=['UNTESTED', 'ACTIVE', 'FAILED', 'FAILED_AND_WAIVED'])
+    self.assertEqual(test_list.LookupPath('G').GetState().status,
+                     state.TestState.SKIPPED)
+    # Rerun tests, test groups should first be reset to untested and try to find
+    # subtests to run.  When we leave the test group, we should compute overall
+    # test status again.  Therefore, nothing should be run, and the test status
+    # of 'G' should still be 'SKIPPED'
+    self._AssertTestSequence(
+        test_list,
+        [],
+        set_state=False,
+        # status_filter used by "PLAY" button.
+        status_filter=['UNTESTED', 'ACTIVE', 'FAILED', 'FAILED_AND_WAIVED'])
+    self.assertEqual(test_list.LookupPath('G').GetState().status,
+                     state.TestState.SKIPPED)
+
   def testRunIfCannotSkipParent(self):
     """Make sure we cannot skip a parent test.
 
