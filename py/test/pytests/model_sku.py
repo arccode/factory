@@ -6,11 +6,17 @@
 
 Description
 -----------
-A test to ask OP to confirm SKU information manually, then apply SKU or model
-specific settings.
+A test to confirm SKU information, then apply SKU or model specific settings.
+And there are two modes:
+  1. manually ask to operator to confirm SKU information.
+  2. automatically compare SKU information with device data - component.sku.
+If device data - component.sku is set then this test will go to automatic mode
+or manual mode will be executed.
 
 This is a test to verify hardware root of trust, so there's no options to
-set auto verification for this test.
+set auto verification for this test. Instead, either it relies on the operator
+to check manually or compares with device data from shopfloor which would need
+to be configured in advance.
 
 After the SKU is confirmed, the test will load a JSON configuration specified by
 ``config_name``. The config should be a dictionary containing what device data
@@ -67,6 +73,7 @@ from cros.factory.test import ui_templates
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import config_utils
+from cros.factory.utils import type_utils
 
 
 _TABLE_CSS = '''
@@ -86,6 +93,9 @@ template-two-sections > :not([slot]) {
 }
 '''
 
+_KEY_COMPONENT_SKU = device_data.JoinKeys(device_data.KEY_COMPONENT, 'sku')
+
+_MOSYS_ARGS = ['model', 'sku', 'chassis', 'brand']
 
 class PlatformSKUModelTest(unittest.TestCase):
   """A test to confirm and set SKU and model information."""
@@ -115,11 +125,10 @@ class PlatformSKUModelTest(unittest.TestCase):
 
   def OnEnter(self, unused_event):
     del unused_event  # Not used.
-    logging.error('on enter')
     self.ApplyConfig()
     self._ui.Pass()
 
-  def runTest(self):
+  def CheckByOperator(self):
     self._template.SetInstruction(
         i18n_test_ui.MakeI18nLabel('Please confirm following values'))
 
@@ -127,22 +136,44 @@ class PlatformSKUModelTest(unittest.TestCase):
     self._ui.BindKey(test_ui.ESCAPE_KEY,
                      lambda _: self._ui.Fail('Failed by operator'))
 
-    mosys_args = ['model', 'sku', 'chassis', 'brand']
-    table = ui_templates.Table(rows=len(mosys_args) + 1, cols=2,
+    table = ui_templates.Table(rows=len(_MOSYS_ARGS) + 1, cols=2,
                                element_id='mosys_table')
     table.SetContent(0, 0, '<strong>Key</strong>')
     table.SetContent(0, 1, '<strong>Value</strong>')
-    for i, arg in enumerate(mosys_args, 1):
-      output = self._dut.CallOutput(['mosys', 'platform', arg])
-      if output is None:
-        output = 'N/A'
-      self._platform[arg] = output.strip()
-
+    for i, arg in enumerate(_MOSYS_ARGS, 1):
       table.SetContent(i, 0, arg)
-      table.SetContent(i, 1, output)
+      table.SetContent(
+          i, 1, self._platform[arg] if self._platform[arg] != None else 'N/A')
 
     self._template.SetState(
         table.GenerateHTML() + '<br/>' + test_ui.PASS_FAIL_KEY_LABEL)
 
     self._ui.Run()
 
+  def CheckByDeviceData(self):
+    value = device_data.GetDeviceData(_KEY_COMPONENT_SKU)
+    if value is None:
+      return False
+
+    if str(value) != self._platform['sku']:
+      raise type_utils.TestFailure(
+          'Value [%s] from "mosys platform sku" does not match '
+          'device data [%s]' % (self._platform['sku'], value))
+
+    self.ApplyConfig()
+    return True
+
+  def GetPlatformData(self):
+    for arg in _MOSYS_ARGS:
+      output = self._dut.CallOutput(['mosys', 'platform', arg])
+      if output is not None:
+        output = output.strip()
+      self._platform[arg] = output
+
+  def runTest(self):
+    self.GetPlatformData()
+
+    if self.CheckByDeviceData():
+      return
+
+    self.CheckByOperator()
