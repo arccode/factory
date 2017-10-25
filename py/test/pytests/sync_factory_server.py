@@ -210,7 +210,7 @@ class SyncFactoryServer(unittest.TestCase):
     self.ui = test_ui.UI()
     self.ui_template = ui_templates.TwoSections(self.ui)
     self.server = None
-    self.do_setup_url = False
+    self.do_setup_url = threading.Event()
     self.allow_edit_url = True
     self.event_url_set = threading.Event()
     self.goofy = state.get_instance()
@@ -235,17 +235,17 @@ class SyncFactoryServer(unittest.TestCase):
 
   def OnButtonSetClicked(self, event):
     self.ChangeServerURL(event.data)
-    self.do_setup_url = False
+    self.do_setup_url.clear()
     self.event_url_set.set()
 
   def OnButtonCancelClicked(self, event):
     del event  # Unused.
-    self.do_setup_url = False
+    self.do_setup_url.clear()
     self.event_url_set.set()
 
   def OnButtonEditClicked(self, event):
     del event  # Unused.
-    self.do_setup_url = True
+    self.do_setup_url.set()
     self.ui.SetHTML(
         i18n_test_ui.MakeI18nLabel('Please wait few seconds to edit...'),
         id=ID_BUTTON_EDIT_URL)
@@ -274,7 +274,7 @@ class SyncFactoryServer(unittest.TestCase):
             'window.test.sendTestEvent("%s")' % EVENT_CANCEL_SET_URL))
 
   def Ping(self):
-    if self.do_setup_url:
+    if self.do_setup_url.is_set():
       self.event_url_set.clear()
       self.EditServerURL()
       self.event_url_set.wait()
@@ -285,7 +285,7 @@ class SyncFactoryServer(unittest.TestCase):
     self.server = server_proxy.GetServerProxy(
         timeout=self.args.timeout_secs, quiet=True)
 
-    if self.do_setup_url:
+    if self.do_setup_url.is_set():
       raise Exception('Edit URL clicked.')
 
     self.ui_template.SetState(
@@ -309,7 +309,7 @@ class SyncFactoryServer(unittest.TestCase):
     self.ui_template.SetInstruction(
         i18n_test_ui.MakeI18nLabel('Server URL: ') + server_url)
     if not server_url:
-      self.do_setup_url = True
+      self.do_setup_url.set()
 
   def FlushTestlog(self):
     # TODO(hungte) goofy.FlushTestlog should reload factory_server_url.
@@ -424,6 +424,7 @@ class SyncFactoryServer(unittest.TestCase):
             + test_ui.Escape(message, False) + '</textarea>')
 
         for i in xrange(retry_secs):
-          time.sleep(1)
+          if self.do_setup_url.wait(1):
+            break
           self.ui.SetHTML(msg(retry_secs - i - 1, label), id='retry')
         retry_secs = min(2 * retry_secs, self.args.retry_secs)
