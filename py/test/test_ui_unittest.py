@@ -29,6 +29,7 @@ class TestUIUnittest(unittest.TestCase):
 
     os.environ[session.ENV_TEST_PATH] = self.test_path
     os.environ[session.ENV_TEST_INVOCATION] = self.invocation
+    os.environ[session.ENV_TEST_FILE_PATH] = __file__
 
     self.event_client_patcher = mock.patch.object(event, 'BlockingEventClient',
                                                   autospec=True)

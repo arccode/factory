@@ -24,6 +24,7 @@ from cros.factory.utils import type_utils
 ENV_TEST_PATH = 'CROS_FACTORY_TEST_PATH'
 ENV_TEST_INVOCATION = 'CROS_FACTORY_TEST_INVOCATION'
 ENV_TEST_METADATA = 'CROS_FACTORY_TEST_METADATA'
+ENV_TEST_FILE_PATH = 'CROS_FACTORY_TEST_FILE_PATH'
 
 LOG_ROOT = paths.DATA_LOG_DIR
 
@@ -137,9 +138,19 @@ def GetCurrentTestInvocation():
   """Returns the invocation UUID of current running test, if any.
 
   This function may be cached because each invocation process should not have
-  test path changed during execution.
+  test invocation changed during execution.
   """
   return os.environ.get(ENV_TEST_INVOCATION)
+
+
+@type_utils.CachedGetter
+def GetCurrentTestFilePath():
+  """Returns the file path of the currently executing test, if any.
+
+  This function may be cached because each invocation process should not have
+  test file changed during execution.
+  """
+  return os.environ.get(ENV_TEST_FILE_PATH)
 
 
 @type_utils.CachedGetter

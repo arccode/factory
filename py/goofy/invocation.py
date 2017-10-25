@@ -11,6 +11,7 @@ from __future__ import print_function
 import copy
 import cPickle as pickle
 import datetime
+import inspect
 import logging
 import os
 import pprint
@@ -853,6 +854,10 @@ def RunPytest(test_info):
     signal.signal(signal.SIGTERM, _SIGTERMHandler)
 
     test = pytest_utils.LoadPytest(test_info.pytest_name)
+    os.environ.update({
+        session.ENV_TEST_FILE_PATH:
+            os.path.realpath(inspect.getfile(test.__class__))
+    })
 
     logging.debug('[%s] Start test case: %s', os.getpid(), test.id())
 

@@ -61,7 +61,7 @@ class UI(object):
     self.static_dir_path = None
 
     if setup_static_files:
-      self._SetupStaticFiles(os.path.realpath(traceback.extract_stack()[-2][0]))
+      self._SetupStaticFiles(session.GetCurrentTestFilePath())
       if css:
         self.AppendCSS(css)
     self.error_msgs = []
