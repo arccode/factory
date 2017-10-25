@@ -31,6 +31,7 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
+from cros.factory.utils import type_utils
 
 _DEFAULT_WIRELESS_TEST_CSS = '.wireless-info { font-size: 2em; }'
 
@@ -382,7 +383,6 @@ class WirelessTest(unittest.TestCase):
       logging.info('Already using antenna "all".')
     else:
       logging.info('Restore antenna.')
-      self._template.SetState(_MSG_SWITCHING_ANTENNA('all'))
       self.SwitchAntenna('all')
 
   def ScanAndAverageSignals(self, services, times=3):
@@ -515,15 +515,16 @@ class WirelessTest(unittest.TestCase):
       self.fail('Switching antenna is disabled but antenna configs are %s' %
                 self.args.strength.keys())
 
+    services = type_utils.MakeTuple(self.args.services)
     # Scans using antenna 'all'.
     self._antenna_service_strength['all'] = self.ScanAndAverageSignals(
-        self.args.services, self.args.scan_count)
+        services, self.args.scan_count)
 
     # Gets the service with the largest strength to test for each spec.
     test_service = self.ChooseMaxStrengthService(
-        self.args.services, self._antenna_service_strength['all'])
+        services, self._antenna_service_strength['all'])
     if test_service is None:
-      self.fail('Services %s are not valid.' % self.args.services)
+      self.fail('Services %s are not valid.' % services)
 
     # Checks 'all' since we have scanned using antenna 'all' already.
     self.CheckSpec(test_service, self.args.strength, 'all')
@@ -532,5 +533,5 @@ class WirelessTest(unittest.TestCase):
     for antenna in self.args.strength:
       if antenna == 'all':
         continue
-      self.SwitchAntennaAndScan(self.args.services, antenna)
+      self.SwitchAntennaAndScan(services, antenna)
       self.CheckSpec(test_service, self.args.strength, antenna)
