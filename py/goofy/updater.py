@@ -10,7 +10,6 @@ import uuid
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
-from cros.factory.test import factory
 from cros.factory.test import server_proxy
 from cros.factory.test import session
 from cros.factory.test.utils import update_utils
@@ -59,19 +58,21 @@ def TryUpdate(pre_update_hook=None, timeout=15):
 
   src_base_path = os.path.join(parent_dir, 'updater.new')
   shutil.rmtree(src_base_path, ignore_errors=True)
+  # Pretend that src_base_path is a mounted test image.
+  src_path = os.path.join(src_base_path, 'dev_image', 'factory')
+  os.makedirs(src_path)
 
   def _ExtractToolkit(target_dir, component, destination, url):
-    logging.info('Extracting %s#%s to %s...', url, component, target_dir)
+    logging.info('Installing %s#%s to %s...', url, component, target_dir)
     process_utils.Spawn(
-        ['sh', os.path.join(destination, component), '--noexec',
-         '--target', target_dir], log=True, check_call=True)
+        ['sh', os.path.join(destination, component), '--', '--yes',
+         target_dir], log=True, check_call=True)
 
   update_version = updater.GetUpdateVersion()
   updater.PerformUpdate(
       callback=lambda *args, **kargs: _ExtractToolkit(
           src_base_path, *args, **kargs))
 
-  src_path = os.path.join(src_base_path, 'usr', 'local', 'factory')
   new_version_path = os.path.join(src_path, 'TOOLKIT_VERSION')
   new_version_from_fs = file_utils.ReadFile(new_version_path).rstrip()
   if update_version != new_version_from_fs:
