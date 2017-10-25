@@ -2839,7 +2839,9 @@ cros.factory.Goofy = class {
   sendEvent(type, properties) {
     const dict = goog.object.clone(properties);
     dict.type = type;
-    const serialized = JSON.stringify(dict);
+    // Transform all undefined in object values to null.
+    const serialized = JSON.stringify(
+        dict, (key, value) => value === undefined ? null : value);
     goog.log.info(cros.factory.logger, `Sending event: ${serialized}`);
     if (this.ws.isOpen()) {
       this.ws.send(serialized);

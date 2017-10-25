@@ -26,8 +26,7 @@ const failWithError = (reason) => {
 // TODO(pihsun): Move this to util.js
 const runPromise = (promise, eventName) => {
   promise.then((data) => {
-    // Transform undefined to null, so JSON.stringify would contain data key.
-    test.sendTestEvent(eventName, data == null ? null : data);
+    test.sendTestEvent(eventName, data);
   }).catch(failWithError);
 };
 
