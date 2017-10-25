@@ -68,12 +68,10 @@ before retries::
 
 import os
 import threading
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import connection_manager
 from cros.factory.utils import arg_utils
 from cros.factory.utils import sync_utils
@@ -114,29 +112,24 @@ def _ErrorCodeToMessage(error_code, interface):
         'Interface {interface} not initialized', interface=interface),
 
 
-class NetworkConnectionSetup(unittest.TestCase):
+class NetworkConnectionSetup(test_ui.TestCaseWithUI):
   ARGS = [
-      arg_utils.Arg('config_path', str, 'path to the config file'),
+      arg_utils.Arg('config_name', str, 'name of the config file.'),
       arg_utils.Arg('timeout_secs', float,
                     'timeout seconds for each interface, default is no timeout',
                     default=None),
   ]
 
   def setUp(self):
-    self.ui = test_ui.UI()
-    self.ui_template = ui_templates.OneSection(self.ui)
     self.space_pressed = threading.Event()
 
   def runTest(self):
-    self.ui_template.SetState(_STATE_HTML)
+    self.template.SetState(_STATE_HTML)
     self.ui.BindKey(test_ui.SPACE_KEY, lambda _: self.space_pressed.set())
-    self.ui.RunInBackground(self.SetInterfaces)
-    self.ui.Run()
 
-  def SetInterfaces(self):
     # make config_name absolute path, however, this might not work in PAR
     config_path = os.path.join(os.path.dirname(__file__),
-                               self.args.config_path)
+                               self.args.config_name)
     settings = connection_manager.LoadNetworkConfig(config_path)
 
     proxy = connection_manager.GetConnectionManagerProxy()
