@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import traceback
+import unittest
 import uuid
 
 import factory_common  # pylint: disable=unused-import
@@ -47,11 +48,15 @@ PASS_KEY_LABEL = i18n_test_ui.MakeI18nLabel('Press Enter to pass.')
 FAIL_KEY_LABEL = i18n_test_ui.MakeI18nLabel('Press ESC to fail.')
 PASS_FAIL_KEY_LABEL = PASS_KEY_LABEL + FAIL_KEY_LABEL
 
+# Indicate that the test should not be automatically passed when
+# RunInBackground is finished.
+WAIT_FRONTEND = object()
+
 
 class UI(object):
   """Web UI for a factory test."""
 
-  def __init__(self, css=None, setup_static_files=True):
+  def __init__(self, css=None, setup_static_files=True, default_html=''):
     self.event_client = test_event.BlockingEventClient(
         callback=self._HandleEvent)
     self.test = session.GetCurrentTestPath()
@@ -61,12 +66,12 @@ class UI(object):
     self.static_dir_path = None
 
     if setup_static_files:
-      self._SetupStaticFiles(session.GetCurrentTestFilePath())
+      self._SetupStaticFiles(session.GetCurrentTestFilePath(), default_html)
       if css:
         self.AppendCSS(css)
     self.error_msgs = []
 
-  def _SetupStaticFiles(self, py_script):
+  def _SetupStaticFiles(self, py_script, default_html):
     # Get path to caller and register static files/directories.
     base = os.path.splitext(py_script)[0]
 
@@ -107,7 +112,7 @@ class UI(object):
 
     # default CSS files are set in default_test_ui.html by goofy.py, and we
     # only set the HTML of body here.
-    self.SetHTML(GetAutoload('html', ''))
+    self.SetHTML(GetAutoload('html', default_html))
 
     js = GetAutoload('js')
     if js:
@@ -244,8 +249,8 @@ class UI(object):
     """
     def _target():
       try:
-        target()
-        self.Pass()
+        if target() != WAIT_FRONTEND:
+          self.Pass()
       except Exception:
         self.Fail(traceback.format_exc())
     process_utils.StartDaemonThread(target=_target)
@@ -398,3 +403,56 @@ class DummyUI(object):
 
   def AddEventHandler(self, _event, _func):
     logging.info('Ignore setting Event Handler in dummy UI')
+
+
+class JavaScriptTemplateProxy(object):
+  """Proxy that forward all calls to JavaScript window.template."""
+
+  def __init__(self, ui):
+    self.ui = ui
+
+  def __getattr__(self, name):
+    if not name[0].isupper():
+      raise AttributeError
+    # Change naming convension between Python and JavaScript.
+    # SetState (Python) -> setState (JavaScript).
+    js_name = name[0].lower() + name[1:]
+    def _Proxy(*args):
+      self.ui.CallJSFunction('window.template.%s' % js_name, *args)
+    setattr(self, name, _Proxy)
+    return _Proxy
+
+
+class TestCaseWithUI(unittest.TestCase):
+  """A unittest.TestCase with UI.
+
+  Test should override runTest to do testing in background.
+  """
+
+  template_type = 'one-section'
+
+  def __init__(self, methodName):
+    super(TestCaseWithUI, self).__init__(methodName='_RunTestWithUI')
+    self._method_name = methodName
+    self.ui = None
+    self.template = None
+
+  def run(self, result=None):
+    # We override TestCase.run and do initialize of ui objects here, since the
+    # session.GetCurrentTestFilePath() used by UI is not set when __init__ is
+    # called (It's set by invocation after the TestCase instance is created),
+    # and initialize using setUp() means that all pytest inheriting this need
+    # to remember calling super(..., self).setUp(), which is a lot of
+    # boilerplate code and easy to forget.
+    default_html = ''
+    if self.template_type:
+      default_html = '<template-{type}></template-{type}>'.format(
+          type=self.template_type)
+    self.ui = UI(default_html=default_html)
+    self.template = JavaScriptTemplateProxy(self.ui)
+
+    super(TestCaseWithUI, self).run(result=result)
+
+  def _RunTestWithUI(self):
+    self.ui.RunInBackground(getattr(self, self._method_name))
+    self.ui.Run()
