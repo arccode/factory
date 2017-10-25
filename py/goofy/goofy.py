@@ -10,6 +10,7 @@ from __future__ import print_function
 import logging
 from optparse import OptionParser
 import os
+import Queue
 import signal
 import sys
 import threading
@@ -20,7 +21,6 @@ from xmlrpclib import Binary
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.goofy.goofy_base import GoofyBase
 from cros.factory.goofy.goofy_rpc import GoofyRPC
 from cros.factory.goofy import goofy_server
 from cros.factory.goofy import hooks
@@ -80,7 +80,9 @@ TESTS_AFTER_SHUTDOWN = 'tests_after_shutdown'
 Status = type_utils.Enum(['UNINITIALIZED', 'INITIALIZING', 'RUNNING',
                           'TERMINATING', 'TERMINATED'])
 
-class Goofy(GoofyBase):
+RUN_QUEUE_TIMEOUT_SECS = 10
+
+class Goofy(object):
   """The main factory flow.
 
   Note that all methods in this class must be invoked from the main
@@ -90,6 +92,9 @@ class Goofy(GoofyBase):
   TODO: Unit tests. (chrome-os-partner:7409)
 
   Properties:
+    run_queue: A queue of callbacks to invoke from the main thread.
+    exceptions: List of exceptions encountered in invocation threads.
+    last_idle: The most recent time of invoking the idle queue handler, or none.
     uuid: A unique UUID for this invocation of Goofy.
     state_instance: An instance of FactoryState.
     state_server: The FactoryState XML/RPC server.
@@ -114,7 +119,10 @@ class Goofy(GoofyBase):
   """
 
   def __init__(self):
-    super(Goofy, self).__init__()
+    self.run_queue = Queue.Queue()
+    self.exceptions = []
+    self.last_idle = None
+
     self.uuid = str(uuid.uuid4())
     self.state_instance = None
     self.goofy_server = None
@@ -203,7 +211,7 @@ class Goofy(GoofyBase):
     self.web_socket_manager = None
 
   def destroy(self):
-    """Performs any shutdown tasks. Overrides base class method."""
+    """Performs any shutdown tasks."""
     # To avoid race condition when running shutdown test.
     for test, invoc in self.invocations.iteritems():
       logging.info('Waiting for %s to complete...', test)
@@ -255,7 +263,7 @@ class Goofy(GoofyBase):
       self.plugin_controller.StopAndDestroyAllPlugins()
       self.plugin_controller = None
 
-    super(Goofy, self).destroy()
+    self.check_exceptions()
     logging.info('Done destroying Goofy')
     self.status = Status.TERMINATED
 
@@ -604,6 +612,166 @@ class Goofy(GoofyBase):
       session.console.critical(
           'Goofy should not get a non-leaf test that is not parallel: %r',
           test)
+
+  def run(self):
+    """Runs Goofy."""
+    # Process events forever.
+    while self.run_once(True):
+      pass
+
+  def run_enqueue(self, val):
+    """Enqueues an object on the event loop.
+
+    Generally this is a function. It may also be None to indicate that the
+    run queue should shut down.
+    """
+    self.run_queue.put(val)
+
+  def run_once(self, block=False):
+    """Runs all items pending in the event loop.
+
+    Args:
+      block: If true, block until at least one event is processed.
+
+    Returns:
+      True to keep going or False to shut down.
+    """
+    events = type_utils.DrainQueue(self.run_queue)
+    while not events:
+      # Nothing on the run queue.
+      self._run_queue_idle()
+      if block:
+        # Block for at least one event...
+        try:
+          events.append(self.run_queue.get(timeout=RUN_QUEUE_TIMEOUT_SECS))
+        except Queue.Empty:
+          # Keep going (calling _run_queue_idle() again at the top of
+          # the loop)
+          continue
+        # ...and grab anything else that showed up at the same
+        # time.
+        events.extend(type_utils.DrainQueue(self.run_queue))
+      else:
+        break
+
+    for event in events:
+      if not event:
+        # Shutdown request.
+        self.run_queue.task_done()
+        return False
+
+      try:
+        event()
+      except Exception:
+        logging.exception('Error in event loop')
+        self.record_exception(traceback.format_exception_only(
+            *sys.exc_info()[:2]))
+        # But keep going
+      finally:
+        self.run_queue.task_done()
+    return True
+
+  def _run_queue_idle(self):
+    """Invoked when the run queue has no events.
+
+    This method must not raise exception.
+    """
+    now = time.time()
+    if (self.last_idle and
+        now < (self.last_idle + RUN_QUEUE_TIMEOUT_SECS - 1)):
+      # Don't run more often than once every (RUN_QUEUE_TIMEOUT_SECS -
+      # 1) seconds.
+      return
+
+    self.last_idle = now
+    self.perform_periodic_tasks()
+
+  def check_exceptions(self):
+    """Raises an error if any exceptions have occurred in
+    invocation threads.
+    """
+    if self.exceptions:
+      raise RuntimeError('Exception in invocation thread: %r' %
+                         self.exceptions)
+
+  def record_exception(self, msg):
+    """Records an exception in an invocation thread.
+
+    An exception with the given message will be rethrown when
+    Goofy is destroyed.
+    """
+    self.exceptions.append(msg)
+
+  @staticmethod
+  def drain_nondaemon_threads():
+    """Wait for all non-current non-daemon threads to exit.
+
+    This is performed by the Python runtime in an atexit handler,
+    but this implementation allows us to do more detailed logging, and
+    to support control-C for abrupt shutdown.
+    """
+    cur_thread = threading.current_thread()
+    all_threads_joined = False
+    while not all_threads_joined:
+      for thread in threading.enumerate():
+        if not thread.daemon and thread.is_alive() and thread is not cur_thread:
+          logging.info("Waiting for thread '%s'...", thread.name)
+          thread.join()
+          # We break rather than continue on because the thread list
+          # may have changed while we waited
+          break
+      else:
+        # No threads remain
+        all_threads_joined = True
+    return all_threads_joined
+
+  @staticmethod
+  def run_main_and_exit():
+    """Instantiate the receiver, run its main function, and exit when done.
+
+    This static method is the "entry point" for Goofy.
+    It instantiates the receiver and invokes its main function, while
+    handling exceptions. When main() finishes (normally or via an exception),
+    it exits the process.
+    """
+    try:
+      cls = Goofy
+      goofy = cls()
+    except Exception:
+      logging.info('Failed to instantiate %s, shutting down.', cls.__name__)
+      traceback.print_exc()
+      os._exit(1)  # pylint: disable=protected-access
+      sys.exit(1)
+
+    try:
+      goofy.main()
+    except SystemExit:
+      # Propagate SystemExit without logging.
+      raise
+    except KeyboardInterrupt:
+      logging.info('Interrupted, shutting down...')
+    except Exception:
+      # Log the error before trying to shut down
+      logging.exception('Error in main loop')
+      raise
+    finally:
+      try:
+        # We drain threads manually, rather than letting Python do it,
+        # so that we can report to the user which threads are stuck
+        goofy.destroy()
+        cls.drain_nondaemon_threads()
+      except (KeyboardInterrupt, Exception):
+        # We got a keyboard interrupt while attempting to shut down.
+        # The user is waiting impatiently! This can happen if threads get stuck.
+        # We need to exit via os._exit, not sys.exit, because sys.exit() will
+        # run the main thread's atexit handler, which waits for all threads to
+        # exit, which is likely how we got stuck in the first place. However, we
+        # do want to capture all logs, so we shut down logging gracefully.
+        logging.info('Graceful shutdown interrupted, shutting down abruptly')
+        logging.shutdown()
+        os._exit(1)  # pylint: disable=protected-access
+      # Normal exit path
+      sys.exit(0)
 
   def check_plugins(self):
     """Check plugins to be paused or resumed."""
@@ -1150,12 +1318,10 @@ class Goofy(GoofyBase):
       self.key_filter.Start()
 
   def perform_periodic_tasks(self):
-    """Override of base method to perform periodic work.
+    """Perform any periodic work.
 
     This method must not raise exceptions.
     """
-    super(Goofy, self).perform_periodic_tasks()
-
     self.check_plugins()
     self.check_for_updates()
 
