@@ -439,6 +439,11 @@ def AttachFile(*args, **kwargs):
   return _StationTestRunWrapperInSession(*args, **kwargs)
 
 
+def AttachContent(*args, **kwargs):
+  kwargs['_method_name'] = 'AttachContent'
+  return _StationTestRunWrapperInSession(*args, **kwargs)
+
+
 def CreateSeries(*args, **kwargs):
   kwargs['_method_name'] = 'CreateSeries'
   return _StationTestRunWrapperInSession(*args, **kwargs)
@@ -1124,6 +1129,14 @@ class StationTestRun(_StationBase):
         self, name, value, delete, GetGlobalTestlog)
     self['attachments'] = {'key': name, 'value': value}
     return self
+
+  def AttachContent(self, content, name, description=None):
+    """Attaches a file with content."""
+    with file_utils.UnopenedTemporaryFile() as path:
+      with open(path, 'w') as f:
+        f.write(content)
+      return self.AttachFile(
+          path, 'text/plain', name, delete=False, description=description)
 
   def AddArgument(self, key, value, description=None):
     """Adds arguments."""

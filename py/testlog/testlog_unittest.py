@@ -213,7 +213,7 @@ class TestlogEventTest(unittest.TestCase):
                             'key': 2305}]}}}),
         event)
 
-  def testAttachFile(self):
+  def testAttachFileAndAttachContent(self):
     self._SimulateSubSession()
     CONTENT = 'Life is a maze and love is a riddle'
     DESCRIPTION = 'Unittest'
@@ -266,6 +266,12 @@ class TestlogEventTest(unittest.TestCase):
         name='text2',
         mime_type='text/plain',
         description=DESCRIPTION)
+    # Attach content
+    file_to_attach = CreateTextFile()
+    event.AttachContent(
+        content=CONTENT,
+        name='text3',
+        description=DESCRIPTION)
     # Examine the result
     paths = set()
     for att_name, att_dict in event['attachments'].iteritems():
@@ -277,7 +283,7 @@ class TestlogEventTest(unittest.TestCase):
       self.assertTrue(att_name in path)
       paths.add(path)
     # Make sure the file names are distinguished
-    self.assertEquals(len(paths), 2)
+    self.assertEquals(len(paths), 3)
 
   def testStationTestRunWrapperInSession(self):
     testlog.AddArgument('K1', 'V1')
@@ -310,6 +316,11 @@ class TestlogEventTest(unittest.TestCase):
         path=os.path.realpath(file_to_attach),
         name='text1',
         mime_type='text/plain')
+    # Attach content
+    file_to_attach = CreateTextFile()
+    testlog.AttachContent(
+        content=CONTENT,
+        name='text2')
 
     event = testlog.GetGlobalTestlog().last_test_run
     self.assertEqual(
@@ -357,7 +368,7 @@ class TestlogEventTest(unittest.TestCase):
       self.assertTrue(att_name in path)
       paths.add(path)
     # Make sure the file names are distinguished
-    self.assertEquals(len(paths), 1)
+    self.assertEquals(len(paths), 2)
 
   def testFromDict(self):
     example_dict = {
