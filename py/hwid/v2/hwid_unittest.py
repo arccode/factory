@@ -73,6 +73,7 @@ found_probe_value_map:
   video:
     compact_str: '04f2:b1d8 Sonix Technology Co., Ltd. Chicony 1.3M WebCam 5582'
   wireless: { compact_str: '168c:0030' }
+  sku: { compact_str: '10' }
 found_volatile_values:
   hash_gbb: { compact_str: 'gv2#af80b996717d4b35ad0fab38974dd6c249dc6be6a7f33' }
   key_recovery: { compact_str: 'kv3#9bd99a594c45b6739899a17ec29ac2289ee75463' }

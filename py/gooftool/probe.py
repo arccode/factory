@@ -1049,6 +1049,13 @@ def _ProbeChassis():
   return [{'id': chassis_id}] if chassis_id else []
 
 
+@_ComponentProbe('sku')
+def _ProbeSku():
+  """Returns the sku number."""
+  sku_id = _ShellOutput('mosys platform sku', None)
+  return [{'id': sku_id}] if sku_id else []
+
+
 @_ComponentProbe('cpu', 'x86')
 def _ProbeCpuX86():
   """Reformat /proc/cpuinfo data."""
