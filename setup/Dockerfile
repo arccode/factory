@@ -83,6 +83,9 @@ COPY bin "${server_dir}/bin/"
 # only the small client to communicate with the host's docker server)
 ADD build/docker/docker.tgz /
 
+# pixz is not available in alpine.
+ADD build/docker/pixz.tbz2 /usr/bin
+
 # these files are unlikely to change often, put them here to take advantage of
 # docker's cache
 COPY py/dome/uwsgi.ini py/dome/manage.py "${dome_dir}/"

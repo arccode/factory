@@ -123,6 +123,8 @@ COMMIT_SUBJECT="setup: Publish cros_docker image version"
 RESOURCE_DOCKER_URL="https://get.docker.com/builds/Linux/i386/docker-${DOCKER_VERSION}.tgz"
 RESOURCE_DOCKER_SHA1="0b2619a77d0513d4e503120ad17e2ca09e6176ad"
 RESOURCE_CROS_DOCKER_URL="https://chromium.googlesource.com/chromiumos/platform/factory/+/master/setup/cros_docker.sh?format=TEXT"
+RESOURCE_PIXZ_URL="${PREBUILT_IMAGE_DIR_URL}/pixz-1.0.6-amd64-static.tbz2"
+RESOURCE_PIXZ_SHA1="3bdf7473df19f2d089f2a9b055c18a4f7f1409e5"
 
 # Directories inside docker
 DOCKER_BASE_DIR="/usr/local/factory"
@@ -692,6 +694,8 @@ do_build() {
 
   fetch_resource "${BUILD_DIR}/docker.tgz" \
     "${RESOURCE_DOCKER_URL}" "${RESOURCE_DOCKER_SHA1}"
+  fetch_resource "${BUILD_DIR}/pixz.tbz2" \
+    "${RESOURCE_PIXZ_URL}" "${RESOURCE_PIXZ_SHA1}"
 
   # need to make sure we're using the same version of docker inside the container
   ${DOCKER} build \
