@@ -84,10 +84,6 @@
         "RebootStep"
       ]
     },
-    "RunInFinish": {
-      "inherit": "RunInEnd",
-      "__comment": "A legacy test that should be removed in future."
-    },
     "RunInItems": {
       "inherit": "FlattenGroup",
       "__comment": "RunIn is a stage to stress all ports for checking system stability. This stage may have many test barriers to let it fail early and reduce wasted test time.",

@@ -47,24 +47,9 @@
         "write_protection": "eval! constants.grt.force_write_protect or options.phase == 'PVT'"
       }
     },
-    "GRTFinish": {
-      "inherit": "CheckPoint",
-      "__comment": "A legacy test that should be removed in future."
-    },
     "GRTItems": {
       "inherit": "FlattenGroup",
       "subtests": []
-    },
-    "GRTShopfloor": {
-      "inherit": "TestGroup",
-      "__comment": "A legacy test that should be removed in future.",
-      "subtests": [
-        "StationEnd",
-        {
-          "inherit": "CheckPoint",
-          "id": "FinishGRT"
-        }
-      ]
     },
     "GRTStart": {
       "inherit": "TestGroup",

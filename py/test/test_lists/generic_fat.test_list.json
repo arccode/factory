@@ -25,10 +25,6 @@
         "CheckPoint"
       ]
     },
-    "FATFinish": {
-      "inherit": "FATEnd",
-      "__comment": "A legacy test that should be removed in future."
-    },
     "FATItems": {
       "inherit": "FlattenGroup",
       "__comment": "Test plans for Final Assembly Test.  The FAT is the first stage of FATP after Final Assembly, before Run In or Final Functional Testing (FFT). We want to collect system information and quickly probe if peripherals are assembled correctly.",

@@ -58,10 +58,6 @@
         "HaltStep"
       ]
     },
-    "SMTFinish": {
-      "inherit": "CheckPoint",
-      "__comment": "A legacy test that should be removed in future."
-    },
     "SMTItems": {
       "inherit": "FlattenGroup",
       "subtests": [
@@ -113,14 +109,6 @@
         "event_log_key": "smt_station_id",
         "label": "i18n! Station ID"
       }
-    },
-    "SMTShopfloor1": {
-      "inherit": "StationStart",
-      "__comment": "A legacy test that should be removed in future."
-    },
-    "SMTShopfloor2": {
-      "inherit": "StationEnd",
-      "__comment": "A legacy test that should be removed in future."
     },
     "SMTStart": {
       "inherit": "TestGroup",
