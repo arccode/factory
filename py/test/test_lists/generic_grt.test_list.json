@@ -23,7 +23,6 @@
         "GRTItems",
         "CheckPoint",
         "GRTEnd",
-        "ActivateRegCode",
         "AllCheckPoint",
         "GRTFinalize"
       ]
@@ -49,7 +48,9 @@
     },
     "GRTItems": {
       "inherit": "FlattenGroup",
-      "subtests": []
+      "subtests": [
+        "ActivateRegCode"
+      ]
     },
     "GRTStart": {
       "inherit": "TestGroup",
