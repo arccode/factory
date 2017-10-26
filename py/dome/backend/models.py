@@ -43,7 +43,6 @@ from cros.factory.utils import net_utils
 UMPIRE_BASE_PORT = 8080
 UMPIRE_RPC_PORT_OFFSET = 2
 UMPIRE_RSYNC_PORT_OFFSET = 4
-UMPIRE_INSTALOG_SOCKET_PORT_OFFSET = 6
 UMPIRE_MATCH_KEY_MAP = {
     'macs': 'mac',
     'serial_numbers': 'sn',
@@ -477,9 +476,6 @@ class Project(django.db.models.Model):
                                   UMPIRE_BASE_PORT + UMPIRE_RPC_PORT_OFFSET),
           '--publish', '%d:%d' % (port + UMPIRE_RSYNC_PORT_OFFSET,
                                   UMPIRE_BASE_PORT + UMPIRE_RSYNC_PORT_OFFSET),
-          '--publish', '%d:%d' % (port + UMPIRE_INSTALOG_SOCKET_PORT_OFFSET,
-                                  UMPIRE_BASE_PORT +
-                                  UMPIRE_INSTALOG_SOCKET_PORT_OFFSET),
           '--restart', 'unless-stopped',
           '--name', container_name,
           FACTORY_SERVER_IMAGE_NAME, UMPIRED_FILEPATH]

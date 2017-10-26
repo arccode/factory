@@ -51,17 +51,12 @@ _CLI_PORT_OFFSET = 2
 _RPC_PORT_OFFSET = 3
 _RSYNC_PORT_OFFSET = 4
 _HTTP_POST_PORT_OFFSET = 5
-_INSTALOG_SOCKET_PORT_OFFSET = 6
+# 6 was reserved for _INSTALOG_SOCKET_PORT_OFFSET, which is no longer used.
 _INSTALOG_HTTP_PORT_OFFSET = 7
 
 
 def GetRsyncPortFromBasePort(base_port):
   return base_port + _RSYNC_PORT_OFFSET
-
-
-# TODO(chuntsen): Remove instalog_socket_port.
-def GetInstalogPortFromBasePort(base_port):
-  return base_port + _INSTALOG_SOCKET_PORT_OFFSET
 
 
 class UmpireEnv(object):
@@ -142,11 +137,6 @@ class UmpireEnv(object):
   @property
   def umpire_http_post_port(self):
     return self.umpire_base_port + _HTTP_POST_PORT_OFFSET
-
-  # TODO(chuntsen): Remove instalog_socket_port.
-  @property
-  def umpire_instalog_socket_port(self):
-    return GetInstalogPortFromBasePort(self.umpire_base_port)
 
   @property
   def umpire_instalog_http_port(self):

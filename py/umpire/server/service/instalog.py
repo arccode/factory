@@ -102,14 +102,6 @@ class InstalogService(umpire_service.UmpireService):
             }
         },
         'input': {
-            # TODO(chuntsen): Remove input_socket.
-            'socket_in': {
-                'plugin': 'input_socket',
-                'targets': [],
-                'args': {
-                    'port': env.umpire_instalog_socket_port
-                }
-            },
             'http_in': {
                 'plugin': 'input_http_testlog',
                 'targets': [],
