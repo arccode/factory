@@ -13,6 +13,7 @@ from instalog.external import gnupg
 DEFAULT_PORT = 8899
 DEFAULT_MAX_BYTES = 2 * 1024 * 1024 * 1024  # 2gb
 REQUESTED_GNUPG_VERSION = '2.3.0'
+HTTP_TIMEOUT = 30  # Output HTTP Post timeout and Input HTTP socket timeout
 
 
 def CheckGnuPG():

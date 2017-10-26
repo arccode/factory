@@ -27,11 +27,10 @@ from instalog.utils import file_utils
 from instalog.utils import time_utils
 
 
-_DEFAULT_BATCH_SIZE = 4096
+_DEFAULT_BATCH_SIZE = 1024
 _DEFAULT_URL_PATH = ''
 _DEFAULT_TIMEOUT = 5
 _FAILED_CONNECTION_INTERVAL = 60
-_POST_TIMEOUT = 180
 
 
 class OutputHTTP(plugin_base.OutputPlugin):
@@ -229,7 +228,7 @@ class OutputHTTP(plugin_base.OutputPlugin):
     if clen > self._max_bytes:
       return (413, 'Request Entity Too Large: The request is bigger '
                    'than %d bytes' % self._max_bytes, clen)
-    resp = requests.Session().send(req, timeout=_POST_TIMEOUT)
+    resp = requests.Session().send(req, timeout=http_common.HTTP_TIMEOUT)
     if resp.headers['Maximum-Bytes']:
       self._max_bytes = int(resp.headers['Maximum-Bytes'])
     return resp.status_code, resp.reason, clen

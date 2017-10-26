@@ -260,6 +260,12 @@ class ThreadedHTTPServer(BaseHTTPServer.HTTPServer, log_utils.LoggerMixin):
     self._handle_request_thread = threading.Thread(target=self.serve_forever)
     BaseHTTPServer.HTTPServer.__init__(self, *args, **kwargs)
 
+  def get_request(self):
+    """Overrides get_request to set socket timeout"""
+    socket, address = self.socket.accept()
+    socket.settimeout(http_common.HTTP_TIMEOUT)
+    return (socket, address)
+
   def _ProcessRequestThread(self, request, client_address):
     """Processes the request and handles exceptions."""
     try:
