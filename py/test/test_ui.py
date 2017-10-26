@@ -16,12 +16,12 @@ import uuid
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import goofy_proxy
 from cros.factory.test import event as test_event
-from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import type_utils
 
 
 # Key values
@@ -78,7 +78,7 @@ class UI(object):
                          [base + '_static',
                           os.path.join(os.path.dirname(py_script), 'static')])
     if len(static_dirs) > 1:
-      raise factory.FactoryTestFailure(
+      raise type_utils.TestFailure(
           'Cannot have both of %s - delete one!' % static_dirs)
     if static_dirs:
       self.static_dir_path = static_dirs[0]
@@ -93,7 +93,7 @@ class UI(object):
       if not autoloads:
         return default
       if len(autoloads) > 1:
-        raise factory.FactoryTestFailure(
+        raise type_utils.TestFailure(
             'Cannot have both of %s - delete one!' % autoloads)
 
       autoload_path = autoloads[0]
@@ -278,7 +278,7 @@ class UI(object):
         if self.error_msgs:
           error_msg += '\n'.join([''] + self.error_msgs)
 
-        raise factory.FactoryTestFailure(error_msg)
+        raise type_utils.TestFailure(error_msg)
       else:
         raise ValueError('Unexpected status in event %r' % event)
     finally:

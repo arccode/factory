@@ -14,7 +14,6 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
-from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rules import phase
 from cros.factory.test import test_ui
@@ -22,6 +21,7 @@ from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
 from cros.factory.test.utils import update_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import type_utils
 
 _MESSAGE_CHECKING_COMPONENTS = i18n_test_ui.MakeI18nLabelWithClass(
     'Checking components...', 'progress-message')
@@ -123,5 +123,5 @@ class VerifyComponentsTest(unittest.TestCase):
             continue
           error_msgs.append(component_result['error'])
     if error_msgs:
-      raise factory.FactoryTestFailure(
+      raise type_utils.TestFailure(
           'At least one component is invalid:\n%s' % '\n'.join(error_msgs))

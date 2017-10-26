@@ -43,7 +43,6 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event as test_event
 from cros.factory.test import event_log
-from cros.factory.test import factory
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
@@ -57,6 +56,7 @@ from cros.factory.test.utils import connection_manager
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import net_utils
+from cros.factory.utils import type_utils
 
 
 # The root of the pytests vswr folder. The config path is relative to this when

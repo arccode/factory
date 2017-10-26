@@ -29,12 +29,12 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import factory
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import type_utils
 
 
 _MSG_FAN_SPEED = i18n_test_ui.MakeI18nLabel('Fan speed (RPM):')
@@ -159,7 +159,7 @@ class FanSpeedTest(unittest.TestCase):
       target_rpm: target fan speed.
 
     Raises:
-      FactoryTestFailure if any number is not within the desired range.
+      TestFailure if any number is not within the desired range.
     """
     lower_bound = target_rpm - self.args.error_margin
     upper_bound = target_rpm + self.args.error_margin
@@ -174,7 +174,7 @@ class FanSpeedTest(unittest.TestCase):
             'Observed fan %d RPM: %d out of target range: [%d, %d].' %
             (i, rpm, lower_bound, upper_bound))
     if error_messages:
-      raise factory.FactoryTestFailure('\n'.join(error_messages))
+      raise type_utils.TestFailure('\n'.join(error_messages))
 
   def runTest(self):
     """Main test function."""
@@ -183,7 +183,7 @@ class FanSpeedTest(unittest.TestCase):
       max_rpm = self.SetAndGetFanSpeed(self.args.max_rpm)
       for i in xrange(len(max_rpm)):
         if max_rpm[i] == 0:
-          raise factory.FactoryTestFailure(
+          raise type_utils.TestFailure(
               'Fan %d is not reporting any RPM' % i)
       target_rpm = _Average(max_rpm) / 2
       observed_rpm = self.SetAndGetFanSpeed(target_rpm)

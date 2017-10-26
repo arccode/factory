@@ -58,7 +58,6 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.env import paths
-from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import server_proxy
 from cros.factory.test import session
@@ -66,6 +65,7 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import type_utils
 
 
 # The Graphyte config files (pathloss, test plan, port config) should be placed

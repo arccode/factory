@@ -45,9 +45,9 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import factory
 from cros.factory.testlog import testlog
 from cros.factory.utils import arg_utils
+from cros.factory.utils import type_utils
 
 
 class SampleCustomizedTest(unittest.TestCase):
@@ -122,7 +122,7 @@ class SampleCustomizedTest(unittest.TestCase):
         value=quality,
         min=0.9, max=1.0,
         description='Quality of the photo'):
-      raise factory.FactoryTestFailure('The camera is not qualified')
+      raise type_utils.TestFailure('The camera is not qualified')
 
     # you can also measure and log a series of values
     series_logger = testlog.CreateSeries(
@@ -137,7 +137,7 @@ class SampleCustomizedTest(unittest.TestCase):
           key=str(freq), value=quality, min=0.8, max=None):
         failed = True
     if failed:
-      raise factory.FactoryTestFailure('The audio device is not qualified')
+      raise type_utils.TestFailure('The audio device is not qualified')
 
   def TakePhoto(self):
     raise NotImplementedError

@@ -107,7 +107,6 @@ from cros.factory.device.links import ssh
 from cros.factory.test import device_data
 from cros.factory.test.env import paths
 from cros.factory.test import event_log
-from cros.factory.test import factory
 from cros.factory.test import gooftools
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rules import phase
@@ -357,7 +356,7 @@ class Finalize(unittest.TestCase):
       # Wipe-in-place will terminate all processes that are using stateful
       # partition, this test should be killed at here.
       time.sleep(self.FINALIZE_TIMEOUT)
-      raise factory.FactoryTestFailure('DUT Failed to finalize in %d seconds' %
+      raise type_utils.TestFailure('DUT Failed to finalize in %d seconds' %
                                        self.FINALIZE_TIMEOUT)
     elif isinstance(self.dut.link, ssh.SSHLink):
       # For remote SSH DUT, we ask DUT to send wipe log back.
@@ -371,7 +370,7 @@ class Finalize(unittest.TestCase):
                            self.FINALIZE_TIMEOUT,
                            poll_interval=1)
       except type_utils.TimeoutError:
-        raise factory.FactoryTestFailure(
+        raise type_utils.TestFailure(
             'Remote DUT failed to finalize in %d seconds' %
             self.FINALIZE_TIMEOUT)
       self.ui.Pass()
@@ -414,12 +413,12 @@ class Finalize(unittest.TestCase):
     command += ' --wipe_finish_token "%s"' % token
 
     if not self._CallGoofTool(command):
-      raise factory.FactoryTestFailure('finalize command failed')
+      raise type_utils.TestFailure('finalize command failed')
 
     session.console.info('wait DUT to finish wiping')
 
     if not dut_finished.wait(self.FINALIZE_TIMEOUT):
-      raise factory.FactoryTestFailure(
+      raise type_utils.TestFailure(
           'Remote DUT not response in %d seconds' % self.FINALIZE_TIMEOUT)
 
     # save log files in test data directory

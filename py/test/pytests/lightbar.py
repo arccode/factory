@@ -11,7 +11,6 @@ import logging
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import factory
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
@@ -19,6 +18,7 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
+from cros.factory.utils import type_utils
 
 
 _TEST_PROMPT = lambda color: i18n_test_ui.MakeI18nLabel(
@@ -69,14 +69,14 @@ class LightbarTest(unittest.TestCase):
       The output of 'ectool lightbar'.
 
     Raises:
-      FactoryTestFailure if the ectool command fails.
+      TestFailure if the ectool command fails.
     """
     try:
       # Convert each arg to str to make subprocess module happy.
       args = [str(x) for x in args]
       return process_utils.CheckOutput(['ectool', 'lightbar'] + args, log=True)
     except Exception as e:
-      raise factory.FactoryTestFailure('Unable to set lightbar: %s' % e)
+      raise type_utils.TestFailure('Unable to set lightbar: %s' % e)
 
   def TestColor(self, color_index):
     """Tests the color specified by the given index.

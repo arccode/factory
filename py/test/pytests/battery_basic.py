@@ -50,7 +50,6 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import factory
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -58,6 +57,7 @@ from cros.factory.test.utils import stress_manager
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
+from cros.factory.utils import type_utils
 
 
 _UNPLUG_AC = i18n_test_ui.MakeI18nLabel('Unplug AC to proceed')
@@ -98,11 +98,11 @@ class SimpleBatteryTest(unittest.TestCase):
   def VerifyArgs(self):
     if self.args.min_charge_current_mA:
       if not self.args.min_charge_current_mA > 0:
-        raise factory.FactoryTestFailure(
+        raise type_utils.TestFailure(
             'min_charge_current_mA must be greater than zero')
     if self.args.min_discharge_current_mA:
       if not self.args.min_discharge_current_mA < 0:
-        raise factory.FactoryTestFailure(
+        raise type_utils.TestFailure(
             'min_discharge_current_mA must be less than zero')
 
   def SampleBatteryCurrent(self, duration_secs):
@@ -129,7 +129,7 @@ class SimpleBatteryTest(unittest.TestCase):
       duration_secs: The duration in seconds to test charging the battery.
 
     Raises:
-      FactoryTestFailure if the sampled battery charge current does not pass
+      TestFailure if the sampled battery charge current does not pass
       the given threshold in dargs.
     """
     self._template.SetState(_PLUG_AC)
@@ -140,12 +140,12 @@ class SimpleBatteryTest(unittest.TestCase):
     if self.args.min_charge_current_mA:
       if not any(
           c > self.args.min_charge_current_mA for c in sampled_current):
-        raise factory.FactoryTestFailure(
+        raise type_utils.TestFailure(
             'Battery charge current did not reach defined threshold %f mA' %
             self.args.min_charge_current_mA)
     else:
       if not any(c > 0 for c in sampled_current):
-        raise factory.FactoryTestFailure(
+        raise type_utils.TestFailure(
             'Battery was not charging during charge test')
 
   def TestDischarge(self, duration_secs):
@@ -157,7 +157,7 @@ class SimpleBatteryTest(unittest.TestCase):
       duration_secs: The duration in seconds to test discharging the battery.
 
     Raises:
-      FactoryTestFailure if the sampled battery discharge current does not pass
+      TestFailure if the sampled battery discharge current does not pass
       the given threshold in dargs.
     """
     self._template.SetState(_UNPLUG_AC)
@@ -170,21 +170,21 @@ class SimpleBatteryTest(unittest.TestCase):
     if self.args.min_discharge_current_mA:
       if not any(
           c < self.args.min_discharge_current_mA for c in sampled_current):
-        raise factory.FactoryTestFailure(
+        raise type_utils.TestFailure(
             'Battery discharge current did not reach defined threshold %f mA' %
             self.args.min_discharge_current_mA)
     else:
       if not any(c < 0 for c in sampled_current):
-        raise factory.FactoryTestFailure(
+        raise type_utils.TestFailure(
             'Battery was not discharging during charge test')
 
   def runTest(self):
     if not self._dut.power.CheckBatteryPresent():
-      raise factory.FactoryTestFailure(
+      raise type_utils.TestFailure(
           'Cannot locate battery sysfs path. Missing battery?')
     cycle_count = self._dut.power.GetBatteryAttribute('cycle_count').strip()
     if int(cycle_count) > self.args.max_cycle_count:
-      raise factory.FactoryTestFailure(
+      raise type_utils.TestFailure(
           'Battery cycle count %s exceeds max %d' %
           (cycle_count, self.args.max_cycle_count))
     self.TestCharge(self.args.charge_duration_secs)

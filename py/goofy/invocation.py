@@ -31,7 +31,6 @@ from cros.factory.test import device_data
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
-from cros.factory.test import factory
 from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.test import session
 from cros.factory.test import state
@@ -48,6 +47,7 @@ from cros.factory.utils import process_utils
 from cros.factory.utils.service_utils import ServiceManager
 from cros.factory.utils.string_utils import DecodeUTF8
 from cros.factory.utils import time_utils
+from cros.factory.utils import type_utils
 
 # pylint: disable=no-name-in-module
 from cros.factory.external.setproctitle import setproctitle
@@ -848,7 +848,7 @@ def RunPytest(test_info):
     # a chance to do clean up procedures when SIGTERM is received.
     def _SIGTERMHandler(signum, frame):  # pylint: disable=unused-argument
       logging.error('SIGTERM received')
-      raise factory.FactoryTestFailure('SIGTERM received')
+      raise type_utils.TestFailure('SIGTERM received')
 
     signal.signal(signal.SIGTERM, _SIGTERMHandler)
 
@@ -881,7 +881,7 @@ def RunPytest(test_info):
       """
       # The actual error is in the last line.
       trace, _, error_msg = trace.strip().rpartition('\n')
-      error_msg = error_msg.replace('FactoryTestFailure: ', '')
+      error_msg = error_msg.replace('TestFailure: ', '')
       return error_msg + '\n' + trace
 
     all_failures = result.failures + result.errors

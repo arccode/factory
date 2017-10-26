@@ -54,7 +54,6 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event as test_event
 from cros.factory.test import event_log
-from cros.factory.test import factory
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import session
@@ -66,6 +65,7 @@ from cros.factory.test.utils import audio_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sys_utils
 from cros.factory.utils import time_utils
+from cros.factory.utils import type_utils
 
 
 # File that suppresses reboot if present (e.g., for development).
@@ -217,7 +217,7 @@ class ShutdownTest(unittest.TestCase):
       self.goofy.Shutdown(self.args.operation)
 
       time.sleep(self.args.wait_shutdown_secs)
-    except factory.FactoryTestFailure:
+    except type_utils.TestFailure:
       return
     error_msg = 'System did not shutdown in %s seconds.' % (
         self.args.wait_shutdown_secs)

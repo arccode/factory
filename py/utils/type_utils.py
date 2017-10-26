@@ -19,6 +19,10 @@ class Error(Exception):
   pass
 
 
+class TestFailure(Exception):
+  """Failure of a test."""
+
+
 class TimeoutError(Error):
   """Timeout error."""
   def __init__(self, message='Timed out', output=None):

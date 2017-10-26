@@ -12,7 +12,6 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import factory
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
@@ -135,7 +134,7 @@ class CompassTest(unittest.TestCase):
     x, y = values['in_magn_x'], values['in_magn_y']
     if x == 0 and y == 0:
       # atan2(0, 0) returns 0, we need to avoid this case.
-      raise factory.FactoryTestFailure(
+      raise type_utils.TestFailure(
           'Sensor outputs (0, 0), possibly not working.')
     degree = self._CalculateDirection(x, y)
     self._template.SetState(_STATE_TEMPLATE.format(degree=degree, **values))

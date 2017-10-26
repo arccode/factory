@@ -14,11 +14,11 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
-from cros.factory.test.factory import FactoryTestFailure
 from cros.factory.test.pytests import verify_components
 from cros.factory.test import test_ui
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils.deploy_utils import FactoryPythonArchive
+from cros.factory.utils import type_utils
 
 # pylint: disable=protected-access
 
@@ -115,7 +115,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     event_log.Log('probed_components', results=probed)
 
     self._mox.ReplayAll()
-    with self.assertRaises(FactoryTestFailure):
+    with self.assertRaises(type_utils.TestFailure):
       self._mock_test._runTest()
     self._mox.VerifyAll()
 

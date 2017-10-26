@@ -71,7 +71,6 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.device.links import adb
-from cros.factory.test import factory
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import session
@@ -196,38 +195,38 @@ class PlanktonChargeBFTTest(unittest.TestCase):
     """Verifies arguments feasibility.
 
     Raises:
-      FactoryTestFailure: If arguments are not reasonable.
+      TestFailure: If arguments are not reasonable.
     """
     if (self.args.check_protect_ina_current and
         (self.args.protect_ina_current_range[0] >
          self.args.protect_ina_current_range[1])):
-      raise factory.FactoryTestFailure(
+      raise type_utils.TestFailure(
           'protect_ina_current_range range is invalid')
     if (self.args.check_ina_current and
         (self.args.ina_current_charge_range[0] >
          self.args.ina_current_charge_range[1])):
-      raise factory.FactoryTestFailure(
+      raise type_utils.TestFailure(
           'ina_current_charge_range range is invalid')
     if (self.args.check_ina_current and
         (self.args.ina_current_discharge_range[0] >
          self.args.ina_current_discharge_range[1])):
-      raise factory.FactoryTestFailure(
+      raise type_utils.TestFailure(
           'ina_current_discharge_range range is invalid')
     if (self.args.min_charge_5V_current_mA is not None and
         self.args.min_charge_5V_current_mA < 0):
-      raise factory.FactoryTestFailure(
+      raise type_utils.TestFailure(
           'min_charge_5V_current_mA must not be less than zero')
     if (self.args.min_charge_12V_current_mA is not None and
         self.args.min_charge_12V_current_mA < 0):
-      raise factory.FactoryTestFailure(
+      raise type_utils.TestFailure(
           'min_charge_12V_current_mA must not be less than zero')
     if (self.args.min_charge_20V_current_mA is not None and
         self.args.min_charge_20V_current_mA < 0):
-      raise factory.FactoryTestFailure(
+      raise type_utils.TestFailure(
           'min_charge_20V_current_mA must not be less than zero')
     if (self.args.min_discharge_current_mA is not None and
         not self.args.min_discharge_current_mA < 0):
-      raise factory.FactoryTestFailure(
+      raise type_utils.TestFailure(
           'min_discharge_current_mA must be less than zero')
 
   def SampleCurrentAndVoltage(self, duration_secs, charging):
@@ -326,14 +325,14 @@ class PlanktonChargeBFTTest(unittest.TestCase):
       testing_volt: An integer to specify testing charge voltage.
 
     Raises:
-      FactoryTestFailure: If the sampled battery charge current does not pass
+      TestFailure: If the sampled battery charge current does not pass
           the given threshold in dargs.
     """
     if current_min_threshold is None:
       return
 
     if testing_volt not in self._SUPPORT_CHARGE_VOLT:
-      raise factory.FactoryTestFailure(
+      raise type_utils.TestFailure(
           'Specified test voltage %d is not in supported list: %r' %
           (testing_volt, self._SUPPORT_CHARGE_VOLT))
 
@@ -349,7 +348,7 @@ class PlanktonChargeBFTTest(unittest.TestCase):
     if self.args.monitor_plankton_voltage_only:
       if not self.MonitorINAVoltage(self.args.charge_duration_secs,
                                     testing_volt):
-        raise factory.FactoryTestFailure(
+        raise type_utils.TestFailure(
             'INA voltage did not meet the expected one.')
       return
 
@@ -358,7 +357,7 @@ class PlanktonChargeBFTTest(unittest.TestCase):
                                      charging=True))
     # Fail if all battery current samples are below threshold.
     if not any(c > current_min_threshold for c in sampled_battery_current):
-      raise factory.FactoryTestFailure(
+      raise type_utils.TestFailure(
           'Battery charge current did not reach defined threshold %f mA' %
           current_min_threshold)
     # Fail if all Plankton INA voltage samples are not within specified range.
@@ -377,7 +376,7 @@ class PlanktonChargeBFTTest(unittest.TestCase):
     we lose adb connection during device discharging.
 
     Raises:
-      FactoryTestFailure: If the sampled battery discharge current does not pass
+      TestFailure: If the sampled battery discharge current does not pass
           the given threshold in dargs.
     """
     current_min_threshold = self.args.min_discharge_current_mA
@@ -391,7 +390,7 @@ class PlanktonChargeBFTTest(unittest.TestCase):
 
     if self.args.monitor_plankton_voltage_only:
       if not self.MonitorINAVoltage(self.args.charge_duration_secs, 5):
-        raise factory.FactoryTestFailure(
+        raise type_utils.TestFailure(
             'INA voltage did not meet the expected one.')
       return
 
@@ -408,7 +407,7 @@ class PlanktonChargeBFTTest(unittest.TestCase):
                 self.args.discharge_duration_secs, charging=False))
       # Fail if all samples are over threshold.
       if not any(c < current_min_threshold for c in sampled_battery_current):
-        raise factory.FactoryTestFailure(
+        raise type_utils.TestFailure(
             'Battery discharge current did not reach defined threshold %f mA' %
             current_min_threshold)
 
@@ -428,12 +427,12 @@ class PlanktonChargeBFTTest(unittest.TestCase):
       charging: True if testing charging; False if discharging.
 
     Raises:
-      FactoryTestFailure if samples are not within range.
+      TestFailure if samples are not within range.
     """
     tolerance = testing_volt * 1000 * self.args.ina_voltage_tolerance
     # Fail if error ratios of all voltage samples are higher than tolerance
     if not any(abs(v - testing_volt * 1000.0) <= tolerance for v in ina_sample):
-      raise factory.FactoryTestFailure(
+      raise type_utils.TestFailure(
           'Plankton INA voltage did not meet expected %s %dV, sampled voltage '
           '= %s' % ('charge' if charging else 'discharge',
                     testing_volt, str(ina_sample)))
@@ -446,7 +445,7 @@ class PlanktonChargeBFTTest(unittest.TestCase):
       charging: True if testing charging; False if discharging.
 
     Raises:
-      FactoryTestFailure if samples are not within range.
+      TestFailure if samples are not within range.
     """
     if not self.args.check_ina_current:
       return
@@ -460,7 +459,7 @@ class PlanktonChargeBFTTest(unittest.TestCase):
     average = sum(ina_sample) / len(ina_sample)
     logging.info('Average Plankton INA current = %d mA', average)
     if not ina_min < average < ina_max:
-      raise factory.FactoryTestFailure(
+      raise type_utils.TestFailure(
           'Plankton INA %s current average %d mA did not within %d - %d' %
           ('charge' if charging else 'discharge', average, ina_min, ina_max))
 
@@ -468,19 +467,19 @@ class PlanktonChargeBFTTest(unittest.TestCase):
     """Runs charge test.
 
     Raises:
-      FactoryTestFailure: Battery attribute error.
+      TestFailure: Battery attribute error.
     """
     if not self._power.CheckBatteryPresent():
-      raise factory.FactoryTestFailure(
+      raise type_utils.TestFailure(
           'Cannot locate battery sysfs path. Missing battery?')
     if (self.args.check_battery_cycle and
         int(self._power.GetBatteryAttribute('cycle_count').strip()) > (
             self.args.battery_cycle_threshold)):
-      raise factory.FactoryTestFailure('Battery cycle count is higher than %d' %
+      raise type_utils.TestFailure('Battery cycle count is higher than %d' %
                                        self.args.battery_cycle_threshold)
     if (self.args.check_current_max and
         int(self._power.GetBatteryAttribute('current_max').strip()) == 0):
-      raise factory.FactoryTestFailure('Battery current max is zero')
+      raise type_utils.TestFailure('Battery current max is zero')
 
     if self._remote_test:
       # Get remote target battery capacity and warn if almost full

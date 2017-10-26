@@ -16,7 +16,6 @@ import xmlrpclib
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.external import evdev
-from cros.factory.test import factory
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.fixture.dolphin import plankton_hdmi
 from cros.factory.test.i18n import test_ui as i18n_test_ui
@@ -27,6 +26,7 @@ from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import sync_utils
+from cros.factory.utils import type_utils
 
 
 _BLACKSCREEN_STR = i18n_test_ui.MakeI18nLabel(
@@ -279,7 +279,7 @@ class PlanktonDisplayTest(unittest.TestCase):
   def Fail(self, msg):
     """Fails the test."""
     self._ui.Fail(msg)
-    raise factory.FactoryTestFailure(msg)
+    raise type_utils.TestFailure(msg)
 
   def AdvanceProgress(self, value=1):
     """Advances the progess bar.

@@ -37,7 +37,7 @@ def _FormatErrorMessage(trace):
   """
   # The actual error is in the last line.
   trace, _, error_msg = trace.strip().rpartition('\n')
-  error_msg = error_msg.replace('FactoryTestFailure: ', '')
+  error_msg = error_msg.replace('TestFailure: ', '')
   return error_msg + '\n' + trace
 
 

@@ -15,9 +15,9 @@ import tempfile
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
-from cros.factory.test import factory
 from cros.factory.test import session
 from cros.factory.utils import file_utils
+from cros.factory.utils import type_utils
 
 
 GOOFTOOL_HOME = '/usr/local/factory'
@@ -82,6 +82,6 @@ def run(command, ignore_status=False):
     exception_message = '\n'.join(
         [error_message for error_message in err.splitlines()
          if error_message.startswith('ERROR')]) or message
-    raise factory.FactoryTestFailure(exception_message)
+    raise type_utils.TestFailure(exception_message)
 
   return (out, err, return_code)

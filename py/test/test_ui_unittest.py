@@ -14,10 +14,10 @@ import mock
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event
-from cros.factory.test import factory
 from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test import test_ui
+from cros.factory.utils import type_utils
 
 
 class TestUIUnittest(unittest.TestCase):
@@ -50,7 +50,7 @@ class TestUIUnittest(unittest.TestCase):
     ui = test_ui.UI()
     ui.event_client.wait = mock.Mock(return_value=ui_abort_event)
     self.assertRaisesRegexp(
-        factory.FactoryTestFailure, r'Aborted by operator',
+        type_utils.TestFailure, r'Aborted by operator',
         ui.Run)
 
 

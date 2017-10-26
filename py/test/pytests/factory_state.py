@@ -106,7 +106,6 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.device.links import ssh
-from cros.factory.test import factory
 from cros.factory.test import state
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import type_utils
@@ -164,26 +163,26 @@ class ManipulateFactoryStateLayer(unittest.TestCase):
   def DoAppend(self, source, destination):
     del destination  # unused
     if source is None:
-      raise factory.FactoryTestFailure('Unsupported operation')
+      raise type_utils.TestFailure('Unsupported operation')
     source.AppendLayer()
 
   def DoPop(self, source, destination):
     del destination  # unused
     if source is None:
-      raise factory.FactoryTestFailure('Unsupported operation')
+      raise type_utils.TestFailure('Unsupported operation')
     source.PopLayer()
 
   def DoMerge(self, source, destination):
     del destination  # unused
     if source is None:
-      raise factory.FactoryTestFailure('Unsupported operation')
+      raise type_utils.TestFailure('Unsupported operation')
     # currently, there are at most 2 layers, so you can only merge layer 1 to
     # layer 0.
     source.MergeLayer(1)
 
   def DoCopy(self, source, destination):
     if source is None or destination is None:
-      raise factory.FactoryTestFailure('Unsupported operation')
+      raise type_utils.TestFailure('Unsupported operation')
     # currently, we only support getting data from top layer
     serialized_data = source.SerializeLayer(-1)
     if destination.GetLayerCount() == state.FactoryState.MAX_LAYER_NUM:

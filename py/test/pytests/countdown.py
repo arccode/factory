@@ -58,12 +58,12 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
-from cros.factory.test import factory
 from cros.factory.test import session
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import time_utils
+from cros.factory.utils import type_utils
 
 
 class CountDownTest(unittest.TestCase):

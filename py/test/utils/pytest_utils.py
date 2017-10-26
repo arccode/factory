@@ -7,7 +7,7 @@ import os
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import factory
+from cros.factory.utils import type_utils
 
 
 def LoadPytestModule(pytest_name):
@@ -105,7 +105,7 @@ def LoadPytest(pytest_name):
   # The countTestCases() would return 3 in this example.
   # To simplify things, we only allow one TestCase per pytest.
   if suite.countTestCases() != 1:
-    raise factory.FactoryTestFailure(
+    raise type_utils.TestFailure(
         'Only one TestCase per pytest is supported. Use test_task '
         'if multiple tasks need to be done in a single pytest.')
   # The first sub-TestCase in the first sub-TestSuite of suite is the target.

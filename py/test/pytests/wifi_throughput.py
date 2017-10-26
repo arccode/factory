@@ -77,7 +77,6 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import CalledProcessError
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
-from cros.factory.test import factory
 from cros.factory.test.fixture import arduino
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import session
