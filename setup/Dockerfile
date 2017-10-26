@@ -59,6 +59,7 @@ RUN apk upgrade --no-cache && apk add --no-cache \
     unzip \
     util-linux \
     uwsgi-python \
+    xz \
   && apk add --no-cache --repository "${alpine_repository}" \
     lbzip2 \
   && ln -s /usr/bin/lbzip2 /usr/bin/pbzip2
