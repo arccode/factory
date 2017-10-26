@@ -1116,16 +1116,13 @@ class StationTestRun(_StationBase):
 
   def AttachFile(self, path, mime_type, name, delete=True, description=None):
     """Attaches a file as specified in Testlog API."""
-    value_dict = {'mimeType': mime_type,
-                  'path': path}
+    value = {'mimeType': mime_type,
+             'path': path}
     if description:
-      value_dict.update({'description': description})
-    value = {'key': name, 'value': value_dict, 'delete': delete}
-    testlog_validator.Validator.Attachment(self,
-                                           'attachments',
-                                           value,
-                                           GetGlobalTestlog)
-    self['attachments'] = {'key': name, 'value': value_dict}
+      value.update({'description': description})
+    testlog_validator.Validator.Attachment(
+        self, name, value, delete, GetGlobalTestlog)
+    self['attachments'] = {'key': name, 'value': value}
     return self
 
   def AddArgument(self, key, value, description=None):

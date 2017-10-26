@@ -18,6 +18,7 @@ import unittest
 from testlog_pkg import testlog
 from testlog_pkg import testlog_utils
 from testlog_pkg.utils import file_utils
+from testlog_pkg.utils import schema
 from testlog_pkg.utils import time_utils
 
 
@@ -41,6 +42,27 @@ class TestlogTest(unittest.TestCase):
 
 
 class TestlogEventTest(unittest.TestCase):
+
+  def _SimulateSubSession(self):
+    # Prepare the attachments_folder by initializing testlog as a sub session
+    session_json_path = testlog.InitSubSession(
+        log_root=self.state_dir,
+        station_test_run=testlog.StationTestRun(),
+        uuid=time_utils.TimedUUID())
+    os.environ[testlog.TESTLOG_ENV_VARIABLE_NAME] = session_json_path
+    return session_json_path
+
+  def setUp(self):
+    self.tmp_dir = tempfile.mkdtemp()
+    self.state_dir = tempfile.mkdtemp()
+    self.session_json_path = self._SimulateSubSession()
+
+  def tearDown(self):
+    shutil.rmtree(self.state_dir)
+    shutil.rmtree(self.tmp_dir)
+    # pylint: disable=protected-access
+    if testlog._global_testlog:
+      testlog._global_testlog.Close()
 
   def testDisallowInitializeFakeEventClasses(self):
     with self.assertRaisesRegexp(
@@ -91,11 +113,286 @@ class TestlogEventTest(unittest.TestCase):
     event.AddArgument('K2', 2.2, 'D2')
     self.assertEquals(
         testlog.StationTestRun({
-            'type': 'station.test_run',
             'arguments': {
                 'K1': {'value': 'V1'},
                 'K2': {'value': 2.2, 'description': 'D2'}}}),
         event)
+
+  def testLogParamAndCheckParam(self):
+    event = testlog.StationTestRun()
+    event.LogParam(name='text', value='unittest',
+                   description='None', value_unit='pcs')
+
+    event.LogParam(name='num', value=3388)
+    self.assertEqual(
+        testlog.StationTestRun({
+            'parameters': {
+                'text': {
+                    'valueUnit': 'pcs',
+                    'textValue': 'unittest',
+                    'description': 'None'},
+                'num': {
+                    'numericValue': 3388}}}),
+        event)
+
+    with self.assertRaisesRegexp(ValueError, 'numeric or text'):
+      event.LogParam(name='oops', value=[1, 2, 3])
+
+    with self.assertRaisesRegexp(ValueError, 'with numeric limits'):
+      event.CheckParam(name='oops', value='yoha', min=30)
+
+    with self.assertRaisesRegexp(ValueError, 'with regular expression'):
+      event.CheckParam(name='oops', value=30, regex='yoha')
+
+    self.assertTrue(
+        event.CheckParam(name='InRange0', value=30, min=30))
+    self.assertFalse(
+        event.CheckParam(name='InRange1', value=30, max=29))
+    self.assertTrue(
+        event.CheckParam(name='Regex0', value='oops', regex='o.*s'))
+    self.assertFalse(
+        event.CheckParam(name='Regex1', value='oops', regex='y.*a'))
+    self.assertTrue(
+        event.CheckParam(
+            name='Regex2', value='Hello world', regex='^H.*d$'))
+    self.assertFalse(
+        event.CheckParam(
+            name='Regex3', value='--Hello world--', regex='^H.*d$'))
+    self.assertTrue(
+        event.CheckParam(
+            name='Regex4', value='--Hello world--', regex='H.*d'))
+
+  def testCreateSeries(self):
+    event = testlog.StationTestRun()
+    s1 = event.CreateSeries(name='s1')
+    s1.LogValue(key=1988, value=1234)
+
+    # Duplicate series name
+    with self.assertRaisesRegexp(ValueError, 'duplicated'):
+      s2 = event.CreateSeries(name='s1')
+    # Not a numeric
+    with self.assertRaisesRegexp(ValueError, 'numeric'):
+      s1.LogValue(key='1988', value=1234)
+    with self.assertRaisesRegexp(ValueError, 'numeric'):
+      s1.LogValue(key=1988, value='1234')
+
+    # Test float type
+    s1.LogValue(key=1987.5, value=5678.0)
+
+    s2 = event.CreateSeries(name='s2', description='withUnit',
+                            key_unit='MHz', value_unit='dBm')
+    s2.LogValue(key=2300, value=31.5)
+    # Give a range to fail.
+    s2.CheckValue(key=2305, value=31.5, min=None, max=30)
+    # The key is not checked for duplication as it is a list.
+    # Expect to see a FAIL and a PASS in the series of same key.
+    s2.CheckValue(key=2305, value=30.5, min=None, max=31)
+
+    self.assertEqual(
+        testlog.StationTestRun({
+            'series': {
+                's1': {
+                    'data': [
+                        {'numericValue': 1234, 'key': 1988},
+                        {'numericValue': 5678.0, 'key': 1987.5}]},
+                's2': {
+                    'keyUnit': 'MHz',
+                    'valueUnit': 'dBm',
+                    'description': 'withUnit',
+                    'data': [
+                        {'numericValue': 31.5, 'key': 2300},
+                        {
+                            'status': 'FAIL',
+                            'numericValue': 31.5,
+                            'expectedMaximum': 30,
+                            'key': 2305},
+                        {
+                            'status': 'PASS',
+                            'numericValue': 30.5,
+                            'expectedMaximum': 31,
+                            'key': 2305}]}}}),
+        event)
+
+  def testAttachFile(self):
+    self._SimulateSubSession()
+    CONTENT = 'Life is a maze and love is a riddle'
+    DESCRIPTION = 'Unittest'
+    TEST_FILENAME = 'TextFile.txt'
+    event = testlog.StationTestRun()
+    def CreateTextFile():
+      path = os.path.join(self.tmp_dir, TEST_FILENAME)
+      with open(path, 'w') as fd:
+        fd.write(CONTENT)
+      return path
+
+    # Move a file normally.
+    file_to_attach = CreateTextFile()
+    event.AttachFile(
+        path=os.path.realpath(file_to_attach),
+        name='text1',
+        mime_type='text/plain',
+        description=DESCRIPTION)
+    # Missing mime_type
+    file_to_attach = CreateTextFile()
+    with self.assertRaisesRegexp(ValueError, 'mime'):
+      event.AttachFile(
+          path=os.path.realpath(file_to_attach),
+          name='text1',
+          mime_type=None)
+    # mime_type with incorrect format
+    with self.assertRaisesRegexp(ValueError, 'mime'):
+      event.AttachFile(
+          path=os.path.realpath(file_to_attach),
+          name='text1',
+          mime_type='wrong_mime_format')
+    # Incorret path
+    file_to_attach = CreateTextFile()
+    with self.assertRaisesRegexp(ValueError, 'find file'):
+      event.AttachFile(
+          path=os.path.realpath(file_to_attach) + 'abcd',
+          name='text1',
+          mime_type='text/plain')
+    # Duplicate name
+    file_to_attach = CreateTextFile()
+    with self.assertRaisesRegexp(ValueError, 'duplicated'):
+      event.AttachFile(
+          path=os.path.realpath(file_to_attach),
+          name='text1',
+          mime_type='text/plain')
+    # Name duplication on target folder
+    file_to_attach = CreateTextFile()
+    event.AttachFile(
+        path=os.path.realpath(file_to_attach),
+        name='text2',
+        mime_type='text/plain',
+        description=DESCRIPTION)
+    # Examine the result
+    paths = set()
+    for att_name, att_dict in event['attachments'].iteritems():
+      description = att_dict['description']
+      self.assertEquals(DESCRIPTION, description)
+      path = att_dict['path']
+      text = open(path, 'r').read()
+      self.assertEquals(CONTENT, text)
+      self.assertTrue(att_name in path)
+      paths.add(path)
+    # Make sure the file names are distinguished
+    self.assertEquals(len(paths), 2)
+
+  def testStationTestRunWrapperInSession(self):
+    testlog.AddArgument('K1', 'V1')
+    testlog.AddArgument('K2', 2.2, 'D2')
+
+    testlog.LogParam(name='text', value='unittest',
+                     description='None', value_unit='pcs')
+    testlog.LogParam(name='num', value=3388)
+
+    s1 = testlog.CreateSeries(name='s1')
+    s1.LogValue(key=1988, value=1234)
+    s1.LogValue(key=1987.5, value=5678.0)
+    s2 = testlog.CreateSeries(name='s2', description='withUnit',
+                              key_unit='MHz', value_unit='dBm')
+    s2.LogValue(key=2300, value=31.5)
+    s2.CheckValue(key=2305, value=31.5, min=None, max=30)
+    s2.CheckValue(key=2305, value=30.5, min=None, max=31)
+
+    CONTENT = 'Life is a maze and love is a riddle'
+    TEST_FILENAME = 'TextFile.txt'
+    def CreateTextFile():
+      path = os.path.join(self.tmp_dir, TEST_FILENAME)
+      with open(path, 'w') as fd:
+        fd.write(CONTENT)
+      return path
+
+    # Move a file normally.
+    file_to_attach = CreateTextFile()
+    testlog.AttachFile(
+        path=os.path.realpath(file_to_attach),
+        name='text1',
+        mime_type='text/plain')
+
+    event = testlog.GetGlobalTestlog().last_test_run
+    self.assertEqual(
+        event['arguments'],
+        {
+            'K1': {'value': 'V1'},
+            'K2': {'value': 2.2, 'description': 'D2'}})
+    self.assertEqual(
+        event['parameters'],
+        {
+            'text': {
+                'valueUnit': 'pcs',
+                'textValue': 'unittest',
+                'description': 'None'},
+            'num': {
+                'numericValue': 3388}})
+    self.assertEqual(
+        event['series'],
+        {
+            's1': {
+                'data': [
+                    {'numericValue': 1234, 'key': 1988},
+                    {'numericValue': 5678.0, 'key': 1987.5}]},
+            's2': {
+                'keyUnit': 'MHz',
+                'valueUnit': 'dBm',
+                'description': 'withUnit',
+                'data': [
+                    {'numericValue': 31.5, 'key': 2300},
+                    {
+                        'status': 'FAIL',
+                        'numericValue': 31.5,
+                        'expectedMaximum': 30,
+                        'key': 2305},
+                    {
+                        'status': 'PASS',
+                        'numericValue': 30.5,
+                        'expectedMaximum': 31,
+                        'key': 2305}]}})
+    paths = set()
+    for att_name, att_dict in event['attachments'].iteritems():
+      path = att_dict['path']
+      text = open(path, 'r').read()
+      self.assertEquals(CONTENT, text)
+      self.assertTrue(att_name in path)
+      paths.add(path)
+    # Make sure the file names are distinguished
+    self.assertEquals(len(paths), 1)
+
+  def testFromDict(self):
+    example_dict = {
+        'uuid': '8b127476-2604-422a-b9b1-f05e4f14bf72',
+        'type': 'station.test_run',
+        'apiVersion': '0.1',
+        'time': '2017-01-05T13:01:45.503Z',
+        'seq': 8202191,
+        'stationDeviceId': 'e7d3227e-f12d-42b3-9c64-0d9e8fa02f6d',
+        'stationInstallationId': '92228272-056e-4329-a432-64d3ed6dfa0c',
+        'testRunId': '8b127472-4593-4be8-9e94-79f228fc1adc',
+        'testName': 'the_test',
+        'testType': 'aaaa',
+        'arguments': {},
+        'status': 'PASSED',
+        'startTime': '2017-01-05T13:01:45.489Z',
+        'failures': [],
+        'parameters': {},
+        'series': {}
+    }
+    _unused_valid_event = testlog.EventBase.FromDict(example_dict)
+    example_dict['arguments']['A'] = {'value': 'yoyo'}
+    example_dict['arguments']['B'] = {'value': 9.53543, 'description': 'number'}
+    example_dict['arguments']['C'] = {'value': -9}
+    example_dict['failures'].append({'code': 'C', 'details': 'D'})
+    example_dict['serialNumbers'] = {}
+    example_dict['serialNumbers']['A'] = 'B'
+    example_dict['parameters']['A'] = {'description': 'D'}
+    example_dict['series']['A'] = {'description': 'D', 'data': [
+        {'key': 987, 'status': 'PASS'},
+        {'key': 7.8, 'status': 'FAIL'}]}
+    _unused_valid_event = testlog.EventBase.FromDict(example_dict)
+    with self.assertRaises(schema.SchemaException):
+      example_dict['arguments']['D'] = {}
+      _unused_invalid_event = testlog.EventBase.FromDict(example_dict)
 
 
 class TestlogE2ETest(unittest.TestCase):

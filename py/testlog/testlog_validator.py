@@ -122,9 +122,10 @@ class Validator(object):
     Validator.Object(inst, key, d)
 
   @staticmethod
-  def Attachment(inst, key, value, testlog_getter_fn):
+  def Attachment(inst, key, value, delete, testlog_getter_fn):
     del inst  # Unused.
-    logging.debug('Validator.Attachment is called: %s, %s', key, value)
+    logging.debug('Validator.Attachment is called: (key=%s, value=%s, '
+                  'delete=%s)', key, value, delete)
     # TODO(itspeter): Move constants to a better place.
     PATH = 'path'
     MIME_TYPE = 'mimeType'
@@ -133,8 +134,6 @@ class Validator(object):
     # TODO(itspeter): Figure out a long-term approach to avoid attchments
     #                 are processed twice (one on API call, one on
     #                 testlog.Collect.
-    delete_after_move = value.get('delete', True)
-    value = value['value']
 
     source_path = value[PATH]
     if not source_path:
@@ -152,14 +151,14 @@ class Validator(object):
     # Move the attachment file.
     folder = testlog_getter_fn().attachments_folder
 
-    # First try with the same filename.
-    # TODO(itspeter): kitching@ suggest we use {testRunId}_{attachmentName}
-    target_path = os.path.join(folder, os.path.basename(source_path))
+    # First try with the attachment name.
+    ideal_target_name = key
+    target_path = os.path.join(folder, ideal_target_name)
     if os.path.exists(target_path):
       target_path = None
       for _ in xrange(5):  # Try at most 5 times of adding a random UUID.
         uuid_target_path = os.path.join(folder, '%s_%s' % (
-            time_utils.TimedUUID()[-12:], os.path.basename(source_path)))
+            time_utils.TimedUUID()[-12:], ideal_target_name))
         if not os.path.exists(uuid_target_path):
           target_path = uuid_target_path
           break
@@ -168,7 +167,7 @@ class Validator(object):
             'Try to get a lottery for yourself, with about a probability '
             'of %s, %s failed to find its way home' % (
                 (1.0/16)**12, source_path))
-    if delete_after_move:
+    if delete:
       shutil.move(source_path, target_path)
     else:
       shutil.copy(source_path, target_path)
