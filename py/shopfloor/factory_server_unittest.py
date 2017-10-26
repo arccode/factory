@@ -27,6 +27,9 @@ from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
 
+REGISTRATION_CODE_LOG_CSV = 'registration_code_log.csv'
+
+
 class FactoryServerTest(unittest.TestCase):
 
   def setUp(self):
@@ -46,7 +49,7 @@ class FactoryServerTest(unittest.TestCase):
         self.data_dir, factory_server.EVENTS_DIR)
     self.parameters_dir = os.path.join(self.data_dir, 'parameters')
     self.registration_code_log = (
-        os.path.join(self.data_dir, factory_server.REGISTRATION_CODE_LOG_CSV))
+        os.path.join(self.data_dir, REGISTRATION_CODE_LOG_CSV))
     csv_source = os.path.join(self.base_dir, 'testdata', 'devices.csv')
     csv_work = os.path.join(self.data_dir, 'devices.csv')
     aux_csv_source = os.path.join(self.base_dir, 'testdata', 'aux_mlb.csv')
@@ -211,18 +214,11 @@ class FactoryServerTest(unittest.TestCase):
   def testLogRegistrationCode(self):
     valid_code = ('000000000000000000000000000000000000'
                   '0000000000000000000000000000190a55ad')
-    invalid_code = '1' + valid_code[1:]
-
-    # This should work.
-    self.proxy.LogRegistrationCodeMap(
-        'MAGICA MADOKA A-A 1214', {'user': valid_code, 'group': valid_code})
-
-    for invalid_map in ({'user': invalid_code, 'group': valid_code},
-                        {'user': valid_code, 'group': invalid_code}):
-      self.assertRaisesRegexp(
-          Exception, "CRC of '10+190a55ad' is invalid",
-          self.proxy.LogRegistrationCodeMap,
-          'MAGICA MADOKA A-A 1214', invalid_map)
+    timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+    board = 'MAGICA'
+    hwid = 'MAGICA MADOKA A-A 1214'
+    csv_name = os.path.splitext(REGISTRATION_CODE_LOG_CSV)[0]
+    self.proxy.UploadCSVEntry(csv_name, [board, valid_code, valid_code, timestamp, hwid])
 
   def testUploadEvent(self):
     # A new event file should be created.

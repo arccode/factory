@@ -241,6 +241,7 @@
         "sync_event_logs": false,
         "update_toolkit": false,
         "upload_report": false,
+        "upload_reg_codes": false,
         "flush_testlog": true
       }
     },
@@ -623,6 +624,18 @@
         "Barrier",
         "RebootStep"
       ]
+    },
+    "UploadRegCodes": {
+      "inherit": "SyncFactoryServer",
+      "label": "Upload Reg (ECHO) Codes to activate",
+      "args": {
+        "sync_event_logs": false,
+        "sync_time": true,
+        "update_toolkit": false,
+        "upload_report": false,
+        "upload_reg_codes": true,
+        "flush_testlog": false
+      }
     },
     "VerifyComponents": {
       "pytest_name": "verify_components"

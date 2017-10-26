@@ -2607,6 +2607,10 @@ msgid "Upload report"
 msgstr "上传生产报告"
 
 #: ../py/test/pytests/sync_factory_server.py
+msgid "Upload Reg Codes"
+msgstr "上传"
+
+#: ../py/test/pytests/sync_factory_server.py
 msgid "Update Toolkit"
 msgstr "更新测试程序"
 
@@ -3230,6 +3234,10 @@ msgstr "右 USB TypeC Port"
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Manual Test Right USB TypeC"
 msgstr "手动右 USB TypeC 测试"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Upload Reg (ECHO) Codes to activate"
+msgstr "上传注册码(ECHO)以激活"
 
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Wifi"

@@ -6,14 +6,11 @@
 
 """Implementation of ChromeOS Factory Shopfloor Service, version 1.0."""
 
-import csv
 import logging
 import optparse
-import os
 import SimpleXMLRPCServer
 import socket
 import SocketServer
-import time
 
 
 DEFAULT_SERVER_PORT = 8090
@@ -21,12 +18,6 @@ DEFAULT_SERVER_ADDRESS = '0.0.0.0'
 
 KEY_SERIAL_NUMBER = 'serials.serial_number'
 KEY_MLB_SERIAL_NUMBER = 'serials.mlb_serial_number'
-
-REGCODE_LOG_CSV = 'registration_code_log.csv'
-
-
-class NewlineTerminatedCSVDialect(csv.excel):
-  lineterminator = '\n'
 
 
 class ShopfloorService(object):
@@ -109,22 +100,6 @@ class ShopfloorService(object):
     """
     logging.info('DUT <hwid=%s> requesting to activate regcode(u=%s,g=%s)',
                  hwid, ubind_attribute, gbind_attribute)
-
-    # default implementation, let's log it in a CSV file
-    # See http://goto/nkjyr for file format.
-    if not hwid:
-      raise ValueError('HWID is missing.')
-    board = hwid.partition(' ')[0]
-
-    with open(REGCODE_LOG_CSV, 'ab') as f:
-      csv.writer(f, dialect=NewlineTerminatedCSVDialect).writerow([
-          board,
-          ubind_attribute,
-          gbind_attribute,
-          time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime()),
-          hwid])
-      os.fdatasync(f.fileno())
-
     return {}
 
   def UpdateTestResult(self, data, test_id, status, details=None):

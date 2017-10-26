@@ -4,6 +4,7 @@
 
 """Common Umpire RPC Commands."""
 
+import csv
 import glob
 import os
 import shutil
@@ -223,6 +224,10 @@ class ShopfloorServiceDUTCommands(umpire_rpc.UmpireRPC):
     return self.NotifyEvent({'serial_number': serial_number}, 'Refinalize')
 
 
+class NewlineTerminatedCSVDialect(csv.excel):
+  lineterminator = '\n'
+
+
 class LogDUTCommands(umpire_rpc.UmpireRPC):
   """DUT log upload procedures.
 
@@ -280,8 +285,14 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
       # u+rw,go+r.
       os.chmod(save_path, 0644)
 
+  def _AppendCSV(self, file_name, entry, mode='a'):
+    """Saves an entry to CSV file."""
+    file_utils.TryMakeDirs(os.path.dirname(file_name))
+    with open(file_name, mode) as f:
+      csv.writer(f, dialect=NewlineTerminatedCSVDialect).writerow(entry)
+      os.fdatasync(f.fileno())
+
   @umpire_rpc.RPCCall
-  @utils.Deprecate
   def UploadReport(self, serial, report_blob, report_name=None, stage=None):
     """Uploads a report file.
 
@@ -315,6 +326,26 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
     return d
 
   @umpire_rpc.RPCCall
+  def UploadCSVEntry(self, csv_name, data):
+    """Uploads a list-type data and save in CSV file.
+
+    This is usually used for storing device data that should not be associated
+    with device identifiers (like device serial number), for example
+    registration codes.
+
+    Devices that can be associated with serial numbers should use TestLog.
+
+    Args:
+      csv_name: The base file name of target CSV file, without suffix.
+      data: A list or entry to be appended into CSV file.
+    """
+    file_name = os.path.join(self.env.umpire_data_dir, 'csv', csv_name + '.csv')
+    d = threads.deferToThread(lambda: self._AppendCSV(
+        file_name, data))
+    d.addCallback(self._ReturnTrue)
+    return d
+
+  @umpire_rpc.RPCCall
   @utils.Deprecate
   def UploadEvent(self, log_name, chunk):
     """Uploads a chunk of events.
@@ -344,6 +375,7 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
     return d
 
   @umpire_rpc.RPCCall
+  @utils.Deprecate
   def SaveAuxLog(self, name, contents):
     """Saves an auxiliary log into the umpire_data/aux_logs directory.
 

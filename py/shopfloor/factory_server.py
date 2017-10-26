@@ -31,7 +31,6 @@ import xmlrpclib
 import factory_common  # pylint: disable=unused-import
 from cros.factory.shopfloor import factory_log_server
 from cros.factory.test.env import paths
-from cros.factory.test.rules.registration_codes import CheckRegistrationCode
 from cros.factory.utils import config_utils
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
@@ -64,7 +63,6 @@ REPORTS_DIR = 'reports'
 AUX_LOGS_DIR = 'aux_logs'
 PARAMETERS_DIR = 'parameters'
 FACTORY_LOG_DIR = 'system_logs'
-REGISTRATION_CODE_LOG_CSV = 'registration_code_log.csv'
 LOGS_DIR_FORMAT = 'logs.%Y%m%d'
 HOURLY_DIR_FORMAT = 'logs.%Y%m%d-%H'
 
@@ -275,6 +273,13 @@ class FactoryServer(object):
       except OSError:
         pass
 
+  def _AppendCSV(self, file_name, entry, mode='a'):
+    """Saves an entry to CSV file."""
+    file_utils.TryMakeDirs(os.path.dirname(file_name))
+    with open(file_name, mode) as f:
+      csv.writer(f, dialect=NewlineTerminatedCSVDialect).writerow(entry)
+      os.fdatasync(f.fileno())
+
   def _CheckReportIntegrity(self, report_path):
     """Checks the integrity of a report.
 
@@ -445,6 +450,23 @@ class FactoryServer(object):
         stage or 'FA', serial, self._Timestamp())
     return self._SaveReport(name, self._UnwrapBlob(report_blob))
 
+  def UploadCSVEntry(self, csv_name, data):
+    """Uploads a list-type data and save in CSV file.
+
+    This is usually used for storing device data that should not be associated
+    with device identifiers (like device serial number), for example
+    registration codes.
+
+    Devices that can be associated with serial numbers should use TestLog.
+
+    Args:
+      csv_name: The base file name of target CSV file, without suffix.
+      data: A list or entry to be appended into CSV file.
+    """
+    file_name = os.path.join(self.data_dir, csv_name + '.csv')
+    self._AppendCSV(file_name, data)
+    return True
+
   def SaveAuxLog(self, name, contents):
     """Saves an auxiliary log into the logs.$(DATE)/aux_logs directory.
 
@@ -466,42 +488,6 @@ class FactoryServer(object):
     file_utils.TryMakeDirs(os.path.dirname(path))
     with open(path, 'wb') as f:
       f.write(contents)
-
-  def LogRegistrationCodeMap(self, hwid, registration_code_map,
-                             log_filename='registration_code_log.csv',
-                             board=None):
-    """Logs that a particular registration code has been used.
-    Args:
-      hwid: HWID object, could be None.
-      registration_code_map: A dict contains 'user' and 'group' reg code.
-      log_filename: File to append log to.
-      board: Board name. If None, will try to derive it from hwid.
-
-    Raises:
-      ValueError if the registration code is invalid.
-      ValueError if both board and hwid are None.
-    """
-    for key in ('user', 'group'):
-      CheckRegistrationCode(registration_code_map[key])
-
-    if not board:
-      if hwid:
-        board = hwid.partition(' ')[0]
-      else:
-        raise ValueError('Both board and hwid are missing.')
-
-    if not hwid:
-      hwid = ''
-
-    # See http://goto/nkjyr for file format.
-    with open(os.path.join(self.data_dir, log_filename), 'ab') as f:
-      csv.writer(f, dialect=NewlineTerminatedCSVDialect).writerow([
-          board,
-          registration_code_map['user'],
-          registration_code_map['group'],
-          time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime()),
-          hwid])
-      os.fdatasync(f.fileno())
 
   def GetFactoryLogPort(self):
     """Returns the port to use for rsync factory logs.

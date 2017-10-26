@@ -21,6 +21,11 @@ This test will sync following items:
 5. If ``update_toolkit`` is enabled (default True), compare the factory software
    (toolkit) installed on DUT with the active version on server, and update
    if needed.
+6. If ``upload_reg_codes`` is enabled (default False), upload the registration
+   codes to server using ``UploadCSVEntry`` API, and have the data stored in
+   ``registration_code_log.csv`` file on server. If the reg codes must be sent
+   back to partner's shopfloor backend, please use shopfloor_service pytest
+   and ActivateRegCode API instead.
 
 Additionally, if argument ``server_url`` is specified, this test will update the
 stored 'default factory server URL' so all following tests connecting to factory
@@ -103,13 +108,15 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.device import device_utils
 from cros.factory.gooftool import commands
 from cros.factory.goofy import updater
 from cros.factory.test import device_data
-from cros.factory.test import session
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.rules import registration_codes
 from cros.factory.test import server_proxy
+from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -196,6 +203,8 @@ class SyncFactoryServer(unittest.TestCase):
           # TODO(hungte) Change flush_testlog to default True when Umpire is
           # officially deployed.
           default=False),
+      Arg('upload_reg_codes', bool, 'Upload registration codes to server.',
+          default=False),
       Arg('upload_report', bool, 'Upload a factory report to factory server.',
           default=False),
       Arg('report_stage', str, 'Stage of report to upload.', default=None),
@@ -215,6 +224,7 @@ class SyncFactoryServer(unittest.TestCase):
     self.event_url_set = threading.Event()
     self.goofy = state.get_instance()
     self.report = Report(None, None, self.args.report_stage)
+    self.dut = device_utils.CreateDUTInterface()
 
   def runTest(self):
     self.ui.AppendCSS(_CSS)
@@ -329,6 +339,30 @@ class SyncFactoryServer(unittest.TestCase):
     self.server.UploadReport(
         self.report.serial_number, self.report.blob, self.report.station)
 
+  def UploadRegCodes(self):
+    """Uploads registration codes to factory server.
+
+    The registration codes should be sent in format from http://goto/nkjyr.
+    """
+    hwid = device_data.GetDeviceData(
+        device_data.KEY_HWID, self.dut.CallOutput('crossystem hwid'))
+    if not hwid:
+      raise Exception('Need HWID before uploading registration codes.')
+
+    board = hwid.partition(' ')[0]
+    ubind = device_data.GetDeviceData(device_data.KEY_VPD_USER_REGCODE)
+    gbind = device_data.GetDeviceData(device_data.KEY_VPD_GROUP_REGCODE)
+    for label, value in ('user', ubind), ('group', gbind):
+      if not value:
+        raise Exception('Missing %s registration codes in device data (%r).' %
+                        (label, value))
+
+    registration_codes.CheckRegistrationCode(ubind)
+    registration_codes.CheckRegistrationCode(gbind)
+    timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+    entry = [board, ubind, gbind, timestamp, hwid]
+    self.server.UploadCSVEntry('registration_code_log', entry)
+
   def UpdateToolkit(self):
     unused_toolkit_version, has_update = updater.CheckForUpdate(
         self.args.timeout_secs)
@@ -374,6 +408,9 @@ class SyncFactoryServer(unittest.TestCase):
     if self.args.upload_report:
       tasks += [(_('Create Report'), self.CreateReport)]
       tasks += [(_('Upload report'), self.UploadReport)]
+
+    if self.args.upload_reg_codes:
+      tasks += [(_('Upload Reg Codes'), self.UploadRegCodes)]
 
     if self.args.update_toolkit:
       tasks += [(_('Update Toolkit'), self.UpdateToolkit)]

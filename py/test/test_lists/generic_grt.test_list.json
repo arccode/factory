@@ -49,7 +49,7 @@
     "GRTItems": {
       "inherit": "FlattenGroup",
       "subtests": [
-        "ActivateRegCode"
+        "UploadRegCodes"
       ]
     },
     "GRTStart": {
