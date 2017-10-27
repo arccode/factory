@@ -77,7 +77,11 @@ class OutputCloudStorage(plugin_base.OutputPlugin):
     """Builds a Storage client object."""
     credentials = service_account.Credentials.from_service_account_file(
         self.args.key_path, scopes=(_GCS_SCOPE,))
-    return storage.Client(credentials=credentials)
+    # Google Cloud Storage is depend on bucket instead of project, so we don't
+    # need to put project name to arguments. However, this client is general
+    # Google Cloud client, so the project can't be None; instead it can be an
+    # empty string.
+    return storage.Client(project='', credentials=credentials)
 
   def BuildBucket(self):
     """Builds a Storage bucket object."""
