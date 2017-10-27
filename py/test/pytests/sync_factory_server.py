@@ -265,15 +265,15 @@ class SyncFactoryServer(unittest.TestCase):
     if current_url:
       prompt = ''
     else:
-      prompt = '<br/>'.join([
+      prompt = ''.join([
           _LABEL_NO_FACTORY_SERVER_URL,
-          _MSG_DEBUG_HINT,
-          ''])
+          _MSG_DEBUG_HINT])
 
     self.ui_template.SetState(
-        prompt + i18n_test_ui.MakeI18nLabel('Change server URL: ') + '<br/>' +
-        '<input type="text" id="%s" value="%s"/><br/>' %
+        prompt + i18n_test_ui.MakeI18nLabel('Change server URL: ') +
+        '<input type="text" id="%s" value="%s"/>' %
         (ID_TEXT_INPUT_URL, current_url) +
+        '<span>' +
         self.CreateButton(
             'btnSet', i18n_test_ui.MakeI18nLabel('Set'),
             'window.test.sendTestEvent("%s", '
@@ -281,7 +281,8 @@ class SyncFactoryServer(unittest.TestCase):
             (EVENT_SET_URL, ID_TEXT_INPUT_URL)) +
         self.CreateButton(
             'btnCancel', i18n_test_ui.MakeI18nLabel('Cancel'),
-            'window.test.sendTestEvent("%s")' % EVENT_CANCEL_SET_URL))
+            'window.test.sendTestEvent("%s")' % EVENT_CANCEL_SET_URL) +
+        '</span>')
 
   def Ping(self):
     if self.do_setup_url.is_set():
@@ -291,7 +292,7 @@ class SyncFactoryServer(unittest.TestCase):
 
     self.ui_template.SetState(
         i18n_test_ui.MakeI18nLabel('Trying to reach server...') +
-        '<br/><br/>' + self.CreateChangeURLButton())
+        self.CreateChangeURLButton())
     self.server = server_proxy.GetServerProxy(
         timeout=self.args.timeout_secs, quiet=True)
 
@@ -300,7 +301,7 @@ class SyncFactoryServer(unittest.TestCase):
 
     self.ui_template.SetState(
         i18n_test_ui.MakeI18nLabel('Trying to check server protocol...') +
-        '<br/><br/>' + self.CreateChangeURLButton())
+        self.CreateChangeURLButton())
     self.server.Ping()
     self.allow_edit_url = False
 
