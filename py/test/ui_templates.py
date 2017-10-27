@@ -129,7 +129,7 @@ class BaseTemplate(object):
       extra_attrs = ' class="%s"' % extra_classes
 
     self._ui.SetHTML('<{tag}{extra_attrs}></{tag}>'.format(
-        tag=template_name.replace('_', '-'), extra_attrs=extra_attrs))
+        tag=template_name, extra_attrs=extra_attrs))
 
   def SetTitle(self, html):
     """Sets the title of the test UI.
@@ -163,7 +163,7 @@ class OneSection(BaseTemplate):
   """
 
   def __init__(self, ui):
-    super(OneSection, self).__init__(ui, 'template_one_section')
+    super(OneSection, self).__init__(ui, 'template-one-section')
 
 
 class OneScrollableSection(BaseTemplate):
@@ -178,7 +178,7 @@ class OneScrollableSection(BaseTemplate):
   """
 
   def __init__(self, ui):
-    super(OneScrollableSection, self).__init__(ui, 'template_one_section',
+    super(OneScrollableSection, self).__init__(ui, 'template-one-section',
                                                'scrollable')
 
 
@@ -201,7 +201,7 @@ class TwoSections(BaseTemplate):
   """
 
   def __init__(self, ui):
-    super(TwoSections, self).__init__(ui, 'template_two_sections')
+    super(TwoSections, self).__init__(ui, 'template-two-sections')
 
   def SetInstruction(self, html):
     """Sets the instruction to operator.
