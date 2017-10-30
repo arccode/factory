@@ -150,7 +150,7 @@ class BaseTemplate(object):
 
 
 class OneSection(BaseTemplate):
-  """A simple template that has only one big section.
+  """A simple template that has only one center aligned big section.
 
   This is a simple template which is suitable for tests that do not
   require showing much information.
@@ -169,7 +169,7 @@ class OneSection(BaseTemplate):
 class OneScrollableSection(BaseTemplate):
   """Like OneSection, but is used to show more info.
 
-  It shows state in a scrollable element and state is left-aligned.
+  It shows state in a scrollable element.
 
   This template provides the following sections:
 

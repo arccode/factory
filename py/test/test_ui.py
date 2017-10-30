@@ -131,6 +131,10 @@ class UI(object):
     AppendHTML(), since the scripts will not be executed. Use RunJS()
     or CallJSFunction() instead.
 
+    Also note that if id is not given, this would set or append HTML for the
+    whole body of the page, so this method should not be used without id when a
+    UI template is used.
+
     Args:
       html: The HTML snippet to set.
       append: Whether to append the HTML snippet.
@@ -313,7 +317,7 @@ class UI(object):
     """Sets a JavaScript function to invoke if a key is pressed.
 
     Args:
-      key: The key to bind (if a string), or an integer character code.
+      key: The key to bind.
       js: The JavaScript to execute when pressed.
       once: If true, the key would be unbinded after first key press.
       virtual_key: If true, also show a button on screen.
@@ -378,7 +382,11 @@ class UI(object):
     return state.get_shared_data('ui_locale')
 
   def PlayAudioFile(self, audio_file):
-    """Plays an audio file in the given path."""
+    """Plays an audio file in the given path.
+
+    Args:
+      audio_file: The path to the audio file.
+    """
     js = """
       const audioElement = new Audio(args.path);
       audioElement.addEventListener(
@@ -387,15 +395,27 @@ class UI(object):
     self.RunJS(js, path=os.path.join('/sounds', audio_file))
 
   def SetFocus(self, element_id):
-    """Set focus to the element specified by element_id"""
+    """Set focus to the element specified by element_id.
+
+    Args:
+      element_id: The HTML DOM id of the element to be focused.
+    """
     self.RunJS('document.getElementById(args.id).focus()', id=element_id)
 
   def SetSelected(self, element_id):
-    """Set the specified element as selected"""
+    """Set the specified element as selected.
+
+    Args:
+      element_id: The HTML DOM id of the element to be selected.
+    """
     self.RunJS('document.getElementById(args.id).select()', id=element_id)
 
   def Alert(self, text):
-    """Show an alert box."""
+    """Show an alert box.
+
+    Args:
+      text: The text to show in the alert box. Can be an i18n text.
+    """
     self.CallJSFunction('test.alert', text)
 
   def WaitKeysOnce(self, keys, timeout=None):

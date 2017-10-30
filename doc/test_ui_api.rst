@@ -5,31 +5,22 @@ Test UI API
 The Test UI API allows tests to interact with an operator, or to
 display their status to the operator while they are running.
 
-To use the test UI, create a :py:class:`cros.factory.test.test_ui.UI`
-object in your test, generally within the ``setUp`` method of your
-test case. Save the UI object as an attribute of your test case
-(``self.ui``). You can then call various methods on this object to
-interact with the browser (see `Test UI Class Reference`_).
+To use the test UI, inherit from
+:py:class:`cros.factory.test.test_ui.TestCaseWithUI` instead of
+:py:class:`unittest.TestCase` for the unittest. You can then call various
+methods on ``self.ui`` and ``self.template`` to interact with the browser (see
+`Test UI Class Reference`_ and `Test UI Templates`_).
 
 For example, this test displays "Hello, world" in the UI, waits
 five seconds, and then passes::
 
   import time
-  import unittest
   from cros.factory.test import test_ui
 
-  class MyTest(unittest.TestCase)::
-    def setUp(self):
-      self.ui = test_ui.UI()
-
+  class MyTest(test_ui.TestCaseWithUI):
     def runTest(self):
-      self.ui.Run(blocking=False)
-      self.ui.SetHTML('Hello, world!')
+      self.template.SetState('Hello, world!')
       time.sleep(5)
-
-Rather than building your UI entirely from scratch, there are some
-templates that you may find useful to keep look and feel consistent
-across tests. For more information, see :ref:`test-ui-templates`.
 
 Including static resources
 --------------------------
@@ -83,44 +74,28 @@ Alternatively, you can use an absolute path:
 
   :samp:`<img src="/tests/{mytest}/foo.png">`
 
-Threading models
-----------------
-*Blocking (UI-cetric) threading model*.
-At the *end* of your ``runTest`` method, call ``self.ui.Run()``. This will
-block until one of the following things happens:
+Pass or fail the test
+---------------------
+To fail the test, do one of the followings:
 
-a. JavaScript code in your UI implementation calls
-   ``window.test.pass()``. (``window.test.pass`` and ``window.test.fail`` are
-   JavaScript methods provided in the UI by the test harness.)
-b. JavaScript code in your UI implementation calls ``window.test.fail(msg)``.
-c. Any thread in your Python test implementation calls ``self.ui.Pass()``.
-d. Any thread in your Python test implementation calls
-   ``self.ui.Fail(error_msg)``.
+* Calls ``window.test.fail(msg)`` in JavaScript implementation.
+* Calls ``self.ui.Fail(error_msg)`` in any thread of the Python implementation.
+* Raises exception in ``runTest`` (Can be exception raised by calling various
+  ``self.assert*`` methods from ``unittest.TestCase``).
 
-In passing cases (a) and (c), ``Run()`` simply returns; your
-``runTest`` method will then return and the test will end
-successfully.
+To pass the test, do one of the followings:
 
-However, in failing cases (b) and (d), ``Run()`` raises an
-exception, which propagates from ``runTest`` and causes your
-test to fail.
+* Calls ``window.test.pass()`` in JavaScript implementation.
+* Calls ``self.ui.Pass()`` in any thread of the Python implementation.
+* If nothing fails the test, the test is **automatically passed after**
+  ``runTest`` **return**. To disable this behavior, return
+  ``test_ui.WAIT_FRONTEND`` from ``runTest``, and the test would wait for one
+  of the conditions above is achieved.
 
-This threading model is most useful when most of the test logic is
-implemented in the UI itself, and it is the UI that "decides"
-whether the test should pass or fail.
-
-For most tests, the bulk of the test logic is implemented in Python, and it is
-the Python code that determines whether the test should pass or fail.
-In this case, the test logic should be put in another function ``_runTest``,
-and have ``runTest`` defined as::
-
-  def runTest():
-    self.ui.RunInBackground(self._runTest)
-    self.ui.Run()
-
-This would run the test logic in another thread, and the test will terminate
-whenever ``_runTest`` returns (in which case the test passes), or throws an
-exception (in which case the test fails).
+When the test inherits from ``TestCaseWithUI``, the ``runTest`` method is run
+in a **background** thread, while the UI event loop run in the main thread.
+This also means that the test never need to call ``self.ui.Run`` or
+``self.ui.RunInBackground`` since they're handled in the parent class.
 
 Test UI Class Reference
 -----------------------
@@ -133,36 +108,27 @@ Test UI Class Reference
 
 Test UI Templates
 -----------------
-Rather than building your UI entirely from scratch, there are two
-templates that you may find useful to keep look and feel consistent
-across tests.  To use a template, create a template object, using the
-:py:class:`cros.factory.test.test_ui.UI` as an argument.  You can then
-call methods on the template object to manipulate the UI.  For
-example::
+Rather than building your UI entirely from scratch, there are templates that
+you may find useful to keep look and feel consistent across tests.
+
+By default, tests inherit from ``test_ui.TestCaseWithUI`` would use the
+`One-section template`_. To change what template to be used, override the class
+variable ``template_type``. For example::
 
   from cros.factory.test import test_ui
-  from cros.factory.test import ui_templates
 
-  class MyTest(unittest.TestCase)::
-    def setUp(self):
-      self.ui = test_ui.UI()
-      self.template = ui_templates.TwoSections(self.ui)
+  class MyTest(test_ui.TestCaseWithUI):
+    template_type = 'two-sections'
 
     def runTest(self):
       self.template.SetTitle('My Test')
       self.template.SetState('Hello, world!')
-        ...
-
-Two-section template
-````````````````````
-.. py:module:: cros.factory.test.ui_templates
-
-.. autoclass:: TwoSections
-   :inherited-members:
-   :members:
+      ...
 
 One-section template
 ````````````````````
+.. py:module:: cros.factory.test.ui_templates
+
 .. autoclass:: OneSection
    :inherited-members:
    :members:
@@ -170,5 +136,11 @@ One-section template
 One-scrollable-section template
 ```````````````````````````````
 .. autoclass:: OneScrollableSection
+   :inherited-members:
+   :members:
+
+Two-section template
+````````````````````
+.. autoclass:: TwoSections
    :inherited-members:
    :members:
