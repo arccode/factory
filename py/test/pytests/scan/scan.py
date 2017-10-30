@@ -51,7 +51,6 @@ from __future__ import print_function
 import logging
 import re
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -65,12 +64,11 @@ from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
 
 
-class Scan(unittest.TestCase):
+class Scan(test_ui.TestCaseWithUI):
   """The main class for this pytest."""
   ARGS = [
       i18n_arg_utils.I18nArg(
@@ -131,8 +129,8 @@ class Scan(unittest.TestCase):
                       i18n_test_ui.MakeI18nLabel(label) +
                       '</span>',
                       id='scan-status')
-      self.ui.RunJS('$("scan-value").disabled = false;'
-                    '$("scan-value").value = ""')
+      self.ui.RunJS('document.getElementById("scan-value").disabled = false;'
+                    'document.getElementById("scan-value").value = ""')
       self.ui.SetFocus('scan-value')
 
     self.ui.RunJS('$("scan-value").disabled = true')
@@ -211,7 +209,6 @@ class Scan(unittest.TestCase):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self.ui = test_ui.UI()
     self.auto_scan_timer = None
     self.fixture = None
     if self.args.bft_fixture:
@@ -235,19 +232,16 @@ class Scan(unittest.TestCase):
       time.sleep(self.args.barcode_scan_interval_secs)
 
   def runTest(self):
-    template = ui_templates.OneSection(self.ui)
-
-    template.SetTitle(
+    self.template.SetTitle(
         i18n_test_ui.MakeI18nLabel('Scan {label}', label=self.args.label))
 
-    template.SetState(
+    self.template.SetState(
         i18n_test_ui.MakeI18nLabel(
             'Please scan the {label} and press ENTER.',
             label=self.args.label) +
-        '<br><input id="scan-value" type="text" size="20">'
-        '<br>&nbsp;'
-        '<p id="scan-status">&nbsp;')
-    self.ui.RunJS("document.getElementById('scan-value').focus()")
+        '<input id="scan-value" type="text" size="20">'
+        '<p id="scan-status">&nbsp;</p>')
+    self.ui.SetFocus('scan-value')
     self.ui.BindKeyJS(
         test_ui.ENTER_KEY,
         'window.test.sendTestEvent("scan_value",'
@@ -256,24 +250,24 @@ class Scan(unittest.TestCase):
 
     if self.args.value_assigned is not None:
       self.ui.CallJSFunction(
-          'test.sendTestEvent', 'scan_value', self.args.value_assigned)
+          'window.test.sendTestEvent', 'scan_value', self.args.value_assigned)
     elif self.args.bft_scan_fixture_id:
       logging.info('Getting fixture ID...')
       fixture_id = self.fixture.GetFixtureId()
-      self.ui.CallJSFunction('test.sendTestEvent', 'scan_value',
+      self.ui.CallJSFunction('window.test.sendTestEvent', 'scan_value',
                              str(fixture_id))
     elif self.args.bft_scan_barcode:
       logging.info('Triggering barcode scanner...')
-      self.ui.RunInBackground(self.ScanBarcode)
+      self.ScanBarcode()
     elif self.args.bft_save_barcode:
       logging.info('Triggering barcode scanner...')
-      self.ui.RunInBackground(self.BFTScanSaveBarcode)
+      self.BFTScanSaveBarcode()
     elif self.args.bft_get_barcode:
       logging.info('Getting barcode from BFT...')
       saved_barcode_path = None
       if isinstance(self.args.bft_get_barcode, str):
         saved_barcode_path = self.args.bft_get_barcode
       barcode = self.fixture.ScanBarcode(saved_barcode_path)
-      self.ui.CallJSFunction('test.sendTestEvent', 'scan_value', barcode)
+      self.ui.CallJSFunction('window.test.sendTestEvent', 'scan_value', barcode)
 
-    self.ui.Run()
+    return test_ui.WAIT_FRONTEND
