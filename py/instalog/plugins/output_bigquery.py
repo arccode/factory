@@ -92,6 +92,7 @@ class OutputBigQuery(plugin_base.OutputPlugin):
     if table.exists():
       table.reload()
     else:
+      table.partitioning_type = 'DAY'
       table.create()
     return table
 
