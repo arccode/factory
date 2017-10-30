@@ -17,6 +17,7 @@ from cros.factory.device import device_utils
 from cros.factory.device import ec
 from cros.factory.device.boards import linux
 from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils import sys_utils
 
@@ -485,6 +486,62 @@ class TestGetRunningFactoryPythonArchivePath(unittest.TestCase):
     self.assertEquals(sys_utils.GetRunningFactoryPythonArchivePath(), None)
 
     self.mox.VerifyAll()
+
+
+class VPDToolTest(unittest.TestCase):
+  """Unittest for VPDTool."""
+
+  def setUp(self):
+    self.mox = mox.Mox()
+    self.spawner = self.mox.CreateMock(process_utils)
+    self.vpd = sys_utils.VPDTool(self.spawner)
+
+  def tearDown(self):
+    self.mox.VerifyAll()
+
+  def testGetData(self):
+    self.spawner.CheckOutput(['vpd', '-g', 'aaa']).AndReturn('bbb')
+    self.spawner.CheckOutput(['vpd', '-g', 'ccc']).AndReturn('')
+    self.mox.ReplayAll()
+
+    self.assertEqual(self.vpd.GetValue('aaa'), 'bbb')
+    self.assertEqual(self.vpd.GetValue('ccc'), '')
+
+  def testNonExistsGetData(self):
+    self.spawner.CheckOutput(['vpd', '-g', 'aaa']).AndRaise(
+        subprocess.CalledProcessError(None, None, None))
+    self.mox.ReplayAll()
+
+    self.assertEqual(self.vpd.GetValue('aaa', 123), 123)
+
+  def testGetAllData(self):
+    self.spawner.CheckOutput(
+        ['vpd', '-l', '--null-terminate']).AndReturn('aa=bb\0cc==\0')
+    self.mox.ReplayAll()
+
+    self.assertEqual(self.vpd.GetAllData(), {'aa': 'bb', 'cc': '='})
+
+  def testUpdateData(self):
+    self.spawner.CheckOutput(['vpd', '-d', 'cc'])
+    self.spawner.CheckOutput(['vpd', '-s', 'aa=bb'])
+    self.mox.ReplayAll()
+
+    self.vpd.UpdateData({'cc': None})
+    self.vpd.UpdateData({'aa': 'bb'})
+
+  def testInvalidKey(self):
+    self.mox.ReplayAll()
+    self.assertRaises(ValueError, self.vpd.GetValue, '')
+    self.assertRaises(ValueError, self.vpd.GetValue, 'aaa=bb')
+    self.assertRaises(ValueError, self.vpd.UpdateData, {'aa': 'bb', '': None})
+
+  def testSpecificFilenameAndPartition(self):
+    self.spawner.CheckOutput(
+        ['vpd', '-f', 'f', '-i', 'RO_VPD', '-g', 'key']).AndReturn('v')
+    self.mox.ReplayAll()
+    self.assertEqual(
+        self.vpd.GetValue('key', filename='f', partition=self.vpd.RO_PARTITION),
+        'v')
 
 
 if __name__ == '__main__':

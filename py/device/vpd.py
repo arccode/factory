@@ -8,6 +8,7 @@ import re
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import types
 from cros.factory.test.rules import privacy
+from cros.factory.utils import sys_utils
 
 
 # One line in vpd -l output.
@@ -79,32 +80,20 @@ class CommandVPDPartition(Partition):
     """
     super(CommandVPDPartition, self).__init__(dut)
     self.name = name
+    self._vpd_tool = sys_utils.VPDTool(self._device)
 
   def get(self, key, default=None):
     """See Partition.get."""
-    result = self._device.CallOutput(['vpd', '-i', self.name, '-g', key])
-    return default if result is None else result
+    return self._vpd_tool.GetValue(
+        key, default_value=default, partition=self.name)
 
   def Delete(self, *keys):
     """See Partition.Delete."""
-    if keys:
-      args = ['vpd', '-i', self.name]
-      for k in keys:
-        args += ['-d', k]
-      self._device.CheckCall(args)
+    self._vpd_tool.UpdateData({key: None for key in keys}, partition=self.name)
 
   def GetAll(self):
     """See Partition.GetAll."""
-    ret = {}
-    for line in self._device.CallOutput(
-        ['vpd', '-i', self.name, '-l']).splitlines():
-      match = VPD_LIST_PATTERN.match(line)
-      if not match:
-        logging.error('Unexpected line in %s VPD: %r', self.name, line)
-        continue
-      ret[match.group(1)] = match.group(2)
-
-    return ret
+    return self._vpd_tool.GetAllData(partition=self.name)
 
   def Update(self, items, log=True):
     """See Partition.Update.
@@ -117,26 +106,15 @@ class CommandVPDPartition(Partition):
     if log:
       logging.info('Updating %s: %s', self.name, privacy.FilterDict(items))
 
-    data = self.GetAll()
-    command = ['vpd', '-i', self.name]
+    # Only update if needed since reading is fast but writing is slow.
+    orig_data = self._vpd_tool.GetAllData(partition=self.name)
+    changed_items = {}
+    for k, v in items.items():
+      if (v is None and k in orig_data or
+          v is not None and orig_data.get(k) != v):
+        changed_items[k] = v
 
-    for k, v in sorted(items.items()):
-      if not VPD_KEY_PATTERN.match(k):
-        raise ValueError('Invalid VPD key %r (does not match pattern %s)' % (
-            k, VPD_KEY_PATTERN.pattern))
-      if v is None:
-        v = ''  # TODO(jsalz): http://crosbug.com/p/18159
-      if not VPD_VALUE_PATTERN.match(v):
-        raise ValueError('Invalid VPD value %r (does not match pattern %s)' % (
-            k, VPD_VALUE_PATTERN.pattern))
-      # Only update if needed since reading is fast but writing is slow.
-      if data.get(k) != v:
-        command += ['-s', '%s=%s' % (k, v)]
-
-    if not items:
-      return
-
-    self._device.CheckCall(command)
+    return self._vpd_tool.UpdateData(changed_items, partition=self.name)
 
 
 class ImmutableFileBasedPartition(Partition):

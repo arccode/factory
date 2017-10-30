@@ -9,7 +9,6 @@ import logging
 import os
 import re
 import stat
-import struct
 import subprocess
 import tempfile
 import uuid
@@ -751,3 +750,87 @@ def GetStartupMessages(dut=None):
                   '(This is normal on an non-Intel systems).')
 
   return res
+
+
+class VPDTool(object):
+  """This class wraps the functions supplied by VPD cmdline tool into methods.
+  """
+  _KEY_PATTERN = re.compile(r'^[a-zA-Z0-9_.]+$')
+
+  RO_PARTITION = 'RO_VPD'
+  RW_PARTITION = 'RW_VPD'
+
+  def __init__(self, spawner=None):
+    """Constructor.
+
+    Args:
+      spawner: A module which supplies `CheckOutput` method for this class to
+          call the VPD command line tool.  Default to `process_utils`.
+    """
+    self._spawner = spawner or process_utils
+
+  def GetValue(self, key, default_value=None, filename=None, partition=None):
+    """Gets a VPD value with the specific key.
+
+    If the VPD doesn't contain the data with the given `key`, this function will
+    return `default_value`.
+
+    Args:
+      key: A string of the key of the data to get.
+      default_value: The value to return if the data doesn't exist.
+      filename: Filename of the bios image, see `vpd -h` for detail.
+      partition: Specify VPD partition name in fmap.
+
+    Returns:
+      A string of raw value data or `None`.
+    """
+    self._EnsureIfKeyValid(key)
+    try:
+      return self._spawner.CheckOutput(
+          self._BuildBasicCmd(filename, partition) + ['-g', key])
+    except subprocess.CalledProcessError:
+      return default_value
+
+  def GetAllData(self, filename=None, partition=None):
+    """Gets all VPD data in dictionary format.
+
+    Args:
+      filename: Filename of the bios image, see `vpd -h` for detail.
+      partition: Specify VPD partition name in fmap.
+
+    Returns:
+      A dictionary in which each key-value pair represents a VPD data entry.
+    """
+    raw_data = self._spawner.CheckOutput(
+        self._BuildBasicCmd(filename, partition) + ['-l', '--null-terminate'])
+    return dict(field.split('=', 1)
+                for field in raw_data.split('\0') if '=' in field)
+
+  def UpdateData(self, items, filename=None, partition=None):
+    """Updates VPD data.
+
+    Args:
+      items: Items to set.  A value of "None" deletes the item from the VPD.
+      filename: Filename of the bios, see `vpd -h` for detail.
+      partition: Specify VPD partition name in fmap.
+    """
+    cmd = self._BuildBasicCmd(filename, partition)
+    for k, v in items.items():
+      self._EnsureIfKeyValid(k)
+      cmd += ['-d', k] if v is None else ['-s', '%s=%s' % (k, v)]
+    self._spawner.CheckOutput(cmd)
+
+  @classmethod
+  def _BuildBasicCmd(cls, filename, partition):
+    cmd = ['vpd']
+    if filename:
+      cmd += ['-f', filename]
+    if partition:
+      cmd += ['-i', partition]
+    return cmd
+
+  @classmethod
+  def _EnsureIfKeyValid(cls, key):
+    if not cls._KEY_PATTERN.match(key):
+      raise ValueError('Invalid VPD key %r (does not match pattern %s)' %
+                       (key, cls._KEY_PATTERN.pattern))
