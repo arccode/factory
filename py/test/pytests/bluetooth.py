@@ -98,7 +98,6 @@ from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
-from cros.factory.utils import type_utils
 
 
 _MSG_DETECT_ADAPTER = i18n_test_ui.MakeI18nLabel('Detect bluetooth adapter')
@@ -1233,6 +1232,7 @@ class BluetoothTest(unittest.TestCase):
     logging.info('manufacturer_id %s: %s %s',
                  self.args.manufacturer_id, self.hci_device, self.host_mac)
     self.log_file = None
+    self.log_tmp_file = None
 
     if self.args.base_enclosure_serial_number:
       self.log_tmp_file = file_utils.CreateTemporaryFile()
@@ -1255,14 +1255,15 @@ class BluetoothTest(unittest.TestCase):
       self.fixture.Close()
     if self.log_file:
       shutil.copyfile(self.log_tmp_file, self.log_file)
-    if self.args.keep_raw_logs:
-      testlog.AttachFile(
-          path=self.log_tmp_file,
-          mime_type='text/plain',
-          name='bluetooth.log',
-          description='plain text log of bluetooth',
-          delete=False)
-    os.remove(self.log_tmp_file)
+    if self.log_tmp_file:
+      if self.args.keep_raw_logs:
+        testlog.AttachFile(
+            path=self.log_tmp_file,
+            mime_type='text/plain',
+            name='bluetooth.log',
+            description='plain text log of bluetooth',
+            delete=False)
+      os.remove(self.log_tmp_file)
 
   def runTest(self):
     if self.args.use_charge_fixture:
