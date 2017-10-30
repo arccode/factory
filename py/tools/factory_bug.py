@@ -175,7 +175,7 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
 
     with open(os.path.join(tmp, 'audio_diagnostics'), 'w') as f:
       Spawn('audio_diagnostics', stdout=f, stderr=f, call=True)
-      files += 'audio_diagnostics'
+      files += ['audio_diagnostics']
 
     if has_ec:
       with open(os.path.join(tmp, 'ec_console'), 'w') as f:
