@@ -10,6 +10,7 @@ import cgi
 import json
 import logging
 import os
+import time
 import traceback
 import unittest
 import uuid
@@ -51,6 +52,8 @@ PASS_FAIL_KEY_LABEL = PASS_KEY_LABEL + FAIL_KEY_LABEL
 # Indicate that the test should not be automatically passed when
 # RunInBackground is finished.
 WAIT_FRONTEND = object()
+
+_HANDLER_WARN_TIME_LIMIT = 5
 
 
 class UI(object):
@@ -352,10 +355,19 @@ class UI(object):
         event.test == self.test and
         event.invocation == self.invocation):
       for handler in self.event_handlers.get(event.subtype, []):
+        start_time = time.time()
         try:
           handler(event)
         except Exception as e:
           self.Fail(str(e))
+        finally:
+          used_time = time.time() - start_time
+          if used_time > _HANDLER_WARN_TIME_LIMIT:
+            logging.warn(
+                'The handler for %s takes too long to finish (%.2f seconds)! '
+                'This would make the UI unresponsible for new events, '
+                'consider moving the work load to background thread instead.',
+                event.subtype, used_time)
 
   def GetUILocale(self):
     """Returns current enabled locale in UI."""
