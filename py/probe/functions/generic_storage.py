@@ -96,10 +96,7 @@ def GetEMMC5FirmwareVersion(node_path):
 
 
 class GenericStorageFunction(function.ProbeFunction):
-  """Probe the generic storage information.
-
-  The function is ported from `py/gooftool/probe.py` module.
-  """
+  """Probe the generic storage information."""
   ATA_FIELDS = ['vendor', 'model']
   EMMC_FIELDS = ['type', 'name', 'hwrev', 'oemid', 'manfid']
   NVME_FIELDS = ['vendor', 'device', 'class']

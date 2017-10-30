@@ -133,8 +133,7 @@ class HWIDV3Test(test_ui.TestCaseWithUI):
           value=probed_results,
           description='gooftool probe result (overriden)')
     else:
-      probed_results = self.factory_tools.CallOutput(
-          ['gooftool', 'probe', '--include_vpd'])
+      probed_results = self.factory_tools.CallOutput(['gooftool', 'probe'])
       self._dut.WriteFile(probed_results_file, probed_results)
       testlog.LogParam(
           name='probed_results',

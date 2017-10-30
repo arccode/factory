@@ -299,7 +299,7 @@ class Database(object):
     def LookupProbedValue(comp_cls):
       for field in ['found_probe_value_map', 'found_volatile_values',
                     'initial_configs']:
-        if comp_cls in probed_bom[field]:
+        if comp_cls in probed_bom.get(field, {}):
           # We actually want to return a list of dict here.
           return type_utils.MakeList(
               probed_bom[field][comp_cls] if

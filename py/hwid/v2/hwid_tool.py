@@ -235,8 +235,8 @@ def ComponentSpecClassCompsMap(component_spec):
 def ComponentSpecCompClassMap(component_spec):
   """Return comp_name:comp_class dict, for lookup of component class by name."""
   return dict(
-      (comp, comp_class)
-      for comp_class, comps in ComponentSpecClassCompsMap(component_spec).items()
+      (comp, comp_cls)
+      for comp_cls, comps in ComponentSpecClassCompsMap(component_spec).items()
       for comp in comps)
 
 
@@ -883,7 +883,6 @@ class Device(YamlDatastore):
         unmatched_values={},
         matched_tags=[])
     # Modify HWID v2 to look at COMPACT_PROBE_STR field of probe results.
-    from cros.factory.gooftool import probe
     for probe_class, pr_data in value_map.items():
       probe_value = pr_data[COMPACT_PROBE_STR]
       volatile_name = self.reverse_vol_value_map.get(probe_value, None)
@@ -1074,7 +1073,7 @@ def PrintHwidHierarchy(device, cooked_boms, status_mask):
     for line in FmtLeftAlignedDict(common_output):
       print (depth * '  ') + '  ' + line
     common_present = dict(
-        (comp_class, ', '.join(x for x in (comps - masks.present)))
+        (comp_class, ', '.join(x for x in comps - masks.present))
         for comp_class, comps in boms.comp_map.items()
         if comps - masks.present)
     for line in FmtRightAlignedDict(common_present):
@@ -1241,6 +1240,7 @@ def CreateBomMatrix(config, hw_db):
     component_spec = comp_db.CreateComponentSpec(components=comps)
     component_spec = CombineComponentSpecs(fixed_component_spec, component_spec)
 
+    # pylint:disable=cell-var-from-loop
     def Unique((bom_name, bom)):
       if not ComponentSpecsEqual(component_spec, bom.primary):
         return True
@@ -1471,7 +1471,8 @@ def AssimilateProbeResults(config, hw_db):
   if match_tree:
     is_complete = hw_db.comp_db.ComponentDataIsComplete(component_data)
     print '%s matching boms: %s' % (
-        'exactly' if is_complete else 'partially', ', '.join(sorted(match_tree)))
+        'exactly' if is_complete else 'partially', ', '.join(
+            sorted(match_tree)))
   if config.create_bom != False:
     missing_classes = (
         hw_db.comp_db.all_comp_classes - device.variant_classes -
@@ -1784,6 +1785,7 @@ def LegacyExport(config, data):
   if not os.path.exists(config.dest_dir):
     print 'ERROR: destination directory %r does not exist.' % config.dest_dir
     return
+  # pylint: disable=eval-used
   extra_fields = eval(open(config.extra).read()) if config.extra else None
   device = data.devices[config.board]
   hash_db_path = os.path.join(config.dest_dir, 'hash.db')

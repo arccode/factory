@@ -23,12 +23,7 @@ from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Shell
 from cros.factory.gooftool import core
 from cros.factory.gooftool import crosfw
-from cros.factory.gooftool import probe
-from cros.factory.gooftool.probe import Probe
-from cros.factory.gooftool.probe import ReadRoVpd
-from cros.factory.hwid.v2 import hwid_tool
-# pylint: disable=no-name-in-module
-from cros.factory.hwid.v2.hwid_tool import ProbeResults
+from cros.factory.utils.sys_utils import VPDTool
 from cros.factory.utils.type_utils import Error
 from cros.factory.utils.type_utils import Obj
 
@@ -155,69 +150,20 @@ class GooftoolTest(unittest.TestCase):
   def setUp(self):
     self.mox = mox.Mox()
 
-    # Probe should always be mocked in the unit test since this test is not
-    # likely to be ran on a DUT.
-    self._mock_probe = self.mox.CreateMock(Probe)
-    test_db = hwid_tool.HardwareDb(_TEST_DATA_PATH)
-
-    self._gooftool = core.Gooftool(probe=self._mock_probe, hardware_db=test_db)
+    self._gooftool = core.Gooftool(
+        hwid_version=3, project='chromebook', hwdb_path=_TEST_DATA_PATH)
     self._gooftool._util = self.mox.CreateMock(core.Util)
     self._gooftool._util.shell = self.mox.CreateMock(Shell)
-    probe.Shell = self.mox.CreateMock(Shell)
 
     self._gooftool._crosfw = self.mox.CreateMock(crosfw)
     self._gooftool._unpack_bmpblock = self.mox.CreateMock(unpack_bmpblock)
-    self._gooftool._read_ro_vpd = self.mox.CreateMock(ReadRoVpd)
+    self._gooftool._vpd = self.mox.CreateMock(self._gooftool._vpd)
     self._gooftool._named_temporary_file = self.mox.CreateMock(
         NamedTemporaryFile)
 
   def tearDown(self):
     self.mox.VerifyAll()
     self.mox.UnsetStubs()
-
-  def testVerifyComponents(self):
-    """Test if the Gooftool.VerifyComponent() works properly.
-
-    This test tries to probe three components [camera, battery, cpu], where
-      'camera' returns a valid result.
-      'battery' returns a false result.
-      'cpu' does not return any result.
-      'tpm' returns multiple results.
-    """
-
-    self._mock_probe(
-        probe_initial_config=False,
-        probe_volatile=False,
-        target_comp_classes=['camera', 'battery', 'cpu', 'tpm']).AndReturn(
-            ProbeResults(
-                found_probe_value_map={
-                    'camera': 'CAMERA_1',
-                    'battery': 'fake value',
-                    'tpm': ['TPM_1', 'TPM_2', 'fake value']},
-                missing_component_classes={},
-                found_volatile_values=[],
-                initial_configs={}))
-
-    self.mox.ReplayAll()
-
-    self.assertEquals(
-        {'camera': [('camera_1', 'CAMERA_1', None)],
-         'battery': [(None, 'fake value', mox.IsA(str))],
-         'cpu': [(None, None, mox.IsA(str))],
-         'tpm': [('tpm_1', 'TPM_1', None),
-                 ('tpm_2', 'TPM_2', None),
-                 (None, 'fake value', mox.IsA(str))]},
-        self._gooftool.VerifyComponents(['camera', 'battery', 'cpu', 'tpm']))
-
-  def testVerifyBadComponents(self):
-    self.mox.ReplayAll()
-
-    self.assertRaises(ValueError, self._gooftool.VerifyComponents, [])
-    self.assertRaises(ValueError,
-                      self._gooftool.VerifyComponents, ['bad_class_name'])
-    self.assertRaises(
-        ValueError,
-        self._gooftool.VerifyComponents, ['camera', 'bad_class_name'])
 
   def testVerifyECKeyWithPubkeyHash(self):
     f = MockFile()
@@ -351,11 +297,9 @@ class GooftoolTest(unittest.TestCase):
         'tpm-manager get_random 32', log=False).AndReturn(
             StubStdout('00' * 32 + '\n'))
 
-    stub_result = lambda: None
-    stub_result.success = True
-    probe.Shell(
-        'vpd -i RO_VPD -s "stable_device_secret_DO_NOT_SHARE"="%s"' %
-        ('00' * 32)).AndReturn(stub_result)
+    self._gooftool._vpd.UpdateData(
+        dict(stable_device_secret_DO_NOT_SHARE='00' * 32),
+        partition=VPDTool.RO_PARTITION)
     self.mox.ReplayAll()
     self._gooftool.GenerateStableDeviceSecret()
 
@@ -394,11 +338,9 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool._util.shell(
         'tpm-manager get_random 32', log=False).AndReturn(
             StubStdout('00' * 32 + '\n'))
-    stub_result = lambda: None
-    stub_result.success = False
-    probe.Shell(
-        'vpd -i RO_VPD -s "stable_device_secret_DO_NOT_SHARE"="%s"' %
-        ('00' * 32)).AndReturn(stub_result)
+    self._gooftool._vpd.UpdateData(
+        dict(stable_device_secret_DO_NOT_SHARE='00' * 32),
+        partition=VPDTool.RO_PARTITION).AndRaise(Exception())
     self.mox.ReplayAll()
     self.assertRaisesRegexp(Error, 'Error writing device secret',
                             self._gooftool.GenerateStableDeviceSecret)
@@ -427,36 +369,37 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool.VerifyWPSwitch()
     self.assertRaises(Error, self._gooftool.VerifyWPSwitch)
 
-  def _SetupVPDMocks(self, ro_vpd):
-    """Set up mocks for VerifyVPD tests.
+  def _SetupROVPDMocks(self, ro_vpd):
+    """Set up mocks for ro-vpd related tests.
 
     Args:
       ro_vpd: The dictionary to use for the RO VPD.
     """
-    self._gooftool._read_ro_vpd().AndReturn(ro_vpd)
+    self._gooftool._vpd.GetAllData(
+        partition=VPDTool.RO_PARTITION).AndReturn(ro_vpd)
 
   def testVerifyVPD_AllValid(self):
-    self._SetupVPDMocks(dict(serial_number='A1234', region='us'))
+    self._SetupROVPDMocks(dict(serial_number='A1234', region='us'))
     self.mox.ReplayAll()
     self.assertEquals(dict(serial_number='A1234', region='us'),
                       self._gooftool.VerifyVPD())
 
   def testVerifyVPD_NoRegion(self):
-    self._SetupVPDMocks(dict(serial_number='A1234'))
+    self._SetupROVPDMocks(dict(serial_number='A1234'))
     self.mox.ReplayAll()
     # Should fail, since region is missing.
     self.assertRaisesRegexp(Error, 'Missing mandatory VPD values: region',
                             self._gooftool.VerifyVPD)
 
   def testVerifyVPD_InvalidRegion(self):
-    self._SetupVPDMocks(dict(serial_number='A1234', region='nonexist'))
+    self._SetupROVPDMocks(dict(serial_number='A1234', region='nonexist'))
     self.mox.ReplayAll()
     self.assertRaisesRegexp(ValueError, 'Unknown region: "nonexist".',
                             self._gooftool.VerifyVPD)
 
   def testVerifyVPD_DeprecatedValues(self):
-    self._SetupVPDMocks(dict(serial_number='A1234', region='us',
-                             initial_locale='en-US'))
+    self._SetupROVPDMocks(dict(serial_number='A1234', region='us',
+                               initial_locale='en-US'))
     self.mox.ReplayAll()
     self.assertRaisesRegexp(Error,
                             'Deprecated VPD values found: initial_locale',
@@ -547,7 +490,7 @@ class GooftoolTest(unittest.TestCase):
 
     # Stub data from VPD for zh.
     self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
-    self._gooftool._read_ro_vpd().AndReturn({'region': 'tw'})
+    self._SetupROVPDMocks(dict(region='tw'))
 
     f = MockFile()
     f.read = lambda: 'ja\nzh\nen'
@@ -568,7 +511,7 @@ class GooftoolTest(unittest.TestCase):
 
     # Stub data from VPD for zh.
     self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
-    self._gooftool._read_ro_vpd().AndReturn({'region': 'tw'})
+    self._SetupROVPDMocks(dict(region='tw'))
 
     f = MockFile()
     f.read = lambda: ''
@@ -594,7 +537,7 @@ class GooftoolTest(unittest.TestCase):
 
     # Stub data from VPD for en.
     self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
-    self._gooftool._read_ro_vpd().AndReturn({'region': 'us'})
+    self._SetupROVPDMocks(dict(region='us'))
 
     f = MockFile()
     # Stub for multiple available locales in the firmware bitmap, but missing
@@ -614,7 +557,7 @@ class GooftoolTest(unittest.TestCase):
 
     # VPD has no locale data.
     self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
-    self._gooftool._read_ro_vpd().AndReturn({})
+    self._SetupROVPDMocks({})
 
     self.mox.ReplayAll()
     self.assertRaises(Error, self._gooftool.SetFirmwareBitmapLocale)

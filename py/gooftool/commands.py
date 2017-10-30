@@ -29,12 +29,10 @@ from cros.factory.gooftool.common import ExecFactoryPar
 from cros.factory.gooftool.common import Shell
 from cros.factory.gooftool.core import Gooftool
 from cros.factory.gooftool import crosfw
-from cros.factory.gooftool.probe import CalculateFirmwareHashes
-from cros.factory.gooftool.probe import Probe
-from cros.factory.gooftool.probe import ReadRoVpd
 from cros.factory.gooftool import report_upload
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import hwid_utils
+from cros.factory.probe.functions import chromeos_firmware
 from cros.factory.test.env import paths
 from cros.factory.test import event_log
 from cros.factory.test.rules import phase
@@ -130,7 +128,7 @@ _hwid_status_list_cmd_arg = CmdArg(
 
 _probe_results_cmd_arg = CmdArg(
     '--probe_results', metavar='RESULTS.yaml',
-    help=('Output from "gooftool probe --include_vpd" (used instead of '
+    help=('Output from "gooftool probe" (used instead of '
           'probing this system).'))
 
 _device_info_cmd_arg = CmdArg(
@@ -206,69 +204,21 @@ _skip_list_cmd_arg = CmdArg(
 @Command('probe',
          CmdArg('--comps', nargs='*',
                 help='List of keys from the component_db registry.'),
-         CmdArg('--fast_fw_probe', action='store_true',
-                help='Do a fast probe for EC and main firmware versions only. '
-                'This implies --no_vol and --no_ic.'),
          CmdArg('--no_vol', action='store_true',
-                help='Do not probe volatile data.'),
-         CmdArg('--no_ic', action='store_true',
-                help='Do not probe initial_config data.'),
-         CmdArg('--include_vpd', action='store_true',
-                help='Include VPD data in volatiles.'))
+                help='Do not probe volatile data.'))
 def RunProbe(options):
   """Print yaml-formatted breakdown of probed device properties."""
-  print GetGooftool(options).Probe(
-      target_comp_classes=options.comps,
-      fast_fw_probe=options.fast_fw_probe,
-      probe_volatile=not options.no_vol,
-      probe_initial_config=not options.no_ic,
-      probe_vpd=options.include_vpd).Encode()
+  probed_result = GetGooftool(options).Probe(options.comps, not options.no_vol)
+  print yaml.dump(probed_result)
 
 
-@Command('verify_components',
-         _hwdb_path_cmd_arg,
-         CmdArg('target_comps', nargs='*'))
+@Command('verify_components')
 def VerifyComponents(options):
-  """Verify that probeable components all match entries in the component_db.
-
-  Probe for each component class in the target_comps and verify
-  that a corresponding match exists in the component_db -- make sure
-  that these components are present, that they have been approved, but
-  do not check against any specific BOM/HWID configurations.
-  """
-
-  try:
-    result = GetGooftool(options).VerifyComponents(
-        options.target_comps)
-  except ValueError, e:
-    sys.exit(e)
-
-  PrintVerifyComponentsResults(result)
-
-
-def PrintVerifyComponentsResults(result):
-  """Prints out the results of VerifyComponents method call.
-
-  Groups the results into two groups: 'matches' and 'errors', and prints out
-  their values.
-  """
-  # group by matches and errors
-  matches = []
-  errors = []
-  for result_list in result.values():
-    for component_name, _, error in result_list:
-      if component_name:
-        matches.append(component_name)
-      else:
-        errors.append(error)
-
-  if matches:
-    print 'found probeable components:\n  %s' % '\n  '.join(matches)
-  if errors:
-    print '\nerrors:\n  %s' % '\n  '.join(errors)
-    sys.exit('\ncomponent verification FAILURE')
-  else:
-    print '\ncomponent verification SUCCESS'
+  del options
+  msg = ('This command has already been deprecated, please use '
+         '`hwid verify-components` instead.')
+  print msg
+  sys.exit(1)
 
 
 @Command(
@@ -661,7 +611,8 @@ _add_file_cmd_arg = CmdArg(
          _add_file_cmd_arg)
 def UploadReport(options):
   """Create a report containing key device details."""
-  ro_vpd = ReadRoVpd()
+  ro_vpd = sys_utils.VPDTool().GetAllData(
+      partition=sys_utils.VPDTool.RO_PARTITION)
   device_sn = ro_vpd.get('serial_number', None)
   if device_sn is None:
     logging.warning('RO_VPD missing device serial number')
@@ -775,7 +726,7 @@ def VerifyHWID(options):
   if options.probe_results:
     probed_results = yaml.load(file_utils.ReadFile(options.probe_results))
   else:
-    probed_results = yaml.load(Probe(probe_vpd=True).Encode())
+    probed_results = GetGooftool(options).Probe()
   vpd = hwid_utils.GetVPD(probed_results)
 
   event_log.Log('probed_results', probed_results=FilterDict(probed_results))
@@ -792,7 +743,7 @@ def VerifyHWID(options):
 def GetFirmwareHash(options):
   """Get firmware hash from a file"""
   if os.path.exists(options.file):
-    hashes = CalculateFirmwareHashes(options.file)
+    hashes = chromeos_firmware.CalculateFirmwareHashes(options.file)
     for section, value_dict in hashes.iteritems():
       print '%s:' % section
       for key, value in value_dict.iteritems():

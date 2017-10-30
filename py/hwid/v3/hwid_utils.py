@@ -10,7 +10,6 @@ import re
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.gooftool import crosfw
-from cros.factory.gooftool import probe
 from cros.factory.hwid.v2.yaml_datastore import _DatastoreBase
 from cros.factory.hwid.v3 import builder
 from cros.factory.hwid.v3 import common
@@ -366,10 +365,8 @@ def EnumerateHWID(db, image_id=None, status='supported'):
   return hwid_dict
 
 
-def GetProbedResults(infile=None, *args, **kwargs):
+def GetProbedResults(infile=None):
   """Get probed results either from the given file or by probing the DUT.
-
-  *args and **kwargs are passed down to the Probe() function.
 
   Args:
     infile: A file containing the probed results in YAML format.
@@ -385,8 +382,8 @@ def GetProbedResults(infile=None, *args, **kwargs):
       raise ValueError('Cannot probe components in chroot. Please specify '
                        'probed results with an input file. If you are running '
                        'with command-line, use --probed-results-file')
-    kwargs['probe_vpd'] = True
-    probed_results = yaml.load(probe.Probe(*args, **kwargs).Encode())
+    cmd = 'gooftool probe'
+    probed_results = yaml.load(process_utils.CheckOutput(cmd, shell=True))
   return probed_results
 
 
@@ -432,16 +429,15 @@ def GetVPD(probed_results):
     A dict of RO and RW VPD values.
   """
   vpd = {'ro': {}, 'rw': {}}
-  if not probed_results.get('found_volatile_values'):
+  if not probed_results.get('found_probe_value_map'):
     return vpd
 
-  for k, v in probed_results['found_volatile_values'].items():
+  for k, v in probed_results['found_probe_value_map'].items():
     # Use items(), not iteritems(), since we will be modifying the dict in the
     # loop.
-    match = re.match(r'^vpd\.(ro|rw)\.(\w+)$', k)
+    match = re.match(r'^vpd\.(ro|rw)$', k)
     if match:
-      del probed_results['found_volatile_values'][k]
-      vpd[match.group(1)][match.group(2)] = v
+      vpd[match.group(1)] = v
   return vpd
 
 

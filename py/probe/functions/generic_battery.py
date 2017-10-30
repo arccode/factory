@@ -7,10 +7,7 @@ from cros.factory.probe.functions import sysfs
 
 
 class GenericBatteryFunction(sysfs.SysfsFunction):
-  """Probe the generic battery information.
-
-  The function is ported from `py/gooftool/probe.py` module.
-  """
+  """Probe the generic battery information."""
 
   ARGS = []
 

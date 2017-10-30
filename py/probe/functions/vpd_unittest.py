@@ -13,19 +13,29 @@ from cros.factory.probe.functions import vpd
 
 class VPDFunctionTest(unittest.TestCase):
 
-  @mock.patch('cros.factory.utils.process_utils.CheckOutput', return_value='tw')
-  def testSimpleCommand(self, MockCheckOutput):
-    results = vpd.VPDFunction(field='region', key='region_code')()
-    self.assertEquals(results, [{'region_code': 'tw'}])
-    MockCheckOutput.assert_called_once_with(
-        'vpd -i RO_VPD -g region', shell=True, log=True)
+  @mock.patch('cros.factory.utils.sys_utils.VPDTool.GetAllData')
+  def testSimpleCommand(self, get_all_data_func):
+    get_all_data_func.return_value = {'region': 'tw', 'aa': 'bb'}
+    vpd_function = vpd.VPDFunction()
+    self.assertEquals(vpd_function(), [{'region': 'tw', 'aa': 'bb'}])
 
-  @mock.patch('cros.factory.utils.process_utils.CheckOutput', return_value='')
-  def testNoResult(self, MockCheckOutput):
-    results = vpd.VPDFunction(field='FAKE', from_rw=True)()
-    self.assertEquals(results, [])
-    MockCheckOutput.assert_called_once_with(
-        'vpd -i RW_VPD -g FAKE', shell=True, log=True)
+  @mock.patch('cros.factory.utils.sys_utils.VPDTool.GetAllData')
+  def testChangeKey(self, get_all_data_func):
+    get_all_data_func.return_value = {'region': 'tw'}
+    vpd_function = vpd.VPDFunction(fields=['region'], key='region_code')
+    self.assertEquals(vpd_function(), [{'region_code': 'tw'}])
+
+  @mock.patch('cros.factory.utils.sys_utils.VPDTool.GetAllData')
+  def testListOfFieldsCommand(self, get_all_data_func):
+    get_all_data_func.return_value = {'region': 'tw', 'sn': 'xxx'}
+    vpd_function = vpd.VPDFunction(fields=['region', 'sn'])
+    self.assertEquals(vpd_function(), [{'region': 'tw', 'sn': 'xxx'}])
+
+  @mock.patch('cros.factory.utils.sys_utils.VPDTool.GetAllData')
+  def testNoResult(self, get_all_data_func):
+    get_all_data_func.return_value = {'region': 'tw'}
+    vpd_function = vpd.VPDFunction(fields=['FAKE1', 'region'])
+    self.assertEquals(vpd_function(), [])
 
 
 if __name__ == '__main__':

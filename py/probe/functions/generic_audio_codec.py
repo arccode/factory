@@ -14,10 +14,7 @@ RESULT_KEY = 'name'
 
 
 class GenericAudioCodecFunction(function.ProbeFunction):
-  """Probe the generic audio codec information.
-
-  The function is ported from `py/gooftool/probe.py` module.
-  """
+  """Probe the generic audio codec information."""
 
   def Probe(self):
     """Looks for codec strings.

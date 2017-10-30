@@ -72,10 +72,7 @@ def _RecursiveProbe(path, read_method):
 
 
 class GenericBluetoothFunction(function.ProbeFunction):
-  """Probe the generic Bluetooth information.
-
-  The function is ported from `py/gooftool/probe.py` module.
-  """
+  """Probe the generic Bluetooth information."""
 
   def Probe(self):
     # Probe in primary path

@@ -18,10 +18,17 @@ from traceback import format_exc
 import factory_common  # pylint: disable=W0611
 
 from cros.factory.gooftool.common import Shell
-from cros.factory.gooftool.probe import PROBEABLE_COMPONENT_CLASSES
 from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils.type_utils import Error
+
+
+COMPONENT_CLASSES = set([
+    'audio_codec', 'battery', 'bluetooth', 'video', 'cellular', 'chassis',
+    'cpu', 'display_panel', 'dram', 'ec_flash_chip', 'embedded_controller',
+    'ethernet', 'flash_chip', 'region', 'storage', 'stylus', 'touchpad',
+    'touchscreen', 'tpm', 'usb_hosts', 'wireless', 'pmic', 'mainboard',
+])
 
 
 @contextmanager
@@ -73,7 +80,6 @@ found_probe_value_map:
   video:
     compact_str: '04f2:b1d8 Sonix Technology Co., Ltd. Chicony 1.3M WebCam 5582'
   wireless: { compact_str: '168c:0030' }
-  sku: { compact_str: '10' }
 found_volatile_values:
   hash_gbb: { compact_str: 'gv2#af80b996717d4b35ad0fab38974dd6c249dc6be6a7f33' }
   key_recovery: { compact_str: 'kv3#9bd99a594c45b6739899a17ec29ac2289ee75463' }
@@ -122,7 +128,7 @@ class HwidTest(unittest.TestCase):
     reload(logging)
     SetupLogging(level=logging.INFO, log_file_name=self.test_log)
     self.hwid_tool_log = os.path.join(self.dir, 'hwid_tool_log')
-    comp_classes = PROBEABLE_COMPONENT_CLASSES | set(['keyboard'])
+    comp_classes = COMPONENT_CLASSES | set(['keyboard'])
     registry = hwid_tool.ComponentRegistry(
         opaque_components={'keyboard': []},
         probeable_components=dict(

@@ -17,10 +17,7 @@ KNOWN_CPU_TYPES = type_utils.Enum(['x86', 'arm'])
 
 
 class GenericCPUFunction(function.ProbeFunction):
-  """Probe the generic CPU information.
-
-  The function is ported from `py/gooftool/probe.py` module.
-  """
+  """Probe the generic CPU information."""
 
   ARGS = [
       Arg('cpu_type', str, 'The type of CPU. "x86" or "arm".', default=None),

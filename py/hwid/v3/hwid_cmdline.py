@@ -230,26 +230,17 @@ def VerifyHWIDWrapper(options):
     CmdArg('-c', '--components', default=None,
            help='the list of component classes to verify'),
     CmdArg('--no-fast-fw-probe', dest='fast_fw_probe', action='store_false',
-           default=True, help='probe only firmware and EC version strings'))
+           default=True,
+           help='(deprecated) probe only firmware and EC version strings'))
 def VerifyComponentsWrapper(options):
   """Verifies components."""
+  if options.components:
+    options.components = [v.strip() for v in options.components.split(',')]
+
   redirect_stdout = process_utils.DummyFile() if options.json_output else None
   with process_utils.RedirectStandardStreams(stdout=redirect_stdout):
-    if not options.components:
-      probed_results = hwid_utils.GetProbedResults(
-          infile=options.probed_results_file,
-          fast_fw_probe=options.fast_fw_probe)
-    else:
-      options.components = [v.strip() for v in options.components.split(',')]
-      if set(['ro_ec_firmware', 'ro_main_firmware']) & set(options.components):
-        probe_volatile = True
-      else:
-        probe_volatile = False
-      probed_results = hwid_utils.GetProbedResults(
-          infile=options.probed_results_file,
-          target_comp_classes=options.components,
-          fast_fw_probe=options.fast_fw_probe,
-          probe_volatile=probe_volatile, probe_initial_config=False)
+    probed_results = hwid_utils.GetProbedResults(
+        infile=options.probed_results_file)
     result = hwid_utils.VerifyComponents(options.database, probed_results,
                                          options.components)
   if options.json_output:

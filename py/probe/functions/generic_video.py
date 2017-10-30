@@ -85,10 +85,7 @@ def _GetV4L2Data(video_idx):
 
 
 class GenericVideoFunction(function.ProbeFunction):
-  """Probe the generic video information.
-
-  The function is ported from `py/gooftool/probe.py` module.
-  """
+  """Probe the generic video information."""
 
   def Probe(self):
     ret = []

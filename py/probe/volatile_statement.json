@@ -8,7 +8,7 @@
     "generic": {
       "eval": {
         "vpd": {
-          "field": "region",
+          "fields": ["region"],
           "key": "region_code"
         }
       }
@@ -27,6 +27,24 @@
   "ro_pd_firmware": {
     "generic": {
       "eval": "chromeos_firmware:ro_pd_firmware"
+    }
+  },
+  "vpd.ro": {
+    "generic": {
+      "eval": {
+        "vpd": {
+          "partition": "ro"
+        }
+      }
+    }
+  },
+  "vpd.rw": {
+    "generic": {
+      "eval": {
+        "vpd": {
+          "partition": "rw"
+        }
+      }
     }
   }
 }

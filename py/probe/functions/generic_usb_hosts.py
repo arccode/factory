@@ -15,10 +15,7 @@ USB_SYSFS_PATH = '/sys/bus/usb/devices/usb*'
 
 
 class GenericUSBHostFunction(function.ProbeFunction):
-  """Probe the generic USB host information.
-
-  The function is ported from `py/gooftool/probe.py` module.
-  """
+  """Probe the generic USB host information."""
 
   def Probe(self):
     # On x86, USB hosts are PCI devices, located in parent of root USB.

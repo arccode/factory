@@ -173,7 +173,7 @@ component.
 
 ```shell
 # Get the probe result.
-$ gooftool probe --include_vpd > /tmp/probe.yaml
+$ gooftool probe > /tmp/probe.yaml
 
 # Create the database at /usr/local/factory/hwid/GOOGLE
 $ hwid build-database \
@@ -196,7 +196,7 @@ firmware.
 The command for this scenario is:
 ```shell
 # Get the probe result.
-$ gooftool probe --include_vpd > /tmp/probe.yaml
+$ gooftool probe > /tmp/probe.yaml
 
 # Update the database at /usr/local/factory/hwid/GOOGLE
 $ hwid update-database \

@@ -14,15 +14,12 @@ import sys
 import tempfile
 import time
 
+import yaml
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Util
 from cros.factory.gooftool import crosfw
-from cros.factory.gooftool.probe import DeleteRwVpd
-from cros.factory.gooftool.probe import Probe
-from cros.factory.gooftool.probe import ReadRoVpd
-from cros.factory.gooftool.probe import ReadRwVpd
-from cros.factory.gooftool.probe import UpdateRoVpd
 from cros.factory.gooftool import wipe
 from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.hwid.v3 import common as hwid3_common
@@ -31,12 +28,10 @@ from cros.factory.test.l10n import regions
 from cros.factory.test.rules import phase
 from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
 from cros.factory.utils import service_utils
+from cros.factory.utils import sys_utils
 from cros.factory.utils.type_utils import Error
-
-# A named tuple to store the probed component name and the error if any.
-ProbedComponentResult = namedtuple('ProbedComponentResult',
-                                   ['component_name', 'probed_string', 'error'])
 
 # The mismatch result tuple.
 Mismatch = namedtuple('Mismatch', ['expected', 'actual'])
@@ -53,14 +48,12 @@ class Gooftool(object):
   """
   # TODO(andycheng): refactor all other functions in gooftool.py to this.
 
-  def __init__(self, probe=None, hwid_version=2,
+  def __init__(self, hwid_version=2,
                hardware_db=None, component_db=None,
                project=None, hwdb_path=None):
     """Constructor.
 
     Args:
-      probe: The probe to use for detecting installed components. If not
-        specified, cros.factory.gooftool.probe.Probe is used.
       hwid_version: The HWID version to operate on. Currently there are only two
         options: 2 or 3.
       hardware_db: The hardware db to use. If not specified, the one in
@@ -89,13 +82,9 @@ class Gooftool(object):
     else:
       raise ValueError('Invalid HWID version: %r' % hwid_version)
 
-    self._probe = probe or Probe
     self._util = Util()
     self._crosfw = crosfw
-    self._read_ro_vpd = ReadRoVpd
-    self._read_rw_vpd = ReadRwVpd
-    self._delete_rw_vpd = DeleteRwVpd
-    self._update_ro_vpd = UpdateRoVpd
+    self._vpd = sys_utils.VPDTool()
     self._unpack_bmpblock = unpack_bmpblock
     self._named_temporary_file = tempfile.NamedTemporaryFile
     self._db = None
@@ -109,63 +98,6 @@ class Gooftool(object):
       # accidentally loading the DB multiple times.
       del self._db_creator
     return self._db
-
-  def VerifyComponents(self, component_list):
-    """Verifies the given component list against the component db to ensure
-    the installed components are correct.
-
-    Args:
-      component_list: A list of components to verify.
-        (e.g., ['camera', 'cpu'])
-
-    Returns:
-      A dict from component class to a list of one or more
-      ProbedComponentResult tuples.
-      {component class: [ProbedComponentResult(
-          component_name,  # The component name if found in the db, else None.
-          probed_string,   # The actual probed string. None if probing failed.
-          error)]}         # The error message if there is one.
-    """
-    probeable_classes = self.db.probeable_components.keys()
-    if not component_list:
-      raise ValueError('No component classes specified;\n' +
-                       'Possible choices: %s' % probeable_classes)
-
-    unknown_class = [component_class for component_class in component_list
-                     if component_class not in probeable_classes]
-    if unknown_class:
-      raise ValueError(('Invalid component classes specified: %s\n' +
-                        'Possible choices: %s') %
-                       (unknown_class, probeable_classes))
-
-    probe_results = self._probe(
-        target_comp_classes=component_list,
-        probe_volatile=False, probe_initial_config=False)
-    result = {}
-    for comp_class in sorted(component_list):
-      probe_vals = probe_results.found_probe_value_map.get(comp_class, None)
-
-      if probe_vals is not None:
-        if isinstance(probe_vals, str):
-          # Force cast probe_val to be a list so it is easier to process later
-          probe_vals = [probe_vals]
-
-        result_tuples = []
-        for val in probe_vals:
-          comp_name = self.db.result_name_map.get(val, None)
-          if comp_name is not None:
-            result_tuples.append(ProbedComponentResult(comp_name, val, None))
-          else:
-            result_tuples.append(ProbedComponentResult(None, val, (
-                'unsupported %r component found with probe result'
-                ' %r (no matching name in the component DB)' %
-                (comp_class, val))))
-        result[comp_class] = result_tuples
-      else:
-        result[comp_class] = [ProbedComponentResult(None, None, (
-            'missing %r component' % comp_class))]
-
-    return result
 
   def VerifyECKey(self, pubkey_path=None, pubkey_hash=None):
     """Verify EC public key.
@@ -402,7 +334,7 @@ class Gooftool(object):
     Returns:
       A dictionary containing verified mandatory fields, for verification.
     """
-    ro_vpd = self._read_ro_vpd()
+    ro_vpd = self._vpd.GetAllData(partition=self._vpd.RO_PARTITION)
 
     mandatory_fields = [
         'serial_number', 'region',
@@ -491,34 +423,43 @@ class Gooftool(object):
                   release_rootfs, root_disk, old_root, station_ip, station_port,
                   wipe_finish_token)
 
-  def Probe(self, target_comp_classes, fast_fw_probe=False, probe_volatile=True,
-            probe_initial_config=True, probe_vpd=False):
-    """Returns probed results for device components, hash, and initial config
-    data.
+  def Probe(self, target_comp_classes=None, probe_volatile=True):
+    """Returns probed results for device components and hash in yaml format.
 
-    This method is essentially a wrapper for probe.Probe. Please refer to
-    probe.Probe for more detailed description.
+    This method is a wrapper for the command
+
+        probe probe --include-generic [--include-volatile]
+
+    The real probe framework is located in factory/py/probe/.
 
     Args:
       target_comp_classes: Which component classes to probe for.  A None value
-        implies all classes.
-      fast_fw_probe: Only probes for firmware versions.
-      probe_volatile: On False, do not probe for volatile data and
-        return None for the corresponding field.
-      probe_initial_config: On False, do not probe for initial_config
-        data and return None for the corresponding field.
-      probe_vpd: On True, include vpd data in the volatiles.
-
-    Returns:
-      cros.factory.hwdb.hwid_tool.ProbeResults object containing the probed
-      results.
+          implies all classes.
+      probe_volatile: On False, do not probe for volatile data.
     """
+    cmd = ['probe', 'probe', '--include-generic', '--legacy-output']
+    if probe_volatile:
+      cmd.append('--include-volatile')
 
-    return self._probe(target_comp_classes=target_comp_classes,
-                       fast_fw_probe=fast_fw_probe,
-                       probe_volatile=probe_volatile,
-                       probe_initial_config=probe_initial_config,
-                       probe_vpd=probe_vpd)
+    try:
+      result = process_utils.CheckOutput(cmd)
+    except Exception as e:
+      raise Error('Failed to execute the probe tool: %r.' % e)
+
+    result_yaml = yaml.load(result)
+    # TODO(yhong): Move the filtering logic into the probe framework.
+    if target_comp_classes:
+      for toplevel_category, content in result_yaml.iteritems():
+        if isinstance(content, dict):
+          result_yaml[toplevel_category] = {
+              comp_cls: comp_items
+              for comp_cls, comp_items in content.iteritems()
+              if comp_cls in target_comp_classes}
+        else:
+          result_yaml[toplevel_category] = [
+              item for item in content if item in target_comp_classes]
+
+    return result_yaml
 
   def WriteHWID(self, hwid=None):
     """Writes specified HWID value into the system BB.
@@ -613,7 +554,7 @@ class Gooftool(object):
       not supported.
     """
     image_file = self._crosfw.LoadMainFirmware().GetFileName()
-    ro_vpd = self._read_ro_vpd()
+    ro_vpd = self._vpd.GetAllData(partition=self._vpd.RO_PARTITION)
     region = ro_vpd.get('region')
     if region is None:
       raise Error('Missing VPD "region".')
@@ -669,13 +610,16 @@ class Gooftool(object):
     Returns:
       A dict of the removed entries.
     """
-    rw_vpd = self._read_rw_vpd()
+    rw_vpd = self._vpd.GetAllData(self._vpd.RW_PARTITION)
     entries = dict((k, v) for k, v in rw_vpd.items()
                    if k.startswith('factory.'))
     logging.info('Removing VPD entries %s', FilterDict(entries))
     if entries:
-      if not self._delete_rw_vpd(entries):
-        raise Error('Failed to remove VPD entries: %s' % entries.keys())
+      try:
+        self._vpd.UpdateData(dict((k, None) for k in entries.keys()),
+                             partition=self._vpd.RW_PARTITION)
+      except Exception as e:
+        raise Error('Failed to remove VPD entries: %r' % e)
 
   def GenerateStableDeviceSecret(self):
     """Generates a fresh stable device secret and stores it in RO VPD.
@@ -748,9 +692,9 @@ class Gooftool(object):
         raise Error
 
     with scrub_exceptions('Error writing device secret to VPD'):
-      if not self._update_ro_vpd({
-          'stable_device_secret_DO_NOT_SHARE': secret_bytes.encode('hex')}):
-        raise Error
+      self._vpd.UpdateData(
+          {'stable_device_secret_DO_NOT_SHARE': secret_bytes.encode('hex')},
+          partition=self._vpd.RO_PARTITION)
 
 
   def Cr50SetBoardId(self):

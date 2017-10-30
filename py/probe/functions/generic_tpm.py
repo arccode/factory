@@ -8,10 +8,7 @@ from cros.factory.utils import process_utils
 
 
 class GenericTPMFunction(function.ProbeFunction):
-  """Probe the generic TPM information.
-
-  The function is ported from `py/gooftool/probe.py` module.
-  """
+  """Probe the generic TPM information."""
 
   def Probe(self):
     tpm_data = [line.partition(':') for line in

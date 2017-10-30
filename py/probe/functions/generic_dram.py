@@ -11,10 +11,7 @@ from cros.factory.utils import sys_utils
 
 
 class GenericDRAMFunction(function.ProbeFunction):
-  """Probe the generic DRAM information.
-
-  The function is ported from `py/gooftool/probe.py` module.
-  """
+  """Probe the generic DRAM information."""
 
   def Probe(self):
     """Combine mosys memory timing and geometry information."""
