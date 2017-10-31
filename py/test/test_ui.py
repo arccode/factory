@@ -10,6 +10,8 @@ import cgi
 import json
 import logging
 import os
+import Queue
+import threading
 import time
 import traceback
 import unittest
@@ -54,6 +56,7 @@ PASS_FAIL_KEY_LABEL = PASS_KEY_LABEL + FAIL_KEY_LABEL
 WAIT_FRONTEND = object()
 
 _HANDLER_WARN_TIME_LIMIT = 5
+_UI_THREAD_NAME = 'TestUIThread'
 
 
 class UI(object):
@@ -265,6 +268,7 @@ class UI(object):
       on_finish: Callback function when UI ends. This can be used to notify
           the test for necessary clean-up (e.g. terminate an event loop.)
     """
+    threading.current_thread().name = _UI_THREAD_NAME
 
     event = self.event_client.wait(
         lambda event:
@@ -393,6 +397,37 @@ class UI(object):
   def Alert(self, text):
     """Show an alert box."""
     self.CallJSFunction('test.alert', text)
+
+  def WaitKeysOnce(self, keys, timeout=None):
+    """Wait for one of the keys to be pressed.
+
+    Note that this must NOT be called in the UI thread.
+
+    Args:
+      keys: A key or an array of keys to wait for.
+      timeout: Timeout for waiting the key, None for no timeout.
+    Returns:
+      The key that is pressed, or None if no key is pressed before timeout.
+    """
+    if threading.current_thread().name == _UI_THREAD_NAME:
+      raise RuntimeError(
+          "Can't call WaitKeysOnce in UI thread since it would deadlock.")
+
+    if not isinstance(keys, list):
+      keys = [keys]
+
+    key_pressed = Queue.Queue()
+
+    for key in keys:
+      self.BindKey(key,
+                   (lambda k: lambda unused_event: key_pressed.put(k))(key))
+    try:
+      return key_pressed.get(timeout=timeout)
+    except Queue.Empty:
+      return None
+    finally:
+      for key in keys:
+        self.UnbindKey(key)
 
 
 class DummyUI(object):
