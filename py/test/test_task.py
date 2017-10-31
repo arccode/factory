@@ -12,7 +12,7 @@ from cros.factory.utils import type_utils
 
 
 TaskState = type_utils.Enum(['NOT_STARTED', 'RUNNING', 'FINISHED'])
-FinishReason = type_utils.Enum(['PASSED', 'FAILED', 'STOPPED'])
+FinishReason = type_utils.Enum(['PASSED', 'FAILED'])
 
 
 class TestTaskManager(object):
@@ -89,7 +89,7 @@ class TestTask(object):
   def _Finish(self, reason, abort=False):
     """Finishes a task and performs cleanups.
 
-    It is used for Stop, Pass, and Fail operation.
+    It is used for Pass and Fail operation.
 
     Args:
       reason: Enum FinishReason.
@@ -106,9 +106,6 @@ class TestTask(object):
 
   def _IsRunning(self):
     return self._execution_status == TaskState.RUNNING
-
-  def Stop(self):
-    self._Finish(FinishReason.STOPPED)
 
   def Pass(self):
     self._Finish(FinishReason.PASSED)
