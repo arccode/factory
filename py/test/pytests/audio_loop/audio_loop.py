@@ -128,6 +128,7 @@ from cros.factory.device import device_utils
 from cros.factory.test import session
 from cros.factory.test import test_ui
 from cros.factory.test.utils import audio_utils
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
@@ -251,14 +252,17 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
           '        make sure the inequality is true: *min <= minimum measured\n'
           '        amplitude <= maximum measured amplitude <= max*,\n'
           '        otherwise, fail the test.  Both of **min** and **max** can\n'
-          '        be set to None, which means no limit.', optional=False)]
+          '        be set to None, which means no limit.', optional=False),
+      Arg('keep_raw_logs', bool,
+          'Whether to attach the audio by Testlog when the test fail.',
+          default=True, optional=True)]
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
     if self.args.audio_conf:
       self._dut.audio.LoadConfig(self.args.audio_conf)
 
-    # Tansfer input and output device format
+    # Transfer input and output device format
     self._in_card = self._dut.audio.GetCardIndexByName(self.args.input_dev[0])
     self._in_device = self.args.input_dev[1]
     self._out_card = self._dut.audio.GetCardIndexByName(self.args.output_dev[0])
@@ -317,6 +321,9 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
           '\'"disable_services": ["cras"]\' in the test item.' % cras_status)
     self._dut_temp_dir = self._dut.temp.mktemp(True, '', 'audio_loop')
 
+    # If the test fails, attach the audio file; otherwise, remove it.
+    self._audio_file_path = []
+
   def tearDown(self):
     self._dut.audio.RestoreMixerControls()
     self._dut.CheckCall(['rm', '-rf', self._dut_temp_dir])
@@ -354,7 +361,21 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
           raise ValueError('Test type "%s" not supported.' % test['type'])
 
       if self.MayPassTest():
+        for file_path in self._audio_file_path:
+          os.unlink(file_path)
         return
+
+    if self.args.keep_raw_logs:
+      for file_path in self._audio_file_path:
+        testlog.AttachFile(
+            path=file_path,
+            mime_type='audio/x-raw',
+            name=os.path.basename(file_path),
+            description='recorded audio of the test',
+            delete=True)
+    else:
+      for file_path in self._audio_file_path:
+        os.unlink(file_path)
 
     self.FailTest()
 
@@ -558,7 +579,7 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
       sox_output = audio_utils.SoxStatOutput(record_file_path, channel)
       self.CheckRecordedAudio(sox_output)
 
-      os.unlink(record_file_path)
+      self._audio_file_path.append(record_file_path)
 
   def SinewavTest(self):
     self.ui.CallJSFunction('testInProgress', None)
@@ -578,7 +599,8 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
     # Since we have actually only 1 channel, we can just give channel=0 here.
     sox_output = audio_utils.SoxStatOutput(noise_file_path, 0)
     self.CheckRecordedAudio(sox_output)
-    os.unlink(noise_file_path)
+
+    self._audio_file_path.append(noise_file_path)
 
   def RecordFile(self, duration, file_path, trim=_DEFAULT_TRIM_SECONDS):
     """Records file for *duration* seconds.
