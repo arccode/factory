@@ -61,7 +61,7 @@
         "scan_log_period_secs": 120,
         "sync_log_period_secs": 600,
         "sync_log_paths": [
-          "/var/factory/log/",
+          "/var/factory/log/factory.log",
           "/var/log/messages",
           "/var/log/Xorg.0.log",
           "/var/log/bios_info.txt",

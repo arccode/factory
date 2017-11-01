@@ -19,7 +19,6 @@ from urlparse import urlparse
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.env import paths
-from cros.factory.test import event_log
 from cros.factory.test import server_proxy
 from cros.factory.test import session
 from cros.factory.utils.debug_utils import CatchException
@@ -199,9 +198,7 @@ class SystemLogManager(plugin.Plugin):
     url = server_proxy.GetServerURL()
     proxy = server_proxy.GetServerProxy(quiet=quiet)
     factory_log_port = proxy.GetFactoryLogPort()
-    folder_name = (
-        '%s_%s' %
-        (session.GetDeviceID(), event_log.GetReimageId()))
+    folder_name = session.GetDeviceID()
     return ['rsync://%s:%s/system_logs/%s' %
             (urlparse(url).hostname, factory_log_port, folder_name)]
 
