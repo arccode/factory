@@ -63,10 +63,10 @@ from cros.factory.device import device_utils
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.test import device_data
-from cros.factory.test import session
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rules import phase
+from cros.factory.test import session
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
@@ -119,6 +119,7 @@ class HWIDV3Test(unittest.TestCase):
     self.ui.Run()
 
   def _runTest(self):
+    testlog.LogParam(name='phase', value=str(phase.GetPhase()))
     phase.AssertStartingAtPhase(
         phase.EVT,
         self.args.verify_checksum,

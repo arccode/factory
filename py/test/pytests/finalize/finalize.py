@@ -117,6 +117,7 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
 from cros.factory.test.utils import update_utils
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
@@ -198,6 +199,7 @@ class Finalize(unittest.TestCase):
       self.response_listener = None
 
   def runTest(self):
+    testlog.LogParam(name='phase', value=str(phase.GetPhase()))
     # TODO(hungte) Should we set a percentage of units to run WP on DVT?
     if self.args.write_protection is None:
       self.args.write_protection = phase.GetPhase() >= phase.PVT
@@ -357,7 +359,7 @@ class Finalize(unittest.TestCase):
       # partition, this test should be killed at here.
       time.sleep(self.FINALIZE_TIMEOUT)
       raise type_utils.TestFailure('DUT Failed to finalize in %d seconds' %
-                                       self.FINALIZE_TIMEOUT)
+                                   self.FINALIZE_TIMEOUT)
     elif isinstance(self.dut.link, ssh.SSHLink):
       # For remote SSH DUT, we ask DUT to send wipe log back.
       return self._FinalizeRemoteSSHDUT(command)
