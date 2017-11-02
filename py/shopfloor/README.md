@@ -50,35 +50,29 @@ just needs to know the URL to Shopfloor Service.
 Depends on which ChromeOS Factory Server to use, there are different ways to
 configure shopfloor service.
 
-### Using Umpire
-[Umpire](../umpire/README.md) is the new recommended factory server for ChromeOS
-factory flow. In its configuration, there is a `shopfloor_service_url` property.
-To set that:
+### Using Umpire (via Dome)
+[Dome](../dome/README.md) is the recommended configuration frontend for all
+Chrome OS factory server components. To setup shopfloor service URL for
+[Umpire](../umpire/README.md) via Dome:
 
-```sh
-  # Enter Docker instance
-  (host)$ setup/cros_docker.sh umpire shell
-  (docker)$ umpire edit
+1. Open Dome UI (for example, browser `http://<dome_host>:8000`).
+2. Login and select your project.
+3. In Dashboard, find `shopFloor` in Services list.
+4. Change the `serviceUrl` to the right value.
+4. Click `DEPLOY`.
 
-  # You can configure Shopfloor Service URL here:
-  shopfloor_service_url: http://localhost:8090
-
-  # Deploy new configuration
-  (docker)$ umpire deploy
-```
-
-Umpire will automatically interpret `localhost` in `shopfloor_service_url` as
-'Docker host IP' when Docker environment is detected. Otherwise, it would keep
-its original meaning (127.0.0.1). Notice that Umpire doesn't translate
-127.0.0.1, so it can be used to refer to Umpire docker container itself (if you
-really want to do this).
+Umpire will automatically translate `localhost` to **Docker host IP** when
+Docker environment is detected. Otherwise, it would keep its original meaning
+(usually solved to `127.0.0.1`). However, Umpire doesn't translate URLs using
+numeric IPs like `http://127.0.0.1:8000`, so that can be used to refer to Docker
+container itself (if you really want to do this, although that is usually wrong).
 
 ### Using legacy Factory Server
 The legacy factory server, which was known as `shopfloor_server` or `shopfloor`
 and now renamed to `factory_server`, allows specifying shopfloor service using
 `-s` argument or loaded from config file `factory_server.json`.
 
-The default shopfloor service URL is set to local host (http://127.0.0.1:8090).
+The default shopfloor service URL is set to local host (http://localhost:8090).
 
 It's also required to set up Mini-Omaha cros\_payload JSON URL in
 `factory_server`, or toolkit/hwid/firmware component update would be
@@ -93,7 +87,7 @@ An example of `factory_server.json`:
 
 ```json
   {
-    "shopfloor_service_url": "http://127.0.0.1:8090",
+    "shopfloor_service_url": "http://localhost:8090",
     "miniomaha_payload_url": "http://192.168.12.34:8080/static/samus.json"
   }
 ```
@@ -117,7 +111,7 @@ An example for how to access Shopfloor Service in Python:
 ```py
   import xmlrpclib
 
-  service = xmlrpclib.ServerProxy('http://localhost:8090')
+  service = xmlrpclib.ServerProxy('http://localhost:8090', allow_none=True)
   print('Service Version: %s' % service.GetVersion())
 
   service.NotifyStart({'serials.mlb_serial_number': '123'}, 'SMT')

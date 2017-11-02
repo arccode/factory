@@ -11,39 +11,67 @@ code is meant as a starting point, to modify and adapt to different projects.
 
 The Chromium OS Factory Software Platform has three major components:
 
- * **DUT Software**: Everything runs on DUT (Device Under Test), including a
-     test harness "Goofy", qualification, calibration and functional test
-     programs, and steps for finalization like battery cutoff or wiping.
- * **Factory Server**: The bridge between DUT and partner's shopfloor backends,
-     including imaging service, shopfloor proxy, and a management console.
- * **Google Backend**: Solutions for integration with Google infrastructure,
-     including extensible pipeline for sending manufacturing logs back to
-     Google Cloud.
+ * **DUT Software**
+
+   Everything runs on DUT (Device Under Test), including a test harness "Goofy",
+   qualification, calibration and functional test programs, and steps for
+   finalization like battery cutoff or wiping.
+
+ * **Factory Server**
+
+   The bridge between DUT and partner's shopfloor backends, including imaging
+   service, shopfloor proxy, and a management console.
+
+ * **Google Backend**
+
+   Solutions for integration with Google infrastructure, including extensible
+   pipeline for sending manufacturing logs back to Google Cloud.
 
 ## Terminology
-* Test image: the Chromium OS test image (built by `build_image test`).
-* Release image: the (usually signed) release image that end user is using
-    (built by `build_image base`).
-* Recovery image: the (usually signed) release image with recovery installer
-    so it's in install-able form (built by `build_image base;
-    mod_image_for_recovery` and can be downloaded directly from ChromeOS
-    Buildbots or CPFE).
-* Factory server: A server program providing imaging source and proxy to
-    shopfloor. This can be released as a set of setup programs (also known as
-    mini-Omaha). The new version is now a Docker image built and installed by
-    `cros_docker.sh`, with a web interface "Dome".
-* Factory shim image: a special multi-purpose image that provides:
-  * Installation from USB. Also known as RMA shim.
-  * Installation from factory server. Also known as Factory Install shim.
-  * Reset or cutoff a device after OOBE. Also known as Reset Shim in this case.
-* Factory toolkit: a self-extraction package that contains a set of python
-    programs, YAML/JSON configuration, and shell scripts that will install
-    itself into /usr/local/factory. This is also considered as the main "factory
-    test program" (built by running `emerge-$BOARD factory` or
-    `make BOARD=$BOARD toolkit` inside factory repository).
-* [Factory bundle](BUNDLE.md): An archive containing everything: a release
-    (recovery) image, test image, factory shim image, factory toolkit, and few
-    setup programs.
+* **Test image**
+
+  The Chromium OS test image (built by `build_image test`).
+
+* **Release image**
+
+  The (usually signed) release image that end user is using
+  (built by `build_image base`).
+
+* **Recovery image**
+
+  The (usually signed) release image with recovery installer so it's in
+  install-able form (built by `build_image base; mod_image_for_recovery` and can
+  be downloaded directly from Chrome OS Buildbots or CPFE).
+
+* **Factory server**
+
+  A server program providing imaging source and proxy to shop floor. This can be
+  released as a set of setup programs (also known as mini-Omaha). The new
+  version is now a Docker image built and installed by `cros_docker.sh`, with a
+  web interface "Dome". Find more details in
+  [Factory Server doc](setup/FACTORY_SERVER.md).
+
+* **Factory shim image**
+
+  A special multi-purpose image that provides:
+    - Installation from USB. Also known as RMA (Return Materiel Authorization)
+      shim.
+    - Installation from factory server. Also known as Factory Install shim.
+    - Reset or cutoff a device after OOBE (Out-of-box experience) or OQC (
+      Outgoing Quality Control) test. Also known as Reset Shim in this case.
+
+* **Factory toolkit**
+
+  A self-extraction package that contains a set of python
+  programs, YAML/JSON configuration, and shell scripts that will install itself
+  into /usr/local/factory. This is also considered as the main "factory test
+  program" (built by running `emerge-$BOARD factory` or
+  `make BOARD=$BOARD toolkit` inside factory repository).
+
+* **[Factory bundle](BUNDLE.md)**
+
+  An archive containing everything: a release (recovery) image, test image,
+  factory shim image, factory toolkit, and few setup programs.
 
 ## Typical Factory Flow
 The basic steps are:
@@ -363,12 +391,8 @@ For more information on how to add test cases, read
 ## More Resources
 Here are few resources you will want to dig into more details:
 
-### Factory Server Components
-The new generation of factory server consists of few components: the backend
-[Umpire](py/umpire/README.md) and frontend [Dome](py/dome/README.md).
-
-Umpire needs the software bits prepared in a defined structure as
-"[Factory Bundle](setup/BUNDLE.md)".
+### Factory Server
+To setup factory server, read [Factory Server doc](setup/FACTORY_SERVER.md).
 
 ### Internalization
 The DUT Software (Goofy) and pytests can be localized. Read the
