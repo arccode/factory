@@ -221,7 +221,8 @@ class OutputHTTP(plugin_base.OutputPlugin):
     req = requests.Request(
         'POST',
         url=self._target_url,
-        headers={'Multi-Event': 'True'},
+        headers={'Multi-Event': 'True',
+                 'Node-ID': str(self.GetNodeID())},
         files=data).prepare()
     clen = int(req.headers.get('Content-Length'))
     # Checks the size of request, and doesn't send if bigger than maximum size.

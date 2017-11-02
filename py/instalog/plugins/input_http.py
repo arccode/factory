@@ -33,6 +33,7 @@ import logging
 import shutil
 import tempfile
 import threading
+import time
 
 try:
   import cStringIO as StringIO
@@ -48,10 +49,8 @@ from instalog.plugins import http_common
 from instalog.utils.arg_utils import Arg
 from instalog.utils import file_utils
 from instalog.utils import net_utils
-from instalog.utils import time_utils
 
 
-_HTTP_SUMMARY_INTERVAL = 60  # 60sec
 _DEFAULT_HOSTNAME = '0.0.0.0'
 
 
@@ -106,8 +105,9 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     self._max_bytes = server.context['max_bytes']
     self._gpg = server.context['gpg']
     self._check_format = server.context['check_format']
-    self._log_summary = server.context['log_summary']
     self._enable_multi_event = False
+    self.content_length = 0
+    self.client_node_id = 'NoNodeID'
     BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, request,
                                                    client_address, server)
 
@@ -126,7 +126,8 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
   def do_POST(self):
     """Processes when receiving POST request."""
     content_type = self.headers.getheader('Content-Type', '')
-    content_length = self.headers.getheader('Content-Length', None)
+    self.content_length = self.headers.getheader('Content-Length', None)
+    self.client_node_id = self.headers.getheader('Node-ID', 'NoNodeID')
     # Need to reject other Content-Type, because Content-Type =
     # 'application/x-www-form-urlencoded' may use about 81 times of data size
     # of memory.
@@ -135,11 +136,11 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
                               'multipart/form-data, please use output HTTP '
                               'plugin or curl command')
       return
-    if not content_length:
+    if not self.content_length:
       self._SendResponse(411, 'Length Required: Need header Content-Length')
       return
     # Content-Length may be wrong, and may cause some security issue.
-    if int(content_length) > self._max_bytes:
+    if int(self.content_length) > self._max_bytes:
       self._SendResponse(413, 'Request Entity Too Large: The request is bigger '
                               'than %d bytes' % self._max_bytes)
       return
@@ -148,18 +149,17 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     # Create the temporary directory for attachments.
     with file_utils.TempDirectory(prefix='input_http_') as tmp_dir:
       self.debug('Temporary directory for attachments: %s', tmp_dir)
-      self.debug('Received POST request from %s:%d',
-                 self.client_address[0], self.client_address[1])
-      status_code, resp_reason = self._ProcessRequest(tmp_dir,
-                                                      int(content_length))
+      status_code, resp_reason = self._ProcessRequest(tmp_dir)
       self._SendResponse(status_code, resp_reason)
 
-  def _ProcessRequest(self, tmp_dir, content_length):
+  def _ProcessRequest(self, tmp_dir):
     """Checks the request and processes it.
 
     Returns:
       A tuple with (HTTP status code, the reason of the response)
     """
+    start_time = time.time()
+
     events = []
     try:
       form = InstalogFieldStorage(
@@ -168,6 +168,10 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
           headers=self.headers,
           environ={'REQUEST_METHOD': 'POST'}
       )
+
+      receive_time = time.time() - start_time
+      start_time = time.time()
+
       remaining_att = set(form.keys())
       event_list = form.getlist('event')
       remaining_att.remove('event')
@@ -208,10 +212,19 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     except Exception as e:
       self.warning('Bad request with exception: %s', repr(e))
       return 400, 'Bad request: ' + repr(e)
+
+    process_time = time.time() - start_time
+    start_time = time.time()
+
     if len(events) == 0:
       return 200, 'OK'
     elif self._plugin_api.Emit(events):
-      self._log_summary(len(events), content_length)
+
+      emit_time = time.time() - start_time
+
+      self.info('Received %d events (%s bytes) in %.1f+%.1f+%.1f sec '
+                'from node "%s"', len(events), self.content_length,
+                receive_time, process_time, emit_time, self.client_node_id)
       return 200, 'OK'
     else:
       self.warning('Emit failed')
@@ -247,7 +260,8 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
 
   def log_message(self, format, *args):  # pylint: disable=W0622
     """Overrides log_message to Instalog format."""
-    self.warning('%s - %s', self.client_address[0], format % args)
+    self.warning('%s - %s - %s',
+                 self.client_node_id, self.client_address[0], format % args)
 
 
 class ThreadedHTTPServer(BaseHTTPServer.HTTPServer, log_utils.LoggerMixin):
@@ -322,11 +336,6 @@ class InputHTTP(plugin_base.InputPlugin):
 
   def __init__(self, *args, **kwargs):
     self._http_server = None
-    self._summary_lock = None
-    self._last_summary_time = None
-    self._request_count = 0
-    self._event_count = 0
-    self._byte_count = 0
     super(InputHTTP, self).__init__(*args, **kwargs)
 
   def SetUp(self):
@@ -348,14 +357,10 @@ class InputHTTP(plugin_base.InputPlugin):
         'gpg': gpg,
         'logger': self.logger,
         'plugin_api': self,
-        'check_format': self._CheckFormat,
-        'log_summary': self._LogSummary}
+        'check_format': self._CheckFormat}
     self._http_server.StartServer()
     self.info('http now listening on %s:%d...',
               self.args.hostname, self.args.port)
-
-    self._summary_lock = threading.Lock()
-    self._last_summary_time = time_utils.MonotonicTime()
 
   def TearDown(self):
     """Tears down the plugin."""
@@ -369,24 +374,6 @@ class InputHTTP(plugin_base.InputPlugin):
       Exception: the event is not conform to the format.
     """
     pass
-
-  def _LogSummary(self, event_num, size):
-    """Logs summary after at least a period of time."""
-    with self._summary_lock:
-      self._request_count += 1
-      self._event_count += event_num
-      self._byte_count += size
-      time_now = time_utils.MonotonicTime()
-
-      if time_now - self._last_summary_time >= _HTTP_SUMMARY_INTERVAL:
-        self.info('Over last %.1f sec, received %d requests, total %d events '
-                  '(%.2f kB)', time_now - self._last_summary_time,
-                  self._request_count, self._event_count,
-                  self._byte_count / 1024.0)
-        self._last_summary_time = time_now
-        self._request_count = 0
-        self._event_count = 0
-        self._byte_count = 0
 
 
 if __name__ == '__main__':

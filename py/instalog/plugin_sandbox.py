@@ -556,6 +556,12 @@ class PluginSandbox(plugin_base.PluginAPI):
     self.logger.debug('GetDataDir called with state=%s', self._state)
     return self._data_dir
 
+  def GetNodeID(self, plugin):
+    """See PluginAPI.GetNodeID."""
+    self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_ALL)
+    self.logger.debug('GetNodeID called with state=%s', self._state)
+    return self._core_api.GetNodeID()
+
   def IsStopping(self, plugin):
     """See PluginAPI.IsStopping."""
     self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_ALL)

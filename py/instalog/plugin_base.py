@@ -177,6 +177,15 @@ class Plugin(log_utils.LoggerMixin, object):
     """
     return self._plugin_api.GetDataDir(self)
 
+  def GetNodeID(self):
+    """Returns the node ID of this plugin.
+
+    Raises:
+      UnexpectedAccess if the plugin instance is in some unexpected state and
+      is trying to access core functionality that it should not.
+    """
+    return self._plugin_api.GetNodeID(self)
+
   def IsStopping(self):
     """Returns whether or not the plugin may continue running.
 
