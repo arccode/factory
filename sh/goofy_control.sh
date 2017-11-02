@@ -233,7 +233,7 @@ start_factory() {
   echo "Starting Goofy... ($GOOFY_ARGS)"
   echo "
   --- $(date +'%Y%m%d %H:%M:%S') Starting new Goofy session ($GOOFY_ARGS) ---
-       " >>"$FACTORY_LOG_FILE"
+  Device ID: $(cat /var/factory/.device_id) " >>"$FACTORY_LOG_FILE"
   # shellcheck disable=SC2086
   "$FACTORY/bin/goofy" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1 &
 
