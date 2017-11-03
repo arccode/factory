@@ -31,6 +31,13 @@ Additionally, if argument ``server_url`` is specified, this test will update the
 stored 'default factory server URL' so all following tests connecting to factory
 server via ``server_proxy.GetServerProxy()`` will use the new URL.
 
+``server_url`` supports few different input:
+
+- If a string is given, that is interpreted as simple URL. For example,
+  ``"http://10.3.0.11:8080/"``.
+- If a mapping (dict) is given, take key as network IP/CIDR and value as URL.
+  For example, ``{"10.3.0.0/24": "http://10.3.0.11:8080"}``
+
 Test Procedure
 --------------
 Basically no user interaction required unless a toolkit update is found.
@@ -75,7 +82,17 @@ To sync time and logs, and then upload a report::
     }
   }
 
-To override default factory server URL for all tests executed after this::
+To override default factory server URL for all tests, change the
+``default_factory_server_url`` in test list constants::
+
+  {
+    "constants": {
+      "default_factory_server_url": "http://192.168.3.11:8080"
+    }
+  }
+
+It is also possible to override and create one test item using different factory
+server URL, and all tests after that:
 
   {
     "pytest_name": "sync_factory_server",
@@ -100,6 +117,20 @@ And then in each station (or stage), override URL in locals::
   {"RunIn": {"locals": {"factory_server_url": "http://10.1.2.10:7000" }}},
   {"FFT": {"locals": {"factory_server_url": "http://10.3.0.11:8080" }}},
   {"GRT": {"locals": {"factory_server_url": "http://172.30.1.2:8081" }}},
+
+To implement "auto-detect factory server by received DHCP IP address", specify a
+mapping object with key set to "IP/CIDR" and value set to server URL::
+
+  {
+    "constants": {
+      "default_factory_server_url": {
+        "192.168.3.0/24": "http://192.168.3.11:8080",
+        "10.3.0.0/24": "http://10.3.0.11:8080",
+        "10.1.0.0/16": "http://10.1.2.10:8080",
+        "default": "http://10.3.0.12:8080"
+      }
+    }
+  }
 """
 
 import logging
@@ -211,7 +242,8 @@ class SyncFactoryServer(unittest.TestCase):
       Arg('report_serial_number_name', str,
           'Name of serial number to use for report file name to use.',
           default=None),
-      Arg('server_url', str, 'Set and keep new factory server URL.',
+      Arg('server_url', (basestring, dict),
+          'Set and keep new factory server URL.',
           default=None),
   ]
 
@@ -225,6 +257,7 @@ class SyncFactoryServer(unittest.TestCase):
     self.goofy = state.get_instance()
     self.report = Report(None, None, self.args.report_stage)
     self.dut = device_utils.CreateDUTInterface()
+    self.station = device_utils.CreateStationInterface()
 
   def runTest(self):
     self.ui.AppendCSS(_CSS)
@@ -386,6 +419,35 @@ class SyncFactoryServer(unittest.TestCase):
     while True:
       time.sleep(1000)
 
+  def FindServerURL(self, url_spec):
+    """Try to return a single normalized URL from given specification.
+
+    It is very often that partner may want to deploy multiple servers with
+    different IP, and expect DUT to connect right server according to the DHCP
+    IP it has received.
+
+    This function tries to parse argument url_spec and find a "best match
+    URL" for it.
+
+    Args:
+      url_spec: a simple string as URL or a mapping from IP/CIDR to URL.
+
+    Returns:
+      A single URL string that best matches given spec.
+    """
+    if isinstance(url_spec, basestring) or not url_spec:
+      return url_spec
+    assert isinstance(url_spec, dict), 'Unknown type: %s' % type(url_spec)
+    # Sort by CIDR so smaller network matches first.
+    networks = sorted(
+        url_spec, reverse=True, key=lambda k: int(k.partition('/')[-1] or 0))
+    for ip_cidr in networks:
+      # The command returned zero even if no interfaces match.
+      if self.station.CallOutput(['ip', 'addr', 'show', 'to', ip_cidr]):
+        return url_spec[ip_cidr]
+
+    return url_spec.get('default', '')
+
   def _runTest(self):
     self.ui_template.SetInstruction(i18n_test_ui.MakeI18nLabel('Preparing...'))
     retry_secs = self.args.first_retry_secs
@@ -420,7 +482,7 @@ class SyncFactoryServer(unittest.TestCase):
 
     # Setup new server URL
     server_proxy.ValidateServerConfig()
-    self.ChangeServerURL(self.args.server_url)
+    self.ChangeServerURL(self.FindServerURL(self.args.server_url))
 
     # It's very often that a DUT under FA is left without network connected for
     # hours to days, so we should not log (which will increase TestLog events)
