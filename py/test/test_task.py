@@ -7,7 +7,6 @@ import threading
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_ui
-from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
 
 
@@ -123,40 +122,14 @@ class TestTask(object):
       # Prevent multiple call of _Finish().
       return
 
-    if later:
-      self._ui.FailLater(error_msg)
-      self._Finish(FinishReason.FAILED)
-    else:
-      self._ui.FailLater(error_msg)
-      self._Finish(FinishReason.FAILED, abort=True)
+    self._ui.FailLater(error_msg)
+    self._Finish(FinishReason.FAILED, abort=not later)
 
   def Run(self):
     raise NotImplementedError
 
   def Cleanup(self):
     pass
-
-  def RunCommand(self, command, fail_message=None, fail_later=True):
-    """Executes a command and checks if it runs successfully.
-
-    Args:
-      command: command list.
-      fail_message: optional string. If assigned and the command's return code
-          is nonzero, Fail will be called with fail_message.
-      fail_later: True to fail the parent test case later when the command
-          fails to execute.
-
-    Returns:
-      True if command executes successfully; otherwise, False.
-    """
-    p = process_utils.Spawn(command, call=True, ignore_stdout=True,
-                            read_stderr=True, log=True)
-    if p.returncode != 0 and fail_message:
-      self.Fail(
-          '%s\nFailed running: %s\nSTDERR: %s' % (
-              fail_message, ' '.join(command), p.stderr_data),
-          later=fail_later)
-    return p.returncode == 0
 
 
 class InteractiveTestTask(TestTask):  # pylint: disable=abstract-method
