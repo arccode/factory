@@ -28,9 +28,116 @@ e.g. [a.test_list.json](./manager_unittest/a.test_list.json).
 
 ## Test Objects
 Each test object represents a `cros.factory.test.factory.FactoryTest` object
-(with some additional information).  Please refer to
-[TEST_LIST.md](./TEST_LIST.md) for attributes that are inherited from
-FactoryTest.
+(with some additional information).  Here are some attributes you can set to a
+test object.
+
+### ID
+Each test item must have an ID, ID will be used to define the **path** of a
+test.  **path** is defined as:
+
+`test.path = test.parent.path + '.' + test.ID`
+
+For example, the test group `SMT` will have test path `SMT`, and the test item
+`ProbeCamera` will have test path `SMT.ProbeComponents.ProbeCamera`.
+
+`ID` can be auto generated, see [Syntactic Sugar](#Syntactic-Sugar) for more
+details.
+
+### label
+`label` is a string that will be shown on UI. `label` will be treated as an i18n
+string by default.
+
+### pytest_name and args
+Leaf nodes (the test objects have no subtests) of test list should be a
+**pytest**.  A pytest is a test written in python and placed under
+`py/test/pytests/` in public or private factory source tree.
+
+Each pytest can define their arguments, the `ARGS` variable in the class.  And
+the `args` is used to assign values to these arguments.  `args` is a dictionary
+of key value pairs where keys are mapped to the name of each arguments in
+`ARGS`.
+
+### Subtests
+To create a group of tests, you just need to
+
+```json
+  {
+    "label": "Test Group Label",
+    "subtests": [
+      "a",
+      "b",
+      "c"
+    ]
+  }
+```
+
+By default, the test group will be tested in a **sequence**, that is, if any of
+subtest will be retested, **all** of subtests will be retestsed in order.  To
+create a group that subtests can be run individually, **inherit** from
+`TestGroup`:
+
+```json
+  {
+    "label": "Test Group Label",
+    "inherit": "TestGroup",
+    "subtests": [
+      "a",
+      "b",
+      "c"
+    ]
+  }
+```
+
+### Locals
+Each test object can have a `locals` attribute, which is a dictionary
+of key value pairs.  `locals` will be available when Goofy is resolving `args`
+that will be passed to pytest.
+
+### never_fails
+Set `never_fails` to `true` if you don't want this test to fail in any case.
+The test will still be run, but when it fails, it will not be marked as failed
+(it will be marked as `UNTESTED`).
+
+### Parallel Tests
+To make two or more tests run in the same time, you need to group them under a
+test group, and add attribute `"parallel": true` to this test group.
+
+### Action On Failure
+The `action_on_failure` attribute allows you to decide what the next test should
+be when this test fails.  There are three possible values:
+* `NEXT`: this is the default value, the test list will continue on next test
+    item.
+* `PARENT`: stop running other tests under current parent, let parent to decide
+    what the next test should be.
+* `STOP`: stop running other tests.
+
+### Teardown
+Sometimes, you want a test be run after some tests are finished, no matter
+those tests success or not.  For example, a test item that uploads log files to
+shopfloor server should always be run despite the status of previous tests.
+
+```json
+  {
+    "label": "Test Group Label",
+    "subtests": [
+      {
+        "normal tests...",
+        {
+          "label": "Tear Down Group",
+          "teardown": true,
+          "subtests": [
+            ...
+          ]
+        }
+      }
+    ]
+  }
+```
+
+Tests in teardowns can have their subtests as well.  Those tests will become
+teardown tests as well.  We assume that teardowns will never fail, if a teardown
+test fails, Goofy will ignore the failure, and continue on next teardown test.
+Therefore, for teardown tests, `action_on_failure` will always be set to `NEXT`.
 
 ### Additional Fields
 Test list manager will process these fields, they are not directly used by
