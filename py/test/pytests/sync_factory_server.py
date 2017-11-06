@@ -92,7 +92,7 @@ To override default factory server URL for all tests, change the
   }
 
 It is also possible to override and create one test item using different factory
-server URL, and all tests after that:
+server URL, and all tests after that::
 
   {
     "pytest_name": "sync_factory_server",

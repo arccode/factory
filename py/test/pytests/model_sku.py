@@ -8,8 +8,10 @@ Description
 -----------
 A test to confirm SKU information, then apply SKU or model specific settings.
 And there are two modes:
-  1. manually ask to operator to confirm SKU information.
-  2. automatically compare SKU information with device data - component.sku.
+
+1. manually ask to operator to confirm SKU information.
+2. automatically compare SKU information with device data - component.sku.
+
 If device data - component.sku is set then this test will go to automatic mode
 or manual mode will be executed.
 
