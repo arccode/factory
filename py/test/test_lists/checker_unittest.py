@@ -9,8 +9,6 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.test_lists import checker
 from cros.factory.test.test_lists import manager
-from cros.factory.test.test_lists import test_list as test_list_module
-from cros.factory.test.test_lists import test_object
 from cros.factory.utils import arg_utils
 
 
@@ -61,20 +59,24 @@ class CheckerTest(unittest.TestCase):
     self.checker.AssertValidRunIf(expression)
 
   def testCheckArgsType(self):
-    constants = {
-        'foo': 'FOO',
-        'bar': 'BAR',
+    config = {
+        'constants': {
+            'foo': 'FOO',
+            'bar': 'BAR',
+        },
+        'tests': [
+            {
+                'pytest_name': 'message',
+                'args': {
+                    'html': 'eval! constants.foo + constants.bar',
+                    'text_size': 'eval! dut.CheckOutput("bc 1 + 1")',
+                }
+            }
+        ]
     }
-    test = test_object.FactoryTest(
-        pytest_name='message',
-        dargs={
-            'html': 'eval! constants.foo + constants.bar',
-            'text_size': 'eval! dut.CheckOutput("bc 1 + 1")', })
-    options = test_list_module.Options()
-    test_list = test_object.FactoryTestList(
-        subtests=[test], state_instance=None,
-        test_list_id='main', constants=constants, options=options)
-    test_list = manager.LegacyTestList(test_list, self.checker)
+
+    test_list = manager.BuildTestListForUnittest(config)
+    test = test_list.LookupPath('Message')
 
     expected_args = {
         'html': 'FOOBAR',
@@ -91,20 +93,27 @@ class CheckerTest(unittest.TestCase):
     self.checker.CheckArgsType(test, test_list)
 
   def testCheckArgsTypeInvalidArgs(self):
-    constants = {
-        'foo': 'FOO',
-        'bar': 'BAR',
+    config = {
+        'constants': {
+            'foo': 'FOO',
+            'bar': 'BAR',
+        },
+        'tests': [
+            {
+                'pytest_name': 'message',
+                'args': {
+                    'html': 'eval! constants.foo + constants.bar',
+                }
+            }
+        ]
     }
-    test = test_object.FactoryTest(
-        pytest_name='message',
-        dargs={
-            'html': 'eval! constants.foo + constants.bar + ', })
-    options = test_list_module.Options()
-    test_list = test_object.FactoryTestList(
-        subtests=[test], state_instance=None,
-        test_list_id='main', constants=constants, options=options)
-    test_list = manager.LegacyTestList(test_list, self.checker)
 
+    mgr = manager.Manager(checker=self.checker)
+    test_list = manager.BuildTestListForUnittest(config, manager=mgr)
+    test = test_list.LookupPath('Message')
+
+    # Make invalid dargs.
+    test.dargs['html'] = 'eval! constants.foo + constants.bar + '
     with self.assertRaises(checker.CheckerError):
       self.checker.CheckArgsType(test, test_list)
 

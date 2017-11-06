@@ -32,7 +32,6 @@ from cros.factory.test import device_data
 from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
-from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test.state import TestState
@@ -123,36 +122,14 @@ class TestArgEnv(object):
 def ResolveTestArgs(goofy, test, test_list_id, dut_options):
   """Resolves an argument dictionary.
 
-  For LegacyTestList, value can be callable, which has function signature:
-
-    lambda env: body
-
-  Where env will be a TestArgEnv object.  These callable values will be
-  executed, and replaced by evaluation result.
-
-  For instance:
-
-    dargs={
-        'method': 'eval! constants.method_name',
-        'args': lambda env: [
-            env.GetSerialNumber('mlb_serial_number'),
-            env.GetSerialNumber(),
-            env.GetMACAddress('wlan0'),
-        ]
-    }
-
-  This will be resolved to:
-
-    dargs={
-        'method': 'eval! constants.method_name',
-        'args': ['MLB12345', 'X67890', '00:11:22:33:44:55']
-    }
-
-  Then the dargs will be passed to test_list.ResolveTestArgs(), which will
+  The dargs will be passed to test_list.ResolveTestArgs(), which will
   evaluate values start with 'eval! ' and 'i18n! '.
 
   Args:
-    dargs: An test argument dictionary from the test list.
+    goofy: a goofy instance.
+    test: a FactoryTest object whose dargs will be resolved.
+    test_list_id: ID of the test list the `test` object belongs to.
+    dut_options: DUT options for current test.
 
   Returns:
     Resolved dargs dictionary object.
@@ -165,20 +142,6 @@ def ResolveTestArgs(goofy, test, test_list_id, dut_options):
   except Exception:
     logging.exception('Goofy does not have test list `%s`', test_list_id)
     raise
-
-  if isinstance(test_list, manager.LegacyTestList):
-    # TODO(stimim): remove all lambda functions in generic test list.
-    def ResolveArg(k, v):
-      """Resolves a single argument if it is callable."""
-      if not callable(v):
-        return v
-
-      v = v(TestArgEnv())
-      logging.info('Resolved argument %s to %r', k, FilterDict(v))
-      return v
-
-    # resolve all lambda functions
-    dargs = dict((k, ResolveArg(k, v)) for k, v in dargs.iteritems())
 
   dut_options = dut_options or {}
   dut = device_utils.CreateDUTInterface(**dut_options)
@@ -218,12 +181,7 @@ class PytestInfo(object):
     test_list = mgr.GetTestListByID(self.test_list)
 
     if test_list is None:
-      # the test list is not available, try to load legacy test lists
-      # (test list v2).  We need to build *all* test lists because in legacy
-      # test lists, a python file can define multiple test lists (with different
-      # IDs, of course).
-      legacy_test_lists, unused_errors = mgr.BuildAllLegacyTestLists()
-      test_list = legacy_test_lists[self.test_list]
+      raise KeyError('Test list `%s` not found' % self.test_list)
     return test_list
 
 

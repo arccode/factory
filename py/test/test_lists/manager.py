@@ -394,16 +394,7 @@ class ITestList(object):
 
     If anything went wrong, `default` will be returned.
     """
-    # To support LegacyTestList
-    if callable(run_if):
-      logging.warning('%s is using callable run_if, try to use string instead',
-                      source)
-      try:
-        return bool(run_if(test_arg_env))
-      except Exception:
-        logging.exception('Unable to evaluate run_if expression for %s', source)
-        return default
-
+    del test_arg_env  # unused, deprecated
     if not isinstance(run_if, basestring):
       # run_if is not a function, not a string, just return default value
       return default
@@ -748,50 +739,6 @@ class TestList(ITestList):
     self.ToFactoryTestList().state_change_callback = state_change_callback
 
 
-class LegacyTestList(ITestList):
-  """Wrap a FactoryTestList object into ITestList object."""
-
-  # Declare instance variables to make __setattr__ happy.
-  test_list = None
-
-  def __init__(self, test_list, checker=None):
-    """Constructor
-
-    Args:
-      :type test_list: cros.factory.test.test_lists.test_object.FactoryTestList
-    """
-    super(LegacyTestList, self).__init__(checker)
-    self.test_list = test_list
-
-  def ToFactoryTestList(self):
-    return self.test_list
-
-  @property
-  def modified(self):
-    return False
-
-  @property
-  def constants(self):
-    return self.test_list.constants
-
-  @property
-  def state_instance(self):
-    return self.test_list.state_instance
-
-  @state_instance.setter
-  def state_instance(self, state_instance):  # pylint: disable=arguments-differ
-    self.test_list.state_instance = state_instance
-
-  @property
-  def state_change_callback(self):
-    return self.test_list.state_change_callback
-
-  # pylint: disable=arguments-differ
-  @state_change_callback.setter
-  def state_change_callback(self, state_change_callback):
-    self.test_list.state_change_callback = state_change_callback
-
-
 class Loader(object):
   """Helper class to load a test list from given directory.
 
@@ -927,8 +874,6 @@ class Manager(object):
 
     valid_test_lists = {}  # test lists that will be returned
     for test_list_id, test_list in self.test_lists.iteritems():
-      # we don't need to check LegacyTestList, because they always have
-      # subtests.
       if isinstance(test_list, TestList):
         # if the test list does not have subtests, don't return it.
         # (this is a base test list)

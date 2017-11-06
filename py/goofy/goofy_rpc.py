@@ -261,7 +261,7 @@ class GoofyRPC(object):
     if isinstance(self.goofy.test_list, manager.TestList):
       self.goofy.test_list.ForceReload()
     else:
-      raise NotImplementedError('Not supported for LegacyTestList')
+      raise NotImplementedError('Unknown type: %s' % type(self.goofy.test_list))
 
   def UploadFactoryLogs(self, name, serial, description):
     """Uploads logs to the factory server.
