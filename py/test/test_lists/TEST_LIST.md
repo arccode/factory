@@ -1,3 +1,6 @@
+**This document is for deprecated and unsupported Python Test List, for
+current document, please refer to [JSON_TEST_LIST.md](./JSON_TEST_LIST.md)**
+
 # How To Write a ChromeOS Factory Test List
 Test lists are defined by **python files** under this
 ( `platform/factory/py/test/test_lists` ) directory.  Each of these files

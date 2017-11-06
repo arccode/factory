@@ -8,7 +8,7 @@ ChromeOS Factory Test Lists
 ===========================
 This package contains factory test lists.
 See: [http://goto/cros-factory-test-list](http://goto/cros-factory-test-list)
-or [TEST_LIST.md](./TEST_LIST.md)
+or [JSON_TEST_LIST.md](./JSON_TEST_LIST.md)
 
 TEST LISTS
 ----------
