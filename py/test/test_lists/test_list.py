@@ -758,6 +758,7 @@ class TestList(ITestList):
           config_utils.OverrideConfig(test.dargs, override)
 
     self._cached_test_list.state_change_callback = self._state_change_callback
+    self._cached_test_list.source_path = self._config.source_path
     return self._cached_test_list
 
   def MakeTest(self,

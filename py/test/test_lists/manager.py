@@ -35,12 +35,13 @@ class TestListConfig(object):
 
   This is a wrapper for ResolvedConfig, with some helper functions and caches.
   """
-  def __init__(self, resolved_config, test_list_id):
+  def __init__(self, resolved_config, test_list_id, source_path=None):
     assert isinstance(resolved_config, config_utils.ResolvedConfig)
     self._resolved_config = resolved_config
     self._test_list_id = test_list_id
     self._depend = collections.OrderedDict()
     self.UpdateDependTimestamp()
+    self._source_path = source_path
 
   def GetDepend(self):
     return self._depend
@@ -54,6 +55,10 @@ class TestListConfig(object):
   @property
   def test_list_id(self):
     return self._test_list_id
+
+  @property
+  def source_path(self):
+    return self._source_path
 
   def get(self, key, default=None):
     return self._resolved_config.get(key, default)
@@ -130,7 +135,8 @@ class Loader(object):
 
     loaded_config = TestListConfig(
         resolved_config=loaded_config,
-        test_list_id=test_list_id)
+        test_list_id=test_list_id,
+        source_path=self.GetConfigPath(test_list_id))
 
     return loaded_config
 
