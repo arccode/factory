@@ -6,7 +6,6 @@
 import logging
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.goofy import invocation
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager
 from cros.factory.test.test_lists import test_object
@@ -432,11 +431,8 @@ class TestListIterator(object):
     # an active test should always pass the filter (to resume a previous test)
     return status == state.TestState.ACTIVE or status in self.status_filter
 
-  def CheckRunIf(self, test, test_arg_env=None):
-    if test_arg_env is None:
-      test_arg_env = invocation.TestArgEnv()
-    return manager.ITestList.EvaluateRunIf(
-        test, self.test_list, test_arg_env)
+  def CheckRunIf(self, test):
+    return manager.ITestList.EvaluateRunIf(test, self.test_list)
 
   def _ResetIterations(self, test):
     test.UpdateState(iterations_left=test.iterations,

@@ -318,7 +318,6 @@ class ITestList(object):
               run_if=key,
               source='test list options',
               test_list=self,
-              test_arg_env=None,
               default=False):
             continue
 
@@ -370,7 +369,7 @@ class ITestList(object):
     return eval(code_object, namespace)  # pylint: disable=eval-used
 
   @staticmethod
-  def EvaluateRunIf(test, test_list, test_arg_env):
+  def EvaluateRunIf(test, test_list):
     """Evaluate the run_if value of this test.
 
     Evaluates run_if argument to decide skipping the test or not.  If run_if
@@ -380,21 +379,19 @@ class ITestList(object):
       test: a FactoryTest object whose run_if will be checked
       test_list: the test list which is currently running, will get
         state_instance and constants from it.
-      test_arg_env: a cros.factory.goofy.invocation.TestArgEnv object
 
     Returns:
       True if this test should be run, otherwise False
     """
     return ITestList._EvaluateRunIf(
-        test.run_if, test.path, test_list, test_arg_env, default=True)
+        test.run_if, test.path, test_list, default=True)
 
   @staticmethod
-  def _EvaluateRunIf(run_if, source, test_list, test_arg_env, default):
+  def _EvaluateRunIf(run_if, source, test_list, default):
     """Real implementation of EvaluateRunIf.
 
     If anything went wrong, `default` will be returned.
     """
-    del test_arg_env  # unused, deprecated
     if not isinstance(run_if, basestring):
       # run_if is not a function, not a string, just return default value
       return default

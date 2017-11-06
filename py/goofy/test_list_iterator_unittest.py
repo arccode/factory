@@ -87,8 +87,7 @@ class TestListIteratorTest(unittest.TestCase):
 
       return test_list_iterator.TestListIterator.CheckRunIf(
           iterator,
-          path,
-          test_arg_env={})
+          path)
     iterator.CheckRunIf = _MockedCheckRunIf
 
     max_iteration = len(expected_sequence) + 1

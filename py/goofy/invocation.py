@@ -72,53 +72,6 @@ class InvocationError(Exception):
   pass
 
 
-class TestArgEnv(object):
-  """Environment for resolving test arguments.
-
-  Properties:
-    state: Instance to obtain factory test.
-    device_data: Cached device data from state_instance.
-  """
-
-  def __init__(self):
-    self.state = state.get_instance()
-    self.device_data_selector = device_data.GetDeviceDataSelector()
-
-  def GetMACAddress(self, interface):
-    return open('/sys/class/net/%s/address' % interface).read().strip()
-
-  def GetDeviceData(self, key, default=_DEFAULT_NOT_SET):
-    """Returns device data of given key."""
-    if not key:
-      raise KeyError('empty key')
-    if default == _DEFAULT_NOT_SET:
-      return self.device_data_selector.GetValue(key)
-    else:
-      return self.device_data_selector.GetValue(key, default)
-
-  def GetAllDeviceData(self):
-    return self.device_data_selector.Get({})
-
-  def GetSerialNumber(self, name=device_data.NAME_SERIAL_NUMBER):
-    """Returns serial number.
-
-    Use `name` to specify which type of serial number you want, e.g.
-    'mlb_serial_number'.  The default name will be 'serial_number'.
-
-    Return: str or None (if not found)
-    """
-    if not name:
-      raise KeyError('empty name')
-    return device_data.GetSerialNumber(name)
-
-  def GetAllSerialNumbers(self):
-    return device_data.GetAllSerialNumbers()
-
-  def InEngineeringMode(self):
-    """Returns if goofy is in engineering mode."""
-    return state.get_shared_data('engineering_mode')
-
-
 def ResolveTestArgs(goofy, test, test_list_id, dut_options):
   """Resolves an argument dictionary.
 

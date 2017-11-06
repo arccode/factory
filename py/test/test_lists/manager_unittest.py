@@ -280,7 +280,7 @@ class EvaluateRunIfTest(unittest.TestCase):
                                          constants=constants)
 
   def _EvaluateRunIf(self):
-    return manager.ITestList.EvaluateRunIf(self.test, self.test_list, None)
+    return manager.ITestList.EvaluateRunIf(self.test, self.test_list)
 
   def testInvalidRunIfString(self):
     self.test.run_if = '!device.foo.bar'
