@@ -516,6 +516,67 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     self.assertEqual(test_list.LookupPath('G').GetState().status,
                      state.TestState.SKIPPED)
 
+  def testRunIfAndAutomatedSequence(self):
+    test_list = self._BuildTestList(
+        {
+            'options': {
+                'phase': 'PROTO',
+            },
+            'tests': [
+                {'id': 'G', 'subtests': [
+                    {'id': 'a', 'pytest_name': 'a'},
+                    {'id': 'b', 'pytest_name': 'b', 'run_if': 'device.foo.a'},
+                    {'id': 'c', 'pytest_name': 'c'}, ]},
+            ]
+        })
+    test_list = self._SetStubStateInstance(test_list)
+    self._AssertTestSequence(
+        test_list,
+        ['G.a', 'G.c'],
+        set_state=False,
+        device_data={
+            'foo': {
+                'a': False,
+            },
+        })
+    self.assertEqual(test_list.LookupPath('G').GetState().status,
+                     state.TestState.SKIPPED)
+    self._AssertTestSequence(
+        test_list,
+        [],
+        set_state=False,
+        # status_filter used by "PLAY" button.
+        status_filter=['UNTESTED', 'ACTIVE', 'FAILED', 'FAILED_AND_WAIVED'],
+        device_data={
+            'foo': {
+                'a': False,
+            },
+        })
+    self._AssertTestSequence(
+        test_list,
+        ['G.a', 'G.b', 'G.c'],
+        set_state=False,
+        # status_filter used by "PLAY" button.
+        status_filter=['UNTESTED', 'ACTIVE', 'FAILED', 'FAILED_AND_WAIVED'],
+        device_data={
+            'foo': {
+                'a': True,
+            },
+        })
+    self.assertEqual(test_list.LookupPath('G').GetState().status,
+                     state.TestState.PASSED)
+    self._AssertTestSequence(
+        test_list,
+        [],
+        set_state=False,
+        # status_filter used by "PLAY" button.
+        status_filter=['UNTESTED', 'ACTIVE', 'FAILED', 'FAILED_AND_WAIVED'],
+        device_data={
+            'foo': {
+                'a': True,
+            },
+        })
+
   def testRunIfCannotSkipParent(self):
     """Make sure we cannot skip a parent test.
 

@@ -284,18 +284,21 @@ class TestListIterator(object):
     if self.CheckSkip(test):
       return self.RETURN_CODE.POP_FRAME, None
 
-    if (test.GetState().status == state.TestState.PASSED and
+    status = test.GetState().status
+    if state == state.TestState.SKIPPED:
+      raise ValueError('SKIPPED test should be skipped by `CheckSkip`')
+
+    if (status == state.TestState.PASSED and
         self.status_filter and
         state.TestState.PASSED not in self.status_filter):
-      # This test item / test group is passed, and we don't want to run passed
-      # tests.
-      # TODO(stimim): find a better way to handle this (e.g. peak subtests, and
-      # check if any of them might be run?)
+      # We are sure we don't need to run this again.
       return self.RETURN_CODE.POP_FRAME, None
 
     self._ResetIterations(test)
     frame.next_step = self.CheckContinue.__name__
+
     if test.IsTopLevelTest():
+      # We definitely need to rerun everything.
       self._ResetSubtestStatus(test)
 
     return self.RETURN_CODE.CONTINUE, None
@@ -392,24 +395,34 @@ class TestListIterator(object):
   # Helper Functions #
   ####################
   def CheckSkip(self, test):
-    if self.status_filter:
-      # status filter only applies to leaf tests
-      if (self._IsRunnableTest(test) and
-          not self.CheckStatusFilter(test)):
-        logging.info('test %s is skipped because its status '
-                     '%s (status_filter: %r)', test.path,
-                     test.GetState().status, self.status_filter)
-        return True  # we need to skip it
+    # status filter only applies to leaf tests
+    if (self._IsRunnableTest(test) and
+        not self.CheckStatusFilter(test)):
+      logging.info('test %s is skipped because its status '
+                   '%s (status_filter: %r)', test.path,
+                   test.GetState().status, self.status_filter)
+      return True  # we need to skip it
     if not self.CheckRunIf(test):
       logging.info('test %s is skipped because run_if evaluated to False',
                    test.path)
       test.Skip()
       return True  # we need to skip it
     elif test.IsSkipped():
-      # this test was skipped before, but now we might need to run it
-      test.UpdateState(status=state.TestState.UNTESTED)
-      # check again (for status filter)
-      return self.CheckSkip(test)
+      need_retest = False
+      # All of the subtests are either skipped or passed, let's check if all of
+      # them are still skipped now.
+      for t in test.Walk():
+        if t.IsSkipped() and t.run_if and self.CheckRunIf(t):
+          # t was skipped but need to be run now
+          need_retest = True
+          break
+      if need_retest:
+        test.UpdateState(status=state.TestState.UNTESTED)
+        # check again (for status filter)
+        return self.CheckSkip(test)
+      else:
+        # this test is still skipped
+        return True
     return False
 
   def CheckStatusFilter(self, test):
