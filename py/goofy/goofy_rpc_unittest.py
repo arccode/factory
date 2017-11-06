@@ -14,7 +14,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import goofy
 from cros.factory.goofy import goofy_rpc
 from cros.factory.test.env import paths
-from cros.factory.test.test_lists import test_object
+from cros.factory.test.test_lists import test_list as test_list_module
 from cros.factory.utils import file_utils
 
 
@@ -41,7 +41,7 @@ class GoofyRPCTest(unittest.TestCase):
 
   def testGetTestList(self):
     test_list = "data"
-    self.goofy.test_list = self.mox.CreateMock(test_object.FactoryTestList)
+    self.goofy.test_list = self.mox.CreateMock(test_list_module.FactoryTestList)
     self.goofy.test_list.ToStruct(extra_fields=['path']).AndReturn(test_list)
 
     self.mox.ReplayAll()

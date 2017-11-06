@@ -11,6 +11,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test.test_lists import test_list as test_list_module
 from cros.factory.test.utils import pytest_utils
 from cros.factory.utils import arg_utils
+from cros.factory.utils import type_utils
 
 
 _EVALUATE_PREFIX = test_list_module.EVALUATE_PREFIX
@@ -228,7 +229,7 @@ class Checker(object):
     if not args_spec:
       # no argument for this pytest
       if test.dargs:
-        raise test_list_module.TestListError(
+        raise type_utils.TestListError(
             '%s does not accept any arguments' % test.pytest_name)
 
     for arg in args_spec:

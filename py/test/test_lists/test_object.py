@@ -21,8 +21,6 @@ from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import translation
 from cros.factory.test.state import TestState
-from cros.factory.test.test_lists.test_list import TestListError
-from cros.factory.utils import shelve_utils
 from cros.factory.utils import type_utils
 
 
@@ -452,20 +450,20 @@ class FactoryTest(object):
     setup and propagated to child nodes.
     """
     if self.action_on_failure not in self.ACTION_ON_FAILURE:
-      raise TestListError(
+      raise type_utils.TestListError(
           'action_on_failure must be one of "NEXT", "PARENT", "STOP"')
 
     if self.parallel:
       if not self.subtests:
-        raise TestListError(
+        raise type_utils.TestListError(
             '`parallel` should be set on test group')
       for subtest in self.subtests:
         if not subtest.IsLeaf():
-          raise TestListError(
+          raise type_utils.TestListError(
               'Test %s: all subtests in a parallel test should be leaf nodes' %
               self.id)
         if subtest.enable_services or subtest.disable_services:
-          raise TestListError(
+          raise type_utils.TestListError(
               'Test %s cannot be parallel with enable_services or '
               'disable_services specified.' % subtest.id)
 
@@ -476,7 +474,7 @@ class FactoryTest(object):
       it = itertools.dropwhile(lambda subtest: not subtest.teardown, it)
     for subtest in it:
       if not subtest.teardown:
-        raise TestListError(
+        raise type_utils.TestListError(
             '%s: all subtests should come before teardown tests' % self.id)
 
     for subtest in self.subtests:
@@ -665,158 +663,6 @@ class FactoryTest(object):
 
   def GetNextSibling(self):
     return self.next_sibling
-
-
-class FactoryTestList(FactoryTest):
-  """The root node for factory tests.
-
-  Properties:
-    path_map: A map from test paths to FactoryTest objects.
-    source_path: The path to the file in which the test list was defined,
-        if known.  For new-style test lists only.
-  """
-
-  def __init__(self, subtests, state_instance, options, test_list_id=None,
-               label=None, finish_construction=True, constants=None):
-    """Constructor.
-
-    Args:
-      subtests: A list of subtests (FactoryTest instances).
-      state_instance: The state instance to associate with the list.
-          This may be left empty and set later.
-      options: A TestListOptions object.  This may be left empty
-          and set later (before calling FinishConstruction).
-      test_list_id: An optional ID for the test list.  Note that this is
-          separate from the FactoryTest object's 'id' member, which is always
-          None for test lists, to preserve the invariant that a test's
-          path is always starts with the concatenation of all 'id's of its
-          ancestors.
-      label: An optional label for the test list.
-      finish_construction: Whether to immediately finalize the test
-          list.  If False, the caller may add modify subtests and options and
-          then call FinishConstruction().
-      constants: A type_utils.AttrDict object, which will be used to resolve
-          'eval! ' dargs.  See test.test_lists.manager.ITestList.ResolveTestArgs
-          for how it is used.
-    """
-    super(FactoryTestList, self).__init__(_root=True, subtests=subtests)
-    self.state_instance = state_instance
-    self.subtests = filter(None, type_utils.FlattenList(subtests))
-    self.path_map = {}
-    self.root = self
-    self.test_list_id = test_list_id
-    self.state_change_callback = None
-    self.options = options
-    self.label = i18n.Translated(label or test_list_id or _('Untitled'))
-    self.source_path = None
-    self.constants = type_utils.AttrDict(constants or {})
-
-    if finish_construction:
-      self.FinishConstruction()
-
-  def FinishConstruction(self):
-    """Finishes construction of the test list.
-
-    Performs final validity checks on the test list (e.g., resolve duplicate
-    IDs, check if required tests exist) and sets up some internal data
-    structures (like path_map).  This must be invoked after all nodes and
-    options have been added to the test list, and before the test list is used.
-
-    If finish_construction=True in the constructor, this is invoked in
-    the constructor and the caller need not invoke it manually.
-
-    When this function is called, self.state_instance might not be set
-    (normally, it is set by goofy **after** FinishConstruction is called).
-
-    Raises:
-      TestListError: If the test list is invalid for any reason.
-    """
-    self._init('', self.path_map)
-
-    # Resolve require_run paths to the actual test objects.
-    for test in self.Walk():
-      for requirement in test.require_run:
-        requirement.test = self.LookupPath(
-            self.ResolveRequireRun(test.path, requirement.path))
-        if not requirement.test:
-          raise TestListError(
-              "Unknown test %s in %s's require_run argument (note "
-              'that full paths are required)'
-              % (requirement.path, test.path))
-
-    self.options.CheckValid()
-    self._check()
-
-  @staticmethod
-  def ResolveRequireRun(test_path, requirement_path):
-    """Resolve the test path for a requirement in require_run.
-
-    If the path for the requirement starts with ".", then it will be
-    interpreted as relative path to parent of test similar to Python's relative
-    import syntax.
-
-    For example:
-
-     test_path | requirement_path | returned path
-    -----------+------------------+---------------
-     a.b.c.d   | e.f              | e.f
-     a.b.c.d   | .e.f             | a.b.c.e.f
-     a.b.c.d   | ..e.f            | a.b.e.f
-     a.b.c.d   | ...e.f           | a.e.f
-    """
-    if requirement_path.startswith('.'):
-      while requirement_path.startswith('.'):
-        test_path = shelve_utils.DictKey.GetParent(test_path)
-        requirement_path = requirement_path[1:]
-      requirement_path = shelve_utils.DictKey.Join(test_path, requirement_path)
-    return requirement_path
-
-  def GetAllTests(self):
-    """Returns all FactoryTest objects."""
-    return self.path_map.values()
-
-  def GetStateMap(self):
-    """Returns a map of all FactoryTest objects to their TestStates."""
-    # The state instance may return a dict (for the XML/RPC proxy)
-    # or the TestState object itself. Convert accordingly.
-    return dict(
-        (self.LookupPath(k), TestState.from_dict_or_object(v))
-        for k, v in self.state_instance.get_test_states().iteritems())
-
-  def LookupPath(self, path):
-    """Looks up a test from its path."""
-    return self.path_map.get(path, None)
-
-  def _update_test_state(self, path, **kwargs):
-    """Updates a test state, invoking the state_change_callback if any.
-
-    Internal-only; clients should call update_state directly on the
-    appropriate TestState object.
-    """
-    ret, changed = self.state_instance.update_test_state(path=path, **kwargs)
-    if changed and self.state_change_callback:
-      self.state_change_callback(  # pylint: disable=not-callable
-          self.LookupPath(path), ret)
-    return ret
-
-  def ToTestListConfig(self, recursive=True):
-    """Output a JSON object that is a valid test_lists.schema.json object."""
-    config = {
-        'inherit': [],
-        'label': self.label,
-        'options': self.options.ToDict(),
-        'constants': dict(self.constants),
-    }
-    if recursive:
-      config['tests'] = [subtest.ToStruct() for subtest in self.subtests]
-    return config
-
-  def __repr__(self, recursive=False):
-    if recursive:
-      return json.dumps(self.ToTestListConfig(recursive=True), indent=2,
-                        sort_keys=True, separators=(',', ': '))
-    else:
-      return json.dumps(self.ToTestListConfig(recursive=False), sort_keys=True)
 
 
 class TestGroup(FactoryTest):

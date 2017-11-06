@@ -23,6 +23,11 @@ class TestFailure(Exception):
   """Failure of a test."""
 
 
+class TestListError(Exception):
+  """TestList exception"""
+  pass
+
+
 class TimeoutError(Error):
   """Timeout error."""
   def __init__(self, message='Timed out', output=None):

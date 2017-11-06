@@ -14,8 +14,6 @@ import os
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-
-from cros.factory.test.test_lists import manager
 from cros.factory.test.test_lists import test_object
 
 
@@ -35,45 +33,6 @@ class FactoryTestTest(unittest.TestCase):
                            ('a_b', 'AB'),
                            ('foo_bar', 'FooBar')):
       self.assertEqual(test_id, test_object.FactoryTest.LabelToId(label))
-
-
-class FactoryTestListTest(unittest.TestCase):
-  def testGetNextSibling(self):
-    test_list = manager.BuildTestListForUnittest(
-        test_list_config={
-            'tests': [
-                {'id': 'G',
-                 'subtests': [
-                     {'id': 'G',
-                      'subtests': [
-                          {'id': 'a', 'pytest_name': 't_GGa'},
-                          {'id': 'b', 'pytest_name': 't_GGb'},
-                      ]
-                     },
-                     {'id': 'b', 'pytest_name': 't_Gb'},
-                 ]
-                }
-            ]
-        })
-    test = test_list.LookupPath('G.G')
-    self.assertEqual(test.GetNextSibling(), test_list.LookupPath('G.b'))
-    test = test_list.LookupPath('G.G.a')
-    self.assertEqual(test.GetNextSibling(), test_list.LookupPath('G.G.b'))
-    test = test_list.LookupPath('G.G.b')
-    self.assertIsNone(test.GetNextSibling())
-
-  def testResolveRequireRun(self):
-    self.assertEqual(
-        'e.f', test_object.FactoryTestList.ResolveRequireRun('a.b.c.d', 'e.f'))
-    self.assertEqual(
-        'a.b.c.e.f',
-        test_object.FactoryTestList.ResolveRequireRun('a.b.c.d', '.e.f'))
-    self.assertEqual(
-        'a.b.e.f',
-        test_object.FactoryTestList.ResolveRequireRun('a.b.c.d', '..e.f'))
-    self.assertEqual(
-        'a.e.f',
-        test_object.FactoryTestList.ResolveRequireRun('a.b.c.d', '...e.f'))
 
 
 if __name__ == '__main__':
