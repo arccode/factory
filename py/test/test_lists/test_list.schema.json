@@ -119,7 +119,6 @@
               "type": "string"
             },
             "^[A-Za-z0-9][A-Za-z0-9_-]*$": {
-              "$ref": "#/definitions/test_constants"
             }
           },
           "additionalProperties": false
@@ -127,7 +126,6 @@
         {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/test_constants"
           }
         }
       ]
