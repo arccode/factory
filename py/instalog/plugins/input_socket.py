@@ -86,6 +86,8 @@ class InputSocket(plugin_base.InputPlugin):
 
       conn, addr = self._sock.accept()
       conn.settimeout(socket_common.SOCKET_TIMEOUT)
+      conn.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF,
+                      socket_common.SOCKET_BUFFER_SIZE)
 
       # Since sock.accept is a blocking call, check for the STOPPING state
       # afterwards.  TearDown may have purposely initiated a connection in order
@@ -239,7 +241,7 @@ class InputSocketRequest(log_utils.LoggerMixin, threading.Thread):
     progress = 0
     local_hash = hashlib.sha1()
     while progress < total:
-      recv_size = min(total - progress, socket_common.CHUNK_SIZE)
+      recv_size = total - progress
       # Recv may return any number of bytes <= recv_size, so it's important
       # to check the size of its output.
       out = self._conn.recv(recv_size)

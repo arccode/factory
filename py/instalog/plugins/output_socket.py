@@ -25,7 +25,7 @@ from instalog.utils.arg_utils import Arg
 from instalog.utils import time_utils
 
 
-_DEFAULT_BATCH_SIZE = 5000
+_DEFAULT_BATCH_SIZE = 500
 _DEFAULT_TIMEOUT = 5
 _FAILED_CONNECTION_INTERVAL = 60
 
@@ -86,8 +86,8 @@ class OutputSocket(plugin_base.OutputPlugin):
 
       try:
         self.GetSocket()
-        # Send the number of events followed by each one.
         start_time = time.time()
+        # Send the number of events followed by each one.
         self.SendInt(len(events))
         total_bytes = 0
         for event in events:
@@ -101,7 +101,6 @@ class OutputSocket(plugin_base.OutputPlugin):
           raise Exception
         self.debug('Sending request-emit (ack)...')
         self._sock.sendall(socket_common.REQUEST_EMIT_CHAR)
-
 
         # Check for success or failure.  Commit or abort the stream.
         self.debug('Waiting for emit-success (syn-ack)...')
@@ -158,6 +157,8 @@ class OutputSocket(plugin_base.OutputPlugin):
     """Creates and returns a new socket connection to the target host."""
     self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     self._sock.settimeout(socket_common.SOCKET_TIMEOUT)
+    self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF,
+                          socket_common.SOCKET_BUFFER_SIZE)
     self._sock.connect((self.args.hostname, self.args.port))
 
   def SendItem(self, item):
@@ -213,7 +214,7 @@ class OutputSocket(plugin_base.OutputPlugin):
     local_hash = hashlib.sha1()
     with open(att_path) as f:
       while True:
-        read_bytes = f.read(socket_common.CHUNK_SIZE)
+        read_bytes = f.read()
         if not read_bytes:
           break
         local_hash.update(read_bytes)
