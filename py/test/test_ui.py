@@ -497,6 +497,7 @@ class TestCaseWithUI(unittest.TestCase):
   """
 
   template_type = 'one-section'
+  template_classes = ''
 
   def __init__(self, methodName):
     super(TestCaseWithUI, self).__init__(methodName='_RunTestWithUI')
@@ -513,8 +514,11 @@ class TestCaseWithUI(unittest.TestCase):
     # boilerplate code and easy to forget.
     default_html = ''
     if self.template_type:
-      default_html = '<template-{type}></template-{type}>'.format(
-          type=self.template_type)
+      extra_attrs = ''
+      if self.template_classes:
+        extra_attrs = ' class="%s"' % self.template_classes
+      default_html = '<template-{type}{extra_attrs}></template-{type}>'.format(
+          type=self.template_type, extra_attrs=extra_attrs)
     self.ui = UI(default_html=default_html)
     self.template = JavaScriptTemplateProxy(self.ui)
 
