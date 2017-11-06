@@ -503,12 +503,15 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
       last_success_rate = self._ParseSingleRunOutput(process.stdout,
                                                      input_channels)
       if last_success_rate is None:
-        self.AppendErrorMessage('Failed to parse audiofuntest output')
-        return
+        break
       rate_msg = ', '.join(
           'Mic %d: %.1f%%' %
           (channel, rate) for channel, rate in last_success_rate.viewitems())
       self.ui.CallJSFunction('testInProgress', rate_msg)
+
+    if last_success_rate is None:
+      self.AppendErrorMessage('Failed to parse audiofuntest output')
+      return
 
     threshold = self._current_test_args.get(
         'threshold', _DEFAULT_AUDIOFUN_TEST_THRESHOLD)
