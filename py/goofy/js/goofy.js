@@ -485,7 +485,7 @@ cros.factory.Invocation = class {
      */
     this.iframe = goog.asserts.assertInstanceof(
         document.createElement('iframe'), HTMLIFrameElement);
-    this.iframe.src = '/ui_templates/default_test_ui.html';
+    this.iframe.src = '/default_test_ui.html';
     this.iframe.classList.add('goofy-test-iframe');
 
     this.goofy.addInvocationUI(this);

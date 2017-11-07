@@ -970,6 +970,30 @@ msgstr "未知"
 msgid "System time"
 msgstr "系统时间"
 
+#: ../py/goofy/static/default_test_ui.html
+msgid "Test Path"
+msgstr "测项路径"
+
+#: ../py/goofy/static/default_test_ui.html
+msgid "Test Label"
+msgstr "测项标籤"
+
+#: ../py/goofy/static/default_test_ui.html
+msgid "Invocation ID"
+msgstr "测试识别号"
+
+#: ../py/goofy/static/default_test_ui.html
+msgid "Elapsed Time"
+msgstr "经过时间"
+
+#: ../py/goofy/static/default_test_ui.html
+msgid "Test Name"
+msgstr "测项名称"
+
+#: ../py/goofy/static/default_test_ui.html
+msgid "Test Arguments"
+msgstr "测项参数"
+
 #: ../py/goofy/static/index.html
 msgid "Engineering mode"
 msgstr "工程模式"
@@ -978,37 +1002,13 @@ msgstr "工程模式"
 msgid "{seconds} seconds"
 msgstr "{seconds}秒"
 
-#: ../py/goofy/static/ui_templates/default_test_ui.html
-msgid "Test Path"
-msgstr "测项路径"
-
-#: ../py/goofy/static/ui_templates/default_test_ui.html
-msgid "Test Label"
-msgstr "测项标籤"
-
-#: ../py/goofy/static/ui_templates/default_test_ui.html
-msgid "Invocation ID"
-msgstr "测试识别号"
-
-#: ../py/goofy/static/ui_templates/default_test_ui.html
-msgid "Elapsed Time"
-msgstr "经过时间"
-
-#: ../py/goofy/static/ui_templates/default_test_ui.html
-msgid "Test Name"
-msgstr "测项名称"
-
-#: ../py/goofy/static/ui_templates/default_test_ui.html
-msgid "Test Arguments"
-msgstr "测项参数"
-
-#: ../py/goofy/static/ui_templates/templates.html
-msgid "Mark Failed"
-msgstr "标记失败"
-
-#: ../py/goofy/static/ui_templates/templates.html
+#: ../py/goofy/static/templates.html
 msgid "Test Progress:"
 msgstr "测试进度:"
+
+#: ../py/goofy/static/templates.html
+msgid "Mark Failed"
+msgstr "标记失败"
 
 #: ../py/test/countdown_timer.py
 msgid "Time remaining: {time:.0f}"
