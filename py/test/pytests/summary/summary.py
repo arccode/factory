@@ -103,7 +103,7 @@ CSS = """
   overflow: auto;
 }
 
-template-one-section.test-accessibility {
+test-template.test-accessibility {
   --template-background-color: #F77;
 }
 

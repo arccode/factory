@@ -63,7 +63,7 @@ from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sys_utils
 
-_CSS = 'template-one-section { text-align: left; }'
+_CSS = 'test-template { text-align: left; }'
 
 TRUNKS_SEND = '/usr/sbin/trunks_send'
 FIRMWARE_RELATIVE_PATH = 'opt/google/cr50/firmware/cr50.bin.prod'

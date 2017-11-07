@@ -79,7 +79,7 @@ from cros.factory.utils import time_utils
 # TODO(pihsun): Lots of pytests that are displaying a scrollable message using
 # OneScrollableSection are having this CSS. Should have a simpler UI to show a
 # scrollable message.
-_CSS = 'template-one-section { text-align: left; }'
+_CSS = 'test-template { text-align: left; }'
 
 
 class PingTest(unittest.TestCase):

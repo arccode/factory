@@ -17,7 +17,7 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 
-_CSS = 'template-one-section { text-align: left; }'
+_CSS = 'test-template { text-align: left; }'
 _DEVKEY = 'b11d74edd286c144e1135b49e7f0bc20cf041f10'
 
 

@@ -8,7 +8,7 @@ const goofy = invocation.goofy;
 const testEntry = goofy.pathTestMap[invocation.path];
 const _ = cros.factory.i18n.translation;
 
-let startTime = Date.now();
+const startTime = Date.now();
 
 goog.dom.safe.setInnerHtml(
     document.getElementById('test-info-title'),

@@ -81,7 +81,7 @@ from cros.factory.utils import process_utils
 
 _FIRMWARE_UPDATER_NAME = 'chromeos-firmwareupdate'
 
-_CSS = 'template-one-section { text-align: left; }'
+_CSS = 'test-template { text-align: left; }'
 
 
 class UpdateFirmwareTest(unittest.TestCase):

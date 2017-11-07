@@ -3,7 +3,7 @@
     <script src="/js/templates.js" defer></script>
   </head>
   <body>
-    <template id="template-one-section">
+    <template id="test-template">
       <style>
         #info-container {
           display: flex;
@@ -68,27 +68,7 @@
         ::slotted(span.inline) {
           display: inline;
         }
-      </style>
-      <div id="info-container">
-        <div id="title-container">
-          <slot name="title"></slot>
-        </div>
-        <div id="state-container">
-          <slot></slot>
-        </div>
-        <div id="button-container">
-          <div id="extra-button-container">
-            <slot name="extra-button"></slot>
-          </div>
-          <button id="button-mark-failed">
-            <i18n-label>Mark Failed</i18n-label>
-          </button>
-        </div>
-      </div>
-    </template>
 
-    <template id="template-two-sections-extra">
-      <style>
         #prompt-container {
           flex: none;
           background-color: white;
@@ -128,16 +108,32 @@
           height: 100%;
         }
       </style>
-      <div id="prompt-container">
-        <span id="instruction">
-          <slot name="instruction"></slot>
-        </span>
-        <span id="progress-bar-container">
-          <i18n-label>Test Progress:</i18n-label>
-          <div id="progress-bar">
-            <div id="progress-bar-indicator"></div>
+      <div id="info-container">
+        <div id="title-container">
+          <slot name="title"></slot>
+        </div>
+        <div id="prompt-container">
+          <span id="instruction">
+            <slot name="instruction"></slot>
+          </span>
+          <span id="progress-bar-container">
+            <i18n-label>Test Progress:</i18n-label>
+            <div id="progress-bar">
+              <div id="progress-bar-indicator"></div>
+            </div>
+          </span>
+        </div>
+        <div id="state-container">
+          <slot></slot>
+        </div>
+        <div id="button-container">
+          <div id="extra-button-container">
+            <slot name="extra-button"></slot>
           </div>
-        </span>
+          <button id="button-mark-failed">
+            <i18n-label>Mark Failed</i18n-label>
+          </button>
+        </div>
       </div>
     </template>
   </body>

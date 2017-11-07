@@ -121,15 +121,15 @@ class Table(object):
 class BaseTemplate(object):
   """Base class for test UI template."""
 
-  def __init__(self, ui, template_name, extra_classes=''):
+  def __init__(self, ui, extra_classes=''):
     self._ui = ui
 
     extra_attrs = ''
     if extra_classes:
       extra_attrs = ' class="%s"' % extra_classes
 
-    self._ui.SetHTML('<{tag}{extra_attrs}></{tag}>'.format(
-        tag=template_name, extra_attrs=extra_attrs))
+    self._ui.SetHTML('<test-template{extra_attrs}></test-template>'.format(
+        extra_attrs=extra_attrs))
 
   def SetTitle(self, html):
     """Sets the title of the test UI.
@@ -162,9 +162,6 @@ class OneSection(BaseTemplate):
     operator.
   """
 
-  def __init__(self, ui):
-    super(OneSection, self).__init__(ui, 'template-one-section')
-
 
 class OneScrollableSection(BaseTemplate):
   """Like OneSection, but is used to show more info.
@@ -178,8 +175,7 @@ class OneScrollableSection(BaseTemplate):
   """
 
   def __init__(self, ui):
-    super(OneScrollableSection, self).__init__(ui, 'template-one-section',
-                                               'scrollable')
+    super(OneScrollableSection, self).__init__(ui, 'scrollable')
 
 
 class TwoSections(BaseTemplate):
@@ -199,9 +195,6 @@ class TwoSections(BaseTemplate):
     regarding the progress or state of the test. The progress bar
     is hidden by default.
   """
-
-  def __init__(self, ui):
-    super(TwoSections, self).__init__(ui, 'template-two-sections')
 
   def SetInstruction(self, html):
     """Sets the instruction to operator.

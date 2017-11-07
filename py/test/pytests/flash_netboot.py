@@ -56,7 +56,7 @@ from cros.factory.test import ui_templates
 from cros.factory.tools import flash_netboot
 from cros.factory.utils.arg_utils import Arg
 
-_CSS = 'template-one-section { text-align: left; }'
+_CSS = 'test-template { text-align: left; }'
 
 
 class FlashNetbootTest(unittest.TestCase):

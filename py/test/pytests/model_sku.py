@@ -90,7 +90,7 @@ _TABLE_CSS = '''
   padding-right: 20px;
 }
 
-template-two-sections > :not([slot]) {
+test-template > :not([slot]) {
   font-size: 1.5em;
 }
 '''

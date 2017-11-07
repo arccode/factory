@@ -157,7 +157,7 @@ from cros.factory.utils import debug_utils
 from cros.factory.utils import log_utils
 
 _CSS = """
-template-two-sections > :not([slot]) {
+test-template > :not([slot]) {
   font-size: 2em;
 }
 

@@ -96,7 +96,7 @@ _CSS = """
     font-size: 2.25em;
     font-weight: bold;
   }
-  template-two-sections.green-background {
+  test-template.green-background {
     --template-background-color: #00ff00;
   }
 """

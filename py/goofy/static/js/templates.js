@@ -75,24 +75,30 @@
   const templateDoc = document.currentScript.ownerDocument;
 
   /**
-   * A custom HTML element <template-one-section>.
-   * The template has three sections: title, state and buttons.
+   * A custom HTML element <test-template>.
+   * The template has four sections: title, instruction (optional), state and
+   * buttons.
    * The template would be available in JavaScript as window.template after
    * created.
+   *
+   * The instruction section also contains a progress bar, which is initially
+   * hidden and can be shown with template.drawProgressBar().
    */
-  class TemplateOneSection extends HTMLElement {
+  class TestTemplate extends HTMLElement {
     constructor() {
       super();
 
       window.template = this;
 
       this.attachShadow({mode: 'open'});
-      const template = templateDoc.getElementById('template-one-section');
+      const template = templateDoc.getElementById('test-template');
       this.shadowRoot.appendChild(template.content.cloneNode(true));
       this.shadowRoot.querySelector('#button-mark-failed')
         .addEventListener('click', () => {
           window.test.userAbort();
         });
+
+      this.progressBar = null;
     }
 
     /**
@@ -132,24 +138,6 @@
       button.appendChild(cros.factory.i18n.i18nLabelNode(label));
       this.appendChild(button);
       return button;
-    }
-  }
-  window.customElements.define('template-one-section', TemplateOneSection);
-
-  /**
-   * A custom HTML element <template-two-sections>.
-   * The template has four sections: title, instruction, state and buttons.
-   * The instruction section also contains a progress bar, which is initially
-   * hidden and can be shown with template.drawProgressBar().
-   */
-  class TemplateTwoSections extends TemplateOneSection {
-    constructor() {
-      super();
-      const state = this.shadowRoot.querySelector('#state-container');
-      const template =
-          templateDoc.getElementById('template-two-sections-extra');
-      state.parentNode.insertBefore(template.content.cloneNode(true), state);
-      this.progressBar = null;
     }
 
     /**
@@ -192,5 +180,5 @@
       indicator.innerText = value + '%';
     }
   }
-  window.customElements.define('template-two-sections', TemplateTwoSections);
+  window.customElements.define('test-template', TestTemplate);
 })();

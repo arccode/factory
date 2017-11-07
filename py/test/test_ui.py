@@ -496,7 +496,6 @@ class TestCaseWithUI(unittest.TestCase):
   Test should override runTest to do testing in background.
   """
 
-  template_type = 'one-section'
   template_classes = ''
 
   def __init__(self, methodName):
@@ -512,13 +511,11 @@ class TestCaseWithUI(unittest.TestCase):
     # and initialize using setUp() means that all pytest inheriting this need
     # to remember calling super(..., self).setUp(), which is a lot of
     # boilerplate code and easy to forget.
-    default_html = ''
-    if self.template_type:
-      extra_attrs = ''
-      if self.template_classes:
-        extra_attrs = ' class="%s"' % self.template_classes
-      default_html = '<template-{type}{extra_attrs}></template-{type}>'.format(
-          type=self.template_type, extra_attrs=extra_attrs)
+    extra_attrs = ''
+    if self.template_classes:
+      extra_attrs = ' class="%s"' % self.template_classes
+    default_html = '<test-template{extra_attrs}></test-template>'.format(
+        extra_attrs=extra_attrs)
     self.ui = UI(default_html=default_html)
     self.template = JavaScriptTemplateProxy(self.ui)
 
