@@ -34,10 +34,9 @@ const tick = () => {
     return;
   }
   goog.dom.safe.setInnerHtml(
-      element,
-      cros.factory.i18n.i18nLabel(cros.factory.i18n.stringFormat(
-          _('{seconds} seconds'),
-          {seconds: Math.floor((Date.now() - startTime) / 1000)})));
+      element, cros.factory.i18n.i18nLabel('{seconds} seconds', {
+        seconds: Math.floor((Date.now() - startTime) / 1000)
+      }));
   window.setTimeout(tick, 1000);
 };
 

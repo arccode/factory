@@ -203,6 +203,11 @@ ns.translated = (obj, translate = true) => {
  */
 ns.stringFormat = (format, dict) => {
   const format_dict = ns.translated(format);
+  if (Object.keys(dict).length === 0) {
+    // Don't run stringFormatCached_ when there's no arguments, to avoid
+    // putting all translated strings into the cache.
+    return format_dict;
+  }
   const translated_dict = Object.create(null);
   for (const key of Object.keys(dict)) {
     translated_dict[key] = ns.translated(dict[key], false);
