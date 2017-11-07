@@ -517,11 +517,11 @@ cros.factory.Invocation = class {
   }
 
   /**
-   * Returns state information for this invocation.
-   * @return {!cros.factory.TestState}
+   * Returns test list entry for this invocation.
+   * @return {!cros.factory.TestListEntry}
    */
-  getState() {
-    return this.goofy.pathTestMap[this.path].state;
+  getTestListEntry() {
+    return this.goofy.pathTestMap[this.path];
   }
 
   /**

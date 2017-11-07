@@ -60,6 +60,14 @@
           flex: 1;
         }
 
+        #button-mark-failed.disable-abort {
+          display: none;
+        }
+
+        :host-context(.goofy-engineering-mode) #button-mark-failed.disable-abort {
+          display: block;
+        }
+
         ::slotted(button[slot="extra-button"]) {
           margin-right: 4px;
           flex: 1 1 100%;

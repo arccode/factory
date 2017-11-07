@@ -93,10 +93,15 @@
       this.attachShadow({mode: 'open'});
       const template = templateDoc.getElementById('test-template');
       this.shadowRoot.appendChild(template.content.cloneNode(true));
-      this.shadowRoot.querySelector('#button-mark-failed')
-        .addEventListener('click', () => {
-          window.test.userAbort();
-        });
+
+      const markFailButton =
+          this.shadowRoot.querySelector('#button-mark-failed');
+      markFailButton.addEventListener('click', () => {
+        window.test.userAbort();
+      });
+      if (window.test.invocation.getTestListEntry().disable_abort) {
+        markFailButton.classList.add('disable-abort');
+      }
 
       this.progressBar = null;
     }
