@@ -28,6 +28,11 @@ function getWebGlFrame() {
   return document.getElementById('webgl-aquarium');
 }
 
+function getFpsContainer() {
+  return getWebGlFrame().contentDocument.getElementsByClassName(
+    'fpsContainer')[0];
+}
+
 function hideOptions() {
   var top_ui = getWebGlFrame().contentDocument.getElementById('topUI');
   if (!top_ui) {
@@ -38,37 +43,46 @@ function hideOptions() {
 
 function enableFullScreen() {
   window.test.setFullScreen(true);
-  getWebGlFrame().classList.add(cls_fullscreen);
+  var webgl_iframe = getWebGlFrame();
+  var doc = webgl_iframe.contentDocument;
+  webgl_iframe.classList.add(cls_fullscreen);
+  doc.getElementById('info').style.display = 'none';
 }
 
 function disableFullScreen() {
-  getWebGlFrame().classList.remove(cls_fullscreen);
+  var webgl_iframe = getWebGlFrame();
+  var doc = webgl_iframe.contentDocument;
+  webgl_iframe.classList.remove(cls_fullscreen);
+  doc.getElementById('info').style.display = 'block';
+  // fpsContainer is moved during updateUI().
+  getFpsContainer().style.top = '10px';
   window.test.setFullScreen(false);
 }
 
-function toggleFullScreen() {
+function isFullScreen() {
   var webgl_iframe = getWebGlFrame();
-  var toggle_btn = webgl_iframe.contentDocument
-    .getElementById('fullscreen_toggle');
+  var toggle_btn = webgl_iframe.contentDocument.getElementById(
+      'fullscreen_toggle');
+  return webgl_iframe.classList.contains(cls_fullscreen);
+}
 
-  if (webgl_iframe.classList.contains(cls_fullscreen)) {
+function toggleFullScreen() {
+  if (isFullScreen()) {
     disableFullScreen();
-  }
-  else {
+  } else {
     enableFullScreen();
   }
 }
 
 function updateUI(time_left, hide_options) {
-  var webgl_iframe = getWebGlFrame();
-  var timer_span = webgl_iframe.contentDocument.getElementById('timer');
+  var timer_span = getWebGlFrame().contentDocument.getElementById('timer');
+  var fps_container = getFpsContainer();
+
+  if (!fps_container) {
+    return 0;
+  }
 
   if (!timer_span) {
-    var fps_container = webgl_iframe.contentDocument.getElementsByClassName(
-      'fpsContainer')[0];
-    if (!fps_container) {
-      return 0;
-    }
 
     if (hide_options) {
       hideOptions();
@@ -98,6 +112,12 @@ function updateUI(time_left, hide_options) {
   }
 
   timer_span.innerHTML = time_left;
+
+  if (isFullScreen()) {
+    // Move FPS container (30px, 10px) to prevent screen burn-in.
+    var sec = time_left.split(':').pop();
+    fps_container.style.top = sec + '%';
+  }
 }
 
 function registerContextLostHandler() {
