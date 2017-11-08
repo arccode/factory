@@ -15,7 +15,6 @@
       "left": {
         "usb2_sysfs_path": "/sys/devices/pci0000:00/0000:00:xx.y/usb1/?-?",
         "usb3_sysfs_path": "/sys/devices/pci0000:00/0000:00:xx.y/usb2/?-?",
-        "uvc_video_dev_port": "?-?",
         "usbpd_id": -1,
         "display_info": [
           "DisplayPort",
@@ -25,7 +24,6 @@
       "right": {
         "usb2_sysfs_path": "/sys/devices/pci0000:00/0000:00:xx.y/usb1/?-?",
         "usb3_sysfs_path": "/sys/devices/pci0000:00/0000:00:xx.y/usb2/?-?",
-        "uvc_video_dev_port": "?-?",
         "usbpd_id": -1,
         "display_info": [
           "DisplayPort",
