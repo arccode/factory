@@ -119,7 +119,7 @@ _SKIP_TAIL_SECTOR = 33
 _RW_TEST_MODE_RANDOM = 1
 _RW_TEST_MODE_SEQUENTIAL = 2
 
-# Mininum size required for partition test
+# Minimum size required for partition test
 _MIN_PARTITION_SIZE_MB = 1
 
 _MILLION = 1000000
@@ -535,8 +535,8 @@ class RemovableStorageTest(unittest.TestCase):
             total_time_write += write_time
 
       self.AdvanceProgress()
-      if ok is False:
-        if self.GetDeviceRo(dev_path) is True:
+      if not ok:
+        if self.GetDeviceRo(dev_path):
           session.console.warn('Is write protection on?')
           self._ui.FailLater(_ERR_DEVICE_READ_ONLY_STR(dev_path))
         test_name = ''
@@ -598,9 +598,7 @@ class RemovableStorageTest(unittest.TestCase):
     self._template.SetInstruction(_TESTING_FMT_STR(self._target_device))
     self.SetState(_IMG_HTML_TAG(self._testing_image))
 
-    ro = self.GetDeviceRo(self._target_device)
-
-    if ro is False:
+    if not self.GetDeviceRo(self._target_device):
       self._ui.FailLater(_ERR_LOCKTEST_FAILED_FMT_STR(self._target_device))
     self._template.SetInstruction(_LOCKTEST_REMOVE_FMT_STR(self.args.media))
     self._state = _STATE_LOCKTEST_WAIT_REMOVE
@@ -636,7 +634,7 @@ class RemovableStorageTest(unittest.TestCase):
     logging.info('verifying partition %s', self._target_device)
     try:
       # Just do a simple check on the first partition file
-      # Auto detect parition prefix character
+      # Auto detect partition prefix character
       if 'mmcblk' in dev_path:
         dev_path = dev_path + 'p'
       self._dut.path.exists(dev_path + '1')
