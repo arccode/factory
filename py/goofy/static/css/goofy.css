@@ -4,30 +4,9 @@
  * found in the LICENSE file.
  */
 
-/* CSS reset. */
-
-html, body, div, span, object, iframe,
-h1, h2, h3, h4, h5, h6, p, blockquote, pre,
-abbr, address, cite, code,
-del, dfn, em, img, ins, kbd, q, samp,
-small, strong, sub, sup, var,
-b, i,
-dl, dt, dd, ol, ul, li,
-fieldset, form, label, legend,
-table, caption, tbody, tfoot, thead, tr, th, td,
-article, aside, canvas, details, figcaption, figure,
-footer, header, hgroup, menu, nav, section, summary,
-time, mark, audio, video {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  outline: 0;
-  font-size: 100%;
-  font-family: 'Open Sans', sans-serif;
-  vertical-align: baseline;
-  background: transparent;
-  line-height: 1.5;
-}
+@import 'reset.css';
+@import 'fonts.css';
+@import 'test_ui.css';
 
 /* Top-level UI elements. */
 #goofy-div-wait {
@@ -50,6 +29,7 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  line-height: 1.5;
 }
 #goofy-div {
   position: absolute;
@@ -774,68 +754,4 @@ table + .goofy-history-header {
 .terminal * {
   font-family: monospace;
   white-space: nowrap;
-}
-
-/* Style for cros.factory.testUI.TabManager */
-#goofy-test-ui-main .goofy-tab-main-container {
-  display: flex;
-  flex: 1;
-}
-
-/* Style for cros.factory.testUI.TileManager */
-/* TODO(pihsun): Move these CSS rules for testUI to separate files */
-#goofy-test-ui-main .goofy-tile-main-container {
-  display: grid;
-  flex: 1;
-  align-items: stretch;
-  justify-items: stretch;
-}
-
-.goofy-tile-main-container .goofy-tile-block {
-  display: none;
-  flex-flow: column;
-  border: 1px gray solid;
-}
-
-.goofy-tile-main-container .goofy-tile-block.goofy-test-visible {
-  display: flex;
-}
-
-.goofy-tile-main-container .goofy-tile-block .goofy-tile-title {
-  text-align: center;
-  background: #dddddd;
-}
-
-.goofy-tile-main-container .goofy-tile-block .goofy-tile-title.focused {
-  background: #aaaaaa;
-}
-
-.goofy-tile-main-container .goofy-tile-block iframe {
-  flex: 1;
-}
-
-/* Fonts. */
-@font-face {
-  font-family: 'Open Sans';
-  font-style: normal;
-  font-weight: 400;
-  src: url('/fonts/OpenSans-Latin.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'Open Sans';
-  font-style: italic;
-  font-weight: 400;
-  src: url('/fonts/OpenSans-Italic-Latin.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'Open Sans';
-  font-style: normal;
-  font-weight: 700;
-  src: url('/fonts/OpenSans-Bold-Latin.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'Open Sans';
-  font-style: italic;
-  font-weight: 700;
-  src: url('/fonts/OpenSans-BoldItalic-Latin.ttf') format('truetype');
 }

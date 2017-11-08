@@ -6,6 +6,9 @@
 
 /* Declarations useful in test UI. */
 
+@import 'reset.css';
+@import 'fonts.css';
+
 /* Dynamically adjust the base font size with the size of the viewport, so
  * test looks better on small area (for example, tiled layout.)
  *
