@@ -63,7 +63,6 @@ from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import time_utils
-from cros.factory.utils import type_utils
 
 
 class CountDownTest(unittest.TestCase):
@@ -119,9 +118,11 @@ class CountDownTest(unittest.TestCase):
     log_str = '.  '.join(log_items)
     self._verbose_log.write(log_str + os.linesep)
     self._verbose_log.flush()
-    self._ui.AppendHTML('%s<br>' % log_str, id='cd-log-panel')
-    self._ui.RunJS('$("cd-log-panel").scrollTop = '
-                   '$("cd-log-panel").scrollHeight;')
+    self._ui.AppendHTML('<div>%s</div>' % log_str, id='cd-log-panel')
+    self._ui.RunJS('const panel = document.getElementById("cd-log-panel");'
+                   'if (panel.childNodes.length > 512)'
+                   '  panel.removeChild(panel.firstChild);'
+                   'panel.scrollTop = panel.scrollHeight;')
 
   def UpdateLegend(self, sensor_names):
     for i, sensor in enumerate(sensor_names):

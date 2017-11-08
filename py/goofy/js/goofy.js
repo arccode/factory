@@ -2914,7 +2914,6 @@ cros.factory.Goofy = class {
   logToConsole(message, opt_attributes) {
     if (this.console) {
       const div = goog.dom.createDom('div', opt_attributes);
-      div.classList.add('goofy-log-line');
       div.appendChild(document.createTextNode(message));
       this.console.appendChild(div);
 
