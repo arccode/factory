@@ -22,3 +22,19 @@ cros.factory.utils.removeClassesWithPrefix = (element, prefix) => {
   element.classList.remove(
       ...Array.from(element.classList).filter((cls) => cls.startsWith(prefix)));
 };
+
+/**
+ * Create a DocumentFragment from an HTML.
+ * @param {string} html
+ * @param {!Document} doc
+ * @return {!DocumentFragment}
+ */
+cros.factory.utils.createFragmentFromHTML = (html, doc) => {
+  // TODO(pihsun): Passing doc in is a temporary hack to make this work as
+  // expected in child iframe. Should be solved after utils.js is turned into a
+  // real ES6 module.
+  const template = doc.createElement('template');
+  template.innerHTML = html;
+  return template.content;
+};
+

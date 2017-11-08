@@ -4,17 +4,6 @@
 
 (() => {
   /**
-   * Create a DocumentFragment from an HTML.
-   * @param {string} html
-   * @return {!DocumentFragment}
-   */
-  const getFragmentFromHTML = (html) => {
-    const template = document.createElement('template');
-    template.innerHTML = html;
-    return template.content;
-  };
-
-  /**
    * Remove all children of root in the specified slot.
    * @param {!Element} root
    * @param {?string} slotName the specified slot name, if null, would remove
@@ -39,7 +28,9 @@
     if (!append) {
       clearSlotContent(root, slotName);
     }
-    for (const element of Array.from(getFragmentFromHTML(html).childNodes)) {
+    for (const element of Array.from(
+             cros.factory.utils.createFragmentFromHTML(html, document)
+                 .childNodes)) {
       let newElement = null;
       if (element instanceof Text) {
         if (slotName) {

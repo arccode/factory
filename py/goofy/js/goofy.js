@@ -3014,7 +3014,9 @@ cros.factory.Goofy = class {
                                          document.body;
             if (element) {
               if (message.append) {
-                element.innerHTML += message.html;
+                const fragment = cros.factory.utils.createFragmentFromHTML(
+                    message.html, goog.asserts.assert(document));
+                element.appendChild(fragment);
               } else {
                 element.innerHTML = message.html;
               }
