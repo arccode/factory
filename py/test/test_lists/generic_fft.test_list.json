@@ -7,6 +7,7 @@
       "inherit": "TestGroup",
       "label": "FFT (Final Functional Test)",
       "locals": {
+        "station_end_upload_report": false,
         "station": "FFT"
       },
       "subtests": [

@@ -16,6 +16,7 @@
       "inherit": "TestGroup",
       "label": "GRT (Google Required Tests)",
       "locals": {
+        "station_end_upload_report": true,
         "station": "GRT"
       },
       "subtests": [

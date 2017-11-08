@@ -433,11 +433,17 @@
     "StationEnd": {
       "inherit": "FlattenGroup",
       "subtests": [
-        "SyncFactoryServer",
+        "StationEndSyncFactoryServer",
         "ShopfloorNotifyEnd",
         "Barrier",
         "WriteDeviceDataToVPD"
       ]
+    },
+    "StationEndSyncFactoryServer": {
+      "inherit": "SyncFactoryServerUploadReport",
+      "args": {
+        "upload_report": "eval! locals.station_end_upload_report"
+      }
     },
     "StationStart": {
       "inherit": "FlattenGroup",
