@@ -31,6 +31,7 @@ events being sent multiple times.
 """
 
 DEFAULT_PORT = 8893
+DEFAULT_PULL_PORT = 8895
 SOCKET_TIMEOUT = 30
 SEPARATOR = '\0'
 SOCKET_BUFFER_SIZE = 512 * 1024
