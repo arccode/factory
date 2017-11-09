@@ -19,9 +19,11 @@ import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
 from instalog import log_utils
 from instalog import plugin_sandbox
+from instalog.plugins import output_socket
 from instalog import testing
 
 
+# pylint: disable=protected-access
 class TestOutputSocket(unittest.TestCase):
 
   def setUp(self):
@@ -42,7 +44,10 @@ class TestOutputSocket(unittest.TestCase):
 
     # Start the plugin.
     self.sandbox.Start(True)
-    self.plugin = self.sandbox._plugin  # pylint: disable=protected-access
+    self.plugin = self.sandbox._plugin
+    self.assertTrue(self.plugin.GetSocket())
+    self.sender = output_socket.OutputSocketSender(
+        self.plugin.logger, self.plugin._sock, self.plugin)
 
   def tearDown(self):
     self.sandbox.Stop(True)
@@ -56,24 +61,26 @@ class TestOutputSocket(unittest.TestCase):
     return data
 
   def testPing(self):
+    self.assertTrue(self.sender.Ping())
     time.sleep(1)
     self.assertEqual(
         '0\0',  # ping
         self._GetSentData())
 
   def testMidTransmissionFailure(self):
-    with mock.patch.object(self.plugin, 'Ping', return_value=True):
+    self.stream.Queue([datatypes.Event({})])
+    with mock.patch.object(
+        output_socket.OutputSocketSender, 'Ping', return_value=True):
       with mock.patch.object(self.sock, 'sendall', side_effect=socket.error):
-        self.stream.Queue([datatypes.Event({})])
         self.sandbox.Flush(0.1, True)
+        self.assertFalse(self.stream.Empty())
       with mock.patch.object(self.sock, 'sendall', side_effect=Exception):
-        self.stream.Queue([datatypes.Event({})])
         self.sandbox.Flush(0.1, True)
-    self.assertFalse(self.stream.Empty())
+        self.assertFalse(self.stream.Empty())
 
   def testInvalidHeader(self):
     self.sock.recv.return_value = 'x'
-    self.assertFalse(self.plugin.Ping())
+    self.assertFalse(self.sender.Ping())
 
   def testOneEvent(self):
     event = datatypes.Event({})
@@ -115,5 +122,5 @@ class TestOutputSocket(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  logging.basicConfig(level=logging.DEBUG, format=log_utils.LOG_FORMAT)
+  logging.basicConfig(level=logging.INFO, format=log_utils.LOG_FORMAT)
   unittest.main()

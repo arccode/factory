@@ -19,10 +19,10 @@ import socket
 import time
 
 import instalog_common  # pylint: disable=W0611
+from instalog import log_utils
 from instalog import plugin_base
 from instalog.plugins import socket_common
 from instalog.utils.arg_utils import Arg
-from instalog.utils import time_utils
 
 
 _DEFAULT_BATCH_SIZE = 500
@@ -49,21 +49,7 @@ class OutputSocket(plugin_base.OutputPlugin):
 
   def Main(self):
     """Main thread of the plugin."""
-    # Boolean flag to indicate whether or not the target is currently available.
-    target_available = False
-    last_unavailable_time = float('-inf')
-
     while not self.IsStopping():
-      # Should we verify the connection first?
-      if not target_available and not self.Ping():
-        if (time_utils.MonotonicTime() >
-            (last_unavailable_time + _FAILED_CONNECTION_INTERVAL)):
-          last_unavailable_time = time_utils.MonotonicTime()
-          self.info('Connection to target unavailable')
-        self.Sleep(_FAILED_CONNECTION_INTERVAL)
-        continue
-      target_available = True
-
       # Since we need to know the number of events being sent before beginning
       # the transmission, cache events in memory before making the connection.
       events = []
@@ -84,67 +70,96 @@ class OutputSocket(plugin_base.OutputPlugin):
         event_stream.Commit()
         continue
 
-      try:
-        self.GetSocket()
-        start_time = time.time()
-        # Send the number of events followed by each one.
-        self.SendInt(len(events))
-        total_bytes = 0
-        for event in events:
-          total_bytes += self.SendEvent(event)
+      while not self.GetSocket():
+        self.warning('Connection to target unavailable')
+        self.Sleep(_FAILED_CONNECTION_INTERVAL)
 
-        # Confirmation of receipt.
-        self.debug('Waiting for data-received (syn)...')
-        if not self.CheckSuccess(socket_common.DATA_RECEIVED_CHAR):
-          self.info('Failure waiting for data-received (syn); abort %d events',
-                    len(events))
-          raise Exception
-        self.debug('Sending request-emit (ack)...')
-        self._sock.sendall(socket_common.REQUEST_EMIT_CHAR)
-
-        # Check for success or failure.  Commit or abort the stream.
-        self.debug('Waiting for emit-success (syn-ack)...')
-        if self.CheckSuccess(socket_common.EMIT_SUCCESS_CHAR):
-          self.debug('Success; commit %d events', len(events))
-          event_stream.Commit()
-        else:
-          self.info('Failure; abort %d events', len(events))
-          raise Exception
-        elapsed_time = time.time() - start_time
-
-        # Size and speed information.
-        total_kbytes = total_bytes / 1024.0
-        self.info(
-            'Transmitted %d events, total %.2f kB in %.1f sec (%.2f kB/sec)',
-            len(events), total_kbytes, elapsed_time,
-            total_kbytes / elapsed_time)
-
-      except socket.error as e:
+      sender = OutputSocketSender(self.logger, self._sock, self)
+      if sender.ProcessRequest(events):
+        event_stream.Commit()
+      else:
         event_stream.Abort()
-        if e.errno == 111:  # Connection refused
-          self.error('Could not make connection to target server')
-        else:
-          self.exception('Connection or transfer failed')
-        target_available = False
-        self.Sleep(1)
-      except Exception:
-        event_stream.Abort()
+
+  def GetSocket(self):
+    """Creates and returns a new socket connection to the target host."""
+    self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    self._sock.settimeout(socket_common.SOCKET_TIMEOUT)
+    self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF,
+                          socket_common.SOCKET_BUFFER_SIZE)
+    try:
+      self._sock.connect((self.args.hostname, self.args.port))
+      return True
+    except Exception:
+      return False
+
+
+class OutputSocketSender(log_utils.LoggerMixin):
+  """Sends a request to an input socket plugin."""
+
+  def __init__(self, logger, sock, plugin_api):
+    self.logger = logger
+    self._sock = sock
+    self._plugin_api = plugin_api
+    super(OutputSocketSender, self).__init__()
+
+  def ProcessRequest(self, events):
+    """Sends a request to an input socket plugin."""
+    try:
+      if not self.Ping():
+        self._plugin_api.Sleep(_FAILED_CONNECTION_INTERVAL)
+        return False
+      start_time = time.time()
+      # Send the number of events followed by each one.
+      self.SendInt(len(events))
+      total_bytes = 0
+      for event in events:
+        total_bytes += self.SendEvent(event)
+
+      # Confirmation of receipt.
+      self.debug('Waiting for data-received (syn)...')
+      if not self.CheckSuccess(socket_common.DATA_RECEIVED_CHAR):
+        self.info('Failure waiting for data-received (syn); abort %d events',
+                  len(events))
+        raise Exception
+      send_time = time.time() - start_time
+      start_time = time.time()
+      self.debug('Sending request-emit (ack)...')
+      self._sock.sendall(socket_common.REQUEST_EMIT_CHAR)
+
+      # Check for success or failure.  Commit or abort the stream.
+      self.debug('Waiting for emit-success (syn-ack)...')
+      if self.CheckSuccess(socket_common.EMIT_SUCCESS_CHAR):
+        self.debug('Success; commit %d events', len(events))
+      else:
+        self.info('Failure; abort %d events', len(events))
+        raise Exception
+      emit_time = time.time() - start_time
+
+      # Size and speed information.
+      total_kbytes = total_bytes / 1024.0
+      self.info(
+          'Transmitted %d events, total %.2f kB in %.1f+%.1f sec (%.2f kB/sec)',
+          len(events), total_kbytes, send_time, emit_time,
+          total_kbytes / send_time)
+
+    except socket.error as e:
+      if e.errno == socket.errno.ECONNREFUSED:  # Connection refused
+        self.error('Could not make connection to target server')
+      else:
         self.exception('Connection or transfer failed')
-        target_available = False
-        self.Sleep(1)
-      finally:
-        # Shutdown and close the socket.
-        try:
-          self.debug('Closing socket')
-          self._sock.shutdown(socket.SHUT_RDWR)
-          self._sock.close()
-        except Exception:
-          self.exception('Error closing socket')
+      self._plugin_api.Sleep(1)
+      return False
+    except Exception:
+      self.exception('Connection or transfer failed')
+      self._plugin_api.Sleep(1)
+      return False
+    finally:
+      self.Close()
+    return True
 
   def Ping(self):
     """Pings the input socket with an empty-length transmission."""
     try:
-      self.GetSocket()
       self.SendInt(0)
       return self.CheckSuccess(socket_common.PING_RESPONSE)
     except socket.error:
@@ -153,13 +168,14 @@ class OutputSocket(plugin_base.OutputPlugin):
       self.exception('Unexpected ping failure')
       return False
 
-  def GetSocket(self):
-    """Creates and returns a new socket connection to the target host."""
-    self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    self._sock.settimeout(socket_common.SOCKET_TIMEOUT)
-    self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF,
-                          socket_common.SOCKET_BUFFER_SIZE)
-    self._sock.connect((self.args.hostname, self.args.port))
+  def Close(self):
+    """Shuts down and closes the socket stream."""
+    try:
+      self.debug('Closing socket')
+      self._sock.shutdown(socket.SHUT_RDWR)
+      self._sock.close()
+    except Exception:
+      self.exception('Error closing socket')
 
   def SendItem(self, item):
     """Transmits an item over the socket stream."""

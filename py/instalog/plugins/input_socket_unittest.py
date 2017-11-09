@@ -62,6 +62,7 @@ class TestInputSocket(unittest.TestCase):
   def testPing(self):
     self.sock.sendall('0\0')
     self.assertEquals('1', self.sock.recv(1))
+    self.sock.shutdown(socket.SHUT_RDWR)
 
   def testInvalidHeader(self):
     self.sock.sendall('x\0')
@@ -119,5 +120,5 @@ class TestInputSocket(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  logging.basicConfig(level=logging.DEBUG, format=log_utils.LOG_FORMAT)
+  logging.basicConfig(level=logging.INFO, format=log_utils.LOG_FORMAT)
   unittest.main()

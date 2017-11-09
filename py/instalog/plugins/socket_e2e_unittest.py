@@ -78,5 +78,5 @@ class TestSocket(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  logging.basicConfig(level=logging.DEBUG, format=log_utils.LOG_FORMAT)
+  logging.basicConfig(level=logging.INFO, format=log_utils.LOG_FORMAT)
   unittest.main()

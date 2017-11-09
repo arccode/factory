@@ -85,6 +85,7 @@ class InputSocket(plugin_base.InputPlugin):
           del self._threads[thread]
 
       conn, addr = self._sock.accept()
+      self.info('Connected with %s:%d' % (addr[0], addr[1]))
       conn.settimeout(socket_common.SOCKET_TIMEOUT)
       conn.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF,
                       socket_common.SOCKET_BUFFER_SIZE)
@@ -96,7 +97,8 @@ class InputSocket(plugin_base.InputPlugin):
         conn.close()
         return
 
-      t = InputSocketRequest(self.logger, conn, addr, self)
+      receiver = InputSocketReceiver(self.logger, conn, self)
+      t = threading.Thread(target=receiver.ProcessRequest)
       t.daemon = False
       self._threads[t] = True
       t.start()
@@ -118,36 +120,35 @@ class InputSocket(plugin_base.InputPlugin):
     else:
       self.warning('TearDown: Socket was never opened')
 
-    self.info('Join on %d InputSocketRequest threads...', len(self._threads))
+    self.info('Join on %d InputSocketReceiver threads...', len(self._threads))
     for thread in self._threads:
       thread.join()
 
     self.info('Shutdown complete')
 
 
-class InputSocketRequest(log_utils.LoggerMixin, threading.Thread):
-  """Represents a request from an output socket plugin."""
+class InputSocketReceiver(log_utils.LoggerMixin):
+  """Receives a request from an output socket plugin."""
 
-  def __init__(self, logger, conn, addr, plugin_api):
+  def __init__(self, logger, conn, plugin_api):
     # log_utils.LoggerMixin creates shortcut functions for convenience.
     self.logger = logger
     self._conn = conn
-    self._addr = addr
     self._plugin_api = plugin_api
     self._tmp_dir = None
-    super(InputSocketRequest, self).__init__()
+    super(InputSocketReceiver, self).__init__()
 
-  def run(self):
-    """Run method of the thread."""
-    self.info('Connected with %s:%d' % (self._addr[0], self._addr[1]))
+  def ProcessRequest(self):
+    """Receives a request from an output socket plugin."""
     # Create the temporary directory for attachments.
     with file_utils.TempDirectory(prefix='input_socket_') as self._tmp_dir:
       self.debug('Temporary directory for attachments: %s', self._tmp_dir)
       try:
         events = []
         num_events = self.RecvInt()
-        if num_events == 0:
-          return self.Pong()
+        while num_events == 0:
+          self.Pong()
+          num_events = self.RecvInt()
         total_bytes = 0
         start_time = time.time()
         for event_id in range(num_events):
@@ -156,7 +157,7 @@ class InputSocketRequest(log_utils.LoggerMixin, threading.Thread):
                      event_id, event_bytes / 1024.0)
           total_bytes += event_bytes
           events.append(event)
-        elapsed_time = time.time() - start_time
+        receive_time = time.time() - start_time
       except socket.timeout:
         self.error('Socket timeout error, remote connection closed?')
         self.Close()
@@ -179,10 +180,12 @@ class InputSocketRequest(log_utils.LoggerMixin, threading.Thread):
         return
 
       self.debug('Calling Emit()...')
+      start_time = time.time()
       if not self._plugin_api.Emit(events):
         self.error('Unable to emit, aborting')
         self.Close()
         return
+      emit_time = time.time() - start_time
 
       try:
         self.debug('Success; sending emit-success to transmitting side '
@@ -194,20 +197,19 @@ class InputSocketRequest(log_utils.LoggerMixin, threading.Thread):
                        'may occur')
       finally:
         total_kbytes = total_bytes / 1024.0
-        self.info('Received %d events, total %.2f kB in %.1f sec (%.2f kB/sec)',
-                  len(events), total_kbytes, elapsed_time,
-                  total_kbytes / elapsed_time)
+        self.info('Received %d events, total %.2f kB in %.1f+%.1f sec '
+                  '(%.2f kB/sec)',
+                  len(events), total_kbytes, receive_time, emit_time,
+                  total_kbytes / receive_time)
         self.Close()
 
   def Pong(self):
     """Called for an empty transfer (0 events)."""
-    self.info('Empty transfer: Pong!')
+    self.debug('Empty transfer: Pong!')
     try:
       self._conn.sendall(socket_common.PING_RESPONSE)
     except Exception:
       pass
-    finally:
-      self.Close()
 
   def Close(self):
     """Shuts down and closes the socket stream."""
