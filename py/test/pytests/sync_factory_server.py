@@ -126,8 +126,7 @@ mapping object with key set to "IP/CIDR" and value set to server URL::
       "default_factory_server_url": {
         "192.168.3.0/24": "http://192.168.3.11:8080",
         "10.3.0.0/24": "http://10.3.0.11:8080",
-        "10.1.0.0/16": "http://10.1.2.10:8080",
-        "default": "http://10.3.0.12:8080"
+        "10.1.0.0/16": "http://10.1.2.10:8080"
       }
     }
   }
@@ -295,6 +294,7 @@ class SyncFactoryServer(unittest.TestCase):
 
   def EditServerURL(self):
     current_url = server_proxy.GetServerURL() or ''
+
     if current_url:
       prompt = ''
     else:
@@ -316,6 +316,29 @@ class SyncFactoryServer(unittest.TestCase):
             'btnCancel', i18n_test_ui.MakeI18nLabel('Cancel'),
             'window.test.sendTestEvent("%s")' % EVENT_CANCEL_SET_URL) +
         '</span>')
+
+  def DetectServerURL(self):
+    expected_networks = self.args.server_url.keys()
+    label_connect = i18n_test_ui.MakeI18nLabel('Please connect to network...')
+    label_status = i18n_test_ui.MakeI18nLabel(
+        'Expected network: {networks}', networks=expected_networks)
+
+    while True:
+      new_url = self.FindServerURL(self.args.server_url)
+      if new_url:
+        break
+      # Collect current networks. The output format is DEV STATUS NETWORK.
+      output = self.station.CallOutput(['ip', '-f', 'inet', '-br', 'addr'])
+      networks = [entry.split()[2] for entry in output.splitlines()
+                  if ' UP ' in entry]
+      self.ui_template.SetState(
+          label_connect + label_status +
+          i18n_test_ui.MakeI18nLabel(
+              'Current networks: {networks}', networks=networks))
+      time.sleep(0.5)
+
+    self.ChangeServerURL(new_url)
+    self.do_setup_url.clear()
 
   def Ping(self):
     if self.do_setup_url.is_set():
@@ -419,6 +442,11 @@ class SyncFactoryServer(unittest.TestCase):
     while True:
       time.sleep(1000)
 
+  @staticmethod
+  def IsDynamicServer(url_spec):
+    """Returns if the url_spec is something to be dynamically configured."""
+    return isinstance(url_spec, dict) and url_spec
+
   def FindServerURL(self, url_spec):
     """Try to return a single normalized URL from given specification.
 
@@ -435,9 +463,9 @@ class SyncFactoryServer(unittest.TestCase):
     Returns:
       A single URL string that best matches given spec.
     """
-    if isinstance(url_spec, basestring) or not url_spec:
+    if not self.IsDynamicServer(url_spec):
       return url_spec
-    assert isinstance(url_spec, dict), 'Unknown type: %s' % type(url_spec)
+
     # Sort by CIDR so smaller network matches first.
     networks = sorted(
         url_spec, reverse=True, key=lambda k: int(k.partition('/')[-1] or 0))
@@ -458,6 +486,10 @@ class SyncFactoryServer(unittest.TestCase):
 
     # Setup tasks to perform.
     tasks = [(_('Ping'), self.Ping)]
+
+    if self.IsDynamicServer(self.args.server_url):
+      # Server URL must be confirmed before Ping.
+      tasks = [(_('Detect Server URL'), self.DetectServerURL)] + tasks
 
     if self.args.sync_time:
       tasks += [(_('Sync time'), time_utils.SyncTimeWithFactoryServer)]

@@ -2551,6 +2551,18 @@ msgid "Set"
 msgstr "设定"
 
 #: ../py/test/pytests/sync_factory_server.py
+msgid "Please connect to network..."
+msgstr "请连接到网路..."
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Expected network: {networks}"
+msgstr "预期的网路: {networks}"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Current networks: {networks}"
+msgstr "目前的网路: {networks}"
+
+#: ../py/test/pytests/sync_factory_server.py
 msgid "Trying to reach server..."
 msgstr "尝试联络工厂伺服器 ..."
 
@@ -2581,6 +2593,10 @@ msgstr "准备中..."
 #: ../py/test/pytests/sync_factory_server.py
 msgid "Ping"
 msgstr "连线测试"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Detect Server URL"
+msgstr "侦测伺服器网址 "
 
 #: ../py/test/pytests/sync_factory_server.py
 msgid "Sync time"
