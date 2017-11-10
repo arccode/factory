@@ -756,13 +756,14 @@ def GetStartupMessages(dut=None):
       res['console_ramoops'] = _GetFileContent(
           '/dev/pstore/console-ramoops')
     except Exception:
-      logging.exception('Error to retrieve console ramoops log')
+      logging.debug('Error to retrieve console ramoops log '
+                    '(This is normal for cold reboot).')
 
   try:
     res['i915_error_state'] = _GetFileContent(
         '/sys/kernel/debug/dri/0/i915_error_state')
   except Exception:
-    logging.info('Error to retrieve i915 error state log. '
-                 '(This is normal on an non-Intel systems.)')
+    logging.debug('Error to retrieve i915 error state log '
+                  '(This is normal on an non-Intel systems).')
 
   return res

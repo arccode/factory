@@ -56,8 +56,6 @@ from cros.factory.external import syslog
 # Number of bytes to include from the log of a failed test.
 ERROR_LOG_TAIL_LENGTH = 8 * 1024
 
-# pylint: disable=bare-except
-
 # A file that stores override test list dargs for factory test automation.
 OVERRIDE_TEST_LIST_DARGS_FILE = os.path.join(
     paths.DATA_STATE_DIR, 'override_test_list_dargs.yaml')
@@ -569,9 +567,9 @@ class TestInvocation(object):
 
     # Not resuming the previously-running test.
     else:
-      logging.debug('Resolving self.test.dargs...')
       try:
-        logging.info('test list: %s', self.goofy.options.test_list)
+        logging.debug('Resolving self.test.dargs from test list [%s]...',
+                      self.goofy.options.test_list)
         resolved_dargs = ResolveTestArgs(
             self.goofy,
             self.test,

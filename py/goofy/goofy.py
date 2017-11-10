@@ -268,9 +268,9 @@ class Goofy(object):
     self.status = Status.TERMINATED
 
   def start_goofy_server(self):
+    logging.info('Starting goofy server')
     self.goofy_server = goofy_server.GoofyServer(
         (goofy_proxy.DEFAULT_GOOFY_BIND, goofy_proxy.DEFAULT_GOOFY_PORT))
-    logging.info('Starting goofy server')
     self.goofy_server_thread = threading.Thread(
         target=self.goofy_server.serve_forever,
         name='GoofyServer')
@@ -1178,8 +1178,6 @@ class Goofy(object):
 
     if self.options.restart:
       state.clear_state()
-
-    logging.info('Started')
 
     self.start_goofy_server()
     # The i18n files need to be ready before index.html is loaded.

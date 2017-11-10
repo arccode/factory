@@ -81,11 +81,10 @@ class CpufreqManager(object):
       exception = None
       for path in glob.glob(self.cpufreq_path_glob):
         try:
-          file_utils.WriteFile(os.path.join(path, 'scaling_governor'),
-                               governor, log=True)
+          file_utils.WriteFile(os.path.join(path, 'scaling_governor'), governor)
           if cpu_speed_hz:
-            file_utils.WriteFile(os.path.join(path, 'scaling_setspeed'),
-                                 self.cpu_speed_hz, log=True)
+            file_utils.WriteFile(
+                os.path.join(path, 'scaling_setspeed'), self.cpu_speed_hz)
         except Exception:
           success = False
           logging.exception('Unable to set CPU scaling parameters')
