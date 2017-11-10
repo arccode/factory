@@ -22,7 +22,8 @@ main() {
 
   # Make sure all python code will be re-evaluated.
   info "Clear Python compiled cache..."
-  find "${rootdir}" -name '*.pyc' -delete >/dev/null 2>&1
+  find "${rootdir}" '(' -name '.wh..wh.*' -prune -o -name '*' ')' \
+      -a -name '*.pyc' -exec rm {} ';' >/dev/null 2>&1
 
   local logdir="/tmp/test.logs.$(date +%Y%m%d_%H%M%S)"
   mkdir -p "${logdir}"
