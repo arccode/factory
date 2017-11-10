@@ -64,61 +64,60 @@ class Event(object):
                   test='foo.bar',
                   state=TestState(...))
   """
-  Type = type('Event.Type', (), {
-      # The state of a test has changed.
-      'STATE_CHANGE': 'goofy:state_change',
-      # The UI has come up.
-      'UI_READY': 'goofy:ui_ready',
-      # Tells goofy to clear all state and restart testing.
-      'RESTART_TESTS': 'goofy:restart_tests',
-      # Tells goofy to run all tests that haven't been run yet.
-      'AUTO_RUN': 'goofy:auto_run',
-      # Tells goofy to set all failed tests' state to untested and re-run.
-      'RUN_TESTS_WITH_STATUS': 'goofy:run_tests_with_status',
-      # Clears state of all tests underneath the given path.
-      'CLEAR_STATE': 'goofy:clear_state',
-      # Tells the UI about a single new line in the log.
-      'LOG': 'goofy:log',
-      # A hello message to a new WebSocket. Contains a 'uuid' parameter
-      # identification the particular invocation of the server.
-      'HELLO': 'goofy:hello',
-      # A keepalive message from the UI. Contains a 'uuid' parameter
-      # containing the same 'uuid' value received when the client received
-      # its HELLO.
-      'KEEPALIVE': 'goofy:keepalive',
-      # Initializes the test UI.
-      'INIT_TEST_UI': 'goofy:init_test_ui',
-      # Sets layout for the test UI.
-      'SET_TEST_UI_LAYOUT': 'goofy:set_test_ui_layout',
-      # Sets the UI in the test pane.
-      'SET_HTML': 'goofy:set_html',
-      # Runs JavaScript in the test pane.
-      'RUN_JS': 'goofy:run_js',
-      # Performs a remote procedure call to the Chrome extension inside UI.
-      'EXTENSION_RPC': 'goofy:extension_rpc',
-      # Event from a test UI.
-      'TEST_UI_EVENT': 'goofy:test_ui_event',
-      # Message from the test UI that it has finished.
-      'END_TEST': 'goofy:end_test',
-      # Message to tell the test UI to destroy itself.
-      'DESTROY_TEST': 'goofy:destroy_test',
-      # Message telling Goofy should re-read system info.
-      'UPDATE_SYSTEM_INFO': 'goofy:update_system_info',
-      # Tells Goofy to stop all tests.
-      'STOP': 'goofy:stop',
-      # Indicates a pending shutdown.
-      'PENDING_SHUTDOWN': 'goofy:pending_shutdown',
-      # Cancels a pending shutdown.
-      'CANCEL_SHUTDOWN': 'goofy:cancel_shutdown',
-      # Tells UI to update notes.
-      'UPDATE_NOTES': 'goofy:update_notes',
-      # Diagnosis Tool's events
-      'DIAGNOSIS_TOOL_EVENT': 'goofy:diagnosis_tool:event',
-      # Enable/disable key filtering
-      'KEY_FILTER_MODE': 'goofy:key_filter_mode',
-      # Notifies that factory server config (URL, timeout) is changed.
-      'FACTORY_SERVER_CONFIG_CHANGED': 'factory_server:config_changed',
-  })
+  class Type(object):
+    # The state of a test has changed.
+    STATE_CHANGE = 'goofy:state_change'
+    # The UI has come up.
+    UI_READY = 'goofy:ui_ready'
+    # Tells goofy to clear all state and restart testing.
+    RESTART_TESTS = 'goofy:restart_tests'
+    # Tells goofy to run all tests that haven't been run yet.
+    AUTO_RUN = 'goofy:auto_run'
+    # Tells goofy to set all failed tests' state to untested and re-run.
+    RUN_TESTS_WITH_STATUS = 'goofy:run_tests_with_status'
+    # Clears state of all tests underneath the given path.
+    CLEAR_STATE = 'goofy:clear_state'
+    # Tells the UI about a single new line in the log.
+    LOG = 'goofy:log'
+    # A hello message to a new WebSocket. Contains a 'uuid' parameter
+    # identification the particular invocation of the server.
+    HELLO = 'goofy:hello'
+    # A keepalive message from the UI. Contains a 'uuid' parameter
+    # containing the same 'uuid' value received when the client received
+    # its HELLO.
+    KEEPALIVE = 'goofy:keepalive'
+    # Initializes the test UI.
+    INIT_TEST_UI = 'goofy:init_test_ui'
+    # Sets layout for the test UI.
+    SET_TEST_UI_LAYOUT = 'goofy:set_test_ui_layout'
+    # Sets the UI in the test pane.
+    SET_HTML = 'goofy:set_html'
+    # Runs JavaScript in the test pane.
+    RUN_JS = 'goofy:run_js'
+    # Performs a remote procedure call to the Chrome extension inside UI.
+    EXTENSION_RPC = 'goofy:extension_rpc'
+    # Event from a test UI.
+    TEST_UI_EVENT = 'goofy:test_ui_event'
+    # Message from the test UI that it has finished.
+    END_TEST = 'goofy:end_test'
+    # Message to tell the test UI to destroy itself.
+    DESTROY_TEST = 'goofy:destroy_test'
+    # Message telling Goofy should re-read system info.
+    UPDATE_SYSTEM_INFO = 'goofy:update_system_info'
+    # Tells Goofy to stop all tests.
+    STOP = 'goofy:stop'
+    # Indicates a pending shutdown.
+    PENDING_SHUTDOWN = 'goofy:pending_shutdown'
+    # Cancels a pending shutdown.
+    CANCEL_SHUTDOWN = 'goofy:cancel_shutdown'
+    # Tells UI to update notes.
+    UPDATE_NOTES = 'goofy:update_notes'
+    # Diagnosis Tool's events
+    DIAGNOSIS_TOOL_EVENT = 'goofy:diagnosis_tool:event'
+    # Enable/disable key filtering
+    KEY_FILTER_MODE = 'goofy:key_filter_mode'
+    # Notifies that factory server config (URL, timeout) is changed.
+    FACTORY_SERVER_CONFIG_CHANGED = 'factory_server:config_changed'
 
   def __init__(self, type, **kw):  # pylint: disable=redefined-builtin
     self.type = type
