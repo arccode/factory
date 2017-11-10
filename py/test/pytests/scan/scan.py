@@ -207,9 +207,8 @@ class Scan(test_ui.TestCaseWithUI):
         logging.exception('Save file failed')
         return SetError(debug_utils.FormatExceptionOnly())
 
-    self.ui.PostEvent(
-        test_event.Event(test_event.Event.Type.UPDATE_SYSTEM_INFO))
-    self.ui.Pass()
+    self.event_loop.PostNewEvent(test_event.Event.Type.UPDATE_SYSTEM_INFO)
+    self.PassTask()
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
@@ -274,4 +273,4 @@ class Scan(test_ui.TestCaseWithUI):
       barcode = self.fixture.ScanBarcode(saved_barcode_path)
       self.ui.CallJSFunction('window.test.sendTestEvent', 'scan_value', barcode)
 
-    return test_ui.WAIT_FRONTEND
+    self.WaitTaskEnd()

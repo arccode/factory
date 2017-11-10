@@ -361,6 +361,8 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
           raise ValueError('Test type "%s" not supported.' % test['type'])
 
       if self.MayPassTest():
+        self.ui.CallJSFunction('testPassResult')
+        time.sleep(0.5)
         for file_path in self._audio_file_path:
           os.unlink(file_path)
         return
@@ -678,9 +680,6 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
                          self._output_volumes[self._output_volume_index],
                          self._test_results[self._output_volume_index])
     if self._test_results[self._output_volume_index]:
-      self.ui.CallJSFunction('testPassResult')
-      time.sleep(0.5)
-      self.ui.Pass()
       return True
     return False
 
@@ -688,7 +687,7 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
     """Fails test."""
     session.console.info('Test results for each output volumes: %r',
                          zip(self._output_volumes, self._test_results))
-    self.ui.Fail('; '.join(self._test_message))
+    self.FailTask('; '.join(self._test_message))
 
   def CheckDongleStatus(self):
     # When audio jack detection feature is ready on a platform, we can

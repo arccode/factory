@@ -67,7 +67,6 @@ before retries::
 """
 
 import os
-import threading
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import test_ui as i18n_test_ui
@@ -120,12 +119,8 @@ class NetworkConnectionSetup(test_ui.TestCaseWithUI):
                     default=None),
   ]
 
-  def setUp(self):
-    self.space_pressed = threading.Event()
-
   def runTest(self):
     self.template.SetState(_STATE_HTML)
-    self.ui.BindKey(test_ui.SPACE_KEY, lambda _: self.space_pressed.set())
 
     # make config_name absolute path, however, this might not work in PAR
     config_path = os.path.join(os.path.dirname(__file__),
@@ -165,8 +160,7 @@ class NetworkConnectionSetup(test_ui.TestCaseWithUI):
         # Failed, wait operators to press space when they think cables are
         # connected correctly.
         self.ui.SetHTML(_PRESS_SPACE, id=_ID_INSTRUCTION_DIV)
-        self.space_pressed.clear()
-        self.space_pressed.wait()
+        self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 
         # Polling until success or timeout (operators don't need to press
         # space anymore).

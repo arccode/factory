@@ -256,7 +256,7 @@ cros.factory.Test = class {
   }
 
   /**
-   * Try to fail the test from UI by operator. If test parameter
+   * Try to abort the test from UI by operator. If test parameter
    * 'disable_abort' is set and not in engineering mode, alert and
    * return.
    * @param {string=} errorMsg
@@ -266,7 +266,12 @@ cros.factory.Test = class {
     const goofy = this.invocation.goofy;
     if (goofy.engineeringMode ||
         !goofy.pathTestMap[this.invocation.path].disable_abort) {
-      this.fail(errorMsg);
+      this.invocation.goofy.sendEvent('goofy:end_event_loop', {
+        'test': this.invocation.path,
+        'invocation': this.invocation.uuid,
+        'status': 'FAILED',
+        'error_msg': errorMsg
+      });
     } else {
       goofy.alert('You can only abort this test in engineering mode.');
     }

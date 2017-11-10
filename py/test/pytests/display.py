@@ -7,7 +7,6 @@
 import os
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import countdown_timer
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import translation
 from cros.factory.test import test_ui
@@ -106,10 +105,8 @@ class DisplayTest(test_ui.TestCaseWithUI):
       # Automatically enter fullscreen mode in idle mode.
       self.ToggleFullscreen()
       self.ui.AddEventHandler('onFullscreenClicked', self.OnFailPressed)
-      countdown_timer.StartCountdownTimer(self.idle_timeout, self.ui.Pass,
-                                          self.ui, [])
     self.ui.BindKey(test_ui.ESCAPE_KEY, self.OnFailPressed)
-    return test_ui.WAIT_FRONTEND
+    self.WaitTaskEnd(timeout=self.idle_timeout)
 
   def ExtractTestImages(self):
     """Extracts selected test images from test_images.tar.bz2."""

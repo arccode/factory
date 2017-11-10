@@ -59,8 +59,8 @@ _HANDLER_WARN_TIME_LIMIT = 5
 _EVENT_LOOP_THREAD_NAME = 'TestEventLoopThread'
 
 
-class EventLoop(object):
-  """Event loop for UI."""
+class BaseEventLoop(object):
+  """Base event loop."""
 
   def __init__(self):
     self.test = session.GetCurrentTestPath()
@@ -68,8 +68,6 @@ class EventLoop(object):
     self.event_client = test_event.BlockingEventClient(
         callback=self._HandleEvent)
     self.event_handlers = {}
-    self.task_hook = None
-    self.error_msgs = []
 
   def AddEventHandler(self, subtype, handler):
     """Adds an event handler.
@@ -95,6 +93,19 @@ class EventLoop(object):
     """Constructs an event from given type and parameters, and post it."""
     return self.PostEvent(test_event.Event(event_type, *args, **kwargs))
 
+  def _HandleEvent(self, event):
+    del event  # Unused.
+    raise NotImplementedError()
+
+
+class EventLoop(BaseEventLoop):
+  """Old event loop for UI."""
+
+  def __init__(self):
+    super(EventLoop, self).__init__()
+    self.task_hook = None
+    self.error_msgs = []
+
   def Run(self, on_finish=None):
     """Runs the test event loop, waiting until the test completes.
 
@@ -104,11 +115,12 @@ class EventLoop(object):
     """
     threading.current_thread().name = _EVENT_LOOP_THREAD_NAME
 
-    event = self.event_client.wait(
-        lambda event:
-        (event.type == test_event.Event.Type.END_TEST and
-         event.invocation == self.invocation and
-         event.test == self.test))
+    def _IsEndEvent(event):
+      return (event.type in [
+          test_event.Event.Type.END_TEST, test_event.Event.Type.END_EVENT_LOOP
+      ] and event.invocation == self.invocation and event.test == self.test)
+
+    event = self.event_client.wait(_IsEndEvent)
     logging.info('Received end test event %r', event)
     if self.task_hook:
       # Let task have a chance to do its clean up work.
@@ -551,6 +563,89 @@ class JavaScriptTemplateProxy(object):
     return _Proxy
 
 
+class TaskEndException(Exception):
+  """The base exception to end a task."""
+  pass
+
+
+class TaskPassException(TaskEndException):
+  """The exception to pass a task."""
+  pass
+
+
+class TaskFailException(TaskEndException):
+  """The exception to fail a task or whole test."""
+  def __init__(self, message):
+    super(TaskFailException, self).__init__()
+    self.message = message
+
+
+class NewEventLoop(BaseEventLoop):
+  """The new implementation of UI event loop.
+
+  TODO(pihsun): Remove EventLoop / BaseEventLoop and rename this to EventLoop
+  when all pytests had migrated to TestCaseWithUI.
+  """
+
+  def __init__(self, handler_exception_hook):
+    super(NewEventLoop, self).__init__()
+    self._handler_exception_hook = handler_exception_hook
+
+  def Run(self):
+    """Runs the test event loop, waiting until the test completes."""
+    threading.current_thread().name = _EVENT_LOOP_THREAD_NAME
+
+    event = self.event_client.wait(
+        lambda event:
+        (event.type == test_event.Event.Type.END_EVENT_LOOP and
+         event.invocation == self.invocation and
+         event.test == self.test))
+    logging.info('Received end test event %r', event)
+    self.event_client.close()
+
+    if event.status == state.TestState.PASSED:
+      pass
+    elif event.status == state.TestState.FAILED:
+      error_msg = getattr(event, 'error_msg', '')
+      raise type_utils.TestFailure(error_msg)
+    else:
+      raise ValueError('Unexpected status in event %r' % event)
+
+  def _HandleEvent(self, event):
+    """Handles an event sent by a test UI."""
+    if not (getattr(event, 'test', '') == self.test and
+            getattr(event, 'invocation', '') == self.invocation):
+      return
+
+    if event.type == test_event.Event.Type.END_TEST:
+      # This is the old event send from JavaScript test.pass / test.fail.
+      # Transform them to the new task end event.
+      # TODO(pihsun): Remove this after EventLoop is deprecated.
+      if event.status == state.TestState.PASSED:
+        self._handler_exception_hook(TaskPassException())
+      elif event.status == state.TestState.FAILED:
+        error_msg = getattr(event, 'error_msg', '')
+        self._handler_exception_hook(TaskFailException(error_msg))
+      else:
+        self._handler_exception_hook('Unexpected status in event %r' % event)
+
+    elif event.type == test_event.Event.Type.TEST_UI_EVENT:
+      for handler in self.event_handlers.get(event.subtype, []):
+        start_time = time.time()
+        try:
+          handler(event)
+        except Exception as e:
+          self._handler_exception_hook(e)
+        finally:
+          used_time = time.time() - start_time
+          if used_time > _HANDLER_WARN_TIME_LIMIT:
+            logging.warn(
+                'The handler for %s takes too long to finish (%.2f seconds)! '
+                'This would make the UI unresponsible for new events, '
+                'consider moving the work load to background thread instead.',
+                event.subtype, used_time)
+
+
 class TestCaseWithUI(unittest.TestCase):
   """A unittest.TestCase with UI.
 
@@ -560,10 +655,44 @@ class TestCaseWithUI(unittest.TestCase):
   template_classes = ''
 
   def __init__(self, methodName):
-    super(TestCaseWithUI, self).__init__(methodName='_RunTestWithUI')
-    self._method_name = methodName
+    super(TestCaseWithUI, self).__init__(methodName='_RunTest')
+    self.event_loop = NewEventLoop(self.__HandleEventHandlerException)
     self.ui = None
     self.template = None
+
+    self.__method_name = methodName
+    self.__task_end_exceptions = Queue.Queue()
+    self.__task_end_event = threading.Event()
+
+  def PassTask(self):
+    """Pass current task.
+
+    Should only be called in the event callbacks or primary background test
+    thread.
+    """
+    raise TaskPassException()
+
+  def FailTask(self, msg):
+    """Fail current task.
+
+    Should only be called in the event callbacks or primary background test
+    thread.
+    """
+    raise TaskFailException(msg)
+
+  def WaitTaskEnd(self, timeout=None):
+    """Wait for either TaskPass or TaskFail is called.
+
+    Task that need to wait for frontend events to judge pass / fail should call
+    this at the end of the task.
+
+    Args:
+      timeout: The timeout for waiting the task end, None for no timeout.
+
+    Returns:
+      True if the task end before timeout.
+    """
+    return self.__task_end_event.wait(timeout=timeout)
 
   def run(self, result=None):
     # We override TestCase.run and do initialize of ui objects here, since the
@@ -577,11 +706,62 @@ class TestCaseWithUI(unittest.TestCase):
       extra_attrs = ' class="%s"' % self.template_classes
     default_html = '<test-template{extra_attrs}></test-template>'.format(
         extra_attrs=extra_attrs)
-    self.ui = UI(default_html=default_html)
+    self.ui = UI(event_loop=self.event_loop, default_html=default_html)
     self.template = JavaScriptTemplateProxy(self.ui)
 
     super(TestCaseWithUI, self).run(result=result)
 
-  def _RunTestWithUI(self):
-    self.ui.RunInBackground(getattr(self, self._method_name))
-    self.ui.Run()
+  def _RunTest(self):
+    """The main test procedure that would be run by unittest."""
+    process_utils.StartDaemonThread(target=self.__RunTasks)
+    self.event_loop.Run()
+
+  def __PutTaskEndException(self, e):
+    """Put the task end exception, and notify all waiting threads."""
+    self.__task_end_exceptions.put(e)
+    self.__task_end_event.set()
+
+  def __RunTasks(self):
+    """Run the tasks in background daemon thread."""
+    task_errors = []
+
+    try:
+      getattr(self, self.__method_name)()
+    except TaskEndException as e:
+      self.__PutTaskEndException(e)
+    except Exception:
+      self.__PutTaskEndException(TaskFailException(traceback.format_exc()))
+
+    self.__task_end_event.clear()
+    task_end_exceptions = type_utils.DrainQueue(self.__task_end_exceptions)
+
+    if task_end_exceptions:
+      e = task_end_exceptions[0]
+      if isinstance(e, TaskFailException):
+        task_errors.append("Task %s Failed: %s\n" % (self.__method_name,
+                                                     e.message))
+
+    # Ends the event loop after all tasks are run.
+    if task_errors:
+      self.event_loop.PostNewEvent(
+          test_event.Event.Type.END_EVENT_LOOP,
+          status=state.TestState.FAILED,
+          error_msg=''.join(task_errors))
+    else:
+      self.event_loop.PostNewEvent(
+          test_event.Event.Type.END_EVENT_LOOP, status=state.TestState.PASSED)
+
+  def __HandleEventHandlerException(self, exception):
+    """Handle exception in event handlers.
+
+    This is called by the event loop in the main thread.
+    """
+    if not isinstance(exception, TaskEndException):
+      # Raising an exception in event handler would NOT immediately end the
+      # test, so we should warn about the case that exception doesn't come from
+      # PassTask / FailTask, since it's probably not intended and the
+      # background thread would keep running.
+      trace = traceback.format_exc()
+      logging.warn('Unexpected exception in event handler: %s', trace)
+      exception = TaskFailException(trace)
+    self.__PutTaskEndException(exception)
