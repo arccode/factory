@@ -20,8 +20,8 @@ from cros.factory.test import test_ui
 from cros.factory.utils import type_utils
 
 
-class TestUIUnittest(unittest.TestCase):
-  """Unit tests for TestUI."""
+class EventLoopUnittest(unittest.TestCase):
+  """Unit tests for test_ui.EventLoop."""
 
   def setUp(self):
     self.test_path = 'test.path'
@@ -47,12 +47,12 @@ class TestUIUnittest(unittest.TestCase):
     ui_abort_event.status = state.TestState.FAILED
     ui_abort_event.error_msg = 'Aborted by operator'
 
-    # The UI main thread should exit when it sees the failed event.
-    ui = test_ui.UI()
-    ui.event_client.wait = mock.Mock(return_value=ui_abort_event)
+    # The event loop should exit when it sees the failed event.
+    event_loop = test_ui.EventLoop()
+    event_loop.event_client.wait = mock.Mock(return_value=ui_abort_event)
     self.assertRaisesRegexp(
         type_utils.TestFailure, r'Aborted by operator',
-        ui.Run)
+        event_loop.Run)
 
 
 if __name__ == '__main__':

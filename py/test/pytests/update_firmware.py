@@ -167,8 +167,7 @@ class UpdateFirmwareTest(unittest.TestCase):
 
     # Updates system info so EC and Firmware version in system info box
     # are correct.
-    self._ui.event_client.post_event(
-        event.Event(event.Event.Type.UPDATE_SYSTEM_INFO))
+    self._ui.PostEvent(event.Event(event.Event.Type.UPDATE_SYSTEM_INFO))
 
     self.assertEqual(p.poll(), 0, 'Firmware update failed: %d.' % p.returncode)
 

@@ -56,30 +56,141 @@ PASS_FAIL_KEY_LABEL = PASS_KEY_LABEL + FAIL_KEY_LABEL
 WAIT_FRONTEND = object()
 
 _HANDLER_WARN_TIME_LIMIT = 5
-_UI_THREAD_NAME = 'TestUIThread'
+_EVENT_LOOP_THREAD_NAME = 'TestEventLoopThread'
+
+
+class EventLoop(object):
+  """Event loop for UI."""
+
+  def __init__(self):
+    self.test = session.GetCurrentTestPath()
+    self.invocation = session.GetCurrentTestInvocation()
+    self.event_client = test_event.BlockingEventClient(
+        callback=self._HandleEvent)
+    self.event_handlers = {}
+    self.task_hook = None
+    self.error_msgs = []
+
+  def AddEventHandler(self, subtype, handler):
+    """Adds an event handler.
+
+    Args:
+      subtype: The test-specific type of event to be handled.
+      handler: The handler to invoke with a single argument (the event object).
+    """
+    self.event_handlers.setdefault(subtype, []).append(handler)
+
+  def PostEvent(self, event):
+    """Posts an event to the event queue.
+
+    Adds the test and invocation properties.
+
+    Tests should use this instead of invoking post_event directly.
+    """
+    event.test = self.test
+    event.invocation = self.invocation
+    self.event_client.post_event(event)
+
+  def PostNewEvent(self, event_type, *args, **kwargs):
+    """Constructs an event from given type and parameters, and post it."""
+    return self.PostEvent(test_event.Event(event_type, *args, **kwargs))
+
+  def Run(self, on_finish=None):
+    """Runs the test event loop, waiting until the test completes.
+
+    Args:
+      on_finish: Callback function when event loop ends. This can be used to
+          notify the test for necessary clean-up (e.g. terminate an event loop.)
+    """
+    threading.current_thread().name = _EVENT_LOOP_THREAD_NAME
+
+    event = self.event_client.wait(
+        lambda event:
+        (event.type == test_event.Event.Type.END_TEST and
+         event.invocation == self.invocation and
+         event.test == self.test))
+    logging.info('Received end test event %r', event)
+    if self.task_hook:
+      # Let task have a chance to do its clean up work.
+      # pylint: disable=protected-access
+      self.task_hook._Finish(getattr(event, 'error_msg', ''), abort=True)
+    self.event_client.close()
+
+    try:
+      if event.status == state.TestState.PASSED and not self.error_msgs:
+        pass
+      elif event.status == state.TestState.FAILED or self.error_msgs:
+        error_msg = getattr(event, 'error_msg', '')
+        if self.error_msgs:
+          error_msg += '\n'.join([''] + self.error_msgs)
+
+        raise type_utils.TestFailure(error_msg)
+      else:
+        raise ValueError('Unexpected status in event %r' % event)
+    finally:
+      if on_finish:
+        on_finish()
+
+  def _HandleEvent(self, event):
+    """Handles an event sent by a test UI."""
+    if (event.type == test_event.Event.Type.TEST_UI_EVENT and
+        event.test == self.test and
+        event.invocation == self.invocation):
+      for handler in self.event_handlers.get(event.subtype, []):
+        start_time = time.time()
+        try:
+          handler(event)
+        except Exception as e:
+          self.Fail(str(e))
+        finally:
+          used_time = time.time() - start_time
+          if used_time > _HANDLER_WARN_TIME_LIMIT:
+            logging.warn(
+                'The handler for %s takes too long to finish (%.2f seconds)! '
+                'This would make the UI unresponsible for new events, '
+                'consider moving the work load to background thread instead.',
+                event.subtype, used_time)
+
+  def Pass(self):
+    """Passes the test."""
+    self.PostNewEvent(
+        test_event.Event.Type.END_TEST, status=state.TestState.PASSED)
+
+  def Fail(self, error_msg):
+    """Fails the test immediately."""
+    self.PostNewEvent(
+        test_event.Event.Type.END_TEST,
+        status=state.TestState.FAILED,
+        error_msg=error_msg)
+
+  def FailLater(self, error_msg):
+    """Appends a error message to the error message list.
+
+    This would cause the test to fail when Run() finished.
+    """
+    self.error_msgs.append(error_msg)
 
 
 class UI(object):
   """Web UI for a factory test."""
 
-  def __init__(self, css=None, setup_static_files=True, default_html=''):
-    self.event_client = test_event.BlockingEventClient(
-        callback=self._HandleEvent)
-    self.test = session.GetCurrentTestPath()
-    self.invocation = session.GetCurrentTestInvocation()
-    self.event_handlers = {}
-    self.task_hook = None
-    self.static_dir_path = None
+  def __init__(self,
+               event_loop=None,
+               css=None,
+               setup_static_files=True,
+               default_html=''):
+    self._event_loop = event_loop or EventLoop()
+    self._static_dir_path = None
 
     if setup_static_files:
       self._SetupStaticFiles(session.GetCurrentTestFilePath(), default_html)
       if css:
         self.AppendCSS(css)
-    self.error_msgs = []
 
   def _SetupStaticFiles(self, py_script, default_html):
     # Get path to caller and register static files/directories.
     base = os.path.splitext(py_script)[0]
+    test = session.GetCurrentTestPath()
 
     # Directories we'll autoload .html and .js files from.
     autoload_bases = [base]
@@ -92,11 +203,11 @@ class UI(object):
       raise type_utils.TestFailure(
           'Cannot have both of %s - delete one!' % static_dirs)
     if static_dirs:
-      self.static_dir_path = static_dirs[0]
+      self._static_dir_path = static_dirs[0]
       goofy_proxy.get_rpc_proxy(url=goofy_proxy.GOOFY_SERVER_URL).RegisterPath(
-          '/tests/%s' % self.test, self.static_dir_path)
+          '/tests/%s' % test, self._static_dir_path)
       autoload_bases.append(
-          os.path.join(self.static_dir_path, os.path.basename(base)))
+          os.path.join(self._static_dir_path, os.path.basename(base)))
 
     def GetAutoload(extension, default=''):
       autoloads = filter(os.path.exists,
@@ -109,12 +220,12 @@ class UI(object):
 
       autoload_path = autoloads[0]
       goofy_proxy.get_rpc_proxy(url=goofy_proxy.GOOFY_SERVER_URL).RegisterPath(
-          '/tests/%s/%s' % (self.test, os.path.basename(autoload_path)),
+          '/tests/%s/%s' % (test, os.path.basename(autoload_path)),
           autoload_path)
       return file_utils.ReadFile(autoload_path).decode('UTF-8')
 
     self.SetHTML(
-        html='<base href="/tests/%s/">' % self.test, id='head', append=True)
+        html='<base href="/tests/%s/">' % test, id='head', append=True)
 
     # default CSS files are set in default_test_ui.html by goofy.py, and we
     # only set the HTML of body here.
@@ -141,8 +252,8 @@ class UI(object):
       id: If given, writes html to the element identified by id.
     """
     # pylint: disable=redefined-builtin
-    self.PostEvent(test_event.Event(test_event.Event.Type.SET_HTML,
-                                    html=html, append=append, id=id))
+    self._event_loop.PostNewEvent(
+        test_event.Event.Type.SET_HTML, html=html, append=append, id=id)
 
   def AppendHTML(self, html, **kwargs):
     """Append to the UI in the test pane."""
@@ -171,8 +282,8 @@ class UI(object):
     Example:
       ui.RunJS('alert(args.msg)', msg='The British are coming')
     """
-    self.PostEvent(
-        test_event.Event(test_event.Event.Type.RUN_JS, js=js, args=kwargs))
+    self._event_loop.PostNewEvent(
+        test_event.Event.Type.RUN_JS, js=js, args=kwargs)
 
   def CallJSFunction(self, name, *args):
     """Calls a JavaScript function in the test pane.
@@ -193,26 +304,6 @@ class UI(object):
     self.RunJS('%s(%s)' % (name, ','.join('args.%s' % key for key in keys)),
                **kwargs)
 
-  def AddEventHandler(self, subtype, handler):
-    """Adds an event handler.
-
-    Args:
-      subtype: The test-specific type of event to be handled.
-      handler: The handler to invoke with a single argument (the event object).
-    """
-    self.event_handlers.setdefault(subtype, []).append(handler)
-
-  def PostEvent(self, event):
-    """Posts an event to the event queue.
-
-    Adds the test and invocation properties.
-
-    Tests should use this instead of invoking post_event directly.
-    """
-    event.test = self.test
-    event.invocation = self.invocation
-    self.event_client.post_event(event)
-
   def URLForFile(self, path):
     """Returns a URL that can be used to serve a local file.
 
@@ -231,25 +322,7 @@ class UI(object):
     Returns:
       OS path for static directory; Return None if no static directory.
     """
-    return self.static_dir_path
-
-  def Pass(self):
-    """Passes the test."""
-    self.PostEvent(test_event.Event(test_event.Event.Type.END_TEST,
-                                    status=state.TestState.PASSED))
-
-  def Fail(self, error_msg):
-    """Fails the test immediately."""
-    self.PostEvent(test_event.Event(test_event.Event.Type.END_TEST,
-                                    status=state.TestState.FAILED,
-                                    error_msg=error_msg))
-
-  def FailLater(self, error_msg):
-    """Appends a error message to the error message list.
-
-    This would cause the test to fail when Run() finished.
-    """
-    self.error_msgs.append(error_msg)
+    return self._static_dir_path
 
   def RunInBackground(self, target):
     """Run a function in background daemon thread.
@@ -264,42 +337,6 @@ class UI(object):
       except Exception:
         self.Fail(traceback.format_exc())
     process_utils.StartDaemonThread(target=_target)
-
-  def Run(self, on_finish=None):
-    """Runs the test UI, waiting until the test completes.
-
-    Args:
-      on_finish: Callback function when UI ends. This can be used to notify
-          the test for necessary clean-up (e.g. terminate an event loop.)
-    """
-    threading.current_thread().name = _UI_THREAD_NAME
-
-    event = self.event_client.wait(
-        lambda event:
-        (event.type == test_event.Event.Type.END_TEST and
-         event.invocation == self.invocation and
-         event.test == self.test))
-    logging.info('Received end test event %r', event)
-    if self.task_hook:
-      # Let task have a chance to do its clean up work.
-      # pylint: disable=protected-access
-      self.task_hook._Finish(getattr(event, 'error_msg', ''), abort=True)
-    self.event_client.close()
-
-    try:
-      if event.status == state.TestState.PASSED and not self.error_msgs:
-        pass
-      elif event.status == state.TestState.FAILED or self.error_msgs:
-        error_msg = getattr(event, 'error_msg', '')
-        if self.error_msgs:
-          error_msg += '\n'.join([''] + self.error_msgs)
-
-        raise type_utils.TestFailure(error_msg)
-      else:
-        raise ValueError('Unexpected status in event %r' % event)
-    finally:
-      if on_finish:
-        on_finish()
 
   def BindStandardPassKeys(self):
     """Binds standard pass keys (enter, space, 'P')."""
@@ -357,26 +394,6 @@ class UI(object):
     """Removes all key bindings in frontend JavaScript."""
     self.CallJSFunction('test.unbindAllKeys')
 
-  def _HandleEvent(self, event):
-    """Handles an event sent by a test UI."""
-    if (event.type == test_event.Event.Type.TEST_UI_EVENT and
-        event.test == self.test and
-        event.invocation == self.invocation):
-      for handler in self.event_handlers.get(event.subtype, []):
-        start_time = time.time()
-        try:
-          handler(event)
-        except Exception as e:
-          self.Fail(str(e))
-        finally:
-          used_time = time.time() - start_time
-          if used_time > _HANDLER_WARN_TIME_LIMIT:
-            logging.warn(
-                'The handler for %s takes too long to finish (%.2f seconds)! '
-                'This would make the UI unresponsible for new events, '
-                'consider moving the work load to background thread instead.',
-                event.subtype, used_time)
-
   def GetUILocale(self):
     """Returns current enabled locale in UI."""
     return state.get_shared_data('ui_locale')
@@ -429,7 +446,7 @@ class UI(object):
     Returns:
       The key that is pressed, or None if no key is pressed before timeout.
     """
-    if threading.current_thread().name == _UI_THREAD_NAME:
+    if threading.current_thread().name == _EVENT_LOOP_THREAD_NAME:
       raise RuntimeError(
           "Can't call WaitKeysOnce in UI thread since it would deadlock.")
 
@@ -448,6 +465,50 @@ class UI(object):
     finally:
       for key in keys:
         self.UnbindKey(key)
+
+  # Methods below are proxy methods to event_loop for backward compatibility.
+
+  def AddEventHandler(self, subtype, handler):
+    """Adds an event handler.
+
+    Args:
+      subtype: The test-specific type of event to be handled.
+      handler: The handler to invoke with a single argument (the event object).
+    """
+    return self._event_loop.AddEventHandler(subtype, handler)
+
+  def PostEvent(self, event):
+    """Posts an event to the event queue.
+
+    Adds the test and invocation properties.
+
+    Tests should use this instead of invoking post_event directly.
+    """
+    return self._event_loop.PostEvent(event)
+
+  def Run(self, on_finish=None):
+    """Runs the test event loop, waiting until the test completes.
+
+    Args:
+      on_finish: Callback function when event loop ends. This can be used to
+          notify the test for necessary clean-up (e.g. terminate an event loop.)
+    """
+    return self._event_loop.Run(on_finish=on_finish)
+
+  def Pass(self):
+    """Passes the test."""
+    return self._event_loop.Pass()
+
+  def Fail(self, error_msg):
+    """Fails the test immediately."""
+    return self._event_loop.Fail(error_msg)
+
+  def FailLater(self, error_msg):
+    """Appends a error message to the error message list.
+
+    This would cause the test to fail when Run() finished.
+    """
+    return self._event_loop.FailLater(error_msg)
 
 
 class DummyUI(object):

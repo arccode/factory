@@ -203,7 +203,7 @@ class Scan(test_ui.TestCaseWithUI):
         logging.exception('Save file failed')
         return SetError(debug_utils.FormatExceptionOnly())
 
-    self.ui.event_client.post_event(
+    self.ui.PostEvent(
         test_event.Event(test_event.Event.Type.UPDATE_SYSTEM_INFO))
     self.ui.Pass()
 
