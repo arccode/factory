@@ -270,8 +270,9 @@ class Gooftool(object):
           _TmpExec('check dev-signed image <%s>' % key,
                    '! futility vbutil_kernel --verify %s --signpubkey %s/%s' %
                    (blob_kern, dir_devkeys, key),
-                   'YOU ARE FINALIZING WITH DEV-SIGNED iMAGE <%s>' %
+                   'YOU ARE FINALIZING WITH DEV-SIGNED IMAGE <%s>' %
                    key)
+        raise
 
     logging.info('SUCCESS: Verification completed.')
 
