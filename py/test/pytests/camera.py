@@ -181,6 +181,12 @@ class CameraTest(unittest.TestCase):
           'If in e2e mode, string "front" or "rear" for the camera to test '
           '(default is "front").',
           default=None),
+      Arg('flip_image', bool,
+          'Whether to flip the image horizontally. This should be set to False'
+          'for the rear facing camera so the displayed image looks correct.'
+          'The default value is False if device_index is "rear", True '
+          'otherwise.',
+          optional=True),
       Arg('camera_args', dict, 'Dict of args used for enabling the camera '
           'device. Only "resolution" is supported in e2e mode.', default={})]
 
@@ -329,7 +335,8 @@ class CameraTest(unittest.TestCase):
     else:
       cv_image = cv2.resize(cv_image, None, fx=resize_ratio, fy=resize_ratio,
                             interpolation=cv2.INTER_AREA)
-      cv_image = cv2.flip(cv_image, 1)
+      if self.flip_image:
+        cv_image = cv2.flip(cv_image, 1)
 
       with tempfile.NamedTemporaryFile(suffix='.jpg') as img_buffer:
         cv2.imwrite(img_buffer.name, cv_image,
@@ -412,6 +419,10 @@ class CameraTest(unittest.TestCase):
     # shape detection API.
     self.need_postprocess = False
 
+    self.flip_image = self.args.flip_image
+    if self.flip_image is None:
+      self.flip_image = self.args.device_index != 'rear'
+
     if self.e2e_mode:
       if not self.dut.link.IsLocal():
         raise ValueError('e2e mode does not work on remote DUT.')
@@ -428,6 +439,7 @@ class CameraTest(unittest.TestCase):
       resolution = self.args.camera_args.get('resolution')
       if resolution:
         options['width'], options['height'] = resolution
+      options['flipImage'] = self.flip_image
       self.ui.CallJSFunction('setupCameraTest', options)
       self.camera_device = None
       if self.mode in [TestModes.qr, TestModes.face]:

@@ -53,6 +53,7 @@ class CameraTest {
     this.facingMode = options.facingMode;
     this.width = options.width;
     this.height = options.height;
+    this.flipImage = options.flipImage;
     this.videoStream = null;
     this.imageCapture = null;
     this.canvas = document.createElement('canvas');
@@ -143,10 +144,15 @@ class CameraTest {
     tempCanvas.width = newWidth;
     tempCanvas.height = newHeight;
     const ctx = tempCanvas.getContext('2d');
-    // We flip the image horizontally so the image looks like a mirror.
-    ctx.scale(-1, 1);
-    ctx.drawImage(
-        this.canvas, 0, 0, width, height, -newWidth, 0, newWidth, newHeight);
+    if (this.flipImage) {
+      // We flip the image horizontally so the image looks like a mirror.
+      ctx.scale(-1, 1);
+      ctx.drawImage(
+          this.canvas, 0, 0, width, height, -newWidth, 0, newWidth, newHeight);
+    } else {
+      ctx.drawImage(
+          this.canvas, 0, 0, width, height, 0, 0, newWidth, newHeight);
+    }
     showImage(tempCanvas.toDataURL('image/jpeg'));
   }
 }
