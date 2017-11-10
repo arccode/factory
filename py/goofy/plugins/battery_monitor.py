@@ -9,6 +9,7 @@ import os
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.goofy.plugins import periodic_plugin
+from cros.factory.utils import log_utils
 from cros.factory.utils import type_utils
 
 
@@ -26,6 +27,9 @@ class BatteryMonitor(periodic_plugin.PeriodicPlugin):
     self._warning_low_battery_pct = warning_low_battery_pct
     self._dut = device_utils.CreateDUTInterface()
     self._last_log_message = None
+    self._warn = log_utils.NoisyLogger(logging.warn)
+    self._except = log_utils.NoisyLogger(logging.exception)
+
 
   @type_utils.Overrides
   def RunTask(self):
@@ -35,7 +39,7 @@ class BatteryMonitor(periodic_plugin.PeriodicPlugin):
     """Checks the current battery status.
 
     Logs current battery charging level and status to log. If the battery level
-    is lower below warning_low_battery_pct, send warning event to shopfloor.
+    is lower below warning_low_battery_pct, send warning event to server.
     If the battery level is lower below critical_low_battery_pct, flush disks.
     """
 
@@ -59,14 +63,14 @@ class BatteryMonitor(periodic_plugin.PeriodicPlugin):
           # value. This can be used for offline analysis when shopfloor cannot
           # be connected.
           if charge_pct > self.MIN_BATTERY_LEVEL_FOR_DISK_SYNC:
-            logging.warning('disk syncing for critical low battery situation')
-            os.system('sync; sync; sync')
+            self._warn.Log('disk syncing for critical low battery situation')
+            os.system('sync')
           else:
-            logging.warning('disk syncing is cancelled '
-                            'because battery level is lower than %.1f',
-                            self.MIN_BATTERY_LEVEL_FOR_DISK_SYNC)
+            self._warn.Log(
+                'disk syncing is cancelled because battery level is lower '
+                'than %.1f', self.MIN_BATTERY_LEVEL_FOR_DISK_SYNC)
 
-        # Notify shopfloor server
+        # Notify factory server
         if (critical_low_battery or
             (not ac_present and charge_pct <= self._warning_low_battery_pct)):
           log_level = logging.WARNING
@@ -82,8 +86,8 @@ class BatteryMonitor(periodic_plugin.PeriodicPlugin):
           if system_log_manager:
             system_log_manager.KickToSync()
     except Exception:
-      logging.exception('Unable to check battery or notify shopfloor')
+      self._except.Log('Unable to check battery or notify factory server')
     finally:
-      if message != self._last_log_message:
+      if message and message != self._last_log_message:
         logging.log(log_level, message)
         self._last_log_message = message
