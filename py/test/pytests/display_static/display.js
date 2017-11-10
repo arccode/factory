@@ -94,7 +94,7 @@ class DisplayTest {
       window.test.pass();
     } else {
       const failedItems =
-          Array.from(document.getElementsByClassName('display-subtest-failed'))
+          Array.from(document.getElementsByClassName('subtest-status-failed'))
               .map((e) => e.dataset.name);
       window.test.fail(
           `Display test failed. Malfunction items: ${failedItems.join(', ')}`);
