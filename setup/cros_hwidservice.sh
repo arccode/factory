@@ -129,8 +129,7 @@ GKE_ZONE="us-central1-b"
 GKE_HWID_SERVICE=""
 GKE_HWID_SERVICE_CLUSTER=""
 GKE_HWID_SERVICE_DEPLOY=""
-GKE_SERVICE_CONFIG="${HOST_HWIDSERVICE_CONFIG_DIR}/service.yaml"
-GKE_DEPLOYMENT_CONFIG="${HOST_HWIDSERVICE_CONFIG_DIR}/deployment.yaml"
+GKE_CONFIG="${HOST_HWIDSERVICE_CONFIG_DIR}/gke.yaml"
 HWID_SERVICE_IMAGE=""
 TIME_TAG="$(date +%b-%d-%Y_%H%M)"
 LATEST_TAG="latest"
@@ -190,17 +189,13 @@ do_run() {
   local ip=$(get_ip_from_gcloud)
 
   set_kubectl_context
-  # Run container if there is no one.
-  if ! kubectl get deployment "${GKE_HWID_SERVICE_DEPLOY}" &> /dev/null ; then
-    echo "Deploying container image..."
-    # Replace the <...> with correct information and pipes to kubectl
-    sed "s/<SUFFIX>/${GCP_PROJECT_SUFFIX}/; s/<VERSION-TAG>/${TIME_TAG}/" \
-      "${GKE_DEPLOYMENT_CONFIG}" | kubectl create -f -
-  fi
 
-  # Create the service.
-  sed "s/<SUFFIX>/${GCP_PROJECT_SUFFIX}/; s/<IP>/${ip}/" \
-      "${GKE_SERVICE_CONFIG}" | kubectl create -f -
+  # Create the deployment and the service.
+  # Replace the <...> with correct information and pipes to kubectl
+  sed "s/<SUFFIX>/${GCP_PROJECT_SUFFIX}/; "`
+      `"s/<VERSION-TAG>/${TIME_TAG}/; "`
+      `"s/<IP>/${ip}/" \
+      "${GKE_CONFIG}" | kubectl create -f -
 
   # Show the current status of the service
   kubectl get services "${GKE_HWID_SERVICE}"

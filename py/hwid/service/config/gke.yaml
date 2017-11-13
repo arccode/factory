@@ -16,3 +16,19 @@ spec:
         name: hwid-node<SUFFIX>
         ports:
         - containerPort: 8181
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: hwid-service<SUFFIX>
+  name: hwid-service<SUFFIX>
+spec:
+  ports:
+  - protocol: TCP
+    port: 8181
+    targetPort: 8181
+  selector:
+    name: hwid-node<SUFFIX>
+  type: LoadBalancer
+  loadBalancerIP: <IP>
