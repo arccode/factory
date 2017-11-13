@@ -6,11 +6,11 @@
 
 import abc
 import logging
-from multiprocessing import Process
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import types
 from cros.factory.device.audio import config_manager
+from cros.factory.utils import process_utils
 
 
 # The bytes of the WAV header
@@ -90,7 +90,7 @@ class BaseAudioControl(types.DeviceComponent):
 
   def __init__(self, dut, config_mgr, mixer_controller):
     super(BaseAudioControl, self).__init__(dut)
-    self._playback_process = None
+    self._playback_thread = None
     self.config_mgr = config_mgr
     self.mixer_controller = mixer_controller
 
@@ -320,10 +320,8 @@ class BaseAudioControl(types.DeviceComponent):
     if blocking:
       self._PlaybackWavFile(path, card, device)
     else:
-      self._playback_process = Process(target=lambda:
-                                       self._PlaybackWavFile(path, card,
-                                                             device))
-      self._playback_process.start()
+      self._playback_thread = process_utils.StartDaemonThread(
+          target=lambda: self._PlaybackWavFile(path, card, device))
 
   def _StopPlaybackWavFile(self):
     """Stop Playback process if we have one in system
@@ -335,9 +333,9 @@ class BaseAudioControl(types.DeviceComponent):
   def StopPlaybackWavFile(self):
     """Stop Playback process if we have one in system"""
     self._StopPlaybackWavFile()
-    if self._playback_process:
-      self._playback_process.join()
-      self._playback_process = None
+    if self._playback_thread:
+      self._playback_thread.join()
+      self._playback_thread = None
 
   def RecordWavFile(self, path, card, device, duration, channels, rate):
     """Record audio to a .wav file.
@@ -400,4 +398,3 @@ class BaseAudioControl(types.DeviceComponent):
         logging.info('Find %s Event Device %s', name, evdev)
         return evdev
     return None
-

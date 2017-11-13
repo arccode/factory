@@ -577,7 +577,7 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
       self._dut.link.Push(sine_wav_path, dut_sine_wav_path)
 
       self._dut.audio.PlaybackWavFile(dut_sine_wav_path, self._out_card,
-                                      self._out_device, False)
+                                      self._out_device, blocking=False)
       self.RecordFile(duration, record_file_path)
       self._dut.audio.StopPlaybackWavFile()
 
