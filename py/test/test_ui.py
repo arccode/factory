@@ -7,6 +7,7 @@
 from __future__ import print_function
 
 import cgi
+import collections
 import json
 import logging
 import os
@@ -646,6 +647,10 @@ class NewEventLoop(BaseEventLoop):
                 event.subtype, used_time)
 
 
+_Task = collections.namedtuple('Task',
+                               ['name', 'run', 'cleanup', 'stop_on_fail'])
+
+
 class TestCaseWithUI(unittest.TestCase):
   """A unittest.TestCase with UI.
 
@@ -663,6 +668,7 @@ class TestCaseWithUI(unittest.TestCase):
     self.__method_name = methodName
     self.__task_end_exceptions = Queue.Queue()
     self.__task_end_event = threading.Event()
+    self.__tasks = []
 
   def PassTask(self):
     """Pass current task.
@@ -711,6 +717,41 @@ class TestCaseWithUI(unittest.TestCase):
 
     super(TestCaseWithUI, self).run(result=result)
 
+  def AddTask(self, task, cleanup=None, stop_on_fail=False):
+    """Add a task to the test.
+
+    The task passed in can either be a TestTask object, or two functions task
+    and cleanup.
+
+    Args:
+      task: A task function or a TestTask object to be run.
+      cleanup: A cleanup function to be run after task is completed. Should be
+          None if task is a TestTask object.
+      stop_on_fail: Whether the whole test should be stopped when this task
+          fail.
+    """
+    if callable(task):
+      name = task.__name__
+      run = task
+    else:
+      # Passing a task object, transforming into _Task.
+      # We should ideally do isinstance(task, test_task.TestTask), but it'll
+      # create circular imports.
+      # TODO(pihsun): Clean this up after codes are reorganized.
+      if not (hasattr(task, 'Run') and hasattr(task, 'Cleanup')):
+        raise ValueError('Unknown type for task: %s' % type(task))
+
+      if cleanup is not None:
+        raise ValueError('cleanup should be None when passing a task object.')
+
+      name = task.__class__.__name__
+      run = task.Run
+      cleanup = task.Cleanup
+
+    self.__tasks.append(
+        _Task(name=name, run=run, cleanup=cleanup, stop_on_fail=stop_on_fail))
+
+
   def _RunTest(self):
     """The main test procedure that would be run by unittest."""
     process_utils.StartDaemonThread(target=self.__RunTasks)
@@ -723,30 +764,59 @@ class TestCaseWithUI(unittest.TestCase):
 
   def __RunTasks(self):
     """Run the tasks in background daemon thread."""
+
+    is_default_task = False
+
+    # Add runTest as the only task if there's none.
+    if not self.__tasks:
+      is_default_task = True
+      self.AddTask(getattr(self, self.__method_name))
+
     task_errors = []
 
-    try:
-      getattr(self, self.__method_name)()
-    except TaskEndException as e:
-      self.__PutTaskEndException(e)
-    except Exception:
-      self.__PutTaskEndException(TaskFailException(traceback.format_exc()))
+    for task in self.__tasks:
+      try:
+        task.run()
+      except TaskEndException as e:
+        self.__PutTaskEndException(e)
+      except Exception:
+        self.__PutTaskEndException(TaskFailException(traceback.format_exc()))
+      finally:
+        if task.cleanup:
+          task.cleanup()
 
-    self.__task_end_event.clear()
-    task_end_exceptions = type_utils.DrainQueue(self.__task_end_exceptions)
+      self.__task_end_event.clear()
+      task_end_exceptions = type_utils.DrainQueue(self.__task_end_exceptions)
 
-    if task_end_exceptions:
-      e = task_end_exceptions[0]
-      if isinstance(e, TaskFailException):
-        task_errors.append("Task %s Failed: %s\n" % (self.__method_name,
-                                                     e.message))
+      if task_end_exceptions:
+        e = task_end_exceptions[0]
+        if isinstance(e, TaskFailException):
+          task_errors.append((task.name, e.message))
+          if task.stop_on_fail:
+            logging.info(
+                'Task %s failed and stop_on_fail=True, failing the test now.',
+                task.name)
+            break
 
     # Ends the event loop after all tasks are run.
     if task_errors:
+      if len(task_errors) == 1:
+        name, message = task_errors[0]
+        if is_default_task:
+          error_msg = message
+        else:
+          error_msg = '%s: %s' % (name, message)
+      else:
+        error_msg = 'Failed tasks: %r\n' % [
+            name for name, unused_message in task_errors
+        ]
+        error_msg += '\n'.join('Task %s: %s' % (name, message)
+                               for name, message in task_errors)
+
       self.event_loop.PostNewEvent(
           test_event.Event.Type.END_EVENT_LOOP,
           status=state.TestState.FAILED,
-          error_msg=''.join(task_errors))
+          error_msg=error_msg)
     else:
       self.event_loop.PostNewEvent(
           test_event.Event.Type.END_EVENT_LOOP, status=state.TestState.PASSED)
