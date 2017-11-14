@@ -78,7 +78,7 @@ class ExecShell(unittest.TestCase):
     _commands: A list of CheckItems.
   """
   ARGS = [
-      Arg('commands', (list, tuple, str),
+      Arg('commands', (list, str),
           'A list (or one simple string) of shell commands to execute.'),
       Arg('is_station', bool,
           ('Run the given commands on station (usually local host) instead of '

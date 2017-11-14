@@ -15,7 +15,7 @@ dargs:
   serial_param: a dict of parameters for a serial connection. Should contain
         'port'. For other parameters, like 'baudrate', 'bytesize', 'parity',
         'stopbits' and 'timeout', please refer pySerial documentation.
-  send_recv: A tuple (send, recv). send is a char for the DUT to send to
+  send_recv: [send, recv]. send is a char for the DUT to send to
       a fixture. And recv is the expected one-char response from the fixture.
 """
 
@@ -36,11 +36,11 @@ class SerialEchoTest(unittest.TestCase):
           '"port". For other parameters, like "baudrate", "bytesize", '
           '"parity", "stopbits" and "timeout", please refer pySerial '
           'documentation.'),
-      Arg('send_recv', tuple,
-          'A tuple (send, recv). send is a char for the DUT to send to a '
+      Arg('send_recv', list,
+          '[send, recv]. send is a char for the DUT to send to a '
           'fixture MCU. And recv is the expected one-char response from the '
           'fixture.',
-          default=(chr(0xE0), chr(0xE1)))]
+          default=[chr(0xE0), chr(0xE1)])]
 
   def setUp(self):
     self._serial = None

@@ -76,8 +76,8 @@ class SpatialSensorCalibration(unittest.TestCase):
           default=1),
       Arg('prompt', bool, 'Prompt user to put the device in correct facing',
           default=True),
-      Arg('placement_range', list, 'A list of tuple asserting the range of '
-          "X, Y, Z. Each element is a tuple (min, max) or None if it's a "
+      Arg('placement_range', list, 'A list of sequences asserting the range of '
+          "X, Y, Z. Each element is [min, max] or None if it's a "
           "don't care.", default=[None, None, None])
   ]
 
@@ -96,8 +96,8 @@ class SpatialSensorCalibration(unittest.TestCase):
         self._device_path = path
     if self._device_path is None:
       raise type_utils.TestFailure('%s at %s not found' %
-                                       (self.args.sensor_name['en-US'],
-                                        self.args.device_location))
+                                   (self.args.sensor_name['en-US'],
+                                    self.args.device_location))
 
     self._ui = test_ui.UI(css=CSS)
     self._template = ui_templates.OneSection(self._ui)

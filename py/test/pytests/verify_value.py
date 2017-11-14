@@ -102,13 +102,12 @@ class VerifyValueTest(unittest.TestCase):
           "            E.g. 'cat /sys/class/xxx/xxx/xxx'\n"
           "        - A DUT fucntion (str) to be called, begin with 'dut.'.\n"
           "            E.g. 'dut.info.cpu_count', 'dut.storage.GetDatRoot()'\n"
-          '    - expected_value: (str, int, tuples of two number, or a list).\n'
+          '    - expected_value: (str, int, or a list).\n'
           '        - Can be one of the following:\n'
           '            - An expected str\n'
           '            - An expected int\n'
-          '            - (min_value, max_value)\n'
           '            - A list of all possible values, each item can be one\n'
-          '                of the above types.'),
+          '                of the above types or [min_value, max_value].'),
       Arg('has_ui', bool, 'True if this test runs with goofy UI enabled.',
           default=True)
       ]
@@ -141,7 +140,7 @@ class VerifyValueTest(unittest.TestCase):
 
       match = False
       for expected_value in expected_values:
-        if isinstance(expected_value, (list, tuple)):
+        if isinstance(expected_value, list):
           v = float(value_str)
           match = expected_value[0] <= v <= expected_value[1]
         elif isinstance(expected_value, int):

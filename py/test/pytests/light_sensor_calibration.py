@@ -169,7 +169,7 @@ class ALSFixture(unittest.TestCase):
       Arg('chamber_conn_params', (dict, str), 'Chamber connection parameters, '
           "either a dict, defaults to None", default=None),
       Arg('chamber_cmd', dict, 'A dict for name of lightning to a '
-          '(cmd, cmd_response) tuple.'),
+          '[cmd, cmd_response].'),
       Arg('chamber_n_retries', int, 'Number of retries when connecting.',
           default=10),
       Arg('chamber_retry_delay', int, 'Delay between connection retries.',

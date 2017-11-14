@@ -51,9 +51,9 @@ from cros.factory.utils.arg_utils import Arg
 class BatteryCommunicationTest(unittest.TestCase):
   """Tests that DUT can communicate with battery."""
   ARGS = [
-      Arg('design_capacity_range', (list, tuple),
+      Arg('design_capacity_range', list,
           'Expected battery design capacity range in mAh.',
-          default=(1000, 10000)),
+          default=[1000, 10000]),
   ]
 
   def setUp(self):

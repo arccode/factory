@@ -30,12 +30,12 @@ class VerifyValueTest(unittest.TestCase):
     self._test._template = mock.create_autospec(spec=OneSection)
 
   def testPass(self):
-    item = [('command_compare_str',
-             'cat /xxx/xxx/xxx/fw_version', ['5566', 'abcd5566']),
-            ('command_compare_number',
-             ['cat', '/sys/class/xxx/xxx'], [4, '5566', (0, 100)]),
-            ('dut', 'dut.info.cpu_count', 4),
-            ('dut', 'dut.info.cpu_count', (3, 5))]
+    item = [['command_compare_str',
+             'cat /xxx/xxx/xxx/fw_version', ['5566', 'abcd5566']],
+            ['command_compare_number',
+             ['cat', '/sys/class/xxx/xxx'], [4, '5566', [0, 100]]],
+            ['dut', 'dut.info.cpu_count', 4],
+            ['dut', 'dut.info.cpu_count', [[3, 5]]]]
     self._test._dut.CheckOutput.side_effect = ['abcd5566', '25\n']
     self._test._dut.info.cpu_count = 4
     self._test.args = FakeArgs({'items': item})
@@ -46,8 +46,8 @@ class VerifyValueTest(unittest.TestCase):
     self._test._dut.CheckOutput.assert_has_calls(calls)
 
   def testFail(self):
-    item = [('command_compare_str',
-             'cat /xxx/xxx/xxx/fw_version', [5566, 'abcd5566'])]
+    item = [['command_compare_str',
+             'cat /xxx/xxx/xxx/fw_version', [5566, 'abcd5566']]]
     self._test._dut.CheckOutput.side_effect = ['25\n']
     self._test.args = FakeArgs({'items': item})
 

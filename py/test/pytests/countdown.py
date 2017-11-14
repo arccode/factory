@@ -71,23 +71,26 @@ class CountDownTest(unittest.TestCase):
   ARGS = [
       Arg('duration_secs', int, 'Duration of time to countdown.'),
       Arg('log_interval', int,
-          'Interval of time in seconds to log system status.', 120),
+          'Interval of time in seconds to log system status.', default=120),
       Arg('ui_update_interval', int,
-          'Interval of time in seconds to update system status on UI.', 10),
+          'Interval of time in seconds to update system status on UI.',
+          default=10),
       Arg('grace_secs', int,
-          'Grace period before starting abnormal status detection.', 120),
+          'Grace period before starting abnormal status detection.',
+          default=120),
       Arg('temp_max_delta', int,
           'Allowed difference between current and last temperature of a '
-          'sensor.', None),
-      Arg('temp_criteria', (list, tuple),
+          'sensor.', default=None),
+      Arg('temp_criteria', list,
           'A list of rules to check that temperature is under the given range, '
-          'rule format: (name, temp_sensor, warning_temp, critical_temp)', []),
-      Arg('relative_temp_criteria', (list, tuple),
+          'rule format: (name, temp_sensor, warning_temp, critical_temp)',
+          default=[]),
+      Arg('relative_temp_criteria', list,
           'A list of rules to check the difference between two temp sensors, '
           'rule format: (relation, first_sensor, second_sensor, max_diff). '
           'relation is a text output with warning messages to describe the two '
-          'temp sensors in the rule', []),
-      Arg('fan_min_expected_rpm', int, 'Minimum fan rpm expected', None)
+          'temp sensors in the rule', default=[]),
+      Arg('fan_min_expected_rpm', int, 'Minimum fan rpm expected', default=None)
   ]
 
   def FormatSeconds(self, secs):

@@ -180,35 +180,35 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
   2. Headphone out to headphone in.
   """
   ARGS = [
-      Arg('audio_conf', str, 'Audio config file path', None),
-      Arg('initial_actions', list, 'List of tuple (card, actions)', []),
-      Arg('input_dev', tuple,
-          'Input ALSA device. (card_name, sub_device).'
-          'For example: ("audio_card", "0").', ('0', '0')),
+      Arg('audio_conf', str, 'Audio config file path', default=None),
+      Arg('initial_actions', list, 'List of [card, actions]', []),
+      Arg('input_dev', list,
+          'Input ALSA device. [card_name, sub_device].'
+          'For example: ["audio_card", "0"].', ['0', '0']),
       Arg('num_input_channels', int,
           'Number of input channels.', default=2),
-      Arg('output_dev', tuple,
-          'Onput ALSA device. (card_name, sub_device).'
-          'For example: ("audio_card", "0").', ('0', '0')),
+      Arg('output_dev', list,
+          'Onput ALSA device. [card_name, sub_device].'
+          'For example: ["audio_card", "0"].', ['0', '0']),
       Arg('output_volume', (int, list),
           'An int of output volume or a list of'
-          ' output volume candidates', 10),
-      Arg('autostart', bool, 'Auto start option', False),
-      Arg('require_dongle', bool, 'Require dongle option', False),
+          ' output volume candidates', default=10),
+      Arg('autostart', bool, 'Auto start option', default=False),
+      Arg('require_dongle', bool, 'Require dongle option', default=False),
       Arg('check_dongle', bool,
-          'Check dongle status whether match require_dongle', False),
+          'Check dongle status whether match require_dongle', default=False),
       Arg('check_cras', bool, 'Do we need to check if CRAS is running',
-          True),
+          default=True),
       Arg('cras_enabled', bool, 'Whether cras should be running or not',
-          False),
+          default=False),
       Arg('mic_source', str, 'Microphone source: external, panel, mlb',
-          'external'),
+          default='external'),
       Arg('test_title', str,
           'Title on the test screen.'
           'It can be used to tell operators the test info'
-          'For example: "LRGM Mic", "LRMG Mic"', ''),
+          'For example: "LRGM Mic", "LRMG Mic"', default=''),
       Arg('mic_jack_type', str, 'Microphone jack Type: nocheck, lrgm, lrmg',
-          'nocheck'),
+          default='nocheck'),
       Arg('audiofuntest_run_delay', (int, float),
           'Delay between consecutive calls to audiofuntest',
           default=None),
@@ -230,12 +230,12 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
           'If type is **sinewav**, the dict can optionally contain:\n'
           '  - **duration**: The test duration, in seconds.\n'
           '  - **freq_threshold**: Acceptable frequency margin.\n'
-          '  - **rms_threshold**: A tuple of **(min, max)** that will make\n'
+          '  - **rms_threshold**: **[min, max]** that will make\n'
           '        sure the following inequality is true: *min <= recorded\n'
           '        audio RMS (root mean square) value <= max*, otherwise,\n'
           '        fail the test.  Both of **min** and **max** can be set to\n'
           '        None, which means no limit.\n'
-          '  - **amplitude_threshold**: A tuple of (min, max) and it will\n'
+          '  - **amplitude_threshold**: **[min, max]** and it will\n'
           '        make sure the inequality is true: *min <= minimum measured\n'
           '        amplitude <= maximum measured amplitude <= max*,\n'
           '        otherwise, fail the test.  Both of **min** and **max** can\n'
@@ -243,12 +243,12 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
           '\n'
           'If type is **noise**, the dict can optionally contain:\n'
           '  - **duration**: The test duration, in seconds.\n'
-          '  - **rms_threshold**: A tuple of **(min, max)** that will make\n'
+          '  - **rms_threshold**: **[min, max]** that will make\n'
           '        sure the following inequality is true: *min <= recorded\n'
           '        audio RMS (root mean square) value <= max*, otherwise,\n'
           '        fail the test.  Both of **min** and **max** can be set to\n'
           '        None, which means no limit.\n'
-          '  - **amplitude_threshold**: A tuple of (min, max) and it will\n'
+          '  - **amplitude_threshold**: **[min, max]** and it will\n'
           '        make sure the inequality is true: *min <= minimum measured\n'
           '        amplitude <= maximum measured amplitude <= max*,\n'
           '        otherwise, fail the test.  Both of **min** and **max** can\n'

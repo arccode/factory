@@ -172,11 +172,11 @@ class ChameleonDisplayTest(unittest.TestCase):
                     'the hostname/IP address of the Chameleon server'),
       arg_utils.Arg('chameleon_port', int,
                     'the port of the Chameleon server', default=9992),
-      arg_utils.Arg('test_info', tuple,
-                    ('a tuple of (dut_port, chameleon_port, resolution_width, '
-                     'resolution_height, refresh_rate); for example: '
-                     '("DP1", "DP", 1920, 1080, 60) or '
-                     '("DP1", "HDMI", 1920, 1080, 60)')),
+      arg_utils.Arg('test_info', list,
+                    ('[dut_port, chameleon_port, resolution_width, '
+                     'resolution_height, refresh_rate]; for example: '
+                     '["DP1", "DP", 1920, 1080, 60] or '
+                     '["DP1", "HDMI", 1920, 1080, 60]')),
       arg_utils.Arg('load_test_image', bool,
                     ('whether to load the reference pattern image; True to '
                      'load the test image in a Chrome window on the external '
@@ -184,8 +184,8 @@ class ChameleonDisplayTest(unittest.TestCase):
                      "by Chrome's pop-up messages"), default=False),
       arg_utils.Arg('ignore_regions', list,
                     ('a list of regions to ignore when comparing captured '
-                     'images; each element of the list must be a (x, y, width, '
-                     'height) tuple to specify the rectangle to ignore'),
+                     'images; each element of the list must be a [x, y, width, '
+                     'height] to specify the rectangle to ignore'),
                     default=[]),
       arg_utils.Arg('downscale_to_tv_level', bool,
                     ('whether to downscale the internal framebuffer to TV '

@@ -49,9 +49,9 @@ class FastbootFlash(unittest.TestCase):
   ARGS = [
       Arg('image_dir', str, 'Full path of the dir that contains images.',
           default='/usr/local/factory/images/android'),
-      Arg('images', list, 'list of images to be updated. Each item should a '
-          'tuple of (partition, image_name). '
-          "E.g., [('boot', 'boot.img'), ('system', 'system.img')]. "
+      Arg('images', list, 'list of images to be updated. Each item should be '
+          '[partition, image_name]. '
+          'E.g., [["boot", "boot.img"], ["system", "system.img"]]. '
           'The images will be flashed in order of the list.'),
       Arg('expected_throughput', int, 'Expected throughput minimum when '
           'sending the image files, in unit of byte/sec. This can be used to '

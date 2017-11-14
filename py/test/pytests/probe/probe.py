@@ -147,7 +147,7 @@ class ProbeTest(unittest.TestCase):
           'Path to probe config file. This is interpreted as a path '
           'relative to `test/pytests/probe` folder.'),
       Arg('overridden_rules', list,
-          'List of (category, cmp_function, value) tuple.',
+          'List of [category, cmp_function, value].',
           default=None),
       Arg('show_ui', bool,
           'Always show the result and prompt if set to True. Always not show '

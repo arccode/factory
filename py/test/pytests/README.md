@@ -31,15 +31,13 @@ To read arguments specified from test list, use
 `cros.factory.utils.arg_utils.Arg` by adding declarations as class variable. For
 example:
 ```python
-  ARGS = [Arg('wait_secs', (int), 'Wait for N seconds.', default=0)]
+  ARGS = [Arg('wait_secs', int, 'Wait for N seconds.', default=0)]
 ```
 
 Then you can use this by reading `self.args.wait_secs`.
 
 Since JSON serialization doesn't support `tuple` type, new pytests shouldn't
-use `tuple` in argument type, and should use `list` instead. For existing
-pytests with `Arg` of `tuple` type, `list` would be automatically added to
-allowed type by arg_utils.
+use `tuple` in argument type, and should use `list` instead.
 
 ## Using user interface
 

@@ -137,10 +137,10 @@ class PlanktonChargeBFTTest(unittest.TestCase):
           'If set True, it would check if Plankton 5V INA current is within '
           'protect_ina_current_range first for high-V protection',
           default=True),
-      Arg('protect_ina_current_range', tuple,
-          'A tuple for indicating reasonable current in mA of charge-5V from '
+      Arg('protect_ina_current_range', list,
+          'A list for indicating reasonable current in mA of charge-5V from '
           'Plankton INA for high-V protection',
-          default=(2000, 3400)),
+          default=[2000, 3400]),
       Arg('protect_ina_retry_times', int,
           'Retry times for checking 5V INA current for high-V protection, '
           'interval with 1 second',
@@ -150,14 +150,14 @@ class PlanktonChargeBFTTest(unittest.TestCase):
           'whether within ina_current_charge_range for charging, or '
           'ina_current_discharge_range for discharge',
           default=True),
-      Arg('ina_current_charge_range', tuple,
-          'A tuple for indicating reasonable current in mA during charging '
+      Arg('ina_current_charge_range', list,
+          'A list for indicating reasonable current in mA during charging '
           'from Plankton INA',
-          default=(2000, 3400)),
-      Arg('ina_current_discharge_range', tuple,
-          'A tuple for indicating reasonable current in mA during discharging '
+          default=[2000, 3400]),
+      Arg('ina_current_discharge_range', list,
+          'A list for indicating reasonable current in mA during discharging '
           'from Plankton INA',
-          default=(-3500, 0)),
+          default=[-3500, 0]),
       Arg('ina_voltage_tolerance', float,
           'Tolerance ratio for Plankton INA voltage compared to expected '
           'charging voltage',

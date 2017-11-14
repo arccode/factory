@@ -254,7 +254,7 @@ class DataEntry(object):
 
     if isinstance(value_check, basestring):
       self.re_checker = re.compile(value_check)
-    elif isinstance(value_check, (list, tuple)):
+    elif isinstance(value_check, list):
       self.value_check = value_check
       self.codes = [str(v) for v in value_check]
     elif value_check is None:
@@ -278,7 +278,7 @@ class DataEntry(object):
       self.options = [
           '%d - %s; %s' % (i + 1, v, regions.REGIONS[v].description)
           for i, v in enumerate(self.codes)]
-    elif isinstance(self.value_check, (list, tuple)):
+    elif isinstance(self.value_check, list):
       self.codes = [str(v) for v in self.value_check]
       self.options = [
           '%d - %s' % (i + 1, v) if isinstance(v, basestring) else str(v)
@@ -408,8 +408,8 @@ class UpdateDeviceData(unittest.TestCase):
       Arg('config_name', basestring,
           'A JSON config name to load representing the device data to update.',
           default=None),
-      Arg('fields', (list, tuple),
-          ('A list of sequence as (data_key, value, display_name, value_check) '
+      Arg('fields', list,
+          ('A list of [data_key, value, display_name, value_check] '
            'indicating the Device Data field by data_key must be updated to '
            'specified value.'),
           default=None),

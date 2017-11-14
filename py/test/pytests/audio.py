@@ -259,9 +259,9 @@ class AudioTest(unittest.TestCase):
       Arg('audio_conf', str, 'Audio config file path', default=None),
       Arg('initial_actions', list,
           'List of sequences (card_name, actions)', default=[]),
-      Arg('output_dev', (list, tuple),
-          'Onput ALSA device. (card_name, sub_device).'
-          'For example: ("audio_card", "0").', default=('0', '0')),
+      Arg('output_dev', list,
+          'Onput ALSA device. [card_name, sub_device].'
+          'For example: ["audio_card", "0"].', default=['0', '0']),
       i18n_arg_utils.I18nArg(
           'port_label', 'Label of audio.', default=_('Internal Speaker')),
       Arg('test_left_right', bool, 'Test left and right channel.',

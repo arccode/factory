@@ -30,15 +30,15 @@ class LightbarTest(unittest.TestCase):
   """Factory test for lightbar on A case."""
 
   ARGS = [
-      Arg('colors_to_test', type=(tuple, list),
-          help=('a list of colors to test; each element of the list is a tuple '
-                'of (label, [LED, RED, GREEN, BLUE])'),
+      Arg('colors_to_test', type=list,
+          help=('a list of colors to test; each element of the list is '
+                '[label, [LED, RED, GREEN, BLUE]]'),
           default=[
-              (_('red'), [4, 255, 0, 0]),
-              (_('green'), [4, 0, 255, 0]),
-              (_('blue'), [4, 0, 0, 255]),
-              (_('dark'), [4, 0, 0, 0]),
-              (_('white'), [4, 255, 255, 255]),
+              [_('red'), [4, 255, 0, 0]],
+              [_('green'), [4, 0, 255, 0]],
+              [_('blue'), [4, 0, 0, 255]],
+              [_('dark'), [4, 0, 0, 0]],
+              [_('white'), [4, 255, 255, 255]],
           ]),
   ]
 

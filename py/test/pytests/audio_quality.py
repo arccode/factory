@@ -157,14 +157,14 @@ _DMIC2_JACK_SCRIPT = 'dmic2_jack_script'
 
 class AudioQualityTest(unittest.TestCase):
   ARGS = [
-      Arg('initial_actions', list, 'List of tuple (card, actions), and card '
+      Arg('initial_actions', list, 'List of [card, actions], and card '
           'can be card index number or card name', []),
-      Arg('input_dev', tuple,
-          'Input ALSA device.  (card_name, sub_device).'
-          'For example: ("audio_card", "0").', ('0', '0')),
-      Arg('output_dev', tuple,
-          'Output ALSA device.  (card_name, sub_device).'
-          'For example: ("audio_card", "0").', ('0', '0')),
+      Arg('input_dev', list,
+          'Input ALSA device.  [card_name, sub_device].'
+          'For example: ["audio_card", "0"].', ['0', '0']),
+      Arg('output_dev', list,
+          'Output ALSA device.  [card_name, sub_device].'
+          'For example: ["audio_card", "0"].', ['0', '0']),
       Arg('loop_type', str, 'Audio loop type: sox, looptest, tinyloop, hwloop',
           'sox'),
       Arg('use_multitone', bool, 'Use multitone', False),

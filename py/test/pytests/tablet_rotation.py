@@ -187,8 +187,8 @@ class TabletRotationTest(unittest.TestCase):
           'are "in_accel_(x|y|z)". Values should be one of [0, 1, -1], '
           'representing the ideal value for gravity under such orientation.',
           default=[]),
-      Arg('spec_offset', tuple,
-          'A tuple of two numbers, ex: (1.5, 1.5) '
+      Arg('spec_offset', list,
+          'Two numbers, ex: [1.5, 1.5] '
           'indicating the tolerance for the digital output of sensors under '
           'zero gravity and one gravity.', default=None),
       Arg('sample_rate_hz', int,

@@ -40,14 +40,18 @@ Examples
 --------
 To run horizontal calibration on base accelerometer::
 
-  OperatorTest(
-      pytest_name='accelerometers_calibration',
-      dargs={'orientation': {
-                 'in_accel_x': 0,
-                 'in_accel_y': 0,
-                 'in_accel_z': 1},
-             'spec_offset': (0.5, 0.5),
-             'location': 'base'})
+  {
+    "pytest_name": "accelerometers_calibration",
+    "args": {
+      "orientation": {
+        "in_accel_z": 1,
+        "in_accel_y": 0,
+        "in_accel_x": 0
+      },
+      "spec_offset": [0.5, 0.5],
+      "location": "base"
+    }
+  }
 """
 
 import time
@@ -180,10 +184,10 @@ class AccelerometersCalibration(unittest.TestCase):
           'Keys: the name of the accelerometer signal. For example, '
           '"in_accel_x_base" or "in_accel_x_lid". The possible keys are '
           '"in_accel_(x|y|z)_(base|lid)".'
-          'Values: an int or a tuple of (orientation-1, orientation-2, ...).'
+          'Values: an int or a list of [orientation-1, orientation-2, ...].'
           'Each orientation is 0, 1 or -1 representing the ideal '
           'value for gravity under such orientation. For example, 1 or '
-          '(0, 0, 1, 0, 0, -1).'
+          '[0, 0, 1, 0, 0, -1].'
           'An example of orientation for horizontal calibration: {'
           '    "in_accel_x_base": 0,'
           '    "in_accel_y_base": 0,'
@@ -192,12 +196,12 @@ class AccelerometersCalibration(unittest.TestCase):
           '    "in_accel_y_lid": 0,'
           '    "in_accel_z_lid": -1}.'
           'Another example of orientation_gravity for six-sided calibration: {'
-          '    "in_accel_x_base": (0, 0, 1, -1, 0, 0),'
-          '    "in_accel_y_base": (0, 0, 0, 0, 1, -1),'
-          '    "in_accel_z_base": (1, -1, 0, 0, 0, 0),'
-          '    "in_accel_x_lid": (0, 0, 1, -1, 0, 0),'
-          '    "in_accel_y_lid": (0, 0, 0, 0, 1, -1),'
-          '    "in_accel_z_lid": (1, -1, 0, 0, 0, 0)}.'),
+          '    "in_accel_x_base": [0, 0, 1, -1, 0, 0],'
+          '    "in_accel_y_base": [0, 0, 0, 0, 1, -1],'
+          '    "in_accel_z_base": [1, -1, 0, 0, 0, 0],'
+          '    "in_accel_x_lid": [0, 0, 1, -1, 0, 0],'
+          '    "in_accel_y_lid": [0, 0, 0, 0, 1, -1],'
+          '    "in_accel_z_lid": [1, -1, 0, 0, 0, 0]}.'),
       Arg('sample_rate_hz', int,
           'The sample rate in Hz to get raw data from '
           'accelerometers.', default=20),
@@ -207,13 +211,11 @@ class AccelerometersCalibration(unittest.TestCase):
       Arg('setup_time_secs', int,
           'How many seconds to wait before starting '
           'to calibration.', default=2),
-      Arg('spec_offset', tuple,
-          'A tuple of two numbers, ex: (0.5, 0.5) '
-          'indicating the tolerance in m/s^2 for the digital output of '
-          'sensors under 0 and 1G.'),
+      Arg('spec_offset', list,
+          'Two numbers, ex: [0.5, 0.5] indicating the tolerance in m/s^2 for '
+          'the digital output of sensors under 0 and 1G.'),
       Arg('location', str,
-          'The location for the accelerometer', default='base')
-  ]
+          'The location for the accelerometer', default='base')]
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()

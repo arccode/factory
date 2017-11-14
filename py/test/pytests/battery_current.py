@@ -106,8 +106,8 @@ class BatteryCurrentTest(unittest.TestCase):
           'Test timeout value', default=10),
       Arg('max_battery_level', int,
           'maximum allowed starting battery level', default=None),
-      Arg('usbpd_info', (list, tuple),
-          'A sequence (usbpd_port, min_millivolt, max_millivolt) used to '
+      Arg('usbpd_info', list,
+          'A sequence [usbpd_port, min_millivolt, max_millivolt] used to '
           'select a particular port from a multi-port DUT.',
           default=None),
       i18n_arg_utils.I18nArg('usbpd_prompt',

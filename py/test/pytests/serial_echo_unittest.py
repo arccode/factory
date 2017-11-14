@@ -49,19 +49,19 @@ class SerialEchoUnittest(unittest.TestCase):
         assert_message)
 
   def testSendRecvTupleTooLong(self):
-    self.SetUpTestCase({'send_recv': ('tuple', 'too', 'long')})
+    self.SetUpTestCase({'send_recv': ['tuple', 'too', 'long']})
     self.RunTestCase()
     self.HasError('Invalid dargs send_recv',
                   'Unable to detect invalid send_recv.')
 
   def testSendRecvTupleTooShort(self):
-    self.SetUpTestCase({'send_recv': ('tuple_too_short',)})
+    self.SetUpTestCase({'send_recv': ['tuple_too_short']})
     self.RunTestCase()
     self.HasError('Invalid dargs send_recv',
                   'Unable to detect invalid send_recv.')
 
   def testSendRecvTupleNotStr(self):
-    self.SetUpTestCase({'send_recv': (1, 2)})
+    self.SetUpTestCase({'send_recv': [1, 2]})
     self.RunTestCase()
     self.HasError('Invalid dargs send_recv',
                   'Unable to detect invalid send_recv.')

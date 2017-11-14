@@ -187,7 +187,7 @@ class CheckInterfaceTask(test_task.TestTask):
 class TouchUniformity(unittest.TestCase):
   ARGS = [
       Arg('device_index', int, 'Index of touch device to test.', default=0),
-      Arg('check_list', (tuple, list),
+      Arg('check_list', list,
           'A list of sequence. Each sequence consists of six elements: '
           'frame_idx, label, min_val, max_val, rows, cols.\n'
           'frame_idx: Index of frame to check.\n'

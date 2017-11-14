@@ -35,7 +35,7 @@ class BrightnessTest(unittest.TestCase):
       i18n_arg_utils.I18nArg('msg', 'Message HTML'),
       Arg('timeout_secs', int, 'Timeout value for the test in seconds.',
           default=10),
-      Arg('levels', (tuple, list), 'A sequence of brightness levels.'),
+      Arg('levels', list, 'A sequence of brightness levels.'),
       Arg('interval_secs', (int, float),
           'Time for each brightness level in seconds.')
   ]

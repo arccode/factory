@@ -103,17 +103,15 @@ class ChargerTest(unittest.TestCase):
           default=60),
       Arg('use_percentage', bool, 'True if using percentage as charge unit '
           'in spec list. False if using mAh.', default=True),
-      Arg('charger_type', str, 'Type of charger required.',
-          default=None),
-      Arg('spec_list', list, 'A list of tuples. Each tuple contains\n'
-          '(charge_change, timeout_secs, load)\n'
+      Arg('charger_type', str, 'Type of charger required.', default=None),
+      Arg('spec_list', list, 'A list of [charge_change, timeout_secs, load]\n'
           'Charger needs to achieve charge_change difference within\n'
           'timeout_secs seconds under load.\n'
           'Positive charge_change is for charging and negative one is\n'
           'for discharging.\n'
           'One unit of load is one thread doing memory copy in stressapptest.\n'
           'The default value for load is the number of processor',
-          default=[(2, 300, 1), (-2, 300)])
+          default=[[2, 300, 1], [-2, 300]])
   ]
 
   def setUp(self):

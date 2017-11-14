@@ -62,21 +62,19 @@ class PlanktonDisplayTest(unittest.TestCase):
           'Device name of BFT used to insert/remove the media.'),
       Arg('display_id', str,
           'Display ID used to identify display in xrandr/modeprint.'),
-      Arg('capture_resolution', tuple,
-          'A tuple (x-res, y-res) indicating the'
-          'image capture resolution to use.',
-          default=(1920, 1080)),
+      Arg('capture_resolution', list,
+          '[x-res, y-res] indicating the image capture resolution to use.',
+          default=[1920, 1080]),
       Arg('capture_fps', int, 'Camera capture rate in frames per second.',
           default=30),
       Arg('uvc_video_dev_index', int, 'index of video device (-1 for default)',
           default=-1),
       Arg('uvc_video_dev_port', str, 'port of video device (ex. 3-1)',
           default=None),
-      Arg('corr_value_threshold', tuple,
-          'A tuple of (b, g, r) channel histogram '
-          'correlation pass/fail threshold. '
-          'Should be int/float type, ex. (0.8, 0.8, 0.8)',
-          default=(0.8, 0.8, 0.8)),
+      Arg('corr_value_threshold', list,
+          '[b, g, r] channel histogram correlation pass/fail threshold. '
+          'Should be int/float type, ex. [0.8, 0.8, 0.8]',
+          default=[0.8, 0.8, 0.8]),
       Arg('dp_verify_server', str,
           'Server URL for verifying DP output, e.g. "http://192.168.0.1:9999". '
           'Default None means verifying locally.',

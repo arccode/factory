@@ -115,8 +115,7 @@ class ShopfloorService(unittest.TestCase):
   ARGS = [
       Arg('method', str,
           'Name of shopfloor service method to call'),
-      Arg('args', (list, tuple), 'Arguments for specified method.',
-          default=None),
+      Arg('args', list, 'Arguments for specified method.', default=None),
       Arg('kargs', collections.Mapping, 'Keyword arguments for method.',
           default=None),
       Arg('raw_invocation', bool, 'Allow invocation of arbitrary calls.',

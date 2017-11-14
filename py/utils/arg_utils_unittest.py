@@ -108,11 +108,6 @@ class ArgsTest(unittest.TestCase):
         ValueError,
         self.Parse, dict(required='x', int_or_string_typed=1.0))
 
-  def testTupleToList(self):
-    self.parser = Args(Arg('tuple', tuple, 'X'))
-    self.assertEquals(dict(tuple=[1, 2, 3]), self.Parse(dict(tuple=[1, 2, 3])))
-    self.assertEquals(dict(tuple=[1, 2, 3]), self.Parse(dict(tuple=(1, 2, 3))))
-
 
 if __name__ == '__main__':
   unittest.main()

@@ -89,9 +89,9 @@ class LineCheckItemTest(unittest.TestCase):
   """
   ARGS = [
       i18n_arg_utils.I18nArg('title', 'test title.'),
-      Arg('items', (list, tuple),
-          ('A sequence of items to check. Each item is a sequence of: '
-           ' (instruction, command, judge_to_pass).')),
+      Arg('items', list,
+          ('A sequence of items to check. Each item is a sequence: '
+           ' [instruction, command, judge_to_pass].')),
       Arg('is_station', bool,
           ('Run the given commands on station (usually local host) instead of '
            'DUT, for example preparing connection configuration.'),
@@ -110,7 +110,7 @@ class LineCheckItemTest(unittest.TestCase):
 
     found_judge_to_pass = False
     for item in self.args.items:
-      if isinstance(item, (list, tuple)) and len(item) == 3:
+      if isinstance(item, list) and len(item) == 3:
         check_item = CheckItem(i18n.Translated(item[0], translate=False),
                                item[1], item[2])
       else:

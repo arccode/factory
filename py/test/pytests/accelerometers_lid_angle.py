@@ -87,10 +87,9 @@ class AccelerometersLidAngleTest(unittest.TestCase):
       Arg('capture_count', int,
           'How many times to capture the raw data to '
           'calculate the lid angle.', default=20),
-      Arg('spec_offset', tuple,
-          'A tuple of two numbers, ex: (0.5, 0.5) '
-          'indicating the tolerance in m/s^2 for the digital output of '
-          'sensors under 0 and 1G.'),
+      Arg('spec_offset', list,
+          'Two numbers, ex: [0.5, 0.5] indicating the tolerance in m/s^2 for '
+          'the digital output of sensors under 0 and 1G.'),
       Arg('sample_rate_hz', int,
           'The sample rate in Hz to get raw data from '
           'accelerometers.', default=20),

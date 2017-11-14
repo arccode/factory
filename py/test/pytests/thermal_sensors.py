@@ -54,9 +54,8 @@ class BoardTempSensorsTest(unittest.TestCase):
           'List of temperature sensor(s) to test, "*" for all sensors. '
           'Default to test only the main sensor (usually CPU).',
           default=None),
-      Arg('temp_range', (list, tuple),
-          'A sequence of (min_temp, max_temp) in Celsius.',
-          default=(0, 100)),
+      Arg('temp_range', list,
+          '[min_temp, max_temp] in Celsius.', default=[0, 100]),
   ]
 
   def GetTemperature(self, name):

@@ -8,22 +8,22 @@ Description
 -----------
 Verify the external display is functional.
 
-The test is defined by a list of tuples: ``(display_label, display_id,
-audio_info, usbpd_port)``. Each tuple represents an external port:
+The test is defined by a list ``[display_label, display_id,
+audio_info, usbpd_port]``. Each item represents an external port:
 
 - ``display_label``: I18n display name seen by operator, e.g. ``_('VGA')``.
 - ``display_id``: (str) ID used to identify display in xrandr or modeprint,
   e.g. VGA1.
-- ``audio_info``: A tuple of ``(audio_card, audio_device, init_actions)``,
+- ``audio_info``: A list of ``[audio_card, audio_device, init_actions]``,
   or None:
 
   - ``audio_card`` is either the card's name (str), or the card's index (int).
   - ``audio_device`` is the device's index (int).
-  - ``init_actions`` is a list of tuple ``(card_name, action)`` (list).
+  - ``init_actions`` is a list of ``[card_name, action]`` (list).
     action is a dict key defined in audio.json (ref: audio.py) to be passed
     into dut.audio.ApplyAudioConfig.
 
-  e.g. ``[('rt5650', 'init_audio'), ('rt5650', 'enable_hdmi')]``.
+  e.g. ``[["rt5650", "init_audio"], ["rt5650", "enable_hdmi"]]``.
   This argument is optional. If set, the audio playback test is added.
 - ``usbpd_port``: (int) Verify the USB PD TypeC port status, or None.
 
@@ -520,7 +520,7 @@ class AudioSetupTask(test_task.TestTask):
 
   Args:
     dut: A DUT instance for accessing device under test.
-    init_actions are list of tuple (card_name, actions) (list).
+    init_actions are list of [card_name, actions] (list).
   """
 
   def __init__(self, _dut, init_actions):
@@ -556,10 +556,10 @@ class ExtDisplayTaskArg(object):
     self.already_connect = False
 
   def ParseDisplayInfo(self, info):
-    """Parses tuple from args.display_info.
+    """Parses lists from args.display_info.
 
     Args:
-      info: a tuple in args.display_info. Refer display_info definition.
+      info: a list in args.display_info. Refer display_info definition.
 
     Raises:
       ValueError if parse error.
@@ -570,7 +570,7 @@ class ExtDisplayTaskArg(object):
 
     self.display_label, self.display_id = info[:2]
     if len(info) >= 3 and info[2] is not None:
-      if (not isinstance(info[2], (list, tuple)) or
+      if (not isinstance(info[2], list) or
           not isinstance(info[2][2], list)):
         raise ValueError('ERROR: invalid display_info item: ' + str(info))
       self.audio_card = self.dut.audio.GetCardIndexByName(info[2][0])

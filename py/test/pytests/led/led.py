@@ -293,12 +293,12 @@ class LEDTest(unittest.TestCase):
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP, default=None),
       Arg('challenge', bool, 'Show random LED sequence and let the operator '
           'select LED number instead of pre-defined sequence.', default=False),
-      Arg('colors', (list, tuple),
-          'List of colors or (index, color) to test. color must be in '
+      Arg('colors', list,
+          'List of colors or [index, color] to test. color must be in '
           'LEDColor or OFF, and index, if specified, must be in LEDIndex.',
           default=[LEDColor.YELLOW, LEDColor.GREEN, LEDColor.RED,
                    LEDColor.OFF]),
-      Arg('target_leds', (list, tuple),
+      Arg('target_leds', list,
           'List of LEDs to test. If specified, it turns off all LEDs first, '
           'and sets them to auto after test.', default=None)]
 

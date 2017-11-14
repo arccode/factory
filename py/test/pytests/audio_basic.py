@@ -87,13 +87,13 @@ class AudioBasicTest(unittest.TestCase):
       i18n_arg_utils.I18nArg(
           'audio_title', 'Label Title of audio test', default=_('Headset')),
       Arg('audio_conf', str, 'Audio config file path', default=None),
-      Arg('initial_actions', list, 'List of tuple (card, actions)', []),
-      Arg('input_dev', tuple,
-          'Input ALSA device. (card_name, sub_device).'
-          'For example: ("audio_card", "0").', ('0', '0')),
-      Arg('output_dev', tuple,
-          'Output ALSA device. (card_name, sub_device).'
-          'For example: ("audio_card", "0").', ('0', '0')),
+      Arg('initial_actions', list, 'List of [card, actions]', []),
+      Arg('input_dev', list,
+          'Input ALSA device. [card_name, sub_device].'
+          'For example: ["audio_card", "0"].', ['0', '0']),
+      Arg('output_dev', list,
+          'Output ALSA device. [card_name, sub_device].'
+          'For example: ["audio_card", "0"].', ['0', '0']),
       Arg('output_channels', int, 'number of output channels.', 2),
       Arg('input_channels', int, 'number of input channels.', 2),
   ]
