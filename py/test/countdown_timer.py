@@ -90,3 +90,28 @@ def CountdownTimer(timeout_secs, timeout_handler, tick=None,
     logging.info('Timer is disabled')
     return
   timeout_handler()
+
+
+def StartNewCountdownTimer(test, timeout_secs, element_id, timeout_handler):
+  """Start a countdown timer that relies on test_ui.NewEventLoop.
+
+  It updates UI for time remaining and calls timeout_handler when timeout.
+  All works are done in the event loop, and no extra threads are created.
+
+  TODO(pihsun): Remove above two functions and rename this one after all
+  pytests use new event loop.
+
+  Args:
+    test: a test_ui.TestCaseWithUI instance.
+    timeout_secs: (int) #seconds to timeout.
+    element_id: The HTML element to place time remaining info.
+    timeout_handler: (callback) called when timeout reaches.
+  """
+  end_time = time.time() + timeout_secs
+  def _Timer():
+    time_remaining = end_time - time.time()
+    if time_remaining > 0:
+      test.ui.SetHTML(_MSG_TIME_REMAINING(time_remaining), id=element_id)
+    else:
+      timeout_handler()
+  test.event_loop.AddTimedHandler(_Timer, 1, repeat=True)
