@@ -52,7 +52,6 @@ from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test.state import TestState
 from cros.factory.test.test_lists import manager
-from cros.factory.test.test_lists import test_list as test_list_module
 from cros.factory.test.test_lists import test_object
 from cros.factory.testlog import testlog
 from cros.factory.tools.key_filter import KeyFilter
@@ -1019,7 +1018,7 @@ class Goofy(object):
     try:
       return self.test_lists[test_list_id]
     except KeyError:
-      raise test_list_module.TestListError(
+      raise type_utils.TestListError(
           '%r is not a valid test list ID (available IDs are %r)' % (
               test_list_id, sorted(self.test_lists.keys())))
 
@@ -1068,7 +1067,7 @@ class Goofy(object):
     try:
       self.test_list = self.GetTestList(self.options.test_list)
       logging.info('Active test list: %s', self.test_list.test_list_id)
-    except test_list_module.TestListError as e:
+    except type_utils.TestListError as e:
       logging.exception('Invalid active test list: %s',
                         self.options.test_list)
       startup_errors.append(e.message)
