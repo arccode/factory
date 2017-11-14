@@ -97,7 +97,6 @@ import random
 import subprocess
 import threading
 import time
-import unittest
 
 import yaml
 
@@ -114,7 +113,6 @@ from cros.factory.test import server_proxy
 from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
 from cros.factory.test.utils import update_utils
 from cros.factory.testlog import testlog
@@ -138,7 +136,7 @@ MSG_FINALIZING = i18n_test_ui.MakeI18nLabel(
     'or the device may become unusable.')
 
 
-class Finalize(unittest.TestCase):
+class Finalize(test_ui.TestCaseWithUI):
   """The main class for finalize pytest."""
   ARGS = [
       Arg('write_protection', bool,
@@ -188,8 +186,6 @@ class Finalize(unittest.TestCase):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self.ui = test_ui.UI()
-    self.template = ui_templates.TwoSections(self.ui)
     self.force = False
     self.go_cond = threading.Condition()
     self.test_states_path = os.path.join(paths.DATA_LOG_DIR, 'test_states')
@@ -213,32 +209,19 @@ class Finalize(unittest.TestCase):
     phase.AssertStartingAtPhase(phase.PVT, self.args.write_protection,
                                 'Write protection must be enabled')
 
-    thread = threading.Thread(target=self.Run)
-
-    # Set this thread as daemon thread so once in-place wipe kill factory
-    # service, finalize.py is terminated to release the resources.
-    thread.setDaemon(True)
-    thread.start()
-    self.ui.Run()
-
-  def Run(self):
-
     def GetState(v):
       return ('<b style="color: green;">' + MSG_ENABLED + '</b>' if v else
               '<b style="color: red;">' + MSG_DISABLED + '</b>')
 
-    try:
-      self.template.SetInstruction(
-          MSG_WRITE_PROTECTION + ': ' + GetState(self.args.write_protection) +
-          '<br>' +
-          MSG_BUILD_PHASE + ': ' + str(phase.GetPhase()) + ', ' +
-          MSG_FACTORY_SERVER + ': ' + GetState(self.args.enable_factory_server))
-      self.template.SetState(MSG_PREFLIGHT)
-      self.Preflight()
-      self.template.SetState(MSG_FINALIZING)
-      self.DoFinalize()
-    except Exception as e:
-      self.ui.Fail('Exception during finalization: %s' % e)
+    self.template.SetInstruction(
+        MSG_WRITE_PROTECTION + ': ' + GetState(self.args.write_protection) +
+        '<br>' +
+        MSG_BUILD_PHASE + ': ' + str(phase.GetPhase()) + ', ' +
+        MSG_FACTORY_SERVER + ': ' + GetState(self.args.enable_factory_server))
+    self.template.SetState(MSG_PREFLIGHT)
+    self.Preflight()
+    self.template.SetState(MSG_FINALIZING)
+    self.DoFinalize()
 
   def Preflight(self):
     # Check for HWID bundle update from factory server.
@@ -262,11 +245,11 @@ class Finalize(unittest.TestCase):
     if release_image_version:
       logging.info('release image version: %s', release_image_version)
     else:
-      self.ui.Fail('Can not determine release image version')
+      self.FailTask('Can not determine release image version')
     if factory_image_version:
       logging.info('factory image version: %s', factory_image_version)
     else:
-      self.ui.Fail('Can not determine factory image version')
+      self.FailTask('Can not determine factory image version')
     event_log.Log('finalize_image_version',
                   factory_image_version=factory_image_version,
                   release_image_version=release_image_version)
@@ -386,7 +369,6 @@ class Finalize(unittest.TestCase):
         raise type_utils.TestFailure(
             'Remote DUT failed to finalize in %d seconds' %
             self.FINALIZE_TIMEOUT)
-      self.ui.Pass()
 
   def _FinalizeRemoteSSHDUT(self, command):
     # generate a random token, so the response is different for every DUT.
@@ -443,4 +425,3 @@ class Finalize(unittest.TestCase):
       f.write(self.dut_response.get('wipe_init_log', ''))
 
     self.assertTrue(self.dut_response['success'])
-    self.ui.Pass()
