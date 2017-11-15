@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -9,44 +7,28 @@
 from __future__ import print_function
 
 import ast
-import logging
 import os
 import re
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
 from cros.factory.test import countdown_timer
-from cros.factory.test import session
 from cros.factory.test.l10n import regions
+from cros.factory.test import session
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 
 _RE_EVTEST_EVENT = re.compile(
     r'^Event: time .*?, type .*? \((.*?)\), code (.*?) \(.*?\), value (.*?)$')
 
-_ID_IMAGE = 'keyboard-test-image'
-_ID_COUNTDOWN_TIMER = 'keyboard-test-timer'
-_HTML_KEYBOARD = (
-    '<div id="%s" style="position: relative"></div>\n<div id="%s"></div>\n' %
-    (_ID_IMAGE, _ID_COUNTDOWN_TIMER))
-
-_KEYBOARD_TEST_DEFAULT_CSS = (
-    '#keyboard-test-image { text-align: center; }\n'
-    '#keyboard-test-timer { font-size: 2em; }\n'
-    '.keyboard-test-key-untested { background-color: white; opacity: 0.5; }\n'
-    '.keyboard-test-keydown { background-color: yellow; opacity: 0.5; }\n'
-    '.keyboard-test-keyup { background-color: green; opacity: 0.5; }\n'
-    '.keyboard-test-key-skip { background-color: gray; opacity: 0.5; }\n')
-
 _POWER_KEY_CODE = 116
 
 
-class KeyboardTest(unittest.TestCase):
+class KeyboardTest(test_ui.TestCaseWithUI):
   """Tests if all the keys on a keyboard are functioning. The test checks for
   keydown and keyup events for each key, following certain order if required,
   and passes if both events of all keys are received.
@@ -100,10 +82,6 @@ class KeyboardTest(unittest.TestCase):
                          self.args.strict_sequential_press),
                     'Strict sequential press requires one key at a time.')
 
-    self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
-    self.ui.AppendCSS(_KEYBOARD_TEST_DEFAULT_CSS)
-
     # Get the keyboard input device.
     self.keyboard_device = evdev_utils.FindDevice(
         self.args.device_filter, evdev_utils.IsKeyboardDevice)
@@ -120,39 +98,44 @@ class KeyboardTest(unittest.TestCase):
         self.bindings[new_key] = self.bindings[old_key]
         del self.bindings[old_key]
 
-    keycodes_to_skip_dict = dict((k, True) for k in self.args.skip_keycodes)
+    self.all_keys = set(self.bindings.keys())
+
+    self.frontend_proxy = self.ui.InitJSTestObject('KeyboardTest', self.layout,
+                                                   self.bindings)
+
+    keycodes_to_skip = set(self.args.skip_keycodes)
     if self.args.skip_power_key:
-      keycodes_to_skip_dict[_POWER_KEY_CODE] = True
+      keycodes_to_skip.add(_POWER_KEY_CODE)
+    keycodes_to_skip &= self.all_keys
 
-    self.key_order_list = None
     if self.args.sequential_press or self.args.strict_sequential_press:
-      self.key_order_list = self.ReadKeyOrder(self.layout)
+      self.key_order_list = [
+          key for key in self.ReadKeyOrder(self.layout) if key in self.all_keys
+      ]
+    else:
+      self.key_order_list = None
+      self.ui.HideElement('instruction-sequential')
 
-    number_to_press = {'default': 1}
-    if self.args.repeat_times:
-      number_to_press.update(self.args.repeat_times)
+    if self.args.allow_multi_keys:
+      self.ui.HideElement('instruction-single-key')
 
-    self.key_down = set()
-    # Initialize frontend presentation
-    self.template.SetState(_HTML_KEYBOARD)
-    # Note that self.bindings and keycodes_to_skip_dict have integer keys,
-    # but JavaScript will receive them as string keys, due to JSON conversion
-    self.ui.CallJSFunction('setUpKeyboardTest', self.layout, self.bindings,
-                           keycodes_to_skip_dict, _ID_IMAGE,
-                           self.key_order_list,
-                           self.args.strict_sequential_press,
-                           self.args.allow_multi_keys,
-                           number_to_press)
+    self.down_keys = set()
+    self.ignored_down_keys = set()
 
-    self.keyboard_device.grab()
-    self.dispatcher = evdev_utils.InputDeviceDispatcher(self.keyboard_device,
-                                                        self.HandleEvent)
-    self.dispatcher.StartDaemon()
-    countdown_timer.StartCountdownTimer(
-        self.args.timeout_secs,
-        lambda: self.ui.CallJSFunction('failTestTimeout'),
-        self.ui,
-        _ID_COUNTDOWN_TIMER)
+    self.number_to_press = {}
+    default_number_to_press = self.args.repeat_times.get('default', 1)
+
+    for key in self.all_keys:
+      if key in keycodes_to_skip:
+        self.number_to_press[key] = 0
+        self.MarkKeyState(key, 'skipped')
+      else:
+        self.number_to_press[key] = self.args.repeat_times.get(
+            str(key), default_number_to_press)
+        self.MarkKeyState(key, 'untested')
+
+    self.dispatcher = evdev_utils.InputDeviceDispatcher(
+        self.keyboard_device, self.event_loop.CatchException(self.HandleEvent))
 
   def tearDown(self):
     """Terminates the running process or we'll have trouble stopping the test.
@@ -171,12 +154,9 @@ class KeyboardTest(unittest.TestCase):
 
   def ReadBindings(self, layout):
     """Reads in key bindings and their associates figure regions."""
-    bindings = None
-    base = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), 'static')
-    bindings_filename = os.path.join(base, layout + '.bindings')
-    with open(bindings_filename, 'r') as f:
-      bindings = ast.literal_eval(f.read())
+    bindings_filename = os.path.join(self.ui.GetStaticDirectoryPath(),
+                                     layout + '.bindings')
+    bindings = ast.literal_eval(file_utils.ReadFile(bindings_filename))
     for k in bindings:
       # Convert single tuple to list of tuples
       if not isinstance(bindings[k], list):
@@ -185,51 +165,90 @@ class KeyboardTest(unittest.TestCase):
 
   def ReadKeyOrder(self, layout):
     """Reads in key order that must be followed when press key."""
-    key_order_list = None
-    base = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), 'static')
-    key_order_list_filename = os.path.join(base, layout + '.key_order')
-    with open(key_order_list_filename, 'r') as f:
-      key_order_list = ast.literal_eval(f.read())
-    return key_order_list
+    key_order_list_filename = os.path.join(self.ui.GetStaticDirectoryPath(),
+                                           layout + '.key_order')
+    return ast.literal_eval(file_utils.ReadFile(key_order_list_filename))
+
+  def MarkKeyState(self, keycode, state):
+    """Call frontend JavaScript to update UI."""
+    self.frontend_proxy.MarkKeyState(keycode, state,
+                                     self.number_to_press[keycode])
 
   def HandleEvent(self, event):
-    if event.type == evdev.ecodes.EV_KEY:
-      if event.value == 1:
-        self.MarkKeydown(event.code)
-      elif event.value == 0:
-        self.MarkKeyup(event.code)
-      elif self.args.detect_long_press and event.value == 2:
-        fail_msg = 'Got events on keycode %d pressed too long.' % event.code
-        session.console.error(fail_msg)
-        self.ui.CallJSFunction('failTest', fail_msg)
-
-  def MarkKeydown(self, keycode):
-    """Calls Javascript to mark the given keycode as keydown."""
-    if not keycode in self.bindings:
-      return True
-    logging.debug('Get key down %d', keycode)
-    # Fails the test if got two key pressed at the same time.
-    if not self.args.allow_multi_keys and len(self.key_down):
-      fail_msg = ('Got key down event on keycode %d but there are other keys '
-                  'pressed: %s' % (keycode, self.key_down))
+    """Handler for evdev events."""
+    if event.type != evdev.ecodes.EV_KEY:
+      return
+    if event.value == 1:
+      self.OnKeydown(event.code)
+    elif event.value == 0:
+      self.OnKeyup(event.code)
+    elif self.args.detect_long_press and event.value == 2:
+      fail_msg = 'Got events on keycode %d pressed too long.' % event.code
       session.console.error(fail_msg)
-      self.ui.CallJSFunction('failTest', fail_msg)
-    self.ui.CallJSFunction('markKeydown', keycode)
-    self.key_down.add(keycode)
+      self.FailTask(fail_msg)
 
-  def MarkKeyup(self, keycode):
-    """Calls Javascript to mark the given keycode as keyup."""
-    if not keycode in self.bindings:
-      return True
-    if keycode not in self.key_down:
-      fail_msg = ('Got key up event for keycode %d '
-                  'but did not get key down event' % keycode)
-      session.console.error(fail_msg)
-      self.ui.CallJSFunction('failTest', fail_msg)
-    else:
-      self.key_down.remove(keycode)
-    self.ui.CallJSFunction('markKeyup', keycode)
+  def OnKeydown(self, keycode):
+    """Callback when got a keydown event from evdev."""
+    if keycode not in self.all_keys:
+      return
+
+    if not self.args.allow_multi_keys and self.down_keys:
+      self.FailTask(
+          'Got key down event on keycode %d but there are other key pressed: %d'
+          % (keycode, next(iter(self.down_keys))))
+
+    self.down_keys.add(keycode)
+
+    if self.key_order_list and keycode in self.key_order_list:
+      first_untested_key = next(key for key in self.key_order_list
+                                if self.number_to_press[key] > 0)
+      if keycode != first_untested_key:
+        if self.args.strict_sequential_press:
+          self.FailTask('Expect keycode %d but get %d' % (first_untested_key,
+                                                          keycode))
+        else:
+          self.ignored_down_keys.add(keycode)
+          return
+
+    if self.number_to_press[keycode] > 0:
+      self.MarkKeyState(keycode, 'down')
+
+  def OnKeyup(self, keycode):
+    """Callback when got a keyup event from evdev."""
+    if keycode not in self.all_keys:
+      return
+
+    if keycode not in self.down_keys:
+      self.FailTask(
+          'Got key up event for keycode %d but did not get key down event' %
+          keycode)
+    self.down_keys.remove(keycode)
+
+    if keycode in self.ignored_down_keys:
+      self.ignored_down_keys.remove(keycode)
+      return
+
+    if self.number_to_press[keycode] > 0:
+      self.number_to_press[keycode] -= 1
+      if self.number_to_press[keycode] > 0:
+        self.MarkKeyState(keycode, 'untested')
+      else:
+        self.MarkKeyState(keycode, 'tested')
+
+    if all(num_left == 0 for num_left in self.number_to_press.itervalues()):
+      self.PassTask()
+
+  def FailTestTimeout(self):
+    """Fail the test due to timeout, and log untested keys."""
+    failed_keys = [
+        key for key, num_left in self.number_to_press.iteritems() if num_left
+    ]
+    self.FailTask('Keyboard test timed out. Malfunction keys: %r' % failed_keys)
 
   def runTest(self):
-    self.ui.Run()
+    self.keyboard_device.grab()
+    self.dispatcher.StartDaemon()
+    countdown_timer.StartNewCountdownTimer(
+        self, self.args.timeout_secs,
+        'keyboard-test-timer', self.FailTestTimeout)
+    self.WaitTaskEnd()

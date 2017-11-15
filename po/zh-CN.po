@@ -1933,7 +1933,11 @@ msgstr "（不变）"
 msgid "Setting HWID (v3): {encoded_string}..."
 msgstr "正在写入 HWID (v3): {encoded_string}..."
 
-#: ../py/test/pytests/keyboard/static/keyboard.js
+#: ../py/test/pytests/keyboard/static/keyboard.html
+msgid "Press keys sequentially from top-left to bottom-right."
+msgstr "请从左上到右下依序按按键"
+
+#: ../py/test/pytests/keyboard/static/keyboard.html
 msgid "Press one key at a time."
 msgstr "一次只能按一个键"
 

@@ -8,6 +8,7 @@ from __future__ import print_function
 
 import cgi
 import collections
+import functools
 import json
 import logging
 import os
@@ -184,6 +185,25 @@ class EventLoop(BaseEventLoop):
     self.error_msgs.append(error_msg)
 
 
+class JavaScriptProxy(object):
+  """Proxy that forward all calls to JavaScript object on window."""
+
+  def __init__(self, ui, var_name):
+    self._ui = ui
+    self._var_name = var_name
+
+  def __getattr__(self, name):
+    if not name[0].isupper():
+      raise AttributeError
+    # Change naming convension between Python and JavaScript.
+    # SetState (Python) -> setState (JavaScript).
+    js_name = name[0].lower() + name[1:]
+    def _Proxy(*args):
+      self._ui.CallJSFunction('window.%s.%s' % (self._var_name, js_name), *args)
+    setattr(self, name, _Proxy)
+    return _Proxy
+
+
 class UI(object):
   """Web UI for a factory test."""
 
@@ -317,6 +337,23 @@ class UI(object):
     self.RunJS('%s(%s)' % (name, ','.join('args.%s' % key for key in keys)),
                **kwargs)
 
+  def InitJSTestObject(self, class_name, *args):
+    """Initialize a JavaScript test object in frontend.
+
+    The JavaScript object would be at window.testObject.
+
+    Args:
+      class_name: The class name of the JavaScript test object.
+      args: Argument passed to the class constructor.
+
+    Returns:
+      A JavaScriptProxy to the frontend test object.
+    """
+    self.RunJS(
+        'window.testObject = new %s(...args.constructorArg)' % class_name,
+        constructorArg=args)
+    return JavaScriptProxy(self, 'testObject')
+
   def URLForFile(self, path):
     """Returns a URL that can be used to serve a local file.
 
@@ -448,6 +485,16 @@ class UI(object):
     """
     self.CallJSFunction('test.alert', text)
 
+  def HideElement(self, element_id):
+    """Hide an element by setting display: none.
+
+    Args:
+      element_id: The HTML DOM id of the element to be hidden.
+    """
+    self.RunJS(
+        'document.getElementById(args.id).style.display = "none"',
+        id=element_id)
+
   def WaitKeysOnce(self, keys, timeout=None):
     """Wait for one of the keys to be pressed.
 
@@ -544,24 +591,6 @@ class DummyUI(object):
 
   def AddEventHandler(self, _event, _func):
     logging.info('Ignore setting Event Handler in dummy UI')
-
-
-class JavaScriptTemplateProxy(object):
-  """Proxy that forward all calls to JavaScript window.template."""
-
-  def __init__(self, ui):
-    self.ui = ui
-
-  def __getattr__(self, name):
-    if not name[0].isupper():
-      raise AttributeError
-    # Change naming convension between Python and JavaScript.
-    # SetState (Python) -> setState (JavaScript).
-    js_name = name[0].lower() + name[1:]
-    def _Proxy(*args):
-      self.ui.CallJSFunction('window.template.%s' % js_name, *args)
-    setattr(self, name, _Proxy)
-    return _Proxy
 
 
 class TaskEndException(Exception):
@@ -685,6 +714,20 @@ class NewEventLoop(BaseEventLoop):
     """
     self.AddTimedHandler(lambda: next(iterable), time_sec, repeat=True)
 
+  def CatchException(self, func):
+    """Wraps function and pass exceptions to _handler_exception_hook.
+
+    This makes the function works like it's in the main thread event handler.
+    """
+    @functools.wraps(func)
+    def _Wrapper(*args, **kwargs):
+      try:
+        func(*args, **kwargs)
+      except Exception as e:
+        self._handler_exception_hook(e)
+
+    return _Wrapper
+
   def _RunHandler(self, handler, *args):
     start_time = time.time()
     try:
@@ -790,7 +833,7 @@ class TestCaseWithUI(unittest.TestCase):
     default_html = '<test-template{extra_attrs}></test-template>'.format(
         extra_attrs=extra_attrs)
     self.ui = UI(event_loop=self.event_loop, default_html=default_html)
-    self.template = JavaScriptTemplateProxy(self.ui)
+    self.template = JavaScriptProxy(self.ui, 'template')
 
     super(TestCaseWithUI, self).run(result=result)
 

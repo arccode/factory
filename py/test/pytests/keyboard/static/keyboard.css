@@ -1,0 +1,47 @@
+/*
+ * Copyright 2017 The Chromium OS Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+#keyboard-test-image {
+  text-align: center;
+  position: relative;
+}
+
+#keyboard-keys {
+  position: absolute;
+}
+
+#keyboard-test-timer {
+  font-size: 2em;
+}
+
+.keyboard-test-key {
+  z-index: 2;
+  opacity: 0.5;
+  position: absolute;
+}
+
+.keyboard-test-key:before {
+  content: "";
+  display: inline-block;
+  height: 100%;
+  vertical-align: middle;
+}
+
+.keyboard-test-key.state-untested {
+  background-color: white;
+}
+
+.keyboard-test-key.state-tested {
+  background-color: green;
+}
+
+.keyboard-test-key.state-down {
+  background-color: yellow;
+}
+
+.keyboard-test-key.state-skipped {
+  background-color: gray;
+}
