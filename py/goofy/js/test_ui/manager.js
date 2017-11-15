@@ -7,7 +7,10 @@ goog.provide('cros.factory.testUI.Manager');
 goog.require('cros.factory.i18n');
 
 /**
- * @typedef {{notifyTestVisible: function(string, boolean)}}
+ * @typedef {{
+ *   notifyTestVisible: function(string, boolean),
+ *   tryFocusIFrame: function(!HTMLIFrameElement)
+ * }}
  */
 cros.factory.testUI.CallBacks;
 

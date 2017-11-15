@@ -903,6 +903,13 @@ cros.factory.Goofy = class {
         // Change the background color of the node in tree.
         const elt = this.pathNodeMap[path].getElement();
         elt.classList.toggle('goofy-test-visible', visible);
+      },
+
+      /**
+       * @param {!HTMLIFrameElement} iframe
+       */
+      tryFocusIFrame: (iframe) => {
+        this.tryFocusIFrame(iframe);
       }
     };
   }
@@ -1049,21 +1056,27 @@ cros.factory.Goofy = class {
   }
 
   /**
+   * Try to focus on an iframe window.
+   * Would focus on the iframe if there's no dialog, context menu or terminal.
+   * @param {!HTMLIFrameElement} iframe
+   */
+  tryFocusIFrame(iframe) {
+    if (this.dialogs.length || this.contextMenu || this.terminal_win) {
+      return;
+    }
+    iframe.contentWindow.focus();
+  }
+
+  /**
    * Returns focus to any visible invocation.
    */
   focusInvocation() {
     // We need a setTimeout(, 0) since the i.iframe.contentWindow.focus()
     // doesn't work directly in the onfocus handler of window.
     setTimeout(() => {
-      // Don't divert focus if there's a dialog visible, a context menu or
-      // terminal opened.
-      if (this.dialogs.length || this.contextMenu || this.terminal_win) {
-        return;
-      }
-
       for (const i of this.invocations.values()) {
         if (i && i.iframe && this.testUIManager.isVisible(i.path)) {
-          i.iframe.contentWindow.focus();
+          this.tryFocusIFrame(i.iframe);
           break;
         }
       }

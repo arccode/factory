@@ -133,7 +133,7 @@ cros.factory.testUI.TileManager = class {
       this.pathVisibleMap[path] = newVisibility;
     });
     if (this.pathOrder.length > 0) {
-      this._getIframe(this.pathOrder[0]).contentWindow.focus();
+      this.callbacks.tryFocusIFrame(this._getIframe(this.pathOrder[0]));
     }
   }
 
@@ -158,7 +158,7 @@ cros.factory.testUI.TileManager = class {
 
     title.addEventListener('focus', () => {
       setTimeout(() => {
-        iframe.contentWindow.focus();
+        this.callbacks.tryFocusIFrame(iframe);
       }, 0);
     });
     iframe.contentWindow.addEventListener('focus', () => {

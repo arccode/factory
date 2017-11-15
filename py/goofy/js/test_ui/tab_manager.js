@@ -140,7 +140,7 @@ cros.factory.testUI.TabManager = class {
     if (iframe) {
       iframe.classList.toggle('goofy-test-visible', visible);
       if (visible) {
-        iframe.contentWindow.focus();
+        this.callbacks.tryFocusIFrame(iframe);
       }
     }
     this.callbacks.notifyTestVisible(path, visible);
