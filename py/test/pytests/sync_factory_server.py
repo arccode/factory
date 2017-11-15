@@ -380,7 +380,11 @@ class SyncFactoryServer(unittest.TestCase):
 
   def FlushTestlog(self):
     # TODO(hungte) goofy.FlushTestlog should reload factory_server_url.
-    self.goofy.FlushTestlog(timeout=self.args.timeout_secs)
+    result = False
+    while result is not True:
+      result, progress = self.goofy.FlushTestlog(timeout=2)
+      self.ui_template.SetState(i18n_test_ui.MakeI18nLabel(
+          'Flush Test Log: Progress = <br>{progress}', progress=progress))
 
   def CreateReport(self):
     self.ui_template.SetState(i18n_test_ui.MakeI18nLabel(

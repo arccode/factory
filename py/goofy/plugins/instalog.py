@@ -186,7 +186,7 @@ class Instalog(plugin.Plugin):
       logging.error('FlushInput: Error encountered: %s', msg)
       return False, msg
     return (last_seq_processed >= last_seq_output,
-            'Processed %d / %d events' % (last_seq_processed, last_seq_output))
+            '(%d / %d events)' % (last_seq_processed, last_seq_output))
 
   def FlushOutput(self, timeout=None):
     """Flushes Instalog's upstream output plugin.

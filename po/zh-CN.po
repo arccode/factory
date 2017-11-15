@@ -2575,6 +2575,10 @@ msgid "Server URL: "
 msgstr "伺服器网址: "
 
 #: ../py/test/pytests/sync_factory_server.py
+msgid "Flush Test Log: Progress = <br>{progress}"
+msgstr "同步测试记录(TestLog): 进度 = <br>{progress}"
+
+#: ../py/test/pytests/sync_factory_server.py
 msgid "Collecting report data..."
 msgstr "收集报告资料..."
 

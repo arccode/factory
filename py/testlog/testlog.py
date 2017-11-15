@@ -81,6 +81,11 @@ _TMP_DIR = (os.environ.get('CROS_FACTORY_RUN_PATH') or
 # /run so it is cleared on each boot.
 _SEQUENCE_PATH = os.path.join(_TMP_DIR, 'testlog_seq')
 
+# Get the progress pattern of FlushOutput return value.
+# Example of FlushOutput return value: 'Flush for `output_uplink\' failed
+# within the specified timeout (100 / 1000 events)'
+_PROGRESS_RE = re.compile(r'\(.*\)')
+
 # Use the lock to avoid two threads creating multiple writers.
 _log_related_lock = threading.RLock()
 
@@ -255,10 +260,11 @@ class Testlog(object):
     """Flushes testlog logs through Instalog.
 
     Returns:
-      If successful, returns a string describing the flushing result.
+      If successful, returns True and a string describing the flushing result.
+      Otherwise, returns False and a string describing the progress of flushing.
 
     Raises:
-      FlushException if flush was not successful.
+      FlushException if no instalog plugin.
     """
     if self.instalog_plugin is None:
       raise FlushException('Flush: No Instalog plugin available')
@@ -266,13 +272,12 @@ class Testlog(object):
     input_success, input_msg = self.instalog_plugin.FlushInput(
         last_seq_output, timeout)
     if not input_success:
-      raise FlushException('Flush: Failed to flush Instalog input plugin: %s'
-                           % input_msg)
+      return False, 'Flushing input plugin: %s' % input_msg
     output_success, output_msg = self.instalog_plugin.FlushOutput(timeout)
+    output_msg = _PROGRESS_RE.search(output_msg).group()
     if not output_success:
-      raise FlushException('Flush: Failed to flush Instalog output plugin: %s'
-                           % output_msg)
-    return 'Success; %s; %s' % (input_msg, output_msg)
+      return False, 'Flushing output plugin: %s' % output_msg
+    return True, 'Success; %s; %s' % (input_msg, output_msg)
 
 
 def InitSubSession(log_root, uuid, station_test_run=None):
