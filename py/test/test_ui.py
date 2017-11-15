@@ -781,7 +781,7 @@ class TestCaseWithUI(unittest.TestCase):
 
   def __init__(self, methodName):
     super(TestCaseWithUI, self).__init__(methodName='_RunTest')
-    self.event_loop = NewEventLoop(self.__HandleEventHandlerException)
+    self.event_loop = None
     self.ui = None
     self.template = None
 
@@ -827,6 +827,8 @@ class TestCaseWithUI(unittest.TestCase):
     # and initialize using setUp() means that all pytest inheriting this need
     # to remember calling super(..., self).setUp(), which is a lot of
     # boilerplate code and easy to forget.
+    self.event_loop = NewEventLoop(self.__HandleEventHandlerException)
+
     extra_attrs = ''
     if self.template_classes:
       extra_attrs = ' class="%s"' % self.template_classes

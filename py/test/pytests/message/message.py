@@ -62,15 +62,12 @@ To show a message for 20 seconds, and automatically pass::
 
 
 from __future__ import print_function
-import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test import countdown_timer
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import test_task
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -81,32 +78,7 @@ CSS_TEMPLATE = """
 _HTML_REMAIN = '<br><div id="remain"></div>'
 
 
-class ShowingTask(test_task.TestTask):
-  """The task to show message for seconds """
-  def __init__(self, ui, seconds, manual_check):
-    super(ShowingTask, self).__init__()
-    self._ui = ui
-    self._seconds = seconds
-    self._done = False
-
-    self._ui.BindKey(test_ui.SPACE_KEY, lambda _: self.Done())
-    self._ui.BindKey(test_ui.ENTER_KEY, lambda _: self.Done())
-    if manual_check:
-      self._ui.BindKey(test_ui.ESCAPE_KEY, lambda _: self.Fail(None))
-
-  def Done(self):
-    self._done = True
-
-  def Run(self):
-    seconds = self._seconds
-    while seconds != 0 and not self._done:
-      self._ui.SetHTML(str(seconds), id='remain')
-      time.sleep(1)
-      seconds = seconds - 1
-    self.Pass()
-
-
-class MessageTest(unittest.TestCase):
+class MessageTest(test_ui.TestCaseWithUI):
   """A factory test to display a message."""
   ARGS = [
       i18n_arg_utils.I18nArg('html', 'Message in HTML'),
@@ -124,13 +96,12 @@ class MessageTest(unittest.TestCase):
           default=False)
   ]
 
-  def runTest(self):
+  def setUp(self):
     css = (CSS_TEMPLATE %
            dict(text_size=self.args.text_size,
                 text_color=self.args.text_color,
                 background_color=self.args.background_color))
-    ui = test_ui.UI(css=css)
-    template = ui_templates.OneSection(ui)
+    self.ui.AppendCSS(css)
 
     press_button_hint = ''
     if self.args.show_press_button_hint:
@@ -142,17 +113,19 @@ class MessageTest(unittest.TestCase):
         press_button_hint = i18n_test_ui.MakeI18nLabel(
             '<div>Press <strong>Enter</strong> to continue.</div>')
 
-    template.SetState(
+    self.template.SetState(
         '<div class="state">' +
         i18n_test_ui.MakeI18nLabelWithClass(self.args.html, 'message') +
         press_button_hint +
         _HTML_REMAIN +
         '</div>')
+
+    self.ui.BindStandardPassKeys()
+    if self.args.manual_check:
+      self.ui.BindStandardFailKeys()
+
+  def runTest(self):
     if self.args.seconds:
-      task = ShowingTask(ui, self.args.seconds, self.args.manual_check)
-      test_task.TestTaskManager(ui, [task]).Run()
-    else:
-      ui.BindStandardPassKeys()
-      if self.args.manual_check:
-        ui.BindStandardFailKeys()
-      ui.Run()
+      countdown_timer.StartNewCountdownTimer(self, self.args.seconds, 'remain',
+                                             self.PassTask)
+    self.WaitTaskEnd()
