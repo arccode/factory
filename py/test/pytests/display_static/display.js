@@ -5,7 +5,7 @@
 /**
  * API for display test.
  */
-class DisplayTest {
+window.DisplayTest = class {
   /**
    * @param {!Array<string>} items
    */
@@ -100,12 +100,4 @@ class DisplayTest {
           `Display test failed. Malfunction items: ${failedItems.join(', ')}`);
     }
   }
-}
-
-/**
- * Creates a display test and runs it.
- * @param {Array<string>} items
- */
-function setupDisplayTest(items) {
-  window.displayTest = new DisplayTest(items);
-}
+};

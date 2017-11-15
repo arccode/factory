@@ -7,6 +7,7 @@
 import os
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test import countdown_timer
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import translation
 from cros.factory.test import test_ui
@@ -88,7 +89,7 @@ class DisplayTest(test_ui.TestCaseWithUI):
     ]
     if self.images:
       self.ExtractTestImages()
-    self.ui.CallJSFunction('setupDisplayTest', self.items)
+    self.frontend_proxy = self.ui.InitJSTestObject('DisplayTest', self.items)
     self.checked = False
     self.fullscreen = False
 
@@ -101,12 +102,15 @@ class DisplayTest(test_ui.TestCaseWithUI):
       self.ui.BindKey(test_ui.SPACE_KEY, self.OnSpacePressed)
       self.ui.BindKey(test_ui.ENTER_KEY, self.OnEnterPressed)
       self.ui.AddEventHandler('onFullscreenClicked', self.OnSpacePressed)
+      self.ui.HideElement('display-timer')
     else:
       # Automatically enter fullscreen mode in idle mode.
       self.ToggleFullscreen()
       self.ui.AddEventHandler('onFullscreenClicked', self.OnFailPressed)
+      countdown_timer.StartNewCountdownTimer(self, self.idle_timeout,
+                                             'display-timer', self.PassTask)
     self.ui.BindKey(test_ui.ESCAPE_KEY, self.OnFailPressed)
-    self.WaitTaskEnd(timeout=self.idle_timeout)
+    self.WaitTaskEnd()
 
   def ExtractTestImages(self):
     """Extracts selected test images from test_images.tar.bz2."""
@@ -125,14 +129,14 @@ class DisplayTest(test_ui.TestCaseWithUI):
 
   def ToggleFullscreen(self):
     self.checked = True
-    self.ui.CallJSFunction('window.displayTest.toggleFullscreen')
+    self.frontend_proxy.ToggleFullscreen()
     self.fullscreen = not self.fullscreen
 
   def OnEnterPressed(self, event):
     """Passes the subtest only if self.checked is True."""
     del event  # Unused.
     if self.checked:
-      self.ui.CallJSFunction('window.displayTest.judgeSubTest', True)
+      self.frontend_proxy.JudgeSubTest(True)
       # If the next subtest will be in fullscreen mode, checked should be True
       self.checked = self.fullscreen
 
@@ -140,6 +144,6 @@ class DisplayTest(test_ui.TestCaseWithUI):
     """Fails the subtest only if self.checked is True."""
     del event  # Unused.
     if self.checked:
-      self.ui.CallJSFunction('window.displayTest.judgeSubTest', False)
+      self.frontend_proxy.JudgeSubTest(False)
       # If the next subtest will be in fullscreen mode, checked should be True
       self.checked = self.fullscreen

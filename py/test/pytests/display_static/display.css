@@ -28,6 +28,16 @@
   border: 1px black solid;
 }
 
+#display-timer {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  z-index: 2;
+  mix-blend-mode: difference;
+  color: white;
+  font-size: 2em;
+}
+
 .center {
   display: flex;
   justify-content: center;
@@ -78,6 +88,10 @@
 
 #display-div.subtest-solid-gray-127 {
   background-color: #7f7f7f;
+}
+
+#display-div.subtest-solid-gray-127 ~ #display-timer {
+  mix-blend-mode: normal;
 }
 
 #display-div.subtest-solid-gray-63 {
