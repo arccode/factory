@@ -167,6 +167,56 @@ class Gooftool(object):
 
     return result
 
+  def VerifyECKey(self, pubkey_path=None, pubkey_hash=None):
+    """Verify EC public key.
+    Verify by pubkey_path should have higher priority than pubkey_hash.
+
+    Args:
+      pubkey_path: A string for public key path. If not None, it verifies the
+          EC with the given pubkey_path.
+      pubkey_hash: A string for the public key hash. If not None, it verifies
+          the EC with the given pubkey_hash.
+    """
+    with self._named_temporary_file() as tmp_ec_bin:
+      flash_out = self._util.shell('flashrom -p ec -r %s' % tmp_ec_bin.name)
+      if not flash_out.success:
+        raise Error('Failed to read EC image: %s' % flash_out.stderr)
+      if pubkey_path:
+        result = self._util.shell('futility show --type rwsig --pubkey %s %s' %
+                                  (pubkey_path, tmp_ec_bin.name))
+        if not result.success:
+          raise Error('Failed to verify EC key with pubkey %s: %s' %
+                      (pubkey_path, result.stderr))
+      elif pubkey_hash:
+        futil_out = self._util.shell(
+            'futility show --type rwsig %s' % tmp_ec_bin.name)
+        if not futil_out.success:
+          raise Error('Failed to get EC pubkey hash: %s' % futil_out.stderr)
+        # The pattern output of the futility show is:
+        # Public Key file:       /tmp/ec_binasdf1234
+        #    Vboot API:           2.1
+        #    Desc:                ""
+        #    Signature Algorithm: 7 RSA3072EXP3
+        #    Hash Algorithm:      2 SHA256
+        #    Version:             0x00000001
+        #    ID:                  c80def123456789058e140bbc44c692cc23ecb4d
+        #  Signature:             /tmp/ec_binasdf1234
+        #    Vboot API:           2.1
+        #    Desc:                ""
+        #    Signature Algorithm: 7 RSA3072EXP3
+        #    Hash Algorithm:      2 SHA256
+        #    Total size:          0x1b8 (440)
+        #    ID:                  c80def123456789058e140bbc44c692cc23ecb4d
+        #    Data size:           0x17164 (94564)
+        #  Signature verification succeeded.
+        live_ec_hash = re.search(r'\n\s*ID:\s*[a-z0-9]*',
+                                 futil_out.stdout).group(0).split()[1]
+        if live_ec_hash != pubkey_hash:
+          raise Error('Failed to verify EC key: expects (%s) got (%s)' %
+                      (pubkey_hash, live_ec_hash))
+      else:
+        raise ValueError('All arguments are None.')
+
   def VerifyKeys(self, release_rootfs=None, firmware_path=None, _tmpexec=None):
     """Verify keys in firmware and SSD match.
 

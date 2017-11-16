@@ -219,6 +219,53 @@ class GooftoolTest(unittest.TestCase):
         ValueError,
         self._gooftool.VerifyComponents, ['camera', 'bad_class_name'])
 
+  def testVerifyECKeyWithPubkeyHash(self):
+    f = MockFile()
+    f.read = lambda: ''
+    stub_result = lambda: None
+    stub_result.success = True
+    _hash = 'abcdefghijklmnopqrstuvwxyz1234567890abcd'
+    futil_out = ('Public Key file:       %s\n'
+                 '  Vboot API:           2.1\n'
+                 '  ID:                  %s\n'
+                 'Signature:             %s\n'
+                 '  Vboot API:           2.1\n'
+                 '  ID:                  %s\n'
+                 'Signature verification succeeded.\n' % (f.name, _hash, f.name,
+                                                          _hash))
+
+    self._gooftool._named_temporary_file().AndReturn(f)
+    self._gooftool._util.shell(
+        'flashrom -p ec -r %s' % f.name).AndReturn(stub_result)
+    self._gooftool._util.shell(
+        'futility show --type rwsig %s' % f.name).AndReturn(
+            Obj(stdout=futil_out, success=True))
+    self._gooftool._named_temporary_file().AndReturn(f)
+    self._gooftool._util.shell(
+        'flashrom -p ec -r %s' % f.name).AndReturn(stub_result)
+    self._gooftool._util.shell(
+        'futility show --type rwsig %s' % f.name).AndReturn(
+            Obj(stdout=futil_out, success=True))
+    self.mox.ReplayAll()
+    self._gooftool.VerifyECKey(pubkey_hash=_hash)
+    self.assertRaises(Error, self._gooftool.VerifyECKey, pubkey_hash='abc123')
+
+  def testVerifyECKeyWithPubkeyPath(self):
+    f = MockFile()
+    f.read = lambda: ''
+    pubkey = 'key.vpubk2'
+    stub_result = lambda: None
+    stub_result.success = True
+
+    self._gooftool._named_temporary_file().AndReturn(f)
+    self._gooftool._util.shell(
+        'flashrom -p ec -r %s' % f.name).AndReturn(stub_result)
+    self._gooftool._util.shell('futility show --type rwsig --pubkey %s %s' %
+                               (pubkey, f.name)).AndReturn(
+                                   Obj(success=True))
+    self.mox.ReplayAll()
+    self._gooftool.VerifyECKey(pubkey_path=pubkey)
+
   def testVerifyKey(self):
     self._gooftool._util.GetReleaseKernelPathFromRootPartition(
         '/dev/null').AndReturn('/dev/zero')

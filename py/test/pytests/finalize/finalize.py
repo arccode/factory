@@ -162,6 +162,13 @@ class Finalize(unittest.TestCase):
           'A list of string indicating the enforced release image channels. '
           'Each item should be one of "dev", "beta" or "stable".',
           default=None),
+      Arg('ec_pubkey_path', str,
+          ('Path to public key in vb2 format. Verify EC key with pubkey file.'
+           'Verify by pubkey file should have higher priority.'),
+          default=None),
+      Arg('ec_pubkey_hash', str,
+          'A string for public key hash. Verify EC key with the given hash.',
+          default=None),
       Arg('use_local_gooftool', bool,
           'If DUT is local, use factory.par or local gooftool? If DUT is not '
           'local, factory.par is always used.', default=True),
@@ -344,6 +351,10 @@ class Finalize(unittest.TestCase):
           ' '.join(self.args.enforced_release_channels))
       logging.info(
           'Enforced release channels: %s.', self.args.enforced_release_channels)
+    if self.args.ec_pubkey_path:
+      command += ' --ec_pubkey_path %s' % self.args.ec_pubkey_path
+    elif self.args.ec_pubkey_hash:
+      command += ' --ec_pubkey_hash %s' % self.args.ec_pubkey_hash
     if self.args.gooftool_waive_list:
       command += ' --waive_list ' + ' '.join(self.args.gooftool_waive_list)
     if self.args.gooftool_skip_list:

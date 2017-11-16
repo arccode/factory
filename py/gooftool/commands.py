@@ -156,6 +156,16 @@ _enforced_release_channels_cmd_arg = CmdArg(
     '--enforced_release_channels', nargs='*', default=None,
     help='Enforced release image channels.')
 
+_ec_pubkey_path_cmd_arg = CmdArg(
+    '--ec_pubkey_path',
+    default=None,
+    help='Path to public key in vb2 format. Verify EC key with pubkey file.')
+
+_ec_pubkey_hash_cmd_arg = CmdArg(
+    '--ec_pubkey_hash',
+    default=None,
+    help='A string for public key hash. Verify EC key with the given hash.')
+
 _release_rootfs_cmd_arg = CmdArg(
     '--release_rootfs', help='Location of release image rootfs partition.')
 
@@ -259,6 +269,16 @@ def PrintVerifyComponentsResults(result):
     sys.exit('\ncomponent verification FAILURE')
   else:
     print '\ncomponent verification SUCCESS'
+
+
+@Command(
+    'verify_ec_key',
+    _ec_pubkey_path_cmd_arg,
+    _ec_pubkey_hash_cmd_arg)
+def VerifyECKey(options):
+  """Verify EC key."""
+  return GetGooftool(options).VerifyECKey(
+      options.ec_pubkey_path, options.ec_pubkey_hash)
 
 
 @Command('verify_keys',
@@ -484,6 +504,8 @@ def WipeInit(options):
          _hwid_cmd_arg,
          _rma_mode_cmd_arg,
          _cros_core_cmd_arg,
+         _ec_pubkey_path_cmd_arg,
+         _ec_pubkey_hash_cmd_arg,
          _release_rootfs_cmd_arg,
          _firmware_path_cmd_arg,
          _enforced_release_channels_cmd_arg,
@@ -504,6 +526,7 @@ def Verify(options):
   VerifyDevSwitch(options)
   VerifyHWID(options)
   VerifySystemTime(options)
+  VerifyECKey(options)
   VerifyKeys(options)
   VerifyRootFs(options)
   VerifyTPM(options)
@@ -670,6 +693,8 @@ def UploadReport(options):
          _hwid_cmd_arg,
          _rma_mode_cmd_arg,
          _cros_core_cmd_arg,
+         _ec_pubkey_path_cmd_arg,
+         _ec_pubkey_hash_cmd_arg,
          _release_rootfs_cmd_arg,
          _firmware_path_cmd_arg,
          _enforced_release_channels_cmd_arg,

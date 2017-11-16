@@ -6,6 +6,8 @@
     "grt": {
       "force_write_protect": false,
       "__comment_force_write_protect": "*** Write protection is required for mass production and shippable devices. By default we enable write protection starting from PVT stages, but you can start trying write protection earlier by this option.",
+      "ec_pubkey_path": null,
+      "ec_pubkey_hash": null,
       "gooftool_skip_list": [],
       "gooftool_waive_list": [],
       "secure_wipe": true
@@ -40,6 +42,8 @@
       "args": {
         "enable_factory_server": "eval! constants.enable_factory_server",
         "enforced_release_channels": "eval! ['stable'] if options.phase == 'PVT' else None",
+        "ec_pubkey_path": "eval! constants.grt.ec_pubkey_path",
+        "ec_pubkey_hash": "eval! constants.grt.ec_pubkey_hash",
         "gooftool_skip_list": "eval! constants.grt.gooftool_skip_list",
         "gooftool_waive_list": "eval! constants.grt.gooftool_waive_list",
         "secure_wipe": "eval! constants.grt.secure_wipe",
