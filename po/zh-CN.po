@@ -1987,10 +1987,6 @@ msgid "adapter LED"
 msgstr "电源适配器 LED"
 
 #: ../py/test/pytests/led/led.py
-msgid "Result: "
-msgstr "测试结果："
-
-#: ../py/test/pytests/led/led.py
 msgid "If the <strong>{name}</strong> is <strong>off</strong>, press ENTER."
 msgstr ""
 "请检查 <strong>{name}</strong> 是否 <strong>关掉</strong> 了，关掉了请按 "
@@ -2011,6 +2007,10 @@ msgid ""
 msgstr ""
 "<span class=\"sub-title\">测试 {test_id}</span><br>请根据 <strong>{name}</"
 "strong> 的颜色按下数字键"
+
+#: ../py/test/pytests/led/led.py
+msgid "Result: "
+msgstr "测试结果："
 
 #: ../py/test/pytests/lid_switch/lid_switch.py
 msgid "Close then open the lid"

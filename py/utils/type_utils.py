@@ -5,6 +5,7 @@
 """Utilities for data types."""
 
 import collections
+import functools
 import inspect
 import Queue
 import re
@@ -536,3 +537,14 @@ def StdRepr(obj, extra=None, excluded_keys=None, true_only=False):
                if k[0] != '_' and k not in excluded_keys and (
                    not true_only or getattr(obj, k))])
           + ')')
+
+
+def BindFunction(func, *args, **kwargs):
+  """Bind arguments to a function.
+
+  The returned function have same __name__ and __doc__ with func.
+  """
+  @functools.wraps(func)
+  def _Wrapper():
+    return func(*args, **kwargs)
+  return _Wrapper

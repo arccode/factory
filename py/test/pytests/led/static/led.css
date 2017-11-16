@@ -1,0 +1,76 @@
+/*
+ * Copyright 2017 The Chromium OS Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+.sub-title {
+  font-size: 2em;
+  font-weight: bold;
+  line-height: 3em;
+}
+
+.led-btn {
+  width: 1.5em;
+  height: 1.5em;
+  font-size: 2em;
+  padding: 5px;
+  margin: 3px;
+  border-radius: 3px;
+  font-weight: bold;
+  border: 1px solid #7D7D7D;
+  text-align: center;
+  display: inline-block;
+}
+
+.led-btn.color-yellow {
+  background-color: yellow;
+}
+
+.led-btn.color-green {
+  background-color: green;
+}
+
+.led-btn.color-red {
+  background-color: red;
+}
+
+.led-btn.color-white {
+  background-color: white;
+}
+
+.led-btn.color-blue {
+  background-color: blue;
+  color: white;
+}
+
+.led-btn.color-amber {
+  background-color: #ffbf00;
+}
+
+.led-btn.color-off {
+  background-color: black;
+  color: white;
+}
+
+strong {
+  background: #ccc;
+  padding: 3px 6px;
+  margin: 0 2px;
+  font-weight: normal;
+}
+
+.result-line {
+  margin-top: 2em;
+}
+
+.result-pass {
+  color: green;
+  font-weight: bold;
+}
+
+.result-fail {
+  color: red;
+  font-weight: bold;
+}
+

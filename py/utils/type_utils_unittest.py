@@ -25,14 +25,18 @@ class FlattenListTest(unittest.TestCase):
     self.assertEquals([1, 2, 3, 4, 5, 6],
                       type_utils.FlattenList([1, 2, [3, 4, []], 5, 6]))
 
+
 class MakeListTest(unittest.TestCase):
+
   def runTest(self):
     self.assertEquals(['a'], type_utils.MakeList('a'))
     self.assertEquals(['abc'], type_utils.MakeList('abc'))
     self.assertEquals(['a', 'b'], type_utils.MakeList(['a', 'b']))
     self.assertEquals(['a', 'b'], type_utils.MakeList({'a': 'foo', 'b': 'bar'}))
 
+
 class MakeTupleTest(unittest.TestCase):
+
   def runTest(self):
     self.assertEquals(('a',), type_utils.MakeTuple('a'))
     self.assertEquals(('abc',), type_utils.MakeTuple('abc'))
@@ -43,7 +47,9 @@ class MakeTupleTest(unittest.TestCase):
         (1, 2, (3, 4, ('str',))),
         type_utils.MakeTuple([1, 2, (3, 4, ['str'])]))
 
+
 class MakeSetTest(unittest.TestCase):
+
   def runTest(self):
     self.assertEquals(set(['ab']), type_utils.MakeSet('ab'))
     self.assertEquals(set(['a', 'b']), type_utils.MakeSet(['a', 'b']))
@@ -227,6 +233,7 @@ class CachedGetterTest(unittest.TestCase):
 
 
 class UniqueSetTest(unittest.TestCase):
+
   def setUp(self):
     self.container = type_utils.UniqueStack()
 
@@ -291,6 +298,7 @@ class GetDictTest(unittest.TestCase):
     self.assertEquals(GetDict(data, 'services.shop_floor', 'FAIL'), {})
     self.assertEquals(GetDict(
         data, 'services.shop_floor.service_url', 'DEFAULT'), 'DEFAULT')
+
 
 class UnicodeToStringTest(unittest.TestCase):
 
@@ -367,6 +375,20 @@ class UnicodeToStringTest(unittest.TestCase):
                     obj.f1(u'a', b=u'c', d=set([u'e'])))
     self.assertSame(('f2', ('a',), {'b': 'c', 'd': set(['e'])}),
                     obj.f2(u'a', b=u'c', d=set([u'e'])))
+
+
+class BindFunctionTest(unittest.TestCase):
+
+  def runTest(self):
+    def func(a, b):
+      """Adds two numbers."""
+      return a + b
+
+    bound_func = type_utils.BindFunction(func, 123, 151)
+    self.assertEqual(274, bound_func())
+    self.assertEqual(274, bound_func())
+    self.assertEqual('func', bound_func.__name__)
+    self.assertEqual('Adds two numbers.', bound_func.__doc__)
 
 
 if __name__ == "__main__":

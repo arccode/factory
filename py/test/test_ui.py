@@ -933,18 +933,12 @@ class TestCaseWithUI(unittest.TestCase):
 
     # Ends the event loop after all tasks are run.
     if task_errors:
-      if len(task_errors) == 1:
-        name, message = task_errors[0]
-        if is_default_task:
-          error_msg = message
-        else:
-          error_msg = '%s: %s' % (name, message)
+      if is_default_task:
+        assert len(task_errors) == 1
+        error_msg = task_errors[0][1]
       else:
-        error_msg = 'Failed tasks: %r\n' % [
-            name for name, unused_message in task_errors
-        ]
-        error_msg += '\n'.join('Task %s: %s' % (name, message)
-                               for name, message in task_errors)
+        error_msg = ', '.join('%s: %s' % (name, message)
+                              for name, message in task_errors)
 
       self.event_loop.PostNewEvent(
           test_event.Event.Type.END_EVENT_LOOP,

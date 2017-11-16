@@ -8,7 +8,6 @@ or SMT fixture confirm LED functionality."""
 import logging
 import random
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -18,15 +17,10 @@ from cros.factory.test.i18n import test_ui as i18n_test_ui
 # The right BFTFixture module is dynamically imported based on args.bft_fixture.
 # See setUp() for more detail.
 from cros.factory.test.fixture import bft_fixture
-from cros.factory.test import test_task
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import type_utils
 
-
-# True to test all colors regardless of failure.
-_FAIL_LATER = True
-_SHOW_RESULT_SECONDS = 0.5
 
 LEDColor = led_module.LED.Color
 LEDIndex = led_module.LED.Index
@@ -44,250 +38,8 @@ _INDEX_LABEL = {
     LEDIndex.BATTERY: _('battery LED'),
     LEDIndex.ADAPTER: _('adapter LED')}
 
-# Hash values are: (LED color, readable text color).
-_COLOR_CODE = {
-    LEDColor.YELLOW: ('#ffff00', 'black'),
-    LEDColor.GREEN: ('#00ff00', 'black'),
-    LEDColor.RED: ('#ff0000', 'black'),
-    LEDColor.WHITE: ('#ffffff', 'black'),
-    LEDColor.BLUE: ('#0000ff', 'white'),
-    LEDColor.AMBER: ('#ffbf00', 'black'),
-    LEDColor.OFF: ('#000000', 'white')}
 
-_JS_OP_RESPONSE = """
-function UpdateResult(result) {
-  res = $('result');
-  if (result) {
-    res.innerHTML = '<span class="result-pass">PASS</span>';
-  } else {
-    res.innerHTML = '<span class="result-fail">FAIL</span>';
-  }
-}
-"""
-
-_SELECT_COLOR_EVENT = 'led-select-color'
-
-_HTML_KEY_TEMPLATE = """
-<span class="led-btn" style="background-color: %s; color: %s"
-    onclick="window.test.sendTestEvent('%s', %d);">%d</span>
-"""
-
-_HTML_RESULT = (
-    '<div class="result-line">' +
-    i18n_test_ui.MakeI18nLabel('Result: ') +
-    '<span id="result"></span></div>')
-
-_CSS = """
-.sub-title {
-  font-size: 2em;
-  font-weight: bold;
-  line-height: 3em;
-}
-
-.led-btn {
-  width: 1.5em;
-  height: 1.5em;
-  font-size: 2em;
-  padding: 5px;
-  margin: 3px;
-  border-radius: 3px;
-  font-weight: bold;
-  border: 1px solid #7D7D7D;
-  text-align: center;
-  display: inline-block;
-}
-
-strong {
-  background: #ccc;
-  padding: 3px 6px;
-  margin: 0 2px;
-  font-weight: normal;
-}
-
-.result-line {
-  margin-top: 2em;
-}
-
-.result-pass {
-  color: green;
-  font-weight: bold;
-}
-
-.result-fail {
-  color: red;
-  font-weight: bold;
-}
-"""
-
-
-class CheckLEDTask(test_task.InteractiveTestTask):
-  """An InteractiveTestTask that asks operator to check LED color.
-
-  Args:
-    ui: test_ui.UI instance.
-    template: ui_templates.OneSection instance.
-    led: dut.led.LED instance to control LED.
-    nth: The number of task.
-    color: LEDColor to inspect.
-    color_label: Label for inspected color.
-    index: Target LED to inspect. None means default LED.
-    index_label: Label for inspected index.
-  """
-
-  def __init__(self, ui, template, led, nth, color, color_label,
-               index, index_label):
-    super(CheckLEDTask, self).__init__(ui)
-    self._template = template
-    self._led = led
-    self._nth = nth
-    self._color = color
-    self._color_label = color_label
-    self._index = index
-    self._index_label = index_label
-
-  def Run(self):
-    """Lights LED in color and asks operator to verify it."""
-    self._InitUI()
-    if self._index is None:
-      self._led.SetColor(self._color)
-    else:
-      self._led.SetColor(self._color, led_name=self._index)
-
-  def _InitUI(self):
-    """Sets instructions and binds pass/fail key."""
-    raise NotImplementedError
-
-  def Cleanup(self):
-    """Turns the light off after the test."""
-    if self._index is None:
-      self._led.SetColor(LEDColor.OFF)
-    else:
-      self._led.SetColor(LEDColor.OFF, led_name=self._index)
-
-
-class CheckLEDTaskNormal(CheckLEDTask):
-  """Checks for LED colors by asking operator to push ENTER."""
-
-  def __init__(self, ui, template, led, nth, color, color_label,
-               index, index_label):
-    super(CheckLEDTaskNormal, self).__init__(
-        ui, template, led, nth, color, color_label, index, index_label)
-
-  def _InitUI(self):
-    if self._color == LEDColor.OFF:
-      instruction = i18n_test_ui.MakeI18nLabel(
-          'If the <strong>{name}</strong> is <strong>off</strong>, '
-          'press ENTER.', name=self._index_label)
-    else:
-      instruction = i18n_test_ui.MakeI18nLabel(
-          'If the <strong>{name}</strong> lights up in '
-          '<strong>{color}</strong>, press ENTER.',
-          name=self._index_label, color=self._color_label)
-    self._ui.AppendCSS(_CSS)
-    self._template.SetState(instruction)
-
-    self.BindPassFailKeys(fail_later=_FAIL_LATER)
-
-
-class CheckLEDTaskChallenge(CheckLEDTask):
-  """Checks for LED colors interactively.
-
-  Args:
-    color_options: The color options for the operator to choose.
-  """
-
-  def __init__(self, ui, template, led, nth, color, color_label,
-               index, index_label, color_options):
-    super(CheckLEDTaskChallenge, self).__init__(
-        ui, template, led, nth, color, color_label, index, index_label)
-    self._color_options = color_options
-
-  def _InitUI(self):
-    desc = i18n_test_ui.MakeI18nLabel(
-        '<span class="sub-title">Test {test_id}</span><br>'
-        'Please press number key according to the <strong>{name}</strong> '
-        'color',
-        test_id=self._nth, name=self._index_label)
-
-    btn_ui = '<div>' + ''.join([
-        _HTML_KEY_TEMPLATE % (_COLOR_CODE[c] + (_SELECT_COLOR_EVENT, j, j + 1))
-        for j, c in enumerate(self._color_options)]) + '</div>'
-
-    ui = [desc, '<br>', btn_ui, _HTML_RESULT]
-
-    def _Judge(event):
-      if event.data == target:
-        self._ui.CallJSFunction('UpdateResult', True)
-        time.sleep(_SHOW_RESULT_SECONDS)
-        self.Pass()
-      else:
-        self._ui.CallJSFunction('UpdateResult', False)
-        time.sleep(_SHOW_RESULT_SECONDS)
-        self.Fail('LED color incorrect or wrong button pressed')
-
-    target = self._color_options.index(self._color)
-
-    self._ui.AddEventHandler(_SELECT_COLOR_EVENT, _Judge)
-
-    for i, _ in enumerate(self._color_options):
-      self._ui.BindKey(str(i + 1), _Judge, i, virtual_key=False)
-
-    self._ui.AppendCSS(_CSS)
-    self._template.SetState(''.join(ui))
-    self._ui.RunJS(_JS_OP_RESPONSE)
-
-
-class FixtureCheckLEDTask(test_task.TestTask):
-  """A TestTask that uses fixture to check LED color.
-
-  Args:
-    fixture: BFTFixture instance.
-    led: dut.led.LED instance to control LED.
-    color: LEDColor to inspect.
-    color_label: Label for inspected color.
-    index: Target LED to inspect (unused yet).
-    index_label: Label for inspected index (unused yet).
-  """
-
-  def __init__(self, fixture, led, color, color_label, index, index_label):
-    super(FixtureCheckLEDTask, self).__init__()
-    self._fixture = fixture
-    self._led = led
-    self._color = color
-    self._color_label = color_label
-    self._index = index
-    self._index_label = index_label
-
-  def Run(self):
-    """Lights LED in color and asks fixture to verify it."""
-    self._led.SetColor(self._color)
-    self._CheckFixture()
-
-  def _CheckFixture(self):
-    """Asks fixture to check if LED lights self._color.
-
-    It passes the task if fixture replies with the expected value.
-    """
-    try:
-      if self._fixture.IsLEDColor(self._color):
-        self.Pass()
-      else:
-        # Fail later to detect all colors.
-        self.Fail('Unable to detect %s LED.' % self._color_label['en-US'],
-                  later=_FAIL_LATER)
-    except bft_fixture.BFTFixtureException:
-      logging.exception('Failed to send command to BFT fixture')
-      self.Fail('Failed to send command to BFT fixture.')
-
-  def Cleanup(self):
-    """Turns the light off after the test."""
-    if self._index is None:
-      self._led.SetColor(LEDColor.OFF)
-    else:
-      self._led.SetColor(LEDColor.OFF, led_name=self._index)
-
-
-class LEDTest(unittest.TestCase):
+class LEDTest(test_ui.TestCaseWithUI):
   """Tests if the onboard LED can light up with specified colors."""
   ARGS = [
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP, default=None),
@@ -303,83 +55,141 @@ class LEDTest(unittest.TestCase):
           'and sets them to auto after test.', default=None)]
 
   def setUp(self):
-    self._dut = device_utils.CreateDUTInterface()
-    self._ui = test_ui.UI()
-    self._template = ui_templates.OneSection(self._ui)
-    self._task_manager = None
+    self._led = device_utils.CreateDUTInterface().led
     self._fixture = None
     if self.args.bft_fixture:
       self._fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
 
-    self._SetAllLED(self.args.target_leds, LEDColor.OFF)
+    self._SetAllLED(LEDColor.OFF)
 
-  def tearDown(self):
-    self._SetAllLED(self.args.target_leds, LEDColor.AUTO)
-
-    if self._fixture:
-      self._fixture.Disconnect()
-
-  def runTest(self):
-    tasks = []
-    colors = self.args.colors
+    # Transform the colors to a list of [led_name, color].
+    self.colors = [[None, item] if isinstance(item, basestring) else item
+                   for item in self.args.colors]
 
     # Shuffle the colors for interactive challenge, so operators can't guess
     # the sequence.
     if self.args.challenge:
-      color_options = list(set([x if isinstance(x, str) else x[1]
-                                for x in colors]))
-      colors = list(colors)
-      random.shuffle(colors)
+      random.shuffle(self.colors)
 
-    for i, index_color in enumerate(colors):
-      if isinstance(index_color, str):
-        color = index_color
-        index = None
-      else:
-        index, color = index_color
-
-      color_label = _COLOR_LABEL[color]
-      index_label = self._GetIndexLabel(index)
-
+    for test_id, [led_name, color] in enumerate(self.colors, 1):
+      cleanup = type_utils.BindFunction(self._TurnOffLED, led_name)
       if self._fixture:
-        tasks.append(FixtureCheckLEDTask(self._fixture, self._dut.led,
-                                         color, color_label,
-                                         index, index_label))
+        self.AddTask(
+            type_utils.BindFunction(self.RunFixtureTask, led_name, color),
+            cleanup=cleanup)
       elif self.args.challenge:
-        tasks.append(CheckLEDTaskChallenge(self._ui, self._template,
-                                           self._dut.led, i + 1,
-                                           color, color_label,
-                                           index, index_label,
-                                           color_options))
+        self.AddTask(
+            type_utils.BindFunction(self.RunChallengeTask, test_id, led_name,
+                                    color),
+            cleanup=cleanup)
       else:
-        tasks.append(CheckLEDTaskNormal(self._ui, self._template,
-                                        self._dut.led, i + 1,
-                                        color, color_label,
-                                        index, index_label))
+        self.AddTask(
+            type_utils.BindFunction(self.RunNormalTask, led_name, color),
+            cleanup=cleanup)
 
-    self._task_manager = test_task.TestTaskManager(self._ui, tasks)
-    self._task_manager.Run()
+  def tearDown(self):
+    self._SetAllLED(LEDColor.AUTO)
 
-  def _GetIndexLabel(self, index):
-    if index in _INDEX_LABEL:
-      return _INDEX_LABEL[index]
+    if self._fixture:
+      self._fixture.Disconnect()
+
+  def RunNormalTask(self, led_name, color):
+    """Checks for LED colors by asking operator to push ENTER."""
+    self._SetLEDColor(led_name, color)
+
+    led_name_label = self._GetNameI18nLabel(led_name)
+    color_label = _COLOR_LABEL[color]
+    if color == LEDColor.OFF:
+      instruction = i18n_test_ui.MakeI18nLabel(
+          'If the <strong>{name}</strong> is <strong>off</strong>, '
+          'press ENTER.', name=led_name_label)
     else:
-      return _(index)
+      instruction = i18n_test_ui.MakeI18nLabel(
+          'If the <strong>{name}</strong> lights up in '
+          '<strong>{color}</strong>, press ENTER.',
+          name=led_name_label, color=color_label)
+    self.template.SetState(instruction)
+    self.ui.BindStandardKeys()
+    self.WaitTaskEnd()
 
-  def _SetAllLED(self, leds, color):
-    """Sets all LEDs to a given color.
+  def _CreateChallengeTaskUI(self, test_id, led_name, color_options):
+    """Create the UI of challenge task."""
+    def _MakeButton(idx, color):
+      return '<span class="led-btn color-{color}">{idx}</span>'.format(
+          color=color.lower(), idx=idx)
+
+    led_name_label = self._GetNameI18nLabel(led_name)
+    description = i18n_test_ui.MakeI18nLabel(
+        '<span class="sub-title">Test {test_id}</span><br>'
+        'Please press number key according to the <strong>{name}</strong> '
+        'color',
+        test_id=test_id, name=led_name_label)
+    buttons_ui = '<div>' + ''.join(
+        _MakeButton(idx, color)
+        for idx, color in enumerate(color_options, 1)) + '</div>'
+    result_line = (
+        '<div class="result-line">' + i18n_test_ui.MakeI18nLabel('Result: ') +
+        '<span id="result"></span></div>')
+    return description + '<br>' + buttons_ui + result_line
+
+  def RunChallengeTask(self, test_id, led_name, color):
+    """Checks for LED colors interactively."""
+    self._SetLEDColor(led_name, color)
+
+    color_options = list(set(color for unused_index, color in self.colors))
+    color_options.sort()
+    answer = color_options.index(color)
+
+    self.template.SetState(
+        self._CreateChallengeTaskUI(test_id, led_name, color_options))
+
+    keys = [str(i) for i in range(1, len(color_options) + 1)]
+    pressed_key = int(self.ui.WaitKeysOnce(keys)) - 1
+    if pressed_key == answer:
+      self.ui.SetHTML('<span class="result-pass">PASS</span>', id='result')
+      time.sleep(0.5)
+      self.PassTask()
+    else:
+      self.ui.SetHTML('<span class="result-fail">FAIL</span>', id='result')
+      time.sleep(0.5)
+      self.FailTask('correct color for %s is %s but got %s.' %
+                    (led_name, color, color_options[pressed_key]))
+
+  def RunFixtureTask(self, led_name, color):
+    """Lights LED in color and asks fixture to verify it."""
+    self._SetLEDColor(led_name, color)
+    try:
+      if self._fixture.IsLEDColor(color):
+        self.PassTask()
+      else:
+        # Fail later to detect all colors.
+        self.FailTask('Unable to detect %s LED.' % color)
+    except bft_fixture.BFTFixtureException:
+      logging.exception('Failed to send command to BFT fixture')
+      self.FailTask('Failed to send command to BFT fixture.')
+
+  def _SetLEDColor(self, led_name, color):
+    """Set LED color for a led."""
+    if led_name is None:
+      self._led.SetColor(color)
+    else:
+      self._led.SetColor(color, led_name=led_name)
+
+  def _TurnOffLED(self, led_name):
+    """Turn off the target LED."""
+    self._SetLEDColor(led_name, LEDColor.OFF)
+
+  def _GetNameI18nLabel(self, led_name):
+    return _INDEX_LABEL.get(led_name, _(led_name))
+
+  def _SetAllLED(self, color):
+    """Sets all LEDs in target_leds to a given color.
 
     Args:
-      leds: List of LED index. None for default LED.
       color: One of LEDColor.
     """
-    if not self._dut.led:
-      # Sanity check. It should not happen.
-      return
-
-    if not leds:
-      self._dut.led.SetColor(color)
-      return
-
-    for led in leds:
-      self._dut.led.SetColor(color, led_name=led)
+    if self.args.target_leds:
+      for led in self.args.target_leds:
+        self._led.SetColor(color, led_name=led)
+    else:
+      self._led.SetColor(color)
