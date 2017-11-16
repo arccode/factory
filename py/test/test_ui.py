@@ -99,6 +99,10 @@ class BaseEventLoop(object):
     del event  # Unused.
     raise NotImplementedError()
 
+  def ClearHandlers(self):
+    """Clear all event handlers."""
+    self.event_handlers.clear()
+
 
 class EventLoop(BaseEventLoop):
   """Old event loop for UI."""
@@ -909,6 +913,8 @@ class TestCaseWithUI(unittest.TestCase):
       except Exception:
         self.__PutTaskEndException(TaskFailException(traceback.format_exc()))
       finally:
+        self.event_loop.ClearHandlers()
+        self.ui.UnbindAllKeys()
         if task.cleanup:
           task.cleanup()
 
