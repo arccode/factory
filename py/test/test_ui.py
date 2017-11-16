@@ -268,6 +268,11 @@ class UI(object):
     if js:
       self.RunJS(js)
 
+    # TODO(pihsun): Change to insert a css link instead.
+    css = GetAutoload('css')
+    if css:
+      self.AppendCSS(css)
+
   def SetHTML(self, html, append=False, id=None):
     """Sets a HTML snippet to the UI in the test pane.
 
