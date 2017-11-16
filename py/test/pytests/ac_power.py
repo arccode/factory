@@ -4,9 +4,8 @@
 
 """A test to instruct the operator / BFT fixture to plug/unplug AC power."""
 
-import threading
+import numbers
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -14,36 +13,16 @@ from cros.factory.test import session
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 
-_TEST_TITLE_PLUG = i18n_test_ui.MakeI18nLabel('Connect AC')
-_TEST_TITLE_UNPLUG = i18n_test_ui.MakeI18nLabel('Remove AC')
-
-_PLUG_AC = lambda type: (
-    i18n_test_ui.MakeI18nLabel('Plug in the charger ({type})', type=type)
-    if type else i18n_test_ui.MakeI18nLabel('Plug in the charger'))
-_UNPLUG_AC = i18n_test_ui.MakeI18nLabel('Unplug the charger.')
-
 _PROBE_TIMES_ID = 'probed_times'
-_PROBE_TIMES_MSG = lambda times, total: i18n_test_ui.MakeI18nLabel(
-    'Probed {times} / {total}', times=times, total=total)
-
 _AC_STATUS_ID = 'ac_status'
 _AC_POWER_ID = 'ac_power'
-_NO_AC = i18n_test_ui.MakeI18nLabel('No AC adapter')
-_AC_TYPE_PROBING = i18n_test_ui.MakeI18nLabel('Identifying AC adapter...')
-_AC_TYPE = i18n_test_ui.MakeI18nLabel('AC adapter type: ')
-_AC_POWER = lambda watt, min_watt, max_watt: i18n_test_ui.MakeI18nLabel(
-    'Detected power {watt}, required power range ({min_watt}, {max_watt})',
-    watt=watt,
-    min_watt=min_watt,
-    max_watt=max_watt)
 _AC_TYPE_USB_PD = 'USB_PD'
 
 
-class ACPowerTest(unittest.TestCase):
+class ACPowerTest(test_ui.TestCaseWithUI):
   """A test to instruct the operator to plug/unplug AC power.
 
   Args:
@@ -70,7 +49,7 @@ class ACPowerTest(unittest.TestCase):
           'Maximum number of retries allowed to pass the test. '
           '0 means only probe once. Default None means probe forever.',
           default=None),
-      Arg('polling_period_secs', (int, float),
+      Arg('polling_period_secs', numbers.Real,
           'Polling period in seconds.', default=1),
       Arg('silent_warning', int,
           'Skips first N charger type mismatch before giving a warning. '
@@ -81,23 +60,22 @@ class ACPowerTest(unittest.TestCase):
 
   def setUp(self):
     self._power = device_utils.CreateDUTInterface().power
-    self._ui = test_ui.UI()
-    self._template = ui_templates.OneSection(self._ui)
-    self._template.SetTitle(_TEST_TITLE_PLUG if self.args.online
-                            else _TEST_TITLE_UNPLUG)
 
-    instruction = (_PLUG_AC(self.args.power_type)
-                   if self.args.online else _UNPLUG_AC)
-    probe_count_message = ''
-    if self.args.retries is not None:
-      probe_count_message = _PROBE_TIMES_MSG(0, self.args.retries)
-    self._template.SetState(
-        '%s<br><span id="%s">%s</span><div id="%s"></div><br><div id=%s></div>'
-        % (instruction, _PROBE_TIMES_ID, probe_count_message, _AC_STATUS_ID,
-           _AC_POWER_ID))
+    if not self.args.online:
+      instruction = i18n_test_ui.MakeI18nLabel('Unplug the charger.')
+    elif self.args.power_type:
+      instruction = i18n_test_ui.MakeI18nLabel(
+          'Plug in the charger ({type})', type=self.args.power_type)
+    else:
+      instruction = i18n_test_ui.MakeI18nLabel('Plug in the charger')
+
+    self.template.SetInstruction(instruction)
+
+    self.template.SetState(
+        '<div id="%s"></div><div id="%s"></div><div id="%s"></div>' %
+        (_PROBE_TIMES_ID, _AC_STATUS_ID, _AC_POWER_ID))
 
     self._power_state = {}
-    self._done = threading.Event()
     self._last_type = None
     self._last_ac_present = None
     self._skip_warning_remains = self.args.silent_warning
@@ -112,14 +90,23 @@ class ACPowerTest(unittest.TestCase):
     if self.args.bft_fixture:
       self.fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
 
-  def Done(self):
-    self._done.set()
-
-  def UpdateACPower(self, power):
-    self._ui.SetHTML(power, id=_AC_POWER_ID)
+  def UpdateACPower(self, watt, min_watt, max_watt):
+    self.ui.SetHTML(
+        i18n_test_ui.MakeI18nLabel(
+            'Detected power {watt} W, '
+            'required power range ({min_watt} W, {max_watt} W)',
+            watt=watt, min_watt=min_watt, max_watt=max_watt),
+        id=_AC_POWER_ID)
 
   def UpdateACStatus(self, status):
-    self._ui.SetHTML(status, id=_AC_STATUS_ID)
+    self.ui.SetHTML(status, id=_AC_STATUS_ID)
+
+  def UpdateProbeTimes(self, num_probes):
+    self.ui.SetHTML(
+        i18n_test_ui.MakeI18nLabel(
+            'Probed {times} / {total}',
+            times=num_probes, total=self.args.retries),
+        id=_PROBE_TIMES_ID)
 
   def CheckCondition(self):
     ac_present = self._power.CheckACPresent()
@@ -135,15 +122,18 @@ class ACPowerTest(unittest.TestCase):
 
     if ac_present != self.args.online:
       if not ac_present:
-        self.UpdateACStatus(_NO_AC)
+        self.UpdateACStatus(i18n_test_ui.MakeI18nLabel('No AC adapter'))
       return False
 
     if self.args.power_type and self.args.power_type != current_type:
       if self._skip_warning_remains > 0:
-        self.UpdateACStatus(_AC_TYPE_PROBING)
+        self.UpdateACStatus(
+            i18n_test_ui.MakeI18nLabel('Identifying AC adapter...'))
         self._skip_warning_remains -= 1
       elif self._last_type != current_type:
-        self.UpdateACStatus(_AC_TYPE + current_type)
+        self.UpdateACStatus(
+            i18n_test_ui.MakeI18nLabel(
+                'AC adapter type: {type}', type=current_type))
         session.console.warning(
             'Expecting %s but see %s', self.args.power_type, current_type)
         self._last_type = current_type
@@ -158,7 +148,7 @@ class ACPowerTest(unittest.TestCase):
           continue
         dummy_index = 0
         power_watt = info.voltage * info.current / 1000000
-        self.UpdateACPower(_AC_POWER(power_watt, power_min, power_max))
+        self.UpdateACPower(power_watt, power_min, power_max)
         result = self._power_series.CheckValue(dummy_index, power_watt,
                                                power_min, power_max)
         if not result:
@@ -169,25 +159,19 @@ class ACPowerTest(unittest.TestCase):
       return False
     return True
 
-  def _runTest(self):
+  def runTest(self):
     if self.fixture:
       self.fixture.SetDeviceEngaged(bft_fixture.BFTFixture.Device.AC_ADAPTER,
                                     self.args.online)
     num_probes = 0
 
-    while not self._done.is_set():
+    while True:
+      if self.args.retries is not None:
+        self.UpdateProbeTimes(num_probes)
       if self.CheckCondition():
         break
-      if self.args.retries is not None:
-        # retries is set.
-        num_probes += 1
-        self._ui.SetHTML(_PROBE_TIMES_MSG(num_probes, self.args.retries),
-                         id=_PROBE_TIMES_ID)
-        if self.args.retries < num_probes:
-          self.fail('Failed after probing %d times' % num_probes)
+      num_probes += 1
+      if self.args.retries is not None and num_probes > self.args.retries:
+        self.FailTask('Failed after probing %d times' % num_probes)
       # Prevent busy polling.
       time.sleep(self.args.polling_period_secs)
-
-  def runTest(self):
-    self._ui.RunInBackground(self._runTest)
-    self._ui.Run(on_finish=self.Done)

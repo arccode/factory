@@ -1023,12 +1023,8 @@ msgid "Pull the lever up."
 msgstr "拉起把手"
 
 #: ../py/test/pytests/ac_power.py
-msgid "Connect AC"
-msgstr "连接充电器"
-
-#: ../py/test/pytests/ac_power.py
-msgid "Remove AC"
-msgstr "移除充电器"
+msgid "Unplug the charger."
+msgstr "请移除充电器"
 
 #: ../py/test/pytests/ac_power.py
 msgid "Plug in the charger ({type})"
@@ -1039,8 +1035,9 @@ msgid "Plug in the charger"
 msgstr "请连接充电器"
 
 #: ../py/test/pytests/ac_power.py
-msgid "Unplug the charger."
-msgstr "请移除充电器"
+msgid ""
+"Detected power {watt} W, required power range ({min_watt} W, {max_watt} W)"
+msgstr "侦测到电源{watt}瓦，需求的电源范围({min_watt}瓦, {max_watt}瓦)"
 
 #: ../py/test/pytests/ac_power.py
 msgid "Probed {times} / {total}"
@@ -1055,12 +1052,8 @@ msgid "Identifying AC adapter..."
 msgstr "充电器型号识别中..."
 
 #: ../py/test/pytests/ac_power.py
-msgid "AC adapter type: "
-msgstr "充电器型号: "
-
-#: ../py/test/pytests/ac_power.py
-msgid "Detected power {watt}, required power range ({min_watt}, {max_watt})"
-msgstr "侦测到电源{watt}，需求的电源范围({min_watt}, {max_watt})"
+msgid "AC adapter type: {type}"
+msgstr "充电器型号: {type}"
 
 #: ../py/test/pytests/accelerometers_calibration.py
 msgid "ERROR: The function is not supported."
