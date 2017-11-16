@@ -18,7 +18,7 @@ from cros.factory.utils import process_utils
 
 _HTML_WEBGL_AQUARIUM = (
     '<link rel="stylesheet" type="text/css" href="goofy_webgl_aquarium.css">'
-    '<iframe src="/tests/{0}/aquarium.html", width="100%", height="100%"'
+    '<iframe src="aquarium.html", width="100%", height="100%"'
     ' id="webgl-aquarium"></iframe>')
 
 _JS_WEBGL_AQUARIUM = """
@@ -148,7 +148,7 @@ class WebglAquarium(unittest.TestCase):
   def setUp(self):
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)
-    self.template.SetState(_HTML_WEBGL_AQUARIUM.format(self.ui.test))
+    self.template.SetState(_HTML_WEBGL_AQUARIUM)
     self.ui.RunJS(_JS_WEBGL_AQUARIUM)
     self.end_time = time.time() + self.args.duration_secs
     process_utils.StartDaemonThread(target=self.PeriodicCheck)
