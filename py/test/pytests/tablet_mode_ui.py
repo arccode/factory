@@ -64,8 +64,7 @@ class TabletModeUI(object):
     # TODO(kitching): Perhaps there should be a better way for a 'UI library'
     #                 to have access to its own static file directory.
     # pylint: disable=protected-access
-    self.ui._SetupStaticFiles(
-        os.path.realpath(__file__))
+    self.ui._SetupStaticFiles(os.path.realpath(__file__), '')
 
   def AskForTabletMode(self, event_callback):
     template = OneSection(self.ui)
