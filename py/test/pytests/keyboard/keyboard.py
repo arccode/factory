@@ -2,7 +2,89 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Tests keyboard functionality."""
+"""Tests keyboard functionality.
+
+Description
+-----------
+This test check basic keyboard functionality by asking operator to press each
+keys on keyboard once at a time.
+
+The layout of the keyboard is derived from vpd 'region' value, and can be
+overwritten by argument ``layout``.
+
+If ``allow_multi_keys`` is True, the operator can press multiple keys at once
+to speed up the testing.
+
+If ``sequential_press`` or ``strict_sequential_press`` is True, the operator
+have to press each key in order from top-left to bottom-right. Additionally, if
+``strict_sequential_press`` is True, the test would fail if the operator press
+the wrong key.
+
+A dict ``repeat_times`` can be specified to indicate number of times each key
+have to be pressed before the key is marked as checked.
+
+The test would fail after ``timeout_secs`` seconds.
+
+Test Procedure
+--------------
+1. The test shows an image of the keyboard, and each key labeled with how many
+   times it need to be pressed.
+2. Operator press each key the number of times needed, and keys on UI would be
+   marked as such.
+3. The test pass when all keys have been pressed for the number of times
+   needed, or fail after ``timeout_secs`` seconds.
+
+Dependency
+----------
+Depends on 'evdev' module to monitor key presses.
+
+Examples
+--------
+To test keyboard functionality, add this into test list::
+
+  {
+    "pytest_name": "keyboard"
+  }
+
+To test keyboard functionality, allow multiple keys to be pressed at once, and
+have a timeout of 10 seconds, add this into test list::
+
+  {
+    "pytest_name": "keyboard",
+    "args": {
+      "allow_multi_keys": true,
+      "timeout_secs": 10
+    }
+  }
+
+To test keyboard functionality, ask operator to press keys in order, skip
+keycode [4, 5, 6], have keycode 3 be pressed 5 times, and other keys be pressed
+2 times to pass, add this into test list::
+
+  {
+    "pytest_name": "keyboard",
+    "args": {
+      "sequential_press": true,
+      "skip_keycodes": [4, 5, 6],
+      "repeat_times": {
+        "3": 5,
+        "default": 2
+      }
+    }
+  }
+
+To test keyboard functionality, ask operator to press keys in order (and fail
+the test if wrong key is pressed), and set keyboard layout to ISO, add this
+into test list::
+
+  {
+    "pytest_name": "keyboard",
+    "args": {
+      "strict_sequential_press": true,
+      "layout": "ISO"
+    }
+  }
+"""
 
 from __future__ import print_function
 
@@ -42,7 +124,7 @@ class KeyboardTest(test_ui.TestCaseWithUI):
       Arg('allow_multi_keys', bool, 'Allow multiple keys pressed '
           'simultaneously. (Less strictly checking '
           'with shorter cycle time)', default=False),
-      Arg('layout', (str, unicode),
+      Arg('layout', basestring,
           'Use specified layout other than derived from VPD. '
           'If None, the layout from the VPD is used.',
           default=None),
@@ -55,7 +137,7 @@ class KeyboardTest(test_ui.TestCaseWithUI):
       Arg('board', str,
           'If presents, in filename, the board name is appended after layout.',
           default=''),
-      Arg('device_filter', (int, str),
+      Arg('device_filter', basestring,
           'If present, the input event ID or a substring of the input device '
           'name specifying which keyboard to test.',
           default=None),
@@ -67,9 +149,9 @@ class KeyboardTest(test_ui.TestCaseWithUI):
           'detecting bluetooth keyboard disconnection.', default=False),
       Arg('repeat_times', dict, 'A dict object {key_code: times} to specify '
           'number of presses required for keys specified in key code, e.g. '
-          '{28: 3, 57: 5}, then ENTER (28) shall be pressed 3 times while '
-          'SPACE (57) shall be pressed 5 times. If you want all keys to be '
-          'pressed twice, you can do: {"default": 2}. '
+          '``{"28": 3, "57": 5}``, then ENTER (28) shall be pressed 3 times '
+          'while SPACE (57) shall be pressed 5 times. If you want all keys to '
+          'be pressed twice, you can do: ``{"default": 2}``. '
           'You can find keycode mappings in /usr/include/linux/input.h',
           default=None),
   ]
