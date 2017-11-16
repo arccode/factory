@@ -93,20 +93,19 @@ def LoadPytest(pytest_name):
   there should be one and only one test case in each pytest.
   """
   pytest_module = LoadPytestModule(pytest_name)
-  suite = unittest.TestLoader().loadTestsFromModule(pytest_module)
 
-  # An example of the TestSuite returned by loadTestsFromModule:
-  #   TestSuite
-  #   - TestSuite (class XXXTest(unittest.TestCase))
-  #     - TestCase (XXXTest.runTest)
-  #   - TestSuite (class YYYTest(unittest.TestCase))
-  #     - TestCase (YYYTest.testAAA)
-  #     - TestCase (YYYTest.testBBB)
-  # The countTestCases() would return 3 in this example.
-  # To simplify things, we only allow one TestCase per pytest.
-  if suite.countTestCases() != 1:
+  # To simplify things, we only allow one TestCase per pytest, and the method
+  # must be runTest.
+  test_case_types = []
+  for name in dir(pytest_module):
+    obj = getattr(pytest_module, name)
+    if isinstance(obj, type) and issubclass(obj, unittest.TestCase):
+      test_case_types.append(obj)
+
+  if len(test_case_types) != 1:
     raise type_utils.TestFailure(
-        'Only one TestCase per pytest is supported. Use test_task '
-        'if multiple tasks need to be done in a single pytest.')
-  # The first sub-TestCase in the first sub-TestSuite of suite is the target.
-  return next(iter(next(iter(suite))))
+        'Only exactly one TestCase per pytest is supported, but found %r. '
+        'Use test_task if multiple tasks need to be done in a single pytest.' %
+        test_case_types)
+
+  return test_case_types[0]('runTest')
