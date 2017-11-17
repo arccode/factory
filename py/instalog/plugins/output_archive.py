@@ -31,7 +31,6 @@ import shutil
 import tarfile
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import datatypes
 from instalog import plugin_base
 from instalog.utils.arg_utils import Arg
 from instalog.utils import file_utils
@@ -52,33 +51,55 @@ class OutputArchive(plugin_base.OutputPlugin):
       Arg('max_size', int,
           'If the total_size bigger than max_size, archive these events.',
           default=_DEFAULT_MAX_SIZE),
+      Arg('enable_disk', bool,
+          'Whether or not to save the archive to disk.  True by default.',
+          default=True),
       Arg('target_dir', (str, unicode),
           'The directory in which to store archives.  Uses the plugin\'s '
           'data directory by default.',
           default=None),
-      Arg('enable_disk', bool,
-          'Whether or not to save the archive to disk.  True by default.',
-          default=True),
-      Arg('enable_emit', bool,
-          'Whether or not to emit the archive as an attachment of a new '
-          'Instalog event.  False by default.',
+      Arg('enable_gcs', bool,
+          'Whether or not to upload the archive to Google Cloud Storage.  '
+          'False by default.',
           default=False),
+      Arg('key_path', (str, unicode),
+          'Path to Cloud Storage service account JSON key file.',
+          default=None),
+      Arg('gcs_target_dir', (str, unicode),
+          'Path to the target bucket and directory on Google Cloud Storage.',
+          default=None),
   ]
+
+  def __init__(self, *args, **kwargs):
+    self._gcs = None
+    super(OutputArchive, self).__init__(*args, **kwargs)
 
   def SetUp(self):
     """Sets up the plugin."""
-    if not self.args.enable_disk and self.args.target_dir:
-      raise ValueError('If specifying a `target_dir\', `enable_disk\' must '
-                       'be set to True')
-    if not self.args.enable_disk and not self.args.enable_emit:
-      raise ValueError('Please enable at least one of `enable_disk\' or '
-                       '`enable_emit\'')
+    if not self.args.enable_disk and not self.args.enable_gcs:
+      raise ValueError('Please enable at least one of "enable_disk" or '
+                       '"enable_gcs"')
 
+    if not self.args.enable_disk and self.args.target_dir:
+      raise ValueError('If specifying a "target_dir", "enable_disk" must '
+                       'be set to True')
     # If saving to disk, ensure that the target_dir exists.
     if self.args.enable_disk and self.args.target_dir is None:
       self.args.target_dir = self.GetDataDir()
     if self.args.target_dir and not os.path.isdir(self.args.target_dir):
       os.makedirs(self.args.target_dir)
+
+    if not self.args.enable_gcs:
+      if self.args.key_path or self.args.gcs_target_dir:
+        raise ValueError('If specifying a "key_path" or "gcs_target_dir", '
+                         '"enable_gcs" must be set to True')
+    if self.args.enable_gcs:
+      if not self.args.key_path or not self.args.gcs_target_dir:
+        raise ValueError('If "enable_gcs" is True, "key_path" and '
+                         '"gcs_target_dir" must be provided')
+
+      from instalog.utils import gcs_utils
+      self._gcs = gcs_utils.CloudStorage(self.args.key_path)
 
   def Main(self):
     """Main thread of the plugin."""
@@ -152,33 +173,25 @@ class OutputArchive(plugin_base.OutputPlugin):
         archive_name = cur_time.strftime('InstalogEvents_%Y%m%d%H%M%S')
         archive_filename = '%s.tar.gz' % archive_name
         with file_utils.UnopenedTemporaryFile(
-            prefix='instalog_archive_', suffix='tar.gz') as tmp_archive:
+            prefix='instalog_archive_', suffix='.tar.gz') as tmp_archive:
           self.info('Creating temporary archive file: %s', tmp_archive)
           self.info('Archiving %d events in %s', num_events, archive_name)
           with tarfile.open(tmp_archive, 'w:gz') as tar:
             tar.add(base_dir, arcname=archive_name)
 
           # What should we do with the archive?
-          if self.args.target_dir:
-            target_path = os.path.join(self.args.target_dir, archive_filename)
-            self.info('Saving archive to: %s', target_path)
-            if self.args.enable_emit:
-              # We still need the file for the emit() call.
-              shutil.copyfile(tmp_archive, target_path)
-            else:
-              # We don't need the file anymore, so use move.
-              shutil.move(tmp_archive, target_path)
-          if self.args.enable_emit:
-            self.info('Emitting event with attachment: %s', archive_filename)
-            event = datatypes.Event(
-                {'__archive__': True, 'time': cur_time},
-                {archive_filename: tmp_archive})
-
-            # If emit fails, abort the stream.
-            if not self.Emit([event]):
-              self.error('Unable to emit, aborting')
+          if self.args.enable_gcs:
+            gcs_target_dir = self.args.gcs_target_dir.strip('/')
+            gcs_target_path = '/%s/%s' % (gcs_target_dir, archive_filename)
+            if not self._gcs.UploadFile(
+                tmp_archive, gcs_target_path, overwrite=True):
+              self.error('Unable to upload to GCS, aborting')
               event_stream.Abort()
               return False
+          if self.args.enable_disk:
+            target_path = os.path.join(self.args.target_dir, archive_filename)
+            self.info('Saving archive to: %s', target_path)
+            shutil.move(tmp_archive, target_path)
 
     self.info('Commit %d events', num_events)
     event_stream.Commit()

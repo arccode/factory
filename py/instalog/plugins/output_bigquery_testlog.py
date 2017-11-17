@@ -15,7 +15,7 @@ import datetime
 import json
 import math
 
-# pylint: disable=import-error
+# pylint: disable=import-error, no-name-in-module
 from google.cloud.bigquery.schema import SchemaField
 
 import instalog_common  # pylint: disable=unused-import
@@ -241,8 +241,8 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
       row['attachments'][-1]['key'] = key
       row['attachments'][-1]['description'] = dct.get('description')
       row['attachments'][-1]['path'] = dct.get('path')
-      # Check to see whether the attachment path has been modified by some other
-      # Instalog plugin.  If so, use that path instead.
+      # Check to see whether the attachment path has been modified by
+      # UploadAttachments.  If so, use that path instead.
       if ('__attachments__' in event and
           key in event['__attachments__']):
         row['attachments'][-1]['path'] = event['__attachments__'][key]

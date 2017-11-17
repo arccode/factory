@@ -92,8 +92,7 @@ class TestOutputArchive(unittest.TestCase):
   def testOneEvent(self):
     with file_utils.TempDirectory(prefix='test_output_archive') as data_dir:
       config = {
-          'interval': 1,
-          'enable_emit': True}
+          'interval': 1}
       sandbox = plugin_sandbox.PluginSandbox(
           'output_archive', config=config,
           data_dir=data_dir, core_api=self.core)
@@ -114,17 +113,6 @@ class TestOutputArchive(unittest.TestCase):
         self.assertEqual(1, len(lines))
         event = datatypes.Event.Deserialize(lines[0])
         self.assertEqual(event, self.event)
-
-      # Inspect the emit archive.
-      archive_name = os.path.basename(archive_path)
-      self.assertEqual(1, len(self.core.emit_calls))
-      self.assertEqual(1, len(self.core.emit_calls[0]))
-      archive_event = self.core.emit_calls[0][0]
-      self.assertTrue(archive_event.payload['__archive__'])
-      self.assertEqual(1, len(archive_event.attachments))
-      emit_archive_path = archive_event.attachments[archive_name]
-      self.assertEqual(
-          open(archive_path).read(), open(emit_archive_path).read())
 
 
 if __name__ == '__main__':

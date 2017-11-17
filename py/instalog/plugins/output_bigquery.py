@@ -26,7 +26,7 @@ import datetime
 import os
 import time
 
-# pylint: disable=import-error
+# pylint: disable=import-error, no-name-in-module
 from google.cloud import bigquery
 from google.cloud import exceptions
 from google.oauth2 import service_account
@@ -35,6 +35,7 @@ import instalog_common  # pylint: disable=unused-import
 from instalog import plugin_base
 from instalog.utils.arg_utils import Arg
 from instalog.utils import file_utils
+from instalog.utils import gcs_utils
 
 
 _BIGQUERY_SCOPE = 'https://www.googleapis.com/auth/bigquery'
@@ -60,7 +61,10 @@ class OutputBigQuery(plugin_base.OutputPlugin):
           'How many events to queue before transmitting.',
           default=_DEFAULT_BATCH_SIZE),
       Arg('key_path', (str, unicode),
-          'Path to BigQuery service account JSON key file.'),
+          #'Path to BigQuery service account JSON key file.'),
+          'Path to BigQuery/CloudStorage service account JSON key file.'),
+      Arg('gcs_target_dir', (str, unicode),
+          'Path to the target bucket and directory on Google Cloud Storage.'),
       Arg('project_id', (str, unicode), 'Google Cloud project ID.'),
       Arg('dataset_id', (str, unicode), 'BigQuery dataset ID.'),
       Arg('table_id', (str, unicode), 'BigQuery target table name.')
@@ -69,12 +73,14 @@ class OutputBigQuery(plugin_base.OutputPlugin):
   def __init__(self, *args, **kwargs):
     self.client = None
     self.table_ref = None
+    self._gcs = None
     super(OutputBigQuery, self).__init__(*args, **kwargs)
 
   def SetUp(self):
     """Builds the client object and the table object to run BigQuery calls."""
     self.client = self.BuildClient()
     self.CreateDatasetAndTable()
+    self._gcs = gcs_utils.CloudStorage(self.args.key_path, self.logger)
 
   def Main(self):
     """Main thread of the plugin."""
@@ -151,6 +157,20 @@ class OutputBigQuery(plugin_base.OutputPlugin):
     """
     raise NotImplementedError
 
+  def UploadAttachments(self, event):
+    """Uploads attachments in an event to Google Cloud Storage."""
+    for att_id, att_path in event.attachments.iteritems():
+      target_filename = file_utils.SHA1InHex(att_path)
+      target_dir = self.args.gcs_target_dir.strip('/')
+      target_path = '/%s/%s' % (target_dir, target_filename)
+      if not self._gcs.UploadFile(att_path, target_path, overwrite=True):
+        return False
+
+      # Relocate the attachments entry into the event payload.
+      event.setdefault('__attachments__', {})[att_id] = 'gs:/%s' % target_path
+
+    return True
+
   def PrepareFile(self, event_stream, json_path):
     """Retrieves events from event_stream and dumps them to the json_path.
 
@@ -165,6 +185,9 @@ class OutputBigQuery(plugin_base.OutputPlugin):
     with open(json_path, 'w') as f:
       for event in event_stream.iter(timeout=self.args.interval,
                                      count=self.args.batch_size):
+        event_count += 1
+        if not self.UploadAttachments(event):
+          return event_count, -1
         json_row = None
         try:
           json_row = self.ConvertEventToRow(event)
@@ -187,7 +210,6 @@ class OutputBigQuery(plugin_base.OutputPlugin):
             row_count += 1
             # We are using time column as the timePartitioning field
             partition_set.add(int(event['time'] / _SECONDS_IN_A_DAY))
-        event_count += 1
         if len(partition_set) == _PARTITION_LIMIT:
           break
 
@@ -212,6 +234,11 @@ class OutputBigQuery(plugin_base.OutputPlugin):
       if row_count == 0:
         self.info('Commit %d events (%d rows)', event_count, row_count)
         event_stream.Commit()
+        return False
+      # Failed to upload attachments.
+      elif row_count == -1:
+        self.info('Abort %d events (%d rows)', event_count, row_count)
+        event_stream.Abort()
         return False
 
       job_id = '%s%d' % (_JOB_NAME_PREFIX, time.time() * 1e6)
