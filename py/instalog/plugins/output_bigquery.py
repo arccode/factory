@@ -6,16 +6,17 @@
 
 """BigQuery upload output plugin.
 
-Limits to keep in mind:
+Load job limits ( https://cloud.google.com/bigquery/quotas#import ):
   daily load job limit per table: 1000 (every 86.4 seconds)
-  daily load job limit per project: 10,000
-  JSON row size: 2 MB
+  daily load job limit per project: 50,000
+  JSON row size: 10 MB
   JSON max file size: 5 TB
   max size per load job: 12 TB
 """
 
 from __future__ import print_function
 
+import datetime
 import os
 import shutil
 import time
@@ -24,7 +25,7 @@ import time
 from google.cloud import bigquery
 from google.oauth2 import service_account
 
-import instalog_common  # pylint: disable=W0611
+import instalog_common  # pylint: disable=unused-import
 from instalog import plugin_base
 from instalog.utils.arg_utils import Arg
 from instalog.utils import file_utils
@@ -34,6 +35,7 @@ _BIGQUERY_SCOPE = 'https://www.googleapis.com/auth/bigquery'
 _BIGQUERY_REQUEST_MAX_FAILURES = 20
 _JOB_NAME_PREFIX = 'instalog_'
 _JSON_MIMETYPE = 'NEWLINE_DELIMITED_JSON'
+_ROW_SIZE_LIMIT = 9.5 * 1024 * 1024  # To avoid error loop, we set 9.5 mb limit.
 _DEFAULT_INTERVAL = 90
 _DEFAULT_BATCH_SIZE = 10000
 
@@ -143,8 +145,19 @@ class OutputBigQuery(plugin_base.OutputPlugin):
           self.warning('Error converting event to row: %s',
                        event, exc_info=True)
         if json_row is not None:
-          f.write(json_row + '\n')
-          row_count += 1
+          if len(json_row) > _ROW_SIZE_LIMIT:
+            # TODO(chuntsen): Find a better way to handle too big row.
+            cur_time = datetime.datetime.now()
+            big_event_filename = cur_time.strftime('Big_event_%Y%m%d_%H%M%S.%f')
+            big_event_path = os.path.join(self.GetDataDir(),
+                                          big_event_filename)
+            self.warning('Find a too big event (row size = %d bytes), and save '
+                         'it to %s', len(json_row), big_event_path)
+            with open(big_event_path, 'w') as g:
+              g.write(event.Serialize() + '\n')
+          else:
+            f.write(json_row + '\n')
+            row_count += 1
         event_count += 1
 
     return event_count, row_count
