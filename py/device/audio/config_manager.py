@@ -679,7 +679,7 @@ class UCMConfigManager(BaseConfigManager):
 
     self._InvokeDeviceCommands(
         card,
-        'set _enadev %s' % self._GetDeviceName(device))
+        'set _enadev "%s"' % self._GetDeviceName(device))
 
   def DisableDevice(self, device, card='0'):
     """Disable a certain device on sound card.
@@ -696,7 +696,7 @@ class UCMConfigManager(BaseConfigManager):
 
     self._InvokeDeviceCommands(
         card,
-        'set _disdev %s' % self._GetDeviceName(device))
+        'set _disdev "%s"' % self._GetDeviceName(device))
 
   def LoadConfig(self, config_name):
     if self._factory_config_mgr is None:
