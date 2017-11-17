@@ -79,8 +79,9 @@ class TestTask(object):
 
     # Hook to the test_ui so that the ui can call _Finish when it
     # receives END_TEST event.
-    assert self._ui.task_hook is None, 'Another task is running.'
-    self._ui.task_hook = self
+    # pylint: disable=protected-access
+    assert self._ui._event_loop.task_hook is None, 'Another task is running.'
+    self._ui._event_loop.task_hook = self
 
     self._execution_status = TaskState.RUNNING
     self.Run()
@@ -97,9 +98,10 @@ class TestTask(object):
     assert self._IsRunning(), (
         'Trying to finish %s which is not running.' % (self.__class__.__name__))
     self._execution_status = TaskState.FINISHED
-    self._ui.task_hook = None
+    # pylint: disable=protected-access
+    self._ui._event_loop.task_hook = None
+    self._ui._event_loop.event_handlers = {}
     self._ui.UnbindAllKeys()
-    self._ui.event_handlers = {}
     self.Cleanup()
     self._task_manager.TaskFinished(abort)
 
