@@ -53,10 +53,6 @@ PASS_KEY_LABEL = i18n_test_ui.MakeI18nLabel('Press Enter to pass.')
 FAIL_KEY_LABEL = i18n_test_ui.MakeI18nLabel('Press ESC to fail.')
 PASS_FAIL_KEY_LABEL = PASS_KEY_LABEL + FAIL_KEY_LABEL
 
-# Indicate that the test should not be automatically passed when
-# RunInBackground is finished.
-WAIT_FRONTEND = object()
-
 _HANDLER_WARN_TIME_LIMIT = 5
 _EVENT_LOOP_THREAD_NAME = 'TestEventLoopThread'
 
@@ -391,8 +387,8 @@ class UI(object):
     """
     def _target():
       try:
-        if target() != WAIT_FRONTEND:
-          self.Pass()
+        target()
+        self.Pass()
       except Exception:
         self.Fail(traceback.format_exc())
     process_utils.StartDaemonThread(target=_target)

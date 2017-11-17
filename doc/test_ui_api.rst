@@ -88,9 +88,9 @@ To pass the test, do one of the followings:
 * Calls ``window.test.pass()`` in JavaScript implementation.
 * Calls ``self.ui.Pass()`` in any thread of the Python implementation.
 * If nothing fails the test, the test is **automatically passed after**
-  ``runTest`` **return**. To disable this behavior, return
-  ``test_ui.WAIT_FRONTEND`` from ``runTest``, and the test would wait for one
-  of the conditions above is achieved.
+  ``runTest`` **return**. To wait for either ``Pass`` or ``Fail`` is called in
+  event handler, call ``self.WaitTaskEnd()`` at the end of ``runTest``, and the
+  test would wait for one of the conditions above is achieved.
 
 When the test inherits from ``TestCaseWithUI``, the ``runTest`` method is run
 in a **background** thread, while the UI event loop run in the main thread.
