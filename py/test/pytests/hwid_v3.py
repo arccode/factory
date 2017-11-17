@@ -38,7 +38,7 @@ To generate and verify HWID, add this to your test list::
 
   {
     "pytest_name": "hwid_v3",
-    "label": "Write HWID",
+    "label": "Write HWID"
   }
 
 If you are doing RMA, to allow ``deprecated`` components, you need to enable RMA
@@ -56,7 +56,6 @@ mode::
 import json
 import logging
 import os
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -68,27 +67,26 @@ from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rules import phase
 from cros.factory.test import session
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
 from cros.factory.test.utils import update_utils
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 
-# If present,  these files will override the project and probe results
+# If present, these files will override the project and probe results
 # (for testing).
 OVERRIDE_PROJECT_PATH = os.path.join(
     common.DEFAULT_HWID_DATA_PATH,
     'OVERRIDE_PROJECT')
 # OVERRIDE_PROBED_RESULTS should be generated with:
-#    `gootool probe --include_vpd`
+#    `gooftool probe --include_vpd`
 # to include all the VPD in it.
 OVERRIDE_PROBED_RESULTS_PATH = os.path.join(
     common.DEFAULT_HWID_DATA_PATH,
     'OVERRIDE_PROBED_RESULTS')
 
 
-class HWIDV3Test(unittest.TestCase):
+class HWIDV3Test(test_ui.TestCaseWithUI):
   """A test for generating and verifying HWID v3."""
   ARGS = [
       Arg('generate', bool,
@@ -109,17 +107,11 @@ class HWIDV3Test(unittest.TestCase):
     self._dut = device_utils.CreateDUTInterface()
     self.factory_tools = deploy_utils.CreateFactoryTools(self._dut)
     self.tmpdir = self._dut.temp.mktemp(is_dir=True, prefix='hwid_v3')
-    self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
 
   def tearDown(self):
     self._dut.Call(['rm', '-rf', self.tmpdir])
 
   def runTest(self):
-    self.ui.RunInBackground(self._runTest)
-    self.ui.Run()
-
-  def _runTest(self):
     testlog.LogParam(name='phase', value=str(phase.GetPhase()))
     phase.AssertStartingAtPhase(
         phase.EVT,
