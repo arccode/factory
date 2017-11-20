@@ -23,6 +23,7 @@ import time
 
 # pylint: disable=import-error
 from google.cloud import bigquery
+from google.cloud import exceptions
 from google.oauth2 import service_account
 
 import instalog_common  # pylint: disable=unused-import
@@ -60,13 +61,13 @@ class OutputBigQuery(plugin_base.OutputPlugin):
 
   def __init__(self, *args, **kwargs):
     self.client = None
-    self.table = None
+    self.table_ref = None
     super(OutputBigQuery, self).__init__(*args, **kwargs)
 
   def SetUp(self):
     """Builds the client object and the table object to run BigQuery calls."""
     self.client = self.BuildClient()
-    self.table = self.BuildTable()
+    self.CreateDatasetAndTable()
 
   def Main(self):
     """Main thread of the plugin."""
@@ -83,16 +84,30 @@ class OutputBigQuery(plugin_base.OutputPlugin):
     return bigquery.Client(project=self.args.project_id,
                            credentials=credentials)
 
-  def BuildTable(self):
-    """Builds a BigQuery table object."""
-    dataset = bigquery.Dataset(self.args.dataset_id, self.client)
-    table = bigquery.Table(self.args.table_id, dataset, self.GetTableSchema())
-    if table.exists():
-      table.reload()
-    else:
-      table.partitioning_type = 'DAY'
-      table.create()
-    return table
+  def CreateDatasetAndTable(self):
+    """Creates the BigQuery dataset/table if it doesn't exist."""
+    dataset_ref = self.client.dataset(self.args.dataset_id)
+    try:
+      dataset = self.client.get_dataset(dataset_ref)
+      self.info('The dataset %s is created from %s',
+                self.args.dataset_id, dataset.created)
+    except exceptions.NotFound:
+      _dataset = bigquery.Dataset(dataset_ref)
+      dataset = self.client.create_dataset(_dataset)
+      self.info('The dataset %s does not exist. Creating...',
+                self.args.dataset_id)
+
+    self.table_ref = dataset.table(self.args.table_id)
+    try:
+      table = self.client.get_table(self.table_ref)
+      self.info('The table %s is created from %s',
+                self.args.table_id, table.created)
+    except exceptions.NotFound:
+      _table = bigquery.Table(self.table_ref, schema=self.GetTableSchema())
+      _table.partitioning_type = 'DAY'
+      table = self.client.create_table(_table)
+      self.info('The table %s does not exist. Creating...',
+                self.args.table_id)
 
   def GetTableSchema(self):
     """Returns a list of fields in the table schema.
@@ -187,14 +202,17 @@ class OutputBigQuery(plugin_base.OutputPlugin):
       try:
         with open(json_path, 'rb') as f:
           job_id = '%s%d' % (_JOB_NAME_PREFIX, time.time())
+          job_config = bigquery.LoadJobConfig()
+          job_config.source_format = _JSON_MIMETYPE
           # No need to run job.begin() since upload_from_file() takes care of
           # this.
-          job = self.table.upload_from_file(
+          job = self.client.load_table_from_file(
               file_obj=f,
-              source_format=_JSON_MIMETYPE,
+              destination=self.table_ref,
+              size=os.path.getsize(json_path),
               num_retries=_BIGQUERY_REQUEST_MAX_FAILURES,
-              job_name=job_id,
-              size=os.path.getsize(json_path))
+              job_id=job_id,
+              job_config=job_config)
 
         # Wait for job to complete.
         job.result()
