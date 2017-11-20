@@ -34,13 +34,12 @@ class OutputSocket(plugin_base.OutputPlugin):
 
   ARGS = [
       Arg('batch_size', int, 'How many events to queue before transmitting.',
-          optional=True, default=_DEFAULT_BATCH_SIZE),
+          default=_DEFAULT_BATCH_SIZE),
       Arg('timeout', (int, float), 'Timeout to transmit without full batch.',
-          optional=True, default=_DEFAULT_TIMEOUT),
-      Arg('hostname', (str, unicode), 'Hostname that server should bind to.',
-          optional=False),
+          default=_DEFAULT_TIMEOUT),
+      Arg('hostname', (str, unicode), 'Hostname that server should bind to.'),
       Arg('port', int, 'Port that server should bind to.',
-          optional=True, default=socket_common.DEFAULT_PORT)
+          default=socket_common.DEFAULT_PORT)
   ]
 
   def __init__(self, *args, **kwargs):

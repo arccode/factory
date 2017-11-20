@@ -141,23 +141,23 @@ class Report(unittest.TestCase):
           default=False),
       Arg('pass_without_prompt', bool,
           'If all tests passed, pass this test without prompting',
-          default=False, optional=True),
+          default=False),
       Arg('bft_fixture', dict,
           ('BFT fixture arguments (see bft_fixture test).  If provided, then a '
            'red/green light is lit to indicate failure/success rather than '
            'showing the summary on-screen.  The test does not fail if unable '
            'to connect to the BFT fixture.'),
-          optional=True),
+          default=None),
       Arg('accessibility', bool,
           'Display bright red background when the overall status is not PASSED',
-          default=False, optional=True),
+          default=False),
       Arg('include_parents', bool,
           'Recursively include parent groups in summary',
           default=False),
       Arg('run_factory_external_name', str,
           'Notify DUT that external test is over, will use DUT interface to '
           'write result file under /run/factory/external/<NAME>.',
-          default=None, optional=True),
+          default=None),
   ]
 
   def _SetFixtureStatusLight(self, all_pass):

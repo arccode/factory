@@ -35,10 +35,9 @@ class ChecksumError(Exception):
 class InputPullSocket(plugin_base.InputPlugin):
 
   ARGS = [
-      Arg('hostname', (str, unicode), 'Hostname that server should bind to.',
-          optional=False),
+      Arg('hostname', (str, unicode), 'Hostname that server should bind to.'),
       Arg('port', int, 'Port that server should bind to.',
-          optional=True, default=socket_common.DEFAULT_PULL_PORT)
+          default=socket_common.DEFAULT_PULL_PORT)
   ]
 
   def __init__(self, *args, **kwargs):

@@ -88,7 +88,7 @@ def WriteTestArgs(args, out):
     description = arg.help.strip()
 
     annotations = []
-    if arg.optional:
+    if arg.IsOptional():
       annotations.append('optional')
     if arg.default is not None:
       annotations.append('default: ``%s``' % Escape(repr(arg.default)))

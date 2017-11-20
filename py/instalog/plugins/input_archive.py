@@ -43,8 +43,7 @@ class InputArchive(plugin_base.InputPlugin):
   ARGS = [
       Arg('path', (str, unicode),
           'Path to the set of archives on disk.  Uses glob syntax.  '
-          'e.g. "/path/to/InstalogEvents_*.tar.gz"',
-          optional=False),
+          'e.g. "/path/to/InstalogEvents_*.tar.gz"'),
   ]
 
   def ExtractArchive(self, archive_path, tmp_path):

@@ -38,10 +38,10 @@ class BacklightTest(unittest.TestCase):
   ARGS = [
       Arg('adjust_level', float,
           'How much the brightness level should be adjusted. Max: 1.0',
-          optional=True, default=_DEFAULT_ADJUST_LEVEL),
+          default=_DEFAULT_ADJUST_LEVEL),
       Arg('reset_level', float,
           'The brightness level when do reset. Max: 1.0',
-          optional=True, default=_DEFAULT_RESET_LEVEL),
+          default=_DEFAULT_RESET_LEVEL),
   ]
 
   def AdjustBrightness(self, level):

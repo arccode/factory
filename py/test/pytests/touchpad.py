@@ -162,7 +162,7 @@ class TouchpadTest(unittest.TestCase):
   ARGS = [
       Arg('device_filter', (int, str),
           'Touchpad input event id or evdev name. The test will probe'
-          ' for event id if it is not given.', default=None, optional=True),
+          ' for event id if it is not given.', default=None),
       Arg('timeout_secs', int, 'Timeout for the test.', default=20),
       Arg('number_to_click', int, 'Target number to click.', default=10),
       Arg('number_to_quadrant', int,

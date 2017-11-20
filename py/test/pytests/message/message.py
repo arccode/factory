@@ -116,12 +116,12 @@ class MessageTest(unittest.TestCase):
           default='white'),
       Arg('seconds', int, 'duration to display message. '
           'Specify None to show until key press.',
-          default=None, optional=True),
+          default=None),
       Arg('manual_check', bool, 'If set to true, operator can press ESC to '
-          'fail the test case.', default=False, optional=True),
+          'fail the test case.', default=False),
       Arg('show_press_button_hint', bool, 'If set to true, will show '
           'addition message to ask operators to press the button.',
-          default=False, optional=True)
+          default=False)
   ]
 
   def runTest(self):

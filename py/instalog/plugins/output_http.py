@@ -38,28 +38,27 @@ class OutputHTTP(plugin_base.OutputPlugin):
   ARGS = [
       Arg('batch_size', int,
           'How many events to queue before transmitting.',
-          optional=True, default=_DEFAULT_BATCH_SIZE),
+          default=_DEFAULT_BATCH_SIZE),
       Arg('timeout', (int, float),
           'Timeout to transmit without full batch.',
-          optional=True, default=_DEFAULT_TIMEOUT),
+          default=_DEFAULT_TIMEOUT),
       Arg('hostname', (str, unicode),
-          'Hostname of target running input HTTP plugin.',
-          optional=False),
+          'Hostname of target running input HTTP plugin.'),
       Arg('port', int,
           'Port of target running input HTTP plugin.',
-          optional=True, default=http_common.DEFAULT_PORT),
+          default=http_common.DEFAULT_PORT),
       Arg('url_path', (str, unicode),
           'URL path of target running input HTTP plugin.',
-          optional=True, default=_DEFAULT_URL_PATH),
+          default=_DEFAULT_URL_PATH),
       Arg('enable_gnupg', bool,
           'Enable to use GnuPG.',
-          optional=True, default=False),
+          default=False),
       Arg('gnupg_home', (str, unicode),
           'The home directory of GnuPG.',
-          optional=True, default=None),
+          default=None),
       Arg('target_key', (str, unicode),
           'The fingerprint of target GnuPG public key in this machine.',
-          optional=True, default=None)
+          default=None)
   ]
 
   def __init__(self, *args, **kwargs):

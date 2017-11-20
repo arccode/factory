@@ -116,32 +116,27 @@ class RetrieveConfig(unittest.TestCase):
           default=DATA_METHOD.FACTORY_SERVER),
       Arg('config_retrieve_path',
           str,
-          'The path to the config file to retrieve from.',
-          optional=False),
+          'The path to the config file to retrieve from.'),
       Arg('config_save_dir',
           str,
           'The directory path to the config file to place at;'
           'defaults to RuntimeConfigDirectory in config_utils.json.',
-          default=None,
-          optional=True),
+          default=None),
       Arg('config_save_name',
           str,
           'The config name saved in the config_save_dir; The name should '
           'suffix with ".json". if None then defaults to its origin name.',
-          default=None,
-          optional=True),
+          default=None),
       Arg('local_ip',
           str,
           'Local IP address for connecting to the factory server '
           'when data_method = FACTORY_SERVER. Set as None to use DHCP.',
-          default=None,
-          optional=True),
+          default=None),
       Arg('usb_dev_partition',
           int,
           'The partition of the usb_dev_path to be mounted. If None, will try '
           'to mount the usb_dev_path without partition number.',
-          default=None,
-          optional=True),
+          default=None),
   ]
 
   def setUp(self):

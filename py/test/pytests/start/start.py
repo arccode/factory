@@ -163,18 +163,18 @@ class StartTest(unittest.TestCase):
   """The factory test to start the whole factory test process."""
   ARGS = [
       Arg('press_to_continue', bool, 'Need to press space to continue',
-          default=True, optional=True),
+          default=True),
       Arg('require_external_power', bool,
           'Prompts and waits for external power to be applied.',
-          default=False, optional=True),
+          default=False),
       Arg('check_factory_install_complete', bool,
           'Check factory install process was complete.',
-          default=None, optional=True),
+          default=None),
       i18n_arg_utils.I18nArg(
           'prompt', 'Message to show to the operator when prompting for input.',
           default=_('Enter valid serial number:<br>')),
       Arg('init_shared_data', dict, 'the shared data to initialize',
-          default={}, optional=True)]
+          default={})]
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()

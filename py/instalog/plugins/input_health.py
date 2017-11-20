@@ -27,7 +27,7 @@ class InputHealth(plugin_base.InputPlugin):
 
   ARGS = [
       Arg('interval', (int, float), 'Interval in between health events.',
-          optional=True, default=_DEFAULT_INTERVAL),
+          default=_DEFAULT_INTERVAL),
   ]
 
   @staticmethod

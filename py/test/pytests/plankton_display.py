@@ -71,7 +71,7 @@ class PlanktonDisplayTest(unittest.TestCase):
       Arg('uvc_video_dev_index', int, 'index of video device (-1 for default)',
           default=-1),
       Arg('uvc_video_dev_port', str, 'port of video device (ex. 3-1)',
-          optional=True),
+          default=None),
       Arg('corr_value_threshold', tuple,
           'A tuple of (b, g, r) channel histogram '
           'correlation pass/fail threshold. '
@@ -80,7 +80,7 @@ class PlanktonDisplayTest(unittest.TestCase):
       Arg('dp_verify_server', str,
           'Server URL for verifying DP output, e.g. "http://192.168.0.1:9999". '
           'Default None means verifying locally.',
-          optional=True),
+          default=None),
       Arg('verify_display_switch', bool,
           'Set False to test without display switch, and compare default '
           'wallpaper only (can save more testing time).',

@@ -290,7 +290,7 @@ class FixtureCheckLEDTask(test_task.TestTask):
 class LEDTest(unittest.TestCase):
   """Tests if the onboard LED can light up with specified colors."""
   ARGS = [
-      Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP, optional=True),
+      Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP, default=None),
       Arg('challenge', bool, 'Show random LED sequence and let the operator '
           'select LED number instead of pre-defined sequence.', default=False),
       Arg('colors', (list, tuple),
@@ -300,7 +300,7 @@ class LEDTest(unittest.TestCase):
                    LEDColor.OFF]),
       Arg('target_leds', (list, tuple),
           'List of LEDs to test. If specified, it turns off all LEDs first, '
-          'and sets them to auto after test.', optional=True)]
+          'and sets them to auto after test.', default=None)]
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()

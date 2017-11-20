@@ -257,17 +257,16 @@ class DeployShellOfflineTest(unittest.TestCase):
       Arg('next_action', NEXT_ACTION,
           ('What to do after tests are deployed (One of %s)' % NEXT_ACTION)),
       Arg('start_up_service', bool, 'Do you want to run the tests on start up?',
-          default=True, optional=True),
+          default=True),
       Arg('callback_script_path', str,
           'Path to a shell script which contains the callback functions. See '
           'callback_example.sh for example. That file is also the default '
           'implementation. The path should be absolute path or relative to '
           'FACTORY_PATH.',
-          default='py/test/pytests/offline_test/shell/callback_example.sh',
-          optional=True),
+          default='py/test/pytests/offline_test/shell/callback_example.sh'),
       Arg('check_reboot', bool,
           'detect unexpected reboot or not',
-          default=True, optional=True),
+          default=True),
       # TODO(shunhsingou): Remove this argument and write individual rules for
       # each test.
       # On some devices the test need to wait some dependency services to start.

@@ -692,11 +692,10 @@ class WiFiThroughput(unittest.TestCase):
   # will be checked as key-values in the test's "service" argument (see below).
   _SERVICE_ARGS = [
       Arg('ssid', (str, unicode),
-          'SSID of WiFi service.',
-          optional=False),
+          'SSID of WiFi service.'),
       Arg('password', str,
           'Password of WiFi service.',
-          optional=True, default=None)
+          default=None)
   ]
 
   # Arguments that can be directly applied to each WiFi service connection, OR
@@ -711,38 +710,38 @@ class WiFiThroughput(unittest.TestCase):
           'cases where the host\'s IP may change (from using DHCP). '
           'The CIDR format is valid only when `enable_iperf_server` argument '
           'is enabled.',
-          optional=True, default=None),
+          default=None),
       Arg('enable_iperf_server', bool,
           'Start iperf server locally. In station-based testing we can run '
           'iperf server at the test station directly, instead of preparing '
           'another machine.',
-          optional=True, default=False),
+          default=False),
       Arg('min_strength', int,
           'Minimum signal strength required (measured in dBm).  If the driver '
           'does not report this value, setting a limit always fail.',
-          optional=True),
+          default=None),
       Arg('min_quality', int,
           'Minimum link quality required (out of 100).  If the driver '
           'does not report this value, setting a limit always fail.',
-          optional=True),
+          default=None),
       Arg('transmit_time', int,
           'Time in seconds for which to transmit data.',
-          optional=True, default=Iperf3Client.DEFAULT_TRANSMIT_TIME),
+          default=Iperf3Client.DEFAULT_TRANSMIT_TIME),
       Arg('transmit_interval', (int, float),
           'There will be an overall average of transmission speed.  But it may '
           'also be useful to check bandwidth within subintervals of this time. '
           'This argument can be used to check bandwidth for every interval of '
           'n seconds.  Assuming nothing goes wrong, there will be '
           'ceil(transmit_time / n) intervals reported.',
-          optional=True, default=Iperf3Client.DEFAULT_TRANSMIT_INTERVAL),
+          default=Iperf3Client.DEFAULT_TRANSMIT_INTERVAL),
       Arg('min_tx_throughput', int,
           'Required DUT-to-host (TX) minimum throughput in Mbits/sec.  If the '
           'average throughput is lower than this, will report a failure.',
-          optional=True, default=None),
+          default=None),
       Arg('min_rx_throughput', int,
           'Required host-to-DUT (RX) minimum throughput in Mbits/sec.  If the '
           'average throughput is lower than this, will report a failure.',
-          optional=True, default=None),
+          default=None),
   ]
 
   # "Test-level" arguments.  _SHARED_ARGS is concatenated at the end, since we
@@ -752,44 +751,43 @@ class WiFiThroughput(unittest.TestCase):
       Arg('event_log_name', str,
           'Name of the event_log.  We might want to re-run the conductive '
           'test at different points in the factory, so this can be used to '
-          'separate them.  e.g. "wifi_throughput_in_chamber"',
-          optional=False),
+          'separate them.  e.g. "wifi_throughput_in_chamber"'),
       Arg('pre_command', str,
           'Command to be run before executing the test.  For example, this '
           'could be used to run "insmod" to load a WiFi module on the DUT.  '
           'Does not check output of the command.',
-          optional=True, default=None),
+          default=None),
       Arg('post_command', str,
           'Command to be run after executing the test.  For example, this '
           'could be used to run "rmmod" to unload a WiFi module on the DUT.  '
           'Does not check output of the command.',
-          optional=True, default=None),
+          default=None),
       Arg('interface', str,
           'WLAN interface being used.  e.g. wlan0.  If not specified, this '
           'will default to the first wireless interface found.',
-          optional=True, default=None),
+          default=None),
       Arg('arduino_high_pins', list,
           'A list of ints.  If not None, set arduino pins in the list to high.',
-          optional=True, default=None),
+          default=None),
       Arg('blink_leds', bool,
           'Whether or not to blink keyboard LEDs while running the test.  '
           'Useful when running with DUT inside of a chamber, and using an '
           'external keyboard to show test status.',
-          optional=True, default=False),
+          default=False),
       Arg('bind_wifi', bool,
           'Whether we should restrict iperf3 to running on the WiFi interface.',
-          optional=True, default=True),
+          default=True),
       Arg('disable_eth', bool,
           'Whether we should disable ethernet interfaces while running the '
           'test.',
-          optional=True, default=False),
+          default=False),
       Arg('use_ui_retry', bool,
           'In the case that the iperf3 server is currently busy running a '
           'test, use the goofy UI to show a message forcing the tester to '
           'retry indefinitely until it can connect or until another error is '
           'received.  When running at the command-line, this behaviour is not '
           'available.',
-          optional=True, default=False),
+          default=False),
       Arg('services', (list, dict),
           'A list of dicts, each representing a WiFi service to test.  At '
           'minimum, each must have a "ssid" field.  Usually, a "password" '
@@ -800,7 +798,7 @@ class WiFiThroughput(unittest.TestCase):
           'transmit_interval, min_rx_throughput, min_tx_throughput.  If '
           'services are not specified, this test will simply list APs.  Also '
           'note that each service may only be specified once.',
-          optional=True, default=[]),
+          default=[]),
   ] + _SHARED_ARGS  # note the concatenation of "shared" arguments
 
   def __init__(self, *args, **kwargs):
@@ -893,14 +891,15 @@ class WiFiThroughput(unittest.TestCase):
     service_args = []
     for arg in self._SERVICE_ARGS + self._SHARED_ARGS:
       # iperf_host is optional at "test-level", but required at "service-level".
-      if arg.name == 'iperf_host':
-        arg.optional = False
-      service_args.append(Arg(
-          name=arg.name,
-          type=arg.type,
-          help=arg.help,
-          default=args_dict.get(arg.name, arg.default),
-          optional=arg.optional))
+      if arg.name == 'iperf_host' or not arg.IsOptional():
+        service_args.append(Arg(name=arg.name, type=arg.type, help=arg.help))
+      else:
+        service_args.append(Arg(
+            name=arg.name,
+            type=arg.type,
+            help=arg.help,
+            default=args_dict.get(arg.name, arg.default)))
+
     service_arg_parser = arg_utils.Args(*service_args)
     if not isinstance(self.args.services, list):
       self.args.services = [self.args.services]

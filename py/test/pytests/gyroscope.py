@@ -150,21 +150,19 @@ class Gyroscope(unittest.TestCase):
 
   ARGS = [
       Arg('rotation_threshold', float,
-          'The expected value (rad/s) to read when dut start rotating.',
-          optional=False),
+          'The expected value (rad/s) to read when dut start rotating.'),
       Arg('stop_threshold', float,
-          'The expected value to read when dut stop moving.',
-          optional=False),
+          'The expected value to read when dut stop moving.'),
       Arg('timeout_secs', int,
           'Timeout in seconds for gyro to return expected value.',
-          default=30, optional=True),
+          default=30),
       Arg('setup_time_secs', int,
           'Seconds to wait before starting the test.',
-          default=2, optional=True),
+          default=2),
       Arg('autostart', bool, 'Auto start this test.',
-          default=False, optional=True),
+          default=False),
       Arg('location', str, 'Gyro is located in "base" or "lid".',
-          default='base', optional=True)]
+          default='base')]
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()

@@ -25,10 +25,10 @@ class UpdateFirmwareTest(unittest.TestCase):
   ARGS = [
       # TODO(hungte) Support compressed image, or download from Omaha.
       Arg('kernel_image', str, 'Full path of kernel.bin',
-          optional=True),
+          default=None),
       Arg('kernel_config', str,
           'Path to a file containing kernel command line.',
-          optional=True),
+          default=None),
       Arg('to_release', bool,
           'Set to True to update on release partition, '
           'otherwise update on test partition.',

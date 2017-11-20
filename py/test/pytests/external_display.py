@@ -587,17 +587,16 @@ class ExtDisplayTest(unittest.TestCase):
   """Main class for external display test."""
   ARGS = [
       Arg('main_display', str,
-          "xrandr/modeprint ID for ChromeBook's main display.",
-          optional=False),
+          "xrandr/modeprint ID for ChromeBook's main display."),
       Arg('display_info', list,
           'A list of tuples (display_label, display_id, audio_info, '
-          'usbpd_port) represents an external port to test.',
-          optional=False),
-      Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP, default=None,
-          optional=True),
+          'usbpd_port) represents an external port to test.'),
+      Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP,
+          default=None),
       Arg('connect_only', bool,
           'Just detect ext display connection. This is for a hack that DUT '
-          'needs reboot after connect to prevent X crash.', default=False),
+          'needs reboot after connect to prevent X crash.',
+          default=False),
       Arg('start_output_only', bool,
           'Only start output of external display. This is for bringing up '
           'the external display for other tests that need it.',
@@ -608,7 +607,9 @@ class ExtDisplayTest(unittest.TestCase):
           default=False),
       Arg('already_connect', bool,
           'Also for the reboot hack with fixture. With it set to True, DUT '
-          'does not issue plug ext display command.', default=False)]
+          'does not issue plug ext display command.',
+          default=False)
+  ]
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()

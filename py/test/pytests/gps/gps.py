@@ -81,50 +81,43 @@ class GPS(unittest.TestCase):
       Arg('station_name', str,
           'Name of the station.  We might want to run the GPS test at '
           'different points in the factory.  This can be used to identify '
-          'them, and will be saved in event_logs.  e.g. "gps_smt"',
-          optional=False),
+          'them, and will be saved in event_logs.  e.g. "gps_smt"'),
       Arg('fixture_id', str,
-          'Name of the fixture.  This will be saved in event_logs.',
-          optional=False),
+          'Name of the fixture.  This will be saved in event_logs.'),
       Arg('init_timeout', (int, float),
           'How long to poll for good data before giving up.  '
           'Default %d seconds.' % DEFAULT_INIT_TIMEOUT,
-          optional=True, default=DEFAULT_INIT_TIMEOUT),
+          default=DEFAULT_INIT_TIMEOUT),
       Arg('timeout', (int, float),
           'How long to run the test.  Default %d seconds.' % DEFAULT_TIMEOUT,
-          optional=True, default=DEFAULT_TIMEOUT),
+          default=DEFAULT_TIMEOUT),
       Arg('warmup_count', int,
           'How many initial matching NMEA sentences to ignore before starting '
           'to record data.',
-          optional=True, default=0),
+          default=0),
       Arg('gps_config_file', str,
           'Relative or absolute path to GPS configuration file to upload '
           'to device.  If relative, searches both in directory of this test '
-          'file, and in directory of currently executing Python script.',
-          optional=False),
+          'file, and in directory of currently executing Python script.'),
       Arg('gps_config_job', str,
           'Name of the job within gps_config_file to run.  This will be passed '
-          'as an argument to glgps to start the job during test execution.',
-          optional=False),
+          'as an argument to glgps to start the job during test execution.'),
       Arg('nmea_out_path', str,
           'Path to the nmea_out file on the device.  This should be a named '
           'pipe which is specified in gps_config_file in the <hal> element, '
-          'like so: <hal NmeaOutName="/data/gps/nmea_out">',
-          optional=False),
+          'like so: <hal NmeaOutName="/data/gps/nmea_out">'),
       Arg('nmea_prefix', str,
           'Prefix of NMEA sentences for which to filter.  Only these sentences '
-          'will be parsed based on nmea_fields.',
-          optional=False),
+          'will be parsed based on nmea_fields.'),
       Arg('nmea_fields', dict,
           'Dictionary of fields to pull from the NMEA sentence.  '
           'Key is a string representing the name of the field, and '
-          'value is its comma-separated index.',
-          optional=False),
+          'value is its comma-separated index.'),
       Arg('limits', list,
           'List of limits, in the format ("nmea_field", "fn", "cmp", value), '
           'where fn can be any of %s, and cmp can be any of %s.'
           % (STAT_FNS.keys(), CMP_FNS.keys()),
-          optional=True, default=[])
+          default=[])
   ]
 
   def setUp(self):

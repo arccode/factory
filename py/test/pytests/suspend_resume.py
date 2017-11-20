@@ -79,10 +79,10 @@ class SuspendResumeTest(unittest.TestCase):
       Arg('suspend_type', str, 'Suspend type',
           default='mem'),
       Arg('ignore_wakeup_source', str, 'Wakeup source to ignore',
-          default=None, optional=True),
+          default=None),
       Arg('early_resume_retry_wait_secs', int,
           'Time to wait before re-suspending after early resume',
-          default=3, optional=True)]
+          default=3)]
 
   def setUp(self):
     self.assertTrue(os.path.exists(self.args.wakealarm_path), 'wakealarm_path '

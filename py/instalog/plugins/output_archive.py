@@ -48,21 +48,21 @@ class OutputArchive(plugin_base.OutputPlugin):
   ARGS = [
       Arg('interval', (int, float),
           'How long to wait, in seconds, before creating the next archive.',
-          optional=True, default=_DEFAULT_INTERVAL),
+          default=_DEFAULT_INTERVAL),
       Arg('max_size', int,
           'If the total_size bigger than max_size, archive these events.',
-          optional=True, default=_DEFAULT_MAX_SIZE),
+          default=_DEFAULT_MAX_SIZE),
       Arg('target_dir', (str, unicode),
           'The directory in which to store archives.  Uses the plugin\'s '
           'data directory by default.',
-          optional=True, default=None),
+          default=None),
       Arg('enable_disk', bool,
           'Whether or not to save the archive to disk.  True by default.',
-          optional=True, default=True),
+          default=True),
       Arg('enable_emit', bool,
           'Whether or not to emit the archive as an attachment of a new '
           'Instalog event.  False by default.',
-          optional=True, default=False),
+          default=False),
   ]
 
   def SetUp(self):

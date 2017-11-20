@@ -118,14 +118,14 @@ class PlanktonCCFlipCheck(unittest.TestCase):
       Arg('usb_c_index', int, 'Index of DUT USB_C port'),
       Arg('original_enabled_cc', str, 'Set "CC1" or "CC2" if you want to check '
           'what CC pin is enabled now. There is no check if it is not set.',
-          optional=True),
+          default=None),
       Arg('ask_flip_operation', bool,
           'Determine whether to ask operator to flip cable.',
           default=False),
       Arg('double_cc_flip_target', str,
           'If using double CC cable, set either "CC1" or "CC2" for the target '
           'to flip. Flip anyway if this is not set.',
-          optional=True),
+          default=None),
       Arg('double_cc_quick_check', bool,
           'If using double CC cable, set True if you guarantee CC pair is not '
           'reversed. CC polarity in Plankton side implies DUT side.',

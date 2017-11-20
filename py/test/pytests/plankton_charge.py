@@ -107,19 +107,19 @@ class PlanktonChargeBFTTest(unittest.TestCase):
       Arg('min_charge_5V_current_mA', (int, float),
           'The minimum charge current in mA that the battery '
           'needs to reach during charge-5V test, if is None, '
-          'it would not check on this voltage level', optional=True),
+          'it would not check on this voltage level', default=None),
       Arg('min_charge_12V_current_mA', (int, float),
           'The minimum charge current in mA that the battery '
           'needs to reach during charge-12V test, if is None, '
-          'it would not check on this voltage level', optional=True),
+          'it would not check on this voltage level', default=None),
       Arg('min_charge_20V_current_mA', (int, float),
           'The minimum charge current in mA that the battery '
           'needs to reach during charge-20V test, if is None, '
-          'it would not check on this voltage level', optional=True),
+          'it would not check on this voltage level', default=None),
       Arg('min_discharge_current_mA', (int, float),
           'The minimum discharge current in mA that the battery '
           'needs to reach during discharging test, if is None, '
-          'it would not check on this voltage level', optional=True),
+          'it would not check on this voltage level', default=None),
       Arg('current_sampling_period_secs', (int, float),
           'The period in seconds to sample '
           'charge/discharge current during test',
@@ -476,7 +476,7 @@ class PlanktonChargeBFTTest(unittest.TestCase):
         int(self._power.GetBatteryAttribute('cycle_count').strip()) > (
             self.args.battery_cycle_threshold)):
       raise type_utils.TestFailure('Battery cycle count is higher than %d' %
-                                       self.args.battery_cycle_threshold)
+                                   self.args.battery_cycle_threshold)
     if (self.args.check_current_max and
         int(self._power.GetBatteryAttribute('current_max').strip()) == 0):
       raise type_utils.TestFailure('Battery current max is zero')

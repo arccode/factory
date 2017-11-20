@@ -91,8 +91,7 @@ class LineCheckItemTest(unittest.TestCase):
       i18n_arg_utils.I18nArg('title', 'test title.'),
       Arg('items', (list, tuple),
           ('A sequence of items to check. Each item is a sequence of: '
-           ' (instruction, command, judge_to_pass).'),
-          optional=False),
+           ' (instruction, command, judge_to_pass).')),
       Arg('is_station', bool,
           ('Run the given commands on station (usually local host) instead of '
            'DUT, for example preparing connection configuration.'),

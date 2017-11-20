@@ -256,7 +256,7 @@ class AudioTest(unittest.TestCase):
   correct digit. It also prevents key-swiping cheating.
   """
   ARGS = [
-      Arg('audio_conf', str, 'Audio config file path', optional=True),
+      Arg('audio_conf', str, 'Audio config file path', default=None),
       Arg('initial_actions', list,
           'List of sequences (card_name, actions)', default=[]),
       Arg('output_dev', (list, tuple),
@@ -272,7 +272,7 @@ class AudioTest(unittest.TestCase):
           default=False),
       Arg('sample_rate', int,
           'Required sample rate to be played by the device.',
-          optional=True)
+          default=None)
   ]
 
   def setUp(self):

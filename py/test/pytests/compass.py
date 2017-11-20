@@ -70,10 +70,10 @@ _FLASH_STATUS_TIME = 1
 class CompassTest(unittest.TestCase):
   ARGS = [
       Arg('tolerance', int, 'The tolerance in degree.',
-          default=5, optional=True),
+          default=5),
       Arg('location', type_utils.Enum(['base', 'lid']),
           'Where the compass is located.',
-          default='base', optional=True)
+          default='base')
   ]
 
   def setUp(self):

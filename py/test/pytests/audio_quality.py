@@ -167,21 +167,19 @@ class AudioQualityTest(unittest.TestCase):
           'For example: ("audio_card", "0").', ('0', '0')),
       Arg('loop_type', str, 'Audio loop type: sox, looptest, tinyloop, hwloop',
           'sox'),
-      Arg('use_multitone', bool, 'Use multitone', False, optional=True),
-      Arg('loop_buffer_count', int, 'Count of loop buffer', 10,
-          optional=True),
-      Arg('fixture_param', list, 'Fixture parameters', _FIXTURE_PARAMETERS,
-          optional=True),
+      Arg('use_multitone', bool, 'Use multitone', False),
+      Arg('loop_buffer_count', int, 'Count of loop buffer', 10),
+      Arg('fixture_param', list, 'Fixture parameters', _FIXTURE_PARAMETERS),
       Arg('enable_factory_server', bool, 'Get parameters from factory server',
-          True, optional=True),
+          True),
       Arg('network_setting', dict, 'Network setting to define *local_ip*, \n'
-          '*port*, *gateway_ip*', {}, optional=True),
-      Arg('audio_conf', str, 'Audio config file path', None, optional=True),
+          '*port*, *gateway_ip*', {}),
+      Arg('audio_conf', str, 'Audio config file path', None),
       Arg('wav_file', str, 'Wav file path for playback_wav_file command.',
-          None, optional=True),
+          None),
       Arg('keep_raw_logs', bool,
           'Whether to attach the log by Testlog.',
-          default=True, optional=True)
+          default=True)
   ]
 
   def setUpAudioDevice(self):

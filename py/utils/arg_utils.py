@@ -12,7 +12,7 @@ use the args attribute to access the attribute values.
     ARGS = [
       Arg('explode', bool, 'True if device is expected to explode'),
       Arg('countdown_secs', int, 'Number of seconds to wait for explosion', 0),
-      Arg('title', str, 'Title in countdown window', optional=True),
+      Arg('title', str, 'Title in countdown window', default=None),
     ]
 
     def runTest(self):
@@ -43,7 +43,7 @@ class Arg(object):
   # pylint: disable=W0622
 
   def __init__(self, name, type, help,
-               default=_DEFAULT_NOT_SET, optional=False, _transform=None):
+               default=_DEFAULT_NOT_SET, _transform=None):
     """Constructs a test argument.
 
     Args:
@@ -51,7 +51,7 @@ class Arg(object):
       name: Name of the argument. This will be the key in a ``dargs``
         dict in the test list.
       type: Type of the argument, or (if more than one type is permitted)
-        a tuple of allowable types. If ``optional`` True, then None
+        a tuple of allowable types. If ``default`` is None, then None
         is also implicitly allowed. For example::
 
           type=int         # Allow only integers
@@ -73,9 +73,6 @@ class Arg(object):
         <http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html>`_.
       default: A default value for the argument. If there is no
         default value, this is omitted.
-      optional: Whether the argument is optional. If a default value
-        is provided, the argument is always optional and you need not set this
-        to ``True``.
       _transform: A transform function to be applied to the value after the
         argument is resolved.
     """
@@ -94,14 +91,8 @@ class Arg(object):
     if not help:
       raise ArgError('Argument %s is missing a help string' % name)
 
-    if default is _DEFAULT_NOT_SET:
-      default = None
-    else:
-      # The argument is optional when default is given (even it's None)
-      optional = True
-
     # Allow None for all optional arguments with default None
-    if default is None and optional and (TYPE(None) not in type):
+    if default is None and (TYPE(None) not in type):
       type += (TYPE(None),)
 
     # Allow list if tuple is allowed.
@@ -114,11 +105,10 @@ class Arg(object):
     self.help = help
     self.type = type
     self.default = default
-    self.optional = optional
     self.transform = _transform
 
     # Check type of default.
-    if optional and not self.ValueMatchesType(default):
+    if default is not _DEFAULT_NOT_SET and not self.ValueMatchesType(default):
       raise ArgError('Default value %s should have type %r, not %r' % (
           default, type, TYPE(default)))
 
@@ -132,6 +122,9 @@ class Arg(object):
 
     return False
 
+  def IsOptional(self):
+    return self.default is not _DEFAULT_NOT_SET
+
   def AddToParser(self, parser):
     """Add itself to argparse.ArgumentParser.
 
@@ -142,7 +135,7 @@ class Arg(object):
       raise ValueError('Arg %s cannot be transfered. %s' %
                        (self.name, self.type))
 
-    if self.optional:
+    if self.IsOptional():
       args = ['--' + self.name.replace('_', '-')]
     else:
       args = [self.name]
@@ -209,7 +202,7 @@ class Args(object):
     for arg in self.args:
       value = dargs.get(arg.name)
       if arg.name not in dargs:
-        if not arg.optional:
+        if not arg.IsOptional():
           errors.append('Required argument %s not specified' % arg.name)
           continue
         if arg.default is not None:

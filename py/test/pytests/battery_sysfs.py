@@ -47,8 +47,7 @@ class SysfsBatteryTest(unittest.TestCase):
   """Checks battery status."""
   ARGS = [
       Arg('maximum_cycle_count', int,
-          'Maximum cycle count allowed to pass test', optional=True,
-          default=None),
+          'Maximum cycle count allowed to pass test', default=None),
       Arg('percent_battery_wear_allowed', int,
           'Maximum pecent battery wear allowed to pass test', default=100),
       Arg('verify_battery_health_good', bool,

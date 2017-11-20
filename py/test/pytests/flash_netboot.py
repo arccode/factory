@@ -64,7 +64,7 @@ class FlashNetbootTest(unittest.TestCase):
       Arg('image', str,
           ('Path of netboot firmware image. Default to use %s' %
            flash_netboot.DEFAULT_NETBOOT_FIRMWARE_PATH),
-          optional=True),
+          default=None),
   ]
 
   def setUp(self):

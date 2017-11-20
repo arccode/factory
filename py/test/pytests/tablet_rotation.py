@@ -160,25 +160,25 @@ class TabletRotationTest(unittest.TestCase):
   """Tablet rotation factory test."""
   ARGS = [
       Arg('timeout_secs', int, 'Timeout value for the test.',
-          default=_DEFAULT_TIMEOUT, optional=True),
+          default=_DEFAULT_TIMEOUT),
       Arg('prompt_flip_tablet', bool,
           'Assume the notebook is not yet in tablet mode, and operator should '
           'first be instructed to flip it as such. (This is useful to unset if '
           'the previous test finished in tablet mode.)',
-          default=True, optional=True),
+          default=True),
       Arg('prompt_flip_notebook', bool,
           'After the test, prompt the operator to flip back into notebook '
           'mode. (This is useful to unset if the next test requires tablet '
           'mode.)',
-          default=True, optional=True),
+          default=True),
       Arg('check_accelerometer', bool,
           'In addition to checking the ChromeOS screen orientation, also check '
           'accelerometer data to ensure it reports the same orientation.',
-          default=False, optional=True),
+          default=False),
       Arg('accelerometer_location', str,
           'If check_accelerometer is true, the location of accelerometer that '
           'should be checked. Should be either "lid" or "base"',
-          default='lid', optional=True),
+          default='lid'),
       Arg('degrees_to_orientations', list,
           'A list of [key, value] pairs. '
           'Keys: degree of the orientation, limited to [0, 90, 180, 270]. '
@@ -186,14 +186,14 @@ class TabletRotationTest(unittest.TestCase):
           'should be the name of the accelerometer signal. The possible keys '
           'are "in_accel_(x|y|z)". Values should be one of [0, 1, -1], '
           'representing the ideal value for gravity under such orientation.',
-          default=[], optional=True),
+          default=[]),
       Arg('spec_offset', tuple,
           'A tuple of two numbers, ex: (1.5, 1.5) '
           'indicating the tolerance for the digital output of sensors under '
-          'zero gravity and one gravity.', optional=True),
+          'zero gravity and one gravity.', default=None),
       Arg('sample_rate_hz', int,
           'The sample rate in Hz to get raw data from '
-          'accelerometers.', default=20, optional=True),
+          'accelerometers.', default=20),
   ]
 
   def setUp(self):

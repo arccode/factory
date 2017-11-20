@@ -12,7 +12,7 @@ from cros.factory.utils import arg_utils
 
 
 # pylint: disable=protected-access
-def I18nArg(name, help_msg, optional=False, default=arg_utils._DEFAULT_NOT_SET):
+def I18nArg(name, help_msg, default=arg_utils._DEFAULT_NOT_SET):
   """Define an argument for i18n text.
 
   The argument should either be a string that would be passed to i18n._, or a
@@ -29,12 +29,11 @@ def I18nArg(name, help_msg, optional=False, default=arg_utils._DEFAULT_NOT_SET):
   Args:
     name: The name of the argument.
     help_msg: The help message of the argument.
-    optional: Whether the argument is optional.
     default: The default value of the message.
 
   Returns:
     The ``arg_utils.Arg`` object.
   """
   return arg_utils.Arg(
-      name, (basestring, dict), help_msg, optional=optional, default=default,
+      name, (basestring, dict), help_msg, default=default,
       _transform=lambda s: None if s is None else translation.Translated(s))

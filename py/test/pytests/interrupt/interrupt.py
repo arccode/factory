@@ -25,7 +25,7 @@ class InterruptTest(unittest.TestCase):
   ARGS = [
       Arg('interrupt', (int, str), 'Interrupt number or name.'),
       Arg('reload_module', str,
-          'Kernel module name. If set, rmmod and modprobe it.', optional=True),
+          'Kernel module name. If set, rmmod and modprobe it.', default=None),
       Arg('min_count', int, 'Minimum #interrupts to pass.', default=1),
   ]
 

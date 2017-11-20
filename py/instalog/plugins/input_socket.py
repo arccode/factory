@@ -41,9 +41,9 @@ class InputSocket(plugin_base.InputPlugin):
 
   ARGS = [
       Arg('hostname', (str, unicode), 'Hostname that server should bind to.',
-          optional=True, default=_DEFAULT_HOSTNAME),
+          default=_DEFAULT_HOSTNAME),
       Arg('port', int, 'Port that server should bind to.',
-          optional=True, default=socket_common.DEFAULT_PORT)
+          default=socket_common.DEFAULT_PORT)
   ]
 
   def __init__(self, *args, **kwargs):

@@ -93,15 +93,16 @@ class HWIDV3Test(unittest.TestCase):
   ARGS = [
       Arg('generate', bool,
           'Generate and write the HWID (if False, only verify it).',
-          True),
+          default=True),
       Arg('enable_factory_server', bool,
           'Update hwid data from factory server.',
-          default=True, optional=True),
+          default=True),
       Arg('rma_mode', bool,
           'Enable rma_mode, do not check for deprecated components.',
-          default=False, optional=True),
+          default=False),
       Arg('verify_checksum', bool,
-          'Enable database checksum verification.', default=True, optional=True)
+          'Enable database checksum verification.',
+          default=True)
   ]
 
   def setUp(self):

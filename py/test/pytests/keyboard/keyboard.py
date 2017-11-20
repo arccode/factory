@@ -63,20 +63,20 @@ class KeyboardTest(unittest.TestCase):
       Arg('layout', (str, unicode),
           'Use specified layout other than derived from VPD. '
           'If None, the layout from the VPD is used.',
-          default=None, optional=True),
+          default=None),
       Arg('timeout_secs', int, 'Timeout for the test.', default=30),
       Arg('sequential_press', bool, 'Indicate whether keycodes need to be '
-          'pressed sequentially or not.', default=False, optional=True),
+          'pressed sequentially or not.', default=False),
       Arg('strict_sequential_press', bool, 'Indicate whether keycodes need to '
           'be pressed strictly sequentially or not.',
-          default=False, optional=True),
+          default=False),
       Arg('board', str,
           'If presents, in filename, the board name is appended after layout.',
           default=''),
       Arg('device_filter', (int, str),
           'If present, the input event ID or a substring of the input device '
           'name specifying which keyboard to test.',
-          default=None, optional=True),
+          default=None),
       Arg('skip_power_key', bool, 'Skip power button testing', default=False),
       Arg('skip_keycodes', list, 'Keycodes to skip', default=[]),
       Arg('replacement_keymap', dict, 'Dictionary mapping key codes to '

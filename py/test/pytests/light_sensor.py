@@ -245,18 +245,18 @@ class iio_generic(object):
 class LightSensorTest(unittest.TestCase):
   """Tests light sensor."""
   ARGS = [
-      Arg('device_path', str, 'device path', optional=True),
+      Arg('device_path', str, 'device path', None),
       Arg('device_input', str, 'device input file', _DEFAULT_DEVICE_INPUT),
       Arg('timeout_per_subtest', int, 'timeout for each subtest', 10),
-      Arg('subtest_list', list, 'subtest list', optional=True),
-      Arg('subtest_cfg', dict, 'subtest configuration', optional=True),
-      Arg('subtest_instruction', dict, 'subtest instruction', optional=True),
+      Arg('subtest_list', list, 'subtest list', None),
+      Arg('subtest_cfg', dict, 'subtest configuration', None),
+      Arg('subtest_instruction', dict, 'subtest instruction', None),
       Arg('check_per_subtest', int, 'check times for each subtest', 3),
-      Arg('init_command', list, 'Setup device command', optional=True),
+      Arg('init_command', list, 'Setup device command', None),
 
       # Special parameter for ISL 29018 light sensor
       Arg('range_value', int, 'one of value (1000, 4000, 16000, 64000)',
-          optional=True),
+          None),
   ]
 
   def setUp(self):

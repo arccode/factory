@@ -101,20 +101,20 @@ class I2CFunction(function.ProbeFunction):
           'The I2C bus number. Every bus will be scanned if it is not '
           'assigned. If the bus is behind EC, then it should have "%s" prefix. '
           'For example: "%s0"' % (EC_BUS_PREFIX, EC_BUS_PREFIX),
-          optional=True),
+          default=None),
       Arg('bus_path', str,
           'The realpath of the I2C bus sysfs node. Ignored if `bus_number` '
           'argument is given.',
-          optional=True),
+          default=None),
       Arg('bus_name', str,
           'The name of the I2C bus sysfs node. Ignored if `bus_number` '
           'argument is given.',
-          optional=True),
+          default=None),
       Arg('addr', str,
           'The address of the device. Every address between %s and %s will be '
           'scanned if it is not assigned.' %
           (Hexify(ADDR_START), Hexify(ADDR_END)),
-          optional=True),
+          default=None),
       Arg('use_r_flag', bool, 'Use SMBus "read byte" commands for probing.',
           default=False),
   ]

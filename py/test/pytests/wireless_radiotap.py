@@ -369,14 +369,12 @@ class WirelessRadiotapTest(unittest.TestCase):
           '(SSID3, FREQ3, PASS3)]``. The test will only check the service '
           'whose antenna_all signal strength is the largest. For example, if '
           '(SSID1, FREQ1, PASS1) has the largest signal among the APs, '
-          'then only its results will be checked against the spec values.',
-          optional=False),
+          'then only its results will be checked against the spec values.'),
       Arg('strength', dict,
           'A dict of minimal signal strengths. For example, a dict like '
           '``{"main": strength_1, "aux": strength_2, "all": strength_all}``. '
           'The test will check signal strength according to the different '
-          'antenna configurations in this dict.',
-          optional=False),
+          'antenna configurations in this dict.'),
       Arg('scan_count', int,
           'Number of scans to get average signal strength.', default=5),
       Arg('switch_antenna_sleep_secs', int,

@@ -32,15 +32,15 @@ class InputTime(plugin_base.InputPlugin):
 
   ARGS = [
       Arg('interval', (int, float), 'Interval in between events.',
-          optional=True, default=_DEFAULT_INTERVAL),
+          default=_DEFAULT_INTERVAL),
       Arg('num_events', int, 'Number of events to produce on every interval.',
-          optional=True, default=_DEFAULT_NUM_EVENTS),
+          default=_DEFAULT_NUM_EVENTS),
       Arg('event_name', (str, unicode), 'Name of the event.',
-          optional=True, default=_DEFAULT_EVENT_NAME),
+          default=_DEFAULT_EVENT_NAME),
       Arg('num_attachments', int, 'Number of files to attach to each event.',
-          optional=True, default=_DEFAULT_NUM_ATTACHMENTS),
+          default=_DEFAULT_NUM_ATTACHMENTS),
       Arg('attachment_bytes', int, 'Size in bytes of each attachment file.',
-          optional=True, default=_DEFAULT_ATTACHMENT_BYTES),
+          default=_DEFAULT_ATTACHMENT_BYTES),
   ]
 
   def __init__(self, *args, **kwargs):

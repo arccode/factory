@@ -78,8 +78,8 @@ class InputDeviceFunction(function.ProbeFunction):
 
   ARGS = [
       Arg('device_type', str, 'The type of input device. '
-          'One of "touchscreen", "touchpad", "stylus".', optional=True),
-      Arg('sysfs_files', list, 'The files in the sysfs node.', optional=True),
+          'One of "touchscreen", "touchpad", "stylus".', default=None),
+      Arg('sysfs_files', list, 'The files in the sysfs node.', default=None),
   ]
 
   def Probe(self):

@@ -45,19 +45,15 @@ class OutputBigQuery(plugin_base.OutputPlugin):
           'Frequency to upload a BigQuery import, in seconds.  Since BigQuery '
           'only allows 1000 imports per day per table, a value above 86.4 '
           'seconds is recommended to guarantee this limit will not be reached.',
-          optional=True, default=_DEFAULT_INTERVAL),
+          default=_DEFAULT_INTERVAL),
       Arg('batch_size', int,
           'How many events to queue before transmitting.',
-          optional=True, default=_DEFAULT_BATCH_SIZE),
+          default=_DEFAULT_BATCH_SIZE),
       Arg('key_path', (str, unicode),
-          'Path to BigQuery service account JSON key file.',
-          optional=False),
-      Arg('project_id', (str, unicode), 'Google Cloud project ID.',
-          optional=False),
-      Arg('dataset_id', (str, unicode), 'BigQuery dataset ID.',
-          optional=False),
-      Arg('table_id', (str, unicode), 'BigQuery target table name.',
-          optional=False)
+          'Path to BigQuery service account JSON key file.'),
+      Arg('project_id', (str, unicode), 'Google Cloud project ID.'),
+      Arg('dataset_id', (str, unicode), 'BigQuery dataset ID.'),
+      Arg('table_id', (str, unicode), 'BigQuery target table name.')
   ]
 
   def __init__(self, *args, **kwargs):

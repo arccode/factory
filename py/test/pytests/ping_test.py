@@ -84,11 +84,10 @@ _CSS = 'test-template { text-align: left; }'
 
 class PingTest(unittest.TestCase):
   ARGS = [
-      Arg('host', str, 'The IP address or hostname to ping.',
-          optional=False),
+      Arg('host', str, 'The IP address or hostname to ping.'),
       Arg('interface', str, 'Source interface address, may be numeric IP '
           'address or name of network device, ex: eth0.',
-          default=None, optional=True),
+          default=None),
       Arg('interval_secs', int, 'The interval in seconds between two '
           'consecutive pings.',
           default=2),
@@ -101,11 +100,11 @@ class PingTest(unittest.TestCase):
           'of ping attempts.  If it is set, the percentage of successful '
           'pings will be checked within the moving window in addition to '
           'that at the end of the test.',
-          default=None, optional=True),
+          default=None),
       Arg('verbose', bool, 'Dumps stdout of ping commands.',
           default=False),
       Arg('packet_size', int, 'Specifies the number of data bytes to be sent.',
-          default=None, optional=True),
+          default=None),
   ]
 
   def setUp(self):

@@ -53,7 +53,7 @@ class BoardTempSensorsTest(unittest.TestCase):
       Arg('temp_sensor_to_test', (str, list),
           'List of temperature sensor(s) to test, "*" for all sensors. '
           'Default to test only the main sensor (usually CPU).',
-          default=None, optional=True),
+          default=None),
       Arg('temp_range', (list, tuple),
           'A sequence of (min_temp, max_temp) in Celsius.',
           default=(0, 100)),

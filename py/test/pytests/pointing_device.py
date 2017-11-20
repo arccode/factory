@@ -174,7 +174,7 @@ class PointingDeviceTest(unittest.TestCase):
   clicked and a right-click is triggered.
   """
   ARGS = [
-      Arg('touchpad', str, 'TouchPad device name in xinput.', optional=False),
+      Arg('touchpad', str, 'TouchPad device name in xinput.'),
       Arg('test_scroll', bool, "Test device's scroll feature.", default=False),
       Arg('scroll_threshold', int, 'Threshold for recognizing scroll event.',
           default=50)

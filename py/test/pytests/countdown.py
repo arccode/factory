@@ -75,22 +75,19 @@ class CountDownTest(unittest.TestCase):
       Arg('ui_update_interval', int,
           'Interval of time in seconds to update system status on UI.', 10),
       Arg('grace_secs', int,
-          'Grace period before starting abnormal status detection.', 120,
-          optional=True),
+          'Grace period before starting abnormal status detection.', 120),
       Arg('temp_max_delta', int,
           'Allowed difference between current and last temperature of a '
-          'sensor.', None, optional=True),
+          'sensor.', None),
       Arg('temp_criteria', (list, tuple),
           'A list of rules to check that temperature is under the given range, '
-          'rule format: (name, temp_sensor, warning_temp, critical_temp)', [],
-          optional=True),
+          'rule format: (name, temp_sensor, warning_temp, critical_temp)', []),
       Arg('relative_temp_criteria', (list, tuple),
           'A list of rules to check the difference between two temp sensors, '
           'rule format: (relation, first_sensor, second_sensor, max_diff). '
           'relation is a text output with warning messages to describe the two '
-          'temp sensors in the rule', [], optional=True),
-      Arg('fan_min_expected_rpm', int, 'Minimum fan rpm expected', None,
-          optional=True)
+          'temp sensors in the rule', []),
+      Arg('fan_min_expected_rpm', int, 'Minimum fan rpm expected', None)
   ]
 
   def FormatSeconds(self, secs):

@@ -90,7 +90,7 @@ class StylusTest(unittest.TestCase):
 
   ARGS = [
       Arg('device_filter', (int, str), 'Stylus input event id or evdev name.',
-          optional=True),
+          default=None),
       Arg('error_margin', int,
           'Maximum tolerable distance to the diagonal line (in pixel).',
           default=25),

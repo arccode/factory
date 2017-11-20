@@ -36,12 +36,11 @@ _CSS_USB_TEST = '.usb-test-info { font-size: 2em; }'
 
 class USBTest(unittest.TestCase):
   ARGS = [
-      Arg('expected_paths', str, 'USB device path', None, optional=True),
-      Arg('num_usb_ports', int, 'number of USB port', None, optional=True),
-      Arg('num_usb2_ports', int, 'number of USB 2.0 ports', None,
-          optional=True),
-      Arg('num_usb3_ports', int, 'number of USB 3.0 ports', None,
-          optional=True)]
+      Arg('expected_paths', str, 'USB device path', None),
+      Arg('num_usb_ports', int, 'number of USB port', None),
+      Arg('num_usb2_ports', int, 'number of USB 2.0 ports', None),
+      Arg('num_usb3_ports', int, 'number of USB 3.0 ports', None)
+  ]
 
   def setUp(self):
     self.ui = test_ui.UI()

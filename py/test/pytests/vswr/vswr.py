@@ -54,7 +54,6 @@ from cros.factory.test.utils import connection_manager
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import net_utils
-from cros.factory.utils import type_utils
 
 
 # The root of the pytests vswr folder. The config path is relative to this when
@@ -66,12 +65,12 @@ class VSWR(unittest.TestCase):
   """A test for antennas using Agilent E5017C Network Analyzer (ENA)."""
   ARGS = [
       Arg('event_log_name', str, 'Name of the event_log, like '
-          '"vswr_prepressed" or "vswr_postpressed".', optional=False),
+          '"vswr_prepressed" or "vswr_postpressed".'),
       Arg('config_path', str, 'Configuration path relative to the root of '
           'either (1) pytest vswr folder (if load_from_shopfloor is False) or '
           '(2) shopfloor parameters directory (if load_from_shopfloor is True).'
           ' E.g. path/to/config_file_name.',
-          optional=True),
+          default=None),
       Arg('timezone', str, 'Timezone of shopfloor.', default='Asia/Taipei'),
       Arg('load_from_shopfloor', bool, 'Whether to load parameters from '
           'shopfloor or not.', default=True),
@@ -81,7 +80,7 @@ class VSWR(unittest.TestCase):
           default='serial_number'),
       Arg('keep_raw_logs', bool,
           'Whether to attach the log by Testlog',
-          default=True, optional=True)
+          default=True)
   ]
 
   def setUp(self):

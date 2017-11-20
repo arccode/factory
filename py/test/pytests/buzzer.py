@@ -38,9 +38,9 @@ class BuzzerTest(test_ui.TestCaseWithUI):
   """Tests buzzer."""
   ARGS = [
       # Common arguments
-      Arg('init_commands', list, 'Setup buzzer commands', optional=True),
-      Arg('start_command', list, 'Start beep command', optional=True),
-      Arg('stop_command', list, 'Stop beep command', optional=True),
+      Arg('init_commands', list, 'Setup buzzer commands', None),
+      Arg('start_command', list, 'Start beep command', None),
+      Arg('stop_command', list, 'Stop beep command', None),
       Arg('beep_duration_secs', float, 'How long for one beep', 0.3),
       Arg('mute_duration_secs', float, 'Mute duration between two beeps', 0.5),
   ]

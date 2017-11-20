@@ -103,8 +103,8 @@ class ChargerTest(unittest.TestCase):
           default=60),
       Arg('use_percentage', bool, 'True if using percentage as charge unit '
           'in spec list. False if using mAh.', default=True),
-      Arg('charger_type', str, 'Type of charger required.', default=None,
-          optional=True),
+      Arg('charger_type', str, 'Type of charger required.',
+          default=None),
       Arg('spec_list', list, 'A list of tuples. Each tuple contains\n'
           '(charge_change, timeout_secs, load)\n'
           'Charger needs to achieve charge_change difference within\n'

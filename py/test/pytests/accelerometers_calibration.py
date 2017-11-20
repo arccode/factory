@@ -172,13 +172,11 @@ class SixSidedCalibrationTask(test_task.TestTask):
 class AccelerometersCalibration(unittest.TestCase):
 
   ARGS = [
-      Arg(
-          'calibration_method', str,
+      Arg('calibration_method', str,
           'There are two calibration methods: horizontal calibration and '
           'six-sided calibration. The value can be either "horizontal" or '
-          '"sixsided".', default='horizontal', optional=True),
-      Arg(
-          'orientation', dict,
+          '"sixsided".', default='horizontal'),
+      Arg('orientation', dict,
           'Keys: the name of the accelerometer signal. For example, '
           '"in_accel_x_base" or "in_accel_x_lid". The possible keys are '
           '"in_accel_(x|y|z)_(base|lid)".'
@@ -199,28 +197,23 @@ class AccelerometersCalibration(unittest.TestCase):
           '    "in_accel_z_base": (1, -1, 0, 0, 0, 0),'
           '    "in_accel_x_lid": (0, 0, 1, -1, 0, 0),'
           '    "in_accel_y_lid": (0, 0, 0, 0, 1, -1),'
-          '    "in_accel_z_lid": (1, -1, 0, 0, 0, 0)}.', optional=False),
-      Arg(
-          'sample_rate_hz', int,
+          '    "in_accel_z_lid": (1, -1, 0, 0, 0, 0)}.'),
+      Arg('sample_rate_hz', int,
           'The sample rate in Hz to get raw data from '
-          'accelerometers.', default=20, optional=True),
-      Arg(
-          'capture_count', int,
+          'accelerometers.', default=20),
+      Arg('capture_count', int,
           'How many times to capture the raw data to '
-          'calculate the average value.', default=100, optional=True),
-      Arg(
-          'setup_time_secs', int,
+          'calculate the average value.', default=100),
+      Arg('setup_time_secs', int,
           'How many seconds to wait before starting '
-          'to calibration.', default=2, optional=True),
-      Arg(
-          'spec_offset', tuple,
+          'to calibration.', default=2),
+      Arg('spec_offset', tuple,
           'A tuple of two numbers, ex: (0.5, 0.5) '
           'indicating the tolerance in m/s^2 for the digital output of '
-          'sensors under 0 and 1G.', optional=False),
-      Arg(
-          'location', str,
-          'The location for the accelerometer', default='base',
-          optional=True)]
+          'sensors under 0 and 1G.'),
+      Arg('location', str,
+          'The location for the accelerometer', default='base')
+  ]
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()

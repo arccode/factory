@@ -31,9 +31,9 @@ class DisplayPointTest(unittest.TestCase):
   """
   ARGS = [
       Arg('point_size', (float, int), 'width and height of testing point in px',
-          optional=True, default=3.0),
+          default=3.0),
       Arg('max_point_count', int, 'maximum number of points in each subtest',
-          optional=True, default=3)
+          default=3)
   ]
 
   def setUp(self):

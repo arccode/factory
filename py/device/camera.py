@@ -17,7 +17,7 @@ class Camera(types.DeviceComponent):
   """System module for camera device.
 
     The default implementation contains only one camera device, which is the
-    defualt camera opened by OpenCV.
+    default camera opened by OpenCV.
 
     Subclass should override GetCameraDevice(index).
   """

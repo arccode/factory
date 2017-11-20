@@ -41,18 +41,18 @@ class TabletModeTest(unittest.TestCase):
   """Tablet mode factory test."""
   ARGS = [
       Arg('timeout_secs', int, 'Timeout value for the test.',
-          default=_DEFAULT_TIMEOUT, optional=True),
+          default=_DEFAULT_TIMEOUT),
       Arg('lid_filter', (int, str),
           'Lid event ID or name for evdev. None for auto probe.',
-          default=None, optional=True),
+          default=None),
       Arg('tablet_filter', (int, str),
           'Tablet event ID or name for evdev. None for auto probe.',
-          default=None, optional=True),
+          default=None),
       Arg('prompt_flip_notebook', bool,
           'After the test, prompt the operator to flip back into notebook '
           'mode. (This is useful to unset if the next test requires tablet '
           'mode.)',
-          default=True, optional=True),
+          default=True),
   ]
 
   def setUp(self):

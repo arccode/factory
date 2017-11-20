@@ -213,7 +213,7 @@ class ProbeSIMCardTest(unittest.TestCase):
       Arg('poll_modem_status', bool,
           'Polls modem status until the status is available', default=False),
       Arg('modem_reset_commands', list,
-          'A list of commands to reset modem', optional=True),
+          'A list of commands to reset modem', default=None),
       Arg('enable_modem_reset', bool,
           'If true, reset modem before check status.', default=True)]
 

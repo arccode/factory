@@ -65,7 +65,7 @@ class SampleCustomizedTest(unittest.TestCase):
           'foo', int, help='foo can only be int, not optional'),
       arg_utils.Arg(
           'bar', str, help='bar is optional, default to None',
-          optional=True),
+          default=None),
       arg_utils.Arg(
           'baz', str, help='baz is optional, default to "BAZ"',
           default="BAZ"),

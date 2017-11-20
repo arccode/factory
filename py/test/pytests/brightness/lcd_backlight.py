@@ -24,7 +24,7 @@ class LCDBacklightTest(brightness.BrightnessTest):
               default=_('Please check if backlight brightness is changing from '
                         'dark to bright.')),
           Arg('levels', (tuple, list), 'A sequence of brightness levels.',
-              optional=True),
+              default=None),
           Arg('interval_secs', (int, float),
               'Time for each brightness level in seconds.', default=0.5)
       ])

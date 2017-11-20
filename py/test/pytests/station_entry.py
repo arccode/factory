@@ -125,28 +125,28 @@ class StationEntry(unittest.TestCase):
   ARGS = [
       Arg('start_station_tests', bool,
           'To start or stop the factory station tests.',
-          default=True, optional=True),
+          default=True),
       Arg('prompt_start', bool,
           'Prompt for spacebar before starting test.',
-          default=False, optional=True),
+          default=False),
       Arg('timeout_secs', int,
           'Timeout for waiting the device. Set to None for waiting forever.',
-          default=None, optional=True),
+          default=None),
       Arg('disconnect_dut', bool,
           'Ask operator to disconnect DUT or not',
-          default=True, optional=True),
+          default=True),
       # TODO(hungte) When device_data and dut_storage has been synced, we should
       # change this to "clear_dut_storage" since testlog will still try to
       # reload device data from storage before invocation of next test.
       Arg('load_dut_storage', bool,
           'To load DUT storage into station session (DeviceData).',
-          default=True, optional=True),
+          default=True),
       Arg('invalidate_dut_info', bool,
           'To invoke dut.info.Invalidate() or not',
-          default=True, optional=True),
+          default=True),
       Arg('clear_serial_numbers', bool,
           'To invoke device_data.ClearAllSerialNumbers() or not',
-          default=True, optional=True),
+          default=True),
   ]
 
   def setUp(self):

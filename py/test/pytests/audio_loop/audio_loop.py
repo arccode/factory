@@ -180,7 +180,7 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
   2. Headphone out to headphone in.
   """
   ARGS = [
-      Arg('audio_conf', str, 'Audio config file path', None, optional=True),
+      Arg('audio_conf', str, 'Audio config file path', None),
       Arg('initial_actions', list, 'List of tuple (card, actions)', []),
       Arg('input_dev', tuple,
           'Input ALSA device. (card_name, sub_device).'
@@ -211,7 +211,7 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
           'nocheck'),
       Arg('audiofuntest_run_delay', (int, float),
           'Delay between consecutive calls to audiofuntest',
-          default=None, optional=True),
+          default=None),
       Arg('tests_to_conduct', list,
           'A list of dicts. A dict should contain at least one key named\n'
           '**type** indicating the test type, which can be **audiofun**,\n'
@@ -252,10 +252,10 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
           '        make sure the inequality is true: *min <= minimum measured\n'
           '        amplitude <= maximum measured amplitude <= max*,\n'
           '        otherwise, fail the test.  Both of **min** and **max** can\n'
-          '        be set to None, which means no limit.', optional=False),
+          '        be set to None, which means no limit.'),
       Arg('keep_raw_logs', bool,
           'Whether to attach the audio by Testlog when the test fail.',
-          default=True, optional=True)]
+          default=True)]
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()

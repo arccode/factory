@@ -104,10 +104,10 @@ class TouchpadHoverTest(unittest.TestCase):
   ARGS = [
       Arg('touchpad_filter', (int, str),
           'Touchpad input event id or evdev name. The test will probe for '
-          'event id if it is not given.', optional=True),
+          'event id if it is not given.', default=None),
       Arg('calibration_trigger', str,
           'The file path of the touchpad calibration trigger. '
-          'If not set, calibration step will be skipped.', optional=True),
+          'If not set, calibration step will be skipped.', default=None),
       Arg('calibration_sleep_secs', int,
           'Duration to sleep for calibration in seconds.', default=1),
       Arg('repeat_times', int, 'Number of rounds of the test.', default=2),

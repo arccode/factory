@@ -65,7 +65,6 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import type_utils
 
 
 # The Graphyte config files (pathloss, test plan, port config) should be placed
@@ -105,26 +104,25 @@ class RFGraphyteTest(unittest.TestCase):
   ARGS = [
       Arg('graphyte_config_file', str,
           'Path to Graphyte config file. This is interpreted as the path '
-          'relative to `test/pytests/rf_graphyte` folder.',
-          optional=False),
+          'relative to `test/pytests/rf_graphyte` folder.'),
       Arg('patch_dhcp_ssh_dut_ip', bool,
           'Set to True if Goofy uses SSH link with DHCP enabled to connect to '
           "DUT. This will patch the IP from Goofy's link into Graphyte's "
           'target DUT IP configuration.',
-          default=False, optional=True),
+          default=False),
       Arg('verbose', bool, 'Enable Graphyte debug logging',
-          default=True, optional=True),
+          default=True),
       Arg('enable_factory_server', bool,
           'Whether or not to use Chrome OS factory server. '
           'If True, the test will try to update config files from server, '
           'and upload the log and result file to factory server. '
           'If False, load config file from local disk and does not upload log.',
-          default=True, optional=False),
+          default=True),
       Arg('server_parameter_dir', str,
           'Directory in which to place the updated config files. All the files '
           'in this folder will be downloaded to `test/pytests/rf_graphyte` '
           'folder if argument "enable_factory_server" is True.',
-          default='rf_graphyte', optional=True),
+          default='rf_graphyte'),
       ]
 
   def setUp(self):

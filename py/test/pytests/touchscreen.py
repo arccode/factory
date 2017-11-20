@@ -224,7 +224,7 @@ class TouchscreenTest(unittest.TestCase):
           'Do blocks need to be drawn in spiral order or not.',
           default=True),
       Arg('device_filter', (int, str), 'Evdev input event id or name.',
-          optional=True),
+          default=None),
       Arg('hover_mode', bool, 'Test hovering or touching (for stylus).',
           default=False),
       Arg('timeout_secs', (int, type(None)),

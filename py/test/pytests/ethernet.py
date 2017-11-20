@@ -43,29 +43,28 @@ class EthernetTest(unittest.TestCase):
   ARGS = [
       Arg('auto_start', bool, 'Auto start option.', False),
       Arg('test_url', str, 'URL for testing data transmission.',
-          optional=True),
+          default=None),
       Arg('md5sum', str, 'md5sum of the test file in test_url.',
-          optional=True),
+          default=None),
       Arg('retry_interval_msecs', int,
           'Milliseconds before next retry.',
           default=1000),
-      Arg('iface', str, 'Interface name for testing.', default=None,
-          optional=True),
+      Arg('iface', str, 'Interface name for testing.',
+          default=None),
       Arg('interface_name_patterns',
           list,
           'The ethernet interface name patterns',
-          default=net_utils.DEFAULT_ETHERNET_NAME_PATTERNS,
-          optional=True),
+          default=net_utils.DEFAULT_ETHERNET_NAME_PATTERNS),
       Arg('link_only', bool, 'Only test if link is up or not', default=False),
       Arg('use_swconfig', bool, 'Use swconfig for polling link status.',
           default=False),
       Arg('swconfig_switch', str, 'swconfig switch name.', default='switch0'),
       Arg('swconfig_ports', (int, list), 'swconfig port numbers. Either '
-          'a single int or a list of int.', default=None, optional=True),
+          'a single int or a list of int.', default=None),
       Arg('swconfig_expected_speed', (int, list),
           ('expected link speed, if a list is given, each integer in the list '
            'will be paired with each port in swconfig_ports.'),
-          default=None, optional=True)
+          default=None)
   ]
 
   def setUp(self):

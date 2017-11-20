@@ -105,10 +105,10 @@ class ReadDeviceDataFromVPD(unittest.TestCase):
   ARGS = [
       Arg('ro_key_map', dict,
           'Mapping of (VPD_NAME, DEVICE_DATA_KEY) to read from RO VPD.',
-          optional=True, default=None),
+          default=None),
       Arg('rw_key_map', dict,
           'Mapping of (VPD_NAME, DEVICE_DATA_KEY) to read from RW VPD.',
-          optional=True, default=None),
+          default=None),
   ]
 
   def setUp(self):

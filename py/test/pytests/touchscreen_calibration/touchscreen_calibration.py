@@ -88,7 +88,7 @@ class TouchscreenCalibration(unittest.TestCase):
       Arg('tool', str, 'The test tool', ''),
       Arg('keep_raw_logs', bool,
           'Whether to attach the log by Testlog',
-          default=True, optional=True),
+          default=True),
   ]
 
   def setUp(self):

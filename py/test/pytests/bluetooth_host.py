@@ -38,17 +38,17 @@ class BluetoothScanTest(unittest.TestCase):
           default=DEFAULT_RETRY_TIME),
       Arg('enable_pair', bool,
           'Set to True to enable pairing test.',
-          optional=True, default=False),
+          default=False),
       Arg('pre_command', str,
           'Command to be run before executing the test.  For example, this '
           'could be used to initialize Bluetooth module on the DUT.  '
           'Does not check output of the command.',
-          optional=True, default=None),
+          default=None),
       Arg('post_command', str,
           'Command to be run after executing the test.  For example, this '
           'could be used to unload a Bluetooth module on the DUT.  '
           'Does not check output of the command.',
-          optional=True, default=None),
+          default=None),
       Arg('host_hci_device', str,
           'The target hci device of the host station. Set to None to bind'
           'on all interfaces, or set to "hci0" to bind only on specified'

@@ -186,7 +186,7 @@ class CameraTest(unittest.TestCase):
           'for the rear facing camera so the displayed image looks correct.'
           'The default value is False if device_index is "rear", True '
           'otherwise.',
-          optional=True),
+          default=None),
       Arg('camera_args', dict, 'Dict of args used for enabling the camera '
           'device. Only "resolution" is supported in e2e mode.', default={})]
 

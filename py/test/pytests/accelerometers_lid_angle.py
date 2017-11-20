@@ -81,19 +81,19 @@ _CSS = """
 class AccelerometersLidAngleTest(unittest.TestCase):
   ARGS = [
       Arg('angle', int, 'The target lid angle in degree to test.',
-          default=180, optional=True),
+          default=180),
       Arg('tolerance', int, 'The tolerance in degree.',
-          default=5, optional=True),
+          default=5),
       Arg('capture_count', int,
           'How many times to capture the raw data to '
-          'calculate the lid angle.', default=20, optional=True),
+          'calculate the lid angle.', default=20),
       Arg('spec_offset', tuple,
           'A tuple of two numbers, ex: (0.5, 0.5) '
           'indicating the tolerance in m/s^2 for the digital output of '
-          'sensors under 0 and 1G.', optional=False),
+          'sensors under 0 and 1G.'),
       Arg('sample_rate_hz', int,
           'The sample rate in Hz to get raw data from '
-          'accelerometers.', default=20, optional=True),
+          'accelerometers.', default=20),
   ]
 
   def setUp(self):

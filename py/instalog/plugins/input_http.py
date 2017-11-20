@@ -319,19 +319,19 @@ class InputHTTP(plugin_base.InputPlugin):
   ARGS = [
       Arg('hostname', (str, unicode),
           'Hostname that server should bind to.',
-          optional=True, default=_DEFAULT_HOSTNAME),
+          default=_DEFAULT_HOSTNAME),
       Arg('port', int,
           'Port that server should bind to.',
-          optional=True, default=http_common.DEFAULT_PORT),
+          default=http_common.DEFAULT_PORT),
       Arg('max_bytes', int,
           'Maximum size of the request in bytes.',
-          optional=True, default=http_common.DEFAULT_MAX_BYTES),
+          default=http_common.DEFAULT_MAX_BYTES),
       Arg('enable_gnupg', bool,
           'Enable to use GnuPG.',
-          optional=True, default=False),
+          default=False),
       Arg('gnupg_home', (str, unicode),
           'The home directory of GnuPG.',
-          optional=True, default=None),
+          default=None),
   ]
 
   def __init__(self, *args, **kwargs):

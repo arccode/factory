@@ -56,7 +56,7 @@ class FanSpeedTest(unittest.TestCase):
       Arg('target_rpm', (int, list),
           'A list of target RPM to set during test.'
           'Unused if spin_max_then_half is set.',
-          default=0, optional=True),
+          default=0),
       Arg('error_margin', int,
           'Fail the test if actual fan speed is off the target by the margin.',
           default=200),
@@ -75,9 +75,10 @@ class FanSpeedTest(unittest.TestCase):
           'Number of lastest samples to count average as stablized speed.',
           default=5),
       Arg('use_percentage', bool, 'Use percentage to set fan speed',
-          default=False, optional=True),
+          default=False),
       Arg('fan_id', int, 'The ID of fan to test, use None to test all fans.',
-          default=None, optional=True)]
+          default=None)
+  ]
 
   def setUp(self):
     self.assertTrue(

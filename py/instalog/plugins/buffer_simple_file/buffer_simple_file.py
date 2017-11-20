@@ -134,15 +134,15 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
       Arg('truncate_interval', (int, float),
           'How often truncating the buffer file should be attempted.  '
           'If set to 0, truncating functionality will be disabled (default).',
-          optional=True, default=_DEFAULT_TRUNCATE_INTERVAL),
+          default=_DEFAULT_TRUNCATE_INTERVAL),
       Arg('copy_attachments', bool,
           'Instead of moving an attachment into the buffer, perform a copy '
           'operation, and leave the source file intact.',
-          optional=True, default=_DEFAULT_COPY_ATTACHMENTS),
+          default=_DEFAULT_COPY_ATTACHMENTS),
       Arg('enable_fsync', bool,
           'Synchronize the buffer file when it receives events.  '
           'Default is True.',
-          optional=True, default=_DEFAULT_ENABLE_FSYNC)
+          default=_DEFAULT_ENABLE_FSYNC)
   ]
 
   def __init__(self, *args, **kwargs):

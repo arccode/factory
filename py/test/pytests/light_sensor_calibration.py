@@ -167,9 +167,9 @@ class ALSFixture(unittest.TestCase):
           "The OP won't have to reconnect the fixture everytime.",
           default=True),
       Arg('chamber_conn_params', (dict, str), 'Chamber connection parameters, '
-          "either a dict, defaults to None", default=None, optional=True),
+          "either a dict, defaults to None", default=None),
       Arg('chamber_cmd', dict, 'A dict for name of lightning to a '
-          '(cmd, cmd_response) tuple.', default=None, optional=False),
+          '(cmd, cmd_response) tuple.'),
       Arg('chamber_n_retries', int, 'Number of retries when connecting.',
           default=10),
       Arg('chamber_retry_delay', int, 'Delay between connection retries.',
@@ -180,10 +180,10 @@ class ALSFixture(unittest.TestCase):
           default=False),
       Arg('config_dict', dict, 'The config dictionary. '
           'If None, then the config is loaded by config_utils.LoadConfig().',
-          default=None, optional=True),
+          default=None),
       Arg('keep_raw_logs', bool,
           'Whether to attach the log by Testlog',
-          default=True, optional=True),
+          default=True),
 
   ]
 

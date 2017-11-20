@@ -110,7 +110,7 @@ class VerifyValueTest(unittest.TestCase):
           '            - A list of all possible values, each item can be one\n'
           '                of the above types.'),
       Arg('has_ui', bool, 'True if this test runs with goofy UI enabled.',
-          optional=True, default=True)
+          default=True)
       ]
 
   def setUp(self):

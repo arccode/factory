@@ -54,7 +54,7 @@ class SysfsFunction(function.ProbeFunction):
       Arg('dir_path', str, 'The path of target sysfs folder.'),
       Arg('keys', list, 'The required file names in the sysfs folder.'),
       Arg('optional_keys', list, 'The optional file names in the sysfs folder.',
-          optional=True),
+          default=None),
   ]
 
   def Probe(self):

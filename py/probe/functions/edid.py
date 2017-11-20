@@ -190,7 +190,7 @@ class EDIDFunction(function.ProbeFunction):
   ARGS = [
       Arg('path', str,
           'EDID file path or the number of I2C bus.',
-          optional=True),
+          default=None),
   ]
 
   I2C_DEVICE_PREFIX = '/dev/i2c-'

@@ -150,7 +150,7 @@ class Function(object):
       elif len(self.ARGS) == 1:
         kwargs = {self.ARGS[0].name: kwargs[_FAKE_INDEX]}
       else:
-        required_args = [arg.name for arg in self.ARGS if not arg.optional]
+        required_args = [arg.name for arg in self.ARGS if not arg.IsOptional()]
         if len(required_args) != 1:
           raise FunctionException(
               'Function "%s" requires more than one argument: %s' %

@@ -31,21 +31,21 @@ class ThermalLoadTest(unittest.TestCase):
           ('Number of threads stressapptest uses.  If None is '
            'used, this will default to the number of processors in the '
            'system.'),
-          optional=True, default=None),
+          default=None),
       Arg('heat_up_timeout_secs', int, 'Timeout interval in seconds for '
-          'temperature to go over lower_threshold', optional=True, default=40),
+          'temperature to go over lower_threshold', default=40),
       Arg('duration_secs', int, 'Time in seconds for the test to run',
-          optional=True, default=80),
+          default=80),
       Arg('lower_threshold', (int, list), 'Minimum temperature value required '
-          'within heat_up_timeout_secs', optional=True, default=45),
+          'within heat_up_timeout_secs', default=45),
       Arg('temperature_limit', (int, list),
           'Maximum temperature value allowed throughout the entire test.',
-          optional=True, default=75),
+          default=75),
       Arg('sensors', (str, list), 'List of temperature sensors to test. '
-          'Default to main sensor, or "*" for all sensors.', optional=True,
+          'Default to main sensor, or "*" for all sensors.',
           default=None),
       Arg('temperatures_difference', int, 'The difference of temperatures '
-          'should be under a specified limit.', optional=True),
+          'should be under a specified limit.', default=None),
   ]
 
   def GetTemperatures(self):

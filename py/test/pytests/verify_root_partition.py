@@ -29,10 +29,10 @@ class VerifyRootPartitionTest(unittest.TestCase):
 
   ARGS = [
       Arg('kern_a_device', str,
-          'Path to the device containing KERN-A partition', optional=True),
+          'Path to the device containing KERN-A partition', default=None),
       Arg('root_device', str,
-          'Path to the device containing rootfs partition', optional=True),
-      Arg('max_bytes', int, 'Maximum number of bytes to read', optional=True),
+          'Path to the device containing rootfs partition', default=None),
+      Arg('max_bytes', int, 'Maximum number of bytes to read', default=None),
   ]
 
   def setUp(self):

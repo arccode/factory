@@ -18,10 +18,10 @@ class BFTFixture(unittest.TestCase):
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP),
       Arg('method', str, 'BFTFixture method to call.'),
       Arg('args', (list, tuple), 'args of the method.',
-          default=(), optional=True),
+          default=()),
       Arg('retry_secs', (int, float),
           'retry interval in seconds (or None for no retry)',
-          optional=True),
+          default=None),
   ]
 
   def runTest(self):

@@ -36,18 +36,18 @@ class VerifyComponentsTest(unittest.TestCase):
           'Whether to do a fast firmware probe. The fast firmware probe just '
           'checks the RO EC and main firmware version and does not compute'
           'firmware hashes.',
-          default=True, optional=True),
+          default=True),
       Arg('enable_factory_server', bool,
           'Updating hwid data from factory server.',
-          default=True, optional=True),
+          default=True),
       Arg('with_goofy', bool,
           'Set this value to False if the test is not running with goofy. '
           'Without goofy, test_ui and event_log will not work, thus will be '
           'disabled',
-          default=True, optional=True),
+          default=True),
       Arg('phase', str,
           'Override current phase, this is for standalone testing.',
-          default=None, optional=True)
+          default=None)
   ]
 
   def setUp(self):

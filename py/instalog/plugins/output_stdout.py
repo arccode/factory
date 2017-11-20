@@ -24,9 +24,9 @@ class OutputStdout(plugin_base.OutputPlugin):
 
   ARGS = [
       Arg('batch_size', int, 'How many events to queue before printing.',
-          optional=True, default=_DEFAULT_BATCH_SIZE),
+          default=_DEFAULT_BATCH_SIZE),
       Arg('timeout', (int, float), 'Timeout to print without full batch.',
-          optional=True, default=_DEFAULT_TIMEOUT),
+          default=_DEFAULT_TIMEOUT),
   ]
 
   def Main(self):

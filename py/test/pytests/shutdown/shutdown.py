@@ -137,14 +137,14 @@ class ShutdownTest(unittest.TestCase):
       Arg('max_reboot_time_secs', int,
           ('Maximum amount of time allowed between reboots. If this threshold '
            'is exceeded, the reboot is considered failed.'),
-          default=180, optional=True),
+          default=180),
       Arg('wait_shutdown_secs', int,
           'Number of seconds to wait for system shutdown.', default=60),
       Arg('check_tag_file', bool, 'Checks shutdown failure tag file',
           default=False),
       Arg('check_audio_devices', int,
           ('Check total number of audio devices. None for non-check.'),
-          default=None, optional=True),
+          default=None),
       Arg('check_gpt', bool,
           'Check GPT info before shutdown/reboot.', default=True)
   ]

@@ -65,7 +65,7 @@ class ThermalSlopeTest(unittest.TestCase):
           'Maximum allowable temperature after cool_down '
           '(if higher than this, the test will not run). '
           'Defaults to cool_down_temperature_c',
-          optional=True),
+          default=None),
       Arg('target_fan_rpm', (int, float, str),
           'Target RPM of fan during slope test, or the string "auto".',
           default=4000),
@@ -77,17 +77,17 @@ class ThermalSlopeTest(unittest.TestCase):
           default=5),
       Arg('min_slope', (int, float),
           u'Minimum allowable thermal slope in °C/J',
-          optional=True),
+          default=None),
       Arg('max_slope', (int, float),
           u'Maximum allowable thermal slope in °C/J',
-          optional=True),
+          default=None),
       Arg('console_log', bool,
           'Enable console log (disabling may make results more accurate '
           'since updating the console log on screen requires CPU cycles)',
           default=False),
       Arg('sensor_id', str,
           'An id to specify the power sensor. See Thermal.GetPowerUsage.',
-          optional=True)
+          default=None)
   ]
 
   def setUp(self):

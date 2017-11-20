@@ -32,22 +32,20 @@ class OutputCloudStorage(plugin_base.OutputPlugin):
           'Frequency to re-emit events, if no attachments are encountered. '
           'When attachments are encountered, events are re-emitted right '
           'after upload.',
-          optional=True, default=_DEFAULT_INTERVAL),
+          default=_DEFAULT_INTERVAL),
       Arg('key_path', (str, unicode),
-          'Path to Cloud Storage service account JSON key file.',
-          optional=False),
+          'Path to Cloud Storage service account JSON key file.'),
       Arg('target_dir', (str, unicode),
-          'Path to the target bucket and directory on Google Cloud.',
-          optional=False),
+          'Path to the target bucket and directory on Google Cloud.'),
       Arg('use_sha1', bool,
           'Use the attachment\'s SHA1 hex-encoded hash as its filename.  '
           'Note that this means multiple attachments may point to the same '
           'file on Cloud Storage.  If set to False, the attachment ID will '
           'be used as its filename.',
-          optional=True, default=False),
+          default=False),
       Arg('enable_emit', bool,
           'Strip events of their attachments and re-emit.',
-          optional=False, default=False),
+          default=False),
   ]
 
   def __init__(self, *args, **kwargs):

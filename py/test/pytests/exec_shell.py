@@ -79,8 +79,7 @@ class ExecShell(unittest.TestCase):
   """
   ARGS = [
       Arg('commands', (list, tuple, str),
-          'A list (or one simple string) of shell commands to execute.',
-          optional=False),
+          'A list (or one simple string) of shell commands to execute.'),
       Arg('is_station', bool,
           ('Run the given commands on station (usually local host) instead of '
            'DUT, for example preparing connection configuration.'),

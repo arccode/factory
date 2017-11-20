@@ -75,7 +75,6 @@ class SimpleBatteryTest(unittest.TestCase):
       Arg('discharge_duration_secs', type=(int, float), default=5,
           help='the duration in seconds to discharge the battery'),
       Arg('min_charge_current_mA', type=(int, float), default=None,
-          optional=True,
           help=('the minimum charge current in mA that the battery needs to '
                 'reach during charge test')),
       Arg('min_discharge_current_mA', type=(int, float), default=-2000,

@@ -215,17 +215,16 @@ class ButtonTest(unittest.TestCase):
   ARGS = [
       Arg('timeout_secs', int, 'Timeout value for the test.',
           default=_DEFAULT_TIMEOUT),
-      Arg('button_key_name', str, 'Button key name.',
-          optional=False),
+      Arg('button_key_name', str, 'Button key name.'),
       Arg('device_filter', (int, str),
           'Event ID or name for evdev. None for auto probe.',
-          default=None, optional=True),
+          default=None),
       Arg('repeat_times', int, 'Number of press/release cycles to test',
           default=1),
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP,
-          default=None, optional=True),
+          default=None),
       Arg('bft_button_name', str, 'Button name for BFT fixture',
-          default=None, optional=True),
+          default=None),
       i18n_arg_utils.I18nArg('button_name', 'The name of the button.')
   ]
 

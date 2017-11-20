@@ -142,40 +142,40 @@ class Finalize(unittest.TestCase):
   """The main class for finalize pytest."""
   ARGS = [
       Arg('write_protection', bool,
-          'Check and enable write protection.', optional=True),
+          'Check and enable write protection.', default=None),
       Arg('secure_wipe', bool,
           'Wipe the stateful partition securely (False for a fast wipe).',
           default=True),
       Arg('upload_method', str,
           'Upload method for "gooftool finalize"',
-          optional=True),
+          default=None),
       Arg('enable_factory_server', bool,
           'Perform factory server operations: update HWID data and flush event '
           'logs.', default=True),
       Arg('rma_mode', bool,
           'Enable rma_mode, do not check for deprecated components.',
-          default=False, optional=True),
+          default=False),
       Arg('is_cros_core', bool,
           'For ChromeOS Core device, skip setting firmware bitmap locale.',
-          default=False, optional=True),
+          default=False),
       Arg('enforced_release_channels', list,
           'A list of string indicating the enforced release image channels. '
           'Each item should be one of "dev", "beta" or "stable".',
-          default=None, optional=True),
+          default=None),
       Arg('use_local_gooftool', bool,
           'If DUT is local, use factory.par or local gooftool? If DUT is not '
-          'local, factory.par is always used.', default=True, optional=True),
+          'local, factory.par is always used.', default=True),
       Arg('station_ip', str,
-          'IP address of this station.', default=None, optional=True),
+          'IP address of this station.', default=None),
       Arg('gooftool_waive_list', list,
           'A list of waived checks for "gooftool finalize", '
           'see "gooftool finalize --help" for available items.',
-          default=[], optional=True),
+          default=[]),
       Arg('gooftool_skip_list', list,
           'A list of skipped checks for "gooftool finalize", '
           'see "gooftool finalize --help" for available items.',
-          default=[], optional=True),
-      ]
+          default=[])
+  ]
 
   FINALIZE_TIMEOUT = 180
 

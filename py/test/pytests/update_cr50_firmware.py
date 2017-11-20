@@ -72,11 +72,11 @@ FIRMWARE_RELATIVE_PATH = 'opt/google/cr50/firmware/cr50.bin.prod'
 class UpdateCr50FirmwareTest(unittest.TestCase):
   ARGS = [
       Arg('firmware_file', str, 'The full path of the firmware.',
-          optional=True),
+          default=None),
       Arg('from_release', bool, 'Find the firmware from release rootfs.',
-          optional=True, default=True),
+          default=True),
       Arg('force', bool, 'Force update',
-          optional=True, default=False),
+          default=False),
   ]
 
   def setUp(self):

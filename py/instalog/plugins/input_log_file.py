@@ -46,31 +46,30 @@ class InputLogFile(plugin_base.InputPlugin):
 
   ARGS = [
       Arg('path', (str, unicode),
-          'Path to the set of log files on disk.  Uses glob syntax.',
-          optional=False),
+          'Path to the set of log files on disk.  Uses glob syntax.'),
       Arg('new_file_poll_interval', (int, float),
           'Interval in seconds to check for new paths that match the glob.',
-          optional=True, default=_DEFAULT_NEW_FILE_POLL_INTERVAL),
+          default=_DEFAULT_NEW_FILE_POLL_INTERVAL),
       Arg('poll_interval', (int, float),
           'Interval in seconds when the log file is checked for updates.',
-          optional=True, default=_DEFAULT_POLL_INTERVAL),
+          default=_DEFAULT_POLL_INTERVAL),
       Arg('error_pause_time', (int, float),
           'Time in seconds to wait when an error occurs reading a file.',
-          optional=True, default=_DEFAULT_ERROR_PAUSE_TIME),
+          default=_DEFAULT_ERROR_PAUSE_TIME),
       Arg('batch_pause_time', (int, float),
           'Time in seconds to wait when a batch has completed processing, but '
           'more data still remains.',
-          optional=True, default=_DEFAULT_BATCH_PAUSE_TIME),
+          default=_DEFAULT_BATCH_PAUSE_TIME),
       Arg('batch_max_count', int,
           'Maximum number of events to emit at a time.',
-          optional=True, default=_DEFAULT_BATCH_MAX_COUNT),
+          default=_DEFAULT_BATCH_MAX_COUNT),
       Arg('batch_max_bytes', int,
           'Maximum number of bytes to read from the log file at a time.',
-          optional=True, default=_DEFAULT_BATCH_MAX_BYTES),
+          default=_DEFAULT_BATCH_MAX_BYTES),
       Arg('max_bytes', int,
           'Maximum size of the log file in bytes before being truncated.  '
           'If set to 0, truncating functionality will be disabled (default).',
-          optional=True, default=_DEFAULT_MAX_BYTES)
+          default=_DEFAULT_MAX_BYTES)
   ]
 
   def __init__(self, *args, **kwargs):

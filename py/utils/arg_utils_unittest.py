@@ -17,10 +17,10 @@ class ArgsTest(unittest.TestCase):
     self.parser = Args(
         Arg('required', str, 'X'),
         Arg('has_default', str, 'X', default='DEFAULT_VALUE'),
-        Arg('optional', str, 'X', optional=True),
-        Arg('int_typed', int, 'X', optional=True),
-        Arg('int_or_string_typed', (int, str), 'X', optional=True),
-        Arg('enum_typed', Enum(['a', 'b']), 'X', optional=True))
+        Arg('optional', str, 'X', default=None),
+        Arg('int_typed', int, 'X', default=None),
+        Arg('int_or_string_typed', (int, str), 'X', default=None),
+        Arg('enum_typed', Enum(['a', 'b']), 'X', default=None))
 
   def Parse(self, dargs):
     """Parses dargs.

@@ -59,7 +59,7 @@ class SyncTime(unittest.TestCase):
   ARGS = [
       Arg('tolerance', float,
           'Max absolute time difference between DUT and station after sync.',
-          default=5.0, optional=True)]
+          default=5.0)]
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()

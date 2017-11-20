@@ -60,16 +60,16 @@ class ACPowerTest(unittest.TestCase):
   """
 
   ARGS = [
-      Arg('power_type', str, 'Type of the power source', optional=True),
+      Arg('power_type', str, 'Type of the power source', default=None),
       Arg('usbpd_power_range', list,
           'The required power usbpd power range [usbpd_port, min, max]',
-          default=None, optional=True),
+          default=None),
       Arg('online', bool, 'True if expecting AC power', default=True),
-      Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP, optional=True),
+      Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP, default=None),
       Arg('retries', int,
           'Maximum number of retries allowed to pass the test. '
           '0 means only probe once. Default None means probe forever.',
-          optional=True),
+          default=None),
       Arg('polling_period_secs', (int, float),
           'Polling period in seconds.', default=1),
       Arg('silent_warning', int,

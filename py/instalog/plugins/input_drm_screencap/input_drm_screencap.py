@@ -28,7 +28,7 @@ class InputFramebuf(plugin_base.InputPlugin):
 
   ARGS = [
       Arg('interval', (int, float), 'Interval in between screen captures.',
-          optional=True, default=_DEFAULT_INTERVAL),
+          default=_DEFAULT_INTERVAL),
   ]
 
   def EmitScreencap(self):

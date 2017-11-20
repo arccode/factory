@@ -145,16 +145,15 @@ class ProbeTest(unittest.TestCase):
   ARGS = [
       Arg('config_file', str,
           'Path to probe config file. This is interpreted as a path '
-          'relative to `test/pytests/probe` folder.',
-          optional=False),
+          'relative to `test/pytests/probe` folder.'),
       Arg('overridden_rules', list,
           'List of (category, cmp_function, value) tuple.',
-          default=None, optional=True),
+          default=None),
       Arg('show_ui', bool,
           'Always show the result and prompt if set to True. Always not show '
           'the result and prompt if set to False. Otherwise, only show the '
           'result and prompt when the test fails.',
-          default=None, optional=True),
+          default=None),
       ]
 
   def setUp(self):

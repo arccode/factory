@@ -116,13 +116,13 @@ class ShopfloorService(unittest.TestCase):
       Arg('method', str,
           'Name of shopfloor service method to call'),
       Arg('args', (list, tuple), 'Arguments for specified method.',
-          optional=True),
+          default=None),
       Arg('kargs', collections.Mapping, 'Keyword arguments for method.',
-          optional=True),
+          default=None),
       Arg('raw_invocation', bool, 'Allow invocation of arbitrary calls.',
           default=False),
       Arg('server_url', str,
-          'The URL to shopfloor service server', optional=True),
+          'The URL to shopfloor service server', default=None),
   ]
 
   # The expected value for GetVersion, to help checking server implementation.

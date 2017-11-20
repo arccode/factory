@@ -74,28 +74,31 @@ class Scan(test_ui.TestCaseWithUI):
       i18n_arg_utils.I18nArg(
           'label', 'Name of the ID or serial number being scanned, '
           'e.g., "MLB serial number"'),
-      Arg('event_log_key', str, 'Key to use for event log', optional=True),
+      Arg('event_log_key', str, 'Key to use for event log',
+          default=None),
       Arg('shared_data_key', str,
           'Key to use to store in scanned value in shared data',
-          optional=True),
+          default=None),
       Arg('device_data_key', str,
           'Key to use to store in scanned value in device data',
-          optional=True),
+          default=None),
       Arg('dut_data_key', str,
           'Key to use to store in scanned value in DUT.',
-          optional=True),
+          default=None),
       Arg('ro_vpd_key', str,
-          'Key to use to store in scanned value in RO VPD', optional=True),
+          'Key to use to store in scanned value in RO VPD',
+          default=None),
       Arg('rw_vpd_key', str,
-          'Key to use to store in scanned value in RW VPD', optional=True),
+          'Key to use to store in scanned value in RW VPD',
+          default=None),
       Arg('save_path', str, 'The file path of saving scanned value',
-          optional=True),
+          default=None),
       Arg('regexp', str, 'Regexp that the scanned value must match',
-          optional=True),
+          default=None),
       Arg('check_device_data_key', str,
           'Checks that the given value in device data matches the scanned '
           'value',
-          optional=True),
+          default=None),
       Arg('bft_scan_fixture_id', bool, 'True to scan BFT fixture ID.',
           default=False),
       Arg('bft_scan_barcode', bool, 'True to trigger BFT barcode scanner.',
@@ -107,8 +110,8 @@ class Scan(test_ui.TestCaseWithUI):
           'True to get barcode from BFT. BFT stores barcode in advance so this '
           'obtains barcode immidiately. If a string is given, will override '
           'default path (`nuc_dut_serial_path`)', default=False),
-      Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP, default=None,
-          optional=True),
+      Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP,
+          default=None),
       Arg('barcode_scan_interval_secs', (int, float),
           "Interval for repeatedly trigger BFT's barcode scaner",
           default=2.0),
@@ -119,7 +122,8 @@ class Scan(test_ui.TestCaseWithUI):
       Arg('ignore_case', bool, 'True to ignore case from input.',
           default=False),
       Arg('value_assigned', str,
-          'If not None, use the value to fill the key.', optional=True)
+          'If not None, use the value to fill the key.',
+          default=None)
   ]
 
   def HandleScanValue(self, event):

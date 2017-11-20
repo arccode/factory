@@ -404,15 +404,15 @@ class UpdateDeviceData(unittest.TestCase):
       Arg('manual_input', bool,
           'Set to False to silently updating all values. Otherwise each value '
           'will be prompted before set into Device Data.',
-          default=True, optional=True),
+          default=True),
       Arg('config_name', basestring,
           'A JSON config name to load representing the device data to update.',
-          optional=True),
+          default=None),
       Arg('fields', (list, tuple),
           ('A list of sequence as (data_key, value, display_name, value_check) '
            'indicating the Device Data field by data_key must be updated to '
            'specified value.'),
-          optional=True),
+          default=None),
   ]
 
   def setUp(self):

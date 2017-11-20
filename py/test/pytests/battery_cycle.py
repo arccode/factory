@@ -72,9 +72,9 @@ HTML = """
 
 class BatteryCycleTest(unittest.TestCase):
   ARGS = [
-      Arg('num_cycles', int, 'Number of cycles to run', optional=True),
+      Arg('num_cycles', int, 'Number of cycles to run', None),
       Arg('max_duration_hours', (int, float),
-          'Maximum number of hours to run', optional=True),
+          'Maximum number of hours to run', None),
       Arg('cycle_timeout_secs', int,
           'Maximum time for one charge/discharge cycle', 12 * 60 * 60),
       Arg('minimum_charge_pct', (int, float), 'Minimum charge, in percent', 5),
@@ -88,12 +88,12 @@ class BatteryCycleTest(unittest.TestCase):
           30),
       Arg('verify_cutoff', bool,
           'True to verify battery stops charging when ~100%',
-          optional=True, default=False),
+          default=False),
       Arg('cutoff_charge_pct', (int, float),
           'Minimum charge level in percent allowed in cutoff state.',
-          optional=True, default=98),
+          default=98),
       Arg('has_ui', bool, 'True if this test runs with goofy UI enabled.',
-          optional=True, default=False)
+          default=False)
   ]
 
   def setUp(self):
