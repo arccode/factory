@@ -83,12 +83,15 @@ class StressAppTest(unittest.TestCase):
           'Time to wait in seconds before executing stressapptest.',
           default=0),
       Arg('disk_thread', bool,
-          'stress disk using -f argument of stressapptest.',
+          'Stress disk using -f argument of stressapptest.',
           default=True),
       Arg('disk_thread_dir', str,
-          'directory of disk thread file will be placed '
+          'Directory of disk thread file will be placed '
           '(default to system stateful partition.)',
           default=None),
+      Arg('max_errors', int,
+          'Number of errors to exit early.',
+          default=stress_manager.DEFAULT_MAX_ERRORS)
   ]
 
   def setUp(self):
@@ -106,7 +109,8 @@ class StressAppTest(unittest.TestCase):
           memory_ratio=self.args.memory_ratio,
           free_memory_only=self.args.free_memory_only,
           disk_thread=self.args.disk_thread,
-          disk_thread_dir=self.args.disk_thread_dir):
+          disk_thread_dir=self.args.disk_thread_dir,
+          max_errors=self.args.max_errors):
         pass
     except stress_manager.StressManagerError as e:
       logging.error('StressAppTest failed: %s', e)

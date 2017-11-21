@@ -393,9 +393,10 @@ class EventClientBase(object):
                     self._truncate_event_for_debug_log(event))
     message = pickle.dumps(event, protocol=2)
     if len(message) > _MAX_MESSAGE_SIZE:
-      # Log it first so we know what event caused the problem.
-      logging.error('Message too large (%d bytes): event is %s',
-                    len(message), event)
+      logging.error('Message too large (%d bytes): event type = %s, '
+                    'truncated message: %s', len(message), event.type,
+                    message[:_MAX_MESSAGE_SIZE/20] + '\n\n...SKIPED...\n\n' +
+                    message[-_MAX_MESSAGE_SIZE/20:])
       raise IOError('Message too large (%d bytes)' % len(message))
     self.send_socket.sendall(message)
 

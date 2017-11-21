@@ -9,6 +9,9 @@ import tempfile
 import threading
 
 
+DEFAULT_MAX_ERRORS = 1000
+
+
 class StressManagerError(Exception):
   pass
 
@@ -41,7 +44,8 @@ class StressManager(object):
 
   @contextlib.contextmanager
   def Run(self, duration_secs=None, num_threads=None, memory_ratio=0.2,
-          free_memory_only=False, disk_thread=False, disk_thread_dir=None):
+          free_memory_only=False, disk_thread=False, disk_thread_dir=None,
+          max_errors=DEFAULT_MAX_ERRORS):
     """Runs stressapptest.
 
     Runs stressapptest to occupy a specific amount of memory and threads for
@@ -90,7 +94,7 @@ class StressManager(object):
 
     thread = threading.Thread(target=self._CallStressAppTest,
                               args=(duration_secs, num_threads, mem_usage,
-                                    disk_thread, disk_thread_dir))
+                                    disk_thread, disk_thread_dir, max_errors))
     # clear output
     self.output = None
     self.stop.clear()
@@ -113,15 +117,16 @@ class StressManager(object):
       raise StressManagerError(self.output)
 
   def _CallStressAppTest(self, duration_secs, num_threads, mem_usage,
-                         disk_thread, disk_thread_dir):
+                         disk_thread, disk_thread_dir, max_errors):
     assert isinstance(duration_secs, int) or duration_secs is None
     assert isinstance(num_threads, int)
     assert isinstance(mem_usage, int)
     assert isinstance(disk_thread, bool)
     assert disk_thread_dir is None or isinstance(disk_thread_dir, str)
 
-    cmd = ['stressapptest', '-m', str(num_threads), '-M', str(mem_usage), '-s',
-           str(duration_secs if duration_secs is not None else 10 ** 8)]
+    cmd = ['stressapptest', '--max_errors', str(max_errors),
+           '-m', str(num_threads), '-M', str(mem_usage),
+           '-s', str(duration_secs if duration_secs is not None else 10 ** 8)]
     with tempfile.TemporaryFile() as output:
       if disk_thread:
         if not disk_thread_dir:
