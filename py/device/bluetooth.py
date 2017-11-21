@@ -3,7 +3,7 @@
 # found in the LICENSE file.
 
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 
 
@@ -17,7 +17,6 @@ class BluetoothManager(types.DeviceComponent):
   Raises:
     Raises BluetoothManagerException
   """
-
 
   def SetDeviceConnected(self, adapter, device_address, connect):
     """Switches the device connection.
@@ -111,7 +110,6 @@ class BluetoothManager(types.DeviceComponent):
       return adapters[0]
     else:
       raise BluetoothManagerException('Fail to find any adapter.')
-
 
   def GetAdapters(self, max_retry_times=10, interval=2, mac_addr=None):
     """Gets a list of available bluetooth adapters.

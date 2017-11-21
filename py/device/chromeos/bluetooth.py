@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Copyright 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -13,16 +13,15 @@ import uuid
 
 import yaml
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device.bluetooth import BluetoothManager
 from cros.factory.device.bluetooth import BluetoothManagerException
 from cros.factory.device import device_utils
 from cros.factory.external import dbus
-# pylint: disable=E0611,F0401
+# pylint: disable=no-name-in-module,import-error
 from cros.factory.external.dbus.mainloop.glib import DBusGMainLoop
-# pylint: disable=E0611,W0611
-from cros.factory.external.dbus import service
-from cros.factory.external.dbus import DBusException # pylint: disable=E0611
+from cros.factory.external.dbus import service  # pylint: disable=unused-import
+from cros.factory.external.dbus import DBusException
 from cros.factory.external import gobject
 from cros.factory.utils.sync_utils import PollForCondition, Retry
 
@@ -36,10 +35,7 @@ AGENT_INTERFACE = SERVICE_NAME + '.Agent1'
 _RE_NODE_NAME = re.compile(r'<node name="(.*?)"/>')
 
 
-# pylint is unhappy that we add extra arguments to the constructor beyond
-# what dbus.service.Object defines, but this is of course harmless since
-# we control instantiation. So disable the warning.
-class AuthenticationAgent(dbus.service.Object):  # pylint: disable=R0923
+class AuthenticationAgent(dbus.service.Object):
   """An authenticator for Bluetooth devices
 
   This class implements methods from the org.bluez.Agent1 D-Bus
@@ -295,24 +291,6 @@ class ChromeOSBluetoothManager(BluetoothManager):
       raise BluetoothManagerException('Pair: reply_handler'
                                       ' did not get called.')
 
-  def GetFirstAdapter(self, mac_addr=None):
-    """Returns the first adapter object found by bluetooth manager.
-
-    An adapter is a proxy object which provides the interface of
-    'org.bluez.Adapter1'.
-
-    Args:
-      mac_addr: The MAC address that adapter should match. None to match any.
-
-    Raises:
-      Raises BluetoothManagerException if fails to get any adapter.
-    """
-    adapters = self.GetAdapters(mac_addr=mac_addr)
-    if len(adapters) > 0:
-      return adapters[0]
-    else:
-      raise BluetoothManagerException('Fail to find any adapter.')
-
   def _GetAdapters(self, mac_addr=None):
     """Gets a list of available bluetooth adapters.
 
@@ -549,7 +527,7 @@ class ChromeOSBluetoothManager(BluetoothManager):
       if 'RSSI' in properties:
         logging.info('Address: %s, RSSI: %s', address, properties['RSSI'])
 
-    # pylint: disable=W0613
+    # pylint: disable=unused-argument
     def _CallbackDevicePropertiesChanged(interface, changed, invalidated, path):
       """The callback when device properties changed.
 
