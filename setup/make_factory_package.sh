@@ -4,11 +4,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# Script to generate a factory install partition set and miniomaha.conf
-# file from a release image and a factory image. This creates a server
-# configuration that can be installed using a factory install shim.
-#
-# miniomaha lives in "." and miniomaha partition sets live in "./static".
+# Script to generate disk images or RMA images from resources of a factory
+# software bundle.
 #
 # All internal environment variables used by this script are prefixed with
 # "MFP_".  Please avoid using them for other purposes.
@@ -70,11 +67,6 @@ DEFINE_string diskimg "" \
 DEFINE_boolean preserve "${FLAGS_FALSE}" \
   "If set, reuse the diskimage file, if available"
 DEFINE_integer sectors 31277232  "Size of image in sectors."
-DEFINE_string omaha_data_dir "" \
-  "Directory to place all generated data in Omaha mode."
-
-DEFINE_boolean run_omaha "${FLAGS_FALSE}" \
-  "Run mini-omaha server after factory package setup completed."
 
 # Deprecated flags
 DEFINE_string factory_toolkit "" \
@@ -85,7 +77,7 @@ DEFINE_string install_shim "" \
   "Deprecated by --factory_shim. "
 # Usage Help
 # shellcheck disable=SC2034
-FLAGS_HELP="Prepares factory resources (mini-omaha server, RMA/usb/disk images)
+FLAGS_HELP="Prepares factory resources (RMA/usb/disk images)
 
 USAGE: $0 [flags] args
 Note environment variables with prefix MFP_ are for reserved for internal use.
@@ -235,12 +227,10 @@ check_parameters() {
       die "--usbimg and --diskimg cannot be used at the same time."
     check_file_param FLAGS_factory_shim "in --usbimg mode"
     check_file_param_or_none FLAGS_firmware "in --usbimg mode"
-    check_false_param FLAGS_run_omaha "in --usbimg mode"
   elif [ -n "${FLAGS_diskimg}" ]; then
     check_empty_param FLAGS_factory_shim "in --diskimg mode"
     check_empty_param FLAGS_firmware "in --diskimg mode"
     check_empty_param FLAGS_complete_script "in --diskimg mode"
-    check_false_param FLAGS_run_omaha "in --diskimg mode"
     if [ -b "${FLAGS_diskimg}" ] && [ ! -w "${FLAGS_diskimg}" ] &&
        [ -z "$MFP_SUDO" ] && [ "$(id -u)" != "0" ]; then
       # Restart the command with original parameters with sudo for writing to
@@ -250,30 +240,13 @@ check_parameters() {
       MFP_SUDO=TRUE exec sudo "$0" ${ORIGINAL_PARAMS}
     fi
   else
-    check_empty_param FLAGS_factory_shim "in mini-omaha mode"
-    check_file_param_or_none FLAGS_firmware "in mini-omaha mode"
+    die "You must use either --usbimg or --diskimg."
   fi
-}
-
-find_omaha() {
-  OMAHA_PROGRAM="${SCRIPT_DIR}/miniomaha.py"
-
-  if [ -n "${FLAGS_omaha_data_dir}" ]; then
-    OMAHA_DATA_DIR="$(readlink -f "${FLAGS_omaha_data_dir}")/"
-  else
-    OMAHA_DATA_DIR="${SCRIPT_DIR}/static/"
-  fi
-
-  OMAHA_CONF="${OMAHA_DATA_DIR}/miniomaha.conf"
-  [ -f "${OMAHA_PROGRAM}" ] ||
-    die "Cannot find mini-omaha server program: $OMAHA_PROGRAM"
 }
 
 setup_environment() {
   # Convert args to paths.  Need eval to un-quote the string so that shell
   # chars like ~ are processed; just doing FOO=`readlink -f ${FOO}` won't work.
-
-  find_omaha
 
   # When "sudo -v" is executed inside chroot, it prompts for password; however
   # the user account inside chroot may be using a different password (ex,
@@ -326,20 +299,6 @@ build_payloads() {
       echo "Leaving ${component} payload as empty."
     fi
   done
-}
-
-generate_omaha() {
-  mkdir -p "${OMAHA_DATA_DIR}"
-  build_payloads "${OMAHA_DATA_DIR}"
-  echo 'config = [ {} ]' >"${OMAHA_CONF}"
-
-  local data_dir_param=""
-  if [ -n "${FLAGS_omaha_data_dir}" ]; then
-      data_dir_param="--data_dir ${OMAHA_DATA_DIR}"
-  fi
-  info "The miniomaha/cros_payload server lives in: ${OMAHA_DATA_DIR}
-  To run the server:
-    python ${OMAHA_PROGRAM} ${data_dir_param}"
 }
 
 generate_usbimg() {
@@ -492,43 +451,6 @@ prepare_diskimg() {
   [ "$ret" = "$FLAGS_TRUE" ] || die "Failed to setup partition (write_gpt.sh)."
 }
 
-check_cherrypy3() {
-  local version="$("$1" -c 'import cherrypy as c;print c.__version__' || true)"
-  local version_major="${version%%.*}"
-
-  if [ -n "$version_major" ] && [ "$version_major" -ge 3 ]; then
-    return "$FLAGS_TRUE"
-  fi
-  # Check how to install cherrypy3
-  local install_command=""
-  if image_has_command apt-get; then
-    install_command="by 'sudo apt-get install python-cherrypy3'"
-  elif image_has_command emerge; then
-    install_command="by 'sudo emerge dev-python/cherrypy'"
-  fi
-  die "Please install cherrypy 3.0 or later $install_command"
-}
-
-run_omaha() {
-  local python="python2"
-  image_has_command "$python" || python="python"
-  image_has_command "$python" || die "Please install Python in your system."
-  check_cherrypy3 "$python"
-
-  find_omaha
-
-  info "Running mini-omaha in $SCRIPT_DIR..."
-  (set -e
-   info "Validating factory config..."
-   "$python" "${OMAHA_PROGRAM}" --data_dir "${OMAHA_DATA_DIR}" \
-             --factory_config "${OMAHA_CONF}" \
-             --validate_factory_config
-   info "Starting mini-omaha..."
-   "$python" "${OMAHA_PROGRAM}" --data_dir "${OMAHA_DATA_DIR}" \
-             --factory_config "${OMAHA_CONF}"
-  )
-}
-
 main() {
   set -e
   if [ "$#" != 0 ]; then
@@ -544,9 +466,6 @@ main() {
     generate_usbimg
   elif [ -n "$FLAGS_diskimg" ]; then
     generate_diskimg
-  else
-    generate_omaha
-    [ "$FLAGS_run_omaha" = "$FLAGS_FALSE" ] || run_omaha
   fi
 
   trap on_exit EXIT

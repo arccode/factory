@@ -264,7 +264,7 @@ if __name__ == '__main__':
       base_time=GetBaseTimeFromFile(
           # lsb-factory is written by the factory install shim during
           # installation, so it should have a good time obtained from
-          # the mini-Omaha server.  If it's not available, we'll use
+          # the Factory Server.  If it's not available, we'll use
           # /etc/lsb-factory (which will be much older, but reasonably
           # sane) and rely on a sync to factory server to set a more accurate
           # time.

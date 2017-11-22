@@ -4,32 +4,33 @@ Factory Server and Shopfloor Service
 Overview
 --------
 
-To help integration with manufacturing line shopfloor backend systems, the
-concept of "Factory Server" and
-`
-"`Shopfloor Service <https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/shopfloor/README.md>`_"
-is introduced.
+To help integration with manufacturing line shopfloor backend systems, we have
+defined two server protocols.
 
-For legacy projects, the
-:py:class:`cros.factory.shopfloor.factory_server.FactoryServer` class
-implements common base to support various factory server, shopfloor, and product
-requirements.
-
-For new projects, please try the new factory server
-"`Umpire <https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/umpire/README.md>`_".
+One is "`Factory Server <https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/umpire/README.md>`_"
+that every DUTs running Chrome OS Factory Software will directly connect to,
+and the other is "`Shopfloor Service <https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/shopfloor/README.md>`_"
+that partner has to implement so the integration work is abstracted with
+standardized interface.
 
 Shopfloor Service API
 ---------------------
 
-.. py:module:: cros.factory.shopfloor.shopfloor_service
+.. py:module:: shopfloor_service
 
 .. autoclass:: ShopfloorService
    :members:
 
-Legacy Factory Server
+Factory Server API
 ---------------------
 
-.. py:module:: cros.factory.shopfloor.factory_server
+.. py:module:: cros.factory.umpire.server.rpc_dut
 
-.. autoclass:: FactoryServer
+.. autoclass:: RootDUTCommands
+   :members:
+
+.. autoclass:: UmpireDUTCommands
+   :members:
+
+.. autoclass:: LogDUTCommands
    :members:

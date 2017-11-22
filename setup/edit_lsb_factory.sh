@@ -185,7 +185,7 @@ interaction_menu() {
   echo "----------------------------------------------------------------------"
   cat "$edit_file"
   echo "----------------------------------------------------------------------"
-  echo "(1) Modify mini-Omaha server host."
+  echo "(1) Modify Chrome OS Factory Server address."
   echo "(2) Enable/disable board prompt on download."
   echo "(3) Enable/disable RELEASE-ONLY recovery download mode."
   echo "(4) Modify cutoff method after factory reset."
@@ -198,8 +198,8 @@ interaction_menu() {
     1 )
       local host="$(sed -n 's"^CHROMEOS_DEVSERVER=http://\([^/]*\).*"\1"p' \
                     "$edit_file")"
-      echo "- Current mini-Omaha server host address: $host"
-      echo -n "Enter new mini-Omaha server host address: "
+      echo "- Current Chrome OS Factory Server host address: $host"
+      echo -n "Enter new Chrome OS Factory Server host address: "
       read ans
       [ -n "$ans" ] || return $FLAGS_TRUE
       [[ "$ans" == *':'* ]] || ans="${ans}:8080"

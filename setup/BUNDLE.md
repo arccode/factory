@@ -51,19 +51,14 @@ Here is a list of files in a typical factory bundle:
       fmap.py
       make_factory_package.sh
       merge_factory_usbimg.sh
-      miniomaha_engine.py
-      miniomaha.py
-      miniomaha_test.py
       mount_partition.sh
       netboot_firmware_settings.py
       NETBOOT.md
       pygpt
       README.md
       resize_image_fs.sh
-      start_download_server.sh
     MANIFEST.yaml
     README
-    start_download_server.sh
 
 ### release_image/
 
@@ -164,19 +159,13 @@ contains many useful scripts, such as:
 * `netboot_firmware_settings.py`
 * `resize_image_fs.sh`
 
-### start_download_server.sh
-
-This script file is only for Mini-Omaha backward compatibility.
-It will invoke `make_factory_package.sh` to prepare files for Mini-Omaha in the
-first time, and then start Mini-Omaha service.
-
 ## Building a factory bundle
 
-### Build a factory bundle only for Umpire
+### Import into factory server
 
-If you just want a bundle for Umpire to import, you can manually create an
-archive file (zip file or {gzip|bzip2|xz} compressed tarball) containing the
-following folders with corresponding files inside.
+If you just want a bundle for [Factory Server](FACTORY_SERVER.md) to import, you
+can manually create an archive file (zip file or {gzip|bzip2|xz} compressed
+tarball) containing the following folders with corresponding files inside.
 
 * `complete`
 * `firmware`

@@ -16,7 +16,6 @@ import logging
 import os
 import re
 import shutil
-import struct
 import sys
 import tempfile
 import unittest
@@ -41,12 +40,6 @@ For example:
 
   py/tools/test_make_factory_package.py --artifacts \
       gs://chromeos-image-archive/daisy-release/R37-5978.7.0
-
-or to run only the testMiniOmaha test:
-
-  py/tools/test_make_factory_package.py --artifacts \
-      gs://chromeos-image-archive/daisy-release/R37-5978.7.0 \
-      MakeFactoryPackageTest.testMiniOmaha
 
 For developers without access to release repositories, public artifact
 directories may also be used, with the --no-release flag:
@@ -135,61 +128,6 @@ class MakeFactoryPackageTest(unittest.TestCase):
   def tearDown(self):
     if not self.args.save_tmp:
       shutil.rmtree(self.tmp_dir)
-
-  def testMiniOmaha(self):
-    static = os.path.join(self.tmp_dir, 'static')
-    if not self.args.skip_mfp:
-      Spawn(self.base_args + [
-          '--omaha_data_dir', static,
-          '--firmware', self.firmware_updater,
-      ], cwd=self.artifacts_dir, check_call=True, log=True)
-
-    # The static directory should have been created with a particular
-    # set of files.
-    self.assertItemsEqual(
-        ['efi.gz', 'firmware.gz', 'hwid.gz', 'miniomaha.conf',
-         'oem.gz', 'rootfs-release.gz', 'rootfs-test.gz', 'state.gz'],
-        os.listdir(static))
-
-    # miniomaha.conf should be parseable Python that sets the 'config'
-    # variable.
-    miniomaha_conf = {}
-    execfile(os.path.join(static, 'miniomaha.conf'), miniomaha_conf)
-    config = miniomaha_conf['config']
-    self.assertItemsEqual([
-        'efipartitionimg_checksum', 'efipartitionimg_image', 'factory_checksum',
-        'factory_image', 'firmware_checksum', 'firmware_image', 'hwid_checksum',
-        'hwid_image', 'oempartitionimg_checksum', 'oempartitionimg_image',
-        'qual_ids', 'release_checksum', 'release_image', 'stateimg_checksum',
-        'stateimg_image'], config[0].keys())
-
-    # Extract partitions so we can test their contents.
-    partition_map = {}
-    for partition in ('state', 'rootfs-release', 'rootfs-test'):
-      output_path = os.path.join(self.tmp_dir, partition)
-      with open(output_path, 'w') as f:
-        Spawn(['gunzip', '-c', os.path.join(static, partition + '.gz')],
-              check_call=True, stdout=f, log=True)
-      if partition == 'state':
-        partition_map[partition] = dict(source_path=output_path)
-      else:
-        # The rootfs-release and rootfs-test partitions contain an 8-byte
-        # header indicating the length of the kernel; the real rootfs comes
-        # after that.  We'll need to set offset= when mounting.
-        with open(output_path) as f:
-          # '>' means big-endian; 'Q' means 8 bytes
-          header_format = '>Q'
-          header_size = struct.calcsize(header_format)
-          header_data = f.read(header_size)
-          (kernel_length,) = struct.unpack(header_format, header_data)
-
-        # Offset is the length of the header, plus the kernel length
-        # it contains.
-        partition_map[partition] = dict(
-            source_path=output_path,
-            options=['offset=%d' % (header_size + kernel_length)])
-
-    self.CheckPartitions(partition_map, False)
 
   def testUSBImg(self):
     image = os.path.join(self.tmp_dir, 'out.img')

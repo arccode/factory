@@ -46,9 +46,6 @@ def GetReleaseVersion(mount_point):
 def GetFirmwareVersions(updater):
   """Gets the firmware versions in firmware updater. Supports gzipped file.
 
-  Omaha channel file (gzipped) is often in
-  <bundle_dir>/setup/static/firmware.gz
-
   Args:
     updater: Path to a firmware updater.
 
@@ -109,43 +106,6 @@ def GetFirmwareBinaryVersion(path):
     logging.exception(
         'Failed to extract firmware version from: %s', path)
   return result
-
-
-def GetReleaseVersionFromOmahaChannelFile(path, no_root=False):
-  """Gets release image version from Omaha channel file.
-
-  Omaha channel file (gzipped) is often in
-  <bundle_dir>/setup/static/rootfs-test.gz
-  <bundle_dir>/setup/static/rootfs-release.gz
-
-  Args:
-    path: Channel file path.
-    noroot: Flag to indicate no root access.
-
-  Returns:
-    Release version (in mount_point/etc/lsb-release);
-    None if not found.
-  """
-  if no_root:
-    # zcat channel.gz | strings | grep CHROMEOS_RELEASE_VERSION=
-    zcat_process = subprocess.Popen(('zcat', path), stdout=subprocess.PIPE)
-    strings_process = subprocess.Popen(('strings'), stdin=zcat_process.stdout,
-                                       stdout=subprocess.PIPE)
-    grep_output = subprocess.check_output(('grep', 'CHROMEOS_RELEASE_VERSION='),
-                                          stdin=strings_process.stdout)
-    zcat_process.stdout.close()
-    strings_process.stdout.close()
-    strings_process.wait()
-    zcat_process.wait()
-    match = re.search('^CHROMEOS_RELEASE_VERSION=(.+)$', grep_output,
-                      re.MULTILINE)
-    if not match:
-      return None
-    return match.group(1)
-
-  with file_utils.GunzipSingleFile(path) as unzip_path:
-    with MountPartition(unzip_path, is_omaha_channel=True) as mount_point:
-      return GetReleaseVersion(mount_point)
 
 
 def GetHWIDVersion(path):

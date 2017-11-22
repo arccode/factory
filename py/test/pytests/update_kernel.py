@@ -23,7 +23,7 @@ _DEVKEY = 'b11d74edd286c144e1135b49e7f0bc20cf041f10'
 
 class UpdateFirmwareTest(unittest.TestCase):
   ARGS = [
-      # TODO(hungte) Support compressed image, or download from Omaha.
+      # TODO(hungte) Support compressed image, or download from factory server.
       Arg('kernel_image', str, 'Full path of kernel.bin',
           default=None),
       Arg('kernel_config', str,

@@ -27,19 +27,15 @@ class MountPartitionException(Exception):
 
 
 def MountPartition(source_path, index=None, mount_point=None, rw=False,
-                   is_omaha_channel=False, options=None, fstype=None, dut=None):
+                   options=None, fstype=None, dut=None):
   """Mounts a partition in an image or a block device.
 
   Args:
     source_path: The image file or a block device.
     index: The index of the partition, or None to mount as a single
       partition. If source_path is a block device, index must be None.
-      Note that if is_omaha_channel is set, it is ignored.
     mount_point: The mount point.  If None, a temporary directory is used.
     rw: Whether to mount as read/write.
-    is_omaha_channel: if it is True and source_path is a file, treats
-      source_path as a mini-Omaha channel file (kernel+rootfs) and mounts the
-      rootfs. rootfs offset bytes: 8 + BigEndian(first-8-bytes).
     options: A list of options to add to the -o argument when mounting, e.g.,
         ['offset=8192', 'sizelimit=1048576'].
     fstype: A string to specify file system type.
@@ -68,23 +64,11 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
   if is_blk:
     if index:
       raise MountPartitionException('index must be None for a block device.')
-    if is_omaha_channel:
-      raise MountPartitionException(
-          'is_omaha_channel must be False for a block device.')
   else:
     # Use loop option on image file.
     all_options.append('loop')
 
-  if is_omaha_channel:
-    if local_mode:
-      with open(source_path, 'rb') as f:
-        first_8_bytes = f.read(8)
-    else:
-      first_8_bytes = dut.ReadFile(source_path, count=8)
-    offset = struct.unpack('>Q', first_8_bytes)[0] + 8
-    all_options.append('offset=%d' % offset)
-  elif index:
-
+  if index:
     partitions = PartitionManager(source_path, dut)
     sector_size = partitions.GetSectorSize()
     offset = sector_size * partitions.GetPartitionOffsetInSector(index)

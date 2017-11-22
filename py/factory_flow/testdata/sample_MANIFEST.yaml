@@ -77,10 +77,6 @@ files:
 - setup/lib/shflags
 - setup/make_factory_package.sh
 - setup/make_universal_factory_shim.sh
-- setup/miniomaha.py
-- setup/miniomaha_engine.py
-- setup/miniomaha_test.py
-- setup/mk_memento_images.sh
 - setup/mount_partition.sh
 - setup/netboot_firmware_settings.py
 - factory_shim/netboot/vmlinuz
@@ -121,4 +117,3 @@ files:
 - setup/static/rootfs-release.gz
 - setup/static/rootfs-test.gz
 - setup/static/state.gz
-- start_download_server.sh

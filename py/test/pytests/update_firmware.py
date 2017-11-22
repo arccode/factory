@@ -6,8 +6,8 @@
 
 Description
 -----------
-This test runs local or remote factory server (e.g., Mini-Omaha or Umpire)
-firmware updater to update Main(AP)/EC/PD firmwares.
+This test runs firmware updater from local storage or downloaded from remote
+factory server to update Main(AP)/EC/PD firmware contents.
 
 Test Procedure
 --------------

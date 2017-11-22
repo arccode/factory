@@ -9,9 +9,9 @@ Description
 This test checks if Chrome OS test image or release image version in
 '/etc/lsb-release' are greater than or equal to the value of argument
 ``min_version``. If the version is too old and argument ``reimage`` is set to
-True, reflash either local netboot firmware or remote netboot firmware from
-factory server (e.g., Mini-Omaha or Umpire). After that, the DUT will reboot
-into netboot firmware and start network image installation process to reimage.
+True, re-flash either local netboot firmware or remote netboot firmware from
+factory server. After that, the DUT will reboot into netboot firmware and start
+network image installation process to re-image.
 
 Test Procedure
 --------------

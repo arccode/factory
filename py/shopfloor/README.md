@@ -47,13 +47,9 @@ machine, or even directly on the backend. The Google ChromeOS Factory Server
 just needs to know the URL to Shopfloor Service.
 
 ## Setting shopfloor service URL for factory server
-Depends on which ChromeOS Factory Server to use, there are different ways to
-configure shopfloor service.
-
-### Using Umpire (via Dome)
-[Dome](../dome/README.md) is the recommended configuration frontend for all
-Chrome OS factory server components. To setup shopfloor service URL for
-[Umpire](../umpire/README.md) via Dome:
+After [Factory Server](../../setup/FACTORY_SERVER.md) is properly installed,
+open the [Dome](../dome/README.md) web interface to setup shopfloor service URL
+for [Umpire](../umpire/README.md):
 
 1. Open Dome UI (for example, browser `http://<dome_host>:8000`).
 2. Login and select your project.
@@ -65,36 +61,8 @@ Umpire will automatically translate `localhost` to **Docker host IP** when
 Docker environment is detected. Otherwise, it would keep its original meaning
 (usually solved to `127.0.0.1`). However, Umpire doesn't translate URLs using
 numeric IPs like `http://127.0.0.1:8000`, so that can be used to refer to Docker
-container itself (if you really want to do this, although that is usually wrong).
-
-### Using legacy Factory Server
-The legacy factory server, which was known as `shopfloor_server` or `shopfloor`
-and now renamed to `factory_server`, allows specifying shopfloor service using
-`-s` argument or loaded from config file `factory_server.json`.
-
-The default shopfloor service URL is set to local host (http://localhost:8090).
-
-It's also required to set up Mini-Omaha cros\_payload JSON URL in
-`factory_server`, or toolkit/hwid/firmware component update would be
-unavailable. This can be configured by `-m` argument or config file
-`factory_server.json`.
-
-To override permanently, in board overlay create a file
-`chromeos-base/factory-board/files/py/config/factory_server.json`, then rebuild
-toolkit.
-
-An example of `factory_server.json`:
-
-```json
-  {
-    "shopfloor_service_url": "http://localhost:8090",
-    "miniomaha_payload_url": "http://192.168.12.34:8080/static/samus.json"
-  }
-```
-
-**Note:** `miniomaha_payload_url` is the URL interpreted by DUT to connect into
-Mini-Omaha server, so we shouldn't use '127.0.0.1' or 'localhost', which will
-make DUTs try to connect to itself for resources.
+container itself (if you really want to do this, although that is usually
+wrong).
 
 ## Shopfloor Service API
 The "Chrome OS Factory Shopfloor Service" must be implemented as a web service

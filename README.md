@@ -45,11 +45,10 @@ The Chromium OS Factory Software Platform has three major components:
 
 * **Factory server**
 
-  A server program providing imaging source and proxy to shop floor. This can be
-  released as a set of setup programs (also known as mini-Omaha). The new
-  version is now a Docker image built and installed by `cros_docker.sh`, with a
-  web interface "Dome". Find more details in
-  [Factory Server doc](setup/FACTORY_SERVER.md).
+  A server providing imaging service and proxy to partner's shop floor backend.
+  This is is currently provided as a Docker image built and installed by
+  `cros_docker.sh`, with a set of components. Find more details in
+  [Factory Server](setup/FACTORY_SERVER.md) document.
 
 * **Factory shim image**
 
@@ -272,42 +271,13 @@ We support different imaging methods and here are the details:
 
 ### Network Installation
 The typical way is to install from Factory Server via network. To do that, you
-have to first setup the server.
+have to first setup the server. Read [Factory Server](setup/FACTORY_SERVER.md)
+guide for more details.
 
-#### Using mini-Omaha as factory server
-The mini-Omaha is a python program in `setup/` folder. You have to first prepare
-the payloads for it by command `make_factory_package.sh`:
-
-    ./setup/make_factory_package.sh \
-      --board=BOARD \
-      --test_image=path/to/chromiumos_test_image.bin \
-      --toolkit=path/to/install_factory_toolkit.run \
-      --release_image=path/to/chromiumos_image.bin \
-      --hwid=path/to/hwid_bundle.sh
-
-    # Start the mini-Omaha server after package is ready.
-    ./setup/miniomaha.py
-
-If you have a prepared factory bundle, you can simply extract it and then run
-the script `start_download_server.sh` in it. This will call
-`make_factory_package.sh` and `miniomaha.py` automatically:
-
-    /path/to/factory_bundle_board_20170101_evt/start_download_server.sh
-
-#### Using Dome and Umpire as factory server
-If you want to try the edge-bleeding technology instead of mini-Omaha, fetch,
-install, and run the factory server by `cros_docker.sh` command:
-
-    # Download factory server docker images.
-    ./setup/cros_docker.sh pull
-    # Install factory server docker images.
-    ./setup/cros_docker.sh install
-    # Create and start Dome containers.
-    ./setup/cros_docker.sh run
-
-After Dome containers started, open a browser to http://localhost:8000, follow
-the instruction to create a board, upload individual files to it or import a
-prepared bundle.
+#### Import images
+After server is setup, open the Dome web interface, follow the instruction to
+create a board, upload individual files to it or import a prepared
+[bundle](setup/BUNDLE.md).
 
 #### Boot from USB
 ![Diagram of Network Install, booted from USB](doc/images/net_inst_usb_boot.png)
@@ -457,8 +427,7 @@ Within the build root (`/build/$BOARD`), `/usr/local/factory/bundle` is a
 "pseudo-directory" for the factory bundle: it is masked with
 `INSTALL_MASK` so it is not actually installed onto devices, but any
 files in this directory will be included in factory bundles built by
-Buildbot.  For example, the shopfloor and mini-Omaha servers are
-placed into this directory.
+Buildbot.
 
 Within board overlays, the `chromeos-base/factory-board` package may overlay
 files into this directory structure.
@@ -475,4 +444,4 @@ For instance, a board overlay may install:
    `/usr/local/factory/board`.
 
  - `/usr/local/factory/board/board_setup_{factory,x}.sh` to customize
-   Goofy or X arguments.
+   Goofy.

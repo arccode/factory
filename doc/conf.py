@@ -24,9 +24,16 @@ if py_pkg is None:
     py_pkg = os.path.dirname(py_pkg)
   py_pkg = os.path.join(py_pkg, 'py_pkg')
 
+# We want to treat py/shopfloor as a standalone 'reference' folder without
+# importing it as module so there's no __init__.py and need to be explicitly
+# inserted into path for shopfloor_api.rst.
+py_shopfloor = os.path.join(py_pkg, 'cros', 'factory', 'shopfloor')
+
 assert os.path.exists(py_pkg), 'Failed to find py_pkg.'
 if py_pkg not in sys.path:
   sys.path.insert(0, py_pkg)
+if py_shopfloor not in sys.path:
+  sys.path.insert(0, py_shopfloor)
 
 # -- General configuration -----------------------------------------------------
 

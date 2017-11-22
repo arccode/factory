@@ -206,7 +206,7 @@ class BadBlocksTest(unittest.TestCase):
 
       self.assertTrue(
           last_block >= first_block,
-          'This test requires miniOmaha installed factory test image')
+          'This test requires factory server installed factory test image')
     else:
       raise ValueError('Invalid mode selected, check test_list mode setting.')
 

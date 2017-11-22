@@ -3,13 +3,14 @@
 ## What is Netboot?
 **Netboot firmware** is a special firmware that instead of loading kernel from
 storage, it downloads a light weight kernel (vmlinuz) from TFTP server.  And the
-kernel will download ChromeOS images from mini-omaha server.  This is helpful
-when you need to reflash ChromeOS images frequently.  Also, this can be used in
-some early phase of projects (e.g. Proto builds), when images might be changed
-during the build, so you don't want to preflash it by copy machine.
+kernel will download ChromeOS images from [factory server](FACTORY_SERVER.md).
+This is helpful when you need to re-flash ChromeOS images frequently.  Also,
+this can be used in some early phase of projects (e.g. Proto builds), when
+images might be changed during the build, so you don't want to pre-flash it by
+copy machine.
 
 ## Prerequisition
-* A Linux machine, which will be TFTP and mini-omaha server
+* A Linux machine, which will be running TFTP and factory server
 * An USB Ethernet dongle for DUT
 * Connect DUT and Linux machine by ethernet,
 
@@ -106,7 +107,7 @@ cd ~/trunk/src/scripts
 And find the netboot kernel in
 `../build/images/${BOARD}/latest/netboot/vmlinuz`.
 
-The location of Mini-Omaha server or Umpire server can be specified in
+The location of factory server can be specified in
 `omahaserver_${BOARD}.conf` in to level of tftp, with its content set to what
 you'll set in `CHROME_AUSERVER`. For example, in
 `/var/tftp/omahaserver_reef.conf`:
@@ -115,13 +116,13 @@ you'll set in `CHROME_AUSERVER`. For example, in
 http://192.168.200.1:8080/update
 ```
 
-## Running DHCP & TFTP server
+## Start DHCP & TFTP server
 
 ```
 sudo dnsmasq -d -C /var/tftp/dnsmasq.conf
 ```
 
-## Put device into netboot mode
+## Put Device Into Netboot Mode
 Find firmware blob `image.net.bin` (which should be available in both
 factory.zip and firmware archive, or you can build it locally).
 
@@ -145,7 +146,7 @@ The `console` parameter might be different from board to board, if you are not
 sure which should be used, please refer to "Care & Feeding" document for your
 project.
 
-## Getting Images
+## Prepare Images
 You should download the recovery image, test image and factory.zip from
 [CPFE](https://www.google.com/chromeos/partner/fe/#home) in following steps,
 
@@ -161,49 +162,16 @@ As we mentioned above, you can extract netboot firmware and vmlinuz from
 factory.zip.  Or, if you'd like to use a specific version of firmware, you can
 download it by selecting `FIRMWARE_IMAGE_ARCHIVE` in above steps.
 
-## Setting up Mini-Omaha Server
-Assume all the downloaded files are in the same directory:
+## Deploy to Factory Server
+You have to first setup a [Factory Server](FACTORY_SERVER.md) and create a
+project. When ready, login to the [Dome](../py/dome/README.md) web interface,
+select your project and upload the images for deployment.
 
-```
-  .
-  |-- chromiumos_test_image.bin
-  |-- factory.zip
-  `-- recovery_image.bin
-```
-
-Assume that factory.zip is unzipped under `factory`.
-
-```
-  .
-  |-- chromiumos_test_image.bin
-  |-- factory.zip
-  |-- factory/
-  `-- recovery_image.bin  (signed)
-```
-
-```
-factory/setup/make_factory_package.sh \
-    --board reef \
-    --test ./chromiumos_test_image.bin \
-    --toolkit factory/toolkit/install_factory_toolkit.run \
-    --release ./chromeos_9587.0.0_reef_recovery_dev-channel_premp.bin \
-    --hwid ./factory/hwid/hwid_v3_bundle_REEF.sh \
-    --complete_script ./factory/setup/complete_script_sample.sh
-```
-
-## Start Mini-Omaha Server
-The server listens on port 8080, remember to set the iptable.
-```
-sudo iptables -I INPUT -p tcp --dport 8080 -j ACCEPT
-```
-
-Start the server:
-```
-factory/setup/miniomaha.py
-```
+To do that, you can create a complete [Bundle](BUNDLE.md), or deploy only files
+you need to testing and development.
 
 ## Setting GBB Flags
-When the device boots from vmlinuz, vmlinuz will connect to miniomaha server and
+When the device boots from vmlinuz, vmlinuz will connect to factory server and
 download images from the server.  `chromeos-firmwareupdate` will be extracted
 from recovery image, which will be used to install the real firmware.
 `chromeos-firmwareupdate` will preserve the GBB flag from netboot firmware.

@@ -50,8 +50,8 @@ def _ParseArgs(argv):
 
   parser.add_argument('--board',
                       help='Set the cros_board to be passed into the kernel')
-  parser.add_argument('--omahaserver-url',
-                      help='Set the Omaha server URL')
+  parser.add_argument('--factory-server-url',
+                      help='Set the Factory Server URL')
   parser.add_argument('--arg', '--kernel_arg', default=[], dest='kernel_args',
                       metavar='kernel_args', action='append',
                       help='Set extra kernel command line parameters (appended '
@@ -329,8 +329,8 @@ def main(argv):
   kernel_args = ''
   if options.board:
     kernel_args += 'cros_board=' + options.board + ' '
-  if options.omahaserver_url:
-    kernel_args += 'omahaserver=' + options.omahaserver_url + ' '
+  if options.factory_server_url:
+    kernel_args += 'omahaserver=' + options.factory_server_url + ' '
   kernel_args += ' '.join(options.kernel_args)
   kernel_args += '\0'
   settings['kernel_args'] = StringValue(kernel_args)

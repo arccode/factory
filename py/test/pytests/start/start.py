@@ -75,7 +75,7 @@ _CSS = """
 # Messages for tasks
 _MSG_INSTALL_INCOMPLETE = i18n_test_ui.MakeI18nLabelWithClass(
     'Factory install process did not complete. Auto-testing stopped.<br><br>'
-    'Please install the factory test image using the mini-Omaha server<br>'
+    'Please install the factory test image using factory server<br>'
     'rather than booting from a USB drive.<br>', 'start-font-size test-error')
 _MSG_TASK_POWER = i18n_test_ui.MakeI18nLabelWithClass(
     'Plug in external power to continue.', 'start-font-size')

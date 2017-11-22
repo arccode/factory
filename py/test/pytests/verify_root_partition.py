@@ -73,7 +73,7 @@ class VerifyRootPartitionTest(unittest.TestCase):
       except Exception:
         logging.exception(
             'Unable to verify kernel in KERN-A; perhaps this device was imaged '
-            'with chromeos-install instead of mini-Omaha server?')
+            'with chromeos-install instead of factory server?')
         raise
 
     logging.info('vbutil_kernel output is:\n%s', vbutil_kernel_output)

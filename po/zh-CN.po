@@ -2434,11 +2434,11 @@ msgstr "正在写入校正结果..."
 #: ../py/test/pytests/start/start.py
 msgid ""
 "Factory install process did not complete. Auto-testing stopped."
-"<br><br>Please install the factory test image using the mini-Omaha "
-"server<br>rather than booting from a USB drive.<br>"
+"<br><br>Please install the factory test image using factory server<br>rather "
+"than booting from a USB drive.<br>"
 msgstr ""
-"安装过程中失败, 停止自动测试。<br><br>请使用完整的 mini-Omaha 伺服器安装测试"
-"程式，<br>不要直接从 USB 碟开机执行。<br>"
+"安装过程中失败, 停止自动测试。<br><br>请使用完整的工厂伺服器安装测试程式，"
+"<br>不要直接从 USB 碟开机执行。<br>"
 
 #: ../py/test/pytests/start/start.py
 msgid "Plug in external power to continue."

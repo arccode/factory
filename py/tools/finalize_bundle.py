@@ -175,7 +175,6 @@ class FinalizeBundle(object):
     self.PrepareNetboot()
     self.UpdateInstallShim()
     self.FixFactoryPar()
-    self.CreateStartDownloadServerSymlink()
     self.RemoveUnnecessaryFiles()
     self.UpdateReadme()
     self.Archive()
@@ -529,7 +528,7 @@ class FinalizeBundle(object):
               '--input', netboot_firmware_image,
               '--output', new_netboot_firmware_image]
       if server_url:
-        args += ['--omahaserver=%s' % server_url,
+        args += ['--factory-server-url=%s' % server_url,
                  '--tftpserverip=%s' % tftp_server_ip]
       Spawn([netboot_firmware_settings] + args, check_call=True, log=True)
       shutil.move(new_netboot_firmware_image, netboot_firmware_image)
@@ -540,6 +539,7 @@ class FinalizeBundle(object):
 
     # omaha_conf is fetched by factory_installer explicitly.
     if server_url:
+      # TODO(hungte) Rename omahaserver_* to factory_server_*.conf.
       omaha_conf = os.path.join(tftp_root, 'omahaserver_%s.conf' % self.board)
       file_utils.WriteFile(omaha_conf, server_url)
 
@@ -588,7 +588,7 @@ class FinalizeBundle(object):
             r'(?m)^(CHROMEOS_(AU|DEV)SERVER=).+$', r'\1' + server_url,
             lsb_factory)
         if number_of_subs != 2:
-          sys.exit('Unable to set mini-Omaha server in %s' % lsb_factory_path)
+          sys.exit('Unable to set factory server URL in %s' % lsb_factory_path)
 
       if lsb_factory == orig_lsb_factory:
         return False  # No changes
@@ -637,20 +637,6 @@ class FinalizeBundle(object):
 
     if not has_install_shim:
       logging.warning('There is no install shim in the bundle.')
-
-  def CreateStartDownloadServerSymlink(self):
-    """Create a symlink to start_download_server.sh in bundle directory."""
-    script_name = 'start_download_server.sh'
-    target_path = os.path.join(self.bundle_dir, 'setup', script_name)
-    if not os.path.exists(target_path):
-      logging.info('%s not found, symlink creation skipped.', target_path)
-      return
-    file_utils.SymlinkRelative(target_path,
-                               os.path.join(self.bundle_dir, script_name),
-                               force=True)
-    file_utils.WriteFile(
-        os.path.join(self.bundle_dir, 'setup', '.default_board'),
-        '%s\n' % self.board)
 
   def FixFactoryPar(self):
     """Fix symlinks to factory.par, and replace factory.par if necessary.

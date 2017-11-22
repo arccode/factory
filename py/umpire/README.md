@@ -3,11 +3,11 @@
 Umpire, standing for *Unified MES Proxy, Imaging, and Reimaging Engine*, is an
 unified service management framework to serve Chrome devices' manufacturing
 process, including image downloading, factory testing, finalization, and
-event/report uploading. It is designed to be the replacement of Mini-Omaha
-server and Shopfloor (proxy) for Google Chrome OS Factory Software Platform.
+uploading of events and reports.
 
-Umpire is created as a command-line tool. A web-based management console (with
-better deployment process) is created as standalone project *Dome*.
+Umpire is created as a daemon with command-line tool. A web-based management
+console (with better deployment process) is created as standalone project
+[Dome](../dome/README.md).
 
 Umpire controls what it serves by JSON configuration file. To make changes, you
 can do `umpire edit`. After editing, it automatically runs command
