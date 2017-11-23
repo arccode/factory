@@ -19,10 +19,9 @@ There are three ways you can set topic of a change:
 
 
 ### Add Hashtags to Changes
-* Through Gerrit UI: currently, new Gerrit UI does not support hashtags, you
-  need to use the old Gerrit UI:
-  `https://chromium-review.googlesource.com/?polygerrit=0#/c/<CL>`.
-  There is an add hashtag icon above submit button.
+There are three ways you can set hashtags on a change:
+* Go to `https://crosreview.com/<CL>`, change the hashtag field manually.
+* `repo upload -o hashtag=<hashtag>`
 * Command line: `gerrit sethashtags <CL> tag_to_add ~tag_to_remove ...`
 
 ### Examples and Explanations
