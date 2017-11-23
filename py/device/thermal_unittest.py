@@ -9,6 +9,7 @@
 
 from __future__ import print_function
 
+import fnmatch
 import mox
 import os.path
 import unittest
@@ -16,6 +17,36 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import thermal
 from cros.factory.device import types
+
+
+_CORETEMP_PREFIX = '/sys/devices/platform/coretemp.'
+
+
+class _FakeGlob(object):
+  """A simple glob class for unittest."""
+  def __init__(self, paths):
+    self._paths = []
+    for path in paths:
+      assert path.startswith('/'), 'Only absolute paths are acceptable'
+      splitted_path = path.split('/')[1 : ]
+      ancestor_path = ''
+      for dirname in splitted_path:
+        self._paths.append(ancestor_path + '/')
+        self._paths.append(ancestor_path + '/' + dirname)
+        ancestor_path += '/' + dirname
+    self._paths = list(set(self._paths))
+
+  def Glob(self, pattern):
+    pattern_parts = pattern.split('/')
+    return [path for path in self._paths
+            if self._Match(path.split('/'), pattern_parts)]
+
+  def _Match(self, fnames, patterns):
+    if (len(fnames) != len(patterns) or
+        not all(fnmatch.fnmatch(fname, pattern)
+                for fname, pattern in zip(fnames, patterns))):
+      return False
+    return True
 
 
 class CoreTempSensorTest(unittest.TestCase):
@@ -26,19 +57,26 @@ class CoreTempSensorTest(unittest.TestCase):
     self.board = self.mox.CreateMock(types.DeviceBoard)
     self.board.path = os.path
     self.sensor = thermal.CoreTempSensors(self.board)
-    self.glob_input = '/sys/devices/platform/coretemp.*/temp*_input'
-    self.mock_glob = [
-        '/sys/devices/platform/coretemp.0/temp1_input',
-        '/sys/devices/platform/coretemp.0/temp2_input']
+    self._glob = _FakeGlob([_CORETEMP_PREFIX + suffix for suffix in [
+        '0/temp1_input',
+        '0/temp1_label',
+        '0/temp1_crit',
+        '0/temp2_input',
+        '0/temp2_label',
+        '0/temp2_crit',
+        '1/hwmon/hwmon0/temp1_input',
+        '1/hwmon/hwmon0/temp1_label',
+        '1/hwmon/hwmon0/temp1_crit']])
     self.mock_files = [
-        ('/sys/devices/platform/coretemp.0/temp1_label', 'Package 0'),
-        ('/sys/devices/platform/coretemp.0/temp2_label', 'Core 0')]
+        (_CORETEMP_PREFIX + '0/temp1_label', 'Package 0'),
+        (_CORETEMP_PREFIX + '0/temp2_label', 'Core 0'),
+        (_CORETEMP_PREFIX + '1/hwmon/hwmon0/temp1_label', 'Core X')]
+    self.board.Glob = self._glob.Glob
 
   def tearDown(self):
     self.mox.UnsetStubs()
 
   def mockProbe(self):
-    self.board.Glob(self.glob_input).AndReturn(self.mock_glob)
     for name, value in self.mock_files:
       self.board.ReadFile(name).InAnyOrder().AndReturn(value)
 
@@ -46,8 +84,9 @@ class CoreTempSensorTest(unittest.TestCase):
     self.mockProbe()
     self.mox.ReplayAll()
     self.assertEquals(self.sensor.GetSensors(), {
-        'coretemp.0 Package 0': '/sys/devices/platform/coretemp.0/temp1_input',
-        'coretemp.0 Core 0': '/sys/devices/platform/coretemp.0/temp2_input',
+        'coretemp.0 Package 0': _CORETEMP_PREFIX + '0/temp1_input',
+        'coretemp.0 Core 0': _CORETEMP_PREFIX + '0/temp2_input',
+        'coretemp.1 Core X': _CORETEMP_PREFIX + '1/hwmon/hwmon0/temp1_input',
     })
     self.mox.VerifyAll()
 
@@ -59,23 +98,32 @@ class CoreTempSensorTest(unittest.TestCase):
 
   def testGetValue(self):
     self.mockProbe()
-    self.board.ReadFile(
-        '/sys/devices/platform/coretemp.0/temp2_input').AndReturn('50000')
+    self.board.ReadFile(_CORETEMP_PREFIX + '0/temp2_input').AndReturn('50000')
     self.mox.ReplayAll()
     self.assertEquals(self.sensor.GetValue('coretemp.0 Core 0'), 50)
     self.mox.VerifyAll()
 
   def testGetAllValues(self):
     self.mockProbe()
-    values = ['52000', '37000']
-    for i, value in enumerate(values):
-      self.board.ReadFile(self.mock_glob[i]).InAnyOrder().AndReturn(value)
+    values = {
+        '0/temp1_input': '52000',
+        '0/temp2_input': '37000',
+        '1/hwmon/hwmon0/temp1_input': '47000'}
+    for suffix, value in values.iteritems():
+      self.board.ReadFile(
+          _CORETEMP_PREFIX + suffix).InAnyOrder().AndReturn(value)
     self.mox.ReplayAll()
-    self.assertEquals(self.sensor.GetAllValues(), {
-        'coretemp.0 Package 0': 52,
-        'coretemp.0 Core 0': 37})
+    self.assertEquals(self.sensor.GetAllValues(), {'coretemp.0 Package 0': 52,
+                                                   'coretemp.0 Core 0': 37,
+                                                   'coretemp.1 Core X': 47})
     self.mox.VerifyAll()
 
+  def testGetCriticalValue(self):
+    self.mockProbe()
+    self.board.ReadFile(_CORETEMP_PREFIX + '0/temp2_crit').AndReturn('97000')
+    self.mox.ReplayAll()
+    self.assertEquals(self.sensor.GetCriticalValue('coretemp.0 Core 0'), 97)
+    self.mox.VerifyAll()
 
 class ThermalZoneSensors(unittest.TestCase):
   """Unittest for ThermalZoneSensors."""
@@ -153,16 +201,18 @@ class ThermalTest(unittest.TestCase):
     self.board = self.mox.CreateMock(types.DeviceBoard)
     self.board.path = os.path
     self.thermal = thermal.Thermal(self.board)
-    self.coretemp1_path = '/sys/devices/platform/coretemp.0/temp1_input'
+    self.coretemp1_path = _CORETEMP_PREFIX + '0/temp1_input'
+    self.coretemp1crit_path = _CORETEMP_PREFIX + '0/temp1_crit'
+    self.glob = _FakeGlob([_CORETEMP_PREFIX + suffix for suffix in [
+        '0/temp1_input', '0/temp1_label', '0/temp1_crit']])
 
   def tearDown(self):
     self.mox.UnsetStubs()
 
   def mockSetup(self):
-    self.board.Glob('/sys/devices/platform/coretemp.*/temp*_input').AndReturn([
-        self.coretemp1_path])
+    self.board.Glob = self.glob.Glob
     self.board.ReadFile(
-        '/sys/devices/platform/coretemp.0/temp1_label').AndReturn('Package 0')
+        _CORETEMP_PREFIX + '0/temp1_label').AndReturn('Package 0')
     self.board.CallOutput('ectool tempsinfo all').AndReturn('1: 1 ECInternal')
 
   def testNewDictAPIs(self):
@@ -174,6 +224,7 @@ class ThermalTest(unittest.TestCase):
     self.board.ReadFile(self.coretemp1_path).AndReturn('34000')
     self.board.CallOutput('ectool temps all').AndReturn(
         '1: 331')
+    self.board.ReadFile(self.coretemp1crit_path).AndReturn('104000')
     self.mox.ReplayAll()
     self.assertEquals(self.thermal.GetMainSensorName(), 'coretemp.0 Package 0')
     self.assertItemsEqual(self.thermal.GetAllSensorNames(),
@@ -186,6 +237,8 @@ class ThermalTest(unittest.TestCase):
     self.assertItemsEqual(self.thermal.GetAllTemperatures(),
                           {'coretemp.0 Package 0': 34,
                            'ectool ECInternal': 58})
+    self.assertEqual(
+        self.thermal.GetCriticalTemperature('coretemp.0 Package 0'), 104)
     self.mox.VerifyAll()
 
 

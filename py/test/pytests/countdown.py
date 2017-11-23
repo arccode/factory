@@ -63,6 +63,11 @@ from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import time_utils
+from cros.factory.utils import type_utils
+
+
+_WARNING_TEMP_RATIO = 0.95
+_CRITICAL_TEMP_RATIO = 0.98
 
 
 class CountDownTest(unittest.TestCase):
@@ -169,12 +174,28 @@ class CountDownTest(unittest.TestCase):
       temp = GetTemperature(sensor)
       if temp is None:
         warnings.append('%s temperature unavailable' % name)
-      elif temp >= critical_temp:
-        warnings.append('%s over critical temperature (now: %d, critical: %d)' %
-                        (name, temp, critical_temp))
+        continue
+
+      if warning_temp is None or critical_temp is None:
+        try:
+          sys_temp = self._dut.thermal.GetCriticalTemperature(sensor)
+        except NotImplementedError:
+          raise type_utils.TestFailure(
+              'Failed to get the critical temperature of %r, please explicitly '
+              'specify the value in the test arguments.' % name)
+        if warning_temp is None:
+          warning_temp = sys_temp * _WARNING_TEMP_RATIO
+        if critical_temp is None:
+          critical_temp = sys_temp * _CRITICAL_TEMP_RATIO
+
+      if temp >= critical_temp:
+        warnings.append(
+            '%s over critical temperature (now: %.1f, critical: %.1f)' % (
+                name, temp, critical_temp))
       elif temp >= warning_temp:
-        warnings.append('%s over warning temperature (now: %d, warning: %d)' %
-                        (name, temp, warning_temp))
+        warnings.append(
+            '%s over warning temperature (now: %.1f, warning: %.1f)' %
+            (name, temp, warning_temp))
 
     for (relation, first_sensor, second_sensor,
          max_diff) in self.args.relative_temp_criteria:

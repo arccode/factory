@@ -116,6 +116,14 @@ class ThermalSensorSource(SensorSource):
     """Converts raw value into number in Celsius."""
     raise NotImplementedError
 
+  def GetCriticalValue(self, sensor):
+    """Gets the critical temperature of the corrosponding component.
+
+    Returns:
+      A number indicates the critical temperature in Celsius.
+    """
+    raise NotImplementedError
+
 
 class CoreTempSensors(ThermalSensorSource):
   """A thermal sensor source based on CoreTemp.
@@ -126,11 +134,23 @@ class CoreTempSensors(ThermalSensorSource):
 
   def _Probe(self):
     """Probes coretemp sensors."""
-    return dict(
-        (self._device.path.basename(self._device.path.dirname(path)) + ' ' +
-         self._device.ReadFile(path.rsplit('_')[0] + '_label').strip(), path)
-        for path in self._device.Glob(
-            '/sys/devices/platform/coretemp.*/temp*_input'))
+    def _GetSensorName(coretemp_path, input_path):
+      label_path = input_path.rpartition('_')[0] + '_label'
+      return (self._device.path.basename(coretemp_path) + ' ' +
+              self._device.ReadFile(label_path).strip())
+
+    result = {}
+    for coretemp_base in self._device.Glob('/sys/devices/platform/coretemp.*'):
+      # For newer version of linux kernel, CoreTemp is integrated with hwmon.
+      for median_dirs in ['', 'hwmon/hwmon*']:
+        curr_result = dict(
+            (_GetSensorName(coretemp_base, input_path), input_path)
+            for input_path in self._device.Glob(self._device.path.join(
+                coretemp_base, median_dirs, 'temp*_input')))
+        if curr_result:
+          result.update(curr_result)
+          break
+    return result
 
   def _ConvertRawValue(self, value):
     """Converts coretemp raw values (milli-Celsius) into Celsius."""
@@ -139,10 +159,13 @@ class CoreTempSensors(ThermalSensorSource):
   def GetMainSensorName(self):
     """Returns the sensor name of main (first package) coretemp node."""
     for name, path in self.GetSensors().iteritems():
-      # coretemp.0/temp1 is always the package of first CPU.
-      if path == '/sys/devices/platform/coretemp.0/temp1_input':
+      if 'coretemp.0' in path and path.endswith('temp1_input'):
         return name
     return None
+
+  def GetCriticalValue(self, sensor):
+    path = self.GetSensors()[sensor].rpartition('_')[0] + '_crit'
+    return self._ConvertRawValue(self._device.ReadFile(path))
 
 
 class ThermalZoneSensors(ThermalSensorSource):
@@ -173,6 +196,9 @@ class ThermalZoneSensors(ThermalSensorSource):
       if path == '/sys/class/thermal/thermal_zone0/temp':
         return name
     return None
+
+  def GetCriticalValue(self, sensor):
+    raise NotImplementedError
 
 
 class ECToolTemperatureSensors(ThermalSensorSource):
@@ -221,6 +247,9 @@ class ECToolTemperatureSensors(ThermalSensorSource):
     # Remap ID to cached names.
     return dict((name, self._ConvertRawValue(raw_values.get(sensor_id)))
                 for name, sensor_id in self.GetSensors().iteritems())
+
+  def GetCriticalValue(self, sensor):
+    raise NotImplementedError
 
 
 class Thermal(types.DeviceComponent):
@@ -318,6 +347,19 @@ class Thermal(types.DeviceComponent):
     if sensor_name is None:
       sensor_name = self.GetMainSensorName()
     return self._GetSensors()[sensor_name].GetValue(sensor_name)
+
+  def GetCriticalTemperature(self, sensor_name=None):
+    """Gets critical temperature bound of the specified sensor.
+
+    Args:
+      sensor_name: The name of sensor to read. Default to main sensor.
+
+    Returns:
+      A number indicating the critical temperature.
+    """
+    if sensor_name is None:
+      sensor_name = self.GetMainSensorName()
+    return self._GetSensors()[sensor_name].GetCriticalValue(sensor_name)
 
   def GetAllTemperatures(self):
     """Gets temperature from all sensors.
