@@ -9,6 +9,8 @@
 # shopfloor the operation is completed.
 
 : "${SERIAL_NUMBER:="$(vpd -g serial_number)"}"
+: "${MLB_SERIAL_NUMBER:="$(vpd -g mlb_serial_number)"}"
+: "${HWID:="$(crossystem hwid)"}"
 
 usage() {
   echo "Usage: $0 [factory_wipe|factory_reset]"
@@ -70,10 +72,14 @@ main() {
     die_with_error_message "'serial_number' not set in RO VPD."
   fi
 
-  # Follow Shopfloor Service API 1.0
+  # Fields allowed in Shopfloor Service API 1.0.
+  # Note 'serial_number' without 'serials' prefix was introduced in draft
+  # version and we may deprecate it in future.
   print_post_content NotifyEvent "${event}" \
     serial_number "${SERIAL_NUMBER}" \
-    hwid "$(crossystem hwid)"
+    serials.serial_number "${SERIAL_NUMBER}" \
+    serials.mlb_serial_number "${MLB_SERIAL_NUMBER}" \
+    hwid "${HWID}"
 }
 
 main "$@"
