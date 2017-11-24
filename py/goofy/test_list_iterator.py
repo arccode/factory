@@ -396,9 +396,9 @@ class TestListIterator(object):
     # status filter only applies to leaf tests
     if (self._IsRunnableTest(test) and
         not self.CheckStatusFilter(test)):
-      logging.info('test %s is skipped because its status '
-                   '%s (status_filter: %r)', test.path,
-                   test.GetState().status, self.status_filter)
+      logging.debug('test %s is skipped because its status '
+                    '%s (status_filter: %r)', test.path,
+                    test.GetState().status, self.status_filter)
       return True  # we need to skip it
     if not self.CheckRunIf(test):
       logging.info('test %s is skipped because run_if evaluated to False',
@@ -410,10 +410,15 @@ class TestListIterator(object):
       # All of the subtests are either skipped or passed, let's check if all of
       # them are still skipped now.
       for t in test.Walk():
-        if t.IsSkipped() and t.run_if and self.CheckRunIf(t):
-          # t was skipped but need to be run now
-          need_retest = True
-          break
+        if t.IsSkipped():
+          # For test groups, they need retest if their run_if are set, and
+          # evaluate to True.
+          # For runnable tests, they need retest if their run_if are not set, or
+          # evaluate to True.
+          # (If run_if is not set, default return value of CheckRunIf is True).
+          if self.CheckRunIf(t) and (self._IsRunnableTest(t) or t.run_if):
+            need_retest = True
+            break
       if need_retest:
         test.UpdateState(status=state.TestState.UNTESTED)
         # check again (for status filter)
@@ -427,8 +432,11 @@ class TestListIterator(object):
     if not self.status_filter:
       return True
     status = test.GetState().status
-    # an active test should always pass the filter (to resume a previous test)
-    return status == state.TestState.ACTIVE or status in self.status_filter
+    # An active test should always pass the filter (to resume a previous test).
+    # A skipped test should always pass the filter and let CheckSkip to decide.
+    return (status == state.TestState.ACTIVE or
+            status == state.TestState.SKIPPED or
+            status in self.status_filter)
 
   def CheckRunIf(self, test):
     return test_list_module.ITestList.EvaluateRunIf(test, self.test_list)

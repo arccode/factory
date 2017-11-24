@@ -15,6 +15,10 @@ from cros.factory.test import state
 from cros.factory.test.test_lists import manager
 
 
+PLAY_BUTTON_STATUS_FILTER = [
+    'UNTESTED', 'ACTIVE', 'FAILED', 'FAILED_AND_WAIVED',]
+
+
 class TestListIteratorTest(unittest.TestCase):
   TEST_LIST = {}  # Overriden by subclasses
 
@@ -498,8 +502,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         test_list,
         [],
         set_state=False,
-        # status_filter used by "PLAY" button.
-        status_filter=['UNTESTED', 'ACTIVE', 'FAILED', 'FAILED_AND_WAIVED'])
+        status_filter=PLAY_BUTTON_STATUS_FILTER)
     self.assertEqual(test_list.LookupPath('G').GetState().status,
                      state.TestState.SKIPPED)
     # Rerun tests, test groups should first be reset to untested and try to find
@@ -510,10 +513,30 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         test_list,
         [],
         set_state=False,
-        # status_filter used by "PLAY" button.
-        status_filter=['UNTESTED', 'ACTIVE', 'FAILED', 'FAILED_AND_WAIVED'])
+        status_filter=PLAY_BUTTON_STATUS_FILTER)
     self.assertEqual(test_list.LookupPath('G').GetState().status,
                      state.TestState.SKIPPED)
+
+  def testSkippedAndUnset(self):
+    test_list = self._BuildTestList(
+        {
+            'options': {
+                'phase': 'PROTO',
+            },
+            'tests': [
+                {'inherit': 'TestGroup', 'id': 'G', 'subtests': [
+                    {'id': 'a', 'pytest_name': 'a'},
+                ]},
+            ]
+        })
+    test_list = self._SetStubStateInstance(test_list)
+    test_list.LookupPath('G.a').UpdateState(status=state.TestState.SKIPPED)
+    test_list.LookupPath('G').UpdateState(status=state.TestState.SKIPPED)
+    self._AssertTestSequence(
+        test_list,
+        ['G.a'],
+        set_state=False,
+        status_filter=PLAY_BUTTON_STATUS_FILTER)
 
   def testRunIfAndAutomatedSequence(self):
     test_list = self._BuildTestList(
@@ -544,8 +567,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         test_list,
         [],
         set_state=False,
-        # status_filter used by "PLAY" button.
-        status_filter=['UNTESTED', 'ACTIVE', 'FAILED', 'FAILED_AND_WAIVED'],
+        status_filter=PLAY_BUTTON_STATUS_FILTER,
         device_data={
             'foo': {
                 'a': False,
@@ -555,8 +577,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         test_list,
         ['G.a', 'G.b', 'G.c'],
         set_state=False,
-        # status_filter used by "PLAY" button.
-        status_filter=['UNTESTED', 'ACTIVE', 'FAILED', 'FAILED_AND_WAIVED'],
+        status_filter=PLAY_BUTTON_STATUS_FILTER,
         device_data={
             'foo': {
                 'a': True,
@@ -568,8 +589,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         test_list,
         [],
         set_state=False,
-        # status_filter used by "PLAY" button.
-        status_filter=['UNTESTED', 'ACTIVE', 'FAILED', 'FAILED_AND_WAIVED'],
+        status_filter=PLAY_BUTTON_STATUS_FILTER,
         device_data={
             'foo': {
                 'a': True,
