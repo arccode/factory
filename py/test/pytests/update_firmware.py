@@ -161,7 +161,7 @@ class UpdateFirmwareTest(unittest.TestCase):
 
     p = process_utils.Spawn(
         command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, log=True)
-    for line in p.stdout:
+    for line in iter(p.stdout.readline, ''):
       logging.info(line.strip())
       self._template.SetState(test_ui.Escape(line), append=True)
 
