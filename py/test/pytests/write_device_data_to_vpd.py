@@ -65,14 +65,11 @@ To write a calibration data value to RO VPD::
 """
 
 
-import unittest
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -81,7 +78,7 @@ _MSG_WRITING_VPD = lambda vpd_section: i18n_test_ui.MakeI18nLabel(
     vpd_section=vpd_section.upper())
 
 
-class WriteDeviceDataToVPD(unittest.TestCase):
+class WriteDeviceDataToVPD(test_ui.TestCaseWithUI):
   ARGS = [
       Arg('ro_key_map', dict,
           'Mapping of (VPD_NAME, DEVICE_DATA_KEY) to write into RO VPD.',
@@ -93,14 +90,8 @@ class WriteDeviceDataToVPD(unittest.TestCase):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
 
   def runTest(self):
-    self.ui.RunInBackground(self._runTest)
-    self.ui.Run()
-
-  def _runTest(self):
     data = {
         'ro': {},
         'rw': {},
@@ -129,7 +120,7 @@ class WriteDeviceDataToVPD(unittest.TestCase):
     missing_keys = [k for section in data for k, v in data[section].iteritems()
                     if v is None]
     if missing_keys:
-      self.fail('Missing device data keys: %r' % sorted(missing_keys))
+      self.FailTask('Missing device data keys: %r' % sorted(missing_keys))
 
     for section, entries in data.iteritems():
       self.template.SetState(_MSG_WRITING_VPD(section))
