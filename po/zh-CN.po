@@ -2999,10 +2999,6 @@ msgid "Then press key \"{key}\" to next stage."
 msgstr "完成后按 {key} 键"
 
 #: ../py/test/pytests/wait_external_test.py
-msgid "Wait for external test"
-msgstr "等待外部測試"
-
-#: ../py/test/pytests/wait_external_test.py
 msgid "Please run external test: {name}"
 msgstr "請執行外部測試: {name}"
 

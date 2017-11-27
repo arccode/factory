@@ -88,41 +88,31 @@ In the fixture side, it should do something like this:
 
 import os
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import sync_utils
 
 
 _EXTERNAL_DIR = '/run/factory/external'
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel('Wait for external test')
-_ID_INSTRUCTION = 'external-test-instruction'
-_ID_COUNTDOWN_TIMER = 'external-test-timer'
 
 _CSS = """
-.instruction-font-size {
+test-template {
   font-size: 2em;
 }
 """
-
-_HTML_EXTERNAL_TEST = """
-<div id="%s" style="position: relative; width: 100%%; height: 60%%;"></div>
-<div id="%s"></div>
-""" % (_ID_INSTRUCTION, _ID_COUNTDOWN_TIMER)
 
 # Usually external tests will take a long time to run so check duration can be
 # longer.
 _CHECK_PERIOD_SECS = 1
 
 
-class WaitExternalTest(unittest.TestCase):
+class WaitExternalTest(test_ui.TestCaseWithUI):
   """Wait for a test by external fixture to finish."""
   ARGS = [
       Arg('run_factory_external_name', str,
@@ -133,16 +123,10 @@ class WaitExternalTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
-    self.template.SetTitle(_TEST_TITLE)
-    self.template.SetState(_HTML_EXTERNAL_TEST)
     self.ui.AppendCSS(_CSS)
     self._name = self.args.run_factory_external_name
-    self.ui.SetHTML(
-        i18n_test_ui.MakeI18nLabelWithClass(
-            self.args.msg, 'instruction-font-size', name=self._name),
-        id=_ID_INSTRUCTION)
+    self.template.SetState(
+        i18n_test_ui.MakeI18nLabel(self.args.msg, name=self._name))
     self._file_path = os.path.join(
         _EXTERNAL_DIR, self.args.run_factory_external_name)
     self.RemoveFile(self._file_path)
@@ -150,7 +134,7 @@ class WaitExternalTest(unittest.TestCase):
   def FileExists(self):
     return os.path.exists(self._file_path)
 
-  def MonitorResultFile(self):
+  def runTest(self):
     sync_utils.PollForCondition(
         poll_method=self.FileExists,
         poll_interval_secs=_CHECK_PERIOD_SECS,
@@ -178,7 +162,3 @@ class WaitExternalTest(unittest.TestCase):
     except OSError:
       if os.path.exists(file_path) or not os.path.exists(file_dir):
         raise
-
-  def runTest(self):
-    self.ui.RunInBackground(self.MonitorResultFile)
-    self.ui.Run()
