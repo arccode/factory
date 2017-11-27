@@ -3006,10 +3006,6 @@ msgstr "等待外部測試"
 msgid "Please run external test: {name}"
 msgstr "請執行外部測試: {name}"
 
-#: ../py/test/pytests/wifi_check_calibration.py
-msgid "Calibration data doesn't meet requirement"
-msgstr ""
-
 #: ../py/test/pytests/wifi_throughput.py
 msgid ""
 "Please wait for other DUTs to finish WiFiThroughput test, and press spacebar "

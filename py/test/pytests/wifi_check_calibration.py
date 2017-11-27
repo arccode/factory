@@ -5,8 +5,6 @@
 
 """Checks Wifi calibration table from
 /sys/kernel/debug/ieee80211/phy*/ath9k/dump_eep_power.
-
-If the test fails, then the test displays tables and hangs forever.
 """
 
 
@@ -18,9 +16,6 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test import session
-from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 ANCHOR_FOR_LOW_BAND_CALIBRATION_DATA = 'calPierData2G'
@@ -34,9 +29,9 @@ def IsInRange(observed, min_val, max_val):
   If any of min_val or max_val is missing, it means there is no lower or
   upper bounds respectively.
   """
-  if min_val and observed < min_val:
+  if min_val is not None and observed < min_val:
     return False
-  if max_val and observed > max_val:
+  if max_val is not None and observed > max_val:
     return False
   return True
 
@@ -44,12 +39,12 @@ def IsInRange(observed, min_val, max_val):
 def CheckRefPowerRange(table, expected_range_dict, band_name):
   """Checks if the ref power is in range."""
   for row_idx, single_row in enumerate(table):
-    chain = int(single_row[0])
+    chain = single_row[0]
     ref_power = int(single_row[1])
     expected_range = expected_range_dict[chain]
     if not IsInRange(ref_power, expected_range[0], expected_range[1]):
       session.console.info(
-          'Ref power of %s, row[%d], chain[%d] is out of range',
+          'Ref power of %s, row[%d], chain[%s] is out of range',
           band_name, row_idx, chain)
       return False
   return True
@@ -76,8 +71,8 @@ class CheckWifiCalibrationTest(unittest.TestCase):
           'Chain is the key of the dict.\n'
           'For example::\n'
           '\n'
-          '  {0: (-20, None),\n'
-          '   1: (None, -10)}\n'
+          '  {"0": [-20, null],\n'
+          '   "1": [null, -10]}\n'
           '\n'
           'will check all refPower for chain 0 is greater than -20\n'
           'and all refPower for chain 1 is less than -10.\n'),
@@ -86,7 +81,7 @@ class CheckWifiCalibrationTest(unittest.TestCase):
           'Chain is the key of the dict.')
   ]
 
-  def readCalibrationTable(self, path, anchor_string):
+  def ReadCalibrationTable(self, path, anchor_string):
     with open(path) as f:
       lines = f.readlines()
     idx = 0
@@ -104,16 +99,16 @@ class CheckWifiCalibrationTest(unittest.TestCase):
     return table
 
   def runTest(self):
-    # Found location of dump_eep_power
+    # Find location of dump_eep_power
     eep_power_path = glob.glob(EEP_POWER_PATH)
     if len(eep_power_path) != 1:
       raise IOError('unable to read dump_eep_power')
 
     eep_power_path = eep_power_path[0]
 
-    low_band_table = self.readCalibrationTable(
+    low_band_table = self.ReadCalibrationTable(
         eep_power_path, ANCHOR_FOR_LOW_BAND_CALIBRATION_DATA)
-    high_band_table = self.readCalibrationTable(
+    high_band_table = self.ReadCalibrationTable(
         eep_power_path, ANCHOR_FOR_HIGH_BAND_CALIBRATION_DATA)
 
     session.console.info('2.4GHz table=%s',
@@ -142,17 +137,7 @@ class CheckWifiCalibrationTest(unittest.TestCase):
         self.args.expected_high_band_ref_power_range, '5G'):
       failed_flag = True
 
-    if not failed_flag:
-      return  # Pass the test
-
-    ui = test_ui.UI()
-    template = ui_templates.OneSection(ui)
-    template.SetTitle(
-        i18n_test_ui.MakeI18nLabel("Calibration data doesn't meet requirement"))
-    template.SetState(
-        '<div class=test-status-failed '
-        'style="white-space: pre-wrap">' +
-        '2.4G = %s\n' % pprint.pformat(low_band_table, width=200) +
-        '5G = %s\n' % pprint.pformat(high_band_table, width=200) +
-        '</div>')
-    ui.Run()  # Forever
+    if failed_flag:
+      self.fail(
+          "Calibration data doesn't meet requirement. 2.4G = %r, 5G = %r." %
+          (low_band_table, high_band_table))
