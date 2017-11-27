@@ -24,19 +24,17 @@ import logging
 import re
 import struct
 import sys
-import threading
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test import session
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
 try:
@@ -45,20 +43,7 @@ try:
 except ImportError:
   pass
 
-_DEFAULT_WIRELESS_TEST_CSS = '.wireless-info { font-size: 2em; }'
-
-_MSG_SWITCHING_AP = lambda ap: i18n_test_ui.MakeI18nLabelWithClass(
-    'Switching to AP {ap}: ', 'wireless-info', ap=ap)
-_MSG_SCANNING = lambda device, freq: i18n_test_ui.MakeI18nLabelWithClass(
-    'Scanning on device {device} frequency {freq}...',
-    'wireless-info', device=device, freq=freq)
-_MSG_SCANNING_DONE = lambda device, freq: i18n_test_ui.MakeI18nLabelWithClass(
-    'Done scanning on device {device} frequency {freq}...',
-    'wireless-info', device=device, freq=freq)
-_MSG_SPACE = i18n_test_ui.MakeI18nLabelWithClass(
-    'Press space to start scanning.', 'wireless-info')
-_MSG_PRECHECK = i18n_test_ui.MakeI18nLabelWithClass(
-    'Checking frequencies...', 'wireless-info')
+_DEFAULT_WIRELESS_TEST_CSS = 'test-template { font-size: 2em; }'
 
 _RE_IWSCAN = re.compile(r'freq: (\d+).*SSID: (.+)$')
 _RE_WIPHY = re.compile(r'wiphy (\d+)')
@@ -74,12 +59,9 @@ def FlimGetService(flim, name):
     flim: flimflam object
     name: property name
   """
-  timeout = time.time() + 10
-  while time.time() < timeout:
-    service = flim.FindElementByPropertySubstring('Service', 'Name', name)
-    if service:
-      return service
-    time.sleep(0.5)
+  return sync_utils.PollForCondition(
+      lambda: flim.FindElementByPropertySubstring('Service', 'Name', name),
+      timeout_secs=10, poll_interval_secs=0.5)
 
 
 def FlimGetServiceProperty(service, prop):
@@ -135,35 +117,29 @@ def IwScan(devname, sleep_retry_time_secs=2, max_retries=10):
     or fail because of reason other than device or resource busy (-16)
   """
   cmd = r"iw %s scan | grep -e 'freq\|SSID' | sed 'N;s/\n/ /'" % devname
-  try_count = 0
-  scan_result = []
-  while try_count < max_retries:
+  for unused_try_count in xrange(max_retries):
     process = process_utils.Spawn(
         cmd, read_stdout=True, log_stderr_on_error=True, log=True, shell=True)
     stdout, stderr = process.communicate()
     retcode = process.returncode
     event_log.Log('iw_scaned', retcode=retcode, stderr=stderr)
     if retcode == 0:
+      scan_result = []
       for line in stdout.splitlines():
         m = _RE_IWSCAN.search(line)
         if m:
           scan_result.append((m.group(2), m.group(1)))
-      if len(scan_result) == 0:
-        try_count += 1
-        time.sleep(sleep_retry_time_secs)
-        continue
-      logging.info('IwScan success.')
-      return scan_result
-    elif retcode == 240:  # Device or resource busy (-16)
-      try_count += 1
-      time.sleep(sleep_retry_time_secs)
+      if scan_result:
+        logging.info('IwScan success.')
+        return scan_result
     elif retcode == 234:  # Invalid argument (-22)
       raise Exception('Failed to iw scan, ret code: %d. stderr: %s'
                       'Frequency might be wrong.' %
                       (retcode, stderr))
-    else:
+    elif retcode != 240:  # Device or resource busy (-16)
       raise Exception('Failed to iw scan, ret code: %d. stderr: %s' %
                       (retcode, stderr))
+    time.sleep(sleep_retry_time_secs)
   raise Exception('Failed to iw scan for %s tries' % max_retries)
 
 
@@ -211,7 +187,7 @@ class RadiotapPacket(object):
   EXPECTED_HEADER_FORMAT = struct.Struct(MAIN_HEADER_FORMAT.format + 'II')
 
   @staticmethod
-  def decode(packet_bytes):
+  def Decode(packet_bytes):
     """Returns signal strength data for each antenna.
 
     Format is {all_signal, {antenna_index, antenna_signal}}.
@@ -219,8 +195,8 @@ class RadiotapPacket(object):
     if len(packet_bytes) < RadiotapPacket.EXPECTED_HEADER_FORMAT.size:
       return None
     parts = RadiotapPacket.EXPECTED_HEADER_FORMAT.unpack_from(packet_bytes)
-    (_, _, _, present0, present1, present2) = parts
-    parse_info = RadiotapPacket.parse_header([present0, present1, present2])
+    present0, present1, present2 = parts[3:]
+    parse_info = RadiotapPacket.ParseHeader([present0, present1, present2])
     required_bytes = parse_info.header_size + parse_info.data_bytes
     if len(packet_bytes) < required_bytes:
       return None
@@ -242,13 +218,13 @@ class RadiotapPacket(object):
     return antenna_data
 
   @staticmethod
-  def parse_header(field_list):
+  def ParseHeader(field_list):
     """Returns packet information of the radiotap header should have."""
     header_size = RadiotapPacket.MAIN_HEADER_FORMAT.size
     data_bytes = 0
     antenna_offsets = []
 
-    for _, bitmask in enumerate(field_list):
+    for bitmask in field_list:
       antenna_offsets.append({})
       for bit, field in enumerate(RadiotapPacket.FIELDS):
         if bitmask & (1 << bit):
@@ -282,17 +258,17 @@ class Capture(object):
     self.parent_device = device_name
     self.phy = phy
 
-  def create_device(self, monitor_device='antmon0'):
+  def CreateDevice(self, monitor_device='antmon0'):
     """Creates a monitor device to monitor beacon."""
     process_utils.Spawn(['iw', self.parent_device, 'interface', 'add',
                          monitor_device, 'type', 'monitor'], check_call=True)
     self.created_device = monitor_device
 
-  def remove_device(self, device_name):
+  def RemoveDevice(self, device_name):
     """Removes monitor device."""
     process_utils.Spawn(['iw', device_name, 'del'], check_call=True)
 
-  def get_signal(self):
+  def GetSignal(self):
     """Gets signal from tcpdump."""
     while True:
       line = self.monitor_process.stdout.readline()
@@ -308,13 +284,13 @@ class Capture(object):
         break
 
       # Break up lines of the form "\t0x0000: abcd ef" into a string
-      # "\xab\xcd\exef".
+      # "\xab\xcd\xef".
       parts = line[3:].split()
       for part in parts[1:]:
         packet_bytes += chr(int(part[:2], 16))
         if len(part) > 2:
           packet_bytes += chr(int(part[2:], 16))
-      packet = RadiotapPacket.decode(packet_bytes)
+      packet = RadiotapPacket.Decode(packet_bytes)
       if packet:
         return {'ssid': ssid, 'freq': freq, 'signal': packet}
 
@@ -329,7 +305,7 @@ class Capture(object):
 
   def __enter__(self):
     if not self.created_device:
-      self.create_device()
+      self.CreateDevice()
     process_utils.Spawn(
         ['ip', 'link', 'set', self.created_device, 'up'], check_call=True)
     process_utils.Spawn(
@@ -344,20 +320,15 @@ class Capture(object):
     self.monitor_process.kill()
     self.set_beacon_filter(1)
     if self.created_device:
-      self.remove_device(self.created_device)
+      self.RemoveDevice(self.created_device)
 
 
-class WirelessRadiotapTest(unittest.TestCase):
+class WirelessRadiotapTest(test_ui.TestCaseWithUI):
   """Basic wireless test class.
 
   Properties:
-    _ui: Test ui.
-    _template: Test template.
     _antenna: current antenna config.
     _phy_name: wireless phy name to test.
-    _space_event: An event that space has been pressed. It will also be set
-        if test has been done.
-    _done: An event that test has been done.
   """
   ARGS = [
       Arg('device_name', str,
@@ -385,14 +356,10 @@ class WirelessRadiotapTest(unittest.TestCase):
           'Press space to start the test.', default=True)]
 
   def setUp(self):
-    self._ui = test_ui.UI()
-    self._template = ui_templates.OneSection(self._ui)
-    self._ui.AppendCSS(_DEFAULT_WIRELESS_TEST_CSS)
+    self.ui.AppendCSS(_DEFAULT_WIRELESS_TEST_CSS)
 
     self._phy_name = self.DetectPhyName()
     logging.info('phy name is %s.', self._phy_name)
-    self._space_event = threading.Event()
-    self._done = threading.Event()
 
     net_utils.Ifconfig(self.args.device_name, True)
     self._flim = flimflam.FlimFlam(dbus.SystemBus())
@@ -406,8 +373,9 @@ class WirelessRadiotapTest(unittest.TestCase):
 
     Password can be '' or None.
     """
-    self._connect_service = FlimGetService(self._flim, service_name)
-    if self._connect_service is None:
+    try:
+      self._connect_service = FlimGetService(self._flim, service_name)
+    except type_utils.TimeoutError:
       session.console.info('Unable to find service %s', service_name)
       return False
     if FlimGetServiceProperty(self._connect_service, 'IsActive'):
@@ -492,23 +460,30 @@ class WirelessRadiotapTest(unittest.TestCase):
       A list of signal result.
     """
     signal_list = []
-    (ssid, freq, password) = service
-    self._template.SetState(_MSG_SWITCHING_AP(ssid))
-    result = self.ConnectService(ssid, password)
-    if result is False:
+    ssid, freq, password = service
+    self.template.SetState(
+        i18n_test_ui.MakeI18nLabel('Switching to AP {ap}: ', ap=ssid))
+    if not self.ConnectService(ssid, password):
       return []
 
-    self._template.SetState(_MSG_SCANNING(self.args.device_name, freq))
+    self.template.SetState(
+        i18n_test_ui.MakeI18nLabel(
+            'Scanning on device {device} frequency {freq}...',
+            device=self.args.device_name,
+            freq=freq))
     with Capture(self.args.device_name, self._phy_name) as capture:
       capture_times = 0
       while capture_times < times:
-        signal_result = capture.get_signal()
+        signal_result = capture.GetSignal()
         if signal_result['ssid'] == ssid and signal_result['freq'] == freq:
           logging.info('%s', signal_result)
           signal_list.append(signal_result['signal'])
           capture_times += 1
-    self._template.SetState(
-        _MSG_SCANNING_DONE(self.args.device_name, freq))
+    self.template.SetState(
+        i18n_test_ui.MakeI18nLabel(
+            'Done scanning on device {device} frequency {freq}...',
+            device=self.args.device_name,
+            freq=freq))
     self.DisconnectService()
     return signal_list
 
@@ -560,11 +535,11 @@ class WirelessRadiotapTest(unittest.TestCase):
           'antenna_%s' % antenna, freq=service[1], rssi=scanned_strength,
           meet=(scanned_strength and scanned_strength > spec_strength))
       if not scanned_strength:
-        self.fail(
+        self.FailTask(
             'Antenna %s, service: %s: Can not scan signal strength.' %
             (antenna, service))
       if scanned_strength < spec_strength:
-        self.fail(
+        self.FailTask(
             'Antenna %s, service: %s: The scanned strength %f < spec strength'
             ' %f' % (antenna, service, scanned_strength, spec_strength))
       else:
@@ -579,63 +554,38 @@ class WirelessRadiotapTest(unittest.TestCase):
       services: A list of (service_ssid, freq) tuples to scan.
     """
     wireless_services = {}
-    self._template.SetState(_MSG_PRECHECK)
+    self.template.SetState(
+        i18n_test_ui.MakeI18nLabel('Checking frequencies...'))
+
     scan_result = IwScan(self.args.device_name)
-    set_all_ssids = set([service[0] for service in services])
+    set_all_ssids = set(service[0] for service in services)
 
     for ssid, freq in scan_result:
       if ssid in set_all_ssids:
         if ssid not in wireless_services:
           wireless_services[ssid] = freq
         elif freq != wireless_services[ssid]:
-          self.fail('There are more than one frequencies for ssid %s.' % ssid)
-
-  def Done(self):
-    """The callback when ui is done.
-
-    This will be called when test is finished, or if operator presses
-    'Mark Failed'.
-    """
-    self._done.set()
-    self._space_event.set()
-
-  def OnSpacePressed(self):
-    """The handler of space key."""
-    logging.info('Space pressed by operator.')
-    self._space_event.set()
+          self.FailTask(
+              'There are more than one frequencies for ssid %s.' % ssid)
 
   def runTest(self):
     if self.args.press_space_to_start:
-      # Prompts a message to tell operator to press space key when ready.
-      self._template.SetState(_MSG_SPACE)
-      self._ui.BindKey(test_ui.SPACE_KEY,
-                       lambda _: self.OnSpacePressed(),
-                       once=True)
-      self._ui.RunInBackground(self._runTest)
-      self._ui.Run(on_finish=self.Done)
-    else:
-      self._space_event.set()
-      self._runTest()
-
-  def _runTest(self):
-    self._space_event.wait()
-    if self._done.isSet():
-      return
+      self.template.SetState(
+          i18n_test_ui.MakeI18nLabel('Press space to start scanning.'))
+      self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 
     self.PreCheck(self.args.services)
 
-    antenna_info = {}
+    average_signal = {}
     services = type_utils.MakeTuple(self.args.services)
     for service in services:
-      antenna_info[service] = self.ScanSignal(service, self.args.scan_count)
-    average_signal = {}
-    for service, signals in antenna_info.iteritems():
+      signals = self.ScanSignal(service, self.args.scan_count)
       average_signal[service] = self.AverageSignals(signals)
 
     # Gets the service with the largest strength to test for each spec.
     test_service = self.ChooseMaxStrengthService(services,
                                                  average_signal)
     if test_service is None:
-      self.fail('Services %s are not valid.' % self.args.services)
+      self.FailTask('Services %s are not valid.' % self.args.services)
     else:
       self.CheckSpec(test_service, self.args.strength, average_signal)
