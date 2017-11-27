@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -7,135 +5,13 @@
 """WebGL performance test that executes a set of WebGL operations."""
 
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import process_utils
 
 
-_HTML_WEBGL_AQUARIUM = (
-    '<link rel="stylesheet" type="text/css" href="goofy_webgl_aquarium.css">'
-    '<iframe src="aquarium.html", width="100%", height="100%"'
-    ' id="webgl-aquarium"></iframe>')
-
-_JS_WEBGL_AQUARIUM = """
-var cls_fullscreen = 'goofy-aquarium-full-screen';
-
-function getWebGlFrame() {
-  return document.getElementById('webgl-aquarium');
-}
-
-function getFpsContainer() {
-  return getWebGlFrame().contentDocument.getElementsByClassName(
-    'fpsContainer')[0];
-}
-
-function hideOptions() {
-  var top_ui = getWebGlFrame().contentDocument.getElementById('topUI');
-  if (!top_ui) {
-    return 0;
-  }
-  top_ui.style.display = 'none';
-}
-
-function enableFullScreen() {
-  window.test.setFullScreen(true);
-  var webgl_iframe = getWebGlFrame();
-  var doc = webgl_iframe.contentDocument;
-  webgl_iframe.classList.add(cls_fullscreen);
-  doc.getElementById('info').style.display = 'none';
-}
-
-function disableFullScreen() {
-  var webgl_iframe = getWebGlFrame();
-  var doc = webgl_iframe.contentDocument;
-  webgl_iframe.classList.remove(cls_fullscreen);
-  doc.getElementById('info').style.display = 'block';
-  // fpsContainer is moved during updateUI().
-  getFpsContainer().style.top = '10px';
-  window.test.setFullScreen(false);
-}
-
-function isFullScreen() {
-  var webgl_iframe = getWebGlFrame();
-  var toggle_btn = webgl_iframe.contentDocument.getElementById(
-      'fullscreen_toggle');
-  return webgl_iframe.classList.contains(cls_fullscreen);
-}
-
-function toggleFullScreen() {
-  if (isFullScreen()) {
-    disableFullScreen();
-  } else {
-    enableFullScreen();
-  }
-}
-
-function updateUI(time_left, hide_options) {
-  var timer_span = getWebGlFrame().contentDocument.getElementById('timer');
-  var fps_container = getFpsContainer();
-
-  if (!fps_container) {
-    return 0;
-  }
-
-  if (!timer_span) {
-
-    if (hide_options) {
-      hideOptions();
-    }
-
-    var fullscreen_btn = document.createElement('button');
-    fullscreen_btn.id = 'fullscreen_toggle';
-    fullscreen_btn.style.fontSize = '1.5em';
-    fullscreen_btn.innerHTML = "Toggle Full Screen";
-    fullscreen_btn.onclick = toggleFullScreen;
-
-    var timer_div = document.createElement('div');
-    timer_div.style.color = 'white';
-    timer_div.style.fontSize = '2em';
-    timer_div.innerHTML = 'Time left: ';
-    timer_span = document.createElement('span');
-    timer_span.id = 'timer';
-    timer_div.appendChild(timer_span);
-
-    var goofy_addon = document.createElement('div');
-    goofy_addon.appendChild(fullscreen_btn)
-    goofy_addon.appendChild(timer_div)
-
-    // First child is the fps.
-    fps_container.childNodes[1].style.fontSize = '2em';
-    fps_container.insertBefore(goofy_addon, fps_container.childNodes[1]);
-  }
-
-  timer_span.innerHTML = time_left;
-
-  if (isFullScreen()) {
-    // Move FPS container (30px, 10px) to prevent screen burn-in.
-    var sec = time_left.split(':').pop();
-    fps_container.style.top = sec + '%';
-  }
-}
-
-function registerContextLostHandler() {
-  var webgl_iframe = document.getElementById('webgl-aquarium');
-  var canvas = webgl_iframe.contentDocument.getElementById('canvas');
-  webgl_iframe.contentWindow.onload =
-      webgl_iframe.contentWindow.tdl.webgl.registerContextLostHandler(
-          canvas, function() {
-              window.test.fail(
-                  'Lost WebGL context.' +
-                  ' Did you switch to VT2 for more than 10 seconds?')});
-}
-
-window.onload = registerContextLostHandler;
-"""
-
-
-class WebglAquarium(unittest.TestCase):
+class WebGLAquariumTest(test_ui.TestCaseWithUI):
   ARGS = [
       Arg('duration_secs', int, 'Duration of time in seconds to run the test',
           default=60),
@@ -146,15 +22,10 @@ class WebglAquarium(unittest.TestCase):
   ]
 
   def setUp(self):
-    self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
-    self.template.SetState(_HTML_WEBGL_AQUARIUM)
-    self.ui.RunJS(_JS_WEBGL_AQUARIUM)
     self.end_time = time.time() + self.args.duration_secs
-    process_utils.StartDaemonThread(target=self.PeriodicCheck)
 
     if self.args.full_screen:
-      self.ui.CallJSFunction('enableFullScreen')
+      self.ui.CallJSFunction('toggleFullScreen')
 
   def FormatSeconds(self, secs):
     hours = int(secs / 3600)
@@ -163,15 +34,13 @@ class WebglAquarium(unittest.TestCase):
     return '%02d:%02d:%02d' % (hours, minutes, seconds)
 
   def PeriodicCheck(self):
-    while True:
-      time_left = self.end_time - time.time()
-      if time_left <= 0:
-        break
-      self.ui.CallJSFunction(
-          'updateUI', self.FormatSeconds(time_left),
-          self.args.hide_options)
-      time.sleep(1)
-    self.ui.Pass()
+    time_left = self.end_time - time.time()
+    if time_left <= 0:
+      self.PassTask()
+    self.ui.CallJSFunction(
+        'updateUI', self.FormatSeconds(time_left),
+        self.args.hide_options)
 
   def runTest(self):
-    self.ui.Run()
+    self.event_loop.AddTimedHandler(self.PeriodicCheck, 1, repeat=True)
+    self.WaitTaskEnd()
