@@ -6,19 +6,24 @@
 
 """BigQuery upload output plugin.
 
-Load job limits ( https://cloud.google.com/bigquery/quotas#import ):
+Load job limits:
   daily load job limit per table: 1000 (every 86.4 seconds)
   daily load job limit per project: 50,000
   JSON row size: 10 MB
   JSON max file size: 5 TB
   max size per load job: 12 TB
+
+Partitioned table updates limits:
+  daily updates partition limit per table: 2500
+  updates partition limit per load job: 500
+
+( Source: https://cloud.google.com/bigquery/quotas )
 """
 
 from __future__ import print_function
 
 import datetime
 import os
-import shutil
 import time
 
 # pylint: disable=import-error
@@ -37,6 +42,7 @@ _BIGQUERY_REQUEST_MAX_FAILURES = 20
 _JOB_NAME_PREFIX = 'instalog_'
 _JSON_MIMETYPE = 'NEWLINE_DELIMITED_JSON'
 _ROW_SIZE_LIMIT = 9.5 * 1024 * 1024  # To avoid error loop, we set 9.5 mb limit.
+_PARTITION_LIMIT = 500
 _DEFAULT_INTERVAL = 90
 _DEFAULT_BATCH_SIZE = 10000
 
@@ -104,7 +110,11 @@ class OutputBigQuery(plugin_base.OutputPlugin):
                 self.args.table_id, table.created)
     except exceptions.NotFound:
       _table = bigquery.Table(self.table_ref, schema=self.GetTableSchema())
-      _table.partitioning_type = 'DAY'
+      # pylint: disable=protected-access
+      _table._properties['timePartitioning'] = {
+          'type': 'DAY',
+          'expirationMs': None,
+          'field': 'time'}
       table = self.client.create_table(_table)
       self.info('The table %s does not exist. Creating...',
                 self.args.table_id)
@@ -150,6 +160,7 @@ class OutputBigQuery(plugin_base.OutputPlugin):
     """
     event_count = 0
     row_count = 0
+    partition_set = set()
     with open(json_path, 'w') as f:
       for event in event_stream.iter(timeout=self.args.interval,
                                      count=self.args.batch_size):
@@ -173,7 +184,11 @@ class OutputBigQuery(plugin_base.OutputPlugin):
           else:
             f.write(json_row + '\n')
             row_count += 1
+            # We are using time column as the timePartitioning field
+            partition_set.add(event['time'].date)
         event_count += 1
+        if len(partition_set) == _PARTITION_LIMIT:
+          break
 
     return event_count, row_count
 
@@ -224,11 +239,6 @@ class OutputBigQuery(plugin_base.OutputPlugin):
         return False
       else:
         if job.state == 'DONE':
-          if job.output_rows != row_count:
-            shutil.copyfile(json_path, json_path + '.backup')
-            self.error('Row count is not equal to output rows! This should not'
-                       'happen! Copy the json file to %s.backup!', json_path)
-
           self.info('Commit %d events (%d rows)', event_count, row_count)
           event_stream.Commit()
           return True
