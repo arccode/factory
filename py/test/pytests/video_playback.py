@@ -1,11 +1,8 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 import logging
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_ui
@@ -15,7 +12,7 @@ from cros.factory.utils.arg_utils import Arg
 DEFAULT_SECONDS = 10
 
 
-class VideoPlaybackTest(unittest.TestCase):
+class VideoPlaybackTest(test_ui.TestCaseWithUI):
   """Video Playback Test."""
   ARGS = [
       Arg('video_file', str,
@@ -38,11 +35,6 @@ class VideoPlaybackTest(unittest.TestCase):
     logging.info('time_limit=%s secs', self.args.time_limit)
     audio_utils.CRAS().EnableOutput()
     audio_utils.CRAS().SetActiveOutputNodeVolume(100)
-    ui = test_ui.UI()
-    ui.CallJSFunction('init',
-                      self.args.video_file,
-                      self.args.loop,
-                      self.args.time_limit,
-                      self.args.show_controls)
-    ui.Run()
-    logging.info('Video Playback test finished')
+    self.ui.CallJSFunction('init', self.args.video_file, self.args.loop,
+                           self.args.time_limit, self.args.show_controls)
+    self.WaitTaskEnd()
