@@ -123,7 +123,7 @@ class WriteDeviceDataToVPD(test_ui.TestCaseWithUI):
       self.FailTask('Missing device data keys: %r' % sorted(missing_keys))
 
     for section, entries in data.iteritems():
-      self.template.SetState(_MSG_WRITING_VPD(section))
+      self.ui.SetState(_MSG_WRITING_VPD(section))
       if not entries:
         continue
       # Normalize boolean and integer types to strings.

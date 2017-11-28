@@ -213,14 +213,14 @@ class Finalize(test_ui.TestCaseWithUI):
       return ('<b style="color: green;">' + MSG_ENABLED + '</b>' if v else
               '<b style="color: red;">' + MSG_DISABLED + '</b>')
 
-    self.template.SetInstruction(
+    self.ui.SetInstruction(
         MSG_WRITE_PROTECTION + ': ' + GetState(self.args.write_protection) +
         '<br>' +
         MSG_BUILD_PHASE + ': ' + str(phase.GetPhase()) + ', ' +
         MSG_FACTORY_SERVER + ': ' + GetState(self.args.enable_factory_server))
-    self.template.SetState(MSG_PREFLIGHT)
+    self.ui.SetState(MSG_PREFLIGHT)
     self.Preflight()
-    self.template.SetState(MSG_FINALIZING)
+    self.ui.SetState(MSG_FINALIZING)
     self.DoFinalize()
 
   def Preflight(self):

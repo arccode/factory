@@ -69,9 +69,9 @@ class ACPowerTest(test_ui.TestCaseWithUI):
     else:
       instruction = i18n_test_ui.MakeI18nLabel('Plug in the charger')
 
-    self.template.SetInstruction(instruction)
+    self.ui.SetInstruction(instruction)
 
-    self.template.SetState(
+    self.ui.SetState(
         '<div id="%s"></div><div id="%s"></div><div id="%s"></div>' %
         (_PROBE_TIMES_ID, _AC_STATUS_ID, _AC_POWER_ID))
 

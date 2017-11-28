@@ -254,7 +254,7 @@ class ChameleonDisplayTest(test_ui.TestCaseWithUI):
         logging.error('Unable to determine the external display to test.')
         self.fail('Please unplug the display to test.')
     elif len(display_info) == 1:
-      self.template.SetState(
+      self.ui.SetState(
           i18n_test_ui.MakeI18nLabel('Please plug in the display to test'))
       logging.info('Checking %s physical port on Chameleon...', chameleon_port)
       sync_utils.WaitFor(
@@ -360,7 +360,7 @@ class ChameleonDisplayTest(test_ui.TestCaseWithUI):
     logging.info(
         ('Testing DUT %s port on Chameleon %s port using mode %s...'),
         dut_port, chameleon_port, mode)
-    self.template.SetState(i18n_test_ui.MakeI18nLabel(
+    self.ui.SetState(i18n_test_ui.MakeI18nLabel(
         'Testing DUT {dut_port} port on Chameleon {chameleon_port} port'
         ' using mode {mode}...',
         dut_port=dut_port,
@@ -376,7 +376,7 @@ class ChameleonDisplayTest(test_ui.TestCaseWithUI):
     with self.chameleon.PortEdid(chameleon_port, edid):
       original_display, external_display = self.ProbeDisplay(chameleon_port)
 
-      self.template.SetState(i18n_test_ui.MakeI18nLabel(
+      self.ui.SetState(i18n_test_ui.MakeI18nLabel(
           'Automated testing on {dut_port} to {chameleon_port} in progress...',
           dut_port=dut_port,
           chameleon_port=chameleon_port))
@@ -407,7 +407,7 @@ class ChameleonDisplayTest(test_ui.TestCaseWithUI):
     histogram = diff_image.convert('L').histogram()
     pixel_diff_margin = 1 if self.args.downscale_to_tv_level else 0
     if sum(histogram[pixel_diff_margin + 1:]) > 0:
-      self.template.SetState(
+      self.ui.SetState(
           i18n_test_ui.MakeI18nLabel('Captured images mismatch') +
           '<br><br>' +
           '<image src="%s" width=%d height=%d></image>' %

@@ -113,7 +113,7 @@ class MessageTest(test_ui.TestCaseWithUI):
         press_button_hint = i18n_test_ui.MakeI18nLabel(
             '<div>Press <strong>Enter</strong> to continue.</div>')
 
-    self.template.SetState(
+    self.ui.SetState(
         '<div class="state">' +
         i18n_test_ui.MakeI18nLabelWithClass(self.args.html, 'message') +
         press_button_hint +

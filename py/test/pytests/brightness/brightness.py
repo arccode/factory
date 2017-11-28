@@ -40,7 +40,7 @@ class BrightnessTest(test_ui.TestCaseWithUI):
     self.dut = device_utils.CreateDUTInterface()
     self.ui.AppendCSS(_BRIGHTNESS_TEST_DEFAULT_CSS)
     self.ui.BindStandardKeys()
-    self.template.SetState(_HTML_BRIGHTNESS_TEST)
+    self.ui.SetState(_HTML_BRIGHTNESS_TEST)
     self.ui.SetHTML(i18n_test_ui.MakeI18nLabelWithClass(
         self.args.msg, _MSG_CSS_CLASS), id=_ID_PROMPT)
     self.ui.SetHTML(_MSG_PASS_FAIL_PROMPT, append=True, id=_ID_PROMPT)

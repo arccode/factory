@@ -120,7 +120,7 @@ class NetworkConnectionSetup(test_ui.TestCaseWithUI):
   ]
 
   def runTest(self):
-    self.template.SetState(_STATE_HTML)
+    self.ui.SetState(_STATE_HTML)
 
     # make config_name absolute path, however, this might not work in PAR
     config_path = os.path.join(os.path.dirname(__file__),

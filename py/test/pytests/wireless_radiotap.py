@@ -461,12 +461,12 @@ class WirelessRadiotapTest(test_ui.TestCaseWithUI):
     """
     signal_list = []
     ssid, freq, password = service
-    self.template.SetState(
+    self.ui.SetState(
         i18n_test_ui.MakeI18nLabel('Switching to AP {ap}: ', ap=ssid))
     if not self.ConnectService(ssid, password):
       return []
 
-    self.template.SetState(
+    self.ui.SetState(
         i18n_test_ui.MakeI18nLabel(
             'Scanning on device {device} frequency {freq}...',
             device=self.args.device_name,
@@ -479,7 +479,7 @@ class WirelessRadiotapTest(test_ui.TestCaseWithUI):
           logging.info('%s', signal_result)
           signal_list.append(signal_result['signal'])
           capture_times += 1
-    self.template.SetState(
+    self.ui.SetState(
         i18n_test_ui.MakeI18nLabel(
             'Done scanning on device {device} frequency {freq}...',
             device=self.args.device_name,
@@ -554,7 +554,7 @@ class WirelessRadiotapTest(test_ui.TestCaseWithUI):
       services: A list of (service_ssid, freq) tuples to scan.
     """
     wireless_services = {}
-    self.template.SetState(
+    self.ui.SetState(
         i18n_test_ui.MakeI18nLabel('Checking frequencies...'))
 
     scan_result = IwScan(self.args.device_name)
@@ -570,7 +570,7 @@ class WirelessRadiotapTest(test_ui.TestCaseWithUI):
 
   def runTest(self):
     if self.args.press_space_to_start:
-      self.template.SetState(
+      self.ui.SetState(
           i18n_test_ui.MakeI18nLabel('Press space to start scanning.'))
       self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 

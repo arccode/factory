@@ -235,10 +235,10 @@ class Scan(test_ui.TestCaseWithUI):
       time.sleep(self.args.barcode_scan_interval_secs)
 
   def runTest(self):
-    self.template.SetTitle(
+    self.ui.SetTitle(
         i18n_test_ui.MakeI18nLabel('Scan {label}', label=self.args.label))
 
-    self.template.SetState(
+    self.ui.SetState(
         i18n_test_ui.MakeI18nLabel(
             'Please scan the {label} and press ENTER.',
             label=self.args.label) +

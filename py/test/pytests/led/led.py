@@ -108,7 +108,7 @@ class LEDTest(test_ui.TestCaseWithUI):
           'If the <strong>{name}</strong> lights up in '
           '<strong>{color}</strong>, press ENTER.',
           name=led_name_label, color=color_label)
-    self.template.SetState(instruction)
+    self.ui.SetState(instruction)
     self.ui.BindStandardKeys()
     self.WaitTaskEnd()
 
@@ -140,7 +140,7 @@ class LEDTest(test_ui.TestCaseWithUI):
     color_options.sort()
     answer = color_options.index(color)
 
-    self.template.SetState(
+    self.ui.SetState(
         self._CreateChallengeTaskUI(test_id, led_name, color_options))
 
     keys = [str(i) for i in range(1, len(color_options) + 1)]

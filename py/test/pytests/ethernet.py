@@ -57,7 +57,7 @@ class EthernetTest(test_ui.TestCaseWithUI):
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
     self.ui.AppendCSS(_CSS_ETHERNET)
-    self.template.SetState(_MSG_ETHERNET_INFO)
+    self.ui.SetState(_MSG_ETHERNET_INFO)
 
     if bool(self.args.test_url) != bool(self.args.md5sum):
       raise ValueError('Should both assign test_url and md5sum.')

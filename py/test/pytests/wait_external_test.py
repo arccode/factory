@@ -125,7 +125,7 @@ class WaitExternalTest(test_ui.TestCaseWithUI):
   def setUp(self):
     self.ui.AppendCSS(_CSS)
     self._name = self.args.run_factory_external_name
-    self.template.SetState(
+    self.ui.SetState(
         i18n_test_ui.MakeI18nLabel(self.args.msg, name=self._name))
     self._file_path = os.path.join(
         _EXTERNAL_DIR, self.args.run_factory_external_name)

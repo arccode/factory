@@ -121,7 +121,7 @@ class HWIDV3Test(test_ui.TestCaseWithUI):
     if self.args.enable_factory_server:
       update_utils.UpdateHWIDDatabase(self._dut)
 
-    self.template.SetState(i18n_test_ui.MakeI18nLabel('Probing components...'))
+    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Probing components...'))
     # check if we are overriding probed results.
     probed_results_file = self._dut.path.join(self.tmpdir,
                                               'probed_results_file')
@@ -158,7 +158,7 @@ class HWIDV3Test(test_ui.TestCaseWithUI):
       self._dut.SendFile(f, device_info_file)
 
     if self.args.generate:
-      self.template.SetState(
+      self.ui.SetState(
           i18n_test_ui.MakeI18nLabel('Generating HWID (v3)...'))
       generate_cmd = ['hwid', 'generate',
                       '--probed-results-file', probed_results_file,
@@ -191,7 +191,7 @@ class HWIDV3Test(test_ui.TestCaseWithUI):
     else:
       encoded_string = self.factory_tools.CheckOutput(['hwid', 'read']).strip()
 
-    self.template.SetState(
+    self.ui.SetState(
         i18n_test_ui.MakeI18nLabel(
             'Verifying HWID (v3): {encoded_string}...',
             encoded_string=(encoded_string or _('(unchanged)'))))
@@ -210,7 +210,7 @@ class HWIDV3Test(test_ui.TestCaseWithUI):
     testlog.LogParam(name='verified_hwid', value=encoded_string)
 
     if self.args.generate:
-      self.template.SetState(
+      self.ui.SetState(
           i18n_test_ui.MakeI18nLabel(
               'Setting HWID (v3): {encoded_string}...',
               encoded_string=encoded_string))

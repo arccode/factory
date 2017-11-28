@@ -48,7 +48,7 @@ class BuzzerTest(test_ui.TestCaseWithUI):
   def setUp(self):
     self._pass_digit = random.randint(1, _MAX_BEEP_TIMES)
     self.ui.AppendCSS(_CSS_BUZZER)
-    self.template.SetState(_HTML_BUZZER)
+    self.ui.SetState(_HTML_BUZZER)
     if self.args.init_commands:
       self.InitialBuzzer(self.args.init_commands)
 

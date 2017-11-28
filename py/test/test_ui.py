@@ -598,6 +598,56 @@ class DummyUI(object):
     logging.info('Ignore setting Event Handler in dummy UI')
 
 
+class StandardUI(UI):
+  """Standard Web UI that have a template.
+
+  This is the default UI used by TestCaseWithUI.
+  """
+
+  def __init__(self,
+               event_loop=None,
+               default_html='<test-template></test-template>'):
+    super(StandardUI, self).__init__(
+        event_loop=event_loop, default_html=default_html)
+
+  def SetTitle(self, html):
+    """Sets the title of the test UI.
+
+    Args:
+      html: The html content to write.
+    """
+    self.CallJSFunction('window.template.setTitle', html)
+
+  def SetState(self, html, append=False):
+    """Sets the state section in the test UI.
+
+    Args:
+      html: The html to write.
+      append: Append html at the end.
+    """
+    self.CallJSFunction('window.template.setState', html, append)
+
+  def SetInstruction(self, html):
+    """Sets the instruction to operator.
+
+    Args:
+      html: The html content to write.
+    """
+    self.CallJSFunction('window.template.setInstruction', html)
+
+  def DrawProgressBar(self):
+    """Draw the progress bar and set it visible on the Chrome test UI."""
+    self.CallJSFunction('window.template.drawProgressBar')
+
+  def SetProgressBarValue(self, value):
+    """Set the value of the progress bar.
+
+    Args:
+      value: A value between 0 and 100 to indicate test progress.
+    """
+    self.CallJSFunction('window.template.setProgressBarValue', value)
+
+
 class TaskEndException(Exception):
   """The base exception to end a task."""
   pass
@@ -610,6 +660,7 @@ class TaskPassException(TaskEndException):
 
 class TaskFailException(TaskEndException):
   """The exception to fail a task or whole test."""
+
   def __init__(self, message):
     super(TaskFailException, self).__init__()
     self.message = message
@@ -782,13 +833,12 @@ class TestCaseWithUI(unittest.TestCase):
   Test should override runTest to do testing in background.
   """
 
-  template_classes = ''
+  ui_class = StandardUI
 
   def __init__(self, methodName):
     super(TestCaseWithUI, self).__init__(methodName='_RunTest')
     self.event_loop = None
     self.ui = None
-    self.template = None
 
     self.__method_name = methodName
     self.__task_end_exceptions = Queue.Queue()
@@ -825,25 +875,6 @@ class TestCaseWithUI(unittest.TestCase):
     """
     return self.__task_end_event.wait(timeout=timeout)
 
-  def run(self, result=None):
-    # We override TestCase.run and do initialize of ui objects here, since the
-    # session.GetCurrentTestFilePath() used by UI is not set when __init__ is
-    # called (It's set by invocation after the TestCase instance is created),
-    # and initialize using setUp() means that all pytest inheriting this need
-    # to remember calling super(..., self).setUp(), which is a lot of
-    # boilerplate code and easy to forget.
-    self.event_loop = NewEventLoop(self.__HandleEventHandlerException)
-
-    extra_attrs = ''
-    if self.template_classes:
-      extra_attrs = ' class="%s"' % self.template_classes
-    default_html = '<test-template{extra_attrs}></test-template>'.format(
-        extra_attrs=extra_attrs)
-    self.ui = UI(event_loop=self.event_loop, default_html=default_html)
-    self.template = JavaScriptProxy(self.ui, 'template')
-
-    super(TestCaseWithUI, self).run(result=result)
-
   def AddTask(self, task, cleanup=None, stop_on_fail=False):
     """Add a task to the test.
 
@@ -878,6 +909,18 @@ class TestCaseWithUI(unittest.TestCase):
     self.__tasks.append(
         _Task(name=name, run=run, cleanup=cleanup, stop_on_fail=stop_on_fail))
 
+
+  def run(self, result=None):
+    # We override TestCase.run and do initialize of ui objects here, since the
+    # session.GetCurrentTestFilePath() used by UI is not set when __init__ is
+    # called (It's set by invocation after the TestCase instance is created),
+    # and initialize using setUp() means that all pytests inheriting this need
+    # to remember calling super(..., self).setUp(), which is a lot of
+    # boilerplate code and easy to forget.
+    self.event_loop = NewEventLoop(self.__HandleEventHandlerException)
+    self.ui = self.ui_class(event_loop=self.event_loop)
+
+    super(TestCaseWithUI, self).run(result=result)
 
   def _RunTest(self):
     """The main test procedure that would be run by unittest."""
