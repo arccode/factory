@@ -150,7 +150,7 @@ main() {
         "get_battery_percentage"
     fi
     if [ -n "$CUTOFF_BATTERY_MIN_VOLTAGE" ] || \
-       [ -n "$CUTOFF_BATTERY_MAX_PERCENTAGE" ]; then
+       [ -n "$CUTOFF_BATTERY_MAX_VOLTAGE" ]; then
       check_battery_value \
         "$CUTOFF_BATTERY_MIN_VOLTAGE" "$CUTOFF_BATTERY_MAX_VOLTAGE" \
         "get_battery_voltage"

@@ -423,7 +423,6 @@ def _InformStation(ip, port, token, wipe_init_log=None,
 
 
 def _WipeStateDev(release_rootfs, root_disk, wipe_args, state_dev):
-
   clobber_state_env = os.environ.copy()
   clobber_state_env.update(ROOT_DEV=release_rootfs,
                            ROOT_DISK=root_disk)
@@ -483,7 +482,7 @@ def _InformShopfloor(shopfloor_url):
 def _Cutoff():
   logging.debug('cutoff')
   cutoff_script = os.path.join(CUTOFF_SCRIPT_DIR, 'cutoff.sh')
-  process_utils.Spawn('%s' % (cutoff_script), shell=True, check_call=True)
+  process_utils.Spawn([cutoff_script], check_call=True)
 
 
 def WipeInit(wipe_args, shopfloor_url, state_dev, release_rootfs,

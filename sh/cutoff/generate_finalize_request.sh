@@ -68,7 +68,7 @@ main() {
       exit 1
   esac
 
-  if [ -z "${SERIAL_NUMBER}" ];then
+  if [ -z "${SERIAL_NUMBER}" ]; then
     die_with_error_message "'serial_number' not set in RO VPD."
   fi
 
