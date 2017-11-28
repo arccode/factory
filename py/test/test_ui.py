@@ -500,6 +500,14 @@ class UI(object):
         'document.getElementById(args.id).style.display = "none"',
         id=element_id)
 
+  def ImportHTML(self, url):
+    """Import a HTML to the test pane.
+
+    All other SetHTML / RunJS call would be scheduled after the import is done.
+    """
+    self._event_loop.PostNewEvent(
+        test_event.Event.Type.IMPORT_HTML, url=url)
+
   def WaitKeysOnce(self, keys, timeout=None):
     """Wait for one of the keys to be pressed.
 
@@ -609,6 +617,7 @@ class StandardUI(UI):
                default_html='<test-template></test-template>'):
     super(StandardUI, self).__init__(
         event_loop=event_loop, default_html=default_html)
+    self.ImportHTML('/templates.html')
 
   def SetTitle(self, html):
     """Sets the title of the test UI.

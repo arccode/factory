@@ -3030,6 +3030,26 @@ cros.factory.Goofy = class {
         }
         break;
       }
+      case 'goofy:import_html': {
+        const message = /**
+         * @type {{test: string, invocation: string, url: string}}
+         */ (untypedMessage);
+        const invocation = this.invocations.get(message.invocation);
+        if (invocation) {
+          invocation.loaded = invocation.loaded.then(() => {
+            const doc = invocation.iframe.contentDocument;
+            const link = doc.createElement('link');
+            link.rel = 'import';
+            link.href = message.url;
+            doc.head.appendChild(link);
+            return new Promise((resolve, reject) => {
+              link.onload = resolve;
+              link.onerror = reject;
+            });
+          });
+        }
+        break;
+      }
       case 'goofy:run_js': {
         const message = /**
          * @type {{test: string, invocation: string, args: !Object, js: string}}

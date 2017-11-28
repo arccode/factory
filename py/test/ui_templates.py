@@ -124,6 +124,8 @@ class BaseTemplate(object):
   def __init__(self, ui, extra_classes=''):
     self._ui = ui
 
+    self._ui.ImportHTML('/templates.html')
+
     extra_attrs = ''
     if extra_classes:
       extra_attrs = ' class="%s"' % extra_classes

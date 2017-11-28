@@ -92,6 +92,8 @@ class Event(object):
     SET_TEST_UI_LAYOUT = 'goofy:set_test_ui_layout'
     # Sets the UI in the test pane.
     SET_HTML = 'goofy:set_html'
+    # Import a HTML fragment to test pane.
+    IMPORT_HTML = 'goofy:import_html'
     # Runs JavaScript in the test pane.
     RUN_JS = 'goofy:run_js'
     # Performs a remote procedure call to the Chrome extension inside UI.
