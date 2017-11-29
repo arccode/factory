@@ -3,21 +3,21 @@
 # found in the LICENSE file.
 
 from __future__ import print_function
+
 import contextlib
-import copy
 import getpass
 import logging
 import os
 import pipes
-import Queue
 import re
+import select
 import signal
+from StringIO import StringIO
 import subprocess
 import sys
 import threading
 import time
 import traceback
-from StringIO import StringIO
 
 
 PIPE = subprocess.PIPE
@@ -410,69 +410,6 @@ def WaitEvent(event):
   return True
 
 
-def SpawnTee(args, **kwargs):
-  """Spawns a process and emulates tee.
-
-  Starts a process with Spawn, redirect_streams stderr of the process to its
-  stdout, and writes stdout of the process to both sys.stdout and the specified
-  file.
-
-  Args:
-    args: Same as Spawn.
-    output_file: The file to write to in addition to stdout.
-
-  Returns:
-    The created process object.
-  """
-  output_file = kwargs.get('output_file')
-  if not output_file:
-    raise ValueError('output_file must be specified')
-  stdout = kwargs.get('stdout', sys.stdout)
-
-  message_queue = Queue.Queue()
-
-  def Tee(out_fd):
-    """Writes available data from message queue to stdout and output file."""
-    try:
-      while True:
-        line = message_queue.get(timeout=0.1)
-        stdout.write(line)
-        stdout.flush()
-        out_fd.write(line)
-        out_fd.flush()
-    except Queue.Empty:
-      return
-
-  def EnqueueOutput(in_fd):
-    """Keeps enqueue messages read."""
-    for line in iter(in_fd.readline, ''):
-      message_queue.put(line)
-
-  tee_kwargs = copy.deepcopy(kwargs)
-  del tee_kwargs['output_file']
-  tee_kwargs['stdout'] = subprocess.PIPE
-  tee_kwargs['stderr'] = subprocess.STDOUT
-  # Do not block waiting for process to end in Spawn, as we want to have live
-  # message output.
-  tee_kwargs['check_call'] = False
-  tee_kwargs['check_output'] = False
-  tee_kwargs['call'] = False
-
-  proc = Spawn(args, **tee_kwargs)
-  enqueue_thread = threading.Thread(target=EnqueueOutput, args=(proc.stdout,))
-  enqueue_thread.daemon = True
-  enqueue_thread.start()
-
-  with open(output_file, 'w') as f:
-    while proc.poll() is None:
-      Tee(f)
-    proc.wait()
-    Tee(f)
-    if proc.returncode != 0 and kwargs.get('check_call'):
-      raise subprocess.CalledProcessError(proc.returncode, args)
-    return proc
-
-
 def StartDaemonThread(*args, **kwargs):
   """Creates, starts, and returns a daemon thread.
 
@@ -537,6 +474,53 @@ def RedirectStandardStreams(stdin=None, stdout=None, stderr=None):
   changed = dict((k, sys.__dict__[k]) for (k, v) in redirect_streams.iteritems()
                  if v is not sys.__dict__[k])
   if changed:
-    raise IOError('Unexpected stadard stream redirections: %r' % changed)
+    raise IOError('Unexpected standard stream redirections: %r' % changed)
   for k, v in old_streams.iteritems():
     sys.__dict__[k] = v
+
+
+# TODO(pihsun): Implement another version of this function using reader thread
+# for platform that doesn't have select on pipes. (For example, Windows.)
+def PipeStdoutLines(process, callback, read_timeout=0.1):
+  """Read a process stdout and call callback for each line of stdout.
+
+  This blocks until the process ends, and ignore all stdout after that. It's
+  guaranteed that process.wait() is called before return, so the
+  process.returncode is set after this function.
+
+  Args:
+    process: The process created by Spawn.
+    callback: Callback to be executed on each output line. The argument to
+        the callback would be the line received.
+    read_timeout: The timeout of each read. This function would block at most
+        read_timeout seconds after the process is ended.
+  """
+  buf = ['']
+
+  def _TryReadOutputLines(timeout):
+    rlist, unused_wlist, unused_xlist = select.select([process.stdout],
+                                                      [], [], timeout)
+    if process.stdout not in rlist:
+      return False
+
+    # Read a chunk of the process output. This should not block because of the
+    # above select, and can return chunk with size < 4096.
+    data = os.read(process.stdout.fileno(), 4096)
+    if not data:
+      return False
+
+    num_lines = data.count('\n')
+    buf[0] += data
+    for unused_i in xrange(num_lines):
+      line, unused_sep, buf[0] = buf[0].partition('\n')
+      callback(line)
+    return True
+
+  while process.poll() is None:
+    _TryReadOutputLines(read_timeout)
+
+  # Consume all buffered output just before the process end.
+  while _TryReadOutputLines(0):
+    pass
+
+  process.wait()

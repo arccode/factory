@@ -364,16 +364,13 @@ class TestInvocation(object):
                          dut_options=self.dut_options),
               self.env_additions)
 
-        # Tee process's stderr to both the log and our stderr; this
-        # will end when the process dies.
-        while True:
-          line = self._process.stdout.readline()
-          if not line:
-            break
-          log.write(line)
-          sys.stderr.write('%s> %s' % (self.test.path.encode('utf-8'), line))
+        def _LineCallback(line):
+          log.write(line + '\n')
+          sys.stderr.write('%s> %s\n' % (self.test.path.encode('utf-8'), line))
 
-        self._process.wait()
+        # Tee process's stderr to both the log and our stderr.
+        process_utils.PipeStdoutLines(self._process, _LineCallback)
+
         # Try to kill all subprocess created by the test.
         try:
           os.kill(-self._process.pid, signal.SIGKILL)

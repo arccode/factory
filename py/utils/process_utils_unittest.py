@@ -7,18 +7,22 @@
 
 import cStringIO
 import logging
-import mox
+from logging import handlers
 import os
 import subprocess
 import sys
 import time
 import unittest
-from logging import handlers
+
+import mox
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
-from cros.factory.utils.process_utils import CheckOutput, PIPE, Spawn
+from cros.factory.utils.process_utils import CheckOutput
+from cros.factory.utils.process_utils import PIPE
+from cros.factory.utils.process_utils import PipeStdoutLines
+from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.process_utils import SpawnOutput
 from cros.factory.utils.process_utils import TerminateOrKillProcess
 
@@ -218,22 +222,6 @@ class TerminateOrKillProcessTest(unittest.TestCase):
     self.m.VerifyAll()
 
 
-class TestSpawnTee(unittest.TestCase):
-
-  def runTest(self):
-    with file_utils.UnopenedTemporaryFile() as stdout, \
-         file_utils.UnopenedTemporaryFile() as tee_file:
-      # Call SpawnTee which should write to both stdout and tee_file.
-      with open(stdout, 'w') as f:
-        process_utils.SpawnTee(['ls', '/bin/sh'], stdout=f,
-                               output_file=tee_file, check_call=True)
-      # Make sure the contents in stdout and tee_file are correct.
-      with open(stdout) as f:
-        self.assertEquals('/bin/sh\n', f.read())
-      with open(tee_file) as f:
-        self.assertEquals('/bin/sh\n', f.read())
-
-
 class TestRedirectStdout(unittest.TestCase):
   def setUp(self):
     self.saved_stdout = sys.stdout
@@ -274,6 +262,80 @@ class TestRedirectStdout(unittest.TestCase):
       print 'SHOULD_NOT_OUTPUT'
     print 'after'
     self.assertEquals('before\nSHOULD_OUTPUT\n', self.mock_stdout.getvalue())
+
+
+class TestPipeStdoutLines(unittest.TestCase):
+  def testBasic(self):
+    buf = []
+    process = Spawn('echo foo', stdout=PIPE, shell=True)
+    PipeStdoutLines(process, buf.append)
+    self.assertEqual(0, process.returncode)
+    self.assertEqual(['foo'], buf)
+
+  def testTwoReads(self):
+    buf = []
+    process = Spawn(
+        'echo -n foo; sleep 0.01; echo bar', stdout=PIPE, shell=True)
+    PipeStdoutLines(process, buf.append)
+    self.assertEqual(0, process.returncode)
+    self.assertEqual(['foobar'], buf)
+
+  def testReadStreamed(self):
+    with file_utils.UnopenedTemporaryFile() as f:
+      process = Spawn('echo foo\n'
+                      'while [ ! -e "%s" ]; do\n'
+                      '  sleep 0.01\n'
+                      'done\n'
+                      'echo bar' % f, stdout=PIPE, shell=True)
+      buf = []
+      def _Callback(line):
+        buf.append(line)
+        file_utils.TouchFile(f)
+
+      PipeStdoutLines(process, _Callback)
+      self.assertEqual(0, process.returncode)
+      self.assertEqual(['foo', 'bar'], buf)
+
+  def testPartialLines(self):
+    buf = []
+    process = Spawn(
+        'echo -n "foo\nbar"\n'
+        'sleep 0.01\n'
+        'echo -n "baz\nwww\nvvv"\n'
+        'sleep 0.01\n'
+        'echo -n ^\n'
+        'sleep 0.01\n'
+        'echo vvv',
+        stdout=PIPE,
+        shell=True)
+    PipeStdoutLines(process, buf.append)
+    self.assertEqual(0, process.returncode)
+    self.assertEqual(['foo', 'barbaz', 'www', 'vvv^vvv'], buf)
+
+  def testStdoutClosedEarly(self):
+    buf = []
+    process = Spawn(
+        'echo "foo"\n'
+        'exec 1>&- # Close stdout\n'
+        'sleep 0.1\n',
+        stdout=PIPE,
+        shell=True)
+    PipeStdoutLines(process, buf.append)
+    self.assertEqual(0, process.returncode)
+    self.assertEqual(['foo'], buf)
+
+  def testStdoutGrabbedByChild(self):
+    buf = []
+    process = Spawn(
+        'echo "parent"\n'
+        '(sleep 0.5; echo "child") &\n'
+        'echo "end"\n',
+        stdout=PIPE,
+        ignore_stderr=True,
+        shell=True)
+    PipeStdoutLines(process, buf.append)
+    self.assertEqual(0, process.returncode)
+    self.assertEqual(['parent', 'end'], buf)
 
 
 if __name__ == '__main__':
