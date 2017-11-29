@@ -65,6 +65,10 @@ require_remove_ac() {
   fi
 }
 
+charge_control() {
+  ectool chargecontrol "$1" >/dev/null
+}
+
 check_battery_value() {
   local min_battery_value="$1" max_battery_value="$2"
   local get_value_cmd="$3"
@@ -76,6 +80,7 @@ check_battery_value() {
   if [ -n "$min_battery_value" ] &&
      [ "$battery_value" -lt "$min_battery_value" ]; then
     require_ac
+    charge_control "normal"
     ${DISPLAY_MESSAGE} "charging"
 
     # Wait for battery to charge to min_battery_value
@@ -98,7 +103,7 @@ check_battery_value() {
 
   if [ -n "$max_battery_value" ] &&
      [ "$battery_value" -gt "$max_battery_value" ]; then
-    require_remove_ac
+    charge_control "discharge"
     ${DISPLAY_MESSAGE} "discharging"
 
     # Wait for battery to discharge to max_battery_value
@@ -118,6 +123,8 @@ check_battery_value() {
     done
     echo ""
   fi
+
+  charge_control "idle"
 }
 
 check_ac_state() {
