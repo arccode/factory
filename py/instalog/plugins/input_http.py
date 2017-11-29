@@ -8,18 +8,18 @@
 
 Receives events from output HTTP plugin or HTTP requests.
 Can easily send one event by curl:
-$ curl -i -X POST -F 'event={Payload}' TARGET_HOSTNAME:TARGET_PORT
+$ curl -i -X POST --form-string 'event={Payload}' TARGET_HOSTNAME:TARGET_PORT
 $ curl -i -X POST \
-       -F 'event={"name": "value", ...}' \
-       -F 'att_0=@/path/to/attachment_name' \
+       --form-string 'event={"name": "value", ...}' \
+       --form 'att_0=@/path/to/attachment_name' \
        TARGET_HOSTNAME:TARGET_PORT
 
 Also can send multiple events by adding header through curl:
 $ curl -i -X POST \
-       -F 'event={Payload}' \
-       -F 'event=[{Payload}, {Attachments}]' \
-       -F 'event=[{"name": "value"}, {"0": "att_0"}]' \
-       -F 'att_0=@/path/to/attachment_name' \
+       --form-string 'event={Payload}' \
+       --form-string 'event=[{Payload}, {Attachments}]' \
+       --form-string 'event=[{"name": "value"}, {"0": "att_0"}]' \
+       --form 'att_0=@/path/to/attachment_name' \
        -H 'Multi-Event: True' \
        TARGET_HOSTNAME:TARGET_PORT
 (See datatypes.py Event.Deserialize for details of event format.)

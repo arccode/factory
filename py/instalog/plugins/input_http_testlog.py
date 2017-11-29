@@ -8,9 +8,10 @@
 
 Receives events from HTTP requests.
 Can easily send one Testlog format event by curl:
-$ curl -i -X POST -F 'event={Testlog JSON}' TARGET_HOSTNAME:TARGET_PORT
 $ curl -i -X POST \
-       -F '{
+       --form-string 'event={Testlog JSON}' TARGET_HOSTNAME:TARGET_PORT
+$ curl -i -X POST \
+       --form-string '{
                 "status": "PASSED",
                 "stationInstallationId": "92228272-056e-4329-a432-64d3ed6dfa0c",
                 "uuid": "8b127476-2604-422a-b9b1-f05e4f14bf72",
@@ -35,15 +36,15 @@ $ curl -i -X POST \
                     }
                 }
            }' \
-       -F 'front_camera.png=@/path/to/front_camera.png' \
+       --form 'front_camera.png=@/path/to/front_camera.png' \
        TARGET_HOSTNAME:TARGET_PORT
 
 Also can send multiple events by adding header through curl:
 $ curl -i -X POST \
-       -F 'event={Testlog JSON}' \
-       -F 'event=[{Testlog JSON}, {Attachments}]' \
-       -F 'event=[{Testlog JSON}, {"0": "att_0"}]' \
-       -F 'att_0=@/path/to/attachment_name' \
+       --form-string 'event={Testlog JSON}' \
+       --form-string 'event=[{Testlog JSON}, {Attachments}]' \
+       --form-string 'event=[{Testlog JSON}, {"0": "att_0"}]' \
+       --form 'att_0=@/path/to/attachment_name' \
        -H 'Multi-Event: True' \
        TARGET_HOSTNAME:TARGET_PORT
 (See datatypes.py Event.Deserialize for details of event format.)

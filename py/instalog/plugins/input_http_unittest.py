@@ -73,7 +73,8 @@ class TestInputHTTP(unittest.TestCase):
                  '--write-out', '%{http_code}',
                  '--header', 'Multi-Event: True']
     for field in fields:
-      curl_args.append('-F')
+      unused_key, unused_sep, value = field.partition('=')
+      curl_args.append('--form' if value[0] == '@' else '--form-string')
       curl_args.append(field)
     status_code_str = process_utils.CheckOutput(
         ['curl'] + curl_args + ['localhost:%d' % self.port], ignore_stderr=True)
