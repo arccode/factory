@@ -112,8 +112,6 @@ If seeing unexpected touch events in `evtest`, here are some thoughts:
 4. Flash touchscreen firmware to a different version. Maybe it's too sensitive.
 """
 
-import unittest
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external.evdev import ecodes  # pylint: disable=E0611
 from cros.factory.test import countdown_timer
@@ -123,40 +121,31 @@ from cros.factory.test.utils import touch_monitor
 from cros.factory.utils.arg_utils import Arg
 
 
-_ID_CONTAINER = 'touchscreen-test-container'
-
-# The style is in touchscreen.css.
-# The layout contains one div for touchscreen.
-_HTML_TOUCHSCREEN = (
-    '<link rel="stylesheet" type="text/css" href="touchscreen.css">'
-    '<div id="%s"></div>\n' % _ID_CONTAINER)
-
-
 class StylusMonitor(touch_monitor.SingleTouchMonitor):
   """Stylus monitor."""
 
-  def __init__(self, device, ui, code):
+  def __init__(self, device, frontend_proxy, code):
     """Initialize.
 
     Args:
       device: evdev.InputDevice
-      ui: test_ui.UI
+      frontend_proxy: Proxy to frontend test.
       code: Which key to monitor: BTN_TOUCH (for touching) or BTN_TOOL_PEN
         (for hovering).
     """
     super(StylusMonitor, self).__init__(device)
-    self._ui = ui
+    self._frontend_proxy = frontend_proxy
     self._code = code
     # A boolean flag indicating if BTN_TOUCH or BTN_TOOL_PEN is on.
     self._flag = self._state.keys[code]
 
   def _EmitEvent(self, receiver):
     state = self.GetState()
-    self._ui.CallJSFunction('goofyTouchListener', receiver, state.x, state.y)
+    self._frontend_proxy.GoofyTouchListener(receiver, state.x, state.y)
 
-  def OnKey(self, code):
+  def OnKey(self, key_event_code):
     """Called by Handler after state of a key changed."""
-    if code == self._code:
+    if key_event_code == self._code:
       self._flag = not self._flag
       if self._flag:
         self._EmitEvent('touchStartHandler')
@@ -172,19 +161,19 @@ class StylusMonitor(touch_monitor.SingleTouchMonitor):
 class TouchscreenMonitor(touch_monitor.MultiTouchMonitor):
   """Touchscreen monitor."""
 
-  def __init__(self, device, ui):
+  def __init__(self, device, frontend_proxy):
     """Initialize.
 
     Args:
       device: evdev.InputDevice
-      ui: test_ui.UI
+      frontend_proxy: test_ui.UI
     """
     super(TouchscreenMonitor, self).__init__(device)
-    self._ui = ui
+    self._frontend_proxy = frontend_proxy
 
   def _EmitEvent(self, receiver, slot_id):
     slot = self.GetState().slots[slot_id]
-    self._ui.CallJSFunction('goofyTouchListener', receiver, slot.x, slot.y)
+    self._frontend_proxy.GoofyTouchListener(receiver, slot.x, slot.y)
 
   def OnNew(self, slot_id):
     """Called by Handler after a new contact comes."""
@@ -199,14 +188,13 @@ class TouchscreenMonitor(touch_monitor.MultiTouchMonitor):
     self._EmitEvent('touchEndHandler', slot_id)
 
 
-class TouchscreenTest(unittest.TestCase):
+class TouchscreenTest(test_ui.TestCaseWithUI):
   """Tests touchscreen by drawing blocks in sequence.
 
   Properties:
     self._device: evdev.InputDevice
     self._dispatcher: evdev_utils.InputDeviceDispatcher
     self._monitor: StylusMonitor or TouchscreenMonitor
-    self._ui: test_ui.UI
   """
   ARGS = [
       Arg('x_segments', int, 'Number of segments in x-axis.', default=5),
@@ -244,18 +232,10 @@ class TouchscreenTest(unittest.TestCase):
     self._dispatcher = None
     self._monitor = None
 
-    # Initialize frontend presentation.
-    self._ui = test_ui.UI()
-    self._ui.AppendHTML(_HTML_TOUCHSCREEN)
-    self._ui.CallJSFunction(
-        'setupTouchscreenTest', _ID_CONTAINER, self.args.x_segments,
-        self.args.y_segments, self.args.retries, self.args.demo_interval_ms,
-        self.args.e2e_mode, self.args.spiral_mode)
-
-    if self.args.timeout_secs:
-      countdown_timer.StartCountdownTimer(
-          self.args.timeout_secs, self.OnFailPressed, self._ui,
-          'touchscreen_countdown_timer')
+    self._frontend_proxy = self.ui.InitJSTestObject(
+        'TouchscreenTest', self.args.x_segments, self.args.y_segments,
+        self.args.retries, self.args.demo_interval_ms, self.args.e2e_mode,
+        self.args.spiral_mode)
 
   def tearDown(self):
     if self._dispatcher is not None:
@@ -263,23 +243,25 @@ class TouchscreenTest(unittest.TestCase):
     if self._device is not None:
       self._device.ungrab()
 
-  def OnFailPressed(self):
-    """Fails the test."""
-    self._ui.CallJSFunction('failTest')
-
   def runTest(self):
+    if self.args.timeout_secs:
+      countdown_timer.StartNewCountdownTimer(self, self.args.timeout_secs,
+                                             'countdown-timer',
+                                             self._frontend_proxy.FailTest)
+
     if self._device is not None:
       self._device = evdev_utils.DeviceReopen(self._device)
       self._device.grab()
       if self.args.stylus:
         self._monitor = StylusMonitor(
-            self._device, self._ui,
+            self._device, self._frontend_proxy,
             ecodes.BTN_TOOL_PEN if self.args.hover_mode else ecodes.BTN_TOUCH)
       else:
-        self._monitor = TouchscreenMonitor(self._device, self._ui)
+        self._monitor = TouchscreenMonitor(self._device, self._frontend_proxy)
       self._dispatcher = evdev_utils.InputDeviceDispatcher(
           self._device, self._monitor.Handler)
       self._dispatcher.StartDaemon()
 
-    self._ui.BindKey(test_ui.ESCAPE_KEY, lambda _: self.OnFailPressed())
-    self._ui.Run()
+    self.ui.BindKey(test_ui.ESCAPE_KEY,
+                    lambda unused_event: self._frontend_proxy.FailTest())
+    self.WaitTaskEnd()

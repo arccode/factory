@@ -2849,32 +2849,32 @@ msgid "Please enter SN first"
 msgstr "请先输入序号"
 
 #: ../py/test/pytests/touchscreen_static/touchscreen.js
-msgid "Draw blocks in any order; Esc to fail."
-msgstr "用任意顺序画完全部格子; 按 Esc 键标记失败"
-
-#: ../py/test/pytests/touchscreen_static/touchscreen.js
-msgid "Draw blocks from upper-left corner in sequence; Esc to fail."
-msgstr "从左上角开始依序画格子; 按 Esc 键标记失败"
-
-#: ../py/test/pytests/touchscreen_static/touchscreen.js
 msgid "Please start drawing from upper-left corner."
 msgstr "请从左上角开始画格子"
-
-#: ../py/test/pytests/touchscreen_static/touchscreen.js
-msgid "Fails to draw blocks in sequence. Please try again."
-msgstr "没依照顺序画格子！请重来"
 
 #: ../py/test/pytests/touchscreen_static/touchscreen.js
 msgid "Please leave your finger and restart from upper-left block."
 msgstr "请移开手指并从左上角开始重画"
 
 #: ../py/test/pytests/touchscreen_static/touchscreen.js
-msgid "Finger leaving too early. Please try again."
-msgstr "手指太早离开！请重来"
+msgid "Fails to draw blocks in sequence. Please try again."
+msgstr "没依照顺序画格子！请重来"
 
 #: ../py/test/pytests/touchscreen_static/touchscreen.js
 msgid "Test failed! Please test this panel carefully with Gods Touch test."
 msgstr "触控面板测试失败. 请以Gods Touch测试软体加以仔细验证"
+
+#: ../py/test/pytests/touchscreen_static/touchscreen.js
+msgid "Finger leaving too early. Please try again."
+msgstr "手指太早离开！请重来"
+
+#: ../py/test/pytests/touchscreen_static/touchscreen.js
+msgid "Draw blocks from upper-left corner in sequence; Esc to fail."
+msgstr "从左上角开始依序画格子; 按 Esc 键标记失败"
+
+#: ../py/test/pytests/touchscreen_static/touchscreen.js
+msgid "Draw blocks in any order; Esc to fail."
+msgstr "用任意顺序画完全部格子; 按 Esc 键标记失败"
 
 #: ../py/test/pytests/update_device_data.py
 msgid "Device Serial Number"

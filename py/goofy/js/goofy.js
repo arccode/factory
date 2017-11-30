@@ -419,6 +419,9 @@ cros.factory.Test = class {
    */
   setFullScreen(enable) {
     this.invocation.iframe.classList.toggle('goofy-test-fullscreen', enable);
+    if (enable) {
+      this.invocation.goofy.hideTooltips();
+    }
   }
 
   /**
