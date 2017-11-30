@@ -69,11 +69,18 @@ charge_control() {
   ectool chargecontrol "$1" >/dev/null
 }
 
+run_stressapptest() {
+  local VERY_LONG_TIME="1000000"
+  stressapptest -s "${VERY_LONG_TIME}" >/dev/null &
+  echo "$!"
+}
+
 check_battery_value() {
   local min_battery_value="$1" max_battery_value="$2"
   local get_value_cmd="$3"
   local battery_value=""
   local prev_battery_value=""
+  local stressapptest_pid=""
 
   battery_value="$(${get_value_cmd})"
 
@@ -103,6 +110,8 @@ check_battery_value() {
 
   if [ -n "$max_battery_value" ] &&
      [ "$battery_value" -gt "$max_battery_value" ]; then
+    # Use stressapptest to discharge battery faster
+    stressapptest_pid="$(run_stressapptest)"
     charge_control "discharge"
     ${DISPLAY_MESSAGE} "discharging"
 
@@ -125,6 +134,9 @@ check_battery_value() {
   fi
 
   charge_control "idle"
+  if [ -n "$stressapptest_pid" ]; then
+    kill -9 "$stressapptest_pid"
+  fi
 }
 
 check_ac_state() {
