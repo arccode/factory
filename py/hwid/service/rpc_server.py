@@ -116,13 +116,13 @@ class HWIDRPCInstance(object):
       indicate the config is validate or invalidated; 'ret' is a string that
       shows failure message, and is None on HWID validated.
       e.g. {'success': True, 'ret': None},
-           {'success': False, 'ret': 'ValidatingError:...'}
+           {'success': False, 'ret': 'ValidationError:...'}
     """
     try:
       validator.Validate(hwid_config)
       return True, None
-    except validator.ValidatingError as e:
-      return False, 'ValidatingError: %s' % e.message
+    except validator.ValidationError as e:
+      return False, 'ValidationError: %s' % e.message
     except Exception as e:
       return False, 'UnknownError: %s' % e.message
 
@@ -164,8 +164,8 @@ class HWIDRPCInstance(object):
     try:
       validator.ValidateChange(updated_hwid_config, old_hwid_config)
       return True, updated_hwid_config
-    except validator.ValidatingError as e:
-      return False, 'ValidatingError: %s' % e.message
+    except validator.ValidationError as e:
+      return False, 'ValidationError: %s' % e.message
     except Exception as e:
       return False, 'UnknownError: %s' % e.message
 

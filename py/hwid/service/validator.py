@@ -13,7 +13,7 @@ from cros.factory.hwid.v3 import verify_db_pattern
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 
 
-class ValidatingError(ValueError):
+class ValidationError(ValueError):
   """Indicates that validation of the HWID config failed."""
   pass
 
@@ -36,7 +36,7 @@ def Validate(hwid_config_contents):
         db_yaml, expected_checksum=expected_checksum, strict=True)
     return
   except common.HWIDException as e:
-    raise ValidatingError(e.message)
+    raise ValidationError(e.message)
 
 
 def ValidateChange(new_hwid_config, old_hwid_config):
@@ -57,7 +57,7 @@ def ValidateChange(new_hwid_config, old_hwid_config):
         old_db_yaml, expected_checksum=None, strict=False)
   except common.HWIDException as e:
     logging.exception("Previous version not valid: %r", e.message)
-    raise ValidatingError("Previous version of HWID config is not valid.")
+    raise ValidationError("Previous version of HWID config is not valid.")
 
   expected_checksum = database.Database.ChecksumForText(
       new_hwid_config.encode("utf8")).decode("utf8")
@@ -71,4 +71,4 @@ def ValidateChange(new_hwid_config, old_hwid_config):
     verify_db_pattern.HWIDDBsPatternTest.VerifyParsedDatabasePattern(
         old_db, db)
   except common.HWIDException as e:
-    raise ValidatingError(e.message)
+    raise ValidationError(e.message)
