@@ -112,15 +112,7 @@
      * @param {boolean=} append
      */
     setState(html, append = false) {
-      const element = this.shadowRoot.querySelector('#state-container');
-      const scrollAtBottom =
-          element.scrollHeight - element.scrollTop === element.clientHeight;
-
       setSlotContent(this, null, html, append);
-
-      if (append && scrollAtBottom) {
-        element.scrollTop = element.scrollHeight - element.clientHeight;
-      }
     }
 
     /**

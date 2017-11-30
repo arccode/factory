@@ -13,6 +13,7 @@ import json
 import logging
 import os
 import Queue
+import subprocess
 import threading
 import time
 import traceback
@@ -207,20 +208,21 @@ class JavaScriptProxy(object):
 class UI(object):
   """Web UI for a factory test."""
 
+  default_html = ''
+
   def __init__(self,
                event_loop=None,
                css=None,
-               setup_static_files=True,
-               default_html=''):
+               setup_static_files=True):
     self._event_loop = event_loop or EventLoop()
     self._static_dir_path = None
 
     if setup_static_files:
-      self._SetupStaticFiles(session.GetCurrentTestFilePath(), default_html)
+      self._SetupStaticFiles(session.GetCurrentTestFilePath())
       if css:
         self.AppendCSS(css)
 
-  def _SetupStaticFiles(self, py_script, default_html):
+  def _SetupStaticFiles(self, py_script):
     # Get path to caller and register static files/directories.
     base = os.path.splitext(py_script)[0]
     test = session.GetCurrentTestPath()
@@ -262,7 +264,7 @@ class UI(object):
 
     # default CSS files are set in default_test_ui.html by goofy.py, and we
     # only set the HTML of body here.
-    self.SetHTML(GetAutoload('html', default_html))
+    self.SetHTML(GetAutoload('html', self.default_html))
 
     js = GetAutoload('js')
     if js:
@@ -273,7 +275,7 @@ class UI(object):
     if css:
       self.AppendCSS(css)
 
-  def SetHTML(self, html, append=False, id=None):
+  def SetHTML(self, html, append=False, id=None, autoscroll=False):
     """Sets a HTML snippet to the UI in the test pane.
 
     Note that <script> tags are not allowed in SetHTML() and
@@ -288,10 +290,16 @@ class UI(object):
       html: The HTML snippet to set.
       append: Whether to append the HTML snippet.
       id: If given, writes html to the element identified by id.
+      autoscroll: If True and the element scroll were at bottom before SetHTML,
+          scroll the element to bottom after SetHTML.
     """
     # pylint: disable=redefined-builtin
     self._event_loop.PostNewEvent(
-        test_event.Event.Type.SET_HTML, html=html, append=append, id=id)
+        test_event.Event.Type.SET_HTML,
+        html=html,
+        append=append,
+        id=id,
+        autoscroll=autoscroll)
 
   def AppendHTML(self, html, **kwargs):
     """Append to the UI in the test pane."""
@@ -612,11 +620,10 @@ class StandardUI(UI):
   This is the default UI used by TestCaseWithUI.
   """
 
-  def __init__(self,
-               event_loop=None,
-               default_html='<test-template></test-template>'):
-    super(StandardUI, self).__init__(
-        event_loop=event_loop, default_html=default_html)
+  default_html = '<test-template></test-template>'
+
+  def __init__(self, event_loop=None):
+    super(StandardUI, self).__init__(event_loop=event_loop)
     self.ImportHTML('/templates.html')
 
   def SetTitle(self, html):
@@ -655,6 +662,61 @@ class StandardUI(UI):
       value: A value between 0 and 100 to indicate test progress.
     """
     self.CallJSFunction('window.template.setProgressBarValue', value)
+
+
+class ScrollableLogUI(StandardUI):
+
+  default_html = """
+  <style>
+    #container {
+      flex: 1;
+      width: 80%;
+      display: flex;
+      border: 1px solid gray;
+    }
+    #ui-log {
+      flex: 1;
+      overflow: auto;
+      padding: 1em;
+      font-family: monospace;
+    }
+  </style>
+  <test-template>
+    <div id="container">
+      <pre id="ui-log"></pre>
+    </div>
+  </test-template>
+  """
+
+  def AppendLog(self, line):
+    """Append a line of log to the UI.
+
+    line: The log to be append.
+    """
+    self.AppendHTML(line, id='ui-log', autoscroll=True)
+
+  def PipeProcessOutputToUI(self, cmd, callback=None):
+    """Run a process and pipe its stdout and stderr to the UI.
+
+    Args:
+      cmd: The command line to be run. Would be passed as the first argument to
+          Spawn.
+      callback: Callback to be executed on each output line. The argument to
+          the callback would be the line received.
+
+    Returns:
+      The return code of the process.
+    """
+    def _Callback(line):
+      logging.info(line)
+      if callback:
+        callback(line)
+      self.AppendLog(line + '\n')
+
+    process = process_utils.Spawn(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, log=True)
+    process_utils.PipeStdoutLines(process, _Callback)
+    return process.returncode
 
 
 class TaskEndException(Exception):

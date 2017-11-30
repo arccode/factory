@@ -3009,25 +3009,37 @@ cros.factory.Goofy = class {
       case 'goofy:set_html': {
         const message = /**
          * @type {{test: string, invocation: string, id: ?string,
-         *     append: boolean, html: string}}
+         *     append: boolean, html: string, autoscroll: boolean}}
          */ (untypedMessage);
         const invocation = this.invocations.get(message.invocation);
-        if (invocation) {
-          invocation.loaded.then(() => {
-            const document = invocation.iframe.contentDocument;
-            const element = message.id ? document.getElementById(message.id) :
-                                         document.body;
-            if (element) {
-              if (message.append) {
-                const fragment = cros.factory.utils.createFragmentFromHTML(
-                    message.html, goog.asserts.assert(document));
-                element.appendChild(fragment);
-              } else {
-                element.innerHTML = message.html;
-              }
-            }
-          });
+        if (!invocation) {
+          break;
         }
+
+        invocation.loaded.then(() => {
+          const document = invocation.iframe.contentDocument;
+          const element =
+              message.id ? document.getElementById(message.id) : document.body;
+          if (!element) {
+            return;
+          }
+
+          const scrollAtBottom =
+              (element.scrollHeight - element.scrollTop ===
+               element.clientHeight);
+
+          if (message.append) {
+            const fragment = cros.factory.utils.createFragmentFromHTML(
+                message.html, goog.asserts.assert(document));
+            element.appendChild(fragment);
+          } else {
+            element.innerHTML = message.html;
+          }
+
+          if (message.autoscroll && scrollAtBottom) {
+            element.scrollTop = element.scrollHeight - element.clientHeight;
+          }
+        });
         break;
       }
       case 'goofy:import_html': {
