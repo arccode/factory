@@ -8,6 +8,7 @@ from __future__ import print_function
 
 import logging
 import tempfile
+import time
 import unittest
 
 import instalog_common  # pylint: disable=unused-import
@@ -47,14 +48,15 @@ class TestPullSocket(unittest.TestCase):
     self.stream = self.core.GetStream(0)
 
   def tearDown(self):
-    self.output_sandbox.Stop(True)
     self.input_sandbox.Stop(True)
+    self.output_sandbox.Stop(True)
     self.core.Close()
 
   def testOneEvent(self):
     self.stream.Queue([datatypes.Event({})])
-    self.input_sandbox.Flush(2, True)
     self.output_sandbox.Flush(2, True)
+    time.sleep(0.1)
+    self.input_sandbox.Flush(2, True)
     self.assertEquals(self.core.emit_calls, [[datatypes.Event({})]])
 
   def testOneEventOneAttachment(self):
@@ -63,8 +65,9 @@ class TestPullSocket(unittest.TestCase):
       f.flush()
       event = datatypes.Event({}, {'my_attachment': f.name})
       self.stream.Queue([event])
-      self.input_sandbox.Flush(2, True)
       self.output_sandbox.Flush(2, True)
+      time.sleep(0.1)
+      self.input_sandbox.Flush(2, True)
       self.assertEqual(1, len(self.core.emit_calls))
       event_list = self.core.emit_calls[0]
       self.assertEqual(1, len(event_list))

@@ -59,16 +59,16 @@ class TestInputSocket(unittest.TestCase):
     self.assertTrue(self.core.AllStreamsExpired())
     self.core.Close()
 
-  def testPing(self):
-    self.sock.sendall('0\0')
-    self.assertEquals('1', self.sock.recv(1))
-    self.sock.shutdown(socket.SHUT_RDWR)
-
   def testInvalidHeader(self):
     self.sock.sendall('x\0')
     self._AssertSocketClosed()
 
-  def testOneEvent(self):
+  def testPingAndOneEvent(self):
+    # Ping.
+    self.sock.sendall('0\0')
+    self.assertEquals('1', self.sock.recv(1))
+
+    # One event.
     self.sock.sendall('1\0'
                       '8\0[{}, {}]'
                       '50005107138f95db8dfc3f44a84d607a5fc75669\0'
