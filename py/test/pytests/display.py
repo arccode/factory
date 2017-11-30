@@ -2,7 +2,85 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""A factory test to test the function of display."""
+"""Test display functionailty.
+
+Description
+-----------
+This test check basic display functionality by showing colors or images on
+display, and ask operator to judge if the output looks correct.
+
+The test can also be used to show an image for ``idle_timeout`` seconds, and
+automatically pass itself after timeout is reached.
+
+Test Procedure
+--------------
+If ``idle_timeout`` is set:
+
+  1. An image is shown on the display.
+  2. If the image looks incorrect, operator can press escape key or touch the
+     display to fail the test.
+  3. The test pass itself after ``idle_timeout`` seconds.
+
+If ``idle_timeout`` is not set:
+
+  1. A table of images to be tested is shown.
+  2. Operator press space key to show the image.
+  3. For each image, if it looks correct, operator press enter key to mark the
+     item as passed, otherwise, operator press escape key to mark the item as
+     failed.  Operator can also press space key or touch the display to return
+     to the table view.
+  4. The next image would be shown after the previous one is judged.
+  5. The test is passed if all items are judged as passed, and fail if any item
+     is judged as failed.
+
+Dependency
+----------
+If ``items`` contains item with prefix ``image-``, external program ``bz2`` to
+extract the compressed images.
+
+Examples
+--------
+To test display functionality, add this into test list::
+
+  {
+    "pytest_name": "display"
+  }
+
+To test display functionality, show gray image, idle for an hour and pass, add
+this into test list::
+
+  {
+    "pytest_name": "display",
+    "args": {
+      "items": ["solid-gray-127"],
+      "idle_timeout": 3600
+    }
+  }
+
+To test display functionality, and show some more images, add this into test
+list::
+
+  {
+    "pytest_name": "display",
+    "args": {
+      "items": [
+        "grid",
+        "rectangle",
+        "gradient-red",
+        "image-complex",
+        "image-black",
+        "image-white",
+        "image-crosstalk-black",
+        "image-crosstalk-white",
+        "image-gray-63",
+        "image-gray-127",
+        "image-gray-170",
+        "image-horizontal-rgbw",
+        "image-vertical-rgbw"
+      ]
+    }
+  }
+"""
 
 import os
 
