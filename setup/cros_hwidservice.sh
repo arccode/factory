@@ -115,6 +115,7 @@ HOST_CROS_SRC_DIR="$(dirname "${HOST_CROS_PLATFORM_DIR}")"
 HOST_HWIDSERVICE_DIR="${HOST_FACTORY_DIR}/py/hwid/service"
 HOST_HWIDSERVICE_CONFIG_DIR="${HOST_HWIDSERVICE_DIR}/config"
 HOST_HWIDSERVICE_DOCKER_DIR="${HOST_HWIDSERVICE_DIR}/docker_env"
+HOST_HWIDSERVICE_APPENGINE_DIR="${HOST_HWIDSERVICE_DIR}/appengine"
 
 # Available project names: google.com:croshwid, google.com:croshwid-dev,
 # google.com:croshwid-staging
@@ -320,6 +321,9 @@ commands:
   $0 help
       Shows this help message.
 
+  $0 appengine [subcommand]
+      Commands for HWIDServiceProxy, see "$0 appengine help" for detail.
+
   $0 build
       Sets up HWID Service Docker image.
 
@@ -349,6 +353,46 @@ commands:
 __EOF__
 }
 
+do_appengine_deploy() {
+  check_gcloud
+  check_credentials
+
+  local config_file="${HOST_HWIDSERVICE_APPENGINE_DIR}/config.py"
+  local ip="$(get_ip_from_gcloud)"
+  local port="8181"
+
+  # Generate env.py, the file will be imported by hwid_service_proxy.py
+  echo "GKE_HWID_SERVICE_URL='http://${ip}:${port}/'" > "${config_file}"
+  TEMP_OBJECTS=("${config_file}" "${TEMP_OBJECTS[@]}")
+
+  gcloud --project="${GCP_PROJECT}" \
+    app deploy "${HOST_HWIDSERVICE_APPENGINE_DIR}/app.yaml"
+}
+
+print_appengine_usage() {
+  cat << __EOF__
+HWID Service Proxy: Delagating RPCs from AppEngine to HWIDService.
+
+usage: $0 [-p=prod | staging | dev] appengine subcommand
+
+commands:
+  $0 appengine deploy
+      Deploy HWIDServiceProxy on AppEngine.
+
+__EOF__
+}
+
+appengine_main() {
+  case "$1" in
+    deploy)
+      do_appengine_deploy
+      ;;
+    *)
+      print_appengine_usage && exit 1
+      ;;
+  esac
+}
+
 main() {
   while getopts "p:" flag; do
     case ${flag} in
@@ -363,6 +407,10 @@ main() {
   shift "$((OPTIND - 1))"
 
   case "$1" in
+    appengine)
+      shift
+      appengine_main "$@"
+      ;;
     build)
       do_build
       ;;

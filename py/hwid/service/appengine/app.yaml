@@ -1,0 +1,21 @@
+runtime: python27
+threadsafe: true
+api_version: 1
+
+handlers:
+- url: /_ah/stubby/HwidService.*
+  script:  proxy.app
+
+skip_files:
+# Default patterns skipped by App Engine, which must be repeated since
+# specifying skip_files overrides them otherwise.
+- ^(.*/)?app\.yaml
+- ^(.*/)?app\.yml
+- ^(.*/)?index\.yaml
+- ^(.*/)?index\.yml
+- ^(.*/)?#.*#
+- ^(.*/)?.*~
+- ^(.*/)?.*\.pyo
+- ^(.*/)?.*/RCS/.*
+- ^(.*/)?\..*
+- ^(.*/)?.*\.pyc
