@@ -21,9 +21,8 @@ class RPCServerTest(unittest.TestCase):
   def setUp(self):
     self.ip = '127.0.0.1'
     self.port = net_utils.FindUnusedTCPPort()
-    self.service = rpc_server.HWIDService(
-        address=(self.ip, self.port), standalone=True)
-    self.service_thread = threading.Thread(target=self.service.RunForever)
+    self.service = rpc_server.HWIDRPCServer(addr=(self.ip, self.port))
+    self.service_thread = threading.Thread(target=self.service.serve_forever)
     self.service_thread.setDaemon(True)
     self.service_thread.start()
     self.proxy = xmlrpclib.ServerProxy('http://%s:%d/' % (self.ip, self.port))
@@ -34,7 +33,7 @@ class RPCServerTest(unittest.TestCase):
       self.new_board = f.read()
 
   def tearDown(self):
-    self.service.ShutDown()
+    self.service.shutdown()
 
   def testValidateConfigPass(self):
     result = self.proxy.ValidateConfig(self.board)

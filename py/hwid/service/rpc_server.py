@@ -7,21 +7,16 @@
 import argparse
 import inspect
 import logging  # TODO(yllin): Replace logging with testlog
-from multiprocessing.connection import Client
-import sys
-import threading
 import time
 import uuid
 
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.hwid.service.common import Command
-from cros.factory.hwid.service.common import CreateResponse
-from cros.factory.hwid.service.common import InitLogger
 from cros.factory.hwid.service import validator
 from cros.factory.hwid.v3 import builder
 from cros.factory.utils import file_utils
+from cros.factory.utils import log_utils
 
 
 def DecorateAllMethods(decorator):
@@ -170,81 +165,6 @@ class HWIDRPCInstance(object):
       return False, 'UnknownError: %s' % e.message
 
 
-class HWIDService(object):
-  """The HWIDService class.
-
-  HWIDService provides HWID related RPC functions running on Google Container
-  Engine (GKE). The functions currently we only provide validating and checksum
-  updating, and we are going to provide more and more HWID functions in the near
-  future.
-
-  The ServiceManager controls the lifetime of the HWIDService. It creates
-  the HWIDService by invoking a process and destroys it by sending Terminate
-  request via _cmd_conn.
-
-  Properties:
-    _server: instance of HWIDRPCServer
-    _standalone: running in standalone mode (for testing)
-    _server_thread: the thread instance running HWIDRPCServer
-    _cmd_conn: a socket connection between ServiceManager and HWIDService
-  """
-
-  def __init__(self, address, standalone, cmd_conn_address=None, authkey=None):
-    """Constuctor of HWIDService.
-
-    Args:
-      address: A tuple of (ip, port) for HWID RPC Server
-      standalone: A bool for whether running in a standalone mode
-      cmd_conn_address: A tuple of (ip, port) for cmd_conn
-      authkey: Authkey of cmd_conn
-    """
-    super(HWIDService, self).__init__()
-    self._server = HWIDRPCServer(address)
-    self._standalone = standalone
-
-    if self._standalone is True:
-      self._server_thread = None
-      self._cmd_conn = None
-    else:
-      self._server_thread = threading.Thread(target=self._server.serve_forever)
-      self._server_thread.setDaemon(True)
-      self._cmd_conn = Client(cmd_conn_address, authkey=authkey)
-
-  def RunForever(self):
-    """Runs HWIDService forever until ShutDown or received command Terminate."""
-    if self._standalone is True:
-      return self._server.serve_forever()
-
-    self._server_thread.start()
-
-    while True:
-      request = self._cmd_conn.recv()
-      if request['command'] == Command.TERMINATE:
-        self._HandleTerminate(request)
-        sys.exit()
-      else:
-        response = Command.Response(
-            request=request, success=False, msg='Unknown command')
-        self._cmd_conn.send(response)
-
-  def ShutDown(self):
-    """Shut down the HWIDServer."""
-    self._server.shutdown()
-
-  def _HandleTerminate(self, request):
-    try:
-      # Make sure the service terminated properly so that everything is logged.
-      self.ShutDown()
-      self._server_thread.join()
-      response = CreateResponse(
-          request=request, success=True, msg='HWID Service Terminated.')
-    except Exception as e:
-      response = CreateResponse(request=request, success=False, msg=e.message)
-    finally:
-      self._cmd_conn.send(response)
-      self._cmd_conn.close()
-
-
 def _ParseArgs():
   arg_pser = argparse.ArgumentParser(description='Factory HWID Service')
 
@@ -261,30 +181,6 @@ def _ParseArgs():
       dest='port',
       default=8181,
       help='bind HWID Service to port; defaults to 8181')
-
-  # ServiceManager message connection options.
-  arg_pser.add_argument(
-      '--sm-ip',
-      type=str,
-      dest='sm_ip',
-      help='ServiceManager command listening ip')
-  arg_pser.add_argument(
-      '--sm-port',
-      type=int,
-      dest='sm_port',
-      help='ServiceManager command listening port')
-  arg_pser.add_argument(
-      '--authkey',
-      type=str,
-      dest='authkey',
-      default=None,
-      help='auth key of Service Manager command connection')
-  arg_pser.add_argument(
-      '--standalone',
-      action='store_true',
-      default=False,
-      dest='standalone',
-      help='for debuggin purpose, runs without ServiceManager')
   arg_pser.add_argument(
       '--verbose',
       action='store_true',
@@ -297,13 +193,11 @@ def _ParseArgs():
 def main():
   args = _ParseArgs()
 
-  InitLogger(args.verbose)
-  service = HWIDService(
-      address=(args.ip, args.port),
-      cmd_conn_address=(args.sm_ip, args.sm_port),
-      authkey=args.authkey,
-      standalone=args.standalone)
-  service.RunForever()
+  log_utils.InitLogging(verbose=args.verbose)
+
+  hwid_server = HWIDRPCServer(addr=(args.ip, args.port))
+  logging.info('HWID Service serving on http://%s:%s/', args.ip, args.port)
+  hwid_server.serve_forever()
 
 
 if __name__ == '__main__':

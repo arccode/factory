@@ -139,25 +139,24 @@ DEFAULT_KUBECTL_PROXY_PORT="8081"
 do_build() {
   check_docker
 
-  # Used for pulling internal repos.
-  local gitcookies_path="$(git config --get "http.cookiefile")"
-  local temp_gitcookies_path="${HOST_HWIDSERVICE_DOCKER_DIR}/.gitcookies"
-  local dockerfile="${HOST_HWIDSERVICE_DOCKER_DIR}/Dockerfile.hwidservice"
+  local dockerfile="${HOST_HWIDSERVICE_DIR}/Dockerfile"
 
-if [ ! -f "${gitcookies_path}" ]; then
-    echo "HWID Service build failed. No such file ${gitcookies_path}" && false
-  fi
-
-  # Prepare out of Docker context file.
-  cp "${gitcookies_path}" "${temp_gitcookies_path}"
-  chmod 600 "${temp_gitcookies_path}"
-  TEMP_OBJECTS=("${temp_gitcookies_path}" "${TEMP_OBJECTS[@]}")
+  # A hack to make the build context small.
+  local ignore_list=""
+  ignore_list+="*\n"
+  ignore_list+="!platform/factory\n"
+  ignore_list+="!platform/chromeos-hwid\n"
+  ignore_list+="!platform2/regions\n"
+  ignore_list+="platform/factory/build/*\n"
+  local docker_ignore="${HOST_CROS_SRC_DIR}"/.dockerignore
+  TEMP_OBJECTS=("${docker_ignore}" "${TEMP_OBJECTS[@]}")
+  echo -e "${ignore_list}" > "${docker_ignore}"
 
   ${DOCKER} build \
     --file "${dockerfile}" \
     --tag "${HWID_SERVICE_IMAGE}:${TIME_TAG}" \
     --tag "${HWID_SERVICE_IMAGE}:${LATEST_TAG}" \
-    "${HOST_HWIDSERVICE_DOCKER_DIR}"
+    "${HOST_CROS_SRC_DIR}"
 }
 
 do_publish() {
@@ -258,29 +257,10 @@ do_connect() {
 do_test() {
   check_docker
 
-  local dockerfile="${HOST_HWIDSERVICE_DIR}/Dockerfile.test"
-  local hwidservice_test_image_tag="factory_hwid_service_local_test"
+  do_build
 
-  # A hack to make the build context small.
-  local ignore_list=""
-  ignore_list+="*\n"
-  ignore_list+="!platform/factory\n"
-  ignore_list+="!platform/chromeos-hwid\n"
-  ignore_list+="!platform2/regions\n"
-  local docker_ignore="${HOST_CROS_SRC_DIR}"/.dockerignore
-  TEMP_OBJECTS=("${docker_ignore}" "${TEMP_OBJECTS[@]}")
-  echo -e "${ignore_list}" > "${docker_ignore}"
-
-  echo "Building docker image..."
-  ${DOCKER} build \
-    --file "${dockerfile}" \
-    --tag "${hwidservice_test_image_tag}" \
-    "${HOST_CROS_SRC_DIR}"
-
-  echo "Running docker image..."
-  ${DOCKER} run \
-    --net host \
-    "${hwidservice_test_image_tag}"
+  echo "Running docker image for local test..."
+  ${DOCKER} run --net host "${HWID_SERVICE_IMAGE}:${LATEST_TAG}"
 }
 
 set_project() {
