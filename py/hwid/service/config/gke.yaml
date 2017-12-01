@@ -5,7 +5,7 @@ metadata:
     name: hwid-node<SUFFIX>
   name: hwid-node<SUFFIX>
 spec:
-  replicas: 2
+  replicas: 3
   template:
     metadata:
       labels:
