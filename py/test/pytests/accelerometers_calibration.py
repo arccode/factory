@@ -55,131 +55,23 @@ To run horizontal calibration on base accelerometer::
 """
 
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import accelerometer
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import test_task
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import type_utils
 
 
-_MSG_NOT_SUPPORTED = i18n_test_ui.MakeI18nLabelWithClass(
-    'ERROR: The function is not supported.', 'test-fail')
-_MSG_SPACE = i18n_test_ui.MakeI18nLabelWithClass(
-    'Please put device on a horizontal plane then press space to '
-    'start calibration.', 'test-info')
-_MSG_PREPARING_CALIBRATION = lambda time: i18n_test_ui.MakeI18nLabelWithClass(
-    'Calibration will be started within {time} seconds.'
-    'Please do not move device.',
-    'test-info',
-    time=time)
-_MSG_CALIBRATION_IN_PROGRESS = i18n_test_ui.MakeI18nLabelWithClass(
-    'Calibration is in progress, please do not move device.', 'test-info')
-_MSG_PASS = i18n_test_ui.MakeI18nLabelWithClass('PASS', 'test-pass')
-_MSG_FAIL = i18n_test_ui.MakeI18nLabelWithClass('FAIL', 'test-fail')
-_MESSAGE_DELAY_SECS = 1
-
-_BR = '<br>'
-
-_CSS = """
-  .test-info {font-size: 2em;}
-  .test-pass {font-size: 2em; color:green;}
-  .test-fail {font-size: 2em; color:red;}
-"""
-
-
-class HorizontalCalibrationTask(test_task.TestTask):
-  """Horizontal calibration for accelerometers.
-
-  Attributes:
-    test: The main AccelerometersCalibration TestCase object.
-    orientation: orientation in gravity (0, -1G or +1G)
-      of two sensors during calibration.
-    Ex, {'in_accel_x_base': 0,
-         'in_accel_y_base': 0,
-         'in_accel_z_base': 1,
-         'in_accel_x_lid': 0,
-         'in_accel_y_lid': 0,
-         'in_accel_z_lid': -1}
-    capture_count: How many iterations to capture the raw data to calculate
-      the average.
-    setup_time_secs: How many seconds to wait after pressing space to
-      start calibration.
-  """
-
-  def __init__(self, test, orientation, capture_count, setup_time_secs,
-               spec_offset, sample_rate):
-    super(HorizontalCalibrationTask, self).__init__()
-    self.test = test
-    self.orientation = orientation
-    self.capture_count = capture_count
-    self.setup_time_secs = setup_time_secs
-    self.spec_offset = spec_offset
-    self.sample_rate = sample_rate
-    self.accelerometer = test.accelerometer_controller
-    self.template = test.template
-
-  def StartCalibration(self):
-    """Waits a period of time and then starts calibration."""
-    # Waits for a few seconds to let machine become stable.
-    for i in xrange(self.setup_time_secs):
-      self.template.SetState(
-          _MSG_PREPARING_CALIBRATION(self.setup_time_secs - i))
-      time.sleep(_MESSAGE_DELAY_SECS)
-
-    # Cleanup offsets before calibration
-    self.accelerometer.CleanUpCalibrationValues()
-
-    # Starts calibration.
-    self.template.SetState(_MSG_CALIBRATION_IN_PROGRESS)
-    try:
-      raw_data = self.accelerometer.GetData(self.capture_count)
-    except accelerometer.AccelerometerException:
-      self.Fail('Read raw data failed.')
-      return
-    # Checks accelerometer is normal or not before calibration.
-    if not self.accelerometer.IsWithinOffsetRange(raw_data, self.orientation,
-                                                  self.spec_offset):
-      self.template.SetState(' ' + _MSG_FAIL + _BR, append=True)
-      self.Fail('Raw data out of range, the accelerometers may be damaged.')
-      return
-    calib_bias = self.accelerometer.CalculateCalibrationBias(
-        raw_data, self.orientation)
-    self.accelerometer.UpdateCalibrationBias(calib_bias)
-    self.template.SetState(' ' + _MSG_PASS + _BR, append=True)
-    self.Pass()
-
-  def Run(self):
-    """Prompts a message to ask operator to press space."""
-    self.template.SetState(_MSG_SPACE)
-    self.test.ui.BindKey(test_ui.SPACE_KEY, lambda _: self.StartCalibration())
-
-
-class SixSidedCalibrationTask(test_task.TestTask):
-  """Six-sided calibration for accelerometers."""
-
-  def __init__(self, test):
-    super(SixSidedCalibrationTask, self).__init__()
-    self.template = test.template
-
-  def Run(self):
-    # TODO(bowgotsai): add six-sided calibration.
-    self.template.SetState(_MSG_NOT_SUPPORTED)
-    time.sleep(_MESSAGE_DELAY_SECS)
-    self.Fail('Six sided calibration is not supported.')
-
-
-class AccelerometersCalibration(unittest.TestCase):
+class AccelerometersCalibration(test_ui.TestCaseWithUI):
 
   ARGS = [
-      Arg('calibration_method', str,
-          'There are two calibration methods: horizontal calibration and '
-          'six-sided calibration. The value can be either "horizontal" or '
-          '"sixsided".', default='horizontal'),
+      # TODO(bowgotsai): add six-sided calibration.
+      Arg('calibration_method', type_utils.Enum(['horizontal']),
+          'Currently there is only one calibration method available: '
+          'horizontal calibration.', default='horizontal'),
       Arg('orientation', dict,
           'Keys: the name of the accelerometer signal. For example, '
           '"in_accel_x_base" or "in_accel_x_lid". The possible keys are '
@@ -218,28 +110,52 @@ class AccelerometersCalibration(unittest.TestCase):
           'The location for the accelerometer', default='base')]
 
   def setUp(self):
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
+
     self.dut = device_utils.CreateDUTInterface()
-    self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
     # Checks arguments.
-    self.assertIn(self.args.calibration_method, ['horizontal', 'sixsided'])
     self.assertEquals(2, len(self.args.spec_offset))
-    # Initializes a accelerometer utility class.
+
     self.accelerometer_controller = (
         self.dut.accelerometer.GetController(self.args.location))
-    self.ui.AppendCSS(_CSS)
-    self._task_manager = None
 
-  def runTest(self):
     if self.args.calibration_method == 'horizontal':
-      task_list = [HorizontalCalibrationTask(
-          self,
-          self.args.orientation,
-          self.args.capture_count,
-          self.args.setup_time_secs,
-          self.args.spec_offset,
-          self.args.sample_rate_hz)]
-    else:
-      task_list = [SixSidedCalibrationTask(self.args.orientation)]
-    self._task_manager = test_task.TestTaskManager(self.ui, task_list)
-    self._task_manager.Run()
+      self.AddTask(self.RunHorizontalCalibrationTask)
+
+  def RunHorizontalCalibrationTask(self):
+    """Prompt for space, waits a period of time and then starts calibration."""
+    self.ui.SetState(
+        i18n_test_ui.MakeI18nLabel(
+            'Please put device on a horizontal plane then press space to '
+            'start calibration.'))
+    self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
+
+    # Waits for a few seconds to let machine become stable.
+    for i in xrange(self.args.setup_time_secs):
+      self.ui.SetState(
+          i18n_test_ui.MakeI18nLabel(
+              'Calibration will be started within {time} seconds.'
+              'Please do not move device.',
+              time=self.args.setup_time_secs - i))
+      time.sleep(1)
+
+    # Cleanup offsets before calibration
+    self.accelerometer_controller.CleanUpCalibrationValues()
+
+    # Starts calibration.
+    self.ui.SetState(
+        i18n_test_ui.MakeI18nLabel(
+            'Calibration is in progress, please do not move device.'))
+    try:
+      raw_data = self.accelerometer_controller.GetData(self.args.capture_count)
+    except accelerometer.AccelerometerException:
+      self.FailTask('Read raw data failed.')
+
+    # Checks accelerometer is normal or not before calibration.
+    if not self.accelerometer_controller.IsWithinOffsetRange(
+        raw_data, self.args.orientation, self.args.spec_offset):
+      self.FailTask('Raw data out of range, the accelerometers may be damaged.')
+
+    calib_bias = self.accelerometer_controller.CalculateCalibrationBias(
+        raw_data, self.args.orientation)
+    self.accelerometer_controller.UpdateCalibrationBias(calib_bias)

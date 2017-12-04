@@ -1056,10 +1056,6 @@ msgid "AC adapter type: {type}"
 msgstr "充电器型号: {type}"
 
 #: ../py/test/pytests/accelerometers_calibration.py
-msgid "ERROR: The function is not supported."
-msgstr "此功能尚未支持。"
-
-#: ../py/test/pytests/accelerometers_calibration.py
 #: ../py/test/pytests/gyroscope.py
 msgid ""
 "Please put device on a horizontal plane then press space to start "
@@ -1074,16 +1070,6 @@ msgstr "校准程序即将于 {time} 秒后开始，请勿移动待测物。"
 #: ../py/test/pytests/accelerometers_calibration.py
 msgid "Calibration is in progress, please do not move device."
 msgstr "校准程序进行中，请勿移动待测物。"
-
-#: ../py/test/pytests/accelerometers_calibration.py
-#: ../py/test/pytests/gyroscope.py ../py/test/pytests/touch_uniformity.py
-msgid "PASS"
-msgstr "成功"
-
-#: ../py/test/pytests/accelerometers_calibration.py
-#: ../py/test/pytests/gyroscope.py ../py/test/pytests/touch_uniformity.py
-msgid "FAIL"
-msgstr "失败"
 
 #: ../py/test/pytests/accelerometers_lid_angle.py
 msgid "Please open the lid to {angle} degrees."
@@ -1903,6 +1889,14 @@ msgstr "请转动待测物。"
 msgid ""
 "Calibration will be started within {secs} seconds.Please do not move device."
 msgstr "测试程序即将于 {secs} 秒后开始，请勿移动待测物。"
+
+#: ../py/test/pytests/gyroscope.py ../py/test/pytests/touch_uniformity.py
+msgid "PASS"
+msgstr "成功"
+
+#: ../py/test/pytests/gyroscope.py ../py/test/pytests/touch_uniformity.py
+msgid "FAIL"
+msgstr "失败"
 
 #: ../py/test/pytests/hwid.py ../py/test/pytests/hwid_v3.py
 msgid "Probing components..."
