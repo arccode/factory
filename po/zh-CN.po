@@ -1072,12 +1072,8 @@ msgid "Calibration is in progress, please do not move device."
 msgstr "校准程序进行中，请勿移动待测物。"
 
 #: ../py/test/pytests/accelerometers_lid_angle.py
-msgid "Please open the lid to {angle} degrees."
-msgstr "请将上盖掀开到 {angle} 度。"
-
-#: ../py/test/pytests/accelerometers_lid_angle.py
-msgid "Confirm {angle} degrees"
-msgstr "确认掀开到 {angle} 度"
+msgid "Please open the lid to {angle} degrees and press SPACE."
+msgstr "请将上盖掀开到 {angle} 度并按空白键。"
 
 #: ../py/test/pytests/accelerometers_lid_angle.py
 msgid "Checking angle..."

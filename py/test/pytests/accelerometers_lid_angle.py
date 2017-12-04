@@ -24,61 +24,16 @@ Usage examples::
 import logging
 import math
 import numpy as np
-import threading
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import accelerometer
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
-_MSG_PROMPT_BUILDER = lambda angle: i18n_test_ui.MakeI18nLabel(
-    'Please open the lid to {angle} degrees.', angle=angle)
-_MSG_CONFIRM_BUILDER = lambda angle: i18n_test_ui.MakeI18nLabel(
-    'Confirm {angle} degrees', angle=angle)
-_MSG_CHECKING = i18n_test_ui.MakeI18nLabel('Checking angle...')
-
-_ID_PROMPT = 'prompt'
-_ID_CONFIRM_BUTTON = 'confirm-button'
-
-_EVENT_CONFIRM = 'confirm'
-
-_HTML_PROMPT = """
-<div id="%s" class="prompt"></div>
-<button id="%s" class="confirm-button" onclick="test.sendTestEvent(\'%s\')">
-</button>
-""" % (_ID_PROMPT, _ID_CONFIRM_BUTTON, _EVENT_CONFIRM)
-
-_HTML_CHECKING = '<div class="status">%s</div>' % _MSG_CHECKING
-
-_CSS = """
-.prompt {
-  font-size: 2em;
-  margin: 0.2em 0 0.8em;
-}
-.confirm-button {
-  font-size: 4em;
-  padding: 0.5em 1em;
-  margin: 0 auto;
-  width: 90%;
-  height: 60%;
-  line-height: 1.2;
-}
-.status {
-  width: 100%;
-  line-height: 3em;
-  font-size: 4em;
-  margin-top: 1em;
-  background: #ccc;
-}
-"""
-
-
-class AccelerometersLidAngleTest(unittest.TestCase):
+class AccelerometersLidAngleTest(test_ui.TestCaseWithUI):
   ARGS = [
       Arg('angle', int, 'The target lid angle in degree to test.',
           default=180),
@@ -97,21 +52,11 @@ class AccelerometersLidAngleTest(unittest.TestCase):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self.lock = threading.Lock()
-    self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
-    self.ui.AppendCSS(_CSS)
-    self.template.SetState(_HTML_PROMPT)
-    self.ui.BindKey(test_ui.SPACE_KEY, self.StartTest)
-    self.ui.SetHTML(_MSG_PROMPT_BUILDER(self.args.angle), id=_ID_PROMPT)
-    self.ui.SetHTML(_MSG_CONFIRM_BUILDER(self.args.angle),
-                    id=_ID_CONFIRM_BUTTON)
-    self.ui.AddEventHandler(_EVENT_CONFIRM, self.StartTest)
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
 
     # Initializes an accelerometer utility class.
-    self.accelerometers_locations = ['base', 'lid']
     self.accelerometers = {}
-    for location in self.accelerometers_locations:
+    for location in ['base', 'lid']:
       self.accelerometers[location] = (
           self.dut.accelerometer.GetController(location))
 
@@ -131,12 +76,10 @@ class AccelerometersLidAngleTest(unittest.TestCase):
     in the w3 spec: http://www.w3.org/TR/orientation-event/#description.
     """
     cal_data = {}
-    for location in self.accelerometers_locations:
+    for location, accelerometer_controller in self.accelerometers.iteritems():
       try:
-        cal_data[location] = (
-            self.accelerometers[location].GetData(
-                self.args.capture_count,
-                self.args.sample_rate_hz))
+        cal_data[location] = accelerometer_controller.GetData(
+            self.args.capture_count, self.args.sample_rate_hz)
       except accelerometer.AccelerometerException as err:
         logging.info(
             'Read %s calibrated data failed: %r.', location, err.args[0])
@@ -147,9 +90,9 @@ class AccelerometersLidAngleTest(unittest.TestCase):
     # The calulation requires hinge in a horizontal position.
     min_value = -self.args.spec_offset[0]
     max_value = self.args.spec_offset[0]
-    for location in self.accelerometers_locations:
-      if not min_value <= cal_data[location]['in_accel_x'] <= max_value:
-        self.ui.Fail('The hinge is not in a horizontal plane.')
+    for data in cal_data.itervalues():
+      if not min_value <= data['in_accel_x'] <= max_value:
+        self.FailTask('The hinge is not in a horizontal plane.')
 
     base_vec_flattened = [
         0.0,
@@ -168,7 +111,7 @@ class AccelerometersLidAngleTest(unittest.TestCase):
         np.linalg.norm(base_vec_flattened) /
         np.linalg.norm(lid_vec_flattened)))
 
-    # Based on the standare orientation described above, the sum of the
+    # Based on the standard orientation described above, the sum of the
     # lid angle (between keyboard and screen) and angle_between_vectors
     # is 180 degrees. For example, when turning the lid angle to 180 degrees,
     # the orientation of two accelerometers is the same, hence
@@ -188,23 +131,19 @@ class AccelerometersLidAngleTest(unittest.TestCase):
     else:
       return lid_angle
 
-  def StartTest(self, _):
-    # Only allow the first event handler to run. Otherwise, other threads could
-    # be started, and Goofy will wait for all of them to complete before passing
-    # or failing.
-    if not self.lock.acquire(False):
-      return
-    self.template.SetState(_HTML_CHECKING)
+  def runTest(self):
+    self.ui.SetState(
+        i18n_test_ui.MakeI18nLabel(
+            'Please open the lid to {angle} degrees and press SPACE.',
+            angle=self.args.angle))
+    self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
+
+    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Checking angle...'))
     angle = self._CalculateLidAngle()
     if angle is None:
-      self.ui.Fail('There is no calibration value for accelerometer in VPD.')
-    else:
-      logging.info('angle=%d', angle)
-      if (angle > self.args.angle + self.args.tolerance or
-          angle < self.args.angle - self.args.tolerance):
-        self.ui.Fail('The lid angle is out of range: %d' % angle)
-      else:
-        self.ui.Pass()
+      self.FailTask('There is no calibration value for accelerometer in VPD.')
 
-  def runTest(self):
-    self.ui.Run()
+    logging.info('angle = %f', angle)
+    if not (self.args.angle - self.args.tolerance <= angle <=
+            self.args.angle + self.args.tolerance):
+      self.FailTask('The lid angle is out of range: %f' % angle)
