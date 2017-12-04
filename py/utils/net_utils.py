@@ -470,7 +470,6 @@ def FindUnusedPort(tcp_only=False, length=1):
     s = socket.socket(socket_family, socket_type, socket_proto)
     try:
       try:
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind(('', port))
         return True
       except socket.error:
