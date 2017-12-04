@@ -3058,13 +3058,18 @@ cros.factory.Goofy = class {
         if (!message.is_response) {
           window.chrome.runtime.sendMessage(
               cros.factory.EXTENSION_ID,
-              {name: message.name, args: message.args}, (/** * */ result) => {
-                this.sendEvent(messageType, {
-                  name: message.name,
-                  rpc_id: message.rpc_id,
-                  is_response: true,
-                  args: result
-                });
+              {name: message.name, args: message.args}, (...args) => {
+                // If an error occurs while connecting to the extension, this
+                // function would be called without arguments. In this case we
+                // should ignore this result.
+                if (args.length === 1) {
+                  this.sendEvent(messageType, {
+                    name: message.name,
+                    rpc_id: message.rpc_id,
+                    is_response: true,
+                    args: args[0]
+                  });
+                }
               });
         }
         break;
