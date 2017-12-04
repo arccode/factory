@@ -35,14 +35,7 @@ class TestInputPullSocket(unittest.TestCase):
     self.sandbox.Start(True)
     self.plugin = self.sandbox._plugin  # pylint: disable=protected-access
 
-  def _AcceptSocket(self):
-    accept_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Bind socket.
-    accept_sock.bind((self.hostname, self.port))
-
-    # Queue up to 1 requests.
-    accept_sock.listen(1)
+  def _AcceptSocket(self, accept_sock):
     self.sock, _unused_addr = accept_sock.accept()
     accept_sock.shutdown(socket.SHUT_RDWR)
     accept_sock.close()
@@ -61,7 +54,13 @@ class TestInputPullSocket(unittest.TestCase):
     self.sock = None
     self.hostname = 'localhost'
     self.port = net_utils.FindUnusedPort()
-    t = threading.Thread(target=self._AcceptSocket)
+
+    accept_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    accept_sock.bind((self.hostname, self.port))
+    # Queue up to 1 requests.
+    accept_sock.listen(1)
+
+    t = threading.Thread(target=self._AcceptSocket, args=(accept_sock, ))
     t.start()
     self._CreatePlugin()
     t.join()
