@@ -1373,12 +1373,10 @@ msgstr "请将电源线插入{prompt}({voltage}mV)"
 #: ../py/test/pytests/blocking_charge.py
 msgid ""
 "Charging to {target}% (Start: {start}%. Current: {current}%.)<br>Time "
-"elapsed: {elapsed}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Time "
-"remaining: {remaining}"
+"elapsed: {elapsed} Time remaining: {remaining}"
 msgstr ""
 "充电至 {target}% (起始电量: {start}%. 当前电量: {current}%.)<br>经过时间: "
-"{elapsed}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;剩余时间: "
-"{remaining}"
+"{elapsed} 剩余时间: {remaining}"
 
 #: ../py/test/pytests/bluetooth.py
 msgid "Detect bluetooth adapter"

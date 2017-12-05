@@ -83,7 +83,6 @@ charging, add this in test list::
 import logging
 import os
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -91,7 +90,6 @@ from cros.factory.test.env import paths
 from cros.factory.test import event_log
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import goofy_plugin_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import config_utils
@@ -107,16 +105,15 @@ def FormatTime(seconds):
 def MakeChargeTextLabel(start, current, target, elapsed, remaining):
   return i18n_test_ui.MakeI18nLabel(
       'Charging to {target}% (Start: {start}%. Current: {current}%.)<br>'
-      'Time elapsed: {elapsed}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
-      'Time remaining: {remaining}',
+      'Time elapsed: {elapsed} Time remaining: {remaining}',
       target=target, start=start, current=current,
       elapsed=FormatTime(elapsed), remaining=FormatTime(remaining))
 
 
 def MakeSpriteHTMLTag(src, height, width):
-  return (('<div id="batteryIcon" style="background-image: url(%s);' +
-           'width: %dpx; height: %dpx; margin:auto;"></div>') %
-          (src, width, height))
+  return ('<div id="batteryIcon" style="background-image: url(%s);'
+          'width: %dpx; height: %dpx; margin: auto;"></div>') % (src, width,
+                                                                 height)
 
 
 def _GetCutoffBatteryMinPercentage():
@@ -131,10 +128,10 @@ def _GetGoofyBatteryMinPercentage():
   return config.get('min_charge_pct', _DEFAULT_TARGET_CHARGE)
 
 
-class ChargerTest(unittest.TestCase):
+class ChargerTest(test_ui.TestCaseWithUI):
   ARGS = [
       Arg('target_charge_pct', (int, type_utils.Enum(['goofy', 'cutoff'])),
-          'Target charge level. ', default='goofy'),
+          'Target charge level.', default='goofy'),
       Arg('target_charge_pct_is_delta', bool,
           'Specify target_charge_pct is a delta of current charge',
           default=False),
@@ -144,16 +141,14 @@ class ChargerTest(unittest.TestCase):
 
   def setUp(self):
     self._power = device_utils.CreateDUTInterface().power
-    self._ui = test_ui.UI()
-    self._template = ui_templates.TwoSections(self._ui)
 
-  def CheckPower(self):
+  def runTest(self):
     self.assertTrue(self._power.CheckBatteryPresent(), 'Cannot find battery.')
     self.assertTrue(self._power.CheckACPresent(), 'Cannot find AC power.')
 
-  def Charge(self):
     start_charge = self._power.GetChargePct()
     self.assertTrue(start_charge, 'Error getting battery state.')
+
     target_charge = self.args.target_charge_pct
     if self.args.target_charge_pct_is_delta:
       self.assertIsInstance(target_charge, int,
@@ -170,7 +165,7 @@ class ChargerTest(unittest.TestCase):
       return
 
     self._power.SetChargeState(self._power.ChargeState.CHARGE)
-    self._template.SetState(MakeSpriteHTMLTag('charging_sprite.png', 256, 256))
+    self.ui.SetState(MakeSpriteHTMLTag('charging_sprite.png', 256, 256))
     logging.info('Charging starting at %d%%', start_charge)
 
     for elapsed in xrange(self.args.timeout_secs):
@@ -180,14 +175,16 @@ class ChargerTest(unittest.TestCase):
         event_log.Log('charged', charge=charge, target=target_charge,
                       elapsed=elapsed)
         return
-      self._ui.RunJS('$("batteryIcon").style.backgroundPosition = "-%dpx 0px"' %
-                     ((elapsed % 4) * 256))
-      self._template.SetInstruction(MakeChargeTextLabel(
+      self.ui.RunJS(
+          'document.getElementById("batteryIcon").style.backgroundPosition'
+          ' = "-%dpx 0px"' % ((elapsed % 4) * 256))
+      self.ui.SetInstruction(MakeChargeTextLabel(
           start_charge,
           charge,
           target_charge,
           elapsed,
           self.args.timeout_secs - elapsed))
+
       if elapsed % 300 == 0:
         logging.info('Battery level is %d%% after %d minutes',
                      charge,
@@ -196,13 +193,5 @@ class ChargerTest(unittest.TestCase):
 
     event_log.Log('failed_to_charge', charge=charge, target=target_charge,
                   timeout_sec=self.args.timeout_secs)
-    self.fail('Cannot charge battery to %d%% in %d seconds.' %
-              (target_charge, self.args.timeout_secs))
-
-  def _runTest(self):
-    self.CheckPower()
-    self.Charge()
-
-  def runTest(self):
-    self._ui.RunInBackground(self._runTest)
-    self._ui.Run()
+    self.FailTask('Cannot charge battery to %d%% in %d seconds.' %
+                  (target_charge, self.args.timeout_secs))
