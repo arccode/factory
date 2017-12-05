@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -588,8 +588,7 @@ def CreateReportArchiveBlob(*args, **kwargs):
   """
   report_archive = CreateReportArchive(*args, **kwargs)
   try:
-    with open(report_archive) as f:
-      return xmlrpclib.Binary(f.read())
+    return xmlrpclib.Binary(file_utils.ReadFile(report_archive))
   finally:
     os.unlink(report_archive)
 
@@ -668,7 +667,9 @@ def UploadReport(options):
     return
   method, param = options.upload_method.split(':', 1)
   if method == 'shopfloor':
-    report_upload.ShopFloorUpload(target_path, param)
+    report_upload.ShopFloorUpload(
+        target_path, param,
+        'GRT' if options.command_name == 'finalize' else None)
   elif method == 'ftp':
     report_upload.FtpUpload(target_path, 'ftp:' + param)
   elif method == 'ftps':
@@ -765,7 +766,7 @@ def VerifyHWID(options):
   db = GetGooftool(options).db
   encoded_string = options.hwid or hwid_utils.GetHWIDString()
   if options.probe_results:
-    probed_results = yaml.load(open(options.probe_results).read())
+    probed_results = yaml.load(file_utils.ReadFile(options.probe_results))
   else:
     probed_results = yaml.load(Probe(probe_vpd=True).Encode())
   vpd = hwid_utils.GetVPD(probed_results)

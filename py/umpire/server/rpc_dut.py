@@ -24,10 +24,6 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import webservice_utils
 
 
-# Factory stages in running sequence.
-FACTORY_STAGES = ['SMT', 'RUNIN', 'FA', 'GRT']
-
-
 def Fault(message, reason=xmlrpclib.INVALID_METHOD_PARAMS):
   """Instantiates an XMLRPC Fault() object.
 
@@ -303,7 +299,7 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
       report_name: (Optional) Suggested report file name. This is usually
           assigned by factory test client programs (ex, gooftool); however
           server implementations still may use other names to store the report.
-      stage: Current testing stage, SMT, RUNIN, FA, or GRT.
+      stage: (Optional) Current testing stage: SMT, FAT, RUNIN, FFT, or GRT.
 
     Returns:
       Deferred object that waits for log saving thread to complete.
@@ -318,7 +314,7 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
     """
     opt_name = ('-' + report_name) if report_name else ''
     file_name = '{stage}{opt_name}-{serial}-{gmtime}.rpt.xz'.format(
-        stage=stage or 'FA', opt_name=opt_name, serial=serial,
+        stage=stage or 'Unknown', opt_name=opt_name, serial=serial,
         gmtime=time.strftime('%Y%m%dT%H%M%SZ', self._Now()))
     d = threads.deferToThread(lambda: self._SaveUpload(
         'report', file_name, self._UnwrapBlob(report_blob)))

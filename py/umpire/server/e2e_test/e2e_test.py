@@ -404,7 +404,7 @@ class RPCDUTTest(UmpireDockerTestCase):
                                   'umpire_data',
                                   'report',
                                   time.strftime('%Y%m%d', now),
-                                  'FA-test_serial-*.rpt.xz')
+                                  'Unknown-test_serial-*.rpt.xz')
     report_files = glob.glob(report_pattern)
     self.assertEqual(1, len(report_files))
     report_file = report_files[0]

@@ -17,6 +17,7 @@ import xmlrpclib
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.common import Shell
+from cros.factory.utils import file_utils
 from cros.factory.utils.type_utils import Error
 
 
@@ -50,7 +51,7 @@ def RetryCommand(callback, message_prefix, interval):
       time.sleep(1)
 
 
-def ShopFloorUpload(source_path, remote_spec,
+def ShopFloorUpload(source_path, remote_spec, stage,
                     retry_interval=DEFAULT_RETRY_INTERVAL):
   if '#' not in remote_spec:
     raise Error('ShopFloorUpload: need a valid parameter in URL#SN format.')
@@ -58,13 +59,11 @@ def ShopFloorUpload(source_path, remote_spec,
   logging.debug('ShopFloorUpload: [%s].UploadReport(%s, %s)',
                 server_url, serial_number, source_path)
   instance = xmlrpclib.ServerProxy(server_url, allow_none=True, verbose=False)
-  remote_name = os.path.basename(source_path)
-  with open(source_path, 'rb') as source_handle:
-    blob = xmlrpclib.Binary(source_handle.read())
+  blob = xmlrpclib.Binary(file_utils.ReadFile(source_path))
 
   def ShopFloorCallback(result):
     try:
-      instance.UploadReport(serial_number, blob, remote_name)
+      instance.UploadReport(serial_number, blob, 'gooftool', stage)
       return True
     except xmlrpclib.Fault, err:
       result['message'] = 'Remote server fault #%d: %s' % (err.faultCode,

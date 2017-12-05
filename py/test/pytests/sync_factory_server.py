@@ -398,7 +398,7 @@ class SyncFactoryServer(unittest.TestCase):
 
   def UploadReport(self):
     self.server.UploadReport(
-        self.report.serial_number, self.report.blob, self.report.station)
+        self.report.serial_number, self.report.blob, None, self.report.station)
 
   def UploadRegCodes(self):
     """Uploads registration codes to factory server.
