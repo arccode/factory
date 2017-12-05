@@ -59,9 +59,7 @@ To test volume down button (using ``evdev``) 3 times in 10 seconds::
 """
 
 import logging
-import threading
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -72,32 +70,11 @@ from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
 
 _DEFAULT_TIMEOUT = 30
-
-_MSG_PROMPT_CSS_CLASS = 'button-test-info'
-_MSG_PROMPT_PRESS = lambda name, count, total: (
-    i18n_test_ui.MakeI18nLabelWithClass(
-        'Press the {name} button', _MSG_PROMPT_CSS_CLASS,
-        name=name)
-    if total == 1
-    else i18n_test_ui.MakeI18nLabelWithClass(
-        'Press the {name} button ({count}/{total})', _MSG_PROMPT_CSS_CLASS,
-        name=name, count=count, total=total))
-_MSG_PROMPT_RELEASE = i18n_test_ui.MakeI18nLabelWithClass(
-    'Release the button', _MSG_PROMPT_CSS_CLASS)
-
-_ID_PROMPT = 'button-test-prompt'
-_ID_COUNTDOWN_TIMER = 'button-test-timer'
-_HTML_BUTTON_TEST = ('<div id="%s"></div>\n'
-                     '<div id="%s" class="button-test-info"></div>\n' %
-                     (_ID_PROMPT, _ID_COUNTDOWN_TIMER))
-
-_BUTTON_TEST_DEFAULT_CSS = '.button-test-info { font-size: 2em; }'
 
 _KEY_GPIO = 'gpio:'
 _KEY_CROSSYSTEM = 'crossystem:'
@@ -210,7 +187,7 @@ class ECToolButton(GenericButton):
     return value == self._active_value
 
 
-class ButtonTest(unittest.TestCase):
+class ButtonTest(test_ui.TestCaseWithUI):
   """Button factory test."""
   ARGS = [
       Arg('timeout_secs', int, 'Timeout value for the test.',
@@ -230,10 +207,8 @@ class ButtonTest(unittest.TestCase):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
-    self.ui.AppendCSS(_BUTTON_TEST_DEFAULT_CSS)
-    self.template.SetState(_HTML_BUTTON_TEST)
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.SetState('<div id="prompt"></div><div id="timer"></div>')
 
     if self.args.button_key_name.startswith(_KEY_GPIO):
       gpio_num = self.args.button_key_name[len(_KEY_GPIO):]
@@ -265,8 +240,6 @@ class ButtonTest(unittest.TestCase):
     else:
       self._fixture = None
 
-    self._disable_timer = threading.Event()
-
   def tearDown(self):
     timestamps = self._action_timestamps + [float('inf')]
     for release_index in xrange(2, len(timestamps), 2):
@@ -293,33 +266,31 @@ class ButtonTest(unittest.TestCase):
         condition_name=condition_name)
     self._action_timestamps.append(time.time())
 
-  def _MonitorButtonEvent(self):
+  def runTest(self):
+    countdown_timer.StartNewCountdownTimer(self, self.args.timeout_secs,
+                                           'timer')
+
     for done in xrange(self.args.repeat_times):
-      label = _MSG_PROMPT_PRESS(
-          self.args.button_name, done, self.args.repeat_times)
-      self.ui.SetHTML(label, id=_ID_PROMPT)
+      if self.args.repeat_times == 1:
+        label = i18n_test_ui.MakeI18nLabel(
+            'Press the {name} button', name=self.args.button_name)
+      else:
+        label = i18n_test_ui.MakeI18nLabel(
+            'Press the {name} button ({count}/{total})',
+            name=self.args.button_name,
+            count=done,
+            total=self.args.repeat_times)
+      self.ui.SetHTML(label, id='prompt')
 
       if self._fixture:
         self._fixture.SimulateButtonPress(self.args.bft_button_name, 0)
 
       self._PollForCondition(self.button.IsPressed, 'WaitForPress')
-      self.ui.SetHTML(_MSG_PROMPT_RELEASE, id=_ID_PROMPT)
+      self.ui.SetHTML(
+          i18n_test_ui.MakeI18nLabel('Release the button'), id='prompt')
 
       if self._fixture:
         self._fixture.SimulateButtonRelease(self.args.bft_button_name)
 
       self._PollForCondition(lambda: not self.button.IsPressed(),
                              'WaitForRelease')
-    self._disable_timer.set()
-
-  def runTest(self):
-    # Create a thread to run countdown timer.
-    countdown_timer.StartCountdownTimer(
-        self.args.timeout_secs,
-        lambda: self.ui.Fail('Button test failed due to timeout.'),
-        self.ui,
-        _ID_COUNTDOWN_TIMER,
-        disable_event=self._disable_timer)
-    # Create a thread to monitor button events.
-    self.ui.RunInBackground(self._MonitorButtonEvent)
-    self.ui.Run()

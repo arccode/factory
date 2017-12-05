@@ -92,7 +92,8 @@ def CountdownTimer(timeout_secs, timeout_handler, tick=None,
   timeout_handler()
 
 
-def StartNewCountdownTimer(test, timeout_secs, element_id, timeout_handler):
+def StartNewCountdownTimer(test, timeout_secs, element_id,
+                           timeout_handler=None):
   """Start a countdown timer that relies on test_ui.NewEventLoop.
 
   It updates UI for time remaining and calls timeout_handler when timeout.
@@ -113,5 +114,7 @@ def StartNewCountdownTimer(test, timeout_secs, element_id, timeout_handler):
     if time_remaining > 0:
       test.ui.SetHTML(_MSG_TIME_REMAINING(time_remaining), id=element_id)
     else:
-      timeout_handler()
+      if timeout_handler:
+        timeout_handler()
+      raise StopIteration
   test.event_loop.AddTimedHandler(_Timer, 1, repeat=True)
