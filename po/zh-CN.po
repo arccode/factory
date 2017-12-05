@@ -1313,16 +1313,16 @@ msgid "Phase {current_phase}/{total_phases}: "
 msgstr "阶段 {current_phase}/{total_phases}: "
 
 #: ../py/test/pytests/battery_basic.py
-msgid "Unplug AC to proceed"
-msgstr "拔除 AC 电源"
-
-#: ../py/test/pytests/battery_basic.py
 msgid "Plug AC to proceed"
 msgstr "插上 AC 电源"
 
 #: ../py/test/pytests/battery_basic.py
 msgid "Testing battery charge..."
 msgstr "测试电池充电中..."
+
+#: ../py/test/pytests/battery_basic.py
+msgid "Unplug AC to proceed"
+msgstr "拔除 AC 电源"
 
 #: ../py/test/pytests/battery_basic.py
 msgid "Testing battery discharge..."

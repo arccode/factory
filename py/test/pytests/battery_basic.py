@@ -39,35 +39,24 @@ To relax the limitation of battery cycle count to 5::
       "max_cycle_count": 5
     }
   }
-
 """
 
 from __future__ import print_function
 
 import logging
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import stress_manager
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
-from cros.factory.utils import type_utils
 
 
-_UNPLUG_AC = i18n_test_ui.MakeI18nLabel('Unplug AC to proceed')
-_PLUG_AC = i18n_test_ui.MakeI18nLabel('Plug AC to proceed')
-_TESTING_CHARGE = i18n_test_ui.MakeI18nLabel('Testing battery charge...')
-_TESTING_DISCHARGE = i18n_test_ui.MakeI18nLabel('Testing battery discharge...')
-_CSS = 'body { font-size: 2em; }'
-
-
-class SimpleBatteryTest(unittest.TestCase):
+class SimpleBatteryTest(test_ui.TestCaseWithUI):
   """A simple battery test."""
   ARGS = [
       Arg('charge_duration_secs', type=(int, float), default=5,
@@ -90,19 +79,16 @@ class SimpleBatteryTest(unittest.TestCase):
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
-    self.VerifyArgs()
-    self._ui = test_ui.UI(css=_CSS)
-    self._template = ui_templates.OneSection(self._ui)
 
-  def VerifyArgs(self):
     if self.args.min_charge_current_mA:
-      if not self.args.min_charge_current_mA > 0:
-        raise type_utils.TestFailure(
-            'min_charge_current_mA must be greater than zero')
+      self.assertGreater(self.args.min_charge_current_mA, 0,
+                         'min_charge_current_mA must be greater than zero')
+
     if self.args.min_discharge_current_mA:
-      if not self.args.min_discharge_current_mA < 0:
-        raise type_utils.TestFailure(
-            'min_discharge_current_mA must be less than zero')
+      self.assertLess(self.args.min_discharge_current_mA, 0,
+                      'min_discharge_current_mA must be less than zero')
+
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
 
   def SampleBatteryCurrent(self, duration_secs):
     """Samples battery current for a given duration.
@@ -131,21 +117,22 @@ class SimpleBatteryTest(unittest.TestCase):
       TestFailure if the sampled battery charge current does not pass
       the given threshold in dargs.
     """
-    self._template.SetState(_PLUG_AC)
+    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Plug AC to proceed'))
     sync_utils.WaitFor(self._dut.power.CheckACPresent, timeout_secs=10)
-    self._template.SetState(_TESTING_CHARGE)
+
+    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Testing battery charge...'))
     self._dut.power.SetChargeState(self._dut.power.ChargeState.CHARGE)
     sampled_current = self.SampleBatteryCurrent(duration_secs)
+
     if self.args.min_charge_current_mA:
-      if not any(
-          c > self.args.min_charge_current_mA for c in sampled_current):
-        raise type_utils.TestFailure(
-            'Battery charge current did not reach defined threshold %f mA' %
-            self.args.min_charge_current_mA)
+      self.assertGreaterEqual(
+          max(sampled_current), self.args.min_charge_current_mA,
+          'Battery charge current did not reach defined threshold %f mA' %
+          self.args.min_charge_current_mA)
     else:
-      if not any(c > 0 for c in sampled_current):
-        raise type_utils.TestFailure(
-            'Battery was not charging during charge test')
+      self.assertGreater(
+          max(sampled_current), 0,
+          'Battery was not charging during charge test')
 
   def TestDischarge(self, duration_secs):
     """Tests battery discharging for a given duration.
@@ -159,33 +146,37 @@ class SimpleBatteryTest(unittest.TestCase):
       TestFailure if the sampled battery discharge current does not pass
       the given threshold in dargs.
     """
-    self._template.SetState(_UNPLUG_AC)
+    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Unplug AC to proceed'))
+
     sync_utils.WaitFor(lambda: not self._dut.power.CheckACPresent(),
                        timeout_secs=10)
-    self._template.SetState(_TESTING_DISCHARGE)
+
+    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Testing battery discharge...'))
     # Discharge under high system load.
     with stress_manager.StressManager(self._dut).Run(duration_secs):
       sampled_current = self.SampleBatteryCurrent(duration_secs)
+
     if self.args.min_discharge_current_mA:
-      if not any(
-          c < self.args.min_discharge_current_mA for c in sampled_current):
-        raise type_utils.TestFailure(
-            'Battery discharge current did not reach defined threshold %f mA' %
-            self.args.min_discharge_current_mA)
+      self.assertLessEqual(
+          min(sampled_current), self.args.min_discharge_current_mA,
+          'Battery discharge current did not reach defined threshold %f mA' %
+          self.args.min_discharge_current_mA)
     else:
-      if not any(c < 0 for c in sampled_current):
-        raise type_utils.TestFailure(
-            'Battery was not discharging during charge test')
+      self.assertLess(
+          min(sampled_current), 0,
+          'Battery was not discharging during charge test')
 
   def runTest(self):
-    if not self._dut.power.CheckBatteryPresent():
-      raise type_utils.TestFailure(
-          'Cannot locate battery sysfs path. Missing battery?')
-    cycle_count = self._dut.power.GetBatteryAttribute('cycle_count').strip()
-    if int(cycle_count) > self.args.max_cycle_count:
-      raise type_utils.TestFailure(
-          'Battery cycle count %s exceeds max %d' %
-          (cycle_count, self.args.max_cycle_count))
+    self.assertTrue(self._dut.power.CheckBatteryPresent(),
+                    'Cannot locate battery sysfs path. Missing battery?')
+
+    cycle_count = int(
+        self._dut.power.GetBatteryAttribute('cycle_count').strip())
+    self.assertLessEqual(
+        cycle_count, self.args.max_cycle_count,
+        'Battery cycle count %d exceeds max %d' % (cycle_count,
+                                                   self.args.max_cycle_count))
+
     self.TestCharge(self.args.charge_duration_secs)
     self.TestDischarge(self.args.discharge_duration_secs)
     self.TestCharge(self.args.charge_duration_secs)
