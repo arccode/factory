@@ -1118,13 +1118,8 @@ msgid "Internal Speaker"
 msgstr "内建喇叭"
 
 #: ../py/test/pytests/audio_basic.py
-msgid ""
-"Press 'P' to first play a sample for each channel to ensure audio output "
-"works.<br>Press 'R' to record {record_sec} seconds, Playback will "
-"follow<br>Press space to mark pass"
-msgstr ""
-"按 'P' 键播放范例<br>按 'R' 键开始录音{record_sec}秒，之后会重播录到的声音"
-"<br>压下空白表示成功"
+msgid "Headset"
+msgstr "外接耳机"
 
 #: ../py/test/pytests/audio_basic.py
 msgid "Start recording"
@@ -1136,11 +1131,16 @@ msgstr "重播录到的声音(麦克风通道{channel})"
 
 #: ../py/test/pytests/audio_basic.py
 msgid "Playback sound to channel {channel}"
-msgstr "播放范例到通道{channel})"
+msgstr "播放范例到通道{channel}"
 
 #: ../py/test/pytests/audio_basic.py
-msgid "Headset"
-msgstr "外接耳机"
+msgid ""
+"Press 'P' to first play a sample for each channel to ensure audio output "
+"works.<br>Press 'R' to record {record_sec} seconds, Playback will follow."
+"<br>Press space to mark pass."
+msgstr ""
+"按 'P' 键播放范例<br>按 'R' 键开始录音{record_sec}秒，之后会重播录到的声音"
+"<br>压下空白表示成功"
 
 #: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
 msgid "Tone generator"
