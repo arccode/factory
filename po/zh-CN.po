@@ -1294,19 +1294,15 @@ msgstr "等待网路介面卡连接到 audio 置具"
 msgid "Ready for connection"
 msgstr "准备完成,等待链接"
 
-#: ../py/test/pytests/backlight_static/backlight.js
+#: ../py/test/pytests/backlight.py
 msgid ""
-"Press Space to change backlight brightness;\n"
-"Press Esc to reset backlight brightness to original;\n"
-"After checking, Enter H if pressing Space changes the backlight to be "
-"brighter;\n"
-"Enter L if pressing Space changes the backlight to be dimmer.\n"
-"This test will be executed twice."
+"Press Space to change backlight brightness;<br>Press Esc to reset backlight "
+"brightness to original;<br>After checking, Enter H if pressing Space changes "
+"the backlight to be brighter;<br>Enter L if pressing Space changes the "
+"backlight to be dimmer.<br>This test will be executed twice."
 msgstr ""
-"按空白键调整亮度;\n"
-"按Esc复原亮度;\n"
-"检查后若为提高亮度输入H; 若为降低亮度输入L\n"
-"此项测试会进行两次。"
+"按空白键调整亮度;<br>按Esc复原亮度;<br>检查后若为提高亮度输入H; 若为降低亮度"
+"输入L<br>此项测试会进行两次。"
 
 #: ../py/test/pytests/bad_blocks.py
 msgid "Testing {test_size_mb} region of storage"
