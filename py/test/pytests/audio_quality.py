@@ -23,9 +23,9 @@ Test Procedure
 --------------
 This test does not require operator interaction.
 
-1. Connect DUT with fixture
-2. Press ``SPACE`` to start testing
-3. The test will judge PASS / FAIL result by itself
+1. Connect DUT with fixture.
+2. Press ``SPACE`` to start testing.
+3. The test will judge PASS / FAIL result by itself.
 
 Dependency
 ----------
@@ -62,7 +62,6 @@ import socket
 import tempfile
 import threading
 import time
-import unittest
 import zipfile
 
 import yaml
@@ -155,30 +154,30 @@ _JACK_HP_SCRIPT = 'jack_hp_script'
 _DMIC2_JACK_SCRIPT = 'dmic2_jack_script'
 
 
-class AudioQualityTest(unittest.TestCase):
+class AudioQualityTest(test_ui.TestCaseWithUI):
   ARGS = [
       Arg('initial_actions', list, 'List of [card, actions], and card '
-          'can be card index number or card name', []),
+          'can be card index number or card name', default=[]),
       Arg('input_dev', list,
           'Input ALSA device.  [card_name, sub_device].'
-          'For example: ["audio_card", "0"].', ['0', '0']),
+          'For example: ["audio_card", "0"].', default=['0', '0']),
       Arg('output_dev', list,
           'Output ALSA device.  [card_name, sub_device].'
-          'For example: ["audio_card", "0"].', ['0', '0']),
+          'For example: ["audio_card", "0"].', default=['0', '0']),
       Arg('loop_type', str, 'Audio loop type: sox, looptest, tinyloop, hwloop',
-          'sox'),
-      Arg('use_multitone', bool, 'Use multitone', False),
-      Arg('loop_buffer_count', int, 'Count of loop buffer', 10),
-      Arg('fixture_param', list, 'Fixture parameters', _FIXTURE_PARAMETERS),
+          default='sox'),
+      Arg('use_multitone', bool, 'Use multitone', default=False),
+      Arg('loop_buffer_count', int, 'Count of loop buffer', default=10),
+      Arg('fixture_param', list, 'Fixture parameters',
+          default=_FIXTURE_PARAMETERS),
       Arg('enable_factory_server', bool, 'Get parameters from factory server',
-          True),
-      Arg('network_setting', dict, 'Network setting to define *local_ip*, \n'
-          '*port*, *gateway_ip*', {}),
-      Arg('audio_conf', str, 'Audio config file path', None),
+          default=True),
+      Arg('network_setting', dict, 'Network setting to define *local_ip*, '
+          '*port*, *gateway_ip*', default={}),
+      Arg('audio_conf', str, 'Audio config file path', default=None),
       Arg('wav_file', str, 'Wav file path for playback_wav_file command.',
-          None),
-      Arg('keep_raw_logs', bool,
-          'Whether to attach the log by Testlog.',
+          default=None),
+      Arg('keep_raw_logs', bool, 'Whether to attach the log by Testlog.',
           default=True)
   ]
 
@@ -193,9 +192,9 @@ class AudioQualityTest(unittest.TestCase):
     self._out_card = self._dut.audio.GetCardIndexByName(self.args.output_dev[0])
     self._out_device = self.args.output_dev[1]
 
-    # Backward compitable for non-porting case, which use ALSA device name.
-    # only works on chromebook device
-    # TODO(mojahsu) Remove them later.
+    # Backward compatible for non-porting case, which use ALSA device name.
+    # only works on chromebook device.
+    # TODO(mojahsu): Remove them later.
     self._alsa_input_device = 'hw:%s,%s' % (self._in_card, self._in_device)
     self._alsa_output_device = 'hw:%s,%s' % (self._out_card, self._out_device)
 
@@ -257,21 +256,10 @@ class AudioQualityTest(unittest.TestCase):
     self._test_dir = os.path.join(
         paths.DATA_TESTS_DIR, session.GetCurrentTestPath())
 
-    self._ui = test_ui.UI()
-    self._ui.CallJSFunction('setMessage', _LABEL_SPACE_TO_START)
-    self._ui.AddEventHandler('start_run', self.StartRun)
-    self._ui.BindKeyJS(
-        test_ui.SPACE_KEY,
-        'test.sendTestEvent("start_run",{});'
-        'document.getElementById("msg-utility").style.display="none";',
-        once=True)
-    self._ui.AddEventHandler('mock_command', self.MockCommand)
+    self.ui.AddEventHandler('mock_command', self.MockCommand)
     process_utils.Spawn(
         ['iptables', '-A', 'INPUT', '-p', 'tcp', '--dport', str(self._port),
          '-j', 'ACCEPT'], check_call=True)
-
-  def runTest(self):
-    self._ui.Run()
 
   def tearDown(self):
     self._dut.audio.RestoreMixerControls()
@@ -628,12 +616,12 @@ class AudioQualityTest(unittest.TestCase):
   def HandleLoopDefault(self, *args):
     """Restore amixer configuration to default."""
     self.RestoreConfiguration()
-    self._ui.CallJSFunction('setMessage', _LABEL_WAITING)
+    self.ui.CallJSFunction('setMessage', _LABEL_WAITING)
     self.SendResponse(None, args)
 
   def HandleLoop(self):
     """Starts the internal audio loopback."""
-    self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP)
+    self.ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP)
 
     if self._loop_type == LoopType.sox:
       cmdargs = [audio_utils.SOX_PATH, '-t', 'alsa',
@@ -646,8 +634,8 @@ class AudioQualityTest(unittest.TestCase):
                  str(self._loop_buffer_count)]
       self._loop_process = process_utils.Spawn(cmdargs)
     elif self._loop_type == LoopType.tinyloop:
-      self._dut.audio.CreateAudioLoop(self._in_card, self._in_subdevice,
-                                      self._out_card, self._out_subdevice)
+      self._dut.audio.CreateAudioLoop(self._in_card, self._in_device,
+                                      self._out_card, self._out_device)
     elif self._loop_type == LoopType.hwloop:
       pass
 
@@ -675,14 +663,14 @@ class AudioQualityTest(unittest.TestCase):
       self.HandlePlaybackWavFile()
     else:
       self.HandleLoop()
-    self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP)
+    self.ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP)
     self.SendResponse(None, args)
 
   def HandleLoopFromDmicToJack(self, *args):
     """LCD mic loop to headphone."""
     session.console.info('Audio Loop DMIC->Headphone')
     self.RestoreConfiguration()
-    self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_DMIC_ON)
+    self.ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_DMIC_ON)
     if not self._dut.audio.ApplyAudioConfig(_DMIC_JACK_SCRIPT, 0, True):
       self._dut.audio.EnableHeadphone(self._out_card)
       self._dut.audio.EnableDmic(self._in_card)
@@ -693,7 +681,7 @@ class AudioQualityTest(unittest.TestCase):
     """LCD mic loop to headphone."""
     session.console.info('Audio Loop DMIC2->Headphone')
     self.RestoreConfiguration()
-    self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_DMIC_ON)
+    self.ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_DMIC_ON)
     if not self._dut.audio.ApplyAudioConfig(_DMIC2_JACK_SCRIPT, 0, True):
       self._dut.audio.EnableDmic2(self._in_card)
       self._dut.audio.EnableHeadphone(self._out_card)
@@ -704,8 +692,8 @@ class AudioQualityTest(unittest.TestCase):
     """External mic loop to speaker."""
     session.console.info('Audio Loop Mic Jack->Speaker')
     self.RestoreConfiguration()
-    self._ui.CallJSFunction('setMessage',
-                            _LABEL_AUDIOLOOP + _LABEL_SPEAKER_MUTE_OFF)
+    self.ui.CallJSFunction('setMessage',
+                           _LABEL_AUDIOLOOP + _LABEL_SPEAKER_MUTE_OFF)
     if not self._dut.audio.ApplyAudioConfig(_JACK_SPEAKER_SCRIPT, 0, True):
       self._dut.audio.EnableExtmic(self._in_card)
       self._dut.audio.EnableSpeaker(self._out_card)
@@ -721,7 +709,7 @@ class AudioQualityTest(unittest.TestCase):
     """Keyboard mic loop to headphone."""
     session.console.info('Audio Loop MLB DMIC->Headphone')
     self.RestoreConfiguration()
-    self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_MLBDMIC_ON)
+    self.ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_MLBDMIC_ON)
     if not self._dut.audio.ApplyAudioConfig(_KDMIC_JACK_SCRIPT, 0, True):
       self._dut.audio.EnableMLBDmic(self._in_card)
       self._dut.audio.EnableHeadphone(self._out_card)
@@ -731,7 +719,7 @@ class AudioQualityTest(unittest.TestCase):
   def HandleXtalkLeft(self, *args):
     """Cross talk left."""
     self.RestoreConfiguration()
-    self._ui.CallJSFunction('setMessage', _LABEL_PLAYTONE_LEFT)
+    self.ui.CallJSFunction('setMessage', _LABEL_PLAYTONE_LEFT)
     self._dut.audio.MuteLeftHeadphone(self._out_card)
     cmdargs = audio_utils.GetPlaySineArgs(1, self._alsa_output_device)
     self._tone_process = process_utils.Spawn(cmdargs)
@@ -740,7 +728,7 @@ class AudioQualityTest(unittest.TestCase):
   def HandleXtalkRight(self, *args):
     """Cross talk right."""
     self.RestoreConfiguration()
-    self._ui.CallJSFunction('setMessage', _LABEL_PLAYTONE_RIGHT)
+    self.ui.CallJSFunction('setMessage', _LABEL_PLAYTONE_RIGHT)
     self._dut.audio.MuteRightHeadphone(self._out_card)
     cmdargs = audio_utils.GetPlaySineArgs(0, self._alsa_output_device)
     self._tone_process = process_utils.Spawn(cmdargs)
@@ -787,10 +775,10 @@ class AudioQualityTest(unittest.TestCase):
     logging.info('Get event %s', event)
     cmd = event.data.get('cmd', '')
     if cmd == 'reset':
-      self._ui.CallJSFunction('setMessage', _LABEL_SPACE_TO_START)
-    for key in self._handlers.iterkeys():
+      self.ui.CallJSFunction('setMessage', _LABEL_SPACE_TO_START)
+    for key, handler in self._handlers.iteritems():
       if key.match(cmd):
-        self._handlers[key]()
+        handler()
         break
 
   def InitAudioParameter(self):
@@ -804,12 +792,12 @@ class AudioQualityTest(unittest.TestCase):
     latest parameter and apply it.
     """
     session.console.info('Start downloading parameters...')
-    self._ui.CallJSFunction('setMessage', _LABEL_CONNECT_SHOPFLOOR)
+    self.ui.CallJSFunction('setMessage', _LABEL_CONNECT_SHOPFLOOR)
     proxy = server_proxy.GetServerProxy()
     logging.info('Syncing time with factory server...')
     time_utils.SyncTimeWithFactoryServer()
 
-    self._ui.CallJSFunction('setMessage', _LABEL_DOWNLOADING_PARAMETERS)
+    self.ui.CallJSFunction('setMessage', _LABEL_DOWNLOADING_PARAMETERS)
     download_list = []
     for glob_expression in self._parameters:
       logging.info('Listing %s', glob_expression)
@@ -845,28 +833,24 @@ class AudioQualityTest(unittest.TestCase):
     self._listen_thread = threading.Thread(target=self.ListenForever,
                                            args=(sock,))
     self._listen_thread.start()
-    self._ui.CallJSFunction('setMessage', _LABEL_READY)
+    self.ui.CallJSFunction('setMessage', _LABEL_READY)
 
     while True:
       if self._test_complete:
         break
       time.sleep(_CHECK_FIXTURE_COMPLETE_SECS)
 
-  def StartRun(self, event):
-    """Runs the testing flow after user press 'space'.
+  def runTest(self):
+    self.ui.CallJSFunction('setMessage', _LABEL_SPACE_TO_START)
+    self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
+    self.ui.HideElement('msg-utility')
+    self.ui.HideElement('fa-utility')
 
-    Args:
-      event: event from UI.
-    """
-    del event  # Unused.
     self.RunAudioServer()
 
-    if self._test_passed:
-      self._ui.Pass()
-      session.console.info('Test passed')
-    else:
+    if not self._test_passed:
       if self._enable_factory_server:
         session.console.info('Test failed. Force to flush event logs...')
         goofy_instance = state.get_instance()
         goofy_instance.FlushEventLogs()
-      self._ui.Fail(_LABEL_FAIL_LOGS)
+      self.FailTask(_LABEL_FAIL_LOGS)

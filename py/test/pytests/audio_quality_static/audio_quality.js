@@ -2,30 +2,27 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-var active = 'loop_0';
-var display_fa_utility = false;
+let active = 'loop_0';
+let display_fa_utility = false;
 
-function setMessage(msg) {
+const setMessage = (msg) => {
   document.getElementById('message').innerHTML = msg;
-}
+};
 
-function testCommand(cmd) {
-  if (active.length != 0) {
+const testCommand = (cmd) => {
+  if (active) {
     document.getElementById(active).checked = false;
   }
   window.test.sendTestEvent('mock_command', {'cmd': cmd});
   active = cmd;
-}
+};
 
-function restore() {
-  if (active.length != 0) {
-    document.getElementById(active).checked = false;
-  }
+const restore = () => {
   testCommand('loop_0');
   document.getElementById('loop_0').checked = true;
-}
+};
 
-function toggleFAUtility() {
+const toggleFAUtility = () => {
   if (display_fa_utility) {
     restore();
     document.getElementById('fa-utility').style.display = 'none';
@@ -36,4 +33,14 @@ function toggleFAUtility() {
     display_fa_utility = true;
     setMessage('');
   }
+};
+
+const exports = {
+  setMessage,
+  testCommand,
+  restore,
+  toggleFAUtility
+};
+for (const key of Object.keys(exports)) {
+  window[key] = exports[key];
 }
