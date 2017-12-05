@@ -19,34 +19,26 @@ import re
 from select import select
 import subprocess
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
-from cros.factory.test import session
 from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test import session
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
-
-HTML = """
-<div id="bb-phase" style="font-size: 2em"></div>
-<div id="bb-status" style="font-size: 1.5em"></div>
-<div id="bb-progress"></div>
-"""
+from cros.factory.utils import type_utils
 
 
-class BadBlocksTest(unittest.TestCase):
-  # SATA link speed, or None if unknown.
-  sata_link_speed_mbps = None
+_TestModes = type_utils.Enum(['file', 'raw', 'stateful_partition_free_space'])
 
+
+class BadBlocksTest(test_ui.TestCaseWithUI):
   ARGS = [
-      Arg('mode', str, 'String to specify which operating mode to use, '
-          'currently this supports file, raw or stateful_partition_free_space.',
-          default='stateful_partition_free_space'),
+      Arg('mode', _TestModes, 'Specify which operating mode to use.',
+          default=_TestModes.stateful_partition_free_space),
       Arg('device_path', str, 'Override the device path on which to test. '
           'Also functions as a file path for file and raw modes.',
           default=None),
@@ -78,26 +70,33 @@ class BadBlocksTest(unittest.TestCase):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self.ui = test_ui.UI()
-    self.template = ui_templates.TwoSections(self.ui)
-    self.template.SetState(HTML)
-    self.template.DrawProgressBar()
 
     # A process that monitors /var/log/messages file.
     self.message_monitor = None
 
+    # SATA link speed, or None if unknown.
+    self.sata_link_speed_mbps = None
+
     self.CheckArgs()
 
-  def runTest(self):
-    self.ui.RunInBackground(self._CheckBadBlocks)
-    self.ui.Run()
+    # TODO(bhthompson): refactor this for a better device type detection.
+    if self.args.mode == _TestModes.file:
+      unused_mount_on, self._filesystem = self.dut.storage.GetMountPoint(
+          self.args.device_path)
+    else:
+      self._filesystem = self.args.device_path
+
+    # If 'mmcblk' in self._filesystem assume we are eMMC.
+    self._is_mmc = 'mmcblk' in self._filesystem
+
+    self.ui.DrawProgressBar()
 
   def tearDown(self):
     # Sync, so that any problems (like writing outside of our partition)
     # will show up sooner rather than later.
     self._LogSmartctl()
     self.dut.Call(['sync'])
-    if self.args.mode == 'file':
+    if self.args.mode == _TestModes.file:
       self.dut.Call(['rm', '-f', self.args.device_path])
     if self.message_monitor:
       self.message_monitor.kill()
@@ -106,12 +105,12 @@ class BadBlocksTest(unittest.TestCase):
   def CheckArgs(self):
     if self.args.max_bytes:
       # We don't want to try running bad blocks on <1kB
-      self.assertTrue(self.args.max_bytes >= 1024, 'max_bytes too small.')
+      self.assertGreaterEqual(self.args.max_bytes, 1024, 'max_bytes too small.')
     if self.args.device_path is None:
-      if self.args.mode == 'raw':
+      if self.args.mode == _TestModes.raw:
         raise ValueError('In raw mode the device_path must be specified.')
       self.args.device_path = self.dut.storage.GetMainStorageDevice()
-    if self.args.mode == 'file':
+    if self.args.mode == _TestModes.file:
       if self.args.device_path.startswith('/dev/'):
         # In file mode we want to use the filesystem, not a device node,
         # so we default to the stateful partition.
@@ -125,24 +124,14 @@ class BadBlocksTest(unittest.TestCase):
                                                    self.args.max_bytes)
 
   def DetermineParameters(self):
-    # TODO(bhthompson): refactor this for a better device type detection.
-    # pylint: disable=W0201
-    if self.args.mode == 'file':
-      unused_mount_on, self._filesystem = self.dut.storage.GetMountPoint(
-          self.args.device_path)
-    else:
-      self._filesystem = self.args.device_path
-    # If 'mmcblk' in self._filesystem assume we are eMMC.
-    self._is_mmc = 'mmcblk' in self._filesystem
-
     first_block = 0
     sector_size = 1024
-    if self.args.mode == 'file':
+    if self.args.mode == _TestModes.file:
       last_block = self.args.max_bytes / sector_size
       logging.info('Using a generated file at %s, size %dB, sector size %dB, '
                    'last block %d.', self.args.device_path, self.args.max_bytes,
                    sector_size, last_block)
-    elif self.args.mode == 'raw':
+    elif self.args.mode == _TestModes.raw:
       # For some files like dev nodes we cannot trust the stats provided by
       # the os, so we manually seek to the end of the file to determine size.
       raw_file_bytes = file_utils.GetFileSizeInBytes(self.args.device_path,
@@ -158,7 +147,7 @@ class BadBlocksTest(unittest.TestCase):
       logging.info('Using an existing file at %s, size %dB, sector size %dB, '
                    'last block %d.', self.args.device_path, self.args.max_bytes,
                    sector_size, last_block)
-    elif self.args.mode == 'stateful_partition_free_space':
+    elif self.args.mode == _TestModes.stateful_partition_free_space:
       part_prefix = 'p' if self.args.device_path[-1].isdigit() else ''
       # Always partition 1
       partition_path = '%s%s1' % (self.args.device_path, part_prefix)
@@ -204,8 +193,8 @@ class BadBlocksTest(unittest.TestCase):
                      'first_block',
                      'last_block']]))
 
-      self.assertTrue(
-          last_block >= first_block,
+      self.assertGreaterEqual(
+          last_block, first_block,
           'This test requires factory server installed factory test image')
     else:
       raise ValueError('Invalid mode selected, check test_list mode setting.')
@@ -215,7 +204,7 @@ class BadBlocksTest(unittest.TestCase):
     return Parameters(first_block, last_block, sector_size,
                       self.args.device_path, self.args.max_errors)
 
-  def _CheckBadBlocks(self):
+  def runTest(self):
     self.assertFalse(sys_utils.InChroot(),
                      'badblocks test may not be run within the chroot')
 
@@ -225,7 +214,7 @@ class BadBlocksTest(unittest.TestCase):
         (params.last_block - params.first_block + 1) *
         params.sector_size / 1024. ** 2)
 
-    self.template.SetInstruction(
+    self.ui.SetInstruction(
         i18n_test_ui.MakeI18nLabel(
             'Testing {test_size_mb} region of storage',
             test_size_mb=test_size_mb))
@@ -321,7 +310,7 @@ class BadBlocksTest(unittest.TestCase):
           # Calculate overall percentage done.
           fraction_done = (current_phase / float(total_phases) +
                            max(0, fraction_within_phase) / float(total_phases))
-          self.template.SetProgressBarValue(round(fraction_done * 100))
+          self.ui.SetProgressBarValue(round(fraction_done * 100))
 
           if line.startswith('done'):
             current_phase += 1
@@ -387,8 +376,8 @@ class BadBlocksTest(unittest.TestCase):
     # of smartctl for mmc.
     if self._is_mmc:
       return
-    if self.args.extra_log_cmd:
 
+    if self.args.extra_log_cmd:
       try:
         process = self.dut.Popen(
             self.args.extra_log_cmd, stdout=subprocess.PIPE,
@@ -423,8 +412,8 @@ class BadBlocksTest(unittest.TestCase):
     # No SATA on mmc.
     if self._is_mmc:
       return
-    first_time = self.message_monitor is None
 
+    first_time = self.message_monitor is None
     if first_time:
       self.message_monitor = self.dut.Popen(['tail', '-f', '/var/log/messages'],
                                             stdin=open('/dev/null'),
