@@ -1,20 +1,6 @@
 {
   "inherit": "goofy_plugin_chromeos",
   "plugins": {
-    "system_log_manager": {
-      "args": {
-        "sync_log_period_secs": 300,
-        "clear_log_paths": [
-          "/var/log/connectivity.log",
-          "/var/log/connectivity.bak",
-          "/var/log/net.log",
-          "/var/log/net.*.log",
-          "/var/log/messages*",
-          "/var/log/ui/*",
-          "/var/log/chrome/*"],
-        "enable_foreground_sync": false
-      }
-    },
     "log_rotation_checker": {
       "args": {
         "disable_rotation": false
