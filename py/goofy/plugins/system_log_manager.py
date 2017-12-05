@@ -234,19 +234,16 @@ class SystemLogManager(plugin.Plugin):
       abort_time: The time to abort rsync subprocess if abort_time is not None.
       periodic: This is a periodic sync.
     """
-    if periodic:
-      try:
-        self._SyncLogsImpl(extra_files, callback, abort_time, periodic)
-      except Exception:
-        if not self._suppress_periodic_server_messages:
-          logging.warning('Suppress periodic server error messages '
-                          'after the first one.')
-          self._suppress_periodic_server_messages = True
-          raise
-        else:
-          return
-    else:
+    try:
       self._SyncLogsImpl(extra_files, callback, abort_time, periodic)
+    except Exception:
+      if not periodic:
+        raise
+      if not self._suppress_periodic_server_messages:
+        logging.warning(
+            'Suppress periodic server error messages after the first one.')
+        self._suppress_periodic_server_messages = True
+        raise
 
   def _SyncLogsImpl(self, extra_files, callback, abort_time, periodic=False):
     """Syncs system logs and extra files to server with a callback.
