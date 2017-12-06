@@ -112,7 +112,7 @@ class StylusTest(unittest.TestCase):
           'ratio of an endpoint of the line segment for operator to draw. '
           'Both endpoints must be on the border '
           '(e.g., X=0 or X=1 or Y=0 or Y=1).',
-          default=[(0, 1), (1, 0)]),
+          default=[[0, 1], [1, 0]]),
       Arg('autostart', bool,
           'Starts the test automatically without prompting.  Operators can '
           'still press ESC to fail the test.',
