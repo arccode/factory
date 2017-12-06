@@ -123,7 +123,6 @@ import random
 import tempfile
 import threading
 import time
-import unittest
 import uuid
 
 import factory_common  # pylint: disable=unused-import
@@ -132,7 +131,6 @@ from cros.factory.test import countdown_timer
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import barcode
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import type_utils
@@ -153,7 +151,7 @@ TestModes = type_utils.Enum(['qr', 'face', 'timeout', 'frame_count', 'manual',
                              'manual_led'])
 
 
-class CameraTest(unittest.TestCase):
+class CameraTest(test_ui.TestCaseWithUI):
   """Main class for camera test."""
   ARGS = [
       Arg('mode', TestModes,
@@ -190,20 +188,12 @@ class CameraTest(unittest.TestCase):
       Arg('camera_args', dict, 'Dict of args used for enabling the camera '
           'device. Only "resolution" is supported in e2e mode.', default={})]
 
-  def Pass(self):
-    self.done_event.set()
-    self.ui.Pass()
-
-  def Fail(self, msg):
-    self.done_event.set()
-    self.ui.Fail(msg)
-
   def _Timeout(self):
     if self.mode == TestModes.timeout:
       # If it keeps capturing images until timeout, the test passes.
-      self.Pass()
+      self.PassTask()
     else:
-      self.Fail('Camera test failed due to timeout.')
+      self.FailTask('Camera test failed due to timeout.')
 
   def ShowInstruction(self, msg):
     self.ui.CallJSFunction('showInstruction', msg)
@@ -268,10 +258,10 @@ class CameraTest(unittest.TestCase):
     self.ui.BindStandardFailKeys()
     for i in range(2):
       if i == flicker:
-        self.ui.BindKey(str(i), lambda unused_event: self.Pass())
+        self.ui.BindKey(str(i), lambda unused_event: self.PassTask())
       else:
         self.ui.BindKey(
-            str(i), lambda unused_event: self.Fail('Wrong key pressed.'))
+            str(i), lambda unused_event: self.FailTask('Wrong key pressed.'))
     self.ShowInstruction(
         _('Press 0 if LED is constantly lit, 1 if LED is flickering,\n'
           'or ESC to fail.'))
@@ -282,17 +272,17 @@ class CameraTest(unittest.TestCase):
         # Flickers the LED
         self.EnableDevice()
         self.ReadSingleFrame()
-        if self.done_event.wait(0.5):
+        if self.WaitTaskEnd(0.5):
           break
         self.DisableDevice()
-        if self.done_event.wait(0.5):
+        if self.WaitTaskEnd(0.5):
           break
     else:
       # Constantly lights the LED
       self.EnableDevice()
       while True:
         self.ReadSingleFrame()
-        if self.done_event.wait(0.5):
+        if self.WaitTaskEnd(0.5):
           break
 
   def DetectFaces(self, cv_image):
@@ -380,7 +370,6 @@ class CameraTest(unittest.TestCase):
         if mode == TestModes.frame_count:
           frame_count += 1
           if frame_count >= self.args.num_frames_to_pass:
-            self.Pass()
             return
         elif (mode in [TestModes.qr, TestModes.face] and
               time.time() - tock > process_interval):
@@ -391,14 +380,13 @@ class CameraTest(unittest.TestCase):
               (mode == TestModes.face and self.DetectFaces(cv_image))):
             detected_frame_count += 1
           if detected_frame_count >= self.args.num_frames_to_pass:
-            self.Pass()
             return
 
         if self.args.show_image:
           self.ShowImage(cv_image)
 
-        if self.done_event.wait(max(0, tick - (time.time() - start_time))):
-          break
+        if self.WaitTaskEnd(max(0, tick - (time.time() - start_time))):
+          return
     finally:
       self.DisableDevice()
 
@@ -407,12 +395,6 @@ class CameraTest(unittest.TestCase):
 
     self.mode = self.args.mode
     self.e2e_mode = self.args.e2e_mode
-    self.done_event = threading.Event()
-
-    self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
-    self.ui.CallJSFunction('setupUI')
-    self.ui.AppendCSSLink('camera.css')
 
     # Whether we need to postprocess the image from e2e mode.
     # TODO(pihsun): This can be removed after the desktop Chrome implements
@@ -440,7 +422,8 @@ class CameraTest(unittest.TestCase):
       if resolution:
         options['width'], options['height'] = resolution
       options['flipImage'] = self.flip_image
-      self.ui.CallJSFunction('setupCameraTest', options)
+      self.ui.RunJS(
+          'window.cameraTest = new CameraTest(args.options)', options=options)
       self.camera_device = None
       if self.mode in [TestModes.qr, TestModes.face]:
         self.need_postprocess = True
@@ -452,12 +435,8 @@ class CameraTest(unittest.TestCase):
       self.camera_device = self.dut.camera.GetCameraDevice(device_index)
 
   def runTest(self):
-    self.ui.RunInBackground(self._runTest)
-    self.ui.Run()
-
-  def _runTest(self):
-    countdown_timer.StartCountdownTimer(self.args.timeout_secs, self._Timeout,
-                                        self.ui, 'camera-test-timer')
+    countdown_timer.StartNewCountdownTimer(self, self.args.timeout_secs,
+                                           'timer', self._Timeout)
 
     if self.mode == TestModes.manual_led:
       self.LEDTest()

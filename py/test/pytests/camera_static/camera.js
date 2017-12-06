@@ -2,21 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-const getImageDiv = () => document.getElementById('camera-test-image');
-const getPromptDiv = () => document.getElementById('camera-test-prompt');
+const imageDiv = document.getElementById('test-image');
+const promptDiv = document.getElementById('prompt');
 
 const showImage = (data_url) => {
-  const element = getImageDiv();
-  if (element) {
-    element.src = data_url;
-  }
+  imageDiv.src = data_url;
 };
 
 const hideImage = (hide) => {
-  const element = getImageDiv();
-  if (element) {
-    element.style.display = hide ? 'none' : '';
-  }
+  imageDiv.style.display = hide ? 'none' : '';
 };
 
 const failWithError = (reason) => {
@@ -30,22 +24,9 @@ const runPromise = (promise, eventName) => {
   }).catch(failWithError);
 };
 
-const setupUI = () => {
-  window.template.appendChild(
-      goog.dom.createDom('img', {'id': 'camera-test-image'}));
-  window.template.appendChild(
-      goog.dom.createDom('div', {'id': 'camera-test-prompt'}));
-  window.template.appendChild(
-      goog.dom.createDom('div', {'id': 'camera-test-timer'}));
-};
-
 const showInstruction = (instruction) => {
   goog.dom.safe.setInnerHtml(
-      getPromptDiv(), cros.factory.i18n.i18nLabel(instruction));
-};
-
-const setupCameraTest = (options) => {
-  window.cameraTest = new CameraTest(options);
+      promptDiv, cros.factory.i18n.i18nLabel(instruction));
 };
 
 class CameraTest {
@@ -162,9 +143,8 @@ const exports = {
   hideImage,
   failWithError,
   runPromise,
-  setupUI,
   showInstruction,
-  setupCameraTest
+  CameraTest
 };
 for (const key of Object.keys(exports)) {
   window[key] = exports[key];
