@@ -2,7 +2,47 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""A factory test to test the function of backlight of display panel."""
+"""Test display backlight.
+
+Description
+-----------
+This test check if the backlight of display can be adjusted.
+
+The test randomly change the backlight of display to either lower or higher,
+and operator should answer the direction of change correctly to pass the test.
+
+Test Procedure
+--------------
+1. The backlight is reset to ``reset_level``.
+2. Operator press space key to adjust the backlight to lower or higher randomly,
+   and press escape key to reset the backlight.
+3. Operator press 'H' key if the backlight is higher when pressing space key,
+   and press 'L' key if it is lower.
+4. The test pass if the operator answer correctly two times, and fail if the
+   operator answer incorrectly.
+
+Dependency
+----------
+Device API `display.SetBacklightBrightness`.
+
+Examples
+--------
+To test display backlight functionality, add this into test list::
+
+  {
+    "pytest_name": "backlight"
+  }
+
+To test display backlight functionality, and have a smaller change on each
+space pressed, add this into test list::
+
+  {
+    "pytest_name": "backlight",
+    "args": {
+      "adjust_level": 0.02
+    }
+  }
+"""
 
 import logging
 import random
