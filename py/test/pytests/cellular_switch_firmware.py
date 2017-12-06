@@ -7,27 +7,19 @@
 This test will first check current firmware and switch if necessary.
 """
 
-import unittest
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rf import cellular
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
-class CellularFirmwareSwitching(unittest.TestCase):
+class CellularFirmwareSwitching(test_ui.TestCaseWithUI):
   ARGS = [
       Arg('target', str, 'The firmware name to switch.')]
 
   def runTest(self):
-    ui = test_ui.UI()
-    template = ui_templates.OneSection(ui)
-    template.SetState(
-        i18n_test_ui.MakeI18nLabelWithClass(
-            'Switching firmware to {target!r}<br>',
-            'status-info',
-            target=self.args.target))
-    ui.RunInBackground(lambda: cellular.SwitchModemFirmware(self.args.target))
-    ui.Run()
+    self.ui.SetState(
+        i18n_test_ui.MakeI18nLabel(
+            'Switching firmware to {target!r}', target=self.args.target))
+    cellular.SwitchModemFirmware(self.args.target)

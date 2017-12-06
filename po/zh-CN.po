@@ -1511,7 +1511,7 @@ msgid "Detecting faces..."
 msgstr "侦测人脸中..."
 
 #: ../py/test/pytests/cellular_switch_firmware.py
-msgid "Switching firmware to {target!r}<br>"
+msgid "Switching firmware to {target!r}"
 msgstr "切换数据机至{target!r}韧体"
 
 #: ../py/test/pytests/chameleon/chameleon.py
