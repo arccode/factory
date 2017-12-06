@@ -205,14 +205,15 @@ class KeyboardTest(test_ui.TestCaseWithUI):
     self.ignored_down_keys = set()
 
     self.number_to_press = {}
-    default_number_to_press = self.args.repeat_times.get('default', 1)
+    repeat_times = self.args.repeat_times or {}
+    default_number_to_press = repeat_times.get('default', 1)
 
     for key in self.all_keys:
       if key in keycodes_to_skip:
         self.number_to_press[key] = 0
         self.MarkKeyState(key, 'skipped')
       else:
-        self.number_to_press[key] = self.args.repeat_times.get(
+        self.number_to_press[key] = repeat_times.get(
             str(key), default_number_to_press)
         self.MarkKeyState(key, 'untested')
 
