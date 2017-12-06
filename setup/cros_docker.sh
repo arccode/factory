@@ -95,6 +95,10 @@ upload_to_localmirror() {
   gsutil acl ch -u AllUsers:R "${remote_file_url}"
 }
 
+run_in_factory() {
+  (cd "${FACTORY_DIR}"; "$@")
+}
+
 # Base directories
 SCRIPT_DIR="$(dirname "$(realpath "$0")")"
 FACTORY_DIR="$(dirname "${SCRIPT_DIR}")"
@@ -116,7 +120,6 @@ HOST_OVERLORD_CONFIG_DIR="${HOST_OVERLORD_DIR}/config"
 PREBUILT_IMAGE_SITE="https://storage.googleapis.com"
 PREBUILT_IMAGE_DIR_URL="${PREBUILT_IMAGE_SITE}/chromeos-localmirror/distfiles"
 GSUTIL_BUCKET="gs://chromeos-localmirror/distfiles"
-CHANGES_FILE=
 COMMIT_SUBJECT="setup: Publish cros_docker image version"
 
 # Remote resources
@@ -160,7 +163,7 @@ set_docker_image_info
 : "${PROJECT:="$(cat "${HOST_UMPIRE_DIR}/.default_project" 2>/dev/null)"}"
 : "${PROJECT:="default"}"
 : "${UMPIRE_CONTAINER_NAME:="umpire_${PROJECT}"}"
-: "${UMPIRE_CONTAINER_DIR:="${PROJECT}"}"
+: "${UMPIRE_CONTAINER_DIR:="${HOST_UMPIRE_DIR}/${PROJECT}"}"
 : "${UMPIRE_PORT:="8080"}"  # base port for Umpire
 : "${DOME_PORT:="8000"}"  # port to access Dome
 : "${OVERLORD_HTTP_PORT:="9000"}"  # port to access Overlord
@@ -198,16 +201,23 @@ fetch_resource() {
   fi
 }
 
+check_git_status() {
+  [ -z "$(run_in_factory git status --porcelain)" ]
+}
+
+get_git_hash() {
+  run_in_factory git rev-parse HEAD
+}
+
 # Section for Umpire subcommand
 do_umpire_run() {
   check_docker
 
   # Separate umpire db for each container.
-  local host_db_dir="${HOST_UMPIRE_DIR}/${UMPIRE_CONTAINER_DIR}"
   local docker_db_dir="/var/db/factory/umpire"
 
   ensure_dir "${HOST_SHARED_DIR}"
-  ensure_dir "${host_db_dir}"
+  ensure_dir "${UMPIRE_CONTAINER_DIR}"
   ensure_dir_acl "${HOST_SHARED_DIR}"
 
   # TODO(pihsun): We should stop old container like what dome run does.
@@ -237,7 +247,7 @@ do_umpire_run() {
       --tmpfs "/run:rw,size=16384k" \
       --volume /etc/localtime:/etc/localtime:ro \
       --volume "${HOST_SHARED_DIR}:/mnt" \
-      --volume "${host_db_dir}:${docker_db_dir}" \
+      --volume "${UMPIRE_CONTAINER_DIR}:${docker_db_dir}" \
       --publish "${p1}:${umpire_base_port}" \
       --publish "${p2}:${umpire_cli_port}" \
       --publish "${p3}:${umpire_rsync_port}" \
@@ -254,7 +264,7 @@ do_umpire_run() {
   echo "*** NOTE ***"
   echo "- Host directory ${HOST_SHARED_DIR} is mounted" \
        "under /mnt in the container."
-  echo "- Host directory ${host_db_dir} is mounted" \
+  echo "- Host directory ${UMPIRE_CONTAINER_DIR} is mounted" \
        "under ${docker_db_dir} in the container."
   echo "- Umpire service ports is mapped to the local machine."
 }
@@ -682,6 +692,13 @@ do_build_overlord() {
 }
 
 do_build() {
+  local release_mode="$1"
+  local is_local=1
+
+  if [ "${release_mode}" = "publish" ]; then
+    is_local=0
+  fi
+
   check_docker
 
   local dome_builder_output_file="frontend.tar"
@@ -697,6 +714,14 @@ do_build() {
   fetch_resource "${BUILD_DIR}/pixz.tbz2" \
     "${RESOURCE_PIXZ_URL}" "${RESOURCE_PIXZ_SHA1}"
 
+  if check_git_status; then
+    NEW_DOCKER_IMAGE_GITHASH="$(get_git_hash)"
+  else
+    # There are some uncommitted changes.
+    NEW_DOCKER_IMAGE_GITHASH="*$(get_git_hash)"
+  fi
+  NEW_DOCKER_IMAGE_TIMESTAMP="$(date '+%Y%m%d%H%M%S')"
+
   # need to make sure we're using the same version of docker inside the container
   ${DOCKER} build \
     --file "${dockerfile}" \
@@ -707,27 +732,28 @@ do_build() {
     --build-arg umpire_dir_in_dome="${DOCKER_UMPIRE_DIR_IN_DOME}" \
     --build-arg dome_builder_output_file="${dome_builder_output_file}" \
     --build-arg overlord_output_file="${overlord_output_file}" \
+    --build-arg docker_image_githash="${NEW_DOCKER_IMAGE_GITHASH}" \
+    --build-arg docker_image_islocal="${is_local}" \
+    --build-arg docker_image_timestamp="${NEW_DOCKER_IMAGE_TIMESTAMP}" \
     "${FACTORY_DIR}"
 
   echo "${DOCKER_IMAGE_NAME} image successfully built."
 }
 
-# This function must run in ${FACTORY_DIR}.
-do_update_docker_image_version() {
-  local script_file="$1"
-  local changes_file="$2"
+do_get_changes() {
+  local changes_file="$1"
 
   # Check local modification.
-  if [ -n "$(git status --porcelain)" ]; then
+  if ! check_git_status; then
     die "Your have uncommitted or untracked changes.  " \
         "To publish you have to build without local modification."
   fi
 
+  local githash="$(get_git_hash)"
   # Check if the head is already on remotes/cros/master.
-  local head="$(git rev-parse HEAD 2>/dev/null)"
-  local upstream="$(git merge-base remotes/m/master "${head}")"
-
-  if [ "${head}" != "${upstream}" ] || [ -z "${head}" ]; then
+  local upstream="$(run_in_factory \
+    git merge-base remotes/m/master "${githash}")"
+  if [ "${githash}" != "${upstream}" ]; then
     die "Your latest commit was not merged to upstream (remotes/m/master)." \
         "To publish you have to build without local commits."
   fi
@@ -743,8 +769,9 @@ do_update_docker_image_version() {
       go/src/overlord
   )
 
-  git log --oneline ${DOCKER_IMAGE_GITHASH}.. "${source_list[@]}" \
-    | grep -v " ${COMMIT_SUBJECT} " >"${changes_file}"
+  run_in_factory \
+    git log --oneline ${DOCKER_IMAGE_GITHASH}.. "${source_list[@]}" |
+    grep -v " ${COMMIT_SUBJECT} " >"${changes_file}"
 
   if [ -s "${changes_file}" ]; then
     echo "Server related changes since last build (${DOCKER_IMAGE_BUILD}):"
@@ -754,19 +781,24 @@ do_update_docker_image_version() {
     # TODO(hungte) Make an option to allow forced publishing.
     die "No server related changes since last publish."
   fi
+}
 
-  local branch_name="$(git rev-parse --abbrev-ref HEAD)"
-  local new_timestamp="$(date '+%Y%m%d%H%M%S')"
+do_update_docker_image_version() {
+  local script_file="$1"
+  local changes_file="$2"
+
+  local branch_name="$(run_in_factory git rev-parse --abbrev-ref HEAD)"
   if [ "${branch_name}" = "HEAD" ]; then
     # We are on a detached HEAD - should start a new branch to work on so
     # do_commit_docker_image_version can create a new commit.
     # This is required before making any changes to ${script_file}.
-    repo start "cros_docker_${new_timestamp}" .
+    run_in_factory repo start "cros_docker_${NEW_DOCKER_IMAGE_TIMESTAMP}" .
   fi
 
   echo "Update publish information in $0..."
-  sed -i "s/${DOCKER_IMAGE_GITHASH}/${head}/;
-          s/${DOCKER_IMAGE_TIMESTAMP}/${new_timestamp}/" "${script_file}"
+  sed -i "s/${DOCKER_IMAGE_GITHASH}/${NEW_DOCKER_IMAGE_GITHASH}/;
+          s/${DOCKER_IMAGE_TIMESTAMP}/${NEW_DOCKER_IMAGE_TIMESTAMP}/" \
+    "${script_file}"
 }
 
 do_reload_docker_image_info() {
@@ -778,9 +810,10 @@ do_reload_docker_image_info() {
   set_docker_image_info
 }
 
-do_commit_docker_image_release()
-{
-  git commit -a -s -m \
+do_commit_docker_image_release() {
+  local changes_file="$1"
+
+  run_in_factory git commit -a -s -m \
     "${COMMIT_SUBJECT} ${DOCKER_IMAGE_TIMESTAMP}.
 
 A new release of cros_docker image on ${DOCKER_IMAGE_TIMESTAMP},
@@ -788,23 +821,26 @@ built from source using hash ${DOCKER_IMAGE_GITHASH}.
 Published as ${DOCKER_IMAGE_FILENAME}.
 
 Major changes:
-$(cat "${CHANGES_FILE}")
+$(cat "${changes_file}")
 
 BUG=chromium:679609
 TEST=None"
-  git show HEAD
+  run_in_factory git show HEAD
   echo "Uploading to gerrit..."
-  repo upload --cbr --no-verify .
+  run_in_factory repo upload --cbr --no-verify .
 }
 
 do_publish() {
   check_gsutil
 
+  local changes_file="$(mktemp)"
+  TEMP_OBJECTS=("${changes_file}" "${TEMP_OBJECTS[@]}")
+  do_get_changes "${changes_file}"
+
+  do_build publish  # make sure we have the newest image
+
   local script_file="$(realpath "$0")"
-  CHANGES_FILE="$(mktemp)"
-  TEMP_OBJECTS=("${CHANGES_FILE}" "${TEMP_OBJECTS[@]}")
-  (cd "${FACTORY_DIR}" && \
-    do_update_docker_image_version "${script_file}" "${CHANGES_FILE}") ||
+  do_update_docker_image_version "${script_file}" "${changes_file}" ||
     die "Failed updating docker image version."
 
   do_reload_docker_image_info "${script_file}"
@@ -814,8 +850,6 @@ do_publish() {
     die "${DOCKER_IMAGE_FILENAME} is already on chromeos-localmirror"
   fi
 
-  do_build  # make sure we have the newest image
-
   local temp_dir="$(mktemp -d)"
   TEMP_OBJECTS=("${temp_dir}" "${TEMP_OBJECTS[@]}")
 
@@ -823,7 +857,7 @@ do_publish() {
   upload_to_localmirror "${temp_dir}/${DOCKER_IMAGE_FILENAME}" \
     "${factory_server_image_url}"
 
-  (cd "${FACTORY_DIR}" && do_commit_docker_image_release)
+  do_commit_docker_image_release "${changes_file}"
 }
 
 do_save() {
