@@ -1,0 +1,27 @@
+/* Copyright 2017 The Chromium OS Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+.display-table {
+  display: grid;
+  grid: auto-flow / repeat(10, 1fr);
+}
+
+.image-thumb {
+  height: 2.5em;
+  border: 1px solid gray;
+}
+
+#display-image-info {
+  min-height: 0;
+  flex: 1;
+  width: fit-content;
+  margin: 0.4em 0;
+}
+
+.image-info {
+  max-height: 100%;
+  max-width: 100%;
+  border: 1px solid gray;
+}

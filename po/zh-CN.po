@@ -1722,18 +1722,24 @@ msgid "image-vertical-rgbw"
 msgstr "影像-垂直"
 
 #: ../py/test/pytests/display_images.py
-msgid ""
-"Press space to show each image on display<br>Press Enter to PASS after "
-"showing all images"
-msgstr "按空白键来拨放影像在萤幕上<br>拨放完所有影像后,压下Enter表示成功"
-
-#: ../py/test/pytests/display_images.py
-msgid "({index}/{total})Uploading images {name}"
-msgstr "({index}/{total})正在上传图档 {name}"
-
-#: ../py/test/pytests/display_images.py
 msgid "Display Test"
 msgstr "显示测试"
+
+#: ../py/test/pytests/display_images.py
+msgid "({index}/{total}) Uploading images {name}"
+msgstr "({index}/{total}) 正在上传图档 {name}"
+
+#: ../py/test/pytests/display_images.py
+msgid "All images uploaded."
+msgstr "所有图像上传完成"
+
+#: ../py/test/pytests/display_images_static/display_images.html
+msgid "Press space to show each image on display."
+msgstr "按空白键来拨放影像在萤幕上"
+
+#: ../py/test/pytests/display_images_static/display_images.html
+msgid "Press Enter to PASS after showing all images."
+msgstr "拨放完所有影像后,压下Enter表示成功"
 
 #: ../py/test/pytests/display_point_static/display_point.js
 msgid ""

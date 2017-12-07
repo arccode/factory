@@ -21,8 +21,6 @@ dut/abc.ppm and station/abc.bmp
 import glob
 import logging
 import os
-import threading
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -30,7 +28,6 @@ from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
@@ -40,78 +37,15 @@ _DEFAULT_IMAGE_FILE = 'display_images.tar.gz'
 _IMAGE_DIR = 'images'
 _STATION_IMAGE_DIR = 'station'
 _DUT_IMAGE_DIR = 'dut'
-_THUMB_HEIGHT = 40
-_IMAGE_INFO_HEIGHT = 360
-
-_HTML_DISPLAY = """
-<div id="display_title"></div>
-<div id="prompt"></div>
-<hr>
-<div id="thumb_images"></div>
-<div id="image_info"></div>
-<hr>
-<div id="upload"></div>
-"""
-
-_CSS_DISPLAY = """
-.display-table {
-  margin-left: auto;
-  margin-right: auto;
-  width: 60%;
-  height: 80%;
-  position: relative;
-  padding-top: 10%;
-  border-collapse: collapse;
-  border: 1px solid gray;}
-"""
-
-_PROMPT = i18n_test_ui.MakeI18nLabel(
-    'Press space to show each image on display<br>'
-    'Press Enter to PASS after showing all images')
 
 
-def GetUploadMsg(name, index, total):
-  """Get Uploading message.
-
-  Arg:
-    name: filename for uploading.
-    index: the current index of the file.
-    total: total files for uploading.
-  """
-  return i18n_test_ui.MakeI18nLabel(
-      '({index}/{total})Uploading images {name}',
-      index=index,
-      total=total,
-      name=name)
-
-
-def GetThumbImageTableTag(paths):
-  """Get the html tag for images' thumbnail.
-
-  Arg:
-    paths: paths for images.
-  """
-  # show all thumbs on a raw.
-  tag = '<table class="display-table">'
-  tag += '<tr>'
-  for path in paths:
-    tag += '<td>'
-    tag += '<img src="%s" height="%d"/>' % (path, _THUMB_HEIGHT)
-    tag += '</td>'
-  tag += '</tr></table>'
-  return tag
-
-
-class DisplayImageTest(unittest.TestCase):
+class DisplayImageTest(test_ui.TestCaseWithUI):
   """Tests the function of display by displaying images.
 
   Properties:
-    _ui: test ui.
-    _template: ui template handling html layout.
     _extract_dir: temp directory for keeping image files on the station.
-    _station_image_paths: list of image paths for displaying on Station.
+    _station_image_urls: list of image paths for displaying on Station.
     _dut_temp_dir: temp directory for keeping image files on DUT.
-    _dut_image_paths: list of image paths in DUT.
     _image_index: index of the image to be displayed.
     _uploaded_index: index of the latest uploaded image.
     _total_images: number of total images.
@@ -127,20 +61,48 @@ class DisplayImageTest(unittest.TestCase):
   def setUp(self):
     """Initializes frontend presentation and properties."""
     self._dut = device_utils.CreateDUTInterface()
-    self._ui = test_ui.UI()
-    self._template = ui_templates.OneSection(self._ui)
 
-    self._ui.AppendCSS(_CSS_DISPLAY)
-    self._template.SetState(_HTML_DISPLAY)
-    self._ui.SetHTML(
+    self.ui.SetHTML(
         i18n_test_ui.MakeI18nLabel(self.args.title),
-        id='display_title')
-    self._ui.SetHTML(_PROMPT, id='prompt')
+        id='display-title')
     self._dut_temp_dir = self._dut.temp.mktemp(True, '', 'display')
     self._image_index = -1
     self._uploaded_index = -1
     self._can_pass = False
-    self.PrepareImages()
+
+    self._extract_dir = os.path.join(self.ui.GetStaticDirectoryPath(),
+                                     _IMAGE_DIR)
+    file_utils.ExtractFile(
+        os.path.join(_IMAGE_ROOT, self.args.compressed_image_file),
+        self._extract_dir)
+
+    image_paths = sorted(
+        glob.glob(os.path.join(self._extract_dir, _DUT_IMAGE_DIR, '*')))
+    self._dut_image_paths = [
+        self._dut.path.join(self._dut_temp_dir, os.path.basename(x))
+        for x in image_paths
+    ]
+
+    station_paths = sorted(
+        glob.glob(os.path.join(self._extract_dir, _STATION_IMAGE_DIR, '*')))
+    self._station_image_urls = [
+        os.path.join(_IMAGE_DIR, _STATION_IMAGE_DIR, os.path.basename(x))
+        for x in station_paths
+    ]
+
+    self.assertEqual(
+        len(image_paths),
+        len(station_paths),
+        'There should be same number of images in dut and station folders.')
+
+    # Because uploading images cost a lot of time, use another thread to do it.
+    # Operator can test uploaded images in parallel.
+    process_utils.StartDaemonThread(
+        target=self.UploadImages, args=(station_paths, ))
+
+    images = ''.join('<img src="%s" class="image-thumb">' % path
+                     for path in self._station_image_urls)
+    self.ui.SetHTML(images, id='display-table')
 
   def tearDown(self):
     self._dut.display.StopDisplayImage()
@@ -150,63 +112,45 @@ class DisplayImageTest(unittest.TestCase):
 
   def runTest(self):
     """Sets the callback function of keys and run the test."""
-    self._ui.BindKey(test_ui.SPACE_KEY, lambda _: self.OnSpacePressed())
-    self._ui.BindKey(test_ui.ENTER_KEY, lambda _: self.OnEnterPressed())
-    self._ui.Run()
+    while True:
+      pressed_key = self.ui.WaitKeysOnce([test_ui.SPACE_KEY, test_ui.ENTER_KEY])
+      if pressed_key == test_ui.SPACE_KEY:
+        self.OnSpacePressed()
+      elif pressed_key == test_ui.ENTER_KEY:
+        if self._can_pass:
+          break
 
-  def UploadImages(self, dut_image_filenames):
+  def UploadImages(self, image_paths):
     """Upload images to DUT."""
-    for i in xrange(self._total_images):
-      basename = dut_image_filenames[i]
+    for i in xrange(len(image_paths)):
       # path in the station
-      path = os.path.join(self._extract_dir, _DUT_IMAGE_DIR, basename)
+      path = image_paths[i]
       dut_path = self._dut_image_paths[i]
-      self._ui.SetHTML(GetUploadMsg(basename, i + 1, self._total_images),
-                       id='upload')
+      name = os.path.basename(path)
+      self.ui.SetHTML(
+          i18n_test_ui.MakeI18nLabel(
+              '({index}/{total}) Uploading images {name}',
+              index=i + 1,
+              total=len(image_paths),
+              name=name),
+          id='upload')
       self._dut.link.Push(path, dut_path)
       self._uploaded_index = i
-
-  def PrepareImages(self):
-    """Prepare image files on Station and DUT"""
-    self._extract_dir = os.path.join(self._ui.GetStaticDirectoryPath(),
-                                     _IMAGE_DIR)
-    file_utils.ExtractFile(
-        os.path.join(_IMAGE_ROOT, self.args.compressed_image_file),
-        self._extract_dir)
-    image_path_pattern = os.path.join(self._extract_dir, _DUT_IMAGE_DIR, '*')
-    image_paths = sorted(glob.glob(image_path_pattern))
-    dut_image_filenames = [os.path.basename(x) for x in image_paths]
-    self._dut_image_paths = [self._dut.path.join(self._dut_temp_dir, x)
-                             for x in dut_image_filenames]
-
-    station_paths = glob.glob(os.path.join(self._extract_dir,
-                                           _STATION_IMAGE_DIR, '*'))
-    self._station_image_paths = [os.path.join(_IMAGE_DIR, _STATION_IMAGE_DIR,
-                                              os.path.basename(x))
-                                 for x in sorted(station_paths)]
-    self._total_images = len(dut_image_filenames)
-    # Because uploading images cost a lot of time, use another thread to do it.
-    # Operator can test uploaded images in parallel.
-    thread = threading.Thread(target=lambda:
-                              self.UploadImages(dut_image_filenames))
-    thread.start()
-
-    tag = GetThumbImageTableTag(self._station_image_paths)
-    self._ui.SetHTML(tag, id='thumb_images')
+    self.ui.SetHTML(
+        i18n_test_ui.MakeI18nLabel('All images uploaded.'), id='upload')
 
   def OnSpacePressed(self):
     """Display next image."""
-    display_index = (self._image_index + 1) % self._total_images
+    display_index = (self._image_index + 1) % len(self._station_image_urls)
     # Don't do display if the image is not uploaded.
     if display_index > self._uploaded_index:
       return
 
     # show the image on the chromebook to let operator know what will be shown
     # on the DUT.
-    path = self._station_image_paths[display_index]
-    tag = '%d:<img src="%s" height="%d"/>' % (display_index, path,
-                                              _IMAGE_INFO_HEIGHT)
-    self._ui.SetHTML(tag, id='image_info')
+    path = self._station_image_urls[display_index]
+    tag = '%d: <img src="%s" class="image-info">' % (display_index, path)
+    self.ui.SetHTML(tag, id='display-image-info')
     # Display image on DUT.
     dut_path = self._dut_image_paths[display_index]
     logging.info('Display image index %d, image %s, dut path %s',
@@ -215,10 +159,5 @@ class DisplayImageTest(unittest.TestCase):
     self._dut.display.DisplayImage(dut_path)
     self._image_index = display_index
 
-    if display_index == self._total_images - 1:
+    if display_index == len(self._station_image_urls) - 1:
       self._can_pass = True
-
-  def OnEnterPressed(self):
-    """Passes the test."""
-    if self._can_pass:
-      self._ui.Pass()
