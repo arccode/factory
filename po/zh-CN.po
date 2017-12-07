@@ -1577,10 +1577,6 @@ msgstr "映像版本不正确，请按空白键重新安装。"
 msgid "Flashing netboot firmware..."
 msgstr "烧录网路开机固件..."
 
-#: ../py/test/pytests/compass.py ../py/test/pytests/tablet_mode_ui.py
-msgid "Success!"
-msgstr "成功！"
-
 #: ../py/test/pytests/compass.py
 msgid "north"
 msgstr "北"
@@ -1592,6 +1588,11 @@ msgstr "南"
 #: ../py/test/pytests/compass.py
 msgid "Put the DUT towards {direction}"
 msgstr "将机器朝向{direction}方"
+
+#: ../py/test/pytests/compass_static/compass.html
+#: ../py/test/pytests/tablet_mode_ui.py
+msgid "Success!"
+msgstr "成功！"
 
 #: ../py/test/pytests/countdown_static/countdown.html
 msgid "Elapsed time:"

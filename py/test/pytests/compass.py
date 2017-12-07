@@ -8,66 +8,23 @@
 
 import math
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
-_COMPASS_CSS = """
-.compass {
-  width: 10em;
-  height: 10em;
-  border: 2px solid black;
-  border-radius: 50%;
-  font-size: 2em;
-  text-align: center;
-  margin: 0.5em;
-}
 
-.success {
-  background: #afa;
-  font-size: 4em;
-}
-
-.container {
-  display: flex;
-  flex-flow: row;
-  align-items: center;
-}
-"""
-
-_STATE_TEMPLATE = """
-<div class="container">
-  <div>
-    in_magn_x: {in_magn_x}<br>
-    in_magn_y: {in_magn_y}<br>
-    in_magn_z: {in_magn_z}<br>
-    degree: {degree:.1f}<br>
-  </div>
-  <div class='compass' style='transform: rotate({degree}deg)'>
-    <div style='color: red'>N</div>
-    <div style='position: absolute; bottom: 0; left: 0; right: 0'>S</div>
-  </div>
-</div>
-"""
-
-_MSG_STATUS_SUCCESS = i18n_test_ui.MakeI18nLabel('Success!')
-_HTML_STATUS_SUCCESS = '<div class="success">%s</div>' % _MSG_STATUS_SUCCESS
-
-_NORTH = (0, 1)
-_SOUTH = (0, -1)
+_TEST_ITEMS = [(_('north'), (0, 1)), (_('south'), (0, -1))]
 
 _FLASH_STATUS_TIME = 1
 
 
-class CompassTest(unittest.TestCase):
+class CompassTest(test_ui.TestCaseWithUI):
   ARGS = [
       Arg('tolerance', int, 'The tolerance in degree.',
           default=5),
@@ -80,30 +37,18 @@ class CompassTest(unittest.TestCase):
     self.dut = device_utils.CreateDUTInterface()
     self.controller = self.dut.magnetometer.GetController(
         location=self.args.location)
-    self.ui = test_ui.UI(css=_COMPASS_CSS)
-    self._template = ui_templates.TwoSections(self.ui)
 
   def runTest(self):
-    self._SetInstruction(_('north'))
-    sync_utils.PollForCondition(
-        poll_method=lambda: self._CheckDirection(_NORTH),
-        timeout_secs=1000,
-        poll_interval_secs=0.1)
-    self._template.SetState(_HTML_STATUS_SUCCESS)
-    time.sleep(_FLASH_STATUS_TIME)
-
-    self._SetInstruction(_('south'))
-    sync_utils.PollForCondition(
-        poll_method=lambda: self._CheckDirection(_SOUTH),
-        timeout_secs=1000,
-        poll_interval_secs=0.1)
-    self._template.SetState(_HTML_STATUS_SUCCESS)
-    time.sleep(_FLASH_STATUS_TIME)
-
-  def _SetInstruction(self, direction):
-    label = i18n_test_ui.MakeI18nLabel(
-        'Put the DUT towards {direction}', direction=direction)
-    self._template.SetInstruction(label)
+    for direction_label, direction in _TEST_ITEMS:
+      self.ui.SetInstruction(i18n_test_ui.MakeI18nLabel(
+          'Put the DUT towards {direction}', direction=direction_label))
+      sync_utils.PollForCondition(
+          poll_method=type_utils.BindFunction(self._CheckDirection, direction),
+          timeout_secs=1000,
+          poll_interval_secs=0.1)
+      self.ui.ShowElement('success')
+      time.sleep(_FLASH_STATUS_TIME)
+      self.ui.HideElement('success')
 
   def _CalculateDirection(self, x, y):
     """Calculate the absolute direction of the compass in degree.
@@ -134,9 +79,16 @@ class CompassTest(unittest.TestCase):
     x, y = values['in_magn_x'], values['in_magn_y']
     if x == 0 and y == 0:
       # atan2(0, 0) returns 0, we need to avoid this case.
-      raise type_utils.TestFailure(
-          'Sensor outputs (0, 0), possibly not working.')
+      self.FailTask('Sensor outputs (0, 0), possibly not working.')
     degree = self._CalculateDirection(x, y)
-    self._template.SetState(_STATE_TEMPLATE.format(degree=degree, **values))
+    self._UpdateUI(degree=degree, **values)
     return (
         self._CalculateAngle(x, y, *expected_direction) < self.args.tolerance)
+
+  def _UpdateUI(self, degree, in_magn_x, in_magn_y, in_magn_z):
+    self.ui.SetHTML('%.2f' % degree, id='degree')
+    self.ui.SetHTML(in_magn_x, id='in-magn-x')
+    self.ui.SetHTML(in_magn_y, id='in-magn-y')
+    self.ui.SetHTML(in_magn_z, id='in-magn-z')
+    self.ui.RunJS('document.getElementById("compass").style.transform = '
+                  '"rotate(%ddeg)";' % degree)

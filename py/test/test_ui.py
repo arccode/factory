@@ -508,6 +508,16 @@ class UI(object):
         'document.getElementById(args.id).style.display = "none"',
         id=element_id)
 
+  def ShowElement(self, element_id):
+    """Show an element by setting display: initial.
+
+    Args:
+      element_id: The HTML DOM id of the element to be shown.
+    """
+    self.RunJS(
+        'document.getElementById(args.id).style.display = "initial"',
+        id=element_id)
+
   def ImportHTML(self, url):
     """Import a HTML to the test pane.
 
