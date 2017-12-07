@@ -1606,16 +1606,16 @@ msgid "Load:"
 msgstr "系统负载："
 
 #: ../py/test/pytests/developer_switch.py
-msgid "Please turn <b class=\"on\">ON</b> Developer Switch."
-msgstr "请<b class=\"on\">开启</b> DEV SW 开发者开关。"
-
-#: ../py/test/pytests/developer_switch.py
 msgid "Please turn <b class=\"off\">OFF</b> Developer Switch."
 msgstr "请<b class=\"off\">关闭</b> DEV SW 开发者开关。"
 
 #: ../py/test/pytests/developer_switch.py
 msgid "Develop switch is currently <b class=\"on\">ON</b>."
 msgstr "DEV SW 开发者开关目前为<b class=\"on\">开启</b>状态"
+
+#: ../py/test/pytests/developer_switch.py
+msgid "Please turn <b class=\"on\">ON</b> Developer Switch."
+msgstr "请<b class=\"on\">开启</b> DEV SW 开发者开关。"
 
 #: ../py/test/pytests/developer_switch.py
 msgid "Develop switch is currently <b class=\"off\">OFF</b>."
