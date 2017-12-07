@@ -53,7 +53,6 @@ import collections
 import logging
 import os
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -70,7 +69,10 @@ _WARNING_TEMP_RATIO = 0.95
 _CRITICAL_TEMP_RATIO = 0.98
 
 
-class CountDownTest(unittest.TestCase):
+Status = collections.namedtuple('Status', ['temperatures', 'fan_rpm'])
+
+
+class CountDownTest(test_ui.TestCaseWithUI):
   """A countdown test that monitors and logs various system status."""
 
   ARGS = [
@@ -105,13 +107,13 @@ class CountDownTest(unittest.TestCase):
     return '%02d:%02d:%02d' % (hours, minutes, seconds)
 
   def UpdateTimeAndLoad(self):
-    self._ui.SetHTML(
+    self.ui.SetHTML(
         self.FormatSeconds(self._elapsed_secs),
         id='cd-elapsed-time')
-    self._ui.SetHTML(
-        self.FormatSeconds(self._remaining_secs),
+    self.ui.SetHTML(
+        self.FormatSeconds(self.args.duration_secs - self._elapsed_secs),
         id='cd-remaining-time')
-    self._ui.SetHTML(
+    self.ui.SetHTML(
         ' '.join(open('/proc/loadavg').read().split()[0:3]),
         id='cd-system-load')
 
@@ -123,24 +125,27 @@ class CountDownTest(unittest.TestCase):
     log_str = '.  '.join(log_items)
     self._verbose_log.write(log_str + os.linesep)
     self._verbose_log.flush()
-    self._ui.AppendHTML('<div>%s</div>' % log_str, id='cd-log-panel')
-    self._ui.RunJS('const panel = document.getElementById("cd-log-panel");'
-                   'if (panel.childNodes.length > 512)'
-                   '  panel.removeChild(panel.firstChild);'
-                   'panel.scrollTop = panel.scrollHeight;')
+    self.ui.AppendHTML(
+        '<div>%s</div>' % test_ui.Escape(log_str),
+        id='cd-log-panel',
+        autoscroll=True)
+    self.ui.RunJS('const panel = document.getElementById("cd-log-panel");'
+                  'if (panel.childNodes.length > 512)'
+                  '  panel.removeChild(panel.firstChild);')
 
   def UpdateLegend(self, sensor_names):
     for i, sensor in enumerate(sensor_names):
-      self._ui.AppendHTML('<div class="cd-legend-item">[%d] %s</div>' %
-                          (i, sensor), id='cd-legend-item-panel')
+      self.ui.AppendHTML(
+          '<div class="cd-legend-item">[%d] %s</div>' % (i, sensor),
+          id='cd-legend-item-panel')
     if sensor_names:
-      self._ui.RunJS('$("cd-legend-panel").style.display = "block";')
+      self.ui.ShowElement('cd-legend-panel')
 
   def DetectAbnormalStatus(self, status, last_status):
     def GetTemperature(sensor):
       try:
         if sensor is None:
-          sensor = self._main_sensor  # _main_sensor is basestring.
+          sensor = self._main_sensor
         return status.temperatures[sensor]
       except IndexError:
         return None
@@ -232,11 +237,10 @@ class CountDownTest(unittest.TestCase):
           session.console.warn(w)
 
   def SnapshotStatus(self):
-    return self.Status(self._dut.thermal.GetAllTemperatures(),
-                       self._dut.fan.GetFanRPM())
+    return Status(self._dut.thermal.GetAllTemperatures(),
+                  self._dut.fan.GetFanRPM())
 
   def setUp(self):
-    self.Status = collections.namedtuple('Status', ['temperatures', 'fan_rpm'])
     self._dut = device_utils.CreateDUTInterface()
     self._main_sensor = self._dut.thermal.GetMainSensorName()
     # Normalize the sensors so main sensor is always the first one.
@@ -244,23 +248,19 @@ class CountDownTest(unittest.TestCase):
     sensors.sort()
     sensors.insert(0, sensors.pop(sensors.index(self._main_sensor)))
     self._sensors = sensors
-    self._ui = test_ui.UI()
+
+    self._start_secs = time.time()
+    self._elapsed_secs = 0
+    self._next_log_time = 0
+    self._next_ui_update_time = 0
+    self._verbose_log = None
 
   def runTest(self):
-    self._ui.RunInBackground(self._runTest)
-    self._ui.Run()
-
-  def _runTest(self):
-    # pylint: disable=attribute-defined-outside-init
     verbose_log_path = session.GetVerboseTestLogPath()
     file_utils.TryMakeDirs(os.path.dirname(verbose_log_path))
     logging.info('Raw verbose logs saved in %s', verbose_log_path)
     self._verbose_log = open(verbose_log_path, 'a')
-    self._start_secs = time.time()
-    self._elapsed_secs = 0
-    self._remaining_secs = self.args.duration_secs
-    self._next_log_time = 0
-    self._next_ui_update_time = 0
+
     last_status = self.SnapshotStatus()
 
     try:
@@ -269,7 +269,7 @@ class CountDownTest(unittest.TestCase):
       pass
 
     # Loop until count-down ends.
-    while self._remaining_secs >= 0:
+    while self._elapsed_secs < self.args.duration_secs:
       self.UpdateTimeAndLoad()
 
       current_time = time.time()
@@ -290,4 +290,3 @@ class CountDownTest(unittest.TestCase):
 
       time.sleep(1)
       self._elapsed_secs = time.time() - self._start_secs
-      self._remaining_secs = round(self.args.duration_secs - self._elapsed_secs)

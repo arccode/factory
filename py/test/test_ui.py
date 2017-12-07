@@ -693,7 +693,7 @@ class ScrollableLogUI(StandardUI):
 
     line: The log to be append.
     """
-    self.AppendHTML(line, id='ui-log', autoscroll=True)
+    self.AppendHTML(Escape(line), id='ui-log', autoscroll=True)
 
   def PipeProcessOutputToUI(self, cmd, callback=None):
     """Run a process and pipe its stdout and stderr to the UI.
