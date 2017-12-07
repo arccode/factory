@@ -13,6 +13,7 @@ separately maintains metadata. See buffer_file_common.py for details.
 from __future__ import print_function
 
 import os
+import shutil
 
 import instalog_common  # pylint: disable=W0611
 from instalog import plugin_base
@@ -21,6 +22,7 @@ from instalog.utils.arg_utils import Arg
 from instalog.utils import file_utils
 
 
+_TEMPORARY_ATTACHMENT_DIR = 'attachments_tmp_dir'
 _DEFAULT_TRUNCATE_INTERVAL = 0  # truncating disabled
 _DEFAULT_COPY_ATTACHMENTS = False  # use move instead of copy by default
 _DEFAULT_ENABLE_FSYNC = True  # fsync when it receives events
@@ -45,12 +47,20 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
 
   def __init__(self, *args, **kwargs):
     self.buffer_file = None
+    self.attachments_tmp_dir = None
     super(BufferSimpleFile, self).__init__(*args, **kwargs)
 
   def SetUp(self):
     """Sets up the plugin."""
     self.buffer_file = buffer_file_common.BufferFile(
         self.args, self.logger, self.GetDataDir())
+
+    self.attachments_tmp_dir = os.path.join(self.GetDataDir(),
+                                            _TEMPORARY_ATTACHMENT_DIR)
+    # Remove the attachments tmp dir, if Instalog terminated last time.
+    if os.path.exists(self.attachments_tmp_dir):
+      shutil.rmtree(self.attachments_tmp_dir)
+    file_utils.TryMakeDirs(self.attachments_tmp_dir)
 
   def Main(self):
     """Main thread of the plugin."""
@@ -78,9 +88,7 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
     Note the careful edge cases with attachment files.  We want them *all* to
     be either moved or copied into the buffer's database, or *none* at all.
     """
-    tmp_dir_base = os.path.join(self.GetDataDir(), 'attachments_tmp_dir')
-    file_utils.TryMakeDirs(tmp_dir_base)
-    with file_utils.TempDirectory(dir=tmp_dir_base) as tmp_dir:
+    with file_utils.TempDirectory(dir=self.attachments_tmp_dir) as tmp_dir:
       try:
         # Step 1: Copy attachments.
         source_paths = []
@@ -90,7 +98,7 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
             event.attachments[att_id] = os.path.join(
                 tmp_dir, att_path.replace('/', '_'))
         if not buffer_file_common.CopyAttachmentsToTempDir(
-            source_paths, tmp_dir):
+            source_paths, tmp_dir, self.logger):
           return False
         # Step 2: Write the new events to the file.
         self.buffer_file.ProduceEvents(events)

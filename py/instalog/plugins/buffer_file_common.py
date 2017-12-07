@@ -73,6 +73,7 @@ Versioning:
 
 from __future__ import print_function
 
+import copy
 import json
 import logging
 import os
@@ -101,6 +102,13 @@ def GetChecksum(data):
   return '{:08x}'.format(abs(zlib.crc32(data)))
 
 
+def FormatRecord(seq, record):
+  """Returns a record formatted as a line to be written to disk."""
+  data = '%d, %s' % (seq, record)
+  checksum = GetChecksum(data)
+  return '[%s, %s]\n' % (data, checksum)
+
+
 def TryLoadJSON(path, logger=logging):
   """Attempts to load JSON from the given file.
 
@@ -122,7 +130,7 @@ def TryLoadJSON(path, logger=logging):
     raise
 
 
-def CopyAttachmentsToTempDir(att_paths, tmp_dir):
+def CopyAttachmentsToTempDir(att_paths, tmp_dir, logger=logging):
   """Copys attachments to the temporary directory."""
   try:
     for att_path in att_paths:
@@ -131,8 +139,8 @@ def CopyAttachmentsToTempDir(att_paths, tmp_dir):
         raise ValueError('Attachment path `%s` specified in event does not '
                          'exist' % att_path)
       target_path = os.path.join(tmp_dir, att_path.replace('/', '_'))
-      logging.debug('Copying attachment: %s --> %s',
-                    att_path, target_path)
+      logger.debug('Copying attachment: %s --> %s',
+                   att_path, target_path)
       with open(target_path, 'w') as dst_f:
         with open(att_path, 'r') as src_f:
           shutil.copyfileobj(src_f, dst_f)
@@ -147,8 +155,229 @@ def CopyAttachmentsToTempDir(att_paths, tmp_dir):
     os.close(dirfd)
     return True
   except Exception:
-    logging.exception('Exception encountered when copying attachments')
+    logger.exception('Exception encountered when copying attachments')
     return False
+
+
+def MoveAndWrite(config_dct, events):
+  """Moves the atts, serializes the events and writes them to the data_path."""
+  logger = config_dct['logger']
+  metadata_dct = RestoreMetadata(config_dct)
+  cur_seq = metadata_dct['last_seq'] + 1
+  cur_pos = metadata_dct['end_pos'] - metadata_dct['start_pos']
+  # Truncate the size of the file in case of a previously unfinished
+  # transaction.
+  with open(config_dct['data_path'], 'a') as f:
+    f.truncate(cur_pos)
+
+  with open(config_dct['data_path'], 'a') as f:
+    # On some machines, the file handle offset isn't set to EOF until
+    # a write occurs.  Thus we must manually seek to the end to ensure
+    # that f.tell() will return useful results.
+    f.seek(0, 2)  # 2 means use EOF as the reference point.
+    assert f.tell() == cur_pos
+    for event in events:
+      for att_id, att_path in event.attachments.iteritems():
+        target_name = '%s_%s' % (cur_seq, att_id)
+        target_path = os.path.join(config_dct['attachments_dir'], target_name)
+        event.attachments[att_id] = target_name
+        logger.debug('Relocating attachment %s: %s --> %s',
+                     att_id, att_path, target_path)
+        # Note: This could potentially overwrite an existing file that got
+        # written just before Instalog process stopped unexpectedly.
+        os.rename(att_path, target_path)
+
+      logger.debug('Writing event with cur_seq=%d, cur_pos=%d',
+                   cur_seq, cur_pos)
+      output = FormatRecord(cur_seq, event.Serialize())
+
+      # Store the version for SaveMetadata to use.
+      if cur_pos == 0:
+        metadata_dct['version'] = GetChecksum(output)
+
+      f.write(output)
+      cur_seq += 1
+      cur_pos += len(output)
+
+    if config_dct['args'].enable_fsync:
+      # Fsync the file and the containing directory to make sure it
+      # is flushed to disk.
+      f.flush()
+      os.fdatasync(f)
+      dirfd = os.open(os.path.dirname(config_dct['data_path']),
+                      os.O_DIRECTORY)
+      os.fsync(dirfd)
+      os.close(dirfd)
+  metadata_dct['last_seq'] = cur_seq - 1
+  metadata_dct['end_pos'] = metadata_dct['start_pos'] + cur_pos
+  SaveMetadata(config_dct, metadata_dct)
+
+
+def SaveMetadata(config_dct, metadata_dct, old_metadata_dct=None):
+  """Writes metadata of main database to disk."""
+  if not metadata_dct['version']:
+    raise SimpleFileException('No `version` available for SaveMetadata')
+  data = {metadata_dct['version']: metadata_dct}
+  if old_metadata_dct and old_metadata_dct['version']:
+    if metadata_dct['version'] == old_metadata_dct['version']:
+      raise SimpleFileException(
+          'Same `version` from new metadata and old metadata')
+    data[old_metadata_dct['version']] = old_metadata_dct
+  with file_utils.AtomicWrite(config_dct['metadata_path'], fsync=True) as f:
+    json.dump(data, f)
+
+
+def RestoreMetadata(config_dct):
+  """Restores version from the main data file on disk.
+
+  If the metadata file does not exist, will silently return.
+  """
+  logger = config_dct['logger']
+  metadata_dct = {'first_seq': 1, 'last_seq': 0,
+                  'start_pos': 0, 'end_pos': 0,
+                  'version': None}
+  data = TryLoadJSON(config_dct['metadata_path'], logger)
+  if data is not None:
+    try:
+      with open(config_dct['data_path'], 'r') as f:
+        metadata_dct['version'] = GetChecksum(f.readline())
+    except Exception:
+      logger.error('Data file unexpectedly missing; resetting metadata')
+      return metadata_dct
+    if metadata_dct['version'] not in data:
+      logger.error('Could not find metadata version %s (available: %s); '
+                   'recovering metadata from data file',
+                   metadata_dct['version'], ', '.join(data.keys()))
+      RecoverMetadata(config_dct, metadata_dct)
+      return metadata_dct
+    if len(data) > 1:
+      logger.info('Metadata contains multiple versions %s; choosing %s',
+                  ', '.join(data.keys()), metadata_dct['version'])
+    metadata_dct.update(data[metadata_dct['version']])
+    if (metadata_dct['end_pos'] >
+        metadata_dct['start_pos'] + os.path.getsize(config_dct['data_path'])):
+      logger.error('end_pos in restored metadata is larger than start_pos + '
+                   'data file; recovering metadata from data file')
+      RecoverMetadata(config_dct, metadata_dct)
+  return metadata_dct
+
+
+def RecoverMetadata(config_dct, metadata_dct):
+  """Recovers metadata from the main data file on disk.
+
+  Uses the first valid record for first_seq and start_pos, and the last
+  valid record for last_seq and end_pos.
+  """
+  logger = config_dct['logger']
+  first_record = True
+  cur_pos = 0
+  with open(config_dct['data_path'], 'r') as f:
+    for line in f:
+      seq, _unused_record = ParseRecord(line, config_dct['logger'])
+      if first_record and seq:
+        metadata_dct['first_seq'] = seq
+        metadata_dct['start_pos'] = cur_pos
+        first_record = False
+      cur_pos += len(line)
+      if seq:
+        metadata_dct['last_seq'] = seq
+        metadata_dct['end_pos'] = cur_pos
+  logger.info('Finished recovering metadata; sequence range found: %d to %d',
+              metadata_dct['first_seq'], metadata_dct['last_seq'])
+  SaveMetadata(config_dct, metadata_dct)
+
+
+def TruncateAttachments(config_dct):
+  """Deletes attachments of events no longer stored within data.json."""
+  logger = config_dct['logger']
+  metadata_dct = RestoreMetadata(config_dct)
+  for fname in os.listdir(config_dct['attachments_dir']):
+    fpath = os.path.join(config_dct['attachments_dir'], fname)
+    if not os.path.isfile(fpath):
+      continue
+    seq, unused_underscore, unused_att_id = fname.partition('_')
+    if not seq.isdigit():
+      continue
+    if (int(seq) < metadata_dct['first_seq'] or
+        int(seq) > metadata_dct['last_seq']):
+      logger.debug('Truncating attachment (<seq=%d or >seq=%d): %s',
+                   metadata_dct['first_seq'], metadata_dct['last_seq'], fname)
+      os.unlink(fpath)
+
+
+def Truncate(config_dct, min_seq, min_pos, truncate_attachments=True):
+  """Truncates the main data file to only contain unprocessed records.
+
+  See file-level docstring for more information about versions.
+
+  Args:
+    truncate_attachments: Whether or not to truncate attachments.
+                            For testing.
+  """
+  logger = config_dct['logger']
+  metadata_dct = RestoreMetadata(config_dct)
+  # Does the buffer already have data in it?
+  if not metadata_dct['version']:
+    return
+  if metadata_dct['first_seq'] == min_seq:
+    logger.info('No need to truncate')
+    return
+  try:
+    logger.debug('Will truncate up until seq=%d, pos=%d', min_seq, min_pos)
+
+    # Prepare the old vs. new metadata to write to disk.
+    old_metadata_dct = copy.deepcopy(metadata_dct)
+    metadata_dct['first_seq'] = min_seq
+    metadata_dct['start_pos'] = min_pos
+
+    with file_utils.AtomicWrite(config_dct['data_path'], fsync=True) as new_f:
+      # AtomicWrite opens a file handle to a temporary file right next to
+      # the real file (data_path), so we can open a "read" handle on data_path
+      # without affecting AtomicWrite's handle.  Only when AtomicWrite's context
+      # block ends will the temporary be moved to replace data_path.
+      with open(config_dct['data_path'], 'r') as old_f:
+        old_f.seek(min_pos - old_metadata_dct['start_pos'])
+
+        # Deal with the first line separately to get the new version.
+        first_line = old_f.readline()
+        metadata_dct['version'] = GetChecksum(first_line)
+        new_f.write(first_line)
+
+        shutil.copyfileobj(old_f, new_f)
+
+      # Before performing the "replace" step of write-replace (when
+      # the file_utils.AtomicWrite context ends), save metadata to disk in
+      # case of disk failure.
+      SaveMetadata(config_dct, metadata_dct, old_metadata_dct)
+
+    # After we use AtomicWrite, we can remove old metadata.
+    SaveMetadata(config_dct, metadata_dct)
+    # Now that we have written the new data and metadata to disk, remove any
+    # unused attachments.
+    if truncate_attachments:
+      TruncateAttachments(config_dct)
+
+  except Exception:
+    logger.exception('Exception occurred during Truncate operation')
+    raise
+
+
+def ParseRecord(line, logger=logging):
+  """Parses and returns a line from disk as a record.
+
+  Returns:
+    A tuple of (seq_number, record), or None on failure.
+  """
+  line_inner = line.rstrip()[1:-1]  # Strip [] and newline
+  data, _, checksum = line_inner.rpartition(', ')
+  seq, _, record = data.partition(', ')
+  if not seq or not record:
+    logger.warning('Parsing error for record %s', line.rstrip())
+    return None, None
+  if checksum != GetChecksum(data):
+    logger.warning('Checksum error for record %s', line.rstrip())
+    return None, None
+  return int(seq), record
 
 
 class BufferFile(log_utils.LoggerMixin):
@@ -181,98 +410,30 @@ class BufferFile(log_utils.LoggerMixin):
     self._consumer_lock = threading.Lock()
     self.consumers = {}
 
-    self.old_version = None
-    self.old_first_seq = None
-    self.old_last_seq = None
-    self.old_start_pos = None
-    self.old_end_pos = None
-
-    self.version = None
-    self.first_seq = 1
-    self.last_seq = 0
-    self.start_pos = 0
-    self.end_pos = 0
-
-    # Try restoring metadata, if it exists.
-    self._RestoreMetadata()
-    if self.version:
-      self._SaveMetadata()
     self._RestoreConsumers()
 
     # Try truncating any attachments from any partial Truncate operations.
-    self._TruncateAttachments()
+    TruncateAttachments(self.ConfigToDict())
 
-  def _SaveMetadata(self):
-    """Writes metadata of main database to disk."""
-    if not self.version:
-      raise SimpleFileException('No `version` available for SaveMetadata')
-    data = {self.version: {
-        'first_seq': self.first_seq,
-        'last_seq': self.last_seq,
-        'start_pos': self.start_pos,
-        'end_pos': self.end_pos}}
-    if self.old_version:
-      data[self.old_version] = {
-          'first_seq': self.old_first_seq,
-          'last_seq': self.old_last_seq,
-          'start_pos': self.old_start_pos,
-          'end_pos': self.old_end_pos}
-    self.old_version = None
-    with file_utils.AtomicWrite(self.metadata_path, fsync=True) as f:
-      json.dump(data, f)
+  @property
+  def first_seq(self):
+    return RestoreMetadata(self.ConfigToDict())['first_seq']
 
-  def _RestoreMetadata(self):
-    """Restores metadata for main data file from disk.
+  @property
+  def last_seq(self):
+    return RestoreMetadata(self.ConfigToDict())['last_seq']
 
-    If the metadata file does not exist, will silently return.
-    """
-    data = TryLoadJSON(self.metadata_path, self.logger)
-    if data is not None:
-      try:
-        self._RestoreVersionFromDisk()
-      except Exception:
-        self.error('Data file unexpectedly missing; resetting metadata')
-        return
-      if self.version not in data:
-        self.error('Could not find metadata version %s (available: %s); '
-                   'recovering metadata from data file',
-                   self.version, ', '.join(data.keys()))
-        self._RecoverMetadata()
-        return
-      if len(data) > 1:
-        self.info('Metadata contains multiple versions %s; choosing %s',
-                  ', '.join(data.keys()), self.version)
-      self.first_seq = data[self.version]['first_seq']
-      self.last_seq = data[self.version]['last_seq']
-      self.start_pos = data[self.version]['start_pos']
-      self.end_pos = data[self.version]['end_pos']
-      # Check that end_pos <= start_pos + size of data_path.
-      if self.end_pos > self.start_pos + os.path.getsize(self.data_path):
-        self.error('end_pos in restored metadata is larger than start_pos + '
-                   'data file; recovering metadata from data file')
-        self._RecoverMetadata()
+  @property
+  def start_pos(self):
+    return RestoreMetadata(self.ConfigToDict())['start_pos']
 
-  def _RecoverMetadata(self):
-    """Recovers metadata from the main data file on disk.
+  @property
+  def end_pos(self):
+    return RestoreMetadata(self.ConfigToDict())['end_pos']
 
-    Uses the first valid record for first_seq and start_pos, and the last
-    valid record for last_seq and end_pos.
-    """
-    first_record = False
-    cur_pos = 0
-    with open(self.data_path, 'r') as f:
-      for line in f:
-        seq, _unused_record = self.ParseRecord(line)
-        if not first_record and seq:
-          self.first_seq = seq
-          self.start_pos = cur_pos
-          first_record = True
-        cur_pos += len(line)
-        if seq:
-          self.last_seq = seq
-          self.end_pos = cur_pos
-    self.info('Finished recovering metadata; sequence range found: %d to %d',
-              self.first_seq, self.last_seq)
+  @property
+  def version(self):
+    return RestoreMetadata(self.ConfigToDict())['version']
 
   def _SaveConsumers(self):
     """Saves the current list of active Consumers to disk."""
@@ -291,61 +452,6 @@ class BufferFile(log_utils.LoggerMixin):
       for name in data:
         self.consumers[name] = self._CreateConsumer(name)
 
-  def _RestoreVersionFromDisk(self):
-    """Restores version from the main data file on disk.
-
-    See file-level docstring for more information about versions.
-
-    Raises:
-      Exception if the file could not be opened or read correctly.
-    """
-    with open(self.data_path, 'r') as f:
-      self._StoreVersion(f.readline())
-
-  def _StoreVersion(self, first_line):
-    """Calculates version from the given string and saves to self.version.
-
-    See file-level docstring for more information about versions.
-    """
-    self.version = GetChecksum(first_line)
-
-  def _FormatRecord(self, seq, record):
-    """Returns a record formatted as a line to be written to disk."""
-    data = '%d, %s' % (seq, record)
-    checksum = GetChecksum(data)
-    return '[%s, %s]\n' % (data, checksum)
-
-  def ParseRecord(self, line):
-    """Parses and returns a line from disk as a record.
-
-    Returns:
-      A tuple of (seq_number, record), or None on failure.
-    """
-    line_inner = line.rstrip()[1:-1]  # Strip [] and newline
-    data, _, checksum = line_inner.rpartition(', ')
-    seq, _, record = data.partition(', ')
-    if not seq or not record:
-      self.warning('Parsing error for record %s', line.rstrip())
-      return None, None
-    if checksum != GetChecksum(data):
-      self.warning('Checksum error for record %s', line.rstrip())
-      return None, None
-    return int(seq), record
-
-  def _TruncateAttachments(self):
-    """Deletes attachments of events no longer stored within data.json."""
-    for fname in os.listdir(self.attachments_dir):
-      fpath = os.path.join(self.attachments_dir, fname)
-      if not os.path.isfile(fpath):
-        continue
-      seq, _unused_underscore, _att_id = fname.partition('_')
-      if not seq.isdigit():
-        continue
-      if int(seq) < self.first_seq or int(seq) > self.last_seq:
-        self.debug('Truncating attachment (<seq=%d or >seq=%d): %s',
-                   self.first_seq, self.last_seq, fname)
-        os.unlink(fpath)
-
   def ExternalizeEvent(self, event):
     """Modifies attachment paths of given event to be absolute."""
     for att_id in event.attachments.keys():
@@ -354,56 +460,17 @@ class BufferFile(log_utils.LoggerMixin):
           self.attachments_dir, event.attachments[att_id]))
     return event
 
+  def ConfigToDict(self):
+    return {'logger': self.logger, 'args': self.args, 'data_dir': self.data_dir,
+            'data_path': self.data_path, 'metadata_path': self.metadata_path,
+            'consumers_list_path': self.consumers_list_path,
+            'consumer_path_format': self.consumer_path_format,
+            'attachments_dir': self.attachments_dir}
+
   def ProduceEvents(self, events):
     """Moves attachments, serializes events and writes them to the data_path."""
     with self.data_write_lock:
-      # Truncate the size of the file in case of a previously unfinished
-      # transaction.
-      with open(self.data_path, 'a') as f:
-        f.truncate(self.end_pos - self.start_pos)
-
-      cur_seq = self.last_seq + 1
-      cur_pos = self.end_pos - self.start_pos
-      with open(self.data_path, 'a') as f:
-        # On some machines, the file handle offset isn't set to EOF until
-        # a write occurs.  Thus we must manually seek to the end to ensure
-        # that f.tell() will return useful results.
-        f.seek(0, 2)  # 2 means use EOF as the reference point.
-        assert f.tell() == cur_pos
-        for event in events:
-          for att_id, att_path in event.attachments.iteritems():
-            target_name = '%s_%s' % (cur_seq, att_id)
-            target_path = os.path.join(self.attachments_dir, target_name)
-            event.attachments[att_id] = target_name
-            self.debug('Relocating attachment %s: %s --> %s',
-                       att_id, att_path, target_path)
-            # Note: This could potentially overwrite an existing file that got
-            # written just before Instalog process stopped unexpectedly.
-            os.rename(att_path, target_path)
-
-          self.debug('Writing event with cur_seq=%d, cur_pos=%d',
-                     cur_seq, cur_pos)
-          output = self._FormatRecord(cur_seq, event.Serialize())
-
-          # Store the version for SaveMetadata to use.
-          if cur_pos == 0:
-            self._StoreVersion(output)
-
-          f.write(output)
-          cur_seq += 1
-          cur_pos += len(output)
-
-        if self.args.enable_fsync:
-          # Fsync the file and the containing directory to make sure it
-          # is flushed to disk.
-          f.flush()
-          os.fdatasync(f)
-          dirfd = os.open(os.path.dirname(self.data_path), os.O_DIRECTORY)
-          os.fsync(dirfd)
-          os.close(dirfd)
-      self.last_seq = cur_seq - 1
-      self.end_pos = self.start_pos + cur_pos
-      self._SaveMetadata()
+      MoveAndWrite(self.ConfigToDict(), events)
 
   def _GetFirstUnconsumedRecord(self):
     """Returns the seq and pos of the first unprocessed record.
@@ -411,73 +478,34 @@ class BufferFile(log_utils.LoggerMixin):
     Checks each Consumer to find the earliest unprocessed record, and returns
     that record's seq and pos.
     """
-    min_seq = self.last_seq + 1
-    min_pos = self.end_pos
+    metadata_dct = RestoreMetadata(self.ConfigToDict())
+    min_seq = metadata_dct['last_seq'] + 1
+    min_pos = metadata_dct['end_pos']
     for consumer in self.consumers.values():
       min_seq = min(min_seq, consumer.cur_seq)
       min_pos = min(min_pos, consumer.cur_pos)
     return min_seq, min_pos
 
-  def Truncate(self, _truncate_attachments=True):
+  def Truncate(self, truncate_attachments=True):
     """Truncates the main data file to only contain unprocessed records.
 
     See file-level docstring for more information about versions.
 
     Args:
-      _truncate_attachments: Whether or not to truncate attachments.
+      truncate_attachments: Whether or not to truncate attachments.
                              For testing.
     """
     with self.data_write_lock, self._consumer_lock:
-      # Does the buffer already have data in it?
-      if not self.version:
-        return
+      min_seq, min_pos = self._GetFirstUnconsumedRecord()
       try:
         for consumer in self.consumers.values():
           consumer.read_lock.acquire()
-        min_seq, min_pos = self._GetFirstUnconsumedRecord()
-        self.debug('Will truncate up until seq=%d, pos=%d', min_seq, min_pos)
-
-        # Prepare the old vs. new metadata to write to disk.
-        self.old_version = self.version
-        self.old_first_seq = self.first_seq
-        self.old_last_seq = self.last_seq
-        self.old_start_pos = self.start_pos
-        self.old_end_pos = self.end_pos
-        self.first_seq = min_seq
-        self.start_pos = min_pos
-
-        with file_utils.AtomicWrite(self.data_path, fsync=True) as new_f:
-          # AtomicWrite opens a file handle to a temporary file right next to
-          # the real file (self.data_path), so we can open a "read" handle on
-          # self.data_path without affecting AtomicWrite's handle.  Only when
-          # AtomicWrite's context block ends will the temporary be moved to
-          # replace self.data_path.
-          with open(self.data_path, 'r') as old_f:
-            old_f.seek(min_pos - self.old_start_pos)
-
-            # Deal with the first line separately to get the new version.
-            first_line = old_f.readline()
-            self._StoreVersion(first_line)
-            new_f.write(first_line)
-
-            shutil.copyfileobj(old_f, new_f)
-
-          # Before performing the "replace" step of write-replace (when
-          # the file_utils.AtomicWrite context ends), save metadata to disk in
-          # case of disk failure.
-          self._SaveMetadata()
-
-        # Now that we have written the new data and metadata to disk, remove any
-        # unused attachments.
-        if _truncate_attachments:
-          self._TruncateAttachments()
-
+        Truncate(self.ConfigToDict(), min_seq, min_pos, truncate_attachments)
       except Exception:
         self.exception('Exception occurred during Truncate operation')
         # If any exceptions occurred, restore metadata, to make sure we are
         # using the correct version, since we aren't sure if the write succeeded
         # or not.
-        self._RestoreMetadata()
         raise
       finally:
         # Ensure that regardless of any errors, locks are released.
@@ -548,8 +576,9 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
     self.read_lock = threading.Lock()
     self.read_buf = []
 
-    self.cur_seq = simple_file.first_seq
-    self.cur_pos = simple_file.start_pos
+    metadata_dct = RestoreMetadata(self.simple_file.ConfigToDict())
+    self.cur_seq = metadata_dct['first_seq']
+    self.cur_pos = metadata_dct['start_pos']
     self.new_seq = self.cur_seq
     self.new_pos = self.cur_pos
 
@@ -591,15 +620,16 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
         self.error('Consumer %s metadata file invalid; resetting', self.name)
         return
       # Make sure we are still ahead of simple_file.
-      self.cur_seq = min(max(self.simple_file.first_seq, data['cur_seq']),
-                         self.simple_file.last_seq + 1)
-      self.cur_pos = min(max(self.simple_file.start_pos, data['cur_pos']),
-                         self.simple_file.end_pos)
-      if (data['cur_seq'] < self.simple_file.first_seq or
-          data['cur_seq'] > (self.simple_file.last_seq + 1)):
+      metadata_dct = RestoreMetadata(self.simple_file.ConfigToDict())
+      self.cur_seq = min(max(metadata_dct['first_seq'], data['cur_seq']),
+                         metadata_dct['last_seq'] + 1)
+      self.cur_pos = min(max(metadata_dct['start_pos'], data['cur_pos']),
+                         metadata_dct['end_pos'])
+      if (data['cur_seq'] < metadata_dct['first_seq'] or
+          data['cur_seq'] > (metadata_dct['last_seq'] + 1)):
         self.error('Consumer %s cur_seq=%d is out of buffer range %d to %d, '
                    'correcting to %d', self.name, data['cur_seq'],
-                   self.simple_file.first_seq, self.simple_file.last_seq + 1,
+                   metadata_dct['first_seq'], metadata_dct['last_seq'] + 1,
                    self.cur_seq)
       self.new_seq = self.cur_seq
       self.new_pos = self.cur_pos
@@ -624,8 +654,9 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
       return self.read_buf
     self.debug('_Buffer: waiting for read_lock')
     with self.read_lock:
+      metadata_dct = RestoreMetadata(self.simple_file.ConfigToDict())
       with open(self.simple_file.data_path, 'r') as f:
-        cur = self.new_pos - self.simple_file.start_pos
+        cur = self.new_pos - metadata_dct['start_pos']
         f.seek(cur)
         total_bytes = 0
         skipped_bytes = 0
@@ -634,9 +665,9 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
             break
           size = len(line)
           cur += size
-          if cur > (self.simple_file.end_pos - self.simple_file.start_pos):
+          if cur > (metadata_dct['end_pos'] - metadata_dct['start_pos']):
             break
-          seq, record = self.simple_file.ParseRecord(line)
+          seq, record = ParseRecord(line, self.logger)
           if seq is None:
             # Parsing of this line failed for some reason.
             skipped_bytes += size

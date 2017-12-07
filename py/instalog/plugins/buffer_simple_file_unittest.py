@@ -45,6 +45,7 @@ from instalog import log_utils
 from instalog import plugin_base
 # pylint: disable=no-name-in-module
 from instalog.plugins import buffer_simple_file
+from instalog.plugins import buffer_file_common
 from instalog.utils import file_utils
 
 # pylint: disable=protected-access
@@ -59,7 +60,8 @@ def _WithBufferSize(buffer_size):
       try:
         fn(*args, **kwargs)
       finally:
-        buffer_simple_file._BUFFER_SIZE_BYTES = old_buffer_size_bytes
+        buffer_simple_file.buffer_file_common._BUFFER_SIZE_BYTES = (
+            old_buffer_size_bytes)
     return Wrapper
   return ModifyFn
 
@@ -74,7 +76,7 @@ class TestBufferSimpleFile(unittest.TestCase):
     logging.info('Create state directory: %s', self.data_dir)
     self.sf = buffer_simple_file.BufferSimpleFile(
         config={} if config is None else config,
-        logger=logging.getLogger('simple_file'),
+        logger=self.logger,
         store={},
         plugin_api=None)
     self.sf.GetDataDir = lambda: self.data_dir
@@ -86,6 +88,7 @@ class TestBufferSimpleFile(unittest.TestCase):
     self.e5 = datatypes.Event({'test55555': 'event'})
 
   def setUp(self):
+    self.logger = logging.getLogger('simple_file')
     self.data_dir = None
     self._CreateBuffer()
 
@@ -96,8 +99,8 @@ class TestBufferSimpleFile(unittest.TestCase):
     """Tests internal format and parse of data.json record."""
     SEQ = 1989
     RECORD = 'hello world'
-    seq, record = self.sf.buffer_file.ParseRecord(
-        self.sf.buffer_file._FormatRecord(SEQ, RECORD))
+    seq, record = buffer_file_common.ParseRecord(
+        buffer_file_common.FormatRecord(SEQ, RECORD), self.logger)
     self.assertEqual(SEQ, seq)
     self.assertEqual(RECORD, record)
 
@@ -172,7 +175,8 @@ class TestBufferSimpleFile(unittest.TestCase):
     # pylint: disable=protected-access
     # Ensure that both e and e1 are included in the first buffer refill.  The
     # length of e can be based off of that of e1 (same base payload).
-    bytes_left = buffer_simple_file._BUFFER_SIZE_BYTES - (e1_end * 3) + 1
+    bytes_left = (buffer_simple_file.buffer_file_common._BUFFER_SIZE_BYTES -
+                  (e1_end * 3) + 1)
     e = datatypes.Event({'test1': 'event' + ('x' * bytes_left)})
     self.sf.Produce([e])
     self.sf.Produce([self.e1])
@@ -509,7 +513,7 @@ class TestBufferSimpleFile(unittest.TestCase):
       event = datatypes.Event({}, {'a': path})
       self.sf.Produce([event])
     self.assertEqual(1, self._CountAttachmentsInBuffer(self.sf))
-    self.sf.buffer_file.Truncate(_truncate_attachments=False)
+    self.sf.buffer_file.Truncate(truncate_attachments=False)
     self.assertEqual(1, self._CountAttachmentsInBuffer(self.sf))
     self.sf.SetUp()
     self.assertEqual(0, self._CountAttachmentsInBuffer(self.sf))
