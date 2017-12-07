@@ -1543,24 +1543,27 @@ msgstr "充电"
 
 #: ../py/test/pytests/charger.py
 msgid ""
-"{action} to {target:.2f}{unit} (Current charge: {charge:.2f}{unit}, battery "
-"current: {battery_current} mA) under load {load}.<br>Time remaining: "
-"{timeout} sec."
+"{action} to {target} (Current charge: {charge}, battery current: "
+"{battery_current} mA) under load {load}."
 msgstr ""
-"{action} 至 {target:.2f}{unit} (目前电量为 {charge:.2f}{unit}, 电池电流 "
-"{battery_current} mA)负载 {load}.<br>剩馀时间: {timeout} 秒."
+"{action} 至 {target} (目前电量为 {charge}, 电池电流 {battery_current} mA) 负"
+"载 {load}."
 
 #: ../py/test/pytests/charger.py
-msgid "OK! Meet {target:.2f}{unit}"
-msgstr "OK! 达到 {target:.2f}{unit}"
+msgid "Time remaining: {timeout:.0f} sec."
+msgstr "剩馀时间: {timeout:.0f} 秒."
+
+#: ../py/test/pytests/charger.py
+msgid "Testing discharge"
+msgstr "测试放电中"
 
 #: ../py/test/pytests/charger.py
 msgid "Testing charger"
 msgstr "测试充电中"
 
 #: ../py/test/pytests/charger.py
-msgid "Testing discharge"
-msgstr "测试放电中"
+msgid "OK! Meet {target}"
+msgstr "OK! 达到 {target}"
 
 #: ../py/test/pytests/check_image_version.py
 msgid "Image version is incorrect. Please re-image this device."
