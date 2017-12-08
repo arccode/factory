@@ -128,7 +128,6 @@ class TestHTTP(unittest.TestCase):
       self.stream.Queue([event])
       self.output_sandbox.Flush(2, True)
       self.assertEqual(0, len(self.core.emit_calls))
-      self.assertTrue(self.core.AllStreamsExpired())
 
 
 class TestHTTPAE(unittest.TestCase):

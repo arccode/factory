@@ -302,7 +302,7 @@ class EventStreamIterator(object):
   _DEFAULT_TIMEOUT = 30
 
   # By default, how long to block in between failed next() call attempts.
-  _DEFAULT_INTERVAL = 1
+  _DEFAULT_INTERVAL = 0.5
 
   # By default, how many events to pull until the iterator ends.  Default is
   # to pull events until no longer available.
@@ -363,10 +363,12 @@ class EventStreamIterator(object):
 
       # No new events available, take appropriate action.
       if self.blocking:
-        # The interval may be larger than the remaining time available.  Take
-        # the minimum of the two.
-        time.sleep(min(self.interval,
-                       time_utils.MonotonicTime() - self._start))
+        # If the remaining time is less than the interval, stop iteration
+        # immediately.
+        if (self.timeout - (time_utils.MonotonicTime() - self._start) <=
+            self.interval):
+          raise StopIteration
+        time.sleep(self.interval)
         continue
       else:
         raise StopIteration
