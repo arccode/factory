@@ -41,6 +41,8 @@
         "temp_criteria": [
           [
             "CPU",
+            null,
+            null,
             null
           ]
         ]
