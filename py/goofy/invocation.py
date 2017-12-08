@@ -490,10 +490,6 @@ class TestInvocation(object):
     return testlog_event
 
   def _run(self):
-    with self._lock:
-      if self._aborted:
-        return
-
     iteration_string = ''
     retries_string = ''
     if self.test.iterations > 1:
