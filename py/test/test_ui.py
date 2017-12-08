@@ -695,6 +695,10 @@ class ScrollableLogUI(StandardUI):
     """
     self.AppendHTML(Escape(line), id='ui-log', autoscroll=True)
 
+  def ClearLog(self):
+    """Clear the log in UI."""
+    self.SetHTML('', id='ui-log')
+
   def PipeProcessOutputToUI(self, cmd, callback=None):
     """Run a process and pipe its stdout and stderr to the UI.
 

@@ -67,22 +67,15 @@ from __future__ import print_function
 
 import logging
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import time_utils
 
-# TODO(pihsun): Lots of pytests that are displaying a scrollable message using
-# OneScrollableSection are having this CSS. Should have a simpler UI to show a
-# scrollable message.
-_CSS = 'test-template { text-align: left; }'
 
-
-class PingTest(unittest.TestCase):
+class PingTest(test_ui.TestCaseWithUI):
   ARGS = [
       Arg('host', str, 'The IP address or hostname to ping.'),
       Arg('interface', str, 'Source interface address, may be numeric IP '
@@ -107,20 +100,18 @@ class PingTest(unittest.TestCase):
           default=None),
   ]
 
-  def setUp(self):
-    self._ui = test_ui.UI(css=_CSS)
-    self._template = ui_templates.OneScrollableSection(self._ui)
+  ui_class = test_ui.ScrollableLogUI
 
   def _CheckSuccessPercentage(self, success_count, total_count, title=''):
     """Checks the percentage of successful pings is within the range."""
     success_percentage = (float(success_count) / total_count) * 100
     if success_percentage < self.args.ping_success_percent:
-      self._ui.Fail(
+      self.FailTask(
           'Failed to meet ping success percentage: %.2f%% (expected: %d%%).' % (
               success_percentage, self.args.ping_success_percent))
     logging.info(title + '%.2f%% packets received.', success_percentage)
 
-  def _PingTest(self):
+  def runTest(self):
     """Tests the network connection by pinging a host for a period of time.
 
     Pings a host and counts the percentage of successful pings at the end of
@@ -145,9 +136,9 @@ class PingTest(unittest.TestCase):
         p = process_utils.Spawn(ping_command,
                                 shell=True, log=True, read_stdout=True)
         logging.info(p.stdout_data)
-        self._template.SetState(
-            test_ui.Escape(p.stdout_data),
-            append=(True if total_count % 10 else False))
+        if total_count % 10 == 0:
+          self.ui.ClearLog()
+        self.ui.AppendLog(p.stdout_data + '\n')
       else:
         p = process_utils.Spawn(ping_command, shell=True, call=True,
                                 ignore_stdout=True, ignore_stderr=True)
@@ -167,9 +158,3 @@ class PingTest(unittest.TestCase):
       time.sleep(self.args.interval_secs)
 
     self._CheckSuccessPercentage(total_success_count, total_count, 'Overall: ')
-    # Passes the test if all checks above are good.
-    self._ui.Pass()
-
-  def runTest(self):
-    self._ui.RunInBackground(self._PingTest)
-    self._ui.Run()
