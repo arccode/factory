@@ -1812,16 +1812,16 @@ msgid "{display_label} Audio"
 msgstr " {display_label} 音讯"
 
 #: ../py/test/pytests/fan_speed.py
-msgid "Fan speed (RPM):"
-msgstr "风扇转速(RPM):"
-
-#: ../py/test/pytests/fan_speed.py
 msgid "Spin up fan speed: {observed_rpm} -> {target_rpm} RPM."
 msgstr "风扇加速: {observed_rpm} -> {target_rpm} RPM."
 
 #: ../py/test/pytests/fan_speed.py
 msgid "Spin down fan speed: {observed_rpm} -> {target_rpm} RPM."
 msgstr "风扇减速: {observed_rpm} -> {target_rpm} RPM."
+
+#: ../py/test/pytests/fan_speed_static/fan_speed.html
+msgid "Fan speed (RPM):"
+msgstr "风扇转速(RPM):"
 
 #: ../py/test/pytests/fastboot_flash.py
 msgid "Switching device into fastboot."

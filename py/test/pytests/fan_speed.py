@@ -25,23 +25,13 @@ In mode A, the steps are:
 
 import logging
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import type_utils
-
-
-_MSG_FAN_SPEED = i18n_test_ui.MakeI18nLabel('Fan speed (RPM):')
-_ID_STATUS = 'fs_status'
-_ID_RPM = 'fs_rpm'
-_TEST_BODY = ('<div id="%s"></div><br>\n'
-              '%s <div id="%s"></div>') % (_ID_STATUS, _MSG_FAN_SPEED, _ID_RPM)
 
 
 def _Average(numbers):
@@ -49,7 +39,7 @@ def _Average(numbers):
   return sum(numbers, 0.0) / len(numbers)
 
 
-class FanSpeedTest(unittest.TestCase):
+class FanSpeedTest(test_ui.TestCaseWithUI):
   """A factory test for testing system fan."""
 
   ARGS = [
@@ -84,9 +74,6 @@ class FanSpeedTest(unittest.TestCase):
     self.assertTrue(
         self.args.target_rpm > 0 or self.args.spin_max_then_half,
         'Either set a valid target_rpm or spin_max_then_half=True.')
-    self._ui = test_ui.UI()
-    self._template = ui_templates.OneSection(self._ui)
-    self._template.SetState(_TEST_BODY)
     self._fan = device_utils.CreateDUTInterface().fan
     if isinstance(self.args.target_rpm, int):
       self.args.target_rpm = [self.args.target_rpm]
@@ -113,19 +100,19 @@ class FanSpeedTest(unittest.TestCase):
         _('Spin up fan speed: {observed_rpm} -> {target_rpm} RPM.')
         if spin_up
         else _('Spin down fan speed: {observed_rpm} -> {target_rpm} RPM.'))
-    self._ui.SetHTML(
+    self.ui.SetHTML(
         i18n_test_ui.MakeI18nLabel(status,
                                    observed_rpm=observed_rpm,
                                    target_rpm=target_rpm),
-        id=_ID_STATUS)
-    self._ui.SetHTML(str(observed_rpm), id=_ID_RPM)
-    logging.info(status)
+        id='fs-status')
+    self.ui.SetHTML(str(observed_rpm), id='fs-rpm')
 
     if self.args.use_percentage:
       self._fan.SetFanRPM(int(target_rpm * 100 / self.args.max_rpm),
                           self.args.fan_id)
     else:
       self._fan.SetFanRPM(int(target_rpm), self.args.fan_id)
+
     # Probe fan speed for duration_secs seconds with sampling interval
     # probe_interval_secs.
     end_time = time.time() + self.args.duration_secs
@@ -135,7 +122,7 @@ class FanSpeedTest(unittest.TestCase):
       observed_rpm = self._fan.GetFanRPM(self.args.fan_id)
       for i, ith_fan_rpm in enumerate(observed_rpm):
         ith_fan_samples[i].append(ith_fan_rpm)
-      self._ui.SetHTML(str(observed_rpm), id=_ID_RPM)
+      self.ui.SetHTML(str(observed_rpm), id='fs-rpm')
       logging.info('Observed fan RPM: %s', observed_rpm)
       time.sleep(self.args.probe_interval_secs)
 
@@ -145,11 +132,8 @@ class FanSpeedTest(unittest.TestCase):
       logging.error('Insufficient #samples to get average fan speed. '
                     'Use latest one instead.')
       num_samples = 1
-    # Average the latest #num_samples readings as stablized fan speed.
-    average_fan_rpm = []
-    for i in xrange(fan_count):
-      average_fan_rpm.append(_Average(ith_fan_samples[i][-num_samples:]))
-    return average_fan_rpm
+    # Average the latest #num_samples readings as stabilized fan speed.
+    return [_Average(samples[-num_samples:]) for samples in ith_fan_samples]
 
   def VerifyResult(self, observed_rpm, target_rpm):
     """Verify observed rpms are in the range
@@ -158,15 +142,11 @@ class FanSpeedTest(unittest.TestCase):
     Args:
       observed_rpm: a list of fan rpm readings.
       target_rpm: target fan speed.
-
-    Raises:
-      TestFailure if any number is not within the desired range.
     """
     lower_bound = target_rpm - self.args.error_margin
     upper_bound = target_rpm + self.args.error_margin
     error_messages = []
-    for i in xrange(len(observed_rpm)):
-      rpm = observed_rpm[i]
+    for i, rpm in enumerate(observed_rpm):
       if lower_bound <= rpm <= upper_bound:
         logging.info('Observed fan %d RPM: %d within target range: [%d, %d].',
                      i, rpm, lower_bound, upper_bound)
@@ -175,7 +155,7 @@ class FanSpeedTest(unittest.TestCase):
             'Observed fan %d RPM: %d out of target range: [%d, %d].' %
             (i, rpm, lower_bound, upper_bound))
     if error_messages:
-      raise type_utils.TestFailure('\n'.join(error_messages))
+      self.FailTask('\n'.join(error_messages))
 
   def runTest(self):
     """Main test function."""
@@ -184,8 +164,7 @@ class FanSpeedTest(unittest.TestCase):
       max_rpm = self.SetAndGetFanSpeed(self.args.max_rpm)
       for i in xrange(len(max_rpm)):
         if max_rpm[i] == 0:
-          raise type_utils.TestFailure(
-              'Fan %d is not reporting any RPM' % i)
+          self.FailTask('Fan %d is not reporting any RPM' % i)
       target_rpm = _Average(max_rpm) / 2
       observed_rpm = self.SetAndGetFanSpeed(target_rpm)
       self.VerifyResult(observed_rpm, target_rpm)
