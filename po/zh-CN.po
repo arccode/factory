@@ -2205,10 +2205,6 @@ msgstr "电压: {voltage} mV"
 msgid "Current: {current} mA"
 msgstr "电流: {current} mA"
 
-#: ../py/test/pytests/power_under_stress.py
-msgid "Count Down: {secs} s"
-msgstr "倒数 {secs} 秒"
-
 #: ../py/test/pytests/probe/probe.py
 msgid "Press SPACE to continue"
 msgstr "按空白键继续"

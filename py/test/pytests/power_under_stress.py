@@ -2,39 +2,19 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import logging
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import countdown_timer
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import stress_manager
 from cros.factory.utils.arg_utils import Arg
 
 
-_HTML = """
-<div id='container'>
-  <div id='countdown'></div>
-  <div id='voltage'></div>
-  <div id='current'></div>
-</div>
-"""
-
-_VOLTAGE_FMT_STR = lambda voltage: i18n_test_ui.MakeI18nLabel(
-    'Voltage: {voltage} mV', voltage=voltage)
-
-_CURRENT_FMT_STR = lambda current: i18n_test_ui.MakeI18nLabel(
-    'Current: {current} mA', current=current)
-
-_COUNTDOWN_FMT_STR = lambda secs: i18n_test_ui.MakeI18nLabel(
-    'Count Down: {secs} s', secs=secs)
-
-
-class PowerUnderStressTest(unittest.TestCase):
+class PowerUnderStressTest(test_ui.TestCaseWithUI):
   """Measure the power consumption (voltage and current) under heavy load."""
 
   ARGS = [
@@ -75,57 +55,55 @@ class PowerUnderStressTest(unittest.TestCase):
     if self.args.bft_fixture is not None:
       self._bft_fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
       if not self._bft_fixture.IsParallelTest():
-        if self._adb_remote_test:
+        if self.args.adb_remote_test:
           self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=True)
         else:
           self._bft_fixture.SetDeviceEngaged('USB3', engage=True)
     else:
       self._bft_fixture = None
     self._dut = device_utils.CreateDUTInterface()
-    self._ui = test_ui.UI()
-    self._template = ui_templates.OneSection(self._ui)
-    self._template.SetState(_HTML)
+    self.ui.SetState('<div id="countdown"></div>'
+                     '<div id="voltage"></div>'
+                     '<div id="current"></div>')
 
-  def UpdateState(self, elapsed, voltage, current):
-    self._ui.SetHTML(_COUNTDOWN_FMT_STR(self.args.wait_secs - elapsed),
-                     id='countdown')
-    self._ui.SetHTML(_VOLTAGE_FMT_STR(voltage), id='voltage')
-    self._ui.SetHTML(_CURRENT_FMT_STR(current), id='current')
+  def UpdateState(self, voltage, current):
+    self.ui.SetHTML(
+        i18n_test_ui.MakeI18nLabel('Voltage: {voltage} mV', voltage=voltage),
+        id='voltage')
+    self.ui.SetHTML(
+        i18n_test_ui.MakeI18nLabel('Current: {current} mA', current=current),
+        id='current')
 
   def runTest(self):
-    self._ui.RunInBackground(self._runTest)
-    self._ui.Run()
+    countdown_timer.StartNewCountdownTimer(self, self.args.wait_secs,
+                                           'countdown')
 
-  def _runTest(self):
-    try:
-      with stress_manager.StressManager(self._dut).Run(
-          duration_secs=None,
-          memory_ratio=self.args.memory_ratio,
-          free_memory_only=self.args.free_memory_only,
-          disk_thread=self.args.disk_thread):
+    with stress_manager.StressManager(self._dut).Run(
+        duration_secs=None,
+        memory_ratio=self.args.memory_ratio,
+        free_memory_only=self.args.free_memory_only,
+        disk_thread=self.args.disk_thread):
 
-        for elapsed in xrange(1, self.args.wait_secs + 1):
-          time.sleep(1)
-          if self._bft_fixture:
-            ina_values = self._bft_fixture.ReadINAValues()
-            voltage = ina_values['voltage']
-            current = ina_values['current']
-          else:
-            usb_port_info = (
-                self._dut.power.GetUSBPDPowerInfo()[self.args.usb_port_id])
-            voltage, current = usb_port_info.voltage, usb_port_info.current
+      start_time = time.time()
+      for elapsed in xrange(1, self.args.wait_secs + 1):
+        if self._bft_fixture:
+          ina_values = self._bft_fixture.ReadINAValues()
+          voltage = ina_values['voltage']
+          current = ina_values['current']
+        else:
+          usb_port_info = (
+              self._dut.power.GetUSBPDPowerInfo()[self.args.usb_port_id])
+          voltage, current = usb_port_info.voltage, usb_port_info.current
 
-          self.UpdateState(elapsed, voltage, current)
+        self.UpdateState(voltage, current)
 
-          if self.args.voltage_threshold_min:
-            self.assertTrue(voltage >= self.args.voltage_threshold_min)
-          if self.args.voltage_threshold_max:
-            self.assertTrue(voltage <= self.args.voltage_threshold_max)
-          if self.args.current_threshold_min:
-            self.assertTrue(current >= self.args.current_threshold_min)
-          if self.args.current_threshold_max:
-            self.assertTrue(current <= self.args.current_threshold_max)
+        if self.args.voltage_threshold_min:
+          self.assertTrue(voltage >= self.args.voltage_threshold_min)
+        if self.args.voltage_threshold_max:
+          self.assertTrue(voltage <= self.args.voltage_threshold_max)
+        if self.args.current_threshold_min:
+          self.assertTrue(current >= self.args.current_threshold_min)
+        if self.args.current_threshold_max:
+          self.assertTrue(current <= self.args.current_threshold_max)
 
-    except stress_manager.StressManagerError as e:
-      logging.error('StressAppTest failed: %s', e)
-      raise e
+        time.sleep(max(0, start_time + elapsed - time.time()))
