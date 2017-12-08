@@ -126,7 +126,7 @@ GCP_PROJECT_SUFFIX=""
 HWID_SERVICE_IP_FILE_URL="gs://hwid-service/ip.txt"
 
 # GKE and Docker variables
-GKE_ZONE="us-central1-b"
+GKE_ZONE="us-central1-a"
 GKE_HWID_SERVICE=""
 GKE_HWID_SERVICE_CLUSTER=""
 GKE_HWID_SERVICE_DEPLOY=""
