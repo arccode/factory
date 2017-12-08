@@ -51,30 +51,24 @@ To load module 'i2c-dev' (and never fails), add this in test list::
 """
 
 import logging
+import os
+import StringIO
 import subprocess
-import threading
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import i18n
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-
-# UI Elements
-_TEST_TITLE = i18n_test_ui.MakeI18nLabel(
-    'Running shell commands...')
+from cros.factory.utils import process_utils
 
 
-class ExecShell(unittest.TestCase):
+class ExecShell(test_ui.TestCaseWithUI):
   """Runs a list of commands.
 
   Properties:
-    _ui: test ui.
-    _template: test ui template.
     _commands: A list of CheckItems.
   """
   ARGS = [
@@ -83,9 +77,7 @@ class ExecShell(unittest.TestCase):
       Arg('is_station', bool,
           ('Run the given commands on station (usually local host) instead of '
            'DUT, for example preparing connection configuration.'),
-          default=False),
-      Arg('has_ui', bool, 'True if this test runs with goofy UI enabled.',
-          default=True)
+          default=False)
   ]
 
   @staticmethod
@@ -96,23 +88,18 @@ class ExecShell(unittest.TestCase):
 
   def UpdateOutput(self, handle, name, output):
     """Updates output from file handle to given HTML node."""
+    self.ui.SetHTML('', id=name)
     while True:
-      c = handle.read(1)
+      c = os.read(handle.fileno(), 4096)
       if not c:
         break
-      self._ui.SetHTML(c, append=True, id=name)
-      output[name] += c
+      self.ui.SetHTML(
+          test_ui.Escape(c, preserve_line_breaks=False), append=True, id=name)
+      output[name].write(c)
 
   def setUp(self):
-    if self.args.has_ui:
-      self._ui = test_ui.UI()
-      self._template = ui_templates.TwoSections(self._ui)
-    else:
-      self._ui = test_ui.DummyUI(self)
-      self._template = ui_templates.DummyTemplate()
-
-    self._template.SetTitle(_TEST_TITLE)
-    self._template.DrawProgressBar()
+    self.ui.SetTitle(i18n_test_ui.MakeI18nLabel('Running shell commands...'))
+    self.ui.DrawProgressBar()
     self._dut = (device_utils.CreateStationInterface()
                  if self.args.is_station else
                  device_utils.CreateDUTInterface())
@@ -122,50 +109,37 @@ class ExecShell(unittest.TestCase):
     else:
       self._commands = self.args.commands
 
-  def _runTest(self):
+  def runTest(self):
     for i, command in enumerate(self._commands):
-      self._template.SetProgressBarValue((i + 1) * 100.0 / len(self._commands))
-      self._template.SetInstruction(self._CommandToLabel(command))
-      self._template.SetState(
-          '<b>stdout:</b><br>'
-          '<textarea cols=80 rows=12 readonly id="stdout"></textarea>'
-          '<br><b>stderr:</b><br>'
-          '<textarea cols=80 rows=12 readonly id="stderr"></textarea>'
-      )
+      self.ui.SetProgressBarValue((i + 1) * 100.0 / len(self._commands))
+      self.ui.SetInstruction(self._CommandToLabel(command))
 
       process = self._dut.Popen(command,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
-      if self.args.has_ui:
-        handles = {
-            'stdout': process.stdout,
-            'stderr': process.stderr,
-        }
-        output = dict((name, '') for name in handles)
-        threads = [threading.Thread(target=self.UpdateOutput,
-                                    args=(handle, name, output))
-                   for name, handle in handles.iteritems()]
-        for thread in threads:
-          thread.start()
+      handles = {
+          'stdout': process.stdout,
+          'stderr': process.stderr,
+      }
+      output = {name: StringIO.StringIO() for name in handles}
+      threads = [
+          process_utils.StartDaemonThread(
+              target=self.UpdateOutput, args=(handle, name, output))
+          for name, handle in handles.iteritems()
+      ]
 
-        process.wait()
+      process.wait()
 
-        for thread in threads:
-          thread.join()
-        stdout = output['stdout']
-        stderr = output['stderr']
-      else:
-        stdout, stderr = process.communicate()
+      for thread in threads:
+        thread.join()
+
+      stdout = output['stdout'].getvalue()
+      stderr = output['stderr'].getvalue()
 
       logging.info('Shell command: %r, result=%s, stdout=%r, stderr=%r',
                    command, process.returncode, stdout, stderr)
       if process.returncode != 0:
         # More chance so user can see the error.
         time.sleep(3)
-        self._ui.Fail('Shell command failed (%d): %s' %
-                      (process.returncode, command))
-
-  def runTest(self):
-    """Main entrance of the test."""
-    self._ui.RunInBackground(self._runTest)
-    self._ui.Run()
+        self.FailTask('Shell command failed (%d): %s' % (process.returncode,
+                                                         command))
