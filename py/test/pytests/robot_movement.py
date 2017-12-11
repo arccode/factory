@@ -60,9 +60,7 @@ One can also pass parameters to the classes specified in `robot_fixture` and
 """
 
 import logging
-import threading
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -71,35 +69,10 @@ from cros.factory.test.fixture import utils as fixture_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import server_proxy
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
-_TEST_CSS = ('.info { font-size: 2em; }'
-             '.warn { font-size: 3em; color: red; }')
-
-_MSG_INIT = i18n_test_ui.MakeI18nLabelWithClass('Initializing Robot...', 'info')
-
-_MSG_LOAD = i18n_test_ui.MakeI18nLabelWithClass(
-    'Please load DUT onto the robot, connect all cables, '
-    'and press <b>SPACE</b> to continue.', 'info')
-
-_MSG_PREPARE_MOVEMENT = i18n_test_ui.MakeI18nLabelWithClass(
-    'Prepare for movement.', 'info')
-
-_MSG_MOVING_TO_START_POSITION = i18n_test_ui.MakeI18nLabelWithClass(
-    'Moving to start position...', 'info')
-
-_MSG_MOVING_TO_LOAD_POSITION = i18n_test_ui.MakeI18nLabelWithClass(
-    'Moving to LOAD / UNLOAD position...', 'info')
-
-_MSG_COMPUTING = i18n_test_ui.MakeI18nLabelWithClass('Computing...', 'info')
-
-_MSG_PUSHING_RESULT = i18n_test_ui.MakeI18nLabelWithClass(
-    'Pushing the result...', 'info')
-
-
-class RobotMovement(unittest.TestCase):
+class RobotMovement(test_ui.TestCaseWithUI):
   """A general task that use a robot to move the device.
 
   Two detail implementations are required for this task. One is the fixture for
@@ -144,15 +117,13 @@ class RobotMovement(unittest.TestCase):
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
-    self._ui = test_ui.UI()
     self._robot = fixture_utils.CreateFixture(
         self.args.robot_fixture, self.args.robot_fixture_args)
     self._algorithm = fixture_utils.CreateFixture(
         self.args.algorithm, self.args.algorithm_args)
     self._algorithm.SetLogger(session.console)
 
-    self._ui.AppendCSS(_TEST_CSS)
-    self._template = ui_templates.OneSection(self._ui)
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
 
   def tearDown(self):
     try:
@@ -163,42 +134,34 @@ class RobotMovement(unittest.TestCase):
       pass
     self._robot.Disconnect()
 
-  def WaitForSpace(self):
-    """Stop until SPACE is pressed."""
-
-    _event = threading.Event()
-
-    def _Go():
-      _event.set()
-      self._ui.UnbindKey(test_ui.SPACE_KEY)
-
-    _event.clear()
-    self._ui.BindKey(test_ui.SPACE_KEY, lambda _unused_arg: _Go())
-    _event.wait()
-
   def Initialize(self):
     """Initializes the robot.
 
     Intializes robot and move it to the LOAD / UNLOAD position.
     """
-    self._template.SetState(_MSG_INIT)
+    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Initializing Robot...'))
     session.console.info('Intializing robot.')
     self._robot.Connect()
     self._robot.SetMotor(True)
 
   def LoadDevice(self):
     """Ask operator to load DUT."""
-    self._template.SetState(_MSG_LOAD)
+    self.ui.SetState(
+        i18n_test_ui.MakeI18nLabel(
+            'Please load DUT onto the robot, connect all cables, '
+            'and press <b>SPACE</b> to continue.'))
     self._robot.LoadDevice(False)
+
     session.console.info('Wait for operators to press SPACE.')
-    self.WaitForSpace()
+    self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
     session.console.info('SPACE pressed by operator.')
-    self._template.SetState(_MSG_PREPARE_MOVEMENT)
+
+    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Prepare for movement.'))
     self._robot.LoadDevice(True)
 
   def StartMoving(self):
     """Starts movement process."""
-    self._template.SetState(_MSG_MOVING_TO_START_POSITION)
+    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Moving to start position...'))
 
     session.console.info('Start to move.')
     self._robot.SetLED(True)
@@ -213,7 +176,8 @@ class RobotMovement(unittest.TestCase):
 
     self._algorithm.OnStopMoving(self._dut)
 
-    self._template.SetState(_MSG_MOVING_TO_LOAD_POSITION)
+    self.ui.SetState(
+        i18n_test_ui.MakeI18nLabel('Moving to LOAD / UNLOAD position...'))
     self._robot.SetLED(False)
     # Shutdown and disconnect robot here to avoid robot overload during
     # computing.
@@ -223,18 +187,18 @@ class RobotMovement(unittest.TestCase):
 
   def Compute(self):
     """Starts computing after the movement."""
-    self._template.SetState(_MSG_COMPUTING)
+    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Computing...'))
     session.console.info('Compute for %s', self._dut.info.serial_number)
     self._algorithm.Compute(self._dut)
 
   def PushResult(self):
     """Pushes the result to the DUT."""
-    self._template.SetState(_MSG_PUSHING_RESULT)
+    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Pushing the result...'))
     session.console.info('Pushing the result.')
 
     self._algorithm.PullResult(self._dut)
 
-  def _runTest(self):
+  def runTest(self):
     serial_number = self._dut.info.serial_number
     if not serial_number:
       self.fail('Failed to get the device SN')
@@ -248,7 +212,3 @@ class RobotMovement(unittest.TestCase):
     self.PushResult()
     if self.args.upload_to_server:
       self._algorithm.UploadLog(self._dut, server_proxy.GetServerProxy())
-
-  def runTest(self):
-    self._ui.RunInBackground(self._runTest)
-    self._ui.Run()

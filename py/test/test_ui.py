@@ -925,7 +925,7 @@ class TestCaseWithUI(unittest.TestCase):
 
   ui_class = StandardUI
 
-  def __init__(self, methodName):
+  def __init__(self, methodName='runTest'):
     super(TestCaseWithUI, self).__init__(methodName='_RunTest')
     self.event_loop = None
     self.ui = None

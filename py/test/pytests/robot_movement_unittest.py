@@ -13,7 +13,6 @@ from cros.factory.test.fixture.robot.algorithm import Algorithm
 from cros.factory.test.fixture.robot.robot import Robot
 from cros.factory.test.pytests import robot_movement
 from cros.factory.test import test_ui
-from cros.factory.test.ui_templates import OneSection
 
 
 class FakeArgs(object):
@@ -30,8 +29,7 @@ class RobotMovementTest(unittest.TestCase):
     self._test = self.Test()
     self._test._dut = mock.create_autospec(spec=types.DeviceInterface)
     self._test._dut.info.serial_number = 'SN123'
-    self._test._ui = mock.Mock(spec=test_ui.UI)
-    self._test._template = mock.create_autospec(spec=OneSection)
+    self._test.ui = mock.Mock(spec=test_ui.StandardUI)
     self._test._robot = mock.create_autospec(spec=Robot)
     self._test._algorithm = mock.create_autospec(spec=Algorithm)
     self._test.args = FakeArgs({
@@ -51,7 +49,7 @@ class RobotMovementTest(unittest.TestCase):
     self._test._robot.SetMotor.assert_called_with(True)
 
   def testLoadDevice(self):
-    self._test.WaitForSpace = mock.Mock(spec=self.Test.WaitForSpace)
+    self._test.ui.WaitKeysOnce = mock.Mock(spec=test_ui.StandardUI.WaitKeysOnce)
 
     self._test.LoadDevice()
     calls = [mock.call(False), mock.call(True)]
@@ -88,7 +86,7 @@ class RobotMovementTest(unittest.TestCase):
     self._test.Compute = mock.Mock(spec=self.Test.Compute)
     self._test.PushResult = mock.Mock(spec=self.Test.PushResult)
 
-    self._test._runTest()
+    self._test.runTest()
 
     self._test.Initialize.assert_called_with()
     self._test.LoadDevice.assert_called_with()
