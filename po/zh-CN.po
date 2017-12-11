@@ -2239,10 +2239,8 @@ msgid "Hit SPACE to start test..."
 msgstr "按 \"空白键\" 开始测试..."
 
 #: ../py/test/pytests/recovery_button.py
-msgid ""
-"Please press recovery button for {secs:.1f} seconds ({remain_secs} seconds "
-"remaining)."
-msgstr "请持续按压恢复按钮 {secs:.1f} 秒 (剩余时间: {remain_secs} 秒)."
+msgid "Please press recovery button for {secs:.1f} seconds."
+msgstr "请持续按压恢复按钮 {secs:.1f} 秒"
 
 #: ../py/test/pytests/removable_storage/removable_storage.py
 msgid ""

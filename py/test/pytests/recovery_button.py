@@ -40,74 +40,40 @@ One can also set the timeout to 100 seconds by::
   }
 """
 
-import time
-import unittest
-
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test import countdown_timer
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
-_MSG_PRESS_SPACE = i18n_test_ui.MakeI18nLabelWithClass(
-    'Hit SPACE to start test...', 'recovery-button-info')
 
-_MSG_RECOVERY_BUTTON_TEST = lambda secs, remain_secs: (
-    i18n_test_ui.MakeI18nLabelWithClass(
-        'Please press recovery button for {secs:.1f} seconds '
-        '({remain_secs} seconds remaining).',
-        'recovery-button-info', secs=secs, remain_secs=remain_secs))
-
-_HTML_RECOVERY_BUTTON = """
-<table style="width: 70%; margin: auto;">
-  <tr>
-    <td align="center"><div id="recovery_button_title"></div></td>
-  </tr>
-</table>
-"""
-
-_CSS_RECOVERY_BUTTON = """
-  .recovery-button-info { font-size: 2em; }
-"""
-
-
-class RecoveryButtonTest(unittest.TestCase):
+class RecoveryButtonTest(test_ui.TestCaseWithUI):
   """Tests Recovery Button."""
   ARGS = [
       Arg('timeout_secs', int, 'Timeout to press recovery button.',
           default=10),
       Arg('polling_interval_secs', float,
           'Interval between checking whether recovery buttion is pressed or '
-          'not. Valid values: 0.2, 0.5 and 1.0', default=0.5)]
+          'not.', default=0.5)]
 
   def setUp(self):
-    self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
-    self.ui.AppendCSS(_CSS_RECOVERY_BUTTON)
-    self.template.SetState(_HTML_RECOVERY_BUTTON)
-    self.ui.BindKey(test_ui.SPACE_KEY, self.StartTest, once=True)
-    self.ui.SetHTML(_MSG_PRESS_SPACE, id='recovery_button_title')
-    if self.args.polling_interval_secs not in (0.2, 0.5, 1.0):
-      raise ValueError('The value of polling_interval_secs is invalid: %f' %
-                       self.args.polling_interval_secs)
-
-  def StartTest(self, event):
-    del event  # Unused.
-    polling_iterations_per_second = int(1 / self.args.polling_interval_secs)
-    for i in xrange(self.args.timeout_secs):
-      self.ui.SetHTML(
-          _MSG_RECOVERY_BUTTON_TEST(
-              self.args.polling_interval_secs, self.args.timeout_secs - i),
-          id='recovery_button_title')
-      for _ in xrange(polling_iterations_per_second):
-        time.sleep(self.args.polling_interval_secs)
-        if '1' == process_utils.SpawnOutput(['crossystem', 'recoverysw_cur'],
-                                            log=True):
-          self.ui.Pass()
-          return
-
-    self.ui.Fail('Recovery button test failed.')
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
 
   def runTest(self):
-    self.ui.Run()
+    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Hit SPACE to start test...'))
+    self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
+
+    self.ui.SetState('<div>' + i18n_test_ui.MakeI18nLabel(
+        'Please press recovery button for {secs:.1f} seconds.',
+        secs=self.args.polling_interval_secs) + '</div><div id="timer"></div>')
+    countdown_timer.StartNewCountdownTimer(
+        self, self.args.timeout_secs,
+        'timer', lambda: self.FailTask('Recovery button test failed.'))
+
+    while True:
+      if process_utils.SpawnOutput(
+          ['crossystem', 'recoverysw_cur'], log=True) == '1':
+        return
+      if self.WaitTaskEnd(timeout=self.args.polling_interval_secs):
+        return
