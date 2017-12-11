@@ -80,7 +80,6 @@ import collections
 import logging
 import pprint
 import threading
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -89,7 +88,6 @@ from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rules import privacy
 from cros.factory.test import server_proxy
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
 from cros.factory.utils import log_utils
@@ -109,7 +107,7 @@ class ServiceSpec(object):
     self.data_args = data_args
 
 
-class ShopfloorService(unittest.TestCase):
+class ShopfloorService(test_ui.TestCaseWithUI):
   """Execution of remote shoploor service."""
 
   ARGS = [
@@ -152,20 +150,9 @@ class ShopfloorService(unittest.TestCase):
   }
 
   def setUp(self):
-    self.done = False
     self.dut = device_utils.CreateDUTInterface()
     self.event = threading.Event()
-    self.ui = test_ui.UI()
     self.ui.AppendCSS('.large { font-size: 2em; }')
-    self.template = ui_templates.OneSection(self.ui)
-
-  def runTest(self):
-    self.ui.RunInBackground(self._runTest)
-    self.ui.Run(on_finish=self.Done)
-
-  def Done(self):
-    self.done = True
-    self.event.set()
 
   def GetFactoryDeviceData(self):
     """Returns a dictionary in FactoryDeviceData format."""
@@ -208,7 +195,7 @@ class ShopfloorService(unittest.TestCase):
       return {}
     return privacy.FilterDict(result.GetValue(''))
 
-  def _runTest(self):
+  def runTest(self):
     self.ui.AddEventHandler('retry', lambda unused_event: self.event.set())
     if self.args.server_url:
       server = webservice_utils.CreateWebServiceProxy(self.args.server_url)
@@ -248,12 +235,12 @@ class ShopfloorService(unittest.TestCase):
     logger = log_utils.NoisyLogger(
         lambda fault, prompt: logging.exception(prompt, fault))
 
-    while not self.done:
+    while True:
       def ShowMessage(caption, css, message, retry=False):
         retry_button = ('<button onclick="test.sendTestEvent(\'retry\')">' +
                         i18n_test_ui.MakeI18nLabel('Retry') + '</button>'
                         if retry else '')
-        self.template.SetState(
+        self.ui.SetState(
             i18n_test_ui.MakeI18nLabelWithClass(caption, css) +
             '<p><textarea rows=25 cols=90 readonly>' +
             test_ui.Escape(message, False) + '</textarea><p>' +
@@ -275,8 +262,7 @@ class ShopfloorService(unittest.TestCase):
                      method, log_args, self.FilterDict(result))
         self.UpdateAutoResults(method, result, args)
         self.UpdateDeviceData(result)
-        self.done = True
-        # Should then exit the loop and pass test.
+        break
       except server_proxy.Fault as f:
         message = f.faultString
         logger.Log(message, 'Server fault occurred: %s')
