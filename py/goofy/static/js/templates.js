@@ -10,8 +10,13 @@
    *     all children without a slot.
    */
   const clearSlotContent = (root, slotName) => {
-    const elements = root.querySelectorAll(
-        slotName ? `:scope > [slot="${slotName}"]` : ':scope > :not([slot])');
+    const elements = Array.from(root.querySelectorAll(
+        slotName ? `:scope > [slot="${slotName}"]` : ':scope > :not([slot])'));
+    if (!slotName) {
+      // All direct child text nodes should be removed too.
+      elements.push(...Array.from(root.childNodes)
+                        .filter((node) => node.nodeType === Node.TEXT_NODE));
+    }
     for (const element of elements) {
       element.remove();
     }

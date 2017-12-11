@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -10,12 +8,10 @@ import logging
 import os
 import re
 import tempfile
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -24,7 +20,7 @@ DM_DEVICE_PATH = os.path.join('/dev/mapper', DM_DEVICE_NAME)
 BLOCK_SIZE = 8 * 1024 * 1024
 
 
-class VerifyRootPartitionTest(unittest.TestCase):
+class VerifyRootPartitionTest(test_ui.TestCaseWithUI):
   """Verifies the integrity of the root partition."""
 
   ARGS = [
@@ -37,15 +33,9 @@ class VerifyRootPartitionTest(unittest.TestCase):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self.ui = test_ui.UI()
-    self.template = ui_templates.TwoSections(self.ui)
 
   def runTest(self):
-    self.template.DrawProgressBar()
-    self.ui.RunInBackground(self._runTest)
-    self.ui.Run()
-
-  def _runTest(self):
+    self.ui.DrawProgressBar()
     if not self.args.kern_a_device:
       self.args.kern_a_device = self.dut.partitions.RELEASE_KERNEL.path
     if not self.args.root_device:
@@ -62,7 +52,7 @@ class VerifyRootPartitionTest(unittest.TestCase):
     # Copy out the KERN-A partition to a file, since vbutil_kernel
     # won't operate on a device, only a file
     # (http://crosbug.com/34176)
-    self.template.SetState('Verifying KERN-A (%s)...' % self.args.kern_a_device)
+    self.ui.SetState('Verifying KERN-A (%s)...' % self.args.kern_a_device)
     with self.dut.temp.TempFile() as kern_a_bin:
       self.dut.toybox.dd(if_=self.args.kern_a_device, of=kern_a_bin,
                          conv='fsync')
@@ -127,8 +117,8 @@ class VerifyRootPartitionTest(unittest.TestCase):
           message = 'Read %.1f MiB (%.1f%%) of %s' % (
               bytes_read / 1024. / 1024., pct_done, self.args.root_device)
           logging.info(message)
-          self.template.SetState(message)
-          self.template.SetProgressBarValue(round(pct_done))
+          self.ui.SetState(message)
+          self.ui.SetProgressBarValue(round(pct_done))
     else:
       # for remote link, read out everything at once to save time.
       with tempfile.TemporaryFile() as stderr:
