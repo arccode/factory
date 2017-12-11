@@ -85,23 +85,15 @@ To write and read back component data into VPD, add this in test list::
 """
 
 
-import unittest
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
-_MSG_READING_VPD = lambda vpd_section: i18n_test_ui.MakeI18nLabel(
-    'Reading device data from {vpd_section} VPD...',
-    vpd_section=vpd_section.upper())
-
-
-class ReadDeviceDataFromVPD(unittest.TestCase):
+class ReadDeviceDataFromVPD(test_ui.TestCaseWithUI):
   ARGS = [
       Arg('ro_key_map', dict,
           'Mapping of (VPD_NAME, DEVICE_DATA_KEY) to read from RO VPD.',
@@ -113,14 +105,8 @@ class ReadDeviceDataFromVPD(unittest.TestCase):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
 
   def runTest(self):
-    self.ui.RunInBackground(self._runTest)
-    self.ui.Run()
-
-  def _runTest(self):
     sections = {
         'ro': self.args.ro_key_map,
         'rw': self.args.rw_key_map
@@ -131,7 +117,10 @@ class ReadDeviceDataFromVPD(unittest.TestCase):
       sections['rw'] = device_data.DEFAULT_RW_VPD_KEY_MAP
 
     for name, key_map in sections.iteritems():
-      self.template.SetState(_MSG_READING_VPD(name))
+      self.ui.SetState(
+          i18n_test_ui.MakeI18nLabel(
+              'Reading device data from {vpd_section} VPD...',
+              vpd_section=name.upper()))
       if not key_map:
         continue
       vpd = getattr(self.dut.vpd, name)
