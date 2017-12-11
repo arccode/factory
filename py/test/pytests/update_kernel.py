@@ -9,15 +9,12 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 
-_CSS = 'test-template { text-align: left; }'
 _DEVKEY = 'b11d74edd286c144e1135b49e7f0bc20cf041f10'
 
 
@@ -43,9 +40,6 @@ class UpdateFirmwareTest(unittest.TestCase):
     if self.args.kernel_config is not None:
       self.assertTrue(os.path.isfile(self.args.kernel_config),
                       msg='%s is missing.' % self.args.kernel_config)
-
-    self._ui = test_ui.UI(css=_CSS)
-    self._template = ui_templates.OneScrollableSection(self._ui)
 
   def UpdateKernel(self):
     """Apply new kernel.
