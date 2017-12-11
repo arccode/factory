@@ -43,60 +43,19 @@ in test list::
   }
 """
 
-import unittest
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import state
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 
 
-_HTML = """
-<div id='main'>
-</div>
-"""
-
-_JS = """
-const StationSetup = test.invocation.goofy.StationSetup;
-function onEnter() {
-  if (window.isInEnter) {
-    return;
-  }
-  window.isInEnter = true;
-  window.update($('main')).then((ret) => {
-    if (ret.success) {
-      test.pass();
-    } else {
-      window.isInEnter = false;
-    }
-  });
-}
-(async () => {
-  const needUpdate = await StationSetup.needUpdate();
-  if (!needUpdate) {
-    test.pass();
-    return;
-  }
-  const {html, update} = await StationSetup.run();
-  window.update = update;
-  goog.dom.safe.setInnerHtml($('main'), html);
-})();
-"""
-
-
-class StationSetup(unittest.TestCase):
+class StationSetup(test_ui.TestCaseWithUI):
   """The factory test to setup station."""
-
-  def setUp(self):
-    self._ui = test_ui.UI()
-    self._template = ui_templates.OneSection(self._ui)
 
   def runTest(self):
     self.assertTrue(
         state.get_instance().IsPluginEnabled('station_setup.station_setup'),
         'This pytest needs the station_setup Goofy plugin to be enabled.')
 
-    self._template.SetState(_HTML)
-    self._ui.BindKeyJS(test_ui.ENTER_KEY, 'onEnter();')
-    self._ui.RunJS(_JS)
-    self._ui.Run()
+    # All works are done in station_setup_static/station_setup.js, so we just
+    # wait the frontend JavaScript ends here.
+    self.WaitTaskEnd()

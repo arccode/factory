@@ -633,8 +633,10 @@ class StandardUI(UI):
   default_html = '<test-template></test-template>'
 
   def __init__(self, event_loop=None):
-    super(StandardUI, self).__init__(event_loop=event_loop)
+    super(StandardUI, self).__init__(
+        event_loop=event_loop, setup_static_files=False)
     self.ImportHTML('/templates.html')
+    self._SetupStaticFiles(session.GetCurrentTestFilePath())
 
   def SetTitle(self, html):
     """Sets the title of the test UI.
