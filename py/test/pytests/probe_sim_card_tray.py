@@ -13,144 +13,28 @@ Args:
 
 import logging
 import os
-import threading
-import time
-import unittest
-import uuid
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import countdown_timer
-from cros.factory.test import event
 from cros.factory.test import session
 from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import test_task
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
+from cros.factory.utils import type_utils
 
-
-_INSERT_TRAY_INSTRUCTION = i18n_test_ui.MakeI18nLabelWithClass(
-    'Please insert the SIM card tray', 'instruction-font-size')
-_REMOVE_TRAY_INSTRUCTION = i18n_test_ui.MakeI18nLabelWithClass(
-    'Detected! Please remove the SIM card tray', 'instruction-font-size')
-
-_ID_INSTRUCTION = 'sim-card-tray-test-container'
-_ID_COUNTDOWN_TIMER = 'sim-card-tray-test-timer'
-
-_CSS = """
-.instruction-font-size {
-  font-size: 2em;
-}
-"""
-
-_HTML_SIM_CARD_TRAY = """
-<div id="%s" style="position: relative; width: 100%%; height: 60%%;"></div>
-<div id="%s"></div>
-""" % (_ID_INSTRUCTION, _ID_COUNTDOWN_TIMER)
 
 _INSERT_CHECK_PERIOD_SECS = 1
-_GPIO_PATH = os.path.join('/sys', 'class', 'gpio')
+_GPIO_PATH = '/sys/class/gpio'
 
-
-class WaitTrayThread(threading.Thread):
-  """The thread to wait for SIM card tray state.
-
-  Args:
-    get_detect: function to probe sim card tray. Returns ProbeTrayTask.INSERTED
-      or ProbeTrayTask.REMOVED.
-    tray_event: The target tray event. ProbeTrayTask.INSERTED or
-      ProbeTrayTask.REMOVED.
-    on_success: The callback function when tray_event is detected.
-  """
-
-  def __init__(self, get_detect, tray_event, on_success):
-    threading.Thread.__init__(self, name='WaitTrayThread')
-    self._get_detect = get_detect
-    self._tray_event = tray_event
-    self._on_success = on_success
-    self.daemon = True
-
-  def run(self):
-    logging.info('wait for %s event', self._tray_event)
-    while True:
-      ret = self._get_detect()
-      if self._tray_event == ret:
-        self.Detected()
-        return
-      time.sleep(_INSERT_CHECK_PERIOD_SECS)
-
-  def Detected(self):
-    """Reports detected and stops the thread."""
-    logging.info('%s detected', self._tray_event)
-    session.console.info('%s detected', self._tray_event)
-    self._on_success()
-
-
-class ProbeTrayTask(test_task.TestTask):
-  """Probe SIM card tray task."""
-  INSERTED = 'Inserted'
-  REMOVED = 'Removed'
-
-  def __init__(self, test, instruction, tray_event):
-    super(ProbeTrayTask, self).__init__()
-    self._ui = test.ui
-    self._template = test.template
-    self._instruction = instruction
-    self._tray_event = tray_event
-    self._timeout_secs = test.args.timeout_secs
-    self._wait_tray = WaitTrayThread(test.GetDetection,
-                                     self._tray_event, self.PostSuccessEvent)
-    self._pass_event = str(uuid.uuid4())
-    self._disable_timer = threading.Event()
-
-  def Timeout(self):
-    """Callback function for CountDownTimer"""
-    self.Fail('Timeout after %s seconds' % self._timeout_secs)
-
-  def PostSuccessEvent(self):
-    """Posts an event to trigger self.Pass()
-
-    It is called by another thread. It ensures that self.Pass() is called
-    via event queue to prevent race condition.
-    """
-    self._disable_timer.set()
-    self._ui.PostEvent(event.Event(event.Event.Type.TEST_UI_EVENT,
-                                   subtype=self._pass_event))
-
-  def Run(self):
-    self._ui.SetHTML(self._instruction, id=_ID_INSTRUCTION)
-    self._ui.AddEventHandler(self._pass_event, lambda _: self.Pass())
-    self._wait_tray.start()
-    countdown_timer.StartCountdownTimer(
-        self._timeout_secs, self.Timeout,
-        self._ui, _ID_COUNTDOWN_TIMER, self._disable_timer)
-
-  def Cleanup(self):
-    self._disable_timer.set()
-
-
-class InsertTrayTask(ProbeTrayTask):
-  """Task to wait for SIM card tray insertion"""
-
-  def __init__(self, test):
-    super(InsertTrayTask, self).__init__(test, _INSERT_TRAY_INSTRUCTION,
-                                         ProbeTrayTask.INSERTED)
-
-
-class RemoveTrayTask(ProbeTrayTask):
-  """Task to wait for SIM card tray removal"""
-
-  def __init__(self, test):
-    super(RemoveTrayTask, self).__init__(test, _REMOVE_TRAY_INSTRUCTION,
-                                         ProbeTrayTask.REMOVED)
+_TrayState = type_utils.Enum(['INSERTED', 'REMOVED'])
 
 
 class ProbeTrayException(Exception):
   pass
 
 
-class ProbeSimCardTrayTest(unittest.TestCase):
+class ProbeSimCardTrayTest(test_ui.TestCaseWithUI):
   """Test to probe sim card tray.
 
   Usage examples:
@@ -191,13 +75,33 @@ class ProbeSimCardTrayTest(unittest.TestCase):
           default=True)]
 
   def setUp(self):
-    self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
-    self.template.SetState(_HTML_SIM_CARD_TRAY)
-    self.ui.AppendCSS(_CSS)
-    self._task_manager = None
+    self.ui.SetState('<div id="timer"></div>')
     self._detection_gpio_path = os.path.join(
         _GPIO_PATH, 'gpio%d' % self.args.tray_detection_gpio)
+
+  def runTest(self):
+    self.ExportGPIO()
+    self.CheckPresence()
+
+    if self.args.only_check_presence:
+      return
+
+    countdown_timer.StartNewCountdownTimer(
+        self, self.args.timeout_secs, 'timer', lambda: self.FailTask(
+            'Timeout after %s seconds' % self.args.timeout_secs))
+
+    if self.args.tray_already_present:
+      self.assertTrue(self.args.remove, 'Must set remove to Ture '
+                      'since tray_already_present is True')
+      self.WaitTrayRemoved()
+      if self.args.insert:
+        self.WaitTrayInserted()
+    else:
+      self.assertTrue(self.args.insert, 'Must set insert to Ture '
+                      'since tray_already_present is False')
+      self.WaitTrayInserted()
+      if self.args.remove:
+        self.WaitTrayRemoved()
 
   def ExportGPIO(self):
     """Exports GPIO of tray detection pin.
@@ -208,15 +112,17 @@ class ProbeSimCardTrayTest(unittest.TestCase):
     if os.path.exists(self._detection_gpio_path):
       logging.info('gpio %s was exported before', self._detection_gpio_path)
       return
+
     export_path = os.path.join(_GPIO_PATH, 'export')
     try:
       file_utils.WriteFile(export_path, str(self.args.tray_detection_gpio),
                            log=True)
     except IOError:
       logging.exception('Can not write %s into %s',
-                        str(self.args.tray_detection_gpio), export_path)
+                        self.args.tray_detection_gpio, export_path)
       raise ProbeTrayException('Can not export detection gpio %s' %
                                self.args.tray_detection_gpio)
+
     direction_path = os.path.join(self._detection_gpio_path, 'direction')
     try:
       file_utils.WriteFile(direction_path, 'out', log=True)
@@ -225,54 +131,48 @@ class ProbeSimCardTrayTest(unittest.TestCase):
       raise ProbeTrayException('Can set detection gpio direction to out')
 
   def GetDetection(self):
-    """Returns tray status ProbeTrayTask.INSERTED or ProbeTrayTask.REMOVED."""
+    """Returns tray status _TrayState.INSERTED or _TrayState.REMOVED."""
     value_path = os.path.join(self._detection_gpio_path, 'value')
     lines = file_utils.ReadLines(value_path)
     if not lines:
       raise ProbeTrayException('Can not get detection result from %s' %
                                value_path)
+
     ret = lines[0].strip()
     if ret not in ['0', '1']:
       raise ProbeTrayException('Get invalid detection %s from %s',
                                ret, value_path)
+
     if self.args.gpio_active_high:
-      return ProbeTrayTask.INSERTED if ret == '1' else ProbeTrayTask.REMOVED
+      return _TrayState.INSERTED if ret == '1' else _TrayState.REMOVED
     else:
-      return ProbeTrayTask.INSERTED if ret == '0' else ProbeTrayTask.REMOVED
+      return _TrayState.INSERTED if ret == '0' else _TrayState.REMOVED
 
   def CheckPresence(self):
     self.assertEquals(
         self.args.tray_already_present,
-        self.GetDetection() == ProbeTrayTask.INSERTED,
-        ('Unexpected tray %s' % (
-            'absence. ' if self.args.tray_already_present else 'presence. ') +
-         'Please %s SIM card tray and retest.' % (
-             'insert' if self.args.tray_already_present else 'remove')))
+        self.GetDetection() == _TrayState.INSERTED,
+        ('Unexpected tray %s. Please %s SIM card tray and retest.' %
+         (('absence', 'insert')
+          if self.args.tray_already_present else ('presence', 'remove'))))
 
-  def runTest(self):
-    self._detection_gpio_path = os.path.join(
-        _GPIO_PATH, 'gpio%d' % self.args.tray_detection_gpio)
-    self.ExportGPIO()
-    self.CheckPresence()
+  def WaitTrayInserted(self):
+    self.ui.SetInstruction(
+        i18n_test_ui.MakeI18nLabel('Please insert the SIM card tray'))
+    self.WaitTrayState(_TrayState.INSERTED)
 
-    if self.args.only_check_presence:
-      session.console.info('Passes the test that only checks presence is %s.',
-                           self.args.tray_already_present)
-      return
+  def WaitTrayRemoved(self):
+    self.ui.SetInstruction(
+        i18n_test_ui.MakeI18nLabel('Detected! Please remove the SIM card tray'))
+    self.WaitTrayState(_TrayState.REMOVED)
 
-    task_list = []
-    if self.args.tray_already_present:
-      self.assertTrue(self.args.remove, 'Must set remove to Ture '
-                      'since tray_already_present is True')
-      task_list.append(RemoveTrayTask(self))
-      if self.args.insert:
-        task_list.append(InsertTrayTask(self))
-    else:
-      self.assertTrue(self.args.insert, 'Must set insert to Ture '
-                      'since tray_already_present is False')
-      task_list.append(InsertTrayTask(self))
-      if self.args.remove:
-        task_list.append(RemoveTrayTask(self))
+  def WaitTrayState(self, state):
+    logging.info('wait for %s event', state)
 
-    self._task_manager = test_task.TestTaskManager(self.ui, task_list)
-    self._task_manager.Run()
+    while True:
+      if self.GetDetection() == state:
+        logging.info('%s detected', state)
+        session.console.info('%s detected', state)
+        return
+      if self.WaitTaskEnd(timeout=_INSERT_CHECK_PERIOD_SECS):
+        return
