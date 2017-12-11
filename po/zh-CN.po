@@ -2446,16 +2446,16 @@ msgid "Press SPACE to start the test."
 msgstr "请按空白键开始测试。"
 
 #: ../py/test/pytests/station_entry.py
-msgid "Press SPACE to end the test."
-msgstr "请按空白键结束测试。"
-
-#: ../py/test/pytests/station_entry.py
 msgid "Sending test results to shopfloor..."
 msgstr "SENDING 传送测试结果给服务器..."
 
 #: ../py/test/pytests/station_entry.py
 msgid "Please remove DUT."
 msgstr "REMOVE 请移除测试装置。"
+
+#: ../py/test/pytests/station_entry.py
+msgid "Press SPACE to end the test."
+msgstr "请按空白键结束测试。"
 
 #: ../py/test/pytests/stylus.py
 msgid ""

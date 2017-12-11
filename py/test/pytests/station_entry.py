@@ -67,60 +67,23 @@ Please refer to station_based.test_list.json and STATION_BASED.md about how to
 do station based testing.
 """
 
-import threading
-import unittest
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import countdown_timer
 from cros.factory.test import device_data
 from cros.factory.test import session
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
+from cros.factory.utils import type_utils
 
-
-_CSS = """
-.prompt {
-  font-size: 2em;
-}
-
-.warning {
-  color: red;
-}
-"""
 
 _TITLE_START = i18n_test_ui.MakeI18nLabel('Start Station Test')
 _TITLE_END = i18n_test_ui.MakeI18nLabel('End Station Test')
 
-_ID_MSG_DIV = 'msg'
-_ID_COUNTDOWN_DIV = 'countdown'
 
-_STATE_HTML = """
-<div id='%s'></div>
-<div id='%s'></div>
-""" % (_ID_MSG_DIV, _ID_COUNTDOWN_DIV)
-
-_MSG_INSERT = i18n_test_ui.MakeI18nLabelWithClass(
-    'Please attach DUT.', 'prompt')
-
-_MSG_PRESS_SPACE = i18n_test_ui.MakeI18nLabelWithClass(
-    'Press SPACE to start the test.', 'prompt')
-
-_MSG_PRESS_SPACE_TO_END = i18n_test_ui.MakeI18nLabelWithClass(
-    'Press SPACE to end the test.', 'prompt')
-
-_MSG_SEND_RESULT = i18n_test_ui.MakeI18nLabelWithClass(
-    'Sending test results to shopfloor...', 'prompt')
-
-_MSG_REMOVE_DUT = i18n_test_ui.MakeI18nLabelWithClass(
-    'Please remove DUT.', 'prompt')
-
-
-class StationEntry(unittest.TestCase):
+class StationEntry(test_ui.TestCaseWithUI):
   """The factory test to start station test process."""
   ARGS = [
       Arg('start_station_tests', bool,
@@ -152,23 +115,14 @@ class StationEntry(unittest.TestCase):
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
     self._state = state.get_instance()
-    self._ui = test_ui.UI()
-    self._ui.AppendCSS(_CSS)
-    self._template = ui_templates.OneSection(self._ui)
-    self._template.SetTitle(_TITLE_START if self.args.start_station_tests else
-                            _TITLE_END)
-    self._space_event = threading.Event()
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.SetTitle(_TITLE_START
+                     if self.args.start_station_tests else _TITLE_END)
 
   def SendTestResult(self):
     self._state.PostHookEvent('TestResult', self._state.get_test_states())
 
   def runTest(self):
-    self._ui.RunInBackground(self._runTest)
-    self._ui.Run()
-
-  def _runTest(self):
-    self._template.SetState(_STATE_HTML)
-    self._ui.BindKey(test_ui.SPACE_KEY, lambda _: self._space_event.set())
     if self.args.start_station_tests:
       # Clear dut.info data.
       if self.args.invalidate_dut_info:
@@ -192,17 +146,7 @@ class StationEntry(unittest.TestCase):
         device_data.ClearAllSerialNumbers()
 
   def Start(self):
-    self._ui.SetHTML(_MSG_INSERT, id=_ID_MSG_DIV)
-    disable_event = threading.Event()
-
-    if self.args.timeout_secs:
-      countdown_timer.StartCountdownTimer(
-          self.args.timeout_secs,
-          lambda: (self._ui.Fail('DUT is not connected in %d seconds' %
-                                 self.args.timeout_secs)),
-          self._ui,
-          _ID_COUNTDOWN_DIV,
-          disable_event=disable_event)
+    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Please attach DUT.'))
 
     def _IsReady():
       if not self._dut.link.IsReady():
@@ -213,25 +157,30 @@ class StationEntry(unittest.TestCase):
       except Exception:
         return False
 
-    sync_utils.WaitFor(_IsReady, self.args.timeout_secs, poll_interval=1)
-    disable_event.set()
+    try:
+      sync_utils.WaitFor(_IsReady, self.args.timeout_secs, poll_interval=1)
+    except type_utils.TimeoutError:
+      self.FailTask(
+          'DUT is not connected in %d seconds' % self.args.timeout_secs)
 
     if self.args.prompt_start:
-      self._ui.SetHTML(_MSG_PRESS_SPACE, id=_ID_MSG_DIV)
-      sync_utils.WaitFor(self._space_event.isSet, None)
-      self._space_event.clear()
+      self.ui.SetState(
+          i18n_test_ui.MakeI18nLabel('Press SPACE to start the test.'))
+      self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 
   def End(self):
-    self._ui.SetHTML(_MSG_SEND_RESULT, id=_ID_MSG_DIV)
+    self.ui.SetState(
+        i18n_test_ui.MakeI18nLabel('Sending test results to shopfloor...'))
+
     self.SendTestResult()
 
-    self._ui.SetHTML(_MSG_REMOVE_DUT, id=_ID_MSG_DIV)
+    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Please remove DUT.'))
     if not self._dut.link.IsLocal():
       if self.args.disconnect_dut:
         sync_utils.WaitFor(lambda: not self._dut.link.IsReady(),
                            self.args.timeout_secs,
                            poll_interval=1)
       else:
-        self._ui.SetHTML(_MSG_PRESS_SPACE_TO_END, id=_ID_MSG_DIV)
-        sync_utils.WaitFor(self._space_event.isSet, None)
-        self._space_event.clear()
+        self.ui.SetState(
+            i18n_test_ui.MakeI18nLabel('Press SPACE to end the test.'))
+        self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
