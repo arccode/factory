@@ -72,7 +72,6 @@ To check if the cpu0 mode is in powersave mode::
 
 from collections import namedtuple
 import logging
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -80,14 +79,13 @@ from cros.factory.test import session
 from cros.factory.test import i18n
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
 Item = namedtuple('CheckItem', 'name command expected_value')
 
 
-class VerifyValueTest(unittest.TestCase):
+class VerifyValueTest(test_ui.TestCaseWithUI):
   ARGS = [
       Arg('items', list,
           'A list of sequences, each representing an item to check.\n'
@@ -107,22 +105,17 @@ class VerifyValueTest(unittest.TestCase):
           '            - An expected str\n'
           '            - An expected int\n'
           '            - A list of all possible values, each item can be one\n'
-          '                of the above types or [min_value, max_value].'),
-      Arg('has_ui', bool, 'True if this test runs with goofy UI enabled.',
-          default=True)
+          '                of the above types or [min_value, max_value].')
       ]
 
   def setUp(self):
-    self._ui = test_ui.UI() if self.args.has_ui else test_ui.DummyUI(self)
-    self._template = (ui_templates.OneSection(self._ui) if self.args.has_ui
-                      else ui_templates.DummyTemplate())
     self._dut = device_utils.CreateDUTInterface()
 
   def runTest(self):
     for item in self.args.items:
       item = Item(i18n.Translated(item[0], translate=False), item[1], item[2])
       name = i18n_test_ui.MakeI18nLabel(item.name)
-      self._template.SetState(name)
+      self.ui.SetState(name)
       command = item.command
 
       session.console.info('Try to get value from: %s', command)

@@ -5,14 +5,14 @@
 
 """Unittest for verify_value."""
 
-import mock
 import unittest
+
+import mock
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 from cros.factory.test import test_ui
 from cros.factory.test.pytests import verify_value
-from cros.factory.test.ui_templates import OneSection
 
 
 class FakeArgs(object):
@@ -26,8 +26,7 @@ class VerifyValueTest(unittest.TestCase):
   def setUp(self):
     self._test = verify_value.VerifyValueTest()
     self._test._dut = mock.create_autospec(spec=types.DeviceInterface)
-    self._test._ui = mock.create_autospec(spec=test_ui.UI)
-    self._test._template = mock.create_autospec(spec=OneSection)
+    self._test.ui = mock.create_autospec(spec=test_ui.StandardUI)
 
   def testPass(self):
     item = [['command_compare_str',
