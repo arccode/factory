@@ -855,6 +855,11 @@ class NewEventLoop(BaseEventLoop):
     """
     self.AddTimedHandler(lambda: next(iterable), time_sec, repeat=True)
 
+  def ClearHandlers(self):
+    """Clear all event handlers."""
+    super(NewEventLoop, self).ClearHandlers()
+    type_utils.DrainQueue(self._timed_handler_event_queue)
+
   def CatchException(self, func):
     """Wraps function and pass exceptions to _handler_exception_hook.
 
