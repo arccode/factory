@@ -7,7 +7,6 @@ class Vector {
    * Two-dimensional vector.
    * @param {number} x
    * @param {number} y
-   * @constructor
    */
   constructor(x, y) {
     this.x = x;
@@ -21,9 +20,7 @@ class Vector {
  * @param {Vector} b
  * @return {Vector}
  */
-function add(a, b) {
-  return new Vector(a.x + b.x, a.y + b.y);
-}
+const add = (a, b) => new Vector(a.x + b.x, a.y + b.y);
 
 /**
  * Element-wise vector multiplication.
@@ -31,9 +28,7 @@ function add(a, b) {
  * @param {Vector} b
  * @return {Vector}
  */
-function mul_ew(a, b) {
-  return new Vector(a.x * b.x, a.y * b.y);
-}
+const mul_ew = (a, b) => new Vector(a.x * b.x, a.y * b.y);
 
 /**
  * Vector scalar multiplication.
@@ -41,9 +36,7 @@ function mul_ew(a, b) {
  * @param {number} k
  * @return {Vector}
  */
-function mul_scalar(v, k) {
-  return new Vector(v.x * k, v.y * k);
-}
+const mul_scalar = (v, k) => new Vector(v.x * k, v.y * k);
 
 /**
  * Vector subtraction.
@@ -51,9 +44,7 @@ function mul_scalar(v, k) {
  * @param {Vector} b
  * @return {Vector}
  */
-function sub(a, b) {
-  return add(a, mul_scalar(b, -1));
-}
+const sub = (a, b) => add(a, mul_scalar(b, -1));
 
 /**
  * Vector dot product.
@@ -61,25 +52,20 @@ function sub(a, b) {
  * @param {Vector} b
  * @return {number}
  */
-function dot(a, b) {
-  return a.x * b.x + a.y * b.y;
-}
+const dot = (a, b) => a.x * b.x + a.y * b.y;
 
 /**
  * Vector absolute square.
  * @param {Vector} v
  * @return {number}
  */
-function abs2(v) {
-  return dot(v, v);
-}
+const abs2 = (v) => dot(v, v);
 
 class Line {
   /**
    * Line segment.
    * @param {Vector} begin
    * @param {Vector} end
-   * @constructor
    */
   constructor(begin, end) {
     this.begin = begin;
@@ -111,27 +97,28 @@ class Line {
 class StylusTest {
   /**
    * StylusTest constructor.
-   * @param {Object} canvas
    * @param {number} error_margin
    * @param {number} begin_ratio
    * @param {number} end_ratio
    * @param {number} step_ratio
    * @param {Array<Vector>} endpoints_ratio
-   * @constructor
    */
-  constructor(canvas, error_margin, begin_ratio, end_ratio, step_ratio,
-              endpoints_ratio) {
-    this.canvas = canvas;
-    canvas.style['background-color'] = 'white';
-    this.ctx = canvas.getContext('2d');
+  constructor(
+      error_margin, begin_ratio, end_ratio, step_ratio, endpoints_ratio) {
+    this.canvas = document.getElementById('canvas');
+    this.canvas.className = 'fullscreen';
+    this.canvas.width = screen.width;
+    this.canvas.height = screen.height;
+    this.ctx = this.canvas.getContext('2d');
     this.error_margin = error_margin;
     this.end_ratio = end_ratio;
     this.step_ratio = step_ratio;
-    this.size = new Vector(canvas.width, canvas.height);
-    this.line = new Line(mul_ew(endpoints_ratio[0], this.size),
-                         mul_ew(endpoints_ratio[1], this.size));
+    this.size = new Vector(this.canvas.width, this.canvas.height);
+    this.line = new Line(
+        mul_ew(endpoints_ratio[0], this.size),
+        mul_ew(endpoints_ratio[1], this.size));
 
-    this.ctx.clearRect(0, 0, canvas.width, canvas.height);
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.drawBoundaryLines();
     this.last_ratio = begin_ratio;
     this.drawProgressLine();
@@ -148,7 +135,7 @@ class StylusTest {
     const d = Math.sqrt(abs2(sub(q, p)));
     if (d > this.error_margin) {
       window.test.fail(
-          'Distance ' + d + ' larger than error margin ' + this.error_margin);
+          `Distance ${d} larger than error margin ${this.error_margin}`);
     }
     if (t <= this.last_ratio || t > this.last_ratio + this.step_ratio) {
       return;
@@ -179,8 +166,8 @@ class StylusTest {
   drawBoundaryLines() {
     for(const side of [-1, +1]) {
       const d = mul_scalar(this.line.unv, side * this.error_margin);
-      this.drawLine(add(this.line.getXY(-1), d),
-                    add(this.line.getXY(2), d), 'red');
+      this.drawLine(
+          add(this.line.getXY(-1), d), add(this.line.getXY(2), d), 'red');
     }
   }
 
@@ -193,38 +180,35 @@ class StylusTest {
 }
 
 /**
- * Fail the test.
- */
-function failTest() {
-  window.test.fail('Operator marked fail.');
-}
-
-/**
  * Set up a stylus test.
- * @param {string} canvasId
  * @param {number} error_margin
  * @param {number} begin_ratio
  * @param {number} end_ratio
  * @param {number} step_ratio
  * @param {Array<Array<number>>} endpoints_ratio
  */
-function setupStylusTest(canvasId, error_margin, begin_ratio, end_ratio,
-                         step_ratio, endpoints_ratio) {
-  const canvas = document.getElementById(canvasId);
-  canvas.width = screen.width;
-  canvas.height = screen.height;
-  window.stylusTest = new StylusTest(
-      canvas, error_margin, begin_ratio, end_ratio, step_ratio,
-      endpoints_ratio.map(xy_ratio => new Vector(xy_ratio[0], xy_ratio[1])));
-  window.test.setFullScreen(true);
-  canvas.style.display = '';
-}
+const setupStylusTest =
+    (error_margin, begin_ratio, end_ratio, step_ratio, endpoints_ratio) => {
+      window.test.setFullScreen(true);
+      window.stylusTest = new StylusTest(
+          error_margin, begin_ratio, end_ratio, step_ratio,
+          endpoints_ratio.map(
+              ([x_ratio, y_ratio]) => new Vector(x_ratio, y_ratio)));
+    };
 
 /**
  * Pass an input event.
  * @param {number} x_ratio
  * @param {number} y_ratio
  */
-function handler(x_ratio, y_ratio) {
+const handler = (x_ratio, y_ratio) => {
   window.stylusTest.handler(new Vector(x_ratio, y_ratio));
+};
+
+const exports = {
+  setupStylusTest,
+  handler
+};
+for (const key of Object.keys(exports)) {
+  window[key] = exports[key];
 }

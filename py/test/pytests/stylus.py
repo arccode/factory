@@ -49,27 +49,13 @@ to draw a line from left-top to left-bottom::
   }
 """
 
-import unittest
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
 from cros.factory.test.utils import touch_monitor
 from cros.factory.utils.arg_utils import Arg
-
-_ID_CANVAS = 'stylus-test-canvas'
-
-_HTML = '<canvas id="%s" style="display: none"></canvas>' % _ID_CANVAS
-
-_MSG_PROMPT_CSS_CLASS = 'stylus-test-css-class'
-_MSG_PROMPT_CSS = '.%s { font-size: 2em; }' % _MSG_PROMPT_CSS_CLASS
-_MSG_PROMPT = i18n_test_ui.MakeI18nLabelWithClass(
-    'Please extend the green line with stylus to the other end.<br>'
-    'Stay between the two red lines.<br>'
-    'Press SPACE to start; Esc to fail.', _MSG_PROMPT_CSS_CLASS)
 
 
 class StylusMonitor(touch_monitor.SingleTouchMonitor):
@@ -85,7 +71,7 @@ class StylusMonitor(touch_monitor.SingleTouchMonitor):
       self._ui.CallJSFunction('handler', state.x, state.y)
 
 
-class StylusTest(unittest.TestCase):
+class StylusTest(test_ui.TestCaseWithUI):
   """Stylus factory test."""
 
   ARGS = [
@@ -136,28 +122,7 @@ class StylusTest(unittest.TestCase):
       assert all(0 <= x_or_y <= 1 for x_or_y in point)
       assert point[0] in [0, 1] or point[1] in [0, 1]
 
-    self._ui = test_ui.UI()
-    self._template = ui_templates.OneSection(self._ui)
-    self._ui.AppendCSS(_MSG_PROMPT_CSS)
-    self._template.SetState(_MSG_PROMPT)
-
-  def _StartTest(self, event):
-    del event  # Unused.
-
-    self._ui.SetHTML(_HTML)
-    self._ui.CallJSFunction('setupStylusTest',
-                            _ID_CANVAS,
-                            self.args.error_margin,
-                            self.args.begin_ratio,
-                            self.args.end_ratio,
-                            self.args.step_ratio,
-                            self.args.endpoints_ratio)
-    self._device = evdev_utils.DeviceReopen(self._device)
-    self._device.grab()
-    self._monitor = StylusMonitor(self._device, self._ui)
-    self._dispatcher = evdev_utils.InputDeviceDispatcher(self._device,
-                                                         self._monitor.Handler)
-    self._dispatcher.StartDaemon()
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
 
   def tearDown(self):
     if self._dispatcher is not None:
@@ -165,9 +130,24 @@ class StylusTest(unittest.TestCase):
     self._device.ungrab()
 
   def runTest(self):
-    self._ui.BindKeyJS(test_ui.ESCAPE_KEY, 'failTest();')
-    if self.args.autostart:
-      self._StartTest(None)
-    else:
-      self._ui.BindKey(test_ui.SPACE_KEY, self._StartTest)
-    self._ui.Run()
+    self.ui.BindStandardFailKeys()
+    if not self.args.autostart:
+      self.ui.SetHTML(
+          i18n_test_ui.MakeI18nLabel(
+              'Please extend the green line with stylus to the other end.<br>'
+              'Stay between the two red lines.<br>'
+              'Press SPACE to start; Esc to fail.'),
+          id='msg')
+      self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
+
+    self.ui.CallJSFunction('setupStylusTest',
+                           self.args.error_margin, self.args.begin_ratio,
+                           self.args.end_ratio, self.args.step_ratio,
+                           self.args.endpoints_ratio)
+    self._device = evdev_utils.DeviceReopen(self._device)
+    self._device.grab()
+    self._monitor = StylusMonitor(self._device, self.ui)
+    self._dispatcher = evdev_utils.InputDeviceDispatcher(self._device,
+                                                         self._monitor.Handler)
+    self._dispatcher.StartDaemon()
+    self.WaitTaskEnd()
