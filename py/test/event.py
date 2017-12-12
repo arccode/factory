@@ -320,31 +320,41 @@ class EventClientBase(object):
       callback: A callback to call when events occur. The callback
           takes one argument: the received event.
     """
-    self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
+    self.socket = self._ConnectSocket(path)
+    # Use different socket for send and recv, so the recv timeout doesn't apply
+    # to send.
+    self.send_socket = self._ConnectSocket(path)
+
     self.callbacks = set()
     logging.debug('Initializing event client')
 
     if callback:
       self.callbacks.add(callback)
 
-    path = path or os.environ[CROS_FACTORY_EVENT]
-    self.socket.connect(path)
-
-    hello = self.socket.recv(len(_HELLO_MESSAGE))
-    if hello != _HELLO_MESSAGE:
-      raise socket.error('Event client expected hello (%r) but got %r' %
-                         _HELLO_MESSAGE, hello)
-
     self._lock = threading.Lock()
 
   def close(self):
-    """Closes the client, waiting for any threads to terminate."""
-    if not self.socket:
-      return
+    """Closes the client."""
+    if self.socket:
+      self.socket.shutdown(socket.SHUT_RDWR)
+      self.socket.close()
+      self.socket = None
 
-    self.socket.shutdown(socket.SHUT_RDWR)
-    self.socket.close()
-    self.socket = None
+    if self.send_socket:
+      self.send_socket.shutdown(socket.SHUT_RDWR)
+      self.send_socket.close()
+      self.send_socket = None
+
+  def _ConnectSocket(self, path):
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
+    path = path or os.environ[CROS_FACTORY_EVENT]
+    s.connect(path)
+
+    hello = s.recv(len(_HELLO_MESSAGE))
+    if hello != _HELLO_MESSAGE:
+      raise socket.error('Event client expected hello (%r) but got %r' %
+                         _HELLO_MESSAGE, hello)
+    return s
 
   def __del__(self):
     self.close()
@@ -387,7 +397,7 @@ class EventClientBase(object):
       logging.error('Message too large (%d bytes): event is %s',
                     len(message), event)
       raise IOError('Message too large (%d bytes)' % len(message))
-    self.socket.sendall(message)
+    self.send_socket.sendall(message)
 
   def _process_event(self, timeout=None):
     """Handles one incoming message from the socket.
@@ -407,7 +417,7 @@ class EventClientBase(object):
       logging.error('Event client: message too large')
       return True, None
 
-    if len(msg_bytes) == 0:
+    if not msg_bytes:
       return False, None
 
     try:
