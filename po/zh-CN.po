@@ -2925,7 +2925,7 @@ msgstr "与 ENA (E5071C) 连线中..."
 #: ../py/test/pytests/vswr/vswr.html
 msgid ""
 "Please fully disconnect all the cable.<br>\n"
-"      Then press ENTER to continue."
+"        Then press ENTER to continue."
 msgstr "请完全移除天线后，按 ENTER 继续"
 
 #: ../py/test/pytests/vswr/vswr.html
@@ -2935,7 +2935,7 @@ msgstr "验证仪器矫正状态中..."
 #: ../py/test/pytests/vswr/vswr.html
 msgid ""
 "The ENA needs to be calibrated.<br>\n"
-"      Please press ENTER to continue."
+"        Please press ENTER to continue."
 msgstr "请矫正 ENA 并按 ENTER 重新启动测试。"
 
 #: ../py/test/pytests/vswr/vswr.html
@@ -2945,8 +2945,8 @@ msgstr "请放置 LCD 本体在治具上<br>完成后按 ENTER"
 #: ../py/test/pytests/vswr/vswr.html
 msgid ""
 "Make sure the main WWAN antennta is connected to Port 1<br>\n"
-"      Make sure the main WLAN antennta is connected to Port 2<br>\n"
-"      Then press key \"A\" to next stage."
+"        Make sure the main WLAN antennta is connected to Port 2<br>\n"
+"        Then press key \"A\" to next stage."
 msgstr ""
 "连接主 WWAN 天线至 Port 1<br> 连接主 WLAN 天线至 Port 2<br> 完成后按 A 键"
 

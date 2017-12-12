@@ -2,28 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-function emitSNEnterEvent() {
-  var sn = document.getElementById('sn');
-  window.test.sendTestEvent('snenter', sn.value);
-}
-
-function resetSNField() {
-  document.getElementById('sn').value = '';
-  // Also hide error message, since it makes sense only if there is a wrong SN
-  // in the field.
-  document.getElementById('sn-format-error').style.display = 'none';
-}
-
-function showMessageBlock(id) {
+window.showMessageBlock = (id) => {
   // Hide all message blocks under div#state.
-  var state_block = document.getElementById('state');
-  var states = state_block.children;
-  for (var i = 0; i < states.length; ++i) {
-    states[i].style.display = 'none';
+  const state_block = document.getElementById('state');
+  for (const ele of state_block.children) {
+    ele.style.display = 'none';
   }
   // Make the one specified message block visible.
-  var message = document.getElementById('state-' + id);
-  if (message != undefined) {
+  const message = document.getElementById('state-' + id);
+  if (message) {
     message.style.display = '';
   }
-}
+};

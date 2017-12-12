@@ -28,18 +28,15 @@ This test measures VSWR value using an Agilent E5071C Network Analyzer (ENA).
 import datetime
 import logging
 import os
-import Queue
 import random
 import re
 import string
-import unittest
 import uuid
 
 import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import event as test_event
 from cros.factory.test import event_log
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
@@ -61,7 +58,7 @@ from cros.factory.utils import net_utils
 LOCAL_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-class VSWR(unittest.TestCase):
+class VSWR(test_ui.TestCaseWithUI):
   """A test for antennas using Agilent E5017C Network Analyzer (ENA)."""
   ARGS = [
       Arg('event_log_name', str, 'Name of the event_log, like '
@@ -126,14 +123,6 @@ class VSWR(unittest.TestCase):
     # Clear results.
     self._vswr_detail_results = {}
     self._results = {}
-    self.test_passed = None
-
-    # Set up UI.
-    self._event_queue = Queue.Queue()
-    self._ui = test_ui.UI()
-    self._ui.AddEventHandler('keypress', self._event_queue.put)
-    self._ui.AddEventHandler('snenter', self._event_queue.put)
-
     self.test_passed = False
 
   def _ConnectToENA(self, network_analyzer_config):
@@ -177,9 +166,8 @@ class VSWR(unittest.TestCase):
     result = {}
     for parameter in traces.parameters:
       response = {}
-      for i in range(len(traces.x_axis)):
-        response[rf.Frequency.FromHz(traces.x_axis[i]).MHzi()] = (
-            traces.traces[parameter][i])
+      for i, val in enumerate(traces.x_axis):
+        response[rf.Frequency.FromHz(val).MHzi()] = traces.traces[parameter][i]
       result[parameter] = response
     return result
 
@@ -381,7 +369,7 @@ class VSWR(unittest.TestCase):
 
   def _ShowResults(self):
     """Displays the final result."""
-    self._ui.SetHTML(self._serial_number, id='result-serial-number')
+    self.ui.SetHTML(self._serial_number, id='result-serial-number')
 
     # TODO(littlecvr): Don't construct HTML string directly.
     result_html_string = ''
@@ -398,25 +386,7 @@ class VSWR(unittest.TestCase):
               '<tr><td>%s</td><td>%s</td><td style="color:red">%s</td></tr>' % (
                   row_count, antenna_name, self._results[antenna_name]))
         row_count += 1
-    self._ui.SetHTML(result_html_string, id='result-table')
-
-  def _WaitForEvent(self, subtype):
-    """Waits until a specific event subtype has been sent."""
-    while True:
-      event = self._event_queue.get()
-      if hasattr(event, 'subtype') and event.subtype == subtype:
-        return event
-
-  def _WaitForKey(self, key):
-    """Waits until a specific key has been pressed."""
-    # Create a unique event_name for the key and bind it.
-    event_name = uuid.uuid4()
-    self._ui.BindKey(key, lambda _: self._event_queue.put(
-        test_event.Event(
-            test_event.Event.Type.TEST_UI_EVENT, subtype=event_name)))
-    self._WaitForEvent(event_name)
-    # Unbind the key and delete the event_name's handler.
-    self._ui.UnbindKey(key)
+    self.ui.SetHTML(result_html_string, id='result-table')
 
   def _ShowMessageBlock(self, html_id):
     """Helper function to display HTML message block.
@@ -424,13 +394,9 @@ class VSWR(unittest.TestCase):
     This function also hides other message blocks as well. Leaving html_id the
     only block to display.
     """
-    self._ui.CallJSFunction('showMessageBlock', html_id)
+    self.ui.CallJSFunction('showMessageBlock', html_id)
 
   def runTest(self):
-    self._ui.RunInBackground(self._runTest)
-    self._ui.Run()
-
-  def _runTest(self):
     """Runs the test.
 
     At each step, we first call self._ShowMessageBlock(BLOCK_ID) to display the
@@ -459,7 +425,7 @@ class VSWR(unittest.TestCase):
 
     # Check the network analyzer is calibrated.
     self._ShowMessageBlock('prepare-calibration')
-    self._WaitForKey(test_ui.ENTER_KEY)
+    self.ui.WaitKeysOnce(test_ui.ENTER_KEY)
     self._ShowMessageBlock('check-calibration')
     ena_config = self._config['network_analyzer']
     calibration_passed, calibration_traces = self._ena.CheckCalibration(
@@ -477,11 +443,11 @@ class VSWR(unittest.TestCase):
 
     if not calibration_passed:
       self._ShowMessageBlock('need-calibration')
-      self._WaitForKey(test_ui.ENTER_KEY)
+      self.ui.WaitKeysOnce(test_ui.ENTER_KEY)
       self.fail('The network analyzer needs calibration.')
 
     self._ShowMessageBlock('prepare-panel')
-    self._WaitForKey(test_ui.ENTER_KEY)
+    self.ui.WaitKeysOnce(test_ui.ENTER_KEY)
 
     for measurement_sequence in self._sn_config['measurement_sequence']:
       # Pick a random letter to prevent the operator from pressing too fast.
@@ -497,9 +463,9 @@ class VSWR(unittest.TestCase):
       html_string = i18n.StringJoin(html_string, i18n.StringFormat(
           _('Then press key "{key}" to next stage.'), key=letter))
       html_string = i18n_test_ui.MakeI18nLabel(html_string)
-      self._ui.SetHTML(html_string, id='state-prepare-antennas')
+      self.ui.SetHTML(html_string, id='state-prepare-antennas')
       self._ShowMessageBlock('prepare-antennas')
-      self._WaitForKey(letter)
+      self.ui.WaitKeysOnce(letter)
 
       self._ShowMessageBlock('test-antennas')
       # TODO(littlecvr): Get rid of _sn_config.
@@ -517,7 +483,7 @@ class VSWR(unittest.TestCase):
     self._SaveLog()
     self._ShowResults()
     self._ShowMessageBlock('show-result')
-    self._WaitForKey(test_ui.ENTER_KEY)
+    self.ui.WaitKeysOnce(test_ui.ENTER_KEY)
     if not self.test_passed:
       self.fail()
 

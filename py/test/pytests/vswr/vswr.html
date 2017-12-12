@@ -1,62 +1,64 @@
-<div id="state">
-  <div id="state-load-parameters-from-local-disk">
-    <i18n-label>Loading parameters from local disk...</i18n-label>
-  </div>
-  <div id="state-download-parameters-from-shopfloor">
-    <i18n-label>Downloading parameters from shopfloor...</i18n-label>
-  </div>
-  <div id="state-set-up-network">
-    <i18n-label>Setting up network...</i18n-label>
-  </div>
-  <div id="state-connect-to-ena">
-    <i18n-label>Connecting with the ENA...</i18n-label>
-  </div>
-  <div id="state-prepare-calibration">
-    <i18n-label>
-      Please fully disconnect all the cable.<br>
-      Then press ENTER to continue.</i18n-label>
-  </div>
-  <div id="state-check-calibration">
-    <i18n-label>Checking its calibration status...</i18n-label>
-  </div>
-  <div id="state-need-calibration">
-    <i18n-label>
-      The ENA needs to be calibrated.<br>
-      Please press ENTER to continue.</i18n-label>
-  </div>
-  <div id="state-prepare-panel">
-    <i18n-label>
-      Please place the LCD panel into the fixture and then press ENTER.
-    </i18n-label>
-  </div>
-  <div id="state-prepare-antennas">
-    <i18n-label>
-      Make sure the main WWAN antennta is connected to Port 1<br>
-      Make sure the main WLAN antennta is connected to Port 2<br>
-      Then press key "A" to next stage.</i18n-label>
-  </div>
-  <div id="state-test-antennas">
-    <i18n-label>Testing...</i18n-label>
-  </div>
-  <div id="state-save-log">
-    <i18n-label>Writing log....</i18n-label>
-  </div>
-  <div id="state-show-result">
-    <i18n-label>Results are listed below:</i18n-label>
-    <div>Serial Number: <span id="result-serial-number"></span></div>
-    <div id="result">
-      <table id="result-table" style="margin: 0 auto">
-        <tr><td>1</td><td>LTE Antenna (MAIN)</td>
-          <td>PASSED</td></tr>
-        <tr><td>2</td><td>LTE Antenna (AUX)</td>
-          <td id="result-lte-aux"></td></tr>
-        <tr><td>3</td><td>WiFi Antenna (MAIN)</td>
-          <td id="result-wifi-main"></td></tr>
-        <tr><td>4</td><td>WiFi Antenna (AUX)</td>
-          <td id="result-wifi-aux"></td></tr>
-      </table>
+<test-template>
+  <div id="state">
+    <div id="state-load-parameters-from-local-disk">
+      <i18n-label>Loading parameters from local disk...</i18n-label>
     </div>
-    <i18n-label>
-      Please disconnect the panel and press ENTER to write log.</i18n-label>
+    <div id="state-download-parameters-from-shopfloor">
+      <i18n-label>Downloading parameters from shopfloor...</i18n-label>
+    </div>
+    <div id="state-set-up-network">
+      <i18n-label>Setting up network...</i18n-label>
+    </div>
+    <div id="state-connect-to-ena">
+      <i18n-label>Connecting with the ENA...</i18n-label>
+    </div>
+    <div id="state-prepare-calibration">
+      <i18n-label>
+        Please fully disconnect all the cable.<br>
+        Then press ENTER to continue.</i18n-label>
+    </div>
+    <div id="state-check-calibration">
+      <i18n-label>Checking its calibration status...</i18n-label>
+    </div>
+    <div id="state-need-calibration">
+      <i18n-label>
+        The ENA needs to be calibrated.<br>
+        Please press ENTER to continue.</i18n-label>
+    </div>
+    <div id="state-prepare-panel">
+      <i18n-label>
+        Please place the LCD panel into the fixture and then press ENTER.
+      </i18n-label>
+    </div>
+    <div id="state-prepare-antennas">
+      <i18n-label>
+        Make sure the main WWAN antennta is connected to Port 1<br>
+        Make sure the main WLAN antennta is connected to Port 2<br>
+        Then press key "A" to next stage.</i18n-label>
+    </div>
+    <div id="state-test-antennas">
+      <i18n-label>Testing...</i18n-label>
+    </div>
+    <div id="state-save-log">
+      <i18n-label>Writing log....</i18n-label>
+    </div>
+    <div id="state-show-result">
+      <i18n-label>Results are listed below:</i18n-label>
+      <div>Serial Number: <span id="result-serial-number"></span></div>
+      <div id="result">
+        <table id="result-table">
+          <tr><td>1</td><td>LTE Antenna (MAIN)</td>
+            <td>PASSED</td></tr>
+          <tr><td>2</td><td>LTE Antenna (AUX)</td>
+            <td id="result-lte-aux"></td></tr>
+          <tr><td>3</td><td>WiFi Antenna (MAIN)</td>
+            <td id="result-wifi-main"></td></tr>
+          <tr><td>4</td><td>WiFi Antenna (AUX)</td>
+            <td id="result-wifi-aux"></td></tr>
+        </table>
+      </div>
+      <i18n-label>
+        Please disconnect the panel and press ENTER to write log.</i18n-label>
+    </div>
   </div>
-</div>
+</test-template>
