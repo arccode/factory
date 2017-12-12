@@ -19,36 +19,17 @@ from __future__ import print_function
 import logging
 import re
 import sys
-import threading
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test import session
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
 
-_DEFAULT_WIRELESS_TEST_CSS = '.wireless-info { font-size: 2em; }'
-
-_MSG_SWITCHING_ANTENNA = lambda antenna: i18n_test_ui.MakeI18nLabelWithClass(
-    'Switching to antenna {antenna}: ', 'wireless-info', antenna=antenna)
-_MSG_SCANNING = lambda device, freq: i18n_test_ui.MakeI18nLabelWithClass(
-    'Scanning on device {device} frequency {freq}...',
-    'wireless-info',
-    device=device,
-    freq=freq)
-_MSG_SCANNING_DONE = lambda device, freq: i18n_test_ui.MakeI18nLabelWithClass(
-    'Done scanning on device {device} frequency {freq}...',
-    'wireless-info',
-    device=device,
-    freq=freq)
-_MSG_SPACE = i18n_test_ui.MakeI18nLabelWithClass(
-    'Press space to start scanning.', 'wireless-info')
 
 _RE_FREQ = re.compile(r'^freq: ([\d]*?)$')
 _RE_SIGNAL = re.compile(r'^signal: ([-\d.]*?) dBm')
@@ -184,17 +165,16 @@ def IwScan(devname, frequency=None, sleep_retry_time_secs=2, max_retries=10):
                         (retcode, stderr))
   raise IwException('Failed to iw scan for %s tries' % max_retries)
 
+
 _ANTENNA_CONFIG = {'main': ('1', '1'),
                    'aux': ('2', '2'),
                    'all': ('3', '3')}
 
 
-class WirelessTest(unittest.TestCase):
+class WirelessTest(test_ui.TestCaseWithUI):
   """Basic wireless test class.
 
   Properties:
-    _ui: Test ui.
-    _template: Test template.
     _antenna: current antenna config.
     _phy_name: wireless phy name to test.
     _antenna_service_strength: a dict of dict to store the scan result
@@ -202,9 +182,6 @@ class WirelessTest(unittest.TestCase):
         {'all':{'AP1': -30, 'AP2': -40},
          'main': {'AP1': -40, 'AP2': -50},
          'aux': {'AP1': -40, 'AP2': -50}}
-    _space_event: An event that space has been pressed. It will also be set
-        if test has been done.
-    _done: An event that test has been done.
   """
   ARGS = [
       Arg('device_name', str,
@@ -233,18 +210,17 @@ class WirelessTest(unittest.TestCase):
           'config.', default=False)]
 
   def setUp(self):
-    self._ui = test_ui.UI()
-    self._template = ui_templates.OneSection(self._ui)
-    self._ui.AppendCSS(_DEFAULT_WIRELESS_TEST_CSS)
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
     self._phy_name = self.DetectPhyName()
     logging.info('phy name is %s.', self._phy_name)
     self._antenna_service_strength = {}
-    for antenna in _ANTENNA_CONFIG.keys():
+    for antenna in _ANTENNA_CONFIG:
       self._antenna_service_strength[antenna] = {}
-    self.SwitchAntenna('all')
-    self._antenna = 'all'
-    self._space_event = threading.Event()
-    self._done = threading.Event()
+    self._antenna = None
+
+    if self.args.disable_switch and self.args.strength.keys() != ['all']:
+      self.fail('Switching antenna is disabled but antenna configs are %s' %
+                self.args.strength.keys())
 
   def tearDown(self):
     """Restores antenna."""
@@ -302,9 +278,18 @@ class WirelessTest(unittest.TestCase):
       Scan output on device.
     """
     logging.info('Start scanning on %s freq %d.', self.args.device_name, freq)
-    self._template.SetState(_MSG_SCANNING(self.args.device_name, freq))
+    self.ui.SetState(
+        i18n_test_ui.MakeI18nLabel(
+            'Scanning on device {device} frequency {freq}...',
+            device=self.args.device_name,
+            freq=freq))
+
     scan_output = IwScan(self.args.device_name, freq)
-    self._template.SetState(_MSG_SCANNING_DONE(self.args.device_name, freq))
+    self.ui.SetState(
+        i18n_test_ui.MakeI18nLabel(
+            'Done scanning on device {device} frequency {freq}...',
+            device=self.args.device_name,
+            freq=freq))
     logging.info('Scan finished.')
     return scan_output
 
@@ -323,15 +308,15 @@ class WirelessTest(unittest.TestCase):
       (None, None, None, None) otherwise.
     """
     parsed_tuples = []
-    (mac, ssid, freq, signal, last_seen) = (None, None, None, None, None)
+    mac, ssid, freq, signal, last_seen = (None, None, None, None, None)
     for line in scan_output.splitlines():
       line = line.strip()
       # a line starts with BSS should look like
       # BSS d8:c7:c8:b6:6b:50(on wlan0)
       if line.startswith('BSS'):
         bss_format_line = re.sub(r'[ ()]', ' ', line)
-        (mac, ssid, freq, signal, last_seen) = (
-            bss_format_line.split()[1], None, None, None, None)
+        mac, ssid, freq, signal, last_seen = (bss_format_line.split()[1], None,
+                                              None, None, None)
       freq = GetProp(line, _RE_FREQ, freq)
       signal = GetProp(line, _RE_SIGNAL, signal)
       ssid = GetProp(line, _RE_SSID, ssid)
@@ -340,10 +325,11 @@ class WirelessTest(unittest.TestCase):
         if ssid == service_ssid:
           parsed_tuples.append(
               (mac, int(freq), float(signal), int(last_seen)))
-        (mac, ssid, freq, signal, last_seen) = (None, None, None, None, None)
+        mac, ssid, freq, signal, last_seen = (None, None, None, None, None)
+
     if len(parsed_tuples) == 1:
       return parsed_tuples[0]
-    elif len(parsed_tuples) == 0:
+    elif not parsed_tuples:
       session.console.warning('Can not scan service %s.', service_ssid)
       return (None, None, None, None)
     else:
@@ -409,11 +395,11 @@ class WirelessTest(unittest.TestCase):
 
     for freq in sorted(set_all_freqs):
       # Scans for times
-      for _ in xrange(times):
+      for unused_i in xrange(times):
         scan_output = self.ScanSignal(freq)
         for service in services:
           service_ssid = service[0]
-          (mac, freq_scanned, strength, last_seen) = self.ParseScanOutput(
+          mac, freq_scanned, strength, last_seen = self.ParseScanOutput(
               scan_output, service_ssid)
           if last_seen > _THRESHOLD_LAST_SEEN_MS:
             logging.warning('Neglect cached scan : %s %d ms ago.',
@@ -433,8 +419,7 @@ class WirelessTest(unittest.TestCase):
     average_results = {}
     # Averages the scanned strengths
     for service, result in scan_results.iteritems():
-      average_results[service] = (sum(result) / len(result)
-                                  if len(result) else None)
+      average_results[service] = (sum(result) / len(result) if result else None)
     return average_results
 
   def SwitchAntennaAndScan(self, services, antenna):
@@ -445,7 +430,9 @@ class WirelessTest(unittest.TestCase):
       antenna: The antenna config to scan.
     """
     session.console.info('Testing antenna %s.', antenna)
-    self._template.SetState(_MSG_SWITCHING_ANTENNA(antenna))
+    self.ui.SetState(
+        i18n_test_ui.MakeI18nLabel(
+            'Switching to antenna {antenna}: ', antenna=antenna))
     self.SwitchAntenna(antenna)
     self._antenna_service_strength[antenna] = self.ScanAndAverageSignals(
         services, times=self.args.scan_count)
@@ -481,37 +468,13 @@ class WirelessTest(unittest.TestCase):
           'Antenna %s, service: %s: The scanned strength %f > spec strength'
           ' %f', antenna, service, scanned_strength, spec_strength)
 
-  def Done(self):
-    """The callback when ui is done.
-
-    This will be called when test is finished, or if operator presses
-    'Mark Failed'.
-    """
-    self._done.set()
-    self._space_event.set()
-
-  def OnSpacePressed(self):
-    """The handler of space key."""
-    logging.info('Space pressed by operator.')
-    self._space_event.set()
-
   def runTest(self):
     # Prompts a message to tell operator to press space key when ready.
-    self._template.SetState(_MSG_SPACE)
-    self._ui.BindKey(test_ui.SPACE_KEY,
-                     lambda _: self.OnSpacePressed(),
-                     once=True)
-    self._ui.RunInBackground(self._runTest)
-    self._ui.Run(on_finish=self.Done)
+    self.ui.SetState(
+        i18n_test_ui.MakeI18nLabel('Press space to start scanning.'))
+    self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 
-  def _runTest(self):
-    self._space_event.wait()
-    if self._done.isSet():
-      return
-
-    if self.args.disable_switch and self.args.strength.keys() != ['all']:
-      self.fail('Switching antenna is disabled but antenna configs are %s' %
-                self.args.strength.keys())
+    self.SwitchAntenna('all')
 
     services = type_utils.MakeTuple(self.args.services)
     # Scans using antenna 'all'.

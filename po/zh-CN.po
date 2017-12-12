@@ -2989,10 +2989,6 @@ msgid "Running, please wait..."
 msgstr "测试中，请稍后。"
 
 #: ../py/test/pytests/wireless_antenna.py
-msgid "Switching to antenna {antenna}: "
-msgstr "切换到天线 {antenna}..."
-
-#: ../py/test/pytests/wireless_antenna.py
 #: ../py/test/pytests/wireless_radiotap.py
 msgid "Scanning on device {device} frequency {freq}..."
 msgstr "在装置 {device} 上扫描频率{freq}..."
@@ -3001,6 +2997,10 @@ msgstr "在装置 {device} 上扫描频率{freq}..."
 #: ../py/test/pytests/wireless_radiotap.py
 msgid "Done scanning on device {device} frequency {freq}..."
 msgstr "在装置 {device} 上扫描频率{freq} 完成"
+
+#: ../py/test/pytests/wireless_antenna.py
+msgid "Switching to antenna {antenna}: "
+msgstr "切换到天线 {antenna}..."
 
 #: ../py/test/pytests/wireless_antenna.py
 #: ../py/test/pytests/wireless_radiotap.py
