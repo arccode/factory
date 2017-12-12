@@ -84,7 +84,6 @@ To always prompt but only pass if all previous tests in same group passed
 
 import itertools
 import logging
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -95,30 +94,8 @@ from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
-CSS = """
-#test-status-table-container {
-  overflow: auto;
-}
-
-test-template.test-accessibility {
-  --template-background-color: #F77;
-}
-
-table {
-  padding-bottom: 1em;
-}
-
-th, td {
-  padding: 0 1em;
-}
-
-.prompt_message {
-  font-size: 2em;
-}
-"""
 
 _EXTERNAL_DIR = '/run/factory/external'
 
@@ -129,7 +106,7 @@ _EXTENED_PASSED_STATE = {
     state.TestState.SKIPPED, }
 
 
-class Report(unittest.TestCase):
+class Report(test_ui.TestCaseWithUI):
   """A factory test to report test status."""
   ARGS = [
       i18n_arg_utils.I18nArg(
@@ -183,9 +160,6 @@ class Report(unittest.TestCase):
     return i18n_test_ui.MakeI18nLabel(STATUS_LABEL.get(status, status))
 
   def runTest(self):
-    ui = test_ui.UI(css=CSS)
-    template = ui_templates.OneSection(ui)
-
     test_list = self.test_info.ReadTestList()
     test = test_list.LookupPath(self.test_info.path)
     states = state.get_instance().get_test_states()
@@ -261,14 +235,14 @@ class Report(unittest.TestCase):
 
 
     if not self.args.disable_input_on_fail:
-      ui.BindStandardKeys()
+      self.ui.BindStandardKeys()
     # If disable_input_on_fail is True, and overall status is PASSED, user
     # can only pass the test.
     elif all_pass:
-      ui.BindStandardPassKeys()
+      self.ui.BindStandardPassKeys()
 
-    template.SetState(''.join(html))
+    self.ui.SetState(''.join(html))
     if self.args.accessibility and not all_pass:
-      ui.RunJS('window.template.classList.add("test-accessibility")')
-    logging.info('starting ui.Run with overall_status %r', overall_status)
-    ui.Run()
+      self.ui.RunJS('window.template.classList.add("test-accessibility")')
+    logging.info('overall_status=%r', overall_status)
+    self.WaitTaskEnd()

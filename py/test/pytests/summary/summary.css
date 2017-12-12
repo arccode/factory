@@ -1,0 +1,25 @@
+/*
+ * Copyright 2017 The Chromium OS Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+#test-status-table-container {
+  overflow: auto;
+}
+
+test-template.test-accessibility {
+  --template-background-color: #F77;
+}
+
+table {
+  padding-bottom: 1em;
+}
+
+th, td {
+  padding: 0 1em;
+}
+
+.prompt_message {
+  font-size: 2em;
+}
