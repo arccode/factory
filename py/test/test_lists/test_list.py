@@ -144,6 +144,8 @@ class Options(object):
 
   hooks_class = 'cros.factory.goofy.hooks.Hooks'
   """Hooks class for the factory test harness.  Defaults to a dummy class."""
+  testlog_hooks = 'cros.factory.testlog.hooks.Hooks'
+  """Hooks class for Testlog event. Defaults to a dummy class."""
 
   phase = None
   """Name of a phase to set.  If None, the phase is unset and the

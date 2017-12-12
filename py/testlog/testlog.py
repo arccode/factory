@@ -46,6 +46,7 @@ import re
 import tempfile
 import threading
 
+from . import hooks
 from . import testlog_seq
 from . import testlog_utils
 from . import testlog_validator
@@ -183,6 +184,8 @@ class Testlog(object):
     self.seq_generator = testlog_seq.SeqGenerator(
         _SEQUENCE_PATH, self.primary_json)
     self._CreateFolders()
+
+    self.hooks = None
     # Reload the JSON paths into JSONLogFile for future writing.
     if self.session_json:
       self.session_json = JSONLogFile(
@@ -194,6 +197,14 @@ class Testlog(object):
           path=self.primary_json, mode='a')
     # Initialize testlog._pylogger
     self.CaptureLogging(stationDeviceId, stationInstallationId)
+
+  def init_hooks(self, hooks_class):
+    # Initialize the Testlog hooks class
+    module, class_name = hooks_class.rsplit('.', 1)
+    self.hooks = getattr(__import__(module, fromlist=[class_name]),
+                         class_name)()
+    assert isinstance(self.hooks, hooks.Hooks), (
+        'Testlog hooks should be of type Hooks but is %r' % type(self.hooks))
 
   def CaptureLogging(self, stationDeviceId=None, stationInstallationId=None):
     """Captures calls to logging.* into primary_json."""
@@ -400,6 +411,14 @@ def Log(event):
   # TODO(itspeter): expose flag to override the default flush behavior.
   testlog_singleton = GetGlobalTestlog()
   assert event, 'No event to write'
+
+  if testlog_singleton.hooks:
+    if isinstance(event, StationInit):
+      testlog_singleton.hooks.OnStationInit(event)
+    elif isinstance(event, StationMessage):
+      testlog_singleton.hooks.OnStationMessage(event)
+    elif isinstance(event, StationTestRun):
+      testlog_singleton.hooks.OnStationTestRun(event)
 
   if testlog_singleton.flush_mode:
     testlog_singleton.primary_json.Log(event)

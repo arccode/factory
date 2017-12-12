@@ -1219,6 +1219,7 @@ class Goofy(object):
     self.test_list.state_instance = self.state_instance
 
     self.init_hooks()
+    self.testlog.init_hooks(self.test_list.options.testlog_hooks)
 
     if self.test_list.options.clear_state_on_start:
       self.state_instance.clear_test_state()
