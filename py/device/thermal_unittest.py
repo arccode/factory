@@ -192,6 +192,26 @@ class ECToolTemperatureSensors(unittest.TestCase):
         'ectool PECI': 20})
     self.mox.VerifyAll()
 
+  def testGetAllValues(self):
+    self.board.CallOutput('ectool tempsinfo all').AndReturn('\n'.join([
+        '0: 0 TMP432_Internal',
+        '1: 1 TMP432_Sensor_1',
+        '2: 2 TMP432_Sensor_2']))
+    self.board.CallOutput('ectool temps all').AndReturn('\n'.join([
+        '0: 329 K',
+        '1: 327 K',
+        '2: 273 K']))
+    self.mox.ReplayAll()
+    self.assertEquals(self.sensor.GetSensors(), {
+        'ectool TMP432_Internal': '0',
+        'ectool TMP432_Sensor_1': '1',
+        'ectool TMP432_Sensor_2': '2',
+    })
+    self.assertEquals(self.sensor.GetAllValues(), {
+        'ectool TMP432_Internal': 56,
+        'ectool TMP432_Sensor_1': 54,
+        'ectool TMP432_Sensor_2': 0})
+    self.mox.VerifyAll()
 
 class ThermalTest(unittest.TestCase):
   """Unittest for Thermal."""

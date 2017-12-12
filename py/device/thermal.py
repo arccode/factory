@@ -212,7 +212,7 @@ class ECToolTemperatureSensors(ThermalSensorSource):
   ECTOOL_TEMPSINFO_ALL_RE = re.compile(r'^(\d+): \d+ (.+)$', re.MULTILINE)
   """ectool 'tempsinfo all' output format: <id: type name>"""
 
-  ECTOOL_TEMPS_ALL_RE = re.compile(r'^(\d+): (\d+)$', re.MULTILINE)
+  ECTOOL_TEMPS_ALL_RE = re.compile(r'^(\d+): (\d+)(?: K)?$', re.MULTILINE)
   """ectool 'temps all' output format: <id: value>"""
 
   def _Probe(self):
