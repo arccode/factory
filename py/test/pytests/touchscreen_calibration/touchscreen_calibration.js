@@ -2,83 +2,54 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-window.addEventListener('load', init);
+const RED = '#F55';
+const GREEN = '#5F5';
 
-function toggleDebugPanel() {
-  var debugPanel = document.getElementById('debug-panel');
-  var v = debugPanel.style.visibility;
-  if (v.toLowerCase() == 'visible' || v == '') {
-    debugPanel.style.visibility = 'hidden';
-  } else {
-    debugPanel.style.visibility = 'visible';
-  }
-}
+const toggleDebugPanel = () => {
+  document.getElementById('debug-panel').classList.toggle('hidden');
+};
 
-function snKeyDown(event) {
-  if (event.keyCode == 13) {
-    snEntered();
-  }
-}
-
-function snEntered() {
-  var sn = document.getElementById('sn').value;
+const snEntered = () => {
+  const sn = document.getElementById('sn').value;
   if (sn.length > 0) {
-    window.test.sendTestEvent(
-        'StartCalibration', {'sn': document.getElementById('sn').value});
+    window.test.sendTestEvent('StartCalibration', {sn});
     document.getElementById('sn').value = '';
     document.getElementById('display-area').innerHTML = '';
   } else {
-    alert('Please enter SN 请输入序号');
+    window.test.alert(_('Please enter SN'));
   }
-}
+};
 
-function fillInSerialNumber(sn) {
-  var elm = document.getElementById('sn');
+const fillInSerialNumber = (sn) => {
+  const elm = document.getElementById('sn');
   elm.value = sn;
-  elm.style.backgroundColor = '#5F5';
-}
+  elm.style.backgroundColor = GREEN;
+};
 
-function init() {
-  window.test.sendTestEvent('RefreshFixture', {});
-  window.test.sendTestEvent('RefreshTouchscreen', {});
-}
-
-function displayDebugData(data) {
-  var displayArea = document.getElementById('display-area');
+const displayDebugData = (data) => {
+  const displayArea = document.getElementById('display-area');
   displayArea.innerHTML = '';
-  var max = -1;
-  var min = -1;
+  const max = Math.max(...data.map((row) => Math.max(...row)));
+  const min = Math.min(...data.map((row) => Math.min(...row)));
 
-  for (var i = 0; i < data.length; i++) {
-    for (var j = 0; j < data[i].length; j++) {
-      if (min == -1 || min > data[i][j]) {
-        min = data[i][j];
-      }
-      if (max == -1 || max < data[i][j]) {
-        max = data[i][j];
-      }
-    }
-  }
-
-  for (var i = 0; i < data.length; i++) {
-    var row = document.createElement('div');
-    for (var j = 0; j < data[i].length; j++) {
-      var cell = document.createElement('span');
-      var value = data[i][j];
-      value = Math.floor(255 * (value - min) / (max - min));
+  for (const rowData of data) {
+    const row = document.createElement('div');
+    for (const value of rowData) {
+      const cell = document.createElement('span');
+      const scaledValue = Math.floor(255 * (value - min) / (max - min));
       cell.innerHTML = '__';
-      cell.style.backgroundColor = heatMap(value);
+      cell.style.backgroundColor = heatMap(scaledValue);
       cell.style.fontSize = '0.7em';
       row.appendChild(cell);
     }
     displayArea.insertBefore(row, displayArea.childNodes[0]);
   }
-}
+};
 
-function heatMap(val) {
-  var r = 0;
-  var g = 0;
-  var b = 0;
+const heatMap = (val) => {
+  let r = 0;
+  let g = 0;
+  let b = 0;
   if (val <= 255 && val >= 235) {
     r = val;
     g = (255 - val) * 12;
@@ -94,41 +65,61 @@ function heatMap(val) {
   } else {
     b = 255;
   }
-  return 'rgb(' + r + ',' + g + ',' + b + ')';
-}
+  return `rgb(${r},${g},${b})`;
+};
 
-function setControllerStatus(status) {
-  var elm = document.getElementById('controller-status');
-  elm.innerText = status ? 'Detected' : 'Undetected';
-  elm.style.backgroundColor = status ? '#5F5' : '#F55';
-}
+const setStatus = (id, status, success) => {
+  const elm = document.getElementById(id);
+  elm.innerText = status;
+  elm.style.backgroundColor = success ? GREEN : RED;
+};
 
-function setTouchscreenStatus(status) {
-  var elm = document.getElementById('touchscreen-status');
-  elm.innerText = status ? 'Detected' : 'Undetected';
-  elm.style.backgroundColor = status ? '#5F5' : '#F55';
-}
+const setControllerStatus = (status) =>
+    setStatus('controller-status', status ? 'Detected' : 'Undetected', status);
 
-function showProbeState(state) {
-  var elm = document.getElementById('probe-state');
-  elm.innerText = state;
-  elm.style.backgroundColor = '#5F5';
-}
+const setTouchscreenStatus = (status) =>
+    setStatus('touchscreen-status', status ? 'Detected' : 'Undetected', status);
 
-function setHostNetworkStatus(ip) {
-  var elm = document.getElementById('host-network-status');
-  elm.innerText = ip;
-  elm.style.backgroundColor = (ip == 'False') ? '#F55' : '#5F5';
-}
+const showProbeState = (state) => setStatus('probe-state', state, true);
 
-function setBBNetworkStatus(ip) {
-  var elm = document.getElementById('bb-network-status');
-  elm.innerText = ip;
-  elm.style.backgroundColor = (ip == 'False') ? '#F55' : '#5F5';
-}
+const setHostNetworkStatus = (ip) =>
+    setStatus('host-network-status', ip, ip === 'False');
 
-function setShopfloorNetworkStatus(ip) {
-  var elm = document.getElementById('shopfloor-network-status');
-  elm.innerText = ip;
-  elm.style.backgroundColor = (ip == 'False') ? '#F55' : '#5F5';
+const setBBNetworkStatus = (ip) =>
+    setStatus('bb-network-status', ip, ip === 'False');
+
+const setShopfloorNetworkStatus = (ip) =>
+    setStatus('shopfloor-network-status', ip, ip === 'False');
+
+window.test.sendTestEvent('RefreshFixture', {});
+window.test.sendTestEvent('RefreshTouchscreen', {});
+
+document.getElementById('sn').addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    snEntered();
+  }
+});
+document.getElementById('sn-button').addEventListener('click', snEntered);
+document.addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-test-event]');
+  if (button) {
+    window.test.sendTestEvent(button.dataset.testEvent);
+    event.stopPropagation();
+    event.preventDefault();
+  }
+});
+
+const exports = {
+  toggleDebugPanel,
+  fillInSerialNumber,
+  displayDebugData,
+  setControllerStatus,
+  setTouchscreenStatus,
+  showProbeState,
+  setHostNetworkStatus,
+  setBBNetworkStatus,
+  setShopfloorNetworkStatus
+};
+for (const key of Object.keys(exports)) {
+  window[key] = exports[key];
 }

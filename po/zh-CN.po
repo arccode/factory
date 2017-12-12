@@ -2685,10 +2685,6 @@ msgid "Checking for false positive..."
 msgstr "进行假阳性检查..."
 
 #: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
-msgid "Touch screen calibration"
-msgstr "触控萤幕校正"
-
-#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
 msgid "Serial number"
 msgstr "面板序号"
 
@@ -2747,6 +2743,10 @@ msgstr "Shopfloor网址"
 #: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
 msgid "Shutdown the host"
 msgstr "关机"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.js
+msgid "Please enter SN"
+msgstr "请输入序号"
 
 #: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
 msgid ""

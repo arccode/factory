@@ -10,25 +10,20 @@ import re
 import StringIO
 import threading
 import time
-import unittest
 import xmlrpclib
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
-from cros.factory.test.event_log import Log
-from cros.factory.test import session
-from cros.factory.test.fixture.touchscreen_calibration.fixture import FakeFixture  # pylint: disable=line-too-long
-from cros.factory.test.fixture.touchscreen_calibration.fixture import FixtureException  # pylint: disable=line-too-long
-from cros.factory.test.fixture.touchscreen_calibration.fixture import FixtureSerialDevice  # pylint: disable=line-too-long
+from cros.factory.test import event_log
+from cros.factory.test.fixture.touchscreen_calibration import fixture
 from cros.factory.test.i18n import _
 from cros.factory.test.pytests.touchscreen_calibration import sensors_server
-from cros.factory.test.pytests.touchscreen_calibration.touchscreen_calibration_utils import IsSuccessful  # pylint: disable=line-too-long
-from cros.factory.test.pytests.touchscreen_calibration.touchscreen_calibration_utils import NetworkStatus  # pylint: disable=line-too-long
-from cros.factory.test.pytests.touchscreen_calibration.touchscreen_calibration_utils import SimpleSystem  # pylint: disable=line-too-long
+from cros.factory.test.pytests.touchscreen_calibration import touchscreen_calibration_utils  # pylint: disable=line-too-long
+from cros.factory.test import session
 from cros.factory.test import state
-from cros.factory.test.test_ui import UI
-from cros.factory.test.utils.media_utils import MountedMedia
+from cros.factory.test import test_ui
+from cros.factory.test.utils import media_utils
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
@@ -39,7 +34,7 @@ from cros.factory.utils import process_utils
 test_name = __name__.split('.')[-1]
 
 
-Event = collections.namedtuple('Event', ['data',])
+Event = collections.namedtuple('Event', ['data'])
 
 
 class Error(Exception):
@@ -55,7 +50,7 @@ def _CreateXMLRPCSensorsClient(addr=('localhost', 8000)):
   return proxy
 
 
-class TouchscreenCalibration(unittest.TestCase):
+class TouchscreenCalibration(test_ui.TestCaseWithUI):
   """Handles the calibration and controls the test fixture."""
   version = 1
 
@@ -76,18 +71,19 @@ class TouchscreenCalibration(unittest.TestCase):
   PHASE_CHECK_FIRMWARE_VERSION = 'PHASE_CHECK_FIRMWARE_VERSION'
 
   ARGS = [
-      Arg('shopfloor_ip', str, 'The IP address of the shopfloor', ''),
-      Arg('phase', str, 'The test phase of touchscreen calibration', ''),
-      Arg('remote_bin_root', str, 'The remote binary root path', ''),
-      Arg('remote_data_dir', str, 'The remote data directory', ''),
-      Arg('fw_update_tool', str, 'The firmware update tool', None),
-      Arg('fw_file', str, 'The firmware file', None),
-      Arg('fw_version', str, 'The firmware version', None),
-      Arg('fw_config', str, 'The firmware config', None),
-      Arg('hid_tool', str, 'The hid tool to query version information', None),
-      Arg('tool', str, 'The test tool', ''),
-      Arg('keep_raw_logs', bool,
-          'Whether to attach the log by Testlog',
+      Arg('shopfloor_ip', str, 'The IP address of the shopfloor', default=''),
+      Arg('phase', str, 'The test phase of touchscreen calibration',
+          default=''),
+      Arg('remote_bin_root', str, 'The remote binary root path', default=''),
+      Arg('remote_data_dir', str, 'The remote data directory', default=''),
+      Arg('fw_update_tool', str, 'The firmware update tool', default=None),
+      Arg('fw_file', str, 'The firmware file', default=None),
+      Arg('fw_version', str, 'The firmware version', default=None),
+      Arg('fw_config', str, 'The firmware config', default=None),
+      Arg('hid_tool', str, 'The hid tool to query version information',
+          default=None),
+      Arg('tool', str, 'The test tool', default=''),
+      Arg('keep_raw_logs', bool, 'Whether to attach the log by Testlog',
           default=True),
   ]
 
@@ -96,9 +92,9 @@ class TouchscreenCalibration(unittest.TestCase):
     self.dut = device_utils.CreateDUTInterface()
     self._calibration_thread = None
     self.fixture = None
-    self.dev_path = None
-    self.dump_frames = 0
-    self.ui = UI()
+    # Temp hack to determine it is sdb or sdc
+    self.dev_path = '/dev/sdb' if os.path.exists('/dev/sdb1') else '/dev/sdc'
+    self.dump_frames = 3
     self._monitor_thread = None
     self.query_fixture_state_flag = False
     self._mounted_media_flag = True
@@ -110,14 +106,14 @@ class TouchscreenCalibration(unittest.TestCase):
     self.sensors_ip = None
     self._ReadConfig()
     self._AssignDirectIPsIfTwoInterfaces()
-    self.network_status = self.RefreshNetwork(None)
+    self.network_status = self.RefreshNetwork()
 
     # There are multiple boards running this test now.
     # The log path of a particular board is distinguished by the board name.
     self.aux_log_path = os.path.join('touchscreen_calibration', self._board)
     self._GetSensorService()
     self._ConnectTouchDevice()
-    self.log = Log if self.use_shopfloor else self._DummyLog
+    self.log = event_log.Log if self.use_shopfloor else self._DummyLog
     session.console.info('Use shopfloor: %s', str(self.use_shopfloor))
     self.summary_file = None
     self.test_pass = None
@@ -139,10 +135,8 @@ class TouchscreenCalibration(unittest.TestCase):
     self.sensors_port = int(self.config.Read('Sensors', 'SENSORS_PORT'))
 
   def _SetupEnvironment(self):
-    if self.network_status:
-      self.ui.Pass()
-    else:
-      self.ui.Fail('Check network status error.')
+    if not self.network_status:
+      self.FailTask('Check network status error.')
 
   def _DummyLog(self, *args, **kwargs):
     pass
@@ -166,9 +160,9 @@ class TouchscreenCalibration(unittest.TestCase):
     """
 
     def _ShowError():
-      msg = _('Fail to detect the touchscreen.\n'
-              'Insert the traveler board, and restart the test.')
-      self.ui.Alert(msg)
+      self.ui.Alert(
+          _('Fail to detect the touchscreen.\n'
+            'Insert the traveler board, and restart the test.'))
 
     def _CheckStatus(msg):
       """Check the status of the sensor service."""
@@ -183,8 +177,7 @@ class TouchscreenCalibration(unittest.TestCase):
 
     if self.use_sensors_server:
       if not self.sensors_ip:
-        msg = _('Fail to assign DIRECT_SENSORS_IP in ryu.conf')
-        self.ui.Alert(msg)
+        self.ui.Alert(_('Fail to assign DIRECT_SENSORS_IP in ryu.conf'))
         raise Error('Failed to assign sensors_ip.')
 
       # Connect to the sensors_server at the IP address.
@@ -216,7 +209,7 @@ class TouchscreenCalibration(unittest.TestCase):
     """Check if the fixture is still connected."""
     if not self.fixture:
       self._AlertFixtureDisconnected()
-      raise FixtureException('Fixture disconnected.')
+      raise fixture.FixtureException('Fixture disconnected.')
 
   def _CheckFixtureStateUp(self):
     """Check if the fixture probe is in the UP state."""
@@ -224,9 +217,9 @@ class TouchscreenCalibration(unittest.TestCase):
 
     if not self.fixture.IsStateUp():
       self.ui.Alert(_('Probe not in initial position, aborted'))
-      raise FixtureException('Fixture not in UP position.')
+      raise fixture.FixtureException('Fixture not in UP position.')
 
-  def ReadTest(self, unused_event):
+  def ReadTest(self):
     """Reads the raw sensor data.."""
     if self.sensors:
       data = self.sensors.Read(self.DELTAS)
@@ -235,22 +228,23 @@ class TouchscreenCalibration(unittest.TestCase):
     else:
       session.console.info('No sensors service found.')
 
-  def ProbeSelfTest(self, unused_event):
+  def ProbeSelfTest(self):
     """Execute the probe self test to confirm the fixture works properly."""
     self._CheckFixtureStateUp()
     self.DriveProbeDown()
     self.DriveProbeUp()
 
-  def RefreshFixture(self, unused_event):
+  def RefreshFixture(self):
     """Refreshes the fixture."""
     try:
       if self.fake_fixture:
-        self.fixture = FakeFixture(self.ui, state='i')
+        self.fixture = fixture.FakeFixture(self.ui, state='i')
       else:
-        self.fixture = FixtureSerialDevice()
+        self.fixture = fixture.FixtureSerialDevice()
 
       if not self.fixture:
-        raise FixtureException('Fail to create the fixture serial device.')
+        raise fixture.FixtureException(
+            'Fail to create the fixture serial device.')
 
     except Exception as e:
       session.console.info('Refresh fixture serial device exception, %s', e)
@@ -276,7 +270,7 @@ class TouchscreenCalibration(unittest.TestCase):
             'click "RefreshFixture" button on screen.'))
     self._CreateMonitorPort()
 
-  def RefreshTouchscreen(self, unused_event):
+  def RefreshTouchscreen(self):
     """Refreshes all possible saved state for the old touchscreen.
 
     This functions is called whenever an old touchscreen panel
@@ -327,12 +321,13 @@ class TouchscreenCalibration(unittest.TestCase):
       DIRECT_SENSORS_IP. Both DIRECT_HOST_IP and DIRECT_SENSORS_IP are
       defined in the board config file.
     """
-    self.host_ip_dict = NetworkStatus.GetHostIPs()
+    self.host_ip_dict = touchscreen_calibration_utils.NetworkStatus.GetHostIPs()
     if len(self.host_ip_dict) == 2:
       for interface, ip in self.host_ip_dict.items():
         if ip is None:
           cmd = 'ifconfig %s %s' % (interface, self.direct_host_ip)
-          if IsSuccessful(SimpleSystem(cmd)):
+          if touchscreen_calibration_utils.IsSuccessful(
+              touchscreen_calibration_utils.SimpleSystem(cmd)):
             session.console.info('Successfully assign direct host ip: %s',
                                  self.direct_host_ip)
           else:
@@ -346,10 +341,11 @@ class TouchscreenCalibration(unittest.TestCase):
       session.console.error(msg)
       return False
 
-  def RefreshNetwork(self, unused_event):
+  def RefreshNetwork(self):
     """Refreshes all possible saved state for the touchscreen."""
     if self.args.phase == self.PHASE_SETUP_ENVIRONMENT:
-      network_status = NetworkStatus(self.sensors_ip, self.args.shopfloor_ip)
+      network_status = touchscreen_calibration_utils.NetworkStatus(
+          self.sensors_ip, self.args.shopfloor_ip)
       if self.use_sensors_server:
         bb_status = self.sensors_ip if network_status.PingBB() else False
       else:
@@ -379,21 +375,21 @@ class TouchscreenCalibration(unittest.TestCase):
             (not self.use_shopfloor or shopfloor_status) and
             (not self.sensors_ip or bb_status))
 
-  def DriveProbeDown(self, unused_event=None):
+  def DriveProbeDown(self):
     """A wrapper to drive the probe down."""
     try:
       self.fixture.DriveProbeDown()
-    except Exception as e:
+    except Exception:
       self.ui.Alert(_('Probe not in the DOWN position, aborted'))
-      raise e
+      raise
 
-  def DriveProbeUp(self, unused_event=None):
+  def DriveProbeUp(self):
     """A wrapper to drive the probe up."""
     try:
       self.fixture.DriveProbeUp()
-    except Exception as e:
+    except Exception:
       self.ui.Alert(_('Probe not in the UP position, aborted'))
-      raise e
+      raise
 
   def _ExecuteCommand(self, command, fail_msg='Failed: '):
     """Execute a command."""
@@ -412,7 +408,7 @@ class TouchscreenCalibration(unittest.TestCase):
         return output.group(1)
     return None
 
-  def ShutDown(self, unused_event=None):
+  def Shutdown(self):
     """Shut down the host."""
     self._ExecuteCommand('shutdown -H 0',
                          fail_msg='Failed to shutdown the host')
@@ -457,7 +453,7 @@ class TouchscreenCalibration(unittest.TestCase):
       session.console.info('Log written to "%s/%s".', log_dir, filename)
 
     if self._mounted_media_flag:
-      with MountedMedia(self.dev_path, 1) as mount_dir:
+      with media_utils.MountedMedia(self.dev_path, 1) as mount_dir:
         _AppendLog(mount_dir, filename, content)
     else:
       _AppendLog(self._local_log_dir, filename, content)
@@ -522,10 +518,8 @@ class TouchscreenCalibration(unittest.TestCase):
     summary_line = '%s: %s (%s)' % (sn, result, phase)
     self._UpdateSummaryFile(sn, summary_line)
 
-    if self.test_pass:
-      self.ui.Pass()
-    else:
-      self.ui.Fail('%s failed' % phase)
+    if not self.test_pass:
+      self.FailTask('%s failed' % phase)
 
   def _ReadAndVerifySensorData(self, sn, phase, category, verify_method):
     # Get data based on the category, i.e., REFS or DELTAS.
@@ -556,11 +550,9 @@ class TouchscreenCalibration(unittest.TestCase):
     if phase == 'PHASE_DELTAS_TOUCHED':
       self._UpdateSummaryFile(sn, '\n')
 
-    if self.test_pass:
-      self.ui.Pass()
-    else:
+    if not self.test_pass:
       msg = '[min, max] of phase %s: [%d, %d]' % (phase, min_value, max_value)
-      self.ui.Fail(msg)
+      self.FailTask(msg)
 
   def _FlashFirmware(self, sn, phase):
     """."""
@@ -574,9 +566,8 @@ class TouchscreenCalibration(unittest.TestCase):
     self._UpdateSummaryFile(sn, summary_line)
     if test_pass:
       session.console.info('Have flashed %s to %s', fw_file, sn)
-      self.ui.Pass()
     else:
-      self.ui.Fail('Fail to flash firmware: %s' % fw_file)
+      self.FailTask('Fail to flash firmware: %s' % fw_file)
 
   def _CheckFirmwareVersion(self, sn, phase):
     """Check whether the firmware version and the config are correct."""
@@ -588,10 +579,8 @@ class TouchscreenCalibration(unittest.TestCase):
     summary_line = ('%s: %s (%s) detected base fw %s:%s' %
                     (sn, result, phase, fw_version, fw_config))
     self._UpdateSummaryFile(sn, summary_line)
-    if test_pass:
-      self.ui.Pass()
-    else:
-      self.ui.Fail(
+    if not test_pass:
+      self.FailTask(
           'Firmware version failed. Expected %s:%s, but got %s:%s' %
           (self.args.fw_version, self.args.fw_config, fw_version, fw_config))
 
@@ -624,7 +613,7 @@ class TouchscreenCalibration(unittest.TestCase):
 
     elif phase == self.PHASE_DELTAS_UNTOUCHED:
       # Dump delta values a few times before the probe touches the panel.
-      for _ in range(self.dump_frames):
+      for unused_time in range(self.dump_frames):
         self._ReadAndVerifySensorData(
             sn, phase, self.DELTAS, self.sensors.VerifyDeltasUntouched)
 
@@ -664,7 +653,7 @@ class TouchscreenCalibration(unittest.TestCase):
       if not self.sensors.PostRead():
         session.console.error('Failed to execute PostRead().')
 
-  def FinishTest(self, unused_event):
+  def FinishTest(self):
     """Finish the test and do cleanup if needed.
 
     This method is invoked only for Ryu to do final calibration.
@@ -684,9 +673,9 @@ class TouchscreenCalibration(unittest.TestCase):
     if not self.sensors.CheckStatus():
       # The kernel module is inserted, but the touch device is not connected.
       self.sensors.PostTest()
-      msg = _('Fail to detect the touchscreen.\n'
-              'Insert the traveler board, and restart the test.')
-      self.ui.Alert(msg)
+      self.ui.Alert(
+          _('Fail to detect the touchscreen.\n'
+            'Insert the traveler board, and restart the test.'))
       return False
     return True
 
@@ -697,13 +686,13 @@ class TouchscreenCalibration(unittest.TestCase):
       self.sensors.kernel_module.Remove()
       session.console.error('Failed to insert the kernel module: %s.',
                             self.sensors.kernel_module.name)
-      msg = _('Fail to detect the touchscreen.\n'
-              'Remove and re-insert the traveler board. And restart the test.')
-      self.ui.Alert(msg)
+      self.ui.Alert(
+          _('Fail to detect the touchscreen.\n'
+            'Remove and re-insert the traveler board. And restart the test.'))
       return False
     return True
 
-  def GetSerialNumber(self, unused_event=None):
+  def GetSerialNumber(self):
     """Get the DUT's serial number from device data."""
     sn = device_data.GetSerialNumber()
     self.ui.CallJSFunction('fillInSerialNumber', sn)
@@ -727,7 +716,7 @@ class TouchscreenCalibration(unittest.TestCase):
       raise Error('Cannot detect the touch device.')
 
     sn = event.data.get('sn', '')
-    if len(sn) == 0:
+    if not sn:
       self.ui.Alert(_('Please enter SN first'))
       self.ui.CallJSFunction('displayDebugData', [])
       return
@@ -736,16 +725,16 @@ class TouchscreenCalibration(unittest.TestCase):
                                                 args=[sn, self.args.phase])
     self._calibration_thread.start()
 
-  def _RegisterEvents(self, events):
+  def _RegisterEvent(self, event):
     """Adds event handlers for various events.
 
     Args:
-      events: the events to be registered in the UI
+      event: the event to be registered in the UI
     """
-    for event in events:
-      assert hasattr(self, event)
-      session.console.debug('Registered event %s', event)
-      self.ui.AddEventHandler(event, getattr(self, event))
+    assert hasattr(self, event)
+    session.console.debug('Registered event %s', event)
+    self.ui.AddEventHandler(event,
+                            lambda unused_event: getattr(self, event)())
 
   def _MakeLocalLogDir(self):
     if not os.path.isdir(self._local_log_dir):
@@ -769,7 +758,7 @@ class TouchscreenCalibration(unittest.TestCase):
       self._WriteLog('touchscreen_calibration_launch.txt',
                      '%s\n' % time.ctime())
 
-  def QueryFixtureState(self, unused_event=None):
+  def QueryFixtureState(self):
     """Query the fixture internal state including all sensor values."""
     if self.fixture.native_usb:
       try:
@@ -811,33 +800,24 @@ class TouchscreenCalibration(unittest.TestCase):
       except threading.ThreadError:
         session.console.warn('Cannot start thread for _MonitorNativeUsb()')
 
-  def runTest(self, dev_path=None, dump_frames=3):
-    """The entry method of the test.
-
-    Args:
-      dev_path: the path of the mounted media
-      dump_frames: the number of frames to dump before the probe touches panel
-    """
-    if dev_path is None:
-      # Temp hack to determine it is sdb or sdc
-      dev_path = '/dev/sdb' if os.path.exists('/dev/sdb1') else '/dev/sdc'
-    self.dev_path = dev_path
-    self.dump_frames = dump_frames
-
+  def runTest(self):
     os.environ['DISPLAY'] = ':0'
     self.start_time = self._GetTime()
 
     self._CheckMountedMedia()
 
-    self._RegisterEvents([
+    events = [
         # Events that are emitted from buttons on the factory UI.
         'ReadTest', 'RefreshFixture', 'RefreshTouchscreen', 'ProbeSelfTest',
-        'DriveProbeDown', 'DriveProbeUp', 'ShutDown', 'QueryFixtureState',
+        'DriveProbeDown', 'DriveProbeUp', 'Shutdown', 'QueryFixtureState',
         'RefreshNetwork',
 
         # Events that are emitted from other callback functions.
-        'StartCalibration', 'FinishTest',
-    ])
-    self.ui.BindKeyJS('D', 'toggleDebugPanel();')
+        'FinishTest',
+    ]
+    for event in events:
+      self._RegisterEvent(event)
+    self.ui.AddEventHandler('StartCalibration', self.StartCalibration)
 
-    self.ui.Run()
+    self.ui.BindKeyJS('D', 'toggleDebugPanel();')
+    self.WaitTaskEnd()

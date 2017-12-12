@@ -1,91 +1,89 @@
-<i18n-label>Touch screen calibration</i18n-label>
-<br>
+<test-template>
+  <div id="main">
+    <div>
+      <i18n-label>Serial number</i18n-label>
+      <input id="sn" type="text" autofocus>
+      <button id="sn-button">
+        <i18n-label>Submit</i18n-label>
+      </button>
+    </div>
+    <div id='display-area'>Display Area</div>
+  </div>
 
-<div id="main" style="width: 50%">
-  <div>
-    <i18n-label>Serial number</i18n-label>
-    <input id="sn" type="text" autofocus onkeydown="snKeyDown(event)">
-    <button onclick="snEntered()">
-      <i18n-label>Submit</i18n-label>
+  <div id="debug-panel">
+    <button data-test-event="DriveProbeDown">
+      <i18n-label>Probe goes down</i18n-label>
+    </button>
+    <br>
+
+    <button data-test-event="DriveProbeUp">
+      <i18n-label>Probe goes up</i18n-label>
+    </button>
+    <br><br>
+
+    <button data-test-event="ReadTest">
+      <i18n-label>Read sensor data</i18n-label>
+    </button>
+    <br>
+
+    <button data-test-event="ProbeSelfTest">
+      <i18n-label>Probe self test</i18n-label>
+    </button>
+
+    <div>
+      <div>
+        <i18n-label>Controller status</i18n-label>
+        <div id="controller-status" style="display:inline">N/A</div>
+        <button data-test-event="RefreshFixture">
+          <i18n-label>Refresh</i18n-label>
+        </button>
+      </div>
+
+      <div>
+        <i18n-label>Touchscreen status</i18n-label>
+        <div id="touchscreen-status" style="display:inline">N/A</div>
+        <button data-test-event="RefreshTouchscreen">
+          <i18n-label>Refresh</i18n-label>
+        </button>
+      </div>
+
+      <div>
+        <i18n-label>Probe state</i18n-label>
+        <div id="probe-state" style="display:inline">N/A</div>
+        <button data-test-event="QueryFixtureState">
+          <i18n-label>FixtureState</i18n-label>
+        </button>
+      </div>
+
+      <div>
+        <i18n-label>Host IP</i18n-label>
+        <div id="host-network-status" style="display:inline">N/A</div>
+        <button data-test-event="RefreshNetwork">
+          <i18n-label>Refresh</i18n-label>
+        </button>
+      </div>
+
+      <div>
+        <i18n-label>BB IP</i18n-label>
+        <div id="bb-network-status" style="display:inline">N/A</div>
+        <button data-test-event="RefreshNetwork">
+          <i18n-label>Refresh</i18n-label>
+        </button>
+      </div>
+
+      <div>
+        <i18n-label>Shopfloor IP</i18n-label>
+        <div id="shopfloor-network-status" style="display:inline">N/A</div>
+        <button data-test-event="RefreshNetwork">
+          <i18n-label>Refresh</i18n-label>
+        </button>
+      </div>
+
+    </div>
+
+    <br> <br> <br>
+    <button data-test-event="Shutdown">
+      <i18n-label>Shutdown the host</i18n-label>
     </button>
   </div>
-  <div id='display-area'>Display Area</div>
-</div>
-
-<div id="debug-panel" style="z-index: 10; position: absolute; right: 30;
-    top: 30; border-style: solid; border-color: #555;">
-  <button onclick="test.sendTestEvent('DriveProbeDown', {})">
-    <i18n-label>Probe goes down</i18n-label>
-  </button>
-  <br>
-
-  <button onclick="test.sendTestEvent('DriveProbeUp', {})">
-    <i18n-label>Probe goes up</i18n-label>
-  </button>
-  <br><br>
-
-  <button onclick="test.sendTestEvent('ReadTest', {})">
-    <i18n-label>Read sensor data</i18n-label>
-  </button>
-  <br>
-
-  <button onclick="test.sendTestEvent('ProbeSelfTest')">
-    <i18n-label>Probe self test</i18n-label>
-  </button>
-
-  <div>
-    <div>
-      <i18n-label>Controller status</i18n-label>
-      <div id="controller-status" style="display:inline">N/A</div>
-      <button onclick="test.sendTestEvent('RefreshFixture', {})">
-        <i18n-label>Refresh</i18n-label>
-      </button>
-    </div>
-
-    <div>
-      <i18n-label>Touchscreen status</i18n-label>
-      <div id="touchscreen-status" style="display:inline">N/A</div>
-      <button onclick="test.sendTestEvent('RefreshTouchscreen', {})">
-        <i18n-label>Refresh</i18n-label>
-      </button>
-    </div>
-
-    <div>
-      <i18n-label>Probe state</i18n-label>
-      <div id="probe-state" style="display:inline">N/A</div>
-      <button onclick="test.sendTestEvent('QueryFixtureState', {})">
-        <i18n-label>FixtureState</i18n-label>
-      </button>
-    </div>
-
-    <div>
-      <i18n-label>Host IP</i18n-label>
-      <div id="host-network-status" style="display:inline">N/A</div>
-      <button onclick="test.sendTestEvent('RefreshNetwork', {})">
-        <i18n-label>Refresh</i18n-label>
-      </button>
-    </div>
-
-    <div>
-      <i18n-label>BB IP</i18n-label>
-      <div id="bb-network-status" style="display:inline">N/A</div>
-      <button onclick="test.sendTestEvent('RefreshNetwork', {})">
-        <i18n-label>Refresh</i18n-label>
-      </button>
-    </div>
-
-    <div>
-      <i18n-label>Shopfloor IP</i18n-label>
-      <div id="shopfloor-network-status" style="display:inline">N/A</div>
-      <button onclick="test.sendTestEvent('RefreshNetwork', {})">
-        <i18n-label>Refresh</i18n-label>
-      </button>
-    </div>
-
-  </div>
-
-  <br> <br> <br>
-  <button onclick="test.sendTestEvent('ShutDown', {})">
-    <i18n-label>Shutdown the host</i18n-label>
-  </button>
-</div>
+</test-template>
