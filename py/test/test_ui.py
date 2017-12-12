@@ -1037,6 +1037,7 @@ class TestCaseWithUI(unittest.TestCase):
     task_errors = []
 
     for task in self.__tasks:
+      should_abort = False
       try:
         task.run()
       except TaskEndException as e:
@@ -1044,10 +1045,20 @@ class TestCaseWithUI(unittest.TestCase):
       except Exception:
         self.__PutTaskEndException(TaskFailException(traceback.format_exc()))
       finally:
-        self.event_loop.ClearHandlers()
-        self.ui.UnbindAllKeys()
-        if task.cleanup:
-          task.cleanup()
+        try:
+          self.event_loop.ClearHandlers()
+          self.ui.UnbindAllKeys()
+          if task.cleanup:
+            task.cleanup()
+        except Exception:
+          # If something failed either in cleanup or in event_loop, the
+          # following tasks would probably be affected by the uncleared state.
+          # We should just stop and fail here.
+          task_errors.append((task.name, traceback.format_exc()))
+          should_abort = True
+
+      if should_abort:
+        break
 
       self.__task_end_event.clear()
       task_end_exceptions = type_utils.DrainQueue(self.__task_end_exceptions)
