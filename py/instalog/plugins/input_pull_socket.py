@@ -23,7 +23,10 @@ from instalog.plugins import socket_common
 from instalog.utils.arg_utils import Arg
 
 
-_FAILED_CONNECTION_INTERVAL = 60
+_CONNECT_INTERVAL = 1
+_CONNECT_LOG_INTERVAL = 60  # interval
+                            #     = _CONNECT_INTERVAL * _CONNECT_LOG_INTERVAL
+                            #     = 60s
 
 
 class ChecksumError(Exception):
@@ -52,6 +55,16 @@ class InputPullSocket(plugin_base.InputPlugin):
                           socket_common.SOCKET_BUFFER_SIZE)
     try:
       self._sock.connect((self.args.hostname, self.args.port))
+      # Send qing.
+      self._sock.sendall(socket_common.QING)
+      # Receive qong.
+      received_char = self._sock.recv(1)
+      self.debug('Received a char: %s', received_char)
+      if not received_char == socket_common.QING_RESPONSE:
+        self.debug('Invalid qong: %s', received_char)
+        self._sock.shutdown(socket.SHUT_RDWR)
+        self._sock.close()
+        return False
       return True
     except Exception:
       return False
@@ -59,10 +72,17 @@ class InputPullSocket(plugin_base.InputPlugin):
   def Main(self):
     """Main Thread of the plugin."""
     while not self.IsStopping():
-      if not self.GetSocket():
-        self.warning('Connection to target unavailable')
-        self.Sleep(_FAILED_CONNECTION_INTERVAL)
-        continue
+      success = False
+      while not success:
+        for _unused_i in xrange(_CONNECT_LOG_INTERVAL):
+          success = self.GetSocket()
+          if self.IsStopping():
+            return
+          if success:
+            break
+          self.Sleep(_CONNECT_INTERVAL)
+        if not success:
+          self.warning('Connection to target unavailable')
 
       receiver = input_socket.InputSocketReceiver(self.logger, self._sock, self)
       receiver.ProcessRequest()

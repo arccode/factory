@@ -27,6 +27,8 @@ _DEFAULT_BATCH_SIZE = 500
 _DEFAULT_TIMEOUT = 5
 _DEFAULT_HOSTNAME = '0.0.0.0'
 _ACCEPT_TIMEOUT = 1
+_ACCEPT_LOG_INTERVAL = 60  # interval = _ACCEPT_TIMEOUT * _ACCEPT_LOG_INTERVAL =
+                           # 60s
 
 
 # TODO(chuntsen): Encryption and authentication
@@ -75,6 +77,17 @@ class OutputPullSocket(plugin_base.OutputPlugin):
       self.info('Connected with %s:%d' % (addr[0], addr[1]))
       self._accept_sock.shutdown(socket.SHUT_RDWR)
       self._accept_sock.close()
+      # Receive qing.
+      # We use recvfrom because we need to control unittest mock.
+      received_char, _unused_addr = self._sock.recvfrom(1)
+      self.debug('Received a char: %s', received_char)
+      if not received_char == socket_common.QING:
+        self.info('Invalid qing: %s', received_char)
+        self._sock.shutdown(socket.SHUT_RDWR)
+        self._sock.close()
+        return False
+      # Send qong.
+      self._sock.sendall(socket_common.QING_RESPONSE)
       return True
     except Exception:
       return False
@@ -101,11 +114,17 @@ class OutputPullSocket(plugin_base.OutputPlugin):
 
       # Accepts a connection only when we have some events. Or input pull socket
       # will connect, wait event number and time out.
-      while not self.GetSocket() and not self.IsStopping():
-        self.warning('No connection when listening')
-      if self.IsStopping():
-        event_stream.Abort()
-        continue
+      success = False
+      while not success:
+        for _unused_i in xrange(_ACCEPT_LOG_INTERVAL):
+          success = self.GetSocket()
+          if self.IsStopping():
+            event_stream.Abort()
+            return
+          if success:
+            break
+        if not success:
+          self.warning('No connection when listening')
 
       sender = output_socket.OutputSocketSender(self.logger, self._sock, self)
       if sender.ProcessRequest(events):

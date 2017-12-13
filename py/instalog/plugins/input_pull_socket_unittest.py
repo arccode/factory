@@ -19,6 +19,7 @@ import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
 from instalog import log_utils
 from instalog import plugin_sandbox
+from instalog.plugins import socket_common
 from instalog import testing
 from instalog.utils import net_utils
 
@@ -70,11 +71,26 @@ class TestInputPullSocket(unittest.TestCase):
     self.assertTrue(self.core.AllStreamsExpired())
     self.core.Close()
 
-  def testInvalidHeader(self):
+  def testInvalidQong(self):
+    # Qing.
+    self.assertEquals(self.sock.recv(1), socket_common.QING)
+    # Invalid qong.
+    self.sock.sendall('*')
+    self._AssertSocketClosed()
+
+  def testInvalidPing(self):
+    # Qing.
+    self.assertEquals(self.sock.recv(1), socket_common.QING)
+    # Qong.
+    self.sock.sendall(socket_common.QING_RESPONSE)
     self.sock.sendall('x\0')
     self._AssertSocketClosed()
 
-  def testPingAndOneEvent(self):
+  def testQingPingAndOneEvent(self):
+    # Qing.
+    self.assertEquals(self.sock.recv(1), socket_common.QING)
+    # Qong.
+    self.sock.sendall(socket_common.QING_RESPONSE)
     # Ping.
     self.sock.sendall('0\0')
     self.assertEquals('1', self.sock.recv(1))
@@ -90,6 +106,10 @@ class TestInputPullSocket(unittest.TestCase):
 
   @mock.patch('socket_common.SOCKET_TIMEOUT', 0.1)
   def testOutputTimeout(self):
+    # Qing.
+    self.assertEquals(self.sock.recv(1), socket_common.QING)
+    # Qong.
+    self.sock.sendall(socket_common.QING_RESPONSE)
     self.sock.sendall('1\0'
                       '8\0[{}, {}]'
                       '50005107138f95db8dfc3f44a84d607a5fc75669\0'
@@ -102,6 +122,10 @@ class TestInputPullSocket(unittest.TestCase):
     self.assertFalse(self.core.emit_calls)
 
   def testInvalidChecksum(self):
+    # Qing.
+    self.assertEquals(self.sock.recv(1), socket_common.QING)
+    # Qong.
+    self.sock.sendall(socket_common.QING_RESPONSE)
     self.sock.sendall('1\0'
                       '8\0[{}, {}]'
                       '0000000000000000000000000000000000000000\0'
@@ -110,6 +134,10 @@ class TestInputPullSocket(unittest.TestCase):
     self.assertEquals([], self.core.emit_calls)
 
   def testOneEventOneAttachment(self):
+    # Qing.
+    self.assertEquals(self.sock.recv(1), socket_common.QING)
+    # Qong.
+    self.sock.sendall(socket_common.QING_RESPONSE)
     self.sock.sendall('1\0'
                       '8\0[{}, {}]'
                       '50005107138f95db8dfc3f44a84d607a5fc75669\0'
@@ -131,5 +159,5 @@ class TestInputPullSocket(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  logging.basicConfig(level=logging.INFO, format=log_utils.LOG_FORMAT)
+  logging.basicConfig(level=logging.DEBUG, format=log_utils.LOG_FORMAT)
   unittest.main()

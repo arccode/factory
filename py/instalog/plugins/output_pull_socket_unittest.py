@@ -20,6 +20,7 @@ from instalog import datatypes
 from instalog import log_utils
 from instalog import plugin_sandbox
 from instalog.plugins import output_socket
+from instalog.plugins import socket_common
 from instalog import testing
 
 
@@ -38,6 +39,7 @@ class TestOutputPullSocket(unittest.TestCase):
     # Mock out the socket, accept socket and set up default EventStream.
     self.sock = mock.MagicMock()
     self.sock.recv.return_value = '1'  # Always return success.
+    self.sock.recvfrom.return_value = socket_common.QING, ('add0', 1)
 
     accept_sock = mock.MagicMock()
     self.patcher = mock.patch('socket.socket', return_value=accept_sock)
@@ -49,9 +51,6 @@ class TestOutputPullSocket(unittest.TestCase):
     # Start the plugin.
     self.sandbox.Start(True)
     self.plugin = self.sandbox._plugin
-    self.assertTrue(self.plugin.GetSocket())
-    self.sender = output_socket.OutputSocketSender(
-        self.plugin.logger, self.plugin._sock, self.plugin)
 
   def tearDown(self):
     self.sandbox.Stop(True)
@@ -64,12 +63,20 @@ class TestOutputPullSocket(unittest.TestCase):
     self.sock.sendall.mock_calls = []
     return data
 
-  def _GetSocket(self):
-#    self.input_sock = socket
-    pass
+  def testQing(self):
+    self.assertTrue(self.plugin.GetSocket())
+    self.assertEqual(self._GetSentData(), socket_common.QING_RESPONSE)  # Qong.
+
+  def testInvalidQing(self):
+    self.sock.recvfrom.return_value = '*'
+    self.assertFalse(self.plugin.GetSocket())
 
   def testPing(self):
-    self.sender.Ping()
+    self.assertTrue(self.plugin.GetSocket())
+    self.assertEqual(self._GetSentData(), socket_common.QING_RESPONSE)  # Qong.
+    sender = output_socket.OutputSocketSender(
+        self.plugin.logger, self.plugin._sock, self.plugin)
+    sender.Ping()
     time.sleep(1)
     self.assertEqual(
         '0\0',  # ping
@@ -86,16 +93,21 @@ class TestOutputPullSocket(unittest.TestCase):
         self.sandbox.Flush(0.1, True)
         self.assertFalse(self.stream.Empty())
 
-  def testInvalidHeader(self):
+  def testInvalidPong(self):
+    self.assertTrue(self.plugin.GetSocket())
+    self.assertEqual(self._GetSentData(), socket_common.QING_RESPONSE)  # Qong.
+    sender = output_socket.OutputSocketSender(
+        self.plugin.logger, self.plugin._sock, self.plugin)
     self.sock.recv.return_value = 'x'
-    self.assertFalse(self.sender.Ping())
+    self.assertFalse(sender.Ping())
 
   def testOneEvent(self):
     event = datatypes.Event({})
     with mock.patch.object(datatypes.Event, 'Serialize', return_value='EVENT'):
       self.stream.Queue([event])
       self.sandbox.Flush(2, True)
-      self.assertEqual('0\0'  # ping
+      self.assertEqual(socket_common.QING_RESPONSE +  # qong
+                       '0\0'  # ping
                        '1\0'
                        '5\0'
                        'EVENT'
@@ -114,7 +126,8 @@ class TestOutputPullSocket(unittest.TestCase):
                              return_value='EVENT'):
         self.stream.Queue([event])
         self.sandbox.Flush(2, True)
-        self.assertEqual('0\0'  # ping
+        self.assertEqual(socket_common.QING_RESPONSE +  # qong
+                         '0\0'  # ping
                          '1\0'
                          '5\0'
                          'EVENT'
