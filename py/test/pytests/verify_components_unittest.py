@@ -8,19 +8,18 @@
 
 import json
 import logging
-import mox
 import subprocess
 import unittest
+
+import mox
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test.pytests import verify_components
 from cros.factory.test import test_ui
-from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils.deploy_utils import FactoryPythonArchive
 from cros.factory.utils import type_utils
 
-# pylint: disable=protected-access
 
 class FakeArgs(object):
   def __init__(self, dargs):
@@ -35,8 +34,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
 
     self._mock_test = verify_components.VerifyComponentsTest()
     self._mock_test.factory_par = self._mox.CreateMock(FactoryPythonArchive)
-    self._mock_test.template = self._mox.CreateMock(OneSection)
-    self._mock_test._ui = self._mox.CreateMock(test_ui.UI)
+    self._mock_test.ui = self._mox.CreateMock(test_ui.StandardUI)
     self._mox.StubOutWithMock(event_log, 'Log')
     self.fake_phase = 'EVT'
 
@@ -48,7 +46,6 @@ class VerifyComponentsUnitTest(unittest.TestCase):
         'component_list': ['camera', 'cpu'],
         'fast_fw_probe': False,
         'enable_factory_server': False,
-        'with_goofy': True,
         'phase': self.fake_phase})
     command = ['hwid', 'verify-components', '--json_output',
                '--no-fast-fw-probe', '--components', 'camera,cpu',
@@ -70,14 +67,14 @@ class VerifyComponentsUnitTest(unittest.TestCase):
                     u'is_re': False}},
             u'error': None}]}
 
-    self._mock_test.template.SetState(mox.IsA(basestring))
+    self._mock_test.ui.SetState(mox.IsA(basestring))
     self._mock_test.factory_par.CheckOutput(command).AndReturn(
         json.dumps(probed))
 
     event_log.Log('probed_components', results=probed)
 
     self._mox.ReplayAll()
-    self._mock_test._runTest()
+    self._mock_test.runTest()
     self._mox.VerifyAll()
     # esnure the result is appended
     self.assertEquals(probed, self._mock_test.probed_results)
@@ -89,7 +86,6 @@ class VerifyComponentsUnitTest(unittest.TestCase):
         'component_list': ['camera', 'cpu'],
         'fast_fw_probe': False,
         'enable_factory_server': False,
-        'with_goofy': True,
         'phase': self.fake_phase})
     command = ['hwid', 'verify-components', '--json_output',
                '--no-fast-fw-probe', '--components', 'camera,cpu',
@@ -108,7 +104,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
             u'probed_values': None,
             u'error': u'Fake error'}]}
 
-    self._mock_test.template.SetState(mox.IsA(basestring))
+    self._mock_test.ui.SetState(mox.IsA(basestring))
     self._mock_test.factory_par.CheckOutput(command).AndReturn(
         json.dumps(probed))
 
@@ -116,7 +112,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
 
     self._mox.ReplayAll()
     with self.assertRaises(type_utils.TestFailure):
-      self._mock_test._runTest()
+      self._mock_test.runTest()
     self._mox.VerifyAll()
 
   def testCheckComponentsTaskException(self):
@@ -126,19 +122,18 @@ class VerifyComponentsUnitTest(unittest.TestCase):
         'component_list': ['camera', 'cpu'],
         'fast_fw_probe': False,
         'enable_factory_server': False,
-        'with_goofy': True,
         'phase': self.fake_phase})
     command = ['hwid', 'verify-components', '--json_output',
                '--no-fast-fw-probe', '--components', 'camera,cpu',
                '--phase', self.fake_phase]
 
-    self._mock_test.template.SetState(mox.IsA(basestring))
+    self._mock_test.ui.SetState(mox.IsA(basestring))
     self._mock_test.factory_par.CheckOutput(command).AndRaise(
         subprocess.CalledProcessError(1, 'Fake command'))
 
     self._mox.ReplayAll()
     with self.assertRaises(subprocess.CalledProcessError):
-      self._mock_test._runTest()
+      self._mock_test.runTest()
     self._mox.VerifyAll()
 
 

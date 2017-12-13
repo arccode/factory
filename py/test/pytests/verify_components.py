@@ -9,7 +9,6 @@
 
 import json
 import logging
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -17,17 +16,13 @@ from cros.factory.test import event_log
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rules import phase
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
 from cros.factory.test.utils import update_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import type_utils
 
-_MESSAGE_CHECKING_COMPONENTS = i18n_test_ui.MakeI18nLabelWithClass(
-    'Checking components...', 'progress-message')
 
-
-class VerifyComponentsTest(unittest.TestCase):
+class VerifyComponentsTest(test_ui.TestCaseWithUI):
   """Factory test to verify components."""
   ARGS = [
       Arg('component_list', list,
@@ -40,11 +35,6 @@ class VerifyComponentsTest(unittest.TestCase):
       Arg('enable_factory_server', bool,
           'Updating hwid data from factory server.',
           default=True),
-      Arg('with_goofy', bool,
-          'Set this value to False if the test is not running with goofy. '
-          'Without goofy, test_ui and event_log will not work, thus will be '
-          'disabled',
-          default=True),
       Arg('phase', str,
           'Override current phase, this is for standalone testing.',
           default=None)
@@ -56,22 +46,10 @@ class VerifyComponentsTest(unittest.TestCase):
     self.probed_results = None
     self._allow_unqualified = None
 
-    if self.args.with_goofy:
-      self._ui = test_ui.UI()
-      self._ui.AppendCSS('.progress-message { font-size: 2em; }')
-      self.template = ui_templates.OneSection(self._ui)
-
   def tearDown(self):
     phase.OverridePhase(None)
 
   def runTest(self):
-    if self.args.with_goofy:
-      self._ui.RunInBackground(self._runTest)
-      self._ui.Run()
-    else:
-      self._runTest()
-
-  def _runTest(self):
     if self.args.enable_factory_server:
       update_utils.UpdateHWIDDatabase(self._dut)
 
@@ -81,8 +59,7 @@ class VerifyComponentsTest(unittest.TestCase):
     self._allow_unqualified = phase.GetPhase() in [
         phase.PROTO, phase.EVT, phase.DVT]
 
-    if self.args.with_goofy:
-      self.template.SetState(_MESSAGE_CHECKING_COMPONENTS)
+    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Checking components...'))
 
     cmd = ['hwid', 'verify-components', '--json_output']
     if not self.args.fast_fw_probe:
@@ -92,8 +69,7 @@ class VerifyComponentsTest(unittest.TestCase):
     results = json.loads(self.factory_par.CheckOutput(cmd))
 
     logging.info('Probed components: %s', results)
-    if self.args.with_goofy:
-      event_log.Log('probed_components', results=results)
+    event_log.Log('probed_components', results=results)
     self.probed_results = results
 
     # The format of results is
