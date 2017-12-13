@@ -10,45 +10,23 @@ fixture to send out signals to simulate key presses on the key sequence.
 """
 
 from __future__ import print_function
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
 from cros.factory.test import countdown_timer
 from cros.factory.test import session
 from cros.factory.test.fixture import bft_fixture
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
 
 
-_ID_CONTAINER = 'keyboard-test-container'
-_ID_EXPECTED_SEQUENCE = 'expected-sequence'
-_ID_MATCHED_SEQUENCE = 'matched-sequence'
-_ID_COUNTDOWN_TIMER = 'keyboard-test-timer'
-
-_MSG_EXPECTED_SEQUENCE = i18n_test_ui.MakeI18nLabelWithClass(
-    'Expected keycode sequence:', 'test-info')
-
-_HTML_KEYBOARD = '<br>\n'.join([
-    '<div>%s <span id="%s"></span><span id="%s"></span></div>' % (
-        _MSG_EXPECTED_SEQUENCE, _ID_MATCHED_SEQUENCE, _ID_EXPECTED_SEQUENCE),
-    '<div id="%s" class="test-info"></div>' % _ID_COUNTDOWN_TIMER])
-
-_KEYBOARD_TEST_DEFAULT_CSS = (
-    '.test-info { font-size: 1.4em; }\n'
-    '#expected-sequence { color: grey; font-size: 1.4em; }\n'
-    '#matched-sequence { color: black; font-size: 1.4em; }\n')
-
-
-class KeyboardSMTTest(unittest.TestCase):
+class KeyboardSMTTest(test_ui.TestCaseWithUI):
   """Tests each keyboard scan lines are connected.
 
-  It triggers akeyboard scan module by sending 0xC1 to fixture via RS-232.
+  It triggers a keyboard scan module by sending 0xC1 to fixture via RS-232.
   The keyboard scan module will send a sequence of keycodes. This test checks
-  if the upcoming keyup events matche the expected keycode sequence.
+  if the upcoming keyup events match the expected keycode sequence.
   """
   ARGS = [
       Arg('device_filter', (int, str),
@@ -65,14 +43,9 @@ class KeyboardSMTTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
-    self.ui.AppendCSS(_KEYBOARD_TEST_DEFAULT_CSS)
-
-    # Initialize frontend presentation.
-    self.template.SetState(_HTML_KEYBOARD)
-    self.ui.CallJSFunction('setUpKeyboardTest', self.args.keycode_sequence,
-                           self.args.debug)
+    self.debug = self.args.debug
+    self.expected_sequence = self.args.keycode_sequence
+    self.received_sequence = []
 
     self.fixture = None
     if self.args.bft_fixture:
@@ -84,38 +57,51 @@ class KeyboardSMTTest(unittest.TestCase):
 
     # Monitor keyboard event within specified time period.
     self.event_dev.grab()
-    self.dispatcher = evdev_utils.InputDeviceDispatcher(self.event_dev,
-                                                        self.HandleEvdevEvent)
+    self.dispatcher = evdev_utils.InputDeviceDispatcher(
+        self.event_dev, self.event_loop.CatchException(self.HandleEvdevEvent))
     self.dispatcher.StartDaemon()
-    if not self.args.debug:
-      countdown_timer.StartCountdownTimer(
-          self.args.timeout_secs, self.TimeoutHandler, self.ui,
-          _ID_COUNTDOWN_TIMER)
+    self.UpdateUI()
 
   def tearDown(self):
     self.dispatcher.close()
     self.event_dev.ungrab()
 
-  def TimeoutHandler(self):
-    """Called to fail the test when a timeout is reached."""
-    self.ui.CallJSFunction(
-        'failTest',
-        'Timeout after %d seconds.' % self.args.timeout_secs)
+  def UpdateUI(self):
+    expected_sequence = self.expected_sequence
+    if not self.debug:
+      expected_sequence = expected_sequence[len(self.received_sequence):]
+
+    self.ui.CallJSFunction('setMatchedSequence', self.received_sequence)
+    self.ui.CallJSFunction('setExpectedSequence', expected_sequence)
 
   def HandleEvdevEvent(self, event):
     """Handles evdev event.
-
-    Notifies JS if a keyup event is received.
 
     Args:
       event: evdev event.
     """
     if event.type == evdev.ecodes.EV_KEY and event.value == 0:
-      if self.args.debug:
-        session.console.info('keycode: %s', event.code)
-      self.ui.CallJSFunction('markKeyup', event.code)
+      self.HandleKey(event.code)
+
+  def HandleKey(self, key):
+    """Handles keyup event."""
+    if self.debug:
+      session.console.info('keycode: %s', key)
+      self.received_sequence.append(key)
+    else:
+      self.received_sequence.append(key)
+      if key != self.expected_sequence[len(self.received_sequence) - 1]:
+        self.FailTask('Keycode sequence mismatches. expected: %r, actual: %r.' %
+                      (self.expected_sequence, self.received_sequence))
+      if self.received_sequence == self.expected_sequence:
+        self.PassTask()
+    self.UpdateUI()
 
   def runTest(self):
+    if not self.debug:
+      countdown_timer.StartNewCountdownTimer(
+          self, self.args.timeout_secs, 'timer', lambda: self.FailTask(
+              'Timeout after %d seconds.' % self.args.timeout_secs))
     if self.fixture:
       self.fixture.SimulateKeystrokes()
-    self.ui.Run()
+    self.WaitTaskEnd()

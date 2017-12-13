@@ -1921,7 +1921,7 @@ msgstr "检查键盘背光是否亮起，是请按ENTER。"
 msgid "If the keyboard backlight is off, press ENTER. "
 msgstr "检查键盘背光是否熄灭，是请按ENTER。"
 
-#: ../py/test/pytests/keyboard_smt.py
+#: ../py/test/pytests/keyboard_smt_static/keyboard_smt.html
 msgid "Expected keycode sequence:"
 msgstr "目标键序："
 
