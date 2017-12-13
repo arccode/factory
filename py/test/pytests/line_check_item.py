@@ -61,7 +61,6 @@ list::
 
 import collections
 import subprocess
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -71,21 +70,17 @@ from cros.factory.test import i18n
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 CheckItem = collections.namedtuple('CheckItem',
                                    'instruction command judge_to_pass')
 
 
-class LineCheckItemTest(unittest.TestCase):
+class LineCheckItemTest(test_ui.TestCaseWithUI):
   """Test a sequence of commands are successful or not.
 
   Properties:
-    _ui: test ui.
-    _template: test ui template.
     _items: A sequence of CheckItem.
-    _current: current test item index in _items.
   """
   ARGS = [
       i18n_arg_utils.I18nArg('title', 'test title.'),
@@ -99,108 +94,51 @@ class LineCheckItemTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    """Initializes _ui, _template, _current, and _items"""
-    self._ui = test_ui.UI()
-    self._template = ui_templates.OneSection(self._ui)
-    self._current = 0
+    """Initializes _items"""
     self._dut = (device_utils.CreateStationInterface()
                  if self.args.is_station else
                  device_utils.CreateDUTInterface())
     self._items = []
 
-    found_judge_to_pass = False
     for item in self.args.items:
       if isinstance(item, list) and len(item) == 3:
         check_item = CheckItem(i18n.Translated(item[0], translate=False),
                                item[1], item[2])
       else:
         raise ValueError('Unknown item %r in args.items.' % item)
-      if item[2]:
-        found_judge_to_pass = True
       self._items.append(check_item)
 
-    if not found_judge_to_pass:
+    if not any(item.judge_to_pass for item in self._items):
       raise ValueError('If judge_to_pass is not needed, use `exec_shell` test.')
-
-
-  def NeedToJudgeSubTest(self):
-    """Returns whether current subtest needs user to judge pass/fail or not."""
-    return self._items[self._current].judge_to_pass
-
-  def RunSubTest(self):
-    """Runs current subtest and checks if command is successful.
-
-    If current subtest needs to be judged, waits for user hitting
-    Enter/Esc. If current subtest does not need to be judges, proceed to
-    the next subtest.
-    """
-    inst = self._items[self._current].instruction
-    command = self._items[self._current].command
-    instruction = i18n_test_ui.MakeI18nLabel(inst)
-    if self.NeedToJudgeSubTest():
-      instruction = instruction + '<br>' + test_ui.PASS_FAIL_KEY_LABEL
-    self._template.SetState(instruction)
-
-    process = self._dut.Popen(command,
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE)
-    stdout, stderr = process.communicate()
-    retcode = process.returncode
-    event_log.Log('checked_item', command=command, retcode=retcode,
-                  stdout=stdout, stderr=stderr)
-
-    if retcode:
-      session.console.info('%s: Exit code %d\nstdout: %s\nstderr: %s',
-                           command, retcode, stdout, stderr)
-      self._ui.Fail('%s: Exit code %d\nstdout: %s\nstderr: %s' %
-                    (command, retcode, stdout, stderr))
-    else:
-      session.console.info('%s: stdout: %s\n', command, stdout)
-      if stderr:
-        session.console.info('stderr: %s', stderr)
-      if not self.NeedToJudgeSubTest():
-        self.PassSubTest()
-
-  def RunNextSubTest(self):
-    """Runs next subtest"""
-    self._current = self._current + 1
-    self.RunSubTest()
-
-  def EnterKeyPressed(self, event):
-    """Handler for enter key pressed by user.
-
-    Passes the subtest if this subtest needs to be judged.
-    """
-    del event  # Unused.
-    if self.NeedToJudgeSubTest():
-      self.PassSubTest()
-
-  def EscapeKeyPressed(self, event):
-    """Handler for escape key pressed by user.
-
-    Fails the subtest if this subtest needs to be judged.
-    """
-    del event  # Unused.
-    if self.NeedToJudgeSubTest():
-      self._ui.Fail('Judged as fail by operator.')
-
-  def PassSubTest(self):
-    """Passes the test if there is no test left, runs the next subtest
-    otherwise.
-    """
-    if self._current + 1 == len(self.args.items):
-      self._ui.Pass()
-    else:
-      self.RunNextSubTest()
 
   def runTest(self):
     """Main entrance of the test."""
-    self._template.SetTitle(i18n_test_ui.MakeI18nLabel(self.args.title))
-    self._ui.BindKeyJS(test_ui.ENTER_KEY,
-                       'test.sendTestEvent("enter_key_pressed", {});')
-    self._ui.BindKeyJS(test_ui.ESCAPE_KEY,
-                       'test.sendTestEvent("escape_key_pressed", {});')
-    self._ui.AddEventHandler('enter_key_pressed', self.EnterKeyPressed)
-    self._ui.AddEventHandler('escape_key_pressed', self.EscapeKeyPressed)
-    self.RunSubTest()
-    self._ui.Run()
+    self.ui.SetTitle(i18n_test_ui.MakeI18nLabel(self.args.title))
+    for item in self._items:
+      command = item.command
+      instruction = i18n_test_ui.MakeI18nLabel(item.instruction)
+      self.ui.SetState(instruction)
+
+      process = self._dut.Popen(command,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+      stdout, stderr = process.communicate()
+      retcode = process.returncode
+      event_log.Log('checked_item', command=command, retcode=retcode,
+                    stdout=stdout, stderr=stderr)
+
+      if retcode:
+        session.console.info('%s: Exit code %d\nstdout: %s\nstderr: %s',
+                             command, retcode, stdout, stderr)
+        self.FailTask('%s: Exit code %d\nstdout: %s\nstderr: %s' %
+                      (command, retcode, stdout, stderr))
+
+      session.console.info('%s: stdout: %s\n', command, stdout)
+      if stderr:
+        session.console.info('stderr: %s', stderr)
+
+      if item.judge_to_pass:
+        self.ui.SetState(test_ui.PASS_FAIL_KEY_LABEL, append=True)
+        key = self.ui.WaitKeysOnce([test_ui.ENTER_KEY, test_ui.ESCAPE_KEY])
+        if key == test_ui.ESCAPE_KEY:
+          self.FailTask('Judged as fail by operator.')
