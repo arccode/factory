@@ -1,22 +1,22 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 """A factory test to test the function of display panel using some points.
 """
 
+import collections
 import logging
 import random
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
-class DisplayPointTest(unittest.TestCase):
+_TestItem = collections.namedtuple('TestItem', 'num_point bg_color point_color')
+
+
+class DisplayPointTest(test_ui.TestCaseWithUI):
   """Tests the function of display panel using some points.
 
   There are two subtests in this test. The first one is black points on white
@@ -25,8 +25,6 @@ class DisplayPointTest(unittest.TestCase):
   each subtest.
 
   Attributes:
-    ui: test ui.
-    template: ui template handling html layout.
     list_number_point: a list of the number of points in each subtest.
   """
   ARGS = [
@@ -41,30 +39,53 @@ class DisplayPointTest(unittest.TestCase):
     if self.args.max_point_count >= 10:
       raise ValueError('>= 10 points is not supported')
 
-    self.ui = test_ui.UI()
-    self.ui.AppendCSSLink('display_point.css')
-    self.template = ui_templates.OneSection(self.ui)
-    self.list_number_point = [
-        random.randint(1, self.args.max_point_count) for _ in xrange(2)]
+    self.items = [
+        _TestItem(
+            random.randint(1, self.args.max_point_count), 'white', 'black'),
+        _TestItem(
+            random.randint(1, self.args.max_point_count), 'black', 'white')
+    ]
     logging.info('testing point: %s',
-                 ', '.join([str(x) for x in self.list_number_point]))
-    self.ui.CallJSFunction('setupDisplayPointTest',
-                           self.list_number_point, float(self.args.point_size))
+                 ', '.join(str(item.num_point) for item in self.items))
+    self._frontend_proxy = self.ui.InitJSTestObject(
+        'DisplayPointTest', self.args.point_size)
+    self.ui.AddEventHandler(
+        'toggle-display', lambda unused_event: self.ToggleDisplay())
+    self.display = False
+    self.checked = False
 
   def runTest(self):
     """Sets the callback function of keys and run the test."""
-    self.ui.BindKey(test_ui.SPACE_KEY, self.OnSpacePressed)
-    self.ui.BindKey(test_ui.ESCAPE_KEY, self.OnFailPressed)
-    for num in range(1, self.args.max_point_count + 1):
-      self.ui.BindKeyJS(str(num), 'judgeSubTest(%d);' % num)
-    self.ui.Run()
+    all_keys = [test_ui.SPACE_KEY, test_ui.ESCAPE_KEY]
+    all_keys.extend(str(k) for k in range(1, self.args.max_point_count + 1))
+    for idx, item in enumerate(self.items):
+      self._frontend_proxy.SetupPoints(item.num_point, item.bg_color,
+                                       item.point_color)
+      if idx > 0 and not self.display:
+        self.ToggleDisplay()
 
-  def OnSpacePressed(self, event):
-    """Calls JS function to switch display on/off."""
-    del event  # Unused.
-    self.ui.CallJSFunction('switchDisplayOnOff')
+      while True:
+        key = self.ui.WaitKeysOnce(all_keys)
+        if key == test_ui.SPACE_KEY:
+          self.ToggleDisplay()
+        elif key == test_ui.ESCAPE_KEY:
+          self.FailTask(
+              'DisplayPoint test failed at item %d: Mark failed by operator.' %
+              idx)
+        else:
+          if not self.checked:
+            continue
+          input_num = int(key)
+          if input_num == item.num_point:
+            break
+          self.FailTask('DisplayPoint test failed at item %d:'
+                        ' Correct number: %d, Input number: %d' %
+                        (idx, item.num_point, input_num))
 
-  def OnFailPressed(self, event):
-    """Fails the test."""
-    del event  # Unused.
-    self.ui.CallJSFunction('failTest')
+  def ToggleDisplay(self):
+    if self.display:
+      self._frontend_proxy.SwitchDisplayOff()
+    else:
+      self._frontend_proxy.SwitchDisplayOn()
+      self.checked = True
+    self.display = not self.display

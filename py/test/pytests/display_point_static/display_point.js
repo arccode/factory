@@ -2,211 +2,65 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/**
+ * Gets an random percent position from 0% to 99%.
+ * @return {string}
+ */
+const getRandomPosition = () => `${Math.floor(Math.random() * 100)}%`;
 
 /**
  * API for display_point test.
- * @constructor
- * @param {Array.<number>} arrayNumberPoint
- * @param {number} pointSize
  */
-var DisplayPointTest = function(arrayNumberPoint, pointSize) {
-  this.arrayNumberPoint = arrayNumberPoint;
-  this.pointSize = pointSize;
-  this.display = false;
-  this.fullScreenElement = null;
-  this.focusItem = 0;
-  var _ = cros.factory.i18n.translation;
-  this.instruct =
-      _('Press Space to display;\n' +
-        'After checking, Enter number of points to pass.');
-  this.itemNumber = 2;
-  this.backgroundStyleList = [
-    'display-point-background-white',
-    'display-point-background-black'];
-  this.pointStyleList = [
-    'display-point-black',
-    'display-point-white'];
-  this.checked = false;
-};
-
-/**
- * Initializes display point test ui.
- * There is a caption for instructions.
- * There is an input box below the caption.
- */
-DisplayPointTest.prototype.init = function() {
-  var caption = document.createElement('div');
-  caption.className = 'display-point-caption';
-  caption.appendChild(cros.factory.i18n.i18nLabelNode(this.instruct));
-  window.template.appendChild(caption);
-};
-
-/**
- * Initializes fullscreen elements.
- */
-DisplayPointTest.prototype.initFullScreenElement = function() {
-  this.fullScreenElement = document.createElement('div');
-  this.fullScreenElement.className = 'display-full-screen-hide';
-  window.template.appendChild(this.fullScreenElement);
-};
-
-/**
- * Initializes display div in fullscreen element.
- */
-DisplayPointTest.prototype.initDisplayDiv = function() {
-  this.displayDiv = document.createElement('div');
-  this.fullScreenElement.appendChild(this.displayDiv);
-};
-
-/**
- * Setups display div element and draws the points.
- * Optionally shows the fullscreen display.
- * @param {boolean} display
- */
-DisplayPointTest.prototype.drawDisplayPoint = function(display) {
-  this.setupDisplayDiv();
-  this.setupPoint();
-  if (display) {
-    this.switchDisplayOn();
+window.DisplayPointTest = class {
+  /*
+   * @param {Array<number>} arrayNumberPoint
+   * @param {number} pointSize
+   */
+  constructor(arrayNumberPoint, pointSize) {
+    this.pointSize = pointSize;
+    this.displayDiv = document.getElementById('fullscreen');
+    this.displayDiv.addEventListener('click', () => {
+      window.test.sendTestEvent('toggle-display');
+    });
   }
-};
 
-/**
- * Setups display div element. Cleans up its content, sets the style, and set
- * click handler.
- */
-DisplayPointTest.prototype.setupDisplayDiv = function() {
-  //cleans up display div
-  this.displayDiv.innerHTML = '';
-  this.displayDiv.className = this.backgroundStyleList[this.focusItem];
-  this.displayDiv.addEventListener('click', function(event) {
-    this.switchDisplayOff();
-  }.bind(this));
-};
+  /**
+   * Setups point in the subtest.
+   * @param {number} numberPoint number of points
+   * @param {string} backgroundColor background color of the screen
+   * @param {string} pointColor color of the points
+   */
+  setupPoints(numberPoint, backgroundColor, pointColor) {
+    this.displayDiv.innerHTML = '';
+    cros.factory.utils.removeClassesWithPrefix(this.displayDiv, 'bg-');
+    this.displayDiv.classList.add(`bg-${backgroundColor}`);
 
-/**
- * Gets an random integral position from 0 to 99.
- * @return {number}
- */
-DisplayPointTest.prototype.getRandomPosition = function() {
-  return Math.floor(Math.random() * 100);
-};
-
-/**
- * Setups point in the subtest.
- */
-DisplayPointTest.prototype.setupPoint = function() {
-  var numberPoint = this.arrayNumberPoint[this.focusItem];
-  for (var p = 0; p < numberPoint; ++p) {
-    var div = document.createElement('div');
-    div.className = this.pointStyleList[this.focusItem];
-    div.style.position = 'absolute';
-    div.style.top = this.getRandomPosition() + '%';
-    div.style.left = this.getRandomPosition() + '%';
-    div.style.width = this.pointSize + 'px';
-    div.style.height = this.pointSize + 'px';
-    this.displayDiv.appendChild(div);
-  }
-};
-
-/**
- * Judges the subtest. If the subtest passes, prepares the next subtest or
- * passes the test if there is no more subtest.
- * Fails the test if the subtest fails.
- * @param {number} number
- */
-DisplayPointTest.prototype.judgePoint = function(number) {
-  if (this.checked) {
-    if (number == this.arrayNumberPoint[this.focusItem]) {
-      this.focusItem = this.focusItem + 1;
-      if (this.focusItem < this.itemNumber) {
-        this.drawDisplayPoint(true);
-        // We always show next subtest, so we dont need to reset this.checked.
-      } else {
-        window.test.pass();
-      }
-    } else {
-      window.displayPointTest.failTest(number);
+    for (let p = 0; p < numberPoint; ++p) {
+      const div = document.createElement('div');
+      div.classList.add('point', `bg-${pointColor}`);
+      div.style.top = getRandomPosition();
+      div.style.left = getRandomPosition();
+      div.style.width = `${this.pointSize}px`;
+      div.style.height = `${this.pointSize}px`;
+      this.displayDiv.appendChild(div);
     }
   }
-};
 
-/**
- * Toggles the fullscreen display visibility.
- */
-DisplayPointTest.prototype.switchDisplayOnOff = function() {
-  //If current display is on, turns it off
-  if (this.display) {
-    this.switchDisplayOff();
-  } else {
-    this.switchDisplayOn();
+  /**
+   * Switches the fullscreen display on. Sets displayDiv
+   * visibility to visible and enlarges the test iframe to fullscreen.
+   */
+  switchDisplayOn() {
+    this.displayDiv.classList.remove('hide');
+    window.test.setFullScreen(true);
   }
 
+  /**
+   * Switches the fullscreen display off. Sets displayDiv
+   * visibility to hidden and restores the test iframe to normal.
+   */
+  switchDisplayOff() {
+    this.displayDiv.classList.add('hide');
+    window.test.setFullScreen(false);
+  }
 };
-
-/**
- * Switches the fullscreen display on. Sets fullScreenElement
- * visibility to visible and enlarges the test iframe to fullscreen.
- */
-DisplayPointTest.prototype.switchDisplayOn = function() {
-  this.display = true;
-  this.checked = true;
-  this.fullScreenElement.className = 'display-full-screen-show';
-  window.test.setFullScreen(true);
-};
-
-/**
- * Switches the fullscreen display off. Sets fullScreenElement
- * visibility to hidden and restores the test iframe to normal.
- */
-DisplayPointTest.prototype.switchDisplayOff = function() {
-  this.display = false;
-  this.fullScreenElement.className = 'display-full-screen-hide';
-  window.test.setFullScreen(false);
-};
-
-/**
- * Fails the test and logs the failed items.
- * @param {number} number
- */
-DisplayPointTest.prototype.failTest = function(number) {
-  var failMsg = 'DisplayPoint test failed at item ' + this.focusItem;
-  failMsg += ' Correct number: ' + this.arrayNumberPoint[this.focusItem];
-  failMsg += ' Input number: ' + number;
-  window.test.fail(failMsg);
-};
-
-/**
- * Creates a display point test and runs it.
- * @param {Array.<number>} arrayNumberPoint
- * @param {number} pointSize
- */
-function setupDisplayPointTest(arrayNumberPoint, pointSize) {
-  window.displayPointTest = new DisplayPointTest(arrayNumberPoint, pointSize);
-  window.displayPointTest.init();
-  window.displayPointTest.initFullScreenElement();
-  window.displayPointTest.initDisplayDiv();
-  window.displayPointTest.drawDisplayPoint(false);
-}
-
-/**
- * Judges the subtest answer.
- * @param {number} number
- */
-function judgeSubTest(number) {
-  window.displayPointTest.judgePoint(number);
-}
-
-/**
- * Switches the fullscreen display.
- */
-function switchDisplayOnOff() {
-  window.displayPointTest.switchDisplayOnOff();
-}
-
-/**
- * Fails the test.
- */
-function failTest() {
-  window.displayPointTest.failTest('None');
-}

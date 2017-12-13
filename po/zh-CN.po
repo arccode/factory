@@ -1742,13 +1742,10 @@ msgstr "按空白键来拨放影像在萤幕上"
 msgid "Press Enter to PASS after showing all images."
 msgstr "拨放完所有影像后,压下Enter表示成功"
 
-#: ../py/test/pytests/display_point_static/display_point.js
+#: ../py/test/pytests/display_point_static/display_point.html
 msgid ""
-"Press Space to display;\n"
-"After checking, Enter number of points to pass."
-msgstr ""
-"按空白键显示;\n"
-"检查后按下正确的点数按键通过。"
+"Press Space to display;<br>After checking, Enter number of points to pass."
+msgstr "按空白键显示;<br>检查后按下正确的点数按键通过。"
 
 #: ../py/test/pytests/display_static/display.html
 msgid "Press Space to display;<br>After checking, Enter to pass; Esc to fail."
