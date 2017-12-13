@@ -77,18 +77,16 @@ difference up to 300MB::
 """
 
 import re
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
 
-class MemorySize(unittest.TestCase):
+class MemorySize(test_ui.TestCaseWithUI):
   ARGS = [
       Arg('device_data_key', str,
           'Device data key for getting memory size in GB.',
@@ -99,17 +97,8 @@ class MemorySize(unittest.TestCase):
           default=0.5),
   ]
 
-  def setUp(self):
-    self.ui = test_ui.UI()
-    self.ui.AppendCSS('.large { font-size: 2em; }')
-    self.template = ui_templates.OneSection(self.ui)
-
   def runTest(self):
-    self.ui.RunInBackground(self._runTest)
-    self.ui.Run()
-
-  def _runTest(self):
-    self.template.SetState(
+    self.ui.SetState(
         i18n_test_ui.MakeI18nLabel('Checking memory info...'))
 
     # Get memory info using mosys.
@@ -118,7 +107,7 @@ class MemorySize(unittest.TestCase):
     mosys_mem_mb = sum([int(x) for x in re.findall('size_mb="([^"]*)"', ret)])
     mosys_mem_gb = round(mosys_mem_mb / 1024.0, 1)
 
-    # Get kernal meminfo.
+    # Get kernel meminfo.
     with open('/proc/meminfo', 'r') as f:
       kernel_mem_kb = int(re.search(r'^MemTotal:\s*([0-9]+)\s*kB',
                                     f.read()).group(1))
