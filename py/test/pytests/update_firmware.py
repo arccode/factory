@@ -65,26 +65,21 @@ in the DUT::
 
 import logging
 import os
-import subprocess
 import tempfile
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.env import paths
 from cros.factory.test import event
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import update_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
 _FIRMWARE_UPDATER_NAME = 'chromeos-firmwareupdate'
 
-_CSS = 'test-template { text-align: left; }'
 
-
-class UpdateFirmwareTest(unittest.TestCase):
+class UpdateFirmwareTest(test_ui.TestCaseWithUI):
   ARGS = [
       Arg('firmware_updater', str, 'Full path of %s.' % _FIRMWARE_UPDATER_NAME,
           default=paths.FACTORY_FIRMWARE_UPDATER_PATH),
@@ -99,10 +94,9 @@ class UpdateFirmwareTest(unittest.TestCase):
           default=True)
   ]
 
-  def setUp(self):
-    self._ui = test_ui.UI(css=_CSS)
-    self._template = ui_templates.OneScrollableSection(self._ui)
+  ui_class = test_ui.ScrollableLogUI
 
+  def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
 
   def DownloadFirmware(self):
@@ -143,9 +137,9 @@ class UpdateFirmwareTest(unittest.TestCase):
                                     call=True, log=True, read_stdout=True)
       if process.returncode == 0:
         # Found a chromeos-firmwareupdate alive.
-        self._ui.Fail('Lock file %s is present and firmware update already '
-                      'running (PID %s)' % (
-                          LOCK_FILE, ', '.join(process.stdout_data.split())))
+        self.FailTask('Lock file %s is present and firmware update already '
+                      'running (PID %s)' %
+                      (LOCK_FILE, ', '.join(process.stdout_data.split())))
         return
       logging.warn('Removing %s', LOCK_FILE)
       os.unlink(LOCK_FILE)
@@ -159,17 +153,13 @@ class UpdateFirmwareTest(unittest.TestCase):
     else:
       command += ['--mode=factory']
 
-    p = process_utils.Spawn(
-        command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, log=True)
-    for line in iter(p.stdout.readline, ''):
-      logging.info(line.strip())
-      self._template.SetState(test_ui.Escape(line), append=True)
+    returncode = self.ui.PipeProcessOutputToUI(command)
 
     # Updates system info so EC and Firmware version in system info box
     # are correct.
-    self._ui.PostEvent(event.Event(event.Event.Type.UPDATE_SYSTEM_INFO))
+    self.event_loop.PostEvent(event.Event(event.Event.Type.UPDATE_SYSTEM_INFO))
 
-    self.assertEqual(p.poll(), 0, 'Firmware update failed: %d.' % p.returncode)
+    self.assertEqual(returncode, 0, 'Firmware update failed: %d.' % returncode)
 
   def runTest(self):
     if self.args.download_from_server:
@@ -183,5 +173,4 @@ class UpdateFirmwareTest(unittest.TestCase):
       self.assertTrue(os.path.isfile(self.args.firmware_updater),
                       msg='%s is missing.' % self.args.firmware_updater)
 
-    self._ui.RunInBackground(self.UpdateFirmware)
-    self._ui.Run()
+    self.UpdateFirmware()
