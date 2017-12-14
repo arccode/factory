@@ -185,7 +185,7 @@ class OutputBigQuery(plugin_base.OutputPlugin):
             f.write(json_row + '\n')
             row_count += 1
             # We are using time column as the timePartitioning field
-            partition_set.add(event['time'].date)
+            partition_set.add(event['time'].date())
         event_count += 1
         if len(partition_set) == _PARTITION_LIMIT:
           break
