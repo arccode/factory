@@ -96,7 +96,6 @@ import collections
 import json
 import operator
 import os
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -119,28 +118,12 @@ OPERATOR_MAP = {
     '>=': operator.ge,
     'in': lambda a, b: a in b}
 
-_CSS = """
-table {
-  border-collapse: collapse;
-  margin-left: auto;
-  margin-right: auto;
-  padding-bottom: 1em;
-}
-th, td {
-  border: 1px solid #dddddd;
-  text-align: left;
-  padding: 0 1em;
-}
-.prompt {
-  font-size: 2em;
-}
-"""
 
 def EvaluateRule(a, op_str, b):
   return OPERATOR_MAP[op_str](a, b)
 
 
-class ProbeTest(unittest.TestCase):
+class ProbeTest(test_ui.TestCaseWithUI):
 
   ARGS = [
       Arg('config_file', str,
@@ -157,9 +140,6 @@ class ProbeTest(unittest.TestCase):
       ]
 
   def setUp(self):
-    self._ui = test_ui.UI(css=_CSS)
-    self._template = ui_templates.OneSection(self._ui)
-
     self._dut = device_utils.CreateDUTInterface()
     self.factory_tools = deploy_utils.CreateFactoryTools(self._dut)
     self.config_file_path = os.path.join(
@@ -197,30 +177,26 @@ class ProbeTest(unittest.TestCase):
       # Set the table.
       summary = []
       for name, result in probed_results[category].iteritems():
-        if len(result) > 0:
+        if result:
           summary.append('%s %s found.' % (len(result), name))
       summary_str = '<br>'.join(summary) if summary else 'No component found.'
       rule_str = 'count (%s) %s %s' % (count, op_str, value)
       status_str = 'passed' if status else 'failed'
       session.console.info('Category "%s" %s %s, %s.',
                            category, summary_str, rule_str, status_str)
+
       table_html.SetContent(row_idx, 0, category)
       table_html.SetContent(row_idx, 1, summary_str)
       table_html.SetContent(row_idx, 2, rule_str)
       table_html.SetContent(
           row_idx, 3, '<div class=test-status-{0}>{0}</div>'.format(status_str))
 
-    if self.args.show_ui is False:
-      if all_passed is False:
-        self.fail()
-    elif self.args.show_ui is True or not all_passed:
-      html = [
-          table_html.GenerateHTML(), '<br>',
-          i18n_test_ui.MakeI18nLabelWithClass(
-              'Press SPACE to continue', 'prompt')
-      ]
-      self._template.SetState(''.join(html))
-      self._ui.BindKeyJS(
-          test_ui.SPACE_KEY,
-          'window.test.pass()' if all_passed else 'window.test.fail()')
-      self._ui.Run()
+    if self.args.show_ui is True or (self.args.show_ui is None and
+                                     not all_passed):
+      html = table_html.GenerateHTML() + i18n_test_ui.MakeI18nLabelWithClass(
+          'Press SPACE to continue', 'prompt')
+      self.ui.SetState(html)
+      self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
+
+    if not all_passed:
+      self.fail()
