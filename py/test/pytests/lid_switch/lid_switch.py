@@ -7,7 +7,6 @@
 import datetime
 import os
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
@@ -18,7 +17,6 @@ from cros.factory.test import event_log
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import audio_utils
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
@@ -27,31 +25,13 @@ from cros.factory.utils import file_utils
 _DEFAULT_TIMEOUT = 30
 _SERIAL_TIMEOUT = 1
 
-_MSG_PROMPT_CLOSE = i18n_test_ui.MakeI18nLabelWithClass(
-    'Close then open the lid', 'lid-test-info')
-_MSG_PROMPT_OPEN = i18n_test_ui.MakeI18nLabelWithClass('Open the lid',
-                                                       'lid-test-info')
-
-_MSG_LID_FIXTURE_CLOSE = i18n_test_ui.MakeI18nLabelWithClass(
-    'Magnetizing lid sensor', 'lid-test-info')
-_MSG_LID_FIXTURE_OPEN = i18n_test_ui.MakeI18nLabelWithClass(
-    'Demagnetizing lid sensor', 'lid-test-info')
-
-_ID_PROMPT = 'lid-test-prompt'
-_ID_COUNTDOWN_TIMER = 'lid-test-timer'
-_HTML_LID_SWITCH = ('<div id="%s"></div>\n'
-                    '<div id="%s" class="lid-test-info"></div>\n' %
-                    (_ID_PROMPT, _ID_COUNTDOWN_TIMER))
-
-_LID_SWITCH_TEST_DEFAULT_CSS = '.lid-test-info { font-size: 2em; }'
-
 _BACKLIGHT_OFF_TIMEOUT = 12
 _TEST_TOLERANCE = 2
 _TIMESTAMP_BL_ON = _BACKLIGHT_OFF_TIMEOUT - _TEST_TOLERANCE
 _TIMESTAMP_BL_OFF = _BACKLIGHT_OFF_TIMEOUT + _TEST_TOLERANCE
 
 
-class LidSwitchTest(unittest.TestCase):
+class LidSwitchTest(test_ui.TestCaseWithUI):
   """Lid switch factory test."""
   ARGS = [
       Arg('timeout_secs', int, 'Timeout value for the test.',
@@ -93,8 +73,8 @@ class LidSwitchTest(unittest.TestCase):
       try:
         f.write('%d' % value)
       except IOError:
-        self.ui.Fail('Can not write %r into brightness. '
-                     'Maybe the limit is wrong' % value)
+        self.FailTask('Can not write %r into brightness. '
+                      'Maybe the limit is wrong' % value)
 
   def GetBrightness(self):
     """Gets the brightness value from sysfs."""
@@ -102,39 +82,21 @@ class LidSwitchTest(unittest.TestCase):
       try:
         return int(f.read())
       except IOError:
-        self.ui.Fail('Can not read brightness.')
+        self.FailTask('Can not read brightness.')
 
   def setUp(self):
-    audio_utils.CRAS().EnableOutput()
-    audio_utils.CRAS().SetActiveOutputNodeVolume(100)
-    self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
     self.event_dev = evdev_utils.FindDevice(self.args.device_filter,
                                             evdev_utils.IsLidEventDevice)
-    self.ui.AppendCSS(_LID_SWITCH_TEST_DEFAULT_CSS)
-    self.template.SetState(_HTML_LID_SWITCH)
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
+
+    self.dispatcher = evdev_utils.InputDeviceDispatcher(
+        self.event_dev, self.event_loop.CatchException(self.HandleEvent))
 
     # Prepare fixture auto test if needed.
     self.fixture = None
     if self.args.bft_fixture:
       self.fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
-
-    if self.fixture:
-      self.ui.SetHTML(_MSG_LID_FIXTURE_CLOSE, id=_ID_PROMPT)
       self.fixture_lid_closed = False
-    else:
-      self.ui.SetHTML(_MSG_PROMPT_CLOSE, id=_ID_PROMPT)
-
-    # Create a thread to monitor evdev events.
-    self.dispatcher = evdev_utils.InputDeviceDispatcher(
-        self.event_dev, self.HandleEvent)
-    self.dispatcher.StartDaemon()
-    # Create a thread to run countdown timer.
-    countdown_timer.StartCountdownTimer(
-        _DEFAULT_TIMEOUT if self.fixture else self.args.timeout_secs,
-        lambda: self.ui.Fail('Lid switch test failed due to timeout.'),
-        self.ui,
-        _ID_COUNTDOWN_TIMER)
 
     # Variables to track the time it takes to open and close the lid
     self._start_waiting_sec = self.getCurrentEpochSec()
@@ -143,11 +105,8 @@ class LidSwitchTest(unittest.TestCase):
 
     self._restore_brightness = None
 
-    if self.fixture:
-      self.BFTLid(close=True)
-
   def tearDown(self):
-    self.TerminateLoop()
+    self.dispatcher.close()
     file_utils.TryUnlink('/run/power_manager/lid_opened')
     if self.fixture:
       self.BFTLid(close=False, fail_test=False)
@@ -171,9 +130,8 @@ class LidSwitchTest(unittest.TestCase):
   def CheckDelayedBacklight(self):
     """Checks delayed backlight off.
 
-    This function calls ui.Fail() on backlight turned off too early, or
-    backlight did not turn off after backlight timeout period. When backlight
-    delayed off works as expected, it calls OpenLid() to test lid_open event.
+    This function calls FailTask() on backlight turned off too early, or
+    backlight did not turn off after backlight timeout period.
 
     Signals:
 
@@ -190,29 +148,24 @@ class LidSwitchTest(unittest.TestCase):
     Raises:
       BFTFixtureException on fixture communication error.
     """
-    try:
-      start_time = time.time()
-      timeout_time = (start_time + _TIMESTAMP_BL_OFF)
-      # Ignore leading bouncing signals
-      time.sleep(_TEST_TOLERANCE)
+    start_time = time.time()
+    timeout_time = (start_time + _TIMESTAMP_BL_OFF)
+    # Ignore leading bouncing signals
+    time.sleep(_TEST_TOLERANCE)
 
-      # Check backlight power falling edge
-      while timeout_time > time.time():
-        test_time = time.time() - start_time
+    # Check backlight power falling edge
+    while time.time() < timeout_time:
+      test_time = time.time() - start_time
 
-        backlight = self.fixture.GetSystemStatus(
-            bft_fixture.BFTFixture.SystemStatus.BACKLIGHT)
-        if backlight == bft_fixture.BFTFixture.Status.OFF:
-          if test_time >= _TIMESTAMP_BL_ON:
-            self.AskForOpenLid()
-          else:
-            self.ui.Fail('Backlight turned off too early.')
-          return
-        time.sleep(0.5)
+      backlight = self.fixture.GetSystemStatus(
+          bft_fixture.BFTFixture.SystemStatus.BACKLIGHT)
+      if backlight == bft_fixture.BFTFixture.Status.OFF:
+        if test_time < _TIMESTAMP_BL_ON:
+          self.FailTask('Backlight turned off too early.')
+        return
+      time.sleep(0.5)
 
-      self.ui.Fail('Backlight does not turn off.')
-    except Exception as e:
-      self.ui.Fail(e)
+    self.FailTask('Backlight does not turn off.')
 
   def HandleEvent(self, event):
     if event.type == evdev.ecodes.EV_SW and event.code == evdev.ecodes.SW_LID:
@@ -221,23 +174,17 @@ class LidSwitchTest(unittest.TestCase):
         if self.fixture:
           if self.args.check_delayed_backlight:
             self.CheckDelayedBacklight()
-          else:
-            self.AskForOpenLid()
-        else:
-          self.AskForOpenLid()
-          if self.args.brightness_path is not None:
-            self._restore_brightness = self.GetBrightness()
-            # Close backlight
-            self.AdjustBrightness(self.args.brightness_when_closed)
+        self.AskForOpenLid()
+        if self.args.brightness_path is not None:
+          self._restore_brightness = self.GetBrightness()
+          # Close backlight
+          self.AdjustBrightness(self.args.brightness_when_closed)
       elif event.value == 0:  # LID_OPEN
         self._opened_sec = self.getCurrentEpochSec()
         # Restore brightness
         if self.args.brightness_path is not None:
           self.AdjustBrightness(self._restore_brightness)
-        self.ui.Pass()
-
-  def TerminateLoop(self):
-    self.dispatcher.close()
+        self.PassTask()
 
   def BFTLid(self, close, fail_test=True):
     """Commands BFT to close/open the lid.
@@ -250,27 +197,27 @@ class LidSwitchTest(unittest.TestCase):
       close: True to close the lid. Otherwise, open it.
       fail_test: True to fail the test after unsuccessful retries.
     """
-    error = None
-    for _ in range(self.args.bft_retries + 1):
+    for retry in range(self.args.bft_retries + 1):
       try:
         time.sleep(self.args.bft_pause_secs)
         self.fixture.SetDeviceEngaged(
             bft_fixture.BFTFixture.Device.LID_MAGNET, close)
+        self.fixture_lid_closed = close
         break
       except bft_fixture.BFTFixtureException as e:
-        error = e
-    if error is None:
-      self.fixture_lid_closed = close
-    elif fail_test:
-      self.ui.Fail('Failed to %s the lid with %d retries. Reason: %s' % (
-          'close' if close else 'open', self.args.bft_retries, error))
+        if retry == self.args.bft_retries:
+          if fail_test:
+            self.FailTask('Failed to %s the lid with %d retries. Reason: %s' %
+                          ('close'
+                           if close else 'open', self.args.bft_retries, e))
 
   def AskForOpenLid(self):
     if self.fixture:
-      self.ui.SetHTML(_MSG_LID_FIXTURE_OPEN, id=_ID_PROMPT)
+      self.ui.SetHTML(
+          i18n_test_ui.MakeI18nLabel('Demagnetizing lid sensor'), id='prompt')
       self.BFTLid(close=False)
     else:
-      self.ui.SetHTML(_MSG_PROMPT_OPEN, id=_ID_PROMPT)
+      self.ui.SetHTML(i18n_test_ui.MakeI18nLabel('Open the lid'), id='prompt')
       self.PlayOkAudio()
 
   def PlayOkAudio(self):
@@ -280,4 +227,23 @@ class LidSwitchTest(unittest.TestCase):
       self.ui.PlayAudioFile(os.path.join(self.ui.GetUILocale(), 'ok.ogg'))
 
   def runTest(self):
-    self.ui.Run()
+    audio_utils.CRAS().EnableOutput()
+    audio_utils.CRAS().SetActiveOutputNodeVolume(self.args.audio_volume)
+    if self.fixture:
+      self.ui.SetHTML(
+          i18n_test_ui.MakeI18nLabel('Magnetizing lid sensor'), id='prompt')
+    else:
+      self.ui.SetHTML(
+          i18n_test_ui.MakeI18nLabel('Close then open the lid'), id='prompt')
+
+    self.dispatcher.StartDaemon()
+    countdown_timer.StartNewCountdownTimer(
+        self,
+        _DEFAULT_TIMEOUT if self.fixture else self.args.timeout_secs,
+        'timer',
+        lambda: self.FailTask('Lid switch test failed due to timeout.'))
+
+    if self.fixture:
+      self.BFTLid(close=True)
+
+    self.WaitTaskEnd()

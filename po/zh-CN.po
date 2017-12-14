@@ -1992,8 +1992,8 @@ msgid "Result: "
 msgstr "测试结果："
 
 #: ../py/test/pytests/lid_switch/lid_switch.py
-msgid "Close then open the lid"
-msgstr "关上接着打开上盖"
+msgid "Demagnetizing lid sensor"
+msgstr "消磁化上盖感应器"
 
 #: ../py/test/pytests/lid_switch/lid_switch.py
 msgid "Open the lid"
@@ -2004,8 +2004,8 @@ msgid "Magnetizing lid sensor"
 msgstr "磁化上盖感应器"
 
 #: ../py/test/pytests/lid_switch/lid_switch.py
-msgid "Demagnetizing lid sensor"
-msgstr "消磁化上盖感应器"
+msgid "Close then open the lid"
+msgstr "关上接着打开上盖"
 
 #: ../py/test/pytests/light_sensor.py
 msgid "Cover light sensor with finger"
