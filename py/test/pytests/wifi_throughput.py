@@ -69,9 +69,7 @@ import logging
 import string  # pylint: disable=deprecated-module
 import subprocess
 import sys
-import threading
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import CalledProcessError
@@ -81,7 +79,6 @@ from cros.factory.test.fixture import arduino
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import session
 from cros.factory.test import test_ui
-from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils import kbd_leds
 from cros.factory.testlog import testlog
 from cros.factory.utils import arg_utils
@@ -94,14 +91,6 @@ from cros.factory.utils import type_utils
 _WIFI_TIMEOUT_SECS = 20
 _DEFAULT_POLL_INTERVAL_SECS = 1
 _IPERF_TIMEOUT_SECS = 5
-
-_DEFAULT_WIRELESS_TEST_CSS = '.wireless-info { font-size: 2em; }'
-
-_MSG_SPACE = i18n_test_ui.MakeI18nLabelWithClass(
-    'Please wait for other DUTs to finish WiFiThroughput test, '
-    'and press spacebar to continue.', 'wireless-info')
-_MSG_RUNNING = i18n_test_ui.MakeI18nLabelWithClass('Running, please wait...',
-                                                   'wireless-info')
 
 
 def _MbitsToBits(x):
@@ -315,12 +304,6 @@ class _ServiceTest(object):
   class _TestException(Exception):
     pass
 
-  # Utility objects that most tests will make use of.
-  _wifi = None
-  _iperf3 = None
-  _ui = None
-  _bind_wifi = None
-
   # State to be carried along from test to test.
   _ap = None
   _conn = None
@@ -329,13 +312,14 @@ class _ServiceTest(object):
   _log = None
 
   def __init__(self, wifi, interface, iperf3, enable_iperf_server, ui,
-               bind_wifi):
+               bind_wifi, use_ui_retry):
     self._wifi = wifi
     self._interface = interface
     self._iperf3 = iperf3
     self._enable_iperf_server = enable_iperf_server
-    self._ui = ui
     self._bind_wifi = bind_wifi
+    self._ui = ui
+    self._use_ui_retry = use_ui_retry
 
   def _Log(self, text, *args):
     f_name = sys._getframe(1).f_code.co_name  # pylint: disable=protected-access
@@ -377,6 +361,7 @@ class _ServiceTest(object):
         'pass_iperf_tx': None,
         'pass_iperf_rx': None,
         'failures': []}
+    self._ui.SetState(i18n_test_ui.MakeI18nLabel('Running, please wait...'))
 
     def DoTest(fn, abort=False, **kwargs):
       """Runs a test and reports its success/failure to the session.console.
@@ -450,8 +435,7 @@ class _ServiceTest(object):
 
     # Attempt to disconnect from the WiFi network.
     try:
-      DoTest(self._Disconnect,
-             ssid=ap_config.ssid)
+      DoTest(self._Disconnect, ssid=ap_config.ssid)
     except self._TestException:
       pass
 
@@ -560,13 +544,19 @@ class _ServiceTest(object):
       except type_utils.TimeoutError as e:
         iperf_output = e.output
 
-      if iperf_output.get('error') == Iperf3Client.ERROR_MSG_BUSY and self._ui:
+      if (iperf_output.get('error') == Iperf3Client.ERROR_MSG_BUSY and
+          self._use_ui_retry):
         self._Log('%s iperf3 error: %s', tx_rx, iperf_output.get('error'))
         self._Log('iperf3 server is currently busy running a test, please wait '
                   'for it to finish and try again.')
         self._Log('Hit space bar to retry...')
-        self._ui.PromptSpace()
+        self._ui.SetState(
+            i18n_test_ui.MakeI18nLabel(
+                'Please wait for other DUTs to finish WiFiThroughput test, '
+                'and press spacebar to continue.'))
+        self._ui.WaitKeysOnce(test_ui.SPACE_KEY)
         time.sleep(1)
+        self._ui.SetState(i18n_test_ui.MakeI18nLabel('Running, please wait...'))
       else:
         break
 
@@ -650,39 +640,7 @@ class _ServiceTest(object):
       return 'Successfully disconnected from %s' % ssid
 
 
-class _Ui(object):
-  def __init__(self):
-    # Set up UI.
-    self.ui = test_ui.UI()
-    self._template = OneSection(self.ui)
-    self.ui.AppendCSS(_DEFAULT_WIRELESS_TEST_CSS)
-    self._template.SetState(_MSG_RUNNING)
-    self._space_event = threading.Event()
-
-  def PromptSpace(self):
-    """Prompts a message to ask operator to press space."""
-    self._space_event.clear()
-    self._template.SetState(_MSG_SPACE)
-    self.ui.BindKey(
-        test_ui.SPACE_KEY, lambda _: self.OnSpacePressed(), once=True)
-    self._space_event.wait()
-
-  def Done(self):
-    """The callback when ui is done.
-
-    This will be called when test is finished, or if operator presses
-    'Mark Failed'.
-    """
-    self._space_event.set()
-
-  def OnSpacePressed(self):
-    """The handler of space key."""
-    logging.info('Space pressed by operator.')
-    self._template.SetState(_MSG_RUNNING)
-    self._space_event.set()
-
-
-class WiFiThroughput(unittest.TestCase):
+class WiFiThroughput(test_ui.TestCaseWithUI):
   """WiFi throughput test.
 
   Accepts a list of wireless services, checks for their signal strength and
@@ -691,11 +649,8 @@ class WiFiThroughput(unittest.TestCase):
   # Arguments that can only be applied to each WiFi service connection.  These
   # will be checked as key-values in the test's "service" argument (see below).
   _SERVICE_ARGS = [
-      Arg('ssid', (str, unicode),
-          'SSID of WiFi service.'),
-      Arg('password', str,
-          'Password of WiFi service.',
-          default=None)
+      Arg('ssid', (str, unicode), 'SSID of WiFi service.'),
+      Arg('password', str, 'Password of WiFi service.', default=None)
   ]
 
   # Arguments that can be directly applied to each WiFi service connection, OR
@@ -801,10 +756,6 @@ class WiFiThroughput(unittest.TestCase):
           default=[]),
   ] + _SHARED_ARGS  # note the concatenation of "shared" arguments
 
-  def __init__(self, *args, **kwargs):
-    super(WiFiThroughput, self).__init__(*args, **kwargs)
-    self._leds_blinker = None
-
   def _Log(self):
     event_log.Log(self.args.event_log_name, **self.log)
 
@@ -909,6 +860,8 @@ class WiFiThroughput(unittest.TestCase):
     self.args.services = new_services
 
   def setUp(self):
+    self._leds_blinker = None
+
     # Services should inherit from provided "test-level" arguments.
     self._ProcessArgs()
     self._dut = device_utils.CreateDUTInterface()
@@ -954,15 +907,7 @@ class WiFiThroughput(unittest.TestCase):
     self._wifi = self._dut.wifi
     self._iperf3 = Iperf3Client(self._dut)
 
-    # If use_ui_retry and we are running the UI (will except when run on
-    # command-line), then use a retry-loop in the goofy UI when an iperf3 server
-    # is currently busy running another client's test.
-    self._ui = None
-    if self.args.use_ui_retry:
-      try:
-        self._ui = _Ui()
-      except Exception:
-        pass
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
 
   def tearDown(self):
     logging.info('Tear down...')
@@ -1006,13 +951,6 @@ class WiFiThroughput(unittest.TestCase):
     return self.args.interface or interfaces[0]
 
   def runTest(self):
-    if self._ui:
-      self._ui.ui.RunInBackground(self._runTest)
-      self._ui.ui.Run()
-    else:
-      self._runTest()
-
-  def _runTest(self):
     # Choose the WLAN interface to use for this test, either from the test
     # arguments, or by choosing the first one listed on the device.
     self._interface = self._SelectInterface()
@@ -1028,10 +966,9 @@ class WiFiThroughput(unittest.TestCase):
 
     # Test WiFi signal and throughput speed for each service.
     if self.args.services:
-      service_test = _ServiceTest(self._wifi, self._interface,
-                                  self._iperf3, self.args.enable_iperf_server,
-                                  self._ui,
-                                  self.args.bind_wifi)
+      service_test = _ServiceTest(self._wifi, self._interface, self._iperf3,
+                                  self.args.enable_iperf_server, self.ui,
+                                  self.args.bind_wifi, self.args.use_ui_retry)
       for ap_config in self.args.services:
         iperf_data = service_test.Run(ap_config)
         self.log['test'][ap_config.ssid] = iperf_data
