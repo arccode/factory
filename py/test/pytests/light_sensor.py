@@ -91,17 +91,16 @@ import logging
 import math
 import os
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import countdown_timer
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
+
 
 _DEFAULT_SUBTEST_LIST = ['Light sensor dark',
                          'Light sensor exact',
@@ -116,21 +115,6 @@ _DEFAULT_SUBTEST_INSTRUCTION = {
 
 _DEFAULT_DEVICE_PATH = '/sys/bus/iio/devices/*/'
 _DEFAULT_DEVICE_INPUT = 'illuminance0_input'
-
-_MSG_PROMPT_FMT = i18n_test_ui.MakeI18nLabel(
-    'Use indicated light source to pass each subtest<br>'
-    'Hit "space" to begin...')
-
-_HTML = """
-<div id="light-sensor-container">
-  <div id="light-sensor-prompt"></div>
-  <div id="light-sensor-tasks"></div>
-  <div id="light-sensor-info">
-    <div id="light-sensor-input"></div>
-    <div id="light-sensor-timer"></div>
-  </div>
-</div>
-"""
 
 
 class iio_generic(object):
@@ -242,7 +226,7 @@ class iio_generic(object):
       raise ValueError('Illegal value %s for type' % type)
 
 
-class LightSensorTest(unittest.TestCase):
+class LightSensorTest(test_ui.TestCaseWithUI):
   """Tests light sensor."""
   ARGS = [
       Arg('device_path', str, 'device path', None),
@@ -260,126 +244,42 @@ class LightSensorTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    # Initialize frontend presentation
-    self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
+    self._als = iio_generic(self.args.device_path, self.args.device_input,
+                            self.args.range_value, self.args.init_command)
 
-    try:
-      self._als = iio_generic(self.args.device_path, self.args.device_input,
-                              self.args.range_value, self.args.init_command)
-    except ValueError as e:
-      self.ui.Fail(e)
-      return
-
-    self.ui.AppendCSSLink('light_sensor.css')
-    self.ui.BindKey(test_ui.SPACE_KEY, self.StartCountDown, once=True)
-    self.template.SetState(_HTML)
-    self.ui.SetHTML(_MSG_PROMPT_FMT, id='light-sensor-prompt')
-
-    # Initialize variables
-    self._subtest_list = _DEFAULT_SUBTEST_LIST
-    self._subtest_cfg = _DEFAULT_SUBTEST_CFG
-    self._subtest_instruction = _DEFAULT_SUBTEST_INSTRUCTION
-    self.GetSubtest(self.args.subtest_list, self.args.subtest_cfg,
-                    self.args.subtest_instruction)
+    subtest_args = [
+        self.args.subtest_list, self.args.subtest_cfg,
+        self.args.subtest_instruction
+    ]
+    if all(subtest_args):
+      self._subtest_list = self.args.subtest_list
+      self._subtest_cfg = self.args.subtest_cfg
+      self._subtest_instruction = self.args.subtest_instruction
+    elif any(subtest_args):
+      raise ValueError(
+          'Missing some of subtest_list, subtest_cfg or subtest_instruction.')
+    else:
+      self._subtest_list = _DEFAULT_SUBTEST_LIST
+      self._subtest_cfg = _DEFAULT_SUBTEST_CFG
+      self._subtest_instruction = _DEFAULT_SUBTEST_INSTRUCTION
 
     self._timeout_per_subtest = self.args.timeout_per_subtest
     self._iter_req_per_subtest = self.args.check_per_subtest
-    self._current_iter_remained = self._iter_req_per_subtest
-    self._cumulative_val = 0
-
-    self._current_test_idx = -1
-    self._active_series = None
-    self._started = False
-    self._active_subtest = self._subtest_list[0]
 
     for test_idx, name in enumerate(self._subtest_list):
       instruction = i18n_test_ui.MakeI18nLabel(self._subtest_instruction[name])
       desc = '%s (%s)' % (
           name, self.GetConfigDescription(self._subtest_cfg[name]))
       html = (
-          u'<div class="light-sensor-task">'
+          u'<div class="task">'
           u'<div id="title{idx}">{instruction}</div>'
-          u'<div class="light-sensor-desc-row">'
-          u'<div id="desc{idx}" class="light-sensor-desc">{desc}</div>'
-          u'<div id="result{idx}" class="light-sensor-result">UNTESTED</div>'
+          u'<div class="desc-row">'
+          u'<div id="desc{idx}" class="desc">{desc}</div>'
+          u'<div id="result{idx}" class="result">UNTESTED</div>'
           u'</div>'
           u'</div>').format(
-              idx=test_idx, instruction=instruction, desc=desc)
-      self.ui.SetHTML(html, id='light-sensor-tasks', append=True)
-
-  def StartCountDown(self, event):
-    del event  # Unused.
-    self.NextSubtest()
-    self._started = True
-    countdown_timer.StartCountdownTimer(
-        self._timeout_per_subtest * len(self._subtest_list),
-        self.TimeoutHandler, self.ui, 'light-sensor-timer')
-
-  def NextSubtest(self):
-    self._current_test_idx += 1
-    if self._current_test_idx >= len(self._subtest_list):
-      self.ui.Pass()
-      return
-    self._active_subtest = self._subtest_list[self._current_test_idx]
-    self._active_series = testlog.CreateSeries(
-        name=self._active_subtest,
-        description=('Light sensor values over time for subtest "%s"' %
-                     self._active_subtest),
-        key_unit='seconds')  # no value unit
-    self.ui.SetHTML('ACTIVE', id='result%d' % self._current_test_idx)
-    self._current_iter_remained = self._iter_req_per_subtest
-    self._cumulative_val = 0
-
-  def TimeoutHandler(self):
-    self.ui.SetHTML('FAILED', id='result%d' % self._current_test_idx)
-    self.ui.Fail('Timeout on subtest "%s"' % self._active_subtest)
-
-  def PassOneIter(self, name):
-    self._current_iter_remained -= 1
-    if not self._current_iter_remained:
-      self.ui.SetHTML('PASSED', id='result%d' % self._current_test_idx)
-      self._current_iter_remained = self._iter_req_per_subtest
-      mean_val = self._cumulative_val / self._iter_req_per_subtest
-      logging.info('Passed subtest "%s" with mean value %d.', name, mean_val)
-      self.NextSubtest()
-
-  def CheckSensorEvent(self):
-    val = self._als.Read('mean', samples=5, delay=0)
-
-    if self._started:
-      name = self._active_subtest
-      cfg = self._subtest_cfg[name]
-      passed = False
-      if 'above' in cfg:
-        passed = self._active_series.CheckValue(
-            key=time.time(), value=val, min=cfg['above'])
-        logging.info('%s checking "above" %d > %d',
-                     'PASSED' if passed else 'FAILED',
-                     val, cfg['above'])
-      elif 'below' in cfg:
-        passed = self._active_series.CheckValue(
-            key=time.time(), value=val, max=cfg['below'])
-        logging.info('%s checking "below" %d < %d',
-                     'PASSED' if passed else 'FAILED',
-                     val, cfg['below'])
-      elif 'between' in cfg:
-        lb, ub = cfg['between']
-        passed = self._active_series.CheckValue(
-            key=time.time(), value=val, min=lb, max=ub)
-        logging.info('%s checking "between" %d < %d < %d',
-                     'PASSED' if passed else 'FAILED',
-                     lb, val, ub)
-      if passed:
-        self._cumulative_val += val
-        self.PassOneIter(name)
-      else:
-        if self._current_iter_remained != self._iter_req_per_subtest:
-          logging.info('Resetting iter count.')
-        self._cumulative_val = 0
-        self._current_iter_remained = self._iter_req_per_subtest
-
-    self.ui.SetHTML('Input: %d' % val, id='light-sensor-input')
+              idx=test_idx, instruction=instruction, desc=test_ui.Escape(desc))
+      self.ui.SetHTML(html, id='tasks', append=True)
 
   def GetConfigDescription(self, cfg):
     if 'above' in cfg:
@@ -391,21 +291,61 @@ class LightSensorTest(unittest.TestCase):
     else:
       raise ValueError('Unknown type in subtest configuration')
 
-  def GetSubtest(self, subtest_list, subtest_cfg, subtest_instruction):
-    has_specified = (subtest_list or subtest_cfg or subtest_instruction)
-    all_specified = (subtest_list and subtest_cfg and subtest_instruction)
-    if has_specified and not all_specified:
-      raise ValueError('Missing parameters of subtests.')
-    if all_specified:
-      self._subtest_list = subtest_list
-      self._subtest_cfg = subtest_cfg
-      self._subtest_instruction = subtest_instruction
-
-  def MonitorSensor(self):
-    while True:
-      self.CheckSensorEvent()
-      time.sleep(0.6)
-
   def runTest(self):
-    self.ui.RunInBackground(self.MonitorSensor)
-    self.ui.Run()
+    self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
+    self.ui.HideElement('space-prompt')
+    countdown_timer.StartNewCountdownTimer(
+        self, self._timeout_per_subtest * len(self._subtest_list),
+        'timer', lambda: self.FailTask('Test timeout.'))
+
+    for idx, name in enumerate(self._subtest_list):
+      active_series = testlog.CreateSeries(
+          name=name,
+          description=('Light sensor values over time for subtest "%s"' % name),
+          key_unit='seconds')  # no value unit
+      self.ui.SetHTML('ACTIVE', id='result%d' % idx)
+      current_iter_remained = self._iter_req_per_subtest
+      cumulative_val = 0
+      while True:
+        val = self._als.Read('mean', samples=5, delay=0)
+        self.ui.SetHTML('Input: %d' % val, id='input')
+
+        cfg = self._subtest_cfg[name]
+        passed = False
+        if 'above' in cfg:
+          passed = active_series.CheckValue(
+              key=time.time(), value=val, min=cfg['above'])
+          logging.info('%s checking "above" %d > %d',
+                       'PASSED' if passed else 'FAILED',
+                       val, cfg['above'])
+        elif 'below' in cfg:
+          passed = active_series.CheckValue(
+              key=time.time(), value=val, max=cfg['below'])
+          logging.info('%s checking "below" %d < %d',
+                       'PASSED' if passed else 'FAILED',
+                       val, cfg['below'])
+        elif 'between' in cfg:
+          lb, ub = cfg['between']
+          passed = active_series.CheckValue(
+              key=time.time(), value=val, min=lb, max=ub)
+          logging.info('%s checking "between" %d < %d < %d',
+                       'PASSED' if passed else 'FAILED',
+                       lb, val, ub)
+
+        if passed:
+          cumulative_val += val
+          current_iter_remained -= 1
+          if not current_iter_remained:
+            self.ui.SetHTML('PASSED', id='result%d' % idx)
+            mean_val = cumulative_val / self._iter_req_per_subtest
+            logging.info('Passed subtest "%s" with mean value %d.', name,
+                         mean_val)
+            break
+        else:
+          if current_iter_remained != self._iter_req_per_subtest:
+            logging.info('Resetting iter count.')
+          cumulative_val = 0
+          current_iter_remained = self._iter_req_per_subtest
+
+        if self.WaitTaskEnd(0.5):
+          break

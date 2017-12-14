@@ -1,4 +1,4 @@
-#light-sensor-container {
+#container {
   font-size: 1.5em;
   width: 80%;
   display: flex;
@@ -7,41 +7,41 @@
   text-align: center;
 }
 
-#light-sensor-timer {
+#timer {
   color: red;
 }
 
-.light-sensor-task {
+.task {
   color: green;
   border-bottom: 1px gray solid;
 }
 
-#light-sensor-prompt,
-.light-sensor-task,
-#light-sensor-info {
+#prompt,
+.task,
+#info {
   padding: .5em 0;
 }
 
-.light-sensor-desc-row {
+.desc-row {
   display: flex;
   flex-flow: wrap;
 }
 
-.light-sensor-desc {
+.desc {
   flex: 2;
   white-space: nowrap;
 }
 
-.light-sensor-result {
+.result {
   flex: 1;
   white-space: nowrap;
 }
 
-#light-sensor-info {
+#info {
   display: flex;
 }
 
-#light-sensor-input,
-#light-sensor-timer {
+#input,
+#timer {
   flex: 1;
 }

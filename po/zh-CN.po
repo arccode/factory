@@ -2019,11 +2019,6 @@ msgstr "移除遮蔽"
 msgid "Shine light sensor with flashlight"
 msgstr "用强光照射光感应器"
 
-#: ../py/test/pytests/light_sensor.py
-msgid ""
-"Use indicated light source to pass each subtest<br>Hit \"space\" to begin..."
-msgstr "请依指示通过每个子测试<br>按 \"空白键\" 开始测试..."
-
 #: ../py/test/pytests/light_sensor_calibration.py
 msgid "ALS Sensor Calibration"
 msgstr "光感应器校正"
@@ -2067,6 +2062,14 @@ msgstr "验证ALS"
 #: ../py/test/pytests/light_sensor_calibration.py
 msgid "Switching to lighting {name}"
 msgstr "切换到 {name}"
+
+#: ../py/test/pytests/light_sensor_static/light_sensor.html
+msgid "Use indicated light source to pass each subtest."
+msgstr "请依指示通过每个子测试"
+
+#: ../py/test/pytests/light_sensor_static/light_sensor.html
+msgid "Hit \"space\" to begin..."
+msgstr "按 \"空白键\" 开始测试..."
 
 #: ../py/test/pytests/lightbar.py
 msgid "Is the lightbar {color}?<br>Press SPACE if yes, \"f\" if no."
