@@ -6,6 +6,7 @@ import threading
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import types
+from cros.factory.utils import process_utils
 from cros.factory.utils.type_utils import Enum
 
 from cros.factory.external import pyudev
@@ -90,7 +91,7 @@ class UdevMonitorBase(types.DeviceComponent):
     if handler is not None:
       # We don't want slow handler to block our event detecting. Run the handler
       # in another worker thread.
-      threading.Thread(target=handler, args=(event, device)).start()
+      process_utils.StartDaemonThread(target=handler, args=(event, device))
 
   def OnStartMonitor(self):
     """Callback function when system starts monitoring the udev device.

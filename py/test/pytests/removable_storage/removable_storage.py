@@ -82,8 +82,6 @@ import logging
 import random
 import re
 import subprocess
-import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -94,9 +92,9 @@ from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import time_utils
+from cros.factory.utils import process_utils
+from cros.factory.utils import sync_utils
 
 _STATE_RW_TEST_WAIT_INSERT = 1
 _STATE_RW_TEST_WAIT_REMOVE = 2
@@ -124,69 +122,12 @@ _MIN_PARTITION_SIZE_MB = 1
 
 _MILLION = 1000000
 
-_RW_TEST_INSERT_FMT_STR = (
-    lambda media, extra: i18n_test_ui.MakeI18nLabel(
-        'Insert {media} drive for read/write test... {extra}<br>'
-        'WARNING: DATA ON INSERTED MEDIA WILL BE LOST!',
-        media=media, extra=extra))
-_REMOVE_FMT_STR = lambda media: i18n_test_ui.MakeI18nLabel(
-    'Remove {media} drive...', media=media)
-_FLIP_FMT_STR = lambda media: i18n_test_ui.MakeI18nLabel(
-    'Wrong USB side, please flip over {media}.', media=media)
-_TESTING_FMT_STR = lambda media: i18n_test_ui.MakeI18nLabel(
-    'Testing {media}...', media=media)
-_TESTING_RANDOM_RW_FMT_STR = lambda count, bsize: i18n_test_ui.MakeI18nLabel(
-    'Performing r/w test on {count} {bsize}-byte random blocks...<br>',
-    count=count,
-    bsize=bsize)
-_TESTING_SEQUENTIAL_RW_FMT_STR = lambda bsize: i18n_test_ui.MakeI18nLabel(
-    'Performing sequential r/w test of {bsize} bytes...<br>', bsize=bsize)
-_LOCKTEST_INSERT_FMT_STR = (lambda media: i18n_test_ui.MakeI18nLabel(
-    'Toggle lock switch and insert {media} drive again...', media=media))
-_LOCKTEST_REMOVE_FMT_STR = (lambda media: i18n_test_ui.MakeI18nLabel(
-    'Remove {media} drive and toggle lock switch...', media=media))
-_ERR_REMOVE_TOO_EARLY_FMT_STR = (lambda media: i18n_test_ui.MakeI18nLabel(
-    'Device removed too early ({media}).', media=media))
-_ERR_TEST_FAILED_FMT_STR = (
-    lambda test_name, target_dev:
-    'IO error while running %s test on %s.' % (test_name, target_dev))
-_ERR_GET_DEV_SIZE_FAILED_FMT_STR = (
-    lambda target_dev: 'Unable to determine dev size of %s.' % target_dev)
-_ERR_RO_TEST_FAILED_FMT_STR = (
-    lambda target_dev: 'Unable to get RO status of %s.' % target_dev)
-_ERR_LOCKTEST_FAILED_FMT_STR = (
-    lambda target_dev: 'Locktest failed on %s.' % target_dev)
-_ERR_DEVICE_READ_ONLY_STR = (
-    lambda target_dev: '%s is read-only.' % target_dev)
-_ERR_SPEED_CHECK_FAILED_FMT_STR = (
-    lambda test_type, target_dev:
-    '%s_speed of %s does not meet lower bound.' % (test_type, target_dev))
-_ERR_CREATE_PARTITION_FMT_STR = (
-    lambda test_type, target_dev, dev_size:
-    'The size on %s device %s is too small (only %d bytes) for '
-    'partition test.' % (test_type, target_dev, dev_size))
-_ERR_VERIFY_PARTITION_FMT_STR = (
-    lambda test_type, target_dev:
-    'Partition verification failed on %s device %s. Problem with card '
-    'reader module maybe?' % (test_type, target_dev))
-_ERR_BFT_ACTION_STR = (
-    lambda action, test_type, target_dev, reason:
-    'BFT fixture failed to %s %s device %s. Reason: %s' % (
-        action, test_type, target_dev, reason))
-
 # Regex used for find execution time from dd output.
 _RE_DD_EXECUTION_TIME = re.compile(
     r'^.* copied, ([0-9]+\.[0-9]+) s(?:econds)?, .*$', re.MULTILINE)
 
-_ID_STATE_DIV = 'state_div'
-_ID_COUNTDOWN_DIV = 'countdown_div'
-_TEST_HTML = '<div id="%s"></div><div id="%s"></div>' % (
-    _ID_STATE_DIV, _ID_COUNTDOWN_DIV)
-_IMG_HTML_TAG = (
-    lambda src: '<img src="%s" style="display:block; margin:0 auto;"/>' % src)
 
-
-class RemovableStorageTest(unittest.TestCase):
+class RemovableStorageTest(test_ui.TestCaseWithUI):
   """The removable storage factory test."""
   ARGS = [
       Arg('media', str, 'Media type. '
@@ -253,25 +194,56 @@ class RemovableStorageTest(unittest.TestCase):
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
-    self._ui = test_ui.UI()
-    self._template = ui_templates.TwoSections(self._ui)
-    self._error = ''
+    self._errors = []
     self._target_device = None
     self._device_size = None
-    self._insertion_image = None
-    self._removal_image = None
-    self._testing_image = None
-    self._locktest_insertion_image = None
-    self._locktest_removal_image = None
     self._state = None
-    self._total_tests = 0
-    self._finished_tests = 0
     self._metrics = {}
+
+    random.seed(0)
+    logging.info('media = %s', self.args.media)
+
+    self._insertion_image = '%s_insert.png' % self.args.media
+    self._removal_image = '%s_remove.png' % self.args.media
+    self._testing_image = '%s_testing.png' % self.args.media
+
+    self._locktest_insertion_image = '%s_locktest_insert.png' % self.args.media
+    self._locktest_removal_image = '%s_locktest_remove.png' % self.args.media
+
+    # Initialize progress bar
+    self.ui.DrawProgressBar()
+    self._total_tests = [
+        self.args.perform_random_test, self.args.perform_sequential_test,
+        self.args.perform_locktest
+    ].count(True)
+    self._finished_tests = 0
+
+    self.perform_read_write_test = (self.args.perform_random_test or
+                                    self.args.perform_sequential_test)
+
+    self.assertGreater(
+        self._total_tests, 0,
+        'At least one of perform_random_test, perform_sequential_test, '
+        'perform_locktest should be True.')
+    if self.args.skip_insert_remove:
+      self.assertFalse(self.args.perform_locktest and
+                       self.perform_read_write_test,
+                       'Insert and remove is required if both locktest and '
+                       'sequential/random test are needed.')
+
     self._bft_fixture = None
     self._bft_media_device = None
+    if self.args.bft_fixture:
+      self._bft_fixture = bft_fixture.CreateBFTFixture(
+          **self.args.bft_fixture)
+      self._bft_media_device = self.args.bft_media_device
+      if self._bft_media_device not in self._bft_fixture.Device:
+        self.fail(
+            'Invalid args.bft_media_device: %s' % self._bft_media_device)
 
   def tearDown(self):
-    self._dut.udev.StopMonitorPath(self.args.sysfs_path)
+    if not self.args.skip_insert_remove:
+      self._dut.udev.StopMonitorPath(self.args.sysfs_path)
 
   def GetAttrs(self, device, key_set):
     """Gets attributes of a device.
@@ -304,10 +276,7 @@ class RemovableStorageTest(unittest.TestCase):
     try:
       dev_size = self._dut.CheckOutput(['blockdev', '--getsize64', dev_path])
     except Exception:
-      self.Fail(_ERR_GET_DEV_SIZE_FAILED_FMT_STR(dev_path))
-
-    if not dev_size:
-      self.Fail(_ERR_GET_DEV_SIZE_FAILED_FMT_STR(dev_path))
+      self.FailTask('Unable to determine dev size of %s.' % dev_path)
 
     dev_size = int(dev_size)
     gb = dev_size / 1000000000.0
@@ -327,7 +296,7 @@ class RemovableStorageTest(unittest.TestCase):
     try:
       ro = self._dut.CheckOutput(['blockdev', '--getro', dev_path])
     except Exception:
-      self.Fail(_ERR_RO_TEST_FAILED_FMT_STR(dev_path))
+      self.FailTask('Unable to get RO status of %s.' % dev_path)
 
     ro = int(ro)
     logging.info('%s RO : %d', dev_path, ro)
@@ -350,50 +319,42 @@ class RemovableStorageTest(unittest.TestCase):
         return self._dut.path.basename(block_dir)
     return None
 
+  def _PrepareDDCommand(self, ifile=None, ofile=None, seek=0, skip=0, bs=None,
+                        count=None, conv=None):
+    """Prepare the dd command for read / write test.
+
+    Args:
+      ifile: input file / device.
+      ofile: ouput file / device.
+      seek: number of blocks to be skipped from the start of the output.
+      skip: number of blocks to be skipped from the start of the input.
+      bs: block size in byte.
+      count: number of blocks to read / write.
+      conv: additional conv argument.
+
+    Returns:
+      A string of command to be executed.
+    """
+    if self.args.use_busybox_dd:
+      cmd = ['busybox', 'dd']
+    else:
+      cmd = ['dd']
+
+    args = {
+        'if': ifile, 'of': ofile, 'seek': seek, 'skip': skip,
+        'bs': bs, 'count': count, 'conv': conv
+    }
+    for key, value in args.iteritems():
+      if value:
+        cmd.append('%s=%s' % (key, value))
+    return cmd
+
   def TestReadWrite(self):
     """Random and sequential read / write tests.
 
     This method executes random and / or sequential read / write test
     according to dargs.
     """
-
-    def _PrepareDDCommand(ifile=None, ofile=None, seek=0, skip=0, bs=None,
-                          count=None, conv=None):
-      """Prepare the dd command for read / write test.
-
-      Args:
-        ifile: input file / device.
-        ofile: ouput file / device.
-        seek: number of blocks to be skipped from the start of the output.
-        skip: number of blocks to be skipped from the start of the input.
-        bs: block size in byte.
-        count: number of blocks to read / write.
-        conv: additional conv argument.
-
-      Returns:
-        A string of command to be executed.
-      """
-      if self.args.use_busybox_dd:
-        cmd = ['busybox', 'dd']
-      else:
-        cmd = ['dd']
-
-      if ifile:
-        cmd.append('if=%s' % ifile)
-      if ofile:
-        cmd.append('of=%s' % ofile)
-      if seek:
-        cmd.append('seek=%d' % seek)
-      if skip:
-        cmd.append('skip=%d' % skip)
-      if bs:
-        cmd.append('bs=%d' % bs)
-      if count:
-        cmd.append('count=%d' % count)
-      if conv:
-        cmd.append('conv=%s' % conv)
-
-      return cmd
 
     def _GetExecutionTime(dd_output):
       """Return the execution time from the dd output."""
@@ -405,8 +366,10 @@ class RemovableStorageTest(unittest.TestCase):
 
     self._state = _STATE_ACCESSING
 
-    self._template.SetInstruction(_TESTING_FMT_STR(self._target_device))
-    self.SetState(_IMG_HTML_TAG(self._testing_image))
+    self.ui.SetInstruction(
+        i18n_test_ui.MakeI18nLabel(
+            'Testing {device}...', device=self._target_device))
+    self.SetImage(self._testing_image)
 
     dev_path = self._target_device
     dev_size = self._device_size
@@ -415,25 +378,29 @@ class RemovableStorageTest(unittest.TestCase):
     total_time_write = 0.0
 
     modes = []
-    if self.args.perform_random_test is True:
+    if self.args.perform_random_test:
       modes.append(_RW_TEST_MODE_RANDOM)
-    if self.args.perform_sequential_test is True:
+    if self.args.perform_sequential_test:
       modes.append(_RW_TEST_MODE_SEQUENTIAL)
 
     for mode in modes:
       if mode == _RW_TEST_MODE_RANDOM:
         # Read/Write one block each time
         block_count = 1
-        loop = self.args.random_block_count
+        loop_count = self.args.random_block_count
         self.SetState(
-            _TESTING_RANDOM_RW_FMT_STR(loop, self.args.block_size),
-            append=True)
+            i18n_test_ui.MakeI18nLabel(
+                'Performing r/w test on {count} {bsize}-byte random blocks...',
+                count=loop_count,
+                bsize=self.args.block_size))
       elif mode == _RW_TEST_MODE_SEQUENTIAL:
         # Converts block counts into bytes
         block_count = self.args.sequential_block_count
-        loop = 1
-        self.SetState(_TESTING_SEQUENTIAL_RW_FMT_STR(
-            block_count * self.args.block_size), append=True)
+        loop_count = 1
+        self.SetState(
+            i18n_test_ui.MakeI18nLabel(
+                'Performing sequential r/w test of {bsize} bytes...',
+                bsize=block_count * self.args.block_size))
 
       bytes_to_operate = block_count * self.args.block_size
       # Determine the range in which the random block is selected
@@ -443,11 +410,11 @@ class RemovableStorageTest(unittest.TestCase):
                      self.args.block_size - block_count)
 
       if random_tail < random_head:
-        self.Fail('Block size too large for r/w test.')
+        self.FailTask('Block size too large for r/w test.')
 
       with self._dut.temp.TempFile() as read_buf:
         with self._dut.temp.TempFile() as write_buf:
-          for unused_x in range(loop):
+          for unused_x in range(loop_count):
             # Select one random block as starting point.
             random_block = random.randint(random_head, random_tail)
             session.console.info(
@@ -455,10 +422,12 @@ class RemovableStorageTest(unittest.TestCase):
                 'random' if mode == _RW_TEST_MODE_RANDOM else 'sequential',
                 random_block)
 
-            dd_cmd = _PrepareDDCommand(dev_path, read_buf,
-                                       bs=self.args.block_size,
-                                       count=block_count,
-                                       skip=random_block)
+            dd_cmd = self._PrepareDDCommand(
+                dev_path,
+                read_buf,
+                bs=self.args.block_size,
+                count=block_count,
+                skip=random_block)
             try:
               session.console.info('Reading %d %d-bytes block(s) from %s.',
                                    block_count, self.args.block_size, dev_path)
@@ -473,30 +442,29 @@ class RemovableStorageTest(unittest.TestCase):
             if mode == _RW_TEST_MODE_RANDOM:
               self._dut.CheckCall(['cp', read_buf, write_buf])
               # Modify the first byte.
-              dd_cmd = _PrepareDDCommand(write_buf,
-                                         bs=1,
-                                         count=1)
+              dd_cmd = self._PrepareDDCommand(write_buf, bs=1, count=1)
               first_byte = ord(self._dut.CheckOutput(dd_cmd, stderr=None))
               first_byte ^= 0xff
               with self._dut.temp.TempFile() as tmp_file:
                 self._dut.WriteFile(tmp_file, chr(first_byte))
-                dd_cmd = _PrepareDDCommand(tmp_file,
-                                           write_buf,
-                                           bs=1,
-                                           count=1,
-                                           conv='notrunc')
+                dd_cmd = self._PrepareDDCommand(
+                    tmp_file, write_buf, bs=1, count=1, conv='notrunc')
                 self._dut.CheckCall(dd_cmd)
             elif mode == _RW_TEST_MODE_SEQUENTIAL:
-              dd_cmd = _PrepareDDCommand('/dev/zero', write_buf,
-                                         bs=self.args.block_size,
-                                         count=block_count)
+              dd_cmd = self._PrepareDDCommand(
+                  '/dev/zero',
+                  write_buf,
+                  bs=self.args.block_size,
+                  count=block_count)
               self._dut.CheckCall(dd_cmd)
 
-            dd_cmd = _PrepareDDCommand(write_buf, dev_path,
-                                       bs=self.args.block_size,
-                                       count=block_count,
-                                       seek=random_block,
-                                       conv='fsync')
+            dd_cmd = self._PrepareDDCommand(
+                write_buf,
+                dev_path,
+                bs=self.args.block_size,
+                count=block_count,
+                seek=random_block,
+                conv='fsync')
             try:
               session.console.info('Writing %d %d-bytes block(s) to %s.',
                                    block_count, self.args.block_size, dev_path)
@@ -509,10 +477,11 @@ class RemovableStorageTest(unittest.TestCase):
 
             # Check if the block was actually written, and restore the
             # original content of the block.
-            dd_cmd = _PrepareDDCommand(ifile=dev_path,
-                                       bs=self.args.block_size,
-                                       count=block_count,
-                                       skip=random_block)
+            dd_cmd = self._PrepareDDCommand(
+                ifile=dev_path,
+                bs=self.args.block_size,
+                count=block_count,
+                skip=random_block)
             try:
               self._dut.CheckCall(
                   ' '.join(dd_cmd) + ' | toybox cmp %s -' % write_buf)
@@ -521,11 +490,13 @@ class RemovableStorageTest(unittest.TestCase):
               ok = False
               break
 
-            dd_cmd = _PrepareDDCommand(read_buf, dev_path,
-                                       bs=self.args.block_size,
-                                       count=block_count,
-                                       seek=random_block,
-                                       conv='fsync')
+            dd_cmd = self._PrepareDDCommand(
+                read_buf,
+                dev_path,
+                bs=self.args.block_size,
+                count=block_count,
+                seek=random_block,
+                conv='fsync')
             try:
               self._dut.CheckCall(dd_cmd)
             except Exception as e:
@@ -536,18 +507,20 @@ class RemovableStorageTest(unittest.TestCase):
             total_time_read += read_time
             total_time_write += write_time
 
+      self.SetState('')
       self.AdvanceProgress()
       if not ok:
         if self.GetDeviceRo(dev_path):
           session.console.warn('Is write protection on?')
-          self._ui.FailLater(_ERR_DEVICE_READ_ONLY_STR(dev_path))
-        test_name = ''
-        if mode == _RW_TEST_MODE_RANDOM:
-          test_name = 'random r/w'
-        elif mode == _RW_TEST_MODE_SEQUENTIAL:
-          test_name = 'sequential r/w'
-        self._ui.FailLater(_ERR_TEST_FAILED_FMT_STR(test_name,
-                                                    self._target_device))
+          self._errors.append('%s is read-only.' % dev_path)
+        else:
+          test_name = ''
+          if mode == _RW_TEST_MODE_RANDOM:
+            test_name = 'random r/w'
+          elif mode == _RW_TEST_MODE_SEQUENTIAL:
+            test_name = 'sequential r/w'
+          self._errors.append('IO error while running %s test on %s.' %
+                              (test_name, self._target_device))
       else:
         update_bin = {}
 
@@ -559,14 +532,14 @@ class RemovableStorageTest(unittest.TestCase):
             # pylint: disable=cell-var-from-loop
             update_bin['%s_threshold' % test_type] = threshold
             if value < threshold:
-              self._ui.FailLater(_ERR_SPEED_CHECK_FAILED_FMT_STR(
-                  test_type, self._target_device))
+              self._errors.append('%s_speed of %s does not meet lower bound.' %
+                                  (test_type, self._target_device))
 
         if mode == _RW_TEST_MODE_RANDOM:
           random_read_speed = (
-              (self.args.block_size * loop) / total_time_read / _MILLION)
+              (self.args.block_size * loop_count) / total_time_read / _MILLION)
           random_write_speed = (
-              (self.args.block_size * loop) / total_time_write / _MILLION)
+              (self.args.block_size * loop_count) / total_time_write / _MILLION)
           _CheckThreshold('random_read', random_read_speed,
                           self.args.random_read_threshold)
           _CheckThreshold('random_write', random_write_speed,
@@ -584,27 +557,35 @@ class RemovableStorageTest(unittest.TestCase):
         self._metrics.update(update_bin)
 
     Log(('%s_rw_speed' % self.args.media), **self._metrics)
-    self._template.SetInstruction(_REMOVE_FMT_STR(self.args.media))
+    self.ui.SetInstruction(
+        i18n_test_ui.MakeI18nLabel(
+            'Remove {media} drive...', media=self.args.media))
     self._state = _STATE_RW_TEST_WAIT_REMOVE
-    self.SetState(_IMG_HTML_TAG(self._removal_image))
+    self.SetImage(self._removal_image)
     if not self.args.skip_insert_remove and self._bft_fixture:
       try:
         self._bft_fixture.SetDeviceEngaged(self._bft_media_device, False)
       except bft_fixture.BFTFixtureException as e:
-        self.Fail(_ERR_BFT_ACTION_STR(
-            'remove', self.args.media, self._target_device, e))
+        self.FailTask('BFT fixture failed to remove %s device %s. Reason: %s' %
+                      (self.args.media, self._target_device, e))
 
   def TestLock(self):
     """SD card write protection test."""
     self._state = _STATE_ACCESSING
-    self._template.SetInstruction(_TESTING_FMT_STR(self._target_device))
-    self.SetState(_IMG_HTML_TAG(self._testing_image))
+    self.ui.SetInstruction(
+        i18n_test_ui.MakeI18nLabel(
+            'Testing {device}...', device=self._target_device))
+    self.SetImage(self._testing_image)
 
     if not self.GetDeviceRo(self._target_device):
-      self._ui.FailLater(_ERR_LOCKTEST_FAILED_FMT_STR(self._target_device))
-    self._template.SetInstruction(_LOCKTEST_REMOVE_FMT_STR(self.args.media))
+      self._errors.append('Locktest failed on %s.' % self._target_device)
+
+    self.ui.SetInstruction(
+        i18n_test_ui.MakeI18nLabel(
+            'Remove {media} drive and toggle lock switch...',
+            media=self.args.media))
     self._state = _STATE_LOCKTEST_WAIT_REMOVE
-    self.SetState(_IMG_HTML_TAG(self._locktest_removal_image))
+    self.SetImage(self._locktest_removal_image)
     self.AdvanceProgress()
 
   def CreatePartition(self):
@@ -618,8 +599,9 @@ class RemovableStorageTest(unittest.TestCase):
     # Set partition size to 128 MB or (dev_size / 2) MB
     partition_size = min(128, (self._device_size / 2) / (1024 * 1024))
     if partition_size < _MIN_PARTITION_SIZE_MB:
-      self.Fail(_ERR_CREATE_PARTITION_FMT_STR(
-          self.args.media, dev_path, self._device_size))
+      self.FailTask('The size on %s device %s is too small (only %d bytes) for '
+                    'partition test.' % (self.args.media, dev_path,
+                                         self._device_size))
     else:
       # clear partition table first and create one partition
       self._dut.CheckCall(['parted', '-s', dev_path, 'mklabel', 'gpt'])
@@ -641,7 +623,9 @@ class RemovableStorageTest(unittest.TestCase):
         dev_path = dev_path + 'p'
       self._dut.path.exists(dev_path + '1')
     except Exception:
-      self.Fail(_ERR_VERIFY_PARTITION_FMT_STR(self.args.media, dev_path))
+      self.FailTask(
+          'Partition verification failed on %s device %s. Problem with card '
+          'reader module maybe?' % (self.args.media, dev_path))
 
   def CheckUSBPDPolarity(self):
     """Verifies the USB PD CC line polarity on the port."""
@@ -670,11 +654,14 @@ class RemovableStorageTest(unittest.TestCase):
         if self.CheckUSBPDPolarity():
           self.TestReadWrite()
         elif self.args.fail_check_polarity:
-          self.Fail('USB CC polarity mismatch.')
+          self.FailTask('USB CC polarity mismatch.')
         else:
-          self._template.SetInstruction(_FLIP_FMT_STR(self.args.media))
+          self.ui.SetInstruction(
+              i18n_test_ui.MakeI18nLabel(
+                  'Wrong USB side, please flip over {media}.',
+                  media=self.args.media))
           self._state = _STATE_RW_TEST_WAIT_REINSERT
-          self.SetState(_IMG_HTML_TAG(self._removal_image))
+          self.SetImage(self._removal_image)
 
       elif self._state == _STATE_LOCKTEST_WAIT_INSERT:
         logging.info('%s device inserted : %s',
@@ -689,26 +676,32 @@ class RemovableStorageTest(unittest.TestCase):
         logging.info('Device removed : %s', device.device_node)
         if self._state == _STATE_RW_TEST_WAIT_REMOVE:
           if self.args.perform_locktest:
-            self._template.SetInstruction(
-                _LOCKTEST_INSERT_FMT_STR(self.args.media))
+            self.ui.SetInstruction(
+                i18n_test_ui.MakeI18nLabel(
+                    'Toggle lock switch and insert {media} drive again...',
+                    media=self.args.media))
             self._state = _STATE_LOCKTEST_WAIT_INSERT
-            self.SetState(_IMG_HTML_TAG(self._locktest_insertion_image))
+            self.SetImage(self._locktest_insertion_image)
           else:
-            self.Pass()
+            self.End()
         elif self._state == _STATE_RW_TEST_WAIT_REINSERT:
           self.SetWaitInsertState()
         elif self._state == _STATE_LOCKTEST_WAIT_REMOVE:
-          self.Pass()
+          self.End()
         elif self._state == _STATE_ACCESSING:
-          self._template.SetInstruction(
-              _ERR_REMOVE_TOO_EARLY_FMT_STR(self._target_device))
-          self.Fail('Device %s removed too early' % self._target_device)
+          self.FailTask('Device %s removed too early' % self._target_device)
         else:
           # Here the state is either _STATE_RW_TEST_WAIT_INSERT or
           # _STATE_LOCKTEST_WAIT_INSERT. For a device waiting for a media
           # getting a remove event, it probably receives duplicate media remove
           # events, ignore.
           pass
+
+  def End(self):
+    if self._errors:
+      self.FailTask('\n'.join(self._errors))
+    else:
+      self.PassTask()
 
   def AdvanceProgress(self, value=1):
     """Advanced the progess bar.
@@ -719,84 +712,53 @@ class RemovableStorageTest(unittest.TestCase):
     self._finished_tests += value
     if self._finished_tests > self._total_tests:
       self._finished_tests = self._total_tests
-    self._template.SetProgressBarValue(
+    self.ui.SetProgressBarValue(
         100 * self._finished_tests / self._total_tests)
 
-  def Fail(self, msg):
-    """Fails the test."""
-    self._ui.Fail(msg)
-
-  def Pass(self):
-    """Passes the test."""
-    self._ui.Pass()
-
-  def SetState(self, html, append=False):
+  def SetState(self, html):
     """Sets the innerHTML attribute of the state div."""
-    self._ui.SetHTML(html, append=append, id=_ID_STATE_DIV)
+    self.ui.SetHTML(html, id='state')
+
+  def SetImage(self, url):
+    """Sets the image src."""
+    self.ui.RunJS('document.getElementById("image").src = args.url;', url=url)
 
   def SetWaitInsertState(self):
-    self._template.SetInstruction(
-        _RW_TEST_INSERT_FMT_STR(
-            self.args.media,
-            self.args.extra_prompt))
+    self.ui.SetInstruction(
+        i18n_test_ui.MakeI18nLabel(
+            'Insert {media} drive for read/write test... {extra}<br>'
+            'WARNING: DATA ON INSERTED MEDIA WILL BE LOST!',
+            media=self.args.media,
+            extra=self.args.extra_prompt))
     self._state = _STATE_RW_TEST_WAIT_INSERT
-    self.SetState(_IMG_HTML_TAG(self._insertion_image))
+    self.SetImage(self._insertion_image)
 
   def runTest(self):
     """Main entrance of removable storage test."""
-    random.seed(0)
-
-    logging.info('media = %s', self.args.media)
-
-    self._insertion_image = '%s_insert.png' % self.args.media
-    self._removal_image = '%s_remove.png' % self.args.media
-    self._testing_image = '%s_testing.png' % self.args.media
-
-    if self.args.perform_locktest:
-      self._locktest_insertion_image = ('%s_locktest_insert.png' %
-                                        self.args.media)
-      self._locktest_removal_image = '%s_locktest_remove.png' % self.args.media
-
-    self._template.SetState(_TEST_HTML)
     self.SetWaitInsertState()
 
-    # Initialize progress bar
-    self._template.DrawProgressBar()
-    self._total_tests = 0
-    if self.args.perform_random_test:
-      self._total_tests += 1
-    if self.args.perform_sequential_test:
-      self._total_tests += 1
-    if self.args.perform_locktest:
-      self._total_tests += 1
-    self._finished_tests = 0
-    self._template.SetProgressBarValue(0)
-
     # Start countdown timer.
-    countdown_timer.StartCountdownTimer(
-        self.args.timeout_secs,
-        lambda: self.Fail('Timeout waiting for test to complete'),
-        self._ui,
-        _ID_COUNTDOWN_DIV)
+    countdown_timer.StartNewCountdownTimer(
+        self, self.args.timeout_secs,
+        'timer', lambda: self.FailTask('Timeout waiting for test to complete'))
 
     if self.args.skip_insert_remove:
-      device_node = None
-      # Poll sysfs_path is present
-      timeout_time = time_utils.MonotonicTime() + self.args.timeout_secs
-      while not device_node:
-        device_node = self.GetDeviceNodeBySysPath(self.args.sysfs_path)
-        if time_utils.MonotonicTime() > timeout_time:
-          self.fail('Fail to find path: %s' % self.args.sysfs_path)
-        time.sleep(0.2)
+      device_node = sync_utils.WaitFor(lambda: self.GetDeviceNodeBySysPath(
+          self.args.sysfs_path), self.args.timeout_secs)
       device = self._dut.udev.Device(
-          self._dut.path.join(self._dut.udev.GetDevBlockPath(),
-                              device_node),
+          self._dut.path.join(self._dut.udev.GetDevBlockPath(), device_node),
           self.args.sysfs_path)
-      self.HandleUdevEvent(self._dut.udev.Event.INSERT, device)
-      self.HandleUdevEvent(self._dut.udev.Event.REMOVE, device)
+
+      def _SimulateInsertRemove():
+        self.HandleUdevEvent(self._dut.udev.Event.INSERT, device)
+        self.HandleUdevEvent(self._dut.udev.Event.REMOVE, device)
+
+      process_utils.StartDaemonThread(
+          target=self.event_loop.CatchException(_SimulateInsertRemove))
     else:
       self._dut.udev.StartMonitorPath(
-          self.args.sysfs_path, self.HandleUdevEvent)
+          self.args.sysfs_path,
+          self.event_loop.CatchException(self.HandleUdevEvent))
 
     # BFT engages device after udev observer start
     if not self.args.skip_insert_remove and self.args.bft_fixture:
@@ -808,7 +770,8 @@ class RemovableStorageTest(unittest.TestCase):
         try:
           self._bft_fixture.SetDeviceEngaged(self._bft_media_device, True)
         except bft_fixture.BFTFixtureException as e:
-          self.fail(_ERR_BFT_ACTION_STR(
-              'insert', self.args.media, self._target_device, e))
+          self.FailTask(
+              'BFT fixture failed to insert %s device %s. Reason: %s' %
+              (self.args.media, self._target_device, e))
 
-    self._ui.Run()
+    self.WaitTaskEnd()

@@ -152,8 +152,8 @@
       const element = this.shadowRoot.querySelector('#progress-bar');
       const progressBar = new goog.ui.ProgressBar();
       progressBar.decorate(element);
-      progressBar.setValue(0.0);
       this.progressBar = progressBar;
+      this.setProgressBarValue(0);
     }
 
     /**
