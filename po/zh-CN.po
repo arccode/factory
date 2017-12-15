@@ -2255,28 +2255,28 @@ msgid "Performing sequential r/w test of {bsize} bytes..."
 msgstr "执行 {bsize} 字节区块连续读写测试..."
 
 #: ../py/test/pytests/removable_storage/removable_storage.py
-msgid "Remove {media} drive..."
-msgstr "提取 {media} 存储..."
-
-#: ../py/test/pytests/removable_storage/removable_storage.py
-msgid "Remove {media} drive and toggle lock switch..."
-msgstr "提取 {media} 存储并关闭写保护开关..."
-
-#: ../py/test/pytests/removable_storage/removable_storage.py
-msgid "Wrong USB side, please flip over {media}."
-msgstr "USB 方向错误，请将 {media} 反转方向..."
-
-#: ../py/test/pytests/removable_storage/removable_storage.py
-msgid "Toggle lock switch and insert {media} drive again..."
-msgstr "切换写保护开关并再次插入 {media} 存储..."
-
-#: ../py/test/pytests/removable_storage/removable_storage.py
 msgid ""
 "Insert {media} drive for read/write test... {extra}<br>WARNING: DATA ON "
 "INSERTED MEDIA WILL BE LOST!"
 msgstr ""
 "插入 {media} 存储以进行读写测试... {extra}<br>注意: 插入装置上的资料将会被清"
 "除!"
+
+#: ../py/test/pytests/removable_storage/removable_storage.py
+msgid "Wrong USB side, please flip over {media}."
+msgstr "USB 方向错误，请将 {media} 反转方向..."
+
+#: ../py/test/pytests/removable_storage/removable_storage.py
+msgid "Remove {media} drive..."
+msgstr "提取 {media} 存储..."
+
+#: ../py/test/pytests/removable_storage/removable_storage.py
+msgid "Toggle lock switch and insert {media} drive again..."
+msgstr "切换写保护开关并再次插入 {media} 存储..."
+
+#: ../py/test/pytests/removable_storage/removable_storage.py
+msgid "Remove {media} drive and toggle lock switch..."
+msgstr "提取 {media} 存储并关闭写保护开关..."
 
 #: ../py/test/pytests/rf_graphyte/rf_graphyte.py
 msgid "Fetching config files from factory server"
