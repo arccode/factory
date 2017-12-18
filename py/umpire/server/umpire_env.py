@@ -51,7 +51,7 @@ _CLI_PORT_OFFSET = 2
 _RPC_PORT_OFFSET = 3
 _RSYNC_PORT_OFFSET = 4
 _HTTP_POST_PORT_OFFSET = 5
-# 6 was reserved for _INSTALOG_SOCKET_PORT_OFFSET, which is no longer used.
+_INSTALOG_PULL_SOCKET_OFFSET = 6
 _INSTALOG_HTTP_PORT_OFFSET = 7
 
 
@@ -141,6 +141,10 @@ class UmpireEnv(object):
   @property
   def umpire_instalog_http_port(self):
     return self.umpire_base_port + _INSTALOG_HTTP_PORT_OFFSET
+
+  @property
+  def umpire_instalog_pull_socket_port(self):
+    return self.umpire_base_port + _INSTALOG_PULL_SOCKET_OFFSET
 
   @type_utils.LazyProperty
   def is_inside_docker(self):

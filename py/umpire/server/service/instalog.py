@@ -43,25 +43,10 @@ class InstalogService(umpire_service.UmpireService):
     """
     if update_info.get('forward', {}).get('enable', False):
       args = update_info.get('forward', {}).get('args', {}).copy()
-      # If no hostname or port is provided, we should fail.
-      if 'hostname' not in args or 'port' not in args:
-        raise ValueError('Instalog forwarding is enabled; hostname and port '
-                         'must be provided')
-      if args.get('enable_gnupg', False):
-        args['gnupg_home'] = os.path.join(env.umpire_data_dir,
-                                          'instalog', 'gnupg')
-        if not os.path.isdir(args['gnupg_home']):
-          raise ValueError('GnuPG in Instalog HTTP is enabled; GnuPG home (%s) '
-                           'should be set up. (1. Create GnuPG home. 2. '
-                           'Generate a key. 3. Import and sign the target '
-                           'public key.)' % args['gnupg_home'])
-        if ('target_key' not in args or len(args['target_key']) !=
-            KEY_FINGERPRINT_LENGTH):
-          raise ValueError('GnuPG in Instalog HTTP is enabled; a valid '
-                           'target_key must be provided')
-
+      # We only can use the port which is published by Umpire.
+      args['port'] = env.umpire_instalog_pull_socket_port
       instalog_config['output']['forward'] = {
-          'plugin': 'output_http',
+          'plugin': 'output_pull_socket',
           'args': args
       }
       for input_name in instalog_config['input']:
