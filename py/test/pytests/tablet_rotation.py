@@ -16,16 +16,12 @@ with accelerometer data.
 
 Test Procedure
 --------------
-1. If ``prompt_flip_tablet`` is set, operator would be prompted to flip the
-   Chromebook to tablet mode.
-2. A picture would be shown on the screen. Operator should rotate the tablet to
+1. A picture would be shown on the screen. Operator should rotate the tablet to
    align with the image. This would repeat four times with each orientations,
    and the test automatically pass when the desired orientation is reached.
 
-   If ``check_accelerometer`` is set, the test would also check if the value of
+2. If ``check_accelerometer`` is set, the test would also check if the value of
    accelerometer is within acceptable range for each orientation.
-3. If ``prompt_flip_notebook`` is set, operator would be prompted to flip the
-   Chromebook back to notebook mode.
 
 Dependency
 ----------
@@ -36,20 +32,17 @@ If ``check_accelerometer`` is set, also depends on device API
 
 Examples
 --------
-To test screen rotation for Chrome and prompt operator to flip before and after
-the test (The default), add this in test list::
+To test screen rotation for Chrome, add this in test list::
 
   {
     "pytest_name": "tablet_rotation"
   }
 
-To test screen rotation, assume that the Chromebook is already in tablet mode,
-and have a timeout of 10 minutes::
+To test screen rotation, and have a timeout of 10 minutes::
 
   {
     "pytest_name": "tablet_rotation",
     "args": {
-      "prompt_flip_tablet": false,
       "timeout_secs": 600
     }
   }
@@ -97,10 +90,32 @@ To also check accelerometer when testing screen rotation::
       "spec_offset": [0.5, 0.5]
     }
   }
+
+To test screen rotation for Chrome and prompt operator to flip before and after
+the test::
+
+  {
+    "subtests": [
+      {
+        "pytest_name": "tablet_mode",
+        "args": {
+          "prompt_flip_tablet": true
+        }
+      },
+      {
+        "pytest_name": "tablet_rotation"
+      },
+      {
+        "pytest_name": "tablet_mode",
+        "args": {
+          "prompt_flip_notebook": true
+        }
+      }
+    ]
+  }
 """
 
 import random
-import threading
 import time
 import unittest
 
@@ -161,16 +176,6 @@ class TabletRotationTest(unittest.TestCase):
   ARGS = [
       Arg('timeout_secs', int, 'Timeout value for the test.',
           default=_DEFAULT_TIMEOUT),
-      Arg('prompt_flip_tablet', bool,
-          'Assume the notebook is not yet in tablet mode, and operator should '
-          'first be instructed to flip it as such. (This is useful to unset if '
-          'the previous test finished in tablet mode.)',
-          default=True),
-      Arg('prompt_flip_notebook', bool,
-          'After the test, prompt the operator to flip back into notebook '
-          'mode. (This is useful to unset if the next test requires tablet '
-          'mode.)',
-          default=True),
       Arg('check_accelerometer', bool,
           'In addition to checking the ChromeOS screen orientation, also check '
           'accelerometer data to ensure it reports the same orientation.',
@@ -232,12 +237,6 @@ class TabletRotationTest(unittest.TestCase):
       self._PromptAndWaitForRotation(degrees_target)
 
       self.tablet_mode_ui.FlashSuccess()
-
-    if self.args.prompt_flip_notebook:
-      wait_event = threading.Event()
-      self.tablet_mode_ui.AskForNotebookMode(
-          lambda unused_event: wait_event.set())
-      wait_event.wait()
 
   def _PromptAndWaitForRotation(self, degrees_target):
     # Choose a new picture and set the prompt message.
@@ -322,14 +321,5 @@ class TabletRotationTest(unittest.TestCase):
         self.ui,
         _ID_COUNTDOWN_TIMER)
 
-    # Create a thread to control UI flow.
-    def _UIFlow():
-      if self.args.prompt_flip_tablet:
-        wait_event = threading.Event()
-        self.tablet_mode_ui.AskForTabletMode(
-            lambda unused_event: wait_event.set())
-        wait_event.wait()
-      self.TestRotationUIFlow()
-
-    self.ui.RunInBackground(_UIFlow)
+    self.ui.RunInBackground(self.TestRotationUIFlow)
     self.ui.Run()
