@@ -116,66 +116,25 @@ the test::
 """
 
 import random
-import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import countdown_timer
 from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test.pytests import tablet_mode_ui
 from cros.factory.test import state
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 
 
-_DEFAULT_TIMEOUT = 30
 _UNICODE_PICTURES = u'☃☺☎'
 _TEST_DEGREES = [90, 180, 270, 0]
 _POLL_ROTATION_INTERVAL = 0.1
 
-_MSG_PROMPT_ROTATE_TABLET = i18n_test_ui.MakeI18nLabel(
-    'Rotate the tablet to correctly align the picture, holding it at an '
-    'upright 90-degree angle.')
 
-_ID_COUNTDOWN_TIMER = 'countdown-timer'
-_ID_PROMPT = 'prompt'
-_ID_PICTURE = 'picture'
-
-_HTML_COUNTDOWN_TIMER = '<div id="%s" class="countdown-timer"></div>' % (
-    _ID_COUNTDOWN_TIMER)
-_HTML_BUILD_PICTURE = lambda degrees, picture: (
-    '<span style="-webkit-transform: rotate(%sdeg);">%s</span>'
-    % (degrees, picture))
-_HTML = """
-<div class="prompt" id="%s"></div>
-<div class="picture" id="%s"></div>
-""" % (_ID_PROMPT, _ID_PICTURE)
-
-_CSS_COUNTDOWN_TIMER = """
-.countdown-timer {
-  font-size: 2em;
-  align-self: flex-end;
-}
-"""
-_CSS = """
-.prompt {
-  font-size: 2em;
-  margin-bottom: 1em;
-}
-.picture span {
-  font-size: 15em;
-  display: block;
-}
-"""
-
-
-class TabletRotationTest(unittest.TestCase):
+class TabletRotationTest(test_ui.TestCaseWithUI):
   """Tablet rotation factory test."""
   ARGS = [
-      Arg('timeout_secs', int, 'Timeout value for the test.',
-          default=_DEFAULT_TIMEOUT),
+      Arg('timeout_secs', int, 'Timeout value for the test.', default=30),
       Arg('check_accelerometer', bool,
           'In addition to checking the ChromeOS screen orientation, also check '
           'accelerometer data to ensure it reports the same orientation.',
@@ -208,41 +167,21 @@ class TabletRotationTest(unittest.TestCase):
     self.dut = device_utils.CreateDUTInterface()
     self.accel_controller = None
     if self.args.check_accelerometer:
-      if not all([self.args.degrees_to_orientations,
-                  self.args.spec_offset]):
+      if not all([self.args.degrees_to_orientations, self.args.spec_offset]):
         self.fail('If running in check_accelerometer mode, please provide '
                   'arguments degrees_to_orientations and spec_offset.')
-        return
 
       self.accel_controller = self.dut.accelerometer.GetController(
           location=self.args.accelerometer_location)
       self.degrees_to_orientations = dict(self.args.degrees_to_orientations)
 
-    self.ui = test_ui.UI()
     self.state = state.get_instance()
-    self.tablet_mode_ui = tablet_mode_ui.TabletModeUI(self.ui,
-                                                      _HTML_COUNTDOWN_TIMER,
-                                                      _CSS_COUNTDOWN_TIMER)
-
-  def TestRotationUIFlow(self, degrees_targets=None):
-    if degrees_targets is None:
-      degrees_targets = _TEST_DEGREES
-
-    for degrees_target in degrees_targets:
-      # Initialize UI template, HTML and CSS.
-      template = ui_templates.OneSection(self.ui)
-      template.SetState(_HTML + _HTML_COUNTDOWN_TIMER)
-      self.ui.AppendCSS(_CSS + _CSS_COUNTDOWN_TIMER)
-
-      self._PromptAndWaitForRotation(degrees_target)
-
-      self.tablet_mode_ui.FlashSuccess()
 
   def _PromptAndWaitForRotation(self, degrees_target):
-    # Choose a new picture and set the prompt message.
-    rand_int = random.randint(0, len(_UNICODE_PICTURES) - 1)
-    picture = _UNICODE_PICTURES[rand_int]
-    self.ui.SetHTML(_MSG_PROMPT_ROTATE_TABLET, id=_ID_PROMPT)
+    self.ui.SetInstruction(
+        i18n_test_ui.MakeI18nLabel(
+            'Rotate the tablet to correctly align the picture, holding it at '
+            'an upright 90-degree angle.'))
 
     degrees_previous = None
     while True:
@@ -274,6 +213,15 @@ class TabletRotationTest(unittest.TestCase):
       degrees_delta = degrees_target - degrees_current
       success = (degrees_delta == 0)
 
+      # If the device has been rotated, we also need to update our picture's
+      # orientation accordingly (see comment above describing degrees_delta).
+      if degrees_previous != degrees_current:
+        self.ui.RunJS('document.getElementById("picture").style.transform = '
+                      '"rotate(%ddeg)"' % degrees_delta)
+        if degrees_previous is None:
+          # This is the first iteration, show a random picture.
+          self.ui.SetHTML(random.choice(_UNICODE_PICTURES), id='picture')
+
       # Check accelerometer if necessary.
       if (success and
           self.accel_controller and
@@ -287,16 +235,11 @@ class TabletRotationTest(unittest.TestCase):
 
       # Are we currently at our target?
       if success:
-        return True
-      # If the device has been rotated, we also need to update our picture's
-      # orientation accordingly (see comment above describing degrees_delta).
-      elif degrees_previous != degrees_current:
-        self.ui.SetHTML(_HTML_BUILD_PICTURE(degrees_delta, picture),
-                        id=_ID_PICTURE)
+        return
 
       # Target has still not been reached.  Sleep and continue.
       degrees_previous = degrees_current
-      time.sleep(_POLL_ROTATION_INTERVAL)
+      self.WaitTaskEnd(timeout=_POLL_ROTATION_INTERVAL)
 
   def _GetCurrentDegrees(self):
     display_info = None
@@ -315,11 +258,13 @@ class TabletRotationTest(unittest.TestCase):
 
   def runTest(self):
     # Create a thread to run countdown timer.
-    countdown_timer.StartCountdownTimer(
-        self.args.timeout_secs,
-        lambda: self.ui.Fail('Tablet rotation test failed due to timeout.'),
-        self.ui,
-        _ID_COUNTDOWN_TIMER)
+    countdown_timer.StartNewCountdownTimer(
+        self, self.args.timeout_secs, 'timer',
+        lambda: self.FailTask('Tablet rotation test failed due to timeout.'))
 
-    self.ui.RunInBackground(self.TestRotationUIFlow)
-    self.ui.Run()
+    for degrees_target in _TEST_DEGREES:
+      self._PromptAndWaitForRotation(degrees_target)
+      self.ui.ShowElement('success')
+      self.ui.SetHTML('', id='picture')
+      self.WaitTaskEnd(timeout=1)
+      self.ui.HideElement('success')

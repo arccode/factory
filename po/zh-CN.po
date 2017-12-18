@@ -1591,6 +1591,7 @@ msgstr "将机器朝向{direction}方"
 
 #: ../py/test/pytests/compass_static/compass.html
 #: ../py/test/pytests/tablet_mode_ui.py
+#: ../py/test/pytests/tablet_rotation_static/tablet_rotation.html
 msgid "Success!"
 msgstr "成功！"
 
