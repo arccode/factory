@@ -448,6 +448,12 @@ def Cr50SetBoardId(options):
   event_log.Log('cr50_set_board_id')
 
 
+@Command('cr50_reset_state')
+def Cr50ResetState(options):
+  """Reset Cr50 state back to default state after RMA."""
+  return GetGooftool(options).Cr50ResetState()
+
+
 @Command('enable_release_partition',
          CmdArg('--release_rootfs',
                 help=('path to the release rootfs device. If not specified, '
@@ -720,6 +726,7 @@ def Finalize(options):
   """
   Verify(options)
   Cr50SetBoardId(options)
+  Cr50ResetState(options)
   LogSourceHashes(options)
   UntarStatefulFiles(options)
   if options.cros_core:

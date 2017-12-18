@@ -808,3 +808,27 @@ class Gooftool(object):
     finally:
       # Restart stopped service even if something went wrong.
       service_mgr.RestoreServices()
+
+
+  def Cr50ResetState(self):
+    """Reset Cr50 state back to default state after RMA."""
+    gsctool_path = '/usr/sbin/gsctool'
+    if not os.path.exists(gsctool_path):
+      logging.warn('gsctool is not found, skip reset Cr50 in RMA.')
+      return
+
+    if not service_utils.CheckServiceExists('trunksd'):
+      logging.warn('Service trunksd is not found, skip reset Cr50 in RMA.')
+      return
+
+    trunksd_status = service_utils.GetServiceStatus('trunksd')
+    if trunksd_status == service_utils.Status.START:
+      cmd = ['gsctool', '-t', '-r', 'disable']
+    elif trunksd_status == service_utils.Status.STOP:
+      cmd = ['gsctool', '-s', '-r', 'disable']
+    else:
+      raise Error('Unknown status for service trunksd.')
+
+    result = self._util.shell(cmd)
+    if not result.success:
+      raise Error('Failed to reset Cr50 state.')
