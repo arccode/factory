@@ -174,5 +174,4 @@ class ProbeSimCardTrayTest(test_ui.TestCaseWithUI):
         logging.info('%s detected', state)
         session.console.info('%s detected', state)
         return
-      if self.WaitTaskEnd(timeout=_INSERT_CHECK_PERIOD_SECS):
-        return
+      self.WaitTaskEnd(timeout=_INSERT_CHECK_PERIOD_SECS)

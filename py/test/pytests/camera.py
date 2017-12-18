@@ -272,18 +272,15 @@ class CameraTest(test_ui.TestCaseWithUI):
         # Flickers the LED
         self.EnableDevice()
         self.ReadSingleFrame()
-        if self.WaitTaskEnd(0.5):
-          break
+        self.WaitTaskEnd(timeout=0.5)
         self.DisableDevice()
-        if self.WaitTaskEnd(0.5):
-          break
+        self.WaitTaskEnd(timeout=0.5)
     else:
       # Constantly lights the LED
       self.EnableDevice()
       while True:
         self.ReadSingleFrame()
-        if self.WaitTaskEnd(0.5):
-          break
+        self.WaitTaskEnd(timeout=0.5)
 
   def DetectFaces(self, cv_image):
     # This condition is currently always False since face detection API in
@@ -385,8 +382,7 @@ class CameraTest(test_ui.TestCaseWithUI):
         if self.args.show_image:
           self.ShowImage(cv_image)
 
-        if self.WaitTaskEnd(max(0, tick - (time.time() - start_time))):
-          return
+        self.WaitTaskEnd(timeout=max(0, tick - (time.time() - start_time)))
     finally:
       self.DisableDevice()
 

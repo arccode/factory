@@ -959,13 +959,20 @@ class TestCaseWithUI(unittest.TestCase):
     Task that need to wait for frontend events to judge pass / fail should call
     this at the end of the task.
 
+    An exception would be raised if TaskPass or TaskFail is called before
+    timeout. This makes the function acts like time.sleep that ends early when
+    timeout is given.
+    The type of the exception doesn't matter, since TestCaseWithUI would use
+    the exception thrown by TaskPass or TaskFail first.
+
     Args:
       timeout: The timeout for waiting the task end, None for no timeout.
 
-    Returns:
-      True if the task end before timeout.
+    Raises:
+      TaskEndException if the task end before timeout.
     """
-    return self.__task_end_event.wait(timeout=timeout)
+    if self.__task_end_event.wait(timeout=timeout):
+      raise TaskEndException
 
   def AddTask(self, task, cleanup=None, stop_on_fail=False):
     """Add a task to the test.

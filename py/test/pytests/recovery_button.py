@@ -75,5 +75,4 @@ class RecoveryButtonTest(test_ui.TestCaseWithUI):
       if process_utils.SpawnOutput(
           ['crossystem', 'recoverysw_cur'], log=True) == '1':
         return
-      if self.WaitTaskEnd(timeout=self.args.polling_interval_secs):
-        return
+      self.WaitTaskEnd(timeout=self.args.polling_interval_secs)
