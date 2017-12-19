@@ -2635,16 +2635,16 @@ msgid ""
 msgstr "竖立平板电脑使其垂直于桌面，并开始旋转到对齐图片。"
 
 #: ../py/test/pytests/touch_uniformity.py
+msgid "ERROR: Touch device not found"
+msgstr "没有找到触控装置"
+
+#: ../py/test/pytests/touch_uniformity.py
 msgid "Calibrating Touch device"
 msgstr "触控装置校正中"
 
 #: ../py/test/pytests/touch_uniformity.py
-msgid "ERROR: Touch device Not Found"
-msgstr "没有找到触控装置"
-
-#: ../py/test/pytests/touch_uniformity.py
-msgid "Testing... "
-msgstr "测试中... "
+msgid "Testing {item}..."
+msgstr "测试 {item} 中... "
 
 #: ../py/test/pytests/touchpad.py
 msgid ""

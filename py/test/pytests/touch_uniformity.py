@@ -29,74 +29,68 @@ a set of machines. The test logs the actual max and min values found.
 import collections
 import logging
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.external import numpy
 from cros.factory.test import event_log
 from cros.factory.test.i18n import test_ui as i18n_test_ui
-from cros.factory.test import test_task
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 
 
-_LABEL_CALIBRATING = i18n_test_ui.MakeI18nLabelWithClass(
-    'Calibrating Touch device', 'test-info')
-_LABEL_NOT_FOUND = i18n_test_ui.MakeI18nLabelWithClass(
-    'ERROR: Touch device Not Found', 'test-fail')
-_LABEL_TESTING = i18n_test_ui.MakeI18nLabelWithClass('Testing... ', 'test-info')
-_LABEL_PASS = i18n_test_ui.MakeI18nLabelWithClass('PASS', 'test-pass')
-_LABEL_FAIL = i18n_test_ui.MakeI18nLabelWithClass('FAIL', 'test-fail')
+_LABEL_PASS = i18n_test_ui.MakeI18nLabelWithClass('PASS', 'test-status-passed')
+_LABEL_FAIL = i18n_test_ui.MakeI18nLabelWithClass('FAIL', 'test-status-failed')
 _MESSAGE_DELAY_SECS = 1
-
-_BR = '<br>'
-
-_CSS = """
-  .test-info { font-size: 2em; }
-  .test-pass { font-size: 2em; color: green; }
-  .test-fail { font-size: 2em; color: red; }
-"""
 
 CheckItem = collections.namedtuple(
     'CheckItem', ['frame_idx', 'label', 'min_val', 'max_val', 'rows', 'cols'])
 
 
-class CalibrateTask(test_task.TestTask):
-  """Recalibrates the touch controller."""
+class TouchUniformity(test_ui.TestCaseWithUI):
+  ARGS = [
+      Arg('device_index', int, 'Index of touch device to test.', default=0),
+      Arg('check_list', list,
+          'A list of sequence. Each sequence consists of six elements: '
+          'frame_idx, label, min_val, max_val, rows, cols.\n'
+          'frame_idx: Index of frame to check.\n'
+          'label: A i18n translation dictionary of frame label.\n'
+          'min_val: Lower bound for values in this frame.\n'
+          'max_val: Upper bound for values in this frame.\n'
+          'rows: Number of rows from top to check, or zero to check all.\n'
+          'cols: Number of columns from left to check, or zero to check all.'),
+      Arg('keep_raw_logs', bool, 'Whether to attach the log by Testlog',
+          default=True)]
 
-  def __init__(self, test):
-    super(CalibrateTask, self).__init__()
-    self.template = test.template
-    self.controller = test.controller
+  def setUp(self):
+    self.dut = device_utils.CreateDUTInterface()
+    self.controller = self.dut.touch.GetController(self.args.device_index)
+    self.check_list = [CheckItem(*item) for item in self.args.check_list]
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
 
-  def Run(self):
-    self.template.SetState(_LABEL_CALIBRATING)
-    if self.controller.Calibrate():
-      self.template.SetState(' ' + _LABEL_PASS + _BR, append=True)
-      self.Pass()
-    else:
-      self.template.SetState(' ' + _LABEL_FAIL + _BR, append=True)
+  def runTest(self):
+    self.CheckInterface()
+    self.Calibrate()
+    self.CheckRawData()
+
+  def CheckInterface(self):
+    if not self.controller.CheckInterface():
+      self.ui.SetState(
+          i18n_test_ui.MakeI18nLabelWithClass('ERROR: Touch device not found',
+                                              'test-status-failed'))
       time.sleep(_MESSAGE_DELAY_SECS)
-      self.Fail('Touch device calibration failed.')
+      self.FailTask('Touch controller not found.')
 
+  def Calibrate(self):
+    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Calibrating Touch device'))
+    if not self.controller.Calibrate():
+      self.ui.SetState(_LABEL_FAIL, append=True)
+      time.sleep(_MESSAGE_DELAY_SECS)
+      self.FailTask('Touch device calibration failed.')
 
-class CheckRawDataTask(test_task.TestTask):
-  """Checks raw controler data is in an expected range.
-
-  Args:
-    test: The factory test calling this task.
-  """
-
-  def __init__(self, test):
-    super(CheckRawDataTask, self).__init__()
-    self.test = test
-    self.check_list = [CheckItem(*item) for item in test.args.check_list]
-
-  def checkRawData(self, check_item, data):
+  def _CheckSingleRawData(self, check_item, data):
     """Checks that data is within bounds.
 
     Returns:
@@ -130,27 +124,29 @@ class CheckRawDataTask(test_task.TestTask):
 
     return check_passed
 
-  def Run(self):
-    matrices = self.test.controller.GetMatrices([item.frame_idx
-                                                 for item in self.check_list])
+  def CheckRawData(self):
+    matrices = self.controller.GetMatrices(
+        [item.frame_idx for item in self.check_list])
     fails = []
     to_log = []
+    self.ui.SetState('')
     for item, matrix in zip(self.check_list, matrices):
-      self.test.template.SetState(
-          _LABEL_TESTING +
-          i18n_test_ui.MakeI18nLabelWithClass(item.label, 'test-info'),
-          append=True)
-      if self.checkRawData(item, matrix):
-        self.test.template.SetState(' ' + _LABEL_PASS + _BR, append=True)
+      status = None
+      if self._CheckSingleRawData(item, matrix):
+        status = _LABEL_PASS
         to_log.append([dict(item._asdict()), 'PASS', matrix])
       else:
-        self.test.template.SetState(' ' + _LABEL_FAIL + _BR, append=True)
+        status = _LABEL_FAIL
         fails.append(item.frame_idx)
         to_log.append([dict(item._asdict()), 'FAIL', matrix])
+      self.ui.SetState(
+          '<div>' + i18n_test_ui.MakeI18nLabel(
+              'Testing {item}...', item=item.label) + status + '</div>',
+          append=True)
     time.sleep(_MESSAGE_DELAY_SECS)
 
-    if self.test.args.keep_raw_logs:
-      serial_number = self.test.dut.info.GetSerialNumber()
+    if self.args.keep_raw_logs:
+      serial_number = self.dut.info.GetSerialNumber()
       with file_utils.UnopenedTemporaryFile() as temp_path:
         with open(temp_path, 'w') as f:
           for obj in to_log:
@@ -162,53 +158,4 @@ class CheckRawDataTask(test_task.TestTask):
             description='plain text log of touch_uniformity')
 
     if fails:
-      self.Fail('Uniformity check failed on frame %s.' % fails)
-    else:
-      self.Pass()
-
-
-class CheckInterfaceTask(test_task.TestTask):
-  """Verifies that the touch controler interface exists."""
-
-  def __init__(self, test):
-    super(CheckInterfaceTask, self).__init__()
-    self.template = test.template
-    self.controller = test.controller
-
-  def Run(self):
-    if self.controller.CheckInterface():
-      self.Pass()
-    else:
-      self.template.SetState(_LABEL_NOT_FOUND)
-      time.sleep(_MESSAGE_DELAY_SECS)
-      self.Fail('Touch controller not found.')
-
-
-class TouchUniformity(unittest.TestCase):
-  ARGS = [
-      Arg('device_index', int, 'Index of touch device to test.', default=0),
-      Arg('check_list', list,
-          'A list of sequence. Each sequence consists of six elements: '
-          'frame_idx, label, min_val, max_val, rows, cols.\n'
-          'frame_idx: Index of frame to check.\n'
-          'label: A i18n translation dictionary of frame label.\n'
-          'min_val: Lower bound for values in this frame.\n'
-          'max_val: Upper bound for values in this frame.\n'
-          'rows: Number of rows from top to check, or zero to check all.\n'
-          'cols: Number of columns from left to check, or zero to check all.'),
-      Arg('keep_raw_logs', bool, 'Whether to attach the log by Testlog',
-          default=True)]
-
-  def setUp(self):
-    self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
-    self.ui.AppendCSS(_CSS)
-    self.dut = device_utils.CreateDUTInterface()
-    self.controller = self.dut.touch.GetController(self.args.device_index)
-
-  def runTest(self):
-    test_task.TestTaskManager(self.ui, [
-        CheckInterfaceTask(self),
-        CalibrateTask(self),
-        CheckRawDataTask(self),
-        ]).Run()
+      self.FailTask('Uniformity check failed on frame %s.' % fails)
