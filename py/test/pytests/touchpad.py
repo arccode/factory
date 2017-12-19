@@ -47,30 +47,16 @@ If you want to change the time limit to 100 seconds::
 """
 
 import logging
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
 from cros.factory.test import countdown_timer
 from cros.factory.test import session
 from cros.factory.test.i18n import _
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
 from cros.factory.test.utils import touch_monitor
 from cros.factory.utils.arg_utils import Arg
-
-
-_ID_COUNTDOWN_TIMER = 'touchpad-test-timer'
-
-# The countdown timer will set the innerHTML later, so we should put some text
-# here to make the layout consistent.
-_HTML_TIMER = '<div id="%s">&nbsp;</div>' % _ID_COUNTDOWN_TIMER
-
-_HTML_PROMPT = i18n_test_ui.MakeI18nLabelWithClass(
-    'Please take off your fingers and then press SPACE to start testing...',
-    'touchpad-test-prompt') + _HTML_TIMER
 
 
 class TouchpadMonitor(touch_monitor.MultiTouchMonitor):
@@ -84,7 +70,7 @@ class TouchpadMonitor(touch_monitor.MultiTouchMonitor):
     state = self.GetState()
     key_event_value = state.keys[key_event_code]
     if key_event_code == evdev.ecodes.BTN_LEFT and state.num_fingers == 1:
-      self.test.DrawSingleClick(key_event_value)
+      self.test.OnSingleClick(key_event_value)
     else:
       if self.test.touchpad_has_right_btn:
         if key_event_code != evdev.ecodes.BTN_RIGHT:
@@ -92,7 +78,7 @@ class TouchpadMonitor(touch_monitor.MultiTouchMonitor):
       else:
         if key_event_code != evdev.ecodes.BTN_LEFT or state.num_fingers != 2:
           return
-      self.test.DrawDoubleClick(key_event_value)
+      self.test.OnDoubleClick(key_event_value)
 
   def OnNew(self, slot_id):
     """See MultiTouchMonitor.OnNew."""
@@ -108,13 +94,13 @@ class TouchpadMonitor(touch_monitor.MultiTouchMonitor):
           "Please don't put your third finger on the touchpad.\n"
           "If you didn't do that,\n"
           "treat this touch panel as a problematic one!!"))
-      self.test.ui.CallJSFunction('failTest')
+      self.test.FailWithMessage()
 
   def OnMove(self, slot_id):
     """See MultiTouchMonitor.OnMove."""
     state = self.GetState()
     slot = state.slots[slot_id]
-    self.test.DrawMoveEvent(slot.x, slot.y, state.num_fingers)
+    self.test.OnMoveEvent(slot.x, slot.y, state.num_fingers)
 
 
 class Quadrant(object):
@@ -142,7 +128,7 @@ class Quadrant(object):
       self.quadrant = 4
 
 
-class TouchpadTest(unittest.TestCase):
+class TouchpadTest(test_ui.TestCaseWithUI):
   """Tests the function of touchpad.
 
   The test checks the following function:
@@ -152,8 +138,6 @@ class TouchpadTest(unittest.TestCase):
     4. Either double click or right click.
 
   Properties:
-    self.ui: test ui.
-    self.template: ui template handling html layout.
     self.touchpad_device_name: This can be probed from evdev.
     self.touchpad_has_right_btn: for touchpad with right button, we don't want
         to process double click. We will only process right_btn and left_btn.
@@ -171,12 +155,6 @@ class TouchpadTest(unittest.TestCase):
       Arg('y_segments', int, 'Number of Y axis segments to test.', default=5)]
 
   def setUp(self):
-    # Initialize frontend presentation
-    self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
-    self.ui.AppendCSSLink('touchpad.css')
-    self.template.SetState(_HTML_PROMPT)
-
     # Initialize properties
     self.touchpad_device_name = None
     self.touchpad_has_right_btn = False
@@ -186,13 +164,18 @@ class TouchpadTest(unittest.TestCase):
     self.monitor = None
     self.dispatcher = None
     self.already_alerted = False
+    self.frontend_proxy = None
 
-    logging.info('start countdown timer daemon thread')
-    countdown_timer.StartCountdownTimer(
-        self.args.timeout_secs,
-        lambda: self.ui.CallJSFunction('failTest'),
-        self.ui,
-        _ID_COUNTDOWN_TIMER)
+    self.x_segments = self.args.x_segments
+    self.y_segments = self.args.y_segments
+
+    self.scroll_tested = [False] * self.y_segments
+    self.touch_tested = [[False] * self.y_segments
+                         for unused_i in xrange(self.x_segments)]
+    # Quadrant has index 1 to 4.
+    self.quadrant_count = [None, 0, 0, 0, 0]
+    self.single_click_count = 0
+    self.double_click_count = 0
 
   def tearDown(self):
     """Clean-up stuff.
@@ -212,7 +195,7 @@ class TouchpadTest(unittest.TestCase):
     logging.info('get device %s spec right_btn = %s',
                  self.touchpad_device_name, self.touchpad_has_right_btn)
 
-  def DrawMoveEvent(self, x, y, num_fingers):
+  def OnMoveEvent(self, x, y, num_fingers):
     """Marks a scroll sector as tested or a move sector as tested."""
     self.quadrant.UpdateQuadrant(x, y)
     if num_fingers == 2:
@@ -220,20 +203,37 @@ class TouchpadTest(unittest.TestCase):
     else:
       self.MarkSectorTested(x, y)
 
-  def DrawSingleClick(self, down):
+    self.CheckTestPassed()
+
+  def OnSingleClick(self, down):
     """Draws single click event by calling javascript function.
 
     Args:
       down: bool
     """
     if not down:
-      logging.info('mark single click up')
-      self.ui.CallJSFunction('markSingleClickUp', self.quadrant.quadrant)
+      quadrant = self.quadrant.quadrant
+      logging.info('mark single click up quadrant = %d', quadrant)
+      self.frontend_proxy.MarkCircleTested('left')
+
+      if self.single_click_count < self.args.number_to_click:
+        self.single_click_count += 1
+        self.frontend_proxy.UpdateCircleCountText(self.single_click_count,
+                                                  self.double_click_count)
+
+      if self.quadrant_count[quadrant] < self.args.number_to_quadrant:
+        self.quadrant_count[quadrant] += 1
+        self.frontend_proxy.UpdateQuadrantCountText(
+            quadrant, self.quadrant_count[quadrant])
+        if self.quadrant_count[quadrant] == self.args.number_to_quadrant:
+          self.frontend_proxy.MarkQuadrantSectorTested(quadrant)
     else:
       logging.info('mark single click down')
-      self.ui.CallJSFunction('markSingleClickDown', self.quadrant.quadrant)
+      self.frontend_proxy.MarkCircleDown('left')
 
-  def DrawDoubleClick(self, down):
+    self.CheckTestPassed()
+
+  def OnDoubleClick(self, down):
     """Draws double click event by calling javascript function.
 
     Args:
@@ -241,10 +241,17 @@ class TouchpadTest(unittest.TestCase):
     """
     if not down:
       logging.info('mark double click up')
-      self.ui.CallJSFunction('markDoubleClickUp')
+      self.frontend_proxy.MarkCircleTested('right')
+
+      if self.double_click_count < self.args.number_to_click:
+        self.double_click_count += 1
+        self.frontend_proxy.UpdateCircleCountText(self.single_click_count,
+                                                  self.double_click_count)
     else:
       logging.info('mark double click down')
-      self.ui.CallJSFunction('markDoubleClickDown')
+      self.frontend_proxy.MarkCircleDown('right')
+
+    self.CheckTestPassed()
 
   def MarkScrollSectorTested(self, y_ratio):
     """Marks a scroll sector tested.
@@ -252,9 +259,11 @@ class TouchpadTest(unittest.TestCase):
     Gets the scroll sector from y_ratio then calls Javascript to mark the sector
     as tested.
     """
-    y_segment = int(y_ratio * self.args.y_segments)
-    logging.debug('mark %d scroll segment tested', y_segment)
-    self.ui.CallJSFunction('markScrollSectorTested', y_segment)
+    y_segment = int(y_ratio * self.y_segments)
+    if 0 <= y_segment < self.y_segments:
+      logging.debug('mark %d scroll segment tested', y_segment)
+      self.scroll_tested[y_segment] = True
+      self.frontend_proxy.MarkScrollSectorTested(y_segment)
 
   def MarkSectorTested(self, x_ratio, y_ratio):
     """Marks a touch sector tested.
@@ -262,22 +271,59 @@ class TouchpadTest(unittest.TestCase):
     Gets the segment from x_ratio and y_ratio then calls Javascript to
     mark the sector as tested.
     """
-    x_segment = int(x_ratio * self.args.x_segments)
-    y_segment = int(y_ratio * self.args.y_segments)
-    logging.debug('mark x-%d y-%d sector tested', x_segment, y_segment)
-    self.ui.CallJSFunction('markSectorTested', x_segment, y_segment)
+    x_segment = int(x_ratio * self.x_segments)
+    y_segment = int(y_ratio * self.y_segments)
+    if 0 <= x_segment < self.x_segments and 0 <= y_segment < self.y_segments:
+      logging.debug('mark x-%d y-%d sector tested', x_segment, y_segment)
+      self.touch_tested[x_segment][y_segment] = True
+      self.frontend_proxy.MarkSectorTested(x_segment, y_segment)
 
-  def StartTest(self, event):
+  def CheckTestPassed(self):
+    """Check if all items have been tested."""
+    if (self.single_click_count >= self.args.number_to_click and
+        self.double_click_count >= self.args.number_to_click and
+        min(self.quadrant_count[1:]) >= self.args.number_to_quadrant and
+        all(self.scroll_tested) and all(all(r) for r in self.touch_tested)):
+      self.PassTask()
+
+  def FailWithMessage(self):
+    """Fail the test with untested items."""
+    fail_items = []
+
+    for x, row in enumerate(self.touch_tested):
+      fail_items.extend('touch-x-%d-y-%d' % (x, y)
+                        for y, tested in enumerate(row) if not tested)
+
+    fail_items.extend('scroll-y-%d' % y
+                      for y, tested in enumerate(self.scroll_tested)
+                      if not tested)
+
+    fail_items.extend('quadrant-%d' % i
+                      for i, c in enumerate(self.quadrant_count[1:], 1)
+                      if c < self.args.number_to_quadrant)
+
+    if self.single_click_count < self.args.number_to_click:
+      fail_items.append('left click count: %d' % self.single_click_count)
+
+    if self.double_click_count < self.args.number_to_click:
+      fail_items.append('right click count: %d' % self.double_click_count)
+
+    self.FailTask(
+        'Touchpad test failed. Malfunction sectors: %s' % ', '.join(fail_items))
+
+  def runTest(self):
     """Start the test if the touchpad is clear.
 
-    This function is invoked when SPACE key is pressed. It will first check
-    whether the touchpad is clear or not. If not, it will notice the operator
-    and fail the test. Else, it will clear the event buffer and start the test.
-
-    Args:
-      event: a BindKey event object, not used.
+    This function ask operator to press SPACE key and run the test. It will
+    first check whether the touchpad is clear or not. If not, it will notice
+    the operator and fail the test. Else, it will clear the event buffer and
+    start the test.
     """
-    del event  # Unused.
+    self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
+    self.ui.HideElement('prompt')
+
+    countdown_timer.StartNewCountdownTimer(
+        self, self.args.timeout_secs, 'timer', self.FailWithMessage)
 
     self.touchpad_device = evdev_utils.DeviceReopen(self.touchpad_device)
     self.touchpad_device.grab()
@@ -287,20 +333,17 @@ class TouchpadTest(unittest.TestCase):
       self.ui.Alert(_(
           'Ghost finger detected!!\n'
           'Please treat this touch panel as a problematic one!!'))
-      self.ui.Fail('Ghost finger detected.')
-      return
+      self.FailTask('Ghost finger detected.')
 
-    self.template.SetState(_HTML_TIMER)
-    self.ui.CallJSFunction('setupTouchpadTest', self.args.x_segments,
-                           self.args.y_segments, self.args.number_to_click,
-                           self.args.number_to_quadrant)
+    self.frontend_proxy = self.ui.InitJSTestObject(
+        'TouchpadTest', self.x_segments, self.y_segments,
+        self.args.number_to_click, self.args.number_to_quadrant)
 
     self.GetSpec()
-    self.dispatcher = evdev_utils.InputDeviceDispatcher(self.touchpad_device,
-                                                        self.monitor.Handler)
+    self.dispatcher = evdev_utils.InputDeviceDispatcher(
+        self.touchpad_device,
+        self.event_loop.CatchException(self.monitor.Handler))
     logging.info('start monitor daemon thread')
     self.dispatcher.StartDaemon()
 
-  def runTest(self):
-    self.ui.BindKey(test_ui.SPACE_KEY, self.StartTest, once=True)
-    self.ui.Run()
+    self.WaitTaskEnd()

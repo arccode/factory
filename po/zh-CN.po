@@ -2647,10 +2647,6 @@ msgid "Testing... "
 msgstr "测试中... "
 
 #: ../py/test/pytests/touchpad.py
-msgid "Please take off your fingers and then press SPACE to start testing..."
-msgstr "请先将手指远离触控版後按 空白键 开始测试..."
-
-#: ../py/test/pytests/touchpad.py
 msgid ""
 "Please don't put your third finger on the touchpad.\n"
 "If you didn't do that,\n"
@@ -2683,6 +2679,10 @@ msgstr "请将悬停测试用具从支架移除"
 #: ../py/test/pytests/touchpad_hover.py
 msgid "Checking for false positive..."
 msgstr "进行假阳性检查..."
+
+#: ../py/test/pytests/touchpad_static/touchpad.html
+msgid "Please take off your fingers and then press SPACE to start testing..."
+msgstr "请先将手指远离触控版後按 空白键 开始测试..."
 
 #: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
 msgid "Serial number"
