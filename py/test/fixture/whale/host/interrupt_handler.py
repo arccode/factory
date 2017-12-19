@@ -445,7 +445,7 @@ class InterruptHandler(object):
   def ShowNucIpOnLED(self):
     """Shows NUC dongle IP on LED second line"""
     nuc_host = '192.168.234.1'
-    testing_rsa_path = '/usr/local/factory/board/testing_rsa'
+    testing_rsa_path = '/usr/local/factory/misc/sshkeys/testing_rsa'
     get_dongle_eth_script = (
         'timeout 1s /usr/local/factory/py/test/fixture/get_dongle_eth.sh')
 
