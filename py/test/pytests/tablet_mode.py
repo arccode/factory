@@ -4,43 +4,25 @@
 
 """Tests that certain conditions are met when in tablet mode.
 
-Currently, the only thing checked is that the lid switch is not triggered.
+Currently, it check that the lid switch is not triggered and tablet mode event
+is triggered and in correct state.
 """
 
-import threading
-import unittest
+import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
 from cros.factory.test import countdown_timer
-from cros.factory.test.pytests import tablet_mode_ui
+from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
 
 
-_DEFAULT_TIMEOUT = 30
-
-_ID_COUNTDOWN_TIMER = 'countdown-timer'
-
-_HTML_COUNTDOWN_TIMER = '<div id="%s" class="countdown-timer"></div>' % (
-    _ID_COUNTDOWN_TIMER)
-
-_CSS_COUNTDOWN_TIMER = """
-.countdown-timer {
-  position: absolute;
-  bottom: .3em;
-  right: .5em;
-  font-size: 2em;
-}
-"""
-
-
-class TabletModeTest(unittest.TestCase):
+class TabletModeTest(test_ui.TestCaseWithUI):
   """Tablet mode factory test."""
   ARGS = [
-      Arg('timeout_secs', int, 'Timeout value for the test.',
-          default=_DEFAULT_TIMEOUT),
+      Arg('timeout_secs', int, 'Timeout value for the test.', default=30),
       Arg('lid_filter', (int, str),
           'Lid event ID or name for evdev. None for auto probe.',
           default=None),
@@ -60,10 +42,6 @@ class TabletModeTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self.ui = test_ui.UI()
-    self.tablet_mode_ui = tablet_mode_ui.TabletModeUI(
-        self.ui, _HTML_COUNTDOWN_TIMER, _CSS_COUNTDOWN_TIMER)
-
     self.tablet_mode_switch = False
     self.lid_event_dev = evdev_utils.FindDevice(self.args.lid_filter,
                                                 evdev_utils.IsLidEventDevice)
@@ -81,6 +59,7 @@ class TabletModeTest(unittest.TestCase):
     # Create a thread to monitor evdev events.
     self.lid_dispatcher = evdev_utils.InputDeviceDispatcher(
         self.lid_event_dev, self.HandleSwitchEvent)
+    self.lid_dispatcher.StartDaemon()
     self.tablet_dispatcher = None
     # It is possible that a single input device can support both of SW_LID and
     # SW_TABLET_MODE therefore we can just use the first thread above to
@@ -95,64 +74,98 @@ class TabletModeTest(unittest.TestCase):
         self.tablet_event_dev == self.lid_event_dev):
       self.tablet_dispatcher = evdev_utils.InputDeviceDispatcher(
           self.tablet_event_dev, self.HandleSwitchEvent)
-
-  def HandleSwitchEvent(self, event):
-    if event.type == evdev.ecodes.EV_SW and event.code == evdev.ecodes.SW_LID:
-      if event.value == 0:  # LID_OPEN
-        self.tablet_mode_ui.FlashFailure()
-        self.ui.Fail('Lid switch was triggered unexpectedly')
-
-    if (event.type == evdev.ecodes.EV_SW and
-        event.code == evdev.ecodes.SW_TABLET_MODE):
-      self.tablet_mode_switch = event.value == 1
-
-  def FlipTabletMode(self):
-    event = threading.Event()
-    self.tablet_mode_ui.AskForTabletMode(lambda unused_event: event.set())
-    event.wait()
-
-    if self.tablet_event_dev and not self.tablet_mode_switch:
-      self.tablet_mode_ui.FlashFailure()
-      self.ui.Fail("Tablet mode switch is off")
-      return
-
-    self.tablet_mode_ui.FlashSuccess()
-
-  def FlipNotebookMode(self):
-    event = threading.Event()
-    self.tablet_mode_ui.AskForNotebookMode(lambda unused_event: event.set())
-    event.wait()
-
-    if self.tablet_event_dev and self.tablet_mode_switch:
-      self.tablet_mode_ui.FlashFailure()
-      self.ui.Fail('Tablet mode switch is on')
-      return
-
-    self.tablet_mode_ui.FlashSuccess()
-
-  def runTest(self):
-    self.ui.RunInBackground(self._runTest)
-    self.ui.Run()
-
-  def _runTest(self):
-    # Create a thread to run countdown timer.
-    countdown_timer.StartCountdownTimer(
-        self.args.timeout_secs,
-        lambda: self.ui.Fail('Lid switch test failed due to timeout.'),
-        self.ui,
-        _ID_COUNTDOWN_TIMER)
-
-    self.lid_dispatcher.StartDaemon()
-    if self.tablet_dispatcher:
       self.tablet_dispatcher.StartDaemon()
 
     if self.args.prompt_flip_tablet:
-      self.FlipTabletMode()
+      self.AddTask(self.FlipTabletMode, stop_on_fail=True)
 
     if self.args.prompt_flip_notebook:
-      self.FlipNotebookMode()
+      self.AddTask(self.FlipNotebookMode, stop_on_fail=True)
 
   def tearDown(self):
     self.lid_dispatcher.close()
     if self.tablet_dispatcher:
       self.tablet_dispatcher.close()
+
+  def HandleSwitchEvent(self, event):
+    if event.type == evdev.ecodes.EV_SW and event.code == evdev.ecodes.SW_LID:
+      if event.value == 0:  # LID_OPEN
+        self.FlashFailure()
+        self.FailTask('Lid switch was triggered unexpectedly')
+
+    if (event.type == evdev.ecodes.EV_SW and
+        event.code == evdev.ecodes.SW_TABLET_MODE):
+      self.tablet_mode_switch = event.value == 1
+
+  def StartCountdown(self):
+    countdown_timer.StartNewCountdownTimer(
+        self,
+        self.args.timeout_secs,
+        'timer',
+        lambda: self.FailTask('Lid switch test failed due to timeout.'))
+
+  def SetUIImage(self, image):
+    self.ui.RunJS(
+        'document.getElementById("image").className = args.image;', image=image)
+
+  def FlipTabletMode(self):
+    self.SetUIImage('notebook-to-tablet')
+    self.ui.SetInstruction(
+        i18n_test_ui.MakeI18nLabel('Flip the lid into tablet mode'))
+    confirm_button = (
+        '<button id="confirm-button" '
+        'onclick="test.sendTestEvent(\'confirm-tablet\')">' +
+        i18n_test_ui.MakeI18nLabel('Confirm tablet mode') + '</button>')
+    self.ui.SetHTML(confirm_button, id='confirm')
+    self.ui.AddEventHandler('confirm-tablet', self.HandleConfirmTabletMode)
+    self.StartCountdown()
+    self.WaitTaskEnd()
+
+  def HandleConfirmTabletMode(self, event):
+    del event  # Unused.
+
+    if self.tablet_event_dev and not self.tablet_mode_switch:
+      self.FlashFailure()
+      self.FailTask("Tablet mode switch is off")
+
+    self.FlashSuccess()
+    self.PassTask()
+
+  def FlipNotebookMode(self):
+    self.SetUIImage('tablet-to-notebook')
+    self.ui.SetInstruction(
+        i18n_test_ui.MakeI18nLabel('Open the lid back to notebook mode'))
+    self.ui.SetHTML(
+        i18n_test_ui.MakeI18nLabel('Press SPACE to confirm notebook mode'),
+        id='confirm')
+    # Ask OP to press space to verify the dut is in notebook mode.
+    # Set virtual_key to False since the event callback should be triggered
+    # from a real key press, not from a button on screen.
+    self.ui.BindKey(
+        test_ui.SPACE_KEY, self.HandleConfirmNotebookMode, virtual_key=False)
+    self.StartCountdown()
+    self.WaitTaskEnd()
+
+  def HandleConfirmNotebookMode(self, event):
+    del event  # Unused.
+
+    if self.tablet_event_dev and self.tablet_mode_switch:
+      self.FlashFailure()
+      self.FailTask('Tablet mode switch is on')
+
+    self.FlashSuccess()
+    self.PassTask()
+
+  def _FlashStatus(self, status_label):
+    self.ui.SetHTML(status_label, id='status')
+    self.ui.ShowElement('status')
+    time.sleep(1)
+    self.ui.HideElement('status')
+
+  def FlashSuccess(self):
+    self._FlashStatus(
+        i18n_test_ui.MakeI18nLabelWithClass('Success!', 'success'))
+
+  def FlashFailure(self):
+    self._FlashStatus(
+        i18n_test_ui.MakeI18nLabelWithClass('Failure', 'failure'))

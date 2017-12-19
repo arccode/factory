@@ -419,10 +419,6 @@ msgid "Tablet Mode"
 msgstr "平板模式"
 
 #: ../build/pytests_label_generated.json
-msgid "Tablet Mode UI"
-msgstr "平版模式"
-
-#: ../build/pytests_label_generated.json
 msgid "Tablet Rotation"
 msgstr "平版旋转"
 
@@ -1590,7 +1586,7 @@ msgid "Put the DUT towards {direction}"
 msgstr "将机器朝向{direction}方"
 
 #: ../py/test/pytests/compass_static/compass.html
-#: ../py/test/pytests/tablet_mode_ui.py
+#: ../py/test/pytests/tablet_mode.py
 #: ../py/test/pytests/tablet_rotation_static/tablet_rotation.html
 msgid "Success!"
 msgstr "成功！"
@@ -2612,23 +2608,23 @@ msgstr "完成任务: {label}"
 msgid "Task <b>{label}</b> failed, retry in {time_left} seconds..."
 msgstr "<b>{label}</b>任务失败，将在 {time_left} 秒后重试..."
 
-#: ../py/test/pytests/tablet_mode_ui.py
+#: ../py/test/pytests/tablet_mode.py
 msgid "Flip the lid into tablet mode"
 msgstr "把上盖掀开一圈直到贴合下盖"
 
-#: ../py/test/pytests/tablet_mode_ui.py
-msgid "Open the lid back to notebook mode"
-msgstr "把上盖掀开直到正常笔电模式"
-
-#: ../py/test/pytests/tablet_mode_ui.py
+#: ../py/test/pytests/tablet_mode.py
 msgid "Confirm tablet mode"
 msgstr "确认平板模式"
 
-#: ../py/test/pytests/tablet_mode_ui.py
+#: ../py/test/pytests/tablet_mode.py
+msgid "Open the lid back to notebook mode"
+msgstr "把上盖掀开直到正常笔电模式"
+
+#: ../py/test/pytests/tablet_mode.py
 msgid "Press SPACE to confirm notebook mode"
 msgstr "请按空白键确认笔电模式"
 
-#: ../py/test/pytests/tablet_mode_ui.py
+#: ../py/test/pytests/tablet_mode.py
 msgid "Failure"
 msgstr "失败"
 

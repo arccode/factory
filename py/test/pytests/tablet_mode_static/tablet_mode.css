@@ -1,0 +1,72 @@
+/*
+ * Copyright 2017 The Chromium OS Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+#container {
+  flex: 1;
+  display: flex;
+  font-size: 2em;
+  align-self: stretch;
+}
+
+#image {
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  flex: 1;
+}
+
+#image.notebook-to-tablet {
+  background-image: url("notebook-to-tablet.webp")
+}
+
+#image.tablet-to-notebook {
+  background-image: url("tablet-to-notebook.webp")
+}
+
+#right {
+  flex: 1;
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+}
+
+#confirm {
+  flex: 1;
+  align-self: stretch;
+  margin: 0.2em;
+  display: flex;
+}
+
+#confirm-button {
+  flex: 1;
+  font-size: 1em;
+}
+
+.success,
+.failure {
+  line-height: 3em;
+  font-size: 4em;
+}
+
+.success {
+  background: #afa;
+}
+
+.failure {
+  background: #faa;
+}
+
+#status {
+  display: none;
+  position: absolute;
+  z-index: 10;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background-color: white;
+  text-align: center;
+}
