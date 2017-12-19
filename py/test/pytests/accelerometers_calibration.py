@@ -119,10 +119,13 @@ class AccelerometersCalibration(test_ui.TestCaseWithUI):
     self.accelerometer_controller = (
         self.dut.accelerometer.GetController(self.args.location))
 
+  def runTest(self):
     if self.args.calibration_method == 'horizontal':
-      self.AddTask(self.RunHorizontalCalibrationTask)
+      self.HorizontalCalibration()
+    else:
+      raise NotImplementedError
 
-  def RunHorizontalCalibrationTask(self):
+  def HorizontalCalibration(self):
     """Prompt for space, waits a period of time and then starts calibration."""
     self.ui.SetState(
         i18n_test_ui.MakeI18nLabel(
