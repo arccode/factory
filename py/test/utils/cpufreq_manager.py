@@ -20,7 +20,9 @@ class CpufreqManager(object):
   """Manager for CrOS-specific services that mess with cpufreq.
 
   If disabled, we disable CrOS-specific cpufreq management (i.e., the "thermal"
-  or "dptf" service) and lock down the CPU speed.
+  service) and lock down the CPU speed. Note some services, for example 'dptf',
+  are critical and can't be disabled because the hardware throttling may not
+  prevent overheating in time so DUT may shutdown unexpectedly in stress tests.
 
   Args:
     event_log: If set, an event log object to use to log changes to enablement.
@@ -109,7 +111,7 @@ class CpufreqManager(object):
       logging.warn('Gave up on trying to set CPU scaling parameters')
 
   def _GetThermalService(self):
-    possible_services = ('thermal', 'dptf')
+    possible_services = ('thermal')
 
     exist_services = []
     for service in possible_services:
@@ -117,11 +119,11 @@ class CpufreqManager(object):
         exist_services.append(service)
 
     if len(exist_services) == 0:
-      logging.error("No thermal-control service is available! " +
-                    str(possible_services))
+      logging.info("No thermal-control service is available! " +
+                   str(possible_services))
 
     if len(exist_services) > 1:
-      logging.error("More then one thermal-control service are found: " +
-                    str(exist_services))
+      logging.info("More then one thermal-control service are found: " +
+                   str(exist_services))
 
     return exist_services
