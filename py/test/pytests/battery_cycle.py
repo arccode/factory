@@ -14,13 +14,11 @@ charge (e.g., 95%).  Cycle times are logged to event logs.
 import collections
 import logging
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import stress_manager
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
@@ -32,77 +30,36 @@ Mode = type_utils.Enum(['CHARGE', 'DISCHARGE', 'CUTOFF'])
 
 History = collections.namedtuple('History', ['cycle', 'charge', 'discharge'])
 
-CSS = """
-table {
-  margin: auto;
-}
-th {
-  padding-left: 5em;
-}
-td {
-  padding: 1px 8px;
-  min-width: 15em;
-}
-"""
 
-HTML = """
-<table>
-  <tr><th>Current cycle count:</th><td id="bc-current-cycle"></td></tr>
-  <tr><th>Cycles remaining:</th><td id="bc-cycles-remaining"></td></tr>
-  <tr>
-    <th>Phase:</th>
-    <td><span id="bc-phase"></span> <span id="bc-phase-complete"></span></td>
-  </tr>
-  <tr>
-    <th>Elapsed time in this phase:</th>
-    <td id="bc-phase-elapsed-time"></td>
-  </tr>
-  <tr>
-    <th>Elapsed time in this cycle:</th>
-    <td id="bc-cycle-elapsed-time"></td>
-  </tr>
-  <tr><th>Total elapsed time:</th><td id="bc-elapsed-time"></td></tr>
-  <tr><th>Total time remaining:</th><td id="bc-time-remaining"></td></tr>
-  <tr><th>Current charge:</th><td id="bc-charge"></td></tr>
-  <tr><th>Target charge:</th><td id="bc-target-charge"></td></tr>
-  <tr><th>Previous cycle times:</th><td id="bc-history"></td></tr>
-</table>
-"""
-
-
-class BatteryCycleTest(unittest.TestCase):
+class BatteryCycleTest(test_ui.TestCaseWithUI):
   ARGS = [
-      Arg('num_cycles', int, 'Number of cycles to run', None),
+      Arg('num_cycles', int, 'Number of cycles to run', default=None),
       Arg('max_duration_hours', (int, float),
-          'Maximum number of hours to run', None),
+          'Maximum number of hours to run', default=None),
       Arg('cycle_timeout_secs', int,
-          'Maximum time for one charge/discharge cycle', 12 * 60 * 60),
-      Arg('minimum_charge_pct', (int, float), 'Minimum charge, in percent', 5),
-      Arg('maximum_charge_pct', (int, float), 'Maximum charge, in percent', 95),
+          'Maximum time for one charge/discharge cycle', default=12 * 60 * 60),
+      Arg('minimum_charge_pct', (int, float), 'Minimum charge, in percent',
+          default=5),
+      Arg('maximum_charge_pct', (int, float), 'Maximum charge, in percent',
+          default=95),
       Arg('charge_threshold_secs', int,
           'Amount of time the charge must remain above or below the '
           'specified threshold to have considered to have finished '
-          'part of a cycle.', 30),
-      Arg('idle_time_secs', int, 'Time to idle between battery checks.', 1),
+          'part of a cycle.', default=30),
+      Arg('idle_time_secs', int, 'Time to idle between battery checks.',
+          default=1),
       Arg('log_interval_secs', int, 'Interval at which to log system status.',
-          30),
+          default=30),
       Arg('verify_cutoff', bool,
           'True to verify battery stops charging when ~100%',
           default=False),
       Arg('cutoff_charge_pct', (int, float),
           'Minimum charge level in percent allowed in cutoff state.',
-          default=98),
-      Arg('has_ui', bool, 'True if this test runs with goofy UI enabled.',
-          default=False)
+          default=98)
   ]
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    if self.args.has_ui:
-      self.ui = test_ui.UI()
-      self.template = ui_templates.OneSection(self.ui)
-      self.template.SetState(HTML)
-      self.ui.AppendCSS(CSS)
     self.status = self.dut.status.Snapshot()
     self.completed_cycles = 0
     self.mode = None
@@ -110,13 +67,6 @@ class BatteryCycleTest(unittest.TestCase):
     self.cycle_start_time = None
     self.history = []  # Array of History objects
     self._UpdateHistory()
-
-  def runTest(self):
-    if self.args.has_ui:
-      self.ui.RunInBackground(self._Run)
-      self.ui.Run()
-    else:
-      self._Run()
 
   def _Log(self, event, **kwargs):
     """Logs an event to the event log.
@@ -136,22 +86,19 @@ class BatteryCycleTest(unittest.TestCase):
     """Updates history in the UI."""
     history_lines = []
     for h in self.history[-5:]:
-      history_lines.append('%d: Charged in %s' %
-                           (h.cycle + 1,
-                            time_utils.FormatElapsedTime(h.charge)))
+      line = ('%d: Charged in %s' % (h.cycle + 1,
+                                     time_utils.FormatElapsedTime(h.charge)))
       if h.discharge:
-        history_lines[-1] += (', discharged in %s' %
-                              time_utils.FormatElapsedTime(h.discharge))
+        line += (
+            ', discharged in %s' % time_utils.FormatElapsedTime(h.discharge))
+
+      history_lines.append(test_ui.Escape(line))
 
     if not history_lines:
       history_lines.append('(none)')
     while len(history_lines) < 5:
-      history_lines.append('&nbsp')
-    self._UpdateUI('<br>'.join(history_lines), id='bc-history')
-
-  def _UpdateUI(self, html, **kwargs):
-    if self.args.has_ui:
-      self.ui.SetHTML(html, **kwargs)
+      history_lines.append('')
+    self.ui.SetHTML('\n'.join(history_lines), id='bc-history')
 
   def _RunPhase(self):
     """Runs the charge or discharge part of a cycle."""
@@ -171,7 +118,7 @@ class BatteryCycleTest(unittest.TestCase):
                                  if self.args.num_cycles
                                  else u'\u221e')),
         ('bc-target-charge', '%.2f%%' % target_charge_pct)):
-      self._UpdateUI(content, id=elt_id)
+      self.ui.SetHTML(content, id=elt_id)
 
     first_done_time = [None]
 
@@ -222,7 +169,7 @@ class BatteryCycleTest(unittest.TestCase):
 
         if now > self.cycle_start_time + self.args.cycle_timeout_secs:
           self.fail('%s timed out' % self.mode)
-          return
+
         if IsDone():
           self._Log(
               'phase_end', duration_secs=(now - phase_start_time))
@@ -248,12 +195,14 @@ class BatteryCycleTest(unittest.TestCase):
                 self.args.max_duration_hours * 60 * 60 -
                 (now - phase_start_time)
                 if self.args.max_duration_hours else None))):
-          self._UpdateUI(time_utils.FormatElapsedTime(elapsed_time)
-                         if elapsed_time else u'\u221e',
-                         id=elt_id)
-        self._UpdateUI('%.2f%%' % self.dut.power.GetChargePct(get_float=True),
-                       id='bc-charge')
-        self._UpdateUI(
+          self.ui.SetHTML(
+              time_utils.FormatElapsedTime(elapsed_time)
+              if elapsed_time else u'\u221e',
+              id=elt_id)
+        self.ui.SetHTML(
+            '%.2f%%' % self.dut.power.GetChargePct(get_float=True),
+            id='bc-charge')
+        self.ui.SetHTML(
             '(complete in %s s)' % (self.args.charge_threshold_secs -
                                     int(round(now - first_done_time[0])))
             if first_done_time[0] else '',
@@ -261,17 +210,7 @@ class BatteryCycleTest(unittest.TestCase):
 
         time.sleep(self.args.idle_time_secs)
 
-  def Pass(self):
-    if self.args.has_ui:
-      self.ui.Pass()
-
-  def Fail(self, msg):
-    if self.args.has_ui:
-      self.ui.Fail(msg)
-    else:
-      self.fail(msg)
-
-  def _Run(self):
+  def runTest(self):
     try:
       self.start_time = time.time()
       while True:
@@ -280,15 +219,13 @@ class BatteryCycleTest(unittest.TestCase):
             self.completed_cycles >= self.args.num_cycles):
           logging.info('Completed %s cycles (num_cycles).  Success.',
                        self.args.num_cycles)
-          self.Pass()
-          break
+          return
 
         duration_hours = (time.time() - self.start_time) / (60. * 60.)
         if (self.args.max_duration_hours and
             duration_hours >= self.args.max_duration_hours):
           logging.info('Ran for %s hours.  Success.', duration_hours)
-          self.Pass()
-          break
+          return
 
         for mode in (Mode.CHARGE, Mode.DISCHARGE):
           self.mode = mode
@@ -300,9 +237,8 @@ class BatteryCycleTest(unittest.TestCase):
         self._RunPhase()
 
       self._Log('pass')
-      self.Pass()
     except Exception:
       logging.exception('Test failed')
       error_msg = debug_utils.FormatExceptionOnly()
       self._Log('fail', error_msg=error_msg)
-      self.Fail(error_msg)
+      self.FailTask(error_msg)
