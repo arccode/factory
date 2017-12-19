@@ -141,6 +141,11 @@ class BatteryCurrentTest(test_ui.TestCaseWithUI):
     for unused_i in range(10):
       status = self._dut.usb_c.GetPDPowerStatus()
       if 'millivolt' not in status[self._usbpd_port]:
+        self.ui.SetState(
+            i18n_test_ui.MakeI18nLabel(
+                'Insert power to {prompt}({voltage}mV)',
+                prompt=self._usbpd_prompt,
+                voltage=0))
         logging.info('No millivolt detected in port %d', self._usbpd_port)
         return False
       millivolt = status[self._usbpd_port]['millivolt']
