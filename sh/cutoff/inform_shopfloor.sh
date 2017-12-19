@@ -76,6 +76,11 @@ main() {
     shopfloor_url="${SHOPFLOOR_URL}"
   fi
 
+  if [ -z "${shopfloor_url}" ]; then
+    echo "No shopfloor URL specified, ignore inform request."
+    exit
+  fi
+
   "${DISPLAY_MESSAGE}" "inform_shopfloor"
 
   case "$2" in
