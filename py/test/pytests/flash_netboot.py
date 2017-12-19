@@ -48,18 +48,14 @@ To flash netboot firmware from a special location::
 """
 
 import logging
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.tools import flash_netboot
 from cros.factory.utils.arg_utils import Arg
 
-_CSS = 'test-template { text-align: left; }'
 
-
-class FlashNetbootTest(unittest.TestCase):
+class FlashNetbootTest(test_ui.TestCaseWithUI):
   ARGS = [
       Arg('image', str,
           ('Path of netboot firmware image. Default to use %s' %
@@ -67,19 +63,13 @@ class FlashNetbootTest(unittest.TestCase):
           default=None),
   ]
 
-  def setUp(self):
-    self._ui = test_ui.UI(css=_CSS)
-    self._template = ui_templates.OneScrollableSection(self._ui)
+  ui_class = test_ui.ScrollableLogUI
 
   def ShowResult(self, message):
     logging.info(message.strip())
-    self._template.SetState(test_ui.Escape(message), append=True)
+    self.ui.AppendLog(message)
 
   def runTest(self):
-    self._ui.RunInBackground(self._runTest)
-    self._ui.Run()
-
-  def _runTest(self):
     netboot_flasher = flash_netboot.FlashNetboot(self.args.image,
                                                  on_output=self.ShowResult)
     self.ShowResult(netboot_flasher.WarningMessage())
