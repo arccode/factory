@@ -10,7 +10,6 @@ output to verify.
 import logging
 import os
 import time
-import unittest
 import xmlrpclib
 
 import factory_common  # pylint: disable=unused-import
@@ -21,39 +20,17 @@ from cros.factory.test.fixture.dolphin import plankton_hdmi
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import sync_utils
-from cros.factory.utils import type_utils
 
-
-_BLACKSCREEN_STR = i18n_test_ui.MakeI18nLabel(
-    'Caution: monitor may turn black for a short time.')
-
-_ID_CONTAINER = 'plankton-display-container'
 
 _WAIT_DISPLAY_SIGNAL_SECS = 3
 _WAIT_RETEST_SECS = 2
 
 
-def _GetConnectStr(device):
-  return i18n_test_ui.MakeI18nLabel(
-      'Connecting BFT display: {device}', device=device)
-
-
-def _GetVideoStr(device):
-  return i18n_test_ui.MakeI18nLabel(
-      'BFT display {device} is connected. Sending image...', device=device)
-
-
-def _GetDisconnectStr(device):
-  return i18n_test_ui.MakeI18nLabel(
-      'Disconnecting BFT display: {device}', device=device)
-
-
-class PlanktonDisplayTest(unittest.TestCase):
+class PlanktonDisplayTest(test_ui.TestCaseWithUI):
   """Tests USB type-C ports display functionality."""
   ARGS = [
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP),
@@ -91,32 +68,24 @@ class PlanktonDisplayTest(unittest.TestCase):
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
-    self._ui = test_ui.UI()
-    self._ui.AppendCSSLink('plankton_display.css')
-    self._template = ui_templates.TwoSections(self._ui)
 
-    self._static_dir = self._ui.GetStaticDirectoryPath()
+    self._static_dir = self.ui.GetStaticDirectoryPath()
     self._display_image_path = os.path.join(self._static_dir, 'template.png')
     self._golden_image_path = os.path.join(self._static_dir, 'golden.png')
     self.ExtractTestImage()
 
-    self._template.SetState(
-        _BLACKSCREEN_STR + '<br/>' +
-        '<div id="%s"></div>' % _ID_CONTAINER)
+    self.frontend_proxy = self.ui.InitJSTestObject('DisplayTest')
 
-
-    self._ui.CallJSFunction('setupDisplayTest')
-
-    self._total_tests = 0
+    # Connect, video playback, capture, disconnect
+    self._total_tests = 4
     self._finished_tests = 0
-    self._finished = False
     self._image_matched = True
 
     self._testing_display = self.args.display_id
     self._bft_fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
     self._bft_media_device = self.args.bft_media_device
     if self._bft_media_device not in self._bft_fixture.Device:
-      self.Fail('Invalid args.bft_media_device: ' + self._bft_media_device)
+      self.FailTask('Invalid args.bft_media_device: ' + self._bft_media_device)
 
     self._original_primary_display = self._GetPrimaryScreenId()
 
@@ -143,7 +112,6 @@ class PlanktonDisplayTest(unittest.TestCase):
       self._DisableServerCamera()
     self._bft_fixture.Disconnect()
     self.RemoveTestImage()
-    return
 
   def ExtractTestImage(self):
     """Extracts selected test images from zipped files."""
@@ -166,7 +134,10 @@ class PlanktonDisplayTest(unittest.TestCase):
       connect: True if testing engagement, False if testing disengagement.
     """
     if connect:
-      self._template.SetInstruction(_GetConnectStr(self._bft_media_device))
+      self.ui.SetInstruction(
+          i18n_test_ui.MakeI18nLabel(
+              'Connecting BFT display: {device}',
+              device=self._bft_media_device))
       self._bft_fixture.SetDeviceEngaged(self._bft_media_device, engage=True)
       if self.args.force_dp_renegotiated:
         self._bft_fixture.SetFakeDisconnection(1)
@@ -178,7 +149,10 @@ class PlanktonDisplayTest(unittest.TestCase):
         self._dut.usb_c.SetPortFunction(self.args.usb_c_index, 'dp')
       sync_utils.WaitFor(self._PollDisplayConnected, timeout_secs=10)
     else:
-      self._template.SetInstruction(_GetDisconnectStr(self._bft_media_device))
+      self.ui.SetInstruction(
+          i18n_test_ui.MakeI18nLabel(
+              'Disconnecting BFT display: {device}',
+              device=self._bft_media_device))
       if self.args.fire_hpd_manually:
         self._dut.usb_c.ResetHPD(self.args.usb_c_index)
       self._bft_fixture.SetDeviceEngaged(self._bft_media_device, engage=False)
@@ -203,15 +177,18 @@ class PlanktonDisplayTest(unittest.TestCase):
     if not connect or any(x['isInternal'] is False for x in display_info):
       self.AdvanceProgress()
     else:
-      self.Fail('Get the wrong display info')
+      self.FailTask('Get the wrong display info')
 
   def TestDisplayPlayback(self):
     """Projects the screen to external display, make the display to show an
     image by JS function.
     """
     if self.args.verify_display_switch:
-      self._template.SetInstruction(_GetVideoStr(self._bft_media_device))
-      self._ui.CallJSFunction('switchDisplayOnOff')
+      self.ui.SetInstruction(
+          i18n_test_ui.MakeI18nLabel(
+              'BFT display {device} is connected. Sending image...',
+              device=self._bft_media_device))
+      self.frontend_proxy.ToggleFullscreen()
       self.SetMainDisplay(recover_original=False)
 
     time.sleep(_WAIT_DISPLAY_SIGNAL_SECS)  # wait for display signal stable
@@ -234,7 +211,7 @@ class PlanktonDisplayTest(unittest.TestCase):
       self._image_matched = self._verify_server.VerifyDP(False)
 
     if self.args.verify_display_switch:
-      self._ui.CallJSFunction('switchDisplayOnOff')
+      self.frontend_proxy.ToggleFullscreen()
       self.SetMainDisplay(recover_original=True)
       time.sleep(_WAIT_DISPLAY_SIGNAL_SECS)  # wait for display signal stable
 
@@ -255,7 +232,7 @@ class PlanktonDisplayTest(unittest.TestCase):
     if len(display_info) == 1:
       # Fail the test if we see only one display and it's the internal one.
       if display_info[0]['isInternal']:
-        self.Fail('Fail to detect external display')
+        self.FailTask('Fail to detect external display')
       else:
         return
 
@@ -272,23 +249,14 @@ class PlanktonDisplayTest(unittest.TestCase):
       time.sleep(_WAIT_RETEST_SECS)
 
     if tries_left == 0:
-      self.Fail('Fail to switch main display')
+      self.FailTask('Fail to switch main display')
 
-  def Fail(self, msg):
-    """Fails the test."""
-    self._ui.Fail(msg)
-    raise type_utils.TestFailure(msg)
-
-  def AdvanceProgress(self, value=1):
-    """Advances the progess bar.
-
-    Args:
-      value: The amount of progress to advance.
-    """
-    self._finished_tests += value
+  def AdvanceProgress(self):
+    """Advances the progess bar."""
+    self._finished_tests += 1
     if self._finished_tests > self._total_tests:
       self._finished_tests = self._total_tests
-    self._template.SetProgressBarValue(
+    self.ui.SetProgressBarValue(
         100 * self._finished_tests / self._total_tests)
 
   def _GetPrimaryScreenId(self):
@@ -300,7 +268,7 @@ class PlanktonDisplayTest(unittest.TestCase):
     for info in state.get_instance().DeviceGetDisplayInfo():
       if info['isPrimary']:
         return info['id']
-    self.Fail('Fail to get primary display ID')
+    self.FailTask('Fail to get primary display ID')
 
   def _PollDisplayConnected(self):
     """Event for polling display connected.
@@ -327,10 +295,7 @@ class PlanktonDisplayTest(unittest.TestCase):
       self.assertTrue(os.path.isfile(self._display_image_path))
     self.assertTrue(os.path.isfile(self._golden_image_path))
 
-    self._template.DrawProgressBar()
-    self._template.SetProgressBarValue(0)
-    # Connect, video playback, capture, disconnect
-    self._total_tests = 4
+    self.ui.DrawProgressBar()
 
     logging.info('Testing device: %s', self._bft_media_device)
 
@@ -351,6 +316,5 @@ class PlanktonDisplayTest(unittest.TestCase):
       self._DisableServerCamera()
       self._server_camera_enabled = False
 
-    self._finished = True
     if not self._image_matched:
-      self.Fail('DP Loopback image correlation is below threshold.')
+      self.FailTask('DP Loopback image correlation is below threshold.')

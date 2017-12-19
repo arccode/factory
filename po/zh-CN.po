@@ -2156,20 +2156,20 @@ msgid "Testing battery discharging..."
 msgstr "测试电池放电中..."
 
 #: ../py/test/pytests/plankton_display.py
-msgid "Caution: monitor may turn black for a short time."
-msgstr "注意: 萤幕可能会有短暂黑屏"
-
-#: ../py/test/pytests/plankton_display.py
 msgid "Connecting BFT display: {device}"
 msgstr "正在连接 BFT 显示屏: {device}"
+
+#: ../py/test/pytests/plankton_display.py
+msgid "Disconnecting BFT display: {device}"
+msgstr "正在移除 BFT 显示屏: {device}"
 
 #: ../py/test/pytests/plankton_display.py
 msgid "BFT display {device} is connected. Sending image..."
 msgstr "已连接 BFT 显示屏: {device}, 正在传送画面"
 
-#: ../py/test/pytests/plankton_display.py
-msgid "Disconnecting BFT display: {device}"
-msgstr "正在移除 BFT 显示屏: {device}"
+#: ../py/test/pytests/plankton_display_static/plankton_display.html
+msgid "Caution: monitor may turn black for a short time."
+msgstr "注意: 萤幕可能会有短暂黑屏"
 
 #: ../py/test/pytests/pointing_device.py
 msgid "Please move the pointer over four quarters."
