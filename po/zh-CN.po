@@ -2116,12 +2116,12 @@ msgid "Interface {interface} not initialized"
 msgstr "网络介面 {interface} 未成功初始化"
 
 #: ../py/test/pytests/plankton_cc2_pull_test.py
-msgid "USB type-C port is disconnected in {secs:.1f} seconds"
-msgstr "USB type-C port 失去连接 {secs:.1f} 秒"
-
-#: ../py/test/pytests/plankton_cc2_pull_test.py
 msgid "Please remove USB type-C cable in {secs:.1f} seconds"
 msgstr "请在 {secs:.1f} 秒内移除 USB type-C 线"
+
+#: ../py/test/pytests/plankton_cc2_pull_test.py
+msgid "USB type-C port is disconnected in {secs:.1f} seconds"
+msgstr "USB type-C port 失去连接 {secs:.1f} 秒"
 
 #: ../py/test/pytests/plankton_cc2_pull_test.py
 msgid "Please attach USB type-C cable in {secs:.1f} seconds"
