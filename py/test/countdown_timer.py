@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -107,9 +105,15 @@ def StartNewCountdownTimer(test, timeout_secs, element_id,
     timeout_secs: (int) #seconds to timeout.
     element_id: The HTML element to place time remaining info.
     timeout_handler: (callback) called when timeout reaches.
+
+  Returns:
+    A threading.Event that would stop the countdown timer when set.
   """
   end_time = time.time() + timeout_secs
+  stop_event = threading.Event()
   def _Timer():
+    if stop_event.is_set():
+      raise StopIteration
     time_remaining = end_time - time.time()
     if time_remaining > 0:
       test.ui.SetHTML(_MSG_TIME_REMAINING(time_remaining), id=element_id)
@@ -118,3 +122,4 @@ def StartNewCountdownTimer(test, timeout_secs, element_id,
         timeout_handler()
       raise StopIteration
   test.event_loop.AddTimedHandler(_Timer, 1, repeat=True)
+  return stop_event
