@@ -299,10 +299,6 @@ msgid "Plankton Display"
 msgstr "Plankton 显示"
 
 #: ../build/pytests_label_generated.json
-msgid "Pointing Device"
-msgstr "指向装置"
-
-#: ../build/pytests_label_generated.json
 msgid "Power Under Stress"
 msgstr "压力电源测试"
 
@@ -2170,30 +2166,6 @@ msgstr "已连接 BFT 显示屏: {device}, 正在传送画面"
 #: ../py/test/pytests/plankton_display_static/plankton_display.html
 msgid "Caution: monitor may turn black for a short time."
 msgstr "注意: 萤幕可能会有短暂黑屏"
-
-#: ../py/test/pytests/pointing_device.py
-msgid "Please move the pointer over four quarters."
-msgstr "请移动鼠标至此文字四周"
-
-#: ../py/test/pytests/pointing_device.py
-msgid "Move Here!"
-msgstr "移动鼠标至此"
-
-#: ../py/test/pytests/pointing_device.py
-msgid "Please click the pointing device."
-msgstr "请按下指向装置左键"
-
-#: ../py/test/pytests/pointing_device.py
-msgid "Please right-click the pointing device."
-msgstr "请按下指向装置右键"
-
-#: ../py/test/pytests/pointing_device.py
-msgid "Please scroll up with the pointing device."
-msgstr "请用指向装置向上卷动"
-
-#: ../py/test/pytests/pointing_device.py
-msgid "Please scroll down with the pointing device."
-msgstr "请用指向装置向下卷动"
 
 #: ../py/test/pytests/power_under_stress.py
 msgid "Voltage: {voltage} mV"
