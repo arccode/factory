@@ -125,7 +125,8 @@ class Arg(object):
     Args:
       parser: argparse.ArgumentParser object
     """
-    if len(self.type) >= 1 and self.type[0] not in [str, list, bool, int]:
+    if (len(self.type) >= 1 and self.type[0] not in [str, list, bool, int] and
+        not isinstance(self.type[0], Enum)):
       raise ValueError('Arg %s cannot be transfered. %s' %
                        (self.name, self.type))
 
@@ -149,6 +150,9 @@ class Arg(object):
       kwargs['type'] = int
     elif self.type[0] == list:
       kwargs['nargs'] = '*'
+    elif isinstance(self.type[0], Enum):
+      kwargs['type'] = str
+      kwargs['choices'] = self.type[0]
     parser.add_argument(*args, **kwargs)
 
 

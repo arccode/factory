@@ -6,6 +6,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.functions import shell
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sys_utils
+from cros.factory.utils import type_utils
 
 
 class VPDFunction(shell.ShellFunction):
@@ -27,7 +28,7 @@ class VPDFunction(shell.ShellFunction):
       Arg('key', str,
           'The key of the result.  Can be specified only if the `fields` '
           'argument contains exact one element', default=None),
-      Arg('partition', str,
+      Arg('partition', type_utils.Enum(['ro', 'rw']),
           'The partition name to read, can be either "ro" or "rw"',
           default='ro')
   ]
@@ -37,9 +38,6 @@ class VPDFunction(shell.ShellFunction):
 
     if self.args.key and len(self.args.fields) != 1:
       raise ValueError('Key remap is only available in single field mode.')
-
-    if self.args.partition.lower() not in ['ro', 'rw']:
-      raise ValueError('Invalid partition name: %r' % self.args.partition)
 
   def Probe(self):
     vpd_tool = sys_utils.VPDTool()
