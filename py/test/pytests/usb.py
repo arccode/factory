@@ -12,29 +12,16 @@
 
 import logging
 import os
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import media_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 
 
-_MSG_PROMPT_FMT = lambda num_usb_ports: i18n_test_ui.MakeI18nLabelWithClass(
-    'Plug device into each USB port, {num_usb_ports} to go...<br>',
-    'usb-test-info', num_usb_ports=num_usb_ports)
-
-# The layout contains one div for usb test
-_ID_CONTAINER = 'usb-test-container'
-_HTML_USB = '<div id="%s"></div>\n' % (_ID_CONTAINER)
-
-_CSS_USB_TEST = '.usb-test-info { font-size: 2em; }'
-
-
-class USBTest(unittest.TestCase):
+class USBTest(test_ui.TestCaseWithUI):
   ARGS = [
       Arg('expected_paths', str, 'USB device path', None),
       Arg('num_usb_ports', int, 'number of USB port', None),
@@ -43,10 +30,6 @@ class USBTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
-
-    self._pyudev_thread = None
     self._expected_paths = self.args.expected_paths
     self._num_usb_ports = self.args.num_usb_ports
     self._num_usb2_ports = self.args.num_usb2_ports
@@ -71,9 +54,14 @@ class USBTest(unittest.TestCase):
         if os.path.exists(path):
           self.RecordPath(path)
 
-    self.template.SetState(_HTML_USB)
-    self.ui.AppendCSS(_CSS_USB_TEST)
-    self.ui.SetHTML(_MSG_PROMPT_FMT(self._num_usb_ports), id=_ID_CONTAINER)
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.SetMessage(self._num_usb_ports)
+
+  def SetMessage(self, num_usb_ports):
+    self.ui.SetState(
+        i18n_test_ui.MakeI18nLabel(
+            'Plug device into each USB port, {num_usb_ports} to go...',
+            num_usb_ports=num_usb_ports))
 
   def RecordPath(self, sys_path):
     bus_path = os.path.dirname(sys_path)
@@ -101,17 +89,17 @@ class USBTest(unittest.TestCase):
       finished &= usb3_count >= self._num_usb3_ports
 
     if finished:
-      self.ui.Pass()
+      self.PassTask()
     else:
-      self.ui.SetHTML(_MSG_PROMPT_FMT(self._num_usb_ports - total_count),
-                      id=_ID_CONTAINER)
+      self.SetMessage(self._num_usb_ports - total_count)
 
   def _Callback(self, device):
     self.RecordPath(device.sys_path)
 
   def runTest(self):
-    self.monitor.Start(on_insert=self._Callback, on_remove=self._Callback)
-    self.ui.Run()
+    callback = self.event_loop.CatchException(self._Callback)
+    self.monitor.Start(on_insert=callback, on_remove=callback)
+    self.WaitTaskEnd()
 
   def tearDown(self):
     self.monitor.Stop()
