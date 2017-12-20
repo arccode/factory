@@ -66,7 +66,6 @@ Test 20V charge without checking the input current::
 
 import logging
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -75,25 +74,14 @@ from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import session
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import stress_manager
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
 
-_TESTING_ADB_CONNECTION = i18n_test_ui.MakeI18nLabel(
-    'Waiting for ADB device connection...')
-_TESTING_PROTECT = i18n_test_ui.MakeI18nLabel(
-    'Checking Plankton INA current for protection...')
-_TESTING_CHARGE = lambda voltage: i18n_test_ui.MakeI18nLabel(
-    'Testing battery {voltage}V charging...', voltage=voltage)
-_TESTING_DISCHARGE = i18n_test_ui.MakeI18nLabel(
-    'Testing battery discharging...')
-_CSS = 'body { font-size: 2em; }'
 
-
-class PlanktonChargeBFTTest(unittest.TestCase):
+class PlanktonChargeBFTTest(test_ui.TestCaseWithUI):
   """Tests usb_c port charge functionality."""
   ARGS = [
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP),
@@ -172,16 +160,16 @@ class PlanktonChargeBFTTest(unittest.TestCase):
   _DISCHARGE_VOLT = 5  # discharging voltage
 
   def setUp(self):
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
     self._dut = device_utils.CreateDUTInterface()
     self._power = self._dut.power
     self.VerifyArgs()
-    self._ui = test_ui.UI(css=_CSS)
-    self._template = ui_templates.OneSection(self._ui)
     self._bft_fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
     self._adb_remote_test = isinstance(self._dut.link, adb.ADBLink)
     self._remote_test = not self._dut.link.IsLocal()
     if self._adb_remote_test:
-      self._template.SetState(_TESTING_ADB_CONNECTION)
+      self.ui.SetState(
+          i18n_test_ui.MakeI18nLabel('Waiting for ADB device connection...'))
       self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=True)
 
   def tearDown(self):
@@ -296,7 +284,9 @@ class PlanktonChargeBFTTest(unittest.TestCase):
       return
     current_min, current_max = self.args.protect_ina_current_range
 
-    self._template.SetState(_TESTING_PROTECT)
+    self.ui.SetState(
+        i18n_test_ui.MakeI18nLabel(
+            'Checking Plankton INA current for protection...'))
     self._bft_fixture.SetDeviceEngaged('CHARGE_5V', engage=True)
     time.sleep(self.args.wait_after_engage_secs)
 
@@ -339,7 +329,9 @@ class PlanktonChargeBFTTest(unittest.TestCase):
     command_device = 'CHARGE_%dV' % testing_volt
     logging.info('Testing %s...', command_device)
 
-    self._template.SetState(_TESTING_CHARGE(testing_volt))
+    self.ui.SetState(
+        i18n_test_ui.MakeI18nLabel(
+            'Testing battery {voltage}V charging...', voltage=testing_volt))
 
     # Plankton-Raiden board setting: engage
     self._bft_fixture.SetDeviceEngaged(command_device, engage=True)
@@ -384,7 +376,8 @@ class PlanktonChargeBFTTest(unittest.TestCase):
       return
 
     logging.info('Testing discharge...')
-    self._template.SetState(_TESTING_DISCHARGE)
+    self.ui.SetState(
+        i18n_test_ui.MakeI18nLabel('Testing battery discharging...'))
     self._bft_fixture.SetDeviceEngaged('CHARGE_5V', engage=False)
     time.sleep(self.args.wait_after_engage_secs)
 
