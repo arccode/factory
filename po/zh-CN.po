@@ -134,10 +134,6 @@ msgid "Countdown"
 msgstr "倒数计时"
 
 #: ../build/pytests_label_generated.json
-msgid "Developer Switch"
-msgstr "开发者开关"
-
-#: ../build/pytests_label_generated.json
 msgid "Display"
 msgstr "显示"
 
@@ -321,10 +317,6 @@ msgstr "探測 SIM 卡卡盘"
 #: ../build/pytests_label_generated.json
 msgid "Read Device Data From VPD"
 msgstr "从 VPD 读机器资料"
-
-#: ../build/pytests_label_generated.json
-msgid "Recovery Button"
-msgstr "恢復按钮"
 
 #: ../build/pytests_label_generated.json
 msgid "Removable Storage"
@@ -1599,22 +1591,6 @@ msgstr "剩余时间："
 msgid "Load:"
 msgstr "系统负载："
 
-#: ../py/test/pytests/developer_switch.py
-msgid "Please turn <b class=\"off\">OFF</b> Developer Switch."
-msgstr "请<b class=\"off\">关闭</b> DEV SW 开发者开关。"
-
-#: ../py/test/pytests/developer_switch.py
-msgid "Develop switch is currently <b class=\"on\">ON</b>."
-msgstr "DEV SW 开发者开关目前为<b class=\"on\">开启</b>状态"
-
-#: ../py/test/pytests/developer_switch.py
-msgid "Please turn <b class=\"on\">ON</b> Developer Switch."
-msgstr "请<b class=\"on\">开启</b> DEV SW 开发者开关。"
-
-#: ../py/test/pytests/developer_switch.py
-msgid "Develop switch is currently <b class=\"off\">OFF</b>."
-msgstr "DEV SW 开发者开关目前为<b class=\"off\">关闭</b>状态"
-
 #: ../py/test/pytests/display.py
 msgid "solid-gray-170"
 msgstr "灰色170"
@@ -2202,14 +2178,6 @@ msgstr "已经侦测SIM卡卡盘, 请移除SIM卡卡盘"
 #: ../py/test/pytests/read_device_data_from_vpd.py
 msgid "Reading device data from {vpd_section} VPD..."
 msgstr "正在从 {vpd_section} VPD 读机器资料..."
-
-#: ../py/test/pytests/recovery_button.py
-msgid "Hit SPACE to start test..."
-msgstr "按 \"空白键\" 开始测试..."
-
-#: ../py/test/pytests/recovery_button.py
-msgid "Please press recovery button for {secs:.1f} seconds."
-msgstr "请持续按压恢复按钮 {secs:.1f} 秒"
 
 #: ../py/test/pytests/removable_storage/removable_storage.py
 msgid "Testing {device}..."
