@@ -213,7 +213,7 @@ msgstr "键盘背光"
 msgid "Keyboard SMT"
 msgstr "SMT 键盘"
 
-#: ../build/pytests_label_generated.json ../py/test/pytests/led/led.py
+#: ../build/pytests_label_generated.json ../py/test/pytests/led.py
 msgid "LED"
 msgstr "LED"
 
@@ -1186,15 +1186,15 @@ msgstr "输出设备"
 msgid "Input Nodes"
 msgstr "输入设备"
 
-#: ../py/test/pytests/audio_loop/audio_loop.html
+#: ../py/test/pytests/audio_loop_static/audio_loop.html
 msgid "Plug in audio jack dongle"
 msgstr "请放入音源孔测试置具"
 
-#: ../py/test/pytests/audio_loop/audio_loop.html
+#: ../py/test/pytests/audio_loop_static/audio_loop.html
 msgid "Hit s to start loopback test"
 msgstr "请按下s键开始音源回放测试"
 
-#: ../py/test/pytests/audio_loop/audio_loop.js
+#: ../py/test/pytests/audio_loop_static/audio_loop.js
 msgid ""
 "Loopback testing...\n"
 "Success Rate: {successRate}"
@@ -1202,11 +1202,11 @@ msgstr ""
 "音源回放测试中...\n"
 "成功率: {successRate}"
 
-#: ../py/test/pytests/audio_loop/audio_loop.js
+#: ../py/test/pytests/audio_loop_static/audio_loop.js
 msgid "Loopback testing..."
 msgstr "音源回放测试中..."
 
-#: ../py/test/pytests/audio_loop/audio_loop.js
+#: ../py/test/pytests/audio_loop_static/audio_loop.js
 msgid ""
 "Testing Result: Fail\n"
 "Success Rate: {successRate}"
@@ -1214,7 +1214,7 @@ msgstr ""
 "测试结果: 失败\n"
 "成功率: {successRate}"
 
-#: ../py/test/pytests/audio_loop/audio_loop.js
+#: ../py/test/pytests/audio_loop_static/audio_loop.js
 msgid "Testing Result: Success!"
 msgstr "测试结果: 成功!"
 
@@ -1498,22 +1498,22 @@ msgstr "侦测人脸中..."
 msgid "Switching firmware to {target!r}"
 msgstr "切换数据机至{target!r}韧体"
 
-#: ../py/test/pytests/chameleon/chameleon.py
+#: ../py/test/pytests/chameleon.py
 msgid "Please plug in the display to test"
 msgstr "请拔下耳机"
 
-#: ../py/test/pytests/chameleon/chameleon.py
+#: ../py/test/pytests/chameleon.py
 msgid ""
 "Testing DUT {dut_port} port on Chameleon {chameleon_port} port using mode "
 "{mode}..."
 msgstr ""
 "测试 DUT {dut_port} 对 Chameleon {chameleon_port} 外接显示 mode: {mode}..."
 
-#: ../py/test/pytests/chameleon/chameleon.py
+#: ../py/test/pytests/chameleon.py
 msgid "Automated testing on {dut_port} to {chameleon_port} in progress..."
 msgstr "{dut_port} 对 {chameleon_port} 自动测试进行中..."
 
-#: ../py/test/pytests/chameleon/chameleon.py
+#: ../py/test/pytests/chameleon.py
 msgid "Captured images mismatch"
 msgstr "撷取的图片不相符"
 
@@ -1802,31 +1802,31 @@ msgstr "等待待测物正常开机"
 msgid "Flashing {file} to {partition}."
 msgstr "安装 {file} 至 {partition}."
 
-#: ../py/test/pytests/finalize/finalize.py
+#: ../py/test/pytests/finalize.py
 msgid "Build Phase"
 msgstr "生产阶段"
 
-#: ../py/test/pytests/finalize/finalize.py
+#: ../py/test/pytests/finalize.py
 msgid "Write Protection"
 msgstr "写入保护"
 
-#: ../py/test/pytests/finalize/finalize.py
+#: ../py/test/pytests/finalize.py
 msgid "Factory Server"
 msgstr "工厂伺服器"
 
-#: ../py/test/pytests/finalize/finalize.py
+#: ../py/test/pytests/finalize.py
 msgid "Enabled"
 msgstr "启用"
 
-#: ../py/test/pytests/finalize/finalize.py
+#: ../py/test/pytests/finalize.py
 msgid "Disabled"
 msgstr "停用"
 
-#: ../py/test/pytests/finalize/finalize.py
+#: ../py/test/pytests/finalize.py
 msgid "Running preflight tasks to prepare for finalization, please wait..."
 msgstr "正在准备系统以执行最终程序..."
 
-#: ../py/test/pytests/finalize/finalize.py
+#: ../py/test/pytests/finalize.py
 msgid ""
 "Finalizing, please wait.<br>Do not restart the device or terminate this test,"
 "<br>or the device may become unusable."
@@ -1874,14 +1874,6 @@ msgstr "（不变）"
 msgid "Setting HWID (v3): {encoded_string}..."
 msgstr "正在写入 HWID (v3): {encoded_string}..."
 
-#: ../py/test/pytests/keyboard/static/keyboard.html
-msgid "Press keys sequentially from top-left to bottom-right."
-msgstr "请从左上到右下依序按按键"
-
-#: ../py/test/pytests/keyboard/static/keyboard.html
-msgid "Press one key at a time."
-msgstr "一次只能按一个键"
-
 #: ../py/test/pytests/keyboard_backlight.py
 msgid "If the keyboard backlight lights up, press ENTER. "
 msgstr "检查键盘背光是否亮起，是请按ENTER。"
@@ -1894,53 +1886,61 @@ msgstr "检查键盘背光是否熄灭，是请按ENTER。"
 msgid "Expected keycode sequence:"
 msgstr "目标键序："
 
-#: ../py/test/pytests/led/led.py
+#: ../py/test/pytests/keyboard_static/keyboard.html
+msgid "Press keys sequentially from top-left to bottom-right."
+msgstr "请从左上到右下依序按按键"
+
+#: ../py/test/pytests/keyboard_static/keyboard.html
+msgid "Press one key at a time."
+msgstr "一次只能按一个键"
+
+#: ../py/test/pytests/led.py
 msgid "yellow"
 msgstr "黄色"
 
-#: ../py/test/pytests/led/led.py ../py/test/pytests/lightbar.py
+#: ../py/test/pytests/led.py ../py/test/pytests/lightbar.py
 msgid "green"
 msgstr "绿色"
 
-#: ../py/test/pytests/led/led.py ../py/test/pytests/lightbar.py
+#: ../py/test/pytests/led.py ../py/test/pytests/lightbar.py
 msgid "red"
 msgstr "红色"
 
-#: ../py/test/pytests/led/led.py ../py/test/pytests/lightbar.py
+#: ../py/test/pytests/led.py ../py/test/pytests/lightbar.py
 msgid "white"
 msgstr "白色"
 
-#: ../py/test/pytests/led/led.py ../py/test/pytests/lightbar.py
+#: ../py/test/pytests/led.py ../py/test/pytests/lightbar.py
 msgid "blue"
 msgstr "蓝色"
 
-#: ../py/test/pytests/led/led.py
+#: ../py/test/pytests/led.py
 msgid "amber"
 msgstr "琥珀色"
 
-#: ../py/test/pytests/led/led.py
+#: ../py/test/pytests/led.py
 msgid "off"
 msgstr "关闭"
 
-#: ../py/test/pytests/led/led.py
+#: ../py/test/pytests/led.py
 msgid "power LED"
 msgstr "电源 LED"
 
-#: ../py/test/pytests/led/led.py
+#: ../py/test/pytests/led.py
 msgid "battery LED"
 msgstr "电池 LED"
 
-#: ../py/test/pytests/led/led.py
+#: ../py/test/pytests/led.py
 msgid "adapter LED"
 msgstr "电源适配器 LED"
 
-#: ../py/test/pytests/led/led.py
+#: ../py/test/pytests/led.py
 msgid "If the <strong>{name}</strong> is <strong>off</strong>, press ENTER."
 msgstr ""
 "请检查 <strong>{name}</strong> 是否 <strong>关掉</strong> 了，关掉了请按 "
 "ENTER。"
 
-#: ../py/test/pytests/led/led.py
+#: ../py/test/pytests/led.py
 msgid ""
 "If the <strong>{name}</strong> lights up in <strong>{color}</strong>, press "
 "ENTER."
@@ -1948,7 +1948,7 @@ msgstr ""
 "请检查 <strong>{name}</strong> 是否亮 <strong>{color}</strong>，是请按 "
 "ENTER。"
 
-#: ../py/test/pytests/led/led.py
+#: ../py/test/pytests/led.py
 msgid ""
 "<span class=\"sub-title\">Test {test_id}</span><br>Please press number key "
 "according to the <strong>{name}</strong> color"
@@ -1956,23 +1956,23 @@ msgstr ""
 "<span class=\"sub-title\">测试 {test_id}</span><br>请根据 <strong>{name}</"
 "strong> 的颜色按下数字键"
 
-#: ../py/test/pytests/led/led.py
+#: ../py/test/pytests/led.py
 msgid "Result: "
 msgstr "测试结果："
 
-#: ../py/test/pytests/lid_switch/lid_switch.py
+#: ../py/test/pytests/lid_switch.py
 msgid "Demagnetizing lid sensor"
 msgstr "消磁化上盖感应器"
 
-#: ../py/test/pytests/lid_switch/lid_switch.py
+#: ../py/test/pytests/lid_switch.py
 msgid "Open the lid"
 msgstr "请打开上盖"
 
-#: ../py/test/pytests/lid_switch/lid_switch.py
+#: ../py/test/pytests/lid_switch.py
 msgid "Magnetizing lid sensor"
 msgstr "磁化上盖感应器"
 
-#: ../py/test/pytests/lid_switch/lid_switch.py
+#: ../py/test/pytests/lid_switch.py
 msgid "Close then open the lid"
 msgstr "关上接着打开上盖"
 
@@ -2052,14 +2052,14 @@ msgstr "光棒是否为{color}？<br>是请按空白键，不是请按 F 。"
 msgid "Checking memory info..."
 msgstr "正在检查内存大小..."
 
-#: ../py/test/pytests/message/message.py
+#: ../py/test/pytests/message.py
 msgid ""
 "<div>Press <strong>Enter</strong> to continue, or <strong>ESC</strong> if "
 "things are not going right.</div>"
 msgstr ""
 "<div>按<strong>Enter</strong>继续，不正确请按<strong>ESC</strong></div>"
 
-#: ../py/test/pytests/message/message.py
+#: ../py/test/pytests/message.py
 msgid "<div>Press <strong>Enter</strong> to continue.</div>"
 msgstr "<div>按<strong>Enter</strong>继续</div>"
 
@@ -2179,19 +2179,19 @@ msgstr "已经侦测SIM卡卡盘, 请移除SIM卡卡盘"
 msgid "Reading device data from {vpd_section} VPD..."
 msgstr "正在从 {vpd_section} VPD 读机器资料..."
 
-#: ../py/test/pytests/removable_storage/removable_storage.py
+#: ../py/test/pytests/removable_storage.py
 msgid "Testing {device}..."
 msgstr "{device} 检查中..."
 
-#: ../py/test/pytests/removable_storage/removable_storage.py
+#: ../py/test/pytests/removable_storage.py
 msgid "Performing r/w test on {count} {bsize}-byte random blocks..."
 msgstr "执行 {count} 个 {bsize} 字节区块随机读写测试..."
 
-#: ../py/test/pytests/removable_storage/removable_storage.py
+#: ../py/test/pytests/removable_storage.py
 msgid "Performing sequential r/w test of {bsize} bytes..."
 msgstr "执行 {bsize} 字节区块连续读写测试..."
 
-#: ../py/test/pytests/removable_storage/removable_storage.py
+#: ../py/test/pytests/removable_storage.py
 msgid ""
 "Insert {media} drive for read/write test... {extra}<br>WARNING: DATA ON "
 "INSERTED MEDIA WILL BE LOST!"
@@ -2199,19 +2199,19 @@ msgstr ""
 "插入 {media} 存储以进行读写测试... {extra}<br>注意: 插入装置上的资料将会被清"
 "除!"
 
-#: ../py/test/pytests/removable_storage/removable_storage.py
+#: ../py/test/pytests/removable_storage.py
 msgid "Wrong USB side, please flip over {media}."
 msgstr "USB 方向错误，请将 {media} 反转方向..."
 
-#: ../py/test/pytests/removable_storage/removable_storage.py
+#: ../py/test/pytests/removable_storage.py
 msgid "Remove {media} drive..."
 msgstr "提取 {media} 存储..."
 
-#: ../py/test/pytests/removable_storage/removable_storage.py
+#: ../py/test/pytests/removable_storage.py
 msgid "Toggle lock switch and insert {media} drive again..."
 msgstr "切换写保护开关并再次插入 {media} 存储..."
 
-#: ../py/test/pytests/removable_storage/removable_storage.py
+#: ../py/test/pytests/removable_storage.py
 msgid "Remove {media} drive and toggle lock switch..."
 msgstr "提取 {media} 存储并关闭写保护开关..."
 
@@ -2253,15 +2253,15 @@ msgstr "校正中..."
 msgid "Pushing the result..."
 msgstr "储存结果中..."
 
-#: ../py/test/pytests/scan/scan.py
+#: ../py/test/pytests/scan.py
 msgid "The scanned value is empty."
 msgstr "扫描编号是空的。"
 
-#: ../py/test/pytests/scan/scan.py
+#: ../py/test/pytests/scan.py
 msgid "The scanned value \"{value}\" does not match the expected format."
 msgstr "所扫描的编号「{value}」格式不对。"
 
-#: ../py/test/pytests/scan/scan.py
+#: ../py/test/pytests/scan.py
 msgid ""
 "The scanned value \"{value}\" does not match the expected value <span "
 "class=test-engineering-mode-only>\"{expected_value}\"</span>."
@@ -2269,15 +2269,15 @@ msgstr ""
 "所扫描的编号「{value}」不搭配所期望的编号<span class=test-engineering-mode-"
 "only>「{expected_value}」</span>。"
 
-#: ../py/test/pytests/scan/scan.py
+#: ../py/test/pytests/scan.py
 msgid "Writing to VPD. Please wait..."
 msgstr "正在写到 VPD，请稍等..."
 
-#: ../py/test/pytests/scan/scan.py
+#: ../py/test/pytests/scan.py
 msgid "Scan {label}"
 msgstr "扫描{label}"
 
-#: ../py/test/pytests/scan/scan.py
+#: ../py/test/pytests/scan.py
 msgid "Please scan the {label} and press ENTER."
 msgstr "请扫描{label}后按下 ENTER。"
 
@@ -2285,31 +2285,31 @@ msgstr "请扫描{label}后按下 ENTER。"
 msgid "Retry"
 msgstr "重试"
 
-#: ../py/test/pytests/shutdown/shutdown.py
+#: ../py/test/pytests/shutdown.py
 msgid "reboot"
 msgstr "重新启动"
 
-#: ../py/test/pytests/shutdown/shutdown.py
+#: ../py/test/pytests/shutdown.py
 msgid "full reboot"
 msgstr "深度重启"
 
-#: ../py/test/pytests/shutdown/shutdown.py
+#: ../py/test/pytests/shutdown.py
 msgid "halt"
 msgstr "关机"
 
-#: ../py/test/pytests/shutdown/shutdown.py
+#: ../py/test/pytests/shutdown.py
 msgid "System is going to {operation} in {delay} seconds."
 msgstr "系统将在 {delay} 秒后{operation}."
 
-#: ../py/test/pytests/shutdown/shutdown.py
+#: ../py/test/pytests/shutdown.py
 msgid "Remote DUT is performing {operation}, timeout in {delay} seconds."
 msgstr "远端测试装置将于 {delay} 秒内{operation}."
 
-#: ../py/test/pytests/shutdown/shutdown.py
+#: ../py/test/pytests/shutdown.py
 msgid "Verifying system state after {operation}"
 msgstr "{operation}后验证系统状态"
 
-#: ../py/test/pytests/shutdown/shutdown.py
+#: ../py/test/pytests/shutdown.py
 msgid "Shutdown Test ({operation})"
 msgstr "关机测试 ({operation})"
 
@@ -2337,19 +2337,19 @@ msgstr "正在等待装置..."
 msgid "Writing calibration data..."
 msgstr "正在写入校正结果..."
 
-#: ../py/test/pytests/start/start.py
+#: ../py/test/pytests/start.py
 msgid "Enter valid serial number:<br>"
 msgstr "请输入有效的序号:<br>"
 
-#: ../py/test/pytests/start/start.py
+#: ../py/test/pytests/start.py
 msgid "Hit SPACE to start testing..."
 msgstr "按 \"空白键\" 开始测试..."
 
-#: ../py/test/pytests/start/start.py
+#: ../py/test/pytests/start.py
 msgid "Plug in external power to continue."
 msgstr "请插上外接电源以继续。"
 
-#: ../py/test/pytests/start/start.py
+#: ../py/test/pytests/start.py
 msgid ""
 "Factory install process did not complete. Auto-testing stopped."
 "<br><br>Please install the factory test image using factory server<br>rather "
@@ -2358,7 +2358,7 @@ msgstr ""
 "安装过程中失败, 停止自动测试。<br><br>请使用完整的工厂伺服器安装测试程式，"
 "<br>不要直接从 USB 碟开机执行。<br>"
 
-#: ../py/test/pytests/start/start.py
+#: ../py/test/pytests/start.py
 msgid "Initialize some shared data..."
 msgstr "重设旧有共用资料..."
 
@@ -2398,31 +2398,31 @@ msgstr ""
 "请使用触控笔将绿色线段延伸至另一头，<br>不要超出红线区域。<br>按空白键开始测"
 "试; Esc 键标记失败"
 
-#: ../py/test/pytests/summary/summary.py
+#: ../py/test/pytests/summary.py
 msgid "Click or press SPACE to continue"
 msgstr "点击或按空白键继续"
 
-#: ../py/test/pytests/summary/summary.py
+#: ../py/test/pytests/summary.py
 msgid "passed"
 msgstr "良好"
 
-#: ../py/test/pytests/summary/summary.py
+#: ../py/test/pytests/summary.py
 msgid "failed"
 msgstr "不良"
 
-#: ../py/test/pytests/summary/summary.py
+#: ../py/test/pytests/summary.py
 msgid "active"
 msgstr "正在测"
 
-#: ../py/test/pytests/summary/summary.py
+#: ../py/test/pytests/summary.py
 msgid "untested"
 msgstr "未测"
 
-#: ../py/test/pytests/summary/summary.py
+#: ../py/test/pytests/summary.py
 msgid "Unable to proceed, since some previous tests have not passed."
 msgstr "之前所有的测试必须通过才能通过此项目"
 
-#: ../py/test/pytests/summary/summary.py
+#: ../py/test/pytests/summary.py
 msgid "Test Status for {test}:"
 msgstr "{test} 测试结果列表："
 
