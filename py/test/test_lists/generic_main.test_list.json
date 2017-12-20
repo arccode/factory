@@ -6,7 +6,7 @@
     "generic_fft.test_list",
     "generic_grt.test_list"
   ],
-  "label": "Main Test List for a Generic Chromebook.",
+  "label": "Generic Chromebook",
   "options": {
     "skipped_tests": {
       "device.factory.end_SMT": [

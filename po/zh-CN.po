@@ -3182,8 +3182,8 @@ msgid "GRT (Google Required Tests)"
 msgstr "GRT (Google 必要测试项目)"
 
 #: ../py/test/test_lists/generic_main.test_list.json
-msgid "Main Test List for a Generic Chromebook."
-msgstr "Chromebook 通用主要测试项目"
+msgid "Generic Chromebook"
+msgstr "一般 Chromebook 测试"
 
 #: ../py/test/test_lists/generic_rf_station.test_list.json
 msgid "Generic RF Station"
