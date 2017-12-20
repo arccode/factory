@@ -2398,6 +2398,18 @@ msgid "Writing calibration data..."
 msgstr "正在写入校正结果..."
 
 #: ../py/test/pytests/start/start.py
+msgid "Enter valid serial number:<br>"
+msgstr "请输入有效的序号:<br>"
+
+#: ../py/test/pytests/start/start.py
+msgid "Hit SPACE to start testing..."
+msgstr "按 \"空白键\" 开始测试..."
+
+#: ../py/test/pytests/start/start.py
+msgid "Plug in external power to continue."
+msgstr "请插上外接电源以继续。"
+
+#: ../py/test/pytests/start/start.py
 msgid ""
 "Factory install process did not complete. Auto-testing stopped."
 "<br><br>Please install the factory test image using factory server<br>rather "
@@ -2407,20 +2419,8 @@ msgstr ""
 "<br>不要直接从 USB 碟开机执行。<br>"
 
 #: ../py/test/pytests/start/start.py
-msgid "Plug in external power to continue."
-msgstr "请插上外接电源以继续。"
-
-#: ../py/test/pytests/start/start.py
-msgid "Hit SPACE to start testing..."
-msgstr "按 \"空白键\" 开始测试..."
-
-#: ../py/test/pytests/start/start.py
 msgid "Initialize some shared data..."
 msgstr "重设旧有共用资料..."
-
-#: ../py/test/pytests/start/start.py
-msgid "Enter valid serial number:<br>"
-msgstr "请输入有效的序号:<br>"
 
 #: ../py/test/pytests/station_entry.py
 msgid "Start Station Test"

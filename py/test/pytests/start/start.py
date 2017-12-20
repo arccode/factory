@@ -48,7 +48,6 @@ toolkit is properly installed::
 import logging
 import os
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -58,108 +57,16 @@ from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
-from cros.factory.test.test_task import TestTask
-from cros.factory.test.test_task import TestTaskManager
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import log_utils
 
 
-_CSS = """
-.start-font-size {
-  font-size: 2em;
-}
-"""
-
-# Messages for tasks
-_MSG_INSTALL_INCOMPLETE = i18n_test_ui.MakeI18nLabelWithClass(
-    'Factory install process did not complete. Auto-testing stopped.<br><br>'
-    'Please install the factory test image using factory server<br>'
-    'rather than booting from a USB drive.<br>', 'start-font-size test-error')
-_MSG_TASK_POWER = i18n_test_ui.MakeI18nLabelWithClass(
-    'Plug in external power to continue.', 'start-font-size')
-_MSG_TASK_SPACE = i18n_test_ui.MakeI18nLabelWithClass(
-    'Hit SPACE to start testing...', 'start-font-size')
-_MSG_INIT_SHARED_DATA = i18n_test_ui.MakeI18nLabelWithClass(
-    'Initialize some shared data...', 'start-font-size')
-
-# Javascripts and HTML for tasks
 _LSB_FACTORY_PATH = '/usr/local/etc/lsb-factory'
+_AC_CHECK_PERIOD = 0.5
 
 
-class PressSpaceTask(TestTask):
-  """A task to wait for space press event."""
-
-  def __init__(self, test):  # pylint: disable=super-init-not-called
-    self._test = test
-
-  def Run(self):
-    self._test.template.SetState(_MSG_TASK_SPACE)
-    self._test.ui.BindKeyJS(test_ui.SPACE_KEY, 'window.test.pass();')
-
-
-class ExternalPowerTask(TestTask):
-  """A task to wait for external power."""
-  AC_CONNECTED = 1
-  AC_DISCONNECTED = 2
-  AC_CHECK_PERIOD = 0.5
-
-  def __init__(self, test):  # pylint: disable=super-init-not-called
-    self._test = test
-    self._logger = log_utils.NoisyLogger(logging.info)
-
-  def Run(self):
-    self._test.template.SetState(_MSG_TASK_POWER)
-    while not self.CheckEvent():
-      time.sleep(self.AC_CHECK_PERIOD)
-    self.Pass()
-
-  def CheckEvent(self):
-    power_state = self.GetExternalPowerState()
-    self._logger.Log('power state: %s', power_state)
-    Log('power_state', state=power_state)
-    if power_state == self.AC_CONNECTED:
-      return True
-    return False
-
-  def GetExternalPowerState(self):
-    if self._test.dut.power.CheckACPresent():
-      return self.AC_CONNECTED
-    else:
-      return self.AC_DISCONNECTED
-
-
-class FactoryInstallCompleteTask(TestTask):
-  """A task to check if factory install is complete."""
-
-  def __init__(self, test):  # pylint: disable=super-init-not-called
-    self._test = test
-
-  def Run(self):
-    if not os.path.exists(_LSB_FACTORY_PATH):
-      session.console.error('%s is missing', _LSB_FACTORY_PATH)
-      self._test.template.SetState(_MSG_INSTALL_INCOMPLETE)
-      return
-    Log('factory_installed')
-    self.Pass()
-
-
-class InitializeSharedData(TestTask):
-  """Initialize shared data."""
-
-  def __init__(self, test):  # pylint: disable=super-init-not-called
-    self._test = test
-
-  def Run(self):
-    self._test.template.SetState(_MSG_INIT_SHARED_DATA)
-    for key, value in self._test.args.init_shared_data.iteritems():
-      session.console.debug('set_shared_data[%s] = "%s"', key, value)
-      state.set_shared_data(key, value)
-    self.Pass()
-
-
-class StartTest(unittest.TestCase):
+class StartTest(test_ui.TestCaseWithUI):
   """The factory test to start the whole factory test process."""
   ARGS = [
       Arg('press_to_continue', bool, 'Need to press space to continue',
@@ -178,22 +85,52 @@ class StartTest(unittest.TestCase):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self._task_list = []
-    self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
-    self.ui.AppendCSS(_CSS)
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
 
   def runTest(self):
-
     if self.args.init_shared_data:
-      self._task_list.append(InitializeSharedData(self))
+      self.InitializeSharedData()
 
     if self.args.check_factory_install_complete:
-      self._task_list.append(FactoryInstallCompleteTask(self))
+      self.CheckFactoryInstallComplete()
 
     if self.args.require_external_power:
-      self._task_list.append(ExternalPowerTask(self))
-    if self.args.press_to_continue:
-      self._task_list.append(PressSpaceTask(self))
+      self.CheckExternalPower()
 
-    TestTaskManager(self.ui, self._task_list).Run()
+    if self.args.press_to_continue:
+      self.ui.SetState(
+          i18n_test_ui.MakeI18nLabel('Hit SPACE to start testing...'))
+      self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
+
+  def CheckExternalPower(self):
+    logger = log_utils.NoisyLogger(logging.info)
+    self.ui.SetState(
+        i18n_test_ui.MakeI18nLabel('Plug in external power to continue.'))
+
+    while True:
+      ac_present = self.dut.power.CheckACPresent()
+      logger.Log('power state: %s', ac_present)
+      Log('ac_present', state=ac_present)
+      if ac_present:
+        break
+      time.sleep(_AC_CHECK_PERIOD)
+
+  def CheckFactoryInstallComplete(self):
+    if not os.path.exists(_LSB_FACTORY_PATH):
+      session.console.error('%s is missing', _LSB_FACTORY_PATH)
+      self.ui.SetState(
+          i18n_test_ui.MakeI18nLabelWithClass(
+              'Factory install process did not complete. '
+              'Auto-testing stopped.<br><br>'
+              'Please install the factory test image using factory server<br>'
+              'rather than booting from a USB drive.<br>', 'test-error'))
+      # hangs forever.
+      self.WaitTaskEnd()
+    Log('factory_installed')
+
+  def InitializeSharedData(self):
+    self.ui.SetState(
+        i18n_test_ui.MakeI18nLabel('Initialize some shared data...'))
+    for key, value in self.args.init_shared_data.iteritems():
+      session.console.debug('set_shared_data[%s] = "%s"', key, value)
+      state.set_shared_data(key, value)
