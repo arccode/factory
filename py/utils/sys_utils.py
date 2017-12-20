@@ -802,7 +802,7 @@ class VPDTool(object):
       A dictionary in which each key-value pair represents a VPD data entry.
     """
     raw_data = self._spawner.CheckOutput(
-        self._BuildBasicCmd(filename, partition) + ['-l', '--null-terminate'])
+        self._BuildBasicCmd(filename, partition) + ['-l', '--null-terminated'])
     return dict(field.split('=', 1)
                 for field in raw_data.split('\0') if '=' in field)
 

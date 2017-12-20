@@ -516,7 +516,7 @@ class VPDToolTest(unittest.TestCase):
 
   def testGetAllData(self):
     self.spawner.CheckOutput(
-        ['vpd', '-l', '--null-terminate']).AndReturn('aa=bb\0cc==\0')
+        ['vpd', '-l', '--null-terminated']).AndReturn('aa=bb\0cc==\0')
     self.mox.ReplayAll()
 
     self.assertEqual(self.vpd.GetAllData(), {'aa': 'bb', 'cc': '='})
