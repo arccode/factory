@@ -413,10 +413,10 @@ class TestListIterator(object):
         if t.IsSkipped():
           # For test groups, they need retest if their run_if are set, and
           # evaluate to True.
-          # For runnable tests, they need retest if their run_if are not set, or
+          # For leaf tests, they need retest if their run_if are not set, or
           # evaluate to True.
           # (If run_if is not set, default return value of CheckRunIf is True).
-          if self.CheckRunIf(t) and (self._IsRunnableTest(t) or t.run_if):
+          if self.CheckRunIf(t) and (t.IsLeaf() or t.run_if):
             need_retest = True
             break
       if need_retest:

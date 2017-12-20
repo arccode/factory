@@ -517,6 +517,32 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     self.assertEqual(test_list.LookupPath('G').GetState().status,
                      state.TestState.SKIPPED)
 
+  def testSkipInParallelGroup(self):
+    test_list = self._BuildTestList(
+        {
+            'options': {
+                'phase': 'PROTO',
+                'skipped_tests': {'PROTO': ['G.a']},
+            },
+            'tests': [
+                {'inherit': 'TestGroup', 'id': 'G', 'parallel': True,
+                 'subtests': [
+                     {'id': 'a', 'pytest_name': 'a'},
+                     {'id': 'b', 'pytest_name': 'b'},
+                 ]},
+                {'id': 'c', 'pytest_name': 'c'},
+            ]
+        })
+    test_list = self._SetStubStateInstance(test_list)
+    test_list.SetSkippedAndWaivedTests()
+    test_list.LookupPath('G.b').UpdateState(status=state.TestState.PASSED)
+    test_list.LookupPath('c').UpdateState(status=state.TestState.FAILED)
+    self._AssertTestSequence(
+        test_list,
+        ['c'],
+        set_state=False,
+        status_filter=PLAY_BUTTON_STATUS_FILTER)
+
   def testSkippedAndUnset(self):
     test_list = self._BuildTestList(
         {
