@@ -27,6 +27,8 @@ from cros.factory.hwid.v3.database import Database
 from cros.factory.test.l10n import regions
 from cros.factory.test.rules import phase
 from cros.factory.test.rules.privacy import FilterDict
+from cros.factory.test.rules import registration_codes
+from cros.factory.test.rules.registration_codes import RegistrationCode
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import service_utils
@@ -329,35 +331,44 @@ class Gooftool(object):
     logging.info('Management Engine is locked.')
 
   def VerifyVPD(self):
-    """Verify that mandatory VPD values are set properly.
+    """Verify that mandatory VPD values are set properly."""
+    def _VerifyVPDFields(vpd_data, mandatory_fields, deprecated_fields):
+      missing_keys = [key for key in mandatory_fields if key not in vpd_data]
+      if missing_keys:
+        raise Error('Missing mandatory VPD values: %s' % ','.join(missing_keys))
+      bad_keys = [key for key in deprecated_fields if key in vpd_data]
+      if bad_keys:
+        raise Error('Deprecated VPD values found: %s' % ','.join(bad_keys))
 
-    Returns:
-      A dictionary containing verified mandatory fields, for verification.
-    """
     ro_vpd = self._vpd.GetAllData(partition=self._vpd.RO_PARTITION)
+    rw_vpd = self._vpd.GetAllData(partition=self._vpd.RW_PARTITION)
 
-    mandatory_fields = [
-        'serial_number', 'region',
-    ]
-    deprecated_fields = [
-        # Region fields (deprecated by single 'region').
-        'initial_locale', 'initial_timezone', 'keyboard_layout',
-        # Platform and branding fields (deprecated by mosys command).
-        'customization_id', 'rlz_brand_code', 'model',
-    ]
-    missing_keys = [key for key in mandatory_fields if key not in ro_vpd]
-    if missing_keys:
-      raise Error('Missing mandatory VPD values: %s' % ','.join(missing_keys))
-    bad_keys = [key for key in deprecated_fields if key in ro_vpd]
-    if bad_keys:
-      raise Error('Deprecated VPD values found: %s' % ','.join(bad_keys))
+    _VerifyVPDFields(
+        ro_vpd,
+        mandatory_fields=['serial_number', 'region'],
+        deprecated_fields=[
+            # Region fields (deprecated by single 'region').
+            'initial_locale', 'initial_timezone', 'keyboard_layout',
+            # Platform and branding fields (deprecated by mosys command).
+            'customization_id', 'rlz_brand_code', 'model'])
+
+    _VerifyVPDFields(
+        rw_vpd, mandatory_fields=['ubind_attribute', 'gbind_attribute'],
+        deprecated_fields=[])
 
     # Check known value contents.
     region = ro_vpd['region']
     if region not in regions.REGIONS:
       raise ValueError('Unknown region: "%s".' % region)
 
-    return dict((k, v) for k, v in ro_vpd.iteritems() if k in mandatory_fields)
+    for type_prefix in ['UNIQUE', 'GROUP']:
+      vpd_field_name = type_prefix[0].lower() + 'bind_attribute'
+      type_name = getattr(RegistrationCode.Type, type_prefix + '_CODE')
+      try:
+        registration_codes.CheckRegistrationCode(
+            rw_vpd[vpd_field_name], type=type_name, device=self._project)
+      except registration_codes.RegistrationCodeException as e:
+        raise ValueError('%s is invalid: %r' % (vpd_field_name, e))
 
   def VerifyReleaseChannel(self, enforced_channels=None):
     """Verify that release image channel is correct.

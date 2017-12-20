@@ -250,40 +250,6 @@ class HWIDv3UtilsTest(unittest.TestCase):
         self.db, 'CHROMEBOOK D9I-F9U', self.probed_results, self.vpd, False,
         phase.DVT)
 
-    # Check for missing RO VPD.
-    vpd = copy.deepcopy(self.vpd)
-    del vpd['ro']['serial_number']
-    self.assertRaisesRegexp(
-        rule.RuleException, r"KeyError\('serial_number',\)",
-        hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F9U',
-        self.probed_results, vpd, False, phase.PVT)
-
-    # Check for invalid RO VPD.
-    vpd = copy.deepcopy(self.vpd)
-    vpd['ro']['region'] = 'invalid_region'
-    self.assertRaisesRegexp(
-        rule.RuleException,
-        r"Invalid VPD value 'invalid_region' of 'region'",
-        hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F9U',
-        self.probed_results, vpd, False, phase.PVT)
-
-    # Check for missing RW VPD.
-    vpd = copy.deepcopy(self.vpd)
-    del vpd['rw']['gbind_attribute']
-    self.assertRaisesRegexp(
-        rule.RuleException, r"KeyError\('gbind_attribute',\)",
-        hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F9U',
-        self.probed_results, vpd, False, phase.PVT)
-
-    # Check for invalid RW VPD.
-    vpd = copy.deepcopy(self.vpd)
-    vpd['rw']['gbind_attribute'] = 'invalid_gbind_attribute'
-    self.assertRaisesRegexp(
-        rule.RuleException,
-        r"Invalid registration code 'invalid_gbind_attribute'",
-        hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F9U',
-        self.probed_results, vpd, False, phase.PVT)
-
     probed_results = copy.deepcopy(self.probed_results)
     probed_results['found_probe_value_map']['audio_codec'][1] = {
         'compact_str': 'HDMI 2'}

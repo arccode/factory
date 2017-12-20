@@ -63,6 +63,19 @@ _DATABASE_BUILDER_COMMON_ARGS = [
            help='Supported chassis identifiers')
 ]
 
+_VPD_COMMON_ARGS = [
+    CmdArg('--run-vpd', action='store_true',
+           help=('Obtain the vpd data from the device before generating '
+                 'the HWID string.  Also see --vpd-data-file for more '
+                 'information.')),
+    CmdArg('--vpd-data-file', type=str, default=None,
+           help=('Obtain the vpd data by reading the specified '
+                 'json-formatted file before generating the HWID string.  '
+                 'If some rules in the HWID database need VPD values, '
+                 'either --run-vpd or --vpd-data-file should be '
+                 'specified.')),
+]
+
 
 class Arg(object):
   """A simple class to store arguments passed to the add_argument method of
@@ -139,21 +152,26 @@ def UpdateDatabaseWrapper(options):
 @Command(
     'generate',
     CmdArg('--probed-results-file', default=None,
-           help=('a file with probed results.\n'
-                 '(required if not running on a DUT)')),
+           help=('A file with probed results.\n'
+                 '(Required if not running on a DUT)')),
     CmdArg('--device-info-file', default=None,
-           help=('a file with device info.\n'
-                 '(required if not running on a DUT.)\n'
+           help=('A file with device info.\n'
+                 '(Required if not running on a DUT.)\n'
                  'example content of this file:\n'
                  '    component.antenna: ACN\n'
                  '    component.has_cellular: True\n'
                  '    component.keyboard: US_API\n')),
     CmdArg('--rma-mode', default=False, action='store_true',
-           help='whether to enable RMA mode'),
+           help='Whether to enable RMA mode.'),
     CmdArg('--json-output', default=False, action='store_true',
-           help='whether to dump result in JSON format'))
+           help='Whether to dump result in JSON format.'),
+    *_VPD_COMMON_ARGS)
 def GenerateHWIDWrapper(options):
   """Generates HWID."""
+  if options.run_vpd and options.vpd_data_file:
+    raise ValueError('The arguments --run-vpd and --vpd-data-file cannot be '
+                     'set at the same time')
+
   probed_results = hwid_utils.GetProbedResults(options.probed_results_file)
 
   # Select right device info (from file or shopfloor).
@@ -168,7 +186,7 @@ def GenerateHWIDWrapper(options):
   else:
     device_info = device_data.GetAllDeviceData()
 
-  vpd = hwid_utils.GetVPD(probed_results)
+  vpd = hwid_utils.GetVPDData(options.run_vpd, options.vpd_data_file)
 
   verbose_output = {
       'device_info': device_info,
@@ -177,7 +195,7 @@ def GenerateHWIDWrapper(options):
   }
   logging.debug(yaml.dump(verbose_output, default_flow_style=False))
   hwid = hwid_utils.GenerateHWID(options.database, probed_results, device_info,
-                                 vpd, options.rma_mode)
+                                 rma_mode=options.rma_mode, vpd=vpd)
   if options.json_output:
     print json.dumps({
         'encoded_string': hwid.encoded_string,
@@ -208,14 +226,16 @@ def DecodeHWIDWrapper(options):
            help=('a file with probed results.\n'
                  '(required if not running on a DUT)')),
     CmdArg('--rma-mode', default=False, action='store_true',
-           help='whether to enable RMA mode.'))
+           help='whether to enable RMA mode.'),
+    *_VPD_COMMON_ARGS)
 def VerifyHWIDWrapper(options):
   """Verifies HWID."""
   encoded_string = options.hwid if options.hwid else hwid_utils.GetHWIDString()
   probed_results = hwid_utils.GetProbedResults(options.probed_results_file)
-  vpd = hwid_utils.GetVPD(probed_results)
-  hwid_utils.VerifyHWID(options.database, encoded_string, probed_results, vpd,
-                        options.rma_mode, options.phase)
+  vpd = hwid_utils.GetVPDData(options.run_vpd, options.vpd_data_file)
+  hwid_utils.VerifyHWID(options.database, encoded_string, probed_results,
+                        vpd=vpd, rma_mode=options.rma_mode,
+                        current_phase=options.phase)
   # No exception raised. Verification was successful.
   print 'Verification passed.'
 

@@ -19,6 +19,7 @@ from cros.factory.hwid.v3 import encoder
 from cros.factory.hwid.v3 import rule
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.utils import process_utils
+from cros.factory.utils import json_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
@@ -47,7 +48,7 @@ def UpdateDatabase(database_path, probed_results, old_db, image_id=None,
   db_builder.Render(database_path)
 
 
-def GenerateHWID(db, probed_results, device_info, vpd, rma_mode):
+def GenerateHWID(db, probed_results, device_info, vpd=None, rma_mode=False):
   """Generates a HWID v3 from the given data.
 
   The HWID is generated based on the given device info and probed results. If
@@ -61,8 +62,10 @@ def GenerateHWID(db, probed_results, device_info, vpd, rma_mode):
         values. The format is device-specific and the meanings of each key and
         value vary from device to device. The valid keys and values should be
         specified in project-specific component database.
-    vpd: A dict of RO and RW VPD values.
-    rma_mode: Whether to verify components status in RMA mode.
+    vpd: None or a dict of RO and RW VPD values.  This argument should be set
+        if some rules in the HWID database rely on the VPD values.
+    rma_mode: Whether to verify components status in RMA mode.  Defaults to
+        False.
 
   Returns:
     The generated HWID object.
@@ -74,7 +77,10 @@ def GenerateHWID(db, probed_results, device_info, vpd, rma_mode):
   hwid = encoder.Encode(db, device_bom, mode=hwid_mode, skip_check=True)
 
   # Update unprobeable components with rules defined in db before verification.
-  context = rule.Context(hwid=hwid, device_info=device_info, vpd=vpd)
+  context_args = dict(hwid=hwid, device_info=device_info)
+  if vpd is not None:
+    context_args['vpd'] = vpd
+  context = rule.Context(**context_args)
   db.rules.EvaluateRules(context, namespace='device_info.*')
   hwid.VerifyComponentStatus()
   return hwid
@@ -123,7 +129,7 @@ def ParseDecodedHWID(hwid):
           'components': dict(output_components)}
 
 
-def VerifyHWID(db, encoded_string, probed_results, vpd, rma_mode,
+def VerifyHWID(db, encoded_string, probed_results, vpd=None, rma_mode=False,
                current_phase=None):
   """Verifies the given encoded HWID v3 string against the component db.
 
@@ -143,7 +149,8 @@ def VerifyHWID(db, encoded_string, probed_results, vpd, rma_mode,
     db: A Database object to be used.
     encoded_string: An encoded HWID string to test.
     probed_results: A dict containing the probed results to be used.
-    vpd: A dict of RO and RW VPD values.
+    vpd: None or a dict of RO and RW VPD values.  This argument should be set
+        if some rules in the HWID database rely on the VPD values.
     rma_mode: True for RMA mode to allow deprecated components. Defaults to
         False.
     current_phase: The current phase, for phase checks.  If None is
@@ -158,20 +165,11 @@ def VerifyHWID(db, encoded_string, probed_results, vpd, rma_mode,
   hwid.VerifyProbeResult(yaml.dump(probed_results))
   hwid.VerifyComponentStatus(current_phase=current_phase)
   hwid.VerifyPhase(current_phase)
-  context = rule.Context(hwid=hwid, vpd=vpd)
+  context_args = dict(hwid=hwid)
+  if vpd is not None:
+    context_args['vpd'] = vpd
+  context = rule.Context(**context_args)
   db.rules.EvaluateRules(context, namespace='verify.*')
-
-  default_rules = [
-      {'name': 'verify.vpd.ro',
-       'evaluate': ['Assert(ValidVPDValue("ro", "%s"))' % field for field in
-                    ('region', 'serial_number')]},
-      {'name': 'verify.vpd.rw',
-       'evaluate': ['CheckRegistrationCode(GetVPDValue("rw", "%s"))' % field
-                    for field in ('gbind_attribute', 'ubind_attribute')]},
-  ]
-  executed_rule_names = [r.name for r in db.rules.rule_list]
-  new_rules = [r for r in default_rules if r['name'] not in executed_rule_names]
-  database.Rules(new_rules).EvaluateRules(context)
 
 
 def VerifyComponents(db, probed_results, component_list):
@@ -405,6 +403,30 @@ def GetDeviceInfo(infile):
   return device_info
 
 
+def GetVPDData(run_vpd=False, vpd_data_file=None):
+  """Get the vpd data for the context instance.
+
+  Args:
+    run_vpd: Whether to run `vpd` command-line tool to obtain the vpd data.
+    vpd_data_file: Obtain the vpd data by reading the specified file if set.
+
+  Returns:
+    A dict of vpd data.  Empty if neither `run_vpd` nor `vpd_data_file` are
+        specified.
+  """
+  assert not (run_vpd and vpd_data_file)
+  if run_vpd:
+    vpd_tool = sys_utils.VPDTool()
+    return {
+        'ro': vpd_tool.GetAllData(partition=vpd_tool.RO_PARTITION),
+        'rw': vpd_tool.GetAllData(partition=vpd_tool.RW_PARTITION)
+    }
+  elif vpd_data_file:
+    return json_utils.LoadFile(vpd_data_file)
+  else:
+    return {'ro': {}, 'rw': {}}
+
+
 def GetHWIDString():
   """Get HWID string from GBB on a DUT."""
   if sys_utils.InChroot():
@@ -413,32 +435,6 @@ def GetHWIDString():
   gbb_result = process_utils.CheckOutput(
       ['futility', 'gbb', '-g', '--hwid', '%s' % main_fw_file])
   return re.findall(r'hardware_id:(.*)', gbb_result)[0].strip()
-
-
-def GetVPD(probed_results):
-  """Strips VPD from the given probed results and returns the VPD.
-
-  Args:
-    probed_results: A dict of probed results. On a DUT, run
-
-            gooftool probe --include_vpd
-
-        to get the probed results with VPD values on it.
-
-  Returns:
-    A dict of RO and RW VPD values.
-  """
-  vpd = {'ro': {}, 'rw': {}}
-  if not probed_results.get('found_probe_value_map'):
-    return vpd
-
-  for k, v in probed_results['found_probe_value_map'].items():
-    # Use items(), not iteritems(), since we will be modifying the dict in the
-    # loop.
-    match = re.match(r'^vpd\.(ro|rw)$', k)
-    if match:
-      vpd[match.group(1)] = v
-  return vpd
 
 
 def ComputeDatabaseChecksum(file_name):

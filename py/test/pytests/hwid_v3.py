@@ -15,18 +15,25 @@ When ``generate`` is ``True``, this test will do the following:
 
 1. If ``enable_factory_server`` is ``True``, it downloads latest HWID database
    from Google Factory Server.
-2. Probe components on the device, which is equivalent to executing ``gooftool
-   probe --include_vpd`` in shell.
+2. Probe components on the device, which is equivalent to executing
+   ``gooftool probe`` in shell.
 3. Get device data from ``device_data`` module.
 4. Generate HWID by command ``hwid generate --probed-results-file
-   <probed-results> --device-info-file <device-info> --json-output``.
+   <probed-results> --device-info-file <device-info>
+   [--run-vpd|--vpd-data-file <path>] --json-output``.
 5. Verify generated HWID by ``hwid verify --probed-results-file <probed-results>
-   --phase <phase>``.
+   --phase <phase> [--run-vpd|--vpd-data-file <path>]``.
 6. Write HWID to GBB by ``hwid write <generated-hwid>``.
 
 If ``generate`` is ``False``, then instead of running ``hwid generate`` in step
 4, it will just use ``hwid read`` to read saved HWID from the device.  And step
 6 will be skipped.
+
+If ``vpd_data_file`` is set to a string of ``<path>``, the vpd-related
+arguments for ``hwid`` tool will be ``--vpd-data-file <path>``; otherwise if
+``run_vpd`` is ``True``, the vpd-related arguments for ``hwid`` tool will be
+``--run-vpd``.  Note that ``run_vpd=True`` has no effect if ``vpd_data_file``
+is set.
 
 Dependency
 ----------
@@ -79,7 +86,7 @@ OVERRIDE_PROJECT_PATH = os.path.join(
     common.DEFAULT_HWID_DATA_PATH,
     'OVERRIDE_PROJECT')
 # OVERRIDE_PROBED_RESULTS should be generated with:
-#    `gooftool probe --include_vpd`
+#    `gooftool probe`
 # to include all the VPD in it.
 OVERRIDE_PROBED_RESULTS_PATH = os.path.join(
     common.DEFAULT_HWID_DATA_PATH,
@@ -95,6 +102,12 @@ class HWIDV3Test(test_ui.TestCaseWithUI):
       Arg('enable_factory_server', bool,
           'Update hwid data from factory server.',
           default=True),
+      Arg('run_vpd', bool,
+          'Run the `vpd` commandline tool to get the vpd data.',
+          default=False),
+      Arg('vpd_data_file', str,
+          'Read the specified file to get the vpd data.',
+          default=None),
       Arg('rma_mode', bool,
           'Enable rma_mode, do not check for deprecated components.',
           default=False),
@@ -156,13 +169,19 @@ class HWIDV3Test(test_ui.TestCaseWithUI):
       yaml.dump(device_info, open(f, 'w'))
       self._dut.SendFile(f, device_info_file)
 
+    vpd_args = []
+    if self.args.vpd_data_file:
+      vpd_args += ['--vpd-data-file', self.args.vpd_data_file]
+    elif self.args.run_vpd:
+      vpd_args.append('--run-vpd')
+
     if self.args.generate:
       self.ui.SetState(
           i18n_test_ui.MakeI18nLabel('Generating HWID (v3)...'))
       generate_cmd = ['hwid', 'generate',
                       '--probed-results-file', probed_results_file,
                       '--device-info-file', device_info_file,
-                      '--json-output'] + project_arg
+                      '--json-output'] + project_arg + vpd_args
       if self.args.rma_mode:
         generate_cmd += ['--rma-mode']
       if not self.args.verify_checksum:
@@ -197,7 +216,7 @@ class HWIDV3Test(test_ui.TestCaseWithUI):
 
     verify_cmd = ['hwid', 'verify',
                   '--probed-results-file', probed_results_file,
-                  '--phase', str(phase.GetPhase())] + project_arg
+                  '--phase', str(phase.GetPhase())] + project_arg + vpd_args
     if self.args.rma_mode:
       verify_cmd += ['--rma-mode']
     if not self.args.verify_checksum:

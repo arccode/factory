@@ -150,6 +150,9 @@ class Finalize(test_ui.TestCaseWithUI):
       Arg('enable_factory_server', bool,
           'Perform factory server operations: update HWID data and flush event '
           'logs.', default=True),
+      Arg('hwid_need_vpd', bool,
+          'Whether the HWID validation process needs the vpd data.',
+          default=False),
       Arg('rma_mode', bool,
           'Enable rma_mode, do not check for deprecated components.',
           default=False),
@@ -326,6 +329,8 @@ class Finalize(test_ui.TestCaseWithUI):
 
     command += ' --upload_method "%s"' % upload_method
     command += ' --add_file "%s"' % self.test_states_path
+    if self.args.hwid_need_vpd:
+      command += ' --hwid-run-vpd'
     if self.args.rma_mode:
       command += ' --rma_mode'
       logging.info('Using RMA mode. Accept deprecated components')

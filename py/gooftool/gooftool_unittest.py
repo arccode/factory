@@ -147,6 +147,18 @@ class UtilTest(unittest.TestCase):
 class GooftoolTest(unittest.TestCase):
   """Unit test for Gooftool."""
 
+  _SIMPLE_VALID_RO_VPD_DATA = {
+      'serial_number':'A1234',
+      'region': 'us',
+  }
+
+  _SIMPLE_VALID_RW_VPD_DATA = {
+      'gbind_attribute': ('=CjAKIP______TESTING_______-rhGkyZUn_zbTOX'
+                          '_9OQI_3EAAaCmNocm9tZWJvb2sQouDUgwQ='),
+      'ubind_attribute': ('=CjAKIP______TESTING_______-pcjzxZ-RLS7_mk'
+                          'oo4HAAaEAEaCmNocm9tZWJvb2sQjd7I8w0='),
+  }
+
   def setUp(self):
     self.mox = mox.Mox()
 
@@ -369,37 +381,55 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool.VerifyWPSwitch()
     self.assertRaises(Error, self._gooftool.VerifyWPSwitch)
 
-  def _SetupROVPDMocks(self, ro_vpd):
-    """Set up mocks for ro-vpd related tests.
+  def _SetupVPDMocks(self, ro=None, rw=None):
+    """Set up mocks for vpd related tests.
 
     Args:
-      ro_vpd: The dictionary to use for the RO VPD.
+      ro: The dictionary to use for the RO VPD if set.
+      rw: The dictionary to use for the RW VPD if set.
     """
-    self._gooftool._vpd.GetAllData(
-        partition=VPDTool.RO_PARTITION).AndReturn(ro_vpd)
+    if ro is not None:
+      self._gooftool._vpd.GetAllData(
+          partition=VPDTool.RO_PARTITION).InAnyOrder().AndReturn(ro)
+    if rw is not None:
+      self._gooftool._vpd.GetAllData(
+          partition=VPDTool.RW_PARTITION).InAnyOrder().AndReturn(rw)
 
   def testVerifyVPD_AllValid(self):
-    self._SetupROVPDMocks(dict(serial_number='A1234', region='us'))
+    self._SetupVPDMocks(ro=self._SIMPLE_VALID_RO_VPD_DATA,
+                        rw=self._SIMPLE_VALID_RW_VPD_DATA)
     self.mox.ReplayAll()
-    self.assertEquals(dict(serial_number='A1234', region='us'),
-                      self._gooftool.VerifyVPD())
+    self._gooftool.VerifyVPD()
 
   def testVerifyVPD_NoRegion(self):
-    self._SetupROVPDMocks(dict(serial_number='A1234'))
+    ro_vpd_value = self._SIMPLE_VALID_RO_VPD_DATA.copy()
+    del ro_vpd_value['region']
+    self._SetupVPDMocks(ro=ro_vpd_value, rw=self._SIMPLE_VALID_RW_VPD_DATA)
     self.mox.ReplayAll()
     # Should fail, since region is missing.
     self.assertRaisesRegexp(Error, 'Missing mandatory VPD values: region',
                             self._gooftool.VerifyVPD)
 
   def testVerifyVPD_InvalidRegion(self):
-    self._SetupROVPDMocks(dict(serial_number='A1234', region='nonexist'))
+    ro_vpd_value = self._SIMPLE_VALID_RO_VPD_DATA.copy()
+    ro_vpd_value['region'] = 'nonexist'
+    self._SetupVPDMocks(ro=ro_vpd_value, rw=self._SIMPLE_VALID_RW_VPD_DATA)
     self.mox.ReplayAll()
     self.assertRaisesRegexp(ValueError, 'Unknown region: "nonexist".',
                             self._gooftool.VerifyVPD)
 
+  def testVerifyVPD_InvalidRegistrationCode(self):
+    rw_vpd_value = self._SIMPLE_VALID_RW_VPD_DATA.copy()
+    rw_vpd_value['gbind_attribute'] = 'badvalue'
+    self._SetupVPDMocks(ro=self._SIMPLE_VALID_RO_VPD_DATA, rw=rw_vpd_value)
+    self.mox.ReplayAll()
+    self.assertRaisesRegexp(
+        ValueError, 'gbind_attribute is invalid:', self._gooftool.VerifyVPD)
+
   def testVerifyVPD_DeprecatedValues(self):
-    self._SetupROVPDMocks(dict(serial_number='A1234', region='us',
-                               initial_locale='en-US'))
+    ro_vpd_value = self._SIMPLE_VALID_RO_VPD_DATA.copy()
+    ro_vpd_value['initial_locale'] = 'en-US'
+    self._SetupVPDMocks(ro=ro_vpd_value, rw=self._SIMPLE_VALID_RW_VPD_DATA)
     self.mox.ReplayAll()
     self.assertRaisesRegexp(Error,
                             'Deprecated VPD values found: initial_locale',
@@ -490,7 +520,7 @@ class GooftoolTest(unittest.TestCase):
 
     # Stub data from VPD for zh.
     self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
-    self._SetupROVPDMocks(dict(region='tw'))
+    self._SetupVPDMocks(ro=dict(region='tw'))
 
     f = MockFile()
     f.read = lambda: 'ja\nzh\nen'
@@ -511,7 +541,7 @@ class GooftoolTest(unittest.TestCase):
 
     # Stub data from VPD for zh.
     self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
-    self._SetupROVPDMocks(dict(region='tw'))
+    self._SetupVPDMocks(ro=dict(region='tw'))
 
     f = MockFile()
     f.read = lambda: ''
@@ -537,7 +567,7 @@ class GooftoolTest(unittest.TestCase):
 
     # Stub data from VPD for en.
     self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
-    self._SetupROVPDMocks(dict(region='us'))
+    self._SetupVPDMocks(ro=dict(region='us'))
 
     f = MockFile()
     # Stub for multiple available locales in the firmware bitmap, but missing
@@ -557,7 +587,7 @@ class GooftoolTest(unittest.TestCase):
 
     # VPD has no locale data.
     self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
-    self._SetupROVPDMocks({})
+    self._SetupVPDMocks(ro={})
 
     self.mox.ReplayAll()
     self.assertRaises(Error, self._gooftool.SetFirmwareBitmapLocale)

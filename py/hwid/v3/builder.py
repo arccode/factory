@@ -228,7 +228,7 @@ class DatabaseBuilder(object):
   def _BuildEmptyDatabase(project):
     return OrderedDict([
         (DB_KEY.checksum, None),
-        (DB_KEY.project, project),
+        (DB_KEY.project, project.upper()),
         (DB_KEY.encoding_patterns, {0: 'default'}),
         (DB_KEY.image_id, OrderedDict()),
         (DB_KEY.pattern, []),

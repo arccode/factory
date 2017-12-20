@@ -140,6 +140,16 @@ _hwid_cmd_arg = CmdArg(
     '--hwid', metavar='HWID',
     help='HWID to verify (instead of the currently set HWID of this system).')
 
+_hwid_run_vpd_cmd_arg = CmdArg(
+    '--hwid-run-vpd', action='store_true',
+    help=('Specify the hwid utility to obtain the vpd data by running the '
+          '`vpd` commandline tool.'))
+
+_hwid_vpd_data_file_cmd_arg = CmdArg(
+    '--hwid-vpd-data-file', metavar='FILE.json', type=str, default=None,
+    help=('Specify the hwid utility to obtain the vpd data from the specified '
+          'file.'))
+
 _rma_mode_cmd_arg = CmdArg(
     '--rma_mode', action='store_true',
     help='Enable RMA mode, do not check for deprecated components.')
@@ -463,6 +473,8 @@ def WipeInit(options):
          _project_cmd_arg,
          _probe_results_cmd_arg,
          _hwid_cmd_arg,
+         _hwid_run_vpd_cmd_arg,
+         _hwid_vpd_data_file_cmd_arg,
          _rma_mode_cmd_arg,
          _cros_core_cmd_arg,
          _chromebox_cmd_arg,
@@ -656,6 +668,8 @@ def UploadReport(options):
          _add_file_cmd_arg,
          _probe_results_cmd_arg,
          _hwid_cmd_arg,
+         _hwid_run_vpd_cmd_arg,
+         _hwid_vpd_data_file_cmd_arg,
          _rma_mode_cmd_arg,
          _cros_core_cmd_arg,
          _chromebox_cmd_arg,
@@ -722,6 +736,8 @@ def Finalize(options):
          _probe_results_cmd_arg,
          _hwdb_path_cmd_arg,
          _hwid_cmd_arg,
+         _hwid_run_vpd_cmd_arg,
+         _hwid_vpd_data_file_cmd_arg,
          _rma_mode_cmd_arg)
 def VerifyHWID(options):
   """A simple wrapper that calls out to HWID utils to verify version 3 HWID.
@@ -735,12 +751,13 @@ def VerifyHWID(options):
     probed_results = yaml.load(file_utils.ReadFile(options.probe_results))
   else:
     probed_results = GetGooftool(options).Probe()
-  vpd = hwid_utils.GetVPD(probed_results)
+
+  vpd = hwid_utils.GetVPDData(options.hwid_run_vpd, options.hwid_vpd_data_file)
 
   event_log.Log('probed_results', probed_results=FilterDict(probed_results))
-  event_log.Log('vpd', vpd=FilterDict(vpd))
+  event_log.Log('vpd', vpd=FilterDict(vpd) if vpd is None else None)
 
-  hwid_utils.VerifyHWID(db, encoded_string, probed_results, vpd,
+  hwid_utils.VerifyHWID(db, encoded_string, probed_results, vpd=vpd,
                         rma_mode=options.rma_mode)
 
   event_log.Log('verified_hwid', hwid=encoded_string)

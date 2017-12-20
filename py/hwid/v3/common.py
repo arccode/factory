@@ -48,14 +48,14 @@ def ProbeProject():
   """
   try:
     project = process_utils.CheckOutput(
-        ['mosys', 'platform', 'model']).strip().upper()
+        ['mosys', 'platform', 'model']).strip().lower()
     if project:
       return project
 
   except subprocess.CalledProcessError:
     pass
 
-  return cros_board_utils.BuildBoard().short_name.upper()
+  return cros_board_utils.BuildBoard().short_name
 
 
 def GetHWIDBundleName(project=None):

@@ -248,6 +248,9 @@ def GetVPDValue(section, key):
 def ValidVPDValue(section, key):
   """A wrapper method to verify VPD value.
 
+  This rule is deprecated, please verify the VPD values with another pytest or
+  run `gooftool verify_vpd`.
+
   Args:
     section: The section of VPD to read value from. ('ro' or 'rw')
     key: The key of the VPD value to get.
@@ -255,6 +258,7 @@ def ValidVPDValue(section, key):
   Raises:
     HWIDException if the VPD value is invalid.
   """
+  GetLogger().Warning('This rule is deprecated.')
   value = GetVPDValue(section, key)
   valid_values = KNOWN_VPD_FIELD_DATA.get(key, None)
   if (valid_values and value not in valid_values) or (not value):
@@ -268,6 +272,9 @@ def ValidVPDValue(section, key):
 def CheckRegistrationCode(code, type=None, device=None):
   """A wrapper method to verify registration code.
 
+  This rule is deprecated, please verify the registration code with another
+  pytest or run `gooftool verify_vpd`.
+
   Args:
     code: The registration code to verify.
     type: The type of code required.  This may be a member of the
@@ -278,6 +285,7 @@ def CheckRegistrationCode(code, type=None, device=None):
   Raises:
     RegistrationCodeException if the code is invalid.
   """
+  GetLogger().Warning('This rule is deprecated.')
   if type and type not in RegistrationCode.Type:
     if type in ['user', 'unique']:
       type = RegistrationCode.Type.UNIQUE_CODE

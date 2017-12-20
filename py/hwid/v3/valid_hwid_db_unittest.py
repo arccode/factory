@@ -192,8 +192,8 @@ class ValidHWIDDBsTest(unittest.TestCase):
     rma_mode = sample_dict.get('rma_mode')
 
     def _Encode():
-      hwid = hwid_utils.GenerateHWID(db, probe_results, device_info, vpd,
-                                     rma_mode)
+      hwid = hwid_utils.GenerateHWID(db, probe_results, device_info,
+                                     vpd=vpd, rma_mode=rma_mode)
       # Test all rules.
       db.rules.EvaluateRules(Context(hwid=hwid, vpd=vpd,
                                      device_info=device_info))
