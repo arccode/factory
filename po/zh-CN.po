@@ -2041,12 +2041,12 @@ msgid "Hit \"space\" to begin..."
 msgstr "按 \"空白键\" 开始测试..."
 
 #: ../py/test/pytests/lightbar.py
-msgid "Is the lightbar {color}?<br>Press SPACE if yes, \"f\" if no."
-msgstr "光棒是否为{color}？<br>是请按空白键，不是请按 f 。"
-
-#: ../py/test/pytests/lightbar.py
 msgid "dark"
 msgstr "全暗"
+
+#: ../py/test/pytests/lightbar.py
+msgid "Is the lightbar {color}?<br>Press SPACE if yes, \"F\" if no."
+msgstr "光棒是否为{color}？<br>是请按空白键，不是请按 F 。"
 
 #: ../py/test/pytests/memory_size.py
 msgid "Checking memory info..."
