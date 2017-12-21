@@ -224,9 +224,9 @@ class UmpireConfig(dict):
         # As config dict has multi-layer dict, deepcopy is necessary.
         config = copy.deepcopy(config)
       else:
-        config = json_utils.LoadStr(config)
+        config = json_utils.LoadStr(config, convert_to_str=False)
     else:
-      config = json_utils.LoadFile(file_path)
+      config = json_utils.LoadFile(file_path, convert_to_str=False)
     super(UmpireConfig, self).__init__(config)
 
     self.bundle_map = {}

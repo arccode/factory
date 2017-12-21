@@ -25,6 +25,7 @@ from cros.factory.hwid.v3.rule import (
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.test.rules import phase
 from cros.factory.test.rules.registration_codes import RegistrationCodeException
+from cros.factory.utils import json_utils
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
@@ -34,9 +35,8 @@ class HWIDRuleTest(unittest.TestCase):
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
-    self.results = [
-        yaml.dump(result) for result in yaml.load_all(open(os.path.join(
-            _TEST_DATA_PATH, 'test_probe_result.yaml')).read())]
+    self.results = json_utils.LoadFile(
+        os.path.join(_TEST_DATA_PATH, 'test_probe_result.json'))
     bom = self.database.ProbeResultToBOM(self.results[0])
     bom = self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'dram': 'dram_0',

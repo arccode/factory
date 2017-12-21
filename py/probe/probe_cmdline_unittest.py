@@ -9,7 +9,6 @@ import os
 import shutil
 import tempfile
 import unittest
-import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import file_utils
@@ -97,22 +96,6 @@ class ProbeCmdTest(unittest.TestCase):
     cmd = [CMD_PATH, '--output-file', '-',
            'probe', '--config-file', statement_path]
     results = json.loads(process_utils.CheckOutput(cmd))
-    self.assertEquals(expected, results)
-
-    # Output legacy format.
-    expected = {
-        'found_probe_value_map': {
-            # Dictionary if there is only 1 result.
-            'audio': {
-                'file_raw': 'asdf'},
-            # List if there are multiple results, and the results are sorted.
-            'bar': sorted([
-                {'shell_raw': 'hello'},
-                {'shell_raw': 'world'}])},
-        'missing_component_classes': ['foo']}
-    cmd = [CMD_PATH, 'probe', '--legacy-output',
-           '--config-file', statement_path]
-    results = yaml.load(process_utils.CheckOutput(cmd))
     self.assertEquals(expected, results)
 
 

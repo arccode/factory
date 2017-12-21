@@ -21,6 +21,7 @@ from cros.factory.hwid.v3 import rule
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.hwid.v3.rule import Value
 from cros.factory.test.rules import phase
+from cros.factory.utils import json_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import yaml_utils
 
@@ -38,8 +39,8 @@ class HWIDv3UtilsTestWithNewDatabase(unittest.TestCase):
   def setUp(self):
     self.db = database.Database.LoadFile(
         os.path.join(TEST_DATA_PATH, 'NEW_TEST_PROJECT'))
-    self.probed_results = list(yaml.load_all(open(os.path.join(
-        TEST_DATA_PATH, 'new_test_probe_result_hwid_utils.yaml')).read()))
+    self.probed_results = json_utils.LoadFile(os.path.join(
+        TEST_DATA_PATH, 'new_test_probe_result_hwid_utils.json'))
     self.vpd = {
         'ro': {
             'region': 'us',
@@ -115,8 +116,8 @@ class HWIDv3UtilsTest(unittest.TestCase):
   def setUp(self):
     self.db = database.Database.LoadFile(
         os.path.join(TEST_DATA_PATH, 'TEST_PROJECT'))
-    self.probed_results = yaml.load(open(os.path.join(
-        TEST_DATA_PATH, 'test_probe_result_hwid_utils.yaml')).read())
+    self.probed_results = json_utils.LoadFile(os.path.join(
+        TEST_DATA_PATH, 'test_probe_result_hwid_utils.json'))
     self.vpd = {
         'ro': {
             'region': 'us',
@@ -140,21 +141,29 @@ class HWIDv3UtilsTest(unittest.TestCase):
       'cpu' does not return any result.
       'audio_codec' returns multiple results.
     """
-    probed_results = yaml.load(hwid_utils.ProbeResultsV3(
-        found_probe_value_map={
-            'bluetooth': {
-                'idVendor': '0123',
-                'idProduct': 'abcd',
-                'bcd': '0001'},
-            'battery': {
-                'compact_str': 'fake value'},
-            'audio_codec': [
+    probed_results = {
+        'bluetooth': {
+            'generic': [
+                {
+                    'idVendor': '0123',
+                    'idProduct': 'abcd',
+                    'bcd': '0001'
+                }
+            ]
+        },
+        'battery': {
+            'generic': [
+                {'compact_str': 'fake value'}
+            ]
+        },
+        'audio_codec': {
+            'generic': [
                 {'compact_str': 'Codec 1'},
                 {'compact_str': 'HDMI 1'},
-                {'compact_str': 'fake value'}]},
-        missing_component_classes=[],
-        found_volatile_values={},
-        initial_configs={}).Encode())
+                {'compact_str': 'fake value'}
+            ]
+        }
+    }
 
     results = hwid_utils.VerifyComponents(
         self.db, probed_results,
@@ -184,11 +193,7 @@ class HWIDv3UtilsTest(unittest.TestCase):
 
   def testVerifyBadComponents3(self):
     """Tests VerifyComponents with invalid component class name."""
-    probed_results = yaml.load(hwid_utils.ProbeResultsV3(
-        found_probe_value_map={},
-        missing_component_classes=[],
-        found_volatile_values={},
-        initial_configs={}).Encode())
+    probed_results = {}
 
     self.assertRaises(common.HWIDException, hwid_utils.VerifyComponents,
                       self.db, probed_results, ['cpu', 'bad_class_name'])
@@ -251,8 +256,7 @@ class HWIDv3UtilsTest(unittest.TestCase):
         phase.DVT)
 
     probed_results = copy.deepcopy(self.probed_results)
-    probed_results['found_probe_value_map']['audio_codec'][1] = {
-        'compact_str': 'HDMI 2'}
+    probed_results['audio_codec']['generic'][1] = {'compact_str': 'HDMI 2'}
     self.assertRaisesRegexp(
         common.HWIDException,
         (r"Component class 'audio_codec' is missing components: "
@@ -262,9 +266,9 @@ class HWIDv3UtilsTest(unittest.TestCase):
 
     # Test pre-MP recovery/root keys.
     probed_results = copy.deepcopy(self.probed_results)
-    probed_results['found_volatile_values']['key_root'].update(
+    probed_results['key_root']['generic'][0].update(
         {'compact_str': 'kv3#key_root_premp'})
-    probed_results['found_volatile_values']['key_recovery'].update(
+    probed_results['key_recovery']['generic'][0].update(
         {'compact_str': 'kv3#key_recovery_premp'})
     # Pre-MP recovery/root keys are fine in DVT...
     self.assertEquals(None, hwid_utils.VerifyHWID(
@@ -280,7 +284,7 @@ class HWIDv3UtilsTest(unittest.TestCase):
 
     # Test deprecated component.
     probed_results = copy.deepcopy(self.probed_results)
-    probed_results['found_volatile_values']['ro_main_firmware'].update(
+    probed_results['ro_main_firmware']['generic'][0].update(
         {'compact_str': 'mv2#ro_main_firmware_1'})
     self.assertRaisesRegexp(
         common.HWIDException, r'Not in RMA mode. Found deprecated component of '
@@ -295,9 +299,8 @@ class HWIDv3UtilsTest(unittest.TestCase):
 
     # Test unqualified component.
     probed_results = copy.deepcopy(self.probed_results)
-    probed_results['found_probe_value_map']['dram'].update(
-        {'vendor': 'DRAM 2',
-         'size': '8G'})
+    probed_results['dram']['generic'][0].update(
+        {'vendor': 'DRAM 2', 'size': '8G'})
     self.assertRaisesRegexp(
         common.HWIDException, r'Found unqualified component of '
         r"'dram': 'dram_2' in Phase\(PVT\)",
@@ -386,9 +389,8 @@ class DatabaseBuilderTest(unittest.TestCase):
 
   def setUp(self):
     yaml_utils.ParseMappingAsOrderedDict(loader=yaml.Loader, dumper=yaml.Dumper)
-    with open(os.path.join(TEST_DATA_PATH,
-                           'test_builder_probe_results.yaml'), 'r') as f:
-      self.probed_results = list(yaml.load_all(f.read()))
+    self.probed_results = json_utils.LoadFile(
+        os.path.join(TEST_DATA_PATH, 'test_builder_probe_results.json'))
     self.output_path = tempfile.mktemp()
 
   def tearDown(self):
@@ -463,7 +465,7 @@ class DatabaseBuilderTest(unittest.TestCase):
 
     # Add a component without a new image_id.
     probed_result = self.probed_results[0].copy()
-    probed_result['found_probe_value_map']['touchpad'] = {'name': 'G_touchpad'}
+    probed_result['touchpad'] = {'generic': [{'name': 'G_touchpad'}]}
     with mock.patch('__builtin__.raw_input', return_value='n'):
       with self.assertRaises(ValueError):
         hwid_utils.UpdateDatabase(self.output_path, probed_result, db)
@@ -494,7 +496,7 @@ class DatabaseBuilderTest(unittest.TestCase):
     """Tests the essential component is missing at the probe result."""
     # Essential component 'mainboard' is missing in probed result.
     probed_result = copy.deepcopy(self.probed_results[0])
-    del probed_result['found_probe_value_map']['mainboard']
+    del probed_result['mainboard']
 
     # Deleting the essential component is not allowed.
     with self.assertRaises(ValueError):
@@ -542,7 +544,7 @@ class DatabaseBuilderTest(unittest.TestCase):
   def testDeprecateDefaultItem(self):
     """Tests the default item should be deprecated after adding a item."""
     probed_result = copy.deepcopy(self.probed_results[0])
-    del probed_result['found_probe_value_map']['mainboard']
+    del probed_result['mainboard']
     hwid_utils.BuildDatabase(
         self.output_path, probed_result, 'CHROMEBOOK', 'EVT',
         add_default_comp=['mainboard'])

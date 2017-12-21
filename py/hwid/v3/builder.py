@@ -161,29 +161,6 @@ def ChecksumUpdater():
     return None
 
 
-def ExtractProbedResult(probed_results):
-  """Extracts the useful probed result.
-
-  We ignore the data in `initial_configs` and `missing_component_classes`, and
-  ignore the value which is not a dict or a list of dicts.
-  """
-  if probed_results is None:
-    return {}
-  ret = {}
-  for field in ['found_probe_value_map', 'found_volatile_values']:
-    if field not in probed_results:
-      logging.warning('Probed result does not have %s field.', field)
-    else:
-      for comp_cls in probed_results[field]:
-        value = probed_results[field][comp_cls]
-        if isinstance(value, dict):
-          ret[comp_cls] = value
-        if (isinstance(value, list) and
-            all([isinstance(item, dict) for item in value])):
-          ret[comp_cls] = value
-  return ret
-
-
 class DatabaseBuilder(object):
   """Builds the database.
 
@@ -521,21 +498,24 @@ class DatabaseBuilder(object):
     logging.info('Remove %s from the active fields.', field_cls)
     self.active_fields.discard(field_cls)
 
-  def AddEncodedField(self, comp_cls, comp_name):
+  def AddEncodedField(self, comp_cls, comp_names):
     """Adds an item to the encoded_field.
 
     Args:
       comp_cls: the component class.
-      comp_name: None or string or a list of string. Each name should already
+      comp_names: None or string or a list of string. Each name should already
           exist in components.
 
     Returns:
       the index of the inserted item.
     """
     assert not isinstance(comp_cls, list)
+    assert not isinstance(comp_names, list) or comp_names
 
-    if isinstance(comp_name, list):
-      comp_name.sort()
+    if not isinstance(comp_names, list):
+      comp_names = [comp_names]
+    comp_names.sort()
+    field_item_value = comp_names if len(comp_names) > 1 else comp_names[0]
 
     field_cls = self.GetFieldClass(comp_cls)
     if field_cls not in self.db[DB_KEY.encoded_fields]:
@@ -543,12 +523,11 @@ class DatabaseBuilder(object):
     # Check the item exists in encoded_field.
     db_field_items = self.db[DB_KEY.encoded_fields][field_cls]
     for field_idx, field_attr in db_field_items.iteritems():
-      if field_attr[comp_cls] == comp_name:
+      if field_attr[comp_cls] == field_item_value:
         logging.debug('Component %s %s is already encoded. Skip.',
-                      comp_cls, comp_name)
+                      comp_cls, field_item_value)
         return field_idx
     # Check the item exists in component.
-    comp_names = comp_name if isinstance(comp_name, list) else [comp_name]
     for name in comp_names:
       if (name is not None and
           name not in self.db[DB_KEY.components][comp_cls]['items']):
@@ -556,9 +535,7 @@ class DatabaseBuilder(object):
                          (name, comp_cls))
 
     idx = 0 if not db_field_items else max(db_field_items.keys()) + 1
-    if len(comp_names) == 1:
-      comp_names = comp_names[0]
-    db_field_items[idx] = OrderedDict({comp_cls: comp_names})
+    db_field_items[idx] = OrderedDict({comp_cls: field_item_value})
 
     # Assumption: If we add the item into the database, then we need this field.
     if field_cls not in self.active_fields:
@@ -798,15 +775,10 @@ class DatabaseBuilder(object):
         else:
           self.DeleteComponentClass(comp_cls)
     # Add components value into the database
-    for comp_cls, comp_value in probed_results.iteritems():
+    for comp_cls, comp_probed_results in probed_results.iteritems():
       if comp_cls in ignore_comps:
         continue
-      is_list = isinstance(comp_value, list)
-      if not is_list:
-        comp_name = self.AddComponent(comp_cls, comp_value)
-        self.AddEncodedField(comp_cls, comp_name)
-      else:
-        comp_values = comp_value
+      for comp_values in comp_probed_results.itervalues():
         comp_names = []
         for comp_value in comp_values:
           comp_names.append(self.AddComponent(comp_cls, comp_value))
@@ -826,7 +798,7 @@ class DatabaseBuilder(object):
       chassis: a list of chassis identifiers that are appended in the
           database.
     """
-    probed_results = ExtractProbedResult(probed_results)
+    probed_results = probed_results or {}
     add_default_comp = (set() if add_default_comp is None
                         else set(add_default_comp))
     add_null_comp = set() if add_null_comp is None else set(add_null_comp)
@@ -850,8 +822,9 @@ class DatabaseBuilder(object):
 
     # Handle region. Default: us
     region_set = set(region) if region else set()
-    if 'region' in probed_results:
-      region_set.add(probed_results['region']['region_code'])
+    if (len(probed_results.get('region', {})) == 1 and
+        len(probed_results['region'].values()[0]) == 1):
+      region_set.add(probed_results['region'].values()[0][0]['region_code'])
     if not region_set and 'region' not in self.db[DB_KEY.components]:
       logging.info('No region is assigned. Set default region "%s".',
                    self.DEFAULT_REGION)
@@ -861,8 +834,9 @@ class DatabaseBuilder(object):
 
     # Handle chassis identifier. Default: NULL
     chassis_set = set(chassis) if chassis else set()
-    if 'chassis' in probed_results:
-      chassis_set.add(probed_results['chassis']['id'])
+    if (len(probed_results.get('chassis', {})) == 1 and
+        len(probed_results['chassis'].values()[0]) == 1):
+      chassis_set.add(probed_results['chassis'].values()[0][0]['id'])
     if chassis_set:
       self.AddChassis(chassis_set)
     elif 'chassis' not in self.db[DB_KEY.components]:

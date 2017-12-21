@@ -1,0 +1,188 @@
+[
+  {
+    "audio_codec": {
+      "generic": [
+        {
+          "compact_str": "AUDIO A"
+        },
+        {
+          "compact_str": "AUDIO B"
+        }
+      ]
+    },
+    "bluetooth": {
+      "generic": [
+        {
+          "bcdDevice": "0000",
+          "compact_str": "8888:7777 0000",
+          "idProduct": "7777",
+          "idVendor": "8888"
+        }
+      ]
+    },
+    "chassis": {
+      "mosys": [
+        {
+          "id": "FOO"
+        }
+      ]
+    },
+    "cpu": {
+      "generic": [
+        {
+          "compact_str": "SUPER CPU [64 cores]",
+          "cores": "64",
+          "model": "SUPER CPU"
+        }
+      ]
+    },
+    "display_panel": {
+      "generic": [
+        {
+          "compact_str": "GOOGLE:0123 [192000x108000]",
+          "height": "108000",
+          "product_id": "0123",
+          "vendor": "GOOGLE",
+          "width": "192000"
+        }
+      ]
+    },
+    "dram": {
+      "generic": [
+        {
+          "compact_str": "0|ABCD |2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600",
+          "part": "ABCD  ",
+          "size": "2048",
+          "slot": "0",
+          "timing": "DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600"
+        },
+        {
+          "compact_str": "1|ABCD |2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600",
+          "part": "ABCD  ",
+          "size": "2048",
+          "slot": "1",
+          "timing": "DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600"
+        }
+      ]
+    },
+    "firmware_keys": {
+      "generic": [
+        {
+          "key_recovery": "kv3#c14bd720b70d97394257e3e826bd8f43de48d4ed",
+          "key_root": "kv3#b11d74edd286c144e1135b49e7f0bc20cf041f10"
+        }
+      ]
+    },
+    "flash_chip": {
+      "generic": [
+        {
+          "compact_str": "GOOGLE Flash"
+        }
+      ]
+    },
+    "hash_gbb": {
+      "generic": [
+        {
+          "compact_str": "gv2#0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    "key_recovery": {
+      "generic": [
+        {
+          "compact_str": "kv3#c14bd720b70d97394257e3e826bd8f43de48d4ed"
+        }
+      ]
+    },
+    "key_root": {
+      "generic": [
+        {
+          "compact_str": "kv3#b11d74edd286c144e1135b49e7f0bc20cf041f10"
+        }
+      ]
+    },
+    "mainboard": {
+      "generic": [
+        {
+          "version": "rev1"
+        }
+      ]
+    },
+    "region": {
+      "vpd.ro.region": [
+        {
+          "region_code": "us"
+        }
+      ]
+    },
+    "ro_ec_firmware": {
+      "generic": [
+        {
+          "compact_str": "ev2#0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef#chromebook_v1.1.2345-6789abc",
+          "hash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+          "version": "chromebook_v1.1.2345-6789abc"
+        }
+      ]
+    },
+    "ro_main_firmware": {
+      "generic": [
+        {
+          "compact_str": "ev2#0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef#chromebook_v1.1.2345-6789abc",
+          "hash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+          "version": "chromebook_v1.1.2345-6789abc"
+        }
+      ]
+    },
+    "ro_pd_firmware": {
+      "generic": [
+        {
+          "compact_str": "ev2#0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef#chromebook_v1.1.2345-6789abc",
+          "hash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+          "version": "chromebook_v1.1.2345-6789abc"
+        }
+      ]
+    },
+    "storage": {
+      "generic": [
+        {
+          "compact_str": "GOOGLE GOOGLE DRIVE #65536",
+          "model": "GOOGLE DRIVE",
+          "sectors": "65536",
+          "vendor": "GOOGLE"
+        }
+      ]
+    },
+    "tpm": {
+      "generic": [
+        {
+          "compact_str": "65536:1.2.4.8",
+          "manufacturer_info": "65536",
+          "version": "1.2.4.8"
+        }
+      ]
+    },
+    "usb_hosts": {
+      "generic": [
+        {
+          "compact_str": "8888:9999",
+          "device": "0x9cb1",
+          "vendor": "0x8888"
+        },
+        {
+          "compact_str": "8888:9999",
+          "device": "0x9cb1",
+          "vendor": "0x8888"
+        }
+      ]
+    },
+    "wireless": {
+      "generic": [
+        {
+          "compact_str": "6666:7777",
+          "device": "0x7777",
+          "vendor": "0x6666"
+        }
+      ]
+    }
+  }
+]

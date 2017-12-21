@@ -7,7 +7,6 @@
 
 import os
 import unittest
-import yaml
 import factory_common  # pylint: disable=W0611
 
 from cros.factory.hwid.v3.common import HWIDException
@@ -15,6 +14,7 @@ from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3.decoder import EncodedStringToBinaryString
 from cros.factory.hwid.v3.decoder import BinaryStringToBOM, Decode
 from cros.factory.hwid.v3.rule import Value
+from cros.factory.utils import json_utils
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
@@ -24,9 +24,8 @@ class DecoderTest(unittest.TestCase):
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
-    self.results = [
-        yaml.dump(result) for result in yaml.load_all(open(os.path.join(
-            _TEST_DATA_PATH, 'test_probe_result.yaml')).read())]
+    self.results = json_utils.LoadFile(
+        os.path.join(_TEST_DATA_PATH, 'test_probe_result.json'))
     self.expected_components_from_db = {
         'audio_codec': [('codec_1', {'compact_str': Value('Codec 1')}, None),
                         ('hdmi_1', {'compact_str': Value('HDMI 1')}, None)],

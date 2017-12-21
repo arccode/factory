@@ -283,8 +283,8 @@ class HWID(object):
     object.
 
     Args:
-      probe_result: A YAML string of the probe result, which is usually the
-          output of the probe command.
+      probe_result: A JSON-serializable dict of the probe result, which is
+          usually the output of the probe command.
 
     Raises:
       HWIDException on verification error.

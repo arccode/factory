@@ -14,8 +14,6 @@ import sys
 import tempfile
 import time
 
-import yaml
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Util
@@ -24,13 +22,13 @@ from cros.factory.gooftool import wipe
 from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.hwid.v3 import common as hwid3_common
 from cros.factory.hwid.v3.database import Database
+from cros.factory.probe import probe_utils
 from cros.factory.test.l10n import regions
 from cros.factory.test.rules import phase
 from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.test.rules import registration_codes
 from cros.factory.test.rules.registration_codes import RegistrationCode
 from cros.factory.utils import file_utils
-from cros.factory.utils import process_utils
 from cros.factory.utils import service_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils.type_utils import Error
@@ -437,40 +435,21 @@ class Gooftool(object):
   def Probe(self, target_comp_classes=None, probe_volatile=True):
     """Returns probed results for device components and hash in yaml format.
 
-    This method is a wrapper for the command
-
-        probe probe --include-generic [--include-volatile]
-
-    The real probe framework is located in factory/py/probe/.
+    This method is a wrapper for `cros.factory.probe.probe_utils.Probe`
+    function.
 
     Args:
       target_comp_classes: Which component classes to probe for.  A None value
           implies all classes.
       probe_volatile: On False, do not probe for volatile data.
     """
-    cmd = ['probe', 'probe', '--include-generic', '--legacy-output']
-    if probe_volatile:
-      cmd.append('--include-volatile')
-
     try:
-      result = process_utils.CheckOutput(cmd)
+      probe_statement = probe_utils.GenerateProbeStatement(
+          include_generic=True, include_volatile=probe_volatile)
+      return probe_utils.Probe(probe_statement, comps=target_comp_classes)
+
     except Exception as e:
       raise Error('Failed to execute the probe tool: %r.' % e)
-
-    result_yaml = yaml.load(result)
-    # TODO(yhong): Move the filtering logic into the probe framework.
-    if target_comp_classes:
-      for toplevel_category, content in result_yaml.iteritems():
-        if isinstance(content, dict):
-          result_yaml[toplevel_category] = {
-              comp_cls: comp_items
-              for comp_cls, comp_items in content.iteritems()
-              if comp_cls in target_comp_classes}
-        else:
-          result_yaml[toplevel_category] = [
-              item for item in content if item in target_comp_classes]
-
-    return result_yaml
 
   def WriteHWID(self, hwid=None):
     """Writes specified HWID value into the system BB.

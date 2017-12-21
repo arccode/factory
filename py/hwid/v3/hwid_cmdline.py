@@ -99,9 +99,10 @@ def BuildDatabaseWrapper(options):
   if not os.path.isfile(options.probed_results_file):
     raise IOError('File %s is not found.' % options.probed_results_file)
   if not os.path.isdir(options.hwid_db_path):
-    raise IOError('%s is not is directory.' % options.hwid_db_path)
+    raise IOError('%s is not a directory.' % options.hwid_db_path)
   yaml_utils.ParseMappingAsOrderedDict(loader=yaml.Loader, dumper=yaml.Dumper)
-  probed_results = hwid_utils.GetProbedResults(options.probed_results_file)
+  probed_results = hwid_utils.GetProbedResults(
+      infile=options.probed_results_file)
   database_path = os.path.join(options.hwid_db_path, options.project.upper())
   hwid_utils.BuildDatabase(
       database_path, probed_results, options.project,
@@ -126,7 +127,8 @@ def UpdateDatabaseWrapper(options):
   else:
     if not os.path.isfile(options.probed_results_file):
       raise IOError('File %s is not found.' % options.probed_results_file)
-    probed_results = hwid_utils.GetProbedResults(options.probed_results_file)
+    probed_results = hwid_utils.GetProbedResults(
+        infile=options.probed_results_file)
 
   old_db_path = os.path.join(options.hwid_db_path, options.project.upper())
   if options.output_database is None:
@@ -172,7 +174,8 @@ def GenerateHWIDWrapper(options):
     raise ValueError('The arguments --run-vpd and --vpd-data-file cannot be '
                      'set at the same time')
 
-  probed_results = hwid_utils.GetProbedResults(options.probed_results_file)
+  probed_results = hwid_utils.GetProbedResults(
+      infile=options.probed_results_file)
 
   # Select right device info (from file or shopfloor).
   if options.device_info_file:
@@ -231,7 +234,8 @@ def DecodeHWIDWrapper(options):
 def VerifyHWIDWrapper(options):
   """Verifies HWID."""
   encoded_string = options.hwid if options.hwid else hwid_utils.GetHWIDString()
-  probed_results = hwid_utils.GetProbedResults(options.probed_results_file)
+  probed_results = hwid_utils.GetProbedResults(
+      infile=options.probed_results_file)
   vpd = hwid_utils.GetVPDData(options.run_vpd, options.vpd_data_file)
   hwid_utils.VerifyHWID(options.database, encoded_string, probed_results,
                         vpd=vpd, rma_mode=options.rma_mode,

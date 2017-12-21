@@ -179,7 +179,8 @@ def GetUmpireServer(project_name):
 
 
 def GetUmpireConfig(project_name):
-  return json_utils.LoadStr(GetUmpireServer(project_name).GetActiveConfig())
+  return json_utils.LoadStr(GetUmpireServer(project_name).GetActiveConfig(),
+                            convert_to_str=False)
 
 
 def GenerateUploadToPath(unused_instance, filename):

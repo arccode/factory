@@ -22,8 +22,6 @@ import threading
 import time
 import xmlrpclib
 
-import yaml
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.common import ExecFactoryPar
 from cros.factory.gooftool.common import Shell
@@ -43,6 +41,7 @@ from cros.factory.utils.argparse_utils import ParseCmdline
 from cros.factory.utils.argparse_utils import verbosity_cmd_arg
 from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils import file_utils
+from cros.factory.utils import json_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import time_utils
 from cros.factory.utils.process_utils import Spawn
@@ -222,9 +221,11 @@ _skip_list_cmd_arg = CmdArg(
          CmdArg('--no_vol', action='store_true',
                 help='Do not probe volatile data.'))
 def RunProbe(options):
-  """Print yaml-formatted breakdown of probed device properties."""
+  """Print json-formatted breakdown of probed device properties."""
+  logging.warning('This sub-command is going to be deprecated by `probe` '
+                  'command-line tool, please see `probe --help` for detail.')
   probed_result = GetGooftool(options).Probe(options.comps, not options.no_vol)
-  print yaml.dump(probed_result)
+  print json_utils.DumpStr(probed_result, pretty=True)
 
 
 @Command('verify_components')
@@ -748,7 +749,7 @@ def VerifyHWID(options):
   db = GetGooftool(options).db
   encoded_string = options.hwid or hwid_utils.GetHWIDString()
   if options.probe_results:
-    probed_results = yaml.load(file_utils.ReadFile(options.probe_results))
+    probed_results = hwid_utils.GetProbedResults(infile=options.probe_results)
   else:
     probed_results = GetGooftool(options).Probe()
 

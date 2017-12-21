@@ -17,7 +17,7 @@ from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3.common import IsMPKeyName
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3.encoder import Encode
-from cros.factory.hwid.v3 import yaml_wrapper as yaml
+from cros.factory.utils import json_utils
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
@@ -52,9 +52,8 @@ class HWIDTest(unittest.TestCase):
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
-    self.results = [
-        yaml.dump(result) for result in yaml.load_all(open(os.path.join(
-            _TEST_DATA_PATH, 'test_probe_result.yaml')).read())]
+    self.results = json_utils.LoadFile(
+        os.path.join(_TEST_DATA_PATH, 'test_probe_result.json'))
 
   def testInvalidInitialize(self):
     bom = self.database.ProbeResultToBOM(self.results[0])
@@ -107,7 +106,10 @@ class HWIDTest(unittest.TestCase):
         'display_panel': 'display_panel_0'})
     bom.image_id = 2
     hwid = Encode(self.database, bom)
-    fake_result = result.replace('HDMI 1', 'HDMI 0')
+
+    raw_result = json_utils.DumpStr(result)
+
+    fake_result = json_utils.LoadStr(raw_result.replace('HDMI 1', 'HDMI 0'))
     self.assertRaisesRegexp(
         HWIDException, r"Component class 'audio_codec' has extra components: "
         r"\['hdmi_0'\] and is missing components: \['hdmi_1'\]. "
@@ -115,18 +117,20 @@ class HWIDTest(unittest.TestCase):
         hwid.VerifyProbeResult, fake_result)
     # We only verify the components listed in the pattern. Do not raise
     # exception while the component which is not in the pattern is missing.
-    fake_result = result.replace('EC Flash Chip', 'Foo chip')
+    fake_result = json_utils.LoadStr(raw_result.replace('EC Flash Chip',
+                                                        'Foo chip'))
     self.assertEquals(None, hwid.VerifyProbeResult(fake_result))
 
-    fake_result = result.replace('name: CPU @ 2.80GHz',
-                                 'name: CPU @ 2.40GHz')
+    fake_result = json_utils.LoadStr(raw_result.replace(
+        '"name": "CPU @ 2.80GHz"', '"name": "CPU @ 2.40GHz"'))
     self.assertRaisesRegexp(
         HWIDException, r"Component class 'cpu' has extra components: "
         r"\['cpu_3'\] and is missing components: \['cpu_5'\]. "
         r"Expected components are: \['cpu_5'\]",
         hwid.VerifyProbeResult, fake_result)
     self.assertEquals(None, hwid.VerifyProbeResult(result))
-    fake_result = result.replace('xkb:us::eng', 'xkb:gb:extd:eng')
+    fake_result = json_utils.LoadStr(
+        raw_result.replace('xkb:us::eng', 'xkb:gb:extd:eng'))
     self.assertEquals(None, hwid.VerifyProbeResult(fake_result))
 
 

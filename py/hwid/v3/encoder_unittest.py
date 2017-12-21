@@ -5,6 +5,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import copy
 import os
 import unittest
 import factory_common  # pylint: disable=W0611
@@ -14,7 +15,7 @@ from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3.encoder import BinaryStringToEncodedString
 from cros.factory.hwid.v3.encoder import BOMToBinaryString
 from cros.factory.hwid.v3.encoder import Encode
-from cros.factory.hwid.v3 import yaml_wrapper as yaml
+from cros.factory.utils import json_utils
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
@@ -24,9 +25,8 @@ class EncoderTest(unittest.TestCase):
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
-    self.results = [
-        yaml.dump(result) for result in yaml.load_all(open(os.path.join(
-            _TEST_DATA_PATH, 'test_probe_result.yaml')).read())]
+    self.results = json_utils.LoadFile(
+        os.path.join(_TEST_DATA_PATH, 'test_probe_result.json'))
 
   def testBOMToBinaryString(self):
     bom = self.database.ProbeResultToBOM(self.results[0])
@@ -74,10 +74,9 @@ class EncoderTest(unittest.TestCase):
 
   def testEncodeError(self):
     # Missing required component 'dram'.
-    mock_results = yaml.load(self.results[0])
-    mock_results['found_probe_value_map'].pop('dram')
-    mock_results['missing_component_classes'].append('dram')
-    bom = self.database.ProbeResultToBOM(yaml.dump(mock_results))
+    mock_results = copy.deepcopy(self.results[0])
+    mock_results.pop('dram')
+    bom = self.database.ProbeResultToBOM(mock_results)
     bom = self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'display_panel': 'display_panel_0'})
     self.assertRaisesRegexp(
@@ -85,10 +84,9 @@ class EncoderTest(unittest.TestCase):
         Encode, self.database, bom)
 
     # Unsupported probe values of component 'dram'.
-    mock_results = yaml.load(self.results[0])
-    mock_results['found_probe_value_map']['dram'] = {
-        'vendor': 'FOO', 'size': '4G'}
-    bom = self.database.ProbeResultToBOM(yaml.dump(mock_results))
+    mock_results = copy.deepcopy(self.results[0])
+    mock_results['dram'] = {'generic': [{'vendor': 'FOO', 'size': '4G'}]}
+    bom = self.database.ProbeResultToBOM(mock_results)
     bom = self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'display_panel': 'display_panel_0'})
     self.assertRaisesRegexp(

@@ -277,8 +277,8 @@ class Database(object):
     represented by its corresponding encoded index in the database.
 
     Args:
-      probe_result: A YAML string of the probe result, which is usually the
-          output of the probe command.
+      probe_result: A JSON-serializable dict of the probe result, which is
+          usually the output of the probe command.
       loose_matching: If set to True, partial match of probed results will be
           accepted.  For example, if the probed results only contain the
           firmware version of RO main firmware but not its hash, and we want to
@@ -289,23 +289,15 @@ class Database(object):
     Returns:
       A BOM object.
     """
-    probed_bom = yaml.load(probe_result)
-
     # encoding_pattern_index and image_id are unprobeable and should be set
     # explictly. Defaults them to 0.
     encoding_pattern_index = 0
     image_id = 0
 
     def LookupProbedValue(comp_cls):
-      for field in ['found_probe_value_map', 'found_volatile_values',
-                    'initial_configs']:
-        if comp_cls in probed_bom.get(field, {}):
-          # We actually want to return a list of dict here.
-          return type_utils.MakeList(
-              probed_bom[field][comp_cls] if
-              isinstance(probed_bom[field][comp_cls], list) else
-              [probed_bom[field][comp_cls]])
-      # comp_cls is in probed_bom['missing_component_classes'].
+      if comp_cls in probe_result:
+        # We don't need the component name here.
+        return sum(probe_result[comp_cls].values(), [])
       return None
 
     def TryAddDefaultItem(probed_components, comp_cls):
@@ -690,8 +682,8 @@ class Database(object):
     all the component classes in the list are valid components in the database.
 
     Args:
-      probe_result: A YAML string of the probe result, which is usually the
-          output of the probe command.
+      probe_result: A JSON-serializable dict of the probe result, which is
+          usually the output of the probe command.
       comp_list: An optional list of component class to be verified. Defaults to
           None, which will then verify all the probeable components defined in
           the database.

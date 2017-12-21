@@ -21,6 +21,7 @@ For each project that the test finds, the test checks that:
 """
 
 
+import copy
 import logging
 import os
 import re
@@ -36,6 +37,30 @@ from cros.factory.hwid.v3.rule import Context
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+
+
+def _MayConvertLegacyProbedResults(probed_results):
+  vpd = {'ro': {}, 'rw': {}}
+
+  if 'found_probe_value_map' not in probed_results:
+    return probed_results, vpd
+
+  new_probe_results = copy.deepcopy(probed_results['found_probe_value_map'])
+  new_probe_results.update(
+      copy.deepcopy(probed_results.get('found_volatile_values', {})))
+
+  for comp_cls in new_probe_results.keys():
+    if isinstance(new_probe_results[comp_cls], list):
+      new_probe_results[comp_cls] = {'generic': new_probe_results[comp_cls]}
+    elif isinstance(new_probe_results[comp_cls], dict):
+      new_probe_results[comp_cls] = {'generic': [new_probe_results[comp_cls]]}
+    else:
+      match = re.match(r'^vpd\.(ro|rw)\.(\w+)$', comp_cls)
+      if match:
+        vpd[match.group(1)][match.group(2)] = new_probe_results[comp_cls]
+      del new_probe_results[comp_cls]
+
+  return new_probe_results, vpd
 
 
 class ValidHWIDDBsTest(unittest.TestCase):
@@ -176,18 +201,9 @@ class ValidHWIDDBsTest(unittest.TestCase):
       encoded_string = sample_dict['encoded_string']
       logging.info('Testing encoding of BOM to %r', encoded_string)
 
-    # Pull in probe results (including VPD data) from the given file
-    # rather than probing the current system.
-    probe_results = hwid_utils.ProbeResultsV3.Decode(
-        yaml.dump(sample_dict['probe_results']))
-    vpd = {'ro': {}, 'rw': {}}
-    for k, v in probe_results.found_volatile_values.items():
-      # Use items(), not iteritems(), since we will be modifying the dict in the
-      # loop.
-      match = re.match(r'^vpd\.(ro|rw)\.(\w+)$', k)
-      if match:
-        del probe_results.found_volatile_values[k]
-        vpd[match.group(1)][match.group(2)] = v
+    probe_results, vpd = _MayConvertLegacyProbedResults(
+        sample_dict['probe_results'])
+
     device_info = sample_dict.get('device_info')
     rma_mode = sample_dict.get('rma_mode')
 

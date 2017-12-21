@@ -17,6 +17,7 @@ from cros.factory.hwid.v3.common import HWIDException, ProbedComponentResult
 from cros.factory.hwid.v3.database import Database, Components
 from cros.factory.hwid.v3.rule import Value
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
+from cros.factory.utils import json_utils
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
@@ -31,12 +32,8 @@ class NewDatabaseTest(unittest.TestCase):
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_new_db.yaml'))
-    self.results = [
-        yaml.dump(result)
-        for result in yaml.load_all(
-            open(os.path.join(_TEST_DATA_PATH, 'test_probe_result.yaml'))
-            .read())
-    ]
+    self.results = json_utils.LoadFile(
+        os.path.join(_TEST_DATA_PATH, 'test_probe_result.json'))
 
   def testProbeResultToBOM(self):
     result = self.results[0]
@@ -110,12 +107,8 @@ class DatabaseTest(unittest.TestCase):
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
-    self.results = [
-        yaml.dump(result)
-        for result in yaml.load_all(
-            open(os.path.join(_TEST_DATA_PATH, 'test_probe_result.yaml'))
-            .read())
-    ]
+    self.results = json_utils.LoadFile(
+        os.path.join(_TEST_DATA_PATH, 'test_probe_result.json'))
 
   def testLoadFile(self):
     self.assertIsInstance(Database.LoadFile(os.path.join(
@@ -276,24 +269,6 @@ class DatabaseTest(unittest.TestCase):
         'keyboard': None,
         'storage': 0,
         'video': 0}, bom.encoded_fields)
-
-    result = yaml.load(result)
-    result = yaml.dump(result)
-    self.assertEquals({
-        'audio_codec': 1,
-        'battery': 3,
-        'bluetooth': 0,
-        'cellular': 0,
-        'cpu': 5,
-        'display_panel': 0,
-        'dram': 0,
-        'ec_flash_chip': 0,
-        'embedded_controller': 0,
-        'firmware': 0,
-        'flash_chip': 0,
-        'keyboard': None,
-        'storage': 0,
-        'video': 0}, self.database.ProbeResultToBOM(result).encoded_fields)
 
   def testUpdateComponentsOfBOM(self):
     bom = self.database.ProbeResultToBOM(self.results[0])

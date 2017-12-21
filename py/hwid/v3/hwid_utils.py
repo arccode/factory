@@ -10,7 +10,6 @@ import re
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.gooftool import crosfw
-from cros.factory.hwid.v2.yaml_datastore import _DatastoreBase
 from cros.factory.hwid.v3 import builder
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import database
@@ -71,9 +70,8 @@ def GenerateHWID(db, probed_results, device_info, vpd=None, rma_mode=False):
     The generated HWID object.
   """
   hwid_mode = _HWIDMode(rma_mode)
-  probed_results_yaml = yaml.dump(probed_results)
   # Construct a base BOM from probe_results.
-  device_bom = db.ProbeResultToBOM(probed_results_yaml)
+  device_bom = db.ProbeResultToBOM(probed_results)
   hwid = encoder.Encode(db, device_bom, mode=hwid_mode, skip_check=True)
 
   # Update unprobeable components with rules defined in db before verification.
@@ -162,7 +160,7 @@ def VerifyHWID(db, encoded_string, probed_results, vpd=None, rma_mode=False,
   """
   hwid_mode = _HWIDMode(rma_mode)
   hwid = decoder.Decode(db, encoded_string, mode=hwid_mode)
-  hwid.VerifyProbeResult(yaml.dump(probed_results))
+  hwid.VerifyProbeResult(probed_results)
   hwid.VerifyComponentStatus(current_phase=current_phase)
   hwid.VerifyPhase(current_phase)
   context_args = dict(hwid=hwid)
@@ -191,7 +189,7 @@ def VerifyComponents(db, probed_results, component_list):
         probed_string,   # The actual probed string. None if probing failed.
         error)]}         # The error message if there is one.
   """
-  return db.VerifyComponents(yaml.dump(probed_results), component_list,
+  return db.VerifyComponents(probed_results, component_list,
                              loose_matching=True)
 
 
@@ -363,26 +361,34 @@ def EnumerateHWID(db, image_id=None, status='supported'):
   return hwid_dict
 
 
-def GetProbedResults(infile=None):
-  """Get probed results either from the given file or by probing the DUT.
+def GetProbedResults(infile=None, raw_data=None):
+  """Get probed results from the given resources for the HWID framework.
+
+  If `infile` is specified, the probe results will be obtained from that file.
+  Otherwise if `raw_data` is specificed, the probe results will be obtained by
+  decoding the raw data.
 
   Args:
-    infile: A file containing the probed results in YAML format.
+    infile: None or the path of a file containing the probed results in JSON
+        format.
+    raw_data: None or a string of the raw data of the probed results.
 
   Returns:
     A dict of probed results.
   """
   if infile:
-    with open(infile, 'r') as f:
-      probed_results = yaml.load(f.read())
+    return json_utils.LoadFile(infile)
+  elif raw_data:
+    return json_utils.LoadStr(raw_data)
   else:
     if sys_utils.InChroot():
       raise ValueError('Cannot probe components in chroot. Please specify '
                        'probed results with an input file. If you are running '
                        'with command-line, use --probed-results-file')
+    # TODO(yhong): Probe with a project-specific probe statement instead of
+    #     runing generic probe.
     cmd = 'gooftool probe'
-    probed_results = yaml.load(process_utils.CheckOutput(cmd, shell=True))
-  return probed_results
+    return json_utils.LoadStr(process_utils.CheckOutput(cmd, shell=True))
 
 
 def GetDeviceInfo(infile):
@@ -440,36 +446,3 @@ def GetHWIDString():
 def ComputeDatabaseChecksum(file_name):
   """Computes the checksum of the give database."""
   return database.Database.Checksum(file_name)
-
-
-class _ProbeResultsV3Metaclass(type):
-  """Metaclass for ProbeResultsV3 to initialize yaml representer"""
-  def __init__(cls, name, bases, attrs):
-    yaml.add_representer(cls, lambda yaml_repr, obj: obj.Yrepr(yaml_repr))
-    super(_ProbeResultsV3Metaclass, cls).__init__(name, bases, attrs)
-
-
-# pylint: disable=protected-access
-class ProbeResultsV3(_DatastoreBase):
-  """Define storable object type with a schem and yaml representer.
-
-  This class is to separate the Dumper from the ProbeResults in
-  hwid.v2.hwid_tool.
-  """
-  __metaclass__ = _ProbeResultsV3Metaclass
-  _schema = {
-      'found_probe_value_map': (dict, [(dict, str), (list, (dict, [str]))]),
-      'missing_component_classes': (list, str),
-      'found_volatile_values': (dict, [str, (dict, str)]),
-      'initial_configs': (dict, str),
-  }
-
-  def __init__(self, **field_dict):
-    super(ProbeResultsV3, self).__init__(**field_dict)
-
-  @classmethod
-  def Decode(cls, data, loader=yaml.Loader):
-    return super(ProbeResultsV3, cls).Decode(data, loader)
-
-  def Encode(self, dumper=yaml.Dumper, loader=yaml.Loader):
-    return super(ProbeResultsV3, self).Encode(dumper=dumper, loader=loader)
