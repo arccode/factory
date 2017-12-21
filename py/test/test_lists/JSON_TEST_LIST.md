@@ -93,10 +93,21 @@ Each test object can have a `locals` attribute, which is a dictionary
 of key value pairs.  `locals` will be available when Goofy is resolving `args`
 that will be passed to pytest.
 
-### never_fails
-Set `never_fails` to `true` if you don't want this test to fail in any case.
-The test will still be run, but when it fails, it will not be marked as failed
-(it will be marked as `UNTESTED`).
+### Allow Unexpected Reboots
+Set `allow_reboot` to `true` if you want to allow unexpected shutdown or reboot
+when running the test.
+
+More specifically, when goofy starts up, it checks if the last running test is
+marked as `allow_reboot` or not. If it's `false`, it means an unexpected
+shutdown just happened, so it stops all pending tests and waits for further
+manual inspection. If it's `true`, it means the shutdown is allowed. The test
+will be marked as `UNTESTED`, and re-run this test if `auto_run_on_start`
+is set to `true` on the test list.
+
+Please use this option with care. The rule of thumb is to properly shutdown the
+DUT whenever possible, by using the shutdown test. One usage of this option is
+at SMT line, when display is not attached to the mlb, and the operator might
+move the mlb to different test stations to perform the test multiple times.
 
 ### Parallel Tests
 To make two or more tests run in the same time, you need to group them under a

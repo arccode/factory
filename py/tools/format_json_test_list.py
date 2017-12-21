@@ -49,7 +49,7 @@ def ConstantOrder(constant):
 _TEST_OBJECT_KEY_ORDER = [
     '__replace__', '__delete__', 'inherit', 'pytest_name', 'id', 'label',
     'teardown', 'run_if', 'exclusive_resources', 'disable_services',
-    'enable_services', 'never_fails', 'parallel', 'layout', 'iterations',
+    'enable_services', 'allow_reboot', 'parallel', 'layout', 'iterations',
     'retries', 'action_on_failure', 'child_action_on_failure', 'disable_abort',
     'require_run', '__comment', 'locals', 'subtests', 'args'
 ]

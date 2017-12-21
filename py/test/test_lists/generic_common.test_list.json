@@ -103,7 +103,7 @@
     "Barrier": {
       "pytest_name": "summary",
       "label": "Barrier",
-      "never_fails": true,
+      "allow_reboot": true,
       "action_on_failure": "STOP",
       "disable_abort": true,
       "args": {
@@ -329,7 +329,7 @@
     },
     "Message": {
       "pytest_name": "message",
-      "never_fails": true
+      "allow_reboot": true
     },
     "ModelSKU": {
       "pytest_name": "model_sku",
@@ -426,7 +426,7 @@
     },
     "Start": {
       "pytest_name": "start",
-      "never_fails": true
+      "allow_reboot": true
     },
     "StationEnd": {
       "inherit": "FlattenGroup",

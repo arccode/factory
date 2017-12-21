@@ -63,8 +63,8 @@ class FactoryTest(object):
     Mostly the same as constructor args.
   """
 
-  # If True, the test never fails, but only returns to an untested state.
-  never_fails = False
+  # If True, an unexpected reboot will not halt the pending tests
+  allow_reboot = False
 
   # If True, the test can not be aborted.
   disable_abort = False
@@ -76,7 +76,7 @@ class FactoryTest(object):
   TEST_OBJECT_FIELDS = [
       'action_on_failure', 'args', 'disable_abort', 'disable_services',
       'enable_services', 'exclusive_resources', 'has_ui', 'id', 'iterations',
-      'label', 'never_fails', 'parallel', 'pytest_name', 'retries',
+      'label', 'allow_reboot', 'parallel', 'pytest_name', 'retries',
       'run_if', 'subtests', 'teardown', 'inherit', 'locals', ]
 
   ACTION_ON_FAILURE = type_utils.Enum(['STOP', 'NEXT', 'PARENT'])
@@ -109,7 +109,7 @@ class FactoryTest(object):
                id=None,  # pylint: disable=redefined-builtin
                has_ui=None,
                no_host=False,
-               never_fails=None,
+               allow_reboot=None,
                disable_abort=None,
                exclusive_resources=None,
                enable_services=None,
@@ -142,8 +142,7 @@ class FactoryTest(object):
         (which are removed) or nested arrays (which are flattened).
       id: A unique ID for the test.
       has_ui: Deprecated. Has no effect now.
-      never_fails: True if the test never fails, but only returns to an
-        untested state.
+      allow_reboot: True if allowing unexpected reboot.
       disable_abort: True if the test can not be aborted
         while it is running.
       exclusive_resources: Resources that the test may require exclusive access
@@ -273,8 +272,8 @@ class FactoryTest(object):
 
     if has_ui is not None:
       self.has_ui = has_ui
-    if never_fails is not None:
-      self.never_fails = never_fails
+    if allow_reboot is not None:
+      self.allow_reboot = allow_reboot
     if disable_abort is not None:
       self.disable_abort = disable_abort
 
@@ -525,9 +524,6 @@ class FactoryTest(object):
 
     See TestState.update for allowable kwargs arguments.
     """
-    if self.never_fails and status == TestState.FAILED:
-      status = TestState.UNTESTED
-
     if status == TestState.UNTESTED:
       kwargs['shutdown_count'] = 0
 
@@ -690,6 +686,8 @@ class ShutdownStep(FactoryTest):
   FULL_REBOOT = 'full_reboot'
   REBOOT = 'reboot'
   HALT = 'halt'
+
+  allow_reboot = True
 
   def __init__(self, operation=None, delay_secs=5, **kwargs):
     super(ShutdownStep, self).__init__(**kwargs)

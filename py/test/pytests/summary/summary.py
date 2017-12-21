@@ -59,7 +59,7 @@ To only stop when any previous tests in same group has failed ("Barrier")::
 
   {
     "pytest_name": "summary",
-    "never_fails": true,
+    "allow_reboot": true,
     "disable_abort": true,
     "args": {
       "disable_input_on_fail": true,
@@ -72,7 +72,7 @@ To always prompt but only pass if all previous tests in same group passed
 
   {
     "pytest_name": "summary",
-    "never_fails": true,
+    "allow_reboot": true,
     "disable_abort": true,
     "args": {
       "prompt_message": "i18n! Press space to shutdown.",

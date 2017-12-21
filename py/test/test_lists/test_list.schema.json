@@ -49,7 +49,7 @@
           "$ref": "#/definitions/test_constants",
           "type": "object"
         },
-        "never_fails": {
+        "allow_reboot": {
           "type": "boolean"
         },
         "parallel": {

@@ -410,6 +410,15 @@ class Goofy(object):
       if isinstance(test, test_object.ShutdownStep):
         # Shutdown while the test was active - that's good.
         self.handle_shutdown_complete(test)
+      elif test.allow_reboot:
+        is_unexpected_shutdown = True
+        test.UpdateState(status=TestState.UNTESTED)
+        # For "allow_reboot" tests (such as "Start"), don't cancel
+        # pending tests, since reboot is expected.
+        session.console.info('Unexpected shutdown while test %s was running. '
+                             'The test is marked as allow_reboot, continuing '
+                             'on pending tests.',
+                             test.path)
       else:
         is_unexpected_shutdown = True
         error_msg = 'Unexpected shutdown while test was running'
@@ -425,16 +434,13 @@ class Goofy(object):
         # Trigger the OnTestFailure callback.
         self.run_queue.put(lambda: self.test_fail(test))
 
-        if not test.never_fails:
-          # For "never_fails" tests (such as "Start"), don't cancel
-          # pending tests, since reboot is expected.
-          session.console.info('Unexpected shutdown while test %s '
-                               'running; cancelling any pending tests',
-                               test.path)
-          # cancel pending tests by replace the iterator with an empty one
-          self.state_instance.set_shared_data(
-              TESTS_AFTER_SHUTDOWN,
-              TestListIterator(None))
+        session.console.info('Unexpected shutdown while test %s '
+                             'running; cancelling any pending tests',
+                             test.path)
+        # cancel pending tests by replace the iterator with an empty one
+        self.state_instance.set_shared_data(
+            TESTS_AFTER_SHUTDOWN,
+            TestListIterator(None))
 
     if is_unexpected_shutdown:
       logging.warning("Unexpected shutdown.")
