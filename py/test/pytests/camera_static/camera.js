@@ -13,15 +13,24 @@ const hideImage = (hide) => {
   imageDiv.style.display = hide ? 'none' : '';
 };
 
-const failWithError = (reason) => {
-  test.fail(`${reason.name}: ${reason.message}`);
-};
+const getErrorMessage = (error) => `${error.name}: ${error.message}`;
 
 // TODO(pihsun): Move this to util.js
-const runPromise = (promise, eventName) => {
-  promise.then((data) => {
-    test.sendTestEvent(eventName, data);
-  }).catch(failWithError);
+const runJSPromise = (js, eventName) => {
+  eval(js).then((data) => {
+    test.sendTestEvent(eventName, {data});
+  }).catch((error) => {
+    test.sendTestEvent(eventName, {error: getErrorMessage(error)});
+  });
+};
+
+const runJS = (js, eventName) => {
+  try {
+    const data = eval(js);
+    test.sendTestEvent(eventName, {data});
+  } catch (error) {
+    test.sendTestEvent(eventName, {error: getErrorMessage(error)});
+  }
 };
 
 const showInstruction = (instruction) => {
@@ -141,8 +150,8 @@ class CameraTest {
 const exports = {
   showImage,
   hideImage,
-  failWithError,
-  runPromise,
+  runJSPromise,
+  runJS,
   showInstruction,
   CameraTest
 };

@@ -121,7 +121,6 @@ import numbers
 import Queue
 import random
 import tempfile
-import threading
 import time
 import uuid
 
@@ -198,23 +197,24 @@ class CameraTest(test_ui.TestCaseWithUI):
   def ShowInstruction(self, msg):
     self.ui.CallJSFunction('showInstruction', msg)
 
+  def _RunJSBlockingImpl(self, js, func):
+    return_queue = Queue.Queue()
+    event_name = 'wait_js_%s_%s' % (func, uuid.uuid4())
+    self.ui.AddEventHandler(
+        event_name, lambda event: return_queue.put(event.data))
+    self.ui.CallJSFunction(func, js, event_name)
+    ret = return_queue.get()
+    if 'error' in ret:
+      self.FailTask(ret['error'])
+    return ret['data']
+
   # TODO(pihsun): Put this in test_ui.
   def RunJSBlocking(self, js):
-    wait_event = threading.Event()
-    event_name = 'wait_js_%s' % uuid.uuid4()
-    self.ui.AddEventHandler(event_name, lambda unused_event: wait_event.set())
-    self.ui.RunJS('try { %s; test.sendTestEvent(%r, ""); }'
-                  'catch(e) { failWithError(e); }' % (js, event_name))
-    wait_event.wait()
+    self._RunJSBlockingImpl(js, 'runJS')
 
   # TODO(pihsun): Put this in test_ui.
   def RunJSPromiseBlocking(self, js):
-    event_name = 'wait_js_promise_%s' % uuid.uuid4()
-    return_queue = Queue.Queue()
-    self.ui.AddEventHandler(
-        event_name, lambda event: return_queue.put(event.data))
-    self.ui.RunJS('runPromise(%s, %r)' % (js, event_name))
-    return return_queue.get()
+    return self._RunJSBlockingImpl(js, 'runJSPromise')
 
   def EnableDevice(self):
     if self.e2e_mode:
