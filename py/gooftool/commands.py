@@ -482,7 +482,6 @@ def Verify(options):
   VerifyDevSwitch(options)
   VerifyHWID(options)
   VerifySystemTime(options)
-  VerifyECKey(options)
   VerifyKeys(options)
   VerifyRootFs(options)
   VerifyTPM(options)
