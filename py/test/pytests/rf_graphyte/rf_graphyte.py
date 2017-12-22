@@ -51,9 +51,7 @@ import csv
 import json
 import logging
 import os
-import subprocess
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -62,7 +60,6 @@ from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import server_proxy
 from cros.factory.test import session
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 
@@ -74,32 +71,8 @@ LOCAL_CONFIG_DIR = os.path.dirname(os.path.abspath(__file__))
 RESULT_FILENAME = 'graphyte_result.csv'
 LOG_FILENAME = 'graphyte.log'
 
-_ID_MSG_DIV = '_msg'
-_ID_DEBUG_DIV = '_debug'
 
-_CSS = """
-  #%s {
-    font-size: 2em;
-    color: blue;
-  }
-  #%s {
-    text-align: left;
-    height: 70%%;
-    overflow: auto;
-  }
-""" % (_ID_MSG_DIV, _ID_DEBUG_DIV)
-
-_STATE_HTML = """
-  <div id='%s'></div>
-  <div id='%s'></div>
-""" % (_ID_MSG_DIV, _ID_DEBUG_DIV)
-
-_MSG_FETCH_CONFIG = i18n_test_ui.MakeI18nLabelWithClass(
-    'Fetching config files from factory server', 'message')
-_MSG_EXECUTE_GRAPHYTE = i18n_test_ui.MakeI18nLabelWithClass(
-    'Executing Graphyte', 'message')
-
-class RFGraphyteTest(unittest.TestCase):
+class RFGraphyteTest(test_ui.TestCaseWithUI):
 
   ARGS = [
       Arg('graphyte_config_file', str,
@@ -125,13 +98,10 @@ class RFGraphyteTest(unittest.TestCase):
           default='rf_graphyte'),
       ]
 
+  ui_class = test_ui.ScrollableLogUI
+
   def setUp(self):
-    self._ui = test_ui.UI()
-    self._ui.AppendCSS(_CSS)
-    self._template = ui_templates.OneSection(self._ui)
-    self._template.SetState(_STATE_HTML)
     self._dut = device_utils.CreateDUTInterface()
-    self.process = None
     if self.args.enable_factory_server:
       self._server_proxy = server_proxy.GetServerProxy()
 
@@ -141,17 +111,7 @@ class RFGraphyteTest(unittest.TestCase):
     self.result_file_path = self.GetLogPath(timestamp, RESULT_FILENAME)
     self.log_file_path = self.GetLogPath(timestamp, LOG_FILENAME)
 
-  def tearDown(self):
-    if self.process:
-      logging.info('Graphyte process still exists, kill the process (pid: %s).',
-                   self.process.pid)
-      self.process.kill()
-
   def runTest(self):
-    self._ui.RunInBackground(self._runTest)
-    self._ui.Run()
-
-  def _runTest(self):
     # Update the config file from factory server.
     self.FetchConfigFromFactoryServer()
 
@@ -172,7 +132,7 @@ class RFGraphyteTest(unittest.TestCase):
         delete=False)
 
     # Execute Graphyte.
-    self._ui.SetHTML(_MSG_EXECUTE_GRAPHYTE, id=_ID_MSG_DIV)
+    self.ui.SetInstruction(i18n_test_ui.MakeI18nLabel('Executing Graphyte'))
     cmd = ['python', '-m', 'graphyte.main',
            '--config-file', self.config_file_path,
            '--result-file', self.result_file_path,
@@ -180,18 +140,7 @@ class RFGraphyteTest(unittest.TestCase):
     if self.args.verbose:
       cmd.append('-v')
     session.console.info('Call the Graphyte command: %s', ' '.join(cmd))
-    self.process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-
-    # Output to UI
-    debug_str = ''
-    while True:
-      line = self.process.stdout.readline()
-      if not line:
-        break
-      # Keep 8Kb data.
-      debug_str = (test_ui.Escape(line) + debug_str)[:8 * 1024]
-      self._ui.SetHTML(debug_str, id=_ID_DEBUG_DIV)
-    self.process = None
+    self.ui.PipeProcessOutputToUI(cmd)
 
     # Save the log file.
     if os.path.exists(self.log_file_path):
@@ -291,7 +240,8 @@ class RFGraphyteTest(unittest.TestCase):
     if not self.args.enable_factory_server:
       return
 
-    self._ui.SetHTML(_MSG_FETCH_CONFIG, id=_ID_MSG_DIV)
+    self.ui.SetInstruction(
+        i18n_test_ui.MakeI18nLabel('Fetching config files from factory server'))
     config_file_paths = self._server_proxy.ListParameters(
         os.path.join(self.args.server_parameter_dir, '*'))
     for file_path in config_file_paths:
