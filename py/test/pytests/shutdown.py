@@ -48,7 +48,6 @@ import logging
 import os
 import re
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -60,7 +59,6 @@ from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test.test_lists import test_object
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import audio_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sys_utils
@@ -75,23 +73,6 @@ _DICT_OPERATION_LABEL = {
     'full_reboot': _('full reboot'),
     'halt': _('halt')
 }
-_SHUTDOWN_COMMENCING_MSG = lambda operation, delay: (
-    i18n_test_ui.MakeI18nLabel(
-        'System is going to {operation} in {delay} seconds.',
-        operation=_DICT_OPERATION_LABEL.get(operation, operation),
-        delay=delay))
-_REMOTE_SHUTDOWN_PROGRESS_MSG = lambda operation, delay: (
-    i18n_test_ui.MakeI18nLabel(
-        'Remote DUT is performing {operation}, timeout in {delay} seconds.',
-        operation=_DICT_OPERATION_LABEL.get(operation, operation),
-        delay=delay))
-_SHUTDOWN_COMPLETE_MSG = lambda operation: i18n_test_ui.MakeI18nLabel(
-    'Verifying system state after {operation}',
-    operation=_DICT_OPERATION_LABEL.get(operation, operation))
-_TEST_TITLE = lambda operation: i18n_test_ui.MakeI18nLabel(
-    'Shutdown Test ({operation})',
-    operation=_DICT_OPERATION_LABEL.get(operation, operation))
-_CSS = 'body { font-size: 2em; }'
 
 
 class ShutdownError(Exception):
@@ -114,7 +95,7 @@ class Checkpoint(object):
     return self.__str__()
 
 
-class ShutdownTest(unittest.TestCase):
+class ShutdownTest(test_ui.TestCaseWithUI):
   """Factory test for shutdown operations (reboot, full_reboot, or halt).
 
   This test has two stages.  The Shutdown() method is the first stage which
@@ -154,9 +135,12 @@ class ShutdownTest(unittest.TestCase):
                                    test_object.ShutdownStep.FULL_REBOOT,
                                    test_object.ShutdownStep.HALT)
     self.dut = device_utils.CreateDUTInterface()
-    self.ui = test_ui.UI(css=_CSS)
-    self.template = ui_templates.OneSection(self.ui)
-    self.template.SetTitle(_TEST_TITLE(self.args.operation))
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.operation_label = _DICT_OPERATION_LABEL.get(self.args.operation,
+                                                     self.args.operation)
+    self.ui.SetTitle(
+        i18n_test_ui.MakeI18nLabel(
+            'Shutdown Test ({operation})', operation=self.operation_label))
     self.goofy = state.get_instance()
     self.test = self.test_info.ReadTestList().LookupPath(self.test_info.path)
     self.test_state = self.goofy.get_test_state(self.test_info.path)
@@ -219,10 +203,8 @@ class ShutdownTest(unittest.TestCase):
       time.sleep(self.args.wait_shutdown_secs)
     except type_utils.TestFailure:
       return
-    error_msg = 'System did not shutdown in %s seconds.' % (
-        self.args.wait_shutdown_secs)
-    self.ui.Fail(error_msg)
-    raise ShutdownError(error_msg)
+    self.FailTask(
+        'System did not shutdown in %s seconds.' % self.args.wait_shutdown_secs)
 
   def CheckShutdownFailureTagFile(self):
     """Checks if there is any shutdown failure tag file.
@@ -335,8 +317,12 @@ class ShutdownTest(unittest.TestCase):
       if self.remaining_time < 0:
         raise ShutdownError('%s are not completed in %s secs.' %
                             (checkpoints, self.args.wait_shutdown_secs))
-      self.template.SetState(_REMOTE_SHUTDOWN_PROGRESS_MSG(
-          self.args.operation, self.remaining_time))
+      self.ui.SetState(
+          i18n_test_ui.MakeI18nLabel(
+              'Remote DUT is performing {operation}, '
+              'timeout in {delay} seconds.',
+              operation=self.operation_label,
+              delay=self.remaining_time))
       logging.debug('Checking %s...', checkpoints[0])
       if checkpoints[0]():
         logging.info('%s is passed.', checkpoints[0])
@@ -348,7 +334,10 @@ class ShutdownTest(unittest.TestCase):
     post_shutdown = self.goofy.get_shared_data(key_post_shutdown, True)
     if post_shutdown:
       # Only do post shutdown verification once.
-      self.template.SetState(_SHUTDOWN_COMPLETE_MSG(self.args.operation))
+      self.ui.SetState(
+          i18n_test_ui.MakeI18nLabel(
+              'Verifying system state after {operation}',
+              operation=self.operation_label))
       self.goofy.del_shared_data(key_post_shutdown)
 
       if post_shutdown['goofy_error']:
@@ -356,8 +345,11 @@ class ShutdownTest(unittest.TestCase):
       self.PostShutdown()
     else:
       self.PreShutdown()
-      self.template.SetState(
-          _SHUTDOWN_COMMENCING_MSG(self.args.operation, self.args.delay_secs))
+      self.ui.SetState(
+          i18n_test_ui.MakeI18nLabel(
+              'System is going to {operation} in {delay} seconds.',
+              operation=self.operation_label,
+              delay=self.args.delay_secs))
       self.Shutdown()
 
   def PreShutdown(self):

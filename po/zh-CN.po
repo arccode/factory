@@ -2290,8 +2290,8 @@ msgid "halt"
 msgstr "关机"
 
 #: ../py/test/pytests/shutdown.py
-msgid "System is going to {operation} in {delay} seconds."
-msgstr "系统将在 {delay} 秒后{operation}."
+msgid "Shutdown Test ({operation})"
+msgstr "关机测试 ({operation})"
 
 #: ../py/test/pytests/shutdown.py
 msgid "Remote DUT is performing {operation}, timeout in {delay} seconds."
@@ -2302,8 +2302,8 @@ msgid "Verifying system state after {operation}"
 msgstr "{operation}后验证系统状态"
 
 #: ../py/test/pytests/shutdown.py
-msgid "Shutdown Test ({operation})"
-msgstr "关机测试 ({operation})"
+msgid "System is going to {operation} in {delay} seconds."
+msgstr "系统将在 {delay} 秒后{operation}."
 
 #: ../py/test/pytests/spatial_sensor_calibration.py
 msgid "Accelerometer"
