@@ -150,6 +150,11 @@ _cros_core_cmd_arg = CmdArg(
          'items. For example, registration codes or firmware bitmap '
          'locale settings).')
 
+_chromebox_cmd_arg = CmdArg(
+    '--chromebox', action='store_true', default=None,
+    help='Finalize for ChromeBox devices (may add or remove few test '
+    'items. For example, VerifyECKey).')
+
 _enforced_release_channels_cmd_arg = CmdArg(
     '--enforced_release_channels', nargs='*', default=None,
     help='Enforced release image channels.')
@@ -460,6 +465,7 @@ def WipeInit(options):
          _hwid_cmd_arg,
          _rma_mode_cmd_arg,
          _cros_core_cmd_arg,
+         _chromebox_cmd_arg,
          _ec_pubkey_path_cmd_arg,
          _ec_pubkey_hash_cmd_arg,
          _release_rootfs_cmd_arg,
@@ -482,6 +488,8 @@ def Verify(options):
   VerifyDevSwitch(options)
   VerifyHWID(options)
   VerifySystemTime(options)
+  if options.chromebox:
+    VerifyECKey(options)
   VerifyKeys(options)
   VerifyRootFs(options)
   VerifyTPM(options)
@@ -650,6 +658,7 @@ def UploadReport(options):
          _hwid_cmd_arg,
          _rma_mode_cmd_arg,
          _cros_core_cmd_arg,
+         _chromebox_cmd_arg,
          _ec_pubkey_path_cmd_arg,
          _ec_pubkey_hash_cmd_arg,
          _release_rootfs_cmd_arg,
