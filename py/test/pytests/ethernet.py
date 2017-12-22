@@ -82,7 +82,14 @@ class EthernetTest(test_ui.TestCaseWithUI):
   def GetInterface(self):
     devices = self.GetEthernetInterfaces()
     if self.args.iface:
-      return self.args.iface if self.args.iface in devices else None
+      if self.args.iface in devices:
+        if self.CheckNotUsbLanDongle(self.args.iface):
+          return self.args.iface
+        else:
+          session.console.info('Not a built-in ethernet device.')
+          return None
+      else:
+        return None
     else:
       return self.GetCandidateInterface()
 
@@ -91,8 +98,7 @@ class EthernetTest(test_ui.TestCaseWithUI):
     if not devices:
       self.FailTask('No ethernet interface')
     for dev in devices:
-      if 'usb' not in self.dut.path.realpath('/sys/class/net/%s' % dev):
-        session.console.info('Built-in ethernet device %s found.', dev)
+      if self.CheckNotUsbLanDongle(dev):
         self.dut.CheckCall(['ifconfig', dev, 'up'], log=True)
         return dev
     return None
@@ -125,6 +131,12 @@ class EthernetTest(test_ui.TestCaseWithUI):
       self.PassTask()
     else:
       self.FailTask('Link is down on dev %s' % dev)
+
+  def CheckNotUsbLanDongle(self, device):
+    if 'usb' not in self.dut.path.realpath('/sys/class/net/%s' % device):
+      session.console.info('Built-in ethernet device %s found.', device)
+      return True
+    return False
 
   def GetEthernetIp(self, interface):
     output = self.dut.CallOutput(
