@@ -11,17 +11,14 @@
 
 """Tests to manually test audio playback and record quality."""
 
-import json
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import session
 from cros.factory.test import test_ui
 from cros.factory.test.utils import audio_utils
 
 
-class AudioDiagnosticTest(unittest.TestCase):
+class AudioDiagnosticTest(test_ui.TestCaseWithUI):
   """A test executing audio diagnostic tools.
 
   This is a manual test run by operator who judges
@@ -34,10 +31,7 @@ class AudioDiagnosticTest(unittest.TestCase):
     Setup the UI for displaying diagnostic controls
     and bind events to corresponding tasks at backend.
     """
-    self._ui = test_ui.UI()
-    self._ui.AddEventHandler('fail', self.Fail)
-    self._ui.AddEventHandler('pass', self.Pass)
-    self._ui.AddEventHandler('select_cras_node', self.SelectCrasNode)
+    self.ui.AddEventHandler('select_cras_node', self.SelectCrasNode)
 
     self._cras = audio_utils.CRAS()
     self._cras.UpdateIONodes()
@@ -51,22 +45,12 @@ class AudioDiagnosticTest(unittest.TestCase):
     self.UpdateCrasNodes()
 
   def UpdateCrasNodes(self):
-    session.console.info('UpdateCrasNodes called! once')
     self._cras.UpdateIONodes()
-    self._ui.CallJSFunction('showCrasNodes', 'output',
-                            json.dumps(self._cras.output_nodes,
-                                       default=lambda o: o.__dict__))
-    self._ui.CallJSFunction('showCrasNodes', 'input',
-                            json.dumps(self._cras.input_nodes,
-                                       default=lambda o: o.__dict__))
-
-  def Fail(self, event):
-    del event  # Unused.
-    self._ui.Fail('Fail with bad audio quality')
-
-  def Pass(self, event):
-    del event  # Unused.
-    self._ui.Pass()
+    self.ui.CallJSFunction('showCrasNodes', 'output',
+                           [node.__dict__ for node in self._cras.output_nodes])
+    self.ui.CallJSFunction('showCrasNodes', 'input',
+                           [node.__dict__ for node in self._cras.input_nodes])
 
   def runTest(self):
-    self._ui.Run()
+    self.ui.CallJSFunction('init')
+    self.WaitTaskEnd()

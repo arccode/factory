@@ -1139,14 +1139,6 @@ msgid "Tone On"
 msgstr "播放音频"
 
 #: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
-msgid "Pass"
-msgstr "通过"
-
-#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
-msgid "Fail"
-msgstr "失败"
-
-#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
 msgid "Manual record"
 msgstr "手动录音"
 
@@ -1185,6 +1177,14 @@ msgstr "输出设备"
 #: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
 msgid "Input Nodes"
 msgstr "输入设备"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Pass"
+msgstr "通过"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Fail"
+msgstr "失败"
 
 #: ../py/test/pytests/audio_loop_static/audio_loop.html
 msgid "Plug in audio jack dongle"

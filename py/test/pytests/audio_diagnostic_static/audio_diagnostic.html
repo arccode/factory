@@ -1,15 +1,13 @@
-<table>
-<tr>
-  <td colspan="2">
-    <div id="tone_gen" class="ctl-panel">
+<test-template>
+  <div id="container">
+    <div id="tonegen" class="ctl-panel">
       <h2>
         <i18n-label>Tone generator</i18n-label>
       </h2>
-      <table style="width: 100%">
-        <tr>
-          <td class="tonegen-main-cell">
-            <button id="tone_btn" class="btn-off"
-                onclick="toneButtonClicked()">
+      <div id="tonegen-main">
+        <div>
+          <div>
+            <button id="tone-btn" class="btn-off">
               <span class="btn-on-text">
                 <i18n-label>Tone off</i18n-label>
               </span>
@@ -17,56 +15,33 @@
                 <i18n-label>Tone On</i18n-label>
               </span>
             </button>
-            <select id="tone_type" onchange="toneTypeChanged()">
+            <select id="tone-type">
               <option value="sine">Sine wave</option>
               <option value="square">Square wave</option>
               <option value="triangle">Triangle wave</option>
             </select>
-            <div>
-              <input id="freq_bar" type="range" min="1" max="500"
-                style="width: 100%" onchange="freqBarChanged(this.value)"/>
-              <div id='freq' align="center" class='edit-off'>
-                <span id="freq_curr">ff</span>
-                /
-                <span id="freq_max_label" class='freq-max-label'
-                    onclick="editMax(true)">mm</span>
-                <input id="freq_max_edit" class='freq-max-edit'
-                    onblur="editMax(false)"
-                    onkeydown="if (event.keyCode == 13) editMax(false);"/>
-                Hz
-              </div>
-            </div>
-          </td>
-          <td class="tonegen-vol-cell">
-            <input type="range" min="1" max="20" value="10"
-                onchange="leftGain(this.value);"/>
-            <input type="range" min="1" max="20" value="10"
-                onchange="rightGain(this.value);"/>
-            <br>
-            L  /  R
-          </td>
-        </tr>
-      </table>
+          </div>
+          <input id="freq-bar" type="range" min="1" max="500">
+          <div id="freq" class="edit-off">
+            <span id="freq-curr">ff</span> /
+            <span id="freq-max-label">mm</span>
+            <input id="freq-max-edit"> Hz
+          </div>
+        </div>
+        <div>
+          <div id="tonegen-vol-sliders">
+            <input id="left-gain" type="range" min="1" max="20" value="10">
+            <input id="right-gain" type="range" min="1" max="20" value="10">
+          </div>
+          <span>L / R</span>
+        </div>
+      </div>
     </div>
-  </td>
-  <td rowspan="2">
-    <div id="test_result" class="ctl-panel">
-      <button onclick="test.sendTestEvent('pass')">
-        <i18n-label>Pass</i18n-label>
-      </button>
-      <button onclick="test.sendTestEvent('fail')">
-        <i18n-label>Fail</i18n-label>
-      </button>
-    </div>
-  </td>
-</tr>
-<tr>
-  <td>
-    <div id="recorder" class="ctl-panel">
+    <div class="ctl-panel">
       <h2>
         <i18n-label>Manual record</i18n-label>
       </h2>
-      <button id="record_btn" class="btn-off" onclick="recordButtonClicked()">
+      <button id="record-btn" class="btn-off">
         <span class="btn-on-text">
           <i18n-label>Stop record</i18n-label>
         </span>
@@ -74,8 +49,7 @@
           <i18n-label>Start record</i18n-label>
         </span>
       </button>
-      <button id="record_playback_btn" class="btn-off"
-          onclick="recordPlaybackButtonClicked()">
+      <button id="record-playback-btn" class="btn-off">
         <span class="btn-on-text">
           <i18n-label>Stop playback</i18n-label>
         </span>
@@ -84,13 +58,11 @@
         </span>
       </button>
     </div>
-  </td>
-  <td>
-    <div id="loopback" class="ctl-panel">
+    <div class="ctl-panel">
       <h2>
         <i18n-label>Audio loopback</i18n-label>
       </h2>
-      <button id="loopback_btn" class="btn-off" onclick="loopbackButtonClicked()">
+      <button id="loopback-btn" class="btn-off">
         <span class="btn-on-text">
           <i18n-label>Loopback off</i18n-label>
         </span>
@@ -99,20 +71,25 @@
         </span>
       </button>
     </div>
-  </td>
-</tr>
-<tr>
-  <td class="ctl-panel">
-    <h2>
-      <i18n-label>Output Nodes</i18n-label>
-    </h2>
-    <div id="output-nodes"></div>
-  </td>
-  <td class="ctl-panel">
-    <h2>
-      <i18n-label>Input Nodes</i18n-label>
-    </h2>
-    <div id="input-nodes"></div>
-  </td>
-</tr>
-</table>
+    <div class="ctl-panel">
+      <h2>
+        <i18n-label>Output Nodes</i18n-label>
+      </h2>
+      <div id="output-nodes"></div>
+    </div>
+    <div class="ctl-panel">
+      <h2>
+        <i18n-label>Input Nodes</i18n-label>
+      </h2>
+      <div id="input-nodes"></div>
+    </div>
+    <div id="test-result" class="ctl-panel">
+      <button id="pass-btn">
+        <i18n-label>Pass</i18n-label>
+      </button>
+      <button id="fail-btn">
+        <i18n-label>Fail</i18n-label>
+      </button>
+    </div>
+  </div>
+</test-template>

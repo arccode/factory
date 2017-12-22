@@ -4,56 +4,77 @@
  * found in the LICENSE file.
  */
 
-td {
+#container {
+  display: grid;
+  grid: auto-flow / repeat(2, 1fr);
   text-align: center;
-  vertical-align: middle;
 }
+
+#tonegen {
+  grid-column: span 2;
+}
+
+#test-result {
+  grid-column: span 2;
+}
+
 .btn-on-text {
   display: none;
 }
+
 .btn-off-text {
   display: none;
 }
+
 .btn-on .btn-on-text {
   display: block;
 }
+
 .btn-off .btn-off-text {
   display: block;
 }
-.freq-max-label {
+
+#freq-max-label {
   display: none;
 }
-.freq-max-edit {
+
+#freq-max-edit {
   display: none;
 }
-.edit-on .freq-max-edit {
+
+.edit-on #freq-max-edit {
   display: inline;
 }
-.edit-off .freq-max-label {
+
+.edit-off #freq-max-label {
   display: inline;
 }
+
 .ctl-panel {
-  padding: 1em;
+  padding: 0.3em;
 }
+
 .ctl-panel h2 {
   margin: 0.5em;
-  text-align: center;
 }
+
 .cras-node {
   cursor: pointer;
   margin: 0.2em;
-  text-align: center;
 }
-.tonegen-vol-cell input {
-  width: 20px;
-  height: 120px;
+
+#tonegen-vol-sliders input {
+  height: 8em;
+  width: 2em;
   -webkit-appearance: slider-vertical;
 }
-.tonegen-vol-cell {
-  width: 15%;
+
+#tonegen-main {
+  display: grid;
+  grid-template-columns: 4fr 1fr;
+  align-items: center;
 }
-.tonegen-main-cell {
-  width: 80%;
-  text-align: center;
-  vertical-align: middle;
+
+#freq-bar {
+  width: 100%;
 }
