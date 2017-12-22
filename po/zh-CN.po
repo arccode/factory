@@ -2808,28 +2808,28 @@ msgid "Group Registration Code"
 msgstr "群组注册码(Group ECHO)"
 
 #: ../py/test/pytests/update_device_data.py
-msgid "Invalid value for {label}."
-msgstr "输入的{label}不正确"
-
-#: ../py/test/pytests/update_device_data.py
 msgid "No valid data on machine for {label}."
 msgstr "缺少装置资料: {label}"
 
 #: ../py/test/pytests/update_device_data.py
-msgid "<br>Select with ENTER"
-msgstr "<br>按 ENTER 选择"
+msgid "Invalid value for {label}."
+msgstr "输入的{label}不正确"
+
+#: ../py/test/pytests/update_device_data.py
+msgid "Select {label}:"
+msgstr "选择{label}:"
+
+#: ../py/test/pytests/update_device_data.py
+msgid "Select with ENTER"
+msgstr "按 ENTER 选择"
 
 #: ../py/test/pytests/update_device_data.py
 msgid "Enter {label}: "
 msgstr "输入{label}: "
 
 #: ../py/test/pytests/update_device_data.py
-msgid "Select {label}: <br>"
-msgstr "选择{label}: <br>"
-
-#: ../py/test/pytests/update_device_data.py
-msgid "<br>(ESC to keep current value)"
-msgstr "<br>(ESC 保持原值不变)"
+msgid "(ESC to keep current value)"
+msgstr "(ESC 保持原值不变)"
 
 #: ../py/test/pytests/usb.py
 msgid "Plug device into each USB port, {num_usb_ports} to go..."

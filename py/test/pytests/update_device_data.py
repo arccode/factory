@@ -153,9 +153,9 @@ names::
 
 from __future__ import print_function
 
+import Queue
 import logging
 import re
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data
@@ -163,7 +163,6 @@ from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.l10n import regions
-from cros.factory.test import test_task
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -182,43 +181,7 @@ _KNOWN_KEY_LABELS = {
     device_data.KEY_VPD_GROUP_REGCODE: _('Group Registration Code'),
 }
 
-# UI elements
-_DEFAULT_TEST_CSS = '.value-field { font-size: 2em; }'
-_ERR_INPUT_INVALID = lambda label: i18n_test_ui.MakeI18nLabelWithClass(
-    'Invalid value for {label}.', 'value-field test-error', label=label)
-_ERR_NO_VALID_DATA = lambda label: i18n_test_ui.MakeI18nLabelWithClass(
-    'No valid data on machine for {label}.', 'value-field test-error',
-    label=label)
-_MSG_HOW_TO_SELECT = i18n_test_ui.MakeI18nLabelWithClass(
-    '<br>Select with ENTER', 'value-field')
-_MSG_MANUAL_INPUT_PROMPT = lambda label: (
-    i18n_test_ui.MakeI18nLabelWithClass(
-        'Enter {label}: ', 'value-field', label=label))
-_MSG_MANUAL_SELECT_PROMPT = lambda label: (
-    i18n_test_ui.MakeI18nLabelWithClass(
-        'Select {label}: <br>', 'value-field', label=label))
-# The "ESC" is available primarily for RMA and testing process, when operator
-# does not want to change existing serial number.
-_MSG_ESC_TO_SKIP = i18n_test_ui.MakeI18nLabelWithClass(
-    '<br>(ESC to keep current value)', 'value-field')
-
-_HTML_MANUAL_INPUT = lambda ele_id, value: """
-    <input type="text" id="%s" value="%s" style="width: 20em; font-size: 2em;"/>
-    <div id="errormsg" class="value-field test-error"></div>
-""" % (ele_id, value)
-_EVENT_SUBTYPE_DEVICEDATA_PREFIX = 'devicedata-'
-_JS_MANUAL_INPUT = lambda ele_id, event_subtype: """
-    ele = document.getElementById("%s");
-    window.test.sendTestEvent("%s", ele.value);
-""" % (ele_id, event_subtype)
-
-_SELECT_BOX_STYLE = 'font-size: 1.5em; background-color: white;'
 _SELECTION_PER_PAGE = 10
-_JS_SELECT_BOX = lambda ele_id, event_subtype: """
-    ele = document.getElementById("%s");
-    idx = ele.selectedIndex;
-    window.test.sendTestEvent("%s", ele.options[idx].value);
-""" % (ele_id, event_subtype)
 
 
 class DataEntry(object):
@@ -321,85 +284,7 @@ class DataEntry(object):
     return input_data
 
 
-class InputTask(test_task.TestTask):
-  """Factory task to let user manually enter value for the given data.
-
-  Args:
-    test: The main TestCase object.
-    entry: A DataEntry object.
-  """
-
-  def __init__(self, test, entry):
-    super(InputTask, self).__init__()
-    self.test = test
-    self.entry = entry
-
-  def OnComplete(self, value):
-    if value is not None:
-      device_data.UpdateDeviceData({self.entry.key: value})
-    self.Pass()
-
-  def OnEnterPressed(self, event):
-    logging.info('got event: %r', event)
-    data = event.data
-    if not self.entry.IsValidInput(data):
-      self.test.ui.SetHTML(_ERR_INPUT_INVALID(self.entry.label), id='errormsg')
-      return
-    self.OnComplete(self.entry.GetValue(data))
-
-  def OnESCPressed(self):
-    if self.entry.value is None:
-      self.test.ui.SetHTML(_ERR_NO_VALID_DATA(self.entry.label), id='errormsg')
-    else:
-      self.OnComplete(None)
-
-  def Run(self):
-    if self.entry.GetInputList():
-      # Renders a select box to list all the possible values.
-      self.RenderSelectBox()
-    else:
-      self.RenderInputBox()
-
-  def _AppendState(self, html):
-    self.test.template.SetState(html, append=True)
-
-  def RenderSelectBox(self):
-    event_subtype = _EVENT_SUBTYPE_DEVICEDATA_PREFIX + self.entry.key
-    self.test.template.SetState(_MSG_MANUAL_SELECT_PROMPT(self.entry.label))
-    select_box = ui_templates.SelectBox(self.entry.key, _SELECTION_PER_PAGE,
-                                        _SELECT_BOX_STYLE)
-    for value, option in zip(self.entry.GetInputList(),
-                             self.entry.GetOptionList()):
-      select_box.AppendOption(value, option)
-
-    try:
-      select_box.SetSelectedIndex(self.entry.GetValueIndex())
-    except ValueError:
-      pass
-
-    self._AppendState(select_box.GenerateHTML())
-    self._AppendState(_MSG_HOW_TO_SELECT)
-    self.test.ui.BindKeyJS(test_ui.ENTER_KEY, _JS_SELECT_BOX(
-        self.entry.key, event_subtype))
-    self.test.ui.AddEventHandler(event_subtype, self.OnEnterPressed)
-    self.test.ui.SetFocus(self.entry.key)
-
-  def RenderInputBox(self):
-    event_subtype = _EVENT_SUBTYPE_DEVICEDATA_PREFIX + self.entry.key
-    self.test.template.SetState(_MSG_MANUAL_INPUT_PROMPT(self.entry.label))
-    self._AppendState(_HTML_MANUAL_INPUT(
-        self.entry.key, self.entry.value or ''))
-    if self.entry.value:
-      self._AppendState(_MSG_ESC_TO_SKIP)
-    self.test.ui.BindKeyJS(test_ui.ENTER_KEY, _JS_MANUAL_INPUT(
-        self.entry.key, event_subtype))
-    self.test.ui.AddEventHandler(event_subtype, self.OnEnterPressed)
-    self.test.ui.BindKey(test_ui.ESCAPE_KEY, lambda _: self.OnESCPressed())
-    self.test.ui.SetSelected(self.entry.key)
-    self.test.ui.SetFocus(self.entry.key)
-
-
-class UpdateDeviceData(unittest.TestCase):
+class UpdateDeviceData(test_ui.TestCaseWithUI):
   ARGS = [
       Arg('manual_input', bool,
           'Set to False to silently updating all values. Otherwise each value '
@@ -416,8 +301,6 @@ class UpdateDeviceData(unittest.TestCase):
   ]
 
   def setUp(self):
-    self.ui = None
-
     # Either config_name or fields must be specified.
     if self.args.config_name is None and self.args.fields is None:
       raise ValueError('Either config_name or fields must be specified.')
@@ -433,22 +316,98 @@ class UpdateDeviceData(unittest.TestCase):
 
     # Syntax sugar: If the sequence was replaced by a simple string, consider
     # that as data_key only.
-    entries = [DataEntry(args) if isinstance(args, basestring) else
-               DataEntry(*args) for args in fields]
-
-    if not self.args.manual_input:
-      self.entries = entries
-      return
+    self.entries = [
+        DataEntry(args) if isinstance(args, basestring) else DataEntry(*args)
+        for args in fields
+    ]
 
     # Setup UI and update accordingly.
-    self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
-    self.ui.AppendCSS(_DEFAULT_TEST_CSS)
-    self.tasks = [InputTask(self, entry) for entry in entries]
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
 
   def runTest(self):
     if self.args.manual_input:
-      test_task.TestTaskManager(self.ui, self.tasks).Run()
+      for entry in self.entries:
+        self.ManualInput(entry)
     else:
       results = dict((entry.key, entry.value) for entry in self.entries)
       device_data.UpdateDeviceData(results)
+
+  def ManualInput(self, entry):
+    event_subtype = 'devicedata-' + entry.key
+    event_queue = Queue.Queue()
+
+    if entry.GetInputList():
+      self._RenderSelectBox(entry)
+      self.ui.BindKeyJS(test_ui.ENTER_KEY, 'window.sendSelectValue(%r, %r)' %
+                        (entry.key, event_subtype))
+    else:
+      self._RenderInputBox(entry)
+      self.ui.BindKey(
+          test_ui.ESCAPE_KEY, lambda unused_event: event_queue.put(None))
+      self.ui.BindKeyJS(test_ui.ENTER_KEY, 'window.sendInputValue(%r, %r)' % (
+          entry.key, event_subtype))
+
+    self.ui.AddEventHandler(event_subtype, event_queue.put)
+
+    while True:
+      event = event_queue.get()
+      if event is None:
+        # ESC pressed.
+        if entry.value is not None:
+          break
+        self._SetErrorMsg(
+            _('No valid data on machine for {label}.'), label=entry.label)
+      else:
+        data = event.data
+        if entry.IsValidInput(data):
+          value = entry.GetValue(data)
+          if value is not None:
+            device_data.UpdateDeviceData({entry.key: value})
+          break
+        self._SetErrorMsg(_('Invalid value for {label}.'), label=entry.label)
+
+    self.ui.UnbindAllKeys()
+    self.event_loop.ClearHandlers()
+
+  def _SetErrorMsg(self, msg, **kwargs):
+    self.ui.SetHTML(
+        i18n_test_ui.MakeI18nLabelWithClass(msg, 'test-error', **kwargs),
+        id='errormsg')
+
+  def _RenderSelectBox(self, entry):
+    # Renders a select box to list all the possible values.
+    select_box = ui_templates.SelectBox(entry.key, _SELECTION_PER_PAGE)
+    for value, option in zip(entry.GetInputList(),
+                             entry.GetOptionList()):
+      select_box.AppendOption(value, option)
+
+    try:
+      select_box.SetSelectedIndex(entry.GetValueIndex())
+    except ValueError:
+      pass
+
+    html = [
+        i18n_test_ui.MakeI18nLabel('Select {label}:', label=entry.label),
+        select_box.GenerateHTML(),
+        i18n_test_ui.MakeI18nLabel('Select with ENTER')
+    ]
+
+    self.ui.SetState(''.join(html))
+    self.ui.SetFocus(entry.key)
+
+  def _RenderInputBox(self, entry):
+    html = [
+        i18n_test_ui.MakeI18nLabel('Enter {label}: ', label=entry.label),
+        '<input type="text" id="%s" value="%s" style="width: 20em;">'
+        '<div id="errormsg" class="test-error"></div>' % (entry.key,
+                                                          entry.value or '')
+    ]
+
+    if entry.value:
+      # The "ESC" is available primarily for RMA and testing process, when
+      # operator does not want to change existing serial number.
+      html.append(i18n_test_ui.MakeI18nLabel('(ESC to keep current value)'))
+
+    self.ui.SetState(''.join(html))
+    self.ui.SetSelected(entry.key)
+    self.ui.SetFocus(entry.key)
