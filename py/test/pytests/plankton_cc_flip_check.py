@@ -79,9 +79,7 @@ Automated test with a dolphin BFTFixture and flipping the polarity to CC1::
 """
 
 import logging
-import threading
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -90,26 +88,13 @@ from cros.factory.test import session
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
-
-_OPERATION = i18n_test_ui.MakeI18nLabel(
-    'Flip USB type-C cable and plug in again...')
-_NO_TIMER = i18n_test_ui.MakeI18nLabel('And press Enter key to continue...')
-_WAIT_CONNECTION = i18n_test_ui.MakeI18nLabel('Wait DUT to reconnect')
-_CSS = 'body { font-size: 2em; }'
-
-_ID_OPERATION_DIV = 'operation_div'
-_ID_COUNTDOWN_DIV = 'countdown_div'
-_STATE_HTML = '<div id="%s"></div><div id="%s"></div>' % (
-    _ID_OPERATION_DIV, _ID_COUNTDOWN_DIV)
 
 _CC_UNCONNECT = 'UNCONNECTED'
 
 
-class PlanktonCCFlipCheck(unittest.TestCase):
+class PlanktonCCFlipCheck(test_ui.TestCaseWithUI):
   """Plankton USB type-C CC line polarity check and operation flip test."""
   ARGS = [
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP),
@@ -147,10 +132,8 @@ class PlanktonCCFlipCheck(unittest.TestCase):
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
-    self._ui = test_ui.UI(css=_CSS)
-    self._template = ui_templates.OneSection(self._ui)
-    if self.args.ask_flip_operation and self.args.timeout_secs == 0:
-      self._ui.BindKey(test_ui.ENTER_KEY, lambda _: self.OnEnterPressed())
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.SetState('<div id="operation"></div><div id="timer"></div>')
     self._bft_fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
     self._adb_remote_test = self.args.adb_remote_test
     self._double_cc_quick_check = (
@@ -176,7 +159,8 @@ class PlanktonCCFlipCheck(unittest.TestCase):
       'CC1' or 'CC2', or _CC_UNCONNECT if it doesn't detect SRC_READY.
     """
     if not self._dut.IsReady():
-      self._ui.SetHTML(_WAIT_CONNECTION, id=_ID_OPERATION_DIV)
+      self.ui.SetHTML(
+          i18n_test_ui.MakeI18nLabel('Wait DUT to reconnect'), id='operation')
       session.console.info(
           'Lose connection to DUT, waiting for DUT to reconnect')
       sync_utils.WaitFor(lambda: self._dut.Call(['true']) == 0,
@@ -217,7 +201,7 @@ class PlanktonCCFlipCheck(unittest.TestCase):
     retry_times_left = retry_times
     polarity = self.GetCCPolarity()
     while retry_times_left != 0 and polarity == _CC_UNCONNECT:
-      time.sleep(1)
+      self.WaitTaskEnd(timeout=1)
       polarity = self.GetCCPolarity()
       logging.info('[%d]Poll polarity %s', retry_times_left, polarity)
       retry_times_left -= 1
@@ -225,22 +209,6 @@ class PlanktonCCFlipCheck(unittest.TestCase):
 
   def tearDown(self):
     self._bft_fixture.Disconnect()
-
-  def _PollCheckCCPolarity(self):
-    while True:
-      time.sleep(0.5)
-      polarity = self.GetCCPolarity()
-      if polarity != self._polarity and polarity != _CC_UNCONNECT:
-        self._polarity = polarity
-        self._ui.Pass()
-
-  def OnEnterPressed(self):
-    polarity = self.GetCCPolarity()
-    if polarity != self._polarity and polarity != _CC_UNCONNECT:
-      self._polarity = polarity
-      self._ui.Pass()
-    else:
-      self._ui.Fail('DUT does not detect cable flipped. Was it really flipped?')
 
   def runTest(self):
     if (self.args.original_enabled_cc is not None and
@@ -250,60 +218,56 @@ class PlanktonCCFlipCheck(unittest.TestCase):
                 'Does Raiden cable connect in correct direction?' %
                 (self.args.original_enabled_cc, self._polarity))
 
-    self._template.SetState(_STATE_HTML)
     if self.args.ask_flip_operation:
-      self._ui.SetHTML(_OPERATION, id=_ID_OPERATION_DIV)
+      self.ui.SetHTML(
+          i18n_test_ui.MakeI18nLabel(
+              'Flip USB type-C cable and plug in again...'),
+          id='operation')
       if self.args.timeout_secs == 0:
-        self._ui.SetHTML(_NO_TIMER, id=_ID_COUNTDOWN_DIV)
+        self.ui.AppendHTML(
+            i18n_test_ui.MakeI18nLabel('And press Enter key to continue...'),
+            id='operation')
+        self.ui.WaitKeysOnce(test_ui.ENTER_KEY)
+        polarity = self.GetCCPolarity()
+        if polarity == self._polarity or polarity == _CC_UNCONNECT:
+          self.FailTask(
+              'DUT does not detect cable flipped. Was it really flipped?')
       else:
         # Start countdown timer.
-        countdown_timer.StartCountdownTimer(
-            self.args.timeout_secs,
-            lambda: self._ui.Fail('Timeout waiting for test to complete'),
-            self._ui,
-            _ID_COUNTDOWN_DIV)
-        # Start polling thread
-        process_utils.StartDaemonThread(target=self._PollCheckCCPolarity)
-      self._ui.Run()
+        countdown_timer.StartNewCountdownTimer(
+            self, self.args.timeout_secs, 'timer',
+            lambda: self.FailTask('Timeout waiting for test to complete'))
+        while True:
+          self.WaitTaskEnd(timeout=0.5)
+          polarity = self.GetCCPolarity()
+          if polarity != self._polarity and polarity != _CC_UNCONNECT:
+            return
+
     elif (self._bft_fixture.IsDoubleCCCable() and
           (not self.args.double_cc_flip_target or
            self._polarity != self.args.double_cc_flip_target)):
-      disable_event = threading.Event()
-
       if self.args.timeout_secs:
-        countdown_timer.StartCountdownTimer(
-            self.args.timeout_secs,
-            lambda: self._ui.Fail('Timeout waiting for test to complete'),
-            self._ui,
-            _ID_COUNTDOWN_DIV,
-            disable_event=disable_event)
+        countdown_timer.StartNewCountdownTimer(
+            self, self.args.timeout_secs, 'timer',
+            lambda: self.FailTask('Timeout waiting for test to complete'))
 
-      def do_flip():
-        session.console.info('Double CC test, doing CC flip...')
-        #TODO(yllin): Remove this if solve the plankton firmware issue
-        def charge_check_flip():
-          self._bft_fixture.SetDeviceEngaged('CHARGE_5V', True)
-          time.sleep(2)
-          new_polarity = self.GetCCPolarityWithRetry(5)
-          if new_polarity != self._polarity:
-            return
-          self._bft_fixture.SetMuxFlip(0)
-          time.sleep(2)
-
-        charge_check_flip()
-        if self._adb_remote_test and not self._double_cc_quick_check:
-          # For remote test, keep adb connection enabled.
-          self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=True)
-
+      session.console.info('Double CC test, doing CC flip...')
+      # TODO(yllin): Remove this if solve the plankton firmware issue
+      def charge_check_flip():
+        self._bft_fixture.SetDeviceEngaged('CHARGE_5V', True)
+        self.WaitTaskEnd(timeout=2)
         new_polarity = self.GetCCPolarityWithRetry(5)
-        disable_event.set()
-
         if new_polarity != self._polarity:
-          self._ui.Pass()
-        else:
-          self._ui.Fail('Unexpected polarity')
+          return
+        self._bft_fixture.SetMuxFlip(0)
+        self.WaitTaskEnd(timeout=2)
 
-      process_utils.StartDaemonThread(target=do_flip)
-      self._ui.Run()
+      charge_check_flip()
+      if self._adb_remote_test and not self._double_cc_quick_check:
+        # For remote test, keep adb connection enabled.
+        self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=True)
 
-    logging.info('Detect polarity: %s', self._polarity)
+      new_polarity = self.GetCCPolarityWithRetry(5)
+
+      if new_polarity == self._polarity:
+        self.FailTask('Unexpected polarity')

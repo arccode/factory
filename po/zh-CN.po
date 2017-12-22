@@ -2092,16 +2092,16 @@ msgid "Please attach USB type-C cable in {secs:.1f} seconds"
 msgstr "请在 {secs:.1f} 秒内连接 USB type-C 线"
 
 #: ../py/test/pytests/plankton_cc_flip_check.py
+msgid "Wait DUT to reconnect"
+msgstr "等待 DUT 重新连接"
+
+#: ../py/test/pytests/plankton_cc_flip_check.py
 msgid "Flip USB type-C cable and plug in again..."
 msgstr "将 USB type-C port 头反转后再次插入机器..."
 
 #: ../py/test/pytests/plankton_cc_flip_check.py
 msgid "And press Enter key to continue..."
 msgstr "并按 Enter 键继续..."
-
-#: ../py/test/pytests/plankton_cc_flip_check.py
-msgid "Wait DUT to reconnect"
-msgstr "等待 DUT 重新连接"
 
 #: ../py/test/pytests/plankton_charge.py
 msgid "Waiting for ADB device connection..."
