@@ -2419,8 +2419,8 @@ msgid "Test Status for {test}:"
 msgstr "{test} 测试结果列表："
 
 #: ../py/test/pytests/suspend_resume.py
-msgid "Suspend/Resume:"
-msgstr "暂停/恢复:"
+msgid "Suspend/Resume: {run} of {cycle}"
+msgstr "暂停/恢复: {run} / {cycle}"
 
 #: ../py/test/pytests/sync_factory_server.py
 msgid "No factor server URL configured."

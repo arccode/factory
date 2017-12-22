@@ -21,25 +21,18 @@ import random
 import re
 import threading
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
-_MSG_CYCLE = i18n_test_ui.MakeI18nLabel('Suspend/Resume:')
-_ID_CYCLES = 'sr_cycles'
-_ID_RUN = 'sr_run'
-_TEST_BODY = ('<font size="20">%s <div id="%s"></div> of \n'
-              '<div id="%s"></div></font>') % (_MSG_CYCLE, _ID_RUN, _ID_CYCLES)
 _MIN_SUSPEND_MARGIN_SECS = 5
 
 _MESSAGES = '/var/log/messages'
@@ -48,7 +41,7 @@ _KERNEL_DEBUG_WAKEUP_SOURCES = '/sys/kernel/debug/wakeup_sources'
 _MAX_EARLY_RESUME_RETRY_COUNT = 3
 
 
-class SuspendResumeTest(unittest.TestCase):
+class SuspendResumeTest(test_ui.TestCaseWithUI):
   ARGS = [
       Arg('cycles', int, 'Number of cycles to suspend/resume', default=1),
       Arg('suspend_delay_max_secs', int,
@@ -86,9 +79,9 @@ class SuspendResumeTest(unittest.TestCase):
 
   def setUp(self):
     self.assertTrue(os.path.exists(self.args.wakealarm_path), 'wakealarm_path '
-                    '%s is not found, bad path?' % (self.args.wakealarm_path))
+                    '%s is not found, bad path?' % self.args.wakealarm_path)
     self.assertTrue(os.path.exists(self.args.time_path), 'time_path %s is not '
-                    'found, bad path?' % (self.args.time_path))
+                    'found, bad path?' % self.args.time_path)
     self.assertGreaterEqual(self.args.suspend_delay_min_secs,
                             _MIN_SUSPEND_MARGIN_SECS, 'The '
                             'suspend_delay_min_secs is too low, bad '
@@ -102,9 +95,7 @@ class SuspendResumeTest(unittest.TestCase):
 
     self.goofy = state.get_instance()
 
-    self._ui = test_ui.UI()
-    self._template = ui_templates.OneSection(self._ui)
-    self._template.SetState(_TEST_BODY)
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
 
     # Remove lid-opened, which will prevent suspend.
     file_utils.TryUnlink('/run/power_manager/lid_opened')
@@ -167,7 +158,7 @@ class SuspendResumeTest(unittest.TestCase):
 
   def _MonitorWakealarm(self):
     """Start and extend the wakealarm as needed for the main thread."""
-    open(self.args.wakealarm_path, 'w').write(str(self.resume_at))
+    file_utils.WriteFile(self.args.wakealarm_path, str(self.resume_at))
     self.alarm_started.set()
     # CAUTION: the loop below is subject to race conditions with suspend time.
     while (self._ReadSuspendCount() < self.initial_suspend_count + self.run
@@ -177,8 +168,8 @@ class SuspendResumeTest(unittest.TestCase):
         self.attempted_wake_extensions += 1
         logging.warn('Late suspend detected, attempting wake extension')
         try:
-          with open(self.args.wakealarm_path, 'w') as f:
-            f.write('+=' + str(_MIN_SUSPEND_MARGIN_SECS))
+          file_utils.WriteFile(self.args.wakealarm_path,
+                               '+=' + str(_MIN_SUSPEND_MARGIN_SECS))
         except IOError:
           # The write to wakealarm returns EINVAL (22) if no alarm is active
           logging.warn('Write to wakealarm failed, assuming we woke: %s',
@@ -210,12 +201,10 @@ class SuspendResumeTest(unittest.TestCase):
 
     try:
       # Write out our expected wakeup_count
-      with open(self.args.wakeup_count_path, 'w') as f:
-        f.write(self.wakeup_count)
+      file_utils.WriteFile(self.args.wakeup_count_path, self.wakeup_count)
 
       # Suspend to memory
-      with open('/sys/power/state', 'w') as f:
-        f.write(self.args.suspend_type)
+      file_utils.WriteFile('/sys/power/state', self.args.suspend_type)
     except IOError as err:
       # Both of the write could result in IOError if there is an early wake.
       if err.errno in [errno.EBUSY, errno.EINVAL]:
@@ -229,8 +218,8 @@ class SuspendResumeTest(unittest.TestCase):
 
             logging.info('Wakeup source ignored, re-suspending...')
             time.sleep(self.args.early_resume_retry_wait_secs)
-            with open(self.args.wakeup_count_path, 'r') as f:
-              self.wakeup_count = f.read().strip()
+            self.wakeup_count = file_utils.ReadFile(
+                self.args.wakeup_count_path).strip()
             return self._Suspend(retry_count + 1)
           else:
             raise IOError('EBUSY: Early wake event when attempting suspend: %s'
@@ -255,7 +244,8 @@ class SuspendResumeTest(unittest.TestCase):
                     'suspend_stats file not found.')
     # If we just resumed, the suspend_stats file can take some time to update.
     time.sleep(0.1)
-    line_content = open('/sys/kernel/debug/suspend_stats').read().strip()
+    line_content = file_utils.ReadFile(
+        '/sys/kernel/debug/suspend_stats').strip()
     return int(re.search(r'[0-9]+', line_content).group(0))
 
   def _ReadCurrentTime(self):
@@ -267,8 +257,7 @@ class SuspendResumeTest(unittest.TestCase):
     Returns:
       Int, the time since_epoch in seconds.
     """
-    with open(self.args.time_path, 'r') as f:
-      return int(f.read().strip())
+    return int(file_utils.ReadFile(self.args.time_path).strip())
 
   def _VerifySuspended(self, wake_time, wake_source, count, resume_at):
     """Verify that a reasonable suspend has taken place.
@@ -348,8 +337,7 @@ class SuspendResumeTest(unittest.TestCase):
     self.messages = messages
     return wake_source
 
-  def _runTest(self):
-    self._ui.SetHTML(self.args.cycles, id=_ID_CYCLES)
+  def runTest(self):
     self.initial_suspend_count = self._ReadSuspendCount()
     logging.info('The initial suspend count is %d.', self.initial_suspend_count)
 
@@ -360,7 +348,11 @@ class SuspendResumeTest(unittest.TestCase):
       self.actual_wake_extensions = 0
       alarm_suspend_delays = 0
       self.alarm_thread = threading.Thread(target=self._MonitorWakealarm)
-      self._ui.SetHTML(self.run, id=_ID_RUN)
+      self.ui.SetState(
+          i18n_test_ui.MakeI18nLabel(
+              'Suspend/Resume: {run} of {cycle}',
+              run=self.run,
+              cycle=self.args.cycles))
       self.start_time = self._ReadCurrentTime()
       suspend_time = random.randint(self.args.suspend_delay_min_secs,
                                     self.args.suspend_delay_max_secs)
@@ -404,7 +396,3 @@ class SuspendResumeTest(unittest.TestCase):
                     actual_wake_extensions=self.actual_wake_extensions,
                     alarm_suspend_delays=alarm_suspend_delays,
                     wake_source=wake_source)
-
-  def runTest(self):
-    self._ui.RunInBackground(self._runTest)
-    self._ui.Run()
