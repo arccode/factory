@@ -72,7 +72,7 @@ def GetGooftool(options):
 
 
 def Command(cmd_name, *args, **kwargs):
-  """ Decorator for commands in gooftool.
+  """Decorator for commands in gooftool.
 
   This is similar to argparse_utils.Command, but all gooftool commands
   can be waived during `gooftool finalize` or `gooftool verify` using
@@ -133,7 +133,7 @@ _probe_results_cmd_arg = CmdArg(
 
 _device_info_cmd_arg = CmdArg(
     '--device_info', metavar='DEVICE_INFO.yaml', default=None,
-    help='A dict of device info to use instead of fetching from shopfllor '
+    help='A dict of device info to use instead of fetching from shopfloor '
     'server.')
 
 _hwid_cmd_arg = CmdArg(
@@ -195,14 +195,14 @@ _wipe_finish_token_cmd_arg = CmdArg(
 
 _waive_list_cmd_arg = CmdArg(
     '--waive_list', nargs='*', default=[], metavar='SUBCMD',
-    help='A list of waived checks, separated by whitespace.'
-         'Each item should be a sub-command of gooftool.'
+    help='A list of waived checks, separated by whitespace. '
+         'Each item should be a sub-command of gooftool. '
          'e.g. "gooftool verify --waive_list verify_tpm clear_gbb_flags".')
 
 _skip_list_cmd_arg = CmdArg(
     '--skip_list', nargs='*', default=[], metavar='SUBCMD',
-    help='A list of skipped checks, separated by whitespace.'
-         'Each item should be a sub-command of gooftool.'
+    help='A list of skipped checks, separated by whitespace. '
+         'Each item should be a sub-command of gooftool. '
          'e.g. "gooftool verify --skip_list verify_tpm clear_gbb_flags".')
 
 
