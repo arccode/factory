@@ -77,10 +77,10 @@ class TabletModeTest(test_ui.TestCaseWithUI):
       self.tablet_dispatcher.StartDaemon()
 
     if self.args.prompt_flip_tablet:
-      self.AddTask(self.FlipTabletMode, stop_on_fail=True)
+      self.AddTask(self.FlipTabletMode)
 
     if self.args.prompt_flip_notebook:
-      self.AddTask(self.FlipNotebookMode, stop_on_fail=True)
+      self.AddTask(self.FlipNotebookMode)
 
   def tearDown(self):
     self.lid_dispatcher.close()

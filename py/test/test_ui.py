@@ -924,8 +924,7 @@ class NewEventLoop(BaseEventLoop):
           self._handler_exception_hook(e)
 
 
-_Task = collections.namedtuple('Task',
-                               ['name', 'run', 'cleanup', 'stop_on_fail'])
+_Task = collections.namedtuple('Task', ['name', 'run', 'cleanup'])
 
 
 class TestCaseWithUI(unittest.TestCase):
@@ -983,7 +982,7 @@ class TestCaseWithUI(unittest.TestCase):
     if self.__task_end_event.wait(timeout=timeout):
       raise TaskEndException
 
-  def AddTask(self, task, cleanup=None, stop_on_fail=False):
+  def AddTask(self, task, cleanup=None):
     """Add a task to the test.
 
     The task passed in can either be a TestTask object, or two functions task
@@ -993,8 +992,6 @@ class TestCaseWithUI(unittest.TestCase):
       task: A task function or a TestTask object to be run.
       cleanup: A cleanup function to be run after task is completed. Should be
           None if task is a TestTask object.
-      stop_on_fail: Whether the whole test should be stopped when this task
-          fail.
     """
     if callable(task):
       name = task.__name__
@@ -1014,8 +1011,7 @@ class TestCaseWithUI(unittest.TestCase):
       run = task.Run
       cleanup = task.Cleanup
 
-    self.__tasks.append(
-        _Task(name=name, run=run, cleanup=cleanup, stop_on_fail=stop_on_fail))
+    self.__tasks.append(_Task(name=name, run=run, cleanup=cleanup))
 
 
   def run(self, result=None):
@@ -1050,7 +1046,7 @@ class TestCaseWithUI(unittest.TestCase):
       is_default_task = True
       self.AddTask(getattr(self, self.__method_name))
 
-    task_errors = []
+    task_error = None
 
     for task in self.__tasks:
       should_abort = False
@@ -1070,7 +1066,7 @@ class TestCaseWithUI(unittest.TestCase):
           # If something failed either in cleanup or in event_loop, the
           # following tasks would probably be affected by the uncleared state.
           # We should just stop and fail here.
-          task_errors.append((task.name, traceback.format_exc()))
+          task_error = (task.name, traceback.format_exc())
           should_abort = True
 
       if should_abort:
@@ -1082,21 +1078,15 @@ class TestCaseWithUI(unittest.TestCase):
       if task_end_exceptions:
         e = task_end_exceptions[0]
         if isinstance(e, TaskFailException):
-          task_errors.append((task.name, e.message))
-          if task.stop_on_fail:
-            logging.info(
-                'Task %s failed and stop_on_fail=True, failing the test now.',
-                task.name)
-            break
+          task_error = (task.name, e.message)
+          break
 
     # Ends the event loop after all tasks are run.
-    if task_errors:
+    if task_error:
       if is_default_task:
-        assert len(task_errors) == 1
-        error_msg = task_errors[0][1]
+        error_msg = task_error[1]
       else:
-        error_msg = ', '.join('%s: %s' % (name, message)
-                              for name, message in task_errors)
+        error_msg = '%s: %s' % task_error
 
       self.event_loop.PostNewEvent(
           test_event.Event.Type.END_EVENT_LOOP,
