@@ -43,11 +43,13 @@
       "parallel": true,
       "subtests": [
         "SMTProbe",
+        "SpeakerDMic",
+        "BatterySysfs",
+        "SMTWifiSSIDList",
         "ChargerTypeDetection",
         "ChargeDischargeCurrent",
         "PartitionTable",
-        "VerifyRootPartition",
-        "SpeakerDMic"
+        "VerifyRootPartition"
       ]
     },
     "SMTEnd": {
@@ -128,11 +130,8 @@
       "label": "Stress Test",
       "parallel": true,
       "subtests": [
-        "SMTProbe",
-        "SMTWifiSSIDList",
-        "BatterySysfs",
-        "SMTStressAppTest",
-        "SMTStressCountdown"
+        "SMTStressCountdown",
+        "SMTStressAppTest"
       ]
     },
     "SMTStressAppTest": {
