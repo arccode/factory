@@ -1985,14 +1985,6 @@ msgid "ALS Sensor Calibration"
 msgstr "光感应器校正"
 
 #: ../py/test/pytests/light_sensor_calibration.py
-msgid "Fixture Connected"
-msgstr "治具已连线"
-
-#: ../py/test/pytests/light_sensor_calibration.py
-msgid "Fixture Disconnected"
-msgstr "治具连线断线"
-
-#: ../py/test/pytests/light_sensor_calibration.py
 msgid "Logging serial numbers"
 msgstr "登录序号"
 
@@ -2019,6 +2011,14 @@ msgstr "写入校正参数至VPD"
 #: ../py/test/pytests/light_sensor_calibration.py
 msgid "Validating ALS"
 msgstr "验证ALS"
+
+#: ../py/test/pytests/light_sensor_calibration.py
+msgid "Fixture Connected"
+msgstr "治具已连线"
+
+#: ../py/test/pytests/light_sensor_calibration.py
+msgid "Fixture Disconnected"
+msgstr "治具连线断线"
 
 #: ../py/test/pytests/light_sensor_calibration.py
 msgid "Switching to lighting {name}"

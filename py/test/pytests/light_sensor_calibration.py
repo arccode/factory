@@ -52,10 +52,9 @@ Usage examples::
 from collections import namedtuple
 import json
 import logging
-import numpy as np
-import Queue
 import time
-import unittest
+
+import numpy as np
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import ambient_light_sensor
@@ -68,7 +67,6 @@ from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import device_data
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import kbd_leds
 from cros.factory.test.utils import media_utils
 from cros.factory.testlog import testlog
@@ -76,41 +74,6 @@ from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import config_utils
 from cros.factory.utils import type_utils
 
-
-# CSS style classes defined in the corresponding HTML file.
-STYLE_INFO = 'color_idle'
-STYLE_PASS = 'color_good'
-STYLE_FAIL = 'color_bad'
-
-# HTML id.
-ID_FIXTURE_STATUS = 'fixture_status'
-ID_TEST_STATUS = 'test_status'
-
-STATE_HTML = """
-  <div style="font-size: 250%%">
-    <div id='%s'></div>
-    <div id='%s'></div>
-  </div>
-""" % (ID_FIXTURE_STATUS, ID_TEST_STATUS)
-
-CSS = """
-  .%s {
-  color: black;
-}
-  .%s {
-  color: #7db72f;
-}
-  .%s {
-  color: #c9151b;
-}
-""" % (STYLE_INFO, STYLE_PASS, STYLE_FAIL)
-
-# Text labels.
-MSG_TITLE_ALS_TEST = i18n_test_ui.MakeI18nLabel('ALS Sensor Calibration')
-MSG_FIXTURE_CONNNECTED = i18n_test_ui.MakeI18nLabelWithClass(
-    'Fixture Connected', STYLE_PASS)
-MSG_FIXTURE_DISCONNECTED = i18n_test_ui.MakeI18nLabelWithClass(
-    'Fixture Disconnected', STYLE_FAIL)
 
 # LED pattern.
 LED_PATTERN = ((kbd_leds.LED_NUM | kbd_leds.LED_CAP, 0.05), (0, 0.05))
@@ -156,7 +119,7 @@ CHAMBER_CONN_PARAMS_DEFAULT = {
 }
 
 
-class ALSFixture(unittest.TestCase):
+class ALSFixture(test_ui.TestCaseWithUI):
   """ALS fixture main class."""
   ARGS = [
       # chamber connection
@@ -189,7 +152,6 @@ class ALSFixture(unittest.TestCase):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self.internal_queue = Queue.Queue()
 
     try:
       self.als_controller = self.dut.ambient_light_sensor.GetController()
@@ -220,9 +182,8 @@ class ALSFixture(unittest.TestCase):
       self.fixture_conn = None
       if self.args.control_chamber:
         if self.args.mock_mode:
-          script = dict(
-              [(k.strip(), v.strip())
-               for k, v in sum(self.args.chamber_cmd.values(), [])])
+          script = dict((k.strip(), v.strip())
+                        for k, v in sum(self.args.chamber_cmd.values(), []))
           self.fixture_conn = fixture_connection.MockFixtureConnection(script)
         else:
           self.fixture_conn = fixture_connection.SerialFixtureConnection(
@@ -242,15 +203,7 @@ class ALSFixture(unittest.TestCase):
 
     self.monitor = media_utils.MediaMonitor('usb-serial', None)
 
-    self.ui = test_ui.UI()
-    self.ui.AppendCSS(CSS)
-    self.template = ui_templates.OneSection(self.ui)
-    self.template.SetTitle(MSG_TITLE_ALS_TEST)
-    self.template.SetState(STATE_HTML)
-
-    self.ui.BindKey(
-        test_ui.ESCAPE_KEY,
-        lambda _: self._PostInternalQueue(EventType.EXIT_TEST))
+    self.ui.SetTitle(i18n_test_ui.MakeI18nLabel('ALS Sensor Calibration'))
 
   def _Log(self, text):
     """Custom log function to log."""
@@ -267,7 +220,7 @@ class ALSFixture(unittest.TestCase):
 
   def _LogConfig(self):
     if self.args.keep_raw_logs:
-      testlog.AttachFile(
+      testlog.AttachContent(
           content=json.dumps(self.config),
           name='light_sensor_calibration_config.json',
           description='json of light sensor calibration config')
@@ -375,12 +328,14 @@ class ALSFixture(unittest.TestCase):
 
   def _SetFixtureStatus(self, status):
     if status == FIXTURE_STATUS.CONNECTED:
-      label = MSG_FIXTURE_CONNNECTED
+      label = i18n_test_ui.MakeI18nLabelWithClass('Fixture Connected',
+                                                  'color-good')
     elif status == FIXTURE_STATUS.DISCONNECTED:
-      label = MSG_FIXTURE_DISCONNECTED
+      label = i18n_test_ui.MakeI18nLabelWithClass('Fixture Disconnected',
+                                                  'color-bad')
     else:
       raise ValueError('Unknown fixture status %s', str(status))
-    self.ui.SetHTML(label, id=ID_FIXTURE_STATUS)
+    self.ui.SetHTML(label, id='fixture-status')
 
   def _SetupFixture(self):
     """Initialize the communication with the fixture."""
@@ -533,14 +488,10 @@ class ALSFixture(unittest.TestCase):
       self.als_controller.SetCalibrationIntercept(self.bias)
       self.als_controller.SetCalibrationSlope(self.scale_factor)
 
-  def runTest(self):
-    self.ui.RunInBackground(self._RunTest)
-    self.ui.Run()
-
   def tearDown(self):
     self.monitor.Stop()
 
-  def _RunTest(self):
+  def runTest(self):
     """Main routine for ALS test."""
     self.monitor.Start(
         on_insert=self._OnU2SInsertion, on_remove=self._OnU2SRemoval)
@@ -548,69 +499,23 @@ class ALSFixture(unittest.TestCase):
     if self.args.assume_chamber_connected:
       self._SetFixtureStatus(FIXTURE_STATUS.CONNECTED)
 
-    self._PostInternalQueue(EventType.START_TEST)
+    try:
+      with kbd_leds.Blinker(LED_PATTERN):
+        if self.args.assume_chamber_connected:
+          self._SetupFixture()
 
-    # Loop to repeat the test until user chooses 'Exit Test'.  For module-level
-    # testing, it may test thousands of DUTs without leaving the test. The test
-    # passes or fails depending on the last test result.
-    success, fail_msg = False, None
-    while True:
-      event = self._PopInternalQueue(wait=True)
-      if event.event_type == EventType.START_TEST:
-        try:
-          with kbd_leds.Blinker(LED_PATTERN):
-            if self.args.assume_chamber_connected:
-              self._SetupFixture()
+        self._ALSTest()
 
-            self._ALSTest()
-
-        except Exception as e:
-          success, fail_msg = False, e.message
-          self._ShowTestStatus(
-              i18n.NoTranslation('ALS: FAIL %r' % fail_msg), style=STYLE_FAIL)
-        else:
-          success = True
-          self._ShowTestStatus(i18n.NoTranslation('ALS: PASS'),
-                               style=STYLE_PASS)
-        finally:
-          self._PostInternalQueue(EventType.EXIT_TEST)
-      elif event.event_type == EventType.EXIT_TEST:
-        if success:
-          self.ui.Pass()
-        else:
-          self.fail('Test ALS failed - %r.' % fail_msg)
-        break
-      else:
-        raise ValueError('Invalid event type.')
-
-  def _PostInternalQueue(self, event_type, aux_data=None):
-    """Posts an event to internal queue.
-
-    Args:
-      event_type: EventType.
-      aux_data: Extra data.
-    """
-    self.internal_queue.put(InternalEvent(event_type, aux_data))
-
-  def _PopInternalQueue(self, wait):
-    """Pops an event from internal queue.
-
-    Args:
-      wait: A bool flag to wait forever until internal queue has something.
-
-    Returns:
-      The first InternalEvent in internal queue. None if 'wait' is False and
-      internal queue is empty.
-    """
-    if wait:
-      return self.internal_queue.get(block=True, timeout=None)
+    except Exception as e:
+      fail_msg = e.message
+      self._ShowTestStatus(
+          i18n.NoTranslation('ALS: FAIL %r' % fail_msg), style='color-bad')
+      self.fail('Test ALS failed - %r.' % fail_msg)
     else:
-      try:
-        return self.internal_queue.get_nowait()
-      except Queue.Empty:
-        return None
+      self._ShowTestStatus(i18n.NoTranslation('ALS: PASS'),
+                           style='color-good')
 
-  def _ShowTestStatus(self, msg, style=STYLE_INFO):
+  def _ShowTestStatus(self, msg, style='color-idle'):
     """Shows test status.
 
     Args:
@@ -618,4 +523,4 @@ class ALSFixture(unittest.TestCase):
       style: CSS style.
     """
     label = i18n_test_ui.MakeI18nLabelWithClass(msg, style)
-    self.ui.SetHTML(label, id=ID_TEST_STATUS)
+    self.ui.SetHTML(label, id='test-status')
