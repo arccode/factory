@@ -1,0 +1,33 @@
+/*
+ * Copyright 2017 The Chromium OS Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+test-template > :not([slot]) {
+  font-size: 2em;
+}
+
+.sync-detail {
+  font-size: 0.4em;
+  width: 75%;
+  margin-left: 12.5%;
+  padding-top: 2em;
+  text-align: left;
+}
+
+.warning_label {
+  font-weight: bold;
+  color: red;
+}
+
+.warning_message {
+  color: #ca0;
+}
+
+#text_input_url {
+  width: 18em;
+  font-family: monospace;
+  font-size: 1em;
+  margin: 10px;
+}

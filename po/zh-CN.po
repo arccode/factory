@@ -2423,6 +2423,14 @@ msgid "Suspend/Resume: {run} of {cycle}"
 msgstr "暂停/恢复: {run} / {cycle}"
 
 #: ../py/test/pytests/sync_factory_server.py
+msgid "Change URL"
+msgstr "变更网址"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Please wait few seconds to edit..."
+msgstr "请等候几秒即可编辑..."
+
+#: ../py/test/pytests/sync_factory_server.py
 msgid "No factor server URL configured."
 msgstr "未指定工厂伺服器服务器网址。"
 
@@ -2431,14 +2439,6 @@ msgid ""
 "For debugging or development, enter engineering mode to start individual "
 "tests."
 msgstr "若想除错或执行部份测试，请進入工程模式。"
-
-#: ../py/test/pytests/sync_factory_server.py
-msgid "Change URL"
-msgstr "变更网址"
-
-#: ../py/test/pytests/sync_factory_server.py
-msgid "Please wait few seconds to edit..."
-msgstr "请等候几秒即可编辑..."
 
 #: ../py/test/pytests/sync_factory_server.py
 msgid "Change server URL: "

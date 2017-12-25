@@ -135,7 +135,6 @@ mapping object with key set to "IP/CIDR" and value set to server URL::
 import logging
 import threading
 import time
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -149,41 +148,10 @@ from cros.factory.test import server_proxy
 from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.utils import time_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
 from cros.factory.utils import log_utils
-
-_CSS = """
-test-template > :not([slot]) {
-  font-size: 2em;
-}
-
-.sync-detail {
-  font-size: 0.4em;
-  width: 75%;
-  margin-left: 12.5%;
-  padding-top: 2em;
-  text-align: left;
-}
-
-.warning_label {
-  font-weight: bold;
-  color: red;
-}
-
-.warning_message {
-  color: #ca0;
-}
-
-#text_input_url {
-  width: 18em;
-  font-family: monospace;
-  font-size: 1em;
-  margin: 10px;
-}
-"""
 
 
 ID_TEXT_INPUT_URL = 'text_input_url'
@@ -192,14 +160,6 @@ ID_BUTTON_EDIT_URL = 'button_edit_url'
 EVENT_SET_URL = 'event_set_url'
 EVENT_CANCEL_SET_URL = 'event_cancel_set_url'
 EVENT_DO_SET_URL = 'event_do_set_url'
-
-# TODO(hungte) Add message when we can't connect to factory server.
-_LABEL_NO_FACTORY_SERVER_URL = i18n_test_ui.MakeI18nLabelWithClass(
-    'No factor server URL configured.', 'warning_label')
-
-_MSG_DEBUG_HINT = i18n_test_ui.MakeI18nLabelWithClass(
-    'For debugging or development, '
-    'enter engineering mode to start individual tests.', 'warning_message')
 
 
 class Report(object):
@@ -211,7 +171,7 @@ class Report(object):
     self.station = station
 
 
-class SyncFactoryServer(unittest.TestCase):
+class SyncFactoryServer(test_ui.TestCaseWithUI):
   ARGS = [
       Arg('first_retry_secs', int,
           'Time to wait after the first attempt; this will increase '
@@ -247,8 +207,6 @@ class SyncFactoryServer(unittest.TestCase):
   ]
 
   def setUp(self):
-    self.ui = test_ui.UI()
-    self.ui_template = ui_templates.TwoSections(self.ui)
     self.server = None
     self.do_setup_url = threading.Event()
     self.allow_edit_url = True
@@ -258,15 +216,9 @@ class SyncFactoryServer(unittest.TestCase):
     self.dut = device_utils.CreateDUTInterface()
     self.station = device_utils.CreateStationInterface()
 
-  def runTest(self):
-    self.ui.AppendCSS(_CSS)
-    self.ui_template.DrawProgressBar()
-    self.ui.RunInBackground(self._runTest)
-    self.ui.Run()
-
   @staticmethod
   def CreateButton(node_id, message, on_click):
-    return ('<button type="button" id="%s" onClick=%r>%s</button>' %
+    return ('<button type="button" id="%s" onclick=%r>%s</button>' %
             (node_id, on_click, message))
 
   def CreateChangeURLButton(self):
@@ -299,10 +251,16 @@ class SyncFactoryServer(unittest.TestCase):
       prompt = ''
     else:
       prompt = ''.join([
-          _LABEL_NO_FACTORY_SERVER_URL,
-          _MSG_DEBUG_HINT])
+          i18n_test_ui.MakeI18nLabelWithClass(
+              'No factor server URL configured.', 'warning_label'),
+          # TODO(hungte) Add message when we can't connect to factory server.
+          i18n_test_ui.MakeI18nLabelWithClass(
+              'For debugging or development, '
+              'enter engineering mode to start individual tests.',
+              'warning_message')
+      ])
 
-    self.ui_template.SetState(
+    self.ui.SetState(
         prompt + i18n_test_ui.MakeI18nLabel('Change server URL: ') +
         '<input type="text" id="%s" value="%s"/>' %
         (ID_TEXT_INPUT_URL, current_url) +
@@ -331,7 +289,7 @@ class SyncFactoryServer(unittest.TestCase):
       output = self.station.CallOutput(['ip', '-f', 'inet', '-br', 'addr'])
       networks = [entry.split()[2] for entry in output.splitlines()
                   if ' UP ' in entry]
-      self.ui_template.SetState(
+      self.ui.SetState(
           label_connect + label_status +
           i18n_test_ui.MakeI18nLabel(
               'Current networks: {networks}', networks=networks))
@@ -346,7 +304,7 @@ class SyncFactoryServer(unittest.TestCase):
       self.EditServerURL()
       self.event_url_set.wait()
 
-    self.ui_template.SetState(
+    self.ui.SetState(
         i18n_test_ui.MakeI18nLabel('Trying to reach server...') +
         self.CreateChangeURLButton())
     self.server = server_proxy.GetServerProxy(
@@ -355,7 +313,7 @@ class SyncFactoryServer(unittest.TestCase):
     if self.do_setup_url.is_set():
       raise Exception('Edit URL clicked.')
 
-    self.ui_template.SetState(
+    self.ui.SetState(
         i18n_test_ui.MakeI18nLabel('Trying to check server protocol...') +
         self.CreateChangeURLButton())
     self.server.Ping()
@@ -373,7 +331,7 @@ class SyncFactoryServer(unittest.TestCase):
           server_url, new_server_url)
       server_url = new_server_url
 
-    self.ui_template.SetInstruction(
+    self.ui.SetInstruction(
         i18n_test_ui.MakeI18nLabel('Server URL: ') + server_url)
     if not server_url:
       self.do_setup_url.set()
@@ -381,17 +339,15 @@ class SyncFactoryServer(unittest.TestCase):
   def FlushTestlog(self):
     # TODO(hungte) goofy.FlushTestlog should reload factory_server_url.
     result = False
-    while result is not True:
+    while not result:
       result, progress = self.goofy.FlushTestlog(timeout=2)
-      self.ui_template.SetState(i18n_test_ui.MakeI18nLabel(
+      self.ui.SetState(i18n_test_ui.MakeI18nLabel(
           'Flush Test Log: Progress = <br>{progress}', progress=progress))
 
   def CreateReport(self):
-    self.ui_template.SetState(i18n_test_ui.MakeI18nLabel(
-        'Collecting report data...'))
+    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Collecting report data...'))
     self.report.blob = commands.CreateReportArchiveBlob()
-    self.ui_template.SetState(i18n_test_ui.MakeI18nLabel(
-        'Getting serial number...'))
+    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Getting serial number...'))
     self.report.serial_number = device_data.GetSerialNumber(
         self.args.report_serial_number_name or
         device_data.NAME_SERIAL_NUMBER)
@@ -431,20 +387,19 @@ class SyncFactoryServer(unittest.TestCase):
       return
 
     # Update necessary. Note that updateFactory() will kill this test.
-    if self.args.update_without_prompt:
-      self.ui.CallJSFunction('test.updateFactory')
-    else:
+    if not self.args.update_without_prompt:
       # Display message and require update.
-      self.ui_template.SetState(i18n_test_ui.MakeI18nLabel(
+      self.ui.SetState(i18n_test_ui.MakeI18nLabel(
           'A software update is available. Press SPACE to update.'))
-      self.ui.BindKeyJS(test_ui.SPACE_KEY, 'window.test.updateFactory()')
+      self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
+
+    self.ui.CallJSFunction('window.test.updateFactory')
 
     # Let this test sleep forever, and wait for either the SPACE event, or the
     # factory update to complete. Note that we want the test to neither pass or
     # fail, so we won't be accidentally running other tests when the
     # updateFactory is running.
-    while True:
-      time.sleep(1000)
+    self.WaitTaskEnd()
 
   @staticmethod
   def IsDynamicServer(url_spec):
@@ -480,8 +435,9 @@ class SyncFactoryServer(unittest.TestCase):
 
     return url_spec.get('default', '')
 
-  def _runTest(self):
-    self.ui_template.SetInstruction(i18n_test_ui.MakeI18nLabel('Preparing...'))
+  def runTest(self):
+    self.ui.DrawProgressBar()
+    self.ui.SetInstruction(i18n_test_ui.MakeI18nLabel('Preparing...'))
     retry_secs = self.args.first_retry_secs
 
     self.ui.AddEventHandler(EVENT_SET_URL, self.OnButtonSetClicked)
@@ -528,13 +484,13 @@ class SyncFactoryServer(unittest.TestCase):
 
     for i, (label, task) in enumerate(tasks):
       progress = int(i * 100.0 / len(tasks))
-      self.ui_template.SetProgressBarValue(progress)
+      self.ui.SetProgressBarValue(progress)
       while True:
         try:
-          self.ui_template.SetState(i18n_test_ui.MakeI18nLabel(
-              'Running task: {label}', label=label) + '<br>')
+          self.ui.SetState(
+              i18n_test_ui.MakeI18nLabel('Running task: {label}', label=label))
           task()
-          self.ui_template.SetState(
+          self.ui.SetState(
               '<span style="color: green">' +
               i18n_test_ui.MakeI18nLabel(
                   'Server Task Finished: {label}', label=label) +
@@ -553,14 +509,14 @@ class SyncFactoryServer(unittest.TestCase):
             time_left=time_left, label=label_)
         edit_url_button = (('<p>' + self.CreateChangeURLButton() + '</p>')
                            if self.allow_edit_url else '')
-        self.ui_template.SetState(
+        self.ui.SetState(
             '<span id="retry">' + msg(retry_secs, label) + '</span>'
             + edit_url_button
-            + '<p><textarea rows=25 cols=90 readonly class=sync-detail>'
+            + '<p><textarea rows=25 cols=90 readonly class="sync-detail">'
             + test_ui.Escape(message, False) + '</textarea>')
 
-        for i in xrange(retry_secs):
+        for sec in xrange(retry_secs):
           if self.do_setup_url.wait(1):
             break
-          self.ui.SetHTML(msg(retry_secs - i - 1, label), id='retry')
+          self.ui.SetHTML(msg(retry_secs - sec - 1, label), id='retry')
         retry_secs = min(2 * retry_secs, self.args.retry_secs)
