@@ -100,6 +100,8 @@
       }
 
       this.progressBar = null;
+      this.progressTotal = 0;
+      this.progressNow = 0;
     }
 
     /**
@@ -143,17 +145,46 @@
 
     /**
      * Show the progress bar and set up the progress bar object.
+     * @param {number} numItems number of items
      */
-    drawProgressBar() {
-      const container =
-        this.shadowRoot.querySelector('#progress-bar-container');
-      container.style.display = 'inline';
+    drawProgressBar(numItems) {
+      if (!this.progressBar) {
+        const container =
+          this.shadowRoot.querySelector('#progress-bar-container');
+        container.style.display = 'inline';
 
-      const element = this.shadowRoot.querySelector('#progress-bar');
-      const progressBar = new goog.ui.ProgressBar();
-      progressBar.decorate(element);
-      this.progressBar = progressBar;
-      this.setProgressBarValue(0);
+        const element = this.shadowRoot.querySelector('#progress-bar');
+        const progressBar = new goog.ui.ProgressBar();
+        progressBar.decorate(element);
+        this.progressBar = progressBar;
+      }
+
+      this.progressTotal = numItems;
+      this.progressNow = 0;
+      this._setProgressBarValue(0);
+    }
+
+    /**
+     * Advance the progress bar.
+     */
+    advanceProgress() {
+      this.setProgress(this.progressNow + 1);
+    }
+
+    /**
+     * Set the progress to value.
+     * @param {number} value number of completed items, can be floating point.
+     */
+    setProgress(value) {
+      if (!this.progressBar) {
+        throw Error(
+            'Need to call drawProgressBar() before setProgress()!');
+      }
+      if (value > this.progressTotal) {
+        value = this.progressTotal;
+      }
+      this.progressNow = value;
+      this._setProgressBarValue(this.progressNow * 100 / this.progressTotal);
     }
 
     /**
@@ -161,16 +192,12 @@
      * @param {number} value the percentage of progress, should be between 0
      *     and 100.
      */
-    setProgressBarValue(value) {
-      if (!this.progressBar) {
-        throw Error(
-            'Need to call drawProgressBar() before setProgressBarValue()!');
-      }
+    _setProgressBarValue(value) {
       this.progressBar.setValue(value);
 
       const indicator =
         this.shadowRoot.querySelector('#progress-bar-indicator');
-      indicator.innerText = value + '%';
+      indicator.innerText = `${value.toFixed(1)}%`;
     }
   }
   window.customElements.define('test-template', TestTemplate);

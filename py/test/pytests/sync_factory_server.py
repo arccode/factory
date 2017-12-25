@@ -436,7 +436,6 @@ class SyncFactoryServer(test_ui.TestCaseWithUI):
     return url_spec.get('default', '')
 
   def runTest(self):
-    self.ui.DrawProgressBar()
     self.ui.SetInstruction(i18n_test_ui.MakeI18nLabel('Preparing...'))
     retry_secs = self.args.first_retry_secs
 
@@ -482,9 +481,9 @@ class SyncFactoryServer(test_ui.TestCaseWithUI):
     logger = log_utils.NoisyLogger(
         lambda fault, prompt: logging.exception(prompt, fault))
 
-    for i, (label, task) in enumerate(tasks):
-      progress = int(i * 100.0 / len(tasks))
-      self.ui.SetProgressBarValue(progress)
+    self.ui.DrawProgressBar(len(tasks))
+
+    for label, task in tasks:
       while True:
         try:
           self.ui.SetState(
@@ -520,3 +519,5 @@ class SyncFactoryServer(test_ui.TestCaseWithUI):
             break
           self.ui.SetHTML(msg(retry_secs - sec - 1, label), id='retry')
         retry_secs = min(2 * retry_secs, self.args.retry_secs)
+
+      self.ui.AdvanceProgress()

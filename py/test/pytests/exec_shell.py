@@ -99,7 +99,6 @@ class ExecShell(test_ui.TestCaseWithUI):
 
   def setUp(self):
     self.ui.SetTitle(i18n_test_ui.MakeI18nLabel('Running shell commands...'))
-    self.ui.DrawProgressBar()
     self._dut = (device_utils.CreateStationInterface()
                  if self.args.is_station else
                  device_utils.CreateDUTInterface())
@@ -110,8 +109,8 @@ class ExecShell(test_ui.TestCaseWithUI):
       self._commands = self.args.commands
 
   def runTest(self):
-    for i, command in enumerate(self._commands):
-      self.ui.SetProgressBarValue((i + 1) * 100.0 / len(self._commands))
+    self.ui.DrawProgressBar(len(self._commands))
+    for command in self._commands:
       self.ui.SetInstruction(self._CommandToLabel(command))
 
       process = self._dut.Popen(command,
@@ -143,3 +142,5 @@ class ExecShell(test_ui.TestCaseWithUI):
         time.sleep(3)
         self.FailTask('Shell command failed (%d): %s' % (process.returncode,
                                                          command))
+
+      self.ui.AdvanceProgress()

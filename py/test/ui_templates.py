@@ -118,6 +118,10 @@ class Table(object):
     return ''.join(html)
 
 
+# The following classes are deprecated, and new test should use
+# test_ui.TestCaseWithUI and self.ui.SetXXX.
+
+
 class BaseTemplate(object):
   """Base class for test UI template."""
 
@@ -212,7 +216,7 @@ class TwoSections(BaseTemplate):
     Best practice is that if the operator needs to wait more than 5 seconds,
     we should show the progress bar to indicate test progress.
     """
-    self._ui.CallJSFunction('window.template.drawProgressBar')
+    self._ui.CallJSFunction('window.template.drawProgressBar', 100)
 
   def SetProgressBarValue(self, value):
     """Set the value of the progress bar.
@@ -220,7 +224,7 @@ class TwoSections(BaseTemplate):
     Args:
       value: A value between 0 and 100 to indicate test progress.
     """
-    self._ui.CallJSFunction('window.template.setProgressBarValue', value)
+    self._ui.CallJSFunction('window.template.setProgress', value)
 
 
 class DummyTemplate(object):

@@ -206,18 +206,17 @@ class RemovableStorageTest(test_ui.TestCaseWithUI):
     self._locktest_removal_image = '%s_locktest_remove.png' % self.args.media
 
     # Initialize progress bar
-    self.ui.DrawProgressBar()
-    self._total_tests = [
+    total_tests = [
         self.args.perform_random_test, self.args.perform_sequential_test,
         self.args.perform_locktest
     ].count(True)
-    self._finished_tests = 0
+    self.ui.DrawProgressBar(total_tests)
 
     self.perform_read_write_test = (self.args.perform_random_test or
                                     self.args.perform_sequential_test)
 
     self.assertGreater(
-        self._total_tests, 0,
+        total_tests, 0,
         'At least one of perform_random_test, perform_sequential_test, '
         'perform_locktest should be True.')
     if self.args.skip_insert_remove:
@@ -566,7 +565,7 @@ class RemovableStorageTest(test_ui.TestCaseWithUI):
 
     self.SetState('')
     self._accessing = False
-    self.AdvanceProgress()
+    self.ui.AdvanceProgress()
 
     if not ok:
       if self.GetDeviceRo(dev_path):
@@ -627,7 +626,7 @@ class RemovableStorageTest(test_ui.TestCaseWithUI):
       self._errors.append('Locktest failed on %s.' % self._target_device)
 
     self._accessing = False
-    self.AdvanceProgress()
+    self.ui.AdvanceProgress()
 
   def CreatePartition(self):
     """Creates a small partition for SD card.
@@ -779,14 +778,6 @@ class RemovableStorageTest(test_ui.TestCaseWithUI):
             media=self.args.media))
     self.SetImage(self._locktest_removal_image)
     yield _Event.WAIT_REMOVE
-
-  def AdvanceProgress(self):
-    """Advanced the progess bar."""
-    self._finished_tests += 1
-    if self._finished_tests > self._total_tests:
-      self._finished_tests = self._total_tests
-    self.ui.SetProgressBarValue(
-        100 * self._finished_tests / self._total_tests)
 
   def SetState(self, html):
     """Sets the innerHTML attribute of the state div."""

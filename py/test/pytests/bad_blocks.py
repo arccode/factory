@@ -89,8 +89,6 @@ class BadBlocksTest(test_ui.TestCaseWithUI):
     # If 'mmcblk' in self._filesystem assume we are eMMC.
     self._is_mmc = 'mmcblk' in self._filesystem
 
-    self.ui.DrawProgressBar()
-
   def tearDown(self):
     # Sync, so that any problems (like writing outside of our partition)
     # will show up sooner rather than later.
@@ -239,6 +237,8 @@ class BadBlocksTest(test_ui.TestCaseWithUI):
     # of 4 different patterns).
     total_phases = 8
 
+    self.ui.DrawProgressBar(total_phases)
+
     # The phase we're currently in (0-relative).
     current_phase = 0
 
@@ -308,9 +308,8 @@ class BadBlocksTest(test_ui.TestCaseWithUI):
             self.ui.SetHTML(test_ui.Escape(line), id='bb-status')
 
           # Calculate overall percentage done.
-          fraction_done = (current_phase / float(total_phases) +
-                           max(0, fraction_within_phase) / float(total_phases))
-          self.ui.SetProgressBarValue(round(fraction_done * 100))
+          phases_done = current_phase + max(0, fraction_within_phase)
+          self.ui.SetProgress(phases_done)
 
           if line.startswith('done'):
             current_phase += 1

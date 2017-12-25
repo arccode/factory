@@ -663,17 +663,26 @@ class StandardUI(UI):
     """
     self.CallJSFunction('window.template.setInstruction', html)
 
-  def DrawProgressBar(self):
-    """Draw the progress bar and set it visible on the Chrome test UI."""
-    self.CallJSFunction('window.template.drawProgressBar')
-
-  def SetProgressBarValue(self, value):
-    """Set the value of the progress bar.
+  def DrawProgressBar(self, num_items=1):
+    """Draw the progress bar and set it visible on the Chrome test UI.
 
     Args:
-      value: A value between 0 and 100 to indicate test progress.
+      num_items: Total number of items for the progress bar. Default to 1 so
+          SetProgress can be used to set fraction done.
     """
-    self.CallJSFunction('window.template.setProgressBarValue', value)
+    self.CallJSFunction('window.template.drawProgressBar', num_items)
+
+  def AdvanceProgress(self):
+    """Advance the progress bar."""
+    self.CallJSFunction('window.template.advanceProgress')
+
+  def SetProgress(self, value):
+    """Set the number of completed items of progress bar.
+
+    Args:
+      value: Number of completed items, can be floating point.
+    """
+    self.CallJSFunction('window.template.setProgress', value)
 
 
 class ScrollableLogUI(StandardUI):

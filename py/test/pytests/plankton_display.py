@@ -76,9 +76,6 @@ class PlanktonDisplayTest(test_ui.TestCaseWithUI):
 
     self.frontend_proxy = self.ui.InitJSTestObject('DisplayTest')
 
-    # Connect, video playback, capture, disconnect
-    self._total_tests = 4
-    self._finished_tests = 0
     self._image_matched = True
 
     self._testing_display = self.args.display_id
@@ -163,7 +160,7 @@ class PlanktonDisplayTest(test_ui.TestCaseWithUI):
                          timeout_secs=10)
 
     if not self.args.verify_display_switch:
-      self.AdvanceProgress()
+      self.ui.AdvanceProgress()
       return
 
     time.sleep(_WAIT_DISPLAY_SIGNAL_SECS)  # need a delay for display_info
@@ -175,7 +172,7 @@ class PlanktonDisplayTest(test_ui.TestCaseWithUI):
     # we can not check display info has no display with 'isInternal' False
     # because any display for chromebox has 'isInternal' False.
     if not connect or any(x['isInternal'] is False for x in display_info):
-      self.AdvanceProgress()
+      self.ui.AdvanceProgress()
     else:
       self.FailTask('Get the wrong display info')
 
@@ -192,7 +189,7 @@ class PlanktonDisplayTest(test_ui.TestCaseWithUI):
       self.SetMainDisplay(recover_original=False)
 
     time.sleep(_WAIT_DISPLAY_SIGNAL_SECS)  # wait for display signal stable
-    self.AdvanceProgress()
+    self.ui.AdvanceProgress()
 
   def TestCaptureImage(self):
     """Tests and compares loopback image.
@@ -215,7 +212,7 @@ class PlanktonDisplayTest(test_ui.TestCaseWithUI):
       self.SetMainDisplay(recover_original=True)
       time.sleep(_WAIT_DISPLAY_SIGNAL_SECS)  # wait for display signal stable
 
-    self.AdvanceProgress()
+    self.ui.AdvanceProgress()
 
   def SetMainDisplay(self, recover_original=True):
     """Sets the main display.
@@ -250,14 +247,6 @@ class PlanktonDisplayTest(test_ui.TestCaseWithUI):
 
     if tries_left == 0:
       self.FailTask('Fail to switch main display')
-
-  def AdvanceProgress(self):
-    """Advances the progess bar."""
-    self._finished_tests += 1
-    if self._finished_tests > self._total_tests:
-      self._finished_tests = self._total_tests
-    self.ui.SetProgressBarValue(
-        100 * self._finished_tests / self._total_tests)
 
   def _GetPrimaryScreenId(self):
     """Gets ID of primary screen.
@@ -295,7 +284,8 @@ class PlanktonDisplayTest(test_ui.TestCaseWithUI):
       self.assertTrue(os.path.isfile(self._display_image_path))
     self.assertTrue(os.path.isfile(self._golden_image_path))
 
-    self.ui.DrawProgressBar()
+    # Connect, video playback, capture, disconnect
+    self.ui.DrawProgressBar(4)
 
     logging.info('Testing device: %s', self._bft_media_device)
 

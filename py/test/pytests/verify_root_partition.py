@@ -35,7 +35,6 @@ class VerifyRootPartitionTest(test_ui.TestCaseWithUI):
     self.dut = device_utils.CreateDUTInterface()
 
   def runTest(self):
-    self.ui.DrawProgressBar()
     if not self.args.kern_a_device:
       self.args.kern_a_device = self.dut.partitions.RELEASE_KERNEL.path
     if not self.args.root_device:
@@ -102,6 +101,7 @@ class VerifyRootPartitionTest(test_ui.TestCaseWithUI):
       bytes_to_read = min(partition_size, self.args.max_bytes)
 
     if self.dut.link.IsLocal():
+      self.ui.DrawProgressBar(bytes_to_read)
       # For local link, let's show progress bar for better UX
       with open(DM_DEVICE_PATH) as dm_device:
         bytes_read = 0
@@ -113,12 +113,12 @@ class VerifyRootPartitionTest(test_ui.TestCaseWithUI):
           if not count:
             break
           bytes_read += count
-          pct_done = bytes_read * 100. / bytes_to_read
-          message = 'Read %.1f MiB (%.1f%%) of %s' % (
+          pct_done = float(bytes_read) / bytes_to_read
+          message = 'Read {:.1f} MiB ({:.1%}) of {}'.format(
               bytes_read / 1024. / 1024., pct_done, self.args.root_device)
           logging.info(message)
           self.ui.SetState(message)
-          self.ui.SetProgressBarValue(round(pct_done))
+          self.ui.SetProgress(bytes_read)
     else:
       # for remote link, read out everything at once to save time.
       with tempfile.TemporaryFile() as stderr:
