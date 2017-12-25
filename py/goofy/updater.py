@@ -81,14 +81,19 @@ def TryUpdate(pre_update_hook=None, timeout=15):
         (new_version_path, update_version, new_version_from_fs))
 
   # Raises an exception if certain critical files are missing.
-  critical_files = [
-      os.path.join(src_path, f)
-      for f in ['py_pkg/cros/factory/goofy/goofy.py',
-                'py/test/pytests/finalize/finalize.py']]
-  missing_files = [f for f in critical_files if not os.path.exists(f)]
-  if missing_files:
-    raise UpdaterException(
-        'Aborting update: Missing critical files %r' % missing_files)
+  # TODO(pihsun): The pytest/finalize/finalize.py is finalize path in old
+  # toolkit. Remove it (and correspond logic) when there's no need to update to
+  # an old toolkit.
+  critical_files_list = [
+      [os.path.join(src_path, 'py_pkg/cros/factory/goofy/goofy.py')],
+      [os.path.join(src_path, f)
+       for f in ['py/test/pytests/finalize.py',
+                 'py/test/pytests/finalize/finalize.py']]
+  ]
+  for critical_files in critical_files_list:
+    if not any(os.path.exists(f) for f in critical_files):
+      raise UpdaterException(
+          'Aborting update: Missing critical files %r' % critical_files)
 
   # Some files should be kept.
   # TODO(crbug.com/756275): We should move ALL runtime generated files outside
