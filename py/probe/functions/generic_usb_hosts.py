@@ -26,6 +26,7 @@ class GenericUSBHostFunction(function.ProbeFunction):
     usb_host_list = [
         os.path.abspath(os.path.join(os.path.realpath(path), relpath))
         for path in usb_bus_list]
+    usb_host_list = list(set(usb_host_list))  # remove duplicated paths if any
     logging.debug('Paths of usb hosts: %s', usb_host_list)
 
     ret = []
