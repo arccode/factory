@@ -87,5 +87,5 @@ def Encode(database, bom, mode=common.HWID.OPERATION_MODE.normal,
     A HWID object which contains the BOM, the binary string, and the encoded
     string derived from the given BOM object.
   """
-  hwid = common.HWID(database, bom, mode=mode, skip_check=skip_check)
+  hwid = common.HWID(database, bom=bom, mode=mode, skip_check=skip_check)
   return hwid

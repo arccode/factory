@@ -76,6 +76,7 @@ class HWID(object):
     bom: A BOM object.
     binary_string: A string only containing '0' or '1'. When the binary_string
         is needed, return it if it is matched to the BOM.
+    encoded_string: The encoded HWID string.
     mode: The operation mode of the HWID object. 'normal' indicates the normal
         workflow where all checks applies and deprecated components are not
         allowed. 'rma' indicates the HWID is goning through RMA process and
@@ -94,13 +95,13 @@ class HWID(object):
                                       'unsupported', 'unqualified'])
   ENCODING_SCHEME = type_utils.Enum(['base32', 'base8192'])
 
-  def __init__(self, database, bom, binary_string=None,
+  def __init__(self, database, bom, identity=None,
                mode=OPERATION_MODE.normal, skip_check=False):
     self.database = database
     self.bom = bom
-    if binary_string is not None and binary_string[-1] != '1':
+    if identity is not None and identity.binary_string[-1] != '1':
       raise HWIDException('The last bit of binary_string must be 1.')
-    self._binary_string = binary_string
+    self._identity = identity
     if mode not in HWID.OPERATION_MODE:
       raise HWIDException('Invalid operation mode: %r. Mode must be one of: '
                           "'normal' or 'rma'" % mode)
@@ -150,9 +151,10 @@ class HWID(object):
     # pylint: disable=W0404
     from cros.factory.hwid.v3.encoder import BOMToBinaryString
     binary_string = BOMToBinaryString(self.database, self.bom)
-    if (self._binary_string and
-        HWID.IsEquivalentBinaryString(self._binary_string, binary_string)):
-      return self._binary_string
+    if (self._identity and
+        HWID.IsEquivalentBinaryString(self._identity.binary_string,
+                                      binary_string)):
+      return self._identity.binary_string
     return binary_string
 
   @property

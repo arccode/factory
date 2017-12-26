@@ -11,6 +11,7 @@ from cros.factory.hwid.v3.bom import BOM
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.base32 import Base32
 from cros.factory.hwid.v3.base8192 import Base8192
+from cros.factory.hwid.v3.identity import Identity
 
 _Decoder = {
     common.HWID.ENCODING_SCHEME.base32: Base32,
@@ -112,5 +113,6 @@ def Decode(database, encoded_string, mode=common.HWID.OPERATION_MODE.normal):
     string derived from the given encoded string.
   """
   binary_string = EncodedStringToBinaryString(database, encoded_string)
+  identity = Identity(database.project, binary_string, encoded_string)
   bom = BinaryStringToBOM(database, binary_string)
-  return common.HWID(database, bom, binary_string, mode=mode)
+  return common.HWID(database, bom=bom, identity=identity, mode=mode)

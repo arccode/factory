@@ -16,6 +16,7 @@ from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3.common import IsMPKeyName
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3.encoder import Encode
+from cros.factory.hwid.v3.identity import Identity
 from cros.factory.utils import json_utils
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -53,9 +54,11 @@ class HWIDTest(unittest.TestCase):
         'keyboard': 'keyboard_us', 'dram': 'dram_0',
         'display_panel': 'display_panel_0'})
     bom.image_id = 2
+    identity = Identity(project=self.database.project,
+                        binary_string='00000', encoded_string='fake')
     with self.assertRaisesRegexp(HWIDException,
                                  'The last bit of binary_string must be 1.'):
-      HWID(self.database, bom, binary_string='00000')
+      HWID(self.database, bom, identity=identity)
     with self.assertRaisesRegexp(HWIDException,
                                  'Invalid operation mode'):
       HWID(self.database, bom, mode='UNKNOWN')
