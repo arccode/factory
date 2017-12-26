@@ -747,21 +747,8 @@ class ScrollableLogUI(StandardUI):
 
 
 class TaskEndException(Exception):
-  """The base exception to end a task."""
+  """The exception to end a task."""
   pass
-
-
-class TaskPassException(TaskEndException):
-  """The exception to pass a task."""
-  pass
-
-
-class TaskFailException(TaskEndException):
-  """The exception to fail a task or whole test."""
-
-  def __init__(self, message):
-    super(TaskFailException, self).__init__()
-    self.message = message
 
 
 _EVENT_LOOP_PROBE_INTERVAL = 0.1
@@ -912,10 +899,10 @@ class NewEventLoop(BaseEventLoop):
       # TODO(pihsun): Remove this after EventLoop is deprecated.
       try:
         if event.status == state.TestState.PASSED:
-          raise TaskPassException()
+          raise TaskEndException()
         elif event.status == state.TestState.FAILED:
           error_msg = getattr(event, 'error_msg', '')
-          raise TaskFailException(error_msg)
+          raise type_utils.TestFailure(error_msg)
         else:
           raise ValueError('Unexpected status in event %r' % event)
       except Exception:
@@ -956,7 +943,7 @@ class TestCaseWithUI(unittest.TestCase):
     Should only be called in the event callbacks or primary background test
     thread.
     """
-    raise TaskPassException()
+    raise TaskEndException()
 
   def FailTask(self, msg):
     """Fail current task.
@@ -964,7 +951,7 @@ class TestCaseWithUI(unittest.TestCase):
     Should only be called in the event callbacks or primary background test
     thread.
     """
-    raise TaskFailException(msg)
+    raise type_utils.TestFailure(msg)
 
   def WaitTaskEnd(self, timeout=None):
     """Wait for either TaskPass or TaskFail is called.
@@ -1090,13 +1077,8 @@ class TestCaseWithUI(unittest.TestCase):
     exception = sys.exc_info()[1]
     assert exception is not None, 'Not handling an exception'
 
-    error_msg = None
     if not isinstance(exception, TaskEndException):
       error_msg = traceback.format_exc()
-    elif isinstance(exception, TaskFailException):
-      error_msg = exception.message
-
-    if error_msg is not None:
       self.event_loop.PostNewEvent(
           test_event.Event.Type.END_EVENT_LOOP,
           status=state.TestState.FAILED,
