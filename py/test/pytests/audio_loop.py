@@ -22,15 +22,24 @@ Since this test is sensitive to different loopback dongles, user can set a list
 of output volume candidates. The test can pass if it can pass at any one of
 output volume candidates.
 
-Here are some test list examples for different test cases:
+Here are some test list examples for different test cases. First, you need to
+figure out the particular input/output device you want to perform test on. For
+ALSA input devices, the command `arecord -l` can be used to list all available
+input devices. For instance, if the device showing as "card 0: kblrt5514rt5663
+[kblrt5514rt5663max], device 1: Audio Record (*)" is what you want, the
+input_dev should be set to ["kblrt5514rt5663max", "1"]. Similarly, the
+output_dev might be ["kblrt5514rt5663max", "0"]. These settings are used in the
+following examples.
 
 Audiofuntest for all mics of input_dev and all speakers of output_dev::
 
     {
       "pytest_name": "audio_loop",
       "args": {
-        "input_dev": ["Audio Card", "0"],
+        "input_dev": ["kblrt5514rt5663max", "1"],
+        "output_dev": ["kblrt5514rt5663max", "0"],
         "output_volume": 10,
+        "require_dongle": false,
         "check_dongle": true,
         "initial_actions": [
           ["1", "init_speakerdmic"]
@@ -41,9 +50,7 @@ Audiofuntest for all mics of input_dev and all speakers of output_dev::
             "threshold": 80,
             "type": "audiofun"
           }
-        ],
-        "require_dongle": false,
-        "output_dev": ["Audio Card", "0"]
+        ]
       }
     }
 
@@ -52,9 +59,11 @@ Audiofuntest on 'mlb' mics of input_dev and speaker channel 0 of output_dev::
     {
       "pytest_name": "audio_loop",
       "args": {
-        "input_dev": ["Audio Card", "0"],
+        "input_dev": ["kblrt5514rt5663max", "1"],
+        "output_dev": ["kblrt5514rt5663max", "0"],
+        "output_volume": 10,
+        "require_dongle": false,
         "check_dongle": true,
-        "output_dev": ["Audio Card", "0"],
         "mic_source": "mlb",
         "initial_actions": [
           ["1", "init_speakerdmic"]
@@ -66,29 +75,6 @@ Audiofuntest on 'mlb' mics of input_dev and speaker channel 0 of output_dev::
             "type": "audiofun",
             "output_channels": [0]
           }
-        ],
-        "require_dongle": false,
-        "output_volume": 10
-      }
-    }
-
-    {
-      "pytest_name": "audio_loop",
-      "args": {
-        "input_dev": ["Audio Card", "0"],
-        "output_dev": ["Audio Card", "0"],
-        "tests_to_conduct": [
-          {
-            "duration": 2,
-            "amplitude_threshold": [-0.9, 0.9],
-            "type": "noise",
-            "rms_threshold": [null, 0.5]
-          }
-        ],
-        "check_dongle": true,
-        "require_dongle": false,
-        "initial_actions": [
-          ["1", "init_speakerdmic"]
         ]
       }
     }
@@ -96,8 +82,31 @@ Audiofuntest on 'mlb' mics of input_dev and speaker channel 0 of output_dev::
     {
       "pytest_name": "audio_loop",
       "args": {
-        "input_dev": ["Audio Card", "0"],
+        "input_dev": ["kblrt5514rt5663max", "1"],
+        "output_dev": ["kblrt5514rt5663max", "0"],
+        "require_dongle": false,
+        "check_dongle": true,
+        "initial_actions": [
+          ["1", "init_speakerdmic"]
+        ],
+        "tests_to_conduct": [
+          {
+            "duration": 2,
+            "amplitude_threshold": [-0.9, 0.9],
+            "type": "noise",
+            "rms_threshold": [null, 0.5]
+          }
+        ]
+      }
+    }
+
+    {
+      "pytest_name": "audio_loop",
+      "args": {
+        "input_dev": ["kblrt5514rt5663max", "1"],
+        "output_dev": ["kblrt5514rt5663max", "0"],
         "output_volume": 15,
+        "require_dongle": true,
         "check_dongle": true,
         "initial_actions": [
           ["1", "init_audiojack"]
@@ -108,9 +117,7 @@ Audiofuntest on 'mlb' mics of input_dev and speaker channel 0 of output_dev::
             "type": "sinewav",
             "rms_threshold": [0.08, null]
           }
-        ],
-        "require_dongle": true,
-        "output_dev": ["Audio Card", "0"]
+        ]
       }
     }
 """
@@ -181,7 +188,10 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
   """
   ARGS = [
       Arg('audio_conf', str, 'Audio config file path', default=None),
-      Arg('initial_actions', list, 'List of [card, actions]', []),
+      Arg('initial_actions', list,
+          'List of [card, actions]. If actions is None, the Initialize method '
+          'will be invoked.',
+          default=None),
       Arg('input_dev', list,
           'Input ALSA device. [card_name, sub_device].'
           'For example: ["audio_card", "0"].', ['0', '0']),
@@ -191,8 +201,8 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
           'Onput ALSA device. [card_name, sub_device].'
           'For example: ["audio_card", "0"].', ['0', '0']),
       Arg('output_volume', (int, list),
-          'An int of output volume or a list of'
-          ' output volume candidates', default=10),
+          'An int of output volume or a list of output volume candidates',
+          default=None),
       Arg('autostart', bool, 'Auto start option', default=False),
       Arg('require_dongle', bool, 'Require dongle option', default=False),
       Arg('check_dongle', bool,
@@ -275,7 +285,7 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
     self._alsa_output_device = 'hw:%s,%s' % (self._out_card, self._out_device)
 
     self._output_volumes = self.args.output_volume
-    if isinstance(self._output_volumes, int):
+    if not isinstance(self._output_volumes, list):
       self._output_volumes = [self._output_volumes]
     self._output_volume_index = 0
 
@@ -300,10 +310,16 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
         'lrmg': base.MicJackType.lrmg
     }[self.args.mic_jack_type]
 
-    for card, action in self.args.initial_actions:
-      if card.isdigit() is False:
-        card = self._dut.audio.GetCardIndexByName(card)
-      self._dut.audio.ApplyAudioConfig(action, card)
+    if self.args.initial_actions is None:
+      self._dut.audio.Initialize()
+    else:
+      for card, action in self.args.initial_actions:
+        if card.isdigit() is False:
+          card = self._dut.audio.GetCardIndexByName(card)
+        if action is None:
+          self._dut.audio.Initialize(card)
+        else:
+          self._dut.audio.ApplyAudioConfig(action, card)
 
     self._current_test_args = None
 
@@ -344,10 +360,11 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
     # Run each tests to conduct under each output volume candidate.
     for self._output_volume_index, output_volume in enumerate(
         self._output_volumes):
-      if self.args.require_dongle:
-        self._dut.audio.SetHeadphoneVolume(output_volume, self._out_card)
-      else:
-        self._dut.audio.SetSpeakerVolume(output_volume, self._out_card)
+      if output_volume is not None:
+        if self.args.require_dongle:
+          self._dut.audio.SetHeadphoneVolume(output_volume, self._out_card)
+        else:
+          self._dut.audio.SetSpeakerVolume(output_volume, self._out_card)
 
       for test in self.args.tests_to_conduct:
         self._current_test_args = test

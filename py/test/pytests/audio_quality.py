@@ -369,7 +369,7 @@ class AudioQualityTest(test_ui.TestCaseWithUI):
       return
     self._dut.audio.RestoreMixerControls()
     for card, action in self.args.initial_actions:
-      if card.isdigit() is False:
+      if not card.isdigit():
         card = self._dut.audio.GetCardIndexByName(card)
       self._dut.audio.ApplyAudioConfig(action, card)
     self._dut.audio.DisableAllAudioInputs(self._in_card)

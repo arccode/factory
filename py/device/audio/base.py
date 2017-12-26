@@ -94,6 +94,9 @@ class BaseAudioControl(types.DeviceComponent):
     self.config_mgr = config_mgr
     self.mixer_controller = mixer_controller
 
+  def Initialize(self, *args, **kwargs):
+    return self.config_mgr.Initialize(*args, **kwargs)
+
   def LoadConfig(self, config_name):
     """See BaseConfigManager.LoadConfig."""
     self.config_mgr.LoadConfig(config_name)

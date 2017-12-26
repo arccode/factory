@@ -258,7 +258,9 @@ class AudioTest(unittest.TestCase):
   ARGS = [
       Arg('audio_conf', str, 'Audio config file path', default=None),
       Arg('initial_actions', list,
-          'List of sequences (card_name, actions)', default=[]),
+          'List of [card, actions]. If actions is None, the Initialize method '
+          'will be invoked.',
+          default=None),
       Arg('output_dev', list,
           'Onput ALSA device. [card_name, sub_device].'
           'For example: ["audio_card", "0"].', default=['0', '0']),
@@ -287,9 +289,16 @@ class AudioTest(unittest.TestCase):
     self._template = ui_templates.TwoSections(self._ui)
     self._task_manager = None
 
-    for card, action in self.args.initial_actions:
-      card = self._dut.audio.GetCardIndexByName(card)
-      self._dut.audio.ApplyAudioConfig(action, card)
+    if self.args.initial_actions is None:
+      self._dut.audio.Initialize()
+    else:
+      for card, action in self.args.initial_actions:
+        if not card.isdigit():
+          card = self._dut.audio.GetCardIndexByName(card)
+        if action is None:
+          self._dut.audio.Initialize(card)
+        else:
+          self._dut.audio.ApplyAudioConfig(action, card)
 
   def InitUI(self):
     """Initializes UI.

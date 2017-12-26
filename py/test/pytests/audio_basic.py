@@ -66,7 +66,10 @@ class AudioBasicTest(test_ui.TestCaseWithUI):
       i18n_arg_utils.I18nArg(
           'audio_title', 'Label Title of audio test', default=_('Headset')),
       Arg('audio_conf', str, 'Audio config file path', default=None),
-      Arg('initial_actions', list, 'List of [card, actions]', []),
+      Arg('initial_actions', list,
+          'List of [card, actions]. If actions is None, the Initialize method '
+          'will be invoked.',
+          default=None),
       Arg('input_dev', list,
           'Input ALSA device. [card_name, sub_device].'
           'For example: ["audio_card", "0"].', ['0', '0']),
@@ -92,9 +95,16 @@ class AudioBasicTest(test_ui.TestCaseWithUI):
     self._out_device = self.args.output_dev[1]
 
     # Init audio card before show html
-    for card, action in self.args.initial_actions:
-      card = self._dut.audio.GetCardIndexByName(card)
-      self._dut.audio.ApplyAudioConfig(action, card)
+    if self.args.initial_actions is None:
+      self._dut.audio.Initialize()
+    else:
+      for card, action in self.args.initial_actions:
+        if not card.isdigit():
+          card = self._dut.audio.GetCardIndexByName(card)
+        if action is None:
+          self._dut.audio.Initialize(card)
+        else:
+          self._dut.audio.ApplyAudioConfig(action, card)
 
     self.ui.AppendCSS('test-template { font-size: 2em; }')
     self.ui.SetInstruction(i18n_test_ui.MakeI18nLabel(self.args.audio_title))
