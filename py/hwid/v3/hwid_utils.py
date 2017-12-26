@@ -7,11 +7,9 @@
 import collections
 import logging
 import os
-import re
 import subprocess
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.gooftool import crosfw
 from cros.factory.hwid.v3.bom import BOM
 from cros.factory.hwid.v3 import builder
 from cros.factory.hwid.v3 import common
@@ -197,20 +195,6 @@ def VerifyComponents(db, bom, component_list):
         error)]}         # The error message if there is one.
   """
   return db.VerifyComponents(bom, component_list)
-
-
-def WriteHWID(encoded_string):
-  """Writes the given encoded version 3 HWID string to firmware GBB section.
-
-  Args:
-    encoded_string: An encoded HWID string to write.
-  """
-  main_fw = crosfw.LoadMainFirmware()
-  fw_filename = main_fw.GetFileName(sections=['GBB'])
-  process_utils.Spawn(
-      ['futility', 'gbb', '--set', '--hwid=%s' % encoded_string, fw_filename],
-      check_call=True, log=True)
-  main_fw.Write(fw_filename)
 
 
 def ListComponents(db, comp_class=None):
@@ -556,16 +540,6 @@ def GetVPDData(run_vpd=False, vpd_data_file=None):
     return json_utils.LoadFile(vpd_data_file)
   else:
     return {'ro': {}, 'rw': {}}
-
-
-def GetHWIDString():
-  """Get HWID string from GBB on a DUT."""
-  if sys_utils.InChroot():
-    raise ValueError('Cannot read HWID from GBB in chroot')
-  main_fw_file = crosfw.LoadMainFirmware().GetFileName(sections=['GBB'])
-  gbb_result = process_utils.CheckOutput(
-      ['futility', 'gbb', '-g', '--hwid', '%s' % main_fw_file])
-  return re.findall(r'hardware_id:(.*)', gbb_result)[0].strip()
 
 
 def ComputeDatabaseChecksum(file_name):

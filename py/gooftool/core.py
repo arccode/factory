@@ -465,6 +465,16 @@ class Gooftool(object):
         'futility gbb --set --hwid="%s" "%s"' % (hwid, fw_filename))
     main_fw.Write(fw_filename)
 
+  def ReadHWID(self):
+    """Reads the HWID string from firmware GBB."""
+
+    fw_filename = self._crosfw.LoadMainFirmware().GetFileName(sections=['GBB'])
+    result = self._util.shell('futility gbb -g --hwid "%s"' % fw_filename)
+    if not result.success:
+      raise Error('Failed to read the HWID string: %s' % result.stderr)
+
+    return re.findall(r'hardware_id:(.*)', result.stdout)[0].strip()
+
   def VerifyWPSwitch(self):
     """Verifies hardware write protection switch is enabled.
 

@@ -87,6 +87,10 @@ class Arg(object):
     self.kwargs = kwargs
 
 
+def _GetHWIDString():
+  return process_utils.CheckOutput(['gooftool', 'read_hwid']).strip()
+
+
 @Command(
     'build-database',
     CmdArg('--probed-results-file', default=None, required=True,
@@ -216,7 +220,7 @@ def GenerateHWIDWrapper(options):
            help='the HWID to decode.\n(required if not running on a DUT)'))
 def DecodeHWIDWrapper(options):
   """Decodes HWID."""
-  encoded_string = options.hwid if options.hwid else hwid_utils.GetHWIDString()
+  encoded_string = options.hwid if options.hwid else _GetHWIDString()
   decoded_hwid = hwid_utils.DecodeHWID(options.database, encoded_string)
   print yaml.dump(hwid_utils.ParseDecodedHWID(decoded_hwid),
                   default_flow_style=False)
@@ -234,7 +238,7 @@ def DecodeHWIDWrapper(options):
     *_VPD_COMMON_ARGS)
 def VerifyHWIDWrapper(options):
   """Verifies HWID."""
-  encoded_string = options.hwid if options.hwid else hwid_utils.GetHWIDString()
+  encoded_string = options.hwid if options.hwid else _GetHWIDString()
   bom = hwid_utils.GenerateBOMFromProbedResults(
       options.database, hwid_utils.GetProbedResults(
           infile=options.probed_results_file))
@@ -306,14 +310,20 @@ def VerifyComponentsWrapper(options):
     CmdArg('hwid', help='the encoded HWID string to write'))
 def WriteHWIDWrapper(options):
   """Writes HWID to firmware GBB."""
-  hwid_utils.WriteHWID(options.hwid)
+  if sys_utils.InChroot():
+    raise ValueError('Cannot write HWID to GBB in chroot.')
+
+  process_utils.CheckOutput(['gooftool', 'write_hwid', options.hwid])
   print 'HWID %r written to firmware GBB.' % options.hwid
 
 
 @Command('read')
-def ReadHWIDWrapper(options):  # pylint: disable=unused-argument
+def ReadHWIDWrapper(unused_options):
   """Reads HWID from firmware GBB."""
-  print hwid_utils.GetHWIDString()
+  if sys_utils.InChroot():
+    raise ValueError('Cannot read HWID from GBB in chroot.')
+
+  print _GetHWIDString()
 
 
 @Command(

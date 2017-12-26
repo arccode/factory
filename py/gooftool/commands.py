@@ -111,6 +111,14 @@ def WriteHWID(options):
   print 'Wrote HWID: %r' % options.hwid
 
 
+@Command('read_hwid')
+def ReadHWID(options):
+  """Read the HWID string from GBB."""
+
+  logging.info('reading the hwid string')
+  print GetGooftool(options).ReadHWID()
+
+
 _project_cmd_arg = CmdArg(
     '--project', metavar='PROJECT',
     default=None, help='Project name to test.')
@@ -746,7 +754,7 @@ def VerifyHWID(options):
   and development purposes, please use `hwid` command.
   """
   db = GetGooftool(options).db
-  encoded_string = options.hwid or hwid_utils.GetHWIDString()
+  encoded_string = options.hwid or GetGooftool(options).ReadHWID()
   if options.probe_results:
     probed_results = hwid_utils.GetProbedResults(infile=options.probe_results)
   else:
