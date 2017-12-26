@@ -10,7 +10,6 @@ import collections
 import copy
 import hashlib
 import math
-import os
 import pprint
 import re
 
@@ -157,20 +156,6 @@ class Database(object):
             'Pattern does not have enough bits to hold all items for encoded '
             'field %r. The maximum index of %r is %d but its bit length is '
             '%d in the pattern' % (field, field, max_index, bit_length))
-
-  @staticmethod
-  def Load(verify_checksum=False):
-    """Trys to locate the HWID database at pre-defined locations and load it.
-
-    Returns:
-      The loaded HWID database.
-
-    Raises:
-      HWIDException if no database is found.
-    """
-    return Database.LoadFile(os.path.join(common.DEFAULT_HWID_DATA_PATH,
-                                          common.ProbeProject().upper()),
-                             verify_checksum=verify_checksum)
 
   @staticmethod
   def LoadFile(file_name, verify_checksum=False):

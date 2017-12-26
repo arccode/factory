@@ -31,7 +31,10 @@ import traceback
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.hwid.v3 import common, database
+from cros.factory.hwid.v3 import base32
+from cros.factory.hwid.v3 import base8192
+from cros.factory.hwid.v3 import common
+from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3.rule import Context
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
@@ -61,6 +64,90 @@ def _MayConvertLegacyProbedResults(probed_results):
       del new_probe_results[comp_cls]
 
   return new_probe_results, vpd
+
+
+def _CompareBase32BinaryString(db, expected, given):
+  def Header(bit_length):
+    msg = '\n' + '%12s' % 'Bit offset: ' + ' '.join(
+        ['%-5s' % anchor for anchor in xrange(0, bit_length, 5)])
+    msg += '\n' + '%12s' % ' ' + ' '.join(
+        ['%-5s' % '|' for _ in xrange(0, bit_length, 5)])
+    return msg
+
+  def ParseBinaryString(label, string):
+    msg = '\n%12s' % (label + ': ') + ' '.join(
+        [string[i:i + 5] for i in xrange(0, len(string), 5)])
+    msg += '\n%12s' % ' ' + ' '.join(
+        ['%5s' % base32.Base32.Encode(string[i:i + 5])
+         for i in xrange(0, len(string), 5)])
+    return msg
+
+  def BitMap(db):
+    bitmap = [(key, value.field, value.bit_offset) for key, value in
+              db.pattern.GetBitMapping().iteritems()]
+    msg = '\nField to bit mappings:'
+    msg += '\n%3s: encoding pattern' % '0'
+    msg += '\n' + '\n'.join([
+        '%3s: image_id bit %s' % (idx, idx) for idx in xrange(1, 5)])
+    msg += '\n' + '\n'.join(['%3s: %s bit %s' % entry for entry in bitmap])
+    return msg
+
+  return (Header(len(expected)) +
+          ParseBinaryString('Expected', expected) +
+          ParseBinaryString('Given', given) +
+          BitMap(db))
+
+
+def _CompareBase8192BinaryString(db, expected, given):
+  def Header(bit_length):
+    msg = '\n' + '%12s' % 'Bit offset: ' + ' '.join(
+        ['%-15s' % anchor for anchor in xrange(0, bit_length, 13)])
+    msg += '\n' + '%12s' % ' ' + ' '.join(
+        ['%-15s' % '|' for _ in xrange(0, bit_length, 13)])
+    return msg
+
+  def ParseBinaryString(label, string):
+    msg = '\n%12s' % (label + ': ') + ' '.join(
+        ['%-5s %-3s %-5s' % (
+            string[i:i + 5], string[i + 5:i + 8], string[i + 8:i + 13])
+         for i in xrange(0, len(string), 13)])
+
+    def _SplitString(s):
+      results = list(base8192.Base8192.Encode(s))
+      if len(results) == 4:
+        results = results[0:3]
+      if len(results) < 3:
+        results.extend([' '] * (3 - len(results)))
+      return tuple(results)
+    msg += '\n%12s' % ' ' + ' '.join(
+        [('%5s %3s %5s' % _SplitString(string[i:i + 13]))
+         for i in xrange(0, len(string), 13)])
+    return msg
+
+  def BitMap(db):
+    bitmap = [(key, value.field, value.bit_offset) for key, value in
+              db.pattern.GetBitMapping().iteritems()]
+    msg = '\nField to bit mappings:'
+    msg += '\n%3s: encoding pattern' % '0'
+    msg += '\n' + '\n'.join([
+        '%3s: image_id bit %s' % (idx, idx) for idx in xrange(1, 5)])
+    msg += '\n' + '\n'.join(['%3s: %s bit %s' % entry for entry in bitmap])
+    return msg
+
+  return (Header(len(expected)) +
+          ParseBinaryString('Expected', expected) +
+          ParseBinaryString('Given', given) +
+          BitMap(db))
+
+
+def _CompareBinaryString(db, expected, given):
+  image_id = db.pattern.GetImageIdFromBinaryString(given)
+  encoding_scheme = db.pattern.GetPatternByImageId(
+      image_id)['encoding_scheme']
+  if encoding_scheme == common.HWID.ENCODING_SCHEME.base32:
+    return _CompareBase32BinaryString(db, expected, given)
+  elif encoding_scheme == common.HWID.ENCODING_SCHEME.base8192:
+    return _CompareBase8192BinaryString(db, expected, given)
 
 
 class ValidHWIDDBsTest(unittest.TestCase):
@@ -220,8 +307,8 @@ class ValidHWIDDBsTest(unittest.TestCase):
     else:
       hwid = _Encode()
       self.assertEquals(binary_string, hwid.binary_string,
-                        common.CompareBinaryString(hwid.database, binary_string,
-                                                   hwid.binary_string))
+                        _CompareBinaryString(hwid.database, binary_string,
+                                             hwid.binary_string))
       self.assertEquals(encoded_string, hwid.encoded_string)
 
   def TestDecode(self, db, sample_dict):

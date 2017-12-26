@@ -16,7 +16,7 @@ import sys
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.device import device_utils
-from cros.factory.hwid.v3 import common as hwid_common
+from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.proto import reg_code_pb2
 from cros.factory.test.rules import registration_codes
 from cros.factory.test.rules.registration_codes import RegistrationCode
@@ -104,7 +104,7 @@ def Check(options):
     if sys_utils.InChroot():
       options.project = BuildBoard().short_name
     else:
-      options.project = hwid_common.ProbeProject()
+      options.project = hwid_utils.ProbeProject()
   logging.info('Device name: %s', options.project)
 
   rw_vpd = None

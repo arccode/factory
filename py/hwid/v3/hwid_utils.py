@@ -6,7 +6,9 @@
 
 import collections
 import logging
+import os
 import re
+import subprocess
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.gooftool import crosfw
@@ -17,6 +19,7 @@ from cros.factory.hwid.v3 import decoder
 from cros.factory.hwid.v3 import encoder
 from cros.factory.hwid.v3 import rule
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
+from cros.factory.utils import cros_board_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import json_utils
 from cros.factory.utils import sys_utils
@@ -446,3 +449,48 @@ def GetHWIDString():
 def ComputeDatabaseChecksum(file_name):
   """Computes the checksum of the give database."""
   return database.Database.Checksum(file_name)
+
+
+def ProbeProject():
+  """Probes the project name.
+
+  This function will try to run the command `mosys platform chassis` to get the
+  project name.  If failed, this function will return the board name as legacy
+  chromebook projects used to assume that the board name is equal to the
+  project name.
+
+  Returns:
+    The probed project name as a string.
+  """
+  try:
+    project = process_utils.CheckOutput(
+        ['mosys', 'platform', 'model']).strip().lower()
+    if project:
+      return project
+
+  except subprocess.CalledProcessError:
+    pass
+
+  return cros_board_utils.BuildBoard().short_name
+
+
+# The expected location of HWID data within a factory image or the
+# chroot.
+DEFAULT_HWID_DATA_PATH = (
+    os.path.join(os.environ['CROS_WORKON_SRCROOT'],
+                 'src', 'platform', 'chromeos-hwid', 'v3')
+    if sys_utils.InChroot()
+    else '/usr/local/factory/hwid')
+
+
+def GetHWIDBundleName(project=None):
+  """Returns the filename of the hwid bundle
+
+  Args:
+    project: The project name.
+
+  Returns:
+    Filename of the hwid bundle name as a string.
+  """
+  project = project or ProbeProject()
+  return 'hwid_v3_bundle_%s.sh' % project.upper()

@@ -28,7 +28,6 @@ from cros.factory.gooftool.common import Shell
 from cros.factory.gooftool.core import Gooftool
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import report_upload
-from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.probe.functions import chromeos_firmware
 from cros.factory.test.env import paths
@@ -118,7 +117,7 @@ _project_cmd_arg = CmdArg(
 
 _hwdb_path_cmd_arg = CmdArg(
     '--hwdb_path', metavar='PATH',
-    default=common.DEFAULT_HWID_DATA_PATH,
+    default=hwid_utils.DEFAULT_HWID_DATA_PATH,
     help='Path to the HWID database.')
 
 _hwid_status_list_cmd_arg = CmdArg(

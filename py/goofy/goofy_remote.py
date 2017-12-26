@@ -14,7 +14,7 @@ import re
 import sys
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.hwid.v3 import common as hwid_common
+from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test.env import paths
 from cros.factory.test.test_lists import manager
 from cros.factory.utils import cros_board_utils
@@ -199,7 +199,7 @@ def main():
     SpawnSSHToDUT([args.host, 'bash'],
                   stdin=open(os.path.join(
                       chromeos_hwid_path,
-                      hwid_common.GetHWIDBundleName(project))),
+                      hwid_utils.GetHWIDBundleName(project))),
                   check_call=True, log=True)
 
   # Make sure all the directories and files have correct permissions.  This is

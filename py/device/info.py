@@ -13,7 +13,6 @@ import re
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
-from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import device_data
 from cros.factory.test.env import paths
@@ -267,7 +266,7 @@ class SystemInfo(types.DeviceComponent):
   def hwid_database_version(self):
     """Uses checksum of hwid file as hwid database version."""
     hwid_file_path = self._device.path.join(
-        common.DEFAULT_HWID_DATA_PATH, common.ProbeProject().upper())
+        hwid_utils.DEFAULT_HWID_DATA_PATH, hwid_utils.ProbeProject().upper())
     # TODO(hungte) Support remote DUT.
     return hwid_utils.ComputeDatabaseChecksum(hwid_file_path)
 

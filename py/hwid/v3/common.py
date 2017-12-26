@@ -9,66 +9,17 @@
 import collections
 import copy
 import json
-import os
 import re
-import subprocess
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.hwid.v3 import base32, base8192
 from cros.factory.hwid.v3 import rule
 from cros.factory.test.rules import phase
-from cros.factory.utils import cros_board_utils
-from cros.factory.utils import process_utils
 from cros.factory.utils import schema
-from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
-# The expected location of HWID data within a factory image or the
-# chroot.
-DEFAULT_HWID_DATA_PATH = (
-    os.path.join(os.environ['CROS_WORKON_SRCROOT'],
-                 'src', 'platform', 'chromeos-hwid', 'v3')
-    if sys_utils.InChroot()
-    else '/usr/local/factory/hwid')
 
 PRE_MP_KEY_NAME_PATTERN = re.compile('_pre_?mp')
 MP_KEY_NAME_PATTERN = re.compile('_mp[_0-9v]*?[_a-z]*$')
-
-
-def ProbeProject():
-  """Probes the project name.
-
-  This function will try to run the command `mosys platform chassis` to get the
-  project name.  If failed, this function will return the board name as legacy
-  chromebook projects used to assume that the board name is equal to the
-  project name.
-
-  Returns:
-    The probed project name as a string.
-  """
-  try:
-    project = process_utils.CheckOutput(
-        ['mosys', 'platform', 'model']).strip().lower()
-    if project:
-      return project
-
-  except subprocess.CalledProcessError:
-    pass
-
-  return cros_board_utils.BuildBoard().short_name
-
-
-def GetHWIDBundleName(project=None):
-  """Returns the filename of the hwid bundle
-
-  Args:
-    project: The project name.
-
-  Returns:
-    Filename of the hwid bundle name as a string.
-  """
-  project = project or ProbeProject()
-  return 'hwid_v3_bundle_%s.sh' % project.upper()
 
 
 def IsMPKeyName(name):
@@ -426,87 +377,3 @@ class BOM(object):
 
   def __ne__(self, op2):
     return not self.__eq__(op2)
-
-
-def _CompareBase32BinaryString(database, expected, given):
-  def Header(bit_length):
-    msg = '\n' + '%12s' % 'Bit offset: ' + ' '.join(
-        ['%-5s' % anchor for anchor in xrange(0, bit_length, 5)])
-    msg += '\n' + '%12s' % ' ' + ' '.join(
-        ['%-5s' % '|' for _ in xrange(0, bit_length, 5)])
-    return msg
-
-  def ParseBinaryString(label, string):
-    msg = '\n%12s' % (label + ': ') + ' '.join(
-        [string[i:i + 5] for i in xrange(0, len(string), 5)])
-    msg += '\n%12s' % ' ' + ' '.join(
-        ['%5s' % base32.Base32.Encode(string[i:i + 5])
-         for i in xrange(0, len(string), 5)])
-    return msg
-
-  def BitMap(database):
-    bitmap = [(key, value.field, value.bit_offset) for key, value in
-              database.pattern.GetBitMapping().iteritems()]
-    msg = '\nField to bit mappings:'
-    msg += '\n%3s: encoding pattern' % '0'
-    msg += '\n' + '\n'.join([
-        '%3s: image_id bit %s' % (idx, idx) for idx in xrange(1, 5)])
-    msg += '\n' + '\n'.join(['%3s: %s bit %s' % entry for entry in bitmap])
-    return msg
-
-  return (Header(len(expected)) +
-          ParseBinaryString('Expected', expected) +
-          ParseBinaryString('Given', given) +
-          BitMap(database))
-
-
-def _CompareBase8192BinaryString(database, expected, given):
-  def Header(bit_length):
-    msg = '\n' + '%12s' % 'Bit offset: ' + ' '.join(
-        ['%-15s' % anchor for anchor in xrange(0, bit_length, 13)])
-    msg += '\n' + '%12s' % ' ' + ' '.join(
-        ['%-15s' % '|' for _ in xrange(0, bit_length, 13)])
-    return msg
-
-  def ParseBinaryString(label, string):
-    msg = '\n%12s' % (label + ': ') + ' '.join(
-        ['%-5s %-3s %-5s' % (
-            string[i:i + 5], string[i + 5:i + 8], string[i + 8:i + 13])
-         for i in xrange(0, len(string), 13)])
-
-    def _SplitString(s):
-      results = list(base8192.Base8192.Encode(s))
-      if len(results) == 4:
-        results = results[0:3]
-      if len(results) < 3:
-        results.extend([' '] * (3 - len(results)))
-      return tuple(results)
-    msg += '\n%12s' % ' ' + ' '.join(
-        [('%5s %3s %5s' % _SplitString(string[i:i + 13]))
-         for i in xrange(0, len(string), 13)])
-    return msg
-
-  def BitMap(database):
-    bitmap = [(key, value.field, value.bit_offset) for key, value in
-              database.pattern.GetBitMapping().iteritems()]
-    msg = '\nField to bit mappings:'
-    msg += '\n%3s: encoding pattern' % '0'
-    msg += '\n' + '\n'.join([
-        '%3s: image_id bit %s' % (idx, idx) for idx in xrange(1, 5)])
-    msg += '\n' + '\n'.join(['%3s: %s bit %s' % entry for entry in bitmap])
-    return msg
-
-  return (Header(len(expected)) +
-          ParseBinaryString('Expected', expected) +
-          ParseBinaryString('Given', given) +
-          BitMap(database))
-
-
-def CompareBinaryString(database, expected, given):
-  image_id = database.pattern.GetImageIdFromBinaryString(given)
-  encoding_scheme = database.pattern.GetPatternByImageId(
-      image_id)['encoding_scheme']
-  if encoding_scheme == HWID.ENCODING_SCHEME.base32:
-    return _CompareBase32BinaryString(database, expected, given)
-  elif encoding_scheme == HWID.ENCODING_SCHEME.base8192:
-    return _CompareBase8192BinaryString(database, expected, given)

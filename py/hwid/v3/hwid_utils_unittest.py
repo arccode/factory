@@ -565,6 +565,14 @@ class DatabaseBuilderTest(unittest.TestCase):
          'values': None})
 
 
+class GetHWIDBundleNameTest(unittest.TestCase):
+  def testWithProjectName(self):
+    self.assertEqual(hwid_utils.GetHWIDBundleName('abc'),
+                     'hwid_v3_bundle_ABC.sh')
+    self.assertEqual(hwid_utils.GetHWIDBundleName('ABC'),
+                     'hwid_v3_bundle_ABC.sh')
+
+
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
   unittest.main()

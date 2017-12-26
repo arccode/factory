@@ -358,12 +358,12 @@ def ParseOptions(args=None):
 
 def InitializeDefaultOptions(options):
   if not options.hwid_db_path:
-    options.hwid_db_path = common.DEFAULT_HWID_DATA_PATH
+    options.hwid_db_path = hwid_utils.DEFAULT_HWID_DATA_PATH
   if options.project is None:
     if sys_utils.InChroot():
       print 'Argument -j/--project is required'
       sys.exit(1)
-    options.project = common.ProbeProject()
+    options.project = hwid_utils.ProbeProject()
 
   # Build database doesn't need to initialize the database.
   if options.command_name in ['build-database']:

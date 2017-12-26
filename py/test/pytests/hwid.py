@@ -66,7 +66,7 @@ import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.hwid.v3 import common
+from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.test import device_data
 from cros.factory.test.i18n import _
@@ -82,14 +82,12 @@ from cros.factory.utils import file_utils
 # If present, these files will override the project and probe results
 # (for testing).
 OVERRIDE_PROJECT_PATH = os.path.join(
-    common.DEFAULT_HWID_DATA_PATH,
-    'OVERRIDE_PROJECT')
+    hwid_utils.DEFAULT_HWID_DATA_PATH, 'OVERRIDE_PROJECT')
 # OVERRIDE_PROBED_RESULTS should be generated with:
 #    `gooftool probe`
 # to include all the VPD in it.
 OVERRIDE_PROBED_RESULTS_PATH = os.path.join(
-    common.DEFAULT_HWID_DATA_PATH,
-    'OVERRIDE_PROBED_RESULTS')
+    hwid_utils.DEFAULT_HWID_DATA_PATH, 'OVERRIDE_PROBED_RESULTS')
 
 
 class HWIDV3Test(test_ui.TestCaseWithUI):

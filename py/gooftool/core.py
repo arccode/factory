@@ -20,7 +20,7 @@ from cros.factory.gooftool.common import Util
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import wipe
 from cros.factory.hwid.v2 import hwid_tool
-from cros.factory.hwid.v3 import common as hwid3_common
+from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3.database import Database
 from cros.factory.probe import probe_utils
 from cros.factory.test.l10n import regions
@@ -75,8 +75,8 @@ class Gooftool(object):
           hwid_tool.HardwareDb(hwid_tool.DEFAULT_HWID_DATA_PATH))
       self._db_creator = lambda: component_db or self._hardware_db.comp_db
     elif hwid_version == 3:
-      self._project = project or hwid3_common.ProbeProject()
-      self._hwdb_path = hwdb_path or hwid3_common.DEFAULT_HWID_DATA_PATH
+      self._project = project or hwid_utils.ProbeProject()
+      self._hwdb_path = hwdb_path or hwid_utils.DEFAULT_HWID_DATA_PATH
       self._db_creator = lambda: Database.LoadFile(
           os.path.join(self._hwdb_path, self._project.upper()))
     else:
