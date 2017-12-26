@@ -266,7 +266,7 @@ cros.factory.Test = class {
     const goofy = this.invocation.goofy;
     if (goofy.engineeringMode ||
         !goofy.pathTestMap[this.invocation.path].disable_abort) {
-      this.invocation.goofy.sendEvent('goofy:end_event_loop', {
+      this.invocation.goofy.sendEvent('goofy:end_test', {
         'test': this.invocation.path,
         'invocation': this.invocation.uuid,
         'status': 'FAILED',

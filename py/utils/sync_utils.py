@@ -289,14 +289,28 @@ class ThreadTimeout(object):
   def _RaiseTimeoutException(self):
     with self._lock:
       logging.debug('will raise exception')
-      num_modified_threads = ctypes.pythonapi.PyThreadState_SetAsyncExc(
-          ctypes.c_long(self._current_thread),
-          ctypes.py_object(type_utils.TimeoutError))
-      if num_modified_threads == 0:
-        # thread ID is invalid, maybe the thread no longer exists?
-        raise ValueError('Invalid thread ID')
-      if num_modified_threads > 1:
-        # somehow, more than one threads are modified, try to undo
-        ctypes.pythonapi.PyThreadState_SetAsyncExc(
-            ctypes.c_long(self._current_thread), None)
-        raise SystemError('PthreadState_SetAsyncExc failed')
+      TryRaiseExceptionInThread(self._current_thread, type_utils.TimeoutError)
+
+
+def TryRaiseExceptionInThread(thread_id, exception_class):
+  """Try to raise an exception in a thread.
+
+  This relies on cpython internal, does not guarantee to work and is generally
+  a bad idea to do. So this function should only be used for exception that is
+  "nice to have", but not necessary.
+
+  Args:
+    thread_id: The thread id of the thread, can be obtained by thread.ident.
+    exception_class: The class of the exception to be thrown. Only exception
+        class can be set, but not exception instance due to limit of cpython
+        API.
+  """
+  num_modified_threads = ctypes.pythonapi.PyThreadState_SetAsyncExc(
+      ctypes.c_long(thread_id), ctypes.py_object(exception_class))
+  if num_modified_threads == 0:
+    # thread ID is invalid, maybe the thread no longer exists?
+    raise ValueError('Invalid thread ID')
+  if num_modified_threads > 1:
+    # somehow, more than one threads are modified, try to undo
+    ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread_id), None)
+    raise SystemError('PthreadState_SetAsyncExc failed')

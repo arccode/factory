@@ -14,6 +14,7 @@ import logging
 import os
 import Queue
 import subprocess
+import sys
 import threading
 import time
 import traceback
@@ -28,6 +29,7 @@ from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
 
@@ -806,8 +808,8 @@ class NewEventLoop(BaseEventLoop):
             self._RunHandler(timed_handler_event.handler)
           except StopIteration:
             stop_iteration = True
-          except Exception as e:
-            self._handler_exception_hook(e)
+          except Exception:
+            self._handler_exception_hook()
 
           if not stop_iteration and timed_handler_event.interval is not None:
             self._timed_handler_event_queue.put(
@@ -880,8 +882,8 @@ class NewEventLoop(BaseEventLoop):
     def _Wrapper(*args, **kwargs):
       try:
         func(*args, **kwargs)
-      except Exception as e:
-        self._handler_exception_hook(e)
+      except Exception:
+        self._handler_exception_hook()
 
     return _Wrapper
 
@@ -908,20 +910,23 @@ class NewEventLoop(BaseEventLoop):
       # This is the old event send from JavaScript test.pass / test.fail.
       # Transform them to the new task end event.
       # TODO(pihsun): Remove this after EventLoop is deprecated.
-      if event.status == state.TestState.PASSED:
-        self._handler_exception_hook(TaskPassException())
-      elif event.status == state.TestState.FAILED:
-        error_msg = getattr(event, 'error_msg', '')
-        self._handler_exception_hook(TaskFailException(error_msg))
-      else:
-        self._handler_exception_hook('Unexpected status in event %r' % event)
+      try:
+        if event.status == state.TestState.PASSED:
+          raise TaskPassException()
+        elif event.status == state.TestState.FAILED:
+          error_msg = getattr(event, 'error_msg', '')
+          raise TaskFailException(error_msg)
+        else:
+          raise ValueError('Unexpected status in event %r' % event)
+      except Exception:
+        self._handler_exception_hook()
 
     elif event.type == test_event.Event.Type.TEST_UI_EVENT:
       for handler in self.event_handlers.get(event.subtype, []):
         try:
           self._RunHandler(handler, event)
-        except Exception as e:
-          self._handler_exception_hook(e)
+        except Exception:
+          self._handler_exception_hook()
 
 
 _Task = collections.namedtuple('Task', ['name', 'run', 'cleanup'])
@@ -941,8 +946,8 @@ class TestCaseWithUI(unittest.TestCase):
     self.ui = None
 
     self.__method_name = methodName
-    self.__task_end_exceptions = Queue.Queue()
     self.__task_end_event = threading.Event()
+    self.__task_failed = False
     self.__tasks = []
 
   def PassTask(self):
@@ -970,8 +975,6 @@ class TestCaseWithUI(unittest.TestCase):
     An exception would be raised if TaskPass or TaskFail is called before
     timeout. This makes the function acts like time.sleep that ends early when
     timeout is given.
-    The type of the exception doesn't matter, since TestCaseWithUI would use
-    the exception thrown by TaskPass or TaskFail first.
 
     Args:
       timeout: The timeout for waiting the task end, None for no timeout.
@@ -1021,92 +1024,82 @@ class TestCaseWithUI(unittest.TestCase):
     # and initialize using setUp() means that all pytests inheriting this need
     # to remember calling super(..., self).setUp(), which is a lot of
     # boilerplate code and easy to forget.
-    self.event_loop = NewEventLoop(self.__HandleEventHandlerException)
+    self.event_loop = NewEventLoop(self.__HandleException)
     self.ui = self.ui_class(event_loop=self.event_loop)
 
     super(TestCaseWithUI, self).run(result=result)
 
   def _RunTest(self):
     """The main test procedure that would be run by unittest."""
-    process_utils.StartDaemonThread(target=self.__RunTasks)
-    self.event_loop.Run()
-
-  def __PutTaskEndException(self, e):
-    """Put the task end exception, and notify all waiting threads."""
-    self.__task_end_exceptions.put(e)
-    self.__task_end_event.set()
+    thread = process_utils.StartDaemonThread(target=self.__RunTasks)
+    try:
+      self.event_loop.Run()
+    finally:
+      # Ideally, the background would be the one calling FailTask / PassTask,
+      # or would be waiting in WaitTaskEnd when an exception is thrown, so the
+      # thread should exit cleanly shortly after the event loop ends.
+      #
+      # If after 1 second, the thread is alive, most likely that the thread is
+      # in some blocking operation and someone else fails the test, then we
+      # assume that we don't care about the thread not cleanly stopped.
+      #
+      # In this case, we try to raise an exception in the thread (To possibly
+      # trigger some cleanup process in finally block or context manager),
+      # wait for 3 more seconds for (possible) cleanup to run, and just ignore
+      # the thread. (Even if the thread doesn't terminate in time.)
+      thread.join(1)
+      if thread.isAlive():
+        try:
+          sync_utils.TryRaiseExceptionInThread(thread.ident, TaskEndException)
+        except ValueError:
+          # The thread is no longer valid, ignore it
+          pass
+        else:
+          thread.join(3)
 
   def __RunTasks(self):
     """Run the tasks in background daemon thread."""
-
-    is_default_task = False
-
     # Add runTest as the only task if there's none.
     if not self.__tasks:
-      is_default_task = True
       self.AddTask(getattr(self, self.__method_name))
 
-    task_error = None
-
     for task in self.__tasks:
-      should_abort = False
+      self.__task_end_event.clear()
       try:
-        task.run()
-      except TaskEndException as e:
-        self.__PutTaskEndException(e)
-      except Exception:
-        self.__PutTaskEndException(TaskFailException(traceback.format_exc()))
-      finally:
         try:
+          task.run()
+        finally:
           self.event_loop.ClearHandlers()
           self.ui.UnbindAllKeys()
           if task.cleanup:
             task.cleanup()
-        except Exception:
-          # If something failed either in cleanup or in event_loop, the
-          # following tasks would probably be affected by the uncleared state.
-          # We should just stop and fail here.
-          task_error = (task.name, traceback.format_exc())
-          should_abort = True
+      except Exception:
+        self.__HandleException()
+        if self.__task_failed:
+          return
 
-      if should_abort:
-        break
+    self.event_loop.PostNewEvent(
+        test_event.Event.Type.END_EVENT_LOOP, status=state.TestState.PASSED)
 
-      self.__task_end_event.clear()
-      task_end_exceptions = type_utils.DrainQueue(self.__task_end_exceptions)
+  def __HandleException(self):
+    """Handle exception in event handlers or tasks.
 
-      if task_end_exceptions:
-        e = task_end_exceptions[0]
-        if isinstance(e, TaskFailException):
-          task_error = (task.name, e.message)
-          break
+    This should be called in the except clause, and is also called by the event
+    loop in the main thread.
+    """
+    exception = sys.exc_info()[1]
+    assert exception is not None, 'Not handling an exception'
 
-    # Ends the event loop after all tasks are run.
-    if task_error:
-      if is_default_task:
-        error_msg = task_error[1]
-      else:
-        error_msg = '%s: %s' % task_error
+    error_msg = None
+    if not isinstance(exception, TaskEndException):
+      error_msg = traceback.format_exc()
+    elif isinstance(exception, TaskFailException):
+      error_msg = exception.message
 
+    if error_msg is not None:
       self.event_loop.PostNewEvent(
           test_event.Event.Type.END_EVENT_LOOP,
           status=state.TestState.FAILED,
           error_msg=error_msg)
-    else:
-      self.event_loop.PostNewEvent(
-          test_event.Event.Type.END_EVENT_LOOP, status=state.TestState.PASSED)
-
-  def __HandleEventHandlerException(self, exception):
-    """Handle exception in event handlers.
-
-    This is called by the event loop in the main thread.
-    """
-    if not isinstance(exception, TaskEndException):
-      # Raising an exception in event handler would NOT immediately end the
-      # test, so we should warn about the case that exception doesn't come from
-      # PassTask / FailTask, since it's probably not intended and the
-      # background thread would keep running.
-      trace = traceback.format_exc()
-      logging.warn('Unexpected exception in event handler: %s', trace)
-      exception = TaskFailException(trace)
-    self.__PutTaskEndException(exception)
+      self.__task_failed = True
+    self.__task_end_event.set()
