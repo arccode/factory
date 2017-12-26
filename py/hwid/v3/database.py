@@ -14,7 +14,6 @@ import pprint
 import re
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.hwid.v3.bom import BOM
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import rule
 # Import yaml_tags to decode special YAML tags specific to HWID module.
@@ -258,120 +257,6 @@ class Database(object):
                     Rules(db_yaml['rules']),
                     db_yaml.get('checksum'))
 
-  def ProbeResultToBOM(self, probe_result, loose_matching=False):
-    """Parses the given probe result into a BOM object. Each component is
-    represented by its corresponding encoded index in the database.
-
-    Args:
-      probe_result: A JSON-serializable dict of the probe result, which is
-          usually the output of the probe command.
-      loose_matching: If set to True, partial match of probed results will be
-          accepted.  For example, if the probed results only contain the
-          firmware version of RO main firmware but not its hash, and we want to
-          know if the firmware version is supported, then we can enable
-          loose_matching to see if the firmware version is supported in the
-          database.
-
-    Returns:
-      A BOM object.
-    """
-    # encoding_pattern_index and image_id are unprobeable and should be set
-    # explictly. Defaults them to 0.
-    encoding_pattern_index = 0
-    image_id = 0
-
-    def LookupProbedValue(comp_cls):
-      if comp_cls in probe_result:
-        # We don't need the component name here.
-        return sum(probe_result[comp_cls].values(), [])
-      return None
-
-    def TryAddDefaultItem(probed_components, comp_cls):
-      """Try to add the default component item.
-
-      If the default component exists and its status is not 'unsupported', then
-      add it into the probed_components and return True.
-      """
-      if comp_cls in self.components.default:
-        comp_name = self.components.default[comp_cls]
-        comp_status = self.components.GetComponentStatus(comp_cls, comp_name)
-        if comp_status != common.HWID.COMPONENT_STATUS.unsupported:
-          probed_components[comp_cls].append(
-              common.ProbedComponentResult(comp_name, None, None))
-          return True
-      return False
-
-    # Construct a dict of component classes to list of ProbedComponentResult.
-    probed_components = collections.defaultdict(list)
-    for comp_cls in self.components.GetRequiredComponents():
-      probed_comp_values = LookupProbedValue(comp_cls)
-      if probed_comp_values is None:
-        # The component class has the default item.
-        if TryAddDefaultItem(probed_components, comp_cls):
-          continue
-        # Probeable comp_cls but no component is found in probe results.
-        if comp_cls in self.components.probeable:
-          probed_components[comp_cls].append(
-              common.ProbedComponentResult(
-                  None, None, common.MISSING_COMPONENT_ERROR(comp_cls)))
-        else:
-          # Unprobeable comp_cls and only has 1 component, treat as found.
-          comp_dict = self.components.components_dict[comp_cls]
-          if len(comp_dict['items']) == 1:
-            comp_name = comp_dict['items'].keys()[0]
-            comp_status = self.components.GetComponentStatus(
-                comp_cls, comp_name)
-            if comp_status == common.HWID.COMPONENT_STATUS.supported:
-              probed_components[comp_cls].append(
-                  common.ProbedComponentResult(comp_name, None, None))
-        continue
-
-      for probed_value in probed_comp_values:
-        # Unprobeable comp_cls but component is found in probe results.
-        if comp_cls not in self.components.probeable:
-          probed_components[comp_cls].append(
-              common.ProbedComponentResult(
-                  None, probed_value,
-                  common.UNPROBEABLE_COMPONENT_ERROR(comp_cls)))
-          continue
-
-        matched_comps = self.components.MatchComponentsFromValues(
-            comp_cls, probed_value, loose_matching, include_default=False)
-        if matched_comps is None:
-          # If there is no default item, add invalid error.
-          if not TryAddDefaultItem(probed_components, comp_cls):
-            probed_components[comp_cls].append(common.ProbedComponentResult(
-                None, probed_value,
-                common.INVALID_COMPONENT_ERROR(comp_cls, probed_value)))
-        elif len(matched_comps) == 1:
-          comp_name, comp_data = matched_comps.items()[0]
-          comp_status = self.components.GetComponentStatus(
-              comp_cls, comp_name)
-          if comp_status == common.HWID.COMPONENT_STATUS.supported:
-            probed_components[comp_cls].append(
-                common.ProbedComponentResult(
-                    comp_name, comp_data['values'], None))
-          else:
-            probed_components[comp_cls].append(
-                common.ProbedComponentResult(
-                    comp_name, comp_data['values'],
-                    common.UNSUPPORTED_COMPONENT_ERROR(comp_cls, comp_name,
-                                                       comp_status)))
-        elif len(matched_comps) > 1:
-          probed_components[comp_cls].append(common.ProbedComponentResult(
-              None, probed_value,
-              common.AMBIGUOUS_COMPONENT_ERROR(
-                  comp_cls, probed_value, matched_comps)))
-
-    # Encode the components to a dict of encoded fields to encoded indices.
-    encoded_fields = {}
-    for field in self.encoded_fields:
-      encoded_fields[field] = self._GetFieldIndexFromProbedComponents(
-          field, probed_components)
-
-    return BOM(self.project, encoding_pattern_index, image_id,
-               probed_components, encoded_fields)
-
   def UpdateComponentsOfBOM(self, bom, updated_components):
     """Updates the components data of the given BOM.
 
@@ -404,13 +289,12 @@ class Database(object):
     # Re-calculate all the encoded index of each encoded field.
     result.encoded_fields = {}
     for field in self.encoded_fields:
-      result.encoded_fields[field] = self._GetFieldIndexFromProbedComponents(
+      result.encoded_fields[field] = self.GetFieldIndexFromProbedComponents(
           field, result.components)
 
     return result
 
-  def _GetFieldIndexFromProbedComponents(self, encoded_field,
-                                         probed_components):
+  def GetFieldIndexFromProbedComponents(self, encoded_field, probed_components):
     """Gets the encoded index of the specified encoded field by matching
     the given probed components against the definitions in the database.
 
@@ -662,23 +546,15 @@ class Database(object):
       raise common.HWIDException('Encoded fields %r have unknown indices' %
                                  ', '.join(sorted(invalid_fields)))
 
-  def VerifyComponents(self, probe_result, comp_list=None,
-                       loose_matching=False):
+  def VerifyComponents(self, bom, comp_list=None):
     """Given a list of component classes, verify that the probed components of
     all the component classes in the list are valid components in the database.
 
     Args:
-      probe_result: A JSON-serializable dict of the probe result, which is
-          usually the output of the probe command.
+      bom: A BOM object contains a list of components.
       comp_list: An optional list of component class to be verified. Defaults to
           None, which will then verify all the probeable components defined in
           the database.
-      loose_matching: If set to True, partial match of probed results will be
-          accepted.  For example, if the probed results only contain the
-          firmware version of RO main firmware but not its hash, and we want to
-          know if the firmware version is supported, then we can enable
-          loose_matching to see if the firmware version is supported in the
-          database.
 
     Returns:
       A dict from component class to a list of one or more
@@ -688,7 +564,6 @@ class Database(object):
           probed_values,   # The actual probed string. None if probing failed.
           error)]}         # The error message if there is one; else None.
     """
-    probed_bom = self.ProbeResultToBOM(probe_result, loose_matching)
     if not comp_list:
       comp_list = sorted(self.components.probeable)
     if not isinstance(comp_list, list):
@@ -698,8 +573,7 @@ class Database(object):
       raise common.HWIDException(
           '%r do not have probe values and cannot be verified' %
           sorted(invalid_cls))
-    return dict((comp_cls, probed_bom.components[comp_cls]) for comp_cls in
-                comp_list)
+    return dict((comp_cls, bom.components[comp_cls]) for comp_cls in comp_list)
 
   def GetActiveComponents(self, image_id=None):
     """Returns a list of the components contained at the according pattern."""

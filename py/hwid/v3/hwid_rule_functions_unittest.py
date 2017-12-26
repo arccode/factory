@@ -16,12 +16,22 @@ import cros.factory.hwid.v3.common_rule_functions  # pylint: disable=W0611
 from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3.encoder import Encode
-from cros.factory.hwid.v3.hwid_rule_functions import (
-    GetClassAttributesOnBOM, ComponentEq, ComponentIn,
-    SetComponent, SetImageId, GetDeviceInfo, GetVPDValue, ValidVPDValue,
-    CheckRegistrationCode, GetPhase)
-from cros.factory.hwid.v3.rule import (
-    Rule, Context, RuleException, SetContext, GetLogger)
+from cros.factory.hwid.v3 import hwid_utils
+from cros.factory.hwid.v3.hwid_rule_functions import CheckRegistrationCode
+from cros.factory.hwid.v3.hwid_rule_functions import ComponentEq
+from cros.factory.hwid.v3.hwid_rule_functions import ComponentIn
+from cros.factory.hwid.v3.hwid_rule_functions import GetClassAttributesOnBOM
+from cros.factory.hwid.v3.hwid_rule_functions import GetDeviceInfo
+from cros.factory.hwid.v3.hwid_rule_functions import GetPhase
+from cros.factory.hwid.v3.hwid_rule_functions import GetVPDValue
+from cros.factory.hwid.v3.hwid_rule_functions import SetComponent
+from cros.factory.hwid.v3.hwid_rule_functions import SetImageId
+from cros.factory.hwid.v3.hwid_rule_functions import ValidVPDValue
+from cros.factory.hwid.v3.rule import Context
+from cros.factory.hwid.v3.rule import GetLogger
+from cros.factory.hwid.v3.rule import Rule
+from cros.factory.hwid.v3.rule import RuleException
+from cros.factory.hwid.v3.rule import SetContext
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.test.rules import phase
 from cros.factory.test.rules.registration_codes import RegistrationCodeException
@@ -37,7 +47,8 @@ class HWIDRuleTest(unittest.TestCase):
                                                    'test_db.yaml'))
     self.results = json_utils.LoadFile(
         os.path.join(_TEST_DATA_PATH, 'test_probe_result.json'))
-    bom = self.database.ProbeResultToBOM(self.results[0])
+    bom = hwid_utils.GenerateBOMFromProbedResults(self.database,
+                                                  self.results[0])
     bom = self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'dram': 'dram_0',
         'display_panel': 'display_panel_0'})

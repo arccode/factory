@@ -228,19 +228,17 @@ class HWID(object):
                 'Not in RMA mode. Found deprecated component of %r: %r' %
                 (comp_cls, comp_name))
 
-  def VerifyProbeResult(self, probe_result):
-    """Verifies that the probe result matches the settings encoded in the HWID
+  def VerifyBOM(self, bom):
+    """Verifies that the BOM object matches the settings encoded in the HWID
     object.
 
     Args:
-      probe_result: A JSON-serializable dict of the probe result, which is
-          usually the output of the probe command.
+      bom: An instance of BOM to be verified.
 
     Raises:
       HWIDException on verification error.
     """
-    self.database.VerifyComponents(probe_result)
-    probed_bom = self.database.ProbeResultToBOM(probe_result)
+    self.database.VerifyComponents(bom)
 
     def PackProbedValues(bom, comp_cls):
       results = []
@@ -257,8 +255,7 @@ class HWID(object):
     for comp_cls in self.database.GetActiveComponents(self.bom.image_id):
       if comp_cls not in self.database.components.probeable:
         continue
-      probed_components = type_utils.MakeSet(
-          PackProbedValues(probed_bom, comp_cls))
+      probed_components = type_utils.MakeSet(PackProbedValues(bom, comp_cls))
       expected_components = type_utils.MakeSet(
           PackProbedValues(self.bom, comp_cls))
       extra_components = probed_components - expected_components

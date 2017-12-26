@@ -13,6 +13,7 @@ from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3.decoder import EncodedStringToBinaryString
 from cros.factory.hwid.v3.decoder import BinaryStringToBOM, Decode
+from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3.rule import Value
 from cros.factory.utils import json_utils
 
@@ -110,7 +111,8 @@ class DecoderTest(unittest.TestCase):
                           self.database, 'CHROMEBOOK QA5A-YCJ'))
 
   def testBinaryStringToBOM(self):
-    reference_bom = self.database.ProbeResultToBOM(self.results[0])
+    reference_bom = hwid_utils.GenerateBOMFromProbedResults(self.database,
+                                                            self.results[0])
     reference_bom = self.database.UpdateComponentsOfBOM(reference_bom, {
         'keyboard': 'keyboard_us',
         'display_panel': 'display_panel_0'})
@@ -161,7 +163,8 @@ class DecoderTest(unittest.TestCase):
     self.assertEquals(1, bom.encoded_fields['storage'])
 
   def testDecode(self):
-    reference_bom = self.database.ProbeResultToBOM(self.results[0])
+    reference_bom = hwid_utils.GenerateBOMFromProbedResults(self.database,
+                                                            self.results[0])
     reference_bom = self.database.UpdateComponentsOfBOM(reference_bom, {
         'keyboard': 'keyboard_us', 'dram': 'dram_0',
         'display_panel': 'display_panel_0'})

@@ -757,7 +757,9 @@ def VerifyHWID(options):
   event_log.Log('probed_results', probed_results=FilterDict(probed_results))
   event_log.Log('vpd', vpd=FilterDict(vpd) if vpd is None else None)
 
-  hwid_utils.VerifyHWID(db, encoded_string, probed_results, vpd=vpd,
+  bom = hwid_utils.GenerateBOMFromProbedResults(db, probed_results)
+
+  hwid_utils.VerifyHWID(db, encoded_string, bom, vpd=vpd,
                         rma_mode=options.rma_mode)
 
   event_log.Log('verified_hwid', hwid=encoded_string)

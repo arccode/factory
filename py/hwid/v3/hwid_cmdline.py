@@ -174,8 +174,9 @@ def GenerateHWIDWrapper(options):
     raise ValueError('The arguments --run-vpd and --vpd-data-file cannot be '
                      'set at the same time')
 
-  probed_results = hwid_utils.GetProbedResults(
-      infile=options.probed_results_file)
+  bom = hwid_utils.GenerateBOMFromProbedResults(
+      options.database, hwid_utils.GetProbedResults(
+          infile=options.probed_results_file))
 
   # Select right device info (from file or shopfloor).
   if options.device_info_file:
@@ -193,11 +194,11 @@ def GenerateHWIDWrapper(options):
 
   verbose_output = {
       'device_info': device_info,
-      'probed_results': probed_results,
+      'bom': bom,
       'vpd': vpd
   }
   logging.debug(yaml.dump(verbose_output, default_flow_style=False))
-  hwid = hwid_utils.GenerateHWID(options.database, probed_results, device_info,
+  hwid = hwid_utils.GenerateHWID(options.database, bom, device_info,
                                  rma_mode=options.rma_mode, vpd=vpd)
   if options.json_output:
     print json.dumps({
@@ -234,10 +235,11 @@ def DecodeHWIDWrapper(options):
 def VerifyHWIDWrapper(options):
   """Verifies HWID."""
   encoded_string = options.hwid if options.hwid else hwid_utils.GetHWIDString()
-  probed_results = hwid_utils.GetProbedResults(
-      infile=options.probed_results_file)
+  bom = hwid_utils.GenerateBOMFromProbedResults(
+      options.database, hwid_utils.GetProbedResults(
+          infile=options.probed_results_file))
   vpd = hwid_utils.GetVPDData(options.run_vpd, options.vpd_data_file)
-  hwid_utils.VerifyHWID(options.database, encoded_string, probed_results,
+  hwid_utils.VerifyHWID(options.database, encoded_string, bom,
                         vpd=vpd, rma_mode=options.rma_mode,
                         current_phase=options.phase)
   # No exception raised. Verification was successful.
@@ -263,9 +265,10 @@ def VerifyComponentsWrapper(options):
 
   redirect_stdout = process_utils.DummyFile() if options.json_output else None
   with process_utils.RedirectStandardStreams(stdout=redirect_stdout):
-    probed_results = hwid_utils.GetProbedResults(
-        infile=options.probed_results_file)
-    result = hwid_utils.VerifyComponents(options.database, probed_results,
+    bom = hwid_utils.GenerateBOMFromProbedResults(
+        options.database, hwid_utils.GetProbedResults(
+            infile=options.probed_results_file))
+    result = hwid_utils.VerifyComponents(options.database, bom,
                                          options.components)
   if options.json_output:
     def _ConvertToDict(obj):

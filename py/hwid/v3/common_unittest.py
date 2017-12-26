@@ -16,6 +16,7 @@ from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3.common import IsMPKeyName
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3.encoder import Encode
+from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3.identity import Identity
 from cros.factory.utils import json_utils
 
@@ -49,7 +50,8 @@ class HWIDTest(unittest.TestCase):
         os.path.join(_TEST_DATA_PATH, 'test_probe_result.json'))
 
   def testInvalidInitialize(self):
-    bom = self.database.ProbeResultToBOM(self.results[0])
+    bom = hwid_utils.GenerateBOMFromProbedResults(self.database,
+                                                  self.results[0])
     bom = self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'dram': 'dram_0',
         'display_panel': 'display_panel_0'})
@@ -72,7 +74,8 @@ class HWIDTest(unittest.TestCase):
       HWID.IsEquivalentBinaryString('010110', '01011000')
 
   def testVerifySelf(self):
-    bom = self.database.ProbeResultToBOM(self.results[0])
+    bom = hwid_utils.GenerateBOMFromProbedResults(self.database,
+                                                  self.results[0])
     bom = self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'dram': 'dram_0',
         'display_panel': 'display_panel_0'})
@@ -95,7 +98,7 @@ class HWIDTest(unittest.TestCase):
 
   def testVerifyProbeResult(self):
     result = self.results[0]
-    bom = self.database.ProbeResultToBOM(result)
+    bom = hwid_utils.GenerateBOMFromProbedResults(self.database, result)
     bom = self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'dram': 'dram_0',
         'display_panel': 'display_panel_0'})
@@ -105,28 +108,33 @@ class HWIDTest(unittest.TestCase):
     raw_result = json_utils.DumpStr(result)
 
     fake_result = json_utils.LoadStr(raw_result.replace('HDMI 1', 'HDMI 0'))
+    bom = hwid_utils.GenerateBOMFromProbedResults(self.database, fake_result)
     self.assertRaisesRegexp(
         HWIDException, r"Component class 'audio_codec' has extra components: "
         r"\['hdmi_0'\] and is missing components: \['hdmi_1'\]. "
         r"Expected components are: \['codec_1', 'hdmi_1'\]",
-        hwid.VerifyProbeResult, fake_result)
+        hwid.VerifyBOM, bom)
     # We only verify the components listed in the pattern. Do not raise
     # exception while the component which is not in the pattern is missing.
     fake_result = json_utils.LoadStr(raw_result.replace('EC Flash Chip',
                                                         'Foo chip'))
-    self.assertEquals(None, hwid.VerifyProbeResult(fake_result))
+    bom = hwid_utils.GenerateBOMFromProbedResults(self.database, fake_result)
+    self.assertEquals(None, hwid.VerifyBOM(bom))
 
     fake_result = json_utils.LoadStr(raw_result.replace(
         '"name": "CPU @ 2.80GHz"', '"name": "CPU @ 2.40GHz"'))
+    bom = hwid_utils.GenerateBOMFromProbedResults(self.database, fake_result)
     self.assertRaisesRegexp(
         HWIDException, r"Component class 'cpu' has extra components: "
         r"\['cpu_3'\] and is missing components: \['cpu_5'\]. "
         r"Expected components are: \['cpu_5'\]",
-        hwid.VerifyProbeResult, fake_result)
-    self.assertEquals(None, hwid.VerifyProbeResult(result))
+        hwid.VerifyBOM, bom)
+    bom = hwid_utils.GenerateBOMFromProbedResults(self.database, result)
+    self.assertEquals(None, hwid.VerifyBOM(bom))
     fake_result = json_utils.LoadStr(
         raw_result.replace('xkb:us::eng', 'xkb:gb:extd:eng'))
-    self.assertEquals(None, hwid.VerifyProbeResult(fake_result))
+    bom = hwid_utils.GenerateBOMFromProbedResults(self.database, fake_result)
+    self.assertEquals(None, hwid.VerifyBOM(bom))
 
 
 if __name__ == '__main__':

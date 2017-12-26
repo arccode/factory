@@ -15,6 +15,7 @@ from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3.encoder import BinaryStringToEncodedString
 from cros.factory.hwid.v3.encoder import BOMToBinaryString
 from cros.factory.hwid.v3.encoder import Encode
+from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.utils import json_utils
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -29,7 +30,8 @@ class EncoderTest(unittest.TestCase):
         os.path.join(_TEST_DATA_PATH, 'test_probe_result.json'))
 
   def testBOMToBinaryString(self):
-    bom = self.database.ProbeResultToBOM(self.results[0])
+    bom = hwid_utils.GenerateBOMFromProbedResults(self.database,
+                                                  self.results[0])
     # Manually set unprobeable components.
     bom = self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'display_panel': 'display_panel_0'})
@@ -58,7 +60,8 @@ class EncoderTest(unittest.TestCase):
                           self.database, '000101110100000101'))
 
   def testEncode(self):
-    bom = self.database.ProbeResultToBOM(self.results[0])
+    bom = hwid_utils.GenerateBOMFromProbedResults(self.database,
+                                                  self.results[0])
     # Manually set unprobeable components.
     bom = self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'display_panel': 'display_panel_0'})
@@ -76,7 +79,7 @@ class EncoderTest(unittest.TestCase):
     # Missing required component 'dram'.
     mock_results = copy.deepcopy(self.results[0])
     mock_results.pop('dram')
-    bom = self.database.ProbeResultToBOM(mock_results)
+    bom = hwid_utils.GenerateBOMFromProbedResults(self.database, mock_results)
     bom = self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'display_panel': 'display_panel_0'})
     self.assertRaisesRegexp(
@@ -86,7 +89,7 @@ class EncoderTest(unittest.TestCase):
     # Unsupported probe values of component 'dram'.
     mock_results = copy.deepcopy(self.results[0])
     mock_results['dram'] = {'generic': [{'vendor': 'FOO', 'size': '4G'}]}
-    bom = self.database.ProbeResultToBOM(mock_results)
+    bom = hwid_utils.GenerateBOMFromProbedResults(self.database, mock_results)
     bom = self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'display_panel': 'display_panel_0'})
     self.assertRaisesRegexp(
@@ -97,7 +100,7 @@ class EncoderTest(unittest.TestCase):
   def testEncodeRegion(self):
     db = Database.LoadFile(
         os.path.join(_TEST_DATA_PATH, 'test_db_regions.yaml'))
-    bom = db.ProbeResultToBOM(self.results[5])
+    bom = hwid_utils.GenerateBOMFromProbedResults(db, self.results[5])
     # The BOM should load 'us' region from the probe result (numeric_id=29).)
     self.assertEquals(29, bom.encoded_fields['region_field'])
     hwid = Encode(db, bom)

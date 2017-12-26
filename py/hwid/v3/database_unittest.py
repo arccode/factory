@@ -15,6 +15,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.common import HWIDException, ProbedComponentResult
 from cros.factory.hwid.v3.database import Database, Components
+from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3.rule import Value
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.utils import json_utils
@@ -34,10 +35,12 @@ class NewDatabaseTest(unittest.TestCase):
                                                    'test_new_db.yaml'))
     self.results = json_utils.LoadFile(
         os.path.join(_TEST_DATA_PATH, 'test_probe_result.json'))
+    self.boms = [hwid_utils.GenerateBOMFromProbedResults(self.database,
+                                                         probed_results)
+                 for probed_results in self.results]
 
   def testProbeResultToBOM(self):
-    result = self.results[0]
-    bom = self.database.ProbeResultToBOM(result)
+    bom = self.boms[0]
     self.assertEquals('CHROMEBOOK', bom.project)
     self.assertEquals(0, bom.encoding_pattern_index)
     self.assertEquals(0, bom.image_id)
@@ -65,8 +68,7 @@ class NewDatabaseTest(unittest.TestCase):
     deprecated default item.
     """
     # No audio_codec and no cellular
-    result = self.results[6]
-    bom = self.database.ProbeResultToBOM(result)
+    bom = self.boms[6]
     self.assertEquals(bom.components['audio_codec'],
                       [('audio_codec_default', None, None)])
     self.assertEquals(bom.components['cellular'],
@@ -76,8 +78,7 @@ class NewDatabaseTest(unittest.TestCase):
     self.assertEquals(bom.encoded_fields['cellular_field'], 1)
 
     # There is audio_codec and cellular_a
-    result = self.results[7]
-    bom = self.database.ProbeResultToBOM(result)
+    bom = self.boms[7]
     self.assertEquals(bom.components['audio_codec'],
                       [('audio_codec_default', None, None)])
     self.assertEquals(bom.components['cellular'],
@@ -88,8 +89,7 @@ class NewDatabaseTest(unittest.TestCase):
     self.assertEquals(bom.encoded_fields['cellular_field'], 2)
 
     # Invalid cellular probed result
-    result = self.results[8]
-    bom = self.database.ProbeResultToBOM(result)
+    bom = self.boms[8]
     probed_value = {'compact_str': 'invalid_value'}
     self.assertEquals(bom.components['cellular'],
                       [(None, probed_value,
@@ -98,8 +98,7 @@ class NewDatabaseTest(unittest.TestCase):
     self.assertEquals(bom.encoded_fields['cellular_field'], None)
 
   def testVerifyBOMWithDefault(self):
-    bom = self.database.ProbeResultToBOM(self.results[6])
-    self.assertEquals(None, self.database.VerifyBOM(bom, True))
+    self.assertEquals(None, self.database.VerifyBOM(self.boms[6], True))
 
 
 class DatabaseTest(unittest.TestCase):
@@ -109,6 +108,9 @@ class DatabaseTest(unittest.TestCase):
                                                    'test_db.yaml'))
     self.results = json_utils.LoadFile(
         os.path.join(_TEST_DATA_PATH, 'test_probe_result.json'))
+    self.boms = [hwid_utils.GenerateBOMFromProbedResults(self.database,
+                                                         probed_results)
+                 for probed_results in self.results]
 
   def testLoadFile(self):
     self.assertIsInstance(Database.LoadFile(os.path.join(
@@ -193,85 +195,8 @@ class DatabaseTest(unittest.TestCase):
         r'its bit length is 1 in the pattern',
         mock_db._SanityChecks)
 
-  def testProbeResultToBOM(self):
-    result = self.results[0]
-    bom = self.database.ProbeResultToBOM(result)
-    self.assertEquals('CHROMEBOOK', bom.project)
-    self.assertEquals(0, bom.encoding_pattern_index)
-    self.assertEquals(0, bom.image_id)
-    self.assertEquals({
-        'audio_codec': [('codec_1', {'compact_str': Value('Codec 1')}, None),
-                        ('hdmi_1', {'compact_str': Value('HDMI 1')}, None)],
-        'battery': [('battery_huge',
-                     {'tech': Value('Battery Li-ion'),
-                      'size': Value('10000000')},
-                     None)],
-        'bluetooth': [('bluetooth_0',
-                       {'idVendor': Value('0123'), 'idProduct': Value('abcd'),
-                        'bcd': Value('0001')},
-                       None)],
-        'cellular': [(None, None, "Missing 'cellular' component")],
-        'cpu': [('cpu_5',
-                 {'name': Value('CPU @ 2.80GHz'), 'cores': Value('4')},
-                 None)],
-        'display_panel': [('display_panel_0', None, None)],
-        'dram': [('dram_0',
-                  {'vendor': Value('DRAM 0'), 'size': Value('4G')},
-                  None)],
-        'ec_flash_chip': [('ec_flash_chip_0',
-                           {'compact_str': Value('EC Flash Chip')},
-                           None)],
-        'embedded_controller': [('embedded_controller_0',
-                                 {'compact_str': Value('Embedded Controller')},
-                                 None)],
-        'flash_chip': [('flash_chip_0',
-                        {'compact_str': Value('Flash Chip')},
-                        None)],
-        'hash_gbb': [('hash_gbb_0',
-                      {'compact_str': Value('gv2#hash_gbb_0')},
-                      None)],
-        'key_recovery': [('key_recovery_0',
-                          {'compact_str': Value('kv3#key_recovery_0')},
-                          None)],
-        'key_root': [('key_root_0',
-                      {'compact_str': Value('kv3#key_root_0')},
-                      None)],
-        'keyboard': [(None,
-                      {'compact_str': 'xkb:us::eng'},
-                      "Component class 'keyboard' is unprobeable")],
-        'ro_ec_firmware': [('ro_ec_firmware_0',
-                            {'compact_str': Value('ev2#ro_ec_firmware_0')},
-                            None)],
-        'ro_main_firmware': [('ro_main_firmware_0',
-                              {'compact_str': Value('mv2#ro_main_firmware_0')},
-                              None)],
-        'storage': [('storage_0',
-                     {'type': Value('SSD'), 'size': Value('16G'),
-                      'serial': Value(r'^#123\d+$', is_re=True)},
-                     None)],
-        'video': [('camera_0',
-                   {'idVendor': Value('4567'), 'idProduct': Value('abcd'),
-                    'type': Value('webcam')},
-                   None)]},
-                      bom.components)
-    self.assertEquals({
-        'audio_codec': 1,
-        'battery': 3,
-        'bluetooth': 0,
-        'cellular': 0,
-        'cpu': 5,
-        'display_panel': 0,
-        'dram': 0,
-        'ec_flash_chip': 0,
-        'embedded_controller': 0,
-        'firmware': 0,
-        'flash_chip': 0,
-        'keyboard': None,
-        'storage': 0,
-        'video': 0}, bom.encoded_fields)
-
   def testUpdateComponentsOfBOM(self):
-    bom = self.database.ProbeResultToBOM(self.results[0])
+    bom = self.boms[0]
     new_bom = self.database.UpdateComponentsOfBOM(
         bom, {'keyboard': 'keyboard_gb'})
     self.assertEquals([('keyboard_gb', None, None)],
@@ -307,16 +232,16 @@ class DatabaseTest(unittest.TestCase):
         self.database.UpdateComponentsOfBOM, bom, {'cpu': 'bar'})
 
   def testGetFieldIndexFromComponents(self):
-    bom = self.database.ProbeResultToBOM(self.results[0])
-    self.assertEquals(5, self.database._GetFieldIndexFromProbedComponents(
+    bom = self.boms[0]
+    self.assertEquals(5, self.database.GetFieldIndexFromProbedComponents(
         'cpu', bom.components))
-    self.assertEquals(1, self.database._GetFieldIndexFromProbedComponents(
+    self.assertEquals(1, self.database.GetFieldIndexFromProbedComponents(
         'audio_codec', bom.components))
-    self.assertEquals(3, self.database._GetFieldIndexFromProbedComponents(
+    self.assertEquals(3, self.database.GetFieldIndexFromProbedComponents(
         'battery', bom.components))
-    self.assertEquals(0, self.database._GetFieldIndexFromProbedComponents(
+    self.assertEquals(0, self.database.GetFieldIndexFromProbedComponents(
         'storage', bom.components))
-    self.assertEquals(0, self.database._GetFieldIndexFromProbedComponents(
+    self.assertEquals(0, self.database.GetFieldIndexFromProbedComponents(
         'cellular', bom.components))
 
   def testGetAllIndices(self):
@@ -393,7 +318,7 @@ class DatabaseTest(unittest.TestCase):
   def testVerifyBOM(self):
     # Before evaluating rule to update the unprobeable component, we only verify
     # the probeable components.
-    bom = self.database.ProbeResultToBOM(self.results[0])
+    bom = self.boms[0]
     self.assertEquals(None, self.database.VerifyBOM(bom, True))
 
     original_value = bom.project
@@ -438,13 +363,14 @@ class DatabaseTest(unittest.TestCase):
 
   def testVerifyComponents(self):
     self.maxDiff = None
+    bom = self.boms[0]
     self.assertRaisesRegexp(
         HWIDException, r'Argument comp_list should be a list',
-        self.database.VerifyComponents, self.results[0], 'cpu')
+        self.database.VerifyComponents, bom, 'cpu')
     self.assertRaisesRegexp(
         HWIDException,
         r"\['keyboard'\] do not have probe values and cannot be verified",
-        self.database.VerifyComponents, self.results[0], ['keyboard'])
+        self.database.VerifyComponents, bom, ['keyboard'])
     self.assertEquals({
         'audio_codec': [
             ('codec_1', {'compact_str': Value('Codec 1')}, None),
@@ -455,14 +381,14 @@ class DatabaseTest(unittest.TestCase):
             ('cpu_5', {'name': Value('CPU @ 2.80GHz'), 'cores': Value('4')},
              None)]},
                       self.database.VerifyComponents(
-                          self.results[0], ['audio_codec', 'cellular', 'cpu']))
+                          bom, ['audio_codec', 'cellular', 'cpu']))
     self.assertEquals({
         'audio_codec': [
             ('codec_1', {'compact_str': Value('Codec 1')}, None),
             (None, {'compact_str': 'HDMI 3'},
              common.INVALID_COMPONENT_ERROR(
                  'audio_codec', {'compact_str': 'HDMI 3'}))
-        ]}, self.database.VerifyComponents(self.results[1], ['audio_codec']))
+        ]}, self.database.VerifyComponents(self.boms[1], ['audio_codec']))
     self.assertEquals({
         'storage': [
             (None, {'type': 'SSD', 'size': '16G', 'serial': '#1234aa'},
@@ -470,23 +396,21 @@ class DatabaseTest(unittest.TestCase):
                  'storage', {'type': 'SSD',
                              'size': '16G',
                              'serial': '#1234aa'}))]},
-                      self.database.VerifyComponents(self.results[2],
+                      self.database.VerifyComponents(self.boms[2],
                                                      ['storage']))
+    bom = hwid_utils.GenerateBOMFromProbedResults(
+        self.database, self.results[3], loose_matching=True)
     self.assertEquals({
         'storage': [
             ('storage_2', {'type': Value('HDD'), 'size': Value('500G'),
                            'serial': Value(r'^#123\d+$', is_re=True)},
              None)]},
-                      self.database.VerifyComponents(self.results[3],
-                                                     ['storage'],
-                                                     loose_matching=True))
+                      self.database.VerifyComponents(bom, ['storage']))
     self.assertEquals({
         'storage': [
             (None, {'foo': 'bar'},
              common.INVALID_COMPONENT_ERROR('storage', {'foo': 'bar'}))]},
-                      self.database.VerifyComponents(self.results[4],
-                                                     ['storage'],
-                                                     loose_matching=True))
+                      self.database.VerifyComponents(self.boms[4], ['storage']))
 
   def testLoadDatabaseWithRegionInfo(self):
     db = Database.LoadFile(
