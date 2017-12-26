@@ -12,6 +12,7 @@ import subprocess
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.gooftool import crosfw
+from cros.factory.hwid.v3.bom import BOM
 from cros.factory.hwid.v3 import builder
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import database
@@ -295,8 +296,8 @@ def EnumerateHWID(db, image_id=None, status='supported'):
                 attrs['name'], attrs['values'], None))
       component_list.append(' '.join(comp_items))
     if pass_check:
-      bom = common.BOM(db.project, encoding_pattern, image_id, components,
-                       encoded_fields)
+      bom = BOM(db.project, encoding_pattern, image_id, components,
+                encoded_fields)
       binary_string = encoder.BOMToBinaryString(db, bom)
       encoded_string = encoder.BinaryStringToEncodedString(db, binary_string)
       hwid_dict[encoded_string] = ','.join(component_list)

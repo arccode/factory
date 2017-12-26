@@ -14,6 +14,7 @@ import pprint
 import re
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.hwid.v3.bom import BOM
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import rule
 # Import yaml_tags to decode special YAML tags specific to HWID module.
@@ -368,8 +369,8 @@ class Database(object):
       encoded_fields[field] = self._GetFieldIndexFromProbedComponents(
           field, probed_components)
 
-    return common.BOM(self.project, encoding_pattern_index, image_id,
-                      probed_components, encoded_fields)
+    return BOM(self.project, encoding_pattern_index, image_id,
+               probed_components, encoded_fields)
 
   def UpdateComponentsOfBOM(self, bom, updated_components):
     """Updates the components data of the given BOM.

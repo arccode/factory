@@ -7,6 +7,7 @@
 import collections
 import factory_common  # pylint: disable=W0611
 
+from cros.factory.hwid.v3.bom import BOM
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.base32 import Base32
 from cros.factory.hwid.v3.base8192 import Base8192
@@ -71,8 +72,7 @@ def BinaryStringToBOM(database, binary_string):
           components[comp_cls].append(common.ProbedComponentResult(
               attrs['name'], attrs['values'], None))
 
-  return common.BOM(project, encoding_pattern, image_id, components,
-                    encoded_fields)
+  return BOM(project, encoding_pattern, image_id, components, encoded_fields)
 
 
 def EncodedStringToBinaryString(database, encoded_string):
