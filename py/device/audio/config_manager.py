@@ -172,6 +172,7 @@ class BaseConfigManager:
     except Exception:
       return DEFAULT_MIC_JACK_NAMES
 
+  @abc.abstractmethod
   def GetMicJackType(self, card='0'):
     """Gets the mic jack type.
 
@@ -347,6 +348,7 @@ class AudioConfigManager(BaseConfigManager):
       status = True if jack_status == '1' else False
       logging.info('microphone jack status %s', status)
       return status
+    raise NotImplementedError # cannot determined by config file
 
   def _GetMicJackPossibleNames(self, card='0'):
     if card in self.audio_config and MIC_JACK_NAME in self.audio_config[card]:
@@ -379,6 +381,9 @@ class JSONAudioConfigManager(AudioConfigManager):
 
   def LoadConfig(self, config_path):
     config = config_utils.LoadConfig(config_path)
+
+    if not config:
+      raise Exception("No valid audio config exists.")
 
     # Convert names to indexes.
     card_names = [name for name in config if not name.isdigit()]
@@ -434,8 +439,7 @@ class UCMConfigManager(BaseConfigManager):
   _RE_CARD_NAME = re.compile(r'^card (\d+):.*?\[(.+?)\]')
 
   def __init__(self, device, mixer_controller,
-               card_map=None, device_map=None, verb=None,
-               config_name=None):
+               card_map=None, device_map=None, verb=None):
     """Construct from a UCM config.
 
     This helps to control sound cards via the UCM config files.
@@ -446,13 +450,8 @@ class UCMConfigManager(BaseConfigManager):
     A UCM config only supports operations like initialize-card,
     enable-speaker, disable-mic, etc. It does not support operations
     like 'mute', 'adjust volume', or other customized amixer commands.
-    To support these operations as well, a factory audio config file
-    should be passed, just as the way for AudioConfigManager.
-
-    Furthermore, to override the behavior defined in UCM configs,
-    one can pass a factory audio config file. The commands defined in
-    the audio config file will be tried at first. If it failed, the
-    UCM config will be followed.
+    To support these operations, please prepare the audio config, and
+    use JSONAudioConfigManager instead.
 
     If a customized UCM config should be used, the UCM config
     files should be placed under /usr/share/alsa/ucm beforehand.
@@ -482,9 +481,6 @@ class UCMConfigManager(BaseConfigManager):
                devices after the prefix 'SectionDevice'.
 
       verb: The verb string for UCM (e.g., 'HiFi')
-
-      config_name: An optional config file to load factory audio config.
-                   See AudioConfigManager.__init__ for more details.
     """
     super(UCMConfigManager, self).__init__()
 
@@ -500,13 +496,6 @@ class UCMConfigManager(BaseConfigManager):
     self._verb = verb
     if self._verb is None:
       self._verb = self._DefaultVerb
-
-    self._factory_config_mgr = None
-    try:
-      self._factory_config_mgr = CreateAudioConfigManager(
-          self._mixer_controller, config_name)
-    except Exception:
-      self._factory_config_mgr = None
 
   def _GetPossibleCardNames(self):
     output = self._device.CallOutput(['aplay', '-l'])
@@ -699,46 +688,28 @@ class UCMConfigManager(BaseConfigManager):
         'set _disdev "%s"' % self._GetDeviceName(device))
 
   def LoadConfig(self, config_name):
-    if self._factory_config_mgr is None:
-      self._factory_config_mgr = CreateAudioConfigManager(
-          self._mixer_controller, config_name)
-    else:
-      self._InvokeFactoryConfMgr('LoadConfig', config_name)
+    raise Exception('UCM config does not support LaodConfig operation.')
 
-  def ApplyAudioConfig(self, *args, **kwargs):
-    """Base.ApplyAudioConfig."""
-    return self._InvokeFactoryConfMgr('ApplyAudioConfig', *args, **kwargs)
+  def ApplyAudioConfig(self, action, card='0', is_script=False):
+    logging.info('UCM config cannot apply customized actions.')
+    return False
 
-  def MuteLeftDevice(self, *args, **kwargs):
-    return self._InvokeFactoryConfMgr('MuteLeftDevice', *args, **kwargs)
+  def MuteLeftDevice(self, device, card='0'):
+    logging.info('UCM config does not support mute operations.')
+    return False
 
-  def MuteRightDevice(self, *args, **kwargs):
-    return self._InvokeFactoryConfMgr('MuteRightDevice', *args, **kwargs)
+  def MuteRightDevice(self, device, card='0'):
+    logging.info('UCM config does not support mute operations.')
+    return False
 
-  def SetSpeakerVolume(self, *args, **kwargs):
-    return self._InvokeFactoryConfMgr('SetSpeakerVolume', *args, **kwargs)
+  def SetSpeakerVolume(self, volume=0, card='0'):
+    logging.info('UCM config does not support SetSpeakerVolume operation.')
+    return False
 
-  def SetHeadphoneVolume(self, *args, **kwargs):
-    return self._InvokeFactoryConfMgr('SetHeadphoneVolume', *args, **kwargs)
+  def SetHeadphoneVolume(self, volume=0, card='0'):
+    logging.info('UCM config does not support SetHeadphoneVolume operation.')
+    return False
 
-  def GetHeadphoneJackStatus(self, *args, **kwargs):
-    return self._InvokeFactoryConfMgr('GetHeadphoneJackStatus', *args, **kwargs)
-
-  def GetHeadphoneJackPossibleNames(self, *args, **kwargs):
-    return self._InvokeFactoryConfMgr('GetHeadphoneJackPossibleNames',
-                                      *args, **kwargs)
-
-  def _GetHeadphoneJackPossibleNames(self, *args, **kwargs):
-    return self._InvokeFactoryConfMgr('_GetHeadphoneJackPossibleNames',
-                                      *args, **kwargs)
-
-  def GetMicJackStatus(self, *args, **kwargs):
-    return self._InvokeFactoryConfMgr('GetMicJackStatus',
-                                      *args, **kwargs)
-
-  def GetMicJackPossibleNames(self, *args, **kwargs):
-    return self._InvokeFactoryConfMgr('GetMicJackPossibleNames',
-                                      *args, **kwargs)
-
-  def GetMicJackType(self, *args, **kwargs):
-    return self._InvokeFactoryConfMgr('GetMicJackType', *args, **kwargs)
+  def GetMicJackType(self, card='0'):
+    logging.info('UCM config does not support GetMicJackType operation.')
+    return False

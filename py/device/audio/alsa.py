@@ -107,28 +107,19 @@ class AlsaAudioControl(base.BaseAudioControl):
     mixer_controller = AlsaMixerController(dut)
     config_mgr = None
 
-    if use_ucm is None:
-      use_ucm = True  # Use UCM configs by default
-
-    most_use_ucm = False
-    if any(v is not None for v in (ucm_card_map, ucm_device_map, ucm_verb)):
-      most_use_ucm = True
-
-    if use_ucm:
-      try:
-        config_mgr = config_manager.UCMConfigManager(
-            dut, mixer_controller, ucm_card_map, ucm_device_map,
-            ucm_verb, config_name)
-      except Exception:
-        if most_use_ucm:
-          logging.error('Intended to use UCM configs, but failed to construct '
-                        'a UCM config manager')
-          raise
-
-    if config_mgr is None:
-      # Fallback to use factory audio conf
+    try:
+      # If a factory audio config is there, use it.
       config_mgr = config_manager.CreateAudioConfigManager(
           mixer_controller, config_name)
+    except Exception:
+      pass
+
+    if config_mgr is None:
+      # Factory audio config does not exist. Use UCM config manager.
+      config_mgr = config_manager.UCMConfigManager(
+          dut, mixer_controller, ucm_card_map, ucm_device_map,
+          ucm_verb)
+
     super(AlsaAudioControl, self).__init__(dut, config_mgr, mixer_controller)
 
   def _PlaybackWavFile(self, path, card, device):
