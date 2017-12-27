@@ -1056,6 +1056,7 @@ class TestCaseWithUI(unittest.TestCase):
         try:
           task.run()
         finally:
+          self.__task_end_event.set()
           self.event_loop.ClearHandlers()
           self.ui.UnbindAllKeys()
           if task.cleanup:
