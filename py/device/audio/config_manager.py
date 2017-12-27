@@ -35,10 +35,6 @@ MicJackType = type_utils.Enum(['none', 'lrgm', 'lrmg'])
 MIC_JACK_TYPE_RETURN_LRGM = '1'
 MIC_JACK_TYPE_RETURN_LRMG = '2'
 
-DEFAULT_HEADPHONE_JACK_NAMES = ['Headphone Jack', 'Headset Jack']
-# The input device event may be on Headphone Jack
-DEFAULT_MIC_JACK_NAMES = ['Mic Jack'] + DEFAULT_HEADPHONE_JACK_NAMES
-
 InputDevices = type_utils.Enum(['Dmic', 'Dmic2', 'MLBDmic', 'Extmic'])
 OutputDevices = type_utils.Enum(['Speaker', 'Headphone'])
 AudioDeviceType = type_utils.Enum(
@@ -144,16 +140,12 @@ class BaseConfigManager:
     Returns:
       True if headphone jack is plugged; False if unplugged;
     """
-    raise NotImplementedError
+    del card  # unused
+    raise Exception("No customized method to detect jack.")
 
   def GetHeadphoneJackPossibleNames(self, card='0'):
-    try:
-      return self._GetHeadphoneJackPossibleNames(card)
-    except Exception:
-      return DEFAULT_HEADPHONE_JACK_NAMES
-
-  def _GetHeadphoneJackPossibleNames(self, card='0'):
-    raise NotImplementedError
+    del card  # unused
+    raise Exception("No customized jack names.")
 
   def GetMicJackStatus(self, card='0'):
     """Gets the plug/unplug status of mic jack.
@@ -164,13 +156,12 @@ class BaseConfigManager:
     Returns:
       True if headphone jack is plugged; False if unplugged;
     """
-    raise NotImplementedError
+    del card  # unused
+    raise Exception("No customized method to detect jack.")
 
   def GetMicJackPossibleNames(self, card='0'):
-    try:
-      return self._GetMicJackPossibleNames(card)
-    except Exception:
-      return DEFAULT_MIC_JACK_NAMES
+    del card  # unused
+    raise Exception("No customized jack names.")
 
   @abc.abstractmethod
   def GetMicJackType(self, card='0'):
@@ -190,7 +181,7 @@ class AudioConfigManager(BaseConfigManager):
 
   def __init__(self, mixer_controller, config_name=None):
     super(AudioConfigManager, self).__init__()
-    self._audio_config_sn = 0 # used for audio config logging.
+    self._audio_config_sn = 0  # used for audio config logging.
     self._mixer_controller = mixer_controller
     self.audio_config = None
     self.LoadConfig(config_name)
@@ -335,7 +326,7 @@ class AudioConfigManager(BaseConfigManager):
       return status
     raise NotImplementedError # cannot determined by config file
 
-  def _GetHeadphoneJackPossibleNames(self, card='0'):
+  def GetHeadphoneJackPossibleNames(self, card='0'):
     if card in self.audio_config and HP_JACK_NAME in self.audio_config[card]:
       return [self.audio_config[card][HP_JACK_NAME]]
     raise NotImplementedError # cannot determined by config file
@@ -350,7 +341,7 @@ class AudioConfigManager(BaseConfigManager):
       return status
     raise NotImplementedError # cannot determined by config file
 
-  def _GetMicJackPossibleNames(self, card='0'):
+  def GetMicJackPossibleNames(self, card='0'):
     if card in self.audio_config and MIC_JACK_NAME in self.audio_config[card]:
       return [self.audio_config[card][MIC_JACK_NAME]]
     raise NotImplementedError # cannot determined by config file
@@ -711,5 +702,4 @@ class UCMConfigManager(BaseConfigManager):
     return False
 
   def GetMicJackType(self, card='0'):
-    logging.info('UCM config does not support GetMicJackType operation.')
-    return False
+    raise Exception('UCM config does not support GetMicJackType operation.')

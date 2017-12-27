@@ -102,8 +102,8 @@ class AlsaAudioControl(base.BaseAudioControl):
   # Just list all supported options. But we only use wav and raw types.
   RecordType = Enum(['voc', 'wav', 'raw', 'au'])
 
-  def __init__(self, dut, config_name=None, use_ucm=None,
-               ucm_card_map=None, ucm_device_map=None, ucm_verb=None):
+  def __init__(self, dut, config_name=None, ucm_card_map=None,
+               ucm_device_map=None, ucm_verb=None):
     mixer_controller = AlsaMixerController(dut)
     config_mgr = None
 

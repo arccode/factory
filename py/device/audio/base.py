@@ -22,6 +22,10 @@ InputDevices = config_manager.InputDevices
 OutputDevices = config_manager.OutputDevices
 AudioDeviceType = config_manager.AudioDeviceType
 
+DEFAULT_HEADPHONE_JACK_NAMES = ['Headphone Jack', 'Headset Jack']
+# The input device event may be on Headphone Jack
+DEFAULT_MIC_JACK_NAMES = ['Mic Jack'] + DEFAULT_HEADPHONE_JACK_NAMES
+
 
 class BaseMixerController:
   __metaclass__ = abc.ABCMeta
@@ -122,24 +126,13 @@ class BaseAudioControl(types.DeviceComponent):
     except Exception:
       pass
 
-    possible_names = self.config_mgr.GetHeadphoneJackPossibleNames(card)
+    try:
+      possible_names = self.config_mgr.GetHeadphoneJackPossibleNames(card)
+    except Exception:
+      possible_names = DEFAULT_HEADPHONE_JACK_NAMES
 
-    # Loops through possible names. Uses mixer control or evtest
-    # to query jack status.
-    status = None
-    for hp_jack_name in possible_names:
-      values = self.mixer_controller.GetMixerControls(hp_jack_name, card)
-      if values:
-        status = True if values == 'on' else False
-        break
-
-      # Check input device for headphone
-      evdev = self.FindEventDeviceByName(hp_jack_name)
-      if evdev:
-        command = ['evtest', '--query', evdev, 'EV_SW', 'SW_HEADPHONE_INSERT']
-        returncode = self._device.Call(command)
-        status = (returncode != 0)
-        break
+    status = self._QueryJackStatus(
+        card, possible_names, 'EV_SW', 'SW_HEADPHONE_INSERT')
 
     logging.info('Getting headphone jack status %s', status)
     if status is None:
@@ -161,23 +154,13 @@ class BaseAudioControl(types.DeviceComponent):
     except Exception:
       pass
 
-    possible_names = self.config_mgr.GetMicJackPossibleNames(card)
+    try:
+      possible_names = self.config_mgr.GetMicJackPossibleNames(card)
+    except Exception:
+      possible_names = DEFAULT_MIC_JACK_NAMES
 
-    # Loops through possible names. Uses mixer control or evtest
-    # to query jack status.
-    status = None
-    for jack_name in possible_names:
-      values = self.mixer_controller.GetMixerControls(jack_name, card)
-      if values:
-        status = True if values == 'on' else False
-        break
-
-      evdev = self.FindEventDeviceByName(jack_name)
-      if evdev:
-        command = ['evtest', '--query', evdev, 'EV_SW', 'SW_MICROPHONE_INSERT']
-        returncode = self._device.Call(command)
-        status = (returncode != 0)
-        break
+    status = self._QueryJackStatus(
+        card, possible_names, 'EV_SW', 'SW_MICROPHONE_INSERT')
 
     logging.info('Getting microphone jack status %s', status)
     if status is None:
@@ -386,7 +369,23 @@ class BaseAudioControl(types.DeviceComponent):
       raise RuntimeError('Find more than one PID(%r) of %s!' % (pids, name))
     return pids[0] if pids else None
 
-  def FindEventDeviceByName(self, name):
+  def _QueryJackStatus(self, card, possible_names, ev_type, ev_val):
+    # Loops through possible names. Uses mixer control or evtest
+    # to query jack status.
+    for jack_name in possible_names:
+      values = self.mixer_controller.GetMixerControls(jack_name, card)
+      if values:
+        return values == 'on'
+
+      evdev = self._FindEventDeviceByName(jack_name)
+      if evdev:
+        command = ['evtest', '--query', evdev, ev_type, ev_val]
+        returncode = self._device.Call(command)
+        return returncode != 0
+
+    return None
+
+  def _FindEventDeviceByName(self, name):
     """Finds the event device by matching name.
 
     Args:
