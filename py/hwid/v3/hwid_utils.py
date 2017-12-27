@@ -7,21 +7,17 @@
 import collections
 import logging
 import os
-import subprocess
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.hwid.v3.bom import BOM
+from cros.factory.hwid.v3.bom import ProbedComponentResult
 from cros.factory.hwid.v3 import builder
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.database import Database
-from cros.factory.hwid.v3 import decoder
-from cros.factory.hwid.v3 import encoder
 from cros.factory.hwid.v3 import rule
+from cros.factory.hwid.v3 import transformer
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
-from cros.factory.utils import cros_board_utils
-from cros.factory.utils import process_utils
 from cros.factory.utils import json_utils
-from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
 
@@ -77,10 +73,11 @@ def GenerateHWID(db, bom, device_info, vpd=None, rma_mode=False):
   """
   hwid_mode = _HWIDMode(rma_mode)
   # Construct a base BOM from probe_results.
-  hwid = encoder.Encode(db, bom, mode=hwid_mode, skip_check=True)
+  hwid = transformer.Encode(db, bom, mode=hwid_mode, skip_check=True)
 
   # Update unprobeable components with rules defined in db before verification.
-  context_args = dict(hwid=hwid, device_info=device_info)
+  context_args = dict(database=hwid.database, bom=hwid.bom, mode=hwid.mode,
+                      device_info=device_info)
   if vpd is not None:
     context_args['vpd'] = vpd
   context = rule.Context(**context_args)
@@ -99,7 +96,7 @@ def DecodeHWID(db, encoded_string):
   Returns:
     The decoded HWIDv3 context object.
   """
-  return decoder.Decode(db, encoded_string)
+  return transformer.Decode(db, encoded_string)
 
 
 def ParseDecodedHWID(hwid):
@@ -164,11 +161,11 @@ def VerifyHWID(db, encoded_string, bom, vpd=None, rma_mode=False,
     HWIDException if verification fails.
   """
   hwid_mode = _HWIDMode(rma_mode)
-  hwid = decoder.Decode(db, encoded_string, mode=hwid_mode)
+  hwid = transformer.Decode(db, encoded_string, mode=hwid_mode)
   hwid.VerifyBOM(bom)
   hwid.VerifyComponentStatus(current_phase=current_phase)
   hwid.VerifyPhase(current_phase)
-  context_args = dict(hwid=hwid)
+  context_args = dict(database=hwid.database, bom=hwid.bom, mode=hwid.mode)
   if vpd is not None:
     context_args['vpd'] = vpd
   context = rule.Context(**context_args)
@@ -258,7 +255,7 @@ def EnumerateHWID(db, image_id=None, status='supported'):
       for comp_cls, attr_list in attr_dict.iteritems():
         if attr_list is None:
           comp_items.append('None')
-          components[comp_cls].append(common.ProbedComponentResult(
+          components[comp_cls].append(ProbedComponentResult(
               None, None, common.MISSING_COMPONENT_ERROR(comp_cls)))
         else:
           for attrs in attr_list:
@@ -278,14 +275,15 @@ def EnumerateHWID(db, image_id=None, status='supported'):
                             attrs['status'])
               break
             comp_items.append(attrs['name'])
-            components[comp_cls].append(common.ProbedComponentResult(
+            components[comp_cls].append(ProbedComponentResult(
                 attrs['name'], attrs['values'], None))
       component_list.append(' '.join(comp_items))
     if pass_check:
       bom = BOM(db.project, encoding_pattern, image_id, components,
                 encoded_fields)
-      binary_string = encoder.BOMToBinaryString(db, bom)
-      encoded_string = encoder.BinaryStringToEncodedString(db, binary_string)
+      binary_string = transformer.BOMToBinaryString(db, bom)
+      encoded_string = transformer.BinaryStringToEncodedString(
+          db, binary_string)
       hwid_dict[encoded_string] = ','.join(component_list)
 
   def _RecursivelyGenerate(index=None, encoded_fields=None):
@@ -371,6 +369,8 @@ def GetProbedResults(infile=None, raw_data=None):
   elif raw_data:
     return json_utils.LoadStr(raw_data)
   else:
+    from cros.factory.utils import process_utils
+    from cros.factory.utils import sys_utils
     if sys_utils.InChroot():
       raise ValueError('Cannot probe components in chroot. Please specify '
                        'probed results with an input file. If you are running '
@@ -424,7 +424,7 @@ def GenerateBOMFromProbedResults(database,
       comp_status = database.components.GetComponentStatus(comp_cls, comp_name)
       if comp_status != common.HWID.COMPONENT_STATUS.unsupported:
         probed_components[comp_cls].append(
-            common.ProbedComponentResult(comp_name, None, None))
+            ProbedComponentResult(comp_name, None, None))
         return True
     return False
 
@@ -439,7 +439,7 @@ def GenerateBOMFromProbedResults(database,
       # Probeable comp_cls but no component is found in probe results.
       if comp_cls in database.components.probeable:
         probed_components[comp_cls].append(
-            common.ProbedComponentResult(
+            ProbedComponentResult(
                 None, None, common.MISSING_COMPONENT_ERROR(comp_cls)))
       else:
         # Unprobeable comp_cls and only has 1 component, treat as found.
@@ -450,16 +450,15 @@ def GenerateBOMFromProbedResults(database,
               comp_cls, comp_name)
           if comp_status == common.HWID.COMPONENT_STATUS.supported:
             probed_components[comp_cls].append(
-                common.ProbedComponentResult(comp_name, None, None))
+                ProbedComponentResult(comp_name, None, None))
       continue
 
     for probed_value in probed_comp_values:
       # Unprobeable comp_cls but component is found in probe results.
       if comp_cls not in database.components.probeable:
-        probed_components[comp_cls].append(
-            common.ProbedComponentResult(
-                None, probed_value,
-                common.UNPROBEABLE_COMPONENT_ERROR(comp_cls)))
+        probed_components[comp_cls].append(ProbedComponentResult(
+            None, probed_value,
+            common.UNPROBEABLE_COMPONENT_ERROR(comp_cls)))
         continue
 
       matched_comps = database.components.MatchComponentsFromValues(
@@ -467,7 +466,7 @@ def GenerateBOMFromProbedResults(database,
       if matched_comps is None:
         # If there is no default item, add invalid error.
         if not TryAddDefaultItem(probed_components, comp_cls):
-          probed_components[comp_cls].append(common.ProbedComponentResult(
+          probed_components[comp_cls].append(ProbedComponentResult(
               None, probed_value,
               common.INVALID_COMPONENT_ERROR(comp_cls, probed_value)))
       elif len(matched_comps) == 1:
@@ -476,16 +475,14 @@ def GenerateBOMFromProbedResults(database,
             comp_cls, comp_name)
         if comp_status == common.HWID.COMPONENT_STATUS.supported:
           probed_components[comp_cls].append(
-              common.ProbedComponentResult(
-                  comp_name, comp_data['values'], None))
+              ProbedComponentResult(comp_name, comp_data['values'], None))
         else:
-          probed_components[comp_cls].append(
-              common.ProbedComponentResult(
-                  comp_name, comp_data['values'],
-                  common.UNSUPPORTED_COMPONENT_ERROR(comp_cls, comp_name,
-                                                     comp_status)))
+          probed_components[comp_cls].append(ProbedComponentResult(
+              comp_name, comp_data['values'],
+              common.UNSUPPORTED_COMPONENT_ERROR(comp_cls, comp_name,
+                                                 comp_status)))
       elif len(matched_comps) > 1:
-        probed_components[comp_cls].append(common.ProbedComponentResult(
+        probed_components[comp_cls].append(ProbedComponentResult(
             None, probed_value,
             common.AMBIGUOUS_COMPONENT_ERROR(
                 comp_cls, probed_value, matched_comps)))
@@ -531,6 +528,7 @@ def GetVPDData(run_vpd=False, vpd_data_file=None):
   """
   assert not (run_vpd and vpd_data_file)
   if run_vpd:
+    from cros.factory.utils import sys_utils
     vpd_tool = sys_utils.VPDTool()
     return {
         'ro': vpd_tool.GetAllData(partition=vpd_tool.RO_PARTITION),
@@ -550,7 +548,7 @@ def ComputeDatabaseChecksum(file_name):
 def ProbeProject():
   """Probes the project name.
 
-  This function will try to run the command `mosys platform chassis` to get the
+  This function will try to run the command `mosys platform model` to get the
   project name.  If failed, this function will return the board name as legacy
   chromebook projects used to assume that the board name is equal to the
   project name.
@@ -558,6 +556,11 @@ def ProbeProject():
   Returns:
     The probed project name as a string.
   """
+  import subprocess
+
+  from cros.factory.utils import process_utils
+  from cros.factory.utils import cros_board_utils
+
   try:
     project = process_utils.CheckOutput(
         ['mosys', 'platform', 'model']).strip().lower()
@@ -570,13 +573,23 @@ def ProbeProject():
   return cros_board_utils.BuildBoard().short_name
 
 
-# The expected location of HWID data within a factory image or the
-# chroot.
-DEFAULT_HWID_DATA_PATH = (
-    os.path.join(os.environ['CROS_WORKON_SRCROOT'],
-                 'src', 'platform', 'chromeos-hwid', 'v3')
-    if sys_utils.InChroot()
-    else '/usr/local/factory/hwid')
+_DEFAULT_DATA_PATH = None
+
+def GetDefaultDataPath():
+  """Returns the expected location of HWID data within a factory image or the
+  chroot.
+  """
+  from cros.factory.utils import sys_utils
+
+  global _DEFAULT_DATA_PATH  # pylint: disable=global-statement
+  if _DEFAULT_DATA_PATH is None:
+    if sys_utils.InChroot():
+      _DEFAULT_DATA_PATH = os.path.join(
+          os.environ['CROS_WORKON_SRCROOT'],
+          'src', 'platform', 'chromeos-hwid', 'v3')
+    else:
+      _DEFAULT_DATA_PATH = '/usr/local/factory/hwid'
+  return _DEFAULT_DATA_PATH
 
 
 def GetHWIDBundleName(project=None):

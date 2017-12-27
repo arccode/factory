@@ -23,7 +23,6 @@ import uuid
 import yaml
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.hwid.v3.common import ProbedComponentResult
 from cros.factory.test import event_log
 from cros.factory.test import session
 from cros.factory.utils import file_utils
@@ -32,6 +31,9 @@ from cros.factory.external import dbus
 
 UUID_RE = re.compile(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-'
                      '[a-f0-9]{4}-[a-f0-9]{12}$')
+
+
+_TestNamedTuple = collections.namedtuple('_TestNamedTuple', ['a', 'b', 'c'])
 
 
 def Reset():
@@ -92,7 +94,7 @@ class GlobalSeqTest(unittest.TestCase):
                      dump(collections.OrderedDict([('bar', 1), ('foo', 3)])))
     # A subclass of a list
     self.assertEqual('\n'.join(['- comp_foo', '- value_foo', '- null']),
-                     dump(ProbedComponentResult('comp_foo', 'value_foo', None)))
+                     dump(_TestNamedTuple('comp_foo', 'value_foo', None)))
     # Tuple type
     self.assertEqual('\n'.join(['- v1', '- v2', '- v3']),
                      dump(('v1', 'v2', 'v3')))

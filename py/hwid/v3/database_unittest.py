@@ -13,8 +13,9 @@ import unittest
 import factory_common  # pylint: disable=W0611
 
 from cros.factory.hwid.v3 import common
-from cros.factory.hwid.v3.common import HWIDException, ProbedComponentResult
-from cros.factory.hwid.v3.database import Database, Components
+from cros.factory.hwid.v3.common import HWIDException
+from cros.factory.hwid.v3.database import Components
+from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3.rule import Value
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
@@ -96,9 +97,6 @@ class NewDatabaseTest(unittest.TestCase):
                         common.INVALID_COMPONENT_ERROR('cellular',
                                                        probed_value))])
     self.assertEquals(bom.encoded_fields['cellular_field'], None)
-
-  def testVerifyBOMWithDefault(self):
-    self.assertEquals(None, self.database.VerifyBOM(self.boms[6], True))
 
 
 class DatabaseTest(unittest.TestCase):
@@ -197,28 +195,29 @@ class DatabaseTest(unittest.TestCase):
 
   def testUpdateComponentsOfBOM(self):
     bom = self.boms[0]
-    new_bom = self.database.UpdateComponentsOfBOM(
-        bom, {'keyboard': 'keyboard_gb'})
+    new_bom = bom.Duplicate()
+    self.database.UpdateComponentsOfBOM(new_bom, {'keyboard': 'keyboard_gb'})
     self.assertEquals([('keyboard_gb', None, None)],
                       new_bom.components['keyboard'])
     self.assertEquals(1, new_bom.encoded_fields['keyboard'])
-    new_bom = self.database.UpdateComponentsOfBOM(
-        bom, {'audio_codec': ['codec_0', 'hdmi_0']})
+    new_bom = bom.Duplicate()
+    self.database.UpdateComponentsOfBOM(
+        new_bom, {'audio_codec': ['codec_0', 'hdmi_0']})
     self.assertEquals(
         [('codec_0', {'compact_str': Value('Codec 0')}, None),
          ('hdmi_0', {'compact_str': Value('HDMI 0')}, None)],
         new_bom.components['audio_codec'])
     self.assertEquals(0, new_bom.encoded_fields['audio_codec'])
-    new_bom = self.database.UpdateComponentsOfBOM(
-        bom, {'cellular': 'cellular_0'})
+    new_bom = bom.Duplicate()
+    self.database.UpdateComponentsOfBOM(new_bom, {'cellular': 'cellular_0'})
     self.assertEquals([('cellular_0',
                         {'idVendor': Value('89ab'), 'idProduct': Value('abcd'),
                          'name': Value('Cellular Card')},
                         None)],
                       new_bom.components['cellular'])
     self.assertEquals(1, new_bom.encoded_fields['cellular'])
-    new_bom = self.database.UpdateComponentsOfBOM(
-        bom, {'cellular': None})
+    new_bom = bom.Duplicate()
+    self.database.UpdateComponentsOfBOM(new_bom, {'cellular': None})
     self.assertEquals([(None, None, "Missing 'cellular' component")],
                       new_bom.components['cellular'])
     self.assertEquals(0, new_bom.encoded_fields['cellular'])
@@ -285,81 +284,6 @@ class DatabaseTest(unittest.TestCase):
                       self.database._GetAttributesByIndex('audio_codec', 0))
     self.assertEquals({'cellular': None},
                       self.database._GetAttributesByIndex('cellular', 0))
-
-  def testVerifyBinaryString(self):
-    self.assertEquals(
-        None, self.database.VerifyBinaryString('0000000000111010000011000'))
-    self.assertRaisesRegexp(
-        HWIDException, r'Invalid binary string: .*',
-        self.database.VerifyBinaryString, '020001010011011011000')
-    self.assertRaisesRegexp(
-        HWIDException, r'Binary string .* does not have stop bit set',
-        self.database.VerifyBinaryString, '00000')
-    self.assertRaisesRegexp(
-        HWIDException, r'Invalid bit string length',
-        self.database.VerifyBinaryString, '000000000010100110110111000')
-
-  def testVerifyEncodedString(self):
-    self.assertEquals(
-        None, self.database.VerifyEncodedString('CHROMEBOOK AW3L-M7I7-V'))
-    self.assertRaisesRegexp(
-        HWIDException, r'Invalid HWID string format',
-        self.database.VerifyEncodedString, 'AW3L-M7I5-4')
-    self.assertRaisesRegexp(
-        HWIDException, r'Length of encoded string .* is less than 2 characters',
-        self.database.VerifyEncodedString, 'FOO A')
-    self.assertRaisesRegexp(
-        HWIDException, r'Invalid project name',
-        self.database.VerifyEncodedString, 'FOO AW3L-M7IK-W')
-    self.assertRaisesRegexp(
-        HWIDException, r'Checksum of .* mismatch',
-        self.database.VerifyEncodedString, 'CHROMEBOOK AW3L-M7IA-B')
-
-  def testVerifyBOM(self):
-    # Before evaluating rule to update the unprobeable component, we only verify
-    # the probeable components.
-    bom = self.boms[0]
-    self.assertEquals(None, self.database.VerifyBOM(bom, True))
-
-    original_value = bom.project
-    bom.project = 'FOO'
-    with self.assertRaisesRegexp(HWIDException,
-                                 r'Invalid project name. Expected .*, got .*'):
-      self.database.VerifyBOM(bom, True)
-    bom.project = original_value
-
-    original_value = bom.encoding_pattern_index
-    bom.encoding_pattern_index = 2
-    with self.assertRaisesRegexp(HWIDException, r'Invalid encoding pattern'):
-      self.database.VerifyBOM(bom, True)
-    bom.encoding_pattern_index = original_value
-
-    original_value = bom.image_id
-    bom.image_id = 6
-    with self.assertRaisesRegexp(HWIDException, r'Invalid image id: .*'):
-      self.database.VerifyBOM(bom, True)
-    bom.image_id = original_value
-
-    original_value = bom.encoded_fields['cpu']
-    bom.encoded_fields['cpu'] = 8
-    with self.assertRaisesRegexp(HWIDException,
-                                 r'Encoded fields .* have unknown indices'):
-      self.database.VerifyBOM(bom, True)
-    bom.encoded_fields['cpu'] = original_value
-
-    original_value = bom.components['cpu']
-    bom.components['cpu'] = [ProbedComponentResult(
-        'cpu', {'name': Value('foo'), 'cores': Value('4')}, None)]
-    with self.assertRaisesRegexp(HWIDException, r'Unknown component values:.*'):
-      self.database.VerifyBOM(bom, True)
-    bom.components['cpu'] = original_value
-
-    original_value = bom.encoded_fields['cpu']
-    bom.encoded_fields.pop('cpu')
-    with self.assertRaisesRegexp(HWIDException,
-                                 r'Missing encoded fields in BOM: .*'):
-      self.database.VerifyBOM(bom, True)
-    bom.encoded_fields['cpu'] = original_value
 
   def testVerifyComponents(self):
     self.maxDiff = None

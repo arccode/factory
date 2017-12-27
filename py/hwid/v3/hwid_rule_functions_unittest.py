@@ -15,7 +15,7 @@ import factory_common   # pylint: disable=W0611
 import cros.factory.hwid.v3.common_rule_functions  # pylint: disable=W0611
 from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3.database import Database
-from cros.factory.hwid.v3.encoder import Encode
+from cros.factory.hwid.v3.transformer import Encode
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3.hwid_rule_functions import CheckRegistrationCode
 from cros.factory.hwid.v3.hwid_rule_functions import ComponentEq
@@ -49,7 +49,7 @@ class HWIDRuleTest(unittest.TestCase):
         os.path.join(_TEST_DATA_PATH, 'test_probe_result.json'))
     bom = hwid_utils.GenerateBOMFromProbedResults(self.database,
                                                   self.results[0])
-    bom = self.database.UpdateComponentsOfBOM(bom, {
+    self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'dram': 'dram_0',
         'display_panel': 'display_panel_0'})
     self.hwid = Encode(self.database, bom)
@@ -66,8 +66,9 @@ class HWIDRuleTest(unittest.TestCase):
             'registration_code': 'buz'
         }
     }
-    self.context = Context(hwid=self.hwid, device_info=self.device_info,
-                           vpd=self.vpd)
+    self.context = Context(
+        database=self.hwid.database, bom=self.hwid.bom, mode=self.hwid.mode,
+        device_info=self.device_info, vpd=self.vpd)
     SetContext(self.context)
 
   def testRule(self):
@@ -171,10 +172,12 @@ class HWIDRuleTest(unittest.TestCase):
         rule.Evaluate, self.context)
 
   def testGetClassAttributesOnBOM(self):
-    cpu_attrs = GetClassAttributesOnBOM(self.hwid, 'cpu')
+    cpu_attrs = GetClassAttributesOnBOM(
+        self.hwid.database, self.hwid.bom, 'cpu')
     self.assertEquals(['cpu_5'], cpu_attrs)
 
-    self.assertEquals(None, GetClassAttributesOnBOM(self.hwid, 'foo'))
+    self.assertEquals(
+        None, GetClassAttributesOnBOM(self.hwid.database, self.hwid.bom, 'foo'))
     self.assertEquals("ERROR: Invalid component class: 'foo'",
                       GetLogger().error[0].message)
 
@@ -191,17 +194,17 @@ class HWIDRuleTest(unittest.TestCase):
   def testSetComponent(self):
     SetComponent('cpu', 'cpu_3')
     self.assertEquals(
-        'cpu_3', self.context.hwid.bom.components['cpu'][0].component_name)
+        'cpu_3', self.context.bom.components['cpu'][0].component_name)
     self.assertEquals(
-        3, self.context.hwid.bom.encoded_fields['cpu'])
+        3, self.context.bom.encoded_fields['cpu'])
     self.assertEquals('0000000000111010010001', self.hwid.binary_string)
     self.assertEquals('CHROMEBOOK AA5E-IVL', self.hwid.encoded_string)
     SetComponent('cellular', 'cellular_0')
     self.assertEquals(
         'cellular_0',
-        self.context.hwid.bom.components['cellular'][0].component_name)
+        self.context.bom.components['cellular'][0].component_name)
     self.assertEquals(
-        1, self.context.hwid.bom.encoded_fields['cellular'])
+        1, self.context.bom.encoded_fields['cellular'])
     self.assertEquals('0000000000111110010001', self.hwid.binary_string)
     self.assertEquals('CHROMEBOOK AA7E-IWF', self.hwid.encoded_string)
 

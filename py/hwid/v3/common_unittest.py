@@ -15,9 +15,9 @@ from cros.factory.hwid.v3.common import HWID
 from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3.common import IsMPKeyName
 from cros.factory.hwid.v3.database import Database
-from cros.factory.hwid.v3.encoder import Encode
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3.identity import Identity
+from cros.factory.hwid.v3.transformer import Encode
 from cros.factory.utils import json_utils
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -52,7 +52,7 @@ class HWIDTest(unittest.TestCase):
   def testInvalidInitialize(self):
     bom = hwid_utils.GenerateBOMFromProbedResults(self.database,
                                                   self.results[0])
-    bom = self.database.UpdateComponentsOfBOM(bom, {
+    self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'dram': 'dram_0',
         'display_panel': 'display_panel_0'})
     bom.image_id = 2
@@ -76,7 +76,7 @@ class HWIDTest(unittest.TestCase):
   def testVerifySelf(self):
     bom = hwid_utils.GenerateBOMFromProbedResults(self.database,
                                                   self.results[0])
-    bom = self.database.UpdateComponentsOfBOM(bom, {
+    self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'dram': 'dram_0',
         'display_panel': 'display_panel_0'})
     bom.image_id = 2
@@ -99,7 +99,7 @@ class HWIDTest(unittest.TestCase):
   def testVerifyProbeResult(self):
     result = self.results[0]
     bom = hwid_utils.GenerateBOMFromProbedResults(self.database, result)
-    bom = self.database.UpdateComponentsOfBOM(bom, {
+    self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'dram': 'dram_0',
         'display_panel': 'display_panel_0'})
     bom.image_id = 2

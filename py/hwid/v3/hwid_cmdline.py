@@ -13,7 +13,7 @@ import shutil
 import sys
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.hwid.v3 import common
+from cros.factory.hwid.v3.bom import ProbedComponentResult
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3 import rule
@@ -276,7 +276,7 @@ def VerifyComponentsWrapper(options):
                                          options.components)
   if options.json_output:
     def _ConvertToDict(obj):
-      if isinstance(obj, (common.ProbedComponentResult, rule.Value)):
+      if isinstance(obj, (ProbedComponentResult, rule.Value)):
         return _ConvertToDict(obj.__dict__)
       if isinstance(obj, list):
         return [_ConvertToDict(item) for item in obj]
@@ -371,7 +371,7 @@ def ParseOptions(args=None):
 
 def InitializeDefaultOptions(options):
   if not options.hwid_db_path:
-    options.hwid_db_path = hwid_utils.DEFAULT_HWID_DATA_PATH
+    options.hwid_db_path = hwid_utils.GetDefaultDataPath()
   if options.project is None:
     if sys_utils.InChroot():
       print 'Argument -j/--project is required'

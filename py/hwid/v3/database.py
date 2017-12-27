@@ -10,17 +10,16 @@ import collections
 import copy
 import hashlib
 import math
-import pprint
 import re
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.hwid.v3.bom import ProbedComponentResult
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import rule
 # Import yaml_tags to decode special YAML tags specific to HWID module.
 from cros.factory.hwid.v3 import yaml_tags  # pylint: disable=W0611
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.hwid.v3.base32 import Base32
-from cros.factory.hwid.v3.base8192 import Base8192
 from cros.factory.utils import file_utils
 from cros.factory.utils import schema
 from cros.factory.utils import type_utils
@@ -82,23 +81,6 @@ class Database(object):
     rules: A Rules object.
     checksum: The value of the checksum field.
   """
-  _HWID_FORMAT = {
-      common.HWID.ENCODING_SCHEME.base32: re.compile(
-          r'^([A-Z0-9]+)'                 # group(0): Project
-          r' ('                           # group(1): Entire BOM.
-          r'(?:[A-Z2-7]{4}-)*'            # Zero or more 4-character groups with
-          # dash.
-          r'[A-Z2-7]{1,4}'                # Last group with 1 to 4 characters.
-          r')$'                           # End group(1)
-      ),
-      common.HWID.ENCODING_SCHEME.base8192: re.compile(
-          r'^([A-Z0-9]+)'                 # group(0): Project
-          r' ('                           # group(1): Entire BOM
-          r'(?:[A-Z2-7][2-9][A-Z2-7]-)*'  # Zero or more 3-character groups with
-          # dash.
-          r'[A-Z2-7][2-9][A-Z2-7]'        # Last group with 3 characters.
-          r')$'                           # End group(1)
-      )}
 
   def __init__(self, project, encoding_patterns, image_id, pattern,
                encoded_fields, components, rules, checksum):
@@ -267,32 +249,26 @@ class Database(object):
       bom: A BOM object to update.
       updated_components: A dict of component classes to component names
           indicating the set of components to update.
-
-    Returns:
-      A BOM object with updated components and encoded fields.
     """
-    result = bom.Duplicate()
     for comp_cls, comp_name in updated_components.iteritems():
       new_probed_result = []
       if comp_name is None:
-        new_probed_result.append(common.ProbedComponentResult(
+        new_probed_result.append(ProbedComponentResult(
             None, None, common.MISSING_COMPONENT_ERROR(comp_cls)))
       else:
         comp_name = type_utils.MakeList(comp_name)
         for name in comp_name:
           comp_attrs = self.components.GetComponentAttributes(comp_cls, name)
-          new_probed_result.append(common.ProbedComponentResult(
+          new_probed_result.append(ProbedComponentResult(
               name, comp_attrs['values'], None))
       # Update components data of the duplicated BOM.
-      result.components[comp_cls] = new_probed_result
+      bom.components[comp_cls] = new_probed_result
 
     # Re-calculate all the encoded index of each encoded field.
-    result.encoded_fields = {}
+    bom.encoded_fields = {}
     for field in self.encoded_fields:
-      result.encoded_fields[field] = self.GetFieldIndexFromProbedComponents(
-          field, result.components)
-
-    return result
+      bom.encoded_fields[field] = self.GetFieldIndexFromProbedComponents(
+          field, bom.components)
 
   def GetFieldIndexFromProbedComponents(self, encoded_field, probed_components):
     """Gets the encoded index of the specified encoded field by matching
@@ -381,170 +357,6 @@ class Database(object):
           new_attr['name'] = name
           result[comp_cls].append(new_attr)
     return result
-
-  def VerifyBinaryString(self, binary_string):
-    """Verifies the binary string.
-
-    Args:
-      binary_string: The binary string to verify.
-
-    Raises:
-      HWIDException if verification fails.
-    """
-    if set(binary_string) - set('01'):
-      raise common.HWIDException('Invalid binary string: %r' % binary_string)
-
-    if '1' not in binary_string:
-      raise common.HWIDException('Binary string %r does not have stop bit set',
-                                 binary_string)
-    # Truncate trailing 0s.
-    string_without_paddings = binary_string[:binary_string.rfind('1') + 1]
-
-    image_id = self.pattern.GetImageIdFromBinaryString(binary_string)
-    if len(string_without_paddings) > self.pattern.GetTotalBitLength(image_id):
-      raise common.HWIDException('Invalid bit string length of %r. Expected '
-                                 'length <= %d, got length %d' %
-                                 (binary_string,
-                                  self.pattern.GetTotalBitLength(image_id),
-                                  len(string_without_paddings)))
-
-  def VerifyEncodedStringFormat(self, encoded_string):
-    """Verifies that the format of the given encoded string.
-
-    Checks that the string matches either base32 or base8192 format.
-
-    Args:
-      encoded_string: The encoded string to verify.
-
-    Raises:
-      HWIDException if verification fails.
-    """
-    if not any(hwid_format.match(encoded_string) for hwid_format in
-               self._HWID_FORMAT.itervalues()):
-      raise common.HWIDException(
-          'HWID string %r is neither base32 nor base8192 encoded' %
-          encoded_string)
-
-  def VerifyEncodedString(self, encoded_string):
-    """Verifies the given encoded string.
-
-    Args:
-      encoded_string: The encoded string to verify.
-
-    Raises:
-      HWIDException if verification fails.
-    """
-    try:
-      image_id = self.pattern.GetImageIdFromEncodedString(encoded_string)
-      encoding_scheme = self.pattern.GetPatternByImageId(
-          image_id)['encoding_scheme']
-      project, bom_checksum = Database._HWID_FORMAT[encoding_scheme].findall(
-          encoded_string)[0]
-    except IndexError:
-      raise common.HWIDException(
-          'Invalid HWID string format: %r' % encoded_string)
-    if len(bom_checksum) < 2:
-      raise common.HWIDException(
-          'Length of encoded string %r is less than 2 characters' %
-          bom_checksum)
-    if project != self.project.upper():
-      raise common.HWIDException('Invalid project name: %r' % project)
-    # Verify the checksum
-    stripped = encoded_string.replace('-', '')
-    hwid = stripped[:-2]
-    checksum = stripped[-2:]
-    if encoding_scheme == common.HWID.ENCODING_SCHEME.base32:
-      expected_checksum = Base32.Checksum(hwid)
-    elif encoding_scheme == common.HWID.ENCODING_SCHEME.base8192:
-      expected_checksum = Base8192.Checksum(hwid)
-    if checksum != expected_checksum:
-      raise common.HWIDException('Checksum of %r mismatch (expected %r)' % (
-          encoded_string, expected_checksum))
-
-  def VerifyBOM(self, bom, probeable_only=False):
-    """Verifies the data contained in the given BOM object matches the settings
-    and definitions in the database.
-
-    Because the components for each image ID might be different, for example a
-    component might be removed in later build. We only verify the components in
-    the target image ID, not all components listed in the database.
-
-    When the BOM is decoded by HWID string, it would contain the information of
-    every component recorded in the pattern. But if the BOM object is created by
-    the probed result, it does not contain the unprobeable component before
-    evaluating the rule. We should verify the probeable components only.
-
-    Args:
-      bom: The BOM object to verify.
-      probeable_only: True to verify the probeable component only.
-
-    Raises:
-      HWIDException if verification fails.
-    """
-    if bom.project != self.project:
-      raise common.HWIDException('Invalid project name. Expected %r, got %r' %
-                                 (self.project, bom.project))
-
-    if bom.encoding_pattern_index not in self.encoding_patterns:
-      raise common.HWIDException('Invalid encoding pattern: %r' %
-                                 bom.encoding_pattern_index)
-    if bom.image_id not in self.image_id:
-      raise common.HWIDException('Invalid image id: %r' % bom.image_id)
-
-    # All the classes encoded in the pattern should exist in BOM.
-    # Ignore unprobeable components if probeable_only is True.
-    missing_comp = []
-    expected_encoded_fields = self.pattern.GetFieldNames(bom.image_id)
-    for comp_cls in self.GetActiveComponents(bom.image_id):
-      if (comp_cls not in bom.components and
-          (comp_cls in self.components.probeable or not probeable_only)):
-        missing_comp.append(comp_cls)
-    if missing_comp:
-      raise common.HWIDException('Missing component classes: %r',
-                                 ', '.join(sorted(missing_comp)))
-
-    bom_encoded_fields = type_utils.MakeSet(bom.encoded_fields.keys())
-    db_encoded_fields = type_utils.MakeSet(expected_encoded_fields)
-    # Every encoded field defined in the database must present in BOM.
-    if db_encoded_fields - bom_encoded_fields:
-      raise common.HWIDException('Missing encoded fields in BOM: %r',
-                                 ', '.join(sorted(db_encoded_fields -
-                                                  bom_encoded_fields)))
-
-    # All the probeable component values in the BOM should exist in the
-    # database.
-    unknown_values = []
-    for comp_cls, probed_values in bom.components.iteritems():
-      if comp_cls not in self.components.probeable:
-        continue
-      for element in probed_values:
-        probed_values = element.probed_values
-        if probed_values is None:
-          continue
-        found_comps = self.components.MatchComponentsFromValues(
-            comp_cls, probed_values, include_default=True)
-        if not found_comps:
-          unknown_values.append('%s:%s' % (comp_cls, pprint.pformat(
-              probed_values, indent=0, width=1024)))
-    if unknown_values:
-      raise common.HWIDException('Unknown component values: %r' %
-                                 ', '.join(sorted(unknown_values)))
-
-    # All the encoded index should exist in the database.
-    invalid_fields = []
-    for field_name in expected_encoded_fields:
-      # Ignore the field containing unprobeable component.
-      if probeable_only and not all(
-          [comp_cls in self.components.probeable
-           for comp_cls in self.encoded_fields[field_name][0].keys()]):
-        continue
-      index = bom.encoded_fields[field_name]
-      if index is None or index not in self.encoded_fields[field_name]:
-        invalid_fields.append(field_name)
-
-    if invalid_fields:
-      raise common.HWIDException('Encoded fields %r have unknown indices' %
-                                 ', '.join(sorted(invalid_fields)))
 
   def VerifyComponents(self, bom, comp_list=None):
     """Given a list of component classes, verify that the probed components of

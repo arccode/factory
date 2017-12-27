@@ -125,7 +125,7 @@ _project_cmd_arg = CmdArg(
 
 _hwdb_path_cmd_arg = CmdArg(
     '--hwdb_path', metavar='PATH',
-    default=hwid_utils.DEFAULT_HWID_DATA_PATH,
+    default=hwid_utils.GetDefaultDataPath(),
     help='Path to the HWID database.')
 
 _hwid_status_list_cmd_arg = CmdArg(

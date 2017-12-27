@@ -65,8 +65,8 @@ class Gooftool(object):
         load. If not specified, the project name will be detected with
         cros.factory.hwid.ProbeProject(). Used for HWID v3 only.
       hwdb_path: The path to load the project-specific component database from.
-        If not specified, cros.factory.hwid.DEFAULT_HWID_DATA_PATH will be used.
-        Used for HWID v3 only.
+        If not specified, cros.factory.hwid.hwid_utils.GetDefaultDataPath() will
+        be used.  Used for HWID v3 only.
     """
     self._hwid_version = hwid_version
     if hwid_version == 2:
@@ -76,7 +76,7 @@ class Gooftool(object):
       self._db_creator = lambda: component_db or self._hardware_db.comp_db
     elif hwid_version == 3:
       self._project = project or hwid_utils.ProbeProject()
-      self._hwdb_path = hwdb_path or hwid_utils.DEFAULT_HWID_DATA_PATH
+      self._hwdb_path = hwdb_path or hwid_utils.GetDefaultDataPath()
       self._db_creator = lambda: Database.LoadFile(
           os.path.join(self._hwdb_path, self._project.upper()))
     else:

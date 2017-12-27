@@ -4,11 +4,17 @@
 
 """BOM class for HWID v3 framework."""
 
+import collections
 import copy
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.hwid.v3 import rule
 from cros.factory.utils import schema
+
+
+# A named tuple to store the probed component name and the error if any.
+ProbedComponentResult = collections.namedtuple(
+    'ProbedComponentResult', ['component_name', 'probed_values', 'error'])
 
 
 class BOM(object):

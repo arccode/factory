@@ -299,8 +299,9 @@ class ValidHWIDDBsTest(unittest.TestCase):
       hwid = hwid_utils.GenerateHWID(db, bom, device_info,
                                      vpd=vpd, rma_mode=rma_mode)
       # Test all rules.
-      db.rules.EvaluateRules(Context(hwid=hwid, vpd=vpd,
-                                     device_info=device_info))
+      db.rules.EvaluateRules(Context(
+          database=hwid.database, bom=hwid.bom, mode=hwid.mode, vpd=vpd,
+          device_info=device_info))
       return hwid
 
     if error:

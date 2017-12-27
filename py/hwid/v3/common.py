@@ -6,7 +6,6 @@
 
 """Common classes for HWID v3 operation."""
 
-import collections
 import json
 import re
 
@@ -27,10 +26,6 @@ def IsMPKeyName(name):
   """
   return (MP_KEY_NAME_PATTERN.search(name) and
           not PRE_MP_KEY_NAME_PATTERN.search(name))
-
-# A named tuple to store the probed component name and the error if any.
-ProbedComponentResult = collections.namedtuple(
-    'ProbedComponentResult', ['component_name', 'probed_values', 'error'])
 
 UNPROBEABLE_COMPONENT_ERROR = lambda comp_cls: (
     'Component class %r is unprobeable' % comp_cls)
@@ -149,7 +144,7 @@ class HWID(object):
     and the self._binary_string is matched, then return it.
     """
     # pylint: disable=W0404
-    from cros.factory.hwid.v3.encoder import BOMToBinaryString
+    from cros.factory.hwid.v3.transformer import BOMToBinaryString
     binary_string = BOMToBinaryString(self.database, self.bom)
     if (self._identity and
         HWID.IsEquivalentBinaryString(self._identity.binary_string,
@@ -165,7 +160,7 @@ class HWID(object):
     and 45 is the checksum. Compare to binary_string, it is human-trackable.
     """
     # pylint: disable=W0404
-    from cros.factory.hwid.v3.encoder import BinaryStringToEncodedString
+    from cros.factory.hwid.v3.transformer import BinaryStringToEncodedString
     return BinaryStringToEncodedString(self.database, self.binary_string)
 
   def VerifySelf(self):
@@ -179,8 +174,11 @@ class HWID(object):
     Raises:
       HWIDException on verification error.
     """
-    self.database.VerifyBOM(self.bom)
-    self.database.VerifyEncodedString(self.encoded_string)
+    # pylint: disable=W0404
+    from cros.factory.hwid.v3.transformer import VerifyBOM
+    from cros.factory.hwid.v3.transformer import VerifyEncodedString
+    VerifyBOM(self.database, self.bom)
+    VerifyEncodedString(self.database, self.encoded_string)
 
   def VerifyComponentStatus(self, current_phase=None):
     """Verifies the status of all components.
@@ -317,3 +315,22 @@ class HWID(object):
       if errors:
         raise HWIDException('MP keys are required in %s, but %s' % (
             current_phase, ' and '.join(errors)))
+
+
+HWID_FORMAT = {
+    HWID.ENCODING_SCHEME.base32: re.compile(
+        r'^([A-Z0-9]+)'                 # group(0): Project
+        r' ('                           # group(1): Entire BOM.
+        r'(?:[A-Z2-7]{4}-)*'            # Zero or more 4-character groups with
+        # dash.
+        r'[A-Z2-7]{1,4}'                # Last group with 1 to 4 characters.
+        r')$'                           # End group(1)
+    ),
+    HWID.ENCODING_SCHEME.base8192: re.compile(
+        r'^([A-Z0-9]+)'                 # group(0): Project
+        r' ('                           # group(1): Entire BOM
+        r'(?:[A-Z2-7][2-9][A-Z2-7]-)*'  # Zero or more 3-character groups with
+        # dash.
+        r'[A-Z2-7][2-9][A-Z2-7]'        # Last group with 3 characters.
+        r')$'                           # End group(1)
+    )}

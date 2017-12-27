@@ -18,7 +18,7 @@ from cros.factory.test.rules.registration_codes import RegistrationCode
 from cros.factory.utils.type_utils import MakeList
 
 
-def GetClassAttributesOnBOM(hwid, comp_cls):
+def GetClassAttributesOnBOM(database, bom, comp_cls):
   """Creates a set of valid rule values to be evaluated with.
 
   This method accepts a HWID context and a component class, and generates a dict
@@ -36,7 +36,8 @@ def GetClassAttributesOnBOM(hwid, comp_cls):
     }
 
   Args:
-    hwid: The HWID context to extract attributes from.
+    database: The Database to extract attributes from.
+    bom: The BOM object to extract attributes from.
     comp_cls: The component class to retrieve values for.
 
   Returns:
@@ -52,17 +53,17 @@ def GetClassAttributesOnBOM(hwid, comp_cls):
         if c.component_name:
           results.append(c.component_name)
         continue
-      matched_component = hwid.database.components.MatchComponentsFromValues(
+      matched_component = database.components.MatchComponentsFromValues(
           comp_cls, c.probed_values)
       if matched_component:
         results.extend(matched_component.keys())
     return results
 
-  if comp_cls not in hwid.database.components.GetRequiredComponents():
+  if comp_cls not in database.components.GetRequiredComponents():
     GetLogger().Error('Invalid component class: %r' % comp_cls)
     return None
   # Construct a set of known values from hwid.database and hwid.bom.
-  results = PackProbedValues(hwid.bom, comp_cls)
+  results = PackProbedValues(bom, comp_cls)
   # If the set is empty, add a None element indicating that the component
   # class is missing.
   if not results:
@@ -80,7 +81,7 @@ def _ComponentCompare(comp_cls, values, op_for_values):
         all.
   """
   context = GetContext()
-  attrs = GetClassAttributesOnBOM(context.hwid, comp_cls)
+  attrs = GetClassAttributesOnBOM(context.database, context.bom, comp_cls)
   if attrs is None:
     return False
   values = [
@@ -89,7 +90,7 @@ def _ComponentCompare(comp_cls, values, op_for_values):
       [any([v.Matches(attr) for attr in attrs]) for v in values])
 
 
-@RuleFunction(['hwid'])
+@RuleFunction(['bom', 'database'])
 def ComponentEq(comp_cls, values):
   """Test if the component equals to the values set.
 
@@ -105,7 +106,7 @@ def ComponentEq(comp_cls, values):
   return _ComponentCompare(comp_cls, values, all)
 
 
-@RuleFunction(['hwid'])
+@RuleFunction(['bom', 'database'])
 def ComponentIn(comp_cls, values):
   """Test if the component is in the values set.
 
@@ -121,7 +122,7 @@ def ComponentIn(comp_cls, values):
   return _ComponentCompare(comp_cls, values, any)
 
 
-@RuleFunction(['hwid'])
+@RuleFunction(['bom', 'database'])
 def SetComponent(comp_cls, name):
   """A wrapper method to update {comp_cls: name} pair of BOM and re-generate
   'binary_string' and 'encoded_string' of the HWID context.
@@ -131,11 +132,10 @@ def SetComponent(comp_cls, name):
     name: The component name to set to the given component class.
   """
   context = GetContext()
-  context.hwid.bom = context.hwid.database.UpdateComponentsOfBOM(
-      context.hwid.bom, {comp_cls: name})
+  context.database.UpdateComponentsOfBOM(context.bom, {comp_cls: name})
 
 
-@RuleFunction(['hwid'])
+@RuleFunction(['bom', 'database'])
 def SetImageId(image_id):
   """A function to set the image id of the given HWID context.
 
@@ -146,34 +146,34 @@ def SetImageId(image_id):
   if isinstance(image_id, str):
     # Convert image_id string to its corresponding encoded value.
     reversed_image_id_dict = dict((value, key) for key, value in
-                                  context.hwid.database.image_id.iteritems())
+                                  context.database.image_id.iteritems())
     if image_id not in reversed_image_id_dict:
       raise HWIDException('Invalid image id: %r' % image_id)
     image_id = reversed_image_id_dict[image_id]
 
-  if image_id not in context.hwid.database.image_id:
+  if image_id not in context.database.image_id:
     raise HWIDException('Invalid image id: %r' % image_id)
-  context.hwid.bom.image_id = image_id
+  context.bom.image_id = image_id
 
 
-@RuleFunction(['hwid'])
+@RuleFunction(['bom'])
 def GetImageId():
   """A function to get the image id from the given HWID context.
 
   Returns:
     The image id of the HWID context.
   """
-  return GetContext().hwid.bom.image_id
+  return GetContext().bom.image_id
 
 
-@RuleFunction(['hwid'])
+@RuleFunction(['mode'])
 def GetOperationMode():
   """A function to get the set of operation modes of the HWID context.
 
   Returns:
     The set of operations modes currently enabled on the given HWID context.
   """
-  return GetContext().hwid.mode
+  return GetContext().mode
 
 
 @RuleFunction(['device_info'])
@@ -237,7 +237,7 @@ def ValidVPDValue(section, key):
 
 
 # pylint: disable=W0622
-@RuleFunction(['hwid'])
+@RuleFunction(['database'])
 def CheckRegistrationCode(code, type=None, device=None):
   """A wrapper method to verify registration code.
 
@@ -267,7 +267,7 @@ def CheckRegistrationCode(code, type=None, device=None):
   # (e.g., "spring", not "daisy_spring"). For Zerg devices this may be chassis
   # or project ID.
   if device is None:
-    device = GetContext().hwid.database.project.lower()
+    device = GetContext().database.project.lower()
   registration_codes.CheckRegistrationCode(code, type=type, device=device)
 
 
