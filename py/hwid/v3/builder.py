@@ -10,7 +10,6 @@ import copy
 import itertools
 import logging
 import math
-import os
 import re
 import uuid
 
@@ -19,8 +18,6 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import rule as rule_module
 from cros.factory.hwid.v3 import yaml_tags
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
-from cros.factory.utils import process_utils
-from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
 DB_KEY = type_utils.Enum([
@@ -154,19 +151,14 @@ def ChecksumUpdater():
   """Finds the checksum updater in the chromium source tree.
 
   Returns:
-    a function if found. otherwise return None.
+    a update_checksum module if found. otherwise return None.
   """
-  if not sys_utils.InChroot():
-    logging.info('Not in Chroot, skip to find update_checksum.')
+  try:
+    from cros.chromeoshwid import update_checksum
+    return update_checksum
+  except ImportError:
+    logging.error('checksum_update is not found.')
     return None
-
-  updater_path = os.path.join(
-      os.environ['CROS_WORKON_SRCROOT'],
-      'src', 'platform', 'chromeos-hwid', 'bin', 'update_checksum')
-  if not os.path.exists(updater_path):
-    logging.info('checksum_update is not found.')
-    return None
-  return lambda db: process_utils.CheckOutput([updater_path, db], log=True)
 
 
 def ExtractProbedResult(probed_results):
@@ -990,4 +982,4 @@ class DatabaseBuilder(object):
       logging.info('Checksum is not updated.')
     else:
       logging.info('Update the checksum.')
-      checksum_updater(database_path)
+      checksum_updater.UpdateFile(database_path)

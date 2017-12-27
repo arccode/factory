@@ -15,7 +15,6 @@ from SimpleXMLRPCServer import SimpleXMLRPCServer
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.service import validator
 from cros.factory.hwid.v3 import builder
-from cros.factory.utils import file_utils
 from cros.factory.utils import log_utils
 
 
@@ -144,12 +143,8 @@ class HWIDRPCInstance(object):
     """
 
     def _UpdateChecksum(hwid_config):
-      with file_utils.UnopenedTemporaryFile() as filename:
-        with open(filename, 'w') as f:
-          f.write(hwid_config.encode('utf-8'))
-        self._checksum_updater(filename)
-        with open(filename, 'r') as f:
-          return f.read().decode('utf-8')
+      return self._checksum_updater.ReplaceChecksum(
+          hwid_config.encode('utf-8')).decode('utf-8')
 
     try:
       updated_hwid_config = _UpdateChecksum(new_hwid_config)

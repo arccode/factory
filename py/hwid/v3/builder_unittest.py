@@ -78,8 +78,14 @@ class BuilderMethodTest(unittest.TestCase):
       self.assertFalse(function('This is the question.', default_answer=False))
 
   def testChecksumUpdater(self):
-    # TODO(akahuang): Fix it in non-chroot.
-    self.assertIsNotNone(builder.ChecksumUpdater())
+    checksum_updater = builder.ChecksumUpdater()
+    self.assertIsNotNone(checksum_updater)
+    with open(os.path.join(TEST_DATA_PATH, 'CHECKSUM_TEST'), 'r') as f:
+      checksum_test = f.read()
+    updated = checksum_updater.ReplaceChecksum(checksum_test)
+    with open(os.path.join(TEST_DATA_PATH, 'CHECKSUM_TEST.golden'), 'r') as f:
+      checksum_test_golden = f.read()
+    self.assertEquals(updated, checksum_test_golden)
 
 
 class DatabaseBuilderTest(unittest.TestCase):

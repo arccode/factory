@@ -1,0 +1,49 @@
+
+
+
+##### BEGIN CHECKSUM BLOCK
+#
+# WARNING: This checksum is generated and audited by Google. Do not
+# modify it. If you modify it, devices' configurations will be
+# invalid, and the devices may not be sold.
+#
+# 警告：此校验码由 Google 产生及审核，禁止手动修改。
+# 若修改将使设备配置變為无效，并且不得销售此设备。
+#
+#####
+checksum:
+
+##### END CHECKSUM BLOCK. See the warning above. 请参考上面的警告。
+
+
+board: TestBoard
+
+encoding_patterns:
+  0: default
+
+image_id:
+  0: PROTO
+
+pattern:
+- image_ids:
+  - 0
+  encoding_scheme: base8192
+  fields:
+  - mainboard_field: 1
+
+encoded_fields:
+  mainboard_field:
+    0:
+      mainboard: rev1
+
+components:
+  mainboard:
+    items:
+      rev1:
+        status: unqualified
+        values:
+          version: rev1
+
+rules:
+- name: device_info.image_id
+  evaluate: SetImageId('PROTO')
