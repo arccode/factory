@@ -18,6 +18,9 @@ WAV_HEADER_SIZE = 44
 
 
 MicJackType = config_manager.MicJackType
+InputDevices = config_manager.InputDevices
+OutputDevices = config_manager.OutputDevices
+AudioDeviceType = config_manager.AudioDeviceType
 
 
 class BaseMixerController:

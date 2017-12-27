@@ -4,34 +4,52 @@
 
 """A factory test for the audio function.
 
-This test supports 2 loopback mode:
-  1. Loop from headphone out to headphone in.
-  2. Loop from speaker to digital microphone.
+Description
+-----------
+This test perform tests on audio plaback and recording devices. It supports 2
+loopback modes:
+
+1. Loop from headphone out to headphone in.
+2. Loop from speaker to digital microphone.
 
 And 3 test scenarios:
-  1. Audiofun test, which plays different tones and checks recorded frequency.
-     This test can be conducted simultaneously on different devices.  This test
-     can not be conducted with dongle inserted.
-  2. Sinewav test, which plays simple sine wav and checks if the recorded
-     frequency is in the range specified.  Optionally checks the RMS and
-     amplitude thresholds.
-  3. Noise test, which plays nothing and record, then checks the RMS and
-     amplitude thresholds.
+
+1. Audiofun test, which plays different tones and checks recorded frequency.
+   This test can be conducted simultaneously on different devices. This test can
+   not be conducted with dongle inserted.
+2. Sinewav test, which plays simple sine wav and checks if the recorded
+   frequency is in the range specified. Optionally checks the RMS and amplitude
+   thresholds.
+3. Noise test, which plays nothing and record, then checks the RMS and amplitude
+   thresholds.
 
 Since this test is sensitive to different loopback dongles, user can set a list
 of output volume candidates. The test can pass if it can pass at any one of
 output volume candidates.
 
+Test Procedure
+--------------
+1. Operator inserts the dongle (if required).
+2. The playback starts automatically, and analyze recordings afterward.
+
+Dependency
+----------
+- Device API ``cros.factory.device.audio``.
+
+Examples
+--------
 Here are some test list examples for different test cases. First, you need to
 figure out the particular input/output device you want to perform test on. For
 ALSA input devices, the command `arecord -l` can be used to list all available
-input devices. For instance, if the device showing as "card 0: kblrt5514rt5663
-[kblrt5514rt5663max], device 1: Audio Record (*)" is what you want, the
+input devices.
+
+For instance, if the device showing as ``card 0: kblrt5514rt5663
+[kblrt5514rt5663max], device 1: Audio Record (*)`` is what you want, the
 input_dev should be set to ["kblrt5514rt5663max", "1"]. Similarly, the
 output_dev might be ["kblrt5514rt5663max", "0"]. These settings are used in the
 following examples.
 
-Audiofuntest for all mics of input_dev and all speakers of output_dev::
+Audiofuntest external mic (default) of input_dev and speakers of output_dev::
 
     {
       "pytest_name": "audio_loop",
@@ -64,7 +82,7 @@ Audiofuntest on 'mlb' mics of input_dev and speaker channel 0 of output_dev::
         "output_volume": 10,
         "require_dongle": false,
         "check_dongle": true,
-        "mic_source": "mlb",
+        "mic_source": "MLBDmic",
         "initial_actions": [
           ["1", "init_speakerdmic"]
         ],
@@ -138,7 +156,6 @@ from cros.factory.test.utils import audio_utils
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
-from cros.factory.utils import type_utils
 
 # Default setting
 _DEFAULT_FREQ_HZ = 1000
@@ -178,8 +195,6 @@ _DEFAULT_SOX_AMPLITUDE_THRESHOLD = (None, None)
 # Default duration in seconds to trim in the beginning of recorded file.
 _DEFAULT_TRIM_SECONDS = 0.5
 
-MicSource = type_utils.Enum(['external', 'panel', 'mlb'])
-
 
 class AudioLoopTest(test_ui.TestCaseWithUI):
   """Audio Loop test to test two kind of situations.
@@ -211,8 +226,8 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
           default=True),
       Arg('cras_enabled', bool, 'Whether cras should be running or not',
           default=False),
-      Arg('mic_source', str, 'Microphone source: external, panel, mlb',
-          default='external'),
+      Arg('mic_source', base.InputDevices, 'Microphone source',
+          default=base.InputDevices.Extmic),
       Arg('test_title', str,
           'Title on the test screen.'
           'It can be used to tell operators the test info'
@@ -297,12 +312,6 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
     # the whole test fails.
     self._test_results = [True] * len(self._output_volumes)
     self._test_message = []
-
-    self._mic_source = {
-        'external': MicSource.external,
-        'panel': MicSource.panel,
-        'mlb': MicSource.mlb
-    }[self.args.mic_source]
 
     self._mic_jack_type = {
         'nocheck': None,
@@ -752,9 +761,4 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
       self._dut.audio.EnableSpeaker(self._out_card)
 
     self._dut.audio.DisableAllAudioInputs(self._in_card)
-    if self._mic_source == MicSource.external:
-      self._dut.audio.EnableExtmic(self._in_card)
-    elif self._mic_source == MicSource.panel:
-      self._dut.audio.EnableDmic(self._in_card)
-    elif self._mic_source == MicSource.mlb:
-      self._dut.audio.EnableMLBDmic(self._in_card)
+    self._dut.audio.EnableDevice(self.args.mic_source, self._in_card)
