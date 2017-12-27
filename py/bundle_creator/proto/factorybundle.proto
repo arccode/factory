@@ -1,0 +1,36 @@
+syntax = "proto2";
+package cros.factory.proto;
+
+message CreateBundleRpcRequest {
+  optional string board = 1;
+  optional string project = 2;
+  optional string phase = 3;
+  optional string toolkit_version = 4;
+  optional string test_image_version = 5;
+  optional string release_image_version = 6;
+  optional string email = 7;
+}
+
+message CreateBundleRpcResponse {
+  enum Status {
+    NO_ERROR = 0;
+  }
+  optional Status status = 1 [default = NO_ERROR];
+}
+
+message WorkerResult {
+  enum Status {
+    NO_ERROR = 0;
+    FAILED = 1;
+  }
+  optional Status status = 1 [default = NO_ERROR];
+  optional CreateBundleRpcRequest original_request = 2;
+  optional string error_message = 3;
+  optional string gs_path = 4;
+}
+
+service FactoryBundleService {
+  rpc CreateBundleAsync(CreateBundleRpcRequest) 
+      returns (CreateBundleRpcResponse) {
+  }
+}

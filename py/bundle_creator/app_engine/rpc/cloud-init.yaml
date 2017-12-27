@@ -1,0 +1,39 @@
+#cloud-config
+
+users:
+  - name: finalize-bundle
+    groups: docker,adm
+    sudo: ALL=(ALL) NOPASSWD:ALL
+
+write_files:
+  - path: /etc/systemd/system/bundle.service
+    permissions: 0644
+    owner: root
+    content: |
+      [Unit]
+      Description=Start a simple docker container
+
+      [Service]
+      User=finalize-bundle
+      ExecStart=/etc/start_docker.sh
+
+  - path: /etc/start_docker.sh
+    permissions: 0755
+    owner: root
+    content: |
+      #!/bin/sh
+      /usr/share/google/dockercfg_update.sh
+      METADATA_SERVER="http://metadata.google.internal/computeMetadata/v1"
+      DOCKER_IMAGE=$(curl "${METADATA_SERVER}/project/attributes/bundle-creator-docker" \
+                     -H 'Metadata-Flavor: Google' -s)
+      /usr/bin/docker pull ${DOCKER_IMAGE}
+      /usr/bin/docker run --privileged -p 0.0.0.0:80:8000 ${DOCKER_IMAGE}
+
+  - path: /etc/docker/daemon.json
+    content: '{"log-driver":"gcplogs"}'
+
+runcmd:
+  - systemctl restart docker
+  - systemctl daemon-reload
+  - systemctl start bundle.service
+
