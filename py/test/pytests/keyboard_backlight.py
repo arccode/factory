@@ -10,7 +10,6 @@ from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.utils import process_utils
-from cros.factory.utils import type_utils
 
 
 _SUBTESTS = (
@@ -21,7 +20,7 @@ _SUBTESTS = (
 class KeyboardBacklightTest(test_ui.TestCaseWithUI):
   def setUp(self):
     for instruction, level in _SUBTESTS:
-      self.AddTask(type_utils.BindFunction(self.RunTask, instruction, level))
+      self.AddTask(self.RunTask, instruction, level)
 
   def RunTask(self, instruction, level):
     self.ui.BindStandardKeys()

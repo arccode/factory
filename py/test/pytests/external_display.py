@@ -83,7 +83,6 @@ from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import type_utils
 
 
 # Interval (seconds) of probing connection state.
@@ -156,22 +155,20 @@ class ExtDisplayTest(test_ui.TestCaseWithUI):
       args = self.ParseDisplayInfo(info)
 
       if self.do_connect:
-        self.AddTask(type_utils.BindFunction(self.WaitConnect, args))
+        self.AddTask(self.WaitConnect, args)
 
       if self.do_output:
-        self.AddTask(type_utils.BindFunction(self.CheckVideo, args))
+        self.AddTask(self.CheckVideo, args)
         if args.audio_card:
-          self.AddTask(
-              type_utils.BindFunction(self.SetupAudio, args))
+          self.AddTask(self.SetupAudio, args)
           audio_label = i18n_test_ui.MakeI18nLabel(
               '{display_label} Audio', display_label=args.display_label)
           self.AddTask(
-              type_utils.BindFunction(
-                  audio.TestAudioDigitPlayback, self.ui, self._dut,
-                  audio_label, card=args.audio_card, device=args.audio_device))
+              audio.TestAudioDigitPlayback, self.ui, self._dut, audio_label,
+              card=args.audio_card, device=args.audio_device)
 
       if self.do_disconnect:
-        self.AddTask(type_utils.BindFunction(self.WaitDisconnect, args))
+        self.AddTask(self.WaitDisconnect, args)
 
   def ParseDisplayInfo(self, info):
     """Parses lists from args.display_info.

@@ -972,20 +972,20 @@ class TestCaseWithUI(unittest.TestCase):
     if self.__task_end_event.wait(timeout=timeout):
       raise TaskEndException
 
-  def AddTask(self, task, cleanup=None):
+  def AddTask(self, task, *task_args, **task_kwargs):
     """Add a task to the test.
 
-    The task passed in can either be a TestTask object, or two functions task
-    and cleanup.
+    The task passed in can either be a TestTask object, or a task function.
+    Extra arguments would be passed to the task function.
 
     Args:
       task: A task function or a TestTask object to be run.
-      cleanup: A cleanup function to be run after task is completed. Should be
-          None if task is a TestTask object.
+      task_args, task_kwargs: Arguments for the task function.
     """
     if callable(task):
       name = task.__name__
-      run = task
+      run = lambda: task(*task_args, **task_kwargs)
+      cleanup = None
     else:
       # Passing a task object, transforming into _Task.
       # We should ideally do isinstance(task, test_task.TestTask), but it'll
@@ -994,8 +994,9 @@ class TestCaseWithUI(unittest.TestCase):
       if not (hasattr(task, 'Run') and hasattr(task, 'Cleanup')):
         raise ValueError('Unknown type for task: %s' % type(task))
 
-      if cleanup is not None:
-        raise ValueError('cleanup should be None when passing a task object.')
+      if task_args or task_kwargs:
+        raise ValueError('task_args and task_kwargs should be empty '
+                         'when passing a task object.')
 
       name = task.__class__.__name__
       run = task.Run
