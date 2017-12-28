@@ -31,6 +31,19 @@ class Base8192(object):
   BASE8192_BIT_WIDTH = 13
   DASH_INSERTION_WIDTH = 3
   CHECKSUM_SIZE = 8
+  ENCODED_CHECKSUM_SIZE = 2
+
+  @classmethod
+  def GetPaddingLength(cls, orig_length):
+    """Returns the minimum padding length for a given length.
+
+    Args:
+      orig_length: The length to be calculated.
+
+    Returns:
+      A number.
+    """
+    return (cls.BASE32_BIT_WIDTH - orig_length) % cls.BASE8192_BIT_WIDTH
 
   @classmethod
   def Encode(cls, binary_string):
@@ -47,9 +60,7 @@ class Base8192(object):
     Returns:
       A base8192-encoded string.
     """
-    # Add paddings if the string length modulo 13 is not 5.
-    if len(binary_string) % cls.BASE8192_BIT_WIDTH != 5:
-      binary_string += '0' * ((5 - len(binary_string)) % cls.BASE8192_BIT_WIDTH)
+    assert cls.GetPaddingLength(len(binary_string)) == 0
 
     result = []
     for index in xrange(0, len(binary_string), cls.BASE8192_BIT_WIDTH):
@@ -80,10 +91,8 @@ class Base8192(object):
     Returns:
       A binary string.
     """
-    if len(base8192_string) % 3:
-      raise ValueError(
-          'Length of base8192 encoded string %r is not multiple of 3' %
-          base8192_string)
+    assert len(base8192_string) % 3 == 1
+
     result = []
     for index in xrange(0, len(base8192_string), 3):
       try:

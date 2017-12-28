@@ -13,10 +13,16 @@ from cros.factory.hwid.v3.base32 import Base32
 
 class Base32Test(unittest.TestCase):
 
+  def testGetPaddingLength(self):
+    self.assertEquals(0, Base32.GetPaddingLength(0))
+    self.assertEquals(0, Base32.GetPaddingLength(5))
+    self.assertEquals(1, Base32.GetPaddingLength(4))
+    self.assertEquals(2, Base32.GetPaddingLength(3))
+
   def testEncode(self):
     self.assertEquals('A', Base32.Encode('00000'))
     self.assertEquals('7', Base32.Encode('11111'))
-    self.assertEquals('FI', Base32.Encode('0010101'))
+    self.assertEquals('FI', Base32.Encode('0010101000'))
 
   def testDecode(self):
     self.assertEquals('00000', Base32.Decode('a'))

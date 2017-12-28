@@ -12,14 +12,12 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.hwid.v3.bom import ProbedComponentResult
 from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3.database import Database
-from cros.factory.hwid.v3.transformer import BinaryStringToBOM
-from cros.factory.hwid.v3.transformer import BinaryStringToEncodedString
-from cros.factory.hwid.v3.transformer import BOMToBinaryString
+from cros.factory.hwid.v3 import identity as identity_utils
+from cros.factory.hwid.v3.identity import Identity
+from cros.factory.hwid.v3.transformer import BOMToIdentity
 from cros.factory.hwid.v3.transformer import Decode
 from cros.factory.hwid.v3.transformer import Encode
-from cros.factory.hwid.v3.transformer import EncodedStringToBinaryString
-from cros.factory.hwid.v3.transformer import VerifyBinaryString
-from cros.factory.hwid.v3.transformer import VerifyEncodedString
+from cros.factory.hwid.v3.transformer import IdentityToBOM
 from cros.factory.hwid.v3.transformer import VerifyBOM
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3.rule import Value
@@ -27,47 +25,6 @@ from cros.factory.utils import json_utils
 
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
-
-
-class VerifyBinaryStringTest(unittest.TestCase):
-  def setUp(self):
-    self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
-                                                   'test_db.yaml'))
-
-  def testVerifyBinaryString(self):
-    func = lambda s: VerifyBinaryString(self.database, s)
-
-    self.assertEquals(None, func('0000000000111010000011000'))
-    self.assertRaisesRegexp(
-        HWIDException, r'Invalid binary string: .*',
-        func, '020001010011011011000')
-    self.assertRaisesRegexp(
-        HWIDException, r'Binary string .* does not have stop bit set',
-        func, '00000')
-    self.assertRaisesRegexp(
-        HWIDException, r'Invalid bit string length',
-        func, '000000000010100110110111000')
-
-
-class VerifyEncodedStringTest(unittest.TestCase):
-  def setUp(self):
-    self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
-                                                   'test_db.yaml'))
-
-  def testVerifyEncodedString(self):
-    func = lambda s: VerifyEncodedString(self.database, s)
-
-    self.assertEquals(None, func('CHROMEBOOK AW3L-M7I7-V'))
-    self.assertRaisesRegexp(
-        HWIDException, r'Invalid HWID string format', func, 'AW3L-M7I5-4')
-    self.assertRaisesRegexp(
-        HWIDException, r'Length of encoded string .* is less than 2 characters',
-        func, 'FOO A')
-    self.assertRaisesRegexp(
-        HWIDException, r'Invalid project name', func, 'FOO AW3L-M7IK-W')
-    self.assertRaisesRegexp(
-        HWIDException, r'Checksum of .* mismatch',
-        func, 'CHROMEBOOK AW3L-M7IA-B')
 
 
 class VerifyBOMTest(unittest.TestCase):
@@ -227,16 +184,15 @@ class DecoderTest(unittest.TestCase):
       self.assertEquals(self.expected_components_from_db[comp_cls],
                         bom.components[comp_cls])
 
-  def testEncodedStringToBinaryString(self):
-    self.assertEquals('0000000000111010000011',
-                      EncodedStringToBinaryString(
-                          self.database, 'CHROMEBOOK AA5A-Y6L'))
-    self.assertEquals('0001000000111010000011',
-                      EncodedStringToBinaryString(
-                          self.database, 'CHROMEBOOK C2H-I3Q-A6Q'))
-    self.assertEquals('1000000000111010000011',
-                      EncodedStringToBinaryString(
-                          self.database, 'CHROMEBOOK QA5A-YCJ'))
+  @staticmethod
+  def _BinaryStringToBOM(database, binary_string):
+    image_id = identity_utils.GetImageIdFromBinaryString(binary_string)
+    encoding_scheme = database.pattern.GetEncodingScheme(image_id)
+    encode_pattern_index = int(binary_string[0], 2)
+    identity = Identity.GenerateFromBinaryString(
+        encoding_scheme, database.project, encode_pattern_index, image_id,
+        binary_string[5:])
+    return IdentityToBOM(database, identity)
 
   def testBinaryStringToBOM(self):
     reference_bom = hwid_utils.GenerateBOMFromProbedResults(self.database,
@@ -244,18 +200,18 @@ class DecoderTest(unittest.TestCase):
     self.database.UpdateComponentsOfBOM(reference_bom, {
         'keyboard': 'keyboard_us',
         'display_panel': 'display_panel_0'})
-    bom = BinaryStringToBOM(self.database, '0000000000111010000011')
+    bom = self._BinaryStringToBOM(self.database, '0000000000111010000011')
     self._CheckBOM(reference_bom, bom)
 
-    bom = BinaryStringToBOM(self.database, '0000000001111010000011')
+    bom = self._BinaryStringToBOM(self.database, '0000000001111010000011')
     self.assertEquals(1, bom.encoded_fields['firmware'])
-    self.assertEquals(2, BinaryStringToBOM(
+    self.assertEquals(2, self._BinaryStringToBOM(
         self.database, '0001000000111010000011').image_id)
-    self.assertEquals(1, BinaryStringToBOM(
+    self.assertEquals(1, self._BinaryStringToBOM(
         self.database, '1000000000111010000011').encoding_pattern_index)
     self.assertRaisesRegexp(
         HWIDException, r"Invalid encoded field index: {'cpu': 6}",
-        BinaryStringToBOM, self.database, '0000000000111000010011')
+        self._BinaryStringToBOM, self.database, '0000000000111000010011')
 
   def testIncompleteBinaryStringToBOM(self):
     # The latest pattern in the test database has 16 bits (plus the image ID and
@@ -264,7 +220,7 @@ class DecoderTest(unittest.TestCase):
 
     # Test with 21 bits here. This should be regarded as a valid binary string
     # that was generated before we extended cpu_field.
-    bom = BinaryStringToBOM(
+    bom = self._BinaryStringToBOM(
         self.database,
         '00000'         # image ID
         '0000111101000'  # 13 bits, up through second cpu_field
@@ -278,7 +234,7 @@ class DecoderTest(unittest.TestCase):
     # Test with 20 bits here. This should be regarded as an incomplete bit chunk
     # for storage_field, i.e. storage_field was previously one bit (and some
     # HWIDs were generated) but it has since been extended to two bits.
-    bom = BinaryStringToBOM(
+    bom = self._BinaryStringToBOM(
         self.database,
         '00000'         # image ID
         '0000111101000'  # 12 bits, up through second cpu_field
@@ -308,7 +264,7 @@ class DecoderTest(unittest.TestCase):
     self._CheckBOM(reference_bom, hwid.bom)
 
   def testPreviousVersionOfEncodedString(self):
-    bom = BinaryStringToBOM(self.database, '000000000011101000001')
+    bom = self._BinaryStringToBOM(self.database, '000000000011101000001')
     self.assertEquals(1, bom.encoded_fields['cpu'])
     hwid = Decode(self.database, 'CHROMEBOOK AA5A-Q7Z')
     self.assertEquals('000000000011101000001', hwid.binary_string)
@@ -340,30 +296,22 @@ class EncoderTest(unittest.TestCase):
     # Manually set unprobeable components.
     self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'display_panel': 'display_panel_0'})
-    self.assertEquals(
-        '0000000000111010000011', BOMToBinaryString(self.database, bom))
+    self.assertEquals('0000000000111010000011',
+                      BOMToIdentity(self.database, bom).binary_string)
     # Change firmware's encoded index to 1.
     mocked_bom = bom.Duplicate()
     self.database.UpdateComponentsOfBOM(
         mocked_bom, {'ro_main_firmware': 'ro_main_firmware_1'})
-    self.assertEquals(
-        '0000000001111010000011', BOMToBinaryString(self.database, mocked_bom))
+    self.assertEquals('0000000001111010000011',
+                      BOMToIdentity(self.database, mocked_bom).binary_string)
     # Change image id to 2.
     mocked_bom.image_id = 2
-    self.assertEquals(
-        '0001000001111010000011', BOMToBinaryString(self.database, mocked_bom))
+    self.assertEquals('0001000001111010000011',
+                      BOMToIdentity(self.database, mocked_bom).binary_string)
     # Change encoding pattern index to 1.
     mocked_bom.encoding_pattern_index = 1
-    self.assertEquals(
-        '1001000001111010000011', BOMToBinaryString(self.database, mocked_bom))
-
-  def testBinaryStringToEncodedString(self):
-    self.assertEquals('CHROMEBOOK A5AU-LU',
-                      BinaryStringToEncodedString(
-                          self.database, '000001110100000101'))
-    self.assertEquals('CHROMEBOOK C9I-F4N',
-                      BinaryStringToEncodedString(
-                          self.database, '000101110100000101'))
+    self.assertEquals('1001000001111010000011',
+                      BOMToIdentity(self.database, mocked_bom).binary_string)
 
   def testEncode(self):
     bom = hwid_utils.GenerateBOMFromProbedResults(self.database,

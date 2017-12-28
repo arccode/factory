@@ -113,7 +113,8 @@ def _CompareBase8192BinaryString(db, expected, given):
          for i in xrange(0, len(string), 13)])
 
     def _SplitString(s):
-      results = list(base8192.Base8192.Encode(s))
+      results = list(base8192.Base8192.Encode(
+          s + '0' * base8192.Base8192.GetPaddingLength(len(s))))
       if len(results) == 4:
         results = results[0:3]
       if len(results) < 3:

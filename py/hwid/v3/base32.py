@@ -25,6 +25,19 @@ class Base32(object):
   BASE32_BIT_WIDTH = 5
   DASH_INSERTION_WIDTH = 4
   CHECKSUM_SIZE = 10
+  ENCODED_CHECKSUM_SIZE = 2
+
+  @classmethod
+  def GetPaddingLength(cls, orig_length):
+    """Returns the minimum padding length for a given length.
+
+    Args:
+      orig_length: The length to be calculated.
+
+    Returns:
+      A number.
+    """
+    return (cls.BASE32_BIT_WIDTH - orig_length) % cls.BASE32_BIT_WIDTH
 
   @classmethod
   def Encode(cls, binary_string):
@@ -37,10 +50,7 @@ class Base32(object):
     Returns:
       A base32-encoded string.
     """
-    # Add paddings if the string length is not multiples of 5.
-    if len(binary_string) % cls.BASE32_BIT_WIDTH:
-      binary_string += '0' * (cls.BASE32_BIT_WIDTH -
-                              (len(binary_string) % cls.BASE32_BIT_WIDTH))
+    assert cls.GetPaddingLength(len(binary_string)) == 0
     result = []
     for i in xrange(0, len(binary_string), cls.BASE32_BIT_WIDTH):
       result.append(cls.BASE32_ALPHABET[

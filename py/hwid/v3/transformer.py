@@ -14,6 +14,7 @@ from cros.factory.hwid.v3.bom import ProbedComponentResult
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.base32 import Base32
 from cros.factory.hwid.v3.base8192 import Base8192
+from cros.factory.hwid.v3 import identity as identity_utils
 from cros.factory.hwid.v3.identity import Identity
 from cros.factory.utils import type_utils
 
@@ -28,86 +29,6 @@ _Decoder = {
     common.HWID.ENCODING_SCHEME.base8192: Base8192
 }
 
-
-def VerifyBinaryString(database, binary_string):
-  """Verifies the binary string.
-
-  Args:
-    binary_string: The binary string to verify.
-
-  Raises:
-    HWIDException if verification fails.
-  """
-  if set(binary_string) - set('01'):
-    raise common.HWIDException('Invalid binary string: %r' % binary_string)
-
-  if '1' not in binary_string:
-    raise common.HWIDException('Binary string %r does not have stop bit set',
-                               binary_string)
-  # Truncate trailing 0s.
-  string_without_paddings = binary_string[:binary_string.rfind('1') + 1]
-
-  image_id = database.pattern.GetImageIdFromBinaryString(binary_string)
-  total_bit_length = database.pattern.GetTotalBitLength(image_id)
-  if len(string_without_paddings) > total_bit_length:
-    raise common.HWIDException(
-        'Invalid bit string length of %r. Expected length <= %d, got length %d'
-        % (binary_string, total_bit_length, len(string_without_paddings)))
-
-
-def VerifyEncodedStringFormat(encoded_string):
-  """Verifies that the format of the given encoded string.
-
-  Checks that the string matches either base32 or base8192 format.
-
-  Args:
-    encoded_string: The encoded string to verify.
-
-  Raises:
-    HWIDException if verification fails.
-  """
-  if not any(hwid_format.match(encoded_string) for hwid_format in
-             common.HWID_FORMAT.itervalues()):
-    raise common.HWIDException(
-        'HWID string %r is neither base32 nor base8192 encoded' %
-        encoded_string)
-
-
-def VerifyEncodedString(database, encoded_string):
-  """Verifies the given encoded string.
-
-  Args:
-    encoded_string: The encoded string to verify.
-
-  Raises:
-    HWIDException if verification fails.
-  """
-  try:
-    image_id = database.pattern.GetImageIdFromEncodedString(encoded_string)
-    encoding_scheme = database.pattern.GetPatternByImageId(
-        image_id)['encoding_scheme']
-    project, bom_checksum = common.HWID_FORMAT[encoding_scheme].findall(
-        encoded_string)[0]
-  except IndexError:
-    raise common.HWIDException(
-        'Invalid HWID string format: %r' % encoded_string)
-  if len(bom_checksum) < 2:
-    raise common.HWIDException(
-        'Length of encoded string %r is less than 2 characters' %
-        bom_checksum)
-  if project != database.project.upper():
-    raise common.HWIDException('Invalid project name: %r' % project)
-  # Verify the checksum
-  stripped = encoded_string.replace('-', '')
-  hwid = stripped[:-2]
-  checksum = stripped[-2:]
-  if encoding_scheme == common.HWID.ENCODING_SCHEME.base32:
-    expected_checksum = Base32.Checksum(hwid)
-  elif encoding_scheme == common.HWID.ENCODING_SCHEME.base8192:
-    expected_checksum = Base8192.Checksum(hwid)
-  if checksum != expected_checksum:
-    raise common.HWIDException('Checksum of %r mismatch (expected %r)' % (
-        encoded_string, expected_checksum))
 
 def VerifyBOM(database, bom, probeable_only=False):
   """Verifies the data contained in the given BOM object matches the settings
@@ -195,7 +116,7 @@ def VerifyBOM(database, bom, probeable_only=False):
                                ', '.join(sorted(invalid_fields)))
 
 
-def BOMToBinaryString(database, bom):
+def BOMToIdentity(database, bom):
   """Encodes the given BOM object to a binary string.
 
   Args:
@@ -206,47 +127,29 @@ def BOMToBinaryString(database, bom):
     A binary string.
   """
   VerifyBOM(database, bom)
+
+  encoding_scheme = database.pattern.GetEncodingScheme(bom.image_id)
+
+  # TODO(yhong): Don't allocate the header part.
   bit_length = database.pattern.GetTotalBitLength(bom.image_id)
   binary_list = bit_length * [0]
 
-  # Fill in header.
-  binary_list[0] = bom.encoding_pattern_index
-  for i in xrange(1, 5):
-    binary_list[i] = (bom.image_id >> (4 - i)) & 1
   # Fill in each bit.
   bit_mapping = database.pattern.GetBitMapping(bom.image_id)
   for index, (field, bit_offset) in bit_mapping.iteritems():
     binary_list[index] = (bom.encoded_fields[field] >> bit_offset) & 1
+
   # Set stop bit.
   binary_list[bit_length - 1] = 1
-  return ''.join(['%d' % bit for bit in binary_list])
 
+  # Skip the header.
+  binary_list = binary_list[5:]
 
-def BinaryStringToEncodedString(database, binary_string):
-  """Encodes the given binary string to a encoded string.
+  components_bitset = ''.join(['%d' % bit for bit in binary_list])
 
-  Args:
-    database: A Database object that is used to provide device-specific
-        information for encoding.
-    binary_string: A string of '0's and '1's.
-
-  Returns:
-    An encoded string with project name, base32-encoded HWID, and checksum.
-  """
-  VerifyBinaryString(database, binary_string)
-  image_id = database.pattern.GetImageIdFromBinaryString(binary_string)
-  encoding_scheme = database.pattern.GetPatternByImageId(
-      image_id)['encoding_scheme']
-  encoder = _Encoder[encoding_scheme]
-  encoded_string = encoder.Encode(binary_string)
-  # Make project name part of the checksum.
-  encoded_string += encoder.Checksum(
-      database.project.upper() + ' ' + encoded_string)
-  # Insert dashes to increase readibility.
-  encoded_string = ('-'.join(
-      [encoded_string[i:i + encoder.DASH_INSERTION_WIDTH]
-       for i in xrange(0, len(encoded_string), encoder.DASH_INSERTION_WIDTH)]))
-  return database.project.upper() + ' ' + encoded_string
+  return Identity.GenerateFromBinaryString(
+      encoding_scheme, database.project, bom.encoding_pattern_index,
+      bom.image_id, components_bitset)
 
 
 def Encode(database, bom, mode=common.HWID.OPERATION_MODE.normal,
@@ -270,23 +173,29 @@ def Encode(database, bom, mode=common.HWID.OPERATION_MODE.normal,
   return hwid
 
 
-def BinaryStringToBOM(database, binary_string):
-  """Decodes the given binary string to a BOM object.
+def IdentityToBOM(database, identity):
+  """Decodes the given HWID Identity to a BOM object.
 
   Args:
     database: A Database object that is used to provide device-specific
         information for decoding.
-    binary_string: A binary string.
+    identity: The HWID Identity.
 
   Returns:
-    A BOM object
+    A BOM object.
   """
-  VerifyBinaryString(database, binary_string)
-  stripped_binary_string = binary_string[:binary_string.rfind('1')]
+  # TODO(yhong): Use identity.components_bitset directly.
+  stripped_binary_string = '00000' + identity.components_bitset[:-1]
 
   project = database.project
-  encoding_pattern = int(stripped_binary_string[0], 2)
-  image_id = database.pattern.GetImageIdFromBinaryString(binary_string)
+  encode_pattern_index = identity.encode_pattern_index
+  image_id = identity.image_id
+
+  total_bit_length = database.pattern.GetTotalBitLength(image_id)
+  if len(stripped_binary_string) > total_bit_length:
+    raise common.HWIDException(
+        'Invalid bit string length of %r. Expected length <= %d'
+        % (stripped_binary_string, total_bit_length))
 
   # Construct the encoded fields dict.
   encoded_fields = collections.defaultdict(int)
@@ -324,29 +233,8 @@ def BinaryStringToBOM(database, binary_string):
           components[comp_cls].append(ProbedComponentResult(
               attrs['name'], attrs['values'], None))
 
-  return BOM(project, encoding_pattern, image_id, components, encoded_fields)
-
-
-def EncodedStringToBinaryString(database, encoded_string):
-  """Decodes the given encoded HWID string to a binary string.
-
-  Args:
-    database: A Database object that is used to provide device-specific
-        information for decoding.
-    encoded_string: An encoded string (with or without dashed).
-
-  Returns:
-    A binary string.
-  """
-  VerifyEncodedStringFormat(encoded_string)
-  image_id = database.pattern.GetImageIdFromEncodedString(encoded_string)
-  encoding_scheme = database.pattern.GetPatternByImageId(
-      image_id)['encoding_scheme']
-  VerifyEncodedString(database, encoded_string)
-  _, hwid_string = encoded_string.split(' ')
-  hwid_string = hwid_string.replace('-', '')
-  return _Decoder[encoding_scheme].Decode(
-      hwid_string)[:-_Decoder[encoding_scheme].CHECKSUM_SIZE].rstrip('0')
+  return BOM(project, encode_pattern_index, image_id, components,
+             encoded_fields)
 
 
 def Decode(database, encoded_string, mode=common.HWID.OPERATION_MODE.normal):
@@ -363,7 +251,8 @@ def Decode(database, encoded_string, mode=common.HWID.OPERATION_MODE.normal):
     A HWID object which contains the BOM, the binary string, and the encoded
     string derived from the given encoded string.
   """
-  binary_string = EncodedStringToBinaryString(database, encoded_string)
-  identity = Identity(database.project, binary_string, encoded_string)
-  bom = BinaryStringToBOM(database, binary_string)
+  image_id = identity_utils.GetImageIdFromEncodedString(encoded_string)
+  encoding_scheme = database.pattern.GetEncodingScheme(image_id)
+  identity = Identity.GenerateFromEncodedString(encoding_scheme, encoded_string)
+  bom = IdentityToBOM(database, identity)
   return common.HWID(database, bom=bom, identity=identity, mode=mode)

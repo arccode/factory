@@ -757,6 +757,9 @@ class Pattern(object):
 
     return id_pattern_map[image_id]
 
+  def GetEncodingScheme(self, image_id=None):
+    return self.GetPatternByImageId(image_id)['encoding_scheme']
+
   def GetImageIdFromEncodedString(self, encoded_string):
     return int(Base32.Decode(encoded_string.split(' ')[1][0])[1:5], 2)
 
