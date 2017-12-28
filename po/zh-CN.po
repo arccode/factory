@@ -1333,10 +1333,6 @@ msgstr ""
 "{elapsed} 剩余时间: {remaining}"
 
 #: ../py/test/pytests/bluetooth.py
-msgid "Detect bluetooth adapter"
-msgstr "检测蓝牙适配器"
-
-#: ../py/test/pytests/bluetooth.py
 msgid "Enable the connection ability of bluetooth device and press Enter"
 msgstr "启用蓝牙装置的连接功能然后按输入键"
 
@@ -1356,6 +1352,20 @@ msgid ""
 msgstr "请按下绿色键开始充电, 然后取出再放回键盘, 最后按下电脑的 space 键"
 
 #: ../py/test/pytests/bluetooth.py
+msgid ""
+"Press the green button again to stop charging, and press the space key on "
+"the test host."
+msgstr "请按下绿色键以停止充电,然后按下电脑的 space 键"
+
+#: ../py/test/pytests/bluetooth.py
+msgid "Read firmware revision string."
+msgstr "读取键盘韧体版本"
+
+#: ../py/test/pytests/bluetooth.py
+msgid "Check if the battery has charged to a higher percentage"
+msgstr "检查充电之后电量是否增加"
+
+#: ../py/test/pytests/bluetooth.py
 msgid "Read battery level for the 1st time."
 msgstr "第1次读取电池电量"
 
@@ -1364,47 +1374,36 @@ msgid "Read battery level for the 2nd time."
 msgstr "第2次读取电池电量"
 
 #: ../py/test/pytests/bluetooth.py
-msgid "Check if the battery has charged to a higher percentage"
-msgstr "检查充电之后电量是否增加"
+msgid "Detect bluetooth adapter"
+msgstr "检测蓝牙适配器"
 
 #: ../py/test/pytests/bluetooth.py
-msgid "Check battery level."
-msgstr "检查电池电量"
-
-#: ../py/test/pytests/bluetooth.py
-msgid ""
-"Press the green button again to stop charging, and press the space key on "
-"the test host."
-msgstr "请按下绿色键以停止充电,然后按下电脑的 space 键"
-
-#: ../py/test/pytests/bluetooth.py
-msgid ""
-"Take the base out of the fixture, and press the space key on the test host."
-msgstr "请把测试键盘取出,然后按下电脑的 space 键"
-
-#: ../py/test/pytests/bluetooth.py
-msgid "Read firmware revision string."
-msgstr "读取键盘韧体版本"
+msgid "Unpairing"
+msgstr "取消配对"
 
 #: ../py/test/pytests/bluetooth.py
 msgid "Scanning..."
 msgstr "扫描中..."
 
 #: ../py/test/pytests/bluetooth.py
+msgid "Press shift-p-a-i-r simultaneously on the base."
+msgstr "请在在测试键盘上同时按住 shift-p-a-i-r"
+
+#: ../py/test/pytests/bluetooth.py
 msgid "Detect RSSI (count {count}/{total})"
 msgstr "侦测RSSI (第 {count}/{total} 次)"
 
 #: ../py/test/pytests/bluetooth.py
-msgid "Enable the connection ability of input bluetooth device and press Enter"
-msgstr "启用蓝牙输入装置的连接功能然后按输入键"
+msgid "Enter passkey {key} then press enter on the base."
+msgstr "按 {key} 再按回车"
+
+#: ../py/test/pytests/bluetooth.py
+msgid "Authentication failed, retrying..."
+msgstr "验证失败，重试"
 
 #: ../py/test/pytests/bluetooth.py
 msgid "Pairing to input device now..."
 msgstr "配对到蓝牙输入设备..."
-
-#: ../py/test/pytests/bluetooth.py
-msgid "Press shift-p-a-i-r simultaneously on the base."
-msgstr "请在在测试键盘上同时按住 shift-p-a-i-r"
 
 #: ../py/test/pytests/bluetooth.py
 msgid "Connecting to input device now..."
@@ -1413,18 +1412,6 @@ msgstr "连接到蓝牙输入设备..."
 #: ../py/test/pytests/bluetooth.py
 msgid "Please test input. Press Escape to fail and Enter to pass"
 msgstr "请测试输入, 如果失败, 请按Esc键，如果成功，请按Enter键"
-
-#: ../py/test/pytests/bluetooth.py
-msgid "Unpairing"
-msgstr "取消配对"
-
-#: ../py/test/pytests/bluetooth.py
-msgid "Authentication failed, retrying..."
-msgstr "验证失败，重试"
-
-#: ../py/test/pytests/bluetooth.py
-msgid "Enter passkey {key} then press enter on the base."
-msgstr "按 {key} 再按回车"
 
 #: ../py/test/pytests/brightness/brightness.py
 msgid "<br>Press ENTER to pass, or ESC to fail."
