@@ -152,8 +152,7 @@ def BOMToIdentity(database, bom):
       bom.image_id, components_bitset)
 
 
-def Encode(database, bom, mode=common.HWID.OPERATION_MODE.normal,
-           skip_check=False):
+def Encode(database, bom, mode=common.HWID.OPERATION_MODE.normal):
   """Encodes all the given BOM object.
 
   Args:
@@ -162,14 +161,13 @@ def Encode(database, bom, mode=common.HWID.OPERATION_MODE.normal,
     bom: A BOM object.
     mode: The operation mode of the generated HWID object. Valid values are:
         ('normal', 'rma')
-    skip_check: Whether to skip HWID verification checks. Set to True when
-        generating HWID skeleton objects for further processing.
 
   Returns:
     A HWID object which contains the BOM, the binary string, and the encoded
     string derived from the given BOM object.
   """
-  hwid = common.HWID(database, bom=bom, mode=mode, skip_check=skip_check)
+  identity = BOMToIdentity(database, bom)
+  hwid = common.HWID(database, bom=bom, identity=identity, mode=mode)
   return hwid
 
 

@@ -72,16 +72,17 @@ def GenerateHWID(db, bom, device_info, vpd=None, rma_mode=False):
     The generated HWID object.
   """
   hwid_mode = _HWIDMode(rma_mode)
-  # Construct a base BOM from probe_results.
-  hwid = transformer.Encode(db, bom, mode=hwid_mode, skip_check=True)
 
   # Update unprobeable components with rules defined in db before verification.
-  context_args = dict(database=hwid.database, bom=hwid.bom, mode=hwid.mode,
+  context_args = dict(database=db, bom=bom, mode=hwid_mode,
                       device_info=device_info)
   if vpd is not None:
     context_args['vpd'] = vpd
   context = rule.Context(**context_args)
   db.rules.EvaluateRules(context, namespace='device_info.*')
+
+  hwid = transformer.Encode(db, bom, mode=hwid_mode)
+
   hwid.VerifyComponentStatus()
   return hwid
 

@@ -9,7 +9,7 @@
 import json
 import re
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.rules import phase
 from cros.factory.utils import type_utils
 
@@ -76,10 +76,6 @@ class HWID(object):
         workflow where all checks applies and deprecated components are not
         allowed. 'rma' indicates the HWID is goning through RMA process and
         deprecated components are allowed to present. Defaults to 'normal'.
-    skip_check: True to skip HWID verification checks. This is used when we want
-        to create a HWID object skeleton for further processing, e.g. a skeleton
-        HWID object to pass to rule evaluation to generate the final HWID.
-        Defaults to False.
 
   Raises:
     HWIDException if an invalid arg is found.
@@ -91,7 +87,7 @@ class HWID(object):
   ENCODING_SCHEME = type_utils.Enum(['base32', 'base8192'])
 
   def __init__(self, database, bom, identity=None,
-               mode=OPERATION_MODE.normal, skip_check=False):
+               mode=OPERATION_MODE.normal):
     self.database = database
     self.bom = bom
     if identity is not None and identity.binary_string[-1] != '1':
@@ -101,8 +97,6 @@ class HWID(object):
       raise HWIDException('Invalid operation mode: %r. Mode must be one of: '
                           "'normal' or 'rma'" % mode)
     self.mode = mode
-    if not skip_check:
-      self.VerifySelf()
 
   def __eq__(self, other):
     """Define the equivalence of HWID.
@@ -138,14 +132,7 @@ class HWID(object):
 
   @property
   def identity(self):
-    # pylint: disable=W0404
-    from cros.factory.hwid.v3.transformer import BOMToIdentity
-    identity = BOMToIdentity(self.database, self.bom)
-    if (self._identity and
-        HWID.IsEquivalentBinaryString(self._identity.binary_string,
-                                      identity.binary_string)):
-      return self._identity
-    return identity
+    return self._identity
 
   @property
   def binary_string(self):
@@ -164,20 +151,6 @@ class HWID(object):
     and 45 is the checksum. Compare to binary_string, it is human-trackable.
     """
     return self.identity.encoded_string
-
-  def VerifySelf(self):
-    """Verifies the HWID object itself.
-
-    This method is to verify the BOM object matches the database and the
-    generated HWID encoded string is valid. In HWID generation, the BOM object
-    is invalid before evaluating the rule to add the unprobeable components and
-    image ID. So this method should be called after that.
-
-    Raises:
-      HWIDException on verification error.
-    """
-    # Verify the encoded string during generating process.
-    _ = self.encoded_string
 
   def VerifyComponentStatus(self, current_phase=None):
     """Verifies the status of all components.

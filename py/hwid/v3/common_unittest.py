@@ -16,7 +16,7 @@ from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3.common import IsMPKeyName
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import hwid_utils
-from cros.factory.hwid.v3.transformer import Encode
+from cros.factory.hwid.v3 import transformer
 from cros.factory.utils import json_utils
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -74,8 +74,7 @@ class HWIDTest(unittest.TestCase):
         'keyboard': 'keyboard_us', 'dram': 'dram_0',
         'display_panel': 'display_panel_0'})
     bom.image_id = 2
-    hwid = Encode(self.database, bom)
-    self.assertEquals(None, hwid.VerifySelf())
+    hwid = transformer.Encode(self.database, bom)
 
     with self.assertRaises(AttributeError):
       hwid.binary_string = 'CANNOT SET binary_string'
@@ -83,12 +82,10 @@ class HWIDTest(unittest.TestCase):
     with self.assertRaises(AttributeError):
       hwid.encoded_string = 'CANNOT SET encoded_string'
 
-    original_value = hwid.bom
-    hwid.bom.encoded_fields['cpu'] = 10
+    bom.encoded_fields['cpu'] = 10
     self.assertRaisesRegexp(
         HWIDException, r'Encoded fields .* have unknown indices',
-        hwid.VerifySelf)
-    hwid.bom = original_value
+        transformer.Encode, self.database, bom)
 
   def testVerifyProbeResult(self):
     result = self.results[0]
@@ -97,7 +94,7 @@ class HWIDTest(unittest.TestCase):
         'keyboard': 'keyboard_us', 'dram': 'dram_0',
         'display_panel': 'display_panel_0'})
     bom.image_id = 2
-    hwid = Encode(self.database, bom)
+    hwid = transformer.Encode(self.database, bom)
 
     raw_result = json_utils.DumpStr(result)
 
