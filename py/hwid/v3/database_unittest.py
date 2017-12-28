@@ -285,57 +285,6 @@ class DatabaseTest(unittest.TestCase):
     self.assertEquals({'cellular': None},
                       self.database._GetAttributesByIndex('cellular', 0))
 
-  def testVerifyComponents(self):
-    self.maxDiff = None
-    bom = self.boms[0]
-    self.assertRaisesRegexp(
-        HWIDException, r'Argument comp_list should be a list',
-        self.database.VerifyComponents, bom, 'cpu')
-    self.assertRaisesRegexp(
-        HWIDException,
-        r"\['keyboard'\] do not have probe values and cannot be verified",
-        self.database.VerifyComponents, bom, ['keyboard'])
-    self.assertEquals({
-        'audio_codec': [
-            ('codec_1', {'compact_str': Value('Codec 1')}, None),
-            ('hdmi_1', {'compact_str': Value('HDMI 1')}, None)],
-        'cellular': [
-            (None, None, "Missing 'cellular' component")],
-        'cpu': [
-            ('cpu_5', {'name': Value('CPU @ 2.80GHz'), 'cores': Value('4')},
-             None)]},
-                      self.database.VerifyComponents(
-                          bom, ['audio_codec', 'cellular', 'cpu']))
-    self.assertEquals({
-        'audio_codec': [
-            ('codec_1', {'compact_str': Value('Codec 1')}, None),
-            (None, {'compact_str': 'HDMI 3'},
-             common.INVALID_COMPONENT_ERROR(
-                 'audio_codec', {'compact_str': 'HDMI 3'}))
-        ]}, self.database.VerifyComponents(self.boms[1], ['audio_codec']))
-    self.assertEquals({
-        'storage': [
-            (None, {'type': 'SSD', 'size': '16G', 'serial': '#1234aa'},
-             common.INVALID_COMPONENT_ERROR(
-                 'storage', {'type': 'SSD',
-                             'size': '16G',
-                             'serial': '#1234aa'}))]},
-                      self.database.VerifyComponents(self.boms[2],
-                                                     ['storage']))
-    bom = hwid_utils.GenerateBOMFromProbedResults(
-        self.database, self.results[3], loose_matching=True)
-    self.assertEquals({
-        'storage': [
-            ('storage_2', {'type': Value('HDD'), 'size': Value('500G'),
-                           'serial': Value(r'^#123\d+$', is_re=True)},
-             None)]},
-                      self.database.VerifyComponents(bom, ['storage']))
-    self.assertEquals({
-        'storage': [
-            (None, {'foo': 'bar'},
-             common.INVALID_COMPONENT_ERROR('storage', {'foo': 'bar'}))]},
-                      self.database.VerifyComponents(self.boms[4], ['storage']))
-
   def testLoadDatabaseWithRegionInfo(self):
     db = Database.LoadFile(
         os.path.join(_TEST_DATA_PATH, 'test_db_regions.yaml'))

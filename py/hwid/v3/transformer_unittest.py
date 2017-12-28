@@ -26,6 +26,11 @@ from cros.factory.utils import json_utils
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
 
+def _EncodedStringToBOM(database, encoded_string):
+  identity = hwid_utils.GetIdentityFromEncodedString(database, encoded_string)
+  return transformer.IdentityToBOM(database, identity)
+
+
 class VerifyBOMTest(unittest.TestCase):
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
@@ -251,34 +256,28 @@ class DecoderTest(unittest.TestCase):
     self.database.UpdateComponentsOfBOM(reference_bom, {
         'keyboard': 'keyboard_us', 'dram': 'dram_0',
         'display_panel': 'display_panel_0'})
-    hwid = transformer.Decode(self.database, 'CHROMEBOOK AA5A-Y6L')
-    self.assertEquals('0000000000111010000011', hwid.binary_string)
-    self.assertEquals('CHROMEBOOK AA5A-Y6L', hwid.encoded_string)
-    self._CheckBOM(reference_bom, hwid.bom)
+    bom = _EncodedStringToBOM(self.database, 'CHROMEBOOK AA5A-Y6L')
+    self._CheckBOM(reference_bom, bom)
 
-    hwid = transformer.Decode(self.database, 'CHROMEBOOK C2H-I3Q-A6Q')
-    self.assertEquals('0001000000111010000011', hwid.binary_string)
-    self.assertEquals('CHROMEBOOK C2H-I3Q-A6Q', hwid.encoded_string)
+    bom = _EncodedStringToBOM(self.database, 'CHROMEBOOK C2H-I3Q-A6Q')
     reference_bom.image_id = 2
-    self._CheckBOM(reference_bom, hwid.bom)
+    self._CheckBOM(reference_bom, bom)
 
   def testPreviousVersionOfEncodedString(self):
     bom = self._BinaryStringToBOM(self.database, '000000000011101000001')
     self.assertEquals(1, bom.encoded_fields['cpu'])
-    hwid = transformer.Decode(self.database, 'CHROMEBOOK AA5A-Q7Z')
-    self.assertEquals('000000000011101000001', hwid.binary_string)
-    self.assertEquals('CHROMEBOOK AA5A-Q7Z', hwid.encoded_string)
-    self.assertEquals(1, hwid.bom.encoded_fields['cpu'])
+    bom = _EncodedStringToBOM(self.database, 'CHROMEBOOK AA5A-Q7Z')
+    self.assertEquals(1, bom.encoded_fields['cpu'])
 
   def testDecodeRegion(self):
     db = Database.LoadFile(
         os.path.join(_TEST_DATA_PATH, 'test_db_regions.yaml'))
-    hwid = transformer.Decode(db, 'CHROMEBOOK A25-Q22')
+    bom = _EncodedStringToBOM(db, 'CHROMEBOOK A25-Q22')
     # The BOM should load 'us' region from the probe result (numeric_id=29).)
-    self.assertEquals(29, hwid.bom.encoded_fields['region_field'])
+    self.assertEquals(29, bom.encoded_fields['region_field'])
     self.assertEquals(
         [('us', {'region_code': Value('us')}, None)],
-        hwid.bom.components['region'])
+        bom.components['region'])
 
 
 class EncoderTest(unittest.TestCase):
@@ -319,14 +318,12 @@ class EncoderTest(unittest.TestCase):
     self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'display_panel': 'display_panel_0'})
     bom.image_id = 0
-    hwid = transformer.Encode(self.database, bom)
-    self.assertEquals('0000000000111010000011', hwid.binary_string)
-    self.assertEquals('CHROMEBOOK AA5A-Y6L', hwid.encoded_string)
+    identity = transformer.BOMToIdentity(self.database, bom)
+    self.assertEquals('CHROMEBOOK AA5A-Y6L', identity.encoded_string)
 
     bom.image_id = 2
-    hwid = transformer.Encode(self.database, bom)
-    self.assertEquals('0001000000111010000011', hwid.binary_string)
-    self.assertEquals('CHROMEBOOK C2H-I3Q-A6Q', hwid.encoded_string)
+    identity = transformer.BOMToIdentity(self.database, bom)
+    self.assertEquals('CHROMEBOOK C2H-I3Q-A6Q', identity.encoded_string)
 
   def testEncodeError(self):
     # Missing required component 'dram'.
@@ -337,7 +334,7 @@ class EncoderTest(unittest.TestCase):
         'keyboard': 'keyboard_us', 'display_panel': 'display_panel_0'})
     self.assertRaisesRegexp(
         HWIDException, "Encoded fields 'dram' have unknown indices",
-        transformer.Encode, self.database, bom)
+        transformer.BOMToIdentity, self.database, bom)
 
     # Unsupported probe values of component 'dram'.
     mock_results = copy.deepcopy(self.results[0])
@@ -348,7 +345,7 @@ class EncoderTest(unittest.TestCase):
     self.assertRaisesRegexp(
         HWIDException, "Unknown component values: "
         "\"dram:{'size': '4G', 'vendor': 'FOO'}\"",
-        transformer.Encode, self.database, bom)
+        transformer.BOMToIdentity, self.database, bom)
 
   def testEncodeRegion(self):
     db = Database.LoadFile(
@@ -356,10 +353,9 @@ class EncoderTest(unittest.TestCase):
     bom = hwid_utils.GenerateBOMFromProbedResults(db, self.results[5])
     # The BOM should load 'us' region from the probe result (numeric_id=29).)
     self.assertEquals(29, bom.encoded_fields['region_field'])
-    hwid = transformer.Encode(db, bom)
+    identity = transformer.BOMToIdentity(db, bom)
     # The encoder should encode field index 29 into the region field.
-    self.assertEquals('00000000111011', hwid.binary_string)
-    self.assertEquals('CHROMEBOOK A25-Q22', hwid.encoded_string)
+    self.assertEquals('CHROMEBOOK A25-Q22', identity.encoded_string)
 
 
 if __name__ == '__main__':

@@ -202,16 +202,16 @@ def GenerateHWIDWrapper(options):
       'vpd': vpd
   }
   logging.debug(yaml.dump(verbose_output, default_flow_style=False))
-  hwid = hwid_utils.GenerateHWID(options.database, bom, device_info,
-                                 rma_mode=options.rma_mode, vpd=vpd)
+  identity = hwid_utils.GenerateHWID(options.database, bom, device_info,
+                                     rma_mode=options.rma_mode, vpd=vpd)
   if options.json_output:
     print json.dumps({
-        'encoded_string': hwid.encoded_string,
-        'binary_string': hwid.binary_string,
-        'hwdb_checksum': hwid.database.checksum})
+        'encoded_string': identity.encoded_string,
+        'binary_string': identity.binary_string,
+        'hwdb_checksum': options.database.checksum})
   else:
-    print 'Encoded HWID string: %s' % hwid.encoded_string
-    print 'Binary HWID string: %s' % hwid.binary_string
+    print 'Encoded HWID string: %s' % identity.encoded_string
+    print 'Binary HWID string: %s' % identity.binary_string
 
 
 @Command(
@@ -221,8 +221,8 @@ def GenerateHWIDWrapper(options):
 def DecodeHWIDWrapper(options):
   """Decodes HWID."""
   encoded_string = options.hwid if options.hwid else _GetHWIDString()
-  decoded_hwid = hwid_utils.DecodeHWID(options.database, encoded_string)
-  print yaml.dump(hwid_utils.ParseDecodedHWID(decoded_hwid),
+  identity, bom = hwid_utils.DecodeHWID(options.database, encoded_string)
+  print yaml.dump(hwid_utils.ParseDecodedHWID(options.database, bom, identity),
                   default_flow_style=False)
 
 

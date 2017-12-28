@@ -76,8 +76,8 @@ class HWIDv3UtilsTestWithNewDatabase(unittest.TestCase):
   def testDecodeHWID(self):
     """Tests HWID decoding."""
     # Decode old HWID string
-    hwid = hwid_utils.DecodeHWID(self.db, 'CHROMEBOOK D9I-F9U')
-    parsed_result = hwid_utils.ParseDecodedHWID(hwid)
+    identity, bom = hwid_utils.DecodeHWID(self.db, 'CHROMEBOOK D9I-F9U')
+    parsed_result = hwid_utils.ParseDecodedHWID(self.db, bom, identity)
     self.assertNotIn('firmware_keys', parsed_result)
     self.assertEquals(parsed_result['components']['cellular'], [{None: None}])
     self.assertEquals(parsed_result['components']['audio_codec'],
@@ -87,8 +87,8 @@ class HWIDv3UtilsTestWithNewDatabase(unittest.TestCase):
                       [{'display_panel_0': None}])
 
     # Decode new HWID string with audio_codec
-    hwid = hwid_utils.DecodeHWID(self.db, 'CHROMEBOOK E35-A2Y-A7B')
-    parsed_result = hwid_utils.ParseDecodedHWID(hwid)
+    identity, bom = hwid_utils.DecodeHWID(self.db, 'CHROMEBOOK E35-A2Y-A7B')
+    parsed_result = hwid_utils.ParseDecodedHWID(self.db, bom, identity)
     self.assertNotIn('display_panel', parsed_result)
     self.assertNotIn('cellular', parsed_result)
     self.assertEquals(parsed_result['components']['firmware_keys'],
@@ -100,8 +100,8 @@ class HWIDv3UtilsTestWithNewDatabase(unittest.TestCase):
                        {'hdmi_1': {'compact_str': Value('HDMI 1')}}])
 
     # Decode new HWID string without audio_codec
-    hwid = hwid_utils.DecodeHWID(self.db, 'CHROMEBOOK E45-A2Y-A2Z')
-    parsed_result = hwid_utils.ParseDecodedHWID(hwid)
+    identity, bom = hwid_utils.DecodeHWID(self.db, 'CHROMEBOOK E45-A2Y-A2Z')
+    parsed_result = hwid_utils.ParseDecodedHWID(self.db, bom, identity)
     self.assertNotIn('display_panel', parsed_result)
     self.assertNotIn('cellular', parsed_result)
     self.assertEquals(parsed_result['components']['firmware_keys'],
@@ -254,7 +254,7 @@ class HWIDv3UtilsTest(unittest.TestCase):
     self.assertRaisesRegexp(
         common.HWIDException,
         r"In DVT phase, expected an image name beginning with 'DVT' "
-        r"\(but .* has image ID 'PVT2'\)",
+        r"\(but .* 'PVT2'\)",
         hwid_utils.VerifyHWID,
         self.db, 'CHROMEBOOK D9I-F9U', bom, self.vpd, False,
         phase.DVT)
@@ -323,7 +323,7 @@ class HWIDv3UtilsTest(unittest.TestCase):
 
   def testDecodeHWID(self):
     """Tests HWID decoding."""
-    hwid = hwid_utils.DecodeHWID(self.db, 'CHROMEBOOK D9I-F9U')
+    identity, bom = hwid_utils.DecodeHWID(self.db, 'CHROMEBOOK D9I-F9U')
     data = {
         'audio_codec_field': 1,
         'battery_field': 3,
@@ -336,9 +336,10 @@ class HWIDv3UtilsTest(unittest.TestCase):
         'keyboard_field': 0,
         'dram_field': 0,
         'cpu_field': 5}
-    self.assertEquals(data, hwid.bom.encoded_fields)
+    self.assertEquals(data, bom.encoded_fields)
 
-    parsed_result = hwid_utils.ParseDecodedHWID(hwid)
+    parsed_result = hwid_utils.ParseDecodedHWID(
+        self.db, bom, identity)
     self.assertEquals(parsed_result['project'], 'CHROMEBOOK')
     self.assertEquals(parsed_result['binary_string'], '000111110100000101')
     self.assertEquals(parsed_result['image_id'], 'PVT2')

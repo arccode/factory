@@ -358,35 +358,6 @@ class Database(object):
           result[comp_cls].append(new_attr)
     return result
 
-  def VerifyComponents(self, bom, comp_list=None):
-    """Given a list of component classes, verify that the probed components of
-    all the component classes in the list are valid components in the database.
-
-    Args:
-      bom: A BOM object contains a list of components.
-      comp_list: An optional list of component class to be verified. Defaults to
-          None, which will then verify all the probeable components defined in
-          the database.
-
-    Returns:
-      A dict from component class to a list of one or more
-      ProbedComponentResult tuples.
-      {component class: [ProbedComponentResult(
-          component_name,  # The component name if found in the db, else None.
-          probed_values,   # The actual probed string. None if probing failed.
-          error)]}         # The error message if there is one; else None.
-    """
-    if not comp_list:
-      comp_list = sorted(self.components.probeable)
-    if not isinstance(comp_list, list):
-      raise common.HWIDException('Argument comp_list should be a list')
-    invalid_cls = set(comp_list) - set(self.components.probeable)
-    if invalid_cls:
-      raise common.HWIDException(
-          '%r do not have probe values and cannot be verified' %
-          sorted(invalid_cls))
-    return dict((comp_cls, bom.components[comp_cls]) for comp_cls in comp_list)
-
   def GetActiveComponents(self, image_id=None):
     """Returns a list of the components contained at the according pattern."""
     ret = set()
@@ -572,8 +543,8 @@ class Components(object):
       for comp_cls_item_attrs in comp_cls_data['items'].itervalues():
         # Sanity check for component status.
         status = comp_cls_item_attrs.get(
-            'status', common.HWID.COMPONENT_STATUS.supported)
-        if status not in common.HWID.COMPONENT_STATUS:
+            'status', common.COMPONENT_STATUS.supported)
+        if status not in common.COMPONENT_STATUS:
           raise common.HWIDException(
               'Invalid component item status: %r' % status)
 
@@ -623,7 +594,7 @@ class Components(object):
       component.
     """
     return self.components_dict[comp_cls]['items'][comp_name].get(
-        'status', common.HWID.COMPONENT_STATUS.supported)
+        'status', common.COMPONENT_STATUS.supported)
 
   def MatchComponentsFromValues(self, comp_cls, values_dict,
                                 loose_matching=False, include_default=False):
@@ -809,7 +780,7 @@ class Pattern(object):
       raise common.HWIDException(
           'Cannot get bit length with uninitialized pattern')
     # 5 bits for header and 1 bit for stop bit
-    return (common.HWID.HEADER_BITS + 1 +
+    return (common.HEADER_BITS + 1 +
             sum(self.GetFieldsBitLength(image_id).values()))
 
   def GetBitMapping(self, image_id=None, binary_string_length=None):
@@ -840,7 +811,7 @@ class Pattern(object):
       raise common.HWIDException(
           'Cannot construct bit mapping with uninitialized pattern')
     ret = {}
-    index = common.HWID.HEADER_BITS   # Skips the 5-bit common header.
+    index = common.HEADER_BITS   # Skips the 5-bit common header.
     field_offset_map = collections.defaultdict(int)
     if not binary_string_length:
       # Exclude stop bit.

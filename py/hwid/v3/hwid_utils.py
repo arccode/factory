@@ -14,8 +14,11 @@ from cros.factory.hwid.v3.bom import ProbedComponentResult
 from cros.factory.hwid.v3 import builder
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.database import Database
+from cros.factory.hwid.v3 import identity as identity_utils
+from cros.factory.hwid.v3.identity import Identity
 from cros.factory.hwid.v3 import rule
 from cros.factory.hwid.v3 import transformer
+from cros.factory.hwid.v3 import verifier
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.utils import json_utils
 from cros.factory.utils import type_utils
@@ -23,8 +26,8 @@ from cros.factory.utils import type_utils
 
 def _HWIDMode(rma_mode):
   if rma_mode:
-    return common.HWID.OPERATION_MODE.rma
-  return common.HWID.OPERATION_MODE.normal
+    return common.OPERATION_MODE.rma
+  return common.OPERATION_MODE.normal
 
 
 def BuildDatabase(database_path, probed_results, project, image_id,
@@ -81,13 +84,19 @@ def GenerateHWID(db, bom, device_info, vpd=None, rma_mode=False):
   context = rule.Context(**context_args)
   db.rules.EvaluateRules(context, namespace='device_info.*')
 
-  hwid = transformer.Encode(db, bom, mode=hwid_mode)
+  identity = transformer.BOMToIdentity(db, bom)
 
-  hwid.VerifyComponentStatus()
-  return hwid
+  verifier.VerifyComponentStatus(db, bom, hwid_mode)
+  return identity
 
 
-def DecodeHWID(db, encoded_string):
+def GetIdentityFromEncodedString(database, encoded_string):
+  image_id = identity_utils.GetImageIdFromEncodedString(encoded_string)
+  encoding_scheme = database.pattern.GetEncodingScheme(image_id)
+  return Identity.GenerateFromEncodedString(encoding_scheme, encoded_string)
+
+
+def DecodeHWID(database, encoded_string):
   """Decodes the given HWID v3 encoded string and returns the decoded info.
 
   Args:
@@ -97,10 +106,12 @@ def DecodeHWID(db, encoded_string):
   Returns:
     The decoded HWIDv3 context object.
   """
-  return transformer.Decode(db, encoded_string)
+  identity = GetIdentityFromEncodedString(database, encoded_string)
+  bom = transformer.IdentityToBOM(database, identity)
+  return identity, bom
 
 
-def ParseDecodedHWID(hwid):
+def ParseDecodedHWID(database, bom, identity):
   """Parses the HWID object into a more compact dict.
 
   This function returns the project name and binary string from the HWID object,
@@ -115,8 +126,8 @@ def ParseDecodedHWID(hwid):
     components.
   """
   output_components = collections.defaultdict(list)
-  components = hwid.bom.components
-  db_components = hwid.database.components
+  components = bom.components
+  db_components = database.components
   for comp_cls in sorted(components):
     for (comp_name, probed_values, _) in sorted(components[comp_cls]):
       if not probed_values:
@@ -124,9 +135,9 @@ def ParseDecodedHWID(hwid):
             comp_cls, comp_name).get('values')
       output_components[comp_cls].append(
           {comp_name: probed_values if probed_values else None})
-  return {'project': hwid.database.project,
-          'binary_string': hwid.binary_string,
-          'image_id': hwid.database.image_id[hwid.bom.image_id],
+  return {'project': database.project,
+          'binary_string': identity.binary_string,
+          'image_id': database.image_id[bom.image_id],
           'components': dict(output_components)}
 
 
@@ -141,7 +152,7 @@ def VerifyHWID(db, encoded_string, bom, vpd=None, rma_mode=False,
   RO and RW VPD are also loaded and checked against the required values stored
   in the project-specific component database.
 
-  Phase checks are enforced; see cros.factory.hwid.common.VerifyPhase for
+  Phase checks are enforced; see cros.factory.hwid.v3.verifier.VerifyPhase for
   details.
 
   A set of mandatory rules for VPD are also forced here.
@@ -162,11 +173,13 @@ def VerifyHWID(db, encoded_string, bom, vpd=None, rma_mode=False,
     HWIDException if verification fails.
   """
   hwid_mode = _HWIDMode(rma_mode)
-  hwid = transformer.Decode(db, encoded_string, mode=hwid_mode)
-  hwid.VerifyBOM(bom)
-  hwid.VerifyComponentStatus(current_phase=current_phase)
-  hwid.VerifyPhase(current_phase)
-  context_args = dict(database=hwid.database, bom=hwid.bom, mode=hwid.mode)
+  identity = GetIdentityFromEncodedString(db, encoded_string)
+  decoded_bom = transformer.IdentityToBOM(db, identity)
+  verifier.VerifyBOM(db, decoded_bom, bom)
+  verifier.VerifyComponentStatus(
+      db, decoded_bom, hwid_mode, current_phase=current_phase)
+  verifier.VerifyPhase(db, decoded_bom, current_phase)
+  context_args = dict(database=db, bom=decoded_bom, mode=hwid_mode)
   if vpd is not None:
     context_args['vpd'] = vpd
   context = rule.Context(**context_args)
@@ -192,7 +205,7 @@ def VerifyComponents(db, bom, component_list):
         probed_string,   # The actual probed string. None if probing failed.
         error)]}         # The error message if there is one.
   """
-  return db.VerifyComponents(bom, component_list)
+  return verifier.VerifyComponents(db, bom, component_list)
 
 
 def ListComponents(db, comp_class=None):
@@ -261,16 +274,16 @@ def EnumerateHWID(db, image_id=None, status='supported'):
         else:
           for attrs in attr_list:
             if status == 'supported' and attrs.get('status') in (
-                common.HWID.COMPONENT_STATUS.unsupported,
-                common.HWID.COMPONENT_STATUS.deprecated,
-                common.HWID.COMPONENT_STATUS.unqualified):
+                common.COMPONENT_STATUS.unsupported,
+                common.COMPONENT_STATUS.deprecated,
+                common.COMPONENT_STATUS.unqualified):
               pass_check = False
               logging.debug('Ignore %s.%s: %r', comp_cls, attrs['name'],
                             attrs['status'])
               break
             if status == 'released' and attrs.get('status') in (
-                common.HWID.COMPONENT_STATUS.unsupported,
-                common.HWID.COMPONENT_STATUS.unqualified):
+                common.COMPONENT_STATUS.unsupported,
+                common.COMPONENT_STATUS.unqualified):
               pass_check = False
               logging.debug('Ignore %s.%s: %r', comp_cls, attrs['name'],
                             attrs['status'])
@@ -423,7 +436,7 @@ def GenerateBOMFromProbedResults(database,
     if comp_cls in database.components.default:
       comp_name = database.components.default[comp_cls]
       comp_status = database.components.GetComponentStatus(comp_cls, comp_name)
-      if comp_status != common.HWID.COMPONENT_STATUS.unsupported:
+      if comp_status != common.COMPONENT_STATUS.unsupported:
         probed_components[comp_cls].append(
             ProbedComponentResult(comp_name, None, None))
         return True
@@ -449,7 +462,7 @@ def GenerateBOMFromProbedResults(database,
           comp_name = comp_dict['items'].keys()[0]
           comp_status = database.components.GetComponentStatus(
               comp_cls, comp_name)
-          if comp_status == common.HWID.COMPONENT_STATUS.supported:
+          if comp_status == common.COMPONENT_STATUS.supported:
             probed_components[comp_cls].append(
                 ProbedComponentResult(comp_name, None, None))
       continue
@@ -474,7 +487,7 @@ def GenerateBOMFromProbedResults(database,
         comp_name, comp_data = matched_comps.items()[0]
         comp_status = database.components.GetComponentStatus(
             comp_cls, comp_name)
-        if comp_status == common.HWID.COMPONENT_STATUS.supported:
+        if comp_status == common.COMPONENT_STATUS.supported:
           probed_components[comp_cls].append(
               ProbedComponentResult(comp_name, comp_data['values'], None))
         else:

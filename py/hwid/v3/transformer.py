@@ -8,26 +8,11 @@ import collections
 import pprint
 
 import factory_common  # pylint: disable=W0611
-
 from cros.factory.hwid.v3.bom import BOM
 from cros.factory.hwid.v3.bom import ProbedComponentResult
 from cros.factory.hwid.v3 import common
-from cros.factory.hwid.v3.base32 import Base32
-from cros.factory.hwid.v3.base8192 import Base8192
-from cros.factory.hwid.v3 import identity as identity_utils
 from cros.factory.hwid.v3.identity import Identity
 from cros.factory.utils import type_utils
-
-
-_Encoder = {
-    common.HWID.ENCODING_SCHEME.base32: Base32,
-    common.HWID.ENCODING_SCHEME.base8192: Base8192
-}
-
-_Decoder = {
-    common.HWID.ENCODING_SCHEME.base32: Base32,
-    common.HWID.ENCODING_SCHEME.base8192: Base8192
-}
 
 
 def VerifyBOM(database, bom, probeable_only=False):
@@ -152,25 +137,6 @@ def BOMToIdentity(database, bom):
       bom.image_id, components_bitset)
 
 
-def Encode(database, bom, mode=common.HWID.OPERATION_MODE.normal):
-  """Encodes all the given BOM object.
-
-  Args:
-    database: A Database object that is used to provide device-specific
-        information for encoding.
-    bom: A BOM object.
-    mode: The operation mode of the generated HWID object. Valid values are:
-        ('normal', 'rma')
-
-  Returns:
-    A HWID object which contains the BOM, the binary string, and the encoded
-    string derived from the given BOM object.
-  """
-  identity = BOMToIdentity(database, bom)
-  hwid = common.HWID(database, bom=bom, identity=identity, mode=mode)
-  return hwid
-
-
 def IdentityToBOM(database, identity):
   """Decodes the given HWID Identity to a BOM object.
 
@@ -233,24 +199,3 @@ def IdentityToBOM(database, identity):
 
   return BOM(project, encode_pattern_index, image_id, components,
              encoded_fields)
-
-
-def Decode(database, encoded_string, mode=common.HWID.OPERATION_MODE.normal):
-  """Decodes the given encoded string to a HWID object.
-
-  Args:
-    database: A Database object that is used to provide device-specific
-        information for decoding.
-    encoded_string: An encoded string.
-    mode: The operation mode of the generated HWID object. Valid values are:
-        ('normal', 'rma')
-
-  Returns:
-    A HWID object which contains the BOM, the binary string, and the encoded
-    string derived from the given encoded string.
-  """
-  image_id = identity_utils.GetImageIdFromEncodedString(encoded_string)
-  encoding_scheme = database.pattern.GetEncodingScheme(image_id)
-  identity = Identity.GenerateFromEncodedString(encoding_scheme, encoded_string)
-  bom = IdentityToBOM(database, identity)
-  return common.HWID(database, bom=bom, identity=identity, mode=mode)

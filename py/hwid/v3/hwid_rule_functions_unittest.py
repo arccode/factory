@@ -68,7 +68,7 @@ class HWIDRuleTest(unittest.TestCase):
     }
     self.context = Context(
         database=self.database, bom=self.bom,
-        mode=common.HWID.OPERATION_MODE.normal,
+        mode=common.OPERATION_MODE.normal,
         device_info=self.device_info, vpd=self.vpd)
     SetContext(self.context)
 
@@ -83,9 +83,8 @@ class HWIDRuleTest(unittest.TestCase):
                     "SetComponent('dram', 'dram_1')"],
                 otherwise=None)
     rule.Evaluate(self.context)
-    hwid = transformer.Encode(self.database, self.bom)
-    self.assertEquals(hwid.binary_string, r'0000000000111011000011')
-    self.assertEquals(hwid.encoded_string, r'CHROMEBOOK AA5Q-YM2')
+    identity = transformer.BOMToIdentity(self.database, self.bom)
+    self.assertEquals(identity.encoded_string, r'CHROMEBOOK AA5Q-YM2')
 
     rule = Rule(name='foobar2',
                 when="GetDeviceInfo('SKU') == 1",
@@ -132,9 +131,8 @@ class HWIDRuleTest(unittest.TestCase):
         - SetComponent('dram', 'dram_1')
     """)
     rule.Evaluate(self.context)
-    hwid = transformer.Encode(self.database, self.bom)
-    self.assertEquals(hwid.binary_string, r'0000000000111011000011')
-    self.assertEquals(hwid.encoded_string, r'CHROMEBOOK AA5Q-YM2')
+    identity = transformer.BOMToIdentity(self.database, self.bom)
+    self.assertEquals(identity.encoded_string, r'CHROMEBOOK AA5Q-YM2')
 
     rule = yaml.load("""
         !rule
@@ -199,27 +197,23 @@ class HWIDRuleTest(unittest.TestCase):
         'cpu_3', self.context.bom.components['cpu'][0].component_name)
     self.assertEquals(
         3, self.context.bom.encoded_fields['cpu'])
-    hwid = transformer.Encode(self.database, self.bom)
-    self.assertEquals('0000000000111010010001', hwid.binary_string)
-    self.assertEquals('CHROMEBOOK AA5E-IVL', hwid.encoded_string)
+    identity = transformer.BOMToIdentity(self.database, self.bom)
+    self.assertEquals('CHROMEBOOK AA5E-IVL', identity.encoded_string)
     SetComponent('cellular', 'cellular_0')
     self.assertEquals(
         'cellular_0',
         self.context.bom.components['cellular'][0].component_name)
     self.assertEquals(1, self.context.bom.encoded_fields['cellular'])
-    hwid = transformer.Encode(self.database, self.bom)
-    self.assertEquals('0000000000111110010001', hwid.binary_string)
-    self.assertEquals('CHROMEBOOK AA7E-IWF', hwid.encoded_string)
+    identity = transformer.BOMToIdentity(self.database, self.bom)
+    self.assertEquals('CHROMEBOOK AA7E-IWF', identity.encoded_string)
 
   def testSetImageId(self):
     SetImageId(1)
-    hwid = transformer.Encode(self.database, self.bom)
-    self.assertEquals('0000100000111010000011', hwid.binary_string)
-    self.assertEquals('CHROMEBOOK BA5A-YI3', hwid.encoded_string)
+    identity = transformer.BOMToIdentity(self.database, self.bom)
+    self.assertEquals('CHROMEBOOK BA5A-YI3', identity.encoded_string)
     SetImageId(2)
-    hwid = transformer.Encode(self.database, self.bom)
-    self.assertEquals('0001000000111010000011', hwid.binary_string)
-    self.assertEquals('CHROMEBOOK C2H-I3Q-A6Q', hwid.encoded_string)
+    identity = transformer.BOMToIdentity(self.database, self.bom)
+    self.assertEquals('CHROMEBOOK C2H-I3Q-A6Q', identity.encoded_string)
     self.assertRaisesRegexp(
         HWIDException, r'Invalid image id: 7', SetImageId, 7)
 

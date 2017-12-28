@@ -145,9 +145,9 @@ def _CompareBinaryString(db, expected, given):
   image_id = db.pattern.GetImageIdFromBinaryString(given)
   encoding_scheme = db.pattern.GetPatternByImageId(
       image_id)['encoding_scheme']
-  if encoding_scheme == common.HWID.ENCODING_SCHEME.base32:
+  if encoding_scheme == common.ENCODING_SCHEME.base32:
     return _CompareBase32BinaryString(db, expected, given)
-  elif encoding_scheme == common.HWID.ENCODING_SCHEME.base8192:
+  elif encoding_scheme == common.ENCODING_SCHEME.base8192:
     return _CompareBase8192BinaryString(db, expected, given)
 
 
@@ -295,24 +295,26 @@ class ValidHWIDDBsTest(unittest.TestCase):
     device_info = sample_dict.get('device_info')
     rma_mode = sample_dict.get('rma_mode')
 
+    mode = getattr(common.OPERATION_MODE, 'rma' if rma_mode else 'normal')
+
     def _Encode():
       bom = hwid_utils.GenerateBOMFromProbedResults(db, probe_results)
-      hwid = hwid_utils.GenerateHWID(db, bom, device_info,
-                                     vpd=vpd, rma_mode=rma_mode)
+      identity = hwid_utils.GenerateHWID(db, bom, device_info,
+                                         vpd=vpd, rma_mode=rma_mode)
       # Test all rules.
       db.rules.EvaluateRules(Context(
-          database=hwid.database, bom=hwid.bom, mode=hwid.mode, vpd=vpd,
+          database=db, bom=bom, mode=mode, vpd=vpd,
           device_info=device_info))
-      return hwid
+      return identity
 
     if error:
       self.assertRaisesRegexp(Exception, re.compile(error, re.S), _Encode)
     else:
-      hwid = _Encode()
-      self.assertEquals(binary_string, hwid.binary_string,
-                        _CompareBinaryString(hwid.database, binary_string,
-                                             hwid.binary_string))
-      self.assertEquals(encoded_string, hwid.encoded_string)
+      identity = _Encode()
+      self.assertEquals(binary_string, identity.binary_string,
+                        _CompareBinaryString(db, binary_string,
+                                             identity.binary_string))
+      self.assertEquals(encoded_string, identity.encoded_string)
 
   def TestDecode(self, db, sample_dict):
     error = None
@@ -337,11 +339,11 @@ class ValidHWIDDBsTest(unittest.TestCase):
     if error:
       self.assertRaisesRegexp(Exception, re.compile(error, re.S), _Decode)
     else:
-      hwid = _Decode()
-      self.assertEquals(binary_string, hwid.binary_string)
-      for field_name in db.pattern.GetFieldNames(hwid.bom.image_id):
+      identity, bom = _Decode()
+      self.assertEquals(binary_string, identity.binary_string)
+      for field_name in db.pattern.GetFieldNames(bom.image_id):
         self.assertEquals(encoded_fields[field_name],
-                          hwid.bom.encoded_fields[field_name])
+                          bom.encoded_fields[field_name])
 
 
 if __name__ == '__main__':
