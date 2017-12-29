@@ -12,7 +12,7 @@ import shutil
 import sys
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.hwid.v3 import database
+from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.test.rules import phase
@@ -379,7 +379,7 @@ def InitializeDefaultOptions(options):
   # Create the Database object here since it's common to all functions.
   logging.debug('Loading database file %s/%s...', options.hwid_db_path,
                 options.project.upper())
-  options.database = database.Database.LoadFile(
+  options.database = Database.LoadFile(
       os.path.join(options.hwid_db_path, options.project.upper()),
       verify_checksum=(not options.no_verify_checksum))
 

@@ -23,10 +23,10 @@ import os
 import subprocess
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import process_utils
 from cros.factory.hwid.v3 import common
-from cros.factory.hwid.v3 import database
+from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.utils.schema import SchemaException
 
@@ -95,17 +95,17 @@ class HWIDDBsPatternTest(unittest.TestCase):
       db_path: Path of the HWID database to be verified.
     """
     # A compatible version of HWID database can be loaded successfully.
-    new_db = database.Database.LoadData(
-        yaml.load(process_utils.CheckOutput(
+    new_db = Database.LoadData(
+        process_utils.CheckOutput(
             ['git', 'show', '%s:%s' % (commit, db_path)],
-            cwd=hwid_dir, ignore_stderr=True)),
+            cwd=hwid_dir, ignore_stderr=True),
         strict=False)
 
     try:
-      old_db = database.Database.LoadData(
-          yaml.load(process_utils.CheckOutput(
+      old_db = Database.LoadData(
+          process_utils.CheckOutput(
               ['git', 'show', '%s~1:%s' % (commit, db_path)],
-              cwd=hwid_dir, ignore_stderr=True)),
+              cwd=hwid_dir, ignore_stderr=True),
           strict=False)
     except subprocess.CalledProcessError as e:
       if e.returncode == 128:
@@ -124,11 +124,10 @@ class HWIDDBsPatternTest(unittest.TestCase):
   @staticmethod
   def VerifyParsedDatabasePattern(old_db, new_db):
     # Make sure all the encoded fields in the existing patterns are not changed.
-    for i in xrange(len(old_db.pattern.pattern)):
-      dummy_image_id = old_db.pattern.pattern[i]['image_ids'][0]
-      old_bit_mapping = old_db.pattern.GetBitMapping(image_id=dummy_image_id)
-      new_bit_mapping = new_db.pattern.GetBitMapping(image_id=dummy_image_id)
-      for index in old_bit_mapping.iterkeys():
+    for image_id in old_db.image_ids:
+      old_bit_mapping = old_db.GetBitMapping(image_id=image_id)
+      new_bit_mapping = new_db.GetBitMapping(image_id=image_id)
+      for index in xrange(len(old_bit_mapping)):
         if new_bit_mapping[index] != old_bit_mapping[index]:
           raise common.HWIDException(
               'Bit pattern mismatch found at bit %d (encoded field=%r). '

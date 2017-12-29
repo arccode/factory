@@ -1,349 +1,365 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
 # Copyright 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# pylint: disable=W0212
-
-import copy
 import os
 import unittest
-import factory_common  # pylint: disable=W0611
 
+import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3.database import Components
 from cros.factory.hwid.v3.database import Database
-from cros.factory.hwid.v3.rule import Value
-from cros.factory.hwid.v3 import yaml_wrapper as yaml
+from cros.factory.hwid.v3.database import EncodedFields
+from cros.factory.hwid.v3.database import ImageId
+from cros.factory.hwid.v3.database import Pattern
+from cros.factory.hwid.v3.database import Rules
+from cros.factory.utils import file_utils
 
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
 
 class DatabaseTest(unittest.TestCase):
-
-  def setUp(self):
-    self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
-                                                   'test_db.yaml'))
-
   def testLoadFile(self):
-    self.assertIsInstance(Database.LoadFile(os.path.join(
-        _TEST_DATA_PATH, 'test_db.yaml'), verify_checksum=True), Database)
-    self.assertRaisesRegexp(
-        HWIDException, r'HWID database .* checksum verification failed',
-        Database.LoadFile,
-        os.path.join(_TEST_DATA_PATH, 'test_db_wrong_checksum_field.yaml'),
-        verify_checksum=True)
-    self.assertRaisesRegexp(
-        yaml.constructor.ConstructorError,
-        r'while constructing a mapping\n.*\nfound duplicated key \(1\)',
-        Database.LoadFile,
-        os.path.join(_TEST_DATA_PATH, 'test_db_duplicated_keys.yaml'))
-    legacy_db = Database.LoadFile(os.path.join(
-        _TEST_DATA_PATH, 'test_db_legacy.yaml'), verify_checksum=True)
-    self.assertEqual(legacy_db.project, 'CHROMEBOOK')
+    Database.LoadFile(os.path.join(_TEST_DATA_PATH, 'test_database_db.yaml'))
+    Database.LoadFile(
+        os.path.join(_TEST_DATA_PATH, 'test_database_db_bad_checksum.yaml'),
+        verify_checksum=False)
 
-  def testDatabaseChecksum(self):
-    self.assertEquals(
-        Database.Checksum(os.path.join(_TEST_DATA_PATH,
-                                       'test_db_no_checksum.yaml')),
-        Database.Checksum(os.path.join(_TEST_DATA_PATH, 'test_db.yaml')))
+    self.assertRaises(HWIDException, Database.LoadFile,
+                      os.path.join(_TEST_DATA_PATH,
+                                   'test_database_db_bad_checksum.yaml'))
+    for case in ['missing_pattern',
+                 'missing_encoded_field',
+                 'missing_component']:
+      self.assertRaises(HWIDException, Database.LoadFile,
+                        os.path.join(_TEST_DATA_PATH,
+                                     'test_database_db_%s.yaml' % case),
+                        verify_checksum=False)
 
-  def testLoadData(self):
-    self.assertRaisesRegexp(
-        HWIDException, r'Invalid HWID database', Database.LoadData, '')
-    self.assertRaisesRegexp(
-        HWIDException, r"'project' is not specified in component database",
-        Database.LoadData, {'foo': 'bar'})
-
-  def testStrict(self):
-    with open(os.path.join(_TEST_DATA_PATH, 'test_db.yaml')) as f:
-      data = yaml.load(f)
-
-    # No problem in strict (default) mode
-    Database.LoadData(data)
-    del data['checksum']
-    # Missing checksum: fails in strict mode
-    self.assertRaisesRegexp(HWIDException, "'checksum' is not specified",
-                            Database.LoadData, data)
-    # Missing checksum: passes in non-strict mode
-    Database.LoadData(data, strict=False)
-
-  def testSanityChecks(self):
-    mock_db = copy.deepcopy(self.database)
-    mock_db.encoded_fields['foo'] = dict()
-    mock_db.encoded_fields['foo'][0] = {'bar': ['buz']}
-    self.assertRaisesRegexp(
-        HWIDException,
-        r"Invalid component class 'bar' in encoded_fields\['foo'\]\[0\]",
-        mock_db._SanityChecks)
-    mock_db.encoded_fields['foo'][0] = {'cpu': ['buz']}
-    self.assertRaisesRegexp(
-        HWIDException,
-        r"Invalid component name 'buz' of class 'cpu' in encoded_fields"
-        r"\['foo'\]\[0\]\['cpu'\]",
-        mock_db._SanityChecks)
-    # Manually remove image ID 2 from pattern's image ID list. The sanity check
-    # should catch that image ID 2 does not have a corresponding pattern
-    # defined.
-    mock_db = copy.deepcopy(self.database)
-    mock_db.pattern.pattern[1]['image_ids'].remove(2)
-    self.assertRaisesRegexp(
-        HWIDException, r'Pattern for image id 2 is not defined',
-        mock_db._SanityChecks)
-
-  def testPatternBitLength(self):
-    mock_db = copy.deepcopy(self.database)
-    mock_db.pattern.pattern[1]['fields'].append({'foo_field': 0})
-    self.assertRaisesRegexp(
-        HWIDException,
-        r"Pattern contains unknown encoded field 'foo_field'",
-        mock_db._SanityChecks)
-    mock_db = copy.deepcopy(self.database)
-    mock_db.encoded_fields['audio_codec'][2] = {
-        'audio_codec': ['codec_0', 'hdmi_1']}
-    self.assertRaisesRegexp(
-        HWIDException,
-        r'Pattern does not have enough bits to hold all items for encoded '
-        r"field 'audio_codec'\. The maximum index of 'audio_codec' is 2 but "
-        r'its bit length is 1 in the pattern',
-        mock_db._SanityChecks)
-
-  def testGetAllIndices(self):
-    self.assertEquals([0, 1, 2, 3, 4, 5], self.database._GetAllIndices('cpu'))
-    self.assertEquals([0, 1], self.database._GetAllIndices('dram'))
-    self.assertEquals([0], self.database._GetAllIndices('display_panel'))
-
-  def testGetAttributesByIndex(self):
-    self.assertEquals({'battery': [{
-        'name': 'battery_large',
-        'values': {
-            'tech': Value('Battery Li-ion'),
-            'size': Value('7500000')}}]},
-                      self.database._GetAttributesByIndex('battery', 2))
-    self.assertEquals(
-        {'hash_gbb': [{
-            'name': 'hash_gbb_0',
-            'values': {
-                'compact_str': Value('gv2#hash_gbb_0')}}],
-         'key_recovery': [{
-             'name': 'key_recovery_0',
-             'values': {
-                 'compact_str': Value('kv3#key_recovery_0')}}],
-         'key_root': [{
-             'name': 'key_root_0',
-             'values': {
-                 'compact_str': Value('kv3#key_root_0')}}],
-         'ro_ec_firmware': [{
-             'name': 'ro_ec_firmware_0',
-             'values': {
-                 'compact_str': Value('ev2#ro_ec_firmware_0')}}],
-         'ro_main_firmware': [{
-             'name': 'ro_main_firmware_0',
-             'values': {
-                 'compact_str': Value('mv2#ro_main_firmware_0')}}]},
-        self.database._GetAttributesByIndex('firmware', 0))
-    self.assertEquals({
-        'audio_codec': [
-            {'name': 'codec_0', 'values': {'compact_str': Value('Codec 0')}},
-            {'name': 'hdmi_0', 'values': {'compact_str': Value('HDMI 0')}}]},
-                      self.database._GetAttributesByIndex('audio_codec', 0))
-    self.assertEquals({'cellular': []},
-                      self.database._GetAttributesByIndex('cellular', 0))
-
-  def testLoadDatabaseWithRegionInfo(self):
+  def testLoadDump(self):
     db = Database.LoadFile(
-        os.path.join(_TEST_DATA_PATH, 'test_db_regions.yaml'))
-    # Make sure that region fields are generated correctly.
-    self.assertEquals({'region': []}, db.encoded_fields['region_field'][0])
-    self.assertEquals({'region': ['us']}, db.encoded_fields['region_field'][29])
-    # Make sure that region components are generated correctly.
-    self.assertEquals(
-        {'values': {
-            'region_code': Value('us')}},
-        db.components.GetComponentAttributes('region', 'us'))
+        os.path.join(_TEST_DATA_PATH, 'test_database_db.yaml'))
+    db2 = Database.LoadData(db.DumpData())
+
+    self.assertEquals(db, db2)
+
+    db = Database.LoadFile(
+        os.path.join(_TEST_DATA_PATH, 'test_database_db.yaml'))
+    with file_utils.UnopenedTemporaryFile() as path:
+      db.DumpFile(path)
+      Database.LoadFile(path, verify_checksum=False)
 
 
-class PatternTest(unittest.TestCase):
+class ImageIdTest(unittest.TestCase):
+  def testExport(self):
+    expr = {0: 'EVT', 1: 'DVT', 2: 'PVT'}
+    self.assertEquals(ImageId(expr).Export(),
+                      {0: 'EVT', 1: 'DVT', 2: 'PVT'})
 
-  def setUp(self):
-    self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
-                                                   'test_db.yaml'))
-    self.pattern = self.database.pattern
+  def testSetItem(self):
+    image_id = ImageId({0: 'EVT', 1: 'DVT', 2: 'PVT'})
+    image_id[3] = 'XXYYZZ'
+    image_id[5] = 'AABBCC'
+    self.assertEquals(image_id.Export(),
+                      {0: 'EVT', 1: 'DVT', 2: 'PVT', 3: 'XXYYZZ', 5: 'AABBCC'})
 
-  def testGetFieldNames(self):
-    self.assertEquals(
-        set(['audio_codec',
-             'battery',
-             'firmware',
-             'storage',
-             'bluetooth',
-             'display_panel',
-             'video',
-             'cellular',
-             'keyboard',
-             'dram',
-             'cpu']), self.pattern.GetFieldNames())
+    def func(a, b):
+      image_id[a] = b
+    self.assertRaises(HWIDException, func, 3, 'ZZZ')
+    self.assertRaises(HWIDException, func, 4, 4)
+    self.assertRaises(HWIDException, func, 'X', 'Y')
+    self.assertRaises(HWIDException, func, -1, 'Y')
 
-    # Add a item in image_id [0, 1].
-    self.assertTrue('foo' not in self.pattern.GetFieldNames(0))
-    self.assertTrue('foo' not in self.pattern.GetFieldNames(1))
-    original_value = self.pattern.pattern
-    self.pattern.pattern[0]['fields'].append({'foo': 1})
-    self.assertTrue('foo' in self.pattern.GetFieldNames(0))
-    self.assertTrue('foo' in self.pattern.GetFieldNames(1))
-    self.assertTrue('foo' not in self.pattern.GetFieldNames(2))
-    self.assertTrue('foo' not in self.pattern.GetFieldNames())
-    self.pattern.pattern = original_value
-
-  def testGetFieldsBitLength(self):
-    length = self.pattern.GetFieldsBitLength()
-    self.assertEquals(1, length['audio_codec'])
-    self.assertEquals(2, length['battery'])
-    self.assertEquals(0, length['bluetooth'])
-    self.assertEquals(1, length['cellular'])
-    self.assertEquals(3, length['cpu'])
-    self.assertEquals(0, length['display_panel'])
-    self.assertEquals(1, length['dram'])
-    self.assertEquals(0, length['ec_flash_chip'])
-    self.assertEquals(0, length['embedded_controller'])
-    self.assertEquals(0, length['flash_chip'])
-    self.assertEquals(1, length['keyboard'])
-    self.assertEquals(2, length['storage'])
-    self.assertEquals(0, length['touchpad'])
-    self.assertEquals(0, length['tpm'])
-    self.assertEquals(0, length['usb_hosts'])
-    self.assertEquals(0, length['video'])
-    self.assertEquals(0, length['wireless'])
-    self.assertEquals(5, length['firmware'])
-
-    original_value = self.pattern.pattern
-    self.pattern.pattern = None
-    self.assertRaisesRegexp(
-        HWIDException, r'Cannot get encoded field bit length with uninitialized'
-        ' pattern', self.pattern.GetFieldsBitLength)
-    self.pattern.pattern = original_value
-
-  def testGetTotalBitLength(self):
-    length = self.database.pattern.GetTotalBitLength()
-    self.assertEquals(22, length)
-
-    original_value = self.pattern.pattern
-    self.pattern.pattern = None
-    self.assertRaisesRegexp(
-        HWIDException, r'Cannot get bit length with uninitialized pattern',
-        self.pattern.GetTotalBitLength)
-    self.pattern.pattern = original_value
-
-  def testGetBitMapping(self):
-    mapping = self.pattern.GetBitMapping()
-    self.assertEquals('firmware', mapping[5].field)
-    self.assertEquals(4, mapping[5].bit_offset)
-    self.assertEquals('firmware', mapping[6].field)
-    self.assertEquals(3, mapping[6].bit_offset)
-    self.assertEquals('firmware', mapping[7].field)
-    self.assertEquals(2, mapping[7].bit_offset)
-    self.assertEquals('firmware', mapping[8].field)
-    self.assertEquals(1, mapping[8].bit_offset)
-    self.assertEquals('firmware', mapping[9].field)
-    self.assertEquals(0, mapping[9].bit_offset)
-    self.assertEquals('audio_codec', mapping[10].field)
-    self.assertEquals(0, mapping[10].bit_offset)
-    self.assertEquals('battery', mapping[11].field)
-    self.assertEquals(1, mapping[11].bit_offset)
-    self.assertEquals('battery', mapping[12].field)
-    self.assertEquals(0, mapping[12].bit_offset)
-    self.assertEquals('cellular', mapping[13].field)
-    self.assertEquals(0, mapping[13].bit_offset)
-    self.assertEquals('cpu', mapping[14].field)
-    self.assertEquals(0, mapping[14].bit_offset)
-    self.assertEquals('cpu', mapping[17].field)
-    self.assertEquals(1, mapping[17].bit_offset)
-    self.assertEquals('storage', mapping[18].field)
-    self.assertEquals(1, mapping[18].bit_offset)
-    self.assertEquals('storage', mapping[19].field)
-    self.assertEquals(0, mapping[19].bit_offset)
-    self.assertEquals('cpu', mapping[20].field)
-    self.assertEquals(2, mapping[20].bit_offset)
-
-    original_value = self.pattern.pattern
-    self.pattern.pattern = None
-    self.assertRaisesRegexp(
-        HWIDException, r'Cannot construct bit mapping with uninitialized '
-        'pattern', self.pattern.GetBitMapping)
-    self.pattern.pattern = original_value
-    # This should be regarded as a valid binary string that was generated
-    # before we extended cpu_field.
-    self.pattern.GetBitMapping(binary_string_length=20)
-    # This should result in an incomplete chunk for storage_field.
-    mapping = self.pattern.GetBitMapping(binary_string_length=19)
-    self.assertEquals('storage', mapping[18].field)
-    self.assertEquals(0, mapping[18].bit_offset)
+  def testGettingMethods(self):
+    image_id = ImageId({0: 'EVT', 1: 'DVT', 2: 'PVT'})
+    self.assertEquals(image_id.max_image_id, 2)
+    self.assertEquals(image_id[1], 'DVT')
+    self.assertEquals(image_id.GetImageIdByName('EVT'), 0)
 
 
 class ComponentsTest(unittest.TestCase):
-  MOCK_COMPONENTS_DICT = {
-      'comp_cls_1': {
-          'items': {
-              'comp_1': {
-                  'values': {
-                      'field1': 'foo',
-                      'field2': 'bar'}},
-              'comp_3': {
-                  'values': {
-                      'field1': 'foo',
-                      'field2': 'buz',
-                      'field3': 'acme'}}}},
-      'comp_cls_2': {
-          'probeable': False,
-          'items': {
-              'comp_2': {
-                  'values': None}}}}
+  def testExport(self):
+    expr = {'cls1': {'items': {'comp11': {'values': {'p1': 'v1', 'p2': 'v2'},
+                                          'status': 'unsupported'}}},
+            'cls2': {'items': {'comp21': {'values': {'p2': 'v3', 'p4': 'v5'},
+                                          'default': True}}},
+            'cls3': {'items': {'comp31': {'values': None}}, 'probeable': False}}
+    c = Components(expr)
+    self.assertEquals(c.Export(), expr)
 
-  def setUp(self):
-    self.components = Components(ComponentsTest.MOCK_COMPONENTS_DICT)
+  def testSyntaxError(self):
+    self.assertRaises(Exception, Components,
+                      {'cls1': {}})
+    self.assertRaises(Exception, Components,
+                      {'cls1': {'items': {'comp1': {'status': 'supported'}}}})
+    self.assertRaises(Exception, Components,
+                      {'cls1': {'items': {'comp1': {'values': {}}}}})
+    self.assertRaises(Exception, Components,
+                      {'cls1': {'items': {'comp1': {'values': {'a': 'b'},
+                                                    'status': '???'}}}})
 
-  def testGetRequiredComponents(self):
-    self.assertEqual(
-        set(['comp_cls_1', 'comp_cls_2']),
-        self.components.GetRequiredComponents())
+  def testCanEncode(self):
+    self.assertTrue(Components(
+        {'cls1': {'items': {'c1': {'values': {'a': 'b'}}}}}).can_encode)
 
-  def testGetComponentAttributes(self):
-    self.assertEquals(
-        {'values': {'field1': Value('foo'), 'field2': Value('bar')}},
-        self.components.GetComponentAttributes('comp_cls_1', 'comp_1'))
-    self.assertEquals(
-        {'values': None},
-        self.components.GetComponentAttributes('comp_cls_2', 'comp_2'))
+    self.assertFalse(
+        Components({'cls1': {'items': {'c1': {'values': None}}}}).can_encode)
+    self.assertFalse(
+        Components({'cls1': {'items': {'c1': {'values': {'a': 'b'},
+                                              'default': True}}}}).can_encode)
+    self.assertFalse(
+        Components({'cls1': {'items': {'c1': {'values': {'a': 'b'}}},
+                             'probeable': False}}).can_encode)
 
-  def testMatchComponentsFromValues(self):
+  def testAddComponent(self):
+    c = Components({})
+    c.AddComponent('cls1', 'comp1', {'a': 'b', 'c': 'd'}, 'supported')
+    c.AddComponent('cls1', 'comp2', {'a': 'x', 'c': 'd'}, 'unsupported')
+    c.AddComponent('cls2', 'comp1', {'a': 'b', 'c': 'd'}, 'deprecated')
     self.assertEquals(
-        {'comp_1': {
-            'values': {
-                'field1': Value('foo'),
-                'field2': Value('bar')}}},
-        self.components.MatchComponentsFromValues('comp_cls_1',
-                                                  {'field1': 'foo',
-                                                   'field2': 'bar'}))
-    self.assertEquals(
-        {'comp_2': {'values': None}},
-        self.components.MatchComponentsFromValues('comp_cls_2', None))
-    self.assertEquals(
-        {},
-        self.components.MatchComponentsFromValues('comp_cls_1',
-                                                  {'field1': 'foo'}))
+        c.Export(), {
+            'cls1': {
+                'items': {
+                    'comp1': {'values': {'a': 'b', 'c': 'd'}},
+                    'comp2': {'values': {'a': 'x', 'c': 'd'},
+                              'status': 'unsupported'}}},
+            'cls2': {
+                'items': {
+                    'comp1': {'values': {'a': 'b', 'c': 'd'},
+                              'status': 'deprecated'}}}})
 
-  def testCheckComponent(self):
-    self.assertIsNone(self.components.CheckComponent('comp_cls_1', 'comp_1'))
-    self.assertIsNone(self.components.CheckComponent('comp_cls_1', None))
-    self.assertRaisesRegexp(
-        HWIDException, r"Invalid component class 'comp_cls_4'",
-        self.components.CheckComponent, 'comp_cls_4', None)
-    self.assertRaisesRegexp(
-        HWIDException, r"Invalid component name 'comp_9' of class 'comp_cls_1'",
-        self.components.CheckComponent, 'comp_cls_1', 'comp_9')
+    self.assertRaises(HWIDException, c.AddComponent,
+                      'cls1', 'comp1', {'aa': 'bb'}, 'supported')
+    c.AddComponent('cls1', 'compX1', {'a': 'b', 'c': 'd'}, 'supported')
+    self.assertFalse(c.can_encode)
+
+  def testSetComponentStatus(self):
+    c = Components({'cls1': {'items': {'comp1': {'values': {'a': 'b'}}}}})
+    c.SetComponentStatus('cls1', 'comp1', 'deprecated')
+    self.assertEquals(
+        c.Export(), {'cls1': {'items': {'comp1': {'values': {'a': 'b'},
+                                                  'status': 'deprecated'}}}})
+
+  def testGettingMethods(self):
+    c = Components({'cls1': {'items': {'comp1': {'values': {'a': 'b'},
+                                                 'status': 'unqualified'},
+                                       'comp2': {'values': {'a': 'c'}}}},
+                    'cls2': {'items': {'comp3': {'values': {'x': 'y'}}}}})
+    self.assertEquals(sorted(c.component_classes), ['cls1', 'cls2'])
+    self.assertEquals(len(c.GetComponents('cls1')), 2)
+    self.assertEquals(sorted(c.GetComponents('cls1').keys()),
+                      ['comp1', 'comp2'])
+    self.assertEquals(c.GetComponents('cls1')['comp1'].values, {'a': 'b'})
+    self.assertEquals(c.GetComponents('cls1')['comp1'].status, 'unqualified')
+    self.assertEquals(c.GetComponents('cls1')['comp2'].values, {'a': 'c'})
+    self.assertEquals(c.GetComponents('cls1')['comp2'].status, 'supported')
+
+    self.assertEquals(len(c.GetComponents('cls2')), 1)
+
+
+class EncodedFieldsTest(unittest.TestCase):
+  def testExport(self):
+    expr = {'aaa': {0: {'x': [], 'y': 'y', 'z': ['z1', 'z2']},
+                    1: {'x': 'xx', 'y': [], 'z': []}},
+            'bbb': {0: {'b': ['b1', 'b2', 'b3']}}}
+    encoded_fields = EncodedFields(expr)
+    self.assertEquals(encoded_fields.Export(), expr)
+
+  def testSyntaxError(self):
+    self.assertRaises(Exception, EncodedFields,
+                      {'a': {'bad_index': {'a': None}}})
+    self.assertRaises(Exception, EncodedFields,
+                      {'a': {0: {}}})
+    self.assertRaises(Exception, EncodedFields,
+                      {'a': {0: {'a': '3'}, 1: {'c': '9'}}})
+
+  def testCannotEncode(self):
+    self.assertFalse(
+        EncodedFields({'a': {0: {'a': '3'}, 1: {'a': '3'}}}).can_encode)
+
+  def testAddFieldComponents(self):
+    e = EncodedFields({'e1': {0: {'a': 'A', 'b': 'B'}}})
+    e.AddFieldComponents('e1', {'a': 'AA', 'b': 'BB'})
+    e.AddFieldComponents('e1', {'a': ['AA', 'AX'], 'b': 'BB'})
+
+    self.assertEquals(e.Export(),
+                      {'e1': {0: {'a': 'A', 'b': 'B'},
+                              1: {'a': 'AA', 'b': 'BB'},
+                              2: {'a': ['AA', 'AX'], 'b': 'BB'}}})
+
+    # `e1` should encode only component class `a` and `b`.
+    self.assertRaises(HWIDException, e.AddFieldComponents,
+                      'e1', {'c': 'CC', 'a': 'AAAAAA', 'b': 'BB'})
+
+    # index `1` already in used.
+    self.assertRaises(HWIDException, e.AddFieldComponents,
+                      'e1', {'a': 'AAAAAA', 'b': 'BB'}, index=1)
+
+    # index number should be a non-negative number.
+    self.assertRaises(Exception, e.AddFieldComponents,
+                      'e1', {'a': 'AAAAAA', 'b': 'BB'}, index=-1)
+
+  def testAddNewField(self):
+    e = EncodedFields({'e1': {0: {'a': 'A', 'b': 'B'}}})
+    e.AddNewField('e2', {'c': 'CC', 'd': 'DD'})
+
+    self.assertEquals(e.Export(),
+                      {'e1': {0: {'a': 'A', 'b': 'B'}},
+                       'e2': {0: {'c': 'CC', 'd': 'DD'}}})
+
+    # `e2` already exists.
+    self.assertRaises(HWIDException, e.AddNewField,
+                      'e2', {'xxx': 'yyy'})
+    self.assertRaises(HWIDException, e.AddNewField, 'e3', {})
+
+  def testGettingMethods(self):
+    e = EncodedFields({'e1': {0: {'a': 'A', 'b': 'B'},
+                              1: {'a': ['AA', 'AAA'], 'b': 'B'}},
+                       'e2': {0: {'c': None, 'd': []},
+                              1: {'c': ['C2', 'C1', 'C3'], 'd': 'D'}}})
+    self.assertEquals(set(e.encoded_fields), set(['e1', 'e2']))
+    self.assertEquals(e.GetField('e1'),
+                      {0: {'a': ['A'], 'b': ['B']},
+                       1: {'a': ['AA', 'AAA'], 'b': ['B']}})
+    self.assertEquals(e.GetField('e2'),
+                      {0: {'c': [], 'd': []},
+                       1: {'c': ['C1', 'C2', 'C3'], 'd': ['D']}})
+
+
+class PatternTest(unittest.TestCase):
+  def testExport(self):
+    expr = [{'image_ids': [1, 2],
+             'encoding_scheme': 'base32',
+             'fields': [{'aaa': 1}, {'ccc': 2}]},
+            {'image_ids': [3],
+             'encoding_scheme': 'base8192',
+             'fields': []}]
+    pattern = Pattern(expr)
+    self.assertEquals(pattern.Export(), expr)
+
+  def testSyntaxError(self):
+    # missing "image_ids" field
+    self.assertRaises(
+        Exception, Pattern,
+        [{'image_id': [3], 'encoding_scheme': 'base32', 'fields': []}])
+
+    # extra field "extra"
+    self.assertRaises(
+        Exception, Pattern,
+        [{'image_ids': [3], 'extra': 'xxx',
+          'encoding_scheme': 'base32', 'fields': []}])
+    self.assertRaises(
+        Exception, Pattern,
+        [{'image_ids': [], 'encoding_scheme': 'base32', 'fields': []}])
+
+    # encoding scheme is either "base32" or "base8192"
+    self.assertRaises(
+        Exception, Pattern,
+        [{'image_ids': [3], 'encoding_scheme': 'base31', 'fields': []}])
+
+    self.assertRaises(
+        Exception, Pattern,
+        [{'image_ids': [3], 'encoding_scheme': 'base32',
+          'fields': [{'aaa': -1}]}])
+
+    # value of the "fields" field should be a list of dict of size 1
+    self.assertRaises(
+        Exception, Pattern,
+        [{'image_ids': [3], 'encoding_scheme': 'base32',
+          'fields': [{'aaa': 3, 'bbb': 4}]}])
+
+  def testAddEmptyPattern(self):
+    pattern = Pattern(
+        [{'image_ids': [0], 'encoding_scheme': 'base32', 'fields': []}])
+
+    pattern.AddEmptyPattern(2, 'base8192')
+    self.assertEquals(
+        pattern.Export(),
+        [{'image_ids': [0], 'encoding_scheme': 'base32', 'fields': []},
+         {'image_ids': [2], 'encoding_scheme': 'base8192', 'fields': []}])
+    self.assertEquals(pattern.GetEncodingScheme(), 'base8192')
+
+    # Image id `2` already exists.
+    self.assertRaises(HWIDException, pattern.AddEmptyPattern, 2, 'base8192')
+
+  def testAddImageIdTo(self):
+    pattern = Pattern(
+        [{'image_ids': [0], 'encoding_scheme': 'base32', 'fields': []}])
+
+    pattern.AddImageId(0, 3)
+    self.assertEquals(
+        pattern.Export(),
+        [{'image_ids': [0, 3], 'encoding_scheme': 'base32', 'fields': []}])
+
+    # `reference_image_id` should exist.
+    self.assertRaises(HWIDException, pattern.AddImageId, 2, 4)
+
+    # New `image_id` already exists.
+    self.assertRaises(HWIDException, pattern.AddImageId, 3, 0)
+
+  def testAppendField(self):
+    pattern = Pattern(
+        [{'image_ids': [0], 'encoding_scheme': 'base32', 'fields': []}])
+
+    pattern.AppendField('aaa', 3)
+    pattern.AppendField('bbb', 0)
+    pattern.AppendField('aaa', 1)
+    self.assertEquals(
+        pattern.Export(),
+        [{'image_ids': [0], 'encoding_scheme': 'base32',
+          'fields': [{'aaa': 3}, {'bbb': 0}, {'aaa': 1}]}])
+
+  def testGettingMethods(self):
+    pattern = Pattern(
+        [{'image_ids': [0], 'encoding_scheme': 'base32',
+          'fields': [{'a': 3}, {'b': 0}, {'a': 1}, {'c': 5}]}])
+
+    self.assertEquals(pattern.GetTotalBitLength(), 9)
+    self.assertEquals(pattern.GetFieldsBitLength(), {'a': 4, 'b': 0, 'c': 5})
+    self.assertEquals(pattern.GetBitMapping(),
+                      [('a', 2), ('a', 1), ('a', 0),
+                       ('a', 3),
+                       ('c', 4), ('c', 3), ('c', 2), ('c', 1), ('c', 0)])
+    self.assertEquals(pattern.GetBitMapping(max_bit_length=7),
+                      [('a', 2), ('a', 1), ('a', 0),
+                       ('a', 3),
+                       ('c', 2), ('c', 1), ('c', 0)])
+
+
+class RulesTest(unittest.TestCase):
+  def testNormal(self):
+    rules = Rules([{'name': 'verify.1',
+                    'evaluate': 'a = 3',
+                    'when': 'True'},
+                   {'name': 'device_info.1',
+                    'evaluate': ['a = 3', 'b = 5']},
+                   {'name': 'verify.2',
+                    'evaluate': 'c = 7',
+                    'when': 'True',
+                    'otherwise': 'False'}])
+
+    self.assertEquals(len(rules.verify_rules), 2)
+    self.assertEquals(rules.verify_rules[0].ExportToDict(),
+                      {'name': 'verify.1', 'evaluate': 'a = 3', 'when': 'True'})
+    self.assertEquals(rules.verify_rules[1].ExportToDict(),
+                      {'name': 'verify.2', 'evaluate': 'c = 7',
+                       'when': 'True', 'otherwise': 'False'})
+
+    self.assertEquals(len(rules.device_info_rules), 1)
+    self.assertEquals(rules.device_info_rules[0].ExportToDict(),
+                      {'name': 'device_info.1', 'evaluate': ['a = 3', 'b = 5']})
+
+  def testSyntaxError(self):
+    self.assertRaises(Exception, Rules, 'abc')
+
+    # Missing "name", "evaluate".
+    self.assertRaises(Exception, Rules, [{'namr': '123'}])
+
+    # The prefix of the value of name should be either "verify." or
+    # "device_info."
+    self.assertRaises(Exception, Rules, [{'name': 'xxx', 'evaluate': 'a'}])
 
 
 if __name__ == '__main__':

@@ -20,7 +20,6 @@ board: CHROMEBOOK
 
 encoding_patterns:
   0: default
-  1: new pattern
 
 image_id:
   0: EVT

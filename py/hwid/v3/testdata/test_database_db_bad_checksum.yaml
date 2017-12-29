@@ -1,0 +1,52 @@
+checksum: this is a bad value
+
+project: CHROMEBOOK
+
+encoding_patterns:
+  0: default
+
+image_id:
+  0: AAA
+  1: BBB
+  2: CCC
+
+pattern:
+  - image_ids: [0, 1]
+    encoding_scheme: base32
+    fields:
+      - field1: 1
+      - field2: 0
+      - field1: 1
+
+  - image_ids: [2]
+    encoding_scheme: base32
+    fields:
+      - field2: 1
+      - field3: 2
+
+encoded_fields:
+  field1:
+    0: {cls1: comp1}
+    1: {cls1: comp2}
+
+  field2:
+    0: {cls2: comp3}
+
+  field3:
+    0: {cls3: comp4}
+    1: {cls3: comp5}
+
+components:
+  cls1:
+    items:
+      comp1: {values: {aaa: bbb}}
+      comp2: {values: {ccc: ddd}}
+  cls2:
+    items:
+      comp3: {values: {aaa: bbb}}
+  cls3:
+    items:
+      comp4: {values: {xxx: yyy}}
+      comp5: {values: {zzz: xxx}}
+
+rules: []

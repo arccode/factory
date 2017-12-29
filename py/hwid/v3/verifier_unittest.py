@@ -78,8 +78,7 @@ class VerifyPhaseTest(unittest.TestCase):
   def setUp(self):
     self.database = Database.LoadFile(_TEST_DATABASE_PATH,
                                       verify_checksum=False)
-    self.possible_names = self.database.components.components_dict[
-        'firmware_keys']['items'].keys()
+    self.possible_names = self.database.GetComponents('firmware_keys').keys()
 
   @staticmethod
   def _CreateBOM(image_id, firmware_key_name=None):
@@ -92,30 +91,32 @@ class VerifyPhaseTest(unittest.TestCase):
     for image_id in [0, 1, 2]:
       bom = self._CreateBOM(image_id)
       verifier.VerifyPhase(
-          self.database, bom, current_phase=self.database.image_id[image_id])
+          self.database, bom,
+          current_phase=self.database.GetImageName(image_id))
 
     bom = self._CreateBOM(image_id=3)
     self.assertRaises(common.HWIDException, verifier.VerifyPhase,
                       self.database, bom,
-                      current_phase=self.database.image_id[3])
+                      current_phase=self.database.GetImageName(3))
 
   def testEarlyBuild(self):
     for image_id in [0, 1, 2]:
       for component_name in self.possible_names:
         bom = self._CreateBOM(image_id, component_name)
         verifier.VerifyPhase(
-            self.database, bom, current_phase=self.database.image_id[image_id])
+            self.database, bom,
+            current_phase=self.database.GetImageName(image_id))
 
   def testPVTBuild(self):
     for component_name in self.possible_names:
       bom = self._CreateBOM(3, component_name)
       if 'A' in component_name:
         verifier.VerifyPhase(self.database, bom,
-                             current_phase=self.database.image_id[3])
+                             current_phase=self.database.GetImageName(3))
       else:
         self.assertRaises(common.HWIDException, verifier.VerifyPhase,
                           self.database, bom,
-                          current_phase=self.database.image_id[3])
+                          current_phase=self.database.GetImageName(3))
 
   def testImageNameMisMatch(self):
     for image_id, ph in enumerate(['DVT', 'PVT']):

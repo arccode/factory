@@ -272,8 +272,8 @@ class EnumerateHWIDTest(unittest.TestCase, _CustomAssertions):
   def setUp(self):
     self.database = Database.LoadFile(_TEST_DATABASE_PATH)
     self.default_combinations = {
-        field_name: len(field_data)
-        for field_name, field_data in self.database.encoded_fields.iteritems()}
+        field_name: len(self.database.GetEncodedField(field_name))
+        for field_name in self.database.encoded_fields}
 
   def _CalculateNumCombinations(self, **kwargs):
     result = 1
@@ -407,9 +407,9 @@ class DatabaseBuilderTest(unittest.TestCase):
                                 add_null_comp=['touchpad', 'chassis'])
     new_db = Database.LoadFile(self.output_path, verify_checksum)
     self.assertIn({'touchpad': []},
-                  new_db.encoded_fields['touchpad_field'].values())
+                  new_db.GetEncodedField('touchpad_field').values())
     self.assertIn({'chassis': []},
-                  new_db.encoded_fields['chassis_field'].values())
+                  new_db.GetEncodedField('chassis_field').values())
 
     # Add a component without a new image_id.
     probed_result = self.probed_results[0].copy()
@@ -421,7 +421,7 @@ class DatabaseBuilderTest(unittest.TestCase):
     with mock.patch('__builtin__.raw_input', return_value='y'):
       hwid_utils.UpdateDatabase(self.output_path, probed_result, db)
     new_db = Database.LoadFile(self.output_path, verify_checksum)
-    self.assertIn({'touchpad_field': 0}, new_db.pattern.pattern[0]['fields'])
+    self.assertIn('touchpad_field', new_db.GetEncodedFieldsBitLength().keys())
 
     # Delete bluetooth, and add region and chassis.
     hwid_utils.UpdateDatabase(
@@ -431,14 +431,16 @@ class DatabaseBuilderTest(unittest.TestCase):
     new_db = Database.LoadFile(self.output_path, verify_checksum)
     # Check the value.
     self.assertEquals(new_db.project, 'CHROMEBOOK')
-    self.assertEquals(new_db.image_id, {0: 'EVT', 1: 'DVT'})
-    self.assertNotIn({'bluetooth_field': 0},
-                     new_db.pattern.pattern[1]['fields'])
+    self.assertEquals(new_db.image_ids, [0, 1])
+    self.assertEquals(new_db.GetImageName(0), 'EVT')
+    self.assertEquals(new_db.GetImageName(1), 'DVT')
+    self.assertNotIn('bluetooth_field',
+                     new_db.GetEncodedFieldsBitLength().keys())
     self.assertIn({'region': ['us']},
-                  new_db.encoded_fields['region_field'].values())
-    self.assertIn('NEW', new_db.components.components_dict['chassis']['items'])
+                  new_db.GetEncodedField('region_field').values())
+    self.assertIn('NEW', new_db.GetComponents('chassis'))
     self.assertIn({'chassis': ['NEW']},
-                  new_db.encoded_fields['chassis_field'].values())
+                  new_db.GetEncodedField('chassis_field').values())
 
   def testBuildDatabaseMissingEssentailComponent(self):
     """Tests the essential component is missing at the probe result."""
@@ -505,12 +507,8 @@ class DatabaseBuilderTest(unittest.TestCase):
          'values': None})
     hwid_utils.UpdateDatabase(self.output_path, self.probed_results[0], db)
     new_db = Database.LoadFile(self.output_path, False)
-    comp_dict = new_db.components.components_dict
-    self.assertEquals(
-        comp_dict['mainboard']['items']['mainboard_default'],
-        {'default': True,
-         'status': 'unsupported',
-         'values': None})
+    comp_attr = new_db.GetComponents('mainboard')['mainboard_default']
+    self.assertEquals(comp_attr.status, 'unsupported')
 
 
 if __name__ == '__main__':

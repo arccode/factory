@@ -100,8 +100,7 @@ class ValidHWIDDBsTest(unittest.TestCase):
       # Load databases and verify checksum. For old factory branches that do not
       # have database checksum, the checksum verification will be skipped.
       try:
-        db_yaml = yaml.load(db_raw)
-        if 'checksum' in db_yaml:
+        if any([re.match('^checksum: ', line) for line in db_raw.split('\n')]):
           with file_utils.UnopenedTemporaryFile() as temp_db:
             with open(temp_db, 'w') as f:
               f.write(db_raw)
@@ -114,7 +113,7 @@ class ValidHWIDDBsTest(unittest.TestCase):
               'Database %s:%s does not have checksum field. Will skip checksum '
               'verification.', commit, db_path)
         unused_db = Database.LoadData(
-            db_yaml, expected_checksum=expected_checksum,
+            db_raw, expected_checksum=expected_checksum,
             strict=bool(expected_checksum))
       except Exception:
         logging.error('%s: Load database failed.', project_name)

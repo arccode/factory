@@ -48,9 +48,10 @@ class SchemaTest(unittest.TestCase):
         SchemaException, r'value_type .* of Dict .* is not Schema object',
         Dict, 'foo', Scalar('key', str), 'value')
     schema = Dict('foo', Scalar('key', int), Scalar('value', str))
-    self.assertEquals("Dict('foo', key_type=Scalar('key', <type 'int'>), "
-                      "value_type=Scalar('value', <type 'str'>))",
-                      repr(schema))
+    self.assertEquals(
+        "Dict('foo', key_type=Scalar('key', <type 'int'>), "
+        "value_type=Scalar('value', <type 'str'>), size=[0, inf])",
+        repr(schema))
     self.assertRaisesRegexp(
         SchemaException, r'Type mismatch on .*: expected dict, got .*',
         schema.Validate, 'bar')
@@ -105,14 +106,18 @@ class SchemaTest(unittest.TestCase):
     self.assertRaisesRegexp(
         SchemaException, r'element_type .* of List .* is not a Schema object',
         List, 'foo', {'foo': 'bar'})
-    schema = List('foo', Scalar('buz', int))
-    self.assertEquals("List('foo', Scalar('buz', <type 'int'>))", repr(schema))
+    schema = List('foo', Scalar('buz', int), min_length=1)
+    self.assertEquals("List('foo', Scalar('buz', <type 'int'>), [1, inf])",
+                      repr(schema))
     self.assertRaisesRegexp(
         SchemaException, r'Type mismatch on .*: expected list, got .*',
         schema.Validate, 'bar')
     self.assertRaisesRegexp(
         SchemaException, r'Type mismatch on .*: expected .*int.*, got .*str.*',
         schema.Validate, [0, 1, 'foo'])
+    self.assertRaisesRegexp(
+        SchemaException, r'Length mismatch.*',
+        schema.Validate, [])
     self.assertEquals(None, schema.Validate([0, 1, 2]))
 
   def testTuple(self):
@@ -257,7 +262,8 @@ class SchemaTest(unittest.TestCase):
                   FixedDict('component_attrs',
                             {'value': AnyOf([
                                 List('value_list'), Scalar('value_str', str)])},
-                            {'labels': List('labels_list', Scalar('label', str))}))))
+                            {'labels': List('labels_list',
+                                            Scalar('label', str))}))))
     data = {
         'flash_chip': {
             'flash_chip_0': {

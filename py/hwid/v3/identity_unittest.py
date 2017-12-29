@@ -30,7 +30,7 @@ class GetImageIdFromBinaryString(unittest.TestCase):
         common.HWIDException, identity.GetImageIdFromBinaryString, '002112')
 
 
-class GetImageIdFromEncodedString(unittest.TestCase):
+class GetImageIdFromEncodedStringTest(unittest.TestCase):
   def testNormal(self):
     self.assertEqual(0, identity.GetImageIdFromEncodedString('PROJ ACK'))
     self.assertEqual(1, identity.GetImageIdFromEncodedString('PROJ BCK'))

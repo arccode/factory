@@ -1,24 +1,52 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Database classes for HWID v3 operation."""
+"""Database classes for HWID v3 operation.
+
+The HWID database for a Chromebook project defines how to generate (or
+to say, encode) a HWID encoded string for the Chromebook.  The HWID database
+contains many parts:
+
+  1. `components` lists information of all hardware components.
+  2. `encoded_fields` maps each hardware component's name to a number to be
+     encoded into the HWID encoded string.
+  3. `pattern` records the ways to union all numbers together to form an unique
+     fixed-bit-length number which responses to a set of hardware components.
+     `pattern` records many different ways to union numbers because the
+     bit-length of the number might not be enough after new hardware
+     components are added into the Database.
+  4. `image_id` lists all possible image ids.  An image id consists of an
+     index (start from 0) and a human-readable name.  The name of an image id
+     often looks similar to the factory build stage, but it's not necessary.
+     There's an one-to-one mapping relation between the index of an image id
+     and the pattern so that we know which pattern to apply for encode/decode
+     the numbers/HWID encode string.
+  5. `encoded_patterns` is a reserved bit and it can only be 0 now.
+  6. `project` records the name of the Chromebook project.
+  7. `checksum` records a checksum string to make sure that the Database is not
+     modified.
+  8. `rules` records a list of rules to be evaluated during generating the HWID
+     encoded string.
+
+This package implements some basic methods for manipulating a HWID database
+and the loader to load the database from a file.  The classes in this package
+represents to each part of the HWID database listed above.  The detail of
+each part is described in the class' document.
+"""
 
 import collections
-import copy
 import hashlib
-import math
+import logging
 import re
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common
-from cros.factory.hwid.v3 import rule
+from cros.factory.hwid.v3.rule import Rule
+from cros.factory.hwid.v3.rule import Value
 # Import yaml_tags to decode special YAML tags specific to HWID module.
-from cros.factory.hwid.v3 import yaml_tags  # pylint: disable=W0611
+from cros.factory.hwid.v3 import yaml_tags  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
-from cros.factory.hwid.v3.base32 import Base32
 from cros.factory.utils import file_utils
 from cros.factory.utils import schema
 from cros.factory.utils import type_utils
@@ -71,75 +99,48 @@ class Database(object):
   device-specific component database.
 
   Attributes:
-    project: A string indicating the project name.
-    encoding_patterns: An EncodingPatterns object.
-    image_id: An ImageId object.
-    pattern: A Pattern object.
-    encoded_fields: An EncodedFields object.
-    components: A Components object.
-    rules: A Rules object.
-    checksum: The value of the checksum field.
+    _project: A string indicating the project name.
+    _encoding_patterns: An EncodingPatterns object.
+    _image_id: An ImageId object.
+    _pattern: A Pattern object.
+    _encoded_fields: An EncodedFields object.
+    _components: A Components object.
+    _rules: A Rules object.
+    _checksum: None or a string of the value of the checksum field.
   """
 
   def __init__(self, project, encoding_patterns, image_id, pattern,
                encoded_fields, components, rules, checksum):
-    self.project = project
-    self.encoding_patterns = encoding_patterns
-    self.image_id = image_id
-    self.pattern = pattern
-    self.encoded_fields = encoded_fields
-    self.components = components
-    self.rules = rules
-    self.checksum = checksum
+    """Constructor.
+
+    This constructor should not be called by other modules.
+    """
+    self._project = project
+    self._encoding_patterns = encoding_patterns
+    self._image_id = image_id
+    self._pattern = pattern
+    self._encoded_fields = encoded_fields
+    self._components = components
+    self._rules = rules
+    self._checksum = checksum
+
     self._SanityChecks()
 
-  def _SanityChecks(self):
-    def _VerifyComponent(comp_cls, comp_name, label):
-      try:
-        self.components.CheckComponent(comp_cls, comp_name)
-      except common.HWIDException as e:
-        raise common.HWIDException(
-            '%s in %s[%r]' %
-            (str(e), label, comp_cls))
+  def __eq__(self, rhs):
+    # pylint: disable=protected-access
+    return (isinstance(rhs, Database) and
+            self._project == rhs._project and
+            self._encoding_patterns == rhs._encoding_patterns and
+            self._image_id == rhs._image_id and
+            self._encoded_fields == rhs._encoded_fields and
+            self._components == rhs._components and
+            self._checksum == rhs._checksum)
 
-    # Check that all the component class-name pairs in encoded_fields are valid.
-    for field, indexed_data in self.encoded_fields.iteritems():
-      for index, class_name_dict in indexed_data.iteritems():
-        for comp_cls, comp_names in class_name_dict.iteritems():
-          if comp_names is None:
-            _VerifyComponent(comp_cls, None,
-                             'encoded_fields[%r][%r]' % (field, index))
-            continue
-          for comp_name in comp_names:
-            _VerifyComponent(comp_cls, comp_name,
-                             'encoded_fields[%r][%r]' % (field, index))
-
-    # Check that every image ID has a corresponding pattern defined.
-    for image_id in self.image_id:
-      # Simply get the pattern for each image ID. This call will raise exception
-      # if it fails to find a pattern for the given image ID.
-      self.pattern.GetPatternByImageId(image_id=image_id)
-
-    # Check that the bit length of each encoded field in the pattern is enough
-    # to hold all items of the encoded field. We only check the pattern used by
-    # the latest image id here.
-    field_bit_length = self.pattern.GetFieldsBitLength()
-    pattern = self.pattern.GetPatternByImageId()
-    encoded_fields_in_pattern = set([f.keys()[0] for f in pattern['fields']])
-    for field in encoded_fields_in_pattern:
-      if field not in self.encoded_fields:
-        raise common.HWIDException(
-            'Pattern contains unknown encoded field %r' % field)
-      max_index = max(self.encoded_fields[field].iterkeys())
-      bit_length = field_bit_length[field]
-      if math.pow(2, bit_length) <= max_index:
-        raise common.HWIDException(
-            'Pattern does not have enough bits to hold all items for encoded '
-            'field %r. The maximum index of %r is %d but its bit length is '
-            '%d in the pattern' % (field, field, max_index, bit_length))
+  def __ne__(self, rhs):
+    return not self == rhs
 
   @staticmethod
-  def LoadFile(file_name, verify_checksum=False):
+  def LoadFile(file_name, verify_checksum=True):
     """Loads a device-specific component database from the given file and
     parses it to a Database object.
 
@@ -153,13 +154,9 @@ class Database(object):
     Raises:
       HWIDException if there is missing field in the database.
     """
-    db_yaml = None
-    with open(file_name, 'r') as f:
-      db_yaml = yaml.load(f)
-
-    return Database.LoadData(db_yaml,
-                             expected_checksum=Database.Checksum(file_name)
-                             if verify_checksum else None,
+    return Database.LoadData(file_utils.ReadFile(file_name),
+                             expected_checksum=(Database.Checksum(file_name)
+                                                if verify_checksum else None),
                              strict=verify_checksum)
 
   @staticmethod
@@ -189,11 +186,11 @@ class Database(object):
     return hashlib.sha1(db_text).hexdigest()
 
   @staticmethod
-  def LoadData(db_yaml, expected_checksum=None, strict=True):
+  def LoadData(raw_data, expected_checksum=None, strict=True):
     """Loads a device-specific component database from the given database data.
 
     Args:
-      db_yaml: The database in parsed dict form.
+      raw_data: The database in string.
       expected_checksum: The checksum value to verify the loaded data with.
           A value of None disables checksum verification.
       strict: Whether to insist on fully-formed databases. This should always be
@@ -207,471 +204,1061 @@ class Database(object):
       HWIDException if there is missing field in the database, or database
       integrity veification fails.
     """
-    if not db_yaml:
+    yaml_obj = yaml.load(raw_data)
+
+    if not isinstance(yaml_obj, dict):
       raise common.HWIDException('Invalid HWID database')
 
-    if 'board' in db_yaml and 'project' not in db_yaml:
-      db_yaml['project'] = db_yaml['board']
+    if 'board' in yaml_obj and 'project' not in yaml_obj:
+      yaml_obj['project'] = yaml_obj['board']
 
     for key in ['project', 'encoding_patterns', 'image_id', 'pattern',
                 'encoded_fields', 'components', 'rules', 'checksum']:
-      if key not in db_yaml:
+      if key not in yaml_obj:
         if (not strict) and key == 'checksum':
           # That's OK, let it go
           pass
         else:
           raise common.HWIDException(
-              '%r is not specified in component database' % key)
+              '%r is not specified in HWID database' % key)
 
     # Verify database integrity.
     if (expected_checksum is not None and
-        db_yaml['checksum'] != expected_checksum):
+        yaml_obj['checksum'] != expected_checksum):
       raise common.HWIDException(
-          'HWID database %r checksum verification failed' % db_yaml['project'])
+          'HWID database %r checksum verification failed' % yaml_obj['project'])
 
-    return Database(db_yaml['project'],
-                    EncodingPatterns(db_yaml['encoding_patterns']),
-                    ImageId(db_yaml['image_id']),
-                    Pattern(db_yaml['pattern']),
-                    EncodedFields(db_yaml['encoded_fields']),
-                    Components(db_yaml['components']),
-                    Rules(db_yaml['rules']),
-                    db_yaml.get('checksum'))
+    return Database(yaml_obj['project'],
+                    EncodingPatterns(yaml_obj['encoding_patterns']),
+                    ImageId(yaml_obj['image_id']),
+                    Pattern(yaml_obj['pattern']),
+                    EncodedFields(yaml_obj['encoded_fields']),
+                    Components(yaml_obj['components']),
+                    Rules(yaml_obj['rules']),
+                    yaml_obj.get('checksum'))
 
-  def _GetAllIndices(self, encoded_field):
-    """Gets a list of all the encoded indices of the given encoded_field in the
-    database.
+  def DumpData(self):
+    data = {'checksum': self._checksum,
+            'project': self._project,
+            'encoding_patterns': self._encoding_patterns.Export(),
+            'image_id': self._image_id.Export(),
+            'pattern': self._pattern.Export(),
+            'encoded_fields': self._encoded_fields.Export(),
+            'components': self._components.Export(),
+            'rules': self._rules.Export()}
+
+    return '\n'.join([yaml.dump({key: data[key]}, default_flow_style=False)
+                      for key in ['checksum',
+                                  'project',
+                                  'encoding_patterns',
+                                  'image_id',
+                                  'pattern',
+                                  'encoded_fields',
+                                  'components',
+                                  'rules']])
+
+
+  def DumpFile(self, path):
+    with open(path, 'w') as f:
+      f.write(self.DumpData())
+
+  @property
+  def can_encode(self):
+    return self._components.can_encode and self._encoded_fields.can_encode
+
+  @property
+  def project(self):
+    return self._project
+
+  @property
+  def checksum(self):
+    return self._checksum
+
+  @property
+  def encoding_patterns(self):
+    return self._encoding_patterns.keys()
+
+  @property
+  def image_ids(self):
+    return self._image_id.keys()
+
+  @property
+  def max_image_id(self):
+    return self._image_id.max_image_id
+
+  def GetImageName(self, image_id):
+    return self._image_id[image_id]
+
+  def AddImage(self, image_id, image_name,
+               new_pattern=False, encoding_scheme=None):
+    self._image_id[image_id] = image_name
+    if new_pattern:
+      self._pattern.AddImageId(self.max_image_id, image_id)
+    else:
+      self._pattern.AddEmptyPattern(image_id, encoding_scheme)
+
+  def GetImageIdByName(self, image_name):
+    return self._image_id.GetImageIdByName(image_name)
+
+  def GetEncodingScheme(self, image_id=None):
+    return self._pattern.GetEncodingScheme(image_id)
+
+  def GetTotalBitLength(self, image_id=None):
+    return self._pattern.GetTotalBitLength(image_id)
+
+  def GetEncodedFieldsBitLength(self, image_id=None):
+    return self._pattern.GetFieldsBitLength(image_id)
+
+  def GetBitMapping(self, image_id=None, max_bit_length=None):
+    return self._pattern.GetBitMapping(image_id, max_bit_length)
+
+  def AppendEncodedFieldBit(self, field_name, bit_length, image_id=None):
+    if field_name not in self.encoded_fields:
+      raise common.HWIDException('The field %r does not exist.' % field_name)
+
+    self._pattern.AppendField(field_name, bit_length, image_id=image_id)
+
+  @property
+  def encoded_fields(self):
+    return self._encoded_fields.encoded_fields
+
+  def GetEncodedField(self, encoded_field_name):
+    return self._encoded_fields.GetField(encoded_field_name)
+
+  def AddNewEncodedField(self, encoded_field_name, components):
+    self._VerifyEncodedFieldComponents(components)
+
+    self._encoded_fields.AddNewField(encoded_field_name, components)
+
+  def AddEncodedFieldComponents(
+      self, encoded_field_name, components, index=None):
+    self._VerifyEncodedFieldComponents(components)
+
+    return self._encoded_fields.AddFieldComponents(
+        encoded_field_name, components, index)
+
+  @property
+  def component_classes(self):
+    return self._components.component_classes
+
+  def GetComponents(self, comp_cls):
+    return self._components.GetComponents(comp_cls)
+
+  def AddComponent(self, comp_cls, comp_name, value, status):
+    return self._components.AddComponent(comp_cls, comp_name, value, status)
+
+  def SetComponentStatus(self, comp_cls, comp_name, status):
+    return self._components.SetComponentStatus(comp_cls, comp_name, status)
+
+  @property
+  def device_info_rules(self):
+    return self._rules.device_info_rules
+
+  @property
+  def verify_rules(self):
+    return self._rules.verify_rules
+
+  def GetActiveComponentClasses(self, image_id=None):
+    ret = []
+    for encoded_field_name in self.GetEncodedFieldsBitLength(image_id).keys():
+      comps = self.GetEncodedField(encoded_field_name).values()[0]
+      ret += comps.keys()
+
+    return ret
+
+  def _SanityChecks(self):
+    # Each image id should have a corresponding pattern.
+    if set(self.image_ids) != set(self._pattern.all_image_ids):
+      raise common.HWIDException(
+          'Each image id should have a corresponding pattern.')
+
+    # Encoded fields should be well defined.
+    for image_id in self.image_ids:
+      for encoded_field_name in self.GetEncodedFieldsBitLength(image_id):
+        if encoded_field_name not in self.encoded_fields:
+          raise common.HWIDException(
+              'The encoded field %r is not defined in `encoded_fields` part.' %
+              encoded_field_name)
+
+    # Each encoded field should be well defined.
+    for encoded_field_name in self.encoded_fields:
+      for comps in self.GetEncodedField(encoded_field_name).itervalues():
+        for comp_cls, comp_names in comps.iteritems():
+          if comp_cls not in self.component_classes:
+            raise common.HWIDException(
+                'The component class %r is not defined in `components` part.' %
+                comp_cls)
+          missing_comp_names = (
+              set(comp_names) - set(self.GetComponents(comp_cls).keys()))
+          if missing_comp_names:
+            raise common.HWIDException(
+                'The components %r are not defined in `components` part.' %
+                missing_comp_names)
+
+  def _VerifyEncodedFieldComponents(self, components):
+    for comp_cls, comp_names in components.iteritems():
+      if comp_cls not in self.component_classes:
+        raise common.HWIDException('The component class %r is not recorded '
+                                   'in `components` part.' % comp_cls)
+
+      for comp_name in comp_names:
+        if comp_name not in self.GetComponentNames(comp_cls):
+          raise common.HWIDException('The component %r is not recorded '
+                                     'in `components` part.' % comp_name)
+
+
+class _NamedNumber(dict):
+  """A customized dictionary for `encoding_patterns` and `image_id` parts.
+
+  This class limits some features of the build-in dict to keep the HWID
+  database valid.  The restrictions are:
+    1. Key of this dictionary must be an integer.
+    2. Value of this dictionary must be an unique string.
+    3. Existed key-value cannot be modified or be removed.
+  """
+
+  PART_TAG = None
+  NUMBER_RANGE = None
+  NUMBER_TAG = None
+  NAME_TAG = None
+
+  def __init__(self, source):
+    super(_NamedNumber, self).__init__()
+
+    if not isinstance(source, dict):
+      raise common.HWIDException(
+          'Invalid source %r for `%s` part of a HWID database.' %
+          (source, self.PART_TAG))
+
+    for number, name in source.iteritems():
+      self[number] = name
+
+  def Export(self):
+    """Exports to a dictionary which can be saved into the database file."""
+    return dict(self)
+
+  def __getitem__(self, number):
+    """Gets the name of the specific number.
+
+    Raises:
+      common.HWIDException if the given number is not recorded.
+    """
+    try:
+      return super(_NamedNumber, self).__getitem__(number)
+    except KeyError:
+      raise common.HWIDException(
+          'The %s %r is not recorded.' % (self.NUMBER_TAG, number))
+
+  def __setitem__(self, number, name):
+    """Adds a new number or updates an existed number's name.
+
+    Raises:
+      common.HWIDException if failed.
+    """
+    if number not in self.NUMBER_RANGE:
+      raise common.HWIDException('The %s should be one of %r, but got %r.' %
+                                 (self.NUMBER_TAG, self.NUMBER_RANGE, number))
+
+    if not isinstance(name, str):
+      raise common.HWIDException('The %s should be a string, but got %r.' %
+                                 (self.NAME_TAG, name))
+
+    if number in self:
+      raise common.HWIDException('The %s %r already exists.' %
+                                 (self.NUMBER_TAG, number))
+
+    if name in self.values():
+      raise common.HWIDException('The %s %r is already in used.' %
+                                 (self.NAME_TAG, name))
+
+    super(_NamedNumber, self).__setitem__(number, name)
+
+  def __delitem__(self, key):
+    raise common.HWIDException(
+        'Invalid operation: remove %s %r.' % (self.NUMBER_TAG, key))
+
+
+class EncodingPatterns(_NamedNumber):
+  """Class for holding `encoding_patterns` part in a HWID database.
+
+  `encoding_patterns` part records all encoding pattern ids and their unique
+  name.
+
+  An encoding pattern id is either 0 or 1 (1 bit in width).  But since the
+  encoding method is not defined for the encoding pattern id being 1, this
+  value now can only be 0.
+
+  In the HWID database file, `encoding_patterns` part looks like:
+
+  ```yaml
+  encoding_patterns:
+    0: default  # 0 is the encoding pattern id, "default" is the
+                # encoding pattern name.
+
+  ```
+  """
+  PART_TAG = 'encoding_patterns'
+  NUMBER_RANGE = [0]
+  NUMBER_TAG = 'encoding pattern id'
+  NAME_TAG = 'encoding pattern name'
+
+
+class ImageId(_NamedNumber):
+  """Class for holding `image_id` part in a HWID database.
+
+  `image_id` part in a HWID database records all image ids and their name.
+
+  An image id is an integer between 0~15 (4 bits in width).  Each image id has
+  an unique name (called image name) in string.  This class is a dictionary
+  mapping each image id to the corresponding image name.
+
+  In the HWID database file, `image_id` part looks like:
+
+  ```yaml
+  image_id:
+    0: PROTO    # 0 is the image id, "PROTO" is the image name.
+    1: EVT      # 1 is another image id.
+    2: EVT-99
+    3: WA_LALA
+    ...
+
+  ```
+  """
+  PART_TAG = 'image_id'
+  NUMBER_RANGE = range(16)
+  NUMBER_TAG = 'image id'
+  NAME_TAG = 'image name'
+
+  def GetImageIdByName(self, image_name):
+    """Returns the image id of the given image name.
+
+    Raises:
+      common.HWIDException if the image id is not found.
+    """
+    for i, name in self.iteritems():
+      if name == image_name:
+        return i
+
+    raise common.HWIDException('The image name %r is not valid.' % image_name)
+
+  @property
+  def max_image_id(self):
+    """Returns the maximum image id."""
+    return max(self.keys())
+
+
+class EncodedFields(object):
+  """Class for holding `encoded_fields` part of a HWID database.
+
+  `encoded_fields` part of a HWID database defines the way to convert
+  hardware components to numbers (and then `pattern` part defines way to union
+  all numbers (each encoded field generates a number) together).
+
+  `encoded_fields` defines a set of encoded field.  Each encoded field contains
+  a set of numbers.  A number then maps to a hardware component, or a set
+  of hardware components.  For example, in the HWID database file, this part
+  might look like:
+
+  ```yaml
+  encoded_fields:
+    wireless_field:
+      0:
+        wireless: super_cool_wireless_component
+      1:
+        wireless: not_so_good_component
+    dram_field:
+      0:
+        dram:
+        - ram_4g_1
+        - ram_4g_2
+      1:
+        dram:
+        - ram_8g_1
+        - ram_8g_2
+    firmware_field:
+      0:
+        ec_firmware: ec_rev0
+        main_firmware: main_rev0
+      1:
+        ec_firmware: ec_rev0
+        main_firmware: main_rev1
+      2:
+        ec_firmware: ec_rev0
+        main_firmware: main_rev2
+    chassis_field:
+      0:
+        chassis: COOL_CHASSIS_ID
+  ```
+  If the Chromebook installs the wireless chip `super_cool_wireless_component`,
+  the corresponding number of `wireless_field` is 0.  `dram_field` above is
+  more tricky, 0 means two 4G ram being installed on the Chromebook; 1 means
+  two 8G ram being installed on the Chromebook.  If the probed results tell
+  us that one 4G and one 8G rams are installed, the program will fail to
+  generate the HWID identity because the combination of dram doesn't meet
+  any case.
+
+  A number respresents to a combination of a set of components, and it's even
+  okey to be a set of different class of components like `firmware_field` in
+  above example.  But for each class of components, it should belong to one
+  `encoded_field`.  For example, below `encoded_fields` is invalid:
+
+  ```yaml
+  encoded_fields:
+    aaa_field:
+      0:
+        class1: comp1
+    bbb_field:
+      0:
+        class1: comp2
+      1:
+        class1: comp3
+  ```
+
+  The relationship between the encoded fields and the classes of components
+  should form a `one-to-multi` mapping.
+
+  Properties:
+    _fields: A dictionary maps the encoded field name to another
+        dictionary which maps the number to another dictionary which maps
+        the component class name to a list of component name.
+    _field_to_comp_classes: A dictionary maps the encoded field name to a set
+        of component class.
+    _can_encode: True if this part works for encoding a BOM to the HWID string.
+        Somehow there are some old, existed HWID databases which has an encoded
+        field which maps two different indexes into exactly same component
+        combinations.  In above case the database still works for decoding,
+        but not encoding.
+  """
+
+  _SCHEMA = schema.Dict(
+      'encoded fields',
+      key_type=schema.Scalar('field name', str),
+      value_type=schema.Dict(
+          'encoded field',
+          key_type=schema.Scalar(
+              'index number', int,
+              range(1024)),  # range(1024) is just a big enough range to denote
+                             # that index numbers are non-negative integers.
+          value_type=schema.Dict(
+              'components',
+              key_type=schema.Scalar('component class', str),
+              value_type=schema.AnyOf([
+                  schema.Scalar('empty list', type(None)),
+                  schema.Scalar('component name', str),
+                  schema.List(
+                      'list of component name',
+                      element_type=schema.Scalar('component name', str))])),
+          min_size=1))
+
+  def __init__(self, encoded_fields_expr):
+    """Constructor.
+
+    This constructor shouldn't be called by other modules.
+    """
+    self._SCHEMA.Validate(encoded_fields_expr)
+
+    self._fields = {}
+    self._field_to_comp_classes = {}
+    self._can_encode = True
+
+    for field_name, field_data in encoded_fields_expr.iteritems():
+      self._RegisterNewEmptyField(field_name, field_data.values()[0].keys())
+      for index, components in field_data.iteritems():
+        self.AddFieldComponents(field_name, components, index=index)
+
+  def __eq__(self, rhs):
+    return isinstance(rhs, EncodedFields) and self._fields == rhs._fields
+
+  def __ne__(self, rhs):
+    return not self == rhs
+
+  @property
+  def can_encode(self):
+    return self._can_encode
+
+  def Export(self):
+    """Exports to a dictionary so that it can be stored to the database file."""
+    ret = {}
+    for field, field_data in self._fields.iteritems():
+      ret[field] = {}
+      for index, components in field_data.iteritems():
+        ret[field][index] = {
+            comp_cls: comp_names[0] if len(comp_names) == 1 else comp_names
+            for comp_cls, comp_names in components.iteritems()}
+
+    return ret
+
+  @property
+  def encoded_fields(self):
+    """Returns a list of encoded field names."""
+    return self._fields.keys()
+
+  def GetField(self, field_name):
+    """Gets the specific field.
 
     Args:
-      encoded_field: The encoded field of interest.
+      field_name: A string of the name of the encoded field.
 
     Returns:
-      A list of ints of the encoded indices.
+      A dictionary which maps each index number to the corresponding components
+          combination (i.e. A dictionary of component class to a list of
+          component names).
     """
-    return [key for key in self.encoded_fields[encoded_field]
-            if isinstance(key, int)]
+    if field_name not in self._fields:
+      raise common.HWIDException('The field name %r is invalid.' % field_name)
 
-  def _GetAttributesByIndex(self, encoded_field, index):
-    """Gets the attributes of all the component(s) of a encoded field through
-    the given encoded index.
+    return self._fields[field_name]
+
+  def AddFieldComponents(self, field_name, components, index=None):
+    """Adds components combination to an existing encoded field.
 
     Args:
-      encoded_field: The encoded field of interest.
-      index: The index of the component.
+      field_name: A string of the name of the new encoded field.
+      components: A dictionary which maps the component class to a list of
+          component name.
+      index: The number for the given component set.
 
     Returns:
-      A dict indexed by component classes that includes a list of all the
-      attributes of the components represented by the encoded index, or None if
-      the index if not found.
+      The index of the added components.
     """
-    if encoded_field not in self.encoded_fields:
-      return None
-    if index not in self.encoded_fields[encoded_field]:
-      return None
-    result = {}
-    for comp_cls, comp_names in (
-        self.encoded_fields[encoded_field][index].iteritems()):
-      if comp_names is None:
-        result[comp_cls] = None
-      else:
-        result[comp_cls] = []
-        for name in comp_names:
-          # Add an additional index 'name' to record component name
-          new_attr = self.components.GetComponentAttributes(comp_cls, name)
-          new_attr['name'] = name
-          result[comp_cls].append(new_attr)
-    return result
+    if field_name not in self._fields:
+      raise common.HWIDException(
+          'Encoded field %r does not exist' % (field_name,))
 
-  def GetActiveComponents(self, image_id=None):
-    """Returns a list of the components contained at the according pattern."""
-    ret = set()
-    for encoded_field_name in self.pattern.GetFieldNames(image_id):
-      for comp_dict in self.encoded_fields[encoded_field_name].itervalues():
-        ret = ret.union(comp_dict.keys())
-    return list(ret)
+    if set(components.keys()) != self._field_to_comp_classes[field_name]:
+      raise common.HWIDException('Each encoded field should encode a fixed set '
+                                 'of component classes.')
 
+    if index is None:
+      index = max(self._fields[field_name].keys()) + 1
+    self._SCHEMA.value_type.key_type.Validate(index)
+    if index in self._fields[field_name]:
+      raise common.HWIDException('The index %r is already in used.' % index)
 
-class EncodingPatterns(dict):
-  """Class for parsing encoding_patterns in database.
+    comps = {}
+    for comp_cls, comp_names in components.iteritems():
+      comps[comp_cls] = ([] if comp_names is None
+                         else sorted(type_utils.MakeList(comp_names)))
 
-  Args:
-    encoding_patterns_dict: A dict of encoding patterns of the form:
-        {
-          0: 'default',
-          1: 'extra_encoding_pattern',
-          ...
-        }
-  """
+    for existing_index, existing_comps in self._fields[field_name].iteritems():
+      if existing_comps == comps:
+        self._can_encode = False
+        logging.warning(
+            'The components combination %r already exists (at index %r).',
+            comps, existing_index)
 
-  def __init__(self, encoding_patterns_dict):
-    self.schema = schema.Dict('encoding patterns',
-                              key_type=schema.Scalar('encoding pattern', int),
-                              value_type=schema.Scalar('encoding scheme', str))
-    self.schema.Validate(encoding_patterns_dict)
-    super(EncodingPatterns, self).__init__(encoding_patterns_dict)
+    self._fields[field_name][index] = comps
+    return index
 
+  def AddNewField(self, field_name, components):
+    """Adds a new field.
 
-class ImageId(dict):
-  """Class for parsing image_id in database.
+    Args:
+      field_name: A string of the name of the new field.
+      components: A dictionary which maps the component class to a list of
+          component name.
+    """
+    if field_name in self._fields:
+      raise common.HWIDException(
+          'Encoded field %r already exists' % (field_name,))
 
-  Args:
-    image_id_dict: A dict of image ids of the form:
-        {
-          0: 'image_id0',
-          1: 'image_id1',
-          ...
-        }
-  """
+    self._RegisterNewEmptyField(field_name, components.keys())
+    self.AddFieldComponents(field_name, components, index=0)
 
-  def __init__(self, image_id_dict):
-    self.schema = schema.Dict('image id',
-                              key_type=schema.Scalar('image id', int),
-                              value_type=schema.Scalar('image name', str))
-    self.schema.Validate(image_id_dict)
-    super(ImageId, self).__init__(image_id_dict)
+  def _RegisterNewEmptyField(self, field_name, comp_classes):
+    if not comp_classes:
+      raise common.HWIDException(
+          'An encoded field must includes at least one component class.')
 
-
-class EncodedFields(dict):
-  """Class for parsing encoded_fields in database.
-
-  Args:
-    encoded_fields_dict: A dict of encoded fields of the form:
-        {
-          'encoded_field_name1': {
-            0: {
-              'component_class1': 'component_name1',
-              'component_class2': ['component_name2', 'component_name3']
-              ...
-            }
-            1: {
-              'component_class1': 'component_name4',
-              'component_class2': None,
-              ...
-            }
-          }
-          'encoded_field_name2':
-          ...
-        }
-  """
-
-  def __init__(self, encoded_fields_dict):
-    self.schema = schema.Dict(
-        'encoded fields', schema.Scalar('encoded field', str),
-        schema.Dict(
-            'encoded indices', schema.Scalar('encoded index', int),
-            schema.Dict(
-                'component classes', schema.Scalar('component class', str),
-                schema.Optional(
-                    [schema.Scalar('component name', str),
-                     schema.List('list of component names',
-                                 schema.Scalar('component name', str))]))))
-    self.schema.Validate(encoded_fields_dict)
-    super(EncodedFields, self).__init__(encoded_fields_dict)
-    # Convert string to list of string and None to empty list.
-    for field in self:
-      for index in self[field]:
-        for comp_cls in self[field][index]:
-          comp_value = self[field][index][comp_cls]
-          if comp_value is None:
-            self[field][index][comp_cls] = []
-          elif isinstance(comp_value, str):
-            self[field][index][comp_cls] = type_utils.MakeList(comp_value)
+    self._fields[field_name] = {}
+    self._field_to_comp_classes[field_name] = set(comp_classes)
 
 
 class Components(object):
-  """A class for parsing and obtaining information of a pre-defined components
-  list.
+  """Class for holding `components` part in a HWID database.
 
-  Args:
-    components_dict: A dict of components of the form:
-        {
-          'component_class_1': {      # Probeable component class.
-            'items': {
-              'component_name_1': {
-                'values': { probed values dict },
-                'status': status
-              },
-              ...
-            }
-          }
-          ...
-        }
+  `components` part in a HWID database records information of all components
+  which might be found on the device.
 
-  Raises:
-    HWIDException if the given dict fails sanity checks.
+  In the HWID database file, `components` part looks like:
+
+  ```yaml
+  components:
+    <comonent_class_1_name>:
+      items:
+        <component_name>:
+          value:
+            <a_dict_of_expected_probed_result_values>
+          status: unsupported|deprecated|unqualified|supported
+        <component_name>:
+          value:
+            <a_dict_of_expected_probed_result_values>
+          status: unsupported|deprecated|unqualified|supported
+        ...
+    ...
+  ```
+
+  For example, it might look like:
+
+  ```yaml
+  components:
+    battery:
+      items:
+        battery_small:
+          status: deprecated
+          values:
+            tech: Battery Li-ion
+            size: '2500000'
+        battery_medium:
+          status: unqualified
+          values:
+            tech: Battery Li-ion
+            size: '123456789'
+
+    cellular:
+      items:
+        cellular_0:
+          values:
+            idVendor: 89ab
+            idProduct: abcd
+            name: Cellular Card
+  ```
+
+  In above example, when we probe the battery of the device, if the probed
+  result values contains {'tech': 'Battery Li-ion', size: '123456789'}, we
+  consider as there's a component named "battery_small" installed on the device.
+
+  Valid status are: supported, unqualified, deprecated and unsupported.  Each
+  value has its own meaning:
+    * supported: This component is currently being used to build new units and
+          allowed to be used in later build (PVT and later).
+    * unqualified: The component is acceptable to be installed on the device in
+          early normal build (before PVT, not included).
+    * deprecated: This component is no longer being used to build new units,
+          but is supported in RMA process.
+    * unsupported: This component is not allowed to be used to build new units,
+          and is not supported in RMA process.
+  If not specified, status defaults to supported.
+
+  After probing all kind of components, it results in a BOM list, which records
+  a list of names of the installed components.  Then we generate the HWID
+  encoded string by looking up the encoded fields to transfer the BOM list
+  into numbers and union them.
+
+  Attributes:
+    _components: A dictionary which maps the component class name to a list
+        of _ComponentInfo object.
+    _can_encode: True if the original data doesn't contain legacy information
+        so that the whole database works for encoding a BOM to the HWID string.
+        As the idea of non-probeable components are deprecated and the idea of
+        default components are approached by rules, the HWID database contains
+        non-probeable or default components will be mark as _can_encode=False.
+    _default_comonents: A set of default components.
+    _non_probeable_component_classes: A set of name of the non-probeable
+        component class.
   """
+  _SCHEMA = schema.Dict(
+      'components',
+      key_type=schema.Scalar('component class', str),
+      value_type=schema.FixedDict(
+          'component description',
+          items={
+              'items': schema.Dict(
+                  'components',
+                  key_type=schema.Scalar('component name', str),
+                  value_type=schema.FixedDict(
+                      'component attributes',
+                      items={
+                          'values': schema.AnyOf([
+                              schema.Dict(
+                                  'probed key-value pairs',
+                                  key_type=schema.Scalar('probed key', str),
+                                  value_type=schema.AnyOf([
+                                      schema.Scalar('probed value', str),
+                                      schema.Scalar(
+                                          'probde value regex', Value)]),
+                                  min_size=1),
+                              schema.Scalar('none', type(None))])},
+                      optional_items={
+                          'default': schema.Scalar(
+                              'is default component item (deprecated)', bool),
+                          'status': schema.Scalar(
+                              'item status', str,
+                              choices=common.COMPONENT_STATUS)}))},
+          optional_items={
+              'probeable': schema.Scalar(
+                  'is component probeable (deprecate)', bool)}))
 
-  def __init__(self, components_dict):
-    self.schema = schema.Dict(
-        'components',
-        schema.Scalar('component class', str),
-        schema.FixedDict(
-            'component description',
-            items={
-                'items': schema.Dict(
-                    'component names',
-                    key_type=schema.Scalar('component name', str),
-                    value_type=schema.FixedDict(
-                        'component attributes',
-                        items={'values': schema.Optional(
-                            schema.Dict('probe key-value pairs',
-                                        key_type=schema.Scalar('probe key',
-                                                               str),
-                                        value_type=schema.AnyOf([
-                                            schema.Scalar('probe value', str),
-                                            schema.Scalar('probe value regexp',
-                                                          rule.Value)])))},
-                        optional_items={
-                            'default': schema.Scalar(
-                                'is default component item', bool),
-                            'status': schema.Scalar('item status', str)}))
-            },
-            optional_items={
-                'probeable': schema.Scalar('is component probeable', bool)
-            }))
-    self.schema.Validate(components_dict)
+  _ComponentInfo = collections.namedtuple('_ComponentInfo',
+                                          ['values', 'status'])
 
-    # Check there is at most one default items for each component class.
-    self.default = {}
-    for comp_cls, comp_cls_data in components_dict.iteritems():
-      default_items = []
-      for comp_name, comp_attrs in comp_cls_data['items'].iteritems():
-        if comp_attrs.get('default', False):
-          default_items.append(comp_name)
-      if len(default_items) == 1:
-        self.default[comp_cls] = default_items[0]
-      elif len(default_items) > 1:
-        raise common.HWIDException(
-            'Component %s has more than one default items: %r' %
-            (comp_cls, default_items))
+  _DUMMY_KEY = 'dummy_probed_value_key'
 
-    for comp_cls_data in components_dict.itervalues():
-      for comp_cls_item_attrs in comp_cls_data['items'].itervalues():
-        # Sanity check for component status.
-        status = comp_cls_item_attrs.get(
-            'status', common.COMPONENT_STATUS.supported)
-        if status not in common.COMPONENT_STATUS:
-          raise common.HWIDException(
-              'Invalid component item status: %r' % status)
+  def __init__(self, components_expr):
+    """Constructor.
 
-        # Convert all probe values to Value objects.
-        if comp_cls_item_attrs['values'] is None:
-          continue
-        for key, value in comp_cls_item_attrs['values'].items():
-          if not isinstance(value, rule.Value):
-            comp_cls_item_attrs['values'][key] = rule.Value(value)
-
-    self.components_dict = components_dict
-
-  def GetRequiredComponents(self):
-    """Gets the list of required component classes.
-
-    Returns:
-      A set of component classes that are required to present on board.
+    This constructor shouldn't be called by other modules.
     """
-    return set(self.components_dict.keys())
+    self._SCHEMA.Validate(components_expr)
 
-  def GetComponentAttributes(self, comp_cls, comp_name):
-    """Gets the attributes of the given component.
+    self._components = {}
+    self._can_encode = True
+    self._default_components = set()
+    self._non_probeable_component_classes = set()
+    dummy_counter = 0
+
+    for comp_cls, comps_data in components_expr.iteritems():
+      self._components[comp_cls] = {}
+      for comp_name, comp_attr in comps_data['items'].iteritems():
+        values = comp_attr['values']
+        if values is None:
+          self._can_encode = False
+          values = {self._DUMMY_KEY: str(dummy_counter)}
+          dummy_counter += 1
+
+        self.AddComponent(comp_cls, comp_name, values,
+                          comp_attr.get('status',
+                                        common.COMPONENT_STATUS.supported))
+
+        if comp_attr.get('default') == True:
+          self._can_encode = False
+          self._default_components.add((comp_cls, comp_name))
+
+      if comps_data.get('probeable') == False:
+        self._can_encode = False
+        self._non_probeable_component_classes.add(comp_cls)
+
+  def __eq__(self, rhs):
+    # pylint: disable=protected-access
+    return isinstance(rhs, Components) and self._components == rhs._components
+
+  def __ne__(self, rhs):
+    return not self == rhs
+
+  def Export(self):
+    """Exports into a serializable dictionary which can be stored into a HWID
+    database file."""
+    ret = {}
+    for comp_cls in self.component_classes:
+      ret[comp_cls] = {'items': {}}
+      for comp_name, comp in self.GetComponents(comp_cls).iteritems():
+        if self._DUMMY_KEY in comp.values:
+          ret[comp_cls]['items'][comp_name] = {'values': None}
+        else:
+          ret[comp_cls]['items'][comp_name] = {'values': comp.values}
+
+        if comp.status != common.COMPONENT_STATUS.supported:
+          ret[comp_cls]['items'][comp_name]['status'] = comp.status
+
+        if (comp_cls, comp_name) in self._default_components:
+          ret[comp_cls]['items'][comp_name]['default'] = True
+
+      if comp_cls in self._non_probeable_component_classes:
+        ret[comp_cls]['probeable'] = False
+    return ret
+
+  @property
+  def can_encode(self):
+    """Returns true if the components is not the legacy one which let the whole
+    database unable to encode the BOM."""
+    return self._can_encode
+
+  @property
+  def component_classes(self):
+    """Returns a list of string of the component class names."""
+    return self._components.keys()
+
+  def GetComponents(self, comp_cls):
+    """Gets the components of the specific component class.
 
     Args:
-      comp_cls: The component class to look up for.
-      comp_name: The component name to look up for.
+      comp_cls: A string of the name of the component class.
 
     Returns:
-      A copy of the dict that contains all the attributes of the given
-      component.
+      A dict which maps a string of component name to a `_ComponentInfo` object,
+      which is a named tuple contains two attributes:
+        values: A string-to-string dict of expected probed results.
+        status: One of "unsupported", "deprecated", "unqualified", "supported".
     """
-    self.CheckComponent(comp_cls, comp_name)
-    if not comp_name:
-      # Missing component.
-      return {}
-    return copy.deepcopy(self.components_dict[comp_cls]['items'][comp_name])
+    return self._components.get(comp_cls, {})
 
-  def GetComponentStatus(self, comp_cls, comp_name):
-    """Gets the status of the given component.
+  def AddComponent(self, comp_cls, comp_name, values, status):
+    """Adds a new component.
 
     Args:
-      comp_cls: The component class to look up for.
-      comp_name: The component name to look up for.
-
-    Returns:
-      One of the status in Components.STATUS indicating the status of the given
-      component.
+      comp_cls: A string of the component class.
+      comp_name: A string of the name of the component.
+      values: A dict of the expected probed results.
+      status: The component status, one of "unsupported", "deprecated",
+          "unqualified", "supported".
     """
-    return self.components_dict[comp_cls]['items'][comp_name].get(
-        'status', common.COMPONENT_STATUS.supported)
+    def _IsSubDict(super_dict, sub_dict):
+      if set(sub_dict.keys()) - set(super_dict.keys()):
+        return False
+      for k, v in sub_dict.iteritems():
+        if super_dict[k] != v:
+          return False
+      return True
 
-  def MatchComponentsFromValues(self, comp_cls, values_dict,
-                                loose_matching=False, include_default=False):
-    """Matches a list of components whose 'values' attributes match the given
-    'values_dict'.
+    self._SCHEMA.value_type.items[
+        'items'].value_type.items['values'].types[0].Validate(values)
+    self._SCHEMA.value_type.items[
+        'items'].value_type.optional_items['status'].Validate(status)
 
-    Only the fields listed in the 'values' dict of each component are used as
-    matching keys.
+    if comp_name in self._components.get(comp_cls, {}):
+      raise common.HWIDException('Component (%r, %r) already exists.' %
+                                 (comp_cls, comp_name))
 
-    For example, this may be used to look up all the dram components that are of
-    size 4G with {'size': '4G'} as 'values_dict' and 'dram' as 'comp_cls'.
+    for existed_comp_name, existed_comp_info in self.GetComponents(
+        comp_cls).iteritems():
+      existed_comp_values = existed_comp_info.values
+      if (_IsSubDict(existed_comp_values, values) or
+          _IsSubDict(values, existed_comp_values)):
+        logging.warning('Probed values %r is ambiguous with %r',
+                        values, existed_comp_name)
+        self._can_encode = False
+
+    self._components.setdefault(comp_cls, {})
+    self._components[comp_cls][comp_name] = self._ComponentInfo(values, status)
+
+  def SetComponentStatus(self, comp_cls, comp_name, status):
+    """Sets the status of a specific component.
 
     Args:
-      comp_cls: The component class of interest.
-      values_dict: A dict of values to be used as look up key.
-      loose_matching: If set to True, partial match of probed results will be
-          accepted.  For example, if the probed results only contain the
-          firmware version of RO main firmware but not its hash, and we want to
-          know if the firmware version is supported, then we can enable
-          loose_matching to see if the firmware version is supported in the
-          database.
-      include_default: If set to True, match the default item.
-
-    Returns:
-      A dict with keys being the matched component names and values being the
-      dict of component attributes corresponding to the component names.
-
-    Raises:
-      HWIDException if the given component class is invalid.
+      comp_cls: The component class name.
+      comp_name: The component name.
+      status: The component status, one of "unsupported", "deprecated",
+          "unqualified", "supported".
     """
-    self.CheckComponent(comp_cls, None)
-    results = {}
-    for comp_name, comp_attrs in (
-        self.components_dict[comp_cls]['items'].iteritems()):
-      if comp_attrs.get('default', False):
-        if include_default:
-          results[comp_name] = copy.deepcopy(comp_attrs)
-      elif comp_attrs['values'] is None and values_dict is None:
-        # Special handling for None values.
-        results[comp_name] = copy.deepcopy(comp_attrs)
-      elif comp_attrs['values'] is None:
-        continue
-      else:
-        match = True
-        keys_missing = set()
-        for key, value in comp_attrs['values'].iteritems():
-          # Only match the listed fields in 'values'.
-          if key not in values_dict:
-            if loose_matching:
-              keys_missing.add(key)
-              continue
-            else:
-              match = False
-              break
-          if not value.Matches(values_dict[key]):
-            match = False
-            break
+    self._SCHEMA.value_type.items[
+        'items'].value_type.optional_items['status'].Validate(status)
 
-        if (loose_matching and
-            keys_missing == set(comp_attrs['values'].keys())):
-          match = False
+    if comp_name not in self._components.get(comp_cls, {}):
+      raise common.HWIDException('Component (%r, %r) is not recorded.' %
+                                 (comp_cls, comp_name))
 
-        if match:
-          results[comp_name] = copy.deepcopy(comp_attrs)
-
-    return results
-
-  def CheckComponent(self, comp_cls, comp_name):
-    """Checks if the given component class and component name are valid.
-
-    Args:
-      comp_cls: The component class to check.
-      comp_name: The component name to check. Set this to None will check
-          component class validity only.
-
-    Raises:
-      HWIDException if the given component class or name are invalid.
-    """
-    if comp_cls not in self.components_dict:
-      raise common.HWIDException('Invalid component class %r' % comp_cls)
-    if comp_name and comp_name not in self.components_dict[comp_cls]['items']:
-      raise common.HWIDException(
-          'Invalid component name %r of class %r' % (comp_name, comp_cls))
+    self._components[comp_cls][comp_name] = self._ComponentInfo(
+        self._components[comp_cls][comp_name].values, status)
 
 
 class Pattern(object):
   """A class for parsing and obtaining information of a pre-defined encoding
   pattern.
 
-  Args:
-    pattern_list: A list of dicts that maps encoded fields to their
-        bit length.
+  The `pattern` part of a HWID database records a list of patterns.  Each
+  pattern records:
+    1. `image_ids`: A list of image id for this pattern.  When we are decoding
+       a HWID identity, we will use the pattern which `image_ids` field
+       includes the image id in the HWID identity.
+    2. `encoding_scheme`: Either "base32" or "base8192".  This is the name of
+       the algorithm to encoding/decoding the binary string.
+    3. `fields`: Bit positions of each type of components.  Since the hardware
+       component might be added into the HWID database in anytime and we can
+       only append extra bits to the components bitset at the end so that
+       old HWID identity can be decoded by the same pattern, the index number
+       of the installed component might have to be splitted into multiple part
+       when we union all numbers into a big binary string.  For example, if the
+       `fields` defines:
+
+       ```yaml
+       - battery: 2
+       - cpu: 1
+       - battery 3
+       ```
+
+       Then the first 2 bits of the components bitset are the least 2 bits of
+       the index of the battery.  The 4~6 bits of the components bitset are the
+       3~5 bits of the index of the battery.  Here is the corresponding mapping
+       between the components bitset and the index of the battery of above
+       example.  (note that the bit for cpu is marked as "?" because it is not
+       related to the battery.)
+
+         bitset  battery_index    bitset  battery_index
+         00?000  0                00?100  16
+         01?000  1                01?100  17
+         10?000  2                10?100  18
+         11?000  3                11?100  19
+         00?001  4                00?101  20
+         01?001  5                01?101  21
+         10?001  6                10?101  22
+         11?001  7                11?101  23
+         00?010  8                00?110  24
+         01?010  9                01?110  25
+         10?010  10               10?110  26
+         11?010  11               11?110  27
+         00?011  12               00?111  28
+         01?011  13               01?111  29
+         10?011  14               10?111  30
+         11?011  15               11?111  31
+
+  The format of `pattern` part in the HWID database file is:
+
+  ```yaml
+  pattern:
+  - image_ids: <a_list_of_image_ids>
+  - encoding_scheme: <base32_or_base8192>
+  - fields:
+    - <component_class_name>: <number_of_bits>
+    - <component_class_name>: <number_of_bits>
+    ...
+
+  - image_ids: <a_list_of_image_ids>
+  - encoding_scheme: <base32_or_base8192>
+  - fields:
+    - <component_class_name>: <number_of_bits>
+    - <component_class_name>: <number_of_bits>
+    ...
+  ...
+
+  ```
+
   """
+  _Pattern = collections.namedtuple('_Pattern', ['encoding_scheme', 'fields'])
+  _Field = collections.namedtuple('_Field', ['name', 'bit_length'])
 
-  def __init__(self, pattern_list):
-    self.schema = schema.List(
-        'pattern', schema.FixedDict(
-            'pattern list', items={
-                'image_ids': schema.List('image ids', schema.Scalar('image id',
-                                                                    int)),
-                'encoding_scheme': schema.Scalar('encoding scheme', str),
-                'fields': schema.List('encoded fields', schema.Dict(
-                    'pattern field', key_type=schema.Scalar(
-                        'encoded index', str),
-                    value_type=schema.Scalar('bit offset', int)))}))
-    self.schema.Validate(pattern_list)
-    self.pattern = pattern_list
+  _SCHEMA = schema.List(
+      'pattern list',
+      element_type=schema.FixedDict(
+          'pattern',
+          items={
+              'image_ids': schema.List(
+                  'image ids',
+                  element_type=schema.Scalar(
+                      'image id', int, choices=range(16)),
+                  min_length=1),
+              'encoding_scheme': schema.Scalar(
+                  'encoding scheme', str, choices=['base32', 'base8192']),
+              'fields': schema.List(
+                  'encoded fields',
+                  schema.Dict(
+                      'pattern field',
+                      key_type=schema.Scalar('encoded index', str),
+                      value_type=schema.Scalar('bit offset', int, range(128)),
+                      min_size=1,
+                      max_size=1))}),
+      min_length=1)
 
-  def GetPatternByImageId(self, image_id=None):
-    """Get pattern definition by image id.
+  def __init__(self, pattern_list_expr):
+    """Constructor.
+
+    This constructor shouldn't be called by other modules.
+    """
+    self._SCHEMA.Validate(pattern_list_expr)
+
+    self._image_id_to_pattern = {}
+
+    for pattern_expr in pattern_list_expr:
+      pattern_obj = self._Pattern(pattern_expr['encoding_scheme'], [])
+      for field_expr in pattern_expr['fields']:
+        pattern_obj.fields.append(
+            self._Field(field_expr.keys()[0], field_expr.values()[0]))
+
+      for image_id in pattern_expr['image_ids']:
+        if image_id in self._image_id_to_pattern:
+          raise common.HWIDException(
+              'One image id should map to one pattern, but image id %r maps to '
+              'multiple patterns.' % image_id)
+
+        self._image_id_to_pattern[image_id] = pattern_obj
+
+    self._max_image_id = max(self._image_id_to_pattern.keys())
+
+  def __eq__(self, rhs):
+    # pylint: disable=protected-access
+    return (isinstance(rhs, Pattern) and
+            self._image_id_to_pattern == rhs._image_id_to_pattern)
+
+  def __ne__(self, rhs):
+    return not self == rhs
+
+  def Export(self):
+    """Exports this `pattern` part of HWID database into a serializable object
+    which can be stored into a HWID database file."""
+    pattern_list = []
+    for image_id, pattern in sorted(self._image_id_to_pattern.iteritems()):
+      for obj_to_export, existed_pattern in pattern_list:
+        if pattern is existed_pattern:
+          obj_to_export['image_ids'].append(image_id)
+          break
+      else:
+        obj_to_export = dict(image_ids=[image_id],
+                             encoding_scheme=pattern.encoding_scheme,
+                             fields=[{field.name: field.bit_length}
+                                     for field in pattern.fields])
+        pattern_list.append((obj_to_export, pattern))
+
+    return [pattern for pattern, _ in pattern_list]
+
+  @property
+  def all_image_ids(self):
+    """Returns all image ids."""
+    return self._image_id_to_pattern.keys()
+
+  def AddEmptyPattern(self, image_id, encoding_scheme):
+    """Adds a new empty pattern.
 
     Args:
-      image_id: An integer of the image id to query. If not given, the latest
-          image id would be used.
-
-    Returns:
-      A dict of the pattern definiton.
+      image_id: The image id of the new pattern.
+      encoding_sheme: The encoding scheme of the new pattern.
     """
-    id_pattern_map = {}
-    for pattern in self.pattern:
-      id_pattern_map.update(dict((image_id, pattern) for image_id in
-                                 pattern['image_ids']))
-    if image_id is None:
-      return id_pattern_map[max(id_pattern_map.keys())]
+    self._SCHEMA.element_type.items['image_ids'].element_type.Validate(image_id)
+    self._SCHEMA.element_type.items['encoding_scheme'].Validate(encoding_scheme)
 
-    if image_id not in id_pattern_map:
+    if image_id in self._image_id_to_pattern:
       raise common.HWIDException(
-          'Pattern for image id %r is not defined' % image_id)
+          'The image id %r is already in used.' % image_id)
 
-    return id_pattern_map[image_id]
+    self._image_id_to_pattern[image_id] = self._Pattern(encoding_scheme, [])
+    self._max_image_id = max(self._max_image_id, image_id)
+
+  def AddImageId(self, reference_image_id, image_id):
+    """Adds an image id to a pattern by the specific image id.
+
+    Args:
+      reference_image_id: An integer of the image id.  If not given, the latest
+          image id would be used.
+      image_id: The image id to be added.
+    """
+    self._SCHEMA.element_type.items['image_ids'].element_type.Validate(image_id)
+
+    if image_id in self._image_id_to_pattern:
+      raise common.HWIDException(
+          'The image id %r has already been in used.' % image_id)
+
+    self._image_id_to_pattern[image_id] = self._GetPattern(reference_image_id)
+    self._max_image_id = max(self._max_image_id, image_id)
+
+  def AppendField(self, field_name, bit_length, image_id=None):
+    """Append a field to the pattern.
+
+    Args:
+      field_name: Name of the field.
+      bit_length: Bit width to add.
+      image_id: An integer of the image id. If not given, the latest image id
+          would be used.
+    """
+    self._SCHEMA.element_type.items[
+        'fields'].element_type.key_type.Validate(field_name)
+    self._SCHEMA.element_type.items[
+        'fields'].element_type.value_type.Validate(bit_length)
+
+    self._GetPattern(image_id).fields.append(
+        self._Field(field_name, bit_length))
 
   def GetEncodingScheme(self, image_id=None):
-    return self.GetPatternByImageId(image_id)['encoding_scheme']
-
-  def GetImageIdFromEncodedString(self, encoded_string):
-    return int(Base32.Decode(encoded_string.split(' ')[1][0])[1:5], 2)
-
-  def GetImageIdFromBinaryString(self, binary_string):
-    return int(binary_string[1:5], 2)
-
-  def GetFieldsBitLength(self, image_id=None):
-    """Gets a map for the bit length of each encoded fields defined by the
-    pattern. Scattered fields with the same field name are aggregated into one.
-
-    Returns:
-      A dict mapping each encoded field to its bit length.
-    """
-    if self.pattern is None:
-      raise common.HWIDException(
-          'Cannot get encoded field bit length with uninitialized pattern')
-    ret = collections.defaultdict(int)
-    for element in self.GetPatternByImageId(image_id)['fields']:
-      for cls, length in element.iteritems():
-        ret[cls] += length
-    return ret
-
-  def GetFieldNames(self, image_id=None):
-    """Get the set of the encoded fields defined by the pattern.
+    """Gets the encoding scheme recorded in the pattern.
 
     Args:
       image_id: An integer of the image id to query. If not given, the latest
           image id would be used.
 
     Returns:
-      a set that contains the names of all the encoded_field in the pattern.
+      Either "base32" or "base8192".
     """
-    return set(self.GetFieldsBitLength(image_id).keys())
+    return self._GetPattern(image_id).encoding_scheme
 
   def GetTotalBitLength(self, image_id=None):
-    """Gets the total bit length defined by the pattern. Common header and
-    stopper bit are included.
+    """Gets the total bit length defined by the pattern.
 
     Args:
       image_id: An integer of the image id to query. If not given, the latest
@@ -680,122 +1267,244 @@ class Pattern(object):
     Returns:
       A int indicating the total bit length.
     """
-    if self.pattern is None:
-      raise common.HWIDException(
-          'Cannot get bit length with uninitialized pattern')
-    # 5 bits for header and 1 bit for stop bit
-    return (common.HEADER_BITS + 1 +
-            sum(self.GetFieldsBitLength(image_id).values()))
+    return sum([field.bit_length
+                for field in self._GetPattern(image_id).fields])
 
-  def GetBitMapping(self, image_id=None, binary_string_length=None):
-    """Gets a map indicating the bit offset of certain encoded field a bit in a
-    encoded binary string corresponds to.
-
-    For example, the returned map may say that bit 5 in the encoded binary
-    string corresponds to the least significant bit of encoded field 'cpu'.
+  def GetFieldsBitLength(self, image_id=None):
+    """Gets a map for the bit length of each encoded fields defined by the
+    pattern. Scattered fields with the same field name are aggregated into one.
 
     Args:
       image_id: An integer of the image id to query. If not given, the latest
           image id would be used.
-      binary_string_length: The length of the input binary string. If given, it
-          is used to check against the encoding pattern to see if there is an
-          incomplete bit chunk.
 
     Returns:
-      A list of BitEntry objects indexed by bit position in the encoded binary
-      string. Each BitEntry object has attributes (field, bit_offset) indicating
-      which bit_offset of field this particular bit corresponds to. For example,
-      if ret[6] has attributes (field='cpu', bit_offset=1), then it means that
-      bit position 6 of the encoded binary string corresponds to the bit offset
-      1 (which is the second least significant bit) of encoded field 'cpu'.
+      A dict mapping each encoded field to its bit length.
+    """
+    ret = collections.defaultdict(int)
+    for field in self._GetPattern(image_id).fields:
+      ret[field.name] += field.bit_length
+    return dict(ret)
+
+  def GetBitMapping(self, image_id=None, max_bit_length=None):
+    """Gets a list indicating the mapping target (field name and the offset) of
+    each bit in the components bitset.
+
+    For example, the returned map may say that bit 5 in the components bitset
+    corresponds to the least significant bit of encoded field 'cpu'.
+
+    Args:
+      image_id: An integer of the image id to query. If not given, the latest
+          image id would be used.
+
+      max_bit_length: The max length of the return list.  If given, it is used
+          to check against the encoding pattern to see if there is an incomplete
+          bit chunk.
+
+    Returns:
+      A list of BitEntry objects indexed by bit position in the compoents
+          bitset.  Each BitEntry object has attributes (field, bit_offset)
+          indicating which bit_offset of field this particular bit corresponds
+          to. For example, if ret[6] has attributes (field='cpu', bit_offset=1),
+          then it means that bit position 6 of the binary string corresponds
+          to the bit offset 1 (which is the second least significant bit)
+          of encoded field 'cpu'.
     """
     BitEntry = collections.namedtuple('BitEntry', ['field', 'bit_offset'])
 
-    if self.pattern is None:
-      raise common.HWIDException(
-          'Cannot construct bit mapping with uninitialized pattern')
-    ret = {}
-    index = common.HEADER_BITS   # Skips the 5-bit common header.
+    total_bit_length = self.GetTotalBitLength(image_id=image_id)
+    if max_bit_length is None:
+      max_bit_length = total_bit_length
+    else:
+      max_bit_length = min(max_bit_length, total_bit_length)
+
+    ret = []
     field_offset_map = collections.defaultdict(int)
-    if not binary_string_length:
-      # Exclude stop bit.
-      binary_string_length = self.GetTotalBitLength(image_id=image_id) - 1
-    for element in self.GetPatternByImageId(image_id)['fields']:
-      for field, length in element.iteritems():
-        # Normally when one wants to extend bit length of a field, one should
-        # append new pattern field instead of expanding the last field.
-        # However, for some project, we already have cases where last pattern
-        # fields were expanded directly. See crosbug.com/p/30266.
-        #
-        # We check for incomplete bit string chunk at the end and adjust bit
-        # indices as needed here, so that we can decode correctly the HWIDs
-        # generated before the last pattern field was expanded in the above
-        # scenario.
-        remaining_bits = binary_string_length - index
-        field_offset_map[field] += min(remaining_bits, length)
-        first_bit_index = field_offset_map[field] - 1
-        # Reverse bit order.
-        for field_index in xrange(
-            first_bit_index, first_bit_index - length, -1):
-          ret[index] = BitEntry(field, field_index)
-          index += 1
+    for name, bit_length in self._GetPattern(image_id).fields:
+      # Normally when one wants to extend bit length of a field, one should
+      # append new pattern field instead of expanding the last field.
+      # However, for some project, we already have cases where last pattern
+      # fields were expanded directly. See crosbug.com/p/30266.
+      #
+      # Ignore extra bits if we have reached `max_bit_length` so that we can
+      # generate the correct bit mapping in previous versions whose total
+      # bit length is smaller.
+      remaining_length = max_bit_length - len(ret)
+      if remaining_length <= 0:
+        break
+      real_length = min(bit_length, remaining_length)
+
+      # Big endian.
+      for offset_delta in xrange(real_length - 1, -1, -1):
+        ret.append(BitEntry(name, offset_delta + field_offset_map[name]))
+
+      field_offset_map[name] += real_length
+
     return ret
+
+  def _GetPattern(self, image_id=None):
+    """Get the pattern by a given image id.
+
+    Args:
+      image_id: An integer of the image id to query.  If not given, the latest
+          image id would be used.
+
+    Returns:
+      The `_Pattern` object.
+    """
+    if image_id is None:
+      return self._image_id_to_pattern[self._max_image_id]
+
+    if image_id not in self._image_id_to_pattern:
+      raise common.HWIDException('No pattern for image id %r.' % image_id)
+
+    return self._image_id_to_pattern[image_id]
 
 
 class Rules(object):
-  """A class for parsing and evaluating rules defined in the database.
+  """A class for parsing rules defined in the database.
 
-  Args:
-    rule_list: A list of dicts that can be converted to a list of Rule objects.
+  The `rules` part of a HWID database consists of a list of rules to be
+  evaluate.  There's two kind of rules:
+
+    1. `device_info`: This kind of rules will be evaluated before encoding the
+       BOM object into the HWID identity.  While generating the HWID identity,
+       we probe the Chromebook to know what components are installed on the
+       Chromebook and store the component list as a BOM object.  But since
+       some unprobeable information is also needed to be encoded into The HWID
+       identity (such as `image_id`), the BOM object is "incomplete".
+       The `device_info` rules then will fill those unprobeable information into
+       the BOM object so that it can be encoded into a HWID identity.
+    2. `verify`: This kind of rules will be evaluated when we want to verify
+       whether a HWID identity is valid (for example, after a HWID identity is
+       generated).  Sometimes we might find that two specific hardware
+       components living together would crash the Chromebook, then we have to
+       avoid this combination.  That's one example of when to use the `verify`
+       rules.  The `verify` rules allow developers to specify some customized
+       verifying process.
+
+  The format of `rules` part in the HWID database file is:
+
+  ```
+  rules:
+  - name: <name>
+    evaluate: <expressions>
+    when: <when_expression>     # This field is optional.
+    otherwise: <expressions>    # This field is optional.
+  ...
+
+  ```
+
+  <name> can be any string starts with either "device_info." or "verify.".
+
+  <expressions> can be a string of python expression, or a list of string of
+  python expression, see below for detail descrption.
+
+  <when_expression> is a string of python expression.
+
+  `when:` field is optional, it is used for condition evaluating, the
+  <expressions> specified in `evaluate:` field will be run only if the
+  evaluated value of <when_expression> is true.
+
+  `otherwise` field is also optional, but shouldn't exist if there's no `when:`
+  field.  <expressions> specified in this field will be run if the evaluated
+  value of <when_expression> is false.
+
+  `cros.factory.hwid.v3.common_rule_functions` and
+  `cros.factory.hwid.v3.hwid_rule_functions` packages have already defined a
+  series of functions which can be called in <expressions>.
+
+  An example of `rules` part in a HWID database is:
+  ```
+  rules:
+  - name: device_info.set_image_id
+    evaluate: SetImageId('PVT')
+
+  - name: device_info.component.has_cellular
+    when: GetDeviceInfo('component.has_cellular')
+    evaluate: Assert(ComponentEq('cellular', 'foxconn_novatel'))
+    otherwise: Assert(ComponentEq('cellular', None))
+
+  - name: device_info.component.keyboard
+    when: GetOperationMode() != 'rma'
+    evaluate: >
+        SetComponent(
+            'keyboard', LookupMap(GetDeviceInfo('component.keyboard'), {
+                'US_API': 'us_darfon',
+                'UK_API': 'gb_darfon',
+                'FR_API': 'fr_darfon',
+                'DE_API': 'de_darfon',
+                'SE_API': 'se_darfon',
+                'NL_API': 'us_intl_darfon',
+            }))
+
+  - name: verify.vpd.ro
+    evaluate:
+    - Assert(ValidVPDValue('ro', 'serial_number'))
+  ```
+
+  Properties:
+    rules: A list of Rule instances, which include both type of rules.
+    device_info_rules: A list of `device_info` type of rules.
+    verify_rules: A list of `verify` type of rules.
+
   """
 
-  def __init__(self, rule_list):
-    self.schema = schema.List('list of rules', schema.FixedDict(
-        'rule', items={
-            'name': schema.Scalar('rule name', str),
-            'evaluate': schema.AnyOf([
-                schema.Scalar('rule function', str),
-                schema.List('list of rule functions',
-                            schema.Scalar('rule function', str))])
-        }, optional_items={
-            'when': schema.Scalar('expression', str),
-            'otherwise': schema.AnyOf([
-                schema.Scalar('rule function', str),
-                schema.List('list of rule functions',
-                            schema.Scalar('rule function', str))])
-        }))
-    self.schema.Validate(rule_list)
-    self.initialized = False
-    self.rule_list = [rule.Rule.CreateFromDict(r) for r in rule_list]
-    for r in self.rule_list:
-      if not any([r.name.startswith(x) for x in ('device_info.', 'verify.')]):
+  _RULE_TYPES = type_utils.Enum(['verify', 'device_info'])
+  _EXPRESSIONS_SCHEMA = schema.AnyOf([
+      schema.Scalar('rule expression', str),
+      schema.List('list of rule expressions',
+                  schema.Scalar('rule expression', str))])
+  _RULE_SCHEMA = schema.FixedDict(
+      'rule',
+      items={'name': schema.Scalar('rule name', str),
+             'evaluate': _EXPRESSIONS_SCHEMA},
+      optional_items={'when': schema.Scalar('expression', str),
+                      'otherwise': _EXPRESSIONS_SCHEMA})
+
+  def __init__(self, rule_expr_list):
+    """Constructor.
+
+    This constructor shouldn't be called from other modules.
+    """
+    if not isinstance(rule_expr_list, list):
+      raise common.HWIDException(
+          '`rules` part of a HWID database should be a list, but got %r' %
+          (rule_expr_list,))
+
+    self._rules = []
+
+    for rule_expr in rule_expr_list:
+      self._RULE_SCHEMA.Validate(rule_expr)
+
+      rule = Rule.CreateFromDict(rule_expr)
+      if not any([rule.name.startswith(x + '.') for x in self._RULE_TYPES]):
         raise common.HWIDException(
             'Invalid rule name %r; rule name must be prefixed with '
             '"device_info." (evaluated when generating HWID) '
-            'or "verify." (evaluated when verifying HWID)' % r.name)
+            'or "verify." (evaluated when verifying HWID)' % rule.name)
 
-  def _Initialize(self):
-    # Lazy import to avoid circular import problems. This also avoids import
-    # when only decoding functions are needed.
-    # These imports are needed to make sure all the rule functions needed by
-    # HWID-related operations are loaded and initialized.
-    # pylint: disable = W0612
-    import cros.factory.hwid.v3.common_rule_functions
-    import cros.factory.hwid.v3.hwid_rule_functions
-    self.initialized = True
+      self._rules.append(rule)
 
-  def EvaluateRules(self, context, namespace=None):
-    """Evaluate rules under the given context. If namespace is specified, only
-    those rules with names matching the specified namespace is evaluated.
+  def __eq__(self, rhs):
+    # pylint: disable=protected-access
+    return isinstance(rhs, Rules) and self._rules == rhs._rules
 
-    Args:
-      context: A Context object holding all the context needed to evaluate the
-          rules.
-      namespace: A regular expression string indicating the rules to be
-          evaluated.
-    """
-    if not self.initialized:
-      self._Initialize()
-    for r in self.rule_list:
-      if namespace is None or re.match(namespace, r.name):
-        r.Evaluate(context)
+  def __ne__(self, rhs):
+    return not self == rhs
+
+  def Export(self):
+    """Exports the `rule` part into a list of dictionary object which can be
+    saved to the HWID database file."""
+    return [rule.ExportToDict() for rule in self._rules]
+
+  @property
+  def device_info_rules(self):
+    return self._GetRules(self._RULE_TYPES.device_info + '.')
+
+  @property
+  def verify_rules(self):
+    return self._GetRules(self._RULE_TYPES.verify + '.')
+
+  def _GetRules(self, prefix):
+    return [rule for rule in self._rules if rule.name.startswith(prefix)]

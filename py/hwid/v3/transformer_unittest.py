@@ -120,7 +120,7 @@ class IdentityToBOMTest(_TransformerTestBase):
     components_bitset = components_bitset or test_data[0]
 
     encoding_scheme = (
-        encoding_scheme or self.database.pattern.GetEncodingScheme(image_id))
+        encoding_scheme or self.database.GetEncodingScheme(image_id))
 
     return Identity.GenerateFromBinaryString(
         encoding_scheme, project, encoding_pattern_index, image_id,

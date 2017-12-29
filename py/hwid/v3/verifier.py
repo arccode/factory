@@ -43,7 +43,7 @@ def VerifyComponentStatus(database, bom, mode, current_phase=None):
   """
   for comp_cls, comp_names in bom.components.iteritems():
     for comp_name in comp_names:
-      status = database.components.GetComponentStatus(comp_cls, comp_name)
+      status = database.GetComponents(comp_cls)[comp_name].status
       if status == common.COMPONENT_STATUS.supported:
         continue
       if status == common.COMPONENT_STATUS.unqualified:
@@ -106,7 +106,7 @@ def VerifyPhase(database, bom, current_phase=None):
   # Check image ID
   expected_image_name_prefix = ('PVT' if current_phase == phase.PVT_DOGFOOD
                                 else current_phase.name)
-  image_name = database.image_id[bom.image_id]
+  image_name = database.GetImageName(bom.image_id)
   if not image_name.startswith(expected_image_name_prefix):
     raise HWIDException(
         'In %s phase, expected an image name beginning with '
@@ -153,7 +153,7 @@ def VerifyBOM(database, decoded_bom, probed_bom):
     return sorted(sum(results, []))
 
   # We only verify the components listed in the pattern.
-  for comp_cls in database.GetActiveComponents(decoded_bom.image_id):
+  for comp_cls in database.GetActiveComponentClasses(decoded_bom.image_id):
     if comp_cls not in probed_bom.components:
       raise HWIDException(
           'Component class %r is not found in probed BOM.' % comp_cls)

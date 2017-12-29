@@ -10,7 +10,6 @@ import factory_common # pylint: disable=W0611
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import verify_db_pattern
-from cros.factory.hwid.v3 import yaml_wrapper as yaml
 
 
 class ValidationError(ValueError):
@@ -26,14 +25,13 @@ def Validate(hwid_config_contents):
   Args:
     hwid_config_contents: the HWID config in unicode.
   """
-  db_yaml = yaml.load(hwid_config_contents)
   expected_checksum = database.Database.ChecksumForText(
       hwid_config_contents.encode("utf8")).decode("utf8")
 
   try:
     # Validate config by loading it.
     database.Database.LoadData(
-        db_yaml, expected_checksum=expected_checksum, strict=True)
+        hwid_config_contents, expected_checksum=expected_checksum, strict=True)
     return
   except common.HWIDException as e:
     raise ValidationError(e.message)
@@ -52,9 +50,8 @@ def ValidateChange(new_hwid_config, old_hwid_config):
     old_hwid_config: the old HWID config in unicode (w/o checksum).
   """
   try:
-    old_db_yaml = yaml.load(old_hwid_config)
     old_db = database.Database.LoadData(
-        old_db_yaml, expected_checksum=None, strict=False)
+        old_hwid_config, expected_checksum=None, strict=False)
   except common.HWIDException as e:
     logging.exception("Previous version not valid: %r", e.message)
     raise ValidationError("Previous version of HWID config is not valid.")
@@ -64,9 +61,8 @@ def ValidateChange(new_hwid_config, old_hwid_config):
 
   try:
     # Load and validate current config.
-    db_yaml = yaml.load(new_hwid_config)
     db = database.Database.LoadData(
-        db_yaml, expected_checksum=expected_checksum, strict=True)
+        new_hwid_config, expected_checksum=expected_checksum, strict=True)
     # Verify that the change is valid.
     verify_db_pattern.HWIDDBsPatternTest.VerifyParsedDatabasePattern(
         old_db, db)

@@ -95,22 +95,20 @@ def SetComponent(comp_cls, names):
 
 
 @RuleFunction(['bom', 'database'])
-def SetImageId(image_id):
+def SetImageId(image_id_name):
   """A function to set the image id of the given HWID context.
 
   Args:
-    image_id: The image id to set.
+    image_id_name: The image id or image name to set.
   """
   context = GetContext()
-  if isinstance(image_id, str):
-    # Convert image_id string to its corresponding encoded value.
-    reversed_image_id_dict = dict((value, key) for key, value in
-                                  context.database.image_id.iteritems())
-    if image_id not in reversed_image_id_dict:
-      raise HWIDException('Invalid image id: %r' % image_id)
-    image_id = reversed_image_id_dict[image_id]
+  if isinstance(image_id_name, str):
+    # Convert image_id_name string to its corresponding encoded value.
+    image_id = context.database.GetImageIdByName(image_id_name)
+  else:
+    image_id = image_id_name
 
-  if image_id not in context.database.image_id:
+  if image_id not in context.database.image_ids:
     raise HWIDException('Invalid image id: %r' % image_id)
   context.bom.image_id = image_id
 

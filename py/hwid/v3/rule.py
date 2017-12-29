@@ -223,11 +223,14 @@ class Rule(object):
   def __init__(self, name, when, evaluate, otherwise):
     self.name = name
     self.when = when
-    self.evaluate = type_utils.MakeList(evaluate)
-    if otherwise:
-      self.otherwise = type_utils.MakeList(otherwise)
-    else:
-      self.otherwise = None
+    self.evaluate = evaluate
+    self.otherwise = otherwise
+
+  def __eq__(self, rhs):
+    return isinstance(rhs, Rule) and self.__dict__ == rhs.__dict__
+
+  def __ne__(self, rhs):
+    return not self == rhs
 
   @classmethod
   def CreateFromDict(cls, rule_dict):
@@ -260,11 +263,29 @@ class Rule(object):
     return Rule(rule_dict['name'], rule_dict.get('when'), rule_dict['evaluate'],
                 rule_dict.get('otherwise'))
 
+  def ExportToDict(self):
+    """Exports this rule to a dict.
+
+    Returns:
+      A dictionary which can be converted to an instance of Rule back by
+      `CreateFromDict` method.
+    """
+    ret = {}
+    ret['name'] = self.name
+    ret['evaluate'] = self.evaluate
+    if self.when is not None:
+      ret['when'] = self.when
+    if self.otherwise is not None:
+      ret['otherwise'] = self.otherwise
+    return ret
+
   def Validate(self):
-    for expr in (type_utils.MakeList(self.when) + self.evaluate +
-                 type_utils.MakeList(self.otherwise)):
+    otherwise = (type_utils.MakeList(self.otherwise)
+                 if self.otherwise is not None else [])
+    for expr in (type_utils.MakeList(self.when) +
+                 type_utils.MakeList(self.evaluate) + otherwise):
       try:
-        eval(expr, _rule_functions, {})  # pylint: disable=eval-used
+        _Eval(expr, {})
       except KeyError:
         continue
 
@@ -283,7 +304,7 @@ class Rule(object):
       for function in function_list:
         try:
           logger.Info('%s' % function)
-          eval(function, _rule_functions, {})  # pylint: disable=eval-used
+          _Eval(function, {})
         except Exception as e:
           raise RuleException(
               'Evaluation of %r in rule %r failed: %r' %
@@ -294,15 +315,15 @@ class Rule(object):
       if self.when is not None:
         logger.Info("Evaluating 'when':")
         logger.Info('%s' % self.when)
-        if eval(self.when, _rule_functions, {}):  # pylint: disable=eval-used
+        if _Eval(self.when, {}):
           logger.Info("Evaluating 'evaluate':")
-          EvaluateAllFunctions(self.evaluate)
+          EvaluateAllFunctions(type_utils.MakeList(self.evaluate))
         elif self.otherwise is not None:
           logger.Info("Evaluating 'otherwise':")
-          EvaluateAllFunctions(self.otherwise)
+          EvaluateAllFunctions(type_utils.MakeList(self.otherwise))
       else:
         logger.Info("Evaluating 'evaluate':")
-        EvaluateAllFunctions(self.evaluate)
+        EvaluateAllFunctions(type_utils.MakeList(self.evaluate))
     finally:
       if logger.error:
         raise RuleException(logger.Dump() +
@@ -324,7 +345,7 @@ class Rule(object):
     logger = GetLogger()
     try:
       SetContext(context)
-      return eval(expr, _rule_functions, {})  # pylint: disable=eval-used
+      return _Eval(expr, {})
     finally:
       if logger.error:
         raise RuleException(logger.Dump())
@@ -406,3 +427,13 @@ class Value(object):
   def __repr__(self):
     return '%s(%r, is_re=%r)' % (
         self.__class__.__name__, self.raw_value, self.is_re)
+
+
+def _Eval(expr, local):
+  # Lazy import to avoid circular import problems.
+  # These imports are needed to make sure all the rule functions needed by
+  # HWID-related operations are loaded and initialized.
+  # pylint: disable=unused-import, unused-variable
+  import cros.factory.hwid.v3.common_rule_functions
+  import cros.factory.hwid.v3.hwid_rule_functions
+  return eval(expr, _rule_functions, local)  # pylint: disable=eval-used

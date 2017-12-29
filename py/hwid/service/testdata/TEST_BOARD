@@ -11,7 +11,7 @@
 # 若修改将使设备配置變為无效，并且不得销售此设备。
 #
 #####
-checksum: 6d06d77419f5deeece54caa5c4ed0707c982339e
+checksum: 0f916c944b9b8d160c167258cb6d4dc5a96db2ad
 
 ##### END CHECKSUM BLOCK. See the warning above. 请参考上面的警告。
 
@@ -20,7 +20,6 @@ board: CHROMEBOOK
 
 encoding_patterns:
   0: default
-  1: new pattern
 
 image_id:
   0: EVT
