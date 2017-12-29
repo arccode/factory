@@ -1,0 +1,76 @@
+checksum: unused-value
+
+project: TEST_PROJECT_ONE
+
+encoding_patterns:
+  0: default
+
+image_id:
+  0: EVT
+  1: PVT
+
+pattern:
+  - image_ids: [0]
+    encoding_scheme: base8192
+    fields:
+    - battery_field: 1
+    - firmware_keys_field: 1
+    - region_field: 2
+
+  - image_ids: [1]
+    encoding_scheme: base8192
+    fields:
+    - battery_field: 2
+    - firmware_keys_field: 1
+    - region_field: 2
+
+encoded_fields:
+  battery_field:
+    0:
+      battery: battery_unsupported
+    1:
+      battery: battery_deprecated
+    2:
+      battery: battery_unqualified
+    3:
+      battery: [battery_supported, battery_supported]
+
+  firmware_keys_field:
+    0:
+      firmware_keys: key_premp
+    1:
+      firmware_keys: key_mp
+
+  region_field: !region_field [tw, us]
+
+components:
+  battery:
+    items:
+      battery_unsupported:
+        status: unsupported
+        values:
+          size: '1'
+      battery_deprecated:
+        status: deprecated
+        values:
+          size: '10'
+      battery_unqualified:
+        status: unqualified
+        values:
+          size: '100'
+      battery_supported:
+        values:
+          size: '1000'
+
+  firmware_keys:
+    items:
+      key_premp:
+        values:
+          rootkey: abcde
+      key_mp:
+        values:
+          rootkey: fghij
+
+  region: !region_component
+
+rules: []

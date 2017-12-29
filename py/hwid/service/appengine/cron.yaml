@@ -1,0 +1,7 @@
+cron:
+- description: "Refresh HWID files."
+  url: /ingestion/refresh
+  schedule: every 1 hours
+- description: "Refresh GoldenEye all_devices.json information."
+  url: /ingestion/all_devices_refresh
+  schedule: every 1 hours

@@ -1,0 +1,24 @@
+SBOARD:
+  board: SBOARD
+  branch: branch-foo
+  path: /v3/SBOARD
+  version: 3
+KBOARD:
+  board: KBOARD
+  branch: branch-bar
+  path: /v2/KBOARD
+  version: 2
+KBOARD.old:
+  board: SNOW
+  branch: branch-baz
+  path: /v2/KBOARD.old
+  version: 2
+COOLCBOARD:
+  branch: branch-cboard
+  path: /v3/COOLCBOARD
+  version: 3
+BETTERCBOARD:
+  board: CBOARD
+  branch: branch-cboard
+  path: /v3/BETTERCBOARD
+  version: 3

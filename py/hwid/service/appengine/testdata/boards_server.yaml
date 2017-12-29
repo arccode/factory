@@ -1,0 +1,5 @@
+KBOARD: {board: KBOARD, path: KBOARD, version: 2}
+KBOARD.old: {board: KBOARD, path: KBOARD.old, version: 2}
+SBOARD: {board: SBOARD, path: SBOARD, version: 3}
+COOLCBOARD: {board: COOLCBOARD, path: COOLCBOARD, version: 3}
+BETTERCBOARD: {board: BETTERCBOARD, path: BETTERCBOARD, version: 3}

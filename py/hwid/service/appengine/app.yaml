@@ -1,0 +1,69 @@
+# Copyright 2018 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+runtime: python27
+threadsafe: true
+api_version: 1
+instance_class: F4_1G
+automatic_scaling:
+  min_idle_instances: 1
+  max_idle_instances: automatic
+  min_pending_latency: automatic
+  max_pending_latency: automatic
+
+# Endpoints handler.
+# IMPORTANT NOTE: Please note how this is defined as /_ah/sp[i]/.*, and
+# not: /_ah/spi/.*
+# This is actually really important. Apiary will scan app.yaml of GAE
+# applications and automatically make an additional /_ah/api endpoint
+# available if it detects /_ah/spi/.*.
+# The /_ah/api endpoint does not perform any auth checks and is publicly
+# available, despite being a googleplex.com endpoint. Therefore it must be
+# disabled.
+# As url patterns can be defined using regular expressions, we use the hack
+# below to define the url pattern, which is equivalent in terms of application
+# functionality but it prevents apiary from detecting it and therefore exposing
+# the /_ah/api endpoint.
+# Note that if the apiary team ever "fixes" their way of detecting this
+# particular url pattern, this could publicly expose our api again (including
+# discovery data at /_ah/api/discovery/v1/apis/chromeoshwid/v1/rest) although
+# this is deemed unlikely by the apiary team.
+# As a second line of defense, we have an _AuthCheck method in hwid_api.py,
+# see the comment in that file for more details.
+# Full discussion:
+# https://groups.google.com/a/google.com/forum/#!topic/apiary-users/qhLJjYDSmWg
+handlers:
+- url: /_ah/sp[i]/.*
+  script: cros.factory.hwid.service.appengine.app.hwid_api_app
+- url: /ingestion/.*
+  script: cros.factory.hwid.service.appengine.app.ingestion_app
+  login: admin
+- url: /favicon.ico
+  static_files: cros/factory/hwid/service/appengine/static/favicon.ico
+  upload: cros/factory/hwid/service/appengine/static/favicon.ico
+
+libraries:
+- name: pycrypto
+  version: 2.6
+- name: endpoints
+  version: 1.0
+
+skip_files:
+# Default patterns skipped by App Engine, which must be repeated since
+# specifying skip_files overrides them otherwise.
+- ^(.*/)?app\.yaml
+- ^(.*/)?app\.yml
+- ^(.*/)?index\.yaml
+- ^(.*/)?index\.yml
+- ^(.*/)?#.*#
+- ^(.*/)?.*~
+- ^(.*/)?.*\.pyo
+- ^(.*/)?.*/RCS/.*
+- ^(.*/)?\..*
+- ^(.*/)?.*\.pyc
+- env/
+- cros/factory/testlog/
+- cros/factory/instalog/
+- cros/factory/umpire/
+- cros/factory/dome/
+- cros/factory/doc/

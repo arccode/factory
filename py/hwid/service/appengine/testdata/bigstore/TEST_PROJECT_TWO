@@ -1,0 +1,424 @@
+
+
+
+##### BEGIN CHECKSUM BLOCK
+#
+# WARNING: This checksum is generated and audited by Google. Do not
+# modify it. If you modify it, devices' configurations will be
+# invalid, and the devices may not be sold.
+#
+# 警告：此校验码由 Google 产生及审核，禁止手动修改。
+# 若修改将使设备配置變為无效，并且不得销售此设备。
+#
+#####
+checksum: 0f916c944b9b8d160c167258cb6d4dc5a96db2ad
+
+##### END CHECKSUM BLOCK. See the warning above. 请参考上面的警告。
+
+
+board: TEST_PROJECT_TWO
+
+encoding_patterns:
+  0: default
+
+image_id:
+  0: EVT
+  1: DVT
+  2: PVT
+  3: PVT2
+
+pattern:
+  - image_ids: [0, 1]
+    encoding_scheme: base32
+    fields:
+    - audio_codec_field: 1
+    - battery_field: 2
+    - bluetooth_field: 0
+    - cellular_field: 1
+    - cpu_field: 1                  # 5 bits
+    - display_panel_field: 0
+    - dram_field: 1
+    - keyboard_field: 1
+    - video_field: 0
+    - cpu_field: 1
+    - storage_field: 2              # 10 bits
+    - cpu_field: 1
+    - firmware_field: 1
+    - firmware_field: 1
+    - dram_field: 1                 # 14 bits
+
+  - image_ids: [2, 3]
+    encoding_scheme: base8192
+    fields:
+    - audio_codec_field: 1
+    - battery_field: 2
+    - bluetooth_field: 0
+    - cellular_field: 1
+    - cpu_field: 1                  # 5 bits
+    - display_panel_field: 0
+    - dram_field: 1
+    - keyboard_field: 1
+    - video_field: 0
+    - cpu_field: 1
+    - storage_field: 2              # 10 bits
+    - cpu_field: 1
+    - firmware_field: 1
+    - firmware_field: 1
+    - dram_field: 1                 # 14 bits
+
+encoded_fields:
+  audio_codec_field:
+    0:
+      audio_codec: [codec_0, hdmi_0]
+    1:
+      audio_codec: [codec_1, hdmi_1]
+  battery_field:
+    0:
+      battery: battery_small
+    1:
+      battery: battery_medium
+    2:
+      battery: battery_large
+    3:
+      battery: battery_huge
+  bluetooth_field:
+    0:
+      bluetooth: bluetooth_0
+  cellular_field:
+    0:
+      cellular: NULL
+    1:
+      cellular: cellular_0
+  cpu_field:
+    0:
+      cpu: cpu_0
+    1:
+      cpu: cpu_1
+    2:
+      cpu: cpu_2
+    3:
+      cpu: cpu_3
+    4:
+      cpu: cpu_4
+    5:
+      cpu: cpu_5
+  display_panel_field:
+    0:
+      display_panel: display_panel_0
+  dram_field:
+    0:
+      dram: dram_0
+    1:
+      dram: dram_1
+    2:
+      dram: dram_2
+  ec_flash_chip_field:
+    0:
+      ec_flash_chip: ec_flash_chip_0
+  embedded_controller_field:
+    0:
+      embedded_controller: embedded_controller_0
+  flash_chip_field:
+    0:
+      flash_chip: flash_chip_0
+  keyboard_field:
+    0:
+      keyboard: keyboard_us
+    1:
+      keyboard: keyboard_gb
+  storage_field:
+    0:
+      storage: storage_0
+    1:
+      storage: storage_1
+    2:
+      storage: storage_2
+  video_field:
+    0:
+      video: camera_0
+  firmware_field:
+    0:
+      hash_gbb: hash_gbb_0
+      key_recovery: key_recovery_mp
+      key_root: key_root_mp
+      ro_ec_firmware: ro_ec_firmware_0
+      ro_main_firmware: ro_main_firmware_0
+    1:
+      hash_gbb: hash_gbb_0
+      key_recovery: key_recovery_mp
+      key_root: key_root_mp
+      ro_ec_firmware: ro_ec_firmware_0
+      ro_main_firmware: ro_main_firmware_1
+    2:
+      hash_gbb: hash_gbb_0
+      key_recovery: key_recovery_premp
+      key_root: key_root_premp
+      ro_ec_firmware: ro_ec_firmware_0
+      ro_main_firmware: ro_main_firmware_0
+
+components:
+  audio_codec:
+    items:
+      codec_0:
+        values: { compact_str: Codec 0 }
+
+      codec_1:
+        values: { compact_str: Codec 1 }
+
+      hdmi_0:
+        values: { compact_str: HDMI 0 }
+
+      hdmi_1:
+        values: { compact_str: HDMI 1 }
+
+  battery:
+    items:
+      battery_small:
+        values:
+          tech: Battery Li-ion
+          size: '2500000'
+
+      battery_medium:
+        values:
+          tech: Battery Li-ion
+          size: '5000000'
+
+      battery_large:
+        values:
+          tech: Battery Li-ion
+          size: '7500000'
+
+      battery_huge:
+        values:
+          tech: Battery Li-ion
+          size: '10000000'
+
+  bluetooth:
+    items:
+      bluetooth_0:
+        values:
+          idVendor: '0123'
+          idProduct: abcd
+          bcd: '0001'
+
+  cellular:
+    items:
+      cellular_0:
+        values:
+          idVendor: 89ab
+          idProduct: abcd
+          name: Cellular Card
+
+  cpu:
+    items:
+      cpu_0:
+        values:
+          name: CPU @ 1.80GHz
+          cores: '4'
+
+      cpu_1:
+        values:
+          name: CPU @ 2.00GHz
+          cores: '4'
+
+      cpu_2:
+        values:
+          name: CPU @ 2.20GHz
+          cores: '4'
+
+      cpu_3:
+        values:
+          name: CPU @ 2.40GHz
+          cores: '4'
+
+      cpu_4:
+        values:
+          name: CPU @ 2.60GHz
+          cores: '4'
+
+      cpu_5:
+        values:
+          name: CPU @ 2.80GHz
+          cores: '4'
+
+  display_panel:
+    probeable: False
+    items:
+      display_panel_0:
+        values: NULL
+
+  dram:
+    items:
+      dram_0:
+        values:
+          vendor: DRAM 0
+          size: 4G
+
+      dram_1:
+        values:
+          vendor: DRAM 1
+          size: 4G
+
+      dram_2:
+        status: unqualified
+        values:
+          vendor: DRAM 2
+          size: 8G
+
+  ec_flash_chip:
+    items:
+      ec_flash_chip_0:
+        values: { compact_str: EC Flash Chip }
+
+  embedded_controller:
+    items:
+      embedded_controller_0:
+        values: { compact_str: Embedded Controller }
+
+  flash_chip:
+    items:
+      flash_chip_0:
+        values: { compact_str: Flash Chip }
+
+  keyboard:
+    probeable: False
+    items:
+      keyboard_gb:
+        values: NULL
+
+      keyboard_us:
+        values: NULL
+
+  storage:
+    items:
+      storage_0:
+        values:
+          type: SSD
+          size: 16G
+          serial: '#123456'
+
+      storage_1:
+        values:
+          type: SSD
+          size: 32G
+          serial: '#123456'
+
+      storage_2:
+        values:
+          type: HDD
+          size: 500G
+          serial: '#123456'
+
+  video:
+    items:
+      camera_0:
+        values:
+          idVendor: '4567'
+          idProduct: abcd
+          type: webcam
+
+  hash_gbb:
+    items:
+      hash_gbb_0:
+        values: { compact_str: gv2#hash_gbb_0 }
+
+  key_recovery:
+    items:
+      key_recovery_mp:
+        values: { compact_str : kv3#key_recovery_mp }
+      key_recovery_premp:
+        values: { compact_str : kv3#key_recovery_premp }
+
+  key_root:
+    items:
+      key_root_mp:
+        values: { compact_str: kv3#key_root_mp }
+      key_root_premp:
+        values: { compact_str: kv3#key_root_premp }
+
+  ro_ec_firmware:
+    items:
+      ro_ec_firmware_0:
+        values: { compact_str: ev2#ro_ec_firmware_0 }
+
+  ro_main_firmware:
+    items:
+      ro_main_firmware_0:
+        values: { compact_str: mv2#ro_main_firmware_0 }
+      ro_main_firmware_1:
+        status: deprecated
+        values: { compact_str: mv2#ro_main_firmware_1 }
+
+rules:
+- name: device_info.set_image_id
+  evaluate: SetImageId('PVT2')
+
+- name: device_info.component.has_cellular
+  when: GetDeviceInfo('component.has_cellular')
+  evaluate: SetComponent('cellular', 'cellular_0')
+  otherwise: SetComponent('cellular', None)
+
+- name: device_info.component.keyboard
+  evaluate: >
+      SetComponent(
+          'keyboard', LookupMap(GetDeviceInfo('component.keyboard'), {
+              'us': 'keyboard_us',
+              'gb': 'keyboard_gb'
+          }))
+
+- name: device_info.component.dram
+  evaluate: >
+      SetComponent(
+          'dram', LookupMap(GetDeviceInfo('component.dram'), {
+              'foo': 'dram_0',
+              'bar': 'dram_1',
+              'unqualified': 'dram_2'
+          }))
+
+- name: device_info.component.audio_codec
+  evaluate: >
+      SetComponent(
+          'audio_codec', LookupMap(GetDeviceInfo('component.audio_codec'), {
+              'set_0': ['codec_0', 'hdmi_0'],
+              'set_1': ['codec_1', 'hdmi_1']
+          }))
+
+- name: verify.components.rule_1
+  when: ComponentEq('audio_codec', 'Codec 1') and
+        ComponentEq('audio_codec', 'HDMI 1')
+  evaluate:
+  - Assert(ComponentEq('battery', 'battery_huge'))
+  - Assert(ComponentEq('hash_gbb', 'hash_gbb_0'))
+  - Assert(ComponentEq('key_recovery', 'key_recovery_mp'))
+  - Assert(ComponentEq('key_root', 'key_root_mp'))
+  - Assert(ComponentEq('ro_ec_firmware', 'ro_ec_firmware_0'))
+  - Assert(ComponentEq('ro_main_firmware', 'ro_main_firmware_0'))
+
+- name: verify.components.rule_3
+  when: ComponentEq('dram', 'dram_0') and ComponentEq('cellular', 'cellular_0')
+  evaluate:
+  - Assert(ComponentEq('battery', 'huge_battery'))
+  - Assert(ComponentIn('cpu', ['cpu_1', 'cpu_2']))
+
+- name: verify.components.rule_4
+  when: not ComponentEq('cpu', None)
+  evaluate:
+  - Assert((not ComponentEq('battery', 'battery_small')) or
+           (ComponentIn('cpu', ['cpu_1', 'cpu_2', 'cpu_3'])))
+
+
+- name: verify.sku.us
+  evaluate: >
+      ComponentEq('audio_codec', ['hdmi_1', 'codec_1']) and
+      ComponentEq('cpu', 'cpu_5') and
+      ComponentEq('battery', 'battery_huge') and
+      ComponentEq('keyboard', 'US') and
+      ComponentEq('storage', ['SSD', '16G'])
+
+- name: verify.sku.gb
+  evaluate: >
+      ComponentEq('audio_codec', ['hdmi_1', 'codec_1']) and
+      ComponentEq('cpu', 'cpu_4') and
+      ComponentEq('battery', 'battery_medium') and
+      ComponentEq('keyboard', 'GB') and
+      ComponentEq('storage', ['HDD', '500G'])
