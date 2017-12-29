@@ -137,7 +137,7 @@ class KeyboardTest(test_ui.TestCaseWithUI):
       Arg('board', str,
           'If presents, in filename, the board name is appended after layout.',
           default=''),
-      Arg('device_filter', basestring,
+      Arg('device_filter', (int, str),
           'If present, the input event ID or a substring of the input device '
           'name specifying which keyboard to test.',
           default=None),
