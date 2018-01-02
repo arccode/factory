@@ -8,8 +8,9 @@ display their status to the operator while they are running.
 To use the test UI, inherit from
 :py:class:`cros.factory.test.test_ui.TestCaseWithUI` instead of
 :py:class:`unittest.TestCase` for the unittest. You can then call various
-methods on ``self.ui`` and ``self.template`` to interact with the browser (see
-`Test UI Class Reference`_ and `Test UI Templates`_).
+methods on ``self.ui`` (which is of type
+:py:class:`cros.factory.test.test_ui.StandardUI`) to interact with the browser
+(see `Test UI Class Reference`_).
 
 For example, this test displays "Hello, world" in the UI, waits
 five seconds, and then passes::
@@ -21,6 +22,9 @@ five seconds, and then passes::
     def runTest(self):
       self.template.SetState('Hello, world!')
       time.sleep(5)
+
+The following document assumes that the test inherit from
+:py:class:`cros.factory.test.test_ui.TestCaseWithUI`.
 
 Including static resources
 --------------------------
@@ -79,23 +83,57 @@ Pass or fail the test
 To fail the test, do one of the followings:
 
 * Calls ``window.test.fail(msg)`` in JavaScript implementation.
-* Calls ``self.ui.Fail(error_msg)`` in any thread of the Python implementation.
-* Raises exception in ``runTest`` (Can be exception raised by calling various
-  ``self.assert*`` methods from ``unittest.TestCase``).
+* Raises exception in either ``runTest`` or in the event handlers (Can be
+  exception raised by calling various ``self.assert*`` methods from
+  ``unittest.TestCase``).
+* Calls ``self.FailTask(error_msg)``, which is exactly the same as ``raise
+  type_utils.TestFailure(error_msg)``.
 
 To pass the test, do one of the followings:
 
 * Calls ``window.test.pass()`` in JavaScript implementation.
-* Calls ``self.ui.Pass()`` in any thread of the Python implementation.
+* Calls ``self.PassTask()`` in either ``runTest`` or in the event handlers.
 * If nothing fails the test, the test is **automatically passed after**
-  ``runTest`` **return**. To wait for either ``Pass`` or ``Fail`` is called in
-  event handler, call ``self.WaitTaskEnd()`` at the end of ``runTest``, and the
-  test would wait for one of the conditions above is achieved.
+  ``runTest`` **return**. To wait for either pass or fail is explictly called,
+  call ``self.WaitTaskEnd()`` at the end of ``runTest``, and the test would
+  wait for one of the conditions above is achieved.
 
 When the test inherits from ``TestCaseWithUI``, the ``runTest`` method is run
 in a **background** thread, while the UI event loop run in the main thread.
-This also means that the test never need to call ``self.ui.Run`` or
-``self.ui.RunInBackground`` since they're handled in the parent class.
+
+The ``PassTask``, ``FailTask`` and raises exception to fail test only works in
+either event handlers or in the ``runTest`` thread. To achieve same behavior on
+other threads, wrap the function with ``self.event_loop.CatchException``. For
+example::
+
+  def BackgroundWork(self):
+    # Background works that have to be done in another thread.
+
+  def runTest(self):
+    thread = process_utils.StartDaemonThread(
+        target=self.event_loop.CatchException(self.BackgroundWork))
+    # Do some other things in parallel with BackgroundWork.
+
+Test UI Templates
+-----------------
+There are default templates for test to keep look and feel consistent across
+tests. To access the template, use methods on
+:py:class:`cros.factory.test.test_ui.StandardUI`. For example::
+
+  class MyTest(test_ui.TestCaseWithUI):
+    def runTest(self):
+      self.ui.SetTitle('My Test')
+      self.ui.SetState('Hello, world!')
+      ...
+
+To change what UI class is used for ``self.ui``, set the ``ui_class`` for the
+test class. For example::
+
+  class MyTest(test_ui.TestCaseWithUI):
+    ui_class = test_ui.ScrollableLogUI
+
+    def runTest(self):
+      self.ui.AppendLog('some log')
 
 Test UI Class Reference
 -----------------------
@@ -104,43 +142,5 @@ Test UI Class Reference
 .. autoclass:: UI
    :members:
 
-.. _test-ui-templates:
-
-Test UI Templates
------------------
-Rather than building your UI entirely from scratch, there are templates that
-you may find useful to keep look and feel consistent across tests.
-
-By default, tests inherit from ``test_ui.TestCaseWithUI`` would use the
-`One-section template`_. To change what template to be used, override the class
-variable ``template_type``. For example::
-
-  from cros.factory.test import test_ui
-
-  class MyTest(test_ui.TestCaseWithUI):
-    template_type = 'two-sections'
-
-    def runTest(self):
-      self.template.SetTitle('My Test')
-      self.template.SetState('Hello, world!')
-      ...
-
-One-section template
-````````````````````
-.. py:module:: cros.factory.test.ui_templates
-
-.. autoclass:: OneSection
-   :inherited-members:
-   :members:
-
-One-scrollable-section template
-```````````````````````````````
-.. autoclass:: OneScrollableSection
-   :inherited-members:
-   :members:
-
-Two-section template
-````````````````````
-.. autoclass:: TwoSections
-   :inherited-members:
+.. autoclass:: StandardUI
    :members:
