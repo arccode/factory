@@ -266,7 +266,8 @@ class UI(object):
 
     # default CSS files are set in default_test_ui.html by goofy.py, and we
     # only set the HTML of body here.
-    self.SetHTML(GetAutoload('html', self.default_html))
+    # This should be the only place that calls SetHTML(..., id=None).
+    self.SetHTML(GetAutoload('html', self.default_html), id=None)
 
     js = GetAutoload('js')
     if js:
@@ -277,21 +278,17 @@ class UI(object):
     if css:
       self.AppendCSS(css)
 
-  def SetHTML(self, html, append=False, id=None, autoscroll=False):
+  def SetHTML(self, html, id, append=False, autoscroll=False):
     """Sets a HTML snippet to the UI in the test pane.
 
     Note that <script> tags are not allowed in SetHTML() and
     AppendHTML(), since the scripts will not be executed. Use RunJS()
     or CallJSFunction() instead.
 
-    Also note that if id is not given, this would set or append HTML for the
-    whole body of the page, so this method should not be used without id when a
-    UI template is used.
-
     Args:
       html: The HTML snippet to set.
+      id: Writes html to the element identified by id.
       append: Whether to append the HTML snippet.
-      id: If given, writes html to the element identified by id.
       autoscroll: If True and the element scroll were at bottom before SetHTML,
           scroll the element to bottom after SetHTML.
     """
