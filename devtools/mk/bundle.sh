@@ -6,8 +6,6 @@
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 . "${SCRIPT_DIR}/common.sh" || exit 1
 
-: ${BUNDLE_FACTORY_FLOW:=}
-
 bundle_install() {
   local bundle_dir="$1"
   local src="$2"
@@ -48,10 +46,6 @@ main() {
   bundle_install "${bundle_dir}" "${toolkit}" toolkit
   bundle_install "${bundle_dir}" "${par}" shopfloor \
     "factory_server"
-  if [ -n "${BUNDLE_FACTORY_FLOW}" ]; then
-    bundle_install "${bundle_dir}" "${par}" factory_flow \
-      "factory_flow finalize_bundle test_factory_flow"
-  fi
 
   rsync -aL --exclude testdata "${setup}/" "${bundle_dir}/setup/"
   mkdir -p "${bundle_dir}/setup/bin"

@@ -31,11 +31,6 @@ usage_help() {
       -d | vpd:     clear VPD
       -c | chrome:  restart Chrome (UI)
       -h | help:    this help screen
-      --automation-mode MODE:
-                    set factory automation mode (none, partial, full);
-                    default: none
-      --no-auto-run-on-start:
-                    do not automatically run test list when Goofy starts
   "
 }
 
@@ -111,27 +106,10 @@ stop_session() {
   echo "done."
 }
 
-enable_automation() {
-  local automation_mode="$1"
-  local stop_auto_run_on_start="$2"
-
-  find "${FACTORY_BASE}" -wholename "${AUTOMATION_MODE_TAG_FILE}" -delete
-  if [ "${automation_mode}" != "none" ]; then
-    echo "Enable factory test automation with mode: ${automation_mode}"
-    echo "${automation_mode}" > "${AUTOMATION_MODE_TAG_FILE}"
-    if "${stop_auto_run_on_start}"; then
-      touch "${STOP_AUTO_RUN_ON_START_TAG_FILE}"
-    else
-      rm -f "${STOP_AUTO_RUN_ON_START_TAG_FILE}"
-    fi
-  fi
-}
-
 main() {
   local data=""
   local vpd=""
   local services="factory"
-  local stop_auto_run_on_start=false automation_mode="none"
   local chrome_url="http://localhost:4012"
 
   while [ $# -gt 0 ]; do
@@ -165,21 +143,6 @@ main() {
         usage_help
         exit 0
         ;;
-      --automation-mode )
-        case "$1" in
-          none | partial | full )
-            automation_mode="$1"
-            shift
-            ;;
-          * )
-            usage_help
-            exit 1
-            ;;
-        esac
-        ;;
-      --no-auto-run-on-start )
-        stop_auto_run_on_start=true
-        ;;
       * )
         echo "Unknown option: $opt"
         usage_help
@@ -196,7 +159,6 @@ main() {
   stop_services "${services}"
   clear_data "${data}"
   clear_vpd "${vpd}"
-  enable_automation "${automation_mode}" "${stop_auto_run_on_start}"
 
   echo "Restarting factory session..."
   start factory

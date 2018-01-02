@@ -105,18 +105,6 @@ load_setup() {
     . "${BOARD_SETUP}"
   fi
 
-  if [[ -f ${AUTOMATION_MODE_TAG_FILE} ]]; then
-    local mode="$(cat "${AUTOMATION_MODE_TAG_FILE}")"
-    if [[ -n "${mode}" ]]; then
-      echo "Enable factory test automation with mode: ${mode}"
-      GOOFY_ARGS="${GOOFY_ARGS} --automation-mode=${mode}"
-    fi
-    if [[ -f ${STOP_AUTO_RUN_ON_START_TAG_FILE} ]]; then
-      echo "Suppress test list auto-run on start"
-      GOOFY_ARGS="${GOOFY_ARGS} --no-auto-run-on-start"
-    fi
-  fi
-
   factory_setup
 }
 

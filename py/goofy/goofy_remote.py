@@ -15,7 +15,6 @@ import sys
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common as hwid_common
-from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.env import paths
 from cros.factory.test.test_lists import manager
 from cros.factory.utils import cros_board_utils
@@ -117,14 +116,6 @@ def main():
                       help='remove password from test_list')
   parser.add_argument('-s', dest='shopfloor_host',
                       help='set shopfloor host')
-  parser.add_argument('--automation-mode',
-                      choices=[m.lower() for m in AutomationMode],
-                      default='none', help='Factory test automation mode.')
-  parser.add_argument('--no-auto-run-on-start', dest='auto_run_on_start',
-                      action='store_false', default=True,
-                      help=('do not automatically run the test list on goofy '
-                            'start; this is only valid when factory test '
-                            'automation is enabled'))
   parser.add_argument('--shopfloor_port', dest='shopfloor_port', type=int,
                       default=None, help='set shopfloor port')
   parser.add_argument('--board', '-b', dest='board',
@@ -156,10 +147,6 @@ def main():
 
   if not SRCROOT:
     sys.exit('goofy_remote must be run from within the chroot')
-
-  if not args.auto_run_on_start and args.automation_mode == 'none':
-    sys.exit('--no-auto-run-on-start must be used only when factory test '
-             'automation is enabled')
 
   Spawn(['make', '--quiet'], cwd=paths.FACTORY_DIR,
         check_call=True, log=True)
@@ -224,10 +211,7 @@ def main():
 
   if args.restart:
     SpawnSSHToDUT([args.host, '/usr/local/factory/bin/factory_restart'] +
-                  (['-a'] if args.clear_state else []) +
-                  ['--automation-mode', '%s' % args.automation_mode] +
-                  ([] if args.auto_run_on_start
-                   else ['--no-auto-run-on-start']),
+                  (['-a'] if args.clear_state else []),
                   check_call=True, log=True)
 
   if args.run_test:

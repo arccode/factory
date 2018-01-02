@@ -742,12 +742,6 @@ cros.factory.Goofy = class {
     this.testLists = [];
 
     /**
-     * Whether any automation mode is enabled.
-     * @type {boolean}
-     */
-    this.automationEnabled = false;
-
-    /**
      * All current notes.
      * @type {!Array<!cros.factory.Note>}
      */
@@ -1164,10 +1158,6 @@ cros.factory.Goofy = class {
                   'div', {class: 'goofy-startup-error'}, error));
           this.alert(alertHtml);
         }
-      })(),
-      (async () => {
-        const mode = await this.sendRpc('get_shared_data', 'automation_mode');
-        await this.setAutomationMode(mode);
       })()
     ]);
   }
@@ -1258,22 +1248,6 @@ cros.factory.Goofy = class {
   }
 
   /**
-   * Sets up the automation mode indicator bar.
-   * @param {string} mode
-   */
-  async setAutomationMode(mode) {
-    if (mode !== 'NONE') {
-      this.automationEnabled = true;
-      const prompt =
-          await this.sendRpc('get_shared_data', 'automation_mode_prompt');
-      document.getElementById('goofy-automation-div').innerHTML = prompt;
-    }
-    this.updateCSSClasses();
-    goog.events.fireListeners(
-        window, goog.events.EventType.RESIZE, false, null);
-  }
-
-  /**
    * Create an invocation for a test.
    * @param {string} path
    * @param {string} invocationUuid
@@ -1299,7 +1273,6 @@ cros.factory.Goofy = class {
       }
       body.classList.toggle('goofy-engineering-mode', this.engineeringMode);
       body.classList.toggle('goofy-operator-mode', !this.engineeringMode);
-      body.classList.toggle('goofy-enable-automation', this.automationEnabled);
     }
   }
 

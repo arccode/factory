@@ -32,9 +32,6 @@ from cros.factory.goofy.test_list_iterator import TestListIterator
 from cros.factory.goofy import updater
 from cros.factory.goofy.web_socket_manager import WebSocketManager
 from cros.factory.test import device_data
-from cros.factory.test.e2e_test.common import AutomationMode
-from cros.factory.test.e2e_test.common import AutomationModePrompt
-from cros.factory.test.e2e_test.common import ParseAutomationMode
 from cros.factory.test.env import goofy_proxy
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
@@ -1119,14 +1116,6 @@ class Goofy(object):
     parser.add_option('--test_list', dest='test_list',
                       metavar='TEST_LIST_ID',
                       help='Use test list whose id is TEST_LIST_ID')
-    parser.add_option('--automation-mode',
-                      choices=[m.lower() for m in AutomationMode],
-                      default='none', help='Factory test automation mode.')
-    parser.add_option('--no-auto-run-on-start', dest='auto_run_on_start',
-                      action='store_false', default=True,
-                      help=('do not automatically run the test list on goofy '
-                            'start; this is only valid when factory test '
-                            'automation is enabled'))
     return parser
 
   def init(self, args=None, env=None):
@@ -1193,14 +1182,6 @@ class Goofy(object):
         self.state_instance.get_shared_data('shutdown_time', optional=True))
     self.state_instance.del_shared_data('shutdown_time', optional=True)
     self.state_instance.del_shared_data('startup_error', optional=True)
-
-    self.options.automation_mode = ParseAutomationMode(
-        self.options.automation_mode)
-    self.state_instance.set_shared_data('automation_mode',
-                                        self.options.automation_mode)
-    self.state_instance.set_shared_data(
-        'automation_mode_prompt',
-        AutomationModePrompt[self.options.automation_mode])
 
     success = False
     try:
@@ -1300,13 +1281,10 @@ class Goofy(object):
       self.test_list_iterator.SetTestList(self.test_list)
       self.run_enqueue(self.run_next_test)
     elif force_auto_run or self.test_list.options.auto_run_on_start:
-      # If automation mode is enabled, allow suppress auto_run_on_start.
-      if (self.options.automation_mode == 'NONE' or
-          self.options.auto_run_on_start):
-        status_filter = [TestState.UNTESTED]
-        if self.test_list.options.retry_failed_on_start:
-          status_filter.append(TestState.FAILED)
-        self.run_enqueue(lambda: self.run_tests(self.test_list, status_filter))
+      status_filter = [TestState.UNTESTED]
+      if self.test_list.options.retry_failed_on_start:
+        status_filter.append(TestState.FAILED)
+      self.run_enqueue(lambda: self.run_tests(self.test_list, status_filter))
     self.state_instance.set_shared_data(TESTS_AFTER_SHUTDOWN, None)
     self.restore_active_run_state()
 

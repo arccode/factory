@@ -7,7 +7,6 @@ Standalone Projects
  - `dkps/`: Device Key Provisioning Server.
  - [`dome/`](dome/README.md): Factory server management console.
  - `instalog/`: The log pipeline solution.
- - `factory_flow/`: Automated testing of factory flow.
  - `testlog/`: The log format.
  - [`umpire/`](umpire/README.md): Unified server to integrate factory imaging
     and various services.

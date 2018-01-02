@@ -88,10 +88,6 @@ class MakePARTest(unittest.TestCase):
     self.assertTrue(modified_usage in process.stdout_data)
     self.assertTrue(
         'WARNING: factory.par has been unzipped' in process.stderr_data)
-    # Make sure template config files required by factory_flow tool are packed.
-    self.assertTrue(os.path.exists(os.path.join(
-        self.tmp, 'cros', 'factory', 'factory_flow', 'templates',
-        'README_template')))
 
   def testInvalidModule(self):
     link = os.path.join(self.tmp, 'invalid')

@@ -15,7 +15,6 @@ import inspect
 import logging
 import os
 import pprint
-import re
 import signal
 import sys
 import tempfile
@@ -29,7 +28,6 @@ import yaml
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
-from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
 from cros.factory.test import session
@@ -55,11 +53,6 @@ from cros.factory.external import syslog
 
 # Number of bytes to include from the log of a failed test.
 ERROR_LOG_TAIL_LENGTH = 8 * 1024
-
-# A file that stores override test list dargs for factory test automation.
-OVERRIDE_TEST_LIST_DARGS_FILE = os.path.join(
-    paths.DATA_STATE_DIR, 'override_test_list_dargs.yaml')
-
 
 # Dummy object to detect not set keyward argument.
 _DEFAULT_NOT_SET = object()
@@ -111,18 +104,16 @@ class PytestInfo(object):
     pytest_name: The name of the factory test to run.
     args: Arguments passing down to the factory test.
     results_path: The path to the result file.
-    automation_mode: The enabled automation mode.
     dut_options: The options to override default DUT target.
   """
 
   def __init__(self, test_list, path, pytest_name, args, results_path,
-               automation_mode=None, dut_options=None):
+               dut_options=None):
     self.test_list = test_list
     self.path = path
     self.pytest_name = pytest_name
     self.args = args
     self.results_path = results_path
-    self.automation_mode = automation_mode
     self.dut_options = dut_options or {}
 
   def ReadTestList(self):
@@ -319,27 +310,6 @@ class TestInvocation(object):
       file_utils.TryMakeDirs(log_dir)
 
       pytest_name = self.test.pytest_name
-      if self.goofy.options.automation_mode != AutomationMode.NONE:
-        # Load override test list dargs if OVERRIDE_TEST_LIST_DARGS_FILE exists.
-        if os.path.exists(OVERRIDE_TEST_LIST_DARGS_FILE):
-          with open(OVERRIDE_TEST_LIST_DARGS_FILE) as f:
-            override_dargs_from_file = yaml.safe_load(f.read())
-          resolved_dargs.update(
-              override_dargs_from_file.get(self.test.path, {}))
-        logging.warn(resolved_dargs)
-
-        if self.test.has_automator:
-          logging.info('Enable factory test automator for %r', pytest_name)
-          if os.path.exists(os.path.join(
-              paths.FACTORY_DIR, 'py', 'test', 'pytests',
-              pytest_name, pytest_name + '_automator_private.py')):
-            pytest_name += '_automator_private'
-          elif os.path.exists(os.path.join(
-              paths.FACTORY_DIR, 'py', 'test', 'pytests',
-              pytest_name, pytest_name + '_automator.py')):
-            pytest_name += '_automator'
-          else:
-            raise InvocationError('Cannot find automator for %r' % pytest_name)
 
       # Invoke the unittest driver in a separate process.
       with open(self.log_path, 'ab', 0) as log:
@@ -360,7 +330,6 @@ class TestInvocation(object):
                          pytest_name=pytest_name,
                          args=resolved_dargs,
                          results_path=results_path,
-                         automation_mode=self.goofy.options.automation_mode,
                          dut_options=self.dut_options),
               self.env_additions)
 
@@ -769,17 +738,7 @@ def RunPytest(test_info):
           device_utils.ENV_DUT_OPTIONS: str(test_info.dut_options)})
     arg_spec = getattr(test, 'ARGS', None)
     if arg_spec:
-      try:
-        setattr(test, 'args', Args(*arg_spec).Parse(test_info.args))
-      except ValueError as e:
-        # Do not raise exceptions for E2ETest, as 'dargs' is optional
-        # to it.
-        from cros.factory.test.e2e_test import e2e_test
-        if (re.match(r'^Required argument .* not specified$', str(e)) and
-            isinstance(test, e2e_test.E2ETest)):
-          pass
-        else:
-          raise e
+      setattr(test, 'args', Args(*arg_spec).Parse(test_info.args))
 
     result = RunTestCase(test)
 

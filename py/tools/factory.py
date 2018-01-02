@@ -282,7 +282,7 @@ class TestListCommand(Subcommand):
   name = 'test-list'
   help = ('Set or get the active test list, and/or list all test lists. '
           'Note that generic test list is allowed only when there is no '
-          'main test list or when factory test automation is enabled.')
+          'main test list.')
 
   TIMEOUT_SECS = 60
   POLL_INTERVAL_SECS = 0.5

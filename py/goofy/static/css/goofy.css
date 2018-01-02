@@ -107,23 +107,6 @@ body {
   width: 21; height: 21;
 }
 
-.goofy-automation-indicator {
-  color: white;
-  display: none;
-  font-size: 1.5em;
-  font-weight: bold;
-  height: 0px;
-  text-align: center;
-}
-.goofy-enable-automation #goofy-automation-div {
-  background-color: navy;
-  display: block;
-  height: 36px;
-}
-.goofy-enable-automation #goofy-splitpane {
-  top: 36px;
-}
-
 /* Elements in the control pane. */
 #goofy-splitpane-left {
   display: flex;

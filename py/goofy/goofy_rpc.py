@@ -501,13 +501,11 @@ class GoofyRPC(object):
 
     return self._InRunQueue(lambda: Target(run_id), timeout_secs=timeout_secs)
 
-  def SwitchTestList(self, test_list_id, automation_mode='none'):
+  def SwitchTestList(self, test_list_id):
     """Switches test lists.
 
     Args:
       test_list_id: The test list ID.
-      automation_mode: The automation mode to enable.  Valid values are:
-        ('none', 'partial', 'full').
 
     Raises:
       TestListError: The test list does not exist.
@@ -526,7 +524,7 @@ class GoofyRPC(object):
       process_utils.Spawn(
           ['nohup ' +
            os.path.join(paths.FACTORY_DIR, 'bin', 'factory_restart') +
-           ' --automation-mode %s -a &' % automation_mode],
+           ' -a &'],
           shell=True, check_call=True)
       # Wait for a while.  This process should be killed long before
       # 60 seconds have passed.
