@@ -100,10 +100,7 @@ class Event(object):
     EXTENSION_RPC = 'goofy:extension_rpc'
     # Event from a test UI.
     TEST_UI_EVENT = 'goofy:test_ui_event'
-    # Message from the test UI that it has finished.
-    END_TEST = 'goofy:end_test'
     # Message from test UI to new event loop to end the event loop.
-    # TODO(pihsun): Cleanup this and END_TEST after all test use TestCaseWithUI.
     END_EVENT_LOOP = 'goofy:end_event_loop'
     # Message to tell the test UI to destroy itself.
     DESTROY_TEST = 'goofy:destroy_test'

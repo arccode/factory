@@ -218,30 +218,15 @@ class EventLoop(object):
   def _HandleEvent(self, event):
     """Handles an event sent by a test UI."""
     if not (getattr(event, 'test', '') == self.test and
-            getattr(event, 'invocation', '') == self.invocation):
+            getattr(event, 'invocation', '') == self.invocation and
+            getattr(event, 'type', '') == test_event.Event.Type.TEST_UI_EVENT):
       return
 
-    if event.type == test_event.Event.Type.END_TEST:
-      # This is the old event send from JavaScript test.pass / test.fail.
-      # Transform them to the new task end event.
-      # TODO(pihsun): Remove this after EventLoop is deprecated.
+    for handler in self.event_handlers.get(event.subtype, []):
       try:
-        if event.status == state.TestState.PASSED:
-          raise TaskEndException()
-        elif event.status == state.TestState.FAILED:
-          error_msg = getattr(event, 'error_msg', '')
-          raise type_utils.TestFailure(error_msg)
-        else:
-          raise ValueError('Unexpected status in event %r' % event)
+        self._RunHandler(handler, event)
       except Exception:
         self._handler_exception_hook()
-
-    elif event.type == test_event.Event.Type.TEST_UI_EVENT:
-      for handler in self.event_handlers.get(event.subtype, []):
-        try:
-          self._RunHandler(handler, event)
-        except Exception:
-          self._handler_exception_hook()
 
 
 class JavaScriptProxy(object):
@@ -863,6 +848,7 @@ class TestCaseWithUI(unittest.TestCase):
     for task in self.__tasks:
       self.__task_end_event.clear()
       try:
+        self.__SetupGoofyJSEvents()
         try:
           task.run()
         finally:
@@ -894,3 +880,15 @@ class TestCaseWithUI(unittest.TestCase):
           error_msg=error_msg)
       self.__task_failed = True
     self.__task_end_event.set()
+
+  def __SetupGoofyJSEvents(self):
+    """Setup handlers for events from frontend JavaScript."""
+    def handler(event):
+      status = event.data.get('status')
+      if status == state.TestState.PASSED:
+        self.PassTask()
+      elif status == state.TestState.FAILED:
+        self.FailTask(event.data.get('error_msg', ''))
+      else:
+        raise ValueError('Unexpected status in event %r' % event)
+    self.event_loop.AddEventHandler('goofy_ui_task_end', handler)

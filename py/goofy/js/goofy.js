@@ -234,9 +234,7 @@ cros.factory.Test = class {
    * @export
    */
   pass() {
-    this.invocation.goofy.sendEvent('goofy:end_test', {
-      'test': this.invocation.path,
-      'invocation': this.invocation.uuid,
+    this.sendTestEvent('goofy_ui_task_end', {
       'status': 'PASSED'
     });
   }
@@ -247,9 +245,7 @@ cros.factory.Test = class {
    * @export
    */
   fail(errorMsg) {
-    this.invocation.goofy.sendEvent('goofy:end_test', {
-      'test': this.invocation.path,
-      'invocation': this.invocation.uuid,
+    this.sendTestEvent('goofy_ui_task_end', {
       'status': 'FAILED',
       'error_msg': errorMsg
     });
@@ -266,12 +262,7 @@ cros.factory.Test = class {
     const goofy = this.invocation.goofy;
     if (goofy.engineeringMode ||
         !goofy.pathTestMap[this.invocation.path].disable_abort) {
-      this.invocation.goofy.sendEvent('goofy:end_test', {
-        'test': this.invocation.path,
-        'invocation': this.invocation.uuid,
-        'status': 'FAILED',
-        'error_msg': errorMsg
-      });
+      this.fail(errorMsg);
     } else {
       goofy.alert('You can only abort this test in engineering mode.');
     }
@@ -280,7 +271,7 @@ cros.factory.Test = class {
   /**
    * Sends an event to the test backend.
    * @param {string} subtype the event type
-   * @param {?string} data the event data
+   * @param {?Object} data the event data
    * @export
    */
   sendTestEvent(subtype, data) {
