@@ -63,10 +63,10 @@ _EVENT_LOOP_THREAD_NAME = 'TestEventLoopThread'
 class EventLoop(object):
   """Event loop for test."""
 
-  def __init__(self, handler_exception_hook):
+  def __init__(self, handler_exception_hook, event_client_class=None):
     self.test = session.GetCurrentTestPath()
     self.invocation = session.GetCurrentTestInvocation()
-    self.event_client = test_event.BlockingEventClient(
+    self.event_client = (event_client_class or test_event.BlockingEventClient)(
         callback=self._HandleEvent)
     self.event_handlers = {}
     self._handler_exception_hook = handler_exception_hook
@@ -196,7 +196,7 @@ class EventLoop(object):
     @functools.wraps(func)
     def _Wrapper(*args, **kwargs):
       try:
-        func(*args, **kwargs)
+        return func(*args, **kwargs)
       except Exception:
         self._handler_exception_hook()
 
