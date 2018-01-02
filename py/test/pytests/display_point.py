@@ -49,7 +49,7 @@ class DisplayPointTest(test_ui.TestCaseWithUI):
                  ', '.join(str(item.num_point) for item in self.items))
     self._frontend_proxy = self.ui.InitJSTestObject(
         'DisplayPointTest', self.args.point_size)
-    self.ui.AddEventHandler(
+    self.event_loop.AddEventHandler(
         'toggle-display', lambda unused_event: self.ToggleDisplay())
     self.display = False
     self.checked = False

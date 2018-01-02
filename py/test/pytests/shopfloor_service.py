@@ -196,7 +196,8 @@ class ShopfloorService(test_ui.TestCaseWithUI):
     return privacy.FilterDict(result.GetValue(''))
 
   def runTest(self):
-    self.ui.AddEventHandler('retry', lambda unused_event: self.event.set())
+    self.event_loop.AddEventHandler(
+        'retry', lambda unused_event: self.event.set())
     if self.args.server_url:
       server = webservice_utils.CreateWebServiceProxy(self.args.server_url)
     else:

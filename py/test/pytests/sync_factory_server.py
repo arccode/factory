@@ -439,9 +439,10 @@ class SyncFactoryServer(test_ui.TestCaseWithUI):
     self.ui.SetInstruction(i18n_test_ui.MakeI18nLabel('Preparing...'))
     retry_secs = self.args.first_retry_secs
 
-    self.ui.AddEventHandler(EVENT_SET_URL, self.OnButtonSetClicked)
-    self.ui.AddEventHandler(EVENT_CANCEL_SET_URL, self.OnButtonCancelClicked)
-    self.ui.AddEventHandler(EVENT_DO_SET_URL, self.OnButtonEditClicked)
+    self.event_loop.AddEventHandler(EVENT_SET_URL, self.OnButtonSetClicked)
+    self.event_loop.AddEventHandler(EVENT_CANCEL_SET_URL,
+                                    self.OnButtonCancelClicked)
+    self.event_loop.AddEventHandler(EVENT_DO_SET_URL, self.OnButtonEditClicked)
 
     # Setup tasks to perform.
     tasks = [(_('Ping'), self.Ping)]

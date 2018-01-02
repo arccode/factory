@@ -200,7 +200,7 @@ class CameraTest(test_ui.TestCaseWithUI):
   def _RunJSBlockingImpl(self, js, func):
     return_queue = Queue.Queue()
     event_name = 'wait_js_%s_%s' % (func, uuid.uuid4())
-    self.ui.AddEventHandler(
+    self.event_loop.AddEventHandler(
         event_name, lambda event: return_queue.put(event.data))
     self.ui.CallJSFunction(func, js, event_name)
     ret = return_queue.get()
@@ -237,7 +237,7 @@ class CameraTest(test_ui.TestCaseWithUI):
         # postprocessing on JavaScript.
         data_event_name = 'camera_image_data_%s' % uuid.uuid4()
         data_queue = Queue.Queue()
-        self.ui.AddEventHandler(
+        self.event_loop.AddEventHandler(
             data_event_name, lambda event: data_queue.put(event.data))
         self.RunJSPromiseBlocking('cameraTest.grabFrameAndTransmitBack(%r)' %
                                   data_event_name)

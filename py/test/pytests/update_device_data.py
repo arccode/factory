@@ -347,7 +347,7 @@ class UpdateDeviceData(test_ui.TestCaseWithUI):
       self.ui.BindKeyJS(test_ui.ENTER_KEY, 'window.sendInputValue(%r, %r)' % (
           entry.key, event_subtype))
 
-    self.ui.AddEventHandler(event_subtype, event_queue.put)
+    self.event_loop.AddEventHandler(event_subtype, event_queue.put)
 
     while True:
       event = event_queue.get()

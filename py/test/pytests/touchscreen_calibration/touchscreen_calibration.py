@@ -733,8 +733,8 @@ class TouchscreenCalibration(test_ui.TestCaseWithUI):
     """
     assert hasattr(self, event)
     session.console.debug('Registered event %s', event)
-    self.ui.AddEventHandler(event,
-                            lambda unused_event: getattr(self, event)())
+    self.event_loop.AddEventHandler(
+        event, lambda unused_event: getattr(self, event)())
 
   def _MakeLocalLogDir(self):
     if not os.path.isdir(self._local_log_dir):
@@ -817,7 +817,7 @@ class TouchscreenCalibration(test_ui.TestCaseWithUI):
     ]
     for event in events:
       self._RegisterEvent(event)
-    self.ui.AddEventHandler('StartCalibration', self.StartCalibration)
+    self.event_loop.AddEventHandler('StartCalibration', self.StartCalibration)
 
     self.ui.BindKeyJS('D', 'toggleDebugPanel();')
     self.WaitTaskEnd()

@@ -117,7 +117,8 @@ class TabletModeTest(test_ui.TestCaseWithUI):
         'onclick="test.sendTestEvent(\'confirm-tablet\')">' +
         i18n_test_ui.MakeI18nLabel('Confirm tablet mode') + '</button>')
     self.ui.SetHTML(confirm_button, id='confirm')
-    self.ui.AddEventHandler('confirm-tablet', self.HandleConfirmTabletMode)
+    self.event_loop.AddEventHandler('confirm-tablet',
+                                    self.HandleConfirmTabletMode)
     self.StartCountdown()
     self.WaitTaskEnd()
 

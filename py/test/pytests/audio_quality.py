@@ -256,7 +256,7 @@ class AudioQualityTest(test_ui.TestCaseWithUI):
     self._test_dir = os.path.join(
         paths.DATA_TESTS_DIR, session.GetCurrentTestPath())
 
-    self.ui.AddEventHandler('mock_command', self.MockCommand)
+    self.event_loop.AddEventHandler('mock_command', self.MockCommand)
     process_utils.Spawn(
         ['iptables', '-A', 'INPUT', '-p', 'tcp', '--dport', str(self._port),
          '-j', 'ACCEPT'], check_call=True)

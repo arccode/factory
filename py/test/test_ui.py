@@ -443,7 +443,7 @@ class UI(object):
     """
     uuid_str = str(uuid.uuid4())
     args = json.dumps(args) if args is not None else '{}'
-    self.AddEventHandler(uuid_str, handler)
+    self._event_loop.AddEventHandler(uuid_str, handler)
     self.BindKeyJS(key, 'test.sendTestEvent("%s", %s);' % (uuid_str, args),
                    once=once, virtual_key=virtual_key)
 
@@ -558,50 +558,6 @@ class UI(object):
     finally:
       for key in keys:
         self.UnbindKey(key)
-
-  # Methods below are proxy methods to event_loop for backward compatibility.
-
-  def AddEventHandler(self, subtype, handler):
-    """Adds an event handler.
-
-    Args:
-      subtype: The test-specific type of event to be handled.
-      handler: The handler to invoke with a single argument (the event object).
-    """
-    return self._event_loop.AddEventHandler(subtype, handler)
-
-  def PostEvent(self, event):
-    """Posts an event to the event queue.
-
-    Adds the test and invocation properties.
-
-    Tests should use this instead of invoking post_event directly.
-    """
-    return self._event_loop.PostEvent(event)
-
-  def Run(self, on_finish=None):
-    """Runs the test event loop, waiting until the test completes.
-
-    Args:
-      on_finish: Callback function when event loop ends. This can be used to
-          notify the test for necessary clean-up (e.g. terminate an event loop.)
-    """
-    return self._event_loop.Run(on_finish=on_finish)
-
-  def Pass(self):
-    """Passes the test."""
-    return self._event_loop.Pass()
-
-  def Fail(self, error_msg):
-    """Fails the test immediately."""
-    return self._event_loop.Fail(error_msg)
-
-  def FailLater(self, error_msg):
-    """Appends a error message to the error message list.
-
-    This would cause the test to fail when Run() finished.
-    """
-    return self._event_loop.FailLater(error_msg)
 
 
 class DummyUI(object):

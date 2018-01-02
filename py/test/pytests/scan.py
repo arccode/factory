@@ -249,7 +249,7 @@ class Scan(test_ui.TestCaseWithUI):
         test_ui.ENTER_KEY,
         'window.test.sendTestEvent("scan_value",'
         'document.getElementById("scan-value").value)')
-    self.ui.AddEventHandler('scan_value', self.HandleScanValue)
+    self.event_loop.AddEventHandler('scan_value', self.HandleScanValue)
 
     if self.args.value_assigned is not None:
       self.ui.CallJSFunction(

@@ -31,7 +31,7 @@ class AudioDiagnosticTest(test_ui.TestCaseWithUI):
     Setup the UI for displaying diagnostic controls
     and bind events to corresponding tasks at backend.
     """
-    self.ui.AddEventHandler('select_cras_node', self.SelectCrasNode)
+    self.event_loop.AddEventHandler('select_cras_node', self.SelectCrasNode)
 
     self._cras = audio_utils.CRAS()
     self._cras.UpdateIONodes()
