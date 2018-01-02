@@ -60,15 +60,17 @@ _HANDLER_WARN_TIME_LIMIT = 5
 _EVENT_LOOP_THREAD_NAME = 'TestEventLoopThread'
 
 
-class BaseEventLoop(object):
-  """Base event loop."""
+class EventLoop(object):
+  """Event loop for test."""
 
-  def __init__(self):
+  def __init__(self, handler_exception_hook):
     self.test = session.GetCurrentTestPath()
     self.invocation = session.GetCurrentTestInvocation()
     self.event_client = test_event.BlockingEventClient(
         callback=self._HandleEvent)
     self.event_handlers = {}
+    self._handler_exception_hook = handler_exception_hook
+    self._timed_handler_event_queue = Queue.PriorityQueue()
 
   def AddEventHandler(self, subtype, handler):
     """Adds an event handler.
@@ -94,98 +96,152 @@ class BaseEventLoop(object):
     """Constructs an event from given type and parameters, and post it."""
     return self.PostEvent(test_event.Event(event_type, *args, **kwargs))
 
-  def _HandleEvent(self, event):
-    del event  # Unused.
-    raise NotImplementedError()
+  def Run(self):
+    """Runs the test event loop, waiting until the test completes."""
+    threading.current_thread().name = _EVENT_LOOP_THREAD_NAME
+
+    end_event = None
+
+    while end_event is None:
+      # Give a minimum timeout that we should recheck the timed handler event
+      # queue, in case some other threads register timed handler when we're
+      # waiting for an event.
+      timeout = _EVENT_LOOP_PROBE_INTERVAL
+
+      # Run all expired timed handler.
+      while True:
+        try:
+          timed_handler_event = self._timed_handler_event_queue.get_nowait()
+        except Queue.Empty:
+          break
+
+        current_time = time.time()
+        if timed_handler_event.next_time <= current_time:
+          stop_iteration = False
+
+          try:
+            self._RunHandler(timed_handler_event.handler)
+          except StopIteration:
+            stop_iteration = True
+          except Exception:
+            self._handler_exception_hook()
+
+          if not stop_iteration and timed_handler_event.interval is not None:
+            self._timed_handler_event_queue.put(
+                _TimedHandlerEvent(
+                    next_time=time.time() + timed_handler_event.interval,
+                    handler=timed_handler_event.handler,
+                    interval=timed_handler_event.interval))
+        else:
+          timeout = min(timeout, timed_handler_event.next_time - current_time)
+          self._timed_handler_event_queue.put(timed_handler_event)
+          break
+
+      # Process all events and wait for end event.
+      end_event = self.event_client.wait(
+          lambda event:
+          (event.type == test_event.Event.Type.END_EVENT_LOOP and
+           event.invocation == self.invocation and
+           event.test == self.test),
+          timeout=timeout)
+
+    logging.info('Received end test event %r', end_event)
+    self.event_client.close()
+
+    if end_event.status == state.TestState.PASSED:
+      pass
+    elif end_event.status == state.TestState.FAILED:
+      error_msg = getattr(end_event, 'error_msg', '')
+      raise type_utils.TestFailure(error_msg)
+    else:
+      raise ValueError('Unexpected status in event %r' % end_event)
+
+  def AddTimedHandler(self, handler, time_sec, repeat=False):
+    """Add a handler to run in the event loop after time_sec seconds.
+
+    This is similar to JavaScript setTimeout (or setInterval when repeat=True,
+    except that the handler would be called once now).
+
+    Args:
+      handler: The handler to be called, would be run in the event loop thread.
+      time_sec: Seconds before the handler would be called.
+      repeat: If True, would call handler once now, and repeatly in interval
+          time_sec.
+    """
+    self._timed_handler_event_queue.put(
+        _TimedHandlerEvent(
+            next_time=time.time() + (0 if repeat else time_sec),
+            handler=handler,
+            interval=time_sec if repeat else None))
+
+  def AddTimedIterable(self, iterable, time_sec):
+    """Add a iterable that would be consumed at interval time_sec.
+
+    Args:
+      iterable: The iterable for which next(iterable) would be called.
+      time_sec: The interval between next calls in seconds.
+    """
+    self.AddTimedHandler(lambda: next(iterable), time_sec, repeat=True)
 
   def ClearHandlers(self):
     """Clear all event handlers."""
     self.event_handlers.clear()
+    type_utils.DrainQueue(self._timed_handler_event_queue)
 
+  def CatchException(self, func):
+    """Wraps function and pass exceptions to _handler_exception_hook.
 
-class EventLoop(BaseEventLoop):
-  """Old event loop for UI."""
-
-  def __init__(self):
-    super(EventLoop, self).__init__()
-    self.task_hook = None
-    self.error_msgs = []
-
-  def Run(self, on_finish=None):
-    """Runs the test event loop, waiting until the test completes.
-
-    Args:
-      on_finish: Callback function when event loop ends. This can be used to
-          notify the test for necessary clean-up (e.g. terminate an event loop.)
+    This makes the function works like it's in the main thread event handler.
     """
-    threading.current_thread().name = _EVENT_LOOP_THREAD_NAME
+    @functools.wraps(func)
+    def _Wrapper(*args, **kwargs):
+      try:
+        func(*args, **kwargs)
+      except Exception:
+        self._handler_exception_hook()
 
-    def _IsEndEvent(event):
-      return (event.type in [
-          test_event.Event.Type.END_TEST, test_event.Event.Type.END_EVENT_LOOP
-      ] and event.invocation == self.invocation and event.test == self.test)
+    return _Wrapper
 
-    event = self.event_client.wait(_IsEndEvent)
-    logging.info('Received end test event %r', event)
-    if self.task_hook:
-      # Let task have a chance to do its clean up work.
-      # pylint: disable=protected-access
-      self.task_hook._Finish(getattr(event, 'error_msg', ''), abort=True)
-    self.event_client.close()
-
+  def _RunHandler(self, handler, *args):
+    start_time = time.time()
     try:
-      if event.status == state.TestState.PASSED and not self.error_msgs:
-        pass
-      elif event.status == state.TestState.FAILED or self.error_msgs:
-        error_msg = getattr(event, 'error_msg', '')
-        if self.error_msgs:
-          error_msg += '\n'.join([''] + self.error_msgs)
-
-        raise type_utils.TestFailure(error_msg)
-      else:
-        raise ValueError('Unexpected status in event %r' % event)
+      handler(*args)
     finally:
-      if on_finish:
-        on_finish()
+      used_time = time.time() - start_time
+      if used_time > _HANDLER_WARN_TIME_LIMIT:
+        logging.warn(
+            'The handler (%r, args=%r) takes too long to finish (%.2f secs)! '
+            'This would make the UI unresponsible for new events, '
+            'consider moving the work load to background thread instead.',
+            handler, args, used_time)
 
   def _HandleEvent(self, event):
     """Handles an event sent by a test UI."""
-    if (event.type == test_event.Event.Type.TEST_UI_EVENT and
-        event.test == self.test and
-        event.invocation == self.invocation):
+    if not (getattr(event, 'test', '') == self.test and
+            getattr(event, 'invocation', '') == self.invocation):
+      return
+
+    if event.type == test_event.Event.Type.END_TEST:
+      # This is the old event send from JavaScript test.pass / test.fail.
+      # Transform them to the new task end event.
+      # TODO(pihsun): Remove this after EventLoop is deprecated.
+      try:
+        if event.status == state.TestState.PASSED:
+          raise TaskEndException()
+        elif event.status == state.TestState.FAILED:
+          error_msg = getattr(event, 'error_msg', '')
+          raise type_utils.TestFailure(error_msg)
+        else:
+          raise ValueError('Unexpected status in event %r' % event)
+      except Exception:
+        self._handler_exception_hook()
+
+    elif event.type == test_event.Event.Type.TEST_UI_EVENT:
       for handler in self.event_handlers.get(event.subtype, []):
-        start_time = time.time()
         try:
-          handler(event)
-        except Exception as e:
-          self.Fail(str(e))
-        finally:
-          used_time = time.time() - start_time
-          if used_time > _HANDLER_WARN_TIME_LIMIT:
-            logging.warn(
-                'The handler for %s takes too long to finish (%.2f seconds)! '
-                'This would make the UI unresponsible for new events, '
-                'consider moving the work load to background thread instead.',
-                event.subtype, used_time)
-
-  def Pass(self):
-    """Passes the test."""
-    self.PostNewEvent(
-        test_event.Event.Type.END_TEST, status=state.TestState.PASSED)
-
-  def Fail(self, error_msg):
-    """Fails the test immediately."""
-    self.PostNewEvent(
-        test_event.Event.Type.END_TEST,
-        status=state.TestState.FAILED,
-        error_msg=error_msg)
-
-  def FailLater(self, error_msg):
-    """Appends a error message to the error message list.
-
-    This would cause the test to fail when Run() finished.
-    """
-    self.error_msgs.append(error_msg)
+          self._RunHandler(handler, event)
+        except Exception:
+          self._handler_exception_hook()
 
 
 class JavaScriptProxy(object):
@@ -212,8 +268,8 @@ class UI(object):
 
   default_html = ''
 
-  def __init__(self, event_loop=None):
-    self._event_loop = event_loop or EventLoop()
+  def __init__(self, event_loop):
+    self._event_loop = event_loop
     self._static_dir_path = None
 
   def SetupStaticFiles(self):
@@ -686,166 +742,6 @@ _TimedHandlerEvent = collections.namedtuple(
     '_TimedHandlerEvent', ['next_time', 'handler', 'interval'])
 
 
-class NewEventLoop(BaseEventLoop):
-  """The new implementation of UI event loop.
-
-  TODO(pihsun): Remove EventLoop / BaseEventLoop and rename this to EventLoop
-  when all pytests had migrated to TestCaseWithUI.
-  """
-
-  def __init__(self, handler_exception_hook):
-    super(NewEventLoop, self).__init__()
-    self._handler_exception_hook = handler_exception_hook
-    self._timed_handler_event_queue = Queue.PriorityQueue()
-
-  def Run(self):
-    """Runs the test event loop, waiting until the test completes."""
-    threading.current_thread().name = _EVENT_LOOP_THREAD_NAME
-
-    end_event = None
-
-    while end_event is None:
-      # Give a minimum timeout that we should recheck the timed handler event
-      # queue, in case some other threads register timed handler when we're
-      # waiting for an event.
-      timeout = _EVENT_LOOP_PROBE_INTERVAL
-
-      # Run all expired timed handler.
-      while True:
-        try:
-          timed_handler_event = self._timed_handler_event_queue.get_nowait()
-        except Queue.Empty:
-          break
-
-        current_time = time.time()
-        if timed_handler_event.next_time <= current_time:
-          stop_iteration = False
-
-          try:
-            self._RunHandler(timed_handler_event.handler)
-          except StopIteration:
-            stop_iteration = True
-          except Exception:
-            self._handler_exception_hook()
-
-          if not stop_iteration and timed_handler_event.interval is not None:
-            self._timed_handler_event_queue.put(
-                _TimedHandlerEvent(
-                    next_time=time.time() + timed_handler_event.interval,
-                    handler=timed_handler_event.handler,
-                    interval=timed_handler_event.interval))
-        else:
-          timeout = min(timeout, timed_handler_event.next_time - current_time)
-          self._timed_handler_event_queue.put(timed_handler_event)
-          break
-
-      # Process all events and wait for end event.
-      end_event = self.event_client.wait(
-          lambda event:
-          (event.type == test_event.Event.Type.END_EVENT_LOOP and
-           event.invocation == self.invocation and
-           event.test == self.test),
-          timeout=timeout)
-
-    logging.info('Received end test event %r', end_event)
-    self.event_client.close()
-
-    if end_event.status == state.TestState.PASSED:
-      pass
-    elif end_event.status == state.TestState.FAILED:
-      error_msg = getattr(end_event, 'error_msg', '')
-      raise type_utils.TestFailure(error_msg)
-    else:
-      raise ValueError('Unexpected status in event %r' % end_event)
-
-  def AddTimedHandler(self, handler, time_sec, repeat=False):
-    """Add a handler to run in the event loop after time_sec seconds.
-
-    This is similar to JavaScript setTimeout (or setInterval when repeat=True,
-    except that the handler would be called once now).
-
-    Args:
-      handler: The handler to be called, would be run in the event loop thread.
-      time_sec: Seconds before the handler would be called.
-      repeat: If True, would call handler once now, and repeatly in interval
-          time_sec.
-    """
-    self._timed_handler_event_queue.put(
-        _TimedHandlerEvent(
-            next_time=time.time() + (0 if repeat else time_sec),
-            handler=handler,
-            interval=time_sec if repeat else None))
-
-  def AddTimedIterable(self, iterable, time_sec):
-    """Add a iterable that would be consumed at interval time_sec.
-
-    Args:
-      iterable: The iterable for which next(iterable) would be called.
-      time_sec: The interval between next calls in seconds.
-    """
-    self.AddTimedHandler(lambda: next(iterable), time_sec, repeat=True)
-
-  def ClearHandlers(self):
-    """Clear all event handlers."""
-    super(NewEventLoop, self).ClearHandlers()
-    type_utils.DrainQueue(self._timed_handler_event_queue)
-
-  def CatchException(self, func):
-    """Wraps function and pass exceptions to _handler_exception_hook.
-
-    This makes the function works like it's in the main thread event handler.
-    """
-    @functools.wraps(func)
-    def _Wrapper(*args, **kwargs):
-      try:
-        func(*args, **kwargs)
-      except Exception:
-        self._handler_exception_hook()
-
-    return _Wrapper
-
-  def _RunHandler(self, handler, *args):
-    start_time = time.time()
-    try:
-      handler(*args)
-    finally:
-      used_time = time.time() - start_time
-      if used_time > _HANDLER_WARN_TIME_LIMIT:
-        logging.warn(
-            'The handler (%r, args=%r) takes too long to finish (%.2f secs)! '
-            'This would make the UI unresponsible for new events, '
-            'consider moving the work load to background thread instead.',
-            handler, args, used_time)
-
-  def _HandleEvent(self, event):
-    """Handles an event sent by a test UI."""
-    if not (getattr(event, 'test', '') == self.test and
-            getattr(event, 'invocation', '') == self.invocation):
-      return
-
-    if event.type == test_event.Event.Type.END_TEST:
-      # This is the old event send from JavaScript test.pass / test.fail.
-      # Transform them to the new task end event.
-      # TODO(pihsun): Remove this after EventLoop is deprecated.
-      try:
-        if event.status == state.TestState.PASSED:
-          raise TaskEndException()
-        elif event.status == state.TestState.FAILED:
-          error_msg = getattr(event, 'error_msg', '')
-          raise type_utils.TestFailure(error_msg)
-        else:
-          raise ValueError('Unexpected status in event %r' % event)
-      except Exception:
-        self._handler_exception_hook()
-
-    elif event.type == test_event.Event.Type.TEST_UI_EVENT:
-      for handler in self.event_handlers.get(event.subtype, []):
-        try:
-          self._RunHandler(handler, event)
-        except Exception:
-          self._handler_exception_hook()
-
-
 _Task = collections.namedtuple('Task', ['name', 'run'])
 
 
@@ -924,7 +820,7 @@ class TestCaseWithUI(unittest.TestCase):
     # and initialize using setUp() means that all pytests inheriting this need
     # to remember calling super(..., self).setUp(), which is a lot of
     # boilerplate code and easy to forget.
-    self.event_loop = NewEventLoop(self.__HandleException)
+    self.event_loop = EventLoop(self.__HandleException)
     self.ui = self.ui_class(event_loop=self.event_loop)
     self.ui.SetupStaticFiles()
 

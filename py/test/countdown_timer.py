@@ -92,7 +92,7 @@ def CountdownTimer(timeout_secs, timeout_handler, tick=None,
 
 def StartNewCountdownTimer(test, timeout_secs, element_id,
                            timeout_handler=None):
-  """Start a countdown timer that relies on test_ui.NewEventLoop.
+  """Start a countdown timer that relies on test_ui.EventLoop.
 
   It updates UI for time remaining and calls timeout_handler when timeout.
   All works are done in the event loop, and no extra threads are created.
