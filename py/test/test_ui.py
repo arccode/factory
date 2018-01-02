@@ -212,22 +212,15 @@ class UI(object):
 
   default_html = ''
 
-  def __init__(self,
-               event_loop=None,
-               css=None,
-               setup_static_files=True):
+  def __init__(self, event_loop=None):
     self._event_loop = event_loop or EventLoop()
     self._static_dir_path = None
 
-    if setup_static_files:
-      self._SetupStaticFiles(session.GetCurrentTestFilePath())
-      if css:
-        self.AppendCSS(css)
-
-  def _SetupStaticFiles(self, py_script):
-    # Get path to caller and register static files/directories.
-    base = os.path.splitext(py_script)[0]
+  def SetupStaticFiles(self):
+    # Get path to current test and register static files/directories.
     test = session.GetCurrentTestPath()
+    py_script = session.GetCurrentTestFilePath()
+    base = os.path.splitext(py_script)[0]
 
     # Directories we'll autoload .html and .js files from.
     autoload_bases = [base]
@@ -588,10 +581,8 @@ class StandardUI(UI):
   default_html = '<test-template></test-template>'
 
   def __init__(self, event_loop=None):
-    super(StandardUI, self).__init__(
-        event_loop=event_loop, setup_static_files=False)
+    super(StandardUI, self).__init__(event_loop=event_loop)
     self.ImportHTML('/templates.html')
-    self._SetupStaticFiles(session.GetCurrentTestFilePath())
 
   def SetTitle(self, html):
     """Sets the title of the test UI.
@@ -967,6 +958,7 @@ class TestCaseWithUI(unittest.TestCase):
     # boilerplate code and easy to forget.
     self.event_loop = NewEventLoop(self.__HandleException)
     self.ui = self.ui_class(event_loop=self.event_loop)
+    self.ui.SetupStaticFiles()
 
     super(TestCaseWithUI, self).run(result=result)
 
