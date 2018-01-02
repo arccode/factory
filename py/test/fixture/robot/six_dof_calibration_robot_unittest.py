@@ -33,7 +33,7 @@ class SixDoFCalibrationRobotTest(unittest.TestCase):
     self._serial = mock.create_autospec(spec=serial.Serial)
 
   def tearDown(self):
-    disconnect = mock.Mock(spec=Robot.Disconnect)
+    disconnect = mock.Mock(spec=self._robot.Disconnect)
     self._robot.Disconnect = disconnect
 
     del self._robot
@@ -74,7 +74,7 @@ class SixDoFCalibrationRobotTest(unittest.TestCase):
     self._serial.readline.assert_called_with()
 
   def testSetMotorOn(self):
-    self._robot._SendCommand = mock.Mock(spec=Robot._SendCommand)
+    self._robot._SendCommand = mock.Mock(spec=self._robot._SendCommand)
 
     self._robot.SetMotor(True)
 
@@ -86,8 +86,8 @@ class SixDoFCalibrationRobotTest(unittest.TestCase):
     self._robot._SendCommand.assert_has_calls(calls)
 
   def testSetMotorOff(self):
-    self._robot._SendCommand = mock.Mock(spec=Robot._SendCommand)
-    self._robot.LoadDevice = mock.Mock(spec=Robot.LoadDevice)
+    self._robot._SendCommand = mock.Mock(spec=self._robot._SendCommand)
+    self._robot.LoadDevice = mock.Mock(spec=self._robot.LoadDevice)
 
     self._robot.SetMotor(False)
 
@@ -95,14 +95,14 @@ class SixDoFCalibrationRobotTest(unittest.TestCase):
     self._robot._SendCommand.assert_called_with(Robot.CMD_POWER_OFF)
 
   def testLoadDevice(self):
-    self._robot._SendCommand = mock.Mock(spec=Robot._SendCommand)
+    self._robot._SendCommand = mock.Mock(spec=self._robot._SendCommand)
 
     self._robot.LoadDevice(True)
 
     self._robot._SendCommand.assert_called_with(Robot.CMD_LOAD)
 
   def testUnloadDevice(self):
-    self._robot._SendCommand = mock.Mock(spec=Robot._SendCommand)
+    self._robot._SendCommand = mock.Mock(spec=self._robot._SendCommand)
 
     self._robot.LoadDevice(False)
 

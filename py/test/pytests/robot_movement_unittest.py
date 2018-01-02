@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -80,11 +80,11 @@ class RobotMovementTest(unittest.TestCase):
     self._test._algorithm.PullResult.assert_called_with(self._test._dut)
 
   def testRunTest(self):
-    self._test.Initialize = mock.Mock(spec=self.Test.Initialize)
-    self._test.LoadDevice = mock.Mock(spec=self.Test.LoadDevice)
-    self._test.StartMoving = mock.Mock(spec=self.Test.StartMoving)
-    self._test.Compute = mock.Mock(spec=self.Test.Compute)
-    self._test.PushResult = mock.Mock(spec=self.Test.PushResult)
+    self._test.Initialize = mock.Mock(spec=self._test.Initialize)
+    self._test.LoadDevice = mock.Mock(spec=self._test.LoadDevice)
+    self._test.StartMoving = mock.Mock(spec=self._test.StartMoving)
+    self._test.Compute = mock.Mock(spec=self._test.Compute)
+    self._test.PushResult = mock.Mock(spec=self._test.PushResult)
 
     self._test.runTest()
 

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -68,7 +68,7 @@ class FactoryPythonArchiveUnittest(unittest.TestCase):
     self.link.IsLocal = mock.MagicMock(return_value=False)
     types.DeviceProperty.Override(
         self.factory_par, 'checksum', 'checksum_value')
-    self.dut.CheckCall = mock.MagicMock(return_value='checksum_value')
+    self.dut.CheckOutput = mock.MagicMock(return_value='checksum_value')
 
     self.factory_par.PushFactoryPar()
     self.dut.link.Push.assert_not_called()
