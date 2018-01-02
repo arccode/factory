@@ -379,20 +379,6 @@ class UI(object):
     """
     return self._static_dir_path
 
-  def RunInBackground(self, target):
-    """Run a function in background daemon thread.
-
-    Pass the test if the function ends without exception, and fails the test if
-    there's any exception raised.
-    """
-    def _target():
-      try:
-        target()
-        self.Pass()
-      except Exception:
-        self.Fail(traceback.format_exc())
-    process_utils.StartDaemonThread(target=_target)
-
   def BindStandardPassKeys(self):
     """Binds standard pass keys (enter, space, 'P')."""
     self.CallJSFunction('test.bindStandardPassKeys')
@@ -860,7 +846,7 @@ class NewEventLoop(BaseEventLoop):
           self._handler_exception_hook()
 
 
-_Task = collections.namedtuple('Task', ['name', 'run', 'cleanup'])
+_Task = collections.namedtuple('Task', ['name', 'run'])
 
 
 class TestCaseWithUI(unittest.TestCase):
@@ -919,34 +905,16 @@ class TestCaseWithUI(unittest.TestCase):
   def AddTask(self, task, *task_args, **task_kwargs):
     """Add a task to the test.
 
-    The task passed in can either be a TestTask object, or a task function.
     Extra arguments would be passed to the task function.
 
     Args:
-      task: A task function or a TestTask object to be run.
+      task: A task function.
       task_args, task_kwargs: Arguments for the task function.
     """
-    if callable(task):
-      name = task.__name__
-      run = lambda: task(*task_args, **task_kwargs)
-      cleanup = None
-    else:
-      # Passing a task object, transforming into _Task.
-      # We should ideally do isinstance(task, test_task.TestTask), but it'll
-      # create circular imports.
-      # TODO(pihsun): Clean this up after codes are reorganized.
-      if not (hasattr(task, 'Run') and hasattr(task, 'Cleanup')):
-        raise ValueError('Unknown type for task: %s' % type(task))
+    name = task.__name__
+    run = lambda: task(*task_args, **task_kwargs)
 
-      if task_args or task_kwargs:
-        raise ValueError('task_args and task_kwargs should be empty '
-                         'when passing a task object.')
-
-      name = task.__class__.__name__
-      run = task.Run
-      cleanup = task.Cleanup
-
-    self.__tasks.append(_Task(name=name, run=run, cleanup=cleanup))
+    self.__tasks.append(_Task(name=name, run=run))
 
 
   def run(self, result=None):
@@ -1005,8 +973,6 @@ class TestCaseWithUI(unittest.TestCase):
           self.__task_end_event.set()
           self.event_loop.ClearHandlers()
           self.ui.UnbindAllKeys()
-          if task.cleanup:
-            task.cleanup()
       except Exception:
         self.__HandleException()
         if self.__task_failed:

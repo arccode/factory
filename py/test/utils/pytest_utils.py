@@ -105,7 +105,7 @@ def LoadPytest(pytest_name):
   if len(test_case_types) != 1:
     raise type_utils.TestFailure(
         'Only exactly one TestCase per pytest is supported, but found %r. '
-        'Use test_task if multiple tasks need to be done in a single pytest.' %
-        test_case_types)
+        'Use test.AddTask if multiple tasks need to be done in a single pytest.'
+        % test_case_types)
 
   return test_case_types[0]('runTest')
