@@ -26,6 +26,9 @@ _MOCK_TEST = 'mock.test'
 _MOCK_INVOCATION = 'mock-invocation'
 
 
+_EventType = test_event.Event.Type
+
+
 class EventLoopTestBase(unittest.TestCase):
 
   def setUp(self):
@@ -62,7 +65,7 @@ class EventLoopTestBase(unittest.TestCase):
       patcher.stop()
 
   def AssertTestUIEvent(self, event):
-    self.assertEqual(test_event.Event.Type.TEST_UI_EVENT, event.type)
+    self.assertEqual(_EventType.TEST_UI_EVENT, event.type)
     self.assertEqual(_MOCK_TEST, event.test)
     self.assertEqual(_MOCK_INVOCATION, event.invocation)
 
@@ -71,7 +74,7 @@ class EventLoopTest(EventLoopTestBase):
 
   def testPostEvent(self):
     self.event_loop.PostEvent(
-        test_event.Event(test_event.Event.Type.TEST_UI_EVENT, data='data'))
+        test_event.Event(_EventType.TEST_UI_EVENT, data='data'))
 
     self.event_client.post_event.assert_called_once()
     posted_event = self.event_client.post_event.call_args[0][0]
@@ -79,17 +82,14 @@ class EventLoopTest(EventLoopTestBase):
     self.assertEqual('data', posted_event.data)
 
   def testPostNewEvent(self):
-    self.event_loop.PostNewEvent(
-        test_event.Event.Type.TEST_UI_EVENT, data='data')
+    self.event_loop.PostNewEvent(_EventType.TEST_UI_EVENT, data='data')
 
     self.event_client.post_event.assert_called_once()
     posted_event = self.event_client.post_event.call_args[0][0]
     self.AssertTestUIEvent(posted_event)
     self.assertEqual('data', posted_event.data)
 
-  def _MockNewEvent(self,
-                    event_type=test_event.Event.Type.TEST_UI_EVENT,
-                    **kwargs):
+  def _MockNewEvent(self, event_type=_EventType.TEST_UI_EVENT, **kwargs):
     kwargs.setdefault('test', _MOCK_TEST)
     kwargs.setdefault('invocation', _MOCK_INVOCATION)
     self._event_callback(test_event.Event(event_type, **kwargs))
@@ -122,7 +122,7 @@ class EventLoopTest(EventLoopTestBase):
     # Wrong event type
     received_data = []
     self._MockNewEvent(
-        event_type=test_event.Event.Type.END_EVENT_LOOP, subtype='type1')
+        event_type=_EventType.END_EVENT_LOOP, subtype='type1')
     self.assertEqual([], received_data)
 
     # Wrong test or invocation.
@@ -140,8 +140,7 @@ class EventLoopTest(EventLoopTestBase):
       raise RuntimeError('Some unexpected error.')
 
     self.event_loop.AddEventHandler('type1', _Handler)
-    self._MockNewEvent(
-        test_event.Event.Type.TEST_UI_EVENT, subtype='type1', data='data')
+    self._MockNewEvent(_EventType.TEST_UI_EVENT, subtype='type1', data='data')
     self.assertTrue(self._handler_exceptions)
     self.assertIsInstance(self._handler_exceptions[0], RuntimeError)
 
@@ -151,8 +150,7 @@ class EventLoopTest(EventLoopTestBase):
       self._timeline.AdvanceTime(10)
 
     self.event_loop.AddEventHandler('type1', _Handler)
-    self._MockNewEvent(
-        test_event.Event.Type.TEST_UI_EVENT, subtype='type1', data='data')
+    self._MockNewEvent(_EventType.TEST_UI_EVENT, subtype='type1', data='data')
     self.mock_logging.warn.assert_called_once()
     self.assertRegexpMatches(self.mock_logging.warn.call_args[0][0],
                              r'The handler .* takes too long to finish')
@@ -209,7 +207,7 @@ class EventLoopRunTest(EventLoopTestBase):
                              status=state.TestState.PASSED,
                              **kwargs):
     event = test_event.Event(
-        test_event.Event.Type.END_EVENT_LOOP,
+        _EventType.END_EVENT_LOOP,
         test=_MOCK_TEST,
         invocation=_MOCK_INVOCATION,
         status=status,
@@ -351,7 +349,7 @@ class EventLoopRunTest(EventLoopTestBase):
     def _MockEvent(subtype):
       self._fake_event_client_queue.put(
           test_event.Event(
-              test_event.Event.Type.TEST_UI_EVENT,
+              _EventType.TEST_UI_EVENT,
               test=_MOCK_TEST,
               invocation=_MOCK_INVOCATION,
               subtype=subtype))
@@ -449,7 +447,306 @@ class EventLoopRunTest(EventLoopTestBase):
             self.assertGreater(expected_time + _PROBE_INTERVAL, TOTAL_TIME)
 
 
-# TODO(pihsun): Add unit test for UI.
+_MOCK_HTML = 'mock-html'
+_MOCK_ID = 'mock-id'
+
+
+class UITest(unittest.TestCase):
+
+  def setUp(self):
+    self._event_loop = mock.Mock()
+    self._ui = test_ui.UI(event_loop=self._event_loop)
+
+  def AssertEventsPosted(self, *events):
+    flatten_args = [
+        (args[0], kwargs)
+        for (args, kwargs) in self._event_loop.PostNewEvent.call_args_list
+    ]
+    self.assertEqual(flatten_args, list(events))
+
+  def _SetHTMLEvent(self, **kwargs):
+    event = {
+        'html': _MOCK_HTML,
+        'id': _MOCK_ID,
+        'append': False,
+        'autoscroll': False
+    }
+    event.update(kwargs)
+    return (_EventType.SET_HTML, event)
+
+  def testSetHTML(self):
+    self._ui.SetHTML(_MOCK_HTML, id=_MOCK_ID)
+    self._ui.SetHTML(_MOCK_HTML, id=_MOCK_ID, append=True)
+    self._ui.SetHTML(_MOCK_HTML, id=_MOCK_ID, autoscroll=True)
+
+    self.AssertEventsPosted(
+        self._SetHTMLEvent(),
+        self._SetHTMLEvent(append=True),
+        self._SetHTMLEvent(autoscroll=True))
+
+  def testAppendHTML(self):
+    self._ui.AppendHTML(_MOCK_HTML, id=_MOCK_ID)
+    self._ui.AppendHTML(_MOCK_HTML, id=_MOCK_ID, autoscroll=True)
+
+    self.AssertEventsPosted(
+        self._SetHTMLEvent(append=True),
+        self._SetHTMLEvent(append=True, autoscroll=True))
+
+  def testAppendCSS(self):
+    _MOCK_CSS = 'mock-css'
+    self._ui.AppendCSS(_MOCK_CSS)
+
+    self.AssertEventsPosted(
+        self._SetHTMLEvent(
+            html='<style type="text/css">%s</style>' % _MOCK_CSS,
+            id='head',
+            append=True))
+
+  def testAppendCSSLink(self):
+    _MOCK_CSS_LINK = 'mock-css-link'
+    self._ui.AppendCSSLink(_MOCK_CSS_LINK)
+
+    self.AssertEventsPosted(
+        self._SetHTMLEvent(
+            html='<link rel="stylesheet" type="text/css" href="%s">' %
+            _MOCK_CSS_LINK,
+            id='head',
+            append=True))
+
+  def _RunJSEvent(self, js, **kwargs):
+    return (_EventType.RUN_JS, {'js': js, 'args': kwargs})
+
+  def testRunJS(self):
+    self._ui.RunJS('alert(1);')
+    self._ui.RunJS('alert(args.msg);', msg='foobar')
+
+    self.AssertEventsPosted(
+        self._RunJSEvent('alert(1);'),
+        self._RunJSEvent('alert(args.msg);', msg='foobar'))
+
+  def testCallJSFunction(self):
+    self._ui.CallJSFunction('test.alert', '123')
+
+    self.AssertEventsPosted(
+        self._RunJSEvent('test.alert(args.arg_0)', arg_0='123'))
+
+  def testInitJSTestObject(self):
+    js_object = self._ui.InitJSTestObject('someTest', 2, 1, 7)
+    js_object.Hopping()
+    js_object.Jump()
+
+    self.AssertEventsPosted(
+        self._RunJSEvent(
+            'window.testObject = new someTest(...args.constructorArg)',
+            constructorArg=(2, 1, 7)),
+        self._RunJSEvent('window.testObject.hopping()'),
+        self._RunJSEvent('window.testObject.jump()'))
+
+  def testBindStandardKeys(self):
+    self._ui.BindStandardKeys()
+    self._ui.BindStandardPassKeys()
+    self._ui.BindStandardFailKeys()
+
+    self.AssertEventsPosted(
+        self._RunJSEvent('test.bindStandardKeys()'),
+        self._RunJSEvent('test.bindStandardPassKeys()'),
+        self._RunJSEvent('test.bindStandardFailKeys()'))
+
+  def testBindKeyJS(self):
+    self._ui.BindKeyJS('A', 'a()')
+    self._ui.BindKeyJS('B', 'b()', once=True)
+    self._ui.BindKeyJS(
+        test_ui.ENTER_KEY, 'onEnter()', once=True, virtual_key=False)
+
+    self.AssertEventsPosted(
+        self._RunJSEvent(
+            'test.bindKey(args.key, (event) => { a() }, '
+            'args.once, args.virtual_key)',
+            key='A',
+            once=False,
+            virtual_key=True),
+        self._RunJSEvent(
+            'test.bindKey(args.key, (event) => { b() }, '
+            'args.once, args.virtual_key)',
+            key='B',
+            once=True,
+            virtual_key=True),
+        self._RunJSEvent(
+            'test.bindKey(args.key, (event) => { onEnter() }, '
+            'args.once, args.virtual_key)',
+            key='ENTER',
+            once=True,
+            virtual_key=False))
+
+  def testBindKey(self):
+    def _Handler(event):
+      del event  # Unused.
+
+    self._ui.BindKey('U', _Handler)
+    self._event_loop.AddEventHandler.assert_called_once()
+    uuid, handler = self._event_loop.AddEventHandler.call_args[0]
+    self.assertEqual(_Handler, handler)
+    self.AssertEventsPosted(
+        self._RunJSEvent(
+            'test.bindKey(args.key, (event) => { test.sendTestEvent("%s", '
+            '{}); }, args.once, args.virtual_key)' % uuid,
+            key='U',
+            once=False,
+            virtual_key=True))
+
+  def testUnbindKey(self):
+    self._ui.UnbindKey('A')
+    self._ui.UnbindAllKeys()
+
+    self.AssertEventsPosted(
+        self._RunJSEvent('test.unbindKey(args.arg_0)', arg_0='A'),
+        self._RunJSEvent('test.unbindAllKeys()'))
+
+  def testPlayAudio(self):
+    self._ui.PlayAudioFile('a.mp4')
+
+    self._event_loop.PostNewEvent.assert_called_once()
+    args, kwargs = self._event_loop.PostNewEvent.call_args
+    self.assertEqual((_EventType.RUN_JS,), args)
+    self.assertEqual('/sounds/a.mp4', kwargs['args']['path'])
+    self.assertEqual("""
+      const audioElement = new Audio(args.path);
+      audioElement.addEventListener(
+          "canplaythrough", () => { audioElement.play(); });
+    """.replace(' ', ''), kwargs['js'].replace(' ', ''))
+
+  def testSetFocus(self):
+    self._ui.SetFocus('main')
+
+    self.AssertEventsPosted(
+        self._RunJSEvent('document.getElementById(args.id).focus()', id='main'))
+
+  def testSetSelected(self):
+    self._ui.SetSelected('main')
+
+    self.AssertEventsPosted(
+        self._RunJSEvent(
+            'document.getElementById(args.id).select()', id='main'))
+
+  def testAlert(self):
+    self._ui.Alert('1')
+
+    self.AssertEventsPosted(
+        self._RunJSEvent('test.alert(args.arg_0)', arg_0='1'))
+
+  def testShowHideElement(self):
+    self._ui.HideElement('main')
+    self._ui.ShowElement('main')
+
+    self.AssertEventsPosted(
+        self._RunJSEvent(
+            'document.getElementById(args.id).style.display = "none"',
+            id='main'),
+        self._RunJSEvent(
+            'document.getElementById(args.id).style.display = "initial"',
+            id='main'))
+
+  def testImportHTML(self):
+    self._ui.ImportHTML('fragment.html')
+
+    self.AssertEventsPosted((_EventType.IMPORT_HTML, {'url': 'fragment.html'}))
+
+
+class UIKeyTest(unittest.TestCase):
+
+  def setUp(self):
+    self._event_loop = mock.Mock()
+    self._ui = test_ui.UI(event_loop=self._event_loop)
+
+    self._patchers = []
+
+    self._timeline = mock_time_utils.TimeLine()
+    self._patchers.extend(mock_time_utils.MockAll(test_ui, self._timeline))
+
+    self.key_callbacks = {}
+
+    self._CreatePatcher(self._ui, 'BindKey').side_effect = self._StubBindKey
+    self._CreatePatcher(self._ui, 'UnbindKey').side_effect = self._StubUnbindKey
+    self._CreatePatcher(test_ui.threading,
+                        'current_thread')().name = 'other_thread'
+
+  def _StubBindKey(self, key, callback):
+    self.key_callbacks[key] = callback
+
+  def _StubUnbindKey(self, key):
+    del self.key_callbacks[key]
+
+  def _CreatePatcher(self, *args, **kwargs):
+    patcher = mock.patch.object(*args, **kwargs)
+    self._patchers.append(patcher)
+    return patcher.start()
+
+  def tearDown(self):
+    for patcher in self._patchers:
+      patcher.stop()
+
+  def _SimulateKeyPress(self, key):
+    if key in self.key_callbacks:
+      self.key_callbacks[key](None)
+
+  def testWaitKeysOnce(self):
+    self._timeline.AddEvent(
+        3, lambda: self._SimulateKeyPress(test_ui.ENTER_KEY))
+
+    self.assertEqual(test_ui.ENTER_KEY,
+                     self._ui.WaitKeysOnce(test_ui.ENTER_KEY))
+    self.assertFalse(self.key_callbacks)
+
+  def testWaitKeysOnceTimeout(self):
+    self._timeline.AddEvent(
+        3, lambda: self._SimulateKeyPress(test_ui.ENTER_KEY))
+
+    self.assertEqual(test_ui.ENTER_KEY,
+                     self._ui.WaitKeysOnce(test_ui.ENTER_KEY, timeout=5))
+    self.assertFalse(self.key_callbacks)
+
+  def testWaitKeysOnceTimeoutNoKey(self):
+    self._timeline.AddEvent(
+        10, lambda: self._SimulateKeyPress(test_ui.ENTER_KEY))
+
+    self.assertIsNone(self._ui.WaitKeysOnce(test_ui.ENTER_KEY, timeout=5))
+    self.assertFalse(self.key_callbacks)
+
+  def testWaitKeysOnceMultipleKey(self):
+    self._timeline.AddEvent(
+        2, lambda: self._SimulateKeyPress('A'))
+    self._timeline.AddEvent(
+        1, lambda: self._SimulateKeyPress('B'))
+    self._timeline.AddEvent(
+        7, lambda: self._SimulateKeyPress('C'))
+
+    self.assertEqual('B', self._ui.WaitKeysOnce(['A', 'B', 'C']))
+    self.assertFalse(self.key_callbacks)
+
+  def testWaitKeysOnceMultipleKeyTimeout(self):
+    self._timeline.AddEvent(
+        2, lambda: self._SimulateKeyPress('A'))
+    self._timeline.AddEvent(
+        1, lambda: self._SimulateKeyPress('B'))
+    self._timeline.AddEvent(
+        7, lambda: self._SimulateKeyPress('C'))
+
+    self.assertEqual('B', self._ui.WaitKeysOnce(['A', 'B', 'C'], timeout=10))
+    self.assertFalse(self.key_callbacks)
+
+  def testWaitKeysOnceMultipleKeyTimeoutNoKey(self):
+    self._timeline.AddEvent(
+        2, lambda: self._SimulateKeyPress('A'))
+    self._timeline.AddEvent(
+        7, lambda: self._SimulateKeyPress('B'))
+    self._timeline.AddEvent(
+        4, lambda: self._SimulateKeyPress('C'))
+
+    self.assertIsNone(self._ui.WaitKeysOnce(['A', 'B', 'C'], timeout=1))
+    self.assertFalse(self.key_callbacks)
+
+
+# TODO(pihsun): Add unit test for TestCaseWithUI.
 
 
 if __name__ == '__main__':

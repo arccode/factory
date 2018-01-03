@@ -371,7 +371,7 @@ class UI(object):
     JavaScript function would be 'correct'.
 
     For example, calling CallJSFunction('test.alert', '123') is same as calling
-    RunJS('test.alert(args.arg_1)', arg_1='123'), and the 'this' when the
+    RunJS('test.alert(args.arg_0)', arg_0='123'), and the 'this' when the
     'test.alert' function is running would be test instead of window.
 
     Args:
