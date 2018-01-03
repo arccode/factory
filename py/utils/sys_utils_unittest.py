@@ -537,7 +537,7 @@ class VPDToolTest(unittest.TestCase):
 
   def testSpecificFilenameAndPartition(self):
     self.spawner.CheckOutput(
-        ['vpd', '-f', 'f', '-i', 'RO_VPD', '-g', 'key']).AndReturn('v')
+        ['vpd', '-i', 'RO_VPD', '-f', 'f', '-g', 'key']).AndReturn('v')
     self.mox.ReplayAll()
     self.assertEqual(
         self.vpd.GetValue('key', filename='f', partition=self.vpd.RO_PARTITION),

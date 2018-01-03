@@ -769,7 +769,12 @@ class VPDTool(object):
     """
     self._spawner = spawner or process_utils
 
-  def GetValue(self, key, default_value=None, filename=None, partition=None):
+  def _CheckFileExistence(self, filename):
+    # This could be CheckCall. However, to reduce API dependency, we are
+    # reusing CheckOutput.
+    self._spawner.CheckOutput(['test', '-e', filename])
+
+  def GetValue(self, key, default_value=None, partition=None, filename=None):
     """Gets a VPD value with the specific key.
 
     If the VPD doesn't contain the data with the given `key`, this function will
@@ -787,11 +792,13 @@ class VPDTool(object):
     self._EnsureIfKeyValid(key)
     try:
       return self._spawner.CheckOutput(
-          self._BuildBasicCmd(filename, partition) + ['-g', key])
+          self._BuildBasicCmd(partition, filename) + ['-g', key])
     except subprocess.CalledProcessError:
+      if filename is not None:
+        self._CheckFileExistence(filename)
       return default_value
 
-  def GetAllData(self, filename=None, partition=None):
+  def GetAllData(self, partition=None, filename=None):
     """Gets all VPD data in dictionary format.
 
     Args:
@@ -802,11 +809,14 @@ class VPDTool(object):
       A dictionary in which each key-value pair represents a VPD data entry.
     """
     raw_data = self._spawner.CheckOutput(
-        self._BuildBasicCmd(filename, partition) + ['-l', '--null-terminated'])
-    return dict(field.split('=', 1)
-                for field in raw_data.split('\0') if '=' in field)
+        self._BuildBasicCmd(partition, filename) + ['-l', '--null-terminated'])
+    result = dict(field.split('=', 1) for field in raw_data.split('\0')
+                  if '=' in field)
+    if not result and filename is not None:
+      self._CheckFileExistence(filename)
+    return result
 
-  def UpdateData(self, items, filename=None, partition=None):
+  def UpdateData(self, items, partition=None, filename=None):
     """Updates VPD data.
 
     Args:
@@ -814,19 +824,19 @@ class VPDTool(object):
       filename: Filename of the bios, see `vpd -h` for detail.
       partition: Specify VPD partition name in fmap.
     """
-    cmd = self._BuildBasicCmd(filename, partition)
+    cmd = self._BuildBasicCmd(partition, filename)
     for k, v in items.items():
       self._EnsureIfKeyValid(k)
       cmd += ['-d', k] if v is None else ['-s', '%s=%s' % (k, v)]
     self._spawner.CheckOutput(cmd)
 
   @classmethod
-  def _BuildBasicCmd(cls, filename, partition):
+  def _BuildBasicCmd(cls, partition, filename):
     cmd = ['vpd']
-    if filename:
-      cmd += ['-f', filename]
     if partition:
       cmd += ['-i', partition]
+    if filename:
+      cmd += ['-f', filename]
     return cmd
 
   @classmethod
