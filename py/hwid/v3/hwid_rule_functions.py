@@ -33,11 +33,7 @@ def GetClassAttributesOnBOM(hwid, comp_cls):
 
     valid_attributes = {
         'name': 'sandisk_16g',
-        'value': 'Sandisk 33456',
-        'labels': {
-            'technology': 'SSD',
-            'size': '16G'
-        }
+        'value': 'Sandisk 33456'
     }
 
   Args:
@@ -67,17 +63,7 @@ def GetClassAttributesOnBOM(hwid, comp_cls):
     GetLogger().Error('Invalid component class: %r' % comp_cls)
     return None
   # Construct a set of known values from hwid.database and hwid.bom.
-  results = []
-  bom_components = PackProbedValues(hwid.bom, comp_cls)
-  for comp in bom_components:
-    try:
-      comp_attrs = hwid.database.components.GetComponentAttributes(comp_cls,
-                                                                   comp)
-      results.append(comp)
-      if 'labels' in comp_attrs:
-        results.extend(MakeList(comp_attrs['labels'].values()))
-    except HWIDException:
-      continue
+  results = PackProbedValues(hwid.bom, comp_cls)
   # If the set is empty, add a None element indicating that the component
   # class is missing.
   if not results:
