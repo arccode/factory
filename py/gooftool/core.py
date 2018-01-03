@@ -616,14 +616,28 @@ class Gooftool(object):
             'flashrom -p host --wp-status').stdout}
 
   def ClearFactoryVPDEntries(self):
-    """Clears factory.* items in the RW VPD.
+    """Clears factory related VPD entries in the RW VPD.
+
+    All VPD entries with '.' in key name are considered as special.
+    We collect all special names and delete entries with known prefixes,
+    and fail if there are unknown entries left.
 
     Returns:
       A dict of the removed entries.
     """
-    rw_vpd = self._vpd.GetAllData(self._vpd.RW_PARTITION)
-    entries = dict((k, v) for k, v in rw_vpd.items()
-                   if k.startswith('factory.'))
+    def _IsFactoryVPD(k):
+      # These names are defined in cros.factory.test.device_data
+      known_names = ['factory.', 'component.', 'serials.']
+      return any(name for name in known_names if k.startswith(name))
+
+    rw_vpd = self._vpd.GetAllData(partition=self._vpd.RW_PARTITION)
+    dot_entries = dict((k, v) for k, v in rw_vpd.iteritems() if '.' in k)
+    entries = dict((k, v) for k, v in dot_entries.iteritems()
+                   if _IsFactoryVPD(k))
+    unknown_keys = set(dot_entries) - set(entries)
+    if unknown_keys:
+      raise Error('Found unexpected RW VPD(s): %r', unknown_keys)
+
     logging.info('Removing VPD entries %s', FilterDict(entries))
     if entries:
       try:
