@@ -71,6 +71,9 @@ def CreateTestFile(prefix):
   return file_utils.CreateTemporaryFile(prefix=prefix, dir=TEST_DIRECTORY)
 
 
+# TODO(pihsun): Refactor this file to use mock_time_utils.
+
+
 class StubTimer(object):
   def __init__(self):
     self.fake_time = 0
