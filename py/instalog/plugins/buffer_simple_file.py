@@ -13,7 +13,6 @@ separately maintains metadata. See buffer_file_common.py for details.
 from __future__ import print_function
 
 import os
-import shutil
 
 import instalog_common  # pylint: disable=W0611
 from instalog import plugin_base
@@ -79,34 +78,34 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
     Note the careful edge cases with attachment files.  We want them *all* to
     be either moved or copied into the buffer's database, or *none* at all.
     """
-    tmp_dir = os.path.join(self.GetDataDir(), 'attachments_tmp_dir')
-    file_utils.TryMakeDirs(tmp_dir)
-    try:
-      # Step 1: Copy attachments.
-      source_paths = []
-      for event in events:
-        for att_id, att_path in event.attachments.iteritems():
-          source_paths.append(att_path)
-          event.attachments[att_id] = os.path.join(
-              tmp_dir, att_path.replace('/', '_'))
-      if not buffer_file_common.CopyAttachmentsToTempDir(source_paths, tmp_dir):
+    tmp_dir_base = os.path.join(self.GetDataDir(), 'attachments_tmp_dir')
+    file_utils.TryMakeDirs(tmp_dir_base)
+    with file_utils.TempDirectory(dir=tmp_dir_base) as tmp_dir:
+      try:
+        # Step 1: Copy attachments.
+        source_paths = []
+        for event in events:
+          for att_id, att_path in event.attachments.iteritems():
+            source_paths.append(att_path)
+            event.attachments[att_id] = os.path.join(
+                tmp_dir, att_path.replace('/', '_'))
+        if not buffer_file_common.CopyAttachmentsToTempDir(
+            source_paths, tmp_dir):
+          return False
+        # Step 2: Write the new events to the file.
+        self.buffer_file.ProduceEvents(events)
+        # Step 3: Remove source attachment files if necessary.
+        if not self.args.copy_attachments:
+          for path in source_paths:
+            try:
+              os.unlink(path)
+            except Exception:
+              self.exception('Some of source attachment files (%s) could not '
+                             'be deleted; silently ignoring', path)
+        return True
+      except Exception:
+        self.exception('Exception encountered when producing events')
         return False
-      # Step 2: Write the new events to the file.
-      self.buffer_file.ProduceEvents(events)
-      # Step 3: Remove source attachment files if necessary.
-      if not self.args.copy_attachments:
-        for path in source_paths:
-          try:
-            os.unlink(path)
-          except Exception:
-            self.exception('Some of source attachment files (%s) could not '
-                           'be deleted; silently ignoring', path)
-      return True
-    except Exception:
-      self.exception('Exception encountered when producing events')
-      return False
-    finally:
-      shutil.rmtree(tmp_dir)
 
   def AddConsumer(self, name):
     """See BufferPlugin.AddConsumer."""

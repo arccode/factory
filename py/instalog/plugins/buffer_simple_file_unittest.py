@@ -32,6 +32,7 @@ import collections
 import logging
 import os
 import Queue
+import random
 import shutil
 import tempfile
 import threading
@@ -346,7 +347,10 @@ class TestBufferSimpleFile(unittest.TestCase):
 
   def testMultiThreadProduce(self):
     """Tests for correct output with multiple threads Producing events."""
+    random.seed(0)
     def ProducerThread():
+      # Random sleep so that each thread produce isn't in sync.
+      time.sleep(random.randrange(3) * 0.1)
       for _unused_i in xrange(10):
         self.sf.Produce([self.e1, self.e2, self.e3])
     threads = []
