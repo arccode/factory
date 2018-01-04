@@ -6,15 +6,12 @@
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3.rule import GetContext
 from cros.factory.hwid.v3.rule import GetLogger
 from cros.factory.hwid.v3.rule import RuleFunction
 from cros.factory.hwid.v3.rule import Value
 from cros.factory.test.rules import phase
-from cros.factory.test.rules import registration_codes
-from cros.factory.test.rules.registration_codes import RegistrationCode
 from cros.factory.utils.type_utils import MakeList
 
 
@@ -211,64 +208,6 @@ def GetVPDValue(section, key):
     The VPD value got.
   """
   return GetContext().vpd[section][key]
-
-
-@RuleFunction(['vpd'])
-def ValidVPDValue(section, key):
-  """A wrapper method to verify VPD value.
-
-  This rule is deprecated, please verify the VPD values with another pytest or
-  run `gooftool verify_vpd`.
-
-  Args:
-    section: The section of VPD to read value from. ('ro' or 'rw')
-    key: The key of the VPD value to get.
-
-  Raises:
-    HWIDException if the VPD value is invalid.
-  """
-  GetLogger().Warning('This rule is deprecated.')
-  value = GetVPDValue(section, key)
-  valid_values = KNOWN_VPD_FIELD_DATA.get(key, None)
-  if (valid_values and value not in valid_values) or (not value):
-    GetLogger().Error('Invalid VPD value %r of %r' % (value, key))
-    return False
-  return True
-
-
-# pylint: disable=W0622
-@RuleFunction(['database'])
-def CheckRegistrationCode(code, type=None, device=None):
-  """A wrapper method to verify registration code.
-
-  This rule is deprecated, please verify the registration code with another
-  pytest or run `gooftool verify_vpd`.
-
-  Args:
-    code: The registration code to verify.
-    type: The type of code required.  This may be a member of the
-        RegistrationCodes.Type enum; the strings 'unique' or
-        'user' are synonyms for UNIQUE_CODE, and 'group' is a synonym for
-        GROUP_CODE.
-
-  Raises:
-    RegistrationCodeException if the code is invalid.
-  """
-  GetLogger().Warning('This rule is deprecated.')
-  if type and type not in RegistrationCode.Type:
-    if type in ['user', 'unique']:
-      type = RegistrationCode.Type.UNIQUE_CODE
-    elif type == 'group':
-      type = RegistrationCode.Type.GROUP_CODE
-    else:
-      raise ValueError('Unknown reg code type %r' % type)
-
-  # Device name is usually exactly the same as in the HWID, except lowercase
-  # (e.g., "spring", not "daisy_spring"). For Zerg devices this may be chassis
-  # or project ID.
-  if device is None:
-    device = GetContext().database.project.lower()
-  registration_codes.CheckRegistrationCode(code, type=type, device=device)
 
 
 @RuleFunction([])

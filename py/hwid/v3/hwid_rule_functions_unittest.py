@@ -18,7 +18,6 @@ from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import transformer
 from cros.factory.hwid.v3 import hwid_utils
-from cros.factory.hwid.v3.hwid_rule_functions import CheckRegistrationCode
 from cros.factory.hwid.v3.hwid_rule_functions import ComponentEq
 from cros.factory.hwid.v3.hwid_rule_functions import ComponentIn
 from cros.factory.hwid.v3.hwid_rule_functions import GetClassAttributesOnBOM
@@ -27,7 +26,6 @@ from cros.factory.hwid.v3.hwid_rule_functions import GetPhase
 from cros.factory.hwid.v3.hwid_rule_functions import GetVPDValue
 from cros.factory.hwid.v3.hwid_rule_functions import SetComponent
 from cros.factory.hwid.v3.hwid_rule_functions import SetImageId
-from cros.factory.hwid.v3.hwid_rule_functions import ValidVPDValue
 from cros.factory.hwid.v3.rule import Context
 from cros.factory.hwid.v3.rule import GetLogger
 from cros.factory.hwid.v3.rule import Rule
@@ -35,7 +33,6 @@ from cros.factory.hwid.v3.rule import RuleException
 from cros.factory.hwid.v3.rule import SetContext
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.test.rules import phase
-from cros.factory.test.rules.registration_codes import RegistrationCodeException
 from cros.factory.utils import json_utils
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -216,69 +213,6 @@ class HWIDRuleTest(unittest.TestCase):
     self.assertEquals('CHROMEBOOK C2H-I3Q-A6Q', identity.encoded_string)
     self.assertRaisesRegexp(
         HWIDException, r'Invalid image id: 7', SetImageId, 7)
-
-  def testValidVPDValue(self):
-    mock_vpd = {
-        'ro': {
-            'region': 'us',
-            'serial_number': 'foobar'
-        }
-    }
-    SetContext(Context(vpd=mock_vpd))
-    self.assertEquals(True, ValidVPDValue('ro', 'region'))
-    self.assertEquals(True, ValidVPDValue('ro', 'serial_number'))
-
-    mock_vpd = {
-        'ro': {
-            'region': 'foo'
-        }
-    }
-    SetContext(Context(vpd=mock_vpd))
-    self.assertFalse(ValidVPDValue('ro', 'region'))
-    self.assertEquals("ERROR: Invalid VPD value 'foo' of 'region'",
-                      GetLogger().error[0].message)
-
-  def testCheckRegistrationCode_Legacy(self):
-    mock_gbind_attribute = ('3333333333333333333333333333333333333'
-                            '3333333333333333333333333332dbecc73')
-    mock_ubind_attribute = ('3232323232323232323232323232323232323'
-                            '23232323232323232323232323256850612')
-    self.assertEquals(None, CheckRegistrationCode(mock_gbind_attribute))
-    self.assertEquals(None, CheckRegistrationCode(mock_ubind_attribute))
-    mock_gbind_attribute = 'foo'
-    self.assertRaisesRegexp(
-        RegistrationCodeException, r"Invalid registration code 'foo'",
-        CheckRegistrationCode, mock_gbind_attribute)
-
-  def testCheckRegistrationCode(self):
-    mock_ubind_attribute = (
-        '=CjAKIAABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4fEAEaCmNocm9tZWJvb2sQg'
-        'dSQ-AI=')
-    self.assertEquals(None, CheckRegistrationCode(mock_ubind_attribute))
-    self.assertEquals(None, CheckRegistrationCode(mock_ubind_attribute,
-                                                  type='unique'))
-    self.assertRaisesRegexp(
-        RegistrationCodeException,
-        "expected type 'GROUP_CODE' but got 'UNIQUE_CODE'",
-        CheckRegistrationCode, mock_ubind_attribute, type='group')
-
-    mock_gbind_attribute = (
-        '=CjAKIAABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4fEAAaCmNocm9tZWJvb2sQh'
-        'OfLlA8=')
-    self.assertEquals(None, CheckRegistrationCode(mock_gbind_attribute))
-    self.assertEquals(None, CheckRegistrationCode(mock_gbind_attribute,
-                                                  type='group'))
-    self.assertRaisesRegexp(
-        RegistrationCodeException,
-        "expected type 'UNIQUE_CODE' but got 'GROUP_CODE'",
-        CheckRegistrationCode, mock_gbind_attribute, type='unique')
-
-    self.assertRaisesRegexp(
-        RegistrationCodeException,
-        "expected device 'chromebook' but got 'foobar'",
-        CheckRegistrationCode,
-        '=CiwKIAABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4fEAEaBmZvb2JhchC7i6PaD'
-        'w==')
 
   def testGetDeviceInfo(self):
     self.assertEquals(1, GetDeviceInfo('SKU'))
