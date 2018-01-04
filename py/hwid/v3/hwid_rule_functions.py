@@ -16,7 +16,6 @@ from cros.factory.test.rules import phase
 from cros.factory.test.rules import registration_codes
 from cros.factory.test.rules.registration_codes import RegistrationCode
 from cros.factory.utils.type_utils import MakeList
-from cros.factory.utils.type_utils import MakeSet
 
 
 def GetClassAttributesOnBOM(hwid, comp_cls):
@@ -69,22 +68,6 @@ def GetClassAttributesOnBOM(hwid, comp_cls):
   if not results:
     results.append(None)
   return results
-
-
-def CreateSetFromAttributes(attr_dict):
-  """Create a set from the values of the given attribute dict.
-
-  Args:
-    attr_dict: A dict of attributes.
-
-  Returns:
-    A set object with elements consisting of the values from the given attribute
-    dict.
-  """
-  result = set()
-  for attr in attr_dict.itervalues():
-    result |= MakeSet(attr)
-  return result
 
 
 def _ComponentCompare(comp_cls, values, op_for_values):
