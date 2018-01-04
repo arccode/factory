@@ -1,4 +1,4 @@
-#!/usr/bin/python -u
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
 # Copyright 2012 The Chromium OS Authors. All rights reserved.

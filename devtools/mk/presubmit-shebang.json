@@ -1,0 +1,24 @@
+{
+  "exclusion_list": [
+    "init/common.d/vt2_hacks/cursor.sh",
+    "init/goofy.d/crbug_410233_tpm.sh",
+    "init/main.d/whale_host.sh",
+    "init/main.d/whale_servo.sh",
+    "py/test/pytests/offline_test/shell/bad_blocks.sh",
+    "py/test/pytests/offline_test/shell/callback_example.sh",
+    "py/test/pytests/offline_test/shell/call_factory_par.sh",
+    "py/test/pytests/offline_test/shell/main.sh",
+    "py/test/pytests/offline_test/shell/shutdown.sh",
+    "py/test/pytests/offline_test/shell/starter.sh",
+    "py/test/pytests/offline_test/shell/stressapptest.sh",
+    "py/test/pytests/offline_test/shell/wait_for.sh"
+  ],
+  "white_list": [
+    "/bin/bash",
+    "/bin/sh",
+    "/usr/bin/env bash",
+    "/usr/bin/env python",
+    "/usr/bin/python2",
+    "/usr/bin/trial --temp-directory=/tmp/_trial_temp/"
+  ]
+}

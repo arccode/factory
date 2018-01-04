@@ -110,7 +110,7 @@ PRESUBMIT_FILES := \
     $(shell realpath $$PRESUBMIT_FILES | sed "s'^$$(realpath $$(pwd))/''g"))
 
 PRESUBMIT_TARGETS := \
-  presubmit-deps presubmit-lint presubmit-test
+  presubmit-deps presubmit-lint presubmit-shebang presubmit-test
 
 # Virtual targets. The '.phony' is a special hack to allow making targets with
 # wildchar (for instance, overlay-%) to be treated as .PHONY.
@@ -321,6 +321,10 @@ presubmit-chroot:
 
 presubmit-lint:
 	@$(MAKE) lint LINT_FILES="$(filter %.py,$(PRESUBMIT_FILES))" 2>/dev/null
+
+presubmit-shebang:
+	@$(MK_DIR)/presubmit-shebang.py -a $(MK_DIR)/presubmit-shebang.json \
+	  $(PRESUBMIT_FILES)
 
 presubmit-deps:
 	@if ! py/tools/deps.py -p $(filter py/%,$(PRESUBMIT_FILES)); then \
