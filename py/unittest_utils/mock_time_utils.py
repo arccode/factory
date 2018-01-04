@@ -4,6 +4,7 @@
 
 """Fake time to be used in unittest using mock library."""
 
+import inspect
 import Queue
 import threading
 
@@ -142,15 +143,34 @@ def MockAll(module, timeline):
     patchers.append(patcher)
     return patcher.start()
 
+  def _MockFactoryOnly(obj, name, replace):
+    """Only call the mocked version when called from factory code.
+
+    This avoid accident usage of mocked version in some stdlib. (For example,
+    threading.Thread use threading.Event internally.)
+    """
+    orig = getattr(obj, name)
+
+    def _Stub(*args, **kwargs):
+      frame = inspect.currentframe().f_back
+      while inspect.getmodule(frame).__name__.startswith('mock'):
+        frame = frame.f_back
+      caller_module_name = inspect.getmodule(frame).__name__
+      if caller_module_name.startswith('cros.factory.'):
+        return replace(*args, **kwargs)
+      else:
+        return orig(*args, **kwargs)
+
+    _StartPatcher(obj, name).side_effect = _Stub
+
   if hasattr(module, 'time'):
-    _StartPatcher(module.time, 'time').side_effect = timeline.GetTime
-    _StartPatcher(module.time, 'sleep').side_effect = timeline.AdvanceTime
+    _MockFactoryOnly(module.time, 'time', timeline.GetTime)
+    _MockFactoryOnly(module.time, 'sleep', timeline.AdvanceTime)
 
   if hasattr(module, 'threading'):
-    _StartPatcher(module.threading,
-                  'Event').side_effect = (lambda: FakeEvent(timeline))
+    _MockFactoryOnly(module.threading, 'Event', lambda: FakeEvent(timeline))
 
   if hasattr(module, 'Queue'):
-    _StartPatcher(module.Queue,
-                  'Queue').side_effect = (lambda: FakeQueue(timeline))
+    _MockFactoryOnly(module.Queue, 'Queue', lambda: FakeQueue(timeline))
+
   return patchers
