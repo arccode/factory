@@ -1,0 +1,38 @@
+# A simple but valid database for testing hwid rules.
+
+checksum: not-important
+
+project: CHROMEBOOK
+
+encoding_patterns:
+  0: default
+
+image_id:
+  0: EVT
+  1: DVT
+  2: MP
+
+pattern:
+  - image_ids: [0, 1, 2]
+    encoding_scheme: base8192
+    fields:
+    - cpu_field: 5
+
+encoded_fields:
+  cpu_field:
+    0: {cpu: cpu_0}
+    1: {cpu: cpu_1}
+    2: {cpu: cpu_2}
+    3: {cpu: cpu_3}
+    4: {cpu: cpu_4}
+
+components:
+  cpu:
+    items:
+      cpu_0: {values: {unused_value: value_0}}
+      cpu_1: {values: {unused_value: value_1}}
+      cpu_2: {values: {unused_value: value_2}}
+      cpu_3: {values: {unused_value: value_3}}
+      cpu_4: {values: {unused_value: value_4}}
+
+rules: []

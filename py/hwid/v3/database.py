@@ -216,7 +216,7 @@ class Database(object):
 
     for key in ['project', 'encoding_patterns', 'image_id', 'pattern',
                 'encoded_fields', 'components', 'rules', 'checksum']:
-      if not db_yaml.get(key):
+      if key not in db_yaml:
         if (not strict) and key == 'checksum':
           # That's OK, let it go
           pass
