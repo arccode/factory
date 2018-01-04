@@ -8,9 +8,8 @@ import collections
 import logging
 import os
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.bom import BOM
-from cros.factory.hwid.v3.bom import ProbedComponentResult
 from cros.factory.hwid.v3 import builder
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.database import Database
@@ -52,7 +51,8 @@ def UpdateDatabase(database_path, probed_results, old_db, image_id=None,
   db_builder.Render(database_path)
 
 
-def GenerateHWID(db, bom, device_info, vpd=None, rma_mode=False):
+def GenerateHWID(database, probed_results=None, device_info=None, vpd=None,
+                 rma_mode=False):
   """Generates a HWID v3 from the given data.
 
   The HWID is generated based on the given device info and a BOM object. If
@@ -60,12 +60,12 @@ def GenerateHWID(db, bom, device_info, vpd=None, rma_mode=False):
   bom, priority is given to device_info.
 
   Args:
-    db: A Database object to be used.
-    bom: A BOM object contains a list of components installed on the DUT.
-    device_info: A dict of component infomation keys to their corresponding
-        values. The format is device-specific and the meanings of each key and
-        value vary from device to device. The valid keys and values should be
-        specified in project-specific component database.
+    database: A Database object to be used.
+    probed_results: None or the probed results of the DUT.
+    device_info: None or a dict of component infomation keys to their
+        corresponding values. The format is device-specific and the meanings of
+        each key and value vary from device to device. The valid keys and values
+        should be specified in project-specific component database.
     vpd: None or a dict of RO and RW VPD values.  This argument should be set
         if some rules in the HWID database rely on the VPD values.
     rma_mode: Whether to verify components status in RMA mode.  Defaults to
@@ -76,74 +76,41 @@ def GenerateHWID(db, bom, device_info, vpd=None, rma_mode=False):
   """
   hwid_mode = _HWIDMode(rma_mode)
 
-  # Update unprobeable components with rules defined in db before verification.
-  context_args = dict(database=db, bom=bom, mode=hwid_mode,
-                      device_info=device_info)
-  if vpd is not None:
-    context_args['vpd'] = vpd
-  context = rule.Context(**context_args)
-  db.rules.EvaluateRules(context, namespace='device_info.*')
+  if probed_results is None:
+    probed_results = GetProbedResults()
 
-  identity = transformer.BOMToIdentity(db, bom)
+  if device_info is None:
+    device_info = GetDeviceInfo()
 
-  verifier.VerifyComponentStatus(db, bom, hwid_mode)
+  bom = _GenerateBOMFromProbedResults(
+      database, probed_results, device_info, vpd, hwid_mode)
+  verifier.VerifyComponentStatus(database, bom, hwid_mode)
+
+  identity = transformer.BOMToIdentity(database, bom)
+
   return identity
 
 
-def GetIdentityFromEncodedString(database, encoded_string):
-  image_id = identity_utils.GetImageIdFromEncodedString(encoded_string)
-  encoding_scheme = database.pattern.GetEncodingScheme(image_id)
-  return Identity.GenerateFromEncodedString(encoding_scheme, encoded_string)
-
-
 def DecodeHWID(database, encoded_string):
-  """Decodes the given HWID v3 encoded string and returns the decoded info.
+  """Decodes the given HWID v3 encoded string into a BOM object.
 
   Args:
-    db: A Database object to be used.
+    database: A Database object to be used.
     encoded_string: An encoded HWID string to test.
 
   Returns:
-    The decoded HWIDv3 context object.
+    The decoded BOM object.
   """
-  identity = GetIdentityFromEncodedString(database, encoded_string)
+  image_id = identity_utils.GetImageIdFromEncodedString(encoded_string)
+  encoding_scheme = database.pattern.GetEncodingScheme(image_id)
+  identity = Identity.GenerateFromEncodedString(encoding_scheme, encoded_string)
   bom = transformer.IdentityToBOM(database, identity)
   return identity, bom
 
 
-def ParseDecodedHWID(database, bom, identity):
-  """Parses the HWID object into a more compact dict.
-
-  This function returns the project name and binary string from the HWID object,
-  along with a generated dict of components to their probed values decoded in
-  the HWID object.
-
-  Args:
-    hwid: A decoded HWID object.
-
-  Returns:
-    A dict containing the project name, the binary string, and the list of
-    components.
-  """
-  output_components = collections.defaultdict(list)
-  components = bom.components
-  db_components = database.components
-  for comp_cls in sorted(components):
-    for (comp_name, probed_values, _) in sorted(components[comp_cls]):
-      if not probed_values:
-        probed_values = db_components.GetComponentAttributes(
-            comp_cls, comp_name).get('values')
-      output_components[comp_cls].append(
-          {comp_name: probed_values if probed_values else None})
-  return {'project': database.project,
-          'binary_string': identity.binary_string,
-          'image_id': database.image_id[bom.image_id],
-          'components': dict(output_components)}
-
-
-def VerifyHWID(db, encoded_string, probed_bom, vpd=None, rma_mode=False,
-               current_phase=None):
-  """Verifies the given encoded HWID v3 string against the component db.
+def VerifyHWID(database, encoded_string, probed_results=None,
+               device_info=None, vpd=None, rma_mode=False, current_phase=None):
+  """Verifies the given encoded HWID v3 string against the probed BOM object.
 
   A HWID context is built with the encoded HWID string and the project-specific
   component database. The HWID context is used to verify that the probed
@@ -158,9 +125,9 @@ def VerifyHWID(db, encoded_string, probed_bom, vpd=None, rma_mode=False,
   A set of mandatory rules for VPD are also forced here.
 
   Args:
-    db: A Database object to be used.
+    database: A Database object to be used.
     encoded_string: An encoded HWID string to test.
-    probed_bom: A BOM object contains a list of components installed on the DUT.
+    probed_results: None or the probed results of the DUT.
     vpd: None or a dict of RO and RW VPD values.  This argument should be set
         if some rules in the HWID database rely on the VPD values.
     rma_mode: True for RMA mode to allow deprecated components. Defaults to
@@ -173,17 +140,22 @@ def VerifyHWID(db, encoded_string, probed_bom, vpd=None, rma_mode=False,
     HWIDException if verification fails.
   """
   hwid_mode = _HWIDMode(rma_mode)
-  identity = GetIdentityFromEncodedString(db, encoded_string)
-  decoded_bom = transformer.IdentityToBOM(db, identity)
-  verifier.VerifyBOM(db, decoded_bom, probed_bom)
+
+  if probed_results is None:
+    probed_results = GetProbedResults()
+  probed_bom = _GenerateBOMFromProbedResults(
+      database, probed_results, device_info, vpd, hwid_mode)
+
+  decoded_bom = DecodeHWID(database, encoded_string)[1]
+
+  verifier.VerifyBOM(database, decoded_bom, probed_bom)
   verifier.VerifyComponentStatus(
-      db, decoded_bom, hwid_mode, current_phase=current_phase)
-  verifier.VerifyPhase(db, decoded_bom, current_phase)
-  context_args = dict(database=db, bom=decoded_bom, mode=hwid_mode)
-  if vpd is not None:
-    context_args['vpd'] = vpd
-  context = rule.Context(**context_args)
-  db.rules.EvaluateRules(context, namespace='verify.*')
+      database, decoded_bom, hwid_mode, current_phase=current_phase)
+  verifier.VerifyPhase(database, decoded_bom, current_phase)
+
+  context = rule.Context(
+      database=database, bom=decoded_bom, mode=hwid_mode, vpd=vpd)
+  database.rules.EvaluateRules(context, namespace='verify.*')
 
 
 def ListComponents(db, comp_class=None):
@@ -214,131 +186,87 @@ def ListComponents(db, comp_class=None):
   return dict(output_components)
 
 
-def EnumerateHWID(db, image_id=None, status='supported'):
+def EnumerateHWID(database, image_id=None, status='supported', comps=None):
   """Enumerates all the possible HWIDs.
 
   Args:
-    db: A Database object to be used.
+    database: A Database object to be used.
     image_id: The image ID to use.  Defaults to the latest image ID.
     status: By default only 'supported' components are enumerated.  Set this to
         'released' will include 'supported' and 'deprecated'. Set this to
         'all' if you want to include 'deprecated', 'unsupported' and
         'unqualified' components.
+    comps: None or a dict of list of string as the limit to specified
+        components.
 
   Returns:
     A dict of all enumetated HWIDs to their list of components.
   """
-  def _GenerateEncodedString(encoded_fields):
-    """Generates encoded string by encoded_fields
+  limited_comps = comps or {}
 
-    Args:
-      encoded_fields: This parameter records indices of encoded fields
-    """
-    encoding_pattern = 0
-    pass_check = True
-    components = collections.defaultdict(list)
-    component_list = []
-    logging.debug('EnumerateHWID: Iterate encoded_fields %s',
-                  ','.join(map(str, encoded_fields.values())))
-    for field, index in encoded_fields.iteritems():
-      # pylint: disable=W0212
-      attr_dict = db._GetAttributesByIndex(field, index)
-      comp_items = []
-      for comp_cls, attr_list in attr_dict.iteritems():
-        if attr_list is None:
-          comp_items.append('None')
-          components[comp_cls].append(ProbedComponentResult(
-              None, None, common.MISSING_COMPONENT_ERROR(comp_cls)))
-        else:
-          for attrs in attr_list:
-            if status == 'supported' and attrs.get('status') in (
-                common.COMPONENT_STATUS.unsupported,
-                common.COMPONENT_STATUS.deprecated,
-                common.COMPONENT_STATUS.unqualified):
-              pass_check = False
-              logging.debug('Ignore %s.%s: %r', comp_cls, attrs['name'],
-                            attrs['status'])
-              break
-            if status == 'released' and attrs.get('status') in (
-                common.COMPONENT_STATUS.unsupported,
-                common.COMPONENT_STATUS.unqualified):
-              pass_check = False
-              logging.debug('Ignore %s.%s: %r', comp_cls, attrs['name'],
-                            attrs['status'])
-              break
-            comp_items.append(attrs['name'])
-            components[comp_cls].append(ProbedComponentResult(
-                attrs['name'], attrs['values'], None))
-      component_list.append(' '.join(comp_items))
-    if pass_check:
-      bom = BOM(db.project, encoding_pattern, image_id, components,
-                encoded_fields)
-      binary_string = transformer.BOMToBinaryString(db, bom)
-      encoded_string = transformer.BinaryStringToEncodedString(
-          db, binary_string)
-      hwid_dict[encoded_string] = ','.join(component_list)
+  if image_id is None:
+    image_id = max(database.image_id.keys())
 
-  def _RecursivelyGenerate(index=None, encoded_fields=None):
-    """Recursive function to generate all combinations.
+  if status == 'supported':
+    acceptable_status = set(['supported'])
+  elif status == 'released':
+    acceptable_status = set(['supported', 'deprecated'])
+  elif status == 'all':
+    acceptable_status = set(common.COMPONENT_STATUS)
+  else:
+    raise ValueError('The argument `status` must be one of "supported", '
+                     '"released", "all", but got %r.' % status)
 
-    Args:
-      index: This parameter means the index of pattern fields
-      encoded_fields: This parameter records index of components
-    """
-    if index >= len(fields_list):
-      _GenerateEncodedString(encoded_fields)
+  def _IsComponentsSetValid(comps):
+    for comp_cls, comp_names in comps.iteritems():
+      comp_names = type_utils.MakeList(comp_names)
+      if (comp_cls in limited_comps and
+          sorted(list(limited_comps[comp_cls])) != sorted(comp_names)):
+        return False
+      for comp_name in comp_names:
+        status = database.components.GetComponentStatus(comp_cls, comp_name)
+        if status not in acceptable_status:
+          return False
+    return True
+
+  results = {}
+  def _RecordResult(components):
+    bom = BOM(0, image_id, components)
+    identity = transformer.BOMToIdentity(database, bom)
+    results[identity.encoded_string] = bom
+
+  def _RecursivelyEnumerateCombinations(combinations, i,
+                                        selected_combinations):
+    if i >= len(combinations):
+      components = {}
+      for selected_combination in selected_combinations:
+        components.update(selected_combination)
+
+      _RecordResult(components)
       return
 
-    field = fields_list[index]
-    if field not in fields_bits.keys():
-      encoded_fields[field] = 0
-      _RecursivelyGenerate(index + 1, encoded_fields)
-    else:
-      for i in xrange(0, len(db.encoded_fields[field])):
-        if i >= 2 ** fields_bits[field]:
-          break
-        encoded_fields[field] = i
-        _RecursivelyGenerate(index + 1, encoded_fields)
+    for combination in combinations[i]:
+      selected_combinations[i] = combination
+      _RecursivelyEnumerateCombinations(
+          combinations, i + 1, selected_combinations)
 
-  def _ConvertImageID(image_id=None):
-    """Gets image ID.
+  combinations = []
+  for field_name, bit_length in database.pattern.GetFieldsBitLength(
+      image_id).iteritems():
+    max_index = (1 << bit_length) - 1
+    last_combinations = []
+    for index, comps_set in database.encoded_fields[field_name].iteritems():
+      if index <= max_index and _IsComponentsSetValid(comps_set):
+        last_combinations.append(
+            {comp_cls: type_utils.MakeList(comp_names)
+             for comp_cls, comp_names in comps_set.iteritems()})
 
-    Args:
-      image_id: The image ID.  It can be a number, a string, or None:
-        1. If it's a number then return the number.
-        2. If it's a string then look up the image ID in the database with it.
-        3. If it's None, return the latest image ID.
+    if not last_combinations:
+      return {}
+    combinations.append(last_combinations)
 
-    Returns:
-      An integer of the image ID as defined in the database.
-    """
-    max_image_id = max(db.image_id.keys())
-    if not isinstance(image_id, int):
-      if image_id is None:
-        image_id = max_image_id
-      elif image_id.isdigit():
-        image_id = int(image_id)
-      else:
-        for k, v in db.image_id.iteritems():
-          if image_id == v:
-            image_id = k
-            break
-    assert image_id in range(0, max_image_id + 1), 'Invalid Image ID'
-    return image_id
-
-  hwid_dict = {}
-  encoded_fields = collections.defaultdict(int)
-  image_id = _ConvertImageID(image_id)
-
-  fields_bits = collections.defaultdict(int)
-  for field in db.pattern.GetPatternByImageId(image_id)['fields']:
-    comp, bit_width = field.items()[0]
-    fields_bits[comp] += bit_width
-  fields_list = db.encoded_fields.keys()
-
-  # Recursively generate all combinations of HWID.
-  _RecursivelyGenerate(0, encoded_fields)
-  return hwid_dict
+  _RecursivelyEnumerateCombinations(combinations, 0, [None] * len(combinations))
+  return results
 
 
 def GetProbedResults(infile=None, raw_data=None):
@@ -373,14 +301,18 @@ def GetProbedResults(infile=None, raw_data=None):
     return json_utils.LoadStr(process_utils.CheckOutput(cmd, shell=True))
 
 
-def GenerateBOMFromProbedResults(database,
-                                 probed_results, loose_matching=False):
+def _GenerateBOMFromProbedResults(
+    database, probed_results,
+    device_info=None, vpd=None, mode=None, loose_matching=False):
   """Generates a BOM object according to the given probed results.
 
   Args:
     database: An instance of a HWID database.
     probed_results: A JSON-serializable dict of the probe result, which is
         usually the output of the probe command.
+    device_info: None or a dict of device info.
+    vpd: None or a dict of vpd data.
+    mode: None or "rma" or "normal".
     loose_matching: If set to True, partial match of probed results will be
         accepted.  For example, if the probed results only contain the
         firmware version of RO main firmware but not its hash, and we want to
@@ -391,105 +323,57 @@ def GenerateBOMFromProbedResults(database,
   Returns:
     A instance of BOM class.
   """
-  # TODO(yhong): The transform process of probed results to BOM should not
-  #     relate to the HWID database.
-
-  # encoding_pattern_index and image_id are unprobeable and should be set
-  # explictly. Defaults them to 0.
-  encoding_pattern_index = 0
-  image_id = 0
-
-  def LookupProbedValue(comp_cls):
-    if comp_cls in probed_results:
-      # We don't need the component name here.
-      return sum(probed_results[comp_cls].values(), [])
-    return None
-
-  def TryAddDefaultItem(probed_components, comp_cls):
-    """Try to add the default component item.
-
-    If the default component exists and its status is not 'unsupported', then
-    add it into the probed_components and return True.
-    """
-    if comp_cls in database.components.default:
-      comp_name = database.components.default[comp_cls]
-      comp_status = database.components.GetComponentStatus(comp_cls, comp_name)
-      if comp_status != common.COMPONENT_STATUS.unsupported:
-        probed_components[comp_cls].append(
-            ProbedComponentResult(comp_name, None, None))
-        return True
-    return False
-
-  # Construct a dict of component classes to list of ProbedComponentResult.
-  probed_components = collections.defaultdict(list)
-  for comp_cls in database.components.GetRequiredComponents():
-    probed_comp_values = LookupProbedValue(comp_cls)
-    if probed_comp_values is None:
-      # The component class has the default item.
-      if TryAddDefaultItem(probed_components, comp_cls):
-        continue
-      # Probeable comp_cls but no component is found in probe results.
-      if comp_cls in database.components.probeable:
-        probed_components[comp_cls].append(
-            ProbedComponentResult(
-                None, None, common.MISSING_COMPONENT_ERROR(comp_cls)))
-      else:
-        # Unprobeable comp_cls and only has 1 component, treat as found.
-        comp_dict = database.components.components_dict[comp_cls]
-        if len(comp_dict['items']) == 1:
-          comp_name = comp_dict['items'].keys()[0]
-          comp_status = database.components.GetComponentStatus(
-              comp_cls, comp_name)
-          if comp_status == common.COMPONENT_STATUS.supported:
-            probed_components[comp_cls].append(
-                ProbedComponentResult(comp_name, None, None))
+  # Construct a dict of component classes to list of component names.
+  components = {}
+  for comp_cls in probed_results:
+    if comp_cls not in database.components.components_dict:
+      logging.warning('The component class %r is not listed in '
+                      'the HWID database.', comp_cls)
       continue
 
-    for probed_value in probed_comp_values:
-      # Unprobeable comp_cls but component is found in probe results.
-      if comp_cls not in database.components.probeable:
-        probed_components[comp_cls].append(ProbedComponentResult(
-            None, probed_value,
-            common.UNPROBEABLE_COMPONENT_ERROR(comp_cls)))
-        continue
+    components[comp_cls] = []
 
+    # We don't need the component name here.
+    probed_values = sum(probed_results[comp_cls].values(), [])
+
+    if not probed_values:
+      # TODO(yhong): This logic should be workarounded by rules.
+      if comp_cls in database.components.default:
+        comp_name = database.components.default[comp_cls]
+        components[comp_cls].append(comp_name)
+
+      continue
+
+    for probed_value in probed_values:
       matched_comps = database.components.MatchComponentsFromValues(
           comp_cls, probed_value, loose_matching, include_default=False)
-      if matched_comps is None:
-        # If there is no default item, add invalid error.
-        if not TryAddDefaultItem(probed_components, comp_cls):
-          probed_components[comp_cls].append(ProbedComponentResult(
-              None, probed_value,
-              common.INVALID_COMPONENT_ERROR(comp_cls, probed_value)))
-      elif len(matched_comps) == 1:
-        comp_name, comp_data = matched_comps.items()[0]
-        comp_status = database.components.GetComponentStatus(
-            comp_cls, comp_name)
-        if comp_status == common.COMPONENT_STATUS.supported:
-          probed_components[comp_cls].append(
-              ProbedComponentResult(comp_name, comp_data['values'], None))
-        else:
-          probed_components[comp_cls].append(ProbedComponentResult(
-              comp_name, comp_data['values'],
-              common.UNSUPPORTED_COMPONENT_ERROR(comp_cls, comp_name,
-                                                 comp_status)))
+
+      if not matched_comps:
+        logging.warning('The probed values %r of %r component does not match '
+                        'any components recorded in the database.',
+                        probed_value, comp_cls)
+
       elif len(matched_comps) > 1:
-        probed_components[comp_cls].append(ProbedComponentResult(
-            None, probed_value,
-            common.AMBIGUOUS_COMPONENT_ERROR(
-                comp_cls, probed_value, matched_comps)))
+        raise common.HWIDException(
+            'Ambiguous probes values %s of %r component.  '
+            'Possible components are: %r.' %
+            (probed_value, comp_cls, matched_comps))
 
-  # Encode the components to a dict of encoded fields to encoded indices.
-  encoded_fields = {}
-  for field in database.encoded_fields:
-    encoded_fields[field] = database.GetFieldIndexFromProbedComponents(
-        field, probed_components)
+      else:
+        comp_name, _ = matched_comps.items()[0]
+        components[comp_cls].append(comp_name)
 
-  return BOM(database.project, encoding_pattern_index, image_id,
-             probed_components, encoded_fields)
+  bom = BOM(encoding_pattern_index=0, image_id=0, components=components)
+
+  # Evaluate device_info rules to fill unprobeable data in the BOM object.
+  context = rule.Context(database=database, bom=bom,
+                         device_info=device_info, vpd=vpd, mode=mode)
+  database.rules.EvaluateRules(context, namespace='device_info.*')
+
+  return bom
 
 
-def GetDeviceInfo(infile):
+def GetDeviceInfo(infile=None):
   """Get device info from the given file.
 
   Args:
@@ -502,23 +386,30 @@ def GetDeviceInfo(infile):
   Returns:
     A dict of device info.
   """
-  with open(infile, 'r') as f:
-    device_info = yaml.load(f.read())
-  return device_info
+  if infile:
+    with open(infile, 'r') as f:
+      return yaml.load(f.read())
+
+  try:
+    from cros.factory.test import device_data
+    return device_data.GetAllDeviceData()
+
+  except ImportError:
+    return {}
 
 
-def GetVPDData(run_vpd=False, vpd_data_file=None):
+def GetVPDData(run_vpd=False, infile=None):
   """Get the vpd data for the context instance.
 
   Args:
     run_vpd: Whether to run `vpd` command-line tool to obtain the vpd data.
-    vpd_data_file: Obtain the vpd data by reading the specified file if set.
+    infile: Obtain the vpd data by reading the specified file if set.
 
   Returns:
-    A dict of vpd data.  Empty if neither `run_vpd` nor `vpd_data_file` are
+    A dict of vpd data.  Empty if neither `run_vpd` nor `infile` are
         specified.
   """
-  assert not (run_vpd and vpd_data_file)
+  assert not (run_vpd and infile)
   if run_vpd:
     from cros.factory.utils import sys_utils
     vpd_tool = sys_utils.VPDTool()
@@ -526,8 +417,8 @@ def GetVPDData(run_vpd=False, vpd_data_file=None):
         'ro': vpd_tool.GetAllData(partition=vpd_tool.RO_PARTITION),
         'rw': vpd_tool.GetAllData(partition=vpd_tool.RW_PARTITION)
     }
-  elif vpd_data_file:
-    return json_utils.LoadFile(vpd_data_file)
+  elif infile:
+    return json_utils.LoadFile(infile)
   else:
     return {'ro': {}, 'rw': {}}
 

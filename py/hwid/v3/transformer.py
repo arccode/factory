@@ -1,104 +1,16 @@
-# Copyright 2013 The Chromium OS Authors. All rights reserved.
+# Copyright 2018 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 """Implementation of HWID v3 encoder and decoder."""
 
 import collections
-import pprint
+import logging
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.bom import BOM
-from cros.factory.hwid.v3.bom import ProbedComponentResult
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.identity import Identity
-from cros.factory.utils import type_utils
-
-
-def VerifyBOM(database, bom, probeable_only=False):
-  """Verifies the data contained in the given BOM object matches the settings
-  and definitions in the database.
-
-  Because the components for each image ID might be different, for example a
-  component might be removed in later build. We only verify the components in
-  the target image ID, not all components listed in the database.
-
-  When the BOM is decoded by HWID string, it would contain the information of
-  every component recorded in the pattern. But if the BOM object is created by
-  the probed result, it does not contain the unprobeable component before
-  evaluating the rule. We should verify the probeable components only.
-
-  Args:
-    bom: The BOM object to verify.
-    probeable_only: True to verify the probeable component only.
-
-  Raises:
-    HWIDException if verification fails.
-  """
-  if bom.project != database.project:
-    raise common.HWIDException('Invalid project name. Expected %r, got %r' %
-                               (database.project, bom.project))
-
-  if bom.encoding_pattern_index not in database.encoding_patterns:
-    raise common.HWIDException('Invalid encoding pattern: %r' %
-                               bom.encoding_pattern_index)
-  if bom.image_id not in database.image_id:
-    raise common.HWIDException('Invalid image id: %r' % bom.image_id)
-
-  # All the classes encoded in the pattern should exist in BOM.
-  # Ignore unprobeable components if probeable_only is True.
-  missing_comp = []
-  expected_encoded_fields = database.pattern.GetFieldNames(bom.image_id)
-  for comp_cls in database.GetActiveComponents(bom.image_id):
-    if (comp_cls not in bom.components and
-        (comp_cls in database.components.probeable or not probeable_only)):
-      missing_comp.append(comp_cls)
-  if missing_comp:
-    raise common.HWIDException('Missing component classes: %r',
-                               ', '.join(sorted(missing_comp)))
-
-  bom_encoded_fields = type_utils.MakeSet(bom.encoded_fields.keys())
-  db_encoded_fields = type_utils.MakeSet(expected_encoded_fields)
-  # Every encoded field defined in the database must present in BOM.
-  if db_encoded_fields - bom_encoded_fields:
-    raise common.HWIDException('Missing encoded fields in BOM: %r',
-                               ', '.join(sorted(db_encoded_fields -
-                                                bom_encoded_fields)))
-
-  # All the probeable component values in the BOM should exist in the
-  # database.
-  unknown_values = []
-  for comp_cls, probed_values in bom.components.iteritems():
-    if comp_cls not in database.components.probeable:
-      continue
-    for element in probed_values:
-      probed_values = element.probed_values
-      if probed_values is None:
-        continue
-      found_comps = database.components.MatchComponentsFromValues(
-          comp_cls, probed_values, include_default=True)
-      if not found_comps:
-        unknown_values.append('%s:%s' % (comp_cls, pprint.pformat(
-            probed_values, indent=0, width=1024)))
-  if unknown_values:
-    raise common.HWIDException('Unknown component values: %r' %
-                               ', '.join(sorted(unknown_values)))
-
-  # All the encoded index should exist in the database.
-  invalid_fields = []
-  for field_name in expected_encoded_fields:
-    # Ignore the field containing unprobeable component.
-    if probeable_only and not all(
-        [comp_cls in database.components.probeable
-         for comp_cls in database.encoded_fields[field_name][0].keys()]):
-      continue
-    index = bom.encoded_fields[field_name]
-    if index is None or index not in database.encoded_fields[field_name]:
-      invalid_fields.append(field_name)
-
-  if invalid_fields:
-    raise common.HWIDException('Encoded fields %r have unknown indices' %
-                               ', '.join(sorted(invalid_fields)))
 
 
 def BOMToIdentity(database, bom):
@@ -107,11 +19,53 @@ def BOMToIdentity(database, bom):
   Args:
     database: A Database object that is used to provide device-specific
         information for encoding.
+    bom: A BOM object to be decoded.
 
   Returns:
-    A binary string.
+    An Identity object.
   """
-  VerifyBOM(database, bom)
+  if bom.encoding_pattern_index not in database.encoding_patterns:
+    raise common.HWIDException(
+        'Invalid encoding pattern: %r' % bom.encoding_pattern_index)
+
+  if bom.image_id not in database.image_id:
+    raise common.HWIDException('Invalid image id: %r' % bom.image_id)
+
+  extra_component_cls = (set(bom.components.keys())
+                         - set(database.components.components_dict.keys()))
+  if extra_component_cls:
+    # It's ok for the BOM to contain more information than what we need.
+    logging.warning(
+        '%r will not be encoded into the HWID identity.', extra_component_cls)
+
+  # Try to encode every field and fail if some fields are missing or some fields
+  # are not listed in the encoding pattern.
+  encoded_fields = {}
+  for field_name, field_data in database.encoded_fields.iteritems():
+    for index, components in field_data.iteritems():
+      for comp_cls, comp_names in components.iteritems():
+        if (comp_cls not in bom.components or
+            sorted(comp_names) != bom.components[comp_cls]):
+          break
+      else:
+        encoded_fields[field_name] = index
+        break
+
+  expected_field_names = database.pattern.GetFieldNames(bom.image_id)
+  extra_field_names = set(encoded_fields.keys()) - expected_field_names
+  if extra_field_names:
+    raise common.HWIDException(
+        'Extra fields for the pattern: %s' % ', '.join(extra_field_names))
+
+  missing_field_names = expected_field_names - set(encoded_fields.keys())
+  if missing_field_names:
+    raise common.HWIDException('Encoded fields %s has unknown indices' %
+                               ', '.join(sorted(missing_field_names)))
+
+  for field_name, bit_length in database.pattern.GetFieldsBitLength(
+      bom.image_id).iteritems():
+    if encoded_fields[field_name] >= (2 ** bit_length):
+      raise common.HWIDException('Index overflow in field %r' % field_name)
 
   encoding_scheme = database.pattern.GetEncodingScheme(bom.image_id)
 
@@ -122,7 +76,7 @@ def BOMToIdentity(database, bom):
   # Fill in each bit.
   bit_mapping = database.pattern.GetBitMapping(bom.image_id)
   for index, (field, bit_offset) in bit_mapping.iteritems():
-    binary_list[index] = (bom.encoded_fields[field] >> bit_offset) & 1
+    binary_list[index] = (encoded_fields[field] >> bit_offset) & 1
 
   # Set stop bit.
   binary_list[bit_length - 1] = 1
@@ -151,9 +105,23 @@ def IdentityToBOM(database, identity):
   # TODO(yhong): Use identity.components_bitset directly.
   stripped_binary_string = '00000' + identity.components_bitset[:-1]
 
-  project = database.project
-  encode_pattern_index = identity.encode_pattern_index
+  if identity.project != database.project:
+    raise common.HWIDException('Invalid project: %r' % identity.project)
+
+  if identity.encoding_pattern_index not in database.encoding_patterns:
+    raise common.HWIDException(
+        'Invalid encoding pattern index: %r' % identity.encoding_pattern_index)
+
   image_id = identity.image_id
+
+  # Re-generate the identity by the encoding scheme specified in the HWID
+  # database to verify whether the given identity is generated with the correct
+  # encoding scheme.
+  identity2 = Identity.GenerateFromEncodedString(
+      database.pattern.GetEncodingScheme(image_id), identity.encoded_string)
+  if identity != identity2:
+    raise common.HWIDException(
+        'The hwid %r was generated with wrong encoding scheme.' % identity)
 
   total_bit_length = database.pattern.GetTotalBitLength(image_id)
   if len(stripped_binary_string) > total_bit_length:
@@ -184,18 +152,13 @@ def IdentityToBOM(database, identity):
                                  (field, encoded_fields[field]))
 
   # Construct the components dict.
-  components = collections.defaultdict(list)
+  components = {}
   for field, index in encoded_fields.iteritems():
     # pylint: disable=W0212
     attr_dict = database._GetAttributesByIndex(field, index)
     for comp_cls, attr_list in attr_dict.iteritems():
-      if attr_list is None:
-        components[comp_cls].append(ProbedComponentResult(
-            None, None, common.MISSING_COMPONENT_ERROR(comp_cls)))
-      else:
-        for attrs in attr_list:
-          components[comp_cls].append(ProbedComponentResult(
-              attrs['name'], attrs['values'], None))
+      components[comp_cls] = []
+      for attrs in attr_list if attr_list is not None else []:
+        components[comp_cls].append(attrs['name'])
 
-  return BOM(project, encode_pattern_index, image_id, components,
-             encoded_fields)
+  return BOM(identity.encoding_pattern_index, image_id, components)

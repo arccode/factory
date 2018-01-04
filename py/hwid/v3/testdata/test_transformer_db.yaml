@@ -1,0 +1,93 @@
+# Dummy line before checksum
+checksum: not used here
+# Dummy line after checksum
+project: CHROMEBOOK
+
+encoding_patterns:
+  0: default
+
+image_id:
+  0: IMAGE_NAME_0
+  1: IMAGE_NAME_1
+  2: IMAGE_NAME_2
+  3: IMAGE_NAME_3
+
+pattern:
+  - image_ids: [0, 1]
+    encoding_scheme: base32
+    fields:  # This pattern doesn't contain `battery_field` and allowcates only
+             # only 2 bits for `audio_and_video_field`.
+    - cpu_field: 0
+    - audio_and_video_field: 2
+
+  - image_ids: [2]
+    encoding_scheme: base8192
+    fields:  # This pattern only allowcates 2 bits for `audio_and_video_field`
+             # and 1 bit for `battery_field`.
+    - cpu_field: 0
+    - audio_and_video_field: 2
+    - battery_field: 1
+
+  - image_ids: [3]
+    encoding_scheme: base8192
+    fields:
+    - cpu_field: 5
+    - audio_and_video_field: 3
+    - battery_field: 2
+
+
+encoded_fields:
+  cpu_field:
+    0: {cpu: cpu_0}
+
+  battery_field:
+    0: {battery: battery_0}
+    3: {battery: [battery_3, battery_3, battery_3]}
+
+  audio_and_video_field:
+    0:
+      audio: []
+      video: []
+    1:
+      audio: [audio_0]
+      video: []
+    2:
+      audio: [audio_0, audio_1]
+      video: []
+    3:
+      audio: []
+      video: [video_0]
+    4:
+      audio: [audio_0]
+      video: [video_0]
+    5:
+      audio: [audio_0, audio_1]
+      video: [video_0]
+    6:
+      audio: []
+      video: [video_0, video_1]
+    7:
+      audio: [audio_0]
+      video: [video_0, video_1]
+
+components:
+  cpu:
+    items:
+      cpu_0: {values: {unused_value: cpu_0}}
+
+  audio:
+    items:
+      audio_0: {values: {unused_value: audio_0}}
+      audio_1: {values: {unused_value: audio_1}}
+
+  video:
+    items:
+      video_0: {values: {unused_value: video_0}}
+      video_1: {values: {unused_value: video_1}}
+
+  battery:
+    items:
+      battery_0: {values: {unused_value: battery_0}}
+      battery_3: {values: {unused_value: battery_3}}
+
+rules: []

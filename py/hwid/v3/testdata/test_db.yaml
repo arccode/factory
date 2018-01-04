@@ -1,5 +1,5 @@
 # Dummy line before checksum
-checksum: 3ba13057b33d9df01da5c88e7a92beeb3ed9c3a5
+checksum: 564e6326dc7f9f963fdd9ad987da2ec39d6b92a9
 # Dummy line after checksum
 project: CHROMEBOOK
 
@@ -230,7 +230,7 @@ components:
     probeable: False
     items:
       display_panel_0:
-        values: NULL
+        values: {fake_flag: flag_value}
 
   dram:
     items:
@@ -263,10 +263,10 @@ components:
     probeable: False
     items:
       keyboard_gb:
-        values: NULL
+        values: { compact_str: 'meow' }
 
       keyboard_us:
-        values: NULL
+        values: { compact_str: 'xkb:us::eng' }
 
   storage:
     items:

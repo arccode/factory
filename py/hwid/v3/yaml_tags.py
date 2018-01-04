@@ -132,7 +132,6 @@ class RegionComponent(dict):
 
   def __init__(self):
     components_dict = {
-        'probeable': True,
         'items': {}
     }
     for code, region in regions.REGIONS.iteritems():

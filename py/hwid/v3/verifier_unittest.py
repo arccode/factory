@@ -8,7 +8,6 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.bom import BOM
-from cros.factory.hwid.v3.bom import ProbedComponentResult
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import verifier
@@ -25,13 +24,10 @@ class VerifyComponentStatusTest(unittest.TestCase):
                                       verify_checksum=False)
     self.boms = {}
     for status in common.COMPONENT_STATUS:
-      bom = BOM(project='CHROMEBOOK',
-                encoding_pattern_index=0,
+      bom = BOM(encoding_pattern_index=0,
                 image_id=0,
-                components={
-                    'cpu': [ProbedComponentResult('cpu_%s' % status, {}, None)],
-                    'ram': [ProbedComponentResult('ram_supported', {}, None)]},
-                encoded_fields=None)
+                components={'cpu': ['cpu_%s' % status],
+                            'ram': ['ram_supported']})
       self.boms[status] = bom
 
   def testSupported(self):
@@ -56,7 +52,7 @@ class VerifyComponentStatusTest(unittest.TestCase):
                           self.boms[common.COMPONENT_STATUS.unqualified],
                           mode=mode, current_phase=ph)
 
-  def testDeprecatedInNormalMode(self):
+  def testDeprecated(self):
     # Should pass the verification only in rma mode.
     for ph in phase.PHASE_NAMES:
       verifier.VerifyComponentStatus(
@@ -89,10 +85,8 @@ class VerifyPhaseTest(unittest.TestCase):
   def _CreateBOM(image_id, firmware_key_name=None):
     components = {}
     if firmware_key_name:
-      components['firmware_keys'] = [
-          ProbedComponentResult(firmware_key_name, {}, None)]
-    return BOM(project='CHROMEBOOK', encoding_pattern_index=0,
-               image_id=image_id, components=components, encoded_fields=None)
+      components['firmware_keys'] = [firmware_key_name]
+    return BOM(0, image_id, components)
 
   def testNoKeyComponent(self):
     for image_id in [0, 1, 2]:
@@ -136,79 +130,53 @@ class VerifyBOMTest(unittest.TestCase):
     self.database = Database.LoadFile(_TEST_DATABASE_PATH,
                                       verify_checksum=False)
     self.decoded_bom = BOM(
-        project='CHROMEBOOK', encoding_pattern_index=0, image_id=0,
-        components={
-            'cpu': [ProbedComponentResult('cpu_supported', {}, None),
-                    ProbedComponentResult('cpu_unqualified', {}, None)],
+        encoding_pattern_index=0, image_id=0, components={
+            'cpu': ['cpu_supported', 'cpu_unqualified'],
             'ram': [],
-            'firmware_keys': [
-                ProbedComponentResult('firmware_keys_dev', {}, None)]},
-        encoded_fields=None)
+            'firmware_keys': ['firmware_keys_dev']})
 
   def testPass(self):
     probed_bom = BOM(
-        project='CHROMEBOOK', encoding_pattern_index=0, image_id=0,
-        components={
-            'cpu': [ProbedComponentResult('cpu_unqualified', {}, None),
-                    ProbedComponentResult('cpu_supported', {}, None)],
+        encoding_pattern_index=0, image_id=0, components={
+            'cpu': ['cpu_unqualified', 'cpu_supported'],
             'ram': [],
-            'firmware_keys': [
-                ProbedComponentResult('firmware_keys_dev', {}, None)]},
-        encoded_fields=None)
+            'firmware_keys': ['firmware_keys_dev']})
 
     verifier.VerifyBOM(self.database, self.decoded_bom, probed_bom)
 
   def testHasExtraComponents(self):
     probed_bom = BOM(
-        project='CHROMEBOOK', encoding_pattern_index=0, image_id=0,
-        components={
-            'cpu': [ProbedComponentResult('cpu_unqualified', {}, None),
-                    ProbedComponentResult('cpu_supported', {}, None)],
-            'ram': [ProbedComponentResult('ram_supported', {}, None)],
-            'firmware_keys': [
-                ProbedComponentResult('firmware_keys_dev', {}, None)]},
-        encoded_fields=None)
+        encoding_pattern_index=0, image_id=0, components={
+            'cpu': ['cpu_unqualified', 'cpu_supported'],
+            'ram': ['ram_supported'],
+            'firmware_keys': ['firmware_keys_dev']})
 
     self.assertRaises(common.HWIDException, verifier.VerifyBOM,
                       self.database, self.decoded_bom, probed_bom)
 
     probed_bom = BOM(
-        project='CHROMEBOOK', encoding_pattern_index=0, image_id=0,
-        components={
-            'cpu': [ProbedComponentResult('cpu_unqualified', {}, None),
-                    ProbedComponentResult('cpu_supported', {}, None),
-                    ProbedComponentResult('cpu_deprecated', {}, None)],
+        encoding_pattern_index=0, image_id=0, components={
+            'cpu': ['cpu_unqualified', 'cpu_supported', 'cpu_deprecated'],
             'ram': [],
-            'firmware_keys': [
-                ProbedComponentResult('firmware_keys_dev', {}, None)]},
-        encoded_fields=None)
+            'firmware_keys': ['firmware_keys_dev']})
 
     self.assertRaises(common.HWIDException, verifier.VerifyBOM,
                       self.database, self.decoded_bom, probed_bom)
 
   def testIsMissingComponents(self):
-    probed_bom = BOM(
-        project='CHROMEBOOK', encoding_pattern_index=0, image_id=0,
-        components={
-            'cpu': [ProbedComponentResult('cpu_unqualified', {}, None)],
-            'ram': [],
-            'firmware_keys': [
-                ProbedComponentResult('firmware_keys_dev', {}, None)]},
-        encoded_fields=None)
+    probed_bom = BOM(encoding_pattern_index=0, image_id=0, components={
+        'cpu': ['cpu_unqualified'],
+        'ram': [],
+        'firmware_keys': ['firmware_keys_dev']})
 
     self.assertRaises(common.HWIDException, verifier.VerifyBOM,
                       self.database, self.decoded_bom, probed_bom)
 
   def testMisMatch(self):
-    probed_bom = BOM(
-        project='CHROMEBOOK', encoding_pattern_index=0, image_id=0,
-        components={
-            'cpu': [ProbedComponentResult('cpu_unqualified', {}, None),
-                    ProbedComponentResult('cpu_deprecated', {}, None)],
-            'ram': [],
-            'firmware_keys': [
-                ProbedComponentResult('firmware_keys_dev', {}, None)]},
-        encoded_fields=None)
+    probed_bom = BOM(encoding_pattern_index=0, image_id=0, components={
+        'cpu': ['cpu_unqualified', 'cpu_deprecated'],
+        'ram': [],
+        'firmware_keys': ['firmware_keys_dev']})
 
     self.assertRaises(common.HWIDException, verifier.VerifyBOM,
                       self.database, self.decoded_bom, probed_bom)

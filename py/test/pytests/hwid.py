@@ -195,7 +195,7 @@ class HWIDV3Test(test_ui.TestCaseWithUI):
       decoded_hwid = self.factory_tools.CallOutput(decode_cmd)
       self.assertIsNotNone(decoded_hwid, 'HWID decode failed.')
 
-      logging.info('HWDB checksum: %s', hwid['hwdb_checksum'])
+      logging.info('HWID Database checksum: %s', hwid['database_checksum'])
 
       testlog.LogParam(name='generated_hwid', value=encoded_string)
       testlog.LogParam(name='hwdb_checksum', value=hwid['hwdb_checksum'])

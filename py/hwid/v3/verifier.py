@@ -13,6 +13,7 @@ is valid.  We have to make sure many things such as:
   3. The rootkey is mp for PVT and later build.
 """
 
+import collections
 import re
 
 import factory_common  # pylint: disable=unused-import
@@ -30,19 +31,18 @@ def VerifyComponentStatus(database, bom, mode, current_phase=None):
   PVT_DOGFOOD/PVT.
 
   Args:
+    database: The Database object which records the status of each components.
+    bom: The BOM object to be verified.
+    mode: Either "normal" or "rma".
     current_phase: The current phase, for phase checks.  If None is
         specified, then phase.GetPhase() is used (this defaults to PVT
         if none is available).
 
   Raises:
-    HWIDException is verification fails.
+    HWIDException if verification fails.
   """
-  for comp_cls, comps in bom.components.iteritems():
-    for comp in comps:
-      comp_name = comp.component_name
-      if not comp_name:
-        continue
-
+  for comp_cls, comp_names in bom.components.iteritems():
+    for comp_name in comp_names:
       status = database.components.GetComponentStatus(comp_cls, comp_name)
       if status == common.COMPONENT_STATUS.supported:
         continue
@@ -89,9 +89,14 @@ def VerifyPhase(database, bom, current_phase=None):
     the image ID must begin with 'PVT').
 
   Args:
+    database: The Database object which records image names.
+    bom: The BOM object to be verified.
     current_phase: The current phase, for phase checks.  If None is
         specified, then phase.GetPhase() is used (this defaults to PVT
         if none is available).
+
+  Raises:
+    HWIDException if verification fails.
   """
   # Coerce current_phase to a Phase object, and use default phase
   # if unspecified.
@@ -110,22 +115,13 @@ def VerifyPhase(database, bom, current_phase=None):
 
   # MP-key checking applies only in PVT and above
   if current_phase >= phase.PVT:
-    if 'firmware_keys' in bom.components:
-      key_types = ['firmware_keys']
-    else:
-      key_types = ['key_recovery', 'key_root']
+    if 'firmware_keys' not in bom.components:
+      raise HWIDException('firmware_keys is required but not found.')
 
-    errors = []
-    for key_type in key_types:
-      if key_type not in bom.components:
-        raise HWIDException(
-            'Component %r is required but not found.' % (key_type,))
-      name = bom.components[key_type][0].component_name
-      if not _IsMPKeyName(name):
-        errors.append('%s component name is %r' % (key_type, name))
-    if errors:
-      raise HWIDException('MP keys are required in %s, but %s' % (
-          current_phase, ' and '.join(errors)))
+    name = next(iter(bom.components['firmware_keys']))
+    if not _IsMPKeyName(name):
+      raise HWIDException(
+          'MP keys are required in %r, but got %r' % (current_phase, name))
 
 
 def VerifyBOM(database, decoded_bom, probed_bom):
@@ -136,34 +132,45 @@ def VerifyBOM(database, decoded_bom, probed_bom):
   a fake BOM object.
 
   Args:
+    database: The Database object which records what components to check.
     decoded_bom: The BOM object decoded from the the HWID identity.
     probed_bom: The BOM object generated from the probed results.
 
   Raises:
     HWIDException if the BOM objects mismatch.
   """
+  def _GetExtraComponents(comps1, comps2):
+    num_comps = collections.defaultdict(int)
+    for comp in comps1:
+      num_comps[comp] += 1
+
+    for comp in comps2:
+      if comp in num_comps:
+        num_comps[comp] -= 1
+
+    results = [[comp] * num_comp
+               for comp, num_comp in num_comps.iteritems() if num_comp > 0]
+    return sorted(sum(results, []))
+
   # We only verify the components listed in the pattern.
   for comp_cls in database.GetActiveComponents(decoded_bom.image_id):
     if comp_cls not in probed_bom.components:
       raise HWIDException(
           'Component class %r is not found in probed BOM.' % comp_cls)
 
-    decoded_components = set(
-        [comp.component_name for comp in decoded_bom.components[comp_cls]])
-    probed_components = set(
-        [comp.component_name for comp in probed_bom.components[comp_cls]])
-
     err_msgs = []
 
-    extra_components = decoded_components - probed_components
+    extra_components = _GetExtraComponents(decoded_bom.components[comp_cls],
+                                           probed_bom.components[comp_cls])
     if extra_components:
-      err_msgs.append('has extra components: %r' % sorted(extra_components))
+      err_msgs.append('has extra components: %r' % extra_components)
 
-    missing_components = probed_components - decoded_components
+    missing_components = _GetExtraComponents(probed_bom.components[comp_cls],
+                                             decoded_bom.components[comp_cls])
     if missing_components:
-      err_msgs.append('is missing components: %r' % sorted(missing_components))
+      err_msgs.append('is missing components: %r' % missing_components)
 
     if err_msgs:
       raise HWIDException(
           'Component class %r ' % comp_cls + ' and '.join(err_msgs) +
-          '.  Expected components are: %r' % sorted(probed_components))
+          '.  Expected components are: %r' % probed_bom.components[comp_cls])

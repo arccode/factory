@@ -20,7 +20,7 @@ The `encoded_checksum` is the checksum of `<project_name> <encoded_body>`
 Given the encoding scheme, the `<encoded_body>` can be decoded into a binary
 string which length is greater than 5.  The binary string contains 3 parts:
 
-  1. The 1st (left most) digit is the `encode_pattern_index`,
+  1. The 1st (left most) digit is the `encoding_pattern_index`,
      which value can be either 0 or 1.
   2. The 2ed to the 5th digits is a 4-bit big-endian integer of the `image_id`.
   3. The reset of the digits is called `components_bitset`.  A
@@ -30,7 +30,7 @@ string which length is greater than 5.  The binary string contains 3 parts:
      beyond `Identiy`'s business.
 
 For example, if the binary string is `0 0010 0111010101011`, then we have:
-  1. `encode_pattern_index` = 0
+  1. `encoding_pattern_index` = 0
   2. `image_id` = 2
   3. `components_bitset` = '0111010101011'
 
@@ -110,11 +110,11 @@ class Identity(object):
   Properties:
     project: A string of the name of the Chromebook project.
     encoded_string: A string of the HWID encoded string.
-    encode_pattern_index: A integer of the encode pattern index.
-    encode_pattern_index: A integer of the image id.
+    encoding_pattern_index: A integer of the encode pattern index.
+    image_id: A integer of the image id.
     components_bitset: A binary string ends with '1'.
   """
-  def __init__(self, project, encoded_string, encode_pattern_index, image_id,
+  def __init__(self, project, encoded_string, encoding_pattern_index, image_id,
                components_bitset):
     """Constructor.
 
@@ -124,13 +124,13 @@ class Identity(object):
     """
     self.project = project
     self.encoded_string = encoded_string
-    self.encode_pattern_index = encode_pattern_index
+    self.encoding_pattern_index = encoding_pattern_index
     self.image_id = image_id
     self.components_bitset = components_bitset
 
     # TODO(yhong): Remove this property since other package shouldn't care
     #     about the whole binary string.
-    self.binary_string = ('{0:01b}'.format(encode_pattern_index) +
+    self.binary_string = ('{0:01b}'.format(encoding_pattern_index) +
                           '{0:04b}'.format(image_id) +
                           components_bitset)
 
@@ -145,7 +145,7 @@ class Identity(object):
 
   @staticmethod
   def GenerateFromBinaryString(encoding_scheme, project,
-                               encode_pattern_index, image_id,
+                               encoding_pattern_index, image_id,
                                components_bitset):
     """Generates an instance of Identity from the given 3 parts of the binary
     string.
@@ -156,7 +156,7 @@ class Identity(object):
     Args:
       encoding_scheme: The encoding scheme used when this HWID was generated.
       project: A string of the Chromebook project name.
-      encode_pattern_index: An integer of the encode pattern index.
+      encoding_pattern_index: An integer of the encode pattern index.
       image_id: An integer of the image id.
       compoents_bitset: A binary string ends with '1'.
 
@@ -168,13 +168,13 @@ class Identity(object):
 
     _VerifyProjectPart(project)
     _VerifyPart(lambda val: val in [0, 1],
-                'encode_pattern_index', encode_pattern_index)
+                'encoding_pattern_index', encoding_pattern_index)
     _VerifyPart(lambda val: val in range(1 << 4), 'image_id', image_id)
     _VerifyPart(lambda val: val and not set(val) - set('01') and val[-1] == '1',
                 'components_bitset', components_bitset)
 
     # Generate the binary string with paddings.
-    binary_string = ('{0:01b}'.format(encode_pattern_index) +
+    binary_string = ('{0:01b}'.format(encoding_pattern_index) +
                      '{0:04b}'.format(image_id) +
                      components_bitset)
     binary_string += '0' * converter.GetPaddingLength(len(binary_string))
@@ -187,7 +187,7 @@ class Identity(object):
          for idx in xrange(0, len(encoded_body_with_checksum),
                            converter.DASH_INSERTION_WIDTH)])
 
-    return Identity(project, encoded_string, encode_pattern_index, image_id,
+    return Identity(project, encoded_string, encoding_pattern_index, image_id,
                     components_bitset)
 
   @staticmethod
@@ -224,9 +224,9 @@ class Identity(object):
 
     _VerifyPart(lambda val: len(val) > 5, 'binary_string', binary_string)
 
-    encode_pattern_index = int(binary_string[0], 2)
+    encoding_pattern_index = int(binary_string[0], 2)
     image_id = int(binary_string[1:5], 2)
     components_bitset = binary_string[5:]
 
-    return Identity(project, encoded_string, encode_pattern_index, image_id,
+    return Identity(project, encoded_string, encoding_pattern_index, image_id,
                     components_bitset)

@@ -13,7 +13,6 @@ import math
 import re
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.hwid.v3.bom import ProbedComponentResult
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import rule
 # Import yaml_tags to decode special YAML tags specific to HWID module.
@@ -239,82 +238,6 @@ class Database(object):
                     Rules(db_yaml['rules']),
                     db_yaml.get('checksum'))
 
-  def UpdateComponentsOfBOM(self, bom, updated_components):
-    """Updates the components data of the given BOM.
-
-    The components field of the given BOM is updated with the given component
-    class and component name, and the encoded_fields field is re-calculated.
-
-    Args:
-      bom: A BOM object to update.
-      updated_components: A dict of component classes to component names
-          indicating the set of components to update.
-    """
-    for comp_cls, comp_name in updated_components.iteritems():
-      new_probed_result = []
-      if comp_name is None:
-        new_probed_result.append(ProbedComponentResult(
-            None, None, common.MISSING_COMPONENT_ERROR(comp_cls)))
-      else:
-        comp_name = type_utils.MakeList(comp_name)
-        for name in comp_name:
-          comp_attrs = self.components.GetComponentAttributes(comp_cls, name)
-          new_probed_result.append(ProbedComponentResult(
-              name, comp_attrs['values'], None))
-      # Update components data of the duplicated BOM.
-      bom.components[comp_cls] = new_probed_result
-
-    # Re-calculate all the encoded index of each encoded field.
-    bom.encoded_fields = {}
-    for field in self.encoded_fields:
-      bom.encoded_fields[field] = self.GetFieldIndexFromProbedComponents(
-          field, bom.components)
-
-  def GetFieldIndexFromProbedComponents(self, encoded_field, probed_components):
-    """Gets the encoded index of the specified encoded field by matching
-    the given probed components against the definitions in the database.
-
-    Args:
-      encoded_field: A string indicating the encoding field of interest.
-      probed_components: A dict that maps a set of component classes to their
-          list of ProbedComponentResult.
-
-    Returns:
-      An int indicating the encoded index, or None if no matching encoded
-      index is found.
-    """
-    if encoded_field not in self.encoded_fields:
-      return None
-
-    for index, db_comp_cls_names in (
-        self.encoded_fields[encoded_field].iteritems()):
-      # Iterate through all indices in the encoded_fields of the database.
-      found = True
-      for db_comp_cls, db_comp_names in db_comp_cls_names.iteritems():
-        # Check if every component class and value the index consists of
-        # matches.
-        if db_comp_names is None:
-          # Special handling for NULL component.
-          if (probed_components[db_comp_cls] and
-              probed_components[db_comp_cls][0].probed_values is not None):
-            found = False
-            break
-        else:
-          # Create a sorted list of component names of db_comp_cls from the
-          # probed_components argument.
-          bom_component_names_of_the_class = sorted([
-              x.component_name for x in probed_components[db_comp_cls]])
-          # Create a sorted list of component names of db_comp_cls from the
-          # database.
-          db_component_names_of_the_class = sorted(db_comp_names)
-          if (bom_component_names_of_the_class !=
-              db_component_names_of_the_class):
-            found = False
-            break
-      if found:
-        return index
-    return None
-
   def _GetAllIndices(self, encoded_field):
     """Gets a list of all the encoded indices of the given encoded_field in the
     database.
@@ -345,12 +268,13 @@ class Database(object):
       return None
     if index not in self.encoded_fields[encoded_field]:
       return None
-    result = collections.defaultdict(list)
+    result = {}
     for comp_cls, comp_names in (
         self.encoded_fields[encoded_field][index].iteritems()):
       if comp_names is None:
         result[comp_cls] = None
       else:
+        result[comp_cls] = []
         for name in comp_names:
           # Add an additional index 'name' to record component name
           new_attr = self.components.GetComponentAttributes(comp_cls, name)
@@ -443,12 +367,14 @@ class EncodedFields(dict):
                                  schema.Scalar('component name', str))]))))
     self.schema.Validate(encoded_fields_dict)
     super(EncodedFields, self).__init__(encoded_fields_dict)
-    # Convert string to list of string.
+    # Convert string to list of string and None to empty list.
     for field in self:
       for index in self[field]:
         for comp_cls in self[field][index]:
           comp_value = self[field][index][comp_cls]
-          if isinstance(comp_value, str):
+          if comp_value is None:
+            self[field][index][comp_cls] = []
+          elif isinstance(comp_value, str):
             self[field][index][comp_cls] = type_utils.MakeList(comp_value)
 
 
@@ -460,27 +386,14 @@ class Components(object):
     components_dict: A dict of components of the form:
         {
           'component_class_1': {      # Probeable component class.
-            'probeable': True,
             'items': {
               'component_name_1': {
                 'values': { probed values dict },
-                'labels': [ labels ],
                 'status': status
               },
               ...
             }
-          },
-          'component_class_2': {      # Unprobeable component class.
-            'probeable': False,
-            'items': {
-              'component_name_2': {
-                'values': None,
-                'labels': [ labels ],
-                'status': status
-              },
-              ...
-            }
-          },
+          }
           ...
         }
 
@@ -531,13 +444,6 @@ class Components(object):
         raise common.HWIDException(
             'Component %s has more than one default items: %r' %
             (comp_cls, default_items))
-
-    # Classify components based on their attributes.
-    self.probeable = set()
-    for comp_cls, comp_cls_properties in components_dict.iteritems():
-      if comp_cls_properties.get('probeable', True):
-        # Default 'probeable' to True.
-        self.probeable.add(comp_cls)
 
     for comp_cls_data in components_dict.itervalues():
       for comp_cls_item_attrs in comp_cls_data['items'].itervalues():
@@ -660,9 +566,7 @@ class Components(object):
         if match:
           results[comp_name] = copy.deepcopy(comp_attrs)
 
-    if results:
-      return results
-    return None
+    return results
 
   def CheckComponent(self, comp_cls, comp_name):
     """Checks if the given component class and component name are valid.

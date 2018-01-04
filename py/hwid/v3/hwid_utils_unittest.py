@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 #
-# Copyright 2013 The Chromium OS Authors. All rights reserved.
+# Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Unit tests for HWID v3 utility functions."""
+"""Integration tests for the HWID v3 framework."""
 
 import copy
 import logging
@@ -13,322 +13,332 @@ import os
 import tempfile
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
+from cros.factory.hwid.v3.bom import BOM
 from cros.factory.hwid.v3 import common
-from cros.factory.hwid.v3 import database
+from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
-from cros.factory.hwid.v3.rule import Value
-from cros.factory.test.rules import phase
+from cros.factory.hwid.v3.rule import RuleException
 from cros.factory.utils import json_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import yaml_utils
 
 
-TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
+_TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
-class HWIDv3UtilsTestWithNewDatabase(unittest.TestCase):
-  """Test cases for HWID v3 utilities with the new database.
+_TEST_DATABASE_PATH = os.path.join(_TEST_DATA_PATH, 'TEST_PROJECT')
 
-  The new database adds a new image_id and a pattern, that removes display_panel
-  and cellular field, and add firmware_keys field. It also adds SKU that has no
-  audio_codec component.
-  """
+_TEST_PROBED_RESULTS_PATH = os.path.join(
+    _TEST_DATA_PATH, 'TEST_PROJECT_probed_results')
 
+_TEST_INVALID_PROBED_RESULTS_PATH = os.path.join(
+    _TEST_DATA_PATH, 'TEST_PROJECT_invalid_probed_results')
+
+
+class TestData(object):
+  def __init__(self, encoded_string, image_id, update_components=None,
+               device_info=None, rma_mode=None):
+    components = {
+        'audio_codec': ['codec_0', 'hdmi_0'],
+        'battery': ['battery_unsupported'],
+        'bluetooth': ['bluetooth_0'],
+        'cellular': [],
+        'cpu': ['cpu_0'],
+        'display_panel': ['display_panel_0'],
+        'dram': ['dram_0'],
+        'embedded_controller': ['embedded_controller_0'],
+        'firmware_keys': ['firmware_keys_premp'],
+        'flash_chip': ['flash_chip_0'],
+        'keyboard': ['keyboard_us'],
+        'region': [],
+        'ro_ec_firmware': ['ro_ec_firmware_0'],
+        'ro_main_firmware': ['ro_main_firmware_0'],
+        'storage': ['storage_0'],
+        'video': ['camera_0'],
+    }
+    if image_id in [0, 1]:
+      del components['flash_chip']
+    if update_components is not None:
+      components.update(update_components)
+
+    self.encoded_string = encoded_string
+    self.bom = BOM(0, image_id, components)
+    self.device_info = device_info or {}
+    self.rma_mode = rma_mode
+
+
+_TEST_DATA_CAN_GENERATE = [
+    TestData('CHROMEBOOK D9L-S3Q-A9G', 3,
+             dict(audio_codec=['codec_1', 'hdmi_1'],
+                  battery=['battery_supported'],
+                  cpu=['cpu_5'],
+                  dram=['dram_1', 'dram_1'],
+                  firmware_keys=['firmware_keys_mp'],
+                  region=['tw'],
+                  ro_main_firmware=['ro_main_firmware_1']),
+             {'component.has_cellular': False},
+             False),
+    TestData('CHROMEBOOK D5Q-Q3Q-A3F', 3,
+             dict(battery=['battery_supported'],
+                  cellular=['cellular_0'],
+                  cpu=['cpu_4'],
+                  firmware_keys=['firmware_keys_mp']),
+             {'component.has_cellular': True},
+             True),
+]
+
+_TEST_DATA_RELEASED = [
+    TestData('CHROMEBOOK AIEB-ED', 0,
+             dict(battery=['battery_unqualified'],
+                  ro_main_firmware=['ro_main_firmware_1'])),
+    TestData('CHROMEBOOK ANUB-CX', 0,
+             dict(battery=['battery_supported'],
+                  cpu=['cpu_1'],
+                  dram=['dram_2', 'dram_2', 'dram_2'],
+                  ro_main_firmware=['ro_main_firmware_1'])),
+    TestData('CHROMEBOOK AEAB-HD', 0, dict(battery=['battery_deprecated'])),
+    TestData('CHROMEBOOK BMAB-VV', 1, dict(battery=['battery_supported'])),
+    TestData('CHROMEBOOK D3B-A2Q-A8C', 3,
+             dict(battery=['battery_deprecated'],
+                  ro_main_firmware=['ro_main_firmware_1'])),
+]
+
+_TEST_DATA_BREAK_VERIFY_RULES = TestData(
+    'CHROMEBOOK D9D-S2Q-A2Q', 3,
+    dict(audio_codec=['codec_1', 'hdmi_1'],
+         battery=['battery_supported'],
+         dram=['dram_1', 'dram_1'],
+         firmware_keys=['firmware_keys_mp'],
+         region=['tw'],
+         ro_main_firmware=['ro_main_firmware_1']))
+
+_TEST_DATA_BAD_COMPONENT_STATUS = TestData(
+    'CHROMEBOOK D6L-S3Q-A3T', 3,
+    dict(audio_codec=['codec_1', 'hdmi_1'],
+         cpu=['cpu_5'],
+         dram=['dram_1', 'dram_1'],
+         firmware_keys=['firmware_keys_mp'],
+         region=['tw'],
+         ro_main_firmware=['ro_main_firmware_1']))
+
+_TEST_DATA_INVALID_ENCODED_STRING = [
+    'CHROMEBOOK ANUB-XX',
+    'CHROMEBOOK ANUB-2233-44WN',
+    'CHROME?OOK ANUB-CX',
+    'CHROMEBOOK#ANUB-CX',
+    'CHROMEBOOK AIEZ-GV',
+]
+
+
+def _LoadMultiProbedResults(path):
+  with open(path, 'r') as f:
+    return [hwid_utils.GetProbedResults(raw_data=raw_data)
+            for raw_data in f.read().split('##### SPLITLINE #####')]
+
+
+class _CustomAssertions(object):
+  def assertBOMEquals(self, bom1, bom2):
+    self.assertEquals(bom1.encoding_pattern_index, bom2.encoding_pattern_index)
+    self.assertEquals(bom1.image_id, bom2.image_id)
+    self.assertEquals(set(bom1.components.keys()), set(bom2.components.keys()))
+    for comp_cls, bom1_comp_names in bom1.components.iteritems():
+      self.assertEquals(bom1_comp_names, bom2.components[comp_cls])
+
+
+class GenerateHWIDTest(unittest.TestCase, _CustomAssertions):
   def setUp(self):
-    self.db = database.Database.LoadFile(
-        os.path.join(TEST_DATA_PATH, 'NEW_TEST_PROJECT'))
-    self.probed_results = json_utils.LoadFile(os.path.join(
-        TEST_DATA_PATH, 'new_test_probe_result_hwid_utils.json'))
-    self.vpd = {
-        'ro': {
-            'region': 'us',
-            'serial_number': 'foo'
-        },
-        'rw': {
-            'gbind_attribute': '333333333333333333333333333333333333'
-                               '33333333333333333333333333332dbecc73',
-            'ubind_attribute': '323232323232323232323232323232323232'
-                               '323232323232323232323232323256850612'
-        }
-    }
+    self.database = Database.LoadFile(_TEST_DATABASE_PATH)
+    self.probed_results = _LoadMultiProbedResults(_TEST_PROBED_RESULTS_PATH)
+    self.invalid_probed_results = _LoadMultiProbedResults(
+        _TEST_INVALID_PROBED_RESULTS_PATH)
 
-  def testGenerateHWID(self):
-    device_info = {
-        'component.keyboard': 'us',
-    }
-    # Test new database with audio codec
-    bom = hwid_utils.GenerateBOMFromProbedResults(self.db,
-                                                  self.probed_results[0])
-    self.assertEquals(
-        'CHROMEBOOK E35-A2Y-A7B',
-        hwid_utils.GenerateHWID(
-            self.db, bom, device_info, self.vpd, False).encoded_string)
-    # Test new database without audio codec
-    bom = hwid_utils.GenerateBOMFromProbedResults(self.db,
-                                                  self.probed_results[1])
-    self.assertEquals(
-        'CHROMEBOOK E45-A2Y-A2Z',
-        hwid_utils.GenerateHWID(
-            self.db, bom, device_info, self.vpd, False).encoded_string)
+  def testSucc(self):
+    for i, test_data in enumerate(_TEST_DATA_CAN_GENERATE):
+      generated_encoded_string = hwid_utils.GenerateHWID(
+          self.database, self.probed_results[i],
+          test_data.device_info, {}, rma_mode=test_data.rma_mode).encoded_string
+      self.assertEquals(generated_encoded_string, test_data.encoded_string)
 
-  def testDecodeHWID(self):
-    """Tests HWID decoding."""
-    # Decode old HWID string
-    identity, bom = hwid_utils.DecodeHWID(self.db, 'CHROMEBOOK D9I-F9U')
-    parsed_result = hwid_utils.ParseDecodedHWID(self.db, bom, identity)
-    self.assertNotIn('firmware_keys', parsed_result)
-    self.assertEquals(parsed_result['components']['cellular'], [{None: None}])
-    self.assertEquals(parsed_result['components']['audio_codec'],
-                      [{'codec_1': {'compact_str': Value('Codec 1')}},
-                       {'hdmi_1': {'compact_str': Value('HDMI 1')}}])
-    self.assertEquals(parsed_result['components']['display_panel'],
-                      [{'display_panel_0': None}])
+  def testBadComponentStatus(self):
+    for i, test_data in enumerate(_TEST_DATA_CAN_GENERATE):
+      if not test_data.rma_mode:
+        continue
+      self.assertRaises(common.HWIDException, hwid_utils.GenerateHWID,
+                        self.database, self.probed_results[i],
+                        test_data.device_info, {}, rma_mode=False)
 
-    # Decode new HWID string with audio_codec
-    identity, bom = hwid_utils.DecodeHWID(self.db, 'CHROMEBOOK E35-A2Y-A7B')
-    parsed_result = hwid_utils.ParseDecodedHWID(self.db, bom, identity)
-    self.assertNotIn('display_panel', parsed_result)
-    self.assertNotIn('cellular', parsed_result)
-    self.assertEquals(parsed_result['components']['firmware_keys'],
-                      [{'firmware_keys_mp': {
-                          'key_recovery': Value('kv3#key_recovery_mp'),
-                          'key_root': Value('kv3#key_root_mp')}}])
-    self.assertEquals(parsed_result['components']['audio_codec'],
-                      [{'codec_1': {'compact_str': Value('Codec 1')}},
-                       {'hdmi_1': {'compact_str': Value('HDMI 1')}}])
-
-    # Decode new HWID string without audio_codec
-    identity, bom = hwid_utils.DecodeHWID(self.db, 'CHROMEBOOK E45-A2Y-A2Z')
-    parsed_result = hwid_utils.ParseDecodedHWID(self.db, bom, identity)
-    self.assertNotIn('display_panel', parsed_result)
-    self.assertNotIn('cellular', parsed_result)
-    self.assertEquals(parsed_result['components']['firmware_keys'],
-                      [{'firmware_keys_mp': {
-                          'key_recovery': Value('kv3#key_recovery_mp'),
-                          'key_root': Value('kv3#key_root_mp')}}])
-    self.assertEquals(parsed_result['components']['audio_codec'],
-                      [{None: None}])
+  def testBadProbedResults(self):
+    for probed_results in self.invalid_probed_results:
+      self.assertRaises(common.HWIDException, hwid_utils.GenerateHWID,
+                        self.database, probed_results,
+                        {'component.has_cellular': True}, {}, rma_mode=False)
 
 
-class HWIDv3UtilsTest(unittest.TestCase):
-  """Test cases for HWID v3 utilities."""
-
+class DecodeHWIDTest(unittest.TestCase, _CustomAssertions):
   def setUp(self):
-    self.db = database.Database.LoadFile(
-        os.path.join(TEST_DATA_PATH, 'TEST_PROJECT'))
-    self.probed_results = json_utils.LoadFile(os.path.join(
-        TEST_DATA_PATH, 'test_probe_result_hwid_utils.json'))
-    self.vpd = {
-        'ro': {
-            'region': 'us',
-            'serial_number': 'foo'
-        },
-        'rw': {
-            'gbind_attribute': '333333333333333333333333333333333333'
-                               '33333333333333333333333333332dbecc73',
-            'ubind_attribute': '323232323232323232323232323232323232'
-                               '323232323232323232323232323256850612'
-        }
-    }
+    self.database = Database.LoadFile(_TEST_DATABASE_PATH)
 
-  def testGenerateHWID(self):
-    """Tests HWID generation."""
-    device_info = {
-        'component.has_cellular': False,
-        'component.keyboard': 'us',
-        'component.dram': 'foo',
-        'component.audio_codec': 'set_1'
-    }
-    bom = hwid_utils.GenerateBOMFromProbedResults(self.db, self.probed_results)
+  def testSucc(self):
+    for test_data in (_TEST_DATA_CAN_GENERATE +
+                      _TEST_DATA_RELEASED +
+                      [_TEST_DATA_BREAK_VERIFY_RULES] +
+                      [_TEST_DATA_BAD_COMPONENT_STATUS]):
+      _, decoded_bom = hwid_utils.DecodeHWID(
+          self.database, test_data.encoded_string)
+
+      self.assertBOMEquals(decoded_bom, test_data.bom)
+
+  def testInvalidEncodedString(self):
+    for encoded_string in _TEST_DATA_INVALID_ENCODED_STRING:
+      self.assertRaises(common.HWIDException, hwid_utils.DecodeHWID,
+                        self.database, encoded_string)
+
+
+class VerifyHWIDTest(unittest.TestCase):
+  def setUp(self):
+    self.database = Database.LoadFile(_TEST_DATABASE_PATH)
+    self.probed_results = _LoadMultiProbedResults(_TEST_PROBED_RESULTS_PATH)
+    self.default_device_info = _TEST_DATA_CAN_GENERATE[0].device_info
+
+  def testSucc(self):
+    for i, test_data in enumerate(_TEST_DATA_CAN_GENERATE):
+      hwid_utils.VerifyHWID(self.database, test_data.encoded_string,
+                            self.probed_results[i], test_data.device_info, {},
+                            rma_mode=test_data.rma_mode)
+
+  def testBOMMisMatch(self):
+    self.assertRaises(common.HWIDException, hwid_utils.VerifyHWID,
+                      self.database, _TEST_DATA_CAN_GENERATE[0].encoded_string,
+                      self.probed_results[1],
+                      _TEST_DATA_CAN_GENERATE[1].device_info, {}, rma_mode=True)
+
+  def testBadComponentStatus(self):
+    test_data = _TEST_DATA_BAD_COMPONENT_STATUS
+    self.probed_results[0]['battery'] = {
+        'battery_unsupported': [{'tech': 'Battery Li-ion', 'size': '2500000'}]}
+    self.assertRaises(common.HWIDException, hwid_utils.VerifyHWID,
+                      self.database, test_data.encoded_string,
+                      self.probed_results[0], self.default_device_info)
+
+  def testBreakVerifyRules(self):
+    test_data = _TEST_DATA_BREAK_VERIFY_RULES
+    self.probed_results[0]['cpu'] = {
+        'cpu_0': [{'name': 'CPU @ 1.80GHz', 'cores': '4'}]}
+    self.assertRaises(RuleException, hwid_utils.VerifyHWID,
+                      self.database, test_data.encoded_string,
+                      self.probed_results[0], self.default_device_info)
+
+  def testInvalidEncodedString(self):
+    for encoded_string in _TEST_DATA_INVALID_ENCODED_STRING:
+      self.assertRaises(common.HWIDException, hwid_utils.VerifyHWID,
+                        self.database, encoded_string,
+                        self.probed_results[0], self.default_device_info)
+
+
+class ListComponentsTest(unittest.TestCase):
+  def setUp(self):
+    self.database = Database.LoadFile(_TEST_DATABASE_PATH)
+
+  def _TestListComponents(self, comp_cls, expected_results):
+    def _ConvertToSets(orig_dict):
+      return {key: set(value) for key, value in orig_dict.iteritems()}
+
+    results = hwid_utils.ListComponents(self.database, comp_cls)
+    self.assertEquals(_ConvertToSets(results), _ConvertToSets(expected_results))
+
+  def testSingleComponentClass(self):
+    self._TestListComponents(
+        'cpu', {'cpu': ['cpu_0', 'cpu_1', 'cpu_2', 'cpu_3', 'cpu_4', 'cpu_5']})
+
+  def testMultipleComponentClass(self):
+    self._TestListComponents(
+        ['bluetooth', 'display_panel'],
+        {'bluetooth': ['bluetooth_0'], 'display_panel': ['display_panel_0']})
+
+  def testAllComponentClass(self):
+    # Too many entries, just do some simple test.
+    results = hwid_utils.ListComponents(self.database)
+    self.assertEquals(len(results), 16)
+    self.assertIn('keyboard', results)
+    self.assertIn('cpu', results)
+    self.assertIn('battery', results)
+    self.assertIn('dram', results)
     self.assertEquals(
-        'CHROMEBOOK D9I-E4A-A2B',
-        hwid_utils.GenerateHWID(
-            self.db, bom, device_info, self.vpd, False).encoded_string)
+        set(results['dram']), set(['dram_0', 'dram_1', 'dram_2']))
 
-    device_info = {
-        'component.has_cellular': True,
-        'component.keyboard': 'gb',
-        'component.dram': 'foo',
-        'component.audio_codec': 'set_1'
-    }
+
+class EnumerateHWIDTest(unittest.TestCase, _CustomAssertions):
+  def setUp(self):
+    self.database = Database.LoadFile(_TEST_DATABASE_PATH)
+    self.default_combinations = {
+        field_name: len(field_data)
+        for field_name, field_data in self.database.encoded_fields.iteritems()}
+
+  def _CalculateNumCombinations(self, **kwargs):
+    result = 1
+    for key, value in self.default_combinations.iteritems():
+      value = kwargs.get(key, value)
+      if value is None:
+        continue
+      result *= value
+    return result
+
+  def testSupported(self):
+    for kwargs in [{}, {'status': 'supported'}]:
+      kwargs['comps'] = {'storage': ['storage_0']}
+      results = hwid_utils.EnumerateHWID(self.database, **kwargs)
+      self.assertEquals(len(results), self._CalculateNumCombinations(
+          battery_field=1,  # only battery_supported is available
+          firmware_field=1,  # ro_main_firmware_1 is deprecated
+          storage_field=1))
+
+      for test_data in _TEST_DATA_CAN_GENERATE:
+        if test_data.rma_mode:
+          continue
+        encoded_string = test_data.encoded_string
+        self.assertIn(encoded_string, results,
+                      'Encoded string %r is not found.' % encoded_string)
+        self.assertBOMEquals(results[encoded_string], test_data.bom)
+
+  def testReleased(self):
+    results = hwid_utils.EnumerateHWID(self.database, status='released',
+                                       comps={'cpu': ['cpu_0'],
+                                              'storage': ['storage_0']})
+    # both battery_supported, battery_deprecated is available
     self.assertEquals(
-        'CHROMEBOOK D92-E4A-A87',
-        hwid_utils.GenerateHWID(
-            self.db, bom, device_info, self.vpd, False).encoded_string)
+        len(results), self._CalculateNumCombinations(battery_field=2,
+                                                     cpu_field=1,
+                                                     storage_field=1))
 
-    device_info = {
-        'component.has_cellular': True,
-        'component.keyboard': 'gb',
-        'component.dram': 'foo',
-        'component.audio_codec': 'set_0'
-    }
+  def testAll(self):
+    results = hwid_utils.EnumerateHWID(self.database, status='all',
+                                       comps={'cpu': ['cpu_0'],
+                                              'region': ['us'],
+                                              'storage': ['storage_0']})
     self.assertEquals(
-        'CHROMEBOOK D52-E4A-A7E',
-        hwid_utils.GenerateHWID(
-            self.db, bom, device_info, self.vpd, False).encoded_string)
+        len(results), self._CalculateNumCombinations(cpu_field=1,
+                                                     region_field=1,
+                                                     storage_field=1))
 
-  def testVerifyHWID(self):
-    """Tests HWID verification."""
-    bom = hwid_utils.GenerateBOMFromProbedResults(self.db, self.probed_results)
-    self.assertEquals(None, hwid_utils.VerifyHWID(
-        self.db, 'CHROMEBOOK A5AU-LU', bom, self.vpd, False,
-        phase.EVT))
-    for current_phase in (phase.PVT, phase.PVT_DOGFOOD):
-      self.assertEquals(None, hwid_utils.VerifyHWID(
-          self.db, 'CHROMEBOOK D9I-F9U', bom, self.vpd, False,
-          current_phase))
+  def testPrevImageId(self):
+    results = hwid_utils.EnumerateHWID(self.database, image_id=0, status='all',
+                                       comps={'region': ['us'],
+                                              'storage': ['storage_0']})
+    self.assertEquals(len(results), self._CalculateNumCombinations(
+        flash_chip_field=None, cpu_field=2, region_field=1, storage_field=1))
 
-    # Check for mismatched phase.
-    self.assertRaisesRegexp(
-        common.HWIDException,
-        r"In DVT phase, expected an image name beginning with 'DVT' "
-        r"\(but .* 'PVT2'\)",
-        hwid_utils.VerifyHWID,
-        self.db, 'CHROMEBOOK D9I-F9U', bom, self.vpd, False,
-        phase.DVT)
-
-    probed_results = copy.deepcopy(self.probed_results)
-    probed_results['audio_codec']['generic'][1] = {'compact_str': 'HDMI 0'}
-    bom = hwid_utils.GenerateBOMFromProbedResults(self.db, probed_results)
-    self.assertRaises(
-        common.HWIDException,
-        hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F9U', bom,
-        self.vpd, False, phase.PVT)
-
-    # Test pre-MP recovery/root keys.
-    probed_results = copy.deepcopy(self.probed_results)
-    probed_results['key_root']['generic'][0].update(
-        {'compact_str': 'kv3#key_root_premp'})
-    probed_results['key_recovery']['generic'][0].update(
-        {'compact_str': 'kv3#key_recovery_premp'})
-    bom = hwid_utils.GenerateBOMFromProbedResults(self.db, probed_results)
-    # Pre-MP recovery/root keys are fine in DVT...
-    self.assertEquals(None, hwid_utils.VerifyHWID(
-        self.db, 'CHROMEBOOK B5AW-5W', bom, self.vpd, False,
-        phase.DVT))
-    # ...but not in PVT
-    self.assertRaisesRegexp(
-        common.HWIDException,
-        'MP keys are required in PVT, but key_recovery component name is '
-        "'key_recovery_premp' and key_root component name is 'key_root_premp'",
-        hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F6A-A6B',
-        bom, self.vpd, False, phase.PVT)
-
-    # Test deprecated component.
-    probed_results = copy.deepcopy(self.probed_results)
-    probed_results['ro_main_firmware']['generic'][0].update(
-        {'compact_str': 'mv2#ro_main_firmware_1'})
-    bom = hwid_utils.GenerateBOMFromProbedResults(self.db, probed_results)
-    self.assertRaisesRegexp(
-        common.HWIDException, r'Not in RMA mode. Found deprecated component of '
-        r"'ro_main_firmware': 'ro_main_firmware_1'",
-        hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-H9T', bom,
-        self.vpd, False, phase.PVT)
-
-    # Test deprecated component is allowed in rma mode.
-    self.assertEquals(None, hwid_utils.VerifyHWID(
-        self.db, 'CHROMEBOOK D9I-H9T', bom, self.vpd, True,
-        phase.PVT))
-
-    # Test unqualified component.
-    probed_results = copy.deepcopy(self.probed_results)
-    probed_results['dram']['generic'][0].update(
-        {'vendor': 'DRAM 2', 'size': '8G'})
-    bom = hwid_utils.GenerateBOMFromProbedResults(self.db, probed_results)
-    self.assertRaisesRegexp(
-        common.HWIDException, r'Found unqualified component of '
-        r"'dram': 'dram_2' in Phase\(PVT\)",
-        hwid_utils.VerifyHWID, self.db,
-        'CHROMEBOOK D9I-E8A-A5F', bom,
-        self.vpd, False, phase.PVT)
-
-    # Test unqualified component is allowed in early builds: PROTO/EVT/DVT.
-    self.assertEquals(None, hwid_utils.VerifyHWID(
-        self.db, 'CHROMEBOOK A5AT-PC', bom, self.vpd, False,
-        phase.EVT))
-
-  def testDecodeHWID(self):
-    """Tests HWID decoding."""
-    identity, bom = hwid_utils.DecodeHWID(self.db, 'CHROMEBOOK D9I-F9U')
-    data = {
-        'audio_codec_field': 1,
-        'battery_field': 3,
-        'firmware_field': 0,
-        'storage_field': 0,
-        'bluetooth_field': 0,
-        'video_field': 0,
-        'display_panel_field': 0,
-        'cellular_field': 0,
-        'keyboard_field': 0,
-        'dram_field': 0,
-        'cpu_field': 5}
-    self.assertEquals(data, bom.encoded_fields)
-
-    parsed_result = hwid_utils.ParseDecodedHWID(
-        self.db, bom, identity)
-    self.assertEquals(parsed_result['project'], 'CHROMEBOOK')
-    self.assertEquals(parsed_result['binary_string'], '000111110100000101')
-    self.assertEquals(parsed_result['image_id'], 'PVT2')
-    self.assertEquals(parsed_result['components'], {
-        'key_recovery': [{
-            'key_recovery_mp': {
-                'compact_str': Value('kv3#key_recovery_mp', is_re=False)}}],
-        'cellular': [{None: None}],
-        'ro_main_firmware': [{
-            'ro_main_firmware_0': {
-                'compact_str': Value('mv2#ro_main_firmware_0', is_re=False)}}],
-        'battery': [{
-            'battery_huge': {
-                'tech': Value('Battery Li-ion', is_re=False),
-                'size': Value('10000000', is_re=False)}}],
-        'hash_gbb': [{
-            'hash_gbb_0': {
-                'compact_str': Value('gv2#hash_gbb_0', is_re=False)}}],
-        'bluetooth': [{
-            'bluetooth_0': {
-                'bcd': Value('0001', is_re=False),
-                'idVendor': Value('0123', is_re=False),
-                'idProduct': Value('abcd', is_re=False)}}],
-        'key_root': [{
-            'key_root_mp': {
-                'compact_str': Value('kv3#key_root_mp', is_re=False)}}],
-        'video': [{
-            'camera_0': {
-                'idVendor': Value('4567', is_re=False),
-                'type': Value('webcam', is_re=False),
-                'idProduct': Value('abcd', is_re=False)}}],
-        'audio_codec': [
-            {'codec_1': {'compact_str': Value('Codec 1', is_re=False)}},
-            {'hdmi_1': {'compact_str': Value('HDMI 1', is_re=False)}}],
-        'keyboard': [
-            {'keyboard_us': {'compact_str': Value('xkb:us::eng',
-                                                  is_re=False)}}],
-        'dram': [{
-            'dram_0': {
-                'vendor': Value('DRAM 0', is_re=False),
-                'size': Value('4G', is_re=False)}}],
-        'storage': [{
-            'storage_0': {
-                'serial': Value('#123456', is_re=False),
-                'type': Value('SSD', is_re=False),
-                'size': Value('16G', is_re=False)}}],
-        'display_panel': [{'display_panel_0': None}],
-        'ro_ec_firmware':[{
-            'ro_ec_firmware_0': {
-                'compact_str': Value('ev2#ro_ec_firmware_0', is_re=False)}}],
-        'cpu': [{
-            'cpu_5': {
-                'cores': Value('4', is_re=False),
-                'name': Value('CPU @ 2.80GHz', is_re=False)}}]})
+  def testNoResult(self):
+    results = hwid_utils.EnumerateHWID(self.database, image_id=0, status='all',
+                                       comps={'storage': ['storage_999']})
+    self.assertEquals(len(results), 0)
 
 
 class DatabaseBuilderTest(unittest.TestCase):
-
   def setUp(self):
     yaml_utils.ParseMappingAsOrderedDict(loader=yaml.Loader, dumper=yaml.Dumper)
     self.probed_results = json_utils.LoadFile(
-        os.path.join(TEST_DATA_PATH, 'test_builder_probe_results.json'))
+        os.path.join(_TEST_DATA_PATH, 'test_builder_probe_results.json'))
     self.output_path = tempfile.mktemp()
 
   def tearDown(self):
@@ -345,7 +355,7 @@ class DatabaseBuilderTest(unittest.TestCase):
         region=['tw', 'jp'], chassis=['FOO', 'BAR'])
     # If not in Chroot, the checksum is not updated.
     verify_checksum = sys_utils.InChroot()
-    database.Database.LoadFile(self.output_path, verify_checksum)
+    Database.LoadFile(self.output_path, verify_checksum)
     # Check the value.
     with open(self.output_path, 'r') as f:
       db = yaml.load(f.read())
@@ -395,10 +405,10 @@ class DatabaseBuilderTest(unittest.TestCase):
     with mock.patch('__builtin__.raw_input', return_value='y'):
       hwid_utils.UpdateDatabase(self.output_path, None, db,
                                 add_null_comp=['touchpad', 'chassis'])
-    new_db = database.Database.LoadFile(self.output_path, verify_checksum)
-    self.assertIn({'touchpad': None},
+    new_db = Database.LoadFile(self.output_path, verify_checksum)
+    self.assertIn({'touchpad': []},
                   new_db.encoded_fields['touchpad_field'].values())
-    self.assertIn({'chassis': None},
+    self.assertIn({'chassis': []},
                   new_db.encoded_fields['chassis_field'].values())
 
     # Add a component without a new image_id.
@@ -410,7 +420,7 @@ class DatabaseBuilderTest(unittest.TestCase):
 
     with mock.patch('__builtin__.raw_input', return_value='y'):
       hwid_utils.UpdateDatabase(self.output_path, probed_result, db)
-    new_db = database.Database.LoadFile(self.output_path, verify_checksum)
+    new_db = Database.LoadFile(self.output_path, verify_checksum)
     self.assertIn({'touchpad_field': 0}, new_db.pattern.pattern[0]['fields'])
 
     # Delete bluetooth, and add region and chassis.
@@ -418,7 +428,7 @@ class DatabaseBuilderTest(unittest.TestCase):
         self.output_path, None, db, 'DVT',
         add_default_comp=None, del_comp=['bluetooth'],
         region=['us'], chassis=['NEW'])
-    new_db = database.Database.LoadFile(self.output_path, verify_checksum)
+    new_db = Database.LoadFile(self.output_path, verify_checksum)
     # Check the value.
     self.assertEquals(new_db.project, 'CHROMEBOOK')
     self.assertEquals(new_db.image_id, {0: 'EVT', 1: 'DVT'})
@@ -494,108 +504,13 @@ class DatabaseBuilderTest(unittest.TestCase):
          'status': 'unqualified',
          'values': None})
     hwid_utils.UpdateDatabase(self.output_path, self.probed_results[0], db)
-    new_db = database.Database.LoadFile(self.output_path, False)
+    new_db = Database.LoadFile(self.output_path, False)
     comp_dict = new_db.components.components_dict
     self.assertEquals(
         comp_dict['mainboard']['items']['mainboard_default'],
         {'default': True,
          'status': 'unsupported',
          'values': None})
-
-
-class GenerateBOMFromProbedResultsTest(unittest.TestCase):
-  def setUp(self):
-    self.database = database.Database.LoadFile(os.path.join(TEST_DATA_PATH,
-                                                            'test_db.yaml'))
-    self.results = json_utils.LoadFile(
-        os.path.join(TEST_DATA_PATH, 'test_probe_result.json'))
-    self.boms = [hwid_utils.GenerateBOMFromProbedResults(self.database,
-                                                         probed_results)
-                 for probed_results in self.results]
-
-  def testProbeResultToBOM(self):
-    bom = self.boms[0]
-    self.assertEquals('CHROMEBOOK', bom.project)
-    self.assertEquals(0, bom.encoding_pattern_index)
-    self.assertEquals(0, bom.image_id)
-    self.assertEquals({
-        'audio_codec': [('codec_1', {'compact_str': Value('Codec 1')}, None),
-                        ('hdmi_1', {'compact_str': Value('HDMI 1')}, None)],
-        'battery': [('battery_huge',
-                     {'tech': Value('Battery Li-ion'),
-                      'size': Value('10000000')},
-                     None)],
-        'bluetooth': [('bluetooth_0',
-                       {'idVendor': Value('0123'), 'idProduct': Value('abcd'),
-                        'bcd': Value('0001')},
-                       None)],
-        'cellular': [(None, None, "Missing 'cellular' component")],
-        'cpu': [('cpu_5',
-                 {'name': Value('CPU @ 2.80GHz'), 'cores': Value('4')},
-                 None)],
-        'display_panel': [('display_panel_0', None, None)],
-        'dram': [('dram_0',
-                  {'vendor': Value('DRAM 0'), 'size': Value('4G')},
-                  None)],
-        'ec_flash_chip': [('ec_flash_chip_0',
-                           {'compact_str': Value('EC Flash Chip')},
-                           None)],
-        'embedded_controller': [('embedded_controller_0',
-                                 {'compact_str': Value('Embedded Controller')},
-                                 None)],
-        'flash_chip': [('flash_chip_0',
-                        {'compact_str': Value('Flash Chip')},
-                        None)],
-        'hash_gbb': [('hash_gbb_0',
-                      {'compact_str': Value('gv2#hash_gbb_0')},
-                      None)],
-        'key_recovery': [('key_recovery_0',
-                          {'compact_str': Value('kv3#key_recovery_0')},
-                          None)],
-        'key_root': [('key_root_0',
-                      {'compact_str': Value('kv3#key_root_0')},
-                      None)],
-        'keyboard': [(None,
-                      {'compact_str': 'xkb:us::eng'},
-                      "Component class 'keyboard' is unprobeable")],
-        'ro_ec_firmware': [('ro_ec_firmware_0',
-                            {'compact_str': Value('ev2#ro_ec_firmware_0')},
-                            None)],
-        'ro_main_firmware': [('ro_main_firmware_0',
-                              {'compact_str': Value('mv2#ro_main_firmware_0')},
-                              None)],
-        'storage': [('storage_0',
-                     {'type': Value('SSD'), 'size': Value('16G'),
-                      'serial': Value(r'^#123\d+$', is_re=True)},
-                     None)],
-        'video': [('camera_0',
-                   {'idVendor': Value('4567'), 'idProduct': Value('abcd'),
-                    'type': Value('webcam')},
-                   None)]},
-                      bom.components)
-    self.assertEquals({
-        'audio_codec': 1,
-        'battery': 3,
-        'bluetooth': 0,
-        'cellular': 0,
-        'cpu': 5,
-        'display_panel': 0,
-        'dram': 0,
-        'ec_flash_chip': 0,
-        'embedded_controller': 0,
-        'firmware': 0,
-        'flash_chip': 0,
-        'keyboard': None,
-        'storage': 0,
-        'video': 0}, bom.encoded_fields)
-
-
-class GetHWIDBundleNameTest(unittest.TestCase):
-  def testWithProjectName(self):
-    self.assertEqual(hwid_utils.GetHWIDBundleName('abc'),
-                     'hwid_v3_bundle_ABC.sh')
-    self.assertEqual(hwid_utils.GetHWIDBundleName('ABC'),
-                     'hwid_v3_bundle_ABC.sh')
 
 
 if __name__ == '__main__':

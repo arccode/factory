@@ -6,26 +6,22 @@
 
 """Command-line interface for HWID v3 utilities."""
 
-import json
 import logging
 import os
 import shutil
 import sys
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
-try:
-  from cros.factory.test import device_data
-  _HAS_DEVICE_DATA = True
-except ImportError:
-  _HAS_DEVICE_DATA = False
 from cros.factory.test.rules import phase
 from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils.argparse_utils import Command
 from cros.factory.utils.argparse_utils import ParseCmdline
+from cros.factory.utils import json_utils
 from cros.factory.utils import sys_utils
+from cros.factory.utils import type_utils
 from cros.factory.utils import yaml_utils
 from cros.factory.utils import process_utils
 
@@ -45,6 +41,11 @@ _COMMON_ARGS = [
                  'as returned by the "factory phase" command)')),
 ]
 
+_OUTPUT_FORMAT_COMMON_ARGS = [
+    CmdArg('--json-output', default=False, action='store_true',
+           help='Whether to dump result in JSON format.'),
+]
+
 _DATABASE_BUILDER_COMMON_ARGS = [
     CmdArg('--add-default-component', default=None,
            nargs='+', metavar='COMP', dest='add_default_comp',
@@ -61,7 +62,17 @@ _DATABASE_BUILDER_COMMON_ARGS = [
            help='Supported chassis identifiers')
 ]
 
-_VPD_COMMON_ARGS = [
+_DEVICE_DATA_COMMON_ARGS = [
+    CmdArg('--probed-results-file', default=None,
+           help=('A file with probed results.\n'
+                 '(Required if not running on a DUT.)')),
+    CmdArg('--device-info-file', default=None,
+           help=('A file with device info.\n'
+                 '(Required if not running on a DUT.)\n'
+                 'example content of this file:\n'
+                 '    component.antenna: ACN\n'
+                 '    component.has_cellular: True\n'
+                 '    component.keyboard: US_API\n')),
     CmdArg('--run-vpd', action='store_true',
            help=('Obtain the vpd data from the device before generating '
                  'the HWID string.  Also see --vpd-data-file for more '
@@ -72,6 +83,11 @@ _VPD_COMMON_ARGS = [
                  'If some rules in the HWID database need VPD values, '
                  'either --run-vpd or --vpd-data-file should be '
                  'specified.')),
+]
+
+_RMA_COMMON_ARGS = [
+    CmdArg('--rma-mode', default=False, action='store_true',
+           help='Whether to enable RMA mode.'),
 ]
 
 
@@ -85,8 +101,19 @@ class Arg(object):
     self.kwargs = kwargs
 
 
-def _GetHWIDString():
+def GetHWIDString():
   return process_utils.CheckOutput(['gooftool', 'read_hwid']).strip()
+
+
+def Output(msg):
+  print msg
+
+
+def OutputObject(options, obj):
+  if options.json_output:
+    Output(json_utils.DumpStr(obj, pretty=True))
+  else:
+    Output(yaml.safe_dump(obj, default_flow_style=False))
 
 
 @Command(
@@ -153,99 +180,102 @@ def UpdateDatabaseWrapper(options):
   logging.info('Output the updated database to %s.', database_path)
 
 
-@Command(
-    'generate',
-    CmdArg('--probed-results-file', default=None,
-           help=('A file with probed results.\n'
-                 '(Required if not running on a DUT)')),
-    CmdArg('--device-info-file', default=None,
-           help=('A file with device info.\n'
-                 '(Required if not running on a DUT.)\n'
-                 'example content of this file:\n'
-                 '    component.antenna: ACN\n'
-                 '    component.has_cellular: True\n'
-                 '    component.keyboard: US_API\n')),
-    CmdArg('--rma-mode', default=False, action='store_true',
-           help='Whether to enable RMA mode.'),
-    CmdArg('--json-output', default=False, action='store_true',
-           help='Whether to dump result in JSON format.'),
-    *_VPD_COMMON_ARGS)
-def GenerateHWIDWrapper(options):
-  """Generates HWID."""
+def ObtainAllDeviceData(options):
+  """Gets all device data needed by the HWID framework according to options.
+
+  Args:
+    options: The given options.
+
+  Returns:
+    An instance of `type_utils.Obj` with attributes:
+      probed_results: An object records the probed results.
+      device_info: An object records the device info.
+      vpd: An object records the vpd data.
+
+  Raises:
+    ValueError if the given options is invalid.
+  """
+  if sys_utils.InChroot():
+    if not options.device_info_file:
+      raise ValueError('Please specify device info with an input file when '
+                       'running in chroot.')
+
+    if not options.probed_results_file:
+      raise ValueError('Please specify probed results with an input file when '
+                       'running in chroot.')
+
+    if options.run_vpd:
+      raise ValueError('Cannot run `vpd` tool in chroot.')
+
   if options.run_vpd and options.vpd_data_file:
     raise ValueError('The arguments --run-vpd and --vpd-data-file cannot be '
                      'set at the same time')
 
-  bom = hwid_utils.GenerateBOMFromProbedResults(
-      options.database, hwid_utils.GetProbedResults(
-          infile=options.probed_results_file))
+  device_data = type_utils.Obj(
+      probed_results=hwid_utils.GetProbedResults(
+          infile=options.probed_results_file),
+      device_info=hwid_utils.GetDeviceInfo(infile=options.device_info_file),
+      vpd=hwid_utils.GetVPDData(run_vpd=options.run_vpd,
+                                infile=options.vpd_data_file))
 
-  # Select right device info (from file or shopfloor).
-  if options.device_info_file:
-    device_info = hwid_utils.GetDeviceInfo(options.device_info_file)
-  elif sys_utils.InChroot():
-    raise ValueError('Cannot get device info from shopfloor in chroot. '
-                     'Please specify device info with an input file. If you '
-                     'are running with command-line, use --device-info-file')
-  elif not _HAS_DEVICE_DATA:
-    raise ValueError('The device_data module is not available.')
-  else:
-    device_info = device_data.GetAllDeviceData()
+  logging.debug(yaml.dump(device_data.__dict__, default_flow_style=False))
 
-  vpd = hwid_utils.GetVPDData(options.run_vpd, options.vpd_data_file)
+  return device_data
 
-  verbose_output = {
-      'device_info': device_info,
-      'bom': bom,
-      'vpd': vpd
-  }
-  logging.debug(yaml.dump(verbose_output, default_flow_style=False))
-  identity = hwid_utils.GenerateHWID(options.database, bom, device_info,
-                                     rma_mode=options.rma_mode, vpd=vpd)
-  if options.json_output:
-    print json.dumps({
-        'encoded_string': identity.encoded_string,
-        'binary_string': identity.binary_string,
-        'hwdb_checksum': options.database.checksum})
-  else:
-    print 'Encoded HWID string: %s' % identity.encoded_string
-    print 'Binary HWID string: %s' % identity.binary_string
+
+@Command(
+    'generate',
+    *(_OUTPUT_FORMAT_COMMON_ARGS + _DEVICE_DATA_COMMON_ARGS + _RMA_COMMON_ARGS))
+def GenerateHWIDWrapper(options):
+  """Generates HWID."""
+  device_data = ObtainAllDeviceData(options)
+
+  identity = hwid_utils.GenerateHWID(
+      options.database, probed_results=device_data.probed_results,
+      device_info=device_data.device_info, vpd=device_data.vpd,
+      rma_mode=options.rma_mode)
+
+  OutputObject(options, {'encoded_string': identity.encoded_string,
+                         'binary_string': identity.binary_string,
+                         'database_checksum': options.database.checksum})
 
 
 @Command(
     'decode',
     CmdArg('hwid', nargs='?', default=None,
-           help='the HWID to decode.\n(required if not running on a DUT)'))
+           help='the HWID to decode.\n(required if not running on a DUT)'),
+    *_OUTPUT_FORMAT_COMMON_ARGS)
 def DecodeHWIDWrapper(options):
   """Decodes HWID."""
-  encoded_string = options.hwid if options.hwid else _GetHWIDString()
+  encoded_string = options.hwid if options.hwid else GetHWIDString()
   identity, bom = hwid_utils.DecodeHWID(options.database, encoded_string)
-  print yaml.dump(hwid_utils.ParseDecodedHWID(options.database, bom, identity),
-                  default_flow_style=False)
+
+  OutputObject(options,
+               {'project': identity.project,
+                'binary_string': identity.binary_string,
+                'image_id': bom.image_id,
+                'components': bom.components})
 
 
 @Command(
     'verify',
-    CmdArg('hwid', nargs='?', default=None,
+    CmdArg('hwid', default=None,
            help='the HWID to verify.\n(required if not running on a DUT)'),
-    CmdArg('--probed-results-file', default=None,
-           help=('a file with probed results.\n'
-                 '(required if not running on a DUT)')),
-    CmdArg('--rma-mode', default=False, action='store_true',
-           help='whether to enable RMA mode.'),
-    *_VPD_COMMON_ARGS)
+    *(_DEVICE_DATA_COMMON_ARGS + _RMA_COMMON_ARGS))
 def VerifyHWIDWrapper(options):
   """Verifies HWID."""
-  encoded_string = options.hwid if options.hwid else _GetHWIDString()
-  probed_bom = hwid_utils.GenerateBOMFromProbedResults(
-      options.database, hwid_utils.GetProbedResults(
-          infile=options.probed_results_file))
-  vpd = hwid_utils.GetVPDData(options.run_vpd, options.vpd_data_file)
-  hwid_utils.VerifyHWID(options.database, encoded_string, probed_bom,
-                        vpd=vpd, rma_mode=options.rma_mode,
-                        current_phase=options.phase)
+  encoded_string = options.hwid if options.hwid else GetHWIDString()
+
+  device_data = ObtainAllDeviceData(options)
+
+  hwid_utils.VerifyHWID(
+      options.database, encoded_string,
+      probed_results=device_data.probed_results,
+      device_info=device_data.device_info, vpd=device_data.vpd,
+      rma_mode=options.rma_mode, current_phase=options.phase)
+
   # No exception raised. Verification was successful.
-  print 'Verification passed.'
+  Output('Verification passed.')
 
 
 @Command(
@@ -257,7 +287,7 @@ def WriteHWIDWrapper(options):
     raise ValueError('Cannot write HWID to GBB in chroot.')
 
   process_utils.CheckOutput(['gooftool', 'write_hwid', options.hwid])
-  print 'HWID %r written to firmware GBB.' % options.hwid
+  Output('HWID %r written to firmware GBB.' % options.hwid)
 
 
 @Command('read')
@@ -266,18 +296,19 @@ def ReadHWIDWrapper(unused_options):
   if sys_utils.InChroot():
     raise ValueError('Cannot read HWID from GBB in chroot.')
 
-  print _GetHWIDString()
+  Output(GetHWIDString())
 
 
 @Command(
     'list-components',
     CmdArg('comp_class', nargs='*', default=None,
-           help='the component classes to look up'))
+           help='the component classes to look up'),
+    *_OUTPUT_FORMAT_COMMON_ARGS)
 def ListComponentsWrapper(options):
   """Lists components of the given class."""
   components_list = hwid_utils.ListComponents(options.database,
                                               options.comp_class)
-  print yaml.safe_dump(components_list, default_flow_style=False)
+  OutputObject(options, components_list)
 
 
 @Command(
@@ -286,16 +317,36 @@ def ListComponentsWrapper(options):
            help='the image ID to enumerate.'),
     CmdArg('-s', '--status', default='supported',
            choices=['supported', 'released', 'all'],
-           help='the status of components to enumerate'))
+           help='the status of components to enumerate'),
+    CmdArg('--comp', nargs='*', default=None,
+           help=('Specify some of the component to limit the output.  '
+                 'The format of COMP is '
+                 '"<comp_cls>=<comp_name>[,<comp_name>[,<comp_name>...]]"')),
+    CmdArg('--no-bom', action='store_true',
+           help='Print the encoded string only.'))
 def EnumerateHWIDWrapper(options):
   """Enumerates possible HWIDs."""
+  comps = {}
+  if options.comp:
+    for comp in options.comp:
+      if '=' not in comp:
+        raise ValueError('The format of the --comp argument is incorrect.')
+      comp_cls, _, comp_names = comp.partition('=')
+      comps[comp_cls] = comp_names.split(',')
+
   # Enumerating may take a very long time so we want to verbosely make logs.
   logging.debug('Enumerating all HWIDs...')
-  hwids = hwid_utils.EnumerateHWID(options.database, options.image_id,
-                                   options.status)
+  hwids = hwid_utils.EnumerateHWID(
+      options.database, image_id=options.image_id, status=options.status,
+      comps=comps)
+
   logging.debug('Printing %d sorted HWIDs...', len(hwids))
-  for k, v in sorted(hwids.iteritems()):
-    print '%s: %s' % (k, v)
+  if options.no_bom:
+    for k in sorted(hwids.iterkeys()):
+      Output(k)
+  else:
+    for k, v in sorted(hwids.iteritems()):
+      Output('%s: %s' % (k, v))
 
 
 @Command('verify-database')
@@ -303,7 +354,7 @@ def VerifyHWIDDatabase(options):
   """Verifies the given HWID database."""
   # Do nothing here since all the verifications are done when loading the
   # database with HWID library.
-  print 'Database %s verified' % options.project
+  Output('Database %s verified' % options.project)
 
 
 def ParseOptions(args=None):
@@ -317,7 +368,7 @@ def InitializeDefaultOptions(options):
     options.hwid_db_path = hwid_utils.GetDefaultDataPath()
   if options.project is None:
     if sys_utils.InChroot():
-      print 'Argument -j/--project is required'
+      Output('Argument -j/--project is required')
       sys.exit(1)
     options.project = hwid_utils.ProbeProject()
 

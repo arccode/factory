@@ -1,9 +1,9 @@
-checksum: 477a3f89bc4e8e2e2531ee7f4ce953bd6368e6ae
+checksum: xxx
+
 project: CHROMEBOOK
 
 encoding_patterns:
   0: default
-  1: new pattern
 
 image_id:
   0: EVT
@@ -14,41 +14,43 @@ image_id:
 pattern:
   - image_ids: [0, 1]
     encoding_scheme: base32
-    fields:
+    fields:  # only 1 bit for cpu_field, no flash_chip_field
     - audio_codec_field: 1
     - battery_field: 2
     - bluetooth_field: 0
     - cellular_field: 1
     - cpu_field: 1                  # 5 bits
     - display_panel_field: 0
-    - dram_field: 1
-    - keyboard_field: 1
-    - video_field: 0
-    - cpu_field: 1
-    - storage_field: 2              # 10 bits
-    - cpu_field: 1
+    - dram_field: 2
+    - embedded_controller_field: 0
     - firmware_field: 1
-    - firmware_field: 1
-    - dram_field: 1                 # 14 bits
+    - firmware_keys_field: 1
+    - keyboard_field: 1             # 10 bits
+    - region_field: 2
+    - storage_field: 2
+    - video_field: 0                # 14 bits
 
   - image_ids: [2, 3]
     encoding_scheme: base8192
     fields:
     - audio_codec_field: 1
-    - battery_field: 2
+    - battery_field: 2              # 3 bits
     - bluetooth_field: 0
     - cellular_field: 1
-    - cpu_field: 1                  # 5 bits
+    - cpu_field: 1
     - display_panel_field: 0
-    - dram_field: 1
+    - dram_field: 2
+    - embedded_controller_field: 0
+    - firmware_field: 1              # 8 bits
+    - firmware_keys_field: 1
     - keyboard_field: 1
+    - cpu_field: 1
+    - region_field: 2                # 13 bits
+    - storage_field: 2
     - video_field: 0
-    - cpu_field: 1
-    - storage_field: 2              # 10 bits
-    - cpu_field: 1
-    - firmware_field: 1
-    - firmware_field: 1
-    - dram_field: 1                 # 14 bits
+
+    - flash_chip_field: 0
+    - cpu_field: 1                  # 16 bits
 
 encoded_fields:
   audio_codec_field:
@@ -58,19 +60,19 @@ encoded_fields:
       audio_codec: [codec_1, hdmi_1]
   battery_field:
     0:
-      battery: battery_small
+      battery: battery_unsupported
     1:
-      battery: battery_medium
+      battery: battery_deprecated
     2:
-      battery: battery_large
+      battery: battery_unqualified
     3:
-      battery: battery_huge
+      battery: battery_supported
   bluetooth_field:
     0:
       bluetooth: bluetooth_0
   cellular_field:
     0:
-      cellular: NULL
+      cellular: []
     1:
       cellular: cellular_0
   cpu_field:
@@ -93,15 +95,29 @@ encoded_fields:
     0:
       dram: dram_0
     1:
-      dram: dram_1
+      dram:
+      - dram_1
+      - dram_1
     2:
-      dram: dram_2
-  ec_flash_chip_field:
-    0:
-      ec_flash_chip: ec_flash_chip_0
+      dram:
+      - dram_2
+      - dram_2
+      - dram_2
   embedded_controller_field:
     0:
       embedded_controller: embedded_controller_0
+  firmware_field:
+    0:
+      ro_ec_firmware: ro_ec_firmware_0
+      ro_main_firmware: ro_main_firmware_0
+    1:
+      ro_ec_firmware: ro_ec_firmware_0
+      ro_main_firmware: ro_main_firmware_1
+  firmware_keys_field:
+    0:
+      firmware_keys: firmware_keys_premp
+    1:
+      firmware_keys: firmware_keys_mp
   flash_chip_field:
     0:
       flash_chip: flash_chip_0
@@ -110,6 +126,7 @@ encoded_fields:
       keyboard: keyboard_us
     1:
       keyboard: keyboard_gb
+  region_field: !region_field [us, tw]
   storage_field:
     0:
       storage: storage_0
@@ -120,25 +137,6 @@ encoded_fields:
   video_field:
     0:
       video: camera_0
-  firmware_field:
-    0:
-      hash_gbb: hash_gbb_0
-      key_recovery: key_recovery_mp
-      key_root: key_root_mp
-      ro_ec_firmware: ro_ec_firmware_0
-      ro_main_firmware: ro_main_firmware_0
-    1:
-      hash_gbb: hash_gbb_0
-      key_recovery: key_recovery_mp
-      key_root: key_root_mp
-      ro_ec_firmware: ro_ec_firmware_0
-      ro_main_firmware: ro_main_firmware_1
-    2:
-      hash_gbb: hash_gbb_0
-      key_recovery: key_recovery_premp
-      key_root: key_root_premp
-      ro_ec_firmware: ro_ec_firmware_0
-      ro_main_firmware: ro_main_firmware_0
 
 components:
   audio_codec:
@@ -157,22 +155,26 @@ components:
 
   battery:
     items:
-      battery_small:
+      battery_unsupported:
+        status: unsupported
         values:
           tech: Battery Li-ion
           size: '2500000'
 
-      battery_medium:
+      battery_deprecated:
+        status: deprecated
         values:
           tech: Battery Li-ion
           size: '5000000'
 
-      battery_large:
+      battery_unqualified:
+        status: unqualified
         values:
           tech: Battery Li-ion
           size: '7500000'
 
-      battery_huge:
+      battery_supported:
+        status: supported
         values:
           tech: Battery Li-ion
           size: '10000000'
@@ -226,10 +228,10 @@ components:
           cores: '4'
 
   display_panel:
-    probeable: False
     items:
       display_panel_0:
-        values: NULL
+        values:
+          fake_flag: flag_value
 
   dram:
     items:
@@ -244,20 +246,25 @@ components:
           size: 4G
 
       dram_2:
-        status: unqualified
         values:
           vendor: DRAM 2
           size: 8G
-
-  ec_flash_chip:
-    items:
-      ec_flash_chip_0:
-        values: { compact_str: EC Flash Chip }
 
   embedded_controller:
     items:
       embedded_controller_0:
         values: { compact_str: Embedded Controller }
+
+  firmware_keys:
+    items:
+      firmware_keys_premp:
+        values:
+          key_recovery: kv3#key_recovery_premp
+          key_root: kv3#key_root_premp
+      firmware_keys_mp:
+        values:
+          key_recovery: kv3#key_recovery_mp
+          key_root: kv3#key_root_mp
 
   flash_chip:
     items:
@@ -273,6 +280,21 @@ components:
       keyboard_us:
         values:
           compact_str: xkb:us::eng
+
+  region: !region_component
+
+  ro_ec_firmware:
+    items:
+      ro_ec_firmware_0:
+        values: { compact_str: ev2#ro_ec_firmware_0 }
+
+  ro_main_firmware:
+    items:
+      ro_main_firmware_0:
+        status: deprecated
+        values: { compact_str: mv2#ro_main_firmware_0 }
+      ro_main_firmware_1:
+        values: { compact_str: mv2#ro_main_firmware_1 }
 
   storage:
     items:
@@ -302,38 +324,6 @@ components:
           idProduct: abcd
           type: webcam
 
-  hash_gbb:
-    items:
-      hash_gbb_0:
-        values: { compact_str: gv2#hash_gbb_0 }
-
-  key_recovery:
-    items:
-      key_recovery_mp:
-        values: { compact_str : kv3#key_recovery_mp }
-      key_recovery_premp:
-        values: { compact_str : kv3#key_recovery_premp }
-
-  key_root:
-    items:
-      key_root_mp:
-        values: { compact_str: kv3#key_root_mp }
-      key_root_premp:
-        values: { compact_str: kv3#key_root_premp }
-
-  ro_ec_firmware:
-    items:
-      ro_ec_firmware_0:
-        values: { compact_str: ev2#ro_ec_firmware_0 }
-
-  ro_main_firmware:
-    items:
-      ro_main_firmware_0:
-        values: { compact_str: mv2#ro_main_firmware_0 }
-      ro_main_firmware_1:
-        status: deprecated
-        values: { compact_str: mv2#ro_main_firmware_1 }
-
 rules:
 - name: device_info.set_image_id
   evaluate: SetImageId('PVT2')
@@ -343,67 +333,8 @@ rules:
   evaluate: SetComponent('cellular', 'cellular_0')
   otherwise: SetComponent('cellular', None)
 
-- name: device_info.component.keyboard
-  evaluate: >
-      SetComponent(
-          'keyboard', LookupMap(GetDeviceInfo('component.keyboard'), {
-              'us': 'keyboard_us',
-              'gb': 'keyboard_gb'
-          }))
-
-- name: device_info.component.dram
-  evaluate: >
-      SetComponent(
-          'dram', LookupMap(GetDeviceInfo('component.dram'), {
-              'foo': 'dram_0',
-              'bar': 'dram_1',
-              'unqualified': 'dram_2'
-          }))
-
-- name: device_info.component.audio_codec
-  evaluate: >
-      SetComponent(
-          'audio_codec', LookupMap(GetDeviceInfo('component.audio_codec'), {
-              'set_0': ['codec_0', 'hdmi_0'],
-              'set_1': ['codec_1', 'hdmi_1']
-          }))
-
 - name: verify.components.rule_1
-  when: ComponentEq('audio_codec', 'Codec 1') and
-        ComponentEq('audio_codec', 'HDMI 1')
+  when: ComponentEq('audio_codec', 'codec_1') and
+        ComponentEq('audio_codec', 'hdmi_1')
   evaluate:
-  - Assert(ComponentEq('battery', 'battery_huge'))
-  - Assert(ComponentEq('hash_gbb', 'hash_gbb_0'))
-  - Assert(ComponentEq('key_recovery', 'key_recovery_mp'))
-  - Assert(ComponentEq('key_root', 'key_root_mp'))
-  - Assert(ComponentEq('ro_ec_firmware', 'ro_ec_firmware_0'))
-  - Assert(ComponentEq('ro_main_firmware', 'ro_main_firmware_0'))
-
-- name: verify.components.rule_3
-  when: ComponentEq('dram', 'dram_0') and ComponentEq('cellular', 'cellular_0')
-  evaluate:
-  - Assert(ComponentEq('battery', 'huge_battery'))
-  - Assert(ComponentIn('cpu', ['cpu_1', 'cpu_2']))
-
-- name: verify.components.rule_4
-  when: not ComponentEq('cpu', None)
-  evaluate:
-  - Assert((not ComponentEq('battery', 'battery_small')) or
-           (ComponentIn('cpu', ['cpu_1', 'cpu_2', 'cpu_3'])))
-
-
-- name: verify.sku.us
-  evaluate: >
-      ComponentEq('audio_codec', ['hdmi_1', 'codec_1']) and
-      ComponentEq('cpu', 'cpu_5') and
-      ComponentEq('battery', 'battery_huge') and
-      ComponentEq('keyboard', 'US') and
-      ComponentEq('storage', ['SSD', '16G'])
-
-- name: verify.sku.gb
-  evaluate: >
-      ComponentEq('audio_codec', ['hdmi_1', 'codec_1']) and
-      ComponentEq('cpu', 'cpu_4') and
-      ComponentEq('battery', 'battery_medium') and
-      ComponentEq('keyboard', 'GB') and
-      ComponentEq('storage', ['HDD', '500G'])
+  - Assert(ComponentIn('cpu', ['cpu_3', 'cpu_4', 'cpu_5']))

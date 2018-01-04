@@ -1,68 +1,56 @@
-# Copyright 2017 The Chromium OS Authors. All rights reserved.
+# Copyright 2018 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""BOM class for HWID v3 framework."""
+"""BOM class for the HWID v3 framework.
 
-import collections
-import copy
+A BOM object mainly records what exact components are installed on the
+Chromebook, while a HWID database records what components are allowed to be
+installed on the Chromebook and their corresponding index.
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.hwid.v3 import rule
-from cros.factory.utils import schema
+There are two use cases of the BOM class:
+  1. Generate a BOM object by probing the device, and then we can encode the BOM
+     object to a HWID identity according to the HWID database.
+  2. Decode a given HWID identity into a BOM object according to the HWID
+     database.
 
+The above two use cases can be written to a more simple form (in LaTeX syntax):
+  1. identity = Encode_{database}(bom)
+  2. bom = Decode_{database}(identity)
 
-# A named tuple to store the probed component name and the error if any.
-ProbedComponentResult = collections.namedtuple(
-    'ProbedComponentResult', ['component_name', 'probed_values', 'error'])
+Above two formulas are implemented in `transformer.py`.
+"""
+
+import factory_common  # pylint: disable=unused-import
+from cros.factory.utils import type_utils
 
 
 class BOM(object):
   """A class that holds all the information regarding a BOM.
 
-  Attributes:
-    project: A string of project name.
-    encoding_pattern_index: An int indicating the encoding pattern. Currently,
-        only 0 is used.
+  This class is for HWID v3 framework internal use only.  It does not verify
+  anything because its properties are not given from external resources.
+
+  Properties:
+    encoding_pattern_index: An int indicating the encoding pattern.
     image_id: An int indicating the image id.
-    components: A dict that maps component classes to a list of
-        ProbedComponentResult.
-    encoded_fields: A dict that maps each encoded field to its index.
-
-  Raises:
-    SchemaException if invalid argument format is found.
+    components: A dict that maps component classes to a set of string of
+        component name.
   """
-  _COMPONENTS_SCHEMA = schema.Dict(
-      'bom',
-      key_type=schema.Scalar('component class', str),
-      value_type=schema.List(
-          'list of ProbedComponentResult',
-          schema.Tuple('ProbedComponentResult',
-                       [schema.Optional(schema.Scalar('component name', str)),
-                        schema.Optional(schema.Dict(
-                            'probed_values',
-                            key_type=schema.Scalar('key', str),
-                            value_type=schema.AnyOf([
-                                schema.Scalar('value', str),
-                                schema.Scalar('value', rule.Value)]))),
-                        schema.Optional(schema.Scalar('error', str))])))
 
-  def __init__(self, project, encoding_pattern_index, image_id,
-               components, encoded_fields):
-    self.project = project
+  def __init__(self, encoding_pattern_index, image_id, components):
     self.encoding_pattern_index = encoding_pattern_index
     self.image_id = image_id
-    self.components = components
-    self.encoded_fields = encoded_fields
-    BOM._COMPONENTS_SCHEMA.Validate(self.components)
+    self.components = {}
 
-  def Duplicate(self):
-    """Duplicates this BOM object.
+    for comp_cls, comp_names in components.iteritems():
+      self.SetComponent(comp_cls, comp_names)
 
-    Returns:
-      A deepcopy of the original BOM object.
-    """
-    return copy.deepcopy(self)
+  def SetComponent(self, comp_cls, comp_names):
+    self.components[comp_cls] = sorted(type_utils.MakeList(comp_names))
+
+  def RemoveComponent(self, comp_cls):
+    del self.components[comp_cls]
 
   def __eq__(self, op2):
     if not isinstance(op2, BOM):
@@ -71,3 +59,7 @@ class BOM(object):
 
   def __ne__(self, op2):
     return not self.__eq__(op2)
+
+  def __repr__(self):
+    return 'BOM(encoding_pattern_index=%r, image_id=%r, components=%r)' % (
+        self.encoding_pattern_index, self.image_id, self.components)

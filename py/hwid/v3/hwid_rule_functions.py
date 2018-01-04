@@ -8,64 +8,10 @@ import factory_common  # pylint: disable=W0611
 
 from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3.rule import GetContext
-from cros.factory.hwid.v3.rule import GetLogger
 from cros.factory.hwid.v3.rule import RuleFunction
 from cros.factory.hwid.v3.rule import Value
 from cros.factory.test.rules import phase
-from cros.factory.utils.type_utils import MakeList
-
-
-def GetClassAttributesOnBOM(database, bom, comp_cls):
-  """Creates a set of valid rule values to be evaluated with.
-
-  This method accepts a HWID context and a component class, and generates a dict
-  of attributes under the HWID context. First it checks there is a valid
-  component of the given class in the BOM by matching the probed values in the
-  BOM object to the values defined in the database. Then it extracts from the
-  database all feasible values that can be used in rule evaluation (e.g.
-  component name, component values, labels, ... etc.), and return the values as
-  a dict. A dict with name maps to None is used to represent missing components.
-  For example, the valid attributes for 'storage' class may look like:
-
-    valid_attributes = {
-        'name': 'sandisk_16g',
-        'value': 'Sandisk 33456'
-    }
-
-  Args:
-    database: The Database to extract attributes from.
-    bom: The BOM object to extract attributes from.
-    comp_cls: The component class to retrieve values for.
-
-  Returns:
-    A dict of attributes extracted from database that can be used to represent
-    or describe the given component class. None if comp_cls is invalid.
-  """
-  def PackProbedValues(bom, comp_cls):
-    results = []
-    for c in bom.components[comp_cls]:
-      if c.probed_values is None:
-        # For non-probeable components, report its component name directly if
-        # there is one.
-        if c.component_name:
-          results.append(c.component_name)
-        continue
-      matched_component = database.components.MatchComponentsFromValues(
-          comp_cls, c.probed_values)
-      if matched_component:
-        results.extend(matched_component.keys())
-    return results
-
-  if comp_cls not in database.components.GetRequiredComponents():
-    GetLogger().Error('Invalid component class: %r' % comp_cls)
-    return None
-  # Construct a set of known values from hwid.database and hwid.bom.
-  results = PackProbedValues(bom, comp_cls)
-  # If the set is empty, add a None element indicating that the component
-  # class is missing.
-  if not results:
-    results.append(None)
-  return results
+from cros.factory.utils import type_utils
 
 
 def _ComponentCompare(comp_cls, values, op_for_values):
@@ -77,14 +23,20 @@ def _ComponentCompare(comp_cls, values, op_for_values):
     op_for_values: The operation used to generate final result. Must be any or
         all.
   """
+  def _IsMatch(value):
+    return any(
+        [value.Matches(name) for name in context.bom.components[comp_cls]])
+
   context = GetContext()
-  attrs = GetClassAttributesOnBOM(context.database, context.bom, comp_cls)
-  if attrs is None:
+
+  # Always treat as comparing failed if the specified component class is not
+  # recorded in the BOM object.
+  if comp_cls not in context.bom.components:
     return False
-  values = [
-      Value(v) if not isinstance(v, Value) else v for v in MakeList(values)]
-  return op_for_values(
-      [any([v.Matches(attr) for attr in attrs]) for v in values])
+
+  values = [Value(v) if not isinstance(v, Value) else v
+            for v in type_utils.MakeList(values)]
+  return op_for_values([_IsMatch(v) for v in values])
 
 
 @RuleFunction(['bom', 'database'])
@@ -120,16 +72,26 @@ def ComponentIn(comp_cls, values):
 
 
 @RuleFunction(['bom', 'database'])
-def SetComponent(comp_cls, name):
-  """A wrapper method to update {comp_cls: name} pair of BOM and re-generate
-  'binary_string' and 'encoded_string' of the HWID context.
+def SetComponent(comp_cls, names):
+  """Set the component of the given component class recorded in the BOM object.
 
   Args:
     comp_cls: The component class to set.
-    name: The component name to set to the given component class.
+    names: The component name to set to the given component class.
   """
   context = GetContext()
-  context.database.UpdateComponentsOfBOM(context.bom, {comp_cls: name})
+
+  if not isinstance(comp_cls, str):
+    raise HWIDException(
+        'Component class should be in string type, but got %r.' % comp_cls)
+
+  names = [] if names is None else type_utils.MakeList(names)
+  for name in names:
+    if not isinstance(name, str):
+      raise HWIDException(
+          'Component name should be in string type, but got %r.' % name)
+
+  context.bom.SetComponent(comp_cls, names)
 
 
 @RuleFunction(['bom', 'database'])

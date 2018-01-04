@@ -12,91 +12,14 @@ import os
 import unittest
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3.database import Components
 from cros.factory.hwid.v3.database import Database
-from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3.rule import Value
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
-from cros.factory.utils import json_utils
+
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
-
-class NewDatabaseTest(unittest.TestCase):
-  """Test the new style of HWID database.
-
-  - Split key_root and key_recovery to a new component: firmware_keys
-  - Separate firmware field to let each field only has one component
-  - Add default argument in audio_codec and cellular
-  """
-
-  def setUp(self):
-    self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
-                                                   'test_new_db.yaml'))
-    self.results = json_utils.LoadFile(
-        os.path.join(_TEST_DATA_PATH, 'test_probe_result.json'))
-    self.boms = [hwid_utils.GenerateBOMFromProbedResults(self.database,
-                                                         probed_results)
-                 for probed_results in self.results]
-
-  def testProbeResultToBOM(self):
-    bom = self.boms[0]
-    self.assertEquals('CHROMEBOOK', bom.project)
-    self.assertEquals(0, bom.encoding_pattern_index)
-    self.assertEquals(0, bom.image_id)
-    self.assertEquals(bom.components['firmware_keys'],
-                      [('firmware_keys_0',
-                        {'key_recovery': Value('kv3#key_recovery_0'),
-                         'key_root': Value('kv3#key_root_0')},
-                        None)])
-    self.assertEquals(bom.components['ro_ec_firmware'],
-                      [('ro_ec_firmware_0',
-                        {'compact_str': Value('ev2#ro_ec_firmware_0')},
-                        None)])
-    self.assertEquals(bom.components['ro_main_firmware'],
-                      [('ro_main_firmware_0',
-                        {'compact_str': Value('mv2#ro_main_firmware_0')},
-                        None)])
-    self.assertEquals(bom.encoded_fields['ro_main_firmware_field'], 0)
-    self.assertEquals(bom.encoded_fields['firmware_keys_field'], 0)
-    self.assertEquals(bom.encoded_fields['ro_ec_firmware_field'], 0)
-
-  def testProbeResultToBOMWithDefault(self):
-    """Test the behaviour of the default argument.
-
-    In this database, audio_codec has only one default item, and cellular has a
-    deprecated default item.
-    """
-    # No audio_codec and no cellular
-    bom = self.boms[6]
-    self.assertEquals(bom.components['audio_codec'],
-                      [('audio_codec_default', None, None)])
-    self.assertEquals(bom.components['cellular'],
-                      [(None, None,
-                        common.MISSING_COMPONENT_ERROR('cellular'))])
-    self.assertEquals(bom.encoded_fields['audio_codec_field'], 0)
-    self.assertEquals(bom.encoded_fields['cellular_field'], 1)
-
-    # There is audio_codec and cellular_a
-    bom = self.boms[7]
-    self.assertEquals(bom.components['audio_codec'],
-                      [('audio_codec_default', None, None)])
-    self.assertEquals(bom.components['cellular'],
-                      [('cellular_a',
-                        {'compact_str': Value('cellular_a')},
-                        None)])
-    self.assertEquals(bom.encoded_fields['audio_codec_field'], 0)
-    self.assertEquals(bom.encoded_fields['cellular_field'], 2)
-
-    # Invalid cellular probed result
-    bom = self.boms[8]
-    probed_value = {'compact_str': 'invalid_value'}
-    self.assertEquals(bom.components['cellular'],
-                      [(None, probed_value,
-                        common.INVALID_COMPONENT_ERROR('cellular',
-                                                       probed_value))])
-    self.assertEquals(bom.encoded_fields['cellular_field'], None)
 
 
 class DatabaseTest(unittest.TestCase):
@@ -104,11 +27,6 @@ class DatabaseTest(unittest.TestCase):
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
-    self.results = json_utils.LoadFile(
-        os.path.join(_TEST_DATA_PATH, 'test_probe_result.json'))
-    self.boms = [hwid_utils.GenerateBOMFromProbedResults(self.database,
-                                                         probed_results)
-                 for probed_results in self.results]
 
   def testLoadFile(self):
     self.assertIsInstance(Database.LoadFile(os.path.join(
@@ -193,56 +111,6 @@ class DatabaseTest(unittest.TestCase):
         r'its bit length is 1 in the pattern',
         mock_db._SanityChecks)
 
-  def testUpdateComponentsOfBOM(self):
-    bom = self.boms[0]
-    new_bom = bom.Duplicate()
-    self.database.UpdateComponentsOfBOM(new_bom, {'keyboard': 'keyboard_gb'})
-    self.assertEquals([('keyboard_gb', None, None)],
-                      new_bom.components['keyboard'])
-    self.assertEquals(1, new_bom.encoded_fields['keyboard'])
-    new_bom = bom.Duplicate()
-    self.database.UpdateComponentsOfBOM(
-        new_bom, {'audio_codec': ['codec_0', 'hdmi_0']})
-    self.assertEquals(
-        [('codec_0', {'compact_str': Value('Codec 0')}, None),
-         ('hdmi_0', {'compact_str': Value('HDMI 0')}, None)],
-        new_bom.components['audio_codec'])
-    self.assertEquals(0, new_bom.encoded_fields['audio_codec'])
-    new_bom = bom.Duplicate()
-    self.database.UpdateComponentsOfBOM(new_bom, {'cellular': 'cellular_0'})
-    self.assertEquals([('cellular_0',
-                        {'idVendor': Value('89ab'), 'idProduct': Value('abcd'),
-                         'name': Value('Cellular Card')},
-                        None)],
-                      new_bom.components['cellular'])
-    self.assertEquals(1, new_bom.encoded_fields['cellular'])
-    new_bom = bom.Duplicate()
-    self.database.UpdateComponentsOfBOM(new_bom, {'cellular': None})
-    self.assertEquals([(None, None, "Missing 'cellular' component")],
-                      new_bom.components['cellular'])
-    self.assertEquals(0, new_bom.encoded_fields['cellular'])
-    self.assertRaisesRegexp(
-        HWIDException,
-        r"Invalid component class 'foo'",
-        self.database.UpdateComponentsOfBOM, bom, {'foo': 'bar'})
-    self.assertRaisesRegexp(
-        HWIDException,
-        r"Invalid component name 'bar' of class 'cpu'",
-        self.database.UpdateComponentsOfBOM, bom, {'cpu': 'bar'})
-
-  def testGetFieldIndexFromComponents(self):
-    bom = self.boms[0]
-    self.assertEquals(5, self.database.GetFieldIndexFromProbedComponents(
-        'cpu', bom.components))
-    self.assertEquals(1, self.database.GetFieldIndexFromProbedComponents(
-        'audio_codec', bom.components))
-    self.assertEquals(3, self.database.GetFieldIndexFromProbedComponents(
-        'battery', bom.components))
-    self.assertEquals(0, self.database.GetFieldIndexFromProbedComponents(
-        'storage', bom.components))
-    self.assertEquals(0, self.database.GetFieldIndexFromProbedComponents(
-        'cellular', bom.components))
-
   def testGetAllIndices(self):
     self.assertEquals([0, 1, 2, 3, 4, 5], self.database._GetAllIndices('cpu'))
     self.assertEquals([0, 1], self.database._GetAllIndices('dram'))
@@ -282,14 +150,14 @@ class DatabaseTest(unittest.TestCase):
             {'name': 'codec_0', 'values': {'compact_str': Value('Codec 0')}},
             {'name': 'hdmi_0', 'values': {'compact_str': Value('HDMI 0')}}]},
                       self.database._GetAttributesByIndex('audio_codec', 0))
-    self.assertEquals({'cellular': None},
+    self.assertEquals({'cellular': []},
                       self.database._GetAttributesByIndex('cellular', 0))
 
   def testLoadDatabaseWithRegionInfo(self):
     db = Database.LoadFile(
         os.path.join(_TEST_DATA_PATH, 'test_db_regions.yaml'))
     # Make sure that region fields are generated correctly.
-    self.assertEquals({'region': None}, db.encoded_fields['region_field'][0])
+    self.assertEquals({'region': []}, db.encoded_fields['region_field'][0])
     self.assertEquals({'region': ['us']}, db.encoded_fields['region_field'][29])
     # Make sure that region components are generated correctly.
     self.assertEquals(
@@ -463,7 +331,7 @@ class ComponentsTest(unittest.TestCase):
         {'comp_2': {'values': None}},
         self.components.MatchComponentsFromValues('comp_cls_2', None))
     self.assertEquals(
-        None,
+        {},
         self.components.MatchComponentsFromValues('comp_cls_1',
                                                   {'field1': 'foo'}))
 

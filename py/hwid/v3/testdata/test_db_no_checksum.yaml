@@ -229,7 +229,7 @@ components:
     probeable: False
     items:
       display_panel_0:
-        values: NULL
+        values: {fake_flag: flag_value}
 
   dram:
     items:
@@ -262,10 +262,10 @@ components:
     probeable: False
     items:
       keyboard_gb:
-        values: NULL
+        values: { compact_str: 'meow' }
 
       keyboard_us:
-        values: NULL
+        values: { compact_str: 'xkb:us::eng' }
 
   storage:
     items:

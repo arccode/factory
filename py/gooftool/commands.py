@@ -744,22 +744,19 @@ def VerifyHWID(options):
   This is mainly for Gooftool to verify v3 HWID during finalize.  For testing
   and development purposes, please use `hwid` command.
   """
-  db = GetGooftool(options).db
-  encoded_string = options.hwid or GetGooftool(options).ReadHWID()
-  if options.probe_results:
-    probed_results = hwid_utils.GetProbedResults(infile=options.probe_results)
-  else:
-    probed_results = GetGooftool(options).Probe()
+  database = GetGooftool(options).db
 
-  vpd = hwid_utils.GetVPDData(options.hwid_run_vpd, options.hwid_vpd_data_file)
+  encoded_string = options.hwid or GetGooftool(options).ReadHWID()
+
+  probed_results = hwid_utils.GetProbedResults(infile=options.probe_results)
+  vpd = hwid_utils.GetVPDData(run_vpd=options.hwid_run_vpd,
+                              infile=options.hwid_vpd_data_file)
 
   event_log.Log('probed_results', probed_results=FilterDict(probed_results))
   event_log.Log('vpd', vpd=FilterDict(vpd) if vpd is None else None)
 
-  bom = hwid_utils.GenerateBOMFromProbedResults(db, probed_results)
-
-  hwid_utils.VerifyHWID(db, encoded_string, bom, vpd=vpd,
-                        rma_mode=options.rma_mode)
+  hwid_utils.VerifyHWID(database, encoded_string, probed_results=probed_results,
+                        vpd=vpd, rma_mode=options.rma_mode)
 
   event_log.Log('verified_hwid', hwid=encoded_string)
 

@@ -44,7 +44,7 @@ class GetImageIdFromEncodedString(unittest.TestCase):
 
 
 class _Sample(dict):
-  _ARGS = ['encoded_string', 'project', 'encode_pattern_index', 'image_id',
+  _ARGS = ['encoded_string', 'project', 'encoding_pattern_index', 'image_id',
            'components_bitset', 'encoding_scheme']
 
   def __init__(self, *args):
@@ -86,7 +86,7 @@ class _IdentityGeneratorTestBase(object):
 
 class IdentityGenerateFromBinaryStringTest(unittest.TestCase,
                                            _IdentityGeneratorTestBase):
-  NEEDED_ARGS = ['encoding_scheme', 'project', 'encode_pattern_index',
+  NEEDED_ARGS = ['encoding_scheme', 'project', 'encoding_pattern_index',
                  'image_id', 'components_bitset']
 
   def GenerateIdentity(self, **kwargs):
@@ -102,10 +102,10 @@ class IdentityGenerateFromBinaryStringTest(unittest.TestCase,
     self.doTestInvalid(_SAMPLES[0], project='proj')
 
   def testBadEncodePatternIndex(self):
-    # The encode_pattern_index is either 0 or 1.
-    self.doTestInvalid(_SAMPLES[0], encode_pattern_index=-1)
-    self.doTestInvalid(_SAMPLES[0], encode_pattern_index=2)
-    self.doTestInvalid(_SAMPLES[0], encode_pattern_index=3)
+    # The encoding_pattern_index is either 0 or 1.
+    self.doTestInvalid(_SAMPLES[0], encoding_pattern_index=-1)
+    self.doTestInvalid(_SAMPLES[0], encoding_pattern_index=2)
+    self.doTestInvalid(_SAMPLES[0], encoding_pattern_index=3)
 
   def testBadImageId(self):
     # The range of the image_id is 0~15.

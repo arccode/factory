@@ -49,6 +49,12 @@ class Obj(object):
   def __repr__(self):
     return repr(self.__dict__)
 
+  def __eq__(self, rhs):
+    return self.__dict__ == rhs.__dict__
+
+  def __ne__(self, rhs):
+    return self.__dict__ != rhs.__dict__
+
 
 class Enum(frozenset):
   """An enumeration type.

@@ -10,7 +10,6 @@ import unittest
 
 import factory_common   # pylint: disable=unused-import
 from cros.factory.hwid.v3.bom import BOM
-from cros.factory.hwid.v3.bom import ProbedComponentResult
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3.hwid_rule_functions import ComponentEq
@@ -37,18 +36,8 @@ class HWIDRuleTest(unittest.TestCase):
     self.database = Database.LoadFile(_TEST_DATABASE_PATH,
                                       verify_checksum=False)
     self.bom = BOM(
-        project='CHROMEBOOK',
-        encoding_pattern_index=0,
-        image_id=0,
-        components={
-            'cpu': [ProbedComponentResult('cpu_0', {'unused_value': 'value_0'},
-                                          None)]
-        },
-        encoded_fields={'cpu': 0})
-    self.device_info = {
-        'SKU': 1,
-        'has_cellular': False
-    }
+        encoding_pattern_index=0, image_id=0, components={'cpu': ['cpu_0']})
+    self.device_info = {'SKU': 1, 'has_cellular': False}
     self.vpd = {
         'ro': {
             'serial_number': 'foo',
@@ -75,12 +64,10 @@ class HWIDRuleTest(unittest.TestCase):
 
   def testSetComponent(self):
     SetComponent('cpu', 'cpu_3')
-    self.assertEquals(1, len(self.bom.components['cpu']))
-    self.assertEquals('cpu_3', self.bom.components['cpu'][0].component_name)
+    self.assertEquals(['cpu_3'], self.bom.components['cpu'])
 
     SetComponent('cpu', None)
-    self.assertEquals(1, len(self.bom.components['cpu']))
-    self.assertEquals(None, self.bom.components['cpu'][0].component_name)
+    self.assertEquals(0, len(self.bom.components['cpu']))
 
   def testGetSetImageId(self):
     self.assertEquals(0, GetImageId())
