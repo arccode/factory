@@ -987,8 +987,12 @@ msgid "{seconds} seconds"
 msgstr "{seconds}秒"
 
 #: ../py/goofy/static/templates.html
+msgid "Time remaining:"
+msgstr "剩余时间："
+
+#: ../py/goofy/static/templates.html
 msgid "Test Progress:"
-msgstr "测试进度:"
+msgstr "测试进度："
 
 #: ../py/goofy/static/templates.html
 msgid "Mark Failed"

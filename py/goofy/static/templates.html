@@ -90,18 +90,27 @@
           flex: 3;
         }
 
+        #progress-container {
+          flex: 1;
+          padding: 0.3em;
+        }
+
         #progress-bar-container {
           display: none;
-          flex: 1;
+        }
+
+        #progress-bar-container.show {
+          display: flex;
         }
 
         #progress-bar {
-          width: 100%;
+          flex: 1;
           height: 1.5em;
           position: relative;
           border: 1px solid #949dad;
           background: white;
           overflow: hidden;
+          margin-left: 0.3em;
         }
 
         #progress-bar-indicator {
@@ -116,21 +125,41 @@
           background: #d4e4ff;
           height: 100%;
         }
+
+        #timer-container {
+          display: none;
+        }
+
+        #timer-container.show {
+          display: block;
+        }
+
+        #timer {
+          display: inline-block;
+          font-weight: bold;
+          font-size: 1.5em;
+        }
       </style>
       <div id="info-container">
         <div id="title-container">
           <slot name="title"></slot>
         </div>
         <div id="prompt-container">
-          <span id="instruction">
+          <div id="instruction">
             <slot name="instruction"></slot>
-          </span>
-          <span id="progress-bar-container">
-            <i18n-label>Test Progress:</i18n-label>
-            <div id="progress-bar">
-              <div id="progress-bar-indicator"></div>
+          </div>
+          <div id="progress-container">
+            <div id="timer-container">
+              <i18n-label>Time remaining: </i18n-label>
+              <div id="timer"></div>
             </div>
-          </span>
+            <div id="progress-bar-container">
+              <i18n-label>Test Progress:</i18n-label>
+              <div id="progress-bar">
+                <div id="progress-bar-indicator"></div>
+              </div>
+            </div>
+          </div>
         </div>
         <div id="state-container">
           <slot></slot>

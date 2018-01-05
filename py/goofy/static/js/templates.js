@@ -151,7 +151,7 @@
       if (!this.progressBar) {
         const container =
           this.shadowRoot.querySelector('#progress-bar-container');
-        container.style.display = 'inline';
+        container.classList.add('show');
 
         const element = this.shadowRoot.querySelector('#progress-bar');
         const progressBar = new goog.ui.ProgressBar();
@@ -198,6 +198,28 @@
       const indicator =
         this.shadowRoot.querySelector('#progress-bar-indicator');
       indicator.innerText = `${value.toFixed(1)}%`;
+    }
+
+    /**
+     * Set the value of timer.
+     * Show the timer if it's not shown.
+     * Also set values of all elements with class 'timer-div'.
+     * @param {number} value the remaining time.
+     */
+    setTimerValue(value) {
+      this.shadowRoot.querySelector('#timer-container').classList.add('show');
+      this.shadowRoot.querySelector('#timer').innerText = value.toFixed(0);
+      for (const element of this.querySelectorAll('.timer-div')) {
+        element.innerText = value.toFixed(0);
+      }
+    }
+
+    /**
+     * Hide the timer.
+     */
+    hideTimer() {
+      this.shadowRoot.querySelector('#timer-container')
+          .classList.remove('show');
     }
   }
   window.customElements.define('test-template', TestTemplate);
