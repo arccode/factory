@@ -577,28 +577,6 @@ class UI(object):
         self.UnbindKey(key)
 
 
-class DummyUI(object):
-  """Dummy UI for offline test."""
-
-  def __init__(self, test):
-    self.test = test
-
-  def Run(self):
-    pass
-
-  def Pass(self):
-    logging.info('ui.Pass called. Wait for the test finishes by itself.')
-
-  def Fail(self, msg):
-    self.test.fail(msg)
-
-  def BindKeyJS(self, _key, _js):
-    logging.info('Ignore setting JS in dummy UI')
-
-  def AddEventHandler(self, _event, _func):
-    logging.info('Ignore setting Event Handler in dummy UI')
-
-
 class StandardUI(UI):
   """Standard Web UI that have a template.
 
