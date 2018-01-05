@@ -66,11 +66,16 @@ TOOLKIT_SEARCH_DIRS = ['toolkit', 'factory_toolkit']
 RESOURCE_CHANNELS = ['stable', 'beta', 'dev', 'canary']
 
 
+class FinalizeBundleException(Exception):
+  pass
+
+
 def _GetReleaseVersion(mount_point):
   """Returns the release version of an image mounted at mount_point."""
   result = get_version.GetReleaseVersion(mount_point)
   if not result:
-    sys.exit('Unable to read lsb-release from %s' % mount_point)
+    raise FinalizeBundleException(
+        'Unable to read lsb-release from %s' % mount_point)
   return result
 
 
@@ -90,9 +95,8 @@ def _GetFirmwareVersions(updater, expected_firmwares):
 
   for label in expected_firmwares:
     if versions.get(label) is None:
-      sys.exit('Unable to read %r version from %s' % (label,
-                                                      FIRMWARE_UPDATER_NAME))
-
+      raise FinalizeBundleException(
+          'Unable to read %r version from %s' % (label, updater))
   return versions
 
 
@@ -141,8 +145,10 @@ class FinalizeBundle(object):
     toolkit_path: Path to the factory toolkit.
     toolkit_version: Version of the factory toolkit.
     gsutil: A GSUtil object.
+    workdir: Working directory.
+    download: True to download files from Google Storage (for testing only).
+    archive: True to make a tarball (for testing only).
   """
-  args = None
   bundle_dir = None
   bundle_name = None
   build_board = None
@@ -163,10 +169,18 @@ class FinalizeBundle(object):
   toolkit_version = None
   gsutil = None
   has_firmware = DEFAULT_FIRMWARES
+  work_dir = None
+  download = None
+  archive = None
+
+  def __init__(self, manifest, work_dir, download=True, archive=True):
+    self.manifest = manifest
+    self.work_dir = work_dir
+    self.download = download
+    self.archive = archive
 
   def Main(self):
-    self.ParseArgs()
-    self.LoadManifest()
+    self.ProcessManifest()
     self.LocateResources()
     self.DownloadResources()
     self.AddDefaultCompleteScript()
@@ -179,42 +193,17 @@ class FinalizeBundle(object):
     self.UpdateReadme()
     self.Archive()
 
-  def ParseArgs(self):
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description=USAGE)
-
-    parser.add_argument(
-        '--no-download', dest='download', action='store_false',
-        help="Don't download files from Google Storage (for testing only)")
-    parser.add_argument(
-        '--no-archive', dest='archive', action='store_false',
-        help="Don't make a tarball (for testing only)")
-
-    parser.add_argument('manifest', metavar='MANIFEST',
-                        help=(
-                            'Path to the manifest file or the directory '
-                            'containing MANIFEST.yaml'))
-    parser.add_argument('dir', metavar='DIR', nargs='?',
-                        default=None, help='Working directory')
-
-    self.args = parser.parse_args()
-
-  def LoadManifest(self):
-    if os.path.isdir(self.args.manifest):
-      manifest_path = os.path.join(self.args.manifest, 'MANIFEST.yaml')
-    else:
-      manifest_path = self.args.manifest
+  def ProcessManifest(self):
     try:
-      self.manifest = yaml.load(file_utils.ReadFile(manifest_path))
       CheckDictKeys(self.manifest,
                     ['board', 'project', 'bundle_name', 'server_url',
                      'toolkit', 'test_image', 'release_image', 'firmware',
                      'hwid', 'has_firmware'])
-    except Exception:
-      logging.exception('Failed to load manifest: %s', manifest_path)
-      logging.error('Please refer to setup/BUNDLE.md (https://goo.gl/pM1pxo)')
-      sys.exit(1)
+    except ValueError as e:
+      logging.error(e.message)
+      raise FinalizeBundleException(
+          'Invalid manifest content. '
+          'Please refer to setup/BUNDLE.md (https://goo.gl/pM1pxo)')
 
     self.build_board = cros_board_utils.BuildBoard(self.manifest['board'])
     self.board = self.build_board.full_name
@@ -224,11 +213,10 @@ class FinalizeBundle(object):
 
     self.bundle_name = self.manifest['bundle_name']
     if not re.match(r'\d{8}_', self.bundle_name):
-      sys.exit("The bundle_name (currently %r) should be today's date, "
-               'plus an underscore, plus a description of the build, e.g.: %r' %
-               (self.bundle_name, time.strftime('%Y%m%d_proto')))
-
-    work_dir = self.args.dir or os.path.dirname(os.path.realpath(manifest_path))
+      raise FinalizeBundleException(
+          "The bundle_name (currently %r) should be today's date, "
+          'plus an underscore, plus a description of the build, e.g.: %r' %
+          (self.bundle_name, time.strftime('%Y%m%d_proto')))
 
     # If the basename of the working directory is equal to the expected name, we
     # believe that the user intentionally wants to make the bundle in the
@@ -238,13 +226,13 @@ class FinalizeBundle(object):
     expected_dir_name = 'factory_bundle_%s_%s' % (self.project,
                                                   self.bundle_name)
     logging.info('Expected bundle directory name is %r', expected_dir_name)
-    if expected_dir_name == os.path.basename(work_dir):
-      self.bundle_dir = work_dir
+    if expected_dir_name == os.path.basename(self.work_dir):
+      self.bundle_dir = self.work_dir
       logging.info('The working directory name matches the expected bundle '
                    'directory name, will finalized bundle directly in the '
                    'working directory %r', self.bundle_dir)
     else:
-      self.bundle_dir = os.path.join(work_dir, expected_dir_name)
+      self.bundle_dir = os.path.join(self.work_dir, expected_dir_name)
       logging.info('The working directory name does not match the expected '
                    'bundle directory name, will create a new directoy and '
                    'finalize bundle in %r', self.bundle_dir)
@@ -320,21 +308,21 @@ class FinalizeBundle(object):
       logging.info(
           'A local copy of %s is found at %r', resource_name, resource_path)
       if not is_local and not version_checker(resource_path, resource_source):
-        raise Exception(
+        raise FinalizeBundleException(
             'Requested %s version is %r but found a local one with different '
             'version at %r' % (resource_name, resource_source, resource_path))
     elif len_found_entries > 1:
-      raise Exception(
+      raise FinalizeBundleException(
           'There should be only one %s in %r but found multiple: %r' % (
               resource_name, search_dirs, found_entries))
     else:
       assert len_found_entries == 0
       if is_local:
-        raise Exception(
+        raise FinalizeBundleException(
             '%s source is specified as %r but no one found under %r' % (
                 resource_name.capitalize(), LOCAL, abs_search_dirs))
-      if not self.args.download:
-        raise Exception(
+      if not self.download:
+        raise FinalizeBundleException(
             'Need %s but no files found under %r' % (
                 resource_name.capitalize(), abs_search_dirs))
       # Will be downloaded later.
@@ -352,7 +340,7 @@ class FinalizeBundle(object):
 
     If a resource is found, the corresponding attribute is set to its path; if
     it's not found, the attribute is set to None (and we'll raise an error if
-    the source of the resource is set to LOCAL or if self.args.download is set
+    the source of the resource is set to LOCAL or if self.download is set
     to False in this case).
     """
     self.test_image_path = self._LocateOneResource(
@@ -379,7 +367,7 @@ class FinalizeBundle(object):
     version = re.sub('pre.*', '', version)
     version_split = [int(x) for x in version.split('.')]
     if version_split < REQUIRED_GSUTIL_VERSION:
-      sys.exit(
+      raise FinalizeBundleException(
           'gsutil version >=%s is required; you seem to have %s.\n'
           'Please download and install gsutil ('
           'https://developers.google.com/storage/docs/gsutil_install), and '
@@ -406,20 +394,22 @@ class FinalizeBundle(object):
     # Make sure gsutil is up to date; older versions are pretty broken.
     self._CheckGSUtilVersion()
 
-    if self.args.download:
+    if self.download:
       if need_test_image:
         self.test_image_path = self._DownloadTestImage(
             self.test_image_source,
             os.path.join(self.bundle_dir, TEST_IMAGE_SEARCH_DIRS[0]))
       if not os.path.exists(self.test_image_path):
-        raise Exception('No test image at %s' % self.test_image_path)
+        raise FinalizeBundleException(
+            'No test image at %s' % self.test_image_path)
 
       if need_release_image:
         self.release_image_path = self._DownloadReleaseImage(
             self.release_image_source,
             os.path.join(self.bundle_dir, RELEASE_IMAGE_SEARCH_DIRS[0]))
       if not os.path.exists(self.release_image_path):
-        raise Exception('No release image at %s' % self.release_image_path)
+        raise FinalizeBundleException(
+            'No release image at %s' % self.release_image_path)
 
       if need_toolkit:
         self.toolkit_path = self._DownloadFactoryToolkit(self.toolkit_source,
@@ -449,7 +439,8 @@ class FinalizeBundle(object):
       # Complete script already provided.
       return
     elif num_complete_scripts > 1:
-      raise Exception('Not having exactly one file under %s.' % complete_dir)
+      raise FinalizeBundleException(
+          'Not having exactly one file under %s.' % complete_dir)
 
     default_complete_script = os.path.join(
         self.bundle_dir, 'setup', 'complete_script_sample.sh')
@@ -466,11 +457,12 @@ class FinalizeBundle(object):
       with MountPartition(self.release_image_path, 3) as f:
         shutil.copy(os.path.join(f, FIRMWARE_UPDATER_PATH), firmware_dir)
     elif firmware_src != LOCAL:
-      raise Exception('firmware must be either "release_image" or "%s".' %
-                      LOCAL)
+      raise FinalizeBundleException(
+          'firmware must be either "release_image" or "%s".' % LOCAL)
     updaters = os.listdir(firmware_dir)
     if len(updaters) != 1:
-      raise Exception('Not having exactly one file under %s.' % firmware_dir)
+      raise FinalizeBundleException(
+          'Not having exactly one file under %s.' % firmware_dir)
 
     firmware_images_dir = os.path.join(self.bundle_dir, 'firmware_images')
     file_utils.TryMakeDirs(firmware_images_dir)
@@ -588,7 +580,8 @@ class FinalizeBundle(object):
             r'(?m)^(CHROMEOS_(AU|DEV)SERVER=).+$', r'\1' + server_url,
             lsb_factory)
         if number_of_subs != 2:
-          sys.exit('Unable to set factory server URL in %s' % lsb_factory_path)
+          raise FinalizeBundleException(
+              'Unable to set factory server URL in %s' % lsb_factory_path)
 
       if lsb_factory == orig_lsb_factory:
         return False  # No changes
@@ -626,11 +619,13 @@ class FinalizeBundle(object):
     signed_shims = glob.glob(os.path.join(self.bundle_dir, 'factory_shim',
                                           'chromeos_*_factory*.bin'))
     if has_install_shim and signed_shims:
-      sys.exit('Both unsigned and signed install shim exists. '
-               'Please remove unsigned one')
+      raise FinalizeBundleException(
+          'Both unsigned and signed install shim exists. '
+          'Please remove unsigned one')
     if len(signed_shims) > 1:
-      sys.exit('Expected to find 1 signed factory shim but found %d: %r' % (
-          len(signed_shims), signed_shims))
+      raise FinalizeBundleException(
+          'Expected to find 1 signed factory shim but found %d: %r' % (
+              len(signed_shims), signed_shims))
     elif len(signed_shims) == 1:
       PatchInstallShim(signed_shims[0])
       has_install_shim = True
@@ -714,7 +709,7 @@ class FinalizeBundle(object):
       readme_section_index[s[0]] = i
     for x in REQUIRED_SECTIONS:
       if x not in readme_section_index:
-        sys.exit('README is missing %s section' % x)
+        raise FinalizeBundleException('README is missing %s section' % x)
 
     # Make sure that the CHANGES section contains this version.
     expected_str = '%s changes:' % self.bundle_name
@@ -775,7 +770,8 @@ class FinalizeBundle(object):
         elif f in ['ec.bin', 'bios.bin', 'image.bin', 'image.net.bin']:
           version = get_version.GetFirmwareBinaryVersion(path)
           if not version:
-            sys.exit('Unable to find firmware version in %s' % path)
+            raise FinalizeBundleException(
+                'Unable to find firmware version in %s' % path)
           vitals.append((relpath, version))
 
     vital_lines = []
@@ -798,7 +794,7 @@ class FinalizeBundle(object):
                  self.readme_path, vital_contents)
 
   def Archive(self):
-    if self.args.archive:
+    if self.archive:
       # Done! tar it up, and encourage the poor shmuck who has to build
       # the bundle to take a little break.
       logging.info('Just works! Creating the tarball. '
@@ -832,7 +828,7 @@ class FinalizeBundle(object):
         factory_board_bundle_path)
 
   @contextlib.contextmanager
-  def _DownloadResource(self, possible_urls, resource_name=None):
+  def _DownloadResource(self, possible_urls, resource_name=None, version=None):
     """Downloads a resource file from given URLs.
 
     This function downloads a resource from a list of possible URLs (only the
@@ -843,6 +839,7 @@ class FinalizeBundle(object):
       possible_urls: a single or a list of possible GS URLs to search.
       resource_name: a human readable name of the resource, just for logging,
           won't affect the behavior of downloading.
+      version: version of the resource, just for logging.
     """
     resource_name = resource_name or 'resource'
 
@@ -866,7 +863,8 @@ class FinalizeBundle(object):
       break
 
     if found_url is None:
-      raise Exception('No %s found in %r' % (resource_name, possible_urls))
+      raise FinalizeBundleException(
+          'No %s found for version %s' % (resource_name, version))
     logging.info('Starting to download %s...', found_url)
     downloaded_path = self.gsutil.GSDownload(found_url)
 
@@ -875,9 +873,10 @@ class FinalizeBundle(object):
     finally:
       file_utils.TryUnlink(downloaded_path)
 
-  def _DownloadAndExtractImage(self, image_name, possible_urls, target_dir):
+  def _DownloadAndExtractImage(self, image_name, version, possible_urls,
+                               target_dir):
     with self._DownloadResource(
-        possible_urls, image_name) as (downloaded_path, found_url):
+        possible_urls, image_name, version) as (downloaded_path, found_url):
       try:
         file_utils.TryMakeDirs(target_dir)
         image_basename = os.path.basename(found_url)
@@ -913,8 +912,8 @@ class FinalizeBundle(object):
               channel, self.build_board.gsutil_name, requested_version),
           '*test*.tar.xz')
       possible_urls.append(url)
-    return self._DownloadAndExtractImage('test image', possible_urls,
-                                         target_dir)
+    return self._DownloadAndExtractImage('test image', requested_version,
+                                         possible_urls, target_dir)
 
   def _DownloadReleaseImage(self, requested_version, target_dir):
     possible_urls = []
@@ -927,8 +926,8 @@ class FinalizeBundle(object):
                 channel, self.build_board.gsutil_name, requested_version),
             '*recovery*', ext)
         possible_urls.append(url)
-    return self._DownloadAndExtractImage('release image', possible_urls,
-                                         target_dir)
+    return self._DownloadAndExtractImage('release image', requested_version,
+                                         possible_urls, target_dir)
 
   def _DownloadFactoryToolkit(self, requested_version, target_dir):
     possible_urls = []
@@ -939,7 +938,8 @@ class FinalizeBundle(object):
           '*factory*.zip')
       possible_urls.append(url)
     with self._DownloadResource(
-        possible_urls, 'factory toolkit') as (downloaded_path, unused_url):
+        possible_urls, 'factory toolkit', requested_version
+        ) as (downloaded_path, unused_url):
       file_utils.ExtractFile(downloaded_path, target_dir)
 
     return self._LocateOneResource(
@@ -968,7 +968,49 @@ class FinalizeBundle(object):
             found_entries.append(p)
     return found_entries
 
+  @staticmethod
+  def FromArgs():
+    args = FinalizeBundle._ParseArgs()
+    if os.path.isdir(args.manifest):
+      manifest_path = os.path.join(args.manifest, 'MANIFEST.yaml')
+    else:
+      manifest_path = args.manifest
+    try:
+      manifest = yaml.load(file_utils.ReadFile(manifest_path))
+    except Exception:
+      logging.exception('Failed to load manifest: %s', manifest_path)
+      logging.error('Please refer to setup/BUNDLE.md (https://goo.gl/pM1pxo)')
+      raise
+    work_dir = args.dir or os.path.dirname(os.path.realpath(manifest_path))
+    return FinalizeBundle(manifest, work_dir, args.download, args.archive)
+
+  @staticmethod
+  def _ParseArgs():
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=USAGE)
+
+    parser.add_argument(
+        '--no-download', dest='download', action='store_false',
+        help="Don't download files from Google Storage (for testing only)")
+    parser.add_argument(
+        '--no-archive', dest='archive', action='store_false',
+        help="Don't make a tarball (for testing only)")
+
+    parser.add_argument('manifest', metavar='MANIFEST',
+                        help=(
+                            'Path to the manifest file or the directory '
+                            'containing MANIFEST.yaml'))
+    parser.add_argument('dir', metavar='DIR', nargs='?',
+                        default=None, help='Working directory')
+
+    return parser.parse_args()
+
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
-  FinalizeBundle().Main()
+  try:
+    FinalizeBundle.FromArgs().Main()
+  except Exception:
+    logging.exception('')
+    sys.exit(1)
