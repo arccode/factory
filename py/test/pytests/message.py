@@ -126,6 +126,6 @@ class MessageTest(test_ui.TestCaseWithUI):
 
   def runTest(self):
     if self.args.seconds:
-      countdown_timer.StartNewCountdownTimer(self, self.args.seconds, 'remain',
-                                             self.PassTask)
+      countdown_timer.StartCountdownTimer(self, self.args.seconds, 'remain',
+                                          self.PassTask)
     self.WaitTaskEnd()

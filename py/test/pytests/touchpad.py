@@ -322,7 +322,7 @@ class TouchpadTest(test_ui.TestCaseWithUI):
     self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
     self.ui.HideElement('prompt')
 
-    countdown_timer.StartNewCountdownTimer(
+    countdown_timer.StartCountdownTimer(
         self, self.args.timeout_secs, 'timer', self.FailWithMessage)
 
     self.touchpad_device = evdev_utils.DeviceReopen(self.touchpad_device)

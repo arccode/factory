@@ -47,7 +47,7 @@ class BrightnessTest(test_ui.TestCaseWithUI):
 
   def runTest(self):
     """Starts an infinite loop to change brightness."""
-    countdown_timer.StartNewCountdownTimer(
+    countdown_timer.StartCountdownTimer(
         self, self.args.timeout_secs, _ID_COUNTDOWN_TIMER,
         lambda: self.FailTask('Brightness test failed due to timeout.'))
 

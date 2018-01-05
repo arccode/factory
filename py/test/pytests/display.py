@@ -186,8 +186,8 @@ class DisplayTest(test_ui.TestCaseWithUI):
       # Automatically enter fullscreen mode in idle mode.
       self.ToggleFullscreen()
       self.event_loop.AddEventHandler('onFullscreenClicked', self.OnFailPressed)
-      countdown_timer.StartNewCountdownTimer(self, self.idle_timeout,
-                                             'display-timer', self.PassTask)
+      countdown_timer.StartCountdownTimer(self, self.idle_timeout,
+                                          'display-timer', self.PassTask)
     self.ui.BindKey(test_ui.ESCAPE_KEY, self.OnFailPressed)
     self.WaitTaskEnd()
 

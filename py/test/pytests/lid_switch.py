@@ -237,7 +237,7 @@ class LidSwitchTest(test_ui.TestCaseWithUI):
           i18n_test_ui.MakeI18nLabel('Close then open the lid'), id='prompt')
 
     self.dispatcher.StartDaemon()
-    countdown_timer.StartNewCountdownTimer(
+    countdown_timer.StartCountdownTimer(
         self,
         _DEFAULT_TIMEOUT if self.fixture else self.args.timeout_secs,
         'timer',

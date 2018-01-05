@@ -86,7 +86,7 @@ class ProbeSimCardTrayTest(test_ui.TestCaseWithUI):
     if self.args.only_check_presence:
       return
 
-    countdown_timer.StartNewCountdownTimer(
+    countdown_timer.StartCountdownTimer(
         self, self.args.timeout_secs, 'timer', lambda: self.FailTask(
             'Timeout after %s seconds' % self.args.timeout_secs))
 

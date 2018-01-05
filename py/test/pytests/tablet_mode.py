@@ -98,7 +98,7 @@ class TabletModeTest(test_ui.TestCaseWithUI):
       self.tablet_mode_switch = event.value == 1
 
   def StartCountdown(self):
-    countdown_timer.StartNewCountdownTimer(
+    countdown_timer.StartCountdownTimer(
         self,
         self.args.timeout_secs,
         'timer',

@@ -431,8 +431,8 @@ class CameraTest(test_ui.TestCaseWithUI):
       self.camera_device = self.dut.camera.GetCameraDevice(device_index)
 
   def runTest(self):
-    countdown_timer.StartNewCountdownTimer(self, self.args.timeout_secs,
-                                           'timer', self._Timeout)
+    countdown_timer.StartCountdownTimer(self, self.args.timeout_secs, 'timer',
+                                        self._Timeout)
 
     if self.mode == TestModes.manual_led:
       self.LEDTest()

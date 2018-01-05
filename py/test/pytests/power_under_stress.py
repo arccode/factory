@@ -75,8 +75,7 @@ class PowerUnderStressTest(test_ui.TestCaseWithUI):
         id='current')
 
   def runTest(self):
-    countdown_timer.StartNewCountdownTimer(self, self.args.wait_secs,
-                                           'countdown')
+    countdown_timer.StartCountdownTimer(self, self.args.wait_secs, 'countdown')
 
     with stress_manager.StressManager(self._dut).Run(
         duration_secs=None,

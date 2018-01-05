@@ -790,7 +790,7 @@ class RemovableStorageTest(test_ui.TestCaseWithUI):
   def runTest(self):
     """Main entrance of removable storage test."""
     # Start countdown timer.
-    countdown_timer.StartNewCountdownTimer(
+    countdown_timer.StartCountdownTimer(
         self, self.args.timeout_secs,
         'timer', lambda: self.FailTask('Timeout waiting for test to complete'))
 

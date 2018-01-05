@@ -106,7 +106,7 @@ class TouchpadHoverTest(test_ui.TestCaseWithUI):
 
   def _SetMessage(self, msg, timeout_secs):
     self.ui.SetHTML(msg, id='prompt')
-    self._timer_disabler = countdown_timer.StartNewCountdownTimer(
+    self._timer_disabler = countdown_timer.StartCountdownTimer(
         self, timeout_secs, 'timer')
 
   def _WaitForValue(self, value, timeout_secs):

@@ -267,8 +267,7 @@ class ButtonTest(test_ui.TestCaseWithUI):
     self._action_timestamps.append(time.time())
 
   def runTest(self):
-    countdown_timer.StartNewCountdownTimer(self, self.args.timeout_secs,
-                                           'timer')
+    countdown_timer.StartCountdownTimer(self, self.args.timeout_secs, 'timer')
 
     for done in xrange(self.args.repeat_times):
       if self.args.repeat_times == 1:

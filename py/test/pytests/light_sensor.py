@@ -294,7 +294,7 @@ class LightSensorTest(test_ui.TestCaseWithUI):
   def runTest(self):
     self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
     self.ui.HideElement('space-prompt')
-    countdown_timer.StartNewCountdownTimer(
+    countdown_timer.StartCountdownTimer(
         self, self._timeout_per_subtest * len(self._subtest_list),
         'timer', lambda: self.FailTask('Test timeout.'))
 

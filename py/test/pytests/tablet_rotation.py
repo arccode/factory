@@ -258,7 +258,7 @@ class TabletRotationTest(test_ui.TestCaseWithUI):
 
   def runTest(self):
     # Create a thread to run countdown timer.
-    countdown_timer.StartNewCountdownTimer(
+    countdown_timer.StartCountdownTimer(
         self, self.args.timeout_secs, 'timer',
         lambda: self.FailTask('Tablet rotation test failed due to timeout.'))
 

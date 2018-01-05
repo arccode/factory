@@ -245,9 +245,9 @@ class TouchscreenTest(test_ui.TestCaseWithUI):
 
   def runTest(self):
     if self.args.timeout_secs:
-      countdown_timer.StartNewCountdownTimer(self, self.args.timeout_secs,
-                                             'countdown-timer',
-                                             self._frontend_proxy.FailTest)
+      countdown_timer.StartCountdownTimer(self, self.args.timeout_secs,
+                                          'countdown-timer',
+                                          self._frontend_proxy.FailTest)
 
     if self._device is not None:
       self._device = evdev_utils.DeviceReopen(self._device)

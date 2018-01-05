@@ -234,7 +234,7 @@ class PlanktonCCFlipCheck(test_ui.TestCaseWithUI):
               'DUT does not detect cable flipped. Was it really flipped?')
       else:
         # Start countdown timer.
-        countdown_timer.StartNewCountdownTimer(
+        countdown_timer.StartCountdownTimer(
             self, self.args.timeout_secs, 'timer',
             lambda: self.FailTask('Timeout waiting for test to complete'))
         while True:
@@ -247,7 +247,7 @@ class PlanktonCCFlipCheck(test_ui.TestCaseWithUI):
           (not self.args.double_cc_flip_target or
            self._polarity != self.args.double_cc_flip_target)):
       if self.args.timeout_secs:
-        countdown_timer.StartNewCountdownTimer(
+        countdown_timer.StartCountdownTimer(
             self, self.args.timeout_secs, 'timer',
             lambda: self.FailTask('Timeout waiting for test to complete'))
 

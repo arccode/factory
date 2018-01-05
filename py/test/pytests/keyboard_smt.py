@@ -99,7 +99,7 @@ class KeyboardSMTTest(test_ui.TestCaseWithUI):
 
   def runTest(self):
     if not self.debug:
-      countdown_timer.StartNewCountdownTimer(
+      countdown_timer.StartCountdownTimer(
           self, self.args.timeout_secs, 'timer', lambda: self.FailTask(
               'Timeout after %d seconds.' % self.args.timeout_secs))
     if self.fixture:

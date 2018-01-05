@@ -331,7 +331,7 @@ class KeyboardTest(test_ui.TestCaseWithUI):
   def runTest(self):
     self.keyboard_device.grab()
     self.dispatcher.StartDaemon()
-    countdown_timer.StartNewCountdownTimer(
+    countdown_timer.StartCountdownTimer(
         self, self.args.timeout_secs,
         'keyboard-test-timer', self.FailTestTimeout)
     self.WaitTaskEnd()
