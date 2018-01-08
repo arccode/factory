@@ -65,7 +65,7 @@ def StringFormat(_format_string, **kwargs):
     then the returned translation dict would be:
       {
         'en-US': 'String-1 String-2',
-        'zh-CN': 'String 1-Text-2'
+        'zh-CN': 'String-1-Text-2'
       }
   """
   ret = {}
