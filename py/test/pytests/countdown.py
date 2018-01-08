@@ -263,10 +263,7 @@ class CountDownTest(test_ui.TestCaseWithUI):
 
     last_status = self.SnapshotStatus()
 
-    try:
-      self.UpdateLegend(self._sensors)
-    except NotImplementedError:
-      pass
+    self.UpdateLegend(self._sensors)
 
     # Loop until count-down ends.
     while self._elapsed_secs < self.args.duration_secs:
