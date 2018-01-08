@@ -7,8 +7,10 @@
 
 from __future__ import print_function
 
+import json
 import Queue
 import random
+import re
 import sys
 import unittest
 
@@ -451,18 +453,50 @@ _MOCK_HTML = 'mock-html'
 _MOCK_ID = 'mock-id'
 
 
-class UITest(unittest.TestCase):
+class UITestBase(unittest.TestCase):
 
   def setUp(self):
     self._event_loop = mock.Mock()
-    self._ui = test_ui.UI(event_loop=self._event_loop)
+
+  def AssertRunJSEqual(self, js, event_js, event_args):
+    """An ad-hoc function to assert two JavaScript snippets are equal.
+
+    This is done by use simple substitute to inline all arguments, and remove
+    all spaces in both JavaScript, then compare the results.
+
+    Args:
+      js: The target JavaScript to be executed.
+      event_js: The JavaScript from the event.
+      event_args: Arguments for the JavaScript.
+    """
+    strip_js = re.sub(r'\s', '', js)
+    strip_event_js = event_js
+    for name, arg in event_args.iteritems():
+      strip_event_js = re.sub(r'\b%s\b' % re.escape('args.%s' % name),
+                              json.dumps(arg), strip_event_js)
+    strip_event_js = re.sub(r'\s', '', strip_event_js)
+
+    self.assertEqual(
+        strip_js, strip_event_js,
+        'RunJS event not equal, js = %r, event_js = %r, event_args = %r' %
+        (js, event_js, event_args))
 
   def AssertEventsPosted(self, *events):
-    flatten_args = [
-        (args[0], kwargs)
-        for (args, kwargs) in self._event_loop.PostNewEvent.call_args_list
-    ]
-    self.assertEqual(flatten_args, list(events))
+    called_events = self._event_loop.PostNewEvent.call_args_list
+    self.assertEqual(len(called_events), len(events))
+    for (args, kwargs), (target_type, target_kwargs) in zip(
+        called_events, events):
+      event_type = args[0]
+      self.assertEqual(event_type, target_type)
+      if event_type == _EventType.RUN_JS:
+        # Use ad-hoc method of comparing RUN_JS events.
+        self.AssertRunJSEqual(target_kwargs['js'], kwargs['js'], kwargs['args'])
+      else:
+        self.assertEqual(kwargs, target_kwargs)
+
+  def ResetEventsPosted(self):
+    """Reset the list of posted events."""
+    self._event_loop.PostNewEvent.reset_mock()
 
   def _SetHTMLEvent(self, **kwargs):
     event = {
@@ -473,6 +507,16 @@ class UITest(unittest.TestCase):
     }
     event.update(kwargs)
     return (_EventType.SET_HTML, event)
+
+  def _RunJSEvent(self, js):
+    return (_EventType.RUN_JS, {'js': js})
+
+
+class UITest(UITestBase):
+
+  def setUp(self):
+    super(UITest, self).setUp()
+    self._ui = test_ui.UI(event_loop=self._event_loop)
 
   def testSetHTML(self):
     self._ui.SetHTML(_MOCK_HTML, id=_MOCK_ID)
@@ -513,22 +557,18 @@ class UITest(unittest.TestCase):
             id='head',
             append=True))
 
-  def _RunJSEvent(self, js, **kwargs):
-    return (_EventType.RUN_JS, {'js': js, 'args': kwargs})
-
   def testRunJS(self):
     self._ui.RunJS('alert(1);')
     self._ui.RunJS('alert(args.msg);', msg='foobar')
 
     self.AssertEventsPosted(
         self._RunJSEvent('alert(1);'),
-        self._RunJSEvent('alert(args.msg);', msg='foobar'))
+        self._RunJSEvent('alert("foobar");'))
 
   def testCallJSFunction(self):
     self._ui.CallJSFunction('test.alert', '123')
 
-    self.AssertEventsPosted(
-        self._RunJSEvent('test.alert(args.arg_0)', arg_0='123'))
+    self.AssertEventsPosted(self._RunJSEvent('test.alert("123")'))
 
   def testInitJSTestObject(self):
     js_object = self._ui.InitJSTestObject('someTest', 2, 1, 7)
@@ -536,9 +576,7 @@ class UITest(unittest.TestCase):
     js_object.Jump()
 
     self.AssertEventsPosted(
-        self._RunJSEvent(
-            'window.testObject = new someTest(...args.constructorArg)',
-            constructorArg=(2, 1, 7)),
+        self._RunJSEvent('window.testObject = new someTest(...[2, 1, 7])'),
         self._RunJSEvent('window.testObject.hopping()'),
         self._RunJSEvent('window.testObject.jump()'))
 
@@ -559,24 +597,10 @@ class UITest(unittest.TestCase):
         test_ui.ENTER_KEY, 'onEnter()', once=True, virtual_key=False)
 
     self.AssertEventsPosted(
+        self._RunJSEvent('test.bindKey("A", (event) => { a() }, false, true)'),
+        self._RunJSEvent('test.bindKey("B", (event) => { b() }, true, true)'),
         self._RunJSEvent(
-            'test.bindKey(args.key, (event) => { a() }, '
-            'args.once, args.virtual_key)',
-            key='A',
-            once=False,
-            virtual_key=True),
-        self._RunJSEvent(
-            'test.bindKey(args.key, (event) => { b() }, '
-            'args.once, args.virtual_key)',
-            key='B',
-            once=True,
-            virtual_key=True),
-        self._RunJSEvent(
-            'test.bindKey(args.key, (event) => { onEnter() }, '
-            'args.once, args.virtual_key)',
-            key='ENTER',
-            once=True,
-            virtual_key=False))
+            'test.bindKey("ENTER", (event) => { onEnter() }, true, false)'))
 
   def testBindKey(self):
     def _Handler(event):
@@ -588,51 +612,43 @@ class UITest(unittest.TestCase):
     self.assertEqual(_Handler, handler)
     self.AssertEventsPosted(
         self._RunJSEvent(
-            'test.bindKey(args.key, (event) => { test.sendTestEvent("%s", '
-            '{}); }, args.once, args.virtual_key)' % uuid,
-            key='U',
-            once=False,
-            virtual_key=True))
+            'test.bindKey("U", (event) => { test.sendTestEvent("%s", '
+            '{}); }, false, true)' % uuid))
 
   def testUnbindKey(self):
     self._ui.UnbindKey('A')
     self._ui.UnbindAllKeys()
 
     self.AssertEventsPosted(
-        self._RunJSEvent('test.unbindKey(args.arg_0)', arg_0='A'),
+        self._RunJSEvent('test.unbindKey("A")'),
         self._RunJSEvent('test.unbindAllKeys()'))
 
   def testPlayAudio(self):
     self._ui.PlayAudioFile('a.mp4')
 
-    self._event_loop.PostNewEvent.assert_called_once()
-    args, kwargs = self._event_loop.PostNewEvent.call_args
-    self.assertEqual((_EventType.RUN_JS,), args)
-    self.assertEqual('/sounds/a.mp4', kwargs['args']['path'])
-    self.assertEqual("""
-      const audioElement = new Audio(args.path);
-      audioElement.addEventListener(
-          "canplaythrough", () => { audioElement.play(); });
-    """.replace(' ', ''), kwargs['js'].replace(' ', ''))
+    self.AssertEventsPosted(
+        self._RunJSEvent("""
+            const audioElement = new Audio("/sounds/a.mp4");
+            audioElement.addEventListener(
+                "canplaythrough", () => { audioElement.play(); });
+        """))
 
   def testSetFocus(self):
     self._ui.SetFocus('main')
 
     self.AssertEventsPosted(
-        self._RunJSEvent('document.getElementById(args.id).focus()', id='main'))
+        self._RunJSEvent('document.getElementById("main").focus()'))
 
   def testSetSelected(self):
     self._ui.SetSelected('main')
 
     self.AssertEventsPosted(
-        self._RunJSEvent(
-            'document.getElementById(args.id).select()', id='main'))
+        self._RunJSEvent('document.getElementById("main").select()'))
 
   def testAlert(self):
     self._ui.Alert('1')
 
-    self.AssertEventsPosted(
-        self._RunJSEvent('test.alert(args.arg_0)', arg_0='1'))
+    self.AssertEventsPosted(self._RunJSEvent('test.alert("1")'))
 
   def testShowHideElement(self):
     self._ui.HideElement('main')
@@ -640,16 +656,27 @@ class UITest(unittest.TestCase):
 
     self.AssertEventsPosted(
         self._RunJSEvent(
-            'document.getElementById(args.id).style.display = "none"',
-            id='main'),
+            'document.getElementById("main").style.display = "none"'),
         self._RunJSEvent(
-            'document.getElementById(args.id).style.display = "initial"',
-            id='main'))
+            'document.getElementById("main").style.display = "initial"'))
 
   def testImportHTML(self):
     self._ui.ImportHTML('fragment.html')
 
     self.AssertEventsPosted((_EventType.IMPORT_HTML, {'url': 'fragment.html'}))
+
+  def testToggleClass(self):
+    self._ui.ToggleClass('id', 'class')
+    self._ui.ToggleClass('id', 'class', True)
+    self._ui.ToggleClass('id', 'class', False)
+
+    self.AssertEventsPosted(
+        self._RunJSEvent(
+            'document.getElementById("id").classList.toggle("class")'),
+        self._RunJSEvent(
+            'document.getElementById("id").classList.toggle("class", true)'),
+        self._RunJSEvent(
+            'document.getElementById("id").classList.toggle("class", false)'))
 
 
 class UIKeyTest(unittest.TestCase):
@@ -744,6 +771,165 @@ class UIKeyTest(unittest.TestCase):
 
     self.assertIsNone(self._ui.WaitKeysOnce(['A', 'B', 'C'], timeout=1))
     self.assertFalse(self.key_callbacks)
+
+
+class StandardUITest(UITestBase):
+
+  def setUp(self):
+    super(StandardUITest, self).setUp()
+    self._ui = test_ui.StandardUI(event_loop=self._event_loop)
+
+    self._patchers = []
+
+    self._timeline = mock_time_utils.TimeLine()
+    self._patchers.extend(mock_time_utils.MockAll(test_ui, self._timeline))
+
+    self._import_template_event = (_EventType.IMPORT_HTML, {
+        'url': '/templates.html'
+    })
+
+  def tearDown(self):
+    super(StandardUITest, self).tearDown()
+    for patcher in self._patchers:
+      patcher.stop()
+
+  def testSetTitle(self):
+    self._ui.SetTitle('some title')
+
+    self.AssertEventsPosted(
+        self._import_template_event,
+        self._RunJSEvent('window.template.setTitle("some title")'))
+
+  def testSetState(self):
+    self._ui.SetState('some state')
+    self._ui.SetState('some state', append=True)
+
+    self.AssertEventsPosted(
+        self._import_template_event,
+        self._RunJSEvent('window.template.setState("some state", false)'),
+        self._RunJSEvent('window.template.setState("some state", true)'))
+
+  def testSetInstruction(self):
+    self._ui.SetInstruction('something')
+
+    self.AssertEventsPosted(
+        self._import_template_event,
+        self._RunJSEvent('window.template.setInstruction("something")'))
+
+  def testDrawProgressBar(self):
+    self._ui.DrawProgressBar()
+    self._ui.DrawProgressBar(217)
+
+    self.AssertEventsPosted(
+        self._import_template_event,
+        self._RunJSEvent('window.template.drawProgressBar(1)'),
+        self._RunJSEvent('window.template.drawProgressBar(217)'))
+
+  def testAdvanceProgress(self):
+    self._ui.AdvanceProgress()
+
+    self.AssertEventsPosted(
+        self._import_template_event,
+        self._RunJSEvent('window.template.advanceProgress()'))
+
+  def testSetProgress(self):
+    self._ui.SetProgress(100)
+    self._ui.SetProgress(0.5)
+
+    self.AssertEventsPosted(
+        self._import_template_event,
+        self._RunJSEvent('window.template.setProgress(100)'),
+        self._RunJSEvent('window.template.setProgress(0.5)'))
+
+  def testSetTimerValue(self):
+    self._ui.SetTimerValue(10)
+
+    self.AssertEventsPosted(
+        self._import_template_event,
+        self._RunJSEvent('window.template.setTimerValue(10)'))
+
+  def testHideTimer(self):
+    self._ui.HideTimer()
+
+    self.AssertEventsPosted(
+        self._import_template_event,
+        self._RunJSEvent('window.template.hideTimer()'))
+
+  def testStartCountdownTimer(self):
+    _TIMEOUT = 5
+
+    _handler = mock.Mock()
+    _handler.side_effect = lambda: self.assertEqual(self._timeline.GetTime(),
+                                                    _TIMEOUT)
+    self._ui.StartCountdownTimer(_TIMEOUT, _handler)
+
+    self._event_loop.AddTimedIterable.assert_called_once()
+    iterable = self._event_loop.AddTimedIterable.call_args[0][0]
+
+    while True:
+      self.ResetEventsPosted()
+      try:
+        next(iterable)
+      except StopIteration:
+        break
+
+      self.AssertEventsPosted(
+          self._RunJSEvent('window.template.setTimerValue(%d)' % (
+              _TIMEOUT - self._timeline.GetTime())))
+      self._timeline.AdvanceTime(1)
+
+    self.AssertEventsPosted(self._RunJSEvent('window.template.hideTimer()'))
+    _handler.assert_called_once()
+
+  def testStartCountdownTimerStopEvent(self):
+    _TIMEOUT = 5
+    _STOP_TIME = 3
+
+    _handler = mock.Mock()
+    stop_event = self._ui.StartCountdownTimer(_TIMEOUT, _handler)
+
+    self._event_loop.AddTimedIterable.assert_called_once()
+    iterable = self._event_loop.AddTimedIterable.call_args[0][0]
+
+    while True:
+      self.ResetEventsPosted()
+      try:
+        next(iterable)
+      except StopIteration:
+        break
+
+      self.AssertEventsPosted(
+          self._RunJSEvent('window.template.setTimerValue(%d)' % (
+              _TIMEOUT - self._timeline.GetTime())))
+      self._timeline.AdvanceTime(1)
+      if self._timeline.GetTime() >= _STOP_TIME:
+        stop_event.set()
+
+    self.AssertEventsPosted(self._RunJSEvent('window.template.hideTimer()'))
+    _handler.assert_not_called()
+
+  def testStartFailingCountdownTimer(self):
+    _TIMEOUT = 5
+
+    self._ui.StartFailingCountdownTimer(_TIMEOUT)
+
+    self._event_loop.AddTimedIterable.assert_called_once()
+    iterable = self._event_loop.AddTimedIterable.call_args[0][0]
+
+    while True:
+      self.ResetEventsPosted()
+      try:
+        next(iterable)
+      except type_utils.TestFailure as e:
+        self.assertRegexpMatches(e.message, r'^Timed out')
+        break
+
+      self.AssertEventsPosted(
+          self._RunJSEvent('window.template.setTimerValue(%d)' % (
+              _TIMEOUT - self._timeline.GetTime())))
+      self._timeline.AdvanceTime(1)
+
+    self.AssertEventsPosted()
 
 
 class TestCaseWithUITest(unittest.TestCase):
