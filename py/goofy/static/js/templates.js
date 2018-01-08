@@ -161,7 +161,7 @@
 
       this.progressTotal = numItems;
       this.progressNow = 0;
-      this._setProgressBarValue(0);
+      this._updateProgressBarValue();
     }
 
     /**
@@ -184,20 +184,24 @@
         value = this.progressTotal;
       }
       this.progressNow = value;
-      this._setProgressBarValue(this.progressNow * 100 / this.progressTotal);
+      this._updateProgressBarValue();
     }
 
     /**
-     * Set the value of progress bar.
-     * @param {number} value the percentage of progress, should be between 0
-     *     and 100.
+     * Update the value of progress bar according to progressNow and
+     * progressTotal.
      */
-    _setProgressBarValue(value) {
-      this.progressBar.setValue(value);
+    _updateProgressBarValue() {
+      const percent = this.progressNow * 100 / this.progressTotal;
+      this.progressBar.setValue(percent);
 
       const indicator =
         this.shadowRoot.querySelector('#progress-bar-indicator');
-      indicator.innerText = `${value.toFixed(1)}%`;
+      const roundToTwoDecimal = (x) => parseFloat(x.toFixed(2));
+
+      indicator.innerText =
+          `${percent.toFixed(1)}% (${roundToTwoDecimal(this.progressNow)}/${
+              roundToTwoDecimal(this.progressTotal)})`;
     }
 
     /**
