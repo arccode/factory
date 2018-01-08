@@ -129,6 +129,9 @@ class ProbeTest(test_ui.TestCaseWithUI):
       Arg('config_file', str,
           'Path to probe config file. This is interpreted as a path '
           'relative to `test/pytests/probe` folder.'),
+      Arg('component_list', list,
+          'A list of components to be verified',
+          default=None),
       Arg('overridden_rules', list,
           'List of [category, cmp_function, value].',
           default=None),
@@ -152,6 +155,8 @@ class ProbeTest(test_ui.TestCaseWithUI):
 
     # Execute Probe.
     cmd = ['probe', '-v', 'probe', '--config-file', self.config_file_path]
+    if self.args.component_list is not None:
+      cmd += ['--comps'] + self.args.component_list
     session.console.info('Call the command: %s', ' '.join(cmd))
     probed_results = json.loads(self.factory_tools.CheckOutput(cmd))
 

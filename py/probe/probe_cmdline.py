@@ -140,6 +140,10 @@ class ProbeCmd(SubCommand):
                         help='Load the volatile probe statement. '
                         'If "--config-file" argument is not assigned, then '
                         'this argument will be enabled automatically.')
+    parser.add_argument('--comps', default=None, nargs='*', type=str,
+                        help='Specify a list of class of components to probe '
+                        'instead of probing all components listed in the probe '
+                        'statement.')
 
   @classmethod
   def EvalCommand(cls, options):
@@ -153,7 +157,7 @@ class ProbeCmd(SubCommand):
         include_generic=options.include_generic,
         include_volatile=options.include_volatile)
 
-    OutputResults(probe_utils.Probe(probe_statement), options)
+    OutputResults(probe_utils.Probe(probe_statement, options.comps), options)
 
 
 @RegisterCommand

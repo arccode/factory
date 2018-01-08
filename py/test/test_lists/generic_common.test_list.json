@@ -648,9 +648,6 @@
         "flush_testlog": false
       }
     },
-    "VerifyComponents": {
-      "pytest_name": "verify_components"
-    },
     "VerifyRootPartition": {
       "pytest_name": "verify_root_partition",
       "args": {

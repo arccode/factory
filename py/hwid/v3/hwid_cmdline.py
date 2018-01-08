@@ -13,10 +13,8 @@ import shutil
 import sys
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.hwid.v3.bom import ProbedComponentResult
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import hwid_utils
-from cros.factory.hwid.v3 import rule
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 try:
   from cros.factory.test import device_data
@@ -239,70 +237,15 @@ def DecodeHWIDWrapper(options):
 def VerifyHWIDWrapper(options):
   """Verifies HWID."""
   encoded_string = options.hwid if options.hwid else _GetHWIDString()
-  bom = hwid_utils.GenerateBOMFromProbedResults(
+  probed_bom = hwid_utils.GenerateBOMFromProbedResults(
       options.database, hwid_utils.GetProbedResults(
           infile=options.probed_results_file))
   vpd = hwid_utils.GetVPDData(options.run_vpd, options.vpd_data_file)
-  hwid_utils.VerifyHWID(options.database, encoded_string, bom,
+  hwid_utils.VerifyHWID(options.database, encoded_string, probed_bom,
                         vpd=vpd, rma_mode=options.rma_mode,
                         current_phase=options.phase)
   # No exception raised. Verification was successful.
   print 'Verification passed.'
-
-
-@Command(
-    'verify-components',
-    CmdArg('--probed-results-file', default=None,
-           help=('a file with probed results.\n'
-                 '(required if not running on a DUT)')),
-    CmdArg('--json_output', action='store_true', default=False,
-           help='Output the returned value in json format.'),
-    CmdArg('-c', '--components', default=None,
-           help='the list of component classes to verify'),
-    CmdArg('--no-fast-fw-probe', dest='fast_fw_probe', action='store_false',
-           default=True,
-           help='(deprecated) probe only firmware and EC version strings'))
-def VerifyComponentsWrapper(options):
-  """Verifies components."""
-  if options.components:
-    options.components = [v.strip() for v in options.components.split(',')]
-
-  redirect_stdout = process_utils.DummyFile() if options.json_output else None
-  with process_utils.RedirectStandardStreams(stdout=redirect_stdout):
-    bom = hwid_utils.GenerateBOMFromProbedResults(
-        options.database, hwid_utils.GetProbedResults(
-            infile=options.probed_results_file))
-    result = hwid_utils.VerifyComponents(options.database, bom,
-                                         options.components)
-  if options.json_output:
-    def _ConvertToDict(obj):
-      if isinstance(obj, (ProbedComponentResult, rule.Value)):
-        return _ConvertToDict(obj.__dict__)
-      if isinstance(obj, list):
-        return [_ConvertToDict(item) for item in obj]
-      if isinstance(obj, tuple):
-        return tuple([_ConvertToDict(item) for item in obj])
-      if isinstance(obj, dict):
-        return {key: _ConvertToDict(value) for key, value in obj.iteritems()}
-      return obj
-    new_result = _ConvertToDict(result)
-    print json.dumps(new_result)
-  else:
-    failed = []
-    waive_list = []
-    if options.fast_fw_probe:
-      waive_list = ['key_recovery', 'key_root', 'hash_gbb']
-    for comp_cls, comps in result.iteritems():
-      if comp_cls in waive_list:
-        continue
-      for comp_result in comps:
-        if comp_result.error:
-          failed.append('%s: %s' % (comp_cls, comp_result.error))
-    if failed:
-      print 'Verification failed for the following components:'
-      print '\n'.join(failed)
-    else:
-      print 'Verification passed.'
 
 
 @Command(

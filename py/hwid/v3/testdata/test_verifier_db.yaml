@@ -1,0 +1,145 @@
+# A simple database for testing the verifier.
+
+checksum: not-important
+
+project: CHROMEBOOK
+
+encoding_patterns:
+  0: default
+
+image_id:
+  0: PROTO
+  1: EVT
+  2: PVT_DOGFOOD
+  3: PVT
+
+pattern:
+  - image_ids: [0, 1, 2, 3]
+    encoding_scheme: base8192
+    fields:
+    - cpu_field: 2
+    - ram_field: 2
+    - firmware_keys_field: 5
+
+encoded_fields:
+  cpu_field:
+    0: {cpu: cpu_deprecated}
+    1: {cpu: cpu_unsupported}
+    2: {cpu: cpu_unqualified}
+    3: {cpu: cpu_supported}
+
+  ram_field:
+    0: {ram: ram_supported}
+
+  firmware_keys_field:  # In this test data, component name contains "A" is the
+                        # mp key.
+    0: {firmware_keys: firmware_keys_dev}
+    1: {firmware_keys: firmware_keys_non_dev}
+    2: {firmware_keys: firmware_keys_premp}
+    4: {firmware_keys: firmware_keys_premp2}
+    5: {firmware_keys: firmware_keys_premp_2}
+    6: {firmware_keys: firmware_keys_prempv2}
+    7: {firmware_keys: firmware_keys_prempv_2}
+    8: {firmware_keys: firmware_keys_premp_v2}
+    9: {firmware_keys: firmware_keys_pre_mp}
+    10: {firmware_keys: firmware_keys_pre_mp2}
+    11: {firmware_keys: firmware_keys_pre_mp_2}
+    12: {firmware_keys: firmware_keys_pre_mpv2}
+    13: {firmware_keys: firmware_keys_pre_mpv_2}
+    14: {firmware_keys: firmware_keys_pre_mp_v2}
+    15: {firmware_keys: firmware_keys_pre_mp_v_2}
+    16: {firmware_keys: firmware_keys_A_mp}
+    17: {firmware_keys: firmware_keys_A_mp2}
+    18: {firmware_keys: firmware_keys_A_mp_2}
+    19: {firmware_keys: firmware_keys_A_mpv2}
+    20: {firmware_keys: firmware_keys_A_mpv_2}
+    21: {firmware_keys: firmware_keys_A_mp_v2}
+
+components:
+  cpu:
+    items:
+      cpu_deprecated:
+        status: deprecated
+        values: {unused_value: value_0}
+      cpu_unsupported:
+        status: unsupported
+        values: {unused_value: value_1}
+      cpu_unqualified:
+        status: unqualified
+        values: {unused_value: value_2}
+      cpu_supported:
+        status: supported
+        values: {unused_value: value_3}
+  ram:
+    items:
+      ram_supported:
+        status: supported
+        values: {unused_value: value_3}
+
+  firmware_keys:
+    items:
+      firmware_keys_dev:
+        status: supported
+        values: {unused_value: value_0}
+      firmware_keys_non_dev:
+        status: supported
+        values: {unused_value: value_1}
+      firmware_keys_premp:
+        status: supported
+        values: {unused_value: value_2}
+      firmware_keys_premp2:
+        status: supported
+        values: {unused_value: value_3}
+      firmware_keys_premp_2:
+        status: supported
+        values: {unused_value: value_4}
+      firmware_keys_prempv2:
+        status: supported
+        values: {unused_value: value_5}
+      firmware_keys_prempv_2:
+        status: supported
+        values: {unused_value: value_6}
+      firmware_keys_premp_v2:
+        status: supported
+        values: {unused_value: value_7}
+      firmware_keys_pre_mp:
+        status: supported
+        values: {unused_value: value_8}
+      firmware_keys_pre_mp2:
+        status: supported
+        values: {unused_value: value_9}
+      firmware_keys_pre_mp_2:
+        status: supported
+        values: {unused_value: value_10}
+      firmware_keys_pre_mpv2:
+        status: supported
+        values: {unused_value: value_11}
+      firmware_keys_pre_mpv_2:
+        status: supported
+        values: {unused_value: value_12}
+      firmware_keys_pre_mp_v2:
+        status: supported
+        values: {unused_value: value_13}
+      firmware_keys_pre_mp_v_2:
+        status: supported
+        values: {unused_value: value_14}
+      firmware_keys_A_mp:
+        status: supported
+        values: {unused_value: value_15}
+      firmware_keys_A_mp2:
+        status: supported
+        values: {unused_value: value_16}
+      firmware_keys_A_mp_2:
+        status: supported
+        values: {unused_value: value_17}
+      firmware_keys_A_mpv2:
+        status: supported
+        values: {unused_value: value_18}
+      firmware_keys_A_mpv_2:
+        status: supported
+        values: {unused_value: value_19}
+      firmware_keys_A_mp_v2:
+        status: supported
+        values: {unused_value: value_20}
+
+rules: []

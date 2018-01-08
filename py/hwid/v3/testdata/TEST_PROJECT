@@ -1,4 +1,4 @@
-checksum: f3622f85338207de214198d2be194a1175195abd
+checksum: 477a3f89bc4e8e2e2531ee7f4ce953bd6368e6ae
 project: CHROMEBOOK
 
 encoding_patterns:
@@ -265,13 +265,14 @@ components:
         values: { compact_str: Flash Chip }
 
   keyboard:
-    probeable: False
     items:
       keyboard_gb:
-        values: NULL
+        values:
+          compact_str: xkb:gb::eng
 
       keyboard_us:
-        values: NULL
+        values:
+          compact_str: xkb:us::eng
 
   storage:
     items:

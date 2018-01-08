@@ -2,27 +2,23 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""This module focus on verification process of a HWID bom.
+
+A HWID identity being generated successfully doesn't mean the HWID identity
+is valid.  We have to make sure many things such as:
+  1. The components encoded in the HWID identity is actually installed on the
+     device.
+  2. The status of the components matches the requirement (for example,
+     "supported" for PVT and later build, "unqualified" for early build).
+  3. The rootkey is mp for PVT and later build.
+"""
+
 import re
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.test.rules import phase
-from cros.factory.utils import type_utils
-
-
-PRE_MP_KEY_NAME_PATTERN = re.compile('_pre_?mp')
-MP_KEY_NAME_PATTERN = re.compile('_mp[_0-9v]*?[_a-z]*$')
-
-
-def IsMPKeyName(name):
-  """Returns True if the key name looks like MP (not pre-MP).
-
-  An MP key name does not contain the strings "_premp" or "_premp", and
-  ends in something like "_mp" or "_mp_v2" or "_mpv2".
-  """
-  return (MP_KEY_NAME_PATTERN.search(name) and
-          not PRE_MP_KEY_NAME_PATTERN.search(name))
 
 
 def VerifyComponentStatus(database, bom, mode, current_phase=None):
@@ -71,49 +67,17 @@ def VerifyComponentStatus(database, bom, mode, current_phase=None):
               (comp_cls, comp_name))
 
 
-def VerifyBOM(database, bom, bom2):
-  """Verifies that the BOM object matches the settings encoded in the HWID
-  object.
+_PRE_MP_KEY_NAME_PATTERN = re.compile('_pre_?mp')
+_MP_KEY_NAME_PATTERN = re.compile('_mp[_0-9v]*?[_a-z]*$')
 
-  Args:
-    bom: An instance of BOM to be verified.
+def _IsMPKeyName(name):
+  """Returns True if the key name looks like MP (not pre-MP).
 
-  Raises:
-    HWIDException on verification error.
+  An MP key name does not contain the strings "_premp" or "_premp", and
+  ends in something like "_mp" or "_mp_v2" or "_mpv2".
   """
-  VerifyComponents(database, bom2)
-
-  def PackProbedValues(bom, comp_cls):
-    results = []
-    for e in bom.components[comp_cls]:
-      if e.probed_values is None:
-        continue
-      matched_component = database.components.MatchComponentsFromValues(
-          comp_cls, e.probed_values)
-      if matched_component:
-        results.extend(matched_component.keys())
-    return results
-
-  # We only verify the components listed in the pattern.
-  for comp_cls in database.GetActiveComponents(bom.image_id):
-    if comp_cls not in database.components.probeable:
-      continue
-    probed_components = type_utils.MakeSet(PackProbedValues(bom2, comp_cls))
-    expected_components = type_utils.MakeSet(PackProbedValues(bom, comp_cls))
-    extra_components = probed_components - expected_components
-    missing_components = expected_components - probed_components
-    if extra_components or missing_components:
-      err_msg = 'Component class %r' % comp_cls
-      if extra_components:
-        err_msg += ' has extra components: %r' % sorted(extra_components)
-      if missing_components:
-        if extra_components:
-          err_msg += ' and'
-        err_msg += ' is missing components: %r' % sorted(missing_components)
-      err_msg += '. Expected components are: %r' % (
-          sorted(expected_components) if expected_components else None)
-      raise HWIDException(err_msg)
-
+  return (_MP_KEY_NAME_PATTERN.search(name) and
+          not _PRE_MP_KEY_NAME_PATTERN.search(name))
 
 def VerifyPhase(database, bom, current_phase=None):
   """Enforces phase checks.
@@ -153,39 +117,53 @@ def VerifyPhase(database, bom, current_phase=None):
 
     errors = []
     for key_type in key_types:
+      if key_type not in bom.components:
+        raise HWIDException(
+            'Component %r is required but not found.' % (key_type,))
       name = bom.components[key_type][0].component_name
-      if not IsMPKeyName(name):
+      if not _IsMPKeyName(name):
         errors.append('%s component name is %r' % (key_type, name))
     if errors:
       raise HWIDException('MP keys are required in %s, but %s' % (
           current_phase, ' and '.join(errors)))
 
 
-def VerifyComponents(database, bom, comp_list=None):
-  """Given a list of component classes, verify that the probed components of
-  all the component classes in the list are valid components in the database.
+def VerifyBOM(database, decoded_bom, probed_bom):
+  """Verifies that the BOM object decoded from the HWID identity matches
+  the one obtained by probing the device.
+
+  This verification function makes sure the HWID identity is not encoded from
+  a fake BOM object.
 
   Args:
-    bom: A BOM object contains a list of components.
-    comp_list: An optional list of component class to be verified. Defaults to
-        None, which will then verify all the probeable components defined in
-        the database.
+    decoded_bom: The BOM object decoded from the the HWID identity.
+    probed_bom: The BOM object generated from the probed results.
 
-  Returns:
-    A dict from component class to a list of one or more
-    ProbedComponentResult tuples.
-    {component class: [ProbedComponentResult(
-        component_name,  # The component name if found in the db, else None.
-        probed_values,   # The actual probed string. None if probing failed.
-        error)]}         # The error message if there is one; else None.
+  Raises:
+    HWIDException if the BOM objects mismatch.
   """
-  if not comp_list:
-    comp_list = sorted(database.components.probeable)
-  if not isinstance(comp_list, list):
-    raise HWIDException('Argument comp_list should be a list')
-  invalid_cls = set(comp_list) - set(database.components.probeable)
-  if invalid_cls:
-    raise HWIDException(
-        '%r do not have probe values and cannot be verified' %
-        sorted(invalid_cls))
-  return dict((comp_cls, bom.components[comp_cls]) for comp_cls in comp_list)
+  # We only verify the components listed in the pattern.
+  for comp_cls in database.GetActiveComponents(decoded_bom.image_id):
+    if comp_cls not in probed_bom.components:
+      raise HWIDException(
+          'Component class %r is not found in probed BOM.' % comp_cls)
+
+    decoded_components = set(
+        [comp.component_name for comp in decoded_bom.components[comp_cls]])
+    probed_components = set(
+        [comp.component_name for comp in probed_bom.components[comp_cls]])
+
+    err_msgs = []
+
+    extra_components = decoded_components - probed_components
+    if extra_components:
+      err_msgs.append('has extra components: %r' % sorted(extra_components))
+
+    missing_components = probed_components - decoded_components
+    if missing_components:
+      err_msgs.append('is missing components: %r' % sorted(missing_components))
+
+    if err_msgs:
+      raise HWIDException(
+          'Component class %r ' % comp_cls + ' and '.join(err_msgs) +
+          '.  Expected components are: %r' % sorted(probed_components))

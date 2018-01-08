@@ -17,7 +17,6 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import hwid_utils
-from cros.factory.hwid.v3 import rule
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.hwid.v3.rule import Value
 from cros.factory.test.rules import phase
@@ -133,76 +132,6 @@ class HWIDv3UtilsTest(unittest.TestCase):
         }
     }
 
-  def testVerifyComponentsV3(self):
-    """Test if the Gooftool.VerifyComponent() works properly.
-
-    This test tries to probe four components [bluetooth, battery, cpu,
-    audio_codec], where
-      'bluetooth' returns a valid result.
-      'battery' returns a false result.
-      'cpu' does not return any result.
-      'audio_codec' returns multiple results.
-    """
-    probed_results = {
-        'bluetooth': {
-            'generic': [
-                {
-                    'idVendor': '0123',
-                    'idProduct': 'abcd',
-                    'bcd': '0001'
-                }
-            ]
-        },
-        'battery': {
-            'generic': [
-                {'compact_str': 'fake value'}
-            ]
-        },
-        'audio_codec': {
-            'generic': [
-                {'compact_str': 'Codec 1'},
-                {'compact_str': 'HDMI 1'},
-                {'compact_str': 'fake value'}
-            ]
-        }
-    }
-
-    results = hwid_utils.VerifyComponents(
-        self.db, hwid_utils.GenerateBOMFromProbedResults(self.db,
-                                                         probed_results,
-                                                         loose_matching=True),
-        ['bluetooth', 'battery', 'cpu', 'audio_codec'])
-
-    self.assertEquals(
-        [('bluetooth_0',
-          {'idVendor': rule.Value('0123'), 'idProduct': rule.Value('abcd'),
-           'bcd': rule.Value('0001')},
-          None)],
-        results['bluetooth'])
-    self.assertEquals(
-        [(None, None, "Missing 'cpu' component")],
-        results['cpu'])
-    self.assertEquals(
-        [(None, {'compact_str': 'fake value'},
-          common.INVALID_COMPONENT_ERROR(
-              'battery', {'compact_str': 'fake value'}))],
-        results['battery'])
-    self.assertEquals(
-        [('codec_1', {'compact_str': rule.Value('Codec 1')}, None),
-         ('hdmi_1', {'compact_str': rule.Value('HDMI 1')}, None),
-         (None, {'compact_str': 'fake value'},
-          common.INVALID_COMPONENT_ERROR(
-              'audio_codec', {'compact_str': 'fake value'}))],
-        results['audio_codec'])
-
-  def testVerifyBadComponents3(self):
-    """Tests VerifyComponents with invalid component class name."""
-    probed_results = {}
-
-    bom = hwid_utils.GenerateBOMFromProbedResults(self.db, probed_results)
-    self.assertRaises(common.HWIDException, hwid_utils.VerifyComponents,
-                      self.db, bom, ['cpu', 'bad_class_name'])
-
   def testGenerateHWID(self):
     """Tests HWID generation."""
     device_info = {
@@ -260,12 +189,10 @@ class HWIDv3UtilsTest(unittest.TestCase):
         phase.DVT)
 
     probed_results = copy.deepcopy(self.probed_results)
-    probed_results['audio_codec']['generic'][1] = {'compact_str': 'HDMI 2'}
+    probed_results['audio_codec']['generic'][1] = {'compact_str': 'HDMI 0'}
     bom = hwid_utils.GenerateBOMFromProbedResults(self.db, probed_results)
-    self.assertRaisesRegexp(
+    self.assertRaises(
         common.HWIDException,
-        (r"Component class 'audio_codec' is missing components: "
-         r"\['hdmi_1'\]. Expected components are: \['codec_1', 'hdmi_1'\]"),
         hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F9U', bom,
         self.vpd, False, phase.PVT)
 
@@ -374,7 +301,9 @@ class HWIDv3UtilsTest(unittest.TestCase):
         'audio_codec': [
             {'codec_1': {'compact_str': Value('Codec 1', is_re=False)}},
             {'hdmi_1': {'compact_str': Value('HDMI 1', is_re=False)}}],
-        'keyboard': [{'keyboard_us': None}],
+        'keyboard': [
+            {'keyboard_us': {'compact_str': Value('xkb:us::eng',
+                                                  is_re=False)}}],
         'dram': [{
             'dram_0': {
                 'vendor': Value('DRAM 0', is_re=False),

@@ -235,15 +235,6 @@ def RunProbe(options):
   print json_utils.DumpStr(probed_result, pretty=True)
 
 
-@Command('verify_components')
-def VerifyComponents(options):
-  del options
-  msg = ('This command has already been deprecated, please use '
-         '`hwid verify-components` instead.')
-  print msg
-  sys.exit(1)
-
-
 @Command(
     'verify_ec_key',
     _ec_pubkey_path_cmd_arg,

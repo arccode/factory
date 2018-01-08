@@ -83,7 +83,8 @@
     "SMTProbe": {
       "inherit": "Probe",
       "args": {
-        "config_file": "probe_smt.json"
+        "component_list": "eval! constants.smt.component_list",
+        "config_file": "probe.json"
       }
     },
     "SMTScanMLB": {
@@ -163,13 +164,6 @@
         "SyncFactoryServer",
         "UpdateFirmware"
       ]
-    },
-    "SMTVerifyComponents": {
-      "inherit": "VerifyComponents",
-      "__comment": "A legacy test that should be replaced by probe.",
-      "args": {
-        "component_list": "eval! constants.smt.component_list"
-      }
     },
     "SMTWifiSSIDList": {
       "inherit": "WifiSSIDList",

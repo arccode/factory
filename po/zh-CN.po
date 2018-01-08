@@ -489,10 +489,6 @@ msgid "USB"
 msgstr "USB"
 
 #: ../build/pytests_label_generated.json
-msgid "Verify Components"
-msgstr "验证元件"
-
-#: ../build/pytests_label_generated.json
 msgid "Verify Root Partition"
 msgstr "验证根磁区"
 
@@ -2817,10 +2813,6 @@ msgstr "(ESC 保持原值不变)"
 #: ../py/test/pytests/usb.py
 msgid "Plug device into each USB port, {num_usb_ports} to go..."
 msgstr "在每个 USB 端口插入装置, 还有 {num_usb_ports} 个待测试..."
-
-#: ../py/test/pytests/verify_components.py
-msgid "Checking components..."
-msgstr "元件验证中..."
 
 #: ../py/test/pytests/vswr/static/vswr.html
 msgid "Loading parameters from local disk..."

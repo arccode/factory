@@ -141,7 +141,7 @@ def ParseDecodedHWID(database, bom, identity):
           'components': dict(output_components)}
 
 
-def VerifyHWID(db, encoded_string, bom, vpd=None, rma_mode=False,
+def VerifyHWID(db, encoded_string, probed_bom, vpd=None, rma_mode=False,
                current_phase=None):
   """Verifies the given encoded HWID v3 string against the component db.
 
@@ -160,7 +160,7 @@ def VerifyHWID(db, encoded_string, bom, vpd=None, rma_mode=False,
   Args:
     db: A Database object to be used.
     encoded_string: An encoded HWID string to test.
-    bom: A BOM object contains a list of components installed on the DUT.
+    probed_bom: A BOM object contains a list of components installed on the DUT.
     vpd: None or a dict of RO and RW VPD values.  This argument should be set
         if some rules in the HWID database rely on the VPD values.
     rma_mode: True for RMA mode to allow deprecated components. Defaults to
@@ -175,7 +175,7 @@ def VerifyHWID(db, encoded_string, bom, vpd=None, rma_mode=False,
   hwid_mode = _HWIDMode(rma_mode)
   identity = GetIdentityFromEncodedString(db, encoded_string)
   decoded_bom = transformer.IdentityToBOM(db, identity)
-  verifier.VerifyBOM(db, decoded_bom, bom)
+  verifier.VerifyBOM(db, decoded_bom, probed_bom)
   verifier.VerifyComponentStatus(
       db, decoded_bom, hwid_mode, current_phase=current_phase)
   verifier.VerifyPhase(db, decoded_bom, current_phase)
@@ -184,28 +184,6 @@ def VerifyHWID(db, encoded_string, bom, vpd=None, rma_mode=False,
     context_args['vpd'] = vpd
   context = rule.Context(**context_args)
   db.rules.EvaluateRules(context, namespace='verify.*')
-
-
-def VerifyComponents(db, bom, component_list):
-  """Verifies the given component list against the given HWID database.
-
-  This function is to ensure the installed components are correct.  This method
-  uses the HWID v3 component database to verify components.
-
-  Args:
-    db: A Database object to be used.
-    bom: A BOM object contains a list of components installed on the DUT.
-    component_list: A list of components to verify. (e.g., ['cpu', 'video'])
-
-  Returns:
-    A dict from component class to a list of one or more
-    ProbedComponentResult tuples.
-    {component class: [ProbedComponentResult(
-        component_name,  # The component name if found in the db, else None.
-        probed_string,   # The actual probed string. None if probing failed.
-        error)]}         # The error message if there is one.
-  """
-  return verifier.VerifyComponents(db, bom, component_list)
 
 
 def ListComponents(db, comp_class=None):
