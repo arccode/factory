@@ -749,6 +749,8 @@ class Gooftool(object):
     else:
       arg_phase = 'dev'
 
+    # TODO(hungte) Remove the service management once cr50-set-board-id.sh
+    # has been changed to use '-a' (any) method.
     service_mgr = service_utils.ServiceManager()
 
     try:
@@ -786,18 +788,7 @@ class Gooftool(object):
       logging.warn('gsctool is not found, skip reset Cr50 in RMA.')
       return
 
-    if not service_utils.CheckServiceExists('trunksd'):
-      logging.warn('Service trunksd is not found, skip reset Cr50 in RMA.')
-      return
-
-    trunksd_status = service_utils.GetServiceStatus('trunksd')
-    if trunksd_status == service_utils.Status.START:
-      cmd = ['gsctool', '-t', '-r', 'disable']
-    elif trunksd_status == service_utils.Status.STOP:
-      cmd = ['gsctool', '-s', '-r', 'disable']
-    else:
-      raise Error('Unknown status for service trunksd.')
-
+    cmd = ['gsctool', '-a', '-r', 'disable']
     result = self._util.shell(cmd)
     if not result.success:
       raise Error('Failed to reset Cr50 state.')
