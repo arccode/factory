@@ -64,7 +64,6 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.external import evdev
-from cros.factory.test import countdown_timer
 from cros.factory.test import event_log
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
@@ -208,7 +207,6 @@ class ButtonTest(test_ui.TestCaseWithUI):
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
     self.ui.AppendCSS('test-template { font-size: 2em; }')
-    self.ui.SetState('<div id="prompt"></div><div id="timer"></div>')
 
     if self.args.button_key_name.startswith(_KEY_GPIO):
       gpio_num = self.args.button_key_name[len(_KEY_GPIO):]
@@ -267,7 +265,7 @@ class ButtonTest(test_ui.TestCaseWithUI):
     self._action_timestamps.append(time.time())
 
   def runTest(self):
-    countdown_timer.StartCountdownTimer(self, self.args.timeout_secs, 'timer')
+    self.ui.StartFailingCountdownTimer(self.args.timeout_secs)
 
     for done in xrange(self.args.repeat_times):
       if self.args.repeat_times == 1:
@@ -279,14 +277,13 @@ class ButtonTest(test_ui.TestCaseWithUI):
             name=self.args.button_name,
             count=done,
             total=self.args.repeat_times)
-      self.ui.SetHTML(label, id='prompt')
+      self.ui.SetState(label)
 
       if self._fixture:
         self._fixture.SimulateButtonPress(self.args.bft_button_name, 0)
 
       self._PollForCondition(self.button.IsPressed, 'WaitForPress')
-      self.ui.SetHTML(
-          i18n_test_ui.MakeI18nLabel('Release the button'), id='prompt')
+      self.ui.SetState(i18n_test_ui.MakeI18nLabel('Release the button'))
 
       if self._fixture:
         self._fixture.SimulateButtonRelease(self.args.bft_button_name)

@@ -537,6 +537,28 @@ class UI(object):
         'document.getElementById(args.id).style.display = "initial"',
         id=element_id)
 
+  def ToggleClass(self, element_id, dom_class, force=None):
+    """Toggle an element class by classList.toggle().
+
+    Args:
+      element_id: The HTML DOM id of the element to be shown.
+      dom_class: The DOM class to be toggled.
+      force: Should be None, True or False. If None, toggle the class. If True,
+          add the class, else remove the class.
+    """
+    if force is None:
+      self.RunJS(
+          'document.getElementById(args.id).classList.toggle(args.dom_class)',
+          id=element_id,
+          dom_class=dom_class)
+    else:
+      self.RunJS(
+          'document.getElementById(args.id).classList.toggle(args.dom_class, '
+          'args.force)',
+          id=element_id,
+          dom_class=dom_class,
+          force=force)
+
   def ImportHTML(self, url):
     """Import a HTML to the test pane.
 
@@ -634,6 +656,66 @@ class StandardUI(UI):
       value: Number of completed items, can be floating point.
     """
     self.CallJSFunction('window.template.setProgress', value)
+
+  def SetTimerValue(self, value):
+    """Set the remaining time of timer.
+
+    Would show the timer if it's not already shown.
+
+    Args:
+      value: Remaining time.
+    """
+    self.CallJSFunction('window.template.setTimerValue', value)
+
+  def HideTimer(self):
+    """Hide the timer."""
+    self.CallJSFunction('window.template.hideTimer')
+
+  def StartCountdownTimer(self, timeout_secs, timeout_handler=None):
+    """Start a countdown timer.
+
+    It updates UI for time remaining and calls timeout_handler when timeout.
+    All works are done in the event loop, and no extra threads are created.
+
+    Args:
+      timeout_secs: Number of seconds to timeout.
+      timeout_handler: Callback called when timeout reaches.
+
+    Returns:
+      A threading.Event that would stop the countdown timer when set.
+    """
+    end_time = time.time() + timeout_secs
+    stop_event = threading.Event()
+    def _Timer():
+      while not stop_event.is_set():
+        time_remaining = end_time - time.time()
+        if time_remaining <= 0:
+          if timeout_handler:
+            timeout_handler()
+          break
+        self.SetTimerValue(time_remaining)
+        yield
+      self.HideTimer()
+    self._event_loop.AddTimedIterable(_Timer(), 1)
+    return stop_event
+
+  def StartFailingCountdownTimer(self, timeout_secs, error_msg=None):
+    """Start a countdown timer that fail the task after timeout.
+
+    Args:
+      timeout_secs: Number of seconds to timeout.
+      error_msg: Error message to fail the test when timeout.
+
+    Returns:
+      A threading.Event that would stop the countdown timer when set.
+    """
+    if error_msg is None:
+      error_msg = 'Timed out after %d seconds.' % timeout_secs
+
+    def _TimeoutHandler():
+      raise type_utils.TestFailure(error_msg)
+
+    return self.StartCountdownTimer(timeout_secs, _TimeoutHandler)
 
 
 class ScrollableLogUI(StandardUI):

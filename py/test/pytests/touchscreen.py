@@ -114,7 +114,6 @@ If seeing unexpected touch events in `evtest`, here are some thoughts:
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external.evdev import ecodes  # pylint: disable=E0611
-from cros.factory.test import countdown_timer
 from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
 from cros.factory.test.utils import touch_monitor
@@ -245,9 +244,8 @@ class TouchscreenTest(test_ui.TestCaseWithUI):
 
   def runTest(self):
     if self.args.timeout_secs:
-      countdown_timer.StartCountdownTimer(self, self.args.timeout_secs,
-                                          'countdown-timer',
-                                          self._frontend_proxy.FailTest)
+      self.ui.StartCountdownTimer(self.args.timeout_secs,
+                                  self._frontend_proxy.FailTest)
 
     if self._device is not None:
       self._device = evdev_utils.DeviceReopen(self._device)

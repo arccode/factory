@@ -12,7 +12,6 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
-from cros.factory.test import countdown_timer
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
@@ -98,11 +97,7 @@ class TabletModeTest(test_ui.TestCaseWithUI):
       self.tablet_mode_switch = event.value == 1
 
   def StartCountdown(self):
-    countdown_timer.StartCountdownTimer(
-        self,
-        self.args.timeout_secs,
-        'timer',
-        lambda: self.FailTask('Lid switch test failed due to timeout.'))
+    self.ui.StartFailingCountdownTimer(self.args.timeout_secs)
 
   def SetUIImage(self, image):
     self.ui.RunJS(

@@ -83,7 +83,6 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import countdown_timer
 from cros.factory.test import session
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import test_ui as i18n_test_ui
@@ -133,7 +132,6 @@ class PlanktonCCFlipCheck(test_ui.TestCaseWithUI):
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
     self.ui.AppendCSS('test-template { font-size: 2em; }')
-    self.ui.SetState('<div id="operation"></div><div id="timer"></div>')
     self._bft_fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
     self._adb_remote_test = self.args.adb_remote_test
     self._double_cc_quick_check = (
@@ -159,8 +157,8 @@ class PlanktonCCFlipCheck(test_ui.TestCaseWithUI):
       'CC1' or 'CC2', or _CC_UNCONNECT if it doesn't detect SRC_READY.
     """
     if not self._dut.IsReady():
-      self.ui.SetHTML(
-          i18n_test_ui.MakeI18nLabel('Wait DUT to reconnect'), id='operation')
+      self.ui.SetState(
+          i18n_test_ui.MakeI18nLabel('Wait DUT to reconnect'))
       session.console.info(
           'Lose connection to DUT, waiting for DUT to reconnect')
       sync_utils.WaitFor(lambda: self._dut.Call(['true']) == 0,
@@ -219,14 +217,13 @@ class PlanktonCCFlipCheck(test_ui.TestCaseWithUI):
                 (self.args.original_enabled_cc, self._polarity))
 
     if self.args.ask_flip_operation:
-      self.ui.SetHTML(
+      self.ui.SetState(
           i18n_test_ui.MakeI18nLabel(
-              'Flip USB type-C cable and plug in again...'),
-          id='operation')
+              'Flip USB type-C cable and plug in again...'))
       if self.args.timeout_secs == 0:
-        self.ui.AppendHTML(
+        self.ui.SetState(
             i18n_test_ui.MakeI18nLabel('And press Enter key to continue...'),
-            id='operation')
+            append=True)
         self.ui.WaitKeysOnce(test_ui.ENTER_KEY)
         polarity = self.GetCCPolarity()
         if polarity == self._polarity or polarity == _CC_UNCONNECT:
@@ -234,9 +231,7 @@ class PlanktonCCFlipCheck(test_ui.TestCaseWithUI):
               'DUT does not detect cable flipped. Was it really flipped?')
       else:
         # Start countdown timer.
-        countdown_timer.StartCountdownTimer(
-            self, self.args.timeout_secs, 'timer',
-            lambda: self.FailTask('Timeout waiting for test to complete'))
+        self.ui.StartFailingCountdownTimer(self.args.timeout_secs)
         while True:
           self.WaitTaskEnd(timeout=0.5)
           polarity = self.GetCCPolarity()
@@ -247,9 +242,7 @@ class PlanktonCCFlipCheck(test_ui.TestCaseWithUI):
           (not self.args.double_cc_flip_target or
            self._polarity != self.args.double_cc_flip_target)):
       if self.args.timeout_secs:
-        countdown_timer.StartCountdownTimer(
-            self, self.args.timeout_secs, 'timer',
-            lambda: self.FailTask('Timeout waiting for test to complete'))
+        self.ui.StartFailingCountdownTimer(self.args.timeout_secs)
 
       session.console.info('Double CC test, doing CC flip...')
       # TODO(yllin): Remove this if solve the plankton firmware issue

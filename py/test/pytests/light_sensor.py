@@ -93,7 +93,6 @@ import os
 import time
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import countdown_timer
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
@@ -229,18 +228,19 @@ class iio_generic(object):
 class LightSensorTest(test_ui.TestCaseWithUI):
   """Tests light sensor."""
   ARGS = [
-      Arg('device_path', str, 'device path', None),
-      Arg('device_input', str, 'device input file', _DEFAULT_DEVICE_INPUT),
-      Arg('timeout_per_subtest', int, 'timeout for each subtest', 10),
-      Arg('subtest_list', list, 'subtest list', None),
-      Arg('subtest_cfg', dict, 'subtest configuration', None),
-      Arg('subtest_instruction', dict, 'subtest instruction', None),
-      Arg('check_per_subtest', int, 'check times for each subtest', 3),
-      Arg('init_command', list, 'Setup device command', None),
+      Arg('device_path', str, 'device path', default=None),
+      Arg('device_input', str, 'device input file',
+          default=_DEFAULT_DEVICE_INPUT),
+      Arg('timeout_per_subtest', int, 'timeout for each subtest', default=10),
+      Arg('subtest_list', list, 'subtest list', default=None),
+      Arg('subtest_cfg', dict, 'subtest configuration', default=None),
+      Arg('subtest_instruction', dict, 'subtest instruction', default=None),
+      Arg('check_per_subtest', int, 'check times for each subtest', default=3),
+      Arg('init_command', list, 'Setup device command', default=None),
 
       # Special parameter for ISL 29018 light sensor
       Arg('range_value', int, 'one of value (1000, 4000, 16000, 64000)',
-          None),
+          default=None),
   ]
 
   def setUp(self):
@@ -294,9 +294,8 @@ class LightSensorTest(test_ui.TestCaseWithUI):
   def runTest(self):
     self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
     self.ui.HideElement('space-prompt')
-    countdown_timer.StartCountdownTimer(
-        self, self._timeout_per_subtest * len(self._subtest_list),
-        'timer', lambda: self.FailTask('Test timeout.'))
+    self.ui.StartFailingCountdownTimer(
+        self._timeout_per_subtest * len(self._subtest_list))
 
     for idx, name in enumerate(self._subtest_list):
       active_series = testlog.CreateSeries(

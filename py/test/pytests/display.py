@@ -85,7 +85,6 @@ list::
 import os
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import countdown_timer
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import translation
 from cros.factory.test import test_ui
@@ -186,8 +185,7 @@ class DisplayTest(test_ui.TestCaseWithUI):
       # Automatically enter fullscreen mode in idle mode.
       self.ToggleFullscreen()
       self.event_loop.AddEventHandler('onFullscreenClicked', self.OnFailPressed)
-      countdown_timer.StartCountdownTimer(self, self.idle_timeout,
-                                          'display-timer', self.PassTask)
+      self.ui.StartCountdownTimer(self.idle_timeout, self.PassTask)
     self.ui.BindKey(test_ui.ESCAPE_KEY, self.OnFailPressed)
     self.WaitTaskEnd()
 

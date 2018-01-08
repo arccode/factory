@@ -7,12 +7,17 @@
 #success {
   font-size: 4em;
   background-color: #afa;
+  display: none;
 }
 
 #picture {
   font-size: 15em;
 }
 
-.hidden {
+.show-success #success {
+  display: block;
+}
+
+.show-success #picture {
   display: none;
 }

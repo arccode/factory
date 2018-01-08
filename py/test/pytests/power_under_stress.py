@@ -6,7 +6,6 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import countdown_timer
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
@@ -62,8 +61,7 @@ class PowerUnderStressTest(test_ui.TestCaseWithUI):
     else:
       self._bft_fixture = None
     self._dut = device_utils.CreateDUTInterface()
-    self.ui.SetState('<div id="countdown"></div>'
-                     '<div id="voltage"></div>'
+    self.ui.SetState('<div id="voltage"></div>'
                      '<div id="current"></div>')
 
   def UpdateState(self, voltage, current):
@@ -75,7 +73,7 @@ class PowerUnderStressTest(test_ui.TestCaseWithUI):
         id='current')
 
   def runTest(self):
-    countdown_timer.StartCountdownTimer(self, self.args.wait_secs, 'countdown')
+    self.ui.StartCountdownTimer(self.args.wait_secs)
 
     with stress_manager.StressManager(self._dut).Run(
         duration_secs=None,

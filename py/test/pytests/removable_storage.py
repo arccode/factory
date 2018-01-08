@@ -86,7 +86,6 @@ import threading
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import countdown_timer
 from cros.factory.test.event_log import Log
 from cros.factory.test import session
 from cros.factory.test.fixture import bft_fixture
@@ -789,10 +788,7 @@ class RemovableStorageTest(test_ui.TestCaseWithUI):
 
   def runTest(self):
     """Main entrance of removable storage test."""
-    # Start countdown timer.
-    countdown_timer.StartCountdownTimer(
-        self, self.args.timeout_secs,
-        'timer', lambda: self.FailTask('Timeout waiting for test to complete'))
+    self.ui.StartFailingCountdownTimer(self.args.timeout_secs)
 
     if not self.args.skip_insert_remove:
       self._dut.udev.StartMonitorPath(

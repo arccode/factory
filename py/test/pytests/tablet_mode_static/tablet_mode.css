@@ -26,18 +26,10 @@
   background-image: url("tablet-to-notebook.webp")
 }
 
-#right {
-  flex: 1;
-  display: flex;
-  flex-flow: column;
-  align-items: center;
-}
-
 #confirm {
   flex: 1;
-  align-self: stretch;
-  margin: 0.2em;
   display: flex;
+  margin: 0.2em;
 }
 
 #confirm-button {

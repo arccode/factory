@@ -10,7 +10,6 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
-from cros.factory.test import countdown_timer
 from cros.factory.test import event_log
 # The right BFTFixture module is dynamically imported based on args.bft_fixture.
 # See LidSwitchTest.setUp() for more detail.
@@ -213,11 +212,11 @@ class LidSwitchTest(test_ui.TestCaseWithUI):
 
   def AskForOpenLid(self):
     if self.fixture:
-      self.ui.SetHTML(
-          i18n_test_ui.MakeI18nLabel('Demagnetizing lid sensor'), id='prompt')
+      self.ui.SetState(
+          i18n_test_ui.MakeI18nLabel('Demagnetizing lid sensor'))
       self.BFTLid(close=False)
     else:
-      self.ui.SetHTML(i18n_test_ui.MakeI18nLabel('Open the lid'), id='prompt')
+      self.ui.SetState(i18n_test_ui.MakeI18nLabel('Open the lid'))
       self.PlayOkAudio()
 
   def PlayOkAudio(self):
@@ -230,18 +229,15 @@ class LidSwitchTest(test_ui.TestCaseWithUI):
     audio_utils.CRAS().EnableOutput()
     audio_utils.CRAS().SetActiveOutputNodeVolume(self.args.audio_volume)
     if self.fixture:
-      self.ui.SetHTML(
-          i18n_test_ui.MakeI18nLabel('Magnetizing lid sensor'), id='prompt')
+      self.ui.SetState(
+          i18n_test_ui.MakeI18nLabel('Magnetizing lid sensor'))
     else:
-      self.ui.SetHTML(
-          i18n_test_ui.MakeI18nLabel('Close then open the lid'), id='prompt')
+      self.ui.SetState(
+          i18n_test_ui.MakeI18nLabel('Close then open the lid'))
 
     self.dispatcher.StartDaemon()
-    countdown_timer.StartCountdownTimer(
-        self,
-        _DEFAULT_TIMEOUT if self.fixture else self.args.timeout_secs,
-        'timer',
-        lambda: self.FailTask('Lid switch test failed due to timeout.'))
+    self.ui.StartFailingCountdownTimer(
+        _DEFAULT_TIMEOUT if self.fixture else self.args.timeout_secs)
 
     if self.fixture:
       self.BFTLid(close=True)

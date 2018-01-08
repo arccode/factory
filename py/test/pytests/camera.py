@@ -126,7 +126,6 @@ import uuid
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import countdown_timer
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
@@ -431,8 +430,7 @@ class CameraTest(test_ui.TestCaseWithUI):
       self.camera_device = self.dut.camera.GetCameraDevice(device_index)
 
   def runTest(self):
-    countdown_timer.StartCountdownTimer(self, self.args.timeout_secs, 'timer',
-                                        self._Timeout)
+    self.ui.StartCountdownTimer(self.args.timeout_secs, self._Timeout)
 
     if self.mode == TestModes.manual_led:
       self.LEDTest()

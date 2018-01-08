@@ -13,10 +13,6 @@
   position: absolute;
 }
 
-#keyboard-test-timer {
-  font-size: 2em;
-}
-
 .keyboard-test-key {
   z-index: 2;
   opacity: 0.5;

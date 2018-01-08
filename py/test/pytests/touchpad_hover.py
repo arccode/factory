@@ -66,12 +66,12 @@ If calibration is required::
   }
 """
 
+import contextlib
 import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.external import evdev
-from cros.factory.test import countdown_timer
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
@@ -99,15 +99,14 @@ class TouchpadHoverTest(test_ui.TestCaseWithUI):
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
-    self.ui.SetState('<div id="prompt"></div><div id="timer"></div>')
-    self._timer_disabler = None
     self._touchpad = evdev_utils.FindDevice(self.args.touchpad_filter,
                                             evdev_utils.IsTouchpadDevice)
 
-  def _SetMessage(self, msg, timeout_secs):
-    self.ui.SetHTML(msg, id='prompt')
-    self._timer_disabler = countdown_timer.StartCountdownTimer(
-        self, timeout_secs, 'timer')
+  @contextlib.contextmanager
+  def WithTimer(self, timeout_secs):
+    timer_disabler = self.ui.StartCountdownTimer(timeout_secs)
+    yield
+    timer_disabler.set()
 
   def _WaitForValue(self, value, timeout_secs):
     def _Condition():
@@ -131,18 +130,18 @@ class TouchpadHoverTest(test_ui.TestCaseWithUI):
     return True
 
   def _TestForValue(self, msg, val):
-    self._SetMessage(msg, self.args.timeout_secs)
-    self.assertTrue(self._WaitForValue(val, self.args.timeout_secs), 'Timeout')
-    self._timer_disabler.set()
+    self.ui.SetState(msg)
+    with self.WithTimer(self.args.timeout_secs):
+      self.assertTrue(
+          self._WaitForValue(val, self.args.timeout_secs), 'Timeout')
 
   def runTest(self):
     if self.args.calibration_trigger:
-      self._SetMessage(
-          i18n_test_ui.MakeI18nLabel('Calibrating touchpad...'),
-          self.args.calibration_sleep_secs)
-      self._dut.WriteFile(self.args.calibration_trigger, '1')
-      time.sleep(self.args.calibration_sleep_secs)
-      self._timer_disabler.set()
+      self.ui.SetState(
+          i18n_test_ui.MakeI18nLabel('Calibrating touchpad...'))
+      with self.WithTimer(self.args.calibration_sleep_secs):
+        self._dut.WriteFile(self.args.calibration_trigger, '1')
+        time.sleep(self.args.calibration_sleep_secs)
 
     for round_index in xrange(self.args.repeat_times):
       progress = '(%d/%d) ' % (round_index, self.args.repeat_times)
@@ -151,9 +150,8 @@ class TouchpadHoverTest(test_ui.TestCaseWithUI):
       self._TestForValue(progress + i18n_test_ui.MakeI18nLabel(
           'Please pull out the hover-tool from the holder.'), 0)
 
-    self._SetMessage(
-        i18n_test_ui.MakeI18nLabel('Checking for false positive...'),
-        self.args.false_positive_check_duration)
-    fp = self._WaitForValue(1, self.args.false_positive_check_duration)
-    self._timer_disabler.set()
-    self.assertFalse(fp, 'False Positive Detected.')
+    self.ui.SetState(
+        i18n_test_ui.MakeI18nLabel('Checking for false positive...'))
+    with self.WithTimer(self.args.false_positive_check_duration):
+      fp = self._WaitForValue(1, self.args.false_positive_check_duration)
+      self.assertFalse(fp, 'False Positive Detected.')

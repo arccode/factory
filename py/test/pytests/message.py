@@ -64,7 +64,6 @@ To show a message for 20 seconds, and automatically pass::
 from __future__ import print_function
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import countdown_timer
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
@@ -73,9 +72,8 @@ from cros.factory.utils.arg_utils import Arg
 
 CSS_TEMPLATE = """
 .message { font-size: %(text_size)s%%; color: %(text_color)s; }
-.state { background-color: %(background_color)s; }
+test-template { --template-background-color: %(background_color)s; }
 """
-_HTML_REMAIN = '<br><div id="remain"></div>'
 
 
 class MessageTest(test_ui.TestCaseWithUI):
@@ -114,11 +112,8 @@ class MessageTest(test_ui.TestCaseWithUI):
             '<div>Press <strong>Enter</strong> to continue.</div>')
 
     self.ui.SetState(
-        '<div class="state">' +
         i18n_test_ui.MakeI18nLabelWithClass(self.args.html, 'message') +
-        press_button_hint +
-        _HTML_REMAIN +
-        '</div>')
+        press_button_hint)
 
     self.ui.BindStandardPassKeys()
     if self.args.manual_check:
@@ -126,6 +121,5 @@ class MessageTest(test_ui.TestCaseWithUI):
 
   def runTest(self):
     if self.args.seconds:
-      countdown_timer.StartCountdownTimer(self, self.args.seconds, 'remain',
-                                          self.PassTask)
+      self.ui.StartCountdownTimer(self.args.seconds, self.PassTask)
     self.WaitTaskEnd()

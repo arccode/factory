@@ -80,7 +80,7 @@
 
         #prompt-container {
           flex: none;
-          background-color: white;
+          background-color: var(--template-background-color, white);
           display: flex;
           padding: 0 8px;
         }
@@ -92,11 +92,11 @@
 
         #progress-container {
           flex: 1;
-          padding: 0.3em;
         }
 
         #progress-bar-container {
           display: none;
+          margin: 0.2em;
         }
 
         #progress-bar-container.show {
@@ -128,6 +128,8 @@
 
         #timer-container {
           display: none;
+          text-align: right;
+          margin: 0.2em;
         }
 
         #timer-container.show {

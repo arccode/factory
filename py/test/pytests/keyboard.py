@@ -94,7 +94,6 @@ import re
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
-from cros.factory.test import countdown_timer
 from cros.factory.test.l10n import regions
 from cros.factory.test import session
 from cros.factory.test import test_ui
@@ -331,7 +330,5 @@ class KeyboardTest(test_ui.TestCaseWithUI):
   def runTest(self):
     self.keyboard_device.grab()
     self.dispatcher.StartDaemon()
-    countdown_timer.StartCountdownTimer(
-        self, self.args.timeout_secs,
-        'keyboard-test-timer', self.FailTestTimeout)
+    self.ui.StartCountdownTimer(self.args.timeout_secs, self.FailTestTimeout)
     self.WaitTaskEnd()

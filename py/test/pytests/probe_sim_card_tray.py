@@ -15,7 +15,6 @@ import logging
 import os
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import countdown_timer
 from cros.factory.test import session
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
@@ -75,7 +74,6 @@ class ProbeSimCardTrayTest(test_ui.TestCaseWithUI):
           default=True)]
 
   def setUp(self):
-    self.ui.SetState('<div id="timer"></div>')
     self._detection_gpio_path = os.path.join(
         _GPIO_PATH, 'gpio%d' % self.args.tray_detection_gpio)
 
@@ -86,9 +84,7 @@ class ProbeSimCardTrayTest(test_ui.TestCaseWithUI):
     if self.args.only_check_presence:
       return
 
-    countdown_timer.StartCountdownTimer(
-        self, self.args.timeout_secs, 'timer', lambda: self.FailTask(
-            'Timeout after %s seconds' % self.args.timeout_secs))
+    self.ui.StartFailingCountdownTimer(self.args.timeout_secs)
 
     if self.args.tray_already_present:
       self.assertTrue(self.args.remove, 'Must set remove to Ture '
@@ -157,12 +153,12 @@ class ProbeSimCardTrayTest(test_ui.TestCaseWithUI):
           if self.args.tray_already_present else ('presence', 'remove'))))
 
   def WaitTrayInserted(self):
-    self.ui.SetInstruction(
+    self.ui.SetState(
         i18n_test_ui.MakeI18nLabel('Please insert the SIM card tray'))
     self.WaitTrayState(_TrayState.INSERTED)
 
   def WaitTrayRemoved(self):
-    self.ui.SetInstruction(
+    self.ui.SetState(
         i18n_test_ui.MakeI18nLabel('Detected! Please remove the SIM card tray'))
     self.WaitTrayState(_TrayState.REMOVED)
 

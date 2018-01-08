@@ -50,7 +50,6 @@ import logging
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
-from cros.factory.test import countdown_timer
 from cros.factory.test import session
 from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
@@ -322,8 +321,7 @@ class TouchpadTest(test_ui.TestCaseWithUI):
     self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
     self.ui.HideElement('prompt')
 
-    countdown_timer.StartCountdownTimer(
-        self, self.args.timeout_secs, 'timer', self.FailWithMessage)
+    self.ui.StartCountdownTimer(self.args.timeout_secs, self.FailWithMessage)
 
     self.touchpad_device = evdev_utils.DeviceReopen(self.touchpad_device)
     self.touchpad_device.grab()

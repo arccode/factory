@@ -998,10 +998,6 @@ msgstr "测试进度："
 msgid "Mark Failed"
 msgstr "标记失败"
 
-#: ../py/test/countdown_timer.py
-msgid "Time remaining: {time:.0f}"
-msgstr "剩余时间：{time:.0f}"
-
 #: ../py/test/fixture/touchscreen_calibration/fixture.py
 msgid "Pull the lever down."
 msgstr "拉下把手"
@@ -1418,8 +1414,8 @@ msgid "Please test input. Press Escape to fail and Enter to pass"
 msgstr "请测试输入, 如果失败, 请按Esc键，如果成功，请按Enter键"
 
 #: ../py/test/pytests/brightness/brightness.py
-msgid "<br>Press ENTER to pass, or ESC to fail."
-msgstr "<br>测试正常请按 ENTER ，不正常请按 ESC"
+msgid "Press ENTER to pass, or ESC to fail."
+msgstr "测试正常请按 ENTER ，不正常请按 ESC"
 
 #: ../py/test/pytests/brightness/lcd_backlight.py
 msgid "Please check if backlight brightness is changing from dark to bright."

@@ -13,7 +13,6 @@ from __future__ import print_function
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
-from cros.factory.test import countdown_timer
 from cros.factory.test import session
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test import test_ui
@@ -99,9 +98,7 @@ class KeyboardSMTTest(test_ui.TestCaseWithUI):
 
   def runTest(self):
     if not self.debug:
-      countdown_timer.StartCountdownTimer(
-          self, self.args.timeout_secs, 'timer', lambda: self.FailTask(
-              'Timeout after %d seconds.' % self.args.timeout_secs))
+      self.ui.StartFailingCountdownTimer(self.args.timeout_secs)
     if self.fixture:
       self.fixture.SimulateKeystrokes()
     self.WaitTaskEnd()

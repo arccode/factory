@@ -119,7 +119,6 @@ import random
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import countdown_timer
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
 from cros.factory.test import test_ui
@@ -257,14 +256,10 @@ class TabletRotationTest(test_ui.TestCaseWithUI):
     return display_info[0]['rotation']
 
   def runTest(self):
-    # Create a thread to run countdown timer.
-    countdown_timer.StartCountdownTimer(
-        self, self.args.timeout_secs, 'timer',
-        lambda: self.FailTask('Tablet rotation test failed due to timeout.'))
+    self.ui.StartFailingCountdownTimer(self.args.timeout_secs)
 
     for degrees_target in _TEST_DEGREES:
       self._PromptAndWaitForRotation(degrees_target)
-      self.ui.ShowElement('success')
-      self.ui.SetHTML('', id='picture')
+      self.ui.ToggleClass('template', 'show-success', True)
       self.WaitTaskEnd(timeout=1)
-      self.ui.HideElement('success')
+      self.ui.ToggleClass('template', 'show-success', False)

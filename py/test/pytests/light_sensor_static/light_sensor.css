@@ -7,10 +7,6 @@
   text-align: center;
 }
 
-#timer {
-  color: red;
-}
-
 .task {
   color: green;
   border-bottom: 1px gray solid;
@@ -18,7 +14,7 @@
 
 #prompt,
 .task,
-#info {
+#input {
   padding: .5em 0;
 }
 
@@ -37,11 +33,6 @@
   white-space: nowrap;
 }
 
-#info {
-  display: flex;
-}
-
-#input,
-#timer {
+#input {
   flex: 1;
 }
