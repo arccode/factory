@@ -6,6 +6,7 @@
 
 from __future__ import print_function
 
+from contextlib import contextmanager
 import inspect
 import logging
 import signal
@@ -18,14 +19,35 @@ try:
 except Exception:
   _HAVE_CTYPES = False
 
-from contextlib import contextmanager
-
+from . import thread_utils
 from . import time_utils
 from . import type_utils
 
 
 DEFAULT_TIMEOUT_SECS = 10
 DEFAULT_POLL_INTERVAL_SECS = 0.1
+
+
+_DEFAULT_POLLING_SLEEP_FUNCTION = time.sleep
+_POLLING_SLEEP_FUNCTION_KEY = 'sync_utils_polling_sleep_function'
+
+
+def _GetPollingSleepFunction():
+  return thread_utils.LocalEnv().get(_POLLING_SLEEP_FUNCTION_KEY,
+                                     _DEFAULT_POLLING_SLEEP_FUNCTION)
+
+
+@contextmanager
+def WithPollingSleepFunction(sleep_func):
+  """Set the function to be used to sleep for PollForCondition and Retry.
+
+  Note that the Timeout() context manager is not affected by this.
+
+  Args:
+    sleep_func: A function whose only argument is number of seconds to sleep.
+  """
+  with thread_utils.SetLocalEnv(**{_POLLING_SLEEP_FUNCTION_KEY: sleep_func}):
+    yield
 
 
 def PollForCondition(poll_method, condition_method=None,
@@ -54,9 +76,10 @@ def PollForCondition(poll_method, condition_method=None,
     type_utils.TimeoutError when timeout_secs is reached but condition has not
         yet been met.
   """
-  if condition_method == None:
+  if condition_method is None:
     condition_method = lambda ret: ret
   end_time = time_utils.MonotonicTime() + timeout_secs if timeout_secs else None
+  sleep = _GetPollingSleepFunction()
   while True:
     if condition_name and end_time is not None:
       logging.debug('[%ds left] %s', end_time - time_utils.MonotonicTime(),
@@ -67,12 +90,12 @@ def PollForCondition(poll_method, condition_method=None,
     if ((end_time is not None) and
         (time_utils.MonotonicTime() + poll_interval_secs > end_time)):
       if condition_name:
-        condition_name = 'Timed out waiting for condition: %s' % condition_name
+        msg = 'Timed out waiting for condition: %s' % condition_name
       else:
-        condition_name = 'Timed out waiting for unnamed condition'
-      logging.error(condition_name)
-      raise type_utils.TimeoutError(condition_name, ret)
-    time.sleep(poll_interval_secs)
+        msg = 'Timed out waiting for unnamed condition'
+      logging.info(msg)
+      raise type_utils.TimeoutError(msg, ret)
+    sleep(poll_interval_secs)
 
 
 def WaitFor(condition, timeout_secs, poll_interval=0.1):
@@ -124,6 +147,7 @@ def Retry(max_retry_times, interval, callback, target, *args, **kwargs):
     any exception for max_retry_times, returns None.
   """
   result = None
+  sleep = _GetPollingSleepFunction()
   for retry_time in xrange(max_retry_times):
     try:
       result = target(*args, **kwargs)
@@ -134,7 +158,7 @@ def Retry(max_retry_times, interval, callback, target, *args, **kwargs):
     if result:
       logging.info('Retry: Get result in retry_time: %d.', retry_time)
       break
-    time.sleep(interval)
+    sleep(interval)
   return result
 
 

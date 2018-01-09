@@ -15,7 +15,22 @@ from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
 
-class PollForConditionTest(unittest.TestCase):
+class PollingTestBase(unittest.TestCase):
+
+  def setUp(self):
+    self._timeline = mock_time_utils.TimeLine()
+    self._patchers = mock_time_utils.MockAll(sync_utils, self._timeline)
+    self._polling_sleep_context = sync_utils.WithPollingSleepFunction(
+        self._timeline.AdvanceTime)
+    self._polling_sleep_context.__enter__()
+
+  def tearDown(self):
+    self._polling_sleep_context.__exit__(None, None, None)
+    for patcher in self._patchers:
+      patcher.stop()
+
+
+class PollForConditionTest(PollingTestBase):
 
   def _Increment(self):
     self.counter = self.counter + 1
@@ -25,13 +40,8 @@ class PollForConditionTest(unittest.TestCase):
     return self._Increment() > trigger
 
   def setUp(self):
+    super(PollForConditionTest, self).setUp()
     self.counter = 1
-    self._timeline = mock_time_utils.TimeLine()
-    self._patchers = mock_time_utils.MockAll(sync_utils, self._timeline)
-
-  def tearDown(self):
-    for patcher in self._patchers:
-      patcher.stop()
 
   def testPollForCondition(self):
     self.assertEqual(True, sync_utils.PollForCondition(
@@ -51,15 +61,7 @@ class PollForConditionTest(unittest.TestCase):
         timeout_secs=2, poll_interval_secs=0.1)
 
 
-class WaitForTest(unittest.TestCase):
-
-  def setUp(self):
-    self._timeline = mock_time_utils.TimeLine()
-    self._patchers = mock_time_utils.MockAll(sync_utils, self._timeline)
-
-  def tearDown(self):
-    for patcher in self._patchers:
-      patcher.stop()
+class WaitForTest(PollingTestBase):
 
   def runTest(self):
     def _ReturnTrueAfter(t):

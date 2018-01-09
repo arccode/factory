@@ -914,27 +914,31 @@ class TestCaseWithUI(unittest.TestCase):
 
   def __RunTasks(self):
     """Run the tasks in background daemon thread."""
-    # Add runTest as the only task if there's none.
-    if not self.__tasks:
-      self.AddTask(getattr(self, self.__method_name))
+    # Set the sleep function for various polling methods in sync_utils to
+    # self.WaitTaskEnd, so tests using methods like sync_utils.WaitFor would
+    # still be ended early when the test ends.
+    with sync_utils.WithPollingSleepFunction(self.WaitTaskEnd):
+      # Add runTest as the only task if there's none.
+      if not self.__tasks:
+        self.AddTask(getattr(self, self.__method_name))
 
-    for task in self.__tasks:
-      self.__task_end_event.clear()
-      try:
-        self.__SetupGoofyJSEvents()
+      for task in self.__tasks:
+        self.__task_end_event.clear()
         try:
-          task.run()
-        finally:
-          self.__task_end_event.set()
-          self.event_loop.ClearHandlers()
-          self.ui.UnbindAllKeys()
-      except Exception:
-        self.__HandleException()
-        if self.__task_failed:
-          return
+          self.__SetupGoofyJSEvents()
+          try:
+            task.run()
+          finally:
+            self.__task_end_event.set()
+            self.event_loop.ClearHandlers()
+            self.ui.UnbindAllKeys()
+        except Exception:
+          self.__HandleException()
+          if self.__task_failed:
+            return
 
-    self.event_loop.PostNewEvent(
-        test_event.Event.Type.END_EVENT_LOOP, status=state.TestState.PASSED)
+      self.event_loop.PostNewEvent(
+          test_event.Event.Type.END_EVENT_LOOP, status=state.TestState.PASSED)
 
   def __HandleException(self):
     """Handle exception in event handlers or tasks.
