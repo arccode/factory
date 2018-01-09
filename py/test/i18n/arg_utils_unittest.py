@@ -28,7 +28,7 @@ class ArgUtilsTest(unittest_test_case.I18nTestCase):
 
   def testI18nArg(self):
     test = MockPyTest([i18n_arg_utils.I18nArg('text', 'text.')])
-    test.Parse({'text': translation._('text 1')})
+    test.Parse({'text': translation.Translation('text 1')})
     self.assertEqual({'en-US': 'text 1', 'zh-CN': 'text-1'}, test.args.text)
 
     test.Parse({'text': 'text 1'})
@@ -42,7 +42,7 @@ class ArgUtilsTest(unittest_test_case.I18nTestCase):
         i18n_arg_utils.I18nArg('text', 'text.',
                                default={'en-US': 'en', 'zh-CN': 'zh'})])
 
-    test.Parse({'text': translation._('text 1')})
+    test.Parse({'text': translation.Translation('text 1')})
     self.assertEqual({'en-US': 'text 1', 'zh-CN': 'text-1'}, test.args.text)
 
     test.Parse({'text': 'text 1'})

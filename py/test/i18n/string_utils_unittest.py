@@ -69,8 +69,8 @@ class StringUtilsTest(unittest_test_case.I18nTestCase):
 
   def testStringFormat(self):
     self.assertEqual(
-        {'en-US': '{format string}', 'zh-CN': '{format string}'},
-        string_utils.StringFormat('{{format string}}'))
+        {'en-US': '{x} is 1', 'zh-CN': '{x} is 1'},
+        string_utils.StringFormat('{{x}} is {x}', x=1))
     self.assertEqual(
         {'en-US': '[format string]', 'zh-CN': '[string format]'},
         string_utils.StringFormat(
@@ -85,7 +85,7 @@ class StringUtilsTest(unittest_test_case.I18nTestCase):
          'zh-CN': '<00042>-text-2-text 1-format-string'},
         string_utils.StringFormat(
             'format string {str1} {str2} [{val1:05}]',
-            str1='text 1', str2=translation._('text 2'), val1=42))
+            str1='text 1', str2=translation.Translation('text 2'), val1=42))
 
     self.assertRaisesRegexp(ValueError, "doesn't contains default locale",
                             string_utils.StringFormat, {'zh-CN': 'a'})
@@ -93,7 +93,7 @@ class StringUtilsTest(unittest_test_case.I18nTestCase):
                             string_utils.StringFormat, '{s}', s={'zh-CN': 'a'})
     self.assertEqual(
         {'en-US': '[?]', 'zh-CN': '[?]'},
-        string_utils.StringFormat('{str}'))
+        string_utils.StringFormat('{str}', x=1))
     self.assertEqual(
         {'en-US': 'str', 'zh-CN': '[?]'},
         string_utils.StringFormat({'en-US': '{str}', 'zh-CN': '{str1}'},

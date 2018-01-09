@@ -8,9 +8,12 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import translation
 from cros.factory.test.i18n import string_utils
 
-_ = translation._
+Translation = translation.Translation
 NoTranslation = translation.NoTranslation
 Translated = translation.Translated
-StringFormat = string_utils.StringFormat
+_ = string_utils.StringFormat
 StringJoin = string_utils.StringJoin
 HTMLEscape = string_utils.HTMLEscape
+
+# TODO(pihsun): Remove this when all caller is changed to use _().
+StringFormat = string_utils.StringFormat

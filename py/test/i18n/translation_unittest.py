@@ -22,11 +22,11 @@ class TranslationTest(unittest_test_case.I18nTestCase):
                      translation.GetTranslation('untranslated', 'zh-CN'))
     self.assertEqual('', translation.GetTranslation('', 'zh-CN'))
 
-  def testUnderscore(self):
+  def testTranslation(self):
     self.assertEqual({'en-US': 'text 1', 'zh-CN': 'text-1'},
-                     translation._('text 1'))
+                     translation.Translation('text 1'))
     self.assertEqual({'en-US': 'untranslated', 'zh-CN': 'untranslated'},
-                     translation._('untranslated'))
+                     translation.Translation('untranslated'))
 
   def testNoTranslation(self):
     self.assertEqual({'en-US': 'text 1', 'zh-CN': 'text 1'},

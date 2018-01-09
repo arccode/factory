@@ -11,6 +11,9 @@ from cros.factory.test.i18n import string_utils
 from cros.factory.test.i18n import translation
 
 
+# TODO(pihsun): remove the kwargs for both function when no caller pass kwargs.
+
+
 def MakeI18nLabel(_label, **kwargs):
   """Make an i18n label.
 
@@ -57,8 +60,7 @@ def MakeI18nLabelWithClass(_label, _class, **kwargs):
         value=i18n.NoTranslation('value'))
   """
 
-  label = translation.Translated(_label)
-  label = string_utils.StringFormat(label, **kwargs)
+  label = string_utils.StringFormat(_label, **kwargs)
 
   html = []
   for locale in translation.LOCALES:

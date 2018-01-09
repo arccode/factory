@@ -55,7 +55,7 @@ def GetTranslation(text, locale):
   return _GetTranslations(locale).ugettext(text) if text else ''
 
 
-def _(text):
+def Translation(text):
   """Get the translation dict in all supported locales of a string.
 
   Args:
@@ -109,7 +109,7 @@ def Translated(obj, translate=True):
         for locale in LOCALES
     }
   else:
-    obj = (_(obj) if translate else NoTranslation(obj))
+    obj = (Translation(obj) if translate else NoTranslation(obj))
   return obj
 
 
@@ -126,7 +126,7 @@ def GetAllTranslations():
   all_translations = []
   for key in all_keys:
     if key:
-      all_translations.append(_(key))
+      all_translations.append(Translation(key))
   return all_translations
 
 

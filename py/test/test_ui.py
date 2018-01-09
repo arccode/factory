@@ -248,6 +248,17 @@ class JavaScriptProxy(object):
     return _Proxy
 
 
+def EnsureI18n(labels):
+  """Pass all translation dict to i18n_test_ui.MakeI18nLabel and join them."""
+  if not isinstance(labels, list):
+    labels = [labels]
+  else:
+    labels = type_utils.FlattenList(labels)
+  return ''.join(
+      i18n_test_ui.MakeI18nLabel(label) if isinstance(label, dict) else label
+      for label in labels)
+
+
 class UI(object):
   """Web UI for a factory test."""
 
@@ -329,7 +340,7 @@ class UI(object):
     # pylint: disable=redefined-builtin
     self._event_loop.PostNewEvent(
         test_event.Event.Type.SET_HTML,
-        html=html,
+        html=EnsureI18n(html),
         append=append,
         id=id,
         autoscroll=autoscroll)
@@ -617,7 +628,7 @@ class StandardUI(UI):
     Args:
       html: The html content to write.
     """
-    self.CallJSFunction('window.template.setTitle', html)
+    self.CallJSFunction('window.template.setTitle', EnsureI18n(html))
 
   def SetState(self, html, append=False):
     """Sets the state section in the test UI.
@@ -626,7 +637,7 @@ class StandardUI(UI):
       html: The html to write.
       append: Append html at the end.
     """
-    self.CallJSFunction('window.template.setState', html, append)
+    self.CallJSFunction('window.template.setState', EnsureI18n(html), append)
 
   def SetInstruction(self, html):
     """Sets the instruction to operator.
@@ -634,7 +645,7 @@ class StandardUI(UI):
     Args:
       html: The html content to write.
     """
-    self.CallJSFunction('window.template.setInstruction', html)
+    self.CallJSFunction('window.template.setInstruction', EnsureI18n(html))
 
   def DrawProgressBar(self, num_items=1):
     """Draw the progress bar and set it visible on the Chrome test UI.
