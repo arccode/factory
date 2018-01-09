@@ -89,9 +89,10 @@ class EventLoop(object):
 
     Tests should use this instead of invoking post_event directly.
     """
-    event.test = self.test
-    event.invocation = self.invocation
-    self.event_client.post_event(event)
+    if not self.event_client.is_closed():
+      event.test = self.test
+      event.invocation = self.invocation
+      self.event_client.post_event(event)
 
   def PostNewEvent(self, event_type, *args, **kwargs):
     """Constructs an event from given type and parameters, and post it."""

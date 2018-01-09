@@ -47,6 +47,7 @@ class EventLoopTestBase(unittest.TestCase):
     self._event_callback = None
 
     self.event_client = mock.Mock(spec=test_event.BlockingEventClient)
+    self.event_client.is_closed.return_value = False
     self.event_loop = test_ui.EventLoop(
         self._RecordException, event_client_class=self._GetMockEventClient)
 

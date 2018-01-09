@@ -342,6 +342,10 @@ class EventClientBase(object):
       self.send_socket.close()
       self.send_socket = None
 
+  def is_closed(self):
+    """Return whether the client is closed."""
+    return self.socket is None
+
   def _ConnectSocket(self, path):
     s = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
     path = path or os.environ[CROS_FACTORY_EVENT]
