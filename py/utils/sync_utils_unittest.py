@@ -10,6 +10,7 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.unittest_utils import mock_time_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
@@ -25,6 +26,12 @@ class PollForConditionTest(unittest.TestCase):
 
   def setUp(self):
     self.counter = 1
+    self._timeline = mock_time_utils.TimeLine()
+    self._patchers = mock_time_utils.MockAll(sync_utils, self._timeline)
+
+  def tearDown(self):
+    for patcher in self._patchers:
+      patcher.stop()
 
   def testPollForCondition(self):
     self.assertEqual(True, sync_utils.PollForCondition(
@@ -46,16 +53,24 @@ class PollForConditionTest(unittest.TestCase):
 
 class WaitForTest(unittest.TestCase):
 
+  def setUp(self):
+    self._timeline = mock_time_utils.TimeLine()
+    self._patchers = mock_time_utils.MockAll(sync_utils, self._timeline)
+
+  def tearDown(self):
+    for patcher in self._patchers:
+      patcher.stop()
+
   def runTest(self):
     def _ReturnTrueAfter(t):
-      return time.time() > t
+      return self._timeline.GetTime() > t
 
-    now = time.time()
+    now = self._timeline.GetTime()
     self.assertEquals(True, sync_utils.WaitFor(
         lambda: _ReturnTrueAfter(now + 0.5),
         timeout_secs=1))
 
-    now = time.time()
+    now = self._timeline.GetTime()
     self.assertRaises(type_utils.TimeoutError, sync_utils.WaitFor,
                       lambda: _ReturnTrueAfter(now + 1), timeout_secs=0.5)
 

@@ -167,6 +167,9 @@ def MockAll(module, timeline):
     _MockFactoryOnly(module.time, 'time', timeline.GetTime)
     _MockFactoryOnly(module.time, 'sleep', timeline.AdvanceTime)
 
+  if hasattr(module, 'time_utils'):
+    _MockFactoryOnly(module.time_utils, 'MonotonicTime', timeline.GetTime)
+
   if hasattr(module, 'threading'):
     _MockFactoryOnly(module.threading, 'Event', lambda: FakeEvent(timeline))
 
