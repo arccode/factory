@@ -237,7 +237,7 @@ class EventLoopRunTest(EventLoopTestBase):
       120: Event loop ends.
     """
     def _Handler():
-      self.assertEqual(105, self._timeline.GetTime())
+      self._timeline.AssertTimeAt(105)
 
     self._timeline.AddEvent(
         95, lambda: self.event_loop.AddTimedHandler(_Handler, 10))
@@ -724,6 +724,7 @@ class UIKeyTest(unittest.TestCase):
     self.assertEqual(test_ui.ENTER_KEY,
                      self._ui.WaitKeysOnce(test_ui.ENTER_KEY))
     self.assertFalse(self.key_callbacks)
+    self._timeline.AssertTimeAt(3)
 
   def testWaitKeysOnceTimeout(self):
     self._timeline.AddEvent(
@@ -732,6 +733,7 @@ class UIKeyTest(unittest.TestCase):
     self.assertEqual(test_ui.ENTER_KEY,
                      self._ui.WaitKeysOnce(test_ui.ENTER_KEY, timeout=5))
     self.assertFalse(self.key_callbacks)
+    self._timeline.AssertTimeAt(3)
 
   def testWaitKeysOnceTimeoutNoKey(self):
     self._timeline.AddEvent(
@@ -739,6 +741,7 @@ class UIKeyTest(unittest.TestCase):
 
     self.assertIsNone(self._ui.WaitKeysOnce(test_ui.ENTER_KEY, timeout=5))
     self.assertFalse(self.key_callbacks)
+    self._timeline.AssertTimeAt(5)
 
   def testWaitKeysOnceMultipleKey(self):
     self._timeline.AddEvent(
@@ -750,6 +753,7 @@ class UIKeyTest(unittest.TestCase):
 
     self.assertEqual('B', self._ui.WaitKeysOnce(['A', 'B', 'C']))
     self.assertFalse(self.key_callbacks)
+    self._timeline.AssertTimeAt(1)
 
   def testWaitKeysOnceMultipleKeyTimeout(self):
     self._timeline.AddEvent(
@@ -761,6 +765,7 @@ class UIKeyTest(unittest.TestCase):
 
     self.assertEqual('B', self._ui.WaitKeysOnce(['A', 'B', 'C'], timeout=10))
     self.assertFalse(self.key_callbacks)
+    self._timeline.AssertTimeAt(1)
 
   def testWaitKeysOnceMultipleKeyTimeoutNoKey(self):
     self._timeline.AddEvent(
@@ -772,6 +777,7 @@ class UIKeyTest(unittest.TestCase):
 
     self.assertIsNone(self._ui.WaitKeysOnce(['A', 'B', 'C'], timeout=1))
     self.assertFalse(self.key_callbacks)
+    self._timeline.AssertTimeAt(1)
 
 
 class StandardUITest(UITestBase):
@@ -1071,7 +1077,7 @@ class TestCaseWithUITest(unittest.TestCase):
     self._timeline.AddEvent(10, _TestEnd)
 
     self.AssertRunResult()
-    self.assertEqual(10, self._timeline.GetTime())
+    self._timeline.AssertTimeAt(10)
 
   def testWaitTaskEndFail(self):
     def _RunTest():
@@ -1088,7 +1094,7 @@ class TestCaseWithUITest(unittest.TestCase):
     self._timeline.AddEvent(10, _TestEnd)
 
     self.AssertRunResult('FAILED!')
-    self.assertEqual(10, self._timeline.GetTime())
+    self._timeline.AssertTimeAt(10)
 
   def testWaitTaskEndTimeout(self):
     times = []

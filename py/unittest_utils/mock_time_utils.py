@@ -46,6 +46,11 @@ class TimeLine(object):
     """Get the current time."""
     return self._fake_time
 
+  def AssertTimeAt(self, time_at):
+    """Assert the current time is same at time_at."""
+    assert self._fake_time == time_at, 'fake time %s != %s' % (self._fake_time,
+                                                               time_at)
+
   def AdvanceTime(self, delta, condition=None):
     """Advance the time.
 
