@@ -64,7 +64,6 @@ from cros.factory.test.fixture import fixture_connection
 from cros.factory.test.fixture.light_sensor import light_chamber
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import device_data
 from cros.factory.test import test_ui
 from cros.factory.test.utils import kbd_leds
@@ -203,7 +202,7 @@ class ALSFixture(test_ui.TestCaseWithUI):
 
     self.monitor = media_utils.MediaMonitor('usb-serial', None)
 
-    self.ui.SetTitle(i18n_test_ui.MakeI18nLabel('ALS Sensor Calibration'))
+    self.ui.SetTitle(_('ALS Sensor Calibration'))
 
   def _Log(self, text):
     """Custom log function to log."""
@@ -328,14 +327,15 @@ class ALSFixture(test_ui.TestCaseWithUI):
 
   def _SetFixtureStatus(self, status):
     if status == FIXTURE_STATUS.CONNECTED:
-      label = i18n_test_ui.MakeI18nLabelWithClass('Fixture Connected',
-                                                  'color-good')
+      style = 'color-good'
+      label = _('Fixture Connected')
     elif status == FIXTURE_STATUS.DISCONNECTED:
-      label = i18n_test_ui.MakeI18nLabelWithClass('Fixture Disconnected',
-                                                  'color-bad')
+      style = 'color-bad'
+      label = _('Fixture Disconnected')
     else:
-      raise ValueError('Unknown fixture status %s', str(status))
-    self.ui.SetHTML(label, id='fixture-status')
+      raise ValueError('Unknown fixture status %s' % status)
+    self.ui.SetHTML(
+        ['<span class="%s">' % style, label, '</span>'], id='fixture-status')
 
   def _SetupFixture(self):
     """Initialize the communication with the fixture."""
@@ -426,8 +426,8 @@ class ALSFixture(test_ui.TestCaseWithUI):
         vmax=upper_bound)
     if not result and not self.args.mock_mode:
       raise ValueError('Error validating calibrated als, got %s out of'
-                       ' range (%s, %s)', sampled_vlux, lower_bound,
-                       upper_bound)
+                       ' range (%s, %s)' % (sampled_vlux, lower_bound,
+                                            upper_bound))
 
   def _CheckALSOrdering(self):
     if self.args.mock_mode:
@@ -522,5 +522,5 @@ class ALSFixture(test_ui.TestCaseWithUI):
       msg: i18n text.
       style: CSS style.
     """
-    label = i18n_test_ui.MakeI18nLabelWithClass(msg, style)
-    self.ui.SetHTML(label, id='test-status')
+    self.ui.SetHTML(
+        ['<span class="%s">' % style, msg, '</span>'], id='test-status')

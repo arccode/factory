@@ -51,7 +51,7 @@ to draw a line from left-top to left-bottom::
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
 from cros.factory.test.utils import touch_monitor
@@ -133,10 +133,9 @@ class StylusTest(test_ui.TestCaseWithUI):
     self.ui.BindStandardFailKeys()
     if not self.args.autostart:
       self.ui.SetHTML(
-          i18n_test_ui.MakeI18nLabel(
-              'Please extend the green line with stylus to the other end.<br>'
-              'Stay between the two red lines.<br>'
-              'Press SPACE to start; Esc to fail.'),
+          _('Please extend the green line with stylus to the other end.<br>'
+            'Stay between the two red lines.<br>'
+            'Press SPACE to start; Esc to fail.'),
           id='msg')
       self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 

@@ -71,14 +71,13 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
 
 
 def _GetPromptText(current, target):
-  return i18n_test_ui.MakeI18nLabel(
+  return _(
       'Waiting for {target_status} current to meet {target_current} mA.'
       ' (Currently {status} at {current} mA)',
       target_status=_('charging') if target >= 0 else _('discharging'),
@@ -142,20 +141,18 @@ class BatteryCurrentTest(test_ui.TestCaseWithUI):
       status = self._dut.usb_c.GetPDPowerStatus()
       if 'millivolt' not in status[self._usbpd_port]:
         self.ui.SetState(
-            i18n_test_ui.MakeI18nLabel(
-                'Insert power to {prompt}({voltage}mV)',
-                prompt=self._usbpd_prompt,
-                voltage=0))
+            _('Insert power to {prompt}({voltage}mV)',
+              prompt=self._usbpd_prompt,
+              voltage=0))
         logging.info('No millivolt detected in port %d', self._usbpd_port)
         return False
       millivolt = status[self._usbpd_port]['millivolt']
       logging.info('millivolt %d, acceptable range (%d, %d)', millivolt,
                    self._usbpd_min_millivolt, self._usbpd_max_millivolt)
       self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              'Insert power to {prompt}({voltage}mV)',
-              prompt=self._usbpd_prompt,
-              voltage=millivolt))
+          _('Insert power to {prompt}({voltage}mV)',
+            prompt=self._usbpd_prompt,
+            voltage=millivolt))
       if not (self._usbpd_min_millivolt <= millivolt <=
               self._usbpd_max_millivolt):
         return False

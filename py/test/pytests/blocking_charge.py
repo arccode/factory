@@ -88,7 +88,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.env import paths
 from cros.factory.test import event_log
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.test.utils import goofy_plugin_utils
 from cros.factory.utils.arg_utils import Arg
@@ -103,11 +103,14 @@ def FormatTime(seconds):
 
 
 def MakeChargeTextLabel(start, current, target, elapsed, remaining):
-  return i18n_test_ui.MakeI18nLabel(
+  return _(
       'Charging to {target}% (Start: {start}%. Current: {current}%.)<br>'
       'Time elapsed: {elapsed} Time remaining: {remaining}',
-      target=target, start=start, current=current,
-      elapsed=FormatTime(elapsed), remaining=FormatTime(remaining))
+      target=target,
+      start=start,
+      current=current,
+      elapsed=FormatTime(elapsed),
+      remaining=FormatTime(remaining))
 
 
 def MakeSpriteHTMLTag(src, height, width):

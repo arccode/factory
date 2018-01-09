@@ -84,7 +84,7 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.test.utils import deploy_utils
 from cros.factory.test.utils import update_utils
@@ -120,14 +120,12 @@ class CheckImageVersionTest(test_ui.TestCaseWithUI):
       self.FailTask('Image version is incorrect. Please re-image this device.')
 
     while not self.dut.status.eth_on:
-      self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel('Please connect to ethernet.'))
+      self.ui.SetState(_('Please connect to ethernet.'))
       time.sleep(0.5)
 
     if self.args.require_space:
       self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              'Image version is incorrect. Press space to re-image.'))
+          _('Image version is incorrect. Press space to re-image.'))
       self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 
     self.Reimage()
@@ -140,7 +138,7 @@ class CheckImageVersionTest(test_ui.TestCaseWithUI):
         self.FailTask('Netboot firmware not available on factory server.')
       updater.PerformUpdate(destination=self.args.netboot_fw)
 
-    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Flashing netboot firmware...'))
+    self.ui.SetState(_('Flashing netboot firmware...'))
     try:
       with self.dut.temp.TempFile() as temp_file:
         self.dut.link.Push(self.args.netboot_fw, temp_file)

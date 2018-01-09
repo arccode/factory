@@ -17,7 +17,7 @@ from cros.factory.device import device_utils
 from cros.factory.external import evdev
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.fixture.dolphin import plankton_hdmi
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
@@ -132,9 +132,7 @@ class PlanktonDisplayTest(test_ui.TestCaseWithUI):
     """
     if connect:
       self.ui.SetInstruction(
-          i18n_test_ui.MakeI18nLabel(
-              'Connecting BFT display: {device}',
-              device=self._bft_media_device))
+          _('Connecting BFT display: {device}', device=self._bft_media_device))
       self._bft_fixture.SetDeviceEngaged(self._bft_media_device, engage=True)
       if self.args.force_dp_renegotiated:
         self._bft_fixture.SetFakeDisconnection(1)
@@ -147,9 +145,8 @@ class PlanktonDisplayTest(test_ui.TestCaseWithUI):
       sync_utils.WaitFor(self._PollDisplayConnected, timeout_secs=10)
     else:
       self.ui.SetInstruction(
-          i18n_test_ui.MakeI18nLabel(
-              'Disconnecting BFT display: {device}',
-              device=self._bft_media_device))
+          _('Disconnecting BFT display: {device}',
+            device=self._bft_media_device))
       if self.args.fire_hpd_manually:
         self._dut.usb_c.ResetHPD(self.args.usb_c_index)
       self._bft_fixture.SetDeviceEngaged(self._bft_media_device, engage=False)
@@ -182,9 +179,8 @@ class PlanktonDisplayTest(test_ui.TestCaseWithUI):
     """
     if self.args.verify_display_switch:
       self.ui.SetInstruction(
-          i18n_test_ui.MakeI18nLabel(
-              'BFT display {device} is connected. Sending image...',
-              device=self._bft_media_device))
+          _('BFT display {device} is connected. Sending image...',
+            device=self._bft_media_device))
       self.frontend_proxy.ToggleFullscreen()
       self.SetMainDisplay(recover_original=False)
 

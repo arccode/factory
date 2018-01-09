@@ -12,7 +12,7 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
@@ -105,12 +105,12 @@ class TabletModeTest(test_ui.TestCaseWithUI):
 
   def FlipTabletMode(self):
     self.SetUIImage('notebook-to-tablet')
-    self.ui.SetInstruction(
-        i18n_test_ui.MakeI18nLabel('Flip the lid into tablet mode'))
-    confirm_button = (
+    self.ui.SetInstruction(_('Flip the lid into tablet mode'))
+    confirm_button = [
         '<button id="confirm-button" '
-        'onclick="test.sendTestEvent(\'confirm-tablet\')">' +
-        i18n_test_ui.MakeI18nLabel('Confirm tablet mode') + '</button>')
+        'onclick="test.sendTestEvent(\'confirm-tablet\')">',
+        _('Confirm tablet mode'), '</button>'
+    ]
     self.ui.SetHTML(confirm_button, id='confirm')
     self.event_loop.AddEventHandler('confirm-tablet',
                                     self.HandleConfirmTabletMode)
@@ -129,11 +129,8 @@ class TabletModeTest(test_ui.TestCaseWithUI):
 
   def FlipNotebookMode(self):
     self.SetUIImage('tablet-to-notebook')
-    self.ui.SetInstruction(
-        i18n_test_ui.MakeI18nLabel('Open the lid back to notebook mode'))
-    self.ui.SetHTML(
-        i18n_test_ui.MakeI18nLabel('Press SPACE to confirm notebook mode'),
-        id='confirm')
+    self.ui.SetInstruction(_('Open the lid back to notebook mode'))
+    self.ui.SetHTML(_('Press SPACE to confirm notebook mode'), id='confirm')
     # Ask OP to press space to verify the dut is in notebook mode.
     # Set virtual_key to False since the event callback should be triggered
     # from a real key press, not from a button on screen.
@@ -159,9 +156,7 @@ class TabletModeTest(test_ui.TestCaseWithUI):
     self.ui.HideElement('status')
 
   def FlashSuccess(self):
-    self._FlashStatus(
-        i18n_test_ui.MakeI18nLabelWithClass('Success!', 'success'))
+    self._FlashStatus(['<span class="success">', _('Success!'), '</span>'])
 
   def FlashFailure(self):
-    self._FlashStatus(
-        i18n_test_ui.MakeI18nLabelWithClass('Failure', 'failure'))
+    self._FlashStatus(['<span class="failure">', _('Failure'), '</span>'])

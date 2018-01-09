@@ -58,8 +58,7 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import i18n
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
@@ -81,10 +80,9 @@ class ExecShell(test_ui.TestCaseWithUI):
   ]
 
   @staticmethod
-  def _CommandToLabel(command, length=50):
-    """Returns a label (with max length) to display given command."""
-    text = (command[:length] + ' ...') if len(command) > length else command
-    return i18n_test_ui.MakeI18nLabel(i18n.NoTranslation(text))
+  def _DisplayedCommand(command, length=50):
+    """Returns a possibly truncated command with max length to display."""
+    return (command[:length] + ' ...') if len(command) > length else command
 
   def UpdateOutput(self, handle, name, output):
     """Updates output from file handle to given HTML node."""
@@ -98,7 +96,7 @@ class ExecShell(test_ui.TestCaseWithUI):
       output[name].write(c)
 
   def setUp(self):
-    self.ui.SetTitle(i18n_test_ui.MakeI18nLabel('Running shell commands...'))
+    self.ui.SetTitle(_('Running shell commands...'))
     self._dut = (device_utils.CreateStationInterface()
                  if self.args.is_station else
                  device_utils.CreateDUTInterface())
@@ -111,7 +109,7 @@ class ExecShell(test_ui.TestCaseWithUI):
   def runTest(self):
     self.ui.DrawProgressBar(len(self._commands))
     for command in self._commands:
-      self.ui.SetInstruction(self._CommandToLabel(command))
+      self.ui.SetInstruction(self._DisplayedCommand(command))
 
       process = self._dut.Popen(command,
                                 stdout=subprocess.PIPE,

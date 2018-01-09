@@ -7,7 +7,7 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.fixture import bft_fixture
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.test.utils import stress_manager
 from cros.factory.utils.arg_utils import Arg
@@ -65,12 +65,8 @@ class PowerUnderStressTest(test_ui.TestCaseWithUI):
                      '<div id="current"></div>')
 
   def UpdateState(self, voltage, current):
-    self.ui.SetHTML(
-        i18n_test_ui.MakeI18nLabel('Voltage: {voltage} mV', voltage=voltage),
-        id='voltage')
-    self.ui.SetHTML(
-        i18n_test_ui.MakeI18nLabel('Current: {current} mA', current=current),
-        id='current')
+    self.ui.SetHTML(_('Voltage: {voltage} mV', voltage=voltage), id='voltage')
+    self.ui.SetHTML(_('Current: {current} mA', current=current), id='current')
 
   def runTest(self):
     self.ui.StartCountdownTimer(self.args.wait_secs)

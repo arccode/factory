@@ -15,7 +15,6 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test.i18n import _
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import session
 from cros.factory.test import test_ui
 from cros.factory.test.utils import stress_manager
@@ -97,16 +96,17 @@ class ChargerTest(test_ui.TestCaseWithUI):
       A html label to show in test ui.
     """
     action = _('Discharging') if charge > target else _('Charging')
-    return i18n_test_ui.MakeI18nLabel(
-        '{action} to {target} '
-        '(Current charge: {charge}, battery current: {battery_current} mA)'
-        ' under load {load}.',
-        action=action,
-        target=self._GetLabelWithUnit(target),
-        charge=self._GetLabelWithUnit(charge),
-        battery_current=battery_current,
-        load=load) + '<br>' + i18n_test_ui.MakeI18nLabel(
-            'Time remaining: {timeout:.0f} sec.', timeout=timeout)
+    return [
+        _('{action} to {target} '
+          '(Current charge: {charge}, battery current: {battery_current} mA)'
+          ' under load {load}.',
+          action=action,
+          target=self._GetLabelWithUnit(target),
+          charge=self._GetLabelWithUnit(charge),
+          battery_current=battery_current,
+          load=load), '<br>',
+        _('Time remaining: {timeout:.0f} sec.', timeout=timeout)
+    ]
 
   def _NormalizeCharge(self, charge_pct):
     if self.args.use_percentage:
@@ -206,14 +206,14 @@ class ChargerTest(test_ui.TestCaseWithUI):
       logging.info('Current charge is %s, discharge the battery to %s.',
                    self._GetLabelWithUnit(charge),
                    self._GetLabelWithUnit(target))
-      self.ui.SetState(i18n_test_ui.MakeI18nLabel('Testing discharge'))
+      self.ui.SetState(_('Testing discharge'))
       self._SetDischarge()
       moving_up = False
     elif charge < target:
       logging.info('Current charge is %s, charge the battery to %s.',
                    self._GetLabelWithUnit(charge),
                    self._GetLabelWithUnit(target))
-      self.ui.SetState(i18n_test_ui.MakeI18nLabel('Testing charger'))
+      self.ui.SetState(_('Testing charger'))
       self._SetCharge()
       moving_up = True
 
@@ -246,8 +246,7 @@ class ChargerTest(test_ui.TestCaseWithUI):
           event_log.Log('meet', elapsed=elapsed, load=load, target=target,
                         charge=charge)
           self.ui.SetState(
-              i18n_test_ui.MakeI18nLabel(
-                  'OK! Meet {target}', target=self._GetLabelWithUnit(target)))
+              _('OK! Meet {target}', target=self._GetLabelWithUnit(target)))
           time.sleep(1)
           return
         elif elapsed >= self.args.battery_check_delay_sec:

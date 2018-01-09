@@ -59,7 +59,7 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import accelerometer
 from cros.factory.device import device_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import type_utils
@@ -128,18 +128,16 @@ class AccelerometersCalibration(test_ui.TestCaseWithUI):
   def HorizontalCalibration(self):
     """Prompt for space, waits a period of time and then starts calibration."""
     self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            'Please put device on a horizontal plane then press space to '
-            'start calibration.'))
+        _('Please put device on a horizontal plane then press space to '
+          'start calibration.'))
     self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 
     # Waits for a few seconds to let machine become stable.
     for i in xrange(self.args.setup_time_secs):
       self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              'Calibration will be started within {time} seconds.'
-              'Please do not move device.',
-              time=self.args.setup_time_secs - i))
+          _('Calibration will be started within {time} seconds.'
+            'Please do not move device.',
+            time=self.args.setup_time_secs - i))
       time.sleep(1)
 
     # Cleanup offsets before calibration
@@ -147,8 +145,7 @@ class AccelerometersCalibration(test_ui.TestCaseWithUI):
 
     # Starts calibration.
     self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            'Calibration is in progress, please do not move device.'))
+        _('Calibration is in progress, please do not move device.'))
     try:
       raw_data = self.accelerometer_controller.GetData(self.args.capture_count)
     except accelerometer.AccelerometerException:

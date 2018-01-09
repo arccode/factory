@@ -38,9 +38,7 @@ import yaml
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
-from cros.factory.test import i18n
 from cros.factory.test.i18n import _
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import rf
 from cros.factory.test.rf import e5071c_scpi
 from cros.factory.test import server_proxy
@@ -454,16 +452,15 @@ class VSWR(test_ui.TestCaseWithUI):
       letter = random.choice(string.ascii_uppercase)
       session.console.info('Press %s to continue', letter)
       # TODO(littlecvr): Should not construct HTML string here.
-      html_string = ''
+      html = []
       for port in measurement_sequence:
         antenna_name = measurement_sequence[port]['name']
-        html_string = i18n.StringJoin(html_string, i18n.StringFormat(
-            _('Make sure the {name} antennta is connected to port {port}<br>'),
-            name=antenna_name, port=port))
-      html_string = i18n.StringJoin(html_string, i18n.StringFormat(
-          _('Then press key "{key}" to next stage.'), key=letter))
-      html_string = i18n_test_ui.MakeI18nLabel(html_string)
-      self.ui.SetHTML(html_string, id='state-prepare-antennas')
+        html.append(
+            _('Make sure the {name} antennta is connected to port {port}<br>',
+              name=antenna_name,
+              port=port))
+      html.append(_('Then press key "{key}" to next stage.', key=letter))
+      self.ui.SetHTML(html, id='state-prepare-antennas')
       self._ShowMessageBlock('prepare-antennas')
       self.ui.WaitKeysOnce(letter)
 

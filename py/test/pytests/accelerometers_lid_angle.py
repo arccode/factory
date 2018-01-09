@@ -28,7 +28,7 @@ import numpy as np
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import accelerometer
 from cros.factory.device import device_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 
@@ -133,12 +133,11 @@ class AccelerometersLidAngleTest(test_ui.TestCaseWithUI):
 
   def runTest(self):
     self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            'Please open the lid to {angle} degrees and press SPACE.',
-            angle=self.args.angle))
+        _('Please open the lid to {angle} degrees and press SPACE.',
+          angle=self.args.angle))
     self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 
-    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Checking angle...'))
+    self.ui.SetState(_('Checking angle...'))
     angle = self._CalculateLidAngle()
     if angle is None:
       self.FailTask('There is no calibration value for accelerometer in VPD.')

@@ -54,7 +54,6 @@ from cros.factory.device import device_utils
 from cros.factory.test import event as test_event
 from cros.factory.test import event_log
 from cros.factory.test.i18n import _
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test.test_lists import test_object
@@ -139,8 +138,7 @@ class ShutdownTest(test_ui.TestCaseWithUI):
     self.operation_label = _DICT_OPERATION_LABEL.get(self.args.operation,
                                                      self.args.operation)
     self.ui.SetTitle(
-        i18n_test_ui.MakeI18nLabel(
-            'Shutdown Test ({operation})', operation=self.operation_label))
+        _('Shutdown Test ({operation})', operation=self.operation_label))
     self.goofy = state.get_instance()
     self.test = self.test_info.ReadTestList().LookupPath(self.test_info.path)
     self.test_state = self.goofy.get_test_state(self.test_info.path)
@@ -318,11 +316,10 @@ class ShutdownTest(test_ui.TestCaseWithUI):
         raise ShutdownError('%s are not completed in %s secs.' %
                             (checkpoints, self.args.wait_shutdown_secs))
       self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              'Remote DUT is performing {operation}, '
-              'timeout in {delay} seconds.',
-              operation=self.operation_label,
-              delay=self.remaining_time))
+          _('Remote DUT is performing {operation}, '
+            'timeout in {delay} seconds.',
+            operation=self.operation_label,
+            delay=self.remaining_time))
       logging.debug('Checking %s...', checkpoints[0])
       if checkpoints[0]():
         logging.info('%s is passed.', checkpoints[0])
@@ -335,9 +332,8 @@ class ShutdownTest(test_ui.TestCaseWithUI):
     if post_shutdown:
       # Only do post shutdown verification once.
       self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              'Verifying system state after {operation}',
-              operation=self.operation_label))
+          _('Verifying system state after {operation}',
+            operation=self.operation_label))
       self.goofy.del_shared_data(key_post_shutdown)
 
       if post_shutdown['goofy_error']:
@@ -346,10 +342,9 @@ class ShutdownTest(test_ui.TestCaseWithUI):
     else:
       self.PreShutdown()
       self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              'System is going to {operation} in {delay} seconds.',
-              operation=self.operation_label,
-              delay=self.args.delay_secs))
+          _('System is going to {operation} in {delay} seconds.',
+            operation=self.operation_label,
+            delay=self.args.delay_secs))
       self.Shutdown()
 
   def PreShutdown(self):

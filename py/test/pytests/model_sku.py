@@ -70,7 +70,7 @@ from cros.factory.device import device_utils
 from cros.factory.test import device_data
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import config_utils
 
@@ -105,8 +105,7 @@ class PlatformSKUModelTest(test_ui.TestCaseWithUI):
       device_data.UpdateDeviceData(model_config)
 
   def CheckByOperator(self):
-    self.ui.SetInstruction(
-        i18n_test_ui.MakeI18nLabel('Please confirm following values'))
+    self.ui.SetInstruction(_('Please confirm following values'))
 
     table = ui_templates.Table(rows=len(_MOSYS_ARGS) + 1, cols=2,
                                element_id='mosys_table')
@@ -117,8 +116,7 @@ class PlatformSKUModelTest(test_ui.TestCaseWithUI):
       table.SetContent(
           i, 1, self._platform[arg] if self._platform[arg] != None else 'N/A')
 
-    self.ui.SetState(
-        table.GenerateHTML() + test_ui.PASS_FAIL_KEY_LABEL)
+    self.ui.SetState([table.GenerateHTML(), test_ui.PASS_FAIL_KEY_LABEL])
 
     key = self.ui.WaitKeysOnce([test_ui.ENTER_KEY, test_ui.ESCAPE_KEY])
     if key == test_ui.ESCAPE_KEY:

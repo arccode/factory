@@ -26,6 +26,9 @@ class FakeArgs(object):
     self.__dict__ = dargs
 
 
+_MOX_HTML_TYPE = mox.Or(mox.IsA(list), mox.IsA(basestring), mox.IsA(dict))
+
+
 class VerifyComponentsUnitTest(unittest.TestCase):
   """Unit tests for verify_components factory test."""
 
@@ -67,7 +70,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
                     u'is_re': False}},
             u'error': None}]}
 
-    self._mock_test.ui.SetState(mox.IsA(basestring))
+    self._mock_test.ui.SetState(_MOX_HTML_TYPE)
     self._mock_test.factory_par.CheckOutput(command).AndReturn(
         json.dumps(probed))
 
@@ -104,7 +107,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
             u'probed_values': None,
             u'error': u'Fake error'}]}
 
-    self._mock_test.ui.SetState(mox.IsA(basestring))
+    self._mock_test.ui.SetState(_MOX_HTML_TYPE)
     self._mock_test.factory_par.CheckOutput(command).AndReturn(
         json.dumps(probed))
 
@@ -127,7 +130,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
                '--no-fast-fw-probe', '--components', 'camera,cpu',
                '--phase', self.fake_phase]
 
-    self._mock_test.ui.SetState(mox.IsA(basestring))
+    self._mock_test.ui.SetState(_MOX_HTML_TYPE)
     self._mock_test.factory_par.CheckOutput(command).AndRaise(
         subprocess.CalledProcessError(1, 'Fake command'))
 

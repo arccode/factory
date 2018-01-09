@@ -11,7 +11,7 @@ import subprocess
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import session
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
@@ -63,8 +63,7 @@ class FastbootFlash(test_ui.TestCaseWithUI):
     if self.IsDeviceInFastboot():
       return
 
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel('Switching device into fastboot.'))
+    self.ui.SetState(_('Switching device into fastboot.'))
 
     process_utils.Spawn(self.args.command_to_fastboot,
                         shell=True, check_call=True, log=True)
@@ -75,8 +74,7 @@ class FastbootFlash(test_ui.TestCaseWithUI):
 
   def BootToNormal(self):
     """Reboot the device back to normal mode from fastboot mode."""
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel('Switching device back to normal mode.'))
+    self.ui.SetState(_('Switching device back to normal mode.'))
 
     process_utils.Spawn(['fastboot', 'reboot'], check_call=True, log=True)
     process_utils.Spawn(self.args.command_to_check_device, shell=True,
@@ -122,10 +120,9 @@ class FastbootFlash(test_ui.TestCaseWithUI):
       if not os.path.exists(file_path):
         self.fail('Not able to find required image file %s' % file_path)
       self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              'Flashing {file} to {partition}.',
-              file=file_path,
-              partition=partition))
+          _('Flashing {file} to {partition}.',
+            file=file_path,
+            partition=partition))
 
       msg = process_utils.SpawnOutput(
           ['fastboot', 'flash', partition, file_path],

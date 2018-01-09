@@ -16,7 +16,7 @@ import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import session
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
@@ -136,8 +136,8 @@ class ProbeSimCardTrayTest(test_ui.TestCaseWithUI):
 
     ret = lines[0].strip()
     if ret not in ['0', '1']:
-      raise ProbeTrayException('Get invalid detection %s from %s',
-                               ret, value_path)
+      raise ProbeTrayException('Get invalid detection %s from %s' %
+                               (ret, value_path))
 
     if self.args.gpio_active_high:
       return _TrayState.INSERTED if ret == '1' else _TrayState.REMOVED
@@ -153,13 +153,11 @@ class ProbeSimCardTrayTest(test_ui.TestCaseWithUI):
           if self.args.tray_already_present else ('presence', 'remove'))))
 
   def WaitTrayInserted(self):
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel('Please insert the SIM card tray'))
+    self.ui.SetState(_('Please insert the SIM card tray'))
     self.WaitTrayState(_TrayState.INSERTED)
 
   def WaitTrayRemoved(self):
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel('Detected! Please remove the SIM card tray'))
+    self.ui.SetState(_('Detected! Please remove the SIM card tray'))
     self.WaitTrayState(_TrayState.REMOVED)
 
   def WaitTrayState(self, state):

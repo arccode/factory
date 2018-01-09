@@ -90,9 +90,9 @@ import os
 import time
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
@@ -125,8 +125,7 @@ class WaitExternalTest(test_ui.TestCaseWithUI):
   def setUp(self):
     self.ui.AppendCSS(_CSS)
     self._name = self.args.run_factory_external_name
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(self.args.msg, name=self._name))
+    self.ui.SetState(_(self.args.msg, name=self._name))
     self._file_path = os.path.join(
         _EXTERNAL_DIR, self.args.run_factory_external_name)
     self.RemoveFile(self._file_path)

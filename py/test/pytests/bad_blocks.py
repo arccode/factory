@@ -23,7 +23,7 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import session
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
@@ -213,9 +213,8 @@ class BadBlocksTest(test_ui.TestCaseWithUI):
         params.sector_size / 1024. ** 2)
 
     self.ui.SetInstruction(
-        i18n_test_ui.MakeI18nLabel(
-            'Testing {test_size_mb} region of storage',
-            test_size_mb=test_size_mb))
+        _('Testing {test_size_mb} region of storage',
+          test_size_mb=test_size_mb))
 
     # Kill any badblocks processes currently running
     self.dut.Call(['killall', 'badblocks'])
@@ -254,10 +253,9 @@ class BadBlocksTest(test_ui.TestCaseWithUI):
     def UpdatePhase():
       event_log.Log('start_phase', current_phase=current_phase)
       self.ui.SetHTML(
-          i18n_test_ui.MakeI18nLabel(
-              'Phase {current_phase}/{total_phases}: ',
-              current_phase=min(current_phase + 1, total_phases),
-              total_phases=total_phases),
+          _('Phase {current_phase}/{total_phases}: ',
+            current_phase=min(current_phase + 1, total_phases),
+            total_phases=total_phases),
           id='bb-phase')
     UpdatePhase()
 

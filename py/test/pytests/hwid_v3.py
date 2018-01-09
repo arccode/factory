@@ -70,7 +70,6 @@ from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.test import device_data
 from cros.factory.test.i18n import _
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.rules import phase
 from cros.factory.test import session
 from cros.factory.test import test_ui
@@ -134,7 +133,7 @@ class HWIDV3Test(test_ui.TestCaseWithUI):
     if self.args.enable_factory_server:
       update_utils.UpdateHWIDDatabase(self._dut)
 
-    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Probing components...'))
+    self.ui.SetState(_('Probing components...'))
     # check if we are overriding probed results.
     probed_results_file = self._dut.path.join(self.tmpdir,
                                               'probed_results_file')
@@ -176,8 +175,7 @@ class HWIDV3Test(test_ui.TestCaseWithUI):
       vpd_args.append('--run-vpd')
 
     if self.args.generate:
-      self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel('Generating HWID (v3)...'))
+      self.ui.SetState(_('Generating HWID (v3)...'))
       generate_cmd = ['hwid', 'generate',
                       '--probed-results-file', probed_results_file,
                       '--device-info-file', device_info_file,
@@ -210,9 +208,8 @@ class HWIDV3Test(test_ui.TestCaseWithUI):
       encoded_string = self.factory_tools.CheckOutput(['hwid', 'read']).strip()
 
     self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            'Verifying HWID (v3): {encoded_string}...',
-            encoded_string=(encoded_string or _('(unchanged)'))))
+        _('Verifying HWID (v3): {encoded_string}...',
+          encoded_string=(encoded_string or _('(unchanged)'))))
 
     verify_cmd = ['hwid', 'verify',
                   '--probed-results-file', probed_results_file,
@@ -229,7 +226,6 @@ class HWIDV3Test(test_ui.TestCaseWithUI):
 
     if self.args.generate:
       self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              'Setting HWID (v3): {encoded_string}...',
-              encoded_string=encoded_string))
+          _('Setting HWID (v3): {encoded_string}...',
+            encoded_string=encoded_string))
       self.factory_tools.CheckCall(['hwid', 'write', encoded_string])

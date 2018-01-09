@@ -66,8 +66,8 @@ from cros.factory.device import device_utils
 from cros.factory.external import evdev
 from cros.factory.test import event_log
 from cros.factory.test.fixture import bft_fixture
+from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
@@ -269,10 +269,9 @@ class ButtonTest(test_ui.TestCaseWithUI):
 
     for done in xrange(self.args.repeat_times):
       if self.args.repeat_times == 1:
-        label = i18n_test_ui.MakeI18nLabel(
-            'Press the {name} button', name=self.args.button_name)
+        label = _('Press the {name} button', name=self.args.button_name)
       else:
-        label = i18n_test_ui.MakeI18nLabel(
+        label = _(
             'Press the {name} button ({count}/{total})',
             name=self.args.button_name,
             count=done,
@@ -283,7 +282,7 @@ class ButtonTest(test_ui.TestCaseWithUI):
         self._fixture.SimulateButtonPress(self.args.bft_button_name, 0)
 
       self._PollForCondition(self.button.IsPressed, 'WaitForPress')
-      self.ui.SetState(i18n_test_ui.MakeI18nLabel('Release the button'))
+      self.ui.SetState(_('Release the button'))
 
       if self._fixture:
         self._fixture.SimulateButtonRelease(self.args.bft_button_name)

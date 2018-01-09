@@ -21,7 +21,7 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
@@ -59,14 +59,13 @@ class ProbeSIMCardTest(test_ui.TestCaseWithUI):
                              'Fail to make sure sim card is not present')
     else:
       self.ResetModem()
-      self.ui.SetState(i18n_test_ui.MakeI18nLabel('Please insert the SIM card'))
+      self.ui.SetState(_('Please insert the SIM card'))
       match = self.WaitForSIMCard(_SIM_PRESENT_RE)
       iccid = match.group(1)
       logging.info('ICCID: %s', iccid)
       event_log.Log('SIM_CARD_DETECTION', ICCID=iccid)
 
-      self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel('Detected! Please remove the SIM card'))
+      self.ui.SetState(_('Detected! Please remove the SIM card'))
       self.WaitForSIMCard(_SIM_NOT_PRESENT_RE)
 
   def ResetModem(self):
@@ -81,8 +80,7 @@ class ProbeSIMCardTest(test_ui.TestCaseWithUI):
     return process_utils.SpawnOutput(['modem', 'status'], log=True)
 
   def CheckSIMCardState(self, sim_re, fail_string):
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel('Checking SIM card is present or not...'))
+    self.ui.SetState(_('Checking SIM card is present or not...'))
 
     self.ResetModem()
 

@@ -84,7 +84,7 @@ import threading
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test.rules import privacy
 from cros.factory.test import server_proxy
 from cros.factory.test import test_ui
@@ -238,20 +238,21 @@ class ShopfloorService(test_ui.TestCaseWithUI):
 
     while True:
       def ShowMessage(caption, css, message, retry=False):
-        retry_button = ('<button onclick="test.sendTestEvent(\'retry\')">' +
-                        i18n_test_ui.MakeI18nLabel('Retry') + '</button>'
-                        if retry else '')
-        self.ui.SetState(
-            i18n_test_ui.MakeI18nLabelWithClass(caption, css) +
-            '<p><textarea rows=25 cols=90 readonly>' +
-            test_ui.Escape(message, False) + '</textarea><p>' +
-            retry_button)
+        retry_button = [
+            '<button onclick="test.sendTestEvent(\'retry\')">',
+            _('Retry'), '</button>'
+        ] if retry else ''
+        self.ui.SetState([
+            '<span class="%s">' % css, caption,
+            '</span><p><textarea rows=25 cols=90 readonly>',
+            test_ui.Escape(message, False), '</textarea><p>', retry_button
+        ])
 
-      ShowMessage('Invoking shopfloor service', 'test-status-active large',
+      ShowMessage(_('Invoking shopfloor service'), 'test-status-active large',
                   invocation_message)
 
       def HandleError(message):
-        ShowMessage('Shop floor exception:', 'test-status-failed large',
+        ShowMessage(_('Shopfloor exception:'), 'test-status-failed large',
                     '\n'.join((message.splitlines()[-1],
                                invocation_message, message)), True)
         process_utils.WaitEvent(self.event)

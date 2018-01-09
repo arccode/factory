@@ -48,7 +48,7 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.test.utils import stress_manager
 from cros.factory.utils.arg_utils import Arg
@@ -117,10 +117,10 @@ class SimpleBatteryTest(test_ui.TestCaseWithUI):
       TestFailure if the sampled battery charge current does not pass
       the given threshold in dargs.
     """
-    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Plug AC to proceed'))
+    self.ui.SetState(_('Plug AC to proceed'))
     sync_utils.WaitFor(self._dut.power.CheckACPresent, timeout_secs=10)
 
-    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Testing battery charge...'))
+    self.ui.SetState(_('Testing battery charge...'))
     self._dut.power.SetChargeState(self._dut.power.ChargeState.CHARGE)
     sampled_current = self.SampleBatteryCurrent(duration_secs)
 
@@ -146,12 +146,12 @@ class SimpleBatteryTest(test_ui.TestCaseWithUI):
       TestFailure if the sampled battery discharge current does not pass
       the given threshold in dargs.
     """
-    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Unplug AC to proceed'))
+    self.ui.SetState(_('Unplug AC to proceed'))
 
     sync_utils.WaitFor(lambda: not self._dut.power.CheckACPresent(),
                        timeout_secs=10)
 
-    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Testing battery discharge...'))
+    self.ui.SetState(_('Testing battery discharge...'))
     # Discharge under high system load.
     with stress_manager.StressManager(self._dut).Run(duration_secs):
       sampled_current = self.SampleBatteryCurrent(duration_secs)

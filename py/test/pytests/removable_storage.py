@@ -89,8 +89,8 @@ from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
 from cros.factory.test import session
 from cros.factory.test.fixture import bft_fixture
+from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
@@ -428,9 +428,7 @@ class RemovableStorageTest(test_ui.TestCaseWithUI):
 
     self._accessing = True
 
-    self.ui.SetInstruction(
-        i18n_test_ui.MakeI18nLabel(
-            'Testing {device}...', device=self._target_device))
+    self.ui.SetInstruction(_('Testing {device}...', device=self._target_device))
     self.SetImage(self._testing_image)
 
     dev_path = self._target_device
@@ -444,18 +442,16 @@ class RemovableStorageTest(test_ui.TestCaseWithUI):
       block_count = 1
       loop_count = self.args.random_block_count
       self.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              'Performing r/w test on {count} {bsize}-byte random blocks...',
-              count=loop_count,
-              bsize=self.args.block_size))
+          _('Performing r/w test on {count} {bsize}-byte random blocks...',
+            count=loop_count,
+            bsize=self.args.block_size))
     elif mode == _RWTestMode.SEQUENTIAL:
       # Converts block counts into bytes
       block_count = self.args.sequential_block_count
       loop_count = 1
       self.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              'Performing sequential r/w test of {bsize} bytes...',
-              bsize=block_count * self.args.block_size))
+          _('Performing sequential r/w test of {bsize} bytes...',
+            bsize=block_count * self.args.block_size))
 
     bytes_to_operate = block_count * self.args.block_size
     # Determine the range in which the random block is selected
@@ -616,9 +612,7 @@ class RemovableStorageTest(test_ui.TestCaseWithUI):
   def TestLock(self):
     """SD card write protection test."""
     self._accessing = True
-    self.ui.SetInstruction(
-        i18n_test_ui.MakeI18nLabel(
-            'Testing {device}...', device=self._target_device))
+    self.ui.SetInstruction(_('Testing {device}...', device=self._target_device))
     self.SetImage(self._testing_image)
 
     if not self.GetDeviceRo(self._target_device):
@@ -706,11 +700,10 @@ class RemovableStorageTest(test_ui.TestCaseWithUI):
 
       while True:
         self.ui.SetInstruction(
-            i18n_test_ui.MakeI18nLabel(
-                'Insert {media} drive for read/write test... {extra}<br>'
-                'WARNING: DATA ON INSERTED MEDIA WILL BE LOST!',
-                media=self.args.media,
-                extra=self.args.extra_prompt))
+            _('Insert {media} drive for read/write test... {extra}<br>'
+              'WARNING: DATA ON INSERTED MEDIA WILL BE LOST!',
+              media=self.args.media,
+              extra=self.args.extra_prompt))
         self.SetImage(self._insertion_image)
         yield _Event.WAIT_INSERT
         if self.CheckUSBPDPolarity():
@@ -719,9 +712,8 @@ class RemovableStorageTest(test_ui.TestCaseWithUI):
           self.FailTask('USB CC polarity mismatch.')
         else:
           self.ui.SetInstruction(
-              i18n_test_ui.MakeI18nLabel(
-                  'Wrong USB side, please flip over {media}.',
-                  media=self.args.media))
+              _('Wrong USB side, please flip over {media}.',
+                media=self.args.media))
           self.SetImage(self._removal_image)
           yield _Event.WAIT_REMOVE
 
@@ -736,9 +728,7 @@ class RemovableStorageTest(test_ui.TestCaseWithUI):
     if self._bft_fixture:
       self.FixtureCommand('remove')
 
-    self.ui.SetInstruction(
-        i18n_test_ui.MakeI18nLabel(
-            'Remove {media} drive...', media=self.args.media))
+    self.ui.SetInstruction(_('Remove {media} drive...', media=self.args.media))
     self.SetImage(self._removal_image)
     yield _Event.WAIT_REMOVE
 
@@ -754,9 +744,8 @@ class RemovableStorageTest(test_ui.TestCaseWithUI):
       self.FixtureCommand('insert')
 
     self.ui.SetInstruction(
-        i18n_test_ui.MakeI18nLabel(
-            'Toggle lock switch and insert {media} drive again...',
-            media=self.args.media))
+        _('Toggle lock switch and insert {media} drive again...',
+          media=self.args.media))
     self.SetImage(self._locktest_insertion_image)
     yield _Event.WAIT_INSERT
 
@@ -772,9 +761,8 @@ class RemovableStorageTest(test_ui.TestCaseWithUI):
       self.FixtureCommand('remove')
 
     self.ui.SetInstruction(
-        i18n_test_ui.MakeI18nLabel(
-            'Remove {media} drive and toggle lock switch...',
-            media=self.args.media))
+        _('Remove {media} drive and toggle lock switch...',
+          media=self.args.media))
     self.SetImage(self._locktest_removal_image)
     yield _Event.WAIT_REMOVE
 

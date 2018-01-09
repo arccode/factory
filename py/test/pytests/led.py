@@ -13,7 +13,6 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.device import led as led_module
 from cros.factory.test.i18n import _
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 # The right BFTFixture module is dynamically imported based on args.bft_fixture.
 # See setUp() for more detail.
 from cros.factory.test.fixture import bft_fixture
@@ -92,14 +91,16 @@ class LEDTest(test_ui.TestCaseWithUI):
       led_name_label = self._GetNameI18nLabel(led_name)
       color_label = _COLOR_LABEL[color]
       if color == LEDColor.OFF:
-        instruction = i18n_test_ui.MakeI18nLabel(
+        instruction = _(
             'If the <strong>{name}</strong> is <strong>off</strong>, '
-            'press ENTER.', name=led_name_label)
+            'press ENTER.',
+            name=led_name_label)
       else:
-        instruction = i18n_test_ui.MakeI18nLabel(
+        instruction = _(
             'If the <strong>{name}</strong> lights up in '
             '<strong>{color}</strong>, press ENTER.',
-            name=led_name_label, color=color_label)
+            name=led_name_label,
+            color=color_label)
       self.ui.SetState(instruction)
       self.ui.BindStandardKeys()
       self.WaitTaskEnd()
@@ -113,18 +114,22 @@ class LEDTest(test_ui.TestCaseWithUI):
           color=color.lower(), idx=idx)
 
     led_name_label = self._GetNameI18nLabel(led_name)
-    description = i18n_test_ui.MakeI18nLabel(
+    description = _(
         '<span class="sub-title">Test {test_id}</span><br>'
         'Please press number key according to the <strong>{name}</strong> '
         'color',
-        test_id=test_id, name=led_name_label)
-    buttons_ui = '<div>' + ''.join(
-        _MakeButton(idx, color)
-        for idx, color in enumerate(color_options, 1)) + '</div>'
-    result_line = (
-        '<div class="result-line">' + i18n_test_ui.MakeI18nLabel('Result: ') +
-        '<span id="result"></span></div>')
-    return description + '<br>' + buttons_ui + result_line
+        test_id=test_id,
+        name=led_name_label)
+    buttons_ui = [
+        '<div>',
+        [_MakeButton(idx, color)
+         for idx, color in enumerate(color_options, 1)], '</div>'
+    ]
+    result_line = [
+        '<div class="result-line">',
+        _('Result: '), '<span id="result"></span></div>'
+    ]
+    return [description, '<br>', buttons_ui, result_line]
 
   def RunChallengeTask(self, test_id, led_name, color):
     """Checks for LED colors interactively."""

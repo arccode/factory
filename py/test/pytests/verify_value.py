@@ -77,7 +77,6 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import session
 from cros.factory.test import i18n
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 
@@ -114,8 +113,7 @@ class VerifyValueTest(test_ui.TestCaseWithUI):
   def runTest(self):
     for item in self.args.items:
       item = Item(i18n.Translated(item[0], translate=False), item[1], item[2])
-      name = i18n_test_ui.MakeI18nLabel(item.name)
-      self.ui.SetState(name)
+      self.ui.SetState(item.name)
       command = item.command
 
       session.console.info('Try to get value from: %s', command)

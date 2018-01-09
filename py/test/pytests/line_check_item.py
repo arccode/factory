@@ -68,7 +68,6 @@ from cros.factory.test import event_log
 from cros.factory.test import session
 from cros.factory.test import i18n
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 
@@ -113,11 +112,10 @@ class LineCheckItemTest(test_ui.TestCaseWithUI):
 
   def runTest(self):
     """Main entrance of the test."""
-    self.ui.SetTitle(i18n_test_ui.MakeI18nLabel(self.args.title))
+    self.ui.SetTitle(self.args.title)
     for item in self._items:
       command = item.command
-      instruction = i18n_test_ui.MakeI18nLabel(item.instruction)
-      self.ui.SetState(instruction)
+      self.ui.SetState(item.instruction)
 
       process = self._dut.Popen(command,
                                 stdout=subprocess.PIPE,

@@ -18,7 +18,7 @@ from PIL import ImageDraw
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test.env import goofy_proxy
@@ -254,8 +254,7 @@ class ChameleonDisplayTest(test_ui.TestCaseWithUI):
         logging.error('Unable to determine the external display to test.')
         self.fail('Please unplug the display to test.')
     elif len(display_info) == 1:
-      self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel('Please plug in the display to test'))
+      self.ui.SetState(_('Please plug in the display to test'))
       logging.info('Checking %s physical port on Chameleon...', chameleon_port)
       sync_utils.WaitFor(
           lambda: self.chameleon.IsPhysicallyPlugged(chameleon_port),
@@ -360,12 +359,12 @@ class ChameleonDisplayTest(test_ui.TestCaseWithUI):
     logging.info(
         ('Testing DUT %s port on Chameleon %s port using mode %s...'),
         dut_port, chameleon_port, mode)
-    self.ui.SetState(i18n_test_ui.MakeI18nLabel(
-        'Testing DUT {dut_port} port on Chameleon {chameleon_port} port'
-        ' using mode {mode}...',
-        dut_port=dut_port,
-        chameleon_port=chameleon_port,
-        mode=mode))
+    self.ui.SetState(
+        _('Testing DUT {dut_port} port on Chameleon {chameleon_port} port'
+          ' using mode {mode}...',
+          dut_port=dut_port,
+          chameleon_port=chameleon_port,
+          mode=mode))
 
     if not mode in EDIDS[chameleon_port]:
       self.fail('Invalid mode for %s: %s' % (chameleon_port, mode))
@@ -376,10 +375,11 @@ class ChameleonDisplayTest(test_ui.TestCaseWithUI):
     with self.chameleon.PortEdid(chameleon_port, edid):
       original_display, external_display = self.ProbeDisplay(chameleon_port)
 
-      self.ui.SetState(i18n_test_ui.MakeI18nLabel(
-          'Automated testing on {dut_port} to {chameleon_port} in progress...',
-          dut_port=dut_port,
-          chameleon_port=chameleon_port))
+      self.ui.SetState(
+          _('Automated testing on {dut_port} to {chameleon_port} '
+            'in progress...',
+            dut_port=dut_port,
+            chameleon_port=chameleon_port))
 
       if self.args.load_test_image:
         with self.NewWindow(
@@ -407,13 +407,13 @@ class ChameleonDisplayTest(test_ui.TestCaseWithUI):
     histogram = diff_image.convert('L').histogram()
     pixel_diff_margin = 1 if self.args.downscale_to_tv_level else 0
     if sum(histogram[pixel_diff_margin + 1:]) > 0:
-      self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel('Captured images mismatch') +
-          '<br><br>' +
+      self.ui.SetState([
+          _('Captured images mismatch'), '<br><br>',
           '<image src="%s" width=%d height=%d></image>' %
           (self.ui.URLForFile(self.DIFF_IMAGE_PATH),
            original_display['workArea']['width'] * self.UI_IMAGE_RESIZE_RATIO,
-           original_display['workArea']['height'] * self.UI_IMAGE_RESIZE_RATIO))
+           original_display['workArea']['height'] * self.UI_IMAGE_RESIZE_RATIO)
+      ])
       # Wait 10 seconds for the operator to inspect the difference.
       time.sleep(10)
       self.fail(('Captured image of port %s from Chameleon does not match '

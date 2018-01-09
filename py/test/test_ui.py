@@ -24,6 +24,7 @@ import uuid
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import goofy_proxy
 from cros.factory.test import event as test_event
+from cros.factory.test.i18n import _
 from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import session
 from cros.factory.test import state
@@ -52,9 +53,9 @@ def Escape(text, preserve_line_breaks=True):
   return html
 
 
-PASS_KEY_LABEL = i18n_test_ui.MakeI18nLabel('Press Enter to pass.')
-FAIL_KEY_LABEL = i18n_test_ui.MakeI18nLabel('Press ESC to fail.')
-PASS_FAIL_KEY_LABEL = PASS_KEY_LABEL + FAIL_KEY_LABEL
+PASS_KEY_LABEL = _('Press Enter to pass.')
+FAIL_KEY_LABEL = _('Press ESC to fail.')
+PASS_FAIL_KEY_LABEL = [PASS_KEY_LABEL, FAIL_KEY_LABEL]
 
 _HANDLER_WARN_TIME_LIMIT = 5
 _EVENT_LOOP_THREAD_NAME = 'TestEventLoopThread'

@@ -64,8 +64,8 @@ To show a message for 20 seconds, and automatically pass::
 from __future__ import print_function
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 
@@ -104,16 +104,16 @@ class MessageTest(test_ui.TestCaseWithUI):
     press_button_hint = ''
     if self.args.show_press_button_hint:
       if self.args.manual_check:
-        press_button_hint = i18n_test_ui.MakeI18nLabel(
+        press_button_hint = _(
             '<div>Press <strong>Enter</strong> to continue, '
             'or <strong>ESC</strong> if things are not going right.</div>')
       else:
-        press_button_hint = i18n_test_ui.MakeI18nLabel(
+        press_button_hint = _(
             '<div>Press <strong>Enter</strong> to continue.</div>')
 
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabelWithClass(self.args.html, 'message') +
-        press_button_hint)
+    self.ui.SetState([
+        '<span class="message">', self.args.html, '</span>', press_button_hint
+    ])
 
     self.ui.BindStandardPassKeys()
     if self.args.manual_check:

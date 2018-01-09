@@ -10,7 +10,6 @@ import logging
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
@@ -68,9 +67,8 @@ class LightbarTest(test_ui.TestCaseWithUI):
       logging.info('Testing %s (%s)...', color_name, lrgb)
       self.ECToolLightbar(*lrgb)
       self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              'Is the lightbar {color}?<br>Press SPACE if yes, "F" if no.',
-              color=color_label))
+          _('Is the lightbar {color}?<br>Press SPACE if yes, "F" if no.',
+            color=color_label))
       key = self.ui.WaitKeysOnce([test_ui.SPACE_KEY, 'F'])
       if key == 'F':
         self.FailTask('Lightbar failed to light up in %s' % color_name)

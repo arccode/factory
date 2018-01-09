@@ -10,19 +10,12 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import session
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import net_utils
 
-_MSG_ETHERNET_INFO = i18n_test_ui.MakeI18nLabelWithClass(
-    'Please plug ethernet cable into built-in ethernet port<br>'
-    'Press space to start.', 'ethernet-test-info')
-
-_CSS_ETHERNET = """
-  .ethernet-test-info { font-size: 2em; }
-"""
 
 _LOCAL_FILE_PATH = '/tmp/test'
 
@@ -56,8 +49,10 @@ class EthernetTest(test_ui.TestCaseWithUI):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self.ui.AppendCSS(_CSS_ETHERNET)
-    self.ui.SetState(_MSG_ETHERNET_INFO)
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.SetState(
+        _('Please plug ethernet cable into built-in ethernet port<br>'
+          'Press space to start.'))
 
     if bool(self.args.test_url) != bool(self.args.md5sum):
       raise ValueError('Should both assign test_url and md5sum.')
@@ -125,8 +120,7 @@ class EthernetTest(test_ui.TestCaseWithUI):
     return False
 
   def CheckLinkSimple(self, dev):
-    status = self.dut.ReadSpecialFile(
-        '/sys/class/net/%s/carrier' % dev).strip()
+    status = self.dut.ReadSpecialFile('/sys/class/net/%s/carrier' % dev).strip()
     if int(status):
       self.PassTask()
     else:

@@ -76,7 +76,7 @@ from cros.factory.device import CalledProcessError
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test.fixture import arduino
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import session
 from cros.factory.test import test_ui
 from cros.factory.test.utils import kbd_leds
@@ -361,7 +361,7 @@ class _ServiceTest(object):
         'pass_iperf_tx': None,
         'pass_iperf_rx': None,
         'failures': []}
-    self._ui.SetState(i18n_test_ui.MakeI18nLabel('Running, please wait...'))
+    self._ui.SetState(_('Running, please wait...'))
 
     def DoTest(fn, abort=False, **kwargs):
       """Runs a test and reports its success/failure to the session.console.
@@ -551,12 +551,11 @@ class _ServiceTest(object):
                   'for it to finish and try again.')
         self._Log('Hit space bar to retry...')
         self._ui.SetState(
-            i18n_test_ui.MakeI18nLabel(
-                'Please wait for other DUTs to finish WiFiThroughput test, '
-                'and press spacebar to continue.'))
+            _('Please wait for other DUTs to finish WiFiThroughput test, '
+              'and press spacebar to continue.'))
         self._ui.WaitKeysOnce(test_ui.SPACE_KEY)
         time.sleep(1)
-        self._ui.SetState(i18n_test_ui.MakeI18nLabel('Running, please wait...'))
+        self._ui.SetState(_('Running, please wait...'))
       else:
         break
 

@@ -24,7 +24,7 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
@@ -349,10 +349,9 @@ class SuspendResumeTest(test_ui.TestCaseWithUI):
       alarm_suspend_delays = 0
       self.alarm_thread = threading.Thread(target=self._MonitorWakealarm)
       self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              'Suspend/Resume: {run} of {cycle}',
-              run=self.run,
-              cycle=self.args.cycles))
+          _('Suspend/Resume: {run} of {cycle}',
+            run=self.run,
+            cycle=self.args.cycles))
       self.start_time = self._ReadCurrentTime()
       suspend_time = random.randint(self.args.suspend_delay_min_secs,
                                     self.args.suspend_delay_max_secs)

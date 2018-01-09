@@ -58,10 +58,8 @@ from cros.factory.test import device_data
 from cros.factory.test import event as test_event
 from cros.factory.test import event_log
 from cros.factory.test.fixture import bft_fixture
-from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
@@ -129,10 +127,8 @@ class Scan(test_ui.TestCaseWithUI):
   def HandleScanValue(self, event):
     def SetError(label):
       logging.info('Scan error: %r', label['en-US'])
-      self.ui.SetHTML('<span class="test-error">' +
-                      i18n_test_ui.MakeI18nLabel(label) +
-                      '</span>',
-                      id='scan-status')
+      self.ui.SetHTML(
+          ['<span class="test-error">', label, '</span>'], id='scan-status')
       self.ui.RunJS('document.getElementById("scan-value").disabled = false;'
                     'document.getElementById("scan-value").value = ""')
       self.ui.SetFocus('scan-value')
@@ -143,15 +139,15 @@ class Scan(test_ui.TestCaseWithUI):
       scan_value = scan_value.upper()
     esc_scan_value = test_ui.Escape(scan_value)
     if not scan_value:
-      return SetError(_('The scanned value is empty.'))
+      SetError(_('The scanned value is empty.'))
+      return
     if self.args.regexp:
       match = re.match(self.args.regexp, scan_value)
       if not match or match.group(0) != scan_value:
-        return SetError(
-            i18n.StringFormat(
-                _('The scanned value "{value}" does not match '
-                  'the expected format.'),
-                value=esc_scan_value))
+        SetError(
+            _('The scanned value "{value}" does not match the expected format.',
+              value=esc_scan_value))
+        return
 
     if self.args.event_log_key:
       event_log.Log('scan', key=self.args.event_log_key, value=scan_value)
@@ -178,17 +174,16 @@ class Scan(test_ui.TestCaseWithUI):
         # Show expected value only in engineering mode, so the user
         # can't fake it.
         esc_expected_value = test_ui.Escape(expected_value or 'None')
-        return SetError(
-            i18n.StringFormat(
-                _('The scanned value "{value}" does not match '
-                  'the expected value <span class=test-engineering-mode-only>'
-                  '"{expected_value}"</span>.'),
-                value=esc_scan_value, expected_value=esc_expected_value))
+        SetError(
+            _('The scanned value "{value}" does not match '
+              'the expected value <span class=test-engineering-mode-only>'
+              '"{expected_value}"</span>.',
+              value=esc_scan_value,
+              expected_value=esc_expected_value))
+        return
 
     if self.args.rw_vpd_key or self.args.ro_vpd_key:
-      self.ui.SetHTML(
-          i18n_test_ui.MakeI18nLabel('Writing to VPD. Please wait...'),
-          id='scan-status')
+      self.ui.SetHTML(_('Writing to VPD. Please wait...'), id='scan-status')
       try:
         if self.args.rw_vpd_key:
           self.dut.vpd.rw.Update({self.args.rw_vpd_key: scan_value})
@@ -196,7 +191,8 @@ class Scan(test_ui.TestCaseWithUI):
           self.dut.vpd.ro.Update({self.args.ro_vpd_key: scan_value})
       except Exception:
         logging.exception('Setting VPD failed')
-        return SetError(debug_utils.FormatExceptionOnly())
+        SetError(debug_utils.FormatExceptionOnly())
+        return
 
     if self.args.save_path:
       try:
@@ -205,7 +201,8 @@ class Scan(test_ui.TestCaseWithUI):
         self.dut.WriteFile(self.args.save_path, scan_value)
       except Exception:
         logging.exception('Save file failed')
-        return SetError(debug_utils.FormatExceptionOnly())
+        SetError(debug_utils.FormatExceptionOnly())
+        return
 
     self.event_loop.PostNewEvent(test_event.Event.Type.UPDATE_SYSTEM_INFO)
     self.PassTask()
@@ -235,15 +232,13 @@ class Scan(test_ui.TestCaseWithUI):
       time.sleep(self.args.barcode_scan_interval_secs)
 
   def runTest(self):
-    self.ui.SetTitle(
-        i18n_test_ui.MakeI18nLabel('Scan {label}', label=self.args.label))
+    self.ui.SetTitle(_('Scan {label}', label=self.args.label))
 
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            'Please scan the {label} and press ENTER.',
-            label=self.args.label) +
+    self.ui.SetState([
+        _('Please scan the {label} and press ENTER.', label=self.args.label),
         '<input id="scan-value" type="text" size="20">'
-        '<p id="scan-status">&nbsp;</p>')
+        '<p id="scan-status">&nbsp;</p>'
+    ])
     self.ui.SetFocus('scan-value')
     self.ui.BindKeyJS(
         test_ui.ENTER_KEY,

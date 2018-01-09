@@ -34,15 +34,15 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.external import numpy
 from cros.factory.test import event_log
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 
 
-_LABEL_PASS = i18n_test_ui.MakeI18nLabelWithClass('PASS', 'test-status-passed')
-_LABEL_FAIL = i18n_test_ui.MakeI18nLabelWithClass('FAIL', 'test-status-failed')
+_LABEL_PASS = ['<span class="test-status-passed">', _('PASS'), '</span>']
+_LABEL_FAIL = ['<span class="test-status-failed">', _('FAIL'), '</span>']
 _MESSAGE_DELAY_SECS = 1
 
 CheckItem = collections.namedtuple(
@@ -77,14 +77,15 @@ class TouchUniformity(test_ui.TestCaseWithUI):
 
   def CheckInterface(self):
     if not self.controller.CheckInterface():
-      self.ui.SetState(
-          i18n_test_ui.MakeI18nLabelWithClass('ERROR: Touch device not found',
-                                              'test-status-failed'))
+      self.ui.SetState([
+          '<span class="test-status-failed">',
+          _('ERROR: Touch device not found'), '</span>'
+      ])
       time.sleep(_MESSAGE_DELAY_SECS)
       self.FailTask('Touch controller not found.')
 
   def Calibrate(self):
-    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Calibrating Touch device'))
+    self.ui.SetState(_('Calibrating Touch device'))
     if not self.controller.Calibrate():
       self.ui.SetState(_LABEL_FAIL, append=True)
       time.sleep(_MESSAGE_DELAY_SECS)
@@ -140,8 +141,8 @@ class TouchUniformity(test_ui.TestCaseWithUI):
         fails.append(item.frame_idx)
         to_log.append([dict(item._asdict()), 'FAIL', matrix])
       self.ui.SetState(
-          '<div>' + i18n_test_ui.MakeI18nLabel(
-              'Testing {item}...', item=item.label) + status + '</div>',
+          ['<div>',
+           _('Testing {item}...', item=item.label), status, '</div>'],
           append=True)
     time.sleep(_MESSAGE_DELAY_SECS)
 

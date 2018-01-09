@@ -71,16 +71,12 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
 from cros.factory.test import session
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
-
-
-_TITLE_START = i18n_test_ui.MakeI18nLabel('Start Station Test')
-_TITLE_END = i18n_test_ui.MakeI18nLabel('End Station Test')
 
 
 class StationEntry(test_ui.TestCaseWithUI):
@@ -116,8 +112,9 @@ class StationEntry(test_ui.TestCaseWithUI):
     self._dut = device_utils.CreateDUTInterface()
     self._state = state.get_instance()
     self.ui.AppendCSS('test-template { font-size: 2em; }')
-    self.ui.SetTitle(_TITLE_START
-                     if self.args.start_station_tests else _TITLE_END)
+    self.ui.SetTitle(
+        _('Start Station Test')
+        if self.args.start_station_tests else _('End Station Test'))
 
   def SendTestResult(self):
     self._state.PostHookEvent('TestResult', self._state.get_test_states())
@@ -146,7 +143,7 @@ class StationEntry(test_ui.TestCaseWithUI):
         device_data.ClearAllSerialNumbers()
 
   def Start(self):
-    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Please attach DUT.'))
+    self.ui.SetState(_('Please attach DUT.'))
 
     def _IsReady():
       if not self._dut.link.IsReady():
@@ -164,23 +161,20 @@ class StationEntry(test_ui.TestCaseWithUI):
           'DUT is not connected in %d seconds' % self.args.timeout_secs)
 
     if self.args.prompt_start:
-      self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel('Press SPACE to start the test.'))
+      self.ui.SetState(_('Press SPACE to start the test.'))
       self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 
   def End(self):
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel('Sending test results to shopfloor...'))
+    self.ui.SetState(_('Sending test results to shopfloor...'))
 
     self.SendTestResult()
 
-    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Please remove DUT.'))
+    self.ui.SetState(_('Please remove DUT.'))
     if not self._dut.link.IsLocal():
       if self.args.disconnect_dut:
         sync_utils.WaitFor(lambda: not self._dut.link.IsReady(),
                            self.args.timeout_secs,
                            poll_interval=1)
       else:
-        self.ui.SetState(
-            i18n_test_ui.MakeI18nLabel('Press SPACE to end the test.'))
+        self.ui.SetState(_('Press SPACE to end the test.'))
         self.ui.WaitKeysOnce(test_ui.SPACE_KEY)

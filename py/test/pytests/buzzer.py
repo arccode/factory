@@ -8,28 +8,11 @@ import random
 import time
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
-_MSG_BUZZER_INFO = i18n_test_ui.MakeI18nLabel(
-    'How many beeps do you hear? <br>'
-    'Press space to start.')
-
-_MSG_BUZZER_TEST = i18n_test_ui.MakeI18nLabel(
-    'How many beeps do you hear? <br>'
-    'Press the number you hear to pass the test.<br>'
-    "Press 'r' to play again.")
-
-_HTML_BUZZER = '<div id="buzzer-title"></div>'
-
-_CSS_BUZZER = """
-  #buzzer-title {
-    font-size: 2em;
-    width: 70%;
-  }
-"""
 
 _MAX_BEEP_TIMES = 5
 
@@ -47,8 +30,7 @@ class BuzzerTest(test_ui.TestCaseWithUI):
 
   def setUp(self):
     self._pass_digit = random.randint(1, _MAX_BEEP_TIMES)
-    self.ui.AppendCSS(_CSS_BUZZER)
-    self.ui.SetState(_HTML_BUZZER)
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
     if self.args.init_commands:
       self.InitialBuzzer(self.args.init_commands)
 
@@ -67,10 +49,13 @@ class BuzzerTest(test_ui.TestCaseWithUI):
     max_total_duration = _MAX_BEEP_TIMES * (
         self.args.beep_duration_secs + self.args.mute_duration_secs)
 
-    self.ui.SetHTML(_MSG_BUZZER_INFO, id='buzzer-title')
+    self.ui.SetState(_('How many beeps do you hear? <br>Press space to start.'))
     self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 
-    self.ui.SetHTML(_MSG_BUZZER_TEST, id='buzzer-title')
+    self.ui.SetState(
+        _('How many beeps do you hear? <br>'
+          'Press the number you hear to pass the test.<br>'
+          "Press 'r' to play again."))
 
     while True:
       start_time = time.time()

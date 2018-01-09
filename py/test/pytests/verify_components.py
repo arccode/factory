@@ -13,7 +13,7 @@ import logging
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test.rules import phase
 from cros.factory.test import test_ui
 from cros.factory.test.utils import deploy_utils
@@ -59,7 +59,7 @@ class VerifyComponentsTest(test_ui.TestCaseWithUI):
     self._allow_unqualified = phase.GetPhase() in [
         phase.PROTO, phase.EVT, phase.DVT]
 
-    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Checking components...'))
+    self.ui.SetState(_('Checking components...'))
 
     cmd = ['hwid', 'verify-components', '--json_output']
     if not self.args.fast_fw_probe:

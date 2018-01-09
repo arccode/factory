@@ -14,7 +14,7 @@ import logging
 import os
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.test.utils import media_utils
 from cros.factory.utils.arg_utils import Arg
@@ -59,9 +59,8 @@ class USBTest(test_ui.TestCaseWithUI):
 
   def SetMessage(self, num_usb_ports):
     self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            'Plug device into each USB port, {num_usb_ports} to go...',
-            num_usb_ports=num_usb_ports))
+        _('Plug device into each USB port, {num_usb_ports} to go...',
+          num_usb_ports=num_usb_ports))
 
   def RecordPath(self, sys_path):
     bus_path = os.path.dirname(sys_path)

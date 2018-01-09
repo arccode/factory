@@ -161,7 +161,6 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.l10n import regions
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -356,7 +355,7 @@ class UpdateDeviceData(test_ui.TestCaseWithUI):
         if entry.value is not None:
           break
         self._SetErrorMsg(
-            _('No valid data on machine for {label}.'), label=entry.label)
+            _('No valid data on machine for {label}.', label=entry.label))
       else:
         data = event.data
         if entry.IsValidInput(data):
@@ -364,15 +363,14 @@ class UpdateDeviceData(test_ui.TestCaseWithUI):
           if value is not None:
             device_data.UpdateDeviceData({entry.key: value})
           break
-        self._SetErrorMsg(_('Invalid value for {label}.'), label=entry.label)
+        self._SetErrorMsg(_('Invalid value for {label}.', label=entry.label))
 
     self.ui.UnbindAllKeys()
     self.event_loop.ClearHandlers()
 
-  def _SetErrorMsg(self, msg, **kwargs):
+  def _SetErrorMsg(self, msg):
     self.ui.SetHTML(
-        i18n_test_ui.MakeI18nLabelWithClass(msg, 'test-error', **kwargs),
-        id='errormsg')
+        ['<span class="test-error">', msg, '</span>'], id='errormsg')
 
   def _RenderSelectBox(self, entry):
     # Renders a select box to list all the possible values.
@@ -387,17 +385,17 @@ class UpdateDeviceData(test_ui.TestCaseWithUI):
       pass
 
     html = [
-        i18n_test_ui.MakeI18nLabel('Select {label}:', label=entry.label),
+        _('Select {label}:', label=entry.label),
         select_box.GenerateHTML(),
-        i18n_test_ui.MakeI18nLabel('Select with ENTER')
+        _('Select with ENTER')
     ]
 
-    self.ui.SetState(''.join(html))
+    self.ui.SetState(html)
     self.ui.SetFocus(entry.key)
 
   def _RenderInputBox(self, entry):
     html = [
-        i18n_test_ui.MakeI18nLabel('Enter {label}: ', label=entry.label),
+        _('Enter {label}: ', label=entry.label),
         '<input type="text" id="%s" value="%s" style="width: 20em;">'
         '<div id="errormsg" class="test-error"></div>' % (entry.key,
                                                           entry.value or '')
@@ -406,8 +404,8 @@ class UpdateDeviceData(test_ui.TestCaseWithUI):
     if entry.value:
       # The "ESC" is available primarily for RMA and testing process, when
       # operator does not want to change existing serial number.
-      html.append(i18n_test_ui.MakeI18nLabel('(ESC to keep current value)'))
+      html.append(_('(ESC to keep current value)'))
 
-    self.ui.SetState(''.join(html))
+    self.ui.SetState(html)
     self.ui.SetSelected(entry.key)
     self.ui.SetFocus(entry.key)

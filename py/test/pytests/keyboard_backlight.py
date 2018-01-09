@@ -7,7 +7,6 @@
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import _
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.utils import process_utils
 
@@ -24,8 +23,7 @@ class KeyboardBacklightTest(test_ui.TestCaseWithUI):
 
   def RunTask(self, instruction, level):
     self.ui.BindStandardKeys()
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(instruction) + test_ui.FAIL_KEY_LABEL)
+    self.ui.SetState([instruction, test_ui.FAIL_KEY_LABEL])
     process_utils.Spawn(
         ['ectool', 'pwmsetkblight', level],
         ignore_stdout=True, log_stderr_on_error=True, check_call=True)

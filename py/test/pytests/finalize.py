@@ -107,7 +107,7 @@ from cros.factory.test import device_data
 from cros.factory.test.env import paths
 from cros.factory.test import event_log
 from cros.factory.test import gooftools
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test.rules import phase
 from cros.factory.test import server_proxy
 from cros.factory.test import session
@@ -123,17 +123,16 @@ from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
 
-MSG_BUILD_PHASE = i18n_test_ui.MakeI18nLabel('Build Phase')
-MSG_WRITE_PROTECTION = i18n_test_ui.MakeI18nLabel('Write Protection')
-MSG_FACTORY_SERVER = i18n_test_ui.MakeI18nLabel('Factory Server')
-MSG_ENABLED = i18n_test_ui.MakeI18nLabel('Enabled')
-MSG_DISABLED = i18n_test_ui.MakeI18nLabel('Disabled')
-MSG_PREFLIGHT = i18n_test_ui.MakeI18nLabel(
+MSG_BUILD_PHASE = _('Build Phase')
+MSG_WRITE_PROTECTION = _('Write Protection')
+MSG_FACTORY_SERVER = _('Factory Server')
+MSG_ENABLED = _('Enabled')
+MSG_DISABLED = _('Disabled')
+MSG_PREFLIGHT = _(
     'Running preflight tasks to prepare for finalization, please wait...')
-MSG_FINALIZING = i18n_test_ui.MakeI18nLabel(
-    'Finalizing, please wait.<br>'
-    'Do not restart the device or terminate this test,<br>'
-    'or the device may become unusable.')
+MSG_FINALIZING = _('Finalizing, please wait.<br>'
+                   'Do not restart the device or terminate this test,<br>'
+                   'or the device may become unusable.')
 
 
 class Finalize(test_ui.TestCaseWithUI):
@@ -216,14 +215,15 @@ class Finalize(test_ui.TestCaseWithUI):
                                 'Write protection must be enabled')
 
     def GetState(v):
-      return ('<b style="color: green;">' + MSG_ENABLED + '</b>' if v else
-              '<b style="color: red;">' + MSG_DISABLED + '</b>')
+      return (['<b style="color: green;">', MSG_ENABLED, '</b>']
+              if v else ['<b style="color: red;">', MSG_DISABLED, '</b>'])
 
-    self.ui.SetInstruction(
-        MSG_WRITE_PROTECTION + ': ' + GetState(self.args.write_protection) +
-        '<br>' +
-        MSG_BUILD_PHASE + ': ' + str(phase.GetPhase()) + ', ' +
-        MSG_FACTORY_SERVER + ': ' + GetState(self.args.enable_factory_server))
+    self.ui.SetInstruction([
+        MSG_WRITE_PROTECTION, ': ',
+        GetState(self.args.write_protection), '<br>', MSG_BUILD_PHASE,
+        ': %s, ' % phase.GetPhase(), MSG_FACTORY_SERVER, ': ',
+        GetState(self.args.enable_factory_server)
+    ])
     self.ui.SetState(MSG_PREFLIGHT)
     self.Preflight()
     self.ui.SetState(MSG_FINALIZING)

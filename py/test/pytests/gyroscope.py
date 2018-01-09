@@ -20,7 +20,7 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
@@ -53,25 +53,21 @@ class Gyroscope(test_ui.TestCaseWithUI):
   def runTest(self):
     if not self.args.autostart:
       self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              'Please put device on a horizontal plane then press space to '
-              'start calibration.'))
+          _('Please put device on a horizontal plane then press space to '
+            'start calibration.'))
       self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 
     for i in xrange(self.args.setup_time_secs):
       self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              'Calibration will be started within {secs} seconds.'
-              'Please do not move device.',
-              secs=self.args.setup_time_secs - i))
+          _('Calibration will be started within {secs} seconds.'
+            'Please do not move device.',
+            secs=self.args.setup_time_secs - i))
       time.sleep(1)
 
-    self.ui.SetInstruction(
-        i18n_test_ui.MakeI18nLabel('Please do not move the device.'))
+    self.ui.SetInstruction(_('Please do not move the device.'))
     self._WaitForDeviceStop()
 
-    self.ui.SetInstruction(
-        i18n_test_ui.MakeI18nLabel('Please rotate the device.'))
+    self.ui.SetInstruction(_('Please rotate the device.'))
     self._WaitForDeviceRotate()
 
   def _UpdateState(self, max_values):

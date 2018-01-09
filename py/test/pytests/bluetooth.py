@@ -86,7 +86,7 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test import test_ui
@@ -346,9 +346,8 @@ class BluetoothTest(test_ui.TestCaseWithUI):
     if self.args.scan_devices:
       if self.args.prompt_scan_message:
         self.AddTask(self.WaitKeyPressed,
-                     i18n_test_ui.MakeI18nLabel(
-                         'Enable the connection ability of bluetooth device '
-                         'and press Enter'))
+                     _('Enable the connection ability of bluetooth device '
+                       'and press Enter'))
       self.AddTask(self.ScanDevices)
 
     if self.args.input_device_rssi_key:
@@ -356,9 +355,8 @@ class BluetoothTest(test_ui.TestCaseWithUI):
 
     if self.args.prompt_into_fixture:
       self.AddTask(self.WaitKeyPressed,
-                   i18n_test_ui.MakeI18nLabel(
-                       'Place the base into the fixture, '
-                       'and press the space key on the test host.'),
+                   _('Place the base into the fixture, '
+                     'and press the space key on the test host.'),
                    test_ui.SPACE_KEY)
 
     if self.args.read_battery_level == 1:
@@ -374,9 +372,8 @@ class BluetoothTest(test_ui.TestCaseWithUI):
         self.AddTask(self.FixtureControl, 'ENABLE_MAGNET')
       else:
         self.AddTask(self.WaitKeyPressed,
-                     i18n_test_ui.MakeI18nLabel(
-                         'Please re-attach the magnet, '
-                         'and press the space key on the test host.'),
+                     _('Please re-attach the magnet, '
+                       'and press the space key on the test host.'),
                      test_ui.SPACE_KEY)
 
     if self.args.start_charging:
@@ -385,10 +382,9 @@ class BluetoothTest(test_ui.TestCaseWithUI):
         self.AddTask(self.FixtureControl, 'START_CHARGING')
       else:
         self.AddTask(self.WaitKeyPressed,
-                     i18n_test_ui.MakeI18nLabel(
-                         'Turn on charging by pressing the green button, '
-                         'take the keyboard out and put it back, '
-                         'and press the space key on the test host.'),
+                     _('Turn on charging by pressing the green button, '
+                       'take the keyboard out and put it back, '
+                       'and press the space key on the test host.'),
                      test_ui.SPACE_KEY)
 
     if self.args.check_shift_pair_keys:
@@ -416,9 +412,8 @@ class BluetoothTest(test_ui.TestCaseWithUI):
         self.AddTask(self.FixtureControl, 'STOP_CHARGING')
       else:
         self.AddTask(self.WaitKeyPressed,
-                     i18n_test_ui.MakeI18nLabel(
-                         'Press the green button again to stop charging, '
-                         'and press the space key on the test host.'),
+                     _('Press the green button again to stop charging, '
+                       'and press the space key on the test host.'),
                      test_ui.SPACE_KEY)
 
   def tearDown(self):
@@ -450,8 +445,7 @@ class BluetoothTest(test_ui.TestCaseWithUI):
 
   def CheckFirmwareRevision(self, mac):
     """A task to read firmware revision string."""
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel('Read firmware revision string.'))
+    self.ui.SetState(_('Read firmware revision string.'))
 
     session.console.info('Begin reading firmware revision string via %s...',
                          self.hci_device)
@@ -483,8 +477,7 @@ class BluetoothTest(test_ui.TestCaseWithUI):
     3. battery_level_1 >= expected_battery_level
     """
     self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            'Check if the battery has charged to a higher percentage'))
+        _('Check if the battery has charged to a higher percentage'))
 
     battery_level_1 = state.get_shared_data(READ_BATTERY_STEP_1)
     battery_level_2 = state.get_shared_data(READ_BATTERY_STEP_2)
@@ -508,10 +501,8 @@ class BluetoothTest(test_ui.TestCaseWithUI):
   def ReadBatteryLevel(self, mac, step):
     """Read battery level."""
     msg = {
-        READ_BATTERY_STEP_1:
-            i18n_test_ui.MakeI18nLabel('Read battery level for the 1st time.'),
-        READ_BATTERY_STEP_2:
-            i18n_test_ui.MakeI18nLabel('Read battery level for the 2nd time.')
+        READ_BATTERY_STEP_1: _('Read battery level for the 1st time.'),
+        READ_BATTERY_STEP_2: _('Read battery level for the 2nd time.')
     }[step]
 
     self.ui.SetState(msg)
@@ -583,7 +574,7 @@ class BluetoothTest(test_ui.TestCaseWithUI):
     Args:
        expected_adapter_count: The expected number of bluetooth adapters.
     """
-    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Detect bluetooth adapter'))
+    self.ui.SetState(_('Detect bluetooth adapter'))
     adapters = self.dut.bluetooth.GetAdapters(
         self.args.detect_adapters_retry_times,
         self.args.detect_adapters_interval_secs)
@@ -613,7 +604,7 @@ class BluetoothTest(test_ui.TestCaseWithUI):
         return False
       return device_props['Paired']
 
-    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Unpairing'))
+    self.ui.SetState(_('Unpairing'))
 
     input_count_before_unpair = GetInputCount()
     bluetooth_manager = self.dut.bluetooth
@@ -703,7 +694,7 @@ class BluetoothTest(test_ui.TestCaseWithUI):
     candidate_rssis = {}
 
     for unused_count in xrange(scan_counts):
-      self.ui.SetState(i18n_test_ui.MakeI18nLabel('Scanning...'))
+      self.ui.SetState(_('Scanning...'))
 
       with self.TimedProgressBar(timeout_secs):
         devices = bluetooth_manager.ScanDevices(adapter, timeout_secs)
@@ -790,9 +781,7 @@ class BluetoothTest(test_ui.TestCaseWithUI):
       logging.info('Connected and paired %d device(s)', len(connected_devices))
       return not connected_devices
 
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            'Press shift-p-a-i-r simultaneously on the base.'))
+    self.ui.SetState(_('Press shift-p-a-i-r simultaneously on the base.'))
     disconnected = self.RetryWithProgress(
         'Check disconnection of the paired base', INPUT_MAX_RETRY_TIMES,
         INPUT_RETRY_INTERVAL, _CheckDisconnection)
@@ -835,6 +824,7 @@ class BluetoothTest(test_ui.TestCaseWithUI):
           fail_msg.append('Fixture ID "%s" is not legitimate!\n' % fid)
       else:
         fail_msg.append('Wrong type of RSSI threshold: %s\n' % threshold)
+      return None
 
     fid = session.GetDeviceID()
     average_rssi_lower_threshold = _DeriveRSSIThreshold(
@@ -853,9 +843,7 @@ class BluetoothTest(test_ui.TestCaseWithUI):
     rssis = []
     for i in xrange(1, 1 + scan_counts):
       self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              'Detect RSSI (count {count}/{total})', count=i,
-              total=scan_counts))
+          _('Detect RSSI (count {count}/{total})', count=i, total=scan_counts))
       with self.TimedProgressBar(timeout_secs):
         devices = bluetooth_manager.ScanDevices(adapter,
                                                 timeout_secs=timeout_secs,
@@ -946,12 +934,10 @@ class BluetoothTest(test_ui.TestCaseWithUI):
     def DisplayPasskey(self, passkey):
       logging.info("Displaying passkey %s", passkey)
       self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              'Enter passkey {key} then press enter on the base.', key=passkey))
+          _('Enter passkey {key} then press enter on the base.', key=passkey))
 
     def AuthenticationCancelled(self):
-      self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel('Authentication failed, retrying...'))
+      self.ui.SetState(_('Authentication failed, retrying...'))
 
     need_to_cleanup = True
     try:
@@ -965,8 +951,7 @@ class BluetoothTest(test_ui.TestCaseWithUI):
 
       bt_manager.DisconnectAndUnpairDevice(adapter, target_mac)
 
-      self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel('Pairing to input device now...'))
+      self.ui.SetState(_('Pairing to input device now...'))
       success_create_device = self.RetryWithProgress(
           'create paired device', INPUT_MAX_RETRY_TIMES, INPUT_RETRY_INTERVAL,
           bt_manager.CreatePairedDevice, adapter, target_mac,
@@ -974,8 +959,7 @@ class BluetoothTest(test_ui.TestCaseWithUI):
       if not success_create_device:
         SaveLogAndFail('InputTestTask: Fail to create paired device.')
 
-      self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel('Connecting to input device now...'))
+      self.ui.SetState(_('Connecting to input device now...'))
       success_connect_device = self.RetryWithProgress(
           'connect input device', INPUT_MAX_RETRY_TIMES, INPUT_RETRY_INTERVAL,
           bt_manager.SetDeviceConnected, adapter, target_mac, True)
@@ -992,8 +976,7 @@ class BluetoothTest(test_ui.TestCaseWithUI):
 
       logging.info('InputTestTask: Test the input by operator now')
       self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              'Please test input. Press Escape to fail and Enter to pass'))
+          _('Please test input. Press Escape to fail and Enter to pass'))
       key = self.ui.WaitKeysOnce([test_ui.ENTER_KEY, test_ui.ESCAPE_KEY])
       passed = key == test_ui.ENTER_KEY
       success_to_remove = RemoveInput()

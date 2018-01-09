@@ -47,7 +47,6 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
@@ -107,13 +106,13 @@ class AudioBasicTest(test_ui.TestCaseWithUI):
           self._dut.audio.ApplyAudioConfig(action, card)
 
     self.ui.AppendCSS('test-template { font-size: 2em; }')
-    self.ui.SetInstruction(i18n_test_ui.MakeI18nLabel(self.args.audio_title))
+    self.ui.SetInstruction(_(self.args.audio_title))
 
     self.done_tests = set()
 
   def TestRecord(self):
     logging.info('start record')
-    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Start recording'))
+    self.ui.SetState(_('Start recording'))
 
     dut_record_file_path = self._dut.temp.mktemp(False)
     self._dut.audio.RecordWavFile(dut_record_file_path, self._in_card,
@@ -134,9 +133,8 @@ class AudioBasicTest(test_ui.TestCaseWithUI):
           with self._dut.temp.TempFile() as dut_path:
             self._dut.link.Push(wav_path, dut_path)
             self.ui.SetState(
-                i18n_test_ui.MakeI18nLabel(
-                    'Playback sound (Mic channel {channel})',
-                    channel=channel_idx))
+                _('Playback sound (Mic channel {channel})',
+                  channel=channel_idx))
             self._dut.audio.PlaybackWavFile(dut_path, self._out_card,
                                             self._out_device)
     self._dut.CheckCall(['rm', '-f', dut_record_file_path])
@@ -161,8 +159,7 @@ class AudioBasicTest(test_ui.TestCaseWithUI):
         with self._dut.temp.TempFile() as dut_path:
           self._dut.link.Push(wav_path, dut_path)
           self.ui.SetState(
-              i18n_test_ui.MakeI18nLabel(
-                  'Playback sound to channel {channel}', channel=channel_idx))
+              _('Playback sound to channel {channel}', channel=channel_idx))
           self._dut.audio.PlaybackWavFile(dut_path, self._out_card,
                                           self._out_device)
       os.unlink(number_wav_path)
@@ -171,13 +168,12 @@ class AudioBasicTest(test_ui.TestCaseWithUI):
   def runTest(self):
     while True:
       self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              "Press 'P' to first play a sample for each channel to ensure "
-              'audio output works.<br>'
-              "Press 'R' to record {record_sec} seconds, Playback will "
-              'follow.<br>'
-              'Press space to mark pass.',
-              record_sec=_RECORD_SEC))
+          _("Press 'P' to first play a sample for each channel to ensure "
+            'audio output works.<br>'
+            "Press 'R' to record {record_sec} seconds, Playback will "
+            'follow.<br>'
+            'Press space to mark pass.',
+            record_sec=_RECORD_SEC))
       key_pressed = self.ui.WaitKeysOnce(['P', 'R', test_ui.SPACE_KEY])
       if key_pressed == 'P':
         self.TestPlay()

@@ -30,6 +30,9 @@ class FakeArgs(object):
       self.__dict__[key] = value
 
 
+_MOX_HTML_TYPE = mox.Or(mox.IsA(list), mox.IsA(basestring), mox.IsA(dict))
+
+
 class FactoryEntryUnitTest(unittest.TestCase):
   def setUp(self):
     self.mox = mox.Mox()
@@ -48,7 +51,7 @@ class FactoryEntryUnitTest(unittest.TestCase):
     # for start testing
     state.get_instance().AndReturn(mock_state)
     self.mock_ui.AppendCSS(mox.IsA(str))
-    self.mock_ui.SetTitle(station_entry._TITLE_START)
+    self.mock_ui.SetTitle(_MOX_HTML_TYPE)
 
     self.mox.ReplayAll()
 
@@ -89,7 +92,7 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.mox.StubOutWithMock(self.test, 'SendTestResult')
 
     device_data.ClearAllSerialNumbers()
-    self.mock_ui.SetState(mox.IsA(basestring)).MultipleTimes()
+    self.mock_ui.SetState(_MOX_HTML_TYPE).MultipleTimes()
 
     mock_dut_link.IsLocal().AndReturn(is_local)
     if not is_local:
@@ -124,7 +127,7 @@ class FactoryEntryUnitTest(unittest.TestCase):
     device_data.ClearAllSerialNumbers()
     self.test._dut.info.GetSerialNumber('serial_number')
     self.test._dut.info.GetSerialNumber('mlb_serial_number')
-    self.mock_ui.SetState(mox.IsA(basestring)).MultipleTimes()
+    self.mock_ui.SetState(_MOX_HTML_TYPE).MultipleTimes()
     sync_utils.WaitFor(mox.IsA(type(lambda: None)), timeout_secs,
                        poll_interval=1)
 

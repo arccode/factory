@@ -55,7 +55,6 @@ from cros.factory.test.event_log import Log
 from cros.factory.test import session
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
@@ -98,14 +97,12 @@ class StartTest(test_ui.TestCaseWithUI):
       self.CheckExternalPower()
 
     if self.args.press_to_continue:
-      self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel('Hit SPACE to start testing...'))
+      self.ui.SetState(_('Hit SPACE to start testing...'))
       self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 
   def CheckExternalPower(self):
     logger = log_utils.NoisyLogger(logging.info)
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel('Plug in external power to continue.'))
+    self.ui.SetState(_('Plug in external power to continue.'))
 
     while True:
       ac_present = self.dut.power.CheckACPresent()
@@ -118,19 +115,19 @@ class StartTest(test_ui.TestCaseWithUI):
   def CheckFactoryInstallComplete(self):
     if not os.path.exists(_LSB_FACTORY_PATH):
       session.console.error('%s is missing', _LSB_FACTORY_PATH)
-      self.ui.SetState(
-          i18n_test_ui.MakeI18nLabelWithClass(
-              'Factory install process did not complete. '
-              'Auto-testing stopped.<br><br>'
-              'Please install the factory test image using factory server<br>'
-              'rather than booting from a USB drive.<br>', 'test-error'))
+      self.ui.SetState([
+          '<span class="test-error">',
+          _('Factory install process did not complete. '
+            'Auto-testing stopped.<br><br>'
+            'Please install the factory test image using factory server<br>'
+            'rather than booting from a USB drive.<br>'), '</span>'
+      ])
       # hangs forever.
       self.WaitTaskEnd()
     Log('factory_installed')
 
   def InitializeSharedData(self):
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel('Initialize some shared data...'))
+    self.ui.SetState(_('Initialize some shared data...'))
     for key, value in self.args.init_shared_data.iteritems():
       session.console.debug('set_shared_data[%s] = "%s"', key, value)
       state.set_shared_data(key, value)

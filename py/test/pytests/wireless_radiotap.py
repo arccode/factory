@@ -19,17 +19,18 @@ This test case can be used for Intel WP2 7260 chip.
 """
 
 import collections
-import dbus
 import logging
 import re
 import struct
 import sys
 import time
 
+import dbus
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test import session
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import net_utils
@@ -461,16 +462,14 @@ class WirelessRadiotapTest(test_ui.TestCaseWithUI):
     """
     signal_list = []
     ssid, freq, password = service
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel('Switching to AP {ap}: ', ap=ssid))
+    self.ui.SetState(_('Switching to AP {ap}: ', ap=ssid))
     if not self.ConnectService(ssid, password):
       return []
 
     self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            'Scanning on device {device} frequency {freq}...',
-            device=self.args.device_name,
-            freq=freq))
+        _('Scanning on device {device} frequency {freq}...',
+          device=self.args.device_name,
+          freq=freq))
     with Capture(self.args.device_name, self._phy_name) as capture:
       capture_times = 0
       while capture_times < times:
@@ -480,10 +479,9 @@ class WirelessRadiotapTest(test_ui.TestCaseWithUI):
           signal_list.append(signal_result['signal'])
           capture_times += 1
     self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            'Done scanning on device {device} frequency {freq}...',
-            device=self.args.device_name,
-            freq=freq))
+        _('Done scanning on device {device} frequency {freq}...',
+          device=self.args.device_name,
+          freq=freq))
     self.DisconnectService()
     return signal_list
 
@@ -554,8 +552,7 @@ class WirelessRadiotapTest(test_ui.TestCaseWithUI):
       services: A list of (service_ssid, freq) tuples to scan.
     """
     wireless_services = {}
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel('Checking frequencies...'))
+    self.ui.SetState(_('Checking frequencies...'))
 
     scan_result = IwScan(self.args.device_name)
     set_all_ssids = set(service[0] for service in services)
@@ -570,8 +567,7 @@ class WirelessRadiotapTest(test_ui.TestCaseWithUI):
 
   def runTest(self):
     if self.args.press_space_to_start:
-      self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel('Press space to start scanning.'))
+      self.ui.SetState(_('Press space to start scanning.'))
       self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 
     self.PreCheck(self.args.services)

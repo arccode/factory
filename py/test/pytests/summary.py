@@ -91,7 +91,6 @@ from cros.factory.test.fixture import bft_fixture
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
@@ -157,7 +156,7 @@ class Report(test_ui.TestCaseWithUI):
         state.TestState.ACTIVE: _('active'),
         state.TestState.UNTESTED: _('untested')
     }
-    return i18n_test_ui.MakeI18nLabel(STATUS_LABEL.get(status, status))
+    return STATUS_LABEL.get(status, status)
 
   def runTest(self):
     test_list = self.test_info.ReadTestList()
@@ -177,10 +176,12 @@ class Report(test_ui.TestCaseWithUI):
     statuses = []
     for t in previous_tests:
       test_state = states.get(t.path)
-      table.append('<tr class="test-status-%s"><th>%s</th><td>%s</td></tr>'
-                   % (test_state.status.replace('_', '-'),
-                      i18n_test_ui.MakeI18nLabel(i18n.HTMLEscape(t.label)),
-                      self.MakeStatusLabel(test_state.status)))
+      table.append([
+          '<tr class="test-status-%s"><th>' % test_state.status.replace(
+              '_', '-'),
+          i18n.HTMLEscape(t.label), '</th><td>',
+          self.MakeStatusLabel(test_state.status), '</td></tr>'
+      ])
       statuses.append(test_state.status)
 
     overall_status = state.TestState.OverallStatus(statuses)
@@ -208,30 +209,27 @@ class Report(test_ui.TestCaseWithUI):
       return
 
     html = []
-    prompt_class = 'prompt_message'
 
     if not self.args.disable_input_on_fail or all_pass:
-      html = html + [
-          '<a onclick="onclick:window.test.pass()" href="#">',
-          i18n_test_ui.MakeI18nLabelWithClass(
-              self.args.prompt_message, prompt_class),
-          '</a>'
-      ]
+      html.extend([
+          '<a onclick="onclick:window.test.pass()" href="#"'
+          ' class="prompt_message">',
+          _(self.args.prompt_message), '</a>'
+      ])
     else:
-      html = html + [
-          i18n_test_ui.MakeI18nLabelWithClass(
-              'Unable to proceed, since some previous tests have not passed.',
-              prompt_class)
-      ]
+      html.extend([
+          '<span class="prompt_message">',
+          _('Unable to proceed, since some previous tests have not passed.'),
+          '</span>'
+      ])
 
-    html = html + [
+    html.extend([
         '<br>',
-        i18n_test_ui.MakeI18nLabel(
-            'Test Status for {test}:', test=test.parent.path),
-        '<div class="test-status-%s" style="font-size: 3em">%s</div>' %
-        (overall_status, self.MakeStatusLabel(overall_status)),
-        '<div id="test-status-table-container"><table>'
-    ] + table + ['</table></div>']
+        _('Test Status for {test}:', test=test.parent.path),
+        '<div class="test-status-%s" style="font-size: 3em">' % overall_status,
+        self.MakeStatusLabel(overall_status), '</div>',
+        '<div id="test-status-table-container"><table>', table, '</table></div>'
+    ])
 
 
     if not self.args.disable_input_on_fail:
@@ -241,7 +239,7 @@ class Report(test_ui.TestCaseWithUI):
     elif all_pass:
       self.ui.BindStandardPassKeys()
 
-    self.ui.SetState(''.join(html))
+    self.ui.SetState(html)
     if self.args.accessibility and not all_pass:
       self.ui.RunJS('window.template.classList.add("test-accessibility")')
     logging.info('overall_status=%r', overall_status)

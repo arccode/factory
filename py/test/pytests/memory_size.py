@@ -80,7 +80,7 @@ import re
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
@@ -98,8 +98,7 @@ class MemorySize(test_ui.TestCaseWithUI):
   ]
 
   def runTest(self):
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel('Checking memory info...'))
+    self.ui.SetState(_('Checking memory info...'))
 
     # Get memory info using mosys.
     ret = process_utils.CheckOutput(

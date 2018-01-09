@@ -15,7 +15,7 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.fixture import bft_fixture
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 
@@ -73,16 +73,14 @@ class PlanktonCC2PullTest(test_ui.TestCaseWithUI):
     if self.args.disconnect_manually:
       # Ask operator to manually un-plug USB type-C cable
       self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              'Please remove USB type-C cable in {secs:.1f} seconds',
-              secs=disconnect_half_secs))
+          _('Please remove USB type-C cable in {secs:.1f} seconds',
+            secs=disconnect_half_secs))
 
     else:
       # Use automation disconnection by Plankton-Raiden
       self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              'USB type-C port is disconnected in {secs:.1f} seconds',
-              secs=self.args.disconnect_secs))
+          _('USB type-C port is disconnected in {secs:.1f} seconds',
+            secs=self.args.disconnect_secs))
       self._plankton_fixture.SetFakeDisconnection(self.args.disconnect_secs)
 
     time.sleep(disconnect_half_secs)
@@ -94,9 +92,8 @@ class PlanktonCC2PullTest(test_ui.TestCaseWithUI):
 
     if self.args.disconnect_manually:
       self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              'Please attach USB type-C cable in {secs:.1f} seconds',
-              secs=disconnect_half_secs))
+          _('Please attach USB type-C cable in {secs:.1f} seconds',
+            secs=disconnect_half_secs))
     time.sleep(disconnect_half_secs)
 
     self.assertEqual('CC2', cc_status,

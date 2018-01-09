@@ -72,7 +72,7 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.external import evdev
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
@@ -137,21 +137,20 @@ class TouchpadHoverTest(test_ui.TestCaseWithUI):
 
   def runTest(self):
     if self.args.calibration_trigger:
-      self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel('Calibrating touchpad...'))
+      self.ui.SetState(_('Calibrating touchpad...'))
       with self.WithTimer(self.args.calibration_sleep_secs):
         self._dut.WriteFile(self.args.calibration_trigger, '1')
         time.sleep(self.args.calibration_sleep_secs)
 
     for round_index in xrange(self.args.repeat_times):
       progress = '(%d/%d) ' % (round_index, self.args.repeat_times)
-      self._TestForValue(progress + i18n_test_ui.MakeI18nLabel(
-          'Please put the hover-tool into the holder.'), 1)
-      self._TestForValue(progress + i18n_test_ui.MakeI18nLabel(
-          'Please pull out the hover-tool from the holder.'), 0)
+      self._TestForValue(
+          [progress, _('Please put the hover-tool into the holder.')], 1)
+      self._TestForValue(
+          [progress,
+           _('Please pull out the hover-tool from the holder.')], 0)
 
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel('Checking for false positive...'))
+    self.ui.SetState(_('Checking for false positive...'))
     with self.WithTimer(self.args.false_positive_check_duration):
       fp = self._WaitForValue(1, self.args.false_positive_check_duration)
       self.assertFalse(fp, 'False Positive Detected.')

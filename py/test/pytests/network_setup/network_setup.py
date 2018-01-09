@@ -69,7 +69,7 @@ before retries::
 import os
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.test.utils import connection_manager
 from cros.factory.utils import arg_utils
@@ -86,14 +86,6 @@ _STATE_HTML = """
 <div id='%s'></div>
 """ % (_ID_SUBTITLE_DIV, _ID_MESSAGE_DIV, _ID_INSTRUCTION_DIV)
 
-def _GetSubtitleForInterface(interface):
-  interface = '<b>%s</b>' % interface
-  return i18n_test_ui.MakeI18nLabel(
-      'Setting up interface {interface}', interface=interface)
-
-
-_PRESS_SPACE = i18n_test_ui.MakeI18nLabel('Press space to continue')
-
 
 ErrorCode = connection_manager.ConnectionManagerException.ErrorCode
 
@@ -101,14 +93,12 @@ ErrorCode = connection_manager.ConnectionManagerException.ErrorCode
 def _ErrorCodeToMessage(error_code, interface):
   interface = '<b>%s</b>' % interface
   if error_code == ErrorCode.NO_PHYSICAL_LINK:
-    return i18n_test_ui.MakeI18nLabel(
-        'No physical link on {interface}', interface=interface),
+    return _('No physical link on {interface}', interface=interface),
   if error_code == ErrorCode.INTERFACE_NOT_FOUND:
-    return i18n_test_ui.MakeI18nLabel(
-        'Interface {interface} not found', interface=interface),
+    return _('Interface {interface} not found', interface=interface),
   if error_code == ErrorCode.NO_SELECTED_SERVICE:
-    return i18n_test_ui.MakeI18nLabel(
-        'Interface {interface} not initialized', interface=interface),
+    return _('Interface {interface} not initialized', interface=interface),
+  return _('Unknown Error on {interface}', interface=interface)
 
 
 class NetworkConnectionSetup(test_ui.TestCaseWithUI):
@@ -131,8 +121,10 @@ class NetworkConnectionSetup(test_ui.TestCaseWithUI):
 
     for interface in settings:
       interface_name = settings[interface].pop('interface_name', interface)
-      self.ui.SetHTML(_GetSubtitleForInterface(interface),
-                      id=_ID_SUBTITLE_DIV)
+      self.ui.SetHTML(
+          _('Setting up interface {interface}',
+            interface='<b>%s</b>' % interface),
+          id=_ID_SUBTITLE_DIV)
 
       def _TryOnce(interface=interface, interface_name=interface_name):
         try:
@@ -148,6 +140,7 @@ class NetworkConnectionSetup(test_ui.TestCaseWithUI):
         # Hint operators what might go wrong.
         self.ui.SetHTML(_ErrorCodeToMessage(error_code, interface_name),
                         id=_ID_MESSAGE_DIV)
+        return False
 
       # Try once first, if we success, we don't need to ask operators to do
       # anything.
@@ -159,7 +152,7 @@ class NetworkConnectionSetup(test_ui.TestCaseWithUI):
       if not success:
         # Failed, wait operators to press space when they think cables are
         # connected correctly.
-        self.ui.SetHTML(_PRESS_SPACE, id=_ID_INSTRUCTION_DIV)
+        self.ui.SetHTML(_('Press space to continue'), id=_ID_INSTRUCTION_DIV)
         self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 
         # Polling until success or timeout (operators don't need to press

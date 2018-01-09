@@ -5,10 +5,6 @@
 let active = 'loop_0';
 let display_fa_utility = false;
 
-const setMessage = (msg) => {
-  document.getElementById('message').innerHTML = msg;
-};
-
 const testCommand = (cmd) => {
   if (active) {
     document.getElementById(active).checked = false;
@@ -31,12 +27,11 @@ const toggleFAUtility = () => {
   } else {
     document.getElementById('fa-utility').style.display = 'block';
     display_fa_utility = true;
-    setMessage('');
+    document.getElementById('message').innerHTML = '';
   }
 };
 
 const exports = {
-  setMessage,
   testCommand,
   restore,
   toggleFAUtility

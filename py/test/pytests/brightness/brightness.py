@@ -7,7 +7,6 @@
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 
@@ -26,10 +25,7 @@ class BrightnessTest(test_ui.TestCaseWithUI):
     self.dut = device_utils.CreateDUTInterface()
     self.ui.AppendCSS('test-template { font-size: 2em; }')
     self.ui.BindStandardKeys()
-    self.ui.SetState(i18n_test_ui.MakeI18nLabel(self.args.msg))
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel('Press ENTER to pass, or ESC to fail.'),
-        append=True)
+    self.ui.SetState([self.args.msg, test_ui.PASS_FAIL_KEY_LABEL])
 
   def runTest(self):
     """Starts an infinite loop to change brightness."""

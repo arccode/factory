@@ -56,7 +56,7 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.env import paths
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import server_proxy
 from cros.factory.test import session
 from cros.factory.test import test_ui
@@ -132,7 +132,7 @@ class RFGraphyteTest(test_ui.TestCaseWithUI):
         delete=False)
 
     # Execute Graphyte.
-    self.ui.SetInstruction(i18n_test_ui.MakeI18nLabel('Executing Graphyte'))
+    self.ui.SetInstruction(_('Executing Graphyte'))
     cmd = ['python', '-m', 'graphyte.main',
            '--config-file', self.config_file_path,
            '--result-file', self.result_file_path,
@@ -240,8 +240,7 @@ class RFGraphyteTest(test_ui.TestCaseWithUI):
     if not self.args.enable_factory_server:
       return
 
-    self.ui.SetInstruction(
-        i18n_test_ui.MakeI18nLabel('Fetching config files from factory server'))
+    self.ui.SetInstruction(_('Fetching config files from factory server'))
     config_file_paths = self._server_proxy.ListParameters(
         os.path.join(self.args.server_parameter_dir, '*'))
     for file_path in config_file_paths:

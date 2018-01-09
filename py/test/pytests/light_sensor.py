@@ -94,7 +94,6 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import _
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
@@ -267,18 +266,19 @@ class LightSensorTest(test_ui.TestCaseWithUI):
     self._iter_req_per_subtest = self.args.check_per_subtest
 
     for test_idx, name in enumerate(self._subtest_list):
-      instruction = i18n_test_ui.MakeI18nLabel(self._subtest_instruction[name])
+      instruction = self._subtest_instruction[name]
       desc = '%s (%s)' % (
           name, self.GetConfigDescription(self._subtest_cfg[name]))
-      html = (
-          u'<div class="task">'
-          u'<div id="title{idx}">{instruction}</div>'
-          u'<div class="desc-row">'
-          u'<div id="desc{idx}" class="desc">{desc}</div>'
-          u'<div id="result{idx}" class="result">UNTESTED</div>'
-          u'</div>'
-          u'</div>').format(
-              idx=test_idx, instruction=instruction, desc=test_ui.Escape(desc))
+      html = [
+          '<div class="task">',
+          '<div id="title{idx}">'.format(idx=test_idx), instruction, '</div>'
+          '<div class="desc-row">',
+          '<div id="desc{idx}" class="desc">'.format(idx=test_idx),
+          test_ui.Escape(desc), '</div>'
+          '<div id="result{idx}" class="result">UNTESTED</div>'.format(
+              idx=test_idx),
+          '</div>', '</div>'
+      ]
       self.ui.SetHTML(html, id='tasks', append=True)
 
   def GetConfigDescription(self, cfg):

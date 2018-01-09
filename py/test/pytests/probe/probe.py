@@ -100,7 +100,7 @@ import os
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import session
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
@@ -193,9 +193,10 @@ class ProbeTest(test_ui.TestCaseWithUI):
 
     if self.args.show_ui is True or (self.args.show_ui is None and
                                      not all_passed):
-      html = table_html.GenerateHTML() + i18n_test_ui.MakeI18nLabelWithClass(
-          'Press SPACE to continue', 'prompt')
-      self.ui.SetState(html)
+      self.ui.SetState([
+          table_html.GenerateHTML(), '<span class="prompt">',
+          _('Press SPACE to continue'), '</span>'
+      ])
       self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 
     if not all_passed:

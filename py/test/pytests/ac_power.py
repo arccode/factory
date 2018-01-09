@@ -11,7 +11,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import session
 from cros.factory.test.fixture import bft_fixture
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
@@ -62,12 +62,11 @@ class ACPowerTest(test_ui.TestCaseWithUI):
     self._power = device_utils.CreateDUTInterface().power
 
     if not self.args.online:
-      instruction = i18n_test_ui.MakeI18nLabel('Unplug the charger.')
+      instruction = _('Unplug the charger.')
     elif self.args.power_type:
-      instruction = i18n_test_ui.MakeI18nLabel(
-          'Plug in the charger ({type})', type=self.args.power_type)
+      instruction = _('Plug in the charger ({type})', type=self.args.power_type)
     else:
-      instruction = i18n_test_ui.MakeI18nLabel('Plug in the charger')
+      instruction = _('Plug in the charger')
 
     self.ui.SetInstruction(instruction)
 
@@ -92,10 +91,11 @@ class ACPowerTest(test_ui.TestCaseWithUI):
 
   def UpdateACPower(self, watt, min_watt, max_watt):
     self.ui.SetHTML(
-        i18n_test_ui.MakeI18nLabel(
-            'Detected power {watt} W, '
-            'required power range ({min_watt} W, {max_watt} W)',
-            watt=watt, min_watt=min_watt, max_watt=max_watt),
+        _('Detected power {watt} W, '
+          'required power range ({min_watt} W, {max_watt} W)',
+          watt=watt,
+          min_watt=min_watt,
+          max_watt=max_watt),
         id=_AC_POWER_ID)
 
   def UpdateACStatus(self, status):
@@ -103,9 +103,8 @@ class ACPowerTest(test_ui.TestCaseWithUI):
 
   def UpdateProbeTimes(self, num_probes):
     self.ui.SetHTML(
-        i18n_test_ui.MakeI18nLabel(
-            'Probed {times} / {total}',
-            times=num_probes, total=self.args.retries),
+        _('Probed {times} / {total}', times=num_probes,
+          total=self.args.retries),
         id=_PROBE_TIMES_ID)
 
   def CheckCondition(self):
@@ -122,18 +121,15 @@ class ACPowerTest(test_ui.TestCaseWithUI):
 
     if ac_present != self.args.online:
       if not ac_present:
-        self.UpdateACStatus(i18n_test_ui.MakeI18nLabel('No AC adapter'))
+        self.UpdateACStatus(_('No AC adapter'))
       return False
 
     if self.args.power_type and self.args.power_type != current_type:
       if self._skip_warning_remains > 0:
-        self.UpdateACStatus(
-            i18n_test_ui.MakeI18nLabel('Identifying AC adapter...'))
+        self.UpdateACStatus(_('Identifying AC adapter...'))
         self._skip_warning_remains -= 1
       elif self._last_type != current_type:
-        self.UpdateACStatus(
-            i18n_test_ui.MakeI18nLabel(
-                'AC adapter type: {type}', type=current_type))
+        self.UpdateACStatus(_('AC adapter type: {type}', type=current_type))
         session.console.warning(
             'Expecting %s but see %s', self.args.power_type, current_type)
         self._last_type = current_type

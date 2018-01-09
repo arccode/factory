@@ -68,14 +68,9 @@ To write a calibration data value to RO VPD::
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
-
-
-_MSG_WRITING_VPD = lambda vpd_section: i18n_test_ui.MakeI18nLabel(
-    'Writing device data to {vpd_section} VPD...',
-    vpd_section=vpd_section.upper())
 
 
 class WriteDeviceDataToVPD(test_ui.TestCaseWithUI):
@@ -123,7 +118,9 @@ class WriteDeviceDataToVPD(test_ui.TestCaseWithUI):
       self.FailTask('Missing device data keys: %r' % sorted(missing_keys))
 
     for section, entries in data.iteritems():
-      self.ui.SetState(_MSG_WRITING_VPD(section))
+      self.ui.SetState(
+          _('Writing device data to {vpd_section} VPD...',
+            vpd_section=section.upper()))
       if not entries:
         continue
       # Normalize boolean and integer types to strings.

@@ -71,7 +71,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.device.links import adb
 from cros.factory.test.fixture import bft_fixture
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import session
 from cros.factory.test import test_ui
 from cros.factory.test.utils import stress_manager
@@ -168,8 +168,7 @@ class PlanktonChargeBFTTest(test_ui.TestCaseWithUI):
     self._adb_remote_test = isinstance(self._dut.link, adb.ADBLink)
     self._remote_test = not self._dut.link.IsLocal()
     if self._adb_remote_test:
-      self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel('Waiting for ADB device connection...'))
+      self.ui.SetState(_('Waiting for ADB device connection...'))
       self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=True)
 
   def tearDown(self):
@@ -284,9 +283,7 @@ class PlanktonChargeBFTTest(test_ui.TestCaseWithUI):
       return
     current_min, current_max = self.args.protect_ina_current_range
 
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            'Checking Plankton INA current for protection...'))
+    self.ui.SetState(_('Checking Plankton INA current for protection...'))
     self._bft_fixture.SetDeviceEngaged('CHARGE_5V', engage=True)
     time.sleep(self.args.wait_after_engage_secs)
 
@@ -330,8 +327,7 @@ class PlanktonChargeBFTTest(test_ui.TestCaseWithUI):
     logging.info('Testing %s...', command_device)
 
     self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            'Testing battery {voltage}V charging...', voltage=testing_volt))
+        _('Testing battery {voltage}V charging...', voltage=testing_volt))
 
     # Plankton-Raiden board setting: engage
     self._bft_fixture.SetDeviceEngaged(command_device, engage=True)
@@ -376,8 +372,7 @@ class PlanktonChargeBFTTest(test_ui.TestCaseWithUI):
       return
 
     logging.info('Testing discharge...')
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel('Testing battery discharging...'))
+    self.ui.SetState(_('Testing battery discharging...'))
     self._bft_fixture.SetDeviceEngaged('CHARGE_5V', engage=False)
     time.sleep(self.args.wait_after_engage_secs)
 
@@ -388,9 +383,9 @@ class PlanktonChargeBFTTest(test_ui.TestCaseWithUI):
       return
 
     if self._remote_test:
-      (_, sampled_ina_current, sampled_ina_voltage) = (
-          self.SampleCurrentAndVoltage(self.args.discharge_duration_secs,
-                                       charging=False))
+      (unused_sampled_battery_current, sampled_ina_current,
+       sampled_ina_voltage) = (self.SampleCurrentAndVoltage(
+           self.args.discharge_duration_secs, charging=False))
     else:
       # Discharge under high system load.
       with stress_manager.StressManager(self._dut).Run(

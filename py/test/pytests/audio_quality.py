@@ -70,7 +70,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.goofy import goofy
 from cros.factory.test.env import paths
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import server_proxy
 from cros.factory.test import session
 from cros.factory.test import state
@@ -96,29 +96,22 @@ _REMOVE_ETHERNET_TIMEOUT_SECS = 30  # Timeout for inserting dongle.
 _FIXTURE_PARAMETERS = ['audio/audio_md5', 'audio/audio.zip']
 
 # Label strings.
-_LABEL_SPACE_TO_START = i18n_test_ui.MakeI18nLabel(
-    "Press 'Space' to start test")
-_LABEL_CONNECTED = i18n_test_ui.MakeI18nLabel('Connected')
-_LABEL_WAITING = i18n_test_ui.MakeI18nLabel('Waiting for command')
-_LABEL_AUDIOLOOP = i18n_test_ui.MakeI18nLabel('Audio looping')
-_LABEL_SPEAKER_MUTE_OFF = i18n_test_ui.MakeI18nLabel('Speaker on')
-_LABEL_DMIC_ON = i18n_test_ui.MakeI18nLabel('LCD Dmic on')
-_LABEL_MLBDMIC_ON = i18n_test_ui.MakeI18nLabel('MLB Dmic on')
-_LABEL_PLAYTONE_LEFT = i18n_test_ui.MakeI18nLabel(
-    'Playing tone to left channel')
-_LABEL_PLAYTONE_RIGHT = i18n_test_ui.MakeI18nLabel(
-    'Playing tone to right channel')
-_LABEL_WAITING_IP = i18n_test_ui.MakeI18nLabel('Waiting for IP address')
-_LABEL_CONNECT_SHOPFLOOR = i18n_test_ui.MakeI18nLabel(
-    'Connecting to ShopFloor...')
-_LABEL_DOWNLOADING_PARAMETERS = i18n_test_ui.MakeI18nLabel(
-    'Downloading parameters')
-_LABEL_REMOVE_ETHERNET = i18n_test_ui.MakeI18nLabel(
-    'Remove Ethernet connectivity')
-_LABEL_WAITING_ETHERNET = i18n_test_ui.MakeI18nLabel(
+_LABEL_SPACE_TO_START = _("Press 'Space' to start test")
+_LABEL_CONNECTED = _('Connected')
+_LABEL_WAITING = _('Waiting for command')
+_LABEL_AUDIOLOOP = _('Audio looping')
+_LABEL_SPEAKER_MUTE_OFF = _('Speaker on')
+_LABEL_DMIC_ON = _('LCD Dmic on')
+_LABEL_MLBDMIC_ON = _('MLB Dmic on')
+_LABEL_PLAYTONE_LEFT = _('Playing tone to left channel')
+_LABEL_PLAYTONE_RIGHT = _('Playing tone to right channel')
+_LABEL_WAITING_IP = _('Waiting for IP address')
+_LABEL_CONNECT_SHOPFLOOR = _('Connecting to ShopFloor...')
+_LABEL_DOWNLOADING_PARAMETERS = _('Downloading parameters')
+_LABEL_REMOVE_ETHERNET = _('Remove Ethernet connectivity')
+_LABEL_WAITING_ETHERNET = _(
     'Waiting for Ethernet connectivity to audio fixture')
-_LABEL_READY = i18n_test_ui.MakeI18nLabel('Ready for connection')
-_LABEL_FAIL_LOGS = 'Test fail, find more detail in log.'
+_LABEL_READY = _('Ready for connection')
 
 # Regular expression to match external commands.
 _LOOP_0_RE = re.compile('(?i)loop_0')
@@ -264,6 +257,9 @@ class AudioQualityTest(test_ui.TestCaseWithUI):
   def tearDown(self):
     self._dut.audio.RestoreMixerControls()
     net_utils.UnsetAliasEthernetIp(0, self._eth)
+
+  def SetMessage(self, message):
+    self.ui.SetHTML(message, id='message')
 
   def _HandleCommands(self, conn, command_list):
     """Handle commands"""
@@ -616,12 +612,12 @@ class AudioQualityTest(test_ui.TestCaseWithUI):
   def HandleLoopDefault(self, *args):
     """Restore amixer configuration to default."""
     self.RestoreConfiguration()
-    self.ui.CallJSFunction('setMessage', _LABEL_WAITING)
+    self.SetMessage(_LABEL_WAITING)
     self.SendResponse(None, args)
 
   def HandleLoop(self):
     """Starts the internal audio loopback."""
-    self.ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP)
+    self.SetMessage(_LABEL_AUDIOLOOP)
 
     if self._loop_type == LoopType.sox:
       cmdargs = [audio_utils.SOX_PATH, '-t', 'alsa',
@@ -663,14 +659,14 @@ class AudioQualityTest(test_ui.TestCaseWithUI):
       self.HandlePlaybackWavFile()
     else:
       self.HandleLoop()
-    self.ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP)
+    self.SetMessage(_LABEL_AUDIOLOOP)
     self.SendResponse(None, args)
 
   def HandleLoopFromDmicToJack(self, *args):
     """LCD mic loop to headphone."""
     session.console.info('Audio Loop DMIC->Headphone')
     self.RestoreConfiguration()
-    self.ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_DMIC_ON)
+    self.SetMessage([_LABEL_AUDIOLOOP, _LABEL_DMIC_ON])
     if not self._dut.audio.ApplyAudioConfig(_DMIC_JACK_SCRIPT, 0, True):
       self._dut.audio.EnableHeadphone(self._out_card)
       self._dut.audio.EnableDmic(self._in_card)
@@ -681,7 +677,7 @@ class AudioQualityTest(test_ui.TestCaseWithUI):
     """LCD mic loop to headphone."""
     session.console.info('Audio Loop DMIC2->Headphone')
     self.RestoreConfiguration()
-    self.ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_DMIC_ON)
+    self.SetMessage([_LABEL_AUDIOLOOP, _LABEL_DMIC_ON])
     if not self._dut.audio.ApplyAudioConfig(_DMIC2_JACK_SCRIPT, 0, True):
       self._dut.audio.EnableDmic2(self._in_card)
       self._dut.audio.EnableHeadphone(self._out_card)
@@ -692,8 +688,7 @@ class AudioQualityTest(test_ui.TestCaseWithUI):
     """External mic loop to speaker."""
     session.console.info('Audio Loop Mic Jack->Speaker')
     self.RestoreConfiguration()
-    self.ui.CallJSFunction('setMessage',
-                           _LABEL_AUDIOLOOP + _LABEL_SPEAKER_MUTE_OFF)
+    self.SetMessage([_LABEL_AUDIOLOOP, _LABEL_SPEAKER_MUTE_OFF])
     if not self._dut.audio.ApplyAudioConfig(_JACK_SPEAKER_SCRIPT, 0, True):
       self._dut.audio.EnableExtmic(self._in_card)
       self._dut.audio.EnableSpeaker(self._out_card)
@@ -709,7 +704,7 @@ class AudioQualityTest(test_ui.TestCaseWithUI):
     """Keyboard mic loop to headphone."""
     session.console.info('Audio Loop MLB DMIC->Headphone')
     self.RestoreConfiguration()
-    self.ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_MLBDMIC_ON)
+    self.SetMessage([_LABEL_AUDIOLOOP, _LABEL_MLBDMIC_ON])
     if not self._dut.audio.ApplyAudioConfig(_KDMIC_JACK_SCRIPT, 0, True):
       self._dut.audio.EnableMLBDmic(self._in_card)
       self._dut.audio.EnableHeadphone(self._out_card)
@@ -719,7 +714,7 @@ class AudioQualityTest(test_ui.TestCaseWithUI):
   def HandleXtalkLeft(self, *args):
     """Cross talk left."""
     self.RestoreConfiguration()
-    self.ui.CallJSFunction('setMessage', _LABEL_PLAYTONE_LEFT)
+    self.SetMessage(_LABEL_PLAYTONE_LEFT)
     self._dut.audio.MuteLeftHeadphone(self._out_card)
     cmdargs = audio_utils.GetPlaySineArgs(1, self._alsa_output_device)
     self._tone_process = process_utils.Spawn(cmdargs)
@@ -728,7 +723,7 @@ class AudioQualityTest(test_ui.TestCaseWithUI):
   def HandleXtalkRight(self, *args):
     """Cross talk right."""
     self.RestoreConfiguration()
-    self.ui.CallJSFunction('setMessage', _LABEL_PLAYTONE_RIGHT)
+    self.SetMessage(_LABEL_PLAYTONE_RIGHT)
     self._dut.audio.MuteRightHeadphone(self._out_card)
     cmdargs = audio_utils.GetPlaySineArgs(0, self._alsa_output_device)
     self._tone_process = process_utils.Spawn(cmdargs)
@@ -759,7 +754,7 @@ class AudioQualityTest(test_ui.TestCaseWithUI):
     """
     fd = sock.fileno()
     while True:
-      _rl, _, _ = select.select([fd], [], [])
+      _rl, unused_wl, unused_xl = select.select([fd], [], [])
       if fd in _rl:
         conn = sock.accept()[0]
         self.HandleConnection(conn)
@@ -775,7 +770,7 @@ class AudioQualityTest(test_ui.TestCaseWithUI):
     logging.info('Get event %s', event)
     cmd = event.data.get('cmd', '')
     if cmd == 'reset':
-      self.ui.CallJSFunction('setMessage', _LABEL_SPACE_TO_START)
+      self.SetMessage(_LABEL_SPACE_TO_START)
     for key, handler in self._handlers.iteritems():
       if key.match(cmd):
         handler()
@@ -792,12 +787,12 @@ class AudioQualityTest(test_ui.TestCaseWithUI):
     latest parameter and apply it.
     """
     session.console.info('Start downloading parameters...')
-    self.ui.CallJSFunction('setMessage', _LABEL_CONNECT_SHOPFLOOR)
+    self.SetMessage(_LABEL_CONNECT_SHOPFLOOR)
     proxy = server_proxy.GetServerProxy()
     logging.info('Syncing time with factory server...')
     time_utils.SyncTimeWithFactoryServer()
 
-    self.ui.CallJSFunction('setMessage', _LABEL_DOWNLOADING_PARAMETERS)
+    self.SetMessage(_LABEL_DOWNLOADING_PARAMETERS)
     download_list = []
     for glob_expression in self._parameters:
       logging.info('Listing %s', glob_expression)
@@ -833,7 +828,7 @@ class AudioQualityTest(test_ui.TestCaseWithUI):
     self._listen_thread = threading.Thread(target=self.ListenForever,
                                            args=(sock,))
     self._listen_thread.start()
-    self.ui.CallJSFunction('setMessage', _LABEL_READY)
+    self.SetMessage(_LABEL_READY)
 
     while True:
       if self._test_complete:
@@ -841,7 +836,7 @@ class AudioQualityTest(test_ui.TestCaseWithUI):
       time.sleep(_CHECK_FIXTURE_COMPLETE_SECS)
 
   def runTest(self):
-    self.ui.CallJSFunction('setMessage', _LABEL_SPACE_TO_START)
+    self.SetMessage(_LABEL_SPACE_TO_START)
     self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
     self.ui.HideElement('msg-utility')
     self.ui.HideElement('fa-utility')
@@ -853,4 +848,4 @@ class AudioQualityTest(test_ui.TestCaseWithUI):
         session.console.info('Test failed. Force to flush event logs...')
         goofy_instance = state.get_instance()
         goofy_instance.FlushEventLogs()
-      self.FailTask(_LABEL_FAIL_LOGS)
+      self.FailTask('Test fail, find more detail in log.')

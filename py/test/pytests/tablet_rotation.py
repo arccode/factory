@@ -119,7 +119,7 @@ import random
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
@@ -178,9 +178,8 @@ class TabletRotationTest(test_ui.TestCaseWithUI):
 
   def _PromptAndWaitForRotation(self, degrees_target):
     self.ui.SetInstruction(
-        i18n_test_ui.MakeI18nLabel(
-            'Rotate the tablet to correctly align the picture, holding it at '
-            'an upright 90-degree angle.'))
+        _('Rotate the tablet to correctly align the picture, holding it at '
+          'an upright 90-degree angle.'))
 
     degrees_previous = None
     while True:

@@ -66,7 +66,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import session
 from cros.factory.test.fixture import utils as fixture_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import server_proxy
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
@@ -139,7 +139,7 @@ class RobotMovement(test_ui.TestCaseWithUI):
 
     Intializes robot and move it to the LOAD / UNLOAD position.
     """
-    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Initializing Robot...'))
+    self.ui.SetState(_('Initializing Robot...'))
     session.console.info('Intializing robot.')
     self._robot.Connect()
     self._robot.SetMotor(True)
@@ -147,21 +147,20 @@ class RobotMovement(test_ui.TestCaseWithUI):
   def LoadDevice(self):
     """Ask operator to load DUT."""
     self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            'Please load DUT onto the robot, connect all cables, '
-            'and press <b>SPACE</b> to continue.'))
+        _('Please load DUT onto the robot, connect all cables, '
+          'and press <b>SPACE</b> to continue.'))
     self._robot.LoadDevice(False)
 
     session.console.info('Wait for operators to press SPACE.')
     self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
     session.console.info('SPACE pressed by operator.')
 
-    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Prepare for movement.'))
+    self.ui.SetState(_('Prepare for movement.'))
     self._robot.LoadDevice(True)
 
   def StartMoving(self):
     """Starts movement process."""
-    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Moving to start position...'))
+    self.ui.SetState(_('Moving to start position...'))
 
     session.console.info('Start to move.')
     self._robot.SetLED(True)
@@ -176,8 +175,7 @@ class RobotMovement(test_ui.TestCaseWithUI):
 
     self._algorithm.OnStopMoving(self._dut)
 
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel('Moving to LOAD / UNLOAD position...'))
+    self.ui.SetState(_('Moving to LOAD / UNLOAD position...'))
     self._robot.SetLED(False)
     # Shutdown and disconnect robot here to avoid robot overload during
     # computing.
@@ -187,13 +185,13 @@ class RobotMovement(test_ui.TestCaseWithUI):
 
   def Compute(self):
     """Starts computing after the movement."""
-    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Computing...'))
+    self.ui.SetState(_('Computing...'))
     session.console.info('Compute for %s', self._dut.info.serial_number)
     self._algorithm.Compute(self._dut)
 
   def PushResult(self):
     """Pushes the result to the DUT."""
-    self.ui.SetState(i18n_test_ui.MakeI18nLabel('Pushing the result...'))
+    self.ui.SetState(_('Pushing the result...'))
     session.console.info('Pushing the result.')
 
     self._algorithm.PullResult(self._dut)

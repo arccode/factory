@@ -26,7 +26,6 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
@@ -62,9 +61,7 @@ class DisplayImageTest(test_ui.TestCaseWithUI):
     """Initializes frontend presentation and properties."""
     self._dut = device_utils.CreateDUTInterface()
 
-    self.ui.SetHTML(
-        i18n_test_ui.MakeI18nLabel(self.args.title),
-        id='display-title')
+    self.ui.SetHTML(self.args.title, id='display-title')
     self._dut_temp_dir = self._dut.temp.mktemp(True, '', 'display')
     self._image_index = -1
     self._uploaded_index = -1
@@ -128,16 +125,14 @@ class DisplayImageTest(test_ui.TestCaseWithUI):
       dut_path = self._dut_image_paths[i]
       name = os.path.basename(path)
       self.ui.SetHTML(
-          i18n_test_ui.MakeI18nLabel(
-              '({index}/{total}) Uploading images {name}',
-              index=i + 1,
-              total=len(image_paths),
-              name=name),
+          _('({index}/{total}) Uploading images {name}',
+            index=i + 1,
+            total=len(image_paths),
+            name=name),
           id='upload')
       self._dut.link.Push(path, dut_path)
       self._uploaded_index = i
-    self.ui.SetHTML(
-        i18n_test_ui.MakeI18nLabel('All images uploaded.'), id='upload')
+    self.ui.SetHTML(_('All images uploaded.'), id='upload')
 
   def OnSpacePressed(self):
     """Display next image."""

@@ -85,7 +85,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import session
 from cros.factory.test.fixture import bft_fixture
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
@@ -157,8 +157,7 @@ class PlanktonCCFlipCheck(test_ui.TestCaseWithUI):
       'CC1' or 'CC2', or _CC_UNCONNECT if it doesn't detect SRC_READY.
     """
     if not self._dut.IsReady():
-      self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel('Wait DUT to reconnect'))
+      self.ui.SetState(_('Wait DUT to reconnect'))
       session.console.info(
           'Lose connection to DUT, waiting for DUT to reconnect')
       sync_utils.WaitFor(lambda: self._dut.Call(['true']) == 0,
@@ -217,13 +216,9 @@ class PlanktonCCFlipCheck(test_ui.TestCaseWithUI):
                 (self.args.original_enabled_cc, self._polarity))
 
     if self.args.ask_flip_operation:
-      self.ui.SetState(
-          i18n_test_ui.MakeI18nLabel(
-              'Flip USB type-C cable and plug in again...'))
+      self.ui.SetState(_('Flip USB type-C cable and plug in again...'))
       if self.args.timeout_secs == 0:
-        self.ui.SetState(
-            i18n_test_ui.MakeI18nLabel('And press Enter key to continue...'),
-            append=True)
+        self.ui.SetState(_('And press Enter key to continue...'), append=True)
         self.ui.WaitKeysOnce(test_ui.ENTER_KEY)
         polarity = self.GetCCPolarity()
         if polarity == self._polarity or polarity == _CC_UNCONNECT:

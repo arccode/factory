@@ -24,7 +24,7 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test import session
-from cros.factory.test.i18n import test_ui as i18n_test_ui
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
@@ -279,17 +279,15 @@ class WirelessTest(test_ui.TestCaseWithUI):
     """
     logging.info('Start scanning on %s freq %d.', self.args.device_name, freq)
     self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            'Scanning on device {device} frequency {freq}...',
-            device=self.args.device_name,
-            freq=freq))
+        _('Scanning on device {device} frequency {freq}...',
+          device=self.args.device_name,
+          freq=freq))
 
     scan_output = IwScan(self.args.device_name, freq)
     self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            'Done scanning on device {device} frequency {freq}...',
-            device=self.args.device_name,
-            freq=freq))
+        _('Done scanning on device {device} frequency {freq}...',
+          device=self.args.device_name,
+          freq=freq))
     logging.info('Scan finished.')
     return scan_output
 
@@ -430,9 +428,7 @@ class WirelessTest(test_ui.TestCaseWithUI):
       antenna: The antenna config to scan.
     """
     session.console.info('Testing antenna %s.', antenna)
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            'Switching to antenna {antenna}: ', antenna=antenna))
+    self.ui.SetState(_('Switching to antenna {antenna}: ', antenna=antenna))
     self.SwitchAntenna(antenna)
     self._antenna_service_strength[antenna] = self.ScanAndAverageSignals(
         services, times=self.args.scan_count)
@@ -470,8 +466,7 @@ class WirelessTest(test_ui.TestCaseWithUI):
 
   def runTest(self):
     # Prompts a message to tell operator to press space key when ready.
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel('Press space to start scanning.'))
+    self.ui.SetState(_('Press space to start scanning.'))
     self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 
     self.SwitchAntenna('all')

@@ -12,7 +12,6 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
@@ -40,7 +39,7 @@ class CompassTest(test_ui.TestCaseWithUI):
 
   def runTest(self):
     for direction_label, direction in _TEST_ITEMS:
-      self.ui.SetInstruction(i18n_test_ui.MakeI18nLabel(
+      self.ui.SetInstruction(_(
           'Put the DUT towards {direction}', direction=direction_label))
       sync_utils.PollForCondition(
           poll_method=type_utils.BindFunction(self._CheckDirection, direction),

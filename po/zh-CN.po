@@ -1064,12 +1064,12 @@ msgid "Checking angle..."
 msgstr "正在确认角度……"
 
 #: ../py/test/pytests/audio.py
-msgid " (Left Channel)"
-msgstr "(左声道)"
+msgid "Left Channel"
+msgstr "左声道"
 
 #: ../py/test/pytests/audio.py
-msgid " (Right Channel)"
-msgstr "(右声道)"
+msgid "Right Channel"
+msgstr "右声道"
 
 #: ../py/test/pytests/audio.py
 msgid "Please wait for the {device} playback to finish."
@@ -1413,10 +1413,6 @@ msgstr "连接到蓝牙输入设备..."
 msgid "Please test input. Press Escape to fail and Enter to pass"
 msgstr "请测试输入, 如果失败, 请按Esc键，如果成功，请按Enter键"
 
-#: ../py/test/pytests/brightness/brightness.py
-msgid "Press ENTER to pass, or ESC to fail."
-msgstr "测试正常请按 ENTER ，不正常请按 ESC"
-
 #: ../py/test/pytests/brightness/lcd_backlight.py
 msgid "Please check if backlight brightness is changing from dark to bright."
 msgstr "请检查萤幕亮度是否由暗变亮"
@@ -1746,12 +1742,16 @@ msgid "Disconnect external display: {display}"
 msgstr "移除外接显示屏: {display}"
 
 #: ../py/test/pytests/fan_speed.py
-msgid "Spin up fan speed: {observed_rpm} -> {target_rpm} RPM."
-msgstr "风扇加速: {observed_rpm} -> {target_rpm} RPM."
+msgid "{fan_spin_direction}: {observed_rpm} -> {target_rpm} RPM."
+msgstr "{fan_spin_direction}: {observed_rpm} -> {target_rpm} RPM."
 
 #: ../py/test/pytests/fan_speed.py
-msgid "Spin down fan speed: {observed_rpm} -> {target_rpm} RPM."
-msgstr "风扇减速: {observed_rpm} -> {target_rpm} RPM."
+msgid "Spin up fan"
+msgstr "风扇加速"
+
+#: ../py/test/pytests/fan_speed.py
+msgid "Spin down fan"
+msgstr "风扇减速"
 
 #: ../py/test/pytests/fan_speed_static/fan_speed.html
 msgid "Fan speed (RPM):"
@@ -2027,14 +2027,6 @@ msgid "Please confirm following values"
 msgstr "请确认以下结果"
 
 #: ../py/test/pytests/network_setup/network_setup.py
-msgid "Setting up interface {interface}"
-msgstr "正在设定网络介面 {interface}"
-
-#: ../py/test/pytests/network_setup/network_setup.py
-msgid "Press space to continue"
-msgstr "请按空白键继续"
-
-#: ../py/test/pytests/network_setup/network_setup.py
 msgid "No physical link on {interface}"
 msgstr "{interface} 没有连接网络线"
 
@@ -2045,6 +2037,18 @@ msgstr "找不到网络介面 {interface}"
 #: ../py/test/pytests/network_setup/network_setup.py
 msgid "Interface {interface} not initialized"
 msgstr "网络介面 {interface} 未成功初始化"
+
+#: ../py/test/pytests/network_setup/network_setup.py
+msgid "Unknown Error on {interface}"
+msgstr "网络介面 {interface} 发生未知错误"
+
+#: ../py/test/pytests/network_setup/network_setup.py
+msgid "Setting up interface {interface}"
+msgstr "正在设定网络介面 {interface}"
+
+#: ../py/test/pytests/network_setup/network_setup.py
+msgid "Press space to continue"
+msgstr "请按空白键继续"
 
 #: ../py/test/pytests/plankton_cc2_pull_test.py
 msgid "Please remove USB type-C cable in {secs:.1f} seconds"
@@ -2244,6 +2248,14 @@ msgstr "请扫描{label}后按下 ENTER。"
 msgid "Retry"
 msgstr "重试"
 
+#: ../py/test/pytests/shopfloor_service.py
+msgid "Invoking shopfloor service"
+msgstr "执行 Shopfloor 服务"
+
+#: ../py/test/pytests/shopfloor_service.py
+msgid "Shopfloor exception:"
+msgstr "Shopfloor 错误:"
+
 #: ../py/test/pytests/shutdown.py
 msgid "reboot"
 msgstr "重新启动"
@@ -2436,8 +2448,8 @@ msgid "Trying to check server protocol..."
 msgstr "正在检查工厂伺服器..."
 
 #: ../py/test/pytests/sync_factory_server.py
-msgid "Server URL: "
-msgstr "伺服器网址: "
+msgid "Server URL: {server_url}"
+msgstr "伺服器网址: {server_url}"
 
 #: ../py/test/pytests/sync_factory_server.py
 msgid "Flush Test Log: Progress = <br>{progress}"

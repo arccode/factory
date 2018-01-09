@@ -77,7 +77,6 @@ from cros.factory.device import device_utils
 from cros.factory.external import evdev
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import _
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test.pytests import audio
 from cros.factory.test import state
 from cros.factory.test import test_ui
@@ -161,7 +160,7 @@ class ExtDisplayTest(test_ui.TestCaseWithUI):
         self.AddTask(self.CheckVideo, args)
         if args.audio_card:
           self.AddTask(self.SetupAudio, args)
-          audio_label = i18n_test_ui.MakeI18nLabel(
+          audio_label = _(
               '{display_label} Audio', display_label=args.display_label)
           self.AddTask(
               audio.TestAudioDigitPlayback, self.ui, self._dut, audio_label,
@@ -223,12 +222,11 @@ class ExtDisplayTest(test_ui.TestCaseWithUI):
 
   def CheckVideoManual(self, args):
     pass_digit = random.randrange(10)
-    self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            'Do you see video on {display}?', display=args.display_label) +
-        i18n_test_ui.MakeI18nLabel(
-            'Press {key} to pass the test.',
-            key=('<span id="pass_key">%s</span>' % pass_digit)))
+    self.ui.SetState([
+        _('Do you see video on {display}?', display=args.display_label),
+        _('Press {key} to pass the test.',
+          key=('<span id="pass_key">%s</span>' % pass_digit))
+    ])
 
     key = int(self.ui.WaitKeysOnce([str(i) for i in xrange(10)]))
     if key != pass_digit:
@@ -250,9 +248,8 @@ class ExtDisplayTest(test_ui.TestCaseWithUI):
     self.ui.RunJS(
         'window.template.classList.add("green-background")')
     self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            'Fixture is checking if video is displayed on {display}?',
-            display=args.display_label))
+        _('Fixture is checking if video is displayed on {display}?',
+          display=args.display_label))
     for num_tries in xrange(1, retry_times + 1):
       try:
         self._fixture.CheckExtDisplay()
@@ -311,18 +308,14 @@ class ExtDisplayTest(test_ui.TestCaseWithUI):
   def WaitConnect(self, args):
     self.ui.BindStandardFailKeys()
     self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            _('Connect external display: {display}'),
-            display=args.display_label))
+        _('Connect external display: {display}', display=args.display_label))
 
     self._WaitDisplayConnection(args, True)
 
   def WaitDisconnect(self, args):
     self.ui.BindStandardFailKeys()
     self.ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            _('Disconnect external display: {display}'),
-            display=args.display_label))
+        _('Disconnect external display: {display}', display=args.display_label))
     self._WaitDisplayConnection(args, False)
 
   def _WaitDisplayConnection(self, args, connect):

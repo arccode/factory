@@ -29,7 +29,6 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 
@@ -96,15 +95,13 @@ class FanSpeedTest(test_ui.TestCaseWithUI):
     fan_count = len(observed_rpm)
     spin_up = target_rpm > _Average(observed_rpm)
 
-    status = (
-        _('Spin up fan speed: {observed_rpm} -> {target_rpm} RPM.')
-        if spin_up
-        else _('Spin down fan speed: {observed_rpm} -> {target_rpm} RPM.'))
-    self.ui.SetHTML(
-        i18n_test_ui.MakeI18nLabel(status,
-                                   observed_rpm=observed_rpm,
-                                   target_rpm=target_rpm),
-        id='fs-status')
+    status = _(
+        '{fan_spin_direction}: {observed_rpm} -> {target_rpm} RPM.',
+        spin_direction=_('Spin up fan') if spin_up else _('Spin down fan'),
+        observed_rpm=observed_rpm,
+        target_rpm=target_rpm)
+
+    self.ui.SetHTML(status, id='fs-status')
     self.ui.SetHTML(str(observed_rpm), id='fs-rpm')
 
     if self.args.use_percentage:

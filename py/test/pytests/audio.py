@@ -70,9 +70,9 @@ import random
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
-from cros.factory.test.i18n import test_ui as i18n_test_ui
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
@@ -136,29 +136,35 @@ def TestAudioDigitPlayback(ui, dut, port_name, card, device, channel='all',
     TestFailure if the test fails.
   """
   pass_digit = random.randint(0, 9)
-  port_label = i18n_test_ui.MakeI18nLabel(port_name)
 
-  if channel == 'left':
-    port_label += i18n_test_ui.MakeI18nLabel(' (Left Channel)')
-  elif channel == 'right':
-    port_label += i18n_test_ui.MakeI18nLabel(' (Right Channel)')
+  channel_name = {
+      'left': _('Left Channel'),
+      'right': _('Right Channel')
+  }
+
+  if channel in channel_name:
+    device = i18n.StringFormat(
+        '{port_name} ({channel_name})',
+        port_name=port_name,
+        channel_name=channel_name[channel])
+  else:
+    device = port_name
 
   all_keys = [test_ui.ESCAPE_KEY, 'R'] + [str(num) for num in xrange(10)]
   while True:
     ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            'Please wait for the {device} playback to finish.',
-            device=port_label))
+        _('Please wait for the {device} playback to finish.',
+          device=device))
 
     locale = ui.GetUILocale()
     audio_file = os.path.join(_SOUND_DIRECTORY, locale, '%d.ogg' % pass_digit)
     _PlayAudioFile(dut, audio_file, card, device, channel, sample_rate)
 
-    ui.SetState(
-        i18n_test_ui.MakeI18nLabel(
-            'Press the number you hear from {device} to pass the test.<br>'
-            'Press "R" to replay.',
-            device=port_label) + test_ui.FAIL_KEY_LABEL)
+    ui.SetState([
+        _('Press the number you hear from {device} to pass the test.<br>'
+          'Press "R" to replay.',
+          device=device), test_ui.FAIL_KEY_LABEL
+    ])
 
     key = ui.WaitKeysOnce(all_keys)
     if key == test_ui.ESCAPE_KEY:
@@ -241,9 +247,9 @@ class AudioTest(test_ui.TestCaseWithUI):
 
   def DetectHeadphone(self):
     if self.args.require_headphone:
-      instruction = i18n_test_ui.MakeI18nLabel('Please plug headphone in.')
+      instruction = _('Please plug headphone in.')
     else:
-      instruction = i18n_test_ui.MakeI18nLabel('Please unplug headphone.')
+      instruction = _('Please unplug headphone.')
 
     self.ui.SetState(instruction)
     sync_utils.PollForCondition(
