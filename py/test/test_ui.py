@@ -604,7 +604,7 @@ class UI(object):
       self.BindKey(key,
                    (lambda k: lambda unused_event: key_pressed.put(k))(key))
     try:
-      return key_pressed.get(timeout=timeout)
+      return sync_utils.QueueGet(key_pressed, timeout=timeout)
     except Queue.Empty:
       return None
     finally:

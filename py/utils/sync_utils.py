@@ -9,6 +9,7 @@ from __future__ import print_function
 from contextlib import contextmanager
 import inspect
 import logging
+import Queue
 import signal
 import threading
 import time
@@ -126,6 +127,31 @@ def WaitFor(condition, timeout_secs, poll_interval=0.1):
                           timeout_secs=timeout_secs,
                           poll_interval_secs=poll_interval,
                           condition_name=_GetConditionString())
+
+
+def QueueGet(queue, timeout=None,
+             poll_interval_secs=DEFAULT_POLL_INTERVAL_SECS):
+  """Get from a Queue.Queue, possibly by polling.
+
+  This is useful when a custom polling sleep function is set.
+  """
+  if _GetPollingSleepFunction() == _DEFAULT_POLLING_SLEEP_FUNCTION:
+    return queue.get(timeout=timeout)
+
+  def _Poll():
+    try:
+      return (True, queue.get_nowait())
+    except Queue.Empty:
+      return (False, None)
+
+  try:
+    return PollForCondition(
+        _Poll,
+        condition_method=lambda ret: ret[0],
+        timeout_secs=timeout,
+        poll_interval_secs=poll_interval_secs)[1]
+  except type_utils.TimeoutError:
+    raise Queue.Empty
 
 
 def Retry(max_retry_times, interval, callback, target, *args, **kwargs):

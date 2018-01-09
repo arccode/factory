@@ -77,6 +77,45 @@ class WaitForTest(PollingTestBase):
                       lambda: _ReturnTrueAfter(now + 1), timeout_secs=0.5)
 
 
+class QueueGetTest(PollingTestBase):
+
+  def setUp(self):
+    super(QueueGetTest, self).setUp()
+    self._queue = Queue.Queue()
+
+  def testQueueGetEmpty(self):
+    self.assertRaises(Queue.Empty, sync_utils.QueueGet, self._queue, timeout=1)
+
+  def testQueueGetSomething(self):
+    self._timeline.AddEvent(30, lambda: self._queue.put(123))
+
+    self.assertEqual(123, sync_utils.QueueGet(self._queue))
+
+  def testQueueGetNone(self):
+    self._timeline.AddEvent(1, lambda: self._queue.put(None))
+
+    self.assertIsNone(sync_utils.QueueGet(self._queue))
+
+  def testQueueGetTimeout(self):
+    self._timeline.AddEvent(30, lambda: self._queue.put('foo'))
+    self._timeline.AddEvent(40, lambda: self._queue.put('bar'))
+
+    self.assertRaises(
+        Queue.Empty,
+        sync_utils.QueueGet, self._queue, timeout=20, poll_interval_secs=1)
+    self._timeline.AssertTimeAt(20)
+
+    self.assertEqual('foo',
+                     sync_utils.QueueGet(
+                         self._queue, timeout=20, poll_interval_secs=1))
+    self._timeline.AssertTimeAt(30)
+
+    self.assertEqual('bar',
+                     sync_utils.QueueGet(
+                         self._queue, timeout=20, poll_interval_secs=1))
+    self._timeline.AssertTimeAt(40)
+
+
 class TimeoutTest(unittest.TestCase):
 
   def testSignalTimeout(self):

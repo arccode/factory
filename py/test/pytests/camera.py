@@ -131,6 +131,7 @@ from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.test.utils import barcode
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
 from cros.factory.external import cv
@@ -202,7 +203,7 @@ class CameraTest(test_ui.TestCaseWithUI):
     self.event_loop.AddEventHandler(
         event_name, lambda event: return_queue.put(event.data))
     self.ui.CallJSFunction(func, js, event_name)
-    ret = return_queue.get()
+    ret = sync_utils.QueueGet(return_queue)
     if 'error' in ret:
       self.FailTask(ret['error'])
     return ret['data']
@@ -242,7 +243,7 @@ class CameraTest(test_ui.TestCaseWithUI):
                                   data_event_name)
         buf = []
         while not data_queue.empty():
-          buf.append(data_queue.get())
+          buf.append(sync_utils.QueueGet(data_queue))
         blob = ''.join(buf).decode('base64')
         return cv2.imdecode(
             np.fromstring(blob, dtype=np.uint8), cv2.CV_LOAD_IMAGE_COLOR)

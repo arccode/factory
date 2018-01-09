@@ -165,6 +165,7 @@ from cros.factory.test.l10n import regions
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import sync_utils
 
 
 # Known regions to be listed first.
@@ -349,7 +350,7 @@ class UpdateDeviceData(test_ui.TestCaseWithUI):
     self.event_loop.AddEventHandler(event_subtype, event_queue.put)
 
     while True:
-      event = event_queue.get()
+      event = sync_utils.QueueGet(event_queue)
       if event is None:
         # ESC pressed.
         if entry.value is not None:
