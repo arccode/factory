@@ -28,7 +28,6 @@ a set of machines. The test logs the actual max and min values found.
 
 import collections
 import logging
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -81,14 +80,14 @@ class TouchUniformity(test_ui.TestCaseWithUI):
           '<span class="test-status-failed">',
           _('ERROR: Touch device not found'), '</span>'
       ])
-      time.sleep(_MESSAGE_DELAY_SECS)
+      self.Sleep(_MESSAGE_DELAY_SECS)
       self.FailTask('Touch controller not found.')
 
   def Calibrate(self):
     self.ui.SetState(_('Calibrating Touch device'))
     if not self.controller.Calibrate():
       self.ui.SetState(_LABEL_FAIL, append=True)
-      time.sleep(_MESSAGE_DELAY_SECS)
+      self.Sleep(_MESSAGE_DELAY_SECS)
       self.FailTask('Touch device calibration failed.')
 
   def _CheckSingleRawData(self, check_item, data):
@@ -144,7 +143,7 @@ class TouchUniformity(test_ui.TestCaseWithUI):
           ['<div>',
            _('Testing {item}...', item=item.label), status, '</div>'],
           append=True)
-    time.sleep(_MESSAGE_DELAY_SECS)
+    self.Sleep(_MESSAGE_DELAY_SECS)
 
     if self.args.keep_raw_logs:
       serial_number = self.dut.info.GetSerialNumber()

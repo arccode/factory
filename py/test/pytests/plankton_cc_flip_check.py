@@ -79,7 +79,6 @@ Automated test with a dolphin BFTFixture and flipping the polarity to CC1::
 """
 
 import logging
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -145,7 +144,7 @@ class PlanktonCCFlipCheck(test_ui.TestCaseWithUI):
       else:
         self._bft_fixture.SetDeviceEngaged('USB3', engage=True)
         self._bft_fixture.SetFakeDisconnection(1)
-        time.sleep(1)
+        self.Sleep(1)
     self._polarity = self.GetCCPolarityWithRetry(
         self.args.init_cc_state_retry_times)
     logging.info('Initial polarity: %s', self._polarity)
@@ -220,7 +219,7 @@ class PlanktonCCFlipCheck(test_ui.TestCaseWithUI):
     retry_times_left = retry_times
     polarity = self.GetCCPolarity()
     while retry_times_left != 0 and polarity == _CC_UNCONNECT:
-      self.WaitTaskEnd(timeout=1)
+      self.Sleep(1)
       polarity = self.GetCCPolarity()
       logging.info('[%d]Poll polarity %s', retry_times_left, polarity)
       retry_times_left -= 1
@@ -250,7 +249,7 @@ class PlanktonCCFlipCheck(test_ui.TestCaseWithUI):
         # Start countdown timer.
         self.ui.StartFailingCountdownTimer(self.args.timeout_secs)
         while True:
-          self.WaitTaskEnd(timeout=0.5)
+          self.Sleep(0.5)
           polarity = self.GetCCPolarity()
           if polarity != self._polarity and polarity != _CC_UNCONNECT:
             return
@@ -265,12 +264,12 @@ class PlanktonCCFlipCheck(test_ui.TestCaseWithUI):
       # TODO(yllin): Remove this if solve the plankton firmware issue
       def charge_check_flip():
         self._bft_fixture.SetDeviceEngaged('CHARGE_5V', True)
-        self.WaitTaskEnd(timeout=2)
+        self.Sleep(2)
         new_polarity = self.GetCCPolarityWithRetry(5)
         if new_polarity != self._polarity:
           return
         self._bft_fixture.SetMuxFlip(0)
-        self.WaitTaskEnd(timeout=2)
+        self.Sleep(2)
 
       charge_check_flip()
       if self._adb_remote_test and not self._double_cc_quick_check:

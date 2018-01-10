@@ -140,7 +140,7 @@ class TouchpadHoverTest(test_ui.TestCaseWithUI):
       self.ui.SetState(_('Calibrating touchpad...'))
       with self.WithTimer(self.args.calibration_sleep_secs):
         self._dut.WriteFile(self.args.calibration_trigger, '1')
-        time.sleep(self.args.calibration_sleep_secs)
+        self.Sleep(self.args.calibration_sleep_secs)
 
     for round_index in xrange(self.args.repeat_times):
       progress = '(%d/%d) ' % (round_index, self.args.repeat_times)

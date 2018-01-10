@@ -66,7 +66,6 @@ checks the successful pings are >= 70% overall::
 from __future__ import print_function
 
 import logging
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_ui
@@ -155,6 +154,6 @@ class PingTest(test_ui.TestCaseWithUI):
 
       total_success_count += result
       total_count += 1
-      time.sleep(self.args.interval_secs)
+      self.Sleep(self.args.interval_secs)
 
     self._CheckSuccessPercentage(total_success_count, total_count, 'Overall: ')

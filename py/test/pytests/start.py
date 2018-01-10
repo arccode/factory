@@ -47,7 +47,6 @@ toolkit is properly installed::
 
 import logging
 import os
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -110,7 +109,7 @@ class StartTest(test_ui.TestCaseWithUI):
       Log('ac_present', state=ac_present)
       if ac_present:
         break
-      time.sleep(_AC_CHECK_PERIOD)
+      self.Sleep(_AC_CHECK_PERIOD)
 
   def CheckFactoryInstallComplete(self):
     if not os.path.exists(_LSB_FACTORY_PATH):

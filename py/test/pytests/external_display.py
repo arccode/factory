@@ -259,7 +259,7 @@ class ExtDisplayTest(test_ui.TestCaseWithUI):
           logging.info(
               'Cannot see screen on external display. Wait for %.1f seconds.',
               check_interval_secs)
-          self.WaitTaskEnd(timeout=check_interval_secs)
+          self.Sleep(check_interval_secs)
         else:
           self.FailTask(
               'Failed to see screen on external display after %d retries.' %
@@ -296,7 +296,7 @@ class ExtDisplayTest(test_ui.TestCaseWithUI):
       if is_original == recover_original:
         return
       evdev_utils.SendKeys([evdev.ecodes.KEY_LEFTALT, evdev.ecodes.KEY_F4])
-      self.WaitTaskEnd(timeout=2)
+      self.Sleep(2)
 
     self.FailTask('Fail to switch main display')
 
@@ -330,7 +330,7 @@ class ExtDisplayTest(test_ui.TestCaseWithUI):
       # Check USBPD status before display info
       if args.usbpd_port is not None:
         if self._dut.usb_c.GetPDStatus(args.usbpd_port)['connected'] != connect:
-          self.WaitTaskEnd(_CONNECTION_CHECK_PERIOD_SECS)
+          self.Sleep(_CONNECTION_CHECK_PERIOD_SECS)
           continue
 
       port_info = self._dut.display.GetPortInfo()
@@ -345,4 +345,4 @@ class ExtDisplayTest(test_ui.TestCaseWithUI):
           logging.info('Get display info %r', display_info)
           return
 
-      self.WaitTaskEnd(_CONNECTION_CHECK_PERIOD_SECS)
+      self.Sleep(_CONNECTION_CHECK_PERIOD_SECS)

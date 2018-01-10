@@ -837,24 +837,32 @@ class TestCaseWithUI(unittest.TestCase):
     """
     raise type_utils.TestFailure(msg)
 
-  def WaitTaskEnd(self, timeout=None):
+  def __WaitTaskEnd(self, timeout):
+    if self.__task_end_event.wait(timeout=timeout):
+      raise TaskEndException
+
+  def WaitTaskEnd(self):
     """Wait for either TaskPass or TaskFail is called.
 
     Task that need to wait for frontend events to judge pass / fail should call
     this at the end of the task.
+    """
+    self.__WaitTaskEnd(None)
+
+  def Sleep(self, secs):
+    """Sleep for secs seconds, but ends early if test failed.
 
     An exception would be raised if TaskPass or TaskFail is called before
     timeout. This makes the function acts like time.sleep that ends early when
     timeout is given.
 
     Args:
-      timeout: The timeout for waiting the task end, None for no timeout.
+      secs: Seconds to sleep.
 
     Raises:
-      TaskEndException if the task end before timeout.
+      TaskEndException if the task end before secs seconds.
     """
-    if self.__task_end_event.wait(timeout=timeout):
-      raise TaskEndException
+    self.__WaitTaskEnd(secs)
 
   def AddTask(self, task, *task_args, **task_kwargs):
     """Add a task to the test.
@@ -917,7 +925,7 @@ class TestCaseWithUI(unittest.TestCase):
     # Set the sleep function for various polling methods in sync_utils to
     # self.WaitTaskEnd, so tests using methods like sync_utils.WaitFor would
     # still be ended early when the test ends.
-    with sync_utils.WithPollingSleepFunction(self.WaitTaskEnd):
+    with sync_utils.WithPollingSleepFunction(self.Sleep):
       # Add runTest as the only task if there's none.
       if not self.__tasks:
         self.AddTask(getattr(self, self.__method_name))

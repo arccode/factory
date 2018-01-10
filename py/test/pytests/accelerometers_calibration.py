@@ -54,8 +54,6 @@ To run horizontal calibration on base accelerometer::
   }
 """
 
-import time
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import accelerometer
 from cros.factory.device import device_utils
@@ -138,7 +136,7 @@ class AccelerometersCalibration(test_ui.TestCaseWithUI):
           _('Calibration will be started within {time} seconds.'
             'Please do not move device.',
             time=self.args.setup_time_secs - i))
-      time.sleep(1)
+      self.Sleep(1)
 
     # Cleanup offsets before calibration
     self.accelerometer_controller.CleanUpCalibrationValues()

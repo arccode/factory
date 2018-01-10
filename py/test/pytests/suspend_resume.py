@@ -20,7 +20,6 @@ import os
 import random
 import re
 import threading
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
@@ -125,7 +124,7 @@ class SuspendResumeTest(test_ui.TestCaseWithUI):
       #   save
       messages = re.sub(r'^.*\] (call|G[A-Z]{2}\d?|save).*$\n?', '',
                         self.messages, flags=re.MULTILINE)
-      logging.info('Last suspend block:\n' +
+      logging.info('Last suspend block:\n%s',
                    re.sub('^', '    ', messages, flags=re.MULTILINE))
 
     self.done = True
@@ -188,7 +187,7 @@ class SuspendResumeTest(test_ui.TestCaseWithUI):
           cur_time,
           'Suspend timeout, device did not suspend within %d sec.' %
           self.args.suspend_worst_case_secs)
-      time.sleep(0.1)
+      self.Sleep(0.1)
     self.alarm_started.clear()
 
   def _Suspend(self, retry_count=0):
@@ -213,14 +212,15 @@ class SuspendResumeTest(test_ui.TestCaseWithUI):
           if prev_suspend_ignore_count != self._GetIgnoredWakeupSourceCount():
             if retry_count == _MAX_EARLY_RESUME_RETRY_COUNT:
               raise RuntimeError('Maximum re-suspend retry exceeded for '
-                                 'ignored wakeup source %s',
+                                 'ignored wakeup source %s' %
                                  self.args.ignore_wakeup_source)
 
             logging.info('Wakeup source ignored, re-suspending...')
-            time.sleep(self.args.early_resume_retry_wait_secs)
+            self.Sleep(self.args.early_resume_retry_wait_secs)
             self.wakeup_count = file_utils.ReadFile(
                 self.args.wakeup_count_path).strip()
-            return self._Suspend(retry_count + 1)
+            self._Suspend(retry_count + 1)
+            return
           else:
             raise IOError('EBUSY: Early wake event when attempting suspend: %s'
                           % debug_utils.FormatExceptionOnly())
@@ -243,7 +243,7 @@ class SuspendResumeTest(test_ui.TestCaseWithUI):
     self.assertTrue(os.path.exists('/sys/kernel/debug/suspend_stats'),
                     'suspend_stats file not found.')
     # If we just resumed, the suspend_stats file can take some time to update.
-    time.sleep(0.1)
+    self.Sleep(0.1)
     line_content = file_utils.ReadFile(
         '/sys/kernel/debug/suspend_stats').strip()
     return int(re.search(r'[0-9]+', line_content).group(0))
@@ -374,12 +374,12 @@ class SuspendResumeTest(test_ui.TestCaseWithUI):
                             self.resume_at)
       logging.info('Resumed %d of %d for %d seconds.',
                    self.run, self.args.cycles, resume_time)
-      time.sleep(resume_time)
+      self.Sleep(resume_time)
 
       while self.alarm_thread.isAlive():
         alarm_suspend_delays += 1
         logging.warn('alarm thread is taking a while to return, waiting 1s.')
-        time.sleep(1)
+        self.Sleep(1)
         self.assertGreaterEqual(self.start_time +
                                 self.args.suspend_worst_case_secs,
                                 int(open(self.args.time_path).read().strip()),

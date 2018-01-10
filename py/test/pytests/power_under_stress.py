@@ -99,4 +99,4 @@ class PowerUnderStressTest(test_ui.TestCaseWithUI):
         if self.args.current_threshold_max:
           self.assertTrue(current <= self.args.current_threshold_max)
 
-        time.sleep(max(0, start_time + elapsed - time.time()))
+        self.Sleep(max(0, start_time + elapsed - time.time()))

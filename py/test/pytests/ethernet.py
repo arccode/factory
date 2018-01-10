@@ -6,7 +6,6 @@
 
 import logging
 import re
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -196,7 +195,7 @@ class EthernetTest(test_ui.TestCaseWithUI):
           if ethernet_ip:
             session.console.info('Get ethernet IP %s for %s', ethernet_ip, eth)
             self.PassTask()
-      time.sleep(self.args.retry_interval_msecs / 1000.0)
+      self.Sleep(self.args.retry_interval_msecs / 1000.0)
 
     if self.args.link_only:
       self.FailTask('Cannot find interface %s' % self.args.iface)

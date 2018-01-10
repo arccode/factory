@@ -121,7 +121,7 @@ class FanSpeedTest(test_ui.TestCaseWithUI):
         ith_fan_samples[i].append(ith_fan_rpm)
       self.ui.SetHTML(str(observed_rpm), id='fs-rpm')
       logging.info('Observed fan RPM: %s', observed_rpm)
-      time.sleep(self.args.probe_interval_secs)
+      self.Sleep(self.args.probe_interval_secs)
 
     num_samples = self.args.num_samples_to_use
     total_samples = len(ith_fan_samples[0])

@@ -388,7 +388,7 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
 
       if self.MayPassTest():
         self.ui.CallJSFunction('testPassResult')
-        time.sleep(0.5)
+        self.Sleep(0.5)
         for file_path in self._audio_file_path:
           os.unlink(file_path)
         return
@@ -548,7 +548,7 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
           'For output device channel %s, the success rate is "'
           '%s", too low!' % (output_channel, rate_msg))
       self.ui.CallJSFunction('testFailResult', rate_msg)
-    time.sleep(1)
+    self.Sleep(1)
 
   def AudioFunTest(self):
     """Setup speaker and microphone test pairs and run audiofuntest program."""
@@ -566,7 +566,7 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
       self.AudioFunTestWithOutputChannel(capture_rate, input_channels,
                                          output_channel)
       if self.args.audiofuntest_run_delay is not None:
-        time.sleep(self.args.audiofuntest_run_delay)
+        self.Sleep(self.args.audiofuntest_run_delay)
 
   def TestLoopbackChannel(self, num_channels):
     """Tests loopback on all channels.

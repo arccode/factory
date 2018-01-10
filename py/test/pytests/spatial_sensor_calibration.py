@@ -22,8 +22,6 @@ The step for calibration is as follows:
 4) Save them in VPD.
 """
 
-import time
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
@@ -157,12 +155,12 @@ class SpatialSensorCalibration(test_ui.TestCaseWithUI):
         self._dut.WriteFile(self._dut.path.join(path, 'calibrate'), '1')
       except Exception:
         session.console.info('calibrate activation failed, retrying')
-        time.sleep(1)
+        self.Sleep(1)
       else:
         break
     else:
       raise RuntimeError('calibrate activation failed')
-    time.sleep(self.args.stabilize_time)
+    self.Sleep(self.args.stabilize_time)
 
   def RetrieveCalibbiasAndWriteVPD(self):
     cmd = ['vpd']

@@ -61,7 +61,6 @@ import select
 import socket
 import tempfile
 import threading
-import time
 import zipfile
 
 import yaml
@@ -833,7 +832,7 @@ class AudioQualityTest(test_ui.TestCaseWithUI):
     while True:
       if self._test_complete:
         break
-      time.sleep(_CHECK_FIXTURE_COMPLETE_SECS)
+      self.Sleep(_CHECK_FIXTURE_COMPLETE_SECS)
 
   def runTest(self):
     self.SetMessage(_LABEL_SPACE_TO_START)

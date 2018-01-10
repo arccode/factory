@@ -50,7 +50,6 @@ from __future__ import print_function
 
 import logging
 import re
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -224,12 +223,12 @@ class Scan(test_ui.TestCaseWithUI):
   def ScanBarcode(self):
     while True:
       self.fixture.ScanBarcode()
-      time.sleep(self.args.barcode_scan_interval_secs)
+      self.Sleep(self.args.barcode_scan_interval_secs)
 
   def BFTScanSaveBarcode(self):
     while True:
       self.fixture.TriggerScanner()
-      time.sleep(self.args.barcode_scan_interval_secs)
+      self.Sleep(self.args.barcode_scan_interval_secs)
 
   def runTest(self):
     self.ui.SetTitle(_('Scan {label}', label=self.args.label))

@@ -346,4 +346,4 @@ class LightSensorTest(test_ui.TestCaseWithUI):
           cumulative_val = 0
           current_iter_remained = self._iter_req_per_subtest
 
-        self.WaitTaskEnd(timeout=0.5)
+        self.Sleep(0.5)

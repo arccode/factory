@@ -5,13 +5,12 @@
 """A test to instruct the operator / BFT fixture to plug/unplug AC power."""
 
 import numbers
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import session
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import _
+from cros.factory.test import session
 from cros.factory.test import test_ui
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
@@ -170,4 +169,4 @@ class ACPowerTest(test_ui.TestCaseWithUI):
       if self.args.retries is not None and num_probes > self.args.retries:
         self.FailTask('Failed after probing %d times' % num_probes)
       # Prevent busy polling.
-      time.sleep(self.args.polling_period_secs)
+      self.Sleep(self.args.polling_period_secs)

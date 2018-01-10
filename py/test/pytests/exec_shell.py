@@ -54,7 +54,6 @@ import logging
 import os
 import StringIO
 import subprocess
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -137,7 +136,7 @@ class ExecShell(test_ui.TestCaseWithUI):
                    command, process.returncode, stdout, stderr)
       if process.returncode != 0:
         # More chance so user can see the error.
-        time.sleep(3)
+        self.Sleep(3)
         self.FailTask('Shell command failed (%d): %s' % (process.returncode,
                                                          command))
 

@@ -41,7 +41,7 @@ class BuzzerTest(test_ui.TestCaseWithUI):
   def BeepOne(self, start_cmd, stop_cmd):
     if start_cmd:
       process_utils.Spawn(start_cmd, check_call=True)
-    time.sleep(self.args.beep_duration_secs)
+    self.Sleep(self.args.beep_duration_secs)
     if stop_cmd:
       process_utils.Spawn(stop_cmd, check_call=True)
 
@@ -61,10 +61,10 @@ class BuzzerTest(test_ui.TestCaseWithUI):
       start_time = time.time()
       for unused_i in xrange(self._pass_digit):
         self.BeepOne(self.args.start_command, self.args.stop_command)
-        time.sleep(self.args.mute_duration_secs)
+        self.Sleep(self.args.mute_duration_secs)
       # Try to make the test always run for about same duration, to avoid
       # cheating by looking at when the buttons appear.
-      time.sleep(max(0, max_total_duration - (time.time() - start_time)))
+      self.Sleep(max(0, max_total_duration - (time.time() - start_time)))
 
       all_keys = [str(num + 1) for num in range(_MAX_BEEP_TIMES)] + ['R']
       key = self.ui.WaitKeysOnce(all_keys)

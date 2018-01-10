@@ -561,7 +561,7 @@ class BluetoothTest(test_ui.TestCaseWithUI):
       session.console.info('Executing fixture method: %s',
                            fixture_method.__name__)
       fixture_method()
-      self.WaitTaskEnd(timeout=post_sleep)
+      self.Sleep(post_sleep)
     except Exception as e:
       self.FailTask('error in executing %s (%s)' % (operation, e))
 
@@ -1038,7 +1038,7 @@ class BluetoothTest(test_ui.TestCaseWithUI):
       self.ui.AdvanceProgress()
       if result:
         break
-      self.WaitTaskEnd(retry_interval)
+      self.Sleep(retry_interval)
 
     self.ui.SetProgress(max_retry_times)
     logging.info('%s was done.' if result else '%s failed.', action_string)

@@ -1096,12 +1096,12 @@ class TestCaseWithUITest(unittest.TestCase):
     self.AssertRunResult('FAILED!')
     self._timeline.AssertTimeAt(10)
 
-  def testWaitTaskEndTimeout(self):
+  def testSleep(self):
     times = []
     def _RunTest():
       while True:
         times.append(self._timeline.GetTime())
-        self._test.WaitTaskEnd(timeout=2)
+        self._test.Sleep(2)
 
     def _TestEnd():
       try:

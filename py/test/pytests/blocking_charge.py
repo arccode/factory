@@ -82,7 +82,6 @@ charging, add this in test list::
 
 import logging
 import os
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -192,7 +191,7 @@ class ChargerTest(test_ui.TestCaseWithUI):
         logging.info('Battery level is %d%% after %d minutes',
                      charge,
                      elapsed / 60)
-      time.sleep(1)
+      self.Sleep(1)
 
     event_log.Log('failed_to_charge', charge=charge, target=target_charge,
                   timeout_sec=self.args.timeout_secs)

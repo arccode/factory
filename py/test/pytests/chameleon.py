@@ -9,7 +9,6 @@ from __future__ import print_function
 import contextlib
 import logging
 import os
-import time
 import xmlrpclib
 
 from PIL import Image
@@ -18,10 +17,10 @@ from PIL import ImageDraw
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test.env import goofy_proxy
 from cros.factory.test.i18n import _
 from cros.factory.test import state
 from cros.factory.test import test_ui
-from cros.factory.test.env import goofy_proxy
 from cros.factory.utils import arg_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
@@ -415,7 +414,7 @@ class ChameleonDisplayTest(test_ui.TestCaseWithUI):
            original_display['workArea']['height'] * self.UI_IMAGE_RESIZE_RATIO)
       ])
       # Wait 10 seconds for the operator to inspect the difference.
-      time.sleep(10)
+      self.Sleep(10)
       self.fail(('Captured image of port %s from Chameleon does not match '
                  'the internal framebuffer; check %s for the difference') %
                 (chameleon_port, self.DIFF_IMAGE_PATH))
@@ -427,5 +426,5 @@ class ChameleonDisplayTest(test_ui.TestCaseWithUI):
         'Invalid port: %s; chameleon port must be one of %s' %
         (chameleon_port, PORTS))
     # Wait for 5 seconds for the fade-in visual effect.
-    time.sleep(5)
+    self.Sleep(5)
     self.TestPort(dut_port, chameleon_port, width, height, refresh_rate)

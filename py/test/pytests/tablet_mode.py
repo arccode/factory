@@ -8,8 +8,6 @@ Currently, it check that the lid switch is not triggered and tablet mode event
 is triggered and in correct state.
 """
 
-import time
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
 from cros.factory.test.i18n import _
@@ -152,7 +150,7 @@ class TabletModeTest(test_ui.TestCaseWithUI):
   def _FlashStatus(self, status_label):
     self.ui.SetHTML(status_label, id='status')
     self.ui.ShowElement('status')
-    time.sleep(1)
+    self.Sleep(1)
     self.ui.HideElement('status')
 
   def FlashSuccess(self):

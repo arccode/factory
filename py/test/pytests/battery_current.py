@@ -65,7 +65,6 @@ in test list::
 """
 
 import logging
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -156,7 +155,7 @@ class BatteryCurrentTest(test_ui.TestCaseWithUI):
       if not (self._usbpd_min_millivolt <= millivolt <=
               self._usbpd_max_millivolt):
         return False
-      time.sleep(0.1)
+      self.Sleep(0.1)
     return True
 
   def _CheckCharge(self):

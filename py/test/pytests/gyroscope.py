@@ -16,7 +16,6 @@ Usage examples::
 """
 
 import collections
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -62,7 +61,7 @@ class Gyroscope(test_ui.TestCaseWithUI):
           _('Calibration will be started within {secs} seconds.'
             'Please do not move device.',
             secs=self.args.setup_time_secs - i))
-      time.sleep(1)
+      self.Sleep(1)
 
     self.ui.SetInstruction(_('Please do not move the device.'))
     self._WaitForDeviceStop()

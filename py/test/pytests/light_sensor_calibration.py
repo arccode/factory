@@ -318,7 +318,7 @@ class ALSFixture(test_ui.TestCaseWithUI):
       except Exception:
         cnt += 1
         self._SetFixtureStatus(FIXTURE_STATUS.DISCONNECTED)
-        time.sleep(self.args.chamber_retry_delay)
+        self.Sleep(self.args.chamber_retry_delay)
     raise light_chamber.LightChamberError('Error connecting to light chamber')
 
   def _OnU2SRemoval(self, device):
@@ -357,7 +357,7 @@ class ALSFixture(test_ui.TestCaseWithUI):
       self._LogFailure(FAIL_CHAMBER_ERROR,
                        'Error commanding ALS chamber: %s' % e.message)
       raise e
-    time.sleep(self.config['light_delay'])
+    self.Sleep(self.config['light_delay'])
 
   def _SwitchToNextLight(self):
     self.light_index += 1
@@ -373,7 +373,7 @@ class ALSFixture(test_ui.TestCaseWithUI):
       buf = []
       start_time = time.time()
       for unused_i in xrange(samples):
-        time.sleep(delay)
+        self.Sleep(delay)
         buf.append(self.als_controller.GetLuxValue())
         self._LogValue(series, time.time() - start_time, buf[-1])
     except ambient_light_sensor.AmbientLightSensorException as e:

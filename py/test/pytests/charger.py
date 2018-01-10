@@ -247,7 +247,7 @@ class ChargerTest(test_ui.TestCaseWithUI):
                         charge=charge)
           self.ui.SetState(
               _('OK! Meet {target}', target=self._GetLabelWithUnit(target)))
-          time.sleep(1)
+          self.Sleep(1)
           return
         elif elapsed >= self.args.battery_check_delay_sec:
           charger_current = self._GetChargerCurrent()
@@ -268,7 +268,7 @@ class ChargerTest(test_ui.TestCaseWithUI):
           else:
             self._CheckDischarge(battery_current)
 
-        time.sleep(1)
+        self.Sleep(1)
 
       event_log.Log('not_meet', load=load, target=target, charge=charge)
       self.fail('Cannot regulate battery to %s in %d seconds.' %
@@ -310,7 +310,7 @@ class ChargerTest(test_ui.TestCaseWithUI):
     except Exception as e:
       self.fail('Cannot set charger state to CHARGE on this board. %s' % e)
     else:
-      time.sleep(1)
+      self.Sleep(1)
 
   def _SetDischarge(self):
     """Sets charger state to DISCHARGE"""
@@ -319,7 +319,7 @@ class ChargerTest(test_ui.TestCaseWithUI):
     except Exception as e:
       self.fail('Cannot set charger state to DISCHARGE on this board. %s' % e)
     else:
-      time.sleep(1)
+      self.Sleep(1)
 
   def runTest(self):
     """Main entrance of charger test."""

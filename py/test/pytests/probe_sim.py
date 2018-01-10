@@ -16,8 +16,6 @@ Before running this test, modem carrier should be set to Generic UMTS.
 
 import logging
 import re
-import threading
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
@@ -48,7 +46,6 @@ class ProbeSIMCardTest(test_ui.TestCaseWithUI):
 
   def setUp(self):
     self.reset_commands = self.args.modem_reset_commands
-    self.force_stop = threading.Event()
 
   def runTest(self):
     if self.args.only_check_simcard_present:
@@ -73,7 +70,7 @@ class ProbeSIMCardTest(test_ui.TestCaseWithUI):
     if self.args.enable_modem_reset:
       for command in self.args.modem_reset_commands:
         process_utils.Spawn(command, call=True, log=True)
-      time.sleep(_INSERT_CHECK_PERIOD_SECS)
+      self.Sleep(_INSERT_CHECK_PERIOD_SECS)
 
   def GetModemStatus(self):
     """Gets modem status."""
@@ -88,7 +85,7 @@ class ProbeSIMCardTest(test_ui.TestCaseWithUI):
     if self.args.poll_modem_status:
       total_delay = 0
       while not output:
-        time.sleep(_INSERT_CHECK_PERIOD_SECS)
+        self.Sleep(_INSERT_CHECK_PERIOD_SECS)
         total_delay += _INSERT_CHECK_PERIOD_SECS
         if total_delay >= _INSERT_CHECK_MAX_WAIT:
           self.FailTask(
@@ -107,4 +104,4 @@ class ProbeSIMCardTest(test_ui.TestCaseWithUI):
       if match:
         return match
 
-      time.sleep(_INSERT_CHECK_PERIOD_SECS)
+      self.Sleep(_INSERT_CHECK_PERIOD_SECS)

@@ -7,7 +7,6 @@
 
 
 import math
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -46,7 +45,7 @@ class CompassTest(test_ui.TestCaseWithUI):
           timeout_secs=1000,
           poll_interval_secs=0.1)
       self.ui.ShowElement('success')
-      time.sleep(_FLASH_STATUS_TIME)
+      self.Sleep(_FLASH_STATUS_TIME)
       self.ui.HideElement('success')
 
   def _CalculateDirection(self, x, y):

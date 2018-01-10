@@ -87,10 +87,8 @@ In the fixture side, it should do something like this:
 """
 
 import os
-import time
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test import test_ui
@@ -144,7 +142,7 @@ class WaitExternalTest(test_ui.TestCaseWithUI):
     # done by 3rd party vendors with arbitrary implementation, so a quick and
     # simple solution is to wait for one more check period so the file should be
     # flushed.
-    time.sleep(_CHECK_PERIOD_SECS)
+    self.Sleep(_CHECK_PERIOD_SECS)
 
     with open(self._file_path) as f:
       result = f.read().strip()

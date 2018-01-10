@@ -339,7 +339,6 @@ class TouchscreenCalibration(test_ui.TestCaseWithUI):
     elif len(self.host_ip_dict) > 2:
       msg = 'There should be no more than 2 network interfaces on the host.'
       session.console.error(msg)
-      return False
 
   def RefreshNetwork(self):
     """Refreshes all possible saved state for the touchscreen."""
@@ -501,7 +500,7 @@ class TouchscreenCalibration(test_ui.TestCaseWithUI):
     data = self.sensors.ReadTRx(category)
     self.ui.CallJSFunction('displayDebugData', data)
     session.console.debug('%s: get %s data: %s', phase, category, data)
-    time.sleep(1)
+    self.Sleep(1)
 
     # Verifies whether the sensor data is good or not by the verify_method.
     self.test_pass = verify_method(data, category)
@@ -526,7 +525,7 @@ class TouchscreenCalibration(test_ui.TestCaseWithUI):
     data = self.sensors.Read(category)
     self.ui.CallJSFunction('displayDebugData', data)
     session.console.debug('%s: get %s data: %s', phase, category, data)
-    time.sleep(1)
+    self.Sleep(1)
 
     # Verifies whether the sensor data is good or not by the verify_method.
     self.test_pass, failed_sensors, min_value, max_value = verify_method(data)
@@ -643,7 +642,7 @@ class TouchscreenCalibration(test_ui.TestCaseWithUI):
       self.DriveProbeDown()
 
       # Wait a while to let the probe touch the panel stably.
-      time.sleep(10 if self.fake_fixture else 1)
+      self.Sleep(10 if self.fake_fixture else 1)
 
       self._ReadAndVerifySensorData(
           sn, phase, self.DELTAS, self.sensors.VerifyDeltasTouched)
@@ -771,7 +770,7 @@ class TouchscreenCalibration(test_ui.TestCaseWithUI):
     """Get the complete state and show the values that are changed."""
     self.ui.CallJSFunction('showProbeState', 'N/A')
     self.QueryFixtureState()
-    time.sleep(0.5)
+    self.Sleep(0.5)
     while True:
       native_usb.GetState()
 

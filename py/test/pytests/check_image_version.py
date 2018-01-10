@@ -79,7 +79,6 @@ Reimage if test image version is greater than or equal to 9876.5.2012_12_21_2359
 
 from distutils import version
 import logging
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -121,7 +120,7 @@ class CheckImageVersionTest(test_ui.TestCaseWithUI):
 
     while not self.dut.status.eth_on:
       self.ui.SetState(_('Please connect to ethernet.'))
-      time.sleep(0.5)
+      self.Sleep(0.5)
 
     if self.args.require_space:
       self.ui.SetState(

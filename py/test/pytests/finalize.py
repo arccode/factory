@@ -96,7 +96,6 @@ import os
 import random
 import subprocess
 import threading
-import time
 
 import yaml
 
@@ -293,7 +292,7 @@ class Finalize(test_ui.TestCaseWithUI):
           '%s. '
           'THIS DEVICE CANNOT BE QUALIFIED. '
           '(will continue in %d seconds)', message, i)
-      time.sleep(1)
+      self.Sleep(1)
 
   def NormalizeUploadMethod(self, method):
     """Builds the report file name and resolves variables."""
@@ -362,12 +361,12 @@ class Finalize(test_ui.TestCaseWithUI):
       self._CallGoofTool(command)
       # Wipe-in-place will terminate all processes that are using stateful
       # partition, this test should be killed at here.
-      time.sleep(self.FINALIZE_TIMEOUT)
+      self.Sleep(self.FINALIZE_TIMEOUT)
       raise type_utils.TestFailure('DUT Failed to finalize in %d seconds' %
                                    self.FINALIZE_TIMEOUT)
     elif isinstance(self.dut.link, ssh.SSHLink):
       # For remote SSH DUT, we ask DUT to send wipe log back.
-      return self._FinalizeRemoteSSHDUT(command)
+      self._FinalizeRemoteSSHDUT(command)
     else:
       # For other remote links, we only checks if it has lost connection in
       # @self.FINALIZE_TIMEOUT seconds

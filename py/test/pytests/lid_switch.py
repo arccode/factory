@@ -150,7 +150,7 @@ class LidSwitchTest(test_ui.TestCaseWithUI):
     start_time = time.time()
     timeout_time = (start_time + _TIMESTAMP_BL_OFF)
     # Ignore leading bouncing signals
-    time.sleep(_TEST_TOLERANCE)
+    self.Sleep(_TEST_TOLERANCE)
 
     # Check backlight power falling edge
     while time.time() < timeout_time:
@@ -162,7 +162,7 @@ class LidSwitchTest(test_ui.TestCaseWithUI):
         if test_time < _TIMESTAMP_BL_ON:
           self.FailTask('Backlight turned off too early.')
         return
-      time.sleep(0.5)
+      self.Sleep(0.5)
 
     self.FailTask('Backlight does not turn off.')
 
@@ -198,7 +198,7 @@ class LidSwitchTest(test_ui.TestCaseWithUI):
     """
     for retry in range(self.args.bft_retries + 1):
       try:
-        time.sleep(self.args.bft_pause_secs)
+        self.Sleep(self.args.bft_pause_secs)
         self.fixture.SetDeviceEngaged(
             bft_fixture.BFTFixture.Device.LID_MAGNET, close)
         self.fixture_lid_closed = close

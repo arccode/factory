@@ -44,7 +44,6 @@ To relax the limitation of battery cycle count to 5::
 from __future__ import print_function
 
 import logging
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -103,7 +102,7 @@ class SimpleBatteryTest(test_ui.TestCaseWithUI):
     end_time = time_utils.MonotonicTime() + duration_secs
     while time_utils.MonotonicTime() < end_time:
       sampled_current.append(self._dut.power.GetBatteryCurrent())
-      time.sleep(self.args.current_sampling_period_secs)
+      self.Sleep(self.args.current_sampling_period_secs)
     logging.info('Sampled battery current: %s', sampled_current)
     return sampled_current
 

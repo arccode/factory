@@ -66,7 +66,7 @@ from __future__ import print_function
 import contextlib
 import json
 import logging
-import string  # pylint: disable=deprecated-module
+import string
 import subprocess
 import sys
 import time
@@ -456,27 +456,29 @@ class _ServiceTest(object):
 
   def _CheckStrength(self, min_strength):
     # Check signal strength.
-    if min_strength is not None:
-      strength = self._ap.strength
-      self._log['pass_strength'] = (
-          strength is not None and strength >= min_strength)
-      if not self._log['pass_strength']:
-        raise self._TestException('strength %s < %d [fail]'
-                                  % (strength, min_strength))
-      else:
-        return 'strength %s >= %d [pass]' % (strength, min_strength)
+    if min_strength is None:
+      return None
+    strength = self._ap.strength
+    self._log['pass_strength'] = (
+        strength is not None and strength >= min_strength)
+    if not self._log['pass_strength']:
+      raise self._TestException('strength %s < %d [fail]'
+                                % (strength, min_strength))
+    else:
+      return 'strength %s >= %d [pass]' % (strength, min_strength)
 
   def _CheckQuality(self, min_quality):
     # Check signal quality.
-    if min_quality is not None:
-      quality = self._ap.quality
-      self._log['pass_quality'] = (
-          quality is not None and quality >= min_quality)
-      if not self._log['pass_quality']:
-        raise self._TestException('quality %s < %d [fail]'
-                                  % (quality, min_quality))
-      else:
-        return 'quality %s >= %d [pass]' % (quality, min_quality)
+    if min_quality is None:
+      return None
+    quality = self._ap.quality
+    self._log['pass_quality'] = (
+        quality is not None and quality >= min_quality)
+    if not self._log['pass_quality']:
+      raise self._TestException('quality %s < %d [fail]'
+                                % (quality, min_quality))
+    else:
+      return 'quality %s >= %d [pass]' % (quality, min_quality)
 
   def _Connect(self, ssid, password):
     # Try connecting.
@@ -611,21 +613,19 @@ class _ServiceTest(object):
             tx_rx.upper(), ssid),
         value_unit='Bits/second')
 
-    if min_throughput is not None:
-      self._log[log_pass_key] = (
-          _BitsToMbits(iperf_avg['bits_per_second']) > min_throughput)
-      if not self._log[log_pass_key]:
-        raise self._TestException(
-            '%s throughput %.2f < %.2f Mbits/s didn\'t meet the minimum' % (
-                tx_rx,
-                _BitsToMbits(iperf_avg['bits_per_second']),
-                min_throughput))
-      else:
-        return (
-            '%s throughput %.2f >= %.2f Mbits/s meets the minimum' % (
-                tx_rx,
-                _BitsToMbits(iperf_avg['bits_per_second']),
-                min_throughput))
+    if min_throughput is None:
+      return None
+
+    self._log[log_pass_key] = (
+        _BitsToMbits(iperf_avg['bits_per_second']) > min_throughput)
+    if not self._log[log_pass_key]:
+      raise self._TestException(
+          '%s throughput %.2f < %.2f Mbits/s didn\'t meet the minimum' %
+          (tx_rx, _BitsToMbits(iperf_avg['bits_per_second']), min_throughput))
+    else:
+      return ('%s throughput %.2f >= %.2f Mbits/s meets the minimum' %
+              (tx_rx, _BitsToMbits(iperf_avg['bits_per_second']),
+               min_throughput))
 
   def _Disconnect(self, ssid):
     # Try disconnecting.

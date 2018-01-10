@@ -65,7 +65,6 @@ Test 20V charge without checking the input current::
 """
 
 import logging
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -239,7 +238,7 @@ class PlanktonChargeBFTTest(test_ui.TestCaseWithUI):
       ina_values = self._bft_fixture.ReadINAValues()
       sampled_ina_current.append(ina_values['current'])
       sampled_ina_voltage.append(ina_values['voltage'])
-      time.sleep(self.args.current_sampling_period_secs)
+      self.Sleep(self.args.current_sampling_period_secs)
 
     if not (self._remote_test and not charging):
       logging.info('Sampled battery current: %s', str(sampled_battery_current))
@@ -285,12 +284,12 @@ class PlanktonChargeBFTTest(test_ui.TestCaseWithUI):
 
     self.ui.SetState(_('Checking Plankton INA current for protection...'))
     self._bft_fixture.SetDeviceEngaged('CHARGE_5V', engage=True)
-    time.sleep(self.args.wait_after_engage_secs)
+    self.Sleep(self.args.wait_after_engage_secs)
 
     ina_current = 0
     retry = self.args.protect_ina_retry_times
     while retry > 0:
-      time.sleep(1)  # Wait for INA stable
+      self.Sleep(1)  # Wait for INA stable
       ina_current = self._bft_fixture.ReadINAValues()['current']
       logging.info('Current of plankton INA = %d mA', ina_current)
       if current_min <= ina_current <= current_max:
@@ -331,7 +330,7 @@ class PlanktonChargeBFTTest(test_ui.TestCaseWithUI):
 
     # Plankton-Raiden board setting: engage
     self._bft_fixture.SetDeviceEngaged(command_device, engage=True)
-    time.sleep(self.args.wait_after_engage_secs)
+    self.Sleep(self.args.wait_after_engage_secs)
 
     if self.args.monitor_plankton_voltage_only:
       if not self.MonitorINAVoltage(self.args.charge_duration_secs,
@@ -374,7 +373,7 @@ class PlanktonChargeBFTTest(test_ui.TestCaseWithUI):
     logging.info('Testing discharge...')
     self.ui.SetState(_('Testing battery discharging...'))
     self._bft_fixture.SetDeviceEngaged('CHARGE_5V', engage=False)
-    time.sleep(self.args.wait_after_engage_secs)
+    self.Sleep(self.args.wait_after_engage_secs)
 
     if self.args.monitor_plankton_voltage_only:
       if not self.MonitorINAVoltage(self.args.charge_duration_secs, 5):

@@ -285,5 +285,5 @@ class CountDownTest(test_ui.TestCaseWithUI):
         self.UpdateUILog(sys_status)
         self._next_ui_update_time = current_time + self.args.ui_update_interval
 
-      time.sleep(1)
+      self.Sleep(1)
       self._elapsed_secs = time.time() - self._start_secs

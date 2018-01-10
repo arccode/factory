@@ -60,7 +60,6 @@ One can also pass parameters to the classes specified in `robot_fixture` and
 """
 
 import logging
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -169,9 +168,9 @@ class RobotMovement(test_ui.TestCaseWithUI):
     for position in self.args.positions:
       session.console.info('Move to position %d.', position)
       self._robot.MoveTo(position)
-      time.sleep(self.args.period_between_movement)
+      self.Sleep(self.args.period_between_movement)
 
-    time.sleep(self.args.period_after_movement)
+    self.Sleep(self.args.period_after_movement)
 
     self._algorithm.OnStopMoving(self._dut)
 

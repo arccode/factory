@@ -237,7 +237,7 @@ class TabletRotationTest(test_ui.TestCaseWithUI):
 
       # Target has still not been reached.  Sleep and continue.
       degrees_previous = degrees_current
-      self.WaitTaskEnd(timeout=_POLL_ROTATION_INTERVAL)
+      self.Sleep(_POLL_ROTATION_INTERVAL)
 
   def _GetCurrentDegrees(self):
     display_info = None
@@ -260,5 +260,5 @@ class TabletRotationTest(test_ui.TestCaseWithUI):
     for degrees_target in _TEST_DEGREES:
       self._PromptAndWaitForRotation(degrees_target)
       self.ui.ToggleClass('template', 'show-success', True)
-      self.WaitTaskEnd(timeout=1)
+      self.Sleep(1)
       self.ui.ToggleClass('template', 'show-success', False)

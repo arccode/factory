@@ -7,15 +7,14 @@ or SMT fixture confirm LED functionality."""
 
 import logging
 import random
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.device import led as led_module
-from cros.factory.test.i18n import _
 # The right BFTFixture module is dynamically imported based on args.bft_fixture.
 # See setUp() for more detail.
 from cros.factory.test.fixture import bft_fixture
+from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 
@@ -147,11 +146,11 @@ class LEDTest(test_ui.TestCaseWithUI):
       pressed_key = int(self.ui.WaitKeysOnce(keys)) - 1
       if pressed_key == answer:
         self.ui.SetHTML('<span class="result-pass">PASS</span>', id='result')
-        time.sleep(0.5)
+        self.Sleep(0.5)
         self.PassTask()
       else:
         self.ui.SetHTML('<span class="result-fail">FAIL</span>', id='result')
-        time.sleep(0.5)
+        self.Sleep(0.5)
         self.FailTask('correct color for %s is %s but got %s.' %
                       (led_name, color, color_options[pressed_key]))
     finally:

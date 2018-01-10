@@ -294,7 +294,7 @@ class SyncFactoryServer(test_ui.TestCaseWithUI):
           label_connect, label_status,
           _('Current networks: {networks}', networks=networks)
       ])
-      time.sleep(0.5)
+      self.Sleep(0.5)
 
     self.ChangeServerURL(new_url)
     self.do_setup_url.clear()
@@ -493,7 +493,7 @@ class SyncFactoryServer(test_ui.TestCaseWithUI):
               '<span style="color: green">',
               _('Server Task Finished: {label}', label=label), '</span>'
           ])
-          time.sleep(0.5)
+          self.Sleep(0.5)
           break
         except server_proxy.Fault as f:
           message = f.faultString

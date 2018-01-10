@@ -198,7 +198,7 @@ class ShutdownTest(test_ui.TestCaseWithUI):
     try:
       self.goofy.Shutdown(self.args.operation)
 
-      time.sleep(self.args.wait_shutdown_secs)
+      self.Sleep(self.args.wait_shutdown_secs)
     except type_utils.TestFailure:
       return
     self.FailTask(
@@ -324,7 +324,7 @@ class ShutdownTest(test_ui.TestCaseWithUI):
       if checkpoints[0]():
         logging.info('%s is passed.', checkpoints[0])
         checkpoints.pop(0)
-      time.sleep(POLLING_PERIOD)
+      self.Sleep(POLLING_PERIOD)
 
   def LocalShutdown(self):
     key_post_shutdown = state.KEY_POST_SHUTDOWN % self.test_info.path

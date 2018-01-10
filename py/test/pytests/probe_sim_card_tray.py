@@ -15,8 +15,8 @@ import logging
 import os
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import session
 from cros.factory.test.i18n import _
+from cros.factory.test import session
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
@@ -168,4 +168,4 @@ class ProbeSimCardTrayTest(test_ui.TestCaseWithUI):
         logging.info('%s detected', state)
         session.console.info('%s detected', state)
         return
-      self.WaitTaskEnd(timeout=_INSERT_CHECK_PERIOD_SECS)
+      self.Sleep(_INSERT_CHECK_PERIOD_SECS)

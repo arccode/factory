@@ -9,7 +9,6 @@ output to verify.
 
 import logging
 import os
-import time
 import xmlrpclib
 
 import factory_common  # pylint: disable=unused-import
@@ -136,9 +135,10 @@ class PlanktonDisplayTest(test_ui.TestCaseWithUI):
       self._bft_fixture.SetDeviceEngaged(self._bft_media_device, engage=True)
       if self.args.force_dp_renegotiated:
         self._bft_fixture.SetFakeDisconnection(1)
-        time.sleep(1)  # diconnetion by software for re-negotiation.
+        # disconnetion by software for re-negotiation.
+        self.Sleep(1)
       else:
-        time.sleep(0.5)
+        self.Sleep(0.5)
       if self.args.fire_hpd_manually:
         self._dut.usb_c.SetHPD(self.args.usb_c_index)
         self._dut.usb_c.SetPortFunction(self.args.usb_c_index, 'dp')
@@ -152,7 +152,8 @@ class PlanktonDisplayTest(test_ui.TestCaseWithUI):
       self._bft_fixture.SetDeviceEngaged(self._bft_media_device, engage=False)
       if self.args.force_dp_renegotiated:
         self._bft_fixture.SetFakeDisconnection(1)
-        time.sleep(1)  # diconnetion by software for re-negotiation.
+        # disconnetion by software for re-negotiation.
+        self.Sleep(1)
       sync_utils.WaitFor(lambda: not self._PollDisplayConnected(),
                          timeout_secs=10)
 
@@ -160,7 +161,8 @@ class PlanktonDisplayTest(test_ui.TestCaseWithUI):
       self.ui.AdvanceProgress()
       return
 
-    time.sleep(_WAIT_DISPLAY_SIGNAL_SECS)  # need a delay for display_info
+    # need a delay for display_info
+    self.Sleep(_WAIT_DISPLAY_SIGNAL_SECS)
     display_info = state.get_instance().DeviceGetDisplayInfo()
     logging.info('Get display info %r', display_info)
     # In the case of connecting an external display, make sure there
@@ -184,7 +186,8 @@ class PlanktonDisplayTest(test_ui.TestCaseWithUI):
       self.frontend_proxy.ToggleFullscreen()
       self.SetMainDisplay(recover_original=False)
 
-    time.sleep(_WAIT_DISPLAY_SIGNAL_SECS)  # wait for display signal stable
+    # wait for display signal stable
+    self.Sleep(_WAIT_DISPLAY_SIGNAL_SECS)
     self.ui.AdvanceProgress()
 
   def TestCaptureImage(self):
@@ -206,7 +209,8 @@ class PlanktonDisplayTest(test_ui.TestCaseWithUI):
     if self.args.verify_display_switch:
       self.frontend_proxy.ToggleFullscreen()
       self.SetMainDisplay(recover_original=True)
-      time.sleep(_WAIT_DISPLAY_SIGNAL_SECS)  # wait for display signal stable
+      # wait for display signal stable
+      self.Sleep(_WAIT_DISPLAY_SIGNAL_SECS)
 
     self.ui.AdvanceProgress()
 
@@ -239,7 +243,7 @@ class PlanktonDisplayTest(test_ui.TestCaseWithUI):
         break
       evdev_utils.SendKeys([evdev.ecodes.KEY_LEFTALT, evdev.ecodes.KEY_F4])
       tries_left -= 1
-      time.sleep(_WAIT_RETEST_SECS)
+      self.Sleep(_WAIT_RETEST_SECS)
 
     if tries_left == 0:
       self.FailTask('Fail to switch main display')

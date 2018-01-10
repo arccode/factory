@@ -10,7 +10,6 @@ should be disconnected.
 """
 
 import logging
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -46,7 +45,7 @@ class PlanktonCC2PullTest(test_ui.TestCaseWithUI):
     self._plankton_fixture = bft_fixture.CreateBFTFixture(
         **self.args.plankton_bft_fixture)
     self._plankton_fixture.SetDeviceEngaged('USB3', engage=True)
-    time.sleep(1)  # Wait for CC line
+    self.Sleep(1)  # Wait for CC line
 
   def GetCCPolarity(self):
     """Gets CC status of the DUT's USB type-C port.
@@ -83,7 +82,7 @@ class PlanktonCC2PullTest(test_ui.TestCaseWithUI):
             secs=self.args.disconnect_secs))
       self._plankton_fixture.SetFakeDisconnection(self.args.disconnect_secs)
 
-    time.sleep(disconnect_half_secs)
+    self.Sleep(disconnect_half_secs)
     # During Whale pull-high CC2 with cable disconnected, check CC is 'CC2'.
     # Measure CC status in the middle of cable disconnection interval to make
     # sure it gets stable status.
@@ -94,14 +93,14 @@ class PlanktonCC2PullTest(test_ui.TestCaseWithUI):
       self.ui.SetState(
           _('Please attach USB type-C cable in {secs:.1f} seconds',
             secs=disconnect_half_secs))
-    time.sleep(disconnect_half_secs)
+    self.Sleep(disconnect_half_secs)
 
     self.assertEqual('CC2', cc_status,
                      msg='[pull-high stage] unexpected CC status: '
                          '%s (expect CC2)' % cc_status)
 
     # After Whale released CC2, check CC status is 'CC1'
-    time.sleep(1)  # Wait for CC line
+    self.Sleep(1)  # Wait for CC line
     cc_status = self.GetCCPolarity()
     self.assertEqual('CC1', cc_status,
                      msg='[recover stage] unexpected CC status: '

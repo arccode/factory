@@ -176,7 +176,6 @@ class BatteryCycleTest(test_ui.TestCaseWithUI):
           logging.info('%s cycle completed in %d seconds',
                        self.mode, now - phase_start_time)
 
-          # pylint: disable=protected-access
           if self.history and self.history[-1].discharge is None:
             self.history[-1] = self.history[-1]._replace(
                 discharge=(now - phase_start_time))
@@ -208,7 +207,7 @@ class BatteryCycleTest(test_ui.TestCaseWithUI):
             if first_done_time[0] else '',
             id='bc-phase-complete')
 
-        time.sleep(self.args.idle_time_secs)
+        self.Sleep(self.args.idle_time_secs)
 
   def runTest(self):
     try:
