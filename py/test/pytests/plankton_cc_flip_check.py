@@ -183,6 +183,28 @@ class PlanktonCCFlipCheck(test_ui.TestCaseWithUI):
                  self.args.state_src_ready, port_status['state'])
     return _CC_UNCONNECT
 
+  def CheckCCPolarityWithRetry(self, expected_polarity, retry_times):
+    """Check the CC Polarity.
+
+    It will retry by retry_times argument to let PD do negotiate.
+
+    Args:
+      expected_polarity: expected polarity.
+      retry_times: retry times.
+
+    Returns:
+      'CC1' or 'CC2', or _CC_UNCONNECT
+    """
+    # We may need some time for PD negotiate and settle down
+    retry_times_left = retry_times
+    polarity = self.GetCCPolarity()
+    while retry_times_left != 0 and polarity != expected_polarity:
+      self.WaitTaskEnd(timeout=1)
+      polarity = self.GetCCPolarity()
+      logging.info('[%d]Poll polarity %s', retry_times_left, polarity)
+      retry_times_left -= 1
+    return polarity
+
   def GetCCPolarityWithRetry(self, retry_times):
     """Get the CC Polarity.
 
@@ -255,7 +277,7 @@ class PlanktonCCFlipCheck(test_ui.TestCaseWithUI):
         # For remote test, keep adb connection enabled.
         self._bft_fixture.SetDeviceEngaged('ADB_HOST', engage=True)
 
-      new_polarity = self.GetCCPolarityWithRetry(5)
+      new_polarity = self.CheckCCPolarityWithRetry(self._polarity, 5)
 
       if new_polarity == self._polarity:
         self.FailTask('Unexpected polarity')
