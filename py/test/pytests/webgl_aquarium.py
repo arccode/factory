@@ -18,7 +18,7 @@ class WebGLAquariumTest(test_ui.TestCaseWithUI):
       Arg('hide_options', bool, 'Whether to hide the options on UI',
           default=True),
       Arg('full_screen', bool, 'Whether to go full screen mode by default',
-          default=False)
+          default=True)
   ]
 
   def setUp(self):
