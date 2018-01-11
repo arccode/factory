@@ -18,6 +18,7 @@ the order of its events."""
 
 from __future__ import print_function
 
+import multiprocessing
 import os
 import shutil
 
@@ -37,6 +38,7 @@ _LOCK_ACQUIRE_TIMEOUT = 0.1
 _LOCK_ACQUIRE_LOOP_TIMES = 25  # emit timeout in
                                # (_LOCK_ACQUIRE_LOOP_TIMES * _LEVEL_FILE *
                                #  _LOCK_ACQUIRE_TIMEOUT) = 10sec
+_PROCESSES_NUMBER = 10
 _TEMPORARY_METADATA_DIR = 'metadata_tmp_dir'
 _TEMPORARY_ATTACHMENT_DIR = 'attachments_tmp_dir'
 _DEFAULT_TRUNCATE_INTERVAL = 0  # truncating disabled
@@ -69,6 +71,8 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
 
     self.consumers = {}
     self._file_num_lock = [None] * _LEVEL_FILE
+
+    self.process_pool = None
 
     super(BufferPriorityFile, self).__init__(*args, **kwargs)
 
@@ -105,6 +109,8 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
     for name in self.buffer_file[0][0].consumers.keys():
       self.consumers[name] = Consumer(name, self)
 
+    self.process_pool = multiprocessing.Pool(processes=_PROCESSES_NUMBER)
+
   def Main(self):
     """Main thread of the plugin."""
     while not self.IsStopping():
@@ -128,7 +134,8 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
       with self._file_num_lock[file_num]:
         for pri_level in xrange(_PRIORITY_LEVEL):
           self.info('Truncating database %d_%d...', pri_level, file_num)
-          self.buffer_file[pri_level][file_num].Truncate()
+          self.buffer_file[pri_level][file_num].Truncate(
+              process_pool=self.process_pool)
     self.info('Truncating complete.  Sleeping %d secs...',
               self.args.truncate_interval)
 
@@ -218,8 +225,9 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
             source_paths.append(att_path)
             event.attachments[att_id] = os.path.join(
                 tmp_dir, att_path.replace('/', '_'))
-        if not buffer_file_common.CopyAttachmentsToTempDir(
-            source_paths, tmp_dir, self.logger.name):
+        if not self.process_pool.apply(
+            buffer_file_common.CopyAttachmentsToTempDir,
+            (source_paths, tmp_dir, self.logger.name)):
           return False
 
         # Step 2: Acquire a lock.
@@ -235,7 +243,7 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
           if len(priority_events[pri_level]) == 0:
             continue
           self.buffer_file[pri_level][file_num].ProduceEvents(
-              priority_events[pri_level])
+              priority_events[pri_level], self.process_pool)
         # Step 4: Remove source attachment files if necessary.
         if not self.args.copy_attachments:
           for path in source_paths:

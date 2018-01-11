@@ -78,11 +78,11 @@ import json
 import logging
 import os
 import shutil
-import threading
 import zlib
 
 import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
+from instalog import lock_utils
 from instalog import log_utils
 from instalog import plugin_base
 from instalog.utils import file_utils
@@ -415,11 +415,11 @@ class BufferFile(log_utils.LoggerMixin):
 
     # Lock for writing to the self.data_path file.  Used by
     # Produce and Truncate.
-    self.data_write_lock = threading.Lock()
+    self.data_write_lock = lock_utils.Lock()
 
     # Lock for modifying the self.consumers variable or for
     # preventing other threads from changing it.
-    self._consumer_lock = threading.Lock()
+    self._consumer_lock = lock_utils.Lock()
     self.consumers = {}
 
     self._RestoreConsumers()
@@ -480,10 +480,13 @@ class BufferFile(log_utils.LoggerMixin):
             'consumer_path_format': self.consumer_path_format,
             'attachments_dir': self.attachments_dir}
 
-  def ProduceEvents(self, events):
+  def ProduceEvents(self, events, process_pool=None):
     """Moves attachments, serializes events and writes them to the data_path."""
     with self.data_write_lock:
-      MoveAndWrite(self.ConfigToDict(), events)
+      if process_pool is None:
+        MoveAndWrite(self.ConfigToDict(), events)
+      else:
+        process_pool.apply(MoveAndWrite, (self.ConfigToDict(), events))
 
   def _GetFirstUnconsumedRecord(self):
     """Returns the seq and pos of the first unprocessed record.
@@ -499,7 +502,7 @@ class BufferFile(log_utils.LoggerMixin):
       min_pos = min(min_pos, consumer.cur_pos)
     return min_seq, min_pos
 
-  def Truncate(self, truncate_attachments=True):
+  def Truncate(self, truncate_attachments=True, process_pool=None):
     """Truncates the main data file to only contain unprocessed records.
 
     See file-level docstring for more information about versions.
@@ -513,7 +516,12 @@ class BufferFile(log_utils.LoggerMixin):
       try:
         for consumer in self.consumers.values():
           consumer.read_lock.acquire()
-        Truncate(self.ConfigToDict(), min_seq, min_pos, truncate_attachments)
+        if process_pool is None:
+          Truncate(self.ConfigToDict(), min_seq, min_pos, truncate_attachments)
+        else:
+          process_pool.apply(
+              Truncate,
+              (self.ConfigToDict(), min_seq, min_pos, truncate_attachments))
       except Exception:
         self.exception('Exception occurred during Truncate operation')
         # If any exceptions occurred, restore metadata, to make sure we are
@@ -586,8 +594,8 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
     self.metadata_path = metadata_path
     self.logger = logging.getLogger(logger_name)
 
-    self._lock = threading.Lock()
-    self.read_lock = threading.Lock()
+    self._lock = lock_utils.Lock()
+    self.read_lock = lock_utils.Lock()
     self.read_buf = []
 
     metadata_dct = RestoreMetadata(self.simple_file.ConfigToDict())
