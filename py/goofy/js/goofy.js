@@ -1560,9 +1560,9 @@ cros.factory.Goofy = class {
         goog.dom.safe.setInnerHtml(
             messageDiv,
             cros.factory.i18n.i18nLabel(
-                '{action} in {seconds_left} seconds ({times_text}).\n' +
-                    'To cancel, press the Escape key.',
-                {action, times_text: timesText, seconds_left: secondsLeft}));
+                _('{action} in {seconds_left} seconds ({times_text}).\n' +
+                      'To cancel, press the Escape key.',
+                  {action, times_text: timesText, seconds_left: secondsLeft})));
       } else if (now - endTime < shutdownInfo.wait_shutdown_secs) {
         cros.factory.Goofy.setDialogContent(
             shutdownDialog, cros.factory.i18n.i18nLabel('Shutting down...'));
@@ -1648,7 +1648,7 @@ cros.factory.Goofy = class {
     const test_label = cros.factory.i18n.translated(test.label);
 
     const item = new goog.ui.MenuItem(cros.factory.i18n.i18nLabelNode(
-        test.subtests.length ? text : text_leaf, {count, test: test_label}));
+        _(test.subtests.length ? text : text_leaf, {count, test: test_label})));
     item.setEnabled(count !== 0);
     goog.events.listen(
         item, goog.ui.Component.EventType.ACTION, handler, true, this);
@@ -2290,17 +2290,17 @@ cros.factory.Goofy = class {
           if (temporary) {
             cros.factory.Goofy.setDialogContent(
                 dialog,
-                cros.factory.i18n.i18nLabel(
+                cros.factory.i18n.i18nLabel(_(
                     'Success! Saved factory logs ({size}) bytes) to {dev} as' +
                         '\n{filename}. The drive has been unmounted.',
-                    {size: size.toString(), dev, filename}));
+                    {size: size.toString(), dev, filename})));
           } else {
             cros.factory.Goofy.setDialogContent(
                 dialog,
-                cros.factory.i18n.i18nLabel(
+                cros.factory.i18n.i18nLabel(_(
                     'Success! Saved factory logs ({size}) bytes) to {dev} as' +
                         '\n{filename}.',
-                    {size: size.toString(), dev, filename}));
+                    {size: size.toString(), dev, filename})));
           }
         } catch (error) {
           cros.factory.Goofy.setDialogContent(
@@ -2658,11 +2658,11 @@ cros.factory.Goofy = class {
             dialog, cros.factory.i18n.i18nLabel(title));
         cros.factory.Goofy.setDialogContent(
             dialog,
-            cros.factory.i18n.i18nLabel(
+            cros.factory.i18n.i18nLabel(_(
                 'Warning: Switching to test list "{test_list}"' +
                     ' will clear all test state.\n' +
                     'Are you sure you want to proceed?',
-                {test_list: name}));
+                {test_list: name})));
 
         const buttonSet = new goog.ui.Dialog.ButtonSet();
         buttonSet.set(

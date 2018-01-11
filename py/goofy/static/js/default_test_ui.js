@@ -6,7 +6,6 @@ const test = window.test;
 const invocation = test.invocation;
 const goofy = invocation.goofy;
 const testEntry = goofy.pathTestMap[invocation.path];
-const _ = cros.factory.i18n.translation;
 
 const startTime = Date.now();
 
@@ -34,9 +33,9 @@ const tick = () => {
     return;
   }
   goog.dom.safe.setInnerHtml(
-      element, cros.factory.i18n.i18nLabel('{seconds} seconds', {
+      element, cros.factory.i18n.i18nLabel(_('{seconds} seconds', {
         seconds: Math.floor((Date.now() - startTime) / 1000)
-      }));
+      })));
   window.setTimeout(tick, 1000);
 };
 

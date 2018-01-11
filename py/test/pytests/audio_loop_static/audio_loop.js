@@ -13,7 +13,7 @@ const testInProgress = (successRate) => {
   window.template.innerHTML = '';
   if (successRate != null) {
     window.template.appendChild(cros.factory.i18n.i18nLabelNode(
-        'Loopback testing...\nSuccess Rate: {successRate}', {successRate}));
+        _('Loopback testing...\nSuccess Rate: {successRate}', {successRate})));
   } else {
     window.template.appendChild(
         cros.factory.i18n.i18nLabelNode('Loopback testing...'));
@@ -23,7 +23,7 @@ const testInProgress = (successRate) => {
 const testFailResult = (successRate) => {
   window.template.innerHTML = '';
   window.template.appendChild(cros.factory.i18n.i18nLabelNode(
-      'Testing Result: Fail\nSuccess Rate: {successRate}', {successRate}));
+      _('Testing Result: Fail\nSuccess Rate: {successRate}', {successRate})));
 };
 
 const testPassResult = () => {

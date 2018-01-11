@@ -226,11 +226,10 @@ ns.stringFormat = (format, dict) => {
 /**
  * Make a translated label.
  * @param {string|!cros.factory.i18n.TranslationDict} text
- * @param {!Object<string, string>=} dict
  * @return {!goog.html.SafeHtml}
  */
-ns.i18nLabel = (text, dict = {}) => {
-  const label = ns.stringFormat(text, dict);
+ns.i18nLabel = (text) => {
+  const label = ns.translated(text);
   const children = [];
   for (const locale of ns.locales) {
     const translated_label = label[locale];
@@ -245,11 +244,10 @@ ns.i18nLabel = (text, dict = {}) => {
 /**
  * Make a translated label as DOM node.
  * @param {string|!cros.factory.i18n.TranslationDict} text
- * @param {!Object<string, string>=} dict
  * @return {!Node}
  */
-ns.i18nLabelNode = (text, dict = {}) => {
-  return goog.dom.safeHtmlToNode(ns.i18nLabel(text, dict));
+ns.i18nLabelNode = (text) => {
+  return goog.dom.safeHtmlToNode(ns.i18nLabel(text));
 };
 
 /**
@@ -276,10 +274,26 @@ ns.getLocaleNames = () => {
   return ret;
 };
 
+/**
+ * Wrapper for i18n string processing.
+ *
+ * This acts as translation when dict is not given, and stringFormat when dict
+ * is given.
+ * @param {string|!cros.factory.i18n.TranslationDict} format the format
+ *     string.
+ * @param {?Object<string, string>=} dict the arguments in format string.
+ * @return {!cros.factory.i18n.TranslationDict}
+ */
+ns._ = (format, dict = null) => {
+  if (dict == null) {
+    return ns.translation(goog.asserts.assertString(format));
+  }
+  return ns.stringFormat(format, dict);
+};
+
 });
 
 /**
- * @type {function(string): cros.factory.i18n.TranslationDict}
  * @export
  */
-const _ = cros.factory.i18n.translation.bind(cros.factory.i18n);
+const _ = cros.factory.i18n._.bind(cros.factory.i18n);
