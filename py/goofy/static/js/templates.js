@@ -74,8 +74,6 @@
    * A custom HTML element <test-template>.
    * The template has four sections: title, instruction (optional), state and
    * buttons.
-   * The template would be available in JavaScript as window.template after
-   * created.
    *
    * The instruction section also contains a progress bar, which is initially
    * hidden and can be shown with template.drawProgressBar().
@@ -83,8 +81,6 @@
   class TestTemplate extends HTMLElement {
     constructor() {
       super();
-
-      window.template = this;
 
       this.attachShadow({mode: 'open'});
       const template = templateDoc.getElementById('test-template');
@@ -225,6 +221,18 @@
       this.shadowRoot.querySelector('#timer-container')
           .classList.remove('show');
     }
+
+    /**
+     * Set the view of the template.
+     * @param {string} view the id of the view to set.
+     */
+    setView(view) {
+      this.shadowRoot.querySelector('#state-container')
+          .setAttribute('view', view);
+    }
   }
   window.customElements.define('test-template', TestTemplate);
+  Object.defineProperty(window, 'template', {
+    get: () => document.querySelector('test-template')
+  });
 })();

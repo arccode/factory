@@ -1,6 +1,7 @@
 <html>
   <head>
     <script src="/js/templates.js" defer></script>
+    <link rel="import" href="/test_views.html">
   </head>
   <body>
     <template id="test-template">
@@ -95,18 +96,10 @@
 
         #state-container {
           padding: 1rem;
-          flex: 1;
           background-color: var(--template-background-color, white);
+          flex: 1;
           display: flex;
-          flex-flow: column;
-          align-items: center;
-          justify-content: center;
           position: relative;
-        }
-
-        :host(.scrollable) #state-container {
-          overflow: auto;
-          justify-content: flex-start;
         }
 
         #button-container {
@@ -171,9 +164,13 @@
             </div>
           </div>
         </div>
-        <div id="state-container">
-          <slot></slot>
-        </div>
+        <test-views-container id="state-container" view="main">
+          <test-view id="main">
+            <slot></slot>
+          </test-view>
+          <slot name="extra-views">
+          </slot>
+        </test-views-container>
         <div id="button-container">
           <div id="extra-button-container">
             <slot name="extra-button"></slot>
