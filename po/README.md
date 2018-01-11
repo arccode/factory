@@ -48,16 +48,3 @@ This shows the workflow for each scenario.
    contains all text extracted from both public repository and board overlay.
    Edit the file and add translations.
 3. Commit the new `.po` file.
-
-## Note
-For ease of writing pytests, if the first argument of some functions need to
-be passed to `_()`, the `_()` call can be omitted.
-
-Currently, the functions that have this behavior are
-`cros.factory.test.i18n.test_ui.MakeI18nLabel`,
-`cros.factory.test.i18n.test_ui.MakeI18nLabelWithClass`.
-
-This means that one can write `MakeI18nLabel('{var} text', var=1)` instead of
-`MakeI18nLabel(_('{var} text'), var=1)`.
-
-More functions may be added later if found useful.
