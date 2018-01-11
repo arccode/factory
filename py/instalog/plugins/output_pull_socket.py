@@ -126,7 +126,8 @@ class OutputPullSocket(plugin_base.OutputPlugin):
         if not success:
           self.warning('No connection when listening')
 
-      sender = output_socket.OutputSocketSender(self.logger, self._sock, self)
+      sender = output_socket.OutputSocketSender(
+          self.logger.name, self._sock, self)
       if sender.ProcessRequest(events):
         event_stream.Commit()
       else:

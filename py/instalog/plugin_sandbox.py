@@ -22,6 +22,7 @@ import time
 import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
 from instalog import flow_policy
+from instalog import log_utils
 from instalog import plugin_base
 from instalog import plugin_loader
 from instalog.utils import debug_utils
@@ -68,7 +69,7 @@ class CoreAPI(object):
     raise NotImplementedError
 
 
-class PluginSandbox(plugin_base.PluginAPI):
+class PluginSandbox(plugin_base.PluginAPI, log_utils.LoggerMixin):
   """Represents a running instance of a particular plugin.
 
   Implementation for non-PluginAPI functions is not thread-safe.  I.e., you
@@ -279,8 +280,8 @@ class PluginSandbox(plugin_base.PluginAPI):
       (action is self._ERROR).
     """
     caller_name = debug_utils.GetCallerName()
-    self.logger.debug('_AskGatekeeper for plugin %s (%s) on function %s',
-                      self.plugin_id, self._state, caller_name)
+    self.debug('_AskGatekeeper for plugin %s (%s) on function %s',
+               self.plugin_id, self._state, caller_name)
 
     # Ensure that the plugin instance is currently registered.  If the plugin
     # has previously been restarted, and some remaining threads are still
@@ -288,7 +289,7 @@ class PluginSandbox(plugin_base.PluginAPI):
     # purposes.
     if plugin is not self._plugin:
       self._RecordUnexpectedAccess(plugin, caller_name, inspect.stack())
-      self.logger.critical(
+      self.critical(
           'Plugin %s (%s) called core %s: Unexpected plugin instance',
           self.plugin_id, self._state, caller_name)
       raise plugin_base.UnexpectedAccess
@@ -297,14 +298,14 @@ class PluginSandbox(plugin_base.PluginAPI):
     action = state_map.get(self._state, self._ERROR)
 
     if action is self._WAIT:
-      self.logger.info(
+      self.info(
           'Plugin %s (%s) called core %s: Currently in a paused state',
           self.plugin_id, self._state, caller_name)
       raise plugin_base.WaitException
 
     if action is self._ERROR:
       self._RecordUnexpectedAccess(plugin, caller_name, inspect.stack())
-      self.logger.info(
+      self.info(
           'Plugin %s (%s) called core %s: Unexpected access',
           self.plugin_id, self._state, caller_name)
       raise plugin_base.UnexpectedAccess
@@ -322,7 +323,7 @@ class PluginSandbox(plugin_base.PluginAPI):
     if not isinstance(allowed_states, list):
       allowed_states = [allowed_states]
     caller_name = debug_utils.GetCallerName()
-    self.logger.debug(
+    self.debug(
         '_CheckStateCommand for plugin %s (%s) on function %s',
         self.plugin_id, self._state, caller_name)
     if self._state not in allowed_states:
@@ -332,7 +333,7 @@ class PluginSandbox(plugin_base.PluginAPI):
 
   def GetState(self):
     """Returns the current state of the plugin."""
-    self.logger.debug('GetState called: %s', self._state)
+    self.debug('GetState called: %s', self._state)
     return self._state
 
   def GetProgress(self):
@@ -349,7 +350,7 @@ class PluginSandbox(plugin_base.PluginAPI):
 
   def IsLoaded(self):
     """Returns whether the plugin is currently loaded (not DOWN)."""
-    self.logger.debug('IsLoaded called: %s', self._state)
+    self.debug('IsLoaded called: %s', self._state)
     return self._state is not DOWN
 
   def _Load(self):
@@ -448,7 +449,7 @@ class PluginSandbox(plugin_base.PluginAPI):
           fn()
         except Exception as e:
           self._last_exception = e
-          self.logger.exception('Exception caused by %s', fn.__name__)
+          self.exception('Exception caused by %s', fn.__name__)
       t = threading.Thread(target=RunAndCaptureException, args=(fn,))
       t.start()
       if sync:
@@ -459,12 +460,12 @@ class PluginSandbox(plugin_base.PluginAPI):
     # plugin thread spawned by SpawnFn encountered an error.  Deal with the
     # error appropriately.
     if self._last_exception:
-      self.logger.debug('AdvanceState last_exception exists')
+      self.debug('AdvanceState last_exception exists')
       self._last_exception = None
       if self._state is DOWN:
-        self.logger.error('Exception occurred, current state is DOWN')
+        self.error('Exception occurred, current state is DOWN')
       else:
-        self.logger.error('Exception occurred, forcing state to STOPPING')
+        self.error('Exception occurred, forcing state to STOPPING')
         self._state = STOPPING
 
     # If we are in a stage where the main thread should be running, but it has
@@ -475,13 +476,13 @@ class PluginSandbox(plugin_base.PluginAPI):
     if (self._state in (UP, PAUSING, PAUSED) and
         'Main' in self._plugin.__class__.__dict__ and
         not self._main_thread.is_alive()):
-      self.logger.debug('AdvanceState unexpected main thread dead')
-      self.logger.error('Main thread died unexpectedly, '
-                        'forcing state to STOPPING')
+      self.debug('AdvanceState unexpected main thread dead')
+      self.error('Main thread died unexpectedly, '
+                 'forcing state to STOPPING')
       self._state = STOPPING
 
     if self._state is STARTING:
-      self.logger.debug('AdvanceState on STARTING')
+      self.debug('AdvanceState on STARTING')
       if not self._setup_thread:
         self._setup_thread = SpawnFn(self._plugin.SetUp, sync)
       if self._setup_thread and not self._setup_thread.is_alive():
@@ -490,7 +491,7 @@ class PluginSandbox(plugin_base.PluginAPI):
         self._state = UP
 
     elif self._state is STOPPING:
-      self.logger.debug('AdvanceState on STOPPING')
+      self.debug('AdvanceState on STOPPING')
       if self._main_thread and sync:
         self._main_thread.join()
       if self._main_thread and not self._main_thread.is_alive():
@@ -502,7 +503,7 @@ class PluginSandbox(plugin_base.PluginAPI):
         self._state = DOWN
 
     elif self._state is FLUSHING:
-      self.logger.debug('AdvanceState on FLUSHING')
+      self.debug('AdvanceState on FLUSHING')
       if not self._flushing_target or not self._flushing_timeout:
         self._flushing_target = None
         self._flushing_timeout = None
@@ -531,12 +532,12 @@ class PluginSandbox(plugin_base.PluginAPI):
         self._state = UP
 
     elif self._state is PAUSING:
-      self.logger.debug('AdvanceState on PAUSING')
+      self.debug('AdvanceState on PAUSING')
       if not self._event_stream_map:
         self._state = PAUSED
 
     elif self._state is UNPAUSING:
-      self.logger.debug('AdvanceState on UNPAUSING')
+      self.debug('AdvanceState on UNPAUSING')
       self._state = UP
 
   ############################################################
@@ -546,32 +547,32 @@ class PluginSandbox(plugin_base.PluginAPI):
   def SaveStore(self, plugin):
     """See PluginAPI.SaveStore."""
     self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_ALL)
-    self.logger.debug('SaveStore called with state=%s', self._state)
+    self.debug('SaveStore called with state=%s', self._state)
     with file_utils.AtomicWrite(self._store_path) as f:
       f.write(json_utils.JSONEncoder().encode(self.store))
 
   def GetDataDir(self, plugin):
     """See PluginAPI.GetDataDir."""
     self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_ALL)
-    self.logger.debug('GetDataDir called with state=%s', self._state)
+    self.debug('GetDataDir called with state=%s', self._state)
     return self._data_dir
 
   def GetNodeID(self, plugin):
     """See PluginAPI.GetNodeID."""
     self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_ALL)
-    self.logger.debug('GetNodeID called with state=%s', self._state)
+    self.debug('GetNodeID called with state=%s', self._state)
     return self._core_api.GetNodeID()
 
   def IsStopping(self, plugin):
     """See PluginAPI.IsStopping."""
     self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_ALL)
-    self.logger.debug('IsStopping called with state=%s', self._state)
+    self.debug('IsStopping called with state=%s', self._state)
     return self._state is STOPPING
 
   def IsFlushing(self, plugin):
     """See PluginAPI.IsFlushing."""
     self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_ALL)
-    self.logger.debug('IsFlushing called with state=%s', self._state)
+    self.debug('IsFlushing called with state=%s', self._state)
     if self._state is not FLUSHING:
       return False
     # Flushing may have already completed, despite the state not having left
@@ -586,7 +587,7 @@ class PluginSandbox(plugin_base.PluginAPI):
   def Emit(self, plugin, events):
     """See PluginAPI.Emit."""
     self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_UP)
-    self.logger.debug('Emit called with state=%s', self._state)
+    self.debug('Emit called with state=%s', self._state)
 
     # TODO(kitching): Relocate the ProcessStage annotation into Core.
     batch_time = datetime.datetime.utcnow()
@@ -605,7 +606,7 @@ class PluginSandbox(plugin_base.PluginAPI):
   def NewStream(self, plugin):
     """See PluginAPI.NewStream."""
     self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_UP_PAUSING_STOPPING)
-    self.logger.debug('NewStream called with state=%s', self._state)
+    self.debug('NewStream called with state=%s', self._state)
 
     # TODO(kitching): Relocate the ProcessStage annotation into Core.
     batch_time = datetime.datetime.utcnow()
@@ -626,7 +627,7 @@ class PluginSandbox(plugin_base.PluginAPI):
   def EventStreamNext(self, plugin, plugin_stream):
     """See PluginAPI.EventStreamNext."""
     self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_UP)
-    self.logger.debug('EventStreamNext called with state=%s', self._state)
+    self.debug('EventStreamNext called with state=%s', self._state)
     if plugin_stream not in self._event_stream_map:
       raise plugin_base.UnexpectedAccess
     ret = self._NextMatchingEvent(plugin_stream)
@@ -649,7 +650,7 @@ class PluginSandbox(plugin_base.PluginAPI):
   def EventStreamCommit(self, plugin, plugin_stream):
     """See PluginAPI.EventStreamCommit."""
     self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_UP_PAUSING_STOPPING)
-    self.logger.debug('EventStreamCommit called with state=%s', self._state)
+    self.debug('EventStreamCommit called with state=%s', self._state)
     self._RecordUnexpectedAccess(plugin, 'EventStreamAbort', inspect.stack())
     if plugin_stream not in self._event_stream_map:
       raise plugin_base.UnexpectedAccess
@@ -660,7 +661,7 @@ class PluginSandbox(plugin_base.PluginAPI):
     """See PluginAPI.EventStreamAbort."""
     # TODO(kitching): Test in unittest.
     self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_UP_PAUSING_STOPPING)
-    self.logger.debug('EventStreamAbort called with state=%s', self._state)
+    self.debug('EventStreamAbort called with state=%s', self._state)
     self._RecordUnexpectedAccess(plugin, 'EventStreamAbort', inspect.stack())
     if plugin_stream not in self._event_stream_map:
       raise plugin_base.UnexpectedAccess

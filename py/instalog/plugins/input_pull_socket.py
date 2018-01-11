@@ -84,7 +84,8 @@ class InputPullSocket(plugin_base.InputPlugin):
         if not success:
           self.warning('Connection to target unavailable')
 
-      receiver = input_socket.InputSocketReceiver(self.logger, self._sock, self)
+      receiver = input_socket.InputSocketReceiver(
+          self.logger.name, self._sock, self)
       receiver.ProcessRequest()
 
 

@@ -15,6 +15,7 @@ See input_socket_unittest.py for reference examples.
 from __future__ import print_function
 
 import hashlib
+import logging
 import socket
 import tempfile
 import threading
@@ -97,7 +98,7 @@ class InputSocket(plugin_base.InputPlugin):
         conn.close()
         return
 
-      receiver = InputSocketReceiver(self.logger, conn, self)
+      receiver = InputSocketReceiver(self.logger.name, conn, self)
       t = threading.Thread(target=receiver.ProcessRequest)
       t.daemon = False
       self._threads[t] = True
@@ -130,9 +131,9 @@ class InputSocket(plugin_base.InputPlugin):
 class InputSocketReceiver(log_utils.LoggerMixin):
   """Receives a request from an output socket plugin."""
 
-  def __init__(self, logger, conn, plugin_api):
+  def __init__(self, logger_name, conn, plugin_api):
     # log_utils.LoggerMixin creates shortcut functions for convenience.
-    self.logger = logger
+    self.logger = logging.getLogger(logger_name)
     self._conn = conn
     self._plugin_api = plugin_api
     self._tmp_dir = None

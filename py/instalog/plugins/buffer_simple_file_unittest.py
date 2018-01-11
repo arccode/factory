@@ -76,7 +76,7 @@ class TestBufferSimpleFile(unittest.TestCase):
     logging.info('Create state directory: %s', self.data_dir)
     self.sf = buffer_simple_file.BufferSimpleFile(
         config={} if config is None else config,
-        logger=self.logger,
+        logger_name=self.logger.name,
         store={},
         plugin_api=None)
     self.sf.GetDataDir = lambda: self.data_dir
@@ -100,7 +100,7 @@ class TestBufferSimpleFile(unittest.TestCase):
     SEQ = 1989
     RECORD = 'hello world'
     seq, record = buffer_file_common.ParseRecord(
-        buffer_file_common.FormatRecord(SEQ, RECORD), self.logger)
+        buffer_file_common.FormatRecord(SEQ, RECORD), self.logger.name)
     self.assertEqual(SEQ, seq)
     self.assertEqual(RECORD, record)
 
@@ -520,5 +520,5 @@ class TestBufferSimpleFile(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  logging.basicConfig(level=logging.DEBUG, format=log_utils.LOG_FORMAT)
+  log_utils.InitLogging(log_utils.GetStreamHandler(logging.INFO))
   unittest.main()

@@ -20,6 +20,7 @@ from __future__ import print_function
 
 import glob
 import json
+import logging
 import os
 import Queue
 import zlib
@@ -102,7 +103,7 @@ class InputLogFile(plugin_base.InputPlugin):
         crc = '{:08x}'.format(abs(zlib.crc32(path)))
         offset_file = '%s_%s' % (path.replace(os.sep, '_'), crc)
         log_file = LogFile(
-            logger=self.logger,
+            logger_name=self.logger.name,
             args=self.args,
             path=path,
             offset_path=os.path.join(self.GetDataDir(), offset_file),
@@ -205,7 +206,7 @@ class InputLogFile(plugin_base.InputPlugin):
           its success).
     """
     events = []
-    line_reader = LineReader(self.logger, path, offset)
+    line_reader = LineReader(self.logger.name, path, offset)
     event_generator = self.ParseEvents(path, line_reader.Readlines())
     for event in event_generator:
       if event:
@@ -270,9 +271,9 @@ class LineReader(log_utils.LoggerMixin, object):
   Includes trailing characters \r and \n in yielded strings.  Keeps track of
   the current offset and exposes it as self.offset.
   """
-  def __init__(self, logger, path, offset):
+  def __init__(self, logger_name, path, offset):
     # log_utils.LoggerMixin creates shortcut functions for convenience.
-    self.logger = logger
+    self.logger = logging.getLogger(logger_name)
     self.path = path
     self.offset = offset
     self.consumed = 0
@@ -296,9 +297,9 @@ class LineReader(log_utils.LoggerMixin, object):
 class LogFile(log_utils.LoggerMixin, object):
   """Represents a log file on disk."""
 
-  def __init__(self, logger, args, path, offset_path, parse_and_emit_fn):
+  def __init__(self, logger_name, args, path, offset_path, parse_and_emit_fn):
     # log_utils.LoggerMixin creates shortcut functions for convenience.
-    self.logger = logger
+    self.logger = logging.getLogger(logger_name)
     self.args = args
     self.path = path
     self.offset_path = offset_path

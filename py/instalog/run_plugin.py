@@ -41,11 +41,12 @@ _MAIN_LOOP_INTERVAL = 1
 _POLL_STDIN_TIMEOUT = 0.1
 
 
-class PluginRunnerBufferEventStream(plugin_base.BufferEventStream):
+class PluginRunnerBufferEventStream(plugin_base.BufferEventStream,
+                                    log_utils.LoggerMixin):
   """Simulates a BufferEventStream for PluginRunner."""
 
-  def __init__(self, logger, event_queue):
-    self.logger = logger
+  def __init__(self, logger_name, event_queue):
+    self.logger = logging.getLogger(logger_name)
     self._event_queue = event_queue
     self._retrieved_events = []
     self._expired = False
@@ -54,17 +55,17 @@ class PluginRunnerBufferEventStream(plugin_base.BufferEventStream):
     try:
       ret = self._event_queue.get(False)
       self._retrieved_events.append(ret)
-      self.logger.debug('BufferEventStream.Next: %s', ret)
+      self.debug('BufferEventStream.Next: %s', ret)
       return ret
     except Queue.Empty:
-      self.logger.debug('BufferEventStream.Next: (empty)')
+      self.debug('BufferEventStream.Next: (empty)')
       return None
 
   def Commit(self):
     if self._expired:
       raise plugin_base.EventStreamExpired
-    self.logger.debug('BufferEventStream.Commit %d events: %s',
-                      len(self._retrieved_events), self._retrieved_events)
+    self.debug('BufferEventStream.Commit %d events: %s',
+               len(self._retrieved_events), self._retrieved_events)
     # TODO(kitching): Delete attachment files to simulate buffer.
     self._expired = True
     return True
@@ -72,16 +73,16 @@ class PluginRunnerBufferEventStream(plugin_base.BufferEventStream):
   def Abort(self):
     if self._expired:
       raise plugin_base.EventStreamExpired
-    self.logger.debug('BufferEventStream.Abort %d events: %s',
-                      len(self._retrieved_events), self._retrieved_events)
+    self.debug('BufferEventStream.Abort %d events: %s',
+               len(self._retrieved_events), self._retrieved_events)
     # TODO(kitching): Maybe delete attachment files to simulate buffer.
     self._expired = True
 
 
-class PluginRunner(plugin_sandbox.CoreAPI):
+class PluginRunner(plugin_sandbox.CoreAPI, log_utils.LoggerMixin):
 
-  def __init__(self, logger, plugin_type, config):
-    self.logger = logger
+  def __init__(self, logger_name, plugin_type, config):
+    self.logger = logging.getLogger(logger_name)
     self._plugin_type = plugin_type
 
     # Data directory and JSON store carry across PluginRunner runs.
@@ -96,9 +97,9 @@ class PluginRunner(plugin_sandbox.CoreAPI):
     if not os.path.isdir(self._att_dir):
       os.mkdir(self._att_dir)
 
-    self.logger.info('Saving plugin data to: %s', self._data_dir)
-    self.logger.info('Saving plugin store to: %s', self._store_path)
-    self.logger.info('Saving attachments to: %s', self._att_dir)
+    self.info('Saving plugin data to: %s', self._data_dir)
+    self.info('Saving plugin store to: %s', self._store_path)
+    self.info('Saving attachments to: %s', self._att_dir)
 
     self._event_queue = Queue.Queue()
     self._plugin = plugin_sandbox.PluginSandbox(
@@ -143,13 +144,13 @@ class PluginRunner(plugin_sandbox.CoreAPI):
       try:
         event = datatypes.Event.Deserialize(input_line)
       except Exception as e:
-        self.logger.exception(e)
+        self.exception(e)
       if event:
-        self.logger.debug('_GetStdinEvents: New event: %s', event)
+        self.debug('_GetStdinEvents: New event: %s', event)
         events.append(event)
       else:
-        self.logger.info('_GetStdinEvents: Ignoring bogus input: "%s"',
-                         input_line)
+        self.info('_GetStdinEvents: Ignoring bogus input: "%s"',
+                  input_line)
     return events, more_data
 
   def ProcessStdin(self):
@@ -163,14 +164,14 @@ class PluginRunner(plugin_sandbox.CoreAPI):
     if events:
       superclass = self._plugin.GetSuperclass()
       if superclass is plugin_base.BufferPlugin:
-        self.logger.debug('BufferPlugin: Calling BufferPlugin.Produce')
+        self.debug('BufferPlugin: Calling BufferPlugin.Produce')
         result = self._plugin.CallPlugin('Produce', events)
-        self.logger.info('BufferPlugin: BufferPlugin.Produce returned: %s',
-                         result)
+        self.info('BufferPlugin: BufferPlugin.Produce returned: %s',
+                  result)
       elif superclass is plugin_base.InputPlugin:
-        self.logger.info('InputPlugin: [Ignoring]')
+        self.info('InputPlugin: [Ignoring]')
       else:
-        self.logger.info('OutputPlugin: Adding to plugin queue')
+        self.info('OutputPlugin: Adding to plugin queue')
         for event in events:
           self._event_queue.put(event)
     return more_data
@@ -192,8 +193,10 @@ class PluginRunner(plugin_sandbox.CoreAPI):
     # Should we print a plugin status update?
     if (time_utils.MonotonicTime() - self._last_status_update >=
         _STATUS_UPDATE_INTERVAL):
-      self.logger.info('Plugin state: %s', self._plugin.GetState())
-      self.logger.info('Plugin data store: %s', self._plugin._plugin.store)
+      self.info('Plugin state: %s', self._plugin.GetState())
+      # TODO(chuntsen): Fix pylint error
+      # pylint: disable=protected-access
+      self.info('Plugin data store: %s', self._plugin._plugin.store)
       self._last_status_update = time_utils.MonotonicTime()
 
   def HandleKeyboardInterrupt(self, interrupt=False):
@@ -202,24 +205,24 @@ class PluginRunner(plugin_sandbox.CoreAPI):
     if interrupt:
       if (time_utils.MonotonicTime() - self._last_interrupt <
           _DOUBLE_SIGINT_INTERVAL):
-        self.logger.info('Keyboard interrupt: stop')
+        self.info('Keyboard interrupt: stop')
         self._last_interrupt = 0
         if self._plugin.GetState() is not plugin_sandbox.STOPPING:
           return False
       else:
-        self.logger.info('Keyboard interrupt: press Ctrl+C again to stop')
+        self.info('Keyboard interrupt: press Ctrl+C again to stop')
         self._last_interrupt = time_utils.MonotonicTime()
 
     elif (self._last_interrupt and time_utils.MonotonicTime() -
           self._last_interrupt >= _DOUBLE_SIGINT_INTERVAL and
           self._plugin.GetState() is not plugin_sandbox.STOPPING):
-      self.logger.info('Keyboard interrupt: pause/unpause')
+      self.info('Keyboard interrupt: pause/unpause')
       self._last_interrupt = 0
       self._plugin.TogglePause()
     return True
 
   def Run(self):
-    self.logger.info('Starting plugin...')
+    self.info('Starting plugin...')
     self._plugin.Start(True)
 
     # If this is a BufferPlugin, make sure we have a Consumer set up to use.
@@ -259,7 +262,7 @@ class PluginRunner(plugin_sandbox.CoreAPI):
   def Emit(self, plugin, events):
     """See Core.Emit."""
     del plugin
-    self.logger.debug('Emit %d events: %s', len(events), events)
+    self.debug('Emit %d events: %s', len(events), events)
     for event in events:
       # Move attachments to a temporary directory to simulate buffer.
       for att_id, att_path in event.attachments.iteritems():
@@ -267,7 +270,7 @@ class PluginRunner(plugin_sandbox.CoreAPI):
         tmp_path = file_utils.CreateTemporaryFile(
             prefix=os.path.basename(att_path), dir=self._att_dir)
         # Relocate the attachment and update the event path.
-        self.logger.debug('Moving attachment %s --> %s...', att_path, tmp_path)
+        self.debug('Moving attachment %s --> %s...', att_path, tmp_path)
         shutil.move(att_path, tmp_path)
         event.attachments[att_id] = tmp_path
 
@@ -279,8 +282,8 @@ class PluginRunner(plugin_sandbox.CoreAPI):
   def NewStream(self, plugin):
     """See Core.NewStream."""
     del plugin
-    self.logger.debug('NewStream')
-    return PluginRunnerBufferEventStream(self.logger, self._event_queue)
+    self.debug('NewStream')
+    return PluginRunnerBufferEventStream(self.logger.name, self._event_queue)
 
   def GetNodeID(self):
     """See Core.GetNodeID."""
@@ -305,7 +308,7 @@ def main(plugin_type=None, config=None):
     plugin_type: Type of the plugin that should be started.
     config: Configuration dict of the plugin.  Defaults to an empty dict.
   """
-  logging.basicConfig(level=logging.INFO, format=log_utils.LOG_FORMAT)
+  log_utils.InitLogging(log_utils.GetStreamHandler())
 
   # If no plugin_type is provided, retrieve from command-line arguments.
   if plugin_type is None:
@@ -319,7 +322,7 @@ def main(plugin_type=None, config=None):
 
   logger = logging.getLogger('%s.plugin_runner' % plugin_type)
 
-  plugin_runner = PluginRunner(logger, plugin_type, config)
+  plugin_runner = PluginRunner(logger.name, plugin_type, config)
   plugin_runner.Run()
 
 

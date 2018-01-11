@@ -109,7 +109,7 @@ def FormatRecord(seq, record):
   return '[%s, %s]\n' % (data, checksum)
 
 
-def TryLoadJSON(path, logger=logging):
+def TryLoadJSON(path, logger_name=None):
   """Attempts to load JSON from the given file.
 
   Returns:
@@ -119,6 +119,7 @@ def TryLoadJSON(path, logger=logging):
     Exception if there was some other problem reading the file, or if something
     went wrong parsing the data.
   """
+  logger = logging.getLogger(logger_name)
   if not os.path.isfile(path):
     logger.info('%s: does not exist', path)
     return None
@@ -130,8 +131,9 @@ def TryLoadJSON(path, logger=logging):
     raise
 
 
-def CopyAttachmentsToTempDir(att_paths, tmp_dir, logger=logging):
+def CopyAttachmentsToTempDir(att_paths, tmp_dir, logger_name=None):
   """Copys attachments to the temporary directory."""
+  logger = logging.getLogger(logger_name)
   try:
     for att_path in att_paths:
       # Check that the source file exists.
@@ -161,7 +163,7 @@ def CopyAttachmentsToTempDir(att_paths, tmp_dir, logger=logging):
 
 def MoveAndWrite(config_dct, events):
   """Moves the atts, serializes the events and writes them to the data_path."""
-  logger = config_dct['logger']
+  logger = logging.getLogger(config_dct['logger_name'])
   metadata_dct = RestoreMetadata(config_dct)
   cur_seq = metadata_dct['last_seq'] + 1
   cur_pos = metadata_dct['end_pos'] - metadata_dct['start_pos']
@@ -232,11 +234,11 @@ def RestoreMetadata(config_dct):
 
   If the metadata file does not exist, will silently return.
   """
-  logger = config_dct['logger']
+  logger = logging.getLogger(config_dct['logger_name'])
   metadata_dct = {'first_seq': 1, 'last_seq': 0,
                   'start_pos': 0, 'end_pos': 0,
                   'version': None}
-  data = TryLoadJSON(config_dct['metadata_path'], logger)
+  data = TryLoadJSON(config_dct['metadata_path'], logger.name)
   if data is not None:
     try:
       with open(config_dct['data_path'], 'r') as f:
@@ -268,12 +270,12 @@ def RecoverMetadata(config_dct, metadata_dct):
   Uses the first valid record for first_seq and start_pos, and the last
   valid record for last_seq and end_pos.
   """
-  logger = config_dct['logger']
+  logger = logging.getLogger(config_dct['logger_name'])
   first_record = True
   cur_pos = 0
   with open(config_dct['data_path'], 'r') as f:
     for line in f:
-      seq, _unused_record = ParseRecord(line, config_dct['logger'])
+      seq, _unused_record = ParseRecord(line, config_dct['logger_name'])
       if first_record and seq:
         metadata_dct['first_seq'] = seq
         metadata_dct['start_pos'] = cur_pos
@@ -289,7 +291,7 @@ def RecoverMetadata(config_dct, metadata_dct):
 
 def TruncateAttachments(config_dct):
   """Deletes attachments of events no longer stored within data.json."""
-  logger = config_dct['logger']
+  logger = logging.getLogger(config_dct['logger_name'])
   metadata_dct = RestoreMetadata(config_dct)
   for fname in os.listdir(config_dct['attachments_dir']):
     fpath = os.path.join(config_dct['attachments_dir'], fname)
@@ -314,7 +316,7 @@ def Truncate(config_dct, min_seq, min_pos, truncate_attachments=True):
     truncate_attachments: Whether or not to truncate attachments.
                             For testing.
   """
-  logger = config_dct['logger']
+  logger = logging.getLogger(config_dct['logger_name'])
   metadata_dct = RestoreMetadata(config_dct)
   # Does the buffer already have data in it?
   if not metadata_dct['version']:
@@ -362,12 +364,13 @@ def Truncate(config_dct, min_seq, min_pos, truncate_attachments=True):
     raise
 
 
-def ParseRecord(line, logger=logging):
+def ParseRecord(line, logger_name=None):
   """Parses and returns a line from disk as a record.
 
   Returns:
     A tuple of (seq_number, record), or None on failure.
   """
+  logger = logging.getLogger(logger_name)
   line_inner = line.rstrip()[1:-1]  # Strip [] and newline
   data, _, checksum = line_inner.rpartition(', ')
   seq, _, record = data.partition(', ')
@@ -382,10 +385,10 @@ def ParseRecord(line, logger=logging):
 
 class BufferFile(log_utils.LoggerMixin):
 
-  def __init__(self, args, logger, data_dir):
+  def __init__(self, args, logger_name, data_dir):
     """Sets up the plugin."""
     self.args = args
-    self.logger = logger
+    self.logger = logging.getLogger(logger_name)
     self.data_dir = data_dir
 
     self.data_path = os.path.join(
@@ -447,7 +450,7 @@ class BufferFile(log_utils.LoggerMixin):
     Only ever called when the buffer first starts up, so we don't need to
     check for any existing Consumers in self.consumers.
     """
-    data = TryLoadJSON(self.consumers_list_path, self.logger)
+    data = TryLoadJSON(self.consumers_list_path, self.logger.name)
     if data:
       for name in data:
         self.consumers[name] = self._CreateConsumer(name)
@@ -461,8 +464,9 @@ class BufferFile(log_utils.LoggerMixin):
     return event
 
   def ConfigToDict(self):
-    return {'logger': self.logger, 'args': self.args, 'data_dir': self.data_dir,
-            'data_path': self.data_path, 'metadata_path': self.metadata_path,
+    return {'logger_name': self.logger.name, 'args': self.args,
+            'data_dir': self.data_dir, 'data_path': self.data_path,
+            'metadata_path': self.metadata_path,
             'consumers_list_path': self.consumers_list_path,
             'consumer_path_format': self.consumer_path_format,
             'attachments_dir': self.attachments_dir}
@@ -517,7 +521,8 @@ class BufferFile(log_utils.LoggerMixin):
 
   def _CreateConsumer(self, name):
     """Returns a new Consumer object with the given name."""
-    return Consumer(name, self, self.consumer_path_format % name, self.logger)
+    return Consumer(
+        name, self, self.consumer_path_format % name, self.logger.name)
 
   def AddConsumer(self, name):
     """See BufferPlugin.AddConsumer."""
@@ -566,11 +571,11 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
   acquired before any of Next, Commit, or Abort can be used.
   """
 
-  def __init__(self, name, simple_file, metadata_path, logger):
+  def __init__(self, name, simple_file, metadata_path, logger_name):
     self.name = name
     self.simple_file = simple_file
     self.metadata_path = metadata_path
-    self.logger = logger
+    self.logger = logging.getLogger(logger_name)
 
     self._lock = threading.Lock()
     self.read_lock = threading.Lock()
@@ -614,7 +619,7 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
 
     If the metadata file does not exist, will silently return.
     """
-    data = TryLoadJSON(self.metadata_path, self.logger)
+    data = TryLoadJSON(self.metadata_path, self.logger.name)
     if data is not None:
       if 'cur_seq' not in data or 'cur_pos' not in data:
         self.error('Consumer %s metadata file invalid; resetting', self.name)
@@ -667,7 +672,7 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
           cur += size
           if cur > (metadata_dct['end_pos'] - metadata_dct['start_pos']):
             break
-          seq, record = ParseRecord(line, self.logger)
+          seq, record = ParseRecord(line, self.logger.name)
           if seq is None:
             # Parsing of this line failed for some reason.
             skipped_bytes += size

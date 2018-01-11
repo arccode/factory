@@ -47,7 +47,7 @@ class TestOutputSocket(unittest.TestCase):
     self.plugin = self.sandbox._plugin
     self.assertTrue(self.plugin.GetSocket())
     self.sender = output_socket.OutputSocketSender(
-        self.plugin.logger, self.plugin._sock, self.plugin)
+        self.plugin.logger.name, self.plugin._sock, self.plugin)
 
   def tearDown(self):
     self.sandbox.Stop(True)
@@ -122,5 +122,5 @@ class TestOutputSocket(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  logging.basicConfig(level=logging.INFO, format=log_utils.LOG_FORMAT)
+  log_utils.InitLogging(log_utils.GetStreamHandler(logging.INFO))
   unittest.main()

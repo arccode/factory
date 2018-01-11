@@ -9,6 +9,7 @@ plugins to access.
 """
 
 import inspect
+import logging
 import os
 import sys
 import time
@@ -104,7 +105,7 @@ class Plugin(log_utils.LoggerMixin, object):
   sets some shortcut functions to the logger.
   """
 
-  def __init__(self, config, logger, store, plugin_api):
+  def __init__(self, config, logger_name, store, plugin_api):
     """Plugin constructor.
 
     Args:
@@ -122,7 +123,7 @@ class Plugin(log_utils.LoggerMixin, object):
     setattr(self, 'args', arg_utils.Args(*arg_spec).Parse(config))
 
     # log_utils.LoggerMixin creates shortcut functions for convenience.
-    self.logger = logger
+    self.logger = logging.getLogger(logger_name)
 
     # Plugin data store dictionary.
     self.store = store

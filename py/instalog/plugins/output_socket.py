@@ -14,6 +14,7 @@ See socket_common.py for protocol definition.
 from __future__ import print_function
 
 import hashlib
+import logging
 import os
 import socket
 import time
@@ -73,7 +74,7 @@ class OutputSocket(plugin_base.OutputPlugin):
         self.warning('Connection to target unavailable')
         self.Sleep(_FAILED_CONNECTION_INTERVAL)
 
-      sender = OutputSocketSender(self.logger, self._sock, self)
+      sender = OutputSocketSender(self.logger.name, self._sock, self)
       if sender.ProcessRequest(events):
         event_stream.Commit()
       else:
@@ -95,8 +96,8 @@ class OutputSocket(plugin_base.OutputPlugin):
 class OutputSocketSender(log_utils.LoggerMixin):
   """Sends a request to an input socket plugin."""
 
-  def __init__(self, logger, sock, plugin_api):
-    self.logger = logger
+  def __init__(self, logger_name, sock, plugin_api):
+    self.logger = logging.getLogger(logger_name)
     self._sock = sock
     self._plugin_api = plugin_api
     super(OutputSocketSender, self).__init__()

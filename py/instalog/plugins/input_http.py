@@ -100,7 +100,7 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
   """Processes HTTP request and responses."""
 
   def __init__(self, request, client_address, server):
-    self.logger = server.context['logger']
+    self.logger = logging.getLogger(server.context['logger_name'])
     self._plugin_api = server.context['plugin_api']
     self._max_bytes = server.context['max_bytes']
     self._gpg = server.context['gpg']
@@ -267,8 +267,8 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
 class ThreadedHTTPServer(BaseHTTPServer.HTTPServer, log_utils.LoggerMixin):
   """HTTP server that handles requests in separate threads."""
 
-  def __init__(self, logger, *args, **kwargs):
-    self.logger = logger
+  def __init__(self, logger_name, *args, **kwargs):
+    self.logger = logging.getLogger(logger_name)
     self.context = None
     self._threads = set()
     self._handle_request_thread = threading.Thread(target=self.serve_forever)
@@ -351,11 +351,11 @@ class InputHTTP(plugin_base.InputPlugin):
         raise Exception('Need at least one GnuPG secret key in gnupghome')
 
     self._http_server = ThreadedHTTPServer(
-        self.logger, (self.args.hostname, self.args.port), HTTPHandler)
+        self.logger.name, (self.args.hostname, self.args.port), HTTPHandler)
     self._http_server.context = {
         'max_bytes': self.args.max_bytes,
         'gpg': gpg,
-        'logger': self.logger,
+        'logger_name': self.logger.name,
         'plugin_api': self,
         'check_format': self._CheckFormat}
     self._http_server.StartServer()

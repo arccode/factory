@@ -75,7 +75,7 @@ class TestOutputPullSocket(unittest.TestCase):
     self.assertTrue(self.plugin.GetSocket())
     self.assertEqual(self._GetSentData(), socket_common.QING_RESPONSE)  # Qong.
     sender = output_socket.OutputSocketSender(
-        self.plugin.logger, self.plugin._sock, self.plugin)
+        self.plugin.logger.name, self.plugin._sock, self.plugin)
     sender.Ping()
     time.sleep(1)
     self.assertEqual(
@@ -97,7 +97,7 @@ class TestOutputPullSocket(unittest.TestCase):
     self.assertTrue(self.plugin.GetSocket())
     self.assertEqual(self._GetSentData(), socket_common.QING_RESPONSE)  # Qong.
     sender = output_socket.OutputSocketSender(
-        self.plugin.logger, self.plugin._sock, self.plugin)
+        self.plugin.logger.name, self.plugin._sock, self.plugin)
     self.sock.recv.return_value = 'x'
     self.assertFalse(sender.Ping())
 
@@ -143,5 +143,5 @@ class TestOutputPullSocket(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  logging.basicConfig(level=logging.INFO, format=log_utils.LOG_FORMAT)
+  log_utils.InitLogging(log_utils.GetStreamHandler(logging.INFO))
   unittest.main()

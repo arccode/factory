@@ -53,39 +53,24 @@ class InstalogService(daemon_utils.Daemon):
       self._core.Stop()
       self._core = None
 
-  def _InitLogging(self):
+  def _InitLogging(self, foreground):
     """Sets up logging."""
-    # TODO(kitching): Refactor (some of) this code to log_utils module.
-    # Get logger.
-    logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
-
-    # In certain situations, a StreamHandler to stdout is created implicitly.
-    # Since we want to create our own, we need to remove the default one if it
-    # exists.
-    if logger.handlers:
-      logger.removeHandler(logger.handlers[0])
-
-    # Create formatter.
-    formatter = logging.Formatter(log_utils.LOG_FORMAT)
+    handlers = []
 
     # Save logging calls to log file.
     log_file = self._config['instalog']['log_file']
     file_utils.TryMakeDirs(os.path.dirname(log_file))
-    fh = logging.FileHandler(log_file)
-    fh.setFormatter(formatter)
-    fh.setLevel(self._logging_level)
-    logger.addHandler(fh)
+    handlers.append(log_utils.GetFileHandler(log_file, self._logging_level))
 
-    # Output logging calls to console (for when foreground=True).
-    sh = logging.StreamHandler()
-    sh.setFormatter(formatter)
-    sh.setLevel(self._logging_level)
-    logger.addHandler(sh)
+    # Output logging calls to console when foreground is set.
+    if foreground:
+      handlers.append(log_utils.GetStreamHandler(self._logging_level))
+
+    log_utils.InitLogging(handlers)
 
   def Run(self, foreground):
     """Starts Instalog."""
-    self._InitLogging()
+    self._InitLogging(foreground)
 
     signal.signal(signal.SIGINT, self._SignalHandler)
     signal.signal(signal.SIGTERM, self._SignalHandler)

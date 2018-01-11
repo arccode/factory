@@ -53,7 +53,7 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
   def SetUp(self):
     """Sets up the plugin."""
     self.buffer_file = buffer_file_common.BufferFile(
-        self.args, self.logger, self.GetDataDir())
+        self.args, self.logger.name, self.GetDataDir())
 
     self.attachments_tmp_dir = os.path.join(self.GetDataDir(),
                                             _TEMPORARY_ATTACHMENT_DIR)
@@ -98,7 +98,7 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
             event.attachments[att_id] = os.path.join(
                 tmp_dir, att_path.replace('/', '_'))
         if not buffer_file_common.CopyAttachmentsToTempDir(
-            source_paths, tmp_dir, self.logger):
+            source_paths, tmp_dir, self.logger.name):
           return False
         # Step 2: Write the new events to the file.
         self.buffer_file.ProduceEvents(events)

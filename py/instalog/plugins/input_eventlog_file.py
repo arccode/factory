@@ -11,6 +11,8 @@ Subclasses InputLogFile to correctly parse an event_log file.
 
 from __future__ import print_function
 
+import logging
+
 import instalog_common  # pylint: disable=W0611
 from instalog import datatypes
 from instalog import plugin_base
@@ -88,7 +90,8 @@ class InputEventlogFile(input_log_file.InputLogFile):
       Exception if any exception other than yaml.parser.ParserError or
       yaml.reader.ReaderError occurs.
     """
-    def LogError(logger, error_str, relative_end_line_num):
+    def LogError(logger_name, error_str, relative_end_line_num):
+      logger = logging.getLogger(logger_name)
       if source_name:
         error_str += ' from %s' % source_name
       source_end_line_num = source_line_num + relative_end_line_num
@@ -115,7 +118,7 @@ class InputEventlogFile(input_log_file.InputLogFile):
           # Log this error.
           recover_event_line_num = event_str.count(
               '\n', 0, recover_event_index - 1)
-          LogError(self.logger, 'Dropping corrupted event(s)',
+          LogError(self.logger.name, 'Dropping corrupted event(s)',
                    recover_event_line_num)
         except yaml.error.YAMLError:
           # `output` will still be None.  Log error below.
@@ -124,13 +127,13 @@ class InputEventlogFile(input_log_file.InputLogFile):
     if output is None:
       # Unrecoverable error.  Completely drop this event, and log this error.
       end_line = event_str.count('\n')
-      LogError(self.logger, 'Unrecoverable event(s)', end_line)
+      LogError(self.logger.name, 'Unrecoverable event(s)', end_line)
       return None
 
     # Verify that our output has the required keys.
     if 'EVENT' not in output or 'TIME' not in output:
       end_line = event_str.count('\n')
-      LogError(self.logger, 'Dropped event due to missing required KEY',
+      LogError(self.logger.name, 'Dropped event due to missing required KEY',
                end_line)
       return None
     return output

@@ -165,5 +165,5 @@ class TestInputHTTPTestlog(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  logging.basicConfig(level=logging.INFO, format=log_utils.LOG_FORMAT)
+  log_utils.InitLogging(log_utils.GetStreamHandler(logging.INFO))
   unittest.main()

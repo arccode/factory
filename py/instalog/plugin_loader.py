@@ -214,7 +214,7 @@ class PluginLoader(object):
     # Instantiate the plugin with the requested configuration.
     plugin_class = self.GetClass()
     try:
-      return plugin_class(self.config, self._logger, self._store,
+      return plugin_class(self.config, self._logger.name, self._store,
                           self._plugin_api)
     except arg_utils.ArgError as e:
       self._ReportException('Error parsing arguments: %s' % e.message)
