@@ -71,19 +71,24 @@ def StringFormat(_format_string, **kwargs):
   ret = {}
   _format_string = translation.Translated(_format_string)
 
-  if not kwargs:
-    # If no kwargs is passed, do not do format string, to maintain backward
-    # compatibility with MakeI18nLabel.
-    # TODO(pihsun): Remove this check when all usage of MakeI18nLabel no longer
-    # pass kwargs.
-    return _format_string
-
   kwargs = {name: translation.Translated(val, translate=False)
             for name, val in kwargs.iteritems()}
   for locale, format_str in _format_string.iteritems():
     format_args = {name: val[locale] for name, val in kwargs.iteritems()}
     ret[locale] = _FORMATTER.vformat(format_str, [], format_args)
   return ret
+
+
+def _(_format_string, **kwargs):
+  """Wrapper for i18n string processing.
+
+  This function acts as i18n.Translation when no kwargs is given, and as
+  i18n.StringFormat when kwargs is given. This function is also a marker for
+  pygettext.
+  """
+  if not kwargs:
+    return translation.Translation(_format_string)
+  return StringFormat(_format_string, **kwargs)
 
 
 def StringJoin(*strs):

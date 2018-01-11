@@ -69,6 +69,9 @@ class StringUtilsTest(unittest_test_case.I18nTestCase):
 
   def testStringFormat(self):
     self.assertEqual(
+        {'en-US': '{x}', 'zh-CN': '{x}'},
+        string_utils.StringFormat('{{x}}'))
+    self.assertEqual(
         {'en-US': '{x} is 1', 'zh-CN': '{x} is 1'},
         string_utils.StringFormat('{{x}} is {x}', x=1))
     self.assertEqual(
@@ -93,11 +96,25 @@ class StringUtilsTest(unittest_test_case.I18nTestCase):
                             string_utils.StringFormat, '{s}', s={'zh-CN': 'a'})
     self.assertEqual(
         {'en-US': '[?]', 'zh-CN': '[?]'},
-        string_utils.StringFormat('{str}', x=1))
+        string_utils.StringFormat('{str}'))
     self.assertEqual(
         {'en-US': 'str', 'zh-CN': '[?]'},
         string_utils.StringFormat({'en-US': '{str}', 'zh-CN': '{str1}'},
                                   str='str'))
+
+  def testUnderline(self):
+    self.assertEqual(
+        {'en-US': '{{x}}', 'zh-CN': '{{x}}'}, string_utils._('{{x}}'))
+    self.assertEqual(
+        {'en-US': '{x} is 1', 'zh-CN': '{x} is 1'},
+        string_utils._('{{x}} is {x}', x=1))
+
+    self.assertEqual(
+        {'en-US': '{str}', 'zh-CN': '{str}'},
+        string_utils._('{str}'))
+    self.assertEqual(
+        {'en-US': 'str', 'zh-CN': 'str'},
+        string_utils._('{str}', str='str'))
 
 
 if __name__ == '__main__':
