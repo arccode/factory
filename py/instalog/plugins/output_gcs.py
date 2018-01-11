@@ -143,7 +143,7 @@ class OutputCloudStorage(plugin_base.OutputPlugin):
 
 
       # Relocate the attachments entry into the event payload.
-      event.setdefault('__attachments__', {})[att_id] = 'gs:/%s/%s' % (
+      event.setdefault('__attachments__', {})[att_id] = 'gs://%s/%s' % (
           self.bucket_id, path_in_bucket)
 
     # Remove attachments from the event for re-emitting.

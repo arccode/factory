@@ -144,7 +144,15 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
     row['uuid'] = event.get('uuid')
     row['type'] = event.get('type')
     row['apiVersion'] = event.get('apiVersion')
-    row['time'] = DateTimeToUnixTimestamp(event.get('time'))
+    # TODO(chuntsen): After we implement timestamp sync, we can change back.
+    # Sent from curl, so the first history is http_in plugin in factory server.
+    if event.history[0].node_id == 'factory_server':
+      row['time'] = DateTimeToUnixTimestamp(event.history[0].time)
+    # Sent from DUT, so the third history is http_in plugin in factory server.
+    elif event.history[2].node_id == 'factory_server':
+      row['time'] = DateTimeToUnixTimestamp(event.history[2].time)
+    else:
+      row['time'] = DateTimeToUnixTimestamp(event.get('time'))
     row['stationName'] = event.get('stationName')
     row['seq'] = event.get('seq')
     row['stationDeviceId'] = event.get('stationDeviceId')
