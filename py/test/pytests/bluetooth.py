@@ -293,7 +293,7 @@ class BluetoothTest(test_ui.TestCaseWithUI):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self.ui.AppendCSS('test-template > :not([slot]) { font-size: 2em; }')
+    self.ui.AppendCSS('test-template { font-size: 2em; }')
 
     self._strongest_rssi_mac = None
     if self.args.input_device_mac_key:

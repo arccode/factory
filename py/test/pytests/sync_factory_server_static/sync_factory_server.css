@@ -4,7 +4,7 @@
  * found in the LICENSE file.
  */
 
-test-template > :not([slot]) {
+test-template {
   font-size: 2em;
 }
 

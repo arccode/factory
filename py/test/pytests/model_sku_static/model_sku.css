@@ -15,6 +15,6 @@
   padding-right: 20px;
 }
 
-test-template > :not([slot]) {
+test-template {
   font-size: 1.5em;
 }

@@ -15,11 +15,82 @@
         }
 
         #title-container {
+          all: initial;
           flex: none;
           font-size: 2rem;
           font-weight: bold;
           padding-left: 0.5rem;
           margin: 4px 0;
+        }
+
+        #prompt-container {
+          all: initial;
+          flex: none;
+          background-color: var(--template-background-color, white);
+          display: flex;
+          padding: 0 8px;
+          font-size: 1rem;
+        }
+
+        #instruction {
+          font-size: 1.5em;
+          flex: 3;
+        }
+
+        #progress-container {
+          flex: 1;
+        }
+
+        #progress-bar-container {
+          display: none;
+          margin: 0.2em;
+        }
+
+        #progress-bar-container.show {
+          display: flex;
+        }
+
+        #progress-bar {
+          flex: 1;
+          height: 1.5em;
+          position: relative;
+          border: 1px solid #949dad;
+          background: white;
+          overflow: hidden;
+          margin-left: 0.3em;
+        }
+
+        #progress-bar-indicator {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          z-index: 1;
+          width: fit-content;
+          height: fit-content;
+          margin: auto;
+        }
+
+        .progress-bar-thumb {
+          background: #d4e4ff;
+          height: 100%;
+        }
+
+        #timer-container {
+          display: none;
+          text-align: right;
+          margin: 0.2em;
+        }
+
+        #timer-container.show {
+          display: block;
+        }
+
+        #timer {
+          display: inline-block;
+          font-weight: bold;
+          font-size: 1.5em;
         }
 
         #state-container {
@@ -39,6 +110,7 @@
         }
 
         #button-container {
+          all: initial;
           flex: none;
           display: flex;
           min-height: min-content;
@@ -76,70 +148,6 @@
 
         ::slotted(span.inline) {
           display: inline;
-        }
-
-        #prompt-container {
-          flex: none;
-          background-color: var(--template-background-color, white);
-          display: flex;
-          padding: 0 8px;
-        }
-
-        #instruction {
-          font-size: 1.5em;
-          flex: 3;
-        }
-
-        #progress-container {
-          flex: 1;
-        }
-
-        #progress-bar-container {
-          display: none;
-          margin: 0.2em;
-        }
-
-        #progress-bar-container.show {
-          display: flex;
-        }
-
-        #progress-bar {
-          flex: 1;
-          height: 1.5em;
-          position: relative;
-          border: 1px solid #949dad;
-          background: white;
-          overflow: hidden;
-          margin-left: 0.3em;
-        }
-
-        #progress-bar-indicator {
-          position: absolute;
-          top: 0;
-          width: 100%;
-          text-align: center;
-          z-index: 1;
-        }
-
-        .progress-bar-thumb {
-          background: #d4e4ff;
-          height: 100%;
-        }
-
-        #timer-container {
-          display: none;
-          text-align: right;
-          margin: 0.2em;
-        }
-
-        #timer-container.show {
-          display: block;
-        }
-
-        #timer {
-          display: inline-block;
-          font-weight: bold;
-          font-size: 1.5em;
         }
       </style>
       <div id="info-container">
