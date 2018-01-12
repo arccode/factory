@@ -87,7 +87,7 @@ class TabletModeTest(test_ui.TestCaseWithUI):
   def HandleSwitchEvent(self, event):
     if event.type == evdev.ecodes.EV_SW and event.code == evdev.ecodes.SW_LID:
       if event.value == 0:  # LID_OPEN
-        self.FlashFailure()
+        self.ShowFailure()
         self.FailTask('Lid switch was triggered unexpectedly')
 
     if (event.type == evdev.ecodes.EV_SW and
@@ -119,10 +119,10 @@ class TabletModeTest(test_ui.TestCaseWithUI):
     del event  # Unused.
 
     if self.tablet_event_dev and not self.tablet_mode_switch:
-      self.FlashFailure()
+      self.ShowFailure()
       self.FailTask("Tablet mode switch is off")
 
-    self.FlashSuccess()
+    self.ShowSuccess()
     self.PassTask()
 
   def FlipNotebookMode(self):
@@ -141,20 +141,19 @@ class TabletModeTest(test_ui.TestCaseWithUI):
     del event  # Unused.
 
     if self.tablet_event_dev and self.tablet_mode_switch:
-      self.FlashFailure()
+      self.ShowFailure()
       self.FailTask('Tablet mode switch is on')
 
-    self.FlashSuccess()
+    self.ShowSuccess()
     self.PassTask()
 
-  def _FlashStatus(self, status_label):
+  def _ShowStatus(self, status_label):
+    self.ui.SetView('status')
     self.ui.SetHTML(status_label, id='status')
-    self.ui.ShowElement('status')
     self.Sleep(1)
-    self.ui.HideElement('status')
 
-  def FlashSuccess(self):
-    self._FlashStatus(['<span class="success">', _('Success!'), '</span>'])
+  def ShowSuccess(self):
+    self._ShowStatus(['<span class="success">', _('Success!'), '</span>'])
 
-  def FlashFailure(self):
-    self._FlashStatus(['<span class="failure">', _('Failure'), '</span>'])
+  def ShowFailure(self):
+    self._ShowStatus(['<span class="failure">', _('Failure'), '</span>'])
