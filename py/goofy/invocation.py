@@ -290,7 +290,8 @@ class TestInvocation(object):
     if not dut_options:
       # Use the options in test list (via test.root).
       dut_options = self.test.root.options.dut_options or {}
-    self.dut_options = dut_options
+
+    return dut_options
 
   def _invoke_pytest(self, resolved_dargs):
     """Invokes a pyunittest-based test."""
