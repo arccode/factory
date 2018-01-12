@@ -154,6 +154,24 @@ def QueueGet(queue, timeout=None,
     raise Queue.Empty
 
 
+def EventWait(event, timeout=None,
+              poll_interval_secs=DEFAULT_POLL_INTERVAL_SECS):
+  """Wait for a threading.Event, possibly by polling.
+
+  This is useful when a custom polling sleep function is set.
+  """
+  if _GetPollingSleepFunction() == _DEFAULT_POLLING_SLEEP_FUNCTION:
+    return event.wait(timeout=timeout)
+
+  try:
+    return PollForCondition(
+        event.is_set,
+        timeout_secs=timeout,
+        poll_interval_secs=poll_interval_secs)
+  except type_utils.TimeoutError:
+    return False
+
+
 def Retry(max_retry_times, interval, callback, target, *args, **kwargs):
   """Retries a function call with limited times until it returns True.
 

@@ -151,6 +151,7 @@ from cros.factory.test.utils import time_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
 from cros.factory.utils import log_utils
+from cros.factory.utils import sync_utils
 
 
 ID_TEXT_INPUT_URL = 'text_input_url'
@@ -302,7 +303,7 @@ class SyncFactoryServer(test_ui.TestCaseWithUI):
     if self.do_setup_url.is_set():
       self.event_url_set.clear()
       self.EditServerURL()
-      self.event_url_set.wait()
+      sync_utils.EventWait(self.event_url_set)
 
     self.ui.SetState(
         [_('Trying to reach server...'),
@@ -515,7 +516,7 @@ class SyncFactoryServer(test_ui.TestCaseWithUI):
         ])
 
         for sec in xrange(retry_secs):
-          if self.do_setup_url.wait(1):
+          if sync_utils.EventWait(self.do_setup_url, timeout=1):
             break
           self.ui.SetHTML(msg(retry_secs - sec - 1, label), id='retry')
         retry_secs = min(2 * retry_secs, self.args.retry_secs)
