@@ -106,7 +106,7 @@ class AudioBasicTest(test_ui.TestCaseWithUI):
           self._dut.audio.ApplyAudioConfig(action, card)
 
     self.ui.AppendCSS('test-template { font-size: 2em; }')
-    self.ui.SetInstruction(_(self.args.audio_title))
+    self.ui.SetInstruction(self.args.audio_title)
 
     self.done_tests = set()
 

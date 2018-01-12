@@ -214,7 +214,7 @@ class Report(test_ui.TestCaseWithUI):
       html.extend([
           '<a onclick="onclick:window.test.pass()" href="#"'
           ' class="prompt_message">',
-          _(self.args.prompt_message), '</a>'
+          self.args.prompt_message, '</a>'
       ])
     else:
       html.extend([
