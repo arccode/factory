@@ -258,7 +258,7 @@ class TabletRotationTest(test_ui.TestCaseWithUI):
     self.ui.StartFailingCountdownTimer(self.args.timeout_secs)
 
     for degrees_target in _TEST_DEGREES:
+      self.ui.SetView('main')
       self._PromptAndWaitForRotation(degrees_target)
-      self.ui.ToggleClass('template', 'show-success', True)
+      self.ui.SetView('success')
       self.Sleep(1)
-      self.ui.ToggleClass('template', 'show-success', False)
