@@ -684,6 +684,14 @@ class StandardUI(UI):
     """Hide the timer."""
     self.CallJSFunction('window.template.hideTimer')
 
+  def SetView(self, view):
+    """Set the view of the template.
+
+    Args:
+      view: The id of the view.
+    """
+    self.CallJSFunction('window.template.setView', view)
+
   def StartCountdownTimer(self, timeout_secs, timeout_handler=None):
     """Start a countdown timer.
 

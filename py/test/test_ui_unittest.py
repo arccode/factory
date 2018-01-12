@@ -862,6 +862,13 @@ class StandardUITest(UITestBase):
         self._import_template_event,
         self._RunJSEvent('window.template.hideTimer()'))
 
+  def testSetView(self):
+    self._ui.SetView('view')
+
+    self.AssertEventsPosted(
+        self._import_template_event,
+        self._RunJSEvent('window.template.setView("view")'))
+
   def testStartCountdownTimer(self):
     _TIMEOUT = 5
 
