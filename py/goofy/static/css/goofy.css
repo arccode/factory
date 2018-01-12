@@ -214,7 +214,7 @@ body {
 }
 .goofy-status-skipped > div > .goog-tree-item-label {
   text-decoration: line-through;
-  color: darkgray !important;
+  color: darkgray;
 }
 .goofy-test-failure-expanded .goofy-test-failure-detail-link {
   display: none;
