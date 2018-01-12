@@ -138,7 +138,7 @@ class ManipulateFactoryStateLayer(unittest.TestCase):
     if self.dut.link.IsLocal():
       return state.get_instance()
     if isinstance(self.dut.link, ssh.SSHLink):
-      return state.get_instance(self.dut.link.address)
+      return state.get_instance(self.dut.link.host)
     logging.warning('state proxy for %s is not supported',
                     self.dut.link.__class__.__name__)
     return None
