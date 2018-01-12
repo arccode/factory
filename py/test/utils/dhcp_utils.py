@@ -237,7 +237,8 @@ def StartDHCPManager(interfaces=None,
                      lease_time=None,
                      on_add=None,
                      on_old=None,
-                     on_del=None):
+                     on_del=None,
+                     bootp_from_default_gateway=False):
 
   DHCPManager.CleanupStaleInstance()
   if sys_utils.InCrOSDevice():
@@ -245,9 +246,11 @@ def StartDHCPManager(interfaces=None,
     sync_utils.WaitFor(lambda: service_utils.GetServiceStatus('shill') ==
                        service_utils.Status.START, 15)
 
-  # Get bootp parameters from gateway DHCP server
-  default_iface = sync_utils.WaitFor(net_utils.GetDefaultGatewayInterface, 10)
-  bootp_params = network_utils.GetDHCPBootParameters(default_iface)
+  bootp_params = None
+  if bootp_from_default_gateway:
+    # Get bootp parameters from gateway DHCP server
+    default_iface = sync_utils.WaitFor(net_utils.GetDefaultGatewayInterface, 10)
+    bootp_params = network_utils.GetDHCPBootParameters(default_iface)
 
   # arguments for DHCP manager
   kargs = {
