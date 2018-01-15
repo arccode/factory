@@ -450,6 +450,47 @@ class EventLoopRunTest(EventLoopTestBase):
             self.assertGreater(expected_time + _PROBE_INTERVAL, TOTAL_TIME)
 
 
+class EnsureI18nTest(unittest.TestCase):
+
+  def setUp(self):
+    self.patcher = mock.patch.object(test_ui.i18n_test_ui, 'MakeI18nLabel')
+    fake_make_i18n_label = self.patcher.start()
+
+    def FakeMakeI18nLabel(text):
+      items = ('%s=%s' % (key, value) for key, value in sorted(text.items()))
+      return '[%s]' % ','.join(items)
+    fake_make_i18n_label.side_effect = FakeMakeI18nLabel
+
+  def tearDown(self):
+    self.patcher.stop()
+
+  def testBasic(self):
+    self.assertEqual('meow', test_ui.EnsureI18n('meow'))
+    self.assertEqual('123456', test_ui.EnsureI18n(123456))
+    self.assertEqual(u'\u260e', test_ui.EnsureI18n(u'\u260e'))
+
+  def testList(self):
+    self.assertEqual('', test_ui.EnsureI18n([]))
+    self.assertEqual('foo', test_ui.EnsureI18n(['foo']))
+    self.assertEqual('foobar', test_ui.EnsureI18n(['foo', 'bar']))
+    self.assertEqual('csie217', test_ui.EnsureI18n(['csie', 217]))
+    self.assertEqual('<a>b=0,<b>d=1;alert(1)</b></a>',
+                     test_ui.EnsureI18n([
+                         '<a>', ['b', '=', 0], ',<b>',
+                         ['d', '=', '1;alert(1)', []], '</b>', '</a>'
+                     ]))
+
+  def testI18n(self):
+    self.assertEqual('[en=a,zh=b]', test_ui.EnsureI18n({'en': 'a', 'zh': 'b'}))
+    self.assertEqual('<a>[en=a,zh=b]</a>',
+                     test_ui.EnsureI18n(
+                         ['<a>', {'en': 'a', 'zh': 'b'}, '</a>']))
+    self.assertEqual('x=[en=a,zh=b],y=[en=c,zh=d],z=1',
+                     test_ui.EnsureI18n([
+                         ['x=', {'en': 'a', 'zh': 'b'}], ',',
+                         ['y=', {'zh': 'd', 'en': 'c'}], ',', ['z=', 1]]))
+
+
 _MOCK_HTML = 'mock-html'
 _MOCK_ID = 'mock-id'
 
