@@ -99,7 +99,7 @@ def PollForCondition(poll_method, condition_method=None,
     sleep(poll_interval_secs)
 
 
-def WaitFor(condition, timeout_secs, poll_interval=0.1):
+def WaitFor(condition, timeout_secs, poll_interval=DEFAULT_POLL_INTERVAL_SECS):
   """Wait for the given condition for at most the specified time.
 
   Args:

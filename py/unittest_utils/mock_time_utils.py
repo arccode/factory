@@ -7,10 +7,12 @@
 import inspect
 import Queue
 import threading
+import time
 
 import mock
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
 
 
@@ -132,15 +134,14 @@ class FakeQueue(Queue.Queue, object):
     raise NotImplementedError
 
 
-def MockAll(module, timeline):
-  """Mock all imported modules in a module that have a fake implemented.
+def MockAll(timeline):
+  """Mock all modules that have a fake implemented.
 
   Args:
-    module: The module under testing.
     timeline: A TimeLine instance.
 
   Returns:
-    A list of mock patchers that should be stopped in tearDown.
+    A list of patchers which stop() should be called in tearDown.
   """
   patchers = []
   def _StartPatcher(*args, **kwargs):
@@ -168,17 +169,13 @@ def MockAll(module, timeline):
 
     _StartPatcher(obj, name).side_effect = _Stub
 
-  if hasattr(module, 'time'):
-    _MockFactoryOnly(module.time, 'time', timeline.GetTime)
-    _MockFactoryOnly(module.time, 'sleep', timeline.AdvanceTime)
+  _MockFactoryOnly(time, 'time', timeline.GetTime)
+  _MockFactoryOnly(time, 'sleep', timeline.AdvanceTime)
 
-  if hasattr(module, 'time_utils'):
-    _MockFactoryOnly(module.time_utils, 'MonotonicTime', timeline.GetTime)
+  _MockFactoryOnly(time_utils, 'MonotonicTime', timeline.GetTime)
 
-  if hasattr(module, 'threading'):
-    _MockFactoryOnly(module.threading, 'Event', lambda: FakeEvent(timeline))
+  _MockFactoryOnly(threading, 'Event', lambda: FakeEvent(timeline))
 
-  if hasattr(module, 'Queue'):
-    _MockFactoryOnly(module.Queue, 'Queue', lambda: FakeQueue(timeline))
+  _MockFactoryOnly(Queue, 'Queue', lambda: FakeQueue(timeline))
 
   return patchers

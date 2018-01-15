@@ -37,7 +37,7 @@ class EventLoopTestBase(unittest.TestCase):
     self._patchers = []
 
     self._timeline = mock_time_utils.TimeLine()
-    self._patchers.extend(mock_time_utils.MockAll(test_ui, self._timeline))
+    self._patchers.extend(mock_time_utils.MockAll(self._timeline))
     mock_session = self._CreatePatcher(test_ui, 'session')
     mock_session.GetCurrentTestPath.return_value = _MOCK_TEST
     mock_session.GetCurrentTestInvocation.return_value = _MOCK_INVOCATION
@@ -730,7 +730,7 @@ class UIKeyTest(unittest.TestCase):
     self._patchers = []
 
     self._timeline = mock_time_utils.TimeLine()
-    self._patchers.extend(mock_time_utils.MockAll(test_ui, self._timeline))
+    self._patchers.extend(mock_time_utils.MockAll(self._timeline))
 
     self.key_callbacks = {}
 
@@ -830,7 +830,7 @@ class StandardUITest(UITestBase):
     self._patchers = []
 
     self._timeline = mock_time_utils.TimeLine()
-    self._patchers.extend(mock_time_utils.MockAll(test_ui, self._timeline))
+    self._patchers.extend(mock_time_utils.MockAll(self._timeline))
 
     self._import_template_event = (_EventType.IMPORT_HTML, {
         'url': '/templates.html'
@@ -1004,7 +1004,7 @@ class TestCaseWithUITest(unittest.TestCase):
     self._patchers = []
 
     self._timeline = mock_time_utils.TimeLine()
-    self._patchers.extend(mock_time_utils.MockAll(test_ui, self._timeline))
+    self._patchers.extend(mock_time_utils.MockAll(self._timeline))
 
     self._test = test_ui.TestCaseWithUI()
     self._test.ui_class = mock.Mock

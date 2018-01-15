@@ -19,7 +19,7 @@ class PollingTestBase(unittest.TestCase):
 
   def setUp(self):
     self._timeline = mock_time_utils.TimeLine()
-    self._patchers = mock_time_utils.MockAll(sync_utils, self._timeline)
+    self._patchers = mock_time_utils.MockAll(self._timeline)
     self._polling_sleep_context = sync_utils.WithPollingSleepFunction(
         self._timeline.AdvanceTime)
     self._polling_sleep_context.__enter__()
