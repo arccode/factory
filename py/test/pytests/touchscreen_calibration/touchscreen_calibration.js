@@ -91,8 +91,8 @@ const setBBNetworkStatus = (ip) =>
 const setShopfloorNetworkStatus = (ip) =>
     setStatus('shopfloor-network-status', ip, ip === 'False');
 
-window.test.sendTestEvent('RefreshFixture', {});
-window.test.sendTestEvent('RefreshTouchscreen', {});
+window.test.sendTestEvent('RefreshFixture');
+window.test.sendTestEvent('RefreshTouchscreen');
 
 document.getElementById('sn').addEventListener('keydown', (event) => {
   if (event.key === 'Enter') {
@@ -100,14 +100,6 @@ document.getElementById('sn').addEventListener('keydown', (event) => {
   }
 });
 document.getElementById('sn-button').addEventListener('click', snEntered);
-document.addEventListener('click', (event) => {
-  const button = event.target.closest('button[data-test-event]');
-  if (button) {
-    window.test.sendTestEvent(button.dataset.testEvent);
-    event.stopPropagation();
-    event.preventDefault();
-  }
-});
 
 const exports = {
   toggleDebugPanel,

@@ -105,8 +105,7 @@ class TabletModeTest(test_ui.TestCaseWithUI):
     self.SetUIImage('notebook-to-tablet')
     self.ui.SetInstruction(_('Flip the lid into tablet mode'))
     confirm_button = [
-        '<button id="confirm-button" '
-        'onclick="test.sendTestEvent(\'confirm-tablet\')">',
+        '<button id="confirm-button" data-test-event="confirm-tablet">',
         _('Confirm tablet mode'), '</button>'
     ]
     self.ui.SetHTML(confirm_button, id='confirm')

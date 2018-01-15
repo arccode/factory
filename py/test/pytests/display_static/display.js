@@ -35,9 +35,6 @@ window.DisplayTest = class {
 
     this.displayDiv = document.getElementById('display-div');
     this._setDisplayDivClass();
-    this.displayDiv.addEventListener('click', () => {
-      window.test.sendTestEvent('onFullscreenClicked', {});
-    });
 
     this.fullscreen = false;
   }

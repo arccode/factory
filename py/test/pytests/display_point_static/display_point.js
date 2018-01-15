@@ -19,9 +19,6 @@ window.DisplayPointTest = class {
   constructor(arrayNumberPoint, pointSize) {
     this.pointSize = pointSize;
     this.displayDiv = document.getElementById('fullscreen');
-    this.displayDiv.addEventListener('click', () => {
-      window.test.sendTestEvent('toggle-display');
-    });
   }
 
   /**

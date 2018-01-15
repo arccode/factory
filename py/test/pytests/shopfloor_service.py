@@ -239,7 +239,7 @@ class ShopfloorService(test_ui.TestCaseWithUI):
     while True:
       def ShowMessage(caption, css, message, retry=False):
         retry_button = [
-            '<button onclick="test.sendTestEvent(\'retry\')">',
+            '<button data-test-event="retry">',
             _('Retry'), '</button>'
         ] if retry else ''
         self.ui.SetState([
