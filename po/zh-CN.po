@@ -1908,12 +1908,12 @@ msgstr ""
 "ENTER。"
 
 #: ../py/test/pytests/led.py
-msgid ""
-"<span class=\"sub-title\">Test {test_id}</span><br>Please press number key "
-"according to the <strong>{name}</strong> color"
-msgstr ""
-"<span class=\"sub-title\">测试 {test_id}</span><br>请根据 <strong>{name}</"
-"strong> 的颜色按下数字键"
+msgid "Test {test_id}"
+msgstr "测试 {test_id}"
+
+#: ../py/test/pytests/led.py
+msgid "Please press number key according to the <strong>{name}</strong> color"
+msgstr "请根据 <strong>{name}</strong> 的颜色按下数字键"
 
 #: ../py/test/pytests/led.py
 msgid "Result: "

@@ -113,12 +113,13 @@ class LEDTest(test_ui.TestCaseWithUI):
           color=color.lower(), idx=idx)
 
     led_name_label = self._GetNameI18nLabel(led_name)
-    description = _(
-        '<span class="sub-title">Test {test_id}</span><br>'
-        'Please press number key according to the <strong>{name}</strong> '
-        'color',
-        test_id=test_id,
-        name=led_name_label)
+    description = [
+        '<span class="sub-title">',
+        _('Test {test_id}', test_id=test_id), '</span>',
+        _('Please press number key according to the <strong>{name}</strong> '
+          'color',
+          name=led_name_label)
+    ]
     buttons_ui = [
         '<div>',
         [_MakeButton(idx, color)
