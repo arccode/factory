@@ -27,8 +27,10 @@ class Option(object):
 
   def GenerateHTML(self):
     """Generate HTML tag."""
-    return '<option value="%s"%s>%s</option>' % (
-        self._value, ' selected' if self._selected else '', self._display)
+    attrs = 'value="%s"' % self._value
+    if self._selected:
+      attrs += ' selected'
+    return ['<option %s>' % attrs, self._display, '</option>']
 
 
 class SelectBox(object):
@@ -66,9 +68,9 @@ class SelectBox(object):
     html = ['<select id="%s" size=%d style="%s">' % (
         self._element_id, self._size, self._style)]
     for option in self._option_list:
-      html += [option.GenerateHTML()]
-    html += ['</select>']
-    return '\n'.join(html)
+      html.append(option.GenerateHTML())
+    html.append('</select>')
+    return html
 
 
 class Table(object):
@@ -102,8 +104,7 @@ class Table(object):
 
   def GenerateHTML(self):
     """Generates HTML tags."""
-    html = ['<table id="%s" style="%s">' % (
-        self._element_id, self._style)]
+    html = ['<table id="%s" style="%s">' % (self._element_id, self._style)]
     for r in xrange(self.rows):
       html.append('<tr>')
       for c in xrange(self.cols):
@@ -113,4 +114,4 @@ class Table(object):
         html.append('</td>')
       html.append('</tr>')
     html.append('</table>')
-    return ''.join(html)
+    return html
