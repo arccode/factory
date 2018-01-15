@@ -122,8 +122,6 @@ class StylusTest(test_ui.TestCaseWithUI):
       assert all(0 <= x_or_y <= 1 for x_or_y in point)
       assert point[0] in [0, 1] or point[1] in [0, 1]
 
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
-
   def tearDown(self):
     if self._dispatcher is not None:
       self._dispatcher.close()

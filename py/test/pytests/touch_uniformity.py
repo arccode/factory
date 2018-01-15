@@ -67,7 +67,7 @@ class TouchUniformity(test_ui.TestCaseWithUI):
     self.dut = device_utils.CreateDUTInterface()
     self.controller = self.dut.touch.GetController(self.args.device_index)
     self.check_list = [CheckItem(*item) for item in self.args.check_list]
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
 
   def runTest(self):
     self.CheckInterface()

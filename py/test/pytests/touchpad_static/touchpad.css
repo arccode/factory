@@ -32,10 +32,6 @@
   opacity: 0.5;
 }
 
-#prompt {
-  font-size: 2em;
-}
-
 .circle {
   border: 3px solid gray;
   border-radius: 50%;

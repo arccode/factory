@@ -7,7 +7,6 @@
 #container {
   flex: 1;
   display: flex;
-  font-size: 2em;
   align-self: stretch;
 }
 

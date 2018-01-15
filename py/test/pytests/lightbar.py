@@ -40,7 +40,7 @@ class LightbarTest(test_ui.TestCaseWithUI):
         (i18n.Translated(label), color)
         for label, color in self.args.colors_to_test
     ]
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
 
   def tearDown(self):
     self.ECToolLightbar('seq', 'run')

@@ -54,7 +54,7 @@ class USBTest(test_ui.TestCaseWithUI):
         if os.path.exists(path):
           self.RecordPath(path)
 
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
     self.SetMessage(self._num_usb_ports)
 
   def SetMessage(self, num_usb_ports):

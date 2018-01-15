@@ -87,7 +87,7 @@ class SimpleBatteryTest(test_ui.TestCaseWithUI):
       self.assertLess(self.args.min_discharge_current_mA, 0,
                       'min_discharge_current_mA must be less than zero')
 
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
 
   def SampleBatteryCurrent(self, duration_secs):
     """Samples battery current for a given duration.

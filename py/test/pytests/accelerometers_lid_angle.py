@@ -52,7 +52,7 @@ class AccelerometersLidAngleTest(test_ui.TestCaseWithUI):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
 
     # Initializes an accelerometer utility class.
     self.accelerometers = {}

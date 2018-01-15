@@ -322,7 +322,7 @@ class UpdateDeviceData(test_ui.TestCaseWithUI):
     ]
 
     # Setup UI and update accordingly.
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
 
   def runTest(self):
     if self.args.manual_input:

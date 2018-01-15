@@ -63,23 +63,35 @@ th {
 }
 
 /* Colors for test statuses. */
+
 .test-status-passed {
   color: #0A0;
 }
+
 .test-status-failed-and-waived {
   color: #FC3;
 }
+
 .test-status-failed {
   color: #D00;
 }
+
 .test-status-untested {
   color: black;
 }
+
 .test-status-active {
   color: black;
 }
+
 .test-error {
   color: #D00;
+}
+
+/* Common styles */
+
+.font-large {
+  font-size: 2em;
 }
 
 .goofy-operator-mode .test-engineering-mode-only {

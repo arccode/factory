@@ -692,6 +692,26 @@ class StandardUI(UI):
     """
     self.CallJSFunction('window.template.setView', view)
 
+  def ToggleTemplateClass(self, dom_class, force=None):
+    """Toggle template class by classList.toggle().
+
+    Args:
+      dom_class: The DOM class to be toggled.
+      force: Should be None, True or False. If None, toggle the class. If True,
+          add the class, else remove the class.
+    """
+    # TODO(pihsun): Figure out how to prevent duplication of this and
+    # ToggleClass.
+    if force is None:
+      self.RunJS(
+          'window.template.classList.toggle(args.dom_class)',
+          dom_class=dom_class)
+    else:
+      self.RunJS(
+          'window.template.classList.toggle(args.dom_class, args.force)',
+          dom_class=dom_class,
+          force=force)
+
   def StartCountdownTimer(self, timeout_secs, timeout_handler=None):
     """Start a countdown timer.
 

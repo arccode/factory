@@ -48,7 +48,7 @@ class EthernetTest(test_ui.TestCaseWithUI):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
     self.ui.SetState(
         _('Please plug ethernet cable into built-in ethernet port<br>'
           'Press space to start.'))

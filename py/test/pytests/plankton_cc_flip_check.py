@@ -130,7 +130,7 @@ class PlanktonCCFlipCheck(test_ui.TestCaseWithUI):
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
     self._bft_fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
     self._adb_remote_test = self.args.adb_remote_test
     self._double_cc_quick_check = (

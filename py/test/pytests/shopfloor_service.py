@@ -152,7 +152,7 @@ class ShopfloorService(test_ui.TestCaseWithUI):
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
     self.event = threading.Event()
-    self.ui.AppendCSS('.large { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
 
   def GetFactoryDeviceData(self):
     """Returns a dictionary in FactoryDeviceData format."""

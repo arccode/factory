@@ -906,7 +906,7 @@ class WiFiThroughput(test_ui.TestCaseWithUI):
     self._wifi = self._dut.wifi
     self._iperf3 = Iperf3Client(self._dut)
 
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
 
   def tearDown(self):
     logging.info('Tear down...')

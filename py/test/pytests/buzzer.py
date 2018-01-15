@@ -30,7 +30,7 @@ class BuzzerTest(test_ui.TestCaseWithUI):
 
   def setUp(self):
     self._pass_digit = random.randint(1, _MAX_BEEP_TIMES)
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
     if self.args.init_commands:
       self.InitialBuzzer(self.args.init_commands)
 

@@ -206,7 +206,7 @@ class ButtonTest(test_ui.TestCaseWithUI):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
 
     if self.args.button_key_name.startswith(_KEY_GPIO):
       gpio_num = self.args.button_key_name[len(_KEY_GPIO):]

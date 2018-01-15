@@ -44,7 +44,6 @@ try:
 except ImportError:
   pass
 
-_DEFAULT_WIRELESS_TEST_CSS = 'test-template { font-size: 2em; }'
 
 _RE_IWSCAN = re.compile(r'freq: (\d+).*SSID: (.+)$')
 _RE_WIPHY = re.compile(r'wiphy (\d+)')
@@ -357,7 +356,7 @@ class WirelessRadiotapTest(test_ui.TestCaseWithUI):
           'Press space to start the test.', default=True)]
 
   def setUp(self):
-    self.ui.AppendCSS(_DEFAULT_WIRELESS_TEST_CSS)
+    self.ui.ToggleTemplateClass('font-large', True)
 
     self._phy_name = self.DetectPhyName()
     logging.info('phy name is %s.', self._phy_name)

@@ -108,7 +108,7 @@ class AccelerometersCalibration(test_ui.TestCaseWithUI):
           'The location for the accelerometer', default='base')]
 
   def setUp(self):
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
 
     self.dut = device_utils.CreateDUTInterface()
     # Checks arguments.

@@ -99,12 +99,6 @@ from cros.factory.utils import sync_utils
 
 _EXTERNAL_DIR = '/run/factory/external'
 
-_CSS = """
-test-template {
-  font-size: 2em;
-}
-"""
-
 # Usually external tests will take a long time to run so check duration can be
 # longer.
 _CHECK_PERIOD_SECS = 1
@@ -121,7 +115,7 @@ class WaitExternalTest(test_ui.TestCaseWithUI):
   ]
 
   def setUp(self):
-    self.ui.AppendCSS(_CSS)
+    self.ui.ToggleTemplateClass('font-large', True)
     self._name = self.args.run_factory_external_name
     self.ui.SetState(_(self.args.msg, name=self._name))
     self._file_path = os.path.join(

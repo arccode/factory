@@ -86,7 +86,7 @@ class BacklightTest(test_ui.TestCaseWithUI):
     self.current_level = 0
     self.ResetBrightness()
 
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
     self.ui.SetState(
         _('Press Space to change backlight brightness;<br>'
           'Press Esc to reset backlight brightness to original;<br>'

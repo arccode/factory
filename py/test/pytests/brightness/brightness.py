@@ -23,7 +23,7 @@ class BrightnessTest(test_ui.TestCaseWithUI):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
     self.ui.BindStandardKeys()
     self.ui.SetState([self.args.msg, test_ui.PASS_FAIL_KEY_LABEL])
 

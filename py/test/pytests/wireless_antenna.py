@@ -210,7 +210,7 @@ class WirelessTest(test_ui.TestCaseWithUI):
           'config.', default=False)]
 
   def setUp(self):
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
     self._phy_name = self.DetectPhyName()
     logging.info('phy name is %s.', self._phy_name)
     self._antenna_service_strength = {}

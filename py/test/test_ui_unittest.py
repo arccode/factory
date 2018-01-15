@@ -869,6 +869,17 @@ class StandardUITest(UITestBase):
         self._import_template_event,
         self._RunJSEvent('window.template.setView("view")'))
 
+  def testToggleTemplateClass(self):
+    self._ui.ToggleTemplateClass('class')
+    self._ui.ToggleTemplateClass('class', True)
+    self._ui.ToggleTemplateClass('class', False)
+
+    self.AssertEventsPosted(
+        self._import_template_event,
+        self._RunJSEvent('window.template.classList.toggle("class")'),
+        self._RunJSEvent('window.template.classList.toggle("class", true)'),
+        self._RunJSEvent('window.template.classList.toggle("class", false)'))
+
   def testStartCountdownTimer(self):
     _TIMEOUT = 5
 

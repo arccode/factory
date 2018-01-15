@@ -38,10 +38,6 @@ DEFAULT_RAW_ENTRY_TEMPLATE = 'in_accel_%s_raw'
 DEFAULT_CALIBBIAS_ENTRY_TEMPLATE = 'in_accel_%s_calibbias'
 DEFAULT_VPD_ENTRY_TEMPLATE = 'in_accel_%s_base_calibbias'
 
-CSS = """
-test-template { font-size: 2em; }
-.error { color: red; }
-"""
 
 
 class InvalidPositionError(Exception):
@@ -78,7 +74,7 @@ class SpatialSensorCalibration(test_ui.TestCaseWithUI):
     self._dut = device_utils.CreateDUTInterface()
     self._device_path = None
 
-    self.ui.AppendCSS(CSS)
+    self.ui.ToggleTemplateClass('font-large', True)
 
     for path in self._dut.Glob('/sys/bus/iio/devices/iio:device*'):
       try:
@@ -120,7 +116,7 @@ class SpatialSensorCalibration(test_ui.TestCaseWithUI):
 
   def Prompt(self, prev_fail=False):
     self.ui.SetState([
-        '<div class="error">',
+        '<div class="test-error">',
         _('Device not in position') if prev_fail else '', '</div><br>',
         _('Please put the device in face-up position'
           ' (press Enter to continue)')

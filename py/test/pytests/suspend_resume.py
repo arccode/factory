@@ -94,7 +94,7 @@ class SuspendResumeTest(test_ui.TestCaseWithUI):
 
     self.goofy = state.get_instance()
 
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
 
     # Remove lid-opened, which will prevent suspend.
     file_utils.TryUnlink('/run/power_manager/lid_opened')

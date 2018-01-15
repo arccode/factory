@@ -159,7 +159,7 @@ class PlanktonChargeBFTTest(test_ui.TestCaseWithUI):
   _DISCHARGE_VOLT = 5  # discharging voltage
 
   def setUp(self):
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
     self._dut = device_utils.CreateDUTInterface()
     self._power = self._dut.power
     self.VerifyArgs()

@@ -33,7 +33,7 @@ class PlanktonCC2PullTest(test_ui.TestCaseWithUI):
   ]
 
   def setUp(self):
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
     self._dut = device_utils.CreateDUTInterface()
     self._usb_c_index = self.args.usb_c_index
     self._pull_gpio = 'C%d_CC2_DUT' % self._usb_c_index

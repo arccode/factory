@@ -86,7 +86,7 @@ class LidSwitchTest(test_ui.TestCaseWithUI):
   def setUp(self):
     self.event_dev = evdev_utils.FindDevice(self.args.device_filter,
                                             evdev_utils.IsLidEventDevice)
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
 
     self.dispatcher = evdev_utils.InputDeviceDispatcher(
         self.event_dev, self.event_loop.CatchException(self.HandleEvent))

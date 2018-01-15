@@ -47,7 +47,7 @@ class Gyroscope(test_ui.TestCaseWithUI):
     self.dut = device_utils.CreateDUTInterface()
     self.gyroscope = self.dut.gyroscope.GetController(
         location=self.args.location)
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
 
   def runTest(self):
     if not self.args.autostart:

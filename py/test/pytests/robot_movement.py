@@ -122,7 +122,7 @@ class RobotMovement(test_ui.TestCaseWithUI):
         self.args.algorithm, self.args.algorithm_args)
     self._algorithm.SetLogger(session.console)
 
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
 
   def tearDown(self):
     try:

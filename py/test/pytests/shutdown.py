@@ -134,7 +134,7 @@ class ShutdownTest(test_ui.TestCaseWithUI):
                                    test_object.ShutdownStep.FULL_REBOOT,
                                    test_object.ShutdownStep.HALT)
     self.dut = device_utils.CreateDUTInterface()
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
     self.operation_label = _DICT_OPERATION_LABEL.get(self.args.operation,
                                                      self.args.operation)
     self.ui.SetTitle(

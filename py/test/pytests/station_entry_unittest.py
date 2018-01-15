@@ -50,7 +50,7 @@ class FactoryEntryUnitTest(unittest.TestCase):
 
     # for start testing
     state.get_instance().AndReturn(mock_state)
-    self.mock_ui.AppendCSS(mox.IsA(str))
+    self.mock_ui.ToggleTemplateClass(mox.IgnoreArg(), mox.IgnoreArg())
     self.mock_ui.SetTitle(_MOX_HTML_TYPE)
 
     self.mox.ReplayAll()

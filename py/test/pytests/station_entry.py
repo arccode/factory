@@ -111,7 +111,7 @@ class StationEntry(test_ui.TestCaseWithUI):
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
     self._state = state.get_instance()
-    self.ui.AppendCSS('test-template { font-size: 2em; }')
+    self.ui.ToggleTemplateClass('font-large', True)
     self.ui.SetTitle(
         _('Start Station Test')
         if self.args.start_station_tests else _('End Station Test'))
