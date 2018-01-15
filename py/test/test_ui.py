@@ -256,9 +256,14 @@ def EnsureI18n(labels):
     labels = [labels]
   else:
     labels = type_utils.FlattenList(labels)
-  return ''.join(
-      i18n_test_ui.MakeI18nLabel(label) if isinstance(label, dict) else label
-      for label in labels)
+
+  def _Transform(label):
+    if isinstance(label, dict):
+      return i18n_test_ui.MakeI18nLabel(label)
+    if isinstance(label, basestring):
+      return label
+    return str(label)
+  return ''.join(_Transform(label) for label in labels)
 
 
 class UI(object):

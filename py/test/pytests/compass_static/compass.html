@@ -1,15 +1,17 @@
 <test-template>
-  <div id='container'>
+  <div id="container">
     <div>
-      <div>in_magn_x: <span id='in-magn-x'></span></div>
-      <div>in_magn_y: <span id='in-magn-y'></span></div>
-      <div>in_magn_z: <span id='in-magn-z'></span></div>
-      <div>degree: <span id='degree'></span></div>
+      <div>in_magn_x: <span id="in-magn-x"></span></div>
+      <div>in_magn_y: <span id="in-magn-y"></span></div>
+      <div>in_magn_z: <span id="in-magn-z"></span></div>
+      <div>degree: <span id="degree"></span></div>
     </div>
-    <div id='compass'>
-      <div id='north'>N</div>
-      <div id='south'>S</div>
+    <div id="compass">
+      <div id="north">N</div>
+      <div id="south">S</div>
     </div>
   </div>
-  <i18n-label id='success'>Success!</i18n-label>
+  <test-view id="success" slot="extra-views">
+    <i18n-label>Success!</i18n-label>
+  </test-view>
 </test-template>

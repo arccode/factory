@@ -38,15 +38,16 @@ class CompassTest(test_ui.TestCaseWithUI):
 
   def runTest(self):
     for direction_label, direction in _TEST_ITEMS:
+      self.ui.SetView('main')
       self.ui.SetInstruction(_(
           'Put the DUT towards {direction}', direction=direction_label))
       sync_utils.PollForCondition(
           poll_method=type_utils.BindFunction(self._CheckDirection, direction),
           timeout_secs=1000,
           poll_interval_secs=0.1)
-      self.ui.ShowElement('success')
+
+      self.ui.SetView('success')
       self.Sleep(_FLASH_STATUS_TIME)
-      self.ui.HideElement('success')
 
   def _CalculateDirection(self, x, y):
     """Calculate the absolute direction of the compass in degree.
