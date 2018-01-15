@@ -206,7 +206,7 @@ class HTMLMessageParser(HTMLParser.HTMLParser, object):
 
   def handle_data(self, data):
     if self.in_keyword_tag:
-      self.data.append(data)
+      self.data.append(re.sub(r'\s+', ' ', data))
 
   def handle_entityref(self, name):
     if self.in_keyword_tag:

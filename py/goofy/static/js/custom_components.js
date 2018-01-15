@@ -23,7 +23,7 @@
     }
     connectedCallback() {
       const callback = () => {
-        const text = this.innerHTML.trim();
+        const text = this.innerHTML.replace(/\s+/, ' ').trim();
         for (const dom of this.shadowRoot.querySelectorAll('span')) {
           dom.remove();
         }
