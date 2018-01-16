@@ -22,6 +22,7 @@ from cros.factory.umpire.server import resource
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 from cros.factory.utils import webservice_utils
 
@@ -138,18 +139,9 @@ class UmpireEnv(object):
     return self.umpire_base_port + _INSTALOG_PULL_SOCKET_OFFSET
 
   @type_utils.LazyProperty
-  def is_inside_docker(self):
-    try:
-      with open('/proc/1/sched') as f:
-        return f.readline().split()[0] != 'init'
-    except Exception:
-      logging.debug('Probably not inside Docker.')
-      return False
-
-  @type_utils.LazyProperty
   def docker_host_ip(self):
     try:
-      if self.is_inside_docker:
+      if sys_utils.IsContainerized():
         # Docker host should be the default router.
         # 'ip route' prints default routing in first line: 'default via <IP>'
         return process_utils.CheckOutput(['ip', 'route']).split()[2]
