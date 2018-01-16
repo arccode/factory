@@ -14,7 +14,7 @@ partition on DUT.
 some older factory branches might have only `usb_updater` but no `trunks_send`.
 
 To prepare Cr50 firmware image on station, download the release image with
-desired Cr50 firmware image and find the image in FIRMWARE_RELATIVE_PATH below.
+desired Cr50 firmware image and find the image in DEFAULT_FIRMWARE_PATH below.
 
 Test Procedure
 --------------
@@ -61,7 +61,7 @@ from cros.factory.utils import sys_utils
 
 
 TRUNKS_SEND = '/usr/sbin/trunks_send'
-FIRMWARE_RELATIVE_PATH = 'opt/google/cr50/firmware/cr50.bin.prod'
+DEFAULT_FIRMWARE_PATH = '/opt/google/cr50/firmware/cr50.bin.prod'
 
 
 class UpdateCr50FirmwareTest(test_ui.TestCaseWithUI):
@@ -81,21 +81,27 @@ class UpdateCr50FirmwareTest(test_ui.TestCaseWithUI):
 
   def runTest(self):
     """Update Cr50 firmware."""
-    self.assertEqual(
-        1, len(filter(None, [self.args.firmware_file, self.args.from_release])),
-        'Must specify exactly one of "firmware_file" or "from_release".')
-    if self.args.firmware_file:
+    if self.args.firmware_file is None:
+      self.assertEqual(
+          self.args.from_release, True,
+          'Must set "from_release" to True if not specifiying firmware_file')
+      self.args.firmware_file = DEFAULT_FIRMWARE_PATH
+
+    self.assertEqual(self.args.firmware_file[0], '/',
+                     'firmware_file should be a full path')
+
+    if self.args.from_release:
+      with sys_utils.MountPartition(
+          self.dut.partitions.RELEASE_ROOTFS.path, dut=self.dut) as root:
+        self._UpdateCr50Firmware(
+            os.path.join(root, self.args.firmware_file[1:]))
+    else:
       if self.dut.link.IsLocal():
         self._UpdateCr50Firmware(self.args.firmware_file)
       else:
         with self.dut.temp.TempFile() as dut_temp_file:
           self.dut.SendFile(self.args.firmware_file, dut_temp_file)
           self._UpdateCr50Firmware(dut_temp_file)
-    elif self.args.from_release:
-      with sys_utils.MountPartition(
-          self.dut.partitions.RELEASE_ROOTFS.path, dut=self.dut) as root:
-        firmware_path = os.path.join(root, FIRMWARE_RELATIVE_PATH)
-        self._UpdateCr50Firmware(firmware_path)
 
   def _UpdateCr50Firmware(self, firmware_file):
     if self.args.force:
