@@ -5,10 +5,12 @@
 
 from __future__ import print_function
 
+import argparse
+import glob
 import importlib
 import logging
 import os
-import sys
+import re
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server import umpire_env
@@ -16,13 +18,26 @@ from cros.factory.utils import json_utils
 from cros.factory.utils import process_utils
 
 
-# Version for Umpire internal environment migrations.
-UMPIRE_ENV_VERSION = 4
-
 _ENV_DIR = os.path.join('/', umpire_env.DEFAULT_BASE_DIR)
 _SESSION_JSON_PATH = os.path.join(_ENV_DIR, umpire_env.SESSION_JSON_FILE)
 
 _WIP_KEY = 'migrate_in_progress'
+
+_SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+_MIGRATIONS_DIR = os.path.join(_SCRIPT_DIR, 'migrations')
+_MIGRATION_NAME_RE = r'(\d{4})\.py$'
+_MIGRATION_NAME_TEMPLATE = '%04d'
+
+
+def _GetVersionOfLatestMigration():
+  s = set()
+  for path in glob.glob(os.path.join(_MIGRATIONS_DIR, '*')):
+    matched = re.match(_MIGRATION_NAME_RE, os.path.basename(path))
+    if matched:
+      s.add(int(matched.group(1)))
+  if max(s) != len(s) - 1:
+    raise RuntimeError('Missing some migration scripts.')
+  return max(s)
 
 
 def _GetEnvironmentVersionAndData():
@@ -49,14 +64,11 @@ def _RunMigration(migration_id):
         "Shouldn't run migration #%d when environment version is %d." % (
             migration_id, version))
 
-  migration_name = '%04d' % migration_id
+  migration_name = _MIGRATION_NAME_TEMPLATE % migration_id
   module = importlib.import_module(
       'cros.factory.umpire.server.migrations.%s' % migration_name)
   try:
-    os.chdir(
-        os.path.join(
-            os.path.dirname(os.path.realpath(__file__)),
-            'migrations', migration_name))
+    os.chdir(os.path.join(_MIGRATIONS_DIR, migration_name))
   except OSError:
     pass
 
@@ -86,34 +98,30 @@ def _RunMigration(migration_id):
 
 
 def RunMigrations():
+  latest = _GetVersionOfLatestMigration()
   version = _GetEnvironmentVersionAndData()[0]
-  if version > UMPIRE_ENV_VERSION:
+  if version > latest:
     raise RuntimeError('Cannot downgrade Umpire version.')
-  while version < UMPIRE_ENV_VERSION:
+  while version < latest:
     version += 1
-    process_utils.Spawn([__file__, str(version)], log=True, check_call=True)
-
-
-def _Usage():
-  print('Usage: %s run' % __file__)
-  print('Usage: %s {MIGRATION_ID}' % __file__)
+    process_utils.Spawn(
+        [__file__, '-r', str(version)], log=True, check_call=True)
 
 
 def main():
-  if len(sys.argv) != 2:
-    _Usage()
-    return
+  parser = argparse.ArgumentParser()
+  group = parser.add_mutually_exclusive_group(required=True)
+  group.add_argument(
+      '-a', '--run-all', action='store_true',
+      help='run all necessary migrations.')
+  group.add_argument(
+      '-r', dest='migration_id', type=int, help='run the specified migration.')
+  args = parser.parse_args()
 
-  if sys.argv[1] == 'run':
+  if args.run_all:
     RunMigrations()
-    return
-
-  try:
-    migration_id = int(sys.argv[1])
-  except ValueError:
-    _Usage()
-    return
-  _RunMigration(migration_id)
+  else:
+    _RunMigration(args.migration_id)
 
 
 if __name__ == '__main__':
