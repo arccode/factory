@@ -11,8 +11,7 @@ MSGFMT = msgfmt
 MSGMERGE = msgmerge
 MSGCAT = msgcat
 
-KEYWORDS = -k _ -k Translation -t i18n-label -j _ -j i18nLabel \
-  -j i18nLabelNode -J "i18n! "
+KEYWORDS = -k _ -t i18n-label -j _ -j i18nLabel -j i18nLabelNode -J "i18n! "
 
 DOMAIN = factory
 BUILD_DIR ?= ../build
