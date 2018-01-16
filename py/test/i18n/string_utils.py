@@ -91,24 +91,6 @@ def _(_format_string, **kwargs):
   return StringFormat(_format_string, **kwargs)
 
 
-def StringJoin(*strs):
-  """Join several translation dicts / strings together.
-
-  Args:
-    strs: Strings / translation dicts to be joined together. Strings passed in
-        would be used directly without translation.
-
-  Example:
-    >>> StringJoin('<div>', {'en-US': 'English', 'zh-CN': 'Chinese'}, '</div>')
-    {'en-US': '<div>English</div>', 'zh-CN': '<div>Chinese</div>'}
-  """
-  strs = [translation.Translated(s, translate=False) for s in strs]
-  return {
-      locale: ''.join(s.get(locale) for s in strs)
-      for locale in translation.LOCALES
-  }
-
-
 def HTMLEscape(text):
   """HTML-escape all entries in a given translation dict.
 

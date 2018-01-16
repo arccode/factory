@@ -55,18 +55,6 @@ class SafeFormatterTest(unittest.TestCase):
 
 class StringUtilsTest(unittest_test_case.I18nTestCase):
 
-  def testStringJoin(self):
-    self.assertEqual(
-        {'en-US': '<div>English</div>', 'zh-CN': '<div>Chinese</div>'},
-        string_utils.StringJoin(
-            '<div>', {'en-US': 'English', 'zh-CN': 'Chinese'}, '</div>'))
-    self.assertEqual(
-        {'en-US': 'abcd', 'zh-CN': 'abCd'},
-        string_utils.StringJoin(
-            'a', {'en-US': 'b'}, {'en-US': 'c', 'zh-CN': 'C'}, 'd'))
-    self.assertRaisesRegexp(ValueError, "doesn't contains default locale",
-                            string_utils.StringJoin, 'a', {'zh-CN': 'b'})
-
   def testStringFormat(self):
     self.assertEqual(
         {'en-US': '{x}', 'zh-CN': '{x}'},
