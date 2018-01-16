@@ -26,6 +26,8 @@ five seconds, and then passes::
 The following document assumes that the test inherit from
 :py:class:`cros.factory.test.test_case.TestCase`.
 
+See :ref:`test-i18n-api` on how to display localized texts on UI.
+
 Including static resources
 --------------------------
 Often you will want to include static resources, such as images, HTML,

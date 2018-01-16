@@ -15,16 +15,16 @@ from cros.factory.utils import arg_utils
 def I18nArg(name, help_msg, default=arg_utils._DEFAULT_NOT_SET):
   """Define an argument for i18n text.
 
-  The argument should either be a string that would be passed to i18n._, or a
-  dict looks like:
+  The argument should either be a string that would be passed to
+  :func:`~cros.factory.test.i18n.Translation`, or a dict looks like::
 
     {
       'en-US': 'Default English value',
       'zh-CN': 'Chinese Translate'
     }
 
-  The key 'en-US' is mandatory and would be used for locales that don't have
-  value specified.
+  The key ``'en-US'`` is mandatory and would be used for locales that don't
+  have value specified.
 
   Args:
     name: The name of the argument.
