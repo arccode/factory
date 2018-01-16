@@ -287,7 +287,7 @@ doc:
 publish-docs: clean
 	# Force using an empty database to load whole region set from source
 	CROS_REGIONS_DATABASE="/dev/null" $(MAKE) doc
-	gsutil -h "Cache-Control:public, max-age=3600" -m rsync -d -r \
+	gsutil -h "Cache-Control:public, max-age=3600" -m rsync -c -d -r \
 	  $(DOC_OUTPUT_DIR) $(DOC_PUBLISH_URL)
 
 # Builds everything needed and create the proper bundle folder.
