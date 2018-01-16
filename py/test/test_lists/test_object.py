@@ -69,13 +69,10 @@ class FactoryTest(object):
   # If True, the test can not be aborted.
   disable_abort = False
 
-  # Deprecated, and has no effect.
-  has_ui = False
-
   # Fields of test_object defined by test_list.schema.json
   TEST_OBJECT_FIELDS = [
       'action_on_failure', 'args', 'disable_abort', 'disable_services',
-      'enable_services', 'exclusive_resources', 'has_ui', 'id', 'iterations',
+      'enable_services', 'exclusive_resources', 'id', 'iterations',
       'label', 'allow_reboot', 'parallel', 'pytest_name', 'retries',
       'run_if', 'subtests', 'teardown', 'inherit', 'locals', ]
 
@@ -107,7 +104,6 @@ class FactoryTest(object):
                subtests=None,
                teardown=False,
                id=None,  # pylint: disable=redefined-builtin
-               has_ui=None,
                no_host=False,
                allow_reboot=None,
                disable_abort=None,
@@ -141,7 +137,6 @@ class FactoryTest(object):
         to make conditional construction easier, this may contain None items
         (which are removed) or nested arrays (which are flattened).
       id: A unique ID for the test.
-      has_ui: Deprecated. Has no effect now.
       allow_reboot: True if allowing unexpected reboot.
       disable_abort: True if the test can not be aborted
         while it is running.
@@ -270,8 +265,6 @@ class FactoryTest(object):
           'In test %s, Retries must be a positive integer or 0, not %r' % (
               self.path, self.retries))
 
-    if has_ui is not None:
-      self.has_ui = has_ui
     if allow_reboot is not None:
       self.allow_reboot = allow_reboot
     if disable_abort is not None:
