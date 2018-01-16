@@ -12,7 +12,6 @@ import threading
 import time
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.utils.service_utils import GetServiceStatus
 from cros.factory.utils.service_utils import SetServiceStatus
 from cros.factory.utils.service_utils import Status
 
@@ -57,11 +56,18 @@ class DUTEnvironment(Environment):
       """Prepares for a clean shutdown."""
       respawn_services = ['syslog',
                           'tcsd',
+                          'trunksd',
                           'shill',
-                          'warn-collector']
+                          'anomaly-collector']
       for service in respawn_services:
-        if GetServiceStatus(service, ignore_failure=True) == Status.START:
+        try:
           SetServiceStatus(service, Status.STOP)
+        except Exception:
+          # It might not be an error failing to stop a service, since that
+          # 1. A service daemon may not exist in the current system, for
+          #    example: TPM 1.2 uses tcsd and TPM 2.0 uses trunksd.
+          # 2. A service daemon might have been stopped already.
+          logging.debug('Failed to stop service %s', service)
 
     assert operation in ['reboot', 'full_reboot', 'halt']
     logging.info('Shutting down: %s', operation)
