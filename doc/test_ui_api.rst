@@ -21,7 +21,7 @@ five seconds, and then passes::
   class MyTest(test_ui.TestCaseWithUI):
     def runTest(self):
       self.template.SetState('Hello, world!')
-      time.sleep(5)
+      self.Sleep(5)
 
 The following document assumes that the test inherit from
 :py:class:`cros.factory.test.test_ui.TestCaseWithUI`.
@@ -40,13 +40,11 @@ resources in a directory called
 
   :samp:`py/test/pytests/{mytest}_static`
 
-In addition, when the ``UI`` class is created, any of the following
-will be automatically loaded if they exist:
+In addition, these files will be automatically loaded if they exist:
 
-* :samp:`py/test/pytests/{mytest}.html`
-* :samp:`py/test/pytests/{mytest}.js`
 * :samp:`py/test/pytests/{mytest}_static/{mytest}.html`
 * :samp:`py/test/pytests/{mytest}_static/{mytest}.js`
+* :samp:`py/test/pytests/{mytest}_static/{mytest}.css`
 
 Nested layout
 `````````````
@@ -59,8 +57,12 @@ resources there:
 
 In addition, these files will be automatically loaded if they exist:
 
+* :samp:`py/test/pytests/{mytest}/{mytest}.html`
+* :samp:`py/test/pytests/{mytest}/{mytest}.js`
+* :samp:`py/test/pytests/{mytest}/{mytest}.css`
 * :samp:`py/test/pytests/{mytest}/static/{mytest}.html`
 * :samp:`py/test/pytests/{mytest}/static/{mytest}.js`
+* :samp:`py/test/pytests/{mytest}/static/{mytest}.css`
 
 Referring to static resources
 `````````````````````````````

@@ -281,7 +281,7 @@ class UI(object):
     py_script = session.GetCurrentTestFilePath()
     base = os.path.splitext(py_script)[0]
 
-    # Directories we'll autoload .html and .js files from.
+    # Path prefixes we'll autoload .html, .js and .css files from.
     autoload_bases = [base]
 
     # Find and register the static directory, if any.
