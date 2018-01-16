@@ -17,7 +17,9 @@ from cros.factory.utils import string_utils
 
 
 DOMAIN = 'factory'
+
 DEFAULT_LOCALE = 'en-US'
+"""The default locale used in code."""
 
 LOCALE_DIR = os.path.join(paths.FACTORY_DIR, 'locale')
 # All supported locales by Goofy.
@@ -84,17 +86,17 @@ def NoTranslation(obj):
 
 
 def Translated(obj, translate=True):
-  """Ensure that the argument is a translation dict, pass it to _ or
-  NoTranslation if it isn't.
+  """Ensure that the argument is a translation dict, pass it to
+  :func:`Translation` or :func:`NoTranslation` if it isn't.
 
   This will also make sure that the return translation dict contains all
-  supported locales. The value of DEFAULT_LOCALE would be used to fill in
-  locales not in the input obj regardless of the argument translate.
+  supported locales. The value of :const:`DEFAULT_LOCALE` would be used to fill
+  in locales not in the input obj regardless of the argument translate.
 
   Args:
     obj: The string to be translated, or the translation dict.
-    translate: True to pass things that are not translation dict to _, False
-        to pass to NoTranslation.
+    translate: True to pass things that are not translation dict to
+        :func:`Translation`, False to pass to :func:`NoTranslation`.
 
   Returns:
     The translation dict.

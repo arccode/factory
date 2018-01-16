@@ -8,9 +8,9 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import translation
 from cros.factory.test.i18n import string_utils
 
-Translation = translation.Translation
-NoTranslation = translation.NoTranslation
-Translated = translation.Translated
 _ = string_utils._
-StringFormat = string_utils.StringFormat
 HTMLEscape = string_utils.HTMLEscape
+NoTranslation = translation.NoTranslation
+StringFormat = string_utils.StringFormat
+Translated = translation.Translated
+Translation = translation.Translation

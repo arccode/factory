@@ -23,6 +23,7 @@ APIs:
    device_api
    test_api
    test_ui_api
+   test_i18n_api
    test_list_api
    shopfloor_api
 
