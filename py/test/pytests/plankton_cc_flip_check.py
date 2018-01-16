@@ -198,7 +198,7 @@ class PlanktonCCFlipCheck(test_ui.TestCaseWithUI):
     retry_times_left = retry_times
     polarity = self.GetCCPolarity()
     while retry_times_left != 0 and polarity != expected_polarity:
-      self.WaitTaskEnd(timeout=1)
+      self.Sleep(1)
       polarity = self.GetCCPolarity()
       logging.info('[%d]Poll polarity %s', retry_times_left, polarity)
       retry_times_left -= 1
