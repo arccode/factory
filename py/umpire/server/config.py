@@ -117,11 +117,7 @@ def ValidateConfig(config):
       items={
           'rulesets': _RULESETS_SCHEMA,
           'services': umpire_service.GetServiceSchemata(),
-          'bundles': List('Bundles', _BUNDLE_SCHEMA)},
-      optional_items={
-          'ip': Scalar('IP address to bind', basestring),
-          'port': Scalar('Base port', int),
-      })
+          'bundles': List('Bundles', _BUNDLE_SCHEMA)})
   schema.Validate(config)
 
 
@@ -205,7 +201,7 @@ class UmpireConfig(dict):
 
   Example:
     umpire_config = UmpireConfig(file_path=config_file)
-    logging.info('Reads Umpire config ip = %s', umpire_config.get('ip'))
+    logging.info('Reads Umpire config services = %s', umpire_config['services'])
   """
 
   def __init__(self, config=None, file_path=None, validate=True):

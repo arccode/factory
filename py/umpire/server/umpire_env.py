@@ -62,9 +62,8 @@ def GetRsyncPortFromBasePort(base_port):
 class UmpireEnv(object):
   """Provides accessors of Umpire resources.
 
-  The base directory is obtained in constructor. If a user wants to run
-  locally (e.g. --local is used), just modify self.base_dir to local
-  directory and the accessors will reflect the change.
+  The base directory is obtained in constructor.
+  If self.base_dir is modified, the accessors will reflect the change.
 
   Properties:
     base_dir: Umpire base directory
@@ -107,16 +106,8 @@ class UmpireEnv(object):
     return os.path.join(self.base_dir, _ACTIVE_UMPIRE_CONFIG)
 
   @property
-  def umpire_ip(self):
-    if not self.config:
-      raise common.UmpireError('UmpireConfig not loaded yet.')
-    return self.config.get('ip', '0.0.0.0')
-
-  @property
   def umpire_base_port(self):
-    if not self.config:
-      raise common.UmpireError('UmpireConfig not loaded yet.')
-    return self.config.get('port', common.UMPIRE_DEFAULT_PORT)
+    return common.UMPIRE_DEFAULT_PORT
 
   @property
   def umpire_webapp_port(self):
@@ -359,9 +350,13 @@ class UmpireEnvForTest(UmpireEnv):
   It creates a temp directory as its base directory and creates fundamental
   subdirectories (those which define property). The temp directory is removed
   once it is deleted.
+
+  Also, it overrides umpire_base_port to make it able to return a given port to
+  avoid port conflicts during running unittests.
   """
 
-  def __init__(self):
+  def __init__(self, port=None):
+    self._port = port
     self.root_dir = tempfile.mkdtemp()
     super(UmpireEnvForTest, self).__init__(self.root_dir)
     os.makedirs(self.server_toolkit_dir)
@@ -374,6 +369,10 @@ class UmpireEnvForTest(UmpireEnv):
         self.umpire_data_dir):
       os.makedirs(fundamental_subdir)
     self.AddConfigFromBlob('{}', resource.ConfigTypeNames.payload_config)
+
+  @property
+  def umpire_base_port(self):
+    return self._port or super(UmpireEnvForTest, self).umpire_base_port
 
   def Close(self):
     shutil.rmtree(self.root_dir, ignore_errors=True)
