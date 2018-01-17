@@ -495,11 +495,7 @@
       "pytest_name": "touchpad"
     },
     "Touchscreen": {
-      "pytest_name": "touchscreen",
-      "args": {
-        "x_segments": 8,
-        "y_segments": 8
-      }
+      "pytest_name": "touchscreen"
     },
     "TouchscreenFirmwareVerify": {
       "pytest_name": "verify_touch_device_fw",
