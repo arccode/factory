@@ -178,6 +178,10 @@ msgid "Finalize"
 msgstr "最终程序"
 
 #: ../build/pytests_label_generated.json
+msgid "Fingerprint Mcu"
+msgstr ""
+
+#: ../build/pytests_label_generated.json
 msgid "Flash Netboot"
 msgstr "烧录 netboot 韧体"
 
