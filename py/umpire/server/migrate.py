@@ -11,11 +11,11 @@ import importlib
 import logging
 import os
 import re
+import sys
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server import umpire_env
 from cros.factory.utils import json_utils
-from cros.factory.utils import process_utils
 
 
 _ENV_DIR = os.path.join('/', umpire_env.DEFAULT_BASE_DIR)
@@ -104,8 +104,11 @@ def RunMigrations():
     raise RuntimeError('Cannot downgrade Umpire version.')
   while version < latest:
     version += 1
-    process_utils.Spawn(
-        [__file__, '-r', str(version)], log=True, check_call=True)
+    if os.fork() == 0:
+      _RunMigration(version)
+      sys.exit()
+    if os.wait()[1] != 0:
+      raise RuntimeError('Stop running migrations.')
 
 
 def main():
