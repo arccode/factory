@@ -11,7 +11,6 @@ from cros.factory.device import types
 from cros.factory.device import sensor_utils
 
 
-IN_ILLUMINANCE_RAW = "in_illuminance_raw"
 IN_ILLUMINANCE_BIAS = "in_illuminance_calibbias"
 IN_ILLUMINANCE_SCALE = "in_illuminance_calibscale"
 
@@ -31,10 +30,16 @@ class AmbientLightSensorController(sensor_utils.BasicSensorController):
       location: The location attribute of sensor.
     """
     super(AmbientLightSensorController, self).__init__(
-        dut, name, location, [IN_ILLUMINANCE_RAW, IN_ILLUMINANCE_BIAS,
-                              IN_ILLUMINANCE_SCALE])
+        dut, name, location, [IN_ILLUMINANCE_BIAS, IN_ILLUMINANCE_SCALE])
     self.calib_signal_names = [IN_ILLUMINANCE_BIAS, IN_ILLUMINANCE_SCALE]
     self.location = location
+    for input_entry in ['in_illuminance_input', 'in_illuminance_raw']:
+      if self._device.Glob(self._device.path.join(self._iio_path, input_entry)):
+        self.input_entry = input_entry
+        self.signal_names.append(self.input_entry)
+        break
+    if not self.input_entry:
+      raise AmbientLightSensorException('Does not find any input entry.')
 
   def _SetSysfsValue(self, signal_name, value):
     try:
@@ -88,7 +93,7 @@ class AmbientLightSensorController(sensor_utils.BasicSensorController):
   def GetLuxValue(self):
     """Reads the LUX raw value from sysfs."""
     try:
-      return int(self._GetSysfsValue(IN_ILLUMINANCE_RAW))
+      return int(self._GetSysfsValue(self.input_entry))
     except Exception as e:
       logging.exception('Failed to get illuminance value')
       raise AmbientLightSensorException(e.message)
