@@ -67,10 +67,6 @@
   top: 0;
 }
 
-#display-full-screen.hide {
-  display: none;
-}
-
 #display-div {
   width: 100%;
   height: 100%;

@@ -4,10 +4,6 @@
  * found in the LICENSE file.
  */
 
-.hidden {
-  visibility: hidden;
-}
-
 #main {
   align-self: flex-start;
 }

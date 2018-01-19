@@ -48,7 +48,7 @@ window.DisplayPointTest = class {
    * visibility to visible and enlarges the test iframe to fullscreen.
    */
   switchDisplayOn() {
-    this.displayDiv.classList.remove('hide');
+    this.displayDiv.classList.remove('hidden');
     window.test.setFullScreen(true);
   }
 
@@ -57,7 +57,7 @@ window.DisplayPointTest = class {
    * visibility to hidden and restores the test iframe to normal.
    */
   switchDisplayOff() {
-    this.displayDiv.classList.add('hide');
+    this.displayDiv.classList.add('hidden');
     window.test.setFullScreen(false);
   }
 };

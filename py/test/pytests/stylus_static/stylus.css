@@ -8,10 +8,6 @@
   background-color: white;
 }
 
-.hidden {
-  display: none;
-}
-
 .fullscreen {
   position: absolute;
   left: 0;

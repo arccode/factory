@@ -10,7 +10,7 @@ const showImage = (data_url) => {
 };
 
 const hideImage = (hide) => {
-  imageDiv.style.display = hide ? 'none' : '';
+  imageDiv.classList.toggle('hidden', hide);
 };
 
 const getErrorMessage = (error) => `${error.name}: ${error.message}`;

@@ -94,6 +94,10 @@ th {
   font-size: 2em;
 }
 
+.hidden {
+  display: none;
+}
+
 .goofy-operator-mode .test-engineering-mode-only {
   display: none;
 }

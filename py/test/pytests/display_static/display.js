@@ -53,7 +53,7 @@ window.DisplayTest = class {
    */
   toggleFullscreen() {
     this.fullscreen = !this.fullscreen;
-    this.fullscreenElement.classList.toggle('hide', !this.fullscreen);
+    this.fullscreenElement.classList.toggle('hidden', !this.fullscreen);
     window.test.setFullScreen(this.fullscreen);
   }
 

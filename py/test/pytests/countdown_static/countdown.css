@@ -61,10 +61,6 @@ tbody tr:last-child * {
   flex: 1;
 }
 
-#cd-legend-panel {
-  display: none;
-}
-
 #cd-legend-title {
   font-weight: bold;
   text-align: center;

@@ -13,10 +13,6 @@
   top: 0;
 }
 
-#display-full-screen.hide {
-  position: none;
-}
-
 .display-subtest-image {
   background-image: url("./template.png");
 }
