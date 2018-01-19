@@ -469,17 +469,6 @@ class TestInvocation(object):
     service_manager.SetupServices(enable_services=self.test.enable_services,
                                   disable_services=self.test.disable_services)
 
-    try:
-      # *WARNING* test metadata is not initialized at this point, please don't
-      # use it in prepare function.
-      if self.test.prepare:
-        self.test.prepare()
-    except Exception:
-      logging.exception('Exception while invoking prepare callback %s',
-                        traceback.format_exc())
-
-    # During the preparation, if a severe error occurs,
-    # you can set status to TestState.FAILED, then the test won't be invoked.
     status, error_msg = None, None
 
     # Resume the previously-running test.
@@ -648,13 +637,6 @@ class TestInvocation(object):
       decrement_retries_left = 1
     elif status == TestState.PASSED:
       decrement_iterations_left = 1
-
-    try:
-      if self.test.finish:
-        self.test.finish(status)
-    except Exception:
-      logging.exception('Exception while invoking finish_callback %s',
-                        traceback.format_exc())
 
     with self._lock:
       self.update_state_on_completion = dict(

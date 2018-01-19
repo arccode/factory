@@ -113,8 +113,6 @@ class FactoryTest(object):
                run_if=None,
                iterations=1,
                retries=0,
-               prepare=None,
-               finish=None,
                waived=False,
                parallel=False,
                layout=None,
@@ -177,10 +175,6 @@ class FactoryTest(object):
         If it's 0, then no retries are allowed (the usual case). If, for
         example, iterations=60 and retries=2, then the test would be run up to
         62 times and could fail up to twice.
-      prepare: A callback function before test starts to run.
-      finish: A callback function when test case completed.
-        This function has one parameter indicated test result:
-        ``TestState.PASSED`` or ``TestState.FAILED``.
       _root: True only if this is the root node (for internal use
         only).
     """
@@ -195,10 +189,6 @@ class FactoryTest(object):
     self.next_sibling = None
 
     self.has_automator = has_automator
-    # TODO(henryhsu): prepare and finish should support TestGroup also
-    #    instead of test case only
-    self.prepare = prepare
-    self.finish = finish
     self.dargs = dargs or {}
     self.locals_ = locals_ or {}
     self.dut_options = dut_options or {}
