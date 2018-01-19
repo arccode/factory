@@ -224,8 +224,9 @@ class GoofyTest(unittest.TestCase):
     if trigger:
       trigger()
     self.assertTrue(self.goofy.run_once())
-    self.assertEqual([] if does_not_start else [test_id],
-                     [test.path for test in self.goofy.invocations])
+    self.assertEqual(
+        [] if does_not_start else [test_id],
+        [invoc.test.path for invoc in self.goofy.invocations.itervalues()])
     self._wait()
     test_state = self.state.get_test_state(test_id)
     self.assertEqual(passed, test_state.status)
@@ -525,16 +526,16 @@ class PyTestTest(GoofyUITest):
 
   def runTest(self):
     self.goofy.run_once()
-    self.assertEqual(['a'],
-                     [test.id for test in self.goofy.invocations])
+    self.assertEqual(
+        ['a'], [invoc.test.id for invoc in self.goofy.invocations.itervalues()])
     self.goofy.wait()
     self.assertEqual(
         TestState.PASSED,
         state.get_instance().get_test_state('a').status)
 
     self.goofy.run_once()
-    self.assertEqual(['b'],
-                     [test.id for test in self.goofy.invocations])
+    self.assertEqual(
+        ['b'], [invoc.test.id for invoc in self.goofy.invocations.itervalues()])
     self.goofy.wait()
     failed_state = state.get_instance().get_test_state('b')
     self.assertEqual(TestState.FAILED, failed_state.status)
@@ -646,8 +647,9 @@ class ParallelTest(GoofyUITest):
     self.mocker.ReplayAll()
 
     self.goofy.run_once()
-    self.assertSetEqual({'a', 'b', 'c'},
-                        {test.id for test in self.goofy.invocations})
+    self.assertEqual(
+        {'a', 'b', 'c'},
+        {invoc.test.id for invoc in self.goofy.invocations.itervalues()})
     self.goofy.wait()
 
     self.mocker.VerifyAll()

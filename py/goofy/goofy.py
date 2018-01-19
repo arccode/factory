@@ -99,7 +99,7 @@ class Goofy(object):
     event_server_thread: A thread running event_server.
     event_client: A client to the event server.
     plugin_controller: The PluginController object.
-    invocations: A map from FactoryTest objects to the corresponding
+    invocations: A map from TestInvocation uuid to the corresponding
       TestInvocations objects representing active tests.
     options: Command-line options.
     args: Command-line args.
@@ -209,8 +209,8 @@ class Goofy(object):
   def destroy(self):
     """Performs any shutdown tasks."""
     # To avoid race condition when running shutdown test.
-    for test, invoc in self.invocations.iteritems():
-      logging.info('Waiting for %s to complete...', test)
+    for invoc in self.invocations.itervalues():
+      logging.info('Waiting for %s to complete...', invoc.test)
       invoc.thread.join(3)  # Timeout in 3 seconds.
 
     self.status = Status.TERMINATING
@@ -585,7 +585,7 @@ class Goofy(object):
           invocation=invoc.uuid, iterations_left=iterations_left,
           retries_left=retries_left)
       invoc.count = new_state.count
-      self.invocations[test] = invoc
+      self.invocations[invoc.uuid] = invoc
       # Send a INIT_TEST_UI event here, so the test UI are initialized in
       # order, and the tab order would be same as test list order when there
       # are parallel tests with UI.
@@ -778,9 +778,9 @@ class Goofy(object):
   def check_plugins(self):
     """Check plugins to be paused or resumed."""
     exclusive_resources = set()
-    for test in self.invocations:
+    for invoc in self.invocations.itervalues():
       exclusive_resources = exclusive_resources.union(
-          test.GetExclusiveResources())
+          invoc.test.GetExclusiveResources())
     self.plugin_controller.PauseAndResumePluginByResource(exclusive_resources)
 
   def check_for_updates(self):
@@ -855,11 +855,14 @@ class Goofy(object):
   def reap_completed_tests(self):
     """Removes completed tests from the set of active tests."""
     test_completed = False
-    for t, v in dict(self.invocations).iteritems():
-      if v.IsCompleted():
+    # Since items are removed while iterating, make a copy using values()
+    # instead of itervalues().
+    for invoc in self.invocations.values():
+      test = invoc.test
+      if invoc.IsCompleted():
         test_completed = True
-        new_state = t.UpdateState(**v.update_state_on_completion)
-        del self.invocations[t]
+        new_state = test.UpdateState(**invoc.update_state_on_completion)
+        del self.invocations[invoc.uuid]
 
         # Stop on failure if flag is true and there is no retry chances.
         if (self.test_list.options.stop_on_failure and
@@ -871,13 +874,13 @@ class Goofy(object):
 
         if new_state.iterations_left and new_state.status == TestState.PASSED:
           # Play it again, Sam!
-          self._run_test(t)
+          self._run_test(test)
         # new_state.retries_left is obtained after update.
         # For retries_left == 0, test can still be run for the last time.
         elif (new_state.retries_left >= 0 and
               new_state.status == TestState.FAILED):
           # Still have to retry, Sam!
-          self._run_test(t)
+          self._run_test(test)
 
     if test_completed:
       self.log_watcher.KickWatchThread()
@@ -892,8 +895,10 @@ class Goofy(object):
       reason: If set, the abort reason.
     """
     self.reap_completed_tests()
-    # since we remove objects while iterating, make a copy
-    for test, invoc in dict(self.invocations).iteritems():
+    # Since items are removed while iterating, make a copy using values()
+    # instead of itervalues().
+    for invoc in self.invocations.values():
+      test = invoc.test
       if root and not test.HasAncestor(root):
         continue
 
@@ -901,7 +906,7 @@ class Goofy(object):
       invoc.AbortAndJoin(reason)
       session.console.info('Killed %s', test.path)
       test.UpdateState(**invoc.update_state_on_completion)
-      del self.invocations[test]
+      del self.invocations[invoc.uuid]
 
       if not abort:
         test.UpdateState(status=TestState.UNTESTED)
@@ -1408,9 +1413,9 @@ class Goofy(object):
     Useful for testing.
     """
     while self.invocations:
-      for k, v in self.invocations.iteritems():
-        logging.info('Waiting for %s to complete...', k)
-        v.thread.join()
+      for invoc in self.invocations.itervalues():
+        logging.info('Waiting for %s to complete...', invoc.test)
+        invoc.thread.join()
       self.reap_completed_tests()
 
   def test_fail(self, test):
