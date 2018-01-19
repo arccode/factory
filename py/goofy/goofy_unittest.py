@@ -98,7 +98,6 @@ class GoofyTest(unittest.TestCase):
     self.init_goofy()
     self.mocker.VerifyAll()
     self.mocker.ResetAll()
-    self.mockAnything = mox.MockAnything()
 
     self.after_init_goofy()
 
@@ -176,6 +175,7 @@ class GoofyTest(unittest.TestCase):
     if self.test_list:
       test_list = manager.BuildTestListForUnittest(
           test_list_config=self.test_list)
+      test_list.options.read_device_data_from_vpd_on_init = False
       self.test_list_manager.BuildAllTestLists().AndReturn(
           ({'test': test_list}, {}))
 
@@ -301,7 +301,6 @@ class BasicTest(GoofyUITest):
         dict(count=1, error_msg='Uh-oh', id='c', path='c', status='FAILED'),]),
                      self.goofy.test_list.ToFactoryTestList().AsDict(
                          state.get_instance().get_test_states()))
-    self.mockAnything.VerifyAll()
 
 
 class WebSocketTest(GoofyUITest):
@@ -347,7 +346,6 @@ class WebSocketTest(GoofyUITest):
         self.assertEqual(expected[1:], statuses)
       else:
         raise AssertionError('Unexpected status %r' % statuses)
-    self.mockAnything.VerifyAll()
 
 
 class ShutdownTest(GoofyUITest):
@@ -572,7 +570,6 @@ class MultipleIterationsTest(GoofyUITest):
                         'I bent my wookie', setup_mocks=False, expected_count=2)
 
     self.check_one_test('d', 'd_D', TestState.PASSED, '')
-    self.mockAnything.VerifyAll()
 
 
 class RequireRunTest(GoofyUITest):
@@ -623,7 +620,6 @@ class StopOnFailureTest(GoofyUITest):
         [TestState.PASSED, TestState.FAILED, TestState.UNTESTED],
         [state_instance.get_test_state(x).status for x in ['a', 'b', 'c']])
     self._wait()
-    self.mockAnything.VerifyAll()
 
 
 class ParallelTest(GoofyUITest):
@@ -635,9 +631,9 @@ class ParallelTest(GoofyUITest):
               'id': 'parallel',
               'parallel': True,
               'subtests': [
-                  {'id':'a', 'pytest_name': 'a_A'},
-                  {'id':'b', 'pytest_name': 'b_B'},
-                  {'id':'c', 'pytest_name': 'c_C'},
+                  {'id': 'a', 'pytest_name': 'a_A'},
+                  {'id': 'b', 'pytest_name': 'b_B'},
+                  {'id': 'c', 'pytest_name': 'c_C'},
               ]
           }
       ]
