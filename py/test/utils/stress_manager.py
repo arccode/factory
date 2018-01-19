@@ -45,7 +45,7 @@ class StressManager(object):
   @contextlib.contextmanager
   def Run(self, duration_secs=None, num_threads=None, memory_ratio=0.2,
           free_memory_only=False, disk_thread=False, disk_thread_dir=None,
-          max_errors=DEFAULT_MAX_ERRORS):
+          max_errors=DEFAULT_MAX_ERRORS, taskset_args=None):
     """Runs stressapptest.
 
     Runs stressapptest to occupy a specific amount of memory and threads for
@@ -54,12 +54,17 @@ class StressManager(object):
 
     Args:
       duration_secs: Number of seconds to execute stressapptest.
-      num_threads: Number of thread.
+      num_threads: Number of thread, can either be None (use the number of CPU
+          cores), negative number -k (use (#cpu - k) threads), or positive
+          number k (use k threads).
       memory_ratio: Ratio of memory to be used for stressapptest.
       free_memory_only: Only use free memory for test. If set to True, only
           memory_ratio * free_memory is used for stressapptest.
       disk_thread: stress disk using -f argument of stressapptest.
       disk_thread_dir: directory of disk thread file will be placed.
+      taskset_args: Argument to taskset to control the CPU affinity of
+          stressapptest. stressapptest would be run by taskset when this is not
+          None.
 
     Raise:
       StressManagerError when execution fails.
@@ -73,6 +78,14 @@ class StressManager(object):
     cpu_count = self._system_info.cpu_count or 1
     if num_threads is None:
       num_threads = cpu_count
+    elif num_threads < 0:
+      if -num_threads >= cpu_count:
+        logging.warning(
+            'Only %d CPUs availible on DUT, set num_threads to 1 (was %d)',
+            cpu_count, num_threads)
+        num_threads = 1
+      else:
+        num_threads += cpu_count
     elif num_threads > cpu_count:
       logging.warning(
           'Only %d CPUs availible on DUT, set num_threads to %d (was %d)',
@@ -92,9 +105,10 @@ class StressManager(object):
     # we will use at least 32 MB of memory
     mem_usage = max(int(mem * memory_ratio / 1024), 32)
 
-    thread = threading.Thread(target=self._CallStressAppTest,
-                              args=(duration_secs, num_threads, mem_usage,
-                                    disk_thread, disk_thread_dir, max_errors))
+    thread = threading.Thread(
+        target=self._CallStressAppTest,
+        args=(duration_secs, num_threads, mem_usage, disk_thread,
+              disk_thread_dir, max_errors, taskset_args))
     # clear output
     self.output = None
     self.stop.clear()
@@ -117,16 +131,26 @@ class StressManager(object):
       raise StressManagerError(self.output)
 
   def _CallStressAppTest(self, duration_secs, num_threads, mem_usage,
-                         disk_thread, disk_thread_dir, max_errors):
+                         disk_thread, disk_thread_dir, max_errors,
+                         taskset_args):
     assert isinstance(duration_secs, int) or duration_secs is None
     assert isinstance(num_threads, int)
     assert isinstance(mem_usage, int)
     assert isinstance(disk_thread, bool)
     assert disk_thread_dir is None or isinstance(disk_thread_dir, str)
+    assert isinstance(taskset_args, list) or taskset_args is None
 
-    cmd = ['stressapptest', '--max_errors', str(max_errors),
-           '-m', str(num_threads), '-M', str(mem_usage),
-           '-s', str(duration_secs if duration_secs is not None else 10 ** 8)]
+    cmd = []
+    if taskset_args is not None:
+      cmd.append('taskset')
+      cmd.extend(taskset_args)
+    cmd.extend([
+        'stressapptest', '--max_errors',
+        str(max_errors), '-m',
+        str(num_threads), '-M',
+        str(mem_usage), '-s',
+        str(duration_secs if duration_secs is not None else 10**8)
+    ])
     with tempfile.TemporaryFile() as output:
       if disk_thread:
         if not disk_thread_dir:

@@ -53,7 +53,7 @@ class StressManagerUnittest(unittest.TestCase):
     mem_usage = int(memory_ratio * total_memory / 1024)
     self.manager._CallStressAppTest.assert_called_with(
         duration_secs, num_threads, mem_usage, disk_thread, disk_thread_dir,
-        max_errors)
+        max_errors, None)
 
   def testRunForever(self):
     duration_secs = None
@@ -76,7 +76,7 @@ class StressManagerUnittest(unittest.TestCase):
 
     self.manager._CallStressAppTest.assert_called_with(
         duration_secs, self.dut.info.cpu_count, mem_usage, disk_thread,
-        disk_thread_dir, max_errors)
+        disk_thread_dir, max_errors, None)
 
   def testRunForeverFail(self):
     duration_secs = None
@@ -103,7 +103,7 @@ class StressManagerUnittest(unittest.TestCase):
 
     self.manager._CallStressAppTest.assert_called_with(
         duration_secs, self.dut.info.cpu_count, mem_usage, disk_thread,
-        disk_thread_dir, max_errors)
+        disk_thread_dir, max_errors, None)
 
   def testRunForeverNoStatusOutput(self):
     duration_secs = None
@@ -129,7 +129,7 @@ class StressManagerUnittest(unittest.TestCase):
 
     self.manager._CallStressAppTest.assert_called_with(
         duration_secs, self.dut.info.cpu_count, mem_usage, disk_thread,
-        disk_thread_dir, max_errors)
+        disk_thread_dir, max_errors, None)
 
   def testRunFreeMemoryOnly(self):
     duration_secs = 10
@@ -153,7 +153,7 @@ class StressManagerUnittest(unittest.TestCase):
     mem_usage = int(memory_ratio * free_memory / 1024)
     self.manager._CallStressAppTest.assert_called_with(
         duration_secs, num_threads, mem_usage, disk_thread, disk_thread_dir,
-        max_errors)
+        max_errors, None)
 
   def _CallStressAppTestSideEffect(self, *args):
     del args  # Unused.
@@ -181,7 +181,7 @@ class StressManagerUnittest(unittest.TestCase):
 
     self.manager._CallStressAppTest.assert_called_with(
         duration_secs, self.dut.info.cpu_count, mem_usage, disk_thread,
-        disk_thread_dir, max_errors)
+        disk_thread_dir, max_errors, None)
 
   def testRunNotEnoughMemory(self):
     duration_secs = 10
@@ -203,7 +203,7 @@ class StressManagerUnittest(unittest.TestCase):
 
     self.manager._CallStressAppTest.assert_called_with(
         duration_secs, num_threads, mem_usage, disk_thread, disk_thread_dir,
-        max_errors)
+        max_errors, None)
 
   def testCallStressAppTest(self):
     duration_secs = 10
@@ -217,7 +217,8 @@ class StressManagerUnittest(unittest.TestCase):
       stress_manager.tempfile.TemporaryFile = mock.MagicMock(
           return_value=output)
       self.manager._CallStressAppTest(duration_secs, num_threads, mem_usage,
-                                      disk_thread, disk_thread_dir, max_errors)
+                                      disk_thread, disk_thread_dir, max_errors,
+                                      None)
       self.dut.Popen.assert_called_with(
           ['stressapptest', '--max_errors', '1000', '-m', '1', '-M', '32',
            '-s', '10'],
@@ -241,7 +242,8 @@ class StressManagerUnittest(unittest.TestCase):
       self.dut.CheckCall = mock.MagicMock()
 
       self.manager._CallStressAppTest(duration_secs, num_threads, mem_usage,
-                                      disk_thread, disk_thread_dir, max_errors)
+                                      disk_thread, disk_thread_dir, max_errors,
+                                      None)
 
       self.dut.CheckCall.assert_called_with(['mkdir', '-p', data_root])
       self.dut.Popen.assert_called_with(
@@ -267,7 +269,8 @@ class StressManagerUnittest(unittest.TestCase):
       self.dut.CheckCall = mock.MagicMock()
 
       self.manager._CallStressAppTest(duration_secs, num_threads, mem_usage,
-                                      disk_thread, disk_thread_dir, max_errors)
+                                      disk_thread, disk_thread_dir, max_errors,
+                                      None)
 
       self.dut.CheckCall.assert_called_with(['mkdir', '-p', disk_thread_dir])
 
@@ -290,7 +293,8 @@ class StressManagerUnittest(unittest.TestCase):
           return_value=output)
       self.dut.toybox.pkill = mock.MagicMock(return_value=0)
       self.manager._CallStressAppTest(duration_secs, num_threads, mem_usage,
-                                      disk_thread, disk_thread_dir, max_errors)
+                                      disk_thread, disk_thread_dir, max_errors,
+                                      None)
       self.dut.Popen.assert_called_with(
           ['stressapptest', '--max_errors', '1001', '-m', '1', '-M', '32',
            '-s', mock.ANY],
