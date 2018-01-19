@@ -154,7 +154,7 @@ class TestInvocation(object):
     self.goofy = goofy
     self.test = test
     self.thread = threading.Thread(
-        target=self._run, name='TestInvocation-%s' % self.test.path)
+        target=self._Run, name='TestInvocation-%s' % self.test.path)
     self.start_time = None
     self.end_time = None
     self.on_completion = on_completion
@@ -196,22 +196,23 @@ class TestInvocation(object):
     # Resuming from an active shutdown test, try to restore its metadata file.
     if state.get_shared_data(key_post_shutdown):
       try:
-        self.load_metadata()
+        self.LoadMetadata()
       except Exception:
         logging.exception('Failed to load metadata from active shutdown test; '
                           'will continue, but logs will be inaccurate')
 
     if not self.resume_test:
       self.metadata = {}
-      self.update_metadata(path=test.path,
-                           init_time=time.time(),
-                           invocation=str(self.uuid),
-                           label=test.label)
+      self.UpdateMetadata(
+          path=test.path,
+          init_time=time.time(),
+          invocation=str(self.uuid),
+          label=test.label)
 
     self.count = None
     self.log_path = os.path.join(self.output_dir, 'log')
     self.update_state_on_completion = {}
-    self.dut_options = self._resolve_dut_options()
+    self.dut_options = self._ResolveDUTOptions()
 
     self._lock = threading.Lock()
     # The following properties are guarded by the lock.
@@ -224,7 +225,7 @@ class TestInvocation(object):
     return 'TestInvocation(_aborted=%s, _completed=%s)' % (
         self._aborted, self._completed)
 
-  def load_metadata(self):
+  def LoadMetadata(self):
     def _ValidateMetadata(metadata):
       REQUIRED_FIELDS = ['path', 'dargs', 'invocation',
                          'label', 'init_time', 'start_time']
@@ -241,18 +242,18 @@ class TestInvocation(object):
       self.metadata = metadata
       self.resume_test = True
 
-  def update_metadata(self, **kwargs):
+  def UpdateMetadata(self, **kwargs):
     self.metadata.update(kwargs)
     tmp = self.metadata_file + '.tmp'
     with open(tmp, 'w') as f:
       yaml.dump(self.metadata, f, default_flow_style=False)
     os.rename(tmp, self.metadata_file)
 
-  def start(self):
+  def Start(self):
     """Starts the test threads."""
     self.thread.start()
 
-  def abort_and_join(self, reason=None):
+  def AbortAndJoin(self, reason=None):
     """Aborts a test (must be called from the event controller thread)."""
     with self._lock:
       self._aborted = True
@@ -266,16 +267,16 @@ class TestInvocation(object):
       # Should be set by the thread itself, but just in case...
       self._completed = True
 
-  def is_completed(self):
+  def IsCompleted(self):
     """Returns true if the test has finished."""
     return self._completed
 
-  def _aborted_message(self):
+  def _AbortedMessage(self):
     """Returns an error message describing why the test was aborted."""
     return 'Aborted' + (
         (': ' + self._aborted_reason) if self._aborted_reason else '')
 
-  def _resolve_dut_options(self):
+  def _ResolveDUTOptions(self):
     """Resolve dut_options.
 
     Climb the tree of test options and choose the first non-empty dut_options
@@ -293,7 +294,7 @@ class TestInvocation(object):
 
     return dut_options
 
-  def _invoke_pytest(self, resolved_dargs):
+  def _InvokePytest(self, resolved_dargs):
     """Invokes a pyunittest-based test."""
     assert self.test.pytest_name
 
@@ -323,7 +324,7 @@ class TestInvocation(object):
         with self._lock:
           if self._aborted:
             return TestState.FAILED, (
-                'Before starting: %s' % self._aborted_message())
+                'Before starting: %s' % self._AbortedMessage())
 
           self._process = self.goofy.pytest_prespawner.spawn(
               PytestInfo(test_list=self.goofy.options.test_list,
@@ -348,7 +349,7 @@ class TestInvocation(object):
           pass
         with self._lock:
           if self._aborted:
-            return TestState.FAILED, self._aborted_message()
+            return TestState.FAILED, self._AbortedMessage()
         if self._process.returncode:
           return TestState.FAILED, (
               'Test returned code %d' % self._process.returncode)
@@ -367,10 +368,9 @@ class TestInvocation(object):
           if os.path.exists(f):
             os.unlink(f)
         except Exception:
-          logging.exception('Unable to delete temporary file %s',
-                            f)
+          logging.exception('Unable to delete temporary file %s', f)
 
-  def _convert_log_args(self, log_args, status):
+  def _ConvertLogArgs(self, log_args, status):
     """Converts log_args dictionary into a station.test_run event object.
 
     Args:
@@ -441,7 +441,7 @@ class TestInvocation(object):
           name='tag', value=log_args.pop('tag'),
           description='Indicate type of shutdown')
 
-    if len(log_args) > 0:
+    if log_args:
       logging.error('Unexpected fields in logs_args: %s',
                     pprint.pformat(log_args))
       for key, value in log_args.iteritems():
@@ -449,7 +449,7 @@ class TestInvocation(object):
                                description='UnknownGoofyLogArgs')
     return testlog_event
 
-  def _run(self):
+  def _Run(self):
     iteration_string = ''
     retries_string = ''
     if self.test.iterations > 1:
@@ -500,7 +500,7 @@ class TestInvocation(object):
         self.goofy.event_log.Log('resume_test', **log_args)
         self.session_json_path = testlog.InitSubSession(
             log_root=paths.DATA_LOG_DIR,
-            station_test_run=self._convert_log_args(
+            station_test_run=self._ConvertLogArgs(
                 log_args, TestState.ACTIVE),
             uuid=self.uuid)
         log_args.pop('dargs', None)  # We need to avoid duplication
@@ -510,7 +510,7 @@ class TestInvocation(object):
             testlog.TESTLOG_ENV_VARIABLE_NAME] = self.session_json_path
 
         # Log a STARTING event.
-        testlog.LogTestRun(self.session_json_path, self._convert_log_args(
+        testlog.LogTestRun(self.session_json_path, self._ConvertLogArgs(
             log_args, testlog.StationTestRun.STATUS.STARTING))
       except Exception:
         logging.exception('Unable to log resume_test event')
@@ -547,7 +547,7 @@ class TestInvocation(object):
         log_args['tag'] = 'pre-shutdown'
 
       self.start_time = time.time()
-      self.update_metadata(start_time=self.start_time, **log_args)
+      self.UpdateMetadata(start_time=self.start_time, **log_args)
 
       try:
         self.goofy.event_log.Log('start_test', **log_args)
@@ -556,7 +556,7 @@ class TestInvocation(object):
         #                 test session is missing.
         self.session_json_path = testlog.InitSubSession(
             log_root=paths.DATA_LOG_DIR,
-            station_test_run=self._convert_log_args(
+            station_test_run=self._ConvertLogArgs(
                 log_args, TestState.ACTIVE),
             uuid=self.uuid)
         log_args.pop('dargs', None)  # We need to avoid duplication
@@ -566,7 +566,7 @@ class TestInvocation(object):
             testlog.TESTLOG_ENV_VARIABLE_NAME] = self.session_json_path
 
         # Log a STARTING event.
-        testlog.LogTestRun(self.session_json_path, self._convert_log_args(
+        testlog.LogTestRun(self.session_json_path, self._ConvertLogArgs(
             log_args, testlog.StationTestRun.STATUS.STARTING))
       except Exception:
         logging.exception('Unable to log start_test event')
@@ -577,7 +577,7 @@ class TestInvocation(object):
     try:
       if status is None:  # dargs are successfully resolved
         if self.test.pytest_name:
-          status, error_msg = self._invoke_pytest(resolved_dargs)
+          status, error_msg = self._InvokePytest(resolved_dargs)
         else:
           status = TestState.FAILED
           error_msg = 'No pytest_name'
@@ -617,9 +617,9 @@ class TestInvocation(object):
             logging.exception('Unable to read log tail')
 
         self.goofy.event_log.Log('end_test', **log_args)
-        self.update_metadata(end_time=self.end_time, **log_args)
+        self.UpdateMetadata(end_time=self.end_time, **log_args)
 
-        testlog.LogFinalTestRun(self.session_json_path, self._convert_log_args(
+        testlog.LogFinalTestRun(self.session_json_path, self._ConvertLogArgs(
             log_args, status))
         del self.env_additions[testlog.TESTLOG_ENV_VARIABLE_NAME]
 

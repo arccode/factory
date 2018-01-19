@@ -595,7 +595,7 @@ class Goofy(object):
               test=test.path,
               invocation=invoc.uuid))
       self.check_plugins()
-      invoc.start()
+      invoc.Start()
     elif test.parallel:
       for subtest in test.subtests:
         # TODO(stimim): what if the subtests *must* be run in parallel?
@@ -853,11 +853,10 @@ class Goofy(object):
     self.run_next_test()
 
   def reap_completed_tests(self):
-    """Removes completed tests from the set of active tests.
-    """
+    """Removes completed tests from the set of active tests."""
     test_completed = False
     for t, v in dict(self.invocations).iteritems():
-      if v.is_completed():
+      if v.IsCompleted():
         test_completed = True
         new_state = t.UpdateState(**v.update_state_on_completion)
         del self.invocations[t]
@@ -899,7 +898,7 @@ class Goofy(object):
         continue
 
       session.console.info('Killing active test %s...', test.path)
-      invoc.abort_and_join(reason)
+      invoc.AbortAndJoin(reason)
       session.console.info('Killed %s', test.path)
       test.UpdateState(**invoc.update_state_on_completion)
       del self.invocations[test]
