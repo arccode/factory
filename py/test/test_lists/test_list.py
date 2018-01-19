@@ -476,11 +476,9 @@ class ITestList(object):
 
       if isinstance(value, collections.Sequence):
         if not isinstance(value, basestring):
-          # value is a list or tuple, but not a string.
-          # TODO(pihsun): When all test lists are in JSON format, we won't have
-          # tuple, so we can change below back to [].
-          return type(value)(ResolveArg('%s[%d]' % (key, i), v)
-                             for i, v in enumerate(value))
+          return [
+              ResolveArg('%s[%d]' % (key, i), v) for i, v in enumerate(value)
+          ]
 
       if not isinstance(value, basestring):
         return value
