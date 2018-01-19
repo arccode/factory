@@ -49,6 +49,9 @@
           "$ref": "#/definitions/test_constants",
           "type": "object"
         },
+        "no_host": {
+          "type": "boolean"
+        },
         "allow_reboot": {
           "type": "boolean"
         },

@@ -566,7 +566,8 @@ class Goofy(object):
     The argument `test` should be either a leaf test (no subtests) or a parallel
     test (all subtests should be run in parallel).
     """
-    if not self._ui_initialized and not test.IsNoHost():
+    if (self.options.goofy_ui and not self._ui_initialized and
+        not test.IsNoHost()):
       self.init_ui()
 
     if set_layout:
@@ -1120,6 +1121,9 @@ class Goofy(object):
     parser.add_option('--test_list', dest='test_list',
                       metavar='TEST_LIST_ID',
                       help='Use test list whose id is TEST_LIST_ID')
+    parser.add_option('--no-goofy-ui', dest='goofy_ui',
+                      action='store_false', default=True,
+                      help='start without Goofy UI')
     return parser
 
   def _PrepareDUTLink(self):

@@ -32,6 +32,7 @@ from cros.factory.test.i18n import translation
 from cros.factory.test import server_proxy
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager
+from cros.factory.test.test_lists import test_list
 from cros.factory.tools import factory_bug
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
@@ -85,7 +86,7 @@ class GoofyRPC(object):
         # Failure; put e.
         logging.exception('Exception in RPC handler')
         result.put((None, e))
-      except Exception:
+      except:  # pylint: disable=bare-except
         # Failure (but not an Exception); wrap whatever it is in an exception.
         result.put((None, GoofyRPCException(debug_utils.FormatExceptionOnly())))
 
@@ -258,7 +259,7 @@ class GoofyRPC(object):
     server_proxy.GetServerProxy(timeout=PING_SERVER_TIMEOUT_SECS).Ping()
 
   def ReloadTestList(self):
-    if isinstance(self.goofy.test_list, manager.TestList):
+    if isinstance(self.goofy.test_list, test_list.TestList):
       self.goofy.test_list.ForceReload()
     else:
       raise NotImplementedError('Unknown type: %s' % type(self.goofy.test_list))
@@ -584,7 +585,7 @@ class GoofyRPC(object):
                    e.is_response),
         timeout)
     if result is None:
-      raise type_utils.TimeoutError('Failed calling Extension RPC <%r>', name)
+      raise type_utils.TimeoutError('Failed calling Extension RPC <%r>' % name)
     return result.args
 
   def DeviceGetDisplayInfo(self, timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
@@ -762,9 +763,8 @@ def main():
 
   logging.info('Evaluating expression: %s', args.command)
   ret = eval(args.command, {},  # pylint: disable=eval-used
-             dict((x, getattr(goofy, x))
-                  for x in GoofyRPC.__dict__.keys()
-                  if not x.startswith('_')))
+             {x: getattr(goofy, x)
+              for x in GoofyRPC.__dict__ if not x.startswith('_')})
   if ret is not None:
     print(yaml.safe_dump(ret))
 
