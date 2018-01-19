@@ -370,16 +370,6 @@ class TestInvocation(object):
           logging.exception('Unable to delete temporary file %s',
                             f)
 
-  def _invoke_target(self):
-    """Invokes a target directly within Goofy."""
-    try:
-      self.test.invocation_target(self)
-      return TestState.PASSED, ''
-    except Exception:
-      logging.exception('Exception while invoking target')
-      status = TestState.FAILED
-      return status, traceback.format_exc()
-
   def _convert_log_args(self, log_args, status):
     """Converts log_args dictionary into a station.test_run event object.
 
@@ -588,11 +578,9 @@ class TestInvocation(object):
       if status is None:  # dargs are successfully resolved
         if self.test.pytest_name:
           status, error_msg = self._invoke_pytest(resolved_dargs)
-        elif self.test.invocation_target:
-          status, error_msg = self._invoke_target()
         else:
           status = TestState.FAILED
-          error_msg = 'No pytest_name, or invocation_target'
+          error_msg = 'No pytest_name'
     finally:
       if error_msg:
         error_msg = DecodeUTF8(error_msg)

@@ -97,7 +97,6 @@ class FactoryTest(object):
                label=None,
                has_automator=False,
                pytest_name=None,
-               invocation_target=None,
                dargs=None,
                locals_=None,
                dut_options=None,
@@ -127,8 +126,6 @@ class FactoryTest(object):
       label: An i18n label.
       pytest_name: The name of the pytest to run (relative to
         ``cros.factory.test.pytests``).
-      invocation_target: The function to execute to run the test
-        (within the Goofy process).
       dargs: pytest arguments.
       parallel: Whether the subtests should run in parallel.
       layout: The layout to be used for parallel test. Should be either a string
@@ -188,12 +185,10 @@ class FactoryTest(object):
         only).
     """
     self.pytest_name = pytest_name
-    self.invocation_target = invocation_target
 
     self.subtests = filter(None, type_utils.FlattenList(subtests or []))
-    assert len(filter(None, [pytest_name, invocation_target, subtests])) <= 1, (
-        'No more than one of pytest_name, invocation_target, and subtests '
-        'must be specified')
+    assert len(filter(None, [pytest_name, subtests])) <= 1, (
+        'Only one of pytest_name and subtests can be specified')
 
     # The next test under its parent, this value will be updated by
     # FactoryTestList object
