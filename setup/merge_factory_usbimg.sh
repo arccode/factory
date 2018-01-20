@@ -100,7 +100,7 @@ merge_images() {
   clone_partition_type "$1" 1 "${output_file}" 1
   image_partition_overwrite "${image_file}" "1" "${output_file}" "1"
   local state_dev="$(image_map_partition "${output_file}" 1)"
-  sudo e2fsck -f "${state_dev}"
+  sudo e2fsck -y -f "${state_dev}"
   sudo resize2fs "${state_dev}"
   image_unmap_partition "${state_dev}"
 

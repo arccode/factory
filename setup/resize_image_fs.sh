@@ -86,7 +86,7 @@ resize_filesystem() {
 
   # File system must be clean before we perform resize2fs.
   local fsck_result=0
-  sudo e2fsck -f "${partition}" || fsck_result="$?"
+  sudo e2fsck -y -f "${partition}" || fsck_result="$?"
   # e2fsck may return 1 "errors corrected" or 2 "corrected and need reboot".
   if [ "${fsck_result}" -gt 2 ]; then
     die "Failed in ensuring file system integrity (fsck)."

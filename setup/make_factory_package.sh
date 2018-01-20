@@ -330,7 +330,7 @@ generate_usbimg() {
 
   local state_dev="$(image_map_partition "${FLAGS_usbimg}" 1)"
   set_loop_device "${state_dev}"
-  sudo e2fsck -f "${state_dev}"
+  sudo e2fsck -y -f "${state_dev}"
   sudo resize2fs "${state_dev}"
   free_loop_device
 
