@@ -194,10 +194,6 @@ msgid "HWID"
 msgstr "HWID"
 
 #: ../build/pytests_label_generated.json
-msgid "HWID V3"
-msgstr ""
-
-#: ../build/pytests_label_generated.json
 msgid "Interrupt"
 msgstr "中断"
 
@@ -1813,23 +1809,23 @@ msgstr "请勿移动待测物。"
 msgid "Please rotate the device."
 msgstr "请转动待测物。"
 
-#: ../py/test/pytests/hwid.py ../py/test/pytests/hwid_v3.py
+#: ../py/test/pytests/hwid.py
 msgid "Probing components..."
 msgstr "正在探索零件..."
 
-#: ../py/test/pytests/hwid.py ../py/test/pytests/hwid_v3.py
+#: ../py/test/pytests/hwid.py
 msgid "Generating HWID (v3)..."
 msgstr "正在产生 HWID (v3)..."
 
-#: ../py/test/pytests/hwid.py ../py/test/pytests/hwid_v3.py
+#: ../py/test/pytests/hwid.py
 msgid "Verifying HWID (v3): {encoded_string}..."
 msgstr "正在验证 HWID (v3): {encoded_string}..."
 
-#: ../py/test/pytests/hwid.py ../py/test/pytests/hwid_v3.py
+#: ../py/test/pytests/hwid.py
 msgid "(unchanged)"
 msgstr "（不变）"
 
-#: ../py/test/pytests/hwid.py ../py/test/pytests/hwid_v3.py
+#: ../py/test/pytests/hwid.py
 msgid "Setting HWID (v3): {encoded_string}..."
 msgstr "正在写入 HWID (v3): {encoded_string}..."
 

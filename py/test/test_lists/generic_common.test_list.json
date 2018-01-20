@@ -673,7 +673,7 @@
       "pytest_name": "write_device_data_to_vpd"
     },
     "WriteHWID": {
-      "pytest_name": "hwid_v3",
+      "pytest_name": "hwid",
       "label": "Write HWID",
       "args": {
         "enable_factory_server": "eval! constants.enable_factory_server",
