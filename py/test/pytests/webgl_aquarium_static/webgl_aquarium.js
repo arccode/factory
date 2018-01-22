@@ -4,6 +4,10 @@
 
 const webgl_iframe = document.getElementById('webgl-aquarium');
 
+const iframeLoaded = new Promise((resolve) => {
+  webgl_iframe.contentWindow.addEventListener('load', resolve);
+});
+
 const getFpsContainer = () =>
     webgl_iframe.contentDocument.getElementsByClassName('fpsContainer')[0];
 
@@ -17,14 +21,18 @@ const hideOptions = () => {
 const enableFullScreen = () => {
   window.test.setFullScreen(true);
   webgl_iframe.classList.add('goofy-aquarium-full-screen');
-  webgl_iframe.contentDocument.getElementById('info').style.display = 'none';
+  iframeLoaded.then(() => {
+    webgl_iframe.contentDocument.getElementById('info').style.display = 'none';
+  });
 };
 
 const disableFullScreen = () => {
   webgl_iframe.classList.remove('goofy-aquarium-full-screen');
-  webgl_iframe.contentDocument.getElementById('info').style.display = 'block';
-  // fpsContainer is moved during updateUI().
-  getFpsContainer().style.top = '10px';
+  iframeLoaded.then(() => {
+    webgl_iframe.contentDocument.getElementById('info').style.display = 'block';
+    // fpsContainer is moved during updateUI().
+    getFpsContainer().style.top = '10px';
+  });
   window.test.setFullScreen(false);
 };
 
@@ -82,7 +90,7 @@ const updateUI = (time_left, hide_options) => {
   }
 };
 
-webgl_iframe.contentWindow.onload = () => {
+iframeLoaded.then(() => {
   const canvas = webgl_iframe.contentDocument.getElementById('canvas');
   webgl_iframe.contentWindow.tdl.webgl.registerContextLostHandler(
     canvas, () => {
@@ -90,7 +98,7 @@ webgl_iframe.contentWindow.onload = () => {
         'Lost WebGL context.' +
         ' Did you switch to VT2 for more than 10 seconds?');
     });
-};
+});
 
 const exports = {
   toggleFullScreen,
