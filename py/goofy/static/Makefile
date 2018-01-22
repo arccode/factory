@@ -23,8 +23,10 @@ JS_SOURCES = \
 JS_SOURCE_PATHS = $(addprefix ../js/,$(JS_SOURCES))
 
 CSS_SOURCES = \
+    goog/css/button.css \
     goog/css/checkbox.css \
     goog/css/common.css \
+    goog/css/custombutton.css \
     goog/css/dialog.css \
     goog/css/menu.css \
     goog/css/menuitem.css \

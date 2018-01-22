@@ -37,8 +37,26 @@ body {
   white-space: nowrap;
 }
 
-#test-info-table #test-info-args,
-#test-info-table #test-info-invocation {
+#test-info-invocation,
+#test-info-original-args,
+#test-info-resolved-args {
   white-space: pre;
   font-family: monospace;
+}
+
+#test-info-original-args {
+  display: none;
+}
+
+.show-original #test-info-original-args {
+  display: block;
+}
+
+.show-original #test-info-resolved-args {
+  display: none;
+}
+
+#test-info-args-toggle {
+  font-weight: normal;
+  font-size: 0.8em;
 }

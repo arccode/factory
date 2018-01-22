@@ -49,6 +49,8 @@ goog.require('goog.ui.ProgressBar');
 goog.require('goog.ui.Prompt');
 goog.require('goog.ui.SplitPane');
 goog.require('goog.ui.SubMenu');
+goog.require('goog.ui.ToggleButton');  // Indirectly used by default_test_ui.js
+goog.require('goog.ui.decorate');  // Used by default_test_ui.js
 goog.require('goog.ui.tree.TreeControl');
 
 /**

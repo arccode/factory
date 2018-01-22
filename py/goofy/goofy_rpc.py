@@ -728,6 +728,9 @@ class GoofyRPC(object):
     return {'metadata': yaml.load(open(os.path.join(test_dir, 'metadata'))),
             'log': log}
 
+  def GetInvocationResolvedArgs(self, invocation):
+    return self.goofy.invocations[invocation].resolved_dargs
+
   def GetPluginMenuItems(self):
     """Returns menu items supported by plugins."""
     return self.goofy.plugin_controller.GetPluginMenuItems()

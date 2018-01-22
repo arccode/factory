@@ -207,6 +207,7 @@ class TestInvocation(object):
     self.log_path = os.path.join(self.output_dir, 'log')
     self.update_state_on_completion = {}
     self.dut_options = self._ResolveDUTOptions()
+    self.resolved_dargs = None
 
     self._lock = threading.Lock()
     # The following properties are guarded by the lock.
@@ -288,9 +289,10 @@ class TestInvocation(object):
 
     return dut_options
 
-  def _InvokePytest(self, resolved_dargs):
+  def _InvokePytest(self):
     """Invokes a pyunittest-based test."""
     assert self.test.pytest_name
+    assert self.resolved_dargs is not None
 
     files_to_delete = []
     try:
@@ -324,7 +326,7 @@ class TestInvocation(object):
               PytestInfo(test_list=self.goofy.options.test_list,
                          path=self.test.path,
                          pytest_name=pytest_name,
-                         args=resolved_dargs,
+                         args=self.resolved_dargs,
                          results_path=results_path,
                          dut_options=self.dut_options),
               self.env_additions)
@@ -468,10 +470,10 @@ class TestInvocation(object):
     # Resume the previously-running test.
     if self.resume_test:
       self.start_time = self.metadata['start_time']
-      resolved_dargs = self.metadata['dargs']
+      self.resolved_dargs = self.metadata['dargs']
       log_args = dict(
           path=self.metadata['path'],
-          dargs=resolved_dargs,
+          dargs=self.resolved_dargs,
           serial_numbers=self.metadata['serial_numbers'],
           invocation=self.uuid)
       if self.test.pytest_name:
@@ -506,7 +508,7 @@ class TestInvocation(object):
       try:
         logging.debug('Resolving self.test.dargs from test list [%s]...',
                       self.goofy.options.test_list)
-        resolved_dargs = ResolveTestArgs(
+        self.resolved_dargs = ResolveTestArgs(
             self.goofy,
             self.test,
             test_list_id=self.goofy.options.test_list,
@@ -517,11 +519,11 @@ class TestInvocation(object):
         # let's still follow the normal path, so everything is logged properly.
         status = TestState.FAILED
         error_msg = 'Unable to resolve test arguments: %s' % e
-        resolved_dargs = None
+        self.resolved_dargs = None
 
       log_args = dict(
           path=self.test.path,
-          dargs=resolved_dargs,
+          dargs=self.resolved_dargs,
           serial_numbers=device_data.GetAllSerialNumbers(),
           invocation=self.uuid)
       if self.test.pytest_name:
@@ -560,7 +562,7 @@ class TestInvocation(object):
     try:
       if status is None:  # dargs are successfully resolved
         if self.test.pytest_name:
-          status, error_msg = self._InvokePytest(resolved_dargs)
+          status, error_msg = self._InvokePytest()
         else:
           status = TestState.FAILED
           error_msg = 'No pytest_name'

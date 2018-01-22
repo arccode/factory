@@ -1,5 +1,6 @@
 <html>
   <head id='head'>
+    <link rel="stylesheet" type="text/css" href="/css/closure.css">
     <link rel="stylesheet" type="text/css" href="/css/i18n.css">
     <link rel="stylesheet" type="text/css" href="/css/test.css">
     <script src="/js/custom_components.js"></script>
@@ -31,8 +32,18 @@
           <td id="test-info-pytest"></td>
         </tr>
         <tr>
-          <th><i18n-label>Test Arguments</i18n-label></th>
-          <td id="test-info-args"></td>
+          <th>
+            <i18n-label>Test Arguments</i18n-label>
+            <div>
+              <div id="test-info-args-toggle" class="goog-toggle-button">
+                <i18n-label>Show Original</i18n-label>
+              </div>
+            </div>
+          </th>
+          <td id="test-info-args-container">
+            <div id="test-info-original-args"></div>
+            <div id="test-info-resolved-args"></div>
+          </td>
         </tr>
       </table>
     </div>

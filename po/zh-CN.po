@@ -974,6 +974,10 @@ msgstr "测项名称"
 msgid "Test Arguments"
 msgstr "测项参数"
 
+#: ../py/goofy/static/default_test_ui.html
+msgid "Show Original"
+msgstr "显示原始"
+
 #: ../py/goofy/static/index.html
 msgid "Engineering mode"
 msgstr "工程模式"
