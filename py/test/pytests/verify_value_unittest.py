@@ -26,7 +26,8 @@ class VerifyValueTest(unittest.TestCase):
   def setUp(self):
     self._test = verify_value.VerifyValueTest()
     self._test._dut = mock.create_autospec(spec=types.DeviceInterface)
-    self._test.ui = mock.create_autospec(spec=test_ui.StandardUI)
+    self._test.ui_class = lambda event_loop: mock.create_autospec(
+        spec=test_ui.StandardUI)
 
   def testPass(self):
     item = [['command_compare_str',

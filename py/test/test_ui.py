@@ -845,7 +845,6 @@ class TestCaseWithUI(unittest.TestCase):
   def __init__(self, methodName='runTest'):
     super(TestCaseWithUI, self).__init__(methodName='_RunTest')
     self.event_loop = None
-    self.ui = None
 
     self.__method_name = methodName
     self.__task_end_event = threading.Event()
@@ -909,6 +908,17 @@ class TestCaseWithUI(unittest.TestCase):
 
     self.__tasks.append(_Task(name=name, run=run))
 
+  @type_utils.LazyProperty
+  def ui(self):
+    """The UI of the test.
+
+    This is initialized on first use, so task can be used even for tests that
+    want to use default UI.
+    """
+    ui = self.ui_class(event_loop=self.event_loop)
+    ui.SetupStaticFiles()
+    return ui
+
 
   def run(self, result=None):
     # We override TestCase.run and do initialize of ui objects here, since the
@@ -918,8 +928,6 @@ class TestCaseWithUI(unittest.TestCase):
     # to remember calling super(..., self).setUp(), which is a lot of
     # boilerplate code and easy to forget.
     self.event_loop = EventLoop(self.__HandleException)
-    self.ui = self.ui_class(event_loop=self.event_loop)
-    self.ui.SetupStaticFiles()
 
     super(TestCaseWithUI, self).run(result=result)
 

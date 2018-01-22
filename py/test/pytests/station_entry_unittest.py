@@ -38,7 +38,7 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self._patchers.extend(mock_time_utils.MockAll(self._timeline))
 
     self.test = station_entry.StationEntry()
-    self.test.ui = mock.Mock(spec=test_ui.StandardUI)
+    self.test.ui_class = lambda event_loop: mock.Mock(spec=test_ui.StandardUI)
 
     self.mock_state = mock.Mock()
     self._CreatePatcher(state, 'get_instance').return_value = self.mock_state

@@ -29,7 +29,7 @@ class RobotMovementTest(unittest.TestCase):
     self._test = self.Test()
     self._test._dut = mock.create_autospec(spec=types.DeviceInterface)
     self._test._dut.info.serial_number = 'SN123'
-    self._test.ui = mock.Mock(spec=test_ui.StandardUI)
+    self._test.ui_class = lambda event_loop: mock.Mock(spec=test_ui.StandardUI)
     self._test._robot = mock.create_autospec(spec=Robot)
     self._test._algorithm = mock.create_autospec(spec=Algorithm)
     self._test.args = FakeArgs({
