@@ -240,9 +240,7 @@ class AudioQualityTest(test_ui.TestCaseWithUI):
     self._tone_process = None
     self._loop_process = None
     self._caches_dir = os.path.join(goofy.CACHES_DIR, 'parameters')
-    base = os.path.dirname(os.path.realpath(__file__))
-    self._file_path = os.path.join(base, '..', '..', 'goofy', 'static',
-                                   'sounds')
+    self._file_path = self.ui.GetStaticDirectoryPath()
 
     # /var/factory/tests/<TestID>-<UUID>/
     self._test_dir = os.path.join(
@@ -635,9 +633,9 @@ class AudioQualityTest(test_ui.TestCaseWithUI):
       pass
 
   def HandleMultitone(self, *args):
-    """Plays the multi-tone wav file."""
-    wav_path = os.path.join(self._file_path, '10SEC.wav')
-    self.PlayWav(wav_path)
+    """Plays the multi-tone sound file."""
+    sound_path = os.path.join(self._file_path, 'multi_tone_10s.ogg')
+    self.PlayWav(sound_path)
     self.SendResponse(None, args)
 
   def PlayWav(self, wav_path):
