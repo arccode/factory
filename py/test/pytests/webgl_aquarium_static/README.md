@@ -25,7 +25,7 @@ code, do the following modifications:
   2. Remove `source_asserts/` to reduce size.
   3. Manually copy `khronos/`, `jquery-ui-1.8.2.custom/`, `tdl/` directories
      from the upper-level directory.
-  4. Modify `index.html` to point the src of all the script tags to current
+  4. Modify `aquarium.html` to point the src of all the script tags to current
      directory instead of upper-level directory.
 
 and finally, switch to the upper-level directory and run:
