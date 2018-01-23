@@ -286,10 +286,8 @@ def main():
       if (not f.endswith('.py') or
           f.startswith('__') or
           f == 'factory_common.py' or
-          f.endswith('_automator.py') or
           f.endswith('_e2etest.py') or
-          f.endswith('_unittest.py') or
-          f.endswith('_impl.py')):
+          f.endswith('_unittest.py')):
         continue
 
       # E.g., "foo.py" or "foo/foo.py"
