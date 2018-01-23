@@ -151,7 +151,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device.audio import base
 from cros.factory.device import device_utils
 from cros.factory.test import session
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.test.utils import audio_utils
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
@@ -196,7 +196,7 @@ _DEFAULT_SOX_AMPLITUDE_THRESHOLD = (None, None)
 _DEFAULT_TRIM_SECONDS = 0.5
 
 
-class AudioLoopTest(test_ui.TestCaseWithUI):
+class AudioLoopTest(test_case.TestCase):
   """Audio Loop test to test two kind of situations.
   1. Speaker to digital microphone.
   2. Headphone out to headphone in.

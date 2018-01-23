@@ -45,10 +45,10 @@ in test list::
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import state
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 
 
-class StationSetup(test_ui.TestCaseWithUI):
+class StationSetup(test_case.TestCase):
   """The factory test to setup station."""
 
   def runTest(self):

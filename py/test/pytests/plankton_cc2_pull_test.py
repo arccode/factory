@@ -15,11 +15,11 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import _
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg
 
 
-class PlanktonCC2PullTest(test_ui.TestCaseWithUI):
+class PlanktonCC2PullTest(test_case.TestCase):
   ARGS = [
       Arg('whale_bft_fixture', dict, bft_fixture.TEST_ARG_HELP),
       Arg('plankton_bft_fixture', dict, bft_fixture.TEST_ARG_HELP),

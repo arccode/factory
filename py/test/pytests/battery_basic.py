@@ -48,14 +48,14 @@ import logging
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.test.utils import stress_manager
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
 
 
-class SimpleBatteryTest(test_ui.TestCaseWithUI):
+class SimpleBatteryTest(test_case.TestCase):
   """A simple battery test."""
   ARGS = [
       Arg('charge_duration_secs', type=(int, float), default=5,

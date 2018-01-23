@@ -73,6 +73,7 @@ from cros.factory.test.i18n import _
 from cros.factory.test import server_proxy
 from cros.factory.test import session
 from cros.factory.test import state
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.test.utils import audio_utils
 from cros.factory.test.utils import time_utils
@@ -146,7 +147,7 @@ _JACK_HP_SCRIPT = 'jack_hp_script'
 _DMIC2_JACK_SCRIPT = 'dmic2_jack_script'
 
 
-class AudioQualityTest(test_ui.TestCaseWithUI):
+class AudioQualityTest(test_case.TestCase):
   ARGS = [
       Arg('initial_actions', list, 'List of [card, actions], and card '
           'can be card index number or card name', default=[]),

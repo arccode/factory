@@ -20,7 +20,7 @@ from cros.factory.device import device_utils
 from cros.factory.test.env import goofy_proxy
 from cros.factory.test.i18n import _
 from cros.factory.test import state
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.utils import arg_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
@@ -161,7 +161,7 @@ class Chameleon(object):
       self.DestroyEdid(edid_id)
 
 
-class ChameleonDisplayTest(test_ui.TestCaseWithUI):
+class ChameleonDisplayTest(test_case.TestCase):
   """A factory test that utilizes Chameleon to do automated display testing."""
   ARGS = [
       arg_utils.Arg('chameleon_host', str,

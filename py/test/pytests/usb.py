@@ -15,13 +15,13 @@ import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import _
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.test.utils import media_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 
 
-class USBTest(test_ui.TestCaseWithUI):
+class USBTest(test_case.TestCase):
   ARGS = [
       Arg('expected_paths', str, 'USB device path', None),
       Arg('num_usb_ports', int, 'number of USB port', None),

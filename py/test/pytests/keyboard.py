@@ -96,7 +96,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
 from cros.factory.test.l10n import regions
 from cros.factory.test import session
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
@@ -109,7 +109,7 @@ _RE_EVTEST_EVENT = re.compile(
 _POWER_KEY_CODE = 116
 
 
-class KeyboardTest(test_ui.TestCaseWithUI):
+class KeyboardTest(test_case.TestCase):
   """Tests if all the keys on a keyboard are functioning. The test checks for
   keydown and keyup events for each key, following certain order if required,
   and passes if both events of all keys are received.

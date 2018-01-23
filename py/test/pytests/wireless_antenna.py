@@ -26,6 +26,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test.i18n import _
 from cros.factory.test import session
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
@@ -172,7 +173,7 @@ _ANTENNA_CONFIG = {'main': ('1', '1'),
                    'all': ('3', '3')}
 
 
-class WirelessTest(test_ui.TestCaseWithUI):
+class WirelessTest(test_case.TestCase):
   """Basic wireless test class.
 
   Properties:

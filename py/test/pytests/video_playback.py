@@ -5,14 +5,14 @@
 import logging
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.test.utils import audio_utils
 from cros.factory.utils.arg_utils import Arg
 
 DEFAULT_SECONDS = 10
 
 
-class VideoPlaybackTest(test_ui.TestCaseWithUI):
+class VideoPlaybackTest(test_case.TestCase):
   """Video Playback Test."""
   ARGS = [
       Arg('video_file', str,

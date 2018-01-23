@@ -81,12 +81,12 @@ import re
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data
 from cros.factory.test.i18n import _
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
 
-class MemorySize(test_ui.TestCaseWithUI):
+class MemorySize(test_case.TestCase):
   ARGS = [
       Arg('device_data_key', str,
           'Device data key for getting memory size in GB.',

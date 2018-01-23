@@ -153,6 +153,7 @@ from cros.factory.device import device_utils
 from cros.factory.test import device_data
 from cros.factory.test import session
 from cros.factory.test.i18n import _
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.utils import deploy_utils
@@ -175,7 +176,7 @@ def EvaluateRule(a, op_str, b):
   return OPERATOR_MAP[op_str](a, b)
 
 
-class ProbeTest(test_ui.TestCaseWithUI):
+class ProbeTest(test_case.TestCase):
 
   ARGS = [
       Arg('config_file', str,

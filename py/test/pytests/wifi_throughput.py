@@ -78,6 +78,7 @@ from cros.factory.test import event_log
 from cros.factory.test.fixture import arduino
 from cros.factory.test.i18n import _
 from cros.factory.test import session
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.test.utils import kbd_leds
 from cros.factory.testlog import testlog
@@ -639,7 +640,7 @@ class _ServiceTest(object):
       return 'Successfully disconnected from %s' % ssid
 
 
-class WiFiThroughput(test_ui.TestCaseWithUI):
+class WiFiThroughput(test_case.TestCase):
   """WiFi throughput test.
 
   Accepts a list of wireless services, checks for their signal strength and

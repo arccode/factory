@@ -58,6 +58,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test import session
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
@@ -72,7 +73,7 @@ _CRITICAL_TEMP_RATIO = 0.98
 Status = collections.namedtuple('Status', ['temperatures', 'fan_rpm'])
 
 
-class CountDownTest(test_ui.TestCaseWithUI):
+class CountDownTest(test_case.TestCase):
   """A countdown test that monitors and logs various system status."""
 
   ARGS = [

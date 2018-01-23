@@ -146,6 +146,7 @@ from cros.factory.test.rules import registration_codes
 from cros.factory.test import server_proxy
 from cros.factory.test import session
 from cros.factory.test import state
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.test.utils import time_utils
 from cros.factory.utils.arg_utils import Arg
@@ -171,7 +172,7 @@ class Report(object):
     self.station = station
 
 
-class SyncFactoryServer(test_ui.TestCaseWithUI):
+class SyncFactoryServer(test_case.TestCase):
   ARGS = [
       Arg('first_retry_secs', int,
           'Time to wait after the first attempt; this will increase '

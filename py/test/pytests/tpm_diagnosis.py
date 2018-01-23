@@ -8,11 +8,12 @@ import os
 import threading
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 
 
-class TpmDiagnosisTest(test_ui.TestCaseWithUI):
+class TpmDiagnosisTest(test_case.TestCase):
   ARGS = [
       Arg('tpm_selftest', str, 'Path of tpm_selftest program.',
           default='/usr/local/sbin/tpm_selftest'),

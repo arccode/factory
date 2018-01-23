@@ -15,7 +15,7 @@ from cros.factory.device import led as led_module
 # See setUp() for more detail.
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import _
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -36,7 +36,7 @@ _INDEX_LABEL = {
     LEDIndex.ADAPTER: _('adapter LED')}
 
 
-class LEDTest(test_ui.TestCaseWithUI):
+class LEDTest(test_case.TestCase):
   """Tests if the onboard LED can light up with specified colors."""
   ARGS = [
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP, default=None),

@@ -8,12 +8,12 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import _
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.test.utils import stress_manager
 from cros.factory.utils.arg_utils import Arg
 
 
-class PowerUnderStressTest(test_ui.TestCaseWithUI):
+class PowerUnderStressTest(test_case.TestCase):
   """Measure the power consumption (voltage and current) under heavy load."""
 
   ARGS = [

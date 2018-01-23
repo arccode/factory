@@ -7,6 +7,7 @@
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import _
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.utils import process_utils
 
@@ -16,7 +17,7 @@ _SUBTESTS = (
     (_('If the keyboard backlight is off, press ENTER. '), '0'))
 
 
-class KeyboardBacklightTest(test_ui.TestCaseWithUI):
+class KeyboardBacklightTest(test_case.TestCase):
   def setUp(self):
     for instruction, level in _SUBTESTS:
       self.AddTask(self.RunTask, instruction, level)

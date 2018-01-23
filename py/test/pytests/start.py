@@ -55,6 +55,7 @@ from cros.factory.test import session
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test import state
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import log_utils
@@ -64,7 +65,7 @@ _LSB_FACTORY_PATH = '/usr/local/etc/lsb-factory'
 _AC_CHECK_PERIOD = 0.5
 
 
-class StartTest(test_ui.TestCaseWithUI):
+class StartTest(test_case.TestCase):
   """The factory test to start the whole factory test process."""
   ARGS = [
       Arg('press_to_continue', bool, 'Need to press space to continue',

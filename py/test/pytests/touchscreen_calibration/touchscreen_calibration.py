@@ -22,7 +22,7 @@ from cros.factory.test.pytests.touchscreen_calibration import sensors_server
 from cros.factory.test.pytests.touchscreen_calibration import touchscreen_calibration_utils  # pylint: disable=line-too-long
 from cros.factory.test import session
 from cros.factory.test import state
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.test.utils import media_utils
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
@@ -50,7 +50,7 @@ def _CreateXMLRPCSensorsClient(addr=('localhost', 8000)):
   return proxy
 
 
-class TouchscreenCalibration(test_ui.TestCaseWithUI):
+class TouchscreenCalibration(test_case.TestCase):
   """Handles the calibration and controls the test fixture."""
   version = 1
 

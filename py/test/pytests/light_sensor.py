@@ -94,6 +94,7 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import _
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
@@ -224,7 +225,7 @@ class iio_generic(object):
       raise ValueError('Illegal value %s for type' % type)
 
 
-class LightSensorTest(test_ui.TestCaseWithUI):
+class LightSensorTest(test_case.TestCase):
   """Tests light sensor."""
   ARGS = [
       Arg('device_path', str, 'device path', default=None),

@@ -72,6 +72,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.env import paths
 from cros.factory.test import event
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.test.utils import update_utils
 from cros.factory.utils.arg_utils import Arg
@@ -87,7 +88,7 @@ class NoUpdatesException(Exception):
   pass
 
 
-class UpdateFirmwareTest(test_ui.TestCaseWithUI):
+class UpdateFirmwareTest(test_case.TestCase):
   ARGS = [
       Arg('firmware_updater', str, 'Full path of %s.' % _FIRMWARE_UPDATER_NAME,
           default=paths.FACTORY_FIRMWARE_UPDATER_PATH),

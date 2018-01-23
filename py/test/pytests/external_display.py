@@ -80,7 +80,7 @@ from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import _
 from cros.factory.test.pytests import audio
 from cros.factory.test import state
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
 
@@ -95,7 +95,7 @@ ExtDisplayTaskArg = collections.namedtuple('ExtDisplayTaskArg', [
 ])
 
 
-class ExtDisplayTest(test_ui.TestCaseWithUI):
+class ExtDisplayTest(test_case.TestCase):
   """Main class for external display test."""
   ARGS = [
       Arg('main_display', str,

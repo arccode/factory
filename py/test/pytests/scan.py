@@ -60,12 +60,13 @@ from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test import state
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
 
 
-class Scan(test_ui.TestCaseWithUI):
+class Scan(test_case.TestCase):
   """The main class for this pytest."""
   ARGS = [
       i18n_arg_utils.I18nArg(

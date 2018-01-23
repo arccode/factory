@@ -54,6 +54,7 @@ import threading
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
 from cros.factory.test.i18n import _
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
 from cros.factory.test.utils import touch_monitor
@@ -85,7 +86,7 @@ class StylusMonitor(touch_monitor.SingleTouchMonitor):
       self._buffer = []
 
 
-class StylusTest(test_ui.TestCaseWithUI):
+class StylusTest(test_case.TestCase):
   """Stylus factory test."""
 
   ARGS = [

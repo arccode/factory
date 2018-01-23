@@ -162,6 +162,7 @@ from cros.factory.test import device_data
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.l10n import regions
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.utils.arg_utils import Arg
@@ -284,7 +285,7 @@ class DataEntry(object):
     return input_data
 
 
-class UpdateDeviceData(test_ui.TestCaseWithUI):
+class UpdateDeviceData(test_case.TestCase):
   ARGS = [
       Arg('manual_input', bool,
           'Set to False to silently updating all values. Otherwise each value '

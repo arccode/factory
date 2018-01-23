@@ -77,14 +77,14 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import session
 from cros.factory.test import i18n
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg
 
 
 Item = namedtuple('CheckItem', 'name command expected_value')
 
 
-class VerifyValueTest(test_ui.TestCaseWithUI):
+class VerifyValueTest(test_case.TestCase):
   ARGS = [
       Arg('items', list,
           'A list of sequences, each representing an item to check.\n'

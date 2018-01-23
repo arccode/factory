@@ -67,11 +67,12 @@ from cros.factory.test import session
 from cros.factory.test.fixture import utils as fixture_utils
 from cros.factory.test.i18n import _
 from cros.factory.test import server_proxy
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 
 
-class RobotMovement(test_ui.TestCaseWithUI):
+class RobotMovement(test_case.TestCase):
   """A general task that use a robot to move the device.
 
   Two detail implementations are required for this task. One is the fixture for

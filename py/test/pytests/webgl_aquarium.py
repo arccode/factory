@@ -7,11 +7,11 @@
 import time
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg
 
 
-class WebGLAquariumTest(test_ui.TestCaseWithUI):
+class WebGLAquariumTest(test_case.TestCase):
   ARGS = [
       Arg('duration_secs', int, 'Duration of time in seconds to run the test',
           default=60),

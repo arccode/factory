@@ -66,7 +66,7 @@ from __future__ import print_function
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -76,7 +76,7 @@ test-template { --template-background-color: %(background_color)s; }
 """
 
 
-class MessageTest(test_ui.TestCaseWithUI):
+class MessageTest(test_case.TestCase):
   """A factory test to display a message."""
   ARGS = [
       i18n_arg_utils.I18nArg('html', 'Message in HTML'),

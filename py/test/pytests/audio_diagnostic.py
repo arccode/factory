@@ -10,11 +10,11 @@
 """Tests to manually test audio playback and record quality."""
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.test.utils import audio_utils
 
 
-class AudioDiagnosticTest(test_ui.TestCaseWithUI):
+class AudioDiagnosticTest(test_case.TestCase):
   """A test executing audio diagnostic tools.
 
   This is a manual test run by operator who judges

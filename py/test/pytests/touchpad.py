@@ -52,6 +52,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
 from cros.factory.test import session
 from cros.factory.test.i18n import _
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
 from cros.factory.test.utils import touch_monitor
@@ -127,7 +128,7 @@ class Quadrant(object):
       self.quadrant = 4
 
 
-class TouchpadTest(test_ui.TestCaseWithUI):
+class TouchpadTest(test_case.TestCase):
   """Tests the function of touchpad.
 
   The test checks the following function:

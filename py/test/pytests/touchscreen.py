@@ -115,6 +115,7 @@ If seeing unexpected touch events in `evtest`, here are some thoughts:
 import factory_common  # pylint: disable=unused-import
 # pylint: disable=no-name-in-module
 from cros.factory.external.evdev import ecodes
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
 from cros.factory.test.utils import touch_monitor
@@ -166,7 +167,7 @@ class TouchscreenMonitor(touch_monitor.MultiTouchMonitor):
 
     Args:
       device: evdev.InputDevice
-      frontend_proxy: test_ui.UI
+      frontend_proxy: test_ui.JavaScriptProxy to frontend test
     """
     super(TouchscreenMonitor, self).__init__(device)
     self._frontend_proxy = frontend_proxy
@@ -188,7 +189,7 @@ class TouchscreenMonitor(touch_monitor.MultiTouchMonitor):
     self._EmitEvent('touchEndHandler', slot_id)
 
 
-class TouchscreenTest(test_ui.TestCaseWithUI):
+class TouchscreenTest(test_case.TestCase):
   """Tests touchscreen by drawing blocks in sequence.
 
   Properties:

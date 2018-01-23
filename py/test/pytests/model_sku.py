@@ -68,6 +68,7 @@ import logging
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.i18n import _
@@ -80,7 +81,7 @@ _KEY_COMPONENT_SKU = device_data.JoinKeys(device_data.KEY_COMPONENT, 'sku')
 _MOSYS_ARGS = ['model', 'sku', 'chassis', 'brand']
 
 
-class PlatformSKUModelTest(test_ui.TestCaseWithUI):
+class PlatformSKUModelTest(test_case.TestCase):
   """A test to confirm and set SKU and model information."""
 
   ARGS = [

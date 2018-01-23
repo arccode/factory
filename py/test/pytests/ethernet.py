@@ -11,6 +11,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
 from cros.factory.test import session
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import net_utils
@@ -19,7 +20,7 @@ from cros.factory.utils import net_utils
 _LOCAL_FILE_PATH = '/tmp/test'
 
 
-class EthernetTest(test_ui.TestCaseWithUI):
+class EthernetTest(test_case.TestCase):
   """Test built-in ethernet port"""
   ARGS = [
       Arg('auto_start', bool, 'Auto start option.', default=False),

@@ -68,6 +68,7 @@ from cros.factory.test import event_log
 from cros.factory.test import session
 from cros.factory.test import i18n
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 
@@ -75,7 +76,7 @@ CheckItem = collections.namedtuple('CheckItem',
                                    'instruction command judge_to_pass')
 
 
-class LineCheckItemTest(test_ui.TestCaseWithUI):
+class LineCheckItemTest(test_case.TestCase):
   """Test a sequence of commands are successful or not.
 
   Properties:

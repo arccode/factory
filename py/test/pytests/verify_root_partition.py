@@ -11,7 +11,7 @@ import tempfile
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -20,7 +20,7 @@ DM_DEVICE_PATH = os.path.join('/dev/mapper', DM_DEVICE_NAME)
 BLOCK_SIZE = 8 * 1024 * 1024
 
 
-class VerifyRootPartitionTest(test_ui.TestCaseWithUI):
+class VerifyRootPartitionTest(test_case.TestCase):
   """Verifies the integrity of the root partition."""
 
   ARGS = [

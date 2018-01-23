@@ -17,7 +17,7 @@ from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.fixture.dolphin import plankton_hdmi
 from cros.factory.test.i18n import _
 from cros.factory.test import state
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
@@ -30,7 +30,7 @@ _WAIT_DISPLAY_SIGNAL_SECS = 3
 _WAIT_RETEST_SECS = 2
 
 
-class PlanktonDisplayTest(test_ui.TestCaseWithUI):
+class PlanktonDisplayTest(test_case.TestCase):
   """Tests USB type-C ports display functionality."""
   ARGS = [
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP),

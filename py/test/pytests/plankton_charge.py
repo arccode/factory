@@ -72,7 +72,7 @@ from cros.factory.device.links import adb
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import _
 from cros.factory.test import session
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.test.utils import stress_manager
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
@@ -80,7 +80,7 @@ from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
 
 
-class PlanktonChargeBFTTest(test_ui.TestCaseWithUI):
+class PlanktonChargeBFTTest(test_case.TestCase):
   """Tests usb_c port charge functionality."""
   ARGS = [
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP),

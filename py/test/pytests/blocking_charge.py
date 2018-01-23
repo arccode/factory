@@ -88,7 +88,7 @@ from cros.factory.device import device_utils
 from cros.factory.test.env import paths
 from cros.factory.test import event_log
 from cros.factory.test.i18n import _
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.test.utils import goofy_plugin_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import config_utils
@@ -130,7 +130,7 @@ def _GetGoofyBatteryMinPercentage():
   return config.get('min_charge_pct', _DEFAULT_TARGET_CHARGE)
 
 
-class ChargerTest(test_ui.TestCaseWithUI):
+class ChargerTest(test_case.TestCase):
   ARGS = [
       Arg('target_charge_pct', (int, type_utils.Enum(['goofy', 'cutoff'])),
           'Target charge level.', default='goofy'),

@@ -87,6 +87,7 @@ from cros.factory.test import device_data
 from cros.factory.test.i18n import _
 from cros.factory.test.rules import privacy
 from cros.factory.test import server_proxy
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
@@ -107,7 +108,7 @@ class ServiceSpec(object):
     self.data_args = data_args
 
 
-class ShopfloorService(test_ui.TestCaseWithUI):
+class ShopfloorService(test_case.TestCase):
   """Execution of remote shoploor service."""
 
   ARGS = [

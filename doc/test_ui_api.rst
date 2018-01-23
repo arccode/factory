@@ -6,7 +6,7 @@ The Test UI API allows tests to interact with an operator, or to
 display their status to the operator while they are running.
 
 To use the test UI, inherit from
-:py:class:`cros.factory.test.test_ui.TestCaseWithUI` instead of
+:py:class:`cros.factory.test.test_case.TestCase` instead of
 :py:class:`unittest.TestCase` for the unittest. You can then call various
 methods on ``self.ui`` (which is of type
 :py:class:`cros.factory.test.test_ui.StandardUI`) to interact with the browser
@@ -18,13 +18,13 @@ five seconds, and then passes::
   import time
   from cros.factory.test import test_ui
 
-  class MyTest(test_ui.TestCaseWithUI):
+  class MyTest(test_case.TestCase):
     def runTest(self):
       self.template.SetState('Hello, world!')
       self.Sleep(5)
 
 The following document assumes that the test inherit from
-:py:class:`cros.factory.test.test_ui.TestCaseWithUI`.
+:py:class:`cros.factory.test.test_case.TestCase`.
 
 Including static resources
 --------------------------
@@ -97,8 +97,8 @@ To pass the test, do one of the followings:
   call ``self.WaitTaskEnd()`` at the end of ``runTest``, and the test would
   wait for one of the conditions above is achieved.
 
-When the test inherits from ``TestCaseWithUI``, the ``runTest`` method is run
-in a **background** thread, while the UI event loop run in the main thread.
+When the test inherits from ``test_case.TestCase``, the ``runTest`` method is
+run in a **background** thread, while the UI event loop run in the main thread.
 
 The ``PassTask``, ``FailTask`` and raises exception to fail test only works in
 either event handlers or in the ``runTest`` thread. To achieve same behavior on
@@ -119,7 +119,7 @@ There are default templates for test to keep look and feel consistent across
 tests. To access the template, use methods on
 :py:class:`cros.factory.test.test_ui.StandardUI`. For example::
 
-  class MyTest(test_ui.TestCaseWithUI):
+  class MyTest(test_case.TestCase):
     def runTest(self):
       self.ui.SetTitle('My Test')
       self.ui.SetState('Hello, world!')
@@ -128,7 +128,7 @@ tests. To access the template, use methods on
 To change what UI class is used for ``self.ui``, set the ``ui_class`` for the
 test class. For example::
 
-  class MyTest(test_ui.TestCaseWithUI):
+  class MyTest(test_case.TestCase):
     ui_class = test_ui.ScrollableLogUI
 
     def runTest(self):

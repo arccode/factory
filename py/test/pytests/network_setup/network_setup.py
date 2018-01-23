@@ -70,6 +70,7 @@ import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import _
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.test.utils import connection_manager
 from cros.factory.utils import arg_utils
@@ -101,7 +102,7 @@ def _ErrorCodeToMessage(error_code, interface):
   return _('Unknown Error on {interface}', interface=interface)
 
 
-class NetworkConnectionSetup(test_ui.TestCaseWithUI):
+class NetworkConnectionSetup(test_case.TestCase):
   ARGS = [
       arg_utils.Arg('config_name', str, 'name of the config file.'),
       arg_utils.Arg('timeout_secs', float,

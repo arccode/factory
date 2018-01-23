@@ -45,6 +45,7 @@ from cros.factory.test.rf import e5071c_scpi
 from cros.factory.test import server_proxy
 from cros.factory.test import session
 from cros.factory.test import state
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.test.utils import connection_manager
 from cros.factory.testlog import testlog
@@ -57,7 +58,7 @@ from cros.factory.utils import net_utils
 LOCAL_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-class VSWR(test_ui.TestCaseWithUI):
+class VSWR(test_case.TestCase):
   """A test for antennas using Agilent E5017C Network Analyzer (ENA)."""
   ARGS = [
       Arg('event_log_name', str, 'Name of the event_log, like '

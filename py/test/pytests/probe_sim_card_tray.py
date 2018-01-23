@@ -17,7 +17,7 @@ import os
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import _
 from cros.factory.test import session
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
@@ -33,7 +33,7 @@ class ProbeTrayException(Exception):
   pass
 
 
-class ProbeSimCardTrayTest(test_ui.TestCaseWithUI):
+class ProbeSimCardTrayTest(test_case.TestCase):
   """Test to probe sim card tray.
 
   Usage examples:

@@ -50,12 +50,13 @@ To flash netboot firmware from a special location::
 import logging
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.tools import flash_netboot
 from cros.factory.utils.arg_utils import Arg
 
 
-class FlashNetbootTest(test_ui.TestCaseWithUI):
+class FlashNetbootTest(test_case.TestCase):
   ARGS = [
       Arg('image', str,
           ('Path of netboot firmware image. Default to use %s' %

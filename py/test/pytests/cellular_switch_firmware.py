@@ -10,11 +10,11 @@ This test will first check current firmware and switch if necessary.
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import _
 from cros.factory.test.rf import cellular
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg
 
 
-class CellularFirmwareSwitching(test_ui.TestCaseWithUI):
+class CellularFirmwareSwitching(test_case.TestCase):
   ARGS = [
       Arg('target', str, 'The firmware name to switch.')]
 

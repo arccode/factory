@@ -91,7 +91,7 @@ from cros.factory.test import session
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
@@ -122,7 +122,7 @@ _RE_DD_EXECUTION_TIME = re.compile(
 _Event = type_utils.Enum(['WAIT_INSERT', 'WAIT_REMOVE'])
 
 
-class RemovableStorageTest(test_ui.TestCaseWithUI):
+class RemovableStorageTest(test_case.TestCase):
   """The removable storage factory test."""
   ARGS = [
       Arg('media', str, 'Media type. '

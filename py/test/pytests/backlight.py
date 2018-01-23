@@ -51,6 +51,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
 from cros.factory.test import session
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 
@@ -58,7 +59,7 @@ _DEFAULT_ADJUST_LEVEL = 0.05
 _DEFAULT_RESET_LEVEL = 0.5
 
 
-class BacklightTest(test_ui.TestCaseWithUI):
+class BacklightTest(test_case.TestCase):
   """Tests the function of backlight of display panel.
 
   There are two subtests in this test. In each subtest, the test will make

@@ -73,6 +73,7 @@ from cros.factory.device import device_utils
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
@@ -178,7 +179,7 @@ def TestAudioDigitPlayback(ui, dut, port_name, card, device, channel='all',
       break
 
 
-class AudioTest(test_ui.TestCaseWithUI):
+class AudioTest(test_case.TestCase):
   """Tests audio playback
 
   It randomly picks a digit to play and checks if the operator presses the

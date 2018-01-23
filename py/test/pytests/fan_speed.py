@@ -29,7 +29,7 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -38,7 +38,7 @@ def _Average(numbers):
   return sum(numbers, 0.0) / len(numbers)
 
 
-class FanSpeedTest(test_ui.TestCaseWithUI):
+class FanSpeedTest(test_case.TestCase):
   """A factory test for testing system fan."""
 
   ARGS = [

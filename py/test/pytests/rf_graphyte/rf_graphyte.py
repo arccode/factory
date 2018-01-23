@@ -59,6 +59,7 @@ from cros.factory.test.env import paths
 from cros.factory.test.i18n import _
 from cros.factory.test import server_proxy
 from cros.factory.test import session
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
@@ -72,7 +73,7 @@ RESULT_FILENAME = 'graphyte_result.csv'
 LOG_FILENAME = 'graphyte.log'
 
 
-class RFGraphyteTest(test_ui.TestCaseWithUI):
+class RFGraphyteTest(test_case.TestCase):
 
   ARGS = [
       Arg('graphyte_package', str,

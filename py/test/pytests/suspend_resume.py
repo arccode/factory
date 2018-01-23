@@ -25,7 +25,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test.i18n import _
 from cros.factory.test import state
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
@@ -40,7 +40,7 @@ _KERNEL_DEBUG_WAKEUP_SOURCES = '/sys/kernel/debug/wakeup_sources'
 _MAX_EARLY_RESUME_RETRY_COUNT = 3
 
 
-class SuspendResumeTest(test_ui.TestCaseWithUI):
+class SuspendResumeTest(test_case.TestCase):
   ARGS = [
       Arg('cycles', int, 'Number of cycles to suspend/resume', default=1),
       Arg('suspend_delay_max_secs', int,

@@ -31,6 +31,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test.i18n import _
 from cros.factory.test import session
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import net_utils
@@ -323,7 +324,7 @@ class Capture(object):
       self.RemoveDevice(self.created_device)
 
 
-class WirelessRadiotapTest(test_ui.TestCaseWithUI):
+class WirelessRadiotapTest(test_case.TestCase):
   """Basic wireless test class.
 
   Properties:

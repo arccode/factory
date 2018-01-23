@@ -92,7 +92,7 @@ from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test import state
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -105,7 +105,7 @@ _EXTENED_PASSED_STATE = {
     state.TestState.SKIPPED, }
 
 
-class Report(test_ui.TestCaseWithUI):
+class Report(test_case.TestCase):
   """A factory test to report test status."""
   ARGS = [
       i18n_arg_utils.I18nArg(

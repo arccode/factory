@@ -87,6 +87,7 @@ import os
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import translation
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
@@ -124,7 +125,7 @@ _ALL_ITEMS = [x[translation.DEFAULT_LOCALE] for x in _ALL_ITEMS]
 _IMAGE_PREFIX = 'image-'
 
 
-class DisplayTest(test_ui.TestCaseWithUI):
+class DisplayTest(test_case.TestCase):
   """Tests the function of display.
 
   Properties:

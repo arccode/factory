@@ -25,6 +25,7 @@ from cros.factory.device import device_utils
 from cros.factory.test import event_log
 from cros.factory.test.i18n import _
 from cros.factory.test import session
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
@@ -35,7 +36,7 @@ from cros.factory.utils import type_utils
 _TestModes = type_utils.Enum(['file', 'raw', 'stateful_partition_free_space'])
 
 
-class BadBlocksTest(test_ui.TestCaseWithUI):
+class BadBlocksTest(test_case.TestCase):
   ARGS = [
       Arg('mode', _TestModes, 'Specify which operating mode to use.',
           default=_TestModes.stateful_partition_free_space),

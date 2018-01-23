@@ -11,7 +11,7 @@ from cros.factory.device import device_utils
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import _
 from cros.factory.test import session
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 
@@ -21,7 +21,7 @@ _AC_POWER_ID = 'ac_power'
 _AC_TYPE_USB_PD = 'USB_PD'
 
 
-class ACPowerTest(test_ui.TestCaseWithUI):
+class ACPowerTest(test_case.TestCase):
   """A test to instruct the operator to plug/unplug AC power.
 
   Args:

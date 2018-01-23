@@ -9,6 +9,7 @@ import logging
 import random
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 
@@ -16,7 +17,7 @@ from cros.factory.utils.arg_utils import Arg
 _TestItem = collections.namedtuple('TestItem', 'num_point bg_color point_color')
 
 
-class DisplayPointTest(test_ui.TestCaseWithUI):
+class DisplayPointTest(test_case.TestCase):
   """Tests the function of display panel using some points.
 
   There are two subtests in this test. The first one is black points on white

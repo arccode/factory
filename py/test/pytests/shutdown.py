@@ -57,7 +57,7 @@ from cros.factory.test.i18n import _
 from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test.test_lists import test_object
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.test.utils import audio_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sys_utils
@@ -94,7 +94,7 @@ class Checkpoint(object):
     return self.__str__()
 
 
-class ShutdownTest(test_ui.TestCaseWithUI):
+class ShutdownTest(test_case.TestCase):
   """Factory test for shutdown operations (reboot, full_reboot, or halt).
 
   This test has two stages.  The Shutdown() method is the first stage which

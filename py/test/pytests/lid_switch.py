@@ -14,7 +14,7 @@ from cros.factory.test import event_log
 # See LidSwitchTest.setUp() for more detail.
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import _
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.test.utils import audio_utils
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
@@ -31,7 +31,7 @@ _TIMESTAMP_BL_ON = _BACKLIGHT_OFF_TIMEOUT - _TEST_TOLERANCE
 _TIMESTAMP_BL_OFF = _BACKLIGHT_OFF_TIMEOUT + _TEST_TOLERANCE
 
 
-class LidSwitchTest(test_ui.TestCaseWithUI):
+class LidSwitchTest(test_case.TestCase):
   """Lid switch factory test."""
   ARGS = [
       Arg('timeout_secs', int, 'Timeout value for the test.',

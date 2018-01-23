@@ -73,13 +73,14 @@ from cros.factory.test import device_data
 from cros.factory.test import session
 from cros.factory.test.i18n import _
 from cros.factory.test import state
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
 
-class StationEntry(test_ui.TestCaseWithUI):
+class StationEntry(test_case.TestCase):
   """The factory test to start station test process."""
   ARGS = [
       Arg('start_station_tests', bool,

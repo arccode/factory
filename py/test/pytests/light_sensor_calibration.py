@@ -65,7 +65,7 @@ from cros.factory.test.fixture.light_sensor import light_chamber
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test import device_data
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.test.utils import kbd_leds
 from cros.factory.test.utils import media_utils
 from cros.factory.testlog import testlog
@@ -118,7 +118,7 @@ CHAMBER_CONN_PARAMS_DEFAULT = {
 }
 
 
-class ALSFixture(test_ui.TestCaseWithUI):
+class ALSFixture(test_case.TestCase):
   """ALS fixture main class."""
   ARGS = [
       # chamber connection

@@ -14,14 +14,14 @@ from __future__ import print_function
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test import session
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
 
 from cros.factory.external import evdev
 
 
-class KeyboardSMTTest(test_ui.TestCaseWithUI):
+class KeyboardSMTTest(test_case.TestCase):
   """Tests each keyboard scan lines are connected.
 
   It triggers a keyboard scan module by sending 0xC1 to fixture via RS-232.

@@ -91,7 +91,7 @@ import os
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import sync_utils
@@ -104,7 +104,7 @@ _EXTERNAL_DIR = '/run/factory/external'
 _CHECK_PERIOD_SECS = 1
 
 
-class WaitExternalTest(test_ui.TestCaseWithUI):
+class WaitExternalTest(test_case.TestCase):
   """Wait for a test by external fixture to finish."""
   ARGS = [
       Arg('run_factory_external_name', str,

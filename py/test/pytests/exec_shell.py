@@ -59,12 +59,13 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
 
-class ExecShell(test_ui.TestCaseWithUI):
+class ExecShell(test_case.TestCase):
   """Runs a list of commands.
 
   Properties:

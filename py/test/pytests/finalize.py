@@ -111,7 +111,7 @@ from cros.factory.test.rules import phase
 from cros.factory.test import server_proxy
 from cros.factory.test import session
 from cros.factory.test import state
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.test.utils import deploy_utils
 from cros.factory.test.utils import update_utils
 from cros.factory.testlog import testlog
@@ -134,7 +134,7 @@ MSG_FINALIZING = _('Finalizing, please wait.<br>'
                    'or the device may become unusable.')
 
 
-class Finalize(test_ui.TestCaseWithUI):
+class Finalize(test_case.TestCase):
   """The main class for finalize pytest."""
   ARGS = [
       Arg('write_protection', bool,

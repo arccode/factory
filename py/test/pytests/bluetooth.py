@@ -89,6 +89,7 @@ from cros.factory.test import event_log
 from cros.factory.test.i18n import _
 from cros.factory.test import session
 from cros.factory.test import state
+from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.test.utils import bluetooth_utils
 from cros.factory.testlog import testlog
@@ -159,7 +160,7 @@ def _AppendLog(log_file, data):
     log.write(data)
 
 
-class BluetoothTest(test_ui.TestCaseWithUI):
+class BluetoothTest(test_case.TestCase):
   ARGS = [
       Arg('expected_adapter_count', int,
           'Number of bluetooth adapters on the machine.',

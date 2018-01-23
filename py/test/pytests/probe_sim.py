@@ -20,7 +20,7 @@ import re
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test.i18n import _
-from cros.factory.test import test_ui
+from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
@@ -31,7 +31,7 @@ _INSERT_CHECK_PERIOD_SECS = 1
 _INSERT_CHECK_MAX_WAIT = 60
 
 
-class ProbeSIMCardTest(test_ui.TestCaseWithUI):
+class ProbeSIMCardTest(test_case.TestCase):
   ARGS = [
       Arg('only_check_simcard_not_present', bool,
           'Only checks sim card is not present', default=False),
