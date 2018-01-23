@@ -6,6 +6,7 @@
 
 """Handles Whale's button click event."""
 
+import functools
 import logging
 import optparse
 import os
@@ -28,6 +29,7 @@ ActionType = type_utils.Enum(['CLOSE_COVER', 'HOOK_COVER', 'PUSH_NEEDLE',
 
 def TimeClassMethodDebug(func):
   """A decorator to log method running time on debug level."""
+  @functools.wraps(func)
   def Wrapped(*args, **kwargs):
     logging.debug('Invoking %s()', func.__name__)
     start_time = time.time()

@@ -13,6 +13,7 @@ for some examples.
 """
 
 import collections
+import functools
 import logging
 import re
 import threading
@@ -156,6 +157,7 @@ def RuleFunction(ctx_list):
           ')'])
       return result
 
+    @functools.wraps(fn)
     def ContextAwareFunction(*args, **kwargs):
       context = GetContext()
       for ctx in ctx_list:

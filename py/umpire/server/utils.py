@@ -4,6 +4,7 @@
 
 """Umpire utility classes."""
 
+import functools
 import logging
 
 from twisted.internet import defer
@@ -51,9 +52,9 @@ def Deprecate(method):
   Args:
     method: the deprecated function.
   """
+  @functools.wraps(method)
   def _Wrapper(*args, **kwargs):
     logging.error('%s is deprecated', method.__name__)
     return method(*args, **kwargs)
 
-  _Wrapper.__name__ = method.__name__
   return _Wrapper

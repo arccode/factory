@@ -333,8 +333,7 @@ class CachedGetter(object):
   """
 
   def __init__(self, getter):
-    self.__name__ = getter.__name__
-    self.__doc__ = getter.__doc__
+    functools.update_wrapper(self, getter)
     self._getter = getter
     self._has_cached = False
     self._cached_value = None
@@ -385,6 +384,7 @@ class LazyProperty(object):
   def __init__(self, prop):
     self._init_func = prop
     self._prop_name = self.PROP_NAME_PREFIX + prop.__name__
+    functools.update_wrapper(self, prop)
 
   def __get__(self, obj, ignored_obj_type):
     if obj is None:
@@ -480,10 +480,10 @@ class UniqueStack(object):
 
 
 def UnicodeToString(obj):
-  '''Converts any Unicode strings in obj to UTF-8 strings.
+  """Converts any Unicode strings in obj to UTF-8 strings.
 
   Recurses into lists, dicts, and tuples in obj.
-  '''
+  """
   if isinstance(obj, list):
     return [UnicodeToString(x) for x in obj]
   elif isinstance(obj, dict):
@@ -500,17 +500,18 @@ def UnicodeToString(obj):
 
 
 def UnicodeToStringArgs(function):
-  '''A function decorator that converts function's arguments from
+  """A function decorator that converts function's arguments from
   Unicode to strings using UnicodeToString.
-  '''
-  return (lambda *args, **kwargs:
-          function(*UnicodeToString(args),
-                   **UnicodeToString(kwargs)))
+  """
+  @functools.wraps(function)
+  def _Wrapper(*args, **kwargs):
+    return function(*UnicodeToString(args), **UnicodeToString(kwargs))
 
+  return _Wrapper
 
 def UnicodeToStringClass(cls):
-  '''A class decorator that converts all arguments of all
-  methods in class from Unicode to strings using UnicodeToStringArgs.'''
+  """A class decorator that converts all arguments of all
+  methods in class from Unicode to strings using UnicodeToStringArgs."""
   for k, v in cls.__dict__.items():
     if callable(v):
       setattr(cls, k, UnicodeToStringArgs(v))

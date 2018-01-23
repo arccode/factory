@@ -29,6 +29,7 @@
 from __future__ import print_function
 
 import collections
+import functools
 import logging
 import os
 import Queue
@@ -44,8 +45,8 @@ from instalog import datatypes
 from instalog import log_utils
 from instalog import plugin_base
 # pylint: disable=no-name-in-module
-from instalog.plugins import buffer_simple_file
 from instalog.plugins import buffer_file_common
+from instalog.plugins import buffer_simple_file
 from instalog.utils import file_utils
 
 # pylint: disable=protected-access
@@ -53,6 +54,7 @@ from instalog.utils import file_utils
 
 def _WithBufferSize(buffer_size):
   def ModifyFn(fn):
+    @functools.wraps(fn)
     def Wrapper(*args, **kwargs):
       old_buffer_size_bytes = (
           buffer_simple_file.buffer_file_common._BUFFER_SIZE_BYTES)

@@ -8,11 +8,11 @@
 from __future__ import print_function
 
 import copy
+import functools
 import logging
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
-
 from cros.factory.external import netifaces
 
 # Static list of known properties in SystemStatus.
@@ -25,6 +25,7 @@ def StatusProperty(f):
   if not name.startswith('_'):
     _PROP_LIST.append(name)
   @property
+  @functools.wraps(f)
   def prop(self):
     if name in self._overrides:  # pylint: disable=protected-access
       return self._overrides[name]  # pylint: disable=protected-access

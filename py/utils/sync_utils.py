@@ -7,6 +7,7 @@
 from __future__ import print_function
 
 from contextlib import contextmanager
+import functools
 import inspect
 import logging
 import Queue
@@ -195,7 +196,7 @@ def Retry(max_retry_times, interval, callback, target, *args, **kwargs):
   for retry_time in xrange(max_retry_times):
     try:
       result = target(*args, **kwargs)
-    except Exception:  # pylint: disable=W0703
+    except Exception:
       logging.exception('Retry...')
     if callback:
       callback(retry_time, max_retry_times)
@@ -241,6 +242,7 @@ def WithTimeout(secs, use_signal=False):
       ...
   """
   def _Decorate(func):
+    @functools.wraps(func)
     def _Decoracted(*func_args, **func_kwargs):
       with Timeout(secs, use_signal):
         return func(*func_args, **func_kwargs)
@@ -263,7 +265,8 @@ def SignalTimeout(secs):
     TimeoutError if timeout is reached before execution has completed.
     ValueError if not run in the main thread.
   """
-  def handler(signum, frame):  # pylint: disable=W0613
+  def handler(signum, frame):
+    del signum, frame  # Unused.
     raise type_utils.TimeoutError('Timeout')
 
   if secs:
@@ -302,6 +305,7 @@ def Synchronized(f):
 
   """
 
+  @functools.wraps(f)
   def wrapped(self, *args, **kw):
     # pylint: disable=protected-access
     if not self._lock or not isinstance(self._lock, threading._RLock):

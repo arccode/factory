@@ -4,6 +4,7 @@
 # found in the LICENSE file.
 
 import errno
+import functools
 import logging
 import unittest
 
@@ -13,6 +14,7 @@ from cros.factory.utils import watchdog_utils
 
 
 def AllowIOError(func):
+  @functools.wraps(func)
   def _inner(*args, **kwargs):
     try:
       return func(*args, **kwargs)
