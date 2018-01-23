@@ -64,22 +64,37 @@ class Power(types.DeviceComponent):
     return ''
 
   def FindPowerPath(self, power_source):
-    """Find battery path in sysfs."""
+    """Find battery path in sysfs.
+
+    Note few attributes, especially 'online', is usually implemented as cached
+    value and only updated if we read some dynamic values (for example
+    voltage_now) or a host event from EC is discovered. This implies if host
+    events are broken, many values won't be updated - and this is critical for
+    FindPowerPath.
+
+    For devices in early stage, you probably want to extend FindPowerPath by
+    reading voltage_now from all power_supply entries.
+    """
     def GetValue(path, sub_path):
       full_path = self._device.path.join(path, sub_path)
       if not self._device.path.exists(full_path):
         return None
       return self.ReadOneLine(full_path)
 
-    power_supplies = self._device.Glob(
+    all_power_supplies = self._device.Glob(
         self._device.path.join(self._sys, 'class/power_supply/*'))
+
     if power_source == self.PowerSource.BATTERY:
+      # Some HID peripherals, for example Stylus, may has its own battery and
+      # appear in power_supply as well, with scope='Device'; and we do want to
+      # skip them.
       power_supplies = [
-          p for p in power_supplies if GetValue(p, 'type') == 'Battery'
+          p for p in all_power_supplies if GetValue(p, 'type') == 'Battery' and
+          GetValue(p, 'scope') != 'Device'
       ]
     else:
       power_supplies = [
-          p for p in power_supplies if GetValue(p, 'type') != 'Battery'
+          p for p in all_power_supplies if GetValue(p, 'type') != 'Battery'
       ]
 
     if power_supplies:
