@@ -281,9 +281,6 @@ class UI(object):
     py_script = session.GetCurrentTestFilePath()
     base = os.path.splitext(py_script)[0]
 
-    # Path prefixes we'll autoload .html, .js and .css files from.
-    autoload_bases = [base]
-
     # Find and register the static directory, if any.
     static_dirs = filter(os.path.exists,
                          [base + '_static',
@@ -295,23 +292,16 @@ class UI(object):
       self._static_dir_path = static_dirs[0]
       goofy_proxy.get_rpc_proxy(url=goofy_proxy.GOOFY_SERVER_URL).RegisterPath(
           '/tests/%s' % test, self._static_dir_path)
-      autoload_bases.append(
-          os.path.join(self._static_dir_path, os.path.basename(base)))
 
     def GetAutoload(extension, default=''):
-      autoloads = filter(os.path.exists,
-                         [x + '.' + extension for x in autoload_bases])
-      if not autoloads:
+      if self._static_dir_path is None:
         return default
-      if len(autoloads) > 1:
-        raise type_utils.TestFailure(
-            'Cannot have both of %s - delete one!' % autoloads)
 
-      autoload_path = autoloads[0]
-      goofy_proxy.get_rpc_proxy(url=goofy_proxy.GOOFY_SERVER_URL).RegisterPath(
-          '/tests/%s/%s' % (test, os.path.basename(autoload_path)),
-          autoload_path)
-      return file_utils.ReadFile(autoload_path).decode('UTF-8')
+      static_file = os.path.join(self._static_dir_path,
+                                 os.path.basename(base) + '.' + extension)
+      if not os.path.exists(static_file):
+        return default
+      return file_utils.ReadFile(static_file).decode('UTF-8')
 
     self.SetHTML(
         html='<base href="/tests/%s/">' % test, id='head', append=True)

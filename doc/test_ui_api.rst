@@ -57,9 +57,6 @@ resources there:
 
 In addition, these files will be automatically loaded if they exist:
 
-* :samp:`py/test/pytests/{mytest}/{mytest}.html`
-* :samp:`py/test/pytests/{mytest}/{mytest}.js`
-* :samp:`py/test/pytests/{mytest}/{mytest}.css`
 * :samp:`py/test/pytests/{mytest}/static/{mytest}.html`
 * :samp:`py/test/pytests/{mytest}/static/{mytest}.js`
 * :samp:`py/test/pytests/{mytest}/static/{mytest}.css`

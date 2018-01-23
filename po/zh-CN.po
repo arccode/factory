@@ -2603,67 +2603,67 @@ msgstr "进行假阳性检查..."
 msgid "Please take off your fingers and then press SPACE to start testing..."
 msgstr "请先将手指远离触控版後按 空白键 开始测试..."
 
-#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
 msgid "Serial number"
 msgstr "面板序号"
 
-#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
 msgid "Submit"
 msgstr "提交"
 
-#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
 msgid "Probe goes down"
 msgstr "关机前治具下位停俥"
 
-#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
 msgid "Probe goes up"
 msgstr "测试前治具上位预备"
 
-#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
 msgid "Read sensor data"
 msgstr "手动读取待测资料"
 
-#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
 msgid "Probe self test"
 msgstr "手动治具自我测试"
 
-#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
 msgid "Controller status"
 msgstr "治具连结"
 
-#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
 msgid "Refresh"
 msgstr "刷新"
 
-#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
 msgid "Touchscreen status"
 msgstr "待测物连结"
 
-#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
 msgid "Probe state"
 msgstr "治具内部状态"
 
-#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
 msgid "FixtureState"
 msgstr "治具状态查询"
 
-#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
 msgid "Host IP"
 msgstr "本机网址"
 
-#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
 msgid "BB IP"
 msgstr "BB网址"
 
-#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
 msgid "Shopfloor IP"
 msgstr "Shopfloor网址"
 
-#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.html
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
 msgid "Shutdown the host"
 msgstr "关机"
 
-#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.js
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.js
 msgid "Please enter SN"
 msgstr "请输入序号"
 
@@ -2818,40 +2818,40 @@ msgstr "在每个 USB 端口插入装置, 还有 {num_usb_ports} 个待测试...
 msgid "Checking components..."
 msgstr "元件验证中..."
 
-#: ../py/test/pytests/vswr/vswr.html
+#: ../py/test/pytests/vswr/static/vswr.html
 msgid "Loading parameters from local disk..."
 msgstr "从本地硬盘载入测试参数中..."
 
-#: ../py/test/pytests/vswr/vswr.html
+#: ../py/test/pytests/vswr/static/vswr.html
 msgid "Downloading parameters from shopfloor..."
 msgstr "从 Shopfloor 下载测试参数中..."
 
-#: ../py/test/pytests/vswr/vswr.html
+#: ../py/test/pytests/vswr/static/vswr.html
 msgid "Setting up network..."
 msgstr "设定网路环境中..."
 
-#: ../py/test/pytests/vswr/vswr.html
+#: ../py/test/pytests/vswr/static/vswr.html
 msgid "Connecting with the ENA..."
 msgstr "与 ENA (E5071C) 连线中..."
 
-#: ../py/test/pytests/vswr/vswr.html
+#: ../py/test/pytests/vswr/static/vswr.html
 msgid ""
 "Please fully disconnect all the cable.<br> Then press ENTER to continue."
 msgstr "请完全移除天线后，按 ENTER 继续"
 
-#: ../py/test/pytests/vswr/vswr.html
+#: ../py/test/pytests/vswr/static/vswr.html
 msgid "Checking its calibration status..."
 msgstr "验证仪器矫正状态中..."
 
-#: ../py/test/pytests/vswr/vswr.html
+#: ../py/test/pytests/vswr/static/vswr.html
 msgid "The ENA needs to be calibrated.<br> Please press ENTER to continue."
 msgstr "请矫正 ENA 并按 ENTER 重新启动测试。"
 
-#: ../py/test/pytests/vswr/vswr.html
+#: ../py/test/pytests/vswr/static/vswr.html
 msgid "Please place the LCD panel into the fixture and then press ENTER."
 msgstr "请放置 LCD 本体在治具上<br>完成后按 ENTER"
 
-#: ../py/test/pytests/vswr/vswr.html
+#: ../py/test/pytests/vswr/static/vswr.html
 msgid ""
 "Make sure the main WWAN antennta is connected to Port 1<br> Make sure the "
 "main WLAN antennta is connected to Port 2<br> Then press key \"A\" to next "
@@ -2859,19 +2859,19 @@ msgid ""
 msgstr ""
 "连接主 WWAN 天线至 Port 1<br> 连接主 WLAN 天线至 Port 2<br> 完成后按 A 键"
 
-#: ../py/test/pytests/vswr/vswr.html
+#: ../py/test/pytests/vswr/static/vswr.html
 msgid "Testing..."
 msgstr "测试中..."
 
-#: ../py/test/pytests/vswr/vswr.html
+#: ../py/test/pytests/vswr/static/vswr.html
 msgid "Writing log...."
 msgstr "记录中..."
 
-#: ../py/test/pytests/vswr/vswr.html
+#: ../py/test/pytests/vswr/static/vswr.html
 msgid "Results are listed below:"
 msgstr "测试结果显示如下："
 
-#: ../py/test/pytests/vswr/vswr.html
+#: ../py/test/pytests/vswr/static/vswr.html
 msgid "Please disconnect the panel and press ENTER to write log."
 msgstr "请将 AB Panel 移除, 并按 ENTER 完成测试"
 
