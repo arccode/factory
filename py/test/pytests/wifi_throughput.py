@@ -840,15 +840,11 @@ class WiFiThroughput(test_ui.TestCaseWithUI):
     args_dict = self.args.ToDict()
     service_args = []
     for arg in self._SERVICE_ARGS + self._SHARED_ARGS:
-      # iperf_host is optional at "test-level", but required at "service-level".
-      if arg.name == 'iperf_host' or not arg.IsOptional():
-        service_args.append(Arg(name=arg.name, type=arg.type, help=arg.help))
-      else:
-        service_args.append(Arg(
-            name=arg.name,
-            type=arg.type,
-            help=arg.help,
-            default=args_dict.get(arg.name, arg.default)))
+      service_args.append(Arg(
+          name=arg.name,
+          type=arg.type,
+          help=arg.help,
+          default=args_dict.get(arg.name, arg.default)))
 
     service_arg_parser = arg_utils.Args(*service_args)
     if not isinstance(self.args.services, list):
