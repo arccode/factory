@@ -42,7 +42,8 @@ encoded_fields:
 
   battery_field:
     0: {battery: battery_0}
-    3: {battery: [battery_3, battery_3, battery_3]}
+    1: {battery: []}
+    2: {battery: [battery_2, battery_2]}
 
   audio_and_video_field:
     0:
@@ -88,6 +89,6 @@ components:
   battery:
     items:
       battery_0: {values: {unused_value: battery_0}}
-      battery_3: {values: {unused_value: battery_3}}
+      battery_2: {values: {unused_value: battery_2}}
 
 rules: []

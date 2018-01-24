@@ -18,7 +18,6 @@ import re
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common
-from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.test.rules import phase
 
 
@@ -52,17 +51,17 @@ def VerifyComponentStatus(database, bom, mode, current_phase=None):
         current_phase = (phase.Phase(current_phase) if current_phase
                          else phase.GetPhase())
         if current_phase == phase.PVT_DOGFOOD or current_phase == phase.PVT:
-          raise HWIDException(
+          raise common.HWIDException(
               'Found unqualified component of %r: %r in %r' %
               (comp_cls, comp_name, current_phase))
         else:
           continue
       elif status == common.COMPONENT_STATUS.unsupported:
-        raise HWIDException('Found unsupported component of %r: %r' %
-                            (comp_cls, comp_name))
+        raise common.HWIDException('Found unsupported component of %r: %r' %
+                                   (comp_cls, comp_name))
       elif status == common.COMPONENT_STATUS.deprecated:
         if mode != common.OPERATION_MODE.rma:
-          raise HWIDException(
+          raise common.HWIDException(
               'Not in RMA mode. Found deprecated component of %r: %r' %
               (comp_cls, comp_name))
 
@@ -108,7 +107,7 @@ def VerifyPhase(database, bom, current_phase=None):
                                 else current_phase.name)
   image_name = database.GetImageName(bom.image_id)
   if not image_name.startswith(expected_image_name_prefix):
-    raise HWIDException(
+    raise common.HWIDException(
         'In %s phase, expected an image name beginning with '
         '%r (but got image ID %r)' %
         (current_phase, expected_image_name_prefix, image_name))
@@ -116,11 +115,11 @@ def VerifyPhase(database, bom, current_phase=None):
   # MP-key checking applies only in PVT and above
   if current_phase >= phase.PVT:
     if 'firmware_keys' not in bom.components:
-      raise HWIDException('firmware_keys is required but not found.')
+      raise common.HWIDException('firmware_keys is required but not found.')
 
     name = next(iter(bom.components['firmware_keys']))
     if not _IsMPKeyName(name):
-      raise HWIDException(
+      raise common.HWIDException(
           'MP keys are required in %r, but got %r' % (current_phase, name))
 
 
@@ -155,7 +154,7 @@ def VerifyBOM(database, decoded_bom, probed_bom):
   # We only verify the components listed in the pattern.
   for comp_cls in database.GetActiveComponentClasses(decoded_bom.image_id):
     if comp_cls not in probed_bom.components:
-      raise HWIDException(
+      raise common.HWIDException(
           'Component class %r is not found in probed BOM.' % comp_cls)
 
     err_msgs = []
@@ -171,6 +170,6 @@ def VerifyBOM(database, decoded_bom, probed_bom):
       err_msgs.append('is missing components: %r' % missing_components)
 
     if err_msgs:
-      raise HWIDException(
+      raise common.HWIDException(
           'Component class %r ' % comp_cls + ' and '.join(err_msgs) +
           '.  Expected components are: %r' % probed_bom.components[comp_cls])

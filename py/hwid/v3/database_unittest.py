@@ -41,14 +41,14 @@ class DatabaseTest(unittest.TestCase):
   def testLoadDump(self):
     db = Database.LoadFile(
         os.path.join(_TEST_DATA_PATH, 'test_database_db.yaml'))
-    db2 = Database.LoadData(db.DumpData())
+    db2 = Database.LoadData(db.DumpData(include_checksum=True))
 
     self.assertEquals(db, db2)
 
     db = Database.LoadFile(
         os.path.join(_TEST_DATA_PATH, 'test_database_db.yaml'))
     with file_utils.UnopenedTemporaryFile() as path:
-      db.DumpFile(path)
+      db.DumpFile(path, include_checksum=True)
       Database.LoadFile(path, verify_checksum=False)
 
 
@@ -193,14 +193,6 @@ class EncodedFieldsTest(unittest.TestCase):
     self.assertRaises(HWIDException, e.AddFieldComponents,
                       'e1', {'c': 'CC', 'a': 'AAAAAA', 'b': 'BB'})
 
-    # index `1` already in used.
-    self.assertRaises(HWIDException, e.AddFieldComponents,
-                      'e1', {'a': 'AAAAAA', 'b': 'BB'}, index=1)
-
-    # index number should be a non-negative number.
-    self.assertRaises(Exception, e.AddFieldComponents,
-                      'e1', {'a': 'AAAAAA', 'b': 'BB'}, index=-1)
-
   def testAddNewField(self):
     e = EncodedFields({'e1': {0: {'a': 'A', 'b': 'B'}}})
     e.AddNewField('e2', {'c': 'CC', 'd': 'DD'})
@@ -221,11 +213,15 @@ class EncodedFieldsTest(unittest.TestCase):
                               1: {'c': ['C2', 'C1', 'C3'], 'd': 'D'}}})
     self.assertEquals(set(e.encoded_fields), set(['e1', 'e2']))
     self.assertEquals(e.GetField('e1'),
-                      {0: {'a': ['A'], 'b': ['B']},
-                       1: {'a': ['AA', 'AAA'], 'b': ['B']}})
+                      [{'a': ['A'], 'b': ['B']},
+                       {'a': ['AA', 'AAA'], 'b': ['B']}])
     self.assertEquals(e.GetField('e2'),
-                      {0: {'c': [], 'd': []},
-                       1: {'c': ['C1', 'C2', 'C3'], 'd': ['D']}})
+                      [{'c': [], 'd': []},
+                       {'c': ['C1', 'C2', 'C3'], 'd': ['D']}])
+    self.assertEquals(e.GetComponentClasses('e1'), {'a', 'b'})
+    self.assertEquals(e.GetComponentClasses('e2'), {'c', 'd'})
+    self.assertEquals(e.GetFieldForComponent('c'), 'e2')
+    self.assertEquals(e.GetFieldForComponent('x'), None)
 
 
 class PatternTest(unittest.TestCase):
@@ -350,6 +346,18 @@ class RulesTest(unittest.TestCase):
     self.assertEquals(len(rules.device_info_rules), 1)
     self.assertEquals(rules.device_info_rules[0].ExportToDict(),
                       {'name': 'device_info.1', 'evaluate': ['a = 3', 'b = 5']})
+
+  def testAddDeviceInfoRule(self):
+    rules = Rules([])
+    rules.AddDeviceInfoRule('rule1', 'eval1')
+    rules.AddDeviceInfoRule('rule3', 'eval3')
+    rules.AddDeviceInfoRule('rule2', 'eval2', position=1)
+    rules.AddDeviceInfoRule('rule0', 'eval0', position=0)
+    self.assertEquals(rules.Export(),
+                      [{'name': 'device_info.rule0', 'evaluate': 'eval0'},
+                       {'name': 'device_info.rule1', 'evaluate': 'eval1'},
+                       {'name': 'device_info.rule2', 'evaluate': 'eval2'},
+                       {'name': 'device_info.rule3', 'evaluate': 'eval3'}])
 
   def testSyntaxError(self):
     self.assertRaises(Exception, Rules, 'abc')

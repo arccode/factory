@@ -12,6 +12,7 @@ import shutil
 import sys
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.hwid.v3 import builder
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
@@ -22,7 +23,6 @@ from cros.factory.utils.argparse_utils import ParseCmdline
 from cros.factory.utils import json_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
-from cros.factory.utils import yaml_utils
 from cros.factory.utils import process_utils
 
 
@@ -53,13 +53,6 @@ _DATABASE_BUILDER_COMMON_ARGS = [
     CmdArg('--add-null-component', default=None,
            nargs='+', metavar='COMP', dest='add_null_comp',
            help='Component classes that add a null item.\n'),
-    CmdArg('--del-component', default=None,
-           nargs='+', metavar='COMP', dest='del_comp',
-           help='Component classes that is deleted from database.\n'),
-    CmdArg('--region', default=None, nargs='+',
-           help='Supported regions'),
-    CmdArg('--chassis', default=None, nargs='+',
-           help='Supported chassis identifiers')
 ]
 
 _DEVICE_DATA_COMMON_ARGS = [
@@ -116,70 +109,6 @@ def OutputObject(options, obj):
     Output(yaml.safe_dump(obj, default_flow_style=False))
 
 
-@Command(
-    'build-database',
-    CmdArg('--probed-results-file', default=None, required=True,
-           help='a file with probed results.\n'),
-    CmdArg('--image-id', default='EVT',
-           help="Name of image_id. Default is 'EVT'\n"),
-    *_DATABASE_BUILDER_COMMON_ARGS)
-def BuildDatabaseWrapper(options):
-  '''Build the HWID database from probed result.'''
-  if not os.path.isfile(options.probed_results_file):
-    raise IOError('File %s is not found.' % options.probed_results_file)
-  if not os.path.isdir(options.hwid_db_path):
-    raise IOError('%s is not a directory.' % options.hwid_db_path)
-  yaml_utils.ParseMappingAsOrderedDict(loader=yaml.Loader, dumper=yaml.Dumper)
-  probed_results = hwid_utils.GetProbedResults(
-      infile=options.probed_results_file)
-  database_path = os.path.join(options.hwid_db_path, options.project.upper())
-  hwid_utils.BuildDatabase(
-      database_path, probed_results, options.project,
-      options.image_id, options.add_default_comp, options.add_null_comp,
-      options.del_comp, options.region, options.chassis)
-  logging.info('Output the database to %s', database_path)
-
-
-@Command(
-    'update-database',
-    CmdArg('--probed-results-file', default=None,
-           help='a file with probed results.\n'),
-    CmdArg('--image-id', default=None,
-           help="Name of image_id.\n"),
-    CmdArg('--output-database', default=None,
-           help='Write into different file.\n'),
-    *_DATABASE_BUILDER_COMMON_ARGS)
-def UpdateDatabaseWrapper(options):
-  '''Update the HWID database from probed result.'''
-  if options.probed_results_file is None:
-    probed_results = None
-  else:
-    if not os.path.isfile(options.probed_results_file):
-      raise IOError('File %s is not found.' % options.probed_results_file)
-    probed_results = hwid_utils.GetProbedResults(
-        infile=options.probed_results_file)
-
-  old_db_path = os.path.join(options.hwid_db_path, options.project.upper())
-  if options.output_database is None:
-    # If the output path is not assigned, we update the database in place.
-    # We backup the original database before update.
-    bak_db_path = old_db_path + '.bak'
-    logging.info('In-place update, backup the database to %s', bak_db_path)
-    shutil.copyfile(old_db_path, bak_db_path)
-
-  # Load the original database as OrderedDict
-  yaml_utils.ParseMappingAsOrderedDict(loader=yaml.Loader, dumper=yaml.Dumper)
-  logging.info('Load the orignal database from %s', old_db_path)
-  with open(old_db_path, 'r') as f:
-    old_db = yaml.load(f)
-  database_path = options.output_database or old_db_path
-  hwid_utils.UpdateDatabase(
-      database_path, probed_results, old_db, options.image_id,
-      options.add_default_comp, options.add_null_comp, options.del_comp,
-      options.region, options.chassis)
-  logging.info('Output the updated database to %s.', database_path)
-
-
 def ObtainAllDeviceData(options):
   """Gets all device data needed by the HWID framework according to options.
 
@@ -223,17 +152,80 @@ def ObtainAllDeviceData(options):
   return device_data
 
 
+def RunDatabaseBuilder(database_builder, options):
+  if options.add_default_comp:
+    for comp_cls in options.add_default_comp:
+      database_builder.AddDefaultComponent(comp_cls)
+  if options.add_null_comp:
+    for comp_cls in options.add_null_comp:
+      database_builder.AddNullComponent(comp_cls)
+
+  device_data = ObtainAllDeviceData(options)
+
+  database_builder.UpdateByProbedResults(
+      device_data.probed_results, device_data.device_info, device_data.vpd,
+      image_name=options.image_id)
+
+
+@Command(
+    'build-database',
+    CmdArg('--image-id', default='EVT',
+           help="Name of image_id. Default is 'EVT'\n"),
+    *(_DEVICE_DATA_COMMON_ARGS + _DATABASE_BUILDER_COMMON_ARGS))
+def BuildDatabaseWrapper(options):
+  '''Build the HWID database from probed result.'''
+  if not os.path.isdir(options.hwid_db_path):
+    raise IOError('%s is not a directory.' % options.hwid_db_path)
+  database_path = os.path.join(options.hwid_db_path, options.project.upper())
+
+  database_builder = builder.DatabaseBuilder(project=options.project,
+                                             image_name=options.image_id)
+  RunDatabaseBuilder(database_builder, options)
+  database_builder.Render(database_path)
+
+  logging.info('Output the database to %s', database_path)
+
+
+@Command(
+    'update-database',
+    CmdArg('--image-id', default=None,
+           help="Name of image_id.\n"),
+    CmdArg('--output-database', default=None,
+           help='Write into different file.\n'),
+    *(_DEVICE_DATA_COMMON_ARGS + _DATABASE_BUILDER_COMMON_ARGS))
+def UpdateDatabaseWrapper(options):
+  '''Update the HWID database from probed result.'''
+  old_db_path = os.path.join(options.hwid_db_path, options.project.upper())
+  if options.output_database is None:
+    # If the output path is not assigned, we update the database in place.
+    # We backup the original database before update.
+    bak_db_path = old_db_path + '.bak'
+    logging.info('In-place update, backup the database to %s', bak_db_path)
+    shutil.copyfile(old_db_path, bak_db_path)
+
+  database_path = options.output_database or old_db_path
+
+  database_builder = builder.DatabaseBuilder(database_path=old_db_path)
+  RunDatabaseBuilder(database_builder, options)
+  database_builder.Render(database_path)
+
+  logging.info('Output the updated database to %s.', database_path)
+
+
 @Command(
     'generate',
+    CmdArg('--allow-mismatched-components', action='store_true',
+           help='Allows some probed components to be ignored if no any '
+                'component in the database matches with them.'),
     *(_OUTPUT_FORMAT_COMMON_ARGS + _DEVICE_DATA_COMMON_ARGS + _RMA_COMMON_ARGS))
 def GenerateHWIDWrapper(options):
   """Generates HWID."""
   device_data = ObtainAllDeviceData(options)
 
   identity = hwid_utils.GenerateHWID(
-      options.database, probed_results=device_data.probed_results,
-      device_info=device_data.device_info, vpd=device_data.vpd,
-      rma_mode=options.rma_mode)
+      options.database, device_data.probed_results,
+      device_data.device_info, device_data.vpd, options.rma_mode,
+      allow_mismatched_components=options.allow_mismatched_components)
 
   OutputObject(options, {'encoded_string': identity.encoded_string,
                          'binary_string': identity.binary_string,
@@ -261,6 +253,9 @@ def DecodeHWIDWrapper(options):
     'verify',
     CmdArg('hwid', default=None,
            help='the HWID to verify.\n(required if not running on a DUT)'),
+    CmdArg('--allow-mismatched-components', action='store_true',
+           help='Allows some probed components to be ignored if no any '
+                'component in the database matches with them.'),
     *(_DEVICE_DATA_COMMON_ARGS + _RMA_COMMON_ARGS))
 def VerifyHWIDWrapper(options):
   """Verifies HWID."""
@@ -269,10 +264,10 @@ def VerifyHWIDWrapper(options):
   device_data = ObtainAllDeviceData(options)
 
   hwid_utils.VerifyHWID(
-      options.database, encoded_string,
-      probed_results=device_data.probed_results,
-      device_info=device_data.device_info, vpd=device_data.vpd,
-      rma_mode=options.rma_mode, current_phase=options.phase)
+      options.database, encoded_string, device_data.probed_results,
+      device_data.device_info, device_data.vpd, options.rma_mode,
+      current_phase=options.phase,
+      allow_mismatched_components=options.allow_mismatched_components)
 
   # No exception raised. Verification was successful.
   Output('Verification passed.')
@@ -336,8 +331,12 @@ def EnumerateHWIDWrapper(options):
 
   # Enumerating may take a very long time so we want to verbosely make logs.
   logging.debug('Enumerating all HWIDs...')
+  if options.image_id:
+    image_id = options.database.GetImageIdByName(options.image_id)
+  else:
+    image_id = None
   hwids = hwid_utils.EnumerateHWID(
-      options.database, image_id=options.image_id, status=options.status,
+      options.database, image_id=image_id, status=options.status,
       comps=comps)
 
   logging.debug('Printing %d sorted HWIDs...', len(hwids))
@@ -354,7 +353,10 @@ def VerifyHWIDDatabase(options):
   """Verifies the given HWID database."""
   # Do nothing here since all the verifications are done when loading the
   # database with HWID library.
-  Output('Database %s verified' % options.project)
+  if options.database.can_encode:
+    Output('Database %s verified' % options.project)
+  else:
+    Output('Database %s (not works for encoding) verified' % options.project)
 
 
 def ParseOptions(args=None):

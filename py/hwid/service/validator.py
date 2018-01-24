@@ -31,7 +31,7 @@ def Validate(hwid_config_contents):
   try:
     # Validate config by loading it.
     database.Database.LoadData(
-        hwid_config_contents, expected_checksum=expected_checksum, strict=True)
+        hwid_config_contents, expected_checksum=expected_checksum)
     return
   except common.HWIDException as e:
     raise ValidationError(e.message)
@@ -51,7 +51,7 @@ def ValidateChange(new_hwid_config, old_hwid_config):
   """
   try:
     old_db = database.Database.LoadData(
-        old_hwid_config, expected_checksum=None, strict=False)
+        old_hwid_config, expected_checksum=None)
   except common.HWIDException as e:
     logging.exception("Previous version not valid: %r", e.message)
     raise ValidationError("Previous version of HWID config is not valid.")
@@ -62,7 +62,7 @@ def ValidateChange(new_hwid_config, old_hwid_config):
   try:
     # Load and validate current config.
     db = database.Database.LoadData(
-        new_hwid_config, expected_checksum=expected_checksum, strict=True)
+        new_hwid_config, expected_checksum=expected_checksum)
     # Verify that the change is valid.
     verify_db_pattern.HWIDDBsPatternTest.VerifyParsedDatabasePattern(
         old_db, db)

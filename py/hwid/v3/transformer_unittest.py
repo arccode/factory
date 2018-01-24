@@ -25,15 +25,15 @@ class _TransformerTestBase(unittest.TestCase):
                                       verify_checksum=False)
     self.test_data = [
         # Simplest case.
-        ('001', BOM(0, 0, dict(cpu=['cpu_0'], audio=[], video=[]))),
+        ('001', BOM(0, 0, dict(cpu=['cpu_0'], audio=[], video=[], battery=[]))),
 
         # battery_field is 0.
         ('0001', BOM(0, 2, dict(cpu=['cpu_0'], audio=[], video=[],
                                 battery=['battery_0']))),
 
-        # battery_field is 3.
-        ('00000000111', BOM(0, 3, dict(cpu=['cpu_0'], audio=[], video=[],
-                                       battery=['battery_3'] * 3))),
+        # battery_field is 2.
+        ('00000000101', BOM(0, 3, dict(cpu=['cpu_0'], audio=[], video=[],
+                                       battery=['battery_2'] * 2))),
 
         # audio_and_video_field is 2
         ('1001', BOM(0, 2, dict(cpu=['cpu_0'], audio=['audio_1', 'audio_0'],
@@ -44,11 +44,11 @@ class _TransformerTestBase(unittest.TestCase):
                                        video=['video_0'],
                                        battery=['battery_0']))),
 
-        # audio_and_video_field is 7, battery_field is 3
-        ('00000111111', BOM(0, 3, dict(cpu=['cpu_0'],
+        # audio_and_video_field is 7, battery_field is 2
+        ('00000111101', BOM(0, 3, dict(cpu=['cpu_0'],
                                        audio=['audio_0'],
                                        video=['video_0', 'video_1'],
-                                       battery=['battery_3'] * 3)))]
+                                       battery=['battery_2'] * 2)))]
 
 
 class BOMToIdentityTest(_TransformerTestBase):
@@ -65,24 +65,6 @@ class BOMToIdentityTest(_TransformerTestBase):
       bom.image_id = invalid_image_id
       self.assertRaises(HWIDException,
                         transformer.BOMToIdentity, self.database, bom)
-
-  def testMissingEncodedField(self):
-    bom = self.test_data[1][1]
-    bom.RemoveComponent('battery')
-    self.assertRaises(HWIDException,
-                      transformer.BOMToIdentity, self.database, bom)
-
-    # `audio_and_video_field` needs both audio and video components.
-    bom = self.test_data[2][1]
-    bom.RemoveComponent('audio')
-    self.assertRaises(HWIDException,
-                      transformer.BOMToIdentity, self.database, bom)
-
-  def testTooManyEncodedField(self):
-    bom = self.test_data[0][1]
-    bom.SetComponent('battery', self.test_data[1][1].components['battery'])
-    self.assertRaises(HWIDException,
-                      transformer.BOMToIdentity, self.database, bom)
 
   def testEncodedNumberOutOfRange(self):
     bom = self.test_data[5][1]

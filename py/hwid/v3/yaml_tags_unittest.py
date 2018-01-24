@@ -34,7 +34,7 @@ class RegionFieldUnittest(unittest.TestCase):
     self.assertIsInstance(decoded['foo'], yaml_tags.RegionField)
     self.assertFalse(decoded['foo'].is_legacy_style)
     self.assertEquals(decoded['foo'], {
-        0: {'region': None},
+        0: {'region': []},
         1: {'region': 'us'},
         2: {'region': 'gb'}})
     dump_str = yaml.dump(decoded).strip()

@@ -1,0 +1,78 @@
+checksum: unused-value
+
+project: CHROMEBOOK
+
+encoding_patterns: {0: default}
+
+image_id:
+  0: PROTO
+  1: EVT
+
+pattern:
+  - image_ids: [0, 1]
+    encoding_scheme: base8192
+    fields:
+      - mainboard_field: 3
+      - region_field: 5
+      - chassis_field: 5
+      - cpu_field: 3
+      - storage_field: 5
+      - dram_field: 5
+      - firmware_keys_field: 1
+      - ro_main_firmware_field: 0
+      - comp_cls_1_field: 1
+      - comp_cls_23_field: 2
+
+encoded_fields:
+  chassis_field: {0: {chassis: []}}
+  cpu_field: {0: {cpu: []}}
+  dram_field: {0: {dram: [dram_0, dram_0]}}
+  firmware_keys_field: {0: {firmware_key: key0}}
+  mainboard_field: {0: {mainboard: rev0}}
+  region_field: !region_field [us]
+  ro_main_firmware_field: {0: {ro_main_firmware: firmware0}}
+  storage_field: {0: {storage: []}}
+
+  comp_cls_1_field:
+    0: {comp_cls_1: comp_1_1}
+    1: {comp_cls_1: comp_1_2}
+  comp_cls_23_field:
+    0: {comp_cls_2: comp_2_1, comp_cls_3: comp_3_1}
+    1: {comp_cls_2: comp_2_2, comp_cls_3: comp_3_2}
+
+components:
+  mainboard:
+    items:
+      rev0: {values: {rev: "0"}}
+
+  region: !region_component
+
+  dram:
+    items:
+      dram_0: {values: {version: "0"}}
+      dram_1: {values: {version: "1"}}
+
+  firmware_key:
+    items:
+      key0: {values: {hash: "0"}}
+
+  ro_main_firmware:
+    items:
+      firmware0: {values: {hash": "0"}}
+
+  comp_cls_1:
+    items:
+      comp_1_1: {values: {value: "1"}}
+      comp_1_2: {values: {value: "2"}}
+
+  comp_cls_2:
+    items:
+      comp_2_1: {values: {value: "1"}}
+      comp_2_2: {values: {value: "2"}}
+
+  comp_cls_3:
+    items:
+      comp_3_1: {values: {value: "1"}}
+      comp_3_2: {values: {value: "2"}}
+
+rules: []

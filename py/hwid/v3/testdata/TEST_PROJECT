@@ -1,4 +1,4 @@
-checksum: 2f5e6b5a295c59eee7f2dcd0c610abc88a068708
+checksum: 42f01f3828460f860e630491e1a864e6fae59ffe
 
 project: CHROMEBOOK
 
@@ -334,7 +334,6 @@ rules:
   otherwise: SetComponent('cellular', None)
 
 - name: verify.components.rule_1
-  when: ComponentEq('audio_codec', 'codec_1') and
-        ComponentEq('audio_codec', 'hdmi_1')
+  when: ComponentEq('audio_codec', ['codec_1', 'hdmi_1'])
   evaluate:
   - Assert(ComponentIn('cpu', ['cpu_3', 'cpu_4', 'cpu_5']))

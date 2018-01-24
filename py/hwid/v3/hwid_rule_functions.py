@@ -40,35 +40,49 @@ def _ComponentCompare(comp_cls, values, op_for_values):
 
 
 @RuleFunction(['bom', 'database'])
-def ComponentEq(comp_cls, values):
-  """Test if the component equals to the values set.
-
-  True if every value in 'values' has a match in the attributes of 'comp_cls'
+def ComponentEq(comp_cls, comp_names):
+  """Tests if the components recorded in the BOM object equals to the given
+  list of components.
 
   Args:
-    comp_cls: The class of component to test.
-    values: A list of values to match.
+    comp_cls: The class name of the component to test.
+    comp_names: A list of name of the expected components.
 
   Returns:
-    True if the component equals to the given values, False otherwise.
+    True if the components of `comp_cls` recorded in the BOM object are exactly
+        same as `comp_names`.
   """
-  return _ComponentCompare(comp_cls, values, all)
+  bom = GetContext().bom
+
+  if comp_cls not in bom.components:
+    raise HWIDException('The given component class %r is invalid.' % comp_cls)
+
+  return bom.components[comp_cls] == sorted(type_utils.MakeList(comp_names))
 
 
 @RuleFunction(['bom', 'database'])
 def ComponentIn(comp_cls, values):
-  """Test if the component is in the values set.
-
-  True if one value in 'values' has a match in the attributes of 'comp_cls'
+  """Tests if the components recorded in the BOM object meet the expectation.
 
   Args:
-    comp_cls: The class of component to test.
-    values: A list of values to match.
+    comp_cls: The class name of the component to test.
+    values: A list of string value or rule.Value for matching the component
+        name.
 
   Returns:
-    True if the component is in the given values, False otherwise.
+    True if all the components of `comp_cls` recorded in the BOM object match
+        at least one of the value in `values`.
   """
-  return _ComponentCompare(comp_cls, values, any)
+  bom = GetContext().bom
+
+  if comp_cls not in bom.components:
+    raise HWIDException('The given component class %r is invalid.' % comp_cls)
+
+  values = [Value(value) if not isinstance(value, Value) else value
+            for value in type_utils.MakeList(values)]
+
+  return all(any(value.Matches(comp_name) for value in values)
+             for comp_name in bom.components[comp_cls])
 
 
 @RuleFunction(['bom', 'database'])

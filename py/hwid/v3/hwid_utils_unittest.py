@@ -6,11 +6,8 @@
 
 """Integration tests for the HWID v3 framework."""
 
-import copy
 import logging
-import mock
 import os
-import tempfile
 import unittest
 
 import factory_common  # pylint: disable=unused-import
@@ -18,11 +15,7 @@ from cros.factory.hwid.v3.bom import BOM
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import hwid_utils
-from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.hwid.v3.rule import RuleException
-from cros.factory.utils import json_utils
-from cros.factory.utils import sys_utils
-from cros.factory.utils import yaml_utils
 
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -49,7 +42,7 @@ class TestData(object):
         'dram': ['dram_0'],
         'embedded_controller': ['embedded_controller_0'],
         'firmware_keys': ['firmware_keys_premp'],
-        'flash_chip': ['flash_chip_0'],
+        'flash_chip': [] if image_id in [0, 1] else ['flash_chip_0'],
         'keyboard': ['keyboard_us'],
         'region': [],
         'ro_ec_firmware': ['ro_ec_firmware_0'],
@@ -57,8 +50,6 @@ class TestData(object):
         'storage': ['storage_0'],
         'video': ['camera_0'],
     }
-    if image_id in [0, 1]:
-      del components['flash_chip']
     if update_components is not None:
       components.update(update_components)
 
@@ -157,7 +148,7 @@ class GenerateHWIDTest(unittest.TestCase, _CustomAssertions):
     for i, test_data in enumerate(_TEST_DATA_CAN_GENERATE):
       generated_encoded_string = hwid_utils.GenerateHWID(
           self.database, self.probed_results[i],
-          test_data.device_info, {}, rma_mode=test_data.rma_mode).encoded_string
+          test_data.device_info, {}, test_data.rma_mode).encoded_string
       self.assertEquals(generated_encoded_string, test_data.encoded_string)
 
   def testBadComponentStatus(self):
@@ -172,7 +163,7 @@ class GenerateHWIDTest(unittest.TestCase, _CustomAssertions):
     for probed_results in self.invalid_probed_results:
       self.assertRaises(common.HWIDException, hwid_utils.GenerateHWID,
                         self.database, probed_results,
-                        {'component.has_cellular': True}, {}, rma_mode=False)
+                        {'component.has_cellular': True}, {}, False)
 
 
 class DecodeHWIDTest(unittest.TestCase, _CustomAssertions):
@@ -205,13 +196,13 @@ class VerifyHWIDTest(unittest.TestCase):
     for i, test_data in enumerate(_TEST_DATA_CAN_GENERATE):
       hwid_utils.VerifyHWID(self.database, test_data.encoded_string,
                             self.probed_results[i], test_data.device_info, {},
-                            rma_mode=test_data.rma_mode)
+                            test_data.rma_mode)
 
   def testBOMMisMatch(self):
     self.assertRaises(common.HWIDException, hwid_utils.VerifyHWID,
                       self.database, _TEST_DATA_CAN_GENERATE[0].encoded_string,
                       self.probed_results[1],
-                      _TEST_DATA_CAN_GENERATE[1].device_info, {}, rma_mode=True)
+                      _TEST_DATA_CAN_GENERATE[1].device_info, {}, True)
 
   def testBadComponentStatus(self):
     test_data = _TEST_DATA_BAD_COMPONENT_STATUS
@@ -219,7 +210,8 @@ class VerifyHWIDTest(unittest.TestCase):
         'battery_unsupported': [{'tech': 'Battery Li-ion', 'size': '2500000'}]}
     self.assertRaises(common.HWIDException, hwid_utils.VerifyHWID,
                       self.database, test_data.encoded_string,
-                      self.probed_results[0], self.default_device_info)
+                      self.probed_results[0], self.default_device_info,
+                      {}, False)
 
   def testBreakVerifyRules(self):
     test_data = _TEST_DATA_BREAK_VERIFY_RULES
@@ -227,13 +219,15 @@ class VerifyHWIDTest(unittest.TestCase):
         'cpu_0': [{'name': 'CPU @ 1.80GHz', 'cores': '4'}]}
     self.assertRaises(RuleException, hwid_utils.VerifyHWID,
                       self.database, test_data.encoded_string,
-                      self.probed_results[0], self.default_device_info)
+                      self.probed_results[0], self.default_device_info,
+                      {}, False)
 
   def testInvalidEncodedString(self):
     for encoded_string in _TEST_DATA_INVALID_ENCODED_STRING:
       self.assertRaises(common.HWIDException, hwid_utils.VerifyHWID,
                         self.database, encoded_string,
-                        self.probed_results[0], self.default_device_info)
+                        self.probed_results[0], self.default_device_info,
+                        {}, False)
 
 
 class ListComponentsTest(unittest.TestCase):
@@ -332,183 +326,6 @@ class EnumerateHWIDTest(unittest.TestCase, _CustomAssertions):
     results = hwid_utils.EnumerateHWID(self.database, image_id=0, status='all',
                                        comps={'storage': ['storage_999']})
     self.assertEquals(len(results), 0)
-
-
-class DatabaseBuilderTest(unittest.TestCase):
-  def setUp(self):
-    yaml_utils.ParseMappingAsOrderedDict(loader=yaml.Loader, dumper=yaml.Dumper)
-    self.probed_results = json_utils.LoadFile(
-        os.path.join(_TEST_DATA_PATH, 'test_builder_probe_results.json'))
-    self.output_path = tempfile.mktemp()
-
-  def tearDown(self):
-    yaml_utils.ParseMappingAsOrderedDict(False, loader=yaml.Loader,
-                                         dumper=yaml.Dumper)
-    if os.path.exists(self.output_path):
-      os.remove(self.output_path)
-
-  def testBuildDatabase(self):
-    # Build database by the probed result.
-    hwid_utils.BuildDatabase(
-        self.output_path, self.probed_results[0], 'CHROMEBOOK', 'EVT',
-        add_default_comp=['dram'], del_comp=None,
-        region=['tw', 'jp'], chassis=['FOO', 'BAR'])
-    # If not in Chroot, the checksum is not updated.
-    verify_checksum = sys_utils.InChroot()
-    Database.LoadFile(self.output_path, verify_checksum)
-    # Check the value.
-    with open(self.output_path, 'r') as f:
-      db = yaml.load(f.read())
-    self.assertEquals(db['project'], 'CHROMEBOOK')
-    self.assertEquals(db['image_id'], {0: 'EVT'})
-    self.assertEquals(db['pattern'][0]['image_ids'], [0])
-    self.assertEquals(db['pattern'][0]['encoding_scheme'], 'base8192')
-    priority_fields = [
-        # Essential fields.
-        {'mainboard_field': 3},
-        {'region_field': 5},
-        {'chassis_field': 5},
-        {'cpu_field': 3},
-        {'storage_field': 5},
-        {'dram_field': 5},
-        # Priority fields.
-        {'firmware_keys_field': 3},
-        {'ro_main_firmware_field': 3},
-        {'ro_ec_firmware_field': 2}]
-    other_fields = [
-        {'ro_pd_firmware_field': 0},
-        {'wireless_field': 0},
-        {'display_panel_field': 0},
-        {'tpm_field': 0},
-        {'flash_chip_field': 0},
-        {'audio_codec_field': 0},
-        {'usb_hosts_field': 0},
-        {'bluetooth_field': 0}]
-    # The priority fields should be at the front of the fields in order.
-    self.assertEquals(priority_fields,
-                      db['pattern'][0]['fields'][:len(priority_fields)])
-    # The order of other fields are not guaranteed.
-    for field in other_fields:
-      self.assertIn(field, db['pattern'][0]['fields'])
-    self.assertEquals(set(db['components'].keys()),
-                      set(['dram', 'ro_pd_firmware', 'ro_main_firmware', 'tpm',
-                           'storage', 'flash_chip', 'bluetooth', 'wireless',
-                           'display_panel', 'audio_codec', 'firmware_keys',
-                           'ro_ec_firmware', 'usb_hosts', 'cpu', 'region',
-                           'mainboard', 'chassis']))
-    self.assertEquals(db['rules'],
-                      [{'name': 'device_info.image_id',
-                        'evaluate': "SetImageId('EVT')"}])
-
-    # Add a null component.
-    # Choose to add the touchpad without a new image_id.
-    with mock.patch('__builtin__.raw_input', return_value='y'):
-      hwid_utils.UpdateDatabase(self.output_path, None, db,
-                                add_null_comp=['touchpad', 'chassis'])
-    new_db = Database.LoadFile(self.output_path, verify_checksum)
-    self.assertIn({'touchpad': []},
-                  new_db.GetEncodedField('touchpad_field').values())
-    self.assertIn({'chassis': []},
-                  new_db.GetEncodedField('chassis_field').values())
-
-    # Add a component without a new image_id.
-    probed_result = self.probed_results[0].copy()
-    probed_result['touchpad'] = {'generic': [{'name': 'G_touchpad'}]}
-    with mock.patch('__builtin__.raw_input', return_value='n'):
-      with self.assertRaises(ValueError):
-        hwid_utils.UpdateDatabase(self.output_path, probed_result, db)
-
-    with mock.patch('__builtin__.raw_input', return_value='y'):
-      hwid_utils.UpdateDatabase(self.output_path, probed_result, db)
-    new_db = Database.LoadFile(self.output_path, verify_checksum)
-    self.assertIn('touchpad_field', new_db.GetEncodedFieldsBitLength().keys())
-
-    # Delete bluetooth, and add region and chassis.
-    hwid_utils.UpdateDatabase(
-        self.output_path, None, db, 'DVT',
-        add_default_comp=None, del_comp=['bluetooth'],
-        region=['us'], chassis=['NEW'])
-    new_db = Database.LoadFile(self.output_path, verify_checksum)
-    # Check the value.
-    self.assertEquals(new_db.project, 'CHROMEBOOK')
-    self.assertEquals(new_db.image_ids, [0, 1])
-    self.assertEquals(new_db.GetImageName(0), 'EVT')
-    self.assertEquals(new_db.GetImageName(1), 'DVT')
-    self.assertNotIn('bluetooth_field',
-                     new_db.GetEncodedFieldsBitLength().keys())
-    self.assertIn({'region': ['us']},
-                  new_db.GetEncodedField('region_field').values())
-    self.assertIn('NEW', new_db.GetComponents('chassis'))
-    self.assertIn({'chassis': ['NEW']},
-                  new_db.GetEncodedField('chassis_field').values())
-
-  def testBuildDatabaseMissingEssentailComponent(self):
-    """Tests the essential component is missing at the probe result."""
-    # Essential component 'mainboard' is missing in probed result.
-    probed_result = copy.deepcopy(self.probed_results[0])
-    del probed_result['mainboard']
-
-    # Deleting the essential component is not allowed.
-    with self.assertRaises(ValueError):
-      hwid_utils.BuildDatabase(
-          self.output_path, probed_result, 'CHROMEBOOK', 'EVT',
-          del_comp=['mainboard'])
-
-    # Enter "y" to create a default item, or use add_default_comp argument.
-    expected = {
-        'mainboard_default': {
-            'default': True,
-            'status': 'unqualified',
-            'values': None}}
-    with mock.patch('__builtin__.raw_input', return_value='y'):
-      hwid_utils.BuildDatabase(
-          self.output_path, probed_result, 'CHROMEBOOK', 'EVT')
-    with open(self.output_path, 'r') as f:
-      db = yaml.load(f.read())
-    self.assertEquals(db['components']['mainboard']['items'], expected)
-    hwid_utils.BuildDatabase(
-        self.output_path, probed_result, 'CHROMEBOOK', 'EVT',
-        add_default_comp=['mainboard'])
-    with open(self.output_path, 'r') as f:
-      db = yaml.load(f.read())
-    self.assertEquals(db['components']['mainboard']['items'], expected)
-
-    # Enter "n" to create a default item, or use add_null_comp argument.
-    with mock.patch('__builtin__.raw_input', return_value='n'):
-      hwid_utils.BuildDatabase(
-          self.output_path, probed_result, 'CHROMEBOOK', 'EVT')
-    with open(self.output_path, 'r') as f:
-      db = yaml.load(f.read())
-    self.assertEquals(db['components']['mainboard']['items'], {})
-    self.assertEquals(db['encoded_fields']['mainboard_field'],
-                      {0: {'mainboard': None}})
-    hwid_utils.BuildDatabase(
-        self.output_path, probed_result, 'CHROMEBOOK', 'EVT',
-        add_null_comp=['mainboard'])
-    with open(self.output_path, 'r') as f:
-      db = yaml.load(f.read())
-    self.assertEquals(db['components']['mainboard']['items'], {})
-    self.assertEquals(db['encoded_fields']['mainboard_field'],
-                      {0: {'mainboard': None}})
-
-  def testDeprecateDefaultItem(self):
-    """Tests the default item should be deprecated after adding a item."""
-    probed_result = copy.deepcopy(self.probed_results[0])
-    del probed_result['mainboard']
-    hwid_utils.BuildDatabase(
-        self.output_path, probed_result, 'CHROMEBOOK', 'EVT',
-        add_default_comp=['mainboard'])
-    with open(self.output_path, 'r') as f:
-      db = yaml.load(f.read())
-    self.assertEquals(
-        db['components']['mainboard']['items']['mainboard_default'],
-        {'default': True,
-         'status': 'unqualified',
-         'values': None})
-    hwid_utils.UpdateDatabase(self.output_path, self.probed_results[0], db)
-    new_db = Database.LoadFile(self.output_path, False)
-    comp_attr = new_db.GetComponents('mainboard')['mainboard_default']
-    self.assertEquals(comp_attr.status, 'unsupported')
 
 
 if __name__ == '__main__':

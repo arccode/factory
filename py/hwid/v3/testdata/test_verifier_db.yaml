@@ -36,24 +36,24 @@ encoded_fields:
     0: {firmware_keys: firmware_keys_dev}
     1: {firmware_keys: firmware_keys_non_dev}
     2: {firmware_keys: firmware_keys_premp}
-    4: {firmware_keys: firmware_keys_premp2}
-    5: {firmware_keys: firmware_keys_premp_2}
-    6: {firmware_keys: firmware_keys_prempv2}
-    7: {firmware_keys: firmware_keys_prempv_2}
-    8: {firmware_keys: firmware_keys_premp_v2}
-    9: {firmware_keys: firmware_keys_pre_mp}
-    10: {firmware_keys: firmware_keys_pre_mp2}
-    11: {firmware_keys: firmware_keys_pre_mp_2}
-    12: {firmware_keys: firmware_keys_pre_mpv2}
-    13: {firmware_keys: firmware_keys_pre_mpv_2}
-    14: {firmware_keys: firmware_keys_pre_mp_v2}
-    15: {firmware_keys: firmware_keys_pre_mp_v_2}
-    16: {firmware_keys: firmware_keys_A_mp}
-    17: {firmware_keys: firmware_keys_A_mp2}
-    18: {firmware_keys: firmware_keys_A_mp_2}
-    19: {firmware_keys: firmware_keys_A_mpv2}
-    20: {firmware_keys: firmware_keys_A_mpv_2}
-    21: {firmware_keys: firmware_keys_A_mp_v2}
+    3: {firmware_keys: firmware_keys_premp2}
+    4: {firmware_keys: firmware_keys_premp_2}
+    5: {firmware_keys: firmware_keys_prempv2}
+    6: {firmware_keys: firmware_keys_prempv_2}
+    7: {firmware_keys: firmware_keys_premp_v2}
+    8: {firmware_keys: firmware_keys_pre_mp}
+    9: {firmware_keys: firmware_keys_pre_mp2}
+    10: {firmware_keys: firmware_keys_pre_mp_2}
+    11: {firmware_keys: firmware_keys_pre_mpv2}
+    12: {firmware_keys: firmware_keys_pre_mpv_2}
+    13: {firmware_keys: firmware_keys_pre_mp_v2}
+    14: {firmware_keys: firmware_keys_pre_mp_v_2}
+    15: {firmware_keys: firmware_keys_A_mp}
+    16: {firmware_keys: firmware_keys_A_mp2}
+    17: {firmware_keys: firmware_keys_A_mp_2}
+    18: {firmware_keys: firmware_keys_A_mpv2}
+    19: {firmware_keys: firmware_keys_A_mpv_2}
+    20: {firmware_keys: firmware_keys_A_mp_v2}
 
 components:
   cpu:

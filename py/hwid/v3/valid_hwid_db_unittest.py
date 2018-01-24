@@ -113,8 +113,7 @@ class ValidHWIDDBsTest(unittest.TestCase):
               'Database %s:%s does not have checksum field. Will skip checksum '
               'verification.', commit, db_path)
         unused_db = Database.LoadData(
-            db_raw, expected_checksum=expected_checksum,
-            strict=bool(expected_checksum))
+            db_raw, expected_checksum=expected_checksum)
       except Exception:
         logging.error('%s: Load database failed.', project_name)
         exception_list.append((title, sys.exc_info()))

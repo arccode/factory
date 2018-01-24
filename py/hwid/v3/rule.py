@@ -220,7 +220,11 @@ class Rule(object):
   """
   __metaclass__ = RuleMetaclass
 
-  def __init__(self, name, when, evaluate, otherwise):
+  def __init__(self, name, evaluate, when=None, otherwise=None):
+    if otherwise and not when:
+      raise RuleException(
+          "'when' must be specified along with 'otherwise' in %r" % name)
+
     self.name = name
     self.when = when
     self.evaluate = evaluate
@@ -256,12 +260,9 @@ class Rule(object):
     for field in ('name', 'evaluate'):
       if not rule_dict.get(field):
         raise RuleException('Required field %r not specified' % field)
-    if rule_dict.get('otherwise') and not rule_dict.get('when'):
-      raise RuleException(
-          "'when' must be specified along with 'otherwise' in %r" %
-          rule_dict['name'])
-    return Rule(rule_dict['name'], rule_dict.get('when'), rule_dict['evaluate'],
-                rule_dict.get('otherwise'))
+    return Rule(rule_dict['name'], rule_dict['evaluate'],
+                when=rule_dict.get('when'),
+                otherwise=rule_dict.get('otherwise'))
 
   def ExportToDict(self):
     """Exports this rule to a dict.

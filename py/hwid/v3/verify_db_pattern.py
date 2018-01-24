@@ -98,22 +98,20 @@ class HWIDDBsPatternTest(unittest.TestCase):
     new_db = Database.LoadData(
         process_utils.CheckOutput(
             ['git', 'show', '%s:%s' % (commit, db_path)],
-            cwd=hwid_dir, ignore_stderr=True),
-        strict=False)
+            cwd=hwid_dir, ignore_stderr=True))
 
     try:
       old_db = Database.LoadData(
           process_utils.CheckOutput(
               ['git', 'show', '%s~1:%s' % (commit, db_path)],
-              cwd=hwid_dir, ignore_stderr=True),
-          strict=False)
+              cwd=hwid_dir, ignore_stderr=True))
     except subprocess.CalledProcessError as e:
       if e.returncode == 128:
         logging.info('Adding new HWID database %s; skip pattern check',
                      os.path.basename(db_path))
         return
       raise
-    except SchemaException as e:
+    except (SchemaException, common.HWIDException) as e:
       logging.warning('The previous version of HWID database %s is an '
                       'incompatible version (exception: %r), ignore the '
                       'pattern check', db_path, e)

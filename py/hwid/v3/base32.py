@@ -11,6 +11,9 @@ import argparse
 
 from zlib import crc32
 
+import factory_common  # pylint: disable=unused-import
+from cros.factory.hwid.v3 import common
+
 
 class Base32(object):
   """A utility class for encoding binary string to base32 string, decoding
@@ -20,7 +23,7 @@ class Base32(object):
   in: http://tools.ietf.org/html/rfc4648. We encode arbitrary length of bit
   strings and pad 0 when the bit string length is not multiples of 5.
   """
-  BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+  BASE32_ALPHABET = common.HEADER_ALPHABET
   BASE32_REVERSED = dict([v, k] for k, v in enumerate(BASE32_ALPHABET))
   BASE32_BIT_WIDTH = 5
   DASH_INSERTION_WIDTH = 4

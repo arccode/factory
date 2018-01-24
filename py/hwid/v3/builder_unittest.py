@@ -1,24 +1,22 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright 2016 The Chromium OS Authors. All rights reserved.
+# Copyright 2018 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# pylint: disable=protected-access
-
-import copy
 import os
 import unittest
 import mock
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import builder
-from cros.factory.hwid.v3 import yaml_tags
-from cros.factory.hwid.v3 import yaml_wrapper as yaml
-from cros.factory.utils import yaml_utils
+from cros.factory.hwid.v3 import common
+from cros.factory.hwid.v3.database import Database
+from cros.factory.hwid.v3 import probe
+from cros.factory.utils import file_utils
 
 
-TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
+_TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
+_TEST_DATABASE_PATH = os.path.join(_TEST_DATA_PATH, 'test_builder_db.yaml')
 
 
 class DetermineComponentNameTest(unittest.TestCase):
@@ -53,7 +51,7 @@ class DetermineComponentNameTest(unittest.TestCase):
 class BuilderMethodTest(unittest.TestCase):
 
   def testFilterSpecialCharacter(self):
-    function = builder._FilterSpecialCharacter
+    function = builder.FilterSpecialCharacter
     self.assertEquals(function(''), 'unknown')
     self.assertEquals(function('foo  bar'), 'foo_bar')
     self.assertEquals(function('aaa::bbb-ccc'), 'aaa_bbb_ccc')
@@ -80,424 +78,237 @@ class BuilderMethodTest(unittest.TestCase):
   def testChecksumUpdater(self):
     checksum_updater = builder.ChecksumUpdater()
     self.assertIsNotNone(checksum_updater)
-    with open(os.path.join(TEST_DATA_PATH, 'CHECKSUM_TEST'), 'r') as f:
+    with open(os.path.join(_TEST_DATA_PATH, 'CHECKSUM_TEST'), 'r') as f:
       checksum_test = f.read()
     updated = checksum_updater.ReplaceChecksum(checksum_test)
-    with open(os.path.join(TEST_DATA_PATH, 'CHECKSUM_TEST.golden'), 'r') as f:
+    with open(os.path.join(_TEST_DATA_PATH, 'CHECKSUM_TEST.golden'), 'r') as f:
       checksum_test_golden = f.read()
     self.assertEquals(updated, checksum_test_golden)
 
 
 class DatabaseBuilderTest(unittest.TestCase):
 
-  def setUp(self):
-    yaml_utils.ParseMappingAsOrderedDict(loader=yaml.Loader, dumper=yaml.Dumper)
-
-    with open(os.path.join(TEST_DATA_PATH, 'test_db_builder.yaml'), 'r') as f:
-      self.test_dbs = list(yaml.load_all(f.read()))
-
-  def tearDown(self):
-    yaml_utils.ParseMappingAsOrderedDict(False, loader=yaml.Loader,
-                                         dumper=yaml.Dumper)
-
   def testInit(self):
-    with self.assertRaises(ValueError):
-      builder.DatabaseBuilder()
-    db_builder = builder.DatabaseBuilder(db=self.test_dbs[0])
-    db_builder = builder.DatabaseBuilder(project='PROJ')
-    self.assertEquals(db_builder.db['project'], 'PROJ')
+    self.assertRaises(ValueError, builder.DatabaseBuilder)
 
-  def testGetLatestPattern(self):
-    db_builder = builder.DatabaseBuilder(project='CHROMEBOOK')
-    self.assertEquals(db_builder.GetLatestPattern(), None)
-    db_builder = builder.DatabaseBuilder(db=self.test_dbs[0])
-    latest_pattern = db_builder.GetLatestPattern()
-    self.assertEquals(latest_pattern['image_ids'], [0, 1])
+    # From file.
+    db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
+    self.assertEquals(db.database,
+                      Database.LoadFile(_TEST_DATABASE_PATH,
+                                        verify_checksum=False))
 
-  def testGetLatestFields(self):
-    db_builder = builder.DatabaseBuilder(project='CHROMEBOOK')
-    self.assertEquals(db_builder.GetLatestFields(), set())
-    db_builder = builder.DatabaseBuilder(db=self.test_dbs[0])
-    self.assertEquals(db_builder.GetLatestFields(),
-                      set(['region_field', 'chassis_field',
-                           'audio_codec_field', 'battery_field',
-                           'bluetooth_field', 'cellular_field',
-                           'cpu_field', 'display_panel_field', 'dram_field',
-                           'video_field', 'storage_field',
-                           'firmware_keys_field', 'ro_main_firmware_field',
-                           'ro_ec_firmware_field']))
+    # From stratch.
+    self.assertRaises(ValueError, builder.DatabaseBuilder, project='PROJ')
 
-  def testGetUnprobeableComponents(self):
-    db_builder = builder.DatabaseBuilder(project='CHROMEBOOK')
-    self.assertEquals(db_builder.GetUnprobeableComponents(), [])
-    db_builder = builder.DatabaseBuilder(db=self.test_dbs[0])
-    self.assertEquals(db_builder.GetUnprobeableComponents(),
-                      ['display_panel'])
+    db = builder.DatabaseBuilder(project='PROJ', image_name='PROTO')
+    self.assertEquals(db.database.project, 'PROJ')
+    self.assertEquals(db.database.GetImageName(0), 'PROTO')
 
   def testAddDefaultComponent(self):
-    db_builder = builder.DatabaseBuilder(project='CHROMEBOOK')
-    old_db = copy.deepcopy(db_builder.db)
-    db_builder.AddDefaultComponent('foo')
-    for key in old_db:
-      if key not in ['components', 'encoded_fields']:
-        self.assertEquals(old_db[key], db_builder.db[key])
-    self.assertEquals(db_builder.db['components'],
-                      {'foo': {
-                          'items': {
-                              'foo_default': {
-                                  'default': True,
-                                  'status': 'unqualified',
-                                  'values': None}}}})
-    self.assertEquals(db_builder.db['encoded_fields'],
-                      {'foo_field': {
-                          0: {'foo': 'foo_default'}}})
-    self.assertIn('foo_field', db_builder.active_fields)
+    db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
 
-    db_builder = builder.DatabaseBuilder(db=self.test_dbs[0])
-    with self.assertRaises(Exception):
-      db_builder.AddDefaultComponent('audio_codec')
+    db.AddDefaultComponent('comp_cls_1')
 
-  def testAddComponent(self):
-    db_builder = builder.DatabaseBuilder(project='CHROMEBOOK')
-    old_db = copy.deepcopy(db_builder.db)
-    # Add a new component item.
-    name = db_builder.AddComponent('foo', {'compact_str': 'FOO_0'}, 'foo_0')
-    self.assertEquals(name, 'foo_0')
-    for key in old_db:
-      if key not in ['components']:
-        self.assertEquals(old_db[key], db_builder.db[key])
-    self.assertEquals(db_builder.db['components'],
-                      {'foo': {
-                          'items': {
-                              'foo_0': {
-                                  'status': 'unqualified',
-                                  'values': {'compact_str': 'FOO_0'}}}}})
+    # If the probed results don't contain the component value, the default
+    # component should be returned.
+    bom = probe.GenerateBOMFromProbedResults(
+        db.database, {}, {}, {}, 'normal', False)[0]
+    self.assertEquals(bom.components['comp_cls_1'], ['comp_cls_1_default'])
 
-    # Add a component item which already exists.
-    # Should return the original name.
-    name = db_builder.AddComponent('foo', {'compact_str': 'FOO_0'}, 'foo_1')
-    self.assertEquals(name, 'foo_0')
-    self.assertEquals(db_builder.db['components'],
-                      {'foo': {
-                          'items': {
-                              'foo_0': {
-                                  'status': 'unqualified',
-                                  'values': {'compact_str': 'FOO_0'}}}}})
+    # If the probed results contain a real component value, the default
+    # component shouldn't be returned.
+    bom = probe.GenerateBOMFromProbedResults(
+        db.database, {'comp_cls_1': {'comp1': [{'value': "1"}]}},
+        {}, {}, 'normal', False)[0]
+    self.assertEquals(bom.components['comp_cls_1'], ['comp_1_1'])
 
-    # Add a new component item with same name.
-    # Should choose a different name.
-    name = db_builder.AddComponent('foo', {'compact_str': 'FOO_2'}, 'foo_0')
-    self.assertNotEquals(name, 'foo_0')
-    self.assertEquals(db_builder.db['components'],
-                      {'foo': {
-                          'items': {
-                              'foo_0': {
-                                  'status': 'unqualified',
-                                  'values': {'compact_str': 'FOO_0'}},
-                              name: {
-                                  'status': 'unqualified',
-                                  'values': {'compact_str': 'FOO_2'}}}}})
+    # One component class can have at most one default component.
+    self.assertRaises(ValueError, db.AddDefaultComponent, 'comp_cls_1')
 
-    # Add a new component item with extra fields. It should match the original
-    # one instead of adding a new one.
-    name = db_builder.AddComponent('foo', {'compact_str': 'FOO_0',
-                                           'extra_attr': 'LALA'}, 'foo_3')
-    self.assertEquals(name, 'foo_0')
+  def testAddNullComponent(self):
+    db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
 
-  def testAddComponentWithNameCollision(self):
-    db_builder = builder.DatabaseBuilder(project='CHROMEBOOK')
-    # Add two items whose name is determined the same.
-    with mock.patch.object(builder, '_DetermineComponentName',
-                           return_value='foo_name'):
-      name1 = db_builder.AddComponent('foo', {'compact_str': 'FOO'})
-      name2 = db_builder.AddComponent('foo', {'compact_str': 'BAR'})
-      name3 = db_builder.AddComponent('foo', {'compact_str': 'BAZ'})
-      self.assertEquals('foo_name', name1)
-      self.assertEquals('foo_name_1', name2)
-      self.assertEquals('foo_name_2', name3)
+    db.AddNullComponent('comp_cls_1')
+    self.assertEquals([{'comp_cls_1': ['comp_1_1']},
+                       {'comp_cls_1': ['comp_1_2']},
+                       {'comp_cls_1': []}],
+                      db.database.GetEncodedField('comp_cls_1_field'))
 
-  def testAddFirmware(self):
-    db_builder = builder.DatabaseBuilder(db=self.test_dbs[0])
-    db_comp_items = db_builder.db['components']['ro_main_firmware']['items']
-    db_builder.AddComponent('ro_main_firmware',
-                            {'version': 'ro_main_firmware_2'})
-    # Set old firmwares deprecated.
+    # The database already accepts a device without a cpu component.
+    db.AddNullComponent('cpu')
     self.assertEquals(
-        db_comp_items['ro_main_firmware_0'].get('status', 'supported'),
-        'deprecated')
+        [{'cpu': []}], db.database.GetEncodedField('cpu_field'))
+
+    # The given component class was not recorded in the database.
+    db.AddNullComponent('new_component')
+    self.assertEquals([{'new_component': []}],
+                      db.database.GetEncodedField('new_component_field'))
+
+    # Should fail if the encoded field of the specified component class encodes
+    # more than one class of components.
+    self.assertRaises(ValueError, db.AddNullComponent, 'comp_cls_2')
+
+  @mock.patch('cros.factory.hwid.v3.builder.PromptAndAsk',
+              return_value=False)
+  def testUpdateByProbedResultsAddFirmware(self, unused_prompt_and_ask_mock):
+    db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
+    db.UpdateByProbedResults(
+        {'ro_main_firmware': {'generic': [{'hash': '1'}]}}, {}, {})
+
+    # Should deprecated the legacy firmwares.
     self.assertEquals(
-        db_comp_items['ro_main_firmware_1'].get('status', 'supported'),
-        'deprecated')
+        db.database.GetComponents('ro_main_firmware')['firmware0'].status,
+        common.COMPONENT_STATUS.deprecated)
+
+  @mock.patch('cros.factory.hwid.v3.builder.PromptAndAsk')
+  def testUpdateByProbedResultsWithExtraComponentClasses(self,
+                                                         prompt_and_ask_mock):
+    for add_null_comp in [False, True]:
+      prompt_and_ask_mock.return_value = add_null_comp
+
+      db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
+      db.UpdateByProbedResults(
+          {'comp_cls_100': {'generic': [{'key1': 'value1'},
+                                        {'key1': 'value1', 'key2': 'value2'},
+                                        {'key1': 'value1', 'key3': 'value3'}],
+                            'special': [{'key4': 'value4'},
+                                        {'key4': 'value5'}]}},
+          {}, {}, image_name='NEW_IMAGE')
+      self.assertEquals(
+          sorted([attr.values for attr in db.database.GetComponents(
+              'comp_cls_100').itervalues()]),
+          sorted([{'key1': 'value1'}, {'key4': 'value4'}, {'key4': 'value5'}]))
+
+      self.assertEquals(
+          add_null_comp,
+          {'comp_cls_100': []} in db.database.GetEncodedField(
+              'comp_cls_100_field'))
+
+  @mock.patch('cros.factory.hwid.v3.builder.PromptAndAsk', return_value=False)
+  def testUpdateByProbedResultsWithExtraComponents(
+      self, unused_prompt_and_ask_mock):
+    db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
+
+    # {'value': '3'} is the extra component.
+    db.UpdateByProbedResults(
+        {'comp_cls_1': {'generic': [{'value': '1'}, {'value': '3'}]}}, {}, {},
+        image_name='NEW_IMAGE')
     self.assertEquals(
-        db_comp_items['ro_main_firmware_2'].get('status', 'supported'),
-        'unqualified')
+        sorted([attr.values for attr in db.database.GetComponents(
+            'comp_cls_1').itervalues()]),
+        sorted([{'value': '1'}, {'value': '2'}, {'value': '3'}]))
 
-  def testDeleteComponentClass(self):
-    db_builder = builder.DatabaseBuilder(db=self.test_dbs[0])
-    db_builder.DeleteComponentClass('audio_codec')
-    self.assertNotIn('audio_codec_field', db_builder.active_fields)
-    self.assertFalse(db_builder.db['components']['audio_codec']['probeable'])
+    self.assertIn({'comp_cls_1': sorted(['comp_1_1', '3'])},
+                  db.database.GetEncodedField('comp_cls_1_field'))
 
-    # Nothing happens when deleting a non-existed component.
-    db_builder.DeleteComponentClass('foo')
+  @mock.patch('cros.factory.hwid.v3.builder.PromptAndAsk')
+  def testUpdateByProbedResultsMissingEssentialComponents(self,
+                                                          prompt_and_ask_mock):
+    # If the user answer "N", the null component will be added.
+    prompt_and_ask_mock.return_value = False
+    db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
+    db.UpdateByProbedResults({}, {}, {}, image_name='NEW_IMAGE')
+    for comp_cls in builder.ESSENTIAL_COMPS:
+      self.assertIn({comp_cls: []},
+                    db.database.GetEncodedField(comp_cls + '_field'))
 
-  def testAddEncodedField(self):
-    db_builder = builder.DatabaseBuilder(project='CHROMEBOOK')
-    name = db_builder.AddComponent('foo', {'compact_str': 'FOO_0'}, 'foo_0')
-    idx = db_builder.AddEncodedField('foo', name)
-    self.assertEquals(idx, 0)
-    idx = db_builder.AddEncodedField('foo', name)
-    self.assertEquals(idx, 0)
-    name1 = db_builder.AddComponent('foo', {'compact_str': 'FOO_1'}, 'foo_1')
-    name2 = db_builder.AddComponent('foo', {'compact_str': 'FOO_2'}, 'foo_2')
-    idx = db_builder.AddEncodedField('foo', [name1, name2])
-    self.assertEquals(idx, 1)
-    idx = db_builder.AddEncodedField('foo', [name1, name2])
-    self.assertEquals(idx, 1)
-    idx = db_builder.AddEncodedField('foo', [name2, name1])
-    self.assertEquals(idx, 1)
-    idx = db_builder.AddEncodedField('foo', [name1, name1])
-    self.assertEquals(idx, 2)
-    idx = db_builder.AddEncodedField('foo', [name1, name1, name1])
-    self.assertEquals(idx, 3)
+    # If the user answer "Y", the default component will be added if no null
+    # component is recorded.
+    prompt_and_ask_mock.return_value = True
+    db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
+    db.UpdateByProbedResults({}, {}, {}, image_name='NEW_IMAGE')
+    for comp_cls in builder.ESSENTIAL_COMPS:
+      if {comp_cls: []} in db.database.GetEncodedField(comp_cls + '_field'):
+        continue
+      self.assertIn(comp_cls + '_default', db.database.GetComponents(comp_cls))
+      self.assertIn({comp_cls: [comp_cls + '_default']},
+                    db.database.GetEncodedField(comp_cls + '_field'))
 
-    with self.assertRaises(ValueError):
-      idx = db_builder.AddEncodedField('foo', 'INVALID_NAME')
-    with self.assertRaises(ValueError):
-      idx = db_builder.AddEncodedField('foo', ['INVALID_NAME', name1])
+  @mock.patch('cros.factory.hwid.v3.builder.PromptAndAsk', return_value=False)
+  def testUpdateByProbedResultsUpdateEncodedFieldsAndPatternCorrectly(
+      self, unused_prompt_and_ask_mock):
+    db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
 
-    # Add a non-existed componenet item.
-    with self.assertRaises(ValueError):
-      idx = db_builder.AddEncodedField('foo', 'INVALID_NAME')
+    # Add a lot of mainboard so that the field need more bits.
+    for i in xrange(10):
+      db.UpdateByProbedResults(
+          {'mainboard': {'generic': [{'rev': str(i)}]}}, {}, {})
 
-  def testIsNewPatternNeeded(self):  # pylint: disable=
-    # New database with no existed pattern.
-    db_builder = builder.DatabaseBuilder(project='CHROMEBOOK')
-    self.assertTrue(db_builder._IsNewPatternNeeded(True))
-    with self.assertRaises(ValueError):
-      db_builder._IsNewPatternNeeded(False)
+    # Add a lot of cpu so that the field need more bits.
+    for i in xrange(50):
+      db.UpdateByProbedResults(
+          {'cpu': {'generic': [{'vendor': str(i)}]}}, {}, {})
 
-    # Delete a existed component from database.
-    db_builder = builder.DatabaseBuilder(db=copy.deepcopy(self.test_dbs[0]))
-    self.assertFalse(db_builder._IsNewPatternNeeded(True))
-    self.assertFalse(db_builder._IsNewPatternNeeded(False))
+    # Add more component combination of comp_cls_1, comp_cls_2 and comp_cls_3.
+    # Also add an extran component class to trigger adding a new pattern.
+    db.UpdateByProbedResults(
+        {'comp_cls_1': {'generic': [{'value': '1'}, {'value': '3'}]},
+         'comp_cls_2': {'generic': [{'value': '2'}]},
+         'comp_cls_3': {'generic': [{'value': '1'}]},
+         'comp_cls_100': {'generic': [{'value': '100'}]}}, {}, {},
+        image_name='NEW_IMAGE')
 
-    db_builder.DeleteComponentClass('audio_codec')
-    self.assertTrue(db_builder._IsNewPatternNeeded(True))
-    with self.assertRaises(ValueError):
-      db_builder._IsNewPatternNeeded(False)
-
-    # Add a new component into database.
-    db_builder = builder.DatabaseBuilder(db=copy.deepcopy(self.test_dbs[0]))
-    db_builder.AddDefaultComponent('FAKE_COMPONENT')
-    self.assertTrue(db_builder._IsNewPatternNeeded(True))
-    # The user confirms to add the new component into the existed pattern.
-    with mock.patch('__builtin__.raw_input', return_value='y'):
-      self.assertFalse(db_builder._IsNewPatternNeeded(False))
-    # The user does not confirm to add the new component.
-    with mock.patch('__builtin__.raw_input', return_value='n'):
-      with self.assertRaises(ValueError):
-        db_builder._IsNewPatternNeeded(False)
-
-  def testConvertLegacyField(self):
-    """Tests the conversion of legacy region and customization_id."""
-    db_builder = builder.DatabaseBuilder(db=self.test_dbs[1])
-
-    # Check the new style region encoded_field is created.
-    self.assertIn('new_region_field', db_builder.active_fields)
-    self.assertNotIn('region_field', db_builder.active_fields)
-    self.assertIn('region_field', db_builder.db['encoded_fields'].keys())
-    self.assertIn('new_region_field', db_builder.db['encoded_fields'].keys())
     self.assertEquals(
-        set(db_builder.db['encoded_fields']['new_region_field'].GetRegions()),
-        set(['us', 'gb', 'ca.hybrid']))
-    # Check the old style region encoded_field is not active.
-    self.assertNotIn('region_field', db_builder.active_fields)
-    self.assertEquals(db_builder.db['pattern'][0]['fields'][0],
-                      {'region_field': 8})
-    rule_names = [rule['name'] for rule in db_builder.db['rules']]
-    self.assertNotIn('verify.regions', rule_names)
+        db.database.GetEncodedField('comp_cls_23_field'),
+        [{'comp_cls_2': ['comp_2_1'], 'comp_cls_3': ['comp_3_1']},
+         {'comp_cls_2': ['comp_2_2'], 'comp_cls_3': ['comp_3_2']},
+         {'comp_cls_2': [], 'comp_cls_3': []},
+         {'comp_cls_2': ['comp_2_2'], 'comp_cls_3': ['comp_3_1']}])
 
-    # Check the rules for region is removed.
-    rule_names = [rule['name'] for rule in db_builder.db['rules']]
-    self.assertNotIn('verify.regions', rule_names)
+    # Check the pattern by checking if the fields bit length are all correct.
+    self.assertEquals(db.database.GetEncodedFieldsBitLength(),
+                      {'mainboard_field': 8,
+                       'region_field': 5,
+                       'chassis_field': 3,
+                       'cpu_field': 10,
+                       'storage_field': 3,
+                       'dram_field': 5,
+                       'firmware_keys_field': 1,
+                       'ro_main_firmware_field': 3,
+                       'comp_cls_1_field': 2,
+                       'comp_cls_23_field': 2,
+                       'comp_cls_100_field': 0})
 
-  def testConvertLegacyRegionWithoutRule(self):
-    """Test the converting legacy region without rule."""
-    db_builder = builder.DatabaseBuilder(db=self.test_dbs[2])
-    self.assertIn('new_region_field', db_builder.active_fields)
-    self.assertEquals(
-        db_builder.db['encoded_fields']['new_region_field'].GetRegions(),
-        ['us'])
-    db_builder.AddRegions(['tw', 'jp'])
-    self.assertIsInstance(
-        db_builder.db['components']['region'], yaml_tags.RegionComponent)
-    self.assertEquals(
-        db_builder.db['encoded_fields']['new_region_field'].GetRegions(),
-        ['us', 'tw', 'jp'])
+  @mock.patch('cros.factory.hwid.v3.builder.PromptAndAsk', return_value=False)
+  def testUpdateByProbedResultsNoNeedNewPattern(
+      self, unused_prompt_and_ask_mock):
+    # No matter if new image name is specified, the pattern will always use
+    # the same one if no new encoded fields are added.
+    for image_name in [None, 'EVT', 'NEW_IMAGE_NAME']:
+      db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
+      db.UpdateByProbedResults(
+          {'comp_cls_2': {'generic': [{str(x): str(x)} for x in xrange(10)]}},
+          {}, {}, image_name=image_name)
+      self.assertEquals(db.database.GetBitMapping(0),
+                        db.database.GetBitMapping(db.database.max_image_id))
 
-  def testSplitEncodedField(self):
-    """Test splitting the firmware field into multiple field."""
-    db_builder = builder.DatabaseBuilder(db=self.test_dbs[4])
-    # hash_gbb is ignored. key_recovery and key_root should be updated by the
-    # probed result so they are also ignored.
-    self.assertEquals(db_builder.active_fields,
-                      {'ro_ec_firmware_field', 'ro_main_firmware_field'})
-    self.assertEquals(db_builder.db['encoded_fields']['ro_ec_firmware_field'],
-                      {0: {'ro_ec_firmware': 'ro_ec_firmware_0'},
-                       1: {'ro_ec_firmware': 'ro_ec_firmware_1'}})
-    self.assertEquals(db_builder.db['encoded_fields']['ro_main_firmware_field'],
-                      {0: {'ro_main_firmware': 'ro_main_firmware_0'},
-                       1: {'ro_main_firmware': 'ro_main_firmware_1'}})
+  @mock.patch('cros.factory.hwid.v3.builder.PromptAndAsk', return_value=False)
+  def testUpdateByProbedResultsNeedNewPattern(self, unused_prompt_and_ask_mock):
+    # New pattern is required if new encoded fields are added.
+    db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
 
-  def testAddRegions(self):
-    """Test the AddRegions method."""
-    db_builder = builder.DatabaseBuilder(project='CHROMEBOOK')
-    db_builder.AddRegions(['tw', 'jp'])
-    self.assertIsInstance(
-        db_builder.db['components']['region'], yaml_tags.RegionComponent)
-    self.assertEquals(
-        db_builder.db['encoded_fields']['region_field'].GetRegions(),
-        ['tw', 'jp'])
+    db.UpdateByProbedResults(
+        {'comp_cls_200': {'generic': [{str(x): str(x)} for x in xrange(10)]}},
+        {}, {}, image_name='NEW_IMAGE_NAME')
+    self.assertNotIn('comp_cls_200_field',
+                     db.database.GetEncodedFieldsBitLength(0))
+    self.assertIn('comp_cls_200_field',
+                  db.database.GetEncodedFieldsBitLength())
+    self.assertIn('NEW_IMAGE_NAME',
+                  db.database.GetImageName(db.database.max_image_id))
 
-  def testAddChassis(self):
-    # Add chassis to an empty database.
-    db_builder = builder.DatabaseBuilder(project='CHROMEBOOK')
-    db_builder.AddChassis(['FOO', 'BAR'])
-    self.assertEquals(
-        db_builder.db['components']['chassis']['items'], {
-            'FOO': {
-                'status': 'unqualified',
-                'values': {'id': 'FOO'}},
-            'BAR': {
-                'status': 'unqualified',
-                'values': {'id': 'BAR'}}})
-    self.assertEquals(
-        db_builder.db['encoded_fields']['chassis_field'],
-        {0: {'chassis': 'FOO'},
-         1: {'chassis': 'BAR'}})
-    self.assertTrue(
-        db_builder.db['components']['chassis'].get('probeable', True))
+    # Should raise error if new image is needed but no image name.
+    db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
+    self.assertRaises(ValueError, db.UpdateByProbedResults,
+                      {'comp_cls_200': {'x': [{'a': 'b'}]}}, {}, {})
 
-    # Add a new chassis and ignore the repeated one.
-    db_builder.AddChassis(['FOO', 'NEW'])
-    self.assertEquals(
-        db_builder.db['components']['chassis']['items'], {
-            'FOO': {
-                'status': 'unqualified',
-                'values': {'id': 'FOO'}},
-            'BAR': {
-                'status': 'unqualified',
-                'values': {'id': 'BAR'}},
-            'NEW': {
-                'status': 'unqualified',
-                'values': {'id': 'NEW'}}})
-    self.assertEquals(
-        db_builder.db['encoded_fields']['chassis_field'],
-        {0: {'chassis': 'FOO'},
-         1: {'chassis': 'BAR'},
-         2: {'chassis': 'NEW'}})
-    self.assertTrue(
-        db_builder.db['components']['chassis'].get('probeable', True))
+  def testRender(self):
+    db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
+    path = file_utils.CreateTemporaryFile()
+    db.Render(path)
 
-  def testVerify(self):
-    db_builder = builder.DatabaseBuilder(db=self.test_dbs[0])
-    db_builder.Verify()
-
-    # Repeated image_id.
-    origin = copy.deepcopy(db_builder.db['image_id'])
-    db_builder.db['image_id'][2] = 'DVT'
-    with self.assertRaisesRegexp(ValueError, 'image_id "DVT" is repeated.'):
-      db_builder.Verify()
-    db_builder.db['image_id'] = origin
-    # Invalid image_id index.
-    origin = copy.deepcopy(db_builder.db['image_id'])
-    db_builder.db['image_id'][16] = 'DVT'
-    with self.assertRaisesRegexp(
-        ValueError, r'image_id index \[16\] are invalid.'):
-      db_builder.Verify()
-    db_builder.db['image_id'] = origin
-    # image_id without pattern.
-    origin = copy.deepcopy(db_builder.db['image_id'])
-    db_builder.db['image_id'][2] = 'PVT'
-    with self.assertRaisesRegexp(
-        ValueError, r'image_id index \[2\] are missing in the pattern.'):
-      db_builder.Verify()
-    db_builder.db['image_id'] = origin
-
-    # Unknown image_id in the pattern.
-    origin = copy.deepcopy(db_builder.db['pattern'])
-    db_builder.db['pattern'][0]['image_ids'].append(2)
-    with self.assertRaisesRegexp(
-        ValueError, r'Unknown image_id "2" appears in pattern.'):
-      db_builder.Verify()
-    db_builder.db['pattern'] = origin
-    # Repeated image_id in multiple patterns.
-    origin = copy.deepcopy(db_builder.db['pattern'])
-    db_builder.db['pattern'].append({
-        'image_ids': [1],
-        'encoding_scheme': 'base8192',
-        'fields': []})
-    with self.assertRaisesRegexp(
-        ValueError, r'image_id "1" appears in pattern repeatedly.'):
-      db_builder.Verify()
-    db_builder.db['pattern'] = origin
-    # Region field is missing in the pattern.
-    origin = copy.deepcopy(db_builder.db['pattern'])
-    db_builder.db['pattern'][0]['fields'].pop(0)
-    with self.assertRaisesRegexp(
-        ValueError, r'\[region_field\] are missing in current pattern.'):
-      db_builder.Verify()
-    db_builder.db['pattern'] = origin
-    # foo_fields is extra in the pattern.
-    origin = copy.deepcopy(db_builder.db['pattern'])
-    db_builder.db['pattern'][0]['fields'].append({'foo_field': 0})
-    with self.assertRaisesRegexp(
-        ValueError, r'\[foo_field\] are extra fields in current pattern.'):
-      db_builder.Verify()
-    db_builder.db['pattern'] = origin
-    # Region field does not have enough bit field.
-    origin = copy.deepcopy(db_builder.db['pattern'])
-    db_builder.db['pattern'][0]['fields'][0] = {'region_field': 0}
-    with self.assertRaisesRegexp(
-        ValueError, r'The bit size of "region_field" is not enough.'):
-      db_builder.Verify()
-    db_builder.db['pattern'] = origin
-
-  def testUpdatePattern(self):
-    db_builder = builder.DatabaseBuilder(db=self.test_dbs[3])
-    # Originally cpu_field has 2 bits for 4 components. Should add one more bit
-    # after adding a new component.
-    comp_name = db_builder.AddComponent('cpu', {'name': 'NEW CPU', 'cores': 64})
-    db_builder.AddEncodedField('cpu', comp_name)
-    db_builder._UpdatePattern(2)
-    self.assertEquals(db_builder.db['pattern'][0]['image_ids'], [0, 1, 2])
-    self.assertEquals(db_builder.db['pattern'][0]['fields'],
-                      [{'cpu_field': 1}, {'cpu_field': 1}, {'cpu_field': 1}])
-
-  def testAddPattern(self):
-    origin_db = self.test_dbs[5]
-    db_builder = builder.DatabaseBuilder(db=origin_db)
-    # Add region and ro_main_firmware.
-    db_builder.AddRegions(['us', 'tw'])
-    comp_name = db_builder.AddComponent('ro_main_firmware',
-                                        {'version': 'RO_MAIN_0'})
-    db_builder.AddEncodedField('ro_main_firmware', comp_name)
-
-    db_builder._AddPattern(2)
-    self.assertEquals(db_builder.db['pattern'][0]['image_ids'],
-                      origin_db['pattern'][0]['image_ids'])
-    self.assertEquals(db_builder.db['pattern'][0]['fields'],
-                      origin_db['pattern'][0]['fields'])
-    self.assertEquals(db_builder.db['pattern'][1]['image_ids'], [2])
-    self.assertEquals(db_builder.db['pattern'][1]['fields'],
-                      [{'mainboard_field': 3},
-                       {'region_field': 5},
-                       {'chassis_field': 5},
-                       {'cpu_field': 3},
-                       {'storage_field': 5},
-                       {'dram_field': 5},
-                       {'ro_main_firmware_field': 3}])
+    # Should be able to load successfully and pass the checksum check.
+    Database.LoadFile(path)
 
 
 if __name__ == '__main__':

@@ -77,33 +77,62 @@ class RegionField(dict):
   __metaclass__ = RegionFieldMetaclass
 
   def __init__(self, list_node=None):
+    if not list_node:
+      self._is_legacy_style = True
+      list_codes = [code for code in regions.LEGACY_REGIONS_LIST
+                    if code in regions.REGIONS]
+
+    else:
+      self._is_legacy_style = False
+      list_codes = [regions.REGIONS[node.value].region_code
+                    for node in list_node]
+
     # The numeric ids of valid regions start from 1.
     # crbug.com/624257: If no explicit regions defined, populate with only the
     # legacy list.
-    if list_node:
-      self._is_legacy_style = False
-      fields_dict = dict(
-          (i + 1, {'region': regions.REGIONS[n.value].region_code})
-          for i, n in enumerate(list_node))
-    else:
-      self._is_legacy_style = True
-      fields_dict = dict(
-          (i + 1, {'region': code})
-          for i, code in enumerate(regions.LEGACY_REGIONS_LIST)
-          if code in regions.REGIONS)
-    # 0 is a reserved field and is set to {region: None}, so that previous HWIDs
+    fields_dict = dict(
+        (i + 1, {'region': code}) for i, code in enumerate(list_codes))
+
+    # 0 is a reserved field and is set to {region: []}, so that previous HWIDs
     # which do not have region encoded will not return a bogus region component
     # when being decoded.
-    fields_dict[0] = {'region': None}
+    fields_dict[0] = {'region': []}
+
     super(RegionField, self).__init__(fields_dict)
+
+  @classmethod
+  def RebuildRegionField(cls, region_field_data):
+    """Gets a `RegionField` object represents for given `region_field` data.
+
+    This function looks if the given data is in legacy style and returns
+    corresponding RegionField object.
+
+    Args:
+      region_field_data: The given region_field data, should be a dict which
+          maps encode index number to a region component.
+
+    Returns:
+      An instance of `RegionField`.
+    """
+    fields_dict = dict(
+        (i + 1, {'region': code})
+        for i, code in enumerate(regions.LEGACY_REGIONS_LIST)
+        if code in regions.REGIONS)
+    fields_dict[0] = {'region': []}
+
+    if region_field_data == fields_dict:
+      return cls()
+
+    else:
+      return cls([YamlNode(region_field_data[index]['region'])
+                  for index in xrange(1, max(region_field_data.keys()) + 1)])
 
   @property
   def is_legacy_style(self):
     return self._is_legacy_style
 
   def GetRegions(self):
-    return [value['region'] for value in self.values()
-            if value['region'] is not None]
+    return [value['region'] for value in self.values() if value['region']]
 
   def AddRegion(self, new_region):
     if self.is_legacy_style:

@@ -45,11 +45,22 @@ from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.rule import Rule
 from cros.factory.hwid.v3.rule import Value
 # Import yaml_tags to decode special YAML tags specific to HWID module.
-from cros.factory.hwid.v3 import yaml_tags  # pylint: disable=unused-import
+from cros.factory.hwid.v3 import yaml_tags
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.utils import file_utils
 from cros.factory.utils import schema
 from cros.factory.utils import type_utils
+
+
+class _DatabaseOrderedDictMetaClass(type):
+  def __init__(cls, *args, **kwargs):
+    super(_DatabaseOrderedDictMetaClass, cls).__init__(*args, **kwargs)
+    yaml.add_representer(
+        cls, lambda dumper, data: dumper.represent_dict(data.iteritems()))
+
+
+class _DatabaseOrderedDict(collections.OrderedDict):
+  __metaclass__ = _DatabaseOrderedDictMetaClass
 
 
 def PatchYAMLMappingConstructor(yaml_loader=yaml.Loader,
@@ -156,8 +167,7 @@ class Database(object):
     """
     return Database.LoadData(file_utils.ReadFile(file_name),
                              expected_checksum=(Database.Checksum(file_name)
-                                                if verify_checksum else None),
-                             strict=verify_checksum)
+                                                if verify_checksum else None))
 
   @staticmethod
   def Checksum(file_name):
@@ -186,16 +196,13 @@ class Database(object):
     return hashlib.sha1(db_text).hexdigest()
 
   @staticmethod
-  def LoadData(raw_data, expected_checksum=None, strict=True):
+  def LoadData(raw_data, expected_checksum=None):
     """Loads a device-specific component database from the given database data.
 
     Args:
       raw_data: The database in string.
       expected_checksum: The checksum value to verify the loaded data with.
           A value of None disables checksum verification.
-      strict: Whether to insist on fully-formed databases. This should always be
-          true in production use, but may be set to False to accept slightly
-          older formats, e.g., missing checksum field.
 
     Returns:
       A Database object containing all the settings in the database file.
@@ -204,7 +211,16 @@ class Database(object):
       HWIDException if there is missing field in the database, or database
       integrity veification fails.
     """
+    # To keep the key order not changed, we temporary patch the yaml to load
+    # a dictinary with `_DatabaseOrderedDict`.
+    def _PatchYamlDictConstructor(cls):
+      yaml.add_constructor(
+          yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+          lambda loader, node: cls(loader.construct_pairs(node)))
+
+    _PatchYamlDictConstructor(_DatabaseOrderedDict)
     yaml_obj = yaml.load(raw_data)
+    _PatchYamlDictConstructor(dict)
 
     if not isinstance(yaml_obj, dict):
       raise common.HWIDException('Invalid HWID database')
@@ -215,20 +231,21 @@ class Database(object):
     for key in ['project', 'encoding_patterns', 'image_id', 'pattern',
                 'encoded_fields', 'components', 'rules', 'checksum']:
       if key not in yaml_obj:
-        if (not strict) and key == 'checksum':
-          # That's OK, let it go
-          pass
-        else:
-          raise common.HWIDException(
-              '%r is not specified in HWID database' % key)
+        raise common.HWIDException(
+            '%r is not specified in HWID database' % key)
+
+    project = yaml_obj['project'].upper()
+    if project != yaml_obj['project']:
+      logging.warning('The project name should be in upper cases, but got %r.',
+                      yaml_obj['project'])
 
     # Verify database integrity.
     if (expected_checksum is not None and
         yaml_obj['checksum'] != expected_checksum):
       raise common.HWIDException(
-          'HWID database %r checksum verification failed' % yaml_obj['project'])
+          'HWID database %r checksum verification failed' % project)
 
-    return Database(yaml_obj['project'],
+    return Database(project,
                     EncodingPatterns(yaml_obj['encoding_patterns']),
                     ImageId(yaml_obj['image_id']),
                     Pattern(yaml_obj['pattern']),
@@ -237,30 +254,25 @@ class Database(object):
                     Rules(yaml_obj['rules']),
                     yaml_obj.get('checksum'))
 
-  def DumpData(self):
-    data = {'checksum': self._checksum,
-            'project': self._project,
-            'encoding_patterns': self._encoding_patterns.Export(),
-            'image_id': self._image_id.Export(),
-            'pattern': self._pattern.Export(),
-            'encoded_fields': self._encoded_fields.Export(),
-            'components': self._components.Export(),
-            'rules': self._rules.Export()}
+  def DumpData(self, include_checksum=False):
+    all_parts = [
+        ('checksum', self._checksum if include_checksum else None),
+        ('project', self._project),
+        ('encoding_patterns', self._encoding_patterns.Export()),
+        ('image_id', self._image_id.Export()),
+        ('pattern', self._pattern.Export()),
+        ('encoded_fields', self._encoded_fields.Export()),
+        ('components', self._components.Export()),
+        ('rules', self._rules.Export()),
+    ]
 
-    return '\n'.join([yaml.dump({key: data[key]}, default_flow_style=False)
-                      for key in ['checksum',
-                                  'project',
-                                  'encoding_patterns',
-                                  'image_id',
-                                  'pattern',
-                                  'encoded_fields',
-                                  'components',
-                                  'rules']])
+    return yaml_tags.RemoveDummyString(
+        '\n'.join([yaml.dump({key: value}, default_flow_style=False)
+                   for key, value in all_parts]))
 
-
-  def DumpFile(self, path):
+  def DumpFile(self, path, include_checksum=False):
     with open(path, 'w') as f:
-      f.write(self.DumpData())
+      f.write(self.DumpData(include_checksum=include_checksum))
 
   @property
   def can_encode(self):
@@ -289,13 +301,13 @@ class Database(object):
   def GetImageName(self, image_id):
     return self._image_id[image_id]
 
-  def AddImage(self, image_id, image_name,
-               new_pattern=False, encoding_scheme=None):
-    self._image_id[image_id] = image_name
+  def AddImage(self, image_id, image_name, encoding_scheme,
+               new_pattern=False):
     if new_pattern:
-      self._pattern.AddImageId(self.max_image_id, image_id)
-    else:
       self._pattern.AddEmptyPattern(image_id, encoding_scheme)
+    else:
+      self._pattern.AddImageId(self.max_image_id, image_id)
+    self._image_id[image_id] = image_name
 
   def GetImageIdByName(self, image_name):
     return self._image_id.GetImageIdByName(image_name)
@@ -325,21 +337,41 @@ class Database(object):
   def GetEncodedField(self, encoded_field_name):
     return self._encoded_fields.GetField(encoded_field_name)
 
+  def GetComponentClasses(self, encoded_field_name=None):
+    """Returns a set of component class names with optional conditions.
+
+    If `encoded_field_name` is specified, this function only returns the
+    component classes which will be encoded by the specific encoded field.
+    If `encoded_field_name` is not specified, this function returns all
+    component classes recorded by the database.
+
+    Args:
+      encoded_field_name: None of a string of the name of the encoded field.
+
+    Returns:
+      A set of component class names.
+    """
+    if encoded_field_name:
+      return self._encoded_fields.GetComponentClasses(encoded_field_name)
+
+    ret = set(self._components.component_classes)
+    for encoded_field_name in self.encoded_fields:
+      ret |= set(self._encoded_fields.GetComponentClasses(encoded_field_name))
+
+    return ret
+
+  def GetEncodedFieldForComponent(self, comp_cls):
+    return self._encoded_fields.GetFieldForComponent(comp_cls)
+
   def AddNewEncodedField(self, encoded_field_name, components):
     self._VerifyEncodedFieldComponents(components)
 
     self._encoded_fields.AddNewField(encoded_field_name, components)
 
-  def AddEncodedFieldComponents(
-      self, encoded_field_name, components, index=None):
+  def AddEncodedFieldComponents(self, encoded_field_name, components):
     self._VerifyEncodedFieldComponents(components)
 
-    return self._encoded_fields.AddFieldComponents(
-        encoded_field_name, components, index)
-
-  @property
-  def component_classes(self):
-    return self._components.component_classes
+    self._encoded_fields.AddFieldComponents(encoded_field_name, components)
 
   def GetComponents(self, comp_cls):
     return self._components.GetComponents(comp_cls)
@@ -358,11 +390,13 @@ class Database(object):
   def verify_rules(self):
     return self._rules.verify_rules
 
+  def AddDeviceInfoRule(self, name_suffix, evaluate, **kwargs):
+    self._rules.AddDeviceInfoRule(name_suffix, evaluate, **kwargs)
+
   def GetActiveComponentClasses(self, image_id=None):
-    ret = []
+    ret = set()
     for encoded_field_name in self.GetEncodedFieldsBitLength(image_id).keys():
-      comps = self.GetEncodedField(encoded_field_name).values()[0]
-      ret += comps.keys()
+      ret |= self.GetComponentClasses(encoded_field_name)
 
     return ret
 
@@ -382,12 +416,8 @@ class Database(object):
 
     # Each encoded field should be well defined.
     for encoded_field_name in self.encoded_fields:
-      for comps in self.GetEncodedField(encoded_field_name).itervalues():
+      for comps in self.GetEncodedField(encoded_field_name):
         for comp_cls, comp_names in comps.iteritems():
-          if comp_cls not in self.component_classes:
-            raise common.HWIDException(
-                'The component class %r is not defined in `components` part.' %
-                comp_cls)
           missing_comp_names = (
               set(comp_names) - set(self.GetComponents(comp_cls).keys()))
           if missing_comp_names:
@@ -397,12 +427,8 @@ class Database(object):
 
   def _VerifyEncodedFieldComponents(self, components):
     for comp_cls, comp_names in components.iteritems():
-      if comp_cls not in self.component_classes:
-        raise common.HWIDException('The component class %r is not recorded '
-                                   'in `components` part.' % comp_cls)
-
       for comp_name in comp_names:
-        if comp_name not in self.GetComponentNames(comp_cls):
+        if comp_name not in self.GetComponents(comp_cls):
           raise common.HWIDException('The component %r is not recorded '
                                      'in `components` part.' % comp_name)
 
@@ -657,14 +683,18 @@ class EncodedFields(object):
     """
     self._SCHEMA.Validate(encoded_fields_expr)
 
-    self._fields = {}
+    self._fields = collections.OrderedDict()
     self._field_to_comp_classes = {}
     self._can_encode = True
 
     for field_name, field_data in encoded_fields_expr.iteritems():
       self._RegisterNewEmptyField(field_name, field_data.values()[0].keys())
-      for index, components in field_data.iteritems():
-        self.AddFieldComponents(field_name, components, index=index)
+      for index in xrange(len(field_data)):
+        if index not in field_data:
+          raise common.HWIDException(
+              'The index numbers should form a continuous non-negative '
+              'sequence starting from 0, but %d is missing' % index)
+        self.AddFieldComponents(field_name, field_data[index])
 
   def __eq__(self, rhs):
     return isinstance(rhs, EncodedFields) and self._fields == rhs._fields
@@ -678,13 +708,16 @@ class EncodedFields(object):
 
   def Export(self):
     """Exports to a dictionary so that it can be stored to the database file."""
-    ret = {}
+    ret = _DatabaseOrderedDict()
     for field, field_data in self._fields.iteritems():
       ret[field] = {}
-      for index, components in field_data.iteritems():
+      for index, components in enumerate(field_data):
         ret[field][index] = {
             comp_cls: comp_names[0] if len(comp_names) == 1 else comp_names
             for comp_cls, comp_names in components.iteritems()}
+
+      if field == 'region_field':
+        ret[field] = yaml_tags.RegionField.RebuildRegionField(ret[field])
 
     return ret
 
@@ -709,7 +742,35 @@ class EncodedFields(object):
 
     return self._fields[field_name]
 
-  def AddFieldComponents(self, field_name, components, index=None):
+  def GetComponentClasses(self, field_name):
+    """Gets the related component classes of a specific field.
+
+    Args:
+      field_name: A string of th name of the encoded field.
+
+    Returns:
+      A set of string of component classes.
+    """
+    if field_name not in self._fields:
+      raise common.HWIDException('The field name %r is invalid.' % field_name)
+
+    return self._field_to_comp_classes[field_name]
+
+  def GetFieldForComponent(self, comp_cls):
+    """Gets the field which encodes the specific component class.
+
+    Args:
+      comp_cls: A string of the component class.
+
+    Returns:
+      None if no field for that; otherwise a string of the field name.
+    """
+    for field_name, comp_cls_set in self._field_to_comp_classes.iteritems():
+      if comp_cls in comp_cls_set:
+        return field_name
+    return None
+
+  def AddFieldComponents(self, field_name, components):
     """Adds components combination to an existing encoded field.
 
     Args:
@@ -717,9 +778,6 @@ class EncodedFields(object):
       components: A dictionary which maps the component class to a list of
           component name.
       index: The number for the given component set.
-
-    Returns:
-      The index of the added components.
     """
     if field_name not in self._fields:
       raise common.HWIDException(
@@ -729,26 +787,19 @@ class EncodedFields(object):
       raise common.HWIDException('Each encoded field should encode a fixed set '
                                  'of component classes.')
 
-    if index is None:
-      index = max(self._fields[field_name].keys()) + 1
-    self._SCHEMA.value_type.key_type.Validate(index)
-    if index in self._fields[field_name]:
-      raise common.HWIDException('The index %r is already in used.' % index)
-
     comps = {}
     for comp_cls, comp_names in components.iteritems():
       comps[comp_cls] = ([] if comp_names is None
                          else sorted(type_utils.MakeList(comp_names)))
 
-    for existing_index, existing_comps in self._fields[field_name].iteritems():
+    for existing_index, existing_comps in enumerate(self._fields[field_name]):
       if existing_comps == comps:
         self._can_encode = False
         logging.warning(
             'The components combination %r already exists (at index %r).',
             comps, existing_index)
 
-    self._fields[field_name][index] = comps
-    return index
+    self._fields[field_name].append(comps)
 
   def AddNewField(self, field_name, components):
     """Adds a new field.
@@ -763,15 +814,20 @@ class EncodedFields(object):
           'Encoded field %r already exists' % (field_name,))
 
     self._RegisterNewEmptyField(field_name, components.keys())
-    self.AddFieldComponents(field_name, components, index=0)
+    self.AddFieldComponents(field_name, components)
 
   def _RegisterNewEmptyField(self, field_name, comp_classes):
     if not comp_classes:
       raise common.HWIDException(
           'An encoded field must includes at least one component class.')
 
-    self._fields[field_name] = {}
+    self._fields[field_name] = []
     self._field_to_comp_classes[field_name] = set(comp_classes)
+
+
+class ComponentInfo(type_utils.Obj):
+  def __init__(self, values, status):
+    super(ComponentInfo, self).__init__(values=values, status=status)
 
 
 class Components(object):
@@ -847,7 +903,7 @@ class Components(object):
 
   Attributes:
     _components: A dictionary which maps the component class name to a list
-        of _ComponentInfo object.
+        of ComponentInfo object.
     _can_encode: True if the original data doesn't contain legacy information
         so that the whole database works for encoding a BOM to the HWID string.
         As the idea of non-probeable components are deprecated and the idea of
@@ -889,9 +945,6 @@ class Components(object):
               'probeable': schema.Scalar(
                   'is component probeable (deprecate)', bool)}))
 
-  _ComponentInfo = collections.namedtuple('_ComponentInfo',
-                                          ['values', 'status'])
-
   _DUMMY_KEY = 'dummy_probed_value_key'
 
   def __init__(self, components_expr):
@@ -901,30 +954,38 @@ class Components(object):
     """
     self._SCHEMA.Validate(components_expr)
 
-    self._components = {}
+    self._components = collections.OrderedDict()
     self._can_encode = True
     self._default_components = set()
     self._non_probeable_component_classes = set()
     dummy_counter = 0
 
     for comp_cls, comps_data in components_expr.iteritems():
-      self._components[comp_cls] = {}
+      self._components[comp_cls] = collections.OrderedDict()
       for comp_name, comp_attr in comps_data['items'].iteritems():
         values = comp_attr['values']
         if values is None:
+          logging.info(
+              'Found component %r without values, mark can_encode=False.',
+              comp_name)
           self._can_encode = False
           values = {self._DUMMY_KEY: str(dummy_counter)}
           dummy_counter += 1
 
-        self.AddComponent(comp_cls, comp_name, values,
-                          comp_attr.get('status',
-                                        common.COMPONENT_STATUS.supported))
+        self._AddComponent(comp_cls, comp_name, values,
+                           comp_attr.get('status',
+                                         common.COMPONENT_STATUS.supported))
 
         if comp_attr.get('default') == True:
+          logging.info('Found default component %r, mark can_encode=False.',
+                       comp_name)
           self._can_encode = False
           self._default_components.add((comp_cls, comp_name))
 
       if comps_data.get('probeable') == False:
+        logging.info(
+            'Found non-probeable component class %r, mark can_encode=False.',
+            comp_cls)
         self._can_encode = False
         self._non_probeable_component_classes.add(comp_cls)
 
@@ -938,23 +999,31 @@ class Components(object):
   def Export(self):
     """Exports into a serializable dictionary which can be stored into a HWID
     database file."""
-    ret = {}
+    ret = _DatabaseOrderedDict()
     for comp_cls in self.component_classes:
-      ret[comp_cls] = {'items': {}}
-      for comp_name, comp in self.GetComponents(comp_cls).iteritems():
-        if self._DUMMY_KEY in comp.values:
-          ret[comp_cls]['items'][comp_name] = {'values': None}
-        else:
-          ret[comp_cls]['items'][comp_name] = {'values': comp.values}
+      if comp_cls == 'region':
+        ret[comp_cls] = yaml_tags.RegionComponent()
+        continue
 
-        if comp.status != common.COMPONENT_STATUS.supported:
-          ret[comp_cls]['items'][comp_name]['status'] = comp.status
+      ret[comp_cls] = _DatabaseOrderedDict()
+
+      if comp_cls in self._non_probeable_component_classes:
+        ret[comp_cls]['probeable'] = False
+
+      ret[comp_cls]['items'] = _DatabaseOrderedDict()
+      for comp_name, comp in self.GetComponents(comp_cls).iteritems():
+        ret[comp_cls]['items'][comp_name] = _DatabaseOrderedDict()
 
         if (comp_cls, comp_name) in self._default_components:
           ret[comp_cls]['items'][comp_name]['default'] = True
 
-      if comp_cls in self._non_probeable_component_classes:
-        ret[comp_cls]['probeable'] = False
+        if comp.status != common.COMPONENT_STATUS.supported:
+          ret[comp_cls]['items'][comp_name]['status'] = comp.status
+
+        if self._DUMMY_KEY in comp.values:
+          ret[comp_cls]['items'][comp_name]['values'] = None
+        else:
+          ret[comp_cls]['items'][comp_name]['values'] = comp.values
     return ret
 
   @property
@@ -975,7 +1044,7 @@ class Components(object):
       comp_cls: A string of the name of the component class.
 
     Returns:
-      A dict which maps a string of component name to a `_ComponentInfo` object,
+      A dict which maps a string of component name to a `ComponentInfo` object,
       which is a named tuple contains two attributes:
         values: A string-to-string dict of expected probed results.
         status: One of "unsupported", "deprecated", "unqualified", "supported".
@@ -992,6 +1061,33 @@ class Components(object):
       status: The component status, one of "unsupported", "deprecated",
           "unqualified", "supported".
     """
+    if comp_cls == 'region':
+      raise common.HWIDException('Region component class is not modifiable.')
+
+    self._AddComponent(comp_cls, comp_name, values, status)
+
+  def SetComponentStatus(self, comp_cls, comp_name, status):
+    """Sets the status of a specific component.
+
+    Args:
+      comp_cls: The component class name.
+      comp_name: The component name.
+      status: The component status, one of "unsupported", "deprecated",
+          "unqualified", "supported".
+    """
+    if comp_cls == 'region':
+      raise common.HWIDException('Region component class is not modifiable.')
+
+    self._SCHEMA.value_type.items[
+        'items'].value_type.optional_items['status'].Validate(status)
+
+    if comp_name not in self._components.get(comp_cls, {}):
+      raise common.HWIDException('Component (%r, %r) is not recorded.' %
+                                 (comp_cls, comp_name))
+
+    self._components[comp_cls][comp_name].status = status
+
+  def _AddComponent(self, comp_cls, comp_name, values, status):
     def _IsSubDict(super_dict, sub_dict):
       if set(sub_dict.keys()) - set(super_dict.keys()):
         return False
@@ -1018,27 +1114,8 @@ class Components(object):
                         values, existed_comp_name)
         self._can_encode = False
 
-    self._components.setdefault(comp_cls, {})
-    self._components[comp_cls][comp_name] = self._ComponentInfo(values, status)
-
-  def SetComponentStatus(self, comp_cls, comp_name, status):
-    """Sets the status of a specific component.
-
-    Args:
-      comp_cls: The component class name.
-      comp_name: The component name.
-      status: The component status, one of "unsupported", "deprecated",
-          "unqualified", "supported".
-    """
-    self._SCHEMA.value_type.items[
-        'items'].value_type.optional_items['status'].Validate(status)
-
-    if comp_name not in self._components.get(comp_cls, {}):
-      raise common.HWIDException('Component (%r, %r) is not recorded.' %
-                                 (comp_cls, comp_name))
-
-    self._components[comp_cls][comp_name] = self._ComponentInfo(
-        self._components[comp_cls][comp_name].values, status)
+    self._components.setdefault(comp_cls, collections.OrderedDict())
+    self._components[comp_cls][comp_name] = ComponentInfo(values, status)
 
 
 class Pattern(object):
@@ -1181,10 +1258,11 @@ class Pattern(object):
           obj_to_export['image_ids'].append(image_id)
           break
       else:
-        obj_to_export = dict(image_ids=[image_id],
-                             encoding_scheme=pattern.encoding_scheme,
-                             fields=[{field.name: field.bit_length}
-                                     for field in pattern.fields])
+        obj_to_export = _DatabaseOrderedDict([
+            ('image_ids', [image_id]),
+            ('encoding_scheme', pattern.encoding_scheme),
+            ('fields', [{field.name: field.bit_length}
+                        for field in pattern.fields])])
         pattern_list.append((obj_to_export, pattern))
 
     return [pattern for pattern, _ in pattern_list]
@@ -1496,7 +1574,14 @@ class Rules(object):
   def Export(self):
     """Exports the `rule` part into a list of dictionary object which can be
     saved to the HWID database file."""
-    return [rule.ExportToDict() for rule in self._rules]
+    def _TransToOrderedDict(rule_dict):
+      ret = _DatabaseOrderedDict([('name', rule_dict['name']),
+                                  ('evaluate', rule_dict['evaluate'])])
+      for key in ['when', 'otherwise']:
+        if key in rule_dict:
+          ret[key] = rule_dict[key]
+      return ret
+    return [_TransToOrderedDict(rule.ExportToDict()) for rule in self._rules]
 
   @property
   def device_info_rules(self):
@@ -1506,5 +1591,37 @@ class Rules(object):
   def verify_rules(self):
     return self._GetRules(self._RULE_TYPES.verify + '.')
 
+  def AddDeviceInfoRule(self, name_suffix, evaluate, **kwargs):
+    """Adds a device info type rule.
+
+    Args:
+      name_suffix: A string of the suffix of the rule name, the actual rule name
+          will be "device_info.<name_suffix>".
+      **kwargs:
+        position:  None to append the rule at the end of all rules; otherwise
+          if the value is N, the rule will be inserted right before the N-th
+          device_info rule.
+        other arguments: Arguments needed by the Rule class' constructor.
+      position:
+    """
+    position = kwargs.pop('position', None)
+    self._AddRule(self._RULE_TYPES.device_info, position, name_suffix,
+                  evaluate, **kwargs)
+
   def _GetRules(self, prefix):
     return [rule for rule in self._rules if rule.name.startswith(prefix)]
+
+  def _AddRule(self, rule_type, position, name_suffix, evaluate, **kwargs):
+    rule_obj = Rule(rule_type + '.' + name_suffix, evaluate, **kwargs)
+
+    if position is not None:
+      order = -1
+      for index, existed_rule_obj in enumerate(self._rules):
+        if not existed_rule_obj.name.startswith(rule_type):
+          continue
+        order += 1
+        if order == position:
+          self._rules.insert(index, rule_obj)
+          return
+
+    self._rules.append(rule_obj)

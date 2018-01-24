@@ -5,6 +5,7 @@
 
 import json
 import mock
+import os
 import unittest
 
 import yaml
@@ -12,6 +13,7 @@ import yaml
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3 import hwid_cmdline
+from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
 
 
@@ -55,18 +57,6 @@ class TestCaseBaseWithMockedOutputObject(unittest.TestCase):
     hwid_cmdline.OutputObject = self.orig_output_object
 
 
-class BuildDatabaseWrapperTest(unittest.TestCase):
-  @mock.patch('cros.factory.hwid.v3.hwid_utils.BuildDatabase')
-  def testNormal(self, build_database_mock):
-    pass
-
-
-class UpdateDatabaseWrapperTest(unittest.TestCase):
-  @mock.patch('cros.factory.hwid.v3.hwid_utils.BuildDatabase')
-  def testNormal(self, build_database_mock):
-    pass
-
-
 class ObtainAllDeviceDataTest(unittest.TestCase):
   @mock.patch('cros.factory.hwid.v3.yaml_wrapper.dump')
   @mock.patch('cros.factory.hwid.v3.hwid_utils.GetVPDData')
@@ -91,6 +81,69 @@ class ObtainAllDeviceDataTest(unittest.TestCase):
                       ret)
 
 
+class BuildDatabaseWrapperTest(unittest.TestCase):
+  @mock.patch('cros.factory.hwid.v3.builder.DatabaseBuilder')
+  @mock.patch('cros.factory.hwid.v3.hwid_cmdline.ObtainAllDeviceData')
+  def testNormal(self, obtain_all_device_data_mock, build_database_mock):
+    with file_utils.TempDirectory() as path:
+      options = mock.MagicMock()
+      options.hwid_db_path = path
+      options.add_default_comp = ['a', 'b']
+      options.add_null_comp = ['c', 'd']
+
+      hwid_cmdline.BuildDatabaseWrapper(options)
+
+      # Constructor.
+      build_database_mock.assert_called_with(project=options.project,
+                                             image_name=options.image_id)
+      instance = build_database_mock.return_value
+
+      # Update default/null components.
+      instance.AddDefaultComponent.assert_has_calls(
+          [mock.call('a'), mock.call('b')], any_order=True)
+      instance.AddNullComponent.assert_has_calls(
+          [mock.call('c'), mock.call('d')], any_order=True)
+
+      # Update by the probed results.
+      instance.UpdateByProbedResults.assert_called_with(
+          obtain_all_device_data_mock.return_value.probed_results,
+          obtain_all_device_data_mock.return_value.device_info,
+          obtain_all_device_data_mock.return_value.vpd,
+          image_name=options.image_id)
+
+
+class UpdateDatabaseWrapperTest(unittest.TestCase):
+  @mock.patch('cros.factory.hwid.v3.builder.DatabaseBuilder')
+  @mock.patch('cros.factory.hwid.v3.hwid_cmdline.ObtainAllDeviceData')
+  def testNormal(self, obtain_all_device_data_mock, build_database_mock):
+    with file_utils.TempDirectory() as path:
+      options = mock.MagicMock()
+      options.hwid_db_path = path
+      options.add_default_comp = ['a', 'b']
+      options.add_null_comp = ['c', 'd']
+      options.project = 'proj'
+
+      hwid_cmdline.UpdateDatabaseWrapper(options)
+
+      # Constructor.
+      build_database_mock.assert_called_with(
+          database_path=os.path.join(path, 'PROJ'))
+      instance = build_database_mock.return_value
+
+      # Update default/null components.
+      instance.AddDefaultComponent.assert_has_calls(
+          [mock.call('a'), mock.call('b')], any_order=True)
+      instance.AddNullComponent.assert_has_calls(
+          [mock.call('c'), mock.call('d')], any_order=True)
+
+      # Update by the probed results.
+      instance.UpdateByProbedResults.assert_called_with(
+          obtain_all_device_data_mock.return_value.probed_results,
+          obtain_all_device_data_mock.return_value.device_info,
+          obtain_all_device_data_mock.return_value.vpd,
+          image_name=options.image_id)
+
+
 class GenerateHWIDWrapperTest(TestCaseBaseWithMockedOutputObject):
   @mock.patch('cros.factory.hwid.v3.hwid_utils.GenerateHWID')
   @mock.patch('cros.factory.hwid.v3.hwid_cmdline.ObtainAllDeviceData')
@@ -100,9 +153,10 @@ class GenerateHWIDWrapperTest(TestCaseBaseWithMockedOutputObject):
 
     device_data = obtain_all_device_data_mock.return_value
     generate_hwid_mock.assert_called_once_with(
-        options.database, probed_results=device_data.probed_results,
-        device_info=device_data.device_info, vpd=device_data.vpd,
-        rma_mode=options.rma_mode)
+        options.database, device_data.probed_results,
+        device_data.device_info, device_data.vpd,
+        options.rma_mode,
+        allow_mismatched_components=options.allow_mismatched_components)
 
     identity = generate_hwid_mock.return_value
     hwid_cmdline.OutputObject.assert_called_once_with(
@@ -141,9 +195,10 @@ class VerifyHWIDWrapperTest(TestCaseBaseWithFakeOutput):
 
     verify_hwid_mock.assert_called_once_with(
         options.database, options.hwid,
-        probed_results=device_data.probed_results,
-        device_info=device_data.device_info, vpd=device_data.vpd,
-        rma_mode=options.rma_mode, current_phase=options.phase)
+        device_data.probed_results,
+        device_data.device_info, device_data.vpd,
+        options.rma_mode, current_phase=options.phase,
+        allow_mismatched_components=options.allow_mismatched_components)
 
   @mock.patch('cros.factory.hwid.v3.hwid_utils.VerifyHWID',
               side_effect=HWIDException('verify fail'))
@@ -180,7 +235,9 @@ class EnumerateHWIDWrapperTest(TestCaseBaseWithFakeOutput):
     hwid_cmdline.EnumerateHWIDWrapper(options)
 
     enumerate_hwid_mock.assert_called_once_with(
-        options.database, image_id=options.image_id, status=options.status,
+        options.database,
+        image_id=options.database.GetImageIdByName.return_value,
+        status=options.status,
         comps={'aaa': ['bbb'], 'ccc': ['ddd', 'eee']})
 
   @mock.patch('cros.factory.hwid.v3.hwid_utils.EnumerateHWID',

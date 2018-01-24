@@ -5,11 +5,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Implementation of base32 utilities."""
+"""Implementation of base8192 utilities."""
 
 import argparse
 
 from zlib import crc32
+
+import factory_common  # pylint: disable=unused-import
+from cros.factory.hwid.v3 import common
 
 
 class Base8192(object):
@@ -25,7 +28,7 @@ class Base8192(object):
   BASE8_ALPHABET = '23456789'
   BASE8_REVERSED = dict([v, k] for k, v in enumerate(BASE8_ALPHABET))
   BASE8_BIT_WIDTH = 3
-  BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+  BASE32_ALPHABET = common.HEADER_ALPHABET
   BASE32_REVERSED = dict([v, k] for k, v in enumerate(BASE32_ALPHABET))
   BASE32_BIT_WIDTH = 5
   BASE8192_BIT_WIDTH = 13

@@ -5,18 +5,15 @@
 """HWID v3 utility functions."""
 
 import collections
-import logging
 import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.bom import BOM
-from cros.factory.hwid.v3 import builder
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import identity as identity_utils
 from cros.factory.hwid.v3.identity import Identity
 from cros.factory.hwid.v3.rule import Context
-from cros.factory.hwid.v3.rule import Value
 from cros.factory.hwid.v3 import transformer
 from cros.factory.hwid.v3 import verifier
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
@@ -30,30 +27,8 @@ def _HWIDMode(rma_mode):
   return common.OPERATION_MODE.normal
 
 
-def BuildDatabase(database_path, probed_results, project, image_id,
-                  add_default_comp=None, add_null_comp=None, del_comp=None,
-                  region=None, chassis=None):
-  # TODO(yhong): Use a BOM object to build the database instead of probed
-  #     results.
-  db_builder = builder.DatabaseBuilder(project=project)
-  db_builder.Update(probed_results, image_id, add_default_comp, add_null_comp,
-                    del_comp, region, chassis)
-  db_builder.Render(database_path)
-
-
-def UpdateDatabase(database_path, probed_results, old_db, image_id=None,
-                   add_default_comp=None, add_null_comp=None, del_comp=None,
-                   region=None, chassis=None):
-  # TODO(yhong): Use a BOM object to update the database instead of probed
-  #     results.
-  db_builder = builder.DatabaseBuilder(db=old_db)
-  db_builder.Update(probed_results, image_id, add_default_comp, add_null_comp,
-                    del_comp, region, chassis)
-  db_builder.Render(database_path)
-
-
-def GenerateHWID(database, probed_results=None, device_info=None, vpd=None,
-                 rma_mode=False):
+def GenerateHWID(database, probed_results, device_info, vpd, rma_mode,
+                 allow_mismatched_components=False):
   """Generates a HWID v3 from the given data.
 
   The HWID is generated based on the given device info and a BOM object. If
@@ -62,29 +37,27 @@ def GenerateHWID(database, probed_results=None, device_info=None, vpd=None,
 
   Args:
     database: A Database object to be used.
-    probed_results: None or the probed results of the DUT.
-    device_info: None or a dict of component infomation keys to their
+    probed_results: The probed results of the DUT.
+    device_info: A dict of component infomation keys to their
         corresponding values. The format is device-specific and the meanings of
         each key and value vary from device to device. The valid keys and values
         should be specified in project-specific component database.
-    vpd: None or a dict of RO and RW VPD values.  This argument should be set
+    vpd: A dict of RO and RW VPD values.  This argument should be set
         if some rules in the HWID database rely on the VPD values.
-    rma_mode: Whether to verify components status in RMA mode.  Defaults to
-        False.
+    rma_mode: Whether to verify components status in RMA mode.
+    allow_mismatched_components: Whether to allows some probed components to be
+        ignored if no any component in the database matches with them.
 
   Returns:
-    The generated HWID object.
+    The generated HWID Identity object.
   """
+  from cros.factory.hwid.v3 import probe
+
   hwid_mode = _HWIDMode(rma_mode)
 
-  if probed_results is None:
-    probed_results = GetProbedResults()
-
-  if device_info is None:
-    device_info = GetDeviceInfo()
-
-  bom = _GenerateBOMFromProbedResults(
-      database, probed_results, device_info, vpd, hwid_mode)
+  bom = probe.GenerateBOMFromProbedResults(
+      database, probed_results, device_info, vpd, hwid_mode,
+      allow_mismatched_components)[0]
   verifier.VerifyComponentStatus(database, bom, hwid_mode)
 
   identity = transformer.BOMToIdentity(database, bom)
@@ -100,7 +73,8 @@ def DecodeHWID(database, encoded_string):
     encoded_string: An encoded HWID string to test.
 
   Returns:
-    The decoded BOM object.
+    The corresponding Identity object of the given `encoded_string` and the
+        decoded BOM object.
   """
   image_id = identity_utils.GetImageIdFromEncodedString(encoded_string)
   encoding_scheme = database.GetEncodingScheme(image_id)
@@ -109,8 +83,9 @@ def DecodeHWID(database, encoded_string):
   return identity, bom
 
 
-def VerifyHWID(database, encoded_string, probed_results=None,
-               device_info=None, vpd=None, rma_mode=False, current_phase=None):
+def VerifyHWID(database, encoded_string,
+               probed_results, device_info, vpd, rma_mode,
+               current_phase=None, allow_mismatched_components=False):
   """Verifies the given encoded HWID v3 string against the probed BOM object.
 
   A HWID context is built with the encoded HWID string and the project-specific
@@ -128,24 +103,30 @@ def VerifyHWID(database, encoded_string, probed_results=None,
   Args:
     database: A Database object to be used.
     encoded_string: An encoded HWID string to test.
-    probed_results: None or the probed results of the DUT.
-    vpd: None or a dict of RO and RW VPD values.  This argument should be set
+    probed_results: The probed results of the DUT.
+    device_info: A dict of component infomation keys to their
+        corresponding values. The format is device-specific and the meanings of
+        each key and value vary from device to device. The valid keys and values
+        should be specified in project-specific component database.
+    vpd: A dict of RO and RW VPD values.  This argument should be set
         if some rules in the HWID database rely on the VPD values.
-    rma_mode: True for RMA mode to allow deprecated components. Defaults to
-        False.
+    rma_mode: True for RMA mode to allow deprecated components.
     current_phase: The current phase, for phase checks.  If None is
         specified, then phase.GetPhase() is used (this defaults to PVT
         if none is available).
+    allow_mismatched_components: Whether to allows some probed components to be
+        ignored if no any component in the database matches with them.
 
   Raises:
     HWIDException if verification fails.
   """
+  from cros.factory.hwid.v3 import probe
+
   hwid_mode = _HWIDMode(rma_mode)
 
-  if probed_results is None:
-    probed_results = GetProbedResults()
-  probed_bom = _GenerateBOMFromProbedResults(
-      database, probed_results, device_info, vpd, hwid_mode)
+  probed_bom = probe.GenerateBOMFromProbedResults(
+      database, probed_results, device_info, vpd, hwid_mode,
+      allow_mismatched_components)[0]
 
   decoded_bom = DecodeHWID(database, encoded_string)[1]
 
@@ -173,13 +154,13 @@ def ListComponents(database, comp_class=None):
     A dict of component classes to the component items of that class.
   """
   if not comp_class:
-    comp_class_to_lookup = database.component_classes
+    comp_class_to_lookup = database.GetComponentClasses()
   else:
     comp_class_to_lookup = type_utils.MakeList(comp_class)
 
   output_components = collections.defaultdict(list)
   for comp_cls in comp_class_to_lookup:
-    if comp_cls not in database.component_classes:
+    if comp_cls not in database.GetComponentClasses():
       raise ValueError('Invalid component class %r' % comp_cls)
     output_components[comp_cls].extend(database.GetComponents(comp_cls).keys())
 
@@ -209,9 +190,10 @@ def EnumerateHWID(database, image_id=None, status='supported', comps=None):
     image_id = database.max_image_id
 
   if status == 'supported':
-    acceptable_status = set(['supported'])
+    acceptable_status = set([common.COMPONENT_STATUS.supported])
   elif status == 'released':
-    acceptable_status = set(['supported', 'deprecated'])
+    acceptable_status = set([common.COMPONENT_STATUS.supported,
+                             common.COMPONENT_STATUS.deprecated])
   elif status == 'all':
     acceptable_status = set(common.COMPONENT_STATUS)
   else:
@@ -256,7 +238,7 @@ def EnumerateHWID(database, image_id=None, status='supported', comps=None):
       image_id).iteritems():
     max_index = (1 << bit_length) - 1
     last_combinations = []
-    for index, comps_set in database.GetEncodedField(field_name).iteritems():
+    for index, comps_set in enumerate(database.GetEncodedField(field_name)):
       if index <= max_index and _IsComponentsSetValid(comps_set):
         last_combinations.append(
             {comp_cls: type_utils.MakeList(comp_names)
@@ -290,72 +272,13 @@ def GetProbedResults(infile=None, raw_data=None):
   elif raw_data:
     return json_utils.LoadStr(raw_data)
   else:
-    from cros.factory.utils import process_utils
+    from cros.factory.hwid.v3 import probe
     from cros.factory.utils import sys_utils
     if sys_utils.InChroot():
       raise ValueError('Cannot probe components in chroot. Please specify '
                        'probed results with an input file. If you are running '
                        'with command-line, use --probed-results-file')
-    # TODO(yhong): Probe with a project-specific probe statement instead of
-    #     runing generic probe.
-    cmd = 'gooftool probe'
-    return json_utils.LoadStr(process_utils.CheckOutput(cmd, shell=True))
-
-
-def _GenerateBOMFromProbedResults(
-    database, probed_results, device_info=None, vpd=None, mode=None):
-  """Generates a BOM object according to the given probed results.
-
-  Args:
-    database: An instance of a HWID database.
-    probed_results: A JSON-serializable dict of the probe result, which is
-        usually the output of the probe command.
-    device_info: None or a dict of device info.
-    vpd: None or a dict of vpd data.
-    mode: None or "rma" or "normal".
-
-  Returns:
-    A instance of BOM class.
-  """
-  # Construct a dict of component classes to list of component names.
-  components = {}
-  for comp_cls in probed_results:
-    if comp_cls not in database.component_classes:
-      logging.warning('The component class %r is not listed in '
-                      'the HWID database.', comp_cls)
-      continue
-
-    components[comp_cls] = []
-
-    # We don't need the component name here.
-    probed_values = sum(probed_results[comp_cls].values(), [])
-
-    for probed_value in probed_values:
-      for comp_name, comp_attrs in database.GetComponents(comp_cls).iteritems():
-        for key, value in comp_attrs.values.iteritems():
-          if not isinstance(value, Value):
-            value = Value(value)
-          if key not in probed_value or not value.Matches(probed_value[key]):
-            break
-
-        else:
-          components[comp_cls].append(comp_name)
-          break
-
-      else:
-        logging.warning('The probed values %r of %r component does not match '
-                        'any components recorded in the database.',
-                        probed_value, comp_cls)
-
-  bom = BOM(encoding_pattern_index=0, image_id=0, components=components)
-
-  # Evaluate device_info rules to fill unprobeable data in the BOM object.
-  context = Context(database=database, bom=bom,
-                    device_info=device_info, vpd=vpd, mode=mode)
-  for rule in database.device_info_rules:
-    rule.Evaluate(context)
-
-  return bom
+    return probe.ProbeDUT()
 
 
 def GetDeviceInfo(infile=None):

@@ -52,6 +52,10 @@ _Converters = {
 }
 
 
+_IMAGE_ID_BIT_LENGTH = common.HEADER_BIT_LENGTH - 1
+_HEADER_FORMAT_STR = '{0:01b}{1:0%db}' % _IMAGE_ID_BIT_LENGTH
+
+
 def _VerifyPart(condition, part, value):
   if not condition(value):
     raise common.HWIDException('The given %s %r is invalid.' % (part, value))
@@ -78,10 +82,11 @@ def GetImageIdFromBinaryString(binary_string):
   Returns:
     An integer of the image id.
   """
-  _VerifyPart(lambda val: len(val) > 5 and not set(val) - set('01'),
+  _VerifyPart(lambda val: (len(val) > common.HEADER_BIT_LENGTH and
+                           not set(val) - set('01')),
               'binary_string', binary_string)
 
-  return int(binary_string[1:5], 2)
+  return int(binary_string[1:common.HEADER_BIT_LENGTH], 2)
 
 
 def GetImageIdFromEncodedString(encoded_string):
@@ -101,7 +106,7 @@ def GetImageIdFromEncodedString(encoded_string):
   _VerifyPart(lambda val: len(val) > 2,
               'encoded_body+checksum', encoded_body_and_checksum)
 
-  return int(base32.Base32.Decode(encoded_body_and_checksum[0])[1:5], 2)
+  return common.HEADER_ALPHABET.index(encoded_body_and_checksum[0]) & 0x0f
 
 
 class Identity(object):
@@ -128,11 +133,8 @@ class Identity(object):
     self.image_id = image_id
     self.components_bitset = components_bitset
 
-    # TODO(yhong): Remove this property since other package shouldn't care
-    #     about the whole binary string.
-    self.binary_string = ('{0:01b}'.format(encoding_pattern_index) +
-                          '{0:04b}'.format(image_id) +
-                          components_bitset)
+    self.binary_string = _HEADER_FORMAT_STR.format(
+        encoding_pattern_index, image_id) + components_bitset
 
   def __eq__(self, rhs):
     return isinstance(rhs, Identity) and self.__dict__ == rhs.__dict__
@@ -169,14 +171,14 @@ class Identity(object):
     _VerifyProjectPart(project)
     _VerifyPart(lambda val: val in [0, 1],
                 'encoding_pattern_index', encoding_pattern_index)
-    _VerifyPart(lambda val: val in range(1 << 4), 'image_id', image_id)
+    _VerifyPart(lambda val: val in range(1 << _IMAGE_ID_BIT_LENGTH),
+                'image_id', image_id)
     _VerifyPart(lambda val: val and not set(val) - set('01') and val[-1] == '1',
                 'components_bitset', components_bitset)
 
     # Generate the binary string with paddings.
-    binary_string = ('{0:01b}'.format(encoding_pattern_index) +
-                     '{0:04b}'.format(image_id) +
-                     components_bitset)
+    binary_string = _HEADER_FORMAT_STR.format(
+        encoding_pattern_index, image_id) + components_bitset
     binary_string += '0' * converter.GetPaddingLength(len(binary_string))
 
     encoded_body = converter.Encode(binary_string)
@@ -222,11 +224,12 @@ class Identity(object):
     # Decode and remove the padding.
     binary_string = converter.Decode(encoded_body).rstrip('0')
 
-    _VerifyPart(lambda val: len(val) > 5, 'binary_string', binary_string)
+    _VerifyPart(lambda val: len(val) > common.HEADER_BIT_LENGTH,
+                'binary_string', binary_string)
 
     encoding_pattern_index = int(binary_string[0], 2)
-    image_id = int(binary_string[1:5], 2)
-    components_bitset = binary_string[5:]
+    image_id = int(binary_string[1:common.HEADER_BIT_LENGTH], 2)
+    components_bitset = binary_string[common.HEADER_BIT_LENGTH:]
 
     return Identity(project, encoded_string, encoding_pattern_index, image_id,
                     components_bitset)
