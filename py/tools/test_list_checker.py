@@ -25,9 +25,10 @@ def CheckTestList(manager_, test_list_id):
     test_list_id: ID of the test list (a string).
   """
   logging.info('Checking test list: %s...', test_list_id)
-  test_list = manager_.GetTestListByID(test_list_id)
-  if not test_list:
-    logging.error('Failed to load test list: %s.', test_list_id)
+  try:
+    test_list = manager_.GetTestListByID(test_list_id)
+  except Exception:
+    logging.exception('Failed to load test list: %s.', test_list_id)
     return
 
   try:

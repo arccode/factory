@@ -900,10 +900,6 @@ class TestList(ITestList):
     try:
       new_config = self._loader.Load(self._config.test_list_id)
 
-      if not new_config:
-        raise type_utils.TestListError(
-            'Syntax or schema error in %s' % self._config.test_list_id)
-
       # make sure the new test list is working, if it's not, will raise an
       # exception and self._config will not be changed.
       TestList(new_config, self._checker, self._loader).CheckValid()

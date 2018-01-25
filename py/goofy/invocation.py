@@ -118,13 +118,7 @@ class PytestInfo(object):
 
   def ReadTestList(self):
     """Reads and returns the test list."""
-    mgr = manager.Manager()
-
-    test_list = mgr.GetTestListByID(self.test_list)
-
-    if test_list is None:
-      raise KeyError('Test list `%s` not found' % self.test_list)
-    return test_list
+    return manager.Manager().GetTestListByID(self.test_list)
 
 
 class TestInvocation(object):

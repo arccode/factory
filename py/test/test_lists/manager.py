@@ -131,7 +131,7 @@ class Loader(object):
           generate_depend=allow_inherit)
     except Exception:
       logging.exception('Cannot load test list "%s"', test_list_id)
-      return None
+      raise
 
     loaded_config = TestListConfig(
         resolved_config=loaded_config,
@@ -184,28 +184,29 @@ class Manager(object):
 
     Returns:
       a TestList object if the corresponding test list config is loaded
-      successfully, otherwise None.
+      successfully.
+
+    Raises:
+      Exception if either the config is not found, is not loaded successfully,
+      or check failed on test list.
     """
     if test_list_id in self.test_lists:
       self.test_lists[test_list_id].ReloadIfModified()
       return self.test_lists[test_list_id]
 
     config = self.loader.Load(test_list_id)
-    if not config:
-      # cannot load config file, return the value we currently have
-      return self.test_lists.get(test_list_id, None)
 
     if not isinstance(config, TestListConfig):
-      logging.critical('Loader is not returning a TestListConfig instance')
-      return None
+      raise ValueError('Loader is not returning a TestListConfig instance')
 
     try:
       test_list = test_list_module.TestList(config, self.checker, self.loader)
       self.test_lists[test_list_id] = test_list
+      return test_list
     except Exception:
       logging.critical('Failed to build test list %r from config',
                        test_list_id)
-    return self.test_lists.get(test_list_id, None)
+      raise
 
   def GetTestListIDs(self):
     return self.test_lists.keys()
@@ -216,8 +217,6 @@ class Manager(object):
       logging.debug('try to load test list: %s', test_list_id)
       try:
         test_list = self.GetTestListByID(test_list_id)
-        if test_list is None:
-          raise type_utils.TestListError('failed to load test list')
       except Exception:
         path = self.loader.GetConfigPath(test_list_id)
         logging.exception('Unable to import %s', path)
