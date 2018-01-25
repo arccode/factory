@@ -47,7 +47,7 @@ CLOSURE_BUILD = \
     -f \
     --warning_level=VERBOSE
 
-.PHONY: all clean
+.PHONY: all clean check_deps check_js
 
 all: $(OUTPUT_JS) $(OUTPUT_CSS)
 
