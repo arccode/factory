@@ -146,7 +146,7 @@ class FactoryState(object):
   See help(FactoryState.[methodname]) for more information.
   """
 
-  _TEST_STATE_POSTFIX = '__test_state__'
+  TEST_STATE_POSTFIX = '__test_state__'
 
   def __init__(self, state_file_dir=None):
     """Initializes the state server.
@@ -169,12 +169,14 @@ class FactoryState(object):
     for layer in self.layers:
       layer.Close()
 
-  def _convert_test_path_to_key(self, path):
-    return shelve_utils.DictKey.Join(path, self._TEST_STATE_POSTFIX)
+  @classmethod
+  def convert_test_path_to_key(cls, path):
+    return shelve_utils.DictKey.Join(path, cls.TEST_STATE_POSTFIX)
 
-  def _convert_key_to_test_path(self, key):
+  @classmethod
+  def convert_key_to_test_path(cls, key):
     test_path, postfix = shelve_utils.DictKey.Split(key)
-    if postfix != cls._TEST_STATE_POSTFIX:
+    if postfix != cls.TEST_STATE_POSTFIX:
       raise KeyError('Invalid test path key: %r' % key)
     return test_path
 
@@ -194,7 +196,7 @@ class FactoryState(object):
       A tuple containing the new state, and a boolean indicating whether the
       state was just changed.
     """
-    key = self._convert_test_path_to_key(path)
+    key = self.convert_test_path_to_key(path)
     for layer in self.layers:
       state = layer.tests_shelf.GetValue(key, optional=True)
       old_state_repr = repr(state)
@@ -216,7 +218,7 @@ class FactoryState(object):
   @sync_utils.Synchronized
   def get_test_state(self, path):
     """Returns the state of a test."""
-    key = self._convert_test_path_to_key(path)
+    key = self.convert_test_path_to_key(path)
     # when accessing, we need to go from top layer to bottom layer
     for layer in reversed(self.layers):
       try:
@@ -229,11 +231,11 @@ class FactoryState(object):
   def get_test_paths(self):
     """Returns a list of all tests' paths."""
     # GetKeys() only returns keys that are mapped to a value, therefore, all
-    # keys returned should end with `self._TEST_STATE_POSTFIX`.
+    # keys returned should end with `self.TEST_STATE_POSTFIX`.
     keys = set()
     for layer in self.layers:
       keys |= set(layer.tests_shelf.GetKeys())
-    return [self._convert_key_to_test_path(key) for key in keys]
+    return [self.convert_key_to_test_path(key) for key in keys]
 
   @sync_utils.Synchronized
   def get_test_states(self):

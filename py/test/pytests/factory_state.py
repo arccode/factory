@@ -126,6 +126,11 @@ class ManipulateFactoryStateLayer(unittest.TestCase):
           'devices (copy from source to destination), the `device` will be '
           'source, and destination will be the other role.',
           default=ENUM_ROLE.STATION),
+      Arg('exclude_current_test_list', bool,
+          "For `COPY` command, don't copy test states of current test list.",
+          default=True),
+      Arg('include_tests', bool,
+          'For `COPY` command, include `tests_shelf`.', default=False),
   ]
 
   def setUp(self):
@@ -184,8 +189,27 @@ class ManipulateFactoryStateLayer(unittest.TestCase):
     if source is None or destination is None:
       raise type_utils.TestFailure('Unsupported operation')
     # currently, we only support getting data from top layer
-    serialized_data = source.SerializeLayer(-1)
+    serialized_data = source.SerializeLayer(
+        -1, include_tests=self.args.include_tests)
     if destination.GetLayerCount() == state.FactoryState.MAX_LAYER_NUM:
       logging.warning('Max layer number reached, top layer will be popped.')
       destination.PopLayer()
+
+    if self.args.include_tests:
+      # We need to modify the test states, otherwise the test that is currently
+      # running on station might be messed up.
+      layer = state.FactoryStateLayer()
+      layer.loads(serialized_data)
+      # remove root node, because every test list has this node.
+      layer.tests_shelf.DeleteKeys(
+          [state.FactoryState.convert_test_path_to_key('')],
+          optional=True)
+      if self.args.exclude_current_test_list:
+        test_list = self.test_info.ReadTestList()
+        for test in test_list.Walk():
+          layer.tests_shelf.DeleteKeys(
+              [state.FactoryState.convert_test_path_to_key(test.path)],
+              optional=True)
+      serialized_data = layer.dumps(True, True)
+
     destination.AppendLayer(serialized_data=serialized_data)
