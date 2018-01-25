@@ -109,10 +109,14 @@ class FactoryStateLayer(object):
 
   def dumps(self, include_data, include_tests):
     o = {}
-    if include_tests:
-      o['tests'] = self.tests_shelf.GetValue('', {})
-    if include_data:
-      o['data'] = self.data_shelf.GetValue('', {})
+    # Only includes 'tests' or 'data' if they are set.
+    # `GetValue(key, optional=True) == None` when key is not found.  But
+    # `SetValue('', None)` will create a unwanted ('', None) key-value pair in
+    # `self.loads()`.
+    if include_tests and self.tests_shelf.HasKey(''):
+      o['tests'] = self.tests_shelf.GetValue('')
+    if include_data and self.data_shelf.HasKey(''):
+      o['data'] = self.data_shelf.GetValue('')
     return pickle.dumps(o)
 
 
@@ -170,7 +174,8 @@ class FactoryState(object):
 
   def _convert_key_to_test_path(self, key):
     test_path, postfix = shelve_utils.DictKey.Split(key)
-    assert postfix == self._TEST_STATE_POSTFIX
+    if postfix != cls._TEST_STATE_POSTFIX:
+      raise KeyError('Invalid test path key: %r' % key)
     return test_path
 
   @sync_utils.Synchronized
