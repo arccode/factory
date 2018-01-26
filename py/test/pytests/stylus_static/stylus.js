@@ -197,12 +197,13 @@ const setupStylusTest =
     };
 
 /**
- * Pass an input event.
- * @param {number} x_ratio
- * @param {number} y_ratio
+ * Pass input events.
+ * @param {Array<Array<number>>} xy_ratios
  */
-const handler = (x_ratio, y_ratio) => {
-  window.stylusTest.handler(new Vector(x_ratio, y_ratio));
+const handler = xy_ratios => {
+  xy_ratios.forEach(
+      xy_ratio => window.stylusTest.handler(
+          new Vector(xy_ratio[0], xy_ratio[1])));
 };
 
 const exports = {

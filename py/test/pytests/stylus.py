@@ -49,6 +49,8 @@ to draw a line from left-top to left-bottom::
   }
 """
 
+import threading
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
 from cros.factory.test.i18n import _
@@ -56,6 +58,7 @@ from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
 from cros.factory.test.utils import touch_monitor
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import sync_utils
 
 
 class StylusMonitor(touch_monitor.SingleTouchMonitor):
@@ -63,12 +66,23 @@ class StylusMonitor(touch_monitor.SingleTouchMonitor):
   def __init__(self, device, ui):
     super(StylusMonitor, self).__init__(device)
     self._ui = ui
+    self._lock = threading.RLock()
+    self._buffer = []
 
+  @sync_utils.Synchronized
   def OnMove(self):
     """See SingleTouchMonitor.OnMove."""
     state = self.GetState()
     if state.keys[evdev.ecodes.BTN_TOUCH]:
-      self._ui.CallJSFunction('handler', state.x, state.y)
+      # Instead of directly call JavaScript function 'handler' here, we buffer
+      # the events to reduce the latency from CallJSFunction.
+      self._buffer.append([state.x, state.y])
+
+  @sync_utils.Synchronized
+  def Flush(self):
+    if self._buffer:
+      self._ui.CallJSFunction('handler', self._buffer)
+      self._buffer = []
 
 
 class StylusTest(test_ui.TestCaseWithUI):
@@ -103,6 +117,9 @@ class StylusTest(test_ui.TestCaseWithUI):
           'Starts the test automatically without prompting.  Operators can '
           'still press ESC to fail the test.',
           default=False),
+      Arg('flush_interval', float,
+          'The time interval of flushing event buffers.',
+          default=0.1)
       ]
 
   def setUp(self):
@@ -120,7 +137,9 @@ class StylusTest(test_ui.TestCaseWithUI):
     for point in self.args.endpoints_ratio:
       assert isinstance(point, list) and len(point) == 2
       assert all(0 <= x_or_y <= 1 for x_or_y in point)
-      assert point[0] in [0, 1] or point[1] in [0, 1]
+      assert any(x_or_y in [0, 1] for x_or_y in point)
+
+    assert self.args.flush_interval > 0
 
   def tearDown(self):
     if self._dispatcher is not None:
@@ -147,4 +166,6 @@ class StylusTest(test_ui.TestCaseWithUI):
     self._dispatcher = evdev_utils.InputDeviceDispatcher(self._device,
                                                          self._monitor.Handler)
     self._dispatcher.StartDaemon()
-    self.WaitTaskEnd()
+    while True:
+      self._monitor.Flush()
+      self.Sleep(self.args.flush_interval)
