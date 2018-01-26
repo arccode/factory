@@ -72,11 +72,5 @@ jQuery.Type.prototype.bind;
 
 // Some missing method types from closure library.
 
-/** @type {function()} */
-Document.prototype.open;
-
-/** @type {function()} */
-Document.prototype.close;
-
 /** @type {function(!Node)} */
 Node.prototype.prepend;
