@@ -31,13 +31,10 @@ class BrightnessTest(test_ui.TestCaseWithUI):
     """Starts an infinite loop to change brightness."""
     self.ui.StartFailingCountdownTimer(self.args.timeout_secs)
 
-    def _SetLevel():
-      while True:
-        for level in self.args.levels:
-          yield self._SetBrightnessLevel(level)
-
-    self.event_loop.AddTimedIterable(_SetLevel(), self.args.interval_secs)
-    self.WaitTaskEnd()
+    while True:
+      for level in self.args.levels:
+        self._SetBrightnessLevel(level)
+        self.Sleep(self.args.interval_secs)
 
   def _SetBrightnessLevel(self, level):
     raise NotImplementedError
