@@ -76,6 +76,9 @@ class Scan(test_ui.TestCaseWithUI):
       Arg('shared_data_key', str,
           'Key to use to store in scanned value in shared data',
           default=None),
+      Arg('serial_number_key', str,
+          'Key to use to store in scanned value in serial numbers',
+          default=None),
       Arg('device_data_key', str,
           'Key to use to store in scanned value in device data',
           default=None),
@@ -153,6 +156,9 @@ class Scan(test_ui.TestCaseWithUI):
 
     if self.args.shared_data_key:
       state.set_shared_data(self.args.shared_data_key, scan_value)
+
+    if self.args.serial_number_key:
+      device_data.SetSerialNumber(self.args.serial_number_key, scan_value)
 
     if self.args.device_data_key:
       device_data.UpdateDeviceData({self.args.device_data_key: scan_value})

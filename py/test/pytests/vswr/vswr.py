@@ -37,6 +37,7 @@ import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import device_data
 from cros.factory.test import event_log
 from cros.factory.test.i18n import _
 from cros.factory.test import rf
@@ -80,7 +81,8 @@ class VSWR(test_ui.TestCaseWithUI):
 
   def setUp(self):
     self._station = device_utils.CreateStationInterface()
-    self._serial_number = state.get_shared_data(self.args.serial_number_key)
+    self._serial_number = device_data.GetSerialNumber(
+        self.args.serial_number_key)
     if self._serial_number is None:
       self.fail('Serial number does not exist.')
     self.log = {
