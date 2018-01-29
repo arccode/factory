@@ -1734,8 +1734,8 @@ msgid "Fixture is checking if video is displayed on {display}?"
 msgstr "治具正在测试外接显示屏 {display} 是否有画面?"
 
 #: ../py/test/pytests/external_display.py
-msgid "Connect external display: {display}"
-msgstr "请接上外接显示屏: {display}"
+msgid "Connect external display: {display} and wait until it becomes primary."
+msgstr "请接上外接显示屏: {display} 并等待其成为主要显示屏。"
 
 #: ../py/test/pytests/external_display.py
 msgid "Disconnect external display: {display}"

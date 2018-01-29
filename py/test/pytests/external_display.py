@@ -71,6 +71,7 @@ from __future__ import print_function
 import collections
 import logging
 import random
+import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -85,7 +86,7 @@ from cros.factory.utils.arg_utils import Arg
 
 
 # Interval (seconds) of probing connection state.
-_CONNECTION_CHECK_PERIOD_SECS = 2
+_CONNECTION_CHECK_PERIOD_SECS = 1
 
 
 ExtDisplayTaskArg = collections.namedtuple('ExtDisplayTaskArg', [
@@ -148,6 +149,8 @@ class ExtDisplayTest(test_ui.TestCaseWithUI):
       self.do_connect = True
       self.do_output = True
       self.do_disconnect = True
+
+    self._toggle_timestamp = 0
 
     # Setup tasks
     for info in self.args.display_info:
@@ -237,7 +240,7 @@ class ExtDisplayTest(test_ui.TestCaseWithUI):
     """Use fixture to check display.
 
     When expected connection state is observed, it pass the task.
-    It probes display state every _CONNECTION_CHECK_PERIOD_SECS seconds.
+    It probes display state every second.
 
     Args:
       args: ExtDisplayTaskArg instance.
@@ -307,8 +310,9 @@ class ExtDisplayTest(test_ui.TestCaseWithUI):
 
   def WaitConnect(self, args):
     self.ui.BindStandardFailKeys()
-    self.ui.SetState(
-        _('Connect external display: {display}', display=args.display_label))
+    self.ui.SetState(_('Connect external display: {display} and wait until '
+                       'it becomes primary.',
+                       display=args.display_label))
 
     self._WaitDisplayConnection(args, True)
 
@@ -317,6 +321,17 @@ class ExtDisplayTest(test_ui.TestCaseWithUI):
     self.ui.SetState(
         _('Disconnect external display: {display}', display=args.display_label))
     self._WaitDisplayConnection(args, False)
+
+  def _SetExtendMode(self):
+    """Simulate pressing Ctrl+F4 to switch to extend mode from mirror mode."""
+    t = time.time()
+    # Ctrl+F4 actually toggles the mode, while what we want is extend mode.
+    # It takes about 0.5 seconds to switch the mode. We should avoid pressing
+    # them again in a short time or it might get back to mirror mode, so we
+    # wait for 2 seconds for the previous transition to be completed.
+    if self._toggle_timestamp < t - 2:
+      evdev_utils.SendKeys([evdev.ecodes.KEY_LEFTCTRL, evdev.ecodes.KEY_F4])
+      self._toggle_timestamp = t
 
   def _WaitDisplayConnection(self, args, connect):
     if self._fixture and not (connect and self.args.already_connect):
@@ -328,21 +343,19 @@ class ExtDisplayTest(test_ui.TestCaseWithUI):
 
     while True:
       # Check USBPD status before display info
-      if args.usbpd_port is not None:
-        if self._dut.usb_c.GetPDStatus(args.usbpd_port)['connected'] != connect:
-          self.Sleep(_CONNECTION_CHECK_PERIOD_SECS)
-          continue
-
-      port_info = self._dut.display.GetPortInfo()
-      if port_info[args.display_id].connected == connect:
-        display_info = state.get_instance().DeviceGetDisplayInfo()
-        # In the case of connecting an external display, make sure there
-        # is an item in display_info with 'isInternal' False.
-        # On the other hand, in the case of disconnecting an external display,
-        # we can not check display info has no display with 'isInternal' False
-        # because any display for chromebox has 'isInternal' False.
-        if any(not x['isInternal'] for x in display_info) or not connect:
-          logging.info('Get display info %r', display_info)
-          return
-
+      if (args.usbpd_port is None or
+          self._dut.usb_c.GetPDStatus(args.usbpd_port)['connected'] == connect):
+        port_info = self._dut.display.GetPortInfo()
+        if port_info[args.display_id].connected == connect:
+          display_info = state.get_instance().DeviceGetDisplayInfo()
+          # In the case of connecting an external display, make sure there
+          # is an item in display_info with 'isInternal' False.
+          # On the other hand, in the case of disconnecting an external display,
+          # we can not check display info has no display with 'isInternal' False
+          # because any display for chromebox has 'isInternal' False.
+          if connect and all(x['isInternal'] for x in display_info):
+            self._SetExtendMode()
+          else:
+            logging.info('Get display info %r', display_info)
+            break
       self.Sleep(_CONNECTION_CHECK_PERIOD_SECS)
