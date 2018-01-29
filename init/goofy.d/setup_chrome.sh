@@ -7,10 +7,14 @@
 
 conf_dir="$(dirname $0)"
 conf_file="${conf_dir}/chrome_dev.conf"
+model="$(mosys platform model || true)"
 board_conf_file="${conf_dir}/chrome_dev_board.conf"
+model_conf_file="${conf_dir}/chrome_dev_${model}.conf"
 
-# If board conf file from board overlay exists, use it
-if [ -f "${board_conf_file}" ]; then
+# If model or board conf file from board overlay exists, use it
+if [ -f "${model_conf_file}" ]; then
+  conf_file="${model_conf_file}"
+elif [ -f "${board_conf_file}" ]; then
   conf_file="${board_conf_file}"
 fi
 
