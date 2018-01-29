@@ -73,7 +73,12 @@ class UmpireClientInfo(object):
     self.pd_version = None
     self.macs = {}
     self.stage = None
-    self.dut = _dut or device_utils.CreateDUTInterface()
+    self.dut = _dut
+    if not self.dut:
+      self.dut = device_utils.CreateDUTInterface()
+      if not self.dut.link.IsLocal():
+        # In station mode, it's the station who's connecting to Umpire
+        self.dut = device_utils.CreateStationInterface()
 
     self.Update()
 
@@ -95,6 +100,8 @@ class UmpireClientInfo(object):
     # new_info['macs'] is a dict like
     # {'eth0': 'xx:xx:xx:xx:xx:xx', 'eth1': 'xx:xx:xx:xx:xx:xx',
     #  'wlan0': 'xx:xx:xx:xx:xx:xx'}
+    if not system_info.eth_macs:
+      raise UmpireClientInfoException('No mac address detected')
     macs = dict(system_info.eth_macs)
     macs['wlan0'] = system_info.wlan0_mac
     new_info['macs'] = macs
