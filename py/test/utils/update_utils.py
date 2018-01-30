@@ -51,12 +51,14 @@ class Updater(object):
 
   KEY_VERSION = 'version'
 
-  def __init__(self, component, proxy=None):
+  def __init__(self, component, proxy=None, spawn=None):
     self._component = component
     self._url = None
     self._payload = {}
     self._proxy = proxy
     self._loaded = False
+    self._spawn = spawn or (
+        lambda command: process_utils.Spawn(command, log=True, check_call=True))
 
   def GetUpdateInfo(self, force_reload=False):
     """Gets raw information of updates on server."""
@@ -128,10 +130,8 @@ class Updater(object):
 
     # Ensure the component information is already fetched.
     self.GetUpdateInfo()
-    # TODO(hungte) Allow monitoring stdout and stderr.
-    process_utils.Spawn(
-        ['cros_payload', 'install', self._url, destination,
-         self._component], log=True, check_call=True)
+    self._spawn(
+        ['cros_payload', 'install', self._url, destination, self._component])
     if not callback:
       callback = self.UpdateCallback
     return callback(self._component, destination, self._url)

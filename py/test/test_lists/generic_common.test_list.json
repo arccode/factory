@@ -180,6 +180,14 @@
         "pass_without_prompt": false
       }
     },
+    "CheckReleaseImage": {
+      "pytest_name": "check_image_version",
+      "label": "Check Release Image",
+      "args": {
+        "check_release_image": true,
+        "use_netboot": false
+      }
+    },
     "ClearFactoryVPDEntries": {
       "inherit": "TestGroup",
       "label": "Clear factory VPD entries",
