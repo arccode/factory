@@ -767,7 +767,9 @@ class ScrollableLogUI(StandardUI):
     #ui-log {
       flex: 1;
       overflow: auto;
-      padding: 1em;
+      padding: 0.5em;
+    }
+    #ui-log div {
       font-family: monospace;
     }
   </style>
@@ -777,13 +779,19 @@ class ScrollableLogUI(StandardUI):
     </div>
   </test-template>
   """
+  max_log_lines = 128
 
   def AppendLog(self, line):
     """Append a line of log to the UI.
 
     line: The log to be append.
     """
-    self.AppendHTML(Escape(line), id='ui-log', autoscroll=True)
+    self.AppendHTML(
+        '<div>%s</div>' % Escape(line), id='ui-log', autoscroll=True)
+    if self.max_log_lines is not None:
+      self.RunJS('const log = document.getElementById("ui-log");'
+                 'if (log.childNodes.length > %d)'
+                 '  log.removeChild(log.firstChild);' % self.max_log_lines)
 
   def ClearLog(self):
     """Clear the log in UI."""
@@ -805,7 +813,7 @@ class ScrollableLogUI(StandardUI):
       logging.info(line)
       if callback:
         callback(line)
-      self.AppendLog(line + '\n')
+      self.AppendLog(line)
 
     process = process_utils.Spawn(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, log=True)

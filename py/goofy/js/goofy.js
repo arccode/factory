@@ -2989,9 +2989,11 @@ cros.factory.Goofy = class {
             return;
           }
 
+          // Add some margin so that people don't need to scroll to the very
+          // bottom to make autoscroll work.
           const scrollAtBottom =
-              (element.scrollHeight - element.scrollTop ===
-               element.clientHeight);
+              (element.scrollHeight - element.scrollTop >=
+               element.clientHeight - 10);
 
           if (message.append) {
             const fragment = cros.factory.utils.createFragmentFromHTML(
