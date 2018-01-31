@@ -630,6 +630,20 @@ class FactoryTest(object):
                      self.path)
         self.UpdateState(status=TestState.SKIPPED)
 
+  def Waive(self):
+    """Waive this test and any subtests.
+
+    If the test is 'FAILED' already, also update its status to
+    'FAILED_AND_WAIVED'
+    """
+    self.waived = True
+
+    for test in self.subtests:
+      test.Waive()
+
+    if self.GetState().status == TestState.FAILED:
+      self.UpdateState(status=TestState.FAILED_AND_WAIVED)
+
   def IsSkipped(self):
     """Returns True if this test was skipped."""
     state = self.GetState()

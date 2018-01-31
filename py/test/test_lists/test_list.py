@@ -554,8 +554,7 @@ class ITestList(object):
       FAILED_AND_WAIVED when failed.  And the status will be propagated to
       parents (this test).
       """
-      for subtest in test.Walk():
-        subtest.waived = True
+      test.Waive()
 
     _CollectPatterns(self.options.skipped_tests, _MarkSkipped)
     _CollectPatterns(self.options.waived_tests, _MarkWaived)

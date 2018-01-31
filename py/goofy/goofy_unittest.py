@@ -679,20 +679,28 @@ class WaivedTestTest(GoofyUITest):
       ]
   }
 
+  def before_init_goofy(self):
+    super(WaivedTestTest, self).before_init_goofy()
+    # 'G.waived' is already FAILED previously.
+    self.state.update_test_state(path='G.waived', status=TestState.FAILED)
+
   def runTest(self):
     mock_pytest('waived_test', TestState.FAILED, 'Failed')
     mock_pytest('normal_test', TestState.PASSED, '')
     self.mocker.ReplayAll()
 
+    # After Goofy init, 'G.waived' should be set to 'FAILED_AND_WAIVED'.
+    self.assertEqual(self.state.get_test_state('G.waived').status,
+                     TestState.FAILED_AND_WAIVED)
+
     for _ in range(4):
       self.assertTrue(self.goofy.run_once())
       self.goofy.wait()
 
-    state_instance = state.get_instance()
     self.assertEqual(
         [TestState.FAILED_AND_WAIVED, TestState.PASSED,
          TestState.FAILED_AND_WAIVED, TestState.FAILED_AND_WAIVED],
-        [state_instance.get_test_state(x).status
+        [self.state.get_test_state(x).status
          for x in ['waived', 'normal', 'G', 'G.waived']])
     self._wait()
 
