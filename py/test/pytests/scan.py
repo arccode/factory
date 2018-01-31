@@ -139,7 +139,7 @@ class Scan(test_case.TestCase):
                     'document.getElementById("scan-value").value = ""')
       self.ui.SetFocus('scan-value')
 
-    self.ui.RunJS('$("scan-value").disabled = true')
+    self.ui.RunJS('document.getElementById("scan-value").disabled = true')
     scan_value = event.data.strip()
     if self.args.ignore_case:
       scan_value = scan_value.upper()

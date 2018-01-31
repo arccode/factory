@@ -505,11 +505,6 @@ cros.factory.Invocation = class {
      */
     this.test = new cros.factory.Test(this);
 
-    // TODO(pihsun): Remove this and use getElementById directly, since $ is
-    // typically used as jQuery, not getElementById.
-    this.iframe.contentWindow.$ = (/** string */ id) =>
-        this.iframe.contentDocument.getElementById(id);
-
     // Export the libraries to test iframe.
     this.iframe.contentWindow.cros = cros;
     this.iframe.contentWindow.goog = goog;
