@@ -53,7 +53,10 @@ post_to_shopfloor() {
       echo "Shopfloor Service failed, response: ${response}" >"${TTY}"
     else
       echo "SUCCESS: Invoked Shopfloor Service." >"${TTY}"
-      return
+      # The TTY for devices without a connected monitor/display may disappear,
+      # thus return non-zero value, since we have exectued by here, we can just
+      # return 0 as success.
+      return 0
     fi
 
     echo "Retry in 10s..." >"${TTY}"
