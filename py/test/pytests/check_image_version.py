@@ -28,7 +28,7 @@ Test Procedure
    download and install the selected component using ``cros_paload`` command.
    If the needed components are not available on factory server, this test will
    fail.
-6. If ``use_netboot`` is set to True, The DUT will then reboot into netboot
+5. If ``use_netboot`` is set to True, The DUT will then reboot into netboot
    firmware and start network image installation process to reimage.
 
 Dependency
