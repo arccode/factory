@@ -119,6 +119,15 @@
     }
 
     /**
+     * Get the size for the state section.
+     * @return {!DOMRect}
+     */
+    getStateSize() {
+      return this.shadowRoot.querySelector('#state-container')
+          .getBoundingClientRect();
+    }
+
+    /**
      * Add a button to the button section with given label.
      * @param {!cros.factory.i18n.TranslationDict} label
      * @return {!HTMLButtonElement}

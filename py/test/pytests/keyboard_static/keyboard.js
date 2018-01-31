@@ -31,6 +31,25 @@ window.KeyboardTest = class {
       keyContainer.style.left = xOffset;
     };
     container.appendChild(img);
+
+    this.fitToStateContainer(container);
+    window.addEventListener('resize', () => {
+      this.fitToStateContainer(container);
+    });
+  }
+
+  /**
+   * Add transform: scale(xxx) to element so it's inside state container.
+   * @param {!Element} element
+   */
+  fitToStateContainer(element) {
+    const {width: stateWidth, height: stateHeight} =
+        window.template.getStateSize();
+    const elementWidth = element.scrollWidth;
+    const elementHeight = element.scrollHeight;
+    const minRatio =
+        Math.min(1, stateWidth / elementWidth, stateHeight / elementHeight);
+    element.style.transform = `scale(${minRatio})`;
   }
 
   /**
