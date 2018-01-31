@@ -12,6 +12,7 @@ import resource
 import shutil
 import signal
 import socket
+import subprocess
 import tempfile
 import textwrap
 import time
@@ -474,10 +475,16 @@ def _InformShopfloor(shopfloor_url):
   if shopfloor_url:
     logging.debug('inform shopfloor %s', shopfloor_url)
     proc = process_utils.Spawn(
-        [os.path.join(CUTOFF_SCRIPT_DIR, 'inform_shopfloor.sh'), shopfloor_url,
-         'factory_wipe'], check_call=True)
+        [
+            os.path.join(CUTOFF_SCRIPT_DIR, 'inform_shopfloor.sh'),
+            shopfloor_url, 'factory_wipe'
+        ],
+        read_stdout=True,
+        read_stderr=True)
     logging.debug('stdout: %s', proc.stdout_data)
     logging.debug('stderr: %s', proc.stderr_data)
+    if proc.returncode != 0:
+      raise subprocess.CalledProcessError('InformShopfloor failed.')
 
 
 def _Cutoff():
