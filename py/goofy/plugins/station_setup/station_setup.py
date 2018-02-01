@@ -16,6 +16,7 @@ from cros.factory.test.env import paths
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test import session
+from cros.factory.test.test_lists import test_list
 from cros.factory.tools.goofy_ghost import ghost_prop
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
@@ -27,9 +28,6 @@ _DEFAULT_STATION_KEYS = [('station_name', _('Station Name')),
 
 _OVL_BIN = os.path.join(paths.FACTORY_DIR, 'bin', 'ovl')
 _OVERLORD_DEFAULT_PORT = 9000
-
-# TODO(pihsun): Remove duplicate with JSON test list.
-_I18N_PREFIX = 'i18n! '
 
 
 class StationSetup(plugin.Plugin):
@@ -60,11 +58,7 @@ class StationSetup(plugin.Plugin):
     if self.key_desc is None:
       self.key_desc = _DEFAULT_STATION_KEYS
     for idx, (key, description) in enumerate(self.key_desc):
-      # TODO(pihsun): Remove duplicate with JSON test list.
-      if (isinstance(description, basestring) and
-          description.startswith(_I18N_PREFIX)):
-        self.key_desc[idx] = (key,
-                              i18n.Translated(description[len(_I18N_PREFIX):]))
+      self.key_desc[idx] = (key, test_list.MayTranslate(description))
 
     self.key_desc_dict = dict(self.key_desc)
 
