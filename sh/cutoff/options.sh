@@ -43,7 +43,8 @@ lsbval() {
 options_find_tty() {
   local tty
   for tty in "${TTY}" /dev/tty1 /dev/tty /dev/console /dev/null; do
-    if [ -c "${tty}" ]; then
+    # Not only check the TTY exists, but also check piping works.
+    if [ -c "${tty}" ] && echo "" >"${tty}" 2>&1; then
       TTY="${tty}"
       break
     fi
