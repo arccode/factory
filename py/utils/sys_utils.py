@@ -733,11 +733,11 @@ def GetStartupMessages(dut=None):
   # The console-ramoops file changed names with linux-3.19+.
   try:
     res['console_ramoops'] = _GetFileContent(
-        '/dev/pstore/console-ramoops-0')
+        '/sys/fs/pstore/console-ramoops-0')
   except Exception:
     try:
       res['console_ramoops'] = _GetFileContent(
-          '/dev/pstore/console-ramoops')
+          '/sys/fs/pstore/console-ramoops')
     except Exception:
       logging.debug('Error to retrieve console ramoops log '
                     '(This is normal for cold reboot).')

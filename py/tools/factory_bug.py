@@ -195,7 +195,7 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
             # These are hardcoded paths because they are virtual
             # filesystems; the data we want is always in /dev and
             # /sys, never on the SSD.
-            '/dev/pstore',
+            '/sys/fs/pstore',
             '/sys/firmware/log',
         ]], [])
 
