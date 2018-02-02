@@ -1034,11 +1034,9 @@ cros.factory.Goofy = class {
     // We need a setTimeout(, 0) since the i.iframe.contentWindow.focus()
     // doesn't work directly in the onfocus handler of window.
     setTimeout(() => {
-      if (this.dialogs.length) {
-        // Don't divert focus, since there's a dialog.
-        return;
-      }
-      if (this.contextMenu) {
+      // Don't divert focus if there's a dialog visible, a context menu or
+      // terminal opened.
+      if (this.dialogs.length || this.contextMenu || this.terminal_win) {
         return;
       }
 
