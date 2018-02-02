@@ -382,7 +382,7 @@ class CameraTest(test_ui.TestCaseWithUI):
         if self.args.show_image:
           self.ShowImage(cv_image)
 
-        self.Sleep(max(0, tick - (time.time() - start_time)))
+        self.Sleep(tick - (time.time() - start_time))
     finally:
       self.DisableDevice()
 

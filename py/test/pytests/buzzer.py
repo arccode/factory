@@ -64,7 +64,7 @@ class BuzzerTest(test_ui.TestCaseWithUI):
         self.Sleep(self.args.mute_duration_secs)
       # Try to make the test always run for about same duration, to avoid
       # cheating by looking at when the buttons appear.
-      self.Sleep(max(0, max_total_duration - (time.time() - start_time)))
+      self.Sleep(max_total_duration - (time.time() - start_time))
 
       all_keys = [str(num + 1) for num in range(_MAX_BEEP_TIMES)] + ['R']
       key = self.ui.WaitKeysOnce(all_keys)

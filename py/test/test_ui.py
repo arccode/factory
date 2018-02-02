@@ -880,7 +880,7 @@ class TestCaseWithUI(unittest.TestCase):
     timeout is given.
 
     Args:
-      secs: Seconds to sleep.
+      secs: Seconds to sleep, would return or raise immediately if value <= 0.
 
     Raises:
       TaskEndException if the task end before secs seconds.
