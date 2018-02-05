@@ -56,7 +56,7 @@ window.TouchscreenTest = class {
    */
   setupUI() {
     if (this.e2eMode) {
-      const fullScreenElement = document.getElementById('full-screen');
+      const fullScreenElement = document.getElementById('fullscreen');
       const handler = (handlerName) => (event) => {
         event.preventDefault();
         const touchEvent = event.changedTouches[0];

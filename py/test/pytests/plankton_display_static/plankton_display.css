@@ -4,15 +4,6 @@
  * found in the LICENSE file.
  */
 
-#display-full-screen {
-  background-color: white;
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  top: 0;
-}
-
 .display-subtest-image {
   background-image: url("./template.png");
 }
