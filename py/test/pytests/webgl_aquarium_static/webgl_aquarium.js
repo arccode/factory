@@ -2,97 +2,88 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-const webgl_iframe = document.getElementById('webgl-aquarium');
+const webglIFrame = document.getElementById('webgl-aquarium');
 
 const iframeLoaded = new Promise((resolve) => {
-  webgl_iframe.contentWindow.addEventListener('load', resolve);
+  webglIFrame.contentWindow.addEventListener('load', resolve);
 });
 
 const getFpsContainer = () =>
-    webgl_iframe.contentDocument.getElementsByClassName('fpsContainer')[0];
+    webglIFrame.contentDocument.getElementsByClassName('fpsContainer')[0];
 
 const hideOptions = () => {
-  const top_ui = webgl_iframe.contentDocument.getElementById('topUI');
-  if (top_ui) {
-    top_ui.style.display = 'none';
+  const topUI = webglIFrame.contentDocument.getElementById('topUI');
+  if (topUI) {
+    topUI.style.display = 'none';
   }
 };
 
-const enableFullScreen = () => {
-  window.test.setFullScreen(true);
-  webgl_iframe.classList.add('goofy-aquarium-full-screen');
-  iframeLoaded.then(() => {
-    webgl_iframe.contentDocument.getElementById('info').style.display = 'none';
-  });
-};
-
-const disableFullScreen = () => {
-  webgl_iframe.classList.remove('goofy-aquarium-full-screen');
-  iframeLoaded.then(() => {
-    webgl_iframe.contentDocument.getElementById('info').style.display = 'block';
-    // fpsContainer is moved during updateUI().
-    getFpsContainer().style.top = '10px';
-  });
-  window.test.setFullScreen(false);
-};
-
-const isFullScreen = () =>
-    webgl_iframe.classList.contains('goofy-aquarium-full-screen');
+const isFullScreen = () => webglIFrame.classList.contains('fullscreen');
 
 const toggleFullScreen = () => {
-  if (isFullScreen()) {
-    disableFullScreen();
-  } else {
-    enableFullScreen();
-  }
+  const fullscreen = !isFullScreen();
+
+  webglIFrame.classList.toggle('fullscreen', fullscreen);
+  window.test.setFullScreen(fullscreen);
+
+  iframeLoaded.then(() => {
+    const infoDiv = webglIFrame.contentDocument.getElementById('info');
+    if (fullscreen) {
+      infoDiv.style.display = 'none';
+    } else {
+      infoDiv.style.display = 'block';
+      // fpsContainer is moved during updateUI().
+      getFpsContainer().style.top = '10px';
+    }
+  });
 };
 
-const updateUI = (time_left, hide_options) => {
-  const fps_container = getFpsContainer();
-  if (!fps_container) {
+const updateUI = (timeLeft, hideOption) => {
+  const fpsContainer = getFpsContainer();
+  if (!fpsContainer) {
     return;
   }
 
-  let timer_span = webgl_iframe.contentDocument.getElementById('timer');
-  if (!timer_span) {
-    if (hide_options) {
+  let timerSpan = webglIFrame.contentDocument.getElementById('timer');
+  if (!timerSpan) {
+    if (hideOption) {
       hideOptions();
     }
 
-    const fullscreen_btn = document.createElement('button');
-    fullscreen_btn.style.fontSize = '1.5em';
-    fullscreen_btn.innerText = 'Toggle Full Screen';
-    fullscreen_btn.onclick = toggleFullScreen;
+    const fullscreenBtn = document.createElement('button');
+    fullscreenBtn.style.fontSize = '1.5em';
+    fullscreenBtn.innerText = 'Toggle Full Screen';
+    fullscreenBtn.onclick = toggleFullScreen;
 
-    const timer_div = document.createElement('div');
-    timer_div.style.color = 'white';
-    timer_div.style.fontSize = '2em';
-    timer_div.innerText = 'Time left: ';
-    timer_span = document.createElement('span');
-    timer_span.id = 'timer';
-    timer_div.appendChild(timer_span);
+    const timerDiv = document.createElement('div');
+    timerDiv.style.color = 'white';
+    timerDiv.style.fontSize = '2em';
+    timerDiv.innerText = 'Time left: ';
+    timerSpan = document.createElement('span');
+    timerSpan.id = 'timer';
+    timerDiv.appendChild(timerSpan);
 
-    const goofy_addon = document.createElement('div');
-    goofy_addon.appendChild(fullscreen_btn);
-    goofy_addon.appendChild(timer_div);
+    const goofyAddon = document.createElement('div');
+    goofyAddon.appendChild(fullscreenBtn);
+    goofyAddon.appendChild(timerDiv);
 
     // First child is the fps.
-    fps_container.childNodes[1].style.fontSize = '2em';
-    fps_container.insertBefore(goofy_addon, fps_container.childNodes[1]);
+    fpsContainer.childNodes[1].style.fontSize = '2em';
+    fpsContainer.insertBefore(goofyAddon, fpsContainer.childNodes[1]);
   }
 
-  timer_span.innerText = time_left;
+  timerSpan.innerText = timeLeft;
 
   if (isFullScreen()) {
     // Move FPS container (30px, 10px) to prevent screen burn-in.
-    const sec = time_left.split(':').pop();
-    fps_container.style.top = sec + '%';
+    const sec = timeLeft.split(':').pop();
+    fpsContainer.style.top = sec + '%';
   }
 };
 
 iframeLoaded.then(() => {
-  const canvas = webgl_iframe.contentDocument.getElementById('canvas');
-  webgl_iframe.contentWindow.tdl.webgl.registerContextLostHandler(
+  const canvas = webglIFrame.contentDocument.getElementById('canvas');
+  webglIFrame.contentWindow.tdl.webgl.registerContextLostHandler(
     canvas, () => {
       window.test.fail(
         'Lost WebGL context.' +
