@@ -1118,6 +1118,9 @@ class Components(object):
     self._components[comp_cls][comp_name] = ComponentInfo(values, status)
 
 
+_PatternDatum = collections.namedtuple('_PatternDatum',
+                                       ['encoding_scheme', 'fields'])
+_PatternField = collections.namedtuple('_PatternField', ['name', 'bit_length'])
 class Pattern(object):
   """A class for parsing and obtaining information of a pre-defined encoding
   pattern.
@@ -1190,8 +1193,6 @@ class Pattern(object):
   ```
 
   """
-  _Pattern = collections.namedtuple('_Pattern', ['encoding_scheme', 'fields'])
-  _Field = collections.namedtuple('_Field', ['name', 'bit_length'])
 
   _SCHEMA = schema.List(
       'pattern list',
@@ -1225,10 +1226,10 @@ class Pattern(object):
     self._image_id_to_pattern = {}
 
     for pattern_expr in pattern_list_expr:
-      pattern_obj = self._Pattern(pattern_expr['encoding_scheme'], [])
+      pattern_obj = _PatternDatum(pattern_expr['encoding_scheme'], [])
       for field_expr in pattern_expr['fields']:
         pattern_obj.fields.append(
-            self._Field(field_expr.keys()[0], field_expr.values()[0]))
+            _PatternField(field_expr.keys()[0], field_expr.values()[0]))
 
       for image_id in pattern_expr['image_ids']:
         if image_id in self._image_id_to_pattern:
@@ -1286,7 +1287,7 @@ class Pattern(object):
       raise common.HWIDException(
           'The image id %r is already in used.' % image_id)
 
-    self._image_id_to_pattern[image_id] = self._Pattern(encoding_scheme, [])
+    self._image_id_to_pattern[image_id] = _PatternDatum(encoding_scheme, [])
     self._max_image_id = max(self._max_image_id, image_id)
 
   def AddImageId(self, reference_image_id, image_id):
@@ -1321,7 +1322,7 @@ class Pattern(object):
         'fields'].element_type.value_type.Validate(bit_length)
 
     self._GetPattern(image_id).fields.append(
-        self._Field(field_name, bit_length))
+        _PatternField(field_name, bit_length))
 
   def GetEncodingScheme(self, image_id=None):
     """Gets the encoding scheme recorded in the pattern.
@@ -1428,7 +1429,7 @@ class Pattern(object):
           image id would be used.
 
     Returns:
-      The `_Pattern` object.
+      The `_PatternDatum` object.
     """
     if image_id is None:
       return self._image_id_to_pattern[self._max_image_id]
