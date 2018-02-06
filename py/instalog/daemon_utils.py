@@ -35,6 +35,8 @@ class Daemon(object):
     self.stdin = stdin
     self.stdout = stdout
     self.stderr = stderr
+    if not os.path.exists(os.path.dirname(pidfile)):
+      os.makedirs(os.path.dirname(pidfile))
     self.pidfile = pidfile
 
   def _Daemonize(self):

@@ -237,7 +237,7 @@ def RestoreMetadata(config_dct):
   logger = logging.getLogger(config_dct['logger_name'])
   metadata_dct = {'first_seq': 1, 'last_seq': 0,
                   'start_pos': 0, 'end_pos': 0,
-                  'version': None}
+                  'version': '00000000'}
   data = TryLoadJSON(config_dct['metadata_path'], logger.name)
   if data is not None:
     try:
@@ -261,6 +261,15 @@ def RestoreMetadata(config_dct):
       logger.error('end_pos in restored metadata is larger than start_pos + '
                    'data file; recovering metadata from data file')
       RecoverMetadata(config_dct, metadata_dct)
+  else:
+    if os.path.isfile(config_dct['data_path']):
+      logger.error('Could not find metadata file, but we have data file; '
+                   'recovering metadata from data file')
+      RecoverMetadata(config_dct, metadata_dct)
+    else:
+      logger.info('Creating metadata file and data file')
+      SaveMetadata(config_dct, metadata_dct)
+      file_utils.TouchFile(config_dct['data_path'])
   return metadata_dct
 
 
@@ -655,7 +664,7 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
     if self.read_buf:
       return self.read_buf
     # Does the buffer already have data in it?
-    if not self.simple_file.version:
+    if not os.path.exists(self.simple_file.data_path):
       return self.read_buf
     self.debug('_Buffer: waiting for read_lock')
     with self.read_lock:
