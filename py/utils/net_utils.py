@@ -100,7 +100,11 @@ class CIDR(object):
       self.IP = ip
     else:
       raise RuntimeError('invalid ip argument in constructor')
-    self.prefix = prefix
+
+    if isinstance(prefix, int):
+      self.prefix = prefix
+    else:
+      raise RuntimeError('invalid prefix: %s' % prefix)
 
   def __repr__(self):
     return '%s/%d' % (self.IP, self.prefix)

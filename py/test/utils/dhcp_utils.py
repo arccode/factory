@@ -118,7 +118,7 @@ class DHCPManager(object):
       net_utils.SetEthernetIp(str(cidr.SelectIP(1)), interface.name,
                               str(cidr.Netmask()), force=True)
 
-      used_range.append((str(cidr.SelectIP(1)), str(cidr.Netmask())))
+      used_range.append((str(cidr.SelectIP(1)), cidr.prefix))
       ip_start = cidr.SelectIP(2)
       ip_end = cidr.SelectIP(-3)
       dhcp_ranges.extend(['--dhcp-range',
