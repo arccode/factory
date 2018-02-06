@@ -8,8 +8,29 @@
 
 INSTALOG_DIR="$(dirname "$(readlink -f "$0")")"
 REQUIREMENTS_TXT="${INSTALOG_DIR}/requirements.txt"
-THIRD_PARTY_DIR="${INSTALOG_DIR}/third_party"
+VIRTUAL_ENV_DIR="${INSTALOG_DIR}/virtual_env"
 
-echo "Installing third-party libraries to ${THIRD_PARTY_DIR}..."
-rm -fr "${THIRD_PARTY_DIR}"
-pip install -t "${THIRD_PARTY_DIR}" -r "${REQUIREMENTS_TXT}"
+if ! [ -x "$(command -v virtualenv)" ]; then
+  echo "'virtualenv' is not installed!"
+  exit 1
+fi
+
+rm -fr "${VIRTUAL_ENV_DIR}"
+echo "Creating an isolated Python environment by virtualenv."
+mkdir "${VIRTUAL_ENV_DIR}"
+virtualenv "${VIRTUAL_ENV_DIR}"
+
+source "${VIRTUAL_ENV_DIR}/bin/activate"
+echo -n "Installing third-party libraries to the virtual environment..."
+# We need to upgrade pip first, or the following line will fail.
+pip install --quiet --upgrade pip
+pip install --quiet --upgrade -r "${REQUIREMENTS_TXT}"
+# If your Python2.7 verion is not 2.7.9+, you can run this line to reduce
+# warnings.
+# pip install --quiet --upgrade "requests[security]==2.18.0"
+echo "done."
+deactivate
+
+echo "Finished!"
+echo "You can run Instalog by '${VIRTUAL_ENV_DIR}/bin/python2.7" \
+     "instalog [--config /path/to/instalog.yaml] start'"
