@@ -95,7 +95,7 @@ class SSHLink(types.DeviceLink):
           'lease_time': 3600,
           'interface_blacklist_file': '/path/to/blacklist/file',
           'exclude_ip_prefix': [('10.0.0.0', 24), ...],
-          # the following three properties can oly be set in python script,
+          # the following three properties can only be set in python script,
           # not in environment variable (CROS_FACTORY_DUT_OPTIONS)
           'on_add': None,
           'on_old': None,
@@ -280,12 +280,22 @@ class SSHLink(types.DeviceLink):
 
   # pylint: disable=arguments-differ
   @classmethod
-  def PrepareLink(cls, start_dhcp_server=True, dhcp_server_args=None):
+  def PrepareLink(cls,
+                  start_dhcp_server=True,
+                  start_dhcp_server_after_ping=None,
+                  dhcp_server_args=None):
     """Prepare for SSHLink connection
 
     Arguments:
       start_dhcp_server (default: False):
         Start the default DHCP server or not
+      start_dhcp_server_after_ping (default: None):
+        Start the DHCP server only after a successfully ping to a target.
+        This should be a dict like: {
+          "host": "192.168.234.1",
+          "timeout_secs": 30,
+          "interval_secs": 1
+        }, with the ``timeout_secs`` and ``interval_secs`` being optional.
       dhcp_server_args (default: None):
         If ``start_dhcp_server`` is True, this will be passed to the default
         DHCP server (ssh.LinkManager)
@@ -298,8 +308,24 @@ class SSHLink(types.DeviceLink):
       options = dict(lease_time=5)
       options.update(dhcp_server_args or {})
 
+      wait_ping = start_dhcp_server_after_ping or {}
+      cls._WaitPing(**wait_ping)
+
       cls._dhcp_manager = cls.LinkManager(**options)
       cls._dhcp_manager.Start()
+
+  @classmethod
+  def _WaitPing(cls, host=None, timeout_secs=30, interval_secs=1):
+    if not host:
+      return
+
+    def ping():
+      cmd = ['ping', '-w', '1', '-c', '1', host]
+      return subprocess.call(cmd) == 0
+
+    sync_utils.PollForCondition(ping,
+                                timeout_secs=timeout_secs,
+                                poll_interval_secs=interval_secs)
 
   class ControlMasterWatcher(object):
     __metaclass__ = type_utils.Singleton

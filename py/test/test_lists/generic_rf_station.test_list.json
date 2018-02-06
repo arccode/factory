@@ -11,6 +11,9 @@
       "identity": "/usr/local/factory/misc/sshkeys/testing_rsa",
       "use_ping": true,
       "start_dhcp_server": true,
+      "start_dhcp_server_after_ping": {
+        "host": "10.3.0.12"
+      },
       "dhcp_server_args": {
         "exclude_ip_prefix": [
           [

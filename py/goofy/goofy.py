@@ -1122,6 +1122,26 @@ class Goofy(object):
                       help='Use test list whose id is TEST_LIST_ID')
     return parser
 
+  def _PrepareDUTLink(self):
+    # TODO(akahuang): Move this part into a pytest.
+    # Prepare DUT link after the plugins start running, because the link might
+    # need the network connection.
+
+    dut_options = self.test_list.options.dut_options
+    if dut_options:
+      logging.info('dut_options set by %s: %r', self.test_list.test_list_id,
+                   self.test_list.options.dut_options)
+
+    def prepare_link():
+      try:
+        device_utils.PrepareDUTLink(**dut_options)
+      except Exception:
+        logging.exception('Unable to prepare DUT link.')
+
+    thread = threading.Thread(target=prepare_link)
+    thread.daemon = True
+    thread.start()
+
   def init(self, args=None, env=None):
     """Initializes Goofy.
 
@@ -1228,19 +1248,8 @@ class Goofy(object):
         self.test_list.options.plugin_config_name, self)
     self.plugin_controller.StartAllPlugins()
 
-    # TODO(akahuang): Move this part into a pytest.
-    # Prepare DUT link after the plugins start running, because the link might
-    # need the network connection.
     if success:
-      try:
-        if self.test_list.options.dut_options:
-          logging.info('dut_options set by %s: %r', self.test_list.test_list_id,
-                       self.test_list.options.dut_options)
-        device_utils.PrepareDUTLink(**self.test_list.options.dut_options)
-      except Exception:
-        logging.exception('Unable to prepare DUT link.')
-        self._RecordStartError(
-            'Unable to prepare DUT link.\n%s' % traceback.format_exc())
+      self._PrepareDUTLink()
 
     # Note that we create a log watcher even if
     # sync_event_log_period_secs isn't set (no background
