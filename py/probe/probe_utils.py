@@ -30,10 +30,16 @@ def Probe(probe_statement, comps=None):
   for comp_cls in probe_statement:
     if comp_cls not in comps:
       continue
-    results[comp_cls] = {}
+    results[comp_cls] = []
     for comp_name, statement in probe_statement[comp_cls].iteritems():
       logging.info('Probe %s: %s', comp_cls, comp_name)
-      results[comp_cls][comp_name] = common.EvaluateStatement(statement)
+
+      for probed_values in common.EvaluateStatement(statement):
+        result = {'name': comp_name, 'values': probed_values}
+        if 'information' in statement:
+          result['information'] = statement['information']
+
+        results[comp_cls].append(result)
 
   return results
 

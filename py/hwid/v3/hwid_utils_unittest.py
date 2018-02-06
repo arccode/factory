@@ -51,7 +51,8 @@ class GenerateHWIDTest(_HWIDTestCaseBase):
 
   def testBadComponentStatus(self):
     # The function should also verify if all the component status are valid.
-    self.probed_results['battery'] = {'battery_unsupported': [{'size': '1'}]}
+    self.probed_results['battery'] = [{'name': 'battery_unsupported',
+                                       'values': {'size': '1'}}]
     self.assertRaises(common.HWIDException, hwid_utils.GenerateHWID,
                       self.database, self.probed_results, {}, {}, False)
 
@@ -76,21 +77,24 @@ class VerifyHWIDTest(_HWIDTestCaseBase):
                           allow_mismatched_components=False)
 
   def testBOMMisMatch(self):
-    self.probed_results['region'] = {'us': [{'region_code': 'us'}]}
+    self.probed_results['region'] = [{'name': 'us',
+                                      'values': {'region_code': 'us'}}]
     self.assertRaises(common.HWIDException, hwid_utils.VerifyHWID,
                       self.database, _TEST_ENCODED_STRING_GOOD,
                       self.probed_results, {}, {}, False,
                       current_phase='PVT', allow_mismatched_components=False)
 
   def testBadComponentStatus(self):
-    self.probed_results['battery'] = {'battery_unsupported': [{'size': '1'}]}
+    self.probed_results['battery'] = [{'name': 'battery_unsupported',
+                                       'values': {'size': '1'}}]
     self.assertRaises(common.HWIDException, hwid_utils.VerifyHWID,
                       self.database, _TEST_ENCODED_STRING_BATTERY_UNSUPPORTED,
                       self.probed_results, {}, {}, False, current_phase='PVT',
                       allow_mismatched_components=False)
 
   def testBadPhase(self):
-    self.probed_results['firmware_keys'] = {'premp': [{'rootkey': 'abcde'}]}
+    self.probed_results['firmware_keys'] = [{'name': 'premp',
+                                             'values': {'rootkey': 'abcde'}}]
     self.assertRaises(common.HWIDException, hwid_utils.VerifyHWID,
                       self.database, _TEST_ENCODED_STRING_FIRMWARE_KEYS_PREMP,
                       self.probed_results, {}, {}, False, current_phase='PVT',

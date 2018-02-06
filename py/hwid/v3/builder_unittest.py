@@ -119,7 +119,8 @@ class DatabaseBuilderTest(unittest.TestCase):
     # If the probed results contain a real component value, the default
     # component shouldn't be returned.
     bom = probe.GenerateBOMFromProbedResults(
-        db.database, {'comp_cls_1': {'comp1': [{'value': "1"}]}},
+        db.database,
+        {'comp_cls_1': [{'name': 'comp1', 'values': {'value': "1"}}]},
         {}, {}, 'normal', False)[0]
     self.assertEquals(bom.components['comp_cls_1'], ['comp_1_1'])
 
@@ -154,7 +155,8 @@ class DatabaseBuilderTest(unittest.TestCase):
   def testUpdateByProbedResultsAddFirmware(self, unused_prompt_and_ask_mock):
     db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
     db.UpdateByProbedResults(
-        {'ro_main_firmware': {'generic': [{'hash': '1'}]}}, {}, {})
+        {'ro_main_firmware': [{'name': 'generic', 'values': {'hash': '1'}}]},
+        {}, {})
 
     # Should deprecated the legacy firmwares.
     self.assertEquals(
@@ -169,11 +171,13 @@ class DatabaseBuilderTest(unittest.TestCase):
 
       db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
       db.UpdateByProbedResults(
-          {'comp_cls_100': {'generic': [{'key1': 'value1'},
-                                        {'key1': 'value1', 'key2': 'value2'},
-                                        {'key1': 'value1', 'key3': 'value3'}],
-                            'special': [{'key4': 'value4'},
-                                        {'key4': 'value5'}]}},
+          {'comp_cls_100': [{'name': 'generic', 'values': {'key1': 'value1'}},
+                            {'name': 'generic', 'values': {'key1': 'value1',
+                                                           'key2': 'value2'}},
+                            {'name': 'generic', 'values': {'key1': 'value1',
+                                                           'key3': 'value3'}},
+                            {'name': 'special', 'values': {'key4': 'value4'}},
+                            {'name': 'special', 'values': {'key4': 'value5'}}]},
           {}, {}, image_name='NEW_IMAGE')
       self.assertEquals(
           sorted([attr.values for attr in db.database.GetComponents(
@@ -192,7 +196,8 @@ class DatabaseBuilderTest(unittest.TestCase):
 
     # {'value': '3'} is the extra component.
     db.UpdateByProbedResults(
-        {'comp_cls_1': {'generic': [{'value': '1'}, {'value': '3'}]}}, {}, {},
+        {'comp_cls_1': [{'name': 'generic', 'values': {'value': '1'}},
+                        {'name': 'generic', 'values': {'value': '3'}}]}, {}, {},
         image_name='NEW_IMAGE')
     self.assertEquals(
         sorted([attr.values for attr in db.database.GetComponents(
@@ -233,21 +238,23 @@ class DatabaseBuilderTest(unittest.TestCase):
     # Add a lot of mainboard so that the field need more bits.
     for i in xrange(10):
       db.UpdateByProbedResults(
-          {'mainboard': {'generic': [{'rev': str(i)}]}}, {}, {})
+          {'mainboard': [{'name': 'generic', 'values': {'rev': str(i)}}]},
+          {}, {})
 
     # Add a lot of cpu so that the field need more bits.
     for i in xrange(50):
       db.UpdateByProbedResults(
-          {'cpu': {'generic': [{'vendor': str(i)}]}}, {}, {})
+          {'cpu': [{'name': 'generic', 'values': {'vendor': str(i)}}]}, {}, {})
 
     # Add more component combination of comp_cls_1, comp_cls_2 and comp_cls_3.
     # Also add an extran component class to trigger adding a new pattern.
     db.UpdateByProbedResults(
-        {'comp_cls_1': {'generic': [{'value': '1'}, {'value': '3'}]},
-         'comp_cls_2': {'generic': [{'value': '2'}]},
-         'comp_cls_3': {'generic': [{'value': '1'}]},
-         'comp_cls_100': {'generic': [{'value': '100'}]}}, {}, {},
-        image_name='NEW_IMAGE')
+        {'comp_cls_1': [{'name': 'generic', 'values': {'value': '1'}},
+                        {'name': 'generic', 'values': {'value': '3'}}],
+         'comp_cls_2': [{'name': 'generic', 'values': {'value': '2'}}],
+         'comp_cls_3': [{'name': 'generic', 'values': {'value': '1'}}],
+         'comp_cls_100': [{'name': 'generic', 'values': {'value': '100'}}]},
+        {}, {}, image_name='NEW_IMAGE')
 
     self.assertEquals(
         db.database.GetEncodedField('comp_cls_23_field'),
@@ -278,7 +285,8 @@ class DatabaseBuilderTest(unittest.TestCase):
     for image_name in [None, 'EVT', 'NEW_IMAGE_NAME']:
       db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
       db.UpdateByProbedResults(
-          {'comp_cls_2': {'generic': [{str(x): str(x)} for x in xrange(10)]}},
+          {'comp_cls_2': [{'name': 'generic', 'values': {str(x): str(x)}}
+                          for x in xrange(10)]},
           {}, {}, image_name=image_name)
       self.assertEquals(db.database.GetBitMapping(0),
                         db.database.GetBitMapping(db.database.max_image_id))
@@ -289,7 +297,8 @@ class DatabaseBuilderTest(unittest.TestCase):
     db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
 
     db.UpdateByProbedResults(
-        {'comp_cls_200': {'generic': [{str(x): str(x)} for x in xrange(10)]}},
+        {'comp_cls_200': [{'name': 'generic', 'values': {str(x): str(x)}}
+                          for x in xrange(10)]},
         {}, {}, image_name='NEW_IMAGE_NAME')
     self.assertNotIn('comp_cls_200_field',
                      db.database.GetEncodedFieldsBitLength(0))
@@ -301,7 +310,8 @@ class DatabaseBuilderTest(unittest.TestCase):
     # Should raise error if new image is needed but no image name.
     db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
     self.assertRaises(ValueError, db.UpdateByProbedResults,
-                      {'comp_cls_200': {'x': [{'a': 'b'}]}}, {}, {})
+                      {'comp_cls_200': [{'name': 'x', 'values': {'a': 'b'}}]},
+                      {}, {})
 
   def testRender(self):
     db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)

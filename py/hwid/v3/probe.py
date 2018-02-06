@@ -60,37 +60,33 @@ def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
   # Construct a dict of component classes to list of component names.
   matched_components = {comp_cls: []
                         for comp_cls in database.GetComponentClasses()}
-  mismatched_components = {comp_cls: value
-                           for comp_cls, value in probed_results.iteritems()
+  mismatched_components = {comp_cls: comps
+                           for comp_cls, comps in probed_results.iteritems()
                            if comp_cls not in matched_components}
 
   for comp_cls in database.GetComponentClasses():
     default_comp = database.GetDefaultComponent(comp_cls)
-    for probed_comp_name, probed_comp_items in probed_results.get(
-        comp_cls, {}).iteritems():
-      for probed_comp_item in probed_comp_items:
-        for comp_name, comp_info in database.GetComponents(
-            comp_cls).iteritems():
-          if comp_info.values is None:
-            continue
-          if _IsValuesMatch(probed_comp_item, comp_info.values):
-            matched_components[comp_cls].append(comp_name)
-            break
+    for probed_comp in probed_results.get(comp_cls, []):
+      for comp_name, comp_info in database.GetComponents(comp_cls).iteritems():
+        if comp_info.values is None:
+          continue
+        if _IsValuesMatch(probed_comp['values'], comp_info.values):
+          matched_components[comp_cls].append(comp_name)
+          break
+
+      else:
+        if default_comp is not None:
+          matched_components[comp_cls].append(default_comp)
         else:
-          if default_comp is not None:
-            matched_components[comp_cls].append(default_comp)
-          else:
-            mismatched_components.setdefault(comp_cls, {})
-            mismatched_components[comp_cls].setdefault(probed_comp_name, [])
-            mismatched_components[comp_cls][
-                probed_comp_name].append(probed_comp_item)
+          mismatched_components.setdefault(comp_cls, [])
+          mismatched_components[comp_cls].append(probed_comp)
 
     # If no any probed result of this component class, try add the default one.
     if not matched_components[comp_cls] and default_comp is not None:
       matched_components[comp_cls].append(default_comp)
 
-  if not allow_mismatched_components and any(
-      sum(comps.values(), []) for comps in mismatched_components.itervalues()):
+  if (not allow_mismatched_components and
+      any(mismatched_components.itervalues())):
     raise common.HWIDException(
         'Probed components %r are not matched with any component records in '
         'the database.' % mismatched_components)

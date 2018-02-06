@@ -337,10 +337,10 @@ class DatabaseBuilder(object):
     """
     # Add extra components.
     existed_comp_classes = self.database.GetComponentClasses()
-    for comp_cls, probed_data in probed_results.iteritems():
+    for comp_cls, probed_comps in probed_results.iteritems():
       if comp_cls not in existed_comp_classes:
         # We only need the probe values here.
-        probed_values = sum(probed_data.values(), [])
+        probed_values = [probed_comp['values'] for probed_comp in probed_comps]
         if not probed_values:
           continue
 
@@ -370,8 +370,9 @@ class DatabaseBuilder(object):
         common.OPERATION_MODE.normal, True)
 
     if mismatched_probed_results:
-      for comp_cls, probed_data in mismatched_probed_results.iteritems():
-        self._AddComponents(comp_cls, sum(probed_data.values(), []))
+      for comp_cls, probed_comps in mismatched_probed_results.iteritems():
+        self._AddComponents(
+            comp_cls, [probed_comp['values'] for probed_comp in probed_comps])
 
       bom = probe.GenerateBOMFromProbedResults(
           self.database, probed_results, device_info, vpd,

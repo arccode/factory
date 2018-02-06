@@ -174,17 +174,18 @@ class ProbeTest(test_ui.TestCaseWithUI):
     # Check every category meets the rule.
     all_passed = True
     for row_idx, category in enumerate(probed_results, 1):
-      count = sum(len(comps) for comps in probed_results[category].values())
+      count = len(probed_results[category])
       op_str, value = rule_map[category]
       status = OPERATOR_MAP[op_str](count, value)
       all_passed &= status
 
       # Set the table.
-      summary = []
-      for name, result in probed_results[category].iteritems():
-        if result:
-          summary.append('%s %s found.' % (len(result), name))
-      summary_str = '<br>'.join(summary) if summary else 'No component found.'
+      counter = collections.defaultdict(int)
+      for result in probed_results[category]:
+        counter[result['name']] += 1
+      comp_summary = '<br>'.join('%d %s found.' % (num_comp, comp_name)
+                                 for comp_name, num_comp in counter.iteritems())
+      summary_str = comp_summary or 'No component found.'
       rule_str = 'count (%s) %s %s' % (count, op_str, value)
       status_str = 'passed' if status else 'failed'
       session.console.info('Category "%s" %s %s, %s.',

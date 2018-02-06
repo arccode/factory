@@ -11,6 +11,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import file_utils
+from cros.factory.utils import json_utils
 from cros.factory.utils import process_utils
 
 
@@ -19,6 +20,12 @@ CMD_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 
 
 class ProbeCmdTest(unittest.TestCase):
+  def assertProbedResultEquals(self, result1, result2):
+    self.assertEquals(len(result1), len(result2))
+    for k, v1 in result1.iteritems():
+      self.assertIn(k, result2)
+      self.assertEquals(sorted(v1), sorted(result2[k]))
+
   def setUp(self):
     self.tmp_file = file_utils.CreateTemporaryFile()
     self.tmp_dir = tempfile.mkdtemp()
@@ -33,16 +40,12 @@ class ProbeCmdTest(unittest.TestCase):
     with open(self.tmp_file, 'w') as f:
       f.write('asdf\n')
     expected = {
-        'foo': {
-            'foo_1': []},
-        'audio': {
-            'Lala': [
-                {'file_raw': 'asdf'}]},
-        'bar': {
-            'bar_1': [
-                {'shell_raw': 'hello'}],
-            'bar_2': [
-                {'shell_raw': 'world'}]}}
+        'foo': [],
+        'audio': [
+            {'name': 'Lala', 'values': {'file_raw': 'asdf'}}],
+        'bar': [
+            {'name': 'bar_1', 'values': {'shell_raw': 'hello'}},
+            {'name': 'bar_2', 'values': {'shell_raw': 'world'}}]}
     statement = {
         # There is no result in foo.
         'foo': {
@@ -82,20 +85,18 @@ class ProbeCmdTest(unittest.TestCase):
     cmd = [CMD_PATH, '--output-file', output_file,
            'probe', '--config-file', statement_path]
     process_utils.CheckOutput(cmd)
-    with open(output_file, 'r') as f:
-      file_content = f.read()
-      results = json.loads(file_content)
-    self.assertEquals(results, expected)
+    results = json_utils.LoadFile(output_file)
+    self.assertProbedResultEquals(results, expected)
 
     # Output to stdout.
     cmd = [CMD_PATH, 'probe', '--config-file', statement_path]
     results = json.loads(process_utils.CheckOutput(cmd))
-    self.assertEquals(expected, results)
+    self.assertProbedResultEquals(expected, results)
 
     cmd = [CMD_PATH, '--output-file', '-',
            'probe', '--config-file', statement_path]
     results = json.loads(process_utils.CheckOutput(cmd))
-    self.assertEquals(expected, results)
+    self.assertProbedResultEquals(expected, results)
 
 
 class EvalFunctionCmdTest(unittest.TestCase):

@@ -1,28 +1,32 @@
 {
-  "battery": {
-    "battery_supported": [
-      {
-        "size": "1000"
-      },
-      {
+  "battery": [
+    {
+      "name": "battery_supported",
+      "values": {
         "size": "1000"
       }
-    ]
-  },
-  "firmware_keys": {
-    "key_mp": [
-      {
+    },
+    {
+      "name": "battery_supported",
+      "values": {
+        "size": "1000"
+      }
+    }
+  ],
+  "firmware_keys": [
+    {
+      "name": "key_mp",
+      "values": {
         "rootkey": "fghij"
       }
-    ]
-  },
-  "region": {
-    "tw": [
-      {
+    }
+  ],
+  "region": [
+    {
+      "name": "tw",
+      "values": {
         "region_code": "tw"
       }
-    ],
-    "us": [
-    ]
-  }
+    }
+  ]
 }

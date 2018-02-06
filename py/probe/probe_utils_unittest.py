@@ -24,22 +24,19 @@ class ProbeTest(unittest.TestCase):
       'bar': {
           'bar_1': {
               'eval': 'shell:echo barr',
-              'expect': {'shell_raw': 'barr'}
+              'expect': {'shell_raw': 'barr'},
+              'information': {'key1': 'value1'}
           }
       }
   }
   _FULL_EXPECTED_VALUE = {
-      'foo': {
-          'foo_1': [],
-          'foo_2': [
-              {'shell_raw': 'fooo'}
-          ]
-      },
-      'bar': {
-          'bar_1': [
-              {'shell_raw': 'barr'}
-          ]
-      }
+      'foo': [
+          {'name': 'foo_2', 'values': {'shell_raw': 'fooo'}}
+      ],
+      'bar': [
+          {'name': 'bar_1', 'values': {'shell_raw': 'barr'},
+           'information': {'key1': 'value1'}}
+      ]
   }
 
   def testNormal(self):

@@ -41,19 +41,24 @@ class GenerateBOMFromProbedResultsTest(unittest.TestCase):
 
   def testSomeComponentMismatched(self):
     probed_results = {
-        'comp_cls_1': {
-            'comp11': [{'key': 'value1'}, {'key': 'value1'}],
-            'comp12': [{'key': 'value2'}],  # mismatched component.
-            'comp13': [{'key': 'value3'}],  # mismatched component.
-        },
-        'comp_cls_2': {
-            'comp22': [{'key': 'value2'}],
-            'comp21': [{'key': 'value1'}],
-        },
-        'comp_cls_100': {},
-        'comp_cls_200': {
-            'comp2001': [{'key': 'value1'}]
-        }
+        'comp_cls_1': [
+            {'name': 'comp11', 'values': {'key': 'value1'}},
+            {'name': 'comp11', 'values': {'key': 'value1'}},
+
+            # mismatched component.
+            {'name': 'comp12', 'values': {'key': 'value2'}},
+            {'name': 'comp13', 'values': {'key': 'value3'}},
+        ],
+        'comp_cls_2': [
+            {'name': 'comp22', 'values': {'key': 'value2'}},
+            {'name': 'comp21', 'values': {'key': 'value1'}},
+        ],
+
+        # mismatched component.
+        'comp_cls_100': [],
+        'comp_cls_200': [
+            {'name': 'comp2001', 'values': {'key': 'value1'}}
+        ]
     }
 
     bom, mismatched_probed_results = probe.GenerateBOMFromProbedResults(
@@ -61,10 +66,12 @@ class GenerateBOMFromProbedResultsTest(unittest.TestCase):
         True)
 
     self.assertEquals(mismatched_probed_results,
-                      {'comp_cls_1': {'comp12': [{'key': 'value2'}],
-                                      'comp13': [{'key': 'value3'}]},
-                       'comp_cls_100': {},
-                       'comp_cls_200': {'comp2001': [{'key': 'value1'}]}})
+                      {'comp_cls_1': [
+                          {'name': 'comp12', 'values': {'key': 'value2'}},
+                          {'name': 'comp13', 'values': {'key': 'value3'}}],
+                       'comp_cls_100': [],
+                       'comp_cls_200': [{'name': 'comp2001',
+                                         'values': {'key': 'value1'}}]})
     self.assertEquals(bom.components,
                       {'comp_cls_1': ['comp_1_1', 'comp_1_1'],
                        'comp_cls_2': ['comp_2_1', 'comp_2_2'],
