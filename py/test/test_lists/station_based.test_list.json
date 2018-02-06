@@ -130,6 +130,7 @@
     "StationLoopStart": {
       "child_action_on_failure": "PARENT",
       "subtests": [
+        "SyncFactoryServer",
         "StationLoopItemsBeforeConnection",
         "ConnectDevice",
         "FactoryStateSetup"
