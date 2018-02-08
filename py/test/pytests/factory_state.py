@@ -190,7 +190,7 @@ class ManipulateFactoryStateLayer(unittest.TestCase):
       raise type_utils.TestFailure('Unsupported operation')
     # currently, we only support getting data from top layer
     serialized_data = source.SerializeLayer(
-        -1, include_tests=self.args.include_tests)
+        layer_index=-1, include_tests=self.args.include_tests)
     if destination.GetLayerCount() == state.FactoryState.MAX_LAYER_NUM:
       logging.warning('Max layer number reached, top layer will be popped.')
       destination.PopLayer()
