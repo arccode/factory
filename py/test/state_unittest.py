@@ -141,6 +141,33 @@ class FactoryStateTest(unittest.TestCase):
     with self.assertRaises(state.FactoryStateLayerException):
       self.state.PopLayer()
 
+  def testMergeLayer(self):
+    self.state.data_shelf_set_value('data', {'a': 0, 'b': 2})
+    self.assertEqual({'a': 0, 'b': 2},
+                     self.state.data_shelf_get_value('data'))
+
+    self.state.AppendLayer()
+    self.assertEqual({'a': 0, 'b': 2},
+                     self.state.data_shelf_get_value('data'))
+
+    self.state.data_shelf_set_value('data.c', 5)
+    self.assertEqual({'a': 0, 'b': 2, 'c': 5},
+                     self.state.data_shelf_get_value('data'))
+
+    with self.assertRaises(state.FactoryStateLayerException):
+      self.state.AppendLayer()
+
+    # tests_shelf of top layer is empty, this shouldn't be an issue.
+    self.state.MergeLayer(1)
+    self.assertEqual({'a': 0, 'b': 2, 'c': 5},
+                     self.state.data_shelf_get_value('data'))
+
+    with self.assertRaises(state.FactoryStateLayerException):
+      self.state.PopLayer()
+
+    # tests_shelf of top layer should still be empty.
+    self.assertEqual(self.state.layers[0].tests_shelf.GetKeys(), [])
+
   def testSerializeLayer(self):
     layer = state.FactoryStateLayer()
 

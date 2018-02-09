@@ -484,10 +484,12 @@ class FactoryState(object):
     if layer_index >= len(self.layers):
       raise IndexError('layer_index out of range')
 
-    self.layers[layer_index - 1].tests_shelf.UpdateValue(
-        '', self.layers[layer_index].tests_shelf.GetValue(''))
-    self.layers[layer_index - 1].data_shelf.UpdateValue(
-        '', self.layers[layer_index].data_shelf.GetValue(''))
+    dst = self.layers[layer_index - 1]
+    src = self.layers[layer_index]
+    if src.tests_shelf.HasKey(''):
+      dst.tests_shelf.UpdateValue('', src.tests_shelf.GetValue(''))
+    if src.data_shelf.HasKey(''):
+      dst.data_shelf.UpdateValue('', src.data_shelf.GetValue(''))
     self.layers.pop()
 
   @sync_utils.Synchronized
