@@ -136,6 +136,10 @@
           "device_type": "stylus"
         }
       },
+      "expect": {
+        "product": "!re (?!0000)....$",
+        "vendor": "!re (?!0000)....$"
+      },
       "keys": [
         "name",
         "product",
@@ -149,6 +153,10 @@
         "input_device": {
           "device_type": "touchpad"
         }
+      },
+      "expect": {
+        "product": "!re (?!0000)....$",
+        "vendor": "!re (?!0000)....$"
       },
       "keys": [
         "name",
@@ -164,11 +172,18 @@
           "device_type": "touchscreen"
         }
       },
+      "expect": {
+        "product": "!re (?!0000)....$",
+        "vendor": "!re (?!0000)....$"
+      },
       "keys": [
         "name",
         "product",
         "vendor"
       ]
+    },
+    "elan": {
+      "eval": "touchscreen_elan"
     }
   },
   "tpm": {
