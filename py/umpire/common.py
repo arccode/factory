@@ -16,9 +16,6 @@ DUT_INFO_KEYS = set(['sn', 'mlb_sn', 'firmware', 'ec', 'pd', 'stage'])
 # Deprecated keys in DUT info.
 LEGACY_DUT_INFO_KEYS = set(['board'])
 
-# Required fields in resource map.
-REQUIRED_RESOURCE_MAP_FIELDS = set(['payloads', 'id'])
-
 # List of valid key prefix in DUT info. For example, a DUT may have several
 # MACs, like mac.eth0, mac.wlan0. It accepts those keys with prefix 'mac'.
 DUT_INFO_KEY_PREFIX = ['mac']

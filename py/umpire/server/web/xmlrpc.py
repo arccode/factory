@@ -102,14 +102,10 @@ class XMLRPCContainer(xmlrpc.XMLRPC, object):
     """Adds Umpire RPC object to this XMLRPC resource.
 
     Args:
-      rpc_object: Umpire RPC object.
+      rpc_object: an UmpireRPC object.
     """
     for procedure in reflect.prefixedMethods(rpc_object):
-      if not callable(procedure):
-        continue
-      if not hasattr(procedure, 'is_rpc_method'):
-        continue
-      if procedure.is_rpc_method:
+      if callable(procedure) and getattr(procedure, 'is_rpc_method', False):
         procedure_path = procedure.__name__
         self.handlers[procedure_path] = procedure
         logging.debug('Add command handler %s', procedure_path)

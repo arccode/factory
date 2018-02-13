@@ -4,7 +4,7 @@
 
 """Umpire service base class.
 
-Umpire service is an external application with a python class wrapper that
+Umpire service is an external application with a Python class wrapper that
 provides twisted process protocol. This is the base class and a global registry
 for all service module.
 """
@@ -578,7 +578,7 @@ def GetServiceSchemata():
 
 
 def LoadServiceModule(module_name):
-  """Imports service python module, populate _SERVICE_MAP and _INSTANCE_MAP.
+  """Imports service Python module, populate _SERVICE_MAP and _INSTANCE_MAP.
 
   Returns:
     Module object.
@@ -628,5 +628,5 @@ def FindServicesWithProperty(config, prop):
   """
   for service in config['services']:
     instance = GetServiceInstance(service)
-    if instance.properties.get(prop, None):
+    if instance.properties.get(prop):
       yield instance

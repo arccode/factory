@@ -37,7 +37,7 @@ class UmpireDaemon(object):
   """Umpire daemon class.
 
   Umpire daemon builds XMLRPC sites that serves command line utility and
-  DUT requests related to umpire configuration. It also builds web application
+  DUT requests related to Umpire configuration. It also builds web application
   sites that provides interfaces for simple HTTP GET and POST.
 
   The daemon also has functional interfaces to restart service processes on
@@ -202,11 +202,11 @@ class UmpireDaemon(object):
 
     def _Deployed(result, deploying_config):
       """Switches config and flag on deploying finished."""
-      # Clear deploying state.
-      self.deploying = False
       # Switch deployed_config to new one.
       if not isinstance(result, twisted_failure.Failure):
         self.deployed_config = deploying_config
+      # Clear deploying state.
+      self.deploying = False
       return result
 
     def _Rollback(failure, stopping_services, starting_services):

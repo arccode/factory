@@ -173,21 +173,6 @@ class UmpireEnv(object):
       logging.error('Failed to parse %s: %r.', key, url)
     return url.rstrip('/')
 
-  def ReadConfig(self, custom_path=None):
-    """Reads Umpire config.
-
-    It just returns config. It doesn't change config in property.
-
-    Args:
-      custom_path: If specified, load the config file custom_path pointing to.
-          Default loads active config.
-
-    Returns:
-      UmpireConfig object.
-    """
-    config_path = custom_path or self.active_config_file
-    return config.UmpireConfig(file_path=config_path)
-
   def LoadConfig(self, custom_path=None, validate=True):
     """Loads Umpire config file and validates it.
 
@@ -198,18 +183,15 @@ class UmpireEnv(object):
     Raises:
       UmpireError if it fails to load the config file.
     """
-    def _LoadValidateConfig(path):
-      result = config.UmpireConfig(file_path=path)
-      if validate:
-        config.ValidateResources(result, self)
-      return result
-
     # Load active config & update config_path.
     config_path = custom_path or self.active_config_file
-    logging.debug('Load %sconfig: %s', 'active ' if not custom_path else '',
-                  config_path)
+    logging.debug('Load %s config: %s',
+                  'custom' if custom_path else 'active', config_path)
     # Note that config won't be set if it fails to load/validate the new config.
-    self.config = _LoadValidateConfig(config_path)
+    loaded_config = config.UmpireConfig(file_path=config_path)
+    if validate:
+      config.ValidateResources(loaded_config, self)
+    self.config = loaded_config
     self.config_path = config_path
 
   def ActivateConfigFile(self, config_path):

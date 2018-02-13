@@ -24,9 +24,6 @@ from cros.factory.utils.schema import Optional
 from cros.factory.utils.schema import Scalar
 
 
-NUMBER_SHOP_FLOOR_HANDLERS = 50
-
-
 # Ruleset matcher validator.
 _RULE_MATCHER_SCHEMA = FixedDict(
     'Matcher of a rule',

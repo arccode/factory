@@ -171,7 +171,7 @@ def GetResourceMap(dut_info, env):
   if not bundle_id:
     return None
 
-  bundle = env.config.bundle_map.get(bundle_id)
+  bundle = env.config.GetBundle(bundle_id)
   if not bundle:
     return None
 

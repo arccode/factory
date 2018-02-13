@@ -13,7 +13,6 @@ import logging
 import os
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.umpire import common
 from cros.factory.umpire.server import daemon
 from cros.factory.umpire.server import migrate
 from cros.factory.umpire.server import rpc_cli
@@ -28,11 +27,7 @@ def StartServer():
 
   # Instantiate environment and load default configuration file.
   env = umpire_env.UmpireEnv()
-
   env.LoadConfig()
-
-  if env.config is None:
-    raise common.UmpireError('Umpire config was not loaded.')
 
   # Remove runtime pid files before start the server
   logging.info('remove pid files under %s', env.pid_dir)
