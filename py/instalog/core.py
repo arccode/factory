@@ -18,6 +18,7 @@ from instalog import json_utils
 from instalog import plugin_base
 from instalog import plugin_sandbox
 
+# pylint: disable=no-name-in-module
 from instalog.external.jsonrpclib import SimpleJSONRPCServer
 
 
@@ -63,8 +64,6 @@ class Instalog(plugin_sandbox.CoreAPI):
 
     # Ensure we have a working data directory.
     self._data_dir = data_dir
-    if not os.path.exists(self._data_dir):
-      os.makedirs(self._data_dir)
 
     # Create plugin sandboxes.
     self._PreprocessConfigEntries(input_plugins, output_plugins)

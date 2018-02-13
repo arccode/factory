@@ -11,6 +11,7 @@ import logging
 import os
 import signal
 import sys
+import tarfile
 
 import instalog_common  # pylint: disable=unused-import
 from instalog import core
@@ -96,6 +97,7 @@ class InstalogCLI(object):
       exit('No config file found')
     with open(config_path) as f:
       config = yaml.load(f)
+    self._CheckDataDir(config)
 
     # logging.WARNING = 30, logging.INFO = 20, logging.DEBUG = 10
     logging_level = logging.INFO - ((args.verbose - args.quiet) * 10)
@@ -117,7 +119,9 @@ class InstalogCLI(object):
       self.Inspect(args.plugin_id, args.json_path)
     elif args.cmd == 'flush':
       self.Flush(args.plugin_id, args.timeout)
-
+    elif args.cmd == 'archive':
+      self.Archive(config['instalog']['data_dir'],
+                   args.archive_path, args.details)
 
   def _LocateConfigFile(self, user_path):
     """Locates the config file that should be used by Instalog."""
@@ -135,6 +139,17 @@ class InstalogCLI(object):
       if os.path.exists(path):
         logging.info('Config file found at %s', path)
         return path
+
+  def _CheckDataDir(self, config):
+    data_dir = config['instalog']['data_dir']
+    if not os.path.exists(data_dir):
+      os.makedirs(data_dir)
+    instalog_dir = instalog_common.INSTALOG_DIR
+    for path, unused_dirs, unused_files in os.walk(
+        instalog_dir, followlinks=True):
+      if not os.path.islink(path) and os.path.samefile(path, data_dir):
+        print('You should not put the data_dir in the Instalog source code')
+        sys.exit(1)
 
   def Restart(self):
     """Restarts the daemon."""
@@ -217,6 +232,43 @@ class InstalogCLI(object):
     if not success:
       sys.exit(1)
 
+  def Archive(self, data_dir, archive_path, details):
+    if self._service.IsRunning():
+      print('Is the Instalog running? You need to stop the Instalog first')
+      sys.exit(1)
+    if os.path.isdir(archive_path):
+      archive_path = os.path.join(archive_path, 'archived_instalog.tar.gz')
+    if not os.path.isdir(os.path.dirname(archive_path)):
+      print('The directory of `%s` does not exist' %
+            os.path.realpath(archive_path))
+      sys.exit(1)
+
+    print('Archiving to %s ...' % os.path.realpath(archive_path))
+    with tarfile.open(archive_path, 'w') as tar:
+      data_dir = os.path.realpath(data_dir)
+      instalog_dir = instalog_common.INSTALOG_DIR
+      instalog_parent_dir = instalog_common.INSTALOG_PARENT_DIR
+      instalog_virtual_env_dir = instalog_common.INSTALOG_VIRTUAL_ENV_DIR
+
+      if os.path.exists(data_dir):
+        print('Archiving data_dir from %s' % os.path.realpath(data_dir))
+        tar.add(data_dir, 'data')
+      if details >= 1:
+        def VirtualEnvFilter(tarinfo):
+          if tarinfo.name == 'instalog/virtual_env':
+            return None
+          return tarinfo
+        print('Archiving Instalog source code')
+        tar.add(instalog_dir, 'instalog', filter=VirtualEnvFilter)
+        tar.add(os.path.join(instalog_parent_dir, 'utils'), 'utils')
+        tar.add(os.path.join(instalog_parent_dir, 'testlog'), 'testlog')
+        tar.add(os.path.join(instalog_parent_dir, 'external'), 'external')
+      if details >= 2:
+        if os.path.exists(instalog_virtual_env_dir):
+          print('Archiving virtual_env')
+          tar.add(instalog_virtual_env_dir, 'instalog/virtual_env')
+    print('DONE')
+
 
 def main():
   parser = argparse.ArgumentParser()
@@ -270,6 +322,16 @@ def main():
   flush_parser.add_argument(
       'plugin_id', type=str, nargs='?', default=None,
       help='ID of plugin to flush')
+
+  archive_parser = subparsers.add_parser('archive', help='archive the Instalog')
+  archive_parser.set_defaults(cmd='archive')
+  archive_parser.add_argument(
+      '--output', '-o', dest='archive_path', type=str,
+      required=False, default='.',
+      help='path to put the archive file')
+  archive_parser.add_argument(
+      '--details', '-d', action='count', default=0,
+      help='archive more details (instalog code / virtual_env)')
 
   args = parser.parse_args()
 
