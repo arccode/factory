@@ -89,11 +89,16 @@ class GenericVideoFunction(function.ProbeFunction):
 
   def Probe(self):
     ret = []
+    probed_dev_paths = set()
     for video_node in glob.glob('/sys/class/video4linux/video*'):
       logging.debug('Find the node: %s', video_node)
       result = {}
 
       path = os.path.join(video_node, 'device')
+      dev_path = os.readlink(path)
+      if dev_path in probed_dev_paths:
+        continue
+      probed_dev_paths.add(dev_path)
       results = (function.InterpretFunction({'pci': path})() or
                  function.InterpretFunction({'usb': path})())
       assert len(results) <= 1
