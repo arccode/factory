@@ -28,6 +28,14 @@ class EvaluateStatementTest(unittest.TestCase):
         'expect': {'foo': 'FOO1'}})
     self.assertEquals(results, [{'foo': 'FOO1', 'bar': 'BAR1'}])
 
+  def testNormalWithKeys(self):
+    results = common.EvaluateStatement({
+        'eval': {'mock': {'data': [{'foo': 'FOO1', 'bar': 'BAR1'},
+                                   {'foo': 'FOO2', 'bar': 'BAR2'}]}},
+        'expect': {'foo': 'FOO1'},
+        'keys': ['foo']})
+    self.assertEquals(results, [{'foo': 'FOO1'}])
+
 
 if __name__ == '__main__':
   unittest.main()

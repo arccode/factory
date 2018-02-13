@@ -2,12 +2,18 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import os
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.bom import BOM
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.rule import Context
 from cros.factory.hwid.v3.rule import Value
 from cros.factory.probe import probe_utils
+
+
+DEFAULT_PROBE_STATEMENT_PATH = os.path.join(
+    os.path.dirname(__file__), 'default_probe_statement.json')
 
 
 def ProbeDUT():
@@ -18,7 +24,7 @@ def ProbeDUT():
   """
   try:
     probe_statement = probe_utils.GenerateProbeStatement(
-        include_generic=True, include_volatile=True)
+        config_file=DEFAULT_PROBE_STATEMENT_PATH)
     return probe_utils.Probe(probe_statement)
 
   except Exception as e:

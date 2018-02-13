@@ -20,6 +20,11 @@
                 "string",
                 "object"
               ]
+            },
+            "keys": {
+              "type": [
+                "array"
+              ]
             }
           },
           "required": [

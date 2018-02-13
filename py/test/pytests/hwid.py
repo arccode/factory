@@ -141,14 +141,14 @@ class HWIDV3Test(test_ui.TestCaseWithUI):
       testlog.LogParam(
           name='probed_results',
           value=probed_results,
-          description='gooftool probe result (overriden)')
+          description='hwid probe result (overriden)')
     else:
-      probed_results = self.factory_tools.CallOutput(['gooftool', 'probe'])
+      probed_results = self.factory_tools.CallOutput(['hwid', 'probe'])
       self._dut.WriteFile(probed_results_file, probed_results)
       testlog.LogParam(
           name='probed_results',
           value=probed_results,
-          description='gooftool probe result')
+          description='hwid probe result')
 
     # check if we are overriding the project name.
     if os.path.exists(OVERRIDE_PROJECT_PATH):

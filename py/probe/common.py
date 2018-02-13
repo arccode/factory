@@ -61,7 +61,8 @@ def EvaluateStatement(statement):
     statement: a dict containing the probe function and expected result.
       {
         "eval" : <Function expression>,
-        "expect" : <Rule expression>
+        "expect" : <Rule expression>,
+        "keys": <a_list_of_keys_to_output>  # optional
       }
 
   Returns:
@@ -69,4 +70,8 @@ def EvaluateStatement(statement):
   """
   probe_func = function.InterpretFunction(statement['eval'])
   match_func = match.MatchFunction(rule=statement.get('expect', {}))
-  return match_func(probe_func())
+  results = match_func(probe_func())
+  if 'keys' in statement:
+    results = [{k: v for k, v in result.iteritems() if k in statement['keys']}
+               for result in results]
+  return results

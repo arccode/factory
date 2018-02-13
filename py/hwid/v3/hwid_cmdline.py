@@ -15,15 +15,17 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import builder
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import hwid_utils
+from cros.factory.hwid.v3 import probe
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.test.rules import phase
 from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils.argparse_utils import Command
 from cros.factory.utils.argparse_utils import ParseCmdline
+from cros.factory.utils import file_utils
 from cros.factory.utils import json_utils
+from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
-from cros.factory.utils import process_utils
 
 
 _COMMON_ARGS = [
@@ -150,6 +152,18 @@ def ObtainAllDeviceData(options):
   logging.debug(yaml.dump(device_data.__dict__, default_flow_style=False))
 
   return device_data
+
+
+@Command(
+    'probe',
+    CmdArg('--output-file', default='-',
+           help='File name to store the probed results'))
+def ProbeCommand(options):
+  probed_results_data = json_utils.DumpStr(probe.ProbeDUT(), pretty=True)
+  if options.output_file == '-':
+    Output(probed_results_data)
+  else:
+    file_utils.WriteFile(options.output_file, probed_results_data)
 
 
 def RunDatabaseBuilder(database_builder, options):
@@ -375,7 +389,7 @@ def InitializeDefaultOptions(options):
     options.project = hwid_utils.ProbeProject()
 
   # Build database doesn't need to initialize the database.
-  if options.command_name in ['build-database']:
+  if options.command_name in ('probe', 'build-database'):
     return
 
   # Create the Database object here since it's common to all functions.
