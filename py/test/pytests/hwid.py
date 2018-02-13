@@ -198,7 +198,8 @@ class HWIDV3Test(test_ui.TestCaseWithUI):
       logging.info('HWID Database checksum: %s', hwid['database_checksum'])
 
       testlog.LogParam(name='generated_hwid', value=encoded_string)
-      testlog.LogParam(name='hwdb_checksum', value=hwid['hwdb_checksum'])
+      testlog.LogParam(name='database_checksum',
+                       value=hwid['database_checksum'])
       testlog.LogParam(name='decoded_hwid', value=decoded_hwid)
 
       device_data.UpdateDeviceData({'hwid': encoded_string})
