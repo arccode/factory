@@ -9,6 +9,7 @@ from __future__ import print_function
 
 import copy
 import logging
+import os
 import re
 
 import factory_common  # pylint: disable=unused-import
@@ -18,6 +19,7 @@ from cros.factory.test import device_data
 from cros.factory.test.env import paths
 from cros.factory.test.rules import phase
 from cros.factory.test import session
+from cros.factory.utils import net_utils
 from cros.factory.utils.sys_utils import MountDeviceAndReadFile
 
 
@@ -189,7 +191,9 @@ class SystemInfo(types.DeviceComponent):
   def eth_macs(self):
     """MAC addresses of ethernet devices."""
     macs = dict()
-    eth_paths = self._device.Glob('/sys/class/net/eth*')
+    eth_paths = sum([self._device.Glob(os.path.join('/sys/class/net', pattern))
+                     for pattern in net_utils.DEFAULT_ETHERNET_NAME_PATTERNS],
+                    [])
     for eth_path in eth_paths:
       address_path = self._device.path.join(eth_path, 'address')
       if self._device.path.exists(address_path):

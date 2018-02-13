@@ -32,7 +32,8 @@ INADDR_ANY = '0.0.0.0'
 MAX_PORT = 65535
 FULL_MASK = 2 ** 32 - 1
 FULL_MASK6 = 2 ** 128 - 1
-DEFAULT_ETHERNET_NAME_PATTERNS = ['eth*']
+# https://freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames
+DEFAULT_ETHERNET_NAME_PATTERNS = ['eno*', 'ens*', 'enp*s*', 'enx*', 'eth*']
 UNUSED_PORT_LOW = 8192
 UNUSED_PORT_HIGH = 32768
 
@@ -411,8 +412,8 @@ def GetEthernetInterfaces(name_patterns=DEFAULT_ETHERNET_NAME_PATTERNS):
   """
   interfaces = []
   for name in name_patterns:
-    interfaces += [os.path.basename(path) for path in
-                   glob.glob('/sys/class/net/' + name)]
+    interfaces += [os.path.basename(path)
+                   for path in glob.glob(os.path.join('/sys/class/net', name))]
   return interfaces
 
 
