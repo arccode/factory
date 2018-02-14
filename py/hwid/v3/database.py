@@ -376,6 +376,9 @@ class Database(object):
   def GetComponents(self, comp_cls):
     return self._components.GetComponents(comp_cls)
 
+  def GetDefaultComponent(self, comp_cls):
+    return self._components.GetDefaultComponent(comp_cls)
+
   def AddComponent(self, comp_cls, comp_name, value, status):
     return self._components.AddComponent(comp_cls, comp_name, value, status)
 
@@ -843,12 +846,10 @@ class Components(object):
     <comonent_class_1_name>:
       items:
         <component_name>:
-          value:
-            <a_dict_of_expected_probed_result_values>
+          value: <a_dict_of_expected_probed_result_values>|null
           status: unsupported|deprecated|unqualified|supported
         <component_name>:
-          value:
-            <a_dict_of_expected_probed_result_values>
+          value: <a_dict_of_expected_probed_result_values>
           status: unsupported|deprecated|unqualified|supported
         ...
     ...
@@ -873,6 +874,8 @@ class Components(object):
 
     cellular:
       items:
+        cellular_default:
+          values: null
         cellular_0:
           values:
             idVendor: 89ab
@@ -883,6 +886,11 @@ class Components(object):
   In above example, when we probe the battery of the device, if the probed
   result values contains {'tech': 'Battery Li-ion', size: '123456789'}, we
   consider as there's a component named "battery_small" installed on the device.
+
+  A special case is "value: null", this means the component is a
+  "default component".  In early build, sometime maybe the driver is not ready
+  so we have to set a default component to mark that those device actually
+  have the component.
 
   Valid status are: supported, unqualified, deprecated and unsupported.  Each
   value has its own meaning:
@@ -958,28 +966,17 @@ class Components(object):
     self._can_encode = True
     self._default_components = set()
     self._non_probeable_component_classes = set()
-    dummy_counter = 0
 
     for comp_cls, comps_data in components_expr.iteritems():
       self._components[comp_cls] = collections.OrderedDict()
       for comp_name, comp_attr in comps_data['items'].iteritems():
-        values = comp_attr['values']
-        if values is None:
-          logging.info(
-              'Found component %r without values, mark can_encode=False.',
-              comp_name)
-          self._can_encode = False
-          values = {self._DUMMY_KEY: str(dummy_counter)}
-          dummy_counter += 1
-
-        self._AddComponent(comp_cls, comp_name, values,
+        self._AddComponent(comp_cls, comp_name, comp_attr['values'],
                            comp_attr.get('status',
                                          common.COMPONENT_STATUS.supported))
 
         if comp_attr.get('default') == True:
-          logging.info('Found default component %r, mark can_encode=False.',
-                       comp_name)
-          self._can_encode = False
+          # We now use "values: null" to indicate a default component and
+          # ignore the "default: True" field.
           self._default_components.add((comp_cls, comp_name))
 
       if comps_data.get('probeable') == False:
@@ -1020,10 +1017,7 @@ class Components(object):
         if comp.status != common.COMPONENT_STATUS.supported:
           ret[comp_cls]['items'][comp_name]['status'] = comp.status
 
-        if self._DUMMY_KEY in comp.values:
-          ret[comp_cls]['items'][comp_name]['values'] = None
-        else:
-          ret[comp_cls]['items'][comp_name]['values'] = comp.values
+        ret[comp_cls]['items'][comp_name]['values'] = comp.values
     return ret
 
   @property
@@ -1050,6 +1044,19 @@ class Components(object):
         status: One of "unsupported", "deprecated", "unqualified", "supported".
     """
     return self._components.get(comp_cls, {})
+
+  def GetDefaultComponent(self, comp_cls):
+    """Gets the default components of the specific component class if exists.
+
+    Args:
+      comp_cls: A string of the name of the component class.
+
+    Returns:
+      None or a string of the component name.
+    """
+    for comp_name, comp_info in self._components.get(comp_cls, {}).iteritems():
+      if comp_info.values is None:
+        return comp_name
 
   def AddComponent(self, comp_cls, comp_name, values, status):
     """Adds a new component.
@@ -1089,6 +1096,8 @@ class Components(object):
 
   def _AddComponent(self, comp_cls, comp_name, values, status):
     def _IsSubDict(super_dict, sub_dict):
+      if super_dict is None or sub_dict is None:
+        return False
       if set(sub_dict.keys()) - set(super_dict.keys()):
         return False
       for k, v in sub_dict.iteritems():
@@ -1097,13 +1106,19 @@ class Components(object):
       return True
 
     self._SCHEMA.value_type.items[
-        'items'].value_type.items['values'].types[0].Validate(values)
+        'items'].value_type.items['values'].Validate(values)
     self._SCHEMA.value_type.items[
         'items'].value_type.optional_items['status'].Validate(status)
 
     if comp_name in self._components.get(comp_cls, {}):
       raise common.HWIDException('Component (%r, %r) already exists.' %
                                  (comp_cls, comp_name))
+
+    if values is None and any(c.values is None
+                              for c in self._components[comp_cls].itervalues()):
+      logging.warning('Found more than one default component of %r, '
+                      'mark can_encode=False.', comp_cls)
+      self._can_encode = False
 
     for existed_comp_name, existed_comp_info in self.GetComponents(
         comp_cls).iteritems():

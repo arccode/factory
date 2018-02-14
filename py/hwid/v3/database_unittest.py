@@ -85,7 +85,9 @@ class ComponentsTest(unittest.TestCase):
                                           'status': 'unsupported'}}},
             'cls2': {'items': {'comp21': {'values': {'p2': 'v3', 'p4': 'v5'},
                                           'default': True}}},
-            'cls3': {'items': {'comp31': {'values': None}}, 'probeable': False}}
+            'cls3': {'items': {'comp31': {'values': None},
+                               'comp41': {'values': {'a': 'b'}}}},
+            'cls4': {'items': {'comp41': {'values': None}}, 'probeable': False}}
     c = Components(expr)
     self.assertEquals(c.Export(), expr)
 
@@ -103,10 +105,10 @@ class ComponentsTest(unittest.TestCase):
   def testCanEncode(self):
     self.assertTrue(Components(
         {'cls1': {'items': {'c1': {'values': {'a': 'b'}}}}}).can_encode)
-
-    self.assertFalse(
+    self.assertTrue(
         Components({'cls1': {'items': {'c1': {'values': None}}}}).can_encode)
-    self.assertFalse(
+
+    self.assertTrue(
         Components({'cls1': {'items': {'c1': {'values': {'a': 'b'},
                                               'default': True}}}}).can_encode)
     self.assertFalse(
@@ -118,13 +120,15 @@ class ComponentsTest(unittest.TestCase):
     c.AddComponent('cls1', 'comp1', {'a': 'b', 'c': 'd'}, 'supported')
     c.AddComponent('cls1', 'comp2', {'a': 'x', 'c': 'd'}, 'unsupported')
     c.AddComponent('cls2', 'comp1', {'a': 'b', 'c': 'd'}, 'deprecated')
+    c.AddComponent('cls1', 'comp_default', None, 'supported')
     self.assertEquals(
         c.Export(), {
             'cls1': {
                 'items': {
                     'comp1': {'values': {'a': 'b', 'c': 'd'}},
                     'comp2': {'values': {'a': 'x', 'c': 'd'},
-                              'status': 'unsupported'}}},
+                              'status': 'unsupported'},
+                    'comp_default': {'values': None}}},
             'cls2': {
                 'items': {
                     'comp1': {'values': {'a': 'b', 'c': 'd'},

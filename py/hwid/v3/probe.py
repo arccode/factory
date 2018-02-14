@@ -49,36 +49,45 @@ def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
     A instance of BOM class and a sub-dictionary of the probed results contains
         the mismatched components.
   """
+  def _IsValuesMatch(probed_values, comp_values):
+    for key, value in comp_values.iteritems():
+      if not isinstance(value, Value):
+        value = Value(value)
+      if key not in probed_values or not value.Matches(probed_values[key]):
+        return False
+    return True
+
   # Construct a dict of component classes to list of component names.
   matched_components = {comp_cls: []
                         for comp_cls in database.GetComponentClasses()}
-  mismatched_components = {}
+  mismatched_components = {comp_cls: value
+                           for comp_cls, value in probed_results.iteritems()
+                           if comp_cls not in matched_components}
 
-  for comp_cls, probed_comps in probed_results.iteritems():
-    if comp_cls not in matched_components:
-      mismatched_components[comp_cls] = probed_results[comp_cls]
-      continue
-
-    for probed_comp_name, probed_comp_items in probed_comps.iteritems():
+  for comp_cls in database.GetComponentClasses():
+    default_comp = database.GetDefaultComponent(comp_cls)
+    for probed_comp_name, probed_comp_items in probed_results.get(
+        comp_cls, {}).iteritems():
       for probed_comp_item in probed_comp_items:
-        for comp_name, comp_attrs in database.GetComponents(
+        for comp_name, comp_info in database.GetComponents(
             comp_cls).iteritems():
-          for key, value in comp_attrs.values.iteritems():
-            if not isinstance(value, Value):
-              value = Value(value)
-            if (key not in probed_comp_item or
-                not value.Matches(probed_comp_item[key])):
-              break
-
-          else:
+          if comp_info.values is None:
+            continue
+          if _IsValuesMatch(probed_comp_item, comp_info.values):
             matched_components[comp_cls].append(comp_name)
             break
-
         else:
-          mismatched_components.setdefault(comp_cls, {})
-          mismatched_components[comp_cls].setdefault(probed_comp_name, [])
-          mismatched_components[comp_cls][
-              probed_comp_name].append(probed_comp_item)
+          if default_comp is not None:
+            matched_components[comp_cls].append(default_comp)
+          else:
+            mismatched_components.setdefault(comp_cls, {})
+            mismatched_components[comp_cls].setdefault(probed_comp_name, [])
+            mismatched_components[comp_cls][
+                probed_comp_name].append(probed_comp_item)
+
+    # If no any probed result of this component class, try add the default one.
+    if not matched_components[comp_cls] and default_comp is not None:
+      matched_components[comp_cls].append(default_comp)
 
   if not allow_mismatched_components and any(
       sum(comps.values(), []) for comps in mismatched_components.itervalues()):

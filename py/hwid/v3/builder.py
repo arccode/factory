@@ -143,7 +143,6 @@ class DatabaseBuilder(object):
   """
 
   _DEFAULT_COMPONENT_SUFFIX = '_default'
-  _DEFAULT_COMPONENT_VALUE_KEY = 'default_value_key'
 
   def __init__(self, database_path=None, project=None, image_name=None):
     """Constructor.
@@ -178,20 +177,13 @@ class DatabaseBuilder(object):
     """
     logging.info('Component [%s]: add a default item.', comp_cls)
 
-    comp_name = comp_cls + self._DEFAULT_COMPONENT_SUFFIX
-    if comp_name in self.database.GetComponents(comp_cls):
+    if self.database.GetDefaultComponent(comp_cls) is not None:
       raise ValueError(
           'The component class %r already has a default component.' % comp_cls)
 
+    comp_name = comp_cls + self._DEFAULT_COMPONENT_SUFFIX
     self.database.AddComponent(
-        comp_cls, comp_name,
-        {self._DEFAULT_COMPONENT_VALUE_KEY : 'unused_value'},
-        common.COMPONENT_STATUS.unqualified)
-    self.database.AddDeviceInfoRule(
-        'set_default_%s_component' % comp_cls,
-        'SetComponent("%s", "%s")' % (comp_cls, comp_name),
-        when='ComponentEq("%s", [])' % comp_cls,
-        position=0)
+        comp_cls, comp_name, None, common.COMPONENT_STATUS.unqualified)
 
   def AddNullComponent(self, comp_cls):
     """Updates the database to be able to encode a device without specific
@@ -291,7 +283,7 @@ class DatabaseBuilder(object):
     # Deprecate the default component.
     for comp_name, comp_attrs in self.database.GetComponents(
         comp_cls).iteritems():
-      if self._DEFAULT_COMPONENT_VALUE_KEY in comp_attrs.values:
+      if comp_attrs.values is None:
         self.database.SetComponentStatus(
             comp_cls, comp_name, common.COMPONENT_STATUS.unsupported)
 

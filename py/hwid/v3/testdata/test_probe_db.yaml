@@ -24,9 +24,6 @@ components:
     items:
       comp_2_1: {values: {key: value1}}
       comp_2_2: {values: {key: value2}}
-      comp_2_default: {values: {key: never-matched-value}}
+      comp_2_default: {values: null}
 
-rules:
-  - name: device_info.set_comp_cls_2_default_item
-    evaluate: SetComponent('comp_cls_2', 'comp_2_default')
-    when: ComponentEq('comp_cls_2', [])
+rules: []
