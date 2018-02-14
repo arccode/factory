@@ -157,7 +157,7 @@ class FanSpeedTest(test_ui.TestCaseWithUI):
   def runTest(self):
     """Main test function."""
     if self.args.spin_max_then_half:
-      logging.info('Spinning fan up to to get max fan speed...')
+      logging.info('Spinning fan up to get max fan speed...')
       max_rpm = self.SetAndGetFanSpeed(self.args.max_rpm)
       for i in xrange(len(max_rpm)):
         if max_rpm[i] == 0:
