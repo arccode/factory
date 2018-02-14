@@ -111,7 +111,6 @@ $ hwid build-database \
     [--image-id <IMAGE_ID>] \  # Name of the image_id, default is 'EVT'
     [--add-default-component COMP [COMP ...]] \  # Add the default item
     [--add-null-component COMP [COMP ...]] \  # Add the null item
-    [--del-component COMP [COMP ...]] \  # Delete the component
     [--region REGION [REGION ...]] \  # Add supported regions
     [--chassis ID1 [ID2 ...]] \  # Add supported chassis
 
@@ -124,7 +123,6 @@ $ hwid update-database \
     [--image-id <IMAGE_ID>] \  # Name of the image_id
     [--add-default-component COMP [COMP ...]] \  # Add the default item
     [--add-null-component COMP [COMP ...]] \  # Add the null item
-    [--del-component COMP [COMP ...]] \  # Delete the component
     [--region REGION [REGION ...]] \  # Add supported regions
     [--chassis ID1 [ID2 ...]] \  # Add supported chassis
 ```
@@ -157,7 +155,7 @@ easiest way is using the database builder with a valid probe result. The steps
 of generating HWID database are:
 
 1. Confirm the categories of the components that should be encoded into HWID.
-2. Generate the probe result by "gooftool probe"
+2. Generate the probe result by "hwid probe"
 3. Confirm the project name and the phase.
 4. (Optional) Check if there are missing components in the probe result. If so,
    add a default item with the argument "--add-default-component". Please refer
@@ -173,11 +171,11 @@ component.
 
 ```shell
 # Get the probe result.
-$ gooftool probe > /tmp/probe.yaml
+$ hwid probe --output-file /tmp/probe.json
 
 # Create the database at /usr/local/factory/hwid/GOOGLE
 $ hwid build-database \
-    --probed-results-file /tmp/probe.yaml \
+    --probed-results-file /tmp/probe.json \
     --output-database-path /usr/local/factory/hwid \
     --project GOOGLE \
     --image-id EVT \
@@ -196,11 +194,11 @@ firmware.
 The command for this scenario is:
 ```shell
 # Get the probe result.
-$ gooftool probe > /tmp/probe.yaml
+$ hwid probe --output-file /tmp/probe.json
 
 # Update the database at /usr/local/factory/hwid/GOOGLE
 $ hwid update-database \
-    --probed-results-file /tmp/probe.yaml \
+    --probed-results-file /tmp/probe.json \
     --output-database-path /usr/local/factory/hwid \
     --project GOOGLE
 ```
@@ -232,7 +230,6 @@ components:
   cellular:
     items:
       cellular_default:
-        default: True
         status: unqualified
         value: NULL
 ```
@@ -257,7 +254,6 @@ components:
   cellular:
     items:
       cellular_default:
-        default: True
         status: unsupported
         value: NULL
       aa:
@@ -272,14 +268,14 @@ The command for this scenario is:
 $ hwid build-database \
     --output-database-path /usr/local/factory/hwid \
     --project GOOGLE \
-    --probed-results-file /tmp/probe.yaml \  # the probe result without cellular
+    --probed-results-file /tmp/probe.json \  # the probe result without cellular
     --add-default-component cellular
 
 # Update the database by the probed result
 $ hwid update-database \
     --output-database-path /usr/local/factory/hwid \
     --project GOOGLE \
-    --probed-results-file /tmp/probe.yaml  # the probe result with cellular "aa"
+    --probed-results-file /tmp/probe.json  # the probe result with cellular "aa"
 ```
 
 ### 4. Add a Null Item {#add_null_item}
@@ -487,7 +483,7 @@ $ hwid build-database \
     --output-database-path /usr/local/factory/hwid \
     --project GOOGLE \
     --image-id EVT \
-    --probed-results-file /tmp/probe.yaml  # the probe result without cellular
+    --probed-results-file /tmp/probe.json  # the probe result without cellular
 
 # Update the database at DVT build.
 $ hwid update-database \
@@ -495,7 +491,7 @@ $ hwid update-database \
     --project GOOGLE \
     --image-id DVT \
     --add-null-component cellular \
-    --probed-results-file /tmp/probe.yaml  # the probe result with cellular "aa"
+    --probed-results-file /tmp/probe.json  # the probe result with cellular "aa"
 ```
 
 *** note
@@ -561,7 +557,7 @@ The command for this scenario is:
 $ hwid update-database \
     --output-database-path /usr/local/factory/hwid \
     --project GOOGLE \
-    --probed-results-file /tmp/probe.yaml  # the probe result with cellular "aa"
+    --probed-results-file /tmp/probe.json  # the probe result with cellular "aa"
 
 WARNING: Extra fields [cellular_field] without assigning a new image_id.
 If the fields are added into the current pattern, the index of these fields will
@@ -572,92 +568,7 @@ devices with old HWID string have the component with index 0. [y/N] y
 Please choose **"Y"** for the question, then the database builder will append
 the component into the current pattern.
 
-
-### 7. Delete Existed Component in Device
-Similar to adding a new component in the device, we might decide to remove a
-component during the build. For example, the device has cellular in EVT, but we
-decide to remove it in DVT. To ensure that we can still decode the previous
-HWID, we cannot remove it from the encoded field and component. We need to add a
-new pattern without the cellular encoded bits. The HWID database should be like:
-
-|||---|||
-#### Before deleting the cellular component
-```yaml
-image_id:
-  0: EVT
-
-pattern:
-- image_ids: [0]
-  encoding_scheme: base8192
-  fields:
-  - cpu_field: 3
-  - cellular_field: 3
-
-encoded_fields:
-  cpu_field:
-    0: {cpu: cpu_aa}
-  cellular_field:
-    0: {cellular: NULL}
-    1: {cellular: aa}
-
-components:
-  cpu:
-    items:
-      cpu_aa:
-        value: {compact_str: cpu_aa}
-  cellular:
-    items:
-      aa:
-        value: {compact_str: aa}
-```
-#### After deleting the cellular component
-```yaml
-image_id:
-  0: EVT
-  1: DVT
-
-pattern:
-- image_ids: [0]
-  encoding_scheme: base8192
-  fields:
-  - cpu_field: 3
-  - cellular_field: 3
-
-- image_ids: [1]
-  encoding_scheme: base8192
-  fields:
-  - cpu_field: 3
-
-encoded_fields:
-  cpu_field:
-    0: {cpu: cpu_aa}
-  cellular_field:
-    0: {cellular: NULL}
-    1: {cellular: aa}
-
-components:
-  cpu:
-    items:
-      cpu_aa:
-        value: {compact_str: cpu_aa}
-  cellular:
-    probeable: False
-    items:
-      aa:
-        value: {compact_str: aa}
-```
-|||---|||
-
-The command for this scenario is:
-```shell
-$ hwid update-database \
-    --output-database-path /usr/local/factory/hwid \
-    --project GOOGLE \
-    --image-id DVT \  # New image_id must be assigned.
-    --del-component cellular
-```
-
-### 8. Convert Legacy Region Style to List Style
+### 7. Convert Legacy Region Style to List Style
 We use magic tag `"!region_field"` to generate the region encoded field. There
 are two styles: legacy and list style. In legacy style, each region has its own
 index mapping. For example, "us" maps to 29 and "gb" maps to 16. However, in
