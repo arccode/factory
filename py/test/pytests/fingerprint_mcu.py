@@ -19,6 +19,9 @@ Dependency
 The pytest supposes that the system as a fingerprint MCU exposed through the
 kernel cros_ec driver as ``/dev/cros_fp``.
 
+When available, it uses the vendor 'libfputils' shared library and its Python
+helper to compute the image quality signal-to-noise ratio.
+
 Examples
 --------
 Minimum runnable example to check if the fingerprint sensor is connected
@@ -34,14 +37,15 @@ add this in test list::
   {
     "pytest_name": "fpmcu",
     "args": {
-      "dead_pixel_max": 100,
-      "sensor_hwid": 5131
+      "dead_pixel_max": 10,
+      "sensor_hwid": 5132
     }
   }
 """
 
 import logging
 import re
+import sys
 import time
 import unittest
 
@@ -51,6 +55,13 @@ from cros.factory.testlog import testlog
 from cros.factory.utils import type_utils
 from cros.factory.utils.arg_utils import Arg
 
+# use the fingerprint image processing library if available
+sys.path.extend(['/usr/local/opt/fpc', '/opt/fpc'])
+try:
+  import fputils
+  libfputils = fputils.FpUtils()
+except ImportError:
+  libfputils = None
 
 class FingerprintTest(unittest.TestCase):
   """Tests the fingerprint sensor."""
@@ -60,7 +71,10 @@ class FingerprintTest(unittest.TestCase):
           default=None),
       Arg('max_dead_pixels', int,
           'The maximum number of dead pixels on the fingerprint sensor.',
-          default=60),
+          default=6),
+      Arg('min_snr', float,
+          'The minimum signal-to-noise ratio for the image quality.',
+          default=0.0),
       Arg('rubber_finger_present', bool,
           'A Rubber finger is pressed against the sensor for quality testing.',
           default=False),
@@ -142,16 +156,29 @@ class FingerprintTest(unittest.TestCase):
 
     if self.args.rubber_finger_present:
       # Test sensor image quality
-      self.MCUCommand('fpmode', 'capture')
+      self.MCUCommand('fpmode', 'capture', 'qual')
       # should wait here for the cros_fp EC_MKBP_FP_IMAGE_READY event, so we
       # know whether we captured a proper image or the finger was not present
       # or the capture failed by using self.MCUCommand('waitevent 1 60000')
       # requires kernel support: crosreview.com/866857
       #      and ectool support: crosreview.com/806167
       time.sleep(0.5)
-      pnm = self.MCUCommand('fpframe')
-      # record the PNM image file for quality evaluation
+      img = self.MCUCommand('fpframe', 'raw')
+      # record the raw image file for quality evaluation
       testlog.AttachContent(
-          content=pnm,
-          name='finger_stamp.pnm',
-          description='finger image in portable greymap format')
+          content=img,
+          name='finger_mqt.raw',
+          description='raw MQT finger image')
+      # Check quality if the function if available
+      if libfputils:
+        rc, snr = libfputils.mqt(img)
+        logging.info('MQT SNR %f (err:%d)', snr, rc)
+        if rc:
+          raise type_utils.TestFailure('MQT failed with error %d' % (rc))
+        else:
+          if not testlog.CheckParam(name='mqt_snr', value=snr,
+                                    min=self.args.min_snr,
+                                    description='Image signal-to-noise ratio'):
+            raise type_utils.TestFailure('Bad quality image')
+      elif self.args.min_snr > 0.0:
+        raise type_utils.TestFailure('No image quality library available')
