@@ -37,7 +37,7 @@ class Environment(object):
         should just consider the shutdown to have suceeded (e.g.,
         in the chroot).
     """
-    raise NotImplementedError()
+    raise NotImplementedError
 
   def terminate(self):
     """Terminates and cleans up environment."""

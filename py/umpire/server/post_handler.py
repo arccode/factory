@@ -69,7 +69,7 @@ def Echo(env, **kwargs):
   """
   del env  # Unused.
   if 'exception' in kwargs:
-    raise HandlerError()
+    raise HandlerError
   ret = {}
   for k, v in kwargs.iteritems():
     value = repr(v)

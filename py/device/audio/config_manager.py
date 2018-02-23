@@ -197,7 +197,7 @@ class AudioConfigManager(BaseConfigManager):
     Args:
       config_path: A string for YAML config file path or JSON config name.
     """
-    raise NotImplementedError()
+    raise NotImplementedError
 
   def Initialize(self, card='0'):
     """Initialize sound card.

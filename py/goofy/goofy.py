@@ -1015,7 +1015,7 @@ class Goofy(object):
     signal_name = ', '.join(names) if names else 'UNKNOWN'
     logging.error('Received signal %s(%d)', signal_name, signum)
     self.run_enqueue(None)
-    raise KeyboardInterrupt()
+    raise KeyboardInterrupt
 
   def GetTestList(self, test_list_id):
     """Returns the test list with the given ID.

@@ -68,7 +68,7 @@ class Subcommand(object):
 
     Must be implemented by the subclass.
     """
-    raise NotImplementedError()
+    raise NotImplementedError
 
 
 class HelpCommand(Subcommand):

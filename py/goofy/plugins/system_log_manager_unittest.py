@@ -102,7 +102,7 @@ class StubQueue(object):
         self.timer.fake_time = item_put_time
         return item
     self.timer.fake_time += timeout
-    raise Queue.Empty()
+    raise Queue.Empty
 
   def put(self, item):
     logging.debug('%s StubQueue.put(%r), put_index = %d',

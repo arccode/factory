@@ -215,7 +215,7 @@ class RunTests(object):
       if self._abort_event.isSet():
         # Ignore cleanup and force exit if ctrl-c is pressed twice
         print '\033[22;31mGot ctrl-c twice, force shutdown!\033[22;0m'
-        raise KeyboardInterrupt()
+        raise KeyboardInterrupt
       print '\033[1;33mGot ctrl-c, gracefully shutdown.\033[22;0m'
       self._abort_event.set()
 
@@ -348,7 +348,7 @@ class RunTests(object):
         os.kill(pid, signal.SIGKILL)
         os.waitpid(pid, 0)
       proc.Close()
-    raise KeyboardInterrupt()
+    raise KeyboardInterrupt
 
   def _WaitRunningProcessesFewerThan(self, threshold):
     """Waits until #running processes is fewer than specifed.
