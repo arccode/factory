@@ -415,7 +415,7 @@ class DatabaseBuilder(object):
           # If there's already an encoded field for this component, leave
           # the work to `_UpdateEncodedFields` method and do nothing here.
           if not field_name:
-            self.AddNullComponent(comp_cls, [])
+            self.AddNullComponent(comp_cls)
 
     return probe.GenerateBOMFromProbedResults(
         self.database, probed_results, device_info, vpd,
