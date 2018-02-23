@@ -28,14 +28,14 @@ Minimum runnable example to check if the fingerprint sensor is connected
 properly and fits the default quality settings::
 
   {
-    "pytest_name": "fpmcu"
+    "pytest_name": "fingerprint_mcu"
   }
 
-To check if the sensor has at most 100 dead pixels and its HWID is 0x140b,
+To check if the sensor has at most 10 dead pixels and its HWID is 0x140c,
 add this in test list::
 
   {
-    "pytest_name": "fpmcu",
+    "pytest_name": "fingerprint_mcu",
     "args": {
       "dead_pixel_max": 10,
       "sensor_hwid": 5132
