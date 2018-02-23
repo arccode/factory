@@ -25,7 +25,9 @@ Test Procedure
 
 Dependency
 ----------
-``chrome.display.system.getInfo`` in Chrome extension to get screen orientation.
+``chrome.display.system.getInfo`` in Chrome extension to get screen
+orientation. Refer to https://developer.chrome.com/apps/system_display for
+more information.
 
 If ``check_accelerometer`` is set, also depends on device API
 ``cros.factory.device.accelerometer``.
