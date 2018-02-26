@@ -4,12 +4,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import dbus
 import glob
-import mox
 import os
 import subprocess
 import unittest
+
+import dbus
+import mox
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.utils import connection_manager

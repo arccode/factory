@@ -35,8 +35,8 @@ from cros.factory.test import device_data
 from cros.factory.test.env import goofy_proxy
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
-from cros.factory.test.event import ThreadingEventClient
 from cros.factory.test.event import EventServer
+from cros.factory.test.event import ThreadingEventClient
 from cros.factory.test import event_log
 from cros.factory.test.event_log import EventLog
 from cros.factory.test.event_log import GetBootSequence

@@ -3,7 +3,6 @@
 # found in the LICENSE file.
 
 import factory_common  # pylint: disable=unused-import
-
 from cros.factory.test.rf import lan_scpi
 
 

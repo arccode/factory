@@ -2,12 +2,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import logging
-import glob
-import re
-import os
-import fcntl
 import array
+import fcntl
+import glob
+import logging
+import os
+import re
 import struct
 
 import factory_common  # pylint: disable=unused-import

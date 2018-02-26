@@ -5,9 +5,10 @@
 import copy
 import logging
 import re
-import serial
 import time
 import xmlrpclib
+
+import serial
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture import bft_fixture

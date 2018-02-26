@@ -14,12 +14,13 @@ states.
 from __future__ import print_function
 
 import logging
-import mock
 import threading
 import time
 import unittest
 
-import instalog_common  # pylint: disable=W0611
+import mock
+
+import instalog_common  # pylint: disable=unused-import
 from instalog import log_utils
 from instalog import plugin_base
 from instalog import plugin_sandbox

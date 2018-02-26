@@ -3,11 +3,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 import cPickle as pickle
 import logging
-import mock
 import unittest
+
+import mock
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import test_list_iterator

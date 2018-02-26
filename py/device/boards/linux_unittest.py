@@ -5,12 +5,13 @@
 
 """Tests for SystemInterface in LinuxBoard."""
 
-import mock
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.device import types
+import mock
+
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device.boards import linux
+from cros.factory.device import types
 
 
 class MockProcess(object):

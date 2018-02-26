@@ -4,13 +4,13 @@
 
 """ChromeOS family boards."""
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device.audio import utils as audio_utils
 from cros.factory.device.boards import linux
 from cros.factory.device.chromeos import bluetooth
 from cros.factory.device.chromeos import display
-from cros.factory.device import types
 from cros.factory.device import fan
+from cros.factory.device import types
 from cros.factory.device import vpd
 from cros.factory.device import wifi
 

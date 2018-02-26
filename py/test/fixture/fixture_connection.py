@@ -14,8 +14,9 @@ SerialFixtureConnection: a serial port based FixtureConnection.
 from __future__ import print_function
 
 import abc
-import serial
 import time
+
+import serial
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.utils import serial_utils

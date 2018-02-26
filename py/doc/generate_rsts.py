@@ -27,7 +27,7 @@ import re
 import StringIO
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import pytests
 from cros.factory.test.test_lists import manager
 from cros.factory.utils import file_utils

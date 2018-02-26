@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
 # Copyright 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -10,13 +8,14 @@
 Requested data are probed, written to the event log, and saved to device data.
 """
 
-import mox
 import unittest
 
+import mox
+
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test import device_data
 from cros.factory.test import event_log
 from cros.factory.test.pytests import probe_cellular_info
-from cros.factory.test import device_data
 from cros.factory.utils.arg_utils import Args
 from cros.factory.utils import process_utils
 

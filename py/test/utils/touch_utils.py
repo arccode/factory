@@ -49,18 +49,28 @@ import math
 import os
 import re
 
-from collections import namedtuple, OrderedDict
+from collections import namedtuple
+from collections import OrderedDict
 
 import factory_common  # pylint: disable=unused-import
 
-from cros.factory.external import evdev  # pylint: disable=W0611
+from cros.factory.external import evdev  # pylint: disable=unused-import
 # pylint: disable=no-name-in-module,F0401
-from cros.factory.external.evdev.ecodes import (
-    ABS_MT_POSITION_X, ABS_MT_POSITION_Y,
-    ABS_MT_PRESSURE, ABS_MT_SLOT, ABS_MT_TRACKING_ID,
-    BTN_LEFT, BTN_TOOL_FINGER, BTN_TOOL_DOUBLETAP,
-    BTN_TOOL_TRIPLETAP, BTN_TOOL_QUADTAP,
-    BTN_TOOL_QUINTTAP, BTN_TOUCH, EV_ABS, EV_KEY, EV_SYN)
+from cros.factory.external.evdev.ecodes import ABS_MT_POSITION_X
+from cros.factory.external.evdev.ecodes import ABS_MT_POSITION_Y
+from cros.factory.external.evdev.ecodes import ABS_MT_PRESSURE
+from cros.factory.external.evdev.ecodes import ABS_MT_SLOT
+from cros.factory.external.evdev.ecodes import ABS_MT_TRACKING_ID
+from cros.factory.external.evdev.ecodes import BTN_LEFT
+from cros.factory.external.evdev.ecodes import BTN_TOOL_FINGER
+from cros.factory.external.evdev.ecodes import BTN_TOOL_DOUBLETAP
+from cros.factory.external.evdev.ecodes import BTN_TOOL_TRIPLETAP
+from cros.factory.external.evdev.ecodes import BTN_TOOL_QUADTAP
+from cros.factory.external.evdev.ecodes import BTN_TOOL_QUINTTAP
+from cros.factory.external.evdev.ecodes import BTN_TOUCH
+from cros.factory.external.evdev.ecodes import EV_ABS
+from cros.factory.external.evdev.ecodes import EV_KEY
+from cros.factory.external.evdev.ecodes import EV_SYN
 
 
 # Define TidPacket to keep the point, pressure, and SYN_REPOT time of a packet.

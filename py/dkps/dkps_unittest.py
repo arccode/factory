@@ -14,7 +14,7 @@ import unittest
 
 import gnupg
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.dkps import dkps
 from cros.factory.utils import net_utils
 from cros.factory.utils import sync_utils

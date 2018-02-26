@@ -4,10 +4,11 @@
 
 """Proxy requests to HWID Service on Kubernetes Engine."""
 
-# pylint: disable=import-error, no-name-in-module
-from protorpc.wsgi import service
-from protorpc import remote
 from xmlrpclib import ServerProxy
+
+# pylint: disable=import-error, no-name-in-module
+from protorpc import remote
+from protorpc.wsgi import service
 
 import config # pylint: disable=import-error
 import definition as _def

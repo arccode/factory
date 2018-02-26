@@ -5,10 +5,11 @@
 # found in the LICENSE file.
 
 import logging
-import mox
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import mox
+
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.tools.cpu_usage_monitor import CPUUsageMonitor
 from cros.factory.utils import process_utils

@@ -6,6 +6,7 @@
 """RPCServer to support serial connection to Plankton-Raiden of Dolphin."""
 
 from __future__ import print_function
+
 import logging
 import optparse
 import os

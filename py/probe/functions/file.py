@@ -58,4 +58,3 @@ class FileFunction(function.ProbeFunction):
         ret += [{self.args.key: content.strip()}
                 for content in contents if content.strip()]
     return ret
-

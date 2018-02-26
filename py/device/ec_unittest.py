@@ -9,13 +9,14 @@
 
 from __future__ import print_function
 
-import mox
 import textwrap
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.device import types
+import mox
+
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import ec
+from cros.factory.device import types
 
 
 class EmbeddedControllerTest(unittest.TestCase):

@@ -7,7 +7,7 @@
 import logging
 import os
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server.service import umpire_service
 from cros.factory.utils import schema
 

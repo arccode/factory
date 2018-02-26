@@ -5,11 +5,13 @@
 """Serial server."""
 
 from __future__ import print_function
+
 import copy
 import logging
-import serial
 import time
 import xmlrpclib
+
+import serial
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.utils import serial_utils

@@ -1,16 +1,19 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
 # Copyright 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 import unittest
-import factory_common  # pylint: disable=W0611
 
-from cros.factory.hwid.v3.rule import (
-    RuleFunction, Rule, Value, Context, RuleException,
-    SetContext, GetContext, GetLogger)
+import factory_common  # pylint: disable=unused-import
+from cros.factory.hwid.v3.rule import Context
+from cros.factory.hwid.v3.rule import GetContext
+from cros.factory.hwid.v3.rule import GetLogger
+from cros.factory.hwid.v3.rule import Rule
+from cros.factory.hwid.v3.rule import RuleException
+from cros.factory.hwid.v3.rule import RuleFunction
+from cros.factory.hwid.v3.rule import SetContext
+from cros.factory.hwid.v3.rule import Value
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 
 

@@ -4,13 +4,14 @@
 # found in the LICENSE file.
 
 import os
-import mock
-import unittest
 import tempfile
+import unittest
+
+import mock
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.utils import file_utils
 from cros.factory.probe.functions import touchscreen_elan
+from cros.factory.utils import file_utils
 
 
 class TouchscreenElanFunctionTest(unittest.TestCase):

@@ -10,7 +10,7 @@ import subprocess
 import unittest
 import uuid
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import file_utils
 from cros.factory.utils import pygpt
 

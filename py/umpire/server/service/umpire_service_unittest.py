@@ -8,11 +8,12 @@ import copy
 import logging
 import os
 import re
-from twisted.trial import unittest
+
 from twisted.internet import defer
 from twisted.internet import reactor
+from twisted.trial import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server.service import umpire_service
 from cros.factory.umpire.server import umpire_env

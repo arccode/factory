@@ -14,7 +14,11 @@ http://www.viewtool.com/index.php?option=com_content&view=article&id=212:driver-
 """
 
 
-from ctypes import byref, cdll, c_int, c_ubyte, c_ushort
+from ctypes import byref
+from ctypes import c_int
+from ctypes import c_ubyte
+from ctypes import c_ushort
+from ctypes import cdll
 import os
 
 

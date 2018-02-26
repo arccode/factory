@@ -17,13 +17,15 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device.bluetooth import BluetoothManager
 from cros.factory.device.bluetooth import BluetoothManagerException
 from cros.factory.device import device_utils
+from cros.factory.utils.sync_utils import PollForCondition
+from cros.factory.utils.sync_utils import Retry
+
 from cros.factory.external import dbus
 # pylint: disable=no-name-in-module,import-error
+from cros.factory.external.dbus import DBusException
 from cros.factory.external.dbus.mainloop.glib import DBusGMainLoop
 from cros.factory.external.dbus import service  # pylint: disable=unused-import
-from cros.factory.external.dbus import DBusException
 from cros.factory.external import gobject
-from cros.factory.utils.sync_utils import PollForCondition, Retry
 
 
 BUS_NAME = 'org.bluez'

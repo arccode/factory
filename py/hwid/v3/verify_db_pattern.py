@@ -24,10 +24,10 @@ import subprocess
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.utils import process_utils
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
+from cros.factory.utils import process_utils
 from cros.factory.utils.schema import SchemaException
 
 

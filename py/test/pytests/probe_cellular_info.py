@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Copyright 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -14,8 +12,8 @@ import re
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import event_log
 from cros.factory.test import device_data
+from cros.factory.test import event_log
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 

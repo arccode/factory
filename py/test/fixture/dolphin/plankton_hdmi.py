@@ -16,8 +16,8 @@ except ImportError:
 import glob
 import logging
 import re
-import time
 import threading
+import time
 
 
 class PlanktonHDMIException(Exception):

@@ -8,12 +8,15 @@ import argparse
 import logging
 import os
 import sys
+
 import yaml
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.utils.process_utils import Spawn
-from cros.factory.utils.schema import Dict, FixedDict, Scalar
+from cros.factory.utils.schema import Dict
+from cros.factory.utils.schema import FixedDict
+from cros.factory.utils.schema import Scalar
 
 
 """Installs symlinks to factory binaries, based on symlinks.yaml.

@@ -12,7 +12,7 @@
 import logging
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils.string_utils import DecodeUTF8
 from cros.factory.utils.string_utils import ParseDict
 from cros.factory.utils.string_utils import ParseString

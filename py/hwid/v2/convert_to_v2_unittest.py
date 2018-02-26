@@ -7,7 +7,7 @@ import os
 import unittest
 import yaml
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 
 from cros.factory.hwid.v2 import convert_to_v2
 

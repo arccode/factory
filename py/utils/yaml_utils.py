@@ -5,6 +5,7 @@
 """YAML utilities."""
 
 import collections
+
 import yaml
 
 

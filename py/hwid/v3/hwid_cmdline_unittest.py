@@ -4,10 +4,10 @@
 # found in the LICENSE file.
 
 import json
-import mock
 import os
 import unittest
 
+import mock
 import yaml
 
 import factory_common  # pylint: disable=unused-import

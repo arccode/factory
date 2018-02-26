@@ -12,11 +12,12 @@ import copy
 import glob
 import logging
 import os
-import psutil
 import resource
 import tarfile
 import time
 import unittest
+
+import psutil
 
 import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes

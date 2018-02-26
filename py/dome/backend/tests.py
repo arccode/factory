@@ -14,9 +14,6 @@ import rest_framework.test
 
 from backend import models
 
-import factory_common  # pylint: disable=unused-import
-from cros.factory.umpire.server import resource as umpire_resource
-
 
 SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
 

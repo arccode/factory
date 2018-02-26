@@ -20,8 +20,8 @@ from cros.factory.gooftool.common import Util
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import wipe
 from cros.factory.hwid.v2 import hwid_tool
-from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3.database import Database
+from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.probe import probe_utils
 from cros.factory.test.l10n import regions
 from cros.factory.test.rules import phase

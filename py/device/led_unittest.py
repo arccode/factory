@@ -4,17 +4,17 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 """Unittest for LED."""
 
 from __future__ import print_function
 
-import mox
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.device import types
+import mox
+
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import led
+from cros.factory.device import types
 
 
 class LEDTest(unittest.TestCase):

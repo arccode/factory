@@ -10,13 +10,13 @@ from __future__ import print_function
 
 import copy
 import logging
+from multiprocessing import Process
 import os
 import re
 import tempfile
 import time
-from multiprocessing import Process
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device.audio import base
 from cros.factory.device.audio import config_manager
 

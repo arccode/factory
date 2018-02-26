@@ -4,12 +4,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import mox
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import mox
+
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import service_utils
-from cros.factory.utils import type_utils
 from cros.factory.utils.service_utils import Status
 
 

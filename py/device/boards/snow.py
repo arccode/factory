@@ -4,11 +4,11 @@
 
 import logging
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.test import session
-from cros.factory.device import types
-from cros.factory.device import power
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device.boards import chromeos
+from cros.factory.device import power
+from cros.factory.device import types
+from cros.factory.test import session
 
 
 class SnowPower(power.Power):

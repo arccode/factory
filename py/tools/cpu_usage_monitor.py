@@ -7,7 +7,7 @@ import argparse
 import logging
 import time
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import log_utils
 from cros.factory.utils import process_utils
 

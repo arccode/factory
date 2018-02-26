@@ -6,11 +6,12 @@
 
 
 import collections
-import mox
 import os
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import mox
+
+import factory_common  # pylint: disable=unused-import
 from cros.factory.tools import disk_space
 
 

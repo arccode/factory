@@ -10,7 +10,7 @@ import json
 import logging
 import os
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import config_utils
 
 

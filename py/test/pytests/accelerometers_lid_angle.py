@@ -23,6 +23,7 @@ Usage examples::
 
 import logging
 import math
+
 import numpy as np
 
 import factory_common  # pylint: disable=unused-import

@@ -18,7 +18,7 @@ import time
 # pylint: disable=import-error
 from google.cloud.bigquery.schema import SchemaField
 
-import instalog_common  # pylint: disable=W0611
+import instalog_common  # pylint: disable=unused-import
 from instalog import plugin_base
 from instalog.plugins import output_bigquery
 

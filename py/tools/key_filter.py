@@ -36,7 +36,7 @@ try:
 except Exception:
   _has_Xlib = False
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import log_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils import sys_utils

@@ -8,15 +8,16 @@ from __future__ import print_function
 
 import glob
 import logging
-import mox
 import os
 import shutil
 import time
+import xmlrpclib
+
+import mox
 from twisted.internet import reactor
 from twisted.trial import unittest
 from twisted.web import server
 from twisted.web import xmlrpc
-import xmlrpclib
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common

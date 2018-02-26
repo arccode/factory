@@ -13,13 +13,13 @@ import SocketServer
 import threading
 import time
 import unittest
+import xmlrpclib
 
 import jsonrpclib
 from jsonrpclib import jsonrpc
 from jsonrpclib import SimpleJSONRPCServer
-import xmlrpclib
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import jsonrpc_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import sync_utils

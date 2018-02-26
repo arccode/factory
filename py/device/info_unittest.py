@@ -9,13 +9,14 @@
 
 
 import logging
-import mox
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.device import types
+import mox
+
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import info as info_module
 from cros.factory.device import partitions
+from cros.factory.device import types
 
 MOCK_RELEASE_IMAGE_LSB_RELEASE = ('GOOGLE_RELEASE=5264.0.0\n'
                                   'CHROMEOS_RELEASE_TRACK=canary-channel\n')

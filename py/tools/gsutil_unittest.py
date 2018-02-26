@@ -8,14 +8,15 @@
 
 
 import logging
-import mock
 import unittest
 
-import factory_common   # pylint: disable=W0611
+import mock
+
+import factory_common   # pylint: disable=unused-import
 from cros.factory.tools import gsutil
 
 
-# pylint: disable=C0301
+# pylint: disable=line-too-long
 FAKE_GS_LS_OUTPUT = (
     """gs://chromeos-releases/canary-channel/daisy-spring/4262.1.0/
 gs://chromeos-releases/canary-channel/daisy-spring/4262.10.0/

@@ -52,7 +52,7 @@ $ curl -i -X POST \
 
 from __future__ import print_function
 
-import instalog_common  # pylint: disable=W0611
+import instalog_common  # pylint: disable=unused-import
 from instalog import plugin_base
 from instalog.plugins import input_http
 from instalog.testlog import testlog

@@ -11,11 +11,10 @@ import os
 import tempfile
 import unittest
 
-import factory_common  # pylint: disable=W0611
-
-from cros.factory.test.env import paths
-from cros.factory.device.links import ssh
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device.links import local
+from cros.factory.device.links import ssh
+from cros.factory.test.env import paths
 
 dut_options = dict(
     identity=os.path.join(paths.FACTORY_DIR, 'setup', 'sshkeys',

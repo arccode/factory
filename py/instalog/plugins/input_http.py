@@ -40,15 +40,16 @@ try:
 except ImportError:
   import StringIO
 
-import instalog_common  # pylint: disable=W0611
+import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
-from instalog.external import gnupg
 from instalog import log_utils
 from instalog import plugin_base
 from instalog.plugins import http_common
 from instalog.utils.arg_utils import Arg
 from instalog.utils import file_utils
 from instalog.utils import net_utils
+
+from instalog.external import gnupg
 
 
 _DEFAULT_HOSTNAME = '0.0.0.0'

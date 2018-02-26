@@ -23,9 +23,10 @@ import json
 import logging
 import os
 import Queue
+
 import zlib
 
-import instalog_common  # pylint: disable=W0611
+import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
 from instalog import log_utils
 from instalog import plugin_base

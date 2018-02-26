@@ -1,15 +1,19 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
 # Copyright 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import factory_common  # pylint: disable=W0611
 import unittest
 
-from cros.factory.utils.schema import (
-    AnyOf, Dict, FixedDict, List, Optional, Scalar, SchemaException, Tuple)
+import factory_common  # pylint: disable=unused-import
+from cros.factory.utils.schema import AnyOf
+from cros.factory.utils.schema import Dict
+from cros.factory.utils.schema import FixedDict
+from cros.factory.utils.schema import List
+from cros.factory.utils.schema import Optional
+from cros.factory.utils.schema import Scalar
+from cros.factory.utils.schema import SchemaException
+from cros.factory.utils.schema import Tuple
 
 
 class SchemaTest(unittest.TestCase):

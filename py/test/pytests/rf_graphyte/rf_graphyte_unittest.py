@@ -6,11 +6,12 @@
 """Unit tests for rf_graphyte factory test."""
 
 import json
-import mock
 import os
 import shutil
 import tempfile
 import unittest
+
+import mock
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.pytests.rf_graphyte import rf_graphyte

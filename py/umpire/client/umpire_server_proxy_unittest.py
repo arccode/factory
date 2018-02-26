@@ -10,7 +10,6 @@ from __future__ import print_function
 
 import glob
 import logging
-import mox
 import multiprocessing
 import os
 import shutil
@@ -22,6 +21,8 @@ import SocketServer
 import tempfile
 import time
 import unittest
+
+import mox
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.client import umpire_client

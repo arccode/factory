@@ -2,9 +2,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.device import types
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import sensor_utils
+from cros.factory.device import types
 
 
 class Gyroscope(types.DeviceComponent):

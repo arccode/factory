@@ -12,12 +12,13 @@ fixture to send out signals to simulate key presses on the key sequence.
 from __future__ import print_function
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.external import evdev
-from cros.factory.test import session
 from cros.factory.test.fixture import bft_fixture
+from cros.factory.test import session
 from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
+
+from cros.factory.external import evdev
 
 
 class KeyboardSMTTest(test_ui.TestCaseWithUI):

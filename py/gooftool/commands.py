@@ -41,9 +41,9 @@ from cros.factory.utils.argparse_utils import verbosity_cmd_arg
 from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils import file_utils
 from cros.factory.utils import json_utils
+from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils import sys_utils
 from cros.factory.utils import time_utils
-from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.type_utils import Error
 
 

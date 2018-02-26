@@ -1,18 +1,17 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 from __future__ import print_function
 
-import jsonrpclib
 import logging
 import os
 import random
 import signal
 import sys
+
+import jsonrpclib
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.utils import network_utils

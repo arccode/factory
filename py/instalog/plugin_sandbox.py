@@ -12,16 +12,16 @@ from __future__ import print_function
 
 import datetime
 import inspect
-import json_utils
 import logging
 import os
 import sys
 import threading
 import time
 
-import instalog_common  # pylint: disable=W0611
+import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
 from instalog import flow_policy
+from instalog import json_utils
 from instalog import log_utils
 from instalog import plugin_base
 from instalog import plugin_loader

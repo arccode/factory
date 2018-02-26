@@ -10,7 +10,7 @@ chooses the right bundle for the DUT and returns the resource map of the bundle.
 
 import Cookie
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 
 

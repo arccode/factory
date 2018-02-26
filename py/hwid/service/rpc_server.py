@@ -7,10 +7,9 @@
 import argparse
 import inspect
 import logging  # TODO(yllin): Replace logging with testlog
+from SimpleXMLRPCServer import SimpleXMLRPCServer
 import time
 import uuid
-
-from SimpleXMLRPCServer import SimpleXMLRPCServer
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.service import validator

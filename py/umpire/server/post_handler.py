@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 #
-# pylint: disable=E1101
+# pylint: disable=no-member
 
 """Umpire HTTP POST handlers
 
@@ -30,6 +30,7 @@ passing filename instead of file body.
 import logging
 import os
 import tempfile
+
 from twisted.internet import defer
 from twisted.internet import protocol
 from twisted.internet import reactor
@@ -218,4 +219,3 @@ def _TranslateArgs(args, files):
 
 def _GetFullHandlerPath(env, handler_name):
   return os.path.join(env.server_toolkit_dir, 'bin', handler_name)
-

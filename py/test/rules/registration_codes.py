@@ -2,11 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import binascii
 import base64
+import binascii
 import re
 import struct
-
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.proto import reg_code_pb2

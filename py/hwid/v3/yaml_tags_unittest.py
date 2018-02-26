@@ -5,7 +5,7 @@
 
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import yaml_tags
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 

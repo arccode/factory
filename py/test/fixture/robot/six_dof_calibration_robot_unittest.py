@@ -4,9 +4,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import unittest
+
 import mock
 import serial
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture.robot import six_dof_calibration_robot

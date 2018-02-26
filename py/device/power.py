@@ -7,7 +7,7 @@ import logging
 import re
 import time
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 
 from cros.factory.external import enum

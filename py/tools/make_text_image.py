@@ -13,13 +13,15 @@ to generate the existing PNG file, we just skip this file.
 
 
 import argparse
-import cairo
 import os
+import sys
+
+import cairo
 import pango
 import pangocairo
-import sys
+from PIL import Image
+from PIL import PngImagePlugin
 import yaml
-from PIL import Image, PngImagePlugin
 
 
 def WriteAttrData(img_path, attr):

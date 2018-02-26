@@ -14,8 +14,8 @@ Usage:
   // Reboot.
 """
 
-from contextlib import nested
 import argparse
+from contextlib import nested
 import glob
 import logging
 import shutil
@@ -23,7 +23,7 @@ import subprocess
 import sys
 import time
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils.file_utils import UnopenedTemporaryFile
 from cros.factory.utils.process_utils import Spawn
 

@@ -11,11 +11,12 @@ The class handles http://umpire_address:umpire_http_port/post/
 
 import json
 import logging
+
 from twisted.web import http
 from twisted.web import resource
 from twisted.web import server
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server import post_handler
 
 

@@ -10,7 +10,7 @@ for all service module.
 """
 
 # The attributes of Twisted reactor and type_utils.AttrDict object are changing
-# dynamically at run time. To suppress warnings, pylint: disable=E1101
+# dynamically at run time. To suppress warnings, pylint: disable=no-member
 
 import collections
 import copy
@@ -19,16 +19,17 @@ import inspect
 import json
 import logging
 import os
+import uuid
+
 from twisted.internet import defer
 from twisted.internet import protocol
 from twisted.internet import reactor
-import uuid
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server import utils
-from cros.factory.utils.schema import JSONSchemaDict
 from cros.factory.utils import file_utils
+from cros.factory.utils.schema import JSONSchemaDict
 from cros.factory.utils import type_utils
 
 # A list of all available umpire services

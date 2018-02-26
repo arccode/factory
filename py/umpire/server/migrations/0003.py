@@ -5,6 +5,7 @@
 import hashlib
 import json
 import os
+
 import yaml
 
 _ENV_DIR = '/var/db/factory/umpire'

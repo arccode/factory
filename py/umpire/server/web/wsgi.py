@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 #
-# pylint: disable=E1101
+# pylint: disable=no-member
 
 """WSGI session class.
 
@@ -11,9 +11,10 @@ This class provides shortcuts to HTTP request and response.
 
 import logging
 import time
+
 from twisted.web import http
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import type_utils
 
 

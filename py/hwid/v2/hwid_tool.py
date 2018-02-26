@@ -18,7 +18,7 @@ from random import shuffle
 from string import uppercase  # pylint: disable=W0402
 from zlib import crc32
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 
 from cros.factory.hwid.v2.bom_names import BOM_NAME_SET
 from cros.factory.hwid.v2 import yaml_datastore

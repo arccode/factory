@@ -16,6 +16,7 @@ Be sure to set AP correctly.
 """
 
 from __future__ import print_function
+
 import logging
 import re
 import sys
@@ -23,8 +24,8 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
-from cros.factory.test import session
 from cros.factory.test.i18n import _
+from cros.factory.test import session
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils

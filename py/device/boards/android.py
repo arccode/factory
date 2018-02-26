@@ -6,15 +6,15 @@
 
 import pipes
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device.audio import utils as audio_utils
-from cros.factory.device import types
+from cros.factory.device.boards import linux
 from cros.factory.device import memory
 from cros.factory.device import path
 from cros.factory.device import storage
 from cros.factory.device import temp
+from cros.factory.device import types
 from cros.factory.device import vpd
-from cros.factory.device.boards import linux
 
 # pylint: disable=abstract-method
 class AndroidBoard(linux.LinuxBoard):

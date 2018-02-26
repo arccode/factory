@@ -6,16 +6,17 @@
 
 """Unit tests for sys_utils module."""
 
-import mox
 import os
 import subprocess
 import tempfile
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import mox
+
+import factory_common  # pylint: disable=unused-import
+from cros.factory.device.boards import linux
 from cros.factory.device import device_utils
 from cros.factory.device import ec
-from cros.factory.device.boards import linux
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils.process_utils import Spawn

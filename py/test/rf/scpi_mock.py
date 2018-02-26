@@ -11,11 +11,11 @@ Example Usage:
   MockTestServer(('0.0.0.0', SERVER_PORT), MockServerHandler).serve_forever()
 """
 
-import logging
 import inspect
+import logging
 import re
-import types
 import SocketServer
+import types
 
 
 class MockTestServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):

@@ -5,10 +5,11 @@
 
 """Unittest for accelerometer module."""
 
-import mock
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import mock
+
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import accelerometer
 
 

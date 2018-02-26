@@ -6,7 +6,7 @@
 
 import logging
 
-import factory_common # pylint: disable=W0611
+import factory_common # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import verify_db_pattern

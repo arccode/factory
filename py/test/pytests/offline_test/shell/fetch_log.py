@@ -1,4 +1,3 @@
-# -*- coding: UTF-8 -*-
 # Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -15,11 +14,11 @@ import zipfile
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import session
-from cros.factory.test import server_proxy
 from cros.factory.test.pytests.offline_test.shell import common
-from cros.factory.utils import file_utils
+from cros.factory.test import server_proxy
+from cros.factory.test import session
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import file_utils
 
 
 LOGS_ARG_HELP = """

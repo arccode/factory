@@ -7,8 +7,9 @@
 # pylint: disable=protected-access
 
 import logging
-import mox
 import unittest
+
+import mox
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device.power import Power

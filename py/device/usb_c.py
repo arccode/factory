@@ -5,7 +5,7 @@
 import logging
 import re
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 
 

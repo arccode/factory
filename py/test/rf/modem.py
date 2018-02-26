@@ -6,6 +6,7 @@
 
 import logging
 import re
+
 import serial
 
 import factory_common  # pylint: disable=unused-import

@@ -4,16 +4,17 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import mox
 import os
 import re
-import tempfile
 import shutil
-import sys
-import unittest
 from StringIO import StringIO
+import sys
+import tempfile
+import unittest
 
-import factory_common  # pylint: disable=W0611
+import mox
+
+import factory_common  # pylint: disable=unused-import
 from cros.factory.tools import diff_image
 
 EXPECTED_OUTPUT = '''

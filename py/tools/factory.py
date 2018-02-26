@@ -22,18 +22,20 @@ import re
 import socket
 import sys
 import time
+
 import yaml
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.external import setproctitle
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data
-from cros.factory.test.state import TestState
 from cros.factory.test.rules import phase
 from cros.factory.test import state
+from cros.factory.test.state import TestState
 from cros.factory.test.test_lists import manager
 from cros.factory.utils import debug_utils
 from cros.factory.utils import log_utils
 from cros.factory.utils.process_utils import Spawn
+
+from cros.factory.external import setproctitle
 
 
 class Subcommand(object):

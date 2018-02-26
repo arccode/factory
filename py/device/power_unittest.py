@@ -9,15 +9,15 @@
 
 from __future__ import print_function
 
-import mox
+from subprocess import CalledProcessError
 import textwrap
 import unittest
 
-from subprocess import CalledProcessError
+import mox
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.device import types
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import power
+from cros.factory.device import types
 
 
 class PowerTest(unittest.TestCase):

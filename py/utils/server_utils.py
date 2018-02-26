@@ -5,11 +5,12 @@
 """Server-related utilities..."""
 
 
+from collections import namedtuple
 import logging
 import os
-from collections import namedtuple
 
-from .process_utils import Spawn, TerminateOrKillProcess
+from .process_utils import Spawn
+from .process_utils import TerminateOrKillProcess
 
 
 RSYNCD_CONFIG_TEMPLATE = '''address = %(address)s

@@ -19,9 +19,10 @@ import sys
 import textwrap
 import time
 import urlparse
+
 import yaml
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.tools import get_version
 from cros.factory.tools import gsutil
 from cros.factory.utils import cros_board_utils

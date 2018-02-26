@@ -8,14 +8,15 @@
 
 from __future__ import print_function
 
-import mock
 import SimpleXMLRPCServer
 import socket
 import threading
 import time
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import mock
+
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 

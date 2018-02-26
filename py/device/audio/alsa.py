@@ -9,7 +9,7 @@ from __future__ import print_function
 import logging
 import re
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device.audio import base
 from cros.factory.device.audio import config_manager
 from cros.factory.utils.type_utils import Enum

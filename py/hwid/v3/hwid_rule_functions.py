@@ -4,8 +4,7 @@
 
 """HWID specific rule function implementations."""
 
-import factory_common  # pylint: disable=W0611
-
+import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3.rule import GetContext
 from cros.factory.hwid.v3.rule import RuleFunction

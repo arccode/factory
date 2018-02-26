@@ -16,7 +16,7 @@ import os
 import re
 import time
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.common import Shell
 from cros.factory.probe import function
 from cros.factory.utils.arg_utils import Arg

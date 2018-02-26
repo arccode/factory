@@ -8,7 +8,7 @@ import logging
 import os
 import yaml
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 
 
 # Warning message prepended to all datastore files.

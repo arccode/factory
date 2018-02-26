@@ -6,10 +6,11 @@
 
 """Unittest for serial_utils."""
 
-import mox
-import serial
 import time
 import unittest
+
+import mox
+import serial
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture import arduino

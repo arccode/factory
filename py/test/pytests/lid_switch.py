@@ -9,7 +9,6 @@ import os
 import time
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.external import evdev
 from cros.factory.test import event_log
 # The right BFTFixture module is dynamically imported based on args.bft_fixture.
 # See LidSwitchTest.setUp() for more detail.
@@ -20,6 +19,8 @@ from cros.factory.test.utils import audio_utils
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
+
+from cros.factory.external import evdev
 
 _DEFAULT_TIMEOUT = 30
 _SERIAL_TIMEOUT = 1

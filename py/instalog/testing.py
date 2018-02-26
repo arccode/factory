@@ -14,7 +14,7 @@ import os
 import shutil
 import tempfile
 
-import instalog_common  # pylint: disable=W0611
+import instalog_common  # pylint: disable=unused-import
 from instalog import plugin_base
 from instalog import plugin_sandbox
 from instalog.utils import file_utils

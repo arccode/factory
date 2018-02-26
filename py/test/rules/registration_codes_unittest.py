@@ -9,12 +9,12 @@ import binascii
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test.rules.registration_codes import RegistrationCode
-from cros.factory.test.rules.registration_codes import CheckRegistrationCode
+from cros.factory.proto import reg_code_pb2
 from cros.factory.test.rules.registration_codes import (
     CheckLegacyRegistrationCode)
+from cros.factory.test.rules.registration_codes import CheckRegistrationCode
+from cros.factory.test.rules.registration_codes import RegistrationCode
 from cros.factory.test.rules.registration_codes import RegistrationCodeException
-from cros.factory.proto import reg_code_pb2
 
 
 class RegistrationCodeTest(unittest.TestCase):

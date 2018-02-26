@@ -12,10 +12,9 @@ generic_statement.json.
 import logging
 
 import factory_common  # pylint: disable=unused-import
-
+from cros.factory.hwid.v3 import builder
 from cros.factory.probe import common
 from cros.factory.probe import function
-from cros.factory.hwid.v3 import builder
 
 
 _generic_statement = None

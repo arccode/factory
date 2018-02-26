@@ -13,7 +13,6 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import accelerometer
 from cros.factory.device import ambient_light_sensor
 from cros.factory.device.audio import utils as audio_utils
-from cros.factory.device import types
 from cros.factory.device import camera
 from cros.factory.device import ec
 from cros.factory.device import gyroscope
@@ -24,8 +23,8 @@ from cros.factory.device import init
 from cros.factory.device import led
 from cros.factory.device import magnetometer
 from cros.factory.device import memory
-from cros.factory.device import path as path_module
 from cros.factory.device import partitions
+from cros.factory.device import path as path_module
 from cros.factory.device import power
 from cros.factory.device import status
 from cros.factory.device import storage
@@ -33,6 +32,7 @@ from cros.factory.device import temp
 from cros.factory.device import thermal
 from cros.factory.device import touch
 from cros.factory.device import toybox
+from cros.factory.device import types
 from cros.factory.device import udev
 from cros.factory.device import usb_c
 from cros.factory.device import wifi

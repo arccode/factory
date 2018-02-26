@@ -17,14 +17,15 @@ import time
 
 import requests
 
-import instalog_common  # pylint: disable=W0611
+import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
-from instalog.external import gnupg
 from instalog import plugin_base
 from instalog.plugins import http_common
 from instalog.utils.arg_utils import Arg
 from instalog.utils import file_utils
 from instalog.utils import time_utils
+
+from instalog.external import gnupg
 
 
 _DEFAULT_BATCH_SIZE = 1024

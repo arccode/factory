@@ -14,14 +14,14 @@ import tempfile
 import time
 import unittest
 
-import instalog_common  # pylint: disable=W0611
+import gnupg
+
+import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
 from instalog import log_utils
 from instalog import plugin_sandbox
 from instalog import testing
 from instalog.utils import net_utils
-
-import gnupg
 
 
 class TestHTTP(unittest.TestCase):

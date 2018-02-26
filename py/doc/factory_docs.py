@@ -9,7 +9,7 @@ import re
 from docutils import nodes
 from sphinx.util.compat import Directive
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.l10n import regions
 
 

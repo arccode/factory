@@ -3,10 +3,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import mox
 import os
 import shutil
 import unittest
+
+import mox
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server import resource

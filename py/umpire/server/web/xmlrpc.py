@@ -2,15 +2,16 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 #
-# Python twisted's module creates definition dynamically, pylint: disable=E1101
+# Python twisted's module creates definition dynamically, pylint: disable=no-member
 
 import logging
 import time
-from twisted.internet import defer
-from twisted.python import reflect
-from twisted.python import failure
-from twisted.web import xmlrpc
 import xmlrpclib
+
+from twisted.internet import defer
+from twisted.python import failure
+from twisted.python import reflect
+from twisted.web import xmlrpc
 
 
 class XMLRPCContainer(xmlrpc.XMLRPC, object):

@@ -9,11 +9,12 @@ is triggered and in correct state.
 """
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.external import evdev
 from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
+
+from cros.factory.external import evdev
 
 
 class TabletModeTest(test_ui.TestCaseWithUI):

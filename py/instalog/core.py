@@ -4,23 +4,21 @@
 
 from __future__ import print_function
 
+# Fix for bug b/30904731: Import _strptime manually.  Otherwise,
+# threads may initially raise the exception `AttributeError: _strptime`.
+import _strptime  # pylint: disable=unused-import
 import logging
 import os
 import threading
 import time
 
-import instalog_common  # pylint: disable=W0611
+import instalog_common  # pylint: disable=unused-import
 from instalog import flow_policy
 from instalog import json_utils
-from instalog import plugin_sandbox
 from instalog import plugin_base
+from instalog import plugin_sandbox
 
 from instalog.external.jsonrpclib import SimpleJSONRPCServer
-
-
-# Fix for bug b/30904731: Import _strptime manually.  Otherwise,
-# threads may initially raise the exception `AttributeError: _strptime`.
-import _strptime  # pylint: disable=unused-import
 
 
 # Possible daemon states.

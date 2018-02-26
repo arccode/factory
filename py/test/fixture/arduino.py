@@ -5,8 +5,9 @@
 # found in the LICENSE file.
 
 import logging
-import serial
 import time
+
+import serial
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.utils import serial_utils

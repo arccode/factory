@@ -1,12 +1,12 @@
 #!/usr/bin/env python
-# -*- coding: UTF-8 -*-
 # Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 import json
-import mock
 import unittest
+
+import mock
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import storage

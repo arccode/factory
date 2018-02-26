@@ -5,16 +5,16 @@
 # found in the LICENSE file.
 
 import calendar
+from contextlib import contextmanager
 import logging
-import mox
 import os
 import tempfile
 import time
 import unittest
 
-from contextlib import contextmanager
+import mox
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.tools import time_sanitizer
 from cros.factory.utils import file_utils
 

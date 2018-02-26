@@ -12,9 +12,10 @@ import os
 import re
 import sys
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import cros_board_utils
-from cros.factory.utils.process_utils import CheckOutput, Spawn
+from cros.factory.utils.process_utils import CheckOutput
+from cros.factory.utils.process_utils import Spawn
 
 
 RE_PACKAGE_FILES = re.compile(r'.*?files/')

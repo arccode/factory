@@ -10,11 +10,12 @@
 from __future__ import print_function
 
 import fnmatch
-import mox
 import os.path
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import mox
+
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import thermal
 from cros.factory.device import types
 

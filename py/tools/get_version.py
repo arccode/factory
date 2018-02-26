@@ -9,14 +9,12 @@ from __future__ import print_function
 import logging
 import os
 import re
-import subprocess
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool import crosfw
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
-from cros.factory.utils.sys_utils import MountPartition
 
 
 FIRMWARE_LABELS = ('BIOS', 'EC', 'PD')

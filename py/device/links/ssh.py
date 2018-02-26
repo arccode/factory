@@ -13,7 +13,7 @@ import tempfile
 import threading
 import time
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 from cros.factory.test import state
 from cros.factory.test.utils import dhcp_utils

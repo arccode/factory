@@ -4,7 +4,7 @@
 
 """Interfaces, classes and types for Device API."""
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import sys_interface
 from cros.factory.utils import type_utils
 

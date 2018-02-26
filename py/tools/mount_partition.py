@@ -11,7 +11,7 @@
 import argparse
 import logging
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils.sys_utils import MountPartition
 
 

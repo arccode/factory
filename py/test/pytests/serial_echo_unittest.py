@@ -4,10 +4,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import unittest
+
 import mox
 from mox import IgnoreArg
 import serial
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.pytests import serial_echo

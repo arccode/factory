@@ -15,7 +15,7 @@ import filecmp
 import logging
 import time
 
-import instalog_common  # pylint: disable=W0611
+import instalog_common  # pylint: disable=unused-import
 from instalog import json_utils
 from instalog import plugin_base
 from instalog.utils import time_utils

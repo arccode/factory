@@ -6,7 +6,6 @@
 
 
 from datetime import date
-import mox
 import os
 import shutil
 from StringIO import StringIO
@@ -14,7 +13,9 @@ import sys
 import tempfile
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import mox
+
+import factory_common  # pylint: disable=unused-import
 from cros.factory.tools import migrate_board_dir
 from cros.factory.tools.migrate_board_dir import MigrateBoardException
 from cros.factory.tools.migrate_board_dir import ReplacePattern

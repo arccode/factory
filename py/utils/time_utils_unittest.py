@@ -7,11 +7,13 @@
 
 
 from __future__ import print_function
-import unittest
-import datetime
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.utils.time_utils import FormatElapsedTime, TimeString
+import datetime
+import unittest
+
+import factory_common  # pylint: disable=unused-import
+from cros.factory.utils.time_utils import FormatElapsedTime
+from cros.factory.utils.time_utils import TimeString
 
 
 class TimeUtilsTest(unittest.TestCase):

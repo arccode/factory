@@ -5,16 +5,17 @@
 # found in the LICENSE file.
 
 from __future__ import print_function
+
 import argparse
+from contextlib import contextmanager
 import logging
 import os
 import re
 import subprocess
 import sys
 import tempfile
-from contextlib import contextmanager
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.sys_utils import MountPartition

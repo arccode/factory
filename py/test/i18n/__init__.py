@@ -5,8 +5,8 @@
 from __future__ import print_function
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test.i18n import translation
 from cros.factory.test.i18n import string_utils
+from cros.factory.test.i18n import translation
 
 _ = string_utils._
 HTMLEscape = string_utils.HTMLEscape

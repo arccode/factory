@@ -16,9 +16,9 @@ from cros.factory.test import device_data
 from cros.factory.test.pytests import station_entry
 from cros.factory.test import state
 from cros.factory.test import test_ui
+from cros.factory.unittest_utils import mock_time_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
-from cros.factory.unittest_utils import mock_time_utils
 
 
 class FakeArgs(object):

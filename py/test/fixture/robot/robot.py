@@ -25,8 +25,8 @@ For example::
 
 
 import argparse
-import logging
 import json
+import logging
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture import utils as fixture_utils

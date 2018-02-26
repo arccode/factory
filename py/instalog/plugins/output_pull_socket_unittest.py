@@ -9,11 +9,12 @@
 from __future__ import print_function
 
 import logging
-import mock
 import socket
 import tempfile
 import time
 import unittest
+
+import mock
 
 import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes

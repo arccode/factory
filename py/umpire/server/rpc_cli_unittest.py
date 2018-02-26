@@ -9,9 +9,10 @@
 from __future__ import print_function
 
 import logging
-import mox
 import os
 import re
+
+import mox
 from twisted.internet import reactor
 from twisted.trial import unittest
 from twisted.web import server

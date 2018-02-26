@@ -2,7 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 #
-# Python twisted's module creates definition dynamically, pylint: disable=E1101
+# Python twisted's module creates definition dynamically,
+# pylint: disable=no-member
 
 """Umpire daemon.
 
@@ -13,6 +14,7 @@ updater.
 
 import logging
 import signal
+
 from twisted.internet import defer
 from twisted.internet import reactor
 from twisted.python import failure as twisted_failure
@@ -20,7 +22,7 @@ from twisted.web import server
 from twisted.web import wsgi
 from twisted.web import xmlrpc
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server import http_post_resource
 from cros.factory.umpire.server.service import umpire_service

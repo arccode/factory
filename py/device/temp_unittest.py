@@ -5,19 +5,20 @@
 
 """Tests for temporary files module dut.temp."""
 
-import mock
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import mock
+
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.device import temp
+from cros.factory.device import temp as temp_module
 
 class TemporaryFilesTest(unittest.TestCase):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-    self.temp = temp.TemporaryFiles(self.dut)
-    self.android_temp = temp.AndroidTemporaryFiles(self.dut)
+    self.temp = temp_module.TemporaryFiles(self.dut)
+    self.android_temp = temp_module.AndroidTemporaryFiles(self.dut)
 
   def testMkfile(self):
     template = 'cftmp.XXXXXX'

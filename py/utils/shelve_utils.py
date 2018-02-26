@@ -391,4 +391,3 @@ class InMemoryShelf(dict):
 
   def close(self):
     pass
-

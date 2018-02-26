@@ -14,7 +14,7 @@ import shutil
 import tempfile
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.tools import make_par
 from cros.factory.utils.process_utils import Spawn
 

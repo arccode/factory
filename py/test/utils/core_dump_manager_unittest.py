@@ -7,11 +7,12 @@
 # pylint: disable=protected-access
 
 import logging
-import mox
 import os
 import shutil
 import tempfile
 import unittest
+
+import mox
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.utils import core_dump_manager

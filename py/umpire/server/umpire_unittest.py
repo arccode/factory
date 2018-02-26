@@ -6,10 +6,11 @@
 
 import __builtin__  # Used for mocking raw_input().
 import json
-import mox
 import os
 import sys
 import unittest
+
+import mox
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common

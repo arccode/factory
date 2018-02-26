@@ -6,7 +6,7 @@ import glob
 import logging
 import os
 import re
-import string  # pylint: disable=W0402
+import string  # pylint: disable=deprecated-module
 import struct
 
 import factory_common  # pylint: disable=unused-import

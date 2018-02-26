@@ -8,7 +8,7 @@
 import codecs
 import unittest
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.doc import generate_rsts
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.file_utils import UnopenedTemporaryFile

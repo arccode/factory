@@ -80,7 +80,7 @@ import os
 import shutil
 import zlib
 
-import instalog_common  # pylint: disable=W0611
+import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
 from instalog import lock_utils
 from instalog import log_utils

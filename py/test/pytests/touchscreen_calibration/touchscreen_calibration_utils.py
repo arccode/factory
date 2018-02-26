@@ -19,8 +19,8 @@ import logging
 import os
 import re
 import subprocess
-
-from subprocess import PIPE, STDOUT
+from subprocess import PIPE
+from subprocess import STDOUT
 
 
 _SYSFS_I2C_PATH = '/sys/bus/i2c/devices'

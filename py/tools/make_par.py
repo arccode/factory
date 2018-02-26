@@ -29,6 +29,7 @@ or:
 """
 
 import argparse
+from distutils.sysconfig import get_python_lib
 import glob
 import logging
 import os
@@ -37,11 +38,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from distutils.sysconfig import get_python_lib
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
-from cros.factory.utils.process_utils import Spawn, SpawnOutput
+from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.process_utils import SpawnOutput
 
 # Template for the header that will be placed before the ZIP file to
 # execute a script based on the name which is used to execute it.  The

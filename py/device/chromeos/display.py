@@ -5,10 +5,11 @@
 
 from __future__ import print_function
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import display
-from cros.factory.external import Image
 from cros.factory.test.utils import drm_utils
+
+from cros.factory.external import Image
 
 
 class DisplayError(Exception):

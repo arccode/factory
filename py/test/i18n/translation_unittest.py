@@ -7,8 +7,8 @@
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test.i18n import unittest_test_case
 from cros.factory.test.i18n import translation
+from cros.factory.test.i18n import unittest_test_case
 
 
 class TranslationTest(unittest_test_case.I18nTestCase):

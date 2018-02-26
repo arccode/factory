@@ -12,7 +12,7 @@ can pretty print the DeviceData.
 
 import pprint
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data
 
 

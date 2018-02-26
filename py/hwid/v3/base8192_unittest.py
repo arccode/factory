@@ -1,13 +1,11 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
 # Copyright 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import factory_common  # pylint: disable=W0611
 import unittest
 
+import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.base8192 import Base8192
 
 

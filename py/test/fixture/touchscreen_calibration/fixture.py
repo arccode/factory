@@ -10,8 +10,8 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event
-from cros.factory.test import session
 from cros.factory.test.i18n import _
+from cros.factory.test import session
 from cros.factory.test.utils import serial_utils
 
 

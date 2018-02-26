@@ -4,14 +4,13 @@
 
 """A tool for gsutil."""
 
+from distutils import version
 import logging
 import os
 import re
 import shutil
 
-from distutils import version
-
-import factory_common   # pylint: disable=W0611
+import factory_common   # pylint: disable=unused-import
 from cros.factory.utils import cros_board_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils

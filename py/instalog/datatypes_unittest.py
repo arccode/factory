@@ -15,13 +15,14 @@ import Queue
 import tempfile
 import unittest
 
+import mock
+
 import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
 from instalog import json_utils
 from instalog import log_utils
 from instalog import plugin_base
 from instalog.utils import time_utils
-import mock
 
 
 class RuntimeBound(object):

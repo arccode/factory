@@ -7,6 +7,7 @@
 import logging
 
 import instalog_common  # pylint:disable=unused-import
+
 from instalog.external import gnupg
 
 

@@ -22,9 +22,9 @@ import multiprocessing
 import os
 import shutil
 
-import instalog_common  # pylint: disable=W0611
-from instalog import lock_utils
+import instalog_common  # pylint: disable=unused-import
 from instalog import json_utils
+from instalog import lock_utils
 from instalog import log_utils
 from instalog import plugin_base
 from instalog.plugins import buffer_file_common

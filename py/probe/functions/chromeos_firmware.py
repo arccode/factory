@@ -2,17 +2,17 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import hashlib
 import logging
 import re
-import hashlib
 import tempfile
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.gooftool import crosfw
 from cros.factory.probe import function
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
-from cros.factory.gooftool import crosfw
 
 FIELDS = type_utils.Enum(
     ['firmware_keys', 'ro_main_firmware', 'ro_ec_firmware', 'ro_pd_firmware'])

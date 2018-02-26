@@ -6,13 +6,13 @@
 
 """Simulates an X keypress."""
 
-# pylint: disable=F0401
-from Xlib.display import Display
-from Xlib import XK
-from Xlib import X
-from Xlib.ext import xtest
-
 import argparse
+
+# pylint: disable=import-error
+from Xlib.display import Display
+from Xlib.ext import xtest
+from Xlib import X
+from Xlib import XK
 
 
 def main():

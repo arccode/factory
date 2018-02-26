@@ -19,7 +19,7 @@ import os
 import socket
 import time
 
-import instalog_common  # pylint: disable=W0611
+import instalog_common  # pylint: disable=unused-import
 from instalog import log_utils
 from instalog import plugin_base
 from instalog.plugins import socket_common

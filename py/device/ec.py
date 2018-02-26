@@ -8,9 +8,10 @@ This module provides accessing Embedded Controller (EC) on a device.
 """
 
 from __future__ import print_function
+
 import re
 
-import factory_common  # pylint: disable=W0611
+import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 
 

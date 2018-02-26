@@ -4,9 +4,9 @@
 
 from __future__ import print_function
 
-import os
 import collections
 import logging
+import os
 import subprocess
 import threading
 import time

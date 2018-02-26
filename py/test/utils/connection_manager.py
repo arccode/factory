@@ -12,16 +12,17 @@ import time
 # Import WLAN into this module's namespace, since it may be used by
 # some test lists.
 import factory_common  # pylint: disable=unused-import
+from cros.factory.utils import config_utils
+from cros.factory.utils import net_utils
+from cros.factory.utils.net_utils import WLAN  # pylint: disable=unused-import
+from cros.factory.utils import type_utils
+
 try:
   # This import is not a hard dependency.
   from cros.factory.goofy.plugins import plugin_controller
   _HAS_PLUGIN_CONTROLLER = True
 except ImportError:
   _HAS_PLUGIN_CONTROLLER = False
-from cros.factory.utils import config_utils
-from cros.factory.utils import net_utils
-from cros.factory.utils.net_utils import WLAN  # pylint: disable=unused-import
-from cros.factory.utils import type_utils
 
 try:
   # pylint: disable=unused-import
