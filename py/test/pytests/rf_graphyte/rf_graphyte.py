@@ -65,8 +65,8 @@ from cros.factory.utils.arg_utils import Arg
 
 
 # The Graphyte config files (pathloss, test plan, port config) should be placed
-# in the rf_graphyte folder.
-LOCAL_CONFIG_DIR = os.path.dirname(os.path.abspath(__file__))
+# in the config_files folder in Graphyte framework.
+RELATIVE_CONFIG_DIR = 'config_files/'
 # The log files are in the default log folder.
 RESULT_FILENAME = 'graphyte_result.csv'
 LOG_FILENAME = 'graphyte.log'
@@ -75,9 +75,12 @@ LOG_FILENAME = 'graphyte.log'
 class RFGraphyteTest(test_ui.TestCaseWithUI):
 
   ARGS = [
+      Arg('graphyte_package', str,
+          'Path to Graphyte package folder',
+          default='/usr/local/graphyte/'),
       Arg('graphyte_config_file', str,
-          'Path to Graphyte config file. This is interpreted as the path '
-          'relative to `test/pytests/rf_graphyte` folder.'),
+          'Path to Graphyte config file. This is passed to `config-file` '
+          'parameter to Graphyte framework.'),
       Arg('patch_dhcp_ssh_dut_ip', bool,
           'Set to True if Goofy uses SSH link with DHCP enabled to connect to '
           "DUT. This will patch the IP from Goofy's link into Graphyte's "
@@ -106,8 +109,10 @@ class RFGraphyteTest(test_ui.TestCaseWithUI):
       self._server_proxy = server_proxy.GetServerProxy()
 
     timestamp = time.strftime('%H%M%S')
-    self.config_file_path = os.path.join(
-        LOCAL_CONFIG_DIR, self.args.graphyte_config_file)
+    self.config_dir = os.path.join(self.args.graphyte_package,
+                                   RELATIVE_CONFIG_DIR)
+    self.config_file_path = os.path.join(self.config_dir,
+                                         self.args.graphyte_config_file)
     self.result_file_path = self.GetLogPath(timestamp, RESULT_FILENAME)
     self.log_file_path = self.GetLogPath(timestamp, LOG_FILENAME)
 
@@ -133,7 +138,7 @@ class RFGraphyteTest(test_ui.TestCaseWithUI):
 
     # Execute Graphyte.
     self.ui.SetInstruction(_('Executing Graphyte'))
-    cmd = ['python', '-m', 'graphyte.main',
+    cmd = ['python', os.path.join(self.args.graphyte_package, "main.py"),
            '--config-file', self.config_file_path,
            '--result-file', self.result_file_path,
            '--log-file', self.log_file_path]
@@ -247,7 +252,7 @@ class RFGraphyteTest(test_ui.TestCaseWithUI):
       session.console.info('Fetch config file from server: %s', file_path)
       content = self._server_proxy.GetParameter(file_path).data
       file_name = os.path.basename(file_path)
-      with open(os.path.join(LOCAL_CONFIG_DIR, file_name), 'w') as f:
+      with open(os.path.join(self.config_dir, file_name), 'w') as f:
         f.write(content)
 
   def SaveParamsToTestlog(self):
