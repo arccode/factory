@@ -77,7 +77,7 @@ class IP(object):
     return self._ip
 
   def __eq__(self, obj):
-    return self._ip == obj._ip  # pylint: disable=W0212
+    return self._ip == obj._ip  # pylint: disable=protected-access
 
   def IsIn(self, cidr):
     """Checks the IP is contained in CIDR."""
@@ -182,7 +182,7 @@ class TimeoutXMLRPCServerProxy(xmlrpclib.ServerProxy):
 
 def FindUsableEthDevice(raise_exception=False,
                         name_patterns=DEFAULT_ETHERNET_NAME_PATTERNS):
-  # pylint: disable=W0102
+  # pylint: disable=dangerous-default-value
   """Find the real ethernet interface when the flimflam is unavailable.
 
   Some devices with 4G modules may bring up fake eth interfaces during
@@ -398,7 +398,7 @@ def GetWLANInterface():
 
 
 def GetEthernetInterfaces(name_patterns=DEFAULT_ETHERNET_NAME_PATTERNS):
-  # pylint: disable=W0102
+  # pylint: disable=dangerous-default-value
   """Returns the interfaces for Ethernet.
 
   Args:
@@ -418,7 +418,7 @@ def GetEthernetInterfaces(name_patterns=DEFAULT_ETHERNET_NAME_PATTERNS):
 
 def SwitchEthernetInterfaces(enable,
                              name_patterns=DEFAULT_ETHERNET_NAME_PATTERNS):
-  # pylint: disable=W0102
+  # pylint: disable=dangerous-default-value
   """Switches on/off all Ethernet interfaces.
 
   Args:

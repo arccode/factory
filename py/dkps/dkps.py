@@ -554,9 +554,9 @@ class DRMKeysProvisioningServer(object):
       raise ValueError('Server key fingerprint not exists')
     return row['value']
 
-  def _FetchOneProject(self, name=None,  # pylint: disable=W0613
-                       uploader_key_fingerprint=None,  # pylint: disable=W0613
-                       requester_key_fingerprint=None,  # pylint: disable=W0613
+  def _FetchOneProject(self, name=None,
+                       uploader_key_fingerprint=None,
+                       requester_key_fingerprint=None,
                        exception_type=None, error_msg=None):
     """Fetches the project by name, uploader key fingerprint, or requester key
     fingerprint.
@@ -581,6 +581,7 @@ class DRMKeysProvisioningServer(object):
     Raises:
       exception_type with error_msg if not project was found.
     """
+    # pylint: disable=unused-argument
     where_clause_list = []
     params = []
     local_vars = locals()

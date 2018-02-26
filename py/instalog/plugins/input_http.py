@@ -259,7 +259,7 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     """Overrides log_request to Instalog format."""
     self.debug('Send response: %s %d', self.requestline, code)
 
-  def log_message(self, format, *args):  # pylint: disable=W0622
+  def log_message(self, format, *args):  # pylint: disable=redefined-builtin
     """Overrides log_message to Instalog format."""
     self.warning('%s - %s - %s',
                  self.client_node_id, self.client_address[0], format % args)

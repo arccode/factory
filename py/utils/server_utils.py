@@ -26,7 +26,7 @@ RSYNCD_CONFIG_MODULE_PATH_TEMPLATE = '''[%(module)s]
 
 
 RsyncModule = namedtuple('RsyncModule', ['module', 'path', 'read_only'])
-# pylint: disable=W0105
+# pylint: disable=pointless-string-statement
 """The tuple to represent a module setting in rsync config file.
 [<module>]
   path = <path>

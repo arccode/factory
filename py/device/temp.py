@@ -25,7 +25,7 @@ class TemporaryFiles(types.DeviceComponent):
 
   """
 
-  # pylint: disable=W0622
+  # pylint: disable=redefined-builtin
   def mktemp(self, is_dir, suffix='', prefix='cftmp', dir=None):
     """Creates a temporary file or directory on DUT."""
     template = '%s.XXXXXX%s' % (prefix, suffix)
@@ -83,7 +83,7 @@ class TemporaryFiles(types.DeviceComponent):
 class AndroidTemporaryFiles(TemporaryFiles):
   """Access to temporary objects on Android systems."""
 
-  # pylint: disable=W0622
+  # pylint: disable=redefined-builtin
   def mktemp(self, is_dir, suffix='', prefix='cftmp', dir=None):
     """Creates a temporary file or directory on DUT."""
 
@@ -100,7 +100,7 @@ class AndroidTemporaryFiles(TemporaryFiles):
 class DummyTemporaryFiles(TemporaryFiles):
   DUMMY_FILE_NAME = 'DUMMY_TEMP_FILE'
 
-  # pylint: disable=W0622
+  # pylint: disable=redefined-builtin
   def mktemp(self, is_dir, suffix='', prefix='cftmp', dir=None):
     return self.DUMMY_FILE_NAME
 

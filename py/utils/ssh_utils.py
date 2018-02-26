@@ -41,7 +41,7 @@ def _Init():
   temp files around.
   """
   # TODO(hungte) Use testing keys from factory repo.
-  global testing_rsa    # pylint: disable=W0603
+  global testing_rsa    # pylint: disable=global-statement
   if not _HAS_REMOTE_ACCESS:
     raise RuntimeError('chromite.lib.remote_access does not exist.')
   if not testing_rsa:

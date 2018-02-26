@@ -135,7 +135,6 @@ class GPT(object):
   @staticmethod
   def NewNamedTuple(base, **dargs):
     """Builds a new named tuple based on dargs."""
-    # pylint: disable=protected-access
     return base._replace(**dargs)
 
   @classmethod

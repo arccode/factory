@@ -107,7 +107,7 @@ class EmbeddedController(types.DeviceComponent):
       ectool_output = self._device.CheckOutput(
           ['ectool', 'i2cread', '16', str(port), str(addr), str(reg)])
       return int(self.I2C_READ_RE.findall(ectool_output)[0], 16)
-    except Exception as e:  # pylint: disable=W0703
+    except Exception as e:  # pylint: disable=broad-except
       raise self.Error('Unable to read from I2C: %s' % e)
 
   def I2CWrite(self, port, addr, reg, value):
@@ -125,6 +125,5 @@ class EmbeddedController(types.DeviceComponent):
       self._device.CheckCall(
           ['ectool', 'i2cwrite', '16', str(port), str(addr), str(reg),
            str(value)])
-    except Exception as e:  # pylint: disable=W0703
+    except Exception as e:  # pylint: disable=broad-except
       raise self.Error('Unable to write to I2C: %s' % e)
-

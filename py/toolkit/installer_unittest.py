@@ -47,7 +47,7 @@ class ToolkitInstallerTest(unittest.TestCase):
 
     # True if we are pretending to be running inside CrOS.
     self._override_in_cros_device = False
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     installer.sys_utils.InCrOSDevice = lambda: self._override_in_cros_device
 
   def tearDown(self):
@@ -65,7 +65,7 @@ class ToolkitInstallerTest(unittest.TestCase):
     self._installer = installer.FactoryToolkitInstaller(
         self.src, self.dest, not enabled_tag, non_cros=non_cros,
         system_root=system_root, apps=apps)
-    self._installer._sudo = False # pylint: disable=W0212
+    self._installer._sudo = False # pylint: disable=protected-access
 
   def testNonRoot(self):
     self.makeLiveDevice()

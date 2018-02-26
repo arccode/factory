@@ -38,7 +38,7 @@ def DumpStackTracebacks():
       '* Dumping debug information.\n'
       '*\n'
       '*****\n')
-  # pylint: disable=W0212
+  # pylint: disable=protected-access
   for thread_id, stack in sys._current_frames().items():
     results.append('Thread %s (id=%d):\n' %
                    (id_name_map.get(thread_id, 'unnamed-%d' % thread_id),

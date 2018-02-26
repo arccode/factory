@@ -65,7 +65,7 @@ class TimeSanitizerTestBase(unittest.TestCase):
 class TimeSanitizerBaseTimeTest(TimeSanitizerTestBase):
 
   def runTest(self):
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     # (access to protected members)
     with tempfile.NamedTemporaryFile() as f:
       self.assertEquals(os.stat(f.name).st_mtime,

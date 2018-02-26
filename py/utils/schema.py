@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# pylint: disable=W0212, W0622
+# pylint: disable=protected-access,redefined-builtin
 
 """A function to create a schema tree from the given schema expression.
 

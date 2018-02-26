@@ -44,7 +44,7 @@ def OpenDevNull():
 
   The file object may be reused.
   """
-  global dev_null  # pylint: disable=W0603
+  global dev_null  # pylint: disable=global-statement
   if not dev_null:
     # There is a possible race condition here, but it is extremely
     # unlikely and won't hurt anyway (we'll just have multiple files
@@ -442,10 +442,10 @@ def StartDaemonThread(*args, **kwargs):
 
 
 class DummyFile(object):
-  def write(self, x):  # pylint: disable=W0613
+  def write(self, x):  # pylint: disable=unused-argument
     pass
 
-  def read(self, x):  # pylint: disable=W0613
+  def read(self, x):  # pylint: disable=unused-argument
     return ''
 
 

@@ -56,7 +56,7 @@ def FastStringParseDatetime(date_string):
 
 class JSONEncoder(json.JSONEncoder):
 
-  def default(self, obj):  # pylint: disable=E0202
+  def default(self, obj):  # pylint: disable=method-hidden
     """Handler for serializing objects during conversion to JSON.
 
     Outputs datetime, date, and time objects with enough metadata to restore
@@ -104,7 +104,7 @@ class JSONDecoder(json.JSONDecoder):
     json.JSONDecoder.__init__(
         self, object_hook=self.object_hook, *args, **kwargs)
 
-  def object_hook(self, dct):  # pylint: disable=E0202
+  def object_hook(self, dct):  # pylint: disable=method-hidden
     """Handler for deserializing objects after conversion to JSON.
 
     Restores datetime, date, and time objects using the metadata output from

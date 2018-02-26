@@ -62,7 +62,7 @@ class TestPluginSandbox(unittest.TestCase):
     """Stops any runaway plugins."""
     for p in self._plugin_objects:
       if p.IsLoaded():
-        p._event_stream_map = {}  # pylint: disable=W0212
+        p._event_stream_map = {}  # pylint: disable=protected-access
         p.AdvanceState(True)
         p.Stop(True)
 
@@ -91,7 +91,7 @@ class TestPluginSandbox(unittest.TestCase):
 
   def _TestStateCommands(self, p, sync):
     """Runs the plugin sandbox through all possible states."""
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     self.assertEquals(plugin_sandbox.DOWN, p.GetState())
 
     # Start
@@ -183,7 +183,7 @@ class TestPluginSandbox(unittest.TestCase):
 
   def testRunawayThread(self):
     """Tests a plugin that starts a runaway thread accessing core functions."""
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     p = plugin_sandbox.PluginSandbox(
         'plugin_id', _plugin_class=RunawayThreadInput)
     self._plugin_objects.append(p)
@@ -198,7 +198,7 @@ class TestPluginSandbox(unittest.TestCase):
 
   def testGatekeeper(self):
     """Tests plugin API calls across different plugin states."""
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     p = plugin_sandbox.PluginSandbox(
         'plugin_id', _plugin_class=WellBehavedInput)
     self._plugin_objects.append(p)
@@ -290,7 +290,7 @@ class TestPluginSandbox(unittest.TestCase):
 
   def testPausingWaitForEventStreamCommit(self):
     """Tests a plugin in the PAUSING state waits for event streams to expire."""
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     p = plugin_sandbox.PluginSandbox(
         'plugin_id', _plugin_class=WellBehavedInput)
     self._plugin_objects.append(p)

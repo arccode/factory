@@ -468,7 +468,8 @@ class DRMModeFB(DRMModeBaseStruct):
     if self._map:
       return
     map_dumb = self.DRMModeMapDumb()
-    map_dumb.handle = self.handle  # pylint: disable=W0201
+    # pylint: disable=attribute-defined-outside-init
+    map_dumb.handle = self.handle
     ret = _GetDRMLibrary().drmIoctl(self.fd, self.DRM_IOCTL_MODE_MAP_DUMB,
                                     ctypes.byref(map_dumb))
     if ret:

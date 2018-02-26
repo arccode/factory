@@ -6,7 +6,7 @@
 
 from xmlrpclib import ServerProxy
 
-# pylint: disable=import-error, no-name-in-module
+# pylint: disable=import-error,no-name-in-module
 from protorpc import remote
 from protorpc.wsgi import service
 

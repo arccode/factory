@@ -231,7 +231,7 @@ class PluginSandbox(plugin_base.PluginAPI, log_utils.LoggerMixin):
     allowed_exceptions = tuple(kwargs.pop('allowed_exceptions', ()))
     try:
       ret = getattr(self._plugin, method_name)(*args, **kwargs)
-    except allowed_exceptions:  # pylint: disable=E0712
+    except allowed_exceptions:  # pylint: disable=catching-non-exception
       raise
     except Exception:
       _, exc, tb = sys.exc_info()

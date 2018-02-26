@@ -164,7 +164,6 @@ class GoofyServer(SocketServer.ThreadingMixIn,
   _PREFIX_GENERATED_DATA = '/generated-data'
 
   def __init__(self, addr, logRequests=False):
-    # pylint: disable=protected-access
     # We have some icons in SVG format, but this isn't recognized in
     # the standard Python mimetypes set.
     mimetypes.add_type('image/svg+xml', '.svg')

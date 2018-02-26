@@ -46,7 +46,7 @@ class LED(types.DeviceComponent):
       raise ValueError('Invalid color')
     if brightness is not None and not isinstance(brightness, int):
       raise TypeError('Invalid brightness')
-    # pylint: disable=C0325
+    # pylint: disable=superfluous-parens
     if brightness is not None and not (0 <= brightness <= 100):
       raise ValueError('brightness out-of-range [0, 100]')
     try:

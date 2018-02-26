@@ -57,7 +57,7 @@ def PrepareArtifacts(url):
   the URL so this script can be run multiple times without needing to
   re-download the artifacts each time.
   """
-  # pylint: disable=E1101
+  # pylint: disable=no-member
   artifacts_dir = (
       os.path.join(
           tempfile.gettempdir(),

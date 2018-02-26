@@ -30,8 +30,8 @@ import signal
 # image build process host-depends list. Failure to load in
 # production should always manifest during regular use.
 try:
-  from Xlib import X, XK  # pylint: disable=F0401
-  from Xlib.display import Display  # pylint: disable=F0401
+  from Xlib import X, XK  # pylint: disable=import-error
+  from Xlib.display import Display  # pylint: disable=import-error
   _has_Xlib = True
 except Exception:
   _has_Xlib = False

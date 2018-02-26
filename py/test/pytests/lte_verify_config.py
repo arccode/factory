@@ -32,7 +32,8 @@ from cros.factory.utils.arg_utils import Arg
 
 try:
   # TODO(littlecvr) Make dummy implementation.
-  from cros.factory.board import modem_utils  # pylint: disable=E0611
+  # pylint: disable=no-name-in-module
+  from cros.factory.board import modem_utils
 except ImportError:
   pass
 

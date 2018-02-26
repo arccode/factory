@@ -196,7 +196,7 @@ class ENASCPI(agilent_scpi.AgilentSCPI):
     # Check that the segments are all 3-tuples and that they are
     # in increasing order of frequency.
     for i in xrange(len(segments)):
-      # pylint: disable=W0612
+      # pylint: disable=unused-variable
       min_freq, max_freq, pts = segments[i]
       assert max_freq >= min_freq
       if i < len(segments) - 1:

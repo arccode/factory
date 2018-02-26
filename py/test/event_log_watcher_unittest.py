@@ -209,7 +209,7 @@ class EventLogWatcherTest(unittest.TestCase):
     self._testSyncMarkers(True)
 
   def _testSyncMarkers(self, unexpected_restart):
-    # pylint: disable=E1102
+    # pylint: disable=not-callable
     m = mox.Mox()
     mock_callback = m.CreateMockAnything()
     path = os.path.join(self.events_dir, MOCK_LOG_NAME(0))

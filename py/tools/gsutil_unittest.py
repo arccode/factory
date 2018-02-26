@@ -114,7 +114,6 @@ gs://chromeos-releases/canary-channel/daisy-spring/3824.120.0/debug-daisy-spring
 
 class GsutilUnittest(unittest.TestCase):
   """Unit tests for gsutil module."""
-  # pylint: disable=C0322
 
   def setUp(self):
     self.gsutil = gsutil.GSUtil('spring')

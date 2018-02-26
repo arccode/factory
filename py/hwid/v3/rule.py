@@ -434,7 +434,7 @@ def _Eval(expr, local):
   # Lazy import to avoid circular import problems.
   # These imports are needed to make sure all the rule functions needed by
   # HWID-related operations are loaded and initialized.
-  # pylint: disable=unused-import, unused-variable
+  # pylint: disable=unused-import,unused-variable
   import cros.factory.hwid.v3.common_rule_functions
   import cros.factory.hwid.v3.hwid_rule_functions
   return eval(expr, _rule_functions, local)  # pylint: disable=eval-used

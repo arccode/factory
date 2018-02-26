@@ -47,7 +47,8 @@ class OverlordService(umpire_service.UmpireService):
     else:
       return OVERLORDD_BIN
 
-  def CreateProcesses(self, umpire_config, env):  # pylint: disable=W0613
+  def CreateProcesses(self, umpire_config, env):
+    # pylint: disable=unused-argument
     """Creates list of processes via config.
 
     Args:

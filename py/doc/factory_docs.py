@@ -49,7 +49,8 @@ class RegionsList(Directive):
 
     # Import the regions_overlay if available.
     try:
-      from cros.factory.test.l10n import regions_overlay  # pylint: disable=E0611
+      # pylint: disable=no-name-in-module
+      from cros.factory.test.l10n import regions_overlay
       overlay = regions_overlay
     except ImportError:
       overlay = None

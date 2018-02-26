@@ -113,7 +113,8 @@ If seeing unexpected touch events in `evtest`, here are some thoughts:
 """
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.external.evdev import ecodes  # pylint: disable=E0611
+# pylint: disable=no-name-in-module
+from cros.factory.external.evdev import ecodes
 from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
 from cros.factory.test.utils import touch_monitor

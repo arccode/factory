@@ -23,7 +23,7 @@ import os
 import sys
 
 try:
-  import paramiko  # pylint: disable=F0401
+  import paramiko  # pylint: disable=import-error
 except ImportError:
   print ('Paramiko SSH2 library not found. Try something like: '
          'sudo apt-get install python-paramiko')

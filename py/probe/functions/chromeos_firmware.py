@@ -58,7 +58,7 @@ def _MainRoHash(image):
   image.put_section('GBB', zero_gbb)
   hash_src += image.get_section('RO_SECTION')
   image.put_section('GBB', gbb)
-  # pylint: disable=E1101
+  # pylint: disable=no-member
   return {
       'hash': hashlib.sha256(hash_src).hexdigest(),
       'version': _AddFirmwareIdTag(image).lstrip('#')}
@@ -68,7 +68,7 @@ def _EcRoHash(image):
   """Algorithm: sha256(fmap, EC_RO)."""
   hash_src = image.get_fmap_blob()
   hash_src += image.get_section('EC_RO')
-  # pylint: disable=E1101
+  # pylint: disable=no-member
   return {
       'hash': hashlib.sha256(hash_src).hexdigest(),
       'version': _AddFirmwareIdTag(image).lstrip('#')}

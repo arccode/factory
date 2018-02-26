@@ -55,7 +55,7 @@ from collections import OrderedDict
 import factory_common  # pylint: disable=unused-import
 
 from cros.factory.external import evdev  # pylint: disable=unused-import
-# pylint: disable=no-name-in-module,F0401
+# pylint: disable=no-name-in-module,import-error
 from cros.factory.external.evdev.ecodes import ABS_MT_POSITION_X
 from cros.factory.external.evdev.ecodes import ABS_MT_POSITION_Y
 from cros.factory.external.evdev.ecodes import ABS_MT_PRESSURE

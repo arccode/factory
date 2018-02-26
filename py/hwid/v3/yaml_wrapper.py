@@ -10,7 +10,7 @@ from the origin yaml module.
 
 import functools
 
-from yaml import *  # pylint: disable=wildcard-import, unused-wildcard-import
+from yaml import *  # pylint: disable=wildcard-import,unused-wildcard-import
 
 
 class V3Loader(SafeLoader):

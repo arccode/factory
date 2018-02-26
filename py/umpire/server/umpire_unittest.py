@@ -31,10 +31,10 @@ def GetStdout():
 
   Needs unittest.main(buffer=True).
   """
-  # pylint: disable=E1101
+  # pylint: disable=no-member
   # getvalue is set when unittest.main has buffer=True arg.
   output = sys.stdout.getvalue()
-  # pylint: enable=E1101
+  # pylint: enable=no-member
   return output.splitlines()
 
 

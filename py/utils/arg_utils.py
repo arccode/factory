@@ -40,7 +40,7 @@ class ArgError(ValueError):
 
 class Arg(object):
   """The specification for a single test argument."""
-  # pylint: disable=W0622
+  # pylint: disable=redefined-builtin
 
   def __init__(self, name, type, help,
                default=_DEFAULT_NOT_SET, _transform=None):

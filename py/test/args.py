@@ -11,5 +11,5 @@ for legacy code in private repositories.
 
 
 import factory_common  # pylint: disable=unused-import
-# pylint: disable=wildcard-import, unused-wildcard-import
+# pylint: disable=wildcard-import,unused-wildcard-import
 from cros.factory.utils.arg_utils import *
