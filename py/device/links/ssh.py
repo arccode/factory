@@ -118,7 +118,7 @@ class SSHLink(types.DeviceLink):
 
   @property
   def host(self):
-    if self._host == None:
+    if self._host is None:
       if not state.has_shared_data(_DEVICE_DATA_KEY):
         raise ClientNotExistError
       return state.get_shared_data(_DEVICE_DATA_KEY)

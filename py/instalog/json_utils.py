@@ -67,7 +67,7 @@ class JSONEncoder(json.JSONEncoder):
       dct['__type__'] = obj.__class__.__name__
       return dct
     if isinstance(obj, datetime.datetime):
-      assert obj.tzinfo == None
+      assert obj.tzinfo is None
       # obj.isoformat() will ignore microsecond if obj.microsecond is 0.
       return {
           '__type__': 'datetime',
@@ -78,7 +78,7 @@ class JSONEncoder(json.JSONEncoder):
           '__type__': 'date',
           'value': obj.isoformat()}
     if isinstance(obj, datetime.time):
-      assert obj.tzinfo == None
+      assert obj.tzinfo is None
       # obj.isoformat() will ignore microsecond if obj.microsecond is 0.
       return {
           '__type__': 'time',

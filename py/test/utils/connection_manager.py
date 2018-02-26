@@ -208,7 +208,7 @@ class ConnectionManager(object):
           'Security': wlan.security
       }
       # "Passphrase" is only needed for secure wifi.
-      if wlan.security is not 'none':
+      if wlan.security != 'none':
         wlan_dict.update({
             'Passphrase': wlan.passphrase
         })

@@ -65,7 +65,7 @@ class TemperaturesMonitor(object):
     current_temperatures = self._GetThermalData()
     if self._last_success:
       worth_to_output = False
-      if self._sensor_array_changed == True:
+      if self._sensor_array_changed:
         worth_to_output = True
         syslog.syslog('Sensors changed (added or removed): %s' %
                       self._sensor_array)

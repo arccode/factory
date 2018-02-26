@@ -974,12 +974,12 @@ class Components(object):
                            comp_attr.get('status',
                                          common.COMPONENT_STATUS.supported))
 
-        if comp_attr.get('default') == True:
+        if comp_attr.get('default') is True:
           # We now use "values: null" to indicate a default component and
           # ignore the "default: True" field.
           self._default_components.add((comp_cls, comp_name))
 
-      if comps_data.get('probeable') == False:
+      if comps_data.get('probeable') is False:
         logging.info(
             'Found non-probeable component class %r, mark can_encode=False.',
             comp_cls)

@@ -45,7 +45,7 @@ class MediaMonitor(object):
     self._device_type = device_type
 
   def _UdevEventCallback(self, action, device):
-    if self.is_monitoring == False:
+    if self.is_monitoring is False:
       return
     if action == _UDEV_ACTION_INSERT:
       logging.info('Device inserted: %s', device.device_node)

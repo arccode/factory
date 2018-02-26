@@ -197,8 +197,7 @@ class UmpireDaemon(object):
         Active service names.
       """
       for name, service_config in config.services.iteritems():
-        if not (hasattr(service_config, 'active') and
-                service_config.active == False):
+        if getattr(service_config, 'active', True):
           yield name
 
     def _Deployed(result, deploying_config):

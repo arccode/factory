@@ -112,7 +112,7 @@ def _RunPytestRaw(pytest, args, dut_options):
   if all_failures:
     error_msg = '\n'.join(_FormatErrorMessage(trace)
                           for test_name, trace in all_failures)
-  return (error_msg == None, error_msg)
+  return (error_msg is None, error_msg)
 
 
 def main():
