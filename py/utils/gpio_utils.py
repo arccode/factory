@@ -146,15 +146,12 @@ class GpioManager(object):
       value: An integer to be written into GPIO. Non-zero will all be
           converted as 1 (GPIO high).
 
-    Returns:
-      (int) 1 if GPIO high; 0 for low.
-
     Raises:
       GpioManagerError: If error occurs when writing GPIO port.
     """
     try:
       if self._use_polld:
-        return self._server.write_gpio(port, value)
+        self._server.write_gpio(port, value)
       else:
         # Use with statement to make sure releasing system resource
         with Gpio(port) as gpio:
@@ -337,6 +334,7 @@ class Gpio(object):
             logging.debug('poll() interrupted by socketpair')
             return False
       logging.debug('Gpio.Poll() finishes waiting')
+      return False
     except Exception as e:
       raise GpioError('Fail to poll GPIO %d %s' % (self._port, e))
 

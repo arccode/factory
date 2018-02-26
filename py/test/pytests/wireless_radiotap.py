@@ -444,6 +444,7 @@ class WirelessRadiotapTest(test_ui.TestCaseWithUI):
       return max_strength_service
     else:
       logging.warning('Services %s are not valid.', services)
+      return None
 
   def ScanSignal(self, service, times=3):
     """Scans antenna signal strengths for a specified service.

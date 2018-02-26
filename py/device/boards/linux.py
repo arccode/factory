@@ -243,7 +243,8 @@ class LinuxBoard(types.DeviceBoard):
     """
     # If the link is local, we just open file and write content.
     if self.link.IsLocal():
-      return super(LinuxBoard, self).WriteFile(path, content)
+      super(LinuxBoard, self).WriteFile(path, content)
+      return
 
     with file_utils.UnopenedTemporaryFile() as temp_path:
       with open(temp_path, 'w') as f:
@@ -260,7 +261,8 @@ class LinuxBoard(types.DeviceBoard):
     """
     # If the link is local, we just open file and write content.
     if self.link.IsLocal():
-      return super(LinuxBoard, self).WriteSpecialFile(path, content)
+      super(LinuxBoard, self).WriteSpecialFile(path, content)
+      return
 
     with file_utils.UnopenedTemporaryFile() as local_temp:
       with open(local_temp, 'w') as f:

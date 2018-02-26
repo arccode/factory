@@ -203,6 +203,7 @@ class TestListIterator(object):
       return self.next()
     if returncode == self.RETURN_CODE.RETURN:
       return value
+    raise AssertionError
 
   #####################
   # Exposed Functions #
@@ -271,6 +272,7 @@ class TestListIterator(object):
     self.Top().next_step = self.Body.__name__
     if next_step != self.CheckContinue.__name__:
       return 'test_list_iterator: unexpected next_step %r' % next_step
+    return None
 
   ###########################
   # State Machine Functions #

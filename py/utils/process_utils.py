@@ -321,7 +321,8 @@ def TerminateOrKillProcess(process, wait_seconds=1, sudo=False):
   pid = process.pid
   logging.info('Stopping process %d', pid)
   if sudo:
-    return Spawn(['kill', str(pid)], sudo=True, check_call=True, log=True)
+    Spawn(['kill', str(pid)], sudo=True, check_call=True, log=True)
+    return
   else:
     process.terminate()
 

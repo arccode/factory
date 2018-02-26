@@ -411,7 +411,7 @@ class SSHLink(types.DeviceLink):
         try:
           if not _IsControlMasterRunning():
             logging.info('control master is not running, skipped')
-            return
+            return False
 
           if not _CallTrue():
             logging.info('loss connection, stopping control master')
@@ -420,6 +420,7 @@ class SSHLink(types.DeviceLink):
           logging.info('monitoring %s to %s@%s:%s',
                        self._link_class_name,
                        self._user, self._host, self._port, exc_info=True)
+        return False
 
       while True:
         # get a new process from queue to monitor

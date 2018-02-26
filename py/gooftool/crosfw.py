@@ -121,7 +121,8 @@ class Flashrom(object):
       with tempfile.NamedTemporaryFile(prefix='fw_%s_' % self._target) as f:
         f.write(data)
         f.flush()
-        return self.Write(None, f.name)
+        self.Write(None, f.name)
+        return
     sections_param = [('-i %s' % name) for name in sections or []]
     self._InvokeCommand("-w '%s' %s %s" % (filename, ' '.join(sections_param),
                                            self._WRITE_FLAGS))

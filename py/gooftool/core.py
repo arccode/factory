@@ -319,7 +319,7 @@ class Gooftool(object):
     mainfw = self._crosfw.LoadMainFirmware().GetFirmwareImage()
     if not mainfw.has_section('SI_ME'):
       logging.info('System does not have Management Engine.')
-      return True
+      return
     # If ME is locked, it should contain only 0xFFs.
     data = mainfw.get_section('SI_ME').strip(chr(0xFF))
     if len(data) != 0:

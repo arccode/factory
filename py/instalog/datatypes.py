@@ -257,7 +257,7 @@ class EventStream(object):
     ret = self._plugin_api.EventStreamNext(self._plugin, self)
     if ret is not None:
       self._count += 1
-      return ret
+    return ret
 
   def Commit(self):
     """Commits the current batch of events as successfully processed.

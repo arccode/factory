@@ -249,6 +249,7 @@ class CameraTest(test_ui.TestCaseWithUI):
             np.fromstring(blob, dtype=np.uint8), cv2.CV_LOAD_IMAGE_COLOR)
       else:
         self.RunJSPromiseBlocking('cameraTest.grabFrame()')
+        return None
     else:
       return self.camera_device.ReadSingleFrame()
 

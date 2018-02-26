@@ -64,4 +64,3 @@ class SysfsFunction(function.ProbeFunction):
       if result is not None:
         ret.append(result)
     return ret
-

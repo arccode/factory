@@ -450,6 +450,8 @@ class _CommandStep(_Step):
     elif isinstance(expected_output, list):
       (regexp, flags) = tuple(expected_output)
       return common.CreateRegExp(regexp, flags).search(stdout_text) is not None
+    raise TypeError(
+        "expected_output can't be of type %s" % type(expected_output))
 
 
 class _FinallyStep(_CommandStep):

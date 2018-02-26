@@ -36,6 +36,7 @@ class GenericCPUFunction(function.ProbeFunction):
       return self._ProbeX86()
     if self.args.cpu_type == KNOWN_CPU_TYPES.arm:
       return self._ProbeArm()
+    return function.NOTHING
 
   def _ProbeX86(self):
     cmd = r'sed -nr "s/^model name\s*: (.*)/\1/p" /proc/cpuinfo'

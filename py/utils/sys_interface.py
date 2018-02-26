@@ -77,7 +77,7 @@ class SystemInterface(object):
       content: A string to be written into file.
     """
     with open(path, 'w') as f:
-      return f.write(content)
+      f.write(content)
 
   def WriteSpecialFile(self, path, content):
     """Writes some content into a special file on target device.
@@ -86,7 +86,7 @@ class SystemInterface(object):
       path: A string for file path on target device.
       content: A string to be written into file.
     """
-    return self.WriteFile(path, content)
+    self.WriteFile(path, content)
 
   def SendDirectory(self, local, remote):
     """Copies a local directory to target device.

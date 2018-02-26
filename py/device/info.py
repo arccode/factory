@@ -183,6 +183,7 @@ class SystemInfo(types.DeviceComponent):
           '/sys/class/net/', wlan_interface, 'address')
       if self._device.path.exists(address_path):
         return self._device.ReadFile(address_path).strip()
+    return None
 
   @InfoProperty
   def eth_macs(self):

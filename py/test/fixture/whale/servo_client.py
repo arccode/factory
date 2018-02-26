@@ -342,7 +342,7 @@ class ServoClient(object):
     if name in self.__dict__:  # existing attributes
       super(ServoClient, self).__setattr__(name, value)
     else:
-      return self.Set(name, value)
+      self.Set(name, value)
 
   def HWInit(self):
     """Re-initializes the controls to its initial values.

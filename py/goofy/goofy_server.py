@@ -115,7 +115,8 @@ class GoofyWebRequestHandler(
     callback_or_path = self.server._resolver.Resolve(self.path)
 
     if callable(callback_or_path):
-      return callback_or_path(self)
+      callback_or_path(self)
+      return
 
     local_path = callback_or_path
 

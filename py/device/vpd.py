@@ -167,7 +167,8 @@ class MutableFileBasedPartition(ImmutableFileBasedPartition):
     for key in keys:
       file_path = self._device.path.join(self._path, key)
       if self._device.path.exists(file_path):
-        return self._device.CheckCall(['rm', '-f', file_path])
+        self._device.CheckCall(['rm', '-f', file_path])
+        return
 
   def Update(self, items, log=True):
     """See Partition.Update."""

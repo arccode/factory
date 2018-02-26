@@ -63,7 +63,8 @@ class BundleImporter(object):
     if not os.path.isdir(bundle_path):
       with file_utils.TempDirectory() as temp_dir:
         file_utils.ExtractFile(bundle_path, temp_dir, use_parallel=True)
-        return self.Import(temp_dir, bundle_id=bundle_id, note=note)
+        self.Import(temp_dir, bundle_id=bundle_id, note=note)
+        return
 
     import_list = BundleImporter._GetImportList(bundle_path)
     payloads = {}
