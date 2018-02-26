@@ -652,7 +652,7 @@ def UploadReport(options):
   elif method == 'cpfe':
     report_upload.CpfeUpload(target_path, pipes.quote(param))
   else:
-    raise Error('unknown report upload method %r', method)
+    raise Error('unknown report upload method %r' % method)
 
 
 @Command('finalize',

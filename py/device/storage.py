@@ -166,10 +166,11 @@ class Storage(types.DeviceComponent):
     return '/usr/local'
 
   def GetMainStorageDevice(self):
-    partition = self.GetMountPoint(self._GetMainStorageDeviceMountPoint())[1]
+    main_storage_device_mount_point = self._GetMainStorageDeviceMountPoint()
+    partition = self.GetMountPoint(main_storage_device_mount_point)[1]
     if not partition:
-      raise IOError('Unable to find main storage device (%s)',
-                    self._MAIN_STORAGE_DEVICE_MOUNT_POINT)
+      raise IOError('Unable to find main storage device (%s)' %
+                    main_storage_device_mount_point)
     # remove partition suffix to get device path.
     return re.sub(r'p?(\d+)$', '', partition)
 

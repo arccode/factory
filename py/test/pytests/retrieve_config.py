@@ -199,8 +199,8 @@ class RetrieveConfig(unittest.TestCase):
       pathname = os.path.join(mount_point, self.args.config_retrieve_path)
       session.console.info('Retrieving %s from USB.', pathname)
       if not os.path.exists(pathname):
-        raise ValueError('File %r does not exist or it is not a file.',
-                         pathname)
+        raise ValueError(
+            'File %r does not exist or it is not a file.' % pathname)
       try:
         file_utils.CopyFileSkipBytes(pathname, self.config_save_path, 0)
       except IOError as e:

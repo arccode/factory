@@ -48,9 +48,8 @@ def ReadSingleCell(value):
     try:
       value_in_python = ReadCsv(value_in_python.link)
     except Exception as e:
-      raise ValueError(
-          'Failed to load external csv - %s, %s',
-          (value_in_python.link, e))
+      raise ValueError('Failed to load external csv - %s, %s' %
+                       (value_in_python.link, e))
   return value_in_python
 
 

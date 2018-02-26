@@ -387,10 +387,10 @@ class USBCameraDevice(CameraDevice):
       serial = _FilterNonPrintable(
           self._dut.ReadSpecialFile(self._sn_sysfs_path)).rstrip()
     except IOError as e:
-      raise CameraError('Fail to read %r: %r', self._sn_sysfs_path, e)
+      raise CameraError('Fail to read %r: %r' % (self._sn_sysfs_path, e))
     if serial.find('\n') >= 0:
-      raise CameraError('%r contains multi-line data: %r',
-                        self._sn_sysfs_path, serial)
+      raise CameraError('%r contains multi-line data: %r' %
+                        (self._sn_sysfs_path, serial))
     return serial
 
 
@@ -422,6 +422,6 @@ class MIPICameraDevice(CameraDevice):
       return slave.Read(self._sn_i2c_param['data_addr'],
                         self._sn_i2c_param['length'])[::-2]
     except Exception as e:
-      raise CameraError('Fail to read serial number: %r', e)
+      raise CameraError('Fail to read serial number: %r' % e)
     finally:
       os.close(fd)

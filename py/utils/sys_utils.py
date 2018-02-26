@@ -91,7 +91,7 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
     remove_mount_point = False
 
   if not path.isdir(mount_point):
-    raise OSError('Mount point %s does not exist', mount_point)
+    raise OSError('Mount point %s does not exist' % mount_point)
 
   for line in file_utils.ReadLines('/proc/mounts', dut):
     if line.split()[1] == mount_point:

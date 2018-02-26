@@ -483,7 +483,7 @@ def _InformShopfloor(shopfloor_url):
     logging.debug('stdout: %s', proc.stdout_data)
     logging.debug('stderr: %s', proc.stderr_data)
     if proc.returncode != 0:
-      raise subprocess.CalledProcessError('InformShopfloor failed.')
+      raise RuntimeError('InformShopfloor failed.')
 
 
 def _Cutoff():

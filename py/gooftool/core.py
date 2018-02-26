@@ -625,7 +625,7 @@ class Gooftool(object):
                    if _IsFactoryVPD(k))
     unknown_keys = set(dot_entries) - set(entries)
     if unknown_keys:
-      raise Error('Found unexpected RW VPD(s): %r', unknown_keys)
+      raise Error('Found unexpected RW VPD(s): %r' % unknown_keys)
 
     logging.info('Removing VPD entries %s', FilterDict(entries))
     if entries:

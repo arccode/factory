@@ -114,7 +114,7 @@ class SystemLogManager(plugin.Plugin):
     for list_name in ['_clear_log_paths', '_clear_log_excluded_paths']:
       list_attribute = getattr(self, list_name)
       if list_attribute and not isinstance(list_attribute, list):
-        raise SystemLogManagerException('%r should be a list.', list_name)
+        raise SystemLogManagerException('%r should be a list.' % list_name)
     if self._clear_log_paths and self._sync_log_paths:
       if set(self._clear_log_paths) & set(self._sync_log_paths):
         raise SystemLogManagerException('clear_log_paths should not be '

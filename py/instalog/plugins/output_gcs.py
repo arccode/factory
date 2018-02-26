@@ -186,8 +186,8 @@ class OutputCloudStorage(plugin_base.OutputPlugin):
     if blob.md5_hash != local_md5 or blob.size != local_size:
       raise ValueError('Size or MD5 mismatch after uploading; '
                        'local_size = %d, confirmed_size = %d; local_md5 = %s, '
-                       'confirmed_md5 = %s',
-                       local_size, blob.size, local_md5, blob.md5_hash)
+                       'confirmed_md5 = %s' % (local_size, blob.size, local_md5,
+                                               blob.md5_hash))
 
 
 if __name__ == '__main__':

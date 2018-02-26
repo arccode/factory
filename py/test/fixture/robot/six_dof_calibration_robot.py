@@ -94,7 +94,8 @@ class SixDoFCalibrationRobot(robot.Robot):
 
     res = self._serial.readline()
     if -1 == res.find('OK'):
-      raise robot.RobotException('Unexpected data %s received from robot.', res)
+      raise robot.RobotException(
+          'Unexpected data %s received from robot.' % res)
 
     if self._log:
       logging.info('Received from robot: %s', res)

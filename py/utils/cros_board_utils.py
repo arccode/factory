@@ -101,8 +101,8 @@ class BuildBoard(object):
       pattern = r'(?s)ALL_BOARDS=\((.+?)\)'
       match = re.search(pattern, eclass_contents)
       if not match:
-        raise BuildBoardException('Unable to read pattern %s in %s',
-                                  pattern, eclass_path)
+        raise BuildBoardException('Unable to read pattern %s in %s' %
+                                  (pattern, eclass_path))
       boards = match.group(1).split()
 
       self.full_name = None

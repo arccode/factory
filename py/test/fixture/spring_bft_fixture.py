@@ -256,7 +256,7 @@ class SpringBFTFixture(bft_fixture.BFTFixture):
 
   def IsLEDColor(self, color):
     if color not in self.LED_CHECK_COMMAND:
-      raise bft_fixture.BFTFixtureException('Invalid LED color %r', color)
+      raise bft_fixture.BFTFixtureException('Invalid LED color %r' % color)
 
     (command, expect) = self.LED_CHECK_COMMAND[color]
     self._Send(command, 'Fail to check %s LED. ' % color)
@@ -275,6 +275,6 @@ class SpringBFTFixture(bft_fixture.BFTFixture):
 
   def SetStatusColor(self, color):
     if color not in self.STATUS_COLOR_COMMAND:
-      raise bft_fixture.BFTFixtureException('Invalid status color %r', color)
+      raise bft_fixture.BFTFixtureException('Invalid status color %r' % color)
     self._SendRecvDefault(self.STATUS_COLOR_COMMAND[color],
                           'Unable to set status color to %s' % color)

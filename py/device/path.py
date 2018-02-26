@@ -34,8 +34,9 @@ class Path(types.DeviceComponent):
       return getattr(posixpath, attr)
     type_name = type(self).__name__
     if attr in posixpath.__all__:
-      raise NotImplementedError('%r is not implemented in %r', attr, type_name)
-    raise AttributeError('%r has no attribute %r', type_name, attr)
+      raise NotImplementedError('%r is not implemented in %r' % (attr,
+                                                                 type_name))
+    raise AttributeError('%r has no attribute %r' % (type_name, attr))
 
   def exists(self, path):
     """Tests whether a path exists. Returns False for broken symbolic links."""
@@ -140,4 +141,3 @@ class AndroidPath(Path):
       else:
         current = output.strip()
     return current
-

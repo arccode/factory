@@ -671,7 +671,7 @@ def WriteWithSudo(file_path, content):
   process.stdin.write(content)
   process.stdin.close()
   if process.wait():
-    raise subprocess.CalledProcessError('Unable to write %s' % file_path)
+    raise RuntimeError('Unable to write %s' % file_path)
 
 
 def GlobSingleFile(pattern):
@@ -983,4 +983,3 @@ def SymlinkRelative(target, link_path, base=None, force=False):
     TryUnlink(link_path)
 
   os.symlink(target, link_path)
-

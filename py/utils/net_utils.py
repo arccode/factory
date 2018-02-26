@@ -546,7 +546,7 @@ def EnablePort(port, protocol='tcp', priority=None, interface=None):
     rule += ['-p', protocol]
   if port:
     if (port < 1) or (port > MAX_PORT):
-      raise ValueError('Invalid port number: %r', port)
+      raise ValueError('Invalid port number: %r' % port)
     rule += ['--dport', str(port)]
   if interface:
     rule += ['-i', interface]
