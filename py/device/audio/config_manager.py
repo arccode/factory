@@ -41,11 +41,8 @@ AudioDeviceType = type_utils.Enum(
     list(InputDevices) + list(OutputDevices))
 
 
-class BaseConfigManager:
+class BaseConfigManager(object):
   __metaclass__ = abc.ABCMeta
-
-  def __init__(self):
-    pass
 
   @abc.abstractmethod
   def Initialize(self, card='0'):
@@ -184,6 +181,7 @@ class AudioConfigManager(BaseConfigManager):
     self._audio_config_sn = 0  # used for audio config logging.
     self._mixer_controller = mixer_controller
     self.audio_config = None
+    self._device = None
     self.LoadConfig(config_name)
 
   @abc.abstractmethod
@@ -624,56 +622,18 @@ class UCMConfigManager(BaseConfigManager):
         'set _verb %s' % self._verb,
         *commands)
 
-  def _InvokeFactoryConfMgr(self, method, *args, **kwargs):
-    if self._factory_config_mgr is None:
-      raise NotImplementedError
-    return getattr(self._factory_config_mgr, method)(*args, **kwargs)
-
   def Initialize(self, card='0'):
-    """Initialize the sound card.
-
-    This operation is supported by both factory config and UCM config. The
-    factor config has a higher priority over UCM configs, so here we invoke
-    factory conf manager first.
-    """
-    try:
-      if self._InvokeFactoryConfMgr('Initialize', card):
-        return True
-    except Exception:
-      pass
-
+    """Initialize the sound card."""
     self._InvokeCardCommands(card, 'reset')
 
   def EnableDevice(self, device, card='0'):
-    """Enable a certain device on sound card.
-
-    This operation is supported by both factory config and UCM config. The
-    factor config has a higher priority over UCM configs, so here we invoke
-    factory conf manager first.
-    """
-    try:
-      if self._InvokeFactoryConfMgr('EnableDevice', device, card):
-        return True
-    except Exception:
-      pass
-
+    """Enable a certain device on sound card."""
     self._InvokeDeviceCommands(
         card,
         'set _enadev "%s"' % self._GetDeviceName(device))
 
   def DisableDevice(self, device, card='0'):
-    """Disable a certain device on sound card.
-
-    This operation is supported by both factory config and UCM config. The
-    factor config has a higher priority over UCM configs, so here we invoke
-    factory conf manager first.
-    """
-    try:
-      if self._InvokeFactoryConfMgr('DisableDevice', device, card):
-        return True
-    except Exception:
-      pass
-
+    """Disable a certain device on sound card."""
     self._InvokeDeviceCommands(
         card,
         'set _disdev "%s"' % self._GetDeviceName(device))

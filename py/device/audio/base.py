@@ -27,7 +27,7 @@ DEFAULT_HEADPHONE_JACK_NAMES = ['Headphone Jack', 'Headset Jack']
 DEFAULT_MIC_JACK_NAMES = ['Mic Jack'] + DEFAULT_HEADPHONE_JACK_NAMES
 
 
-class BaseMixerController:
+class BaseMixerController(object):
   __metaclass__ = abc.ABCMeta
 
   def __init__(self, device):

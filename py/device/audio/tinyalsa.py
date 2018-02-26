@@ -42,9 +42,10 @@ from cros.factory.device.audio import config_manager
 
 class TinyalsaMixerController(base.BaseMixerController):
   """Mixer controller for tinyalsa."""
+  _RE_CARD_INDEX = re.compile(r'.*(\d+).*?\[(.+?)\]')
 
   def __init__(self, device, remote_directory):
-    super(TinyalsaMixerController, self).__init__(self, device)
+    super(TinyalsaMixerController, self).__init__(device)
     self._remote_directory = remote_directory
 
   def GetMixerControls(self, name, card='0'):
@@ -194,7 +195,6 @@ class TinyalsaAudioControl(base.BaseAudioControl):
   It reads audio.conf initially to decide how to enable/disable each
   component by tinymixer.
   """
-  _RE_CARD_INDEX = re.compile(r'.*(\d+).*?\[(.+?)\]')
 
   def __init__(self, dut, config_name=None, remote_directory='/data'):
     mixer_controller = TinyalsaMixerController(dut, remote_directory)
