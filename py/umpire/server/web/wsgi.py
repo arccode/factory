@@ -139,9 +139,6 @@ class WebAppDispatcher(dict):
   according to environ['PATH_INFO'].
   """
 
-  def __init__(self, *args, **kwargs):
-    super(WebAppDispatcher, self).__init__(*args, **kwargs)
-
   def __call__(self, environ, start_response):
     session = WSGISession(environ, start_response)
     try:

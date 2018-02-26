@@ -108,12 +108,6 @@ class RequesterHelper(BaseHelper):
           '0000')}
   """Mock key for testing purpose, used by MockRequest()."""
 
-  def __init__(self, server_ip, server_port, server_key_file_path,
-               requester_key_file_path, passphrase_file_path):
-    super(RequesterHelper, self).__init__(
-        server_ip, server_port, server_key_file_path,
-        requester_key_file_path, passphrase_file_path)
-
   def Request(self, device_serial_number):
     """Request a DRM key by a device serial number from the DKPS.
 
@@ -165,12 +159,6 @@ class RequesterHelper(BaseHelper):
 
 class UploaderHelper(BaseHelper):
   """The helper class for uploader."""
-
-  def __init__(self, server_ip, server_port, server_key_file_path,
-               uploader_key_file_path, passphrase_file_path):
-    super(UploaderHelper, self).__init__(
-        server_ip, server_port, server_key_file_path,
-        uploader_key_file_path, passphrase_file_path)
 
   def _GetSerializedDRMKeys(
       self, serialized_drm_keys=None, drm_keys_file_path=None):

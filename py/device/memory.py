@@ -14,9 +14,6 @@ from cros.factory.device import types
 class BaseMemory(types.DeviceComponent):
   """Abstract class for memory component."""
 
-  def __init__(self, dut):
-    super(BaseMemory, self).__init__(dut)
-
   def ResizeSharedMemory(self, size='100%'):
     """Override maximum size of shared memory.
 
@@ -34,9 +31,6 @@ class BaseMemory(types.DeviceComponent):
 class LinuxMemory(BaseMemory):
   """Implementation of BaseMemory on Linux system."""
 
-  def __init__(self, dut):
-    super(LinuxMemory, self).__init__(dut)
-
   def ResizeSharedMemory(self, size='100%'):
     """See BaseMemory.ResizeSharedMemory."""
     self._device.CheckCall(
@@ -53,9 +47,6 @@ class LinuxMemory(BaseMemory):
 
 class AndroidMemory(LinuxMemory):
   """Implementation of BaseMemory on Android system."""
-
-  def __init__(self, dut):
-    super(AndroidMemory, self).__init__(dut)
 
   def ResizeSharedMemory(self, size='100%'):
     """See BaseMemory.ResizeSharedMemory."""

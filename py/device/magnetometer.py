@@ -10,9 +10,6 @@ from cros.factory.device import types
 class Magnetometer(types.DeviceComponent):
   """Base class for magnetometer component module."""
 
-  def __init__(self, board):
-    super(Magnetometer, self).__init__(board)
-
   def GetController(self, location='base'):
     """Gets a controller with specified arguments.
 

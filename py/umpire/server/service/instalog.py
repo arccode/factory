@@ -33,9 +33,6 @@ class InstalogService(umpire_service.UmpireService):
     svc.Start(procs)
   """
 
-  def __init__(self):
-    super(InstalogService, self).__init__()
-
   def UpdateConfig(self, instalog_config, update_info, env):
     """Updates Instalog plugin config based on Umpire config.
 

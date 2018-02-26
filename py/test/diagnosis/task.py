@@ -462,13 +462,6 @@ class _FinallyStep(_CommandStep):
   """
   MUST_BE_RUN = True
 
-  def __init__(self, command, expected_output,
-               terminate_timeout, terminating_timeout, error_message,
-               ui_append_output):
-    super(_FinallyStep, self).__init__(command, expected_output,
-                                       terminate_timeout, terminating_timeout,
-                                       error_message, ui_append_output)
-
   def Stop(self):
     pass
 

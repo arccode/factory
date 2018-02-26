@@ -418,9 +418,6 @@ class UmpireServerProxyTest(UmpireDockerTestCase):
     super(UmpireServerProxyTest, self).setUp()
     self.proxy = umpire_server_proxy.UmpireServerProxy(ADDR_BASE)
 
-  def tearDown(self):
-    super(UmpireServerProxyTest, self).tearDown()
-
   def testUseUmpire(self):
     self.assertTrue(self.proxy.use_umpire)
 

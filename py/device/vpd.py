@@ -158,10 +158,6 @@ class ImmutableFileBasedPartition(Partition):
 class MutableFileBasedPartition(ImmutableFileBasedPartition):
   """A file-based VPD partition."""
 
-  def __init__(self, dut, path):
-    """See ImmutableFileBasedPartition.__init__"""
-    super(MutableFileBasedPartition, self).__init__(dut, path)
-
   def Delete(self, *keys):
     """See Partition.Delete."""
     for key in keys:

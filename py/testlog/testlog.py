@@ -842,9 +842,6 @@ class Event(EventBase):
   def GetEventType(cls):
     return None
 
-  def CastFields(self):
-    return super(Event, self).CastFields()
-
 class _StationBase(Event):
   """Base class for all "station" subtypes.
 
@@ -871,9 +868,6 @@ class _StationBase(Event):
   def GetEventType(cls):
     return None
 
-  def CastFields(self):
-    return super(_StationBase, self).CastFields()
-
 
 class StationInit(_StationBase):
   """Represents the Station being brought up or initialized.
@@ -897,8 +891,6 @@ class StationInit(_StationBase):
   def GetEventType(cls):
     return 'station.init'
 
-  def CastFields(self):
-    return super(StationInit, self).CastFields()
 
 class StationMessage(_StationBase):
   """Represents a Python message on the Station.
@@ -931,8 +923,6 @@ class StationMessage(_StationBase):
   def GetEventType(cls):
     return 'station.message'
 
-  def CastFields(self):
-    return super(StationMessage, self).CastFields()
 
 class StationTestRun(_StationBase):
   """Represents a test run on the Station.

@@ -43,9 +43,6 @@ class InputTime(plugin_base.InputPlugin):
           default=_DEFAULT_ATTACHMENT_BYTES),
   ]
 
-  def __init__(self, *args, **kwargs):
-    super(InputTime, self).__init__(*args, **kwargs)
-
   def SetUp(self):
     """Sets up the plugin."""
     # Create the temporary directory for attachments.

@@ -23,8 +23,6 @@ class OverlordService(umpire_service.UmpireService):
     procs = svc.CreateProcesses(umpire_config_dict)
     svc.Start(procs)
   """
-  def __init__(self):
-    super(OverlordService, self).__init__()
 
   def GenerateArgs(self, umpire_config):
     args = []

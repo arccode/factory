@@ -68,9 +68,6 @@ class USBTypeC(types.DeviceComponent):
       r'max (?P<max_millivolt>\d+)mV / (?P<max_milliampere>\d+)mA / '
       r'(?P<max_milliwatt>\d+)mW')
 
-  def __init__(self, dut):
-    super(USBTypeC, self).__init__(dut)
-
   def GetPDVersion(self):
     """Gets the PD firmware version.
 
