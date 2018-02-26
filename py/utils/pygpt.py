@@ -340,16 +340,16 @@ class GPTCommands(object):
   """
 
   FORMAT_ARGS = [
-     ('begin', 'beginning sector'),
-     ('size', 'partition size'),
-     ('type', 'type guid'),
-     ('unique', 'unique guid'),
-     ('label', 'label'),
-     ('Successful', 'Successful flag'),
-     ('Tries', 'Tries flag'),
-     ('Priority', 'Priority flag'),
-     ('Legacy', 'Legacy Boot flag'),
-     ('Attribute', 'raw 16-bit attribute value (bits 48-63)')]
+      ('begin', 'beginning sector'),
+      ('size', 'partition size'),
+      ('type', 'type guid'),
+      ('unique', 'unique guid'),
+      ('label', 'label'),
+      ('Successful', 'Successful flag'),
+      ('Tries', 'Tries flag'),
+      ('Priority', 'Priority flag'),
+      ('Legacy', 'Legacy Boot flag'),
+      ('Attribute', 'raw 16-bit attribute value (bits 48-63)')]
 
   def __init__(self):
     pass
@@ -380,8 +380,8 @@ class GPTCommands(object):
         logging.warn('- No extra space to expand.')
     elif free_space:
       logging.warn('Extra space found (%d, LBA=%d), '
-            'use --expand to expand partitions.',
-            free_space, free_space / gpt.BLOCK_SIZE)
+                   'use --expand to expand partitions.',
+                   free_space, free_space / gpt.BLOCK_SIZE)
 
     gpt.WriteToFile(args.image_file)
     print('Disk image file %s repaired.' % args.image_file.name)

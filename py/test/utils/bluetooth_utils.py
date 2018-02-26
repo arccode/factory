@@ -261,7 +261,7 @@ def _ParseCommandLine():
   return options
 
 
-def Main():
+def main():
   """The main program to run the script."""
   options = _ParseCommandLine()
   print ('battery level:',
@@ -271,4 +271,4 @@ def Main():
 
 
 if __name__ == '__main__':
-  Main()
+  main()

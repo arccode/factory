@@ -176,7 +176,7 @@ class SSHPortForwarder(object):
   def _ForwardArgs(self):
     flag = '-L' if self._forward_to == self.REMOTE else '-R'
     return [flag, '%s:%d:%s:%d' % (
-      self._src_host, self._src_port, self._dst_host, self._dst_port)]
+        self._src_host, self._src_port, self._dst_host, self._dst_port)]
 
   def _RunSSHCmd(self):
     """Runs the SSH command, storing the exception on failure."""
@@ -298,7 +298,7 @@ class SSHPortForwarder(object):
     return self.GetState()
 
 
-if __name__ == '__main__':
+def main():
   parser = argparse.ArgumentParser(description='SSH port forwarding watchdog')
   parser.add_argument(
       'src_port', type=int,
@@ -393,3 +393,7 @@ if __name__ == '__main__':
         blocking=True)  # always block
   except KeyboardInterrupt:
     sys.exit(_CTRL_C_EXIT_CODE)
+
+
+if __name__ == '__main__':
+  main()

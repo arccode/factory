@@ -334,7 +334,7 @@ class CRAS(object):
     self.input_nodes = [self.Node(n['Id'], n['Name'], n['Active'])
                         for n in nodes if n['IsInput']]
     self.output_nodes = [self.Node(n['Id'], n['Name'], n['Active'])
-                        for n in nodes if not n['IsInput']]
+                         for n in nodes if not n['IsInput']]
 
   def SelectNodeById(self, node_id):
     """Selects node by given id.

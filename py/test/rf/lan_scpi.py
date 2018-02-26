@@ -138,11 +138,10 @@ class LANSCPI(object):
     errors = []
     error_id = None
     error_msg = None
-    for i in range(len(commands)):
+    for command in commands:
       ret = self._ReadLine()
       if ret != '+0,"No error"':
-        errors.append(
-            'Issuing command %r: %r' % (commands[i], ret))
+        errors.append('Issuing command %r: %r' % (command, ret))
       if not error_id:
         # We don't have an error ID for the exception yet;
         # try to parse the SCPI error.

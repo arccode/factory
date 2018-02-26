@@ -25,7 +25,7 @@ class LightChamber(object):
   def Connect(self):
     self._fixture_conn.Connect()
 
-  def SetLight(self, name, response=None):
+  def SetLight(self, name):
     """Sets light through fixture connection.
 
     Args:

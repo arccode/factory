@@ -769,7 +769,7 @@ class WLAN(object):
     if security == 'wpa':
       raise ValueError('Invalid wireless network security type:'
                        " wpa. Use 'psk' instead")
-    if not security in ['none', 'wep', 'rsn', 'psk', '802_1x']:
+    if security not in ['none', 'wep', 'rsn', 'psk', '802_1x']:
       raise ValueError('Invalid wireless network security type: %s'
                        % security)
     self.ssid = ssid

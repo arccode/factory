@@ -673,8 +673,8 @@ class Gooftool(object):
     # session_manager change to generate server-backed state keys for forced
     # re-enrollment from the stable device secret.
     release_image_version = LooseVersion(self._util.GetReleaseImageVersion())
-    if not release_image_version >= LooseVersion('6887.0.0'):
-      raise Error('Release image version can\'t handle stable device secret!')
+    if release_image_version < LooseVersion('6887.0.0'):
+      raise Error("Release image version can't handle stable device secret!")
 
     # A context manager useful for wrapping code blocks that handle the device
     # secret in an exception handler, so the secret value does not leak due to

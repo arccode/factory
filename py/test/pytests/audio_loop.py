@@ -505,7 +505,7 @@ class AudioLoopTest(test_ui.TestCaseWithUI):
 
     volume_gain = self._current_test_args.get(
         'volume_gain', _DEFAULT_AUDIOFUN_TEST_VOLUME_GAIN)
-    assert 0 <= volume_gain and volume_gain <= 100
+    assert 0 <= volume_gain <= 100
 
     player_cmd = 'aplay -D %s -r %d -f s16 -t raw -c 2 -B 0 -' % (
         self._alsa_output_device, capture_rate)

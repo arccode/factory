@@ -80,7 +80,7 @@ class RegionTest(unittest.TestCase):
          'region_code': 'a',
          'time_zone': 'c'},
         (regions.Region('a', 'xkb:b::b', 'c', 'd', 'e', 'description',
-            'notes').GetFieldsDict()))
+                        'notes').GetFieldsDict()))
 
   def testConsolidateRegionsDups(self):
     """Test duplicate handling.  Two identical Regions are OK."""
