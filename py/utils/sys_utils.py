@@ -497,10 +497,10 @@ class PartitionManager(_GPTTool):
     # For remote, use cgpt over partx since it's more compliant for ChromeOS.
     if local_mode:
       self._runner = PartitionManager._PyGPT(self._path)
-    elif 0 == dut.Call(['which', 'cgpt']):
+    elif dut.Call(['which', 'cgpt']) == 0:
       self._runner = PartitionManager._CGPT(
           'cgpt', self._check_output, self._path)
-    elif 0 == dut.Call(['which', 'partx']):
+    elif dut.Call(['which', 'partx']) == 0:
       self._runner = PartitionManager._PartX(
           'partx', self._check_output, self._path)
     else:

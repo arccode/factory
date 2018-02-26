@@ -37,11 +37,11 @@ class CheckForUpdateTest(unittest.TestCase):
         'toolkit', proxy=fake_proxy).AndReturn(fake_updater)
     fake_updater.GetUpdateVersion().AndReturn('11111')
     fake_updater.IsUpdateAvailable(local_version).AndReturn(
-        '11111' != local_version)
+        local_version != '11111')
 
     self.mox.ReplayAll()
     self.assertEquals(
-        updater.CheckForUpdate(3), ('11111', '11111' != local_version))
+        updater.CheckForUpdate(3), ('11111', local_version != '11111'))
     self.mox.VerifyAll()
 
   def testMustUpdate(self):

@@ -400,8 +400,8 @@ def _InformStation(ip, port, token, wipe_init_log=None,
 
   try:
     sync_utils.WaitFor(
-        lambda: 0 == process_utils.Spawn(['ping', '-w1', '-c1', ip],
-                                         call=True).returncode,
+        lambda: process_utils.Spawn(['ping', '-w1', '-c1', ip],
+                                    call=True).returncode == 0,
         timeout_secs=180, poll_interval=1)
   except Exception:
     logging.exception('cannot get network connection...')

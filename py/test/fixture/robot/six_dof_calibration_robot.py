@@ -93,7 +93,7 @@ class SixDoFCalibrationRobot(robot.Robot):
       raise robot.RobotException('Failed to send command.')
 
     res = self._serial.readline()
-    if -1 == res.find('OK'):
+    if res.find('OK') == -1:
       raise robot.RobotException(
           'Unexpected data %s received from robot.' % res)
 
