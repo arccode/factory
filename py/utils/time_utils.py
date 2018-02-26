@@ -50,7 +50,7 @@ def TimeString(time_value=None, time_separator=':', milliseconds=True):
     milliseconds: Whether to include milliseconds.
   """
 
-  if type(time_value) is datetime.datetime:
+  if isinstance(time_value, datetime.datetime):
     t = (time_value - EPOCH_ZERO).total_seconds()
   else:
     t = time_value or time.time()

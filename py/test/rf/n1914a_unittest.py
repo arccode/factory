@@ -48,7 +48,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
   @classmethod
   def AddCommandsLookup(cls, commands, wait=True):
     """Wrapper for adding commands."""
-    if type(commands) == str:
+    if isinstance(commands, str):
       commands = [commands]
 
     cls.AddLookup('*CLS', None)

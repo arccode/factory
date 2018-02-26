@@ -40,7 +40,7 @@ def RegisterFunction(name, cls, force=False):
     cls: the function class. It should be a derived class of "Function".
     force: True to allow overwriting a registered function name.
   """
-  if type(cls) != type or not issubclass(cls, Function):
+  if not isinstance(cls, type) or not issubclass(cls, Function):
     raise FunctionException('"%s" is not subclass of Function.' % cls.__name__)
   if name in _function_map and not force:
     raise FunctionException('Function "%s" is already registered.' % name)

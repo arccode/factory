@@ -39,8 +39,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
   def AddLookup(cls, input_line, response):
     # Check if the response is one of the known types.
     is_known_types = False
-    if (isinstance(response, types.StringType) or
-        isinstance(response, types.NoneType)):
+    if isinstance(response, (types.StringType, types.NoneType)):
       is_known_types = True
     elif inspect.isfunction(response) or inspect.ismethod(response):
       is_known_types = True

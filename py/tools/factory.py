@@ -449,7 +449,7 @@ class DeviceDataCommand(Subcommand):
       else:
         with open(self.args.set_yaml) as f:
           update = yaml.load(f)
-      if type(update) != dict:
+      if not isinstance(update, dict):
         sys.exit('Expected a dict but got a %r' % type(update))
       device_data.UpdateDeviceData(update)
 

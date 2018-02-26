@@ -112,10 +112,9 @@ class I2CBus(types.DeviceComponent):
       slave: 7 bit I2C slave address, or known as "chipset address".
       reg_width: Number of bits to write for register.
     """
-    if type(bus) is int:
+    if isinstance(bus, int):
       bus = '/dev/i2c-%d' % bus
     assert slave & (0xfe) == 0, 'I2C Slave address has only 7 bits.'
     assert reg_width % 8 == 0, 'Register must be aligned with 8 bits.'
     assert reg_width <= 32, 'Only 0~32 bits of reg addresses are supported.'
     return I2CSlave(self._device, bus, slave, reg_width)
-

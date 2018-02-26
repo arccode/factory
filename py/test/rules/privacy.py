@@ -31,18 +31,17 @@ def FilterDict(data):
     data: A data to redact.
   """
   ret = copy.deepcopy(data)
-  if isinstance(data, list) or isinstance(data, set):
+  if isinstance(data, (list, set)):
     ret = [FilterDict(x) for x in data]
   elif isinstance(data, dict):
     for k, v in ret.iteritems():
       if v is None:
         continue
       if str(k) in BLACKLIST_KEYS:
-        if isinstance(v, str) or isinstance(v, unicode):
+        if isinstance(v, (str, unicode)):
           ret[k] = '<redacted %d chars>' % len(v)
         else:
           ret[k] = '<redacted type %s>' % v.__class__.__name__
-      elif (isinstance(v, dict) or isinstance(v, list) or
-            isinstance(v, set)):
+      elif isinstance(v, (dict, list, set)):
         ret[k] = FilterDict(v)
   return ret

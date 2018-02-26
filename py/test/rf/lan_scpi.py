@@ -124,7 +124,7 @@ class LANSCPI(object):
       wait: If True, issues an *OPC? command after the final
           command to block until all commands have completed.
     """
-    if type(commands) == str:
+    if isinstance(commands, str):
       self.Send([commands], wait)
       return
 

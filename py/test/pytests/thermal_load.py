@@ -117,9 +117,9 @@ class ThermalLoadTest(unittest.TestCase):
     sensors = self.args.sensors or [self.dut.thermal.GetMainSensorName()]
     self.sensors = sensors
 
-    if type(self.args.lower_threshold) is int:
+    if isinstance(self.args.lower_threshold, int):
       self.args.lower_threshold = [self.args.lower_threshold]
-    if type(self.args.temperature_limit) is int:
+    if isinstance(self.args.temperature_limit, int):
       self.args.temperature_limit = [self.args.temperature_limit]
 
     self.assertTrue(

@@ -208,7 +208,7 @@ def LoadRegionDatabase(path=None):
   def EncodeUnicode(value):
     if value is None:
       return None
-    return ([s.encode('utf-8') for s in value] if type(value) is list else
+    return ([s.encode('utf-8') for s in value] if isinstance(value, list) else
             value.encode('utf-8'))
 
   def FindDatabaseContents():
