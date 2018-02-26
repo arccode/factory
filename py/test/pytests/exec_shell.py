@@ -54,6 +54,7 @@ import logging
 import os
 import StringIO
 import subprocess
+import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -83,7 +84,7 @@ class ExecShell(test_ui.TestCaseWithUI):
     """Returns a possibly truncated command with max length to display."""
     return (command[:length] + ' ...') if len(command) > length else command
 
-  def UpdateOutput(self, handle, name, output):
+  def UpdateOutput(self, handle, name, output, interval_sec=0.1):
     """Updates output from file handle to given HTML node."""
     self.ui.SetHTML('', id=name)
     while True:
@@ -91,8 +92,10 @@ class ExecShell(test_ui.TestCaseWithUI):
       if not c:
         break
       self.ui.SetHTML(
-          test_ui.Escape(c, preserve_line_breaks=False), append=True, id=name)
+          test_ui.Escape(c, preserve_line_breaks=False), append=True, id=name,
+          autoscroll=True)
       output[name].write(c)
+      time.sleep(interval_sec)
 
   def setUp(self):
     self.ui.SetTitle(_('Running shell commands...'))
