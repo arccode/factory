@@ -118,12 +118,12 @@ class CpufreqManager(object):
       if service_utils.CheckServiceExists(service):
         exist_services.append(service)
 
-    if len(exist_services) == 0:
-      logging.info("No thermal-control service is available! " +
-                   str(possible_services))
+    if not exist_services:
+      logging.info('No thermal-control service is available! %s',
+                   possible_services)
 
     if len(exist_services) > 1:
-      logging.info("More then one thermal-control service are found: " +
-                   str(exist_services))
+      logging.info('More then one thermal-control service are found: %s',
+                   exist_services)
 
     return exist_services

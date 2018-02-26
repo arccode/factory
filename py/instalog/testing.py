@@ -145,7 +145,7 @@ class MockBufferEventStream(plugin_base.BufferEventStream):
     """Pops the next available Event or returns None if not available."""
     if self.expired:
       raise plugin_base.EventStreamExpired
-    if len(self.queue) == 0:
+    if not self.queue:
       logging.debug('%s: Nothing to pop', self)
       return None
     ret = self.queue.pop(0)

@@ -51,7 +51,7 @@ class OutputStdout(plugin_base.OutputPlugin):
         print(event.Serialize())
 
       # Commit these events.
-      if len(events) > 0:
+      if events:
         self.info('Commit %d events', len(events))
       event_stream.Commit()
 

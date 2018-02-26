@@ -322,7 +322,7 @@ class Gooftool(object):
       return
     # If ME is locked, it should contain only 0xFFs.
     data = mainfw.get_section('SI_ME').strip(chr(0xFF))
-    if len(data) != 0:
+    if data:
       raise Error('ME (ManagementEngine) firmware may be not locked.')
     # TODO(hungte) In future we may add more checks using ifdtool. See
     # crosbug.com/p/30283 for more information.

@@ -67,14 +67,14 @@ class InputHTTPTestlog(input_http.InputHTTP):
     """
     if 'attachments' in event:
       if len(event.attachments) != len(event['attachments']):
-        raise ValueError('event[\'attachment\'] are not consistent with '
+        raise ValueError("event['attachment'] are not consistent with "
                          'attachments in requests.')
       for key in event['attachments'].iterkeys():
         if key not in event.attachments:
-          raise ValueError('event[\'attachment\'] are not consistent with '
+          raise ValueError("event['attachment'] are not consistent with "
                            'attachments in requests.')
-    elif len(event.attachments) != 0:
-      raise ValueError('event[\'attachment\'] are not consistent with '
+    elif event.attachments:
+      raise ValueError("event['attachment'] are not consistent with "
                        'attachments in requests.')
 
     # This will raise exception when the event is invalid.

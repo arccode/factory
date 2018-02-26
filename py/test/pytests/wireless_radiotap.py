@@ -511,7 +511,7 @@ class WirelessRadiotapTest(test_ui.TestCaseWithUI):
     for antenna in _ANTENNA_CONFIG:
       average_results[antenna] = (
           float(average_results[antenna]) / len(antenna_info)
-          if len(antenna_info) else None)
+          if antenna_info else None)
     return average_results
 
   def CheckSpec(self, service, spec_antenna_strength, average_signal):

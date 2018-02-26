@@ -106,7 +106,7 @@ class BluetoothManager(types.DeviceComponent):
       Raises BluetoothManagerException if fails to get any adapter.
     """
     adapters = self.GetAdapters(mac_addr=mac_addr)
-    if len(adapters) > 0:
+    if adapters:
       return adapters[0]
     else:
       raise BluetoothManagerException('Fail to find any adapter.')

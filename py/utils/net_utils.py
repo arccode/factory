@@ -342,7 +342,7 @@ def GetNetworkInterfaceByPath(interface_path, allow_multiple=False):
       interface = os.path.basename(path)
       logging.info('Interface "%s" is found.', interface)
       valid_interfaces.append(interface)
-  if len(valid_interfaces) == 0:
+  if not valid_interfaces:
     logging.warning('No interface is found.')
     return None
   if len(valid_interfaces) == 1:

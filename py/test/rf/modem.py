@@ -90,7 +90,7 @@ class Modem(object):
     retries = 0
     while retries < retry_times:
       line = self.ReadLine()
-      if len(line):
+      if line:
         response.append(line)
         # TODO (henryhsu): The response may have "+CME ERROR: <errno>".
         # If we will use ME command in the future, we will need handle this

@@ -35,7 +35,7 @@ class ForwardToStdoutRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     # Forward video stream to stdout
     while True:
       data = self.rfile.read(_BUFSIZ)
-      if len(data) == 0:
+      if not data:
         break
       sys.stdout.write(data)
       sys.stdout.flush()

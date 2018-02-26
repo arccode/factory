@@ -38,7 +38,7 @@ def FindDevice(dut, path_pattern, **attr_filter):
     if match:
       devices.append(path)
 
-  if len(devices) == 0:
+  if not devices:
     raise types.DeviceException(
         'Device with constraint %r not found' % attr_filter)
   elif len(devices) > 1:

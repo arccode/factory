@@ -390,7 +390,7 @@ class RunTests(object):
     sys.stderr.write('\r\033[K')
 
   def _ShowRunningTest(self):
-    if len(self._running_proc) == 0:
+    if not self._running_proc:
       return
     status = '-> %d tests running' % len(self._running_proc)
     running_tests = ', '.join([p[1] for p in self._running_proc.itervalues()])

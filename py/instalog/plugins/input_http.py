@@ -186,7 +186,7 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
         event = datatypes.Event.Deserialize(serialize_event)
 
         if not self._enable_multi_event:
-          if len(event.attachments) != 0:
+          if event.attachments:
             raise ValueError('Please follow the format: event={Payload}')
           requests_keys = form.keys()
           for key in requests_keys:
@@ -217,7 +217,7 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     process_time = time.time() - start_time
     start_time = time.time()
 
-    if len(events) == 0:
+    if not events:
       return 200, 'OK'
     elif self._plugin_api.Emit(events):
 

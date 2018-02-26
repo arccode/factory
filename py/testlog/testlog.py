@@ -178,7 +178,7 @@ class Testlog(object):
     if metadata:
       # pylint: disable=protected-access
       self.last_test_run[self.FIELDS._METADATA] = metadata
-    assert len(session_data.items()) == 0, 'Not all variable initialized.'
+    assert not session_data, 'Not all variable initialized.'
 
     # Initialize the sequence generator
     self.seq_generator = testlog_seq.SeqGenerator(

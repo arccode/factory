@@ -249,7 +249,7 @@ def _ParseCommandLine():
                          '(Can be found by running "hcitool lescan")')
   options, args = parser.parse_args()
 
-  if len(args) > 0:
+  if args:
     parser.error('args %s are not allowed' % str(args))
     parser.print_help()
     exit(1)

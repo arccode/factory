@@ -118,7 +118,7 @@ def Daemonize(logfile=None):
 
 
 def ResetLog(logfile=None):
-  if len(logging.getLogger().handlers) > 0:
+  if logging.getLogger().handlers:
     for handler in logging.getLogger().handlers:
       logging.getLogger().removeHandler(handler)
   logging.basicConfig(filename=logfile, level=logging.NOTSET)

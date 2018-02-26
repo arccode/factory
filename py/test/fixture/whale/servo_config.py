@@ -30,7 +30,7 @@ def _GetBoardServoConfig():
   """
   configs = glob.glob(os.path.join(
       os.path.dirname(os.path.realpath(__file__)), SERVO_CONFIG_FILENAME_SPEC))
-  if len(configs) == 0:
+  if not configs:
     return None
   return os.path.splitext(os.path.basename(configs[0]))[0]
 

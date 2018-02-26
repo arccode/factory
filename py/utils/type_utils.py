@@ -477,7 +477,7 @@ class UniqueStack(object):
     This function should run in amortized O(1)
     """
     with self._lock:
-      while len(self._list) > 0:
+      while self._list:
         if self._list[-1] in self._set:
           return self._list[-1]
         else:

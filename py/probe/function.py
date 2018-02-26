@@ -143,7 +143,7 @@ class Function(object):
   def __init__(self, **kwargs):
     """Parse the arguments and set them to self.args."""
     if len(kwargs) == 1 and _FAKE_INDEX in kwargs:
-      if len(self.ARGS) == 0:
+      if not self.ARGS:
         raise FunctionException(
             'Function "%s" does not require any argument.' %
             self.__class__.__name__)

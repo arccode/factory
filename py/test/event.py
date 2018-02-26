@@ -194,7 +194,7 @@ class EventServerRequestHandler(SocketServer.BaseRequestHandler):
         msg = self.request.recv(_MAX_MESSAGE_SIZE + 1)
         if len(msg) > _MAX_MESSAGE_SIZE:
           logging.error('Event server: message too large')
-        if len(msg) == 0:
+        if not msg:
           break  # EOF
         self.server._post_message(msg)  # pylint: disable=protected-access
     except socket.error, e:

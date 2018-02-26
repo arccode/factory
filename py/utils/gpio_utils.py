@@ -330,7 +330,7 @@ class Gpio(object):
         if fd == self._poll_fd.fileno():
           return True
         if fd == self._stop_sockets[1].fileno():
-          if len(self._stop_sockets[1].recv(1)) > 0:
+          if self._stop_sockets[1].recv(1):
             logging.debug('poll() interrupted by socketpair')
             return False
       logging.debug('Gpio.Poll() finishes waiting')

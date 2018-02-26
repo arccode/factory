@@ -229,7 +229,7 @@ class ENASCPI(agilent_scpi.AgilentSCPI):
       data = ena.get_traces(['S11', 'S12', 'S22'])
       print zip(data.x_axis, data.traces['S11'])
     """
-    assert len(parameters) > 0
+    assert parameters
     assert len(parameters) <= 4
 
     commands = [':CALC:PAR:COUN %d' % len(parameters)]

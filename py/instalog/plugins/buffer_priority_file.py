@@ -240,7 +240,7 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
         priority_events = self.PrioritizeEvents(events)
         # Step 3: Write the new events to the file.
         for pri_level in xrange(_PRIORITY_LEVEL):
-          if len(priority_events[pri_level]) == 0:
+          if not priority_events[pri_level]:
             continue
           self.buffer_file[pri_level][file_num].ProduceEvents(
               priority_events[pri_level], self.process_pool)

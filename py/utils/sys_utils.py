@@ -233,7 +233,7 @@ def GetI2CBus(device_names):
   blankline = re.compile(r'\n\n', flags=re.MULTILINE)
   blocks = blankline.split(file_utils.ReadFile('/proc/bus/input/devices'))
   matched_blocks = [b for b in blocks if any(d in b for d in device_names)]
-  if len(matched_blocks) == 0:
+  if not matched_blocks:
     logging.error('GetI2CBus(%r): Device is not found', device_names)
     return None
   elif len(matched_blocks) > 1:
