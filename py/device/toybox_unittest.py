@@ -59,10 +59,10 @@ class ToyboxTest(unittest.TestCase):
                                              'bs=1', 'count=1'])
 
   def testDf(self):
-    output = textwrap.dedent('''
+    output = textwrap.dedent("""
       Filesystem      1K-blocks       Used  Available Use% Mounted on
       udev             32924692         12   32924680   1% /dev
-      '''[1:])
+      """[1:])
     self.dut.CheckOutput = mock.MagicMock(return_value=output)
     self.assertEquals(self.dut.toybox.df('')[0].kblocks, 32924692)
     self.dut.CheckOutput.assert_called_with(['toybox', 'df'])
@@ -73,12 +73,12 @@ class ToyboxTest(unittest.TestCase):
     self.dut.CheckOutput.assert_called_with(['toybox', 'dirname', '/abc/def'])
 
   def testFree(self):
-    output = textwrap.dedent('''
+    output = textwrap.dedent("""
                 total        used        free      shared     buffers
       Mem:      67450236928 62023270400  5426966528           0  2090393600
       -/+ buffers/cache:    59932876800  7517360128
       Swap:     68618809344  2034167808 66584641536
-      '''[1:])
+      """[1:])
     self.dut.CheckOutput = mock.MagicMock(return_value=output)
     self.assertEquals(self.dut.toybox.free().mem_min_used, 59932876800)
     self.dut.CheckOutput.assert_called_with(['toybox', 'free', '-b'])
@@ -113,9 +113,9 @@ class ToyboxTest(unittest.TestCase):
     self.dut.CheckOutput.assert_called_with(['toybox', 'logname'])
 
   def testMount(self):
-    output = textwrap.dedent('''
+    output = textwrap.dedent("""
       rootfs on / type rootfs (rw)
-      '''[1:])
+      """[1:])
     self.dut.CheckOutput = mock.MagicMock(return_value=output)
     results = self.dut.toybox.mount()[0]
     self.assertEquals(results.device, 'rootfs')
@@ -173,17 +173,17 @@ class ToyboxTest(unittest.TestCase):
     self.dut.CheckCall.assert_called_with(['toybox', 'unlink', '/abc'])
 
   def testUptime(self):
-    output = textwrap.dedent('''
+    output = textwrap.dedent("""
       07:02:03 up 45 days,  4:56,  2 users,  load average: 1.26, 1.37, 1.20
-      '''[1:])
+      """[1:])
     self.dut.CheckOutput = mock.MagicMock(return_value=output)
     self.assertEquals(self.dut.toybox.uptime().loadavg_1min, 1.26)
     self.dut.CheckOutput.assert_called_with(['toybox', 'uptime'])
 
   def testWc(self):
-    output = textwrap.dedent('''
+    output = textwrap.dedent("""
       74  309 2193 link.py
-      '''[1:])
+      """[1:])
     self.dut.CheckOutput = mock.MagicMock(return_value=output)
     results = self.dut.toybox.wc('link.py')[0]
     self.assertEquals(results.lines, 74)

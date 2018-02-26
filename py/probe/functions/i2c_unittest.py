@@ -45,7 +45,7 @@ class I2CFunctionTest(unittest.TestCase):
         'bus_path': '/FAKE_PATH',
         'addr': '0x0b'}
     with mock.patch('subprocess.check_output') as mock_output:
-      mock_output.return_value = textwrap.dedent('''\
+      mock_output.return_value = textwrap.dedent("""\
            0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
       00:                                  --
       10:
@@ -55,13 +55,13 @@ class I2CFunctionTest(unittest.TestCase):
       50:
       60:
       70:
-      ''')
+      """)
       func = i2c.I2CFunction(bus_number='1', addr='0xb')
       result = func()
       self.assertEquals(result, [])
 
     with mock.patch('subprocess.check_output') as mock_output:
-      mock_output.return_value = textwrap.dedent('''\
+      mock_output.return_value = textwrap.dedent("""\
            0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
       00:                                  UU
       10:
@@ -71,13 +71,13 @@ class I2CFunctionTest(unittest.TestCase):
       50:
       60:
       70:
-      ''')
+      """)
       func = i2c.I2CFunction(bus_number='1', addr='0xb')
       result = func()
       self.assertEquals(result, [expected])
 
     with mock.patch('subprocess.check_output') as mock_output:
-      mock_output.return_value = textwrap.dedent('''\
+      mock_output.return_value = textwrap.dedent("""\
            0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
       00:                                  0b
       10:
@@ -87,7 +87,7 @@ class I2CFunctionTest(unittest.TestCase):
       50:
       60:
       70:
-      ''')
+      """)
       func = i2c.I2CFunction(bus_number='1', addr='0xb')
       result = func()
       self.assertEquals(result, [expected])

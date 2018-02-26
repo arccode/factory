@@ -17,7 +17,7 @@ import mox
 import factory_common  # pylint: disable=unused-import
 from cros.factory.tools import diff_image
 
-EXPECTED_OUTPUT = '''
+EXPECTED_OUTPUT = """
 *** autotest/different
 *** Files differ; unified diff follows
 --- $TMPDIR/1/dev_image/autotest/different\t$TIME
@@ -36,7 +36,7 @@ EXPECTED_OUTPUT = '''
 *** Only in image1
 
 Found 4 differences
-'''
+"""
 
 
 class DiffImageTest(unittest.TestCase):

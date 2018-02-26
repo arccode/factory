@@ -22,11 +22,11 @@ from cros.factory.device import types
 class EmbeddedControllerTest(unittest.TestCase):
   """Unittest for EmbeddedController."""
 
-  _EC_VERSION_OUTPUT = textwrap.dedent('''
+  _EC_VERSION_OUTPUT = textwrap.dedent("""
       RO version:    samus_v1.7.576-9648e39
       RW version:    samus_v1.7.688-22cf733
       Firmware copy: RW
-      Build info:    samus_v1.7.688-22cf733 2015-07-16 11:31:57 @build291-m2''')
+      Build info:    samus_v1.7.688-22cf733 2015-07-16 11:31:57 @build291-m2""")
 
   def setUp(self):
     self.mox = mox.Mox()
