@@ -8,7 +8,13 @@ Description
 -----------
 Uses probe module to probe the components, and verifies the component count of
 each category. The default rule is the count should be equal to 1. If the
-required count is not 1, we can set the rule in `overridden_rules` argument.
+required count is not 1, we can set the expected count either in ``device_data``
+or in the argument `overridden_rules` in the test list.
+
+If the component counts of some of the categories are not always same around
+each SKUs, we can record the SKU's specific rules in
+``py/config/model_sku.json`` and let the test ``model_sku`` be run before
+this test.
 
 The format of the config file::
 
@@ -34,6 +40,18 @@ This is an automatic test that doesn't need any user interaction.
    steps.
 4. If `show_ui` is ``True``, show the result and wait for OP to press the space
    key to continue.  Otherwise show the result only if the test is failed.
+
+When this test is verifying if the number of probed components of each category
+fits the requirement, the following conditions will be executed:
+
+1. If `overridden_rules` specifies a rule to verify the number of the
+   probed components of that category, use that rule.
+2. If `overridden_rules` doesn't specifies a rule for that category and
+   ``device_data.component.has_<category_name>`` exists, take
+   ``int(device_data.component.has_<category_name>)`` as the expected number
+   of probed components.
+3. If none of above conditions fit the case, the test will expect only one
+   component of that category to be probed.
 
 Dependency
 ----------
@@ -90,6 +108,39 @@ The `overridden_rules` argument above means that there should be two camera
 components. So in the above example, the test would pass only if the probe
 module successfully probed `camera_0`, `camera_1`, `foo_sotrage`, and one of
 `foo_audio` or `bar_audio`.
+
+Following example shows how to use ``device_data`` to specific the required
+number of probed camera.  The test list should contain::
+
+  {
+    "pytest_name": "model_sku",
+    "args": {
+      "config_name": "my_model_sku"
+    }
+  },
+  {
+    "pytest": "probe"
+    "args": {
+      "config_file": "probe.json"
+    }
+  }
+
+And ``my_model_sku.json`` should contain::
+
+  {
+    "sku": {
+      "34": {
+        "component.has_camera": False
+      },
+      "35": {
+        "component.has_camera": 2
+      }
+    }
+  }
+
+In this example, we expect the probe module to find no any camera component on
+a SKU 34 device. And expect the probe module to find two camera components
+on a SKU 35 device.
 """
 
 import collections
@@ -99,6 +150,7 @@ import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import device_data
 from cros.factory.test import session
 from cros.factory.test.i18n import _
 from cros.factory.test import test_ui
@@ -134,7 +186,7 @@ class ProbeTest(test_ui.TestCaseWithUI):
           default=None),
       Arg('overridden_rules', list,
           'List of [category, cmp_function, value].',
-          default=None),
+          default=[]),
       Arg('show_ui', bool,
           'Always show the result and prompt if set to True. Always not show '
           'the result and prompt if set to False. Otherwise, only show the '
@@ -161,10 +213,14 @@ class ProbeTest(test_ui.TestCaseWithUI):
     probed_results = json.loads(self.factory_tools.CheckOutput(cmd))
 
     # Generate the rules of each category.
-    rule_map = collections.defaultdict(lambda: ('==', 1))
-    if self.args.overridden_rules is not None:
-      for category, op_str, value in self.args.overridden_rules:
-        rule_map[category] = (op_str, value)
+    rule_map = {}
+    for category in probed_results:
+      expected_count = device_data.GetDeviceData(
+          device_data.JoinKeys(device_data.KEY_COMPONENT, 'has_' + category))
+      rule_map[category] = (
+          '==', int(expected_count) if expected_count is not None else 1)
+    for category, op_str, value in self.args.overridden_rules:
+      rule_map[category] = (op_str, value)
 
     table_html = ui_templates.Table(rows=len(probed_results) + 1, cols=4)
     title = ['Category', 'Probed Components', 'Rule', 'Status']

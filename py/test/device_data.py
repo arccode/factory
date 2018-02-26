@@ -27,7 +27,8 @@ Device Data can be considered as a mapping or dictionary, with following keys:
 - ``component``: A dictionary to indicate what peripherals should exist, for
   example:
 
-  - ``has_touchscreen``: A touch screen should be available.
+  - ``has_touchscreen=True``: A touch screen should be available.
+  - ``has_dram=2``: Two DRAM components should be available.
 
 - ``vpd``: A dict for what VPD values need to be set, including:
 
