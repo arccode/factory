@@ -108,7 +108,7 @@ class PingTest(test_ui.TestCaseWithUI):
       self.FailTask(
           'Failed to meet ping success percentage: %.2f%% (expected: %d%%).' % (
               success_percentage, self.args.ping_success_percent))
-    logging.info(title + '%.2f%% packets received.', success_percentage)
+    logging.info('%s%.2f%% packets received.', title, success_percentage)
 
   def runTest(self):
     """Tests the network connection by pinging a host for a period of time.

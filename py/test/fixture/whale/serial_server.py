@@ -155,7 +155,7 @@ class SerialServer(object):
             'No serial device with driver %r detected' % serial_driver)
       serial_params['port'] = serial_path
 
-    logging.info('Connect to ' + serial_params['port'])
+    logging.info('Connect to %s', serial_params['port'])
     try:
       conn = serial_utils.SerialDevice(log=self._verbose)
       conn.Connect(**serial_params)
