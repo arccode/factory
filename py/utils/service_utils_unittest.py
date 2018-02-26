@@ -78,7 +78,7 @@ class ServiceManagerTest(unittest.TestCase):
 
     self.mox.ReplayAll()
 
-    for status in commands.keys():
+    for status in commands:
       self.assertEqual(service_utils.SetServiceStatus('service', status),
                        status)
 
@@ -100,7 +100,7 @@ class ServiceManagerTest(unittest.TestCase):
 
     self.mox.ReplayAll()
 
-    for status in commands.keys():
+    for status in commands:
       self.assertEqual(
           service_utils.SetServiceStatus('service', status, self.dut), status)
 

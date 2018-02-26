@@ -286,7 +286,7 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
   def ListConsumers(self):
     """See BufferPlugin.ListConsumers."""
     consumers_dict = {}
-    for name in self.consumers.keys():
+    for name in self.consumers:
       consumers_dict[name] = (0, 0)
     for pri_level in xrange(_PRIORITY_LEVEL):
       for file_num in xrange(_LEVEL_FILE):

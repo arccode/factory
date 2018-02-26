@@ -81,7 +81,7 @@ class InputSocket(plugin_base.InputPlugin):
     """Main accept loop which waits for incoming connections."""
     while not self.IsStopping():
       # Purge any finished threads.
-      for thread in self._threads.keys():
+      for thread in self._threads:
         if not thread.is_alive():
           del self._threads[thread]
 
