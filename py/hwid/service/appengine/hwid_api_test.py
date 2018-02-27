@@ -36,30 +36,30 @@ class HwidApiTest(unittest.TestCase):
   def testAuthCheck(self, mock_get_current_user):
     mock_get_current_user.return_value.email.return_value = (
         'apiserving@google.com')
-    self.api._AuthCheck()
+    hwid_api._AuthCheck()
 
   @mock.patch.object(
       users, 'get_current_user', return_value=mock.MagicMock(autospec=True))
   def testAuthCheckProd(self, mock_get_current_user):
     mock_get_current_user.return_value.email.return_value = (
         'apiserving@prod.google.com')
-    self.api._AuthCheck()
+    hwid_api._AuthCheck()
 
   @mock.patch.object(
       users, 'get_current_user', return_value=mock.MagicMock(autospec=True))
   @mock.patch.object(
       CONFIG, 'skip_auth_check', return_value=False)
-  def testAuthCheckNotAuth(self, unused_mock_auth_check, mock_get_current_user):
+  def testAuthCheckNotAuth(self, unused_mock_AuthCheck, mock_get_current_user):
     mock_get_current_user.return_value.email.return_value = 'noone@example.com'
-    self.assertRaises(endpoints.UnauthorizedException, self.api._AuthCheck)
+    self.assertRaises(endpoints.UnauthorizedException, hwid_api._AuthCheck)
 
   @mock.patch.object(
       users, 'get_current_user', return_value=mock.MagicMock(autospec=True))
   @mock.patch.object(
       CONFIG, 'skip_auth_check', return_value=False)
-  def testAuthCheckUnknown(self, unused_mock_auth_check, mock_get_current_user):
+  def testAuthCheckUnknown(self, unused_mock_AuthCheck, mock_get_current_user):
     mock_get_current_user.return_value = None
-    self.assertRaises(endpoints.UnauthorizedException, self.api._AuthCheck)
+    self.assertRaises(endpoints.UnauthorizedException, hwid_api._AuthCheck)
 
   def testGetBoards(self):
     request = hwid_api_messages.BoardsRequest()

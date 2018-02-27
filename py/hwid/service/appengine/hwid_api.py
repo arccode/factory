@@ -7,6 +7,7 @@
 This file is also the place that all the binding is done for various components.
 """
 
+import functools
 import logging
 import re
 import urllib
@@ -28,6 +29,66 @@ from cros.factory.hwid.service.appengine import hwid_validator
 from cros.factory.hwid.service.appengine import memcache_adaptor
 
 
+APIARY_USER_LIST = ['apiserving@google.com', 'apiserving@prod.google.com']
+KNOWN_BAD_HWIDS = ['DUMMY_HWID', 'dummy_hwid']
+KNOWN_BAD_SUBSTR = [
+    '.*TEST.*', '.*CHEETS.*', '^SAMS .*', '.* DEV$', '.*DOGFOOD.*'
+]
+
+
+def _AuthCheck():
+  """Ensures that the user is able to access the API.
+
+  This is should be called to ensure that our app can only be accessed via
+  www.googleapis.com/..., and not chromeoshwid.googleplex.com/_ah/api/...
+  The latter does not enforce any frontend quota and will therefore allow
+  unregistered users (even external ones!) to access the app. We need to stop
+  them.
+
+  In app.yaml we have disabled the /_ah/api endpoint using a hack. If this
+  hack ever stops working in the future, this code is the second line of
+  defense. Note that discovery information would be exposed in that case, this
+  method only covers access to the API methods.
+
+  Full discussion: https://goo.gl/PgEhUz
+  """
+
+  # Be extra paranoid and only allow skip auth if skip_auth_check is set to
+  # True (as opposed to truthy).
+  if CONFIG.skip_auth_check == True:
+    logging.info('Skipping auth check (this should only happen in dev mode).')
+    return
+
+  # Users that access our API via www.googleapis.com will show up here as
+  # 'apiserving@google.com', so this is what we use to distinguish legitimate
+  # and not legitimate access.
+  current_user = users.get_current_user()
+  logging.debug('Current user: %r', current_user)
+  if ((current_user is None) or
+      (current_user.email() not in APIARY_USER_LIST)):
+    raise endpoints.UnauthorizedException('Not authorized')
+
+
+def HWIDAPI(*args, **kwargs):
+  """ Decorator for HWID APIs"""
+  def _outer(method):
+    @endpoints.method(*args, **kwargs)
+    @functools.wraps(method)
+    def _inner(*inner_args, **inner_kwargs):
+      def _log_request():
+        _request_arg_index = 1
+        request = inner_kwargs.get('request', inner_args[_request_arg_index])
+        logging.info(request)
+
+      _log_request()
+      _AuthCheck()
+      response = method(*inner_args, **inner_kwargs)
+      logging.info(response)
+      return response
+    return _inner
+  return _outer
+
+
 @endpoints.api(
     name='chromeoshwid',
     version='v1',
@@ -38,15 +99,9 @@ class HwidApi(remote.Service):
   """Class that has all the exposed HWID API methods.
 
   IMPORTANT NOTE: Every method in this class that is exposed as part of the API
-  should call self._auth_check() before doing anything else to ensure that the
-  API user is in fact allowed to access the API (also see comment below).
+  should do _AuthCheck() before doing anything else to ensure that the
+  API user is in fact allowed to access the API.
   """
-
-  APIARY_USER_LIST = ['apiserving@google.com', 'apiserving@prod.google.com']
-  KNOWN_BAD_HWIDS = ['DUMMY_HWID', 'dummy_hwid']
-  KNOWN_BAD_SUBSTR = [
-      '.*TEST.*', '.*CHEETS.*', '^SAMS .*', '.* DEV$', '.*DOGFOOD.*'
-  ]
 
   def __init__(self):
     self._hwid_manager = CONFIG.hwid_manager
@@ -55,47 +110,15 @@ class HwidApi(remote.Service):
     self._goldeneye_memcache_adaptor = memcache_adaptor.MemcacheAdaptor(
         namespace=goldeneye_ingestion.MEMCACHE_NAMESPACE)
 
-  def _AuthCheck(self):
-    """Ensures that the user is able to access the API.
-
-    This is should be called to ensure that our app can only be accessed via
-    www.googleapis.com/..., and not chromeoshwid.googleplex.com/_ah/api/...
-    The latter does not enforce any frontend quota and will therefore allow
-    unregistered users (even external ones!) to access the app. We need to stop
-    them.
-
-    In app.yaml we have disabled the /_ah/api endpoint using a hack. If this
-    hack ever stops working in the future, this code is the second line of
-    defense. Note that discovery information would be exposed in that case, this
-    method only covers access to the API methods.
-
-    Full discussion: https://goo.gl/PgEhUz
-    """
-
-    # Be extra paranoid and only allow skip auth if skip_auth_check is set to
-    # True (as opposed to truthy).
-    if CONFIG.skip_auth_check == True:
-      logging.info('Skipping auth check (this should only happen in dev mode).')
-      return
-
-    # Users that access our API via www.googleapis.com will show up here as
-    # 'apiserving@google.com', so this is what we use to distinguish legitimate
-    # and not legitimate access.
-    current_user = users.get_current_user()
-    logging.debug('Current user: %r', current_user)
-    if ((current_user is None) or
-        (current_user.email() not in HwidApi.APIARY_USER_LIST)):
-      raise endpoints.UnauthorizedException('Not authorized')
-
   def _FastFailKnownBadHwid(self, hwid):
-    if hwid in HwidApi.KNOWN_BAD_HWIDS:
+    if hwid in KNOWN_BAD_HWIDS:
       return 'No metadata present for the requested board: %s' % hwid
 
-    for regexp in HwidApi.KNOWN_BAD_SUBSTR:
+    for regexp in KNOWN_BAD_SUBSTR:
       if re.search(regexp, hwid):
         return 'No metadata present for the requested board: %s' % hwid
 
-  @endpoints.method(
+  @HWIDAPI(
       hwid_api_messages.BoardsRequest,
       hwid_api_messages.BoardsResponse,
       path='boards',
@@ -103,7 +126,6 @@ class HwidApi(remote.Service):
       name='boards')
   def GetBoards(self, request):
     """Return all of the supported boards."""
-    self._AuthCheck()
 
     versions = set(request.versions)
     boards = self._hwid_manager.GetBoards(versions)
@@ -131,7 +153,7 @@ class HwidApi(remote.Service):
   GET_BOM_REQUEST = endpoints.ResourceContainer(
       message_types.VoidMessage, hwid=messages.StringField(1, required=True))
 
-  @endpoints.method(
+  @HWIDAPI(
       GET_BOM_REQUEST,
       hwid_api_messages.BomResponse,
       path='bom/{hwid}',
@@ -139,7 +161,6 @@ class HwidApi(remote.Service):
       name='bom')
   def GetBom(self, request):
     """Return the components of the BOM identified by the HWID."""
-    self._AuthCheck()
 
     error = self._FastFailKnownBadHwid(request.hwid)
     if error:
@@ -170,7 +191,7 @@ class HwidApi(remote.Service):
   GET_SKU_REQUEST = endpoints.ResourceContainer(
       message_types.VoidMessage, hwid=messages.StringField(1, required=True))
 
-  @endpoints.method(
+  @HWIDAPI(
       GET_SKU_REQUEST,
       hwid_api_messages.SKUResponse,
       path='sku/{hwid}',
@@ -178,7 +199,6 @@ class HwidApi(remote.Service):
       name='sku')
   def GetSKU(self, request):
     """Return the components of the SKU identified by the HWID."""
-    self._AuthCheck()
     error = self._FastFailKnownBadHwid(request.hwid)
     if error:
       return hwid_api_messages.SKUResponse(error=error)
@@ -215,7 +235,7 @@ class HwidApi(remote.Service):
       withComponents=messages.StringField(4, repeated=True),
       withoutComponents=messages.StringField(5, repeated=True))
 
-  @endpoints.method(
+  @HWIDAPI(
       GET_HWIDS_REQUEST,
       hwid_api_messages.HwidsResponse,
       path='hwids/{board}',
@@ -223,7 +243,6 @@ class HwidApi(remote.Service):
       name='hwids')
   def GetHwids(self, request):
     """Return a filtered list of HWIDs for the given board."""
-    self._AuthCheck()
 
     board = urllib.unquote(request.board)
 
@@ -261,7 +280,7 @@ class HwidApi(remote.Service):
   GET_COMPONENT_CLASSES_REQUEST = endpoints.ResourceContainer(
       message_types.VoidMessage, board=messages.StringField(1, required=True))
 
-  @endpoints.method(
+  @HWIDAPI(
       GET_COMPONENT_CLASSES_REQUEST,
       hwid_api_messages.ComponentClassesResponse,
       path='classes/{board}',
@@ -269,7 +288,6 @@ class HwidApi(remote.Service):
       name='classes')
   def GetComponentClasses(self, request):
     """Return a list of all component classes for the given board."""
-    self._AuthCheck()
 
     try:
       board = urllib.unquote(request.board)
@@ -293,7 +311,7 @@ class HwidApi(remote.Service):
       board=messages.StringField(1, required=True),
       withClasses=messages.StringField(2, repeated=True))
 
-  @endpoints.method(
+  @HWIDAPI(
       GET_COMPONENTS_REQUEST,
       hwid_api_messages.ComponentsResponse,
       path='components/{board}',
@@ -301,7 +319,6 @@ class HwidApi(remote.Service):
       name='components')
   def GetComponents(self, request):
     """Return a filtered list of components for the given board."""
-    self._AuthCheck()
 
     try:
       board = urllib.unquote(request.board)
@@ -321,7 +338,7 @@ class HwidApi(remote.Service):
 
     return hwid_api_messages.ComponentsResponse(components=components_list)
 
-  @endpoints.method(
+  @HWIDAPI(
       hwid_api_messages.ValidateConfigRequest,
       hwid_api_messages.ValidateConfigResponse,
       path='validateConfig',
@@ -337,7 +354,6 @@ class HwidApi(remote.Service):
       A ValidateConfigAndUpdateResponse containing an error message if an error
       occurred.
     """
-    self._AuthCheck()
 
     try:
       self._hwid_validator.Validate(request.hwidConfigContents)
@@ -347,7 +363,7 @@ class HwidApi(remote.Service):
 
     return hwid_api_messages.ValidateConfigResponse()
 
-  @endpoints.method(
+  @HWIDAPI(
       hwid_api_messages.ValidateConfigAndUpdateChecksumRequest,
       hwid_api_messages.ValidateConfigAndUpdateChecksumResponse,
       path='validateConfigAndUpdateChecksum',
@@ -363,7 +379,6 @@ class HwidApi(remote.Service):
       A ValidateConfigAndUpdateChecksumResponse containing either the updated
       config or an error message.
     """
-    self._AuthCheck()
 
     updated_contents = self._hwid_updater.UpdateChecksum(
         request.hwidConfigContents)
@@ -382,7 +397,7 @@ class HwidApi(remote.Service):
   GET_DUTLABEL_REQUEST = endpoints.ResourceContainer(
       message_types.VoidMessage, hwid=messages.StringField(1, required=True))
 
-  @endpoints.method(
+  @HWIDAPI(
       GET_DUTLABEL_REQUEST,
       hwid_api_messages.DUTLabelResponse,
       path='dutlabel/{hwid}',
@@ -390,7 +405,6 @@ class HwidApi(remote.Service):
       name='dutlabel')
   def GetDUTLabels(self, request):
     """Return the components of the SKU identified by the HWID."""
-    self._AuthCheck()
 
     labels = []
     # If you add any labels to the list of returned labels, also add to
