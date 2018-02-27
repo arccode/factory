@@ -32,5 +32,6 @@ echo "done."
 deactivate
 
 echo "Finished!"
-echo "You can run Instalog by '${VIRTUAL_ENV_DIR}/bin/python2.7" \
-     "instalog [--config /path/to/instalog.yaml] start'"
+echo "You can go to the directory '$(dirname ${INSTALOG_DIR})' and"
+echo "run Instalog by 'source instalog/virtual_env/bin/activate &&" \
+     "python instalog [--config /path/to/instalog.yaml] start && deactivate'"

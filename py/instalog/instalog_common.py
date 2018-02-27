@@ -11,18 +11,16 @@ import sys
 # file in the root level of Instalog code.  To set up the proper Python path
 # (sys.path), we need to get the source name (the compiled binary *.pyc is
 # usually not a symlink) and derive the path to the root folder.  Then, we
-# insert both (1) the parent directory, and (2) the third-party packages
-# directory into Python path if they are not yet available.  For platforms
-# without symlink (i.e., Windows), we need to derive the top level by
-# environment variable.
+# insert the parent directory into Python path if they are not yet available.
+# For platforms without symlink (i.e., Windows), we need to derive the
+# top level by environment variable.
 
 INSTALOG_DIR = os.path.dirname(
     os.path.realpath(__file__.replace('.pyc', '.py')))
 INSTALOG_PARENT_DIR = os.path.realpath(os.path.join(INSTALOG_DIR, '..'))
-INSTALOG_THIRD_PARTY_DIR = os.path.realpath(
-    os.path.join(INSTALOG_DIR, 'third_party'))
+INSTALOG_VIRTUAL_ENV_DIR = (
+    os.environ.get('VIRTUAL_ENV') or
+    os.path.realpath(os.path.join(INSTALOG_DIR, 'virtual_env')))
 
 if INSTALOG_PARENT_DIR not in sys.path:
   sys.path.insert(0, INSTALOG_PARENT_DIR)
-if INSTALOG_THIRD_PARTY_DIR not in sys.path:
-  sys.path.insert(0, INSTALOG_THIRD_PARTY_DIR)
