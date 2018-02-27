@@ -20,7 +20,15 @@ import time
 import traceback
 
 
-PIPE = subprocess.PIPE
+try:
+  PIPE = subprocess.PIPE
+  Popen = subprocess.Popen
+except Exception:
+  # Hack for HWID Service on AppEngine. The subprocess module on AppEngine
+  # doesn't contain these attributes. HWID Service will not use all of these
+  # attributes. This makes AppEngine won't complain we are using process_utils.
+  PIPE = None
+  Popen = object
 
 
 # File descriptor for /dev/null.
@@ -124,7 +132,7 @@ def LogAndCheckOutput(*args, **kwargs):
   return CheckOutput(*args, **kwargs)
 
 
-class _ExtendedPopen(subprocess.Popen):
+class _ExtendedPopen(Popen):
   """Popen subclass supported a few extra methods.
 
   Attributes:
