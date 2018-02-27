@@ -40,7 +40,6 @@ from cros.factory.utils.argparse_utils import ParseCmdline
 from cros.factory.utils.argparse_utils import verbosity_cmd_arg
 from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils import file_utils
-from cros.factory.utils import json_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils import sys_utils
 from cros.factory.utils import time_utils
@@ -133,9 +132,8 @@ _hwid_status_list_cmd_arg = CmdArg(
     help='allow only HWIDs with these status values')
 
 _probe_results_cmd_arg = CmdArg(
-    '--probe_results', metavar='RESULTS.yaml',
-    help=('Output from "gooftool probe" (used instead of '
-          'probing this system).'))
+    '--probe_results', metavar='RESULTS.json',
+    help=('Output from "hwid probe" (used instead of probing this system).'))
 
 _device_info_cmd_arg = CmdArg(
     '--device_info', metavar='DEVICE_INFO.yaml', default=None,
@@ -220,19 +218,6 @@ _skip_list_cmd_arg = CmdArg(
     help='A list of skipped checks, separated by whitespace. '
          'Each item should be a sub-command of gooftool. '
          'e.g. "gooftool verify --skip_list verify_tpm clear_gbb_flags".')
-
-
-@Command('probe',
-         CmdArg('--comps', nargs='*',
-                help='List of keys from the component_db registry.'),
-         CmdArg('--no_vol', action='store_true',
-                help='Do not probe volatile data.'))
-def RunProbe(options):
-  """Print json-formatted breakdown of probed device properties."""
-  logging.warning('This sub-command is going to be deprecated by `probe` '
-                  'command-line tool, please see `probe --help` for detail.')
-  probed_result = GetGooftool(options).Probe(options.comps, not options.no_vol)
-  print json_utils.DumpStr(probed_result, pretty=True)
 
 
 @Command(

@@ -16,7 +16,7 @@ When ``generate`` is ``True``, this test will do the following:
 1. If ``enable_factory_server`` is ``True``, it downloads latest HWID database
    from Google Factory Server.
 2. Probe components on the device, which is equivalent to executing
-   ``gooftool probe`` in shell.
+   ``hwid probe`` in shell.
 3. Get device data from ``device_data`` module.
 4. Generate HWID by command ``hwid generate --probed-results-file
    <probed-results> --device-info-file <device-info>
@@ -84,7 +84,7 @@ from cros.factory.utils import file_utils
 OVERRIDE_PROJECT_PATH = os.path.join(
     hwid_utils.GetDefaultDataPath(), 'OVERRIDE_PROJECT')
 # OVERRIDE_PROBED_RESULTS should be generated with:
-#    `gooftool probe`
+#    `hwid probe`
 # to include all the VPD in it.
 OVERRIDE_PROBED_RESULTS_PATH = os.path.join(
     hwid_utils.GetDefaultDataPath(), 'OVERRIDE_PROBED_RESULTS')

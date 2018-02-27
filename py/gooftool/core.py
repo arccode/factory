@@ -22,7 +22,6 @@ from cros.factory.gooftool import wipe
 from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import hwid_utils
-from cros.factory.probe import probe_utils
 from cros.factory.test.l10n import regions
 from cros.factory.test.rules import phase
 from cros.factory.test.rules.privacy import FilterDict
@@ -431,25 +430,6 @@ class Gooftool(object):
     wipe.WipeInit(wipe_args, shopfloor_url, state_dev,
                   release_rootfs, root_disk, old_root, station_ip, station_port,
                   wipe_finish_token)
-
-  def Probe(self, target_comp_classes=None, probe_volatile=True):
-    """Returns probed results for device components and hash in yaml format.
-
-    This method is a wrapper for `cros.factory.probe.probe_utils.Probe`
-    function.
-
-    Args:
-      target_comp_classes: Which component classes to probe for.  A None value
-          implies all classes.
-      probe_volatile: On False, do not probe for volatile data.
-    """
-    try:
-      probe_statement = probe_utils.GenerateProbeStatement(
-          include_generic=True, include_volatile=probe_volatile)
-      return probe_utils.Probe(probe_statement, comps=target_comp_classes)
-
-    except Exception as e:
-      raise Error('Failed to execute the probe tool: %r.' % e)
 
   def WriteHWID(self, hwid=None):
     """Writes specified HWID value into the system BB.
