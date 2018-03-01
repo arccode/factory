@@ -1102,12 +1102,18 @@ cros.factory.Goofy = class {
    * Starts the UI.
    */
   async init() {
-    this.initUIComponents();
-    await this.initLocaleSelector();
-    const testList = await this.sendRpc('GetTestList');
-    await this.setTestList(testList);
-    this.initWebSocket();
-    document.getElementById('goofy-div-wait').style.display = 'none';
+    try {
+      this.initUIComponents();
+      await this.initLocaleSelector();
+      const testList = await this.sendRpc('GetTestList');
+      await this.setTestList(testList);
+      this.initWebSocket();
+    } finally {
+      // Hide the "Loading..." screen even if there's error when initialize
+      // previous items, so the exception is shown on screen and easier to
+      // know what went wrong.
+      document.getElementById('goofy-div-wait').style.display = 'none';
+    }
 
     await Promise.all([
       (async () => {
