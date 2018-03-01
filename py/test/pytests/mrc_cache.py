@@ -61,6 +61,8 @@ class MrcCacheTest(unittest.TestCase):
   def Create(self):
     # check RECOVERY_MRC_CACHE exists
     self.dut.CheckCall('flashrom -p host -r /dev/null -i RECOVERY_MRC_CACHE')
+    # erase old RECOVERY_MRC_CACHE
+    self.dut.CheckCall('flashrom -p host -E -i RECOVERY_MRC_CACHE')
     # request to retrain memory
     self.dut.CheckCall('crossystem recovery_request=0xC4')
 
