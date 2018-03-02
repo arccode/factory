@@ -53,8 +53,8 @@ class TestCpuUsageMonitor(unittest.TestCase):
   def testTopParsing(self):
     # pylint: disable=protected-access
     self.monitor._GetLoadString().AndReturn(MOCK_LOAD)
-    process_utils.CheckOutput(['top', '-b', '-c', '-n', '1']).AndReturn(
-        MOCK_TOP_OUTPUT)
+    process_utils.CheckOutput(['top', '-b', '-c', '-n', '1', '-w',
+                               '512']).AndReturn(MOCK_TOP_OUTPUT)
     logging.info(EXPECTED_OUTPUT)
 
     self.mox.ReplayAll()

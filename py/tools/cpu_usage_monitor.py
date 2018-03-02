@@ -43,7 +43,7 @@ class CPUUsageMonitor(object):
       # can support getting remote system load.
       # Get column legend from 'top' and throw away summary header and legend
       top_output = process_utils.CheckOutput(
-          ['top', '-b', '-c', '-n', '1']).split('\n')
+          ['top', '-b', '-c', '-n', '1', '-w', '512']).split('\n')
       column_ids = top_output[self.HEADER_LINES].split()
       pid_column = column_ids.index('PID')
       cpu_column = column_ids.index('%CPU')
