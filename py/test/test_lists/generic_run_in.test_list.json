@@ -142,6 +142,7 @@
           "inherit": "StressAppTest",
           "args": {
             "seconds": "eval! constants.run_in.sat_duration_secs",
+            "wait_secs": 10,
             "free_memory_only": true
           }
         },
