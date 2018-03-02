@@ -18,6 +18,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Util
 from cros.factory.gooftool import crosfw
+from cros.factory.gooftool import vpd_data
 from cros.factory.gooftool import wipe
 from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.hwid.v3.database import Database
@@ -328,30 +329,63 @@ class Gooftool(object):
     logging.info('Management Engine is locked.')
 
   def VerifyVPD(self):
-    """Verify that mandatory VPD values are set properly."""
-    def _VerifyVPDFields(vpd_data, mandatory_fields, deprecated_fields):
-      missing_keys = [key for key in mandatory_fields if key not in vpd_data]
-      if missing_keys:
-        raise Error('Missing mandatory VPD values: %s' % ','.join(missing_keys))
-      bad_keys = [key for key in deprecated_fields if key in vpd_data]
-      if bad_keys:
-        raise Error('Deprecated VPD values found: %s' % ','.join(bad_keys))
+    """Verify that VPD values are set properly."""
 
+    def MatchWhole(key, pattern, value, raise_exception=True):
+      if re.match(r'^' + pattern + r'$', value):
+        return key
+      if raise_exception:
+        raise ValueError('Incorrect VPD: %s=%s (expected format: %s)' %
+                         (key, value, pattern))
+      else:
+        return None
+
+    def CheckVPDFields(section, data, required, optional, optional_re):
+      """Checks if all fields in data fall into given format.
+
+      Args:
+        section: a string for VPD section name, 'RO' or 'RW.
+        data: a mapping of (key, value) for VPD data.
+        required: a mapping of (key, format_RE) for required data.
+        optional: a mapping of (key, format_RE) for optional data.
+        optional_re: a mapping of (key_re, format_RE) for optional data.
+
+      Returns:
+        A list of verified keys.
+
+      Raises:
+        ValueError if some value does not match format_RE.
+        KeyError if some unexpected VPD key name is found.
+      """
+      checked = []
+      known = required.copy()
+      known.update(optional)
+      for k, v in data.iteritems():
+        if k in known:
+          checked.append(MatchWhole(k, known[k], v))
+        else:
+          # Try if matches optional_re
+          for rk, rv in optional_re.iteritems():
+            if MatchWhole(k, rk, k, raise_exception=False):
+              checked.append(MatchWhole(k, rv, v))
+              break
+          else:
+            raise KeyError('Unexpected %s VPD: %s=%s.' % (section, k, v))
+
+      missing_keys = set(required).difference(checked)
+      if missing_keys:
+        raise Error('Missing required %s VPD values: %s' %
+                    (section, ','.join(missing_keys)))
+
+    # Check required data
     ro_vpd = self._vpd.GetAllData(partition=self._vpd.RO_PARTITION)
     rw_vpd = self._vpd.GetAllData(partition=self._vpd.RW_PARTITION)
-
-    _VerifyVPDFields(
-        ro_vpd,
-        mandatory_fields=['serial_number', 'region'],
-        deprecated_fields=[
-            # Region fields (deprecated by single 'region').
-            'initial_locale', 'initial_timezone', 'keyboard_layout',
-            # Platform and branding fields (deprecated by mosys command).
-            'customization_id', 'rlz_brand_code', 'model'])
-
-    _VerifyVPDFields(
-        rw_vpd, mandatory_fields=['ubind_attribute', 'gbind_attribute'],
-        deprecated_fields=[])
+    CheckVPDFields(
+        'RO', ro_vpd, vpd_data.REQUIRED_RO_DATA, vpd_data.KNOWN_RO_DATA,
+        vpd_data.KNOWN_RO_DATA_RE)
+    CheckVPDFields(
+        'RW', rw_vpd, vpd_data.REQUIRED_RW_DATA, vpd_data.RUNTIME_RW_DATA,
+        vpd_data.RUNTIME_RW_DATA_RE)
 
     # Check known value contents.
     region = ro_vpd['region']

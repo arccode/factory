@@ -407,7 +407,7 @@ class GooftoolTest(unittest.TestCase):
     self._SetupVPDMocks(ro=ro_vpd_value, rw=self._SIMPLE_VALID_RW_VPD_DATA)
     self.mox.ReplayAll()
     # Should fail, since region is missing.
-    self.assertRaisesRegexp(Error, 'Missing mandatory VPD values: region',
+    self.assertRaisesRegexp(Error, 'Missing required RO VPD values: region',
                             self._gooftool.VerifyVPD)
 
   def testVerifyVPD_InvalidRegion(self):
@@ -426,14 +426,14 @@ class GooftoolTest(unittest.TestCase):
     self.assertRaisesRegexp(
         ValueError, 'gbind_attribute is invalid:', self._gooftool.VerifyVPD)
 
-  def testVerifyVPD_DeprecatedValues(self):
+  def testVerifyVPD_UnexpectedValues(self):
     ro_vpd_value = self._SIMPLE_VALID_RO_VPD_DATA.copy()
     ro_vpd_value['initial_locale'] = 'en-US'
     self._SetupVPDMocks(ro=ro_vpd_value, rw=self._SIMPLE_VALID_RW_VPD_DATA)
     self.mox.ReplayAll()
-    self.assertRaisesRegexp(Error,
-                            'Deprecated VPD values found: initial_locale',
-                            self._gooftool.VerifyVPD)
+    self.assertRaisesRegexp(
+        KeyError, 'Unexpected RO VPD: initial_locale=en-US',
+        self._gooftool.VerifyVPD)
 
   def testVerifyReleaseChannel_CanaryChannel(self):
     self._gooftool._util.GetReleaseImageChannel().AndReturn('canary-channel')
