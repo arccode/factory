@@ -54,7 +54,6 @@ class HwidApi(remote.Service):
     self._hwid_updater = hwid_updater.HwidUpdater()
     self._goldeneye_memcache_adaptor = memcache_adaptor.MemcacheAdaptor(
         namespace=goldeneye_ingestion.MEMCACHE_NAMESPACE)
-    logging.getLogger().setLevel(logging.INFO)
 
   def _AuthCheck(self):
     """Ensures that the user is able to access the API.

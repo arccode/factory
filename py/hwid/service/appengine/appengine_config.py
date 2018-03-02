@@ -18,6 +18,10 @@ def _SetEnviron():
   logging.debug('os.environ=%s', str(os.environ))
 
 
+# Filtering logs from the AppEngine dashbaord is very easy. Logs everything
+# here.
+logging.getLogger().setLevel(logging.DEBUG)
+
 try:
   vendor.add('lib')
 except ValueError:
