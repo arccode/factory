@@ -115,7 +115,7 @@ HOST_CROS_SRC_DIR="$(dirname "${HOST_CROS_PLATFORM_DIR}")"
 HOST_HWIDSERVICE_DIR="${HOST_FACTORY_DIR}/py/hwid/service"
 HOST_HWIDSERVICE_CONFIG_DIR="${HOST_HWIDSERVICE_DIR}/config"
 HOST_HWIDSERVICE_DOCKER_DIR="${HOST_HWIDSERVICE_DIR}/docker_env"
-HOST_HWIDSERVICE_APPENGINE_DIR="${HOST_HWIDSERVICE_DIR}/appengine"
+HOST_HWIDSERVICE_APPENGINE_DIR="${HOST_HWIDSERVICE_DIR}/appengine2"
 
 # Available project names: google.com:croshwid, google.com:croshwid-dev,
 # google.com:croshwid-staging

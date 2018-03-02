@@ -19,7 +19,7 @@ from user to HWID Service.
   sudo apt-get install google-cloud-sdk-app-engine-python
   ```
 
-2. Compose `config.py` in the appengine folder, assume local HWID Service is
+2. Compose `config.py` in the appengine2 folder, assume local HWID Service is
    listening to http://127.0.0.1:8181/
 
   ```python
