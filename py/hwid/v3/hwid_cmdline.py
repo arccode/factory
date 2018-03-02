@@ -265,7 +265,7 @@ def DecodeHWIDWrapper(options):
 
 @Command(
     'verify',
-    CmdArg('hwid', default=None,
+    CmdArg('hwid', nargs='?', default=None,
            help='the HWID to verify.\n(required if not running on a DUT)'),
     CmdArg('--allow-mismatched-components', action='store_true',
            help='Allows some probed components to be ignored if no any '
