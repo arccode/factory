@@ -19,7 +19,7 @@ from protorpc import messages
 from protorpc import remote
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.hwid.service.appengine import config
+from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import goldeneye_ingestion
 from cros.factory.hwid.service.appengine import hwid_api_messages
 from cros.factory.hwid.service.appengine import hwid_updater
@@ -49,7 +49,7 @@ class HwidApi(remote.Service):
   ]
 
   def __init__(self):
-    self._hwid_manager = config.hwid_manager
+    self._hwid_manager = CONFIG.hwid_manager
     self._hwid_validator = hwid_validator.HwidValidator()
     self._hwid_updater = hwid_updater.HwidUpdater()
     self._goldeneye_memcache_adaptor = memcache_adaptor.MemcacheAdaptor(
@@ -75,7 +75,7 @@ class HwidApi(remote.Service):
 
     # Be extra paranoid and only allow skip auth if skip_auth_check is set to
     # True (as opposed to truthy).
-    if config.config.get('skip_auth_check', False) == True:
+    if CONFIG.skip_auth_check == True:
       logging.info('Skipping auth check (this should only happen in dev mode).')
       return
 

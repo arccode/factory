@@ -13,7 +13,7 @@ import webapp2
 import yaml
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.hwid.service.appengine import config
+from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import filesystem_adapter
 
 
@@ -21,7 +21,7 @@ class DevUploadHandler(webapp2.RequestHandler):
 
   def __init__(self, request, response):  # pylint: disable=super-on-old-class
     super(DevUploadHandler, self).__init__(request, response)
-    self._hwid_filesystem = config.hwid_filesystem
+    self._hwid_filesystem = CONFIG.hwid_filesystem
 
   def post(self):
     """Uploads a file to the cloud storage of the server."""
@@ -61,8 +61,8 @@ class RefreshHandler(webapp2.RequestHandler):
 
   def __init__(self, request, response):  # pylint: disable=super-on-old-class
     super(RefreshHandler, self).__init__(request, response)
-    self.hwid_filesystem = config.hwid_filesystem
-    self.hwid_manager = config.hwid_manager
+    self.hwid_filesystem = CONFIG.hwid_filesystem
+    self.hwid_manager = CONFIG.hwid_manager
 
   # Cron jobs are always GET requests, we are not acutally doing the work
   # here just queuing a task to be run in the background.

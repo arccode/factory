@@ -12,7 +12,7 @@ import webapp2  # pylint: disable=import-error
 import webtest  # pylint: disable=import-error
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.hwid.service.appengine import config
+from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import filesystem_adapter
 from cros.factory.hwid.service.appengine import ingestion
 
@@ -30,8 +30,8 @@ class IngestionTest(unittest.TestCase):
                                     ingestion.RefreshHandler)])
     self.testapp = webtest.TestApp(app)
 
-    config.hwid_manager = mock.Mock()
-    config.hwid_filesystem = mock.Mock()
+    CONFIG.hwid_manager = mock.Mock()
+    CONFIG.hwid_filesystem = mock.Mock()
 
   def testRefresh(self):
     def MockReadFile(*args):
@@ -40,12 +40,12 @@ class IngestionTest(unittest.TestCase):
       else:
         return 'Test Data'
 
-    config.hwid_filesystem.ReadFile = mock.Mock(side_effect=MockReadFile)
+    CONFIG.hwid_filesystem.ReadFile = mock.Mock(side_effect=MockReadFile)
 
     response = self.testapp.post('/ingestion/refresh')
 
     self.assertEqual(response.status_int, 200)
-    config.hwid_manager.UpdateBoards.assert_has_calls([
+    CONFIG.hwid_manager.UpdateBoards.assert_has_calls([
         mock.call({
             'COOLCBOARD': {
                 'path': 'COOLCBOARD',
@@ -76,20 +76,20 @@ class IngestionTest(unittest.TestCase):
     ])
 
   def testRefreshWithoutBoardsInfo(self):
-    config.hwid_filesystem.ReadFile = mock.Mock(
+    CONFIG.hwid_filesystem.ReadFile = mock.Mock(
         side_effect=filesystem_adapter.FileSystemAdaptorException)
 
     with self.assertRaises(webtest.app.AppError):
       self.testapp.post('/ingestion/refresh')
 
   def testUpload(self):
-    config.hwid_filesystem.ListFiles.return_value = ['foo']
+    CONFIG.hwid_filesystem.ListFiles.return_value = ['foo']
 
     response = self.testapp.post('/ingestion/upload', {'path': 'foo'},
                                  upload_files=[('data', 'bar', 'bar')])
 
     self.assertEqual(response.status_int, 200)
-    config.hwid_filesystem.WriteFile.assert_called_with('foo', 'bar')
+    CONFIG.hwid_filesystem.WriteFile.assert_called_with('foo', 'bar')
 
   def testUploadInvalid(self):
     with self.assertRaises(webtest.app.AppError):

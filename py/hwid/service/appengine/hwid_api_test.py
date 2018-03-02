@@ -13,7 +13,7 @@ from google.appengine.api import users
 import mock
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.hwid.service.appengine import config
+from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import hwid_api
 from cros.factory.hwid.service.appengine import hwid_api_messages
 from cros.factory.hwid.service.appengine import hwid_manager
@@ -28,43 +28,43 @@ TEST_HWID = 'Foo'
 class HwidApiTest(unittest.TestCase):
 
   def setUp(self):
-    config.hwid_manager = mock.Mock()
+    CONFIG.hwid_manager = mock.Mock()
     self.api = hwid_api.HwidApi()
 
   @mock.patch.object(
       users, 'get_current_user', return_value=mock.MagicMock(autospec=True))
-  @mock.patch.object(config, 'config', return_value={'env': 'prod'})
-  def testAuthCheck(self, unused_mock_config_get, mock_get_current_user):
+  def testAuthCheck(self, mock_get_current_user):
     mock_get_current_user.return_value.email.return_value = (
         'apiserving@google.com')
     self.api._AuthCheck()
 
   @mock.patch.object(
       users, 'get_current_user', return_value=mock.MagicMock(autospec=True))
-  @mock.patch.object(config, 'config', return_value={'env': 'prod'})
-  def testAuthCheckProd(self, unused_mock_config_get, mock_get_current_user):
+  def testAuthCheckProd(self, mock_get_current_user):
     mock_get_current_user.return_value.email.return_value = (
         'apiserving@prod.google.com')
     self.api._AuthCheck()
 
   @mock.patch.object(
       users, 'get_current_user', return_value=mock.MagicMock(autospec=True))
-  @mock.patch.object(config, 'config', return_value={'env': 'prod'})
-  def testAuthCheckNotAuth(self, unused_mock_config_get, mock_get_current_user):
+  @mock.patch.object(
+      CONFIG, 'skip_auth_check', return_value=False)
+  def testAuthCheckNotAuth(self, unused_mock_auth_check, mock_get_current_user):
     mock_get_current_user.return_value.email.return_value = 'noone@example.com'
     self.assertRaises(endpoints.UnauthorizedException, self.api._AuthCheck)
 
   @mock.patch.object(
       users, 'get_current_user', return_value=mock.MagicMock(autospec=True))
-  @mock.patch.object(config, 'config', return_value={'env': 'prod'})
-  def testAuthCheckUnknown(self, unused_mock_config_get, mock_get_current_user):
+  @mock.patch.object(
+      CONFIG, 'skip_auth_check', return_value=False)
+  def testAuthCheckUnknown(self, unused_mock_auth_check, mock_get_current_user):
     mock_get_current_user.return_value = None
     self.assertRaises(endpoints.UnauthorizedException, self.api._AuthCheck)
 
   def testGetBoards(self):
     request = hwid_api_messages.BoardsRequest()
     boards = {'ALPHA', 'BRAVO', 'CHARLIE'}
-    config.hwid_manager.GetBoards.return_value = boards
+    CONFIG.hwid_manager.GetBoards.return_value = boards
 
     response = self.api.GetBoards(request)
 
@@ -73,7 +73,7 @@ class HwidApiTest(unittest.TestCase):
   def testGetBoardsEmpty(self):
     request = hwid_api_messages.BoardsRequest()
     boards = set()
-    config.hwid_manager.GetBoards.return_value = boards
+    CONFIG.hwid_manager.GetBoards.return_value = boards
 
     response = self.api.GetBoards(request)
 
@@ -82,16 +82,16 @@ class HwidApiTest(unittest.TestCase):
   def testGetBomNone(self):
     request = hwid_api.HwidApi.GET_BOM_REQUEST.combined_message_class(
         hwid=TEST_HWID)
-    config.hwid_manager.GetBom = mock.Mock(return_value=None)
+    CONFIG.hwid_manager.GetBom = mock.Mock(return_value=None)
 
     self.assertRaises(endpoints.NotFoundException, self.api.GetBom, request)
 
-    config.hwid_manager.GetBom.assert_called_with(TEST_HWID)
+    CONFIG.hwid_manager.GetBom.assert_called_with(TEST_HWID)
 
   def testGetBomValueError(self):
     request = hwid_api.HwidApi.GET_BOM_REQUEST.combined_message_class(
         hwid=TEST_HWID)
-    config.hwid_manager.GetBom = mock.Mock(side_effect=ValueError('foo'))
+    CONFIG.hwid_manager.GetBom = mock.Mock(side_effect=ValueError('foo'))
     response = self.api.GetBom(request)
     self.assertEqual('foo', response.error)
     self.assertEqual([], response.components)
@@ -101,7 +101,7 @@ class HwidApiTest(unittest.TestCase):
   def testGetBomKeyError(self):
     request = hwid_api.HwidApi.GET_BOM_REQUEST.combined_message_class(
         hwid=TEST_HWID)
-    config.hwid_manager.GetBom = mock.Mock(side_effect=KeyError('foo'))
+    CONFIG.hwid_manager.GetBom = mock.Mock(side_effect=KeyError('foo'))
     response = self.api.GetBom(request)
     self.assertEqual('\'foo\'', response.error)
     self.assertEqual([], response.components)
@@ -112,7 +112,7 @@ class HwidApiTest(unittest.TestCase):
     request = hwid_api.HwidApi.GET_BOM_REQUEST.combined_message_class(
         hwid=TEST_HWID)
     bom = hwid_manager.Bom()
-    config.hwid_manager.GetBom.return_value = bom
+    CONFIG.hwid_manager.GetBom.return_value = bom
 
     response = self.api.GetBom(request)
 
@@ -124,7 +124,7 @@ class HwidApiTest(unittest.TestCase):
         hwid=TEST_HWID)
     bom = hwid_manager.Bom()
     bom.AddAllComponents({'foo': 'bar', 'baz': ['qux', 'rox']})
-    config.hwid_manager.GetBom.return_value = bom
+    CONFIG.hwid_manager.GetBom.return_value = bom
 
     response = self.api.GetBom(request)
 
@@ -139,7 +139,7 @@ class HwidApiTest(unittest.TestCase):
         hwid=TEST_HWID)
     bom = hwid_manager.Bom()
     bom.AddAllLabels({'foo': {'bar': None}, 'baz': {'qux': '1', 'rox': '2'}})
-    config.hwid_manager.GetBom.return_value = bom
+    CONFIG.hwid_manager.GetBom.return_value = bom
 
     response = self.api.GetBom(request)
 
@@ -159,7 +159,7 @@ class HwidApiTest(unittest.TestCase):
     request = hwid_api.HwidApi.GET_HWIDS_REQUEST.combined_message_class(
         board=TEST_HWID)
     hwids = ['alfa', 'bravo', 'charlie']
-    config.hwid_manager.GetHwids.return_value = hwids
+    CONFIG.hwid_manager.GetHwids.return_value = hwids
 
     response = self.api.GetHwids(request)
 
@@ -172,7 +172,7 @@ class HwidApiTest(unittest.TestCase):
     request = hwid_api.HwidApi.GET_HWIDS_REQUEST.combined_message_class(
         board=TEST_HWID)
     hwids = list()
-    config.hwid_manager.GetHwids.return_value = hwids
+    CONFIG.hwid_manager.GetHwids.return_value = hwids
 
     response = self.api.GetHwids(request)
 
@@ -181,10 +181,10 @@ class HwidApiTest(unittest.TestCase):
   def testGetHwidsErrors(self):
     request = hwid_api.HwidApi.GET_HWIDS_REQUEST.combined_message_class(
         board=TEST_HWID)
-    config.hwid_manager.GetHwids = mock.Mock(side_effect=ValueError('foo'))
+    CONFIG.hwid_manager.GetHwids = mock.Mock(side_effect=ValueError('foo'))
     self.assertRaises(endpoints.BadRequestException, self.api.GetHwids, request)
 
-    config.hwid_manager.GetHwids.return_value = []
+    CONFIG.hwid_manager.GetHwids.return_value = []
 
     request = hwid_api.HwidApi.GET_HWIDS_REQUEST.combined_message_class(
         board=TEST_HWID,
@@ -204,7 +204,7 @@ class HwidApiTest(unittest.TestCase):
         hwid_api.HwidApi.GET_COMPONENT_CLASSES_REQUEST.combined_message_class(
             board=TEST_HWID))
     classes = ['alfa', 'bravo', 'charlie']
-    config.hwid_manager.GetComponentClasses.return_value = classes
+    CONFIG.hwid_manager.GetComponentClasses.return_value = classes
 
     response = self.api.GetComponentClasses(request)
 
@@ -218,7 +218,7 @@ class HwidApiTest(unittest.TestCase):
         hwid_api.HwidApi.GET_COMPONENT_CLASSES_REQUEST.combined_message_class(
             board=TEST_HWID))
     classes = list()
-    config.hwid_manager.GetComponentClasses.return_value = classes
+    CONFIG.hwid_manager.GetComponentClasses.return_value = classes
 
     response = self.api.GetComponentClasses(request)
 
@@ -228,7 +228,7 @@ class HwidApiTest(unittest.TestCase):
     request = (
         hwid_api.HwidApi.GET_COMPONENT_CLASSES_REQUEST.combined_message_class(
             board=TEST_HWID))
-    config.hwid_manager.GetComponentClasses = (
+    CONFIG.hwid_manager.GetComponentClasses = (
         mock.Mock(side_effect=ValueError('foo')))
     self.assertRaises(endpoints.BadRequestException,
                       self.api.GetComponentClasses, request)
@@ -243,7 +243,7 @@ class HwidApiTest(unittest.TestCase):
     charlie = hwid_api_messages.Component(componentClass='tres', name='charlie')
     three = hwid_api_messages.Component(componentClass='tres', name='delta')
 
-    config.hwid_manager.GetComponents.return_value = components
+    CONFIG.hwid_manager.GetComponents.return_value = components
 
     response = self.api.GetComponents(request)
 
@@ -257,7 +257,7 @@ class HwidApiTest(unittest.TestCase):
     request = hwid_api.HwidApi.GET_COMPONENTS_REQUEST.combined_message_class(
         board=TEST_HWID)
     components = dict()
-    config.hwid_manager.GetComponents.return_value = components
+    CONFIG.hwid_manager.GetComponents.return_value = components
 
     response = self.api.GetComponents(request)
 
@@ -266,7 +266,7 @@ class HwidApiTest(unittest.TestCase):
   def testGetComponentsErrors(self):
     request = hwid_api.HwidApi.GET_COMPONENTS_REQUEST.combined_message_class(
         board=TEST_HWID)
-    config.hwid_manager.GetComponents = mock.Mock(side_effect=ValueError('foo'))
+    CONFIG.hwid_manager.GetComponents = mock.Mock(side_effect=ValueError('foo'))
     self.assertRaises(endpoints.BadRequestException, self.api.GetComponents,
                       request)
 
@@ -320,7 +320,7 @@ class HwidApiTest(unittest.TestCase):
     bom = hwid_manager.Bom()
     bom.AddAllComponents({'cpu': ['bar1', 'bar2'], 'dram': ['foo']})
     bom.board = 'foo'
-    config.hwid_manager.GetBom.return_value = bom
+    CONFIG.hwid_manager.GetBom.return_value = bom
 
     response = self.api.GetSKU(request)
 
@@ -337,7 +337,7 @@ class HwidApiTest(unittest.TestCase):
         hwid=TEST_HWID)
     bom = hwid_manager.Bom()
     bom.AddAllComponents({'cpu': 'bar', 'dram': ['fail']})
-    config.hwid_manager.GetBom.return_value = bom
+    CONFIG.hwid_manager.GetBom.return_value = bom
     response = self.api.GetSKU(request)
     self.assertEqual('X', response.error)
     self.assertIsNone(response.board)
@@ -355,7 +355,7 @@ class HwidApiTest(unittest.TestCase):
     bom.AddAllComponents({'dram': ['some_memory_chip', 'other_memory_chip']})
     bom.board = 'foo'
 
-    config.hwid_manager.GetBom.return_value = bom
+    CONFIG.hwid_manager.GetBom.return_value = bom
 
     response = self.api.GetSKU(request)
 
@@ -375,7 +375,7 @@ class HwidApiTest(unittest.TestCase):
     bom.AddAllComponents({'touchscreen': ['testscreen']})
     bom.board = 'foo'
     bom.phase = 'bar'
-    config.hwid_manager.GetBom.return_value = bom
+    CONFIG.hwid_manager.GetBom.return_value = bom
     request = hwid_api.HwidApi.GET_DUTLABEL_REQUEST.combined_message_class(
         hwid=TEST_HWID)
 
@@ -387,7 +387,7 @@ class HwidApiTest(unittest.TestCase):
         'total_bytes': None
     }
 
-    config.hwid_manager.GetBom.return_value = bom
+    CONFIG.hwid_manager.GetBom.return_value = bom
 
     response = self.api.GetDUTLabels(request)
 

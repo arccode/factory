@@ -12,7 +12,7 @@ from google.appengine.api import taskqueue
 import webapp2  # pylint: disable=import-error
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.hwid.service.appengine import config
+from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import filesystem_adapter
 from cros.factory.hwid.service.appengine import memcache_adaptor
 
@@ -49,7 +49,7 @@ def IngestAllDevicesJson():
   """Retrieve the file, parse and save the board to HWID regexp mapping."""
 
   memcache = memcache_adaptor.MemcacheAdaptor(namespace='SourceGoldenEye')
-  all_devices_json = config.ge_filesystem.ReadFile('/all_devices.json')
+  all_devices_json = CONFIG.goldeneye_filesystem.ReadFile('/all_devices.json')
   parsed_json = json.loads(all_devices_json)
 
   regexp_to_device = []

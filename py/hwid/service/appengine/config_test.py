@@ -14,29 +14,31 @@ from cros.factory.hwid.service.appengine import hwid_manager
 
 class ConfigTest(unittest.TestCase):
   """Test for AppEngine config file."""
+  # pylint: disable=protected-access
 
   def testConfigSwitchingDev(self):
     # Have to patch os.enviorn before importing config module
     os.environ['APPLICATION_ID'] = 'unknown app id'
     from cros.factory.hwid.service.appengine import config
-    self.assertEqual('dev', config.GetConfig()['env'])
+    self.assertEqual('dev', config._Config().env)
 
   def testConfigSwitchingProd(self):
     # Have to patch os.enviorn before importing config module
     os.environ['APPLICATION_ID'] = 's~google.com:chromeoshwid'
     from cros.factory.hwid.service.appengine import config
-    self.assertEqual('prod', config.GetConfig()['env'])
+    self.assertEqual('prod', config._Config().env)
 
   def testFileSystemType(self):
     from cros.factory.hwid.service.appengine import config
     self.assertTrue(
-        issubclass(config.hwid_filesystem.__class__,
+        issubclass(config.CONFIG.hwid_filesystem.__class__,
                    filesystem_adapter.FileSystemAdapter))
 
   def testHwidManagerType(self):
     from cros.factory.hwid.service.appengine import config
     self.assertTrue(
-        issubclass(config.hwid_manager.__class__, hwid_manager.HwidManager))
+        issubclass(config.CONFIG.hwid_manager.__class__,
+                   hwid_manager.HwidManager))
 
 
 if __name__ == '__main__':
