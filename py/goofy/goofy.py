@@ -263,14 +263,12 @@ class Goofy(object):
     logging.info('Done destroying Goofy')
     self.status = Status.TERMINATED
 
-  def start_goofy_server(self):
-    logging.info('Starting goofy server')
+  def init_goofy_server(self):
     self.goofy_server = goofy_server.GoofyServer(
         (goofy_proxy.DEFAULT_GOOFY_BIND, goofy_proxy.DEFAULT_GOOFY_PORT))
     self.goofy_server_thread = threading.Thread(
         target=self.goofy_server.serve_forever,
         name='GoofyServer')
-    self.goofy_server_thread.start()
 
   def init_static_files(self):
     static_path = os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR, 'goofy/static')
@@ -1201,10 +1199,16 @@ class Goofy(object):
     if self.options.restart:
       state.clear_state()
 
-    self.start_goofy_server()
-    # The i18n files need to be ready before index.html is loaded.
+    self.init_goofy_server()
+    # Both the i18n file and index.html should be registered to Goofy before we
+    # start the Goofy server, to avoid race condition that Goofy would return
+    # 404 not found before index.html is registered.
     self.init_i18n()
     self.init_static_files()
+
+    logging.info('Starting goofy server')
+    self.goofy_server_thread.start()
+
     self.init_state_instance()
     self.last_shutdown_time = (
         self.state_instance.get_shared_data('shutdown_time', optional=True))
