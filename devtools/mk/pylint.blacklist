@@ -2,4 +2,8 @@ py/instalog/plugins/input_drm_screencap/drm.py
 py/test/utils/media_utils_unittest.py
 py/proto/%_pb2.py
 py/umpire/server/e2e_test/testdata/umpire/toolkits/device/%
+# This is to avoid weird warning from pylint, since py.test is alias module to
+# pytest in chroot, so pylint tries to import that module when checking this
+# file...
+py/test/__init__.py
 doc/conf.py

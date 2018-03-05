@@ -94,7 +94,7 @@ WEBGL_AQUARIUM_URI ?= \
   gs://chromeos-localmirror/distfiles/webgl-aquarium-20130524.tar.bz2
 WEBGL_AQUARIUM_DIR ?= $(BUILD_DIR)/dist/webgl_aquarium_static
 
-LINT_BLACKLIST=$(shell cat $(MK_DIR)/pylint.blacklist)
+LINT_BLACKLIST=$(shell cat $(MK_DIR)/pylint.blacklist | grep -v '^\#')
 LINT_FILES=$(shell find py go po -name '*.py' -type f | sort)
 LINT_WHITELIST=$(filter-out $(LINT_BLACKLIST),$(LINT_FILES))
 
