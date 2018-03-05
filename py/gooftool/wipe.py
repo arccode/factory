@@ -27,8 +27,8 @@ from cros.factory.utils import sync_utils
 from cros.factory.utils import sys_utils
 
 
-"""Directory of scripts for device cut-off"""
 CUTOFF_SCRIPT_DIR = '/usr/local/factory/sh/cutoff'
+"""Directory of scripts for device cut-off"""
 
 WIPE_IN_TMPFS_LOG = 'wipe_in_tmpfs.log'
 

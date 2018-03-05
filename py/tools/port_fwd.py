@@ -214,7 +214,7 @@ class SSHPortForwarder(object):
       # use the key.
       try:
         identity_mode = os.stat(self._identity_file).st_mode
-        if identity_mode & 077 or not (identity_mode & 0400):
+        if identity_mode & 077 or not identity_mode & 0400:
           logging.error('%s: Please set file permissions 0600 on %s',
                         self, self._identity_file)
           self._state = self.FAILED

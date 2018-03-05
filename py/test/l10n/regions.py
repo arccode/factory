@@ -115,22 +115,21 @@ class Region(object):
             'keyboard_mechanical_layout']
   """Names of fields that define the region."""
 
-  """Constructor.
-
-  Args:
-    region_code: See :py:attr:`region_code`.
-    keyboards: See :py:attr:`keyboards`.  A single string is accepted for
-      backward compatibility.
-    time_zone: See :py:attr:`time_zone`.
-    language_codes: See :py:attr:`language_codes`.  A single string is accepted
-      for backward compatibility.
-    keyboard_mechanical_layout: See :py:attr:`keyboard_mechanical_layout`.
-    description: See :py:attr:`description`.
-    notes: See :py:attr:`notes`.
-  """
-
   def __init__(self, region_code, keyboards, time_zone, language_codes,
                keyboard_mechanical_layout, description=None, notes=None):
+    """Constructor.
+
+    Args:
+      region_code: See :py:attr:`region_code`.
+      keyboards: See :py:attr:`keyboards`.  A single string is accepted for
+        backward compatibility.
+      time_zone: See :py:attr:`time_zone`.
+      language_codes: See :py:attr:`language_codes`.  A single string is
+        accepted for backward compatibility.
+      keyboard_mechanical_layout: See :py:attr:`keyboard_mechanical_layout`.
+      description: See :py:attr:`description`.
+      notes: See :py:attr:`notes`.
+    """
     # Quick check: should be 'gb', not 'uk'
     if region_code == 'uk':
       raise RegionException("'uk' is not a valid region code (use 'gb')")

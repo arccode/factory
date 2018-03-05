@@ -5,14 +5,14 @@
 import os
 
 
-"""Filename of the generated test script."""
 SCRIPT_FILE_NAME = 'test.sh'
+"""Filename of the generated test script."""
 
-"""Name of the subdirectory in factory directories to store our resource."""
 DIRNAME = 'shell_offline_test'
+"""Name of the subdirectory in factory directories to store our resource."""
 
-"""Path to resource of shell offline test."""
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
+"""Path to resource of shell offline test."""
 
 OFFLINE_JOB_NAME = 'offline-test'
 

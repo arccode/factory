@@ -4,7 +4,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""This script generates a PNG file according to the specified text message and attributes.
+"""This script generates a PNG file according to the specified text message and
+attributes.
 
 The attributes are saved as a text chunk in the PNG file. If we are
 overwriting an existing PNG file and the attributes are the same as that used
@@ -17,8 +18,8 @@ import os
 import sys
 
 import cairo
-import pango
-import pangocairo
+import pango  # pylint: disable=import-error
+import pangocairo  # pylint: disable=import-error
 from PIL import Image
 from PIL import PngImagePlugin
 import yaml

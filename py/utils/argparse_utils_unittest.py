@@ -52,11 +52,12 @@ class HackedArgparseTest(unittest.TestCase):
                        'arg': 'abc',
                        'foo': None},
                       Parse('--defarg=123 --arg=abc do_this'))
-    self.assertEquals({'command_name': 'do_this',
-                       'defarg': '234',
-                       'arg': 'xyz',
-                       'foo': None},
-                      Parse('--defarg=123 --arg=abc do_this --defarg=234 --arg=xyz'))
+    self.assertEquals({
+        'command_name': 'do_this',
+        'defarg': '234',
+        'arg': 'xyz',
+        'foo': None
+    }, Parse('--defarg=123 --arg=abc do_this --defarg=234 --arg=xyz'))
     self.assertEquals({'command_name': 'do_this',
                        'defarg': '234',
                        'arg': 'xyz',

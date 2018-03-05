@@ -2,10 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import contextlib
-import threading
-
-
 """LocalEnv (local environment data) is key value pairs saved in each thread.
 
 For each thread, ``LocalEnv()`` returns a dictionary bound to current thread.
@@ -44,6 +40,12 @@ don't want to add arguments for all utility functions, so instead we can use
     with SetLocalEnv(interface=CreateStationInterface()):
       SomeUtilityFunction()  # will perform on station interface
 """
+
+
+import contextlib
+import threading
+
+
 _local_env = threading.local()
 
 

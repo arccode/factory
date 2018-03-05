@@ -4,6 +4,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""Installs symlinks to factory binaries, based on symlinks.yaml.
+
+See misc/symlinks.yaml for more information on installation modes, and
+a list of symlinks that are installed.
+"""
+
 import argparse
 import logging
 import os
@@ -17,13 +23,6 @@ from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.schema import Dict
 from cros.factory.utils.schema import FixedDict
 from cros.factory.utils.schema import Scalar
-
-
-"""Installs symlinks to factory binaries, based on symlinks.yaml.
-
-See misc/symlinks.yaml for more information on installation modes, and
-a list of symlinks that are installed.
-"""
 
 
 # Schema for symlinks.yaml.

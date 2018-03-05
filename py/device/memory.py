@@ -2,13 +2,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""System module for memory."""
+
 import pipes
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
-
-
-"""System module for memory."""
 
 
 class BaseMemory(types.DeviceComponent):

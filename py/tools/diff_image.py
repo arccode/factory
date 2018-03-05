@@ -100,6 +100,7 @@ def DiffImages(mount_point_1, mount_point_2, out=sys.stdout):
         continue
 
       def PrintHeader(message):
+        # pylint: disable=cell-var-from-loop
         out.write('\n*** %s\n' % stripped_path)
         out.write('*** %s\n' % message)
         differences[0] += 1

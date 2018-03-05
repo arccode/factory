@@ -135,7 +135,7 @@ class Blinker(object):
           return
 
 
-if __name__ == '__main__':
+def main():
   """Blinks the pattern in sys.argv[1] if present, or the famous theme from
   William Tell otherwise.
   """
@@ -159,3 +159,7 @@ if __name__ == '__main__':
   with blinker:
     # Wait for newline, and then quit gracefully
     sys.stdin.readline()
+
+
+if __name__ == '__main__':
+  main()
