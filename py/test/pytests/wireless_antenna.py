@@ -328,19 +328,18 @@ class WirelessTest(test_case.TestCase):
               (mac, int(freq), float(signal), int(last_seen)))
         mac, ssid, freq, signal, last_seen = (None, None, None, None, None)
 
-    if len(parsed_tuples) == 1:
-      return parsed_tuples[0]
-    elif not parsed_tuples:
+    if not parsed_tuples:
       session.console.warning('Can not scan service %s.', service_ssid)
       return (None, None, None, None)
-    else:
-      session.console.warning('There are more than one results for ssid %s.',
+    if len(parsed_tuples) > 1:
+      session.console.warning('There are more than one result for ssid %s.',
                               service_ssid)
       for mac, freq, signal, last_seen in parsed_tuples:
         session.console.warning(
             'mac: %s, ssid: %s, freq: %d, signal %f, '
             'last_seen %d ms', mac, service_ssid, freq, signal, last_seen)
-      return (None, None, None, None)
+    # Return the one with strongest signal.
+    return max(parsed_tuples, key=lambda t: t[2])
 
   def SwitchAntenna(self, antenna):
     """Switches antenna.
