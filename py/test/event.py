@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import Queue
+import select
 import socket
 import SocketServer
 import sys
@@ -318,9 +319,6 @@ class EventClientBase(object):
           takes one argument: the received event.
     """
     self.socket = self._ConnectSocket(path)
-    # Use different socket for send and recv, so the recv timeout doesn't apply
-    # to send.
-    self.send_socket = self._ConnectSocket(path)
 
     self.callbacks = set()
     logging.debug('Initializing event client')
@@ -336,11 +334,6 @@ class EventClientBase(object):
       self.socket.shutdown(socket.SHUT_RDWR)
       self.socket.close()
       self.socket = None
-
-    if self.send_socket:
-      self.send_socket.shutdown(socket.SHUT_RDWR)
-      self.send_socket.close()
-      self.send_socket = None
 
   def is_closed(self):
     """Return whether the client is closed."""
@@ -399,7 +392,7 @@ class EventClientBase(object):
                     message[:_MAX_MESSAGE_SIZE/20] + '\n\n...SKIPED...\n\n' +
                     message[-_MAX_MESSAGE_SIZE/20:])
       raise IOError('Message too large (%d bytes)' % len(message))
-    self.send_socket.sendall(message)
+    self.socket.sendall(message)
 
   def _process_event(self, timeout=None):
     """Handles one incoming message from the socket.
@@ -412,7 +405,11 @@ class EventClientBase(object):
         keep_going: True if event processing should continue (i.e., not EOF).
         event: The message if any.
     """
-    self.socket.settimeout(timeout)
+    if timeout is not None:
+      rlist, unused_wlist, unused_xlist = select.select([self.socket], [], [],
+                                                        timeout)
+      if self.socket not in rlist:
+        raise socket.timeout
     msg_bytes = self.socket.recv(_MAX_MESSAGE_SIZE + 1)
     if len(msg_bytes) > _MAX_MESSAGE_SIZE:
       # The message may have been truncated - ignore it
