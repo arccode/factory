@@ -231,6 +231,7 @@ class Checker(object):
       if test.dargs:
         raise type_utils.TestListError(
             '%s does not accept any arguments' % test.pytest_name)
+      return
 
     for arg in args_spec:
       arg.type += (UnresolvableValue, )

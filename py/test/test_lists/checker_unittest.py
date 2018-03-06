@@ -91,6 +91,19 @@ class CheckerTest(unittest.TestCase):
 
     self.checker.CheckArgsType(test, test_list)
 
+  def testCheckArgsTypeEmptyArg(self):
+    # TODO(pihsun): This relies on the fact that keyboard_backlight test
+    # doesn't have ARGS. We should have a way to mock pytest in this test.
+    config = {'tests': [{'pytest_name': 'keyboard_backlight'}]}
+
+    test_list = manager.BuildTestListForUnittest(config)
+    test = test_list.LookupPath('KeyboardBacklight')
+
+    resolved_args = self.checker.StaticallyResolveTestArgs(test, test_list)
+    self.assertFalse(resolved_args)
+
+    self.checker.CheckArgsType(test, test_list)
+
   def testCheckArgsTypeInvalidArgs(self):
     config = {
         'constants': {
