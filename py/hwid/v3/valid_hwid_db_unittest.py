@@ -22,6 +22,7 @@ For each project that the test finds, the test checks that:
 
 
 import logging
+import multiprocessing
 import os
 import re
 import subprocess
@@ -36,6 +37,64 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 
+def _CheckProject(args):
+  """Check if HWID database of a V3 HWID is valid.
+
+  Args:
+    args: A tuple of (project_name, project_info, hwid_dir).
+
+  Returns:
+    None if the database is valid, else a tuple of (title, exc_info).
+  """
+  project_name, project_info, hwid_dir = args
+
+  if project_info['version'] != 3:
+    # Only check v3 HWID database in this test.
+    return None
+
+  # If PRESUBMIT_COMMIT is empty, defaults to checking all the HWID database
+  # in their corresponding branches.
+  commit = (os.environ.get('PRESUBMIT_COMMIT') or
+            'cros-internal/%s' % project_info['branch'])
+  db_path = project_info['path']
+  title = '%s %s:%s' % (project_name, commit, db_path)
+  logging.info('Checking %s', title)
+
+  try:
+    db_raw = process_utils.CheckOutput(
+        ['git', 'show', '%s:%s' % (commit, db_path)],
+        cwd=hwid_dir, ignore_stderr=True)
+  except subprocess.CalledProcessError as e:
+    if e.returncode == 128:
+      logging.info('Database %s is removed. Skip test for %s.',
+                   db_path, project_name)
+      return None
+    return (title, sys.exc_info())
+
+  # Load databases and verify checksum. For old factory branches that do not
+  # have database checksum, the checksum verification will be skipped.
+  try:
+    if any([re.match('^checksum: ', line) for line in db_raw.split('\n')]):
+      with file_utils.UnopenedTemporaryFile() as temp_db:
+        with open(temp_db, 'w') as f:
+          f.write(db_raw)
+        expected_checksum = Database.Checksum(temp_db)
+    else:
+      expected_checksum = None
+
+    if expected_checksum is None:
+      logging.warn(
+          'Database %s:%s does not have checksum field. Will skip checksum '
+          'verification.', commit, db_path)
+    unused_db = Database.LoadData(
+        db_raw, expected_checksum=expected_checksum)
+  except Exception:
+    logging.error('%s: Load database failed.', project_name)
+    return (title, sys.exc_info())
+
+  return None
+
+
 class ValidHWIDDBsTest(unittest.TestCase):
   """Unit test for HWID database."""
   V3_HWID_DATABASE_PATH_REGEXP = re.compile('v3/[A-Z]+$')
@@ -45,7 +104,8 @@ class ValidHWIDDBsTest(unittest.TestCase):
         os.environ['CROS_WORKON_SRCROOT'],
         'src', 'platform', 'chromeos-hwid')
     if not os.path.exists(hwid_dir):
-      print 'ValidHWIDDBsTest: ignored, no %s in source tree.' % hwid_dir
+      logging.info('ValidHWIDDBsTest: ignored, no %s in source tree.',
+                   hwid_dir)
       return
 
     # Always read projects.yaml from ToT as all projects are required to have an
@@ -53,6 +113,7 @@ class ValidHWIDDBsTest(unittest.TestCase):
     projects_info = yaml.load(process_utils.CheckOutput(
         ['git', 'show', 'remotes/cros-internal/master:projects.yaml'],
         cwd=hwid_dir))
+
     # Get the list of modified HWID databases.
     files = os.environ.get('PRESUBMIT_FILES')
     if files:
@@ -63,61 +124,20 @@ class ValidHWIDDBsTest(unittest.TestCase):
       files = [b['path'] for b in projects_info.itervalues()
                if b['version'] == 3]
 
-    exception_list = []
+    projects = []
     for f in files:
       project_name = os.path.basename(f)
       if project_name not in projects_info:
         if self.V3_HWID_DATABASE_PATH_REGEXP.search(f):
           self.fail(msg='HWID database %r is not listed in projects.yaml' % f)
         continue
+      projects.append(project_name)
 
-      project_info = projects_info[project_name]
-
-      if project_info['version'] != 3:
-        # Only check v3 HWID database in this test.
-        continue
-
-      # If PRESUBMIT_COMMIT is empty, defaults to checking all the HWID database
-      # in their corresponding branches.
-      commit = (os.environ.get('PRESUBMIT_COMMIT') or
-                'cros-internal/%s' % projects_info[project_name]['branch'])
-      db_path = project_info['path']
-      title = '%s %s:%s' % (project_name, commit, db_path)
-      logging.info('Checking %s', title)
-
-      try:
-        db_raw = process_utils.CheckOutput(
-            ['git', 'show', '%s:%s' % (commit, db_path)],
-            cwd=hwid_dir, ignore_stderr=True)
-      except subprocess.CalledProcessError as e:
-        if e.returncode == 128:
-          logging.info('Database %s is removed. Skip test for %s.',
-                       db_path, project_name)
-          continue
-        exception_list.append((title, sys.exc_info()))
-        continue
-
-      # Load databases and verify checksum. For old factory branches that do not
-      # have database checksum, the checksum verification will be skipped.
-      try:
-        if any([re.match('^checksum: ', line) for line in db_raw.split('\n')]):
-          with file_utils.UnopenedTemporaryFile() as temp_db:
-            with open(temp_db, 'w') as f:
-              f.write(db_raw)
-            expected_checksum = Database.Checksum(temp_db)
-        else:
-          expected_checksum = None
-
-        if expected_checksum is None:
-          logging.warn(
-              'Database %s:%s does not have checksum field. Will skip checksum '
-              'verification.', commit, db_path)
-        unused_db = Database.LoadData(
-            db_raw, expected_checksum=expected_checksum)
-      except Exception:
-        logging.error('%s: Load database failed.', project_name)
-        exception_list.append((title, sys.exc_info()))
-        continue
+    pool = multiprocessing.Pool()
+    exception_list = pool.map(
+        _CheckProject, [(project_name, projects_info[project_name], hwid_dir)
+                        for project_name in projects])
+    exception_list = filter(None, exception_list)
 
     if exception_list:
       error_msg = []
