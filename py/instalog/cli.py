@@ -120,7 +120,7 @@ class InstalogCLI(object):
     elif args.cmd == 'flush':
       self.Flush(args.plugin_id, args.timeout)
     elif args.cmd == 'archive':
-      self.Archive(config['instalog']['data_dir'],
+      self.Archive(config_path, config['instalog']['data_dir'],
                    args.archive_path, args.details)
 
   def _LocateConfigFile(self, user_path):
@@ -232,7 +232,7 @@ class InstalogCLI(object):
     if not success:
       sys.exit(1)
 
-  def Archive(self, data_dir, archive_path, details):
+  def Archive(self, config_path, data_dir, archive_path, details):
     if self._service.IsRunning():
       print('Is the Instalog running? You need to stop the Instalog first')
       sys.exit(1)
@@ -253,6 +253,8 @@ class InstalogCLI(object):
       if os.path.exists(data_dir):
         print('Archiving data_dir from %s' % os.path.realpath(data_dir))
         tar.add(data_dir, 'data')
+        print('Archiving config file from %s' % os.path.realpath(config_path))
+        tar.add(config_path, 'instalog.yaml')
       if details >= 1:
         def VirtualEnvFilter(tarinfo):
           if tarinfo.name == 'instalog/virtual_env':
