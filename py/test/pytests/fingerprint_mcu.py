@@ -90,7 +90,7 @@ class FingerprintTest(unittest.TestCase):
       r'^Fingerprint sensor:\s+vendor.+model\s+(\S+)\s+version', re.MULTILINE)
   FPINFO_ERRORS_RE = re.compile(r'^Error flags:\s*(\S*)$', re.MULTILINE)
   FPCHECKPIXELS_DEAD_RE = re.compile(
-      r'^Defects:\s+dead\s+(\d+)\s+\(pattern0\s+\d+\s+pattern1\s+\d+\)$',
+      r'^Defects:\s+dead\s+(\d+)\s+\(pattern0\s+(\d+)\s+pattern1\s+(\d+)\)$',
       re.MULTILINE)
 
   def MCUCommand(self, command, *args):
@@ -142,13 +142,19 @@ class FingerprintTest(unittest.TestCase):
 
     # Acquire the checkerboard test patterns to find dead pixels
     pixels = self.MCUCommand('fpcheckpixels')
+    logging.info('ectool fpcheckpixels:\n%s\n', pixels)
     match_dead = self.FPCHECKPIXELS_DEAD_RE.search(pixels)
     self.assertIsNotNone(match_dead,
                          'Unable to retrieve Sensor dead pixel count (%s)'
                          % (pixels))
-    dead = int(match_dead.group(1)) if match_dead else 0
-    logging.info('ectool fpcheckpixels:\n%s\n', pixels)
-    if not testlog.CheckParam(name='dead_pixels', value=dead,
+    dead = int(match_dead.group(2)) if match_dead else 0
+    if not testlog.CheckParam(name='dead_pixels_cb', value=dead,
+                              max=self.args.max_dead_pixels,
+                              description='Number of dead pixels on the sensor',
+                              value_unit='pixels'):
+      raise type_utils.TestFailure('Too many dead pixels')
+    dead = int(match_dead.group(3)) if match_dead else 0
+    if not testlog.CheckParam(name='dead_pixels_icb', value=dead,
                               max=self.args.max_dead_pixels,
                               description='Number of dead pixels on the sensor',
                               value_unit='pixels'):
