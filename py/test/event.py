@@ -145,6 +145,13 @@ class Event(object):
     type = kw.pop('type')  # pylint: disable=redefined-builtin
     return Event(type=type, **kw)
 
+  def __eq__(self, other):
+    return (isinstance(other, Event) and
+            json_default_repr(self) == json_default_repr(other))
+
+  def __ne__(self, other):
+    return not self == other
+
 _unique_id_lock = threading.Lock()
 _unique_id = 1
 
