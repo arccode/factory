@@ -85,12 +85,19 @@ class Tests(object):
     def testBasic(self):
       # pylint: disable=unnecessary-lambda
       client_events = []
-      client = self.CreateClient(lambda ev: client_events.append(ev))
+      pong_got = threading.Event()
+      def _Callback(ev):
+        client_events.append(ev)
+        if ev.type == PONG:
+          pong_got.set()
+      client = self.CreateClient(_Callback)
 
       ev = event.Event(PING, msg='msg')
       pong_msg = client.request_response(ev, lambda ev: ev.type == PONG)
       self.assertEqual(PONG, pong_msg.type)
       self.assertEqual('msg', pong_msg.msg)
+
+      pong_got.wait()
       self.assertEqual(client_events, [ev, pong_msg])
 
     def testTimeout(self):
