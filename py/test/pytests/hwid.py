@@ -140,14 +140,18 @@ class HWIDV3Test(test_case.TestCase):
       probed_results = file_utils.ReadFile(OVERRIDE_PROBED_RESULTS_PATH)
       testlog.LogParam(
           name='probed_results',
-          value=probed_results,
+          value=probed_results)
+      testlog.UpdateParam(
+          name='probed_results',
           description='hwid probe result (overriden)')
     else:
       probed_results = self.factory_tools.CallOutput(['hwid', 'probe'])
       self._dut.WriteFile(probed_results_file, probed_results)
       testlog.LogParam(
           name='probed_results',
-          value=probed_results,
+          value=probed_results)
+      testlog.UpdateParam(
+          name='probed_results',
           description='hwid probe result')
 
     # check if we are overriding the project name.

@@ -299,13 +299,13 @@ class RFGraphyteTest(test_case.TestCase):
           testlog.AddFailure(code=code, details=details)
         else:
           try:
-            testlog.CheckParam(name=test_name,
-                               value=result_value,
-                               min=_ConvertToNumber(data['lower_bound']),
-                               max=_ConvertToNumber(data['upper_bound']))
+            testlog.CheckNumericParam(
+                name=test_name, value=result_value,
+                min=_ConvertToNumber(data['lower_bound']),
+                max=_ConvertToNumber(data['upper_bound']))
           except Exception as e:
             logging.exception(e)
-            logging.error('Could not run CheckParam for data=%r: %s: %s',
+            logging.error('Could not run CheckNumericParam for data=%r: %s: %s',
                           data, e.__class__.__name__, e)
 
 

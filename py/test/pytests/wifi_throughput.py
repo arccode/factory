@@ -606,10 +606,13 @@ class _ServiceTest(object):
     iperf_avg = self._log[log_key]['end']['sum_sent']
 
     # Ensure the average throughput is over its minimum.
-    testlog.CheckParam(
-        name='%s_%s_avg_bits_per_second' % (ssid, tx_rx.lower()),
+    param_name = '%s_%s_avg_bits_per_second' % (ssid, tx_rx.lower())
+    testlog.CheckNumericParam(
+        name=param_name,
         value=iperf_avg['bits_per_second'],
-        min=_MbitsToBits(min_throughput) if min_throughput else None,
+        min=_MbitsToBits(min_throughput) if min_throughput else None)
+    testlog.UpdateParam(
+        name=param_name,
         description='Average speed of %s throughput test on AP %s' % (
             tx_rx.upper(), ssid),
         value_unit='Bits/second')
@@ -972,17 +975,29 @@ class WiFiThroughput(test_case.TestCase):
         # Log throughput data via testlog.
         for tx_rx in ('tx', 'rx'):
           if 'intervals' in iperf_data['iperf_%s' % tx_rx]:
-            s = testlog.CreateSeries(
-                name='%s_%s' % (ap_config.ssid, tx_rx),
+            param_name = '%s_%s' % (ap_config.ssid, tx_rx),
+            testlog.UpdateParam(
+                name=param_name,
                 description='%s throughput test on AP %s over time' % (
                     tx_rx.upper(), ap_config.ssid),
-                key_unit='seconds',
                 value_unit='Bits/second')
+            testlog.UpdateParam(
+                name=param_name + '_start',
+                value_unit='seconds')
+            testlog.UpdateParam(
+                name=param_name + '_end',
+                value_unit='seconds')
+            group_checker = testlog.GroupParam(
+                param_name,
+                [param_name, param_name + '_start', param_name + '_end'])
             for interval in iperf_data['iperf_%s' % tx_rx]['intervals']:
-              # Actually this is over the range from ['start'] to ['end'], but
-              # we can only take one key, so we use ['end'].
-              s.LogValue(key=interval['sum']['end'],
-                         value=interval['sum']['bits_per_second'])
+              with group_checker:
+                testlog.LogParam(
+                    param_name, interval['sum']['bits_per_second'])
+                testlog.LogParam(
+                    param_name + '_start', interval['sum']['start'])
+                testlog.LogParam(
+                    param_name + '_end', interval['sum']['end'])
 
     # Log this test run via event_log.
     self._Log()

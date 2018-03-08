@@ -116,25 +116,33 @@ class SampleCustomizedTest(unittest.TestCase):
     quality = self.ComputePhotoQuality(photo_path)
     # check and log the value, note that testlog will NOT fail the test for you,
     # you have to raise an exception by yourself.
-    if not testlog.CheckParam(
+    testlog.UpdateParam(
+        name='photo_quality',
+        description='Quality of the photo')
+    if not testlog.CheckNumericParam(
         name='photo_quality',
         value=quality,
-        min=0.9, max=1.0,
-        description='Quality of the photo'):
+        min=0.9, max=1.0):
       raise type_utils.TestFailure('The camera is not qualified')
 
     # you can also measure and log a series of values
-    series_logger = testlog.CreateSeries(
+    group_checker = testlog.GroupParam(
+        'audio', ['audio_quality', 'audio_frequency'])
+    testlog.UpdateParam(
         name='audio_quality',
         description='quality of audio device on different frequency',
-        key_unit='Hz', value_unit='quality')
+        value_unit='quality')
+    testlog.UpdateParam(
+        name='audio_frequency',
+        value_unit='Hz')
 
     failed = False
     for freq in xrange(1000, 4000, 50):
       quality = self.MeasureAudioQuality(freq)
-      if not series_logger.CheckValue(
-          key=str(freq), value=quality, min=0.8, max=None):
-        failed = True
+      with group_checker:
+        if not testlog.CheckNumericParam('audio_quality', quality, min=0.8):
+          failed = True
+        testlog.LogParam('audio_frequency', freq)
     if failed:
       raise type_utils.TestFailure('The audio device is not qualified')
 

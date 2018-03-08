@@ -197,33 +197,47 @@ class FingerprintTest(unittest.TestCase):
     logging.info('%s dead pixels:\t%d', full_name, dead_count)
     logging.info('%s dead pixels in detect zones:\t%d',
                  full_name, dead_detect_count)
-    if not testlog.CheckParam(name='dead_pixels_%s' % short_name,
-                              value=dead_count,
-                              max=self.args.max_dead_pixels,
-                              description='Number of dead pixels',
-                              value_unit='pixels'):
+
+    testlog.UpdateParam(
+        name='dead_pixels_%s' % short_name,
+        description='Number of dead pixels',
+        value_unit='pixels')
+    if not testlog.CheckNumericParam(
+        name='dead_pixels_%s' % short_name,
+        value=dead_count,
+        max=self.args.max_dead_pixels):
       raise type_utils.TestFailure('Too many dead pixels')
-    if not testlog.CheckParam(name='dead_detect_pixels_%s' % short_name,
-                              value=dead_detect_count,
-                              # Note: zero doesn't work as a max
-                              max=self.args.max_dead_detect_pixels + 0.1,
-                              description='Dead pixels in detect zone',
-                              value_unit='pixels'):
+    testlog.UpdateParam(
+        name='dead_detect_pixels_%s' % short_name,
+        description='Dead pixels in detect zone',
+        value_unit='pixels')
+    if not testlog.CheckNumericParam(
+        name='dead_detect_pixels_%s' % short_name,
+        value=dead_detect_count,
+        max=self.args.max_dead_detect_pixels):
       raise type_utils.TestFailure('Too many dead pixels in detect zone')
     # Check specified pixel range constraints
     t1 = "%s_type1" % short_name
-    if t1 in self.args.pixel_median and not testlog.CheckParam(
-        name=t1, value=median1,
-        min=self.args.pixel_median[t1][0], max=self.args.pixel_median[t1][1],
+    testlog.UpdateParam(
+        name=t1,
         description='Median Type-1 pixel value',
-        value_unit='8-bit grayscale'):
+        value_unit='8-bit grayscale')
+    if t1 in self.args.pixel_median and not testlog.CheckNumericParam(
+        name=t1,
+        value=median1,
+        min=self.args.pixel_median[t1][0],
+        max=self.args.pixel_median[t1][1]):
       raise type_utils.TestFailure('Out of range Type-1 pixels')
     t2 = "%s_type2" % short_name
-    if t2 in self.args.pixel_median and not testlog.CheckParam(
-        name=t2, value=median2,
-        min=self.args.pixel_median[t2][0], max=self.args.pixel_median[t2][1],
+    testlog.UpdateParam(
+        name=t2,
         description='Median Type-2 pixel value',
-        value_unit='8-bit grayscale'):
+        value_unit='8-bit grayscale')
+    if t2 in self.args.pixel_median and not testlog.CheckNumericParam(
+        name=t2,
+        value=median2,
+        min=self.args.pixel_median[t2][0],
+        max=self.args.pixel_median[t2][1]):
       raise type_utils.TestFailure('Out of range Type-2 pixels')
 
   def runTest(self):
@@ -252,9 +266,10 @@ class FingerprintTest(unittest.TestCase):
     self.assertEqual(flags, '',
                      'Sensor failure: %s' % (flags))
     expected_hwid = self.args.sensor_hwid if self.args.sensor_hwid else None
-    if not testlog.CheckParam(name='sensor_hwid', value=model,
-                              min=expected_hwid, max=expected_hwid,
-                              description='Sensor Hardware ID register'):
+    testlog.UpdateParam(
+        name='sensor_hwid', description='Sensor Hardware ID register')
+    if not testlog.CheckNumericParam(
+        name='sensor_hwid', value=model, min=expected_hwid, max=expected_hwid):
       raise type_utils.TestFailure('Invalid sensor HWID')
 
     # checkerboard test patterns
@@ -283,9 +298,10 @@ class FingerprintTest(unittest.TestCase):
         if rc:
           raise type_utils.TestFailure('MQT failed with error %d' % (rc))
         else:
-          if not testlog.CheckParam(name='mqt_snr', value=snr,
-                                    min=self.args.min_snr,
-                                    description='Image signal-to-noise ratio'):
+          testlog.UpdateParam(
+              name='mqt_snr', description='Image signal-to-noise ratio')
+          if not testlog.CheckNumericParam(
+              name='mqt_snr', value=snr, min=self.args.min_snr):
             raise type_utils.TestFailure('Bad quality image')
       elif self.args.min_snr > 0.0:
         raise type_utils.TestFailure('No image quality library available')

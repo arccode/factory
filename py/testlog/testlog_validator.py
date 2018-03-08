@@ -4,14 +4,12 @@
 
 """Various validation functions for FIELDS in testlog's Event-like object."""
 
-import datetime
 import logging
 import os
 import pprint
 import re
 import shutil
 
-from . import testlog_utils
 from .utils import time_utils
 
 
@@ -100,25 +98,6 @@ class Validator(object):
     updated_list.append(value)
     # pylint: disable=protected-access
     inst._data[key] = updated_list
-
-  @staticmethod
-  def Time(inst, key, value):
-    """Converts value into datetime object.
-
-    The datetime object is expected to converts to ISO8601 format at the
-    time that it convert to JSON string.
-    """
-    logging.debug('Validator.Time is called with (%s, %s)', key, value)
-    if isinstance(value, basestring):
-      d = testlog_utils.FromJSONDateTime(value)
-    elif isinstance(value, datetime.datetime):
-      d = value
-    else:
-      raise ValueError('Invalid `time` (%r) for Validator.Time' % value)
-    # Round precision of microseconds to ensure equivalence after converting
-    # to JSON and back again.
-    d = d.replace(microsecond=(d.microsecond / 1000 * 1000))
-    Validator.Object(inst, key, d)
 
   @staticmethod
   def Attachment(inst, key, value, delete, testlog_getter_fn):

@@ -10,7 +10,6 @@ from __future__ import print_function
 
 import copy
 import cPickle as pickle
-import datetime
 import inspect
 import logging
 import os
@@ -207,6 +206,7 @@ class TestInvocation(object):
     self.log_path = os.path.join(self.output_dir, 'log')
     self.update_state_on_completion = {}
     self.dut_options = self._ResolveDUTOptions()
+    self.dut = device_utils.CreateDUTInterface(**self.dut_options)
     self.resolved_dargs = None
 
     self._lock = threading.Lock()
@@ -381,12 +381,12 @@ class TestInvocation(object):
     _status_conversion = {
         # TODO(itspeter): No mapping for STARTING ?
         TestState.ACTIVE: testlog.StationTestRun.STATUS.RUNNING,
-        TestState.PASSED: testlog.StationTestRun.STATUS.PASSED,
-        TestState.FAILED: testlog.StationTestRun.STATUS.FAILED,
+        TestState.PASSED: testlog.StationTestRun.STATUS.PASS,
+        TestState.FAILED: testlog.StationTestRun.STATUS.FAIL,
         TestState.UNTESTED: testlog.StationTestRun.STATUS.UNKNOWN,
         # TODO(itspeter): Consider adding another status.
-        TestState.FAILED_AND_WAIVED: testlog.StationTestRun.STATUS.PASSED,
-        TestState.SKIPPED: testlog.StationTestRun.STATUS.PASSED}
+        TestState.FAILED_AND_WAIVED: testlog.StationTestRun.STATUS.PASS,
+        TestState.SKIPPED: testlog.StationTestRun.STATUS.PASS}
 
     log_args = copy.deepcopy(log_args)  # Make sure it is intact
     log_args.pop('status', None)  # Discard the status
@@ -399,13 +399,14 @@ class TestInvocation(object):
     status = _status_conversion.get(status, status)
 
     kwargs = {
+        'dutDeviceId': self.dut.info.device_id,
         'stationDeviceId': session.GetDeviceID(),
         'stationInstallationId': session.GetInstallationID(),
         'testRunId': self.uuid,
         'testName': test_name,
         'testType': test_type,
         'status': status,
-        'startTime': datetime.datetime.fromtimestamp(self.start_time)
+        'startTime': self.start_time
     }
 
     dargs = log_args.pop('dargs', None)
@@ -417,7 +418,7 @@ class TestInvocation(object):
       kwargs['arguments'] = dargs
     if 'duration' in log_args:
       log_args.pop('duration')  # Discard the duration
-      kwargs['endTime'] = datetime.datetime.fromtimestamp(self.end_time)
+      kwargs['endTime'] = self.end_time
       kwargs['duration'] = self.end_time - self.start_time
 
     serial_numbers = log_args.pop('serial_numbers', None)
@@ -433,16 +434,16 @@ class TestInvocation(object):
           testlog_event.AddFailure(failure_code, log_args.pop(err_field))
 
     if 'tag' in log_args:
-      testlog_event.LogParam(
-          name='tag', value=log_args.pop('tag'),
-          description='Indicate type of shutdown')
+      testlog_event.LogParam(name='tag', value=log_args.pop('tag'))
+      testlog_event.UpdateParam(name='tag',
+                                description='Indicate type of shutdown')
 
     if log_args:
       logging.error('Unexpected fields in logs_args: %s',
                     pprint.pformat(log_args))
       for key, value in log_args.iteritems():
-        testlog_event.LogParam(name=key, value=repr(value),
-                               description='UnknownGoofyLogArgs')
+        testlog_event.LogParam(name=key, value=repr(value))
+        testlog_event.UpdateParam(name=key, description='UnknownGoofyLogArgs')
     return testlog_event
 
   def _Run(self):

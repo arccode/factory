@@ -52,17 +52,24 @@ $ curl -i -X POST \
 
 from __future__ import print_function
 
-import datetime
+import time
 
 import instalog_common  # pylint: disable=unused-import
 from instalog import plugin_base
 from instalog.plugins import input_http
+from instalog.plugins import testlog_common
 from instalog.testlog import testlog
+from instalog.utils import log_utils
 
 
 class InputHTTPTestlog(input_http.InputHTTP):
 
-  def _CheckFormat(self, event):
+  def __init__(self, *args, **kwargs):
+    super(InputHTTPTestlog, self).__init__(*args, **kwargs)
+    self.noisy_info = log_utils.NoisyLogger(
+        self.info, suppress_logger=lambda message: None)
+
+  def _CheckFormat(self, event, client_node_id):
     """Checks the event is following the Testlog format and sets attachments.
 
     Raises:
@@ -80,13 +87,17 @@ class InputHTTPTestlog(input_http.InputHTTP):
       raise ValueError("event['attachment'] are not consistent with "
                        'attachments in requests.')
 
-    # This will raise exception when the event is invalid.
+    if event['apiVersion'] != testlog.TESTLOG_API_VERSION:
+      self.noisy_info.Log('Received old format(%s) events from "%s"',
+                          event['apiVersion'], client_node_id)
+    # UpgradeEvent and FromDict will raise exception when the event is invalid.
+    event = testlog_common.UpgradeEvent(event)
     testlog.EventBase.FromDict(event.payload)
     event['__testlog__'] = True
 
     # The time on the DUT is not reliable, so we are going to use the time on
     # the factory server.
-    event['time'] = datetime.datetime.utcnow()
+    event['time'] = time.time()
 
 
 if __name__ == '__main__':

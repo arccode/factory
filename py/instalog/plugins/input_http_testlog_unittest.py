@@ -8,11 +8,11 @@
 
 from __future__ import print_function
 
-import datetime
 import logging
 import os
 import shutil
 import tempfile
+import time
 import unittest
 
 import requests
@@ -60,20 +60,138 @@ class TestInputHTTPTestlog(unittest.TestCase):
     return datatypes.Event({
         'uuid': '8b127476-2604-422a-b9b1-f05e4f14bf72',
         'type': 'station.test_run',
+        'apiVersion': '0.2',
+        'time': 1483592505.503,
+        'testRunId': '8b127472-4593-4be8-9e94-79f228fc1adc',
+        'testName': 'the_test',
+        'testType': 'aaaa',
+        'status': 'PASS',
+        'startTime': 1483592505.489,
+        'serialNumbers': {'serial_number': 'Test SN'},
+    })
+
+  def testOldVersionEvent(self):
+    # Test simple Testlog event without attachment.
+    event = datatypes.Event({
+        'uuid': '8b127476-2604-422a-b9b1-f05e4f14bf72',
+        'type': 'station.test_run',
         'apiVersion': '0.1',
         'time': {'value': '2017-01-05T13:01:45.503Z', '__type__': 'datetime'},
         'testRunId': '8b127472-4593-4be8-9e94-79f228fc1adc',
         'testName': 'the_test',
         'testType': 'aaaa',
-        'arguments': {},
         'status': 'PASSED',
         'startTime': '2017-01-05T13:01:45.489Z',
+        'serialNumbers': {'serial_number': 'Test SN'},
     })
+    data = {'event': datatypes.Event.Serialize(event)}
+    r = self._RequestsPost(files=data, multi_event=False)
+    self.assertEqual(200, r.status_code)
+    self.assertEqual(1, len(self.core.emit_calls))
+    self.assertEqual(1, len(self.core.emit_calls[0]))
+    self.assertEqual(self.core.emit_calls[0][0].payload, {
+        '__testlog__': True,
+        'status': 'PASS',
+        'uuid': '8b127476-2604-422a-b9b1-f05e4f14bf72',
+        'testType': 'aaaa',
+        'testName': 'the_test',
+        'apiVersion': '0.2',
+        'startTime': 1483592505.489,
+        # The time field is corrected.
+        'time': self.core.emit_calls[0][0].payload['time'],
+        'type': u'station.test_run',
+        'serialNumbers': {'serial_number': 'Test SN'},
+        'testRunId': u'8b127472-4593-4be8-9e94-79f228fc1adc'})
+
+    # Test simple Testlog event with a attachment.
+    event['attachments'] = {'att_key1': {'path': '/path/to/file',
+                                         'mimeType': 'text/plain'}}
+    att1 = os.urandom(1024)  # 1kb data
+    data = {'event': datatypes.Event.Serialize(event),
+            'att_key1': att1}
+    r = self._RequestsPost(files=data, multi_event=False)
+    self.assertEqual(200, r.status_code)
+    self.assertEqual(2, len(self.core.emit_calls))
+    self.assertEqual(1, len(self.core.emit_calls[0]))
+    self.assertEqual(self.core.emit_calls[1][0].payload, {
+        '__testlog__': True,
+        'status': 'PASS',
+        'uuid': '8b127476-2604-422a-b9b1-f05e4f14bf72',
+        'testType': 'aaaa',
+        'testName': 'the_test',
+        'apiVersion': '0.2',
+        'startTime': 1483592505.489,
+        # The time field is corrected.
+        'time': self.core.emit_calls[1][0].payload['time'],
+        'type': 'station.test_run',
+        'testRunId': '8b127472-4593-4be8-9e94-79f228fc1adc',
+        'serialNumbers': {'serial_number': 'Test SN'},
+        'attachments': {
+            'att_key1': {'path': '/path/to/file', 'mimeType': 'text/plain'}}})
+    with open(self.core.emit_calls[1][0].attachments['att_key1']) as f:
+      self.assertEqual(att1, f.read())
+
+    # Test complex Testlog event without attachment.
+    del event.payload['attachments']
+    event['arguments'] = {}
+    event['arguments']['A'] = {'value': 'yoyo'}
+    event['arguments']['B'] = {'value': 9.53543, 'description': 'a number'}
+    event['arguments']['C'] = {'value': -9}
+    event['failures'] = [{'code': 'C', 'details': 'D'}]
+    event['serialNumbers'] = {'A': 'B'}
+    event['parameters'] = {'A': {'description': 'D'}}
+    event['series'] = {'A': {'description': 'D', 'data': [
+        {'key': 987, 'status': 'PASS'},
+        {'key': 7.8, 'status': 'FAIL'}]}}
+    data = {'event': datatypes.Event.Serialize(event)}
+    r = self._RequestsPost(files=data, multi_event=False)
+    logging.info(r.reason)
+    self.assertEqual(200, r.status_code)
+    self.assertEqual(3, len(self.core.emit_calls))
+    self.assertEqual(1, len(self.core.emit_calls[2]))
+    self.assertEqual(self.core.emit_calls[2][0].payload, {
+        '__testlog__': True,
+        'status': 'PASS',
+        'uuid': '8b127476-2604-422a-b9b1-f05e4f14bf72',
+        'testType': 'aaaa',
+        'testName': 'the_test',
+        'apiVersion': '0.2',
+        'startTime': 1483592505.489,
+        # The time field is corrected.
+        'time': self.core.emit_calls[2][0].payload['time'],
+        'type': u'station.test_run',
+        'testRunId': u'8b127472-4593-4be8-9e94-79f228fc1adc',
+        'arguments': {
+            'A': {'value': '"yoyo"'},
+            'B': {'description': 'a number', 'value': '9.53543'},
+            'C': {'value': '-9'}},
+        'failures': [{'code': 'C', 'details': 'D'}],
+        'parameters': {
+            'A_key': {
+                'data': [{'numericValue': 987},
+                         {'numericValue': 7.8}],
+                'group': 'A'},
+            'A_value': {
+                'data': [{'status': 'PASS'},
+                         {'status': 'FAIL'}],
+                'description': 'D',
+                'group': 'A'},
+            'parameter_A': {
+                'data': [{}],
+                'description': 'D'}},
+        'serialNumbers': {'A': 'B'}})
+
+    # Test invalid Testlog event.
+    event['arguments']['D'] = {}
+    data = {'event': datatypes.Event.Serialize(event)}
+    r = self._RequestsPost(files=data, multi_event=False)
+    self.assertEqual(400, r.status_code)
+    self.assertEqual("Bad request: KeyError('value',)", r.reason)
 
   def testCorrectTime(self):
     event = self._ValidStationTestRunEvent()
     data = {'event': datatypes.Event.Serialize(event)}
-    time_check = datetime.datetime.utcnow()
+    time_check = time.time()
     r = self._RequestsPost(files=data, multi_event=False)
     logging.info(r.reason)
     self.assertEqual(200, r.status_code)
@@ -155,15 +273,15 @@ class TestInputHTTPTestlog(unittest.TestCase):
     # The time field is corrected.
     self.core.emit_calls[0][0].payload['time'] = event['time']
     self.assertEqual(event.payload, self.core.emit_calls[0][0].payload)
-    event['arguments']['A'] = {'value': 'yoyo'}
-    event['arguments']['B'] = {'value': 9.53543, 'description': 'a number'}
-    event['arguments']['C'] = {'value': -9}
+    event['arguments'] = {}
+    event['arguments']['A'] = {'value': '"yoyo"'}
+    event['arguments']['B'] = {'value': '9.53543', 'description': 'a number'}
+    event['arguments']['C'] = {'value': '-9'}
     event['failures'] = [{'code': 'C', 'details': 'D'}]
     event['serialNumbers'] = {'A': 'B'}
-    event['parameters'] = {'A': {'description': 'D'}}
-    event['series'] = {'A': {'description': 'D', 'data': [
-        {'key': 987, 'status': 'PASS'},
-        {'key': 7.8, 'status': 'FAIL'}]}}
+    event['parameters'] = {'A': {'description': 'D', 'data': [
+        {'numericValue': 987, 'status': 'PASS'},
+        {'serializedValue': '[7.8]'}]}}
     data = {'event': datatypes.Event.Serialize(event)}
     r = self._RequestsPost(files=data, multi_event=False)
     logging.info(r.reason)

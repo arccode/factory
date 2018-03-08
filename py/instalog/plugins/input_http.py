@@ -205,13 +205,13 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
           if self._gpg:
             self._DecryptFile(event.attachments[att_id], tmp_dir)
 
-        self._check_format(event)
+        self._check_format(event, self.client_node_id)
         events.append(event)
       del form  # Free memory earlier.
       if remaining_att:
         raise ValueError('Additional fields: %s' % list(remaining_att))
     except Exception as e:
-      self.warning('Bad request with exception: %s', repr(e))
+      self.exception('Bad request with exception: %s', repr(e))
       return 400, 'Bad request: ' + repr(e)
 
     process_time = time.time() - start_time
@@ -368,7 +368,7 @@ class InputHTTP(plugin_base.InputPlugin):
     self._http_server.StopServer()
     self.info('Shutdown complete')
 
-  def _CheckFormat(self, event):
+  def _CheckFormat(self, event, client_node_id):
     """Checks the event is following the format or not.
 
     Raises:

@@ -78,7 +78,7 @@ class ACPowerTest(test_case.TestCase):
     self._last_ac_present = None
     self._skip_warning_remains = self.args.silent_warning
     if self.args.usbpd_power_range is not None:
-      self._power_series = testlog.CreateSeries(
+      testlog.UpdateParam(
           name='usbpdpower',
           description='Detected usbpd power.',
           value_unit='mW')
@@ -141,11 +141,10 @@ class ACPowerTest(test_case.TestCase):
       for info in usbpd_power_infos:
         if info.id != port:
           continue
-        dummy_index = 0
         power_watt = info.voltage * info.current / 1000000
         self.UpdateACPower(power_watt, power_min, power_max)
-        result = self._power_series.CheckValue(dummy_index, power_watt,
-                                               power_min, power_max)
+        result = testlog.CheckNumericParam(
+            'usbpdpower', power_watt, min=power_min, max=power_max)
         if not result:
           session.console.warning(
               'Expecting (%s, %s) watt usbpd power but see %s' %

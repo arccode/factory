@@ -122,8 +122,9 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
     p = self.dut.CheckOutput([GSCTOOL, '-b', firmware_file]).strip()
     board_id_flag = int(BOARD_ID_FLAG_RE.search(p).group(1), 16)
     logging.info('Cr50 firmware board ID flag: %s', hex(board_id_flag))
-    testlog.LogParam(
-        'cr50_firmware_file_info', p, description='Output of gsctool -b.')
+    testlog.LogParam('cr50_firmware_file_info', p)
+    testlog.UpdateParam('cr50_firmware_file_info',
+                        description='Output of gsctool -b.')
     return board_id_flag & PREPVT_FLAG_MASK
 
   def _UpdateCr50Firmware(self, firmware_file):

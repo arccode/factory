@@ -43,10 +43,33 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
         SchemaField(u'type', u'string', 'NULLABLE', None, ()),
         SchemaField(u'apiVersion', u'string', 'NULLABLE', None, ()),
         SchemaField(u'time', u'timestamp', 'NULLABLE', None, ()),
-        SchemaField(u'stationName', u'string', 'NULLABLE', None, ()),
         SchemaField(u'seq', u'integer', 'NULLABLE', None, ()),
+        SchemaField(u'dutDeviceId', u'string', 'NULLABLE', None, ()),
         SchemaField(u'stationDeviceId', u'string', 'NULLABLE', None, ()),
         SchemaField(u'stationInstallationId', u'string', 'NULLABLE', None, ()),
+
+        # station.status
+        SchemaField(u'filePath', u'string', 'NULLABLE', None, ()),
+        SchemaField(u'serialNumbers', u'record', u'REPEATED', None, (
+            SchemaField(u'key', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'value', u'string', 'NULLABLE', None, ())
+        )),
+        SchemaField(u'parameters', u'record', u'REPEATED', None, (
+            SchemaField(u'key', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'description', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'group', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'valueUnit', u'string', 'NULLABLE', None, ()),
+            SchemaField(u'data', u'record', u'REPEATED', None, (
+                SchemaField(u'id', u'integer', 'NULLABLE', None, ()),
+                SchemaField(u'status', u'string', 'NULLABLE', None, ()),
+                SchemaField(u'numericValue', u'float', 'NULLABLE', None, ()),
+                SchemaField(u'expectedMinimum', u'float', 'NULLABLE', None, ()),
+                SchemaField(u'expectedMaximum', u'float', 'NULLABLE', None, ()),
+                SchemaField(u'textValue', u'string', 'NULLABLE', None, ()),
+                SchemaField(u'expectedRegex', u'string', 'NULLABLE', None, ()),
+                SchemaField(u'serializedValue', u'string', 'NULLABLE', None, ())
+            ))
+        )),
 
         # station.init
         SchemaField(u'count', u'integer', 'NULLABLE', None, ()),
@@ -55,7 +78,6 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
 
         # station.message
         SchemaField(u'message', u'string', 'NULLABLE', None, ()),
-        SchemaField(u'filePath', u'string', 'NULLABLE', None, ()),
         SchemaField(u'lineNumber', u'integer', 'NULLABLE', None, ()),
         SchemaField(u'functionName', u'string', 'NULLABLE', None, ()),
         SchemaField(u'logLevel', u'string', 'NULLABLE', None, ()),
@@ -83,37 +105,10 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
         SchemaField(u'failures', u'record', u'REPEATED', None, (
             SchemaField(u'id', u'integer', 'NULLABLE', None, ()),
             SchemaField(u'code', u'string', 'NULLABLE', None, ()),
-            SchemaField(u'details', u'string', 'NULLABLE', None, ()))),
-        SchemaField(u'serialNumbers', u'record', u'REPEATED', None, (
-            SchemaField(u'key', u'string', 'NULLABLE', None, ()),
-            SchemaField(u'value', u'string', 'NULLABLE', None, ()))),
-        SchemaField(u'parameters', u'record', u'REPEATED', None, (
-            SchemaField(u'key', u'string', 'NULLABLE', None, ()),
-            SchemaField(u'description', u'string', 'NULLABLE', None, ()),
-            SchemaField(u'group', u'string', 'NULLABLE', None, ()),
-            SchemaField(u'status', u'string', 'NULLABLE', None, ()),
-            SchemaField(u'valueUnit', u'string', 'NULLABLE', None, ()),
-            SchemaField(u'numericValue', u'float', 'NULLABLE', None, ()),
-            SchemaField(u'expectedMinimum', u'float', 'NULLABLE', None, ()),
-            SchemaField(u'expectedMaximum', u'float', 'NULLABLE', None, ()),
-            SchemaField(u'textValue', u'string', 'NULLABLE', None, ()),
-            SchemaField(u'expectedRegex', u'string', 'NULLABLE', None, ())
+            SchemaField(u'details', u'string', 'NULLABLE', None, ())
         )),
-        SchemaField(u'series', u'record', u'REPEATED', None, (
-            SchemaField(u'key', u'string', 'NULLABLE', None, ()),
-            SchemaField(u'description', u'string', 'NULLABLE', None, ()),
-            SchemaField(u'group', u'string', 'NULLABLE', None, ()),
-            SchemaField(u'keyUnit', u'string', 'NULLABLE', None, ()),
-            SchemaField(u'valueUnit', u'string', 'NULLABLE', None, ()),
-            SchemaField(u'data', u'record', u'REPEATED', None, (
-                SchemaField(u'id', u'integer', 'NULLABLE', None, ()),
-                SchemaField(u'key', u'float', 'NULLABLE', None, ()),
-                SchemaField(u'status', u'string', 'NULLABLE', None, ()),
-                SchemaField(u'numericValue', u'float', 'NULLABLE', None, ()),
-                SchemaField(u'expectedMinimum', u'float', 'NULLABLE', None, ()),
-                SchemaField(u'expectedMaximum', u'float', 'NULLABLE', None, ())
-            ))
-        )),
+
+        # serialized
         SchemaField(u'serialized', u'string', 'NULLABLE', None, ())
     ]
 
@@ -125,6 +120,8 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
     def DateTimeToUnixTimestamp(obj):
       if isinstance(obj, datetime.datetime):
         return time.mktime(obj.timetuple()) + obj.microsecond * 1e-6
+      elif isinstance(obj, float):
+        return obj
       else:
         return None
 
@@ -146,10 +143,67 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
     row['type'] = event.get('type')
     row['apiVersion'] = event.get('apiVersion')
     row['time'] = DateTimeToUnixTimestamp(event.get('time'))
-    row['stationName'] = event.get('stationName')
     row['seq'] = event.get('seq')
+    row['dutDeviceId'] = event.get('dutDeviceId')
     row['stationDeviceId'] = event.get('stationDeviceId')
     row['stationInstallationId'] = event.get('stationInstallationId')
+
+    # station.status
+    row['filePath'] = event.get('filePath')  # also in station.message
+    row['serialNumbers'] = []
+    for key, value in event.get('serialNumbers', {}).iteritems():
+      row['serialNumbers'].append({})
+      row['serialNumbers'][-1]['key'] = key
+      row['serialNumbers'][-1]['value'] = value
+
+    row['parameters'] = []
+    for key, dct in event.get('parameters', {}).iteritems():
+      dct = dct or {}
+      row['parameters'].append({})
+      row['parameters'][-1]['key'] = key
+      row['parameters'][-1]['description'] = dct.get('description')
+      row['parameters'][-1]['group'] = dct.get('group')
+      row['parameters'][-1]['status'] = dct.get('status')
+      row['parameters'][-1]['valueUnit'] = dct.get('valueUnit')
+
+
+
+    row['parameters'] = []
+    for key, dct in event.get('parameters', {}).iteritems():
+      row['parameters'].append({})
+      row['parameters'][-1]['key'] = key
+      row['parameters'][-1]['description'] = dct.get('description')
+      row['parameters'][-1]['group'] = dct.get('group')
+      row['parameters'][-1]['valueUnit'] = dct.get('valueUnit')
+      row['parameters'][-1]['data'] = []
+      for i, data_dct in enumerate(dct.get('data', [])):
+        row['parameters'][-1]['data'].append({})
+        row['parameters'][-1]['data'][-1]['id'] = i
+        row['parameters'][-1]['data'][-1]['status'] = data_dct.get('status')
+        # TODO(chuntsen): Remove these casts when numericValue is reliable.
+        if data_dct.get('numericValue') is not None:
+          numeric_value = float(data_dct.get('numericValue'))
+          if math.isinf(numeric_value) or math.isnan(numeric_value):
+            numeric_value = None
+          row['parameters'][-1]['data'][-1]['numericValue'] = numeric_value
+        if data_dct.get('expectedMinimum') is not None:
+          expected_minimum = float(data_dct.get('expectedMinimum'))
+          if math.isinf(expected_minimum) or math.isnan(expected_minimum):
+            expected_minimum = None
+          row['parameters'][-1]['data'][-1][
+              'expectedMinimum'] = expected_minimum
+        if data_dct.get('expectedMaximum') is not None:
+          expected_maximum = float(data_dct.get('expectedMaximum'))
+          if math.isinf(expected_maximum) or math.isnan(expected_maximum):
+            expected_maximum = None
+          row['parameters'][-1]['data'][-1][
+              'expectedMaximum'] = expected_maximum
+        row['parameters'][-1]['data'][-1]['textValue'] = data_dct.get(
+            'textValue')
+        row['parameters'][-1]['data'][-1]['expectedRegex'] = data_dct.get(
+            'expectedRegex')
+        row['parameters'][-1]['data'][-1]['serializedValue'] = data_dct.get(
+            'serializedValue')
 
     # station.init
     row['count'] = event.get('count')
@@ -158,7 +212,6 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
 
     # station.message
     row['message'] = event.get('message')
-    row['filePath'] = event.get('filePath')
     row['lineNumber'] = event.get('lineNumber')
     row['functionName'] = event.get('functionName')
     row['logLevel'] = event.get('logLevel')
@@ -174,7 +227,7 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
       row['arguments'][-1]['key'] = key
       row['arguments'][-1]['description'] = dct.get('description')
       # Cast to string since it can be any type.
-      row['arguments'][-1]['value'] = unicode(dct.get('value'))
+      row['arguments'][-1]['value'] = dct.get('value')
 
     row['status'] = event.get('status')
     row['startTime'] = DateTimeToUnixTimestamp(event.get('startTime'))
@@ -201,65 +254,6 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
       row['failures'][-1]['id'] = i
       row['failures'][-1]['code'] = dct.get('code')
       row['failures'][-1]['details'] = dct.get('details')
-
-    row['serialNumbers'] = []
-    for key, value in event.get('serialNumbers', {}).iteritems():
-      row['serialNumbers'].append({})
-      row['serialNumbers'][-1]['key'] = key
-      row['serialNumbers'][-1]['value'] = value
-
-    row['parameters'] = []
-    for key, dct in event.get('parameters', {}).iteritems():
-      dct = dct or {}
-      row['parameters'].append({})
-      row['parameters'][-1]['key'] = key
-      row['parameters'][-1]['description'] = dct.get('description')
-      row['parameters'][-1]['group'] = dct.get('group')
-      row['parameters'][-1]['status'] = dct.get('status')
-      row['parameters'][-1]['valueUnit'] = dct.get('valueUnit')
-
-      # TODO(kitching): Remove these casts when numericValue is reliable.
-      if dct.get('numericValue') is not None:
-        numeric_value = float(dct.get('numericValue'))
-        if math.isinf(numeric_value) or math.isnan(numeric_value):
-          numeric_value = None
-        row['parameters'][-1]['numericValue'] = numeric_value
-
-      if dct.get('expectedMinimum') is not None:
-        expected_minimum = float(dct.get('expectedMinimum'))
-        if math.isinf(expected_minimum) or math.isnan(expected_minimum):
-          expected_minimum = None
-        row['parameters'][-1]['expectedMinimum'] = expected_minimum
-
-      if dct.get('expectedMaximum') is not None:
-        expected_maximum = float(dct.get('expectedMaximum'))
-        if math.isinf(expected_maximum) or math.isnan(expected_maximum):
-          expected_maximum = None
-        row['parameters'][-1]['expectedMaximum'] = expected_maximum
-
-      row['parameters'][-1]['textValue'] = dct.get('textValue')
-      row['parameters'][-1]['expectedRegex'] = dct.get('expectedRegex')
-
-    row['series'] = []
-    for key, dct in event.get('series', {}).iteritems():
-      row['series'].append({})
-      row['series'][-1]['key'] = key
-      row['series'][-1]['description'] = dct.get('description')
-      row['series'][-1]['group'] = dct.get('group')
-      row['series'][-1]['keyUnit'] = dct.get('keyUnit')
-      row['series'][-1]['valueUnit'] = dct.get('valueUnit')
-      row['series'][-1]['data'] = []
-      for i, data_dct in enumerate(dct.get('data', [])):
-        row['series'][-1]['data'].append({})
-        row['series'][-1]['data'][-1]['id'] = i
-        row['series'][-1]['data'][-1]['key'] = data_dct.get('key')
-        row['series'][-1]['data'][-1]['status'] = data_dct.get('status')
-        row['series'][-1]['data'][-1]['numericValue'] = data_dct.get(
-            'numericValue')
-        row['series'][-1]['data'][-1]['expectedMinimum'] = data_dct.get(
-            'expectedMinimum')
-        row['series'][-1]['data'][-1]['expectedMaximum'] = data_dct.get(
-            'expectedMaximum')
 
     row['serialized'] = event.Serialize()
     return json.dumps(row, allow_nan=False)

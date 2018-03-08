@@ -43,6 +43,7 @@ _JOB_NAME_PREFIX = 'instalog_'
 _JSON_MIMETYPE = 'NEWLINE_DELIMITED_JSON'
 _ROW_SIZE_LIMIT = 9.5 * 1024 * 1024  # To avoid error loop, we set 9.5 mb limit.
 _PARTITION_LIMIT = 500
+_SECONDS_IN_A_DAY = 24 * 60 * 60
 _DEFAULT_INTERVAL = 90
 _DEFAULT_BATCH_SIZE = 3000
 
@@ -185,7 +186,7 @@ class OutputBigQuery(plugin_base.OutputPlugin):
             f.write(json_row + '\n')
             row_count += 1
             # We are using time column as the timePartitioning field
-            partition_set.add(event['time'].date())
+            partition_set.add(event['time'] / _SECONDS_IN_A_DAY)
         event_count += 1
         if len(partition_set) == _PARTITION_LIMIT:
           break

@@ -4,8 +4,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import copy
-import datetime
 import logging
 import unittest
 
@@ -25,7 +23,6 @@ class TestlogValidatorTest(unittest.TestCase):
         'Boolean': (True, testlog_validator.Validator.Boolean),
         'Dict':    (True, testlog_validator.Validator.Dict),
         'List':    (True, testlog_validator.Validator.List),
-        'Time':    (True, testlog_validator.Validator.Time),
     }
     @classmethod
     def GetEventType(cls):
@@ -101,15 +98,6 @@ class TestlogValidatorTest(unittest.TestCase):
     event['List'] = '456'
     self.assertEquals(event['List'], [123, '456'])
 
-  def testTimeValidator(self):
-    event = self.TestEvent()
-    # Validator.Time accepts string or datetime.datetime.
-    with self.assertRaises(ValueError):
-      event['Time'] = datetime.date(1867, 7, 1)  # Canada's Birthday
-    valid_datetime = datetime.datetime(1986, 11, 5, 1, 24, 0)
-    event['Time'] = valid_datetime
-    self.assertEquals(event['Time'], copy.copy(valid_datetime))
-
 
 class StationTestRunFieldsValidatorTest(unittest.TestCase):
   """Checks the correctness of FIELDS' validator and SCHEMA's"""
@@ -120,19 +108,19 @@ class StationTestRunFieldsValidatorTest(unittest.TestCase):
     event['arguments'] = {'key': 'KeyIsAString', 'value': {
         'value': 'This is a string.'}}
     event['arguments'] = {'key': 'KeyIsANumber', 'value': {
-        'value': 987.654321,
+        'value': '987.654321',
         'description': 'G'}}
     event['arguments'] = {'key': 'KeyCanBeAnything', 'value': {
-        'value': True}}
+        'value': 'True'}}
     # Wrong top-level type
     with self.assertRaises(schema.SchemaException):
       event['arguments'] = {'key': 'A', 'value': 'Google'}
     # Wrong key type
     with self.assertRaises(ValueError):
-      event['arguments'] = {'key': 3, 'value': {'value': 0}}
+      event['arguments'] = {'key': 3, 'value': {'value': 'v'}}
     # Additional item in Dict
     with self.assertRaises(schema.SchemaException):
-      event['arguments'] = {'key': 'A', 'value': {'value': 0, 'A': 'B'}}
+      event['arguments'] = {'key': 'A', 'value': {'value': 'v', 'A': 'B'}}
     # Missing item
     with self.assertRaises(schema.SchemaException):
       event['arguments'] = {'key': 'A', 'value': {'description': 'yoyo'}}
@@ -180,21 +168,30 @@ class StationTestRunFieldsValidatorTest(unittest.TestCase):
     event = testlog.StationTestRun()
     # Valid parameter
     event['parameters'] = {'key': 'a', 'value': {}}
-    event['parameters'] = {'key': 'b', 'value': {'status': 'PASS'}}
     event['parameters'] = {'key': 'ec_firmware_version', 'value': {
-        'description': 'Version of the EC firmware on the DUT.',
-        'group': 'What is this?',
-        'status': 'FAIL',
-        'valueUnit': 'version',
-        'numericValue': 0,
-        'expectedMinimum': 1.2,
-        'expectedMaximum': 3L,
-        'textValue': '1.56a',
-        'expectedRegex': '^1.5'
+        'description': '5G throughput speeds at an interval of 1 per ... .',
+        'group': 'Still do not know.',
+        'valueUnit': 'MBit/s',
+        'data': [
+            {
+                'status': 'FAIL',
+                'numericValue': 19.8,
+                'expectedMinimum': 20,
+                'expectedMaximum': 999L
+            }, {
+                'numericValue': 2.0,
+                'status': 'PASS'
+            }
+        ]
     }}
     # Wrong top-level type
     with self.assertRaises(schema.SchemaException):
       event['parameters'] = {'key': 'A', 'value': 'Google'}
+    # Wrong second-level type, data should be a List
+    with self.assertRaises(schema.SchemaException):
+      event['parameters'] = {'key': 'A', 'value': {'data': 'Google'}}
+    with self.assertRaises(schema.SchemaException):
+      event['parameters'] = {'key': 'A', 'value': {'data': {}}}
     # Wrong key type
     with self.assertRaises(ValueError):
       event['parameters'] = {'key': 3, 'value': {}}
@@ -202,72 +199,17 @@ class StationTestRunFieldsValidatorTest(unittest.TestCase):
     with self.assertRaises(schema.SchemaException):
       event['parameters'] = {'key': 'A', 'value': {'description': 0}}
     with self.assertRaises(schema.SchemaException):
-      event['parameters'] = {'key': 'A', 'value': {'numericValue': 'Google'}}
+      event['parameters'] = {'key': 'A', 'value': {
+          'data': [{'numericValue': 'Google'}]}}
+    with self.assertRaises(schema.SchemaException):
+      event['parameters'] = {'key': 'A', 'value': {
+          'data': [{'status': 0}]}}
     # Value not in choices(PASS, FAIL)
     with self.assertRaises(schema.SchemaException):
       event['parameters'] = {'key': 'A', 'value': {'status': 'Google'}}
     # Additional item in Dict
     with self.assertRaises(schema.SchemaException):
       event['parameters'] = {'key': 'A', 'value': {'NonExist': 'Hi'}}
-
-  def testSeriesValidator(self):
-    event = testlog.StationTestRun()
-    # Valid parameter
-    event['series'] = {'key': 'a', 'value': {}}
-    event['series'] = {'key': 'b', 'value': {'status': 'PASS', 'data': []}}
-    event['series'] = {'key': '5g_throughput', 'value': {
-        'description': '5G throughput speeds at an interval of 1 per ... .',
-        'group': 'Still do not know.',
-        'status': 'FAIL',
-        'keyUnit': 'second',
-        'valueUnit': 'MBit/s',
-        'data': [
-            {
-                'key': 1,
-                'status': 'FAIL',
-                'numericValue': 19.8,
-                'expectedMinimum': 20,
-                'expectedMaximum': 999L
-            }, {
-                'key': 2.0,
-                'status': 'PASS'
-            }
-        ]
-    }}
-    # Wrong top-level type, value should be a Dict
-    with self.assertRaises(schema.SchemaException):
-      event['series'] = {'key': 'A', 'value': 'Google'}
-    # Wrong second-level type, data should be a List
-    with self.assertRaises(schema.SchemaException):
-      event['series'] = {'key': 'A', 'value': {'data': 'Google'}}
-    with self.assertRaises(schema.SchemaException):
-      event['series'] = {'key': 'A', 'value': {'data': {}}}
-    # Wrong key type
-    with self.assertRaises(ValueError):
-      event['series'] = {'key': 3, 'value': {}}
-    # Wrong value type
-    with self.assertRaises(schema.SchemaException):
-      event['series'] = {'key': 'A', 'value': {'description': 0}}
-    with self.assertRaises(schema.SchemaException):
-      event['series'] = {'key': 'A', 'value': {'data': [{'key': 'Google'}]}}
-    with self.assertRaises(schema.SchemaException):
-      event['series'] = {'key': 'A', 'value': {
-          'data': [{'key': 0, 'status': 0}]}}
-    # Value not in choices(PASS, FAIL)
-    with self.assertRaises(schema.SchemaException):
-      event['series'] = {'key': 'A', 'value': {'status': 'Google'}}
-    with self.assertRaises(schema.SchemaException):
-      event['series'] = {'key': 'A', 'value': {
-          'data': [{'key': 0, 'status': 'Google'}]}}
-    # Additional item in Dict
-    with self.assertRaises(schema.SchemaException):
-      event['series'] = {'key': 'A', 'value': {'NonExist': 'Hi'}}
-    with self.assertRaises(schema.SchemaException):
-      event['series'] = {'key': 'A', 'value': {
-          'data': [{'key': 0, 'A': 'B'}]}}
-    # Missing item
-    with self.assertRaises(schema.SchemaException):
-      event['series'] = {'key': 'A', 'value': {'data': [{}]}}
 
 
 if __name__ == '__main__':

@@ -38,13 +38,13 @@ TODO(itspeter): Move to Instalog folder and remove the dependency of
 
 from __future__ import print_function
 
-import datetime
 import json
 import logging
 import os
 import re
 import tempfile
 import threading
+import time
 
 from . import hooks
 from . import testlog_seq
@@ -57,7 +57,7 @@ from .utils import time_utils
 from .utils import type_utils
 
 
-TESTLOG_API_VERSION = '0.1'
+TESTLOG_API_VERSION = '0.2'
 TESTLOG_ENV_VARIABLE_NAME = 'TESTLOG'
 
 # TODO(itspeter): Use config_utils for those default constants.
@@ -319,7 +319,7 @@ def InitSubSession(log_root, uuid, station_test_run=None):
     station_test_run.FromDict({
         'status': StationTestRun.STATUS.STARTING,
         'testRunId': uuid,
-        'startTime': datetime.datetime.utcnow()
+        'startTime': time.time()
     })
   # pylint: disable=protected-access
   station_test_run[Testlog.FIELDS._METADATA] = {
@@ -367,6 +367,8 @@ def LogTestRun(session_json_path, station_test_run=None):
       # Merge the station_test_run information.
       if station_test_run:
         test_run.Populate(station_test_run.ToDict())
+      # Check the event, or it may be rejected by Instalog input plugin.
+      test_run.CheckIsValid()
       Log(test_run)
     except Exception:
       # Not much we can do here.
@@ -459,8 +461,18 @@ def LogParam(*args, **kwargs):
   return _StationTestRunWrapperInSession(*args, **kwargs)
 
 
-def CheckParam(*args, **kwargs):
-  kwargs['_method_name'] = 'CheckParam'
+def CheckNumericParam(*args, **kwargs):
+  kwargs['_method_name'] = 'CheckNumericParam'
+  return _StationTestRunWrapperInSession(*args, **kwargs)
+
+
+def CheckTextParam(*args, **kwargs):
+  kwargs['_method_name'] = 'CheckTextParam'
+  return _StationTestRunWrapperInSession(*args, **kwargs)
+
+
+def GroupParam(*args, **kwargs):
+  kwargs['_method_name'] = 'GroupParam'
   return _StationTestRunWrapperInSession(*args, **kwargs)
 
 
@@ -474,8 +486,8 @@ def AttachContent(*args, **kwargs):
   return _StationTestRunWrapperInSession(*args, **kwargs)
 
 
-def CreateSeries(*args, **kwargs):
-  kwargs['_method_name'] = 'CreateSeries'
+def UpdateParam(*args, **kwargs):
+  kwargs['_method_name'] = 'UpdateParam'
   return _StationTestRunWrapperInSession(*args, **kwargs)
 
 
@@ -522,7 +534,7 @@ class JSONLogFile(file_utils.FileLockContextManager):
     if 'apiVersion' not in event:
       event['apiVersion'] = TESTLOG_API_VERSION
     if 'time' not in event:
-      event['time'] = datetime.datetime.utcnow()
+      event['time'] = time.time()
 
     line = event.ToJSON() + '\n'
     with self:
@@ -612,14 +624,13 @@ class LogFormatter(logging.Formatter):
     message = record.getMessage()
     if record.exc_info:
       message += '\n%s' % self.formatException(record.exc_info)
-    time_now = datetime.datetime.utcfromtimestamp(record.created)
 
     data = {
         'filePath': getattr(record, 'pathname', None),
         'lineNumber': getattr(record, 'lineno', None),
         'functionName': getattr(record, 'funcName', None),
         'logLevel': getattr(record, 'levelname', None),
-        'time': time_now,
+        'time': getattr(record, 'created', None),
         'message': message}
 
     return StationMessage(data)
@@ -719,8 +730,8 @@ class EventBase(object):
     """Supports `in` operator."""
     return item in self._data
 
-  def CheckMissingFields(self):
-    """Returns a list of missing field."""
+  def CheckIsValid(self):
+    """Raises an exception if the event is invalid."""
     mro = self.__class__.__mro__
     missing_fields = []
     # Find the corresponding requirement.
@@ -731,8 +742,38 @@ class EventBase(object):
         if metadata[0] and field_name not in self._data:
           missing_fields.append(field_name)
 
+    # Test run event with attachments should have at least one serial number.
+    if (self.GetEventType() == 'station.test_run' and
+        'attachments' in self._data and 'serialNumbers' not in self._data):
+      missing_fields.append('serialNumbers')
+
     if missing_fields != []:
       raise testlog_utils.TestlogError('Missing fields: %s' % missing_fields)
+
+    # Check the length of the grouped parameters.
+    if 'parameters' in self._data:
+      group_length = {}
+      for param in self._data['parameters'].itervalues():
+        if 'group' in param:
+          group = param['group']
+          if group not in group_length:
+            group_length[group] = len(param['data'])
+          elif group_length[group] != len(param['data']):
+            raise testlog_utils.TestlogError(
+                'The parameters length in the group(%s) are not the same' %
+                group)
+
+    for key in self._data.iterkeys():
+      # Ignore keys that start with an underscore.
+      if key.startswith('_'):
+        continue
+      data_type = type(self._data[key])
+      if data_type == list:
+        if not self._data[key]:
+          raise testlog_utils.TestlogError('Empty list is invalid: %r' % key)
+      elif data_type == dict:
+        if not self._data[key]:
+          raise testlog_utils.TestlogError('Empty dict is invalid: %r' % key)
 
   @classmethod
   def GetEventType(cls):
@@ -753,11 +794,14 @@ class EventBase(object):
       if key.startswith('_'):
         continue
       data_type = type(data[key])
-      # TODO(chuntsen): raise exception when the empty list/dict has wrong key.
       if data_type == list:
+        if not data[key]:
+          raise testlog_utils.TestlogError('Empty list is invalid: %r' % key)
         for value in data[key]:
           self[key] = value
       elif data_type == dict:
+        if not data[key]:
+          raise testlog_utils.TestlogError('Empty dict is invalid: %r' % key)
         for sub_key, value in data[key].iteritems():
           self[key] = {'key' : sub_key, 'value': value}
       else:
@@ -795,18 +839,18 @@ class EventBase(object):
           'Input event does not have a valid `type`.')
 
   @classmethod
-  def FromJSON(cls, json_string, check_missing=True):
+  def FromJSON(cls, json_string, check_valid=True):
     """Converts JSON data into an Event instance."""
-    return cls.FromDict(json.loads(json_string), check_missing)
+    return cls.FromDict(json.loads(json_string), check_valid)
 
   @classmethod
-  def FromDict(cls, data, check_missing=True):
+  def FromDict(cls, data, check_valid=True):
     """Converts Python dict data into an Event instance."""
     event = cls.DetermineClass(data)()
     event.Populate(data)
     event.CastFields()
-    if check_missing:
-      event.CheckMissingFields()
+    if check_valid:
+      event.CheckIsValid()
     return event
 
   def ToJSON(self):
@@ -828,20 +872,21 @@ class Event(EventBase):
   Defines common fields of all events.
 
   Properties in FIELDS:
-      - id (string, required): Unique UUID of the event.
+      - uuid (string, required): Unique UUID of the event.
       - apiVersion (string, required): Version of the testlog API being
         used.
+      - time (number, required): Time in seconds since the epoch of
+        the event.
       - seq (integer, optional): Sequence number of the event, to help in
         cases where the station date is unreliable.  Should be monotonically
         increasing.
-      - time (datetime or string, required): Date and time of the event.
   """
 
   FIELDS = {
       'uuid': (True, testlog_validator.Validator.String),
       'apiVersion': (True, testlog_validator.Validator.String),
+      'time': (True, testlog_validator.Validator.Number),
       'seq': (False, testlog_validator.Validator.Long),
-      'time': (True, testlog_validator.Validator.Time),
   }
 
   @classmethod
@@ -854,18 +899,19 @@ class _StationBase(Event):
   Cannot be initialized.
 
   Properties in FIELDS:
-      - stationName (string, optional): Name of the station.
+      - dutDeviceId (string, optional): ID of the device under test.  This
+        should be a value tied to the device that will not change in the case
+        that the device is reimaged.
       - stationDeviceId (string, optional): ID of the device being used as
-        the station.  This should be a value tied to the device (such as a
-        MAC address) that will not change in the case that the device is
-        reimaged.
+        the station.  This should be a value tied to the device that will not
+        change in the case that the device is reimaged.
       - stationInstallationId (string, optional): ID of the installation of the
         station.  Every time the station is reimaged, a new installation ID
         should be generated (unique UUID).
   """
 
   FIELDS = {
-      'stationName': (False, testlog_validator.Validator.String),
+      'dutDeviceId': (False, testlog_validator.Validator.String),
       'stationDeviceId': (False, testlog_validator.Validator.String),
       'stationInstallationId': (False, testlog_validator.Validator.String)
   }
@@ -873,6 +919,209 @@ class _StationBase(Event):
   @classmethod
   def GetEventType(cls):
     return None
+
+
+class _GroupChecker(object):
+  def __init__(self, event, name, param_list):
+    self.event = event
+    self.name = name
+    self.param_list = param_list
+  def __enter__(self):
+    if self.event.in_group:
+      raise ValueError('Can\'t enter the same GroupChecker twice')
+    self.event.in_group = self.name
+  def __exit__(self, exc_type, exc_value, traceback):
+    if self.event.in_group != self.name:
+      raise ValueError('This should not happen! Exit the wrong group!')
+    self.event.in_group = None
+    length = len(self.event['parameters'][self.param_list[0]]['data'])
+    for param_name in self.param_list:
+      if length != len(self.event['parameters'][param_name]['data']):
+        raise ValueError('The parameters length in the group(%s) are not '
+                         'the same' % self.name)
+
+
+class StationStatus(_StationBase):
+  """Represents the Station's status when Station is running.
+
+  Properties in FIELDS:
+      - filePath (string, optional): Name or path of the program that generated
+        this message.
+      - serialNumbers (dictionary, optional): A dictionary of serial numbers
+        associated with this device.  May not be exhaustive (since some
+        components may not have been attached yet).
+      - parameters (dictionary, optional): The value can be any type. If
+        numeric, minimum and maximum limits (inclusive) may also be specified.
+        If text, a regex may be specified.  If other types, the value will be
+        serialized.  If limits/regex are specified, the status field should be
+        defined to show success (value match the expectation) or failure.
+  """
+
+  @classmethod
+  def _NumericSchema(cls, label):
+    return schema.AnyOf([
+        schema.Scalar(label, int),
+        schema.Scalar(label, long),
+        schema.Scalar(label, float)])
+
+  def _ValidatorSerialNumberWrapper(*args, **kwargs):
+    # pylint: disable=no-method-argument
+    SCHEMA = schema.Optional(schema.Scalar('serialNumbers.value', basestring))
+    kwargs['schema'] = SCHEMA
+    return testlog_validator.Validator.Dict(*args, **kwargs)
+
+  def _ValidatorParameterWrapper(*args, **kwargs):
+    # pylint: disable=no-method-argument
+    DATA_SCHEMA = schema.List('data', schema.FixedDict(
+        'data',
+        items={},
+        optional_items={
+            'status': schema.Scalar('status', basestring, ['PASS', 'FAIL']),
+            'numericValue': StationStatus._NumericSchema('numericValue'),
+            'expectedMinimum': StationStatus._NumericSchema('expectedMinimum'),
+            'expectedMaximum': StationStatus._NumericSchema('expectedMaximum'),
+            'textValue': schema.Scalar('textValue', basestring),
+            'expectedRegex': schema.Scalar('expectedRegex', basestring),
+            'serializedValue': schema.Scalar('serializedValue', basestring)
+        }))
+    SCHEMA = schema.FixedDict(
+        'parameters.value',
+        items={},
+        optional_items={
+            'description': schema.Scalar('description', basestring),
+            'group': schema.Scalar('group', basestring),
+            'valueUnit': schema.Scalar('valueUnit', basestring),
+            'data': DATA_SCHEMA})
+    kwargs['schema'] = SCHEMA
+    return testlog_validator.Validator.Dict(*args, **kwargs)
+
+  FIELDS = {
+      'filePath': (False, testlog_validator.Validator.String),
+      'serialNumbers': (False, _ValidatorSerialNumberWrapper),
+      'parameters': (False, _ValidatorParameterWrapper),
+  }
+
+  @classmethod
+  def GetEventType(cls):
+    return 'station.status'
+
+  @staticmethod
+  def _CreateParamValueDict(value, min_val=None, max_val=None, regex=None):
+    """Checks types and returns a dict that aligns with Testlog Playbook."""
+    value_dict = {}
+    if isinstance(value, basestring):
+      value_dict['textValue'] = value
+      if min_val is not None or max_val is not None:
+        raise ValueError('This should not happen!')
+      if regex:
+        value_dict['expectedRegex'] = regex
+    elif isinstance(value, (int, long, float)):
+      value_dict['numericValue'] = value
+      if regex:
+        raise ValueError('This should not happen!')
+      if min_val is not None:
+        value_dict['expectedMinimum'] = min_val
+      if max_val is not None:
+        value_dict['expectedMaximum'] = max_val
+    else:
+      value_dict['serializedValue'] = json.dumps(value)
+    return value_dict
+
+  def _LogParamValue(self, name, value_dict):
+    if 'parameters' not in self._data or name not in self['parameters']:
+      self['parameters'] = {
+          'key': name,
+          'value': {
+              'data': [value_dict]}}
+    else:
+      group = self['parameters'][name].get('group', None)
+      if group and group != self.in_group:
+        raise ValueError('The grouped parameter should be used in the '
+                         'GroupChecker')
+
+      self['parameters'][name]['data'].append(value_dict)
+
+  def LogParam(self, name, value):
+    """Logs parameter as specified in Testlog API."""
+    value_dict = StationStatus._CreateParamValueDict(value)
+
+    self._LogParamValue(name, value_dict)
+    return self
+
+  # pylint: disable=redefined-builtin
+  def CheckNumericParam(self, name, value, min=None, max=None):
+    """Checks and logs numeric parameter as specified in Testlog API.
+
+    We use testlog_utils.IsInRange to perform the check.
+    """
+    if not isinstance(value, (int, long, float)):
+      raise ValueError('%r is not a numeric' % value)
+
+    value_dict = StationStatus._CreateParamValueDict(value, min, max)
+
+    # Check the result
+    result = testlog_utils.IsInRange(value, min, max)
+    value_dict['status'] = 'PASS' if result else 'FAIL'
+
+    self._LogParamValue(name, value_dict)
+    return result
+
+  def CheckTextParam(self, name, value, regex=None):
+    """Checks and logs text parameter as specified in Testlog API.
+
+    We use re.search to perform the check.
+    """
+    if not isinstance(value, basestring):
+      raise ValueError('%r is not a text' % value)
+    value_dict = StationStatus._CreateParamValueDict(value, regex=regex)
+
+    # Check the result
+    result = True
+    if not re.search(regex, value):
+      result = False
+    value_dict['status'] = 'PASS' if result else 'FAIL'
+
+    self._LogParamValue(name, value_dict)
+    return result
+
+  def UpdateParam(self, name, description=None, value_unit=None):
+    """Updates parameter's metedata."""
+    if 'parameters' not in self._data or name not in self['parameters']:
+      value_dict = {'data': []}
+      if description:
+        value_dict['description'] = description
+      if value_unit:
+        value_dict['valueUnit'] = value_unit
+      self['parameters'] = {'key': name, 'value': value_dict}
+    else:
+      if description:
+        self['parameters'][name]['description'] = description
+      if value_unit:
+        self['parameters'][name]['valueUnit'] = value_unit
+
+  in_group = None
+
+  def GroupParam(self, name, param_list):
+    """Groups a list of parameters."""
+    if not isinstance(name, basestring) or not name:
+      raise ValueError('name(%r) should be a string and not empty' % name)
+    if not isinstance(param_list, list) or not param_list:
+      raise ValueError('param_list(%r) should be a list and not empty' %
+                       param_list)
+    for param in param_list:
+      if 'parameters' not in self._data or param not in self['parameters']:
+        self['parameters'] = {
+            'key': param,
+            'value': {
+                'group': name,
+                'data': []}}
+      else:
+        if self['parameters'][param]['data']:
+          raise ValueError(
+              'parameter(%s) should not have data before grouping' % param)
+        self['parameters'][param]['group'] = name
+
+    return _GroupChecker(self, name, param_list)
 
 
 class StationInit(_StationBase):
@@ -902,6 +1151,8 @@ class StationMessage(_StationBase):
   """Represents a Python message on the Station.
 
   Properties in FIELDS:
+      - message (string, required): Message text.  Can include stacktrace or
+        other debugging information if applicable.
       - filePath (string, optional): Name or path of the program that
         generated this message.
       - lineNumber (integer, optional): Line number within the program that
@@ -910,18 +1161,16 @@ class StationMessage(_StationBase):
         that generated this message.
       - logLevel (string, optional): Log level of this message. Possible
         values: DEBUG, INFO, WARNING, ERROR, CRITICAL
-      - message (string, required): Message text.  Can include stacktrace or
-        other debugging information if applicable.
       - testRunId (string, optional): If this message was associated with a
         particular test run, its ID should be specified here.
   """
 
   FIELDS = {
+      'message': (True, testlog_validator.Validator.String),
       'filePath': (False, testlog_validator.Validator.String),
       'lineNumber': (False, testlog_validator.Validator.Long),
       'functionName': (False, testlog_validator.Validator.String),
       'logLevel': (False, testlog_validator.Validator.String),
-      'message': (False, testlog_validator.Validator.String),
       'testRunId': (False, testlog_validator.Validator.String)
   }
 
@@ -930,7 +1179,7 @@ class StationMessage(_StationBase):
     return 'station.message'
 
 
-class StationTestRun(_StationBase):
+class StationTestRun(StationStatus):
   """Represents a test run on the Station.
 
   Properties in FIELDS:
@@ -944,30 +1193,35 @@ class StationTestRun(_StationBase):
     - testType (string, required): A name identifying this type of test.
       If it runs multiple times with different configurations, use testName
       to differentiate.
+    - arguments (dictionary, optional): A dictionary representing the arguments
+      of the test configuration.
     - status (string, required): The current status of the test run.
-      Possible values: STARTING, RUNNING, FAILED, PASSED PASSED
-    - startTime (datetime, required): Date and time when the test started.
-    - endTime (datetime, optional): Date and time when the test ended.
+      Possible values: STARTING, RUNNING, FAIL, PASS, UNKNOWN
+    - startTime (number, required): Time in seconds since the epoch when the
+      test started.
+    - endTime (number, optional): Time in seconds since the epoch when the test
+      ended.
     - duration (number, optional): How long the test took to complete.
       Should be the same as endTime - startTime.  Included for convenience.
       Measured in seconds.
+    - operatorId (string, optional): A unique identifier for the operator
+      running this test.
+    - attachments (dictionary, optional): List of attachment files associated
+      with this test run.  If the JSON's location does not imply the path to
+      attachment file, the full path can be specified.
+      May also be a gs:// path.
+    - failures (array, optional): List of failures associated with this test
+      run.  It is recommended for each parameter or series failure to have an
+      entry in this list, but functional or environmental failures may also be
+      included (e.g. device not connected).  The same failure code may be listed
+      multiple times with different details strings.
   """
-
-  # TODO(itspeter): Document 'argument', 'operatorId', 'failures',
-  #                 'serialNumbers', 'parameters' and 'series'.
-
-  @classmethod
-  def _NumericSchema(cls, label):
-    return schema.AnyOf([
-        schema.Scalar(label, int),
-        schema.Scalar(label, long),
-        schema.Scalar(label, float)])
 
   def _ValidatorArgumentWrapper(*args, **kwargs):
     # pylint: disable=no-method-argument
     SCHEMA = schema.FixedDict(
         'arguments.value',
-        items={'value': schema.Scalar('value', object)},
+        items={'value': schema.Scalar('value', basestring)},
         optional_items={
             'description': schema.Scalar('description', basestring)})
     kwargs['schema'] = SCHEMA
@@ -981,55 +1235,6 @@ class StationTestRun(_StationBase):
                'details': schema.Scalar('details', basestring)})
     kwargs['schema'] = SCHEMA
     return testlog_validator.Validator.List(*args, **kwargs)
-
-  def _ValidatorSerialNumberWrapper(*args, **kwargs):
-    # pylint: disable=no-method-argument
-    SCHEMA = schema.Optional(schema.Scalar('serialNumbers.value', basestring))
-    kwargs['schema'] = SCHEMA
-    return testlog_validator.Validator.Dict(*args, **kwargs)
-
-  def _ValidatorParameterWrapper(*args, **kwargs):
-    # pylint: disable=no-method-argument
-    SCHEMA = schema.FixedDict(
-        'parameters.value',
-        items={},
-        optional_items={
-            'description': schema.Scalar('description', basestring),
-            'group': schema.Scalar('group', basestring),
-            'status': schema.Scalar('status', basestring, ['PASS', 'FAIL']),
-            'valueUnit': schema.Scalar('valueUnit', basestring),
-            'numericValue': StationTestRun._NumericSchema('numericValue'),
-            'expectedMinimum': StationTestRun._NumericSchema('expectedMinimum'),
-            'expectedMaximum': StationTestRun._NumericSchema('expectedMaximum'),
-            'textValue': schema.Scalar('textValue', basestring),
-            'expectedRegex': schema.Scalar('expectedRegex', basestring)})
-    kwargs['schema'] = SCHEMA
-    return testlog_validator.Validator.Dict(*args, **kwargs)
-
-  def _ValidatorSeriesWrapper(*args, **kwargs):
-    # pylint: disable=no-method-argument
-    DATA_SCHEMA = schema.List('data', schema.FixedDict(
-        'data',
-        items={
-            'key': StationTestRun._NumericSchema('key')},
-        optional_items={
-            'status': schema.Scalar('status', basestring, ['PASS', 'FAIL']),
-            'numericValue': StationTestRun._NumericSchema('numericValue'),
-            'expectedMinimum': StationTestRun._NumericSchema('expectedMinimum'),
-            'expectedMaximum': StationTestRun._NumericSchema('expectedMaximum')
-        }))
-    SCHEMA = schema.FixedDict(
-        'series.value',
-        items={},
-        optional_items={
-            'description': schema.Scalar('description', basestring),
-            'group': schema.Scalar('group', basestring),
-            'status': schema.Scalar('status', basestring, ['PASS', 'FAIL']),
-            'keyUnit': schema.Scalar('keyUnit', basestring),
-            'valueUnit': schema.Scalar('valueUnit', basestring),
-            'data': DATA_SCHEMA})
-    kwargs['schema'] = SCHEMA
-    return testlog_validator.Validator.Dict(*args, **kwargs)
 
   def _ValidatorAttachmentWrapper(*args, **kwargs):
     # pylint: disable=no-method-argument
@@ -1048,96 +1253,23 @@ class StationTestRun(_StationBase):
       'testType': (True, testlog_validator.Validator.String),
       'arguments': (False, _ValidatorArgumentWrapper),
       'status': (True, testlog_validator.Validator.Status),
-      'startTime': (True, testlog_validator.Validator.Time),
-      'endTime': (False, testlog_validator.Validator.Time),
+      'startTime': (True, testlog_validator.Validator.Number),
+      'endTime': (False, testlog_validator.Validator.Number),
       'duration': (False, testlog_validator.Validator.Number),
       'operatorId': (False, testlog_validator.Validator.String),
       'attachments': (False, _ValidatorAttachmentWrapper),
       'failures': (False, _ValidatorFailureWrapper),
-      'serialNumbers': (False, _ValidatorSerialNumberWrapper),
-      'parameters': (False, _ValidatorParameterWrapper),
-      'series': (False, _ValidatorSeriesWrapper),
   }
 
   # Possible values for the `status` field.
   # TODO(itspeter): Check on log when will UNKNOWN emitted.
   STATUS = type_utils.Enum([
-      'STARTING', 'RUNNING', 'FAILED', 'PASSED',
+      'STARTING', 'RUNNING', 'FAIL', 'PASS',
       'UNKNOWN'])  # States that doesn't apply for StationTestRun
 
   @classmethod
   def GetEventType(cls):
     return 'station.test_run'
-
-  def CastFields(self):
-    super(StationTestRun, self).CastFields()
-    if 'series' in self:
-      s = Series(__METADATA__={})
-      s.update(self['series'])
-      self._data.update(series=s)
-
-  @staticmethod
-  def _CheckParamArguments(value, description, value_unit,
-                           min_val, max_val, regex):
-    """Checks types and returns a dict that aligns with Testlog Playbook."""
-    value_dict = {}
-    if isinstance(value, basestring):
-      value_dict['textValue'] = value
-      if min_val is not None or max_val is not None:
-        raise ValueError(
-            'Not expecting a text parameter(%r) with numeric limits' % value)
-      if regex:
-        value_dict['expectedRegex'] = regex
-    elif isinstance(value, (int, long, float)):
-      value_dict['numericValue'] = value
-      if regex:
-        raise ValueError(
-            'Not expecting a numeric parameter(%r) with regular expression' % (
-                value))
-      if min_val is not None:
-        value_dict['expectedMinimum'] = min_val
-      if max_val is not None:
-        value_dict['expectedMaximum'] = max_val
-    else:
-      raise ValueError(
-          'Parameter\'s value supports only numeric or text, not %r' % (
-              type(value)))
-
-    if description:
-      value_dict.update({'description': description})
-    if value_unit:
-      value_dict.update({'valueUnit': value_unit})
-    return value_dict
-
-  def LogParam(self, name, value, description=None, value_unit=None):
-    """Logs parameter as specified in Testlog API."""
-    value_dict = StationTestRun._CheckParamArguments(
-        value, description, value_unit, None, None, None)
-
-    self['parameters'] = {'key': name, 'value': value_dict}
-    return self
-
-  # pylint: disable=redefined-builtin
-  def CheckParam(self, name, value, min=None, max=None, regex=None,
-                 description=None, value_unit=None):
-    """Checks and logs parameter as specified in Testlog API.
-
-    We use testlog_utils.IsInRange and re.search to perform the check.
-    """
-    value_dict = StationTestRun._CheckParamArguments(
-        value, description, value_unit, min, max, regex)
-
-    # Check the result
-    result = True
-    if regex:
-      if not re.search(regex, value):
-        result = False
-    if min is not None or max is not None:
-      result = testlog_utils.IsInRange(value, min, max)
-    value_dict['status'] = 'PASS' if result else 'FAIL'
-
-    self['parameters'] = {'key': name, 'value': value_dict}
-    return result
 
   def AttachFile(self, path, mime_type, name, delete=True, description=None):
     """Attaches a file as specified in Testlog API."""
@@ -1160,7 +1292,7 @@ class StationTestRun(_StationBase):
 
   def AddArgument(self, key, value, description=None):
     """Adds arguments."""
-    value_dict = {'value': value}
+    value_dict = {'value': json.dumps(value)}
     if description:
       value_dict['description'] = description
     self['arguments'] = {'key': key, 'value': value_dict}
@@ -1173,90 +1305,8 @@ class StationTestRun(_StationBase):
     if isinstance(code, (int, long)):
       code = '0x%x' % code
     if not isinstance(code, basestring):
-      raise ValueError('code(%r) should be a string' % code)
+      raise ValueError('code(%r) should be a string or an integer' % code)
     if not isinstance(details, basestring):
       raise ValueError('details(%r) should be a string' % details)
     self['failures'] = {'code': code, 'details': details}
     return self
-
-  def CreateSeries(self, name,
-                   description=None, key_unit=None, value_unit=None):
-    """Returns a Series object as specified in Testlog API."""
-    value_dict = {}
-    if description:
-      value_dict['description'] = description
-    if key_unit:
-      value_dict['keyUnit'] = key_unit
-    if value_unit:
-      value_dict['valueUnit'] = value_unit
-    s = Series(__METADATA__=value_dict)
-    self['series'] = {'key': name, 'value': s}
-    return s
-
-
-class Series(dict):
-  def __init__(*args, **kwargs):  # pylint: disable=no-method-argument
-    # Allowed only a specific form of initialization.
-    assert len(args) == 1  # Expecting only self
-    assert isinstance(kwargs['__METADATA__'], dict)
-    super(Series, args[0]).__init__(kwargs['__METADATA__'])
-
-  @staticmethod
-  def CheckIsNumeric(v):
-    return isinstance(v, (int, long, float))
-
-  @staticmethod
-  def _CheckArguments(key, value, min_val, max_val):
-    # Only accept numeric value.
-    for v in [key, value]:
-      if not Series.CheckIsNumeric(v):
-        raise ValueError('%r is not a numeric' % v)
-
-    # Only accept numeric value or None
-    for v in [min_val, max_val]:
-      if v is not None and not Series.CheckIsNumeric(v):
-        raise ValueError('%r is not a numeric or None' % v)
-
-  @classmethod
-  def UpdateSession(cls):
-    if GetGlobalTestlog().last_test_run:
-      Log(GetGlobalTestlog().last_test_run)
-
-  def _LogValue(self, key, value, status, min_val, max_val, call_update=True):
-    value_dict = {'key': key, 'numericValue': value}
-    if status:
-      value_dict['status'] = status
-    if min_val is not None:
-      value_dict['expectedMinimum'] = min_val
-    if max_val is not None:
-      value_dict['expectedMaximum'] = max_val
-
-    if 'data' not in self:
-      self['data'] = []
-    self['data'].append(value_dict)
-    # Update the session JSON
-    if call_update:
-      self.UpdateSession()
-
-  def LogValue(self, key, value, call_update=True):
-    Series._CheckArguments(key, value, None, None)
-    self._LogValue(key, value, None, None, None, call_update)
-
-  def LogSeries(self, series):
-    for key, value in series.iteritems():
-      self.LogValue(key, value, call_update=False)
-    self.UpdateSession()
-
-  def CheckValue(self, key, value, min=None, max=None, call_update=True):
-    # pylint: disable=redefined-builtin
-    Series._CheckArguments(key, value, min, max)
-    result = testlog_utils.IsInRange(value, min_val=min, max_val=max)
-    status = 'PASS' if result else 'FAIL'
-    self._LogValue(key, value, status, min, max, call_update)
-    return result
-
-  # pylint: disable=redefined-builtin
-  def CheckSeries(self, series, min=None, max=None):
-    for key, value in series.iteritems():
-      self.CheckValue(key, value, min, max, call_update=False)
-    self.UpdateSession()

@@ -497,8 +497,16 @@ class VSWR(test_case.TestCase):
       max: the maximum threshold of the trace.
     """
     # pylint: disable=redefined-builtin
-    log_series = testlog.CreateSeries(name, key_unit='Hz', value_unit='dB')
+    group_checker = testlog.GroupParam(name, [name, name + '_frequency'])
+    testlog.UpdateParam(name, value_unit='dB')
+    testlog.UpdateParam(name + '_frequency', value_unit='Hz')
     if min is None and max is None:
-      log_series.LogSeries(trace)
+      for freq, data in trace.iteritems():
+        with group_checker:
+          testlog.LogParam(name, data)
+          testlog.LogParam(name + '_frequency', freq)
     else:
-      log_series.CheckSeries(trace, min=min, max=max)
+      for freq, data in trace.iteritems():
+        with group_checker:
+          testlog.CheckNumericParam(name, data, min=min, max=max)
+          testlog.LogParam(name + '_frequency', freq)

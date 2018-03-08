@@ -22,9 +22,9 @@ from testlog_pkg.utils import schema
 from testlog_pkg.utils import time_utils
 
 
+SAMPLE_DATETIME_FLOAT = 618538088.888888
 SAMPLE_DATETIME = datetime.datetime(1989, 8, 8, 8, 8, 8, 888888)
-SAMPLE_DATETIME_STRING = '1989-08-08T08:08:08.888Z'
-SAMPLE_DATETIME_ROUNDED_MIL = datetime.datetime(1989, 8, 8, 8, 8, 8, 888000)
+SAMPLE_DATETIME_STRING = '618538088.888888'
 
 
 class TestlogTest(unittest.TestCase):
@@ -81,14 +81,19 @@ class TestlogEventTest(unittest.TestCase):
     self.assertEquals(output, original)
 
   def testNewEventTime(self):
-    event = testlog.StationInit({'time': SAMPLE_DATETIME})
-    self.assertEquals(event['time'], SAMPLE_DATETIME_ROUNDED_MIL)
-    event = testlog.StationInit({'time': SAMPLE_DATETIME_ROUNDED_MIL})
-    self.assertEquals(event['time'], SAMPLE_DATETIME_ROUNDED_MIL)
-    event = testlog.StationInit({'time': SAMPLE_DATETIME_STRING})
-    self.assertEquals(event['time'], SAMPLE_DATETIME_ROUNDED_MIL)
+    event = testlog.StationInit({'time': SAMPLE_DATETIME_FLOAT})
+    self.assertEquals(event['time'], SAMPLE_DATETIME_FLOAT)
     with self.assertRaises(ValueError):
       event = testlog.StationInit({'time': None})
+    event = testlog.StationTestRun({
+        'parameters': {
+            'A': {
+                'group': 'GROUP',
+                'data': [{'numericValue': 1}]},
+            'B': {
+                'group': 'GROUP',
+                'data': [{'numericValue': 2}, {'numericValue': 3}]}}
+    })
 
   def testPopulateReturnsSelf(self):
     event = testlog.StationInit()
@@ -98,14 +103,47 @@ class TestlogEventTest(unittest.TestCase):
     with self.assertRaises(ValueError):
       testlog.StationTestRun({'status': True})
 
-  def testCheckMissingFields(self):
+  def testCheckIsValid(self):
     event = testlog.StationInit()
     event['failureMessage'] = 'Missed fields'
-    try:
-      event.CheckMissingFields()
-    except testlog_utils.TestlogError as e:
-      self.assertEqual(repr(e), 'TestlogError("Missing fields: [\'count\', '
-                       '\'success\', \'uuid\', \'apiVersion\', \'time\']",)')
+    event['apiVersion'] = '0.2'
+    with self.assertRaisesRegexp(
+        testlog_utils.TestlogError,
+        'Missing fields: \\[\'count\', \'success\', \'uuid\', \'time\'\\]'):
+      event.CheckIsValid()
+
+    event = testlog.StationTestRun({
+        'uuid': '8b127476-2604-422a-b9b1-f05e4f14bf72',
+        'apiVersion': '0.2',
+        'time': SAMPLE_DATETIME_FLOAT,
+        'testRunId': '8b127472-4593-4be8-9e94-79f228fc1adc',
+        'testName': 'the_test',
+        'testType': 'aaaa',
+        'status': 'PASS',
+        'startTime': SAMPLE_DATETIME_FLOAT,
+    })
+    event.CheckIsValid()
+    event['attachments'] = {'key': 'att_key1',
+                            'value': {'path': '/path/to/file',
+                                      'mimeType': 'text/plain'}}
+    with self.assertRaisesRegexp(
+        testlog_utils.TestlogError,
+        r"Missing fields: \['serialNumbers'\]"):
+      event.CheckIsValid()
+
+    event['serialNumbers'] = {'key': 'A KEY', 'value': 'SN'}
+    event.CheckIsValid()
+
+    group_checker = event.GroupParam('GROUP', ['A', 'B'])
+    with group_checker:
+      event.LogParam('A', 1)
+      event.LogParam('B', 2)
+    event.CheckIsValid()
+    event['parameters']['A']['data'].append({'numericValue': 3})
+    with self.assertRaisesRegexp(
+        testlog_utils.TestlogError,
+        r'The parameters length in the group\(GROUP\) are not the same'):
+      event.CheckIsValid()
 
   def testAddArgument(self):
     event = testlog.StationTestRun()
@@ -114,104 +152,124 @@ class TestlogEventTest(unittest.TestCase):
     self.assertEquals(
         testlog.StationTestRun({
             'arguments': {
-                'K1': {'value': 'V1'},
-                'K2': {'value': 2.2, 'description': 'D2'}}}),
+                'K1': {'value': '"V1"'},
+                'K2': {'value': '2.2', 'description': 'D2'}}}),
         event)
 
-  def testLogParamAndCheckParam(self):
+  def testParameters(self):
     event = testlog.StationTestRun()
-    event.LogParam(name='text', value='unittest',
-                   description='None', value_unit='pcs')
+    group_checker = event.GroupParam('GG', ['num', 'text'])
+    with self.assertRaisesRegexp(
+        ValueError,
+        r'The grouped parameter should be used in the GroupChecker'):
+      event.LogParam(name='num', value=3388)
+    with self.assertRaisesRegexp(
+        ValueError,
+        r'The grouped parameter should be used in the GroupChecker'):
+      event.LogParam(name='text', value='unittest')
 
-    event.LogParam(name='num', value=3388)
+    event.UpdateParam('text', description='TEST UPDATE')
+    with group_checker:
+      event.LogParam(name='text', value='unittest')
+      event.LogParam(name='num', value=3388)
+    event.LogParam(name='list', value=[1, 2, 3])
+
+    with self.assertRaisesRegexp(
+        ValueError,
+        r'parameter\(text\) should not have data before grouping'):
+      # pylint: disable=unused-variable
+      invalid_group_checker = event.GroupParam('GG', ['text', 'what'])
+
     self.assertEqual(
         testlog.StationTestRun({
             'parameters': {
                 'text': {
-                    'valueUnit': 'pcs',
-                    'textValue': 'unittest',
-                    'description': 'None'},
+                    'group': 'GG',
+                    'description': 'TEST UPDATE',
+                    'data': [
+                        {'textValue': 'unittest'}]},
                 'num': {
-                    'numericValue': 3388}}}),
+                    'group': 'GG',
+                    'data': [
+                        {'numericValue': 3388}]},
+                'list': {
+                    'data': [
+                        {'serializedValue': '[1, 2, 3]'}]}}}),
         event)
 
-    with self.assertRaisesRegexp(ValueError, 'numeric or text'):
-      event.LogParam(name='oops', value=[1, 2, 3])
+    with group_checker:
+      event.LogParam(name='text', value='unittest2')
+      event.LogParam(name='num', value=3389)
+    event.LogParam(name='list', value={'1': 2, '3': [4]})
 
-    with self.assertRaisesRegexp(ValueError, 'with numeric limits'):
-      event.CheckParam(name='oops', value='yoha', min=30)
-
-    with self.assertRaisesRegexp(ValueError, 'with regular expression'):
-      event.CheckParam(name='oops', value=30, regex='yoha')
-
-    self.assertTrue(
-        event.CheckParam(name='InRange0', value=30, min=30))
-    self.assertFalse(
-        event.CheckParam(name='InRange1', value=30, max=29))
-    self.assertTrue(
-        event.CheckParam(name='Regex0', value='oops', regex='o.*s'))
-    self.assertFalse(
-        event.CheckParam(name='Regex1', value='oops', regex='y.*a'))
-    self.assertTrue(
-        event.CheckParam(
-            name='Regex2', value='Hello world', regex='^H.*d$'))
-    self.assertFalse(
-        event.CheckParam(
-            name='Regex3', value='--Hello world--', regex='^H.*d$'))
-    self.assertTrue(
-        event.CheckParam(
-            name='Regex4', value='--Hello world--', regex='H.*d'))
-
-  def testCreateSeries(self):
-    event = testlog.StationTestRun()
-    s1 = event.CreateSeries(name='s1')
-    s1.LogValue(key=1988, value=1234)
-
-    # Duplicate series name
-    with self.assertRaisesRegexp(ValueError, 'duplicated'):
-      s2 = event.CreateSeries(name='s1')
-    # Not a numeric
-    with self.assertRaisesRegexp(ValueError, 'numeric'):
-      s1.LogValue(key='1988', value=1234)
-    with self.assertRaisesRegexp(ValueError, 'numeric'):
-      s1.LogValue(key=1988, value='1234')
-
-    # Test float type
-    s1.LogValue(key=1987.5, value=5678.0)
-
-    s2 = event.CreateSeries(name='s2', description='withUnit',
-                            key_unit='MHz', value_unit='dBm')
-    s2.LogValue(key=2300, value=31.5)
-    # Give a range to fail.
-    s2.CheckValue(key=2305, value=31.5, min=None, max=30)
-    # The key is not checked for duplication as it is a list.
-    # Expect to see a FAIL and a PASS in the series of same key.
-    s2.CheckValue(key=2305, value=30.5, min=None, max=31)
+    with group_checker:
+      event.CheckTextParam(name='text', value='= =', regex=r'[\^\<]_[^=]')
+      event.CheckTextParam(name='text', value='^_<', regex=r'[\^\<]_[^=]')
+      event.CheckNumericParam(name='num', value=3390, min=0)
+      event.CheckNumericParam(name='num', value=3391, max=0)
+    event.UpdateParam('list', description='TEST UPDATE2', value_unit='UNIT')
 
     self.assertEqual(
         testlog.StationTestRun({
-            'series': {
-                's1': {
+            'parameters': {
+                'text': {
+                    'group': 'GG',
+                    'description': 'TEST UPDATE',
                     'data': [
-                        {'numericValue': 1234, 'key': 1988},
-                        {'numericValue': 5678.0, 'key': 1987.5}]},
-                's2': {
-                    'keyUnit': 'MHz',
-                    'valueUnit': 'dBm',
-                    'description': 'withUnit',
+                        {'textValue': 'unittest'},
+                        {'textValue': 'unittest2'},
+                        {'textValue': '= =', 'expectedRegex': r'[\^\<]_[^=]',
+                         'status': 'FAIL'},
+                        {'textValue': '^_<', 'expectedRegex': r'[\^\<]_[^=]',
+                         'status': 'PASS'}]},
+                'num': {
+                    'group': 'GG',
                     'data': [
-                        {'numericValue': 31.5, 'key': 2300},
-                        {
-                            'status': 'FAIL',
-                            'numericValue': 31.5,
-                            'expectedMaximum': 30,
-                            'key': 2305},
-                        {
-                            'status': 'PASS',
-                            'numericValue': 30.5,
-                            'expectedMaximum': 31,
-                            'key': 2305}]}}}),
+                        {'numericValue': 3388},
+                        {'numericValue': 3389},
+                        {'numericValue': 3390, 'expectedMinimum': 0,
+                         'status': 'PASS'},
+                        {'numericValue': 3391, 'expectedMaximum': 0,
+                         'status': 'FAIL'}]},
+                'list': {
+                    'description': 'TEST UPDATE2',
+                    'valueUnit': 'UNIT',
+                    'data': [
+                        {'serializedValue': '[1, 2, 3]'},
+                        {'serializedValue': '{"1": 2, "3": [4]}'}]}}}),
         event)
+
+    with self.assertRaisesRegexp(ValueError, 'is not a numeric'):
+      event.CheckNumericParam(name='oops', value='yoha')
+
+    with self.assertRaisesRegexp(ValueError, 'is not a text'):
+      event.CheckTextParam(name='oops', value=30)
+
+    self.assertTrue(
+        event.CheckNumericParam(name='InRange0', value=30, min=30))
+    self.assertFalse(
+        event.CheckNumericParam(name='InRange1', value=30, max=29))
+    self.assertTrue(
+        event.CheckTextParam(name='Regex0', value='oops', regex='o.*s'))
+    self.assertFalse(
+        event.CheckTextParam(name='Regex1', value='oops', regex='y.*a'))
+    self.assertTrue(
+        event.CheckTextParam(
+            name='Regex2', value='Hello world', regex='^H.*d$'))
+    self.assertFalse(
+        event.CheckTextParam(
+            name='Regex3', value='--Hello world--', regex='^H.*d$'))
+    self.assertTrue(
+        event.CheckTextParam(
+            name='Regex4', value='--Hello world--', regex='H.*d'))
+
+    with self.assertRaisesRegexp(
+        ValueError,
+        r'The parameters length in the group\(GG\) are not the same'):
+      with group_checker:
+        event.LogParam(name='num', value=3388)
+        event.LogParam(name='list', value=[1, 2, 3])
+        event.LogParam(name='list', value=[1, 2, 3])
 
   def testAttachFileAndAttachContent(self):
     self._SimulateSubSession()
@@ -289,18 +347,16 @@ class TestlogEventTest(unittest.TestCase):
     testlog.AddArgument('K1', 'V1')
     testlog.AddArgument('K2', 2.2, 'D2')
 
-    testlog.LogParam(name='text', value='unittest',
-                     description='None', value_unit='pcs')
+    testlog.LogParam(name='text', value='unittest')
+    testlog.UpdateParam(name='text', description='None', value_unit='pcs')
     testlog.LogParam(name='num', value=3388)
 
-    s1 = testlog.CreateSeries(name='s1')
-    s1.LogValue(key=1988, value=1234)
-    s1.LogValue(key=1987.5, value=5678.0)
-    s2 = testlog.CreateSeries(name='s2', description='withUnit',
-                              key_unit='MHz', value_unit='dBm')
-    s2.LogValue(key=2300, value=31.5)
-    s2.CheckValue(key=2305, value=31.5, min=None, max=30)
-    s2.CheckValue(key=2305, value=30.5, min=None, max=31)
+    testlog.LogParam('s1', 1234)
+    testlog.LogParam('s1', 5678.0)
+    testlog.UpdateParam('s2', description='withUnit', value_unit='dBm')
+    testlog.LogParam('s2', 31.5)
+    testlog.CheckNumericParam('s2', 31.5, max=30)
+    testlog.CheckNumericParam('s2', 30.5, max=31)
 
     CONTENT = 'Life is a maze and love is a riddle'
     TEST_FILENAME = 'TextFile.txt'
@@ -326,40 +382,36 @@ class TestlogEventTest(unittest.TestCase):
     self.assertEqual(
         event['arguments'],
         {
-            'K1': {'value': 'V1'},
-            'K2': {'value': 2.2, 'description': 'D2'}})
+            'K1': {'value': '"V1"'},
+            'K2': {'value': '2.2', 'description': 'D2'}})
     self.assertEqual(
         event['parameters'],
         {
             'text': {
                 'valueUnit': 'pcs',
-                'textValue': 'unittest',
-                'description': 'None'},
+                'description': 'None',
+                'data': [
+                    {'textValue': 'unittest'}]},
             'num': {
-                'numericValue': 3388}})
-    self.assertEqual(
-        event['series'],
-        {
+                'data': [
+                    {'numericValue': 3388}]},
             's1': {
                 'data': [
-                    {'numericValue': 1234, 'key': 1988},
-                    {'numericValue': 5678.0, 'key': 1987.5}]},
+                    {'numericValue': 1234},
+                    {'numericValue': 5678.0}]},
             's2': {
-                'keyUnit': 'MHz',
                 'valueUnit': 'dBm',
                 'description': 'withUnit',
                 'data': [
-                    {'numericValue': 31.5, 'key': 2300},
+                    {'numericValue': 31.5},
                     {
                         'status': 'FAIL',
                         'numericValue': 31.5,
-                        'expectedMaximum': 30,
-                        'key': 2305},
+                        'expectedMaximum': 30},
                     {
                         'status': 'PASS',
                         'numericValue': 30.5,
-                        'expectedMaximum': 31,
-                        'key': 2305}]}})
+                        'expectedMaximum': 31}]}})
     paths = set()
     for att_name, att_dict in event['attachments'].iteritems():
       path = att_dict['path']
@@ -375,7 +427,7 @@ class TestlogEventTest(unittest.TestCase):
         'uuid': '8b127476-2604-422a-b9b1-f05e4f14bf72',
         'type': 'station.test_run',
         'apiVersion': '0.1',
-        'time': '2017-01-05T13:01:45.503Z',
+        'time': SAMPLE_DATETIME_FLOAT,
         'seq': 8202191,
         'stationDeviceId': 'e7d3227e-f12d-42b3-9c64-0d9e8fa02f6d',
         'stationInstallationId': '92228272-056e-4329-a432-64d3ed6dfa0c',
@@ -383,23 +435,27 @@ class TestlogEventTest(unittest.TestCase):
         'testName': 'the_test',
         'testType': 'aaaa',
         'arguments': {},
-        'status': 'PASSED',
-        'startTime': '2017-01-05T13:01:45.489Z',
-        'failures': [],
-        'parameters': {},
-        'series': {}
+        'status': 'PASS',
+        'startTime': SAMPLE_DATETIME_FLOAT,
     }
+    with self.assertRaisesRegexp(testlog_utils.TestlogError,
+                                 'Empty dict is invalid'):
+      _unused_invalid_event = testlog.EventBase.FromDict(example_dict)
+    del example_dict['arguments']
     _unused_valid_event = testlog.EventBase.FromDict(example_dict)
+    example_dict['arguments'] = {}
     example_dict['arguments']['A'] = {'value': 'yoyo'}
-    example_dict['arguments']['B'] = {'value': 9.53543, 'description': 'number'}
-    example_dict['arguments']['C'] = {'value': -9}
+    example_dict['arguments']['B'] = {'value': '9.53543', 'description': '123'}
+    example_dict['arguments']['C'] = {'value': '-9'}
+    example_dict['failures'] = []
     example_dict['failures'].append({'code': 'C', 'details': 'D'})
     example_dict['serialNumbers'] = {}
     example_dict['serialNumbers']['A'] = 'B'
+    example_dict['parameters'] = {}
     example_dict['parameters']['A'] = {'description': 'D'}
-    example_dict['series']['A'] = {'description': 'D', 'data': [
-        {'key': 987, 'status': 'PASS'},
-        {'key': 7.8, 'status': 'FAIL'}]}
+    example_dict['parameters']['B'] = {'description': 'D', 'data': [
+        {'numericValue': 987, 'status': 'PASS'},
+        {'numericValue': 7.8, 'status': 'FAIL'}]}
     _unused_valid_event = testlog.EventBase.FromDict(example_dict)
     with self.assertRaises(schema.SchemaException):
       example_dict['arguments']['D'] = {}
@@ -444,8 +500,8 @@ class TestlogE2ETest(unittest.TestCase):
 
     # Additional steps that because multiprocessing.Process doesn't provide
     # an argument to set the env like subprocess.Popen.
-    testlog.LogParam(name='NAME', value=1,
-                     description='DESCRIPTION')
+    testlog.LogParam(name='NAME', value=1)
+    testlog.UpdateParam('NAME', description='DESCRIPTION')
 
     # Move a file normally.
     file_to_attach = CreateTextFile()
@@ -480,14 +536,15 @@ class TestlogE2ETest(unittest.TestCase):
 
     # Prepare for another test session.
     session_uuid = time_utils.TimedUUID()
-    session_test_run = testlog.StationTestRun()
-    session_test_run.Populate({
+    session_test_run = testlog.StationTestRun({
         'stationDeviceId': _GetDeviceID(),
         'stationInstallationId': _GetInstallationID(),
         'testRunId': session_uuid,
-        'testName': 'TestlogDemo',
+        'testType': 'TestlogDemo',
+        'testName': 'TestlogDemo.Test',
         'status': testlog.StationTestRun.STATUS.STARTING,
-        'startTime': SAMPLE_DATETIME_STRING,
+        'startTime': SAMPLE_DATETIME_FLOAT,
+        'serialNumbers': {'serial_number': 'TestlogDemo'}
         })
     # Go
     session_json_path = testlog.InitSubSession(
@@ -529,14 +586,16 @@ class TestlogE2ETest(unittest.TestCase):
         {'type': 'station.message', 'seq': 6,
          'functionName': 'testSimulatedTestInAnotherProcess',
          'logLevel': 'INFO', 'testRunId': session_uuid},
-        # Missing seq=7 and seq=8 because they are sent to primary JSON.
-        {'type': 'station.message', 'seq': 9,
+        # Missing seq=7 to seq=9 because they are sent to primary JSON.
+        {'type': 'station.message', 'seq': 10,
          'functionName': 'testE2E', 'logLevel': 'INFO', 'message': '$OUT$'},
         # Don't check attachments since the filename is not deterministic.
-        {'type': 'station.test_run', 'seq': 10,
-         'testName': 'TestlogDemo', 'testRunId': session_uuid,
+        {'type': 'station.test_run', 'seq': 11, 'testType': 'TestlogDemo',
+         'testName': 'TestlogDemo.Test', 'testRunId': session_uuid,
          'parameters': {
-             'NAME': {'numericValue': 1, 'description': 'DESCRIPTION'}}},
+             'NAME': {'data': [{'numericValue': 1}],
+                      'description': 'DESCRIPTION'}},
+         'serialNumbers': {'serial_number': 'TestlogDemo'}}
     ]
     for i, json_string in enumerate(primary_json):
       dct = json.loads(json_string)

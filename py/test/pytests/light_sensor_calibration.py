@@ -198,7 +198,6 @@ class ALSFixture(test_case.TestCase):
     self.scale_factor = None  # value of calibrated scale factor
     self.bias = None  # value of calibrated bias
     self.light_index = -1  # ALS test stage
-    self.dummy_index = 0  # Dummy index key for Series with only one log
 
     self.monitor = media_utils.MediaMonitor('usb-serial', None)
 
@@ -229,17 +228,6 @@ class ALSFixture(test_case.TestCase):
     message = 'FAIL %r: %r' % (code, details)
     logging.exception(message)
     session.console.info(message)
-
-  def _LogValue(self, srs, key, value, call_update=True, prefix=''):
-    """Custom log function to log."""
-    srs.LogValue(key=key, value=value, call_update=call_update)
-    session.console.info('%s%r: %r', prefix, key, value)
-
-  def _CheckValue(self, srs, key, value, vmin, vmax, call_update=True):
-    """Using testlog to check value is within the boundary"""
-    success = srs.CheckValue(key, value, vmin, vmax, call_update)
-    self._Log('%s %r: %r (min=%s, max=%s)' % (success, key, value, vmin, vmax))
-    return success
 
   def _ALSTest(self):
     try:
@@ -366,28 +354,38 @@ class ALSFixture(test_case.TestCase):
     self._SwitchLight(self.config['light_seq'][self.light_index])
     return True
 
-  def _SampleLuxValue(self, series, delay, samples):
+  def _SampleLuxValue(self, param_name, delay, samples):
     if self.args.mock_mode:
       return ALS_MOCK_VALUE
     try:
+      testlog.UpdateParam(
+          param_name + '_time',
+          value_unit='seconds')
+      group_checker = testlog.GroupParam(param_name,
+                                         [param_name, param_name + '_time'])
       buf = []
       start_time = time.time()
       for unused_i in xrange(samples):
         self.Sleep(delay)
         buf.append(self.als_controller.GetLuxValue())
-        self._LogValue(series, time.time() - start_time, buf[-1])
+        with group_checker:
+          elapsed_time = time.time() - start_time
+          testlog.LogParam(param_name, buf[-1])
+          testlog.LogParam(param_name + '_time', elapsed_time)
+          self._Log('%r: %r' % (elapsed_time, buf[-1]))
     except ambient_light_sensor.AmbientLightSensorException as e:
       logging.exception('Error reading ALS value: %s', e.message)
       raise
     return float(np.mean(buf))
 
   def _SampleALS(self, light_name):
-    srs = testlog.CreateSeries(
-        name='Calibrating' + light_name,
+    param_name = 'Calibrating' + light_name
+    testlog.UpdateParam(
+        param_name,
         description=('Sampled calibrating lux for %s over time' % light_name),
-        key_unit='seconds',
         value_unit='lx')
-    sampled_lux = self._SampleLuxValue(srs, self.read_delay, self.n_samples)
+    sampled_lux = self._SampleLuxValue(
+        param_name, self.read_delay, self.n_samples)
     preset_lux = self.config['luxs'][self.light_index]
     self._LogArgument('Preset%s' % light_name, preset_lux,
                       'Preset calibrating lux value.')
@@ -399,31 +397,32 @@ class ALSFixture(test_case.TestCase):
     # Validating test result with presetted validating light:
     # y * (1 - validating_err_limit) <= x <=  y * (1 + validating_err_limit)
     # where y is light intensity v_lux, and x is read lux value v_val.
-    srs = testlog.CreateSeries(
-        name='ValidatingLux',
+    testlog.UpdateParam(
+        'ValidatingLux',
         description=('Sampled validating lux for %s over time' % light_name),
-        key_unit='seconds',
         value_unit='lx')
-    sampled_vlux = self._SampleLuxValue(srs, self.read_delay, self.n_samples)
+    sampled_vlux = self._SampleLuxValue(
+        'ValidatingLux', self.read_delay, self.n_samples)
     preset_vlux = float(self.config['validating_lux'])
     self._LogArgument('Preset%s' % light_name, preset_vlux,
                       'Preset validating lux value.')
     self._LogArgument('MeanValidatingLux', sampled_vlux,
                       'Mean of sampled validating lux value.')
-    srs = testlog.CreateSeries(
+    testlog.UpdateParam(
         name='ValidatingLuxMean',
         description=('Mean of sampled validating lux for %s' % light_name),
-        key_unit=None,
         value_unit='lx')
     err_limit = float(self.config['validating_err_limit'])
     lower_bound = preset_vlux * (1 - err_limit)
     upper_bound = preset_vlux * (1 + err_limit)
-    result = self._CheckValue(
-        srs,
-        key=self.dummy_index,
-        value=sampled_vlux,
-        vmin=lower_bound,
-        vmax=upper_bound)
+    result = testlog.CheckNumericParam(
+        'ValidatingLuxMean',
+        sampled_vlux,
+        min=lower_bound,
+        max=upper_bound)
+    self._Log('%s ValidatingLuxMean: %r (min=%s, max=%s)' %
+              (result, sampled_vlux, lower_bound, upper_bound))
+
     if not result and not self.args.mock_mode:
       raise ValueError('Error validating calibrated als, got %s out of'
                        ' range (%s, %s)' % (sampled_vlux, lower_bound,

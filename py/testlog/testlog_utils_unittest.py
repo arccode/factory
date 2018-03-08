@@ -12,7 +12,7 @@ import unittest
 from testlog_pkg import testlog_utils
 
 SAMPLE_DATETIME = datetime.datetime(1989, 8, 8, 8, 8, 8, 888888)
-SAMPLE_DATETIME_STRING = '1989-08-08T08:08:08.888Z'
+SAMPLE_DATETIME_STRING = '618538088.889'
 SAMPLE_DATETIME_ROUNDED_MIL = datetime.datetime(1989, 8, 8, 8, 8, 8, 888000)
 SAMPLE_DATETIME_ROUNDED_SEC = datetime.datetime(1989, 8, 8, 8, 8, 8, 000000)
 
@@ -38,25 +38,11 @@ class TestlogUtilsTest(unittest.TestCase):
     self.assertEquals(False,
                       testlog_utils.IsInRange(31.1, min_val=29, max_val=31))
 
-  def testJSONTime(self):
-    """Tests conversion to and from JSON date format.
-
-    Microseconds should be stripped to precision of 3 decimal points."""
-    # pylint: disable=protected-access
-    output = testlog_utils.FromJSONDateTime(
-        testlog_utils.ToJSONDateTime(SAMPLE_DATETIME))
-    self.assertEquals(output, SAMPLE_DATETIME_ROUNDED_MIL)
-
-    # TODO(itspeteR): Consider remove the test below.
-    output = testlog_utils.FromJSONDateTime(
-        testlog_utils.ToJSONDateTime(SAMPLE_DATETIME_ROUNDED_SEC))
-
   def testJSONHandlerDateTime(self):
     obj = SAMPLE_DATETIME
     # pylint: disable=protected-access
     output = testlog_utils.JSONHandler(obj)
     self.assertEquals(output, SAMPLE_DATETIME_STRING)
-    self.assertEquals(output, testlog_utils.ToJSONDateTime(obj))
 
   def testJSONHandlerDate(self):
     obj = datetime.date(1989, 8, 8)

@@ -11,7 +11,6 @@ Subclasses InputLogFile to correctly parse a testlog.json file.
 
 from __future__ import print_function
 
-import datetime
 import json
 import os
 
@@ -28,15 +27,6 @@ class InputTestlogFile(input_log_file.InputLogFile):
     del path  # We don't use the path of the log file.
     data = json.loads(line)
     data['__testlog__'] = True
-    if 'time' in data:
-      data['time'] = datetime.datetime.strptime(
-          data['time'], '%Y-%m-%dT%H:%M:%S.%fZ')
-    if 'startTime' in data:
-      data['startTime'] = datetime.datetime.strptime(
-          data['startTime'], '%Y-%m-%dT%H:%M:%S.%fZ')
-    if 'endTime' in data:
-      data['endTime'] = datetime.datetime.strptime(
-          data['endTime'], '%Y-%m-%dT%H:%M:%S.%fZ')
     # TODO(kitching): Figure out the proper way to validate the event:
     #                 (a) Use a JSON schema.
     #                 (b) Import testlog and use FromJSON directly.
