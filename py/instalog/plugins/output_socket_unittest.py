@@ -9,7 +9,6 @@
 from __future__ import print_function
 
 import logging
-import socket
 import tempfile
 import time
 import unittest
@@ -69,13 +68,10 @@ class TestOutputSocket(unittest.TestCase):
         self._GetSentData())
 
   def testMidTransmissionFailure(self):
-    self.stream.Queue([datatypes.Event({})])
     with mock.patch.object(
         output_socket.OutputSocketSender, 'Ping', return_value=True):
-      with mock.patch.object(self.sock, 'sendall', side_effect=socket.error):
-        self.sandbox.Flush(0.1, True)
-        self.assertFalse(self.stream.Empty())
       with mock.patch.object(self.sock, 'sendall', side_effect=Exception):
+        self.stream.Queue([datatypes.Event({})])
         self.sandbox.Flush(0.1, True)
         self.assertFalse(self.stream.Empty())
 
