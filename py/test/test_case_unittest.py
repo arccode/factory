@@ -26,6 +26,26 @@ _EventType = test_event.Event.Type
 
 class TestCaseTest(unittest.TestCase):
 
+  class _MockEventLoop(object):
+    def __init__(self):
+      self._event_loop_end = Queue.Queue()
+      # We don't use mock for PostNewEvent and Run, since there is race
+      # condition within the mock library __call__...
+      self.mock = mock.Mock()
+
+    def PostNewEvent(self, event_type, **kwargs):
+      if event_type == _EventType.END_EVENT_LOOP:
+        self._event_loop_end.put(kwargs)
+
+    def Run(self):
+      end_event_kwargs = self._event_loop_end.get()
+      status = end_event_kwargs['status']
+      if status == state.TestState.FAILED:
+        raise type_utils.TestFailure(end_event_kwargs['error_msg'])
+
+    def __getattr__(self, name):
+      return getattr(self.mock, name)
+
   def setUp(self):
     self._patchers = []
 
@@ -37,29 +57,13 @@ class TestCaseTest(unittest.TestCase):
 
     self._handler_exception_hook = None
 
-    self._mock_event_loop = mock.Mock()
+    self._mock_event_loop = self._MockEventLoop()
     self._CreatePatcher(
         test_ui, 'EventLoop').side_effect = self._StubEventLoopConstructor
-
-    self._event_loop_end = Queue.Queue()
-
-    self._mock_event_loop.Run.side_effect = self._StubEventLoopRun
-    self._mock_event_loop.PostNewEvent.side_effect = (
-        self._StubEventLoopPostNewEvent)
 
   def _StubEventLoopConstructor(self, handler_exception_hook):
     self._handler_exception_hook = handler_exception_hook
     return self._mock_event_loop
-
-  def _StubEventLoopPostNewEvent(self, event_type, **kwargs):
-    if event_type == _EventType.END_EVENT_LOOP:
-      self._event_loop_end.put(kwargs)
-
-  def _StubEventLoopRun(self):
-    end_event_kwargs = self._event_loop_end.get()
-    status = end_event_kwargs['status']
-    if status == state.TestState.FAILED:
-      raise type_utils.TestFailure(end_event_kwargs['error_msg'])
 
   def _CreatePatcher(self, *args, **kwargs):
     patcher = mock.patch.object(*args, **kwargs)
