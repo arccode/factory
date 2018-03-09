@@ -453,7 +453,10 @@ class SyncFactoryServer(test_case.TestCase):
       tasks = [(_('Detect Server URL'), self.DetectServerURL)] + tasks
 
     if self.args.sync_time:
-      tasks += [(_('Sync time'), time_utils.SyncTimeWithFactoryServer)]
+      def SyncTime():
+        if not time_utils.SyncTimeWithFactoryServer():
+          raise Exception('Failed to sync time with factory server')
+      tasks += [(_('Sync time'), SyncTime)]
 
     if self.args.sync_event_logs:
       tasks += [(_('Flush Event Logs'), self.goofy.FlushEventLogs)]
