@@ -20,6 +20,7 @@ import time
 import unittest
 import uuid
 
+import mock
 import yaml
 
 import factory_common  # pylint: disable=unused-import
@@ -146,14 +147,14 @@ class GlobalSeqTest(unittest.TestCase):
       after_read: See GlobalSeq._after_read.
     """
     values = []
-
     start_time = time.time()
     end_time = start_time + 1
 
     def target():
-      seq = event_log.GlobalSeq(_after_read=after_read)
-      while time.time() < end_time:
-        values.append(seq.Next())
+      with mock.patch('os.fsync'):
+        seq = event_log.GlobalSeq(_after_read=after_read)
+        while time.time() < end_time:
+          values.append(seq.Next())
 
     threads = [threading.Thread(target=target) for _ in xrange(10)]
     for t in threads:
@@ -161,7 +162,7 @@ class GlobalSeqTest(unittest.TestCase):
     for t in threads:
       t.join()
 
-    # After we sort, should be numbers [1, len(values)].
+    # After we sort, should be numbers [0, len(values)).
     values.sort()
     self.assertEquals(range(len(values)), values)
     return values
@@ -171,14 +172,14 @@ class GlobalSeqTest(unittest.TestCase):
     # There should be about 20 to 30 values (1 every 50 ms for 1 s, plus
     # a number less than the number of threads).
     # Significantly more or less than that and something went wrong.
-    self.assertTrue(len(values) > 10, values)
-    self.assertTrue(len(values) < 30, values)
+    self.assertGreater(len(values), 10)
+    self.assertLess(len(values), 30)
 
   def testThreadsWithoutSleep(self):
     values = self._testThreads()
     # There should be lots of values (I get over 35000 on my desktop); we'll
     # just make sure there are >1000.
-    self.assertTrue(len(values) > 1000, values)
+    self.assertGreater(len(values), 1000)
 
 
 class EventLogTest(unittest.TestCase):
