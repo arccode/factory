@@ -340,8 +340,8 @@ class TestEventStreamIterator(unittest.TestCase):
           self.assertTrue(all([x == 1 for x in results]))
           # Sanity check to make sure that the EventStreamIterator next() loop
           # is running fast enough.  On my machine I consistently get ~46000
-          # results.  Tone this down to the safe amount of 10000.
-          self.assertGreater(len(results), 10000)
+          # results.  Tone this down to the safe amount of 5000.
+          self.assertGreater(len(results), 5000)
 
   def testBlockUntilWaitException(self):
     """Tests that iterator aborts before its timeout on WaitException."""
