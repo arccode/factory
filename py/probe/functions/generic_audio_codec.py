@@ -6,14 +6,14 @@ import os
 import re
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.probe import function
+from cros.factory.probe.lib import probe_function
 from cros.factory.utils import process_utils
 
 
 RESULT_KEY = 'name'
 
 
-class GenericAudioCodecFunction(function.ProbeFunction):
+class GenericAudioCodecFunction(probe_function.ProbeFunction):
   """Probe the generic audio codec information."""
 
   def Probe(self):

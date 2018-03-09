@@ -10,8 +10,8 @@ import string  # pylint: disable=deprecated-module
 import struct
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.probe import function
 from cros.factory.probe.functions import sysfs
+from cros.factory.probe.lib import probe_function
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
@@ -95,7 +95,7 @@ def GetEMMC5FirmwareVersion(node_path):
   return version
 
 
-class GenericStorageFunction(function.ProbeFunction):
+class GenericStorageFunction(probe_function.ProbeFunction):
   """Probe the generic storage information."""
   ATA_FIELDS = ['vendor', 'model']
   EMMC_FIELDS = ['type', 'name', 'hwrev', 'oemid', 'manfid']

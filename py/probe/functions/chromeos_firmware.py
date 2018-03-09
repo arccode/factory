@@ -10,6 +10,7 @@ import tempfile
 import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool import crosfw
 from cros.factory.probe import function
+from cros.factory.probe.lib import probe_function
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
@@ -95,7 +96,7 @@ def CalculateFirmwareHashes(fw_file_path):
     return None
 
 
-class ChromeosFirmwareFunction(function.ProbeFunction):
+class ChromeosFirmwareFunction(probe_function.ProbeFunction):
   """Get information of flash chip."""
 
   ARGS = [

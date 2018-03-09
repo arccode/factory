@@ -6,11 +6,11 @@ import glob
 import os
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.probe import function
 from cros.factory.probe.functions import sysfs
+from cros.factory.probe.lib import probe_function
 
 
-class TouchscreenElanFunction(function.ProbeFunction):
+class TouchscreenElanFunction(probe_function.ProbeFunction):
   """Probe the ELAN touchscreen information."""
 
   I2C_DEVICES_PATH = '/sys/bus/i2c/devices'

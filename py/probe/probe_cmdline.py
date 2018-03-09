@@ -13,6 +13,7 @@ import sys
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
+from cros.factory.probe.lib import probe_function
 from cros.factory.probe import probe_utils
 from cros.factory.probe import search
 from cros.factory.utils import json_utils
@@ -83,7 +84,7 @@ class EvalFunctionCmd(SubCommand):
     function.LoadFunctions()
     func_list = [func_name for func_name in function.GetRegisteredFunctions()
                  if issubclass(function.GetFunctionClass(func_name),
-                               function.ProbeFunction)]
+                               probe_function.ProbeFunction)]
     func_parsers = parser.add_subparsers()
     for func_name in func_list:
       func_cls = function.GetFunctionClass(func_name)

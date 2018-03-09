@@ -6,6 +6,7 @@ import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
+from cros.factory.probe.lib import probe_function
 
 
 def _ProbePCIOrUSB(path):
@@ -71,7 +72,7 @@ def _RecursiveProbe(path, read_method):
   return results
 
 
-class GenericBluetoothFunction(function.ProbeFunction):
+class GenericBluetoothFunction(probe_function.ProbeFunction):
   """Probe the generic Bluetooth information."""
 
   def Probe(self):

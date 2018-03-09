@@ -7,8 +7,8 @@ import os
 import re
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.probe import function
 from cros.factory.probe.functions import sysfs
+from cros.factory.probe.lib import probe_function
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import type_utils
@@ -69,7 +69,7 @@ def GetDeviceType(device):
   return ret
 
 
-class InputDeviceFunction(function.ProbeFunction):
+class InputDeviceFunction(probe_function.ProbeFunction):
   """Probes the information of input devices.
 
   This function gets information of all input devices connected to the machine,

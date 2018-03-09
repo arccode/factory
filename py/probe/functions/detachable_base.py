@@ -6,10 +6,11 @@ import subprocess
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
+from cros.factory.probe.lib import probe_function
 from cros.factory.utils import process_utils
 
 
-class DetachableBaseFunction(function.ProbeFunction):
+class DetachableBaseFunction(probe_function.ProbeFunction):
   """Probe the detachable base information."""
 
   def Probe(self):

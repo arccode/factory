@@ -2,7 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import copy
 import inspect
 import logging
 import os
@@ -10,7 +9,6 @@ import pkgutil
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import arg_utils
-from cros.factory.utils.arg_utils import Arg
 
 
 # The index for indicating the situation that there is only one argument.
@@ -173,140 +171,3 @@ class Function(object):
 
   def Apply(self, data):
     raise NotImplementedError
-
-
-class ProbeFunction(Function):
-  """The base class of probe functions.
-
-  While evaluation, the function probes the result, and update to the input
-  data. If there are multiple probe result, the output list contains all
-  the combination of the input and the probed data.
-  """
-  def Apply(self, data):
-    results = self.Probe()
-    if not isinstance(results, list):
-      results = [results]
-
-    ret = []
-    for result in results:
-      for item in data:
-        new_item = copy.copy(item)
-        new_item.update(result)
-        ret.append(new_item)
-    return ret
-
-  def Probe(self):
-    """Return the probe result. It can be a dict or a list of dict."""
-    raise NotImplementedError
-
-
-class ActionFunction(Function):
-  """The base class of action functions.
-
-  While evaluation, an action function executes a side-effect action. If the
-  action is successfully executed, it returns the input data. Otherwise it
-  returns an empty list to notify the computation failed.
-  """
-  def Apply(self, data):
-    if self.Action():
-      return data
-    return NOTHING
-
-  def Action(self):
-    """Execute an action and return the action is successfully or not."""
-    raise NotImplementedError
-
-
-class CombinationFunction(Function):
-  """The base class of combination functions.
-
-  The argument of combination function is a list of the function expressions.
-  The combination function combine the output of the functions in a certain way.
-  """
-  ARGS = [
-      Arg('functions', list, 'The list of the function expression.')
-  ]
-
-  def __init__(self, **kwargs):
-    super(CombinationFunction, self).__init__(**kwargs)
-    # Interpret the function expressions to function instances.
-    self.functions = [InterpretFunction(func) for func in self.args.functions]
-
-  def Apply(self, data):
-    return self.Combine(self.functions, data)
-
-  def Combine(self, functions, data):
-    raise NotImplementedError
-
-
-class Sequence(CombinationFunction):
-  """Sequential execute the functions.
-
-  The input of the next function is the output of the previous function.
-  The concept is:
-    data = Func1(data)
-    data = Func2(data)
-    ...
-  """
-  def Combine(self, functions, data):
-    for func in functions:
-      data = func(data)
-    return data
-RegisterFunction('sequence', Sequence)
-
-
-class Or(CombinationFunction):
-  """Returns the first successful output.
-
-  The concept is:
-    output = Func1(data) or Func2(data) or ...
-  """
-  def Combine(self, functions, data):
-    for func in functions:
-      ret = func(data)
-      if ret:
-        return ret
-    return NOTHING
-RegisterFunction('or', Or)
-
-
-class InnerJoin(CombinationFunction):
-  """Inner join the result of functions.
-
-  InnerJoin combines the result by finding the same index. For example:
-  Combine them by 'idx':
-    [{'idx': '1', 'foo': 'foo1'}, {'idx': '2', 'foo': 'foo2'}]
-    [{'idx': '1', 'bar': 'bar1'}, {'idx': '2', 'bar': 'bar2'}]
-  becomes:
-    [{'idx': '1', 'foo': 'foo1', 'bar': 'bar1'},
-     {'idx': '2', 'foo': 'foo2', 'bar': 'bar2'}]
-  """
-  ARGS = [
-      Arg('functions', list, 'The list of the function expression.'),
-      Arg('index', str, 'The index name for inner join.')
-  ]
-
-  def Combine(self, functions, data):
-    idx_set = None
-    result_list = []
-    for func in functions:
-      results = [item for item in func(data) if self.args.index in item]
-      if not results:
-        return NOTHING
-      result_map = {result[self.args.index]: result for result in results}
-      if idx_set is None:
-        idx_set = set(result_map.keys())
-      else:
-        idx_set &= set(result_map.keys())
-      result_list.append(result_map)
-
-    if not idx_set:
-      return NOTHING
-    ret = []
-    for idx in idx_set:
-      joined_result = {}
-      for result_item in result_list:
-        joined_result.update(result_item[idx])
-      ret.append(joined_result)
-    return ret
-RegisterFunction('inner_join', InnerJoin)

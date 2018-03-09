@@ -8,6 +8,7 @@ import subprocess
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
+from cros.factory.probe.lib import probe_function
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
@@ -16,7 +17,7 @@ from cros.factory.utils import type_utils
 KNOWN_CPU_TYPES = type_utils.Enum(['x86', 'arm'])
 
 
-class GenericCPUFunction(function.ProbeFunction):
+class GenericCPUFunction(probe_function.ProbeFunction):
   """Probe the generic CPU information."""
 
   ARGS = [

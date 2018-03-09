@@ -6,12 +6,12 @@ import glob
 import os
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.probe import function
+from cros.factory.probe.lib import probe_function
 from cros.factory.probe.functions import sysfs
 from cros.factory.utils.arg_utils import Arg
 
 
-class USBFunction(function.ProbeFunction):
+class USBFunction(probe_function.ProbeFunction):
   """Reads the USB sysfs structure.
 
   Each result should contain these fields:

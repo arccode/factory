@@ -6,6 +6,7 @@ import subprocess
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
+from cros.factory.probe.lib import probe_function
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
@@ -13,7 +14,7 @@ from cros.factory.utils import process_utils
 DEFAULT_KEY = 'shell_raw'
 
 
-class ShellFunction(function.ProbeFunction):
+class ShellFunction(probe_function.ProbeFunction):
   """Execute the shell command and return the output."""
 
   ARGS = [

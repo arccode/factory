@@ -12,6 +12,7 @@ import struct
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
+from cros.factory.probe.lib import probe_function
 from cros.factory.utils import file_utils
 
 
@@ -84,7 +85,7 @@ def _GetV4L2Data(video_idx):
   return info
 
 
-class GenericVideoFunction(function.ProbeFunction):
+class GenericVideoFunction(probe_function.ProbeFunction):
   """Probe the generic video information."""
 
   def Probe(self):

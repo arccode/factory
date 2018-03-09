@@ -5,12 +5,12 @@
 import re
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.probe import function
+from cros.factory.probe.lib import probe_function
 from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
 
 
-class GenericDRAMFunction(function.ProbeFunction):
+class GenericDRAMFunction(probe_function.ProbeFunction):
   """Probe the generic DRAM information."""
 
   def Probe(self):

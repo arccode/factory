@@ -7,7 +7,7 @@ import logging
 import os
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.probe import function
+from cros.factory.probe.lib import probe_function
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -32,7 +32,7 @@ def ReadFile(path, binary_mode=False, skip=0, size=-1):
   return ret
 
 
-class FileFunction(function.ProbeFunction):
+class FileFunction(probe_function.ProbeFunction):
   """Read the content of a file.
 
   The content of the file is stripped and the empty content is filtered. If the

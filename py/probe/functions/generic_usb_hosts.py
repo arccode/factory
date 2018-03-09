@@ -8,13 +8,14 @@ import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
+from cros.factory.probe.lib import probe_function
 from cros.factory.utils import process_utils
 
 
 USB_SYSFS_PATH = '/sys/bus/usb/devices/usb*'
 
 
-class GenericUSBHostFunction(function.ProbeFunction):
+class GenericUSBHostFunction(probe_function.ProbeFunction):
   """Probe the generic USB host information."""
 
   def Probe(self):

@@ -18,7 +18,7 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.common import Shell
-from cros.factory.probe import function
+from cros.factory.probe.lib import probe_function
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sys_utils
 
@@ -185,7 +185,7 @@ def LoadFromI2C(path):
   return None if blob is None else Parse(blob)
 
 
-class EDIDFunction(function.ProbeFunction):
+class EDIDFunction(probe_function.ProbeFunction):
   """Probe EDID information from file or I2C bus."""
   ARGS = [
       Arg('path', str,

@@ -8,11 +8,12 @@ import subprocess
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
+from cros.factory.probe.lib import probe_function
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
 
-class FlashChipFunction(function.ProbeFunction):
+class FlashChipFunction(probe_function.ProbeFunction):
   """Get information of flash chip."""
   TARGET_MAP = {
       'main': 'host',

@@ -8,6 +8,7 @@ import sys
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
+from cros.factory.probe.lib import probe_function
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
@@ -166,7 +167,7 @@ class NetworkDevices(object):
     return sorted(device for device in ret if device is not None)
 
 
-class GenericNetworkDeviceFunction(function.ProbeFunction):
+class GenericNetworkDeviceFunction(probe_function.ProbeFunction):
   """Probes the information of network devices.
 
   This function gets information of all network devices,

@@ -7,9 +7,9 @@ import logging
 import os
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.probe import function
 from cros.factory.probe.functions import file as file_module
 from cros.factory.probe.functions import sysfs
+from cros.factory.probe.lib import probe_function
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -30,7 +30,7 @@ def ReadPCISysfs(path):
   return ret
 
 
-class PCIFunction(function.ProbeFunction):
+class PCIFunction(probe_function.ProbeFunction):
   """Reads the PCI sysfs structure.
 
   Each result should contain these fields:
