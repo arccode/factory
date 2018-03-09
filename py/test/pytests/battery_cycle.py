@@ -56,7 +56,10 @@ class BatteryCycleTest(test_case.TestCase):
           default=False),
       Arg('cutoff_charge_pct', (int, float),
           'Minimum charge level in percent allowed in cutoff state.',
-          default=98)
+          default=98),
+      Arg('fast_discharge', bool,
+          'Use stressapptest in discharge phase to discharge faster',
+          default=True)
   ]
 
   def setUp(self):
@@ -154,7 +157,10 @@ class BatteryCycleTest(test_case.TestCase):
                                  x > self.args.cutoff_charge_pct)
     else:
       self.dut.power.SetChargeState(self.dut.power.ChargeState.DISCHARGE)
-      stress_manager_instance = stress_manager.StressManager(self.dut)
+      if self.args.fast_discharge:
+        stress_manager_instance = stress_manager.StressManager(self.dut)
+      else:
+        stress_manager_instance = stress_manager.DummyStressManager(self.dut)
       is_done_now = lambda x: x < target_charge_pct
 
     phase_start_time = time.time()
