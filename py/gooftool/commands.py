@@ -219,6 +219,11 @@ _skip_list_cmd_arg = CmdArg(
          'Each item should be a sub-command of gooftool. '
          'e.g. "gooftool verify --skip_list verify_tpm clear_gbb_flags".')
 
+_rlz_embargo_end_date_offset_cmd_arg = CmdArg(
+    '--embargo_offset', type=int, default=7, choices=xrange(7, 15),
+    help='Change the offset of embargo end date, cannot less than 7 days or '
+         'more than 14 days.')
+
 
 @Command(
     'verify_ec_key',
@@ -665,6 +670,7 @@ def UploadReport(options):
          _station_ip_cmd_arg,
          _station_port_cmd_arg,
          _wipe_finish_token_cmd_arg,
+         _rlz_embargo_end_date_offset_cmd_arg,
          _waive_list_cmd_arg,
          _skip_list_cmd_arg)
 def Finalize(options):
@@ -681,6 +687,9 @@ def Finalize(options):
   - Uploads system logs & reports
   - Wipes the testing kernel, rootfs, and stateful partition
   """
+  if not options.rma_mode:
+    # Write VPD values related to RLZ ping into VPD.
+    GetGooftool(options).WriteVPDForRLZPing(options.embargo_offset)
   Cr50SetBoardId(options)
   Verify(options)
   Cr50ResetState(options)

@@ -50,19 +50,25 @@ KNOWN_RO_DATA_RE = {
     r'als_cal_(slope|intercept)': ANY,
 }
 
-# These VPD values will be generated later but should not exist when leaving
-# factory (but some may exist in RMA process).
-RUNTIME_RW_DATA = {
+KNOWN_RW_DATA = {
+    # These VPD values will be generated later but should not exist when leaving
+    # factory (but some may exist in RMA process).
     'ActivateDate': ANY,
     'block_devmode': ANY,
     'check_enrollment': ANY,
     'first_active_omaha_ping_sent': ANY,
     'tpm_firmware_update_params': ANY,
+
+    # In factory, a new device should have should_send_rlz_ping='1'.
+    # In RMA center, this value might be '0'.
+    # If they replace a new MLB in RMA center, then these fields will not exist.
+    'should_send_rlz_ping': r'[01]',
+    'rlz_embargo_end_date': r'\d{4}-\d{2}-\d{2}',  # yyyy-mm-dd
 }
 
-# These VPD values are used only for factory process and should be deleted by
-# "gooftool cear_factory_vpd_entries" in finalization.
-RUNTIME_RW_DATA_RE = {
+KNOWN_RW_DATA_RE = {
+    # These VPD values are used only for factory process and should be deleted
+    # by "gooftool clear_factory_vpd_entries" in finalization.
     r'factory\..+': ANY,
     r'component\..+': ANY,
     r'serials\..+': ANY,

@@ -157,6 +157,8 @@ class GooftoolTest(unittest.TestCase):
                           '_9OQI_3EAAaCmNocm9tZWJvb2sQouDUgwQ='),
       'ubind_attribute': ('=CjAKIP______TESTING_______-pcjzxZ-RLS7_mk'
                           'oo4HAAaEAEaCmNocm9tZWJvb2sQjd7I8w0='),
+      'rlz_embargo_end_date': '2018-03-09',
+      'should_send_rlz_ping': '1',
   }
 
   def setUp(self):

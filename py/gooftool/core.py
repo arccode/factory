@@ -6,6 +6,7 @@ from __future__ import print_function
 
 from collections import namedtuple
 from contextlib import contextmanager
+import datetime
 from distutils.version import LooseVersion
 import logging
 import os
@@ -190,6 +191,7 @@ class Gooftool(object):
           matched = re.findall(regex, result.stdout)
           if matched:
             return matched[0]
+        return None
 
       _TmpExec = _tmpexec if _tmpexec else _DefaultTmpExec
 
@@ -384,8 +386,8 @@ class Gooftool(object):
         'RO', ro_vpd, vpd_data.REQUIRED_RO_DATA, vpd_data.KNOWN_RO_DATA,
         vpd_data.KNOWN_RO_DATA_RE)
     CheckVPDFields(
-        'RW', rw_vpd, vpd_data.REQUIRED_RW_DATA, vpd_data.RUNTIME_RW_DATA,
-        vpd_data.RUNTIME_RW_DATA_RE)
+        'RW', rw_vpd, vpd_data.REQUIRED_RW_DATA, vpd_data.KNOWN_RW_DATA,
+        vpd_data.KNOWN_RW_DATA_RE)
 
     # Check known value contents.
     region = ro_vpd['region']
@@ -464,6 +466,20 @@ class Gooftool(object):
     wipe.WipeInit(wipe_args, shopfloor_url, state_dev,
                   release_rootfs, root_disk, old_root, station_ip, station_port,
                   wipe_finish_token)
+
+  def WriteVPDForRLZPing(self, embargo_offset=7):
+    """Write VPD values related to RLZ ping into VPD."""
+
+    if embargo_offset < 7:
+      raise Error('embargo end date offset cannot less than 7 (days)')
+
+    embargo_date = datetime.date.today()
+    embargo_date += datetime.timedelta(days=embargo_offset)
+
+    self._vpd.UpdateData({
+        'should_send_rlz_ping': '1',
+        'rlz_embargo_end_date': embargo_date.isoformat(),
+    }, partition=self._vpd.RW_PARTITION)
 
   def WriteHWID(self, hwid=None):
     """Writes specified HWID value into the system BB.
