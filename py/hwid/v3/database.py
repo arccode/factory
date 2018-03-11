@@ -1110,12 +1110,12 @@ class Components(object):
     self._SCHEMA.value_type.items[
         'items'].value_type.optional_items['status'].Validate(status)
 
-    if comp_name in self._components.get(comp_cls, {}):
+    if comp_name in self.GetComponents(comp_cls):
       raise common.HWIDException('Component (%r, %r) already exists.' %
                                  (comp_cls, comp_name))
 
-    if values is None and any(c.values is None
-                              for c in self._components[comp_cls].itervalues()):
+    if values is None and any(
+        c.values is None for c in self.GetComponents(comp_cls).itervalues()):
       logging.warning('Found more than one default component of %r, '
                       'mark can_encode=False.', comp_cls)
       self._can_encode = False
