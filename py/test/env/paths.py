@@ -4,6 +4,7 @@
 
 import getpass
 import os
+import tempfile
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import sys_utils
@@ -23,9 +24,10 @@ FACTORY_FIRMWARE_UPDATER_PATH = os.path.join(
 FACTORY_LOG_PATH_ON_DEVICE = '/var/factory/log/factory.log'
 
 # The root directory for logging and state.
-DATA_DIR = os.environ.get('CROS_FACTORY_DATA_DIR',
-                          ('/tmp/factory.%s' % getpass.getuser())
-                          if sys_utils.InChroot() else '/var/factory')
+DATA_DIR = os.environ.get(
+    'CROS_FACTORY_DATA_DIR',
+    (os.path.join(tempfile.gettempdir(), 'factory.%s' % getpass.getuser()))
+    if sys_utils.InChroot() else '/var/factory')
 # The directory for logs.
 DATA_LOG_DIR = os.path.join(DATA_DIR, 'log')
 # The directory for all factory state.
