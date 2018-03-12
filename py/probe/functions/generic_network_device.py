@@ -2,13 +2,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import logging
+import os
 import re
 import sys
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
-from cros.factory.probe.lib import probe_function
+from cros.factory.probe.lib import cached_probe_function
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
@@ -153,11 +153,12 @@ class NetworkDevices(object):
   def ReadSysfsDeviceIds(cls, devtype, ignore_usb=False):
     """Return _ReadSysfsDeviceId result for each device of specified type."""
     def ProbeSysfsDevices(path, ignore_usb):
+      path = os.path.abspath(os.path.realpath(path))
       ret = function.InterpretFunction({'pci': path})()
       if ret:
         return ret
       if not ignore_usb:
-        ret = function.InterpretFunction({'usb': path})()
+        ret = function.InterpretFunction({'usb': os.path.join(path, '..')})()
       return ret
 
     ret = []
@@ -167,7 +168,8 @@ class NetworkDevices(object):
     return sorted(device for device in ret if device is not None)
 
 
-class GenericNetworkDeviceFunction(probe_function.ProbeFunction):
+class GenericNetworkDeviceFunction(
+    cached_probe_function.LazyCachedProbeFunction):
   """Probes the information of network devices.
 
   This function gets information of all network devices,
@@ -179,26 +181,33 @@ class GenericNetworkDeviceFunction(probe_function.ProbeFunction):
           'One of "wireless", "ethernet", "cellular".'),
   ]
 
-  def Probe(self):
+  def GetCategoryFromArgs(self):
     if self.args.device_type not in KNOWN_DEVICE_TYPES:
-      logging.error('device_type should be one of %s.', KNOWN_DEVICE_TYPES)
-      return function.NOTHING
-    function_table = {
-        'wireless': self.ProbeWireless,
-        'ethernet': self.ProbeEthernet,
-        'cellular': self.ProbeCellular}
-    devices = function_table[self.args.device_type]()
-    return devices
+      raise cached_probe_function.InvalidIdentityError(
+          'device_type should be one of %r.' % KNOWN_DEVICE_TYPES)
 
-  def ProbeWireless(self):
+    return self.args.device_type
+
+  @classmethod
+  def ProbeDevices(cls, category):
+    function_table = {
+        KNOWN_DEVICE_TYPES.wireless: cls.ProbeWireless,
+        KNOWN_DEVICE_TYPES.ethernet: cls.ProbeEthernet,
+        KNOWN_DEVICE_TYPES.cellular: cls.ProbeCellular}
+    return function_table[category]()
+
+  @classmethod
+  def ProbeWireless(cls):
     return NetworkDevices.ReadSysfsDeviceIds('wifi')
 
-  def ProbeEthernet(self):
+  @classmethod
+  def ProbeEthernet(cls):
     # Build-in ethernet devices should not be attached to USB. They are usually
     # either PCI or SOC.
     return NetworkDevices.ReadSysfsDeviceIds('ethernet', ignore_usb=True)
 
-  def ProbeCellular(self):
+  @classmethod
+  def ProbeCellular(cls):
     # It is found that some cellular components may have their interface listed
     # in shill but not available from /sys (for example, shill
     # Interface=no_netdev_23 but no /sys/class/net/no_netdev_23. Meanwhile,

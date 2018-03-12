@@ -8,12 +8,12 @@ import subprocess
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
-from cros.factory.probe.lib import probe_function
+from cros.factory.probe.lib import cached_probe_function
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
 
-class FlashChipFunction(probe_function.ProbeFunction):
+class FlashChipFunction(cached_probe_function.LazyCachedProbeFunction):
   """Get information of flash chip."""
   TARGET_MAP = {
       'main': 'host',
@@ -27,14 +27,18 @@ class FlashChipFunction(probe_function.ProbeFunction):
           ', '.join(TARGET_MAP.keys())),
   ]
 
-  def Probe(self):
-    if self.args.chip not in self.TARGET_MAP:
+  def GetCategoryFromArgs(self):
+    category = self.TARGET_MAP.get(self.args.chip)
+    if not category:
       logging.error('Chip should be one of %s', self.TARGET_MAP.keys())
-      return function.NOTHING
+    return category
 
-    cmd = ['flashrom', '-p', self.TARGET_MAP[self.args.chip], '--flash-name']
+  @classmethod
+  def ProbeDevices(cls, category):
+    cmd = ['flashrom', '-p', category, '--flash-name']
     try:
       output = process_utils.CheckOutput(cmd)
+
     except subprocess.CalledProcessError:
       return function.NOTHING
 

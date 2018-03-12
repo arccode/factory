@@ -4,24 +4,23 @@
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.functions import sysfs
+from cros.factory.probe.lib import cached_probe_function
 
 
-class GenericBatteryFunction(sysfs.SysfsFunction):
-  """Probe the generic battery information."""
+class GenericBatteryFunction(
+    cached_probe_function.GlobPathCachedProbeFunction):
 
+  GLOB_PATH = '/sys/class/power_supply/*'
   ARGS = []
 
-  def __init__(self, **kwargs):
-    super(GenericBatteryFunction, self).__init__(**kwargs)
+  def GetCategoryFromArgs(self):
+    return None
 
-    self.args.dir_path = '/sys/class/power_supply/*'
-    self.args.keys = ['manufacturer', 'model_name', 'technology', 'type']
-    self.args.optional_keys = ['charge_full_design', 'energy_full_design']
-
-  def Probe(self):
-    def ValidBatteryResult(result):
-      return result.pop('type') == 'Battery' and (
-          'charge_full_design' in result or 'energy_full_design' in result)
-
-    return [result for result in super(GenericBatteryFunction, self).Probe()
-            if ValidBatteryResult(result)]
+  @classmethod
+  def ProbeDevice(cls, dir_path):
+    result = sysfs.ReadSysfs(
+        dir_path, ['manufacturer', 'model_name', 'technology', 'type'],
+        optional_keys=['charge_full_design', 'energy_full_design'])
+    if result is not None and result.pop('type') == 'Battery' and (
+        'charge_full_design' in result or 'energy_full_design' in result):
+      return result

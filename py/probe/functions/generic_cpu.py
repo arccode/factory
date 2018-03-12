@@ -8,7 +8,7 @@ import subprocess
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
-from cros.factory.probe.lib import probe_function
+from cros.factory.probe.lib import cached_probe_function
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
@@ -17,29 +17,35 @@ from cros.factory.utils import type_utils
 KNOWN_CPU_TYPES = type_utils.Enum(['x86', 'arm'])
 
 
-class GenericCPUFunction(probe_function.ProbeFunction):
+class GenericCPUFunction(cached_probe_function.LazyCachedProbeFunction):
   """Probe the generic CPU information."""
 
   ARGS = [
       Arg('cpu_type', str, 'The type of CPU. "x86" or "arm".', default=None),
   ]
 
-  def Probe(self):
+  def GetCategoryFromArgs(self):
     if self.args.cpu_type is None:
       logging.info('cpu_type is not assigned. Determine by crossystem.')
       self.args.cpu_type = process_utils.CheckOutput(
           'crossystem arch', shell=True)
-    if self.args.cpu_type not in KNOWN_CPU_TYPES:
-      logging.error('cpu_type should be one of %r.', list(KNOWN_CPU_TYPES))
-      return function.NOTHING
 
-    if self.args.cpu_type == KNOWN_CPU_TYPES.x86:
-      return self._ProbeX86()
-    if self.args.cpu_type == KNOWN_CPU_TYPES.arm:
-      return self._ProbeArm()
+    if self.args.cpu_type not in KNOWN_CPU_TYPES:
+      raise cached_probe_function.InvalidCategoryError(
+          'cpu_type should be one of %r.', list(KNOWN_CPU_TYPES))
+
+    return self.args.cpu_type
+
+  @classmethod
+  def ProbeDevices(cls, category):
+    if category == KNOWN_CPU_TYPES.x86:
+      return cls._ProbeX86()
+    if category == KNOWN_CPU_TYPES.arm:
+      return cls._ProbeArm()
     return function.NOTHING
 
-  def _ProbeX86(self):
+  @classmethod
+  def _ProbeX86(cls):
     cmd = r'sed -nr "s/^model name\s*: (.*)/\1/p" /proc/cpuinfo'
     try:
       stdout = process_utils.CheckOutput(cmd, shell=True, log=True).splitlines()
@@ -49,7 +55,8 @@ class GenericCPUFunction(probe_function.ProbeFunction):
         'model': stdout[0].strip(),
         'cores': str(len(stdout))}
 
-  def _ProbeArm(self):
+  @classmethod
+  def _ProbeArm(cls):
     # For platforms like arm, it sometimes gives the model name in 'Processor',
     # and sometimes in 'model name'. But they all give something like 'ARMv7
     # Processor rev 4 (v71)' only. So to uniquely identify an ARM CPU, we should

@@ -7,8 +7,7 @@ import os
 import re
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.probe.functions import sysfs
-from cros.factory.probe.lib import probe_function
+from cros.factory.probe.lib import cached_probe_function
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import type_utils
@@ -69,7 +68,7 @@ def GetDeviceType(device):
   return ret
 
 
-class InputDeviceFunction(probe_function.ProbeFunction):
+class InputDeviceFunction(cached_probe_function.CachedProbeFunction):
   """Probes the information of input devices.
 
   This function gets information of all input devices connected to the machine,
@@ -78,23 +77,20 @@ class InputDeviceFunction(probe_function.ProbeFunction):
 
   ARGS = [
       Arg('device_type', str, 'The type of input device. '
-          'One of "touchscreen", "touchpad", "stylus".', default=None),
-      Arg('sysfs_files', list, 'The files in the sysfs node.', default=None),
+          'One of "touchscreen", "touchpad", "stylus".', default=None)
   ]
 
-  def Probe(self):
-    devices = GetInputDevices()
-    if self.args.device_type is not None:
-      assert self.args.device_type in KNOWN_DEVICE_TYPES
-      devices = [device for device in devices
-                 if GetDeviceType(device) == self.args.device_type]
-    if self.args.sysfs_files:
-      for device in devices:
-        self.AddSysfsFields(device)
-    return devices
+  def GetCategoryFromArgs(self):
+    if (self.args.device_type is not None and
+        self.args.device_type not in KNOWN_DEVICE_TYPES):
+      raise cached_probe_function.InvalidCategoryError(
+          'The type of input device must be one of %r' % KNOWN_DEVICE_TYPES)
 
-  def AddSysfsFields(self, device):
-    sysfs_path = os.path.join('/sys', device['sysfs'].lstrip('/'), 'device')
-    fields = sysfs.ReadSysfs(sysfs_path, self.args.sysfs_files)
-    if fields:
-      device.update(fields)
+    return self.args.device_type
+
+  @classmethod
+  def ProbeAllDevices(cls):
+    ret = {}
+    for dev in GetInputDevices():
+      ret.setdefault(GetDeviceType(dev), []).append(dev)
+    return ret

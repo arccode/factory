@@ -6,12 +6,13 @@ import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
-from cros.factory.probe.lib import probe_function
+from cros.factory.probe.lib import cached_probe_function
 
 
 def _ProbePCIOrUSB(path):
+  path = os.path.abspath(os.path.realpath(path))
   return (function.InterpretFunction({'pci': path})() or
-          function.InterpretFunction({'usb': path})())
+          function.InterpretFunction({'usb': os.path.join(path, '..')})())
 
 
 def _RecursiveProbe(path, read_method):
@@ -72,16 +73,21 @@ def _RecursiveProbe(path, read_method):
   return results
 
 
-class GenericBluetoothFunction(probe_function.ProbeFunction):
+class GenericBluetoothFunction(cached_probe_function.CachedProbeFunction):
   """Probe the generic Bluetooth information."""
 
-  def Probe(self):
+  def GetCategoryFromArgs(self):
+    return None
+
+  @classmethod
+  def ProbeAllDevices(cls):
     # Probe in primary path
     device_id = _ProbePCIOrUSB('/sys/class/bluetooth/hci0/device')
     if device_id:
       return device_id
+
     # TODO(akahuang): Confirm if we only probe the primary path or not.
     # Use information in driver if probe failed in primary path
     device_id_list = _RecursiveProbe('/sys/module/bluetooth/holders',
                                      _ProbePCIOrUSB)
-    return sorted(x for x in device_id_list if x)
+    return sorted([x for x in device_id_list if x])

@@ -6,17 +6,21 @@ import os
 import re
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.probe.lib import probe_function
+from cros.factory.probe.lib import cached_probe_function
 from cros.factory.utils import process_utils
 
 
 RESULT_KEY = 'name'
 
 
-class GenericAudioCodecFunction(probe_function.ProbeFunction):
+class GenericAudioCodecFunction(cached_probe_function.CachedProbeFunction):
   """Probe the generic audio codec information."""
 
-  def Probe(self):
+  def GetCategoryFromArgs(self):
+    return None
+
+  @classmethod
+  def ProbeAllDevices(cls):
     """Looks for codec strings.
 
     Collect /sys/kernel/debug/asoc/codecs for ASOC (ALSA SOC) drivers,

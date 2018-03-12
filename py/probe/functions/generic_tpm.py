@@ -3,14 +3,18 @@
 # found in the LICENSE file.
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.probe.lib import probe_function
+from cros.factory.probe.lib import cached_probe_function
 from cros.factory.utils import process_utils
 
 
-class GenericTPMFunction(probe_function.ProbeFunction):
+class GenericTPMFunction(cached_probe_function.CachedProbeFunction):
   """Probe the generic TPM information."""
 
-  def Probe(self):
+  def GetCategoryFromArgs(self):
+    return None
+
+  @classmethod
+  def ProbeAllDevices(cls):
     tpm_data = [line.partition(':') for line in
                 process_utils.CheckOutput('tpm_version').splitlines()]
     tpm_dict = dict((key.strip(), value.strip()) for
@@ -18,6 +22,4 @@ class GenericTPMFunction(probe_function.ProbeFunction):
     mfg = tpm_dict.get('Manufacturer Info', None)
     version = tpm_dict.get('Chip Version', None)
     if mfg is not None and version is not None:
-      return {'manufacturer_info': mfg,
-              'version': version}
-    return None
+      return [{'manufacturer_info': mfg, 'version': version}]

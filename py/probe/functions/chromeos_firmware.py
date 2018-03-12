@@ -9,8 +9,7 @@ import tempfile
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool import crosfw
-from cros.factory.probe import function
-from cros.factory.probe.lib import probe_function
+from cros.factory.probe.lib import cached_probe_function
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
@@ -96,7 +95,7 @@ def CalculateFirmwareHashes(fw_file_path):
     return None
 
 
-class ChromeosFirmwareFunction(probe_function.ProbeFunction):
+class ChromeosFirmwareFunction(cached_probe_function.LazyCachedProbeFunction):
   """Get information of flash chip."""
 
   ARGS = [
@@ -105,22 +104,27 @@ class ChromeosFirmwareFunction(probe_function.ProbeFunction):
           ', '.join(FIELDS)),
   ]
 
-  def Probe(self):
+  def GetCategoryFromArgs(self):
     if self.args.field not in FIELDS:
-      return function.NOTHING
+      raise cached_probe_function.InvalidCategoryError(
+          '`field` should be one of %r' % FIELDS)
 
-    if self.args.field == FIELDS.firmware_keys:
+    return self.args.field
+
+  @classmethod
+  def ProbeDevices(cls, category):
+    if category == FIELDS.firmware_keys:
       fw_file_path = crosfw.LoadMainFirmware().GetFileName(
           sections=['RO_SECTION'])
       return {
           'key_recovery': _FwKeyHash(fw_file_path, 'recoverykey'),
           'key_root': _FwKeyHash(fw_file_path, 'rootkey')}
 
-    if self.args.field == FIELDS.ro_main_firmware:
+    if category == FIELDS.ro_main_firmware:
       fw_file_path = crosfw.LoadMainFirmware().GetFileName(
           sections=['RO_SECTION'])
-    if self.args.field == FIELDS.ro_ec_firmware:
+    if category == FIELDS.ro_ec_firmware:
       fw_file_path = crosfw.LoadEcFirmware().GetFileName()
-    if self.args.field == FIELDS.ro_pd_firmware:
+    if category == FIELDS.ro_pd_firmware:
       fw_file_path = crosfw.LoadPDFirmware().GetFileName()
     return CalculateFirmwareHashes(fw_file_path)

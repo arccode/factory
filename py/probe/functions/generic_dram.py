@@ -5,15 +5,19 @@
 import re
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.probe.lib import probe_function
+from cros.factory.probe.lib import cached_probe_function
 from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
 
 
-class GenericDRAMFunction(probe_function.ProbeFunction):
+class GenericDRAMFunction(cached_probe_function.CachedProbeFunction):
   """Probe the generic DRAM information."""
 
-  def Probe(self):
+  def GetCategoryFromArgs(self):
+    return None
+
+  @classmethod
+  def ProbeAllDevices(cls):
     """Combine mosys memory timing and geometry information."""
     # TODO(tammo): Document why mosys cannot load i2c_dev itself.
     sys_utils.LoadKernelModule('i2c_dev', error_on_fail=False)

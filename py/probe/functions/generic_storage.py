@@ -11,7 +11,7 @@ import struct
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.functions import sysfs
-from cros.factory.probe.lib import probe_function
+from cros.factory.probe.lib import cached_probe_function
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
@@ -95,7 +95,7 @@ def GetEMMC5FirmwareVersion(node_path):
   return version
 
 
-class GenericStorageFunction(probe_function.ProbeFunction):
+class GenericStorageFunction(cached_probe_function.CachedProbeFunction):
   """Probe the generic storage information."""
   ATA_FIELDS = ['vendor', 'model']
   EMMC_FIELDS = ['type', 'name', 'hwrev', 'oemid', 'manfid']
@@ -104,19 +104,24 @@ class GenericStorageFunction(probe_function.ProbeFunction):
   # include it again.
   EMMC_OPTIONAL_FIELDS = ['prv']
 
-  def Probe(self):
-    return [ident for ident in map(self._ProcessNode, GetFixedDevices())
+  def GetCategoryFromArgs(self):
+    return None
+
+  @classmethod
+  def ProbeAllDevices(cls):
+    return [ident for ident in map(cls._ProcessNode, GetFixedDevices())
             if ident is not None]
 
-  def _ProcessNode(self, node_path):
+  @classmethod
+  def _ProcessNode(cls, node_path):
     logging.info('Processing the node: %s', node_path)
     dev_path = os.path.join(node_path, 'device')
     # The directory layout for NVMe is "/<path>/device/device/<entries>"
     nvme_dev_path = os.path.join(dev_path, 'device')
-    data = (sysfs.ReadSysfs(dev_path, self.ATA_FIELDS) or
-            sysfs.ReadSysfs(nvme_dev_path, self.NVME_FIELDS) or
-            sysfs.ReadSysfs(dev_path, self.EMMC_FIELDS,
-                            self.EMMC_OPTIONAL_FIELDS))
+    data = (sysfs.ReadSysfs(dev_path, cls.ATA_FIELDS) or
+            sysfs.ReadSysfs(nvme_dev_path, cls.NVME_FIELDS) or
+            sysfs.ReadSysfs(dev_path, cls.EMMC_FIELDS,
+                            cls.EMMC_OPTIONAL_FIELDS))
     if not data:
       return None
     emmc5_fw_ver = GetEMMC5FirmwareVersion(node_path)

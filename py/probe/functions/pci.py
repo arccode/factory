@@ -1,16 +1,14 @@
-# Copyright 2016 The Chromium OS Authors. All rights reserved.
+# Copyright 2018 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import glob
 import logging
 import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.functions import file as file_module
 from cros.factory.probe.functions import sysfs
-from cros.factory.probe.lib import probe_function
-from cros.factory.utils.arg_utils import Arg
+from cros.factory.probe.lib import cached_probe_function
 
 
 def ReadPCISysfs(path):
@@ -27,10 +25,11 @@ def ReadPCISysfs(path):
   if content is None:
     return None
   ret['revision_id'] = content
+  ret['bus_type'] = 'pci'
   return ret
 
 
-class PCIFunction(probe_function.ProbeFunction):
+class PCIFunction(cached_probe_function.GlobPathCachedProbeFunction):
   """Reads the PCI sysfs structure.
 
   Each result should contain these fields:
@@ -39,14 +38,8 @@ class PCIFunction(probe_function.ProbeFunction):
     revision_id
   """
 
-  ARGS = [
-      Arg('dir_path', str, 'The path of target sysfs folder.'),
-  ]
+  GLOB_PATH = '/sys/bus/pci/devices/*'
 
-  def Probe(self):
-    ret = []
-    for path in glob.glob(self.args.dir_path):
-      result = ReadPCISysfs(path)
-      if result is not None:
-        ret.append(result)
-    return ret
+  @classmethod
+  def ProbeDevice(cls, dir_path):
+    return ReadPCISysfs(dir_path)

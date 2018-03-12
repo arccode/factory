@@ -5,30 +5,34 @@
 import subprocess
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.probe import function
-from cros.factory.probe.lib import probe_function
+from cros.factory.probe.lib import cached_probe_function
 from cros.factory.utils import process_utils
 
 
-class DetachableBaseFunction(probe_function.ProbeFunction):
+class DetachableBaseFunction(cached_probe_function.CachedProbeFunction):
   """Probe the detachable base information."""
 
-  def Probe(self):
-    PROGRAM = 'hammer_info.py'
-    FIELDS = [
-        'ro_version',
-        'rw_version',
-        'wp_screw',
-        'touchpad_id',
-        'touchpad_pid',
-        'touchpad_fw_version',
-        'touchpad_fw_checksum']
+  PROGRAM = 'hammer_info.py'
+  FIELDS = [
+      'ro_version',
+      'rw_version',
+      'wp_screw',
+      'touchpad_id',
+      'touchpad_pid',
+      'touchpad_fw_version',
+      'touchpad_fw_checksum']
 
-    ret = {}
+  def GetCategoryFromArgs(self):
+    return None
+
+  @classmethod
+  def ProbeAllDevices(cls):
     try:
-      for field in FIELDS:
-        ret[field] = process_utils.CheckOutput('%s %s' % (PROGRAM, field),
+      ret = {}
+      for field in cls.FIELDS:
+        ret[field] = process_utils.CheckOutput('%s %s' % (cls.PROGRAM, field),
                                                shell=True, log=True).strip()
+      return [ret]
+
     except subprocess.CalledProcessError:
-      return function.NOTHING
-    return ret
+      return []

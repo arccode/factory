@@ -1,17 +1,28 @@
-# Copyright 2016 The Chromium OS Authors. All rights reserved.
+# Copyright 2018 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import glob
 import os
+import re
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.probe.lib import probe_function
 from cros.factory.probe.functions import sysfs
-from cros.factory.utils.arg_utils import Arg
+from cros.factory.probe.lib import cached_probe_function
 
 
-class USBFunction(probe_function.ProbeFunction):
+REQUIRED_FIELDS = ['idVendor', 'idProduct']
+OPTIONAL_FIELDS = ['manufacturer', 'product', 'bcdDevice']
+
+
+def ReadUSBSysfs(dir_path):
+  result = sysfs.ReadSysfs(
+      dir_path, REQUIRED_FIELDS, optional_keys=OPTIONAL_FIELDS)
+  if result:
+    result['bus_type'] = 'usb'
+  return result
+
+
+class USBFunction(cached_probe_function.GlobPathCachedProbeFunction):
   """Reads the USB sysfs structure.
 
   Each result should contain these fields:
@@ -22,29 +33,15 @@ class USBFunction(probe_function.ProbeFunction):
     product
     bcdDevice
   """
+  GLOB_PATH = '/sys/bus/usb/devices/*'
 
-  ARGS = [
-      Arg('dir_path', str, 'The path used to search for USB sysfs data. '
-          'First all symlinks are resolved, to the the "real" path. Then '
-          'iteratively search toward parent folder until the remaining path '
-          'contains the relevent data fields.'),
-  ]
+  @classmethod
+  def ProbeDevice(cls, dir_path):
+    # A valid usb device name is <roothub_num>-<addr>[.<addr2>[.<addr3>...]] or
+    # usb[0-9]+ for usb root hub.
+    name = os.path.basename(dir_path)
+    if (not re.match(r'^[0-9]+-[0-9]+(\.[0-9]+)*$', name) and
+        not re.match(r'^usb[0-9]+$', name)):
+      return None
 
-  REQUIRED_FIELDS = ['idVendor', 'idProduct']
-  OPTIONAL_FIELDS = ['manufacturer', 'product', 'bcdDevice']
-
-  def Probe(self):
-    ret = []
-    for path in glob.glob(self.args.dir_path):
-      path = os.path.realpath(path)
-      # The path of USB sysfs node should contain "/usb*" folder.
-      # Example: /sys/devices/pci0000:00/0000:00:09.0/usb2/2-1
-      while path.find('/usb') > 0:
-        if os.path.exists(os.path.join(path, 'idProduct')):
-          break
-        path = os.path.dirname(path)
-
-      result = sysfs.ReadSysfs(path, self.REQUIRED_FIELDS, self.OPTIONAL_FIELDS)
-      if result is not None:
-        ret.append(result)
-    return ret
+    return ReadUSBSysfs(dir_path)

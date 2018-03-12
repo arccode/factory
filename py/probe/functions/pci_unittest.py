@@ -1,91 +1,64 @@
 #!/usr/bin/env python
-# Copyright 2016 The Chromium OS Authors. All rights reserved.
+# Copyright 2018 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 import os
-import shutil
 import tempfile
 import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.functions import pci
+from cros.factory.utils import  file_utils
+
+
+def _AddBusType(results):
+  for result in results:
+    result['bus_type'] = 'pci'
+  return results
 
 
 class PCIFunctionTest(unittest.TestCase):
   def setUp(self):
-    self.tmp_dir = tempfile.mkdtemp()
+    self.my_root = tempfile.mkdtemp()
+
+    self.orig_glob_path = pci.PCIFunction.GLOB_PATH
+    pci.PCIFunction.GLOB_PATH = self.my_root + pci.PCIFunction.GLOB_PATH
 
   def tearDown(self):
-    if os.path.isdir(self.tmp_dir):
-      shutil.rmtree(self.tmp_dir)
+    pci.PCIFunction.GLOB_PATH = self.orig_glob_path
 
-  def _WriteValue(self, path, expected_value):
-    if 'revision_id' in expected_value:
-      with open(os.path.join(path, 'config'), 'wb') as f:
-        f.write('0' * 8)
-        f.write(chr(int(expected_value['revision_id'], 16)))
-    for key in expected_value:
+  def _CreatePCIDevice(self, pci_name, real_path, values):
+    real_path = self.my_root + real_path
+
+    file_utils.TryMakeDirs(real_path)
+    for key, value in values.iteritems():
       if key == 'revision_id':
-        continue
-      with open(os.path.join(path, key), 'w') as f:
-        f.write(expected_value[key])
+        open(os.path.join(real_path, 'config'), 'wb').write(
+            'x' * 8 + chr(int(value, 16)))
+      else:
+        file_utils.WriteFile(os.path.join(real_path, key), value)
+
+    link_name = os.path.join(
+        self.my_root, 'sys', 'bus', 'pci', 'devices', pci_name)
+    file_utils.TryMakeDirs(os.path.dirname(link_name))
+    file_utils.ForceSymlink(real_path, link_name)
 
   def testNormal(self):
-    expected_value = {
-        'vendor': 'google',
-        'device': 'chromebook',
-        'revision_id': '0x05'}
-    self._WriteValue(self.tmp_dir, expected_value)
+    values1 = {'vendor': '1234', 'device': '5678', 'revision_id': '0x14'}
+    self._CreatePCIDevice('dev1', '/sys/devices/pci1/xxyy', values1)
 
-    func = pci.PCIFunction(dir_path=self.tmp_dir)
-    result = func()
-    self.assertEquals(result, [expected_value])
+    values2 = {'vendor': '1357', 'device': '2468', 'revision_id': '0x34'}
+    self._CreatePCIDevice('dev2', '/sys/devices/pci1/aabb', values2)
 
-  def testFail(self):
-    # device is not found.
-    tmp_dir = os.path.join(self.tmp_dir, 'test1')
-    os.mkdir(tmp_dir)
-    value = {
-        'vendor': 'apple',
-        'revision_id': '0x05'}
-    self._WriteValue(tmp_dir, value)
+    values3 = {'vendor': 'xxxx'}
+    self._CreatePCIDevice('dev3', '/sys/devices/pci1/xxxx', values3)
 
-    func = pci.PCIFunction(dir_path=tmp_dir)
-    result = func()
-    self.assertEquals(result, [])
+    func = pci.PCIFunction()
+    self.assertEquals(sorted(func()), _AddBusType(sorted([values1, values2])))
 
-    # revision_id is not found.
-    tmp_dir = os.path.join(self.tmp_dir, 'test2')
-    os.mkdir(tmp_dir)
-    value = {
-        'vendor': 'apple',
-        'device': 'macbook'}
-    self._WriteValue(tmp_dir, value)
-
-    func = pci.PCIFunction(dir_path=tmp_dir)
-    result = func()
-    self.assertEquals(result, [])
-
-  def testMultipleResults(self):
-    tmp_dir1 = os.path.join(self.tmp_dir, 'test1')
-    os.mkdir(tmp_dir1)
-    value1 = {
-        'vendor': 'google',
-        'device': 'chromebook',
-        'revision_id': '0x05'}
-    self._WriteValue(tmp_dir1, value1)
-    tmp_dir2 = os.path.join(self.tmp_dir, 'test2')
-    os.mkdir(tmp_dir2)
-    value2 = {
-        'vendor': 'apple',
-        'device': 'macbook',
-        'revision_id': '0x02'}
-    self._WriteValue(tmp_dir2, value2)
-
-    func = pci.PCIFunction(dir_path=os.path.join(self.tmp_dir, 'test*'))
-    result = func()
-    self.assertEquals(sorted(result), sorted([value1, value2]))
+    func = pci.PCIFunction(dir_path=self.my_root + '/sys/devices/pci1/xxyy')
+    self.assertEquals(func(), _AddBusType([values1]))
 
 
 if __name__ == '__main__':

@@ -4,7 +4,6 @@
 
 import array
 import fcntl
-import glob
 import logging
 import os
 import re
@@ -12,7 +11,7 @@ import struct
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
-from cros.factory.probe.lib import probe_function
+from cros.factory.probe.lib import cached_probe_function
 from cros.factory.utils import file_utils
 
 
@@ -85,49 +84,52 @@ def _GetV4L2Data(video_idx):
   return info
 
 
-class GenericVideoFunction(probe_function.ProbeFunction):
+class GenericVideoFunction(cached_probe_function.GlobPathCachedProbeFunction):
   """Probe the generic video information."""
 
-  def Probe(self):
-    ret = []
-    probed_dev_paths = set()
-    for video_node in glob.glob('/sys/class/video4linux/video*'):
-      logging.debug('Find the node: %s', video_node)
-      result = {}
+  GLOB_PATH = '/sys/class/video4linux/video*'
 
-      path = os.path.join(video_node, 'device')
-      dev_path = os.readlink(path)
-      if dev_path in probed_dev_paths:
-        continue
-      probed_dev_paths.add(dev_path)
-      results = (function.InterpretFunction({'pci': path})() or
-                 function.InterpretFunction({'usb': path})())
-      assert len(results) <= 1
-      if len(results) == 1:
-        result.update(results[0])
-      else:
-        name_path = os.path.join(video_node, 'name')
-        if os.path.exists(name_path):
-          device_id = file_utils.ReadFile(name_path)
-          if device_id:
-            result.update(
-                {'name': ' '.join(device_id.replace(chr(0), ' ').split())})
+  _probed_dev_paths = set()
 
-      # TODO(akahuang): Check if these fields are needed.
-      # Also check video max packet size
-      path = os.path.join(video_node, 'device', 'ep_82', 'wMaxPacketSize')
-      if os.path.isfile(path):
-        result['wMaxPacketSize'] = file_utils.ReadFile(path).strip()
-      # For SOC videos
-      path = os.path.join(video_node, 'device', 'control', 'name')
-      if os.path.isfile(path):
-        result['name'] = file_utils.ReadFile(path).strip()
-      # Get video4linux2 (v4l2) result.
-      video_idx = re.search(r'video(\d+)$', video_node).group(1)
-      v4l2_data = _GetV4L2Data(int(video_idx))
-      if v4l2_data:
-        result.update(v4l2_data)
+  @classmethod
+  def ProbeDevice(cls, dir_path):
+    logging.debug('Find the node: %s', dir_path)
 
-      if result:
-        ret.append(result)
-    return ret
+    dev_path = os.path.abspath(os.path.realpath(os.path.join(dir_path,
+                                                             'device')))
+    if dev_path in cls._probed_dev_paths:
+      return None
+    cls._probed_dev_paths.add(dev_path)
+
+    result = {}
+
+    results = (
+        function.InterpretFunction({'pci': dev_path})() or
+        function.InterpretFunction({'usb': os.path.join(dev_path, '..')})())
+    assert len(results) <= 1
+    if len(results) == 1:
+      result.update(results[0])
+    else:
+      name_path = os.path.join(dir_path, 'name')
+      if os.path.exists(name_path):
+        device_id = file_utils.ReadFile(name_path)
+        if device_id:
+          result.update(
+              {'name': ' '.join(device_id.replace(chr(0), ' ').split())})
+
+    # TODO(akahuang): Check if these fields are needed.
+    # Also check video max packet size
+    path = os.path.join(dev_path, 'ep_82', 'wMaxPacketSize')
+    if os.path.isfile(path):
+      result['wMaxPacketSize'] = file_utils.ReadFile(path).strip()
+    # For SOC videos
+    path = os.path.join(dev_path, 'control', 'name')
+    if os.path.isfile(path):
+      result['name'] = file_utils.ReadFile(path).strip()
+    # Get video4linux2 (v4l2) result.
+    video_idx = re.search(r'video(\d+)$', dir_path).group(1)
+    v4l2_data = _GetV4L2Data(int(video_idx))
+    if v4l2_data:
+      result.update(v4l2_data)
+
+    return result
