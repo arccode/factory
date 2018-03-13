@@ -753,11 +753,10 @@ class AudioLoopTest(test_case.TestCase):
     # Enable/disable devices according to require_dongle.
     # We don't use plug_status because plug_status may not be ready at early
     # stage.
+    self._dut.audio.DisableAllAudioOutputs(self._out_card)
     if self.args.require_dongle:
-      self._dut.audio.DisableSpeaker(self._out_card)
       self._dut.audio.EnableHeadphone(self._out_card)
     else:
-      self._dut.audio.DisableHeadphone(self._out_card)
       self._dut.audio.EnableSpeaker(self._out_card)
 
     self._dut.audio.DisableAllAudioInputs(self._in_card)
