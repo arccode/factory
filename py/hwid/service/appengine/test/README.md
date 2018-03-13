@@ -34,3 +34,19 @@ You can also enter the environment to do some test.
   docker run -it $(docker ps -lq) /bin/bash
 ```
 The factory root is at `/usr/src/cros/factory`
+
+
+## AppEngine End-To-End Test
+Running end-to-end tests.
+
+### Test Procedure
+Before running the e2e_test, you have to deploy HWID Service staging by
+`deploy.sh deploy staging`.
+1. Loads the test config in [factory-private][1] repository.
+2. Runs the tests described in the config.
+
+### Adds Test
+To add tests, you have to modify config file
+`factory-private/config/hwid/service/appengine/test/e2e_test.json`.
+
+[1]: https://chrome-internal.googlesource.com/chromeos/platform/factory-private

@@ -1,0 +1,57 @@
+{
+  "type": "object",
+  "definitions": {},
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "properties": {
+    "apikey": {
+      "type": "string",
+      "title": "The apikey",
+      "default": "",
+      "examples": [
+        "ABCDEFGHI123456"
+      ]
+    },
+    "url_prefix": {
+      "type": "string",
+      "title": "The URL of the API.",
+      "default": "",
+      "examples": [
+        "https://www.google.com/"
+      ]
+    },
+    "default_http_method": {
+      "type": "string",
+      "title": "Default HTTP method",
+      "default": "",
+      "examples": [
+        "GET"
+      ]
+    },
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Test name",
+            "default": "",
+            "examples": [
+              "TestGetBoards"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "title": "HTTP Method request path",
+            "default": "",
+            "examples": "bom/CHROMEBOOK ABC-ABC-123-ABC"
+          },
+          "expecting_output": {
+            "type": "object",
+            "title": "Expecting output"
+          }
+        }
+      }
+    }
+  }
+}
