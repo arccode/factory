@@ -111,6 +111,13 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
 
     self.process_pool = multiprocessing.Pool(processes=_PROCESSES_NUMBER)
 
+  def TearDown(self):
+    """Tears down the plugin."""
+    self.process_pool.close()
+    self.info('Joining the processes in the process pool')
+    self.process_pool.join()
+    self.info('Finished joining the processes')
+
   def Main(self):
     """Main thread of the plugin."""
     while not self.IsStopping():
