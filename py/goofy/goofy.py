@@ -1246,6 +1246,7 @@ class Goofy(object):
     self.testlog.init_hooks(self.test_list.options.testlog_hooks)
 
     if self.test_list.options.clear_state_on_start:
+      # TODO(stimim): Perhaps we should check if we are running `shutdown` test?
       self.state_instance.clear_test_state()
 
     # If the phase is invalid, this will raise a ValueError.

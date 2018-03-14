@@ -9,6 +9,7 @@
     "__comment_load_dut_storage": "Load data from STORAGE_SAVED_DICT.json on device."
   },
   "options": {
+    "clear_state_on_start": true,
     "hooks_class": "cros.factory.goofy.hooks.StationTestListHooks",
     "plugin_config_name": "goofy_plugin_station"
   },
