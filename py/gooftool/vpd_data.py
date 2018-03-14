@@ -30,15 +30,14 @@ KNOWN_RO_DATA = {
     # Generated in finalization.
     'stable_device_secret_DO_NOT_SHARE': ANY,
 
-    # Recommended values.
-    'panel_backlight_max_nits': ANY,
-
     # Optional values.
     'mlb_serial_number': ANY,
+    'whitelabel_tag': ANY,
     'System_UUID': ANY,
     'sku_number': ANY,
     'model_name': ANY,
     'service_tag': ANY,
+    'panel_backlight_max_nits': ANY,
 }
 
 # Variable key names in regular expression.
