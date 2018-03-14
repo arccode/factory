@@ -372,8 +372,13 @@ generate_diskimg() {
     test_image release_image
   # Increase stateful partition with 1G free space if possible.
   sudo ${SCRIPT_DIR}/resize_image_fs.sh -i "${outdev}" --append -s 1024 || true
-  sudo "${CROS_PAYLOAD}" install "${json_path}" "${outdev}" \
-    toolkit hwid release_image.crx_cache
+
+  local targets="toolkit release_image.crx_cache"
+  # hwid (FLAGS_hwid) may be None so we have to process it explicitly.
+  if [ -n "${FLAGS_hwid}" ]; then
+    targets="${targets} hwid"
+  fi
+  sudo "${CROS_PAYLOAD}" install "${json_path}" "${outdev}" ${targets}
 
   echo "Updating files in stateful partition"
   # Add /etc/lsb-factory into diskimg if not exists.
