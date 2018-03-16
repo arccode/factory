@@ -786,6 +786,11 @@ class EncodedFields(object):
       raise common.HWIDException(
           'Encoded field %r does not exist' % (field_name,))
 
+    if field_name == 'region_field':
+      if len(components) != 1 or components.keys() != ['region']:
+        raise common.HWIDException(
+            'Region field should contain only region component.')
+
     if set(components.keys()) != self._field_to_comp_classes[field_name]:
       raise common.HWIDException('Each encoded field should encode a fixed set '
                                  'of component classes.')
@@ -817,6 +822,11 @@ class EncodedFields(object):
           'Encoded field %r already exists' % (field_name,))
 
     self._RegisterNewEmptyField(field_name, components.keys())
+
+    if field_name == 'region_field':
+      # index 0 of region_field should always be region=null case.
+      self.AddFieldComponents(field_name, {'region': []})
+
     self.AddFieldComponents(field_name, components)
 
   def _RegisterNewEmptyField(self, field_name, comp_classes):
