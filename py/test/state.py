@@ -101,7 +101,10 @@ class FactoryStateLayer(object):
         logging.exception('Unable to close shelf')
 
   def loads(self, serialized_data):
-    o = pickle.loads(serialized_data)
+    # There might be unicode string in serialized data (because serialized data
+    # will not be processed by UnicodeToString).  But unicode string is not
+    # allowed for shelve using gdbm, we need to convert them.
+    o = type_utils.UnicodeToString(pickle.loads(serialized_data))
     if 'tests' in o:
       self.tests_shelf.SetValue('', o['tests'])
     if 'data' in o:

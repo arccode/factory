@@ -176,8 +176,7 @@ class DictShelfView(object):
         for c in children:
           retval[c] = walk(DictKey.Join(path, c))
         return retval
-      else:
-        return self._shelf[path]
+      return self._shelf[path]
     return walk(key)
 
   def SetValue(self, key, value, sync=True):
@@ -294,7 +293,7 @@ class DictShelfView(object):
     return key in self._cached_children
 
   def _DeleteOneKey(self, key, update_parent=True):
-    assert isinstance(key, basestring)
+    assert isinstance(key, str)
     if key == '':  # '' is the root node, delete it will delete everything
       self.Clear()
       return

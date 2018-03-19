@@ -188,18 +188,27 @@ class ManipulateFactoryStateLayer(unittest.TestCase):
   def DoCopy(self, source, destination):
     if source is None or destination is None:
       raise type_utils.TestFailure('Unsupported operation')
-    # currently, we only support getting data from top layer
-    serialized_data = source.SerializeLayer(
-        layer_index=-1, include_tests=self.args.include_tests)
+
     if destination.GetLayerCount() == state.FactoryState.MAX_LAYER_NUM:
       logging.warning('Max layer number reached, top layer will be popped.')
       destination.PopLayer()
 
+    serialized_data = source.SerializeLayer(
+        layer_index=-1, include_data=True, include_tests=True)
+    layer = state.FactoryStateLayer()
+    layer.loads(str(serialized_data))
+
+    # Only pack device data.
+    # TODO(stimim): refactor state.py to make this more clear.
+    device_data = layer.data_shelf.GetValue(state.KEY_DEVICE_DATA,
+                                            optional=True) or {}
+    layer.data_shelf.Clear()
+    layer.data_shelf.SetValue(state.KEY_DEVICE_DATA, device_data)
+
     if self.args.include_tests:
       # We need to modify the test states, otherwise the test that is currently
       # running on station might be messed up.
-      layer = state.FactoryStateLayer()
-      layer.loads(serialized_data)
+
       # remove root node, because every test list has this node.
       layer.tests_shelf.DeleteKeys(
           [state.FactoryState.convert_test_path_to_key('')],
@@ -210,6 +219,8 @@ class ManipulateFactoryStateLayer(unittest.TestCase):
           layer.tests_shelf.DeleteKeys(
               [state.FactoryState.convert_test_path_to_key(test.path)],
               optional=True)
-      serialized_data = layer.dumps(True, True)
+    else:
+      layer.tests_shelf.Clear()
 
+    serialized_data = layer.dumps(True, True)
     destination.AppendLayer(serialized_data=serialized_data)
