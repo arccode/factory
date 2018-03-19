@@ -315,6 +315,7 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
     self.name = name
     self.priority_buffer = priority_buffer
     self.streams = []
+    self.streams_index = 0
 
   def CreateStream(self):
     """Creates a BufferEventStream object to be used by Instalog core."""
@@ -336,15 +337,30 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
         stream.Abort()
       self.streams = []
       return None
+    self.streams_index = 0
     return self
+
+  def _Next(self):
+    """Helper for Next."""
+    while self.streams_index < len(self.streams):
+      event = self.streams[self.streams_index].Next()
+      if event is not None:
+        return event
+      else:
+        self.streams_index += 1
+    return None
 
   def Next(self):
     """See BufferEventStream.Next."""
-    for stream in self.streams:
-      event_or_none = stream.Next()
-      if event_or_none is not None:
-        return event_or_none
-    return None
+    event = self._Next()
+    if event is not None:
+      return event
+
+    # If the streams_index is the end, we should check all buffer file again.
+    self.streams_index = 0
+
+    # If there's no more event in any buffer file, we can return None now.
+    return self._Next()
 
   def Commit(self):
     """See BufferEventStream.Commit."""

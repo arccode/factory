@@ -68,28 +68,48 @@ class TestBufferPriorityFile(unittest.TestCase):
 
   def testConsumeOrder(self):
     self.sf.AddConsumer('a')
+
+    self._ProducePriorityEvent(0, 0)
+    self._ProducePriorityEvent(1, 1)
+    self._ProducePriorityEvent(2, 2)
+    self._ProducePriorityEvent(3, 3)
     stream = self.sf.Consume('a')
-
-    self._ProducePriorityEvent(0, 0)
-    self._ProducePriorityEvent(1, 1)
-    self._ProducePriorityEvent(2, 2)
-    self._ProducePriorityEvent(3, 3)
     for pri_level in range(self.pri_level_max):
       self.assertEquals(self.e[pri_level], stream.Next())
+    self.assertEquals(None, stream.Next())
+    stream.Commit()
 
     self._ProducePriorityEvent(3, 3)
     self._ProducePriorityEvent(2, 2)
     self._ProducePriorityEvent(1, 1)
     self._ProducePriorityEvent(0, 0)
+    stream = self.sf.Consume('a')
     for pri_level in range(self.pri_level_max):
       self.assertEquals(self.e[pri_level], stream.Next())
+    self.assertEquals(None, stream.Next())
+    stream.Commit()
 
     self._ProducePriorityEvent(3, 0)
     self._ProducePriorityEvent(2, 0)
     self._ProducePriorityEvent(1, 0)
     self._ProducePriorityEvent(0, 0)
+    stream = self.sf.Consume('a')
     for pri_level in range(self.pri_level_max):
       self.assertEquals(self.e[pri_level], stream.Next())
+    self.assertEquals(None, stream.Next())
+    stream.Commit()
+
+    self._ProducePriorityEvent(0)
+    self._ProducePriorityEvent(3)
+    stream = self.sf.Consume('a')
+    self.assertEquals(self.e[0], stream.Next())
+    self.assertEquals(self.e[3], stream.Next())
+    self._ProducePriorityEvent(2)
+    self._ProducePriorityEvent(0)
+    self.assertEquals(self.e[0], stream.Next())
+    self.assertEquals(self.e[2], stream.Next())
+    self.assertEquals(None, stream.Next())
+    stream.Commit()
 
   def testMultithreadOrder(self):
     self.sf.AddConsumer('a')
@@ -116,7 +136,6 @@ class TestBufferPriorityFile(unittest.TestCase):
 
   def testTruncate(self):
     self.sf.AddConsumer('a')
-    stream = self.sf.Consume('a')
 
     self._ProducePriorityEvent(0, 0)
     self._ProducePriorityEvent(1, 1)
@@ -127,40 +146,49 @@ class TestBufferPriorityFile(unittest.TestCase):
     self._ProducePriorityEvent(2, 1)
     self._ProducePriorityEvent(3, 0)
 
-    self.assertEquals(self.e[0], stream.Next())
-    self.assertEquals(self.e[0], stream.Next())
-    self.assertEquals(self.e[1], stream.Next())
-
-    self.sf.Truncate()
-    self.assertEquals(self.e[1], stream.Next())
-    self.assertEquals(self.e[2], stream.Next())
-
-    self._ProducePriorityEvent(0)
-    self._ProducePriorityEvent(1)
-
-    self.assertEquals(self.e[0], stream.Next())
-    self.assertEquals(self.e[1], stream.Next())
-    self.assertEquals(self.e[2], stream.Next())
-
-    self._ProducePriorityEvent(0)
-    self._ProducePriorityEvent(1)
-
-    stream.Commit()
-    self.sf.Truncate()
-    self.sf.SetUp()
     stream = self.sf.Consume('a')
+    self.assertEquals(self.e[0], stream.Next())
+    self.assertEquals(self.e[0], stream.Next())
+    self.assertEquals(self.e[1], stream.Next())
+    stream.Commit()
 
+    self.sf.Truncate()
+    stream = self.sf.Consume('a')
+    self.assertEquals(self.e[1], stream.Next())
+    self.assertEquals(self.e[2], stream.Next())
+    stream.Commit()
+
+    self._ProducePriorityEvent(0)
+    self._ProducePriorityEvent(1)
+
+    stream = self.sf.Consume('a')
+    self.assertEquals(self.e[0], stream.Next())
+    self.assertEquals(self.e[1], stream.Next())
+    self.assertEquals(self.e[2], stream.Next())
+    stream.Commit()
+
+    self._ProducePriorityEvent(0)
+    self._ProducePriorityEvent(1)
+
+    self.sf.Truncate()
+    self.sf.TearDown()
+    self.sf.SetUp()
+
+    stream = self.sf.Consume('a')
     self.assertEquals(self.e[0], stream.Next())
     self.assertEquals(self.e[1], stream.Next())
     self.assertEquals(self.e[3], stream.Next())
+    stream.Commit()
 
     self._ProducePriorityEvent(0)
     self._ProducePriorityEvent(1)
 
+    stream = self.sf.Consume('a')
     self.assertEquals(self.e[0], stream.Next())
     self.assertEquals(self.e[1], stream.Next())
     self.assertEquals(self.e[3], stream.Next())
     self.assertEquals(None, stream.Next())
+    stream.Commit()
 
   def testTruncateWithAttachments(self):
     self._CreateBuffer({'copy_attachments': True})
@@ -193,10 +221,12 @@ class TestBufferPriorityFile(unittest.TestCase):
     self._ProducePriorityEvent(2, 2)
 
     stream.Commit()
+    self.sf.TearDown()
+    # SetUp will find the temporary metadata, and recovering it.
     self.sf.SetUp()
     stream = self.sf.Consume('a')
 
-    self._ProducePriorityEvent(3, target_file_num=3)
+    self._ProducePriorityEvent(3, 3)
 
     self.assertEquals(self.e[1], stream.Next())
     self.assertEquals(self.e[1], stream.Next())

@@ -483,10 +483,36 @@ class BufferFile(log_utils.LoggerMixin):
   def ProduceEvents(self, events, process_pool=None):
     """Moves attachments, serializes events and writes them to the data_path."""
     with self.data_write_lock:
-      if process_pool is None:
-        MoveAndWrite(self.ConfigToDict(), events)
-      else:
-        process_pool.apply(MoveAndWrite, (self.ConfigToDict(), events))
+      # If we are going to write the first line which will change the version,
+      # we should prevent the data and metadata from being read by consumers.
+      metadata_dct = RestoreMetadata(self.ConfigToDict())
+      first_line = (metadata_dct['start_pos'] == metadata_dct['end_pos'])
+      try:
+        if first_line:
+          self._consumer_lock.acquire()
+          for consumer in self.consumers.values():
+            consumer.read_lock.acquire()
+
+        if process_pool is None:
+          MoveAndWrite(self.ConfigToDict(), events)
+        else:
+          process_pool.apply(MoveAndWrite, (self.ConfigToDict(), events))
+
+      except Exception:
+        self.exception('Exception occurred during ProduceEvents operation')
+        raise
+      finally:
+        # Ensure that regardless of any errors, locks are released.
+        if first_line:
+          for consumer in self.consumers.values():
+            try:
+              consumer.read_lock.release()
+            except Exception:
+              pass
+          try:
+            self._consumer_lock.release()
+          except Exception:
+            pass
 
   def _GetFirstUnconsumedRecord(self):
     """Returns the seq and pos of the first unprocessed record.
@@ -544,7 +570,7 @@ class BufferFile(log_utils.LoggerMixin):
   def AddConsumer(self, name):
     """See BufferPlugin.AddConsumer."""
     self.debug('Add consumer %s', name)
-    with self._consumer_lock:
+    with self.data_write_lock, self._consumer_lock:
       if name in self.consumers:
         raise SimpleFileException('Consumer %s already exists' % name)
       self.consumers[name] = self._CreateConsumer(name)
@@ -553,7 +579,7 @@ class BufferFile(log_utils.LoggerMixin):
   def RemoveConsumer(self, name):
     """See BufferPlugin.RemoveConsumer."""
     self.debug('Remove consumer %s', name)
-    with self._consumer_lock:
+    with self.data_write_lock, self._consumer_lock:
       if name not in self.consumers:
         raise SimpleFileException('Consumer %s does not exist' % name)
       del self.consumers[name]
@@ -594,30 +620,32 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
     self.metadata_path = metadata_path
     self.logger = logging.getLogger(logger_name)
 
-    self._lock = lock_utils.Lock()
+    self._stream_lock = lock_utils.Lock()
     self.read_lock = lock_utils.Lock()
     self.read_buf = []
 
-    metadata_dct = RestoreMetadata(self.simple_file.ConfigToDict())
+    with self.read_lock:
+      metadata_dct = RestoreMetadata(self.simple_file.ConfigToDict())
     self.cur_seq = metadata_dct['first_seq']
     self.cur_pos = metadata_dct['start_pos']
     self.new_seq = self.cur_seq
     self.new_pos = self.cur_pos
 
     # Try restoring metadata, if it exists.
-    self.RestoreMetadata()
+    self.RestoreConsumerMetadata()
     self._SaveMetadata()
 
   def CreateStream(self):
     """Creates a BufferEventStream object to be used by Instalog core.
 
     Since this class doubles as BufferEventStream, we mark that the
-    BufferEventStream is "unexpired" by setting self._lock, and return self.
+    BufferEventStream is "unexpired" by setting self._stream_lock,
+    and return self.
 
     Returns:
       `self` if BufferEventStream not already in use, None if busy.
     """
-    return self if self._lock.acquire(False) else None
+    return self if self._stream_lock.acquire(False) else None
 
   def _SaveMetadata(self):
     """Saves metadata for this Consumer to disk (seq and pos)."""
@@ -626,7 +654,7 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
     with file_utils.AtomicWrite(self.metadata_path, fsync=True) as f:
       json.dump(data, f)
 
-  def RestoreMetadata(self):
+  def RestoreConsumerMetadata(self):
     """Restores metadata for this Consumer from disk (seq and pos).
 
     On each restore, ensure that the available window of records on disk has
@@ -642,7 +670,8 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
         self.error('Consumer %s metadata file invalid; resetting', self.name)
         return
       # Make sure we are still ahead of simple_file.
-      metadata_dct = RestoreMetadata(self.simple_file.ConfigToDict())
+      with self.read_lock:
+        metadata_dct = RestoreMetadata(self.simple_file.ConfigToDict())
       self.cur_seq = min(max(metadata_dct['first_seq'], data['cur_seq']),
                          metadata_dct['last_seq'] + 1)
       self.cur_pos = min(max(metadata_dct['start_pos'], data['cur_pos']),
@@ -704,12 +733,12 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
     return self.read_buf
 
   def _Next(self):
-    """Helper for _Next, also used for testing purposes.
+    """Helper for Next, also used for testing purposes.
 
     Returns:
       A tuple of (seq, record), or (None, None) if no records available.
     """
-    if not self._lock.locked():
+    if not self._stream_lock.locked():
       raise plugin_base.EventStreamExpired
     buf = self._Buffer()
     if not buf:
@@ -729,7 +758,7 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
 
   def Commit(self):
     """See BufferEventStream.Commit."""
-    if not self._lock.locked():
+    if not self._stream_lock.locked():
       raise plugin_base.EventStreamExpired
     self.cur_seq = self.new_seq
     self.cur_pos = self.new_pos
@@ -743,7 +772,7 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
                      'processed by output plugin multiple times')
     finally:
       try:
-        self._lock.release()
+        self._stream_lock.release()
       except Exception:
         # TODO(kitching): Instalog core or PluginSandbox should catch this
         #                 exception and attempt to safely shut down.
@@ -751,13 +780,13 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
 
   def Abort(self):
     """See BufferEventStream.Abort."""
-    if not self._lock.locked():
+    if not self._stream_lock.locked():
       raise plugin_base.EventStreamExpired
     self.new_seq = self.cur_seq
     self.new_pos = self.cur_pos
     self.read_buf = []
     try:
-      self._lock.release()
+      self._stream_lock.release()
     except Exception:
       # TODO(kitching): Instalog core or PluginSandbox should catch this
       #                 exception and attempt to safely shut down.

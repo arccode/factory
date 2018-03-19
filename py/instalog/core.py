@@ -283,7 +283,7 @@ class Instalog(plugin_sandbox.CoreAPI):
         logging.info('Stopped %s', plugin.plugin_id)
 
       logging.info('Stopping buffer...')
-      self._buffer.Stop()
+      self._buffer.Stop(True)
       logging.info('Stopped buffer')
       self._state = DOWN
       self._ShutdownRPCServer()
