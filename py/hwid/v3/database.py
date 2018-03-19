@@ -780,7 +780,6 @@ class EncodedFields(object):
       field_name: A string of the name of the new encoded field.
       components: A dictionary which maps the component class to a list of
           component name.
-      index: The number for the given component set.
     """
     if field_name not in self._fields:
       raise common.HWIDException(
@@ -821,11 +820,12 @@ class EncodedFields(object):
       raise common.HWIDException(
           'Encoded field %r already exists' % (field_name,))
 
-    self._RegisterNewEmptyField(field_name, components.keys())
+    if field_name == 'region_field' or 'region' in components:
+      raise common.HWIDException(
+          'Region field should always exist in the HWID database, it is '
+          'prohibited to add a new field called "region_field".')
 
-    if field_name == 'region_field':
-      # index 0 of region_field should always be region=null case.
-      self.AddFieldComponents(field_name, {'region': []})
+    self._RegisterNewEmptyField(field_name, components.keys())
 
     self.AddFieldComponents(field_name, components)
 

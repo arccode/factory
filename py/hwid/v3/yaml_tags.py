@@ -77,7 +77,7 @@ class RegionField(dict):
   __metaclass__ = RegionFieldMetaclass
 
   def __init__(self, list_node=None):
-    if not list_node:
+    if not isinstance(list_node, list):
       self._is_legacy_style = True
       list_codes = [code for code in regions.LEGACY_REGIONS_LIST
                     if code in regions.REGIONS]

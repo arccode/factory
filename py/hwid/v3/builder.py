@@ -255,7 +255,8 @@ class DatabaseBuilder(object):
         '  - image_ids: [0]\n' +
         '    encoding_scheme: %s\n' % common.ENCODING_SCHEME.base8192 +
         '    fields: []\n' +
-        'encoded_fields: {}\n' +
+        'encoded_fields:\n' +
+        '  region_field: !region_field []\n' +
         'components:\n' +
         '  region: !region_component\n' +
         'rules: []\n')
