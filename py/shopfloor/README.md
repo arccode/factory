@@ -4,6 +4,7 @@
 |Version|Date      |Summary                                                   |
 |-------|----------|----------------------------------------------------------|
 |1.0 r1 |2017/06/20|Initial release                                           |
+|1.0 r2 |2018/03/28|Define the format of `component` domain of `DeviceData`   |
 
 [TOC]
 
@@ -180,8 +181,20 @@ back to Shopfloor Service for privacy and performance issues:
        Chrome OS region database.
    - `vpd.rw.ubind_attribute`: "User" registration code.
    - `vpd.rw.gbind_attribute`: "Group" registration code.
- - `component`: An optional domain to specify the SKU information. For example,
-   `component.has_touchscreen` implies the DUT should have touch screen.
+ - `component`: An optional domain to specify the SKU information.  To specify
+     the number of the specific installed hardware peripheral, use a field in
+     below format:
+     ```
+     component.has_<peripheral_name> = True |  # The DUT has exactly one that
+                                               # peripheral.
+                                       False |  # The DUT doesn't have that
+                                                #     peripheral.
+                                       <number>
+     ```
+     For example, if the DUT has two cameras (rear camera + front camera), the
+     device data should contain `component.has_camera = 2`.  If the DUT has
+     only one single camera, both `component.has_camera = 1` and
+     `component.has_camera = True` are valid.
 
 *** note
 **Note: There is no need to specify "device serial number" in vpd domain
