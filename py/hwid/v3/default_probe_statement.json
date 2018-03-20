@@ -207,6 +207,9 @@
   "video": {
     "generic": {
       "eval": "generic_video"
+    },
+    "camera_cros": {
+      "eval": "camera_cros"
     }
   },
   "wireless": {
