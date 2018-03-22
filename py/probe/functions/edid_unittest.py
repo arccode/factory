@@ -10,8 +10,6 @@ import mock
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.functions import edid
-from cros.factory.utils import file_utils
-from cros.factory.utils import sys_utils
 
 
 class EdidTest(unittest.TestCase):
@@ -42,37 +40,42 @@ class EdidTest(unittest.TestCase):
     self.assertEqual(result['product_id'], '50ab')
 
 
-class EdidFunctionTest(unittest.TestCase):
+class _FakeFunc(object):
+  def __init__(self, results):
+    self.results = results
 
-  FAKE_DATA = 'FAKE_DATA'
-  FAKE_OUTPUT = {'foo': 'FOO'}
+  def __call__(self, *unused_args, **unused_kwargs):
+    result, self.results = self.results[0], self.results[1:]
+    return result
 
-  @mock.patch.object(edid, 'Parse', return_value=FAKE_OUTPUT)
-  def testEDIDFile(self, MockParse):
-    with file_utils.UnopenedTemporaryFile() as tmp_file:
-      file_utils.WriteFile(tmp_file, self.FAKE_DATA)
-      results = edid.EDIDFunction(path=tmp_file)()
-      self.assertEquals(results, [self.FAKE_OUTPUT])
-      MockParse.assert_called_with(self.FAKE_DATA)
 
-  @mock.patch.object(edid, 'LoadFromI2C', return_value=FAKE_OUTPUT)
-  @mock.patch.object(sys_utils, 'LoadKernelModule')
-  def testI2CDeviceByNumber(self, MockLoadKernelModule, MockLoadFromI2C):
-    results = edid.EDIDFunction(path='2')()
-    self.assertEquals(results, [self.FAKE_OUTPUT])
-    MockLoadKernelModule.assert_called_with('i2c_dev')
-    MockLoadFromI2C.assert_called_with('/dev/i2c-2')
+class EDIDFunctionTest(unittest.TestCase):
+  FAKE_OUTPUTS = [
+      {'vendor': 'IBM', 'product_id': '001', 'width': '111'},
+      {'vendor': 'IBN', 'product_id': '002', 'width': '222'},
+      {'vendor': 'IBO', 'product_id': '003', 'width': '333'},
+  ]
+  FAKE_PATHS = [['/sys/class/drm/A/edid', '/sys/class/drm/BB/edid'],
+                ['/dev/i2c-1', '/dev/i2c-22']]
 
-  @mock.patch.object(edid, 'LoadFromI2C', return_value=FAKE_OUTPUT)
-  @mock.patch.object(sys_utils, 'LoadKernelModule')
-  @mock.patch('glob.glob', return_value=['/dev/i2c-2'])
-  def testI2CDeviceByPath(self, MockGlob, MockLoadKernelModule,
-                          MockLoadFromI2C):
-    results = edid.EDIDFunction(path='/dev/i2c-2')()
-    self.assertEquals(results, [self.FAKE_OUTPUT])
-    MockGlob.assert_called_with('/dev/i2c-2')
-    MockLoadKernelModule.assert_called_with('i2c_dev')
-    MockLoadFromI2C.assert_called_with('/dev/i2c-2')
+  @mock.patch('cros.factory.utils.sys_utils.LoadKernelModule')
+  @mock.patch('cros.factory.probe.functions.edid.LoadFromFile',
+              side_effect=_FakeFunc(FAKE_OUTPUTS[:2]))
+  @mock.patch('cros.factory.probe.functions.edid.LoadFromI2C',
+              side_effect=_FakeFunc(FAKE_OUTPUTS[1:]))
+  @mock.patch('glob.glob', side_effect=_FakeFunc(FAKE_PATHS))
+  def testNormal(self, *unused_mocks):
+    result = edid.EDIDFunction()()
+    self.assertItemsEqual(result, self.FAKE_OUTPUTS)
+
+    for i in xrange(2):
+      for j in xrange(2):
+        result = edid.EDIDFunction(path=self.FAKE_PATHS[i][j])()
+        self.assertItemsEqual(result, [self.FAKE_OUTPUTS[i + j]])
+
+    result = edid.EDIDFunction(path='22')()
+    self.assertItemsEqual(result, [self.FAKE_OUTPUTS[2]])
+
 
 if __name__ == '__main__':
   unittest.main()

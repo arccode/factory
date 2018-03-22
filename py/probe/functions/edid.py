@@ -18,8 +18,10 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.common import Shell
+from cros.factory.probe import function
 from cros.factory.probe.lib import probe_function
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 
 
@@ -185,48 +187,69 @@ def LoadFromI2C(path):
   return None if blob is None else Parse(blob)
 
 
+def LoadFromFile(path):
+  return Parse(file_utils.ReadFile(path))
+
+
 class EDIDFunction(probe_function.ProbeFunction):
   """Probe EDID information from file or I2C bus."""
+  path_to_identity = None
+  identity_to_edid = None
+
   ARGS = [
       Arg('path', str,
-          'EDID file path or the number of I2C bus.',
+          'EDID file path or the number of I2C bus or the path of the i2c '
+          'bus (i.e. "/dev/i2c-<bus_number>").',
           default=None),
   ]
 
   I2C_DEVICE_PREFIX = '/dev/i2c-'
 
-  def SearchEDIDPath(self):
-    """Search all possible EDID paths."""
-    glob_list = [
-        '/sys/class/drm/*LVDS*/edid',
-        '/sys/kernel/debug/edid*',
-        self.I2C_DEVICE_PREFIX + '[0-9]*'
-    ]
-    path_list = []
-    for path in glob_list:
-      path_list += glob.glob(path)
-    return path_list
-
   def Probe(self):
-    if self.args.path is None:
-      paths = self.SearchEDIDPath()
-    elif self.args.path.isdigit():
-      paths = [self.I2C_DEVICE_PREFIX + self.args.path]
-    else:
-      paths = glob.glob(self.args.path)
+    self.MayInitCachedData()
 
-    ret = []
-    for path in paths:
-      result = self.ProbeEDID(path)
-      if result is not None:
-        ret.append(result)
-    return ret
+    if not self.args.path:
+      return self.identity_to_edid.values()
 
-  def ProbeEDID(self, path):
-    if path.startswith(self.I2C_DEVICE_PREFIX):
+    if self.args.path in self.path_to_identity:
+      return self.identity_to_edid[self.path_to_identity[self.args.path]]
+
+    if self.args.path.isdigit():
+      path = self.I2C_DEVICE_PREFIX + self.args.path
+      if path in self.path_to_identity:
+        return self.identity_to_edid[self.path_to_identity[path]]
+
+    logging.error('The given path is invalid, available edid path are: %r',
+                  self.path_to_identity.keys())
+    return function.NOTHING
+
+  @classmethod
+  def MayInitCachedData(cls):
+    if cls.path_to_identity is not None:
+      return
+
+    cls.path_to_identity = {}
+    cls.identity_to_edid = {}
+
+    for glob_pattern in ['/sys/class/drm/*/edid',
+                         cls.I2C_DEVICE_PREFIX + '[0-9]*']:
+      for path in glob.glob(glob_pattern):
+        result = cls.ProbeEDID(path)
+        if not result:
+          continue
+
+        identity = (result['vendor'], result['product_id'])
+
+        if identity not in cls.identity_to_edid:
+          cls.identity_to_edid[identity] = result
+
+        cls.path_to_identity[path] = identity
+
+  @classmethod
+  def ProbeEDID(cls, path):
+    if path.startswith(cls.I2C_DEVICE_PREFIX):
       sys_utils.LoadKernelModule('i2c_dev')
       parsed_edid = LoadFromI2C(path)
     else:
-      with open(path, 'r') as f:
-        parsed_edid = Parse(f.read())
+      parsed_edid = LoadFromFile(path)
     return parsed_edid
