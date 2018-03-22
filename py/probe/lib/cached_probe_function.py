@@ -43,6 +43,11 @@ class CachedProbeFunction(probe_function.ProbeFunction):
     else:
       return self._CACHED_DEVICES.get(category, function.NOTHING)
 
+  @classmethod
+  def CleanCachedData(cls):
+    """Cleans the cached data, this method is mainly for unittesting."""
+    cls._CACHED_DEVICES = None
+
   def GetCategoryFromArgs(self):
     """Gets the category of the target devices from the function arguments.
 

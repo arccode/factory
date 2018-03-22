@@ -12,6 +12,9 @@ from cros.factory.probe.functions import camera_cros
 
 
 class CameraCrosTest(unittest.TestCase):
+  def tearDown(self):
+    camera_cros.CameraCrosFunction.CleanCachedData()
+
   @mock.patch('cros.factory.utils.process_utils.CheckOutput',
               return_value=('            Name | Vendor ID\n'
                             '  xy12345 1-1111 | 11\n'

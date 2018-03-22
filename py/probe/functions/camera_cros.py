@@ -6,6 +6,7 @@ import subprocess
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
+from cros.factory.probe.lib import cached_probe_function
 from cros.factory.utils import process_utils
 
 
@@ -13,12 +14,16 @@ from cros.factory.utils import process_utils
 #     `cros-camera-tool` becomes a generic tool to output identities for
 #     all kind of cameras.
 
-class CameraCrosFunction(function.ProbeFunction):
+class CameraCrosFunction(cached_probe_function.CachedProbeFunction):
   """Execute `cros-camera-tool` to list all MIPI camers."""
 
   ARGS = []
 
-  def Probe(self):
+  def GetCategoryFromArgs(self):
+    return None
+
+  @classmethod
+  def ProbeAllDevices(cls):
     try:
       output = process_utils.CheckOutput(
           ['cros-camera-tool', 'modules', 'list'])
