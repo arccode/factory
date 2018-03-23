@@ -37,8 +37,6 @@ SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 REQUIRED_GSUTIL_VERSION = [3, 32]  # 3.32
 
-DELETION_MARKER_SUFFIX = '_DELETED'
-
 # Default firmware labels to get version and update in README file.
 # To override it, assign 'has_firmware' in MANIFEST.yaml.
 # Examples:
@@ -62,6 +60,10 @@ LOCAL = 'local'
 TEST_IMAGE_SEARCH_DIRS = ['test_image', 'factory_test']
 RELEASE_IMAGE_SEARCH_DIRS = ['release_image', 'release']
 TOOLKIT_SEARCH_DIRS = ['toolkit', 'factory_toolkit']
+
+FIRMWARE_SEARCH_DIR = 'firmware'
+# temporary directory for the release image which contains firmware
+FIRMWARE_IMAGE_SOURCE_DIR = 'firmware_image_source'
 
 # When version is fixed, we'll try to find the resource in the following order.
 RESOURCE_CHANNELS = ['stable', 'beta', 'dev', 'canary']
@@ -145,9 +147,13 @@ class FinalizeBundle(object):
     toolkit_path: Path to the factory toolkit.
     toolkit_version: Version of the factory toolkit.
     gsutil: A GSUtil object.
-    workdir: Working directory.
+    work_dir: Working directory.
     download: True to download files from Google Storage (for testing only).
     archive: True to make a tarball (for testing only).
+    firmware_source: Source (LOCAL, 'release_image' or
+        'release_image/xxxx.yy.zz') of the firmware.
+    firmware_image_source: Path to the release image which contains
+        the firmware.
   """
   bundle_dir = None
   bundle_name = None
@@ -171,6 +177,8 @@ class FinalizeBundle(object):
   work_dir = None
   download = None
   archive = None
+  firmware_source = None
+  firmware_image_source = None
 
   def __init__(self, manifest, work_dir, download=True, archive=True):
     self.manifest = manifest
@@ -240,6 +248,7 @@ class FinalizeBundle(object):
     self.test_image_source = self.manifest.get('test_image')
     self.release_image_source = self.manifest.get('release_image')
     self.toolkit_source = self.manifest.get('toolkit')
+    self.firmware_source = self.manifest.get('firmware', 'release_image')
 
     self.readme_path = os.path.join(self.bundle_dir, 'README')
     self.has_firmware = self.manifest.get('has_firmware', DEFAULT_FIRMWARES)
@@ -379,6 +388,8 @@ class FinalizeBundle(object):
                        self.test_image_path is None)
     need_release_image = (self.release_image_source != LOCAL and
                           self.release_image_path is None)
+    # TODO: skip download if this is equal to self.release_image_source.
+    need_firmware = self.firmware_source.startswith('release_image/')
 
     # TODO(crbug.com/707155): see #c1. We have to always download the factory
     #                         toolkit unless the "toolkit" source in config
@@ -412,6 +423,15 @@ class FinalizeBundle(object):
       if need_toolkit:
         self.toolkit_path = self._DownloadFactoryToolkit(self.toolkit_source,
                                                          self.bundle_dir)
+
+      if need_firmware:
+        self.firmware_image_source = self._DownloadReleaseImage(
+            self.firmware_source.split('/')[1],
+            os.path.join(self.bundle_dir, FIRMWARE_IMAGE_SOURCE_DIR))
+        if not os.path.exists(self.firmware_image_source):
+          raise FinalizeBundleException(
+              'No release image for firmware at %s' %
+              self.firmware_image_source)
 
   def GetAndSetResourceVersions(self):
     """Gets and sets versions of test, release image, and factory toolkit."""
@@ -449,14 +469,20 @@ class FinalizeBundle(object):
     into firmware_images/."""
 
     firmware_src = self.manifest.get('firmware', 'release_image')
-    firmware_dir = os.path.join(self.bundle_dir, 'firmware')
+    firmware_dir = os.path.join(self.bundle_dir, FIRMWARE_SEARCH_DIR)
     file_utils.TryMakeDirs(firmware_dir)
-    if firmware_src == 'release_image':
+    if firmware_src.startswith('release_image'):
       with MountPartition(self.release_image_path, 3) as f:
         shutil.copy(os.path.join(f, FIRMWARE_UPDATER_PATH), firmware_dir)
+    elif firmware_src.startswith('release_image/'):
+      with MountPartition(self.firmware_image_source, 3) as f:
+        shutil.copy(os.path.join(f, FIRMWARE_UPDATER_PATH), firmware_dir)
     elif firmware_src != LOCAL:
+      # TODO: check input in ProcessManifest(), not here.
       raise FinalizeBundleException(
-          'firmware must be either "release_image" or "%s".' % LOCAL)
+          'firmware must be either "release_image", '
+          'release_image/{version}" or "%s".' % LOCAL)
+
     updaters = os.listdir(firmware_dir)
     if len(updaters) != 1:
       raise FinalizeBundleException(
@@ -772,6 +798,7 @@ class FinalizeBundle(object):
       output_file = self.bundle_dir + '.tar.bz2'
       Spawn(['tar', '-cf', output_file,
              '-I', file_utils.GetCompressor('bz2'),
+             '--exclude', os.path.join(FIRMWARE_IMAGE_SOURCE_DIR, '*'),
              '-C', self.bundle_dir, '.'],
             log=True, check_call=True)
       logging.info(

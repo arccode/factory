@@ -222,10 +222,12 @@ This is an optional field.
 
 #### Field `firmware`
 
-There are two valid values:
+There are three kinds of valid values:
 
 * `local`: User manually prepares a firmware updater in `firmware/`.
 * `release_image`: Use firmware updater in the release image.
+* `release_image/xxxx.y.z`: Version of the **Release image** which contains the
+  firmware. Note that this is not the version of firmware itself.
 
 This is an optional field. Default value is `release_image`.
 

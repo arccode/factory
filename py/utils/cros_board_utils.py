@@ -33,7 +33,7 @@ def GetChromeOSFactoryBoardPath(board):
       if os.path.exists(files_dir):
         return files_dir
     logging.warning('no ebuild [%s] for board [%s].', package, board)
-  logging.warning('cannot find any board packages for board [%s].')
+  logging.warning('cannot find any board packages for board [%s].', board)
   return None
 
 
