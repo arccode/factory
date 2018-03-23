@@ -11,6 +11,7 @@ Subclasses OutputBigQuery to create table rows for Testlog events.
 
 from __future__ import print_function
 
+import datetime
 import json
 import math
 import time
@@ -122,7 +123,10 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
       return None
 
     def DateTimeToUnixTimestamp(obj):
-      return time.mktime(obj.timetuple()) if obj else None
+      if isinstance(obj, datetime.datetime):
+        return time.mktime(obj.timetuple()) + obj.microsecond * 1e-6
+      else:
+        return None
 
     row = {}
 

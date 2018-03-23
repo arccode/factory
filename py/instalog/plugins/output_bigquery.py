@@ -213,10 +213,10 @@ class OutputBigQuery(plugin_base.OutputPlugin):
         event_stream.Commit()
         return False
 
-      self.info('Uploading %d rows into BigQuery...', row_count)
+      job_id = '%s%d' % (_JOB_NAME_PREFIX, time.time() * 1e6)
+      self.info('Uploading %d rows into BigQuery (%s) ...', row_count, job_id)
       try:
         with open(json_path, 'rb') as f:
-          job_id = '%s%d' % (_JOB_NAME_PREFIX, time.time())
           job_config = bigquery.LoadJobConfig()
           job_config.source_format = _JSON_MIMETYPE
           # No need to run job.begin() since upload_from_file() takes care of
