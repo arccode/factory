@@ -168,7 +168,6 @@ class PluginSandbox(plugin_base.PluginAPI, log_utils.LoggerMixin):
     self._plugin = None
     self._state = DOWN
     self._event_stream_map = {}
-    self._process_stage_map = {}
 
     # Store the target processed event count and timeout for FLUSHING state.
     self._flushing_target = None
@@ -608,20 +607,9 @@ class PluginSandbox(plugin_base.PluginAPI, log_utils.LoggerMixin):
     self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_UP_PAUSING_STOPPING)
     self.debug('NewStream called with state=%s', self._state)
 
-    # TODO(kitching): Relocate the ProcessStage annotation into Core.
-    batch_time = datetime.datetime.utcnow()
-    process_stage = datatypes.ProcessStage(
-        node_id=self._core_api.GetNodeID(),
-        orig_time=batch_time,
-        time=batch_time,
-        plugin_id=self.plugin_id,
-        plugin_type=self.plugin_type,
-        target=datatypes.ProcessStage.EXTERNAL)
-
     buffer_stream = self._core_api.NewStream(self)
     plugin_stream = datatypes.EventStream(plugin, self)
     self._event_stream_map[plugin_stream] = buffer_stream
-    self._process_stage_map[plugin_stream] = process_stage
     return plugin_stream
 
   def EventStreamNext(self, plugin, plugin_stream):
@@ -632,7 +620,16 @@ class PluginSandbox(plugin_base.PluginAPI, log_utils.LoggerMixin):
       raise plugin_base.UnexpectedAccess
     ret = self._NextMatchingEvent(plugin_stream)
     if ret:
-      ret.AppendStage(self._process_stage_map[plugin_stream])
+      # TODO(kitching): Relocate the ProcessStage annotation into Core.
+      batch_time = datetime.datetime.utcnow()
+      process_stage = datatypes.ProcessStage(
+          node_id=self._core_api.GetNodeID(),
+          orig_time=batch_time,
+          time=batch_time,
+          plugin_id=self.plugin_id,
+          plugin_type=self.plugin_type,
+          target=datatypes.ProcessStage.EXTERNAL)
+      ret.AppendStage(process_stage)
     return ret
 
   def _NextMatchingEvent(self, plugin_stream):
@@ -654,7 +651,6 @@ class PluginSandbox(plugin_base.PluginAPI, log_utils.LoggerMixin):
     self._RecordUnexpectedAccess(plugin, 'EventStreamAbort', inspect.stack())
     if plugin_stream not in self._event_stream_map:
       raise plugin_base.UnexpectedAccess
-    self._process_stage_map.pop(plugin_stream)
     return self._event_stream_map.pop(plugin_stream).Commit()
 
   def EventStreamAbort(self, plugin, plugin_stream):
@@ -665,7 +661,6 @@ class PluginSandbox(plugin_base.PluginAPI, log_utils.LoggerMixin):
     self._RecordUnexpectedAccess(plugin, 'EventStreamAbort', inspect.stack())
     if plugin_stream not in self._event_stream_map:
       raise plugin_base.UnexpectedAccess
-    self._process_stage_map.pop(plugin_stream)
     # If no events were processed, use Commit() instead of Abort().  This
     # accounts for the case where all events were skipped because of the
     # FlowPolicy.  If no "valid" events are ever encountered, the plugin's
