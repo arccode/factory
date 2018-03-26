@@ -12,6 +12,8 @@
 from __future__ import print_function
 
 import atexit
+import logging
+import multiprocessing
 import os
 import signal
 import sys
@@ -80,9 +82,6 @@ class Daemon(object):
     os.dup2(so.fileno(), sys.stdout.fileno())
     os.dup2(se.fileno(), sys.stderr.fileno())
 
-    # Register pidfile.
-    self._RegisterPID()
-
   def _RegisterPID(self):
     """Saves the PID and registers a handler to remove the file on exit."""
     # Remove pidfile when exiting.
@@ -126,7 +125,11 @@ class Daemon(object):
     return not self.IsRunning()
 
   def Start(self, foreground=False):
-    """Starts the daemon."""
+    """Starts the daemon.
+
+    Returns:
+      True if it is needed to check the client is up by RPC; otherwise, False.
+    """
     # Check for a pidfile to see if the daemon is already running.
     if self.GetPID() and self.IsStopped():
       # Not sure if this is the safest thing to do...
@@ -138,16 +141,26 @@ class Daemon(object):
       sys.stderr.write(message % self.pidfile)
       sys.exit(1)
 
-    # Foreground mode: Registering the PID is sufficient.Daemonize if necessary.
-    if foreground:
-      self._RegisterPID()
-    # Daemon mode: Daemonize.  The function will fork and return with two
-    # possible values: PARENT or CHILD.
-    #   PARENT is the original process and should return to caller.
-    #   CHILD is the daemon and should invoke self.Run.
-    elif self._Daemonize() == PARENT:
-      return
-    self.Run(foreground)
+    rpc_ready = None
+    if not foreground:
+      # The PARENT process need to wait the RPCServer is online.
+      rpc_ready = multiprocessing.Event()
+      # The function will fork and return with two possible values:
+      #   PARENT is the original process and should return to caller.
+      #   CHILD is the daemon and should invoke self.Run.
+      if self._Daemonize() == PARENT:
+        sys.stdout.write('Waiting for the core\'s RPC server is online...\n')
+        if not rpc_ready.wait(10):
+          sys.stderr.write('the core\'s RPC server is not online in 10 secs\n')
+          sys.exit(1)
+        return True
+    self._RegisterPID()
+    try:
+      self.Run(foreground, rpc_ready)
+    except Exception as e:
+      logging.exception('Exception %r invoke when running', e)
+      raise
+    return False
 
   def Stop(self):
     """Stops the daemon."""
@@ -187,7 +200,7 @@ class Daemon(object):
     self.Stop()
     self.Start()
 
-  def Run(self, foreground):
+  def Run(self, foreground, rpc_ready=None):
     """Runs the code that represents the daemon process.
 
     Override this method when subclasssing Daemon. It will be called

@@ -69,7 +69,7 @@ class InstalogService(daemon_utils.Daemon):
 
     log_utils.InitLogging(handlers)
 
-  def Run(self, foreground):
+  def Run(self, foreground, rpc_ready=None):
     """Starts Instalog."""
     self._InitLogging(foreground)
 
@@ -84,6 +84,9 @@ class InstalogService(daemon_utils.Daemon):
         buffer_plugin=self._config['buffer'],
         input_plugins=self._config['input'],
         output_plugins=self._config['output'])
+    # After the core initialized, the RPC server is ready.
+    if rpc_ready:
+      rpc_ready.set()
     self._core.Run()
 
 
@@ -163,7 +166,8 @@ class InstalogCLI(object):
       foreground: Does not detach the daemon.
     """
     print('Starting...')
-    self._service.Start(foreground)
+    if not self._service.Start(foreground):
+      return
     if foreground:
       return
 
@@ -182,6 +186,7 @@ class InstalogCLI(object):
         raise type_utils.TimeoutError('Could not call core IsUp')
 
     try:
+      print('Waiting for the core is up...')
       if sync_utils.WaitFor(TryIsUp, 10):
         print('DONE')
         return
