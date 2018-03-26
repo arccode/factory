@@ -135,7 +135,6 @@ class FinalizeBundle(object):
     manifest: Parsed YAML manifest.
     readme_path: Path to the README file within the bundle.
     install_shim_version: Build of the install shim.
-    new_factory_par: Path to a replacement factory.par.
     test_image_source: Source (LOCAL or a version) of the test image.
     test_image_path: Path to the test image.
     test_image_version: Version of the test image.
@@ -157,7 +156,6 @@ class FinalizeBundle(object):
   manifest = None
   readme_path = None
   install_shim_version = None
-  new_factory_par = None
   project = None
   test_image_source = None
   test_image_path = None
@@ -189,7 +187,6 @@ class FinalizeBundle(object):
     self.GetAndSetResourceVersions()
     self.PrepareNetboot()
     self.UpdateInstallShim()
-    self.FixFactoryPar()
     self.RemoveUnnecessaryFiles()
     self.UpdateReadme()
     self.Archive()
@@ -633,41 +630,6 @@ class FinalizeBundle(object):
 
     if not has_install_shim:
       logging.warning('There is no install shim in the bundle.')
-
-  def FixFactoryPar(self):
-    """Fix symlinks to factory.par, and replace factory.par if necessary.
-
-    (Certain files may have been turned into real files by the buildbots.)
-    """
-    factory_par_path = os.path.join(self.bundle_dir, 'shopfloor', 'factory.par')
-    factory_par_data = file_utils.ReadFile(factory_par_path)
-
-    # Look for files that are identical copies of factory.par.
-    for root, _, files in os.walk(self.bundle_dir):
-      for f in files:
-        path = os.path.join(root, f)
-        if path == factory_par_path:
-          # Don't replace it with itself!
-          continue
-        if (os.path.islink(path) or
-            os.path.getsize(path) != len(factory_par_data)):
-          # It's not a real file, or not the right size.  Skip.
-          continue
-        with open(path) as fobj:
-          data = fobj.read()
-        if data != factory_par_data:
-          # Data isn't the same.  Skip.
-          continue
-
-        # Replace the file with a symlink.
-        logging.info('Replacing %s with a symlink', path)
-        os.unlink(path)
-        os.symlink(os.path.relpath(factory_par_path, os.path.dirname(path)),
-                   path)
-
-    if self.new_factory_par:
-      logging.info('Copying %s to %s', self.new_factory_par, factory_par_path)
-      shutil.copy2(self.new_factory_par, factory_par_path)
 
   def RemoveUnnecessaryFiles(self):
     """Removes vim backup files, pyc files, and empty directories."""
