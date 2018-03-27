@@ -3,14 +3,37 @@
 # found in the LICENSE file.
 
 
-"""Suspends and resumes the device an adjustable number of times for
+"""Suspend and resume device with given cycles.
+
+Description
+-----------
+Suspends and resumes the device an adjustable number of times for
 adjustable random lengths of time.
 
-This uses the powerd_suspend utility and the rtc's wakealarm entry in sysfs.
+Test Procedure
+--------------
+This is an automated test without user interaction.
 
-Note that the rtc sysfs entry may vary from device to device, the test_list
+When started, the test will try to suspend and resume by given arguments.
+Will fail if device wakes too early, or if unexpected reboot (or crash) found.
+
+Dependency
+----------
+- ``powerd_suspend`` utility.
+- rtc's ``wakealarm`` entry in ``sysfs``.
+
+Note that the rtc sysfs entry may vary from device to device, so the test_list
 must define the path to the correct sysfs entry for the specific device, the
-default assumes a typical /sys/class/rtc/rtc0 entry.
+default assumes a typical ``/sys/class/rtc/rtc0 entry``.
+
+Examples
+--------
+To suspend/resume in 1 cycle, suspend in 5~10 seconds, resume in 5~10 seconds,
+and suspend to memory (see more criteria from arguments)::
+
+  {
+    "pytest_name": "suspend_resume"
+  }
 """
 
 
