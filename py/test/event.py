@@ -209,7 +209,7 @@ class EventServerRequestHandler(SocketServer.BaseRequestHandler):
       if e.errno in [errno.ECONNRESET, errno.ESHUTDOWN, errno.EPIPE]:
         pass  # Client just quit
       else:
-        raise e
+        raise
     finally:
       logging.debug('Event server: client disconnected')
       self.queue.put(None)  # End of stream; make writer quit

@@ -389,7 +389,7 @@ class _ServiceTest(object):
         self._log['failures'].append(e.message)
         session.console.error(e.message)
         if abort:
-          raise e
+          raise
 
     # Try connecting to the service.  If we can't connect, then don't log
     # connection details, and abort this service's remaining tests.

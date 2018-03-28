@@ -73,15 +73,16 @@ def FlimGetServiceProperty(service, prop):
     prop: property name
   """
   timeout = time.time() + 10
-  while time.time() < timeout:
+  while True:
     try:
       properties = service.GetProperties()
-    except dbus.exceptions.DBusException as e:
+    except dbus.exceptions.DBusException:
       logging.exception('Error reading service property')
       time.sleep(1)
+      if time.time() >= timeout:
+        raise
     else:
       return properties[prop]
-  raise e
 
 
 def FlimConfigureService(flim, ssid, password):

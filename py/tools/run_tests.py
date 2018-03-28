@@ -305,9 +305,9 @@ class RunTests(object):
           p = _TestProc(test_name,
                         self._GetLogFilename(test_name),
                         port_server.socket_file)
-        except Exception as e:
+        except Exception:
           self._FailMessage('Error running test %r' % test_name)
-          raise e
+          raise
         self._running_proc[p.pid] = (p, os.path.basename(test_name))
         self._WaitRunningProcessesFewerThan(max_jobs)
       # Wait for all running test.

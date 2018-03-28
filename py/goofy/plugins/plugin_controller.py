@@ -49,7 +49,7 @@ def GetPluginRPCProxy(plugin_name, address=None, port=None):
       logging.debug('The requested plugin %s is not running', plugin_name)
       return None
     else:
-      raise error
+      raise
 
 
 class PluginController(object):

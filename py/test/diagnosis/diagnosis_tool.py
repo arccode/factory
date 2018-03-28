@@ -386,10 +386,10 @@ def _ImportConfigFiles():
       try:
         opened_file = open(os.path.join(dirpath, filename), 'r')
         new_configs = yaml.load(opened_file)
-      except Exception as e:
+      except Exception:
         logging.exception('Cought an exception while reading and parsing '
-                          'the yaml config file %r: %s.', filename, e)
-        raise e
+                          'the yaml config file %r.', filename)
+        raise
       if isinstance(new_configs, list):
         all_configs = all_configs + new_configs
       else:

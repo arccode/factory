@@ -132,4 +132,4 @@ class StressAppTest(unittest.TestCase):
         pass
     except stress_manager.StressManagerError as e:
       logging.error('StressAppTest failed: %s', e)
-      raise e
+      raise

@@ -73,12 +73,12 @@ class InputArchive(plugin_base.InputPlugin):
         if not self.ParseAndEmit(json_path):
           self.error('Emit failed!')
           raise IOError
-      except Exception as e:
+      except Exception:
         # We might not have permission to access this file, or there could be
         # some other IO problem, or the tarfile was broken.
         self.exception('Exception while accessing file, check permissions, '
                        'files in archive, and "path" argument.')
-        raise e
+        raise
     return
 
   def Main(self):
@@ -116,10 +116,10 @@ class InputArchive(plugin_base.InputPlugin):
     """
     try:
       return datatypes.Event.Deserialize(line)
-    except Exception as e:
+    except Exception:
       self.error('Encountered invalid line "%s" in %s, aborting import',
                  line.rstrip(), path, exc_info=True)
-      raise e
+      raise
 
 
 if __name__ == '__main__':
