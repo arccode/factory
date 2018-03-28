@@ -229,6 +229,7 @@ class ExecShell(test_case.TestCase):
 
       result = self.RunCommand(command)
       if result != 0:
+        testlog.AddFailure(code=result, details='failed command: %r' % command)
         break
       self.ui.AdvanceProgress()
 
