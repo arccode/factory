@@ -115,6 +115,7 @@ HOST_TFTP_DIR="${HOST_SHARED_DIR}/tftp"
 HOST_UMPIRE_DIR="${HOST_SHARED_DIR}/umpire"
 HOST_OVERLORD_DIR="${HOST_SHARED_DIR}/overlord"
 HOST_OVERLORD_CONFIG_DIR="${HOST_OVERLORD_DIR}/config"
+HOST_GOOFY_DIR="${HOST_SHARED_DIR}/goofy"
 
 # Publish tools
 PREBUILT_IMAGE_SITE="https://storage.googleapis.com"
@@ -166,6 +167,7 @@ set_docker_image_info
 : "${UMPIRE_CONTAINER_DIR:="${HOST_UMPIRE_DIR}/${PROJECT}"}"
 : "${UMPIRE_PORT:="8080"}"  # base port for Umpire
 : "${DOME_PORT:="8000"}"  # port to access Dome
+: "${GOOFY_PORT:="4012"}"  # port to access Goofy
 : "${OVERLORD_HTTP_PORT:="9000"}"  # port to access Overlord
 : "${OVERLORD_LAN_DISC_IFACE:=""}"  # The network interface that Overlord LAN
                                     # discovery should be run on.
@@ -402,6 +404,142 @@ umpire_main() {
       exit 1
       ;;
   esac
+}
+
+goofy_usage() {
+  cat << __EOF__
+Run the test harness and UI "Goofy" in Docker environment.
+
+Most subcommands support an optional "CROS_TEST_DOCKER_IMAGE" argument, which is
+the Docker image repository name when you have imported a Chromium OS image
+using '${SCRIPT_DIR}/make_docker_image.sh'. If you have only one image
+installed, that image will be selected automatically.
+
+commands:
+  $0 goofy help
+      Show this help message.
+
+  $0 goofy try [CROS_TEST_DOCKER_IMAGE]
+      Quickly run the Goofy from source tree.
+
+      This command will try to run Goofy directly using your local source tree.
+      You have to first build goofy.js and locale folders manually, by running
+      following commands inside chroot:
+
+        make
+        make po
+
+      Then, you can start Goofy by 'try' command, and access to the web UI in
+      GOOFY_PORT (default ${GOOFY_PORT}).  For example:
+
+        GOOFY_PORT=1234 $0 goofy try
+
+  $0 goofy shell [CROS_TEST_DOCKER_IMAGE]
+      Starts a shell to install and run Goofy manually.
+
+      Unlike 'try' command, the 'shell' does not need source tree. Instead it
+      will allocate an empty folder in ${HOST_GOOFY_DIR} for you to install
+      a full Goofy toolkit installer, and then Goofy from there manually.
+__EOF__
+}
+
+# Run Goofy inside Docker.
+goofy_main() {
+  local try=false
+  case "$1" in
+    shell)
+      shift
+      ;;
+    try)
+      try=true
+      shift
+      ;;
+    *)
+      goofy_usage
+      exit 1
+      ;;
+  esac
+
+  check_docker
+
+  # Decide CROS_TEST_DOCKER_IMAGE
+  local name=""
+  if [ "$#" = 1 ]; then
+    name="$1"
+  elif [ "$#" = 0 ]; then
+    # Try to find existing images.
+    local all_images="$( \
+      ${DOCKER} images "cros/*_test"  --format "{{.Repository}}" | uniq)"
+    case "$(echo "${all_images}" | wc -w)" in
+      1)
+        name="${all_images}"
+        ;;
+      0)
+        ;;
+      *)
+        die "Multiple images found, you have to specify one: " ${all_images}
+        ;;
+    esac
+  else
+    # TODO(hungte) Pass extra arguments to Goofy in future.
+    goofy_usage
+    exit 1
+  fi
+  # Normalize name and check if the image exists.
+  if [ -z "${name}" ]; then
+    die "Need Docker image from Chromium OS test image (make_docker_image.sh)."
+  elif [ "${name##*/}" = "${name}" ]; then
+    name="cros/${name}"
+  fi
+  if [ -z "$(${DOCKER} images "${name}" --format '{{.Repository}}')" ]; then
+    die "Docker image does not exist: ${name}"
+  fi
+
+  ensure_dir "${HOST_GOOFY_DIR}/var_factory"
+  ensure_dir_acl "${HOST_SHARED_DIR}"
+
+  local locale_dir="${FACTORY_DIR}/build/locale"
+  local commands=""
+
+  if "${try}"; then
+    if [ ! -e "${locale_dir}" ]; then
+      die "Please do 'make po' in chroot first."
+    fi
+    if [ ! -e "${FACTORY_DIR}/py/goofy/static/js/goofy.js" ]; then
+      die "Please do 'make default' in chroot first."
+    fi
+    # TODO(hungte) Support board overlay.
+    commands="
+      --volume ${FACTORY_DIR}:/usr/local/factory \
+      --volume ${FACTORY_DIR}/build/locale:/usr/local/factory/locale \
+      ${name} /usr/local/factory/bin/goofy_docker
+    "
+    echo ">> Starting Docker image ${name} in http://localhost:${GOOFY_PORT} .."
+  else
+    ensure_dir "${HOST_GOOFY_DIR}/local_factory"
+    if [ ! -e "${HOST_GOOFY_DIR}/local_factory/TOOLKIT_VERSION" ]; then
+      echo "You have to first manually install a toolkit."
+      echo "Copy the install_factory_toolkit.run to ${HOST_SHARED_DIR}"
+      echo " and then execute /mnt/install_factory_toolkit.run inside docker."
+    fi
+    echo "To start Goofy, run '${DOCKER_BASE_DIR}/bin/goofy_docker'."
+    commands="
+      --volume "${HOST_GOOFY_DIR}/local_factory:/usr/local/factory" \
+      "${name}" bash
+    "
+  fi
+
+  ${DOCKER} run \
+    --interactive \
+    --tty \
+    --rm \
+    --name "goofy_${name##*/}" \
+    --volume "${HOST_SHARED_DIR}:/mnt" \
+    --volume "${HOST_GOOFY_DIR}/var_factory:/var/factory" \
+    --publish "${GOOFY_PORT}:4012" \
+    --tmpfs "/run:rw,size=16384k" \
+    --tmpfs /var/log \
+    ${commands}
 }
 
 # Section for Overlord subcommand
@@ -952,11 +1090,15 @@ commands for developers:
   $0 save
       Save factory server docker image to the current working directory.
 
+  $0 goofy [subcommand]
+      Commands to run Goofy in Docker, see "$0 goofy help" for detail.
+
   $0 umpire [subcommand]
       Commands for Umpire, see "$0 umpire help" for detail.
 
   $0 overlord [subcommand]
       Commands for Overlord, see "$0 overlord help" for detail.
+
 __EOF__
 }
 
@@ -989,6 +1131,10 @@ main() {
       ;;
     version)
       echo "Chrome OS Factory Server: ${DOCKER_IMAGE_VERSION}"
+      ;;
+    goofy)
+      shift
+      goofy_main "$@"
       ;;
     umpire)
       shift
