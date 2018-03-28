@@ -264,6 +264,22 @@ def DeleteDeviceData(delete_keys, optional=False):
   return data
 
 
+def VerifyDeviceData(device_data):
+  """Verifies whether all fields in the device data dictionary are valid.
+
+  Args:
+    device_data: A dict with key/value pairs to verify.
+
+  Raises:
+    `ValueError` if the device data is invalid.
+  """
+  for key, value in device_data.iteritems():
+    if key.startswith(KEY_COMPONENT):
+      if not (isinstance(value, bool) or isinstance(value, int)):
+        raise ValueError('Values in the "component" domain should be in type '
+                         'of either `bool` or `int`.')
+
+
 def UpdateDeviceData(new_device_data):
   """Updates existing device data with given new dict data.
 
@@ -274,8 +290,13 @@ def UpdateDeviceData(new_device_data):
   Returns:
     The updated dictionary.
   """
+  new_device_data = FlattenData(new_device_data)
+
   logging.info('Updating device data: setting %s',
                privacy.FilterDict(new_device_data))
+
+  VerifyDeviceData(new_device_data)
+
   data = state.get_instance().update_shared_data_dict(
       state.KEY_DEVICE_DATA, new_device_data)
   logging.info('Updated device data; complete device data is now %s',

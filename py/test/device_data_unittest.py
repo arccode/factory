@@ -56,5 +56,20 @@ class ReadDeviceDataFromVPDUnittest(unittest.TestCase):
         device_data.GetAllDeviceData())
 
 
+class VerifyDeviceDataUnittest(unittest.TestCase):
+  def testComponentDomain(self):
+    device_data.VerifyDeviceData(
+        {
+            'component.has_aabb': 0,
+            'component.has_ccdd': True,
+        })
+
+    self.assertRaises(
+        ValueError, device_data.VerifyDeviceData,
+        {
+            'component.has_eeff': 'Y'
+        })
+
+
 if __name__ == '__main__':
   unittest.main()
