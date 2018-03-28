@@ -18,8 +18,8 @@ class PeriodicPlugin(plugin.Plugin):
   A common implementation of `cros.factory.goofy.plugins` that run a specific
   task periodically.
 
-  Subclass needs to implement `Run()`, which will be executed periodically in a
-  daemon thread.
+  Subclass needs to implement `RunTask()`, which will be executed periodically
+  in a daemon thread.
   """
 
   def __init__(self, goofy, period_secs,
@@ -28,9 +28,9 @@ class PeriodicPlugin(plugin.Plugin):
 
     Args:
       period_secs: seconds between each run.
-      catch_exception: catch exceptions from `Run()` function or not. If set to
-          False, exception in `Run()` would cause the running thread to crash,
-          and the following periodic task would be stopped.
+      catch_exception: catch exceptions from `RunTask()` function or not. If
+          set to False, exception in `RunTask()` would cause the running thread
+          to crash, and the following periodic task would be stopped.
     """
     super(PeriodicPlugin, self).__init__(goofy, used_resources)
     self._thread = None
@@ -46,7 +46,7 @@ class PeriodicPlugin(plugin.Plugin):
     self._thread = process_utils.StartDaemonThread(target=self._RunTarget)
 
   def _RunTarget(self):
-    """Periodically runs `Run()`."""
+    """Periodically runs `RunTask()`."""
     while not self._stop_event.wait(
         self._period_secs if self._run_times else 0):
       self._run_task()
@@ -61,7 +61,7 @@ class PeriodicPlugin(plugin.Plugin):
 
   @debug_utils.CatchException('PeriodicPlugin')
   def _RunTaskWithCatch(self):
-    """Wrapper of `Run()` that catches any exception."""
+    """Wrapper of `RunTask()` that catches any exception."""
     self.RunTask()
 
   @type_utils.Overrides
