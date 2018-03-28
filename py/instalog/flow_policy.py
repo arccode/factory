@@ -130,7 +130,7 @@ class HistoryRule(Rule):
   """Checks for a particular entry in the Event's history."""
 
   NAME = 'history'
-  KEYS = ['node_id', 'orig_time', 'time', 'plugin_id',
+  KEYS = ['node_id', 'time', 'plugin_id',
           'plugin_type', 'target', 'position']
 
   def MatchEvent(self, event):

@@ -592,7 +592,6 @@ class PluginSandbox(plugin_base.PluginAPI, log_utils.LoggerMixin):
     batch_time = datetime.datetime.utcnow()
     process_stage = datatypes.ProcessStage(
         node_id=self._core_api.GetNodeID(),
-        orig_time=batch_time,
         time=batch_time,
         plugin_id=self.plugin_id,
         plugin_type=self.plugin_type,
@@ -624,7 +623,6 @@ class PluginSandbox(plugin_base.PluginAPI, log_utils.LoggerMixin):
       batch_time = datetime.datetime.utcnow()
       process_stage = datatypes.ProcessStage(
           node_id=self._core_api.GetNodeID(),
-          orig_time=batch_time,
           time=batch_time,
           plugin_id=self.plugin_id,
           plugin_type=self.plugin_type,

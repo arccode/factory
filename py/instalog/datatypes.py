@@ -28,9 +28,8 @@ class ProcessStage(json_utils.Serializable):
   EXTERNAL = 'EXTERNAL'
 
   # pylint: disable=redefined-outer-name
-  def __init__(self, node_id, orig_time, time, plugin_id, plugin_type, target):
+  def __init__(self, node_id, time, plugin_id, plugin_type, target):
     self.node_id = node_id
-    self.orig_time = orig_time
     self.time = time
     self.plugin_id = plugin_id
     self.plugin_type = plugin_type
@@ -40,7 +39,6 @@ class ProcessStage(json_utils.Serializable):
     """Returns the dictionary equivalent of the ProcessStage object."""
     return {
         'node_id': self.node_id,
-        'orig_time': self.orig_time,
         'time': self.time,
         'plugin_id': self.plugin_id,
         'plugin_type': self.plugin_type,
@@ -51,14 +49,14 @@ class ProcessStage(json_utils.Serializable):
   def FromDict(cls, dct):
     """Returns a ProcessStage object from its dictionary equivalent."""
     return cls(
-        dct['node_id'], dct['orig_time'], dct['time'], dct['plugin_id'],
+        dct['node_id'], dct['time'], dct['plugin_id'],
         dct['plugin_type'], dct['target'])
 
   def __repr__(self):
     """Implements repr function for debugging."""
-    return ('ProcessStage(node_id=%r, orig_time=%r, time=%r, plugin_id=%r, '
+    return ('ProcessStage(node_id=%r, time=%r, plugin_id=%r, '
             'plugin_type=%r, target=%r)'
-            % (self.node_id, self.orig_time, self.time, self.plugin_id,
+            % (self.node_id, self.time, self.plugin_id,
                self.plugin_type, self.target))
 
 

@@ -31,7 +31,6 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
         # history
         SchemaField(u'history', u'record', u'REPEATED', None, (
             SchemaField(u'node_id', u'string', 'NULLABLE', None, ()),
-            SchemaField(u'orig_time', u'timestamp', 'NULLABLE', None, ()),
             SchemaField(u'time', u'timestamp', 'NULLABLE', None, ()),
             SchemaField(u'plugin_id', u'string', 'NULLABLE', None, ()),
             SchemaField(u'plugin_type', u'string', 'NULLABLE', None, ()),
@@ -132,8 +131,6 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
     for process_stage in event.history:
       row['history'].append({})
       row['history'][-1]['node_id'] = process_stage.node_id
-      row['history'][-1]['orig_time'] = DateTimeToUnixTimestamp(
-          process_stage.orig_time)
       row['history'][-1]['time'] = DateTimeToUnixTimestamp(
           process_stage.time)
       row['history'][-1]['plugin_id'] = process_stage.plugin_id

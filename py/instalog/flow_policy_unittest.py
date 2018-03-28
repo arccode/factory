@@ -22,14 +22,12 @@ _SAMPLE_DATETIME = datetime.datetime(1989, 12, 12, 12, 12, 12, 12)
 
 _SAMPLE_PROCESS_STAGE1 = datatypes.ProcessStage(
     node_id='node_id1',
-    orig_time=_SAMPLE_DATETIME,
     time=_SAMPLE_DATETIME,
     plugin_id='plugin_id1',
     plugin_type='plugin_type1',
     target=datatypes.ProcessStage.BUFFER)
 _SAMPLE_PROCESS_STAGE2 = datatypes.ProcessStage(
     node_id='node_id2',
-    orig_time=_SAMPLE_DATETIME,
     time=_SAMPLE_DATETIME,
     plugin_id='plugin_id2',
     plugin_type='plugin_type2',
