@@ -82,6 +82,14 @@ class EventLoop(object):
     """
     self.event_handlers.setdefault(subtype, []).append(handler)
 
+  def RemoveEventHandler(self, subtype):
+    """Remove all event handler for a subtype.
+
+    Args:
+      subtype: The test-specific type of event to be handled.
+    """
+    self.event_handlers.pop(subtype, None)
+
   def PostEvent(self, event):
     """Posts an event to the event queue.
 

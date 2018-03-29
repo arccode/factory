@@ -137,6 +137,13 @@ class EventLoopTest(EventLoopTestBase):
     self._MockNewEvent(invocation='fooinvocation', subtype='type1')
     self.assertEqual([], received_data)
 
+    self.event_loop.RemoveEventHandler('type1')
+    self.event_loop.RemoveEventHandler('type3')
+    received_data = []
+    self._MockNewEvent(subtype='type1', data='data')
+    self._MockNewEvent(subtype='type2', data='data')
+    self.assertEqual([('handler3', 'data')], received_data)
+
   def testHandleEventException(self):
     def _Handler(event):
       del event  # Unused.

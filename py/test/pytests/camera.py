@@ -204,6 +204,7 @@ class CameraTest(test_case.TestCase):
         event_name, lambda event: return_queue.put(event.data))
     self.ui.CallJSFunction(func, js, event_name)
     ret = sync_utils.QueueGet(return_queue)
+    self.event_loop.RemoveEventHandler(event_name)
     if 'error' in ret:
       self.FailTask(ret['error'])
     return ret['data']
@@ -241,9 +242,8 @@ class CameraTest(test_case.TestCase):
             data_event_name, lambda event: data_queue.put(event.data))
         self.RunJSPromiseBlocking('cameraTest.grabFrameAndTransmitBack(%r)' %
                                   data_event_name)
-        buf = []
-        while not data_queue.empty():
-          buf.append(sync_utils.QueueGet(data_queue))
+        self.event_loop.RemoveEventHandler(data_event_name)
+        buf = type_utils.DrainQueue(data_queue)
         blob = ''.join(buf).decode('base64')
         return cv2.imdecode(
             np.fromstring(blob, dtype=np.uint8), cv2.CV_LOAD_IMAGE_COLOR)
