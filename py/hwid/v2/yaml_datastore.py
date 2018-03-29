@@ -117,7 +117,7 @@ class _DatastoreBase(object):
       raise InvalidDataError
     try:
       field_dict = YamlRead(data, loader)
-    except yaml.YAMLError, e:
+    except yaml.YAMLError as e:
       raise InvalidDataError('YAML deserialization error: %s' % e)
     cls.ValidateSchema(field_dict)
     cooked_field_dict = dict(

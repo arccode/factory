@@ -53,7 +53,7 @@ def SimpleSystemOutput(cmd):
   try:
     proc = subprocess.Popen(cmd, shell=True, stdout=PIPE, stderr=STDOUT)
     stdout, unused_stderr = proc.communicate()
-  except Exception, e:
+  except Exception as e:
     logging.warning('Command (%s) failed (%s).', cmd, e)
   else:
     return None if proc.returncode else stdout.strip()

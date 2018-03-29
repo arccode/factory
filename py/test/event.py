@@ -205,7 +205,7 @@ class EventServerRequestHandler(SocketServer.BaseRequestHandler):
         if not msg:
           break  # EOF
         self.server._post_message(msg)  # pylint: disable=protected-access
-    except socket.error, e:
+    except socket.error as e:
       if e.errno in [errno.ECONNRESET, errno.ESHUTDOWN, errno.EPIPE]:
         pass  # Client just quit
       else:

@@ -784,10 +784,10 @@ def main():
     logging.debug('GOOFTOOL command %r', options.command_name)
     options.command(options)
     logging.info('GOOFTOOL command %r SUCCESS', options.command_name)
-  except Error, e:
+  except Error as e:
     logging.exception(e)
     sys.exit('GOOFTOOL command %r ERROR: %s' % (options.command_name, e))
-  except Exception, e:
+  except Exception as e:
     logging.exception(e)
     sys.exit('UNCAUGHT RUNTIME EXCEPTION %s' % e)
 

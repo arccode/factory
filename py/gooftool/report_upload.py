@@ -65,7 +65,7 @@ def ShopFloorUpload(source_path, remote_spec, stage,
     try:
       instance.UploadReport(serial_number, blob, 'gooftool', stage)
       return True
-    except xmlrpclib.Fault, err:
+    except xmlrpclib.Fault as err:
       result['message'] = 'Remote server fault #%d: %s' % (err.faultCode,
                                                            err.faultString)
       result['abort'] = True
@@ -215,7 +215,7 @@ def FtpUpload(source_path, ftp_url, retry_interval=DEFAULT_RETRY_INTERVAL,
   def FtpCallback(result):
     try:
       ftp.connect(host=host, port=port, timeout=retry_timeout)
-    except Exception, e:
+    except Exception as e:
       result['message'] = '%s' % e
       return False
     return True

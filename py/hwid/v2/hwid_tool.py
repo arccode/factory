@@ -1892,10 +1892,10 @@ def Main():
   hw_db = HardwareDb(config.data_path)
   try:
     config.command(config, hw_db)
-  except Error, e:
+  except Error as e:
     logging.exception(e)
     sys.exit('ERROR: %s' % e)
-  except Exception, e:
+  except Exception as e:
     logging.exception(e)
     sys.exit('UNCAUGHT RUNTIME EXCEPTION %s' % e)
   hw_db.Write()
