@@ -453,8 +453,7 @@ class Goofy(object):
         try:
           vpd_data[section] = self.dut.vpd.boot.GetPartition(section).GetAll()
         except Exception:
-          logging.exception('Failed to read %s_VPD, ignored...',
-                            section.upper())
+          logging.warning('Failed to read %s_VPD, ignored...', section.upper())
       # using None for key_map will use default key_map
       device_data.UpdateDeviceDataFromVPD(None, vpd_data)
 
