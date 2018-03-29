@@ -22,7 +22,6 @@ binaries:
   goofy_remote:    full
   goofy_rpc:       full
   hwid:            mini
-  hwid_tool:       full
   make_par:        full
   merge_logs:      full
   mount_partition: full
