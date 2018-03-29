@@ -211,6 +211,33 @@ def NoRecursion(func):
   return Wrapped
 
 
+class DummyInterface(object):
+  """A special class for providing dummy implementation."""
+
+  def __init__(self, *args, **kargs):
+    logging.debug('%s.%s%r%r', self.__class__.__name__, '__init__', args, kargs)
+
+  def __getattr__(self, attr):
+    def MockedMethod(*args, **kargs):
+      logging.debug('%s.%s%r%r', self.__class__.__name__, attr, args, kargs)
+    setattr(self, attr, MockedMethod)
+    return MockedMethod
+
+
+def GetInterface(interface, dummy_interface=DummyInterface, is_dummy=False):
+  """Returns a real or dummy interface based on is_dummy.
+
+  Args:
+    interface: the constructor of real interface.
+    dummy_interface: a constructor for dummy interface.
+    is_dummy: True to request for dummy interface, otherwise real interface.
+
+  Returns:
+    dummy_interface if is_dummy is True, otherwise (real) interface.
+  """
+  return dummy_interface if is_dummy else interface
+
+
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
   StartDebugServer()

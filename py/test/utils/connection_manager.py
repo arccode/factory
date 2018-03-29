@@ -397,28 +397,6 @@ class ConnectionManager(object):
     return stat != 'offline'
 
 
-class DummyConnectionManager(object):
-  """A dummy connection manager that always reports being connected.
-
-  Useful, e.g., in the chroot.
-  """
-
-  def __init__(self):
-    pass
-
-  def DisableNetworking(self):
-    logging.warn('DisableNetworking: no network manager is set')
-
-  def EnableNetworking(self):
-    logging.warn('EnableNetworking: no network manager is set')
-
-  def WaitForConnection(self, timeout=_CONNECTION_TIMEOUT_SECS):
-    pass
-
-  def IsConnected(self):
-    return True
-
-
 def PingHost(host, timeout=_PING_TIMEOUT_SECS):
   """Checks if we can reach a host.
 

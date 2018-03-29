@@ -281,29 +281,6 @@ def StartDHCPManager(interfaces=None,
   return manager
 
 
-class DummyDHCPManager(object):
-  """A dummy DHCPManager.
-
-  Replace DHCPManager with this for unit tests so that unit tests don't mess
-  with the system network setting.
-  """
-  def __init__(self, *args, **kwargs):
-    pass
-
-  def StartDHCP(self):
-    pass
-
-  def StopDHCP(self):
-    pass
-
-  def GetHandledInterfaces(self):
-    return []
-
-  @classmethod
-  def CleanupStaleInstance(cls):
-    pass
-
-
 if __name__ == '__main__':
   # Figure out what port to call back to
   filename = os.path.basename(sys.argv[0])
