@@ -118,6 +118,7 @@ don't show the image::
 
 
 import numbers
+import os
 import Queue
 import random
 import tempfile
@@ -131,6 +132,7 @@ from cros.factory.test.i18n import _
 from cros.factory.test import test_case
 from cros.factory.test.utils import barcode
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import file_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
@@ -236,15 +238,10 @@ class CameraTest(test_case.TestCase):
         # not implemented on desktop Chrome yet. We don't need to transmit the
         # image back after these APIs are implemented, and can do all
         # postprocessing on JavaScript.
-        data_event_name = 'camera_image_data_%s' % uuid.uuid4()
-        data_queue = Queue.Queue()
-        self.event_loop.AddEventHandler(
-            data_event_name, lambda event: data_queue.put(event.data))
-        self.RunJSPromiseBlocking('cameraTest.grabFrameAndTransmitBack(%r)' %
-                                  data_event_name)
-        self.event_loop.RemoveEventHandler(data_event_name)
-        buf = type_utils.DrainQueue(data_queue)
-        blob = ''.join(buf).decode('base64')
+        blob_path = self.RunJSPromiseBlocking(
+            'cameraTest.grabFrameAndTransmitBack()')
+        blob = file_utils.ReadFile(blob_path).decode('base64')
+        os.unlink(blob_path)
         return cv2.imdecode(
             np.fromstring(blob, dtype=np.uint8), cv2.CV_LOAD_IMAGE_COLOR)
       else:
@@ -334,6 +331,10 @@ class CameraTest(test_case.TestCase):
         cv2.imwrite(img_buffer.name, cv_image,
                     (cv.CV_IMWRITE_JPEG_QUALITY, _JPEG_QUALITY))
         try:
+          # TODO(pihsun): Don't use CallJSFunction for transmitting image back
+          # to UI. Use URLForData instead, since event server actually
+          # broadcast to all client, and is not suitable for large amount of
+          # data.
           self.ui.CallJSFunction(
               'showImage',
               'data:image/jpeg;base64,' + img_buffer.read().encode('base64'))

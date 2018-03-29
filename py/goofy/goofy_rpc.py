@@ -747,6 +747,18 @@ class GoofyRPC(object):
     """Returns whether a plugin is enabled."""
     return bool(self.goofy.plugin_controller.GetPluginInstance(plugin_name))
 
+  def UploadTemporaryFile(self, content):
+    """Save content to a temporary file.
+
+    The caller is responsible of deleting the file after it's used.
+
+    Returns:
+      The path of the temporary file.
+    """
+    path = file_utils.CreateTemporaryFile(prefix='goofy_rpc_temp_')
+    file_utils.WriteFile(path, content)
+    return path
+
 
 def main():
   parser = argparse.ArgumentParser(

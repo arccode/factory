@@ -88,18 +88,13 @@ class CameraTest {
     frame.close();
   }
 
-  async grabFrameAndTransmitBack(data_event_name) {
-    // Since there are some size limits for Goofy event size, and the frame
-    // grabbed is usually about 100K+ in base64 in size, we need to segment it
-    // and reconstruct in camera.py.
+  async grabFrameAndTransmitBack() {
     await this.grabFrame();
     const blob = this.canvas.toDataURL('image/jpeg')
                      .replace(/^data:image\/jpeg;base64,/, '');
-    const sliceLength = 50000;
-    for (let idx = 0; idx < blob.length; idx += sliceLength) {
-      const slice = blob.substr(idx, sliceLength);
-      test.sendTestEvent(data_event_name, slice);
-    }
+    const goofy = test.invocation.goofy;
+    const path = await goofy.sendRpc('UploadTemporaryFile', blob);
+    return path;
   }
 
   async detectFaces() {
