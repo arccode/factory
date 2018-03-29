@@ -231,7 +231,7 @@ class CameraTest(test_case.TestCase):
 
   def ReadSingleFrame(self):
     if self.e2e_mode:
-      if self.need_postprocess:
+      if self.need_transmit_from_ui:
         # TODO(pihsun): The shape detection API (face / barcode detection) are
         # not implemented on desktop Chrome yet. We don't need to transmit the
         # image back after these APIs are implemented, and can do all
@@ -286,7 +286,9 @@ class CameraTest(test_case.TestCase):
   def DetectFaces(self, cv_image):
     # This condition is currently always False since face detection API in
     # Chrome is not ready.
-    if self.e2e_mode and not self.need_postprocess:
+    # TODO(pihsun): Remove the 'and False' when shape detection API in Chrome
+    # is ready.
+    if self.e2e_mode and False:
       return self.RunJSPromiseBlocking('cameraTest.detectFaces()')
     else:
       storage = cv.CreateMemStorage()
@@ -303,7 +305,9 @@ class CameraTest(test_case.TestCase):
     scanned_text = None
     # This condition is currently always False since barcode detection API in
     # Chrome is not ready.
-    if self.e2e_mode and not self.need_postprocess:
+    # TODO(pihsun): Remove the 'and False' when shape detection API in Chrome
+    # is ready.
+    if self.e2e_mode and False:
       scanned_text = self.RunJSPromiseBlocking('cameraTest.scanQRCode()')
     else:
       scan_results = barcode.ScanQRCode(cv_image)
@@ -318,7 +322,7 @@ class CameraTest(test_case.TestCase):
 
   def ShowImage(self, cv_image):
     resize_ratio = self.args.resize_ratio
-    if self.e2e_mode and not self.need_postprocess:
+    if self.e2e_mode and not self.need_transmit_to_ui:
       self.RunJSBlocking('cameraTest.showImage(%s)' % resize_ratio)
     else:
       cv_image = cv2.resize(cv_image, None, fx=resize_ratio, fy=resize_ratio,
@@ -393,10 +397,15 @@ class CameraTest(test_case.TestCase):
     self.mode = self.args.mode
     self.e2e_mode = self.args.e2e_mode
 
-    # Whether we need to postprocess the image from e2e mode.
+    # Whether we need to transmit image from UI back to Python in e2e mode.
     # TODO(pihsun): This can be removed after the desktop Chrome implements
     # shape detection API.
-    self.need_postprocess = False
+    self.need_transmit_from_ui = False
+
+    # Whether we need to transmit processed image from Python to UI in e2e mode.
+    # TODO(pihsun): This can be removed after the desktop Chrome implements
+    # shape detection API.
+    self.need_transmit_to_ui = False
 
     self.flip_image = self.args.flip_image
     if self.flip_image is None:
@@ -423,7 +432,11 @@ class CameraTest(test_case.TestCase):
           'window.cameraTest = new CameraTest(args.options)', options=options)
       self.camera_device = None
       if self.mode in [TestModes.qr, TestModes.face]:
-        self.need_postprocess = True
+        self.need_transmit_from_ui = True
+      if self.mode == TestModes.face:
+        # TODO(pihsun): Only transmit the location of face instead of the whole
+        # image in this case to speed up the process.
+        self.need_transmit_to_ui = True
     else:
       device_index = (0 if self.args.device_index is None else
                       self.args.device_index)
