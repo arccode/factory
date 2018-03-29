@@ -1121,9 +1121,6 @@ class Goofy(object):
     parser.add_option('-v', '--verbose', dest='verbose',
                       action='store_true',
                       help='Enable debug logging')
-    parser.add_option('--print_test_list', dest='print_test_list',
-                      metavar='TEST_LIST_ID',
-                      help='Print the content of TEST_LIST_ID and exit')
     parser.add_option('--restart', dest='restart',
                       action='store_true',
                       help='Clear all test state')
@@ -1182,13 +1179,6 @@ class Goofy(object):
           setattr(self.options, key, value)
     except Exception:
       logging.exception('failed to load goofy overriding options')
-
-    if self.options.print_test_list:
-      all_test_lists, unused_errors = self.test_list_manager.BuildAllTestLists()
-      test_list = (
-          all_test_lists[self.options.print_test_list].ToFactoryTestList())
-      print(test_list.__repr__(recursive=True))
-      sys.exit(0)
 
     event_log.IncrementBootSequence()
     session.IncrementInitCount()

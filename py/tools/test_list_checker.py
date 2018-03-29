@@ -3,6 +3,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+from __future__ import print_function
+
 import argparse
 import json
 import logging
@@ -16,19 +18,24 @@ from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
 
 
-def CheckTestList(manager_, test_list_id):
+def CheckTestList(manager_, test_list_id, dump):
   """Check the test list with given `test_list_id`.
 
   Args:
     manager: a test list manager instance, will be used to load test list and
       perform checking.
     test_list_id: ID of the test list (a string).
+    dump: true to simply load and print the test list.
   """
   logging.info('Checking test list: %s...', test_list_id)
   try:
     test_list = manager_.GetTestListByID(test_list_id)
   except Exception:
     logging.exception('Failed to load test list: %s.', test_list_id)
+    return
+
+  if dump:
+    print(test_list.ToFactoryTestList().__repr__(recursive=True))
     return
 
   try:
@@ -63,6 +70,8 @@ def CheckTestList(manager_, test_list_id):
 def main(args):
   parser = argparse.ArgumentParser(description='Static Test List Checker')
   parser.add_argument('--board', help='board name')
+  parser.add_argument('--dump', '-d', help='dump test list content and exit',
+                      action='store_true')
   parser.add_argument('--verbose', '-v', help='verbose mode',
                       action='store_true')
   parser.add_argument('test_list_id', help='test list id', nargs='+')
@@ -90,8 +99,7 @@ def main(args):
 
   manager_ = manager.Manager()
   for test_list_id in options.test_list_id:
-    CheckTestList(manager_, test_list_id)
-
+    CheckTestList(manager_, test_list_id, options.dump)
 
 if __name__ == '__main__':
   main(sys.argv[1:])
