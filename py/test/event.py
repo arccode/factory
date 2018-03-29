@@ -117,8 +117,6 @@ class Event(object):
     UPDATE_NOTES = 'goofy:update_notes'
     # Diagnosis Tool's events
     DIAGNOSIS_TOOL_EVENT = 'goofy:diagnosis_tool:event'
-    # Enable/disable key filtering
-    KEY_FILTER_MODE = 'goofy:key_filter_mode'
     # Notifies that factory server config (URL, timeout) is changed.
     FACTORY_SERVER_CONFIG_CHANGED = 'factory_server:config_changed'
 

@@ -15,7 +15,6 @@
     "__comment_timestamp": "this is used by testReloadConfig"
   },
   "options": {
-    "disable_cros_shortcut_keys": true,
     "engineering_password_sha1": "dummy_password_sha1",
     "sync_event_log_period_secs": 0,
     "ui_locale": "zh-CN"

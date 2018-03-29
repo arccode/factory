@@ -52,7 +52,6 @@ from cros.factory.test.state import TestState
 from cros.factory.test.test_lists import manager
 from cros.factory.test.test_lists import test_object
 from cros.factory.testlog import testlog
-from cros.factory.tools.key_filter import KeyFilter
 from cros.factory.utils import config_utils
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
@@ -151,7 +150,6 @@ class Goofy(object):
     self._suppress_periodic_update_messages = False
     self._suppress_event_log_error_messages = False
     self.exclusive_resources = set()
-    self.key_filter = None
     self.status = Status.UNINITIALIZED
     self.ready_for_ui_connection = False
     self.is_restart_requested = False
@@ -202,7 +200,6 @@ class Goofy(object):
         Event.Type.CLEAR_STATE:
             lambda event: self.clear_state(
                 self.test_list.LookupPath(event.path)),
-        Event.Type.KEY_FILTER_MODE: self.handle_key_filter_mode,
     }
 
     self.web_socket_manager = None
@@ -254,8 +251,6 @@ class Goofy(object):
     if self.testlog:
       self.testlog.Close()
       self.testlog = None
-    if self.key_filter:
-      self.key_filter.Stop()
     if self.plugin_controller:
       self.plugin_controller.StopAndDestroyAllPlugins()
       self.plugin_controller = None
@@ -1313,17 +1308,6 @@ class Goofy(object):
 
     self.hooks.OnTestStart()
 
-    self.may_disable_cros_shortcut_keys()
-
-  def may_disable_cros_shortcut_keys(self):
-    test_options = self.test_list.options
-    if test_options.disable_cros_shortcut_keys:
-      logging.info('Filter ChromeOS shortcut keys.')
-      self.key_filter = KeyFilter(
-          unmap_caps_lock=test_options.disable_caps_lock,
-          caps_lock_keycode=test_options.caps_lock_keycode)
-      self.key_filter.Start()
-
   def perform_periodic_tasks(self):
     """Perform any periodic work.
 
@@ -1418,13 +1402,6 @@ class Goofy(object):
     root = root or self.test_list
     self.run_tests_with_status([TestState.UNTESTED, TestState.ACTIVE],
                                root=root)
-
-  def handle_key_filter_mode(self, event):
-    if self.key_filter:
-      if getattr(event, 'enabled'):
-        self.key_filter.Start()
-      else:
-        self.key_filter.Stop()
 
   def wait(self):
     """Waits for all pending invocations.

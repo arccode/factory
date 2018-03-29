@@ -3126,8 +3126,6 @@ cros.factory.Goofy = class {
    * Start the terminal session.
    */
   launchTerminal() {
-    this.sendEvent('goofy:key_filter_mode', {enabled: false});
-
     if (this.terminal_win) {
       this.terminal_win.style.display = '';
       document.getElementById('goofy-terminal').style.opacity = 1.0;
@@ -3221,7 +3219,6 @@ cros.factory.Goofy = class {
       this.terminal_win = null;
       this.terminal_sock.close();
       this.terminal_sock = null;
-      this.sendEvent('goofy:key_filter_mode', {enabled: true});
     }
   }
 
@@ -3231,7 +3228,6 @@ cros.factory.Goofy = class {
   hideTerminal() {
     this.terminal_win.style.display = 'none';
     document.getElementById('goofy-terminal').style.opacity = 0.5;
-    this.sendEvent('goofy:key_filter_mode', {enabled: true});
   }
 
   /**

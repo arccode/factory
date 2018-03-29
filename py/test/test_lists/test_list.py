@@ -133,15 +133,6 @@ class Options(object):
   stop_on_failure = False
   """Whether to stop on any failure."""
 
-  disable_cros_shortcut_keys = True
-  """Disable ChromeOS shortcut keys (see ``factory/tools/key_filter.py``)."""
-  disable_caps_lock = False
-  """Disable the CapsLock key."""
-  caps_lock_keycode = 66
-  """The CapsLock key code (used in conjunction with
-  :py:attr:`cros.factory.test.test_lists.test_list.Options.disable_caps_lock`).
-  """
-
   hooks_class = 'cros.factory.goofy.hooks.Hooks'
   """Hooks class for the factory test harness.  Defaults to a dummy class."""
   testlog_hooks = 'cros.factory.testlog.hooks.Hooks'
