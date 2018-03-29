@@ -13,6 +13,10 @@
             "args": {
               "type": "object",
               "properties": {}
+            },
+            "enabled": {
+              "type": "boolean",
+              "default": true
             }
           }
         }

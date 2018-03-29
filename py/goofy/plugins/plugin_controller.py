@@ -66,10 +66,14 @@ class PluginController(object):
     self._menu_items = {}
     self._frontend_configs = []
 
-    plugin_config = config_utils.LoadConfig(
-        config_name, 'plugins')
+    plugin_config = config_utils.LoadConfig('goofy_plugins', 'plugins')
+    config_utils.OverrideConfig(
+        plugin_config, config_utils.LoadConfig(config_name, 'plugins'))
 
     for name, plugin_args in plugin_config['plugins'].iteritems():
+      if not plugin_args.get('enabled', True):
+        logging.debug('Plugin disabled: %s', name)
+        continue
       args = plugin_args.get('args', {})
       args['goofy'] = goofy
       plugin_class = plugin.GetPluginClass(name)
