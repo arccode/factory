@@ -303,6 +303,9 @@
         "allow_multi_keys": true
       }
     },
+    "KeyboardBacklight": {
+      "pytest_name": "keyboard_backlight"
+    },
     "LED": {
       "pytest_name": "led",
       "args": {
