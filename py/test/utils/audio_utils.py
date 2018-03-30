@@ -59,14 +59,14 @@ def GetPlaySineArgs(channel, odev='default', freq=1000, duration_secs=10,
   Returns:
     A command string to generate a sine wav
   """
-  cmdargs = '%s -b %d -n -t alsa %s synth %d' % (
-      SOX_PATH, sample_size, odev, duration_secs)
+  cmdargs = [SOX_PATH, '-b', '%d' % sample_size, '-n', '-t', 'alsa',
+             odev, 'synth', '%d' % duration_secs]
   if channel == 0:
-    cmdargs += ' sine %d sine 0' % freq
+    cmdargs += ['sine', '%d' % freq, 'sine', '0']
   elif channel == 1:
-    cmdargs += ' sine 0 sine %d' % freq
+    cmdargs += ['sine', '0', 'sine', '%d' % freq]
   else:
-    cmdargs += ' sine %d' % freq
+    cmdargs += ['sine', '%d' % freq]
   return cmdargs
 
 

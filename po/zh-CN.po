@@ -146,6 +146,10 @@ msgid "Display Point"
 msgstr "显示点"
 
 #: ../build/pytests_label_generated.json
+msgid "DSM Calibration"
+msgstr "DSM 校正"
+
+#: ../build/pytests_label_generated.json
 msgid "Ethernet"
 msgstr "网路"
 
