@@ -20,7 +20,6 @@ import argparse
 import codecs
 import importlib
 import inspect
-import json
 import logging
 import os
 import re
@@ -31,7 +30,19 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test import pytests
 from cros.factory.test.test_lists import manager
 from cros.factory.utils import file_utils
+from cros.factory.utils import json_utils
 from cros.factory.utils.type_utils import Enum
+
+
+DOC_GENERATORS = {}
+
+def DocGenerator(dir_name):
+  def Decorator(func):
+    assert dir_name not in DOC_GENERATORS
+    DOC_GENERATORS[dir_name] = func
+    return func
+
+  return Decorator
 
 
 def Escape(text):
@@ -57,33 +68,66 @@ def Indent(text, prefix, first_line_prefix=None):
       text)
 
 
-def WriteTestArgs(args, out):
-  """Writes a table describing test arguments.
+def LinkToDoc(name, path):
+  """Create a hyper-link tag which links to another document file.
 
   Args:
-    args: A list of Arg objects, as in the ARGS attribute of a pytest.
-    out: A stream to write to.
+    name: The tag name.
+    path: Path of the target document, either absolute or relative.
   """
-  if not args:
-    out.write('This test does not have any arguments.')
-    return
+  return ':doc:`%s <%s>`' % (Escape(name), Escape(path))
 
-  out.write(
-      'Test Arguments\n'
-      '--------------\n'
-      '.. list-table::\n'
-      '   :widths: 20 10 60\n'
-      '   :header-rows: 1\n'
-      '\n')
 
-  def WriteRow(cols):
-    for i, col in enumerate(cols):
+class RSTWriter(object):
+  def __init__(self, io):
+    self.io = io
+
+  def WriteTitle(self, title, mark, ref_label=None):
+    if ref_label:
+      self.io.write('.. _%s:\n\n' % Escape(ref_label))
+    self.io.write(title + '\n')
+    self.io.write(mark * len(title) + '\n')
+
+  def WriteParagraph(self, text):
+    self.io.write(text + '\n\n')
+
+  def WriteListItem(self, content):
+    self.WriteParagraph('- ' + content)
+
+  def WriteListTableHeader(self, widths=None, header_rows=None):
+    self.io.write('.. list-table::\n')
+    if widths is not None:
+      self.io.write('   :widths: %s\n' % ' '.join(map(str, widths)))
+    if header_rows is not None:
+      self.io.write('   :header-rows: %d\n' % header_rows)
+    self.io.write('\n')
+
+  def WriteListTableRow(self, row):
+    for i, cell in enumerate(row):
       # Indent the first line with " - " (or " * - " if it's the first
       # column)
-      out.write(Indent(col, ' ' * 7, '   * - ' if i == 0 else '     - '))
-      out.write('\n')
+      self.io.write(Indent(cell, ' ' * 7, '   * - ' if i == 0 else '     - '))
+      self.io.write('\n')
+    self.io.write('\n')
 
-  WriteRow(('Name', 'Type', 'Description'))
+
+def WriteArgsTable(rst, title, args):
+  """Writes a table describing arguments.
+
+  Args:
+    rst: An instance of RSTWriter for writting RST context.
+    title: The title of the arguments section.
+    args: A list of Arg objects, as in the ARGS attribute of a pytest.
+  """
+  rst.WriteTitle(title, '-')
+
+  if not args:
+    rst.WriteParagraph('This test does not have any arguments.')
+    return
+
+  rst.WriteListTableHeader(widths=(20, 10, 60), header_rows=1)
+  rst.WriteListTableRow(('Name', 'Type', 'Description'))
+
   for arg in args:
     description = arg.help.strip()
 
@@ -103,10 +147,10 @@ def WriteTestArgs(args, out):
         return arg_type.__name__
     arg_types = ', '.join(FormatArgType(x) for x in arg.type)
 
-    WriteRow((arg.name, arg_types, description))
+    rst.WriteListTableRow((arg.name, arg_types, description))
 
 
-def GenerateTestDocs(pytest_name, module, out):
+def GenerateTestDocs(rst, pytest_name, module):
   """Generates test docs for a pytest.
 
   Args:
@@ -151,130 +195,17 @@ def GenerateTestDocs(pytest_name, module, out):
   if isinstance(doc, str):
     doc = doc.decode('utf-8')
 
-  out.write(pytest_name + '\n')
-  out.write('=' * len(pytest_name) + '\n')
-  out.write(doc)
-  out.write('\n\n')
+  rst.WriteTitle(pytest_name, '=')
+  rst.WriteParagraph(doc)
+  WriteArgsTable(rst, 'Test Arguments', args)
 
-  WriteTestArgs(args, out)
   # Remove everything after the first pair of newlines.
   short_docstring = re.sub(r'(?s)\n\s*\n.+', '', doc).strip()
   return dict(short_docstring=short_docstring)
 
 
-def WriteTestObjectDetail(
-    test_object_name,
-    test_object,
-    out):
-  """Writes a test_object to output stream.
-
-  Args:
-    test_object_name: name of the test object (string).
-    test_object: a test_object defined by JSON test list.
-    out: A stream to write to.
-  """
-  test_object_name = Escape(test_object_name)
-  out.write(test_object_name + '\n')
-  out.write('-' * len(test_object_name) + '\n')
-
-  if '__comment' in test_object:
-    out.write(Escape(test_object['__comment']) + '\n')
-  out.write('\n')
-
-  if test_object.get('args'):
-    out.write('args\n')
-    out.write('....\n')
-    for key, value in test_object['args'].iteritems():
-      formatted_value = json.dumps(value, indent=2)
-      formatted_value = '\n::\n\n' + Indent(formatted_value, '  ')
-      formatted_value = Indent(formatted_value, '  ')
-      out.write('{key}\n{value}\n\n'.format(
-          key=key, value=formatted_value))
-    out.write('\n')
-
-
-def GenerateTestListDoc(output_dir):
-  manager_ = manager.Manager()
-  manager_.BuildAllTestLists()
-  index_rst = os.path.join(output_dir, 'index.rst')
-
-  with open(index_rst, 'w') as index_file:
-    index_file.write('''
-List of Factory Test Lists
-==========================
-
-.. toctree::
-   :glob:
-
-   *
-
-    ''')
-
-  for test_list_id in manager_.GetTestListIDs():
-    out_path = os.path.join(output_dir, test_list_id + '.test_list.rst')
-
-    with open(out_path, 'w') as out:
-      logging.warn('processing test list %s', test_list_id)
-      test_list = manager_.GetTestListByID(test_list_id)
-      config = test_list.ToTestListConfig()
-      raw_config = manager_.loader.Load(test_list_id, allow_inherit=False)
-
-      out.write(test_list_id + '\n')
-      out.write('=' * len(test_list_id) + '\n')
-
-      if raw_config.get('__comment'):
-        out.write(Escape(raw_config['__comment']) + '\n\n')
-
-      out.write('Inherit\n')
-      out.write('-------\n')
-      for parent in raw_config.get('inherit', []):
-        out.write('- `%s <%s.html>`_\n' % (parent, parent))
-      out.write('\n')
-
-      out.write('Definitions\n')
-      out.write('-----------\n')
-      out.write('Only pytest definitions are listed.\n\n')
-
-      buf_define = StringIO.StringIO()
-      buf_detail = StringIO.StringIO()
-
-      buf_define.write('.. list-table::\n')
-      buf_define.write('   :widths: 20 20\n')
-      buf_define.write('   :header-rows: 1\n')
-      buf_define.write('\n')
-      buf_define.write('   * - Defined Name\n')
-      buf_define.write('     - Pytest Name\n')
-
-      has_definitions = False
-      for test_object_name in sorted(raw_config['definitions'].keys()):
-        test_object = config['definitions'][test_object_name]
-        test_object = test_list.ResolveTestObject(
-            test_object, test_object_name, cache={})
-        if test_object.get('pytest_name'):
-          has_definitions = True
-          pytest_name = test_object['pytest_name']
-          buf_define.write('   * - `' + Escape(test_object_name) + '`_\n')
-          buf_define.write('     - `%s <../pytests/%s.html>`_\n' % (
-              pytest_name, pytest_name))
-
-          WriteTestObjectDetail(test_object_name, test_object, buf_detail)
-
-      if has_definitions:
-        out.write(buf_define.getvalue())
-        out.write('\n')
-        out.write(buf_detail.getvalue())
-
-
-def main():
-  parser = argparse.ArgumentParser(
-      description='Generate .rst files for the factory toolkit')
-  parser.add_argument('--output-dir', '-o',
-                      help='Output directory (default: %default)', default='.')
-  args = parser.parse_args()
-
-  pytests_output_dir = os.path.join(args.output_dir, 'pytests')
-  file_utils.TryMakeDirs(pytests_output_dir)
-
+@DocGenerator('pytests')
+def GeneratePyTestsDoc(pytests_output_dir):
   pytest_module_dir = os.path.dirname(pytests.__file__)
 
   # Map of pytest name to info returned by GenerateTestDocs.
@@ -309,19 +240,107 @@ def main():
       with codecs.open(os.path.join(pytests_output_dir, pytest_name + '.rst'),
                        'w', 'utf-8') as out:
         pytest_info[pytest_name] = GenerateTestDocs(
-            pytest_name, module_name, out)
+            RSTWriter(out), pytest_name, module_name)
 
   index_rst = os.path.join(pytests_output_dir, 'index.rst')
   with open(index_rst, 'a') as f:
+    rst = RSTWriter(f)
     for k, v in sorted(pytest_info.items()):
       if v is not None:
-        f.write('   * - `%s <%s.html>`_\n' % (k, k))
-        f.write(Indent(v['short_docstring'], ' ' * 7, '     - '))
-        f.write('\n')
+        rst.WriteListTableRow((LinkToDoc(k, k), v['short_docstring']))
 
-  test_list_output_dir = os.path.join(args.output_dir, 'test_lists')
-  file_utils.TryMakeDirs(test_list_output_dir)
-  GenerateTestListDoc(test_list_output_dir)
+
+def WriteTestObjectDetail(
+    rst,
+    test_object_name,
+    test_object):
+  """Writes a test_object to output stream.
+
+  Args:
+    rst: An instance of RSTWriter for writing RST context.
+    test_object_name: name of the test object (string).
+    test_object: a test_object defined by JSON test list.
+  """
+  rst.WriteTitle(Escape(test_object_name), '-')
+
+  if '__comment' in test_object:
+    rst.WriteParagraph(Escape(test_object['__comment']))
+
+  if test_object.get('args'):
+    rst.WriteTitle('args', '`')
+    for key, value in test_object['args'].iteritems():
+      formatted_value = json_utils.DumpStr(value, pretty=True)
+      formatted_value = '::\n\n' + Indent(formatted_value, '  ')
+      formatted_value = Indent(formatted_value, '  ')
+      rst.WriteParagraph('``{key}``\n{value}'.format(
+          key=key, value=formatted_value))
+
+
+@DocGenerator('test_lists')
+def GenerateTestListDoc(output_dir):
+  manager_ = manager.Manager()
+  manager_.BuildAllTestLists()
+
+  for test_list_id in manager_.GetTestListIDs():
+    out_path = os.path.join(output_dir, test_list_id + '.test_list.rst')
+
+    with open(out_path, 'w') as out:
+      rst = RSTWriter(out)
+
+      logging.warn('processing test list %s', test_list_id)
+      test_list = manager_.GetTestListByID(test_list_id)
+      config = test_list.ToTestListConfig()
+      raw_config = manager_.loader.Load(test_list_id, allow_inherit=False)
+
+      rst.WriteTitle(test_list_id, '=')
+
+      if raw_config.get('__comment'):
+        rst.WriteParagraph(Escape(raw_config['__comment']))
+
+      rst.WriteTitle('Inherit', '-')
+      for parent in raw_config.get('inherit', []):
+        rst.WriteListItem(LinkToDoc(parent, parent))
+
+      rst.WriteTitle('Definitions', '-')
+      rst.WriteParagraph('Only pytest definitions are listed.')
+
+      rst_define = RSTWriter(StringIO.StringIO())
+      rst_detail = RSTWriter(StringIO.StringIO())
+
+      rst_define.WriteListTableHeader(header_rows=1)
+      rst_define.WriteListTableRow(('Defined Name', 'Pytest Name'))
+
+      has_definitions = False
+      for test_object_name in sorted(raw_config['definitions'].keys()):
+        test_object = config['definitions'][test_object_name]
+        test_object = test_list.ResolveTestObject(
+            test_object, test_object_name, cache={})
+        if test_object.get('pytest_name'):
+          has_definitions = True
+          pytest_name = test_object['pytest_name']
+          doc_path = os.path.join('..', 'pytests', pytest_name)
+          rst_define.WriteListTableRow(('`%s`_' % Escape(test_object_name),
+                                        LinkToDoc(pytest_name, doc_path)))
+
+          WriteTestObjectDetail(rst_detail, test_object_name, test_object)
+
+      if has_definitions:
+        rst.WriteParagraph(rst_define.io.getvalue())
+        rst.WriteParagraph(rst_detail.io.getvalue())
+
+
+def main():
+  parser = argparse.ArgumentParser(
+      description='Generate .rst files for the factory toolkit')
+  parser.add_argument('--output-dir', '-o',
+                      help='Output directory (default: %default)', default='.')
+  args = parser.parse_args()
+
+  for dir_name, func in DOC_GENERATORS.iteritems():
+    full_path = os.path.join(args.output_dir, dir_name)
+    file_utils.TryMakeDirs(full_path)
+    func(full_path)
+
 
 if __name__ == '__main__':
   main()

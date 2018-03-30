@@ -34,7 +34,8 @@ class GenerateDocsTest(unittest.TestCase):
 
     with UnopenedTemporaryFile() as temp:
       with codecs.open(temp, 'w', 'utf-8') as out:
-        generate_rsts.GenerateTestDocs('pseudo_test', PseudoModule, out)
+        generate_rsts.GenerateTestDocs(
+            generate_rsts.RSTWriter(out), 'pseudo_test', PseudoModule)
       with open(temp) as f:
         lines = f.read().splitlines()
 
@@ -53,15 +54,18 @@ class GenerateDocsTest(unittest.TestCase):
            '   * - Name',
            '     - Type',
            '     - Description',
+           '',
            '   * - a',
            '     - int',
            '     - (optional; default: ``1``) A',
+           '',
            '   * - b',
            "     - ['b1', 'b2']",
            '     - (optional; default: ``\'b1\'``) Foo:',
            '       ',
            '         - bar',
-           '         - baz'],
+           '         - baz',
+           ''],
           lines)
 
 
