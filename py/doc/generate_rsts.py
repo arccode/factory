@@ -90,7 +90,6 @@ def WriteTestArgs(args, out):
     annotations = []
     if arg.IsOptional():
       annotations.append('optional')
-    if arg.default is not None:
       annotations.append('default: ``%s``' % Escape(repr(arg.default)))
     if annotations:
       description = '(%s) %s' % ('; '.join(annotations), description)
