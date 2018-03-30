@@ -115,7 +115,7 @@ class GlobalSeqTest(unittest.TestCase):
     self.assertEquals(1, seq.Next())
     # Log an event (preamble will have sequence number 2; main
     # event will have 3).
-    event_log.EventLog('foo').Log('bar')
+    event_log.EventLog('test:foo').Log('bar')
     with open(event_log.EVENTS_PATH) as f:
       assert 'SEQ: 3\n' in f.readlines()
 
@@ -130,7 +130,7 @@ class GlobalSeqTest(unittest.TestCase):
     # simulate a reboot.  We'll do this a few times.
     for i in range(3):
       # Log an event to record the new sequence number for "reboot"
-      event_log.EventLog('foo').Log('bar')
+      event_log.EventLog('test:foo').Log('bar')
 
       del seq
       os.unlink(event_log.SEQUENCE_PATH)
@@ -203,7 +203,7 @@ class EventLogTest(unittest.TestCase):
   def testSuppress(self):
     for suppress in [False, True]:
       Reset()
-      log = event_log.EventLog('test', suppress=suppress)
+      log = event_log.EventLog('test:test', suppress=suppress)
       log.Log('test')
       self.assertEquals(suppress, not os.path.exists(event_log.EVENTS_PATH))
 
@@ -214,7 +214,7 @@ class EventLogTest(unittest.TestCase):
     self._testEventLog(False)
 
   def _testEventLog(self, defer):
-    log = event_log.EventLog('test', defer=defer)
+    log = event_log.EventLog('test:test', defer=defer)
     self.assertEqual(os.path.exists(event_log.EVENTS_PATH), not defer)
 
     event0 = dict(a='A',
@@ -229,7 +229,7 @@ class EventLogTest(unittest.TestCase):
 
     # Open and close another logger as well
     event2 = dict(foo='bar')
-    log2 = event_log.EventLog('test2', defer=defer)
+    log2 = event_log.EventLog('test:test2', defer=defer)
     log2.Log('event2', **event2)
     log2.Close()
 
@@ -260,7 +260,7 @@ class EventLogTest(unittest.TestCase):
          'toolkit_version'],
         sorted(log_data[0].keys()))
     self.assertEqual('preamble', log_data[0]['EVENT'])
-    self.assertEqual('test', log_data[0]['PREFIX'])
+    self.assertEqual('test:test', log_data[0]['PREFIX'])
     self.assertEqual(0, log_data[0]['SEQ'])
     self.assertEqual(event_log.GetBootId(), log_data[0]['boot_id'])
     self.assertEqual(-1, log_data[0]['boot_sequence'])
@@ -270,14 +270,18 @@ class EventLogTest(unittest.TestCase):
     uuid.UUID(log_id)  # Make sure UUID is well-formed
 
     # Check all the events
-    event0.update(dict(EVENT='event0', SEQ=1, LOG_ID=log_id, PREFIX='test'))
+    event0.update(
+        dict(EVENT='event0',
+             SEQ=1,
+             LOG_ID=log_id,
+             PREFIX='test:test'))
     # Yaml loader converts non-ASCII strings to unicode.
     event0['g'] = event0['h']
     self.assertEqual(event0, log_data[1])
     self.assertEqual(
         dict(EVENT='preamble',
              LOG_ID=log2.log_id,
-             PREFIX='test2',
+             PREFIX='test:test2',
              SEQ=2,
              boot_id=event_log.GetBootId(),
              boot_sequence=-1,
@@ -289,15 +293,19 @@ class EventLogTest(unittest.TestCase):
     self.assertEqual(
         dict(EVENT='event2',
              LOG_ID=log2.log_id,
-             PREFIX='test2',
+             PREFIX='test:test2',
              SEQ=3,
              foo='bar'),
         log_data[3])
-    self.assertEqual(dict(EVENT='event1', SEQ=4, LOG_ID=log_id, PREFIX='test'),
-                     log_data[4])
+    self.assertEqual(
+        dict(EVENT='event1',
+             SEQ=4,
+             LOG_ID=log_id,
+             PREFIX='test:test'),
+        log_data[4])
 
   def testDeferWithoutEvents(self):
-    log = event_log.EventLog('test', defer=True)
+    log = event_log.EventLog('test:test', defer=True)
     log.Close()
     self.assertFalse(os.path.exists(event_log.EVENTS_PATH))
 

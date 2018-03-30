@@ -76,7 +76,7 @@ SEQ_INCREMENT_ON_BOOT = 1000000
 SEQ_RE = re.compile(r"^SEQ: (\d+)$")
 
 # Regexp matching the prefix of events.
-PREFIX_RE = re.compile(r"^(\w+(?:-\d+)?\.?)+$")
+PREFIX_RE = re.compile(r"^([\w\:]+(?:-\d+)?\.?)+$")
 
 EVENT_NAME_RE = re.compile(r"^[a-zA-Z_]\w*$")
 EVENT_KEY_RE = EVENT_NAME_RE

@@ -143,7 +143,7 @@ class TestListIterator(object):
     elif isinstance(root, basestring):
       self.Push(root)
     elif isinstance(root, test_list_module.ITestList):
-      self.Push('')  # root of test list should always have path ''
+      self.Push(root.path)
     elif root is None:
       self.stack = []
     else:

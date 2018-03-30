@@ -242,7 +242,7 @@ class FactoryTestList(test_object_module.FactoryTest):
         if known.  For new-style test lists only.
   """
 
-  def __init__(self, subtests, state_instance, options, test_list_id=None,
+  def __init__(self, subtests, state_instance, options, test_list_id,
                label=None, finish_construction=True, constants=None):
     """Constructor.
 
@@ -297,7 +297,7 @@ class FactoryTestList(test_object_module.FactoryTest):
     Raises:
       TestListError: If the test list is invalid for any reason.
     """
-    self._init('', self.path_map)
+    self._init(self.test_list_id + ':', self.path_map)
 
     # Resolve require_run paths to the actual test objects.
     for test in self.Walk():
@@ -351,6 +351,8 @@ class FactoryTestList(test_object_module.FactoryTest):
 
   def LookupPath(self, path):
     """Looks up a test from its path."""
+    if ':' not in path:
+      path = self.test_list_id + ':' + path
     return self.path_map.get(path, None)
 
   def _update_test_state(self, path, **kwargs):
@@ -500,6 +502,7 @@ class ITestList(object):
     patterns = []
 
     def _AddPattern(pattern, action):
+      pattern = pattern.split(':')[-1]  # To remove test_list_id
       if pattern.startswith('*'):
         patterns.append((lambda s: s.endswith(pattern[1:]), action))
       else:
@@ -551,6 +554,7 @@ class ITestList(object):
     _CollectPatterns(self.options.waived_tests, _MarkWaived)
 
     for test_path, test in self.path_map.iteritems():
+      test_path = test_path.split(':')[-1]  # To remove test_list_id
       for match, action in patterns:
         if match(test_path):
           action(test)
