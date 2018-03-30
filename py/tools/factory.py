@@ -18,6 +18,7 @@ import csv
 import inspect
 import json
 import logging
+import pprint
 import re
 import socket
 import sys
@@ -36,6 +37,27 @@ from cros.factory.utils import log_utils
 from cros.factory.utils.process_utils import Spawn
 
 from cros.factory.external import setproctitle
+
+
+def Dump(data, dump_format, stream=sys.stdout, safe_dump=True):
+  """Dumps data to stream in given format.
+
+  Args:
+    data: the object to dump, usually dict.
+    dump_format: a string describing format: json, yaml, pprint.
+    stream: an file-like object, default to sys.stdout.
+  """
+  if dump_format == 'yaml':
+    if safe_dump:
+      yaml.safe_dump(data, stream, default_flow_style=False)
+    else:
+      yaml.dump(data, stream)
+  elif dump_format == 'json':
+    json.dump(data, stream, indent=2, sort_keys=True, separators=(',', ': '))
+  elif dump_format == 'pprint':
+    pprint.pprint(data, stream)
+  else:
+    raise RuntimeError('Unknown format: %s' % dump_format)
 
 
 class Subcommand(object):
@@ -244,14 +266,14 @@ class StopCommand(Subcommand):
 
 class DumpTestListCommand(Subcommand):
   name = 'dump-test-list'
-  help = 'Dump a test list in YAML format'
+  help = 'Dump a test list in given format'
 
   def Init(self):
     self.subparser.add_argument(
         '--format', metavar='FORMAT',
         help='Format in which to dump test list',
         default='json',
-        choices=('yaml', 'csv', 'json'))
+        choices=('yaml', 'csv', 'json', 'pprint'))
     self.subparser.add_argument(
         'id', metavar='ID', help='ID of test list to dump')
 
@@ -271,11 +293,9 @@ class DumpTestListCommand(Subcommand):
             module = ''
 
           writer.writerow((t.path, module))
-    elif self.args.format == 'yaml':
-      yaml.dump(test_list.ToTestListConfig(), sys.stdout)
-    elif self.args.format == 'json':
-      json.dump(test_list.ToTestListConfig(), sys.stdout, indent=2,
-                sort_keys=True, separators=(',', ': '))
+    else:
+      Dump(test_list.ToTestListConfig(), dump_format=self.args.format,
+           safe_dump=False)
 
 
 class TestListCommand(Subcommand):
@@ -412,6 +432,11 @@ class DeviceDataCommand(Subcommand):
         help=('Read FILE (or stdin if FILE is "-") as a YAML dictionary '
               'and set device data.'))
     self.subparser.add_argument(
+        '--format', metavar='FORMAT',
+        help='Format in which to dump device data',
+        default='yaml',
+        choices=('yaml', 'json', 'pprint'))
+    self.subparser.add_argument(
         '--delete', '-d', metavar='KEY', nargs='*',
         help='Deletes KEYs from device data. '
              '"factory device-data -d A B C" deletes A, B, C from device-data.')
@@ -453,9 +478,7 @@ class DeviceDataCommand(Subcommand):
         sys.exit('Expected a dict but got a %r' % type(update))
       device_data.UpdateDeviceData(update)
 
-    sys.stdout.write(
-        yaml.safe_dump(device_data.GetAllDeviceData(),
-                       default_flow_style=False))
+    Dump(device_data.GetAllDeviceData(), self.args.format)
 
 
 class ScreenshotCommand(Subcommand):
