@@ -410,8 +410,12 @@ class FactoryTest(object):
 
     for subtest in self.subtests:
       subtest.parent = self
+      assert self.path, 'self.path should not be empty'
       # pylint: disable=protected-access
-      subtest._init((self.path + '.' if self.path else ''), path_map)
+      if self.path[-1] == ':':
+        subtest._init(self.path, path_map)
+      else:
+        subtest._init(self.path + '.', path_map)
 
     # next_sibling should point to next test
     for u, v in zip(self.subtests, self.subtests[1:]):

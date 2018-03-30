@@ -61,8 +61,12 @@ class TestListLoaderTest(unittest.TestCase):
 
     factory_test_list = test_list.ToFactoryTestList()
     self.assertListEqual(
-        ['SMT.FirstLEDTest', 'SMT.SecondLEDTest', 'SMT.VerifyComponents',
-         'SMT.Halt', 'SMT.LEDTest', 'SMT.LEDTest_2'],
+        ['a:SMT.FirstLEDTest',
+         'a:SMT.SecondLEDTest',
+         'a:SMT.VerifyComponents',
+         'a:SMT.Halt',
+         'a:SMT.LEDTest',
+         'a:SMT.LEDTest_2'],
         [test.path for test in factory_test_list.Walk() if test.IsLeaf()])
     self.assertEqual('a', factory_test_list.test_list_id)
     options = {
@@ -131,14 +135,14 @@ class TestListLoaderTest(unittest.TestCase):
     factory_test_list = test_list.ToFactoryTestList()
 
     expected = collections.OrderedDict([
-        ('SMT.RebootStep', 'PARENT'),
-        ('SMT.Group.RebootStep', 'PARENT'),
-        ('SMT.Group.RebootStep_2', 'PARENT'),
-        ('SMT.Group_2.RebootStep', 'STOP'),
-        ('SMT.Group_2.RebootStep_2', 'STOP'),
-        ('SMT.RebootStep_2', 'PARENT'),
-        ('SMT.RebootStep_3', 'PARENT'),
-        ('SMT.RebootStep_4', 'STOP')])
+        ('b:SMT.RebootStep', 'PARENT'),
+        ('b:SMT.Group.RebootStep', 'PARENT'),
+        ('b:SMT.Group.RebootStep_2', 'PARENT'),
+        ('b:SMT.Group_2.RebootStep', 'STOP'),
+        ('b:SMT.Group_2.RebootStep_2', 'STOP'),
+        ('b:SMT.RebootStep_2', 'PARENT'),
+        ('b:SMT.RebootStep_3', 'PARENT'),
+        ('b:SMT.RebootStep_4', 'STOP')])
 
     self.assertListEqual(
         expected.keys(),
@@ -252,11 +256,11 @@ class TestListLoaderTest(unittest.TestCase):
     test_list = self.manager.GetTestListByID('flatten_group')
 
     expected = collections.OrderedDict([
-        ("NOP", {"foo": "FOO"}),
-        ("NOP_2", {"foo": "FOO", "bar": "BAR"}),
-        ("NOP_3", {"foo": "FOO", "bar": "BAR"}),
-        ("Group3.NOP", {"foo": "FOO", "baz": "BAZ"}),
-        ("Group3.NOP_2", {"baz": "BAZ"}),
+        ("flatten_group:NOP", {"foo": "FOO"}),
+        ("flatten_group:NOP_2", {"foo": "FOO", "bar": "BAR"}),
+        ("flatten_group:NOP_3", {"foo": "FOO", "bar": "BAR"}),
+        ("flatten_group:Group3.NOP", {"foo": "FOO", "baz": "BAZ"}),
+        ("flatten_group:Group3.NOP_2", {"baz": "BAZ"}),
     ])
 
     self.assertListEqual(

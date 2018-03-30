@@ -51,25 +51,25 @@ class FactoryStateUnittest(unittest.TestCase):
 
     self._SetDataShelf()
 
-    self.device_state.update_test_state(path='', status='PASSED')
-    self.device_state.update_test_state(path='a', status='PASSED')
-    self.device_state.update_test_state(path='a.a', status='PASSED')
-    self.device_state.update_test_state(path='a.b', status='PASSED')
-    self.device_state.update_test_state(path='a.c', status='PASSED')
-    self.device_state.update_test_state(path='b', status='PASSED')
-    self.device_state.update_test_state(path='b.a', status='PASSED')
-    self.device_state.update_test_state(path='b.b', status='PASSED')
-    self.device_state.update_test_state(path='b.c', status='PASSED')
+    self.device_state.update_test_state(path='test:', status='PASSED')
+    self.device_state.update_test_state(path='test:a', status='PASSED')
+    self.device_state.update_test_state(path='test:a.a', status='PASSED')
+    self.device_state.update_test_state(path='test:a.b', status='PASSED')
+    self.device_state.update_test_state(path='test:a.c', status='PASSED')
+    self.device_state.update_test_state(path='test:b', status='PASSED')
+    self.device_state.update_test_state(path='test:b.a', status='PASSED')
+    self.device_state.update_test_state(path='test:b.b', status='PASSED')
+    self.device_state.update_test_state(path='test:b.c', status='PASSED')
 
-    self.station_state.update_test_state(path='', status='ACTIVE')
-    self.station_state.update_test_state(path='a', status='ACTIVE')
-    self.station_state.update_test_state(path='a.a', status='PASSED')
-    self.station_state.update_test_state(path='a.b', status='ACTIVE')
-    self.station_state.update_test_state(path='a.c', status='UNTESTED')
+    self.station_state.update_test_state(path='test:', status='ACTIVE')
+    self.station_state.update_test_state(path='test:a', status='ACTIVE')
+    self.station_state.update_test_state(path='test:a.a', status='PASSED')
+    self.station_state.update_test_state(path='test:a.b', status='ACTIVE')
+    self.station_state.update_test_state(path='test:a.c', status='UNTESTED')
 
     self.test.args = type_utils.AttrDict(exclude_current_test_list=True,
                                          include_tests=True)
-    self.test.path = 'a.b'
+    self.test.path = 'test:a.b'
     self.test.test_info = mock.MagicMock()
     self.test.test_info.ReadTestList.return_value = station_test_list
 
@@ -80,24 +80,34 @@ class FactoryStateUnittest(unittest.TestCase):
     self.assertEqual(
         self.station_state.data_shelf[state.KEY_DEVICE_DATA]['foo'].Get(),
         'device')
-    self.assertItemsEqual(self.device_state.get_test_paths(),
-                          ['', 'a', 'a.a', 'a.b', 'a.c',
-                           'b', 'b.a', 'b.b', 'b.c'])
+    self.assertItemsEqual(
+        self.device_state.get_test_paths(),
+        ['test:', 'test:a', 'test:a.a', 'test:a.b', 'test:a.c',
+         'test:b', 'test:b.a', 'test:b.b', 'test:b.c'])
     # Test states for 'b', 'b.*' are copied from DUT.
-    self.assertItemsEqual(self.station_state.get_test_paths(),
-                          ['', 'a', 'a.a', 'a.b', 'a.c',
-                           'b', 'b.a', 'b.b', 'b.c'])
-    self.assertEqual('PASSED', self.station_state.get_test_state('b').status)
-    self.assertEqual('PASSED', self.station_state.get_test_state('b.a').status)
-    self.assertEqual('PASSED', self.station_state.get_test_state('b.b').status)
-    self.assertEqual('PASSED', self.station_state.get_test_state('b.c').status)
+    self.assertItemsEqual(
+        self.station_state.get_test_paths(),
+        ['test:', 'test:a', 'test:a.a', 'test:a.b', 'test:a.c',
+         'test:b', 'test:b.a', 'test:b.b', 'test:b.c'])
+    self.assertEqual('PASSED',
+                     self.station_state.get_test_state(path='test:b').status)
+    self.assertEqual('PASSED',
+                     self.station_state.get_test_state(path='test:b.a').status)
+    self.assertEqual('PASSED',
+                     self.station_state.get_test_state(path='test:b.b').status)
+    self.assertEqual('PASSED',
+                     self.station_state.get_test_state(path='test:b.c').status)
 
-    self.assertEqual('ACTIVE', self.station_state.get_test_state('').status)
-    self.assertEqual('ACTIVE', self.station_state.get_test_state('a').status)
-    self.assertEqual('PASSED', self.station_state.get_test_state('a.a').status)
-    self.assertEqual('ACTIVE', self.station_state.get_test_state('a.b').status)
-    self.assertEqual(
-        'UNTESTED', self.station_state.get_test_state('a.c').status)
+    self.assertEqual('ACTIVE',
+                     self.station_state.get_test_state(path='test:').status)
+    self.assertEqual('ACTIVE',
+                     self.station_state.get_test_state(path='test:a').status)
+    self.assertEqual('PASSED',
+                     self.station_state.get_test_state(path='test:a.a').status)
+    self.assertEqual('ACTIVE',
+                     self.station_state.get_test_state(path='test:a.b').status)
+    self.assertEqual('UNTESTED',
+                     self.station_state.get_test_state(path='test:a.c').status)
 
   def testCopyFromDUTRetestOnlyStation(self):
     station_test_list = manager.BuildTestListForUnittest(
@@ -108,21 +118,21 @@ class FactoryStateUnittest(unittest.TestCase):
                 {'id': 'c', 'pytest_name': 'c'}, ]}, ]})
 
     self._SetDataShelf()
-    self.device_state.update_test_state(path='', status='PASSED')
-    self.device_state.update_test_state(path='a', status='PASSED')
-    self.device_state.update_test_state(path='a.a', status='PASSED')
-    self.device_state.update_test_state(path='a.b', status='PASSED')
-    self.device_state.update_test_state(path='a.c', status='PASSED')
+    self.device_state.update_test_state(path='test:', status='PASSED')
+    self.device_state.update_test_state(path='test:a', status='PASSED')
+    self.device_state.update_test_state(path='test:a.a', status='PASSED')
+    self.device_state.update_test_state(path='test:a.b', status='PASSED')
+    self.device_state.update_test_state(path='test:a.c', status='PASSED')
 
-    self.station_state.update_test_state(path='', status='ACTIVE')
-    self.station_state.update_test_state(path='a', status='ACTIVE')
-    self.station_state.update_test_state(path='a.a', status='PASSED')
-    self.station_state.update_test_state(path='a.b', status='ACTIVE')
-    self.station_state.update_test_state(path='a.c', status='UNTESTED')
+    self.station_state.update_test_state(path='test:', status='ACTIVE')
+    self.station_state.update_test_state(path='test:a', status='ACTIVE')
+    self.station_state.update_test_state(path='test:a.a', status='PASSED')
+    self.station_state.update_test_state(path='test:a.b', status='ACTIVE')
+    self.station_state.update_test_state(path='test:a.c', status='UNTESTED')
 
     self.test.args = type_utils.AttrDict(exclude_current_test_list=True,
                                          include_tests=True)
-    self.test.path = 'a.b'
+    self.test.path = 'test:a.b'
     self.test.test_info = mock.MagicMock()
     self.test.test_info.ReadTestList.return_value = station_test_list
 
@@ -133,16 +143,22 @@ class FactoryStateUnittest(unittest.TestCase):
     self.assertEqual(
         self.station_state.data_shelf[state.KEY_DEVICE_DATA]['foo'].Get(),
         'device')
-    self.assertItemsEqual(self.device_state.get_test_paths(),
-                          ['', 'a', 'a.a', 'a.b', 'a.c'])
-    self.assertItemsEqual(self.station_state.get_test_paths(),
-                          ['', 'a', 'a.a', 'a.b', 'a.c'])
-    self.assertEqual('ACTIVE', self.station_state.get_test_state('').status)
-    self.assertEqual('ACTIVE', self.station_state.get_test_state('a').status)
-    self.assertEqual('PASSED', self.station_state.get_test_state('a.a').status)
-    self.assertEqual('ACTIVE', self.station_state.get_test_state('a.b').status)
-    self.assertEqual(
-        'UNTESTED', self.station_state.get_test_state('a.c').status)
+    self.assertItemsEqual(
+        self.device_state.get_test_paths(),
+        ['test:', 'test:a', 'test:a.a', 'test:a.b', 'test:a.c'])
+    self.assertItemsEqual(
+        self.station_state.get_test_paths(),
+        ['test:', 'test:a', 'test:a.a', 'test:a.b', 'test:a.c'])
+    self.assertEqual('ACTIVE',
+                     self.station_state.get_test_state(path='test:').status)
+    self.assertEqual('ACTIVE',
+                     self.station_state.get_test_state(path='test:a').status)
+    self.assertEqual('PASSED',
+                     self.station_state.get_test_state(path='test:a.a').status)
+    self.assertEqual('ACTIVE',
+                     self.station_state.get_test_state(path='test:a.b').status)
+    self.assertEqual('UNTESTED',
+                     self.station_state.get_test_state(path='test:a.c').status)
 
   def testCopyToDUT(self):
     station_test_list = manager.BuildTestListForUnittest(
@@ -153,25 +169,25 @@ class FactoryStateUnittest(unittest.TestCase):
                 {'id': 'c', 'pytest_name': 'c'}, ]}, ]})
 
     self._SetDataShelf()
-    self.device_state.update_test_state(path='', status='UNTESTED')
-    self.device_state.update_test_state(path='a', status='UNTESTED')
-    self.device_state.update_test_state(path='a.a', status='UNTESTED')
-    self.device_state.update_test_state(path='a.b', status='UNTESTED')
-    self.device_state.update_test_state(path='a.c', status='UNTESTED')
-    self.device_state.update_test_state(path='b', status='PASSED')
-    self.device_state.update_test_state(path='b.a', status='PASSED')
-    self.device_state.update_test_state(path='b.b', status='PASSED')
-    self.device_state.update_test_state(path='b.c', status='PASSED')
+    self.device_state.update_test_state(path='test:', status='UNTESTED')
+    self.device_state.update_test_state(path='test:a', status='UNTESTED')
+    self.device_state.update_test_state(path='test:a.a', status='UNTESTED')
+    self.device_state.update_test_state(path='test:a.b', status='UNTESTED')
+    self.device_state.update_test_state(path='test:a.c', status='UNTESTED')
+    self.device_state.update_test_state(path='test:b', status='PASSED')
+    self.device_state.update_test_state(path='test:b.a', status='PASSED')
+    self.device_state.update_test_state(path='test:b.b', status='PASSED')
+    self.device_state.update_test_state(path='test:b.c', status='PASSED')
 
-    self.station_state.update_test_state(path='', status='ACTIVE')
-    self.station_state.update_test_state(path='a', status='ACTIVE')
-    self.station_state.update_test_state(path='a.a', status='PASSED')
-    self.station_state.update_test_state(path='a.b', status='ACTIVE')
-    self.station_state.update_test_state(path='a.c', status='UNTESTED')
+    self.station_state.update_test_state(path='test:', status='ACTIVE')
+    self.station_state.update_test_state(path='test:a', status='ACTIVE')
+    self.station_state.update_test_state(path='test:a.a', status='PASSED')
+    self.station_state.update_test_state(path='test:a.b', status='ACTIVE')
+    self.station_state.update_test_state(path='test:a.c', status='UNTESTED')
 
     self.test.args = type_utils.AttrDict(exclude_current_test_list=False,
                                          include_tests=True)
-    self.test.path = 'a.b'
+    self.test.path = 'test:a.b'
     self.test.test_info = mock.MagicMock()
     self.test.test_info.ReadTestList.return_value = station_test_list
 
@@ -182,21 +198,30 @@ class FactoryStateUnittest(unittest.TestCase):
     self.assertEqual(
         self.device_state.data_shelf[state.KEY_DEVICE_DATA]['foo'].Get(),
         'station')
-    self.assertItemsEqual(self.device_state.get_test_paths(),
-                          ['', 'a', 'a.a', 'a.b', 'a.c',
-                           'b', 'b.a', 'b.b', 'b.c'])
-    self.assertItemsEqual(self.station_state.get_test_paths(),
-                          ['', 'a', 'a.a', 'a.b', 'a.c'])
-    self.assertEqual('PASSED', self.device_state.get_test_state('b').status)
-    self.assertEqual('PASSED', self.device_state.get_test_state('b.a').status)
-    self.assertEqual('PASSED', self.device_state.get_test_state('b.b').status)
-    self.assertEqual('PASSED', self.device_state.get_test_state('b.c').status)
+    self.assertItemsEqual(
+        self.device_state.get_test_paths(),
+        ['test:', 'test:a', 'test:a.a', 'test:a.b', 'test:a.c',
+         'test:b', 'test:b.a', 'test:b.b', 'test:b.c'])
+    self.assertItemsEqual(
+        self.station_state.get_test_paths(),
+        ['test:', 'test:a', 'test:a.a', 'test:a.b', 'test:a.c'])
+    self.assertEqual('PASSED',
+                     self.device_state.get_test_state(path='test:b').status)
+    self.assertEqual('PASSED',
+                     self.device_state.get_test_state(path='test:b.a').status)
+    self.assertEqual('PASSED',
+                     self.device_state.get_test_state(path='test:b.b').status)
+    self.assertEqual('PASSED',
+                     self.device_state.get_test_state(path='test:b.c').status)
 
-    self.assertEqual('ACTIVE', self.device_state.get_test_state('a').status)
-    self.assertEqual('PASSED', self.device_state.get_test_state('a.a').status)
-    self.assertEqual('ACTIVE', self.device_state.get_test_state('a.b').status)
-    self.assertEqual(
-        'UNTESTED', self.device_state.get_test_state('a.c').status)
+    self.assertEqual('ACTIVE',
+                     self.device_state.get_test_state(path='test:a').status)
+    self.assertEqual('PASSED',
+                     self.device_state.get_test_state(path='test:a.a').status)
+    self.assertEqual('ACTIVE',
+                     self.device_state.get_test_state(path='test:a.b').status)
+    self.assertEqual('UNTESTED',
+                     self.device_state.get_test_state(path='test:a.c').status)
 
   def testCopyExcludeTest(self):
     station_test_list = manager.BuildTestListForUnittest(
@@ -207,25 +232,25 @@ class FactoryStateUnittest(unittest.TestCase):
                 {'id': 'c', 'pytest_name': 'c'}, ]}, ]})
 
     self._SetDataShelf()
-    self.device_state.update_test_state(path='', status='UNTESTED')
-    self.device_state.update_test_state(path='a', status='FAILED')
-    self.device_state.update_test_state(path='a.a', status='FAILED')
-    self.device_state.update_test_state(path='a.b', status='FAILED')
-    self.device_state.update_test_state(path='a.c', status='FAILED')
-    self.device_state.update_test_state(path='b', status='PASSED')
-    self.device_state.update_test_state(path='b.a', status='PASSED')
-    self.device_state.update_test_state(path='b.b', status='PASSED')
-    self.device_state.update_test_state(path='b.c', status='PASSED')
+    self.device_state.update_test_state(path='test:', status='UNTESTED')
+    self.device_state.update_test_state(path='test:a', status='FAILED')
+    self.device_state.update_test_state(path='test:a.a', status='FAILED')
+    self.device_state.update_test_state(path='test:a.b', status='FAILED')
+    self.device_state.update_test_state(path='test:a.c', status='FAILED')
+    self.device_state.update_test_state(path='test:b', status='PASSED')
+    self.device_state.update_test_state(path='test:b.a', status='PASSED')
+    self.device_state.update_test_state(path='test:b.b', status='PASSED')
+    self.device_state.update_test_state(path='test:b.c', status='PASSED')
 
-    self.station_state.update_test_state(path='', status='ACTIVE')
-    self.station_state.update_test_state(path='a', status='ACTIVE')
-    self.station_state.update_test_state(path='a.a', status='PASSED')
-    self.station_state.update_test_state(path='a.b', status='ACTIVE')
-    self.station_state.update_test_state(path='a.c', status='UNTESTED')
+    self.station_state.update_test_state(path='test:', status='ACTIVE')
+    self.station_state.update_test_state(path='test:a', status='ACTIVE')
+    self.station_state.update_test_state(path='test:a.a', status='PASSED')
+    self.station_state.update_test_state(path='test:a.b', status='ACTIVE')
+    self.station_state.update_test_state(path='test:a.c', status='UNTESTED')
 
     self.test.args = type_utils.AttrDict(exclude_current_test_list=True,
                                          include_tests=False)
-    self.test.path = 'a.b'
+    self.test.path = 'test:a.b'
     self.test.test_info = mock.MagicMock()
     self.test.test_info.ReadTestList.return_value = station_test_list
 
@@ -237,19 +262,29 @@ class FactoryStateUnittest(unittest.TestCase):
         self.device_state.data_shelf[state.KEY_DEVICE_DATA]['foo'].Get(),
         'station')
     # Test states Should not change.
-    self.assertItemsEqual(self.device_state.get_test_paths(),
-                          ['', 'a', 'a.a', 'a.b', 'a.c',
-                           'b', 'b.a', 'b.b', 'b.c'])
-    self.assertItemsEqual(self.station_state.get_test_paths(),
-                          ['', 'a', 'a.a', 'a.b', 'a.c'])
-    self.assertEqual('PASSED', self.device_state.get_test_state('b').status)
-    self.assertEqual('PASSED', self.device_state.get_test_state('b.a').status)
-    self.assertEqual('PASSED', self.device_state.get_test_state('b.b').status)
-    self.assertEqual('PASSED', self.device_state.get_test_state('b.c').status)
-    self.assertEqual('FAILED', self.device_state.get_test_state('a').status)
-    self.assertEqual('FAILED', self.device_state.get_test_state('a.a').status)
-    self.assertEqual('FAILED', self.device_state.get_test_state('a.b').status)
-    self.assertEqual('FAILED', self.device_state.get_test_state('a.c').status)
+    self.assertItemsEqual(
+        self.device_state.get_test_paths(),
+        ['test:', 'test:a', 'test:a.a', 'test:a.b', 'test:a.c',
+         'test:b', 'test:b.a', 'test:b.b', 'test:b.c'])
+    self.assertItemsEqual(
+        self.station_state.get_test_paths(),
+        ['test:', 'test:a', 'test:a.a', 'test:a.b', 'test:a.c'])
+    self.assertEqual('PASSED',
+                     self.device_state.get_test_state(path='test:b').status)
+    self.assertEqual('PASSED',
+                     self.device_state.get_test_state(path='test:b.a').status)
+    self.assertEqual('PASSED',
+                     self.device_state.get_test_state(path='test:b.b').status)
+    self.assertEqual('PASSED',
+                     self.device_state.get_test_state(path='test:b.c').status)
+    self.assertEqual('FAILED',
+                     self.device_state.get_test_state(path='test:a').status)
+    self.assertEqual('FAILED',
+                     self.device_state.get_test_state(path='test:a.a').status)
+    self.assertEqual('FAILED',
+                     self.device_state.get_test_state(path='test:a.b').status)
+    self.assertEqual('FAILED',
+                     self.device_state.get_test_state(path='test:a.c').status)
 
   def testEmptyDeviceData(self):
     station_test_list = manager.BuildTestListForUnittest(
@@ -260,7 +295,7 @@ class FactoryStateUnittest(unittest.TestCase):
                 {'id': 'c', 'pytest_name': 'c'}, ]}, ]})
     self.test.args = type_utils.AttrDict(exclude_current_test_list=True,
                                          include_tests=False)
-    self.test.path = 'a.b'
+    self.test.path = 'test:a.b'
     self.test.test_info = mock.MagicMock()
     self.test.test_info.ReadTestList.return_value = station_test_list
 
