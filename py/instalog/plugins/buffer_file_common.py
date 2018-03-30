@@ -106,7 +106,28 @@ def FormatRecord(seq, record):
   """Returns a record formatted as a line to be written to disk."""
   data = '%d, %s' % (seq, record)
   checksum = GetChecksum(data)
-  return '[%s, %s]\n' % (data, checksum)
+  return '[%s, "%s"]\n' % (data, checksum)
+
+
+def ParseRecord(line, logger_name=None):
+  """Parses and returns a line from disk as a record.
+
+  Returns:
+    A tuple of (seq_number, record), or None on failure.
+  """
+  logger = logging.getLogger(logger_name)
+  line_inner = line.rstrip()[1:-1]  # Strip [] and newline
+  data, _, checksum = line_inner.rpartition(', ')
+  # TODO(chuntsen): Change this method after a long time.
+  checksum = checksum.strip('"')
+  seq, _, record = data.partition(', ')
+  if not seq or not record:
+    logger.warning('Parsing error for record %s', line.rstrip())
+    return None, None
+  if checksum != GetChecksum(data):
+    logger.warning('Checksum error for record %s', line.rstrip())
+    return None, None
+  return int(seq), record
 
 
 def TryLoadJSON(path, logger_name=None):
@@ -371,25 +392,6 @@ def Truncate(config_dct, min_seq, min_pos, truncate_attachments=True):
   except Exception:
     logger.exception('Exception occurred during Truncate operation')
     raise
-
-
-def ParseRecord(line, logger_name=None):
-  """Parses and returns a line from disk as a record.
-
-  Returns:
-    A tuple of (seq_number, record), or None on failure.
-  """
-  logger = logging.getLogger(logger_name)
-  line_inner = line.rstrip()[1:-1]  # Strip [] and newline
-  data, _, checksum = line_inner.rpartition(', ')
-  seq, _, record = data.partition(', ')
-  if not seq or not record:
-    logger.warning('Parsing error for record %s', line.rstrip())
-    return None, None
-  if checksum != GetChecksum(data):
-    logger.warning('Checksum error for record %s', line.rstrip())
-    return None, None
-  return int(seq), record
 
 
 class BufferFile(log_utils.LoggerMixin):

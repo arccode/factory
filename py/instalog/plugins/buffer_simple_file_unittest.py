@@ -100,9 +100,14 @@ class TestBufferSimpleFile(unittest.TestCase):
   def testFormatParseRecord(self):
     """Tests internal format and parse of data.json record."""
     SEQ = 1989
-    RECORD = 'hello world'
+    RECORD = '{1: "hello world"}'
     seq, record = buffer_file_common.ParseRecord(
         buffer_file_common.FormatRecord(SEQ, RECORD), self.logger.name)
+    self.assertEqual(SEQ, seq)
+    self.assertEqual(RECORD, record)
+    # TODO(chuntsen): Remove old format.
+    seq, record = buffer_file_common.ParseRecord(
+        '[1989, {1: "hello world"}, 15fa0ea0]', self.logger.name)
     self.assertEqual(SEQ, seq)
     self.assertEqual(RECORD, record)
 
