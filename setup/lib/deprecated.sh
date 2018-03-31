@@ -8,6 +8,11 @@ script_dir="$(dirname "$0")"
 name="${script%%.*}"
 
 new_args="$@"
+case "${name}" in
+  mount_partition)
+    name='mount'
+    ;;
+esac
 
 echo "This script is deprecated. Please run 'image_tool' instead:
 
