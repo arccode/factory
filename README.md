@@ -258,7 +258,7 @@ Otherwise (a "signed firmware" like PreMP signed or MP signed), you have to ask
 firmware engineer to upload right image, update ebuild files, get a new image
 built and signed, extract the firmware from it:
 
-    ./setup/extract_firmware_updater.sh -i path/to/OS_IMAGE.bin
+    ./setup/image_tool get_firmware -i path/to/OS_IMAGE.bin
 
 Then you can find a `chromeos-firmwareupdate` file and use it for
 `make_factory_package.sh` as `--firmware path/to/chromeos-firmwareupdate`.

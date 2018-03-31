@@ -12,6 +12,9 @@ case "${name}" in
   mount_partition)
     name='mount'
     ;;
+  extract_firmware_updater)
+    name='get_firmware'
+    ;;
 esac
 
 echo "This script is deprecated. Please run 'image_tool' instead:

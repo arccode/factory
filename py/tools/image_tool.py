@@ -19,6 +19,7 @@ import inspect
 import logging
 import os
 import pipes
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -31,8 +32,12 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import pygpt
 
 
+# Partition index for Chrome OS rootfs A.
+PART_CROS_ROOTFS_A = 3
 # Special options to mount Chrome OS rootfs partitions. (-t ext2, -o ro).
 FS_TYPE_CROS_ROOTFS = 'ext2'
+# Relative path of firmware updater on Chrome OS disk images.
+PATH_CROS_FIRMWARE_UPDATER = '/usr/sbin/chromeos-firmwareupdate'
 
 
 class ArgTypes(object):
@@ -192,6 +197,25 @@ class Partition(object):
     kargs['fs_type'] = FS_TYPE_CROS_ROOTFS
     return self.Mount(*args, **kargs)
 
+  def CopyFile(self, rel_path, dest, **mount_options):
+    """Copies a file inside partition to given destination.
+
+    Args:
+      rel_path: relative path to source on disk partition.
+      dest: path of destination (file or directory).
+      mount_options: anything that must be passed to Partition.Mount.
+    """
+    with self.Mount(**mount_options) as rootfs:
+      # If rel_path is absolute then os.join will discard rootfs.
+      if os.path.isabs(rel_path):
+        rel_path = '.' + rel_path
+      src_path = os.path.join(rootfs, rel_path)
+      dest_path = (os.path.join(dest, os.path.basename(rel_path)) if
+                   os.path.isdir(dest) else dest)
+      logging.debug('Copying %s => %s ...', src_path, dest_path)
+      shutil.copy(src_path, dest_path)
+      return dest_path
+
 
 # TODO(hungte) Generalize this (copied from py/tools/factory.py) for all
 # commands to utilize easily.
@@ -304,6 +328,28 @@ class MountPartitionCommand(SubCommand):
         mode = 'RO'
 
     print('OK: Mounted %s as %s on %s.' % (part, mode, self.args.mount_point))
+
+
+class GetFirmwareCommand(SubCommand):
+  """Extracts firmware updater from a Chrome OS disk image."""
+  # Only Chrome OS disk images should have firmware updater, not Chromium OS.
+  name = 'get_firmware'
+  aliases = ['extract_firmware_updater']
+
+  def Init(self):
+    self.subparser.add_argument(
+        '-i', '--image', type=ArgTypes.ExistsPath, required=True,
+        help='path to the Chrome OS (release) image')
+    self.subparser.add_argument(
+        '-o', '--output_dir', default='.',
+        help='directory to save output file(s)')
+
+  def Run(self):
+    part = Partition(self.args.image, PART_CROS_ROOTFS_A)
+    output = part.CopyFile(PATH_CROS_FIRMWARE_UPDATER, self.args.output_dir,
+                           fs_type=FS_TYPE_CROS_ROOTFS)
+    print('OK: Extracted %s:%s to: %s' % (
+        part, PATH_CROS_FIRMWARE_UPDATER, output))
 
 
 def main():

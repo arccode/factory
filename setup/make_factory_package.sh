@@ -279,7 +279,7 @@ build_payloads() {
     info "Preparing firmware updater from release image..."
     local fwupdater_tmp_dir="$(mktemp -d --tmpdir)"
     image_add_temp "${fwupdater_tmp_dir}"
-    "${SCRIPT_DIR}/extract_firmware_updater.sh" -i "${FLAGS_release_image}" \
+    "${SCRIPT_DIR}/image_tool" get_firmware -i "${FLAGS_release_image}" \
       -o "${fwupdater_tmp_dir}"
     FLAGS_firmware="${fwupdater_tmp_dir}/chromeos-firmwareupdate"
   fi

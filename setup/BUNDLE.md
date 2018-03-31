@@ -44,7 +44,6 @@ Here is a list of files in a typical factory bundle:
       cros_docker.sh
       cros_payload
       edit_lsb_factory.sh
-      extract_firmware_updater.sh
       factory_common.sh
       futility
       image_tool
@@ -108,7 +107,7 @@ There could be at most one file in this folder, with arbitrary file name.
 * Goofy will try to update firmware when running pytest `update_firmware`.
 
 You can get a firmware updater from a release image by running
-`factory/setup/extract_firmware_updater.sh -i /path/to/release_image`
+`factory/setup/image_tool get_firmware -i /path/to/release_image`
 
 ### complete/
 
@@ -152,7 +151,6 @@ This folder is extracted from `FACTORY_IMAGE_ARCHIVE` by `finalize_bundle`,
 contains many useful scripts, such as:
 
 * `cros_docker.sh`
-* `extract_firmware_updater.sh`
 * `image_tool`
 * `make_factory_package.sh`
 * `netboot_firmware_settings`
