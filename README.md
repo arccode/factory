@@ -301,10 +301,10 @@ To speed up the process, many factories will try to pre-flash the internal
 storage so no imaging process is needed. You can generate the disk image from a
 factory test image and a release (recovery) image using setup scripts.
 
-To do that, use `--diskimg` option in `make_factory_package.sh`:
+To do that, use `image_tool preflash` command:
 
-    ./setup/make_factory_package.sh --diskimg=disk_image.bin \
-      --board=BOARD \
+    ./setup/image_tool \
+      preflash -o disk_image.bin \
       --test_image=path/to/chromiumos_test_image.bin \
       --toolkit=path/to/install_factory_toolkit.run \
       --release_image=path/to/chromiumos_image.bin \
@@ -312,9 +312,7 @@ To do that, use `--diskimg` option in `make_factory_package.sh`:
 
 You can image directly to a device, or to a .bin file. Available options are:
 
- * `--diskimg=XX` specifies the destination device or file
  * `--sectors=XX` specifies the number of sectors in the bin file
- * `--preserve` prevents wiping of the unused space for faster imaging
 
 ### USB Installation (RMA)
 ![Diagram of USB (RMA) Installation](doc/images/usb_installation.png)

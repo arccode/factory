@@ -353,109 +353,6 @@ generate_usbimg() {
   info "Done"
 }
 
-generate_diskimg() {
-  prepare_diskimg
-
-  local build_tmp="$(mktemp -d --tmpdir)"
-  image_add_temp "${build_tmp}"
-  build_payloads "${build_tmp}"
-
-  local json_path="${build_tmp}/${FLAGS_board}.json"
-  # TODO(hungte) "losetup -P" needs Ubuntu 15 and we need an alternative for 14.
-  local outdev="$(sudo losetup --find --show -P "${FLAGS_diskimg}")"
-
-  if [ ! -b "${outdev}" ]; then
-    die "Fail to create loop devices. Try to run inside chroot."
-  fi
-  set_loop_device "${outdev}"
-  sudo "${CROS_PAYLOAD}" install "${json_path}" "${outdev}" \
-    test_image release_image
-  # Increase stateful partition with 1G free space if possible.
-  sudo ${SCRIPT_DIR}/image_tool resize -i "${outdev}" --append -s 1024 || true
-
-  local targets="toolkit release_image.crx_cache"
-  # hwid (FLAGS_hwid) may be None so we have to process it explicitly.
-  if [ -n "${FLAGS_hwid}" ]; then
-    targets="${targets} hwid"
-  fi
-  sudo "${CROS_PAYLOAD}" install "${json_path}" "${outdev}" ${targets}
-
-  echo "Updating files in stateful partition"
-  # Add /etc/lsb-factory into diskimg if not exists.
-  image_mount_partition "${outdev}" 1 "${build_tmp}" "rw"
-  sudo touch "${build_tmp}"/dev_image/etc/lsb-factory || true
-  image_umount_partition "${build_tmp}"
-  free_loop_device
-
-  echo "Generated Image at ${FLAGS_diskimg}."
-  echo "Done"
-}
-
-prepare_diskimg() {
-  local outdev="$(readlink -f "$FLAGS_diskimg")"
-  local sectors="$FLAGS_sectors"
-
-  # We'll need some code to put in the PMBR, for booting on legacy BIOS.
-  echo "Fetch PMBR"
-  local pmbrcode="$(mktemp --tmpdir)"
-  image_add_temp "$pmbrcode"
-  sudo dd bs=512 count=1 status=noxfer \
-    if="${FLAGS_release_image}" of="${pmbrcode}"
-
-  echo "Prepare base disk image"
-  # Create an output file if requested, or if none exists.
-  if [ -b "${outdev}" ] ; then
-    echo "Using block device ${outdev}"
-  elif [ ! -e "${outdev}" ] || \
-       [ "$(stat -c %s "${outdev}")" != "$(( sectors * 512 ))" ] || \
-       [ "$FLAGS_preserve" = "$FLAGS_FALSE" ]; then
-    echo "Generating empty image file"
-    truncate -s "0" "$outdev"
-    truncate -s "$((sectors * 512))" "$outdev"
-  else
-    echo "Reusing $outdev"
-  fi
-
-  local root_fs_dir="$(mktemp -d --tmpdir)"
-  local write_gpt_path="${root_fs_dir}/usr/sbin/write_gpt.sh"
-  local chromeos_common_path="${root_fs_dir}/usr/share/misc/chromeos-common.sh"
-
-  image_add_temp "${root_fs_dir}"
-  image_mount_partition "${FLAGS_release_image}" "3" "${root_fs_dir}" "ro" "-t ext2"
-
-  if [ ! -f "${write_gpt_path}" ]; then
-    die "This script no longer works on legacy images without write_gpt.sh"
-  fi
-  if [ ! -f "${chromeos_common_path}" ]; then
-    die "Legacy images without ${chromeos_common_path} is not supported."
-  fi
-
-  # We need to patch up write_gpt.sh a bit to cope with the fact we're
-  # running in a non-chroot/device env and that we're not running as root
-  local partition_script="$(mktemp --tmpdir)"
-  image_add_temp "${partition_script}"
-
-  # write_gpt_path may be only readable by user 1001 (chronos).
-  # shellcheck disable=SC2024
-  sudo cat "${chromeos_common_path}" "${write_gpt_path}" >"${partition_script}"
-  echo "write_base_table \$1 ${pmbrcode}" >> "${partition_script}"
-  # Activate partition 2
-  echo "\${GPT} add -i 2 -S 1 -P 1 \$1" >> "${partition_script}"
-
-  # Add local bin to PATH before running locate_gpt
-  sed -i 's,locate_gpt,PATH="'"$PATH"'";locate_gpt,g' "${partition_script}"
-
-  # Prepare block device and invoke script. Note: cd is required for the
-  # rebasing of lib/chromeos-common.
-  local ret=$FLAGS_TRUE
-  local outdev_block="$(sudo losetup -f --show "${outdev}")"
-  (cd "$SCRIPT_DIR"; sudo bash "${partition_script}" "${outdev_block}") ||
-    ret=$?
-  sudo losetup -d "${outdev_block}"
-  image_umount_partition "${root_fs_dir}"
-  [ "$ret" = "$FLAGS_TRUE" ] || die "Failed to setup partition (write_gpt.sh)."
-}
-
 main() {
   set -e
   if [ "$#" != 0 ]; then
@@ -470,7 +367,9 @@ main() {
   if [ -n "$FLAGS_usbimg" ]; then
     generate_usbimg
   elif [ -n "$FLAGS_diskimg" ]; then
-    generate_diskimg
+    die "This command has been replaced by 'image_tool preflash'."
+  else
+    die "Unsupported mode. Please use 'image_tool help'."
   fi
 
   trap on_exit EXIT

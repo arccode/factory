@@ -7,6 +7,31 @@ script="$(basename "$0")"
 script_dir="$(dirname "$0")"
 name="${script%%.*}"
 
+has() {
+  local pattern="$1" var
+  shift
+  for var in "$@"; do
+    if [ "${var}" = "${pattern}" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+replace() {
+  local pattern="$1" var
+  local repl="$2"
+  shift
+  shift
+  for var in "$@"; do
+    if [ "${var}" = "${pattern}" ]; then
+      echo "${repl}"
+      continue
+    fi
+    echo "${var}"
+  done
+}
+
 new_args="$@"
 case "${name}" in
   mount_partition)
@@ -20,6 +45,12 @@ case "${name}" in
     ;;
   resize_image_fs)
     name='resize'
+    ;;
+  make_factory_package)
+    if has "--diskimg" "$@"; then
+      name='preflash'
+      new_args="$(replace --diskimg -o "$@")"
+    fi
     ;;
 esac
 
