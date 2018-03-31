@@ -19,6 +19,7 @@ import inspect
 import logging
 import os
 import pipes
+import re
 import shutil
 import subprocess
 import sys
@@ -34,12 +35,19 @@ from cros.factory.utils import pygpt
 from cros.factory.tools import netboot_firmware_settings
 
 
+# Partition index for Chrome OS stateful partition.
+PART_CROS_STATEFUL = 1
 # Partition index for Chrome OS rootfs A.
 PART_CROS_ROOTFS_A = 3
 # Special options to mount Chrome OS rootfs partitions. (-t ext2, -o ro).
 FS_TYPE_CROS_ROOTFS = 'ext2'
 # Relative path of firmware updater on Chrome OS disk images.
 PATH_CROS_FIRMWARE_UPDATER = '/usr/sbin/chromeos-firmwareupdate'
+# Regular expression for reading file system information from dumpe2fs.
+RE_BLOCK_COUNT = re.compile(r'^Block count: *(.*)$', re.MULTILINE)
+RE_BLOCK_SIZE = re.compile(r'^Block size: *(.*)$', re.MULTILINE)
+# Simple constant(s)
+MEGABYTE = 1048576
 
 
 class ArgTypes(object):
@@ -91,10 +99,17 @@ class SysUtils(object):
     kargs['sudo'] = True
     return Shell(commands, **kargs)
 
+  @staticmethod
+  def SudoOutput(commands, **kargs):
+    """Shortcut to Sudo(commands, output=True)."""
+    kargs['output'] = True
+    return Sudo(commands, **kargs)
+
 
 # Short cut to SysUtils.
 Shell = SysUtils.Shell
 Sudo = SysUtils.Sudo
+SudoOutput = SysUtils.SudoOutput
 
 
 class Partition(object):
@@ -140,6 +155,21 @@ class Partition(object):
   @property
   def size(self):
     return (self._part.LastLBA - self._part.FirstLBA + 1) * self._gpt.BLOCK_SIZE
+
+  @contextlib.contextmanager
+  def Map(self):
+    """Context manager to map (using losetup) partition from disk image."""
+    loop_dev = None
+    logging.debug('Map %s: %s(+%s)', self, self.offset, self.size)
+    try:
+      loop_dev = SudoOutput(
+          ['losetup', '--show', '--find', '-o', str(self.offset),
+           '--sizelimit', str(self.size), self.image]).strip()
+      yield loop_dev
+    finally:
+      if loop_dev:
+        Sudo(['umount', '-R', loop_dev], check=False, silent=True)
+        Sudo(['losetup', '-d', loop_dev], check=False, silent=True)
 
   @contextlib.contextmanager
   def Mount(self, mount_point=None, rw=False, fs_type=None, options=None,
@@ -217,6 +247,61 @@ class Partition(object):
       logging.debug('Copying %s => %s ...', src_path, dest_path)
       shutil.copy(src_path, dest_path)
       return dest_path
+
+  @staticmethod
+  def _ParseExtFileSystemSize(block_dev):
+    """Helper to parse ext* file system size using dumpe2fs.
+
+    Args:
+      raw_part: a path to block device.
+    """
+    raw_info = SudoOutput(['dumpe2fs', '-h', block_dev])
+    block_count = int(RE_BLOCK_COUNT.findall(raw_info)[0])
+    block_size = int(RE_BLOCK_SIZE.findall(raw_info)[0])
+    return block_count * block_size
+
+  def GetFileSystemSize(self):
+    """Returns the (ext*) file system size.
+
+    It is possible the real space occupied by file system is smaller than
+    partition size, especially in Chrome OS, the extra space is reserved for
+    verity data (rootfs verification) or to help quick wiping in factory
+    process.
+    """
+    with self.Map() as raw_part:
+      return self._ParseExtFileSystemSize(raw_part)
+
+  def ResizeFileSystem(self, new_size=None):
+    """Resizes the file system in given partition.
+
+    resize2fs may not accept size in number > INT32, so we have to specify the
+    size in larger units, for example MB; and that implies the result may be
+    different from new_size.
+
+    Args:
+      new_size: The expected new size. None to use whole partition.
+
+    Returns:
+      New size in bytes.
+    """
+    with self.Map() as raw_part:
+      # File system must be clean before we can perform resize2fs.
+      # e2fsck may return 1 "errors corrected" or 2 "corrected and need reboot".
+      old_size = self._ParseExtFileSystemSize(raw_part)
+      result = Sudo(['e2fsck', '-y', '-f', raw_part], check=False)
+      if result > 2:
+        raise RuntimeError('Failed in ensuring file system integrity (e2fsck).')
+      args = ['resize2fs', '-f', raw_part]
+      if new_size:
+        args.append('%sM' % (new_size / MEGABYTE))
+      Sudo(args)
+      real_size = self._ParseExtFileSystemSize(raw_part)
+      logging.debug(
+          '%s (%s) file system resized from %s (%sM) to %s (%sM), req = %s M',
+          self, self.size, old_size, old_size / MEGABYTE,
+          real_size, real_size / MEGABYTE,
+          new_size / MEGABYTE if new_size else '(ALL)')
+    return real_size
 
 
 # TODO(hungte) Generalize this (copied from py/tools/factory.py) for all
@@ -364,6 +449,47 @@ class NetbootFirmwareSettingsCommand(SubCommand):
 
   def Run(self):
     netboot_firmware_settings.NetbootFirmwareSettings(self.args)
+
+
+class ResizeFileSystemCommand(SubCommand):
+  """Changes file system size from a partition on a Chromium OS disk image."""
+  name = 'resize'
+  aliases = ['resize_image_fs']
+
+  def Init(self):
+    self.subparser.add_argument(
+        '-i', '--image', type=ArgTypes.ExistsPath, required=True,
+        help='path to the Chromium OS disk image')
+    self.subparser.add_argument(
+        '-p', '--partition_number', type=int, default=1,
+        help='file system on which partition to resize')
+    self.subparser.add_argument(
+        '-s', '--size_mb', type=int, default=1024,
+        help='file system size to change (set or add, see --append) in MB')
+    self.subparser.add_argument(
+        '-a', '--append', dest='append', action='store_true', default=True,
+        help='append (increase) file system by +size_mb')
+    self.subparser.add_argument(
+        '--no-append', dest='append', action='store_false',
+        help='set file system to a new size of size_mb')
+
+  def Run(self):
+    part = Partition(self.args.image, self.args.partition_number)
+    curr_size = part.GetFileSystemSize()
+
+    if self.args.append:
+      new_size = curr_size + self.args.size_mb * MEGABYTE
+    else:
+      new_size = self.args.size_mb * MEGABYTE
+
+    if new_size > part.size:
+      raise RuntimeError(
+          'Requested size (%s MB) larger than %s partition (%s MB).' % (
+              new_size / MEGABYTE, part, part.size / MEGABYTE))
+
+    new_size = part.ResizeFileSystem(new_size)
+    print('OK: %s file system has been resized from %s to %s MB.' %
+          (part, curr_size / MEGABYTE, new_size / MEGABYTE))
 
 
 def main():

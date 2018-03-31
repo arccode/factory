@@ -18,6 +18,9 @@ case "${name}" in
   netboot_firmware_settings)
     name='netboot'
     ;;
+  resize_image_fs)
+    name='resize'
+    ;;
 esac
 
 echo "This script is deprecated. Please run 'image_tool' instead:

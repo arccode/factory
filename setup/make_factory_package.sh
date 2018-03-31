@@ -371,7 +371,7 @@ generate_diskimg() {
   sudo "${CROS_PAYLOAD}" install "${json_path}" "${outdev}" \
     test_image release_image
   # Increase stateful partition with 1G free space if possible.
-  sudo ${SCRIPT_DIR}/resize_image_fs.sh -i "${outdev}" --append -s 1024 || true
+  sudo ${SCRIPT_DIR}/image_tool resize -i "${outdev}" --append -s 1024 || true
 
   local targets="toolkit release_image.crx_cache"
   # hwid (FLAGS_hwid) may be None so we have to process it explicitly.

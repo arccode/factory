@@ -52,7 +52,6 @@ Here is a list of files in a typical factory bundle:
       NETBOOT.md
       pygpt
       README.md
-      resize_image_fs.sh
       setup_tools.par
     MANIFEST.yaml
     README
@@ -152,7 +151,6 @@ contains many useful scripts, such as:
 * `cros_docker.sh`
 * `image_tool`
 * `make_factory_package.sh`
-* `resize_image_fs.sh`
 
 ## Building a factory bundle
 
