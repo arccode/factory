@@ -82,26 +82,8 @@ def CheckPytestDoc(files):
          '\n'.join('  ' + test_file for test_file in bad_files))
 
 
-def CheckMakeFactoryPackage(files):
-  target = 'setup/make_factory_package.sh'
-  if not target in files:
-    return
-
-  instruction = '''
-  Please run "py/tools/test_make_factory_package.py" (use --help for more
-  information on how to use it if you do not have access to release
-  repositories).'''
-
-  tests_file_path = '.test_make_factory_package.passed'
-  if not os.path.exist(tests_file_path):
-    exit('Tests have not passed.%s' % instruction)
-  if not os.path.getmtime(tests_file_path) > os.path.getmtime(target):
-    exit('%s has been changed.%s' % (target, instruction))
-
-
 def main():
   files = sys.argv[1:]
-  CheckMakeFactoryPackage(files)
   CheckFactoryRepo(files)
   CheckPytestDoc(files)
   CheckUmpire(files)

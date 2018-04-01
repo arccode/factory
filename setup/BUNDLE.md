@@ -47,10 +47,8 @@ Here is a list of files in a typical factory bundle:
       factory_common.sh
       futility
       image_tool
-      make_factory_package.sh
       merge_factory_usbimg.sh
       NETBOOT.md
-      pygpt
       README.md
       setup_tools.par
     MANIFEST.yaml
@@ -150,7 +148,6 @@ contains many useful scripts, such as:
 
 * `cros_docker.sh`
 * `image_tool`
-* `make_factory_package.sh`
 
 ## Building a factory bundle
 

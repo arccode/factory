@@ -46,6 +46,14 @@ FS_TYPE_CROS_ROOTFS = 'ext2'
 PATH_CROS_FIRMWARE_UPDATER = '/usr/sbin/chromeos-firmwareupdate'
 # The name of folder must match /etc/init/cros-payloads.conf.
 DIR_CROS_PAYLOADS = 'cros_payloads'
+# Mode for new created folder, 0755 = u+rwx, go+rx
+MODE_NEW_DIR = 0755
+# Regular expression for parsing LSB value, which should be sh compatible.
+RE_LSB = re.compile(r'^ *(.*)="?(.*[^"])"?$', re.MULTILINE)
+# Key for Chrome OS board name in /etc/lsb-release.
+KEY_LSB_CROS_BOARD = 'CHROMEOS_RELEASE_BOARD'
+# Key for Chrome OS build version in /etc/lsb-release.
+KEY_LSB_CROS_VERSION = 'CHROMEOS_RELEASE_VERSION'
 # Regular expression for reading file system information from dumpe2fs.
 RE_BLOCK_COUNT = re.compile(r'^Block count: *(.*)$', re.MULTILINE)
 RE_BLOCK_SIZE = re.compile(r'^Block size: *(.*)$', re.MULTILINE)
@@ -53,6 +61,8 @@ RE_BLOCK_SIZE = re.compile(r'^Block size: *(.*)$', re.MULTILINE)
 RE_GPT = re.compile(r'^GPT=""$', re.MULTILINE)
 RE_WRITE_GPT_CHECK_BLOCKDEV = re.compile(
     r'if \[ -b "\${target}" ]; then', re.MULTILINE)
+# Special argument to indicate None.
+STR_NONE = 'none'
 # Simple constant(s)
 MEGABYTE = 1048576
 # The storage industry treat "mega" and "giga" differently.
@@ -91,6 +101,13 @@ class ArgTypes(object):
       raise argparse.ArgumentTypeError(
           'Too many files found for <%s>: %s' % (pattern, found))
     return found[0]
+
+  @staticmethod
+  def GlobPathOrNone(pattern):
+    """An argument as glob pattern or STR_NONE."""
+    if pattern == STR_NONE:
+      return pattern
+    return ArgTypes.GlobPath(pattern)
 
 
 class SysUtils(object):
@@ -395,17 +412,115 @@ class Partition(object):
     return real_size
 
 
+class LSBFile(object):
+  """Access /etc/lsb-release file (or files in same format).
+
+  The /etc/lsb-release can be loaded directly by shell ( . /etc/lsb-release ).
+  There is no really good and easy way to parse that without sh, but fortunately
+  for the fields we care, it's usually A=B or A="B C".
+
+  Also, in Chrome OS, the /etc/lsb-release was implemented without using quotes
+  (i,e., A=B C, no matter if the value contains space or not).
+  """
+  def __init__(self, path=None, is_cros=True):
+    self._raw_data = ''
+    self._dict = {}
+    self._is_cros = is_cros
+    if not path:
+      return
+
+    with open(path) as f:
+      self._raw_data = f.read().strip()  # Remove trailing \n or \r
+      self._dict = dict(RE_LSB.findall(self._raw_data))
+
+  def AsDict(self):
+    return self._dict
+
+  def FormatKeyValue(self, key, value):
+    return ('%s=%s' if self._is_cros or ' ' not in value else '%s="%s"') % (
+        key, value)
+
+  def GetValue(self, key, default=None):
+    return self._dict.get(key, default)
+
+  def AppendValue(self, key, value):
+    self._dict[key] = value
+    self._raw_data += '\n' + self.FormatKeyValue(key, value)
+
+  def SetValue(self, key, value):
+    if key in self._dict:
+      self._dict[key] = value
+      self._raw_data = re.sub(
+          r'^' + re.escape(key) + r'=.*', self.FormatKeyValue(key, value),
+          self._raw_data, flags=re.MULTILINE)
+    else:
+      self.AppendValue(key, value)
+
+  def DeleteValue(self, key):
+    if key not in self._dict:
+      return
+    self._dict.pop(key)
+    self._raw_data = re.sub(
+        r'^' + re.escape(key) + r'=.*', '', self._raw_data, flags=re.MULTILINE)
+
+  def Install(self, destination):
+    """Installs the contents to the given location as lsb-release style file.
+
+    The file will be owned by root:root, with file mode 0644.
+    """
+    with tempfile.NamedTemporaryFile(prefix='lsb_') as f:
+      f.write(self._raw_data + '\n')
+      f.flush()
+      os.chmod(f.name, 0644)
+      Sudo(['cp', '-pf', f.name, destination])
+      Sudo(['chown', 'root:root', destination])
+
+  def GetChromeOSBoard(self, remove_signer=True):
+    """Returns the Chrome OS board name.
+
+    Gets the value using KEY_LSB_CROS_BOARD. For test or DEV signed images, this
+    is exactly the board name we passed to build commands. For PreMP/MP signed
+    images, this may have suffix '-signed-KEY', where KEY is the key name like
+    'mpv2'.
+
+    Args:
+      remove_signer: True to remove '-signed-XX' information.
+    """
+    board = self.GetValue(KEY_LSB_CROS_BOARD, '')
+    if remove_signer:
+      # For signed images, the board may come in $BOARD-signed-$KEY.
+      signed_index = board.find('-signed-')
+      if signed_index > -1:
+        board = board[:signed_index]
+    return board
+
+  def GetChromeOSVersion(self, remove_timestamp=True):
+    """Returns the Chrome OS build version.
+
+    Gets the value using KEY_LSB_CROS_VERSION. For self-built images, this may
+    include a time stamp.
+
+    Args:
+      remove_timestamp: Remove the timestamp like version info if available.
+    """
+    version = self.GetValue('CHROMEOS_RELEASE_VERSION', '')
+    if remove_timestamp:
+      version = version.split()[0]
+    return version
+
+
 class ChromeOSFactoryBundle(object):
   """Utilities to work with factory bundle."""
 
   def __init__(self, temp_dir, board, release_image, test_image, toolkit,
-               firmware=None, hwid=None, complete=None):
+               factory_shim=None, firmware=None, hwid=None, complete=None):
     self._temp_dir = temp_dir
     # Member data will be looked up by getattr so we don't prefix with '_'.
     self.board = board
     self.release_image = release_image
     self.test_image = test_image
     self.toolkit = toolkit
+    self.factory_shim = factory_shim
     self.firmware = firmware
     self.hwid = hwid
     self.complete = complete
@@ -584,6 +699,60 @@ class ChromeOSFactoryBundle(object):
     with part.Mount(rw=True) as stateful:
       Sudo(['touch', os.path.join(stateful, 'dev_image', 'etc', 'lsb-factory')],
            check=False)
+
+  def CreateRMAImage(self, output):
+    """Creates the RMA bootable installation disk image.
+
+    This creates an RMA image that can boot and install all factory software
+    resouces to device.
+
+    Args:
+      output: a path to disk image to initialize.
+    """
+    # It is possible to enlarge the disk by calculating sizes of all input
+    # files, create cros_payloads folder in the disk image file, to minimize
+    # execution time. However, that implies we have to shrink disk image later
+    # (due to gz), and run build_payloads using root, which are all not easy.
+    # As a result, here we want to create payloads in temporary folder then copy
+    # into disk image.
+    payloads_dir = os.path.join(self._temp_dir, DIR_CROS_PAYLOADS)
+    os.mkdir(payloads_dir, MODE_NEW_DIR)
+    self.CreatePayloads(payloads_dir)
+
+    payloads_size = int(
+        SudoOutput(['du', '-sk', payloads_dir]).split()[0]) * 1024
+    print('cros_payloads size: %s M' % (payloads_size / MEGABYTE))
+    shutil.copyfile(self.factory_shim, output)
+
+    old_size = os.path.getsize(output)
+    new_size = old_size + payloads_size
+    print('Changing size: %s M => %s M' %
+          (old_size / MEGABYTE, new_size / MEGABYTE))
+    Shell(['truncate', '-s', str(new_size), output])
+    with open(output, 'rb+') as f:
+      gpt = pygpt.GPT.LoadFromFile(f)
+      gpt.Resize(new_size)
+      gpt.ExpandPartition(PART_CROS_STATEFUL - 1)  # pygpt.GPT is 0-based.
+      gpt.WriteToFile(f)
+    part = Partition(output, PART_CROS_STATEFUL)
+    part.ResizeFileSystem()
+
+    with part.Mount(rw=True) as stateful:
+      print('Moving payload files to disk image...')
+      new_name = os.path.join(stateful, DIR_CROS_PAYLOADS)
+      if os.path.exists(new_name):
+        raise RuntimeError('Factory shim already contains %s - already RMA?' %
+                           DIR_CROS_PAYLOADS)
+      Sudo(['chown', '-R', 'root:root', payloads_dir])
+      Sudo(['mv', '-f', payloads_dir, stateful])
+
+      # Update lsb-factory file.
+      lsb_path = os.path.join(stateful, 'dev_image', 'etc', 'lsb-factory')
+      lsb_file = LSBFile(lsb_path if os.path.exists(lsb_path) else None)
+      lsb_file.AppendValue('FACTORY_INSTALL_FROM_USB', '1')
+      lsb_file.AppendValue('USE_CROS_PAYLOAD', '1')
+      lsb_file.Install(lsb_path)
+      Sudo(['df', '-h', stateful])
 
 
 # TODO(hungte) Generalize this (copied from py/tools/factory.py) for all
@@ -800,12 +969,88 @@ class CreatePreflashImageCommand(SubCommand):
           release_image=self.args.release_image,
           test_image=self.args.test_image,
           toolkit=self.args.toolkit,
+          factory_shim=None,
           firmware=None,
           hwid=self.args.hwid,
           complete=None)
       bundle.CreateDiskImage(self.args.output, self.args.sectors)
     print('OK: Generated pre-flash disk image at %s [%s G]' % (
         self.args.output, self.args.sectors * 512 / GIGABYTE_STORAGE))
+
+
+class CreateRMAImageCommmand(SubCommand):
+  """Create an RMA image for factory to boot from USB and repair device.
+
+  The output is a special factory install shim (factory_install) with all
+  resources (release, test images and toolkit). The manufacturing line or RMA
+  centers can boot it from USB and install all factory software bits into
+  a device.
+  """
+  name = 'rma'
+
+  def Init(self):
+    ChromeOSFactoryBundle.DefineBundleArguments(self.subparser)
+    self.subparser.add_argument(
+        '--firmware', default='-firmware/*.sh',
+        type=ArgTypes.GlobPathOrNone,
+        help=('optional path to a firmware update (chromeos-firmwareupdate); '
+              'if not specified, use the firmware from release image '
+              '(--release_image), or "none" to skip running firmware update.'))
+    self.subparser.add_argument(
+        '--factory_shim', default='factory_shim/*.bin',
+        type=ArgTypes.GlobPath,
+        help=('path to a factory shim (build_image factory_install), '
+              'default: %(default)s'))
+    # TODO(hungte) Should we have default value for this?
+    self.subparser.add_argument(
+        '--complete_script', dest='complete',
+        help='path to a script for the last-step execution of factory install')
+    self.subparser.add_argument(
+        '--board',
+        help='board name for dynamic installation')
+    self.subparser.add_argument(
+        '-o', '--output', required=True,
+        help='path to the output RMA image file')
+
+  def Run(self):
+    # TODO(hungte) always print bundle info (what files have been found)
+    with SysUtils.TempDirectory(prefix='rma_') as temp_dir:
+
+      # Solve optional arguments.
+      board = self.args.board
+      firmware = self.args.firmware
+      part = Partition(self.args.release_image, PART_CROS_ROOTFS_A)
+
+      if not board:
+        with part.MountAsCrOSRootfs() as root:
+          board = LSBFile(
+              os.path.join(root, 'etc', 'lsb-release')).GetChromeOSBoard()
+      if not board:
+        raise RuntimeError('--board argument must be manually specified.')
+
+      # Load firmware updater from release image if not given.
+      temp_updater = None
+      if not firmware:
+        temp_updater = part.CopyFile(
+            PATH_CROS_FIRMWARE_UPDATER, temp_dir, fs_type=FS_TYPE_CROS_ROOTFS)
+        firmware = temp_updater
+      elif firmware == STR_NONE:
+        firmware = None
+
+      print('Generating RMA image for board %s' % board)
+      bundle = ChromeOSFactoryBundle(
+          temp_dir=temp_dir,
+          board=board,
+          release_image=self.args.release_image,
+          test_image=self.args.test_image,
+          toolkit=self.args.toolkit,
+          factory_shim=self.args.factory_shim,
+          firmware=firmware,
+          hwid=self.args.hwid,
+          complete=self.args.complete)
+      bundle.CreateRMAImage(self.args.output)
+
+    print('OK: Generated %s RMA image at %s' % (board, self.args.output))
 
 
 def main():

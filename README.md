@@ -246,7 +246,7 @@ program. If not specified, this will be pulled from the release (recovery) image
 (i.e., --release) you've provided.
 
 If you need to use a special version that is different from the one combined in
-release image, add a `--firmware PATH` option to `make_factory_package.sh`
+release image, add a `--firmware PATH` option to `image_tool rma`
 command, or manually upload the updater file in Dome web UI.
 
 Also, if you only want the DEV signed firmware (also known as unsigned), grab
@@ -261,7 +261,7 @@ built and signed, extract the firmware from it:
     ./setup/image_tool get_firmware -i path/to/OS_IMAGE.bin
 
 Then you can find a `chromeos-firmwareupdate` file and use it for
-`make_factory_package.sh` as `--firmware path/to/chromeos-firmwareupdate`.
+`image_tool rma` as `--firmware path/to/chromeos-firmwareupdate`.
 
 Also, if you are simply testing and no HWID bundle yet, change the `--hwid PATH`
 to `--hwid none`.
@@ -322,9 +322,10 @@ network. This is helpful in proto builds if network is not ready, and if copy
 machine is not available. This is also known as the "RMA shim" since it is
 widely used in RMA (Return Materiel Authorization) flow:
 
-To do that, use `--usbimg` option in `make_factory_package.sh`:
+To do that, use 'rma' sub command in `image_tool`:
 
-    ./make_factory_package.sh --usbimg=usb_image.bin \
+    ./setup/image_tool \
+      rma -o rma_image.bin \
       --board=BOARD \
       --factory_shim=path/to/factory_install_shim.bin \
       --test_image=path/to/chromiumos_test_image.bin \
@@ -332,7 +333,7 @@ To do that, use `--usbimg` option in `make_factory_package.sh`:
       --release_image=path/to/chromiumos_image.bin \
       --hwid=path/to/hwid_bundle.sh
 
-Flash the `usb_image.bin` to a USB stick, boot it in with developer switch
+Flash the `rma_image.bin` to a USB stick, boot it in with developer switch
 enabled in recovery mode, and then you will see the installation menu that can
 install directly from same USB stick without network.
 

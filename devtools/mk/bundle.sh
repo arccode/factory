@@ -49,7 +49,7 @@ main() {
 
   # Replace symlinks
   bundle_install "${bundle_dir}" "${par}" \
-    setup "image_tool pygpt"
+    setup "image_tool"
 
   cp -f /usr/bin/cgpt "${bundle_dir}/setup"
   cp -f /usr/bin/futility "${bundle_dir}/setup"

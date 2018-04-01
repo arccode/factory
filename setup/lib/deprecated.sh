@@ -50,6 +50,9 @@ case "${name}" in
     if has "--diskimg" "$@"; then
       name='preflash'
       new_args="$(replace --diskimg -o "$@")"
+    elif has "--usbimg" "$@"; then
+      name='rma'
+      new_args="$(replace --usbimg -o "$@")"
     fi
     ;;
 esac
