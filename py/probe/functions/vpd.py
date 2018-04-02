@@ -12,14 +12,104 @@ from cros.factory.utils import type_utils
 class VPDFunction(shell.ShellFunction):
   """Reads the information from VPD.
 
+  Description
+  -----------
+  This function probes the VPD data in the firmware by calling the command
+  ``vpd``.
+
   This function supplies 3 modes:
     1. If the user doesn't specify any field name of VPD data to probe
-       (both the arguments `field` and `field` are `None`), the probe result
-       will be a dict contains all fields in the VPD data.
-    2. If the user specifies a list of fields (ex: `fields=['a', 'b', ...]`),
-       the probe result will contain only specified fields.  The user also can
-       specify the argument `key='another_key_name'` to customize the key name
+       (i.e. both the arguments ``field`` and ``key`` are `None`), the probed
+       result will be a dict contains all fields in the VPD data.
+    2. If the user specifies a list of fields (ex: ``fields=['a', 'b', ...]``),
+       the probed result will contain only specified fields.  The user also can
+       specify the argument ``key='another_key_name'`` to customize the key name
        in the result dict if the specified fields contains only element.
+
+  Examples
+  --------
+  Let's assume that the read-only VPD partition contains these fields::
+
+    serial=12345
+    region=us
+
+  And read-write VPD partition contains::
+
+    k1=v1
+    k2=v2
+    k3=v3
+
+  And we have the probing statement::
+
+    {
+      "all_ro_vpd_data": {  # Simplest example, just dump all fields in RO VPD.
+        "from_firmware": {
+          "eval": "vpd"
+        }
+      },
+
+      "region": {
+        "from_firmware": {
+          "eval": {
+            "vpd": {
+              "fields": [
+                "region"
+              ],
+              "key": "region_code"  # In this case we rename the key from
+                                    # "region" to "region_code".
+            }
+          }
+        }
+      },
+
+      "k1k2_rw_vpd_data": {  # In this case we only output k1, k2 from the RW
+                             # VPD.
+        "from_firmware": {
+          "eval": {
+            "vpd": {
+              "partition": "rw",
+              "fields": [
+                "k1",
+                "k2"
+              ]
+            }
+          }
+        }
+      }
+    }
+
+  Then the probed results will be::
+
+    {
+      "all_ro_vpd_data": [
+        {
+          "name": "from_firmware",
+          "values": {
+            "serial": "12345",
+            "region": "us"
+          }
+        }
+      ],
+
+      "region": [
+        {
+          "name": "from_firmware",
+          "values": {
+            "region_code": "us"
+          }
+        }
+      ],
+
+      "k1k2_rw_vpd_data": [
+        {
+          "name": "from_firmware",
+          "values": {
+            "k1": "v1",
+            "k2": "v2"
+          }
+        }
+      ]
+    }
   """
 
   ARGS = [

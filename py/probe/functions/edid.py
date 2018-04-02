@@ -5,7 +5,7 @@
 """Wrapper for EDID data parsing and loading.
 
 See for more info:
-  http://en.wikipedia.org/wiki/Extended_display_identification_data
+  https://en.wikipedia.org/wiki/Extended_display_identification_data
 """
 
 import binascii
@@ -190,9 +190,98 @@ def LoadFromI2C(path):
 def LoadFromFile(path):
   return Parse(file_utils.ReadFile(path))
 
-
 class EDIDFunction(probe_function.ProbeFunction):
-  """Probe EDID information from file or I2C bus."""
+  # pylint: disable=line-too-long
+  """Probe EDID information from file or I2C bus.
+
+  Description
+  -----------
+  This function tries to probe all EDID blobs from all i2c bus and searches
+  exported edid files in the sysfs matched the pattern
+  ``/sys/class/drm/*/edid``.
+
+  Once this function finds an EDID data, this function parses the data to
+  obtain ``vendor``, ``product_id``, ``width`` and ``height`` fields from
+  the EDID data.  The format of an EDID data structure can be found in the
+  `wiki page
+  <https://en.wikipedia.org/wiki/Extended_display_identification_data>`_.
+  The ``vendor`` field this function obtains is actually the manufacturer ID
+  (byte 8~9); ``product_id`` is the manufacturer product ID
+  listed in the wiki page.
+
+  Examples
+  --------
+  If you want this function just outputs all EDID data, the probing statement
+  is simply::
+
+    {
+      "<category_name>": {
+        "<statement_name>": {
+          "eval": "edid"
+        }
+      }
+    }
+
+  Let's assume the output is ::
+
+    {
+      "<category_name>": [
+        {
+          "name": "<statement_name>",
+          "values": {
+            "vendor": "IBM",
+            "product_id": "abcd",
+            "width": "19200",
+            "height": "10800",
+            "dev_path": "/dev/i2c-1",
+            "sysfs_path": "/sys/class/drm/aabbcc/edid"
+          }
+        },
+        {
+          "name": "<statement_name>",
+          "values": {
+            "vendor": "IBX",
+            "product_id": "1234",
+            "width": "192",
+            "height": "108",
+            "dev_path": "/dev/i2c-2"
+          }
+        }
+      ]
+    }
+
+  In above example the EDID data of the IBM monitor is found not only on the
+  i2c bus ``/dev/i2c-1`` but also in the sysfs ``/sys/class/drm/aabbcc/edid``.
+  However, the one made by IBX is only found on the i2c bus ``/dev/i2c-2``.
+
+  Then if you are only interested in the monitor made by IBM, you can modify
+  the probing statement to ::
+
+    {
+      "<category_name>": {
+        "<statement_name>": {
+          "eval": "edid",
+          "expect": {
+            "vendor": "IBM"
+          }
+        }
+      }
+    }
+
+  so that the probed results will only contain the one with ``"vendor": "IBM"``.
+
+  Another use case is to ask this function to probe the EDID file in/on a
+  specific path or i2c bus.  For example::
+
+    {
+      "<category_name>": {
+        "<statement_name>": {
+          "eval": "edid:/dev/i2c-3"
+        }
+      }
+    }
+
+  """
   path_to_identity = None
   identity_to_edid = None
 
@@ -231,19 +320,19 @@ class EDIDFunction(probe_function.ProbeFunction):
     cls.path_to_identity = {}
     cls.identity_to_edid = {}
 
-    for glob_pattern in ['/sys/class/drm/*/edid',
-                         cls.I2C_DEVICE_PREFIX + '[0-9]*']:
+    for pattern_type, glob_pattern in [
+        ('sysfs_path', '/sys/class/drm/*/edid'),
+        ('dev_path', cls.I2C_DEVICE_PREFIX + '[0-9]*')]:
       for path in glob.glob(glob_pattern):
         result = cls.ProbeEDID(path)
         if not result:
           continue
 
         identity = (result['vendor'], result['product_id'])
-
-        if identity not in cls.identity_to_edid:
-          cls.identity_to_edid[identity] = result
-
         cls.path_to_identity[path] = identity
+
+        cls.identity_to_edid.setdefault(identity, result)
+        cls.identity_to_edid[identity][pattern_type] = path
 
   @classmethod
   def ProbeEDID(cls, path):

@@ -11,7 +11,55 @@ from cros.factory.probe.lib import cached_probe_function
 
 class TouchscreenElanFunction(
     cached_probe_function.GlobPathCachedProbeFunction):
-  """Probe the ELAN touchscreen information."""
+  """Probe the ELAN touchscreen information.
+
+  Description
+  -----------
+  The driver of ELAN touchscreens doesn't export the attributes for identifying
+  devices to the regular linux input device interface so this function probes
+  all ELAN touchscreens and output the attributes of the device.  The output
+  of each ELAN touchscreen must have 3 fields:
+
+  - ``name``: Name of the device exported by the driver.
+  - ``hw_version``: Hardware version exported by the driver.
+  - ``fw_version``: Firmware version exported by the driver.
+
+  Examples
+  --------
+  Let's say if we want to verify whether the specific ELAN touchscreen (
+  hardware/firmware versions are ``0x1234``/``0x5678``) exists on the device
+  or not, we can have the probing statement::
+
+    {
+      "touchscreen": {
+        "elan_1234_5678": {
+          "eval": "touchscreen_elan",
+          "expect": {
+            "hw_version": "1234",
+            "fw_version": "5678"
+          }
+        }
+      }
+    }
+
+  If the touchscreen is probed, the probed results will be::
+
+    {
+      "touchscreen": [
+        {
+          "name": "elan_1234_5678",
+          "hw_version": "1234",
+          "fw_version": "5678"
+        }
+      ]
+    }
+
+  If the touchscreen is not found, the probed results will be::
+
+    {
+      "touchscreen": []
+    }
+  """
 
   GLOB_PATH = '/sys/bus/i2c/devices/*'
   DRIVER_NAME = 'elants_i2c'

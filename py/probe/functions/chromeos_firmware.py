@@ -96,12 +96,98 @@ def CalculateFirmwareHashes(fw_file_path):
 
 
 class ChromeosFirmwareFunction(cached_probe_function.LazyCachedProbeFunction):
-  """Get information of flash chip."""
+  # pylint: disable=line-too-long
+  """Get firmware information from a flash chip.
+
+  Description
+  -----------
+  This function mainly runs ``flashrom`` to get the firmware image from the
+  specific flash chip and calculates the hash of some of the sections of the
+  image.
+
+  - If ``field="firmware_keys"``, this function outputs sha1sum hash of the
+    root key and the recovery key recorded in the readonly main firmware.  If
+    the keyset is develop keyset, the output will contain a special suffix mark
+    ``#devkeys/rootkey`` and ``#devkeys/recoverykey``.  See `Examples`_ for
+    detail.
+
+  - If ``field="ro_main_firmware"``, this function outputs the sha256 hash of
+    the readonly main firmware and also the version of the firmware.
+
+  - If ``field="ro_ec_firmware"``, this function outputs the sha256 hash of
+    the readonly EC firmware and also the version of the firmware.
+
+  - If ``field="ro_pd_firmware"``, this function outputs the sha256 hash of
+    the readonly PD firmware and also the version of the firmware.  Since
+    not all devices have a PD flash chip, it's possible that the output of this
+    function is empty.
+
+  Examples
+  --------
+
+  As this function has only one single argument, the ``eval`` part of the
+  probing statement can be simplified into a single string instead of a
+  dictionary.  For example, the probing statement for probing the key hash is ::
+
+    {
+      "<category_name>": {
+        "<statement_name>": {
+          "eval": "chromeos_firmware:firmware_keys":
+        }
+      }
+    }
+
+  , where ``chromeos_firmware:firmware_keys`` is equivalent to ::
+
+    {
+      "chromeos_firmware": {
+        "field": "firmware_keys"
+      }
+    }
+
+  We category below examples into two use cases.
+
+  Probe the Key Hash (``field="firmware_keys"``)
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  If the firmware is not signed and contains a develop keyset, the probed
+  results must be ::
+
+    {
+      "<category_name>": [
+        {
+          "name": "<statement_name>",
+          "values": {
+            "rootkey": "kv3#b11d74edd6c14...0bc20cf041f10#devkey/rootkey",
+            "recoverykey": "kv3#c14bd0b70d9...d8f43de48d4ed#devkey/recoverykey"
+          }
+        }
+      ]
+    }
+
+  Probe the RO Firmware Image Hash (``field="ro_[main|ec|pd]_firmware"``)
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  The ``values`` of the output must contains two fields: ``hash`` and
+  ``version``.  For example::
+
+    {
+      "<category_name>": [
+        {
+          "name": "<statement_name>",
+          "values": {
+            "hash": "13497173ba1fb678ab3f...ebd27d00d",
+            "version": "supercoolproj_v1.1.2738-3927abcd2"
+          }
+        }
+      ]
+    }
+
+  """
 
   ARGS = [
-      Arg('field', str,
-          'The flash chip. It should be one of {%s}' %
-          ', '.join(FIELDS)),
+      Arg('field', type_utils.Enum(FIELDS),
+          'The flash chip where this function probes the firmware from.')
   ]
 
   def GetCategoryFromArgs(self):

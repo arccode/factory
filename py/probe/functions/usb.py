@@ -23,15 +23,121 @@ def ReadUSBSysfs(dir_path):
 
 
 class USBFunction(cached_probe_function.GlobPathCachedProbeFunction):
-  """Reads the USB sysfs structure.
+  """Probes all usb devices listed in the sysfs ``/sys/bus/usb/devices/``.
 
-  Each result should contain these fields:
-    idVendor
-    idProduct
-  The result might also contain these optional fields:
-    manufacturer
-    product
-    bcdDevice
+  Description
+  -----------
+  This function goes through ``/sys/bus/usb/devices/`` to read attributes of
+  each usb device (also includes usb root hub) listed there.  Each result
+  should contain these fields:
+
+  - ``idVendor``
+  - ``idProduct``
+
+  The result might also contain these optional fields if they are exported in
+  the sysfs entry:
+
+  - ``manufacturer``
+  - ``product``
+  - ``bcdDevice``
+
+  Examples
+  --------
+  Let's say the Chromebook has two usb devices.  One of which
+  (at ``/sys/bus/usb/devices/1-1``) has the attributes:
+
+  - ``idVendor=0x0123``
+  - ``idProduct=0x4567``
+  - ``manufacturer=Google``
+  - ``product=Google Fancy Camera``
+  - ``bcdDevice=0x8901``
+
+  And the other one (at ``/sys/bus/usb/devices/1-2``) has the attributes:
+
+  - ``idVendor=0x0246``
+  - ``idProduct=0x1357``
+  - ``product=Goofy Bluetooth``
+
+  Then the probing statement::
+
+    {
+      "usb": {
+        "just_list_all": {
+          "eval": "usb"
+        }
+      }
+    }
+
+  will have the corresponding probed result::
+
+    {
+      "usb": [
+        {
+          "name": "just_list_all",
+          "values": {
+            "bus_type": "usb",
+            "idVendor": "0123",
+            "idProduct": "4567",
+            "manufacturer": "Google",
+            "product": "Google Fancy Camera",
+            "bcdDevice": "8901"
+          }
+        },
+        {
+          "name": "just_list_all",
+          "values": {
+            "bus_type": "usb",
+            "idVendor": "0246",
+            "idProduct": "1357",
+            "product": "Goofy Bluetooth"
+          }
+        }
+      ]
+    }
+
+  To verify if the Chromebook has Google Fancy Camera or not, you can write
+  a probing statement like::
+
+    {
+      "camera": {
+        "Has Google Fancy Camera": {
+          "eval": "usb",
+          "expect": {
+            "idVendor": "0123",
+            "idProduct": "4567"
+          }
+        }
+      }
+    }
+
+  and verify if the ``camera`` field of the probed result dict contains
+  elements or not.
+
+  You can also specify ``dir_path`` argument directly to ask the function
+  to probe that sysfs USB entry.  For example, the probing statement ::
+
+    {
+      "usb1-1": {
+        "usb1-1": {
+          "eval": "usb:/sys/bus/usb/devices/1-1"
+        }
+      }
+    }
+
+  will have the corresponding probed results::
+
+    {
+      "usb1-1": [
+        {
+          "name": "usb1-1",
+          "values": {
+            "bus_type": "usb",
+            "idVendor": "0123",
+            ...
+          }
+        }
+      ]
+    }
   """
   GLOB_PATH = '/sys/bus/usb/devices/*'
 

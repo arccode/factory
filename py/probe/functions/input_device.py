@@ -71,13 +71,86 @@ def GetDeviceType(device):
 class InputDeviceFunction(cached_probe_function.CachedProbeFunction):
   """Probes the information of input devices.
 
-  This function gets information of all input devices connected to the machine,
-  and then filters the results by the given arguments.
+  Description
+  -----------
+  This function gets information of all input devices connected to the machine
+  by parsing the file ``/proc/bus/input/devices``, and then filters the results
+  by the given arguments.
+
+  The probed result for one input device is a dictionary which contains
+  following fields:
+
+  - ``product``: The product code in a string of 16-bits hex number.
+  - ``vendor``: The vendor code in a string of 16-bits hex number.
+  - ``version``: The version number in a string of 16-bits hex number.
+  - ``name``: The name of the device.
+  - ``bus``: The bus number in a string of 16-bits hex number.
+  - ``sysfs``: The pathname of the sysfs entry of that device.
+  - ``event``
+
+  Because values in ``/proc/bus/input/devices`` are exported by the driver of
+  each input device, an input device can not be probed correctly by this
+  function if its driver doesn't export correct values.
+
+  Examples
+  --------
+  Without specifying the device type, the probing statement ::
+
+    {
+      "<category_name>": {
+        "<statement_name>": {
+          "eval": "input_device"
+        }
+      }
+    }
+
+  will have the corresponding probed results like ::
+
+    {
+      "<category_name>": [
+        {
+          "name": "<statement_name>",
+          "values": {
+            "product": "3043",
+            "version": "0100",
+            "vendor": "2345",
+            "name": "Google Inc. XXYY",
+            "bus": "0003",
+            "sysfs": "/devices/pci0000:00/0000:00:34.0/usb3/......",
+            "event": "event3"
+          }
+        },
+        {
+          "name": "<statement_name>",
+          "values": {
+            "product": "3044",
+            "version": "0001",
+            "vendor": "2347",
+            "name": "elgooG Inc. AABB",
+            "bus": "0002",
+            "sysfs": "/devices/pci0000:00/0000:00:32.0/usb3/......",
+            "event": "event1"
+          }
+        },
+        ...
+      }
+    }
+
+  To strict the probe results to ``touchscreen`` type, the probing statement
+  is::
+
+    {
+      "<category_name>": {
+        "<statement_name>": {
+          "eval": "input_device:touchscreen"
+        }
+      }
+    }
   """
 
   ARGS = [
-      Arg('device_type', str, 'The type of input device. '
-          'One of "touchscreen", "touchpad", "stylus".', default=None)
+      Arg('device_type', KNOWN_DEVICE_TYPES, 'The type of input device.',
+          default=None)
   ]
 
   def GetCategoryFromArgs(self):

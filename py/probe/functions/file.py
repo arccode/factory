@@ -35,9 +35,93 @@ def ReadFile(path, binary_mode=False, skip=0, size=-1):
 class FileFunction(probe_function.ProbeFunction):
   """Read the content of a file.
 
+  Description
+  -----------
   The content of the file is stripped and the empty content is filtered. If the
-  "split_line" argument is set, then the content will be splitted by line. The
-  file path is allowed unix style to match multiple files.
+  ``split_lines`` argument is set, then the content will be splitted by line.
+  The file path is allowed unix style to match multiple files.
+
+  Examples
+  --------
+  Let's say if the file tree looks like:
+
+  - ``/tmp/aaa/x`` contains::
+
+      Hello, Google
+      Hello, ChromiumOS
+
+  - ``/tmp/aaa/y`` contains::
+
+      Bye, Everyone
+
+  And the probing statement is::
+
+    {
+      "files": {
+        "just_read": {
+          "eval": "file:/tmp/aaa/x"
+        }
+      }
+    }
+
+  Then the probed results will be::
+
+    {
+      "files": [
+        {
+          "name": "just_read",
+          "values": {
+            "file_row": "Hello, Google\\nHello, ChromiumOS"
+          }
+        }
+      ]
+    }
+
+  If the probing statement is ::
+
+    {
+      "files": {
+        "just_read": {
+          "eval": {
+            "file": {
+              "file_path": "/tmp/aaa/*",
+              "split_line": true,
+              "key": "my_awesome_key"
+            }
+          }
+        }
+      }
+    }
+
+  , then the probed results will be::
+
+    {
+      "files": [
+        {
+          "name": "just_read",
+          "values": {
+            "my_awesome_key": "Hello, Google"
+          }
+        },
+        {
+          "name": "just_read",
+          "values": {
+            "my_awesome_key": "Hello, ChromiumOS"
+          }
+        },
+        {
+          "name": "just_read",
+          "values": {
+            "my_awesome_key": "Bye, Everyone"
+          }
+        }
+      ]
+    }
+
+  In above example we use ``"split_line": true`` to let this function treat
+  each line of the content of a file as different results.  And instead of
+  just specifying a real path, we have ``/tmp/aaa/*`` to match both
+  ``/tmp/aaa/x`` and ``/tmp/aaa/y``.
   """
   ARGS = [
       Arg('file_path', str, 'The file path of target file.'),

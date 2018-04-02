@@ -14,7 +14,99 @@ DEFAULT_KEY = 'path'
 
 
 class GlobPathFunction(probe_function.ProbeFunction):
-  """Finds all the pathnames matching the pattern."""
+  """Finds all the pathnames matching the pattern.
+
+  Description
+  -----------
+  The output of this function is a dictionary with only one entry, whose key
+  is specified by the argument ``key`` and the value is the matched path name
+  (or the file name if ``filename_only=true``).
+
+  Examples
+  --------
+  Let's assume that there are files::
+
+    /tmp/aa/00.txt
+    /tmp/aa/01.txt
+    /tmp/aa/02.tgz
+    /tmp/aa/03.tgz
+
+  Then the probing statement ::
+
+    {
+      "<category_name>": {
+        "<statement_name>": {
+          "eval": "glob_path:/tmp/aa/*.txt"
+        }
+      }
+    }
+
+  will have the corresponding probed results ::
+
+    {
+      "<category_name": [
+        {
+          "name": "<statement_name>",
+          "values": {
+            "path": "/tmp/aa/00.txt"
+          }
+        },
+        {
+          "name": "<statement_name>",
+          "values": {
+            "path": "/tmp/aa/01.txt"
+          }
+        }
+      ]
+    }
+
+  And the probing statement ::
+
+    {
+      "<category_name>": {
+        "<statement_name>": {
+          "eval": {
+            "glob_path": {
+              "pathname": "/tmp/aa/00.txt",
+              "filename_only": true,
+              "key": "filename"
+            }
+          }
+        }
+      }
+    }
+
+  will have the corresponding probed results ::
+
+    {
+      "<category_name": [
+        {
+          "name": "<statement_name>",
+          "values": {
+            "filename": "00.txt"
+          }
+        }
+      ]
+    }
+
+  And the probing statement ::
+
+    {
+      "<category_name>": {
+        "<statement_name>": {
+          "eval": "glob_path:/tmp/aa/no_such_file.txt"
+        }
+      }
+    }
+
+  will have the corresponding probed results ::
+
+    {
+      "<category_name>": [
+      ]
+    }
+
+  """
   ARGS = [
       Arg('pathname', str, 'The file path of target file.'),
       Arg('key', str, 'The key of the result.',

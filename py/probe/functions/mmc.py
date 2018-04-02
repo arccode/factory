@@ -22,18 +22,100 @@ def ReadMMCSysfs(dir_path):
 
 
 class MMCFunction(cached_probe_function.GlobPathCachedProbeFunction):
-  """Reads the MMC sysfs structure.
+  """Probes all eMMC devices listed in the sysfs ``/sys/bus/mmc/devices/``.
 
-  Each result should contain these fields:
-    cid
-    csd
-    fwrev
-    hwrev
-    manfid
-    oemid
-  The result might also contain these optional fields:
-    name
-    serial
+  Description
+  -----------
+  This function goes through ``/sys/bus/mmc/devices/`` to read attributes of
+  each eMMC device listed there.  Each result should contain these fields:
+
+  - ``cid``
+  - ``csd``
+  - ``fwrev``
+  - ``hwrev``
+  - ``manfid``
+  - ``oemid``
+
+  The result might also contain these optional fields if they are exported in
+  the sysfs entry:
+
+  - ``name``
+  - ``serial``
+
+  Examples
+  --------
+  Let's say the Chromebook has two eMMC devices.  One of which
+  (at ``/sys/bus/mmc/devices/mmc0:0001``) has the attributes:
+
+  - ``cid=123412341234``
+  - \\.\\.\\.
+
+  And the other one (at ``/sys/bus/mmc/devices/mmc1:0001``) has the
+  attributes:
+
+  - ``cid=246824682468``
+  - \\.\\.\\.
+
+  Then the probing statement::
+
+    {
+      "mmc": {
+        "just_list_all": {
+          "eval": "mmc"
+        }
+      }
+    }
+
+  will have the corresponding probed result::
+
+    {
+      "mmc": [
+        {
+          "name": "just_list_all",
+          "values": {
+            "bus_type": "mmc",
+            "cid": "123412341234",
+            ...
+          }
+        },
+        {
+          "name": "just_list_all",
+          "values": {
+            "bus_type": "mmc",
+            "cid": "246824682468",
+            ...
+          }
+        }
+      ]
+    }
+
+  To verify if the Chromebook has the eMMC device which ``cid`` is
+  ``123412341234``, you can write a probing statement like::
+
+    {
+      "mmc_devices": {
+        "mmc_1234": {
+          "eval": "mmc",
+          "expect": {
+            "cid": "123412341234",
+          }
+        }
+      }
+    }
+
+  The corresponding probed result will be empty if and only if there's no
+  eMMC device which ``cid`` is ``123412341234`` found.
+
+  Another use case is that you can ask this function to parse a specific
+  eMMC device sysfs directly like ::
+
+    {
+      "mmc_1": {
+        "mmc_1": {
+          "eval" "mmc:/sys/bus/mmc/devices/mmc1:0001"
+        }
+      }
+    }
   """
 
   GLOB_PATH = '/sys/bus/mmc/devices/*'

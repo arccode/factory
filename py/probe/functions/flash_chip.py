@@ -10,11 +10,66 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
 from cros.factory.probe.lib import cached_probe_function
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import type_utils
 from cros.factory.utils import process_utils
 
 
 class FlashChipFunction(cached_probe_function.LazyCachedProbeFunction):
-  """Get information of flash chip."""
+  """Get information of flash chips.
+
+  Description
+  -----------
+  This function runs the command ``flashrom -p <chip_type> --flash-name``
+  to get the information of the flash chip and output them.
+
+  The ``<chip_type>`` in above commnand is determind by the ``chip`` argument
+  if this function.  Following is a table to show the corresponding
+  ``<chip_type>`` value of the specific ``chip`` argument.
+
+  .. list-table::
+     :header-rows: 1
+
+     * - Argument ``chip``
+       - Corresponding ``<chip_type>``
+     * - ``main``
+       - ``host``
+     * - ``ec``
+       - ``ec``
+     * - ``pd``
+       - ``ec:type=pd``
+
+  Examples
+  --------
+  Let's assume that the output of ``flashrom -p host --flash-name`` is ::
+
+    vendor="Google"
+    name="Chip1"
+
+  And we have the probing statement::
+
+    {
+      "<category_name>": {
+        "<statement_name>": {
+          "eval": "flash_chip:main"
+        }
+      }
+    }
+
+  Then the probed results will be ::
+
+    {
+      "<category_name>": [
+        {
+          "name": "<statement_name>",
+          "values": {
+            "vendor": "Google",
+            "name": "Chip1"
+          }
+        }
+      ]
+    }
+
+  """
   TARGET_MAP = {
       'main': 'host',
       'ec': 'ec',
@@ -22,7 +77,7 @@ class FlashChipFunction(cached_probe_function.LazyCachedProbeFunction):
   }
 
   ARGS = [
-      Arg('chip', str,
+      Arg('chip', type_utils.Enum(TARGET_MAP.keys()),
           'The flash chip. It should be one of {%s}' %
           ', '.join(TARGET_MAP.keys())),
   ]

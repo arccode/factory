@@ -47,9 +47,64 @@ def ReadSysfs(dir_path, keys, optional_keys=None):
 class SysfsFunction(probe_function.ProbeFunction):
   """Read the required files in a directory.
 
+  Description
+  -----------
   Sysfs exports the information of device to a directory, and each attribute is
-  stored in a separate file. This function is aimed to read the structure.
+  stored in a separate file.  This function is aimed to read the structure.
+
+  Examples
+  --------
+  Let's say we have the file tree:
+
+  - ``/sys/bus/cool/devices/1/aa`` contains "A"
+  - ``/sys/bus/cool/devices/2/aa`` contains "AA"
+  - ``/sys/bus/cool/devices/2/bb`` contains "BB"
+  - ``/sys/bus/cool/devices/3/xx`` contains "XX"
+
+  And the probing statement is::
+
+    {
+      "<category_name>": {
+        "<statement_name>": {
+          "eval": {
+            "sysfs": {
+              "dir_path": "/sys/bus/cool/devices/*",
+              "keys": [
+                "aa"
+              ],
+              "optional_keys": [
+                "bb"
+              ]
+            }
+          }
+        }
+      }
+    }
+
+  Then the probed results are::
+
+    {
+      "<category_name>": [
+        {
+          "name": "<statement_name>",
+          "values": {
+            "aa": "A"
+          }
+        },
+        {
+          "name": "<statement_name>",
+          "values": {
+            "aa": "AA"
+            "bb": "BB"
+          }
+        }
+      ]
+    }
+
+  The probed results don't include the entry ``/sys/bus/cool/devices/3``
+  because that entry doesn't contain the required field ``aa``.
   """
+
   ARGS = [
       Arg('dir_path', str, 'The path of target sysfs folder.'),
       Arg('keys', list, 'The required file names in the sysfs folder.'),

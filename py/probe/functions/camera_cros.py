@@ -15,7 +15,59 @@ from cros.factory.utils import process_utils
 #     all kind of cameras.
 
 class CameraCrosFunction(cached_probe_function.CachedProbeFunction):
-  """Execute `cros-camera-tool` to list all MIPI camers."""
+  """Execute ``cros-camera-tool`` to list all MIPI camers.
+
+  Description
+  -----------
+  This function is the interface between the command `cros-camera-tool` in the
+  test image and the Probe Framework.  This function simply executes the
+  command ::
+
+    cros-camera-tool modules list
+
+  and then parses and transforms the output of that command into the probed
+  results.
+
+  Examples
+  --------
+  Let's assume that the output of the command ``cros-command-tool modules list``
+  is ::
+
+                Name | Vendor ID
+      xy11223 7-0008 | 5c
+      uv44556 30-023 | 5c
+
+  And we have the probing statement::
+
+    {
+      "camera": {
+        "cros": {
+          "eval": "camera_cros"
+        }
+      }
+    }
+
+  The the probed results will be ::
+
+    {
+      "camera": [
+        {
+          "name": "cros",
+          "values": {
+            "name": "xy11223 7-0008",
+            "vendor": "5c"
+          }
+        },
+        {
+          "name": "cros",
+          "values": {
+            "name": "uv44556 30-023",
+            "vendor": "5c"
+          }
+        }
+      ]
+    }
+  """
 
   ARGS = []
 

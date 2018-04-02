@@ -30,12 +30,95 @@ def ReadPCISysfs(path):
 
 
 class PCIFunction(cached_probe_function.GlobPathCachedProbeFunction):
-  """Reads the PCI sysfs structure.
+  """Probes all PCI devices listed in the sysfs ``/sys/bus/pci/devices/``.
 
-  Each result should contain these fields:
-    vendor
-    device
-    revision_id
+  Description
+  -----------
+  This function goes through ``/sys/bus/pci/devices/`` to read attributes of
+  each PCI device listed there.  Each result should contain these fields:
+
+  - ``vendor``
+  - ``device``
+  - ``revision_id``
+
+  Examples
+  --------
+  Let's say the Chromebook has two PCI devices.  One of which
+  (at ``/sys/bus/pci/devices/0000:00:00.1``) has the attributes:
+
+  - ``vendor=0x0123``
+  - ``device=0x4567``
+  - ``revision_id=01``
+
+  And the other one (at ``/sys/bus/pci/devices/0000:00:01.1``) has the
+  attributes:
+
+  - ``vendor=0x0246``
+  - ``device=0x1357``
+  - ``revision_id=01``
+
+  Then the probing statement::
+
+    {
+      "pci": {
+        "just_list_all": {
+          "eval": "pci"
+        }
+      }
+    }
+
+  will have the corresponding probed result::
+
+    {
+      "pci": [
+        {
+          "name": "just_list_all",
+          "values": {
+            "bus_type": "pci",
+            "vendor": "0123",
+            "device": "4567",
+            "revision_id": "01"
+          }
+        },
+        {
+          "name": "just_list_all",
+          "values": {
+            "bus_type": "pci",
+            "vendor": "0246",
+            "device": "1357",
+            "revision_id": "01"
+          }
+        }
+      ]
+    }
+
+  To verify if the Chromebook has the PCI device which ``vendor`` is ``0x0246``,
+  you can write a probing statement like::
+
+    {
+      "pci_devices": {
+        "pci_0246": {
+          "eval": "pci",
+          "expect": {
+            "vendor": "0246",
+          }
+        }
+      }
+    }
+
+  The corresponding probed result will be empty if and only if there's no
+  PCI device which ``vendor`` is ``0x0246`` found.
+
+  Another use case is that you can ask this function to parse a specific
+  PCI device sysfs directly like ::
+
+    {
+      "pci_01.1": {
+        "pci_01.1": {
+          "eval" "pci:/sys/bus/pci/devices/0000:00:01.1"
+        }
+      }
+    }
   """
 
   GLOB_PATH = '/sys/bus/pci/devices/*'
