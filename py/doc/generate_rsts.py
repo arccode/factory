@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2014 The Chromium OS Authors. All rights reserved.
+# Copyright 2018 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -27,6 +27,7 @@ import StringIO
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.probe import function as probe_function
 from cros.factory.test import pytests
 from cros.factory.test.test_lists import manager
 from cros.factory.utils import file_utils
@@ -327,6 +328,85 @@ def GenerateTestListDoc(output_dir):
       if has_definitions:
         rst.WriteParagraph(rst_define.io.getvalue())
         rst.WriteParagraph(rst_detail.io.getvalue())
+
+
+def FinishTemplate(path, **kwargs):
+  template = file_utils.ReadFile(path)
+  file_utils.WriteFile(path, template.format(**kwargs))
+
+
+def GetModuleClassDoc(cls):
+  # Remove the indent.
+  s = re.sub(r'^  ', '', cls.__doc__ or '', flags=re.M)
+
+  return tuple(t.strip('\n')
+               for t in re.split(r'\n\s*\n', s + '\n\n', maxsplit=1))
+
+
+def GenerateProbeFunctionDoc(functions_path, func_name, func_cls):
+  short_desc, main_desc = GetModuleClassDoc(func_cls)
+
+  with open(os.path.join(functions_path, func_name + '.rst'), 'w') as f:
+    rst = RSTWriter(f)
+    rst.WriteTitle(func_name, '=')
+    rst.WriteParagraph(short_desc)
+    WriteArgsTable(rst, 'Function Arguments', func_cls.ARGS)
+    rst.WriteParagraph(main_desc)
+
+  return short_desc, os.path.join(os.path.basename(functions_path), func_name)
+
+
+@DocGenerator('probe')
+def GenerateProbeDoc(output_dir):
+  func_tables = {}
+  def _AppendToFunctionTable(func_cls, row):
+    all_base_cls = inspect.getmro(func_cls)
+    base_cls_index = all_base_cls.index(probe_function.Function) - 1
+    if base_cls_index == 0:
+      func_type = 'Misc'
+      type_desc = ''
+    else:
+      func_type = all_base_cls[base_cls_index].__name__
+      type_desc = GetModuleClassDoc(all_base_cls[base_cls_index])[1]
+
+    if func_type not in func_tables:
+      rst = func_tables[func_type] = RSTWriter(StringIO.StringIO())
+      rst.WriteTitle(func_type, '`', ref_label=func_type)
+      rst.WriteParagraph(type_desc)
+      rst.WriteListTableHeader(header_rows=1)
+      rst.WriteListTableRow(('Function Name', 'Short Description'))
+
+    func_tables[func_type].WriteListTableRow(row)
+
+  functions_path = os.path.join(output_dir, 'functions')
+  file_utils.TryMakeDirs(functions_path)
+
+  # Parse all functions.
+  probe_function.LoadFunctions()
+  for func_name in sorted(probe_function.GetRegisteredFunctions()):
+    func_cls = probe_function.GetFunctionClass(func_name)
+
+    short_desc, doc_path = GenerateProbeFunctionDoc(
+        functions_path, func_name, func_cls)
+    _AppendToFunctionTable(
+        func_cls, (LinkToDoc(func_name, doc_path), short_desc))
+
+  # Generate list tables of all functions, category by the function type.
+  functions_section_rst = RSTWriter(StringIO.StringIO())
+
+  # Always render `Misc` section at the end.
+  func_types = sorted(func_tables.keys())
+  if 'Misc' in func_types:
+    func_types.remove('Misc')
+    func_types.append('Misc')
+
+  for func_type in func_types:
+    func_table_rst = func_tables[func_type]
+    functions_section_rst.WriteParagraph(func_table_rst.io.getvalue())
+
+  # Generate the index file.
+  FinishTemplate(os.path.join(output_dir, 'index.rst'),
+                 functions_section=functions_section_rst.io.getvalue())
 
 
 def main():

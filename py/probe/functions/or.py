@@ -10,7 +10,10 @@ from cros.factory.probe.lib import combination_function
 class Or(combination_function.CombinationFunction):
   """Returns the first successful output.
 
-  The concept is:
+  Description
+  -----------
+  The concept is::
+
     output = Func1(data) or Func2(data) or ...
   """
   def Combine(self, functions, data):

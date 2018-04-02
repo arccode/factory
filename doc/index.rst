@@ -15,6 +15,7 @@ Contents:
    device_data
    pytests/index.rst
    test_lists/index.rst
+   probe/index.rst
 
 APIs:
 

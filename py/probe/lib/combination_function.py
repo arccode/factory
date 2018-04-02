@@ -10,8 +10,9 @@ from cros.factory.utils.arg_utils import Arg
 class CombinationFunction(function.Function):
   """The base class of combination functions.
 
-  The argument of combination function is a list of the function expressions.
-  The combination function combine the output of the functions in a certain way.
+  While evaluation, the function first evaluates the functions specified
+  in the ``functions`` arguments and then combines the outputs in a certain
+  way.
   """
   ARGS = [
       Arg('functions', list, 'The list of the function expression.')

@@ -12,18 +12,105 @@ from cros.factory.utils.arg_utils import Arg
 class MatchFunction(function.Function):
   """Filter the results which does not match the rule.
 
+  Description
+  -----------
   The rule might be a dict or a string. A result is matched if every value of
   the rule is matched. If the rule is a string, then the matched result should
   only contain one item and the value is matched to the string.
 
-  If the string starts with "!re ", then the remaining string is treated as a
+  If the string starts with ``!re``, then the remaining string is treated as a
   regular expression.
 
-  If the string starts with "!num ", the probed value will be treated as
+  If the string starts with ``!num``, the probed value will be treated as
   floating point number, and the remaining of rule string should be
-  "< '==' | '>' | '<' | '>=' | '<=' | '!=' > ' ' NUMBER", e.g. "!num >= 10".
+  ``< '==' | '>' | '<' | '>=' | '<=' | '!=' > ' ' NUMBER``, e.g.
+  ``!num >= 10``.
 
   Otherwise, the value of the result should be the same.
+
+  Examples
+  --------
+  This function is used by the probe framework itself to filter the outputs
+  of the evaluated functions by ``expect`` field in the probing statement.
+  Below is a probing statement which simply asks the probe framework to output
+  all usb devices::
+
+    {
+      "usb": {
+        "generic": {
+          "eval": "usb"
+        }
+      }
+    }
+
+  Let's assume the probed output is::
+
+    {
+      "usb": [
+        {
+          "name": "generic",
+          "values": {
+            "idVendor": "01ab",
+            "idProduct": "1122",
+            ...
+          }
+        },
+        {
+          "name": "generic",
+          "values": {
+            "idVendor": "01ac",
+            "idProduct": "3344",
+            ...
+          }
+        },
+        {
+          "name": "generic",
+          "values": {
+            "idVendor": "23cd",
+            "idProduct": "3344",
+            ...
+          }
+        }
+      ]
+    }
+
+  If we modify the probing statement to::
+
+    {
+      "usb": {
+        "generic": {
+          "eval": "usb",
+          "expect": {
+            "idVendor": "01ab"
+          }
+        }
+      }
+    }
+
+  , then the probed results will become::
+
+    {
+      "usb": [
+        {
+          "name": "generic",
+          "values": {
+            "idVendor": "01ab",
+            "idProduct": "1122",
+            ...
+          }
+        }
+      ]
+    }
+
+  We can also use the regular expression described in above.  For example,
+  if we modify ``expect`` field in the probing statement to::
+
+    "expect": {
+      "idVendor": "!re ^01.*$"
+    }
+
+  , then the probed results will contain both the item with ``idVendor=01ab``
+  and the item with ``idVendor=01ac``.
   """
 
   REGEX_PREFIX = '!re'

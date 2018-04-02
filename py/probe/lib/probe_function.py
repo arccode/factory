@@ -12,8 +12,8 @@ class ProbeFunction(function.Function):
   """The base class of probe functions.
 
   While evaluation, the function probes the result, and update to the input
-  data. If there are multiple probe result, the output list contains all
-  the combination of the input and the probed data.
+  data by the probed results. If there are multiple probed results, the output
+  list contains all the combination of the input and the probed data.
   """
   def Apply(self, data):
     results = self.Probe()

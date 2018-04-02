@@ -11,13 +11,19 @@ from cros.factory.utils.arg_utils import Arg
 class InnerJoin(combination_function.CombinationFunction):
   """Inner join the result of functions.
 
-  InnerJoin combines the result by finding the same index. For example:
-  Combine them by 'idx':
+  Description
+  -----------
+  ``InnerJoin`` combines the result by finding the same index. For example:
+  Combine them by 'idx'::
+
     [{'idx': '1', 'foo': 'foo1'}, {'idx': '2', 'foo': 'foo2'}]
     [{'idx': '1', 'bar': 'bar1'}, {'idx': '2', 'bar': 'bar2'}]
-  becomes:
+
+  becomes::
+
     [{'idx': '1', 'foo': 'foo1', 'bar': 'bar1'},
      {'idx': '2', 'foo': 'foo2', 'bar': 'bar2'}]
+
   """
   ARGS = [
       Arg('functions', list, 'The list of the function expression.'),

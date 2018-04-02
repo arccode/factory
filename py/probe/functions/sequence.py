@@ -9,12 +9,96 @@ from cros.factory.probe.lib import combination_function
 class Sequence(combination_function.CombinationFunction):
   """Sequential execute the functions.
 
+  Description
+  -----------
   The input of the next function is the output of the previous function.
-  The concept is:
+  The concept is::
+
     data = Func1(data)
     data = Func2(data)
     ...
+
+  This function is very useful when you want to union the outputs of a series
+  of :ref:`probe functions <ProbeFunction>`.
+
+  Examples
+  --------
+  Assume that we want to design a probing statement to probe general
+  information from the device.  The expected probed data should contain two
+  fields:
+
+  - ``device_sku`` comes from the command ``mosys platform sku``
+  - ``device_version`` from the command ``mosys platform version``.
+
+  Instead of implementing a new probe function, we can reuse the existing
+  :doc:`shell function <shell>`, which executes a single command, and writes
+  a probing statement like::
+
+    {
+      "sysinfo": {
+        "probed_by_mosys": {
+          "eval": {
+            "sequence": {
+              "functions": [
+                {
+                  "shell": {
+                    "command": "mosys platform sku",
+                    "key": "device_sku"
+                  }
+                },
+                {
+                  "shell": {
+                    "command": "mosys platform version",
+                    "key": "device_version"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+
+  The expected probed results is::
+
+    {
+      "sysinfo": [
+        {
+          "name": "probed_by_mosys",
+          "values": {
+            "device_sku": <output_of_the_mosys_command>,
+            "device_version": <output_of_the_mosys_command>
+          }
+        }
+      ]
+    }
+
+  As this function is very common to use, the probe framework also supplies
+  a syntax sugar for it.  Above probing statement can be simplified to::
+
+    {
+      "sysinfo": {
+        "probed_from_mosys": {
+          "eval": [  # A list of functions means to apply the `sequence`
+                     # function.
+            {
+              "shell": {
+                "command": "mosys platform sku",
+                "key": "device_sku"
+              }
+            },
+            {
+              "shell": {
+                "command": "mosys platform version",
+                "key": "device_version"
+              }
+            }
+          ]
+        }
+      }
+    }
   """
+
   def Combine(self, functions, data):
     for func in functions:
       data = func(data)
