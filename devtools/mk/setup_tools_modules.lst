@@ -1,4 +1,4 @@
-cros.factory.gooftool.fmap
 cros.factory.tools.image_tool
+cros.factory.utils.fmap
 cros.factory.utils.pygpt
 cros.factory.tools.netboot_firmware_settings

@@ -21,7 +21,7 @@ import tempfile
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool import common
-from cros.factory.gooftool import fmap
+from cros.factory.utils import fmap
 
 
 # Names to select target bus.
