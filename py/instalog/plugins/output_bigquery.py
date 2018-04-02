@@ -9,9 +9,9 @@
 Load job limits:
   daily load job limit per table: 1000 (every 86.4 seconds)
   daily load job limit per project: 50,000
-  JSON row size: 10 MB
+  JSON row size limit: 10 MB
   JSON max file size: 5 TB
-  max size per load job: 12 TB
+  max size per load job: 15 TB
 
 Partitioned table updates limits:
   daily updates partition limit per table: 2500
@@ -44,7 +44,7 @@ _JSON_MIMETYPE = 'NEWLINE_DELIMITED_JSON'
 _ROW_SIZE_LIMIT = 9.5 * 1024 * 1024  # To avoid error loop, we set 9.5 mb limit.
 _PARTITION_LIMIT = 500
 _DEFAULT_INTERVAL = 90
-_DEFAULT_BATCH_SIZE = 10000
+_DEFAULT_BATCH_SIZE = 3000
 
 
 class OutputBigQuery(plugin_base.OutputPlugin):

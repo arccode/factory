@@ -81,7 +81,7 @@ class InstalogService(umpire_service.UmpireService):
             'cli_port': CLI_PORT
         },
         'buffer': {
-            'plugin': 'buffer_simple_file',
+            'plugin': 'buffer_priority_testlog_file',
             'args': {
                 'truncate_interval': 0
             }
