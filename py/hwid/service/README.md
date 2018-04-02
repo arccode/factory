@@ -24,7 +24,7 @@ should have at least three repositories:
 
 To build the docker image, you should type
 ```shell
-setup/cros_hwidservice.sh -p dev build
+deploy/cros_hwidservice.sh -p dev build
 ```
 
 **Note**: Any changes to these locations will be built into the docker image.
@@ -39,7 +39,7 @@ setup/cros_hwidservice.sh -p dev build
 ## Deploy HWID Service to Kubernetes Engine
 
 To deploy HIWD Service, you have to use
-[cros_hwidservice.sh](../../../setup/cros_hwidservice.sh).
+[cros_hwidservice.sh](../../../deploy/cros_hwidservice.sh).
 
 There are three available enviroments to deploy with flag `-p`:
 - **prod**: For production service.

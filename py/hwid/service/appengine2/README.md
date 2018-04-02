@@ -37,7 +37,7 @@ Local Development Server Reference [link](https://goo.gl/V258Gb)
 
 ## Deploy to App Engine
 
-Use [cros_hwidservice.sh](../../../../setup/cros_hwidservice.sh) to delpoy
+Use [cros_hwidservice.sh](../../../../deploy/cros_hwidservice.sh) to deploy
 
   ```shell
   # Available projects are {prod, staging, dev}
