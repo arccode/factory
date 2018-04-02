@@ -504,7 +504,7 @@ class FinalizeBundle(object):
     target_bootfile = os.path.join(files_dir, 'vmlinuz')
     target_argsfile = os.path.join(files_dir, 'cmdline')
     netboot_firmware_settings = os.path.join(
-        self.bundle_dir, 'setup', 'netboot_firmware_settings.py')
+        self.bundle_dir, 'setup', 'netboot_firmware_settings')
 
     server_url = self.manifest.get('server_url')
     tftp_server_ip = (urlparse.urlparse(server_url).hostname if server_url else

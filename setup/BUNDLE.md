@@ -46,13 +46,12 @@ Here is a list of files in a typical factory bundle:
       edit_lsb_factory.sh
       extract_firmware_updater.sh
       factory_common.sh
-      fmap.py
       futility
       image_tool
       make_factory_package.sh
       merge_factory_usbimg.sh
       mount_partition.sh
-      netboot_firmware_settings.py
+      netboot_firmware_settings
       NETBOOT.md
       pygpt
       README.md
@@ -157,7 +156,7 @@ contains many useful scripts, such as:
 * `extract_firmware_updater.sh`
 * `make_factory_package.sh`
 * `mount_partition.sh`
-* `netboot_firmware_settings.py`
+* `netboot_firmware_settings`
 * `resize_image_fs.sh`
 
 ## Building a factory bundle

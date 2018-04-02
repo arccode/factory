@@ -13,11 +13,8 @@ import socket
 import struct
 import sys
 
-try:
-  import fmap
-except ImportError:
-  import factory_common  # pylint:disable=unused-import
-  from cros.factory.gooftool import fmap
+import factory_common  # pylint:disable=unused-import
+from cros.factory.gooftool import fmap
 
 
 # Values to encode netboot settings.
