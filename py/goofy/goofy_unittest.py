@@ -240,11 +240,14 @@ class GoofyUITest(GoofyTest):
   def __init__(self, *args, **kwargs):
     super(GoofyUITest, self).__init__(*args, **kwargs)
     self.events = None
+    self.ws_start = None
     self.ws_done = None
 
   def before_init_goofy(self):
     # Keep a record of events we received
     self.events = []
+    # Trigger this event once the web socket is ready
+    self.ws_start = threading.Event()
     # Trigger this event once the web socket closes
     self.ws_done = threading.Event()
 
@@ -262,6 +265,7 @@ class GoofyUITest(GoofyTest):
         if event.type == Event.Type.HELLO:
           socket_self.send(Event(Event.Type.KEEPALIVE,
                                  uuid=event.uuid).to_json())
+          self.ws_start.set()
 
     ws = MyClient('ws://%s:%d/event' %
                   (net_utils.LOCALHOST, goofy_proxy.DEFAULT_GOOFY_PORT),
@@ -275,7 +279,10 @@ class GoofyUITest(GoofyTest):
     # After goofy.init(), it should be ready to accept a web socket
     threading.Thread(target=open_web_socket).start()
 
-  def waitForWebSocketClose(self):
+  def wait_for_web_socket_start(self):
+    self.ws_start.wait()
+
+  def wait_for_web_socket_stop(self):
     self.ws_done.wait()
 
 
@@ -309,44 +316,46 @@ class WebSocketTest(GoofyUITest):
   test_list = {
       'tests': ABC_TEST_LIST
   }
-  def runTest(self):
 
+  def check_test_status_change(self, test_id, test_state):
+    # The Goofy Server should receive the events in 2 seconds.
+    for unused_t in xrange(20):
+      statuses = []
+      for event in self.events:
+        if event.type == Event.Type.STATE_CHANGE and event.path == test_id:
+          statuses.append(event.state['status'])
+      if statuses == [TestState.UNTESTED, TestState.ACTIVE, test_state]:
+        return True
+      time.sleep(0.1)
+    return False
+
+  def runTest(self):
+    self.wait_for_web_socket_start()
     self.check_one_test('a', 'a_A', TestState.PASSED, '')
+    self.assertTrue(self.check_test_status_change('a', TestState.PASSED))
     self.check_one_test('b', 'b_B', TestState.FAILED, 'Uh-oh')
+    self.assertTrue(self.check_test_status_change('b', TestState.FAILED))
     self.check_one_test('c', 'c_C', TestState.FAILED, 'Uh-oh')
+    self.assertTrue(self.check_test_status_change('c', TestState.FAILED))
 
     # Kill Goofy and wait for the web socket to close gracefully
     self.record_goofy_destroy()
     self.mocker.ReplayAll()
     self.goofy.destroy()
-    self.waitForWebSocketClose()
+    self.wait_for_web_socket_stop()
 
-    events_by_type = {}
+    hello_event = 0
     for event in self.events:
-      events_by_type.setdefault(event.type, []).append(event)
+      if event.type == Event.Type.HELLO:
+        hello_event += 1
 
     # There should be one hello event
-    self.assertEqual(1, len(events_by_type[Event.Type.HELLO]))
+    self.assertEqual(1, hello_event)
 
-    # Each test will first reset their iteration count (status == UNTESTED), And
-    # then have a transition to active, and then to its final state.
-    for path, final_status in (('a', TestState.PASSED),
-                               ('b', TestState.FAILED),
-                               ('c', TestState.FAILED)):
-      expected = ['UNTESTED', 'ACTIVE', final_status]
-      statuses = [
-          event.state['status']
-          for event in events_by_type[Event.Type.STATE_CHANGE]
-          if event.path == path]
-      if len(statuses) == 3:
-        self.assertEqual(expected, statuses)
-      elif path == 'a':
-        # Since there's a high probability that the first test (a) starts
-        # before websocket is connected, our websocket probably won't receive
-        # the first event.
-        self.assertEqual(expected[1:], statuses)
-      else:
-        raise AssertionError('Unexpected status %r' % statuses)
+    # Check the statuses again.
+    self.assertTrue(self.check_test_status_change('a', TestState.PASSED))
+    self.assertTrue(self.check_test_status_change('b', TestState.FAILED))
+    self.assertTrue(self.check_test_status_change('c', TestState.FAILED))
 
 
 class ShutdownTest(GoofyUITest):
