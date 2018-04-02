@@ -21,6 +21,7 @@ bundle_install() {
     # Symlinks do not work well when builbot is packaging for factory.zip so we
     # want to create shell scripts instead.
     output="${bundle_dir}/${dir}/${name}"
+    rm -f "${output}"
     # shellcheck disable=SC2016
     src_command='"$(dirname "$(readlink -f "$0")")/'"${src_name}"'"'
     echo '#!/bin/sh' >"${output}"
@@ -44,13 +45,14 @@ main() {
   echo "Creating factory bundle in ${bundle_dir}..."
   mkdir -p "${bundle_dir}"
   bundle_install "${bundle_dir}" "${toolkit}" toolkit
-  bundle_install "${bundle_dir}" "${par}" shopfloor \
-    "factory_server"
-
   rsync -aL --exclude testdata "${setup}/" "${bundle_dir}/setup/"
-  mkdir -p "${bundle_dir}/setup/bin"
-  cp -f /usr/bin/cgpt "${bundle_dir}/setup/bin"
-  cp -f /usr/bin/futility "${bundle_dir}/setup/bin"
+
+  # Replace symlinks
+  bundle_install "${bundle_dir}" "${par}" \
+    setup "image_tool pygpt"
+
+  cp -f /usr/bin/cgpt "${bundle_dir}/setup"
+  cp -f /usr/bin/futility "${bundle_dir}/setup"
 
   # Last chance to make sure all bundle files are world readable.
   chmod -R ugo+rX "${bundle_dir}"

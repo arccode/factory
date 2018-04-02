@@ -36,19 +36,19 @@ Here is a list of files in a typical factory bundle:
       dnsmasq.conf
       image.net.bin
     setup/
-      bin/
-        cgpt
-        futility
       lib/
         cros_image_common.sh
         shflags
       .default_board
+      cgpt
       cros_docker.sh
       cros_payload
       edit_lsb_factory.sh
       extract_firmware_updater.sh
       factory_common.sh
       fmap.py
+      futility
+      image_tool
       make_factory_package.sh
       merge_factory_usbimg.sh
       mount_partition.sh
@@ -57,6 +57,7 @@ Here is a list of files in a typical factory bundle:
       pygpt
       README.md
       resize_image_fs.sh
+      setup_tools.par
     MANIFEST.yaml
     README
 

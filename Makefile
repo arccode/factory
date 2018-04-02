@@ -68,6 +68,8 @@ LEGACY_BOARD_IN_OUTOFTREE ?= \
 PAR_TEMP_DIR = $(TEMP_DIR)/par
 PAR_OUTPUT_DIR = $(BUILD_DIR)/par
 PAR_NAME = factory.par
+SETUP_PAR_NAME = setup_tools.par
+SETUP_PAR_MODULES = $(shell cat $(MK_DIR)/setup_tools_modules.lst)
 
 TOOLKIT_VERSION ?= $(shell $(MK_DIR)/toolkit_version.sh)
 TOOLKIT_FILENAME ?= install_factory_toolkit.run
@@ -241,6 +243,9 @@ func-make-par = @\
 par: resource
 	rm -rf $(PAR_TEMP_DIR); mkdir -p $(PAR_TEMP_DIR)
 	tar -xf $(RESOURCE_PATH) -C $(PAR_TEMP_DIR)
+	mkdir -p "$(PAR_OUTPUT_DIR)"
+	bin/tiny_par --pkg py_pkg -o "$(PAR_OUTPUT_DIR)/$(SETUP_PAR_NAME)" \
+		$(foreach module,$(SETUP_PAR_MODULES),-m $(module))
 	$(call func-apply-board-resources,par,$(PAR_TEMP_DIR))
 	$(call func-make-par,$(PAR_OUTPUT_DIR)/$(PAR_NAME),,$(PAR_TEMP_DIR))
 	$(call func-make-par,$(PAR_OUTPUT_DIR)/factory-mini.par,--mini,\
@@ -297,7 +302,7 @@ bundle: par toolkit
 	$(MK_DIR)/bundle.sh \
 	  "$(BUNDLE_DIR)" \
 	  "$(TOOLKIT_OUTPUT_DIR)/$(TOOLKIT_FILENAME)" \
-	  "$(PAR_OUTPUT_DIR)/$(PAR_NAME)" \
+	  "$(PAR_OUTPUT_DIR)/$(SETUP_PAR_NAME)" \
 	  "setup"
 	$(call func-apply-board-resources,bundle,$(BUNDLE_DIR))
 	$(info Bundle is created in $(abspath $(BUNDLE_DIR)))
