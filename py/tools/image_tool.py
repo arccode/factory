@@ -16,6 +16,7 @@ from __future__ import print_function
 import argparse
 import inspect
 import logging
+import os
 import sys
 
 
@@ -32,6 +33,7 @@ class SubCommand(object):
     args: The parsed arguments.
   """
   name = None  # Overridden by subclass
+  aliases = [] # Overridden by subclass
 
   parser = None
   args = None
@@ -83,6 +85,7 @@ class HelpCommand(SubCommand):
 
 def main():
   parser = argparse.ArgumentParser(
+      prog='image_tool',
       description=(
           'Tools to manipulate Chromium OS disk images for factory. '
           'Use "image_tool help COMMAND" for more info on a '
@@ -90,13 +93,20 @@ def main():
   parser.add_argument('--verbose', '-v', action='count', default=0,
                       help='Verbose output')
   subparsers = parser.add_subparsers(title='subcommands')
+  argv0 = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
+  selected_command = None
   for unused_key, v in sorted(globals().items()):
     if v != SubCommand and inspect.isclass(v) and issubclass(v, SubCommand):
       subcommand = v(parser, subparsers)
       subcommand.Init()
+      if argv0 in subcommand.aliases:
+        selected_command = subcommand.name
 
-  args = parser.parse_args()
+  if selected_command:
+    args = parser.parse_args([selected_command] + sys.argv[1:])
+  else:
+    args = parser.parse_args()
   logging.basicConfig(level=logging.WARNING - args.verbose * 10)
 
   args.subcommand.args = args
