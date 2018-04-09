@@ -36,8 +36,6 @@ Here is a list of files in a typical factory bundle:
       dnsmasq.conf
       image.net.bin
     setup/
-      lib/
-        shflags
       .default_board
       cgpt
       cros_docker.sh

@@ -10,7 +10,7 @@ WORKING_DIR="$(realpath "${WORKING_DIR:-${HOME}/workspace}")"
 CONFIG_FILE="${WORKING_DIR}/.aufs.config"
 
 # Load shflags
-. "${FACTORY_DIR}/setup/lib/shflags"
+. "${SCRIPT_DIR}/shflags"
 
 if ( command -V tput && tput setaf 1 ) >/dev/null; then
   COLOR_RED="$(tput setaf 1; tput bold)"
