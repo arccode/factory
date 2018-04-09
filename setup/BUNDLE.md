@@ -49,7 +49,6 @@ Here is a list of files in a typical factory bundle:
       image_tool
       make_factory_package.sh
       merge_factory_usbimg.sh
-      netboot_firmware_settings
       NETBOOT.md
       pygpt
       README.md
@@ -153,7 +152,6 @@ contains many useful scripts, such as:
 * `cros_docker.sh`
 * `image_tool`
 * `make_factory_package.sh`
-* `netboot_firmware_settings`
 * `resize_image_fs.sh`
 
 ## Building a factory bundle

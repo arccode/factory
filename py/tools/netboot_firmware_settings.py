@@ -26,36 +26,6 @@ CODE_ARGS_FILE = 4
 SETTINGS_FMAP_SECTION = 'SHARED_DATA'
 
 
-def _ParseArgs(argv):
-  """Construct an ArgumentParser for this utility script."""
-  parser = argparse.ArgumentParser(description=__doc__)
-  parser.add_argument('--input', '-i', required=True,
-                      help='Path to the firmware to modify; required')
-  parser.add_argument('--output', '-o',
-                      help='Path to store output; if not specified we will '
-                           'directly modify the input file')
-
-  parser.add_argument('--tftpserverip',
-                      help='Set the TFTP server IP address (defaults to DHCP-'
-                           'provided address)')
-  parser.add_argument('--bootfile',
-                      help='Set the path of the TFTP boot file (defaults to '
-                           'DHCP-provided file name)')
-  parser.add_argument('--argsfile',
-                      help='Set the path of the TFTP file that provides the '
-                           'kernel command line (overrides default and --arg)')
-
-  parser.add_argument('--board',
-                      help='Set the cros_board to be passed into the kernel')
-  parser.add_argument('--factory-server-url',
-                      help='Set the Factory Server URL')
-  parser.add_argument('--arg', '--kernel_arg', default=[], dest='kernel_args',
-                      metavar='kernel_args', action='append',
-                      help='Set extra kernel command line parameters (appended '
-                           'to default string for factory)')
-  return parser.parse_args(argv)
-
-
 class Image(object):
   """A class to represent a firmware image.
 
@@ -306,8 +276,40 @@ class IpAddressValue(StringValue):
     return repr(str(self))
 
 
-def main(argv):
-  options = _ParseArgs(argv)
+def DefineCommandLineArgs(parser):
+  """Defines arguments in command line invocation.
+
+  Args:
+    parser: an argparse.ArgumentParser instance.
+  """
+  parser.add_argument('--input', '-i', required=True,
+                      help='Path to the firmware to modify; required')
+  parser.add_argument('--output', '-o',
+                      help='Path to store output; if not specified we will '
+                           'directly modify the input file')
+
+  parser.add_argument('--tftpserverip',
+                      help='Set the TFTP server IP address (defaults to DHCP-'
+                           'provided address)')
+  parser.add_argument('--bootfile',
+                      help='Set the path of the TFTP boot file (defaults to '
+                           'DHCP-provided file name)')
+  parser.add_argument('--argsfile',
+                      help='Set the path of the TFTP file that provides the '
+                           'kernel command line (overrides default and --arg)')
+
+  parser.add_argument('--board',
+                      help='Set the cros_board to be passed into the kernel')
+  parser.add_argument('--factory-server-url',
+                      help='Set the Factory Server URL')
+  parser.add_argument('--arg', '--kernel_arg', default=[], dest='kernel_args',
+                      metavar='kernel_args', action='append',
+                      help='Set extra kernel command line parameters (appended '
+                           'to default string for factory)')
+
+
+def NetbootFirmwareSettings(options):
+  """Main function to access netboot firmware settings."""
   print('Reading from %s...' % options.input)
   with open(options.input, 'r') as f:
     image = Image(f.read())
@@ -349,6 +351,13 @@ def main(argv):
     print('Generating output to %s...' % output_name)
     with open(output_name, 'w') as f:
       f.write(image.data)
+
+def main(argv):
+  """Main entry for command line."""
+  parser = argparse.ArgumentParser(description=__doc__)
+  DefineCommandLineArgs(parser)
+  options = parser.parse_args(argv)
+  NetbootFirmwareSettings(options)
 
 
 if __name__ == '__main__':

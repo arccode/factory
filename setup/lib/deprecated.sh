@@ -15,6 +15,9 @@ case "${name}" in
   extract_firmware_updater)
     name='get_firmware'
     ;;
+  netboot_firmware_settings)
+    name='netboot'
+    ;;
 esac
 
 echo "This script is deprecated. Please run 'image_tool' instead:

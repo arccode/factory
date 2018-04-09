@@ -27,9 +27,11 @@ import tempfile
 # This file needs to run on various environments, for example a fresh Ubuntu
 # that does not have Chromium OS source tree nor chroot. So we do want to
 # prevent introducing more cros.factory dependency except very few special
-# modules (pygpt, fmap). Please don't add more cros.factory modules.
+# modules (pygpt, fmap, netboot_firmware_settings).
+# Please don't add more cros.factory modules.
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import pygpt
+from cros.factory.tools import netboot_firmware_settings
 
 
 # Partition index for Chrome OS rootfs A.
@@ -350,6 +352,18 @@ class GetFirmwareCommand(SubCommand):
                            fs_type=FS_TYPE_CROS_ROOTFS)
     print('OK: Extracted %s:%s to: %s' % (
         part, PATH_CROS_FIRMWARE_UPDATER, output))
+
+
+class NetbootFirmwareSettingsCommand(SubCommand):
+  """Access Chrome OS netboot firmware (image.net.bin) settings."""
+  name = 'netboot'
+  aliases = ['netboot_firmware_settings']
+
+  def Init(self):
+    netboot_firmware_settings.DefineCommandLineArgs(self.subparser)
+
+  def Run(self):
+    netboot_firmware_settings.NetbootFirmwareSettings(self.args)
 
 
 def main():

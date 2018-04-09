@@ -503,8 +503,8 @@ class FinalizeBundle(object):
     files_dir = os.path.join('chrome-bot', self.board)
     target_bootfile = os.path.join(files_dir, 'vmlinuz')
     target_argsfile = os.path.join(files_dir, 'cmdline')
-    netboot_firmware_settings = os.path.join(
-        self.bundle_dir, 'setup', 'netboot_firmware_settings')
+    image_tool = os.path.join(
+        self.bundle_dir, 'setup', 'image_tool')
 
     server_url = self.manifest.get('server_url')
     tftp_server_ip = (urlparse.urlparse(server_url).hostname if server_url else
@@ -520,7 +520,7 @@ class FinalizeBundle(object):
       if server_url:
         args += ['--factory-server-url=%s' % server_url,
                  '--tftpserverip=%s' % tftp_server_ip]
-      Spawn([netboot_firmware_settings] + args, check_call=True, log=True)
+      Spawn([image_tool, 'netboot'] + args, check_call=True, log=True)
       shutil.move(new_netboot_firmware_image, netboot_firmware_image)
 
     tftp_root = os.path.join(self.bundle_dir, 'netboot', 'tftp')
