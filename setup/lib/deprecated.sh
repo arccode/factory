@@ -61,6 +61,9 @@ case "${name}" in
   merge_factory_usbimg)
     name='merge_rma'
     ;;
+  edit_lsb_factory)
+    name='edit_lsb'
+    ;;
 esac
 
 echo "This script is deprecated. Please run 'image_tool' instead:

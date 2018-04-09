@@ -21,7 +21,7 @@ To change cut-off options:
 
 2. If you want to set a different value for reset shim (for example to reset
    after OQC), modify the `lsb-factory` on reset shim partition 1, using
-   `factory_setup/edit_lsb_factory.sh`.
+   `factory_setup/image_tool edit_lsb`.
 
 Dependency Isolation
 --------------------

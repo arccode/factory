@@ -37,14 +37,11 @@ Here is a list of files in a typical factory bundle:
       image.net.bin
     setup/
       lib/
-        cros_image_common.sh
         shflags
       .default_board
       cgpt
       cros_docker.sh
       cros_payload
-      edit_lsb_factory.sh
-      factory_common.sh
       futility
       image_tool
       NETBOOT.md

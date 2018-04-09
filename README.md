@@ -171,14 +171,13 @@ factory shim by running following commands in `trunk/src/scripts`:
 There are few options that you may want to change. The most important one is URL
 to factory server. You have to set that as `CHROMEOS_AUSERVER` in
 `dev_image/etc/lsb-factory` from first (stateful) partition. The utility
-`setup/edit_lsb_factory.sh` can help that. For example, if
+`setup/image_tool edit_lsb` can help that. For example, if
 your server will run in `192.168.200.1` and using default port `8080`:
 
-    setup/edit_lsb_factory -i path/to/factory_install_shim.bin
+    setup/image_tool edit_lsb -i path/to/factory_install_shim.bin
 
-And inside editor, change `CHROMEOS_AUSERVER` to:
-
-    CHROMEOS_AUSERVER=http://192.168.200.1:8080/update
+And in the interactive menu you can select to change server host name (or IP)
+and port.
 
 After image is ready, you can flash it into an USB stick (assume your USB
 appears as `sdX`):

@@ -25,7 +25,15 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import uuid
+
+# The edit_lsb command works better if readline enabled, but will still work if
+# that is not available.
+try:
+  import readline  # pylint: disable=unused-import
+except ImportError:
+  pass
 
 # This file needs to run on various environments, for example a fresh Ubuntu
 # that does not have Chromium OS source tree nor chroot. So we do want to
@@ -555,6 +563,7 @@ class LSBFile(object):
   (i,e., A=B C, no matter if the value contains space or not).
   """
   def __init__(self, path=None, is_cros=True):
+    self._path = path
     self._raw_data = ''
     self._dict = {}
     self._is_cros = is_cros
@@ -565,8 +574,14 @@ class LSBFile(object):
       self._raw_data = f.read().strip()  # Remove trailing \n or \r
       self._dict = dict(RE_LSB.findall(self._raw_data))
 
+  def AsRawData(self):
+    return self._raw_data
+
   def AsDict(self):
     return self._dict
+
+  def GetPath(self):
+    return self._path
 
   def FormatKeyValue(self, key, value):
     return ('%s=%s' if self._is_cros or ' ' not in value else '%s="%s"') % (
@@ -592,10 +607,10 @@ class LSBFile(object):
     if key not in self._dict:
       return
     self._dict.pop(key)
-    self._raw_data = re.sub(
-        r'^' + re.escape(key) + r'=.*', '', self._raw_data, flags=re.MULTILINE)
+    self._raw_data = re.sub(r'^' + re.escape(key) + r'=.*\n*', '',
+                            self._raw_data, flags=re.MULTILINE)
 
-  def Install(self, destination):
+  def Install(self, destination, backup=False):
     """Installs the contents to the given location as lsb-release style file.
 
     The file will be owned by root:root, with file mode 0644.
@@ -604,6 +619,9 @@ class LSBFile(object):
       f.write(self._raw_data + '\n')
       f.flush()
       os.chmod(f.name, 0644)
+      if backup and os.path.exists(destination):
+        bak_file = '%s.bak.%s' % (destination, time.strftime('%Y%m%d%H%M%S'))
+        Sudo(['cp', '-pf', destination, bak_file])
       Sudo(['cp', '-pf', f.name, destination])
       Sudo(['chown', 'root:root', destination])
 
@@ -1326,6 +1344,175 @@ class CreateDockerImageCommand(SubCommand):
 
     print('OK: Successfully built docker image [%s] from %s.' %
           (docker_name, self.args.image))
+
+
+class EditLSBCommand(SubCommand):
+  """Edit contents of 'lsb-factory' file from a factory_install image."""
+  name = 'edit_lsb'
+
+  old_data = ''
+  lsb = None
+
+  def Init(self):
+    self.subparser.add_argument(
+        '-i', '--image', type=ArgTypes.ExistsPath, required=True,
+        help='Path to the factory_install image.')
+
+  def _DoURL(self, title, keys, default_port=8080, suffix=''):
+    host = raw_input('Enter %s host: ' % title).strip()
+    if not host:
+      return
+    port = raw_input('Enter port (default=%s): ' % default_port).strip()
+    if not port:
+      port = str(default_port)
+    url = 'http://%s:%s%s' % (host, port, suffix)
+    for key in keys:
+      self.lsb.SetValue(key, url)
+
+  def _DoOptions(self, title, key, options):
+    print('%s (%s):' % (title, key))
+    for i, value in enumerate(options):
+      print('(%s) %s' % (i + 1, value))
+    while True:
+      answer = raw_input(
+          'Please select an option [1-%d]: ' % len(options)).strip().lower()
+      try:
+        selected = int(answer)
+        if not 0 < selected <= len(options):
+          raise ValueError('out of range')
+      except ValueError:
+        print('Invalid option: %s' % answer)
+        continue
+      break
+    new_value = options[selected - 1]
+    self.lsb.SetValue(key, new_value)
+    return new_value
+
+  def _DoOptionalNumber(self, title, key, min_value, max_value):
+    print('%s (%s): ' % (title, key))
+    while True:
+      prompt = 'Enter a number%s or empty to remove this setting: ' % (
+          '' if min_value is None else (
+              ' in [%s, %s]' % (min_value, max_value)))
+      answer = raw_input(prompt).strip()
+      if not answer:
+        self.lsb.DeleteValue(key)
+        return None
+      try:
+        selected = int(answer)
+        if min_value is not None and not min_value <= selected <= max_value:
+          raise ValueError('out of range')
+      except ValueError:
+        print('Invalid option: %s' % answer)
+        continue
+      break
+    self.lsb.SetValue(key, str(selected))
+    return selected
+
+  def EditServerAddress(self):
+    """Modify Chrome OS Factory Server address."""
+    self._DoURL(
+        'Chrome OS Factory Server', ['CHROMEOS_AUSERVER', 'CHROMEOS_DEVSERVER'],
+        suffix='/update')
+
+  def EditBoardPrompt(self):
+    """Enable/disable board prompt on download."""
+    answer = raw_input('Enable (y) or disable (n) board prompt? ').lower()
+    while not answer.strip() in ['y', 'n']:
+      answer = raw_input('Please input "y" or "n": ').lower()
+    self.lsb.SetValue('USER_SELECT',
+                      'true' if answer.strip() == 'y' else 'false')
+
+  def EditCutOff(self):
+    """Modify cutoff method after factory reset.
+
+    All options are defined in src/platform/factory/sh/cutoff/options.sh
+    """
+    answer = self._DoOptions(
+        'Select cutoff method after factory reset', 'CUTOFF_METHOD',
+        ['shutdown', 'reboot', 'battery_cutoff', 'ectool_cutoff'])
+    if not answer.endswith('cutoff'):
+      return
+    answer = self._DoOptions(
+        'Select cutoff AC state', 'CUTOFF_AC_STATE',
+        ['remove_ac', 'connect_ac'])
+    answer = self._DoOptionalNumber(
+        'Minimum allowed battery percentage', 'CUTOFF_BATTERY_MIN_PERCENTAGE',
+        0, 100)
+    self._DoOptionalNumber(
+        'Maximum allowed battery percentage', 'CUTOFF_BATTERY_MAX_PERCENTAGE',
+        0 if answer is None else answer, 100)
+    self._DoOptionalNumber(
+        'Minimum allowed battery voltage (mA)', 'CUTOFF_BATTERY_MIN_VOLTAGE',
+        None, None)
+    self._DoOptionalNumber(
+        'Maximum allowed battery voltage (mA)', 'CUTOFF_BATTERY_MAX_VOLTAGE',
+        None, None)
+    self._DoURL(
+        'Chrome OS Factory Server or Shopfloor Service for OQC ReFinalize',
+        ['SHOPFLOOR_URL'])
+
+  def DoMenu(self, *args, **kargs):
+    redo_options = True
+
+    while True:
+      if redo_options:
+        print('=' * 72)
+        print(self.lsb.AsRawData())
+        print('-' * 72)
+        for i, arg in enumerate(args):
+          print('(%d) %s' % (i + 1, arg.__doc__.splitlines()[0]))
+        for k, v in kargs.iteritems():
+          print('(%s) %s' % (k, v.__doc__.splitlines()[0]))
+        print('=' * 72)
+        redo_options = False
+
+      answer = raw_input('Please select an option: ').strip().lower()
+      if answer.isdigit():
+        answer = int(answer)
+        if not 1 <= answer <= len(args):
+          print('Invalid option [%s].' % answer)
+          continue
+        selected = args[answer - 1]
+      elif answer not in kargs:
+        print('Invalid option [%s].' % answer)
+        continue
+      else:
+        selected = kargs.get(answer)
+
+      if selected():
+        return
+      redo_options = True
+
+  def Write(self):
+    """Apply changes and exit."""
+    if self.old_data == self.lsb.AsRawData():
+      print('QUIT. No modifications.')
+    else:
+      self.lsb.Install(self.lsb.GetPath(), backup=True)
+      print('DONE. All changes saved properly.')
+    return True
+
+  def Quit(self):
+    """Quit without saving changes."""
+    print('QUIT. No changes were applied.')
+    return True
+
+  def Run(self):
+    lsb_file = os.path.join('dev_image', 'etc', 'lsb-factory')
+    with Partition(self.args.image, PART_CROS_STATEFUL).Mount(rw=True) as state:
+      src_file = os.path.join(state, lsb_file)
+      if not os.path.exists(src_file):
+        raise RuntimeError(
+            'No %s file in disks image: %s. Please make sure you have '
+            'specified a factory_install image.' % (lsb_file, self.args.image))
+      self.lsb = LSBFile(src_file)
+      self.old_data = self.lsb.AsRawData()
+      self.DoMenu(self.EditServerAddress,
+                  self.EditBoardPrompt,
+                  self.EditCutOff,
+                  w=self.Write,
+                  q=self.Quit)
 
 
 def main():
