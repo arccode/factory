@@ -47,7 +47,6 @@ Here is a list of files in a typical factory bundle:
       factory_common.sh
       futility
       image_tool
-      merge_factory_usbimg.sh
       NETBOOT.md
       README.md
       setup_tools.par

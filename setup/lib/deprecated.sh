@@ -58,6 +58,9 @@ case "${name}" in
       new_args="$(replace --usbimg -o "$@")"
     fi
     ;;
+  merge_factory_usbimg)
+    name='merge_rma'
+    ;;
 esac
 
 echo "This script is deprecated. Please run 'image_tool' instead:

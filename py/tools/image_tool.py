@@ -25,6 +25,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import uuid
 
 # This file needs to run on various environments, for example a fresh Ubuntu
 # that does not have Chromium OS source tree nor chroot. So we do want to
@@ -38,6 +39,8 @@ from cros.factory.tools import netboot_firmware_settings
 
 # Partition index for Chrome OS stateful partition.
 PART_CROS_STATEFUL = 1
+# Partition index for Chrome OS kernel A.
+PART_CROS_KERNEL_A = 2
 # Partition index for Chrome OS rootfs A.
 PART_CROS_ROOTFS_A = 3
 # Special options to mount Chrome OS rootfs partitions. (-t ext2, -o ro).
@@ -181,6 +184,26 @@ class SysUtils(object):
       if tmp_folder and delete:
         Sudo(['rm', '-rf', tmp_folder], check=False)
 
+  @staticmethod
+  def PartialCopy(src_path, dest_path, count, src_offset=0, dest_offset=0,
+                  buffer_size=32 * MEGABYTE, verbose=None):
+    """Copy partial contents from one file to another file, like 'dd'."""
+    with open(src_path, 'rb') as src:
+      if verbose is None:
+        verbose = count / buffer_size > 5
+      with open(dest_path, 'r+b') as dest:
+        src.seek(src_offset)
+        dest.seek(dest_offset)
+        remains = count
+        while remains > 0:
+          data = src.read(min(remains, buffer_size))
+          dest.write(data)
+          remains -= len(data)
+          if verbose:
+            sys.stderr.write('.')
+    if verbose:
+      sys.stderr.write('\n')
+
 
 # Short cut to SysUtils.
 Shell = SysUtils.Shell
@@ -231,6 +254,19 @@ class Partition(object):
   @property
   def size(self):
     return (self._part.LastLBA - self._part.FirstLBA + 1) * self._gpt.BLOCK_SIZE
+
+  @property
+  def label(self):
+    return self._part.Names.decode('utf-16-le').strip('\0')
+
+  @property
+  def type_uuid(self):
+    return str(uuid.UUID(bytes_le=self._part.TypeGUID)).upper()
+
+  @property
+  def attr16(self):
+    """Represents the -A in cgpt."""
+    return self._part.Attributes >> 48
 
   @staticmethod
   @contextlib.contextmanager
@@ -410,6 +446,102 @@ class Partition(object):
           real_size, real_size / MEGABYTE,
           new_size / MEGABYTE if new_size else '(ALL)')
     return real_size
+
+  def Copy(self, dest, check_equal=True):
+    """Copies one partition to another partition.
+
+    Args:
+      dest: a Partition object as the destination.
+      check_equal: True to raise exception if the sizes of partitions are
+                   different.
+    """
+    if self.size != dest.size:
+      if check_equal:
+        raise RuntimeError(
+            'Partition size is not the same (%d,%d).' % (self.size, dest.size))
+      elif self.size > dest.size:
+        raise RuntimeError(
+            'Source partition (%s) is larger than destination (%s).' %
+            (self.size, dest.size))
+    SysUtils.PartialCopy(self.image, dest.image, self.size, self.offset,
+                         dest.offset)
+
+  def GPTMove(self, new_offset):
+    """Changes partition record to start at the given offset.
+
+    This only changes the copy of GPT information in memory, not committed to
+    the disk image.
+    """
+    assert new_offset % self._gpt.BLOCK_SIZE == 0, 'Offset must align to block.'
+    delta = self._part.LastLBA - self._part.FirstLBA
+    new_first_lba = new_offset / self._gpt.BLOCK_SIZE
+    new_last_lba = new_first_lba + delta
+    self._part = self._gpt.NewNamedTuple(
+        self._part, FirstLBA=new_first_lba, LastLBA=new_last_lba)
+
+  def GPTResize(self, new_size):
+    """Changes partition record to occupy given size.
+
+    This only changes the copy of GPT information in memory, not committed to
+    the disk image.
+    """
+    assert new_size % self._gpt.BLOCK_SIZE == 0, 'Size must align to blocks.'
+    new_last_lba = self._part.FirstLBA + new_size / self._gpt.BLOCK_SIZE - 1
+    self._part = self._gpt.NewNamedTuple(self._part, LastLBA=new_last_lba)
+
+  @staticmethod
+  def GPTReorder(parts):
+    """Re-order given partitions.
+
+    Move (using GPTMove) the given parts in order so they fit in the right
+    layout for GPT based disk image as (in 512-sectors):
+
+    GPT START = 1 (PMBR), 1 (HEADER), 32 (TABLE)
+    PARTS
+    GPT END = 32 (TABLE) + 1 (HEADER)
+
+    This only changes the copy of GPT information in memory, not committed to
+    the disk image.
+
+    Returns:
+      An integer for the expected size of disk image including GPT END.
+    """
+    BLOCK_SIZE = pygpt.GPT.BLOCK_SIZE
+    new_size = (1 + 1 + 32) * BLOCK_SIZE
+    for part in parts:
+      part.GPTMove(new_size)
+      new_size += part.size
+    new_size += (32 + 1) * BLOCK_SIZE
+    return new_size
+
+  @staticmethod
+  def CreateImageFile(output, new_size, parts):
+    """Builds a disk image file by given size and partitions."""
+    logging.debug('Create empty image file: %s', output)
+    BLOCK_SIZE = pygpt.GPT.BLOCK_SIZE
+    Shell(['truncate', '-s', '0', output])
+    Shell(['truncate', '-s', str(new_size), output])
+    last_part = parts[-1]
+    # See Partition.GPTReorder for how the (32+1) was decided.
+    min_size = last_part.offset + last_part.size + (
+        (32 + 1) * pygpt.GPT.BLOCK_SIZE)
+    if new_size < min_size:
+      raise RuntimeError('Given size %s too small (need %s).' %
+                         (new_size, min_size))
+
+    logging.debug('Initialize partition table (GPT).')
+    cgpt = SysUtils.FindCommand('cgpt')
+    Shell([cgpt, 'create', output])
+    Shell([cgpt, 'boot', '-p', output], silent=True)
+
+    logging.debug('Create partitions.')
+    for i, part in enumerate(parts):
+      # CGPT commands always take sectors.
+      begin_sec = part.offset / BLOCK_SIZE
+      size_sec = part.size / BLOCK_SIZE
+      Shell([cgpt, 'add', '-b', str(begin_sec), '-s', str(size_sec),
+             '-i', str(i + 1), '-l', part.label, '-t', part.type_uuid,
+             '-A', str(part.attr16), output])
 
 
 class LSBFile(object):
@@ -754,6 +886,58 @@ class ChromeOSFactoryBundle(object):
       lsb_file.Install(lsb_path)
       Sudo(['df', '-h', stateful])
 
+  @staticmethod
+  def MergeRMAImage(output, images):
+    """Merges multiple RMA (USB installation) disk images.
+
+    The RMA image should have factory_install kernel and rootfs in (2, 3) and
+    resources in stateful partition cros_payloads.  This function extracts
+    all stateful partitions and then generate the output image by merging the
+    resource files to partition 1 and cloning partition 2/3 of each input image.
+
+    The layout of the merged output image:
+       1 stateful  [cros_payloads from all rmaimgX]
+       2 kernel    [install-rmaimg1]
+       3 rootfs    [install-rmaimg1]
+       4 kernel    [install-rmaimg2]
+       5 rootfs    [install-rmaimg2]
+       6 kernel    [install-rmaimg3]
+       7 rootfs    [install-rmaimg3]
+      ...
+    """
+    new_stat_size = 0
+    parts = []
+    for i, path in enumerate(images):
+      part = Partition(path, PART_CROS_STATEFUL)
+      if i == 0:
+        parts += [part]
+      new_stat_size += part.size
+      parts += [Partition(path, PART_CROS_KERNEL_A),
+                Partition(path, PART_CROS_ROOTFS_A)]
+    parts[0].GPTResize(new_stat_size)
+    new_size = Partition.GPTReorder(parts)
+    Partition.CreateImageFile(output, new_size, parts)
+    logging.info('Creating new image file as %s M...', new_size / MEGABYTE)
+
+    new_state = Partition(output, PART_CROS_STATEFUL)
+    old_state = Partition(images[0], PART_CROS_STATEFUL)
+    old_state.Copy(new_state, check_equal=False)
+    logging.debug('Maximize stateful file system...')
+    new_state.ResizeFileSystem()
+
+    with new_state.Mount(rw=True) as stateful:
+      payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
+      for i, src_path in enumerate(images):
+        print('Copying %s root/kernel partitions...' % src_path)
+        Partition(src_path, PART_CROS_KERNEL_A).Copy(
+            Partition(output, i * 2 + PART_CROS_KERNEL_A))
+        Partition(src_path, PART_CROS_ROOTFS_A).Copy(
+            Partition(output, i * 2 + PART_CROS_ROOTFS_A))
+        with Partition(src_path, PART_CROS_STATEFUL).Mount() as src_dir:
+          print('Copying %s stateful resources...' % src_path)
+          Sudo('cp -pr %s/* %s/.' %
+               (os.path.join(src_dir, DIR_CROS_PAYLOADS), payloads_dir))
+
 
 # TODO(hungte) Generalize this (copied from py/tools/factory.py) for all
 # commands to utilize easily.
@@ -1051,6 +1235,40 @@ class CreateRMAImageCommmand(SubCommand):
       bundle.CreateRMAImage(self.args.output)
 
     print('OK: Generated %s RMA image at %s' % (board, self.args.output))
+
+
+class MergeRMAImageCommand(SubCommand):
+  """Merge multiple RMA images into one single large image."""
+  name = 'merge_rma'
+
+  def Init(self):
+    self.subparser.add_argument(
+        '-f', '--force', action='store_true',
+        help='Overwrite existing output image file.')
+    self.subparser.add_argument(
+        '-o', '--output', required=True,
+        help='Path to the merged output image.')
+    self.subparser.add_argument(
+        '-i', '--images', required=True, nargs='+',
+        type=ArgTypes.ExistsPath,
+        help='Path to input RMA images')
+
+  def Run(self):
+    """Merge multiple RMA (USB installation) disk images.
+
+    The RMA images should be created by 'image_tool rma' command, with different
+    board names.
+    """
+    output = self.args.output
+    if os.path.exists(output) and not self.args.force:
+      raise RuntimeError(
+          'Output already exists (add -f to overwrite): %s' % output)
+    if len(self.args.images) < 2:
+      raise RuntimeError('Need > 1 input image files to merge.')
+
+    print('Scanning %s input image files...' % len(self.args.images))
+    ChromeOSFactoryBundle.MergeRMAImage(self.args.output, self.args.images)
+    print('OK: Merged successfully in new image: %s' % output)
 
 
 class CreateDockerImageCommand(SubCommand):
