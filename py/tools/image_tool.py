@@ -1053,6 +1053,63 @@ class CreateRMAImageCommmand(SubCommand):
     print('OK: Generated %s RMA image at %s' % (board, self.args.output))
 
 
+class CreateDockerImageCommand(SubCommand):
+  """Create a Docker image from existing Chromium OS disk image."""
+  name = 'docker'
+
+  def Init(self):
+    self.subparser.add_argument(
+        '-i', '--image', type=ArgTypes.ExistsPath, required=True,
+        help='path to the Chromium OS image')
+
+  def _CreateDocker(self, image, root):
+    """Creates a docker image from prepared rootfs and stateful partition.
+
+    Args:
+      image: a path to raw input image.
+      root: a path to prepared (mounted) Chromium OS disk image.
+    """
+    logging.debug('Checking image board and version...')
+    lsb_data = LSBFile(os.path.join(root, 'etc', 'lsb-release'))
+    board = lsb_data.GetChromeOSBoard()
+    version = lsb_data.GetChromeOSVersion()
+    if not board or not version:
+      raise RuntimeError('Input image does not have proper Chromium OS '
+                         'board [%s] or version [%s] info.' % (board, version))
+    docker_name = 'cros/%s_test:%s' % (board, version)
+    docker_tag = 'cros/%s_test:%s' % (board, 'latest')
+    print('Creating Docker image as %s ...' % docker_name)
+
+    # Use pv if possible. It may be hard to estimate the real size of files in
+    # mounted folder so we will use 2/3 of raw disk image - which works on most
+    # test images.
+    try:
+      pv = '%s -s %s' % (SysUtils.FindCommand('pv'),
+                         os.path.getsize(image) / 3 * 2)
+    except Exception:
+      pv = 'cat'
+
+    Sudo('tar -C "%s" -c . | %s | docker import - "%s"' %
+         (root, pv, docker_name))
+    Sudo(['docker', 'tag', docker_name, docker_tag])
+    return docker_name
+
+  def Run(self):
+    rootfs_part = Partition(self.args.image, PART_CROS_ROOTFS_A)
+    state_part = Partition(self.args.image, PART_CROS_STATEFUL)
+
+    with state_part.Mount() as state:
+      with rootfs_part.MountAsCrOSRootfs() as rootfs:
+        Sudo(['mount', '--bind', os.path.join(state, 'var_overlay'),
+              os.path.join(rootfs, 'var')])
+        Sudo(['mount', '--bind', os.path.join(state, 'dev_image'),
+              os.path.join(rootfs, 'usr', 'local')])
+        docker_name = self._CreateDocker(self.args.image, rootfs)
+
+    print('OK: Successfully built docker image [%s] from %s.' %
+          (docker_name, self.args.image))
+
+
 def main():
   parser = argparse.ArgumentParser(
       prog='image_tool',

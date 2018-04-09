@@ -412,7 +412,7 @@ Run the test harness and UI "Goofy" in Docker environment.
 
 Most subcommands support an optional "CROS_TEST_DOCKER_IMAGE" argument, which is
 the Docker image repository name when you have imported a Chromium OS image
-using '${SCRIPT_DIR}/make_docker_image.sh'. If you have only one image
+using '${SCRIPT_DIR}/image_tool docker -i IMAGE'. If you have only one image
 installed, that image will be selected automatically.
 
 commands:

@@ -46,6 +46,9 @@ case "${name}" in
   resize_image_fs)
     name='resize'
     ;;
+  make_docker_image)
+    name='docker'
+    ;;
   make_factory_package)
     if has "--diskimg" "$@"; then
       name='preflash'
