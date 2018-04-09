@@ -255,14 +255,6 @@ class Manager(object):
           '%s is a symlink (should be a file containing a test list ID)' %
           ACTIVE_PATH)
 
-    # Make sure "active" doesn't exist; it should be ACTIVE.
-    wrong_caps_file = os.path.join(
-        os.path.dirname(ACTIVE_PATH), os.path.basename(ACTIVE_PATH).lower())
-    if os.path.lexists(wrong_caps_file):
-      raise type_utils.TestListError(
-          'Wrong spelling (%s) for active test list file (should be %s)' %
-          (wrong_caps_file, ACTIVE_PATH))
-
     if not os.path.exists(ACTIVE_PATH):
       return DEFAULT_TEST_LIST_ID
 
