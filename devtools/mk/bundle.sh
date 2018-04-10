@@ -70,8 +70,14 @@ main() {
   bundle_install "${bundle_dir}" "${par}" \
     setup "image_tool"
 
-  cp -f /usr/bin/cgpt "${bundle_dir}/setup"
-  cp -f /usr/bin/futility "${bundle_dir}/setup"
+  # Use lddtree if possible.
+  if type lddtree >/dev/null 2>&1; then
+    lddtree --bindir=/ --libdir=/libx64 --elf-subdir=libx64 \
+      --generate-wrappers --copy-to-tree="${bundle_dir}/setup" \
+      /usr/bin/cgpt /usr/bin/futility
+  else
+    cp -f /usr/bin/cgpt /usr/bin/futility "${bundle_dir}/setup"
+  fi
 
   # Last chance to make sure all bundle files are world readable.
   chmod -R ugo+rX "${bundle_dir}"
