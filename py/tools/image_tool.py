@@ -25,7 +25,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import textwrap
 import time
+import urlparse
 import uuid
 
 # The edit_lsb command works better if readline enabled, but will still work if
@@ -41,6 +43,7 @@ except ImportError:
 # modules (pygpt, fmap, netboot_firmware_settings).
 # Please don't add more cros.factory modules.
 import factory_common  # pylint: disable=unused-import
+from cros.factory.utils import fmap
 from cros.factory.utils import pygpt
 from cros.factory.tools import netboot_firmware_settings
 
@@ -72,8 +75,6 @@ RE_BLOCK_SIZE = re.compile(r'^Block size: *(.*)$', re.MULTILINE)
 RE_GPT = re.compile(r'^GPT=""$', re.MULTILINE)
 RE_WRITE_GPT_CHECK_BLOCKDEV = re.compile(
     r'if \[ -b "\${target}" ]; then', re.MULTILINE)
-# Special argument to indicate None.
-STR_NONE = 'none'
 # Simple constant(s)
 MEGABYTE = 1048576
 # The storage industry treat "mega" and "giga" differently.
@@ -97,28 +98,27 @@ class ArgTypes(object):
     This is a useful type to specify default values with wildcard.
     If the pattern is prefixed with '-', the value is returned as None without
     raising exceptions.
+    If the pattern has '|', split the pattern by '|' and return the first
+    matched pattern.
     """
     allow_none = False
     if pattern.startswith('-'):
       # Special trick to allow defaults.
       pattern = pattern[1:]
       allow_none = True
-    found = glob.glob(pattern)
-    if len(found) < 1:
-      if allow_none:
-        return None
-      raise argparse.ArgumentTypeError('Does not exist: %s' % pattern)
-    if len(found) > 1:
-      raise argparse.ArgumentTypeError(
-          'Too many files found for <%s>: %s' % (pattern, found))
-    return found[0]
-
-  @staticmethod
-  def GlobPathOrNone(pattern):
-    """An argument as glob pattern or STR_NONE."""
-    if pattern == STR_NONE:
-      return pattern
-    return ArgTypes.GlobPath(pattern)
+    goals = pattern.split('|')
+    for i, goal in enumerate(goals):
+      found = glob.glob(goal)
+      if len(found) < 1:
+        if i + 1 < len(goals):
+          continue
+        if allow_none:
+          return None
+        raise argparse.ArgumentTypeError('Does not exist: %s' % pattern)
+      if len(found) > 1:
+        raise argparse.ArgumentTypeError(
+            'Too many files found for <%s>: %s' % (pattern, found))
+      return found[0]
 
 
 class SysUtils(object):
@@ -175,6 +175,17 @@ class SysUtils(object):
     if not provided:
       raise RuntimeError('Cannot find program: %s' % command)
     return provided
+
+  @staticmethod
+  def FindBZip2():
+    """Returns a path to best working 'bzip2'."""
+    try:
+      return SysUtils.FindCommand('lbzip2')
+    except Exception:
+      try:
+        return SysUtils.FindCommand('pbzip2')
+      except Exception:
+        return SysUtils.FindCommand('bzip2')
 
   @staticmethod
   @contextlib.contextmanager
@@ -662,29 +673,41 @@ class LSBFile(object):
 class ChromeOSFactoryBundle(object):
   """Utilities to work with factory bundle."""
 
+  # Types of build targets (for DefineBundleArguments to use).
+  PREFLASH = 1
+  RMA = 2
+  BUNDLE = 3
+
   def __init__(self, temp_dir, board, release_image, test_image, toolkit,
-               factory_shim=None, firmware=None, hwid=None, complete=None):
+               factory_shim=None, enable_firmware=True, firmware=None,
+               hwid=None, complete=None, netboot=None, setup_dir=None,
+               server_url=None):
     self._temp_dir = temp_dir
     # Member data will be looked up by getattr so we don't prefix with '_'.
-    self.board = board
+    self._board = board
     self.release_image = release_image
     self.test_image = test_image
     self.toolkit = toolkit
     self.factory_shim = factory_shim
-    self.firmware = firmware
+    self.enable_firmware = enable_firmware
+    self._firmware = firmware
     self.hwid = hwid
     self.complete = complete
+    self.netboot = netboot
+    self.setup_dir = setup_dir
+    self.server_url = server_url
     self.components = [
         'release_image', 'test_image', 'toolkit', 'firmware', 'hwid',
         'complete']
 
   @staticmethod
-  def DefineBundleArguments(parser):
+  def DefineBundleArguments(parser, build_type):
     """Define common argparse arguments to work with factory bundle.
 
     Args:
       parser: An argparse subparser to add argument definitions.
     """
+    # Common arguments for all types.
     parser.add_argument(
         '--release_image', default='release_image/*.bin',
         type=ArgTypes.GlobPath,
@@ -702,6 +725,75 @@ class ChromeOSFactoryBundle(object):
         '--hwid', default='-hwid/*.sh',
         type=ArgTypes.GlobPath,
         help='path to a HWID bundle if available. default: %(default)s')
+
+    if build_type in [ChromeOSFactoryBundle.RMA, ChromeOSFactoryBundle.BUNDLE]:
+      # firmware/ may be updater*.sh or chromeos-firmwareupdate.
+      parser.add_argument(
+          '--firmware', default='-firmware/*update*',
+          type=ArgTypes.GlobPath,
+          help=('optional path to a firmware update (chromeos-firmwareupdate); '
+                'if not specified, extract firmware from --release_image '
+                'unless if --no-firmware is specified'))
+      parser.add_argument(
+          '--no-firmware', dest='enable_firmware', action='store_false',
+          default=True,
+          help='skip running firmware updater')
+      parser.add_argument(
+          '--factory_shim', default='factory_shim/*.bin',
+          type=ArgTypes.GlobPath,
+          help=('path to a factory shim (build_image factory_install), '
+                'default: %(default)s'))
+      parser.add_argument(
+          '--complete_script', dest='complete', default='-complete/*.sh',
+          type=ArgTypes.GlobPath,
+          help='path to a script for last-step execution of factory install')
+      parser.add_argument(
+          '--board',
+          help='board name for dynamic installation')
+
+    if build_type in [ChromeOSFactoryBundle.BUNDLE]:
+      parser.add_argument(
+          '--setup_dir', default='-setup',
+          type=ArgTypes.GlobPath,
+          help='path to scripts for setup and deployment from factory zip')
+      parser.add_argument(
+          '--netboot', default='-netboot|factory_shim/netboot',
+          type=ArgTypes.GlobPath,
+          help='path to netboot firmware (image.net.bin) and kernel (vmlinuz)')
+      # TODO(hungte) Support more flexible names like 'evt2'.
+      parser.add_argument(
+          '-p', '--phase', choices=['proto', 'evt', 'dvt', 'pvt', 'mp'],
+          default='proto',
+          help='build phase (evt, dvt, pvt or mp).')
+      parser.add_argument(
+          '-s', '--server_url',
+          help='URL to factory server. The host part may be used for TFTP.')
+
+  @property
+  def board(self):
+    """Determines the right 'board' configuration."""
+    if self._board:
+      return self._board
+
+    part = Partition(self.release_image, PART_CROS_ROOTFS_A)
+    with part.MountAsCrOSRootfs() as rootfs:
+      self._board = LSBFile(
+          os.path.join(rootfs, 'etc', 'lsb-release')).GetChromeOSBoard()
+    logging.info('Detected board as %s from %s.', self._board, part)
+    return self._board
+
+  @property
+  def firmware(self):
+    if not self.enable_firmware:
+      return None
+    elif self._firmware is not None:
+      return self._firmware
+
+    part = Partition(self.release_image, PART_CROS_ROOTFS_A)
+    logging.info('Loaded %s from %s.', PATH_CROS_FIRMWARE_UPDATER, part)
+    self._firmware = part.CopyFile(
+        PATH_CROS_FIRMWARE_UPDATER, self._temp_dir, fs_type=FS_TYPE_CROS_ROOTFS)
+    return self._firmware
 
   def CreatePayloads(self, target_dir):
     """Builds cros_payload contents into target_dir.
@@ -956,6 +1048,238 @@ class ChromeOSFactoryBundle(object):
           Sudo('cp -pr %s/* %s/.' %
                (os.path.join(src_dir, DIR_CROS_PAYLOADS), payloads_dir))
 
+  @staticmethod
+  def GetKernelVersion(image_path):
+    raw_output = Shell(['file', image_path], output=True)
+    versions = (line.strip().partition(' ')[2] for line in raw_output.split(',')
+                if line.startswith(' version'))
+    return next(versions, 'Unknown')
+
+  @staticmethod
+  def GetFirmwareVersion(image_path):
+    with open(image_path) as f:
+      fw_image = fmap.FirmwareImage(f.read())
+      ro = fw_image.get_section('RO_FRID').strip('\xff').strip('\0')
+      for rw_name in ['RW_FWID', 'RW_FWID_A']:
+        if fw_image.has_section(rw_name):
+          rw = fw_image.get_section(rw_name).strip('\xff').strip('\0')
+          break
+      else:
+        raise RuntimeError('Unknown RW firmware version in %s' % image_path)
+    return {'ro': ro, 'rw': rw}
+
+  @staticmethod
+  def GetFirmwareUpdaterVersion(updater):
+    if not updater:
+      return {}
+
+    with SysUtils.TempDirectory() as extract_dir:
+      Shell([updater, '--sb_extract', extract_dir], silent=True)
+      targets = {'main': 'bios.bin', 'ec': 'ec.bin'}
+      # TODO(hungte) Read VERSION.signer for signing keys.
+      results = {}
+      for target, image in targets.iteritems():
+        image_path = os.path.join(extract_dir, image)
+        if not os.path.exists(image_path):
+          continue
+        results[target] = ChromeOSFactoryBundle.GetFirmwareVersion(image_path)
+    return results
+
+  def GenerateTFTP(self, tftp_root):
+    """Generates TFTP data in a given folder."""
+    with open(os.path.join(tftp_root, '..', 'dnsmasq.conf'), 'w') as f:
+      f.write(textwrap.dedent(
+          '''\
+          # This is a sample config, can be invoked by "dnsmasq -d -C FILE".
+          interface=eth2
+          tftp-root=/var/tftp
+          enable-tftp
+          dhcp-leasefile=/tmp/dnsmasq.leases
+          dhcp-range=192.168.200.50,192.168.200.150,12h
+          port=0'''))
+
+    tftp_server_ip = ''
+    if self.server_url:
+      tftp_server_ip = urlparse.urlparse(self.server_url).hostname
+      server_url_config = os.path.join(
+          tftp_root, 'omahaserver_%s.conf' % self.board)
+      with open(server_url_config, 'w') as f:
+        f.write(self.server_url)
+
+    cmdline_sample = os.path.join(
+        tftp_root, 'chrome-bot', self.board, 'cmdline.sample')
+    with open(cmdline_sample, 'w') as f:
+      config = (
+          'lsm.module_locking=0 cros_netboot_ramfs cros_factory_install '
+          'cros_secure cros_netboot earlyprintk cros_debug loglevel=7 '
+          'console=ttyS2,115200n8')
+      if tftp_server_ip:
+        config += ' tftpserverip=%s' % tftp_server_ip
+      f.write(config)
+
+  def CreateNetbootFirmware(self, src_path, dest_path):
+    parser = argparse.ArgumentParser()
+    netboot_firmware_settings.DefineCommandLineArgs(parser)
+    # This comes from sys-boot/chromeos-bootimage: ${PORTAGE_USER}/${BOARD_USE}
+    tftp_board_dir = 'chrome-bot/%s' % self.board
+    args = [
+        '--argsfile', os.path.join(tftp_board_dir, 'cmdline'),
+        '--bootfile', os.path.join(tftp_board_dir, 'vmlinuz'),
+        '--input', src_path,
+        '--output', dest_path]
+    if self.server_url:
+      args += [
+          '--factory-server-url', self.server_url,
+          '--tftpserverip', urlparse.urlparse(self.server_url).hostname]
+    netboot_firmware_settings.NetbootFirmwareSettings(parser.parse_args(args))
+
+  @staticmethod
+  def GetImageVersion(image):
+    if not image:
+      return 'N/A'
+    part = Partition(image, PART_CROS_ROOTFS_A)
+    with part.MountAsCrOSRootfs() as rootfs:
+      lsb_path = os.path.join(rootfs, 'etc', 'lsb-release')
+      return LSBFile(lsb_path).GetChromeOSVersion(remove_timestamp=False)
+
+  def GetToolkitVersion(self, toolkit=None):
+    return Shell([toolkit or self.toolkit, '--lsm'], output=True).strip()
+
+  def CreateBundle(self, output_dir, phase, notes):
+    """Creates a bundle from given resources."""
+
+    def FormatFirmwareVersion(info):
+      if not info:
+        return 'N/A'
+      if info['ro'] == info['rw']:
+        return info['ro']
+      return 'RO: %s, RW: %s' % (info['ro'], info['rw'])
+
+    def AddResource(dir_name, resources_glob, do_copy=False):
+      """Adds resources to specified sub directory under bundle_dir.
+
+      Returns the path of last created resource.
+      """
+      if not resources_glob:
+        return
+      resources = glob.glob(resources_glob)
+      if not resources:
+        raise RuntimeError('Cannot find resource: %s' % resources_glob)
+      resource_dir = os.path.join(bundle_dir, dir_name)
+      if not os.path.exists(resource_dir):
+        os.makedirs(resource_dir)
+      dest_path = None
+      for resource in resources:
+        dest_name = os.path.basename(resource)
+        # Many files downloaded from CPFE or GoldenEye may contain '%2F' in its
+        # name and we want to remove them.
+        strip = dest_name.rfind('%2F')
+        if strip >= 0:
+          # 3 as len('%2F')
+          dest_name = dest_name[strip + 3:]
+        dest_path = os.path.join(resource_dir, dest_name)
+        if do_copy:
+          shutil.copy(resource, dest_path)
+        else:
+          os.symlink(os.path.abspath(resource), dest_path)
+      return dest_path
+
+    timestamp = time.strftime('%Y%m%d%H%M')
+    bundle_name = '%s_%s_%s' % (self.board, timestamp, phase)
+    output_name = 'factory_bundle_%s.tar.bz2' % bundle_name
+    bundle_dir = os.path.join(self._temp_dir, 'bundle')
+    os.mkdir(bundle_dir)
+
+    part = Partition(self.release_image, PART_CROS_ROOTFS_A)
+    release_firmware_updater = part.CopyFile(
+        PATH_CROS_FIRMWARE_UPDATER, self._temp_dir, fs_type=FS_TYPE_CROS_ROOTFS)
+
+    # The 'vmlinuz' may be in netboot/ folder (factory zip style) or
+    # netboot/tftp/chrome-bot/$BOARD/vmlinuz (factory bundle style).
+    netboot_vmlinuz = None
+    has_tftp = False
+    if self.netboot:
+      netboot_vmlinuz = os.path.join(self.netboot, 'vmlinuz')
+      if not os.path.exists(netboot_vmlinuz):
+        netboot_vmlinuz = os.path.join(
+            self.netboot, 'tftp', 'chrome-bot', self.board, 'vmlinuz')
+        has_tftp = True
+
+    readme_path = os.path.join(bundle_dir, 'README.md')
+    with open(readme_path, 'w') as f:
+      fw_ver = self.GetFirmwareUpdaterVersion(self.firmware)
+      fsi_fw_ver = self.GetFirmwareUpdaterVersion(release_firmware_updater)
+      info = [
+          ('Board', self.board),
+          ('Bundle', '%s (created by %s)' % (
+              bundle_name, os.environ.get('USER', 'unknown'))),
+          ('Factory toolkit', self.GetToolkitVersion()),
+          ('Test image', self.GetImageVersion(self.test_image)),
+          ('Factory shim', self.GetImageVersion(self.factory_shim)),
+          ('AP firmware', FormatFirmwareVersion(fw_ver.get('main'))),
+          ('EC firmware', FormatFirmwareVersion(fw_ver.get('ec'))),
+          ('Release (FSI)', self.GetImageVersion(self.release_image)),
+      ]
+      if fsi_fw_ver != fw_ver:
+        info += [
+            ('FSI AP firmware', FormatFirmwareVersion(fsi_fw_ver.get('main'))),
+            ('FSI EC firmware', FormatFirmwareVersion(fsi_fw_ver.get('ec')))]
+      if self.netboot:
+        info += [
+            ('Netboot firmware', FormatFirmwareVersion(self.GetFirmwareVersion(
+                os.path.join(self.netboot, 'image.net.bin')))),
+            ('Netboot kernel', self.GetKernelVersion(netboot_vmlinuz))]
+      info += [('Factory server URL', self.server_url or 'N/A')]
+      key_len = max(len(k) for (k, v) in info)
+
+      f.write(textwrap.dedent(
+          '''\
+          # Chrome OS Factory Bundle
+          %s
+          ## Additional Notes
+          %s
+          ''') % ('\n'.join('- %-*s%s' % (key_len + 2, k + ':', v)
+                            for (k, v) in info), notes))
+    Shell(['cat', readme_path])
+
+    output_path = os.path.join(output_dir, output_name)
+    AddResource('toolkit', self.toolkit)
+    AddResource('release_image', self.release_image)
+    AddResource('test_image', self.test_image)
+    AddResource('firmware', self.firmware)
+    AddResource('complete', self.complete)
+    AddResource('hwid', self.hwid)
+
+    if self.server_url:
+      shim_path = AddResource('factory_shim', self.factory_shim, do_copy=True)
+      with Partition(shim_path, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
+        logging.info('Patching factory_shim lsb-factory file...')
+        lsb = LSBFile(os.path.join(stateful, 'dev_image', 'etc', 'lsb-factory'))
+        lsb.SetValue('CHROMEOS_AUSERVER', self.server_url)
+        lsb.SetValue('CHROMEOS_DEVSERVER', self.server_url)
+        lsb.Install(lsb.GetPath())
+    else:
+      AddResource('factory_shim', self.factory_shim)
+
+    if self.setup_dir:
+      AddResource('setup', os.path.join(self.setup_dir, '*'))
+    if self.netboot:
+      os.mkdir(os.path.join(bundle_dir, 'netboot'))
+      self.CreateNetbootFirmware(
+          os.path.join(self.netboot, 'image.net.bin'),
+          os.path.join(bundle_dir, 'netboot', 'image.net.bin'))
+      if has_tftp:
+        AddResource('netboot', os.path.join(self.netboot, 'tftp'))
+      else:
+        AddResource('netboot/tftp/chrome-bot/%s' % self.board, netboot_vmlinuz)
+        self.GenerateTFTP(os.path.join(bundle_dir, 'netboot', 'tftp'))
+
+    Shell(['tar', '-I', SysUtils.FindBZip2(), '-chvf', output_path,
+           '-C', bundle_dir, '.'])
+    # Print final results again since tar may have flood screen output.
+    Shell(['cat', readme_path])
+    return output_path
+
 
 # TODO(hungte) Generalize this (copied from py/tools/factory.py) for all
 # commands to utilize easily.
@@ -1155,7 +1479,8 @@ class CreatePreflashImageCommand(SubCommand):
   name = 'preflash'
 
   def Init(self):
-    ChromeOSFactoryBundle.DefineBundleArguments(self.subparser)
+    ChromeOSFactoryBundle.DefineBundleArguments(
+        self.subparser, ChromeOSFactoryBundle.PREFLASH)
     self.subparser.add_argument(
         '--sectors', type=int, default=31277232,
         help='size of image in 512-byte sectors. default: %(default)s')
@@ -1191,25 +1516,8 @@ class CreateRMAImageCommmand(SubCommand):
   name = 'rma'
 
   def Init(self):
-    ChromeOSFactoryBundle.DefineBundleArguments(self.subparser)
-    self.subparser.add_argument(
-        '--firmware', default='-firmware/*.sh',
-        type=ArgTypes.GlobPathOrNone,
-        help=('optional path to a firmware update (chromeos-firmwareupdate); '
-              'if not specified, use the firmware from release image '
-              '(--release_image), or "none" to skip running firmware update.'))
-    self.subparser.add_argument(
-        '--factory_shim', default='factory_shim/*.bin',
-        type=ArgTypes.GlobPath,
-        help=('path to a factory shim (build_image factory_install), '
-              'default: %(default)s'))
-    # TODO(hungte) Should we have default value for this?
-    self.subparser.add_argument(
-        '--complete_script', dest='complete',
-        help='path to a script for the last-step execution of factory install')
-    self.subparser.add_argument(
-        '--board',
-        help='board name for dynamic installation')
+    ChromeOSFactoryBundle.DefineBundleArguments(
+        self.subparser, ChromeOSFactoryBundle.RMA)
     self.subparser.add_argument(
         '-o', '--output', required=True,
         help='path to the output RMA image file')
@@ -1217,42 +1525,20 @@ class CreateRMAImageCommmand(SubCommand):
   def Run(self):
     # TODO(hungte) always print bundle info (what files have been found)
     with SysUtils.TempDirectory(prefix='rma_') as temp_dir:
-
-      # Solve optional arguments.
-      board = self.args.board
-      firmware = self.args.firmware
-      part = Partition(self.args.release_image, PART_CROS_ROOTFS_A)
-
-      if not board:
-        with part.MountAsCrOSRootfs() as root:
-          board = LSBFile(
-              os.path.join(root, 'etc', 'lsb-release')).GetChromeOSBoard()
-      if not board:
-        raise RuntimeError('--board argument must be manually specified.')
-
-      # Load firmware updater from release image if not given.
-      temp_updater = None
-      if not firmware:
-        temp_updater = part.CopyFile(
-            PATH_CROS_FIRMWARE_UPDATER, temp_dir, fs_type=FS_TYPE_CROS_ROOTFS)
-        firmware = temp_updater
-      elif firmware == STR_NONE:
-        firmware = None
-
-      print('Generating RMA image for board %s' % board)
       bundle = ChromeOSFactoryBundle(
           temp_dir=temp_dir,
-          board=board,
+          board=self.args.board,
           release_image=self.args.release_image,
           test_image=self.args.test_image,
           toolkit=self.args.toolkit,
           factory_shim=self.args.factory_shim,
-          firmware=firmware,
+          enable_firmware=self.args.enable_firmware,
+          firmware=self.args.firmware,
           hwid=self.args.hwid,
           complete=self.args.complete)
       bundle.CreateRMAImage(self.args.output)
-
-    print('OK: Generated %s RMA image at %s' % (board, self.args.output))
+      print('OK: Generated %s RMA image at %s' %
+            (bundle.board, self.args.output))
 
 
 class MergeRMAImageCommand(SubCommand):
@@ -1287,6 +1573,41 @@ class MergeRMAImageCommand(SubCommand):
     print('Scanning %s input image files...' % len(self.args.images))
     ChromeOSFactoryBundle.MergeRMAImage(self.args.output, self.args.images)
     print('OK: Merged successfully in new image: %s' % output)
+
+
+class CreateBundleCommand(SubCommand):
+  """Creates a factory bundle from given arguments."""
+  name = 'bundle'
+
+  def Init(self):
+    ChromeOSFactoryBundle.DefineBundleArguments(
+        self.subparser, ChromeOSFactoryBundle.BUNDLE)
+    self.subparser.add_argument(
+        '-o', '--output_dir', default='.',
+        help='directory for the output factory bundle file')
+    self.subparser.add_argument(
+        '-n', '--notes',
+        help='additional notes or comments for bundle release')
+
+  def Run(self):
+    with SysUtils.TempDirectory(prefix='bundle_') as temp_dir:
+      bundle = ChromeOSFactoryBundle(
+          temp_dir=temp_dir,
+          board=self.args.board,
+          release_image=self.args.release_image,
+          test_image=self.args.test_image,
+          toolkit=self.args.toolkit,
+          factory_shim=self.args.factory_shim,
+          enable_firmware=self.args.enable_firmware,
+          firmware=self.args.firmware,
+          hwid=self.args.hwid,
+          complete=self.args.complete,
+          netboot=self.args.netboot,
+          setup_dir=self.args.setup_dir,
+          server_url=self.args.server_url)
+      output_file = bundle.CreateBundle(
+          self.args.output_dir, self.args.phase, self.args.notes)
+      print('OK: Created %s factory bundle: %s' % (bundle.board, output_file))
 
 
 class CreateDockerImageCommand(SubCommand):

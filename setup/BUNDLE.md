@@ -2,10 +2,10 @@
 
 [TOC]
 
-## What's a factory bundle?
+## What is a factory bundle?
 
-A factory bundle is an archive file containing all files you need to setup
-Chromium OS factory environment.
+A *factory bundle* is an archive file containing all files you need to setup
+and deploy Chromium OS factory environment.
 
 Here is a list of files in a typical factory bundle:
 
@@ -45,14 +45,13 @@ Here is a list of files in a typical factory bundle:
       NETBOOT.md
       README.md
       setup_tools.par
-    MANIFEST.yaml
     README
 
 ### release_image/
 
 There should be exactly one file in this folder, with arbitrary file name.
 
-* This file will be imported by Umpire as release image.
+* This file will be imported by factory server as release image.
 * `factory_installer` will deploy release image into DUTs.
 
 You can get release images from CPFE (select image type `RECOVERY_IMAGE`).
@@ -61,7 +60,7 @@ You can get release images from CPFE (select image type `RECOVERY_IMAGE`).
 
 There should be exactly one file in this folder, with arbitrary file name.
 
-* This file will be imported by Umpire as test image.
+* This file will be imported by factory server as test image.
 * `factory_installer` will deploy test image into DUTs.
 
 You can get test images from CPFE (select image type `TEST_IMAGE_ARCHIVE`).
@@ -70,7 +69,7 @@ You can get test images from CPFE (select image type `TEST_IMAGE_ARCHIVE`).
 
 There should be exactly one file in this folder, with arbitrary file name.
 
-* This file will be imported by Umpire as factory toolkit installer.
+* This file will be imported by factory server as factory toolkit installer.
 * `factory_installer` will deploy factory toolkit into DUTs.
 * Goofy will try to update factory toolkit when running pytest `sync_shopfloor`.
 
@@ -81,7 +80,7 @@ You can get factory toolkit installers from CPFE (select image type
 
 There should be exactly one file in this folder, with arbitrary file name.
 
-* This file will be imported by Umpire as HWID bundle.
+* This file will be imported by factory server as HWID bundle.
 * `factory_installer` will deploy HWID bundle into DUTs.
 * Goofy will try to update HWID bundle when running some specific pytests.
 
@@ -91,7 +90,7 @@ You can get HWID bundles from CPFE (select image type `FACTORY_IMAGE_ARCHIVE`).
 
 There could be at most one file in this folder, with arbitrary file name.
 
-* This file (if exists) will be imported by Umpire as firmware updater.
+* This file (if exists) will be imported by factory server as firmware updater.
 * `factory_installer` will run firmware updater to flash firmware (EC, AP, and
   possibly PD) when imaging finished.
 * Goofy will try to update firmware when running pytest `update_firmware`.
@@ -103,7 +102,7 @@ You can get a firmware updater from a release image by running
 
 There could be at most one file in this folder, with arbitrary file name.
 
-* This file (if exists) will be imported by Umpire as complete script.
+* This file (if exists) will be imported by factory server as complete script.
 * `factory_installer` will run the complete script after firmware updater.
 
 You can find a complete script template in
@@ -143,25 +142,110 @@ contains many useful scripts, such as:
 * `cros_docker.sh`
 * `image_tool`
 
-## Building a factory bundle
+## Creating a factory bundle
 
-### Import into factory server
+There are several ways to create a bundle.
+
+### Using command "image_tool bundle"
+This is the recommended way for Google Partners (ODM, OEM, SOC) with access to
+[CPFE](https://www.google.com/chromeos/partner/fe/).
+
+1. Download the factory Zip file (select Image Type as `FACTORY_IMAGE_ARCHIVE`)
+   from CPFE Release / Image Files, extract to somewhere, for example
+   `my_bundle` directory. This will provide the toolkit, factory shim, netboot
+   and setup.
+
+2. Download the test image (select Image Type as `TEST_IMAGE_ARCHIVE` from CPFE
+   Release / Image files, extract all files to the `test_image` sub directory,
+   for example `my_bundle/test_image`.
+
+3. Download the release (FSI) image (select Image Type as `RECOVERY_IMAGE` from
+   CPFE Release / Image files, save the files to the `release_image` sub
+   directory, for example `my_bundle/release_image`.
+
+4. If you want to use a different version of firmware, download the right
+   `RECOVERY_IMAGE` that contains the right version of firmware updater,
+   and extract the updater from it by `image_tool get_firmware`:
+
+       image_tool get_firmware -i PATH_TO/image.bin
+
+   And copy the generated `chromeos-firmwareupdate` file to the `firmware` sub
+   directory, for example `my_bundle/firmware`. If you need to use a firmware
+   that is not included in any recovery images, download the firmware image
+   archive file with Image Type `FIRMWARE_IMAGE_ARCHIVE` from CPFE Release /
+   Image files, extract the `updater.sh` and use it.
+   Please be aware this will be a developer-key signed firmware and can't be
+   used in PVT or MP builds.
+
+   If you want to skip updating firmware in the imaging process, add
+   `--no-firmware` when you invoke `image_tool bundle` command.
+
+5. If available, download the HWID bundle from CPFE Device File Repo / Manage
+   Files (Type `HWID_BUNDLE`) and save to the `hwid` sub directory, for example
+   `my_bundle/hwid`.
+
+6. Enter the folder with all resource you've extracted and run `image_tool
+   bundle` command, and specify the build phase (from one of `proto`, `evt`,
+   `dvt`, `pvt`, `mp`) and an optional release note. If you plan to use network
+   based installation (netboot or factory shim), also specify the factory server
+   URL. For example:
+
+       cd my_bundle;
+       setup/image_tool bundle -p evt -n "First Release" -s http://192.168.0.1:8080
+
+   The host IP in server URL will also be used for TFTP server IP (since TFTP
+   port is fixed to 69).
+
+   This should generate a factory bundle as
+   `factory_bundle_${BOARD}_${DATETIME}_${PHASE}.tar.bz2`, for example
+   `factory_bundle_eve_201804120907_evt.tar.bz2`.
+
+7. If you need to use any resources in different path, each of them can be
+   specified by `image_tool` command options. Run `image_tool help bundle`
+   to see a full list of available options. For example:
+
+       setup/image_tool bundle --release_image PATH_TO/image.bin \
+        --test_image PATH_TO/image2.bin --toolkit PATH_TO/my_toolkit \
+        --firmware PATH_TO/updater.sh
+
+### Using Easy Bundle Creation Service
+This is the recommended way for non-engineers with access to CPFE/cpcon, for
+example Google Partners (ODM, OEM, SOC) or Google device PMs.
+
+Open [cpcon](http://https://www.google.com/chromeos/partner/console), select
+Tools / Factory Bundle, and in the menu select your board, device (project),
+build phase, versions of toolkit (which implies netboot and factory shim), test
+and release image, then click the CREATE button.
+
+Wait for few minutes and you should see a mail notifying the address to download
+the generated factory bundle.
+
+### Create bundle manually
+This is the recommended way for people who does not have access to CPFE nor
+GoldenEye.
 
 If you just want a bundle for [Factory Server](FACTORY_SERVER.md) to import, you
 can manually create an archive file (zip file or {gzip|bzip2|xz} compressed
-tarball) containing the following folders with corresponding files inside.
+tarball) containing att least the following folders with corresponding files
+inside:
 
-* `complete`
-* `firmware`
-* `hwid`
 * `release_image`
 * `test_image`
 * `toolkit`
 
-Or you can just use the partial update feature of Umpire for testing.
+Additionally, if you want to provide the optional components or override with
+some more components, create the corresponding folders. For example,
+
+* `complete`
+* `firmware`
+* `hwid`
+
+Or you can just enter Factory Server web user interface, and partial update
+the individual resource.
 No need to always create a factory bundle for network installation.
 
-### MANIFEST.yaml
+### Using command "finalize_bundle"
+This is the recommended way for Google developers with access to GoldenEye.
 
 To create a complete factory bundle, you need to run `finalize_bundle`.
 `finalize_bundle` takes a manifest file `MANIFEST.yaml` and produces a factory
@@ -272,7 +356,7 @@ There are two kinds of valid values:
 Currently non-local resources can only be accessed by Google internally.
 Partners can only use local resources.
 
-### finalize_bundle
+#### Running finalize_bundle command
 
 With `MANIFEST.yaml`, we can run `finalize_bundle` now.
 
@@ -318,7 +402,3 @@ Finally, run `finalize_bundle`:
     /path/to/factory/bin/finalize_bundle .
 
 After minutes, you will get a complete factory bundle. Cheers!
-
-### Easy Bundle Creation Service
-
-Work In Progress
