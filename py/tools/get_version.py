@@ -11,9 +11,9 @@ import os
 import re
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.gooftool import crosfw
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.utils import file_utils
+from cros.factory.utils import fmap
 from cros.factory.utils import process_utils
 
 
@@ -98,7 +98,7 @@ def GetFirmwareBinaryVersion(path):
   """
   result = None
   try:
-    return crosfw.FirmwareImage(file_utils.ReadFile(path)).get_section(
+    return fmap.FirmwareImage(file_utils.ReadFile(path)).get_section(
         'RO_FRID').strip('\xff').strip('\x00')
   except Exception:
     logging.exception(

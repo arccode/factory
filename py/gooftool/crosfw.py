@@ -34,6 +34,9 @@ CROS_PD_PATH = '/dev/cros_pd'
 # Types of named tuples
 WpStatus = collections.namedtuple('WpStatus', 'enabled offset size')
 
+# All Chrome OS images are FMAP based.
+FirmwareImage = fmap.FirmwareImage
+
 
 class Flashrom(object):
   """Wrapper for calling system command flashrom(8)."""
@@ -172,55 +175,6 @@ class Flashrom(object):
       raise IOError('Failed to disable write protection.')
 
 
-class FirmwareImage(object):
-  """Provides access to firmware image via FMAP sections."""
-
-  def __init__(self, image_source):
-    self._image = image_source
-    self._fmap = fmap.fmap_decode(self._image)
-    self._areas = dict(
-        (entry['name'], [entry['offset'], entry['size']])
-        for entry in self._fmap['areas'])
-
-  def get_size(self):
-    """Returns the size of associate firmware image."""
-    return len(self._image)
-
-  def has_section(self, name):
-    """Returns if specified section is available in image."""
-    return name in self._areas
-
-  def get_section_area(self, name):
-    """Returns the area (offset, size) information of given section."""
-    if not self.has_section(name):
-      raise ValueError('get_section_area: invalid section: %s' % name)
-    return self._areas[name]
-
-  def get_section(self, name):
-    """Returns the content of specified section."""
-    area = self.get_section_area(name)
-    return self._image[area[0]:(area[0] + area[1])]
-
-  def get_section_offset(self, name):
-    area = self.get_section_area(name)
-    return self._image[area[0]:(area[0] + area[1])]
-
-  def put_section(self, name, value):
-    """Updates content of specified section in image."""
-    area = self.get_section_area(name)
-    if len(value) != area[1]:
-      raise ValueError('Value size (%d) does not fit into section (%s, %d)' %
-                       (len(value), name, area[1]))
-    self._image = (self._image[0:area[0]] +
-                   value +
-                   self._image[(area[0] + area[1]):])
-    return True
-
-  def get_fmap_blob(self):
-    """Returns the re-encoded fmap blob from firmware image."""
-    return fmap.fmap_encode(self._fmap)
-
-
 class FirmwareContent(object):
   """Wrapper around flashrom for a specific firmware target.
 
@@ -285,7 +239,7 @@ class FirmwareContent(object):
     raise ValueError('%r is not found in the cached files' % (filename,))
 
   def GetFirmwareImage(self, sections=None):
-    """Returns a FirmwareImage instance.
+    """Returns a fmap.FirmwareImage instance.
 
     Args:
       sections: Restrict the sections of firmware data to be stored in the file.
@@ -294,7 +248,7 @@ class FirmwareContent(object):
       An instance of FormwareImage.
     """
     with open(self.GetFileName(sections=sections), 'rb') as image:
-      return FirmwareImage(image.read())
+      return fmap.FirmwareImage(image.read())
 
 
 def LoadEcFirmware():
