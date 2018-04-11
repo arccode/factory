@@ -60,7 +60,9 @@ class LidSwitchTest(test_case.TestCase):
           'Value to brightness when lid switch closed.',
           default=None),
       Arg('check_delayed_backlight', bool, 'True to check delayed backlight.',
-          default=False)
+          default=False),
+      Arg('bft_control_name', str, 'Controller name on BFT fixture to trigger '
+          'Lid switch', default=bft_fixture.BFTFixture.Device.LID_MAGNET)
   ]
 
   def AdjustBrightness(self, value):
@@ -204,7 +206,7 @@ class LidSwitchTest(test_case.TestCase):
       try:
         sleep(self.args.bft_pause_secs)
         self.fixture.SetDeviceEngaged(
-            bft_fixture.BFTFixture.Device.LID_MAGNET, close)
+            self.args.bft_control_name, close)
         self.fixture_lid_closed = close
         break
       except bft_fixture.BFTFixtureException as e:
