@@ -13,13 +13,30 @@ import glob
 import os
 
 import factory_common  # pylint: disable=unused-import
+try:
+  from cros.factory.utils import type_utils
+except ImportError:
+  # BB might still using the old toolkit, try to be backward compatible.
+  from cros.factory import common as type_utils
+
 
 SERVO_CONFIG_FILENAME_SPEC = '*_servo_config.py'
 IMPORT_PATH = 'cros.factory.test.fixture.whale.%s'
 
-WHALE_INA = {}  # Whale's krill INA dict
-WHALE_ADC = []  # Whale's krill ADC list
-FIXTURE_FEEDBACK = {}  # Whale's fixture feedback dict
+# Whale's krill INA dict
+WHALE_INA = {
+    'krill_vc_connector_ina%d' % i : 'krill_vc_connector_ina%d' % i
+    for i in xrange(1, 17)
+}
+
+# Whale's krill ADC list
+WHALE_ADC = [
+    ('whale_adc%d' % i, 1) for i in xrange(7)
+]
+
+# Whale's feedback dict
+FIXTURE_FEEDBACK = type_utils.AttrDict(
+    dict(('FB%d' % i, 'fixture_fb%d' % i) for i in range(1, 15)))
 
 def _GetBoardServoConfig():
   """Gets board-dependent servo config file name.

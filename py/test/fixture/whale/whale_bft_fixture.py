@@ -39,12 +39,20 @@ class WhaleBFTFixture(bft.BFTFixture):
       bft.BFTFixture.Device.LID_MAGNET: _WHALE_CONTROL.ELECTRO_MAGNET,
       bft.BFTFixture.Device.C0_CC2_DUT: _WHALE_CONTROL.DC,
       bft.BFTFixture.Device.C1_CC2_DUT: _WHALE_CONTROL.OUTPUT_RESERVE_1,
-      bft.BFTFixture.Device.PWR_BUTTON: _WHALE_CONTROL.DEVICE_PWR_BUTTON,
       bft.BFTFixture.Device.LID_HALL_MAGNET: _WHALE_CONTROL.LID_HALL_MAGNET,
       bft.BFTFixture.Device.BASE_HALL_MAGNET: _WHALE_CONTROL.BASE_HALL_MAGNET,
-      bft.BFTFixture.Device.BASE_CHARGER: _WHALE_CONTROL.BASE_CHARGER,
-      bft.BFTFixture.Device.VOLU_BUTTON: _WHALE_CONTROL.DEVICE_VOLU_BUTTON,
-      bft.BFTFixture.Device.VOLD_BUTTON: _WHALE_CONTROL.DEVICE_VOLD_BUTTON, }
+      bft.BFTFixture.Device.BASE_CHARGER: _WHALE_CONTROL.BASE_CHARGER, }
+
+  # Add 8 GPIOs on krill board PCA9534
+  _WHALE_DEVICE.update({
+      'krill_pca9534_p%d' % i : 'krill_pca9534_p%d' % i for i in xrange(8)
+  })
+
+  # Add whale_fixture_ctrl
+  _WHALE_DEVICE.update({
+      'whale_fixture_ctrl%d' % i : 'whale_fixture_ctrl%d' % i
+      for i in xrange(1, 7)
+  })
 
   # Mapping from status color to (pass, fail) led status.
   _STATUS_COLOR = {
