@@ -30,6 +30,13 @@ bundle_install() {
   done
 }
 
+add_readme() {
+  local dir="$1"
+  local contents="$2"
+  mkdir -p "${dir}"
+  echo "${contents}" >"${dir}/README"
+}
+
 main() {
   if [ "$#" != 4 ]; then
     die "Usage: $0 bundle_dir toolkit par setup"
@@ -44,6 +51,18 @@ main() {
 
   echo "Creating factory bundle in ${bundle_dir}..."
   mkdir -p "${bundle_dir}"
+
+  # Create README and dummy files.
+  add_readme "${bundle_dir}/release_image" \
+    "This folder is for release image, please put signed recovery image here."
+  add_readme "${bundle_dir}/test_image" \
+    "This folder is for test image."
+  add_readme "${bundle_dir}/firmware" \
+    "Put any firmware updater here or leave it empty to use the release image."
+  add_readme "${bundle_dir}/hwid" \
+    "This folder is for HWID bundle. Please download from CPFE and put here."
+  # 'factory_shim' may be created by chromite so we cannot add README here.
+
   bundle_install "${bundle_dir}" "${toolkit}" toolkit
   rsync -aL --exclude testdata "${setup}/" "${bundle_dir}/setup/"
 
