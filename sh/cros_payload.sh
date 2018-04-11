@@ -578,9 +578,21 @@ get_file_component_version() {
       echo "${temp%% *}"
       ;;
     netboot_kernel)
-      # vmlinuz should be unpacked to get 'Linux Version' string. Fortunately
-      # usually we usually can find 'version' by compiler.
-      strings "${file}" | grep 'version'
+      # vmlinuz should be unpacked to get 'Linux Version' string. Sometimes
+      # we are lucky to find 'version' by compiler, but sometimes not. The
+      # command 'file' may work on x86, but probably not on ARM.
+      local raw_version="$(strings "${file}" | grep 'version')"
+      if [ -z "${raw_version}" ]; then
+        raw_version="$(file "${file}" |
+          sed -n 's/.* version \([^,]*\) *, .*/\1/p')"
+      fi
+      if [ -n "${raw_version}" ]; then
+        raw_version="${raw_version% }"
+      else
+        raw_version="Unknown-$(md5sum "${file}")"
+        raw_version="${raw_version%% *}"
+      fi
+      echo "${raw_version}"
       ;;
     netboot_firmware)
       strings "${file}" | grep 'Google_' | uniq

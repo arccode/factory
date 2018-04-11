@@ -49,6 +49,7 @@ RUN apk upgrade --no-cache && apk add --no-cache \
     curl \
     dnsmasq \
     gnupg \
+    file \
     jq \
     nginx \
     openssl \
