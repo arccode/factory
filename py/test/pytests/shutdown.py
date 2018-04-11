@@ -306,7 +306,7 @@ class ShutdownTest(test_case.TestCase):
         test_object.ShutdownStep.REBOOT: ['shutdown -r now'],
         test_object.ShutdownStep.FULL_REBOOT: [
             'ectool reboot_ec cold at-shutdown',
-            'shutdown -r now'],
+            'shutdown -h now'],
         test_object.ShutdownStep.HALT: ['shutdown -h now']}
     for command in command_table[self.args.operation]:
       self.dut.Call(command)
