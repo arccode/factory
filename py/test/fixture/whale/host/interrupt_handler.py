@@ -23,9 +23,7 @@ from cros.factory.utils import process_utils
 from cros.factory.utils import ssh_utils
 from cros.factory.utils import type_utils
 
-ActionType = type_utils.Enum(['CLOSE_COVER', 'HOOK_COVER', 'PUSH_NEEDLE',
-                              'PLUG_LATERAL', 'FIXTURE_STARTED'])
-
+ActionType = type_utils.Enum(['PUSH_NEEDLE', 'FIXTURE_STARTED'])
 
 def TimeClassMethodDebug(func):
   """A decorator to log method running time on debug level."""
@@ -62,6 +60,13 @@ class InterruptHandler(object):
 
   # Buttons that operator can use (non debug mode).
   _OPERATOR_BUTTON_LIST = (_BUTTON.FIXTURE_START, _BUTTON.FIXTURE_STOP)
+
+  # DUT sensor check list, add (FEEDBACK, Bool) to check if MLB exists.
+  # example:
+  # _DUT_SENSOR_CHECK_LIST = dict([
+  #  (_FIXTURE_FEEDBACK.FB8, True),
+  #  (_FIXTURE_FEEDBACK.FB9, False)])
+  _DUT_SENSOR_CHECK_LIST = dict()
 
   _INPUT_LIST = _BUTTON_LIST + _FEEDBACK_LIST
 
@@ -152,12 +157,13 @@ class InterruptHandler(object):
     Returns:
       True if MLB(s) is(are) inside the fixture; otherwise False.
     """
-    dut_inside = not self._servo.IsOn(self._FIXTURE_FEEDBACK.DUT_SENSOR)
-    if self._FIXTURE_FEEDBACK.get('BASE_SENSOR'):
-      base_inside = not self._servo.IsOn(self._FIXTURE_FEEDBACK.BASE_SENSOR)
-    else:
-      base_inside = True
-    return dut_inside and base_inside
+    if not self._DUT_SENSOR_CHECK_LIST:
+      logging.info('No dut sensor...')
+      return True
+
+    dut_sensor_list = self._DUT_SENSOR_CHECK_LIST.keys()
+    dut_sensor_status = self._servo.MultipleIsOn(dut_sensor_list)
+    return 0 == cmp(dut_sensor_status, self._DUT_SENSOR_CHECK_LIST)
 
   @TimeClassMethodDebug
   def _HandleStopFixture(self, show_state=True):
@@ -171,63 +177,32 @@ class InterruptHandler(object):
 
     while True:
       feedback_status = self._servo.MultipleIsOn(self._FEEDBACK_LIST)
-      if (not feedback_status[self._FIXTURE_FEEDBACK.FB7] or
-          not feedback_status[self._FIXTURE_FEEDBACK.FB9]):
-        logging.info('[HandleStopFixture] unplug lateral')
-        self._servo.Disable(self._CONTROL.FIXTURE_PLUG_LATERAL)
-        continue
 
       if (not feedback_status[self._FIXTURE_FEEDBACK.FB1] or
           not feedback_status[self._FIXTURE_FEEDBACK.FB3]):
-        logging.info('[HandleStopFixture] pull needle')
         self._servo.Disable(self._CONTROL.FIXTURE_PUSH_NEEDLE)
         continue
 
-      # Retry disable fixture hook till both left and right hook
-      # are released.
-      if (feedback_status[self._FIXTURE_FEEDBACK.FB5] or
-          feedback_status[self._FIXTURE_FEEDBACK.FB6]):
-        logging.info('[HandleStopFixture] release cover hook')
-        # Before release cover hook, be sure to close cover otherwise latch
-        # cannot be released.
-        self._servo.Enable(self._CONTROL.FIXTURE_CLOSE_COVER)
-        self._servo.Disable(self._CONTROL.FIXTURE_HOOK_COVER)
-        continue
-
-      if (feedback_status[self._FIXTURE_FEEDBACK.FB12] or
-          not feedback_status[self._FIXTURE_FEEDBACK.FB11]):
-        logging.info('[HandleStopFixture] open cover')
-        self._servo.Disable(self._CONTROL.FIXTURE_CLOSE_COVER)
-        continue
-
-      if feedback_status[self._FIXTURE_FEEDBACK.FB11]:
-        self._starting_fixture_action = None
-        logging.info('[Fixture stopped]')
-        break
+      self._starting_fixture_action = None
+      logging.info('[Fixture stopped]')
+      break
     self._SetState(self._FixtureState.WAIT)
 
   @TimeClassMethodDebug
   def _HandleStartFixtureFeedbackChange(self, feedback_status):
     """Processing Start Fixture feedback information"""
+    if (self._starting_fixture_action is not None and
+        self._starting_fixture_action != ActionType.FIXTURE_STARTED):
+      # we are closing the fixture, check if we detect a hand
+      if feedback_status[self._FIXTURE_FEEDBACK.FB5]:
+        # detect hand, abort
+        self._HandleStopFixture()
+        return
+
     if self._servo.IsOn(self._BUTTON.FIXTURE_START):
-
-      if (self._starting_fixture_action == ActionType.CLOSE_COVER and
-          feedback_status[self._FIXTURE_FEEDBACK.FB12]):
-        self._starting_fixture_action = ActionType.HOOK_COVER
-
-      elif (self._starting_fixture_action == ActionType.HOOK_COVER and
-            feedback_status[self._FIXTURE_FEEDBACK.FB5] and
-            feedback_status[self._FIXTURE_FEEDBACK.FB6]):
-        self._starting_fixture_action = ActionType.PUSH_NEEDLE
-
-      elif (self._starting_fixture_action == ActionType.PUSH_NEEDLE and
-            feedback_status[self._FIXTURE_FEEDBACK.FB2] and
-            feedback_status[self._FIXTURE_FEEDBACK.FB4]):
-        self._starting_fixture_action = ActionType.PLUG_LATERAL
-
-      elif (self._starting_fixture_action == ActionType.PLUG_LATERAL and
-            feedback_status[self._FIXTURE_FEEDBACK.FB8] and
-            feedback_status[self._FIXTURE_FEEDBACK.FB10]):
+      if (self._starting_fixture_action == ActionType.PUSH_NEEDLE and
+          feedback_status[self._FIXTURE_FEEDBACK.FB2] and
+          feedback_status[self._FIXTURE_FEEDBACK.FB4]):
         logging.info('[HandleStartFixture] fixture closed')
         self._starting_fixture_action = ActionType.FIXTURE_STARTED
         self._SetState(self._FixtureState.CLOSED)
@@ -241,6 +216,10 @@ class InterruptHandler(object):
       logging.info('[HandleStartFixture] ACTION = FIXTURE_STARTED')
       return
 
+    if self._last_feedback[self._FIXTURE_FEEDBACK.FB5]:
+      logging.info('[HandleStartFixture] Detect Hands, stop..')
+      return
+
     if self._starting_fixture_action is None:
       if not self._IsMLBInFixture():
         logging.info(
@@ -249,24 +228,12 @@ class InterruptHandler(object):
         return
       self._ResetWhaleDeviceBeforeClosing()
       self._ResetDolphinDeviceBeforeClosing()
-      self._starting_fixture_action = ActionType.CLOSE_COVER
+      self._starting_fixture_action = ActionType.PUSH_NEEDLE
       self._SetState(self._FixtureState.CLOSING)
 
-    if self._starting_fixture_action == ActionType.CLOSE_COVER:
-      logging.info('[HandleStartFixture] closing cover')
-      self._servo.Enable(self._CONTROL.FIXTURE_CLOSE_COVER)
-
-    elif self._starting_fixture_action == ActionType.HOOK_COVER:
-      logging.info('[HandleStartFixture] hooking cover')
-      self._servo.Enable(self._CONTROL.FIXTURE_HOOK_COVER)
-
-    elif self._starting_fixture_action == ActionType.PUSH_NEEDLE:
+    if self._starting_fixture_action == ActionType.PUSH_NEEDLE:
       logging.info('[HandleStartFixture] pushing needle')
       self._servo.Enable(self._CONTROL.FIXTURE_PUSH_NEEDLE)
-
-    elif self._starting_fixture_action == ActionType.PLUG_LATERAL:
-      logging.info('[HandleStartFixture] plugging lateral')
-      self._servo.Enable(self._CONTROL.FIXTURE_PLUG_LATERAL)
 
   @TimeClassMethodDebug
   def _ResetWhaleDeviceBeforeClosing(self):

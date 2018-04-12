@@ -282,24 +282,16 @@ class WhaleBFTFixture(bft.BFTFixture):
   def CoverStatus(self):
     status = self._servo.MultipleIsOn(self._FEEDBACKS)
     is_open = all([
-        status[self._FIXTURE_FEEDBACK.LATERAL_CYLINDER_LEFT_RELEASE],
-        status[self._FIXTURE_FEEDBACK.LATERAL_CYLINDER_RIGHT_RELEASE],
-        status[self._FIXTURE_FEEDBACK.NEEDLE_CYLINDER_LEFT_RELEASE],
-        status[self._FIXTURE_FEEDBACK.NEEDLE_CYLINDER_RIGHT_RELEASE],
-        not status[self._FIXTURE_FEEDBACK.HOOK_CYLINDER_LEFT_ACTIVE],
-        not status[self._FIXTURE_FEEDBACK.HOOK_CYLINDER_RIGHT_ACTIVE],
-        status[self._FIXTURE_FEEDBACK.COVER_CYLINDER_RELEASE],
-        not status[self._FIXTURE_FEEDBACK.COVER_CYLINDER_ACTIVE]])
+        status[self._FIXTURE_FEEDBACK.FB1],
+        status[self._FIXTURE_FEEDBACK.FB3],
+        not status[self._FIXTURE_FEEDBACK.FB2],
+        not status[self._FIXTURE_FEEDBACK.FB4], ])
 
     is_closed = all([
-        status[self._FIXTURE_FEEDBACK.LATERAL_CYLINDER_LEFT_ACTIVE],
-        status[self._FIXTURE_FEEDBACK.LATERAL_CYLINDER_RIGHT_ACTIVE],
-        status[self._FIXTURE_FEEDBACK.NEEDLE_CYLINDER_LEFT_ACTIVE],
-        status[self._FIXTURE_FEEDBACK.NEEDLE_CYLINDER_RIGHT_ACTIVE],
-        status[self._FIXTURE_FEEDBACK.HOOK_CYLINDER_LEFT_ACTIVE],
-        status[self._FIXTURE_FEEDBACK.HOOK_CYLINDER_RIGHT_ACTIVE],
-        status[self._FIXTURE_FEEDBACK.COVER_CYLINDER_ACTIVE],
-        not status[self._FIXTURE_FEEDBACK.COVER_CYLINDER_RELEASE]])
+        not status[self._FIXTURE_FEEDBACK.FB1],
+        not status[self._FIXTURE_FEEDBACK.FB3],
+        status[self._FIXTURE_FEEDBACK.FB2],
+        status[self._FIXTURE_FEEDBACK.FB4], ])
 
     if is_open:
       return self.Status.OPEN
