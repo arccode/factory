@@ -246,6 +246,9 @@ par: resource
 	mkdir -p "$(PAR_OUTPUT_DIR)"
 	bin/tiny_par --pkg py_pkg -o "$(PAR_OUTPUT_DIR)/$(SETUP_PAR_NAME)" \
 		$(foreach module,$(SETUP_PAR_MODULES),-m $(module))
+	@echo -n "Checking $(SETUP_PAR_NAME) invocation..."
+	@"$(PAR_OUTPUT_DIR)/$(SETUP_PAR_NAME)" image_tool help >/dev/null 2>&1 \
+		&& echo "Good"
 	$(call func-apply-board-resources,par,$(PAR_TEMP_DIR))
 	$(call func-make-par,$(PAR_OUTPUT_DIR)/$(PAR_NAME),,$(PAR_TEMP_DIR))
 	$(call func-make-par,$(PAR_OUTPUT_DIR)/factory-mini.par,--mini,\
