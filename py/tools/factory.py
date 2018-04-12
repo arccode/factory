@@ -428,6 +428,9 @@ class DeviceDataCommand(Subcommand):
               'To avoid type ambiguity, if you need to programmatically '
               'modify device data, don\'t use this; use --set-yaml.'))
     self.subparser.add_argument(
+        '-g', '--get',
+        help='Read one device data and print its value.')
+    self.subparser.add_argument(
         '--set-yaml', metavar='FILE',
         help=('Read FILE (or stdin if FILE is "-") as a YAML dictionary '
               'and set device data.'))
@@ -442,6 +445,10 @@ class DeviceDataCommand(Subcommand):
              '"factory device-data -d A B C" deletes A, B, C from device-data.')
 
   def Run(self):
+    if self.args.get:
+      print device_data.GetDeviceData(self.args.get, '')
+      return
+
     if self.args.set:
       update = {}
       for item in self.args.set:
