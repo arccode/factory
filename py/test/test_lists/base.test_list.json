@@ -34,10 +34,7 @@
       }
     },
     "ShutdownStep": {
-      "inherit": "ShutdownStep",
-      "args": {
-        "delay_secs": 5
-      }
+      "inherit": "ShutdownStep"
     },
     "TestGroup": {
       "inherit": "TestGroup"

@@ -673,7 +673,6 @@ class ShutdownStep(FactoryTest):
     iterations: The number of times to reboot.
     operation: The command to run to perform the shutdown (FULL_REBOOT,
         REBOOT, or HALT).
-    delay_secs: Number of seconds the operator has to abort the shutdown.
   """
   FULL_REBOOT = 'full_reboot'
   REBOOT = 'reboot'
@@ -681,19 +680,16 @@ class ShutdownStep(FactoryTest):
 
   allow_reboot = True
 
-  def __init__(self, operation=None, delay_secs=5, **kwargs):
+  def __init__(self, operation=None, **kwargs):
     super(ShutdownStep, self).__init__(**kwargs)
     assert not self.pytest_name, 'Reboot/halt steps may not have an pytest'
     assert not self.subtests, 'Reboot/halt steps may not have subtests'
     if not operation:
       operation = kwargs.get('dargs', {}).get('operation', None)
     assert operation in [self.REBOOT, self.HALT, self.FULL_REBOOT]
-    assert delay_secs >= 0
     self.pytest_name = 'shutdown'
     self.dargs = kwargs.get('dargs', {})
-    self.dargs.update(dict(
-        operation=operation,
-        delay_secs=delay_secs))
+    self.dargs.update(dict(operation=operation))
 
 
 class HaltStep(ShutdownStep):
