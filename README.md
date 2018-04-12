@@ -443,3 +443,29 @@ For instance, a board overlay may install:
 
  - `/usr/local/factory/board/board_setup_{factory,x}.sh` to customize
    Goofy.
+
+## Development Tips
+For developers, there may few tips you'd want to learn:
+
+### Run Goofy in Docker
+If you need don't have a real DUT and still want to invoke Goofy (for example to
+work on test list or UI), it is possible to run Goofy in Docker. To do this,
+prepare a Chromium OS test image, and then:
+
+    setup/image_tool docker -i PATH_TO/chromiumos_test_image.bin
+    setup/cros_docker.sh goofy try
+
+Then open http://localhost:4012 to access Goofy interface.
+
+### Sync code changes to remote DUT
+The most safe way would be to build a new toolkit, copy to remote DUT, and
+re-install. But to minimize turn-around time in each iteration, here are few
+possible approaches:
+
+1. `scp` the files you've changed, if you know exactly what files are needed.
+2. `rsync` if you have a bunch of files that have been changed.
+3. `bin/goofy_remote HOST` to sync code and run. You can also specify
+   more arguments to start particular test, restart UI, etc.
+
+### Work with both public repo and private board repo
+Read [devtools/aufs](devtools/aufs/README.md) for more details.
