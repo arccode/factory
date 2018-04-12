@@ -109,7 +109,7 @@ class LidSwitchTest(test_case.TestCase):
     self.dispatcher.close()
     file_utils.TryUnlink('/run/power_manager/lid_opened')
     if self.fixture:
-      self.BFTLid(close=False, fail_test=False)
+      self.BFTLid(close=False, in_tear_down=True)
       self.fixture.Disconnect()
     event_log.Log(
         'lid_wait_sec',
@@ -186,7 +186,7 @@ class LidSwitchTest(test_case.TestCase):
           self.AdjustBrightness(self._restore_brightness)
         self.PassTask()
 
-  def BFTLid(self, close, fail_test=True):
+  def BFTLid(self, close, in_tear_down=False):
     """Commands BFT to close/open the lid.
 
     It pauses for args.bft_pause_secs seconds before sending BFT command.
@@ -195,18 +195,21 @@ class LidSwitchTest(test_case.TestCase):
 
     Args:
       close: True to close the lid. Otherwise, open it.
-      fail_test: True to fail the test after unsuccessful retries.
+      in_tear_down: True if we are in tearDown function.
     """
+    # if we are in tearDown function, the task is over, self.Sleep will fail
+    # immediately.
+    sleep = time.sleep if in_tear_down else self.Sleep
     for retry in range(self.args.bft_retries + 1):
       try:
-        self.Sleep(self.args.bft_pause_secs)
+        sleep(self.args.bft_pause_secs)
         self.fixture.SetDeviceEngaged(
             bft_fixture.BFTFixture.Device.LID_MAGNET, close)
         self.fixture_lid_closed = close
         break
       except bft_fixture.BFTFixtureException as e:
         if retry == self.args.bft_retries:
-          if fail_test:
+          if not in_tear_down:
             self.FailTask('Failed to %s the lid with %d retries. Reason: %s' %
                           ('close'
                            if close else 'open', self.args.bft_retries, e))
