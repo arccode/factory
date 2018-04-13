@@ -66,10 +66,16 @@ def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
 
   for comp_cls in database.GetComponentClasses():
     default_comp = database.GetDefaultComponent(comp_cls)
+
+    # Always ignore the unsupported default components.
+    if default_comp is not None:
+      default_comp_info = database.GetComponents(comp_cls)[default_comp]
+      if default_comp_info.status == common.COMPONENT_STATUS.unsupported:
+        default_comp = None
+
     for probed_comp in probed_results.get(comp_cls, []):
-      for comp_name, comp_info in database.GetComponents(comp_cls).iteritems():
-        if comp_info.values is None:
-          continue
+      for comp_name, comp_info in database.GetComponents(
+          comp_cls, include_default=False).iteritems():
         if _IsValuesMatch(probed_comp['values'], comp_info.values):
           matched_components[comp_cls].append(comp_name)
           break

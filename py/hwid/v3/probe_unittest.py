@@ -81,6 +81,21 @@ class GenerateBOMFromProbedResultsTest(unittest.TestCase):
                       self.database, probed_results, {}, {},
                       common.OPERATION_MODE.normal, False)
 
+  def testIgnoreDefaultUnsupportedComponent(self):
+    probed_results = {
+        'comp_cls_1': [],
+        'comp_cls_2': [{'name': 'comp22', 'values': {'key': 'valueX'}}],
+    }
+
+    bom = probe.GenerateBOMFromProbedResults(
+        self.database, probed_results, {}, {}, common.OPERATION_MODE.normal,
+        True)[0]
+
+    self.assertEquals(bom.components,
+                      {'comp_cls_1': [],
+                       'comp_cls_2': ['comp_2_x'],
+                       'comp_cls_3': []})
+
 
 if __name__ == '__main__':
   unittest.main()

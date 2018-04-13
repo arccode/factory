@@ -282,11 +282,10 @@ class DatabaseBuilder(object):
         comp_cls, comp_name, probed_value, common.COMPONENT_STATUS.unqualified)
 
     # Deprecate the default component.
-    for comp_name, comp_attrs in self.database.GetComponents(
-        comp_cls).iteritems():
-      if comp_attrs.values is None:
-        self.database.SetComponentStatus(
-            comp_cls, comp_name, common.COMPONENT_STATUS.unsupported)
+    default_comp_name = self.database.GetDefaultComponent(comp_cls)
+    if default_comp_name is not None:
+      self.database.SetComponentStatus(
+          comp_cls, default_comp_name, common.COMPONENT_STATUS.unsupported)
 
   def _AddComponents(self, comp_cls, probed_values):
     """Adds a list of components to the database.

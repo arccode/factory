@@ -373,8 +373,26 @@ class Database(object):
 
     self._encoded_fields.AddFieldComponents(encoded_field_name, components)
 
-  def GetComponents(self, comp_cls):
-    return self._components.GetComponents(comp_cls)
+  def GetComponents(self, comp_cls, include_default=True):
+    """Gets the components of the specific component class.
+
+    Args:
+      comp_cls: A string of the name of the component class.
+      include_default: True to include the default component (the component
+          which values is `None` instead of a dictionary) in the return
+          components.
+
+    Returns:
+      A dict which maps a string of component name to a `ComponentInfo` object,
+      which is a named tuple contains two attributes:
+        values: A string-to-string dict of expected probed results.
+        status: One of "unsupported", "deprecated", "unqualified", "supported".
+    """
+    comps = self._components.GetComponents(comp_cls)
+    if not include_default:
+      comps = {name: info for name, info in comps.iteritems()
+               if info.values is not None}
+    return comps
 
   def GetDefaultComponent(self, comp_cls):
     return self._components.GetDefaultComponent(comp_cls)

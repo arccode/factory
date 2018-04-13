@@ -19,11 +19,13 @@ components:
   comp_cls_1:
     items:
       comp_1_1: {values: {key: value1}}
+      comp_1_default: {status: unsupported, values: null}
 
   comp_cls_2:
     items:
       comp_2_1: {values: {key: value1}}
       comp_2_2: {values: {key: value2}}
       comp_2_default: {values: null}
+      comp_2_x: {status: unsupported, values: {key: valueX}}
 
 rules: []
