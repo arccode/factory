@@ -508,10 +508,6 @@
     "Touchscreen": {
       "pytest_name": "touchscreen"
     },
-    "TouchscreenFirmwareVerify": {
-      "pytest_name": "verify_touch_device_fw",
-      "label": "Touchscreen Firmware Verify"
-    },
     "TouchscreenUniformity": {
       "pytest_name": "touch_uniformity",
       "label": "Touchscreen Uniformity"

@@ -497,14 +497,6 @@ msgid "Verify Root Partition"
 msgstr "验证根磁区"
 
 #: ../build/pytests_label_generated.json
-msgid "Verify Touch Device FW"
-msgstr "验证触控装置轫体"
-
-#: ../build/pytests_label_generated.json
-msgid "Verify Value"
-msgstr "验证值"
-
-#: ../build/pytests_label_generated.json
 msgid "Video Playback"
 msgstr "音源回放"
 
@@ -3076,10 +3068,6 @@ msgstr "喇叭/麦克风"
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Stress App Test"
 msgstr "压力测试"
-
-#: ../py/test/test_lists/generic_common.test_list.json
-msgid "Touchscreen Firmware Verify"
-msgstr "确认触屏韧体"
 
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Touchscreen Uniformity"
