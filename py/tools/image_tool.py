@@ -79,6 +79,8 @@ RE_WRITE_GPT_CHECK_BLOCKDEV = re.compile(
 MEGABYTE = 1048576
 # The storage industry treat "mega" and "giga" differently.
 GIGABYTE_STORAGE = 1000000000
+# Default size of each disk block (or sector).
+DEFAULT_BLOCK_SIZE = pygpt.GPT.DEFAULT_BLOCK_SIZE
 
 
 class ArgTypes(object):
@@ -230,6 +232,17 @@ Sudo = SysUtils.Sudo
 SudoOutput = SysUtils.SudoOutput
 
 
+def Aligned(value, alignment):
+  """Helper utility to calculate aligned numbers.
+
+  Args:
+    value: an integer as original value.
+    alignment: an integer for alignment.
+  """
+  remains = value % alignment
+  return value - remains + (alignment if remains else 0)
+
+
 class Partition(object):
   """To easily access partition on a disk image."""
 
@@ -267,12 +280,17 @@ class Partition(object):
     return self._number
 
   @property
+  def block_size(self):
+    """Size of each LBA block (sector) in bytes."""
+    return self._gpt.block_size
+
+  @property
   def offset(self):
-    return self._part.FirstLBA * self._gpt.BLOCK_SIZE
+    return self._part.FirstLBA * self.block_size
 
   @property
   def size(self):
-    return (self._part.LastLBA - self._part.FirstLBA + 1) * self._gpt.BLOCK_SIZE
+    return (self._part.LastLBA - self._part.FirstLBA + 1) * self.block_size
 
   @property
   def label(self):
@@ -419,9 +437,11 @@ class Partition(object):
       raw_part: a path to block device.
     """
     raw_info = SudoOutput(['dumpe2fs', '-h', block_dev])
-    block_count = int(RE_BLOCK_COUNT.findall(raw_info)[0])
-    block_size = int(RE_BLOCK_SIZE.findall(raw_info)[0])
-    return block_count * block_size
+    # The 'block' in file system may be different from disk/partition logical
+    # block size (LBA).
+    fs_block_count = int(RE_BLOCK_COUNT.findall(raw_info)[0])
+    fs_block_size = int(RE_BLOCK_SIZE.findall(raw_info)[0])
+    return fs_block_count * fs_block_size
 
   def GetFileSystemSize(self):
     """Returns the (ext*) file system size.
@@ -491,9 +511,9 @@ class Partition(object):
     This only changes the copy of GPT information in memory, not committed to
     the disk image.
     """
-    assert new_offset % self._gpt.BLOCK_SIZE == 0, 'Offset must align to block.'
+    assert new_offset % self._gpt.block_size == 0, 'Offset must align to block.'
     delta = self._part.LastLBA - self._part.FirstLBA
-    new_first_lba = new_offset / self._gpt.BLOCK_SIZE
+    new_first_lba = new_offset / self._gpt.block_size
     new_last_lba = new_first_lba + delta
     self._part = self._gpt.NewNamedTuple(
         self._part, FirstLBA=new_first_lba, LastLBA=new_last_lba)
@@ -504,16 +524,16 @@ class Partition(object):
     This only changes the copy of GPT information in memory, not committed to
     the disk image.
     """
-    assert new_size % self._gpt.BLOCK_SIZE == 0, 'Size must align to blocks.'
-    new_last_lba = self._part.FirstLBA + new_size / self._gpt.BLOCK_SIZE - 1
+    assert new_size % self._gpt.block_size == 0, 'Size must align to blocks.'
+    new_last_lba = self._part.FirstLBA + new_size / self._gpt.block_size - 1
     self._part = self._gpt.NewNamedTuple(self._part, LastLBA=new_last_lba)
 
   @staticmethod
-  def GPTReorder(parts):
+  def GPTReorder(parts, block_size):
     """Re-order given partitions.
 
     Move (using GPTMove) the given parts in order so they fit in the right
-    layout for GPT based disk image as (in 512-sectors):
+    layout for GPT based disk image as (in LBA blocks):
 
     GPT START = 1 (PMBR), 1 (HEADER), 32 (TABLE)
     PARTS
@@ -522,42 +542,51 @@ class Partition(object):
     This only changes the copy of GPT information in memory, not committed to
     the disk image.
 
+    Args:
+      parts: a list of Partition objects.
+      block_size: integer for expected block size for new layout.
+
     Returns:
       An integer for the expected size of disk image including GPT END.
     """
-    BLOCK_SIZE = pygpt.GPT.BLOCK_SIZE
-    new_size = (1 + 1 + 32) * BLOCK_SIZE
+    new_size = (1 + 1 + 32) * block_size
     for part in parts:
       part.GPTMove(new_size)
-      new_size += part.size
-    new_size += (32 + 1) * BLOCK_SIZE
+      new_size += Aligned(part.size, block_size)
+    new_size += (32 + 1) * block_size
     return new_size
 
   @staticmethod
-  def CreateImageFile(output, new_size, parts):
+  def CreateImageFile(output, new_size, parts, block_size):
     """Builds a disk image file by given size and partitions."""
     logging.debug('Create empty image file: %s', output)
-    BLOCK_SIZE = pygpt.GPT.BLOCK_SIZE
+    assert new_size % block_size == 0, 'Size %s not aligned to %s' % (
+        new_size, block_size)
     Shell(['truncate', '-s', '0', output])
     Shell(['truncate', '-s', str(new_size), output])
     last_part = parts[-1]
     # See Partition.GPTReorder for how the (32+1) was decided.
-    min_size = last_part.offset + last_part.size + (
-        (32 + 1) * pygpt.GPT.BLOCK_SIZE)
+    min_size = last_part.offset + last_part.size + ((32 + 1) * block_size)
     if new_size < min_size:
       raise RuntimeError('Given size %s too small (need %s).' %
                          (new_size, min_size))
 
     logging.debug('Initialize partition table (GPT).')
     cgpt = SysUtils.FindCommand('cgpt')
+    # TODO(hungte) Tell `cgpt` to create GPT using block_size.
+    assert block_size == 512, 'Sector size %s not supported yet.' % block_size
     Shell([cgpt, 'create', output])
     Shell([cgpt, 'boot', '-p', output], silent=True)
 
     logging.debug('Create partitions.')
     for i, part in enumerate(parts):
+      assert part.offset % block_size == 0, 'Unaligned (%s) offset: %s' % (
+          block_size, part.offset)
+      assert part.size % block_size == 0, 'Unaligned (%s) size: %s' % (
+          block_size, part.offset)
       # CGPT commands always take sectors.
-      begin_sec = part.offset / BLOCK_SIZE
-      size_sec = part.size / BLOCK_SIZE
+      begin_sec = part.offset / block_size
+      size_sec = part.size / block_size
       Shell([cgpt, 'add', '-b', str(begin_sec), '-s', str(size_sec),
              '-i', str(i + 1), '-l', part.label, '-t', part.type_uuid,
              '-A', str(part.attr16), output])
@@ -837,7 +866,9 @@ class ChromeOSFactoryBundle(object):
     pmbr_path = os.path.join(self._temp_dir, '_pmbr')
     with open(image_path) as src:
       with open(pmbr_path, 'wb') as dest:
-        dest.write(src.read(512))
+        # The PMBR is always less than DEFAULT_BLOCK_SIZE, no matter if the
+        # disk has larger sector size.
+        dest.write(src.read(DEFAULT_BLOCK_SIZE))
     return pmbr_path
 
   def CreatePartitionScript(self, image_path, pmbr_path):
@@ -890,24 +921,32 @@ class ChromeOSFactoryBundle(object):
         f.write(contents)
       return script_path
 
-  def InitDiskImage(self, output, sectors):
+  def InitDiskImage(self, output, sectors, sector_size):
     """Initializes (resize and partition) a new disk image.
 
     Args:
       output: a path to disk image to initialize.
-      sectors: number of sectors in disk image.
+      sectors: integer for new size in number of sectors.
+      sector_size: size of each sector (block) in bytes.
+
+    Returns:
+      An integer as the size (in bytes) of output file.
     """
-    print('Initialize disk image with %s sectors [%s G]' %
-          (sectors, sectors * 512 / GIGABYTE_STORAGE))
+    new_size = sectors * sector_size
+    print('Initialize disk image in %s*%s bytes [%s G]' %
+          (sectors, sector_size, new_size / GIGABYTE_STORAGE))
     pmbr_path = self.GetPMBR(self.release_image)
     partition_script = self.CreatePartitionScript(self.release_image, pmbr_path)
     # TODO(hungte) Support block device as output, and support 'preserve'.
     Shell(['truncate', '-s', '0', output])
-    Shell(['truncate', '-s', str(sectors * 512), output])
+    Shell(['truncate', '-s', str(new_size), output])
     logging.debug('Execute generated partitioning script on %s', output)
+    # TODO(hungte) Pass sector_size information to partition script if needed.
+    assert sector_size == 512, 'Sector size %s not supported yet.' % sector_size
     Sudo(['bash', '-e', partition_script, output])
+    return new_size
 
-  def CreateDiskImage(self, output, sectors, stateful_free_space):
+  def CreateDiskImage(self, output, sectors, sector_size, stateful_free_space):
     """Creates the installed disk image.
 
     This creates a complete image that can be pre-flashed to and boot from
@@ -916,9 +955,10 @@ class ChromeOSFactoryBundle(object):
     Args:
       output: a path to disk image to initialize.
       sectors: number of sectors in disk image.
+      sector_size: size of each sector in bytes.
       stateful_free_space: extra free space to claim in MB.
     """
-    self.InitDiskImage(output, sectors)
+    new_size = self.InitDiskImage(output, sectors, sector_size)
     payloads_dir = os.path.join(self._temp_dir, DIR_CROS_PAYLOADS)
     os.mkdir(payloads_dir)
     json_path = self.CreatePayloads(payloads_dir)
@@ -943,6 +983,7 @@ class ChromeOSFactoryBundle(object):
     with part.Mount(rw=True) as stateful:
       Sudo(['touch', os.path.join(stateful, 'dev_image', 'etc', 'lsb-factory')],
            check=False)
+    return new_size
 
   def CreateRMAImage(self, output):
     """Creates the RMA bootable installation disk image.
@@ -952,6 +993,7 @@ class ChromeOSFactoryBundle(object):
 
     Args:
       output: a path to disk image to initialize.
+      block_size: the size of block (sector) in bytes in output image.
     """
     # It is possible to enlarge the disk by calculating sizes of all input
     # files, create cros_payloads folder in the disk image file, to minimize
@@ -968,8 +1010,9 @@ class ChromeOSFactoryBundle(object):
     print('cros_payloads size: %s M' % (payloads_size / MEGABYTE))
     shutil.copyfile(self.factory_shim, output)
 
+    block_size = Partition(output, PART_CROS_STATEFUL).block_size
     old_size = os.path.getsize(output)
-    new_size = old_size + payloads_size
+    new_size = Aligned(old_size + payloads_size, block_size)
     print('Changing size: %s M => %s M' %
           (old_size / MEGABYTE, new_size / MEGABYTE))
     Shell(['truncate', '-s', str(new_size), output])
@@ -1027,8 +1070,9 @@ class ChromeOSFactoryBundle(object):
       parts += [Partition(path, PART_CROS_KERNEL_A),
                 Partition(path, PART_CROS_ROOTFS_A)]
     parts[0].GPTResize(new_stat_size)
-    new_size = Partition.GPTReorder(parts)
-    Partition.CreateImageFile(output, new_size, parts)
+    block_size = parts[0].block_size
+    new_size = Partition.GPTReorder(parts, block_size)
+    Partition.CreateImageFile(output, new_size, parts, block_size)
     logging.info('Creating new image file as %s M...', new_size / MEGABYTE)
 
     new_state = Partition(output, PART_CROS_STATEFUL)
@@ -1486,7 +1530,11 @@ class CreatePreflashImageCommand(SubCommand):
         self.subparser, ChromeOSFactoryBundle.PREFLASH)
     self.subparser.add_argument(
         '--sectors', type=int, default=31277232,
-        help='size of image in 512-byte sectors. default: %(default)s')
+        help=('size of image in sectors (see --sector-size). '
+              'default: %(default)s'))
+    self.subparser.add_argument(
+        '--sector-size', type=int, default=DEFAULT_BLOCK_SIZE,
+        help='size of each sector. default: %(default)s')
     self.subparser.add_argument(
         '--stateful_free_space', type=int, default=1024,
         help=('extra space to claim in stateful partition in MB. '
@@ -1507,10 +1555,11 @@ class CreatePreflashImageCommand(SubCommand):
           firmware=None,
           hwid=self.args.hwid,
           complete=None)
-      bundle.CreateDiskImage(self.args.output, self.args.sectors,
-                             self.args.stateful_free_space)
+      new_size = bundle.CreateDiskImage(
+          self.args.output, self.args.sectors, self.args.sector_size,
+          self.args.stateful_free_space)
     print('OK: Generated pre-flash disk image at %s [%s G]' % (
-        self.args.output, self.args.sectors * 512 / GIGABYTE_STORAGE))
+        self.args.output, new_size / GIGABYTE_STORAGE))
 
 
 class CreateRMAImageCommmand(SubCommand):

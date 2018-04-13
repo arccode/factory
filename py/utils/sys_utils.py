@@ -395,7 +395,7 @@ class PartitionManager(_GPTTool):
     @type_utils.Overrides
     def GetSectorSize(self):
       """Returns logical sector size in bytes."""
-      return self._gpt.BLOCK_SIZE
+      return self._gpt.block_size
 
     @type_utils.Overrides
     def GetTypeGUID(self, index):

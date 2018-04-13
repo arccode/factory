@@ -99,7 +99,7 @@ class GPT(object):
       'Header', HEADER_FORMAT)
   PARTITION_FORMAT, PARTITION_CLASS = BuildStructFormatAndNamedTuple(
       'Partition', PARTITION_FORMAT)
-  BLOCK_SIZE = 512
+  DEFAULT_BLOCK_SIZE = 512
   HEADER_SIGNATURE = 'EFI PART'
   TYPE_GUID_UNUSED = '\x00' * 16
   TYPE_GUID_MAP = {
@@ -119,6 +119,7 @@ class GPT(object):
   def __init__(self):
     self.header = None
     self.partitions = None
+    self.block_size = self.DEFAULT_BLOCK_SIZE
 
   @staticmethod
   def GetAttributeSuccess(attrs):
@@ -168,11 +169,17 @@ class GPT(object):
   def LoadFromFile(cls, f):
     """Loads a GPT table from give disk image file object."""
     gpt = GPT()
-    f.seek(gpt.BLOCK_SIZE * 1)
-    header = gpt.ReadHeader(f)
-    if header.Signature != cls.HEADER_SIGNATURE:
+    # Try DEFAULT_BLOCK_SIZE, then 4K.
+    for block_size in [cls.DEFAULT_BLOCK_SIZE, 4096]:
+      f.seek(block_size * 1)
+      header = gpt.ReadHeader(f)
+      if header.Signature == cls.HEADER_SIGNATURE:
+        gpt.block_size = block_size
+        break
+    else:
       raise ValueError('Invalid signature in GPT header.')
-    f.seek(gpt.BLOCK_SIZE * header.PartitionEntriesStartingLBA)
+
+    f.seek(gpt.block_size * header.PartitionEntriesStartingLBA)
     partitions = [gpt.ReadPartitionEntry(f)
                   for unused_i in range(header.PartitionEntriesNumber)]
     gpt.header = header
@@ -204,8 +211,8 @@ class GPT(object):
     if header is None:
       header = self.header
     size = header.PartitionEntrySize * header.PartitionEntriesNumber
-    blocks = size / self.BLOCK_SIZE
-    if size % self.BLOCK_SIZE:
+    blocks = size / self.block_size
+    if size % self.block_size:
       blocks += 1
     return blocks
 
@@ -215,14 +222,14 @@ class GPT(object):
     Args:
       new_size: Integer for new size of disk image file.
     """
-    old_size = self.BLOCK_SIZE * (self.header.BackupLBA + 1)
-    if new_size % self.BLOCK_SIZE:
+    old_size = self.block_size * (self.header.BackupLBA + 1)
+    if new_size % self.block_size:
       raise ValueError('New file size %d is not valid for image files.' %
                        new_size)
-    new_blocks = new_size / self.BLOCK_SIZE
+    new_blocks = new_size / self.block_size
     if old_size != new_size:
       logging.warn('Image size (%d, LBA=%d) changed from %d (LBA=%d).',
-                   new_size, new_blocks, old_size, old_size / self.BLOCK_SIZE)
+                   new_size, new_blocks, old_size, old_size / self.block_size)
     else:
       logging.info('Image size (%d, LBA=%d) not changed.',
                    new_size, new_blocks)
@@ -258,7 +265,7 @@ class GPT(object):
     """Returns the free (available) space left according to LastUsableLBA."""
     max_lba = self.GetMaxUsedLBA()
     assert max_lba <= self.header.LastUsableLBA, "Partitions too large."
-    return self.BLOCK_SIZE * (self.header.LastUsableLBA - max_lba)
+    return self.block_size * (self.header.LastUsableLBA - max_lba)
 
   def ExpandPartition(self, i):
     """Expands a given partition to last usable LBA.
@@ -313,8 +320,8 @@ class GPT(object):
     def WriteData(name, blob, lba):
       """Writes a blob into given location."""
       logging.info('Writing %s in LBA %d (offset %d)',
-                   name, lba, lba * self.BLOCK_SIZE)
-      f.seek(lba * self.BLOCK_SIZE)
+                   name, lba, lba * self.block_size)
+      f.seek(lba * self.block_size)
       f.write(blob)
 
     self.UpdateChecksum()
@@ -380,7 +387,7 @@ class GPTCommands(object):
     elif free_space:
       logging.warn('Extra space found (%d, LBA=%d), '
                    'use --expand to expand partitions.',
-                   free_space, free_space / gpt.BLOCK_SIZE)
+                   free_space, free_space / gpt.block_size)
 
     gpt.WriteToFile(args.image_file)
     print('Disk image file %s repaired.' % args.image_file.name)
@@ -507,7 +514,7 @@ class GPTCommands(object):
 
     if do_print_gpt_blocks:
       f = args.image_file
-      f.seek(gpt.header.BackupLBA * gpt.BLOCK_SIZE)
+      f.seek(gpt.header.BackupLBA * gpt.block_size)
       backup_header = gpt.ReadHeader(f)
       print(fmt % (backup_header.PartitionEntriesStartingLBA,
                    gpt.GetPartitionTableBlocks(backup_header), '',
