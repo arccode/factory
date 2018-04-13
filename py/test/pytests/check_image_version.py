@@ -88,6 +88,7 @@ server using cros_payload::
 
 from distutils import version
 import logging
+import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -154,18 +155,19 @@ class CheckImageVersionTest(test_case.TestCase):
   def NetbootCallback(self, component, destination, url):
     # TODO(hungte) Should we merge this with flash_netboot.py?
     del url  # Unused.
+    fw_path = os.path.join(destination, component)
     self.ui.SetInstruction(_('Flashing {component}...', component=component))
     try:
       if self.dut.link.IsLocal():
         self.ui.PipeProcessOutputToUI(
-            ['flash_netboot', '-y', '-i', destination, '--no-reboot'])
+            ['flash_netboot', '-y', '-i', fw_path, '--no-reboot'])
       else:
         with self.dut.temp.TempFile() as temp_file:
-          self.dut.link.Push(destination, temp_file)
+          self.dut.link.Push(fw_path, temp_file)
           factory_par = deploy_utils.CreateFactoryTools(self.dut)
           factory_par.CheckCall(
               ['flash_netboot', '-y', '-i', temp_file, '--no-reboot'], log=True)
-        self.dut.CheckCall(['reboot'], log=True)
+      self.dut.CheckCall(['reboot'], log=True)
     except Exception:
       self.FailTask('Error flashing netboot firmware!')
     else:
