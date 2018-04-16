@@ -20,6 +20,7 @@ import traceback
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
 from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
 
@@ -188,11 +189,9 @@ class EventServerRequestHandler(SocketServer.BaseRequestHandler):
       # it before returning from the constructor.
       self.request.send(_HELLO_MESSAGE)
 
-      self.send_thread = threading.Thread(
+      self.send_thread = process_utils.StartDaemonThread(
           target=self._run_send_thread,
           name='EventServerSendThread-%d' % get_unique_id())
-      self.send_thread.daemon = True
-      self.send_thread.start()
 
       # Process events: continuously read message and broadcast to all
       # clients' queues.
@@ -535,11 +534,9 @@ class ThreadingEventClient(EventClientBase):
     """
     super(ThreadingEventClient, self).__init__(path, callback)
 
-    self.recv_thread = threading.Thread(
+    self.recv_thread = process_utils.StartDaemonThread(
         target=self._run_recv_thread,
         name='EventServerRecvThread-%s' % (name or get_unique_id()))
-    self.recv_thread.daemon = True
-    self.recv_thread.start()
 
   def close(self):
     super(ThreadingEventClient, self).close()

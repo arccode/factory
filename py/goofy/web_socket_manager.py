@@ -180,9 +180,7 @@ class WebSocketManager(object):
     def target():
       time.sleep(0.5)
       session.console.info('Opened console.')
-    thread = threading.Thread(target=target)
-    thread.daemon = True
-    thread.start()
+    process_utils.StartDaemonThread(target=target)
 
     while True:
       line = self.tail_process.stdout.readline()

@@ -148,6 +148,7 @@ class TestInvocation(object):
     self.test = test
     self.thread = threading.Thread(
         target=self._Run, name='TestInvocation-%s' % self.test.path)
+    self.thread.daemon = True
     self.start_time = None
     self.end_time = None
     self.on_completion = on_completion

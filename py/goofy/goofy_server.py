@@ -158,6 +158,7 @@ class GoofyServer(SocketServer.ThreadingMixIn,
   - Dynamically maps HTTP GET request to a callback function.
     See `AddHTTPGetHandler` for detail.
   """
+  daemon_threads = True
 
   _PREFIX_GENERATED_FILE = '/generated-files'
   _PREFIX_GENERATED_DATA = '/generated-data'

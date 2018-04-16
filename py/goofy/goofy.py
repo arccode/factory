@@ -56,6 +56,7 @@ from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import log_utils
 from cros.factory.utils import net_utils
+from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
@@ -265,6 +266,7 @@ class Goofy(object):
     self.goofy_server_thread = threading.Thread(
         target=self.goofy_server.serve_forever,
         name='GoofyServer')
+    self.goofy_server_thread.daemon = True
 
   def _InitStaticFiles(self):
     static_path = os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR, 'goofy/static')
@@ -295,10 +297,9 @@ class Goofy(object):
   def _StartEventServer(self):
     self.event_server = EventServer()
     logging.info('Starting factory event server')
-    self.event_server_thread = threading.Thread(
+    self.event_server_thread = process_utils.StartDaemonThread(
         target=self.event_server.serve_forever,
         name='EventServer')
-    self.event_server_thread.start()
 
     self.event_client = ThreadingEventClient(
         callback=lambda event: self.RunEnqueue(lambda: self.HandleEvent(event)))
@@ -1139,9 +1140,7 @@ class Goofy(object):
       except Exception:
         logging.exception('Unable to prepare DUT link.')
 
-    thread = threading.Thread(target=PrepareLink)
-    thread.daemon = True
-    thread.start()
+    process_utils.StartDaemonThread(target=PrepareLink)
 
   def Init(self, args=None, env=None):
     """Initializes Goofy.

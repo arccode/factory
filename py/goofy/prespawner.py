@@ -37,11 +37,10 @@ import logging
 import os
 from Queue import Queue
 import subprocess
-import threading
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import process_utils
 
 
 NUM_PRESPAWNED_PROCESSES = 1
@@ -88,7 +87,7 @@ class Prespawner(object):
         else:
           pipe_stdout_args = {}
 
-        process = Spawn(
+        process = process_utils.Spawn(
             ['python', '-u', self.prespawner_path] + self.prespawner_args,
             cwd=os.path.dirname(self.prespawner_path),
             stdin=subprocess.PIPE,
@@ -100,8 +99,8 @@ class Prespawner(object):
       self.prespawned.put(None)
 
     if not self.thread and os.path.exists(self.prespawner_path):
-      self.thread = threading.Thread(target=run, name='Prespawner')
-      self.thread.start()
+      self.thread = process_utils.StartDaemonThread(
+          target=run, name='Prespawner')
 
   def stop(self):
     """Stops the pre-spawn thread gracefully.

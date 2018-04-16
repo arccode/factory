@@ -38,7 +38,7 @@ from cros.factory.test.state import TestState
 from cros.factory.test.test_lists import manager
 from cros.factory.utils import log_utils
 from cros.factory.utils import net_utils
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import process_utils
 
 
 def MockPytest(name, test_state, error_msg, func=None):
@@ -56,7 +56,7 @@ def MockPytest(name, test_state, error_msg, func=None):
       func()
     with open(info.results_path, 'w') as out:
       pickle.dump((test_state, error_msg), out)
-    return Spawn(['true'], stdout=subprocess.PIPE)
+    return process_utils.Spawn(['true'], stdout=subprocess.PIPE)
 
   prespawner.Prespawner.spawn(
       IgnoreArg(), IgnoreArg()).WithSideEffects(SideEffect)
@@ -277,7 +277,7 @@ class GoofyUITest(GoofyTest):
       self.ws_done.set()
 
     # After goofy.Init(), it should be ready to accept a web socket
-    threading.Thread(target=OpenWebSocket).start()
+    process_utils.StartDaemonThread(target=OpenWebSocket)
 
   def WaitForWebSocketStart(self):
     self.ws_start.wait()
@@ -299,6 +299,7 @@ class BasicTest(GoofyUITest):
   test_list = {
       'tests': ABC_TEST_LIST
   }
+
   def runTest(self):
     self.CheckOneTest('test:a', 'a_A', TestState.PASSED, '')
     self.CheckOneTest('test:b', 'b_B', TestState.FAILED, 'Uh-oh')
