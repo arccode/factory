@@ -77,6 +77,7 @@ Status = type_utils.Enum(['UNINITIALIZED', 'INITIALIZING', 'RUNNING',
 
 RUN_QUEUE_TIMEOUT_SECS = 10
 
+
 class Goofy(object):
   """The main factory flow.
 
@@ -159,7 +160,7 @@ class Goofy(object):
     # TODO(hungte) Support controlling remote DUT.
     self.dut = device_utils.CreateDUTInterface()
 
-    def test_or_root(event, parent_or_group=True):
+    def TestOrRoot(event, parent_or_group=True):
       """Returns the test affected by a particular event.
 
       Args:
@@ -183,27 +184,27 @@ class Goofy(object):
 
     self.event_handlers = {
         Event.Type.RESTART_TESTS:
-            lambda event: self.restart_tests(root=test_or_root(event)),
+            lambda event: self.RestartTests(root=TestOrRoot(event)),
         Event.Type.AUTO_RUN:
-            lambda event: self.auto_run(root=test_or_root(event)),
+            lambda event: self._AutoRun(root=TestOrRoot(event)),
         Event.Type.RUN_TESTS_WITH_STATUS:
-            lambda event: self.run_tests_with_status(
+            lambda event: self._RunTestsWithStatus(
                 event.status,
-                root=test_or_root(event)),
+                root=TestOrRoot(event)),
         Event.Type.UPDATE_SYSTEM_INFO:
-            lambda event: self.update_system_info(),
+            lambda event: self._UpdateSystemInfo(),
         Event.Type.STOP:
-            lambda event: self.stop(root=test_or_root(event, False),
+            lambda event: self.Stop(root=TestOrRoot(event, False),
                                     fail=getattr(event, 'fail', False),
                                     reason=getattr(event, 'reason', None)),
         Event.Type.CLEAR_STATE:
-            lambda event: self.clear_state(
+            lambda event: self.ClearState(
                 self.test_list.LookupPath(event.path)),
     }
 
     self.web_socket_manager = None
 
-  def destroy(self):
+  def Destroy(self):
     """Performs any shutdown tasks."""
     # To avoid race condition when running shutdown test.
     for invoc in self.invocations.itervalues():
@@ -254,23 +255,23 @@ class Goofy(object):
       self.plugin_controller.StopAndDestroyAllPlugins()
       self.plugin_controller = None
 
-    self.check_exceptions()
+    self._CheckExceptions()
     logging.info('Done destroying Goofy')
     self.status = Status.TERMINATED
 
-  def init_goofy_server(self):
+  def _InitGoofyServer(self):
     self.goofy_server = goofy_server.GoofyServer(
         (goofy_proxy.DEFAULT_GOOFY_BIND, goofy_proxy.DEFAULT_GOOFY_PORT))
     self.goofy_server_thread = threading.Thread(
         target=self.goofy_server.serve_forever,
         name='GoofyServer')
 
-  def init_static_files(self):
+  def _InitStaticFiles(self):
     static_path = os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR, 'goofy/static')
     # Setup static file path
     self.goofy_server.RegisterPath('/', static_path)
 
-  def init_state_instance(self):
+  def _InitStateInstance(self):
     # Before starting state server, remount stateful partitions with
     # no commit flag.  The default commit time (commit=600) makes corruption
     # too likely.
@@ -284,14 +285,14 @@ class Goofy(object):
     self.goofy_rpc = GoofyRPC(self)
     self.goofy_rpc.RegisterMethods(self.state_instance)
 
-  def init_i18n(self):
+  def _InitI18n(self):
     js_data = 'var goofy_i18n_data = %s;' % translation.GetAllI18nDataJS()
     self.goofy_server.RegisterData('/js/goofy-translations.js',
                                    'application/javascript', js_data)
     self.goofy_server.RegisterData('/css/i18n.css',
                                    'text/css', i18n_test_ui.GetStyleSheet())
 
-  def start_event_server(self):
+  def _StartEventServer(self):
     self.event_server = EventServer()
     logging.info('Starting factory event server')
     self.event_server_thread = threading.Thread(
@@ -300,14 +301,13 @@ class Goofy(object):
     self.event_server_thread.start()
 
     self.event_client = ThreadingEventClient(
-        callback=lambda event: self.run_queue.put(
-            lambda: self.handle_event(event)))
+        callback=lambda event: self.RunEnqueue(lambda: self.HandleEvent(event)))
 
     self.web_socket_manager = WebSocketManager(self.uuid)
     self.goofy_server.AddHTTPGetHandler(
         '/event', self.web_socket_manager.handle_web_socket)
 
-  def shutdown(self, operation):
+  def Shutdown(self, operation):
     """Starts shutdown procedure.
 
     Args:
@@ -340,7 +340,7 @@ class Goofy(object):
       shutdown_result = self.env.shutdown(operation)
     if shutdown_result:
       # That's all, folks!
-      self.run_enqueue(None)
+      self.RunEnqueue(None)
     else:
       # Just pass (e.g., in the chroot).
       self.state_instance.set_shared_data(TESTS_AFTER_SHUTDOWN, None)
@@ -348,7 +348,7 @@ class Goofy(object):
       # longer a pending shutdown.
       self.event_client.post_event(Event(Event.Type.PENDING_SHUTDOWN))
 
-  def handle_shutdown_complete(self, test):
+  def _HandleShutdownComplete(self, test):
     """Handles the case where a shutdown was detected during a shutdown step.
 
     Args:
@@ -378,7 +378,7 @@ class Goofy(object):
         {'invocation': self.state_instance.get_test_state(test.path).invocation,
          'goofy_error': goofy_error})
 
-  def init_states(self):
+  def _InitStates(self):
     """Initializes all states on startup."""
     for test in self.test_list.GetAllTests():
       # Make sure the state server knows about all the tests,
@@ -399,7 +399,7 @@ class Goofy(object):
         continue
       if isinstance(test, test_object.ShutdownStep):
         # Shutdown while the test was active - that's good.
-        self.handle_shutdown_complete(test)
+        self._HandleShutdownComplete(test)
       elif test.allow_reboot:
         is_unexpected_shutdown = True
         test.UpdateState(status=TestState.UNTESTED)
@@ -410,7 +410,7 @@ class Goofy(object):
                              'on pending tests.',
                              test.path)
       else:
-        def get_unexpected_shutdown_test_run():
+        def GetUnexpectedShutdownTestRun():
           """Returns a StationTestRun for test not collected properly"""
           station_test_run = testlog.StationTestRun()
           station_test_run['status'] = testlog.StationTestRun.STATUS.FAIL
@@ -427,12 +427,12 @@ class Goofy(object):
                            invocation=test.GetState().invocation,
                            error_msg=error_msg)
         testlog.CollectExpiredSessions(paths.DATA_LOG_DIR,
-                                       get_unexpected_shutdown_test_run())
+                                       GetUnexpectedShutdownTestRun())
         test.UpdateState(
             status=TestState.FAILED,
             error_msg=error_msg)
         # Trigger the OnTestFailure callback.
-        self.run_queue.put(lambda: self.test_fail(test))
+        self.RunEnqueue(lambda: self._TestFail(test))
 
         session.console.info('Unexpected shutdown while test %s '
                              'running; cancelling any pending tests',
@@ -459,7 +459,7 @@ class Goofy(object):
     # state_instance is initialized, we can mark skipped and waived tests now.
     self.test_list.SetSkippedAndWaivedTests()
 
-  def handle_event(self, event):
+  def HandleEvent(self, event):
     """Handles an event from the event server."""
     handler = self.event_handlers.get(event.type)
     if handler:
@@ -469,37 +469,37 @@ class Goofy(object):
       # this event.
       logging.debug('Unbound event type %s', event.type)
 
-  def check_critical_factory_note(self):
+  def _CheckCriticalFactoryNote(self):
     """Returns True if the last factory note is critical."""
     notes = self.state_instance.get_shared_data('factory_note', True)
     return notes and notes[-1]['level'] == 'CRITICAL'
 
-  def schedule_restart(self):
+  def ScheduleRestart(self):
     """Schedules a restart event when any invocation is completed."""
     self.is_restart_requested = True
 
-  def invocation_completion(self):
+  def _InvocationCompletion(self):
     """Callback when an invocation is completed."""
     if self.is_restart_requested:
       logging.info('Restart by scheduled event.')
       self.is_restart_requested = False
-      self.restart_tests()
+      self.RestartTests()
     else:
-      self.run_next_test()
+      self._RunNextTest()
 
-  def run_next_test(self):
+  def _RunNextTest(self):
     """Runs the next eligible test.
 
     self.test_list_iterator (a TestListIterator object) will determine which
     test should be run.
     """
-    self.reap_completed_tests()
+    self.ReapCompletedTests()
 
     if self.invocations:
       # there are tests still running, we cannot start new tests
       return
 
-    if self.check_critical_factory_note():
+    if self._CheckCriticalFactoryNote():
       logging.info('has critical factory note, stop running')
       self.test_list_iterator.Stop()
       return
@@ -554,15 +554,14 @@ class Goofy(object):
         # Invoking post shutdown method of shutdown test. We should retain the
         # iterations_left and retries_left of the original test state.
         test_state = self.state_instance.get_test_state(test.path)
-        self._run_test(test, test_state.iterations_left,
-                       test_state.retries_left)
+        self._RunTest(test, test_state.iterations_left, test_state.retries_left)
       else:
         # Starts a new test run; reset iterations and retries.
-        self._run_test(test, test.iterations, test.retries)
+        self._RunTest(test, test.iterations, test.retries)
       return  # to leave while
 
-  def _run_test(self, test, iterations_left=None, retries_left=None,
-                set_layout=True):
+  def _RunTest(self, test, iterations_left=None, retries_left=None,
+               set_layout=True):
     """Invokes the test.
 
     The argument `test` should be either a leaf test (no subtests) or a parallel
@@ -570,7 +569,7 @@ class Goofy(object):
     """
     if (self.options.goofy_ui and not self._ui_initialized and
         not test.IsNoHost()):
-      self.init_ui()
+      self.InitUI()
 
     if set_layout:
       self.event_client.post_event(
@@ -581,8 +580,8 @@ class Goofy(object):
 
     if test.IsLeaf():
       invoc = TestInvocation(
-          self, test, on_completion=self.invocation_completion,
-          on_test_failure=lambda: self.test_fail(test))
+          self, test, on_completion=self._InvocationCompletion,
+          on_test_failure=lambda: self._TestFail(test))
       new_state = test.UpdateState(
           status=TestState.ACTIVE, increment_count=1, error_msg='',
           invocation=invoc.uuid, iterations_left=iterations_left,
@@ -597,7 +596,7 @@ class Goofy(object):
               Event.Type.INIT_TEST_UI,
               test=test.path,
               invocation=invoc.uuid))
-      self.check_plugins()
+      self._CheckPlugins()
       invoc.Start()
     elif test.parallel:
       for subtest in test.subtests:
@@ -606,8 +605,8 @@ class Goofy(object):
 
         # Make sure we don't need to skip it:
         if not self.test_list_iterator.CheckSkip(subtest):
-          self._run_test(subtest, subtest.iterations, subtest.retries,
-                         set_layout=False)
+          self._RunTest(subtest, subtest.iterations, subtest.retries,
+                        set_layout=False)
     else:
       # This should never happen, there must be something wrong.
       # However, we can't raise an exception, otherwise goofy will be closed
@@ -618,13 +617,13 @@ class Goofy(object):
           'Goofy should not get a non-leaf test that is not parallel: %r',
           test)
 
-  def run(self):
+  def Run(self):
     """Runs Goofy."""
     # Process events forever.
-    while self.run_once(True):
+    while self.RunOnce(True):
       pass
 
-  def run_enqueue(self, val):
+  def RunEnqueue(self, val):
     """Enqueues an object on the event loop.
 
     Generally this is a function. It may also be None to indicate that the
@@ -632,7 +631,7 @@ class Goofy(object):
     """
     self.run_queue.put(val)
 
-  def run_once(self, block=False):
+  def RunOnce(self, block=False):
     """Runs all items pending in the event loop.
 
     Args:
@@ -644,13 +643,13 @@ class Goofy(object):
     events = type_utils.DrainQueue(self.run_queue)
     while not events:
       # Nothing on the run queue.
-      self._run_queue_idle()
+      self._RunQueueIdle()
       if block:
         # Block for at least one event...
         try:
           events.append(self.run_queue.get(timeout=RUN_QUEUE_TIMEOUT_SECS))
         except Queue.Empty:
-          # Keep going (calling _run_queue_idle() again at the top of
+          # Keep going (calling _RunQueueIdle() again at the top of
           # the loop)
           continue
         # ...and grab anything else that showed up at the same
@@ -669,14 +668,14 @@ class Goofy(object):
         event()
       except Exception:
         logging.exception('Error in event loop')
-        self.record_exception(traceback.format_exception_only(
-            *sys.exc_info()[:2]))
+        self._RecordExceptions(
+            traceback.format_exception_only(*sys.exc_info()[:2]))
         # But keep going
       finally:
         self.run_queue.task_done()
     return True
 
-  def _run_queue_idle(self):
+  def _RunQueueIdle(self):
     """Invoked when the run queue has no events.
 
     This method must not raise exception.
@@ -689,9 +688,9 @@ class Goofy(object):
       return
 
     self.last_idle = now
-    self.perform_periodic_tasks()
+    self._PerformPeriodicTasks()
 
-  def check_exceptions(self):
+  def _CheckExceptions(self):
     """Raises an error if any exceptions have occurred in
     invocation threads.
     """
@@ -699,7 +698,7 @@ class Goofy(object):
       raise RuntimeError('Exception in invocation thread: %r' %
                          self.exceptions)
 
-  def record_exception(self, msg):
+  def _RecordExceptions(self, msg):
     """Records an exception in an invocation thread.
 
     An exception with the given message will be rethrown when
@@ -708,7 +707,7 @@ class Goofy(object):
     self.exceptions.append(msg)
 
   @staticmethod
-  def drain_nondaemon_threads():
+  def DrainNondaemonThreads():
     """Wait for all non-current non-daemon threads to exit.
 
     This is performed by the Python runtime in an atexit handler,
@@ -731,7 +730,7 @@ class Goofy(object):
     return all_threads_joined
 
   @staticmethod
-  def run_main_and_exit():
+  def RunMainAndExit():
     """Instantiate the receiver, run its main function, and exit when done.
 
     This static method is the "entry point" for Goofy.
@@ -749,7 +748,7 @@ class Goofy(object):
       sys.exit(1)
 
     try:
-      goofy.main()
+      goofy.Main()
     except SystemExit:
       # Propagate SystemExit without logging.
       raise
@@ -763,8 +762,8 @@ class Goofy(object):
       try:
         # We drain threads manually, rather than letting Python do it,
         # so that we can report to the user which threads are stuck
-        goofy.destroy()
-        cls.drain_nondaemon_threads()
+        goofy.Destroy()
+        cls.DrainNondaemonThreads()
       except (KeyboardInterrupt, Exception):
         # We got a keyboard interrupt while attempting to shut down.
         # The user is waiting impatiently! This can happen if threads get stuck.
@@ -778,7 +777,7 @@ class Goofy(object):
       # Normal exit path
       sys.exit(0)
 
-  def check_plugins(self):
+  def _CheckPlugins(self):
     """Check plugins to be paused or resumed."""
     exclusive_resources = set()
     for invoc in self.invocations.itervalues():
@@ -786,7 +785,7 @@ class Goofy(object):
           invoc.test.GetExclusiveResources())
     self.plugin_controller.PauseAndResumePluginByResource(exclusive_resources)
 
-  def check_for_updates(self):
+  def _CheckForUpdates(self):
     """Schedules an asynchronous check for updates if necessary."""
     if not self.test_list.options.update_period_secs:
       # Not enabled.
@@ -801,8 +800,7 @@ class Goofy(object):
 
     self.last_update_check = now
 
-    def handle_check_for_update(
-        reached_server, toolkit_version, needs_update):
+    def _HandleCheckForUpdate(reached_server, toolkit_version, needs_update):
       if reached_server:
         new_update_toolkit_version = toolkit_version if needs_update else None
         if self.dut.info.update_toolkit_version != new_update_toolkit_version:
@@ -810,26 +808,26 @@ class Goofy(object):
                        new_update_toolkit_version)
           self.dut.info.Overrides('update_toolkit_version',
                                   new_update_toolkit_version)
-          self.run_enqueue(self.update_system_info)
+          self.RunEnqueue(self._UpdateSystemInfo)
       elif not self._suppress_periodic_update_messages:
         logging.warning('Suppress error messages for periodic update checking '
                         'after the first one.')
         self._suppress_periodic_update_messages = True
 
     updater.CheckForUpdateAsync(
-        handle_check_for_update, None, self._suppress_periodic_update_messages)
+        _HandleCheckForUpdate, None, self._suppress_periodic_update_messages)
 
-  def cancel_pending_tests(self):
+  def CancelPendingTests(self):
     """Cancels any tests in the run queue."""
-    self.run_tests(None)
+    self._RunTests(None)
 
-  def restore_active_run_state(self):
+  def _RestoreActiveRunState(self):
     """Restores active run id and the list of scheduled tests."""
     self.run_id = self.state_instance.get_shared_data('run_id', optional=True)
     self.scheduled_run_tests = self.state_instance.get_shared_data(
         'scheduled_run_tests', optional=True)
 
-  def set_active_run_state(self):
+  def _SetActiveRunState(self):
     """Sets active run id and the list of scheduled tests."""
     self.run_id = str(uuid.uuid4())
     # try our best to predict which tests will be run.
@@ -838,7 +836,7 @@ class Goofy(object):
     self.state_instance.set_shared_data('scheduled_run_tests',
                                         self.scheduled_run_tests)
 
-  def run_tests(self, subtree, status_filter=None):
+  def _RunTests(self, subtree, status_filter=None):
     """Runs tests under subtree.
 
     Run tests under a given subtree.
@@ -852,10 +850,10 @@ class Goofy(object):
     self.test_list_iterator = TestListIterator(
         subtree, status_filter, self.test_list)
     if subtree is not None:
-      self.set_active_run_state()
-    self.run_next_test()
+      self._SetActiveRunState()
+    self._RunNextTest()
 
-  def reap_completed_tests(self):
+  def ReapCompletedTests(self):
     """Removes completed tests from the set of active tests."""
     test_completed = False
     # Since items are removed while iterating, make a copy using values()
@@ -873,22 +871,22 @@ class Goofy(object):
             new_state.status == TestState.FAILED):
           # Clean all the tests to cause goofy to stop.
           session.console.info('Stop on failure triggered. Empty the queue.')
-          self.cancel_pending_tests()
+          self.CancelPendingTests()
 
         if new_state.iterations_left and new_state.status == TestState.PASSED:
           # Play it again, Sam!
-          self._run_test(test)
+          self._RunTest(test)
         # new_state.retries_left is obtained after update.
         # For retries_left == 0, test can still be run for the last time.
         elif (new_state.retries_left >= 0 and
               new_state.status == TestState.FAILED):
           # Still have to retry, Sam!
-          self._run_test(test)
+          self._RunTest(test)
 
     if test_completed:
       self.log_watcher.KickWatchThread()
 
-  def kill_active_tests(self, abort, root=None, reason=None):
+  def _KillActiveTests(self, abort, root=None, reason=None):
     """Kills and waits for all active tests.
 
     Args:
@@ -897,7 +895,7 @@ class Goofy(object):
       root: If set, only kills tests with root as an ancestor.
       reason: If set, the abort reason.
     """
-    self.reap_completed_tests()
+    self.ReapCompletedTests()
     # Since items are removed while iterating, make a copy using values()
     # instead of itervalues().
     for invoc in self.invocations.values():
@@ -913,31 +911,31 @@ class Goofy(object):
 
       if not abort:
         test.UpdateState(status=TestState.UNTESTED)
-    self.reap_completed_tests()
+    self.ReapCompletedTests()
 
-  def stop(self, root=None, fail=False, reason=None):
-    self.kill_active_tests(fail, root, reason)
+  def Stop(self, root=None, fail=False, reason=None):
+    self._KillActiveTests(fail, root, reason)
 
     self.test_list_iterator.Stop(root)
-    self.run_next_test()
+    self._RunNextTest()
 
-  def clear_state(self, root=None):
+  def ClearState(self, root=None):
     if root is None:
       root = self.test_list
-    self.stop(root, reason='Clearing test state')
+    self.Stop(root, reason='Clearing test state')
     for f in root.Walk():
       if f.IsLeaf():
         f.UpdateState(status=TestState.UNTESTED)
 
-  def abort_active_tests(self, reason=None):
-    self.kill_active_tests(True, reason=reason)
+  def _AbortActiveTests(self, reason=None):
+    self._KillActiveTests(True, reason=reason)
 
-  def main(self):
+  def Main(self):
     syslog.openlog('goofy')
 
     try:
       self.status = Status.INITIALIZING
-      self.init()
+      self.Init()
       self.event_log.Log('goofy_init',
                          success=True)
       testlog.Log(
@@ -968,9 +966,9 @@ class Goofy(object):
     syslog.syslog('Goofy (factory test harness) starting')
     syslog.syslog('Boot sequence = %d' % GetBootSequence())
     syslog.syslog('Goofy init count = %d' % session.GetInitCount())
-    self.run()
+    self.Run()
 
-  def update_system_info(self):
+  def _UpdateSystemInfo(self):
     """Updates system info."""
     logging.info('Received a notify to update system info.')
     self.dut.info.Invalidate()
@@ -983,10 +981,10 @@ class Goofy(object):
     except Exception:
       logging.debug('Failed to update status monitor plugin.')
 
-  def set_force_auto_run(self):
+  def SetForceAutoRun(self):
     self.state_instance.set_shared_data(TESTS_AFTER_SHUTDOWN, FORCE_AUTO_RUN)
 
-  def update_factory(self, auto_run_on_restart=False, post_update_hook=None):
+  def UpdateFactory(self, auto_run_on_restart=False, post_update_hook=None):
     """Commences updating factory software.
 
     Args:
@@ -998,25 +996,25 @@ class Goofy(object):
       Never if the update was successful (we just reboot).
       False if the update was unnecessary (no update available).
     """
-    self.kill_active_tests(False, reason='Factory software update')
-    self.cancel_pending_tests()
+    self._KillActiveTests(False, reason='Factory software update')
+    self.CancelPendingTests()
 
-    def pre_update_hook():
+    def PreUpdateHook():
       if auto_run_on_restart:
-        self.set_force_auto_run()
+        self.SetForceAutoRun()
       self.state_instance.close()
 
-    if updater.TryUpdate(pre_update_hook=pre_update_hook):
+    if updater.TryUpdate(pre_update_hook=PreUpdateHook):
       if post_update_hook:
         post_update_hook()
       self.env.shutdown('reboot')
 
-  def handle_signal(self, signum, unused_frame):
+  def _HandleSignal(self, signum, unused_frame):
     names = [signame for signame in dir(signal) if signame.startswith('SIG') and
              getattr(signal, signame) == signum]
     signal_name = ', '.join(names) if names else 'UNKNOWN'
     logging.error('Received signal %s(%d)', signal_name, signum)
-    self.run_enqueue(None)
+    self.RunEnqueue(None)
     raise KeyboardInterrupt
 
   def GetTestList(self, test_list_id):
@@ -1039,7 +1037,7 @@ class Goofy(object):
     new_data = '%s\n\n%s' % (data, error_message) if data else error_message
     self.state_instance.set_shared_data(KEY, new_data)
 
-  def InitTestLists(self):
+  def _InitTestLists(self):
     """Reads in all test lists and sets the active test list.
 
     Returns:
@@ -1089,7 +1087,7 @@ class Goofy(object):
     # Only return False if failed to load the active test list.
     return bool(self.test_list)
 
-  def init_hooks(self):
+  def _InitHooks(self):
     """Initializes hooks.
 
     Must run after self.test_list ready.
@@ -1101,7 +1099,7 @@ class Goofy(object):
     self.hooks.test_list = self.test_list
     self.hooks.OnCreatedTestList()
 
-  def init_ui(self):
+  def InitUI(self):
     """Initialize UI."""
     logging.info('Waiting for a web socket connection')
     self.web_socket_manager.wait()
@@ -1135,17 +1133,17 @@ class Goofy(object):
       logging.info('dut_options set by %s: %r', self.test_list.test_list_id,
                    self.test_list.options.dut_options)
 
-    def prepare_link():
+    def PrepareLink():
       try:
         device_utils.PrepareDUTLink(**dut_options)
       except Exception:
         logging.exception('Unable to prepare DUT link.')
 
-    thread = threading.Thread(target=prepare_link)
+    thread = threading.Thread(target=PrepareLink)
     thread.daemon = True
     thread.start()
 
-  def init(self, args=None, env=None):
+  def Init(self, args=None, env=None):
     """Initializes Goofy.
 
     Args:
@@ -1154,8 +1152,8 @@ class Goofy(object):
     """
     (self.options, self.args) = self.GetCommandLineArgsParser().parse_args(args)
 
-    signal.signal(signal.SIGINT, self.handle_signal)
-    signal.signal(signal.SIGTERM, self.handle_signal)
+    signal.signal(signal.SIGINT, self._HandleSignal)
+    signal.signal(signal.SIGTERM, self._HandleSignal)
     # TODO(hungte) SIGTERM does not work properly without Telemetry and should
     # be fixed.
 
@@ -1193,17 +1191,17 @@ class Goofy(object):
     if self.options.restart:
       state.clear_state()
 
-    self.init_goofy_server()
+    self._InitGoofyServer()
     # Both the i18n file and index.html should be registered to Goofy before we
     # start the Goofy server, to avoid race condition that Goofy would return
     # 404 not found before index.html is registered.
-    self.init_i18n()
-    self.init_static_files()
+    self._InitI18n()
+    self._InitStaticFiles()
 
     logging.info('Starting goofy server')
     self.goofy_server_thread.start()
 
-    self.init_state_instance()
+    self._InitStateInstance()
     self.last_shutdown_time = (
         self.state_instance.get_shared_data('shutdown_time', optional=True))
     self.state_instance.del_shared_data('shutdown_time', optional=True)
@@ -1211,7 +1209,7 @@ class Goofy(object):
 
     success = False
     try:
-      success = self.InitTestLists()
+      success = self._InitTestLists()
     except Exception:
       logging.exception('Unable to initialize test lists')
       self._RecordStartError(
@@ -1225,7 +1223,7 @@ class Goofy(object):
 
     self.test_list.state_instance = self.state_instance
 
-    self.init_hooks()
+    self._InitHooks()
     self.testlog.init_hooks(self.test_list.options.testlog_hooks)
 
     if self.test_list.options.clear_state_on_start:
@@ -1243,8 +1241,8 @@ class Goofy(object):
         self.test_list.options.ToDict())
     self.state_instance.test_list = self.test_list
 
-    self.init_states()
-    self.start_event_server()
+    self._InitStates()
+    self._StartEventServer()
 
     # Load and run Goofy plugins.
     self.plugin_controller = plugin_controller.PluginController(
@@ -1260,7 +1258,7 @@ class Goofy(object):
     self.log_watcher = EventLogWatcher(
         self.test_list.options.sync_event_log_period_secs,
         event_log_db_file=None,
-        handle_event_logs_callback=self.handle_event_logs)
+        handle_event_logs_callback=self._HandleEventLogs)
     if self.test_list.options.sync_event_log_period_secs:
       self.log_watcher.StartWatchThread()
 
@@ -1295,26 +1293,26 @@ class Goofy(object):
       logging.info('Resuming tests after shutdown: %r', tests_after_shutdown)
       self.test_list_iterator = tests_after_shutdown
       self.test_list_iterator.SetTestList(self.test_list)
-      self.run_enqueue(self.run_next_test)
+      self.RunEnqueue(self._RunNextTest)
     elif force_auto_run or self.test_list.options.auto_run_on_start:
       status_filter = [TestState.UNTESTED]
       if self.test_list.options.retry_failed_on_start:
         status_filter.append(TestState.FAILED)
-      self.run_enqueue(lambda: self.run_tests(self.test_list, status_filter))
+      self.RunEnqueue(lambda: self._RunTests(self.test_list, status_filter))
     self.state_instance.set_shared_data(TESTS_AFTER_SHUTDOWN, None)
-    self.restore_active_run_state()
+    self._RestoreActiveRunState()
 
     self.hooks.OnTestStart()
 
-  def perform_periodic_tasks(self):
+  def _PerformPeriodicTasks(self):
     """Perform any periodic work.
 
     This method must not raise exceptions.
     """
-    self.check_plugins()
-    self.check_for_updates()
+    self._CheckPlugins()
+    self._CheckForUpdates()
 
-  def handle_event_logs(self, chunks, periodic=False):
+  def _HandleEventLogs(self, chunks, periodic=False):
     """Callback for event watcher.
 
     Attempts to upload the event logs to the factory server.
@@ -1365,7 +1363,7 @@ class Goofy(object):
       else:
         raise Exception(msg)
 
-  def run_tests_with_status(self, statuses_to_run, root=None):
+  def _RunTestsWithStatus(self, statuses_to_run, root=None):
     """Runs all top-level tests with a particular status.
 
     All active tests, plus any tests to re-run, are reset.
@@ -1378,19 +1376,19 @@ class Goofy(object):
         the root of all tests.
     """
     root = root or self.test_list
-    self.abort_active_tests('Operator requested run/re-run of certain tests')
-    self.run_tests(root, status_filter=statuses_to_run)
+    self._AbortActiveTests('Operator requested run/re-run of certain tests')
+    self._RunTests(root, status_filter=statuses_to_run)
 
-  def restart_tests(self, root=None):
+  def RestartTests(self, root=None):
     """Restarts all tests."""
     root = root or self.test_list
 
-    self.abort_active_tests('Operator requested restart of certain tests')
+    self._AbortActiveTests('Operator requested restart of certain tests')
     for test in root.Walk():
       test.UpdateState(status=TestState.UNTESTED)
-    self.run_tests(root)
+    self._RunTests(root)
 
-  def auto_run(self, root=None):
+  def _AutoRun(self, root=None):
     """"Auto-runs" tests that have not been run yet.
 
     Args:
@@ -1398,10 +1396,9 @@ class Goofy(object):
         will be test_list (root of all tests).
     """
     root = root or self.test_list
-    self.run_tests_with_status([TestState.UNTESTED, TestState.ACTIVE],
-                               root=root)
+    self._RunTestsWithStatus([TestState.UNTESTED, TestState.ACTIVE], root=root)
 
-  def wait(self):
+  def Wait(self):
     """Waits for all pending invocations.
 
     Useful for testing.
@@ -1410,9 +1407,9 @@ class Goofy(object):
       for invoc in self.invocations.itervalues():
         logging.info('Waiting for %s to complete...', invoc.test)
         invoc.thread.join()
-      self.reap_completed_tests()
+      self.ReapCompletedTests()
 
-  def test_fail(self, test):
+  def _TestFail(self, test):
     self.hooks.OnTestFailure(test)
 
 
@@ -1421,7 +1418,7 @@ def main():
   (options, unused_args) = Goofy.GetCommandLineArgsParser().parse_args()
   log_utils.InitLogging(verbose=options.verbose)
 
-  Goofy.run_main_and_exit()
+  Goofy.RunMainAndExit()
 
 
 if __name__ == '__main__':

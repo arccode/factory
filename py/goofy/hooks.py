@@ -72,9 +72,9 @@ class StationTestListHooks(Hooks):
 
     # This is a test stations, when the station reboots unexpectedly, we should
     # restart from the beginning.  We cannot call
-    # ``goofy_instance.schedule_restart()`` or
-    # ``goofy_instance.restart_tests()`` because this function is called before
+    # ``goofy_instance.ScheduleRestart()`` or
+    # ``goofy_instance.RestartTests()`` because this function is called before
     # goofy starts running tests.
     for test in goofy_instance.test_list.Walk():
       test.UpdateState(status=TestState.UNTESTED)
-    goofy_instance.set_force_auto_run()
+    goofy_instance.SetForceAutoRun()

@@ -41,7 +41,7 @@ from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import Spawn
 
 
-def mock_pytest(name, test_state, error_msg, func=None):
+def MockPytest(name, test_state, error_msg, func=None):
   """Adds a side effect that a mock pytest will be executed.
 
   Args:
@@ -50,7 +50,7 @@ def mock_pytest(name, test_state, error_msg, func=None):
     error_msg: The error message.
     func: Optional callable to run inside the side effect function.
   """
-  def side_effect(info, unused_env):
+  def SideEffect(info, unused_env):
     assert info.pytest_name == name
     if func:
       func()
@@ -59,7 +59,7 @@ def mock_pytest(name, test_state, error_msg, func=None):
     return Spawn(['true'], stdout=subprocess.PIPE)
 
   prespawner.Prespawner.spawn(
-      IgnoreArg(), IgnoreArg()).WithSideEffects(side_effect)
+      IgnoreArg(), IgnoreArg()).WithSideEffects(SideEffect)
 
 
 class GoofyTest(unittest.TestCase):
@@ -91,25 +91,25 @@ class GoofyTest(unittest.TestCase):
 
     self.test_list_manager = self.mocker.CreateMock(manager.Manager)
 
-    self.before_init_goofy()
+    self.BeforeInitGoofy()
 
-    self.record_goofy_init()
+    self.RecordGoofyInit()
     self.mocker.ReplayAll()
-    self.init_goofy()
+    self.InitGoofy()
     self.mocker.VerifyAll()
     self.mocker.ResetAll()
 
-    self.after_init_goofy()
+    self.AfterInitGoofy()
 
   def tearDown(self):
     try:
       self.mocker.VerifyAll()
       self.mocker.ResetAll()
 
-      self.record_goofy_destroy()
+      self.RecordGoofyDestroy()
       self.mocker.ReplayAll()
 
-      self.goofy.destroy()
+      self.goofy.Destroy()
       self.mocker.VerifyAll()
       self.mocker.ResetAll()
 
@@ -130,7 +130,7 @@ class GoofyTest(unittest.TestCase):
       state.get_instance = self.original_get_state_instance
       self.mocker.UnsetStubs()
 
-  def init_goofy(self, restart=True):
+  def InitGoofy(self, restart=True):
     """Initializes and returns a Goofy."""
     new_goofy = Goofy()
     args = ['--test_list', 'test']
@@ -146,10 +146,10 @@ class GoofyTest(unittest.TestCase):
                                  'mlb_sn_123456789')
     new_goofy.dut.info.Overrides(device_data.NAME_SERIAL_NUMBER, 'sn_123456789')
     new_goofy.test_list_manager = self.test_list_manager
-    new_goofy.init(args, self.env or Environment())
+    new_goofy.Init(args, self.env or Environment())
     self.goofy = new_goofy
 
-  def record_goofy_init(self, restart=True):
+  def RecordGoofyInit(self, restart=True):
     if restart:
       state.clear_state()
 
@@ -179,30 +179,30 @@ class GoofyTest(unittest.TestCase):
       self.test_list_manager.BuildAllTestLists().AndReturn(
           ({'test': test_list}, {}))
 
-  def record_goofy_destroy(self):
+  def RecordGoofyDestroy(self):
     if self.mock_goofy_server:
       self.goofy.goofy_server.shutdown()
       self.goofy.goofy_server.server_close()
 
-  def _wait(self):
+  def _Wait(self):
     """Waits for any pending invocations in Goofy to complete.
 
     Waits for any pending invocations in Goofy to complete,
     and verifies and resets all mocks.
     """
-    self.goofy.wait()
+    self.goofy.Wait()
     self.mocker.VerifyAll()
     self.mocker.ResetAll()
 
-  def before_init_goofy(self):
-    """Hook invoked before init_goofy."""
+  def BeforeInitGoofy(self):
+    """Hook invoked before InitGoofy."""
 
-  def after_init_goofy(self):
-    """Hook invoked after init_goofy."""
+  def AfterInitGoofy(self):
+    """Hook invoked after InitGoofy."""
 
-  def check_one_test(self, test_id, name, passed, error_msg,
-                     trigger=None, does_not_start=False, setup_mocks=True,
-                     expected_count=1):
+  def CheckOneTest(self, test_id, name, passed, error_msg,
+                   trigger=None, does_not_start=False, setup_mocks=True,
+                   expected_count=1):
     """Runs a single pytest, waiting for it to complete.
 
     Args:
@@ -219,15 +219,15 @@ class GoofyTest(unittest.TestCase):
       expected_count: The expected run count.
     """
     if setup_mocks and not does_not_start:
-      mock_pytest(name, passed, error_msg)
+      MockPytest(name, passed, error_msg)
     self.mocker.ReplayAll()
     if trigger:
       trigger()
-    self.assertTrue(self.goofy.run_once())
+    self.assertTrue(self.goofy.RunOnce())
     self.assertEqual(
         [] if does_not_start else [test_id],
         [invoc.test.path for invoc in self.goofy.invocations.itervalues()])
-    self._wait()
+    self._Wait()
     test_state = self.state.get_test_state(test_id)
     self.assertEqual(passed, test_state.status)
     self.assertEqual(0 if does_not_start else expected_count, test_state.count)
@@ -243,7 +243,7 @@ class GoofyUITest(GoofyTest):
     self.ws_start = None
     self.ws_done = None
 
-  def before_init_goofy(self):
+  def BeforeInitGoofy(self):
     # Keep a record of events we received
     self.events = []
     # Trigger this event once the web socket is ready
@@ -251,7 +251,7 @@ class GoofyUITest(GoofyTest):
     # Trigger this event once the web socket closes
     self.ws_done = threading.Event()
 
-  def after_init_goofy(self):
+  def AfterInitGoofy(self):
     class MyClient(WebSocketBaseClient):
       """The web socket client class."""
       # pylint: disable=no-self-argument
@@ -271,18 +271,18 @@ class GoofyUITest(GoofyTest):
                   (net_utils.LOCALHOST, goofy_proxy.DEFAULT_GOOFY_PORT),
                   protocols=None, extensions=None)
 
-    def open_web_socket():
+    def OpenWebSocket():
       ws.connect()
       ws.run()
       self.ws_done.set()
 
-    # After goofy.init(), it should be ready to accept a web socket
-    threading.Thread(target=open_web_socket).start()
+    # After goofy.Init(), it should be ready to accept a web socket
+    threading.Thread(target=OpenWebSocket).start()
 
-  def wait_for_web_socket_start(self):
+  def WaitForWebSocketStart(self):
     self.ws_start.wait()
 
-  def wait_for_web_socket_stop(self):
+  def WaitForWebSocketStop(self):
     self.ws_done.wait()
 
 
@@ -300,17 +300,19 @@ class BasicTest(GoofyUITest):
       'tests': ABC_TEST_LIST
   }
   def runTest(self):
-    self.check_one_test('test:a', 'a_A', TestState.PASSED, '')
-    self.check_one_test('test:b', 'b_B', TestState.FAILED, 'Uh-oh')
-    self.check_one_test('test:c', 'c_C', TestState.FAILED, 'Uh-oh')
-    self.assertEqual(dict(id=None, path='test:', subtests=[
-        dict(count=1, error_msg=None, id='a', path='test:a', status='PASSED'),
-        dict(count=1, error_msg='Uh-oh', id='b', path='test:b',
-             status='FAILED'),
-        dict(count=1, error_msg='Uh-oh', id='c', path='test:c',
-             status='FAILED'),]),
-                     self.goofy.test_list.ToFactoryTestList().AsDict(
-                         state.get_instance().get_test_states()))
+    self.CheckOneTest('test:a', 'a_A', TestState.PASSED, '')
+    self.CheckOneTest('test:b', 'b_B', TestState.FAILED, 'Uh-oh')
+    self.CheckOneTest('test:c', 'c_C', TestState.FAILED, 'Uh-oh')
+    self.assertEqual(
+        dict(id=None, path='test:', subtests=[
+            dict(count=1, error_msg=None, id='a', path='test:a',
+                 status='PASSED'),
+            dict(count=1, error_msg='Uh-oh', id='b', path='test:b',
+                 status='FAILED'),
+            dict(count=1, error_msg='Uh-oh', id='c', path='test:c',
+                 status='FAILED'),]),
+        self.goofy.test_list.ToFactoryTestList().AsDict(
+            state.get_instance().get_test_states()))
 
 
 class WebSocketTest(GoofyUITest):
@@ -319,7 +321,7 @@ class WebSocketTest(GoofyUITest):
       'tests': ABC_TEST_LIST
   }
 
-  def check_test_status_change(self, test_id, test_state):
+  def CheckTestStatusChange(self, test_id, test_state):
     # The Goofy Server should receive the events in 2 seconds.
     for unused_t in xrange(20):
       statuses = []
@@ -332,19 +334,19 @@ class WebSocketTest(GoofyUITest):
     return False
 
   def runTest(self):
-    self.wait_for_web_socket_start()
-    self.check_one_test('test:a', 'a_A', TestState.PASSED, '')
-    self.assertTrue(self.check_test_status_change('test:a', TestState.PASSED))
-    self.check_one_test('test:b', 'b_B', TestState.FAILED, 'Uh-oh')
-    self.assertTrue(self.check_test_status_change('test:b', TestState.FAILED))
-    self.check_one_test('test:c', 'c_C', TestState.FAILED, 'Uh-oh')
-    self.assertTrue(self.check_test_status_change('test:c', TestState.FAILED))
+    self.WaitForWebSocketStart()
+    self.CheckOneTest('test:a', 'a_A', TestState.PASSED, '')
+    self.assertTrue(self.CheckTestStatusChange('test:a', TestState.PASSED))
+    self.CheckOneTest('test:b', 'b_B', TestState.FAILED, 'Uh-oh')
+    self.assertTrue(self.CheckTestStatusChange('test:b', TestState.FAILED))
+    self.CheckOneTest('test:c', 'c_C', TestState.FAILED, 'Uh-oh')
+    self.assertTrue(self.CheckTestStatusChange('test:c', TestState.FAILED))
 
     # Kill Goofy and wait for the web socket to close gracefully
-    self.record_goofy_destroy()
+    self.RecordGoofyDestroy()
     self.mocker.ReplayAll()
-    self.goofy.destroy()
-    self.wait_for_web_socket_stop()
+    self.goofy.Destroy()
+    self.WaitForWebSocketStop()
 
     hello_event = 0
     for event in self.events:
@@ -355,9 +357,9 @@ class WebSocketTest(GoofyUITest):
     self.assertEqual(1, hello_event)
 
     # Check the statuses again.
-    self.assertTrue(self.check_test_status_change('test:a', TestState.PASSED))
-    self.assertTrue(self.check_test_status_change('test:b', TestState.FAILED))
-    self.assertTrue(self.check_test_status_change('test:c', TestState.FAILED))
+    self.assertTrue(self.CheckTestStatusChange('test:a', TestState.PASSED))
+    self.assertTrue(self.CheckTestStatusChange('test:b', TestState.FAILED))
+    self.assertTrue(self.CheckTestStatusChange('test:c', TestState.FAILED))
 
 
 class ShutdownTest(GoofyUITest):
@@ -371,59 +373,59 @@ class ShutdownTest(GoofyUITest):
 
   def runTest(self):
     # Expect a reboot request.
-    mock_pytest('shutdown', TestState.ACTIVE, '',
-                func=lambda: self.goofy.shutdown('reboot'))
+    MockPytest('shutdown', TestState.ACTIVE, '',
+               func=lambda: self.goofy.Shutdown('reboot'))
     self.env.shutdown('reboot').AndReturn(True)
     self.mocker.ReplayAll()
-    self.assertTrue(self.goofy.run_once())
-    self._wait()
+    self.assertTrue(self.goofy.RunOnce())
+    self._Wait()
 
     # That should have enqueued a task that will cause Goofy
     # to shut down.
-    self.assertFalse(self.goofy.run_once())
+    self.assertFalse(self.goofy.RunOnce())
 
     # There should be a list of tests to run on wake-up.
     test_list_iterator = self.state.get_shared_data(
         goofy.TESTS_AFTER_SHUTDOWN, True)
     self.assertEqual('test:RebootStep', test_list_iterator.Top().node)
-    self._wait()
+    self._Wait()
 
     # Kill and restart Goofy to simulate the first two shutdown iterations.
     # Goofy should call for another shutdown.
     for _ in range(2):
       self.mocker.ResetAll()
       # Goofy should invoke shutdown test to do post-shutdown verification.
-      mock_pytest('shutdown', TestState.PASSED, '')
+      MockPytest('shutdown', TestState.PASSED, '')
       # Goofy should invoke shutdown again to start next iteration.
-      mock_pytest('shutdown', TestState.ACTIVE,
-                  '', func=lambda: self.goofy.shutdown('reboot'))
+      MockPytest('shutdown', TestState.ACTIVE,
+                 '', func=lambda: self.goofy.Shutdown('reboot'))
       self.env.shutdown('reboot').AndReturn(True)
-      self.record_goofy_destroy()
-      self.record_goofy_init(restart=False)
+      self.RecordGoofyDestroy()
+      self.RecordGoofyInit(restart=False)
       self.mocker.ReplayAll()
-      self.goofy.destroy()
-      self.before_init_goofy()
-      self.init_goofy(restart=False)
-      self.after_init_goofy()
-      self.goofy.run_once()
-      self._wait()
+      self.goofy.Destroy()
+      self.BeforeInitGoofy()
+      self.InitGoofy(restart=False)
+      self.AfterInitGoofy()
+      self.goofy.RunOnce()
+      self._Wait()
 
     # The third shutdown iteration.
     self.mocker.ResetAll()
     # Goofy should invoke shutdown test to do post-shutdown verification.
-    mock_pytest('shutdown', TestState.PASSED, '')
-    self.record_goofy_destroy()
-    self.record_goofy_init(restart=False)
+    MockPytest('shutdown', TestState.PASSED, '')
+    self.RecordGoofyDestroy()
+    self.RecordGoofyInit(restart=False)
     self.mocker.ReplayAll()
-    self.goofy.destroy()
-    self.before_init_goofy()
-    self.init_goofy(restart=False)
-    self.after_init_goofy()
-    self.goofy.run_once()
-    self._wait()
+    self.goofy.Destroy()
+    self.BeforeInitGoofy()
+    self.InitGoofy(restart=False)
+    self.AfterInitGoofy()
+    self.goofy.RunOnce()
+    self._Wait()
 
     # No more shutdowns - now 'a' should run.
-    self.check_one_test('test:a', 'a_A', TestState.PASSED, '')
+    self.CheckOneTest('test:a', 'a_A', TestState.PASSED, '')
 
 
 class RebootFailureTest(GoofyUITest):
@@ -436,18 +438,18 @@ class RebootFailureTest(GoofyUITest):
 
   def runTest(self):
     # Expect a reboot request
-    mock_pytest('shutdown', TestState.ACTIVE, '',
-                func=lambda: self.goofy.shutdown('reboot'))
+    MockPytest('shutdown', TestState.ACTIVE, '',
+               func=lambda: self.goofy.Shutdown('reboot'))
     self.env.shutdown('reboot').AndReturn(True)
     self.mocker.ReplayAll()
-    self.assertTrue(self.goofy.run_once())
-    self._wait()
+    self.assertTrue(self.goofy.RunOnce())
+    self._Wait()
 
     # That should have enqueued a task that will cause Goofy
     # to shut down.
     self.mocker.ReplayAll()
-    self.assertFalse(self.goofy.run_once())
-    self._wait()
+    self.assertFalse(self.goofy.RunOnce())
+    self._Wait()
 
     # Something pretty close to the current time should be written
     # as the shutdown time.
@@ -456,20 +458,20 @@ class RebootFailureTest(GoofyUITest):
 
     # Kill and restart Goofy to simulate a reboot.
     # Goofy should fail the test since it has been too long.
-    self.record_goofy_destroy()
+    self.RecordGoofyDestroy()
     self.mocker.ReplayAll()
-    self.goofy.destroy()
+    self.goofy.Destroy()
 
     self.mocker.ResetAll()
     # Mock a failed shutdown post-shutdown verification.
-    mock_pytest('shutdown', TestState.FAILED, 'Reboot failed.')
-    self.record_goofy_init(restart=False)
+    MockPytest('shutdown', TestState.FAILED, 'Reboot failed.')
+    self.RecordGoofyInit(restart=False)
     self.mocker.ReplayAll()
-    self.before_init_goofy()
-    self.init_goofy(restart=False)
-    self.after_init_goofy()
-    self.goofy.run_once()
-    self._wait()
+    self.BeforeInitGoofy()
+    self.InitGoofy(restart=False)
+    self.AfterInitGoofy()
+    self.goofy.RunOnce()
+    self._Wait()
 
     test_state = state.get_instance().get_test_state(path='test:RebootStep')
     self.assertEqual(TestState.FAILED, test_state.status)
@@ -489,21 +491,21 @@ class NoAutoRunTest(GoofyUITest):
     # There shouldn't be anything to do at startup, since auto_run_on_start
     # is unset.
     self.mocker.ReplayAll()
-    self.goofy.run_once()
+    self.goofy.RunOnce()
     self.assertEqual({}, self.goofy.invocations)
-    self._wait()
+    self._Wait()
 
     # Tell Goofy to run 'b'.
-    self.check_one_test(
+    self.CheckOneTest(
         'test:b', 'b_B', TestState.PASSED, '',
-        trigger=lambda: self.goofy.handle_event(
+        trigger=lambda: self.goofy.HandleEvent(
             Event(Event.Type.RESTART_TESTS, path='b')))
 
   def runTest(self):
     self._runTestB()
     # No more tests to run now.
     self.mocker.ReplayAll()
-    self.goofy.run_once()
+    self.goofy.RunOnce()
     self.assertEqual({}, self.goofy.invocations)
 
 
@@ -536,18 +538,18 @@ class PyTestTest(GoofyUITest):
   mock_spawn_pytest = False
 
   def runTest(self):
-    self.goofy.run_once()
+    self.goofy.RunOnce()
     self.assertEqual(
         ['a'], [invoc.test.id for invoc in self.goofy.invocations.itervalues()])
-    self.goofy.wait()
+    self.goofy.Wait()
     self.assertEqual(
         TestState.PASSED,
         state.get_instance().get_test_state(path='test:a').status)
 
-    self.goofy.run_once()
+    self.goofy.RunOnce()
     self.assertEqual(
         ['b'], [invoc.test.id for invoc in self.goofy.invocations.itervalues()])
-    self.goofy.wait()
+    self.goofy.Wait()
     failed_state = state.get_instance().get_test_state(path='test:b')
     self.assertEqual(TestState.FAILED, failed_state.status)
     self.assertTrue(
@@ -567,21 +569,21 @@ class MultipleIterationsTest(GoofyUITest):
   }
 
   def runTest(self):
-    self.check_one_test('test:a', 'a_A', TestState.PASSED, '')
+    self.CheckOneTest('test:a', 'a_A', TestState.PASSED, '')
 
-    mock_pytest('b_B', TestState.PASSED, '')
-    mock_pytest('b_B', TestState.PASSED, '')
-    mock_pytest('b_B', TestState.PASSED, '')
-    self.check_one_test('test:b', 'b_B', TestState.PASSED,
-                        '', setup_mocks=False, expected_count=3)
+    MockPytest('b_B', TestState.PASSED, '')
+    MockPytest('b_B', TestState.PASSED, '')
+    MockPytest('b_B', TestState.PASSED, '')
+    self.CheckOneTest('test:b', 'b_B', TestState.PASSED,
+                      '', setup_mocks=False, expected_count=3)
 
-    mock_pytest('c_C', TestState.PASSED, '')
-    mock_pytest('c_C', TestState.FAILED, 'I bent my wookie')
+    MockPytest('c_C', TestState.PASSED, '')
+    MockPytest('c_C', TestState.FAILED, 'I bent my wookie')
     # iterations=3, but it should stop after the first failed iteration.
-    self.check_one_test('test:c', 'c_C', TestState.FAILED,
-                        'I bent my wookie', setup_mocks=False, expected_count=2)
+    self.CheckOneTest('test:c', 'c_C', TestState.FAILED,
+                      'I bent my wookie', setup_mocks=False, expected_count=2)
 
-    self.check_one_test('test:d', 'd_D', TestState.PASSED, '')
+    self.CheckOneTest('test:d', 'd_D', TestState.PASSED, '')
 
 
 class RequireRunTest(GoofyUITest):
@@ -597,15 +599,15 @@ class RequireRunTest(GoofyUITest):
   }
 
   def runTest(self):
-    self.goofy.restart_tests(
+    self.goofy.RestartTests(
         root=self.goofy.test_list.LookupPath('b'))
-    self.check_one_test('test:b', 'b_B', TestState.FAILED,
-                        'Required tests [test:a] have not been run yet',
-                        does_not_start=True)
+    self.CheckOneTest('test:b', 'b_B', TestState.FAILED,
+                      'Required tests [test:a] have not been run yet',
+                      does_not_start=True)
 
-    self.goofy.restart_tests()
-    self.check_one_test('test:a', 'a_A', TestState.PASSED, '')
-    self.check_one_test('test:b', 'b_B', TestState.PASSED, '')
+    self.goofy.RestartTests()
+    self.CheckOneTest('test:a', 'a_A', TestState.PASSED, '')
+    self.CheckOneTest('test:b', 'b_B', TestState.PASSED, '')
 
 
 class StopOnFailureTest(GoofyUITest):
@@ -619,20 +621,20 @@ class StopOnFailureTest(GoofyUITest):
   }
 
   def runTest(self):
-    mock_pytest('a_A', TestState.PASSED, '')
-    mock_pytest('b_B', TestState.FAILED, 'Oops!')
+    MockPytest('a_A', TestState.PASSED, '')
+    MockPytest('b_B', TestState.FAILED, 'Oops!')
     self.mocker.ReplayAll()
     # Make sure events are all processed.
     for _ in range(3):
-      self.assertTrue(self.goofy.run_once())
-      self.goofy.wait()
+      self.assertTrue(self.goofy.RunOnce())
+      self.goofy.Wait()
 
     state_instance = state.get_instance()
     self.assertEqual(
         [TestState.PASSED, TestState.FAILED, TestState.UNTESTED],
         [state_instance.get_test_state(x).status
          for x in ['test:a', 'test:b', 'test:c']])
-    self._wait()
+    self._Wait()
 
 
 class ParallelTest(GoofyUITest):
@@ -653,16 +655,16 @@ class ParallelTest(GoofyUITest):
   }
 
   def runTest(self):
-    mock_pytest('a_A', TestState.PASSED, '')
-    mock_pytest('b_B', TestState.PASSED, '')
-    mock_pytest('c_C', TestState.PASSED, '')
+    MockPytest('a_A', TestState.PASSED, '')
+    MockPytest('b_B', TestState.PASSED, '')
+    MockPytest('c_C', TestState.PASSED, '')
     self.mocker.ReplayAll()
 
-    self.goofy.run_once()
+    self.goofy.RunOnce()
     self.assertEqual(
         {'a', 'b', 'c'},
         {invoc.test.id for invoc in self.goofy.invocations.itervalues()})
-    self.goofy.wait()
+    self.goofy.Wait()
 
     self.mocker.VerifyAll()
     self.mocker.ResetAll()
@@ -691,30 +693,30 @@ class WaivedTestTest(GoofyUITest):
       ]
   }
 
-  def before_init_goofy(self):
-    super(WaivedTestTest, self).before_init_goofy()
+  def BeforeInitGoofy(self):
+    super(WaivedTestTest, self).BeforeInitGoofy()
     # 'G.waived' is already FAILED previously.
     self.state.update_test_state(path='test:G.waived', status=TestState.FAILED)
 
   def runTest(self):
-    mock_pytest('waived_test', TestState.FAILED, 'Failed')
-    mock_pytest('normal_test', TestState.PASSED, '')
+    MockPytest('waived_test', TestState.FAILED, 'Failed')
+    MockPytest('normal_test', TestState.PASSED, '')
     self.mocker.ReplayAll()
 
     # After Goofy init, 'G.waived' should be set to 'FAILED_AND_WAIVED'.
     self.assertEqual(self.state.get_test_state(path='test:G.waived').status,
                      TestState.FAILED_AND_WAIVED)
 
-    for _ in range(4):
-      self.assertTrue(self.goofy.run_once())
-      self.goofy.wait()
+    for unused_i in range(4):
+      self.assertTrue(self.goofy.RunOnce())
+      self.goofy.Wait()
 
     self.assertEqual(
         [TestState.FAILED_AND_WAIVED, TestState.PASSED,
          TestState.FAILED_AND_WAIVED, TestState.FAILED_AND_WAIVED],
         [self.state.get_test_state(x).status
          for x in ['test:waived', 'test:normal', 'test:G', 'test:G.waived']])
-    self._wait()
+    self._Wait()
 
 
 class SkippedTestTest(GoofyUITest):
@@ -749,13 +751,13 @@ class SkippedTestTest(GoofyUITest):
   }
 
   def runTest(self):
-    mock_pytest('normal_test', TestState.PASSED, '')
-    mock_pytest('normal_test', TestState.PASSED, '')
+    MockPytest('normal_test', TestState.PASSED, '')
+    MockPytest('normal_test', TestState.PASSED, '')
     self.mocker.ReplayAll()
 
     for _ in range(4):
-      self.assertTrue(self.goofy.run_once())
-      self.goofy.wait()
+      self.assertTrue(self.goofy.RunOnce())
+      self.goofy.Wait()
 
     state_instance = state.get_instance()
     self.assertEqual(
@@ -764,7 +766,7 @@ class SkippedTestTest(GoofyUITest):
         [state_instance.get_test_state(x).status
          for x in ['test:skipped', 'test:G.A', 'test:G.A_2', 'test:G.A_3',
                    'test:normal']])
-    self._wait()
+    self._Wait()
 
 
 class EndlessLoopTest(GoofyUITest):
@@ -784,16 +786,16 @@ class EndlessLoopTest(GoofyUITest):
 
   def runTest(self):
     for unused_i in xrange(4):
-      mock_pytest('normal_test', TestState.PASSED, '')
+      MockPytest('normal_test', TestState.PASSED, '')
     for unused_i in xrange(4):
-      mock_pytest('normal_test', TestState.FAILED, '')
+      MockPytest('normal_test', TestState.FAILED, '')
     self.mocker.ReplayAll()
 
     state_instance = state.get_instance()
 
     for i in range(8):
-      self.assertTrue(self.goofy.run_once())
-      self.goofy.wait()
+      self.assertTrue(self.goofy.RunOnce())
+      self.goofy.Wait()
       self.assertEqual(
           state_instance.get_test_state(path='test:G').iterations_left,
           float('inf'))
@@ -804,7 +806,7 @@ class EndlessLoopTest(GoofyUITest):
                        i + 1)
       self.assertEqual(state_instance.get_test_state(path='test:G.A').status,
                        TestState.PASSED if i < 4 else TestState.FAILED)
-    self._wait()
+    self._Wait()
 
 
 class NoHostTest(GoofyUITest):
@@ -822,21 +824,21 @@ class NoHostTest(GoofyUITest):
   mock_spawn_pytest = False
 
   def runTest(self):
-    self.mocker.StubOutWithMock(self.goofy, 'init_ui')
+    self.mocker.StubOutWithMock(self.goofy, 'InitUI')
 
-    # No UI for test 'a', should not call init_ui
+    # No UI for test 'a', should not call InitUI
     self.mocker.ReplayAll()
-    self.goofy.run_once()
-    self._wait()
+    self.goofy.RunOnce()
+    self._Wait()
     self.assertEqual(
         TestState.PASSED,
         state.get_instance().get_test_state(path='test:a').status)
 
     # Start the UI for test 'b'
-    self.goofy.init_ui()
+    self.goofy.InitUI()
     self.mocker.ReplayAll()
-    self.goofy.run_once()
-    self._wait()
+    self.goofy.RunOnce()
+    self._Wait()
     self.assertEqual(
         TestState.PASSED,
         state.get_instance().get_test_state(path='test:b').status)

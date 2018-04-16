@@ -645,11 +645,11 @@ class TestInvocation(object):
           decrement_retries_left=decrement_retries_left)
       self._completed = True
 
-    self.goofy.run_queue.put(self.goofy.reap_completed_tests)
+    self.goofy.RunEnqueue(self.goofy.ReapCompletedTests)
     if status == TestState.FAILED:
-      self.goofy.run_queue.put(self.on_test_failure)
+      self.goofy.RunEnqueue(self.on_test_failure)
     if self.on_completion:
-      self.goofy.run_queue.put(self.on_completion)
+      self.goofy.RunEnqueue(self.on_completion)
 
 
 # The functions above is used when invocation is imported as module, and
