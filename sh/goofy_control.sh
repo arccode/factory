@@ -126,7 +126,8 @@ check_disk_usage() {
   mkdir -p "${out_dir}"
   sed -i -e "s/ \[/\\n [/g" "${df_output}"
   find /var -size +100M -print0 | xargs -0 du -sh | sort -hr >>"${df_output}"
-  sed -e "/DISK_USAGE_INFO/r ${df_output}" "${template_file}" >"${out_file}"
+  toybox sed -e "/DISK_USAGE_INFO/r ${df_output}" "${template_file}" \
+    >"${out_file}"
   # This should be the port specified by chrome_dev.conf.
   exec busybox httpd -f -p 4012 -h "${out_dir}"
 }
