@@ -127,6 +127,17 @@ class GPTTest(unittest.TestCase):
     self.assertEqual(gpt.header.PartitionEntriesStartingLBA, 3)
     self.assertEqual(gpt.header.FirstUsableLBA, 7)
 
+  def testBoot(self):
+    bin_file = self.temp_bin
+    boot_guid = pygpt.GPT.LoadFromFile(bin_file).partitions[1].UniqueGUID
+    pygpt.GPT.WriteProtectiveMBR(
+        bin_file, True, bootcode='TEST', boot_guid=boot_guid)
+    gpt = pygpt.GPT.LoadFromFile(bin_file)
+    self.assertEqual(gpt.pmbr.BootGUID, boot_guid)
+    self.assertEqual(gpt.pmbr.BootCode.strip('\0'), 'TEST')
+    self.assertEqual(gpt.pmbr.Magic, gpt.ProtectiveMBR.MAGIC)
+    self.assertEqual(gpt.pmbr.Signature, gpt.ProtectiveMBR.SIGNATURE)
+
 
 if __name__ == '__main__':
   unittest.main()

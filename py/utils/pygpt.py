@@ -67,6 +67,21 @@ PARTITION_DESCRIPTION = """
   72s Names
 """
 
+# The PMBR has so many variants. The basic format is defined in
+# https://en.wikipedia.org/wiki/Master_boot_record#Sector_layout, and our
+# implementation, as derived from `cgpt`, is following syslinux as:
+# https://chromium.googlesource.com/chromiumos/platform/vboot_reference/+/master/cgpt/cgpt.h#32
+PMBR_DESCRIPTION = """
+ 424s BootCode
+  16s BootGUID
+    L DiskID
+   2s Magic
+  16s LegacyPart0
+  16s LegacyPart1
+  16s LegacyPart2
+  16s LegacyPart3
+   2s Signature
+"""
 
 def BitProperty(getter, setter, shift, mask):
   """A generator for bit-field properties.
@@ -218,6 +233,7 @@ class GPT(object):
 
   Attributes:
     header: a namedtuple of GPT header.
+    pmbr: a namedtuple of Protective MBR.
     partitions: a list of GPT partition entry nametuple.
     block_size: integer for size of bytes in one block (sector).
   """
@@ -228,7 +244,7 @@ class GPT(object):
   TYPE_GUID_MAP = {
       '00000000-0000-0000-0000-000000000000': 'Unused',
       'EBD0A0A2-B9E5-4433-87C0-68B6B72699C7': 'Linux data',
-      'FE3A2A5D-4F32-41A7-B725-ACCC3285A309': 'ChromeOS kernel',
+      'FE3A2A5D-4F32-41A7-B725-ACCC3285A309': TYPE_NAME_CHROMEOS_KERNEL,
       '3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC': 'ChromeOS rootfs',
       '2E0A753D-9E48-43B0-8337-B15192CB1B5E': 'ChromeOS reserved',
       'CAB6E88E-ABF3-4102-A07A-D4BB9BE3C1D3': 'ChromeOS firmware',
@@ -238,6 +254,21 @@ class GPT(object):
       'FE3A2A5D-4F32-41A7-B725-ACCC3285A309',  # ChromeOS kernel
       'C12A7328-F81F-11D2-BA4B-00A0C93EC93B',  # EFI System Partition
   ]
+
+  @GPTBlob(PMBR_DESCRIPTION)
+  class ProtectiveMBR(GPTObject):
+    """Protective MBR (PMBR) in GPT."""
+    SIGNATURE = '\x55\xAA'
+    MAGIC = '\x1d\x9a'
+
+    CLONE_CONVERTERS = {
+        'BootGUID': lambda v: v.bytes_le if isinstance(v, uuid.UUID) else v
+    }
+
+    @property
+    def boot_guid(self):
+      """Returns the BootGUID in decoded (uuid.UUID) format."""
+      return uuid.UUID(bytes_le=self.BootGUID)
 
   @GPTBlob(HEADER_DESCRIPTION)
   class Header(GPTObject):
@@ -398,6 +429,7 @@ class GPT(object):
 
     See LoadFromFile for how it's usually used.
     """
+    self.pmbr = None
     self.header = None
     self.partitions = None
     self.block_size = self.DEFAULT_BLOCK_SIZE
@@ -432,6 +464,14 @@ class GPT(object):
         return cls.LoadFromFile(f)
 
     gpt = cls()
+    image.seek(0)
+    pmbr = gpt.ProtectiveMBR.ReadFrom(image)
+    if pmbr.Signature == cls.ProtectiveMBR.SIGNATURE:
+      logging.debug('Found MBR signature in %s', image.name)
+      if pmbr.Magic == cls.ProtectiveMBR.MAGIC:
+        logging.debug('Found PMBR in %s', image.name)
+        gpt.pmbr = pmbr
+
     # Try DEFAULT_BLOCK_SIZE, then 4K.
     for block_size in [cls.DEFAULT_BLOCK_SIZE, 4096]:
       image.seek(block_size * 1)
@@ -565,6 +605,67 @@ class GPT(object):
         CurrentLBA=self.header.BackupLBA,
         PartitionEntriesStartingLBA=partitions_starting_lba)
 
+  @classmethod
+  def WriteProtectiveMBR(cls, image, create, bootcode=None, boot_guid=None):
+    """Writes a protective MBR to given file.
+
+    Each MBR is 512 bytes: 424 bytes for bootstrap code, 16 bytes of boot GUID,
+    4 bytes of disk id, 2 bytes of bootcode magic, 4*16 for 4 partitions, and 2
+    byte as signature. cgpt has hard-coded the CHS and bootstrap magic values so
+    we can follow that.
+
+    Args:
+      create: True to re-create PMBR structure.
+      bootcode: a blob of new boot code.
+      boot_guid a blob for new boot GUID.
+
+    Returns:
+      The written PMBR structure.
+    """
+    if isinstance(image, basestring):
+      with open(image, 'rb+') as f:
+        return cls.WriteProtectiveMBR(f, create, bootcode, boot_guid)
+
+    image.seek(0)
+    assert struct.calcsize(cls.ProtectiveMBR.FORMAT) == cls.DEFAULT_BLOCK_SIZE
+    pmbr = cls.ProtectiveMBR.ReadFrom(image)
+
+    if create:
+      legacy_sectors = min(
+          0x100000000,
+          os.path.getsize(image.name) / cls.DEFAULT_BLOCK_SIZE) - 1
+      # Partition 0 must have have the fixed CHS with number of sectors
+      # (calculated as legacy_sectors later).
+      part0 = ('00000200eeffffff01000000'.decode('hex') +
+               struct.pack('<I', legacy_sectors))
+      # Partition 1~3 should be all zero.
+      part1 = '\x00' * 16
+      assert len(part0) == len(part1) == 16, 'MBR entry is wrong.'
+      pmbr = pmbr.Clone(
+          BootGUID=cls.TYPE_GUID_UNUSED,
+          DiskID=0,
+          Magic=cls.ProtectiveMBR.MAGIC,
+          LegacyPart0=part0,
+          LegacyPart1=part1,
+          LegacyPart2=part1,
+          LegacyPart3=part1,
+          Signature=cls.ProtectiveMBR.SIGNATURE)
+
+    if bootcode:
+      if len(bootcode) > len(pmbr.BootCode):
+        logging.info(
+            'Bootcode is larger (%d > %d)!', len(bootcode), len(pmbr.BootCode))
+        bootcode = bootcode[:len(pmbr.BootCode)]
+      pmbr = pmbr.Clone(BootCode=bootcode)
+    if boot_guid:
+      pmbr = pmbr.Clone(BootGUID=boot_guid)
+
+    blob = pmbr.blob
+    assert len(blob) == cls.DEFAULT_BLOCK_SIZE
+    image.seek(0)
+    image.write(blob)
+    return pmbr
+
   def WriteToFile(self, image):
     """Updates partition table in a disk image file.
 
@@ -694,6 +795,38 @@ class GPTCommands(object):
         args.image_file.write('\0' * block_size * gpt.header.FirstUsableLBA)
       gpt.WriteToFile(args.image_file)
       print('OK: Created GPT for %s' % args.image_file.name)
+
+  class Boot(SubCommand):
+    """Edit the PMBR sector for legacy BIOSes.
+
+    With no options, it will just print the PMBR boot guid.
+    """
+
+    def DefineArgs(self, parser):
+      parser.add_argument(
+          '-i', '--number', type=int,
+          help='Set bootable partition')
+      parser.add_argument(
+          '-b', '--bootloader', type=argparse.FileType('r'),
+          help='Install bootloader code in the PMBR')
+      parser.add_argument(
+          '-p', '--pmbr', action='store_true',
+          help='Create legacy PMBR partition table')
+      parser.add_argument(
+          'image_file', type=argparse.FileType('rb+'),
+          help='Disk image file to change PMBR.')
+
+    def Execute(self, args):
+      """Rebuilds the protective MBR."""
+      bootcode = args.bootloader.read() if args.bootloader else None
+      boot_guid = None
+      if args.number is not None:
+        gpt = GPT.LoadFromFile(args.image_file)
+        boot_guid = gpt.partitions[args.number - 1].UniqueGUID
+      pmbr = GPT.WriteProtectiveMBR(
+          args.image_file, args.pmbr, bootcode=bootcode, boot_guid=boot_guid)
+
+      print(str(pmbr.boot_guid).upper())
 
   class Repair(SubCommand):
     """Repair damaged GPT headers and tables."""
