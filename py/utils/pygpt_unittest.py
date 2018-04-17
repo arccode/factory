@@ -61,16 +61,21 @@ class GPTTest(unittest.TestCase):
     for i, v in enumerate(expected_values):
       self.assertEqual(v[0], partitions[i].FirstLBA)
       self.assertEqual(v[1], partitions[i].LastLBA)
+      blocks = v[1] - v[0] + 1
+      self.assertEqual(blocks, partitions[i].blocks)
+      self.assertEqual(blocks * 512, partitions[i].size)
       self.assertEqual(v[2], pygpt.GPT.TYPE_GUID_MAP[
           str(uuid.UUID(bytes_le=partitions[i].TypeGUID)).upper()])
 
     # More checks in individual partitions
     p = partitions[0]
     self.assertEqual(p.Names.decode('utf-16').strip(u'\x00'), 'STATE')
+    self.assertEqual(p.label, 'STATE')
     p = partitions[1]
-    self.assertEqual(gpt.GetAttributeSuccess(p.Attributes), 1)
-    self.assertEqual(gpt.GetAttributeTries(p.Attributes), 2)
-    self.assertEqual(gpt.GetAttributePriority(p.Attributes), 3)
+    self.assertEqual(p.Attributes, 81909218222800896)
+    self.assertEqual(p.attrs.successful, 1)
+    self.assertEqual(p.attrs.tries, 2)
+    self.assertEqual(p.attrs.priority, 3)
 
   def testRepair(self):
     with open(self.temp_bin, 'r+b') as f:

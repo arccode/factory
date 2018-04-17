@@ -253,12 +253,8 @@ class Partition(object):
       image: a path to disk image file.
       number: integer as 1-based index in partition table.
     """
-    self._image = image
-    self._number = number
-    self._gpt = pygpt.GPT.LoadFromFile(image)
-
     # Ensure given index is valid.
-    parts = self._gpt.GetValidPartitions()
+    parts = pygpt.GPT.LoadFromFile(image).GetValidPartitions()
     total = len(parts)
     if not 1 <= number <= total:
       raise RuntimeError(
@@ -267,32 +263,32 @@ class Partition(object):
     self._part = parts[number - 1]
 
   def __str__(self):
-    return '%s#%s' % (self._image, self._number)
+    return str(self._part)
 
   @property
   def image(self):
-    return self._image
+    return self._part.image
 
   @property
   def number(self):
-    return self._number
+    return self._part.number
 
   @property
   def block_size(self):
     """Size of each LBA block (sector) in bytes."""
-    return self._gpt.block_size
+    return self._part.block_size
 
   @property
   def offset(self):
-    return self._part.FirstLBA * self.block_size
+    return self._part.offset
 
   @property
   def size(self):
-    return (self._part.LastLBA - self._part.FirstLBA + 1) * self.block_size
+    return self._part.size
 
   @property
   def label(self):
-    return self._part.Names.decode('utf-16-le').strip('\0')
+    return self._part.label
 
   @property
   def type_uuid(self):
@@ -509,12 +505,12 @@ class Partition(object):
     This only changes the copy of GPT information in memory, not committed to
     the disk image.
     """
-    assert new_offset % self._gpt.block_size == 0, 'Offset must align to block.'
+    block_size = self._part.block_size
+    assert new_offset % block_size == 0, 'Offset must align to block.'
     delta = self._part.LastLBA - self._part.FirstLBA
-    new_first_lba = new_offset / self._gpt.block_size
+    new_first_lba = new_offset / block_size
     new_last_lba = new_first_lba + delta
-    self._part = self._gpt.NewNamedTuple(
-        self._part, FirstLBA=new_first_lba, LastLBA=new_last_lba)
+    self._part = self._part.Clone(FirstLBA=new_first_lba, LastLBA=new_last_lba)
 
   def GPTResize(self, new_size):
     """Changes partition record to occupy given size.
@@ -522,9 +518,9 @@ class Partition(object):
     This only changes the copy of GPT information in memory, not committed to
     the disk image.
     """
-    assert new_size % self._gpt.block_size == 0, 'Size must align to blocks.'
-    new_last_lba = self._part.FirstLBA + new_size / self._gpt.block_size - 1
-    self._part = self._gpt.NewNamedTuple(self._part, LastLBA=new_last_lba)
+    assert new_size % self._part.block_size == 0, 'Size must align to blocks.'
+    new_last_lba = self._part.FirstLBA + new_size / self._part.block_size - 1
+    self._part = self._part.Clone(LastLBA=new_last_lba)
 
   @staticmethod
   def GPTReorder(parts, block_size):

@@ -327,17 +327,21 @@ class _GPTTool(object):
     """Returns the Attribute value."""
     raise NotImplementedError
 
+  @staticmethod
+  def ExtractBits(value, shift, mask):
+    return (value >> shift) & mask
+
   def GetAttributeSuccess(self, index):
     """Returns the Success attribute."""
-    return pygpt.GPT.GetAttributeSuccess(self.GetAttribute(index))
+    return self.ExtractBits(self.GetAttribute(index), 56, 1)
 
   def GetAttributeTries(self, index):
     """Returns the Tries attribute."""
-    return pygpt.GPT.GetAttributeTries(self.GetAttribute(index))
+    return self.ExtractBits(self.GetAttribute(index), 52, 0xf)
 
   def GetAttributePriority(self, index):
     """Returns the Priority attribute."""
-    return pygpt.GPT.GetAttributePriority(self.GetAttribute(index))
+    return self.ExtractBits(self.GetAttribute(index), 48, 0xf)
 
 
 class PartitionManager(_GPTTool):
