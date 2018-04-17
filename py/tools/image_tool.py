@@ -907,7 +907,7 @@ class ChromeOSFactoryBundle(object):
     logging.debug('Execute generated partitioning script on %s', output)
     Sudo(['bash', '-e', partition_script, output])
 
-  def CreateDiskImage(self, output, sectors):
+  def CreateDiskImage(self, output, sectors, stateful_free_space):
     """Creates the installed disk image.
 
     This creates a complete image that can be pre-flashed to and boot from
@@ -916,6 +916,7 @@ class ChromeOSFactoryBundle(object):
     Args:
       output: a path to disk image to initialize.
       sectors: number of sectors in disk image.
+      stateful_free_space: extra free space to claim in MB.
     """
     self.InitDiskImage(output, sectors)
     payloads_dir = os.path.join(self._temp_dir, DIR_CROS_PAYLOADS)
@@ -930,7 +931,8 @@ class ChromeOSFactoryBundle(object):
     # output_dev (via /dev/loopX) needs root permission so we have to leave
     # previous context and resize using the real disk image file.
     part = Partition(output, PART_CROS_STATEFUL)
-    part.ResizeFileSystem(part.GetFileSystemSize() + 1024 * MEGABYTE)
+    part.ResizeFileSystem(
+        part.GetFileSystemSize() + stateful_free_space * MEGABYTE)
     with Partition.MapAllPartitions(output) as output_dev:
       targets = ['toolkit', 'release_image.crx_cache']
       if self.hwid:
@@ -1145,7 +1147,7 @@ class ChromeOSFactoryBundle(object):
   def GetToolkitVersion(self, toolkit=None):
     return Shell([toolkit or self.toolkit, '--lsm'], output=True).strip()
 
-  def CreateBundle(self, output_dir, phase, notes):
+  def CreateBundle(self, output_dir, phase, notes, timestamp=None):
     """Creates a bundle from given resources."""
 
     def FormatFirmwareVersion(info):
@@ -1184,7 +1186,8 @@ class ChromeOSFactoryBundle(object):
           os.symlink(os.path.abspath(resource), dest_path)
       return dest_path
 
-    timestamp = time.strftime('%Y%m%d%H%M')
+    if timestamp is None:
+      timestamp = time.strftime('%Y%m%d%H%M')
     bundle_name = '%s_%s_%s' % (self.board, timestamp, phase)
     output_name = 'factory_bundle_%s.tar.bz2' % bundle_name
     bundle_dir = os.path.join(self._temp_dir, 'bundle')
@@ -1485,6 +1488,10 @@ class CreatePreflashImageCommand(SubCommand):
         '--sectors', type=int, default=31277232,
         help='size of image in 512-byte sectors. default: %(default)s')
     self.subparser.add_argument(
+        '--stateful_free_space', type=int, default=1024,
+        help=('extra space to claim in stateful partition in MB. '
+              'default: %(default)s'))
+    self.subparser.add_argument(
         '-o', '--output', required=True,
         help='path to the output disk image file.')
 
@@ -1500,7 +1507,8 @@ class CreatePreflashImageCommand(SubCommand):
           firmware=None,
           hwid=self.args.hwid,
           complete=None)
-      bundle.CreateDiskImage(self.args.output, self.args.sectors)
+      bundle.CreateDiskImage(self.args.output, self.args.sectors,
+                             self.args.stateful_free_space)
     print('OK: Generated pre-flash disk image at %s [%s G]' % (
         self.args.output, self.args.sectors * 512 / GIGABYTE_STORAGE))
 
@@ -1586,6 +1594,9 @@ class CreateBundleCommand(SubCommand):
         '-o', '--output_dir', default='.',
         help='directory for the output factory bundle file')
     self.subparser.add_argument(
+        '--timestamp',
+        help='override the timestamp field in output file name')
+    self.subparser.add_argument(
         '-n', '--notes',
         help='additional notes or comments for bundle release')
 
@@ -1606,7 +1617,8 @@ class CreateBundleCommand(SubCommand):
           setup_dir=self.args.setup_dir,
           server_url=self.args.server_url)
       output_file = bundle.CreateBundle(
-          self.args.output_dir, self.args.phase, self.args.notes)
+          self.args.output_dir, self.args.phase, self.args.notes,
+          timestamp=self.args.timestamp)
       print('OK: Created %s factory bundle: %s' % (bundle.board, output_file))
 
 
