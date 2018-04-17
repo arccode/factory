@@ -172,10 +172,7 @@ class TestInvocation(object):
     # logs we don't need to enter the whole UUID.
     latest_symlink = os.path.join(paths.DATA_TESTS_DIR,
                                   self.test.path)
-    try:
-      os.remove(latest_symlink)
-    except OSError:
-      pass
+    file_utils.TryUnlink(latest_symlink)
     try:
       os.symlink(os.path.basename(self.output_dir), latest_symlink)
     except OSError:
@@ -184,23 +181,22 @@ class TestInvocation(object):
     self.metadata_file = os.path.join(self.output_dir, 'metadata')
     self.env_additions = {
         session.ENV_TEST_INVOCATION: self.uuid,
-        session.ENV_TEST_PATH: self.test.path,
-        session.ENV_TEST_METADATA: self.metadata_file}
+        session.ENV_TEST_PATH: self.test.path}
 
     # Resuming from an active shutdown test, try to restore its metadata file.
     if state.get_shared_data(key_post_shutdown):
       try:
-        self.LoadMetadata()
+        self._LoadMetadata()
       except Exception:
         logging.exception('Failed to load metadata from active shutdown test; '
                           'will continue, but logs will be inaccurate')
 
     if not self.resume_test:
       self.metadata = {}
-      self.UpdateMetadata(
+      self._UpdateMetadata(
           path=test.path,
           init_time=time.time(),
-          invocation=str(self.uuid),
+          invocation=self.uuid,
           label=test.label)
 
     self.count = None
@@ -221,7 +217,7 @@ class TestInvocation(object):
     return 'TestInvocation(_aborted=%s, _completed=%s)' % (
         self._aborted, self._completed)
 
-  def LoadMetadata(self):
+  def _LoadMetadata(self):
     def _ValidateMetadata(metadata):
       REQUIRED_FIELDS = ['path', 'dargs', 'invocation',
                          'label', 'init_time', 'start_time']
@@ -230,15 +226,14 @@ class TestInvocation(object):
           raise Exception('metadata missing field %s' % field)
       if self.test.pytest_name and 'pytest_name' not in metadata:
         raise Exception('metadata missing field pytest_name')
-      return True
 
     with open(self.metadata_file, 'r') as f:
       metadata = yaml.load(f)
-    if _ValidateMetadata(metadata):
-      self.metadata = metadata
-      self.resume_test = True
+    _ValidateMetadata(metadata)
+    self.metadata = metadata
+    self.resume_test = True
 
-  def UpdateMetadata(self, **kwargs):
+  def _UpdateMetadata(self, **kwargs):
     self.metadata.update(kwargs)
     tmp = self.metadata_file + '.tmp'
     with open(tmp, 'w') as f:
@@ -536,7 +531,7 @@ class TestInvocation(object):
         log_args['tag'] = 'pre-shutdown'
 
       self.start_time = time.time()
-      self.UpdateMetadata(start_time=self.start_time, **log_args)
+      self._UpdateMetadata(start_time=self.start_time, **log_args)
 
       try:
         self.goofy.event_log.Log('start_test', **log_args)
@@ -606,7 +601,7 @@ class TestInvocation(object):
             logging.exception('Unable to read log tail')
 
         self.goofy.event_log.Log('end_test', **log_args)
-        self.UpdateMetadata(end_time=self.end_time, **log_args)
+        self._UpdateMetadata(end_time=self.end_time, **log_args)
 
         testlog.LogFinalTestRun(self.session_json_path, self._ConvertLogArgs(
             log_args, status))
