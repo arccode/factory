@@ -5,6 +5,7 @@
 # found in the LICENSE file.
 
 
+import binascii
 import os
 import subprocess
 import unittest
@@ -50,6 +51,9 @@ class GPTTest(unittest.TestCase):
     self.assertEqual(header.PartitionEntriesNumber, 128)
     self.assertEqual(header.PartitionEntrySize, 128)
 
+    self.assertEqual(gpt.header.PartitionArrayCRC32,
+                     binascii.crc32(''.join(p.blob for p in gpt.partitions)))
+
     partitions = gpt.partitions
     expected_values = [
         (49186, 81953, 'Linux data'),
@@ -89,6 +93,39 @@ class GPTTest(unittest.TestCase):
     with os.popen("cgpt show -i 1 -s %s" % self.temp_bin) as f:
       stateful_size = f.read().strip()
       self.assertEqual(int(stateful_size), 53181)
+
+  def testCreate(self):
+    bin_file = self.temp_bin
+    gpt = pygpt.GPT.Create(bin_file, os.path.getsize(bin_file), 512, 0)
+    gpt.WriteToFile(bin_file)
+
+    gpt = pygpt.GPT.LoadFromFile(bin_file)
+    self.assertEqual(gpt.header.CurrentLBA, 1)
+    self.assertEqual(gpt.header.PartitionEntriesStartingLBA, 2)
+    self.assertEqual(gpt.header.FirstUsableLBA, 34)
+    self.assertEqual(gpt.header.LastUsableLBA, 102366)
+    self.assertEqual(gpt.header.BackupLBA, 102399)
+    self.assertEqual(gpt.GetValidPartitions(), [])
+    self.assertEqual(gpt.header.PartitionArrayCRC32,
+                     binascii.crc32(''.join(p.blob for p in gpt.partitions)))
+
+    gpt = pygpt.GPT.Create(bin_file, os.path.getsize(bin_file), 4096, 1)
+    gpt.WriteToFile(bin_file)
+
+    # Since the GPT on 512 was not zeroed, the loaded part should be bs=512.
+    gpt = pygpt.GPT.LoadFromFile(bin_file)
+    self.assertEqual(gpt.header.CurrentLBA, 1)
+    self.assertEqual(gpt.block_size, 512)
+    self.assertEqual(gpt.GetValidPartitions(), [])
+
+    with open(bin_file, 'r+') as f:
+      f.write('\x00' * 34 * 512)
+
+    gpt = pygpt.GPT.Create(bin_file, os.path.getsize(bin_file), 4096, 1)
+    gpt.WriteToFile(bin_file)
+
+    self.assertEqual(gpt.header.PartitionEntriesStartingLBA, 3)
+    self.assertEqual(gpt.header.FirstUsableLBA, 7)
 
 
 if __name__ == '__main__':

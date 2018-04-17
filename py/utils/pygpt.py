@@ -265,6 +265,38 @@ class GPT(object):
       header = super(GPT.Header, self).Clone(**dargs)
       return super(GPT.Header, header).Clone(CRC32=binascii.crc32(header.blob))
 
+    @classmethod
+    def Create(cls, size, block_size, pad_blocks=0,
+               part_entries=DEFAULT_PARTITION_ENTRIES):
+      """Creates a header with default values.
+
+      Args:
+        size: integer of expected image size.
+        block_size: integer for size of each block (sector).
+        pad_blocks: number of preserved sectors between header and partitions.
+        part_entries: number of partitions to include in header.
+      """
+      part_entry_size = struct.calcsize(GPT.Partition.FORMAT)
+      parts_lba = cls.DEFAULT_PARTITIONS_LBA + pad_blocks
+      parts_bytes = part_entries * part_entry_size
+      parts_blocks = parts_bytes / block_size
+      if parts_bytes % block_size:
+        parts_blocks += 1
+      # PartitionsCRC32 must be updated later explicitly.
+      return cls.ReadFrom(None).Clone(
+          Signature=cls.SIGNATURES[0],
+          Revision=cls.DEFAULT_REVISION,
+          HeaderSize=struct.calcsize(cls.FORMAT),
+          CurrentLBA=1,
+          BackupLBA=size / block_size - 1,
+          FirstUsableLBA=parts_lba + parts_blocks,
+          LastUsableLBA=size / block_size - parts_blocks - parts_lba,
+          DiskGUID=uuid.uuid4().get_bytes(),
+          PartitionEntriesStartingLBA=parts_lba,
+          PartitionEntriesNumber=part_entries,
+          PartitionEntrySize=part_entry_size,
+      )
+
   class PartitionAttributes(object):
     """Wrapper for Partition.Attributes.
 
@@ -318,6 +350,13 @@ class GPT(object):
     def __str__(self):
       return '%s#%s' % (self.image, self.number)
 
+    @classmethod
+    def Create(cls, block_size, image, number):
+      """Creates a new partition entry with given meta data."""
+      part = cls.ReadFrom(
+          None, image=image, number=number, block_size=block_size)
+      return part
+
     def IsUnused(self):
       """Returns if the partition is unused and can be allocated."""
       return self.TypeGUID == GPT.TYPE_GUID_UNUSED
@@ -362,6 +401,24 @@ class GPT(object):
     self.header = None
     self.partitions = None
     self.block_size = self.DEFAULT_BLOCK_SIZE
+
+  @classmethod
+  def Create(cls, image_name, size, block_size, pad_blocks=0):
+    """Creates a new GPT instance from given size and block_size.
+
+    Args:
+      image_name: a string of underlying disk image file name.
+      size: expected size of disk image.
+      block_size: size of each block (sector) in bytes.
+      pad_blocks: number of blocks between header and partitions array.
+    """
+    gpt = cls()
+    gpt.block_size = block_size
+    gpt.header = cls.Header.Create(size, block_size, pad_blocks)
+    gpt.partitions = [
+        cls.Partition.Create(block_size, image_name, i + 1)
+        for i in xrange(gpt.header.PartitionEntriesNumber)]
+    return gpt
 
   @classmethod
   def LoadFromFile(cls, image):
@@ -602,6 +659,41 @@ class GPTCommands(object):
       """
       del args  # Unused.
       raise NotImplementedError
+
+  class Create(SubCommand):
+    """Create or reset GPT headers and tables.
+
+    Create or reset an empty GPT.
+    """
+
+    def DefineArgs(self, parser):
+      parser.add_argument(
+          '-z', '--zero', action='store_true',
+          help='Zero the sectors of the GPT table and entries')
+      parser.add_argument(
+          '-p', '--pad_blocks', type=int, default=0,
+          help=('Size (in blocks) of the disk to pad between the '
+                'primary GPT header and its entries, default %(default)s'))
+      parser.add_argument(
+          '--block_size', type=int, default=GPT.DEFAULT_BLOCK_SIZE,
+          help='Size of each block (sector) in bytes.')
+      parser.add_argument(
+          'image_file', type=argparse.FileType('rb+'),
+          help='Disk image file to create.')
+
+    def Execute(self, args):
+      block_size = args.block_size
+      gpt = GPT.Create(
+          args.image_file.name, os.path.getsize(args.image_file.name),
+          block_size, args.pad_blocks)
+      if args.zero:
+        # In theory we only need to clear LBA 1, but to make sure images already
+        # initialized with different block size won't have GPT signature in
+        # different locations, we should zero until first usable LBA.
+        args.image_file.seek(0)
+        args.image_file.write('\0' * block_size * gpt.header.FirstUsableLBA)
+      gpt.WriteToFile(args.image_file)
+      print('OK: Created GPT for %s' % args.image_file.name)
 
   class Repair(SubCommand):
     """Repair damaged GPT headers and tables."""
