@@ -5,6 +5,7 @@
 # found in the LICENSE file.
 
 
+import argparse
 import binascii
 import os
 import subprocess
@@ -19,42 +20,23 @@ from cros.factory.utils import pygpt
 class GPTTest(unittest.TestCase):
   """Unit tests for pygpt.GPT."""
 
-  def CheckCall(self, command):
+  @staticmethod
+  def CheckCall(command):
     return subprocess.check_call(command, shell=True)
 
-  def setUp(self):
-    self.temp_bin = file_utils.CreateTemporaryFile()
+  def InitByCGPT(self):
+    for command in self.init_commands:
+      self.CheckCall(' '.join(['cgpt'] + command))
 
-    self.CheckCall('truncate -s %s %s' % (50 * 1048576, self.temp_bin))
-    self.CheckCall('cgpt create %s 2>/dev/null' % self.temp_bin)
-    self.CheckCall('cgpt add -i 2 -b 34 -s 16384 -t kernel %s -S 1 -T 2 -P 3' %
-                   self.temp_bin)
-    self.CheckCall('cgpt add -i 3 -b 16418 -s 32768 -t rootfs %s' %
-                   self.temp_bin)
-    self.CheckCall('cgpt add -i 1 -b 49186 -s 32768 -t data -l STATE %s' %
-                   self.temp_bin)
+  def InitByPyGPT(self):
+    commands = pygpt.GPTCommands()
+    parser = argparse.ArgumentParser()
+    commands.DefineArgs(parser)
+    for param in self.init_commands:
+      args = parser.parse_args(param)
+      commands.Execute(args)
 
-  def tearDown(self):
-    if os.path.exists(self.temp_bin):
-      os.remove(self.temp_bin)
-
-  def testLoad(self):
-    with open(self.temp_bin, 'rb') as f:
-      gpt = pygpt.GPT.LoadFromFile(f)
-    header = gpt.header
-    self.assertEqual(header.Signature, 'EFI PART')
-    self.assertEqual(header.CurrentLBA, 1)
-    self.assertEqual(header.BackupLBA, 102399)
-    self.assertEqual(header.FirstUsableLBA, 34)
-    self.assertEqual(header.LastUsableLBA, 102366)
-    self.assertEqual(header.PartitionEntriesStartingLBA, 2)
-    self.assertEqual(header.PartitionEntriesNumber, 128)
-    self.assertEqual(header.PartitionEntrySize, 128)
-
-    self.assertEqual(gpt.header.PartitionArrayCRC32,
-                     binascii.crc32(''.join(p.blob for p in gpt.partitions)))
-
-    partitions = gpt.partitions
+  def CheckPartitions(self, partitions):
     expected_values = [
         (49186, 81953, 'Linux data'),
         (34, 16417, 'ChromeOS kernel'),
@@ -81,7 +63,44 @@ class GPTTest(unittest.TestCase):
     self.assertEqual(p.attrs.tries, 2)
     self.assertEqual(p.attrs.priority, 3)
 
+  def setUp(self):
+    self.temp_bin = file_utils.CreateTemporaryFile()
+    self.CheckCall('truncate -s %s %s' % (50 * 1048576, self.temp_bin))
+
+    self.init_commands = [
+        ['create', self.temp_bin],
+        ['add', '-i', '2', '-b', '34', '-s', '16384', '-t', 'kernel',
+         self.temp_bin, '-S', '1', '-T', '2', '-P', '3'],
+        ['add', '-i', '3', '-b', '16418', '-s', '32768', '-t', 'rootfs',
+         self.temp_bin],
+        ['add', '-i', '1', '-b', '49186', '-s', '32768', '-t', 'data',
+         '-l', 'STATE', self.temp_bin]]
+
+  def tearDown(self):
+    if os.path.exists(self.temp_bin):
+      os.remove(self.temp_bin)
+
+  def testLoad(self):
+    self.InitByCGPT()
+    with open(self.temp_bin, 'rb') as f:
+      gpt = pygpt.GPT.LoadFromFile(f)
+    header = gpt.header
+    self.assertEqual(header.Signature, 'EFI PART')
+    self.assertEqual(header.CurrentLBA, 1)
+    self.assertEqual(header.BackupLBA, 102399)
+    self.assertEqual(header.FirstUsableLBA, 34)
+    self.assertEqual(header.LastUsableLBA, 102366)
+    self.assertEqual(header.PartitionEntriesStartingLBA, 2)
+    self.assertEqual(header.PartitionEntriesNumber, 128)
+    self.assertEqual(header.PartitionEntrySize, 128)
+
+    self.assertEqual(gpt.header.PartitionArrayCRC32,
+                     binascii.crc32(''.join(p.blob for p in gpt.partitions)))
+
+    self.CheckPartitions(gpt.partitions)
+
   def testRepair(self):
+    self.InitByCGPT()
     with open(self.temp_bin, 'r+b') as f:
       gpt = pygpt.GPT.LoadFromFile(f)
       gpt.Resize(os.path.getsize(self.temp_bin))
@@ -128,6 +147,7 @@ class GPTTest(unittest.TestCase):
     self.assertEqual(gpt.header.FirstUsableLBA, 7)
 
   def testBoot(self):
+    self.InitByCGPT()
     bin_file = self.temp_bin
     boot_guid = pygpt.GPT.LoadFromFile(bin_file).partitions[1].UniqueGUID
     pygpt.GPT.WriteProtectiveMBR(
@@ -140,6 +160,7 @@ class GPTTest(unittest.TestCase):
 
   def testLegacy(self):
     bin_file = self.temp_bin
+    self.InitByCGPT()
     gpt = pygpt.GPT.LoadFromFile(bin_file)
     gpt.header = gpt.header.Clone(Signature=gpt.header.SIGNATURES[1])
     gpt.WriteToFile(bin_file)
@@ -155,6 +176,11 @@ class GPTTest(unittest.TestCase):
     self.assertEquals(gpt.is_secondary, True)
     self.assertEquals(gpt.header.CurrentLBA, 102399)
     self.assertEquals(gpt.header.BackupLBA, 1)
+
+  def testAdd(self):
+    self.InitByPyGPT()
+    gpt = pygpt.GPT.LoadFromFile(self.temp_bin)
+    self.CheckPartitions(gpt.partitions)
 
 
 if __name__ == '__main__':

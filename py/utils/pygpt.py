@@ -251,6 +251,9 @@ class GPT(object):
       'CAB6E88E-ABF3-4102-A07A-D4BB9BE3C1D3': 'ChromeOS firmware',
       'C12A7328-F81F-11D2-BA4B-00A0C93EC93B': 'EFI System Partition',
   }
+  TYPE_GUID_REVERSE_MAP = dict(
+      ('efi' if v.startswith('EFI') else v.lower().split()[-1], k)
+      for k, v in TYPE_GUID_MAP.iteritems())
   TYPE_GUID_LIST_BOOTABLE = [
       'FE3A2A5D-4F32-41A7-B725-ACCC3285A309',  # ChromeOS kernel
       'C12A7328-F81F-11D2-BA4B-00A0C93EC93B',  # EFI System Partition
@@ -356,6 +359,7 @@ class GPT(object):
     priority = BitProperty(_Get, _Set, 48, 0xf)
     legacy_boot = BitProperty(_Get, _Set, 2, 1)
     required = BitProperty(_Get, _Set, 0, 1)
+    raw_16 = BitProperty(_Get, _Set, 48, 0xffff)
 
   @GPTBlob(PARTITION_DESCRIPTION)
   class Partition(GPTObject):
@@ -934,6 +938,140 @@ class GPTCommands(object):
       else:
         print('Nothing to expand for disk image %s partition %s.' %
               (args.image_file.name, args.number))
+
+  class Add(SubCommand):
+    """Add, edit, or remove a partition entry.
+
+    Use the -i option to modify an existing partition.
+    The -b, -s, and -t options must be given for new partitions.
+
+    The partition type may also be given as one of these aliases:
+
+      firmware    ChromeOS firmware
+      kernel      ChromeOS kernel
+      rootfs      ChromeOS rootfs
+      data        Linux data
+      reserved    ChromeOS reserved
+      efi         EFI System Partition
+      unused      Unused (nonexistent) partition
+    """
+    def DefineArgs(self, parser):
+      parser.add_argument(
+          '-i', '--number', type=int,
+          help='Specify partition (default is next available)')
+      parser.add_argument(
+          '-b', '--begin', type=int,
+          help='Beginning sector')
+      parser.add_argument(
+          '-s', '--sectors', type=int,
+          help='Size in sectors (logical blocks).')
+      parser.add_argument(
+          '-t', '--type_guid',
+          help='Partition Type GUID')
+      parser.add_argument(
+          '-u', '--unique_guid',
+          help='Partition Unique ID')
+      parser.add_argument(
+          '-l', '--label',
+          help='Label')
+      parser.add_argument(
+          '-S', '--successful', type=int, choices=xrange(2),
+          help='set Successful flag')
+      parser.add_argument(
+          '-T', '--tries', type=int,
+          help='set Tries flag (0-15)')
+      parser.add_argument(
+          '-P', '--priority', type=int,
+          help='set Priority flag (0-15)')
+      parser.add_argument(
+          '-R', '--required', type=int, choices=xrange(2),
+          help='set Required flag')
+      parser.add_argument(
+          '-B', '--boot_legacy', dest='legacy_boot', type=int,
+          choices=xrange(2),
+          help='set Legacy Boot flag')
+      parser.add_argument(
+          '-A', '--attribute', dest='raw_16', type=int,
+          help='set raw 16-bit attribute value (bits 48-63)')
+      parser.add_argument(
+          'image_file', type=argparse.FileType('rb+'),
+          help='Disk image file to modify.')
+
+    @staticmethod
+    def GetTypeGUID(input_uuid):
+      if input_uuid.lower() in GPT.TYPE_GUID_REVERSE_MAP:
+        input_uuid = GPT.TYPE_GUID_REVERSE_MAP[input_uuid.lower()]
+      return uuid.UUID(input_uuid)
+
+    def Execute(self, args):
+      gpt = GPT.LoadFromFile(args.image_file)
+      parts = gpt.GetValidPartitions()
+      number = args.number
+      if number is None:
+        number = len(parts) + 1
+      if number <= len(parts):
+        is_new_part = False
+      else:
+        is_new_part = True
+      index = number - 1
+
+      # First and last LBA must be calculated explicitly because the given
+      # argument is size.
+      part = gpt.partitions[index]
+
+      if is_new_part:
+        part = part.ReadFrom(None, **part.__dict__).Clone(
+            FirstLBA=(parts[-1].LastLBA + 1 if parts else
+                      gpt.header.FirstUsableLBA),
+            LastLBA=gpt.header.LastUsableLBA,
+            UniqueGUID=uuid.uuid4(),
+            TypeGUID=self.GetTypeGUID('data'))
+
+      attr = part.attrs
+      if args.legacy_boot is not None:
+        attr.legacy_boot = args.legacy_boot
+      if args.required is not None:
+        attr.required = args.required
+      if args.priority is not None:
+        attr.priority = args.priority
+      if args.tries is not None:
+        attr.tries = args.tries
+      if args.successful is not None:
+        attr.successful = args.successful
+      if args.raw_16 is not None:
+        attr.raw_16 = args.raw_16
+
+      first_lba = part.FirstLBA if args.begin is None else args.begin
+      last_lba = first_lba - 1 + (
+          part.blocks if args.sectors is None else args.sectors)
+      dargs = dict(
+          FirstLBA=first_lba,
+          LastLBA=last_lba,
+          TypeGUID=(part.TypeGUID if args.type_guid is None else
+                    self.GetTypeGUID(args.type_guid)),
+          UniqueGUID=(part.UniqueGUID if args.unique_guid is None else
+                      uuid.UUID(bytes_le=args.unique_guid)),
+          Attributes=attr,
+      )
+      if args.label is not None:
+        dargs['label'] = args.label
+
+      part = part.Clone(**dargs)
+      # Wipe partition again if it should be empty.
+      if part.IsUnused():
+        part = part.ReadFrom(None, **part.__dict__)
+
+      gpt.partitions[index] = part
+
+      # TODO(hungte) Sanity check if part is valid.
+      gpt.WriteToFile(args.image_file)
+      if part.IsUnused():
+        # If we do ('%s' % part) there will be TypeError.
+        print('OK: Deleted (zeroed) %s.' % (part,))
+      else:
+        print('OK: %s %s (%s+%s).' %
+              ('Added' if is_new_part else 'Modified',
+               part, part.FirstLBA, part.blocks))
 
   class Show(SubCommand):
     """Show partition table and entries.
