@@ -1468,6 +1468,20 @@ class NetbootFirmwareSettingsCommand(SubCommand):
     netboot_firmware_settings.NetbootFirmwareSettings(self.args)
 
 
+class GPTCommand(SubCommand):
+  """Access GPT (GUID Partition Table) with `cgpt` style commands."""
+  name = 'gpt'
+  aliases = ['pygpt', 'cgpt']
+  gpt = None
+
+  def Init(self):
+    self.gpt = pygpt.GPTCommands()
+    self.gpt.DefineArgs(self.subparser)
+
+  def Run(self):
+    self.gpt.Execute(self.args)
+
+
 class ResizeFileSystemCommand(SubCommand):
   """Changes file system size from a partition on a Chromium OS disk image."""
   name = 'resize'
