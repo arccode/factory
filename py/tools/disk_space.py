@@ -23,14 +23,14 @@ DiskUsedPercentage = (
 
 
 def GetAllVFSInfo():
-  '''Returns results for statvfs on all filesystems.
+  """Returns results for statvfs on all filesystems.
 
   The returned value is a map from device to VFSInfo object.  VFSInfo
   is a named tuple with fields:
 
      mount_points: List of all mount points for the device.
      statvfs: Result of calling os.statvfs on the device.
-  '''
+  """
   # Path from each device to the paths it is mounted at
   device_to_path = collections.defaultdict(lambda: [])
   ignore_list = [
@@ -58,7 +58,7 @@ def GetAllVFSInfo():
 
 
 def FormatSpaceUsed(vfs_info):
-  '''Formats disk space used for a single filesystem.
+  """Formats disk space used for a single filesystem.
 
   Returns:
     A string like
@@ -67,13 +67,13 @@ def FormatSpaceUsed(vfs_info):
 
     meaning that on the device that /a and /b are mounted from, 87% of bytes
     and 17% of inodes are used (unavailable to unprivileged users).
-  '''
+  """
   return ' '.join(vfs_info.mount_points) + (': %d%%/%d%%' %
                                             GetPartitionUsage(vfs_info))
 
 
 def FormatSpaceUsedAll(vfs_infos):
-  '''Formats disk space used by all filesystems in vfs_infos.
+  """Formats disk space used by all filesystems in vfs_infos.
 
   The list is arranged in descending order of space used.
 
@@ -84,7 +84,7 @@ def FormatSpaceUsedAll(vfs_infos):
     A string like
 
       Disk space used (bytes%/inode%): [/a /b: 87%/17%] [/c: 5%/3%]
-  '''
+  """
   return 'Disk space used (bytes%/inodes%): ' + ' '.join(
       '[' + FormatSpaceUsed(v) + ']'
       for v in sorted(
@@ -95,7 +95,7 @@ def FormatSpaceUsedAll(vfs_infos):
 
 
 def GetUsedPercentage(avail, total):
-  '''Gets used percentage.
+  """Gets used percentage.
 
   Returns:
     Used percentage if total is not zero.
@@ -104,14 +104,14 @@ def GetUsedPercentage(avail, total):
 
   Raises:
     ZeroDivisionError if total == 0 and avail != 0.
-  '''
+  """
   if avail == total == 0:
     return 0.0
   return 100 - 100.0 * avail / total
 
 
 def GetPartitionUsage(vfs_info):
-  '''Gets the disk space usage.
+  """Gets the disk space usage.
 
   Args:
     vfs_info: a VFSInfo object.
@@ -119,7 +119,7 @@ def GetPartitionUsage(vfs_info):
   Returns:
     A DiskUsedPercentage namedtuple like (bytes_used_pct=87,
                                           inodes_used_pct=17).
-  '''
+  """
   return DiskUsedPercentage(
       GetUsedPercentage(vfs_info.statvfs.f_bavail,
                         vfs_info.statvfs.f_blocks),
@@ -128,14 +128,14 @@ def GetPartitionUsage(vfs_info):
 
 
 def GetMaxStatefulPartitionUsage():
-  '''Gets the max stateful partition usage.
+  """Gets the max stateful partition usage.
 
   Returns:
     A tuple (max_partition, max_usage_type, max_usage) where
       max_partition is "stateful" or "encrypted",
       max_usage_type is "bytes" or "inodes",
       and max_usage is the usage in percentage.
-  '''
+  """
   vfs_infos = GetAllVFSInfo()
   stateful_usage = dict()
   for vfs_info in vfs_infos.values():
@@ -165,7 +165,6 @@ class DiskException(Exception):
 class DiskSpace(object):
   """Checks disk space usage"""
   args = None
-  vfs_infos = GetAllVFSInfo()
 
   def Main(self):
     self.ParseArgs()
@@ -176,7 +175,7 @@ class DiskSpace(object):
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument(
-        '--stateful-partition-threshold', metavar='PCT', default='95',
+        '--stateful-partition-threshold', metavar='PCT', type=int, default=95,
         help='Checks if stateful partition disk usage is above threshold')
     self.args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
@@ -192,8 +191,6 @@ class DiskSpace(object):
       DiskException if stateful partition or encrypted stateful partition
         usage is larger than threshold.
     """
-    self.args.stateful_partition_threshold = int(
-        self.args.stateful_partition_threshold)
     max_partition, max_usage_type, max_usage = GetMaxStatefulPartitionUsage()
     if max_usage > self.args.stateful_partition_threshold:
       raise DiskException(
