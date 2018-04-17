@@ -319,10 +319,9 @@ def RecoverMetadata(config_dct, metadata_dct):
   SaveMetadata(config_dct, metadata_dct)
 
 
-def TruncateAttachments(config_dct):
+def TruncateAttachments(config_dct, metadata_dct):
   """Deletes attachments of events no longer stored within data.json."""
   logger = logging.getLogger(config_dct['logger_name'])
-  metadata_dct = RestoreMetadata(config_dct)
   for fname in os.listdir(config_dct['attachments_dir']):
     fpath = os.path.join(config_dct['attachments_dir'], fname)
     if not os.path.isfile(fpath):
@@ -330,21 +329,16 @@ def TruncateAttachments(config_dct):
     seq, unused_underscore, unused_att_id = fname.partition('_')
     if not seq.isdigit():
       continue
-    if (int(seq) < metadata_dct['first_seq'] or
-        int(seq) > metadata_dct['last_seq']):
-      logger.debug('Truncating attachment (<seq=%d or >seq=%d): %s',
-                   metadata_dct['first_seq'], metadata_dct['last_seq'], fname)
+    if int(seq) < metadata_dct['first_seq']:
+      logger.debug('Truncating attachment (<seq=%d): %s',
+                   metadata_dct['first_seq'], fname)
       os.unlink(fpath)
 
 
-def Truncate(config_dct, min_seq, min_pos, truncate_attachments=True):
+def Truncate(config_dct, min_seq, min_pos):
   """Truncates the main data file to only contain unprocessed records.
 
   See file-level docstring for more information about versions.
-
-  Args:
-    truncate_attachments: Whether or not to truncate attachments.
-                            For testing.
   """
   logger = logging.getLogger(config_dct['logger_name'])
   metadata_dct = RestoreMetadata(config_dct)
@@ -384,10 +378,6 @@ def Truncate(config_dct, min_seq, min_pos, truncate_attachments=True):
 
     # After we use AtomicWrite, we can remove old metadata.
     SaveMetadata(config_dct, metadata_dct)
-    # Now that we have written the new data and metadata to disk, remove any
-    # unused attachments.
-    if truncate_attachments:
-      TruncateAttachments(config_dct)
 
   except Exception:
     logger.exception('Exception occurred during Truncate operation')
@@ -425,9 +415,6 @@ class BufferFile(log_utils.LoggerMixin):
     self.consumers = {}
 
     self._RestoreConsumers()
-
-    # Try truncating any attachments from any partial Truncate operations.
-    TruncateAttachments(self.ConfigToDict())
 
   @property
   def first_seq(self):
@@ -539,17 +526,19 @@ class BufferFile(log_utils.LoggerMixin):
       truncate_attachments: Whether or not to truncate attachments.
                              For testing.
     """
+    new_metadata_dct = {}
     with self.data_write_lock, self._consumer_lock:
       min_seq, min_pos = self._GetFirstUnconsumedRecord()
       try:
         for consumer in self.consumers.values():
           consumer.read_lock.acquire()
         if process_pool is None:
-          Truncate(self.ConfigToDict(), min_seq, min_pos, truncate_attachments)
+          Truncate(self.ConfigToDict(), min_seq, min_pos)
         else:
           process_pool.apply(
               Truncate,
-              (self.ConfigToDict(), min_seq, min_pos, truncate_attachments))
+              (self.ConfigToDict(), min_seq, min_pos))
+        new_metadata_dct = RestoreMetadata(self.ConfigToDict())
       except Exception:
         self.exception('Exception occurred during Truncate operation')
         # If any exceptions occurred, restore metadata, to make sure we are
@@ -563,6 +552,10 @@ class BufferFile(log_utils.LoggerMixin):
             consumer.read_lock.release()
           except Exception:
             pass
+    # Now that we have written the new data and metadata to disk, remove any
+    # unused attachments.
+    if truncate_attachments:
+      TruncateAttachments(self.ConfigToDict(), new_metadata_dct)
 
   def _CreateConsumer(self, name):
     """Returns a new Consumer object with the given name."""
