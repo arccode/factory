@@ -183,18 +183,19 @@ class GlobPathCachedProbeFunction(CachedProbeFunction):
   def ProbeAllDevices(cls):
     ret = {}
 
-    for path in glob.glob(cls.GLOB_PATH):
-      path = os.path.abspath(os.path.realpath(path))
-      if path in ret:
+    for globbed_path in glob.glob(cls.GLOB_PATH):
+      abs_path = os.path.abspath(os.path.realpath(globbed_path))
+      if abs_path in ret:
         continue
 
       try:
-        probed_result = cls.ProbeDevice(path)
+        probed_result = cls.ProbeDevice(globbed_path)
       except Exception as e:
-        logging.error('Failed to probe the device at %r: %r', path, e)
+        logging.error('Failed to probe the device at %r: %r', globbed_path, e)
         probed_result = None
 
       if probed_result:
-        ret[path] = probed_result
+        probed_result['device_path'] = globbed_path
+        ret[abs_path] = probed_result
 
     return ret

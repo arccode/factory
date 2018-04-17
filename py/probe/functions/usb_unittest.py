@@ -12,12 +12,6 @@ from cros.factory.probe.functions import usb
 from cros.factory.utils import  file_utils
 
 
-def _AddBusType(results):
-  for result in results:
-    result['bus_type'] = 'usb'
-  return results
-
-
 class USBFunctionTest(unittest.TestCase):
   def setUp(self):
     self.my_root = tempfile.mkdtemp()
@@ -42,11 +36,11 @@ class USBFunctionTest(unittest.TestCase):
 
   def testNormal(self):
     # usb 1-1 includes only one required fields
-    values1 = {'idVendor': 'google', 'idProduct': 'chromebook'}
+    values1 = {'idVendor': 'google', 'idProduct': '1-1'}
     self._CreateUSBDevice('1-1', '/sys/devices/usb3/1-1', values1)
 
     # usb 1-1.2 includes some optional fields
-    values2 = {'idVendor': 'goog', 'idProduct': 'cros', 'manufacturer': '123'}
+    values2 = {'idVendor': 'goog', 'idProduct': '1-1.2', 'manufacturer': '123'}
     self._CreateUSBDevice('1-1.2', '/sys/devices/usb3/1-1.2', values2)
 
     # usb 1-1.2.y has an invalid directory name
@@ -58,18 +52,26 @@ class USBFunctionTest(unittest.TestCase):
     self._CreateUSBDevice('1-2', '/sys/devices/usb3/1-2', values4)
 
     # usb1 is a usb root hub.
-    values5 = {'idVendor': 'aaa', 'idProduct': 'bbb'}
+    values5 = {'idVendor': 'aaa', 'idProduct': 'usb1'}
     self._CreateUSBDevice('usb1', '/sys/devices/usb1', values5)
 
     func = usb.USBFunction()
-    self.assertEquals(
-        sorted(func()), _AddBusType(sorted([values1, values2, values5])))
+    self.assertItemsEqual(
+        func(), self._AddExtraFields([values1, values2, values5]))
 
     func = usb.USBFunction(dir_path=self.my_root + '/sys/bus/usb/devices/1-1')
-    self.assertEquals(func(), _AddBusType([values1]))
+    self.assertItemsEqual(func(), self._AddExtraFields([values1]))
 
     func = usb.USBFunction(dir_path=self.my_root + '/sys/devices/usb3/1-1.2')
-    self.assertEquals(func(), _AddBusType([values2]))
+    self.assertItemsEqual(func(), self._AddExtraFields([values2]))
+
+  def _AddExtraFields(self, values):
+    for value in values:
+      value['device_path'] = os.path.join(
+          self.my_root, 'sys', 'bus', 'usb', 'devices', value['idProduct'])
+      value['bus_type'] = 'usb'
+
+    return values
 
 
 if __name__ == '__main__':

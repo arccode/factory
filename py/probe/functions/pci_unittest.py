@@ -12,12 +12,6 @@ from cros.factory.probe.functions import pci
 from cros.factory.utils import  file_utils
 
 
-def _AddBusType(results):
-  for result in results:
-    result['bus_type'] = 'pci'
-  return results
-
-
 class PCIFunctionTest(unittest.TestCase):
   def setUp(self):
     self.my_root = tempfile.mkdtemp()
@@ -45,20 +39,27 @@ class PCIFunctionTest(unittest.TestCase):
     file_utils.ForceSymlink(real_path, link_name)
 
   def testNormal(self):
-    values1 = {'vendor': '1234', 'device': '5678', 'revision_id': '0x14'}
+    values1 = {'vendor': 'dev1', 'device': '5678', 'revision_id': '0x14'}
     self._CreatePCIDevice('dev1', '/sys/devices/pci1/xxyy', values1)
 
-    values2 = {'vendor': '1357', 'device': '2468', 'revision_id': '0x34'}
+    values2 = {'vendor': 'dev2', 'device': '2468', 'revision_id': '0x34'}
     self._CreatePCIDevice('dev2', '/sys/devices/pci1/aabb', values2)
 
-    values3 = {'vendor': 'xxxx'}
+    values3 = {'vendor': 'dev3'}
     self._CreatePCIDevice('dev3', '/sys/devices/pci1/xxxx', values3)
 
     func = pci.PCIFunction()
-    self.assertEquals(sorted(func()), _AddBusType(sorted([values1, values2])))
+    self.assertItemsEqual(func(), self._AddExtraFields([values1, values2]))
 
     func = pci.PCIFunction(dir_path=self.my_root + '/sys/devices/pci1/xxyy')
-    self.assertEquals(func(), _AddBusType([values1]))
+    self.assertItemsEqual(func(), self._AddExtraFields([values1]))
+
+  def _AddExtraFields(self, values):
+    for value in values:
+      value['device_path'] = os.path.join(
+          self.my_root, 'sys', 'bus', 'pci', 'devices', value['vendor'])
+      value['bus_type'] = 'pci'
+    return values
 
 
 if __name__ == '__main__':

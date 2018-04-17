@@ -43,7 +43,9 @@ class TouchscreenElanFunctionTest(unittest.TestCase):
     self._CreateDevice('dev2', '/sys/bus/i2c/drivers/not_elants_i2c', values2)
 
     func = touchscreen_elan.TouchscreenElanFunction()
-    self.assertEquals(func(), [values1])
+    device_path = os.path.join(self.my_root,
+                               'sys', 'bus', 'i2c', 'devices', 'dev1')
+    self.assertItemsEqual(func(), [dict(values1, device_path=device_path)])
 
 
 if __name__ == '__main__':

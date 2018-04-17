@@ -31,6 +31,7 @@ class USBFunction(cached_probe_function.GlobPathCachedProbeFunction):
   each usb device (also includes usb root hub) listed there.  Each result
   should contain these fields:
 
+  - ``device_path``: Pathname of the sysfs directory.
   - ``idVendor``
   - ``idProduct``
 

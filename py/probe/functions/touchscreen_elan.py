@@ -20,6 +20,7 @@ class TouchscreenElanFunction(
   all ELAN touchscreens and output the attributes of the device.  The output
   of each ELAN touchscreen must have 3 fields:
 
+  - ``device_path``: Pathname of the sysfs directory.
   - ``name``: Name of the device exported by the driver.
   - ``hw_version``: Hardware version exported by the driver.
   - ``fw_version``: Firmware version exported by the driver.

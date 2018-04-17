@@ -114,23 +114,22 @@ class GlobPathCachedProbeFunctionTest(unittest.TestCase):
     self.root_dir = tempfile.mkdtemp()
     file_utils.TryMakeDirs(os.path.join(self.root_dir, 'dev1'))
     file_utils.TryMakeDirs(os.path.join(self.root_dir, 'dev2'))
-    file_utils.TryMakeDirs(os.path.join(self.root_dir, 'dev3'))
     file_utils.TryMakeDirs(os.path.join(self.root_dir, 'devX'))
-    file_utils.TryMakeDirs(os.path.join(self.root_dir, 'devY'))
-    file_utils.ForceSymlink(os.path.join(self.root_dir, 'dev1'),
+    file_utils.TryMakeDirs(os.path.join(self.root_dir, 'real_dev_6'))
+    file_utils.ForceSymlink(os.path.join(self.root_dir, 'real_dev_6'),
                             os.path.join(self.root_dir, 'dev6'))
-    file_utils.TryMakeDirs(os.path.join(self.root_dir, 'raise_exception'))
+    file_utils.TryMakeDirs(os.path.join(self.root_dir, 'dev_raise_exception'))
 
     class Function(cached_probe_function.GlobPathCachedProbeFunction):
-      GLOB_PATH = os.path.join(self.root_dir, '*')
+      GLOB_PATH = os.path.join(self.root_dir, 'dev*')
 
       @classmethod
       def ProbeDevice(cls, dir_path):
         name = os.path.basename(dir_path)
-        if name == 'raise_exception':
+        if name == 'dev_raise_exception':
           raise Exception()
         if re.match(r'^dev[0-9]+$', name):
-          return {'name': name}
+          return {'name': os.path.basename(os.path.realpath(dir_path))}
 
     self.Function = Function
 
@@ -138,9 +137,8 @@ class GlobPathCachedProbeFunctionTest(unittest.TestCase):
     func = self.Function()
 
     result = func()
-    self.assertEquals(
-        sorted(result),
-        sorted([{'name': 'dev1'}, {'name': 'dev2'}, {'name': 'dev3'}]))
+    self.assertItemsEqual(
+        result, self._GenerateExpectedProbedResults(['dev1', 'dev2', 'dev6']))
 
   def testInvalidDirPath(self):
     func = self.Function(dir_path='aabbcc')
@@ -150,12 +148,24 @@ class GlobPathCachedProbeFunctionTest(unittest.TestCase):
   def testWithDirPath(self):
     func = self.Function(dir_path=os.path.join(self.root_dir, 'dev1'))
     result = func()
-    self.assertEquals(result, [{'name': 'dev1'}])
+    self.assertEquals(result, self._GenerateExpectedProbedResults(['dev1']))
 
     # Symlink should be resolved.
     func = self.Function(dir_path=os.path.join(self.root_dir, 'dev6'))
     result = func()
-    self.assertEquals(result, [{'name': 'dev1'}])
+    self.assertEquals(result, self._GenerateExpectedProbedResults(['dev6']))
+
+    func = self.Function(dir_path=os.path.join(self.root_dir, 'real_dev_6'))
+    result = func()
+    self.assertEquals(result, self._GenerateExpectedProbedResults(['dev6']))
+
+  def _GenerateExpectedProbedResults(self, names):
+    ret = []
+    for name in names:
+      path = os.path.join(self.root_dir, name)
+      ret.append({'name': os.path.basename(os.path.realpath(path)),
+                  'device_path': path})
+    return ret
 
 
 if __name__ == '__main__':

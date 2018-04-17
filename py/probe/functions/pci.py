@@ -37,6 +37,7 @@ class PCIFunction(cached_probe_function.GlobPathCachedProbeFunction):
   This function goes through ``/sys/bus/pci/devices/`` to read attributes of
   each PCI device listed there.  Each result should contain these fields:
 
+  - ``device_path``: Pathname of the sysfs directory.
   - ``vendor``
   - ``device``
   - ``revision_id``

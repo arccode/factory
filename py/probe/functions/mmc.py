@@ -7,8 +7,8 @@ from cros.factory.probe.functions import sysfs
 from cros.factory.probe.lib import cached_probe_function
 
 
-REQUIRED_FIELDS = ['cid', 'csd', 'fwrev', 'hwrev', 'manfid', 'oemid']
-OPTIONAL_FIELDS = ['name', 'serial']
+REQUIRED_FIELDS = ['cid', 'csd', 'manfid', 'oemid', 'name', 'serial']
+OPTIONAL_FIELDS = ['fwrev', 'hwrev']
 
 
 def ReadMMCSysfs(dir_path):
@@ -29,18 +29,23 @@ class MMCFunction(cached_probe_function.GlobPathCachedProbeFunction):
   This function goes through ``/sys/bus/mmc/devices/`` to read attributes of
   each eMMC device listed there.  Each result should contain these fields:
 
-  - ``cid``
-  - ``csd``
-  - ``fwrev``
-  - ``hwrev``
-  - ``manfid``
-  - ``oemid``
+  - ``device_path``: Pathname of the sysfs directory.
+  - ``cid``: Card Identification Register.
+  - ``csd``: Card Specific Data Register.
+  - ``manfid``: Manufacturer ID (from CID Register).
+  - ``name``: Product Name (from CID Register).
+  - ``oemid``: OEM/Application ID (from CID Register).
+  - ``serial``: Product Serial Number (from CID Register).
 
   The result might also contain these optional fields if they are exported in
   the sysfs entry:
 
-  - ``name``
-  - ``serial``
+  - ``fwrev``: Firmware/Product Revision (from CID Register, SD and MMCv1 only).
+  - ``hwrev``: Hardware/Product Revision (from CID Register, SD and MMCv1 only).
+
+  Please reference the kernel
+  `document <https://www.kernel.org/doc/Documentation/mmc/mmc-dev-attrs.txt>`_
+  for more information.
 
   Examples
   --------
