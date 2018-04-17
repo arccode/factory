@@ -205,6 +205,11 @@ class GPTObject(object):
     return struct.pack(self.FORMAT, *self)
 
 
+class GPTError(Exception):
+  """All exceptions by GPT."""
+  pass
+
+
 class GPT(object):
   """A GPT helper class.
 
@@ -377,7 +382,7 @@ class GPT(object):
         gpt.block_size = block_size
         break
     else:
-      raise ValueError('Invalid signature in GPT header.')
+      raise GPTError('Invalid signature in GPT header.')
 
     image.seek(gpt.block_size * header.PartitionEntriesStartingLBA)
     def ReadPartition(image, i):
@@ -427,8 +432,8 @@ class GPT(object):
     """
     old_size = self.block_size * (self.header.BackupLBA + 1)
     if new_size % self.block_size:
-      raise ValueError('New file size %d is not valid for image files.' %
-                       new_size)
+      raise GPTError(
+          'New file size %d is not valid for image files.' % new_size)
     new_blocks = new_size / self.block_size
     if old_size != new_size:
       logging.warn('Image size (%d, LBA=%d) changed from %d (LBA=%d).',
@@ -445,7 +450,7 @@ class GPT(object):
     if last_usable_lba < self.header.LastUsableLBA:
       max_used_lba = self.GetMaxUsedLBA()
       if last_usable_lba < max_used_lba:
-        raise ValueError('Backup partition tables will overlap used partitions')
+        raise GPTError('Backup partition tables will overlap used partitions')
 
     self.header = self.header.Clone(
         BackupLBA=backup_lba, LastUsableLBA=last_usable_lba)
@@ -465,11 +470,11 @@ class GPT(object):
     # Assume no partitions overlap, we need to make sure partition[i] has
     # largest LBA.
     if i < 0 or i >= len(self.GetValidPartitions()):
-      raise ValueError('Partition index %d is invalid.' % (i + 1))
+      raise GPTError('Partition index %d is invalid.' % (i + 1))
     p = self.partitions[i]
     max_used_lba = self.GetMaxUsedLBA()
     if max_used_lba > p.LastLBA:
-      raise ValueError(
+      raise GPTError(
           'Cannot expand partition %d because it is not the last allocated '
           'partition.' % (i + 1))
 
@@ -665,11 +670,11 @@ class GPTCommands(object):
     header = ('start', 'size', 'part', 'contents')
 
     if IsFormatArgsSpecified() and args.index is None:
-      raise ValueError('Format arguments must be used with -i.')
+      raise GPTError('Format arguments must be used with -i.')
 
     partitions = gpt.GetValidPartitions()
     if not (args.index is None or 0 < args.index <= len(partitions)):
-      raise ValueError('Invalid partition index: %d' % args.index)
+      raise GPTError('Invalid partition index: %d' % args.index)
 
     do_print_gpt_blocks = False
     if not (args.quick or IsFormatArgsSpecified()):
