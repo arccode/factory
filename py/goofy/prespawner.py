@@ -45,7 +45,7 @@ from cros.factory.utils import process_utils
 
 NUM_PRESPAWNED_PROCESSES = 1
 PYTEST_PRESPAWNER_PATH = os.path.join(paths.FACTORY_DIR,
-                                      'py/goofy/invocation.py')
+                                      'py/test/pytest_runner.py')
 
 
 class Prespawner(object):
