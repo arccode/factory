@@ -14,8 +14,8 @@
     "NOP": {
       "pytest_name": "nop",
       "args": {
-        "foo": "eval! locals.foo",
-        "bar": "eval! locals.bar"
+        "foo": "eval! locals.ddd.foo",
+        "bar": "eval! locals.ddd.bar"
       }
     }
   },
@@ -23,22 +23,28 @@
     {
       "id": "SMT",
       "locals": {
-        "foo": "eval! constants.foo",
-        "bar": "BAR"
+        "ddd": {
+          "foo": "eval! constants.foo",
+          "bar": "BAR"
+        }
       },
       "subtests": [
         "NOP",
         {
           "inherit": "NOP",
           "locals": {
-            "bar": "BAZ"
+            "ddd": {
+              "bar": "BAZ"
+            }
           }
         },
         {
           "inherit": "NOP",
           "locals": {
-            "foo": "eval! locals.bar",
-            "bar": "BAZ"
+            "ddd": {
+              "foo": "eval! locals.ddd.bar",
+              "bar": "BAZ"
+            }
           }
         }
       ]

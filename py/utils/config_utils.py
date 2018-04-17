@@ -121,14 +121,14 @@ def OverrideConfig(base, overrides, copy_on_write=False):
           result.pop(k)
           changed = True
       elif v.pop(_OVERRIDE_REPLACE_KEY, False):
-        result[k] = OverrideConfig({}, v)
+        result[k] = OverrideConfig({}, v, copy_on_write)
         changed = True
       else:
         old_v = result.get(k, {})
         if isinstance(old_v, collections.Mapping):
-          result[k] = OverrideConfig(old_v, v)
+          result[k] = OverrideConfig(old_v, v, copy_on_write)
         else:
-          result[k] = OverrideConfig({}, v)
+          result[k] = OverrideConfig({}, v, copy_on_write)
         changed = True
     else:
       result[k] = v

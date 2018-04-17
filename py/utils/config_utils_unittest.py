@@ -72,6 +72,20 @@ class ConfigUtilsTest(unittest.TestCase):
         {'a': {'d': {'__delete__': True}}},
         {'a': {'b': 1, 'c': 2}})
 
+  def testOverrideConfigCopyOnWrite(self):
+    old_config = {
+        'a': {
+            'b': 'B',
+            'c': 'C',
+        },
+        'd': 'D',
+    }
+    new_config = config_utils.OverrideConfig(
+        old_config, {'a': {'b': 'BB'}, 'd': 'DD'}, copy_on_write=True)
+
+    self.assertEqual(new_config, {'a': {'b': 'BB', 'c': 'C'}, 'd': 'DD'})
+    self.assertEqual(old_config, {'a': {'b': 'B', 'c': 'C'}, 'd': 'D'})
+
   def testMappingToNamedTuple(self):
     val = {'a': {'b': 1, 'c': 2}}
     val_tuple = config_utils.GetNamedTuple(val)

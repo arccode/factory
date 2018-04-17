@@ -213,13 +213,13 @@ class TestListLoaderTest(unittest.TestCase):
     test_list = self.manager.GetTestListByID('locals')
     self.assertEqual(
         test_list.LookupPath('SMT.NOP').locals_,
-        {'foo': 'FOO', 'bar': 'BAR'})
+        {'ddd': {'foo': 'FOO', 'bar': 'BAR'}})
     self.assertEqual(
         test_list.LookupPath('SMT.NOP_2').locals_,
-        {'foo': 'FOO', 'bar': 'BAZ'})
+        {'ddd': {'foo': 'FOO', 'bar': 'BAZ'}})
     self.assertEqual(
         test_list.LookupPath('SMT.NOP_3').locals_,
-        {'foo': 'BAR', 'bar': 'BAZ'})
+        {'ddd': {'foo': 'BAR', 'bar': 'BAZ'}})
 
   def testFailedAutoReloadTestList(self):
     # load test list config
