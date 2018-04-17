@@ -166,21 +166,29 @@ class GPT(object):
     return binascii.crc32(cls.GetPartitionsBlob(partitions))
 
   @classmethod
-  def LoadFromFile(cls, f):
-    """Loads a GPT table from give disk image file object."""
+  def LoadFromFile(cls, image):
+    """Loads a GPT table from give disk image file object.
+
+    Args:
+      image: a string as file path or a file-like object to read from.
+    """
+    if isinstance(image, basestring):
+      with open(image, 'rb') as f:
+        return cls.LoadFromFile(f)
+
     gpt = GPT()
     # Try DEFAULT_BLOCK_SIZE, then 4K.
     for block_size in [cls.DEFAULT_BLOCK_SIZE, 4096]:
-      f.seek(block_size * 1)
-      header = gpt.ReadHeader(f)
+      image.seek(block_size * 1)
+      header = gpt.ReadHeader(image)
       if header.Signature == cls.HEADER_SIGNATURE:
         gpt.block_size = block_size
         break
     else:
       raise ValueError('Invalid signature in GPT header.')
 
-    f.seek(gpt.block_size * header.PartitionEntriesStartingLBA)
-    partitions = [gpt.ReadPartitionEntry(f)
+    image.seek(gpt.block_size * header.PartitionEntriesStartingLBA)
+    partitions = [gpt.ReadPartitionEntry(image)
                   for unused_i in range(header.PartitionEntriesNumber)]
     gpt.header = header
     gpt.partitions = partitions
@@ -314,15 +322,22 @@ class GPT(object):
         header,
         CRC32=self.GetHeaderCRC32(header))
 
-  def WriteToFile(self, f):
-    """Updates partition table in a disk image file."""
+  def WriteToFile(self, image):
+    """Updates partition table in a disk image file.
+
+    Args:
+      image: a string as file path or a file-like object to write into.
+    """
+    if isinstance(image, basestring):
+      with open(image, 'rb+') as f:
+        return self.WriteToFile(f)
 
     def WriteData(name, blob, lba):
       """Writes a blob into given location."""
       logging.info('Writing %s in LBA %d (offset %d)',
                    name, lba, lba * self.block_size)
-      f.seek(lba * self.block_size)
-      f.write(blob)
+      image.seek(lba * self.block_size)
+      image.write(blob)
 
     self.UpdateChecksum()
     WriteData('GPT Header', self.GetHeaderBlob(self.header),

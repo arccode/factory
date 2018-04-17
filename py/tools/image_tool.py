@@ -255,9 +255,7 @@ class Partition(object):
     """
     self._image = image
     self._number = number
-
-    with open(image, 'rb') as f:
-      self._gpt = pygpt.GPT.LoadFromFile(f)
+    self._gpt = pygpt.GPT.LoadFromFile(image)
 
     # Ensure given index is valid.
     parts = self._gpt.GetValidPartitions()
@@ -1016,11 +1014,10 @@ class ChromeOSFactoryBundle(object):
     print('Changing size: %s M => %s M' %
           (old_size / MEGABYTE, new_size / MEGABYTE))
     Shell(['truncate', '-s', str(new_size), output])
-    with open(output, 'rb+') as f:
-      gpt = pygpt.GPT.LoadFromFile(f)
-      gpt.Resize(new_size)
-      gpt.ExpandPartition(PART_CROS_STATEFUL - 1)  # pygpt.GPT is 0-based.
-      gpt.WriteToFile(f)
+    gpt = pygpt.GPT.LoadFromFile(output)
+    gpt.Resize(new_size)
+    gpt.ExpandPartition(PART_CROS_STATEFUL - 1)  # pygpt.GPT is 0-based.
+    gpt.WriteToFile(output)
     part = Partition(output, PART_CROS_STATEFUL)
     part.ResizeFileSystem()
 

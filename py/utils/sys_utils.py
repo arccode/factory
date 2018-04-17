@@ -376,9 +376,8 @@ class PartitionManager(_GPTTool):
     """Manipulate GPT using cros.factory.utils.pygpt."""
 
     def __init__(self, image_path):
-      with open(image_path, 'rb') as f:
-        self._gpt = pygpt.GPT.LoadFromFile(f)
-        self._partitions = self._gpt.GetValidPartitions()
+      self._gpt = pygpt.GPT.LoadFromFile(image_path)
+      self._partitions = self._gpt.GetValidPartitions()
 
     @type_utils.Overrides
     def GetPartitionOffsetInSector(self, index):
