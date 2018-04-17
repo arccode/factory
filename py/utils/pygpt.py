@@ -236,6 +236,7 @@ class GPT(object):
     pmbr: a namedtuple of Protective MBR.
     partitions: a list of GPT partition entry nametuple.
     block_size: integer for size of bytes in one block (sector).
+    is_secondary: boolean to indicate if the header is from primary or backup.
   """
 
   DEFAULT_BLOCK_SIZE = 512
@@ -433,6 +434,7 @@ class GPT(object):
     self.header = None
     self.partitions = None
     self.block_size = self.DEFAULT_BLOCK_SIZE
+    self.is_secondary = False
 
   @classmethod
   def Create(cls, image_name, size, block_size, pad_blocks=0):
@@ -474,11 +476,25 @@ class GPT(object):
 
     # Try DEFAULT_BLOCK_SIZE, then 4K.
     for block_size in [cls.DEFAULT_BLOCK_SIZE, 4096]:
-      image.seek(block_size * 1)
-      header = gpt.Header.ReadFrom(image)
-      if header.Signature in cls.Header.SIGNATURES:
-        gpt.block_size = block_size
-        break
+      # Note because there are devices setting Primary as ignored and the
+      # partition table signature accepts 'CHROMEOS' which is also used by
+      # Chrome OS kernel partition, we have to look for Secondary (backup) GPT
+      # first before trying other block sizes, otherwise we may incorrectly
+      # identify a kernel partition as LBA 1 of larger block size system.
+      for i, seek in enumerate([(block_size * 1, os.SEEK_SET),
+                                (-block_size, os.SEEK_END)]):
+        image.seek(*seek)
+        header = gpt.Header.ReadFrom(image)
+        if header.Signature in cls.Header.SIGNATURES:
+          gpt.block_size = block_size
+          if i != 0:
+            gpt.is_secondary = True
+          break
+      else:
+        # Nothing found, try next block size.
+        continue
+      # Found a valid signature.
+      break
     else:
       raise GPTError('Invalid signature in GPT header.')
 
@@ -587,6 +603,14 @@ class GPT(object):
         '%s expanded, size in LBA: %d -> %d.', p, old_blocks, new_blocks)
     return (old_blocks, new_blocks)
 
+  def GetIgnoredHeader(self):
+    """Returns a primary header with signature set to 'IGNOREME'.
+
+    This is a special trick to enforce using backup header, when there is
+    some security exploit in LBA1.
+    """
+    return self.header.Clone(Signature=self.header.SIGNATURE_IGNORE)
+
   def UpdateChecksum(self):
     """Updates all checksum fields in GPT objects.
 
@@ -596,13 +620,13 @@ class GPT(object):
     self.header = self.header.Clone(
         PartitionArrayCRC32=binascii.crc32(parts))
 
-  def GetBackupHeader(self):
-    """Returns the backup header according to current header."""
+  def GetBackupHeader(self, header):
+    """Returns the backup header according to given header."""
     partitions_starting_lba = (
-        self.header.BackupLBA - self.GetPartitionTableBlocks())
-    return self.header.Clone(
-        BackupLBA=self.header.CurrentLBA,
-        CurrentLBA=self.header.BackupLBA,
+        header.BackupLBA - self.GetPartitionTableBlocks())
+    return header.Clone(
+        BackupLBA=header.CurrentLBA,
+        CurrentLBA=header.BackupLBA,
         PartitionEntriesStartingLBA=partitions_starting_lba)
 
   @classmethod
@@ -685,16 +709,22 @@ class GPT(object):
 
     self.UpdateChecksum()
     parts_blob = ''.join(p.blob for p in self.partitions)
-    WriteData('GPT Header', self.header.blob, self.header.CurrentLBA)
-    WriteData(
-        'GPT Partitions', parts_blob, self.header.PartitionEntriesStartingLBA)
-    logging.info('Usable LBA: First=%d, Last=%d',
-                 self.header.FirstUsableLBA, self.header.LastUsableLBA)
-    backup_header = self.GetBackupHeader()
-    WriteData(
-        'Backup Partitions', parts_blob,
-        backup_header.PartitionEntriesStartingLBA)
-    WriteData('Backup Header', backup_header.blob, backup_header.CurrentLBA)
+
+    header = self.header
+    WriteData('GPT Header', header.blob, header.CurrentLBA)
+    WriteData('GPT Partitions', parts_blob, header.PartitionEntriesStartingLBA)
+    logging.info(
+        'Usable LBA: First=%d, Last=%d', header.FirstUsableLBA,
+        header.LastUsableLBA)
+
+    if not self.is_secondary:
+      # When is_secondary is True, the header we have is actually backup header.
+      backup_header = self.GetBackupHeader(self.header)
+      WriteData(
+          'Backup Partitions', parts_blob,
+          backup_header.PartitionEntriesStartingLBA)
+      WriteData(
+          'Backup Header', backup_header.blob, backup_header.CurrentLBA)
 
 
 class GPTCommands(object):
@@ -827,6 +857,44 @@ class GPTCommands(object):
           args.image_file, args.pmbr, bootcode=bootcode, boot_guid=boot_guid)
 
       print(str(pmbr.boot_guid).upper())
+
+  class Legacy(SubCommand):
+    """Switch between GPT and Legacy GPT.
+
+    Switch GPT header signature to "CHROMEOS".
+    """
+
+    def DefineArgs(self, parser):
+      parser.add_argument(
+          '-e', '--efi', action='store_true',
+          help='Switch GPT header signature back to "EFI PART"')
+      parser.add_argument(
+          '-p', '--primary-ignore', action='store_true',
+          help='Switch primary GPT header signature to "IGNOREME"')
+      parser.add_argument(
+          'image_file', type=argparse.FileType('rb+'),
+          help='Disk image file to change.')
+
+    def Execute(self, args):
+      gpt = GPT.LoadFromFile(args.image_file)
+      # cgpt behavior: if -p is specified, -e is ignored.
+      if args.primary_ignore:
+        if gpt.is_secondary:
+          raise GPTError('Sorry, the disk already has primary GPT ignored.')
+        args.image_file.seek(gpt.header.CurrentLBA * gpt.block_size)
+        args.image_file.write(gpt.header.SIGNATURE_IGNORE)
+        gpt.header = gpt.GetBackupHeader(self.header)
+        gpt.is_secondary = True
+      else:
+        new_signature = gpt.Header.SIGNATURES[0 if args.efi else 1]
+        gpt.header = gpt.header.Clone(Signature=new_signature)
+      gpt.WriteToFile(args.image_file)
+      if args.primary_ignore:
+        print('OK: Set %s primary GPT header to %s.' %
+              (args.image_file.name, gpt.header.SIGNATURE_IGNORE))
+      else:
+        print('OK: Changed GPT signature for %s to %s.' %
+              (args.image_file.name, new_signature))
 
   class Repair(SubCommand):
     """Repair damaged GPT headers and tables."""
@@ -975,9 +1043,14 @@ class GPTCommands(object):
           do_print_gpt_blocks = True
 
       if do_print_gpt_blocks:
-        print(fmt % (gpt.header.CurrentLBA, 1, '', 'Pri GPT header'))
-        print(fmt % (gpt.header.PartitionEntriesStartingLBA,
-                     gpt.GetPartitionTableBlocks(), '', 'Pri GPT table'))
+        if gpt.pmbr:
+          print(fmt % (0, 1, '', 'PMBR'))
+        if gpt.is_secondary:
+          print(fmt % (gpt.header.BackupLBA, 1, 'IGNORED', 'Pri GPT header'))
+        else:
+          print(fmt % (gpt.header.CurrentLBA, 1, '', 'Pri GPT header'))
+          print(fmt % (gpt.header.PartitionEntriesStartingLBA,
+                       gpt.GetPartitionTableBlocks(), '', 'Pri GPT table'))
 
       for p in partitions:
         if args.number is None:
@@ -1005,9 +1078,12 @@ class GPTCommands(object):
                 p.attrs, name == GPT.TYPE_NAME_CHROMEOS_KERNEL)))
 
       if do_print_gpt_blocks:
-        f = args.image_file
-        f.seek(gpt.header.BackupLBA * gpt.block_size)
-        header = gpt.Header.ReadFrom(f)
+        if gpt.is_secondary:
+          header = gpt.header
+        else:
+          f = args.image_file
+          f.seek(gpt.header.BackupLBA * gpt.block_size)
+          header = gpt.Header.ReadFrom(f)
         print(fmt % (header.PartitionEntriesStartingLBA,
                      gpt.GetPartitionTableBlocks(header), '',
                      'Sec GPT table'))

@@ -138,6 +138,24 @@ class GPTTest(unittest.TestCase):
     self.assertEqual(gpt.pmbr.Magic, gpt.ProtectiveMBR.MAGIC)
     self.assertEqual(gpt.pmbr.Signature, gpt.ProtectiveMBR.SIGNATURE)
 
+  def testLegacy(self):
+    bin_file = self.temp_bin
+    gpt = pygpt.GPT.LoadFromFile(bin_file)
+    gpt.header = gpt.header.Clone(Signature=gpt.header.SIGNATURES[1])
+    gpt.WriteToFile(bin_file)
+
+    gpt = pygpt.GPT.LoadFromFile(bin_file)
+    self.assertEquals(gpt.header.Signature, gpt.header.SIGNATURES[1])
+
+    with open(bin_file, 'r+') as f:
+      f.seek(512)
+      f.write(gpt.header.SIGNATURE_IGNORE)
+
+    gpt = pygpt.GPT.LoadFromFile(bin_file)
+    self.assertEquals(gpt.is_secondary, True)
+    self.assertEquals(gpt.header.CurrentLBA, 102399)
+    self.assertEquals(gpt.header.BackupLBA, 1)
+
 
 if __name__ == '__main__':
   unittest.main()
