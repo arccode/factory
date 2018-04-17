@@ -509,8 +509,20 @@ msgid "Wait External Test"
 msgstr "等待外部測試"
 
 #: ../build/pytests_label_generated.json
+msgid "Wait Fixture Ready"
+msgstr "等待制具"
+
+#: ../build/pytests_label_generated.json
 msgid "Webgl Aquarium"
 msgstr "WebGL 水族箱"
+
+#: ../build/pytests_label_generated.json
+msgid "Whale Check Voltage"
+msgstr "Whale 电压测试"
+
+#: ../build/pytests_label_generated.json
+msgid "Whale Cover"
+msgstr "Whale 压合"
 
 #: ../build/pytests_label_generated.json
 msgid "Wifi Check Calibration"
@@ -2878,6 +2890,34 @@ msgstr "完成后按 {key} 键"
 #: ../py/test/pytests/wait_external_test.py
 msgid "Please run external test: {name}"
 msgstr "請執行外部測試: {name}"
+
+#: ../py/test/pytests/whale_check_voltage.py
+msgid "Power rail"
+msgstr "电源"
+
+#: ../py/test/pytests/whale_check_voltage.py
+msgid "voltage (mV)"
+msgstr "电压 (mV)"
+
+#: ../py/test/pytests/whale_check_voltage.py
+msgid "expected"
+msgstr "期望值"
+
+#: ../py/test/pytests/whale_check_voltage.py
+msgid "status"
+msgstr "状态"
+
+#: ../py/test/pytests/whale_cover.py
+msgid "Please open the cover!"
+msgstr "请开盖"
+
+#: ../py/test/pytests/whale_cover.py
+msgid "Please close the cover!"
+msgstr "请关盖"
+
+#: ../py/test/pytests/whale_cover.py
+msgid "Checking The Cover"
+msgstr "检查上盖状态"
 
 #: ../py/test/pytests/wifi_throughput.py
 msgid "Running, please wait..."
