@@ -28,7 +28,6 @@ import tempfile
 import textwrap
 import time
 import urlparse
-import uuid
 
 # The edit_lsb command works better if readline enabled, but will still work if
 # that is not available.
@@ -178,16 +177,42 @@ class SysUtils(object):
       raise RuntimeError('Cannot find program: %s' % command)
     return provided
 
-  @staticmethod
-  def FindBZip2():
-    """Returns a path to best working 'bzip2'."""
-    try:
-      return SysUtils.FindCommand('lbzip2')
-    except Exception:
+  @classmethod
+  def FindCommands(cls, *commands):
+    """Find any of the given commands in order."""
+    for cmd in commands:
       try:
-        return SysUtils.FindCommand('pbzip2')
+        return cls.FindCommand(cmd)
       except Exception:
-        return SysUtils.FindCommand('bzip2')
+        pass
+    raise RuntimeError(
+        'Cannot find any of the following commands: %s' % ', '.join(commands))
+
+  @classmethod
+  def FindCGPT(cls):
+    """Returns the best match of `cgpt` style command.
+
+    The `cgpt` is a native program that is hard to deploy. As an alternative, we
+    have the `pygpt` that emulates most of its functions, and that is accessible
+    via `image_tool gpt`.
+    """
+    if os.path.exists(__file__) and os.access(__file__, os.X_OK):
+      return '%s gpt' % __file__
+
+    # Are we inside PAR?
+    par_path = os.environ.get('PAR_PATH')
+    if par_path:
+      if os.path.basename(par_path) == 'image_tool':
+        return '%s gpt' % par_path
+      return 'sh %s image_tool gpt' % par_path
+
+    # Nothing more - let's try to find the real programs.
+    return cls.FindCommands('pygpt', 'cgpt')
+
+  @classmethod
+  def FindBZip2(cls):
+    """Returns a path to best working 'bzip2'."""
+    return cls.FindCommands('lbzip2', 'pbzip2', 'bzip2')
 
   @staticmethod
   @contextlib.contextmanager
@@ -286,18 +311,9 @@ class Partition(object):
   def size(self):
     return self._part.size
 
-  @property
-  def label(self):
-    return self._part.label
-
-  @property
-  def type_uuid(self):
-    return str(uuid.UUID(bytes_le=self._part.TypeGUID)).upper()
-
-  @property
-  def attr16(self):
-    """Represents the -A in cgpt."""
-    return self._part.Attributes >> 48
+  def GetGPTPartition(self):
+    """Returns the associated pygpt.GPT.Partition instance."""
+    return self._part
 
   @staticmethod
   @contextlib.contextmanager
@@ -566,11 +582,8 @@ class Partition(object):
                          (new_size, min_size))
 
     logging.debug('Initialize partition table (GPT).')
-    cgpt = SysUtils.FindCommand('cgpt')
-    # TODO(hungte) Tell `cgpt` to create GPT using block_size.
-    assert block_size == 512, 'Sector size %s not supported yet.' % block_size
-    Shell([cgpt, 'create', output])
-    Shell([cgpt, 'boot', '-p', output], silent=True)
+    gpt = pygpt.GPT.Create(output, new_size, block_size)
+    gpt.WriteProtectiveMBR(output, create=True)
 
     logging.debug('Create partitions.')
     for i, part in enumerate(parts):
@@ -578,12 +591,13 @@ class Partition(object):
           block_size, part.offset)
       assert part.size % block_size == 0, 'Unaligned (%s) size: %s' % (
           block_size, part.offset)
-      # CGPT commands always take sectors.
       begin_sec = part.offset / block_size
       size_sec = part.size / block_size
-      Shell([cgpt, 'add', '-b', str(begin_sec), '-s', str(size_sec),
-             '-i', str(i + 1), '-l', part.label, '-t', part.type_uuid,
-             '-A', str(part.attr16), output])
+      # The 'parts' is a list of image_tool.Partition.
+      gpt.partitions[i] = part.GetGPTPartition().Clone(
+          FirstLBA=begin_sec,
+          LastLBA=begin_sec + size_sec - 1)
+    gpt.WriteToFile(output)
 
 
 class LSBFile(object):
@@ -898,8 +912,10 @@ class ChromeOSFactoryBundle(object):
       if not RE_GPT.search(contents):
         raise RuntimeError('Missing GPT="" in %s:"write_gpt.sh".' % part)
 
-      cgpt_path = SysUtils.FindCommand('cgpt')
-      contents = RE_GPT.sub('GPT="%s"' % cgpt_path, contents)
+      # pygpt is already available, but to allow write_gpt.sh access gpt
+      # commands, have to find an externally executable GPT.
+      cgpt_command = SysUtils.FindCGPT()
+      contents = RE_GPT.sub('GPT="%s"' % cgpt_command, contents)
       contents += '\n'.join([
           '',
           'write_base_table $1 %s' % pmbr_path,
