@@ -2857,12 +2857,19 @@ cros.factory.Goofy = class {
   async sendRpcImpl_(method, params, path) {
     const body = JSON.stringify({method, params, id: 1});
     let response;
-    try {
-      response = await fetch(path, {body, method: 'POST'});
-    } catch (error) {
-      const message = `RPC error calling ${method}: ${error.message}`;
-      this.logToConsole(message, 'goofy-internal-error');
-      throw error;
+    const MAX_RETRY = 5;
+    for (let retry = 1; retry <= MAX_RETRY; retry++) {
+      try {
+        response = await fetch(path, {body, method: 'POST'});
+        break;
+      } catch (error) {
+        if (retry === MAX_RETRY) {
+          const message = `RPC error calling ${method}: ${error.message}`;
+          this.logToConsole(message, 'goofy-internal-error');
+          throw error;
+        }
+        await cros.factory.utils.delay(100);
+      }
     }
     const /** {error: ?{message: string}, result: ?Object} */ json =
         await response.json();
