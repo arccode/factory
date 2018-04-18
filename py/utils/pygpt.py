@@ -642,6 +642,62 @@ class GPT(object):
     """
     return self.header.Clone(Signature=self.header.SIGNATURE_IGNORE)
 
+  def CheckIntegrity(self):
+    """Checks if the GPT objects all look good."""
+    # Check if the header allocation looks good. CurrentLBA and
+    # PartitionEntriesStartingLBA should be all outside [FirstUsableLBA,
+    # LastUsableLBA].
+    header = self.header
+    entries_first_lba = header.PartitionEntriesStartingLBA
+    entries_last_lba = entries_first_lba + self.GetPartitionTableBlocks() - 1
+
+    def CheckOutsideUsable(name, lba, outside_entries=False):
+      if lba < 1:
+        raise GPTError('%s should not live in LBA %s.' % (name, lba))
+      if lba > max(header.BackupLBA, header.CurrentLBA):
+        # Note this is "in theory" possible, but we want to report this as
+        # error as well, since it usually leads to error.
+        raise GPTError('%s (%s) should not be larger than BackupLBA (%s).' %
+                       (name, lba, header.BackupLBA))
+      if header.FirstUsableLBA <= lba <= header.LastUsableLBA:
+        raise GPTError('%s (%s) should not be included in usable LBAs [%s,%s]' %
+                       (name, lba, header.FirstUsableLBA, header.LastUsableLBA))
+      if outside_entries and entries_first_lba <= lba <= entries_last_lba:
+        raise GPTError('%s (%s) should be outside partition entries [%s,%s]' %
+                       (name, lba, entries_first_lba, entries_last_lba))
+    CheckOutsideUsable('Header', header.CurrentLBA, True)
+    CheckOutsideUsable('Backup header', header.BackupLBA, True)
+    CheckOutsideUsable('Partition entries', entries_first_lba)
+    CheckOutsideUsable('Partition entries end', entries_last_lba)
+
+    parts = self.GetUsedPartitions()
+    # Check if partition entries overlap with each other.
+    lba_list = [(p.FirstLBA, p.LastLBA, p) for p in parts]
+    lba_list.sort(key=lambda t: t[0])
+    for i in xrange(len(lba_list) - 1):
+      if lba_list[i][1] >= lba_list[i + 1][0]:
+        raise GPTError('Overlap in partition entries: [%s,%s]%s, [%s,%s]%s.' %
+                       (lba_list[i] + lba_list[i + 1]))
+    # Now, check the first and last partition.
+    if lba_list:
+      p = lba_list[0][2]
+      if p.FirstLBA < header.FirstUsableLBA:
+        raise GPTError(
+            'Partition %s must not go earlier (%s) than FirstUsableLBA=%s' %
+            (p, p.FirstLBA, header.FirstLBA))
+      p = lba_list[-1][2]
+      if p.LastLBA > header.LastUsableLBA:
+        raise GPTError(
+            'Partition %s must not go further (%s) than LastUsableLBA=%s' %
+            (p, p.LastLBA, header.LastLBA))
+    # Check if UniqueGUIDs are not unique.
+    if len(set(p.UniqueGUID for p in parts)) != len(parts):
+      raise GPTError('Partition UniqueGUIDs are duplicated.')
+    # Check if CRCs match.
+    if (binascii.crc32(''.join(p.blob for p in self.partitions)) !=
+        header.PartitionArrayCRC32):
+      raise GPTError('GPT Header PartitionArrayCRC32 does not match.')
+
   def UpdateChecksum(self):
     """Updates all checksum fields in GPT objects.
 
@@ -739,6 +795,7 @@ class GPT(object):
       image.write(blob)
 
     self.UpdateChecksum()
+    self.CheckIntegrity()
     parts_blob = ''.join(p.blob for p in self.partitions)
 
     header = self.header
@@ -1076,7 +1133,6 @@ class GPTCommands(object):
       if part.IsUnused():
         part = part.ReadFrom(None, **part.__dict__)
 
-      # TODO(hungte) Sanity check if part is valid.
       gpt.UpdatePartition(part)
       gpt.WriteToFile(args.image_file)
       if part.IsUnused():
@@ -1239,6 +1295,9 @@ class GPTCommands(object):
                      gpt.GetPartitionTableBlocks(header), '',
                      'Sec GPT table'))
         print(fmt % (header.CurrentLBA, 1, '', 'Sec GPT header'))
+
+      # Check integrity after showing all fields.
+      gpt.CheckIntegrity()
 
   class Prioritize(SubCommand):
     """Reorder the priority of all kernel partitions.
