@@ -70,6 +70,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.probe.functions import chromeos_firmware
 from cros.factory.test.utils import deploy_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
@@ -113,12 +114,10 @@ class UpdateKernel(unittest.TestCase):
       factory_tool.CheckCall(['gooftool', 'verify_release_channel',
                               '--enforced_release_channels', 'dev'])
       # verify firmware is dev key
-      with self._dut.temp.TempFile() as temp_file:
-        self._dut.CheckCall(['flashrom', '-r', temp_file, '-i', 'GBB', '-i',
-                             'FMAP'])
-        key_info = factory_tool.CheckOutput(['gooftool', 'get_firmware_hash',
-                                             '--file', temp_file])
-        self.assertIn(_DEVKEY, key_info)
+      probed_keys = chromeos_firmware.ChromeosFirmwareFunction.ProbeDevices(
+          chromeos_firmware.FIELDS.firmware_keys).values()
+      fw_keys = [key.split('#')[1] for key in probed_keys]
+      self.assertIn(_DEVKEY, fw_keys)
 
     if self.args.to_release:
       kerndev = self._dut.partitions.RELEASE_KERNEL
