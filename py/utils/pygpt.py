@@ -34,6 +34,8 @@ import collections
 import logging
 import os
 import struct
+import subprocess
+import sys
 import uuid
 
 
@@ -445,6 +447,12 @@ class GPT(object):
     self.is_secondary = False
 
   @classmethod
+  def GetTypeGUID(cls, input_uuid):
+    if input_uuid.lower() in cls.TYPE_GUID_REVERSE_MAP:
+      input_uuid = cls.TYPE_GUID_REVERSE_MAP[input_uuid.lower()]
+    return uuid.UUID(input_uuid)
+
+  @classmethod
   def Create(cls, image_name, size, block_size, pad_blocks=0):
     """Creates a new GPT instance from given size and block_size.
 
@@ -776,7 +784,7 @@ class GPTCommands(object):
 
   def Execute(self, args):
     """Execute the sub commands by given parsed arguments."""
-    self.commands[args.command].Execute(args)
+    return self.commands[args.command].Execute(args)
 
   class SubCommand(object):
     """A base class for sub commands to derive from."""
@@ -1001,12 +1009,6 @@ class GPTCommands(object):
           'image_file', type=argparse.FileType('rb+'),
           help='Disk image file to modify.')
 
-    @staticmethod
-    def GetTypeGUID(input_uuid):
-      if input_uuid.lower() in GPT.TYPE_GUID_REVERSE_MAP:
-        input_uuid = GPT.TYPE_GUID_REVERSE_MAP[input_uuid.lower()]
-      return uuid.UUID(input_uuid)
-
     def Execute(self, args):
       gpt = GPT.LoadFromFile(args.image_file)
       parts = gpt.GetValidPartitions()
@@ -1029,7 +1031,7 @@ class GPTCommands(object):
                       gpt.header.FirstUsableLBA),
             LastLBA=gpt.header.LastUsableLBA,
             UniqueGUID=uuid.uuid4(),
-            TypeGUID=self.GetTypeGUID('data'))
+            TypeGUID=gpt.GetTypeGUID('data'))
 
       attr = part.attrs
       if args.legacy_boot is not None:
@@ -1052,7 +1054,7 @@ class GPTCommands(object):
           FirstLBA=first_lba,
           LastLBA=last_lba,
           TypeGUID=(part.TypeGUID if args.type_guid is None else
-                    self.GetTypeGUID(args.type_guid)),
+                    gpt.GetTypeGUID(args.type_guid)),
           UniqueGUID=(part.UniqueGUID if args.unique_guid is None else
                       uuid.UUID(bytes_le=args.unique_guid)),
           Attributes=attr,
@@ -1302,6 +1304,100 @@ class GPTCommands(object):
 
       gpt.WriteToFile(args.image_file)
 
+  class Find(SubCommand):
+    """Locate a partition by its GUID.
+
+    Find a partition by its UUID or label. With no specified DRIVE it scans all
+    physical drives.
+
+    The partition type may also be given as one of these aliases:
+
+        firmware    ChromeOS firmware
+        kernel      ChromeOS kernel
+        rootfs      ChromeOS rootfs
+        data        Linux data
+        reserved    ChromeOS reserved
+        efi         EFI System Partition
+        unused      Unused (nonexistent) partition
+    """
+    def DefineArgs(self, parser):
+      parser.add_argument(
+          '-t', '--type-guid',
+          help='Search for Partition Type GUID')
+      parser.add_argument(
+          '-u', '--unique-guid',
+          help='Search for Partition Unique GUID')
+      parser.add_argument(
+          '-l', '--label',
+          help='Search for Label')
+      parser.add_argument(
+          '-n', '--numeric', action='store_true',
+          help='Numeric output only.')
+      parser.add_argument(
+          '-1', '--single-match', action='store_true',
+          help='Fail if more than one match is found.')
+      parser.add_argument(
+          '-M', '--match-file', type=str,
+          help='Matching partition data must also contain MATCH_FILE content.')
+      parser.add_argument(
+          '-O', '--offset', type=int, default=0,
+          help='Byte offset into partition to match content (default 0).')
+      parser.add_argument(
+          'drive', type=argparse.FileType('rb+'), nargs='?',
+          help='Drive or disk image file to find.')
+
+    def Execute(self, args):
+      if not any((args.type_guid, args.unique_guid, args.label)):
+        raise GPTError('You must specify at least one of -t, -u, or -l')
+
+      drives = [args.drive.name] if args.drive else (
+          '/dev/%s' % name for name in subprocess.check_output(
+              'lsblk -d -n -r -o name', shell=True).split())
+
+      match_pattern = None
+      if args.match_file:
+        with open(args.match_file) as f:
+          match_pattern = f.read()
+
+      found = 0
+      for drive in drives:
+        try:
+          gpt = GPT.LoadFromFile(drive)
+        except GPTError:
+          if args.drive:
+            raise
+          # When scanning all block devices on system, ignore failure.
+
+        for p in gpt.partitions:
+          if p.IsUnused():
+            continue
+          if args.label is not None and args.label != p.label:
+            continue
+          if args.unique_guid is not None and (
+              uuid.UUID(args.unique_guid) != uuid.UUID(bytes_le=p.UniqueGUID)):
+            continue
+          type_guid = gpt.GetTypeGUID(args.type_guid)
+          if args.type_guid is not None and (
+              type_guid != uuid.UUID(bytes_le=p.TypeGUID)):
+            continue
+          if match_pattern:
+            with open(drive, 'rb') as f:
+              f.seek(p.offset + args.offset)
+              if f.read(len(match_pattern)) != match_pattern:
+                continue
+          # Found the partition, now print.
+          found += 1
+          if args.numeric:
+            print(p.number)
+          else:
+            # This is actually more for block devices.
+            print('%s%s%s' % (p.image, 'p' if p.image[-1].isdigit() else '',
+                              p.number))
+
+      if found < 1 or (args.single_match and found > 1):
+        return 1
+      return 0
+
 
 def main():
   commands = GPTCommands()
@@ -1319,7 +1415,9 @@ def main():
   logging.basicConfig(format='%(module)s:%(funcName)s %(message)s',
                       level=log_level)
   try:
-    commands.Execute(args)
+    code = commands.Execute(args)
+    if type(code) is int:
+      sys.exit(code)
   except Exception as e:
     if args.verbose or args.debug:
       logging.exception('Failure in command [%s]', args.command)

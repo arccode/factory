@@ -230,6 +230,21 @@ class GPTTest(unittest.TestCase):
     self.gpt_command.RunPyGPT('prioritize', '-i', '4', '-f', self.temp_bin)
     VerifyPriorities([2, 3, 1, 3, 0])
 
+  def testFind(self):
+    for cmd in self.init_commands:
+      self.gpt_command.RunPyGPT(*cmd)
+
+    self.assertEqual(
+        0, self.gpt_command.RunPyGPT('find', '-t', 'kernel', self.temp_bin))
+    self.assertEqual(
+        1, self.gpt_command.RunPyGPT('find', '-t', 'efi', self.temp_bin))
+    self.assertEqual(
+        0, self.gpt_command.RunPyGPT('find', '-t', 'rootfs', self.temp_bin))
+    self.assertEqual(0, self.gpt_command.RunPyGPT( 'find', '-1', '-t',
+        'rootfs', self.temp_bin))
+    self.assertEqual(1, self.gpt_command.RunPyGPT( 'find', '-1', '-t',
+        'kernel', self.temp_bin))
+
 
 if __name__ == '__main__':
   unittest.main()
