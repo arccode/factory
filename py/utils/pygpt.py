@@ -549,6 +549,26 @@ class GPT(object):
       blocks += 1
     return blocks
 
+  def GetPartition(self, number):
+    """Gets the Partition by given (1-based) partition number.
+
+    Args:
+      number: an integer as 1-based partition number.
+    """
+    if not 0 < number <= len(self.partitions):
+      raise GPTError('Invalid partition number %s.' % number)
+    return self.partitions[number - 1]
+
+  def UpdatePartition(self, part, number=None):
+    """Updates the entry in partition table by given Partition object.
+
+    Args:
+      part: a Partition GPT object.
+      number: an integer as 1-based partition number. None to use part.number.
+    """
+    number = part.number if number is None else number
+    self.partitions[number - 1] = part
+
   def Resize(self, new_size):
     """Adjust GPT for a disk image in given size.
 
@@ -586,22 +606,20 @@ class GPT(object):
     assert max_lba <= self.header.LastUsableLBA, "Partitions too large."
     return self.block_size * (self.header.LastUsableLBA - max_lba)
 
-  def ExpandPartition(self, i):
+  def ExpandPartition(self, number):
     """Expands a given partition to last usable LBA.
 
     Args:
-      i: Index (0-based) of target partition.
+      number: an integer to specify partition in 1-based number.
 
     Returns:
       (old_blocks, new_blocks) for size in blocks.
     """
     # Assume no partitions overlap, we need to make sure partition[i] has
     # largest LBA.
-    if i < 0 or i >= len(self.partitions):
-      raise GPTError('Partition number %d is invalid.' % (i + 1))
-    if self.partitions[i].IsUnused():
-      raise GPTError('Partition number %d is unused.' % (i + 1))
-    p = self.partitions[i]
+    p = self.GetPartition(number)
+    if p.IsUnused():
+      raise GPTError('Partition %s is unused.' % p)
     max_used_lba = self.GetMaxUsedLBA()
     # TODO(hungte) We can do more by finding free space after i.
     if max_used_lba > p.LastLBA:
@@ -611,7 +629,7 @@ class GPT(object):
     old_blocks = p.blocks
     p = p.Clone(LastLBA=self.header.LastUsableLBA)
     new_blocks = p.blocks
-    self.partitions[i] = p
+    self.UpdatePartition(p)
     logging.warn(
         '%s expanded, size in LBA: %d -> %d.', p, old_blocks, new_blocks)
     return (old_blocks, new_blocks)
@@ -865,7 +883,7 @@ class GPTCommands(object):
       boot_guid = None
       if args.number is not None:
         gpt = GPT.LoadFromFile(args.image_file)
-        boot_guid = gpt.partitions[args.number - 1].UniqueGUID
+        boot_guid = gpt.GetPartition(args.number).UniqueGUID
       pmbr = GPT.WriteProtectiveMBR(
           args.image_file, args.pmbr, bootcode=bootcode, boot_guid=boot_guid)
 
@@ -936,7 +954,7 @@ class GPTCommands(object):
 
     def Execute(self, args):
       gpt = GPT.LoadFromFile(args.image_file)
-      old_blocks, new_blocks = gpt.ExpandPartition(args.number - 1)
+      old_blocks, new_blocks = gpt.ExpandPartition(args.number)
       gpt.WriteToFile(args.image_file)
       if old_blocks < new_blocks:
         print(
@@ -1014,8 +1032,7 @@ class GPTCommands(object):
 
       # First and last LBA must be calculated explicitly because the given
       # argument is size.
-      index = number - 1
-      part = gpt.partitions[index]
+      part = gpt.GetPartition(number)
       is_new_part = part.IsUnused()
 
       if is_new_part:
@@ -1059,9 +1076,8 @@ class GPTCommands(object):
       if part.IsUnused():
         part = part.ReadFrom(None, **part.__dict__)
 
-      gpt.partitions[index] = part
-
       # TODO(hungte) Sanity check if part is valid.
+      gpt.UpdatePartition(part)
       gpt.WriteToFile(args.image_file)
       if part.IsUnused():
         # If we do ('%s' % part) there will be TypeError.
@@ -1261,7 +1277,7 @@ class GPTCommands(object):
       groups = [[p for p in parts if p.attrs.priority == priority]
                 for priority in prios]
       if args.number:
-        p = gpt.partitions[args.number - 1]
+        p = gpt.GetPartition(args.number)
         if p not in parts:
           raise GPTError('%s is not a ChromeOS kernel.' % p)
         if args.friends:
@@ -1287,7 +1303,7 @@ class GPTCommands(object):
           assert new_priority > 0, 'Priority must be > 0.'
           attrs.priority = new_priority
           p = p.Clone(Attributes=attrs)
-          gpt.partitions[p.number - 1] = p
+          gpt.UpdatePartition(p)
           has_new_part = True
           logging.info('%s priority changed from %s to %s.', p, old_priority,
                        new_priority)

@@ -126,7 +126,7 @@ class GPTTest(unittest.TestCase):
       gpt.Resize(os.path.getsize(self.temp_bin))
       free_space = gpt.GetFreeSpace()
       self.assertEqual(free_space, 10449408)
-      gpt.ExpandPartition(0)
+      gpt.ExpandPartition(1)
       gpt.WriteToFile(f)
 
     with os.popen("cgpt show -i 1 -s %s" % self.temp_bin) as f:

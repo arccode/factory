@@ -284,7 +284,7 @@ class Partition(object):
     if not 1 <= number < len(gpt.partitions):
       raise RuntimeError(
           'Invalid partition number %s for image %s.' % (number, image))
-    part = gpt.partitions[number - 1]
+    part = gpt.GetPartition(number)
     if part.IsUnused():
       raise RuntimeError('Partition %s is unused.' % part)
     self._part = part
@@ -946,7 +946,7 @@ class ChromeOSFactoryBundle(object):
     Shell(['truncate', '-s', str(new_size), output])
     gpt = pygpt.GPT.LoadFromFile(output)
     gpt.Resize(new_size)
-    gpt.ExpandPartition(PART_CROS_STATEFUL - 1)  # pygpt.GPT is 0-based.
+    gpt.ExpandPartition(PART_CROS_STATEFUL)
     gpt.WriteToFile(output)
     part = Partition(output, PART_CROS_STATEFUL)
     part.ResizeFileSystem()
@@ -998,9 +998,9 @@ class ChromeOSFactoryBundle(object):
       assert gpt.block_size == block_size, (
           'Cannot merge image %s due to different block size (%s, %s)' %
           (path, block_size, gpt.block_size))
-      stateful_parts.append(gpt.partitions[PART_CROS_STATEFUL - 1])
-      kern_rootfs_parts.append(gpt.partitions[PART_CROS_KERNEL_A - 1])
-      kern_rootfs_parts.append(gpt.partitions[PART_CROS_ROOTFS_A - 1])
+      stateful_parts.append(gpt.GetPartition(PART_CROS_STATEFUL))
+      kern_rootfs_parts.append(gpt.GetPartition(PART_CROS_KERNEL_A))
+      kern_rootfs_parts.append(gpt.GetPartition(PART_CROS_ROOTFS_A))
 
     # Build a new image based on first image's layout.
     gpt = pygpt.GPT.LoadFromFile(images[0])
@@ -1017,11 +1017,11 @@ class ChromeOSFactoryBundle(object):
             data_blocks), 'Disk image is too small.'
 
     # Clear existing entries because this GPT was cloned from other image.
-    for i, p in enumerate(gpt.partitions):
-      gpt.partitions[i] = p.NewFromZero()
+    for p in gpt.partitions:
+      gpt.UpdatePartition(p.CloneAndZero())
 
     used_guids = []
-    def AddPartition(i, p, begin, blocks=None):
+    def AddPartition(number, p, begin, blocks=None):
       next_lba = begin + (blocks or p.blocks)
       guid = p.UniqueGUID
       if guid in used_guids:
@@ -1032,16 +1032,18 @@ class ChromeOSFactoryBundle(object):
             'Duplicated UniqueGUID found from %s, replace with random.', p)
         guid = uuid.uuid4()
       used_guids.append(guid)
-      gpt.partitions[i] = p.New(
+      # The target number location will be different so we have to specify
+      # explicitly.
+      gpt.UpdatePartition(p.Clone(
           UniqueGUID=guid,
           FirstLBA=begin,
-          LastLBA=next_lba - 1)
+          LastLBA=next_lba - 1), number=number)
       return next_lba
 
     begin = AddPartition(
-        0, stateful_parts[0], gpt.header.FirstUsableLBA, state_blocks)
-    for i, p in enumerate(kern_rootfs_parts):
-      begin = AddPartition(i + 1, p, begin)
+        1, stateful_parts[0], gpt.header.FirstUsableLBA, state_blocks)
+    for i, p in enumerate(kern_rootfs_parts, 2):
+      begin = AddPartition(i, p, begin)
 
     gpt.WriteToFile(output)
     gpt.WriteProtectiveMBR(output, create=True)
