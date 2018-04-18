@@ -878,7 +878,7 @@ class Service(object):
 
   @staticmethod
   def GetServiceSchemata():
-    return umpire_service.GetAllServiceSchemata()._schema['properties']
+    return umpire_service.GetAllServiceSchemata().schema['properties']
 
   @staticmethod
   def ListAll(project_name):
