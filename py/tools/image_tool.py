@@ -28,7 +28,6 @@ import tempfile
 import textwrap
 import time
 import urlparse
-import uuid
 
 # The edit_lsb command works better if readline enabled, but will still work if
 # that is not available.
@@ -1030,7 +1029,7 @@ class ChromeOSFactoryBundle(object):
         # INVALID_ENTRIES in cgpt.
         logging.warning(
             'Duplicated UniqueGUID found from %s, replace with random.', p)
-        guid = uuid.uuid4()
+        guid = pygpt.GUID.Random()
       used_guids.append(guid)
       # The target number location will be different so we have to specify
       # explicitly.

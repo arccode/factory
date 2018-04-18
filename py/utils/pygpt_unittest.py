@@ -80,7 +80,7 @@ class GPTTest(unittest.TestCase):
       self.assertEqual(blocks, partitions[i].blocks)
       self.assertEqual(blocks * 512, partitions[i].size)
       self.assertEqual(v[2], pygpt.GPT.TYPE_GUID_MAP[
-          str(uuid.UUID(bytes_le=partitions[i].TypeGUID)).upper()])
+          uuid.UUID(bytes_le=partitions[i].TypeGUID)])
 
     # More checks in individual partitions
     p = partitions[0]

@@ -85,6 +85,19 @@ PMBR_DESCRIPTION = """
    2s Signature
 """
 
+
+class GUID(uuid.UUID):
+  """A special UUID that defaults to upper case in str()."""
+
+  def __str__(self):
+    """Returns GUID in upper case."""
+    return super(GUID, self).__str__().upper()
+
+  @staticmethod
+  def Random():
+    return uuid.uuid4()
+
+
 def BitProperty(getter, setter, shift, mask):
   """A generator for bit-field properties.
 
@@ -240,24 +253,24 @@ class GPT(object):
     block_size: integer for size of bytes in one block (sector).
     is_secondary: boolean to indicate if the header is from primary or backup.
   """
-
   DEFAULT_BLOCK_SIZE = 512
-  TYPE_GUID_UNUSED = '\x00' * 16
   TYPE_GUID_MAP = {
-      '00000000-0000-0000-0000-000000000000': 'Unused',
-      'EBD0A0A2-B9E5-4433-87C0-68B6B72699C7': 'Linux data',
-      'FE3A2A5D-4F32-41A7-B725-ACCC3285A309': 'ChromeOS kernel',
-      '3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC': 'ChromeOS rootfs',
-      '2E0A753D-9E48-43B0-8337-B15192CB1B5E': 'ChromeOS reserved',
-      'CAB6E88E-ABF3-4102-A07A-D4BB9BE3C1D3': 'ChromeOS firmware',
-      'C12A7328-F81F-11D2-BA4B-00A0C93EC93B': 'EFI System Partition',
+      GUID('00000000-0000-0000-0000-000000000000'): 'Unused',
+      GUID('EBD0A0A2-B9E5-4433-87C0-68B6B72699C7'): 'Linux data',
+      GUID('FE3A2A5D-4F32-41A7-B725-ACCC3285A309'): 'ChromeOS kernel',
+      GUID('3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC'): 'ChromeOS rootfs',
+      GUID('2E0A753D-9E48-43B0-8337-B15192CB1B5E'): 'ChromeOS reserved',
+      GUID('CAB6E88E-ABF3-4102-A07A-D4BB9BE3C1D3'): 'ChromeOS firmware',
+      GUID('C12A7328-F81F-11D2-BA4B-00A0C93EC93B'): 'EFI System Partition',
   }
-  TYPE_GUID_REVERSE_MAP = dict(
+  TYPE_GUID_FROM_NAME = dict(
       ('efi' if v.startswith('EFI') else v.lower().split()[-1], k)
       for k, v in TYPE_GUID_MAP.iteritems())
-  STR_TYPE_GUID_LIST_BOOTABLE = [
-      TYPE_GUID_REVERSE_MAP['kernel'],
-      TYPE_GUID_REVERSE_MAP['efi'],
+  TYPE_GUID_UNUSED = TYPE_GUID_FROM_NAME['unused']
+  TYPE_GUID_CHROMEOS_KERNEL = TYPE_GUID_FROM_NAME['kernel']
+  TYPE_GUID_LIST_BOOTABLE = [
+      TYPE_GUID_CHROMEOS_KERNEL,
+      TYPE_GUID_FROM_NAME['efi'],
   ]
 
   @GPTBlob(PMBR_DESCRIPTION)
@@ -272,8 +285,8 @@ class GPT(object):
 
     @property
     def boot_guid(self):
-      """Returns the BootGUID in decoded (uuid.UUID) format."""
-      return uuid.UUID(bytes_le=self.BootGUID)
+      """Returns the BootGUID in decoded (GUID) format."""
+      return GUID(bytes_le=self.BootGUID)
 
   @GPTBlob(HEADER_DESCRIPTION)
   class Header(GPTObject):
@@ -327,7 +340,7 @@ class GPT(object):
           BackupLBA=size / block_size - 1,
           FirstUsableLBA=parts_lba + parts_blocks,
           LastUsableLBA=size / block_size - parts_blocks - parts_lba,
-          DiskGUID=uuid.uuid4().get_bytes(),
+          DiskGUID=GUID.Random().get_bytes(),
           PartitionEntriesStartingLBA=parts_lba,
           PartitionEntriesNumber=part_entries,
           PartitionEntrySize=part_entry_size,
@@ -396,12 +409,11 @@ class GPT(object):
 
     def IsUnused(self):
       """Returns if the partition is unused and can be allocated."""
-      return self.TypeGUID == GPT.TYPE_GUID_UNUSED
+      return self.type_guid == GPT.TYPE_GUID_UNUSED
 
     def IsChromeOSKernel(self):
       """Returns if the partition is a Chrome OS kernel partition."""
-      return self.TypeGUID == uuid.UUID(
-          GPT.TYPE_GUID_REVERSE_MAP['kernel']).bytes_le
+      return self.type_guid == GPT.TYPE_GUID_CHROMEOS_KERNEL
 
     @property
     def blocks(self):
@@ -420,11 +432,11 @@ class GPT(object):
 
     @property
     def type_guid(self):
-      return uuid.UUID(bytes_le=self.TypeGUID)
+      return GUID(bytes_le=self.TypeGUID)
 
     @property
     def unique_guid(self):
-      return uuid.UUID(bytes_le=self.UniqueGUID)
+      return GUID(bytes_le=self.UniqueGUID)
 
     @property
     def label(self):
@@ -447,10 +459,10 @@ class GPT(object):
     self.is_secondary = False
 
   @classmethod
-  def GetTypeGUID(cls, input_uuid):
-    if input_uuid.lower() in cls.TYPE_GUID_REVERSE_MAP:
-      input_uuid = cls.TYPE_GUID_REVERSE_MAP[input_uuid.lower()]
-    return uuid.UUID(input_uuid)
+  def GetTypeGUID(cls, value):
+    """The value may be a GUID in string or a short type string."""
+    guid = cls.TYPE_GUID_FROM_NAME.get(value.lower())
+    return GUID(value) if guid is None else guid
 
   @classmethod
   def Create(cls, image_name, size, block_size, pad_blocks=0):
@@ -890,11 +902,11 @@ class GPTCommands(object):
           '-z', '--zero', action='store_true',
           help='Zero the sectors of the GPT table and entries')
       parser.add_argument(
-          '-p', '--pad_blocks', type=int, default=0,
+          '-p', '--pad-blocks', type=int, default=0,
           help=('Size (in blocks) of the disk to pad between the '
                 'primary GPT header and its entries, default %(default)s'))
       parser.add_argument(
-          '--block_size', type=int, default=GPT.DEFAULT_BLOCK_SIZE,
+          '--block-size', type=int, default=GPT.DEFAULT_BLOCK_SIZE,
           help='Size of each block (sector) in bytes.')
       parser.add_argument(
           'image_file', type=argparse.FileType('rb+'),
@@ -944,7 +956,8 @@ class GPTCommands(object):
       pmbr = GPT.WriteProtectiveMBR(
           args.image_file, args.pmbr, bootcode=bootcode, boot_guid=boot_guid)
 
-      print(str(pmbr.boot_guid).upper())
+      print(pmbr.boot_guid)
+
 
   class Legacy(SubCommand):
     """Switch between GPT and Legacy GPT.
@@ -1050,10 +1063,10 @@ class GPTCommands(object):
           '-s', '--sectors', type=int,
           help='Size in sectors (logical blocks).')
       parser.add_argument(
-          '-t', '--type_guid',
+          '-t', '--type-guid', type=GPT.GetTypeGUID,
           help='Partition Type GUID')
       parser.add_argument(
-          '-u', '--unique_guid',
+          '-u', '--unique-guid', type=GUID,
           help='Partition Unique ID')
       parser.add_argument(
           '-l', '--label',
@@ -1071,7 +1084,7 @@ class GPTCommands(object):
           '-R', '--required', type=int, choices=xrange(2),
           help='set Required flag')
       parser.add_argument(
-          '-B', '--boot_legacy', dest='legacy_boot', type=int,
+          '-B', '--boot-legacy', dest='legacy_boot', type=int,
           choices=xrange(2),
           help='set Legacy Boot flag')
       parser.add_argument(
@@ -1096,39 +1109,31 @@ class GPTCommands(object):
         part = part.ReadFrom(None, **part.__dict__).Clone(
             FirstLBA=gpt.GetMaxUsedLBA() + 1,
             LastLBA=gpt.header.LastUsableLBA,
-            UniqueGUID=uuid.uuid4(),
+            UniqueGUID=GUID.Random(),
             TypeGUID=gpt.GetTypeGUID('data'))
 
-      attr = part.attrs
-      if args.legacy_boot is not None:
-        attr.legacy_boot = args.legacy_boot
-      if args.required is not None:
-        attr.required = args.required
-      if args.priority is not None:
-        attr.priority = args.priority
-      if args.tries is not None:
-        attr.tries = args.tries
-      if args.successful is not None:
-        attr.successful = args.successful
-      if args.raw_16 is not None:
-        attr.raw_16 = args.raw_16
+      def UpdateAttr(name):
+        value = getattr(args, name)
+        if value is None:
+          return
+        setattr(attrs, name, value)
 
-      first_lba = part.FirstLBA if args.begin is None else args.begin
-      last_lba = first_lba - 1 + (
-          part.blocks if args.sectors is None else args.sectors)
-      dargs = dict(
+      def GetArg(arg_value, default_value):
+        return default_value if arg_value is None else arg_value
+
+      attrs = part.attrs
+      for name in ['legacy_boot', 'required', 'priority', 'tries',
+                   'successful', 'raw_16']:
+        UpdateAttr(name)
+      first_lba = GetArg(args.begin, part.FirstLBA)
+      part = part.Clone(
+          label=GetArg(args.label, part.label),
           FirstLBA=first_lba,
-          LastLBA=last_lba,
-          TypeGUID=(part.TypeGUID if args.type_guid is None else
-                    gpt.GetTypeGUID(args.type_guid)),
-          UniqueGUID=(part.UniqueGUID if args.unique_guid is None else
-                      uuid.UUID(bytes_le=args.unique_guid)),
-          Attributes=attr,
-      )
-      if args.label is not None:
-        dargs['label'] = args.label
+          LastLBA=first_lba - 1 + GetArg(args.sectors, part.blocks),
+          TypeGUID=GetArg(args.type_guid, part.TypeGUID),
+          UniqueGUID=GetArg(args.unique_guid, part.UniqueGUID),
+          Attributes=attrs)
 
-      part = part.Clone(**dargs)
       # Wipe partition again if it should be empty.
       if part.IsUnused():
         part = part.ReadFrom(None, **part.__dict__)
@@ -1171,22 +1176,18 @@ class GPTCommands(object):
     def Execute(self, args):
       """Show partition table and entries."""
 
-      def FormatGUID(bytes_le):
-        return str(uuid.UUID(bytes_le=bytes_le)).upper()
-
       def FormatTypeGUID(p):
-        guid_str = FormatGUID(p.TypeGUID)
+        guid = p.type_guid
         if not args.numeric:
-          names = gpt.TYPE_GUID_MAP.get(guid_str)
+          names = gpt.TYPE_GUID_MAP.get(guid)
           if names:
             return names
-        return guid_str
+        return str(guid)
 
-      def FormatNames(p):
-        return p.label
-
-      def IsBootableType(type_guid):
-        return type_guid in gpt.STR_TYPE_GUID_LIST_BOOTABLE
+      def IsBootableType(guid):
+        if not guid:
+          return False
+        return guid in gpt.TYPE_GUID_LIST_BOOTABLE
 
       def FormatAttribute(attrs, chromeos_kernel=False):
         if args.numeric:
@@ -1211,9 +1212,9 @@ class GPTCommands(object):
         elif args.type:
           return FormatTypeGUID(p)
         elif args.unique:
-          return FormatGUID(p.UniqueGUID)
+          return p.unique_guid
         elif args.label:
-          return FormatNames(p)
+          return p.label
         elif args.Successful:
           return p.attrs.successful
         elif args.Priority:
@@ -1272,15 +1273,14 @@ class GPTCommands(object):
           print(ApplyFormatArgs(p))
           continue
 
-        type_guid = FormatGUID(p.TypeGUID)
         print(fmt % (p.FirstLBA, p.blocks, p.number,
                      FormatTypeGUID(p) if args.quick else
-                     'Label: "%s"' % FormatNames(p)))
+                     'Label: "%s"' % p.label))
 
         if not args.quick:
           print(fmt2 % ('', 'Type', FormatTypeGUID(p)))
-          print(fmt2 % ('', 'UUID', FormatGUID(p.UniqueGUID)))
-          if args.numeric or IsBootableType(type_guid):
+          print(fmt2 % ('', 'UUID', p.unique_guid))
+          if args.numeric or IsBootableType(p.type_guid):
             print(fmt2 % ('', 'Attr', FormatAttribute(
                 p.attrs, p.IsChromeOSKernel())))
 
@@ -1389,10 +1389,10 @@ class GPTCommands(object):
     """
     def DefineArgs(self, parser):
       parser.add_argument(
-          '-t', '--type-guid',
+          '-t', '--type-guid', type=GPT.GetTypeGUID,
           help='Search for Partition Type GUID')
       parser.add_argument(
-          '-u', '--unique-guid',
+          '-u', '--unique-guid', type=GUID,
           help='Search for Partition Unique GUID')
       parser.add_argument(
           '-l', '--label',
@@ -1435,17 +1435,14 @@ class GPTCommands(object):
             raise
           # When scanning all block devices on system, ignore failure.
 
+        def Unmatch(a, b):
+          return a is not None and a != b
+
         for p in gpt.partitions:
-          if p.IsUnused():
-            continue
-          if args.label is not None and args.label != p.label:
-            continue
-          if args.unique_guid is not None and (
-              uuid.UUID(args.unique_guid) != uuid.UUID(bytes_le=p.UniqueGUID)):
-            continue
-          type_guid = gpt.GetTypeGUID(args.type_guid)
-          if args.type_guid is not None and (
-              type_guid != uuid.UUID(bytes_le=p.TypeGUID)):
+          if (p.IsUnused() or
+              Unmatch(args.label, p.label) or
+              Unmatch(args.unique_guid, p.unique_guid) or
+              Unmatch(args.type_guid, p.type_guid)):
             continue
           if match_pattern:
             with open(drive, 'rb') as f:
