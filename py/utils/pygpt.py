@@ -525,22 +525,17 @@ class GPT(object):
         ReadPartition(image, i) for i in range(header.PartitionEntriesNumber)]
     return gpt
 
-  def GetValidPartitions(self):
-    """Returns the list of partitions before entry with empty type GUID.
+  def GetUsedPartitions(self):
+    """Returns a list of partitions with type GUID not set to unused.
 
-    In partition table, the first entry with empty type GUID indicates end of
-    valid partitions. In most implementations all partitions after that should
-    be zeroed. However, few implementations for example cgpt, may create
-    partitions in arbitrary order so use this carefully.
+    Use 'number' property to find the real location of partition in
+    self.partitions.
     """
-    for i, p in enumerate(self.partitions):
-      if p.IsUnused():
-        return self.partitions[:i]
-    return self.partitions
+    return [p for p in self.partitions if not p.IsUnused()]
 
   def GetMaxUsedLBA(self):
     """Returns the max LastLBA from all used partitions."""
-    parts = [p for p in self.partitions if not p.IsUnused()]
+    parts = self.GetUsedPartitions()
     return (max(p.LastLBA for p in parts)
             if parts else self.header.FirstUsableLBA - 1)
 
@@ -602,14 +597,16 @@ class GPT(object):
     """
     # Assume no partitions overlap, we need to make sure partition[i] has
     # largest LBA.
-    if i < 0 or i >= len(self.GetValidPartitions()):
+    if i < 0 or i >= len(self.partitions):
       raise GPTError('Partition number %d is invalid.' % (i + 1))
+    if self.partitions[i].IsUnused():
+      raise GPTError('Partition number %d is unused.' % (i + 1))
     p = self.partitions[i]
     max_used_lba = self.GetMaxUsedLBA()
+    # TODO(hungte) We can do more by finding free space after i.
     if max_used_lba > p.LastLBA:
       raise GPTError(
-          'Cannot expand partition %d because it is not the last allocated '
-          'partition.' % (i + 1))
+          'Cannot expand %s because it is not allocated at last.' % p)
 
     old_blocks = p.blocks
     p = p.Clone(LastLBA=self.header.LastUsableLBA)
@@ -1011,24 +1008,19 @@ class GPTCommands(object):
 
     def Execute(self, args):
       gpt = GPT.LoadFromFile(args.image_file)
-      parts = gpt.GetValidPartitions()
       number = args.number
       if number is None:
-        number = len(parts) + 1
-      if number <= len(parts):
-        is_new_part = False
-      else:
-        is_new_part = True
-      index = number - 1
+        number = next(p for p in gpt.partitions if p.IsUnused()).number
 
       # First and last LBA must be calculated explicitly because the given
       # argument is size.
+      index = number - 1
       part = gpt.partitions[index]
+      is_new_part = part.IsUnused()
 
       if is_new_part:
         part = part.ReadFrom(None, **part.__dict__).Clone(
-            FirstLBA=(parts[-1].LastLBA + 1 if parts else
-                      gpt.header.FirstUsableLBA),
+            FirstLBA=gpt.GetMaxUsedLBA() + 1,
             LastLBA=gpt.header.LastUsableLBA,
             UniqueGUID=uuid.uuid4(),
             TypeGUID=gpt.GetTypeGUID('data'))

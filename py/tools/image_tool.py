@@ -279,13 +279,14 @@ class Partition(object):
       number: integer as 1-based index in partition table.
     """
     # Ensure given index is valid.
-    parts = pygpt.GPT.LoadFromFile(image).GetValidPartitions()
-    total = len(parts)
-    if not 1 <= number <= total:
+    gpt = pygpt.GPT.LoadFromFile(image)
+    if not 1 <= number < len(gpt.partitions):
       raise RuntimeError(
-          'Partition number %s out of range [%s,%s] for image %s.' %
-          (number, 1, total, image))
-    self._part = parts[number - 1]
+          'Invalid partition number %s for image %s.' % (number, image))
+    part = gpt.partitions[number - 1]
+    if part.IsUnused():
+      raise RuntimeError('Partition %s is unused.' % part)
+    self._part = part
 
   def __str__(self):
     return str(self._part)

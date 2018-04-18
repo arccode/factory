@@ -144,7 +144,7 @@ class GPTTest(unittest.TestCase):
     self.assertEqual(gpt.header.FirstUsableLBA, 34)
     self.assertEqual(gpt.header.LastUsableLBA, 102366)
     self.assertEqual(gpt.header.BackupLBA, 102399)
-    self.assertEqual(gpt.GetValidPartitions(), [])
+    self.assertEqual(gpt.GetUsedPartitions(), [])
     self.assertEqual(gpt.header.PartitionArrayCRC32,
                      binascii.crc32(''.join(p.blob for p in gpt.partitions)))
 
@@ -155,7 +155,8 @@ class GPTTest(unittest.TestCase):
     gpt = pygpt.GPT.LoadFromFile(bin_file)
     self.assertEqual(gpt.header.CurrentLBA, 1)
     self.assertEqual(gpt.block_size, 512)
-    self.assertEqual(gpt.GetValidPartitions(), [])
+    # Can't check GetUsedPartitions here because we may accidentally have GPT
+    # header interpreted as partition entries due to 4096->512 change.
 
     with open(bin_file, 'r+') as f:
       f.write('\x00' * 34 * 512)
@@ -165,6 +166,7 @@ class GPTTest(unittest.TestCase):
 
     self.assertEqual(gpt.header.PartitionEntriesStartingLBA, 3)
     self.assertEqual(gpt.header.FirstUsableLBA, 7)
+    self.assertEqual(gpt.GetUsedPartitions(), [])
 
   def testBoot(self):
     for cmd in self.init_commands:

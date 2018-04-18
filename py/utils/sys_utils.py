@@ -11,7 +11,6 @@ import re
 import stat
 import subprocess
 import tempfile
-import uuid
 
 from . import file_utils
 from . import process_utils
@@ -380,20 +379,20 @@ class PartitionManager(_GPTTool):
     """Manipulate GPT using cros.factory.utils.pygpt."""
 
     def __init__(self, image_path):
-      self._gpt = pygpt.GPT.LoadFromFile(image_path)
-      self._partitions = self._gpt.GetValidPartitions()
+      gpt = pygpt.GPT.LoadFromFile(image_path)
+      next_unused = next(p.number for p in gpt.partitions if p.IsUnused())
+      self._gpt = gpt
+      self._partitions = gpt.partitions[:next_unused - 1]
 
     @type_utils.Overrides
     def GetPartitionOffsetInSector(self, index):
       """Returns the partition offset in sectors."""
-      p = self._partitions[index - 1]
-      return p.FirstLBA
+      return self._partitions[index - 1].FirstLBA
 
     @type_utils.Overrides
     def GetPartitionSizeInSector(self, index):
       """Returns the partition size in sectors."""
-      p = self._partitions[index - 1]
-      return p.LastLBA - p.FirstLBA + 1
+      return self._partitions[index - 1].blocks
 
     @type_utils.Overrides
     def GetSectorSize(self):
@@ -403,8 +402,7 @@ class PartitionManager(_GPTTool):
     @type_utils.Overrides
     def GetTypeGUID(self, index):
       """Returns the type GUID string."""
-      partition = self._partitions[index - 1]
-      return str(uuid.UUID(bytes_le=partition.TypeGUID)).upper()
+      return str(self._partitions[index - 1].type_guid).upper()
 
     @type_utils.Overrides
     def GetAttribute(self, index):
