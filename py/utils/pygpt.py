@@ -241,11 +241,10 @@ class GPT(object):
 
   DEFAULT_BLOCK_SIZE = 512
   TYPE_GUID_UNUSED = '\x00' * 16
-  TYPE_NAME_CHROMEOS_KERNEL = 'ChromeOS kernel'
   TYPE_GUID_MAP = {
       '00000000-0000-0000-0000-000000000000': 'Unused',
       'EBD0A0A2-B9E5-4433-87C0-68B6B72699C7': 'Linux data',
-      'FE3A2A5D-4F32-41A7-B725-ACCC3285A309': TYPE_NAME_CHROMEOS_KERNEL,
+      'FE3A2A5D-4F32-41A7-B725-ACCC3285A309': 'ChromeOS kernel',
       '3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC': 'ChromeOS rootfs',
       '2E0A753D-9E48-43B0-8337-B15192CB1B5E': 'ChromeOS reserved',
       'CAB6E88E-ABF3-4102-A07A-D4BB9BE3C1D3': 'ChromeOS firmware',
@@ -254,9 +253,9 @@ class GPT(object):
   TYPE_GUID_REVERSE_MAP = dict(
       ('efi' if v.startswith('EFI') else v.lower().split()[-1], k)
       for k, v in TYPE_GUID_MAP.iteritems())
-  TYPE_GUID_LIST_BOOTABLE = [
-      'FE3A2A5D-4F32-41A7-B725-ACCC3285A309',  # ChromeOS kernel
-      'C12A7328-F81F-11D2-BA4B-00A0C93EC93B',  # EFI System Partition
+  STR_TYPE_GUID_LIST_BOOTABLE = [
+      TYPE_GUID_REVERSE_MAP['kernel'],
+      TYPE_GUID_REVERSE_MAP['efi'],
   ]
 
   @GPTBlob(PMBR_DESCRIPTION)
@@ -396,6 +395,11 @@ class GPT(object):
     def IsUnused(self):
       """Returns if the partition is unused and can be allocated."""
       return self.TypeGUID == GPT.TYPE_GUID_UNUSED
+
+    def IsChromeOSKernel(self):
+      """Returns if the partition is a Chrome OS kernel partition."""
+      return self.TypeGUID == uuid.UUID(
+          GPT.TYPE_GUID_REVERSE_MAP['kernel']).bytes_le
 
     @property
     def blocks(self):
@@ -1116,7 +1120,7 @@ class GPTCommands(object):
         return p.label
 
       def IsBootableType(type_guid):
-        return type_guid in gpt.TYPE_GUID_LIST_BOOTABLE
+        return type_guid in gpt.STR_TYPE_GUID_LIST_BOOTABLE
 
       def FormatAttribute(attrs, chromeos_kernel=False):
         if args.numeric:
@@ -1211,9 +1215,8 @@ class GPTCommands(object):
           print(fmt2 % ('', 'Type', FormatTypeGUID(p)))
           print(fmt2 % ('', 'UUID', FormatGUID(p.UniqueGUID)))
           if args.numeric or IsBootableType(type_guid):
-            name = GPT.TYPE_GUID_MAP[type_guid]
             print(fmt2 % ('', 'Attr', FormatAttribute(
-                p.attrs, name == GPT.TYPE_NAME_CHROMEOS_KERNEL)))
+                p.attrs, p.IsChromeOSKernel())))
 
       if do_print_gpt_blocks:
         if gpt.is_secondary:
@@ -1226,6 +1229,78 @@ class GPTCommands(object):
                      gpt.GetPartitionTableBlocks(header), '',
                      'Sec GPT table'))
         print(fmt % (header.CurrentLBA, 1, '', 'Sec GPT header'))
+
+  class Prioritize(SubCommand):
+    """Reorder the priority of all kernel partitions.
+
+    Reorder the priority of all active ChromeOS Kernel partitions.
+
+    With no options this will set the lowest active kernel to priority 1 while
+    maintaining the original order.
+    """
+
+    def DefineArgs(self, parser):
+      parser.add_argument(
+          '-P', '--priority', type=int,
+          help=('Highest priority to use in the new ordering. '
+                'The other partitions will be ranked in decreasing '
+                'priority while preserving their original order. '
+                'If necessary the lowest ranks will be coalesced. '
+                'No active kernels will be lowered to priority 0.'))
+      parser.add_argument(
+          '-i', '--number', type=int,
+          help='Specify the partition to make the highest in the new order.')
+      parser.add_argument(
+          '-f', '--friends', action='store_true',
+          help=('Friends of the given partition (those with the same '
+                'starting priority) are also updated to the new '
+                'highest priority. '))
+      parser.add_argument(
+          'image_file', type=argparse.FileType('rb+'),
+          help='Disk image file to prioritize.')
+
+    def Execute(self, args):
+      gpt = GPT.LoadFromFile(args.image_file)
+      parts = [p for p in gpt.partitions if p.IsChromeOSKernel()]
+      prios = list(set(p.attrs.priority for p in parts if p.attrs.priority))
+      prios.sort(reverse=True)
+      groups = [[p for p in parts if p.attrs.priority == priority]
+                for priority in prios]
+      if args.number:
+        p = gpt.partitions[args.number - 1]
+        if p not in parts:
+          raise GPTError('%s is not a ChromeOS kernel.' % p)
+        if args.friends:
+          group0 = [f for f in parts if f.attrs.priority == p.attrs.priority]
+        else:
+          group0 = [p]
+        groups.insert(0, group0)
+
+      # Max priority is 0xf.
+      highest = min(args.priority or len(prios), 0xf)
+      logging.info('New highest priority: %s', highest)
+      done = []
+
+      new_priority = highest
+      for g in groups:
+        has_new_part = False
+        for p in g:
+          if p.number in done:
+            continue
+          done.append(p.number)
+          attrs = p.attrs
+          old_priority = attrs.priority
+          assert new_priority > 0, 'Priority must be > 0.'
+          attrs.priority = new_priority
+          p = p.Clone(Attributes=attrs)
+          gpt.partitions[p.number - 1] = p
+          has_new_part = True
+          logging.info('%s priority changed from %s to %s.', p, old_priority,
+                       new_priority)
+        if has_new_part:
+          new_priority -= 1
+
+      gpt.WriteToFile(args.image_file)
 
 
 def main():
