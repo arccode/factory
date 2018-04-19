@@ -207,12 +207,10 @@ class GPT(object):
     return self.partitions
 
   def GetMaxUsedLBA(self):
-    """Returns the max LastLBA from all valid partitions."""
-    return max(p.LastLBA for p in self.GetValidPartitions())
-
-  def GetMinUsedLBA(self):
-    """Returns the min FirstLBA from all valid partitions."""
-    return min(p.FirstLBA for p in self.GetValidPartitions())
+    """Returns the max LastLBA from all used partitions."""
+    parts = [p for p in self.partitions if p.TypeGUID != GPT.TYPE_GUID_UNUSED]
+    return (max(p.LastLBA for p in parts)
+            if parts else self.header.FirstUsableLBA - 1)
 
   def GetPartitionTableBlocks(self, header=None):
     """Returns the blocks (or LBA) of partition table from given header."""
@@ -241,28 +239,16 @@ class GPT(object):
     else:
       logging.info('Image size (%d, LBA=%d) not changed.',
                    new_size, new_blocks)
+      return
 
-    # Re-calculate all related fields.
+    # Expected location
     backup_lba = new_blocks - 1
-    partitions_blocks = self.GetPartitionTableBlocks()
+    last_usable_lba = backup_lba - self.header.FirstUsableLBA
 
-    # To add allow adding more blocks for partition table, we should reserve
-    # same space between primary and backup partition tables and real
-    # partitions.
-    min_used_lba = self.GetMinUsedLBA()
-    max_used_lba = self.GetMaxUsedLBA()
-    primary_reserved = min_used_lba - self.header.PartitionEntriesStartingLBA
-    primary_last_lba = (self.header.PartitionEntriesStartingLBA +
-                        partitions_blocks - 1)
-
-    if primary_last_lba >= min_used_lba:
-      raise ValueError('Partition table overlaps partitions.')
-    if max_used_lba + partitions_blocks >= backup_lba:
-      raise ValueError('Partitions overlaps backup partition table.')
-
-    last_usable_lba = backup_lba - primary_reserved - 1
-    if last_usable_lba < max_used_lba:
-      last_usable_lba = max_used_lba
+    if last_usable_lba < self.header.LastUsableLBA:
+      max_used_lba = self.GetMaxUsedLBA()
+      if last_usable_lba < max_used_lba:
+        raise ValueError('Backup partition tables will overlap used partitions')
 
     self.header = self.NewNamedTuple(
         self.header,
