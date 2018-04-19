@@ -28,6 +28,7 @@ import tempfile
 import textwrap
 import time
 import urlparse
+import uuid
 
 # The edit_lsb command works better if readline enabled, but will still work if
 # that is not available.
@@ -516,90 +517,6 @@ class Partition(object):
     SysUtils.PartialCopy(self.image, dest.image, self.size, self.offset,
                          dest.offset)
 
-  def GPTMove(self, new_offset):
-    """Changes partition record to start at the given offset.
-
-    This only changes the copy of GPT information in memory, not committed to
-    the disk image.
-    """
-    block_size = self._part.block_size
-    assert new_offset % block_size == 0, 'Offset must align to block.'
-    delta = self._part.LastLBA - self._part.FirstLBA
-    new_first_lba = new_offset / block_size
-    new_last_lba = new_first_lba + delta
-    self._part = self._part.Clone(FirstLBA=new_first_lba, LastLBA=new_last_lba)
-
-  def GPTResize(self, new_size):
-    """Changes partition record to occupy given size.
-
-    This only changes the copy of GPT information in memory, not committed to
-    the disk image.
-    """
-    assert new_size % self._part.block_size == 0, 'Size must align to blocks.'
-    new_last_lba = self._part.FirstLBA + new_size / self._part.block_size - 1
-    self._part = self._part.Clone(LastLBA=new_last_lba)
-
-  @staticmethod
-  def GPTReorder(parts, block_size):
-    """Re-order given partitions.
-
-    Move (using GPTMove) the given parts in order so they fit in the right
-    layout for GPT based disk image as (in LBA blocks):
-
-    GPT START = 1 (PMBR), 1 (HEADER), 32 (TABLE)
-    PARTS
-    GPT END = 32 (TABLE) + 1 (HEADER)
-
-    This only changes the copy of GPT information in memory, not committed to
-    the disk image.
-
-    Args:
-      parts: a list of Partition objects.
-      block_size: integer for expected block size for new layout.
-
-    Returns:
-      An integer for the expected size of disk image including GPT END.
-    """
-    new_size = (1 + 1 + 32) * block_size
-    for part in parts:
-      part.GPTMove(new_size)
-      new_size += Aligned(part.size, block_size)
-    new_size += (32 + 1) * block_size
-    return new_size
-
-  @staticmethod
-  def CreateImageFile(output, new_size, parts, block_size):
-    """Builds a disk image file by given size and partitions."""
-    logging.debug('Create empty image file: %s', output)
-    assert new_size % block_size == 0, 'Size %s not aligned to %s' % (
-        new_size, block_size)
-    Shell(['truncate', '-s', '0', output])
-    Shell(['truncate', '-s', str(new_size), output])
-    last_part = parts[-1]
-    # See Partition.GPTReorder for how the (32+1) was decided.
-    min_size = last_part.offset + last_part.size + ((32 + 1) * block_size)
-    if new_size < min_size:
-      raise RuntimeError('Given size %s too small (need %s).' %
-                         (new_size, min_size))
-
-    logging.debug('Initialize partition table (GPT).')
-    gpt = pygpt.GPT.Create(output, new_size, block_size)
-    gpt.WriteProtectiveMBR(output, create=True)
-
-    logging.debug('Create partitions.')
-    for i, part in enumerate(parts):
-      assert part.offset % block_size == 0, 'Unaligned (%s) offset: %s' % (
-          block_size, part.offset)
-      assert part.size % block_size == 0, 'Unaligned (%s) size: %s' % (
-          block_size, part.offset)
-      begin_sec = part.offset / block_size
-      size_sec = part.size / block_size
-      # The 'parts' is a list of image_tool.Partition.
-      gpt.partitions[i] = part.GetGPTPartition().Clone(
-          FirstLBA=begin_sec,
-          LastLBA=begin_sec + size_sec - 1)
-    gpt.WriteToFile(output)
-
 
 class LSBFile(object):
   """Access /etc/lsb-release file (or files in same format).
@@ -1070,21 +987,66 @@ class ChromeOSFactoryBundle(object):
        7 rootfs    [install-rmaimg3]
       ...
     """
-    new_stat_size = 0
-    parts = []
-    for i, path in enumerate(images):
-      part = Partition(path, PART_CROS_STATEFUL)
-      if i == 0:
-        parts += [part]
-      new_stat_size += part.size
-      parts += [Partition(path, PART_CROS_KERNEL_A),
-                Partition(path, PART_CROS_ROOTFS_A)]
-    parts[0].GPTResize(new_stat_size)
-    block_size = parts[0].block_size
-    new_size = Partition.GPTReorder(parts, block_size)
-    Partition.CreateImageFile(output, new_size, parts, block_size)
-    logging.info('Creating new image file as %s M...', new_size / MEGABYTE)
+    stateful_parts = []
+    kern_rootfs_parts = []
+    block_size = 0
+    # Currently we only support merging images in same block size.
+    for path in images:
+      gpt = pygpt.GPT.LoadFromFile(path)
+      if block_size == 0:
+        block_size = gpt.block_size
+      assert gpt.block_size == block_size, (
+          'Cannot merge image %s due to different block size (%s, %s)' %
+          (path, block_size, gpt.block_size))
+      stateful_parts.append(gpt.partitions[PART_CROS_STATEFUL - 1])
+      kern_rootfs_parts.append(gpt.partitions[PART_CROS_KERNEL_A - 1])
+      kern_rootfs_parts.append(gpt.partitions[PART_CROS_ROOTFS_A - 1])
 
+    # Build a new image based on first image's layout.
+    gpt = pygpt.GPT.LoadFromFile(images[0])
+    pad_blocks = gpt.header.FirstUsableLBA
+    state_blocks = sum(p.blocks for p in stateful_parts)
+    data_blocks = state_blocks + sum(p.blocks for p in kern_rootfs_parts)
+    # pad_blocks hold header and partition tables, in front and end of image.
+    new_size = (data_blocks + pad_blocks * 2) * block_size
+
+    Shell(['truncate', '-s', '0', output])
+    Shell(['truncate', '-s', str(new_size), output])
+    gpt.Resize(new_size)
+    assert (gpt.header.LastUsableLBA - gpt.header.FirstUsableLBA + 1 >=
+            data_blocks), 'Disk image is too small.'
+
+    # Clear existing entries because this GPT was cloned from other image.
+    for i, p in enumerate(gpt.partitions):
+      gpt.partitions[i] = p.NewFromZero()
+
+    used_guids = []
+    def AddPartition(i, p, begin, blocks=None):
+      next_lba = begin + (blocks or p.blocks)
+      guid = p.UniqueGUID
+      if guid in used_guids:
+        # Ideally we don't need to change UniqueGUID, but if user specified same
+        # disk images in images then this may cause problems, for example
+        # INVALID_ENTRIES in cgpt.
+        logging.warning(
+            'Duplicated UniqueGUID found from %s, replace with random.', p)
+        guid = uuid.uuid4()
+      used_guids.append(guid)
+      gpt.partitions[i] = p.New(
+          UniqueGUID=guid,
+          FirstLBA=begin,
+          LastLBA=next_lba - 1)
+      return next_lba
+
+    begin = AddPartition(
+        0, stateful_parts[0], gpt.header.FirstUsableLBA, state_blocks)
+    for i, p in enumerate(kern_rootfs_parts):
+      begin = AddPartition(i + 1, p, begin)
+
+    gpt.WriteToFile(output)
+    gpt.WriteProtectiveMBR(output, create=True)
+
+    logging.info('Creating new image file as %s M...', new_size / MEGABYTE)
     new_state = Partition(output, PART_CROS_STATEFUL)
     old_state = Partition(images[0], PART_CROS_STATEFUL)
     old_state.Copy(new_state, check_equal=False)
@@ -1099,6 +1061,8 @@ class ChromeOSFactoryBundle(object):
             Partition(output, i * 2 + PART_CROS_KERNEL_A))
         Partition(src_path, PART_CROS_ROOTFS_A).Copy(
             Partition(output, i * 2 + PART_CROS_ROOTFS_A))
+        if i == 0:
+          continue
         with Partition(src_path, PART_CROS_STATEFUL).Mount() as src_dir:
           print('Copying %s stateful resources...' % src_path)
           Sudo('cp -pr %s/* %s/.' %
