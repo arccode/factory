@@ -32,18 +32,32 @@ properly and fits the default quality settings::
   }
 
 To check if the sensor has at most 10 dead pixels and its HWID is 0x140c,
+with bounds for the pixel grayscale median values and finger detection zones,
 add this in test list::
 
   {
     "pytest_name": "fingerprint_mcu",
     "args": {
       "dead_pixel_max": 10,
-      "sensor_hwid": 5132
+      "sensor_hwid": 5132,
+      "pixel_median": {
+        "cb_type1" : [180, 220],
+        "cb_type2" : [80, 120],
+        "icb_type1" : [15, 70],
+        "icb_type2" : [155, 210]
+      },
+      "detect_zones" : [
+        [8, 16, 15, 23], [24, 16, 31, 23], [40, 16, 47, 23],
+        [8, 66, 15, 73], [24, 66, 31, 73], [40, 66, 47, 73],
+        [8, 118, 15, 125], [24, 118, 31, 125], [40, 118, 47, 125],
+        [8, 168, 15, 175], [24, 168, 31, 175], [40, 168, 47, 175]
+      ]
     }
   }
 """
 
 import logging
+import numpy
 import re
 import sys
 import time
@@ -71,7 +85,22 @@ class FingerprintTest(unittest.TestCase):
           default=None),
       Arg('max_dead_pixels', int,
           'The maximum number of dead pixels on the fingerprint sensor.',
-          default=6),
+          default=10),
+      Arg('max_dead_detect_pixels', int,
+          'The maximum number of dead pixels in the detection zone.',
+          default=0),
+      Arg('max_pixel_dev', int,
+          'The maximum deviation from the median for a pixel of a given type.',
+          default=35),
+      Arg('pixel_median', dict,
+          'Keys: "(cb|icb)_(type1|type2)", '
+          'Values: a list of [minimum, maximum] '
+          'Range constraints of the pixel median value of the checkerboards.',
+          default={}),
+      Arg('detect_zones', list,
+          'a list of rectangles [x1, y1, x2, y2] defining '
+          'the finger detection zones on the sensor.',
+          default=[]),
       Arg('min_snr', float,
           'The minimum signal-to-noise ratio for the image quality.',
           default=0.0),
@@ -82,6 +111,8 @@ class FingerprintTest(unittest.TestCase):
 
   # Select the Fingerprint MCU cros_ec device
   CROS_FP_ARG = "--name=cros_fp"
+  # MKBP index for Fingerprint sensor event
+  EC_MKBP_EVENT_FINGERPRINT = '5'
 
   # Regular expression for parsing ectool output.
   RO_VERSION_RE = re.compile(r'^RO version:\s*(\S+)\s*$', re.MULTILINE)
@@ -89,9 +120,6 @@ class FingerprintTest(unittest.TestCase):
   FPINFO_MODEL_RE = re.compile(
       r'^Fingerprint sensor:\s+vendor.+model\s+(\S+)\s+version', re.MULTILINE)
   FPINFO_ERRORS_RE = re.compile(r'^Error flags:\s*(\S*)$', re.MULTILINE)
-  FPCHECKPIXELS_DEAD_RE = re.compile(
-      r'^Defects:\s+dead\s+(\d+)\s+\(pattern0\s+(\d+)\s+pattern1\s+(\d+)\)$',
-      re.MULTILINE)
 
   def MCUCommand(self, command, *args):
     """Execute a host command on the fingerprint MCU
@@ -108,6 +136,95 @@ class FingerprintTest(unittest.TestCase):
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
+
+  def isDetectZone(self, x, y):
+    for x1, y1, x2, y2 in self.args.detect_zones:
+      if (x in range(x1, x2 + 1) and
+          y in range(y1, y2 + 1)):
+        return True
+    return False
+
+  def processCheckboardPixels(self, lines, parity):
+    # Keep only type-1 or type-2 pixels depending on parity
+    matrix = numpy.array([[(int(v), x, y) for x, v
+                           in enumerate(l.strip().split())
+                           if (x+y) % 2 == parity]
+                          for y, l in enumerate(lines)])
+    # Transform the 2D array of triples in a 1-D array of triples
+    pixels = matrix.reshape((-1, 3))
+    median = numpy.median([v for v, x, y in pixels])
+    dev = [(abs(v - median), x, y) for v, x, y in pixels]
+    return median, dev
+
+  def checkerboardTest(self, inverted=False):
+    full_name = 'Inv. checkerboard' if inverted else 'Checkerboard'
+    short_name = 'icb' if inverted else 'cb'
+    # trigger the checkerboard test pattern and capture it
+    self.MCUCommand('fpmode', 'capture', 'pattern1' if inverted else 'pattern0')
+    # wait for the end of capture (or timeout after 500 ms)
+    self.MCUCommand('waitevent', self.EC_MKBP_EVENT_FINGERPRINT, '500')
+    # retrieve the resulting image as a PNM
+    pnm = self.MCUCommand('fpframe')
+    if not pnm:
+      raise type_utils.TestFailure('Failed to retrieve checkerboard image')
+    lines = pnm.split('\n')
+    if lines[0].strip() != 'P2':
+      raise type_utils.TestFailure('Unsupported/corrupted image')
+    # Build arrays of black and white pixels (aka Type-1 / Type-2)
+    try:
+      #PNM image size: w, h = [int(i) for i in lines[1].split()]
+      # strip header/footer
+      pixel_lines = lines[3:-1]
+      # Compute pixels parameters for each type
+      median1, dev1 = self.processCheckboardPixels(pixel_lines, 0)
+      median2, dev2 = self.processCheckboardPixels(pixel_lines, 1)
+    except (IndexError, ValueError):
+      raise type_utils.TestFailure('Corrupted image')
+    all_dev = dev1 + dev2
+    max_dev = numpy.max([d for d, _, _ in all_dev])
+    # Count dead pixels (deviating too much from the median)
+    dead_count = 0
+    dead_detect_count = 0
+    for d, x, y in all_dev:
+      if d > self.args.max_pixel_dev:
+        dead_count += 1
+        if self.isDetectZone(x, y):
+          dead_detect_count += 1
+    # Log everything first for debugging
+    logging.info('%s type 1 median:\t%d', full_name, median1)
+    logging.info('%s type 2 median:\t%d', full_name, median2)
+    logging.info('%s max deviation:\t%d', full_name, max_dev)
+    logging.info('%s dead pixels:\t%d', full_name, dead_count)
+    logging.info('%s dead pixels in detect zones:\t%d',
+                 full_name, dead_detect_count)
+    if not testlog.CheckParam(name='dead_pixels_%s' % short_name,
+                              value=dead_count,
+                              max=self.args.max_dead_pixels,
+                              description='Number of dead pixels',
+                              value_unit='pixels'):
+      raise type_utils.TestFailure('Too many dead pixels')
+    if not testlog.CheckParam(name='dead_detect_pixels_%s' % short_name,
+                              value=dead_detect_count,
+                              # Note: zero doesn't work as a max
+                              max=self.args.max_dead_detect_pixels + 0.1,
+                              description='Dead pixels in detect zone',
+                              value_unit='pixels'):
+      raise type_utils.TestFailure('Too many dead pixels in detect zone')
+    # Check specified pixel range constraints
+    t1 = "%s_type1" % short_name
+    if t1 in self.args.pixel_median and not testlog.CheckParam(
+        name=t1, value=median1,
+        min=self.args.pixel_median[t1][0], max=self.args.pixel_median[t1][1],
+        description='Median Type-1 pixel value',
+        value_unit='8-bit grayscale'):
+      raise type_utils.TestFailure('Out of range Type-1 pixels')
+    t2 = "%s_type2" % short_name
+    if t2 in self.args.pixel_median and not testlog.CheckParam(
+        name=t2, value=median2,
+        min=self.args.pixel_median[t2][0], max=self.args.pixel_median[t2][1],
+        description='Median Type-2 pixel value',
+        value_unit='8-bit grayscale'):
+      raise type_utils.TestFailure('Out of range Type-2 pixels')
 
   def runTest(self):
     # Verify communication with the FPMCU
@@ -140,25 +257,9 @@ class FingerprintTest(unittest.TestCase):
                               description='Sensor Hardware ID register'):
       raise type_utils.TestFailure('Invalid sensor HWID')
 
-    # Acquire the checkerboard test patterns to find dead pixels
-    pixels = self.MCUCommand('fpcheckpixels')
-    logging.info('ectool fpcheckpixels:\n%s\n', pixels)
-    match_dead = self.FPCHECKPIXELS_DEAD_RE.search(pixels)
-    self.assertIsNotNone(match_dead,
-                         'Unable to retrieve Sensor dead pixel count (%s)'
-                         % (pixels))
-    dead = int(match_dead.group(2)) if match_dead else 0
-    if not testlog.CheckParam(name='dead_pixels_cb', value=dead,
-                              max=self.args.max_dead_pixels,
-                              description='Number of dead pixels on the sensor',
-                              value_unit='pixels'):
-      raise type_utils.TestFailure('Too many dead pixels')
-    dead = int(match_dead.group(3)) if match_dead else 0
-    if not testlog.CheckParam(name='dead_pixels_icb', value=dead,
-                              max=self.args.max_dead_pixels,
-                              description='Number of dead pixels on the sensor',
-                              value_unit='pixels'):
-      raise type_utils.TestFailure('Too many dead pixels')
+    # checkerboard test patterns
+    self.checkerboardTest(inverted=False)
+    self.checkerboardTest(inverted=True)
 
     if self.args.rubber_finger_present:
       # Test sensor image quality
