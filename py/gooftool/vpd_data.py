@@ -38,6 +38,7 @@ KNOWN_RO_DATA = {
     'model_name': ANY,
     'service_tag': ANY,
     'panel_backlight_max_nits': ANY,
+    'dsm_calib': r'^[0-9a-f ]*$',
 }
 
 # Variable key names in regular expression.
