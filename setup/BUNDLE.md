@@ -212,7 +212,7 @@ This is the recommended way for Google Partners (ODM, OEM, SOC) with access to
 This is the recommended way for non-engineers with access to CPFE/cpcon, for
 example Google Partners (ODM, OEM, SOC) or Google device PMs.
 
-Open [cpcon](http://https://www.google.com/chromeos/partner/console), select
+Open [cpcon](https://www.google.com/chromeos/partner/console), select
 Tools / Factory Bundle, and in the menu select your board, device (project),
 build phase, versions of toolkit (which implies netboot and factory shim), test
 and release image, then click the CREATE button.
