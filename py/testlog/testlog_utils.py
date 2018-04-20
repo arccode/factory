@@ -68,9 +68,9 @@ def IsInRange(observed, min_val, max_val):
   If any of min_val or max_val is missing, it means there is no lower or
   upper bounds respectively.
   """
-  if min_val and observed < min_val:
+  if min_val is not None and observed < min_val:
     return False
-  if max_val and observed > max_val:
+  if max_val is not None and observed > max_val:
     return False
   return True
 

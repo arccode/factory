@@ -19,6 +19,10 @@ SAMPLE_DATETIME_ROUNDED_SEC = datetime.datetime(1989, 8, 8, 8, 8, 8, 000000)
 class TestlogUtilsTest(unittest.TestCase):
 
   def testIsInRange(self):
+    self.assertEquals(False,
+                      testlog_utils.IsInRange(30, min_val=None, max_val=0))
+    self.assertEquals(True,
+                      testlog_utils.IsInRange(30, min_val=0, max_val=None))
     self.assertEquals(True,
                       testlog_utils.IsInRange(30, min_val=None, max_val=30))
     self.assertEquals(False,

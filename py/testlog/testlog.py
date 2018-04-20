@@ -1083,7 +1083,7 @@ class StationTestRun(_StationBase):
     value_dict = {}
     if isinstance(value, basestring):
       value_dict['textValue'] = value
-      if min_val or max_val:
+      if min_val is not None or max_val is not None:
         raise ValueError(
             'Not expecting a text parameter(%r) with numeric limits' % value)
       if regex:
@@ -1094,9 +1094,9 @@ class StationTestRun(_StationBase):
         raise ValueError(
             'Not expecting a numeric parameter(%r) with regular expression' % (
                 value))
-      if min_val:
+      if min_val is not None:
         value_dict['expectedMinimum'] = min_val
-      if max_val:
+      if max_val is not None:
         value_dict['expectedMaximum'] = max_val
     else:
       raise ValueError(
@@ -1132,7 +1132,7 @@ class StationTestRun(_StationBase):
     if regex:
       if not re.search(regex, value):
         result = False
-    if min or max:
+    if min is not None or max is not None:
       result = testlog_utils.IsInRange(value, min, max)
     value_dict['status'] = 'PASS' if result else 'FAIL'
 
@@ -1226,9 +1226,9 @@ class Series(dict):
     value_dict = {'key': key, 'numericValue': value}
     if status:
       value_dict['status'] = status
-    if min_val:
+    if min_val is not None:
       value_dict['expectedMinimum'] = min_val
-    if max_val:
+    if max_val is not None:
       value_dict['expectedMaximum'] = max_val
 
     if 'data' not in self:
