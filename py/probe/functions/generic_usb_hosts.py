@@ -31,5 +31,11 @@ class GenericUSBHostFunction(cached_probe_function.GlobPathCachedProbeFunction):
     path = os.path.abspath(
         os.path.realpath(os.path.join(dir_path, cls._DEV_RELPATH)))
     logging.debug('USB root hub sysfs path: %s', path)
-    return (function.InterpretFunction({'pci': path})() or
-            function.InterpretFunction({'usb': path})())
+
+    result = (function.InterpretFunction({'pci': path})() or
+              function.InterpretFunction({'usb': path})())
+
+    # Above functions shouldn't return more than one probed component.
+    assert len(result) <= 1
+
+    return result[0] if result else function.NOTHING
