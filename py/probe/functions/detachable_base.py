@@ -17,10 +17,13 @@ class DetachableBaseFunction(cached_probe_function.CachedProbeFunction):
       'ro_version',
       'rw_version',
       'wp_screw',
+      'wp_all',
       'touchpad_id',
       'touchpad_pid',
       'touchpad_fw_version',
-      'touchpad_fw_checksum']
+      'touchpad_fw_checksum',
+      'key_version',
+      'challenge_status']
 
   def GetCategoryFromArgs(self):
     return None
