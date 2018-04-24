@@ -29,37 +29,27 @@ class TouchscreenElanFunction(
   --------
   Let's say if we want to verify whether the specific ELAN touchscreen (
   hardware/firmware versions are ``0x1234``/``0x5678``) exists on the device
-  or not, we can have the probing statement::
+  or not, we can have the probe statement::
 
     {
-      "touchscreen": {
-        "elan_1234_5678": {
-          "eval": "touchscreen_elan",
-          "expect": {
-            "hw_version": "1234",
-            "fw_version": "5678"
-          }
-        }
+      "eval": "touchscreen_elan",
+      "expect": {
+        "hw_version": "1234",
+        "fw_version": "5678"
       }
     }
 
   If the touchscreen is probed, the probed results will be::
 
-    {
-      "touchscreen": [
-        {
-          "name": "elan_1234_5678",
-          "hw_version": "1234",
-          "fw_version": "5678"
-        }
-      ]
-    }
+    [
+      {
+        "name": "elan_1234_5678",
+        "hw_version": "1234",
+        "fw_version": "5678"
+      }
+    ]
 
-  If the touchscreen is not found, the probed results will be::
-
-    {
-      "touchscreen": []
-    }
+  If the touchscreen is not found, the probed results will be an empty list.
   """
 
   GLOB_PATH = '/sys/bus/i2c/devices/*'

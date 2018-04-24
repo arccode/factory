@@ -31,79 +31,55 @@ class MatchFunction(function.Function):
   Examples
   --------
   This function is used by the probe framework itself to filter the outputs
-  of the evaluated functions by ``expect`` field in the probing statement.
-  Below is a probing statement which simply asks the probe framework to output
+  of the evaluated functions by ``expect`` field in the probe statement.
+  Below is a probe statement which simply asks the probe framework to output
   all usb devices::
 
     {
-      "usb": {
-        "generic": {
-          "eval": "usb"
-        }
-      }
+      "eval": "usb"
     }
 
   Let's assume the probed output is::
 
-    {
-      "usb": [
-        {
-          "name": "generic",
-          "values": {
-            "idVendor": "01ab",
-            "idProduct": "1122",
-            ...
-          }
-        },
-        {
-          "name": "generic",
-          "values": {
-            "idVendor": "01ac",
-            "idProduct": "3344",
-            ...
-          }
-        },
-        {
-          "name": "generic",
-          "values": {
-            "idVendor": "23cd",
-            "idProduct": "3344",
-            ...
-          }
-        }
-      ]
-    }
+    [
+      {
+        "idVendor": "01ab",
+        "idProduct": "1122",
+        ...
+      },
+      {
+        "idVendor": "01ac",
+        "idProduct": "3344",
+        ...
+      },
+      {
+        "idVendor": "23cd",
+        "idProduct": "3344",
+        ...
+      }
+    ]
 
-  If we modify the probing statement to::
+  If we modify the probe statement to::
 
     {
-      "usb": {
-        "generic": {
-          "eval": "usb",
-          "expect": {
-            "idVendor": "01ab"
-          }
-        }
+      "eval": "usb",
+      "expect": {
+        "idVendor": "01ab"
       }
     }
 
   , then the probed results will become::
 
-    {
-      "usb": [
-        {
-          "name": "generic",
-          "values": {
-            "idVendor": "01ab",
-            "idProduct": "1122",
-            ...
-          }
-        }
-      ]
-    }
+    [
+      {
+        "idVendor": "01ab",
+        "idProduct": "1122",
+        ...
+      }
+    ]
 
   We can also use the regular expression described in above.  For example,
-  if we modify ``expect`` field in the probing statement to::
+  if we modify ``expect`` field in the probe statement to::
 
     "expect": {
       "idVendor": "!re ^01.*$"

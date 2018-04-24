@@ -61,50 +61,34 @@ class MMCFunction(cached_probe_function.GlobPathCachedProbeFunction):
   - ``cid=246824682468``
   - \\.\\.\\.
 
-  Then the probing statement::
+  Then the probe statement::
 
     {
-      "mmc": {
-        "just_list_all": {
-          "eval": "mmc"
-        }
-      }
+      "eval": "mmc"
     }
 
   will have the corresponding probed result::
 
-    {
-      "mmc": [
-        {
-          "name": "just_list_all",
-          "values": {
-            "bus_type": "mmc",
-            "cid": "123412341234",
-            ...
-          }
-        },
-        {
-          "name": "just_list_all",
-          "values": {
-            "bus_type": "mmc",
-            "cid": "246824682468",
-            ...
-          }
-        }
-      ]
-    }
+    [
+      {
+        "bus_type": "mmc",
+        "cid": "123412341234",
+        ...
+      },
+      {
+        "bus_type": "mmc",
+        "cid": "246824682468",
+        ...
+      }
+    ]
 
   To verify if the Chromebook has the eMMC device which ``cid`` is
-  ``123412341234``, you can write a probing statement like::
+  ``123412341234``, you can write a probe statement like::
 
     {
-      "mmc_devices": {
-        "mmc_1234": {
-          "eval": "mmc",
-          "expect": {
-            "cid": "123412341234",
-          }
-        }
+      "eval": "mmc",
+      "expect": {
+        "cid": "123412341234"
       }
     }
 
@@ -115,11 +99,7 @@ class MMCFunction(cached_probe_function.GlobPathCachedProbeFunction):
   eMMC device sysfs directly like ::
 
     {
-      "mmc_1": {
-        "mmc_1": {
-          "eval" "mmc:/sys/bus/mmc/devices/mmc1:0001"
-        }
-      }
+      "eval" "mmc:/sys/bus/mmc/devices/mmc1:0001"
     }
   """
 

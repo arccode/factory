@@ -109,16 +109,12 @@ class I2CFunction(probe_function.ProbeFunction):
   Let's say we've already known that the address of I2C camera X is 0x24 but
   we don't know which bus that camera is connected.  A not 100% reliable way
   to verify whether camera X is installed or not on the device is to write
-  the probing statement ::
+  the probe statement ::
 
     {
-      "camera": {
-        "X": {
-          "eval": {
-            "i2c": {
-              "addr": "0x24"
-            }
-          }
+      "eval": {
+        "i2c": {
+          "addr": "0x24"
         }
       }
     }
@@ -126,28 +122,17 @@ class I2CFunction(probe_function.ProbeFunction):
   The function will try to probe ``address 0x24`` on all I2C buses.  If camera
   X is found at bus 2, we will have below probed results::
 
-    {
-      "camera": [
-        {
-          "name": "X",
-          "values": {
-            "addr": "0x24",
-            "bus_number": "2"
-          }
-        }
-      ]
-    }
+    [
+      {
+        "addr": "0x24",
+        "bus_number": "2"
+      }
+    ]
 
-  Otherwise the probed results might be ::
-
-    {
-      "camera": [
-      ]
-    }
-
-  Howerver, it's possible that another I2C device has the address number
-  ``0x24`` on another bus too.  In this case, the probing statement above
-  will lead to a false positive result.
+  Otherwise the probed results might be just an empty list.  Howerver, it's
+  possible that another I2C device has the address number ``0x24`` on another
+  bus too.  In this case, the probe statement above will lead to a false
+  positive result.
   """
 
   ARGS = [

@@ -61,45 +61,33 @@ class SysfsFunction(probe_function.ProbeFunction):
   - ``/sys/bus/cool/devices/2/bb`` contains "BB"
   - ``/sys/bus/cool/devices/3/xx`` contains "XX"
 
-  And the probing statement is::
+  And the probe statement is::
 
     {
-      "<category_name>": {
-        "<statement_name>": {
-          "eval": {
-            "sysfs": {
-              "dir_path": "/sys/bus/cool/devices/*",
-              "keys": [
-                "aa"
-              ],
-              "optional_keys": [
-                "bb"
-              ]
-            }
-          }
+      "eval": {
+        "sysfs": {
+          "dir_path": "/sys/bus/cool/devices/*",
+          "keys": [
+            "aa"
+          ],
+          "optional_keys": [
+            "bb"
+          ]
         }
       }
     }
 
   Then the probed results are::
 
-    {
-      "<category_name>": [
-        {
-          "name": "<statement_name>",
-          "values": {
-            "aa": "A"
-          }
-        },
-        {
-          "name": "<statement_name>",
-          "values": {
-            "aa": "AA"
-            "bb": "BB"
-          }
-        }
-      ]
-    }
+    [
+      {
+        "aa": "A"
+      },
+      {
+        "aa": "AA",
+        "bb": "BB"
+      }
+    ]
 
   The probed results don't include the entry ``/sys/bus/cool/devices/3``
   because that entry doesn't contain the required field ``aa``.

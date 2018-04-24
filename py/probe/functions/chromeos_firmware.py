@@ -126,15 +126,11 @@ class ChromeosFirmwareFunction(cached_probe_function.LazyCachedProbeFunction):
   --------
 
   As this function has only one single argument, the ``eval`` part of the
-  probing statement can be simplified into a single string instead of a
-  dictionary.  For example, the probing statement for probing the key hash is ::
+  probe statement can be simplified into a single string instead of a
+  dictionary.  For example, the probe statement for probing the key hash is ::
 
     {
-      "<category_name>": {
-        "<statement_name>": {
-          "eval": "chromeos_firmware:firmware_keys":
-        }
-      }
+      "eval": "chromeos_firmware:firmware_keys":
     }
 
   , where ``chromeos_firmware:firmware_keys`` is equivalent to ::
@@ -153,17 +149,12 @@ class ChromeosFirmwareFunction(cached_probe_function.LazyCachedProbeFunction):
   If the firmware is not signed and contains a develop keyset, the probed
   results must be ::
 
-    {
-      "<category_name>": [
-        {
-          "name": "<statement_name>",
-          "values": {
-            "rootkey": "kv3#b11d74edd6c14...0bc20cf041f10#devkey/rootkey",
-            "recoverykey": "kv3#c14bd0b70d9...d8f43de48d4ed#devkey/recoverykey"
-          }
-        }
-      ]
-    }
+    [
+      {
+        "rootkey": "kv3#b11d74edd6c14...0bc20cf041f10#devkey/rootkey",
+        "recoverykey": "kv3#c14bd0b70d9...d8f43de48d4ed#devkey/recoverykey"
+      }
+    ]
 
   Probe the RO Firmware Image Hash (``field="ro_[main|ec|pd]_firmware"``)
   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -171,17 +162,12 @@ class ChromeosFirmwareFunction(cached_probe_function.LazyCachedProbeFunction):
   The ``values`` of the output must contains two fields: ``hash`` and
   ``version``.  For example::
 
-    {
-      "<category_name>": [
-        {
-          "name": "<statement_name>",
-          "values": {
-            "hash": "13497173ba1fb678ab3f...ebd27d00d",
-            "version": "supercoolproj_v1.1.2738-3927abcd2"
-          }
-        }
-      ]
-    }
+    [
+      {
+        "hash": "13497173ba1fb678ab3f...ebd27d00d",
+        "version": "supercoolproj_v1.1.2738-3927abcd2"
+      }
+    ]
 
   """
 

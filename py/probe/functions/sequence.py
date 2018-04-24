@@ -23,7 +23,7 @@ class Sequence(combination_function.CombinationFunction):
 
   Examples
   --------
-  Assume that we want to design a probing statement to probe general
+  Assume that we want to design a probe statement to probe general
   information from the device.  The expected probed data should contain two
   fields:
 
@@ -32,55 +32,12 @@ class Sequence(combination_function.CombinationFunction):
 
   Instead of implementing a new probe function, we can reuse the existing
   :doc:`shell function <shell>`, which executes a single command, and writes
-  a probing statement like::
+  a probe statement like::
 
     {
-      "sysinfo": {
-        "probed_by_mosys": {
-          "eval": {
-            "sequence": {
-              "functions": [
-                {
-                  "shell": {
-                    "command": "mosys platform sku",
-                    "key": "device_sku"
-                  }
-                },
-                {
-                  "shell": {
-                    "command": "mosys platform version",
-                    "key": "device_version"
-                  }
-                }
-              ]
-            }
-          }
-        }
-      }
-    }
-
-  The expected probed results is::
-
-    {
-      "sysinfo": [
-        {
-          "name": "probed_by_mosys",
-          "values": {
-            "device_sku": <output_of_the_mosys_command>,
-            "device_version": <output_of_the_mosys_command>
-          }
-        }
-      ]
-    }
-
-  As this function is very common to use, the probe framework also supplies
-  a syntax sugar for it.  Above probing statement can be simplified to::
-
-    {
-      "sysinfo": {
-        "probed_from_mosys": {
-          "eval": [  # A list of functions means to apply the `sequence`
-                     # function.
+      "eval": {
+        "sequence": {
+          "functions": [
             {
               "shell": {
                 "command": "mosys platform sku",
@@ -96,6 +53,36 @@ class Sequence(combination_function.CombinationFunction):
           ]
         }
       }
+    }
+
+  The expected probed results is::
+
+    [
+      {
+        "device_sku": <output_of_the_mosys_command>,
+        "device_version": <output_of_the_mosys_command>
+      }
+    ]
+
+  As this function is very common to use, the probe framework also supplies
+  a syntax sugar for it.  Above probe statement can be simplified to::
+
+    {
+      "eval": [  # A list of functions means to apply the `sequence`
+                 # function.
+        {
+          "shell": {
+            "command": "mosys platform sku",
+            "key": "device_sku"
+          }
+        },
+        {
+          "shell": {
+            "command": "mosys platform version",
+            "key": "device_version"
+          }
+        }
+      ]
     }
   """
 

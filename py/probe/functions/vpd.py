@@ -39,7 +39,7 @@ class VPDFunction(shell.ShellFunction):
     k2=v2
     k3=v3
 
-  And we have the probing statement::
+  And we have the probe config file::
 
     {
       "all_ro_vpd_data": {  # Simplest example, just dump all fields in RO VPD.
@@ -78,7 +78,7 @@ class VPDFunction(shell.ShellFunction):
       }
     }
 
-  Then the probed results will be::
+  Then the corresponding output will be::
 
     {
       "all_ro_vpd_data": [

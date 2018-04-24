@@ -37,36 +37,24 @@ class CameraCrosFunction(cached_probe_function.CachedProbeFunction):
       xy11223 7-0008 | 5c
       uv44556 30-023 | 5c
 
-  And we have the probing statement::
+  And we have the probe statement::
 
     {
-      "camera": {
-        "cros": {
-          "eval": "camera_cros"
-        }
-      }
+      "eval": "camera_cros"
     }
 
   The the probed results will be ::
 
-    {
-      "camera": [
-        {
-          "name": "cros",
-          "values": {
-            "name": "xy11223 7-0008",
-            "vendor": "5c"
-          }
-        },
-        {
-          "name": "cros",
-          "values": {
-            "name": "uv44556 30-023",
-            "vendor": "5c"
-          }
-        }
-      ]
-    }
+    [
+      {
+        "name": "xy11223 7-0008",
+        "vendor": "5c"
+      },
+      {
+        "name": "uv44556 30-023",
+        "vendor": "5c"
+      }
+    ]
   """
 
   ARGS = []

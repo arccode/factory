@@ -34,79 +34,51 @@ class ShellFunction(probe_function.ProbeFunction):
     bbb
     ccc
 
-  Then the probing statement ::
+  Then the probe statement ::
 
     {
-      "<category_name>": {
-        "<statement_name>": {
-          "eval": "shell:ls"
-        }
-      }
+      "eval": "shell:ls"
     }
 
   will have the corresponding probed result ::
 
-    {
-      "<category_name>": [
-        {
-          "name": "<statement_nam>",
-          "values": {
-            "shell_raw": "aaa\\nbbb\\nccc"
-          }
-        }
-      ]
-    }
+    [
+      {
+        "shell_raw": "aaa\\nbbb\\nccc"
+      }
+    ]
 
-  Another example is that the probing statement ::
+  Another example is that the probe statement ::
 
     {
-      "<category_name>": {
-        "<statement_name>": {
-          "eval": {
-            "shell": {
-              "command": "ls",
-              "split_line": true,  # Treat each line as different probe results.
-              "key": "my_key_name"  # Use "my_key_name" as the key in the output
-                                    # dictionary
-            }
-          }
+      "eval": {
+        "shell": {
+          "command": "ls",
+          "split_line": true,   # Treat each line as different probe results.
+          "key": "my_key_name"  # Use "my_key_name" as the key in the output
+                                # dictionary
         }
       }
     }
 
-  will have the corresponding probed result ::
+  will have the corresponding probed results ::
 
-    {
-      "<category_name>": [
-        {
-          "name": "<statement_nam>",
-          "values": {
-            "my_key_name": "aaa"
-          }
-        },
-        {
-          "name": "<statement_nam>",
-          "values": {
-            "my_key_name": "bbb"
-          }
-        },
-        {
-          "name": "<statement_nam>",
-          "values": {
-            "my_key_name": "ccc"
-          }
-        }
-      ]
-    }
+    [
+      {
+        "my_key_name": "aaa"
+      },
+      {
+        "my_key_name": "bbb"
+      },
+      {
+        "my_key_name": "ccc"
+      }
+    ]
 
   The command can be even more complex like ::
 
     {
-      "<category_name>": {
-        "<statement_name>": {
-          "eval": "shell:ls | grep aaa"
-        }
-      }
+      "eval": "shell:ls | grep aaa"
     }
 
   In above case, the probed result will be empty if the output of ``ls``

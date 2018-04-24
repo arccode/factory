@@ -211,60 +211,44 @@ class EDIDFunction(probe_function.ProbeFunction):
 
   Examples
   --------
-  If you want this function just outputs all EDID data, the probing statement
+  If you want this function just outputs all EDID data, the probe statement
   is simply::
 
     {
-      "<category_name>": {
-        "<statement_name>": {
-          "eval": "edid"
-        }
-      }
+      "eval": "edid"
     }
 
   Let's assume the output is ::
 
-    {
-      "<category_name>": [
-        {
-          "name": "<statement_name>",
-          "values": {
-            "vendor": "IBM",
-            "product_id": "abcd",
-            "width": "19200",
-            "height": "10800",
-            "dev_path": "/dev/i2c-1",
-            "sysfs_path": "/sys/class/drm/aabbcc/edid"
-          }
-        },
-        {
-          "name": "<statement_name>",
-          "values": {
-            "vendor": "IBX",
-            "product_id": "1234",
-            "width": "192",
-            "height": "108",
-            "dev_path": "/dev/i2c-2"
-          }
-        }
-      ]
-    }
+    [
+      {
+        "vendor": "IBM",
+        "product_id": "abcd",
+        "width": "19200",
+        "height": "10800",
+        "dev_path": "/dev/i2c-1",
+        "sysfs_path": "/sys/class/drm/aabbcc/edid"
+      },
+      {
+        "vendor": "IBX",
+        "product_id": "1234",
+        "width": "192",
+        "height": "108",
+        "dev_path": "/dev/i2c-2"
+      }
+    ]
 
   In above example the EDID data of the IBM monitor is found not only on the
   i2c bus ``/dev/i2c-1`` but also in the sysfs ``/sys/class/drm/aabbcc/edid``.
   However, the one made by IBX is only found on the i2c bus ``/dev/i2c-2``.
 
   Then if you are only interested in the monitor made by IBM, you can modify
-  the probing statement to ::
+  the probe statement to ::
 
     {
-      "<category_name>": {
-        "<statement_name>": {
-          "eval": "edid",
-          "expect": {
-            "vendor": "IBM"
-          }
-        }
+      "eval": "edid",
+      "expect": {
+        "vendor": "IBM"
       }
     }
 
@@ -274,11 +258,7 @@ class EDIDFunction(probe_function.ProbeFunction):
   specific path or i2c bus.  For example::
 
     {
-      "<category_name>": {
-        "<statement_name>": {
-          "eval": "edid:/dev/i2c-3"
-        }
-      }
+      "eval": "edid:/dev/i2c-3"
     }
 
   """

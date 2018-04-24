@@ -94,57 +94,41 @@ class InputDeviceFunction(cached_probe_function.CachedProbeFunction):
 
   Examples
   --------
-  Without specifying the device type, the probing statement ::
+  Without specifying the device type, the probe statement ::
 
     {
-      "<category_name>": {
-        "<statement_name>": {
-          "eval": "input_device"
-        }
-      }
+      "eval": "input_device"
     }
 
   will have the corresponding probed results like ::
 
-    {
-      "<category_name>": [
-        {
-          "name": "<statement_name>",
-          "values": {
-            "product": "3043",
-            "version": "0100",
-            "vendor": "2345",
-            "name": "Google Inc. XXYY",
-            "bus": "0003",
-            "sysfs": "/devices/pci0000:00/0000:00:34.0/usb3/......",
-            "event": "event3"
-          }
-        },
-        {
-          "name": "<statement_name>",
-          "values": {
-            "product": "3044",
-            "version": "0001",
-            "vendor": "2347",
-            "name": "elgooG Inc. AABB",
-            "bus": "0002",
-            "sysfs": "/devices/pci0000:00/0000:00:32.0/usb3/......",
-            "event": "event1"
-          }
-        },
-        ...
-      }
-    }
+    [
+      {
+        "product": "3043",
+        "version": "0100",
+        "vendor": "2345",
+        "name": "Google Inc. XXYY",
+        "bus": "0003",
+        "sysfs": "/devices/pci0000:00/0000:00:34.0/usb3/......",
+        "event": "event3"
+      },
+      {
+        "product": "3044",
+        "version": "0001",
+        "vendor": "2347",
+        "name": "elgooG Inc. AABB",
+        "bus": "0002",
+        "sysfs": "/devices/pci0000:00/0000:00:32.0/usb3/......",
+        "event": "event1"
+      },
+      ...
+    ]
 
-  To strict the probe results to ``touchscreen`` type, the probing statement
+  To strict the probe results to ``touchscreen`` type, the probe statement
   is::
 
     {
-      "<category_name>": {
-        "<statement_name>": {
-          "eval": "input_device:touchscreen"
-        }
-      }
+      "eval": "input_device:touchscreen"
     }
   """
 

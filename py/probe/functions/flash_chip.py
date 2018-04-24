@@ -45,29 +45,20 @@ class FlashChipFunction(cached_probe_function.LazyCachedProbeFunction):
     vendor="Google"
     name="Chip1"
 
-  And we have the probing statement::
+  And we have the probe statement::
 
     {
-      "<category_name>": {
-        "<statement_name>": {
-          "eval": "flash_chip:main"
-        }
-      }
+      "eval": "flash_chip:main"
     }
 
   Then the probed results will be ::
 
-    {
-      "<category_name>": [
-        {
-          "name": "<statement_name>",
-          "values": {
-            "vendor": "Google",
-            "name": "Chip1"
-          }
-        }
-      ]
-    }
+    [
+      {
+        "vendor": "Google",
+        "name": "Chip1"
+      }
+    ]
 
   """
   TARGET_MAP = {

@@ -31,80 +31,53 @@ class GlobPathFunction(probe_function.ProbeFunction):
     /tmp/aa/02.tgz
     /tmp/aa/03.tgz
 
-  Then the probing statement ::
+  Then the probe statement ::
 
     {
-      "<category_name>": {
-        "<statement_name>": {
-          "eval": "glob_path:/tmp/aa/*.txt"
+      "eval": "glob_path:/tmp/aa/*.txt"
+    }
+
+  will have the corresponding probed results ::
+
+    [
+      {
+        "path": "/tmp/aa/00.txt"
+      },
+      {
+        "path": "/tmp/aa/01.txt"
+      }
+    ]
+
+  And the probe statement ::
+
+    {
+      "eval": {
+        "glob_path": {
+          "pathname": "/tmp/aa/00.txt",
+          "filename_only": true,
+          "key": "filename"
         }
       }
     }
 
   will have the corresponding probed results ::
 
-    {
-      "<category_name": [
-        {
-          "name": "<statement_name>",
-          "values": {
-            "path": "/tmp/aa/00.txt"
-          }
-        },
-        {
-          "name": "<statement_name>",
-          "values": {
-            "path": "/tmp/aa/01.txt"
-          }
-        }
-      ]
-    }
-
-  And the probing statement ::
-
-    {
-      "<category_name>": {
-        "<statement_name>": {
-          "eval": {
-            "glob_path": {
-              "pathname": "/tmp/aa/00.txt",
-              "filename_only": true,
-              "key": "filename"
-            }
-          }
-        }
+    [
+      {
+        "filename": "00.txt"
       }
+    ]
+
+  And the probe statement ::
+
+    {
+      "eval": "glob_path:/tmp/aa/no_such_file.txt"
     }
 
   will have the corresponding probed results ::
 
-    {
-      "<category_name": [
-        {
-          "name": "<statement_name>",
-          "values": {
-            "filename": "00.txt"
-          }
-        }
-      ]
-    }
-
-  And the probing statement ::
-
-    {
-      "<category_name>": {
-        "<statement_name>": {
-          "eval": "glob_path:/tmp/aa/no_such_file.txt"
-        }
-      }
-    }
-
-  will have the corresponding probed results ::
-
-    {
-      "<category_name>": [
-      ]
-    }
+    [
+    ]
 
   """
   ARGS = [

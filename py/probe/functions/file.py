@@ -54,69 +54,45 @@ class FileFunction(probe_function.ProbeFunction):
 
       Bye, Everyone
 
-  And the probing statement is::
+  And the probe statement is::
 
     {
-      "files": {
-        "just_read": {
-          "eval": "file:/tmp/aaa/x"
-        }
-      }
+      "eval": "file:/tmp/aaa/x"
     }
 
   Then the probed results will be::
 
-    {
-      "files": [
-        {
-          "name": "just_read",
-          "values": {
-            "file_row": "Hello, Google\\nHello, ChromiumOS"
-          }
-        }
-      ]
-    }
+    [
+      {
+        "file_row": "Hello, Google\\nHello, ChromiumOS"
+      }
+    ]
 
-  If the probing statement is ::
+  If the probe statement is ::
 
     {
-      "files": {
-        "just_read": {
-          "eval": {
-            "file": {
-              "file_path": "/tmp/aaa/*",
-              "split_line": true,
-              "key": "my_awesome_key"
-            }
-          }
+      "eval": {
+        "file": {
+          "file_path": "/tmp/aaa/*",
+          "split_line": true,
+          "key": "my_awesome_key"
         }
       }
     }
 
   , then the probed results will be::
 
-    {
-      "files": [
-        {
-          "name": "just_read",
-          "values": {
-            "my_awesome_key": "Hello, Google"
-          }
-        },
-        {
-          "name": "just_read",
-          "values": {
-            "my_awesome_key": "Hello, ChromiumOS"
-          }
-        },
-        {
-          "name": "just_read",
-          "values": {
-            "my_awesome_key": "Bye, Everyone"
-          }
-        }
-      ]
-    }
+    [
+      {
+        "my_awesome_key": "Hello, Google"
+      },
+      {
+        "my_awesome_key": "Hello, ChromiumOS"
+      },
+      {
+        "my_awesome_key": "Bye, Everyone"
+      }
+    ]
 
   In above example we use ``"split_line": true`` to let this function treat
   each line of the content of a file as different results.  And instead of

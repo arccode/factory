@@ -59,55 +59,39 @@ class USBFunction(cached_probe_function.GlobPathCachedProbeFunction):
   - ``idProduct=0x1357``
   - ``product=Goofy Bluetooth``
 
-  Then the probing statement::
+  Then the probe statement::
 
     {
-      "usb": {
-        "just_list_all": {
-          "eval": "usb"
-        }
-      }
+      "eval": "usb"
     }
 
   will have the corresponding probed result::
 
-    {
-      "usb": [
-        {
-          "name": "just_list_all",
-          "values": {
-            "bus_type": "usb",
-            "idVendor": "0123",
-            "idProduct": "4567",
-            "manufacturer": "Google",
-            "product": "Google Fancy Camera",
-            "bcdDevice": "8901"
-          }
-        },
-        {
-          "name": "just_list_all",
-          "values": {
-            "bus_type": "usb",
-            "idVendor": "0246",
-            "idProduct": "1357",
-            "product": "Goofy Bluetooth"
-          }
-        }
-      ]
-    }
+    [
+      {
+        "bus_type": "usb",
+        "idVendor": "0123",
+        "idProduct": "4567",
+        "manufacturer": "Google",
+        "product": "Google Fancy Camera",
+        "bcdDevice": "8901"
+      },
+      {
+        "bus_type": "usb",
+        "idVendor": "0246",
+        "idProduct": "1357",
+        "product": "Goofy Bluetooth"
+      }
+    ]
 
   To verify if the Chromebook has Google Fancy Camera or not, you can write
-  a probing statement like::
+  a probe statement like::
 
     {
-      "camera": {
-        "Has Google Fancy Camera": {
-          "eval": "usb",
-          "expect": {
-            "idVendor": "0123",
-            "idProduct": "4567"
-          }
-        }
+      "eval": "usb",
+      "expect": {
+        "idVendor": "0123",
+        "idProduct": "4567"
       }
     }
 
@@ -115,30 +99,21 @@ class USBFunction(cached_probe_function.GlobPathCachedProbeFunction):
   elements or not.
 
   You can also specify ``dir_path`` argument directly to ask the function
-  to probe that sysfs USB entry.  For example, the probing statement ::
+  to probe that sysfs USB entry.  For example, the probe statement ::
 
     {
-      "usb1-1": {
-        "usb1-1": {
-          "eval": "usb:/sys/bus/usb/devices/1-1"
-        }
-      }
+      "eval": "usb:/sys/bus/usb/devices/1-1"
     }
 
   will have the corresponding probed results::
 
-    {
-      "usb1-1": [
-        {
-          "name": "usb1-1",
-          "values": {
-            "bus_type": "usb",
-            "idVendor": "0123",
-            ...
-          }
-        }
-      ]
-    }
+    [
+      {
+        "bus_type": "usb",
+        "idVendor": "0123",
+        ...
+      }
+    ]
   """
   GLOB_PATH = '/sys/bus/usb/devices/*'
 
