@@ -19,6 +19,7 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool import chroot
 from cros.factory.gooftool.common import ExecFactoryPar
+from cros.factory.gooftool.common import Shell
 from cros.factory.gooftool.common import Util
 from cros.factory.test.env import paths
 from cros.factory.utils import file_utils
@@ -132,6 +133,17 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
     is_fast: whether or not to apply fast wipe.
     shopfloor_url: for inform_shopfloor.sh
   """
+
+  def _CheckBug78323428():
+    # b/78323428: Check if dhcpcd is locking /var/run. If dhcpcd is locking
+    # /var/run, unmount will fail. Need CL:1021611 to use /run instead.
+    for pid in Shell('pgrep dhcpcd').stdout.splitlines():
+      lock_result = Shell('ls -al /proc/%s/fd | grep /var/run' % pid)
+      if lock_result.stdout:
+        raise WipeError('dhcpcd is still locking on /var/run. Please use a '
+                        'newer ChromeOS image with CL:1021611 included. '
+                        'Lock info: "%s"' % lock_result.stdout)
+  _CheckBug78323428()
 
   Daemonize()
 
