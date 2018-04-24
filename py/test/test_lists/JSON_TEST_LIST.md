@@ -186,8 +186,8 @@ Test list manager will process these fields, they are not directly used by
    ```
 
    If a test object defined in `definitions` section inherits itself, it means
-   that it's a class defined in `cros.factory.test.factory` module.  For
-   example, the definition of `FactoryTest` is:
+   that it's a class defined in `cros.factory.test.test_lists.test_object`
+   module.  For example, the definition of `FactoryTest` is:
 
    ```
    {
