@@ -183,6 +183,11 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
               stdout=f, stderr=f, call=True)
       files += ['ec_console']
 
+    # Cannot tar an unseekable file, need to manually copy it instead.
+    with open(os.path.join(tmp, 'bios_log'), 'w') as f:
+      Spawn(['cat', '/sys/firmware/log'], stdout=f, call=True)
+      files += ['bios_log']
+
     files += sum(
         [glob(x) for x in [
             os.path.join(var, 'log'),
@@ -196,7 +201,6 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
             # filesystems; the data we want is always in /dev and
             # /sys, never on the SSD.
             '/sys/fs/pstore',
-            '/sys/firmware/log',
         ]], [])
 
     # Name of Chrome data directory within the state directory.
