@@ -53,16 +53,21 @@ UMPIRE_MATCH_KEY_MAP = {
 # TODO(littlecvr): these constants are shared between here and cros_docker.sh,
 #                  should be pulled out to common config.
 FACTORY_SERVER_IMAGE_NAME = 'cros/factory_server'
-DOCKER_SHARED_DIR = '/cros_docker'
-UMPIRE_DOCKER_DIR = '/cros_docker/umpire'
+DOCKER_SHARED_DIR = os.getenv('HOST_SHARED_DIR', '/cros_docker')
+UMPIRE_DOCKER_DIR = os.getenv(
+    'HOST_UMPIRE_DIR', os.path.join(DOCKER_SHARED_DIR, 'umpire'))
 UMPIRE_DEFAULT_PROJECT_FILE = '.default_project'
 UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER = '/var/db/factory/umpire'
 
-TFTP_DOCKER_DIR = '/cros_docker/tftp'
+TFTP_DOCKER_DIR = os.getenv(
+    'HOST_TFTP_DIR', os.path.join(DOCKER_SHARED_DIR, 'tftp'))
 TFTP_BASE_DIR_IN_TFTP_CONTAINER = '/var/tftp'
 TFTP_ROOT_IN_DOME = '/var/tftp'
 TFTP_ROOT_IN_UMPIRE_CONTAINER = '/mnt/tftp'
 TFTP_CONTAINER_NAME = 'dome_tftp'
+
+# Not every systems may provide a working /etc/localtime.
+LOCALTIME_DOCKER_PATH = os.getenv('HOST_LOCALTIME_PATH', '/etc/localtime')
 
 # Mount point of the Umpire data folder in Dome's container. Note: this is not
 # Umpire base directory in Umpire's container (which is also
@@ -468,7 +473,6 @@ class Project(django.db.models.Model):
       cmd = [
           'docker', 'run', '--detach', '--privileged',
           '--tmpfs', '/run:rw,size=16384k',
-          '--volume', '/etc/localtime:/etc/localtime:ro',
           '--volume', '%s:/mnt' % DOCKER_SHARED_DIR,
           '--volume', '%s/%s:%s' % (UMPIRE_DOCKER_DIR,
                                     self.name,
@@ -483,8 +487,10 @@ class Project(django.db.models.Model):
                                   UMPIRE_BASE_PORT +
                                   UMPIRE_INSTALOG_PULL_SOCKET_PORT_OFFSET),
           '--restart', 'unless-stopped',
-          '--name', container_name,
-          FACTORY_SERVER_IMAGE_NAME, UMPIRED_FILEPATH]
+          '--name', container_name]
+      if LOCALTIME_DOCKER_PATH:
+        cmd += ['--volume', '%s:/etc/localtime:ro' % LOCALTIME_DOCKER_PATH]
+      cmd += [FACTORY_SERVER_IMAGE_NAME, UMPIRED_FILEPATH]
       logger.info('Running command %r', cmd)
       subprocess.check_call(cmd)
       # Update default project for 'cros_docker.sh umpire' commands.

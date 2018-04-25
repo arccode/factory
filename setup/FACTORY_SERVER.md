@@ -36,9 +36,9 @@ storage.
 
 #### Minimal requirements
 
-- Memory: 4G
-- Storage: 256G (varies by devices built per project)
 - CPU: x86-64 CPU
+- Memory: Just enough to run host OS, Docker, nginx + django; for example 2G.
+- Storage: Enough space for logs and resources in bundles; for example 256G.
 
 #### Recommendation for premium projects
 
@@ -71,6 +71,12 @@ officially supported.
     its own data in `/cros_docker` so you should make sure the partition is
     large enough for these two folders. A simple solution is to not creating
     any additional partitions (only have `/` and `/boot`).
+
+#### Mac OSX
+
+1. If you run factory sever on Mac OSX, the shared folder is in
+   `${HOME}/cros_docker` instead of `/cros_docker`, for example
+   `/Users/admin/cros_docker`.
 
 #### Docker
 

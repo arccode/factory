@@ -28,6 +28,10 @@ warn() {
   echo "WARNING: $*"
 }
 
+is_macosx() {
+  [ "$(uname -s)" = "Darwin" ]
+}
+
 realpath() {
   # Try to find "realpath" in a portable way.
   if type python >/dev/null 2>&1; then
@@ -107,9 +111,23 @@ DOME_DIR="${FACTORY_DIR}/py/dome"
 OVERLORD_DIR="${FACTORY_DIR}/go/src/overlord"
 BUILD_DIR="${FACTORY_DIR}/build/docker"
 
+# Platform specific directory defaults.
+if is_macosx; then
+  DEFAULT_HOST_SHARED_DIR="${HOME}/cros_docker"
+  # osxfs needs the folder to be owned by current user.
+  SHARED_WITH_USER_ACL=true
+  # The /etc/localtime is not available on recent Docker builds.
+  DEFAULT_HOST_LOCALTIME_PATH=""
+else
+  DEFAULT_HOST_SHARED_DIR="/cros_docker"
+  SHARED_WITH_USER_ACL=false
+  DEFAULT_HOST_LOCALTIME_PATH=/etc/localtime
+fi
+
 # Directories on host that would be mounted to docker
-# This would be overriden in integration tests.
-: "${HOST_SHARED_DIR:="/cros_docker"}"
+# This would be overridden in integration tests.
+: "${HOST_SHARED_DIR:="${DEFAULT_HOST_SHARED_DIR}"}"
+: "${HOST_LOCALTIME_PATH:="${DEFAULT_HOST_LOCALTIME_PATH}"}"
 HOST_DOME_DIR="${HOST_SHARED_DIR}/dome"
 HOST_TFTP_DIR="${HOST_SHARED_DIR}/tftp"
 HOST_UMPIRE_DIR="${HOST_SHARED_DIR}/umpire"
@@ -124,8 +142,8 @@ GSUTIL_BUCKET="gs://chromeos-localmirror/distfiles"
 COMMIT_SUBJECT="setup: Publish cros_docker image version"
 
 # Remote resources
-RESOURCE_DOCKER_URL="https://get.docker.com/builds/Linux/i386/docker-${DOCKER_VERSION}.tgz"
-RESOURCE_DOCKER_SHA1="0b2619a77d0513d4e503120ad17e2ca09e6176ad"
+RESOURCE_DOCKER_URL="https://get.docker.com/builds/Linux/x86_64/docker-${DOCKER_VERSION}.tgz"
+RESOURCE_DOCKER_SHA1="17239c2d84413affa68bbe444c3402905e863d1f"
 RESOURCE_CROS_DOCKER_URL="https://chromium.googlesource.com/chromiumos/platform/factory/+/master/setup/cros_docker.sh?format=TEXT"
 RESOURCE_PIXZ_URL="${PREBUILT_IMAGE_DIR_URL}/pixz-1.0.6-amd64-static.tbz2"
 RESOURCE_PIXZ_SHA1="3bdf7473df19f2d089f2a9b055c18a4f7f1409e5"
@@ -149,6 +167,12 @@ DOCKER_TFTP_DIR_IN_DOME="/var/tftp"
 DOCKER_IMAGE_GITHASH="c5f8d06c3ae6e8f1d5e9e2e05f9f89743afeebce"
 DOCKER_IMAGE_TIMESTAMP="20180420154030"
 DOCKER_IMAGE_NAME="cros/factory_server"
+
+if [ -n "${HOST_LOCALTIME_PATH}" ]; then
+  DOCKER_LOCALTIME_VOLUME="--volume ${HOST_LOCALTIME_PATH}:/etc/localtime:ro"
+else
+  DOCKER_LOCALTIME_VOLUME=""
+fi
 
 # Configures docker image file information by DOCKER_IMAGE_{GITHASH,TIMESTAMP}.
 set_docker_image_info() {
@@ -184,8 +208,7 @@ ensure_dir() {
 
 ensure_dir_acl() {
   local dir="$1"
-  # On Mac, osxfs needs the folder to be owned by current user.
-  if [ "$(uname -s)" = "Darwin" ]; then
+  if "${SHARED_WITH_USER_ACL}"; then
     sudo chown -R "$(id -u)" "${dir}"
     sudo chgrp -R "$(id -g)" "${dir}"
   fi
@@ -249,7 +272,7 @@ do_umpire_run() {
       --restart unless-stopped \
       --name "${UMPIRE_CONTAINER_NAME}" \
       --tmpfs "/run:rw,size=16384k" \
-      --volume /etc/localtime:/etc/localtime:ro \
+      ${DOCKER_LOCALTIME_VOLUME} \
       --volume "${HOST_SHARED_DIR}:/mnt" \
       --volume "${UMPIRE_CONTAINER_DIR}:${docker_db_dir}" \
       --publish "${p1}:${umpire_base_port}" \
@@ -330,7 +353,7 @@ do_umpire_test() {
   ${DOCKER} run \
     --rm \
     --net=host \
-    --volume /etc/localtime:/etc/localtime:ro \
+    ${DOCKER_LOCALTIME_VOLUME} \
     --volume "${temp_dir}:${temp_dir}" \
     --volume /run/docker.sock:/run/docker.sock \
     --volume /run \
@@ -751,11 +774,16 @@ do_run() {
     --restart unless-stopped \
     --name "${DOME_UWSGI_CONTAINER_NAME}" \
     --volume /var/run/docker.sock:/var/run/docker.sock \
+    --env HOST_SHARED_DIR="${HOST_SHARED_DIR}" \
+    --env HOST_UMPIRE_DIR="${HOST_UMPIRE_DIR}" \
+    --env HOST_TFTP_DIR="${HOST_TFTP_DIR}" \
+    --env HOST_LOCALTIME_PATH="${HOST_LOCALTIME_PATH}" \
     --volume /run \
     --volume "${HOST_DOME_DIR}/${db_filename}:${docker_db_dir}/${db_filename}" \
     --volume "${host_log_dir}:${docker_log_dir}" \
     --volume "${HOST_TFTP_DIR}:${DOCKER_TFTP_DIR_IN_DOME}" \
     --volume "${HOST_UMPIRE_DIR}:${DOCKER_UMPIRE_DIR_IN_DOME}" \
+    ${DOCKER_LOCALTIME_VOLUME} \
     --workdir "${DOCKER_DOME_DIR}" \
     "${DOCKER_IMAGE_NAME}" \
     uwsgi --ini uwsgi.ini
@@ -1016,7 +1044,7 @@ do_update() {
   local prefix="sudo"
   TEMP_OBJECTS=("${temp_file}" "${TEMP_OBJECTS[@]}")
 
-  curl -L --fail "${RESOURCE_CROS_DOCKER_URL}" | base64 -d >"${temp_file}"
+  curl -L --fail "${RESOURCE_CROS_DOCKER_URL}" | base64 --decode >"${temp_file}"
   [ -s "${temp_file}" ] || die "Failed to download deployment script."
   chmod +x "${temp_file}"
   "${temp_file}" version || die "Failed to verify deployment script."
