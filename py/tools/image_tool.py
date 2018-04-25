@@ -268,253 +268,220 @@ def Aligned(value, alignment):
   return value - remains + (alignment if remains else 0)
 
 
-class Partition(object):
-  """To easily access partition on a disk image."""
+class GPT(pygpt.GPT):
+  """A special version GPT object with more helper utilities."""
 
-  def __init__(self, image, number):
-    """Constructor of partition on a disk image.
+  class Partition(pygpt.GPT.Partition):
+    """A special GPT Partition object with mount ability."""
 
-    Args:
-      image: a path to disk image file.
-      number: integer as 1-based index in partition table.
-    """
-    # Ensure given index is valid.
-    gpt = pygpt.GPT.LoadFromFile(image)
-    if not 1 <= number < len(gpt.partitions):
-      raise RuntimeError(
-          'Invalid partition number %s for image %s.' % (number, image))
-    part = gpt.GetPartition(number)
-    if part.IsUnused():
-      raise RuntimeError('Partition %s is unused.' % part)
-    self._part = part
+    @staticmethod
+    @contextlib.contextmanager
+    def _Map(image, offset, size):
+      """Context manager to map (using losetup) partition(s) from disk image.
 
-  def __str__(self):
-    return str(self._part)
+      Args:
+        image: a path to disk image to map.
+        offset: an integer as offset to partition, or None to map whole disk.
+        size: an integer as partition size, or None for whole disk.
+      """
+      loop_dev = None
+      args = ['losetup', '--show', '--find']
+      if offset is None:
+        # Note "losetup -P" needs Ubuntu 15+.
+        args += ['-P']
+      else:
+        args += ['-o', str(offset), '--sizelimit', str(size)]
+      args += [image]
+      try:
+        loop_dev = SudoOutput(args).strip()
+        yield loop_dev
+      finally:
+        if loop_dev:
+          Sudo(['umount', '-R', loop_dev], check=False, silent=True)
+          Sudo(['losetup', '-d', loop_dev], check=False, silent=True)
 
-  @property
-  def image(self):
-    return self._part.image
+    def Map(self):
+      """Maps given partition to loop block device."""
+      logging.debug('Map %s: %s(+%s)', self, self.offset, self.size)
+      return self._Map(self.image, self.offset, self.size)
 
-  @property
-  def number(self):
-    return self._part.number
+    @classmethod
+    def MapAllPartitions(cls, image):
+      """Maps an image with all partitions to loop block devices.
 
-  @property
-  def block_size(self):
-    """Size of each LBA block (sector) in bytes."""
-    return self._part.block_size
+      Map the image to /dev/loopN, and all partitions will be created as
+      /dev/loopNpM, where M stands for partition number.
+      This is not supported by older systems.
 
-  @property
-  def offset(self):
-    return self._part.offset
+      Args:
+        image: a path to disk image to map.
 
-  @property
-  def size(self):
-    return self._part.size
+      Returns:
+        The mapped major loop device (/dev/loopN).
+      """
+      return cls._Map(image, None, None)
 
-  def GetGPTPartition(self):
-    """Returns the associated pygpt.GPT.Partition instance."""
-    return self._part
+    @contextlib.contextmanager
+    def Mount(self, mount_point=None, rw=False, fs_type=None, options=None,
+              auto_umount=True, silent=False):
+      """Context manager to mount partition from given disk image.
 
-  @staticmethod
-  @contextlib.contextmanager
-  def _Map(image, offset, size):
-    """Context manager to map (using losetup) partition(s) from disk image.
+      Args:
+        mount_point: directory to mount, or None to use temporary directory.
+        rw: True to mount as read-write, otherwise read-only (-o ro).
+        fs_type: string as file system type (-t).
+        options: string as extra mount options (-o).
+        auto_umount: True to un-mount when leaving context.
+        silent: True to hide all warning and error messages.
+      """
+      options = options or []
+      if isinstance(options, basestring):
+        options = [options]
+      options = ['rw' if rw else 'ro'] + options
 
-    Args:
-      image: a path to disk image to map.
-      offset: an integer as offset to partition, or None to map whole disk.
-      size: an integer as partition size, or None for whole disk.
-    """
-    loop_dev = None
-    args = ['losetup', '--show', '--find']
-    if offset is None:
-      # Note "losetup -P" needs Ubuntu 15+.
-      args += ['-P']
-    else:
-      args += ['-o', str(offset), '--sizelimit', str(size)]
-    args += [image]
-    try:
-      loop_dev = SudoOutput(args).strip()
-      yield loop_dev
-    finally:
-      if loop_dev:
-        Sudo(['umount', '-R', loop_dev], check=False, silent=True)
-        Sudo(['losetup', '-d', loop_dev], check=False, silent=True)
+      options += ['loop', 'offset=%s' % self.offset, 'sizelimit=%s' % self.size]
+      args = ['mount', '-o', ','.join(options)]
+      if fs_type:
+        args += ['-t', fs_type]
 
-  def Map(self):
-    """Maps given partition to loop block device."""
-    logging.debug('Map %s: %s(+%s)', self, self.offset, self.size)
-    return self._Map(self.image, self.offset, self.size)
+      temp_dir = None
+      try:
+        if not mount_point:
+          temp_dir = tempfile.mkdtemp(prefix='imgtool_')
+          mount_point = temp_dir
 
-  @staticmethod
-  def MapAllPartitions(image):
-    """Maps an image with all partitions to loop block devices.
+        args += [self.image, mount_point]
 
-    Map the image to /dev/loopN, and all partitions will be created as
-    /dev/loopNpM, where M stands for partition number.
-    This is not supported by older systems.
+        logging.debug('Partition.Mount: %s', ' '.join(args))
+        Sudo(args, silent=silent)
+        yield mount_point
 
-    Args:
-      image: a path to disk image to map.
+      finally:
+        if auto_umount:
+          if mount_point:
+            Sudo(['umount', '-R', mount_point], check=False)
+          if temp_dir:
+            os.rmdir(temp_dir)
 
-    Returns:
-      The mapped major loop device (/dev/loopN).
-    """
-    return Partition._Map(image, None, None)
+    def MountAsCrOSRootfs(self, *args, **kargs):
+      """Mounts as Chrome OS root file system with rootfs verification enabled.
 
-  @contextlib.contextmanager
-  def Mount(self, mount_point=None, rw=False, fs_type=None, options=None,
-            auto_umount=True, silent=False):
-    """Context manager to mount partition from given disk image.
+      The Chrome OS disk image with rootfs verification turned on will enable
+      the RO bit in ext2 attributes and can't be mounted without specifying
+      mount arguments "-t ext2 -o ro".
+      """
+      assert kargs.get('rw', False) is False, (
+          'Cannot change Chrome OS rootfs %s.' % self)
+      assert kargs.get('fs_type', FS_TYPE_CROS_ROOTFS) == FS_TYPE_CROS_ROOTFS, (
+          'Chrome OS rootfs %s must be mounted as %s.' % (
+              self, FS_TYPE_CROS_ROOTFS))
+      kargs['rw'] = False
+      kargs['fs_type'] = FS_TYPE_CROS_ROOTFS
+      return self.Mount(*args, **kargs)
 
-    Args:
-      mount_point: directory to mount, or None to use temporary directory.
-      rw: True to mount as read-write, otherwise read-only (-o ro).
-      fs_type: string as file system type (-t).
-      options: string as extra mount options (-o).
-      auto_umount: True to un-mount when leaving context.
-      silent: True to hide all warning and error messages.
-    """
-    options = options or []
-    if isinstance(options, basestring):
-      options = [options]
-    options = ['rw' if rw else 'ro'] + options
+    def CopyFile(self, rel_path, dest, **mount_options):
+      """Copies a file inside partition to given destination.
 
-    options += ['loop', 'offset=%s' % self.offset, 'sizelimit=%s' % self.size]
-    args = ['mount', '-o', ','.join(options)]
-    if fs_type:
-      args += ['-t', fs_type]
+      Args:
+        rel_path: relative path to source on disk partition.
+        dest: path of destination (file or directory).
+        mount_options: anything that must be passed to Partition.Mount.
+      """
+      with self.Mount(**mount_options) as rootfs:
+        # If rel_path is absolute then os.join will discard rootfs.
+        if os.path.isabs(rel_path):
+          rel_path = '.' + rel_path
+        src_path = os.path.join(rootfs, rel_path)
+        dest_path = (os.path.join(dest, os.path.basename(rel_path)) if
+                     os.path.isdir(dest) else dest)
+        logging.debug('Copying %s => %s ...', src_path, dest_path)
+        shutil.copy(src_path, dest_path)
+        return dest_path
 
-    temp_dir = None
-    try:
-      if not mount_point:
-        temp_dir = tempfile.mkdtemp(prefix='imgtool_')
-        mount_point = temp_dir
+    @staticmethod
+    def _ParseExtFileSystemSize(block_dev):
+      """Helper to parse ext* file system size using dumpe2fs.
 
-      args += [self.image, mount_point]
+      Args:
+        raw_part: a path to block device.
+      """
+      raw_info = SudoOutput(['dumpe2fs', '-h', block_dev])
+      # The 'block' in file system may be different from disk/partition logical
+      # block size (LBA).
+      fs_block_count = int(RE_BLOCK_COUNT.findall(raw_info)[0])
+      fs_block_size = int(RE_BLOCK_SIZE.findall(raw_info)[0])
+      return fs_block_count * fs_block_size
 
-      logging.debug('Partition.Mount: %s', ' '.join(args))
-      Sudo(args, silent=silent)
-      yield mount_point
+    def GetFileSystemSize(self):
+      """Returns the (ext*) file system size.
 
-    finally:
-      if auto_umount:
-        if mount_point:
-          Sudo(['umount', '-R', mount_point], check=False)
-        if temp_dir:
-          os.rmdir(temp_dir)
+      It is possible the real space occupied by file system is smaller than
+      partition size, especially in Chrome OS, the extra space is reserved for
+      verity data (rootfs verification) or to help quick wiping in factory
+      process.
+      """
+      with self.Map() as raw_part:
+        return self._ParseExtFileSystemSize(raw_part)
 
-  def MountAsCrOSRootfs(self, *args, **kargs):
-    """Mounts as Chrome OS root file system with rootfs verification turned on.
+    def ResizeFileSystem(self, new_size=None):
+      """Resizes the file system in given partition.
 
-    The Chrome OS disk image with rootfs verification turned on will enable the
-    RO bit in ext2 attributes and can't be mounted without specifying mount
-    arguments "-t ext2 -o ro".
-    """
-    assert kargs.get('rw', False) is False, (
-        'Cannot change Chrome OS rootfs %s.' % self)
-    assert kargs.get('fs_type', FS_TYPE_CROS_ROOTFS) == FS_TYPE_CROS_ROOTFS, (
-        'Chrome OS rootfs %s must be mounted as %s.' % (
-            self, FS_TYPE_CROS_ROOTFS))
-    kargs['rw'] = False
-    kargs['fs_type'] = FS_TYPE_CROS_ROOTFS
-    return self.Mount(*args, **kargs)
+      resize2fs may not accept size in number > INT32, so we have to specify the
+      size in larger units, for example MB; and that implies the result may be
+      different from new_size.
 
-  def CopyFile(self, rel_path, dest, **mount_options):
-    """Copies a file inside partition to given destination.
+      Args:
+        new_size: The expected new size. None to use whole partition.
 
-    Args:
-      rel_path: relative path to source on disk partition.
-      dest: path of destination (file or directory).
-      mount_options: anything that must be passed to Partition.Mount.
-    """
-    with self.Mount(**mount_options) as rootfs:
-      # If rel_path is absolute then os.join will discard rootfs.
-      if os.path.isabs(rel_path):
-        rel_path = '.' + rel_path
-      src_path = os.path.join(rootfs, rel_path)
-      dest_path = (os.path.join(dest, os.path.basename(rel_path)) if
-                   os.path.isdir(dest) else dest)
-      logging.debug('Copying %s => %s ...', src_path, dest_path)
-      shutil.copy(src_path, dest_path)
-      return dest_path
+      Returns:
+        New size in bytes.
+      """
+      with self.Map() as raw_part:
+        # File system must be clean before we can perform resize2fs.
+        # e2fsck may return 1 "errors corrected" or 2 "corrected and need
+        # reboot".
+        old_size = self._ParseExtFileSystemSize(raw_part)
+        result = Sudo(['e2fsck', '-y', '-f', raw_part], check=False)
+        if result > 2:
+          raise RuntimeError('Failed ensuring file system integrity (e2fsck).')
+        args = ['resize2fs', '-f', raw_part]
+        if new_size:
+          args.append('%sM' % (new_size / MEGABYTE))
+        Sudo(args)
+        real_size = self._ParseExtFileSystemSize(raw_part)
+        logging.debug(
+            '%s (%s) file system resized from %s (%sM) to %s (%sM), req = %s M',
+            self, self.size, old_size, old_size / MEGABYTE,
+            real_size, real_size / MEGABYTE,
+            new_size / MEGABYTE if new_size else '(ALL)')
+      return real_size
 
-  @staticmethod
-  def _ParseExtFileSystemSize(block_dev):
-    """Helper to parse ext* file system size using dumpe2fs.
+    def Copy(self, dest, check_equal=True):
+      """Copies one partition to another partition.
 
-    Args:
-      raw_part: a path to block device.
-    """
-    raw_info = SudoOutput(['dumpe2fs', '-h', block_dev])
-    # The 'block' in file system may be different from disk/partition logical
-    # block size (LBA).
-    fs_block_count = int(RE_BLOCK_COUNT.findall(raw_info)[0])
-    fs_block_size = int(RE_BLOCK_SIZE.findall(raw_info)[0])
-    return fs_block_count * fs_block_size
+      Args:
+        dest: a Partition object as the destination.
+        check_equal: True to raise exception if the sizes of partitions are
+                     different.
+      """
+      if self.size != dest.size:
+        if check_equal:
+          raise RuntimeError(
+              'Partition size is different (%d, %d).' % (self.size, dest.size))
+        elif self.size > dest.size:
+          raise RuntimeError(
+              'Source partition (%s) is larger than destination (%s).' %
+              (self.size, dest.size))
+      SysUtils.PartialCopy(self.image, dest.image, self.size, self.offset,
+                           dest.offset)
 
-  def GetFileSystemSize(self):
-    """Returns the (ext*) file system size.
 
-    It is possible the real space occupied by file system is smaller than
-    partition size, especially in Chrome OS, the extra space is reserved for
-    verity data (rootfs verification) or to help quick wiping in factory
-    process.
-    """
-    with self.Map() as raw_part:
-      return self._ParseExtFileSystemSize(raw_part)
-
-  def ResizeFileSystem(self, new_size=None):
-    """Resizes the file system in given partition.
-
-    resize2fs may not accept size in number > INT32, so we have to specify the
-    size in larger units, for example MB; and that implies the result may be
-    different from new_size.
-
-    Args:
-      new_size: The expected new size. None to use whole partition.
-
-    Returns:
-      New size in bytes.
-    """
-    with self.Map() as raw_part:
-      # File system must be clean before we can perform resize2fs.
-      # e2fsck may return 1 "errors corrected" or 2 "corrected and need reboot".
-      old_size = self._ParseExtFileSystemSize(raw_part)
-      result = Sudo(['e2fsck', '-y', '-f', raw_part], check=False)
-      if result > 2:
-        raise RuntimeError('Failed in ensuring file system integrity (e2fsck).')
-      args = ['resize2fs', '-f', raw_part]
-      if new_size:
-        args.append('%sM' % (new_size / MEGABYTE))
-      Sudo(args)
-      real_size = self._ParseExtFileSystemSize(raw_part)
-      logging.debug(
-          '%s (%s) file system resized from %s (%sM) to %s (%sM), req = %s M',
-          self, self.size, old_size, old_size / MEGABYTE,
-          real_size, real_size / MEGABYTE,
-          new_size / MEGABYTE if new_size else '(ALL)')
-    return real_size
-
-  def Copy(self, dest, check_equal=True):
-    """Copies one partition to another partition.
-
-    Args:
-      dest: a Partition object as the destination.
-      check_equal: True to raise exception if the sizes of partitions are
-                   different.
-    """
-    if self.size != dest.size:
-      if check_equal:
-        raise RuntimeError(
-            'Partition size is not the same (%d,%d).' % (self.size, dest.size))
-      elif self.size > dest.size:
-        raise RuntimeError(
-            'Source partition (%s) is larger than destination (%s).' %
-            (self.size, dest.size))
-    SysUtils.PartialCopy(self.image, dest.image, self.size, self.offset,
-                         dest.offset)
+def Partition(image, number):
+  """Returns a GPT object by given parameters."""
+  part = GPT.LoadFromFile(image).GetPartition(number)
+  if part.IsUnused():
+    raise RuntimeError('Partition %s is unused.' % part)
+  return part
 
 
 class LSBFile(object):
@@ -891,7 +858,7 @@ class ChromeOSFactoryBundle(object):
     json_path = self.CreatePayloads(payloads_dir)
 
     cros_payload = SysUtils.FindCommand('cros_payload')
-    with Partition.MapAllPartitions(output) as output_dev:
+    with GPT.Partition.MapAllPartitions(output) as output_dev:
       Sudo([cros_payload, 'install', json_path, output_dev,
             'test_image', 'release_image'])
 
@@ -900,7 +867,7 @@ class ChromeOSFactoryBundle(object):
     part = Partition(output, PART_CROS_STATEFUL)
     part.ResizeFileSystem(
         part.GetFileSystemSize() + stateful_free_space * MEGABYTE)
-    with Partition.MapAllPartitions(output) as output_dev:
+    with GPT.Partition.MapAllPartitions(output) as output_dev:
       targets = ['toolkit', 'release_image.crx_cache']
       if self.hwid:
         targets += ['hwid']
@@ -1017,7 +984,7 @@ class ChromeOSFactoryBundle(object):
 
     # Clear existing entries because this GPT was cloned from other image.
     for p in gpt.partitions:
-      gpt.UpdatePartition(p.CloneAndZero())
+      p.Zero()
 
     used_guids = []
     def AddPartition(number, p, begin, blocks=None):
@@ -1031,12 +998,14 @@ class ChromeOSFactoryBundle(object):
             'Duplicated UniqueGUID found from %s, replace with random.', p)
         guid = pygpt.GUID.Random()
       used_guids.append(guid)
-      # The target number location will be different so we have to specify
-      # explicitly.
-      gpt.UpdatePartition(p.Clone(
+      # The target number location will be different so we have to clone,
+      # update and call UpdatePartition with new number explicitly.
+      p = p.Clone()
+      p.Update(
           UniqueGUID=guid,
           FirstLBA=begin,
-          LastLBA=next_lba - 1), number=number)
+          LastLBA=next_lba - 1)
+      gpt.UpdatePartition(p, number=number)
       return next_lba
 
     begin = AddPartition(
