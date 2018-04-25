@@ -675,6 +675,12 @@ cros.factory.Goofy = class {
     this.pathNodeIdMap = {};
 
     /**
+     * The path of root test.
+     * @type {!string}
+     */
+    this.rootPath = '';
+
+    /**
      * What locale is currently enabled.
      * @type {string}
      */
@@ -1668,7 +1674,7 @@ cros.factory.Goofy = class {
    * @return {boolean}
    */
   allTestsRunBefore(test) {
-    const root = goog.asserts.assert(this.pathTestMap['']);
+    const root = goog.asserts.assert(this.pathTestMap[this.rootPath]);
 
     // Create a stack containing only the root node, and walk through it
     // depth-first.  (Use a stack rather than recursion since we want to be able
@@ -2491,6 +2497,7 @@ cros.factory.Goofy = class {
         `Received test list: ${goog.debug.expose(testList)}`);
     document.getElementById('goofy-loading').style.display = 'none';
 
+    this.rootPath = testList.path;
     this.addToNode(null, testList);
     // expandAll is necessary to get all the elements to actually be created
     // right away so we can add listeners.  We'll collapse it later.
@@ -2622,7 +2629,7 @@ cros.factory.Goofy = class {
 
             const logo = goog.asserts.assertElement(
                 document.getElementById('goofy-logo-text'));
-            this.showTestPopup('', logo, buildTitleExtras());
+            this.showTestPopup(this.rootPath, logo, buildTitleExtras());
 
             event.stopPropagation();
             event.preventDefault();
