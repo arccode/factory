@@ -201,48 +201,46 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     test_list = self._SetStubStateInstance(test_list)
     iterator = test_list_iterator.TestListIterator(
         root=test_list, test_list=test_list)
-    self.assertEqual('test:G.G.a', iterator.next())
-    self.assertEqual('test:G.G.a', iterator.next())
-    iterator.Stop('test:G.G')
-    self.assertEqual('test:G.H.a', iterator.next())
-    self.assertEqual('test:G.H.a', iterator.next())
+    self.assertEqual('G.G.a', iterator.next())
+    self.assertEqual('G.G.a', iterator.next())
+    iterator.Stop('G.G')
+    self.assertEqual('G.H.a', iterator.next())
+    self.assertEqual('G.H.a', iterator.next())
 
   def testNext(self):
     self._AssertTestSequence(
         self.test_list,
-        ['test:a', 'test:b', 'test:G.a', 'test:G.b', 'test:G.G.a', 'test:G.G.b',
-         'test:c'],
+        ['a', 'b', 'G.a', 'G.b', 'G.G.a', 'G.G.b', 'c'],
         test_persistency=False)
     self._AssertTestSequence(
         self.test_list,
-        ['test:a', 'test:b', 'test:G.a', 'test:G.b', 'test:G.G.a', 'test:G.G.b',
-         'test:c'],
+        ['a', 'b', 'G.a', 'G.b', 'G.G.a', 'G.G.b', 'c'],
         test_persistency=True)
 
   def testNextStartFromNonRoot(self):
     self._AssertTestSequence(
         self.test_list,
-        ['test:G.a', 'test:G.b', 'test:G.G.a', 'test:G.G.b'],
+        ['G.a', 'G.b', 'G.G.a', 'G.G.b'],
         root='G',
         test_persistency=True)
     self._AssertTestSequence(
         self.test_list,
-        ['test:G.a', 'test:G.b', 'test:G.G.a', 'test:G.G.b'],
+        ['G.a', 'G.b', 'G.G.a', 'G.G.b'],
         root='G',
         test_persistency=False)
     self._AssertTestSequence(
         self.test_list,
-        ['test:G.G.a', 'test:G.G.b'],
+        ['G.G.a', 'G.G.b'],
         root='G.G',
         test_persistency=False)
     self._AssertTestSequence(
         self.test_list,
-        ['test:a'],
+        ['a'],
         root='a',
         test_persistency=False)
     self._AssertTestSequence(
         self.test_list,
-        ['test:G.a'],
+        ['G.a'],
         root='G.a',
         test_persistency=False)
 
@@ -258,7 +256,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
       test = test_list.LookupPath(test_path)
       test.UpdateState(status=state.TestState.PASSED)
 
-    self.assertListEqual(['test:a', 'test:b', 'test:G.a'], actual_sequence)
+    self.assertListEqual(['a', 'b', 'G.a'], actual_sequence)
 
     # switch to new test list
     test_list = self._BuildTestList(
@@ -294,8 +292,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         test.UpdateState(status=state.TestState.PASSED)
 
     self.assertListEqual(
-        ['test:a', 'test:b', 'test:G.a', 'test:G.G.a', 'test:G.G.b',
-         'test:G.G.c', 'test:c'], actual_sequence)
+        ['a', 'b', 'G.a', 'G.G.a', 'G.G.b', 'G.G.c', 'c'], actual_sequence)
 
   def testGet(self):
     self._SetStubStateInstance(self.test_list)
@@ -327,7 +324,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         })
     self._AssertTestSequence(
         test_list,
-        ['test:a', 'test:c'],
+        ['a', 'c'],
         device_data={
             'foo': {
                 'a': False,
@@ -335,7 +332,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         })
     self._AssertTestSequence(
         test_list,
-        ['test:a', 'test:G.a', 'test:G.G.a', 'test:c'],
+        ['a', 'G.a', 'G.G.a', 'c'],
         device_data={
             'foo': {
                 'a': True,
@@ -358,7 +355,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         })
     self._AssertTestSequence(
         test_list,
-        ['test:a', 'test:G.G.a', 'test:c'],
+        ['a', 'G.G.a', 'c'],
         device_data={
             'foo': {
                 'a': False,
@@ -366,7 +363,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         })
     self._AssertTestSequence(
         test_list,
-        ['test:a', 'test:G.a', 'test:c'],
+        ['a', 'G.a', 'c'],
         device_data={
             'foo': {
                 'a': True,
@@ -394,7 +391,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     test_list.LookupPath('G.G.a').UpdateState(status=state.TestState.FAILED)
     self._AssertTestSequence(
         test_list,
-        ['test:G.a', 'test:G.G.a', 'test:G.G.b', 'test:G.b'],
+        ['G.a', 'G.G.a', 'G.G.b', 'G.b'],
         set_state=False,
         status_filter=None)
 
@@ -404,7 +401,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     test_list.LookupPath('G.G.a').UpdateState(status=state.TestState.FAILED)
     self._AssertTestSequence(
         test_list,
-        ['test:G.G.b', 'test:G.b'],
+        ['G.G.b', 'G.b'],
         set_state=False,
         status_filter=[state.TestState.UNTESTED])
 
@@ -414,7 +411,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     test_list.LookupPath('G.G.a').UpdateState(status=state.TestState.FAILED)
     self._AssertTestSequence(
         test_list,
-        ['test:G.G.a', 'test:G.G.b', 'test:G.b'],
+        ['G.G.a', 'G.G.b', 'G.b'],
         set_state=False,
         status_filter=[state.TestState.UNTESTED, state.TestState.FAILED])
 
@@ -425,7 +422,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     test_list.LookupPath('G').UpdateState(status=state.TestState.FAILED)
     self._AssertTestSequence(
         test_list,
-        ['test:G.G.a', 'test:G.G.b', 'test:G.b'],
+        ['G.G.a', 'G.G.b', 'G.b'],
         set_state=False,
         status_filter=[state.TestState.UNTESTED, state.TestState.FAILED])
 
@@ -481,7 +478,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     test_list.LookupPath('I.b').UpdateState(status=state.TestState.PASSED)
     self._AssertTestSequence(
         test_list,
-        ['test:G.b', 'test:H.a', 'test:H.b'],
+        ['G.b', 'H.a', 'H.b'],
         set_state=False,
         # since tests will be reset to UNTESTED, so untested must be included
         status_filter=[state.TestState.FAILED, state.TestState.UNTESTED])
@@ -542,7 +539,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     test_list.LookupPath('c').UpdateState(status=state.TestState.FAILED)
     self._AssertTestSequence(
         test_list,
-        ['test:c'],
+        ['c'],
         set_state=False,
         status_filter=PLAY_BUTTON_STATUS_FILTER)
 
@@ -563,7 +560,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     test_list.LookupPath('G').UpdateState(status=state.TestState.SKIPPED)
     self._AssertTestSequence(
         test_list,
-        ['test:G.a'],
+        ['G.a'],
         set_state=False,
         status_filter=PLAY_BUTTON_STATUS_FILTER)
 
@@ -583,7 +580,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     test_list = self._SetStubStateInstance(test_list)
     self._AssertTestSequence(
         test_list,
-        ['test:G.a', 'test:G.c'],
+        ['G.a', 'G.c'],
         set_state=False,
         device_data={
             'foo': {
@@ -604,7 +601,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         })
     self._AssertTestSequence(
         test_list,
-        ['test:G.a', 'test:G.b', 'test:G.c'],
+        ['G.a', 'G.b', 'G.c'],
         set_state=False,
         status_filter=PLAY_BUTTON_STATUS_FILTER,
         device_data={
@@ -646,12 +643,12 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         })
 
     def run_test_1(path, device_data):
-      if path == 'test:G.G.a':
+      if path == 'G.G.a':
         device_data['foo']['a'] = False
       return True
     self._AssertTestSequence(
         test_list,
-        ['test:G.a', 'test:G.G.a', 'test:G.G.b', 'test:G.b'],
+        ['G.a', 'G.G.a', 'G.G.b', 'G.b'],
         device_data={
             'foo': {
                 'a': True,
@@ -660,12 +657,12 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         run_test=run_test_1)
 
     def run_test_2(path, device_data):
-      if path == 'test:G.a':
+      if path == 'G.a':
         device_data['foo']['a'] = False
       return True
     self._AssertTestSequence(
         test_list,
-        ['test:G.a', 'test:G.b'],
+        ['G.a', 'G.b'],
         device_data={
             'foo': {
                 'a': True,
@@ -689,31 +686,31 @@ class TestListIteratorBaseTest(TestListIteratorTest):
 
     # case 1: test 'a' set foo.a to True
     def run_test_1(path, device_data):
-      if path == 'test:a':
+      if path == 'a':
         device_data['foo'] = {
             'a': True
         }
       return True
     self._AssertTestSequence(
         test_list,
-        ['test:a', 'test:b'],
+        ['a', 'b'],
         run_test=run_test_1)
 
     # case 2: normal case
     self._AssertTestSequence(
         test_list,
-        ['test:a'])
+        ['a'])
 
     # case 3: foo.a was True, but test 'a' set it to False
     def run_test_3(path, device_data):
-      if path == 'test:a':
+      if path == 'a':
         device_data['foo'] = {
             'a': False
         }
       return True
     self._AssertTestSequence(
         test_list,
-        ['test:a'],
+        ['a'],
         device_data={
             'foo': {
                 'a': True
@@ -749,8 +746,7 @@ class TestListIteratorParallelTest(TestListIteratorTest):
     """
     self._AssertTestSequence(
         self.test_list,
-        ['test:a', 'test:b', 'test:G.a', 'test:G.b', 'test:G.G', 'test:G.H.a',
-         'test:G.H.b', 'test:c'])
+        ['a', 'b', 'G.a', 'G.b', 'G.G', 'G.H.a', 'G.H.b', 'c'])
 
 
 class TestListIteratorActionOnFailureTest(TestListIteratorTest):
@@ -774,8 +770,8 @@ class TestListIteratorActionOnFailureTest(TestListIteratorTest):
         })
     self._AssertTestSequence(
         test_list,
-        ['test:G.a', 'test:G.b', 'test:c'],
-        run_test=lambda path, unused_device_data: path not in set(['test:G.a']))
+        ['G.a', 'G.b', 'c'],
+        run_test=lambda path, unused_device_data: path not in set(['G.a']))
 
   def testActionOnFailureParentOneLayer(self):
     test_list = self._BuildTestList(
@@ -791,8 +787,8 @@ class TestListIteratorActionOnFailureTest(TestListIteratorTest):
         })
     self._AssertTestSequence(
         test_list,
-        ['test:G.a', 'test:c'],
-        run_test=lambda path, unused_device_data: path not in set(['test:G.a']))
+        ['G.a', 'c'],
+        run_test=lambda path, unused_device_data: path not in set(['G.a']))
 
   def testActionOnFailureParentTwoLayer(self):
     test_list = self._BuildTestList(
@@ -811,9 +807,8 @@ class TestListIteratorActionOnFailureTest(TestListIteratorTest):
         })
     self._AssertTestSequence(
         test_list,
-        ['test:G.G.a', 'test:d'],
-        run_test=lambda path, unused_device_data: path not in set(
-            ['test:G.G.a']))
+        ['G.G.a', 'd'],
+        run_test=lambda path, unused_device_data: path not in set(['G.G.a']))
 
   def testActionOnFailureStop(self):
     test_list = self._BuildTestList(
@@ -832,15 +827,13 @@ class TestListIteratorActionOnFailureTest(TestListIteratorTest):
         })
     self._AssertTestSequence(
         test_list,
-        ['test:G.G.a'],
-        run_test=lambda path, unused_device_data: path not in set(
-            ['test:G.G.a']))
+        ['G.G.a'],
+        run_test=lambda path, unused_device_data: path not in set(['G.G.a']))
 
     self._AssertTestSequence(
         test_list,
-        ['test:G.G.a', 'test:G.G.b'],
-        run_test=lambda path, unused_device_data: path not in set(
-            ['test:G.G.b']))
+        ['G.G.a', 'G.G.b'],
+        run_test=lambda path, unused_device_data: path not in set(['G.G.b']))
 
 
 class TestListIteratorTeardownTest(TestListIteratorTest):
@@ -871,10 +864,9 @@ class TestListIteratorTeardownTest(TestListIteratorTest):
         })
     self._AssertTestSequence(
         test_list,
-        ['test:G.G.a', 'test:G.G.b', 'test:G.G.w', 'test:G.G.x',
-         'test:G.G.TG.y', 'test:G.G.TG.z', 'test:G.c', 'test:G.T', 'test:d'],
-        run_test=lambda path, unused_device_data: path not in set(
-            ['test:G.G.a']))
+        ['G.G.a', 'G.G.b', 'G.G.w', 'G.G.x', 'G.G.TG.y', 'G.G.TG.z', 'G.c',
+         'G.T', 'd'],
+        run_test=lambda path, unused_device_data: path not in set(['G.G.a']))
 
   def testTeardownAfterStop(self):
     test_list = self._BuildTestList(
@@ -901,10 +893,8 @@ class TestListIteratorTeardownTest(TestListIteratorTest):
 
     self._AssertTestSequence(
         test_list,
-        ['test:G.G.a', 'test:G.G.w', 'test:G.G.x', 'test:G.G.TG.y',
-         'test:G.G.TG.z', 'test:G.T'],
-        run_test=lambda path, unused_device_data: path not in set([
-            'test:G.G.a']))
+        ['G.G.a', 'G.G.w', 'G.G.x', 'G.G.TG.y', 'G.G.TG.z', 'G.T'],
+        run_test=lambda path, unused_device_data: path not in set(['G.G.a']))
 
 
 class TestListIteratorIterationTest(TestListIteratorTest):
@@ -922,10 +912,10 @@ class TestListIteratorIterationTest(TestListIteratorTest):
         })
     self._AssertTestSequence(
         test_list,
-        ['test:G.G.a', 'test:G.G.a', 'test:G.G.b', 'test:G.G.b'] * 4)
+        ['G.G.a', 'G.G.a', 'G.G.b', 'G.G.b'] * 4)
     self._AssertTestSequence(
         test_list,
-        ['test:G.G.a', 'test:G.G.a', 'test:G.G.b', 'test:G.G.b'] * 4,
+        ['G.G.a', 'G.G.a', 'G.G.b', 'G.G.b'] * 4,
         root='G')
 
   def testRetries(self):
@@ -942,11 +932,11 @@ class TestListIteratorIterationTest(TestListIteratorTest):
         })
     self._AssertTestSequence(
         test_list,
-        ['test:G.G.a', 'test:G.G.a', 'test:G.G.b', 'test:G.G.b'] * 4,
+        ['G.G.a', 'G.G.a', 'G.G.b', 'G.G.b'] * 4,
         run_test=lambda unused_path, unused_device_data: False)
     self._AssertTestSequence(
         test_list,
-        ['test:G.G.a', 'test:G.G.a', 'test:G.G.b', 'test:G.G.b'] * 4,
+        ['G.G.a', 'G.G.a', 'G.G.b', 'G.G.b'] * 4,
         root='G',
         run_test=lambda unused_path, unused_device_data: False)
 
@@ -965,15 +955,13 @@ class TestListIteratorIterationTest(TestListIteratorTest):
         })
     self._AssertTestSequence(
         test_list,
-        ['test:G.G.a', 'test:G.G.a', 'test:G.G.b'] * 4,
-        run_test=lambda path, unused_device_data: path not in set(
-            ['test:G.G.a']))
+        ['G.G.a', 'G.G.a', 'G.G.b'] * 4,
+        run_test=lambda path, unused_device_data: path not in set(['G.G.a']))
     self._AssertTestSequence(
         test_list,
-        ['test:G.G.a', 'test:G.G.a', 'test:G.G.b'] * 4,
+        ['G.G.a', 'G.G.a', 'G.G.b'] * 4,
         root='G',
-        run_test=lambda path, unused_device_data: path not in set(
-            ['test:G.G.a']))
+        run_test=lambda path, unused_device_data: path not in set(['G.G.a']))
 
   def testActionOnFailureStop(self):
     test_list = self._BuildTestList(
@@ -993,15 +981,13 @@ class TestListIteratorIterationTest(TestListIteratorTest):
         })
     self._AssertTestSequence(
         test_list,
-        ['test:G.G.a'] * 4,
-        run_test=lambda path, unused_device_data: path not in set(
-            ['test:G.G.a']))
+        ['G.G.a'] * 4,
+        run_test=lambda path, unused_device_data: path not in set(['G.G.a']))
 
     self._AssertTestSequence(
         test_list,
-        ['test:G.G.a', 'test:G.G.b'] * 4,
-        run_test=lambda path, unused_device_data: path not in set(
-            ['test:G.G.b']))
+        ['G.G.a', 'G.G.b'] * 4,
+        run_test=lambda path, unused_device_data: path not in set(['G.G.b']))
 
   def testTeardownAfterStop(self):
     test_list = self._BuildTestList(
@@ -1028,10 +1014,8 @@ class TestListIteratorIterationTest(TestListIteratorTest):
 
     self._AssertTestSequence(
         test_list,
-        ['test:G.G.a', 'test:G.G.w', 'test:G.G.x', 'test:G.G.TG.y',
-         'test:G.G.TG.z', 'test:G.T'] * 2,
-        run_test=lambda path, unused_device_data: path not in set(
-            ['test:G.G.a']))
+        ['G.G.a', 'G.G.w', 'G.G.x', 'G.G.TG.y', 'G.G.TG.z', 'G.T'] * 2,
+        run_test=lambda path, unused_device_data: path not in set(['G.G.a']))
 
 
 if __name__ == '__main__':
