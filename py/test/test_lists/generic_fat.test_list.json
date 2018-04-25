@@ -47,9 +47,13 @@
       "label": "Prepare",
       "subtests": [
         "StationStart",
-        "GetDeviceInfo",
-        "WriteDeviceDataToVPD",
-        "WriteHWID"
+        {
+          "subtests": [
+            "GetDeviceInfo",
+            "WriteDeviceDataToVPD",
+            "WriteHWID"
+          ]
+        }
       ]
     }
   }
