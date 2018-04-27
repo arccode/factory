@@ -234,6 +234,11 @@ get_git_hash() {
   run_in_factory git rev-parse HEAD
 }
 
+stop_and_remove_container() {
+  ${DOCKER} stop "$1" 2>/dev/null || true
+  ${DOCKER} rm "$1" 2>/dev/null || true
+}
+
 # Section for Umpire subcommand
 do_umpire_run() {
   check_docker
@@ -245,47 +250,38 @@ do_umpire_run() {
   ensure_dir "${UMPIRE_CONTAINER_DIR}"
   ensure_dir_acl "${HOST_SHARED_DIR}"
 
-  # TODO(pihsun): We should stop old container like what dome run does.
+  stop_and_remove_container "${UMPIRE_CONTAINER_NAME}"
+
   echo "Starting Umpire container ..."
 
-  if ${DOCKER} ps --all --format '{{.Names}}' | \
-      grep -q "^${UMPIRE_CONTAINER_NAME}$"; then
-    if ! ${DOCKER} ps --all --format '{{.Names}} {{.Image}}' | \
-        grep "^${UMPIRE_CONTAINER_NAME}\ ${DOCKER_IMAGE_NAME}$"; then
-      warn "A container with name ${UMPIRE_CONTAINER_NAME} exists," \
-           "but is using an old image."
-    fi
-    ${DOCKER} start "${UMPIRE_CONTAINER_NAME}"
-  else
-    local p1=${UMPIRE_PORT}              # Imaging & Shopfloor
-    local p2=$((UMPIRE_PORT + 2))  # CLI RPC
-    local p3=$((UMPIRE_PORT + 4))  # Rsync
-    local p4=$((UMPIRE_PORT + 6))  # Instalog output_pull_socket plugin
+  local p1=${UMPIRE_PORT}        # Imaging & Shopfloor
+  local p2=$((UMPIRE_PORT + 2))  # CLI RPC
+  local p3=$((UMPIRE_PORT + 4))  # Rsync
+  local p4=$((UMPIRE_PORT + 6))  # Instalog output_pull_socket plugin
 
-    local umpire_base_port=8080
-    local umpire_cli_port=$((umpire_base_port + 2))
-    local umpire_rsync_port=$((umpire_base_port + 4))
-    local umpire_instalog_pull_socket_port=$((umpire_base_port + 6))
+  local umpire_base_port=8080
+  local umpire_cli_port=$((umpire_base_port + 2))
+  local umpire_rsync_port=$((umpire_base_port + 4))
+  local umpire_instalog_pull_socket_port=$((umpire_base_port + 6))
 
-    ${DOCKER} run \
-      --detach \
-      --restart unless-stopped \
-      --name "${UMPIRE_CONTAINER_NAME}" \
-      --tmpfs "/run:rw,size=16384k" \
-      ${DOCKER_LOCALTIME_VOLUME} \
-      --volume "${HOST_SHARED_DIR}:/mnt" \
-      --volume "${UMPIRE_CONTAINER_DIR}:${docker_db_dir}" \
-      --publish "${p1}:${umpire_base_port}" \
-      --publish "${p2}:${umpire_cli_port}" \
-      --publish "${p3}:${umpire_rsync_port}" \
-      --publish "${p4}:${umpire_instalog_pull_socket_port}" \
-      --privileged \
-      "${DOCKER_IMAGE_NAME}" \
-      "${DOCKER_BASE_DIR}/bin/umpired" || \
-      (echo "Removing stale container due to error ..."; \
-       ${DOCKER} rm "${UMPIRE_CONTAINER_NAME}"; \
-       die "Can't start umpire docker. Possibly wrong port binding?")
-  fi
+  ${DOCKER} run \
+    --detach \
+    --restart unless-stopped \
+    --name "${UMPIRE_CONTAINER_NAME}" \
+    --tmpfs "/run:rw,size=16384k" \
+    ${DOCKER_LOCALTIME_VOLUME} \
+    --volume "${HOST_SHARED_DIR}:/mnt" \
+    --volume "${UMPIRE_CONTAINER_DIR}:${docker_db_dir}" \
+    --publish "${p1}:${umpire_base_port}" \
+    --publish "${p2}:${umpire_cli_port}" \
+    --publish "${p3}:${umpire_rsync_port}" \
+    --publish "${p4}:${umpire_instalog_pull_socket_port}" \
+    --privileged \
+    "${DOCKER_IMAGE_NAME}" \
+    "${DOCKER_BASE_DIR}/bin/umpired" || \
+    (echo "Removing stale container due to error ..."; \
+     ${DOCKER} rm "${UMPIRE_CONTAINER_NAME}"; \
+     die "Can't start umpire docker. Possibly wrong port binding?")
 
   echo "done"
   echo
@@ -295,14 +291,6 @@ do_umpire_run() {
   echo "- Host directory ${UMPIRE_CONTAINER_DIR} is mounted" \
        "under ${docker_db_dir} in the container."
   echo "- Umpire service ports is mapped to the local machine."
-}
-
-do_umpire_stop() {
-  check_docker
-
-  echo -n "Stopping ${UMPIRE_CONTAINER_NAME} container ... "
-  ${DOCKER} stop "${UMPIRE_CONTAINER_NAME}" >/dev/null 2>&1 || true
-  echo "done"
 }
 
 do_umpire_destroy() {
@@ -388,9 +376,6 @@ commands:
 
       will change umpire base port to 1234 instead of ${UMPIRE_PORT}.
 
-  $0 umpire stop
-      Stop Umpire container.
-
 commands for developers:
   $0 umpire destroy
       Destroy Umpire container.
@@ -408,9 +393,6 @@ umpire_main() {
   case "$1" in
     run)
       do_umpire_run
-      ;;
-    stop)
-      do_umpire_stop
       ;;
     destroy)
       do_umpire_destroy
@@ -607,13 +589,8 @@ do_overlord_run() {
   local overlord_container_name="overlord"
   local overlord_lan_disc_container_name="overlord_lan_disc"
 
-  # stop and remove old containers
-  ${DOCKER} stop "${overlord_container_name}" 2>/dev/null || true
-  ${DOCKER} rm "${overlord_container_name}" 2>/dev/null || true
-
-  # stop and remove old containers
-  ${DOCKER} stop "${overlord_lan_disc_container_name}" 2>/dev/null || true
-  ${DOCKER} rm "${overlord_lan_disc_container_name}" 2>/dev/null || true
+  stop_and_remove_container "${overlord_container_name}"
+  stop_and_remove_container "${overlord_lan_disc_container_name}"
 
   if [ ! -d "${HOST_OVERLORD_DIR}" ]; then
     do_overlord_setup
@@ -713,11 +690,6 @@ do_install() {
   check_docker
 
   ${DOCKER} load <"${DOCKER_IMAGE_FILEPATH}"
-}
-
-stop_and_remove_container() {
-  ${DOCKER} stop "$1" 2>/dev/null || true
-  ${DOCKER} rm "$1" 2>/dev/null || true
 }
 
 do_run() {
