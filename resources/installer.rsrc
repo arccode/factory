@@ -1,0 +1,11 @@
+# Resource definition file.
+# Format: [?]SOURCE[:DEST]
+# If SOURCE is an absolute path, find it in ${SYSROOT}.
+# If SOURCE is relative, search resources/ then ${BOARD_FILES_DIR}/resources.
+# If DEST is specified, use that for the name inside resource tarball.
+# If '?' is prefixed, this resource is optional.
+
+../sh/cutoff:share/cutoff
+../bin/cros_payload:bin/cros_payload
+?../py/config/cutoff.json:share/cutoff/cutoff.json
+?factory_install_board.sh:sbin/factory_install_board.sh

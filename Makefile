@@ -33,12 +33,9 @@ include $(MK_DIR)/common.mk
 BUILD_DIR ?= build
 RESOURCE_DIR ?= $(BUILD_DIR)/resource
 RESOURCE_PATH ?= $(RESOURCE_DIR)/factory.tar
+RESOURCE_SRC_DIR ?= resources
 BUNDLE_DIR ?= \
   $(if $(DESTDIR),$(DESTDIR)/$(TARGET_DIR)/bundle,$(BUILD_DIR)/bundle)
-BOARD_BUNDLE_RESOURCE_PATH ?= $(RESOURCE_DIR)/bundle-board.tar
-# INSTALLER_RESOURCE_PATH is created to share cros_payload and cutoff with
-# chromeos-base/factory_installer.
-INSTALLER_RESOURCE_PATH ?= $(RESOURCE_DIR)/installer.tar
 TEMP_DIR ?= $(BUILD_DIR)/tmp
 
 # Global environment settings
@@ -56,14 +53,6 @@ BOARD_PACKAGE_FILE ?= \
 BOARD_RESOURCES_DIR ?= $(SYSROOT)/var/lib/factory/resources
 BOARD_TARGET_DIR ?= $(SYSROOT)$(TARGET_DIR)
 SYSROOT ?= $(if $(BOARD),/build/$(BOARD),/)
-
-# Legacy board packge will install bundle files directly and will conflict with
-# the new build system when we're running as out-of-tree build.
-# TODO(hungte) Remove legacy board support when the migration of new build
-# system is completed.
-LEGACY_BOARD_IN_OUTOFTREE ?= \
-  $(if $(OUTOFTREE_BUILD),$(if \
-      $(filter $(BOARD_PACKAGE_NAME),chromeos-factory-board),1))
 
 PAR_TEMP_DIR = $(TEMP_DIR)/par
 PAR_OUTPUT_DIR = $(BUILD_DIR)/par
@@ -197,11 +186,9 @@ resource: closure check-board-resources po
 	mkdir -p $(RESOURCE_DIR)
 	tar -cf $(RESOURCE_PATH) -X $(MK_DIR)/resource_exclude.lst \
 	  bin misc py py_pkg sh init \
-	  $(if $(wildcard $(BOARD_FILES_DIR)),-C $(BOARD_FILES_DIR) .)
+	  $(if $(wildcard $(BOARD_FILES_DIR)), \
+	  --exclude '$(RESOURCE_SRC_DIR)' -C $(BOARD_FILES_DIR) .)
 	tar -rf $(RESOURCE_PATH) -C $(BUILD_DIR) locale
-	$(if $(LEGACY_BOARD_IN_OUTOFTREE),,\
-	  $(if $(wildcard $(BOARD_FILES_DIR)/bundle), tar \
-	    -cf $(BOARD_BUNDLE_RESOURCE_PATH) -C $(BOARD_FILES_DIR)/bundle .))
 	$(if $(OUTOFTREE_BUILD),\
 	  tar -rf $(RESOURCE_PATH) --transform 's"^"./py/goofy/static/"' \
 	    -C "$(CLOSURE_OUTPUT_DIR)" $(CLOSURE_OUTPUT_FILENAMES))
@@ -213,11 +200,10 @@ resource: closure check-board-resources po
 	             $(BOARD_RESOURCES_DIR)/factory-*.tar),\
 	  $(info - Found board resource file $(file)) \
 	  tar -Af $(RESOURCE_PATH) $(file)${\n})
-	tar -cf $(INSTALLER_RESOURCE_PATH) -h \
-	  --transform 's"^sh/"./share/";s"^bin/"./&"' bin/cros_payload sh/cutoff
-	$(if $(wildcard $(BOARD_FILES_DIR)/py/config/cutoff.json), tar -rf \
-	  $(INSTALLER_RESOURCE_PATH) --transform 's"^"./share/cutoff/"' \
-	  -C $(BOARD_FILES_DIR)/py/config cutoff.json)
+	$(MK_DIR)/create_resources.py -v --output_dir $(RESOURCE_DIR) \
+	  --sysroot $(SYSROOT)  --resources $(RESOURCE_SRC_DIR) \
+	  $(if $(wildcard $(BOARD_FILES_DIR)/$(RESOURCE_SRC_DIR)), \
+	    --board_resources $(BOARD_FILES_DIR)/$(RESOURCE_SRC_DIR))
 
 # Apply files from BOARD_RESOURCES_DIR to particular folder.
 # Usage: $(call func-apply-board-resources,RESOURCE_TYPE,OUTPUT_FOLDER)
