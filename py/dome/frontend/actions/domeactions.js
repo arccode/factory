@@ -223,15 +223,16 @@ const updateProject = (name, settings = {}) => (dispatch, getState) => {
   // WORKAROUND: Umpire is not ready as soon as it should be,
   // wait for 1 second to prevent the request from failing.
   // TODO(b/65393817): remove the timeout after the issue has been solved.
-  let onFinish = () => setTimeout(() => {
+  let onFinish = (resp) => resp.json().then(json => setTimeout(() => {
     dispatch({
       type: ActionTypes.UPDATE_PROJECT,
       project: {
         name,
-        umpireReady: settings['umpireEnabled'] === true ? true : false
+        umpireVersion: json['umpireVersion'],
+        umpireReady: json['umpireEnabled']
       }
     });
-  }, 1000);
+  }, 1000));
 
   var description = `Update project "${name}"`;
   dispatch(createTask(

@@ -73,6 +73,11 @@ class ProjectSerializer(serializers.Serializer):
       model_field=Project._meta.get_field(  # pylint: disable=W0212
           'umpire_port'),
       required=False)
+  umpire_version = serializers.ModelField(
+      model_field=Project._meta.get_field(  # pylint: disable=W0212
+          'umpire_version'),
+      required=False,
+      read_only=True)
   netboot_bundle = serializers.ModelField(
       model_field=Project._meta.get_field(  # pylint: disable=W0212
           'netboot_bundle'),

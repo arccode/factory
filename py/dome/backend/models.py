@@ -337,6 +337,7 @@ class Project(django.db.models.Model):
   umpire_enabled = django.db.models.BooleanField(default=False)
   umpire_host = django.db.models.GenericIPAddressField(null=True)
   umpire_port = django.db.models.PositiveIntegerField(null=True)
+  umpire_version = django.db.models.PositiveIntegerField(null=True)
   netboot_bundle = django.db.models.CharField(max_length=200, null=True)
 
   # TODO(littlecvr): add TFTP and Overlord ports
@@ -440,7 +441,7 @@ class Project(django.db.models.Model):
         umpire_server.ExportPayload(bundle_name, payload_type, path_in_umpire)
     return self
 
-  def WaitUmpireStart(self, host, port):
+  def GetUmpireVersion(self, host, port):
     logger.info('Waiting for umpire %s:%s to start', host, port)
     start_time = time.time()
     while time.time() < start_time + UMPIRE_START_WAIT_SECS:
@@ -465,6 +466,7 @@ class Project(django.db.models.Model):
       raise DomeClientException(
           "Can't connect to umpire after %d seconds." % UMPIRE_START_WAIT_SECS)
     logger.info('Connected to umpire server (version=%d)', version)
+    return version
 
   def AddExistingUmpireContainer(self, host, port):
     """Add an existing Umpire container to the database."""
@@ -477,7 +479,7 @@ class Project(django.db.models.Model):
           container_name)
       logger.error(error_message)
       raise DomeClientException(error_message)
-    self.WaitUmpireStart(host, port)
+    self.umpire_version = self.GetUmpireVersion(host, port)
     self.umpire_enabled = True
     self.umpire_host = host
     self.umpire_port = port
@@ -545,6 +547,7 @@ class Project(django.db.models.Model):
     container_name = Project.GetUmpireContainerName(self.name)
     subprocess.call(['docker', 'stop', container_name])
     subprocess.call(['docker', 'rm', container_name])
+    self.umpire_version = None
     self.umpire_enabled = False
     self.umpire_host = None
     self.umpire_port = None

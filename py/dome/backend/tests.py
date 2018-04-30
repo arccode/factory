@@ -134,6 +134,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
     cls.PROJECT_WITH_UMPIRE_NAME = 'project_with_umpire'
     cls.PROJECT_WITH_UMPIRE_HOST = 'localhost'
     cls.PROJECT_WITH_UMPIRE_PORT = 8080
+    cls.MOCK_UMPIRE_VERSION = 1
 
     models.Project.objects.create(name=cls.PROJECT_WITHOUT_UMPIRE_NAME)
     models.Project.objects.create(name=cls.PROJECT_WITH_UMPIRE_NAME,
@@ -187,6 +188,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
         mock.MagicMock(side_effect=MockUmpireGetActiveConfig))
     self.mocks['xmlrpclib.ServerProxy']().GetPayloadsDict = (
         mock.MagicMock(side_effect=MockUmpireGetPayloadsDict))
+    self.mocks['xmlrpclib.ServerProxy']().GetVersion = (
+        mock.MagicMock(return_value=self.MOCK_UMPIRE_VERSION))
 
   def tearDown(self):
     for patcher in self.patchers:
@@ -204,10 +207,14 @@ class DomeAPITest(rest_framework.test.APITestCase):
                                        UMPIRE_HOST,
                                        UMPIRE_PORT)
     self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
-    self.assertTrue(response.content, {'name': self.PROJECT_WITHOUT_UMPIRE_NAME,
-                                       'umpireEnabled': True,
-                                       'umpireHost': UMPIRE_HOST,
-                                       'umpirePort': UMPIRE_PORT})
+    self.assertTrue(
+        response.content, {
+            'name': self.PROJECT_WITHOUT_UMPIRE_NAME,
+            'umpireEnabled': True,
+            'umpireHost': UMPIRE_HOST,
+            'umpirePort': UMPIRE_PORT,
+            'umpireVersion': self.MOCK_UMPIRE_VERSION
+        })
 
     # no docker commands should be called
     self.mocks['subprocess.call'].assert_not_called()
@@ -234,11 +241,15 @@ class DomeAPITest(rest_framework.test.APITestCase):
     response = self._CreateProject(PROJECT_NAME)
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_201_CREATED)
-    self.assertJSONEqual(response.content, {'name': PROJECT_NAME,
-                                            'umpireEnabled': False,
-                                            'umpireHost': None,
-                                            'umpirePort': None,
-                                            'netbootBundle': None})
+    self.assertJSONEqual(
+        response.content, {
+            'name': PROJECT_NAME,
+            'umpireEnabled': False,
+            'umpireHost': None,
+            'umpirePort': None,
+            'umpireVersion': None,
+            'netbootBundle': None
+        })
 
     # no docker commands should be called
     self.mocks['subprocess.call'].assert_not_called()
@@ -291,12 +302,15 @@ class DomeAPITest(rest_framework.test.APITestCase):
   def testDisableUmpire(self):
     response = self._DisableUmpire(self.PROJECT_WITH_UMPIRE_NAME)
     self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
-    self.assertJSONEqual(response.content,
-                         {'name': self.PROJECT_WITH_UMPIRE_NAME,
-                          'umpireEnabled': False,
-                          'umpireHost': None,
-                          'umpirePort': None,
-                          'netbootBundle': None})
+    self.assertJSONEqual(
+        response.content, {
+            'name': self.PROJECT_WITH_UMPIRE_NAME,
+            'umpireEnabled': False,
+            'umpireHost': None,
+            'umpirePort': None,
+            'umpireVersion': None,
+            'netbootBundle': None
+        })
 
     # make sure the container has also been removed
     self.mocks['subprocess.call'].assert_called_with([
@@ -306,12 +320,15 @@ class DomeAPITest(rest_framework.test.APITestCase):
   def testDisableUmpireOnProjectWithoutUmpire(self):
     response = self._DisableUmpire(self.PROJECT_WITHOUT_UMPIRE_NAME)
     self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
-    self.assertJSONEqual(response.content,
-                         {'name': self.PROJECT_WITHOUT_UMPIRE_NAME,
-                          'umpireEnabled': False,
-                          'umpireHost': None,
-                          'umpirePort': None,
-                          'netbootBundle': None})
+    self.assertJSONEqual(
+        response.content, {
+            'name': self.PROJECT_WITHOUT_UMPIRE_NAME,
+            'umpireEnabled': False,
+            'umpireHost': None,
+            'umpirePort': None,
+            'umpireVersion': None,
+            'netbootBundle': None
+        })
 
     # nothing should be changed and nothing should be called
     self.mocks['subprocess.call'].assert_not_called()
@@ -328,12 +345,15 @@ class DomeAPITest(rest_framework.test.APITestCase):
 
     response = self._EnableUmpire(self.PROJECT_WITHOUT_UMPIRE_NAME, UMPIRE_PORT)
     self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
-    self.assertJSONEqual(response.content,
-                         {'name': self.PROJECT_WITHOUT_UMPIRE_NAME,
-                          'umpireEnabled': True,
-                          'umpireHost': 'localhost',
-                          'umpirePort': UMPIRE_PORT,
-                          'netbootBundle': None})
+    self.assertJSONEqual(
+        response.content, {
+            'name': self.PROJECT_WITHOUT_UMPIRE_NAME,
+            'umpireEnabled': True,
+            'umpireHost': 'localhost',
+            'umpirePort': UMPIRE_PORT,
+            'umpireVersion': self.MOCK_UMPIRE_VERSION,
+            'netbootBundle': None
+        })
 
     # make sure docker run has been called
     container_name = models.Project.GetUmpireContainerName(
