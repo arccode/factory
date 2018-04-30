@@ -30,6 +30,7 @@ import requests  # pylint: disable=import-error
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.client import umpire_server_proxy
+from cros.factory.umpire import common
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import sync_utils
@@ -206,6 +207,9 @@ class UmpireRPCTest(UmpireDockerTestCase):
 
   def ReadConfigTestdata(self, name):
     return file_utils.ReadFile(os.path.join(CONFIG_TESTDATA_DIR, name))
+
+  def testVersion(self):
+    self.assertEqual(common.UMPIRE_CLI_RPC_VERSION, self.proxy.GetVersion())
 
   def testListMethods(self):
     self.assertIn('IsDeploying', self.proxy.system.listMethods())

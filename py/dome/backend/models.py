@@ -19,6 +19,7 @@ import errno
 import logging
 import os
 import shutil
+import socket
 import stat
 import subprocess
 import tempfile
@@ -48,6 +49,7 @@ UMPIRE_MATCH_KEY_MAP = {
     'macs': 'mac',
     'serial_numbers': 'sn',
     'mlb_serial_numbers': 'mlb_sn'}
+UMPIRE_START_WAIT_SECS = 5
 
 # TODO(littlecvr): use volume container instead of absolute path.
 # TODO(littlecvr): these constants are shared between here and cros_docker.sh,
@@ -174,13 +176,24 @@ def UmpireAccessibleFile(project, uploaded_file):
     yield '/'.join(tokens)
 
 
-def GetUmpireServer(project_name):
-  # get URL of the project
-  project = Project.objects.get(
-      pk=project_name).ReplaceLocalhostWithDockerHostIP()
-  url = 'http://%s:%d' % (project.umpire_host,
-                          project.umpire_port + UMPIRE_RPC_PORT_OFFSET)
+def ReplaceLocalhostWithDockerHostIP(host):
+  # Dome is inside a docker container. If umpire_host is 'localhost', it is
+  # not actually 'localhost', it is the docker host instead of docker
+  # container. So we need to transform it to the docker host's IP.
+  if host in ['localhost', '127.0.0.1']:
+    return str(net_utils.GetDockerHostIP())
+  return host
+
+
+def GetUmpireServerFromHostPort(host, port):
+  host = ReplaceLocalhostWithDockerHostIP(host)
+  url = 'http://%s:%d' % (host, port + UMPIRE_RPC_PORT_OFFSET)
   return xmlrpclib.ServerProxy(url, allow_none=True)
+
+
+def GetUmpireServer(project_name):
+  project = Project.objects.get(pk=project_name)
+  return GetUmpireServerFromHostPort(project.umpire_host, project.umpire_port)
 
 
 def GetUmpireConfig(project_name):
@@ -427,13 +440,31 @@ class Project(django.db.models.Model):
         umpire_server.ExportPayload(bundle_name, payload_type, path_in_umpire)
     return self
 
-  def ReplaceLocalhostWithDockerHostIP(self):
-    # Dome is inside a docker container. If umpire_host is 'localhost', it is
-    # not actually 'localhost', it is the docker host instead of docker
-    # container. So we need to transform it to the docker host's IP.
-    if self.umpire_host in ['localhost', '127.0.0.1']:
-      self.umpire_host = str(net_utils.GetDockerHostIP())
-    return self
+  def WaitUmpireStart(self, host, port):
+    logger.info('Waiting for umpire %s:%s to start', host, port)
+    start_time = time.time()
+    while time.time() < start_time + UMPIRE_START_WAIT_SECS:
+      try:
+        server = GetUmpireServerFromHostPort(host, port)
+        # TODO(pihsun): Warn to restart the umpire instance, if the version is
+        # too old.
+        version = server.GetVersion()
+        break
+      except socket.error:
+        # The server is not ready yet.
+        pass
+      except xmlrpclib.Fault as e:
+        if e.faultCode == xmlrpclib.METHOD_NOT_FOUND:
+          # Assume that this is an umpire server before the GetVersion is
+          # introduced.
+          version = 0
+          break
+        raise
+      time.sleep(0.2)
+    else:
+      raise DomeClientException(
+          "Can't connect to umpire after %d seconds." % UMPIRE_START_WAIT_SECS)
+    logger.info('Connected to umpire server (version=%d)', version)
 
   def AddExistingUmpireContainer(self, host, port):
     """Add an existing Umpire container to the database."""
@@ -446,6 +477,7 @@ class Project(django.db.models.Model):
           container_name)
       logger.error(error_message)
       raise DomeClientException(error_message)
+    self.WaitUmpireStart(host, port)
     self.umpire_enabled = True
     self.umpire_host = host
     self.umpire_port = port

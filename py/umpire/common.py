@@ -10,6 +10,9 @@ This module provides constants and common Umpire classes.
 # "version" in Ping method return value to indicate server is Umpire server.
 UMPIRE_DUT_RPC_VERSION = 3
 
+# version for the cli_rpc methods. (This is the version that Dome sees.)
+UMPIRE_CLI_RPC_VERSION = 1
+
 # Valid keys in DUT info.
 DUT_INFO_KEYS = set(['sn', 'mlb_sn', 'firmware', 'ec', 'pd', 'stage'])
 

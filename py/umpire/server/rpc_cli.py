@@ -5,6 +5,7 @@
 """Umpired RPC command class."""
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.umpire import common
 from cros.factory.umpire.server.commands import deploy
 from cros.factory.umpire.server.commands import export_payload
 from cros.factory.umpire.server.commands import import_bundle
@@ -27,6 +28,11 @@ class CLICommand(umpire_rpc.UmpireRPC):
                     and translate to xmlrpc.Fault with exception info.
     Other values: return to caller.
   """
+
+  @umpire_rpc.RPCCall
+  def GetVersion(self):
+    """Get the rpc_cli protocol version."""
+    return common.UMPIRE_CLI_RPC_VERSION
 
   @umpire_rpc.RPCCall
   def ExportPayload(self, bundle_id, payload_type, file_path):
