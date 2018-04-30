@@ -34,7 +34,7 @@ function authorizedFetch(url, req) {
   if (!req.hasOwnProperty('headers')) {
     req['headers'] = {};
   }
-  req['headers']['Authorization'] = 'Token ' + localStorage.token;
+  req['headers']['Authorization'] = 'Token ' + localStorage.getItem('token');
   return fetch(url, req);
 }
 
@@ -71,6 +71,16 @@ function recursivelyUploadFileFields(data, queue = null) {
   return queue;
 }
 
+const loginSucceed = (token) => {
+  localStorage.setItem('token', token);
+  return {type: ActionTypes.LOGIN_SUCCEED};
+};
+
+const loginFailed = () => {
+  localStorage.removeItem('token');
+  return {type: ActionTypes.LOGIN_FAILED};
+};
+
 const tryLogin = data => dispatch => {
   data = data.toJS();
   fetch('/auth', {
@@ -80,18 +90,31 @@ const tryLogin = data => dispatch => {
   })
   .then(response => response.json())
   .then(json => {
-    if (json.hasOwnProperty('token')) {
-      localStorage.token = json['token'];
-      dispatch({type: ActionTypes.LOGIN_SUCCEED});
+    const token = json['token'];
+    if (token) {
+      dispatch(loginSucceed(token));
     } else {
-      dispatch({type: ActionTypes.LOGIN_FAILED});
+      dispatch(loginFailed());
       window.alert('\nLogin failed :(');
     }
   });
 };
 
+const testAuthToken = () => dispatch => {
+  const token = localStorage.getItem('token');
+  if (token != null) {
+    authorizedFetch('/projects.json', {}).then(resp => {
+      if (resp.ok) {
+        dispatch(loginSucceed(token));
+      } else {
+        dispatch(loginFailed());
+      }
+    });
+  }
+};
+
 const logout = () => dispatch => {
-  localStorage.token = '';
+  localStorage.removeItem('token');
   dispatch({type: ActionTypes.LOGOUT});
 };
 
@@ -427,7 +450,7 @@ const cancelTaskAndItsDependencies = taskID => (dispatch, getState) => {
 
 export default {
   authorizedFetch,
-  tryLogin, logout,
+  tryLogin, logout, testAuthToken,
   recieveConfig, updateConfig, fetchConfig, initializeConfig,
   enableTFTP, disableTFTP,
   setError, showErrorDialog, hideErrorDialog, setAndShowErrorDialog,

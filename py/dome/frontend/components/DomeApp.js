@@ -50,6 +50,7 @@ var DomeApp = React.createClass({
     isLoggedIn: React.PropTypes.bool.isRequired,
     appName: React.PropTypes.string.isRequired,
     project: React.PropTypes.instanceOf(Immutable.Map).isRequired,
+    testAuthToken: React.PropTypes.func.isRequired,
     switchApp: React.PropTypes.func.isRequired
   },
 
@@ -73,6 +74,10 @@ var DomeApp = React.createClass({
       taskListCollapsed: false,
       taskListHeight: 0
     };
+  },
+
+  componentDidMount() {
+    this.props.testAuthToken();
   },
 
   render() {
@@ -191,7 +196,8 @@ function mapStateToProps(state) {
 
 function mapDispatchToProps(dispatch) {
   return {
-    switchApp: nextApp => dispatch(DomeActions.switchApp(nextApp))
+    switchApp: nextApp => dispatch(DomeActions.switchApp(nextApp)),
+    testAuthToken: () => dispatch(DomeActions.testAuthToken())
   };
 }
 
