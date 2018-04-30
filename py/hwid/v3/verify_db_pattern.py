@@ -121,6 +121,14 @@ class HWIDDBsPatternTest(unittest.TestCase):
 
   @staticmethod
   def VerifyParsedDatabasePattern(old_db, new_db):
+    # If the old database follows the new pattern rule, so does the new
+    # database.
+    if old_db.can_encode and not new_db.can_encode:
+      raise common.HWIDException(
+          'The new HWID database should not use legacy pattern. '
+          'Please use "hwid update-database" to prevent from generating '
+          'legacy pattern.')
+
     # Make sure all the encoded fields in the existing patterns are not changed.
     for image_id in old_db.image_ids:
       old_bit_mapping = old_db.GetBitMapping(image_id=image_id)
