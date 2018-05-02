@@ -32,6 +32,7 @@ import argparse
 import binascii
 import logging
 import os
+import stat
 import struct
 import subprocess
 import sys
@@ -527,6 +528,34 @@ class GPT(object):
         for i in xrange(gpt.header.PartitionEntriesNumber)]
     return gpt
 
+  @staticmethod
+  def IsBlockDevice(image):
+    """Returns if the image is a block device file."""
+    return stat.S_ISBLK(os.stat(image).st_mode)
+
+  @classmethod
+  def GetImageSize(cls, image):
+    """Returns the size of specified image (plain or block device file)."""
+    if not cls.IsBlockDevice(image):
+      return os.path.getsize(image)
+
+    fd = os.open(image, os.O_RDONLY)
+    try:
+      return os.lseek(fd, 0, os.SEEK_END)
+    finally:
+      os.close(fd)
+
+  @classmethod
+  def GetLogicalBlockSize(cls, block_dev):
+    """Returns the logical block (sector) size from a block device file.
+
+    The underlying call is BLKSSZGET. An alternative command is blockdev,
+    but that needs root permission even if we just want to get sector size.
+    """
+    assert cls.IsBlockDevice(block_dev), '%s must be block device.' % block_dev
+    return int(subprocess.check_output(
+        ['lsblk', '-d', '-n', '-r', '-o', 'log-sec', block_dev]).strip())
+
   @classmethod
   def LoadFromFile(cls, image):
     """Loads a GPT table from give disk image file object.
@@ -548,7 +577,11 @@ class GPT(object):
         gpt.pmbr = pmbr
 
     # Try DEFAULT_BLOCK_SIZE, then 4K.
-    for block_size in [cls.DEFAULT_BLOCK_SIZE, 4096]:
+    block_sizes = [cls.DEFAULT_BLOCK_SIZE, 4096]
+    if cls.IsBlockDevice(image.name):
+      block_sizes = [cls.GetLogicalBlockSize(image.name)]
+
+    for block_size in block_sizes:
       # Note because there are devices setting Primary as ignored and the
       # partition table signature accepts 'CHROMEOS' which is also used by
       # Chrome OS kernel partition, we have to look for Secondary (backup) GPT
@@ -809,7 +842,7 @@ class GPT(object):
     if create:
       legacy_sectors = min(
           0x100000000,
-          os.path.getsize(image.name) / cls.DEFAULT_BLOCK_SIZE) - 1
+          GPT.GetImageSize(image.name) / cls.DEFAULT_BLOCK_SIZE) - 1
       # Partition 0 must have have the fixed CHS with number of sectors
       # (calculated as legacy_sectors later).
       part0 = ('00000200eeffffff01000000'.decode('hex') +
@@ -959,7 +992,7 @@ class GPTCommands(object):
           help=('Size (in blocks) of the disk to pad between the '
                 'primary GPT header and its entries, default %(default)s'))
       parser.add_argument(
-          '--block-size', type=int, default=GPT.DEFAULT_BLOCK_SIZE,
+          '--block_size', type=int,
           help='Size of each block (sector) in bytes.')
       parser.add_argument(
           'image_file', type=argparse.FileType('rb+'),
@@ -967,8 +1000,18 @@ class GPTCommands(object):
 
     def Execute(self, args):
       block_size = args.block_size
+      if block_size is None:
+        if GPT.IsBlockDevice(args.image_file.name):
+          block_size = GPT.GetLogicalBlockSize(args.image_file.name)
+        else:
+          block_size = GPT.DEFAULT_BLOCK_SIZE
+
+      if block_size != GPT.DEFAULT_BLOCK_SIZE:
+        logging.info('Block (sector) size for %s is set to %s bytes.',
+                     args.image_file.name, block_size)
+
       gpt = GPT.Create(
-          args.image_file.name, os.path.getsize(args.image_file.name),
+          args.image_file.name, GPT.GetImageSize(args.image_file.name),
           block_size, args.pad_blocks)
       if args.zero:
         # In theory we only need to clear LBA 1, but to make sure images already
@@ -1060,7 +1103,7 @@ class GPTCommands(object):
 
     def Execute(self, args):
       gpt = GPT.LoadFromFile(args.image_file)
-      gpt.Resize(os.path.getsize(args.image_file.name))
+      gpt.Resize(GPT.GetImageSize(args.image_file.name))
       gpt.WriteToFile(args.image_file)
       print('Disk image file %s repaired.' % args.image_file.name)
 
