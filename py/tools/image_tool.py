@@ -70,10 +70,6 @@ KEY_LSB_CROS_VERSION = 'CHROMEOS_RELEASE_VERSION'
 # Regular expression for reading file system information from dumpe2fs.
 RE_BLOCK_COUNT = re.compile(r'^Block count: *(.*)$', re.MULTILINE)
 RE_BLOCK_SIZE = re.compile(r'^Block size: *(.*)$', re.MULTILINE)
-# Regular expression for GPT entry in `write_gpt.sh`.
-RE_GPT = re.compile(r'^GPT=""$', re.MULTILINE)
-RE_WRITE_GPT_CHECK_BLOCKDEV = re.compile(
-    r'if \[ -b "\${target}" ]; then', re.MULTILINE)
 # Simple constant(s)
 MEGABYTE = 1048576
 # The storage industry treat "mega" and "giga" differently.
@@ -276,22 +272,33 @@ class GPT(pygpt.GPT):
 
     @staticmethod
     @contextlib.contextmanager
-    def _Map(image, offset, size):
+    def _Map(image, offset, size, partscan=False, block_size=None):
       """Context manager to map (using losetup) partition(s) from disk image.
 
       Args:
         image: a path to disk image to map.
         offset: an integer as offset to partition, or None to map whole disk.
         size: an integer as partition size, or None for whole disk.
+        partscan: True to scan partition table and create sub device files.
+        block_size: specify the size of each logical block.
       """
       loop_dev = None
       args = ['losetup', '--show', '--find']
       if offset is None:
         # Note "losetup -P" needs Ubuntu 15+.
-        args += ['-P']
+        # TODO(hungte) Use partx if -P is not supported (partx -d then -a).
+        if partscan:
+          args += ['-P']
       else:
         args += ['-o', str(offset), '--sizelimit', str(size)]
+      if block_size is not None and block_size != pygpt.GPT.DEFAULT_BLOCK_SIZE:
+        # For Linux kernel without commit "loop: add ioctl for changing logical
+        # block size", calling "-b 512" will fail, so we should only add "-b"
+        # when needed, so people with standard block size can work happily
+        # without upgrading their host kernel.
+        args += ['-b', str(block_size)]
       args += [image]
+
       try:
         loop_dev = SudoOutput(args).strip()
         yield loop_dev
@@ -306,7 +313,7 @@ class GPT(pygpt.GPT):
       return self._Map(self.image, self.offset, self.size)
 
     @classmethod
-    def MapAllPartitions(cls, image):
+    def MapAll(cls, image, partscan=True, block_size=None):
       """Maps an image with all partitions to loop block devices.
 
       Map the image to /dev/loopN, and all partitions will be created as
@@ -315,11 +322,13 @@ class GPT(pygpt.GPT):
 
       Args:
         image: a path to disk image to map.
+        partscan: True to scan partition table and create sub device files.
+        block_size: specify the size of each logical block.
 
       Returns:
         The mapped major loop device (/dev/loopN).
       """
-      return cls._Map(image, None, None)
+      return cls._Map(image, None, None, partscan, block_size)
 
     @contextlib.contextmanager
     def Mount(self, mount_point=None, rw=False, fs_type=None, options=None,
@@ -763,65 +772,66 @@ class ChromeOSFactoryBundle(object):
         dest.write(src.read(DEFAULT_BLOCK_SIZE))
     return pmbr_path
 
-  def CreatePartitionScript(self, image_path, pmbr_path):
+  def ExecutePartitionScript(
+      self, image_path, block_size, pmbr_path, rootfs, verbose=False):
     """Creates a partition script from write_gpt.sh inside image_path.
 
-    To initialize a new disk for Chrome OS, we need to execute the write_gpt.sh
-    included in rootfs of disk images. And to run that outside Chrome OS,
-    we have to slightly hack the script.
+    To initialize (create partition table) on a new preflashed disk image for
+    Chrome OS, we need to execute the write_gpt.sh included in rootfs of disk
+    images.
 
     Args:
+      image_path: the disk image to initialize partition table.
+      block_size: the size of each logical block.
       pmbr_path: a path to a file with PMBR code (by self.CreatePMBR).
-      image_path: a path to a Chromium OS disk image to find write_gpt.sh.
-
-    Returns:
-      A generated script (in self._temp_dir) for execution.
+      rootfs: a directory to root file system containing write_gpt.sh script.
+      verbose: True to enable debug out of script execution (-x).
     """
-    part = Partition(image_path, PART_CROS_ROOTFS_A)
-    with part.MountAsCrOSRootfs() as rootfs:
-      script_path = os.path.join(self._temp_dir, '_write_gpt.sh')
-      write_gpt_path = os.path.join(rootfs, 'usr', 'sbin', 'write_gpt.sh')
-      chromeos_common_path = os.path.join(
-          rootfs, 'usr', 'share', 'misc', 'chromeos-common.sh')
-      if not os.path.exists(write_gpt_path):
-        raise RuntimeError('%s does not have "write_gpt.sh".' % part)
-      if not os.path.exists(chromeos_common_path):
-        raise RuntimeError('%s does not have "chromeos-common.sh".' % part)
+    write_gpt_path = os.path.join(rootfs, 'usr', 'sbin', 'write_gpt.sh')
+    chromeos_common_path = os.path.join(
+        rootfs, 'usr', 'share', 'misc', 'chromeos-common.sh')
 
-      # We need to patch up write_gpt.sh a bit to cope with the fact we're
-      # running in a non-chroot/device env and that we're not running as root
-      # 'write_gpt_path.sh' may be only readable by user 1001 (chronos).
-      contents = SudoOutput(['cat', chromeos_common_path, write_gpt_path])
-      # Override default GPT command path.
-      if not RE_GPT.search(contents):
-        raise RuntimeError('Missing GPT="" in %s:"write_gpt.sh".' % part)
+    if not os.path.exists(write_gpt_path):
+      raise RuntimeError('Missing write_gpt.sh.')
+    if not os.path.exists(chromeos_common_path):
+      raise RuntimeError('Missing chromeos-common.sh.')
 
-      # pygpt is already available, but to allow write_gpt.sh access gpt
-      # commands, have to find an externally executable GPT.
-      cgpt_command = SysUtils.FindCGPT()
-      contents = RE_GPT.sub('GPT="%s"' % cgpt_command, contents)
-      contents += '\n'.join([
-          '',
-          'write_base_table $1 %s' % pmbr_path,
-          '${GPT} add -i 2 -S 1 -P 1 $1'])
+    # pygpt is already available, but to allow write_gpt.sh access gpt
+    # commands, have to find an externally executable GPT.
+    cgpt_command = SysUtils.FindCGPT()
 
+    with GPT.Partition.MapAll(
+        image_path, partscan=False, block_size=block_size) as loop_dev:
       # stateful partitions are enlarged only if the target is a block device
       # (not file), in order to reduce USB image size. As a result, we have to
-      # either run partition script with disk mapped, or hack the script like
-      # this:
-      contents = RE_WRITE_GPT_CHECK_BLOCKDEV.sub('if true; then', contents)
+      # run partition script with disk mapped.
+      commands = [
+          # Currently write_gpt.sh will load chromeos_common from a fixed path.
+          # In future when it supports overriding ROOT, we can invoke prevent
+          # sourcing chromeos_common.sh explicitly below.
+          '. "%s"' % chromeos_common_path,
+          '. "%s"' % write_gpt_path,
+          'GPT="%s"' % cgpt_command,
+          'set -e',
+          'write_base_table "%s" "%s"' % (loop_dev, pmbr_path),
+          # write_base_table will set partition #2 to S=0, T=15, P=15.
+          # However, if update_engine is disabled (very common in factory) or if
+          # the system has to do several quick reboots before reaching
+          # chromeos-setgoodkernel, then the device may run out of tries without
+          # setting S=1 and will stop booting. So we want to explicitly set S=1.
+          '%s add -i 2 -S 1 "%s"' % (cgpt_command, loop_dev)]
+      # The commands must be executed in a single invocation for '.' to work.
+      command = ' ; '.join(commands)
+      Sudo("bash %s -c '%s'" % ('-x' if verbose else '', command))
 
-      with open(script_path, 'wt') as f:
-        f.write(contents)
-      return script_path
-
-  def InitDiskImage(self, output, sectors, sector_size):
+  def InitDiskImage(self, output, sectors, sector_size, verbose=False):
     """Initializes (resize and partition) a new disk image.
 
     Args:
       output: a path to disk image to initialize.
       sectors: integer for new size in number of sectors.
       sector_size: size of each sector (block) in bytes.
+      verbose: provide more details when calling partition execution script.
 
     Returns:
       An integer as the size (in bytes) of output file.
@@ -830,17 +840,19 @@ class ChromeOSFactoryBundle(object):
     print('Initialize disk image in %s*%s bytes [%s G]' %
           (sectors, sector_size, new_size / GIGABYTE_STORAGE))
     pmbr_path = self.GetPMBR(self.release_image)
-    partition_script = self.CreatePartitionScript(self.release_image, pmbr_path)
+
     # TODO(hungte) Support block device as output, and support 'preserve'.
     Shell(['truncate', '-s', '0', output])
     Shell(['truncate', '-s', str(new_size), output])
-    logging.debug('Execute generated partitioning script on %s', output)
-    # TODO(hungte) Pass sector_size information to partition script if needed.
-    assert sector_size == 512, 'Sector size %s not supported yet.' % sector_size
-    Sudo(['bash', '-e', partition_script, output])
+
+    part = Partition(self.release_image, PART_CROS_ROOTFS_A)
+    with part.MountAsCrOSRootfs() as rootfs:
+      self.ExecutePartitionScript(
+          output, sector_size, pmbr_path, rootfs, verbose)
     return new_size
 
-  def CreateDiskImage(self, output, sectors, sector_size, stateful_free_space):
+  def CreateDiskImage(self, output, sectors, sector_size, stateful_free_space,
+                      verbose=False):
     """Creates the installed disk image.
 
     This creates a complete image that can be pre-flashed to and boot from
@@ -851,14 +863,15 @@ class ChromeOSFactoryBundle(object):
       sectors: number of sectors in disk image.
       sector_size: size of each sector in bytes.
       stateful_free_space: extra free space to claim in MB.
+      verbose: provide more verbose output when initializing disk image.
     """
-    new_size = self.InitDiskImage(output, sectors, sector_size)
+    new_size = self.InitDiskImage(output, sectors, sector_size, verbose)
     payloads_dir = os.path.join(self._temp_dir, DIR_CROS_PAYLOADS)
     os.mkdir(payloads_dir)
     json_path = self.CreatePayloads(payloads_dir)
 
     cros_payload = SysUtils.FindCommand('cros_payload')
-    with GPT.Partition.MapAllPartitions(output) as output_dev:
+    with GPT.Partition.MapAll(output) as output_dev:
       Sudo([cros_payload, 'install', json_path, output_dev,
             'test_image', 'release_image'])
 
@@ -867,7 +880,7 @@ class ChromeOSFactoryBundle(object):
     part = Partition(output, PART_CROS_STATEFUL)
     part.ResizeFileSystem(
         part.GetFileSystemSize() + stateful_free_space * MEGABYTE)
-    with GPT.Partition.MapAllPartitions(output) as output_dev:
+    with GPT.Partition.MapAll(output) as output_dev:
       targets = ['toolkit', 'release_image.crx_cache']
       if self.hwid:
         targets += ['hwid']
@@ -1515,7 +1528,7 @@ class CreatePreflashImageCommand(SubCommand):
           complete=None)
       new_size = bundle.CreateDiskImage(
           self.args.output, self.args.sectors, self.args.sector_size,
-          self.args.stateful_free_space)
+          self.args.stateful_free_space, self.args.verbose)
     print('OK: Generated pre-flash disk image at %s [%s G]' % (
         self.args.output, new_size / GIGABYTE_STORAGE))
 

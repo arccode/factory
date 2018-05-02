@@ -61,6 +61,7 @@ class ImageToolTest(unittest.TestCase):
     cmd = self.cmd_map[command](*self.cmd_parsers)
     cmd.Init()
     cmd_args = self.cmd_parsers[0].parse_args(args)
+    cmd_args.verbose = 0
     cmd_args.subcommand.args = cmd_args
     cmd_args.subcommand.Run()
 
@@ -72,7 +73,7 @@ class ImageToolTest(unittest.TestCase):
     self.CheckCall('truncate -s %s %s' % (16 * 1048576, name))
     for command in self.PARTITION_COMMANDS:
       self.CheckCall(command % dict(command='cgpt', file=name))
-    with image_tool.GPT.Partition.MapAllPartitions(image_path) as f:
+    with image_tool.GPT.Partition.MapAll(image_path) as f:
       self.CheckCall('sudo mkfs -F %sp3' % f)
       self.CheckCall('sudo mkfs -F %sp5' % f)
       self.CheckCall('sudo mkfs -F %sp1 2048' % f)
