@@ -16,8 +16,9 @@ EXAMPLE_MEMORY_STRING3 = 'dram_hynix_512m_dimm2'
 EXAMPLE_MEMORY_STRING4 = '2x2GB_DDR3_1600'
 EXAMPLE_MEMORY_STRING5 = 'K4EBE304EB_EGCF_8gb'
 EXAMPLE_MEMORY_STRING6 = 'K4EBE304EB_EGCF_8gb_'
+EXAMPLE_MEMORY_STRING7 = 'H9HCNNN8KUMLHR_1gb_slot2'
 
-ALL_MEMORY_EXAMPLES = [
+MEMORY_EXAMPLES = [
     EXAMPLE_MEMORY_STRING1, EXAMPLE_MEMORY_STRING2, EXAMPLE_MEMORY_STRING3,
     EXAMPLE_MEMORY_STRING4, EXAMPLE_MEMORY_STRING5, EXAMPLE_MEMORY_STRING6
 ]
@@ -26,8 +27,7 @@ ALL_MEMORY_EXAMPLES = [
 class HwidUtilTest(unittest.TestCase):
 
   def testAllMemoryTypes(self):
-    result_str, total_bytes = hwid_util.GetTotalRamFromHwidData(
-        ALL_MEMORY_EXAMPLES)
+    result_str, total_bytes = hwid_util.GetTotalRamFromHwidData(MEMORY_EXAMPLES)
     self.assertEqual('24064Mb', result_str)
     self.assertEqual(25232932864, total_bytes)
 
@@ -66,6 +66,12 @@ class HwidUtilTest(unittest.TestCase):
         [EXAMPLE_MEMORY_STRING5])
     self.assertEqual('8Gb', result_str)
     self.assertEqual(8589934592, total_bytes)
+
+  def testMemoryType7(self):
+    result_str, total_bytes = hwid_util.GetTotalRamFromHwidData(
+        [EXAMPLE_MEMORY_STRING7])
+    self.assertEqual('1Gb', result_str)
+    self.assertEqual(1073741824, total_bytes)
 
   def testEmptyList(self):
     result_str, total_bytes = hwid_util.GetTotalRamFromHwidData([])

@@ -17,7 +17,10 @@ class _RamSize(object):
   """Handle memory size labels."""
   _UNITS = OrderedDict([
       ('', 1), ('K', 1 << 10), ('M', 1 << 20), ('G', 1 << 30)])
-  _RE = re.compile(r'(\d+X)?(\d+)([KMG])B?')
+  # Possible ram strings:
+  # dram_micron_1g_dimm2, hynix_2gb_dimm0, 2x2GB_DDR3_1600,
+  # K4EBE304EB_EGCF_8gb, H9HCNNN8KUMLHR_1gb_slot2
+  _RE = re.compile(r'(^|_)(\d+X)?(\d+)([KMG])B?($|_)')
 
   def __init__(self, ram_size_str=None, byte_count=None):
     super(_RamSize, self).__init__()
@@ -28,9 +31,9 @@ class _RamSize(object):
     if not size_re:
       logging.exception('Unable to process dram format %s', ram_size_str)
       raise HWIDUtilException('Invalid DRAM: %s' % ram_size_str)
-    multiplier = int(size_re.group(1)[:-1]) if size_re.group(1) else 1
+    multiplier = int(size_re.group(2)[:-1]) if size_re.group(2) else 1
     self.byte_count = multiplier * int(
-        size_re.group(2)) * _RamSize._UNITS[size_re.group(3)]
+        size_re.group(3)) * _RamSize._UNITS[size_re.group(4)]
 
   def __add__(self, rhs):
     assert isinstance(rhs, _RamSize)
