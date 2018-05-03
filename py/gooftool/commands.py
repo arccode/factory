@@ -402,10 +402,10 @@ def Cr50SetBoardId(options):
   event_log.Log('cr50_set_board_id')
 
 
-@Command('cr50_reset_state')
-def Cr50ResetState(options):
+@Command('cr50_disable_rma_mode')
+def Cr50DisableRmaMode(options):
   """Reset Cr50 state back to default state after RMA."""
-  return GetGooftool(options).Cr50ResetState()
+  return GetGooftool(options).Cr50DisableRmaMode()
 
 
 @Command('enable_release_partition',
@@ -692,7 +692,7 @@ def Finalize(options):
     GetGooftool(options).WriteVPDForRLZPing(options.embargo_offset)
   Cr50SetBoardId(options)
   Verify(options)
-  Cr50ResetState(options)
+  Cr50DisableRmaMode(options)
   LogSourceHashes(options)
   UntarStatefulFiles(options)
   if options.cros_core:

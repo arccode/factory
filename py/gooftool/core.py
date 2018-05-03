@@ -800,14 +800,62 @@ class Gooftool(object):
       service_mgr.RestoreServices()
 
 
-  def Cr50ResetState(self):
-    """Reset Cr50 state back to default state after RMA."""
+  def Cr50DisableRmaMode(self):
+    """Disable Cr50 RMA mode.
+
+    Cr50 RMA mode might be enabled in the factory and RMA center in order to
+    open ccd capabilities. Before finalizing the DUT, RMA mode MUST be
+    disabled.
+    """
+    def _GetCr50Version():
+      cmd = ['gsctool', '-a', '-f']
+      return re.search(r'^RW\s*(\d+\.\d+\.\d+)',
+                       self._util.shell(cmd).stdout,
+                       re.MULTILINE).group(1)
+
+    def _IsCCDInfoMandatory():
+      cr50_verion = _GetCr50Version()
+      # If second number is odd in version then it is prod version.
+      is_prod = (1 == int(cr50_verion.split('.')[1]) % 2)
+
+      res = True
+      if is_prod and LooseVersion(cr50_verion) < LooseVersion('0.3.5'):
+        res = False
+      elif not is_prod and LooseVersion(cr50_verion) < LooseVersion('0.4.5'):
+        res = False
+
+      return res
+
     gsctool_path = '/usr/sbin/gsctool'
     if not os.path.exists(gsctool_path):
-      logging.warn('gsctool is not found, skip reset Cr50 in RMA.')
-      return
+      raise Error('gsctool is not available in path - %s.' % gsctool_path)
 
+    rma_mode_disabled = False
     cmd = ['gsctool', '-a', '-r', 'disable']
     result = self._util.shell(cmd)
+    if result.success:
+      rma_mode_disabled = True
+
+    if not _IsCCDInfoMandatory():
+      logging.warn('Command of disabling rma mode %s and can not get CCD '
+                   'info so there is no way to make sure rma mode status. '
+                   'cr50 version RW %s',
+                   'succeeds' if rma_mode_disabled else 'fails',
+                   _GetCr50Version())
+      return
+
+    ccd_info_cmd = ['gsctool', '-a', '-I']
+    result = self._util.shell(ccd_info_cmd)
     if not result.success:
-      raise Error('Failed to reset Cr50 state.')
+      raise Error('Getting ccd info fails in cr50 RW %s' % _GetCr50Version())
+
+    info = result.stdout
+    # The pattern of output is:
+    # State: Locked
+    # Password: None
+    # Flags: 000000
+    # Capabilities, current and default:
+    #   ...
+    # CCD caps bitmap: 0x1ffff
+    if re.search("^CCD caps bitmap: 0x1ffff$", info, re.MULTILINE):
+      raise Error('Failed to disable Cr50 rma mode. CCD info:\n%s' % info)
