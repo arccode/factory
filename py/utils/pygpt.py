@@ -475,7 +475,7 @@ class GPT(object):
 
     def IsChromeOSKernel(self):
       """Returns if the partition is a Chrome OS kernel partition."""
-      return self.type_guid == GPT.TYPE_GUID_CHROMEOS_KERNEL
+      return self.TypeGUID == GPT.TYPE_GUID_CHROMEOS_KERNEL
 
     @property
     def blocks(self):
