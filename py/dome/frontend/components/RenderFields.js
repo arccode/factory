@@ -3,8 +3,8 @@
 // found in the LICENSE file.
 
 import React from 'react';
-import {Field, FieldArray, FormSection, reduxForm} from 'redux-form/immutable';
-
+import {fieldPropTypes, fieldArrayPropTypes} from 'redux-form';
+import {Field, FieldArray, FormSection} from 'redux-form/immutable';
 import Divider from 'material-ui/Divider';
 import TextField from 'material-ui/TextField';
 import Toggle from 'material-ui/Toggle';
@@ -14,8 +14,8 @@ import ContentClear from 'material-ui/svg-icons/content/clear';
 import ContentAdd from 'material-ui/svg-icons/content/add';
 
 
-const toNumber = value => value && Number(value)
-const setFalse = value => value == true || false
+const toNumber = value => value && Number(value);
+const setFalse = value => value == true || false;
 
 const renderTextField = ({input, label, description, type}) => (
   <TextField
@@ -24,29 +24,41 @@ const renderTextField = ({input, label, description, type}) => (
     type={type}
     {...input}
   />
-)
+);
+
+renderTextField.propTypes = {
+  label: React.PropTypes.string.isRequired,
+  type: React.PropTypes.string.isRequired,
+  description: React.PropTypes.string,
+  ...fieldPropTypes
+};
 
 const renderToggle = ({input, label}) => (
   <Toggle
     label={label}
-    labelPosition="right"
+    labelPosition='right'
     toggled={input.value ? true : false}
     onToggle={input.onChange}
   />
-)
+);
+
+renderToggle.propTypes = {
+  label: React.PropTypes.string.isRequired,
+  ...fieldPropTypes
+};
 
 const renderArray = ({fields, schema}) => (
   <div>
     {fields.map((k, i) =>
       <FormSection name={k}>
-        <div style={{float: "right", marginTop: 15 + "px"}}>
+        <div style={{float: 'right', marginTop: 15 + 'px'}}>
           <IconButton
-            tooltip="Remove"
+            tooltip='Remove'
             onClick={() => fields.remove(i)}>
             <ContentClear/>
           </IconButton>
         </div>
-        <div style={{marginRight: 50 + "px"}}>
+        <div style={{marginRight: 50 + 'px'}}>
           <RenderFields
             schema={schema.get('items')}
           />
@@ -56,13 +68,18 @@ const renderArray = ({fields, schema}) => (
     <div>
       <FloatingActionButton
         mini={true}
-        style={{float: "right", margin: 1 + "em"}}
+        style={{float: 'right', margin: 1 + 'em'}}
         onClick={() => fields.push({})}>
         <ContentAdd />
       </FloatingActionButton>
     </div>
   </div>
-)
+);
+
+renderArray.propTypes = {
+  schema: React.PropTypes.array.isRequired,
+  ...fieldArrayPropTypes
+};
 
 
 var RenderFields = React.createClass({
@@ -71,35 +88,32 @@ var RenderFields = React.createClass({
   },
 
   render() {
-    const {
-      schema,
-    } = this.props;
+    const {schema} = this.props;
 
     const marginStyle = {
-      marginLeft: 2 + "em",
-      marginRight: 2 + "em",
-      marginTop: 0.5 + "em",
-      marginBottom: 0.5 + "em"
+      marginLeft: 2 + 'em',
+      marginRight: 2 + 'em',
+      marginTop: 0.5 + 'em',
+      marginBottom: 0.5 + 'em'
     };
 
     return (
       <div style={marginStyle}>
-      {this.props.schema.get('properties').keySeq().map((k, i) => {
+      {schema.get('properties').keySeq().map((k, i) => {
         var s = schema.getIn(['properties', k]);
-        switch(s.get('type')){
+        switch(s.get('type')) {
           case 'string':
-            return(
+            return (
               <Field
                 name={k}
                 component={renderTextField}
                 label={k}
                 description={s.get('description')}
-                type="text"
+                type='text'
               />
             );
-            break;
           case 'integer':
-            return(
+            return (
               <div>
                 <Field
                   name={k}
@@ -107,13 +121,12 @@ var RenderFields = React.createClass({
                   label={k}
                   description={s.get('description')}
                   normalize={toNumber}
-                  type="number"
+                  type='number'
                 />
               </div>
             );
-            break;
           case 'boolean':
-            return(
+            return (
               <div>
                 <Field
                   name={k}
@@ -123,9 +136,8 @@ var RenderFields = React.createClass({
                 />
               </div>
             );
-            break;
           case 'object':
-            return(
+            return (
               <div>
                 <FormSection name={k}>
                   <p>{k}</p>
@@ -136,9 +148,8 @@ var RenderFields = React.createClass({
                 </FormSection>
               </div>
             );
-            break;
           case 'array':
-            return(
+            return (
               <div>
                 <p>{k}</p>
                 <Divider/>
@@ -149,10 +160,7 @@ var RenderFields = React.createClass({
                 />
               </div>
             );
-            break;
           default:
-            console.log('default OAO');
-            console.log(k);
             break;
         }
       })}

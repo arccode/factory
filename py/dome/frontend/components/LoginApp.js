@@ -5,10 +5,9 @@
 import {Card, CardTitle, CardText} from 'material-ui/Card';
 import {connect} from 'react-redux';
 import React from 'react';
-import TextField from 'material-ui/TextField';
 
 import DomeActions from '../actions/domeactions';
-import LoginForm from './LoginForm'
+import LoginForm from './LoginForm';
 
 var LoginApp = React.createClass({
   propTypes: {
@@ -22,7 +21,7 @@ var LoginApp = React.createClass({
         <CardTitle title={'Login to continue'}></CardTitle>
         <CardText>
           <LoginForm
-            form="login"
+            form='login'
             onSubmit={tryLogin}
           />
         </CardText>

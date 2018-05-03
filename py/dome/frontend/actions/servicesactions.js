@@ -11,9 +11,9 @@ function baseURL(getState) {
 
 const updateService = (name, config) => (dispatch, getState) => {
   dispatch({
-      type: ActionTypes.UPDATE_SERVICE,
-      name,
-      config
+    type: ActionTypes.UPDATE_SERVICE,
+    name,
+    config
   });
 
   var data = {};

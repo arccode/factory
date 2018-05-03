@@ -78,7 +78,7 @@ var ProjectsApp = React.createClass({
                   onTouchTap={() => switchProject(name)}
                   rightIconButton={
                     <IconButton
-                      tooltip="delete this project"
+                      tooltip='delete this project'
                       onTouchTap={() => deleteProject(name)}
                     >
                       <DeleteIcon />
@@ -98,15 +98,15 @@ var ProjectsApp = React.createClass({
           onSubmit={this.handleSubmit}  // called when enter key is pressed
         >
           <TextField
-            name="name"
+            name='name'
             fullWidth={true}
-            floatingLabelText="New project name"
+            floatingLabelText='New project name'
             value={this.state.nameInputValue}
             onChange={e => this.setState({nameInputValue: e.target.value})}
             errorText={this.state.nameInputErrorText}
           />
           <RaisedButton
-            label="CREATE A NEW PROJECT"
+            label='CREATE A NEW PROJECT'
             primary={true}
             fullWidth={true}
             onTouchTap={this.handleCreate}

@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 import {connect} from 'react-redux';
-import Checkbox from 'material-ui/Checkbox';
 import DateAndTime from 'date-and-time';
 import Dialog from 'material-ui/Dialog';
 import RaisedButton from 'material-ui/RaisedButton';
@@ -108,29 +107,29 @@ var UpdatingResourceForm = React.createClass({
     return (
       <form ref={c => this.formElement = c}>
         <input
-          className="hidden"
-          type="file"
+          className='hidden'
+          type='file'
           onChange={this.handleFileChange}
           ref={c => this.fileInput = c}
         />
         <Dialog
-          title="Update Resource"
+          title='Update Resource'
           open={this.state.dialogOpened}
           modal={false}
           onRequestClose={this.handleCancel}
           actions={[
-            <RaisedButton label="confirm" onTouchTap={this.handleConfirm} />,
-            <RaisedButton label="cancel" onTouchTap={this.handleCancel} />
+            <RaisedButton label='confirm' onTouchTap={this.handleConfirm} />,
+            <RaisedButton label='cancel' onTouchTap={this.handleCancel} />
           ]}
         >
           <TextField
-            floatingLabelText="New Bundle Name"
+            floatingLabelText='New Bundle Name'
             errorText={this.state.nameInputErrorText}
             value={this.state.nameInputValue}
             onChange={c => this.setState({nameInputValue: c.target.value})}
           /><br />
           <TextField
-            floatingLabelText="Note"
+            floatingLabelText='Note'
             value={this.state.noteInputValue}
             onChange={c => this.setState({noteInputValue: c.target.value})}
           />

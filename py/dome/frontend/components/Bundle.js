@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import ContentCopyIcon from 'material-ui/svg-icons/content/content-copy';
 import ChosenIcon from 'material-ui/svg-icons/toggle/star';
 import DeleteIcon from 'material-ui/svg-icons/action/delete';
 import DragHandleIcon from 'material-ui/svg-icons/editor/drag-handle';
@@ -22,7 +21,7 @@ import RuleTable from './RuleTable';
 
 var DragHandle = SortableHandle(() => (
   <IconButton
-    tooltip="move this bundle"
+    tooltip='move this bundle'
     style={{cursor: 'move'}}
     onClick={e => e.stopPropagation()}
   >
@@ -74,7 +73,7 @@ var Bundle = React.createClass({
 
     return (
       <Card
-        className="bundle"
+        className='bundle'
         expanded={expanded}
         containerStyle={bundle.get('active') ? {} : INACTIVE_STYLE}
       >
@@ -104,7 +103,7 @@ var Bundle = React.createClass({
             <div style={{display: 'inline-block', width: 48}}></div>
             <DragHandle />
             <IconButton
-              tooltip="delete this bundle"
+              tooltip='delete this bundle'
               onClick={e => e.stopPropagation()}
               onTouchTap={() => deleteBundle(bundle.get('name'))}
             >
@@ -122,11 +121,11 @@ var Bundle = React.createClass({
             </IconButton>
           </div>
         </CardTitle>
-        <CardHeader title="RESOURCES" expandable={true} />
+        <CardHeader title='RESOURCES' expandable={true} />
         <CardText expandable={true}>
           <ResourceTable bundle={bundle} />
         </CardText>
-        <CardHeader title="RULES" expandable={true} />
+        <CardHeader title='RULES' expandable={true} />
         <CardText expandable={true}>
           <RuleTable
             rules={bundle.get('rules')}

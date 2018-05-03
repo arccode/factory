@@ -67,25 +67,25 @@ var EnablingUmpireForm = React.createClass({
     return (
       <form ref={c => this.formElement = c}>
         <Dialog
-          title="Enable Umpire"
+          title='Enable Umpire'
           open={this.props.opened}
           modal={false}
           onRequestClose={this.props.onCancel}
           actions={<div>
             {!this.state.showAddForm && <RaisedButton
-              label="CREATE A NEW UMPIRE INSTANCE"
+              label='CREATE A NEW UMPIRE INSTANCE'
               primary={true}
               onTouchTap={this.handleCreate}
               style={{marginLeft: _SPACE_BETWEEN_COMPONENTS}}
             />}
             {this.state.showAddForm && <RaisedButton
-              label="ADD AN EXISTING UMPIRE INSTANCE"
+              label='ADD AN EXISTING UMPIRE INSTANCE'
               primary={true}
               onTouchTap={this.handleAdd}
               style={{marginLeft: _SPACE_BETWEEN_COMPONENTS}}
             />}
             <RaisedButton
-              label="CANCEL"
+              label='CANCEL'
               primary={true}
               onTouchTap={this.props.onCancel}
               style={{marginLeft: _SPACE_BETWEEN_COMPONENTS}}
@@ -93,16 +93,16 @@ var EnablingUmpireForm = React.createClass({
           </div>}
         >
           {this.state.showAddForm && <TextField
-            name="host"
+            name='host'
             fullWidth={true}
-            floatingLabelText="host"
+            floatingLabelText='host'
             value={this.state.hostInputValue}
             onChange={e => this.setState({hostInputValue: e.target.value})}
           />}
           <TextField
-            name="port"
+            name='port'
             fullWidth={true}
-            floatingLabelText="Port"
+            floatingLabelText='Port'
             value={this.state.portInputValue}
             onChange={e => this.setState({portInputValue: e.target.value})}
           />
@@ -112,14 +112,14 @@ var EnablingUmpireForm = React.createClass({
             {!this.state.showAddForm && <div>
               If you had manually set up the Umpire Docker container, you can
               {' '}
-              <a href="#" onClick={e => this.setShowAddForm(true, e)}>
+              <a href='#' onClick={e => this.setShowAddForm(true, e)}>
                 add the existing one
               </a>.
             </div>}
             {this.state.showAddForm && <div>
               If you had not set up the Umpire Docker container, you should
               {' '}
-              <a href="#" onClick={e => this.setShowAddForm(false, e)}>
+              <a href='#' onClick={e => this.setShowAddForm(false, e)}>
                 create a new one
               </a>.
             </div>}

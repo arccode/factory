@@ -87,7 +87,7 @@ const tryLogin = data => dispatch => {
       dispatch({type: ActionTypes.LOGIN_FAILED});
       window.alert('\nLogin failed :(');
     }
-  })
+  });
 };
 
 const logout = () => dispatch => {
@@ -103,7 +103,7 @@ const recieveConfig = config => ({
 const initializeConfig = () => dispatch => {
   var body = {};
   dispatch(updateConfig(body));
-}
+};
 
 const fetchConfig = () => dispatch => {
   authorizedFetch('/config/0', {})
@@ -388,7 +388,7 @@ const startTask = taskID => (dispatch, getState) => {
   });
 
   // if any sub-task above failed, display the error message
-  queue = queue.catch(error => {
+  queue.catch(error => {
     const setAndShow = response => {
       dispatch(setAndShowErrorDialog(`${error.message}\n\n${response}`));
     };

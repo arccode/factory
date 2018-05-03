@@ -7,12 +7,9 @@ import Divider from 'material-ui/Divider';
 import {connect} from 'react-redux';
 import {List, ListItem} from 'material-ui/List';
 import Immutable from 'immutable';
-import RaisedButton from 'material-ui/RaisedButton';
 import React from 'react';
 import Subheader from 'material-ui/Subheader';
 import Toggle from 'material-ui/Toggle';
-import {Table, TableBody, TableHeader, TableHeaderColumn,
-        TableRow, TableRowColumn} from 'material-ui/Table';
 
 import DomeActions from '../actions/domeactions';
 import EnablingUmpireForm from './EnablingUmpireForm';
@@ -39,10 +36,8 @@ var DashboardApp = React.createClass({
     const {
       project,
       closeEnablingUmpireForm,
-      disableUmpire,
       enableUmpire,
       enablingUmpireFormOpened,
-      openEnablingUmpireForm
     } = this.props;
 
     const styles = {
@@ -68,7 +63,7 @@ var DashboardApp = React.createClass({
                     onToggle={this.handleToggle}
                   />
                 }
-                primaryText="Enable Umpire"
+                primaryText='Enable Umpire'
               />
               {project.get('umpireEnabled') && project.get('umpireReady') &&
               <div>

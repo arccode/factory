@@ -68,7 +68,7 @@ var Task = React.createClass({
             </IconButton>
           }
           {state == TaskStates.RUNNING &&
-            <IconButton className="spin">
+            <IconButton className='spin'>
               <RunningIcon />
             </IconButton>
           }

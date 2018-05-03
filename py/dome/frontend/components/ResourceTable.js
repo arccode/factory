@@ -56,7 +56,7 @@ var ResourceTable = React.createClass({
                 <TableRowColumn>
                   {
                     <RaisedButton
-                      label="update"
+                      label='update'
                       onClick={() => handleUpdate(
                           bundle.get('name'), key, resource.get('type')
                       )}

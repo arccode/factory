@@ -9,7 +9,9 @@ import RenderFields from './RenderFields';
 
 var ServiceForm = React.createClass({
   propTypes: {
+    handleSubmit: React.PropTypes.func.isRequired,
     schema: React.PropTypes.object.isRequired,
+    reset: React.PropTypes.func.isRequired
   },
 
   render() {
@@ -22,22 +24,22 @@ var ServiceForm = React.createClass({
     return (
       <form onSubmit={handleSubmit}>
         <RenderFields
-          schema={this.props.schema}
+          schema={schema}
         />
         <RaisedButton
-          label="Discard Changes"
+          label='Discard Changes'
           onClick={reset}
-          style={{margin: 1 + "em"}}
+          style={{margin: 1 + 'em'}}
         />
         <RaisedButton
-          type="submit"
-          label="Deploy"
+          type='submit'
+          label='Deploy'
           primary={true}
-          style={{margin: 1 + "em"}}
+          style={{margin: 1 + 'em'}}
         />
       </form>
     );
   }
 });
 
-export default reduxForm()(ServiceForm)
+export default reduxForm()(ServiceForm);

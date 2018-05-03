@@ -17,12 +17,12 @@ import thunkMiddleware from 'redux-thunk';
 import createLogger from 'redux-logger';
 import getMuiTheme from 'material-ui/styles/getMuiTheme';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
-import {reducer as FormReducer} from 'redux-form/immutable'
+import {reducer as FormReducer} from 'redux-form/immutable';
 
 import DomeApp from './components/DomeApp';
 import BundlesReducer from './reducers/bundlesreducer';
 import DomeReducer from './reducers/domereducer';
-import ServiceReducer from './reducers/servicereducer'
+import ServiceReducer from './reducers/servicereducer';
 
 // Needed for onTouchTap, see:
 // http://www.material-ui.com/#/get-started/installation
@@ -54,10 +54,10 @@ const store = createStore(
 var App = React.createClass({
   componentDidMount() {
     // check if user's using Chrome/Chromium
-    if (navigator.userAgent.indexOf("Chrome") == -1) {
-      window.alert("Warning!!\n\n" +
-                   "To visit Dome, please use Chrome/Chromium to " +
-                   "avoid unnecessary issues.");
+    if (navigator.userAgent.indexOf('Chrome') == -1) {
+      window.alert('Warning!!\n\n' +
+                   'To visit Dome, please use Chrome/Chromium to ' +
+                   'avoid unnecessary issues.');
     }
   },
 

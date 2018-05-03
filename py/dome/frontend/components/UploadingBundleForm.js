@@ -72,29 +72,29 @@ var UploadingBundleForm = React.createClass({
     return (
       <form ref={c => this.formElement = c}>
         <input
-          className="hidden"
-          type="file"
+          className='hidden'
+          type='file'
           onChange={this.handleFileChange}
           ref={c => this.fileInput = c}
         />
         <Dialog
-          title="Upload Bundle"
+          title='Upload Bundle'
           open={this.state.dialogOpened}
           modal={false}
           onRequestClose={this.handleCancel}
           actions={[
-            <RaisedButton label="confirm" onTouchTap={this.handleConfirm} />,
-            <RaisedButton label="cancel" onTouchTap={this.handleCancel} />
+            <RaisedButton label='confirm' onTouchTap={this.handleConfirm} />,
+            <RaisedButton label='cancel' onTouchTap={this.handleCancel} />
           ]}
         >
           <TextField
-            floatingLabelText="New Bundle Name"
+            floatingLabelText='New Bundle Name'
             errorText={this.state.nameInputErrorText}
             value={this.state.nameInputValue}
             onChange={c => this.setState({nameInputValue: c.target.value})}
           /><br />
           <TextField
-            floatingLabelText="New Bundle Note"
+            floatingLabelText='New Bundle Note'
             value={this.state.noteInputValue}
             onChange={c => this.setState({noteInputValue: c.target.value})}
           />

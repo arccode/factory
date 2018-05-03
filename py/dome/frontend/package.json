@@ -72,7 +72,10 @@
       "quotes": ["error", "single"],
       "semi": ["error", "always"],
       "no-console": ["error", {"allow": ["error", "warn"]}],
-      "no-unused-vars": ["error", {"varsIgnorePattern": "unused|ignored"}]
+      "no-unused-vars": ["error", {
+        "args": "none",
+        "varsIgnorePattern": "unused|ignored"
+      }]
     }
   },
   "author": "Mao Huang <littlecvr@google.com>"

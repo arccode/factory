@@ -6,14 +6,14 @@ import {connect} from 'react-redux';
 import Dialog from 'material-ui/Dialog';
 import RaisedButton from 'material-ui/RaisedButton';
 import React from 'react';
-import TextField from 'material-ui/TextField';
 
 import DomeActions from '../actions/domeactions';
 
 var ErrorDialog = React.createClass({
   propTypes: {
     message: React.PropTypes.string,
-    show: React.PropTypes.bool.isRequired
+    show: React.PropTypes.bool.isRequired,
+    hideErrorDialog: React.PropTypes.func.isRequired
   },
 
   handleClose() {
@@ -27,7 +27,7 @@ var ErrorDialog = React.createClass({
         modal={false}
         onRequestClose={this.handleCancel}
         actions={[
-          <RaisedButton label="close" onTouchTap={this.handleClose} />,
+          <RaisedButton label='close' onTouchTap={this.handleClose} />,
         ]}
       >
         <div>
@@ -37,7 +37,7 @@ var ErrorDialog = React.createClass({
         {/* wrap the textarea with a div, otherwise, setting the width of
             textarea as 100% will make it overflow */}
         <div><textarea
-          ref={e => {this.textareaElement = e}}
+          ref={e => this.textareaElement = e}
           disabled={true}
           style={{width: '100%', height: '10em'}}
           value={this.props.message}

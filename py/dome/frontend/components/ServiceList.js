@@ -28,23 +28,21 @@ var ServiceList = React.createClass({
     const {
       schemata,
       services,
-      fetchSchemata,
-      fetchServices,
       updateService
     } = this.props;
 
     const divStyle = {
-      backgroundColor: "#fafafa",
-      padding: 0.5 + "em"
+      backgroundColor: '#fafafa',
+      padding: 0.5 + 'em'
     };
 
     return (
       <div>
-        {this.props.schemata.keySeq().sort().map((k, i) => {
-          var schema = this.props.schemata.get(k);
+        {schemata.keySeq().sort().map((k, i) => {
+          var schema = schemata.get(k);
           var service = Immutable.Map({});
-          if(this.props.services.has(k)) {
-            service = this.props.services.get(k);
+          if(services.has(k)) {
+            service = services.get(k);
             if(!service.has('active'))
               service = service.set('active', true);
           }

@@ -4,7 +4,6 @@
 
 import {Card, CardTitle, CardText} from 'material-ui/Card';
 import {connect} from 'react-redux';
-import Immutable from 'immutable';
 import React from 'react';
 import Toggle from 'material-ui/Toggle';
 import RaisedButton from 'material-ui/RaisedButton';
@@ -31,7 +30,6 @@ var ConfigApp = React.createClass({
       configUpdating,
       disableTFTP,
       enableTFTP,
-      initializeConfig,
       logout
     } = this.props;
 
@@ -41,18 +39,18 @@ var ConfigApp = React.createClass({
           <CardTitle title={'Config'}></CardTitle>
           <CardText>
             <Toggle
-              label="TFTP server"
+              label='TFTP server'
               toggled={TFTPEnabled}
               onToggle={TFTPEnabled ? disableTFTP : enableTFTP}
               disabled={configUpdating}
             />
             <br/>
             <RaisedButton
-              type="button"
-              label="Logout"
+              type='button'
+              label='Logout'
               onClick={logout}
               primary={true}
-              style={{margin: 1 + "em"}}
+              style={{margin: 1 + 'em'}}
             />
           </CardText>
         </Card>

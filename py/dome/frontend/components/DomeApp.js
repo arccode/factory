@@ -32,6 +32,10 @@ const EmphasizedString = props => (
   <span style={{fontWeight: 'bold', color: amber300}}>{props.children}</span>
 );
 
+EmphasizedString.propTypes = {
+  children: React.PropTypes.node.isRequired
+};
+
 const DomeAppBarTitle = () => (
   <span>
     <EmphasizedString>D</EmphasizedString>ome:
