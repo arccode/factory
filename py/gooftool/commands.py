@@ -757,7 +757,7 @@ def VerifyHWID(options):
 
 
 @Command('get_firmware_hash',
-         CmdArg('--file', metavar='FILE', help='Firmware File.'))
+         CmdArg('--file', required=True, metavar='FILE', help='Firmware File.'))
 def GetFirmwareHash(options):
   """Get firmware hash from a file"""
   if os.path.exists(options.file):
