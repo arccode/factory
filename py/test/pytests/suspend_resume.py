@@ -222,11 +222,20 @@ class SuspendResumeTest(test_case.TestCase):
     logging.info('Suspending at %d', self._ReadCurrentTime())
 
     try:
-      # Write out our expected wakeup_count
-      file_utils.WriteFile(self.args.wakeup_count_path, self.wakeup_count)
+      # Write out our expected wakeup_count. Wakeup_count is a mechanism to
+      # handle wakeup events in a non-racy way. If there is an IO error during
+      # this write, it means someone else issues a wakeup event at the same
+      # time.
+      file_utils.WriteFile(self.args.wakeup_count_path, self.wakeup_count,
+                           log=True)
+    except Exception:
+      raise RuntimeError('Failed to write to wakeup_count. Maybe there is '
+                         'another program trying to suspend at the same time?')
 
+    try:
       # Suspend to memory
-      file_utils.WriteFile('/sys/power/state', self.args.suspend_type)
+      file_utils.WriteFile('/sys/power/state', self.args.suspend_type,
+                           log=True)
     except IOError as err:
       # Both of the write could result in IOError if there is an early wake.
       if err.errno in [errno.EBUSY, errno.EINVAL]:
