@@ -274,7 +274,7 @@ def VerifyDeviceData(device_data):
     `ValueError` if the device data is invalid.
   """
   for key, value in device_data.iteritems():
-    if key.startswith(KEY_COMPONENT):
+    if key.startswith(JoinKeys(KEY_COMPONENT, 'has_')):
       if not (isinstance(value, bool) or isinstance(value, int)):
         raise ValueError('Values in the "component" domain should be in type '
                          'of either `bool` or `int`.')
