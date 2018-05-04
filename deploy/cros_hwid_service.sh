@@ -3,9 +3,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-TEST_DIR="${SCRIPT_DIR}/test"
-FACTORY_DIR="$(dirname "$(readlink -f "${SCRIPT_DIR}/../../..")")"
+DEPLOY_DIR="$(dirname "$(readlink -f "$0")")"
+FACTORY_DIR="$(readlink -f "${DEPLOY_DIR}/..")"
+APPENGINE_DIR="${FACTORY_DIR}/py/hwid/service/appengine"
+TEST_DIR="${APPENGINE_DIR}/test"
 PLATFORM_DIR="$(dirname ${FACTORY_DIR})"
 REGIONS_DIR="$(readlink -f "${FACTORY_DIR}/../../platform2/regions")"
 TEMP_DIR="${FACTORY_DIR}/build/hwid"
@@ -92,7 +93,7 @@ do_deploy() {
   mkdir -p "${TEMP_DIR}/lib"
   SYMLINK_FILES=(app.yaml cron.yaml appengine_config.py requirements.txt)
   for file in "${SYMLINK_FILES[@]}"; do
-    ln -fs "${SCRIPT_DIR}/${file}" "${TEMP_DIR}"
+    ln -fs "${APPENGINE_DIR}/${file}" "${TEMP_DIR}"
   done
   ln -fs "${FACTORY_DIR}/py_pkg/cros" "${TEMP_DIR}"
   ln -fs "${FACTORY_DIR}/py_pkg/cros/factory/factory_common.py" "${TEMP_DIR}"

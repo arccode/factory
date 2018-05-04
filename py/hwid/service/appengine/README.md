@@ -10,8 +10,8 @@ The origin HWID Server [Arch Overview](http://go/hwid-server-arch) and
 ## Important Files
 - `app.yaml`: Config file for deploying service on AppEngine.
 - `cron.yaml`: Config file for deploying cronjob on AppEngine.
-- `deploy.sh`: The main script to deploy and test HWID Service. Run `deploy.sh`
-  for more usage.
+- `${factory_dir}/deploy/cros_hwid_service.sh`: The main script to deploy and
+  test HWID Service. Run `cros_hwid_service.sh` for more usage.
 - `appengine_config.py`: The very first loading file on AppEngine.
 - `app.py`: The API entry point. It defines the API handlers.
 - `hwid_api.py`: The HWID API function implementation.
@@ -49,9 +49,9 @@ There are three environments to deploy to:
    - APIary Endpoint URL: N/A
 
 ### AppEngine Deployment
-Use `deploy.sh` script:
+Use `${factory_dir}/deploy/cros_hwid_service.sh` script:
 ```bash
-./deploy.sh deploy [prod|staging|local]
+deploy/cros_hwid_service.sh deploy [prod|staging|local]
 ```
 
 ### Invoking API

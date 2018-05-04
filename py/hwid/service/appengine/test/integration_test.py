@@ -20,8 +20,9 @@ HOST_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 HOST_APPENGINE_DIR = os.path.dirname(HOST_TEST_DIR)
 HOST_FACTORY_DIR = os.path.abspath(
     os.path.join(HOST_APPENGINE_DIR, '../../../..'))
+HOST_DEPLOY_DIR = os.path.join(HOST_FACTORY_DIR, 'deploy')
 GUEST_FACTORY_DIR = '/usr/src/cros/factory'
-DEPLOY_SCRIPT = os.path.join(HOST_APPENGINE_DIR, 'deploy.sh')
+DEPLOY_SCRIPT = os.path.join(HOST_DEPLOY_DIR, 'cros_hwid_service.sh')
 DEFAULT_DOCKER_IMAGE_NAME = 'appengine_integration:latest'
 
 
