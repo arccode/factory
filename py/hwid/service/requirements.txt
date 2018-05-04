@@ -1,2 +1,0 @@
-PyYaml==3.12
-jsonschema==2.6.0
