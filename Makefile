@@ -53,6 +53,7 @@ BOARD_PACKAGE_FILE ?= \
 BOARD_RESOURCES_DIR ?= $(SYSROOT)/var/lib/factory/resources
 BOARD_TARGET_DIR ?= $(SYSROOT)$(TARGET_DIR)
 SYSROOT ?= $(if $(BOARD),/build/$(BOARD),/)
+SETUP_BIN_ROOT ?= /
 
 PAR_TEMP_DIR = $(TEMP_DIR)/par
 PAR_OUTPUT_DIR = $(BUILD_DIR)/par
@@ -292,7 +293,8 @@ bundle: par toolkit
 	  "$(BUNDLE_DIR)" \
 	  "$(TOOLKIT_OUTPUT_DIR)/$(TOOLKIT_FILENAME)" \
 	  "$(PAR_OUTPUT_DIR)/$(SETUP_PAR_NAME)" \
-	  "setup"
+	  "setup" \
+	  "$(SETUP_BIN_ROOT)"
 	$(call func-apply-board-resources,bundle,$(BUNDLE_DIR))
 	$(info Bundle is created in $(abspath $(BUNDLE_DIR)))
 

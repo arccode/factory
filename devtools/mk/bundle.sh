@@ -38,8 +38,8 @@ add_readme() {
 }
 
 main() {
-  if [ "$#" != 4 ]; then
-    die "Usage: $0 bundle_dir toolkit par setup"
+  if [ "$#" != 5 ]; then
+    die "Usage: $0 bundle_dir toolkit par setup bin_root"
   fi
   # We want all files and directories created to be readable by world.
   umask 022
@@ -48,6 +48,11 @@ main() {
   local toolkit="$2"
   local par="$3"
   local setup="$4"
+  local bin_root="$5"
+
+  if [ -z "${bin_root}" ]; then
+    bin_root="/"
+  fi
 
   echo "Creating factory bundle in ${bundle_dir}..."
   mkdir -p "${bundle_dir}"
@@ -72,11 +77,13 @@ main() {
 
   # Use lddtree if possible.
   if type lddtree >/dev/null 2>&1; then
-    lddtree --bindir=/ --libdir=/libx64 --elf-subdir=libx64 \
+    lddtree --root="${bin_root}" \
+      --bindir=/ --libdir=/libx64 --elf-subdir=libx64 \
       --generate-wrappers --copy-to-tree="${bundle_dir}/setup" \
       /usr/bin/cgpt /usr/bin/futility
   else
-    cp -f /usr/bin/cgpt /usr/bin/futility "${bundle_dir}/setup"
+    cp -f "${bin_root}"/usr/bin/cgpt "${bin_root}"/usr/bin/futility \
+      "${bundle_dir}/setup"
   fi
 
   # Last chance to make sure all bundle files are world readable.
