@@ -399,12 +399,12 @@ class PartitionManager(_GPTTool):
     @type_utils.Overrides
     def GetTypeGUID(self, index):
       """Returns the type GUID string."""
-      return str(self._gpt.GetPartition(index).type_guid).upper()
+      return str(self._gpt.GetPartition(index).TypeGUID).upper()
 
     @type_utils.Overrides
     def GetAttribute(self, index):
       """Returns the Attribute value."""
-      return self._gpt.GetPartition(index).Attributes
+      return self._gpt.GetPartition(index).Attributes.raw
 
   class _CGPT(_GPTTool):
     """Wrapper for cgpt."""
