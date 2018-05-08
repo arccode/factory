@@ -38,7 +38,7 @@ add_readme() {
 }
 
 main() {
-  if [ "$#" != 5 ]; then
+  if [[ "$#" != 5 ]]; then
     die "Usage: $0 bundle_dir toolkit par setup bin_root"
   fi
   # We want all files and directories created to be readable by world.
@@ -48,11 +48,7 @@ main() {
   local toolkit="$2"
   local par="$3"
   local setup="$4"
-  local bin_root="$5"
-
-  if [ -z "${bin_root}" ]; then
-    bin_root="/"
-  fi
+  local bin_root="${5:-/}"
 
   echo "Creating factory bundle in ${bundle_dir}..."
   mkdir -p "${bundle_dir}"

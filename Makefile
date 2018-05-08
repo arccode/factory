@@ -53,6 +53,9 @@ BOARD_PACKAGE_FILE ?= \
 BOARD_RESOURCES_DIR ?= $(SYSROOT)/var/lib/factory/resources
 BOARD_TARGET_DIR ?= $(SYSROOT)$(TARGET_DIR)
 SYSROOT ?= $(if $(BOARD),/build/$(BOARD),/)
+# The SETUP_BIN is for setup/ in factory bundle, for setting up and preparing
+# images that partners usually run on an x86_64 server (same environment running
+# cros_sdk or chroot). So this is / instead of SYSROOT / ROOT.
 SETUP_BIN_ROOT ?= /
 
 PAR_TEMP_DIR = $(TEMP_DIR)/par
