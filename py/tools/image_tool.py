@@ -1523,7 +1523,7 @@ class CreatePreflashImageCommand(SubCommand):
           test_image=self.args.test_image,
           toolkit=self.args.toolkit,
           factory_shim=None,
-          firmware=None,
+          enable_firmware=False,
           hwid=self.args.hwid,
           complete=None)
       new_size = bundle.CreateDiskImage(
