@@ -6,19 +6,25 @@
 
 Description
 -----------
-A test to confirm SKU information, then apply SKU or model specific settings.
-And there are two modes:
+This test performs the following tasks,
 
-1. manually ask to operator to confirm SKU information.
-2. automatically compare SKU information with device data - component.sku.
+1. If ``set_sku_id`` is True, set SKU ID from device data to EEPROM.
+2. Confirm SKU information and apply SKU or model specific settings, and there
+   are two modes:
 
-If device data - component.sku is set then this test will go to automatic mode
+  - automatically compare SKU information with device data ``component.sku``.
+  - manually ask to operator to confirm SKU information.
+
+If ``set_sku_id`` is True, then device data ``component.sku`` must be set then
+this test will set the SKU ID to EEPROM by using ectool cbi.
+
+If device data ``component.sku`` is set then this test will go to automatic mode
 or manual mode will be executed.
 
-This is a test to verify hardware root of trust, so there's no options to
-set auto verification for this test. Instead, either it relies on the operator
-to check manually or compares with device data from shopfloor which would need
-to be configured in advance.
+This is a test to verify hardware root of trust when ``set_sku_id`` is False.
+There's no options to set auto verification for this test. Instead, either it
+relies on the operator to check manually or compares with device data from
+shopfloor which would need to be configured in advance.
 
 After the SKU is confirmed, the test will load a JSON configuration specified by
 ``config_name``. The config should be a dictionary containing what device data
@@ -53,6 +59,7 @@ And then asks OP to press ENTER/ESC to confirm if these values are correct.
 Dependency
 ----------
 - ``mosys`` utility.
+- ``ectool`` utility.
 
 Examples
 --------
@@ -61,9 +68,19 @@ To ask OP to confirm sku information, add this in test list::
   {
     "pytest_name": "model_sku"
   }
+
+To set device data ``component.sku`` to EEPROM, add this in test list::
+
+  {
+    "pytest_name": "model_sku",
+    "args": {
+      "set_sku_id": true
+    }
+  }
 """
 
 import logging
+import re
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -87,6 +104,8 @@ class PlatformSKUModelTest(test_case.TestCase):
   ARGS = [
       Arg('config_name', basestring,
           'Name of JSON config to load for setting device data.', default=None),
+      Arg('set_sku_id', bool,
+          'Set the SKU ID in the device data to EEPROM.', default=False),
   ]
 
   def setUp(self):
@@ -144,10 +163,60 @@ class PlatformSKUModelTest(test_case.TestCase):
         output = output.strip()
       self._platform[arg] = output
 
-  def runTest(self):
-    self.GetPlatformData()
 
-    if self.CheckByDeviceData():
+  def SetToEEPROM(self):
+    SKU_ID_TYPE = 2
+
+    def GetSKUIDFromEEPROM():
+      # Usage: ectool cbi get <type> [get_flag]
+      # <type> is one of 0: BOARD_VERSION, 1: OEM_ID, 2: SKU_ID
+      cbi_output = self._dut.CallOutput('ectool cbi get %d', SKU_ID_TYPE)
+      # The output from ectool cbi get is 'SKU_ID: %u (0x%x)\n' % (val, val)
+      match = re.search(r'SKU_ID: ([0-9]+) \(0x[0-9a-fA-F]+\)', cbi_output)
+      if match:
+        return int(match.group(1))
+      else:
+        self.FailTask('Is the format of the output from "ectool cbi get" '
+                      'changed?')
+
+    def GetSKUIDFromDeviceData():
+      device_data_sku = device_data.GetDeviceData(_KEY_COMPONENT_SKU)
+      if device_data_sku is None:
+        self.FailTask('No SKU ID in device data (%s)' % _KEY_COMPONENT_SKU)
+      elif isinstance(device_data_sku, int):
+        return device_data_sku
+      elif isinstance(device_data_sku, basestring):
+        # This can covert both 10-based and 16-based starting with '0x'.
+        return int(device_data_sku, 0)
+      else:
+        self.FailTask('The SKU ID in device-data is not an integer')
+
+    new_sku_id = GetSKUIDFromDeviceData()
+    old_sku_id = GetSKUIDFromEEPROM()
+    if old_sku_id == new_sku_id:
       return
 
+    # The data size can't be greater than 3.  See http://b/79514391 .
+    if new_sku_id > 2**16 - 1:
+      self.FailTask('SKU ID (%d) should not be greater than UINT16_MAX (%d)' %
+                    (new_sku_id, 2**16 - 1))
+    # The data size should be 1, 2 or 4.  See
+    # https://chromium.googlesource.com/chromiumos/platform/ec/+/master/util/cbi-util.c#140
+    data_size = 1 if new_sku_id <= 2**8 - 1 else 2
+    # TODO(chuntsen): Use OEM ID to validate SKU ID in device data.
+    logging.info('Setting the new SKU_ID to EEPROM (%d -> %d)',
+                 old_sku_id, new_sku_id)
+    # Usage: ectool cbi set <type> <value> <size> [set_flag]
+    # <type> is one of 0: BOARD_VERSION, 1: OEM_ID, 2: SKU_ID
+    # <value> is integer to be set. No raw data support yet.
+    # <size> is the size of the data.
+    self._dut.CheckCall('ectool cbi set %d %s %d' %
+                        (SKU_ID_TYPE, new_sku_id, data_size))
+
+  def runTest(self):
+    if self.args.set_sku_id:
+      self.SetToEEPROM()
+    self.GetPlatformData()
+    if self.CheckByDeviceData():
+      return
     self.CheckByOperator()
