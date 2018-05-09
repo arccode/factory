@@ -298,7 +298,7 @@ def main():
                             USB_ROOT_OUTPUT_DIR + ' when booted '
                             'from USB'))
   parser.add_argument('--mount', action='store_true',
-                      help=('when booted from USD, only '
+                      help=('when booted from USB, only '
                             "mount encrypted SSD and exit (don't save logs)"))
   parser.add_argument('--usb', action='store_true',
                       help=('save logs to a USB stick (using any mounted '
