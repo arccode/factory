@@ -302,7 +302,8 @@ class LinuxBoard(types.DeviceBoard):
     return self.link.Push(local, remote)
 
   @type_utils.Overrides
-  def Popen(self, command, stdin=None, stdout=None, stderr=None, log=False):
+  def Popen(self, command, stdin=None, stdout=None, stderr=None, cwd=None,
+            log=False):
     """Executes a command on target device using subprocess.Popen convention.
 
     This function should be the single entry point for invoking link.Shell
@@ -314,6 +315,7 @@ class LinuxBoard(types.DeviceBoard):
       stdin: A file object to override standard input.
       stdout: A file object to override standard output.
       stderr: A file object to override standard error.
+      cwd: The working directory for the command.
       log: True (for logging.info) or a logger object to keep logs before
           running the command.
 
@@ -323,7 +325,8 @@ class LinuxBoard(types.DeviceBoard):
     if log:
       logger = logging.info if log is True else log
       logger('%s Running: %r', type(self), command)
-    return self.link.Shell(command, stdin, stdout, stderr)
+    return self.link.Shell(command, cwd=cwd,
+                           stdin=stdin, stdout=stdout, stderr=stderr)
 
   @type_utils.Overrides
   def Glob(self, pattern):

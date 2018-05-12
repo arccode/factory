@@ -116,7 +116,8 @@ class SystemInterface(object):
     """
     return shutil.copy(local, remote)
 
-  def Popen(self, command, stdin=None, stdout=None, stderr=None, log=False):
+  def Popen(self, command, stdin=None, stdout=None, stderr=None, cwd=None,
+            log=False):
     """Executes a command on target device using subprocess.Popen convention.
 
     Args:
@@ -124,6 +125,7 @@ class SystemInterface(object):
       stdin: A file object to override standard input.
       stdout: A file object to override standard output.
       stderr: A file object to override standard error.
+      cwd: The working directory for the command.
       log: True (for logging.info) or a logger object to keep logs before
           running the command.
 
@@ -136,8 +138,8 @@ class SystemInterface(object):
 
     if not isinstance(command, basestring):
       command = ' '.join(pipes.quote(param) for param in command)
-    return subprocess.Popen(command, shell=True, close_fds=True, stdin=stdin,
-                            stdout=stdout, stderr=stderr)
+    return subprocess.Popen(command, cwd=cwd, shell=True, close_fds=True,
+                            stdin=stdin, stdout=stdout, stderr=stderr)
 
   def Call(self, *args, **kargs):
     """Executes a command on target device, using subprocess.call convention.
@@ -151,7 +153,8 @@ class SystemInterface(object):
     process.wait()
     return process.returncode
 
-  def CheckCall(self, command, stdin=None, stdout=None, stderr=None, log=False):
+  def CheckCall(self, command,
+                stdin=None, stdout=None, stderr=None, cwd=None, log=False):
     """Executes a command on device, using subprocess.check_call convention.
 
     Args:
@@ -159,6 +162,9 @@ class SystemInterface(object):
       stdin: A file object to override standard input.
       stdout: A file object to override standard output.
       stderr: A file object to override standard error.
+      cwd: The working directory for the command.
+      log: True (for logging.info) or a logger object to keep logs before
+          running the command.
 
     Returns:
       Exit code from executed command.
@@ -166,12 +172,13 @@ class SystemInterface(object):
     Raises:
       CalledProcessError if the exit code is non-zero.
     """
-    exit_code = self.Call(command, stdin, stdout, stderr, log)
+    exit_code = self.Call(
+        command, stdin=stdin, stdout=stdout, stderr=stderr, cwd=cwd, log=log)
     if exit_code != 0:
       raise CalledProcessError(returncode=exit_code, cmd=command)
     return exit_code
 
-  def CheckOutput(self, command, stdin=None, stderr=None, log=False):
+  def CheckOutput(self, command, stdin=None, stderr=None, cwd=None, log=False):
     """Executes a command on device, using subprocess.check_output convention.
 
     Args:
@@ -179,6 +186,9 @@ class SystemInterface(object):
       stdin: A file object to override standard input.
       stdout: A file object to override standard output.
       stderr: A file object to override standard error.
+      cwd: The working directory for the command.
+      log: True (for logging.info) or a logger object to keep logs before
+          running the command.
 
     Returns:
       The output on STDOUT from executed command.
@@ -187,7 +197,8 @@ class SystemInterface(object):
       CalledProcessError if the exit code is non-zero.
     """
     with tempfile.TemporaryFile() as stdout:
-      exit_code = self.Call(command, stdin, stdout, stderr, log)
+      exit_code = self.Call(
+          command, stdin=stdin, stdout=stdout, stderr=stderr, cwd=cwd, log=log)
       stdout.flush()
       stdout.seek(0)
       output = stdout.read()

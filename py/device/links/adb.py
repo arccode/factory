@@ -95,7 +95,7 @@ class ADBLink(types.DeviceLink):
     subprocess.check_output(['adb', 'pull', remote, local],
                             stderr=subprocess.STDOUT)
 
-  def Shell(self, command, stdin=None, stdout=None, stderr=None):
+  def Shell(self, command, stdin=None, stdout=None, stderr=None, cwd=None):
     """See DeviceLink.Shell"""
     # ADB shell does not provide interactive shell, which means we are not
     # able to send stdin data in an interactive way (
@@ -110,6 +110,8 @@ class ADBLink(types.DeviceLink):
     # multiple commands in same session (and needs shell=True).
     if not isinstance(command, basestring):
       command = ' '.join(pipes.quote(param) for param in command)
+    if cwd:
+      command = 'cd %s ; %s' % (pipes.quote(cwd), command)
 
     # ADB protocol currently mixes stderr and stdout in same channel (i.e., the
     # stdout by adb command has both stderr and stdout from device) so we do

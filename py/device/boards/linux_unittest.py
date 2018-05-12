@@ -60,27 +60,42 @@ class LinuxTargetTest(unittest.TestCase):
     self.link.Push = mock.MagicMock(side_effect=fakePush)
     self.dut.WriteFile('/non-exist', 'TEST')
 
+  def testPopen(self):
+    self.link.Shell = mock.MagicMock()
+    self.assertEquals(self.dut.Popen(['ls']), self.link.Shell.return_value)
+    self.link.Shell.assert_called_with(
+        ['ls'], cwd=None, stdin=None, stdout=None, stderr=None)
+
+    self.link.Shell = mock.MagicMock()
+    self.assertEquals(self.dut.Popen('ls', cwd='/'),
+                      self.link.Shell.return_value)
+    self.link.Shell.assert_called_with(
+        'ls', cwd='/', stdin=None, stdout=None, stderr=None)
+
   def testCall(self):
     self.link.Shell = mock.MagicMock(return_value=MockProcess(1))
     self.assertEquals(self.dut.Call(['ls']), 1)
-    self.link.Shell.assert_called_with(['ls'], None, None, None)
+    self.link.Shell.assert_called_with(
+        ['ls'], cwd=None, stdin=None, stdout=None, stderr=None)
 
   def testCheckCall(self):
     self.link.Shell = mock.MagicMock(return_value=MockProcess(0))
     self.assertEquals(self.dut.CheckCall(['ls']), 0)
-    self.link.Shell.assert_called_with(['ls'], None, None, None)
+    self.link.Shell.assert_called_with(
+        ['ls'], cwd=None, stdin=None, stdout=None, stderr=None)
 
     self.link.Shell = mock.MagicMock(return_value=MockProcess(1))
     with self.assertRaises(types.CalledProcessError):
       self.dut.CheckCall(['ls'])
-    self.link.Shell.assert_called_with(['ls'], None, None, None)
+    self.link.Shell.assert_called_with(
+        ['ls'], cwd=None, stdin=None, stdout=None, stderr=None)
 
   def testCheckOutput(self):
-    def fakeCallSuccess(command, stdin, stdout, stderr, log):
+    def fakeCallSuccess(command, cwd, stdin, stdout, stderr, log):
       # pylint: disable=unused-argument
       stdout.write('fake data')
       return 0
-    def fakeCallFailure(command, stdin, stdout, stderr, log):
+    def fakeCallFailure(command, cwd, stdin, stdout, stderr, log):
       # pylint: disable=unused-argument
       stdout.write('fake data')
       return 1
@@ -91,11 +106,11 @@ class LinuxTargetTest(unittest.TestCase):
       self.dut.CheckOutput(['cmd'])
 
   def testCallOutput(self):
-    def fakeCallSuccess(command, stdin, stdout, stderr, log):
+    def fakeCallSuccess(command, cwd, stdin, stdout, stderr, log):
       # pylint: disable=unused-argument
       stdout.write('fake data')
       return 0
-    def fakeCallFailure(command, stdin, stdout, stderr, log):
+    def fakeCallFailure(command, cwd, stdin, stdout, stderr, log):
       # pylint: disable=unused-argument
       stdout.write('fake data')
       return 1

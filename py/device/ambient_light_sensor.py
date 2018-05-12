@@ -102,8 +102,8 @@ class AmbientLightSensorController(sensor_utils.BasicSensorController):
     """Froce als to apply the vpd value."""
     try:
       device_name = os.path.basename(self._iio_path)
-      self._device.CheckCall('/lib/udev/light-init.sh', device_name,
-                             'illuminance')
+      self._device.CheckCall('/lib/udev/light-init.sh',
+                             stdin=device_name, stdout='illuminance')
     except Exception as e:
       logging.exception('Failed to invoke light-init.sh (%s, illuminance)',
                         device_name)

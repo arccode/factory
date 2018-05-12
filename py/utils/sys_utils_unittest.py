@@ -268,12 +268,12 @@ class MountDeviceAndReadFileTest(unittest.TestCase):
     # executes commands as root.
     # The reason why we don't use 'sudo' in MountPartition() is to make our code
     # more general. Because some Android devices don't have 'sudo'.
-    def _SudoShell(command, stdin=None, stdout=None, stderr=None):
+    def _SudoShell(command, stdin=None, stdout=None, stderr=None, cwd=None):
       if isinstance(command, basestring):
         command = ['sudo', 'sh', '-c', command]
       else:
         command = ['sudo'] + command
-      return subprocess.Popen(command,
+      return subprocess.Popen(command, cwd=cwd,
                               close_fds=True, stdin=stdin,
                               stdout=stdout, stderr=stderr)
     self.dut.link.Shell = _SudoShell
