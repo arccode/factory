@@ -12,18 +12,22 @@ by one, and fail if any of the return value is non-zero.
 By default the commands are executed on DUT (specified by Device API). If you
 need to run on station (usually local), set argument ``is_station`` to True.
 
+The working directory for the commands is given by argument ``working_dir``,
+which default is ``.``, i.e. the current working directory.  Set
+``working_dir=None`` if you want this test to create a temporary working
+directory and remove it after the test is finished.
+
 If argument ``attachment_name`` is specified, the log files specified from
 argument ``attachment_path`` will be archived (using tar+gz) and uploaded as an
 attachment via TestLog.
 
-If ``attachment_path`` is empty, the archive is created by running the commands
-in a temporary folder and then collecting all files created there. In other
-words, we are doing something like this shell script:
+If ``attachment_path`` is empty, the command working directory will be
+used.  In other words, we are doing something like this shell script:
 
 .. code-block:: bash
 
    #!/bin/sh
-   DIR="$(mktemp -d)"
+   DIR="${WORKING_DIR:-$(mktemp -d)}"
    TARBALL="$(mktemp --suffix=.tar.gz)"
    ( cd "${DIR}"; "$@"; tar -zcf "${TARBALL}" ./ )
    echo "Log is generated in ${TARBALL}."
@@ -32,7 +36,8 @@ And ``$@`` will be replaced by the ``commands`` argument. To test if your logs
 will be created properly, save the snippet above as ``test.sh``, then run it
 with your commands, for example::
 
-  ./test.sh /usr/local/factory/third_party/some_command some_arg
+  (WORKING_DIR=somewhere ./test.sh
+   /usr/local/factory/third_party/some_command some_arg)
 
 Test Procedure
 --------------
@@ -83,6 +88,19 @@ files in TestLog attachment::
   {
     "pytest_name": "exec_shell",
     "args": {
+      "working_dir": None,
+      "commands": "echo test >some.output",
+      "attachment_name": "logtest"
+    }
+  }
+
+Echo a message and dump into an existing folder then save the files in TestLog
+attachment::
+
+  {
+    "pytest_name": "exec_shell",
+    "args": {
+      "working_dir": "/usr/local/factory/my_log",
       "commands": "echo test >some.output",
       "attachment_name": "logtest"
     }
@@ -118,15 +136,19 @@ class ExecShell(test_case.TestCase):
           ('Run the given commands on station (usually local host) instead of '
            'DUT, for example preparing connection configuration.'),
           default=False),
+      Arg('working_dir', (type(None), str),
+          ('Path name of the working directory for running the commands. '
+           'If set to ``None``, a temporary directory will be used.'),
+          default='.'),
       Arg('attachment_name', str,
           ('File base name for collecting and creating testlog attachment. '
            'None to skip creating attachments.'),
-          None),
+          default=None),
       Arg('attachment_path', str,
           ('Source path for collecting logs to create testlog attachment. '
            'None to run commands in a temporary folder and attach everything '
            'created, otherwise tar everything from given path.'),
-          None)
+          default=None)
   ]
 
   @staticmethod
@@ -164,12 +186,11 @@ class ExecShell(test_case.TestCase):
           name=('%s.tar.gz' % name),
           mime_type='application/gzip')
 
-  def RunCommand(self, command):
+  def RunCommand(self, cwd, command):
     self.ui.SetInstruction(self._DisplayedCommand(command))
 
-    process = self._dut.Popen(command,
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE)
+    process = self._dut.Popen(
+        command, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     handles = {
         'stdout': process.stdout,
         'stderr': process.stderr,
@@ -194,7 +215,6 @@ class ExecShell(test_case.TestCase):
     return process.returncode
 
   def setUp(self):
-    self._cwd = None
     self.ui.SetTitle(_('Running shell commands...'))
     self._dut = (device_utils.CreateStationInterface()
                  if self.args.is_station else
@@ -208,26 +228,23 @@ class ExecShell(test_case.TestCase):
     else:
       self._commands = self.args.commands
 
-  def tearDown(self):
-    if self._cwd:
-      self._dut.CheckCall(['rm', '-rf', self._cwd])
-
   def runTest(self):
     self.ui.DrawProgressBar(len(self._commands))
     result = 0
     command = ''
 
-    if self.args.attachment_name and not self.args.attachment_path:
-      # Create a temporary folder.
-      self._cwd = self._dut.temp.mktemp(is_dir=True)
+    if self.args.working_dir is None:
+      cwd = self._dut.temp.mktemp(is_dir=True)
+    else:
+      cwd = self.args.working_dir
+      if not self._dut.path.exists(cwd):
+        self._dut.CheckCall(['mkdir', '-p', cwd])
 
     for command in self._commands:
-      if self._cwd:
-        assert isinstance(command, basestring), (
-            'Temporary attachment_path needs string type commands')
-        command = 'cd %s; %s' % (self._cwd, command)
+      assert isinstance(command, basestring), (
+          'Temporary attachment_path needs string type commands')
 
-      result = self.RunCommand(command)
+      result = self.RunCommand(cwd, command)
       if result != 0:
         testlog.AddFailure(code=result, details='failed command: %r' % command)
         break
@@ -235,7 +252,10 @@ class ExecShell(test_case.TestCase):
 
     if self.args.attachment_name:
       self.SaveAttachments(
-          self.args.attachment_name, self.args.attachment_path or self._cwd)
+          self.args.attachment_name, self.args.attachment_path or cwd)
+
+    if self.args.working_dir is None:
+      self._dut.CheckCall(['rm', '-rf', cwd])
 
     if result != 0:
       # More chance so user can see the error.
