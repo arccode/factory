@@ -102,11 +102,11 @@ const recieveConfig = config => ({
 
 const initializeConfig = () => dispatch => {
   var body = {};
-  dispatch(updateConfig(body));
+  dispatch(fetchConfig(body));
 };
 
 const fetchConfig = () => dispatch => {
-  authorizedFetch('/config/0', {})
+  return authorizedFetch('/config/0', {})
   .then(response => {
     response.json().then(json => {
       dispatch(recieveConfig(json));
@@ -117,18 +117,17 @@ const fetchConfig = () => dispatch => {
   }, error => {
     console.error('error fetching config');
     console.error(error);
-  }).then( () => {
-    dispatch({type: ActionTypes.FINISH_UPDATING_CONFIG});
   });
 };
 
 const updateConfig = body => (dispatch, getState) => {
   dispatch({type: ActionTypes.START_UPDATING_CONFIG});
   var description = 'Update config';
-  dispatch(createTask(
-      description, 'PUT', '/config/0', body,
-      {onFinish: () => dispatch(fetchConfig())}
-  ));
+  dispatch(createTask(description, 'PUT', '/config/0', body, {
+    onFinish: () => dispatch(fetchConfig()).then(() => {
+      dispatch({type: ActionTypes.FINISH_UPDATING_CONFIG});
+    })
+  }));
 };
 
 const enableTFTP = () => dispatch => {
