@@ -1052,7 +1052,7 @@ class GPTCommands(object):
       pmbr = GPT.WriteProtectiveMBR(
           args.image_file, args.pmbr, bootcode=bootcode, boot_guid=boot_guid)
 
-      print(pmbr.boot_guid)
+      print(pmbr.BootGUID)
 
 
   class Legacy(SubCommand):
