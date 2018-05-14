@@ -54,6 +54,10 @@ PART_CROS_STATEFUL = 1
 PART_CROS_KERNEL_A = 2
 # Partition index for Chrome OS rootfs A.
 PART_CROS_ROOTFS_A = 3
+# Partition index for Chrome OS kernel B.
+PART_CROS_KERNEL_B = 4
+# Partition index for Chrome OS rootfs B.
+PART_CROS_ROOTFS_B = 5
 # Special options to mount Chrome OS rootfs partitions. (-t ext2, -o ro).
 FS_TYPE_CROS_ROOTFS = 'ext2'
 # Relative path of firmware updater on Chrome OS disk images.
@@ -83,6 +87,11 @@ DEFAULT_BLOCK_SIZE = pygpt.GPT.DEFAULT_BLOCK_SIZE
 PAYLOAD_COMPONENTS = [
     'release_image', 'test_image',
     'toolkit', 'firmware', 'hwid', 'complete', 'toolkit_config']
+
+
+def MakePartition(block_dev, part):
+  """Helper function to build Linux device path for storage partition."""
+  return '%s%s%s' % (block_dev, 'p' if block_dev[-1].isdigit() else '', part)
 
 
 class ArgTypes(object):
@@ -235,12 +244,13 @@ class SysUtils(object):
 
   @staticmethod
   def PartialCopy(src_path, dest_path, count, src_offset=0, dest_offset=0,
-                  buffer_size=32 * MEGABYTE, verbose=None):
+                  buffer_size=32 * MEGABYTE, sync=False, verbose=None):
     """Copy partial contents from one file to another file, like 'dd'."""
     with open(src_path, 'rb') as src:
       if verbose is None:
         verbose = count / buffer_size > 5
       with open(dest_path, 'r+b') as dest:
+        fd = dest.fileno()
         src.seek(src_offset)
         dest.seek(dest_offset)
         remains = count
@@ -248,6 +258,9 @@ class SysUtils(object):
           data = src.read(min(remains, buffer_size))
           dest.write(data)
           remains -= len(data)
+          if sync:
+            dest.flush()
+            os.fdatasync(fd)
           if verbose:
             sys.stderr.write('.')
     if verbose:
@@ -350,6 +363,18 @@ class GPT(pygpt.GPT):
         auto_umount: True to un-mount when leaving context.
         silent: True to hide all warning and error messages.
       """
+      if GPT.IsBlockDevice(self.image):
+        try:
+          mount_dev = MakePartition(self.image, self.number)
+          mounted_dir = Shell(['lsblk', '-n', '-o', 'MOUNTPOINT', mount_dev],
+                              output=True).strip()
+          if mounted_dir:
+            logging.debug('Already mounted: %s', self)
+            yield mounted_dir
+            return
+        except Exception:
+          pass
+
       options = options or []
       if isinstance(options, basestring):
         options = [options]
@@ -472,7 +497,7 @@ class GPT(pygpt.GPT):
             new_size / MEGABYTE if new_size else '(ALL)')
       return real_size
 
-    def Copy(self, dest, check_equal=True):
+    def Copy(self, dest, check_equal=True, sync=False, verbose=False):
       """Copies one partition to another partition.
 
       Args:
@@ -488,8 +513,10 @@ class GPT(pygpt.GPT):
           raise RuntimeError(
               'Source partition (%s) is larger than destination (%s).' %
               (self.size, dest.size))
+      if verbose:
+        logging.info('Copying partition %s => %s...', self, dest)
       SysUtils.PartialCopy(self.image, dest.image, self.size, self.offset,
-                           dest.offset)
+                           dest.offset, sync=sync)
 
 
 def Partition(image, number):
@@ -1914,6 +1941,100 @@ class CreateDockerImageCommand(SubCommand):
 
     print('OK: Successfully built docker image [%s] from %s.' %
           (docker_name, self.args.image))
+
+
+class InstallChromiumOSImageCommand(SubCommand):
+  """Installs a Chromium OS disk image into inactive partition.
+
+  This command takes a Chromium OS (USB) disk image, installs into current
+  device (should be a Chromium OS device) and switches boot records to try
+  the newly installed kernel.
+  """
+  name = 'install'
+
+  def Init(self):
+    self.subparser.add_argument(
+        '-i', '--image', type=ArgTypes.ExistsPath, required=True,
+        help='path to a Chromium OS disk image or USB stick device')
+    self.subparser.add_argument(
+        '-o', '--output', type=ArgTypes.ExistsPath, required=False,
+        help=('install to given path of a disk image or USB stick device; '
+              'default to boot disk'))
+    self.subparser.add_argument(
+        '-p', '--partition_number', type=int, required=False,
+        help=('kernel partition number to install (rootfs will be +1); '
+              'default to %s or %s if active kernel is %s.' % (
+                  PART_CROS_KERNEL_A, PART_CROS_KERNEL_B,
+                  PART_CROS_KERNEL_A)))
+
+  def Run(self):
+    # TODO(hungte) Auto-detect by finding removable and fixed storage for from
+    # and to.
+    from_image = self.args.image
+    to_image = self.args.output
+    arg_part = self.args.partition_number
+    to_part = arg_part if arg_part is not None else PART_CROS_KERNEL_A
+    sync = False
+
+    if to_image is None:
+      to_image = SudoOutput('rootdev -s -d').strip()
+
+    if GPT.IsBlockDevice(to_image):
+      sync = True
+      # to_part refers to kernel but rootdev -s refers to rootfs.
+      to_rootfs = MakePartition(to_image, to_part + 1)
+      if to_rootfs == SudoOutput('rootdev -s').strip():
+        if arg_part is not None:
+          raise RuntimeError(
+              'Cannot install to active partition %s' % to_rootfs)
+        known_kernels = [PART_CROS_KERNEL_A, PART_CROS_KERNEL_B]
+        if to_part not in known_kernels:
+          raise RuntimeError(
+              'Unsupported kernel destination for %s' % to_rootfs)
+        to_part = known_kernels[1 - known_kernels.index(to_part)]
+
+    # Ready to install!
+    gpt_from = GPT.LoadFromFile(from_image)
+    gpt_to = GPT.LoadFromFile(to_image)
+
+    # On USB stick images, kernel A is signed by recovery key and B is signed by
+    # normal key, so we have to choose B when installed to disk.
+    print('Installing [%s] to [%s#%s]...' % (from_image, to_image, to_part))
+    gpt_from.GetPartition(PART_CROS_KERNEL_B).Copy(
+        gpt_to.GetPartition(to_part), sync=sync, verbose=True)
+    gpt_from.GetPartition(PART_CROS_ROOTFS_A).Copy(
+        gpt_to.GetPartition(to_part + 1),
+        check_equal=False, sync=sync, verbose=True)
+    if not sync:
+      print('Syncing...')
+      Shell('sync')
+
+    # Now, prioritize and make kernel A bootable.
+    # TODO(hungte) Check if kernel key is valid.
+    pri_cmd = pygpt.GPTCommands.Prioritize()
+    pri_cmd.ExecuteCommandLine('-i', str(to_part), to_image)
+
+    # TODO(hungte) Do partition copy if stateful in to_image is not mounted.
+    # Mount and copy files in stateful partition.
+    with gpt_from.GetPartition(PART_CROS_STATEFUL).Mount() as from_dir:
+      dev_image_from = os.path.join(from_dir, 'dev_image')
+      if os.path.exists(dev_image_from):
+        with gpt_to.GetPartition(PART_CROS_STATEFUL).Mount(rw=True) as to_dir:
+          dev_image_old = os.path.join(to_dir, 'dev_image.old')
+          dev_image_to = os.path.join(to_dir, 'dev_image')
+          if os.path.exists(dev_image_old):
+            logging.warn('Removing %s...', dev_image_old)
+            Sudo(['rm', '-rf', dev_image_old])
+          if os.path.exists(dev_image_to):
+            Sudo(['mv', dev_image_to, dev_image_old])
+          # Use sudo instead of shutil.copytree sine people may invoke this
+          # command with user permission (which works for copying partitions).
+          # SysUtils.Sudo does not support pipe yet so we have to add 'sh -c'.
+          Sudo(['sh', '-c', 'tar -C %s -cvf - dev_image | tar -C %s -xf -' %
+                (from_dir, to_dir)])
+
+    print('OK: Successfully installed image from [%s] to [%s].' %
+          (from_image, to_image))
 
 
 class EditLSBCommand(SubCommand):
