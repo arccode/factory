@@ -75,7 +75,7 @@ var DashboardApp = React.createClass({
                 </div>
                 <Subheader>Services</Subheader>
                 <Divider/>
-                  <ServiceList/>
+                <ServiceList/>
               </div>}
             </List>
           </CardText>

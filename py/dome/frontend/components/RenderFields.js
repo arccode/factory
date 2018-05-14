@@ -77,7 +77,7 @@ const renderArray = ({fields, schema}) => (
 );
 
 renderArray.propTypes = {
-  schema: React.PropTypes.array.isRequired,
+  schema: React.PropTypes.object.isRequired,
   ...fieldArrayPropTypes
 };
 
