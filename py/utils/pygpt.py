@@ -969,13 +969,28 @@ class GPTCommands(object):
       raise NotImplementedError
 
     def Execute(self, args):
-      """Execute the command.
+      """Execute the command with parsed arguments.
+
+      To execute with raw arguments, use ExecuteCommandLine instead.
 
       Args:
         args: An argparse parsed namespace.
       """
       del args  # Unused.
       raise NotImplementedError
+
+    def ExecuteCommandLine(self, *args):
+      """Execute as invoked from command line.
+
+      This provides an easy way to execute particular sub command without
+      creating argument parser explicitly.
+
+      Args:
+        args: a list of string type command line arguments.
+      """
+      parser = argparse.ArgumentParser()
+      self.DefineArgs(parser)
+      return self.Execute(parser.parse_args(args))
 
   class Create(SubCommand):
     """Create or reset GPT headers and tables.
