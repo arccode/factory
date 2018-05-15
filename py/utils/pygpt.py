@@ -1036,7 +1036,7 @@ class GPTCommands(object):
         args.image_file.seek(0)
         args.image_file.write('\0' * block_size * gpt.header.FirstUsableLBA)
       gpt.WriteToFile(args.image_file)
-      print('OK: Created GPT for %s' % args.image_file.name)
+      return 'Created GPT for %s' % args.image_file.name
 
   class Boot(SubCommand):
     """Edit the PMBR sector for legacy BIOSes.
@@ -1069,7 +1069,7 @@ class GPTCommands(object):
           args.image_file, args.pmbr, bootcode=bootcode, boot_guid=boot_guid)
 
       print(pmbr.BootGUID)
-
+      return 0
 
   class Legacy(SubCommand):
     """Switch between GPT and Legacy GPT.
@@ -1103,11 +1103,11 @@ class GPTCommands(object):
         gpt.header.Update(Signature=new_signature)
       gpt.WriteToFile(args.image_file)
       if args.primary_ignore:
-        print('OK: Set %s primary GPT header to %s.' %
-              (args.image_file.name, gpt.header.SIGNATURE_IGNORE))
+        return ('Set %s primary GPT header to %s.' %
+                (args.image_file.name, gpt.header.SIGNATURE_IGNORE))
       else:
-        print('OK: Changed GPT signature for %s to %s.' %
-              (args.image_file.name, new_signature))
+        return ('Changed GPT signature for %s to %s.' %
+                (args.image_file.name, new_signature))
 
   class Repair(SubCommand):
     """Repair damaged GPT headers and tables."""
@@ -1121,7 +1121,7 @@ class GPTCommands(object):
       gpt = GPT.LoadFromFile(args.image_file)
       gpt.Resize(GPT.GetImageSize(args.image_file.name))
       gpt.WriteToFile(args.image_file)
-      print('Disk image file %s repaired.' % args.image_file.name)
+      return 'Disk image file %s repaired.' % args.image_file.name
 
   class Expand(SubCommand):
     """Expands a GPT partition to all available free space."""
@@ -1139,14 +1139,14 @@ class GPTCommands(object):
       old_blocks, new_blocks = gpt.ExpandPartition(args.number)
       gpt.WriteToFile(args.image_file)
       if old_blocks < new_blocks:
-        print(
+        return (
             'Partition %s on disk image file %s has been extended '
             'from %s to %s .' %
             (args.number, args.image_file.name, old_blocks * gpt.block_size,
              new_blocks * gpt.block_size))
       else:
-        print('Nothing to expand for disk image %s partition %s.' %
-              (args.image_file.name, args.number))
+        return ('Nothing to expand for disk image %s partition %s.' %
+                (args.image_file.name, args.number))
 
   class Add(SubCommand):
     """Add, edit, or remove a partition entry.
@@ -1254,11 +1254,11 @@ class GPTCommands(object):
       gpt.WriteToFile(args.image_file)
       if part.IsUnused():
         # If we do ('%s' % part) there will be TypeError.
-        print('OK: Deleted (zeroed) %s.' % (part,))
+        return 'Deleted (zeroed) %s.' % (part,)
       else:
-        print('OK: %s %s (%s+%s).' %
-              ('Added' if is_new_part else 'Modified',
-               part, part.FirstLBA, part.blocks))
+        return ('%s %s (%s+%s).' %
+                ('Added' if is_new_part else 'Modified',
+                 part, part.FirstLBA, part.blocks))
 
   class Show(SubCommand):
     """Show partition table and entries.
@@ -1599,6 +1599,8 @@ def main():
     code = commands.Execute(args)
     if isinstance(code, int):
       sys.exit(code)
+    elif isinstance(code, basestring):
+      print('OK: %s' % code)
   except Exception as e:
     if args.verbose or args.debug:
       logging.exception('Failure in command [%s]', args.command)
