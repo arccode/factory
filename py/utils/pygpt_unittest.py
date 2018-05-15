@@ -223,6 +223,13 @@ class GPTTest(unittest.TestCase):
     VerifyPriorities([3, 1, 2, 1, 0])
     self.gpt_command.RunPyGPT('prioritize', '-i', '4', '-f', self.temp_bin)
     VerifyPriorities([2, 3, 1, 3, 0])
+    self.gpt_command.RunPyGPT('prioritize', '-i', '7', self.temp_bin)
+    VerifyPriorities([2, 3, 1, 3, 4])
+    self.gpt_command.RunPyGPT('add', '-i', '4', '-P', '0', self.temp_bin)
+    self.gpt_command.RunPyGPT('add', '-i', '5', '-P', '0', self.temp_bin)
+    self.gpt_command.RunPyGPT('add', '-i', '6', '-P', '0', self.temp_bin)
+    self.gpt_command.RunPyGPT('prioritize', '-i', '4', self.temp_bin)
+    VerifyPriorities([1, 3, 0, 0, 2])
 
   def testFind(self):
     for cmd in self.init_commands:

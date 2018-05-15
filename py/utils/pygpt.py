@@ -30,6 +30,7 @@ from __future__ import print_function
 
 import argparse
 import binascii
+import itertools
 import logging
 import os
 import stat
@@ -1442,44 +1443,48 @@ class GPTCommands(object):
     def Execute(self, args):
       gpt = GPT.LoadFromFile(args.image_file)
       parts = [p for p in gpt.partitions if p.IsChromeOSKernel()]
-      prios = list(set(p.Attributes.priority for p in parts
-                       if p.Attributes.priority))
-      prios.sort(reverse=True)
-      groups = [[p for p in parts if p.Attributes.priority == priority]
-                for priority in prios]
+      parts.sort(key=lambda p: p.Attributes.priority, reverse=True)
+      groups = dict((k, list(g)) for k, g in itertools.groupby(
+          parts, lambda p: p.Attributes.priority))
       if args.number:
         p = gpt.GetPartition(args.number)
         if p not in parts:
           raise GPTError('%s is not a ChromeOS kernel.' % p)
+        pri = p.Attributes.priority
+        friends = groups.pop(pri)
+        new_pri = max(groups) + 1
         if args.friends:
-          group0 = [f for f in parts
-                    if f.Attributes.priority == p.Attributes.priority]
+          groups[new_pri] = friends
         else:
-          group0 = [p]
-        groups.insert(0, group0)
+          groups[new_pri] = [p]
+          friends.remove(p)
+          if friends:
+            groups[pri] = friends
+
+      if 0 in groups:
+        # Do not change any partitions with priority=0
+        groups.pop(0)
+
+      prios = groups.keys()
+      prios.sort(reverse=True)
 
       # Max priority is 0xf.
       highest = min(args.priority or len(prios), 0xf)
       logging.info('New highest priority: %s', highest)
-      done = []
 
-      new_priority = highest
-      for g in groups:
-        has_new_part = False
-        for p in g:
-          if p.number in done:
-            continue
-          done.append(p.number)
+      for i, pri in enumerate(prios):
+        new_priority = max(1, highest - i)
+        for p in groups[pri]:
           attrs = p.Attributes
           old_priority = attrs.priority
-          assert new_priority > 0, 'Priority must be > 0.'
+          if old_priority == new_priority:
+            continue
           attrs.priority = new_priority
+          if attrs.tries < 1 and not attrs.successful:
+            attrs.tries = 15  # Max tries for new active partition.
           p.Update(Attributes=attrs)
-          has_new_part = True
           logging.info('%s priority changed from %s to %s.', p, old_priority,
                        new_priority)
-        if has_new_part:
-          new_priority -= 1
 
       gpt.WriteToFile(args.image_file)
 
