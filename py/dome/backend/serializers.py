@@ -66,6 +66,8 @@ class ProjectSerializer(serializers.ModelSerializer):
   umpire_add_existing_one = serializers.BooleanField(
       write_only=True, required=False)
 
+  is_umpire_recent = serializers.ReadOnlyField()
+
   class Meta(object):
     model = Project
     read_only_fields = ('umpire_version', )

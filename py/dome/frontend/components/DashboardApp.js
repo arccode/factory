@@ -41,10 +41,8 @@ var DashboardApp = React.createClass({
     } = this.props;
 
     const styles = {
-      regularText: {
-        fontSize: 1 + 'em',
-        margin: 1 + 'em',
-        lineHeight: 1.5 + 'em'
+      warningText: {
+        color: 'red'
       }
     };
 
@@ -69,10 +67,18 @@ var DashboardApp = React.createClass({
               <div>
                 <Subheader>Info</Subheader>
                 <Divider/>
-                <div style={styles.regularText}>
-                  <div>host: {project.get('umpireHost')}</div>
-                  <div>port: {project.get('umpirePort')}</div>
-                </div>
+                {!project.get('isUmpireRecent') &&
+                <ListItem style={styles.warningText} disabled={true}>
+                  The umpire instance is using an old version of umpire, and
+                  may not function properly, please restart it by disabling and
+                  re-enabling it.
+                </ListItem>}
+                <ListItem disabled={true}>
+                  host: {project.get('umpireHost')}
+                </ListItem>
+                <ListItem disabled={true}>
+                  port: {project.get('umpirePort')}
+                </ListItem>
                 <Subheader>Services</Subheader>
                 <Divider/>
                 <ServiceList/>

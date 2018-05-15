@@ -32,6 +32,7 @@ import rest_framework.exceptions
 import rest_framework.status
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.umpire import common as umpire_common
 from cros.factory.umpire.server import resource as umpire_resource
 from cros.factory.umpire.server.service import umpire_service
 from cros.factory.utils import file_utils
@@ -344,6 +345,10 @@ class Project(django.db.models.Model):
 
   class Meta(object):
     ordering = ['name']
+
+  @property
+  def is_umpire_recent(self):
+    return self.umpire_version == umpire_common.UMPIRE_CLI_RPC_VERSION
 
   @staticmethod
   def GetProjectByName(project_name):

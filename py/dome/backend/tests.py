@@ -213,7 +213,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
             'umpireEnabled': True,
             'umpireHost': UMPIRE_HOST,
             'umpirePort': UMPIRE_PORT,
-            'umpireVersion': self.MOCK_UMPIRE_VERSION
+            'umpireVersion': self.MOCK_UMPIRE_VERSION,
+            'isUmpireRecent': True
         })
 
     # no docker commands should be called
@@ -248,7 +249,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
             'umpireHost': None,
             'umpirePort': None,
             'umpireVersion': None,
-            'netbootBundle': None
+            'netbootBundle': None,
+            'isUmpireRecent': False
         })
 
     # no docker commands should be called
@@ -309,7 +311,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
             'umpireHost': None,
             'umpirePort': None,
             'umpireVersion': None,
-            'netbootBundle': None
+            'netbootBundle': None,
+            'isUmpireRecent': False
         })
 
     # make sure the container has also been removed
@@ -327,7 +330,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
             'umpireHost': None,
             'umpirePort': None,
             'umpireVersion': None,
-            'netbootBundle': None
+            'netbootBundle': None,
+            'isUmpireRecent': False
         })
 
     # nothing should be changed and nothing should be called
@@ -352,7 +356,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
             'umpireHost': 'localhost',
             'umpirePort': UMPIRE_PORT,
             'umpireVersion': self.MOCK_UMPIRE_VERSION,
-            'netbootBundle': None
+            'netbootBundle': None,
+            'isUmpireRecent': True
         })
 
     # make sure docker run has been called

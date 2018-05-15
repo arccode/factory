@@ -229,6 +229,7 @@ const updateProject = (name, settings = {}) => (dispatch, getState) => {
       project: {
         name,
         umpireVersion: json['umpireVersion'],
+        isUmpireRecent: json['isUmpireRecent'],
         umpireReady: json['umpireEnabled']
       }
     });
