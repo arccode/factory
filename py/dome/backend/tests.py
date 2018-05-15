@@ -229,7 +229,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
                                        8090)
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_400_BAD_REQUEST)
-    self.assertTrue('does not exist' in response.json()['detail'])
+    self.assertIn('does not exist', response.json()['detail'])
 
     # no docker commands should be called
     self.mocks['subprocess.call'].assert_not_called()

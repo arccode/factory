@@ -50,7 +50,7 @@ class UploadedFileSerializer(serializers.ModelSerializer):
       validated_data['file'].close()
 
 
-class ProjectSerializer(serializers.Serializer):
+class ProjectSerializer(serializers.ModelSerializer):
 
   name = serializers.ModelField(
       model_field=Project._meta.get_field('name'),  # pylint: disable=W0212
@@ -61,32 +61,14 @@ class ProjectSerializer(serializers.Serializer):
               regex=r'^%s$' % common.PROJECT_NAME_RE,
               message='Invalid project name')])
 
-  umpire_enabled = serializers.ModelField(
-      model_field=(
-          Project._meta.get_field('umpire_enabled')),  # pylint: disable=W0212
-      required=False)
-  umpire_host = serializers.ModelField(
-      model_field=Project._meta.get_field(  # pylint: disable=W0212
-          'umpire_host'),
-      required=False)
-  umpire_port = serializers.ModelField(
-      model_field=Project._meta.get_field(  # pylint: disable=W0212
-          'umpire_port'),
-      required=False)
-  umpire_version = serializers.ModelField(
-      model_field=Project._meta.get_field(  # pylint: disable=W0212
-          'umpire_version'),
-      required=False,
-      read_only=True)
-  netboot_bundle = serializers.ModelField(
-      model_field=Project._meta.get_field(  # pylint: disable=W0212
-          'netboot_bundle'),
-      required=False)
-
   # True means the user is trying to add an existing Umpire container; False
   # means the user asked to create a new one
   umpire_add_existing_one = serializers.BooleanField(
       write_only=True, required=False)
+
+  class Meta(object):
+    model = Project
+    read_only_fields = ('umpire_version', )
 
   def create(self, validated_data):
     """Override parent's method."""
@@ -152,7 +134,7 @@ class BundleSerializer(serializers.Serializer):
     return Bundle.ModifyOne(project_name, bundle_name, **data)
 
 
-class ServiceSerializer(serializers.Serializer):
+class ServiceSerializer(serializers.ModelSerializer):
 
   class Meta(object):
     model = Service

@@ -335,7 +335,7 @@ class Project(django.db.models.Model):
   # TODO(littlecvr): max_length should be shared with Umpire and serializer
   name = django.db.models.CharField(max_length=200, primary_key=True)
   umpire_enabled = django.db.models.BooleanField(default=False)
-  umpire_host = django.db.models.GenericIPAddressField(null=True)
+  umpire_host = django.db.models.CharField(max_length=128, null=True)
   umpire_port = django.db.models.PositiveIntegerField(null=True)
   umpire_version = django.db.models.PositiveIntegerField(null=True)
   netboot_bundle = django.db.models.CharField(max_length=200, null=True)
