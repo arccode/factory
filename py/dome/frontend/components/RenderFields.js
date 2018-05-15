@@ -105,6 +105,7 @@ var RenderFields = React.createClass({
           case 'string':
             return (
               <Field
+                key={k}
                 name={k}
                 component={renderTextField}
                 label={k}
@@ -114,43 +115,39 @@ var RenderFields = React.createClass({
             );
           case 'integer':
             return (
-              <div>
-                <Field
-                  name={k}
-                  component={renderTextField}
-                  label={k}
-                  description={s.get('description')}
-                  normalize={toNumber}
-                  type='number'
-                />
-              </div>
+              <Field
+                key={k}
+                name={k}
+                component={renderTextField}
+                label={k}
+                description={s.get('description')}
+                normalize={toNumber}
+                type='number'
+              />
             );
           case 'boolean':
             return (
-              <div>
-                <Field
-                  name={k}
-                  component={renderToggle}
-                  label={k}
-                  normalize={setFalse}
-                />
-              </div>
+              <Field
+                key={k}
+                name={k}
+                component={renderToggle}
+                label={k}
+                normalize={setFalse}
+              />
             );
           case 'object':
             return (
-              <div>
-                <FormSection name={k}>
-                  <p>{k}</p>
-                  <Divider/>
-                  <RenderFields
-                    schema={s}
-                  />
-                </FormSection>
-              </div>
+              <FormSection name={k} key={k}>
+                <p>{k}</p>
+                <Divider/>
+                <RenderFields
+                  schema={s}
+                />
+              </FormSection>
             );
           case 'array':
             return (
-              <div>
+              <div key={k}>
                 <p>{k}</p>
                 <Divider/>
                 <FieldArray

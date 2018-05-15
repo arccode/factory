@@ -31,11 +31,6 @@ var ServiceList = React.createClass({
       updateService
     } = this.props;
 
-    const divStyle = {
-      backgroundColor: '#fafafa',
-      padding: 0.5 + 'em'
-    };
-
     return (
       <div>
         {schemata.keySeq().sort().map((k, i) => {
@@ -48,18 +43,18 @@ var ServiceList = React.createClass({
           }
           return (
             <ListItem
+              key={k}
               primaryText={k}
               primaryTogglesNestedList={true}
               nestedItems={[
-                <div style={divStyle}>
-                  <ServiceForm
-                    onSubmit={values => updateService(k, values)}
-                    form={k}
-                    schema={schema}
-                    initialValues={service.toJS()}
-                    enableReinitialize={true}
-                  />
-                </div>
+                <ServiceForm
+                  key='form'
+                  onSubmit={values => updateService(k, values)}
+                  form={k}
+                  schema={schema}
+                  initialValues={service.toJS()}
+                  enableReinitialize={true}
+                />
               ]}
             />
           );
