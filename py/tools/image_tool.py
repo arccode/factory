@@ -139,7 +139,7 @@ class SysUtils(object):
 
     caller = subprocess.check_output if output else subprocess.check_call
     if sudo and os.geteuid() != 0:
-      commands = 'sudo ' + commands
+      commands = 'sudo -E ' + commands
     if silent:
       commands += ' >/dev/null 2>&1'
     if not check:
