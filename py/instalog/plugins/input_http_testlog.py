@@ -52,6 +52,8 @@ $ curl -i -X POST \
 
 from __future__ import print_function
 
+import datetime
+
 import instalog_common  # pylint: disable=unused-import
 from instalog import plugin_base
 from instalog.plugins import input_http
@@ -59,6 +61,7 @@ from instalog.testlog import testlog
 
 
 class InputHTTPTestlog(input_http.InputHTTP):
+
   def _CheckFormat(self, event):
     """Checks the event is following the Testlog format and sets attachments.
 
@@ -80,6 +83,10 @@ class InputHTTPTestlog(input_http.InputHTTP):
     # This will raise exception when the event is invalid.
     testlog.EventBase.FromDict(event.payload)
     event['__testlog__'] = True
+
+    # The time on the DUT is not reliable, so we are going to use the time on
+    # the factory server.
+    event['time'] = datetime.datetime.utcnow()
 
 
 if __name__ == '__main__':

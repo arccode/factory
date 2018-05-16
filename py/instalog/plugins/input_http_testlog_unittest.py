@@ -8,6 +8,7 @@
 
 from __future__ import print_function
 
+import datetime
 import logging
 import os
 import shutil
@@ -60,7 +61,7 @@ class TestInputHTTPTestlog(unittest.TestCase):
         'uuid': '8b127476-2604-422a-b9b1-f05e4f14bf72',
         'type': 'station.test_run',
         'apiVersion': '0.1',
-        'time': '2017-01-05T13:01:45.503Z',
+        'time': {'value': '2017-01-05T13:01:45.503Z', '__type__': 'datetime'},
         'testRunId': '8b127472-4593-4be8-9e94-79f228fc1adc',
         'testName': 'the_test',
         'testType': 'aaaa',
@@ -68,6 +69,18 @@ class TestInputHTTPTestlog(unittest.TestCase):
         'status': 'PASSED',
         'startTime': '2017-01-05T13:01:45.489Z',
     })
+
+  def testCorrectTime(self):
+    event = self._ValidStationTestRunEvent()
+    data = {'event': datatypes.Event.Serialize(event)}
+    time_check = datetime.datetime.utcnow()
+    r = self._RequestsPost(files=data, multi_event=False)
+    logging.info(r.reason)
+    self.assertEqual(200, r.status_code)
+    self.assertEqual(1, len(self.core.emit_calls))
+    self.assertEqual(1, len(self.core.emit_calls[0]))
+    self.assertNotEqual(self.core.emit_calls[0][0]['time'], event['time'])
+    self.assertGreater(self.core.emit_calls[0][0]['time'], time_check)
 
   def testInvalidSimpleEvent(self):
     att1 = os.urandom(1024)  # 1kb data
@@ -124,6 +137,8 @@ class TestInputHTTPTestlog(unittest.TestCase):
     self.assertEqual(1, len(self.core.emit_calls[0]))
     # Input HTTP Testlog plugin will auto add __testlog__=True to event
     self.core.emit_calls[0][0].payload.pop('__testlog__')
+    # The time field is corrected.
+    event['time'] = self.core.emit_calls[0][0].payload['time']
     self.assertEqual(event.payload, self.core.emit_calls[0][0].payload)
     with open(self.core.emit_calls[0][0].attachments['att_key1']) as f:
       self.assertEqual(att1, f.read())
@@ -137,6 +152,8 @@ class TestInputHTTPTestlog(unittest.TestCase):
     self.assertEqual(1, len(self.core.emit_calls[0]))
     # input http testlog plugin will auto add __testlog__=True to event
     self.core.emit_calls[0][0].payload.pop('__testlog__')
+    # The time field is corrected.
+    self.core.emit_calls[0][0].payload['time'] = event['time']
     self.assertEqual(event.payload, self.core.emit_calls[0][0].payload)
     event['arguments']['A'] = {'value': 'yoyo'}
     event['arguments']['B'] = {'value': 9.53543, 'description': 'a number'}
@@ -155,6 +172,8 @@ class TestInputHTTPTestlog(unittest.TestCase):
     self.assertEqual(1, len(self.core.emit_calls[1]))
     # Input HTTP Testlog plugin will auto add __testlog__=True to event
     self.core.emit_calls[1][0].payload.pop('__testlog__')
+    # The time field is corrected.
+    self.core.emit_calls[1][0].payload['time'] = event['time']
     self.assertEqual(event.payload, self.core.emit_calls[1][0].payload)
     event['arguments']['D'] = {}
     data = {'event': datatypes.Event.Serialize(event)}

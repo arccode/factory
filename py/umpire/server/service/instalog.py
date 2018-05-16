@@ -16,9 +16,6 @@ from cros.factory.external import yaml
 
 CLI_HOSTNAME = '0.0.0.0'  # Allows remote connections.
 CLI_PORT = 7000
-# TODO(chuntsen): After we implement timestamp sync in Instalog, we can remove
-#                 this comment.
-# If you change the node ID, you should also change the output_bigquery_testlog.
 NODE_ID = 'factory_server'
 SERVICE_NAME = 'instalog'
 KEY_FINGERPRINT_LENGTH = 40
