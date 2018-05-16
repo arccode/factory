@@ -37,8 +37,7 @@ class UploadedFileTest(rest_framework.test.APITestCase):
 
   def testWithUploadedFile(self):
     """The normal use case of UploadedFile."""
-    with models.UploadedFile(self.uploaded_file_id) as f:
-      path = models.UploadedFilePath(f)
+    with models.UploadedFile(self.uploaded_file_id) as path:
       self.assertTrue(os.path.isfile(path))
     self.assertFalse(os.path.exists(path))
 
@@ -48,9 +47,8 @@ class UploadedFileTest(rest_framework.test.APITestCase):
     has already been removed."""
     unlink.side_effect = OSError(errno.ENOENT, 'No such file')
 
-    with models.UploadedFile(self.uploaded_file_id) as f:
+    with models.UploadedFile(self.uploaded_file_id) as path:
       unlink.assert_not_called()
-      path = models.UploadedFilePath(f)
     unlink.assert_called_once_with(path)
 
   @mock.patch('os.unlink')
@@ -70,9 +68,8 @@ class UploadedFileTest(rest_framework.test.APITestCase):
     but will fail if it's not empty, which we don't care."""
     rmdir.side_effect = OSError(errno.ENOTEMPTY, 'Directory not empty')
 
-    with models.UploadedFile(self.uploaded_file_id) as f:
+    with models.UploadedFile(self.uploaded_file_id) as path:
       rmdir.assert_not_called()
-      path = models.UploadedFilePath(f)
     rmdir.assert_called_once_with(os.path.dirname(path))
 
   @mock.patch('os.rmdir')

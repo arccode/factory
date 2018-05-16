@@ -18,7 +18,6 @@ import copy
 import errno
 import logging
 import os
-import shutil
 import socket
 import stat
 import subprocess
@@ -64,6 +63,8 @@ UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER = '/var/db/factory/umpire'
 
 DOCKER_SHARED_TMP_VOLUME = 'cros-docker-shared-tmp-vol'
 SHARED_TMP_DIR = '/tmp/shared'
+SHARED_TMP_STORAGE = django.core.files.storage.FileSystemStorage(
+    location=SHARED_TMP_DIR)
 
 TFTP_DOCKER_DIR = os.getenv(
     'HOST_TFTP_DIR', os.path.join(DOCKER_SHARED_DIR, 'tftp'))
@@ -110,12 +111,17 @@ class DomeServerException(DomeException):
   status_code = rest_framework.status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
+def UploadedFilePath(uploaded_file):
+  """Return path to the uploaded file."""
+  return os.path.join(SHARED_TMP_DIR, uploaded_file.name)
+
+
 @contextlib.contextmanager
 def UploadedFile(temporary_uploaded_file_id):
-  """Get corresponding file object based on its ID."""
+  """Get corresponding file object path based on its ID."""
   f = TemporaryUploadedFile.objects.get(pk=temporary_uploaded_file_id)
   try:
-    yield f.file
+    yield UploadedFilePath(f.file)
   finally:
     f.delete()  # delete the entry in database
     path = UploadedFilePath(f.file)
@@ -129,45 +135,6 @@ def UploadedFile(temporary_uploaded_file_id):
     except OSError as e:
       if e.errno != errno.ENOTEMPTY:  # but don't care if it's not empty
         raise
-
-
-def UploadedFilePath(uploaded_file):
-  """Return path to the uploaded file."""
-  return os.path.join(django.conf.settings.MEDIA_ROOT, uploaded_file.name)
-
-
-@contextlib.contextmanager
-def UmpireAccessibleFile(uploaded_file):
-  """Make a file uploaded from Dome accessible by a specific Umpire container.
-
-  This function:
-  1. Creates a temporary folder in the 'temp' folder.
-  2. Copies the uploaded file to the temporary folder.
-  3. Runs chmod on the folder and file to make sure they are Umpire readable.
-  4. Removes the temporary folder in the end.
-
-  Note that we have to keep the original basename, or Umpire will have problem
-  when extracting bundle archive files. Also, due to the way Umpire Docker is
-  designed, it's not possible to move the file instead of copy now.
-
-  TODO(b/31417203): provide an argument to choose from moving file instead of
-                    copying (after the issue has been solved).
-
-  Args:
-    uploaded_file: file field of TemporaryUploadedFile.
-  """
-  with file_utils.TempDirectory(dir=SHARED_TMP_DIR) as temp_dir:
-    old_path = UploadedFilePath(uploaded_file)
-    new_path = os.path.join(temp_dir, os.path.basename(uploaded_file.name))
-    logger.info('Making file accessible by Umpire, copying %r to %r',
-                old_path, new_path)
-    shutil.copy(old_path, new_path)
-
-    # Make sure they're readable to Umpire.
-    os.chmod(temp_dir, stat.S_IRWXU | stat.S_IROTH | stat.S_IXOTH)
-    os.chmod(new_path, stat.S_IRWXU | stat.S_IROTH | stat.S_IXOTH)
-
-    yield new_path
 
 
 def ReplaceLocalhostWithDockerHostIP(host):
@@ -206,16 +173,15 @@ def GenerateUploadToPath(unused_instance, filename):
   """
   # create media root if needed, or mkdtemp would fail
   try:
-    os.makedirs(django.conf.settings.MEDIA_ROOT)
+    os.makedirs(SHARED_TMP_DIR)
   except OSError as e:
     if e.errno != errno.EEXIST:
       raise
 
   # add a time string as prefix for better debugging experience
   temp_dir = tempfile.mkdtemp(prefix='%s-' % time.strftime('%Y%m%d%H%M%S'),
-                              dir=django.conf.settings.MEDIA_ROOT)
-  path = os.path.relpath(os.path.join(temp_dir, filename),
-                         django.conf.settings.MEDIA_ROOT)
+                              dir=SHARED_TMP_DIR)
+  path = os.path.relpath(os.path.join(temp_dir, filename), SHARED_TMP_DIR)
   logger.info('Uploading file to %r', path)
   return path
 
@@ -320,7 +286,8 @@ class TemporaryUploadedFile(django.db.models.Model):
      in JSON.
   """
 
-  file = django.db.models.FileField(upload_to=GenerateUploadToPath)
+  file = django.db.models.FileField(
+      storage=SHARED_TMP_STORAGE, upload_to=GenerateUploadToPath)
   created = django.db.models.DateTimeField(auto_now_add=True)
 
 
@@ -612,9 +579,8 @@ class Resource(object):
   @staticmethod
   def CreateOne(project_name, type_name, file_id):
     umpire_server = GetUmpireServer(project_name)
-    with UploadedFile(file_id) as f:
-      with UmpireAccessibleFile(f) as p:
-        payloads = umpire_server.AddPayload(p, type_name)
+    with UploadedFile(file_id) as p:
+      payloads = umpire_server.AddPayload(p, type_name)
     return Resource(type_name, payloads[type_name]['version'])
 
 
@@ -858,12 +824,11 @@ class Bundle(object):
       resource_file_id: id of the resource file (id of TemporaryUploadedFile).
     """
     umpire_server = GetUmpireServer(project_name)
-    with UploadedFile(resource_file_id) as f:
-      with UmpireAccessibleFile(f) as p:
-        try:
-          umpire_server.Update([(type_name, p)], bundle_name)
-        except xmlrpclib.Fault as e:
-          raise DomeServerException(detail=e.faultString)
+    with UploadedFile(resource_file_id) as p:
+      try:
+        umpire_server.Update([(type_name, p)], bundle_name)
+      except xmlrpclib.Fault as e:
+        raise DomeServerException(detail=e.faultString)
 
   @staticmethod
   def UploadNew(project_name, bundle_name, bundle_note, bundle_file_id):
@@ -882,17 +847,16 @@ class Bundle(object):
     """
     umpire_server = GetUmpireServer(project_name)
 
-    with UploadedFile(bundle_file_id) as f:
-      with UmpireAccessibleFile(f) as p:
-        try:
-          umpire_server.ImportBundle(p, bundle_name, bundle_note)
-        except xmlrpclib.Fault as e:
-          if 'already in use' in e.faultString:
-            raise DomeClientException(
-                detail='Bundle "%s" already exists' % bundle_name,
-                status_code=rest_framework.status.HTTP_409_CONFLICT)
-          else:
-            raise DomeServerException(detail=e.faultString)
+    with UploadedFile(bundle_file_id) as p:
+      try:
+        umpire_server.ImportBundle(p, bundle_name, bundle_note)
+      except xmlrpclib.Fault as e:
+        if 'already in use' in e.faultString:
+          raise DomeClientException(
+              detail='Bundle "%s" already exists' % bundle_name,
+              status_code=rest_framework.status.HTTP_409_CONFLICT)
+        else:
+          raise DomeServerException(detail=e.faultString)
 
     config = GetUmpireConfig(project_name)
     for ruleset in config['rulesets']:
