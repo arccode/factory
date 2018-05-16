@@ -62,6 +62,9 @@ UMPIRE_DOCKER_DIR = os.getenv(
 UMPIRE_DEFAULT_PROJECT_FILE = '.default_project'
 UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER = '/var/db/factory/umpire'
 
+DOCKER_SHARED_TMP_VOLUME = 'cros-docker-shared-tmp-vol'
+SHARED_TMP_DIR = '/tmp/shared'
+
 TFTP_DOCKER_DIR = os.getenv(
     'HOST_TFTP_DIR', os.path.join(DOCKER_SHARED_DIR, 'tftp'))
 TFTP_BASE_DIR_IN_TFTP_CONTAINER = '/var/tftp'
@@ -134,7 +137,7 @@ def UploadedFilePath(uploaded_file):
 
 
 @contextlib.contextmanager
-def UmpireAccessibleFile(project, uploaded_file):
+def UmpireAccessibleFile(uploaded_file):
   """Make a file uploaded from Dome accessible by a specific Umpire container.
 
   This function:
@@ -151,13 +154,9 @@ def UmpireAccessibleFile(project, uploaded_file):
                     copying (after the issue has been solved).
 
   Args:
-    project: name of the project (used to construct Umpire container's name).
     uploaded_file: file field of TemporaryUploadedFile.
   """
-  # TODO(b/31417203): Use volume container or named volume instead of
-  #                   UMPIRE_BASE_DIR.
-  with file_utils.TempDirectory(
-      dir=os.path.join(UMPIRE_BASE_DIR, project, 'temp')) as temp_dir:
+  with file_utils.TempDirectory(dir=SHARED_TMP_DIR) as temp_dir:
     old_path = UploadedFilePath(uploaded_file)
     new_path = os.path.join(temp_dir, os.path.basename(uploaded_file.name))
     logger.info('Making file accessible by Umpire, copying %r to %r',
@@ -168,13 +167,7 @@ def UmpireAccessibleFile(project, uploaded_file):
     os.chmod(temp_dir, stat.S_IRWXU | stat.S_IROTH | stat.S_IXOTH)
     os.chmod(new_path, stat.S_IRWXU | stat.S_IROTH | stat.S_IXOTH)
 
-    # The temp file:
-    #   in Dome:   ${UMPIRE_BASE_DIR}/${project}/temp/${temp_dir}/${name}
-    #   in Umpire: ${UMPIRE_BASE_DIR}/temp/${temp_dir}/${name}
-    # so need to remove "${project}/"
-    tokens = new_path.split('/')
-    del tokens[-4]
-    yield '/'.join(tokens)
+    yield new_path
 
 
 def ReplaceLocalhostWithDockerHostIP(host):
@@ -516,6 +509,7 @@ class Project(django.db.models.Model):
           '--volume', '%s/%s:%s' % (UMPIRE_DOCKER_DIR,
                                     self.name,
                                     UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER),
+          '--volume', '%s:%s' % (DOCKER_SHARED_TMP_VOLUME, SHARED_TMP_DIR),
           '--publish', '%d:%d' % (port, UMPIRE_BASE_PORT),
           '--publish', '%d:%d' % (port + UMPIRE_RPC_PORT_OFFSET,
                                   UMPIRE_BASE_PORT + UMPIRE_RPC_PORT_OFFSET),
@@ -619,7 +613,7 @@ class Resource(object):
   def CreateOne(project_name, type_name, file_id):
     umpire_server = GetUmpireServer(project_name)
     with UploadedFile(file_id) as f:
-      with UmpireAccessibleFile(project_name, f) as p:
+      with UmpireAccessibleFile(f) as p:
         payloads = umpire_server.AddPayload(p, type_name)
     return Resource(type_name, payloads[type_name]['version'])
 
@@ -865,7 +859,7 @@ class Bundle(object):
     """
     umpire_server = GetUmpireServer(project_name)
     with UploadedFile(resource_file_id) as f:
-      with UmpireAccessibleFile(project_name, f) as p:
+      with UmpireAccessibleFile(f) as p:
         try:
           umpire_server.Update([(type_name, p)], bundle_name)
         except xmlrpclib.Fault as e:
@@ -889,7 +883,7 @@ class Bundle(object):
     umpire_server = GetUmpireServer(project_name)
 
     with UploadedFile(bundle_file_id) as f:
-      with UmpireAccessibleFile(project_name, f) as p:
+      with UmpireAccessibleFile(f) as p:
         try:
           umpire_server.ImportBundle(p, bundle_name, bundle_note)
         except xmlrpclib.Fault as e:

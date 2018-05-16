@@ -135,6 +135,9 @@ HOST_OVERLORD_DIR="${HOST_SHARED_DIR}/overlord"
 HOST_OVERLORD_CONFIG_DIR="${HOST_OVERLORD_DIR}/config"
 HOST_GOOFY_DIR="${HOST_SHARED_DIR}/goofy"
 
+# Shared temporary volume between Dome and Umpire.
+HOST_SHARED_TMP_VOLUME="cros-docker-shared-tmp-vol"
+
 # Publish tools
 PREBUILT_IMAGE_SITE="https://storage.googleapis.com"
 PREBUILT_IMAGE_DIR_URL="${PREBUILT_IMAGE_SITE}/chromeos-localmirror/distfiles"
@@ -156,6 +159,8 @@ DOCKER_INSTALOG_DIR="${DOCKER_BASE_DIR}/py/instalog"
 
 DOCKER_OVERLORD_DIR="${DOCKER_BASE_DIR}/bin/overlord"
 DOCKER_OVERLORD_CONFIG_DIR="${DOCKER_OVERLORD_DIR}/config"
+
+DOCKER_SHARED_TMP_DIR="/tmp/shared"
 
 # Umpire's db directory mount point in Dome
 DOCKER_UMPIRE_DIR_IN_DOME="/var/db/factory/umpire"
@@ -272,6 +277,7 @@ do_umpire_run() {
     ${DOCKER_LOCALTIME_VOLUME} \
     --volume "${HOST_SHARED_DIR}:/mnt" \
     --volume "${UMPIRE_CONTAINER_DIR}:${docker_db_dir}" \
+    --volume "${HOST_SHARED_TMP_VOLUME}:${DOCKER_SHARED_TMP_DIR}" \
     --publish "${p1}:${umpire_base_port}" \
     --publish "${p2}:${umpire_cli_port}" \
     --publish "${p3}:${umpire_rsync_port}" \
@@ -755,6 +761,7 @@ do_run() {
     --volume "${host_log_dir}:${docker_log_dir}" \
     --volume "${HOST_TFTP_DIR}:${DOCKER_TFTP_DIR_IN_DOME}" \
     --volume "${HOST_UMPIRE_DIR}:${DOCKER_UMPIRE_DIR_IN_DOME}" \
+    --volume "${HOST_SHARED_TMP_VOLUME}:${DOCKER_SHARED_TMP_DIR}" \
     ${DOCKER_LOCALTIME_VOLUME} \
     --workdir "${DOCKER_DOME_DIR}" \
     "${DOCKER_IMAGE_NAME}" \

@@ -134,7 +134,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
     cls.PROJECT_WITH_UMPIRE_NAME = 'project_with_umpire'
     cls.PROJECT_WITH_UMPIRE_HOST = 'localhost'
     cls.PROJECT_WITH_UMPIRE_PORT = 8080
-    cls.MOCK_UMPIRE_VERSION = 1
+    cls.MOCK_UMPIRE_VERSION = 2
 
     models.Project.objects.create(name=cls.PROJECT_WITHOUT_UMPIRE_NAME)
     models.Project.objects.create(name=cls.PROJECT_WITH_UMPIRE_NAME,
@@ -142,11 +142,9 @@ class DomeAPITest(rest_framework.test.APITestCase):
                                   umpire_host=cls.PROJECT_WITH_UMPIRE_HOST,
                                   umpire_port=cls.PROJECT_WITH_UMPIRE_PORT)
 
-    # We need the Umpire folder, and we need the temp folder to upload either
-    # bundle or resource files. Taking advantage of makedirs() here to create
-    # both of them at once.
     os.makedirs(os.path.join(
-        models.UMPIRE_BASE_DIR, cls.PROJECT_WITH_UMPIRE_NAME, 'temp'))
+        models.UMPIRE_BASE_DIR, cls.PROJECT_WITH_UMPIRE_NAME))
+    os.makedirs(models.SHARED_TMP_DIR)
 
   def setUp(self):
     self.maxDiff = None  # developer friendly setting
