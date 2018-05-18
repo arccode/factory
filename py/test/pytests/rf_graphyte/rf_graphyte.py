@@ -27,9 +27,28 @@ This is an automated test without user interaction.
 
 Dependency
 ----------
-- Python pip package
-- `Graphyte framework <https://chromium.googlesource.com/chromiumos/graphyte/>`_
-- Graphyte plugins for the target DUT and test instrument.
+Need Graphyte framework with DUT and instrument plugins. This can be easily done
+by deploying a RF bundle. First, you need to make a RF bundle as follows.
+
+.. code-block:: bash
+
+   # Inside Chromium chroot
+   cros_workon --board <board> start graphyte-<board>
+   emerge-<board> graphyte-<board>
+   ls /build/<board>/var/lib/graphyte/rf_bundle_*.tar.gz
+
+This will generate the RF bundle named ``rf_bundle_*.tar.gz``. Copy this to
+target machine, and install Graphyte by:
+
+.. code-block:: bash
+
+   mkdir -p /tmp/graphyte
+   cd /tmp/graphyte
+   tar xvf /path/to/rf_bundle_xxx.tar.gz
+   ./install_graphyte.sh
+   # Choose (Y) to install Graphyte to another folder
+   # Press (Enter) to install Graphyte to /usr/local
+   rm -rf /tmp/graphyte
 
 Examples
 --------
