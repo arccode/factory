@@ -7,6 +7,7 @@ This folder contains various tools to help developer's life easier.
 - i18n/: Tools for helping internationalization. Currently a tool for
     [migrating legacy test list](i18n/migrate_test_lists/README.md) is
     providede.
-- instalog/: Tools for finding information on Google Cloud.
+- [instalog/](instalog/README.md): Tools for finding information on Google
+    Cloud.
 - mk/: Scripts for top level Makefile to use.
 - [vim/](vim/README.md): Scripts to help programming within VIM editor.

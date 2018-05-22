@@ -18,38 +18,43 @@ import os
 import shutil
 import string
 import subprocess
+import sys
 
 
 DATE_FORMAT = '%Y%m%d%H%M%S'
 HASH_FILE_READ_BLOCK_SIZE = 1024 * 64  # 64kb
 GSUTIL_TEST_PERMISSION_PATH = 'gs://chromeos-localmirror-private/testing/'
+PROJECT_ID = 'chromeos-factory'
 DEFAULT_START_TIME = '1970-01-01'
 DEFAULT_END_TIME = '2100-12-31'
-DEFAULT_TARGET_DIR = './factory_attachments'
+DEFAULT_TARGET_DIR = 'factory_attachments'
 DEFAULT_BQ_PATH = 'bq'
 DEFAULT_GSUTIL_PATH = 'gsutil'
 DEFAULT_SERIAL_NUMBER_KEY = 'serial_number'
 
 
 def CheckVersion(args):
+  print('Checking your gsutil version...')
   subprocess.check_call([args.gsutil_path, '--version'])
-  print('Checking your gsutil permission....')
+  print('Checking your Storage permission...')
   subprocess.check_call([args.gsutil_path, 'ls',
-                         GSUTIL_TEST_PERMISSION_PATH])
+                         'gs://%s/%s' % (PROJECT_ID, args.dataset_id)])
 
+  print('Checking your bq version...')
   subprocess.check_call([args.bq_path, 'version'])
-  print('Checking your BigQuery permission and BigQuery dataset ID....')
+  print('Checking your BigQuery permission and BigQuery dataset ID...')
   subprocess.check_call([args.bq_path, 'show',
-                         '--project_id', 'chromeos-factory',
+                         '--project_id', PROJECT_ID,
                          '--dataset_id', args.dataset_id])
   print()
 
 
 def RunQuery(args):
+  # We don't use parameterized query because the web UI doesn't support it.
   query_statement_words = [
       'SELECT',
       '    attachment.path AS remote,',
-      '    FORMAT_TIMESTAMP("%s", startTime) AS start_time,',
+      '    FORMAT_TIMESTAMP("%s", time) AS server_time,',
       '    attachment.key AS attachment_key,',
       '    (',
       '        SELECT serialNumber.value',
@@ -57,36 +62,43 @@ def RunQuery(args):
       '        WHERE serialNumber.key="%s"',
       '    ) AS serial_number',
       'FROM',
-      '    `chromeos-factory.%s.testlog_events` AS data,',
+      '    `%s.%s.testlog_events` AS data,',
       '    UNNEST(data.attachments) AS attachment',
       'WHERE',
       '    attachment.key LIKE "%%%s%%" AND',
-      '    history[OFFSET(2)].time > TIMESTAMP("%s") AND',
-      '    history[OFFSET(2)].time < TIMESTAMP("%s")']
+      '    time >= TIMESTAMP("%s") AND',
+      '    time < TIMESTAMP("%s")']
   query_statement = string.join(query_statement_words, '\n')
-  query = query_statement % (DATE_FORMAT, args.serial_number_key,
-                             args.dataset_id, args.attachment_key,
-                             args.start_date, args.end_date)
+  query = query_statement % (
+      DATE_FORMAT, args.serial_number_key, PROJECT_ID, args.dataset_id,
+      args.attachment_key, args.start_date, args.end_date)
 
-  print('Execute the query, you can also copy-paste the follwing query to\n'
+  print('Execute the query, you can also copy-paste the following query to\n'
         'https://bigquery.cloud.google.com')
   print('-' * 37 + 'QUERY' + '-' * 38 + '\n' + query + '\n' + '-' * 80 + '\n')
 
-  result_json = subprocess.check_output([args.bq_path, 'query',
-                                         '--max_rows', '1000000',
-                                         '--nouse_legacy_sql',
-                                         '--format', 'json', query])
+  p = subprocess.Popen(
+      [args.bq_path, 'query', '--max_rows', '1000000', '--nouse_legacy_sql',
+       '--format', 'json'],
+      stdin=subprocess.PIPE,
+      stdout=subprocess.PIPE)
+  result_json, stderrdata = p.communicate(query)
+  if p.returncode:
+    print('Query Failed!')
+    print(stderrdata)
+    sys.exit(1)
   print()
 
   return result_json
 
 
 def Download(args, results):
+  tmp_dir = os.path.join(args.target_dir, 'tmp')
   commands = [args.gsutil_path, '-m', 'cp', '-n']
   for row in results:
-    row['tmp'] = os.path.join('tmp', row['remote'].split('/')[-1])
+    row['tmp'] = os.path.join(tmp_dir, row['remote'].split('/')[-1])
     commands.append(row['remote'])
-  commands.append('tmp')
+  commands.append(tmp_dir)
   subprocess.check_call(commands)
 
 
@@ -98,14 +110,16 @@ def FileHash(path):
   return file_hash.hexdigest()
 
 
-def CopyAndDelete(results):
+def CopyAndDelete(args, results):
+  tmp_dir = os.path.join(args.target_dir, 'tmp')
   for row in results:
-    local = '%s_%s_%s_%s' % (row['start_time'], row['attachment_key'],
-                             row['serial_number'] or 'NoSerialNumber',
-                             FileHash(row['tmp']))
+    file_name = '%s_%s_%s_%s' % (row['server_time'], row['attachment_key'],
+                                 row['serial_number'] or 'NoSerialNumber',
+                                 FileHash(row['tmp']))
+    local = os.path.join(args.target_dir, file_name)
     print(row['remote'] + ' --> ' + local)
     shutil.copyfile(row['tmp'], local)
-  shutil.rmtree('tmp')
+  shutil.rmtree(tmp_dir)
 
 
 def main():
@@ -118,48 +132,47 @@ def main():
              '  (2) authorize gcloud by "gcloud init" or "gcloud auth login"')
   parser.add_argument(
       'dataset_id',
-      help='The BigQuery dataset ID.')
+      help='The BigQuery dataset ID.  Example: a01')
   parser.add_argument(
       'attachment_key',
-      help='The attachment key.')
+      help='The attachment key.  Example: TESTID')
   parser.add_argument(
       '--start_date', '-s', default=DEFAULT_START_TIME,
-      help='The start of date. Default: %s' % DEFAULT_START_TIME)
+      help='The start of date.  Default: %s' % DEFAULT_START_TIME)
   parser.add_argument(
       '--end_date', '-e', default=DEFAULT_END_TIME,
-      help='The end of date. Default: %s' % DEFAULT_END_TIME)
+      help='The end of date.  Default: %s' % DEFAULT_END_TIME)
   parser.add_argument(
       '--target_dir', '-t', default=DEFAULT_TARGET_DIR,
-      help='The target directory. Default: %s' % DEFAULT_TARGET_DIR)
+      help='The target directory.  Default: %s' % DEFAULT_TARGET_DIR)
   parser.add_argument(
       '--bq_path', '-b', default=DEFAULT_BQ_PATH,
-      help='The bq path. Default: %s' % DEFAULT_BQ_PATH)
+      help='The bq path.  Default: %s' % DEFAULT_BQ_PATH)
   parser.add_argument(
       '--gsutil_path', '-g', default=DEFAULT_GSUTIL_PATH,
-      help='The gsutil path. Default: %s' % DEFAULT_GSUTIL_PATH)
+      help='The gsutil path.  Default: %s' % DEFAULT_GSUTIL_PATH)
   parser.add_argument(
       '--serial_number_key', '-sn', default=DEFAULT_SERIAL_NUMBER_KEY,
-      help='The key of the serial number to put in the file name. '
+      help='The key of the serial number to put in the file name.  '
            'Default: %s' % DEFAULT_SERIAL_NUMBER_KEY)
   args = parser.parse_args()
 
   CheckVersion(args)
 
   result_json = RunQuery(args).strip()
-  if not result_json:
+
+  results = json.loads(result_json)
+  if not results:
     print('Query returned zero records.\n'
           'Done!')
     return
-
-  results = json.loads(result_json)
   print('Found %d files!\n' % len(results))
 
   if not os.path.isdir(os.path.join(args.target_dir, 'tmp')):
     os.makedirs(os.path.join(args.target_dir, 'tmp'))
-  os.chdir(args.target_dir)
 
   Download(args, results)
-  CopyAndDelete(results)
+  CopyAndDelete(args, results)
 
   print('Done!')
 
