@@ -39,6 +39,12 @@ class GenerateBOMFromProbedResultsTest(unittest.TestCase):
                        'comp_cls_2': ['comp_2_default'],
                        'comp_cls_3': []})
 
+    # When allow_mismatched_components=True, don't use the default components
+    bom = probe.GenerateBOMFromProbedResults(
+        self.database, {}, {}, {}, common.OPERATION_MODE.normal, True)[0]
+    self.assertEquals(
+        bom.components, {'comp_cls_1': [], 'comp_cls_2': [], 'comp_cls_3': []})
+
   def testSomeComponentMismatched(self):
     probed_results = {
         'comp_cls_1': [

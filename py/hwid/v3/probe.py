@@ -57,6 +57,20 @@ def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
         return False
     return True
 
+  def _GetDefaultComponent(comp_cls):
+    if allow_mismatched_components:
+      return None
+
+    default_comp = database.GetDefaultComponent(comp_cls)
+
+    # Always ignore the unsupported default components.
+    if default_comp is not None:
+      default_comp_info = database.GetComponents(comp_cls)[default_comp]
+      if default_comp_info.status == common.COMPONENT_STATUS.unsupported:
+        default_comp = None
+
+    return default_comp
+
   # Construct a dict of component classes to list of component names.
   matched_components = {comp_cls: []
                         for comp_cls in database.GetComponentClasses()}
@@ -65,13 +79,7 @@ def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
                            if comp_cls not in matched_components}
 
   for comp_cls in database.GetComponentClasses():
-    default_comp = database.GetDefaultComponent(comp_cls)
-
-    # Always ignore the unsupported default components.
-    if default_comp is not None:
-      default_comp_info = database.GetComponents(comp_cls)[default_comp]
-      if default_comp_info.status == common.COMPONENT_STATUS.unsupported:
-        default_comp = None
+    default_comp = _GetDefaultComponent(comp_cls)
 
     for probed_comp in probed_results.get(comp_cls, []):
       for comp_name, comp_info in database.GetComponents(
