@@ -68,7 +68,13 @@
   },
   "display_panel": {
     "generic": {
-      "eval": "edid"
+      "eval": "edid",
+      "keys": [
+        "vendor",
+        "product_id",
+        "width",
+        "height"
+      ]
     }
   },
   "dram": {
