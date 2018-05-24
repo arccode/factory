@@ -10,20 +10,21 @@ function baseURL(getState) {
 }
 
 const updateService = (name, config) => (dispatch, getState) => {
-  dispatch({
-    type: ActionTypes.UPDATE_SERVICE,
-    name,
-    config
-  });
+  const data = {[name]: config};
 
-  var data = {};
-  data[name] = config;
+  const description = `update "${name}" service`;
+  // TODO(pihsun): Make DomeAction.createTask returns a Promise instead, to
+  // simplify this.
+  return new Promise(
+      (resolve, reject) => dispatch(DomeActions.createTask(
+          description, 'PUT', `${baseURL(getState)}/services`, data, {
+            onFinish: () => {
+              dispatch({type: ActionTypes.UPDATE_SERVICE, name, config});
+              resolve();
+            },
+            onCancel: reject
+          })));
 
-  var description = `update "${name}" service`;
-  dispatch(DomeActions.createTask(
-      description, 'PUT',
-      `${baseURL(getState)}/services`, data
-  ));
 };
 
 const fetchServiceSchemata = () => (dispatch, getState) => {
