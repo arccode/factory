@@ -2,42 +2,44 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import ChipInput from 'material-ui-chip-input';
 import Immutable from 'immutable';
+import ChipInput from 'material-ui-chip-input';
+import {
+  Table, TableBody, TableHeaderColumn, TableRow, TableRowColumn,
+} from 'material-ui/Table';
+import PropTypes from 'prop-types';
 import React from 'react';
-import {Table, TableBody, TableHeaderColumn,
-        TableRow, TableRowColumn} from 'material-ui/Table';
 
-var RuleTable = React.createClass({
-  propTypes: {
-    rules: React.PropTypes.instanceOf(Immutable.Map).isRequired,
-    changeRules: React.PropTypes.func.isRequired
-  },
+class RuleTable extends React.Component {
+  static propTypes = {
+    rules: PropTypes.instanceOf(Immutable.Map).isRequired,
+    changeRules: PropTypes.func.isRequired,
+  };
 
-  handleAdd(key, value) {
-    var rules = this.props.rules.toJS();
+  handleAdd = (key, value) => {
+    const rules = this.props.rules.toJS();
     if (!(key in rules)) {
       rules[key] = [];
     }
     rules[key].push(value);
     this.props.changeRules(rules);
-  },
+  };
 
-  handleDelete(key, value) {
-    var rules = this.props.rules.toJS();
-    var index = rules[key].indexOf(value);
+  handleDelete = (key, value) => {
+    const rules = this.props.rules.toJS();
+    const index = rules[key].indexOf(value);
     if (index >= 0) {
       rules[key].splice(index, 1);
       this.props.changeRules(rules);
     }
-  },
+  };
 
-  render: function() {
+  render() {
     // make sure every key exists
-    var rules = this.props.rules.mergeDeep(Immutable.fromJS({
+    const rules = this.props.rules.mergeDeep(Immutable.fromJS({
       'macs': [],
       'serialNumbers': [],
-      'mlbSerialNumbers': []
+      'mlbSerialNumbers': [],
     })).toJS();
 
     return (
@@ -48,8 +50,8 @@ var RuleTable = React.createClass({
             <TableRowColumn>
               <ChipInput
                 value={rules['macs']}
-                onRequestAdd={m => this.handleAdd('macs', m)}
-                onRequestDelete={m => this.handleDelete('macs', m)}
+                onRequestAdd={(m) => this.handleAdd('macs', m)}
+                onRequestDelete={(m) => this.handleDelete('macs', m)}
               />
             </TableRowColumn>
           </TableRow>
@@ -58,8 +60,8 @@ var RuleTable = React.createClass({
             <TableRowColumn>
               <ChipInput
                 value={rules['serialNumbers']}
-                onRequestAdd={s => this.handleAdd('serialNumbers', s)}
-                onRequestDelete={s => this.handleDelete('serialNumbers', s)}
+                onRequestAdd={(s) => this.handleAdd('serialNumbers', s)}
+                onRequestDelete={(s) => this.handleDelete('serialNumbers', s)}
               />
             </TableRowColumn>
           </TableRow>
@@ -68,9 +70,9 @@ var RuleTable = React.createClass({
             <TableRowColumn>
               <ChipInput
                 value={rules['mlbSerialNumbers']}
-                onRequestAdd={s => this.handleAdd('mlbSerialNumbers', s)}
+                onRequestAdd={(s) => this.handleAdd('mlbSerialNumbers', s)}
                 onRequestDelete={
-                  s => this.handleDelete('mlbSerialNumbers', s)
+                  (s) => this.handleDelete('mlbSerialNumbers', s)
                 }
               />
             </TableRowColumn>
@@ -79,6 +81,6 @@ var RuleTable = React.createClass({
       </Table>
     );
   }
-});
+}
 
 export default RuleTable;

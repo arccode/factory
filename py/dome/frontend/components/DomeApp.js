@@ -2,25 +2,27 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {amber300} from 'material-ui/styles/colors';
-import {connect} from 'react-redux';
+import Immutable from 'immutable';
 import Divider from 'material-ui/Divider';
 import Drawer from 'material-ui/Drawer';
-import Immutable from 'immutable';
-import Measure from 'react-measure';
 import MenuItem from 'material-ui/MenuItem';
-import React from 'react';
+import {amber300} from 'material-ui/styles/colors';
 import Subheader from 'material-ui/Subheader';
+import PropTypes from 'prop-types';
+import React from 'react';
+import Measure from 'react-measure';
+import {connect} from 'react-redux';
 
+import DomeActions from '../actions/domeactions';
 import AppNames from '../constants/AppNames';
-import LoginApp from './LoginApp';
-import ProjectsApp from './ProjectsApp';
+
 import BundlesApp from './BundlesApp';
 import ConfigApp from './ConfigApp';
 import DashboardApp from './DashboardApp';
-import DomeActions from '../actions/domeactions';
 import ErrorDialog from './ErrorDialog';
 import FixedAppBar from './FixedAppBar';
+import LoginApp from './LoginApp';
+import ProjectsApp from './ProjectsApp';
 import TaskList from './TaskList';
 
 const _APP_MENU_WIDTH = 250;
@@ -28,12 +30,12 @@ const _PROJECT_MENU_ITEM_PADDING_LEFT = 36;
 const _SPACE_BEFORE_TASK_LIST = 24;
 const _SPACE_AFTER_TASK_LIST = 24;
 
-const EmphasizedString = props => (
+const EmphasizedString = (props) => (
   <span style={{fontWeight: 'bold', color: amber300}}>{props.children}</span>
 );
 
 EmphasizedString.propTypes = {
-  children: React.PropTypes.node.isRequired
+  children: PropTypes.node.isRequired,
 };
 
 const DomeAppBarTitle = () => (
@@ -45,53 +47,51 @@ const DomeAppBarTitle = () => (
   </span>
 );
 
-var DomeApp = React.createClass({
-  propTypes: {
-    isLoggedIn: React.PropTypes.bool.isRequired,
-    appName: React.PropTypes.string.isRequired,
-    project: React.PropTypes.instanceOf(Immutable.Map).isRequired,
-    testAuthToken: React.PropTypes.func.isRequired,
-    switchApp: React.PropTypes.func.isRequired
-  },
+class DomeApp extends React.Component {
+  static propTypes = {
+    isLoggedIn: PropTypes.bool.isRequired,
+    appName: PropTypes.string.isRequired,
+    project: PropTypes.instanceOf(Immutable.Map).isRequired,
+    testAuthToken: PropTypes.func.isRequired,
+    switchApp: PropTypes.func.isRequired,
+  };
 
-  handleClick(nextApp) {
+  state = {
+    appBarHeight: 0,
+    appMenuOpened: true,
+    taskListCollapsed: false,
+    taskListHeight: 0,
+  };
+
+  handleClick = (nextApp) => {
     // close the drawer
     this.props.switchApp(nextApp);
-  },
+  };
 
-  setTaskListCollapsed(collapsed) {
+  setTaskListCollapsed = (collapsed) => {
     this.setState({taskListCollapsed: collapsed});
-  },
+  };
 
-  toggleAppMenu() {
+  toggleAppMenu = () => {
     this.setState({appMenuOpened: !this.state.appMenuOpened});
-  },
-
-  getInitialState() {
-    return {
-      appBarHeight: 0,
-      appMenuOpened: true,
-      taskListCollapsed: false,
-      taskListHeight: 0
-    };
-  },
+  };
 
   componentDidMount() {
     this.props.testAuthToken();
-  },
+  }
 
   render() {
     const {isLoggedIn, appName, project} = this.props;
 
     // must not let the task list cover the main content
-    var paddingBottom = _SPACE_BEFORE_TASK_LIST +
+    const paddingBottom = _SPACE_BEFORE_TASK_LIST +
         this.state.taskListHeight + _SPACE_AFTER_TASK_LIST;
 
     // TODO(b/31579770): should define a "app" system (like a dynamic module
     //                   system), which automatically import and display
     //                   corresponding app intead of writing a long if-elif-else
     //                   statement.
-    var app = null;
+    let app = null;
     if (!isLoggedIn) {
       app = <LoginApp />;
     } else if (appName == AppNames.PROJECTS_APP) {
@@ -114,9 +114,9 @@ var DomeApp = React.createClass({
       <div style={{paddingBottom}}>
         <FixedAppBar
           title={<DomeAppBarTitle />}
-          onLeftIconButtonTouchTap={this.toggleAppMenu}
-          onHeightChange={h => this.setState({appBarHeight: h})}
-          zDepth={2}  // above the drawer
+          onLeftIconButtonClick={this.toggleAppMenu}
+          onHeightChange={(h) => this.setState({appBarHeight: h})}
+          zDepth={2} // above the drawer
         />
 
         <Drawer
@@ -129,13 +129,13 @@ var DomeApp = React.createClass({
           // affect zIndex, and not setting it would make this drawer covers the
           // shadow of AppBar.
           containerStyle={{top: this.state.appBarHeight, zIndex: 1000}}
-          zDepth={1}  // below the AppBar
+          zDepth={1} // below the AppBar
         >
           {isLoggedIn && <div>
             {projectName != '' && <Subheader>{projectName}</Subheader>}
             {projectName != '' &&
               <MenuItem
-                onTouchTap={() => this.handleClick(AppNames.DASHBOARD_APP)}
+                onClick={() => this.handleClick(AppNames.DASHBOARD_APP)}
                 innerDivStyle={{paddingLeft: _PROJECT_MENU_ITEM_PADDING_LEFT}}
               >
                 Dashboard
@@ -143,7 +143,7 @@ var DomeApp = React.createClass({
             }
             {projectName != '' &&
               <MenuItem
-                onTouchTap={() => this.handleClick(AppNames.BUNDLES_APP)}
+                onClick={() => this.handleClick(AppNames.BUNDLES_APP)}
                 innerDivStyle={{paddingLeft: _PROJECT_MENU_ITEM_PADDING_LEFT}}
                 disabled={!project.get('umpireReady')}
               >
@@ -155,12 +155,12 @@ var DomeApp = React.createClass({
             {projectName != '' && <Divider />}
 
             <MenuItem
-              onTouchTap={() => this.handleClick(AppNames.PROJECTS_APP)}>
+              onClick={() => this.handleClick(AppNames.PROJECTS_APP)}>
               Change project
             </MenuItem>
             <Divider />
             <MenuItem
-              onTouchTap={() => this.handleClick(AppNames.CONFIG_APP)}>
+              onClick={() => this.handleClick(AppNames.CONFIG_APP)}>
               Config
             </MenuItem>
           </div>}
@@ -172,7 +172,7 @@ var DomeApp = React.createClass({
           {app}
         </div>
         <ErrorDialog />
-        <Measure onMeasure={d => this.setState({taskListHeight: d.height})}>
+        <Measure onMeasure={(d) => this.setState({taskListHeight: d.height})}>
           <TaskList
             collapsed={this.state.taskListCollapsed}
             setCollapsed={this.setTaskListCollapsed}
@@ -181,7 +181,7 @@ var DomeApp = React.createClass({
       </div>
     );
   }
-});
+}
 
 function mapStateToProps(state) {
   return {
@@ -190,14 +190,14 @@ function mapStateToProps(state) {
     project: state.getIn(
         ['dome', 'projects', state.getIn(['dome', 'currentProject'])],
         Immutable.Map()
-    )
+    ),
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return {
-    switchApp: nextApp => dispatch(DomeActions.switchApp(nextApp)),
-    testAuthToken: () => dispatch(DomeActions.testAuthToken())
+    switchApp: (nextApp) => dispatch(DomeActions.switchApp(nextApp)),
+    testAuthToken: () => dispatch(DomeActions.testAuthToken()),
   };
 }
 

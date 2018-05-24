@@ -7,7 +7,7 @@ function getSortedTaskIDs(tasks) {
   // consistent we always store task IDs as strings. And when getting all task
   // IDs, a string to integer conversion is necessary to make the sorted result
   // correct. Common pitfalls here:
-  const taskIDs = tasks.keySeq().toArray().map(x => parseInt(x, 10));
+  const taskIDs = tasks.keySeq().toArray().map((x) => parseInt(x, 10));
 
   // JavaScript sorts everything alphabetically by default (even for a pure
   // integer array). We have to implement our own comparator.
@@ -15,9 +15,9 @@ function getSortedTaskIDs(tasks) {
 
   // convert back to strings to prevent bugs outside of this function because
   // taskIDs outside are all in strings.
-  return taskIDs.map(x => String(x));
+  return taskIDs.map((x) => String(x));
 }
 
 export default {
-  getSortedTaskIDs
+  getSortedTaskIDs,
 };

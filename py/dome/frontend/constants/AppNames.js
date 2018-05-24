@@ -8,5 +8,5 @@ export default Enum([
   'PROJECTS_APP',
   'BUNDLES_APP',
   'CONFIG_APP',
-  'DASHBOARD_APP'
+  'DASHBOARD_APP',
 ]);

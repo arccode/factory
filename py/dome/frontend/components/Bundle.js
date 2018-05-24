@@ -2,60 +2,62 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import ChosenIcon from 'material-ui/svg-icons/toggle/star';
+import Immutable from 'immutable';
+import {Card, CardHeader, CardText, CardTitle} from 'material-ui/Card';
+import IconButton from 'material-ui/IconButton';
 import DeleteIcon from 'material-ui/svg-icons/action/delete';
 import DragHandleIcon from 'material-ui/svg-icons/editor/drag-handle';
+import ChosenIcon from 'material-ui/svg-icons/toggle/star';
 import UnchosenIcon from 'material-ui/svg-icons/toggle/star-border';
-import IconButton from 'material-ui/IconButton';
-import Immutable from 'immutable';
-import React from 'react';
 import Toggle from 'material-ui/Toggle';
+import PropTypes from 'prop-types';
+import React from 'react';
 import {connect} from 'react-redux';
-import {Card, CardHeader, CardTitle, CardText} from 'material-ui/Card';
 import {SortableHandle} from 'react-sortable-hoc';
 
 import BundlesActions from '../actions/bundlesactions';
 import DomeActions from '../actions/domeactions';
+
 import ResourceTable from './ResourceTable';
 import RuleTable from './RuleTable';
 
-var DragHandle = SortableHandle(() => (
+const DragHandle = SortableHandle(() => (
   <IconButton
     tooltip='move this bundle'
     style={{cursor: 'move'}}
-    onClick={e => e.stopPropagation()}
+    onClick={(e) => e.stopPropagation()}
   >
     <DragHandleIcon />
   </IconButton>
 ));
 
-var Bundle = React.createClass({
-  propTypes: {
-    activateBundle: React.PropTypes.func.isRequired,
-    changeBundleRules: React.PropTypes.func.isRequired,
-    deleteBundle: React.PropTypes.func.isRequired,
-    bundle: React.PropTypes.instanceOf(Immutable.Map).isRequired,
-    projectName: React.PropTypes.string.isRequired,
-    projectNetbootBundle: React.PropTypes.string.isRequired,
-    setAsNetboot: React.PropTypes.func.isRequired,
-    expanded: React.PropTypes.bool.isRequired,
-    expandBundle: React.PropTypes.func.isRequired,
-    collapseBundle: React.PropTypes.func.isRequired,
-  },
+class Bundle extends React.Component {
+  static propTypes = {
+    activateBundle: PropTypes.func.isRequired,
+    changeBundleRules: PropTypes.func.isRequired,
+    deleteBundle: PropTypes.func.isRequired,
+    bundle: PropTypes.instanceOf(Immutable.Map).isRequired,
+    projectName: PropTypes.string.isRequired,
+    projectNetbootBundle: PropTypes.string,
+    setAsNetboot: PropTypes.func.isRequired,
+    expanded: PropTypes.bool.isRequired,
+    expandBundle: PropTypes.func.isRequired,
+    collapseBundle: PropTypes.func.isRequired,
+  };
 
-  handleActivate(event) {
+  handleActivate = (event) => {
     event.stopPropagation();
     const {bundle} = this.props;
     this.props.activateBundle(bundle.get('name'), !bundle.get('active'));
-  },
+  };
 
-  toggleExpand() {
+  toggleExpand = () => {
     if (this.props.expanded) {
       this.props.collapseBundle(this.props.bundle.get('name'));
     } else {
       this.props.expandBundle(this.props.bundle.get('name'));
     }
-  },
+  };
 
   render() {
     const {
@@ -64,11 +66,11 @@ var Bundle = React.createClass({
       projectName,
       projectNetbootBundle,
       deleteBundle,
-      setAsNetboot
+      setAsNetboot,
     } = this.props;
 
     const INACTIVE_STYLE = {
-      opacity: 0.3
+      opacity: 0.3,
     };
 
     return (
@@ -104,15 +106,19 @@ var Bundle = React.createClass({
             <DragHandle />
             <IconButton
               tooltip='delete this bundle'
-              onClick={e => e.stopPropagation()}
-              onTouchTap={() => deleteBundle(bundle.get('name'))}
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteBundle(bundle.get('name'));
+              }}
             >
               <DeleteIcon />
             </IconButton>
             <IconButton
               tooltip="use this bundle's netboot resource"
-              onClick={e => e.stopPropagation()}
-              onTouchTap={() => setAsNetboot(bundle.get('name'), projectName)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setAsNetboot(bundle.get('name'), projectName);
+              }}
             >
               {(projectNetbootBundle == bundle.get('name')) &&
                 <ChosenIcon />}
@@ -130,44 +136,47 @@ var Bundle = React.createClass({
           <RuleTable
             rules={bundle.get('rules')}
             changeRules={
-              rules => this.props.changeBundleRules(bundle.get('name'), rules)
+              (rules) => this.props.changeBundleRules(bundle.get('name'), rules)
             }
           />
         </CardText>
       </Card>
     );
   }
-});
+}
 
 function mapStateToProps(state, ownProps) {
   return {
     expanded: state.getIn([
       'bundles',
       'expanded',
-      ownProps.bundle.get('name')
+      ownProps.bundle.get('name'),
     ]),
     projectName: state.getIn(['dome', 'currentProject']),
     projectNetbootBundle: state.getIn([
       'dome',
       'projects',
       state.getIn(['dome', 'currentProject']),
-      'netbootBundle'
-    ])
+      'netbootBundle',
+    ]),
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return {
-    activateBundle: (name, active) =>
-        dispatch(BundlesActions.activateBundle(name, active)),
-    changeBundleRules: (name, rules) =>
-        dispatch(BundlesActions.changeBundleRules(name, rules)),
-    deleteBundle: name => dispatch(BundlesActions.deleteBundle(name)),
-    setAsNetboot: (name, projectName)  =>
-        dispatch(DomeActions.updateProject(
-            projectName, {'netbootBundle': name, 'umpireEnabled': true})),
-    expandBundle: name => dispatch(BundlesActions.expandBundle(name)),
-    collapseBundle: name => dispatch(BundlesActions.collapseBundle(name))
+    activateBundle: (name, active) => (
+      dispatch(BundlesActions.activateBundle(name, active))
+    ),
+    changeBundleRules: (name, rules) => (
+      dispatch(BundlesActions.changeBundleRules(name, rules))
+    ),
+    deleteBundle: (name) => dispatch(BundlesActions.deleteBundle(name)),
+    setAsNetboot: (name, projectName) => (
+      dispatch(DomeActions.updateProject(
+          projectName, {'netbootBundle': name, 'umpireEnabled': true}))
+    ),
+    expandBundle: (name) => dispatch(BundlesActions.expandBundle(name)),
+    collapseBundle: (name) => dispatch(BundlesActions.collapseBundle(name)),
   };
 }
 

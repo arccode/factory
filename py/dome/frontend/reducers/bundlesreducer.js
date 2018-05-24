@@ -11,13 +11,13 @@ const INITIAL_STATE = Immutable.fromJS({
 
   // Controls whether a bundle card is expanded or not. The key is the name of
   // the bundle, value is a boolean indicating whether it's expanded or not.
-  expanded: {}
+  expanded: {},
 });
 
 export default function bundlesReducer(state = INITIAL_STATE, action) {
   switch (action.type) {
     case ActionTypes.ADD_BUNDLE:
-      return state.withMutations(s => {
+      return state.withMutations((s) => {
         s.setIn(['expanded', action.bundle.name], false);
         s.set('entries', s.get('entries').unshift(
             Immutable.fromJS(action.bundle)
@@ -25,34 +25,34 @@ export default function bundlesReducer(state = INITIAL_STATE, action) {
       });
 
     case ActionTypes.DELETE_BUNDLE:
-      return state.withMutations(s => {
+      return state.withMutations((s) => {
         s.deleteIn(['expanded', action.name]);
         s.deleteIn(['entries', s.get('entries').findIndex(
-            b => b.get('name') == action.name
+            (b) => b.get('name') == action.name
         )]);
       });
 
     case ActionTypes.RECEIVE_BUNDLES:
     case ActionTypes.REORDER_BUNDLES:
-      return state.withMutations(s => {
+      return state.withMutations((s) => {
         s.set('entries', Immutable.fromJS(action.bundles));
 
         // build expanded map
-        let old_expanded_map = s.get('expanded').toJS();
-        let new_expanded_map = action.bundles.reduce((expanded_map, bundle) => {
+        const oldExpandedMap = s.get('expanded').toJS();
+        const newExpandedMap = action.bundles.reduce((expandedMap, bundle) => {
           // if a bundle already exists in the old list, we must keep its value
           // (or bundle cards would all collapse)
           let expanded = false;
-          if (old_expanded_map.hasOwnProperty(bundle.name)) {
-            expanded = old_expanded_map[bundle.name];
+          if (oldExpandedMap.hasOwnProperty(bundle.name)) {
+            expanded = oldExpandedMap[bundle.name];
           }
-          return Object.assign(expanded_map, {[bundle.name]: expanded});
+          return Object.assign(expandedMap, {[bundle.name]: expanded});
         }, {});
-        s.set('expanded', Immutable.fromJS(new_expanded_map));
+        s.set('expanded', Immutable.fromJS(newExpandedMap));
       });
 
     case ActionTypes.UPDATE_BUNDLE:
-      return state.set('entries', state.get('entries').map(bundle => {
+      return state.set('entries', state.get('entries').map((bundle) => {
         if (bundle.get('name') == action.name) {
           return Immutable.fromJS(action.bundle);
         }

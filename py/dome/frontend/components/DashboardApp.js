@@ -2,35 +2,39 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {Card, CardTitle, CardText} from 'material-ui/Card';
-import Divider from 'material-ui/Divider';
-import {connect} from 'react-redux';
-import {List, ListItem} from 'material-ui/List';
 import Immutable from 'immutable';
-import React from 'react';
+import {Card, CardText, CardTitle} from 'material-ui/Card';
+import Divider from 'material-ui/Divider';
+import {List, ListItem} from 'material-ui/List';
 import Subheader from 'material-ui/Subheader';
 import Toggle from 'material-ui/Toggle';
+import PropTypes from 'prop-types';
+import React from 'react';
+import {connect} from 'react-redux';
 
 import DomeActions from '../actions/domeactions';
-import EnablingUmpireForm from './EnablingUmpireForm';
 import FormNames from '../constants/FormNames';
+
+import EnablingUmpireForm from './EnablingUmpireForm';
 import ServiceList from './ServiceList';
 
-var DashboardApp = React.createClass({
-  propTypes: {
-    project: React.PropTypes.instanceOf(Immutable.Map).isRequired,
-    closeEnablingUmpireForm: React.PropTypes.func.isRequired,
-    disableUmpire: React.PropTypes.func.isRequired,
-    enableUmpire: React.PropTypes.func.isRequired,
-    enablingUmpireFormOpened: React.PropTypes.bool.isRequired,
-    openEnablingUmpireForm: React.PropTypes.func.isRequired,
-  },
+class DashboardApp extends React.Component {
+  static propTypes = {
+    project: PropTypes.instanceOf(Immutable.Map).isRequired,
+    closeEnablingUmpireForm: PropTypes.func.isRequired,
+    disableUmpire: PropTypes.func.isRequired,
+    enableUmpire: PropTypes.func.isRequired,
+    enablingUmpireFormOpened: PropTypes.bool.isRequired,
+    openEnablingUmpireForm: PropTypes.func.isRequired,
+  };
 
-  handleToggle() {
-    if (this.props.project.get('umpireEnabled'))
+  handleToggle = () => {
+    if (this.props.project.get('umpireEnabled')) {
       this.props.disableUmpire(this.props.project.get('name'));
-    else this.props.openEnablingUmpireForm();
-  },
+    } else {
+      this.props.openEnablingUmpireForm();
+    }
+  };
 
   render() {
     const {
@@ -42,8 +46,8 @@ var DashboardApp = React.createClass({
 
     const styles = {
       warningText: {
-        color: 'red'
-      }
+        color: 'red',
+      },
     };
 
     return (
@@ -101,36 +105,36 @@ var DashboardApp = React.createClass({
       </div>
     );
   }
-});
+}
 
 function mapStateToProps(state) {
   return {
     project: state.getIn([
-      'dome', 'projects', state.getIn(['dome', 'currentProject'])
+      'dome', 'projects', state.getIn(['dome', 'currentProject']),
     ]),
     enablingUmpireFormOpened: state.getIn([
-      'dome', 'formVisibility', FormNames.ENABLING_UMPIRE_FORM
-    ], false)
+      'dome', 'formVisibility', FormNames.ENABLING_UMPIRE_FORM,
+    ], false),
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return {
-    closeEnablingUmpireForm: () => dispatch(
-        DomeActions.closeForm(FormNames.ENABLING_UMPIRE_FORM)
+    closeEnablingUmpireForm: () => (
+      dispatch(DomeActions.closeForm(FormNames.ENABLING_UMPIRE_FORM))
     ),
-    disableUmpire: projectName => (
-        dispatch(DomeActions.updateProject(projectName,
-                                           {'umpireEnabled': false}))
+    disableUmpire: (projectName) => (
+      dispatch(
+          DomeActions.updateProject(projectName, {'umpireEnabled': false}))
     ),
     enableUmpire: (projectName, umpireSettings) => (
-        dispatch(DomeActions.updateProject(projectName, Object.assign({
-          'umpireEnabled': true
-        }, umpireSettings)))
+      dispatch(DomeActions.updateProject(
+          projectName,
+          Object.assign({'umpireEnabled': true}, umpireSettings)))
     ),
     openEnablingUmpireForm: () => (
-        dispatch(DomeActions.openForm(FormNames.ENABLING_UMPIRE_FORM))
-    )
+      dispatch(DomeActions.openForm(FormNames.ENABLING_UMPIRE_FORM))
+    ),
   };
 }
 

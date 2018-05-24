@@ -13,19 +13,19 @@ function baseURL(getState) {
 }
 
 function buildOnCancel(dispatch, getState) {
-  var bundleListSnapshot = getState().getIn(['bundles', 'entries']).toJS();
+  const bundleListSnapshot = getState().getIn(['bundles', 'entries']).toJS();
   return () => dispatch(receiveBundles(bundleListSnapshot));
 }
 
 function findBundle(name, getState) {
   return getState().getIn(['bundles', 'entries']).find(
-      b => b.get('name') == name
+      (b) => b.get('name') == name
   ).toJS();
 }
 
-const receiveBundles = bundles => ({
+const receiveBundles = (bundles) => ({
   type: ActionTypes.RECEIVE_BUNDLES,
-  bundles
+  bundles,
 });
 
 const fetchBundles = () => (dispatch, getState) => {
@@ -35,42 +35,43 @@ const fetchBundles = () => (dispatch, getState) => {
   //                  have to add a hidden task after the main task as the
   //                  onFinish callback.)
   DomeActions.authorizedFetch(`${baseURL(getState)}/bundles.json`, {})
-  .then(response => {
-    // a response can only be read once, workaround to read the response twice
-    // if needed
-    let responseCopy = response.clone();
+      .then(
+          (response) => {
+            // a response can only be read once, workaround to read the response
+            // twice if needed
+            const responseCopy = response.clone();
 
-    response.json().then(json => {
-      dispatch(receiveBundles(json));
-    }, error => {
-      responseCopy.text().then(text => {
-        dispatch(DomeActions.setAndShowErrorDialog(
-            'error parsing bundle list response\n\n' +
-            `${error.message}\n\n` +
-            text
-        ));
-      });
-    });
-  }, error => {
-    dispatch(DomeActions.setAndShowErrorDialog(
-        `error fetching bundle list\n\n${error.message}`
-    ));
-  });
+            response.json().then(
+                (json) => {
+                  dispatch(receiveBundles(json));
+                },
+                (error) => {
+                  responseCopy.text().then((text) => {
+                    dispatch(DomeActions.setAndShowErrorDialog(
+                        'error parsing bundle list response\n\n' +
+                        `${error.message}\n\n` + text));
+                  });
+                });
+          },
+          (error) => {
+            dispatch(DomeActions.setAndShowErrorDialog(
+                `error fetching bundle list\n\n${error.message}`));
+          });
 };
 
 const reorderBundles = (oldIndex, newIndex) => (dispatch, getState) => {
-  var onCancel = buildOnCancel(dispatch, getState);
-  var newBundleList = arrayMove(
+  const onCancel = buildOnCancel(dispatch, getState);
+  const newBundleList = arrayMove(
       getState().getIn(['bundles', 'entries']).toJS(), oldIndex, newIndex);
 
   // optimistic update
   dispatch({
     type: ActionTypes.REORDER_BUNDLES,
-    bundles: newBundleList
+    bundles: newBundleList,
   });
 
   // send the request
-  var newBundleNameList = newBundleList.map(b => b['name']);
+  const newBundleNameList = newBundleList.map((b) => b['name']);
   dispatch(DomeActions.createTask(
       'Reorder bundles', 'PUT', `${baseURL(getState)}/bundles`,
       newBundleNameList, {onCancel}
@@ -78,25 +79,25 @@ const reorderBundles = (oldIndex, newIndex) => (dispatch, getState) => {
 };
 
 const activateBundle = (name, active) => (dispatch, getState) => {
-  var onCancel = buildOnCancel(dispatch, getState);
+  const onCancel = buildOnCancel(dispatch, getState);
 
   // optimistic update
-  var bundle = findBundle(name, getState);
+  const bundle = findBundle(name, getState);
   bundle['active'] = active;
   dispatch({
     type: ActionTypes.UPDATE_BUNDLE,
     name,
-    bundle
+    bundle,
   });
 
   // send the request
-  var body = {
+  const body = {
     project: getState().getIn(['dome', 'currentProject']),
     name,
-    active
+    active,
   };
-  var verb = active ? 'Activate' : 'Deactivate';
-  var description = `${verb} bundle "${name}"`;
+  const verb = active ? 'Activate' : 'Deactivate';
+  const description = `${verb} bundle "${name}"`;
   dispatch(DomeActions.createTask(
       description, 'PUT', `${baseURL(getState)}/bundles/${name}`, body,
       {onCancel}
@@ -104,53 +105,53 @@ const activateBundle = (name, active) => (dispatch, getState) => {
 };
 
 const changeBundleRules = (name, rules) => (dispatch, getState) => {
-  var onCancel = buildOnCancel(dispatch, getState);
+  const onCancel = buildOnCancel(dispatch, getState);
 
   // optimistic update
-  var bundle = findBundle(name, getState);
+  const bundle = findBundle(name, getState);
   bundle['rules'] = rules;
   dispatch({
     type: ActionTypes.UPDATE_BUNDLE,
     name,
-    bundle
+    bundle,
   });
 
   // send the request
-  var body = {
+  const body = {
     // TODO(littlecvr): refine the back-end API so we don't need project here,
     //                  the URL already contains project
     project: getState().getIn(['dome', 'currentProject']),
     name,
     rules,
   };
-  var description = `Change rules of bundle "${name}"`;
+  const description = `Change rules of bundle "${name}"`;
   dispatch(DomeActions.createTask(
       description, 'PUT', `${baseURL(getState)}/bundles/${name}`, body,
       {onCancel}
   ));
 };
 
-const deleteBundle = name => (dispatch, getState) => {
-  var onCancel = buildOnCancel(dispatch, getState);
+const deleteBundle = (name) => (dispatch, getState) => {
+  const onCancel = buildOnCancel(dispatch, getState);
 
   // optimistic update
   dispatch({
     type: ActionTypes.DELETE_BUNDLE,
-    name
+    name,
   });
 
   // send the request
-  var description = `Delete bundle "${name}"`;
+  const description = `Delete bundle "${name}"`;
   dispatch(DomeActions.createTask(
       description, 'DELETE', `${baseURL(getState)}/bundles/${name}`,
       {}, {onCancel}
   ));
 };
 
-const startUploadingBundle = data => (dispatch, getState) => {
+const startUploadingBundle = (data) => (dispatch, getState) => {
   dispatch(DomeActions.closeForm(FormNames.UPLOADING_BUNDLE_FORM));
 
-  var onCancel = buildOnCancel(dispatch, getState);
+  const onCancel = buildOnCancel(dispatch, getState);
 
   // optimistic update
   dispatch({
@@ -161,24 +162,24 @@ const startUploadingBundle = data => (dispatch, getState) => {
     //                  name to make it more clear, or we can make the resource
     //                  and rule table totally unexpandable (since there are
     //                  nothing there for now, expanding them is useless)
-    bundle: {  // give it an empty bundle
+    bundle: { // give it an empty bundle
       name: data.name,
       note: data.note,
       active: true,
       resources: {},
-      rules: {}
-    }
+      rules: {},
+    },
   });
 
   // need to fill in the real data after the request has finished
-  var onFinish = response => response.json().then(json => dispatch({
+  const onFinish = (response) => response.json().then((json) => dispatch({
     type: ActionTypes.UPDATE_BUNDLE,
     name: data.name,
-    bundle: json
+    bundle: json,
   }));
 
   // send the request
-  var description = `Upload bundle "${data.name}"`;
+  const description = `Upload bundle "${data.name}"`;
   dispatch(DomeActions.createTask(
       description, 'POST', `${baseURL(getState)}/bundles`, data,
       {onFinish, onCancel}
@@ -188,12 +189,12 @@ const startUploadingBundle = data => (dispatch, getState) => {
 const startUpdatingResource = (resourceKey, data) => (dispatch, getState) => {
   dispatch(DomeActions.closeForm(FormNames.UPDATING_RESOURCE_FORM));
 
-  var onCancel = buildOnCancel(dispatch, getState);
-  var srcBundleName = data.name;
-  var dstBundleName = data.newName;
+  const onCancel = buildOnCancel(dispatch, getState);
+  const srcBundleName = data.name;
+  const dstBundleName = data.newName;
 
   // optimistic update
-  var bundle = findBundle(srcBundleName, getState);
+  const bundle = findBundle(srcBundleName, getState);
   bundle['name'] = dstBundleName;
   bundle['note'] = data.note;
   // reset hash and version of the resource currently being update
@@ -201,7 +202,7 @@ const startUpdatingResource = (resourceKey, data) => (dispatch, getState) => {
   bundle['resources'][resourceKey]['version'] = '(waiting for update)';
   dispatch({
     type: ActionTypes.ADD_BUNDLE,
-    bundle
+    bundle,
   });
 
   // for better user experience:
@@ -215,22 +216,22 @@ const startUpdatingResource = (resourceKey, data) => (dispatch, getState) => {
   // one bundle before this update operation.
 
   // need to fill in the real data after the request has finished
-  var onFinish = response => response.json().then(
-    json => dispatch({
-      type: ActionTypes.UPDATE_BUNDLE,
-      name: dstBundleName,
-      bundle: json
-    })
+  const onFinish = (response) => response.json().then(
+      (json) => dispatch({
+        type: ActionTypes.UPDATE_BUNDLE,
+        name: dstBundleName,
+        bundle: json,
+      })
   ).then(
-    // activate the new bundle by default for convenience
-    () => {
-      dispatch(activateBundle(dstBundleName, true));
-      dispatch(activateBundle(srcBundleName, false));
-    }
+      // activate the new bundle by default for convenience
+      () => {
+        dispatch(activateBundle(dstBundleName, true));
+        dispatch(activateBundle(srcBundleName, false));
+      }
   );
 
   // send the request
-  var description =
+  const description =
       `Update bundle "${srcBundleName}" to bundle "${dstBundleName}"`;
   dispatch(DomeActions.createTask(
       description, 'PUT', `${baseURL(getState)}/bundles/${srcBundleName}`, data,
@@ -238,18 +239,18 @@ const startUpdatingResource = (resourceKey, data) => (dispatch, getState) => {
   ));
 };
 
-const expandBundle = name => ({
+const expandBundle = (name) => ({
   type: ActionTypes.EXPAND_BUNDLE,
-  name
+  name,
 });
 
-const collapseBundle = name => ({
+const collapseBundle = (name) => ({
   type: ActionTypes.COLLAPSE_BUNDLE,
-  name
+  name,
 });
 
 export default {
   fetchBundles, reorderBundles, activateBundle, changeBundleRules, deleteBundle,
   startUploadingBundle, startUpdatingResource,
-  expandBundle, collapseBundle
+  expandBundle, collapseBundle,
 };

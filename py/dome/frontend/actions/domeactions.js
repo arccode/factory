@@ -10,22 +10,23 @@ import TaskUtils from '../utils/task';
 
 // Objects that cannot be serialized in the store.
 // TODO(littlecvr): probably should move this into a TaskQueue class.
-var _taskBodies = {};
-var _taskOnFinishes = {};
-var _taskOnCancels = {};
+const _taskBodies = {};
+const _taskOnFinishes = {};
+const _taskOnCancels = {};
 
 function checkHTTPStatus(response) {
   if (response.status >= 200 && response.status < 300) {
     return response;
   } else {
-    var error = new Error(response.statusText);
+    const error = new Error(response.statusText);
     error.response = response;
     throw error;
   }
 }
 
 function buildOnCancel(dispatch, getState) {
-  var projectsSnapshot = getState().getIn(['dome', 'projects']).toList().toJS();
+  const projectsSnapshot =
+      getState().getIn(['dome', 'projects']).toList().toJS();
   return () => dispatch(receiveProjects(projectsSnapshot));
 }
 
@@ -44,21 +45,21 @@ function recursivelyUploadFileFields(data, queue = null) {
     queue = Promise.resolve();
   }
 
-  for (let key in data) {
+  for (const key in data) {
     if (!data.hasOwnProperty(key)) {
-      continue;  // only care about own properties
+      continue; // only care about own properties
     }
     if (data[key] instanceof File) {
-      let formData = new FormData();
+      const formData = new FormData();
       formData.append('file', data[key]);
       queue = queue
           .then(() => authorizedFetch('/files/', {
             method: 'POST',
-            body: formData
+            body: formData,
           }))
           .then(checkHTTPStatus)
-          .then(response => response.json())
-          .then(json => {
+          .then((response) => response.json())
+          .then((json) => {
             // replace `${key}` with `${key}Id` and set it to the file ID
             delete data[key];
             data[`${key}Id`] = json.id;
@@ -81,29 +82,29 @@ const loginFailed = () => {
   return {type: ActionTypes.LOGIN_FAILED};
 };
 
-const tryLogin = data => dispatch => {
+const tryLogin = (data) => (dispatch) => {
   data = data.toJS();
   fetch('/auth', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
   })
-  .then(response => response.json())
-  .then(json => {
-    const token = json['token'];
-    if (token) {
-      dispatch(loginSucceed(token));
-    } else {
-      dispatch(loginFailed());
-      window.alert('\nLogin failed :(');
-    }
-  });
+      .then((response) => response.json())
+      .then((json) => {
+        const token = json['token'];
+        if (token) {
+          dispatch(loginSucceed(token));
+        } else {
+          dispatch(loginFailed());
+          window.alert('\nLogin failed :(');
+        }
+      });
 };
 
-const testAuthToken = () => dispatch => {
+const testAuthToken = () => (dispatch) => {
   const token = localStorage.getItem('token');
   if (token != null) {
-    authorizedFetch('/projects.json', {}).then(resp => {
+    authorizedFetch('/projects.json', {}).then((resp) => {
       if (resp.ok) {
         dispatch(loginSucceed(token));
       } else {
@@ -113,81 +114,81 @@ const testAuthToken = () => dispatch => {
   }
 };
 
-const logout = () => dispatch => {
+const logout = () => (dispatch) => {
   localStorage.removeItem('token');
   dispatch({type: ActionTypes.LOGOUT});
 };
 
-const recieveConfig = config => ({
+const recieveConfig = (config) => ({
   type: ActionTypes.RECIEVE_CONFIG,
-  config
+  config,
 });
 
-const initializeConfig = () => dispatch => {
-  var body = {};
+const initializeConfig = () => (dispatch) => {
+  const body = {};
   dispatch(fetchConfig(body));
 };
 
-const fetchConfig = () => dispatch => {
+const fetchConfig = () => (dispatch) => {
   return authorizedFetch('/config/0', {})
-  .then(response => {
-    response.json().then(json => {
-      dispatch(recieveConfig(json));
-    }, error => {
-      console.error('error parsing config response');
-      console.error(error);
-    });
-  }, error => {
-    console.error('error fetching config');
-    console.error(error);
-  });
+      .then((response) => {
+        response.json().then((json) => {
+          dispatch(recieveConfig(json));
+        }, (error) => {
+          console.error('error parsing config response');
+          console.error(error);
+        });
+      }, (error) => {
+        console.error('error fetching config');
+        console.error(error);
+      });
 };
 
-const updateConfig = body => (dispatch, getState) => {
+const updateConfig = (body) => (dispatch, getState) => {
   dispatch({type: ActionTypes.START_UPDATING_CONFIG});
-  var description = 'Update config';
+  const description = 'Update config';
   dispatch(createTask(description, 'PUT', '/config/0', body, {
     onFinish: () => dispatch(fetchConfig()).then(() => {
       dispatch({type: ActionTypes.FINISH_UPDATING_CONFIG});
-    })
+    }),
   }));
 };
 
-const enableTFTP = () => dispatch => {
-  var body = {
-    tftp_enabled: true
+const enableTFTP = () => (dispatch) => {
+  const body = {
+    tftp_enabled: true,
   };
   dispatch(updateConfig(body));
 };
 
-const disableTFTP = () => dispatch => {
-  var body = {
-    tftp_enabled: false
+const disableTFTP = () => (dispatch) => {
+  const body = {
+    tftp_enabled: false,
   };
   dispatch(updateConfig(body));
 };
 
-const setError = message => ({
+const setError = (message) => ({
   type: ActionTypes.SET_ERROR_MESSAGE,
-  message
+  message,
 });
 
 const showErrorDialog = () => ({
-  type: ActionTypes.SHOW_ERROR_DIALOG
+  type: ActionTypes.SHOW_ERROR_DIALOG,
 });
 
 const hideErrorDialog = () => ({
-  type: ActionTypes.HIDE_ERROR_DIALOG
+  type: ActionTypes.HIDE_ERROR_DIALOG,
 });
 
 // convenient wrapper of setError() + showErrorDialog()
-const setAndShowErrorDialog = message => dispatch => {
+const setAndShowErrorDialog = (message) => (dispatch) => {
   dispatch(setError(message));
   dispatch(showErrorDialog());
 };
 
-const createProject = name => dispatch => {
-  var description = `Create project "${name}"`;
+const createProject = (name) => (dispatch) => {
+  const description = `Create project "${name}"`;
   dispatch(createTask(
       description, 'POST', '/projects', {name},
       {onFinish: () => dispatch(fetchProjects())}
@@ -195,21 +196,21 @@ const createProject = name => dispatch => {
 };
 
 const updateProject = (name, settings = {}) => (dispatch, getState) => {
-  let body = {name};
+  const body = {name};
   [
     'umpireEnabled',
     'umpireAddExistingOne',
     'umpireHost',
     'umpirePort',
-    'netbootBundle'
-  ].forEach(key => {
+    'netbootBundle',
+  ].forEach((key) => {
     if (key in settings) {
       body[key] = settings[key];
     }
   });
 
   // taking snapshot must be earlier than optmistic update
-  let onCancel = buildOnCancel(dispatch, getState);
+  const onCancel = buildOnCancel(dispatch, getState);
 
   // optimistic update
   dispatch({
@@ -217,70 +218,70 @@ const updateProject = (name, settings = {}) => (dispatch, getState) => {
     project: Object.assign({
       name,
       umpireReady: false,
-    }, settings)
+    }, settings),
   });
 
   // WORKAROUND: Umpire is not ready as soon as it should be,
   // wait for 1 second to prevent the request from failing.
   // TODO(b/65393817): remove the timeout after the issue has been solved.
-  let onFinish = (resp) => resp.json().then(json => setTimeout(() => {
+  const onFinish = (resp) => resp.json().then((json) => setTimeout(() => {
     dispatch({
       type: ActionTypes.UPDATE_PROJECT,
       project: {
         name,
         umpireVersion: json['umpireVersion'],
         isUmpireRecent: json['isUmpireRecent'],
-        umpireReady: json['umpireEnabled']
-      }
+        umpireReady: json['umpireEnabled'],
+      },
     });
   }, 1000));
 
-  var description = `Update project "${name}"`;
+  const description = `Update project "${name}"`;
   dispatch(createTask(
       description, 'PUT', `/projects/${name}`, body, {onCancel, onFinish}
   ));
 };
 
-const deleteProject = name => dispatch => {
+const deleteProject = (name) => (dispatch) => {
   dispatch(createTask(
       `Delete project "${name}"`, 'DELETE', `/projects/${name}`, {},
       {onFinish: () => dispatch(fetchProjects())}
   ));
 };
 
-const receiveProjects = projects => ({
+const receiveProjects = (projects) => ({
   type: ActionTypes.RECEIVE_PROJECTS,
-  projects
+  projects,
 });
 
 // TODO(littlecvr): similar to fetchBundles, refactor code if possible
-const fetchProjects = () => dispatch => {
+const fetchProjects = () => (dispatch) => {
   authorizedFetch('/projects.json', {})
-  .then(response => {
-    response.json().then(json => {
-      dispatch(receiveProjects(json));
-    }, error => {
-      // TODO(littlecvr): better error handling
-      console.error('error parsing project list response');
-      console.error(error);
-    });
-  }, error => {
-    // TODO(littlecvr): better error handling
-    console.error('error fetching project list');
-    console.error(error);
-  });
+      .then((response) => {
+        response.json().then((json) => {
+          dispatch(receiveProjects(json));
+        }, (error) => {
+          // TODO(littlecvr): better error handling
+          console.error('error parsing project list response');
+          console.error(error);
+        });
+      }, (error) => {
+        // TODO(littlecvr): better error handling
+        console.error('error fetching project list');
+        console.error(error);
+      });
 };
 
-const switchProject = nextProject => (dispatch, getState) => dispatch({
+const switchProject = (nextProject) => (dispatch, getState) => dispatch({
   type: ActionTypes.SWITCH_PROJECT,
   prevProject: getState().getIn(['dome', 'project']),
-  nextProject
+  nextProject,
 });
 
-const switchApp = nextApp => (dispatch, getState) => dispatch({
+const switchApp = (nextApp) => (dispatch, getState) => dispatch({
   type: ActionTypes.SWITCH_APP,
   prevApp: getState().getIn(['dome', 'app']),
-  nextApp
+  nextApp,
 });
 
 const openForm = (formName, payload) => (dispatch, getState) => {
@@ -294,43 +295,42 @@ const openForm = (formName, payload) => (dispatch, getState) => {
   const action = {
     type: ActionTypes.OPEN_FORM,
     formName,
-    payload
+    payload,
   };
   if (!visible) {
     dispatch(action);
-  }
-  else {
+  } else {
     Promise.resolve()
-      .then(() => dispatch(closeForm(formName)))
-      .then(() => dispatch(action));
+        .then(() => dispatch(closeForm(formName)))
+        .then(() => dispatch(action));
   }
 };
 
-const closeForm = formName => ({
+const closeForm = (formName) => ({
   type: ActionTypes.CLOSE_FORM,
-  formName
+  formName,
 });
 
 const changeTaskState = (taskID, state) => ({
   type: ActionTypes.CHANGE_TASK_STATE,
   taskID,
-  state
+  state,
 });
 
 // TODO(littlecvr): this action is growing bigger, we should probably
 //                  implement a task queue class instead of making this more
 //                  complicated
 const createTask = (description, method, url, body, {
-                      onCancel = function() {},
-                      onFinish = function() {}
-                    } = {}) => (
+  onCancel = function() {},
+  onFinish = function() {},
+} = {}) => (
   (dispatch, getState) => {
     const tasks = getState().getIn(['dome', 'tasks']);
     const taskIDs = TaskUtils.getSortedTaskIDs(tasks);
 
     let taskID = String(1);
     if (taskIDs.length > 0) {
-      taskID = String(1 + Math.max(...taskIDs.map(x => parseInt(x, 10))));
+      taskID = String(1 + Math.max(...taskIDs.map((x) => parseInt(x, 10))));
     }
 
     _taskBodies[taskID] = body;
@@ -341,7 +341,7 @@ const createTask = (description, method, url, body, {
       taskID,
       description,
       method,
-      url
+      url,
     });
 
     // if all tasks except this one succeeded, start this task now
@@ -359,28 +359,28 @@ const createTask = (description, method, url, body, {
   }
 );
 
-const removeTask = taskID => dispatch => {
-  taskID = String(taskID);  // make sure taskID is always a string
+const removeTask = (taskID) => (dispatch) => {
+  taskID = String(taskID); // make sure taskID is always a string
   delete _taskBodies[taskID];
   delete _taskOnFinishes[taskID];
   delete _taskOnCancels[taskID];
   dispatch({
     type: ActionTypes.REMOVE_TASK,
-    taskID
+    taskID,
   });
 };
 
 // TODO(littlecvr): this action is growing bigger, we should probably
 //                  implement a task queue class instead of making this more
 //                  complicated
-const startTask = taskID => (dispatch, getState) => {
-  taskID = String(taskID);  // make sure taskID is always a string
+const startTask = (taskID) => (dispatch, getState) => {
+  taskID = String(taskID); // make sure taskID is always a string
   dispatch(changeTaskState(taskID, TaskStates.RUNNING));
 
   const task = getState().getIn(['dome', 'tasks', taskID]);
-  const body = deepcopy(_taskBodies[taskID]);  // make a copy
+  const body = deepcopy(_taskBodies[taskID]); // make a copy
 
-  let queue = Promise.resolve();  // task queue powered by Promise
+  let queue = Promise.resolve(); // task queue powered by Promise
 
   // go through the body and upload files first
   queue = recursivelyUploadFileFields(body, queue);
@@ -390,9 +390,9 @@ const startTask = taskID => (dispatch, getState) => {
     const request = {
       method: task.get('method'),
       headers: {
-        'Content-Type': 'application/json',  // always send in JSON
+        'Content-Type': 'application/json', // always send in JSON
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     };
     return authorizedFetch(`${task.get('url')}/`, request);
   }).then(checkHTTPStatus).then(_taskOnFinishes[taskID]);
@@ -412,8 +412,8 @@ const startTask = taskID => (dispatch, getState) => {
   });
 
   // if any sub-task above failed, display the error message
-  queue.catch(error => {
-    const setAndShow = response => {
+  queue.catch((error) => {
+    const setAndShow = (response) => {
       dispatch(setAndShowErrorDialog(`${error.message}\n\n${response}`));
     };
     if (error.response.headers.get('Content-Type') == 'application/json') {
@@ -427,11 +427,11 @@ const startTask = taskID => (dispatch, getState) => {
   });
 };
 
-const cancelTaskAndItsDependencies = taskID => (dispatch, getState) => {
+const cancelTaskAndItsDependencies = (taskID) => (dispatch, getState) => {
   // TODO(littlecvr): probably need a better action name or better description.
   //                  This would likely to be confused with removeTask().
   // This action tries to cancel all waiting tasks below and include taskID.
-  taskID = String(taskID);  // make sure taskID is always a string
+  taskID = String(taskID); // make sure taskID is always a string
   const tasks = getState().getIn(['dome', 'tasks']);
   const taskIDs = TaskUtils.getSortedTaskIDs(tasks);
   const index = taskIDs.indexOf(taskID);
@@ -459,5 +459,5 @@ export default {
   createProject, updateProject, deleteProject, fetchProjects, switchProject,
   switchApp,
   openForm, closeForm,
-  createTask, removeTask, cancelTaskAndItsDependencies
+  createTask, removeTask, cancelTaskAndItsDependencies,
 };

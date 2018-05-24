@@ -8,13 +8,12 @@ import 'isomorphic-fetch';
 import Immutable from 'immutable';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import injectTapEventPlugin from 'react-tap-event-plugin';
 import {createStore, applyMiddleware} from 'redux';
 import {combineReducers} from 'redux-immutable';
 import {indigo500} from 'material-ui/styles/colors';
 import {Provider} from 'react-redux';
 import thunkMiddleware from 'redux-thunk';
-import createLogger from 'redux-logger';
+import {createLogger} from 'redux-logger';
 import getMuiTheme from 'material-ui/styles/getMuiTheme';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import {reducer as FormReducer} from 'redux-form/immutable';
@@ -24,34 +23,30 @@ import BundlesReducer from './reducers/bundlesreducer';
 import DomeReducer from './reducers/domereducer';
 import ServiceReducer from './reducers/servicereducer';
 
-// Needed for onTouchTap, see:
-// http://www.material-ui.com/#/get-started/installation
-injectTapEventPlugin();
-
 const THEME = {
   palette: {
-    primary1Color: indigo500
-  }
+    primary1Color: indigo500,
+  },
 };
 
 const store = createStore(
-  combineReducers({
-    dome: DomeReducer,
-    bundles: BundlesReducer,
-    service: ServiceReducer,
-    form: FormReducer
-  }),
-  Immutable.Map(),  // initial state will be determined by each reducer
-  applyMiddleware(
-    thunkMiddleware,
-    createLogger({
-      // Transform immutable state to plain object or it will be hard to read.
-      stateTransformer: s => Immutable.Iterable.isIterable(s) ? s.toJS() : s
-    })  // logger middleware
-  )
-);
+    combineReducers({
+      dome: DomeReducer,
+      bundles: BundlesReducer,
+      service: ServiceReducer,
+      form: FormReducer,
+    }),
+    Immutable.Map(), // initial state will be determined by each reducer
+    applyMiddleware(
+        thunkMiddleware,
+        createLogger({
+          // Transform immutable state to plain object or it will be
+          // hard to read.
+          stateTransformer:
+              (s) => Immutable.Iterable.isIterable(s) ? s.toJS() : s,
+        })));
 
-var App = React.createClass({
+class App extends React.Component {
   componentDidMount() {
     // check if user's using Chrome/Chromium
     if (navigator.userAgent.indexOf('Chrome') == -1) {
@@ -59,7 +54,7 @@ var App = React.createClass({
                    'To visit Dome, please use Chrome/Chromium to ' +
                    'avoid unnecessary issues.');
     }
-  },
+  }
 
   render() {
     return (
@@ -70,9 +65,9 @@ var App = React.createClass({
       </MuiThemeProvider>
     );
   }
-});
+}
 
 ReactDOM.render(
-  <App />,
-  document.getElementById('app')
+    <App />,
+    document.getElementById('app')
 );

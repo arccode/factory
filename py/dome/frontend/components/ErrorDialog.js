@@ -2,23 +2,24 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {connect} from 'react-redux';
 import Dialog from 'material-ui/Dialog';
 import RaisedButton from 'material-ui/RaisedButton';
+import PropTypes from 'prop-types';
 import React from 'react';
+import {connect} from 'react-redux';
 
 import DomeActions from '../actions/domeactions';
 
-var ErrorDialog = React.createClass({
-  propTypes: {
-    message: React.PropTypes.string,
-    show: React.PropTypes.bool.isRequired,
-    hideErrorDialog: React.PropTypes.func.isRequired
-  },
+class ErrorDialog extends React.Component {
+  static propTypes = {
+    message: PropTypes.string,
+    show: PropTypes.bool.isRequired,
+    hideErrorDialog: PropTypes.func.isRequired,
+  };
 
-  handleClose() {
+  handleClose = () => {
     this.props.hideErrorDialog();
-  },
+  };
 
   render() {
     return (
@@ -27,7 +28,7 @@ var ErrorDialog = React.createClass({
         modal={false}
         onRequestClose={this.handleCancel}
         actions={[
-          <RaisedButton label='close' onTouchTap={this.handleClose} />,
+          <RaisedButton key='btn' label='close' onClick={this.handleClose} />,
         ]}
       >
         <div>
@@ -37,7 +38,7 @@ var ErrorDialog = React.createClass({
         {/* wrap the textarea with a div, otherwise, setting the width of
             textarea as 100% will make it overflow */}
         <div><textarea
-          ref={e => this.textareaElement = e}
+          ref={(e) => this.textareaElement = e}
           disabled={true}
           style={{width: '100%', height: '10em'}}
           value={this.props.message}
@@ -45,18 +46,18 @@ var ErrorDialog = React.createClass({
       </Dialog>
     );
   }
-});
+}
 
 function mapStateToProps(state) {
   return {
     show: state.getIn(['dome', 'errorDialog', 'show'], false),
-    message: state.getIn(['dome', 'errorDialog', 'message'], '')
+    message: state.getIn(['dome', 'errorDialog', 'message'], ''),
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return {
-    hideErrorDialog: () => dispatch(DomeActions.hideErrorDialog())
+    hideErrorDialog: () => dispatch(DomeActions.hideErrorDialog()),
   };
 }
 

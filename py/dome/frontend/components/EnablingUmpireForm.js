@@ -4,68 +4,69 @@
 
 import Dialog from 'material-ui/Dialog';
 import RaisedButton from 'material-ui/RaisedButton';
-import React from 'react';
 import TextField from 'material-ui/TextField';
+import PropTypes from 'prop-types';
+import React from 'react';
 
-var _SPACE_BETWEEN_COMPONENTS = 24;
+const _SPACE_BETWEEN_COMPONENTS = 24;
 
-var EnablingUmpireForm = React.createClass({
-  propTypes: {
-    projectName: React.PropTypes.string.isRequired,
-    onCancel: React.PropTypes.func.isRequired,
-    onConfirm: React.PropTypes.func.isRequired,
-    opened: React.PropTypes.bool.isRequired
-  },
+class EnablingUmpireForm extends React.Component {
+  static propTypes = {
+    projectName: PropTypes.string.isRequired,
+    onCancel: PropTypes.func.isRequired,
+    onConfirm: PropTypes.func.isRequired,
+    opened: PropTypes.bool.isRequired,
+  };
 
-  buildUmpireSettings(addExistingOne, host, port) {
+  state = {
+    showAddForm: false,
+    hostInputValue: 'localhost',
+    portInputValue: 8080,
+  };
+
+  buildUmpireSettings = (addExistingOne, host, port) => {
     // TODO(littlecvr): should not need to add 'umpire_' prefix
-    let settings = {
+    const settings = {
       'umpireAddExistingOne': addExistingOne,
       'umpireHost': host,
-      'umpirePort': port
+      'umpirePort': port,
     };
     return settings;
-  },
+  };
 
-  handleAdd() {
+  handleAdd = () => {
     this.props.onConfirm(this.props.projectName, this.buildUmpireSettings(
         true, this.state.hostInputValue, this.state.portInputValue
     ));
-  },
+  };
 
-  handleCreate() {
+  handleCreate = () => {
     this.props.onConfirm(this.props.projectName, this.buildUmpireSettings(
         false, 'localhost', this.state.portInputValue
     ));
-  },
+  };
 
-  setShowAddForm(show, event) {
+  setShowAddForm = (show, event) => {
     event.preventDefault();
     this.setState({showAddForm: show});
-  },
+  };
 
-  getInitialState() {
-    return {
-      showAddForm: false,
-      hostInputValue: 'localhost',
-      portInputValue: 8080
-    };
-  },
-
-  componentWillReceiveProps(nextProps) {
+  // TODO(pihsun): Don't use this unrecommended method.
+  // eslint-disable-next-line camelcase
+  UNSAFE_componentWillReceiveProps(nextProps) {
     // reset every time the form has just been opened
     if (nextProps.opened && !this.props.opened) {
       this.formElement.reset();
       this.setState({
         hostInputValue: 'localhost',
-        portInputValue: 8080
+        portInputValue: 8080,
       });
     }
-  },
+  }
 
   render() {
     return (
-      <form ref={c => this.formElement = c}>
+      <form ref={(c) => this.formElement = c}>
         <Dialog
           title='Enable Umpire'
           open={this.props.opened}
@@ -75,19 +76,19 @@ var EnablingUmpireForm = React.createClass({
             {!this.state.showAddForm && <RaisedButton
               label='CREATE A NEW UMPIRE INSTANCE'
               primary={true}
-              onTouchTap={this.handleCreate}
+              onClick={this.handleCreate}
               style={{marginLeft: _SPACE_BETWEEN_COMPONENTS}}
             />}
             {this.state.showAddForm && <RaisedButton
               label='ADD AN EXISTING UMPIRE INSTANCE'
               primary={true}
-              onTouchTap={this.handleAdd}
+              onClick={this.handleAdd}
               style={{marginLeft: _SPACE_BETWEEN_COMPONENTS}}
             />}
             <RaisedButton
               label='CANCEL'
               primary={true}
-              onTouchTap={this.props.onCancel}
+              onClick={this.props.onCancel}
               style={{marginLeft: _SPACE_BETWEEN_COMPONENTS}}
             />
           </div>}
@@ -97,29 +98,29 @@ var EnablingUmpireForm = React.createClass({
             fullWidth={true}
             floatingLabelText='host'
             value={this.state.hostInputValue}
-            onChange={e => this.setState({hostInputValue: e.target.value})}
+            onChange={(e) => this.setState({hostInputValue: e.target.value})}
           />}
           <TextField
             name='port'
             fullWidth={true}
             floatingLabelText='Port'
             value={this.state.portInputValue}
-            onChange={e => this.setState({portInputValue: e.target.value})}
+            onChange={(e) => this.setState({portInputValue: e.target.value})}
           />
           <div style={{
-            textAlign: 'center', marginTop: _SPACE_BETWEEN_COMPONENTS
+            textAlign: 'center', marginTop: _SPACE_BETWEEN_COMPONENTS,
           }}>
             {!this.state.showAddForm && <div>
               If you had manually set up the Umpire Docker container, you can
               {' '}
-              <a href='#' onClick={e => this.setShowAddForm(true, e)}>
+              <a href='#' onClick={(e) => this.setShowAddForm(true, e)}>
                 add the existing one
               </a>.
             </div>}
             {this.state.showAddForm && <div>
               If you had not set up the Umpire Docker container, you should
               {' '}
-              <a href='#' onClick={e => this.setShowAddForm(false, e)}>
+              <a href='#' onClick={(e) => this.setShowAddForm(false, e)}>
                 create a new one
               </a>.
             </div>}
@@ -128,6 +129,6 @@ var EnablingUmpireForm = React.createClass({
       </form>
     );
   }
-});
+}
 
 export default EnablingUmpireForm;

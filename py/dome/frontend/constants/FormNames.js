@@ -7,5 +7,5 @@ import Enum from '../utils/enum';
 export default Enum([
   'ENABLING_UMPIRE_FORM',
   'UPLOADING_BUNDLE_FORM',
-  'UPDATING_RESOURCE_FORM'
+  'UPDATING_RESOURCE_FORM',
 ]);

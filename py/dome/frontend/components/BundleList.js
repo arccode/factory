@@ -3,12 +3,14 @@
 // found in the LICENSE file.
 
 import Immutable from 'immutable';
+import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
 import {SortableContainer, SortableElement} from 'react-sortable-hoc';
 
-import Bundle from './Bundle';
 import BundlesActions from '../actions/bundlesactions';
+
+import Bundle from './Bundle';
 
 // The hierarchy of this component is complicated because of the design of
 // react-sortable-hoc. Explaination below:
@@ -23,9 +25,10 @@ import BundlesActions from '../actions/bundlesactions';
 //  SortableBundle is a wrapper of Bundle, but SortableBundleList is not a
 //  wrapper of BundleList -- BundleList is the wrapper of SortableBundleList.
 
-var SortableBundle = SortableElement(({bundle}) => <Bundle bundle={bundle} />);
+const SortableBundle = SortableElement(
+    ({bundle}) => <Bundle bundle={bundle} />);
 
-var SortableBundleList = SortableContainer(({bundles}) => (
+const SortableBundleList = SortableContainer(({bundles}) => (
   <div>
     {bundles.map((bundle, index) => (
       <SortableBundle key={bundle.get('name')} index={index} bundle={bundle} />
@@ -33,16 +36,16 @@ var SortableBundleList = SortableContainer(({bundles}) => (
   </div>
 ));
 
-var BundleList = React.createClass({
-  propTypes: {
-    bundles: React.PropTypes.instanceOf(Immutable.List).isRequired,
-    handleRefresh: React.PropTypes.func.isRequired,
-    handleReorder: React.PropTypes.func.isRequired
-  },
+class BundleList extends React.Component {
+  static propTypes = {
+    bundles: PropTypes.instanceOf(Immutable.List).isRequired,
+    handleRefresh: PropTypes.func.isRequired,
+    handleReorder: PropTypes.func.isRequired,
+  };
 
   componentDidMount() {
     this.props.handleRefresh();
-  },
+  }
 
   render() {
     return (
@@ -55,19 +58,20 @@ var BundleList = React.createClass({
       />
     );
   }
-});
+}
 
 function mapStateToProps(state) {
   return {
-    bundles: state.getIn(['bundles', 'entries'])
+    bundles: state.getIn(['bundles', 'entries']),
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return {
     handleRefresh: () => dispatch(BundlesActions.fetchBundles()),
-    handleReorder: ({oldIndex, newIndex}) =>
-        dispatch(BundlesActions.reorderBundles(oldIndex, newIndex))
+    handleReorder: ({oldIndex, newIndex}) => (
+      dispatch(BundlesActions.reorderBundles(oldIndex, newIndex))
+    ),
   };
 }
 

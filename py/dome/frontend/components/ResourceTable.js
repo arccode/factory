@@ -2,23 +2,25 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {connect} from 'react-redux';
-import {Table, TableBody, TableHeader, TableHeaderColumn,
-        TableRow, TableRowColumn} from 'material-ui/Table';
 import Immutable from 'immutable';
-import React from 'react';
 import RaisedButton from 'material-ui/RaisedButton';
+import {
+  Table, TableBody, TableHeader, TableHeaderColumn, TableRow, TableRowColumn,
+} from 'material-ui/Table';
+import PropTypes from 'prop-types';
+import React from 'react';
+import {connect} from 'react-redux';
 
 import DomeActions from '../actions/domeactions';
 import FormNames from '../constants/FormNames';
 
-var ResourceTable = React.createClass({
-  propTypes: {
-    handleUpdate: React.PropTypes.func.isRequired,
-    bundle: React.PropTypes.instanceOf(Immutable.Map).isRequired
-  },
+class ResourceTable extends React.Component {
+  static propTypes = {
+    handleUpdate: PropTypes.func.isRequired,
+    bundle: PropTypes.instanceOf(Immutable.Map).isRequired,
+  };
 
-  render: function() {
+  render() {
     const {bundle, handleUpdate} = this.props;
     const resources = bundle.get('resources');
 
@@ -34,15 +36,15 @@ var ResourceTable = React.createClass({
           </TableRow>
         </TableHeader>
         <TableBody displayRowCheckbox={false}>
-          {resources.keySeq().sort().toArray().map(key => {
-            var resource = resources.get(key);
+          {resources.keySeq().sort().toArray().map((key) => {
+            const resource = resources.get(key);
 
             // Version string often exceeds the width of the cell, and the
             // default behavior of TableRowColumn is to clip it. We need to make
             // sure that the user can see the full string.
-            var style = {
+            const style = {
               whiteSpace: 'normal',
-              wordWrap: 'break-word'
+              wordWrap: 'break-word',
             };
 
             return (
@@ -70,22 +72,21 @@ var ResourceTable = React.createClass({
       </Table>
     );
   }
-});
+}
 
 function mapDispatchToProps(dispatch) {
   return {
-    handleUpdate: (bundleName, resourceKey, resourceType) => dispatch(
-        DomeActions.openForm(
-            FormNames.UPDATING_RESOURCE_FORM,
-            // TODO(littlecvr): resourceKey are actually the same, but
-            //                  resourceKey is CamelCased, resourceType is
-            //                  lowercase_separated_by_underscores. We should
-            //                  probably normalize the data in store so we don't
-            //                  have to pass both resourceKey and resourceType
-            //                  into it.
-            {bundleName, resourceKey, resourceType}
-        )
-    )
+    handleUpdate: (bundleName, resourceKey, resourceType) => (
+      dispatch(DomeActions.openForm(
+          FormNames.UPDATING_RESOURCE_FORM,
+          // TODO(littlecvr): resourceKey are actually the same, but
+          //                  resourceKey is CamelCased, resourceType is
+          //                  lowercase_separated_by_underscores. We should
+          //                  probably normalize the data in store so we don't
+          //                  have to pass both resourceKey and resourceType
+          //                  into it.
+          {bundleName, resourceKey, resourceType}))
+    ),
   };
 }
 

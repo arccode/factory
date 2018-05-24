@@ -47,5 +47,5 @@ export default Enum([
   // service action
   'RECEIVE_SERVICE_SCHEMATA',
   'RECEIVE_SERVICES',
-  'UPDATE_SERVICE'
+  'UPDATE_SERVICE',
 ]);

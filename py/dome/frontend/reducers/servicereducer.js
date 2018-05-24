@@ -8,7 +8,7 @@ import ActionTypes from '../constants/ActionTypes';
 
 const INITIAL_STATE = Immutable.fromJS({
   schemata: {},
-  services: {}
+  services: {},
 });
 
 export default function serviceReducer(state = INITIAL_STATE, action) {

@@ -2,23 +2,25 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import RaisedButton from 'material-ui/RaisedButton';
+import PropTypes from 'prop-types';
 import React from 'react';
 import {reduxForm} from 'redux-form/immutable';
-import RaisedButton from 'material-ui/RaisedButton';
+
 import RenderFields from './RenderFields';
 
-var ServiceForm = React.createClass({
-  propTypes: {
-    handleSubmit: React.PropTypes.func.isRequired,
-    schema: React.PropTypes.object.isRequired,
-    reset: React.PropTypes.func.isRequired
-  },
+class ServiceForm extends React.Component {
+  static propTypes = {
+    handleSubmit: PropTypes.func.isRequired,
+    schema: PropTypes.object.isRequired,
+    reset: PropTypes.func.isRequired,
+  };
 
   render() {
     const {
       handleSubmit,
       schema,
-      reset
+      reset,
     } = this.props;
 
     return (
@@ -40,6 +42,6 @@ var ServiceForm = React.createClass({
       </form>
     );
   }
-});
+}
 
 export default reduxForm()(ServiceForm);

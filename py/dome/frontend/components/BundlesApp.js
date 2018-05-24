@@ -2,24 +2,26 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {connect} from 'react-redux';
-import ContentAdd from 'material-ui/svg-icons/content/add';
 import FloatingActionButton from 'material-ui/FloatingActionButton';
+import ContentAdd from 'material-ui/svg-icons/content/add';
+import PropTypes from 'prop-types';
 import React from 'react';
+import {connect} from 'react-redux';
 
-import BundleList from './BundleList';
 import DomeActions from '../actions/domeactions';
 import FormNames from '../constants/FormNames';
+
+import BundleList from './BundleList';
 import UpdatingResourceForm from './UpdatingResourceForm';
 import UploadingBundleForm from './UploadingBundleForm';
 
-var BundlesApp = React.createClass({
-  propTypes: {
+class BundlesApp extends React.Component {
+  static propTypes = {
     // TODO(littlecvr): there should be a better way to figure out the offset
     //                  automatically such as using float
-    offset: React.PropTypes.number,
-    openUploadingNewBundleForm: React.PropTypes.func.isRequired
-  },
+    offset: PropTypes.number,
+    openUploadingNewBundleForm: PropTypes.func.isRequired,
+  };
 
   render() {
     return (
@@ -34,21 +36,22 @@ var BundlesApp = React.createClass({
           style={{
             position: 'fixed',
             bottom: this.props.offset,
-            right: 24
+            right: 24,
           }}
-          onTouchTap={this.props.openUploadingNewBundleForm}
+          onClick={this.props.openUploadingNewBundleForm}
         >
           <ContentAdd />
         </FloatingActionButton>
       </div>
     );
   }
-});
+}
 
 function mapDispatchToProps(dispatch) {
   return {
-    openUploadingNewBundleForm: () =>
-        dispatch(DomeActions.openForm(FormNames.UPLOADING_BUNDLE_FORM))
+    openUploadingNewBundleForm: () => (
+      dispatch(DomeActions.openForm(FormNames.UPLOADING_BUNDLE_FORM))
+    ),
   };
 }
 

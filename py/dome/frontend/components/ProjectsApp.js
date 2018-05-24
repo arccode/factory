@@ -2,29 +2,35 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {connect} from 'react-redux';
-import {List, ListItem} from 'material-ui/List';
-import DeleteIcon from 'material-ui/svg-icons/action/delete';
+import Immutable from 'immutable';
 import Divider from 'material-ui/Divider';
 import IconButton from 'material-ui/IconButton';
-import Immutable from 'immutable';
+import {List, ListItem} from 'material-ui/List';
 import Paper from 'material-ui/Paper';
 import RaisedButton from 'material-ui/RaisedButton';
-import React from 'react';
+import DeleteIcon from 'material-ui/svg-icons/action/delete';
 import TextField from 'material-ui/TextField';
+import PropTypes from 'prop-types';
+import React from 'react';
+import {connect} from 'react-redux';
 
 import DomeActions from '../actions/domeactions';
 
-var ProjectsApp = React.createClass({
-  propTypes: {
-    projects: React.PropTypes.instanceOf(Immutable.Map).isRequired,
-    createProject: React.PropTypes.func.isRequired,
-    deleteProject: React.PropTypes.func.isRequired,
-    fetchProjects: React.PropTypes.func.isRequired,
-    switchProject: React.PropTypes.func.isRequired
-  },
+class ProjectsApp extends React.Component {
+  static propTypes = {
+    projects: PropTypes.instanceOf(Immutable.Map).isRequired,
+    createProject: PropTypes.func.isRequired,
+    deleteProject: PropTypes.func.isRequired,
+    fetchProjects: PropTypes.func.isRequired,
+    switchProject: PropTypes.func.isRequired,
+  };
 
-  handleCreate() {
+  state = {
+    nameInputValue: '',
+    nameInputErrorText: '',
+  };
+
+  handleCreate = () => {
     // first, make sure the name field is not empty
     this.setState({nameInputErrorText: ''});
     if (this.state.nameInputValue == '') {
@@ -34,23 +40,16 @@ var ProjectsApp = React.createClass({
 
     this.props.createProject(this.state.nameInputValue);
     this.setState({nameInputValue: ''});
-  },
+  };
 
-  handleSubmit(event) {
-    event.preventDefault();  // prevent the form from submitting itself
+  handleSubmit = (event) => {
+    event.preventDefault(); // prevent the form from submitting itself
     this.handleCreate();
-  },
-
-  getInitialState() {
-    return {
-      nameInputValue: '',
-      nameInputErrorText: ''
-    };
-  },
+  };
 
   componentDidMount() {
     this.props.fetchProjects();
-  },
+  }
 
   render() {
     const style = {margin: 24};
@@ -59,7 +58,7 @@ var ProjectsApp = React.createClass({
       <Paper style={{
         maxWidth: 400, height: '100%',
         margin: 'auto', padding: 20,
-        textAlign: 'center'
+        textAlign: 'center',
       }}>
         {/* TODO(littlecvr): make a logo! */}
         <h1 style={{textAlign: 'center'}}>Project list</h1>
@@ -70,16 +69,16 @@ var ProjectsApp = React.createClass({
             no projects, create or add an existing one
           </div>}
           {projects.size > 0 && <List style={{textAlign: 'left'}}>
-            {projects.keySeq().sort().toArray().map(name => {
+            {projects.keySeq().sort().toArray().map((name) => {
               return (
                 <ListItem
                   key={name}
                   primaryText={name}
-                  onTouchTap={() => switchProject(name)}
+                  onClick={() => switchProject(name)}
                   rightIconButton={
                     <IconButton
                       tooltip='delete this project'
-                      onTouchTap={() => deleteProject(name)}
+                      onClick={() => deleteProject(name)}
                     >
                       <DeleteIcon />
                     </IconButton>
@@ -95,41 +94,42 @@ var ProjectsApp = React.createClass({
 
         <form
           style={style}
-          onSubmit={this.handleSubmit}  // called when enter key is pressed
+          onSubmit={this.handleSubmit} // called when enter key is pressed
         >
           <TextField
             name='name'
             fullWidth={true}
             floatingLabelText='New project name'
             value={this.state.nameInputValue}
-            onChange={e => this.setState({nameInputValue: e.target.value})}
+            onChange={(e) => this.setState({nameInputValue: e.target.value})}
             errorText={this.state.nameInputErrorText}
           />
           <RaisedButton
             label='CREATE A NEW PROJECT'
             primary={true}
             fullWidth={true}
-            onTouchTap={this.handleCreate}
+            onClick={this.handleCreate}
           />
         </form>
       </Paper>
     );
   }
-});
+}
 
 function mapStateToProps(state) {
   return {
-    projects: state.getIn(['dome', 'projects'])
+    projects: state.getIn(['dome', 'projects']),
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return {
-    createProject: name => dispatch(DomeActions.createProject(name)),
-    deleteProject: name => dispatch(DomeActions.deleteProject(name)),
+    createProject: (name) => dispatch(DomeActions.createProject(name)),
+    deleteProject: (name) => dispatch(DomeActions.deleteProject(name)),
     fetchProjects: () => dispatch(DomeActions.fetchProjects()),
-    switchProject:
-        nextProject => dispatch(DomeActions.switchProject(nextProject))
+    switchProject: (nextProject) => (
+      dispatch(DomeActions.switchProject(nextProject))
+    ),
   };
 }
 

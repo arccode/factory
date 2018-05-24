@@ -22,52 +22,51 @@ const updateService = (name, config) => (dispatch, getState) => {
               dispatch({type: ActionTypes.UPDATE_SERVICE, name, config});
               resolve();
             },
-            onCancel: reject
+            onCancel: reject,
           })));
-
 };
 
 const fetchServiceSchemata = () => (dispatch, getState) => {
   DomeActions.authorizedFetch(baseURL(getState) + '/services/schema.json', {})
-  .then(response => {
-    response.json().then(json => {
-      dispatch(receiveServiceSchemata(json));
-    }, error => {
-      console.error('error parsing service schemata response');
-      console.error(error);
-    });
-  }, error => {
-    console.error('error fetching service schemata');
-    console.error(error);
-  });
+      .then((response) => {
+        response.json().then((json) => {
+          dispatch(receiveServiceSchemata(json));
+        }, (error) => {
+          console.error('error parsing service schemata response');
+          console.error(error);
+        });
+      }, (error) => {
+        console.error('error fetching service schemata');
+        console.error(error);
+      });
 };
 
 const fetchServices = () => (dispatch, getState) => {
   DomeActions.authorizedFetch(baseURL(getState) + '/services.json', {})
-  .then(response => {
-    response.json().then(json => {
-      dispatch(receiveServices(json));
-    }, error => {
-      console.error('error parsing services response');
-      console.error(error);
-    });
-  }, error => {
-    console.error('error fetching services');
-    console.error(error);
-  });
+      .then((response) => {
+        response.json().then((json) => {
+          dispatch(receiveServices(json));
+        }, (error) => {
+          console.error('error parsing services response');
+          console.error(error);
+        });
+      }, (error) => {
+        console.error('error fetching services');
+        console.error(error);
+      });
 };
 
-const receiveServiceSchemata = schemata => ({
+const receiveServiceSchemata = (schemata) => ({
   type: ActionTypes.RECEIVE_SERVICE_SCHEMATA,
-  schemata
+  schemata,
 });
 
-const receiveServices = services => ({
+const receiveServices = (services) => ({
   type: ActionTypes.RECEIVE_SERVICES,
-  services
+  services,
 });
 
 export default {
   fetchServiceSchemata, fetchServices,
-  receiveServiceSchemata, receiveServices, updateService
+  receiveServiceSchemata, receiveServices, updateService,
 };

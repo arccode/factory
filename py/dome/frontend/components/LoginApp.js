@@ -2,17 +2,19 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {Card, CardTitle, CardText} from 'material-ui/Card';
-import {connect} from 'react-redux';
+import {Card, CardText, CardTitle} from 'material-ui/Card';
+import PropTypes from 'prop-types';
 import React from 'react';
+import {connect} from 'react-redux';
 
 import DomeActions from '../actions/domeactions';
+
 import LoginForm from './LoginForm';
 
-var LoginApp = React.createClass({
-  propTypes: {
-    tryLogin: React.PropTypes.func.isRequired
-  },
+class LoginApp extends React.Component {
+  static propTypes = {
+    tryLogin: PropTypes.func.isRequired,
+  };
 
   render() {
     const {tryLogin} = this.props;
@@ -28,12 +30,12 @@ var LoginApp = React.createClass({
       </Card>
     );
   }
-});
+}
 
 
 function mapDispatchToProps(dispatch) {
   return {
-    tryLogin: values => dispatch(DomeActions.tryLogin(values))
+    tryLogin: (values) => dispatch(DomeActions.tryLogin(values)),
   };
 }
 

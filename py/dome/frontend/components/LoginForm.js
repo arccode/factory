@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import RaisedButton from 'material-ui/RaisedButton';
+import TextField from 'material-ui/TextField';
+import PropTypes from 'prop-types';
 import React from 'react';
 import fieldPropTypes from 'redux-form';
 import {Field, reduxForm} from 'redux-form/immutable';
-import RaisedButton from 'material-ui/RaisedButton';
-import TextField from 'material-ui/TextField';
 
 const renderTextField = ({input, label, type}) => (
   <TextField
@@ -17,15 +18,15 @@ const renderTextField = ({input, label, type}) => (
 );
 
 renderTextField.propTypes = {
-  label: React.PropTypes.string.isRequired,
-  type: React.PropTypes.string.isRequired,
-  ...fieldPropTypes
+  label: PropTypes.string.isRequired,
+  type: PropTypes.string.isRequired,
+  ...fieldPropTypes,
 };
 
-var LoginForm = React.createClass({
-  propTypes: {
-    handleSubmit: React.PropTypes.func.isRequired
-  },
+class LoginForm extends React.Component {
+  static propTypes = {
+    handleSubmit: PropTypes.func.isRequired,
+  };
 
   render() {
     const {handleSubmit} = this.props;
@@ -55,6 +56,6 @@ var LoginForm = React.createClass({
       </form>
     );
   }
-});
+}
 
 export default reduxForm()(LoginForm);

@@ -8,5 +8,5 @@ export default Enum([
   'WAITING',
   'RUNNING',
   'SUCCEEDED',
-  'FAILED'
+  'FAILED',
 ]);

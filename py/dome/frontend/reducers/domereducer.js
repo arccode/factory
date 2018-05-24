@@ -12,8 +12,8 @@ const INITIAL_STATE = Immutable.fromJS({
   isLoggedIn: false,
   projects: {},
   currentProject: '',
-  currentApp: AppNames.PROJECTS_APP,  // default app is the project selection
-                                      // page
+  // default app is the project selection page.
+  currentApp: AppNames.PROJECTS_APP,
   errorDialog: {
     show: false,
     message: '',
@@ -25,8 +25,8 @@ const INITIAL_STATE = Immutable.fromJS({
   tasks: {},
   config: {
     updating: false,
-    TFTPEnabled: false
-  }
+    TFTPEnabled: false,
+  },
 });
 
 export default function domeReducer(state = INITIAL_STATE, action) {
@@ -68,8 +68,8 @@ export default function domeReducer(state = INITIAL_STATE, action) {
 
     case ActionTypes.RECEIVE_PROJECTS:
       return state.set('projects', Immutable.Map(action.projects.map(
-          b => [b['name'], Immutable.fromJS(b).merge({
-            umpireReady: b['umpireEnabled']
+          (b) => [b['name'], Immutable.fromJS(b).merge({
+            umpireReady: b['umpireEnabled'],
           })]
       )));
 
@@ -78,7 +78,7 @@ export default function domeReducer(state = INITIAL_STATE, action) {
           Immutable.fromJS(action.project));
 
     case ActionTypes.SWITCH_PROJECT:
-      return state.withMutations(s => {
+      return state.withMutations((s) => {
         s.set('currentProject', action.nextProject);
         // switch to dashboard after switching project by default
         s.set('currentApp', AppNames.DASHBOARD_APP);
@@ -103,8 +103,8 @@ export default function domeReducer(state = INITIAL_STATE, action) {
           description: action.description,
           method: action.method,
           url: action.url,
-          contentType: action.contentType
-        }
+          contentType: action.contentType,
+        },
       });
 
     case ActionTypes.CHANGE_TASK_STATE:
