@@ -27,7 +27,7 @@ Dependency
 ----------
 The pytest requires ALS driver to expose sensor value as a file under sysfs.  By
 default, the pytest finds the sensor value file with path
-``/sys/bus/iio/devices/*/illuminance0_input``.
+``/sys/bus/iio/devices/*/illuminance0_raw``.
 
 
 Examples
@@ -38,7 +38,7 @@ Minimum runnable example::
     "pytest_name": "light_sensor"
   }
 
-This will read ALS value from ``/sys/bus/iio/devices/*/illuminance0_input``.
+This will read ALS value from ``/sys/bus/iio/devices/*/illuminance0_raw``.
 There will be 3 subtests,
 
 1. ``'Light sensor dark'`` (belaw 4)
@@ -113,7 +113,7 @@ _DEFAULT_SUBTEST_INSTRUCTION = {
     'Light sensor light': _('Shine light sensor with flashlight')}
 
 _DEFAULT_DEVICE_PATH = '/sys/bus/iio/devices/*/'
-_DEFAULT_DEVICE_INPUT = 'illuminance0_input'
+_DEFAULT_DEVICE_INPUT = 'illuminance0_raw'
 
 
 class iio_generic(object):
