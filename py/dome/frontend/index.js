@@ -2,26 +2,26 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'babel-polyfill';
 import 'isomorphic-fetch';
 
 import Immutable from 'immutable';
-import React from 'react';
-import ReactDOM from 'react-dom';
-import {createStore, applyMiddleware} from 'redux';
-import {combineReducers} from 'redux-immutable';
 import {indigo500} from 'material-ui/styles/colors';
-import {Provider} from 'react-redux';
-import thunkMiddleware from 'redux-thunk';
-import {createLogger} from 'redux-logger';
 import getMuiTheme from 'material-ui/styles/getMuiTheme';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
-import {reducer as FormReducer} from 'redux-form/immutable';
+import React from 'react';
+import ReactDOM from 'react-dom';
+import {Provider} from 'react-redux';
+import {applyMiddleware, createStore} from 'redux';
+import {reducer as formReducer} from 'redux-form/immutable';
+import {combineReducers} from 'redux-immutable';
+import {createLogger} from 'redux-logger';
+import thunkMiddleware from 'redux-thunk';
 
 import DomeApp from './components/DomeApp';
-import BundlesReducer from './reducers/bundlesreducer';
-import DomeReducer from './reducers/domereducer';
-import ServiceReducer from './reducers/servicereducer';
+import bundlesReducer from './reducers/bundlesreducer';
+import domeReducer from './reducers/domereducer';
+import serviceReducer from './reducers/servicereducer';
+import taskReducer from './reducers/taskreducer';
 
 const THEME = {
   palette: {
@@ -31,10 +31,11 @@ const THEME = {
 
 const store = createStore(
     combineReducers({
-      dome: DomeReducer,
-      bundles: BundlesReducer,
-      service: ServiceReducer,
-      form: FormReducer,
+      dome: domeReducer,
+      bundles: bundlesReducer,
+      service: serviceReducer,
+      task: taskReducer,
+      form: formReducer,
     }),
     Immutable.Map(), // initial state will be determined by each reducer
     applyMiddleware(

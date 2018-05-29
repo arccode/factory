@@ -33,7 +33,7 @@ export default Enum([
   // task actions
   'CREATE_TASK',
   'CHANGE_TASK_STATE',
-  'REMOVE_TASK',
+  'DISMISS_TASK',
 
   // bundles action
   'ADD_BUNDLE',

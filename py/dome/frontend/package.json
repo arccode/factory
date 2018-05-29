@@ -4,8 +4,7 @@
   "description": "the factory server front end",
   "dependencies": {
     "date-and-time": "~0.6.2",
-    "deepcopy": "~0.6.3",
-    "immutable": "~3.8.2",
+    "immutable": "4.0.0-rc.9",
     "isomorphic-fetch": "~2.2.1",
     "material-ui": "~0.20.1",
     "material-ui-chip-input": "~0.19.0",
@@ -20,16 +19,18 @@
     "redux-immutable": "~4.0.0",
     "redux-logger": "~3.0.6",
     "redux-thunk": "~2.2.0",
+    "uuid": "~3.2.1",
     "whatwg-fetch": "~2.0.4"
   },
   "devDependencies": {
-    "babel-core": "~6.26.3",
+    "@babel/core": "7.0.0-beta.49",
+    "@babel/preset-stage-2": "7.0.0-beta.49",
+    "@babel/preset-env": "7.0.0-beta.49",
+    "@babel/preset-react": "7.0.0-beta.49",
+    "@babel/polyfill": "7.0.0-beta.49",
+    "babel-core": "7.0.0-bridge.0",
     "babel-eslint": "~8.2.3",
-    "babel-polyfill": "~6.26.0",
-    "babel-preset-env": "~1.7.0",
-    "babel-preset-react": "~6.24.1",
-    "babel-preset-stage-2": "~6.24.1",
-    "babelify": "~8.0.0",
+    "babelify": "~9.0.0",
     "browserify": "~16.2.2",
     "eslint": "~4.19.1",
     "eslint-config-google": "~0.9.1",
@@ -42,9 +43,23 @@
   },
   "babel": {
     "presets": [
-      "react",
-      "env",
-      "stage-2"
+      "@babel/preset-react",
+      [
+        "@babel/preset-env",
+        {
+          "targets": {
+            "browsers": ">= 1%"
+          },
+          "useBuiltIns": "usage"
+        }
+      ],
+      [
+        "@babel/preset-stage-2",
+        {
+          "useBuiltIns": true,
+          "decoratorsLegacy": true
+        }
+      ]
     ]
   },
   "eslintConfig": {
@@ -104,11 +119,20 @@
           "varsIgnorePattern": "unused"
         }
       ],
+      "no-undef": "error",
       "no-invalid-this": "off",
       "babel/no-invalid-this": "error",
       "require-jsdoc": "off",
       "new-cap": "off",
-      "prefer-const": "error"
+      "prefer-const": "error",
+      "quotes": "off",
+      "babel/quotes": [
+        "error",
+        "single",
+        {
+          "allowTemplateLiterals": true
+        }
+      ]
     }
   },
   "author": "Mao Huang <littlecvr@google.com>"

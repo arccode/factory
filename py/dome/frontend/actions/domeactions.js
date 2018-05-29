@@ -2,75 +2,25 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import deepcopy from 'deepcopy';
-
 import ActionTypes from '../constants/ActionTypes';
-import TaskStates from '../constants/TaskStates';
-import TaskUtils from '../utils/task';
 
-// Objects that cannot be serialized in the store.
-// TODO(littlecvr): probably should move this into a TaskQueue class.
-const _taskBodies = {};
-const _taskOnFinishes = {};
-const _taskOnCancels = {};
+import TaskActions from './taskactions';
 
-function checkHTTPStatus(response) {
-  if (response.status >= 200 && response.status < 300) {
-    return response;
-  } else {
-    const error = new Error(response.statusText);
-    error.response = response;
-    throw error;
-  }
-}
-
-function buildOnCancel(dispatch, getState) {
+// TODO(pihsun): Have a better way to handle task cancellation.
+const buildOnCancel = (dispatch, getState) => {
   const projectsSnapshot =
-      getState().getIn(['dome', 'projects']).toList().toJS();
-  return () => dispatch(receiveProjects(projectsSnapshot));
-}
+      getState().getIn(['dome', 'projects']).toList();
+  return () => dispatch(receiveProjects(projectsSnapshot.toJS()));
+};
 
 // add authentication token to header
-function authorizedFetch(url, req) {
+const authorizedFetch = (url, req) => {
   if (!req.hasOwnProperty('headers')) {
     req['headers'] = {};
   }
   req['headers']['Authorization'] = 'Token ' + localStorage.getItem('token');
   return fetch(url, req);
-}
-
-function recursivelyUploadFileFields(data, queue = null) {
-  if (queue === null) {
-    // create a queue one if none is given
-    queue = Promise.resolve();
-  }
-
-  for (const key in data) {
-    if (!data.hasOwnProperty(key)) {
-      continue; // only care about own properties
-    }
-    if (data[key] instanceof File) {
-      const formData = new FormData();
-      formData.append('file', data[key]);
-      queue = queue
-          .then(() => authorizedFetch('/files/', {
-            method: 'POST',
-            body: formData,
-          }))
-          .then(checkHTTPStatus)
-          .then((response) => response.json())
-          .then((json) => {
-            // replace `${key}` with `${key}Id` and set it to the file ID
-            delete data[key];
-            data[`${key}Id`] = json.id;
-          });
-    } else if (data[key] instanceof Object) {
-      queue = recursivelyUploadFileFields(data[key], queue);
-    }
-  }
-
-  return queue;
-}
+};
 
 const loginSucceed = (token) => {
   localStorage.setItem('token', token);
@@ -82,35 +32,33 @@ const loginFailed = () => {
   return {type: ActionTypes.LOGIN_FAILED};
 };
 
-const tryLogin = (data) => (dispatch) => {
+const tryLogin = (data) => async (dispatch) => {
   data = data.toJS();
-  fetch('/auth', {
+  const response = await fetch('/auth', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(data),
-  })
-      .then((response) => response.json())
-      .then((json) => {
-        const token = json['token'];
-        if (token) {
-          dispatch(loginSucceed(token));
-        } else {
-          dispatch(loginFailed());
-          window.alert('\nLogin failed :(');
-        }
-      });
+  });
+  const json = await response.json();
+  const token = json['token'];
+  if (token) {
+    dispatch(loginSucceed(token));
+  } else {
+    dispatch(loginFailed());
+    // TODO(pihsun): Don't use blocking window.alert.
+    window.alert('\nLogin failed :(');
+  }
 };
 
-const testAuthToken = () => (dispatch) => {
+const testAuthToken = () => async (dispatch) => {
   const token = localStorage.getItem('token');
   if (token != null) {
-    authorizedFetch('/projects.json', {}).then((resp) => {
-      if (resp.ok) {
-        dispatch(loginSucceed(token));
-      } else {
-        dispatch(loginFailed());
-      }
-    });
+    const resp = await authorizedFetch('/projects.json', {});
+    if (resp.ok) {
+      dispatch(loginSucceed(token));
+    } else {
+      dispatch(loginFailed());
+    }
   }
 };
 
@@ -129,29 +77,21 @@ const initializeConfig = () => (dispatch) => {
   dispatch(fetchConfig(body));
 };
 
-const fetchConfig = () => (dispatch) => {
-  return authorizedFetch('/config/0', {})
-      .then((response) => {
-        response.json().then((json) => {
-          dispatch(recieveConfig(json));
-        }, (error) => {
-          console.error('error parsing config response');
-          console.error(error);
-        });
-      }, (error) => {
-        console.error('error fetching config');
-        console.error(error);
-      });
+const fetchConfig = () => async (dispatch) => {
+  const response = await authorizedFetch('/config/0', {});
+  const json = await response.json();
+  dispatch(recieveConfig(json));
 };
 
-const updateConfig = (body) => (dispatch, getState) => {
+const updateConfig = (body) => async (dispatch, getState) => {
   dispatch({type: ActionTypes.START_UPDATING_CONFIG});
   const description = 'Update config';
-  dispatch(createTask(description, 'PUT', '/config/0', body, {
-    onFinish: () => dispatch(fetchConfig()).then(() => {
-      dispatch({type: ActionTypes.FINISH_UPDATING_CONFIG});
-    }),
-  }));
+  const {cancel} = await dispatch(
+      TaskActions.runTask(description, 'PUT', '/config/0/', body));
+  if (!cancel) {
+    await dispatch(fetchConfig());
+    dispatch({type: ActionTypes.FINISH_UPDATING_CONFIG});
+  }
 };
 
 const enableTFTP = () => (dispatch) => {
@@ -187,15 +127,16 @@ const setAndShowErrorDialog = (message) => (dispatch) => {
   dispatch(showErrorDialog());
 };
 
-const createProject = (name) => (dispatch) => {
+const createProject = (name) => async (dispatch) => {
   const description = `Create project "${name}"`;
-  dispatch(createTask(
-      description, 'POST', '/projects', {name},
-      {onFinish: () => dispatch(fetchProjects())}
-  ));
+  const {cancel} = await dispatch(
+      TaskActions.runTask(description, 'POST', '/projects/', {name}));
+  if (!cancel) {
+    await dispatch(fetchProjects());
+  }
 };
 
-const updateProject = (name, settings = {}) => (dispatch, getState) => {
+const updateProject = (name, settings = {}) => async (dispatch, getState) => {
   const body = {name};
   [
     'umpireEnabled',
@@ -209,7 +150,7 @@ const updateProject = (name, settings = {}) => (dispatch, getState) => {
     }
   });
 
-  // taking snapshot must be earlier than optmistic update
+  // taking snapshot must be earlier than optimistic update
   const onCancel = buildOnCancel(dispatch, getState);
 
   // optimistic update
@@ -221,10 +162,18 @@ const updateProject = (name, settings = {}) => (dispatch, getState) => {
     }, settings),
   });
 
+  const description = `Update project "${name}"`;
+  const {cancel, response} = await dispatch(
+      TaskActions.runTask(description, 'PUT', `/projects/${name}/`, body));
+  if (cancel) {
+    onCancel();
+    return;
+  }
+  const json = await response.json();
   // WORKAROUND: Umpire is not ready as soon as it should be,
   // wait for 1 second to prevent the request from failing.
   // TODO(b/65393817): remove the timeout after the issue has been solved.
-  const onFinish = (resp) => resp.json().then((json) => setTimeout(() => {
+  setTimeout(() => {
     dispatch({
       type: ActionTypes.UPDATE_PROJECT,
       project: {
@@ -234,19 +183,15 @@ const updateProject = (name, settings = {}) => (dispatch, getState) => {
         umpireReady: json['umpireEnabled'],
       },
     });
-  }, 1000));
-
-  const description = `Update project "${name}"`;
-  dispatch(createTask(
-      description, 'PUT', `/projects/${name}`, body, {onCancel, onFinish}
-  ));
+  }, 1000);
 };
 
-const deleteProject = (name) => (dispatch) => {
-  dispatch(createTask(
-      `Delete project "${name}"`, 'DELETE', `/projects/${name}`, {},
-      {onFinish: () => dispatch(fetchProjects())}
-  ));
+const deleteProject = (name) => async (dispatch) => {
+  const {cancel} = await dispatch(TaskActions.runTask(
+      `Delete project "${name}"`, 'DELETE', `/projects/${name}/`, {}));
+  if (!cancel) {
+    await dispatch(fetchProjects());
+  }
 };
 
 const receiveProjects = (projects) => ({
@@ -255,21 +200,10 @@ const receiveProjects = (projects) => ({
 });
 
 // TODO(littlecvr): similar to fetchBundles, refactor code if possible
-const fetchProjects = () => (dispatch) => {
-  authorizedFetch('/projects.json', {})
-      .then((response) => {
-        response.json().then((json) => {
-          dispatch(receiveProjects(json));
-        }, (error) => {
-          // TODO(littlecvr): better error handling
-          console.error('error parsing project list response');
-          console.error(error);
-        });
-      }, (error) => {
-        // TODO(littlecvr): better error handling
-        console.error('error fetching project list');
-        console.error(error);
-      });
+const fetchProjects = () => async (dispatch) => {
+  const response = await authorizedFetch('/projects.json', {});
+  const json = await response.json();
+  dispatch(receiveProjects(json));
 };
 
 const switchProject = (nextProject) => (dispatch, getState) => dispatch({
@@ -311,145 +245,6 @@ const closeForm = (formName) => ({
   formName,
 });
 
-const changeTaskState = (taskID, state) => ({
-  type: ActionTypes.CHANGE_TASK_STATE,
-  taskID,
-  state,
-});
-
-// TODO(littlecvr): this action is growing bigger, we should probably
-//                  implement a task queue class instead of making this more
-//                  complicated
-const createTask = (description, method, url, body, {
-  onCancel = function() {},
-  onFinish = function() {},
-} = {}) => (
-  (dispatch, getState) => {
-    const tasks = getState().getIn(['dome', 'tasks']);
-    const taskIDs = TaskUtils.getSortedTaskIDs(tasks);
-
-    let taskID = String(1);
-    if (taskIDs.length > 0) {
-      taskID = String(1 + Math.max(...taskIDs.map((x) => parseInt(x, 10))));
-    }
-
-    _taskBodies[taskID] = body;
-    _taskOnFinishes[taskID] = onFinish;
-    _taskOnCancels[taskID] = onCancel;
-    dispatch({
-      type: ActionTypes.CREATE_TASK,
-      taskID,
-      description,
-      method,
-      url,
-    });
-
-    // if all tasks except this one succeeded, start this task now
-    let startNow = true;
-    for (const id of taskIDs) {
-      const s = tasks.getIn([id, 'state']);
-      if (id != taskID && s != TaskStates.SUCCEEDED) {
-        startNow = false;
-        break;
-      }
-    }
-    if (startNow) {
-      dispatch(startTask(taskID));
-    }
-  }
-);
-
-const removeTask = (taskID) => (dispatch) => {
-  taskID = String(taskID); // make sure taskID is always a string
-  delete _taskBodies[taskID];
-  delete _taskOnFinishes[taskID];
-  delete _taskOnCancels[taskID];
-  dispatch({
-    type: ActionTypes.REMOVE_TASK,
-    taskID,
-  });
-};
-
-// TODO(littlecvr): this action is growing bigger, we should probably
-//                  implement a task queue class instead of making this more
-//                  complicated
-const startTask = (taskID) => (dispatch, getState) => {
-  taskID = String(taskID); // make sure taskID is always a string
-  dispatch(changeTaskState(taskID, TaskStates.RUNNING));
-
-  const task = getState().getIn(['dome', 'tasks', taskID]);
-  const body = deepcopy(_taskBodies[taskID]); // make a copy
-
-  let queue = Promise.resolve(); // task queue powered by Promise
-
-  // go through the body and upload files first
-  queue = recursivelyUploadFileFields(body, queue);
-
-  // send the end request
-  queue = queue.then(() => {
-    const request = {
-      method: task.get('method'),
-      headers: {
-        'Content-Type': 'application/json', // always send in JSON
-      },
-      body: JSON.stringify(body),
-    };
-    return authorizedFetch(`${task.get('url')}/`, request);
-  }).then(checkHTTPStatus).then(_taskOnFinishes[taskID]);
-
-  // if all sub-tasks succeeded, mark it as succeeded, and start the next task
-  queue = queue.then(() => {
-    dispatch(changeTaskState(taskID, TaskStates.SUCCEEDED));
-
-    // find the next task and start it
-    const tasks = getState().getIn(['dome', 'tasks']);
-    const taskIDs = TaskUtils.getSortedTaskIDs(tasks);
-    const nextIndex = 1 + taskIDs.indexOf(taskID);
-    if (nextIndex > 0 && nextIndex < taskIDs.length) {
-      const nextID = taskIDs[nextIndex];
-      dispatch(startTask(nextID));
-    }
-  });
-
-  // if any sub-task above failed, display the error message
-  queue.catch((error) => {
-    const setAndShow = (response) => {
-      dispatch(setAndShowErrorDialog(`${error.message}\n\n${response}`));
-    };
-    if (error.response.headers.get('Content-Type') == 'application/json') {
-      error.response.json().then(JSON.stringify).then(setAndShow);
-    } else {
-      error.response.text().then(setAndShow);
-    }
-
-    // mark the task as failed
-    dispatch(changeTaskState(taskID, TaskStates.FAILED));
-  });
-};
-
-const cancelTaskAndItsDependencies = (taskID) => (dispatch, getState) => {
-  // TODO(littlecvr): probably need a better action name or better description.
-  //                  This would likely to be confused with removeTask().
-  // This action tries to cancel all waiting tasks below and include taskID.
-  taskID = String(taskID); // make sure taskID is always a string
-  const tasks = getState().getIn(['dome', 'tasks']);
-  const taskIDs = TaskUtils.getSortedTaskIDs(tasks);
-  const index = taskIDs.indexOf(taskID);
-
-  // cancel all tasks below and include the target task
-  if (index >= 0) {
-    for (let i = taskIDs.length - 1; i >= index; --i) {
-      const state = tasks.getIn([taskIDs[i], 'state']);
-      if (state == TaskStates.WAITING || state == TaskStates.FAILED) {
-        if (_taskOnCancels[taskIDs[i]]) {
-          _taskOnCancels[taskIDs[i]]();
-        }
-        dispatch(removeTask(taskIDs[i]));
-      }
-    }
-  }
-};
-
 export default {
   authorizedFetch,
   tryLogin, logout, testAuthToken,
@@ -459,5 +254,4 @@ export default {
   createProject, updateProject, deleteProject, fetchProjects, switchProject,
   switchApp,
   openForm, closeForm,
-  createTask, removeTask, cancelTaskAndItsDependencies,
 };

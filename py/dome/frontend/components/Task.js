@@ -4,6 +4,7 @@
 
 import {CardText} from 'material-ui/Card';
 import IconButton from 'material-ui/IconButton';
+import {grey700} from 'material-ui/styles/colors';
 import RunningIcon from 'material-ui/svg-icons/action/autorenew';
 import DismissIcon from 'material-ui/svg-icons/action/check-circle';
 import DeleteIcon from 'material-ui/svg-icons/action/delete';
@@ -21,12 +22,6 @@ class Task extends React.Component {
     dismiss: PropTypes.func.isRequired,
     retry: PropTypes.func.isRequired,
     cancel: PropTypes.func.isRequired,
-
-    mouseEnterDeleteButton: PropTypes.func.isRequired,
-    mouseLeaveDeleteButton: PropTypes.func.isRequired,
-
-    // TODO(littlecvr): directly passing color attribute seems weird here
-    deleteIconColor: PropTypes.string.isRequired,
   };
 
   render() {
@@ -48,21 +43,16 @@ class Task extends React.Component {
         <div style={{
           display: 'table-cell', textAlign: 'right', verticalAlign: 'middle',
         }}>
-          <span
-            onMouseEnter={this.props.mouseEnterDeleteButton}
-            onMouseLeave={this.props.mouseLeaveDeleteButton}
+          <IconButton
+            tooltip={'cancel'}
+            onClick={cancel}
+            iconStyle={{fill: grey700}}
+            disabled={
+              state != TaskStates.WAITING && state != TaskStates.FAILED
+            }
           >
-            <IconButton
-              tooltip={'cancel'}
-              onClick={cancel}
-              iconStyle={{fill: this.props.deleteIconColor}}
-              disabled={
-                state != TaskStates.WAITING && state != TaskStates.FAILED
-              }
-            >
-              <DeleteIcon />
-            </IconButton>
-          </span>
+            <DeleteIcon />
+          </IconButton>
           {state == TaskStates.WAITING &&
             <IconButton tooltip={'waiting'}>
               <RunningIcon />

@@ -3,57 +3,37 @@
 // found in the LICENSE file.
 
 import ActionTypes from '../constants/ActionTypes';
+
 import DomeActions from './domeactions';
+import TaskActions from './taskactions';
 
 function baseURL(getState) {
   return `/projects/${getState().getIn(['dome', 'currentProject'])}`;
 }
 
-const updateService = (name, config) => (dispatch, getState) => {
+const updateService = (name, config) => async (dispatch, getState) => {
   const data = {[name]: config};
 
   const description = `update "${name}" service`;
-  // TODO(pihsun): Make DomeAction.createTask returns a Promise instead, to
-  // simplify this.
-  return new Promise(
-      (resolve, reject) => dispatch(DomeActions.createTask(
-          description, 'PUT', `${baseURL(getState)}/services`, data, {
-            onFinish: () => {
-              dispatch({type: ActionTypes.UPDATE_SERVICE, name, config});
-              resolve();
-            },
-            onCancel: reject,
-          })));
+  const {cancel} = await dispatch(TaskActions.runTask(
+      description, 'PUT', `${baseURL(getState)}/services/`, data));
+  if (!cancel) {
+    dispatch({type: ActionTypes.UPDATE_SERVICE, name, config});
+  }
 };
 
-const fetchServiceSchemata = () => (dispatch, getState) => {
-  DomeActions.authorizedFetch(baseURL(getState) + '/services/schema.json', {})
-      .then((response) => {
-        response.json().then((json) => {
-          dispatch(receiveServiceSchemata(json));
-        }, (error) => {
-          console.error('error parsing service schemata response');
-          console.error(error);
-        });
-      }, (error) => {
-        console.error('error fetching service schemata');
-        console.error(error);
-      });
+const fetchServiceSchemata = () => async (dispatch, getState) => {
+  const response = await DomeActions.authorizedFetch(
+      baseURL(getState) + '/services/schema.json', {});
+  const json = await response.json();
+  dispatch(receiveServiceSchemata(json));
 };
 
-const fetchServices = () => (dispatch, getState) => {
-  DomeActions.authorizedFetch(baseURL(getState) + '/services.json', {})
-      .then((response) => {
-        response.json().then((json) => {
-          dispatch(receiveServices(json));
-        }, (error) => {
-          console.error('error parsing services response');
-          console.error(error);
-        });
-      }, (error) => {
-        console.error('error fetching services');
-        console.error(error);
-      });
+const fetchServices = () => async (dispatch, getState) => {
+  const response = await DomeActions.authorizedFetch(
+      baseURL(getState) + '/services.json', {});
+  const json = await response.json();
+  dispatch(receiveServices(json));
 };
 
 const receiveServiceSchemata = (schemata) => ({
