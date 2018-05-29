@@ -52,19 +52,26 @@ class UploadingBundleForm extends React.Component {
     this.props.cancelUploading();
   };
 
-  // TODO(pihsun): Don't use this unrecommended method.
-  // eslint-disable-next-line camelcase
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    if (nextProps.show && !this.props.show) {
-      // reset file input and text fields
+  static getDerivedStateFromProps(props, state) {
+    if (props.show !== state.lastShow) {
+      const ret = {lastShow: props.show};
+      if (props.show) {
+        Object.assign(ret, {
+          nameInputValue: '',
+          noteInputValue: '',
+        });
+      } else {
+        Object.assign(ret, {dialogOpened: false});
+      }
+      return ret;
+    }
+    return null;
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (this.props.show && !prevProps.show) {
       this.formElement.reset();
-      this.setState({
-        nameInputValue: '',
-        noteInputValue: '',
-      });
       this.fileInput.click();
-    } else if (!nextProps.show && this.props.show) {
-      this.setState({dialogOpened: false});
     }
   }
 

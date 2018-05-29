@@ -70,36 +70,38 @@ class UpdatingResourceForm extends React.Component {
     this.props.cancelUpdating();
   };
 
-  // TODO(pihsun): Don't use this unrecommended method.
-  // eslint-disable-next-line camelcase
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    // the form was hidden but about to be visible
-    if (nextProps.show && !this.props.show) {
-      // reset file input and text fields
-      this.formElement.reset();
-
-      // replace the timestamp in the old bundle name with current timestamp
-      const regexp = /\d{14}$/;
-      let newBundleName = nextProps.bundleName;
-      const timeString = DateAndTime.format(new Date(), 'YYYYMMDDHHmmss');
-      if (regexp.test(nextProps.bundleName)) {
-        newBundleName = nextProps.bundleName.replace(regexp, timeString);
-      } else {
-        if (newBundleName == 'empty') {
-          newBundleName = nextProps.project;
+  static getDerivedStateFromProps(props, state) {
+    if (props.show !== state.lastShow) {
+      const ret = {lastShow: props.show};
+      if (props.show) {
+        // replace the timestamp in the old bundle name with current timestamp
+        const regexp = /\d{14}$/;
+        let newBundleName = props.bundleName;
+        const timeString = DateAndTime.format(new Date(), 'YYYYMMDDHHmmss');
+        if (regexp.test(props.bundleName)) {
+          newBundleName = props.bundleName.replace(regexp, timeString);
+        } else {
+          if (newBundleName == 'empty') {
+            newBundleName = props.project;
+          }
+          newBundleName += '-' + timeString;
         }
-        newBundleName += '-' + timeString;
+        Object.assign(ret, {
+          nameInputValue: newBundleName,
+          noteInputValue: `Updated "${props.resourceType}" type resource`,
+        });
+      } else {
+        Object.assign(ret, {dialogOpened: false});
       }
-      this.setState({
-        nameInputValue: newBundleName,
-        noteInputValue: `Updated "${nextProps.resourceType}" type resource`,
-      });
+      return ret;
+    }
+    return null;
+  }
 
-      // bring up the file dialog
+  componentDidUpdate(prevProps, prevState) {
+    if (this.props.show && !prevProps.show) {
+      this.formElement.reset();
       this.fileInput.click();
-    } else if (!nextProps.show && this.props.show) {
-      // the form was visible but about to be hidden
-      this.setState({dialogOpened: false});
     }
   }
 

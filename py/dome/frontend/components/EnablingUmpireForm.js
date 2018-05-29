@@ -51,16 +51,23 @@ class EnablingUmpireForm extends React.Component {
     this.setState({showAddForm: show});
   };
 
-  // TODO(pihsun): Don't use this unrecommended method.
-  // eslint-disable-next-line camelcase
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    // reset every time the form has just been opened
-    if (nextProps.opened && !this.props.opened) {
+  static getDerivedStateFromProps(props, state) {
+    if (props.opened !== state.lastOpened) {
+      const ret = {lastOpened: props.opened};
+      if (props.opened) {
+        Object.assign(ret, {
+          hostInputValue: 'localhost',
+          portInputValue: 8080,
+        });
+      }
+      return ret;
+    }
+    return null;
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (this.props.opened && !prevProps.opened) {
       this.formElement.reset();
-      this.setState({
-        hostInputValue: 'localhost',
-        portInputValue: 8080,
-      });
     }
   }
 
