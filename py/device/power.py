@@ -474,3 +474,71 @@ class ECToolPower(Power):
   def GetBatteryDesignCapacity(self):
     """See Power.GetBatteryDesignCapacity"""
     return self._GetECToolBatteryAttribute('Design capacity:')
+
+
+class PowerDaemonPower(Power):
+
+  def __init__(self, dut):
+    super(PowerDaemonPower, self).__init__(dut)
+
+  def _GetDumpPowerStatus(self):
+    return self._device.CallOutput(['dump_power_status'])
+
+  def _GetPowerAttribute(self, key_name, item_type=str):
+    re_object = re.findall(
+        r'^%s ?(\S*)$' % key_name, self._GetDumpPowerStatus(), re.MULTILINE)
+    if re_object:
+      return item_type(re_object[0])
+    else:
+      raise self.Error('Cannot find key "%s" in dump_power_status' % key_name)
+
+  def CheckACPresent(self):
+    """See Power.CheckACPresent"""
+    return self._GetPowerAttribute('line_power_connected', int) == 1
+
+  def GetACType(self):
+    """See Power.GetACType"""
+    return self._GetPowerAttribute('line_power_type')
+
+  def CheckBatteryPresent(self):
+    """See Power.CheckBatteryPresent"""
+    return self._GetPowerAttribute('battery_present', int) == 1
+
+  def GetCharge(self):
+    """See Power.GetCharge"""
+    return int(self._GetPowerAttribute('battery_charge', float) * 1000)
+
+  def GetChargeFull(self):
+    """See Power.GetChargeFull"""
+    return int(self._GetPowerAttribute('battery_charge_full', float) * 1000)
+
+  def GetChargePct(self, get_float=False):
+    """See Power.GetChargePct"""
+    charge_pct = self._GetPowerAttribute('battery_percent', float)
+    if get_float:
+      return charge_pct
+    else:
+      return round(charge_pct)
+
+  def GetWearPct(self):
+    """See Power.GetWearPct"""
+    capacity = self.GetChargeFull()
+    design_capacity = self.GetBatteryDesignCapacity()
+    if design_capacity <= 0:
+      return None  # Something wrong with the battery
+    return 100 - round(capacity * 100.0 / design_capacity)
+
+  def GetChargeState(self):
+    """See Power.GetChargeState"""
+    return self.ChargeState(self._GetPowerAttribute('battery_status')).value
+
+  def GetBatteryCurrent(self):
+    """See Power.GetBatteryCurrent"""
+    charging = self.GetChargeState() == 'Charging'
+    current = int(self._GetPowerAttribute('battery_current', float) * 1000)
+    return current if charging else -current
+
+  def GetBatteryDesignCapacity(self):
+    """See Power.GetBatteryDesignCapacity"""
+    return int(
+        self._GetPowerAttribute('battery_charge_full_design', float) * 1000)
