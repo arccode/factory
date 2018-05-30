@@ -14,60 +14,80 @@ import textwrap
 import unittest
 
 import mock
-import mox
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.device import power
-from cros.factory.device import types
 
 
-class PowerTest(unittest.TestCase):
-  """Unittest for power.Power."""
+class ECToolPowerControlTest(unittest.TestCase):
+  """Unittest for power.ECToolPowerControlMixin."""
 
   def setUp(self):
-    self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(types.DeviceBoard)
-    self.power = power.Power(self.board)
-
-  def tearDown(self):
-    self.mox.UnsetStubs()
-
-  def testGetChargerCurrent(self):
-    _MOCK_EC_CHARGER_READ = textwrap.dedent("""
-        ac = 1
-        chg_voltage = 0mV
-        chg_current = 128mA
-        chg_input_current = 2048mA
-        batt_state_of_charge = 52%
-        """)
-    self.board.CheckOutput(['ectool', 'chargestate', 'show']).AndReturn(
-        _MOCK_EC_CHARGER_READ)
-    self.mox.ReplayAll()
-    self.assertEquals(self.power.GetChargerCurrent(), 128)
-    self.mox.VerifyAll()
+    self.board = device_utils.CreateDUTInterface()
+    self.power = power.CreatePower(self.board, power.ECToolPowerControlMixin)
 
   def testCharge(self):
-    self.board.CheckCall(['ectool', 'chargecontrol', 'normal'])
-    self.mox.ReplayAll()
+    self.board.CheckCall = mock.MagicMock()
     self.power.SetChargeState(self.power.ChargeState.CHARGE)
-    self.mox.VerifyAll()
+    self.board.CheckCall.assert_called_once_with(
+        ['ectool', 'chargecontrol', 'normal'])
 
   def testDischarge(self):
-    self.board.CheckCall(['ectool', 'chargecontrol', 'discharge'])
-    self.mox.ReplayAll()
+    self.board.CheckCall = mock.MagicMock()
     self.power.SetChargeState(self.power.ChargeState.DISCHARGE)
-    self.mox.VerifyAll()
+    self.board.CheckCall.assert_called_once_with(
+        ['ectool', 'chargecontrol', 'discharge'])
 
   def testStopCharge(self):
-    self.board.CheckCall(['ectool', 'chargecontrol', 'idle'])
-    self.mox.ReplayAll()
+    self.board.CheckCall = mock.MagicMock()
     self.power.SetChargeState(self.power.ChargeState.IDLE)
-    self.mox.VerifyAll()
+    self.board.CheckCall.assert_called_once_with(
+        ['ectool', 'chargecontrol', 'idle'])
 
+class SysfsPowerInfoTest(unittest.TestCase):
+  """Unittest for power.SysfsPowerInfoMixin."""
 
-class ECToolPowerTest(unittest.TestCase):
-  """Unittest for power.ECToolPower."""
+  def setUp(self):
+    self.board = device_utils.CreateDUTInterface()
+    self.power = power.CreatePower(self.board, power.SysfsPowerInfoMixin)
+
+  def testCheckACPresent(self):
+    self.power.FindPowerPath = mock.MagicMock(return_value='')
+    self.power.ReadOneLine = mock.MagicMock(return_value='1')
+    self.assertEquals(self.power.CheckACPresent(), True)
+    self.power.ReadOneLine = mock.MagicMock(return_value='0')
+    self.assertEquals(self.power.CheckACPresent(), False)
+
+  def testGetACType(self):
+    self.power.FindPowerPath = mock.MagicMock(return_value='')
+    self.power.ReadOneLine = mock.MagicMock(return_value='USB_PD')
+    self.assertEquals(self.power.GetACType(), 'USB_PD')
+
+  def testCheckBatteryPresent(self):
+    _MOCK_BATTERY_PATH = '/sys/class/power_supply/BAT0'
+    # pylint: disable=protected-access
+    type(self.power)._battery_path = mock.PropertyMock(
+        return_value=_MOCK_BATTERY_PATH)
+    self.assertEquals(self.power.CheckBatteryPresent(), True)
+    # pylint: disable=protected-access
+    type(self.power)._battery_path = mock.PropertyMock(return_value='')
+    self.assertEquals(self.power.CheckBatteryPresent(), False)
+
+  def testGetChargerCurrent(self):
+    _MOCK_ECTOOL_CHARGESTATE = textwrap.dedent("""
+        ac = 1
+        chg_voltage = 13200mV
+        chg_current = 3200mA
+        chg_input_current = 3000mA
+        batt_state_of_charge = 86%
+        """)
+    self.board.CheckOutput = mock.MagicMock(
+        return_value=_MOCK_ECTOOL_CHARGESTATE)
+    self.assertEqual(self.power.GetChargerCurrent(), 3200)
+
+class ECToolPowerInfoTest(unittest.TestCase):
+  """Unittest for power.ECToolPowerInfoMixin."""
   _MOCK_EC_BATTERY_READ = textwrap.dedent("""
       Battery info:
         OEM name:               LGC
@@ -85,50 +105,87 @@ class ECToolPowerTest(unittest.TestCase):
       """)
 
   def setUp(self):
-    self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(types.DeviceBoard)
-    self.power = power.ECToolPower(self.board)
+    self.board = device_utils.CreateDUTInterface()
+    self.power = power.CreatePower(self.board, power.ECToolPowerInfoMixin)
 
-  def tearDown(self):
-    self.mox.UnsetStubs()
+  def testCheckACPresent(self):
+    self.board.CallOutput = mock.MagicMock(
+        return_value=self._MOCK_EC_BATTERY_READ)
+    self.assertEquals(self.power.CheckACPresent(), True)
+
+  def testGetACType(self):
+    self.assertEquals(self.power.GetACType(), 'Unknown')
+
+  def testCheckBatteryPresent(self):
+    self.board.CallOutput = mock.MagicMock(
+        return_value=self._MOCK_EC_BATTERY_READ)
+    self.assertEquals(self.power.CheckBatteryPresent(), True)
+
+  def testGetCharge(self):
+    self.board.CallOutput = mock.MagicMock(
+        return_value=self._MOCK_EC_BATTERY_READ)
+    self.assertEquals(self.power.GetCharge(), 1642)
+
+  def testGetChargeFull(self):
+    self.board.CallOutput = mock.MagicMock(
+        return_value=self._MOCK_EC_BATTERY_READ)
+    self.assertEquals(self.power.GetChargeFull(), 3194)
+
+  def testGetChargePct(self):
+    self.board.CallOutput = mock.MagicMock(
+        return_value=self._MOCK_EC_BATTERY_READ)
+    self.assertEquals(self.power.GetChargePct(), 51.0)
+
+  def testGetWearPct(self):
+    self.board.CallOutput = mock.MagicMock(
+        return_value=self._MOCK_EC_BATTERY_READ)
+    self.assertEquals(self.power.GetWearPct(), 1.0)
+
+  def testGetChargeState(self):
+    self.board.CallOutput = mock.MagicMock(
+        return_value=self._MOCK_EC_BATTERY_READ)
+    self.assertEquals(self.power.GetChargeState(), 'Charging')
 
   def testGetBatteryCurrent(self):
-    self.board.CallOutput(['ectool', 'battery']).MultipleTimes().AndReturn(
-        self._MOCK_EC_BATTERY_READ)
-    self.mox.ReplayAll()
+    self.board.CallOutput = mock.MagicMock(
+        return_value=self._MOCK_EC_BATTERY_READ)
     self.assertEquals(self.power.GetBatteryCurrent(), 128)
-    self.mox.VerifyAll()
 
-  def testProbeBattery(self):
-    self.board.CallOutput(['ectool', 'battery']).AndReturn(
-        self._MOCK_EC_BATTERY_READ)
-    self.mox.ReplayAll()
-    self.assertEqual(3220, self.power.GetBatteryDesignCapacity())
-    self.mox.VerifyAll()
+  def testGetBatteryDesignCapacity(self):
+    self.board.CallOutput = mock.MagicMock(
+        return_value=self._MOCK_EC_BATTERY_READ)
+    self.assertEqual(self.power.GetBatteryDesignCapacity(), 3220)
+
+  def testGetChargerCurrent(self):
+    _MOCK_ECTOOL_CHARGESTATE = textwrap.dedent("""
+        ac = 1
+        chg_voltage = 13200mV
+        chg_current = 3200mA
+        chg_input_current = 3000mA
+        batt_state_of_charge = 86%
+        """)
+    self.board.CheckOutput = mock.MagicMock(
+        return_value=_MOCK_ECTOOL_CHARGESTATE)
+    self.assertEqual(self.power.GetChargerCurrent(), 3200)
 
   def testProbeBatteryFail(self):
     _BATTERY_INFO = textwrap.dedent("""
         Battery info:
           OEM name:          FOO
         """)
-    self.board.CallOutput(['ectool', 'battery']).AndReturn(_BATTERY_INFO)
-    self.mox.ReplayAll()
+    self.board.CallOutput = mock.MagicMock(return_value=_BATTERY_INFO)
     self.assertRaises(self.power.Error, self.power.GetBatteryDesignCapacity)
-    self.mox.VerifyAll()
 
   def testGetECToolBatteryFlags(self):
-    self.board.CallOutput(['ectool', 'battery']).AndReturn(
-        self._MOCK_EC_BATTERY_READ)
-    self.mox.ReplayAll()
+    self.board.CallOutput = mock.MagicMock(
+        return_value=self._MOCK_EC_BATTERY_READ)
     # pylint: disable=protected-access
     self.assertItemsEqual(['0x03', 'AC_PRESENT', 'BATT_PRESENT', 'CHARGING'],
                           self.power._GetECToolBatteryFlags())
-    self.mox.VerifyAll()
 
   def testGetECToolBatteryAttribute(self):
-    self.board.CallOutput(['ectool', 'battery']).MultipleTimes().AndReturn(
-        self._MOCK_EC_BATTERY_READ)
-    self.mox.ReplayAll()
+    self.board.CallOutput = mock.MagicMock(
+        return_value=self._MOCK_EC_BATTERY_READ)
     # pylint: disable=protected-access
     self.assertEqual(3220,
                      self.power._GetECToolBatteryAttribute('Design capacity:'))
@@ -138,7 +195,6 @@ class ECToolPowerTest(unittest.TestCase):
     # pylint: disable=protected-access
     self.assertEqual(128,
                      self.power._GetECToolBatteryAttribute('Present current'))
-    self.mox.VerifyAll()
 
   def testUSBPDPowerInfo(self):
     _USB_PD_POWER_INFO = textwrap.dedent("""
@@ -146,37 +202,27 @@ class ECToolPowerTest(unittest.TestCase):
         Port 1: SNK Charger PD 22mV / 33mA, max 44mV / 55mA / 66mW
         Port 2: SRC
         """)
-
-    self.board.CheckOutput(['ectool',
-                            'usbpdpower']).AndReturn(_USB_PD_POWER_INFO)
-    self.mox.ReplayAll()
+    self.board.CheckOutput = mock.MagicMock(return_value=_USB_PD_POWER_INFO)
     self.assertEqual(
         [(0, 'Disconnected', None, None),
          (1, 'SNK', 22, 33),
          (2, 'SRC', None, None)],
         self.power.GetUSBPDPowerInfo())
-    self.mox.VerifyAll()
 
   def testUSBPDPowerInfoCommandFailed(self):
     exception = CalledProcessError(
         returncode=1, cmd='cmd', output='output')
-    self.board.CheckOutput(['ectool',
-                            'usbpdpower']).AndRaise(exception)
-    self.mox.ReplayAll()
+    self.board.CheckOutput = mock.MagicMock(side_effect=exception)
 
     try:
       self.power.GetUSBPDPowerInfo()
     except CalledProcessError as e:
       self.assertEqual(e, exception)
-    self.mox.VerifyAll()
 
   def testUSBPDPowerInfoEmptyString(self):
     _USB_PD_POWER_INFO = ""
-    self.board.CheckOutput(['ectool',
-                            'usbpdpower']).AndReturn(_USB_PD_POWER_INFO)
-    self.mox.ReplayAll()
+    self.board.CheckOutput = mock.MagicMock(return_value=_USB_PD_POWER_INFO)
     self.assertEqual([], self.power.GetUSBPDPowerInfo())
-    self.mox.VerifyAll()
 
   def testUSBPDPowerInfoUnexpectedPDState(self):
     _USB_PD_POWER_INFO = textwrap.dedent("""
@@ -185,13 +231,9 @@ class ECToolPowerTest(unittest.TestCase):
         Port 2: SNK Charger PD 22mV / 33mA, max 44mV / 55mA / 66mW
         Port 3: SRC
         """)
-
-    self.board.CheckOutput(['ectool',
-                            'usbpdpower']).AndReturn(_USB_PD_POWER_INFO)
-    self.mox.ReplayAll()
+    self.board.CheckOutput = mock.MagicMock(return_value=_USB_PD_POWER_INFO)
     self.assertRaisesRegexp(self.power.Error, 'unexpected PD state',
                             self.power.GetUSBPDPowerInfo)
-    self.mox.VerifyAll()
 
   def testUSBPDPowerInfoIncorrectSNKOutput(self):
     _USB_PD_POWER_INFO = textwrap.dedent("""
@@ -199,17 +241,13 @@ class ECToolPowerTest(unittest.TestCase):
         Port 1: SNK Charger XXXX
         Port 2: SRC
         """)
-
-    self.board.CheckOutput(['ectool',
-                            'usbpdpower']).AndReturn(_USB_PD_POWER_INFO)
-    self.mox.ReplayAll()
+    self.board.CheckOutput = mock.MagicMock(return_value=_USB_PD_POWER_INFO)
     self.assertRaisesRegexp(self.power.Error, 'unexpected output for SNK',
                             self.power.GetUSBPDPowerInfo)
-    self.mox.VerifyAll()
 
 
-class PowerDaemonPowerTest(unittest.TestCase):
-  """Unittest for power.PowerDaemonPower."""
+class PowerDaemonPowerInfoTest(unittest.TestCase):
+  """Unittest for power.PowerDaemonPowerInfoMixin."""
   _MOCK_DUMP_POWER_STATUS_CHARGE = textwrap.dedent("""
       line_power_connected 1
       line_power_type USB_PD
@@ -247,7 +285,7 @@ class PowerDaemonPowerTest(unittest.TestCase):
 
   def setUp(self):
     self.board = device_utils.CreateDUTInterface()
-    self.power = power.PowerDaemonPower(self.board)
+    self.power = power.CreatePower(self.board, power.PowerDaemonPowerInfoMixin)
 
   def testCheckACPresent(self):
     self.board.CallOutput = mock.MagicMock(
@@ -284,7 +322,6 @@ class PowerDaemonPowerTest(unittest.TestCase):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_DUMP_POWER_STATUS_CHARGE)
     self.assertEquals(self.power.GetChargePct(), 36.0)
-    self.assertEquals(self.power.GetChargePct(True), 36.45)
 
   def testGetWearPct(self):
     self.board.CallOutput = mock.MagicMock(

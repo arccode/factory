@@ -32,8 +32,8 @@ class ChargeManager(object):
       max_charge_pct: The maximum level of charge. Battery discharges when
           charge level is higher than this value. This value must be between 0
           and 100, and must be higher than min_charge_pct.
-      power: A cros.factory.device.power.Power instance that provides control
-          to power. Default to a local one.
+      power: An instance inherited from cros.factory.device.power.PowerBase
+          that provides control to power. Default to a local one.
     """
     assert min_charge_pct >= 0
     assert min_charge_pct <= 100

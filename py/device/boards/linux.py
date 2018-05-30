@@ -145,7 +145,7 @@ class LinuxBoard(types.DeviceBoard):
 
   @DeviceProperty
   def power(self):
-    return power.Power(self)
+    return power.LinuxPower(self)
 
   @DeviceProperty
   def status(self):
