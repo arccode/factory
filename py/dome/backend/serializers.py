@@ -110,7 +110,7 @@ class BundleSerializer(serializers.Serializer):
 
   # TODO(littlecvr): define bundle name rules in a common place
   name = serializers.CharField()
-  note = serializers.CharField(required=False)
+  note = serializers.CharField(required=False, allow_blank=True)
   active = serializers.NullBooleanField(required=False)
   rules = serializers.DictField(required=False)
   resources = serializers.DictField(required=False, child=ResourceSerializer())
