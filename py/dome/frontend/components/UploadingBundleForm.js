@@ -56,8 +56,11 @@ class UploadingBundleForm extends React.Component {
     if (props.show !== state.lastShow) {
       const ret = {lastShow: props.show};
       if (props.show) {
+        // TODO(pihsun): Consider if using redux-form for this would be better
+        // than manually handling all these.
         Object.assign(ret, {
           nameInputValue: '',
+          nameInputErrorText: '',
           noteInputValue: '',
         });
       } else {
