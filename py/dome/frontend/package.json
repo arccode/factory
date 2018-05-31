@@ -24,10 +24,9 @@
   },
   "devDependencies": {
     "@babel/core": "7.0.0-beta.49",
-    "@babel/preset-stage-2": "7.0.0-beta.49",
+    "@babel/plugin-proposal-class-properties": "7.0.0-beta.49",
     "@babel/preset-env": "7.0.0-beta.49",
     "@babel/preset-react": "7.0.0-beta.49",
-    "@babel/polyfill": "7.0.0-beta.49",
     "babel-core": "7.0.0-bridge.0",
     "babel-eslint": "~8.2.3",
     "babelify": "~9.0.0",
@@ -48,18 +47,14 @@
         "@babel/preset-env",
         {
           "targets": {
-            "browsers": ">= 1%"
+            "browsers": ">= 1%, not ie <= 11"
           },
           "useBuiltIns": "usage"
         }
-      ],
-      [
-        "@babel/preset-stage-2",
-        {
-          "useBuiltIns": true,
-          "decoratorsLegacy": true
-        }
       ]
+    ],
+    "plugins": [
+      "@babel/plugin-proposal-class-properties"
     ]
   },
   "author": "Mao Huang <littlecvr@google.com>"
