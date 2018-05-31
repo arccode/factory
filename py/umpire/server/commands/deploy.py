@@ -75,20 +75,20 @@ class ConfigDeployer(object):
                   self._config_path_to_deploy, failure)
     self._env.LoadConfig(custom_path=self._original_config_path)
     deferred = self._daemon.Deploy()
-    deferred.addCallbacks(self._HandleRollbackSuccess,
-                          self._HandleRollbackError)
+    deferred.addCallbacks(
+        lambda unused_result: self._HandleRollbackSuccess(failure),
+        self._HandleRollbackError)
     return deferred
 
-  def _HandleRollbackSuccess(self, result):
+  def _HandleRollbackSuccess(self, original_failure):
     """On rollback success.
 
     Returns:
       Failure object that indicates deploy failed but rollback success.
     """
-    del result  # Unused.
-
-    error = ('Deploy failed. Successfully rollbacked to config %r' %
-             self._env.config_path)
+    error = ('Deploy failed. Successfully rollbacked to config %r.\n'
+             'The original error was: %s' % (self._env.config_path,
+                                             original_failure))
     logging.error(error)
     return twisted_failure.Failure(common.UmpireError(error))
 
