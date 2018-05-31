@@ -37,13 +37,11 @@ class ServiceList extends React.Component {
       <div>
         {schemata.keySeq().sort().map((k, i) => {
           const schema = schemata.get(k);
-          let service = Immutable.Map({});
-          if (services.has(k)) {
-            service = services.get(k);
-            if (!service.has('active')) {
-              service = service.set('active', true);
-            }
-          }
+          const service = Immutable.Map({
+            // default value for active is same as whether the config contains
+            // the key.
+            active: services.has(k),
+          }).merge(services.get(k, {}));
           return (
             <ListItem
               key={k}
