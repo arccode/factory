@@ -171,6 +171,11 @@ class EncodedFieldsTest(unittest.TestCase):
     encoded_fields = EncodedFields(expr)
     self.assertEquals(encoded_fields.Export(), expr)
 
+    expr = {'aaa': {0: {'x': [], 'y': 'y', 'z': ['z1', 'z2']},
+                    2: {'x': 'xx', 'y': [], 'z': []}}}
+    encoded_fields = EncodedFields(expr)
+    self.assertEquals(encoded_fields.Export(), expr)
+
   def testSyntaxError(self):
     self.assertRaises(Exception, EncodedFields,
                       {'a': {'bad_index': {'a': None}}})
@@ -214,14 +219,14 @@ class EncodedFieldsTest(unittest.TestCase):
     e = EncodedFields({'e1': {0: {'a': 'A', 'b': 'B'},
                               1: {'a': ['AA', 'AAA'], 'b': 'B'}},
                        'e2': {0: {'c': None, 'd': []},
-                              1: {'c': ['C2', 'C1', 'C3'], 'd': 'D'}}})
+                              2: {'c': ['C2', 'C1', 'C3'], 'd': 'D'}}})
     self.assertEquals(set(e.encoded_fields), set(['e1', 'e2']))
     self.assertEquals(e.GetField('e1'),
-                      [{'a': ['A'], 'b': ['B']},
-                       {'a': ['AA', 'AAA'], 'b': ['B']}])
+                      {0: {'a': ['A'], 'b': ['B']},
+                       1: {'a': ['AA', 'AAA'], 'b': ['B']}})
     self.assertEquals(e.GetField('e2'),
-                      [{'c': [], 'd': []},
-                       {'c': ['C1', 'C2', 'C3'], 'd': ['D']}])
+                      {0: {'c': [], 'd': []},
+                       2: {'c': ['C1', 'C2', 'C3'], 'd': ['D']}})
     self.assertEquals(e.GetComponentClasses('e1'), {'a', 'b'})
     self.assertEquals(e.GetComponentClasses('e2'), {'c', 'd'})
     self.assertEquals(e.GetFieldForComponent('c'), 'e2')

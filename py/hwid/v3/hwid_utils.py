@@ -238,7 +238,7 @@ def EnumerateHWID(database, image_id=None, status='supported', comps=None):
       image_id).iteritems():
     max_index = (1 << bit_length) - 1
     last_combinations = []
-    for index, comps_set in enumerate(database.GetEncodedField(field_name)):
+    for index, comps_set in database.GetEncodedField(field_name).iteritems():
       if index <= max_index and _IsComponentsSetValid(comps_set):
         last_combinations.append(
             {comp_cls: type_utils.MakeList(comp_names)

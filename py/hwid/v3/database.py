@@ -437,7 +437,7 @@ class Database(object):
 
     # Each encoded field should be well defined.
     for encoded_field_name in self.encoded_fields:
-      for comps in self.GetEncodedField(encoded_field_name):
+      for comps in self.GetEncodedField(encoded_field_name).itervalues():
         for comp_cls, comp_names in comps.iteritems():
           missing_comp_names = (
               set(comp_names) - set(self.GetComponents(comp_cls).keys()))
@@ -665,9 +665,9 @@ class EncodedFields(object):
   should form a `one-to-multi` mapping.
 
   Properties:
-    _fields: A dictionary maps the encoded field name to another
-        dictionary which maps the number to another dictionary which maps
-        the component class name to a list of component name.
+    _fields: A dictionary maps the encoded field name to a list of component
+        combinations.  A component combination is represented as a dictionary
+        which maps the component class name to a list of component name.
     _field_to_comp_classes: A dictionary maps the encoded field name to a set
         of component class.
     _can_encode: True if this part works for encoding a BOM to the HWID string.
@@ -710,12 +710,11 @@ class EncodedFields(object):
 
     for field_name, field_data in encoded_fields_expr.iteritems():
       self._RegisterNewEmptyField(field_name, field_data.values()[0].keys())
-      for index in xrange(len(field_data)):
-        if index not in field_data:
-          raise common.HWIDException(
-              'The index numbers should form a continuous non-negative '
-              'sequence starting from 0, but %d is missing' % index)
-        self.AddFieldComponents(field_name, field_data[index])
+      for index in xrange(max(field_data.keys()) + 1):
+        if index in field_data:
+          self.AddFieldComponents(field_name, field_data[index])
+        else:
+          self.AddDummyFieldComponents(field_name)
 
   def __eq__(self, rhs):
     return isinstance(rhs, EncodedFields) and self._fields == rhs._fields
@@ -733,6 +732,8 @@ class EncodedFields(object):
     for field, field_data in self._fields.iteritems():
       ret[field] = {}
       for index, components in enumerate(field_data):
+        if components is None:
+          continue
         ret[field][index] = {
             comp_cls: comp_names[0] if len(comp_names) == 1 else comp_names
             for comp_cls, comp_names in components.iteritems()}
@@ -761,7 +762,8 @@ class EncodedFields(object):
     if field_name not in self._fields:
       raise common.HWIDException('The field name %r is invalid.' % field_name)
 
-    return self._fields[field_name]
+    return {index: comps for index, comps in enumerate(self._fields[field_name])
+            if comps is not None}
 
   def GetComponentClasses(self, field_name):
     """Gets the related component classes of a specific field.
@@ -825,6 +827,18 @@ class EncodedFields(object):
             comps, existing_index)
 
     self._fields[field_name].append(comps)
+
+  def AddDummyFieldComponents(self, field_name):
+    """Adds a dummy components combination to an existing encoded field.
+
+    Some legacy HWID databases contain encoding fields with non-continuous
+    index.  In those cases, we add dummy field components to let the indexes
+    form a continuous sequence.
+
+    Args:
+      field_name: A string of the name of the new encoded field.
+    """
+    self._fields[field_name].append(None)
 
   def AddNewField(self, field_name, components):
     """Adds a new field.

@@ -204,7 +204,7 @@ class DatabaseBuilder(object):
           'Please update the database by a real probed results.' %
           (field_name, comp_cls, comp_cls))
     if all(comps[comp_cls]
-           for comps in self.database.GetEncodedField(field_name)):
+           for comps in self.database.GetEncodedField(field_name).itervalues()):
       self.database.AddEncodedFieldComponents(field_name, {comp_cls: []})
 
   def UpdateByProbedResults(self, probed_results, device_info, vpd,
@@ -387,8 +387,8 @@ class DatabaseBuilder(object):
       if not bom.components.get(comp_cls):
         field_name = self.database.GetEncodedFieldForComponent(comp_cls)
         if (field_name and
-            any(not comps[comp_cls]
-                for comps in self.database.GetEncodedField(field_name))):
+            any(not comps[comp_cls] for comps
+                in self.database.GetEncodedField(field_name).itervalues())):
           # Pass if the database says that device without this component is
           # acceptable.
           continue
@@ -419,7 +419,7 @@ class DatabaseBuilder(object):
     for field_name in self.database.encoded_fields:
       comp_classes = self.database.GetComponentClasses(field_name)
 
-      for comps in self.database.GetEncodedField(field_name):
+      for comps in self.database.GetEncodedField(field_name).itervalues():
         if all(comp_names == bom.components[comp_cls]
                for comp_cls, comp_names in comps.iteritems()):
           break
@@ -476,7 +476,7 @@ class DatabaseBuilder(object):
     """Updates the pattern so that it includes all encoded fields."""
     def _GetMinBitLength(field_name):
       return int(math.ceil(math.log(
-          len(self.database.GetEncodedField(field_name)), 2)))
+          max(self.database.GetEncodedField(field_name).keys()) + 1, 2)))
 
     handled_comp_classes = set()
     handled_encoded_fields = set()

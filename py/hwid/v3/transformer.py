@@ -37,7 +37,7 @@ def BOMToIdentity(database, bom):
   encoded_fields = {}
   for field_name, bit_length in database.GetEncodedFieldsBitLength(
       bom.image_id).iteritems():
-    for index, components in enumerate(database.GetEncodedField(field_name)):
+    for index, components in database.GetEncodedField(field_name).iteritems():
       if all(comp_names == bom.components[comp_cls]
              for comp_cls, comp_names in components.iteritems()):
         encoded_fields[field_name] = index
@@ -110,10 +110,10 @@ def IdentityToBOM(database, identity):
   # Construct the components dict.
   components = {comp_cls: [] for comp_cls in database.GetComponentClasses()}
   for field, index in encoded_fields.iteritems():
-    encoded_field = database.GetEncodedField(field)
-    if index >= len(encoded_field):
+    database_encoded_field = database.GetEncodedField(field)
+    if index not in database_encoded_field:
       raise common.HWIDException('Invalid encoded field index: {%r: %r}' %
-                                 (field, encoded_fields[field]))
-    components.update(encoded_field[index])
+                                 (field, index))
+    components.update(database_encoded_field[index])
 
   return BOM(identity.encoding_pattern_index, image_id, components)

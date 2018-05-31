@@ -131,19 +131,19 @@ class DatabaseBuilderTest(unittest.TestCase):
     db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
 
     db.AddNullComponent('comp_cls_1')
-    self.assertEquals([{'comp_cls_1': ['comp_1_1']},
-                       {'comp_cls_1': ['comp_1_2']},
-                       {'comp_cls_1': []}],
+    self.assertEquals({0: {'comp_cls_1': ['comp_1_1']},
+                       1: {'comp_cls_1': ['comp_1_2']},
+                       2: {'comp_cls_1': []}},
                       db.database.GetEncodedField('comp_cls_1_field'))
 
     # The database already accepts a device without a cpu component.
     db.AddNullComponent('cpu')
     self.assertEquals(
-        [{'cpu': []}], db.database.GetEncodedField('cpu_field'))
+        {0: {'cpu': []}}, db.database.GetEncodedField('cpu_field'))
 
     # The given component class was not recorded in the database.
     db.AddNullComponent('new_component')
-    self.assertEquals([{'new_component': []}],
+    self.assertEquals({0: {'new_component': []}},
                       db.database.GetEncodedField('new_component_field'))
 
     # Should fail if the encoded field of the specified component class encodes
@@ -187,7 +187,7 @@ class DatabaseBuilderTest(unittest.TestCase):
       self.assertEquals(
           add_null_comp,
           {'comp_cls_100': []} in db.database.GetEncodedField(
-              'comp_cls_100_field'))
+              'comp_cls_100_field').values())
 
   @mock.patch('cros.factory.hwid.v3.builder.PromptAndAsk', return_value=False)
   def testUpdateByProbedResultsWithExtraComponents(
@@ -205,7 +205,7 @@ class DatabaseBuilderTest(unittest.TestCase):
         sorted([{'value': '1'}, {'value': '2'}, {'value': '3'}]))
 
     self.assertIn({'comp_cls_1': sorted(['comp_1_1', '3'])},
-                  db.database.GetEncodedField('comp_cls_1_field'))
+                  db.database.GetEncodedField('comp_cls_1_field').values())
 
   @mock.patch('cros.factory.hwid.v3.builder.PromptAndAsk')
   def testUpdateByProbedResultsMissingEssentialComponents(self,
@@ -216,7 +216,7 @@ class DatabaseBuilderTest(unittest.TestCase):
     db.UpdateByProbedResults({}, {}, {}, image_name='NEW_IMAGE')
     for comp_cls in builder.ESSENTIAL_COMPS:
       self.assertIn({comp_cls: []},
-                    db.database.GetEncodedField(comp_cls + '_field'))
+                    db.database.GetEncodedField(comp_cls + '_field').values())
 
     # If the user answer "Y", the default component will be added if no null
     # component is recorded.
@@ -224,11 +224,12 @@ class DatabaseBuilderTest(unittest.TestCase):
     db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
     db.UpdateByProbedResults({}, {}, {}, image_name='NEW_IMAGE')
     for comp_cls in builder.ESSENTIAL_COMPS:
-      if {comp_cls: []} in db.database.GetEncodedField(comp_cls + '_field'):
+      if {comp_cls: []} in db.database.GetEncodedField(
+          comp_cls + '_field').values():
         continue
       self.assertIn(comp_cls + '_default', db.database.GetComponents(comp_cls))
       self.assertIn({comp_cls: [comp_cls + '_default']},
-                    db.database.GetEncodedField(comp_cls + '_field'))
+                    db.database.GetEncodedField(comp_cls + '_field').values())
 
   @mock.patch('cros.factory.hwid.v3.builder.PromptAndAsk', return_value=False)
   def testUpdateByProbedResultsUpdateEncodedFieldsAndPatternCorrectly(
@@ -258,10 +259,10 @@ class DatabaseBuilderTest(unittest.TestCase):
 
     self.assertEquals(
         db.database.GetEncodedField('comp_cls_23_field'),
-        [{'comp_cls_2': ['comp_2_1'], 'comp_cls_3': ['comp_3_1']},
-         {'comp_cls_2': ['comp_2_2'], 'comp_cls_3': ['comp_3_2']},
-         {'comp_cls_2': [], 'comp_cls_3': []},
-         {'comp_cls_2': ['comp_2_2'], 'comp_cls_3': ['comp_3_1']}])
+        {0: {'comp_cls_2': ['comp_2_1'], 'comp_cls_3': ['comp_3_1']},
+         1: {'comp_cls_2': ['comp_2_2'], 'comp_cls_3': ['comp_3_2']},
+         2: {'comp_cls_2': [], 'comp_cls_3': []},
+         3: {'comp_cls_2': ['comp_2_2'], 'comp_cls_3': ['comp_3_1']}})
 
     # Check the pattern by checking if the fields bit length are all correct.
     self.assertEquals(db.database.GetEncodedFieldsBitLength(),
