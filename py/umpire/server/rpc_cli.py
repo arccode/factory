@@ -31,8 +31,8 @@ class CLICommand(umpire_rpc.UmpireRPC):
 
   @umpire_rpc.RPCCall
   def GetVersion(self):
-    """Get the rpc_cli protocol version."""
-    return common.UMPIRE_CLI_RPC_VERSION
+    """Get the umpire image version."""
+    return common.UMPIRE_VERSION
 
   @umpire_rpc.RPCCall
   def ExportPayload(self, bundle_id, payload_type, file_path):

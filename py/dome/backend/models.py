@@ -348,7 +348,7 @@ class Project(django.db.models.Model):
 
   @property
   def is_umpire_recent(self):
-    return self.umpire_version == umpire_common.UMPIRE_CLI_RPC_VERSION
+    return self.umpire_version == umpire_common.UMPIRE_VERSION
 
   @staticmethod
   def GetProjectByName(project_name):

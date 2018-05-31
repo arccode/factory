@@ -209,7 +209,7 @@ class UmpireRPCTest(UmpireDockerTestCase):
     return file_utils.ReadFile(os.path.join(CONFIG_TESTDATA_DIR, name))
 
   def testVersion(self):
-    self.assertEqual(common.UMPIRE_CLI_RPC_VERSION, self.proxy.GetVersion())
+    self.assertEqual(common.UMPIRE_VERSION, self.proxy.GetVersion())
 
   def testListMethods(self):
     self.assertIn('IsDeploying', self.proxy.system.listMethods())
