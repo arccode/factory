@@ -13,17 +13,24 @@ const buildOnCancel = (dispatch, getState) => {
   return () => dispatch(receiveProjects(projectsSnapshot.toJS()));
 };
 
-// add authentication token to header
+// add authentication token to header, if exists.
 const authorizedFetch = (url, req) => {
-  if (!req.hasOwnProperty('headers')) {
-    req['headers'] = {};
+  const token = localStorage.getItem('token');
+  if (token != null) {
+    if (!req.hasOwnProperty('headers')) {
+      req['headers'] = {};
+    }
+    req['headers']['Authorization'] = 'Token ' + localStorage.getItem('token');
   }
-  req['headers']['Authorization'] = 'Token ' + localStorage.getItem('token');
   return fetch(url, req);
 };
 
 const loginSucceed = (token) => {
-  localStorage.setItem('token', token);
+  if (token != null) {
+    localStorage.setItem('token', token);
+  } else {
+    localStorage.removeItem('token');
+  }
   return {type: ActionTypes.LOGIN_SUCCEED};
 };
 
@@ -56,9 +63,16 @@ const testAuthToken = () => async (dispatch) => {
     const resp = await authorizedFetch('/projects.json', {});
     if (resp.ok) {
       dispatch(loginSucceed(token));
-    } else {
-      dispatch(loginFailed());
+      return;
     }
+  }
+  // We might not need a auth token, for example, login is not needed for
+  // localhost.
+  const resp = await fetch('/projects.json');
+  if (resp.ok) {
+    dispatch(loginSucceed(null));
+  } else {
+    dispatch(loginFailed());
   }
 };
 
