@@ -25,10 +25,10 @@ import LoginApp from './LoginApp';
 import ProjectsApp from './ProjectsApp';
 import TaskList from './TaskList';
 
-const _APP_MENU_WIDTH = 250;
-const _PROJECT_MENU_ITEM_PADDING_LEFT = 36;
-const _SPACE_BEFORE_TASK_LIST = 24;
-const _SPACE_AFTER_TASK_LIST = 24;
+const APP_MENU_WIDTH = 250;
+const PROJECT_MENU_ITEM_PADDING_LEFT = 36;
+const SPACE_BEFORE_TASK_LIST = 24;
+const SPACE_AFTER_TASK_LIST = 24;
 
 const EmphasizedString = (props) => (
   <span style={{fontWeight: 'bold', color: amber300}}>{props.children}</span>
@@ -84,8 +84,8 @@ class DomeApp extends React.Component {
     const {isLoggedIn, appName, project} = this.props;
 
     // must not let the task list cover the main content
-    const paddingBottom = _SPACE_BEFORE_TASK_LIST +
-        this.state.taskListHeight + _SPACE_AFTER_TASK_LIST;
+    const paddingBottom = SPACE_BEFORE_TASK_LIST +
+        this.state.taskListHeight + SPACE_AFTER_TASK_LIST;
 
     // TODO(b/31579770): should define a "app" system (like a dynamic module
     //                   system), which automatically import and display
@@ -121,7 +121,7 @@ class DomeApp extends React.Component {
 
         <Drawer
           docked={true}
-          width={_APP_MENU_WIDTH}
+          width={APP_MENU_WIDTH}
           open={this.state.appMenuOpened}
           // Need to set "top" to avoid covering (or being covered by) the
           // AppBar, see https://github.com/callemall/material-ui/issues/957.
@@ -136,7 +136,7 @@ class DomeApp extends React.Component {
             {projectName != '' &&
               <MenuItem
                 onClick={() => this.handleClick(AppNames.DASHBOARD_APP)}
-                innerDivStyle={{paddingLeft: _PROJECT_MENU_ITEM_PADDING_LEFT}}
+                innerDivStyle={{paddingLeft: PROJECT_MENU_ITEM_PADDING_LEFT}}
               >
                 Dashboard
               </MenuItem>
@@ -144,7 +144,7 @@ class DomeApp extends React.Component {
             {projectName != '' &&
               <MenuItem
                 onClick={() => this.handleClick(AppNames.BUNDLES_APP)}
-                innerDivStyle={{paddingLeft: _PROJECT_MENU_ITEM_PADDING_LEFT}}
+                innerDivStyle={{paddingLeft: PROJECT_MENU_ITEM_PADDING_LEFT}}
                 disabled={!project.get('umpireReady')}
               >
                 Bundles{project.get('umpireEnabled') &&
@@ -167,7 +167,7 @@ class DomeApp extends React.Component {
         </Drawer>
 
         <div
-          style={{paddingLeft: this.state.appMenuOpened ? _APP_MENU_WIDTH : 0}}
+          style={{paddingLeft: this.state.appMenuOpened ? APP_MENU_WIDTH : 0}}
         >
           {app}
         </div>

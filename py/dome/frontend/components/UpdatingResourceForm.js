@@ -14,7 +14,7 @@ import BundlesActions from '../actions/bundlesactions';
 import DomeActions from '../actions/domeactions';
 import FormNames from '../constants/FormNames';
 
-const _NAME_INPUT_VALUE_ERROR_TEST = 'This field is required';
+const NAME_INPUT_VALUE_ERROR_TEST = 'This field is required';
 
 class UpdatingResourceForm extends React.Component {
   static propTypes = {
@@ -45,7 +45,7 @@ class UpdatingResourceForm extends React.Component {
   handleConfirm = () => {
     if (this.state.nameInputValue == '') {
       // TODO: Chinese support
-      this.setState({nameInputErrorText: _NAME_INPUT_VALUE_ERROR_TEST});
+      this.setState({nameInputErrorText: NAME_INPUT_VALUE_ERROR_TEST});
       return;
     }
 
