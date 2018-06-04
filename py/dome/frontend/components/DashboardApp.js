@@ -96,9 +96,9 @@ class DashboardApp extends React.Component {
         <EnablingUmpireForm
           projectName={project.get('name')}
           onCancel={closeEnablingUmpireForm}
-          onConfirm={(projectName, umpireSettings) => {
+          onSubmit={(umpireSettings) => {
             closeEnablingUmpireForm();
-            enableUmpire(projectName, umpireSettings);
+            enableUmpire(project.get('name'), umpireSettings.toJS());
           }}
           opened={enablingUmpireFormOpened}
         />
@@ -120,6 +120,9 @@ function mapStateToProps(state) {
 
 function mapDispatchToProps(dispatch) {
   return {
+    openEnablingUmpireForm: () => (
+      dispatch(DomeActions.openForm(FormNames.ENABLING_UMPIRE_FORM))
+    ),
     closeEnablingUmpireForm: () => (
       dispatch(DomeActions.closeForm(FormNames.ENABLING_UMPIRE_FORM))
     ),
@@ -131,9 +134,6 @@ function mapDispatchToProps(dispatch) {
       dispatch(DomeActions.updateProject(
           projectName,
           Object.assign({'umpireEnabled': true}, umpireSettings)))
-    ),
-    openEnablingUmpireForm: () => (
-      dispatch(DomeActions.openForm(FormNames.ENABLING_UMPIRE_FORM))
     ),
   };
 }

@@ -3,139 +3,135 @@
 // found in the LICENSE file.
 
 import Dialog from 'material-ui/Dialog';
-import RaisedButton from 'material-ui/RaisedButton';
+import FlatButton from 'material-ui/FlatButton';
 import TextField from 'material-ui/TextField';
 import PropTypes from 'prop-types';
 import React from 'react';
+import {connect} from 'react-redux';
+import {fieldPropTypes, formPropTypes, submit} from 'redux-form';
+import {Field, formValueSelector, reduxForm} from 'redux-form/immutable';
 
-const _SPACE_BETWEEN_COMPONENTS = 24;
+// TODO(pihsun): Export name from this module, instead of using global constant
+// table.
+import FormNames from '../constants/FormNames';
 
-class EnablingUmpireForm extends React.Component {
+const FORM_NAME = FormNames.ENABLING_UMPIRE_FORM;
+
+const renderTextField = ({input, label}) => (
+  <TextField
+    fullWidth={true}
+    floatingLabelText={label}
+    {...input}
+  />
+);
+
+renderTextField.propTypes = {...fieldPropTypes};
+
+const renderAddExistingHint = ({input: {value, onChange}}) => (
+  <div style={{textAlign: 'center', marginTop: 24}}>
+    {value &&
+    <div>
+      If you had not set up the Umpire Docker container, you should
+      {' '}
+      <a href='#' onClick={(e) => {
+        e.preventDefault();
+        onChange(false);
+      }}>
+        create a new one
+      </a>.
+    </div>}
+    {!value && <div>
+      If you had manually set up the Umpire Docker container, you can
+      {' '}
+      <a href='#' onClick={(e) => {
+        e.preventDefault();
+        onChange(true);
+      }}>
+        add the existing one
+      </a>.
+    </div>}
+  </div>
+);
+
+renderAddExistingHint.propTypes = {...fieldPropTypes};
+
+class InnerForm extends React.Component {
   static propTypes = {
-    projectName: PropTypes.string.isRequired,
-    onCancel: PropTypes.func.isRequired,
-    onConfirm: PropTypes.func.isRequired,
-    opened: PropTypes.bool.isRequired,
+    addExisting: PropTypes.bool.isRequired,
+    ...formPropTypes,
   };
-
-  state = {
-    showAddForm: false,
-    hostInputValue: 'localhost',
-    portInputValue: 8080,
-  };
-
-  buildUmpireSettings = (addExistingOne, host, port) => {
-    // TODO(littlecvr): should not need to add 'umpire_' prefix
-    const settings = {
-      'umpireAddExistingOne': addExistingOne,
-      'umpireHost': host,
-      'umpirePort': port,
-    };
-    return settings;
-  };
-
-  handleAdd = () => {
-    this.props.onConfirm(this.props.projectName, this.buildUmpireSettings(
-        true, this.state.hostInputValue, this.state.portInputValue
-    ));
-  };
-
-  handleCreate = () => {
-    this.props.onConfirm(this.props.projectName, this.buildUmpireSettings(
-        false, 'localhost', this.state.portInputValue
-    ));
-  };
-
-  setShowAddForm = (show, event) => {
-    event.preventDefault();
-    this.setState({showAddForm: show});
-  };
-
-  static getDerivedStateFromProps(props, state) {
-    if (props.opened !== state.lastOpened) {
-      const ret = {lastOpened: props.opened};
-      if (props.opened) {
-        Object.assign(ret, {
-          hostInputValue: 'localhost',
-          portInputValue: 8080,
-        });
-      }
-      return ret;
-    }
-    return null;
-  }
-
-  componentDidUpdate(prevProps, prevState) {
-    if (this.props.opened && !prevProps.opened) {
-      this.formElement.reset();
-    }
-  }
 
   render() {
+    const {addExisting} = this.props;
     return (
-      <form ref={(c) => this.formElement = c}>
-        <Dialog
-          title='Enable Umpire'
-          open={this.props.opened}
-          modal={false}
-          onRequestClose={this.props.onCancel}
-          actions={<div>
-            {!this.state.showAddForm && <RaisedButton
-              label='CREATE A NEW UMPIRE INSTANCE'
-              primary={true}
-              onClick={this.handleCreate}
-              style={{marginLeft: _SPACE_BETWEEN_COMPONENTS}}
-            />}
-            {this.state.showAddForm && <RaisedButton
-              label='ADD AN EXISTING UMPIRE INSTANCE'
-              primary={true}
-              onClick={this.handleAdd}
-              style={{marginLeft: _SPACE_BETWEEN_COMPONENTS}}
-            />}
-            <RaisedButton
-              label='CANCEL'
-              primary={true}
-              onClick={this.props.onCancel}
-              style={{marginLeft: _SPACE_BETWEEN_COMPONENTS}}
-            />
-          </div>}
-        >
-          {this.state.showAddForm && <TextField
-            name='host'
-            fullWidth={true}
-            floatingLabelText='host'
-            value={this.state.hostInputValue}
-            onChange={(e) => this.setState({hostInputValue: e.target.value})}
-          />}
-          <TextField
-            name='port'
-            fullWidth={true}
-            floatingLabelText='Port'
-            value={this.state.portInputValue}
-            onChange={(e) => this.setState({portInputValue: e.target.value})}
-          />
-          <div style={{
-            textAlign: 'center', marginTop: _SPACE_BETWEEN_COMPONENTS,
-          }}>
-            {!this.state.showAddForm && <div>
-              If you had manually set up the Umpire Docker container, you can
-              {' '}
-              <a href='#' onClick={(e) => this.setShowAddForm(true, e)}>
-                add the existing one
-              </a>.
-            </div>}
-            {this.state.showAddForm && <div>
-              If you had not set up the Umpire Docker container, you should
-              {' '}
-              <a href='#' onClick={(e) => this.setShowAddForm(false, e)}>
-                create a new one
-              </a>.
-            </div>}
-          </div>
-        </Dialog>
+      <form>
+        {/* TODO(pihsun): Dome backend doesn't support host other than
+            localhost, so this can be removed. */}
+        {addExisting &&
+          <Field name='umpireHost' label='host' component={renderTextField} />
+        }
+        <Field name='umpirePort' label='port' component={renderTextField} />
+        <Field name='umpireAddExistingOne' component={renderAddExistingHint} />
       </form>
     );
   }
 }
 
-export default EnablingUmpireForm;
+InnerForm = reduxForm({
+  form: FORM_NAME,
+  initialValues: {
+    umpireHost: 'localhost',
+    umpirePort: 8080,
+    umpireAddExistingOne: false,
+  },
+})(InnerForm);
+
+class EnablingUmpireForm extends React.Component {
+  static propTypes = {
+    addExisting: PropTypes.bool.isRequired,
+    opened: PropTypes.bool.isRequired,
+    submitForm: PropTypes.func.isRequired,
+    onCancel: PropTypes.func.isRequired,
+    onSubmit: PropTypes.func.isRequired,
+  };
+
+  render() {
+    const {opened, onSubmit, onCancel, submitForm, addExisting} = this.props;
+    return (
+      <Dialog
+        title='Enable Umpire'
+        open={opened}
+        modal={false}
+        onRequestClose={onCancel}
+        actions={[
+          <FlatButton
+            label={addExisting ?
+                'ADD AN EXISTING UMPIRE INSTANCE' :
+                'CREATE A NEW UMPIRE INSTANCE'}
+            key='submit'
+            primary={true}
+            onClick={submitForm}
+          />,
+          <FlatButton
+            label='CANCEL'
+            key='cancel'
+            onClick={onCancel}
+          />,
+        ]}
+      >
+        <InnerForm addExisting={addExisting} onSubmit={onSubmit} />
+      </Dialog>
+    );
+  }
+}
+
+const selector = formValueSelector(FORM_NAME);
+const mapStateToProps = (state) => {
+  return {addExisting: selector(state, 'umpireAddExistingOne') || false};
+};
+
+const mapDispatchToProps = (dispatch) => {
+  return {submitForm: () => dispatch(submit(FORM_NAME))};
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(EnablingUmpireForm);
