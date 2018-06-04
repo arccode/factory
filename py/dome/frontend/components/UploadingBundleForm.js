@@ -2,139 +2,123 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Dialog from 'material-ui/Dialog';
-import RaisedButton from 'material-ui/RaisedButton';
+import FlatButton from 'material-ui/FlatButton';
 import TextField from 'material-ui/TextField';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
+import {fieldPropTypes, formPropTypes, submit} from 'redux-form';
+import {Field, reduxForm} from 'redux-form/immutable';
 
 import BundlesActions from '../actions/bundlesactions';
 import DomeActions from '../actions/domeactions';
 import FormNames from '../constants/FormNames';
 
-class UploadingBundleForm extends React.Component {
-  static propTypes = {
-    project: PropTypes.string.isRequired,
-    show: PropTypes.bool.isRequired,
-    startUploading: PropTypes.func.isRequired,
-    cancelUploading: PropTypes.func.isRequired,
-  };
+import FileUploadDialog from './FileUploadDialog';
 
-  state = {
-    dialogOpened: false,
-    nameInputValue: '',
-    nameInputErrorText: '',
-    noteInputValue: '',
-  };
+const FORM_NAME = FormNames.UPLOADING_BUNDLE_FORM;
 
-  handleFileChange = () => {
-    this.setState({dialogOpened: true});
-  };
+const nonEmpty = (value) =>
+    value && value.length ? undefined : 'Can not be empty';
 
-  handleConfirm = () => {
-    if (this.state.nameInputValue == '') {
-      // TODO: Chinese support
-      this.setState({nameInputErrorText: 'This field is required'});
-      return;
-    }
+const renderTextField = ({input, label, meta: {error}}) => (
+  <TextField
+    fullWidth={true}
+    floatingLabelText={label}
+    errorText={error}
+    {...input}
+  />
+);
 
-    const data = {
-      project: this.props.project,
-      name: this.state.nameInputValue,
-      note: this.state.noteInputValue,
-      bundleFile: this.fileInput.files[0],
-    };
-    this.props.startUploading(data);
-  };
+renderTextField.propTypes = {...fieldPropTypes};
 
-  handleCancel = () => {
-    this.props.cancelUploading();
-  };
-
-  static getDerivedStateFromProps(props, state) {
-    if (props.show !== state.lastShow) {
-      const ret = {lastShow: props.show};
-      if (props.show) {
-        // TODO(pihsun): Consider if using redux-form for this would be better
-        // than manually handling all these.
-        Object.assign(ret, {
-          nameInputValue: '',
-          nameInputErrorText: '',
-          noteInputValue: '',
-        });
-      } else {
-        Object.assign(ret, {dialogOpened: false});
-      }
-      return ret;
-    }
-    return null;
-  }
-
-  componentDidUpdate(prevProps, prevState) {
-    if (this.props.show && !prevProps.show) {
-      this.formElement.reset();
-      this.fileInput.click();
-    }
-  }
+class InnerForm extends React.Component {
+  static propTypes = {...formPropTypes};
 
   render() {
     return (
-      <form ref={(c) => this.formElement = c}>
-        <input
-          className='hidden'
-          type='file'
-          onChange={this.handleFileChange}
-          ref={(c) => this.fileInput = c}
-        />
-        <Dialog
-          title='Upload Bundle'
-          open={this.state.dialogOpened}
-          modal={false}
-          onRequestClose={this.handleCancel}
-          actions={[
-            <RaisedButton label='confirm' key='confirm'
-              onClick={this.handleConfirm} />,
-            <RaisedButton label='cancel' key='cancel'
-              onClick={this.handleCancel} />,
-          ]}
-        >
-          <TextField
-            floatingLabelText='New Bundle Name'
-            errorText={this.state.nameInputErrorText}
-            value={this.state.nameInputValue}
-            onChange={(c) => this.setState({nameInputValue: c.target.value})}
-          /><br />
-          <TextField
-            floatingLabelText='New Bundle Note'
-            value={this.state.noteInputValue}
-            onChange={(c) => this.setState({noteInputValue: c.target.value})}
-          />
-        </Dialog>
+      <form>
+        <Field name='name' label='New Bundle Name' validate={nonEmpty}
+          component={renderTextField} />
+        <Field name='note' label='New Bundle Note'
+          component={renderTextField} />
       </form>
     );
   }
 }
 
-function mapStateToProps(state) {
-  return {
-    project: state.getIn(['dome', 'currentProject']),
-    show: state.getIn([
-      'dome', 'formVisibility', FormNames.UPLOADING_BUNDLE_FORM,
-    ], false),
+InnerForm = reduxForm({
+  form: FORM_NAME,
+  initialValues: {name: '', note: ''},
+})(InnerForm);
+
+class UploadingBundleForm extends React.Component {
+  static propTypes = {
+    open: PropTypes.bool.isRequired,
+    submitForm: PropTypes.func.isRequired,
+    cancelUploading: PropTypes.func.isRequired,
+    startUploading: PropTypes.func.isRequired,
+
+    project: PropTypes.string.isRequired,
   };
+
+  state = {
+    initialValues: {},
+  }
+
+  handleCancel = () => {
+    this.props.cancelUploading();
+  }
+
+  handleSubmit = (values) => {
+    const {project, startUploading} = this.props;
+
+    const data = {
+      project,
+      name: values.get('name'),
+      note: values.get('note'),
+      bundleFile: values.get('file'),
+    };
+    startUploading(data);
+  }
+
+  render() {
+    const {open, submitForm} = this.props;
+    return (
+      <FileUploadDialog
+        title='Upload Bundle'
+        open={open}
+        modal={false}
+        onRequestClose={this.handleCancel}
+        actions={<>
+          <FlatButton label='confirm' primary={true} onClick={submitForm} />
+          <FlatButton label='cancel' onClick={this.handleCancel} />
+        </>}
+        onSubmit={this.handleSubmit}
+      >
+        <InnerForm />
+      </FileUploadDialog>
+    );
+  }
 }
 
-function mapDispatchToProps(dispatch) {
+const mapStateToProps = (state) => {
+  const domeState = state.get('dome');
+  return {
+    open: domeState.getIn(['formVisibility', FORM_NAME], false),
+    project: domeState.get('currentProject'),
+  };
+};
+
+const mapDispatchToProps = (dispatch) => {
   return {
     startUploading: (data) => (
       dispatch(BundlesActions.startUploadingBundle(data))
     ),
-    cancelUploading: () => (
-      dispatch(DomeActions.closeForm(FormNames.UPLOADING_BUNDLE_FORM))
-    ),
+    cancelUploading: () => dispatch(DomeActions.closeForm(FORM_NAME)),
+    submitForm: () => dispatch(submit(FORM_NAME)),
   };
-}
+};
 
 export default connect(
     mapStateToProps, mapDispatchToProps)(UploadingBundleForm);

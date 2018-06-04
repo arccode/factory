@@ -3,28 +3,63 @@
 // found in the LICENSE file.
 
 import DateAndTime from 'date-and-time';
-import Dialog from 'material-ui/Dialog';
-import RaisedButton from 'material-ui/RaisedButton';
+import Immutable from 'immutable';
+import FlatButton from 'material-ui/FlatButton';
 import TextField from 'material-ui/TextField';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
+import {fieldPropTypes, formPropTypes, submit} from 'redux-form';
+import {Field, reduxForm} from 'redux-form/immutable';
 
 import BundlesActions from '../actions/bundlesactions';
 import DomeActions from '../actions/domeactions';
 import FormNames from '../constants/FormNames';
 
-const NAME_INPUT_VALUE_ERROR_TEST = 'This field is required';
+import FileUploadDialog from './FileUploadDialog';
+
+const FORM_NAME = FormNames.UPDATING_RESOURCE_FORM;
+
+const nonEmpty = (value) =>
+    value && value.length ? undefined : 'Can not be empty';
+
+// TODO(pihsun): Refactor and move common form components out, so it can be
+// reused by different forms.
+const renderTextField = ({input, label, meta: {error}}) => (
+  <TextField
+    fullWidth={true}
+    floatingLabelText={label}
+    errorText={error}
+    {...input}
+  />
+);
+
+renderTextField.propTypes = {...fieldPropTypes};
+
+class InnerForm extends React.Component {
+  static propTypes = {...formPropTypes};
+
+  render() {
+    return (
+      <form>
+        <Field name='name' label='New Bundle Name' validate={nonEmpty}
+          component={renderTextField} />
+        <Field name='note' label='Note' component={renderTextField} />
+      </form>
+    );
+  }
+}
+
+InnerForm = reduxForm({form: FORM_NAME})(InnerForm);
 
 class UpdatingResourceForm extends React.Component {
   static propTypes = {
-    project: PropTypes.string.isRequired,
-
-    show: PropTypes.bool.isRequired,
-
-    startUpdating: PropTypes.func.isRequired,
+    open: PropTypes.bool.isRequired,
+    submitForm: PropTypes.func.isRequired,
     cancelUpdating: PropTypes.func.isRequired,
+    startUpdating: PropTypes.func.isRequired,
 
+    project: PropTypes.string.isRequired,
     // name of the source bundle to update
     bundleName: PropTypes.string,
     // key and type of the resource in source bundle to update
@@ -33,144 +68,92 @@ class UpdatingResourceForm extends React.Component {
   };
 
   state = {
-    dialogOpened: false,
-    nameInputValue: '',
-    noteInputValue: '',
-  };
+    initialValues: {},
+  }
 
-  handleFileChange = () => {
-    this.setState({dialogOpened: true});
-  };
-
-  handleConfirm = () => {
-    if (this.state.nameInputValue == '') {
-      // TODO: Chinese support
-      this.setState({nameInputErrorText: NAME_INPUT_VALUE_ERROR_TEST});
-      return;
+  static getDerivedStateFromProps(props, state) {
+    // replace the timestamp in the old bundle name with current timestamp
+    const {bundleName, resourceType, project} = props;
+    const regexp = /\d{14}$/;
+    const note = `Updated "${resourceType}" type resource`;
+    let name = bundleName;
+    const timeString = DateAndTime.format(new Date(), 'YYYYMMDDHHmmss');
+    if (regexp.test(bundleName)) {
+      name = bundleName.replace(regexp, timeString);
+    } else {
+      if (name === 'empty') {
+        name = project;
+      }
+      name += '-' + timeString;
     }
-
-    const resourceType = this.props.resourceType;
-    const data = {
-      project: this.props.project,
-      name: this.props.bundleName,
-      note: this.state.noteInputValue,
-      resources: {
-        [resourceType]: {
-          'type': resourceType,
-          'file': this.fileInput.files[0],
-        },
-      },
-    };
-    data['newName'] = this.state.nameInputValue;
-
-    this.props.startUpdating(this.props.resourceKey, data);
-  };
+    return {initialValues: {name, note}};
+  }
 
   handleCancel = () => {
     this.props.cancelUpdating();
-  };
-
-  static getDerivedStateFromProps(props, state) {
-    if (props.show !== state.lastShow) {
-      const ret = {lastShow: props.show};
-      if (props.show) {
-        // replace the timestamp in the old bundle name with current timestamp
-        const regexp = /\d{14}$/;
-        let newBundleName = props.bundleName;
-        const timeString = DateAndTime.format(new Date(), 'YYYYMMDDHHmmss');
-        if (regexp.test(props.bundleName)) {
-          newBundleName = props.bundleName.replace(regexp, timeString);
-        } else {
-          if (newBundleName == 'empty') {
-            newBundleName = props.project;
-          }
-          newBundleName += '-' + timeString;
-        }
-        Object.assign(ret, {
-          nameInputValue: newBundleName,
-          noteInputValue: `Updated "${props.resourceType}" type resource`,
-        });
-      } else {
-        Object.assign(ret, {dialogOpened: false});
-      }
-      return ret;
-    }
-    return null;
   }
 
-  componentDidUpdate(prevProps, prevState) {
-    if (this.props.show && !prevProps.show) {
-      this.formElement.reset();
-      this.fileInput.click();
-    }
+  handleSubmit = (values) => {
+    const {
+      project,
+      bundleName,
+      resourceKey,
+      resourceType,
+      startUpdating,
+    } = this.props;
+    const data = {
+      project,
+      name: bundleName,
+      newName: values.get('name'),
+      note: values.get('note'),
+      resources: {
+        [resourceType]: {
+          type: resourceType,
+          file: values.get('file'),
+        },
+      },
+    };
+    startUpdating(resourceKey, data);
   }
 
   render() {
+    const {open, submitForm} = this.props;
     return (
-      <form ref={(c) => this.formElement = c}>
-        <input
-          className='hidden'
-          type='file'
-          onChange={this.handleFileChange}
-          ref={(c) => this.fileInput = c}
-        />
-        <Dialog
-          title='Update Resource'
-          open={this.state.dialogOpened}
-          modal={false}
-          onRequestClose={this.handleCancel}
-          actions={[
-            <RaisedButton label='confirm' key='confirm'
-              onClick={this.handleConfirm} />,
-            <RaisedButton label='cancel' key='cancel'
-              onClick={this.handleCancel} />,
-          ]}
-        >
-          <TextField
-            floatingLabelText='New Bundle Name'
-            errorText={this.state.nameInputErrorText}
-            value={this.state.nameInputValue}
-            onChange={(c) => this.setState({nameInputValue: c.target.value})}
-          /><br />
-          <TextField
-            floatingLabelText='Note'
-            value={this.state.noteInputValue}
-            onChange={(c) => this.setState({noteInputValue: c.target.value})}
-          />
-        </Dialog>
-      </form>
+      <FileUploadDialog
+        title='Update Resource'
+        modal={false}
+        onRequestClose={this.handleCancel}
+        actions={<>
+          <FlatButton label='confirm' primary={true} onClick={submitForm} />
+          <FlatButton label='cancel' onClick={this.handleCancel} />
+        </>}
+        open={open}
+        onSubmit={this.handleSubmit}
+      >
+        <InnerForm initialValues={this.state.initialValues} />
+      </FileUploadDialog>
     );
   }
 }
 
-function mapStateToProps(state) {
+const mapStateToProps = (state) => {
+  const domeState = state.get('dome');
   return {
-    project: state.getIn(['dome', 'currentProject']),
-    show: state.getIn([
-      'dome', 'formVisibility', FormNames.UPDATING_RESOURCE_FORM,
-    ], false),
-    bundleName: state.getIn([
-      'dome', 'formPayload', FormNames.UPDATING_RESOURCE_FORM, 'bundleName',
-    ]),
-    resourceKey: state.getIn([
-      'dome', 'formPayload', FormNames.UPDATING_RESOURCE_FORM, 'resourceKey',
-    ]),
-    resourceType: state.getIn([
-      'dome', 'formPayload', FormNames.UPDATING_RESOURCE_FORM, 'resourceType',
-    ]),
+    open: domeState.getIn(['formVisibility', FORM_NAME], false),
+    project: domeState.get('currentProject'),
+    ...domeState.getIn(['formPayload', FORM_NAME], Immutable.Map()).toJS(),
   };
-}
+};
 
-function mapDispatchToProps(dispatch) {
+const mapDispatchToProps = (dispatch) => {
   return {
     startUpdating: (resourceKey, data) => (
       dispatch(BundlesActions.startUpdatingResource(resourceKey, data))
     ),
-    cancelUpdating: () => (
-      dispatch(DomeActions.closeForm(FormNames.UPDATING_RESOURCE_FORM))
-    ),
+    cancelUpdating: () => dispatch(DomeActions.closeForm(FORM_NAME)),
+    submitForm: () => dispatch(submit(FORM_NAME)),
   };
-}
+};
 
 export default connect(
     mapStateToProps, mapDispatchToProps)(UpdatingResourceForm);
