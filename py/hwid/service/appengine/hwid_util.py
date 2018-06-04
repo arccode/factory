@@ -53,10 +53,10 @@ class _RamSize(object):
 
   def __str__(self):
     if self.byte_count == 0:
-      return '0b'
+      return '0B'
     for key, value in reversed(_RamSize._UNITS.items()):
       if self.byte_count % value == 0:
-        return str(int(self.byte_count / value)) + key + 'b'
+        return str(int(self.byte_count / value)) + key + 'B'
     raise ValueError('Cannot represent byte_count %s.', self.byte_count)
 
 

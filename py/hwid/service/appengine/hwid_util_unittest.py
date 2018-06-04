@@ -28,54 +28,54 @@ class HwidUtilTest(unittest.TestCase):
 
   def testAllMemoryTypes(self):
     result_str, total_bytes = hwid_util.GetTotalRamFromHwidData(MEMORY_EXAMPLES)
-    self.assertEqual('24064Mb', result_str)
+    self.assertEqual('24064MB', result_str)
     self.assertEqual(25232932864, total_bytes)
 
   def testMemoryType1(self):
     result_str, total_bytes = hwid_util.GetTotalRamFromHwidData(
         [EXAMPLE_MEMORY_STRING1])
-    self.assertEqual('1Gb', result_str)
+    self.assertEqual('1GB', result_str)
     self.assertEqual(1073741824, total_bytes)
 
   def testMemoryType2(self):
     result_str, total_bytes = hwid_util.GetTotalRamFromHwidData(
         [EXAMPLE_MEMORY_STRING2])
-    self.assertEqual('2Gb', result_str)
+    self.assertEqual('2GB', result_str)
     self.assertEqual(2147483648, total_bytes)
 
   def testMemoryType3(self):
     result_str, total_bytes = hwid_util.GetTotalRamFromHwidData(
         [EXAMPLE_MEMORY_STRING3])
-    self.assertEqual('512Mb', result_str)
+    self.assertEqual('512MB', result_str)
     self.assertEqual(536870912, total_bytes)
 
   def testMemoryType4(self):
     result_str, total_bytes = hwid_util.GetTotalRamFromHwidData(
         [EXAMPLE_MEMORY_STRING4])
-    self.assertEqual('4Gb', result_str)
+    self.assertEqual('4GB', result_str)
     self.assertEqual(4294967296, total_bytes)
 
   def testMemoryType5(self):
     result_str, total_bytes = hwid_util.GetTotalRamFromHwidData(
         [EXAMPLE_MEMORY_STRING5])
-    self.assertEqual('8Gb', result_str)
+    self.assertEqual('8GB', result_str)
     self.assertEqual(8589934592, total_bytes)
 
   def testMemoryType6(self):
     result_str, total_bytes = hwid_util.GetTotalRamFromHwidData(
         [EXAMPLE_MEMORY_STRING5])
-    self.assertEqual('8Gb', result_str)
+    self.assertEqual('8GB', result_str)
     self.assertEqual(8589934592, total_bytes)
 
   def testMemoryType7(self):
     result_str, total_bytes = hwid_util.GetTotalRamFromHwidData(
         [EXAMPLE_MEMORY_STRING7])
-    self.assertEqual('1Gb', result_str)
+    self.assertEqual('1GB', result_str)
     self.assertEqual(1073741824, total_bytes)
 
   def testEmptyList(self):
     result_str, total_bytes = hwid_util.GetTotalRamFromHwidData([])
-    self.assertEqual('0b', result_str)
+    self.assertEqual('0B', result_str)
     self.assertEqual(0, total_bytes)
 
   def testMemoryUnkown(self):
