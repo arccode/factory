@@ -812,7 +812,7 @@ do_build_dome_deps() {
   mkdir -p "${BUILD_DIR}"
   ${DOCKER} create --name "${builder_container_name}" "${builder_image_name}"
   ${DOCKER} cp \
-    "${builder_container_name}:${builder_workdir}/${builder_output_file}" \
+    "${builder_container_name}:${builder_workdir}/build/${builder_output_file}" \
     "${BUILD_DIR}"
   ${DOCKER} rm "${builder_container_name}"
 }

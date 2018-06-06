@@ -29,6 +29,8 @@ RUN npm dedupe 2>&1
 COPY frontend "${workdir}/"
 RUN npm run build
 
+WORKDIR "${workdir}/build"
+
 # make sure others can read
 RUN chmod 644 index.html bundle.js main.css
 

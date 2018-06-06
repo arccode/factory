@@ -37,8 +37,8 @@
     "eslint-plugin-react": "~7.8.2"
   },
   "scripts": {
-    "build": "browserify --debug --transform [ babelify ] --outfile bundle.js --entry index.js",
-    "lint": "eslint index.js components constants actions reducers"
+    "build": "mkdir -p build && cp src/static/* build && browserify --debug --transform [ babelify ] --outfile build/bundle.js --entry src/index.js",
+    "lint": "eslint src"
   },
   "babel": {
     "presets": [
