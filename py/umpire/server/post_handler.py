@@ -10,7 +10,7 @@ Handlers should be static methods, returned a tuple
   (HTTP_STATUS, HTTP_CONTENT_DATA)
 where HTTP_CONTENT_DATA can be anything JSON-serializable
 URL:
-  http://umpire_server_address:umpire_webapp_port/post/<handler_name>
+  http://umpire_server_address:umpire_http_port/post/<handler_name>
 
 Internal handlers accept every post fields as a list, even if there's only one
 value in that field. **kwargs cannot guarantee order of args on keys, but order
