@@ -193,15 +193,38 @@ class PowerInfoMixinBase(object):
     """
     raise NotImplementedError
 
+  def GetBatteryVoltage(self):
+    """Gets battery's current voltage.
+
+    Returns:
+      Battery's current voltage in mV.
+    """
+    raise NotImplementedError
+
+
   def GetInfoDict(self):
     """Returns a dict containing information about the battery.
 
     TODO(kitching): Determine whether this function is necessary (who uses it?).
-    TODO(chenghan): Move the function from SysfsPowerInfoMixin to here
-                    and use methods to get those values instead of
-                    directly read from sysfs.
     """
-    raise NotImplementedError
+    _SysfsBatteryAttributes = [
+        ('current_now', self.GetBatteryCurrent),
+        ('present', self.CheckBatteryPresent),
+        ('status', self.GetChargeState),
+        ('voltage_now', self.GetBatteryVoltage),
+        ('charge_full', self.GetChargeFull),
+        ('charge_full_design', self.GetBatteryDesignCapacity),
+        ('charge_now', self.GetCharge),
+        ('fraction_full', lambda: self.GetChargePct(True) / 100),
+    ]
+    result = {}
+    for k, getter in _SysfsBatteryAttributes:
+      try:
+        result[k] = getter()
+      except Exception as e:
+        exc_str = '%s: %s' % (e.__class__.__name__, e)
+        logging.error('battery attribute %s is unavailable: %s', k, exc_str)
+    return result
 
 
 class SysfsPowerInfoMixin(PowerInfoMixinBase):
@@ -411,50 +434,10 @@ class SysfsPowerInfoMixin(PowerInfoMixinBase):
     except Exception as e:
       raise self.Error('Unable to get battery design capacity: %s' % e)
 
-  def GetInfoDict(self):
-    """See PowerInfoMixinBase.GetInfoDict."""
-    def GetChargePctFloat():
-      return self.GetChargePct(True) / 100
-
-    _SysfsAttribute = collections.namedtuple(
-        'SysfsAttribute',
-        ['name', 'type', 'optional', 'getter'])
-    _SysfsBatteryAttributes = [
-        _SysfsAttribute('current_now', int, False, None),
-        _SysfsAttribute('present', bool, False, None),
-        _SysfsAttribute('status', str, False, None),
-        _SysfsAttribute('voltage_now', int, False, None),
-        _SysfsAttribute('voltage_min_design', int, True, None),
-        _SysfsAttribute('energy_full', int, True, None),
-        _SysfsAttribute('energy_full_design', int, True, None),
-        _SysfsAttribute('energy_now', int, True, None),
-        _SysfsAttribute('charge_full', int, True, self.GetChargeFull),
-        _SysfsAttribute('charge_full_design', int, True,
-                        self.GetBatteryDesignCapacity),
-        _SysfsAttribute('charge_now', int, True, self.GetCharge),
-        _SysfsAttribute('fraction_full', float, True, GetChargePctFloat),
-    ]
-    result = {}
-    sysfs_path = self._battery_path
-    if not sysfs_path:
-      return result
-    for k, item_type, optional, getter in _SysfsBatteryAttributes:
-      result[k] = None
-      try:
-        value = (
-            getter() if getter else
-            self._device.ReadSpecialFile(
-                self._device.path.join(sysfs_path, k)).strip())
-        result[k] = item_type(value)
-      except Exception as e:
-        log_func = logging.debug if optional else logging.error
-        exc_str = '%s: %s' % (e.__class__.__name__, e)
-        if getter:
-          log_func('sysfs attribute %s is unavailable: %s', k, exc_str)
-        else:
-          log_func('sysfs path %s is unavailable: %s',
-                   self._device.path.join(sysfs_path, k), exc_str)
-    return result
+  def GetBatteryVoltage(self):
+    """See PowerInfoMixinBase.GetBatteryVoltage"""
+    voltage = self.GetBatteryAttribute('voltage_now')
+    return int(voltage) / 1000
 
 
 class ECToolPowerInfoMixin(PowerInfoMixinBase):
@@ -548,6 +531,10 @@ class ECToolPowerInfoMixin(PowerInfoMixinBase):
     else:
       raise self.Error('Cannot find current in ectool chargestate show')
 
+  def GetBatteryVoltage(self):
+    """See PowerInfoMixinBase.GetBatteryVoltage"""
+    return int(self._GetECToolBatteryAttribute('Present voltage'))
+
   def GetPowerInfo(self):
     """Gets power information.
 
@@ -608,15 +595,6 @@ class ECToolPowerInfoMixin(PowerInfoMixinBase):
 
       ports.append(USBPortInfo(port_id, port_state, voltage, current))
     return ports
-
-  def GetInfoDict(self):
-    """See PowerInfoMixinBase.GetInfoDict.
-
-    TODO(changhan): The function defined here is just to prevent it being an
-                    abstract function. Remove this after the function is
-                    implemented in base class.
-    """
-    return {}
 
 
 class PowerDaemonPowerInfoMixin(PowerInfoMixinBase):
@@ -703,14 +681,10 @@ class PowerDaemonPowerInfoMixin(PowerInfoMixinBase):
     return int(
         self._GetPowerAttribute('battery_charge_full_design', float) * 1000)
 
-  def GetInfoDict(self):
-    """See PowerInfoMixinBase.GetInfoDict.
-
-    TODO(changhan): The function defined here is just to prevent it being an
-                    abstract function. Remove this after the function is
-                    implemented in base class.
-    """
-    return {}
+  def GetBatteryVoltage(self):
+    """See PowerInfoMixinBase.GetBatteryVoltage"""
+    return int(
+        self._GetPowerAttribute('battery_voltage', float) * 1000)
 
 
 class LinuxPower(DummyPowerControlMixin, SysfsPowerInfoMixin, PowerBase):
