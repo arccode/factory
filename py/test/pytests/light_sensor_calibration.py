@@ -64,7 +64,6 @@ from cros.factory.test.fixture import fixture_connection
 from cros.factory.test.fixture.light_sensor import light_chamber
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
-from cros.factory.test import device_data
 from cros.factory.test import test_case
 from cros.factory.test.utils import kbd_leds
 from cros.factory.test.utils import media_utils
@@ -208,10 +207,6 @@ class ALSFixture(test_case.TestCase):
     logging.info(text)
     session.console.info(text)
 
-  def _LogSerialNumber(self):
-    testlog.AddArgument(device_data.KEY_SERIALS,
-                        device_data.GetAllSerialNumbers())
-
   def _LogArgument(self, key, value, description):
     testlog.AddArgument(key, value, description)
     self._Log("%s=%s" % (key, value))
@@ -230,13 +225,6 @@ class ALSFixture(test_case.TestCase):
     session.console.info(message)
 
   def _ALSTest(self):
-    try:
-      self._ShowTestStatus(_('Logging serial numbers'))
-      self._LogSerialNumber()
-    except Exception as e:
-      self._LogFailure(FAIL_SN, 'Error logging serial numbers: %s' % e.message)
-      raise
-
     try:
       self._ShowTestStatus(_('Cleaning up calibration values'))
       if not self.args.mock_mode:

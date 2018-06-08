@@ -283,34 +283,36 @@ class RFGraphyteTest(test_case.TestCase):
       except ValueError:
         return None
 
+    group_checker = testlog.GroupParam(
+        'result',
+        ['rf_type', 'component_name', 'test_type', 'center_freq',
+         'result_name', 'power_level', 'result', 'extra_fields'])
+
     with open(self.result_file_path, 'r') as f:
       for data in csv.DictReader(f):
         if data['test_item'] == 'TOTAL RESULT':
           continue
 
-        parameters = ParseGraphyteTestName(data['test_item'])
+        parameters = ParseGraphyteArguments(data['test_item'])
         parameters['result_name'] = data['result_name']
         parameters['power_level'] = _ConvertToNumber(data['power_level'])
-        test_name = json.dumps(parameters)
         result_value = _ConvertToNumber(data['result'])
         if result_value is None:
           code = 'GraphyteResultMissing'
-          details = '%s result is missing.' % test_name
+          details = '%s result is missing.' % json.dumps(parameters)
           testlog.AddFailure(code=code, details=details)
         else:
-          try:
+          with group_checker:
             testlog.CheckNumericParam(
-                name=test_name, value=result_value,
+                name='result', value=result_value,
                 min=_ConvertToNumber(data['lower_bound']),
                 max=_ConvertToNumber(data['upper_bound']))
-          except Exception as e:
-            logging.exception(e)
-            logging.error('Could not run CheckNumericParam for data=%r: %s: %s',
-                          data, e.__class__.__name__, e)
+            for k, v in parameters.iteritems():
+              testlog.LogParam(k, v)
 
 
-def ParseGraphyteTestName(test_name):
-  """Parse the test arguments from the test name."""
+def ParseGraphyteArguments(test_item):
+  """Parse the test arguments from the test items."""
   def _ConvertDataType(value_str):
     if value_str in ['', 'None', 'none']:
       return None
@@ -324,16 +326,22 @@ def ParseGraphyteTestName(test_name):
       pass
     return value_str
 
-  items = map(_ConvertDataType, test_name.split(' '))
+  items = map(_ConvertDataType, test_item.split(' '))
+  common_fields = ['rf_type', 'component_name', 'test_type', 'center_freq']
   if items[0] == 'WLAN':
-    fields = ['rf_type', 'component_name', 'test_type', 'center_freq',
-              'standard', 'data_rate', 'bandwidth', 'chain_mask']
+    extra_fields = ['standard', 'data_rate', 'bandwidth', 'chain_mask']
   elif items[0] == 'BLUETOOTH':
-    fields = ['rf_type', 'component_name', 'test_type', 'center_freq',
-              'packet_type']
+    extra_fields = ['packet_type']
   elif items[0] == '802_15_4':
-    fields = ['rf_type', 'component_name', 'test_type', 'center_freq']
+    extra_fields = []
   else:
     logging.error('Should not be here. items: %s', items)
-  assert len(items) == len(fields), 'items %s, fields %s' % (items, fields)
-  return dict(zip(fields, items))
+  if (len(items[:4]) != len(common_fields) or
+      len(items[4:]) != len(extra_fields)):
+    raise ValueError('items %s, fields %s' %
+                     (items, common_fields + extra_fields))
+
+  arguments = dict(zip(common_fields, items[:4]))
+  arguments['extra_fields'] = dict(zip(extra_fields, items[4:]))
+
+  return arguments
