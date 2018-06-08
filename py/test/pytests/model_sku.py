@@ -165,6 +165,7 @@ class PlatformSKUModelTest(test_case.TestCase):
 
 
   def SetToEEPROM(self):
+    OEM_ID_TYPE = 1
     SKU_ID_TYPE = 2
 
     def GetSKUIDFromEEPROM():
@@ -191,19 +192,47 @@ class PlatformSKUModelTest(test_case.TestCase):
       else:
         self.FailTask('The SKU ID in device-data is not an integer')
 
+    def GetOEMIDFromEEPROM():
+      # Usage: ectool cbi get <type> [get_flag]
+      # <type> is one of 0: BOARD_VERSION, 1: OEM_ID, 2: SKU_ID
+      cbi_output = self._dut.CallOutput('ectool cbi get %d', OEM_ID_TYPE)
+      # The output from ectool cbi get is 'OEM_ID: %u (0x%x)\n' % (val, val)
+      match = re.search(r'OEM_ID: ([0-9]+) \(0x[0-9a-fA-F]+\)', cbi_output)
+      if match:
+        return int(match.group(1))
+      else:
+        self.FailTask('Is the format of the output from "ectool cbi get" '
+                      'changed?')
+
+    def GetOEMIDFromCrosConfig(sku_id):
+      output = self._dut.CallOutput(
+          'cros_config --test_sku_id=%d / oem-id' % sku_id)
+      return int(output)
+
     new_sku_id = GetSKUIDFromDeviceData()
     old_sku_id = GetSKUIDFromEEPROM()
     if old_sku_id == new_sku_id:
       return
 
-    # The data size can't be greater than 3.  See http://b/79514391 .
-    if new_sku_id > 2**16 - 1:
-      self.FailTask('SKU ID (%d) should not be greater than UINT16_MAX (%d)' %
-                    (new_sku_id, 2**16 - 1))
+    if new_sku_id > 2**32 - 1:
+      self.FailTask('SKU ID (%d) should not be greater than UINT32_MAX (%d)' %
+                    (new_sku_id, 2**32 - 1))
     # The data size should be 1, 2 or 4.  See
     # https://chromium.googlesource.com/chromiumos/platform/ec/+/master/util/cbi-util.c#140
-    data_size = 1 if new_sku_id <= 2**8 - 1 else 2
-    # TODO(chuntsen): Use OEM ID to validate SKU ID in device data.
+    if new_sku_id <= 2**8 - 1:
+      data_size = 1
+    elif new_sku_id <= 2**16 - 1:
+      data_size = 2
+    else:
+      data_size = 4
+
+    oem_id_in_eeprom = GetOEMIDFromEEPROM()
+    oem_id_in_cros_config = GetOEMIDFromCrosConfig(new_sku_id)
+    if oem_id_in_eeprom != oem_id_in_cros_config:
+      self.FailTask('OEM ID in EEPROM (%d) is not equal to the OEM ID in '
+                    'cros_config (%d)' % (oem_id_in_eeprom,
+                                          oem_id_in_cros_config))
+
     logging.info('Setting the new SKU_ID to EEPROM (%d -> %d)',
                  old_sku_id, new_sku_id)
     # Usage: ectool cbi set <type> <value> <size> [set_flag]
