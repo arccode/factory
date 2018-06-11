@@ -41,7 +41,7 @@ export const tryLogin = (data) => async (dispatch) => {
 export const testAuthToken = () => async (dispatch) => {
   const token = localStorage.getItem('token');
   if (token != null) {
-    const resp = await authorizedFetch('/projects.json', {});
+    const resp = await authorizedFetch('/projects.json');
     if (resp.ok) {
       dispatch(loginSucceed(token));
       return;

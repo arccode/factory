@@ -18,7 +18,7 @@ export const initializeConfig = () => (dispatch) => {
 };
 
 export const fetchConfig = () => async (dispatch) => {
-  const response = await authorizedFetch('/config/0', {});
+  const response = await authorizedFetch('/config/0');
   const json = await response.json();
   dispatch(receiveConfig(json));
 };

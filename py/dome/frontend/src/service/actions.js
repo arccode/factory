@@ -24,14 +24,13 @@ export const updateService = (name, config) => async (dispatch, getState) => {
 
 export const fetchServiceSchemata = () => async (dispatch, getState) => {
   const response = await authorizedFetch(
-      baseURL(getState) + '/services/schema.json', {});
+      `${baseURL(getState)}/services/schema.json`);
   const json = await response.json();
   dispatch(receiveServiceSchemata(json));
 };
 
 export const fetchServices = () => async (dispatch, getState) => {
-  const response = await authorizedFetch(
-      baseURL(getState) + '/services.json', {});
+  const response = await authorizedFetch(`${baseURL(getState)}/services.json`);
   const json = await response.json();
   dispatch(receiveServices(json));
 };

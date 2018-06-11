@@ -40,8 +40,7 @@ export const fetchBundles = () => async (dispatch, getState) => {
   //                  have to add a hidden task after the main task as the
   //                  onFinish callback.)
   try {
-    const response = await authorizedFetch(
-        `${baseURL(getState)}/bundles.json`, {});
+    const response = await authorizedFetch(`${baseURL(getState)}/bundles.json`);
     // a response can only be read once, workaround to read the response
     // twice if needed
     const responseCopy = response.clone();

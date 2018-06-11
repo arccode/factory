@@ -91,7 +91,7 @@ const receiveProjects = (projects) => ({
 
 // TODO(littlecvr): similar to fetchBundles, refactor code if possible
 export const fetchProjects = () => async (dispatch) => {
-  const response = await authorizedFetch('/projects.json', {});
+  const response = await authorizedFetch('/projects.json');
   const json = await response.json();
   dispatch(receiveProjects(json));
 };

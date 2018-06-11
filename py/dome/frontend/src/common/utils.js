@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 // add authentication token to header, if exists.
-export const authorizedFetch = (url, req) => {
+export const authorizedFetch = (url, req = {}) => {
   const token = localStorage.getItem('token');
   if (token != null) {
     if (!req.hasOwnProperty('headers')) {
