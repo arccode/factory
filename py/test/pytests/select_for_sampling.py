@@ -49,7 +49,8 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import net_utils
 
@@ -84,5 +85,8 @@ class SelectForSamplingTest(unittest.TestCase):
     event_log.Log('select_for_sampling',
                   device_data_key=self.args.device_data_key,
                   fraction=fraction, rate=self.args.rate, selected=selected)
+
+    testlog.LogParam('selected', selected)
+    testlog.CheckNumericParam('fraction', fraction, max=self.args.rate)
 
     device_data.UpdateDeviceData({self.args.device_data_key: selected})

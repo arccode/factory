@@ -38,7 +38,7 @@ import yaml
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.i18n import _
 from cros.factory.test import rf
 from cros.factory.test.rf import e5071c_scpi
@@ -179,6 +179,7 @@ class VSWR(test_case.TestCase):
 
     self.log['config']['file_path'] = self.args.config_path
     self.log['config']['content'] = self._config
+    testlog.LogParam('config_content', self._config)
 
   def _LoadParametersFromLocalDisk(self):
     """Loads parameters from local disk."""

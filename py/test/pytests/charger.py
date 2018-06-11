@@ -13,11 +13,12 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.i18n import _
 from cros.factory.test import session
 from cros.factory.test import test_case
 from cros.factory.test.utils import stress_manager
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 
@@ -190,6 +191,9 @@ class ChargerTest(test_case.TestCase):
     if load is None:
       load = self._dut.info.cpu_count
 
+    group_checker = testlog.GroupParam(
+        'charge_info', ['load', 'target', 'charge', 'elapsed', 'status'])
+
     charge = self._GetCharge(self.args.use_percentage)
     battery_current = self._GetBatteryCurrent()
     target = charge + charge_change
@@ -200,6 +204,12 @@ class ChargerTest(test_case.TestCase):
                       'charge/discharge.', self._GetLabelWithUnit(charge),
                       self._GetLabelWithUnit(target))
       event_log.Log('target_too_close', charge=charge, target=target)
+      with group_checker:
+        testlog.LogParam('status', 'target_too_close')
+        testlog.LogParam('target', target)
+        testlog.LogParam('charge', charge)
+        testlog.LogParam('load', load)
+        testlog.LogParam('elapsed', 0)
       return
 
     elif charge > target:
@@ -238,6 +248,13 @@ class ChargerTest(test_case.TestCase):
         charge = self._GetCharge(self.args.use_percentage)
         battery_current = self._GetBatteryCurrent()
 
+        with group_checker:
+          testlog.LogParam('target', target)
+          testlog.LogParam('charge', charge)
+          testlog.LogParam('load', load)
+          testlog.LogParam('elapsed', elapsed)
+          testlog.LogParam('status', 'running')
+
         if self._Meet(charge, target, moving_up):
           logging.info('Meet difference from %s to %s'
                        ' in %d secs under %d load.',
@@ -245,6 +262,12 @@ class ChargerTest(test_case.TestCase):
                        self._GetLabelWithUnit(target), elapsed, load)
           event_log.Log('meet', elapsed=elapsed, load=load, target=target,
                         charge=charge)
+          with group_checker:
+            testlog.LogParam('target', target)
+            testlog.LogParam('charge', charge)
+            testlog.LogParam('load', load)
+            testlog.LogParam('elapsed', elapsed)
+            testlog.LogParam('status', 'meet')
           self.ui.SetState(
               _('OK! Meet {target}', target=self._GetLabelWithUnit(target)))
           self.Sleep(1)
@@ -271,6 +294,13 @@ class ChargerTest(test_case.TestCase):
         self.Sleep(1)
 
       event_log.Log('not_meet', load=load, target=target, charge=charge)
+      with group_checker:
+        elapsed = time.time() - start_time
+        testlog.LogParam('target', target)
+        testlog.LogParam('charge', charge)
+        testlog.LogParam('load', load)
+        testlog.LogParam('elapsed', elapsed)
+        testlog.LogParam('status', 'not_meet')
       self.fail('Cannot regulate battery to %s in %d seconds.' %
                 (self._GetLabelWithUnit(target), timeout_secs))
 

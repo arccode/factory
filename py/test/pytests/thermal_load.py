@@ -18,8 +18,9 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.utils import stress_manager
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -63,8 +64,13 @@ class ThermalLoadTest(unittest.TestCase):
       temperatures: A list of temperatures in different sensors.
       elapsed: elapsed time since heat up.
     """
-    for index in xrange(len(temperatures)):
-      temperature_value = temperatures[index]
+    testlog.LogParam('elapsed', elapsed)
+    for index, temperature_value in enumerate(temperatures):
+      testlog.CheckNumericValue('%s_temperature' % self.sensors[index],
+                                temperature_value,
+                                min=self.args.lower_threshold[index],
+                                max=self.args.temperature_limit[index])
+
       self.max_temperature[index] = max(
           self.max_temperature[index], temperature_value)
 
@@ -75,6 +81,7 @@ class ThermalLoadTest(unittest.TestCase):
                       lower_threshold=self.args.lower_threshold[index],
                       sensor=self.sensors[index],
                       elapsed_sec=elapsed)
+        testlog.LogParam('status', 'heated')
         logging.info('Sensor %s heated up to %d C in %d seconds.',
                      self.sensors[index],
                      self.args.lower_threshold[index], elapsed)
@@ -84,6 +91,7 @@ class ThermalLoadTest(unittest.TestCase):
                       temperature_limit=self.args.temperature_limit[index],
                       sensor=self.sensors[index],
                       elapsed_sec=elapsed)
+        testlog.LogParam('status', 'over_heated')
         self.fail('Sensor %s temperature got over %d.' % (
             self.sensors[index], self.args.temperature_limit[index]))
 
@@ -93,6 +101,7 @@ class ThermalLoadTest(unittest.TestCase):
                       lower_threshold=self.args.lower_threshold[index],
                       sensor=self.sensors[index],
                       timeout=self.args.heat_up_timeout_secs)
+        testlog.LogParam('status', 'slow_temp_slope')
         logging.info('temperature track: %r', self.temperatures_track)
         self.fail("Temperature %s didn't go over %d in %s seconds." % (
             self.sensors[index],
@@ -135,6 +144,7 @@ class ThermalLoadTest(unittest.TestCase):
   def runTest(self):
     start_temperatures = self.GetTemperatures()
     event_log.Log('start_temperatures', tempertures=start_temperatures)
+    testlog.LogParam('start_temperatures', start_temperatures)
     logging.info('Starting temperatures are: %s', start_temperatures)
 
     # Check temperatures before heat up to make sure all sensors are normal.
@@ -152,3 +162,4 @@ class ThermalLoadTest(unittest.TestCase):
       logging.info('Passed. Maximum temperature seen is %s',
                    self.max_temperature)
       event_log.Log('passed', max_temperature=self.max_temperature)
+      testlog.LogParam('maximum_temperature', self.max_temperature)

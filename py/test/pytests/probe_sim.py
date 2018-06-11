@@ -18,9 +18,10 @@ import logging
 import re
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.i18n import _
 from cros.factory.test import test_case
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
@@ -61,6 +62,7 @@ class ProbeSIMCardTest(test_case.TestCase):
       iccid = match.group(1)
       logging.info('ICCID: %s', iccid)
       event_log.Log('SIM_CARD_DETECTION', ICCID=iccid)
+      testlog.LogParam('ICCID', iccid)
 
       self.ui.SetState(_('Detected! Please remove the SIM card'))
       self.WaitForSIMCard(_SIM_NOT_PRESENT_RE)

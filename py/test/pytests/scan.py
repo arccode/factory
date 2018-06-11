@@ -55,13 +55,14 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
 from cros.factory.test import event as test_event
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test import state
 from cros.factory.test import test_case
 from cros.factory.test import test_ui
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
 
@@ -73,6 +74,8 @@ class Scan(test_case.TestCase):
           'label', 'Name of the ID or serial number being scanned, '
           'e.g., "MLB serial number"'),
       Arg('event_log_key', str, 'Key to use for event log',
+          default=None),
+      Arg('testlog_key', str, 'Parameter key to use for testlog',
           default=None),
       Arg('shared_data_key', str,
           'Key to use to store in scanned value in shared data',
@@ -154,6 +157,10 @@ class Scan(test_case.TestCase):
 
     if self.args.event_log_key:
       event_log.Log('scan', key=self.args.event_log_key, value=scan_value)
+      testlog.LogParam(self.args.event_log_key, scan_value)
+    elif self.args.testlog_key:
+      event_log.Log('scan', key=self.args.testlog_key, value=scan_value)
+      testlog.LogParam(self.args.testlog_key, scan_value)
 
     if self.args.shared_data_key:
       state.set_shared_data(self.args.shared_data_key, scan_value)

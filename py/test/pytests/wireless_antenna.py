@@ -23,11 +23,12 @@ import sys
 import time
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.i18n import _
 from cros.factory.test import session
 from cros.factory.test import test_case
 from cros.factory.test import test_ui
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
@@ -151,7 +152,13 @@ def IwScan(devname, frequency=None, sleep_retry_time_secs=2, max_retries=10):
         cmd, read_stdout=True, log_stderr_on_error=True, log=True)
     stdout, stderr = process.communicate()
     retcode = process.returncode
+
     event_log.Log('iw_scaned', retcode=retcode, stderr=stderr)
+    group_checker = testlog.GroupParam('iw_scan', ['retcode', 'stderr'])
+    with group_checker:
+      testlog.LogParam('retcode', retcode)
+      testlog.LogParam('stderr', stderr)
+
     if retcode == 0:
       logging.info('IwScan success.')
       return stdout
@@ -257,6 +264,11 @@ class WirelessTest(test_case.TestCase):
         session.console.info('Service %s signal strength %f.', service,
                              strength)
         event_log.Log('service_signal', service=service, strength=strength)
+        group_checker = testlog.GroupParam('service_signal',
+                                           ['service', 'service_strength'])
+        with group_checker:
+          testlog.LogParam('service', service)
+          testlog.LogParam('service_strength', strength)
         if strength > max_strength:
           max_strength_service, max_strength = service, strength
       else:
@@ -449,21 +461,28 @@ class WirelessTest(test_case.TestCase):
     scanned_service_strength = self._antenna_service_strength[antenna]
     scanned_strength = scanned_service_strength[service]
     spec_strength = spec_antenna_strength[antenna]
-
-    event_log.Log('antenna_%s' % antenna, freq=service[1],
-                  rssi=scanned_strength,
-                  meet=(scanned_strength and scanned_strength > spec_strength))
     if not scanned_strength:
       self.fail(
           'Antenna %s, service: %s: Can not scan signal strength.' %
           (antenna, service))
-    if scanned_strength < spec_strength:
+
+    event_log.Log('antenna_%s' % antenna, freq=service[1],
+                  rssi=scanned_strength,
+                  meet=(scanned_strength and scanned_strength >= spec_strength))
+    group_checker = testlog.GroupParam('antenna',
+                                       ['antenna', 'freq', 'strength'])
+    with group_checker:
+      testlog.LogParam('antenna', antenna)
+      testlog.LogParam('freq', service[1])
+      result = testlog.CheckNumericParam('strength', scanned_strength,
+                                         min=spec_strength)
+    if not result:
       self.fail(
           'Antenna %s, service: %s: The scanned strength %f < spec strength'
           ' %f' % (antenna, service, scanned_strength, spec_strength))
     else:
       session.console.info(
-          'Antenna %s, service: %s: The scanned strength %f > spec strength'
+          'Antenna %s, service: %s: The scanned strength %f >= spec strength'
           ' %f', antenna, service, scanned_strength, spec_strength)
 
   def runTest(self):

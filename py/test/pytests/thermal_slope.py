@@ -38,9 +38,10 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test import session
 from cros.factory.test.utils import stress_manager
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -103,6 +104,12 @@ class ThermalSlopeTest(unittest.TestCase):
     self.stage_start_time = None
     # Last time we slept.
     self.last_sleep = None
+    # Group checker and units info for testlog.
+    self.group_checker = testlog.GroupParam(
+        'sample',
+        ['stage', 'fan_rpm', 'temperatures', 'energy', 'power', 'elapsed'])
+    testlog.UpdateParam('energy', value_unit='Joule')
+    testlog.UpdateParam('power', value_unit='Watt')
 
   def _Log(self):
     """Logs the current stage and status.
@@ -116,6 +123,7 @@ class ThermalSlopeTest(unittest.TestCase):
         sensor_id=self.args.sensor_id)
     fan_rpm = self.dut.fan.GetFanRPM()
     elapsed_time = time.time() - self.stage_start_time
+    temperatures = self.dut.thermal.GetAllTemperatures()
     self.log.info(
         u'%s (%.1f s): fan_rpm=%s, temp=%d°C, power=%.3f W' % (
             self.stage, elapsed_time,
@@ -125,9 +133,16 @@ class ThermalSlopeTest(unittest.TestCase):
     event_log.Log('sample',
                   stage=self.stage,
                   fan_rpm=fan_rpm,
-                  temperature=self.dut.thermal.GetAllTemperatures(),
+                  temperature=temperatures,
                   energy_j=self.snapshot['energy'],
                   power_w=self.snapshot['power'])
+    with self.group_checker:
+      testlog.LogParam('elapsed', elapsed_time)
+      testlog.LogParam('stage', self.stage)
+      testlog.LogParam('fan_rpm', fan_rpm)
+      testlog.LogParam('temperatures', temperatures)
+      testlog.LogParam('energy', self.snapshot['energy'])
+      testlog.LogParam('power', self.snapshot['power'])
 
   def _StartStage(self, stage):
     """Begins a new stage."""
@@ -202,6 +217,14 @@ class ThermalSlopeTest(unittest.TestCase):
                     stage, temp, power_w)
       event_log.Log('stage_result',
                     stage=self.stage, temp=temp, power_w=power_w)
+      group_checker = testlog.GroupParam(
+          'result', ['result_stage', 'result_temperature', 'result_power'])
+      testlog.UpdateParam('result_temperature', value_unit='degree Celsius')
+      testlog.UpdateParam('result_power', value_unit='Watt')
+      with group_checker:
+        testlog.LogParam('result_stage', self.stage)
+        testlog.LogParam('result_temperature', temp)
+        testlog.LogParam('result_power', power_w)
       return temp, power_w, duration_secs
 
     base_temp, base_power_w, _ = RunStage(
@@ -222,6 +245,7 @@ class ThermalSlopeTest(unittest.TestCase):
                          one_core_duration_secs)
     session.console.info(u'slope=%.5f°C/J', slope)
     event_log.Log('result', slope=slope)
+    testlog.LogParam('result_slope', slope)
 
     errors = []
     if self.args.min_slope is not None and slope < self.args.min_slope:

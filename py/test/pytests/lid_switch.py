@@ -9,7 +9,7 @@ import os
 import time
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 # The right BFTFixture module is dynamically imported based on args.bft_fixture.
 # See LidSwitchTest.setUp() for more detail.
 from cros.factory.test.fixture import bft_fixture
@@ -17,6 +17,7 @@ from cros.factory.test.i18n import _
 from cros.factory.test import test_case
 from cros.factory.test.utils import audio_utils
 from cros.factory.test.utils import evdev_utils
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 
@@ -118,6 +119,11 @@ class LidSwitchTest(test_case.TestCase):
         time_to_close_sec=(self._closed_sec - self._start_waiting_sec),
         time_to_open_sec=(self._opened_sec - self._closed_sec),
         use_fixture=bool(self.fixture))
+    testlog.LogParam('time_to_close',
+                     self._closed_sec - self._start_waiting_sec)
+    testlog.LogParam('time_to_open',
+                     self._opened_sec - self._closed_sec)
+    testlog.LogParam('use_fixture', bool(self.fixture))
 
     # Restore brightness
     if self.args.brightness_path is not None:
