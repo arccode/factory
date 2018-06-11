@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {authorizedFetch} from '../common/utils';
+import {authorizedAxios} from '../common/utils';
 import {runTask} from '../task/actions';
 
 import actionTypes from './actionTypes';
@@ -18,9 +18,8 @@ export const initializeConfig = () => (dispatch) => {
 };
 
 export const fetchConfig = () => async (dispatch) => {
-  const response = await authorizedFetch('/config/0');
-  const json = await response.json();
-  dispatch(receiveConfig(json));
+  const response = await authorizedAxios().get('/config/0');
+  dispatch(receiveConfig(response.data));
 };
 
 export const updateConfig = (body) => async (dispatch, getState) => {

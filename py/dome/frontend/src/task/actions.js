@@ -5,7 +5,7 @@
 import Immutable from 'immutable';
 import uuid from 'uuid/v4';
 
-import {authorizedFetch} from '../common/utils';
+import {authorizedAxios, deepFilterKeys} from '../common/utils';
 import {setAndShowErrorDialog} from '../error/actions';
 
 import actionTypes from './actionTypes';
@@ -17,50 +17,10 @@ const changeTaskState = (taskID, state) => ({
   state,
 });
 
-const checkHTTPStatus = (response) => {
-  if (!response.ok) {
-    const error = new Error(response.statusText);
-    error.response = response;
-    throw error;
-  }
-};
-
-const recursivelyUploadFileFields = async (data) => {
-  if (data instanceof Immutable.List) {
-    const result = [];
-    for (const value of data) {
-      result.push(await recursivelyUploadFileFields(value));
-    }
-    return Immutable.List(result);
-  } else if (data instanceof Immutable.Map) {
-    const result = {};
-    for (const [key, value] of data) {
-      if (value instanceof File) {
-        const formData = new FormData();
-        formData.append('file', data.get(key));
-        // TODO(pihsun): We can do parallel uploading by using Promise.all if
-        // needed.
-        const response = await authorizedFetch('/files/', {
-          method: 'POST',
-          body: formData,
-        });
-        checkHTTPStatus(response);
-        const json = await response.json();
-        // replace `${key}` with `${key}Id` and set it to the file ID
-        result[`${key}Id`] = json.id;
-      } else {
-        result[key] = await recursivelyUploadFileFields(value);
-      }
-    }
-    return Immutable.Map(result);
-  } else {
-    return data;
-  }
-};
-
 class TaskQueue {
   constructor() {
     // Objects that cannot be serialized in the store.
+    // The _taskBodies can't be serialized since it might contains File objects.
     this._taskBodies = {};
     this._taskResolves = {};
   }
@@ -105,20 +65,36 @@ class TaskQueue {
     dispatch(changeTaskState(taskID, TaskStates.RUNNING));
 
     const task = getTaskState().getIn(['tasks', taskID]);
-    let body = this._taskBodies[taskID];
+    const body = this._taskBodies[taskID];
 
     try {
+      const client = authorizedAxios();
+
       // go through the body and upload files first
-      body = await recursivelyUploadFileFields(body);
+      const fileFields = deepFilterKeys(body, (v) => v instanceof File);
+
+      let data = body;
+      // TODO(pihsun): Add upload progress for file upload.
+      for (const path of fileFields) {
+        const file = body.getIn(path);
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await authorizedAxios().post('/files/', formData);
+        data = data.withMutations((m) => {
+          const key = path.last();
+          m.deleteIn(path);
+          // replace `${key}` with `${key}Id` and set it to the file ID
+          m.setIn(path.pop().push(`${key}Id`), response.data.id);
+        });
+      }
 
       // send the end request
-      const request = {
+      const response = await client.request({
+        url: task.get('url'),
         method: task.get('method'),
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(body),
-      };
-      const response = await authorizedFetch(task.get('url'), request);
-      checkHTTPStatus(response);
+        data,
+      });
+
       this._taskResolves[taskID]({response, cancel: false});
 
       // if all sub-tasks succeeded, mark it as succeeded, and start the next
@@ -135,20 +111,16 @@ class TaskQueue {
       // if any sub-task above failed, display the error message
       const {response} = error;
       if (response) {
-        let responseText;
-        if (response.headers.get('Content-Type') == 'application/json') {
-          responseText = JSON.stringify(await response.json());
-        } else {
-          responseText = await response.text();
-        }
+        const {data} = response;
+        const responseText =
+            typeof(data) === 'string' ? data : JSON.stringify(data);
         dispatch(setAndShowErrorDialog(
             `${error.message}\n\n${responseText}`));
       } else {
         // Some unexpected error that is not server-side happened, probably a
         // bug in the task code.
         console.error(error);
-        dispatch(setAndShowErrorDialog(
-            `Unexpected Dome error: ${error}`));
+        dispatch(setAndShowErrorDialog(`Unexpected Dome error: ${error}`));
       }
       // mark the task as failed
       dispatch(changeTaskState(taskID, TaskStates.FAILED));

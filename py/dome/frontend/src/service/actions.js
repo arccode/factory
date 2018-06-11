@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {authorizedFetch} from '../common/utils';
+import {authorizedAxios} from '../common/utils';
 import {runTask} from '../task/actions';
 
 import actionTypes from './actionTypes';
@@ -23,16 +23,15 @@ export const updateService = (name, config) => async (dispatch, getState) => {
 };
 
 export const fetchServiceSchemata = () => async (dispatch, getState) => {
-  const response = await authorizedFetch(
+  const response = await authorizedAxios().get(
       `${baseURL(getState)}/services/schema.json`);
-  const json = await response.json();
-  dispatch(receiveServiceSchemata(json));
+  dispatch(receiveServiceSchemata(response.data));
 };
 
 export const fetchServices = () => async (dispatch, getState) => {
-  const response = await authorizedFetch(`${baseURL(getState)}/services.json`);
-  const json = await response.json();
-  dispatch(receiveServices(json));
+  const response = await authorizedAxios().get(
+      `${baseURL(getState)}/services.json`);
+  dispatch(receiveServices(response.data));
 };
 
 export const receiveServiceSchemata = (schemata) => ({

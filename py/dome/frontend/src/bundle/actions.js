@@ -4,7 +4,7 @@
 
 import {arrayMove} from 'react-sortable-hoc';
 
-import {authorizedFetch} from '../common/utils';
+import {authorizedAxios} from '../common/utils';
 import {setAndShowErrorDialog} from '../error/actions';
 import {closeForm} from '../formDialog/actions';
 import {runTask} from '../task/actions';
@@ -40,19 +40,9 @@ export const fetchBundles = () => async (dispatch, getState) => {
   //                  have to add a hidden task after the main task as the
   //                  onFinish callback.)
   try {
-    const response = await authorizedFetch(`${baseURL(getState)}/bundles.json`);
-    // a response can only be read once, workaround to read the response
-    // twice if needed
-    const responseCopy = response.clone();
-    try {
-      const json = await response.json();
-      dispatch(receiveBundles(json));
-    } catch (error) {
-      const text = await responseCopy.text();
-      dispatch(setAndShowErrorDialog(
-          'error parsing bundle list response\n\n' +
-          `${error.message}\n\n` + text));
-    }
+    const response = await authorizedAxios().get(
+        `${baseURL(getState)}/bundles.json`);
+    dispatch(receiveBundles(response.data));
   } catch (error) {
     dispatch(setAndShowErrorDialog(
         `error fetching bundle list\n\n${error.message}`));
@@ -186,7 +176,7 @@ export const startUploadingBundle = (data) => async (dispatch, getState) => {
     onCancel();
     return;
   }
-  const bundle = await response.json();
+  const bundle = response.data;
   // need to fill in the real data after the request has finished
   dispatch({
     type: actionTypes.UPDATE_BUNDLE,
@@ -235,11 +225,10 @@ export const startUpdatingResource = (resourceKey, data) => (
       onCancel();
       return;
     }
-    const json = await response.json();
     dispatch({
       type: actionTypes.UPDATE_BUNDLE,
       name: dstBundleName,
-      bundle: json,
+      bundle: response.data,
     });
     // activate the new bundle by default for convenience
     dispatch(activateBundle(dstBundleName, true));

@@ -2,7 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {authorizedFetch} from '../common/utils';
+import axios from 'axios';
+
+import {authorizedAxios} from '../common/utils';
 
 import actionTypes from './actionTypes';
 
@@ -21,17 +23,10 @@ const loginFailed = () => {
 };
 
 export const tryLogin = (data) => async (dispatch) => {
-  data = data.toJS();
-  const response = await fetch('/auth', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(data),
-  });
-  const json = await response.json();
-  const token = json['token'];
-  if (token) {
-    dispatch(loginSucceed(token));
-  } else {
+  try {
+    const response = await axios.post('/auth', data);
+    dispatch(loginSucceed(response.data.token));
+  } catch (error) {
     dispatch(loginFailed());
     // TODO(pihsun): Don't use blocking window.alert.
     window.alert('\nLogin failed :(');
@@ -41,20 +36,23 @@ export const tryLogin = (data) => async (dispatch) => {
 export const testAuthToken = () => async (dispatch) => {
   const token = localStorage.getItem('token');
   if (token != null) {
-    const resp = await authorizedFetch('/projects.json');
-    if (resp.ok) {
+    try {
+      await authorizedAxios().get('/projects.json');
       dispatch(loginSucceed(token));
       return;
+    } catch (error) {
     }
   }
   // We might not need a auth token, for example, login is not needed for
   // localhost.
-  const resp = await fetch('/projects.json');
-  if (resp.ok) {
+  try {
+    await axios.get('/projects.json');
     dispatch(loginSucceed(null));
-  } else {
-    dispatch(loginFailed());
+    return;
+  } catch (error) {
   }
+  // Dispatch a login failed event to clear all wrong token.
+  dispatch(loginFailed());
 };
 
 export const logout = () => (dispatch) => {

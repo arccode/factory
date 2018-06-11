@@ -4,7 +4,7 @@
 
 import {switchApp} from '../app/actions';
 import {AppNames} from '../app/constants';
-import {authorizedFetch} from '../common/utils';
+import {authorizedAxios} from '../common/utils';
 import {runTask} from '../task/actions';
 
 import actionTypes from './actionTypes';
@@ -59,7 +59,7 @@ export const updateProject = (name, settings = {}) =>
       onCancel();
       return;
     }
-    const json = await response.json();
+    const data = response.data;
     // WORKAROUND: Umpire is not ready as soon as it should be,
     // wait for 1 second to prevent the request from failing.
     // TODO(b/65393817): remove the timeout after the issue has been solved.
@@ -68,9 +68,9 @@ export const updateProject = (name, settings = {}) =>
         type: actionTypes.UPDATE_PROJECT,
         project: {
           name,
-          umpireVersion: json['umpireVersion'],
-          isUmpireRecent: json['isUmpireRecent'],
-          umpireReady: json['umpireEnabled'],
+          umpireVersion: data['umpireVersion'],
+          isUmpireRecent: data['isUmpireRecent'],
+          umpireReady: data['umpireEnabled'],
         },
       });
     }, 1000);
@@ -91,9 +91,8 @@ const receiveProjects = (projects) => ({
 
 // TODO(littlecvr): similar to fetchBundles, refactor code if possible
 export const fetchProjects = () => async (dispatch) => {
-  const response = await authorizedFetch('/projects.json');
-  const json = await response.json();
-  dispatch(receiveProjects(json));
+  const response = await authorizedAxios().get('/projects.json');
+  dispatch(receiveProjects(response.data));
 };
 
 export const switchProject = (nextProject) => (dispatch, getState) => {
