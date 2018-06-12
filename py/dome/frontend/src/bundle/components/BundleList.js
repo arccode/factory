@@ -9,7 +9,6 @@ import {connect} from 'react-redux';
 import {SortableContainer, SortableElement} from 'react-sortable-hoc';
 
 import * as actions from '../actions';
-
 import Bundle from './Bundle';
 
 // The hierarchy of this component is complicated because of the design of

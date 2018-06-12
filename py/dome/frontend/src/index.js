@@ -15,8 +15,8 @@ import {combineReducers} from 'redux-immutable';
 import {createLogger} from 'redux-logger';
 import thunkMiddleware from 'redux-thunk';
 
-import DomeApp from './app/components/DomeApp';
-import appReducer from './app/reducer';
+import DomeApp from './domeApp/components/DomeApp';
+import domeAppReducer from './domeApp/reducer';
 import authReducer from './auth/reducer';
 import bundleReducer from './bundle/reducer';
 import configReducer from './config/reducer';
@@ -34,10 +34,10 @@ const THEME = {
 
 const store = createStore(
     combineReducers({
-      app: appReducer,
       auth: authReducer,
       bundle: bundleReducer,
       config: configReducer,
+      domeApp: domeAppReducer,
       error: errorReducer,
       form: reduxFormReducer,
       formDialog: formDialogReducer,

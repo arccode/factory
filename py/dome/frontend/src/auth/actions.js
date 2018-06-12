@@ -4,7 +4,7 @@
 
 import axios from 'axios';
 
-import {authorizedAxios} from '../common/utils';
+import {authorizedAxios} from '@common/utils';
 
 import actionTypes from './actionTypes';
 

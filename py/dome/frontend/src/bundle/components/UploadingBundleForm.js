@@ -10,8 +10,9 @@ import {connect} from 'react-redux';
 import {fieldPropTypes, formPropTypes, submit} from 'redux-form';
 import {Field, reduxForm} from 'redux-form/immutable';
 
-import FileUploadDialog from '../../common/components/FileUploadDialog';
-import {closeForm} from '../../formDialog/actions';
+import {closeForm} from '@app/formDialog/actions';
+import FileUploadDialog from '@common/components/FileUploadDialog';
+
 import * as actions from '../actions';
 import {UPLOADING_BUNDLE_FORM} from '../constants';
 

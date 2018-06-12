@@ -16,7 +16,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
 
-import {openForm} from '../../formDialog/actions';
+import {openForm} from '@app/formDialog/actions';
+
 import {UPDATING_RESOURCE_FORM} from '../constants';
 
 class ResourceTable extends React.Component {

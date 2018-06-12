@@ -2,10 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {switchApp} from '../app/actions';
-import {AppNames} from '../app/constants';
-import {authorizedAxios} from '../common/utils';
-import {runTask} from '../task/actions';
+import {switchApp} from '@app/domeApp/actions';
+import {AppNames} from '@app/domeApp/constants';
+import {runTask} from '@app/task/actions';
+import {authorizedAxios} from '@common/utils';
 
 import actionTypes from './actionTypes';
 

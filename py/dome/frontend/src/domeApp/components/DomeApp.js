@@ -13,17 +13,17 @@ import React from 'react';
 import Measure from 'react-measure';
 import {connect} from 'react-redux';
 
-import {testAuthToken} from '../../auth/actions';
-import LoginApp from '../../auth/components/LoginApp';
-import BundlesApp from '../../bundle/components/BundlesApp';
-import ConfigApp from '../../config/components/ConfigApp';
-import DashboardApp from '../../dashboard/components/DashboardApp';
-import ErrorDialog from '../../error/components/ErrorDialog';
-import ProjectsApp from '../../project/components/ProjectsApp';
-import TaskList from '../../task/components/TaskList';
+import {testAuthToken} from '@app/auth/actions';
+import LoginApp from '@app/auth/components/LoginApp';
+import BundlesApp from '@app/bundle/components/BundlesApp';
+import ConfigApp from '@app/config/components/ConfigApp';
+import DashboardApp from '@app/dashboard/components/DashboardApp';
+import ErrorDialog from '@app/error/components/ErrorDialog';
+import ProjectsApp from '@app/project/components/ProjectsApp';
+import TaskList from '@app/task/components/TaskList';
+
 import {switchApp} from '../actions';
 import {AppNames} from '../constants';
-
 import FixedAppBar from './FixedAppBar';
 
 const APP_MENU_WIDTH = 250;
@@ -179,7 +179,7 @@ class DomeApp extends React.Component {
 const mapStateToProps = (state) => {
   return {
     isLoggedIn: state.getIn(['auth', 'isLoggedIn']),
-    appName: state.getIn(['app', 'currentApp']),
+    appName: state.getIn(['domeApp', 'currentApp']),
     project: state.getIn(
         ['project', 'projects', state.getIn(['project', 'currentProject'])],
         Immutable.Map()

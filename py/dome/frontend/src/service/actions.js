@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {authorizedAxios} from '../common/utils';
-import {runTask} from '../task/actions';
+import {runTask} from '@app/task/actions';
+import {authorizedAxios} from '@common/utils';
 
 import actionTypes from './actionTypes';
 

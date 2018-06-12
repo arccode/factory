@@ -5,8 +5,8 @@
 import Immutable from 'immutable';
 import uuid from 'uuid/v4';
 
-import {authorizedAxios, deepFilterKeys} from '../common/utils';
-import {setAndShowErrorDialog} from '../error/actions';
+import {setAndShowErrorDialog} from '@app/error/actions';
+import {authorizedAxios, deepFilterKeys} from '@common/utils';
 
 import actionTypes from './actionTypes';
 import {TaskStates} from './constants';

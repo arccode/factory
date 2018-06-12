@@ -4,10 +4,10 @@
 
 import {arrayMove} from 'react-sortable-hoc';
 
-import {authorizedAxios} from '../common/utils';
-import {setAndShowErrorDialog} from '../error/actions';
-import {closeForm} from '../formDialog/actions';
-import {runTask} from '../task/actions';
+import {setAndShowErrorDialog} from '@app/error/actions';
+import {closeForm} from '@app/formDialog/actions';
+import {runTask} from '@app/task/actions';
+import {authorizedAxios} from '@common/utils';
 
 import actionTypes from './actionTypes';
 import {UPDATING_RESOURCE_FORM, UPLOADING_BUNDLE_FORM} from './constants';

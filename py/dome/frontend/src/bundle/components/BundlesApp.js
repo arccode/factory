@@ -8,9 +8,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
 
-import {openForm} from '../../formDialog/actions';
-import {UPLOADING_BUNDLE_FORM} from '../constants';
+import {openForm} from '@app/formDialog/actions';
 
+import {UPLOADING_BUNDLE_FORM} from '../constants';
 import BundleList from './BundleList';
 import UpdatingResourceForm from './UpdatingResourceForm';
 import UploadingBundleForm from './UploadingBundleForm';

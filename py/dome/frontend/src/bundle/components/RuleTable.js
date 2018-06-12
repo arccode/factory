@@ -5,7 +5,11 @@
 import Immutable from 'immutable';
 import ChipInput from 'material-ui-chip-input';
 import {
-  Table, TableBody, TableHeaderColumn, TableRow, TableRowColumn,
+  Table,
+  TableBody,
+  TableHeaderColumn,
+  TableRow,
+  TableRowColumn,
 } from 'material-ui/Table';
 import PropTypes from 'prop-types';
 import React from 'react';

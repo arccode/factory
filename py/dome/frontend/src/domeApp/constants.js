@@ -2,8 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Enum from '../common/enum';
+import Enum from '@common/enum';
 
-export default Enum([
-  'SWITCH_APP',
+export const AppNames = Enum([
+  'PROJECTS_APP',
+  'BUNDLES_APP',
+  'CONFIG_APP',
+  'DASHBOARD_APP',
 ]);

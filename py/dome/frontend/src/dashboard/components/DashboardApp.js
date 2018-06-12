@@ -12,11 +12,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
 
-import {closeForm, openForm} from '../../formDialog/actions';
-import {updateProject} from '../../project/actions';
-import ServiceList from '../../service/components/ServiceList';
-import {ENABLING_UMPIRE_FORM} from '../constants';
+import {closeForm, openForm} from '@app/formDialog/actions';
+import {updateProject} from '@app/project/actions';
+import ServiceList from '@app/service/components/ServiceList';
 
+import {ENABLING_UMPIRE_FORM} from '../constants';
 import EnablingUmpireForm from './EnablingUmpireForm';
 
 class DashboardApp extends React.Component {

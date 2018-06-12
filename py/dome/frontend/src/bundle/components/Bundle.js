@@ -15,9 +15,9 @@ import React from 'react';
 import {connect} from 'react-redux';
 import {SortableHandle} from 'react-sortable-hoc';
 
-import {updateProject} from '../../project/actions';
-import * as actions from '../actions';
+import {updateProject} from '@app/project/actions';
 
+import * as actions from '../actions';
 import ResourceTable from './ResourceTable';
 import RuleTable from './RuleTable';
 

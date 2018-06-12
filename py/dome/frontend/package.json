@@ -28,6 +28,7 @@
     "@babel/preset-react": "7.0.0-beta.49",
     "babel-core": "7.0.0-bridge.0",
     "babel-eslint": "~8.2.3",
+    "babel-plugin-module-resolver": "~3.1.1",
     "babelify": "~9.0.0",
     "browserify": "~16.2.2",
     "eslint": "~4.19.1",
@@ -36,8 +37,13 @@
     "eslint-plugin-react": "~7.8.2"
   },
   "scripts": {
-    "build": "mkdir -p build && cp src/static/* build && browserify --debug --transform [ babelify ] --outfile build/bundle.js --entry src/index.js",
+    "build": "mkdir -p build && cp src/static/* build && browserify --debug --outfile build/bundle.js --entry src/index.js",
     "lint": "eslint src"
+  },
+  "browserify": {
+    "transform": [
+      "babelify"
+    ]
   },
   "babel": {
     "presets": [
@@ -53,6 +59,15 @@
       ]
     ],
     "plugins": [
+      [
+        "module-resolver",
+        {
+          "alias": {
+            "@app": "./src",
+            "@common": "./src/common"
+          }
+        }
+      ],
       "@babel/plugin-proposal-class-properties"
     ]
   },

@@ -6,6 +6,6 @@ import ActionTypes from './actionTypes';
 
 export const switchApp = (nextApp) => (dispatch, getState) => dispatch({
   type: ActionTypes.SWITCH_APP,
-  prevApp: getState().getIn(['app', 'currentApp']),
+  prevApp: getState().getIn(['domeApp', 'currentApp']),
   nextApp,
 });

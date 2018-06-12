@@ -9,8 +9,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
 
+import {logout} from '@app/auth/actions';
+
 import * as actions from '../actions';
-import {logout} from '../../auth/actions';
 
 class ConfigApp extends React.Component {
   static propTypes = {
