@@ -44,8 +44,9 @@ import numpy
 import factory_common  # pylint: disable=unused-import
 from cros.factory import device
 from cros.factory.device import device_utils
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test import session
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
@@ -348,6 +349,8 @@ class GPS(unittest.TestCase):
         'stats': field_stats,
         'results': limit_results}
     event_log.Log(EVENT_LOG_NAME, **log_dict)
+    testlog.LogParam('stats', field_stats)
+    testlog.LogParam('results', limit_results)
 
     # Check for failures.
     if limit_failures_str:

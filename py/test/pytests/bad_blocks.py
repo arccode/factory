@@ -22,11 +22,12 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.i18n import _
 from cros.factory.test import session
 from cros.factory.test import test_case
 from cros.factory.test import test_ui
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
@@ -75,9 +76,6 @@ class BadBlocksTest(test_case.TestCase):
     # A process that monitors /var/log/messages file.
     self.message_monitor = None
 
-    # SATA link speed, or None if unknown.
-    self.sata_link_speed_mbps = None
-
     self.CheckArgs()
 
     # TODO(bhthompson): refactor this for a better device type detection.
@@ -89,6 +87,8 @@ class BadBlocksTest(test_case.TestCase):
 
     # If 'mmcblk' in self._filesystem assume we are eMMC.
     self._is_mmc = 'mmcblk' in self._filesystem
+
+    self.current_phase = 0
 
   def tearDown(self):
     # Sync, so that any problems (like writing outside of our partition)
@@ -240,7 +240,7 @@ class BadBlocksTest(test_case.TestCase):
     self.ui.DrawProgressBar(total_phases)
 
     # The phase we're currently in (0-relative).
-    current_phase = 0
+    self.current_phase = 0
 
     # How far we are through the current phase.
     fraction_within_phase = 0
@@ -252,10 +252,10 @@ class BadBlocksTest(test_case.TestCase):
     self._LogSmartctl()
 
     def UpdatePhase():
-      event_log.Log('start_phase', current_phase=current_phase)
+      event_log.Log('start_phase', current_phase=self.current_phase)
       self.ui.SetHTML(
           _('Phase {current_phase}/{total_phases}: ',
-            current_phase=min(current_phase + 1, total_phases),
+            current_phase=min(self.current_phase + 1, total_phases),
             total_phases=total_phases),
           id='bb-phase')
     UpdatePhase()
@@ -273,6 +273,7 @@ class BadBlocksTest(test_case.TestCase):
         session.console.warn('Delay of %.2f s between badblocks progress lines',
                              end_time - start_time)
         event_log.Log('delay', duration_secs=end_time - start_time)
+        testlog.LogParam('delay', end_time - start_time)
 
       self.assertTrue(
           rlist,
@@ -307,11 +308,11 @@ class BadBlocksTest(test_case.TestCase):
             self.ui.SetHTML(test_ui.Escape(line), id='bb-status')
 
           # Calculate overall percentage done.
-          phases_done = current_phase + max(0, fraction_within_phase)
+          phases_done = self.current_phase + max(0, fraction_within_phase)
           self.ui.SetProgress(phases_done)
 
           if line.startswith('done'):
-            current_phase += 1
+            self.current_phase += 1
             UpdatePhase()
             fraction_within_phase = 0
           lines.append(line)
@@ -394,11 +395,18 @@ class BadBlocksTest(test_case.TestCase):
         logging.info('stderr:\n%s', stderr_data)
       event_log.Log('log_command', command=self.args.extra_log_cmd,
                     stdout=stdout_data, stderr=stderr_data)
+      group_checker = testlog.GroupParam(
+          'log_command', ['command', 'command_stdout', 'command_stderr'])
+      with group_checker:
+        testlog.LogParam('command', self.args.extra_log_cmd)
+        testlog.LogParam('command_stdout', stdout_data)
+        testlog.LogParam('command_stderr', stderr_data)
 
     smartctl_output = self.dut.CheckOutput(
         ['smartctl', '-a', self._filesystem])
-    event_log.Log('smartctl', stdout=smartctl_output)
     logging.info('smartctl output: %s', smartctl_output)
+    event_log.Log('smartctl', stdout=smartctl_output)
+    testlog.LogParam('smartctl', smartctl_output)
 
     self.assertTrue(
         'SMART overall-health self-assessment test result: PASSED'
@@ -428,6 +436,10 @@ class BadBlocksTest(test_case.TestCase):
                      '/var/log/messages after %d seconds',
                      self.args.timeout_secs)
 
+    # Group checker for Testlog.
+    group_checker = testlog.GroupParam(
+        'sata_link_info', ['sata_link_speed', 'system_log_message', 'phase'])
+
     while True:
       rlist, unused_wlist, unused_xlist = select(
           [self.message_monitor.stdout], [], [], 0)
@@ -439,16 +451,20 @@ class BadBlocksTest(test_case.TestCase):
       log_line = log_line.strip()
       match = re.match(r'(\S)+.+SATA link up ([0-9.]+) (G|M)bps', log_line)
       if match:
-        self.sata_link_speed_mbps = (
+        sata_link_speed_mbps = (
             int(float(match.group(2)) *
                 (1000 if match.group(3) == 'G' else 1)))
-        link_info_events.append(dict(speed_mbps=self.sata_link_speed_mbps,
+        link_info_events.append(dict(speed_mbps=sata_link_speed_mbps,
                                      log_line=log_line))
 
       # Copy any ATA-related messages to the test log, and put in event logs.
       if not first_time and re.search(r'\bata[0-9.]+:', log_line):
         logging.info('System log message: %s', log_line)
         event_log.Log('system_log_message', log_line=log_line)
+        with group_checker:
+          testlog.LogParam('system_log_message', log_line)
+          testlog.LogParam('phase', self.current_phase)
+          testlog.LogParam('sata_link_speed', None)
 
     if first_time and link_info_events:
       # First time, ignore all but the last
@@ -457,3 +473,7 @@ class BadBlocksTest(test_case.TestCase):
     for event in link_info_events:
       logging.info('SATA link info: %r', event)
       event_log.Log('sata_link_info', **event)
+      with group_checker:
+        testlog.LogParam('system_log_message', event['log_line'])
+        testlog.LogParam('phase', self.current_phase)
+        testlog.LogParam('sata_link_speed', event['speed_mbps'])

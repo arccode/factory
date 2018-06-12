@@ -104,7 +104,7 @@ from cros.factory.device import device_utils
 from cros.factory.device.links import ssh
 from cros.factory.test import device_data
 from cros.factory.test.env import paths
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test import gooftools
 from cros.factory.test.i18n import _
 from cros.factory.test.rules import phase
@@ -243,6 +243,7 @@ class Finalize(test_case.TestCase):
     with open(self.test_states_path, 'w') as f:
       yaml.dump(test_states, f)
     event_log.Log('test_states', test_states=test_states)
+    testlog.LogParam('test_states', test_states)
 
   def LogImageVersion(self):
     release_image_version = self.dut.info.release_image_version
@@ -258,6 +259,8 @@ class Finalize(test_case.TestCase):
     event_log.Log('finalize_image_version',
                   factory_image_version=factory_image_version,
                   release_image_version=release_image_version)
+    testlog.LogParam('factory_image_version', factory_image_version)
+    testlog.LogParam('release_image_version', release_image_version)
 
   def _CallGoofTool(self, command):
     """Execute a gooftool command, `command`.

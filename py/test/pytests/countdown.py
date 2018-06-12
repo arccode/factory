@@ -56,10 +56,11 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test import session
 from cros.factory.test import test_case
 from cros.factory.test import test_ui
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import time_utils
@@ -237,6 +238,13 @@ class CountDownTest(test_case.TestCase):
         for w in warnings:
           session.console.warn(w)
 
+    with self._group_checker:
+      testlog.CheckNumericParam(
+          'elapsed', self._elapsed_secs, max=self.args.grace_secs)
+      testlog.LogParam('temperatures', status.temperatures)
+      testlog.LogParam('fan_rpm', status.fan_rpm)
+      testlog.LogParam('warnings', warnings)
+
   def SnapshotStatus(self):
     return Status(self._dut.thermal.GetAllTemperatures(),
                   self._dut.fan.GetFanRPM())
@@ -249,6 +257,10 @@ class CountDownTest(test_case.TestCase):
     sensors.sort()
     sensors.insert(0, sensors.pop(sensors.index(self._main_sensor)))
     self._sensors = sensors
+    # Group checker for Testlog.
+    self._group_checker = testlog.GroupParam(
+        'system_status', ['elapsed', 'temperatures', 'fan_rpm', 'warnings'])
+    testlog.UpdateParam('elapsed', description='In grace period or not')
 
     self._start_secs = time.time()
     self._elapsed_secs = 0

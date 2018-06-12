@@ -85,7 +85,7 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.i18n import _
 from cros.factory.test import session
 from cros.factory.test import state
@@ -722,12 +722,17 @@ class BluetoothTest(test_case.TestCase):
     if not candidate_rssis:
       self.FailTask('ScanDevicesTask: Fail to find any candidate device.')
 
+    # Group checker for Testlog.
+    group_checker = testlog.GroupParam('avg_rssi', ['mac', 'average_rssi'])
     # Calculates maximum average RSSI.
     max_average_rssi_mac, max_average_rssi = None, -sys.float_info.max
     for mac, rssis in candidate_rssis.iteritems():
       average_rssi = float(sum(rssis)) / len(rssis)
       logging.info('Device %s has average RSSI: %f', mac, average_rssi)
       event_log.Log('avg_rssi', mac=mac, average_rssi=average_rssi)
+      with group_checker:
+        testlog.LogParam('mac', mac)
+        testlog.LogParam('average_rssi', average_rssi)
       if average_rssi > max_average_rssi:
         max_average_rssi_mac, max_average_rssi = mac, average_rssi
 
@@ -737,6 +742,9 @@ class BluetoothTest(test_case.TestCase):
     event_log.Log('bluetooth_scan_device', mac=max_average_rssi_mac,
                   rssi=max_average_rssi,
                   meet=max_average_rssi >= average_rssi_threshold)
+    testlog.LogParam('max_average_rssi_mac', max_average_rssi_mac)
+    testlog.CheckNumericParam('max_average_rssi', max_average_rssi,
+                              min=average_rssi_threshold)
 
     self._strongest_rssi_mac = max_average_rssi_mac
 

@@ -31,7 +31,7 @@ import logging
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.i18n import _
 from cros.factory.test import test_case
 from cros.factory.testlog import testlog
@@ -69,6 +69,9 @@ class TouchUniformity(test_case.TestCase):
     self.controller = self.dut.touch.GetController(self.args.device_index)
     self.check_list = [CheckItem(*item) for item in self.args.check_list]
     self.ui.ToggleTemplateClass('font-large', True)
+    # Group checker for Testlog.
+    self.group_checker = testlog.GroupParam(
+        'data', ['frame_idx', 'min_value', 'max_value', 'standard_deviation'])
 
   def runTest(self):
     self.CheckInterface()
@@ -118,10 +121,18 @@ class TouchUniformity(test_case.TestCase):
     event_log.Log('touch_%d_stats' % check_item.frame_idx,
                   allowed_min_val=check_item.min_val,
                   allowed_max_val=check_item.max_val,
-                  acutal_min_val=actual_min_val,
-                  acutal_max_val=actual_max_val,
+                  actual_min_val=actual_min_val,
+                  actual_max_val=actual_max_val,
                   standard_deviation=standard_deviation,
                   test_passed=check_passed)
+
+    with self.group_checker:
+      testlog.LogParam('frame_idx', check_item.frame_idx)
+      testlog.LogParam('standard_deviation', standard_deviation)
+      testlog.CheckNumericParam(
+          'min_value', actual_min_val, min=check_item.min_val)
+      testlog.CheckNumericParam(
+          'max_value', actual_max_val, max=check_item.max_val)
 
     return check_passed
 

@@ -52,13 +52,14 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event as test_event
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.i18n import _
 from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test.test_lists import test_object
 from cros.factory.test import test_case
 from cros.factory.test.utils import audio_utils
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sys_utils
 from cros.factory.utils import time_utils
@@ -231,6 +232,9 @@ class ShutdownTest(test_case.TestCase):
     """Post-shutdown verifications."""
     def LogAndEndTest(status, error_msg, **kw):
       event_log.Log('rebooted', status=status, error_msg=error_msg, **kw)
+      testlog.LogParam('status', status)
+      for k, v in kw.iteritems():
+        testlog.LogParam(k, v)
       logging.info('Rebooted: status=%s, %s', status,
                    (('error_msg=%s' % error_msg) if error_msg else None))
       if status == state.TestState.FAILED:
