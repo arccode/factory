@@ -456,6 +456,11 @@ def _StationTestRunWrapperInSession(*args, **kwargs):
         'Test harness need to set it manually.')
 
 
+def AddSerialNumber(*args, **kwargs):
+  kwargs['_method_name'] = 'AddSerialNumber'
+  return _StationTestRunWrapperInSession(*args, **kwargs)
+
+
 def LogParam(*args, **kwargs):
   kwargs['_method_name'] = 'LogParam'
   return _StationTestRunWrapperInSession(*args, **kwargs)
@@ -1040,6 +1045,10 @@ class StationStatus(_StationBase):
                          'GroupChecker')
 
       self['parameters'][name]['data'].append(value_dict)
+
+  def AddSerialNumber(self, name, value):
+    """Adds serial numbers."""
+    self['serialNumbers'] = {'key': name, 'value': value}
 
   def LogParam(self, name, value):
     """Logs parameter as specified in Testlog API."""

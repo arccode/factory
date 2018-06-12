@@ -409,24 +409,26 @@ class TestInvocation(object):
         'startTime': self.start_time
     }
 
+    testlog_event = testlog.StationTestRun()
+    if 'duration' in log_args:
+      log_args.pop('duration')  # Discard the duration
+      kwargs['endTime'] = self.end_time
+      kwargs['duration'] = self.end_time - self.start_time
+    testlog_event.Populate(kwargs)
+
     dargs = log_args.pop('dargs', None)
     if dargs:
       # Only allow types that can be natively expressed in JSON.
       flattened_dargs = testlog_utils.FlattenAttrs(
           dargs, allow_types=(int, long, float, basestring, type(None)))
-      dargs = {k: {'value': v} for k, v in flattened_dargs}
-      kwargs['arguments'] = dargs
-    if 'duration' in log_args:
-      log_args.pop('duration')  # Discard the duration
-      kwargs['endTime'] = self.end_time
-      kwargs['duration'] = self.end_time - self.start_time
+      for k, v in flattened_dargs:
+        testlog_event.AddArgument(k, v)
 
     serial_numbers = log_args.pop('serial_numbers', None)
     if serial_numbers:
-      kwargs['serialNumbers'] = serial_numbers
+      for k, v in serial_numbers:
+        testlog_event.AddSerialNumber(k, v)
 
-    testlog_event = testlog.StationTestRun()
-    testlog_event.Populate(kwargs)
     if status == testlog.StationTestRun.STATUS.FAILED:
       for err_field, failure_code in [('error_msg', 'GoofyErrorMsg'),
                                       ('log_tail', 'GoofyLogTail')]:

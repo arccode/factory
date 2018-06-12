@@ -156,6 +156,22 @@ class TestlogEventTest(unittest.TestCase):
                 'K2': {'value': '2.2', 'description': 'D2'}}}),
         event)
 
+  def testAddSerialNumber(self):
+    event = testlog.StationTestRun()
+    event.AddSerialNumber('K1', 'V1')
+    self.assertEquals(
+        testlog.StationTestRun({
+            'serialNumbers': {
+                'K1': 'V1'}}),
+        event)
+    event.AddSerialNumber('K2', 'SN')
+    self.assertEquals(
+        testlog.StationTestRun({
+            'serialNumbers': {
+                'K1': 'V1',
+                'K2': 'SN'}}),
+        event)
+
   def testParameters(self):
     event = testlog.StationTestRun()
     group_checker = event.GroupParam('GG', ['num', 'text'])
@@ -344,6 +360,8 @@ class TestlogEventTest(unittest.TestCase):
     self.assertEquals(len(paths), 3)
 
   def testStationTestRunWrapperInSession(self):
+    testlog.AddSerialNumber('KKK', 'SN')
+
     testlog.AddArgument('K1', 'V1')
     testlog.AddArgument('K2', 2.2, 'D2')
 
@@ -379,6 +397,10 @@ class TestlogEventTest(unittest.TestCase):
         name='text2')
 
     event = testlog.GetGlobalTestlog().last_test_run
+    self.assertEqual(
+        event['serialNumbers'],
+        {'KKK': 'SN'}
+    )
     self.assertEqual(
         event['arguments'],
         {
