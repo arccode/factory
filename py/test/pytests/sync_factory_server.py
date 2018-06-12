@@ -519,10 +519,16 @@ class SyncFactoryServer(test_case.TestCase):
             test_ui.Escape(message, False), '</textarea>'
         ])
 
-        for sec in xrange(retry_secs):
-          if sync_utils.EventWait(self.do_setup_url, timeout=1):
-            break
-          self.ui.SetHTML(msg(retry_secs - sec - 1, label), id='retry')
+        try:
+          # sync_utils.EventWait() may log timeout message every second, so we
+          # disable logging.INFO temporarily.
+          logging.disable(logging.INFO)
+          for sec in xrange(retry_secs):
+            if sync_utils.EventWait(self.do_setup_url, timeout=1):
+              break
+            self.ui.SetHTML(msg(retry_secs - sec - 1, label), id='retry')
+        finally:
+          logging.disable(logging.NOTSET)
         retry_secs = min(2 * retry_secs, self.args.retry_secs)
 
       self.ui.AdvanceProgress()
