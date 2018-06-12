@@ -21,14 +21,19 @@ import Task from './Task';
 
 class TaskList extends React.Component {
   static propTypes = {
-    collapsed: PropTypes.bool.isRequired,
-    setCollapsed: PropTypes.func.isRequired,
-
     tasks: PropTypes.instanceOf(Immutable.OrderedMap).isRequired,
     cancelWaitingTaskAfter: PropTypes.func.isRequired,
     dismissTask: PropTypes.func.isRequired,
     retryTask: PropTypes.func.isRequired,
   };
+
+  state = {
+    collapsed: false,
+  };
+
+  setCollapsed = (collapsed) => {
+    this.setState({collapsed});
+  }
 
   cancelAllWaitingTasks = (event) => {
     event.stopPropagation();
@@ -41,14 +46,6 @@ class TaskList extends React.Component {
         .filter((task) => task.get('state') === TaskStates.SUCCEEDED)
         .keySeq()
         .forEach((id) => this.props.dismissTask(id));
-  };
-
-  mouseEnterDeleteButton = (index) => {
-    this.setState({mouseOnDeleteIconIndex: parseInt(index)});
-  };
-
-  mouseLeaveDeleteButton = () => {
-    this.setState({mouseOnDeleteIconIndex: -1});
   };
 
   render() {
@@ -73,8 +70,7 @@ class TaskList extends React.Component {
         {/* title bar */}
         {tasks.size > 0 &&
           <div
-            style={{display: 'table-row', cursor: 'pointer'}}
-            onClick={() => this.props.setCollapsed(!this.props.collapsed)}
+            style={{display: 'table-row'}}
           >
             <CardHeader title={'Tasks'} subtitle={taskSummary} style={{
               display: 'table-cell', verticalAlign: 'middle', padding: 12,
@@ -83,7 +79,7 @@ class TaskList extends React.Component {
               display: 'table-cell', textAlign: 'right',
               verticalAlign: 'middle', padding: 0,
             }}>
-              {!this.props.collapsed &&
+              {!this.state.collapsed &&
                 <>
                   <IconButton
                     tooltip={'cancel all waiting tasks'}
@@ -105,12 +101,13 @@ class TaskList extends React.Component {
                   <IconButton
                     tooltip={'collapse'}
                     style={{marginRight: 0}}
+                    onClick={() => this.setCollapsed(true)}
                   >
                     <CollapseIcon />
                   </IconButton>
                 </>
               }
-              {this.props.collapsed &&
+              {this.state.collapsed &&
                 <>
                   {/* two padding blank icons */}
                   <div style={{
@@ -124,6 +121,7 @@ class TaskList extends React.Component {
                   <IconButton
                     tooltip={'expand'}
                     style={{marginRight: 0}}
+                    onClick={() => this.setCollapsed(false)}
                   >
                     <ExpandIcon />
                   </IconButton>
@@ -134,7 +132,7 @@ class TaskList extends React.Component {
         }
 
         {/* task list */}
-        {!this.props.collapsed &&
+        {!this.state.collapsed &&
           tasks.map((task, taskID) => {
             return (
               <Task

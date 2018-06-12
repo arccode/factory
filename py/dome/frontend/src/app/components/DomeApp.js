@@ -60,17 +60,12 @@ class DomeApp extends React.Component {
   state = {
     appBarHeight: 0,
     appMenuOpened: true,
-    taskListCollapsed: false,
     taskListHeight: 0,
   };
 
   handleClick = (nextApp) => {
     // close the drawer
     this.props.switchApp(nextApp);
-  };
-
-  setTaskListCollapsed = (collapsed) => {
-    this.setState({taskListCollapsed: collapsed});
   };
 
   toggleAppMenu = () => {
@@ -174,10 +169,7 @@ class DomeApp extends React.Component {
         </div>
         <ErrorDialog />
         <Measure onMeasure={(d) => this.setState({taskListHeight: d.height})}>
-          <TaskList
-            collapsed={this.state.taskListCollapsed}
-            setCollapsed={this.setTaskListCollapsed}
-          />
+          <TaskList />
         </Measure>
       </div>
     );
