@@ -11,3 +11,14 @@ export const TaskStates = Enum([
   'SUCCEEDED',
   'FAILED',
 ]);
+
+// TODO(pihsun): Pass the whole "task" object into Task.js, so helper functions
+// like this can have task as argument instead of state.
+export const isCancellable = (state) => {
+  return state === TaskStates.WAITING || state === TaskStates.FAILED;
+};
+
+export const isRunning = (state) => {
+  return state === TaskStates.RUNNING_UPLOAD_FILE ||
+      state === TaskStates.RUNNING_WAIT_RESPONSE;
+};

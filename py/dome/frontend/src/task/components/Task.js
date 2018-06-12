@@ -14,7 +14,7 @@ import ErrorIcon from 'material-ui/svg-icons/alert/error';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {TaskStates} from '../constants';
+import {isCancellable, TaskStates} from '../constants';
 
 class Task extends React.Component {
   static propTypes = {
@@ -55,9 +55,7 @@ class Task extends React.Component {
             tooltip={'cancel'}
             onClick={cancel}
             iconStyle={{fill: grey700}}
-            disabled={
-              state != TaskStates.WAITING && state != TaskStates.FAILED
-            }
+            disabled={!isCancellable(state)}
           >
             <DeleteIcon />
           </IconButton>

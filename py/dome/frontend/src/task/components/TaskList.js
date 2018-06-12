@@ -15,7 +15,7 @@ import React from 'react';
 import {connect} from 'react-redux';
 
 import * as actions from '../actions';
-import {TaskStates} from '../constants';
+import {isCancellable, isRunning, TaskStates} from '../constants';
 
 import Task from './Task';
 
@@ -56,8 +56,10 @@ class TaskList extends React.Component {
 
     const counts =
         tasks.groupBy((t) => t.get('state')).map((tasks) => tasks.count());
-    const running = counts.get(TaskStates.RUNNING_WAIT_RESPONSE, 0) +
-        counts.get(TaskStates.RUNNING_UPLOAD_FILE, 0);
+    const running = tasks.count((task) => isRunning(task.get('state')));
+    const hasCancellableTask =
+        tasks.some((task) => isCancellable(task.get('state')));
+
     const taskSummary = `${counts.get(TaskStates.WAITING, 0)} waiting, ` +
         `${running} running, ` +
         `${counts.get(TaskStates.SUCCEEDED, 0)} succeeded, ` +
@@ -88,6 +90,7 @@ class TaskList extends React.Component {
                     onClick={this.cancelAllWaitingTasks}
                     style={{marginRight: 0}}
                     iconStyle={{fill: grey700}}
+                    disabled={!hasCancellableTask}
                   >
                     <DeleteIcon />
                   </IconButton>
