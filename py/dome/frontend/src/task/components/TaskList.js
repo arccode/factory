@@ -56,8 +56,10 @@ class TaskList extends React.Component {
 
     const counts =
         tasks.groupBy((t) => t.get('state')).map((tasks) => tasks.count());
+    const running = counts.get(TaskStates.RUNNING_WAIT_RESPONSE, 0) +
+        counts.get(TaskStates.RUNNING_UPLOAD_FILE, 0);
     const taskSummary = `${counts.get(TaskStates.WAITING, 0)} waiting, ` +
-        `${counts.get(TaskStates.RUNNING, 0)} running, ` +
+        `${running} running, ` +
         `${counts.get(TaskStates.SUCCEEDED, 0)} succeeded, ` +
         `${counts.get(TaskStates.FAILED, 0)} failed`;
 
@@ -136,6 +138,7 @@ class TaskList extends React.Component {
                 key={taskID}
                 state={task.get('state')}
                 description={task.get('description')}
+                progress={task.get('progress')}
                 cancel={() => cancelWaitingTaskAfter(taskID)}
                 dismiss={() => dismissTask(taskID)}
                 retry={() => retryTask(taskID)}

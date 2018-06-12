@@ -20,6 +20,12 @@ export default function taskReducer(state = INITIAL_STATE, action) {
         method: action.method,
         url: action.url,
         contentType: action.contentType,
+        progress: {
+          totalFiles: 0,
+          totalSize: 0,
+          uploadedFiles: 0,
+          uploadedSize: 0,
+        },
       }));
 
     case actionTypes.CHANGE_TASK_STATE:
@@ -28,6 +34,10 @@ export default function taskReducer(state = INITIAL_STATE, action) {
 
     case actionTypes.DISMISS_TASK:
       return state.deleteIn(['tasks', action.taskID]);
+
+    case actionTypes.UPDATE_TASK_PROGRESS:
+      return state.mergeIn(
+          ['tasks', action.taskID, 'progress'], action.progress);
 
     default:
       return state;

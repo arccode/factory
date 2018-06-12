@@ -2,7 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import Immutable from 'immutable';
 import {CardText} from 'material-ui/Card';
+import CircularProgress from 'material-ui/CircularProgress';
 import IconButton from 'material-ui/IconButton';
 import {grey700} from 'material-ui/styles/colors';
 import RunningIcon from 'material-ui/svg-icons/action/autorenew';
@@ -17,6 +19,7 @@ import {TaskStates} from '../constants';
 class Task extends React.Component {
   static propTypes = {
     state: PropTypes.oneOf(Object.values(TaskStates)),
+    progress: PropTypes.instanceOf(Immutable.Map).isRequired,
     description: PropTypes.string.isRequired,
 
     dismiss: PropTypes.func.isRequired,
@@ -24,8 +27,13 @@ class Task extends React.Component {
     cancel: PropTypes.func.isRequired,
   };
 
+  formatProgress = (progress) => {
+    return `Uploading file (${
+      progress.get('uploadedFiles') + 1}/${progress.get('totalFiles')})`;
+  }
+
   render() {
-    const {state, description, cancel, dismiss, retry} = this.props;
+    const {state, progress, description, cancel, dismiss, retry} = this.props;
 
     // TODO(littlecvr): refactor style attributes, use className if possible.
 
@@ -58,9 +66,19 @@ class Task extends React.Component {
               <RunningIcon />
             </IconButton>
           }
-          {state == TaskStates.RUNNING &&
-            <IconButton className='spin'>
-              <RunningIcon />
+          {state == TaskStates.RUNNING_UPLOAD_FILE &&
+            <IconButton tooltip={this.formatProgress(progress)}>
+              <CircularProgress
+                mode='determinate'
+                max={progress.get('totalSize')}
+                value={progress.get('uploadedSize')}
+                size={20}
+              />
+            </IconButton>
+          }
+          {state == TaskStates.RUNNING_WAIT_RESPONSE &&
+            <IconButton tooltip={'Waiting response'}>
+              <CircularProgress size={20} />
             </IconButton>
           }
           {state == TaskStates.SUCCEEDED &&

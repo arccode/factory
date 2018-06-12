@@ -6,7 +6,8 @@ import Enum from '../common/enum';
 
 export const TaskStates = Enum([
   'WAITING',
-  'RUNNING',
+  'RUNNING_UPLOAD_FILE',
+  'RUNNING_WAIT_RESPONSE',
   'SUCCEEDED',
   'FAILED',
 ]);

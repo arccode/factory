@@ -17,6 +17,12 @@ const changeTaskState = (taskID, state) => ({
   state,
 });
 
+const updateTaskProgress = (taskID, progress) => ({
+  type: actionTypes.UPDATE_TASK_PROGRESS,
+  taskID,
+  progress,
+});
+
 class TaskQueue {
   constructor() {
     // Objects that cannot be serialized in the store.
@@ -62,8 +68,6 @@ class TaskQueue {
   _runTask = (taskID) => async (dispatch, getState) => {
     const getTaskState = () => getState().get('task');
 
-    dispatch(changeTaskState(taskID, TaskStates.RUNNING));
-
     const task = getTaskState().getIn(['tasks', taskID]);
     const body = this._taskBodies[taskID];
 
@@ -72,21 +76,48 @@ class TaskQueue {
 
       // go through the body and upload files first
       const fileFields = deepFilterKeys(body, (v) => v instanceof File);
+      // This is only an estimate, since this doesn't include the payload
+      // header size for FormData.
+      let totalSize = fileFields
+          .map((path) => body.getIn(path).size)
+          .reduce((a, b) => a + b, 0);
+
+      dispatch(updateTaskProgress(taskID, {
+        totalFiles: fileFields.length,
+        totalSize,
+      }));
+      dispatch(changeTaskState(taskID, TaskStates.RUNNING_UPLOAD_FILE));
 
       let data = body;
-      // TODO(pihsun): Add upload progress for file upload.
+      let uploadedFiles = 0;
+      let uploadedSize = 0;
       for (const path of fileFields) {
         const file = body.getIn(path);
         const formData = new FormData();
         formData.append('file', file);
-        const response = await authorizedAxios().post('/files/', formData);
+        let payloadSize = 0;
+        const response = await authorizedAxios().post('/files/', formData, {
+          onUploadProgress: (event) => {
+            payloadSize = event.total;
+            dispatch(updateTaskProgress(taskID, {
+              totalSize: totalSize - file.size + payloadSize,
+              uploadedSize: uploadedSize + event.loaded,
+            }));
+          },
+        });
         data = data.withMutations((m) => {
           const key = path.last();
           m.deleteIn(path);
           // replace `${key}` with `${key}Id` and set it to the file ID
           m.setIn(path.pop().push(`${key}Id`), response.data.id);
         });
+        totalSize += payloadSize - file.size;
+        uploadedSize += payloadSize;
+        uploadedFiles += 1;
+        dispatch(updateTaskProgress(taskID, {uploadedFiles}));
       }
+
+      dispatch(changeTaskState(taskID, TaskStates.RUNNING_WAIT_RESPONSE));
 
       // send the end request
       const response = await client.request({

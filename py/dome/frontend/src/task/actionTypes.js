@@ -9,4 +9,5 @@ export default Enum([
   'CREATE_TASK',
   'CHANGE_TASK_STATE',
   'DISMISS_TASK',
+  'UPDATE_TASK_PROGRESS',
 ]);
