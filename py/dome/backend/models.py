@@ -255,6 +255,32 @@ class DomeConfig(django.db.models.Model):
     return self
 
 
+class TemporaryUploadedFieldFile(django.db.models.fields.files.FieldFile):
+  """A FieldFile that propogates the temporary_file_path of underlying file."""
+  def temporary_file_path(self):
+    return self.file.temporary_file_path()
+
+
+class TemporaryUploadedFileField(django.db.models.FileField):
+  """A FileField that works better with TemporaryFileUploadHandler.
+
+  When creating a model instance, django would always try to convert the value
+  of a FileField into a FieldFile (See
+  django.db.models.fields.files.FileDescriptor.__get__). But the storage would
+  only move the file to target location if the value have attribute
+  temporary_file_path (See django.core.file.storage.FileSystemStorage._save).
+  Since django doesn't pass the temporary_file_path when wrapping the field
+  value (originally an django.core.files.uploadedfile.TemporaryUploadedFile)
+  into a FieldFile, django would do an extra copy when actually saving the
+  model.
+
+  To fix this, we inherit FieldFile to a new class TemporaryUploadedFieldFile,
+  set temporary_file_path correctly, and use that in this
+  TemporaryUploadedFileField.
+  """
+  attr_class = TemporaryUploadedFieldFile
+
+
 class TemporaryUploadedFile(django.db.models.Model):
   """Model to hold temporary uploaded files from user.
 
@@ -286,7 +312,7 @@ class TemporaryUploadedFile(django.db.models.Model):
      in JSON.
   """
 
-  file = django.db.models.FileField(
+  file = TemporaryUploadedFileField(
       storage=SHARED_TMP_STORAGE, upload_to=GenerateUploadToPath)
   created = django.db.models.DateTimeField(auto_now_add=True)
 

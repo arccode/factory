@@ -39,16 +39,6 @@ class UploadedFileSerializer(serializers.ModelSerializer):
   class Meta(object):
     model = TemporaryUploadedFile
 
-  def create(self, validated_data):
-    """Override parent's method."""
-    try:
-      return super(UploadedFileSerializer, self).create(validated_data)
-    finally:
-      # TODO(b/31415816): should not close the file ourselves. This function can
-      #                   be entirely removed after the issue has been solved
-      #                   (just use the parent's version).
-      validated_data['file'].close()
-
 
 class ProjectSerializer(serializers.ModelSerializer):
 
