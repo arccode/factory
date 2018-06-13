@@ -7,7 +7,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
 
-import * as actions from '../actions';
+import {tryLogin} from '../actions';
 import LoginForm from './LoginForm';
 
 class LoginApp extends React.Component {
@@ -31,11 +31,6 @@ class LoginApp extends React.Component {
   }
 }
 
-
-function mapDispatchToProps(dispatch) {
-  return {
-    tryLogin: (values) => dispatch(actions.tryLogin(values)),
-  };
-}
+const mapDispatchToProps = {tryLogin};
 
 export default connect(null, mapDispatchToProps)(LoginApp);

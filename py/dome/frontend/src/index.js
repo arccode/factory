@@ -17,7 +17,7 @@ import thunkMiddleware from 'redux-thunk';
 
 import DomeApp from './domeApp/components/DomeApp';
 import domeAppReducer from './domeApp/reducer';
-import authReducer from './auth/reducer';
+import auth from '@app/auth';
 import bundleReducer from './bundle/reducer';
 import configReducer from './config/reducer';
 import errorReducer from './error/reducer';
@@ -34,7 +34,7 @@ const THEME = {
 
 const store = createStore(
     combineReducers({
-      auth: authReducer,
+      [auth.constants.NAME]: auth.reducer,
       bundle: bundleReducer,
       config: configReducer,
       domeApp: domeAppReducer,

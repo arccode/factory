@@ -9,7 +9,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
 
-import {logout} from '@app/auth/actions';
+import auth from '@app/auth';
 
 import * as actions from '../actions';
 
@@ -74,7 +74,7 @@ const mapDispatchToProps = (dispatch) => {
     disableTFTP: () => dispatch(actions.disableTFTP()),
     enableTFTP: () => dispatch(actions.enableTFTP()),
     initializeConfig: () => dispatch(actions.initializeConfig()),
-    logout: () => dispatch(logout()),
+    logout: () => dispatch(auth.actions.logout()),
   };
 };
 

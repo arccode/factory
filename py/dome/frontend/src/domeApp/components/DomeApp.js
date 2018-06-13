@@ -13,7 +13,7 @@ import React from 'react';
 import Measure from 'react-measure';
 import {connect} from 'react-redux';
 
-import {testAuthToken} from '@app/auth/actions';
+import auth from '@app/auth';
 import LoginApp from '@app/auth/components/LoginApp';
 import BundlesApp from '@app/bundle/components/BundlesApp';
 import ConfigApp from '@app/config/components/ConfigApp';
@@ -178,7 +178,7 @@ class DomeApp extends React.Component {
 
 const mapStateToProps = (state) => {
   return {
-    isLoggedIn: state.getIn(['auth', 'isLoggedIn']),
+    isLoggedIn: auth.selectors.isLoggedIn(state),
     appName: state.getIn(['domeApp', 'currentApp']),
     project: state.getIn(
         ['project', 'projects', state.getIn(['project', 'currentProject'])],
@@ -190,7 +190,7 @@ const mapStateToProps = (state) => {
 const mapDispatchToProps = (dispatch) => {
   return {
     switchApp: (nextApp) => dispatch(switchApp(nextApp)),
-    testAuthToken: () => dispatch(testAuthToken()),
+    testAuthToken: () => dispatch(auth.actions.testAuthToken()),
   };
 };
 
