@@ -3,9 +3,10 @@
 // found in the LICENSE file.
 
 import ActionTypes from './actionTypes';
+import {getCurrentApp} from './selectors';
 
 export const switchApp = (nextApp) => (dispatch, getState) => dispatch({
   type: ActionTypes.SWITCH_APP,
-  prevApp: getState().getIn(['domeApp', 'currentApp']),
+  prevApp: getCurrentApp(getState()),
   nextApp,
 });

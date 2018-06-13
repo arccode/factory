@@ -4,6 +4,8 @@
 
 import Enum from '@common/enum';
 
+export const NAME = 'domeApp';
+
 export const AppNames = Enum([
   'PROJECTS_APP',
   'BUNDLES_APP',

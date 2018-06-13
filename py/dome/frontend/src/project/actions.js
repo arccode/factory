@@ -2,8 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {switchApp} from '@app/domeApp/actions';
-import {AppNames} from '@app/domeApp/constants';
+import domeApp from '@app/domeApp';
 import {runTask} from '@app/task/actions';
 import {authorizedAxios} from '@common/utils';
 
@@ -102,5 +101,5 @@ export const switchProject = (nextProject) => (dispatch, getState) => {
     nextProject,
   });
   // switch to dashboard after switching project by default
-  dispatch(switchApp(AppNames.DASHBOARD_APP));
+  dispatch(domeApp.actions.switchApp(domeApp.constants.AppNames.DASHBOARD_APP));
 };

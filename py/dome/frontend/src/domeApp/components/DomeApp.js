@@ -24,6 +24,7 @@ import TaskList from '@app/task/components/TaskList';
 
 import {switchApp} from '../actions';
 import {AppNames} from '../constants';
+import {getCurrentApp} from '../selectors';
 import FixedAppBar from './FixedAppBar';
 
 const APP_MENU_WIDTH = 250;
@@ -176,22 +177,18 @@ class DomeApp extends React.Component {
   }
 }
 
-const mapStateToProps = (state) => {
-  return {
-    isLoggedIn: auth.selectors.isLoggedIn(state),
-    appName: state.getIn(['domeApp', 'currentApp']),
-    project: state.getIn(
-        ['project', 'projects', state.getIn(['project', 'currentProject'])],
-        Immutable.Map()
-    ),
-  };
-};
+const mapStateToProps = (state) => ({
+  isLoggedIn: auth.selectors.isLoggedIn(state),
+  appName: getCurrentApp(state),
+  project: state.getIn(
+      ['project', 'projects', state.getIn(['project', 'currentProject'])],
+      Immutable.Map()
+  ),
+});
 
-const mapDispatchToProps = (dispatch) => {
-  return {
-    switchApp: (nextApp) => dispatch(switchApp(nextApp)),
-    testAuthToken: () => dispatch(auth.actions.testAuthToken()),
-  };
+const mapDispatchToProps = {
+  switchApp,
+  testAuthToken: auth.actions.testAuthToken,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(DomeApp);
