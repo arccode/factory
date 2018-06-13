@@ -122,16 +122,14 @@ class EnablingUmpireForm extends React.Component {
 }
 
 const selector = formValueSelector(ENABLING_UMPIRE_FORM);
-const mapStateToProps = (state) => {
-  return {
-    addExisting: selector(state, 'umpireAddExistingOne') || false,
-    open: state.getIn(
-        ['formDialog', 'visibility', ENABLING_UMPIRE_FORM], false),
-  };
-};
+const mapStateToProps = (state) => ({
+  addExisting: selector(state, 'umpireAddExistingOne') || false,
+  open: state.getIn(
+      ['formDialog', 'visibility', ENABLING_UMPIRE_FORM], false),
+});
 
-const mapDispatchToProps = (dispatch) => {
-  return {submitForm: () => dispatch(submit(ENABLING_UMPIRE_FORM))};
+const mapDispatchToProps = {
+  submitForm: () => submit(ENABLING_UMPIRE_FORM),
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(EnablingUmpireForm);

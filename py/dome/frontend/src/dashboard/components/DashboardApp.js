@@ -13,9 +13,9 @@ import React from 'react';
 import {connect} from 'react-redux';
 
 import {closeForm, openForm} from '@app/formDialog/actions';
-import {updateProject} from '@app/project/actions';
 import ServiceList from '@app/service/components/ServiceList';
 
+import {disableUmpire, enableUmpireWithSettings} from '../actions';
 import {ENABLING_UMPIRE_FORM} from '../constants';
 import EnablingUmpireForm from './EnablingUmpireForm';
 
@@ -24,15 +24,16 @@ class DashboardApp extends React.Component {
     project: PropTypes.instanceOf(Immutable.Map).isRequired,
     closeEnablingUmpireForm: PropTypes.func.isRequired,
     disableUmpire: PropTypes.func.isRequired,
-    enableUmpire: PropTypes.func.isRequired,
+    enableUmpireWithSettings: PropTypes.func.isRequired,
     openEnablingUmpireForm: PropTypes.func.isRequired,
   };
 
   handleToggle = () => {
-    if (this.props.project.get('umpireEnabled')) {
-      this.props.disableUmpire(this.props.project.get('name'));
+    const {project, disableUmpire, openEnablingUmpireForm} = this.props;
+    if (project.get('umpireEnabled')) {
+      disableUmpire(project.get('name'));
     } else {
-      this.props.openEnablingUmpireForm();
+      openEnablingUmpireForm();
     }
   };
 
@@ -40,7 +41,7 @@ class DashboardApp extends React.Component {
     const {
       project,
       closeEnablingUmpireForm,
-      enableUmpire,
+      enableUmpireWithSettings,
     } = this.props;
 
     const styles = {
@@ -67,7 +68,7 @@ class DashboardApp extends React.Component {
                 primaryText='Enable Umpire'
               />
               {project.get('umpireEnabled') && project.get('umpireReady') &&
-              <div>
+              <>
                 <Subheader>Info</Subheader>
                 <Divider/>
                 {!project.get('isUmpireRecent') &&
@@ -85,7 +86,7 @@ class DashboardApp extends React.Component {
                 <Subheader>Services</Subheader>
                 <Divider/>
                 <ServiceList/>
-              </div>}
+              </>}
             </List>
           </CardText>
         </Card>
@@ -97,7 +98,8 @@ class DashboardApp extends React.Component {
           onCancel={closeEnablingUmpireForm}
           onSubmit={(umpireSettings) => {
             closeEnablingUmpireForm();
-            enableUmpire(project.get('name'), umpireSettings.toJS());
+            enableUmpireWithSettings(
+                project.get('name'), umpireSettings.toJS());
           }}
         />
       </div>
@@ -105,27 +107,17 @@ class DashboardApp extends React.Component {
   }
 }
 
-const mapStateToProps = (state) => {
-  return {
-    project: state.getIn([
-      'project', 'projects', state.getIn(['project', 'currentProject']),
-    ]),
-  };
-};
+const mapStateToProps = (state) => ({
+  project: state.getIn([
+    'project', 'projects', state.getIn(['project', 'currentProject']),
+  ]),
+});
 
-const mapDispatchToProps = (dispatch) => {
-  return {
-    openEnablingUmpireForm: () => dispatch(openForm(ENABLING_UMPIRE_FORM)),
-    closeEnablingUmpireForm: () => dispatch(closeForm(ENABLING_UMPIRE_FORM)),
-    disableUmpire: (projectName) => (
-      dispatch(updateProject(projectName, {'umpireEnabled': false}))
-    ),
-    enableUmpire: (projectName, umpireSettings) => (
-      dispatch(updateProject(
-          projectName,
-          Object.assign({'umpireEnabled': true}, umpireSettings)))
-    ),
-  };
+const mapDispatchToProps = {
+  disableUmpire,
+  enableUmpireWithSettings,
+  openEnablingUmpireForm: () => openForm(ENABLING_UMPIRE_FORM),
+  closeEnablingUmpireForm: () => closeForm(ENABLING_UMPIRE_FORM),
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(DashboardApp);

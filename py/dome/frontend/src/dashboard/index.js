@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-export const NAME = 'dashboard';
+import * as actions from './actions';
+import * as constants from './constants';
 
-export const ENABLING_UMPIRE_FORM = 'EnablingUmpireForm';
+export default {actions, constants};
