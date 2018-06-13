@@ -145,7 +145,7 @@ GSUTIL_BUCKET="gs://chromeos-localmirror/distfiles"
 COMMIT_SUBJECT="setup: Publish cros_docker image version"
 
 # Remote resources
-RESOURCE_DOCKER_URL="https://get.docker.com/builds/Linux/x86_64/docker-${DOCKER_VERSION}.tgz"
+RESOURCE_DOCKER_URL="${PREBUILT_IMAGE_DIR_URL}/docker-${DOCKER_VERSION}.tgz"
 RESOURCE_DOCKER_SHA1="17239c2d84413affa68bbe444c3402905e863d1f"
 RESOURCE_CROS_DOCKER_URL="https://chromium.googlesource.com/chromiumos/platform/factory/+/master/setup/cros_docker.sh?format=TEXT"
 RESOURCE_PIXZ_URL="${PREBUILT_IMAGE_DIR_URL}/pixz-1.0.6-amd64-static.tbz2"
