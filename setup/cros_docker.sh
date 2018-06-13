@@ -219,15 +219,23 @@ ensure_dir_acl() {
   fi
 }
 
+check_file_sha1() {
+  local file="$1"
+  local sha1="$2"
+  [[ -f "${file}" ]] && echo "${sha1} ${file}" | sha1sum -c
+}
+
 fetch_resource() {
   local local_name="$1"
   local url="$2"
   local sha1="$3"
 
-  if [[ ! -f "${local_name}" ]] || \
-     ! echo "${sha1} ${local_name}" | sha1sum -c; then
+  if ! check_file_sha1 "${local_name}" "${sha1}"; then
     rm -f "${local_name}"
     curl -L --fail "${url}" -o "${local_name}" || rm -f "${local_name}"
+    if ! check_file_sha1 "${local_name}" "${sha1}"; then
+      die "Error when fetching resource ${url}"
+    fi
   fi
 }
 
