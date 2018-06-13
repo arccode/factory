@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import actionTypes from './actionTypes';
+import {isFormVisibleFactory} from './selectors';
 
 export const openForm = (formName, payload) => (dispatch, getState) => {
   // The file input does not fire any event when canceled, if the user opened
@@ -11,7 +12,7 @@ export const openForm = (formName, payload) => (dispatch, getState) => {
   // set to true.  Next time the user requests to open the form, the form won't
   // notice the difference and won't open. Therefore, we need to detect such
   // case -- close it first if it's already opened.
-  const visible = getState().getIn(['formDialog', 'visibility', formName]);
+  const visible = isFormVisibleFactory(formName)(getState());
   const action = {
     type: actionTypes.OPEN_FORM,
     formName,
@@ -20,9 +21,8 @@ export const openForm = (formName, payload) => (dispatch, getState) => {
   if (!visible) {
     dispatch(action);
   } else {
-    Promise.resolve()
-        .then(() => dispatch(closeForm(formName)))
-        .then(() => dispatch(action));
+    dispatch(closeForm(formName));
+    setTimeout(() => dispatch(action), 0);
   }
 };
 

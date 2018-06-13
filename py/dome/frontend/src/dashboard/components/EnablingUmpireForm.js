@@ -10,6 +10,9 @@ import React from 'react';
 import {connect} from 'react-redux';
 import {fieldPropTypes, formPropTypes, submit} from 'redux-form';
 import {Field, formValueSelector, reduxForm} from 'redux-form/immutable';
+import {createStructuredSelector} from 'reselect';
+
+import formDialog from '@app/formDialog';
 
 import {ENABLING_UMPIRE_FORM} from '../constants';
 
@@ -121,11 +124,13 @@ class EnablingUmpireForm extends React.Component {
   }
 }
 
-const selector = formValueSelector(ENABLING_UMPIRE_FORM);
-const mapStateToProps = (state) => ({
-  addExisting: selector(state, 'umpireAddExistingOne') || false,
-  open: state.getIn(
-      ['formDialog', 'visibility', ENABLING_UMPIRE_FORM], false),
+const isFormVisible =
+  formDialog.selectors.isFormVisibleFactory(ENABLING_UMPIRE_FORM);
+const formValue = formValueSelector(ENABLING_UMPIRE_FORM);
+
+const mapStateToProps = createStructuredSelector({
+  open: isFormVisible,
+  addExisting: (state) => formValue(state, 'umpireAddExistingOne') || false,
 });
 
 const mapDispatchToProps = {

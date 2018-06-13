@@ -12,7 +12,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
 
-import {closeForm, openForm} from '@app/formDialog/actions';
+import formDialog from '@app/formDialog';
 import ServiceList from '@app/service/components/ServiceList';
 
 import {disableUmpire, enableUmpireWithSettings} from '../actions';
@@ -116,8 +116,12 @@ const mapStateToProps = (state) => ({
 const mapDispatchToProps = {
   disableUmpire,
   enableUmpireWithSettings,
-  openEnablingUmpireForm: () => openForm(ENABLING_UMPIRE_FORM),
-  closeEnablingUmpireForm: () => closeForm(ENABLING_UMPIRE_FORM),
+  openEnablingUmpireForm: () => (
+    formDialog.actions.openForm(ENABLING_UMPIRE_FORM)
+  ),
+  closeEnablingUmpireForm: () => (
+    formDialog.actions.closeForm(ENABLING_UMPIRE_FORM)
+  ),
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(DashboardApp);

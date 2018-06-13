@@ -12,7 +12,7 @@ import {connect} from 'react-redux';
 import {fieldPropTypes, formPropTypes, submit} from 'redux-form';
 import {Field, reduxForm} from 'redux-form/immutable';
 
-import {closeForm} from '@app/formDialog/actions';
+import formDialog from '@app/formDialog';
 import FileUploadDialog from '@common/components/FileUploadDialog';
 
 import {startUpdatingResource} from '../actions';
@@ -58,11 +58,7 @@ class UpdatingResourceForm extends React.Component {
     startUpdating: PropTypes.func.isRequired,
 
     project: PropTypes.string.isRequired,
-    // name of the source bundle to update
-    bundleName: PropTypes.string,
-    // key and type of the resource in source bundle to update
-    resourceKey: PropTypes.string,
-    resourceType: PropTypes.string,
+    payload: PropTypes.instanceOf(Immutable.Map).isRequired,
   };
 
   state = {
@@ -71,7 +67,9 @@ class UpdatingResourceForm extends React.Component {
 
   static getDerivedStateFromProps(props, state) {
     // replace the timestamp in the old bundle name with current timestamp
-    const {bundleName, resourceType, project} = props;
+    const {project, payload} = props;
+    const bundleName = payload.get('bundleName');
+    const resourceType = payload.get('resourceType');
     const regexp = /\d{14}$/;
     const note = `Updated "${resourceType}" type resource`;
     let name = bundleName;
@@ -92,13 +90,12 @@ class UpdatingResourceForm extends React.Component {
   }
 
   handleSubmit = (values) => {
+    const {project, startUpdating, payload} = this.props;
     const {
-      project,
       bundleName,
       resourceKey,
       resourceType,
-      startUpdating,
-    } = this.props;
+    } = payload.toJS();
     const data = {
       project,
       name: bundleName,
@@ -134,18 +131,20 @@ class UpdatingResourceForm extends React.Component {
   }
 }
 
+const isFormVisible =
+  formDialog.selectors.isFormVisibleFactory(UPDATING_RESOURCE_FORM);
+const getFormPayload =
+  formDialog.selectors.getFormPayloadFactory(UPDATING_RESOURCE_FORM);
+
 const mapStateToProps = (state) => ({
-  open: state.getIn(
-      ['formDialog', 'visibility', UPDATING_RESOURCE_FORM], false),
+  open: isFormVisible(state),
   project: state.getIn(['project', 'currentProject']),
-  ...state.getIn(
-      ['formDialog', 'payload', UPDATING_RESOURCE_FORM],
-      Immutable.Map()).toJS(),
+  payload: getFormPayload(state),
 });
 
 const mapDispatchToProps = {
   startUpdating: startUpdatingResource,
-  cancelUpdating: () => closeForm(UPDATING_RESOURCE_FORM),
+  cancelUpdating: () => formDialog.actions.closeForm(UPDATING_RESOURCE_FORM),
   submitForm: () => submit(UPDATING_RESOURCE_FORM),
 };
 

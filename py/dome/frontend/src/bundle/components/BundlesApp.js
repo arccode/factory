@@ -8,7 +8,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
 
-import {openForm} from '@app/formDialog/actions';
+import formDialog from '@app/formDialog';
 
 import {UPLOADING_BUNDLE_FORM} from '../constants';
 import BundleList from './BundleList';
@@ -48,7 +48,9 @@ class BundlesApp extends React.Component {
 }
 
 const mapDispatchToProps = {
-  openUploadingNewBundleForm: () => openForm(UPLOADING_BUNDLE_FORM),
+  openUploadingNewBundleForm: () => (
+    formDialog.actions.openForm(UPLOADING_BUNDLE_FORM)
+  ),
 };
 
 export default connect(null, mapDispatchToProps)(BundlesApp);

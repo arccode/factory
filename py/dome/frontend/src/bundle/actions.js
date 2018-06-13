@@ -5,7 +5,7 @@
 import {arrayMove} from 'react-sortable-hoc';
 
 import error from '@app/error';
-import {closeForm} from '@app/formDialog/actions';
+import formDialog from '@app/formDialog';
 import {updateProject} from '@app/project/actions';
 import {runTask} from '@app/task/actions';
 import {authorizedAxios} from '@common/utils';
@@ -146,7 +146,7 @@ export const deleteBundle = (name) => async (dispatch, getState) => {
 };
 
 export const startUploadingBundle = (data) => async (dispatch, getState) => {
-  dispatch(closeForm(UPLOADING_BUNDLE_FORM));
+  dispatch(formDialog.actions.closeForm(UPLOADING_BUNDLE_FORM));
 
   const onCancel = buildOnCancel(dispatch, getState);
 
@@ -187,7 +187,7 @@ export const startUploadingBundle = (data) => async (dispatch, getState) => {
 
 export const startUpdatingResource = (resourceKey, data) => (
   async (dispatch, getState) => {
-    dispatch(closeForm(UPDATING_RESOURCE_FORM));
+    dispatch(formDialog.actions.closeForm(UPDATING_RESOURCE_FORM));
 
     const onCancel = buildOnCancel(dispatch, getState);
     const srcBundleName = data.name;

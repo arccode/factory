@@ -21,7 +21,7 @@ import config from '@app/config';
 import domeApp from '@app/domeApp';
 import DomeApp from '@app/domeApp/components/DomeApp';
 import error from '@app/error';
-import formDialogReducer from './formDialog/reducer';
+import formDialog from '@app/formDialog';
 import projectReducer from './project/reducer';
 import serviceReducer from './service/reducer';
 import taskReducer from './task/reducer';
@@ -32,14 +32,22 @@ const THEME = {
   },
 };
 
+const reducerModules = [
+  auth,
+  bundle,
+  config,
+  domeApp,
+  error,
+  formDialog,
+];
+
 const store = createStore(
     combineReducers({
-      ...[auth, bundle, config, domeApp, error].reduce((obj, mod) => {
+      ...reducerModules.reduce((obj, mod) => {
         obj[mod.constants.NAME] = mod.reducer;
         return obj;
       }, {}),
       form: reduxFormReducer,
-      formDialog: formDialogReducer,
       project: projectReducer,
       service: serviceReducer,
       task: taskReducer,

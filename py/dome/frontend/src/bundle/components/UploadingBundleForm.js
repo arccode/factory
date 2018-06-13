@@ -10,7 +10,7 @@ import {connect} from 'react-redux';
 import {fieldPropTypes, formPropTypes, submit} from 'redux-form';
 import {Field, reduxForm} from 'redux-form/immutable';
 
-import {closeForm} from '@app/formDialog/actions';
+import formDialog from '@app/formDialog';
 import FileUploadDialog from '@common/components/FileUploadDialog';
 
 import {startUploadingBundle} from '../actions';
@@ -100,14 +100,17 @@ class UploadingBundleForm extends React.Component {
   }
 }
 
+const isFormVisible =
+  formDialog.selectors.isFormVisibleFactory(UPLOADING_BUNDLE_FORM);
+
 const mapStateToProps = (state) => ({
-  open: state.getIn(['formDialog', 'visibility', UPLOADING_BUNDLE_FORM], false),
+  open: isFormVisible(state),
   project: state.getIn(['project', 'currentProject']),
 });
 
 const mapDispatchToProps = {
   startUploading: startUploadingBundle,
-  cancelUploading: () => closeForm(UPLOADING_BUNDLE_FORM),
+  cancelUploading: () => formDialog.actions.closeForm(UPLOADING_BUNDLE_FORM),
   submitForm: () => submit(UPLOADING_BUNDLE_FORM),
 };
 

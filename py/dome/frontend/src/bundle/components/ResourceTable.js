@@ -16,7 +16,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
 
-import {openForm} from '@app/formDialog/actions';
+import formDialog from '@app/formDialog';
 
 import {UPDATING_RESOURCE_FORM} from '../constants';
 
@@ -82,7 +82,7 @@ class ResourceTable extends React.Component {
 
 const mapDispatchToProps = {
   openUpdatingResourceForm: (bundleName, resourceKey, resourceType) => (
-    openForm(
+    formDialog.actions.openForm(
         UPDATING_RESOURCE_FORM,
         // TODO(littlecvr): resourceKey are actually the same, but
         //                  resourceKey is CamelCased, resourceType is
