@@ -7,15 +7,10 @@ import {authorizedAxios} from '@common/utils';
 
 import actionTypes from './actionTypes';
 
-export const receiveConfig = (config) => ({
+const receiveConfig = (config) => ({
   type: actionTypes.RECEIVE_CONFIG,
   config,
 });
-
-export const initializeConfig = () => (dispatch) => {
-  const body = {};
-  dispatch(fetchConfig(body));
-};
 
 export const fetchConfig = () => async (dispatch) => {
   const response = await authorizedAxios().get('/config/0');
@@ -33,16 +28,6 @@ export const updateConfig = (body) => async (dispatch, getState) => {
   }
 };
 
-export const enableTFTP = () => (dispatch) => {
-  const body = {
-    tftp_enabled: true,
-  };
-  dispatch(updateConfig(body));
-};
+export const enableTFTP = () => updateConfig({tftp_enabled: true});
 
-export const disableTFTP = () => (dispatch) => {
-  const body = {
-    tftp_enabled: false,
-  };
-  dispatch(updateConfig(body));
-};
+export const disableTFTP = () => updateConfig({tftp_enabled: false});
