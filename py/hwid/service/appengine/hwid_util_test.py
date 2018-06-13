@@ -26,10 +26,10 @@ class HwidUtilTest(unittest.TestCase):
 
     sku = hwid_util.GetSkuFromBom(bom)
 
-    self.assertEqual('testboardname_longstringwithcpu_4Gb', sku['sku'])
+    self.assertEqual('testboardname_longstringwithcpu_4GB', sku['sku'])
     self.assertEqual('testboardname', sku['board'])
     self.assertEqual('longstringwithcpu', sku['cpu'])
-    self.assertEqual('4Gb', sku['memory_str'])
+    self.assertEqual('4GB', sku['memory_str'])
     self.assertEqual(4294967296, sku['total_bytes'])
 
   def testGetComponentValueFromBom(self):

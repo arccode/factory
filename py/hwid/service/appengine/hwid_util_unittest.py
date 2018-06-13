@@ -17,6 +17,7 @@ EXAMPLE_MEMORY_STRING4 = '2x2GB_DDR3_1600'
 EXAMPLE_MEMORY_STRING5 = 'K4EBE304EB_EGCF_8gb'
 EXAMPLE_MEMORY_STRING6 = 'K4EBE304EB_EGCF_8gb_'
 EXAMPLE_MEMORY_STRING7 = 'H9HCNNN8KUMLHR_1gb_slot2'
+EXAMPLE_MEMORY_STRING8 = 'Samsung_4G_M471A5644EB0-CRC_2048mb_1'
 
 MEMORY_EXAMPLES = [
     EXAMPLE_MEMORY_STRING1, EXAMPLE_MEMORY_STRING2, EXAMPLE_MEMORY_STRING3,
@@ -72,6 +73,12 @@ class HwidUtilTest(unittest.TestCase):
         [EXAMPLE_MEMORY_STRING7])
     self.assertEqual('1GB', result_str)
     self.assertEqual(1073741824, total_bytes)
+
+  def testMemoryType8(self):
+    result_str, total_bytes = hwid_util.GetTotalRamFromHwidData(
+        [EXAMPLE_MEMORY_STRING8])
+    self.assertEqual('2GB', result_str)
+    self.assertEqual(2147483648, total_bytes)
 
   def testEmptyList(self):
     result_str, total_bytes = hwid_util.GetTotalRamFromHwidData([])

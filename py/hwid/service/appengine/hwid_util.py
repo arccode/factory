@@ -27,13 +27,17 @@ class _RamSize(object):
     if byte_count is not None:
       self.byte_count = byte_count
       return
-    size_re = _RamSize._RE.search(ram_size_str.upper())
-    if not size_re:
+    matches = _RamSize._RE.findall(ram_size_str.upper())
+    if not matches:
       logging.exception('Unable to process dram format %s', ram_size_str)
       raise HWIDUtilException('Invalid DRAM: %s' % ram_size_str)
-    multiplier = int(size_re.group(2)[:-1]) if size_re.group(2) else 1
+    # Use the latest match as the ram size, since most ram strings
+    # put the ram size at the end.
+    # For example: Samsung_4G_M471A5644EB0-CRC_2048mb_1
+    size_re = matches[-1]
+    multiplier = int(size_re[1][:-1]) if size_re[1] else 1
     self.byte_count = multiplier * int(
-        size_re.group(3)) * _RamSize._UNITS[size_re.group(4)]
+        size_re[2]) * _RamSize._UNITS[size_re[3]]
 
   def __add__(self, rhs):
     assert isinstance(rhs, _RamSize)
@@ -73,6 +77,7 @@ def GetSkuFromBom(bom):
   components = defaultdict(list)
   for component in bom.GetComponents():
     components[component.cls].append(component.name)
+    logging.debug(component)
 
   cpu = None
   cpus = GetComponentValueFromBom(bom, 'cpu')
