@@ -15,11 +15,11 @@ import {combineReducers} from 'redux-immutable';
 import {createLogger} from 'redux-logger';
 import thunkMiddleware from 'redux-thunk';
 
+import auth from '@app/auth';
+import bundle from '@app/bundle';
+import configReducer from './config/reducer';
 import DomeApp from './domeApp/components/DomeApp';
 import domeAppReducer from './domeApp/reducer';
-import auth from '@app/auth';
-import bundleReducer from './bundle/reducer';
-import configReducer from './config/reducer';
 import errorReducer from './error/reducer';
 import formDialogReducer from './formDialog/reducer';
 import projectReducer from './project/reducer';
@@ -35,7 +35,7 @@ const THEME = {
 const store = createStore(
     combineReducers({
       [auth.constants.NAME]: auth.reducer,
-      bundle: bundleReducer,
+      [bundle.constants.NAME]: bundle.reducer,
       config: configReducer,
       domeApp: domeAppReducer,
       error: errorReducer,

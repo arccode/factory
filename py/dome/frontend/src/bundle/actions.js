@@ -6,11 +6,13 @@ import {arrayMove} from 'react-sortable-hoc';
 
 import {setAndShowErrorDialog} from '@app/error/actions';
 import {closeForm} from '@app/formDialog/actions';
+import {updateProject} from '@app/project/actions';
 import {runTask} from '@app/task/actions';
 import {authorizedAxios} from '@common/utils';
 
 import actionTypes from './actionTypes';
 import {UPDATING_RESOURCE_FORM, UPLOADING_BUNDLE_FORM} from './constants';
+import {getBundles} from './selectors';
 
 const baseURL = (getState) => {
   return `/projects/${getState().getIn(['project', 'currentProject'])}`;
@@ -18,14 +20,12 @@ const baseURL = (getState) => {
 
 // TODO(pihsun): Have a better way to handle task cancellation.
 const buildOnCancel = (dispatch, getState) => {
-  const bundleListSnapshot = getState().getIn(['bundle', 'entries']);
+  const bundleListSnapshot = getBundles(getState());
   return () => dispatch(receiveBundles(bundleListSnapshot.toJS()));
 };
 
 const findBundle = (name, getState) => {
-  return getState().getIn(['bundle', 'entries']).find(
-      (b) => b.get('name') == name
-  ).toJS();
+  return getBundles(getState()).find((b) => b.get('name') == name).toJS();
 };
 
 export const receiveBundles = (bundles) => ({
@@ -52,8 +52,8 @@ export const fetchBundles = () => async (dispatch, getState) => {
 export const reorderBundles = (oldIndex, newIndex) =>
   async (dispatch, getState) => {
     const onCancel = buildOnCancel(dispatch, getState);
-    const newBundleList = arrayMove(
-        getState().getIn(['bundle', 'entries']).toJS(), oldIndex, newIndex);
+    const newBundleList =
+        arrayMove(getBundles(getState()).toJS(), oldIndex, newIndex);
 
     // optimistic update
     dispatch({
@@ -245,3 +245,7 @@ export const collapseBundle = (name) => ({
   type: actionTypes.COLLAPSE_BUNDLE,
   name,
 });
+
+export const setBundleAsNetboot = (name, projectName) => (
+  updateProject(projectName, {netbootBundle: name, umpireEnabled: true})
+);

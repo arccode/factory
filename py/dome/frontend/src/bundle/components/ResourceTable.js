@@ -22,12 +22,12 @@ import {UPDATING_RESOURCE_FORM} from '../constants';
 
 class ResourceTable extends React.Component {
   static propTypes = {
-    handleUpdate: PropTypes.func.isRequired,
+    openUpdatingResourceForm: PropTypes.func.isRequired,
     bundle: PropTypes.instanceOf(Immutable.Map).isRequired,
   };
 
   render() {
-    const {bundle, handleUpdate} = this.props;
+    const {bundle, openUpdatingResourceForm} = this.props;
     const resources = bundle.get('resources');
 
     return (
@@ -65,7 +65,7 @@ class ResourceTable extends React.Component {
                   {
                     <RaisedButton
                       label='update'
-                      onClick={() => handleUpdate(
+                      onClick={() => openUpdatingResourceForm(
                           bundle.get('name'), key, resource.get('type')
                       )}
                     />
@@ -80,20 +80,18 @@ class ResourceTable extends React.Component {
   }
 }
 
-function mapDispatchToProps(dispatch) {
-  return {
-    handleUpdate: (bundleName, resourceKey, resourceType) => (
-      dispatch(openForm(
-          UPDATING_RESOURCE_FORM,
-          // TODO(littlecvr): resourceKey are actually the same, but
-          //                  resourceKey is CamelCased, resourceType is
-          //                  lowercase_separated_by_underscores. We should
-          //                  probably normalize the data in store so we don't
-          //                  have to pass both resourceKey and resourceType
-          //                  into it.
-          {bundleName, resourceKey, resourceType}))
-    ),
-  };
-}
+const mapDispatchToProps = {
+  openUpdatingResourceForm: (bundleName, resourceKey, resourceType) => (
+    openForm(
+        UPDATING_RESOURCE_FORM,
+        // TODO(littlecvr): resourceKey are actually the same, but
+        //                  resourceKey is CamelCased, resourceType is
+        //                  lowercase_separated_by_underscores. We should
+        //                  probably normalize the data in store so we don't
+        //                  have to pass both resourceKey and resourceType
+        //                  into it.
+        {bundleName, resourceKey, resourceType})
+  ),
+};
 
 export default connect(null, mapDispatchToProps)(ResourceTable);

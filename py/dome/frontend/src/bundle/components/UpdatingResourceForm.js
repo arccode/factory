@@ -15,7 +15,7 @@ import {Field, reduxForm} from 'redux-form/immutable';
 import {closeForm} from '@app/formDialog/actions';
 import FileUploadDialog from '@common/components/FileUploadDialog';
 
-import * as actions from '../actions';
+import {startUpdatingResource} from '../actions';
 import {UPDATING_RESOURCE_FORM} from '../constants';
 
 const nonEmpty = (value) =>
@@ -134,25 +134,19 @@ class UpdatingResourceForm extends React.Component {
   }
 }
 
-const mapStateToProps = (state) => {
-  return {
-    open: state.getIn(
-        ['formDialog', 'visibility', UPDATING_RESOURCE_FORM], false),
-    project: state.getIn(['project', 'currentProject']),
-    ...state.getIn(
-        ['formDialog', 'payload', UPDATING_RESOURCE_FORM],
-        Immutable.Map()).toJS(),
-  };
-};
+const mapStateToProps = (state) => ({
+  open: state.getIn(
+      ['formDialog', 'visibility', UPDATING_RESOURCE_FORM], false),
+  project: state.getIn(['project', 'currentProject']),
+  ...state.getIn(
+      ['formDialog', 'payload', UPDATING_RESOURCE_FORM],
+      Immutable.Map()).toJS(),
+});
 
-const mapDispatchToProps = (dispatch) => {
-  return {
-    startUpdating: (resourceKey, data) => (
-      dispatch(actions.startUpdatingResource(resourceKey, data))
-    ),
-    cancelUpdating: () => dispatch(closeForm(UPDATING_RESOURCE_FORM)),
-    submitForm: () => dispatch(submit(UPDATING_RESOURCE_FORM)),
-  };
+const mapDispatchToProps = {
+  startUpdating: startUpdatingResource,
+  cancelUpdating: () => closeForm(UPDATING_RESOURCE_FORM),
+  submitForm: () => submit(UPDATING_RESOURCE_FORM),
 };
 
 export default connect(

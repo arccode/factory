@@ -47,12 +47,8 @@ class BundlesApp extends React.Component {
   }
 }
 
-function mapDispatchToProps(dispatch) {
-  return {
-    openUploadingNewBundleForm: () => (
-      dispatch(openForm(UPLOADING_BUNDLE_FORM))
-    ),
-  };
-}
+const mapDispatchToProps = {
+  openUploadingNewBundleForm: () => openForm(UPLOADING_BUNDLE_FORM),
+};
 
 export default connect(null, mapDispatchToProps)(BundlesApp);

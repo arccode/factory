@@ -15,11 +15,19 @@ import React from 'react';
 import {connect} from 'react-redux';
 import {SortableHandle} from 'react-sortable-hoc';
 
-import {updateProject} from '@app/project/actions';
-
-import * as actions from '../actions';
+import {
+  activateBundle,
+  changeBundleRules,
+  collapseBundle,
+  deleteBundle,
+  expandBundle,
+  setBundleAsNetboot,
+} from '../actions';
 import ResourceTable from './ResourceTable';
 import RuleTable from './RuleTable';
+import {
+  getBundleExpanded,
+} from '../selectors';
 
 const DragHandle = SortableHandle(() => (
   <IconButton
@@ -39,7 +47,7 @@ class Bundle extends React.Component {
     bundle: PropTypes.instanceOf(Immutable.Map).isRequired,
     projectName: PropTypes.string.isRequired,
     projectNetbootBundle: PropTypes.string,
-    setAsNetboot: PropTypes.func.isRequired,
+    setBundleAsNetboot: PropTypes.func.isRequired,
     expanded: PropTypes.bool.isRequired,
     expandBundle: PropTypes.func.isRequired,
     collapseBundle: PropTypes.func.isRequired,
@@ -66,7 +74,8 @@ class Bundle extends React.Component {
       projectName,
       projectNetbootBundle,
       deleteBundle,
-      setAsNetboot,
+      setBundleAsNetboot,
+      changeBundleRules,
     } = this.props;
 
     const INACTIVE_STYLE = {
@@ -117,7 +126,7 @@ class Bundle extends React.Component {
               tooltip="use this bundle's netboot resource"
               onClick={(e) => {
                 e.stopPropagation();
-                setAsNetboot(bundle.get('name'), projectName);
+                setBundleAsNetboot(bundle.get('name'), projectName);
               }}
             >
               {(projectNetbootBundle == bundle.get('name')) &&
@@ -136,7 +145,7 @@ class Bundle extends React.Component {
           <RuleTable
             rules={bundle.get('rules')}
             changeRules={
-              (rules) => this.props.changeBundleRules(bundle.get('name'), rules)
+              (rules) => changeBundleRules(bundle.get('name'), rules)
             }
           />
         </CardText>
@@ -145,13 +154,9 @@ class Bundle extends React.Component {
   }
 }
 
-function mapStateToProps(state, ownProps) {
+const mapStateToProps = (state, props) => {
   return {
-    expanded: state.getIn([
-      'bundle',
-      'expanded',
-      ownProps.bundle.get('name'),
-    ]),
+    expanded: getBundleExpanded(state, props),
     projectName: state.getIn(['project', 'currentProject']),
     projectNetbootBundle: state.getIn([
       'project',
@@ -160,24 +165,15 @@ function mapStateToProps(state, ownProps) {
       'netbootBundle',
     ]),
   };
-}
+};
 
-function mapDispatchToProps(dispatch) {
-  return {
-    activateBundle: (name, active) => (
-      dispatch(actions.activateBundle(name, active))
-    ),
-    changeBundleRules: (name, rules) => (
-      dispatch(actions.changeBundleRules(name, rules))
-    ),
-    deleteBundle: (name) => dispatch(actions.deleteBundle(name)),
-    setAsNetboot: (name, projectName) => (
-      dispatch(updateProject(
-          projectName, {netbootBundle: name, umpireEnabled: true}))
-    ),
-    expandBundle: (name) => dispatch(actions.expandBundle(name)),
-    collapseBundle: (name) => dispatch(actions.collapseBundle(name)),
-  };
-}
+const mapDispatchToProps = {
+  activateBundle,
+  changeBundleRules,
+  collapseBundle,
+  deleteBundle,
+  expandBundle,
+  setBundleAsNetboot,
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(Bundle);

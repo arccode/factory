@@ -8,7 +8,8 @@ import React from 'react';
 import {connect} from 'react-redux';
 import {SortableContainer, SortableElement} from 'react-sortable-hoc';
 
-import * as actions from '../actions';
+import {fetchBundles, reorderBundles} from '../actions';
+import {getBundles} from '../selectors';
 import Bundle from './Bundle';
 
 // The hierarchy of this component is complicated because of the design of
@@ -38,12 +39,16 @@ const SortableBundleList = SortableContainer(({bundles}) => (
 class BundleList extends React.Component {
   static propTypes = {
     bundles: PropTypes.instanceOf(Immutable.List).isRequired,
-    handleRefresh: PropTypes.func.isRequired,
-    handleReorder: PropTypes.func.isRequired,
+    fetchBundles: PropTypes.func.isRequired,
+    reorderBundles: PropTypes.func.isRequired,
   };
 
   componentDidMount() {
-    this.props.handleRefresh();
+    this.props.fetchBundles();
+  }
+
+  handleReorder = ({oldIndex, newIndex}) => {
+    this.props.reorderBundles(oldIndex, newIndex);
   }
 
   render() {
@@ -52,26 +57,18 @@ class BundleList extends React.Component {
         lockAxis='y'
         useDragHandle={true}
         useWindowAsScrollContainer={true}
-        onSortEnd={this.props.handleReorder}
+        onSortEnd={this.handleReorder}
         bundles={this.props.bundles}
       />
     );
   }
 }
 
-function mapStateToProps(state) {
-  return {
-    bundles: state.getIn(['bundle', 'entries']),
-  };
-}
+const mapStateToProps = (state) => ({bundles: getBundles(state)});
 
-function mapDispatchToProps(dispatch) {
-  return {
-    handleRefresh: () => dispatch(actions.fetchBundles()),
-    handleReorder: ({oldIndex, newIndex}) => (
-      dispatch(actions.reorderBundles(oldIndex, newIndex))
-    ),
-  };
-}
+const mapDispatchToProps = {
+  fetchBundles,
+  reorderBundles,
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(BundleList);

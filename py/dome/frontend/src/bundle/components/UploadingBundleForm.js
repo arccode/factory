@@ -13,7 +13,7 @@ import {Field, reduxForm} from 'redux-form/immutable';
 import {closeForm} from '@app/formDialog/actions';
 import FileUploadDialog from '@common/components/FileUploadDialog';
 
-import * as actions from '../actions';
+import {startUploadingBundle} from '../actions';
 import {UPLOADING_BUNDLE_FORM} from '../constants';
 
 const nonEmpty = (value) =>
@@ -100,20 +100,15 @@ class UploadingBundleForm extends React.Component {
   }
 }
 
-const mapStateToProps = (state) => {
-  return {
-    open: state.getIn(
-        ['formDialog', 'visibility', UPLOADING_BUNDLE_FORM], false),
-    project: state.getIn(['project', 'currentProject']),
-  };
-};
+const mapStateToProps = (state) => ({
+  open: state.getIn(['formDialog', 'visibility', UPLOADING_BUNDLE_FORM], false),
+  project: state.getIn(['project', 'currentProject']),
+});
 
-const mapDispatchToProps = (dispatch) => {
-  return {
-    startUploading: (data) => dispatch(actions.startUploadingBundle(data)),
-    cancelUploading: () => dispatch(closeForm(UPLOADING_BUNDLE_FORM)),
-    submitForm: () => dispatch(submit(UPLOADING_BUNDLE_FORM)),
-  };
+const mapDispatchToProps = {
+  startUploading: startUploadingBundle,
+  cancelUploading: () => closeForm(UPLOADING_BUNDLE_FORM),
+  submitForm: () => submit(UPLOADING_BUNDLE_FORM),
 };
 
 export default connect(
