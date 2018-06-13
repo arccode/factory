@@ -7,8 +7,10 @@ import RaisedButton from 'material-ui/RaisedButton';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
+import {createStructuredSelector} from 'reselect';
 
-import * as actions from '../actions';
+import {hideErrorDialog} from '../actions';
+import {isErrorDialogShown, getErrorMessage} from '../selectors';
 
 class ErrorDialog extends React.Component {
   static propTypes = {
@@ -48,17 +50,11 @@ class ErrorDialog extends React.Component {
   }
 }
 
-const mapStateToProps = (state) => {
-  return {
-    show: state.getIn(['error', 'show'], false),
-    message: state.getIn(['error', 'message'], ''),
-  };
-};
+const mapStateToProps = createStructuredSelector({
+  show: isErrorDialogShown,
+  message: getErrorMessage,
+});
 
-const mapDispatchToProps = (dispatch) => {
-  return {
-    hideErrorDialog: () => dispatch(actions.hideErrorDialog()),
-  };
-};
+const mapDispatchToProps = {hideErrorDialog};
 
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorDialog);

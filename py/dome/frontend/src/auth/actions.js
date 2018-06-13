@@ -26,7 +26,7 @@ export const tryLogin = (data) => async (dispatch) => {
   try {
     const response = await axios.post('/auth', data);
     dispatch(loginSucceed(response.data.token));
-  } catch (error) {
+  } catch (err) {
     dispatch(loginFailed());
     // TODO(pihsun): Don't use blocking window.alert.
     window.alert('\nLogin failed :(');
@@ -40,7 +40,7 @@ export const testAuthToken = () => async (dispatch) => {
       await authorizedAxios().get('/projects.json');
       dispatch(loginSucceed(token));
       return;
-    } catch (error) {
+    } catch (err) {
     }
   }
   // We might not need a auth token, for example, login is not needed for
@@ -49,7 +49,7 @@ export const testAuthToken = () => async (dispatch) => {
     await axios.get('/projects.json');
     dispatch(loginSucceed(null));
     return;
-  } catch (error) {
+  } catch (err) {
   }
   // Dispatch a login failed event to clear all wrong token.
   dispatch(loginFailed());

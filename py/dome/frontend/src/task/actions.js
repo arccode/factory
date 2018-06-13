@@ -5,7 +5,7 @@
 import Immutable from 'immutable';
 import uuid from 'uuid/v4';
 
-import {setAndShowErrorDialog} from '@app/error/actions';
+import error from '@app/error';
 import {authorizedAxios, deepFilterKeys} from '@common/utils';
 
 import actionTypes from './actionTypes';
@@ -138,20 +138,21 @@ class TaskQueue {
       if (nextTaskEntry) {
         dispatch(this._runTask(nextTaskEntry[0]));
       }
-    } catch (error) {
+    } catch (err) {
       // if any sub-task above failed, display the error message
-      const {response} = error;
+      const {response} = err;
       if (response) {
         const {data} = response;
         const responseText =
             typeof(data) === 'string' ? data : JSON.stringify(data);
-        dispatch(setAndShowErrorDialog(
-            `${error.message}\n\n${responseText}`));
+        dispatch(error.actions.setAndShowErrorDialog(
+            `${err.message}\n\n${responseText}`));
       } else {
         // Some unexpected error that is not server-side happened, probably a
         // bug in the task code.
-        console.error(error);
-        dispatch(setAndShowErrorDialog(`Unexpected Dome error: ${error}`));
+        console.error(err);
+        dispatch(error.actions.setAndShowErrorDialog(
+            `Unexpected Dome error: ${err}`));
       }
       // mark the task as failed
       dispatch(changeTaskState(taskID, TaskStates.FAILED));

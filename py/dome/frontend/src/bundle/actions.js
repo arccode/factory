@@ -4,7 +4,7 @@
 
 import {arrayMove} from 'react-sortable-hoc';
 
-import {setAndShowErrorDialog} from '@app/error/actions';
+import error from '@app/error';
 import {closeForm} from '@app/formDialog/actions';
 import {updateProject} from '@app/project/actions';
 import {runTask} from '@app/task/actions';
@@ -43,8 +43,8 @@ export const fetchBundles = () => async (dispatch, getState) => {
     const response = await authorizedAxios().get(
         `${baseURL(getState)}/bundles.json`);
     dispatch(receiveBundles(response.data));
-  } catch (error) {
-    dispatch(setAndShowErrorDialog(
+  } catch (err) {
+    dispatch(error.actions.setAndShowErrorDialog(
         `error fetching bundle list\n\n${error.message}`));
   }
 };
