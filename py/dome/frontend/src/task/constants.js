@@ -4,6 +4,8 @@
 
 import Enum from '@common/enum';
 
+export const NAME = 'task';
+
 export const TaskStates = Enum([
   'WAITING',
   'RUNNING_UPLOAD_FILE',

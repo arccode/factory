@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {runTask} from '@app/task/actions';
+import task from '@app/task';
 import {authorizedAxios} from '@common/utils';
 
 import actionTypes from './actionTypes';
@@ -21,7 +21,7 @@ export const updateConfig = (body) => async (dispatch, getState) => {
   dispatch({type: actionTypes.START_UPDATING_CONFIG});
   const description = 'Update config';
   const {cancel} = await dispatch(
-      runTask(description, 'PUT', '/config/0/', body));
+      task.actions.runTask(description, 'PUT', '/config/0/', body));
   if (!cancel) {
     await dispatch(fetchConfig());
     dispatch({type: actionTypes.FINISH_UPDATING_CONFIG});

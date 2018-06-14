@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 import domeApp from '@app/domeApp';
-import {runTask} from '@app/task/actions';
+import task from '@app/task';
 import {authorizedAxios} from '@common/utils';
 
 import actionTypes from './actionTypes';
@@ -18,7 +18,7 @@ const buildOnCancel = (dispatch, getState) => {
 export const createProject = (name) => async (dispatch) => {
   const description = `Create project "${name}"`;
   const {cancel} = await dispatch(
-      runTask(description, 'POST', '/projects/', {name}));
+      task.actions.runTask(description, 'POST', '/projects/', {name}));
   if (!cancel) {
     await dispatch(fetchProjects());
   }
@@ -53,7 +53,7 @@ export const updateProject = (name, settings = {}) =>
 
     const description = `Update project "${name}"`;
     const {cancel, response} = await dispatch(
-        runTask(description, 'PUT', `/projects/${name}/`, body));
+        task.actions.runTask(description, 'PUT', `/projects/${name}/`, body));
     if (cancel) {
       onCancel();
       return;
@@ -76,7 +76,7 @@ export const updateProject = (name, settings = {}) =>
   };
 
 export const deleteProject = (name) => async (dispatch) => {
-  const {cancel} = await dispatch(runTask(
+  const {cancel} = await dispatch(task.actions.runTask(
       `Delete project "${name}"`, 'DELETE', `/projects/${name}/`, {}));
   if (!cancel) {
     await dispatch(fetchProjects());

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {runTask} from '@app/task/actions';
+import task from '@app/task';
 import {authorizedAxios} from '@common/utils';
 
 import project from '@app/project';
@@ -17,7 +17,7 @@ export const updateService = (name, config) => async (dispatch, getState) => {
   const data = {[name]: config};
 
   const description = `update "${name}" service`;
-  const {cancel} = await dispatch(runTask(
+  const {cancel} = await dispatch(task.actions.runTask(
       description, 'PUT', `${baseURL(getState)}/services/`, data));
   if (!cancel) {
     dispatch({type: actionTypes.UPDATE_SERVICE, name, config});

@@ -24,7 +24,7 @@ import error from '@app/error';
 import formDialog from '@app/formDialog';
 import project from '@app/project';
 import service from '@app/service';
-import taskReducer from './task/reducer';
+import task from '@app/task';
 
 const THEME = {
   palette: {
@@ -41,6 +41,7 @@ const reducerModules = [
   formDialog,
   project,
   service,
+  task,
 ];
 
 const store = createStore(
@@ -50,7 +51,6 @@ const store = createStore(
         return obj;
       }, {}),
       form: reduxFormReducer,
-      task: taskReducer,
     }),
     applyMiddleware(
         thunkMiddleware,

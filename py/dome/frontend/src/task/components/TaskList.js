@@ -13,9 +13,11 @@ import ExpandIcon from 'material-ui/svg-icons/navigation/expand-more';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
+import {createStructuredSelector} from 'reselect';
 
-import * as actions from '../actions';
+import {cancelWaitingTaskAfter, dismissTask} from '../actions';
 import {isCancellable, isRunning, TaskStates} from '../constants';
+import {getAllTasks} from '../selectors';
 
 import Task from './Task';
 
@@ -24,7 +26,6 @@ class TaskList extends React.Component {
     tasks: PropTypes.instanceOf(Immutable.OrderedMap).isRequired,
     cancelWaitingTaskAfter: PropTypes.func.isRequired,
     dismissTask: PropTypes.func.isRequired,
-    retryTask: PropTypes.func.isRequired,
   };
 
   state = {
@@ -48,8 +49,12 @@ class TaskList extends React.Component {
         .forEach((id) => this.props.dismissTask(id));
   };
 
+  retryTask = () => {
+    console.warn('not implemented yet');
+  };
+
   render() {
-    const {tasks, cancelWaitingTaskAfter, dismissTask, retryTask} = this.props;
+    const {tasks, cancelWaitingTaskAfter, dismissTask} = this.props;
 
     const counts =
         tasks.groupBy((t) => t.get('state')).map((tasks) => tasks.count());
@@ -142,7 +147,7 @@ class TaskList extends React.Component {
                 progress={task.get('progress')}
                 cancel={() => cancelWaitingTaskAfter(taskID)}
                 dismiss={() => dismissTask(taskID)}
-                retry={() => retryTask(taskID)}
+                retry={() => this.retryTask(taskID)}
               />
             );
           }).valueSeq()}
@@ -151,20 +156,13 @@ class TaskList extends React.Component {
   }
 }
 
-const mapStateToProps = (state) => {
-  return {
-    tasks: state.getIn(['task', 'tasks']),
-  };
-};
+const mapStateToProps = createStructuredSelector({
+  tasks: getAllTasks,
+});
 
-const mapDispatchToProps = (dispatch) => {
-  return {
-    cancelWaitingTaskAfter: (taskID) => (
-      dispatch(actions.cancelWaitingTaskAfter(taskID))
-    ),
-    dismissTask: (taskID) => dispatch(actions.dismissTask(taskID)),
-    retryTask: (taskID) => console.warn('not implemented yet'),
-  };
+const mapDispatchToProps = {
+  cancelWaitingTaskAfter,
+  dismissTask,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(TaskList);

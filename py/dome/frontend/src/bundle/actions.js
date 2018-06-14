@@ -7,7 +7,7 @@ import {arrayMove} from 'react-sortable-hoc';
 import error from '@app/error';
 import formDialog from '@app/formDialog';
 import project from '@app/project';
-import {runTask} from '@app/task/actions';
+import task from '@app/task';
 import {authorizedAxios} from '@common/utils';
 
 import actionTypes from './actionTypes';
@@ -63,7 +63,7 @@ export const reorderBundles = (oldIndex, newIndex) =>
 
     // send the request
     const newBundleNameList = newBundleList.map((b) => b['name']);
-    const {cancel} = await dispatch(runTask(
+    const {cancel} = await dispatch(task.actions.runTask(
         'Reorder bundles', 'PUT', `${baseURL(getState)}/bundles/`,
         newBundleNameList));
     if (cancel) {
@@ -91,7 +91,7 @@ export const activateBundle = (name, active) => async (dispatch, getState) => {
   };
   const verb = active ? 'Activate' : 'Deactivate';
   const description = `${verb} bundle "${name}"`;
-  const {cancel} = await dispatch(runTask(
+  const {cancel} = await dispatch(task.actions.runTask(
       description, 'PUT', `${baseURL(getState)}/bundles/${name}/`, body));
   if (cancel) {
     onCancel();
@@ -120,7 +120,7 @@ export const changeBundleRules = (name, rules) =>
       rules,
     };
     const description = `Change rules of bundle "${name}"`;
-    const {cancel} = await dispatch(runTask(
+    const {cancel} = await dispatch(task.actions.runTask(
         description, 'PUT', `${baseURL(getState)}/bundles/${name}/`, body));
     if (cancel) {
       onCancel();
@@ -138,7 +138,7 @@ export const deleteBundle = (name) => async (dispatch, getState) => {
 
   // send the request
   const description = `Delete bundle "${name}"`;
-  const {cancel} = await dispatch(runTask(
+  const {cancel} = await dispatch(task.actions.runTask(
       description, 'DELETE', `${baseURL(getState)}/bundles/${name}/`, {}));
   if (cancel) {
     onCancel();
@@ -170,7 +170,7 @@ export const startUploadingBundle = (data) => async (dispatch, getState) => {
 
   // send the request
   const description = `Upload bundle "${data.name}"`;
-  const {cancel, response} = await dispatch(runTask(
+  const {cancel, response} = await dispatch(task.actions.runTask(
       description, 'POST', `${baseURL(getState)}/bundles/`, data));
   if (cancel) {
     onCancel();
@@ -218,7 +218,7 @@ export const startUpdatingResource = (resourceKey, data) => (
     // send the request
     const description =
         `Update bundle "${srcBundleName}" to bundle "${dstBundleName}"`;
-    const {cancel, response} = await dispatch(runTask(
+    const {cancel, response} = await dispatch(task.actions.runTask(
         description, 'PUT', `${baseURL(getState)}/bundles/${srcBundleName}/`,
         data));
     if (cancel) {

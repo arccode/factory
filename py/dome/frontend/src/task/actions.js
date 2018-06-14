@@ -10,6 +10,7 @@ import {authorizedAxios, deepFilterKeys} from '@common/utils';
 
 import actionTypes from './actionTypes';
 import {TaskStates} from './constants';
+import {getAllTasks} from './selectors';
 
 const changeTaskState = (taskID, state) => ({
   type: actionTypes.CHANGE_TASK_STATE,
@@ -33,11 +34,9 @@ class TaskQueue {
 
   runTask = (description, method, url, body) => {
     return (dispatch, getState) => new Promise((resolve) => {
-      const getTaskState = () => getState().get('task');
-
       const taskID = uuid();
       // if all tasks before succeed, start this task now.
-      const startNow = getTaskState().get('tasks').every(
+      const startNow = getAllTasks(getState()).every(
           (task) => task.get('state') === TaskStates.SUCCEEDED);
 
       this._taskBodies[taskID] = Immutable.fromJS(body);
@@ -66,9 +65,7 @@ class TaskQueue {
   };
 
   _runTask = (taskID) => async (dispatch, getState) => {
-    const getTaskState = () => getState().get('task');
-
-    const task = getTaskState().getIn(['tasks', taskID]);
+    const task = getAllTasks(getState()).get(taskID);
     const body = this._taskBodies[taskID];
 
     try {
@@ -133,7 +130,7 @@ class TaskQueue {
       dispatch(changeTaskState(taskID, TaskStates.SUCCEEDED));
 
       // find the first waiting task and start it
-      const nextTaskEntry = getTaskState().get('tasks').findEntry(
+      const nextTaskEntry = getAllTasks(getState()).findEntry(
           (task) => task.get('state') === TaskStates.WAITING);
       if (nextTaskEntry) {
         dispatch(this._runTask(nextTaskEntry[0]));
@@ -163,9 +160,7 @@ class TaskQueue {
     // TODO(pihsun): probably need a better action name.
     // This action tries to cancel all waiting or failed tasks below and
     // include taskID.
-    const getTaskState = () => getState().get('task');
-
-    const tasks = getTaskState().get('tasks');
+    const tasks = getAllTasks(getState());
     const toCancelTasks =
         tasks.skipUntil((unusedTask, id) => id === taskID).filter((task) => {
           const state = task.get('state');
