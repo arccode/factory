@@ -429,7 +429,7 @@ class TestInvocation(object):
       for k, v in serial_numbers:
         testlog_event.AddSerialNumber(k, v)
 
-    if status == testlog.StationTestRun.STATUS.FAILED:
+    if status == testlog.StationTestRun.STATUS.FAIL:
       for err_field, failure_code in [('error_msg', 'GoofyErrorMsg'),
                                       ('log_tail', 'GoofyLogTail')]:
         if err_field in log_args:

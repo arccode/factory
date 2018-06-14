@@ -413,7 +413,7 @@ class Goofy(object):
         def get_unexpected_shutdown_test_run():
           """Returns a StationTestRun for test not collected properly"""
           station_test_run = testlog.StationTestRun()
-          station_test_run['status'] = testlog.StationTestRun.STATUS.FAILED
+          station_test_run['status'] = testlog.StationTestRun.STATUS.FAIL
           station_test_run['endTime'] = time.time()
           station_test_run.AddFailure(
               'GoofyErrorMsg', 'Unexpected shutdown while test was running')
