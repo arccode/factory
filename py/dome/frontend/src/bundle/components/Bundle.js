@@ -14,6 +14,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
 import {SortableHandle} from 'react-sortable-hoc';
+import {createSelector, createStructuredSelector} from 'reselect';
+
+import project from '@app/project';
 
 import {
   activateBundle,
@@ -23,11 +26,9 @@ import {
   expandBundle,
   setBundleAsNetboot,
 } from '../actions';
+import {getBundleExpanded} from '../selectors';
 import ResourceTable from './ResourceTable';
 import RuleTable from './RuleTable';
-import {
-  getBundleExpanded,
-} from '../selectors';
 
 const DragHandle = SortableHandle(() => (
   <IconButton
@@ -55,8 +56,8 @@ class Bundle extends React.Component {
 
   handleActivate = (event) => {
     event.stopPropagation();
-    const {bundle} = this.props;
-    this.props.activateBundle(bundle.get('name'), !bundle.get('active'));
+    const {bundle, activateBundle} = this.props;
+    activateBundle(bundle.get('name'), !bundle.get('active'));
   };
 
   toggleExpand = () => {
@@ -154,18 +155,14 @@ class Bundle extends React.Component {
   }
 }
 
-const mapStateToProps = (state, props) => {
-  return {
-    expanded: getBundleExpanded(state, props),
-    projectName: state.getIn(['project', 'currentProject']),
-    projectNetbootBundle: state.getIn([
-      'project',
-      'projects',
-      state.getIn(['project', 'currentProject']),
-      'netbootBundle',
-    ]),
-  };
-};
+const mapStateToProps = createStructuredSelector({
+  expanded: getBundleExpanded,
+  projectName: project.selectors.getCurrentProject,
+  projectNetbootBundle: createSelector(
+      [project.selectors.getCurrentProjectObject],
+      (project) => project.get('netbootBundle'),
+  ),
+});
 
 const mapDispatchToProps = {
   activateBundle,

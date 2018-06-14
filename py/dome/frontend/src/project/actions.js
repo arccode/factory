@@ -7,12 +7,12 @@ import {runTask} from '@app/task/actions';
 import {authorizedAxios} from '@common/utils';
 
 import actionTypes from './actionTypes';
+import {getCurrentProject, getProjects} from './selectors';
 
 // TODO(pihsun): Have a better way to handle task cancellation.
 const buildOnCancel = (dispatch, getState) => {
-  const projectsSnapshot =
-      getState().getIn(['project', 'projects']).toList();
-  return () => dispatch(receiveProjects(projectsSnapshot.toJS()));
+  const projectsSnapshot = getProjects(getState());
+  return () => dispatch(receiveProjects(projectsSnapshot.values().toJS()));
 };
 
 export const createProject = (name) => async (dispatch) => {
@@ -97,7 +97,7 @@ export const fetchProjects = () => async (dispatch) => {
 export const switchProject = (nextProject) => (dispatch, getState) => {
   dispatch({
     type: actionTypes.SWITCH_PROJECT,
-    prevProject: getState().getIn(['project', 'currentProject']),
+    prevProject: getCurrentProject(getState()),
     nextProject,
   });
   // switch to dashboard after switching project by default

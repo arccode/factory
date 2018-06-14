@@ -9,8 +9,10 @@ import React from 'react';
 import {connect} from 'react-redux';
 import {fieldPropTypes, formPropTypes, submit} from 'redux-form';
 import {Field, reduxForm} from 'redux-form/immutable';
+import {createStructuredSelector} from 'reselect';
 
 import formDialog from '@app/formDialog';
+import project from '@app/project';
 import FileUploadDialog from '@common/components/FileUploadDialog';
 
 import {startUploadingBundle} from '../actions';
@@ -103,9 +105,9 @@ class UploadingBundleForm extends React.Component {
 const isFormVisible =
   formDialog.selectors.isFormVisibleFactory(UPLOADING_BUNDLE_FORM);
 
-const mapStateToProps = (state) => ({
-  open: isFormVisible(state),
-  project: state.getIn(['project', 'currentProject']),
+const mapStateToProps = createStructuredSelector({
+  open: isFormVisible,
+  project: project.selectors.getCurrentProject,
 });
 
 const mapDispatchToProps = {

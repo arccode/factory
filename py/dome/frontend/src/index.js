@@ -22,7 +22,7 @@ import domeApp from '@app/domeApp';
 import DomeApp from '@app/domeApp/components/DomeApp';
 import error from '@app/error';
 import formDialog from '@app/formDialog';
-import projectReducer from './project/reducer';
+import project from '@app/project';
 import serviceReducer from './service/reducer';
 import taskReducer from './task/reducer';
 
@@ -39,6 +39,7 @@ const reducerModules = [
   domeApp,
   error,
   formDialog,
+  project,
 ];
 
 const store = createStore(
@@ -48,7 +49,6 @@ const store = createStore(
         return obj;
       }, {}),
       form: reduxFormReducer,
-      project: projectReducer,
       service: serviceReducer,
       task: taskReducer,
     }),

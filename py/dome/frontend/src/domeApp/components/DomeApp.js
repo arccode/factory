@@ -12,6 +12,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Measure from 'react-measure';
 import {connect} from 'react-redux';
+import {createStructuredSelector} from 'reselect';
 
 import auth from '@app/auth';
 import LoginApp from '@app/auth/components/LoginApp';
@@ -19,6 +20,7 @@ import BundlesApp from '@app/bundle/components/BundlesApp';
 import ConfigApp from '@app/config/components/ConfigApp';
 import DashboardApp from '@app/dashboard/components/DashboardApp';
 import ErrorDialog from '@app/error/components/ErrorDialog';
+import project from '@app/project';
 import ProjectsApp from '@app/project/components/ProjectsApp';
 import TaskList from '@app/task/components/TaskList';
 
@@ -177,13 +179,10 @@ class DomeApp extends React.Component {
   }
 }
 
-const mapStateToProps = (state) => ({
-  isLoggedIn: auth.selectors.isLoggedIn(state),
-  appName: getCurrentApp(state),
-  project: state.getIn(
-      ['project', 'projects', state.getIn(['project', 'currentProject'])],
-      Immutable.Map()
-  ),
+const mapStateToProps = createStructuredSelector({
+  isLoggedIn: auth.selectors.isLoggedIn,
+  appName: getCurrentApp,
+  project: project.selectors.getCurrentProjectObject,
 });
 
 const mapDispatchToProps = {

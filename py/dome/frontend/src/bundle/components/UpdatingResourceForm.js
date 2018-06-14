@@ -11,9 +11,11 @@ import React from 'react';
 import {connect} from 'react-redux';
 import {fieldPropTypes, formPropTypes, submit} from 'redux-form';
 import {Field, reduxForm} from 'redux-form/immutable';
+import {createStructuredSelector} from 'reselect';
 
 import formDialog from '@app/formDialog';
 import FileUploadDialog from '@common/components/FileUploadDialog';
+import project from '@app/project';
 
 import {startUpdatingResource} from '../actions';
 import {UPDATING_RESOURCE_FORM} from '../constants';
@@ -136,10 +138,10 @@ const isFormVisible =
 const getFormPayload =
   formDialog.selectors.getFormPayloadFactory(UPDATING_RESOURCE_FORM);
 
-const mapStateToProps = (state) => ({
-  open: isFormVisible(state),
-  project: state.getIn(['project', 'currentProject']),
-  payload: getFormPayload(state),
+const mapStateToProps = createStructuredSelector({
+  open: isFormVisible,
+  project: project.selectors.getCurrentProject,
+  payload: getFormPayload,
 });
 
 const mapDispatchToProps = {

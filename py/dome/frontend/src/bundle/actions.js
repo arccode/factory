@@ -6,7 +6,7 @@ import {arrayMove} from 'react-sortable-hoc';
 
 import error from '@app/error';
 import formDialog from '@app/formDialog';
-import {updateProject} from '@app/project/actions';
+import project from '@app/project';
 import {runTask} from '@app/task/actions';
 import {authorizedAxios} from '@common/utils';
 
@@ -15,7 +15,7 @@ import {UPDATING_RESOURCE_FORM, UPLOADING_BUNDLE_FORM} from './constants';
 import {getBundles} from './selectors';
 
 const baseURL = (getState) => {
-  return `/projects/${getState().getIn(['project', 'currentProject'])}`;
+  return `/projects/${project.selectors.getCurrentProject(getState())}`;
 };
 
 // TODO(pihsun): Have a better way to handle task cancellation.
@@ -85,7 +85,7 @@ export const activateBundle = (name, active) => async (dispatch, getState) => {
 
   // send the request
   const body = {
-    project: getState().getIn(['project', 'currentProject']),
+    project: project.selectors.getCurrentProject(getState()),
     name,
     active,
   };
@@ -115,7 +115,7 @@ export const changeBundleRules = (name, rules) =>
     const body = {
       // TODO(littlecvr): refine the back-end API so we don't need project here,
       //                  the URL already contains project
-      project: getState().getIn(['project', 'currentProject']),
+      project: project.selectors.getCurrentProject(getState()),
       name,
       rules,
     };
@@ -247,5 +247,6 @@ export const collapseBundle = (name) => ({
 });
 
 export const setBundleAsNetboot = (name, projectName) => (
-  updateProject(projectName, {netbootBundle: name, umpireEnabled: true})
+  project.actions.updateProject(
+      projectName, {netbootBundle: name, umpireEnabled: true})
 );

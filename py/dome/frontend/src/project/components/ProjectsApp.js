@@ -14,7 +14,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
 
-import * as actions from '../actions';
+import {
+  createProject,
+  deleteProject,
+  fetchProjects,
+  switchProject,
+} from '../actions';
+import {getProjects} from '../selectors';
 
 class ProjectsApp extends React.Component {
   static propTypes = {
@@ -116,21 +122,15 @@ class ProjectsApp extends React.Component {
   }
 }
 
-const mapStateToProps = (state) => {
-  return {
-    projects: state.getIn(['project', 'projects']),
-  };
-};
+const mapStateToProps = (state) => ({
+  projects: getProjects(state),
+});
 
-const mapDispatchToProps = (dispatch) => {
-  return {
-    createProject: (name) => dispatch(actions.createProject(name)),
-    deleteProject: (name) => dispatch(actions.deleteProject(name)),
-    fetchProjects: () => dispatch(actions.fetchProjects()),
-    switchProject: (nextProject) => (
-      dispatch(actions.switchProject(nextProject))
-    ),
-  };
+const mapDispatchToProps = {
+  createProject,
+  deleteProject,
+  fetchProjects,
+  switchProject,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProjectsApp);

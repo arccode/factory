@@ -5,10 +5,12 @@
 import {runTask} from '@app/task/actions';
 import {authorizedAxios} from '@common/utils';
 
+import project from '@app/project';
+
 import actionTypes from './actionTypes';
 
 function baseURL(getState) {
-  return `/projects/${getState().getIn(['project', 'currentProject'])}`;
+  return `/projects/${project.selectors.getCurrentProject(getState())}`;
 }
 
 export const updateService = (name, config) => async (dispatch, getState) => {

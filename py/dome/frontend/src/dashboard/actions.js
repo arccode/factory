@@ -2,14 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {updateProject} from '@app/project/actions';
+import project from '@app/project';
 
 export const disableUmpire = (projectName) => (
-  updateProject(projectName, {umpireEnabled: false})
+  project.actions.updateProject(projectName, {umpireEnabled: false})
 );
 
 export const enableUmpireWithSettings = (projectName, umpireSettings) => (
-  updateProject(
+  project.actions.updateProject(
       projectName,
       Object.assign({umpireEnabled: true}, umpireSettings))
 );

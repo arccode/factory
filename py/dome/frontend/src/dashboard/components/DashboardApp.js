@@ -11,8 +11,10 @@ import Toggle from 'material-ui/Toggle';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
+import {createStructuredSelector} from 'reselect';
 
 import formDialog from '@app/formDialog';
+import project from '@app/project';
 import ServiceList from '@app/service/components/ServiceList';
 
 import {disableUmpire, enableUmpireWithSettings} from '../actions';
@@ -107,10 +109,8 @@ class DashboardApp extends React.Component {
   }
 }
 
-const mapStateToProps = (state) => ({
-  project: state.getIn([
-    'project', 'projects', state.getIn(['project', 'currentProject']),
-  ]),
+const mapStateToProps = createStructuredSelector({
+  project: project.selectors.getCurrentProjectObject,
 });
 
 const mapDispatchToProps = {
