@@ -23,7 +23,7 @@ import DomeApp from '@app/domeApp/components/DomeApp';
 import error from '@app/error';
 import formDialog from '@app/formDialog';
 import project from '@app/project';
-import serviceReducer from './service/reducer';
+import service from '@app/service';
 import taskReducer from './task/reducer';
 
 const THEME = {
@@ -40,6 +40,7 @@ const reducerModules = [
   error,
   formDialog,
   project,
+  service,
 ];
 
 const store = createStore(
@@ -49,7 +50,6 @@ const store = createStore(
         return obj;
       }, {}),
       form: reduxFormReducer,
-      service: serviceReducer,
       task: taskReducer,
     }),
     applyMiddleware(
