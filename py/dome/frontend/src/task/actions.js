@@ -141,7 +141,7 @@ class TaskQueue {
       if (response) {
         const {data} = response;
         const responseText =
-            typeof(data) === 'string' ? data : JSON.stringify(data);
+            typeof(data) === 'string' ? data : JSON.stringify(data, null, 2);
         dispatch(error.actions.setAndShowErrorDialog(
             `${err.message}\n\n${responseText}`));
       } else {
