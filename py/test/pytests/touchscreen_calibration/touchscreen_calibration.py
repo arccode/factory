@@ -15,7 +15,7 @@ import xmlrpclib
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.fixture.touchscreen_calibration import fixture
 from cros.factory.test.i18n import _
 from cros.factory.test.pytests.touchscreen_calibration import sensors_server
@@ -420,24 +420,6 @@ class TouchscreenCalibration(test_case.TestCase):
           name=log_name,
           description='plain text log of %s' % log_name)
 
-  def _DumpOneFrameToLog(self, logger, category, sn, frame_no):
-    """Dumps one frame to log.
-
-    Args:
-      logger: the log object
-    """
-    session.console.info('... dump_frames %s: %d', category, frame_no)
-    data = self.sensors.Read(category)
-    logger.write('Dump one frame:\n')
-    for row in data:
-      logger.write(' '.join([str(val) for val in row]))
-      logger.write('\n')
-
-    self.log('touchscreen_calibration_before_touched_%d' % frame_no,
-             category=category, sn=sn, sensor_data=str(data))
-
-    self._AttachLog('touchscreen_calibration_before_touched.log', str(data))
-
   def _WriteLog(self, filename, content):
     """Writes the content to the file and display the message in the log.
 
@@ -512,6 +494,10 @@ class TouchscreenCalibration(test_case.TestCase):
     self._WriteSensorDataToFile(log_to_file, sn, phase, self.test_pass, data)
     self.log('touchscreen_calibration', sn=sn, phase=phase,
              test_pass=self.test_pass, sensor_data=str(data))
+    testlog.LogParam('sn', sn)
+    testlog.LogParam('phase', phase)
+    testlog.LogParam('test_pass', self.test_pass)
+    testlog.LogParam('sensor_data', data)
     result = 'pass' if self.test_pass else 'fail'
     self._AttachLog('touchscreen_calibration.log', str(data))
     summary_line = '%s: %s (%s)' % (sn, result, phase)
@@ -541,6 +527,10 @@ class TouchscreenCalibration(test_case.TestCase):
     self._WriteSensorDataToFile(log_to_file, sn, phase, self.test_pass, data)
     self.log('touchscreen_calibration', sn=sn, phase=phase,
              test_pass=self.test_pass, sensor_data=str(data))
+    testlog.LogParam('sn', sn)
+    testlog.LogParam('phase', phase)
+    testlog.LogParam('test_pass', self.test_pass)
+    testlog.LogParam('sensor_data', data)
     result = 'pass' if self.test_pass else 'fail'
     self._AttachLog('touchscreen_calibration.log', str(data))
     summary_line = ('%s: %s (%s) [min: %d, max: %d]' %

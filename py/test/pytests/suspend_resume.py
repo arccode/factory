@@ -45,10 +45,11 @@ import re
 import threading
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.i18n import _
 from cros.factory.test import state
 from cros.factory.test import test_case
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
@@ -134,6 +135,13 @@ class SuspendResumeTest(test_case.TestCase):
     self.alarm_started = threading.Event()
     self.alarm_thread = threading.Thread()
     self.messages = None
+    # Group checker for Testlog.
+    self.group_checker = testlog.GroupParam(
+        'suspend_resume_cycle',
+        ['run', 'start_time', 'suspend_time', 'resume_time', 'resume_at',
+         'wakeup_count', 'suspend_count', 'initial_suspend_count',
+         'attempted_wake_extensions', 'actual_wake_extensions',
+         'alarm_suspend_delays', 'wake_source'])
 
   def tearDown(self):
     # Always log the last suspend/resume block we saw.  This is most
@@ -417,13 +425,28 @@ class SuspendResumeTest(test_case.TestCase):
                                 int(open(self.args.time_path).read().strip()),
                                 'alarm thread did not return within %d sec.' %
                                 self.args.suspend_worst_case_secs)
+      suspend_count = self._ReadSuspendCount()
       event_log.Log('suspend_resume_cycle',
                     run=self.run, start_time=self.start_time,
                     suspend_time=suspend_time, resume_time=resume_time,
                     resume_at=self.resume_at, wakeup_count=self.wakeup_count,
-                    suspend_count=self._ReadSuspendCount(),
+                    suspend_count=suspend_count,
                     initial_suspend_count=self.initial_suspend_count,
                     attempted_wake_extensions=self.attempted_wake_extensions,
                     actual_wake_extensions=self.actual_wake_extensions,
                     alarm_suspend_delays=alarm_suspend_delays,
                     wake_source=wake_source)
+      with self.group_checker:
+        testlog.LogParam('run', self.run)
+        testlog.LogParam('start_time', self.start_time)
+        testlog.LogParam('suspend_time', suspend_time)
+        testlog.LogParam('resume_time', resume_time)
+        testlog.LogParam('resume_at', self.resume_at)
+        testlog.LogParam('wakeup_count', self.wakeup_count)
+        testlog.LogParam('suspend_count', suspend_count)
+        testlog.LogParam('initial_suspend_count', self.initial_suspend_count)
+        testlog.LogParam('attempted_wake_extensions',
+                         self.attempted_wake_extensions)
+        testlog.LogParam('actual_wake_extensions', self.actual_wake_extensions)
+        testlog.LogParam('alarm_suspend_delays', alarm_suspend_delays)
+        testlog.LogParam('wake_source', wake_source)

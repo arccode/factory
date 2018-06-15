@@ -14,8 +14,9 @@ import re
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test import session
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 
 ANCHOR_FOR_LOW_BAND_CALIBRATION_DATA = 'calPierData2G'
@@ -117,6 +118,8 @@ class CheckWifiCalibrationTest(unittest.TestCase):
                          pprint.pformat(high_band_table, width=200))
     event_log.Log('low_band_table', value=low_band_table)
     event_log.Log('high_band_table', value=high_band_table)
+    testlog.LogParam('low_band_table', low_band_table)
+    testlog.LogParam('high_band_table', high_band_table)
 
     # Check numbers of calibrated units.
     failed_flag = False

@@ -64,12 +64,13 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.external import evdev
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test import test_case
 from cros.factory.test.utils import evdev_utils
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
 
@@ -240,12 +241,19 @@ class ButtonTest(test_case.TestCase):
 
   def tearDown(self):
     timestamps = self._action_timestamps + [float('inf')]
+    group_checker = testlog.GroupParam(
+        'button_wait', ['time_to_press', 'time_to_release'])
     for release_index in xrange(2, len(timestamps), 2):
+      time_to_press = (timestamps[release_index - 1] -
+                       timestamps[release_index - 2])
+      time_to_release = (timestamps[release_index] -
+                         timestamps[release_index - 1])
       event_log.Log('button_wait_sec',
-                    time_to_press_sec=(timestamps[release_index - 1] -
-                                       timestamps[release_index - 2]),
-                    time_to_release_sec=(timestamps[release_index] -
-                                         timestamps[release_index - 1]))
+                    time_to_press_sec=time_to_press,
+                    time_to_release_sec=time_to_release)
+      with group_checker:
+        testlog.LogParam('time_to_press', time_to_press)
+        testlog.LogParam('time_to_release', time_to_release)
     if self._fixture:
       try:
         self._fixture.SimulateButtonRelease(self.args.bft_button_name)

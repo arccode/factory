@@ -64,12 +64,13 @@ import subprocess
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test import session
 from cros.factory.test import i18n
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test import test_case
 from cros.factory.test import test_ui
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 
 CheckItem = collections.namedtuple('CheckItem',
@@ -111,6 +112,10 @@ class LineCheckItemTest(test_case.TestCase):
     if not any(item.judge_to_pass for item in self._items):
       raise ValueError('If judge_to_pass is not needed, use `exec_shell` test.')
 
+    # Group checker for Testlog.
+    self.group_checker = testlog.GroupParam(
+        'checked_item', ['command', 'retcode', 'stdout', 'stderr'])
+
   def runTest(self):
     """Main entrance of the test."""
     self.ui.SetTitle(self.args.title)
@@ -125,6 +130,11 @@ class LineCheckItemTest(test_case.TestCase):
       retcode = process.returncode
       event_log.Log('checked_item', command=command, retcode=retcode,
                     stdout=stdout, stderr=stderr)
+      with self.group_checker:
+        testlog.LogParam('command', command)
+        testlog.LogParam('retcode', retcode)
+        testlog.LogParam('stdout', stdout)
+        testlog.LogParam('stderr', stderr)
 
       if retcode:
         session.console.info('%s: Exit code %d\nstdout: %s\nstderr: %s',

@@ -86,10 +86,11 @@ import os
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.env import paths
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.i18n import _
 from cros.factory.test import test_case
 from cros.factory.test.utils import goofy_plugin_utils
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import config_utils
 from cros.factory.utils import type_utils
@@ -163,6 +164,8 @@ class ChargerTest(test_case.TestCase):
       target_charge = _GetGoofyBatteryMinPercentage()
 
     logging.info('Target charge is %d%%', target_charge)
+    testlog.LogParam('start_charge', start_charge)
+    testlog.LogParam('target_charge', target_charge)
     if start_charge >= target_charge:
       return
 
@@ -176,6 +179,8 @@ class ChargerTest(test_case.TestCase):
       if charge >= target_charge:
         event_log.Log('charged', charge=charge, target=target_charge,
                       elapsed=elapsed)
+        testlog.CheckNumericParam('charge', charge, min=target_charge)
+        testlog.LogParam('elapsed', elapsed)
         return
       self.ui.RunJS(
           'document.getElementById("batteryIcon").style.backgroundPosition'
@@ -195,5 +200,6 @@ class ChargerTest(test_case.TestCase):
 
     event_log.Log('failed_to_charge', charge=charge, target=target_charge,
                   timeout_sec=self.args.timeout_secs)
+    testlog.CheckNumericParam('charge', charge, min=target_charge)
     self.FailTask('Cannot charge battery to %d%% in %d seconds.' %
                   (target_charge, self.args.timeout_secs))

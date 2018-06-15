@@ -74,7 +74,7 @@ import time
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import CalledProcessError
 from cros.factory.device import device_utils
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.fixture import arduino
 from cros.factory.test.i18n import _
 from cros.factory.test import session
@@ -975,29 +975,30 @@ class WiFiThroughput(test_case.TestCase):
         # Log throughput data via testlog.
         for tx_rx in ('tx', 'rx'):
           if 'intervals' in iperf_data['iperf_%s' % tx_rx]:
-            param_name = '%s_%s' % (ap_config.ssid, tx_rx),
             testlog.UpdateParam(
-                name=param_name,
+                name='throughput',
                 description='%s throughput test on AP %s over time' % (
                     tx_rx.upper(), ap_config.ssid),
                 value_unit='Bits/second')
             testlog.UpdateParam(
-                name=param_name + '_start',
+                name='start_time',
                 value_unit='seconds')
             testlog.UpdateParam(
-                name=param_name + '_end',
+                name='end_time',
                 value_unit='seconds')
             group_checker = testlog.GroupParam(
-                param_name,
-                [param_name, param_name + '_start', param_name + '_end'])
+                'iperf_data',
+                ['tx_rx', 'ap_ssid', 'throughput', 'start_time', 'end_time'])
             for interval in iperf_data['iperf_%s' % tx_rx]['intervals']:
               with group_checker:
+                testlog.LogParam('ap_ssid', ap_config.ssid)
+                testlog.LogParam('tx_rx', tx_rx)
                 testlog.LogParam(
-                    param_name, interval['sum']['bits_per_second'])
+                    'throughput', interval['sum']['bits_per_second'])
                 testlog.LogParam(
-                    param_name + '_start', interval['sum']['start'])
+                    'start_time', interval['sum']['start'])
                 testlog.LogParam(
-                    param_name + '_end', interval['sum']['end'])
+                    'end_time', interval['sum']['end'])
 
     # Log this test run via event_log.
     self._Log()

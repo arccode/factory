@@ -16,6 +16,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data
 from cros.factory.test import event_log
 from cros.factory.test.pytests import probe_cellular_info
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Args
 from cros.factory.utils import process_utils
 
@@ -27,6 +28,7 @@ class ProbeCellularInfoTestTest(unittest.TestCase):
     self.mox = mox.Mox()
     self.mox.StubOutWithMock(process_utils, 'CheckOutput')
     self.mox.StubOutWithMock(event_log, 'Log')
+    self.mox.StubOutWithMock(testlog, 'LogParam')
     self.mox.StubOutWithMock(device_data, 'UpdateDeviceData')
 
   def tearDown(self):
@@ -47,6 +49,9 @@ Modem /org/chromium/ModemManager/Gobi/1:
     event_log.Log(
         'cellular_info', modem_status_stdout=stdout,
         imei='838293836198373', meid='Q9298301CDF827')
+    testlog.LogParam('modem_status_stdout', stdout)
+    testlog.LogParam('imei', '838293836198373')
+    testlog.LogParam('meid', 'Q9298301CDF827')
     device_data.UpdateDeviceData({'component.cellular.imei': '838293836198373',
                                   'component.cellular.meid': 'Q9298301CDF827'})
     self.mox.ReplayAll()
@@ -105,6 +110,9 @@ Modem /org/freedesktop/ModemManager1/Modem/0:
     event_log.Log(
         'cellular_info', modem_status_stdout=stdout,
         lte_imei='359636040066332', lte_iccid='89148000000328035895')
+    testlog.LogParam('modem_status_stdout', stdout)
+    testlog.LogParam('lte_imei', '359636040066332')
+    testlog.LogParam('lte_iccid', '89148000000328035895')
     device_data.UpdateDeviceData({
         'component.cellular.lte_imei': '359636040066332',
         'component.cellular.lte_iccid': '89148000000328035895'})
@@ -128,6 +136,9 @@ Modem /org/chromium/ModemManager/Gobi/1:
     event_log.Log(
         'cellular_info', modem_status_stdout=stdout,
         imei=None, meid='Q9298301CDF827')
+    testlog.LogParam('modem_status_stdout', stdout)
+    testlog.LogParam('imei', None)
+    testlog.LogParam('meid', 'Q9298301CDF827')
     self.mox.ReplayAll()
 
     self.test.args = Args(*self.test.ARGS).Parse({})
@@ -147,6 +158,9 @@ Modem /org/chromium/ModemManager/Gobi/1:
     event_log.Log(
         'cellular_info', modem_status_stdout=stdout,
         imei=None, meid='Q9298301CDF827')
+    testlog.LogParam('modem_status_stdout', stdout)
+    testlog.LogParam('imei', None)
+    testlog.LogParam('meid', 'Q9298301CDF827')
     self.mox.ReplayAll()
 
     self.test.args = Args(*self.test.ARGS).Parse({})

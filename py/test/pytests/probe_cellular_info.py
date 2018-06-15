@@ -13,7 +13,8 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data
-from cros.factory.test import event_log
+from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
@@ -45,6 +46,9 @@ class ProbeCellularInfoTest(unittest.TestCase):
       data[name] = match.group(1) if match else None
 
     event_log.Log('cellular_info', modem_status_stdout=output, **data)
+    testlog.LogParam('modem_status_stdout', output)
+    for k, v in data.iteritems():
+      testlog.LogParam(k, v)
 
     missing = set(k for k, v in data.iteritems() if v is None)
     self.assertFalse(
