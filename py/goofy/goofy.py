@@ -7,7 +7,6 @@
 
 from __future__ import print_function
 
-import datetime
 import logging
 from optparse import OptionParser
 import os
@@ -415,7 +414,7 @@ class Goofy(object):
           """Returns a StationTestRun for test not collected properly"""
           station_test_run = testlog.StationTestRun()
           station_test_run['status'] = testlog.StationTestRun.STATUS.FAILED
-          station_test_run['endTime'] = datetime.datetime.now()
+          station_test_run['endTime'] = time.time()
           station_test_run.AddFailure(
               'GoofyErrorMsg', 'Unexpected shutdown while test was running')
           return station_test_run
