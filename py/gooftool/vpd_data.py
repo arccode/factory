@@ -12,6 +12,9 @@
 ANY = r'.+'
 
 # The data is described in a mapping as key_name: value_re_format.
+# Note value_re_format has implicit '^' and '$' (see MatchWhole in core.py).
+# so when you write r'[A-Z]' it will be evaluated as r'^[A-Z]$'.
+
 # All values should be documented in CPFE:
 #  https://www.google.com/chromeos/partner/fe/docs/factory/vpd.html .
 # If you need a new value, please follow go/cros-new-vpd to register a new one.
@@ -26,6 +29,7 @@ REQUIRED_RW_DATA = {
     'gbind_attribute': ANY,
 }
 
+# KNOWN = Recommended + Optional, and "required but is auto generated".
 KNOWN_RO_DATA = {
     # Generated in finalization.
     'stable_device_secret_DO_NOT_SHARE': ANY,
@@ -37,8 +41,7 @@ KNOWN_RO_DATA = {
     'sku_number': ANY,
     'model_name': ANY,
     'service_tag': ANY,
-    'panel_backlight_max_nits': ANY,
-    'dsm_calib': r'^[0-9a-f ]*$',
+    'dsm_calib': r'[0-9a-f ]*',
 }
 
 # Variable key names in regular expression.
@@ -73,4 +76,16 @@ KNOWN_RW_DATA_RE = {
     r'factory\..+': ANY,
     r'component\..+': ANY,
     r'serials\..+': ANY,
+}
+
+# These values are deprecated and simply put here as reference. To allow them
+# in particular factory branch, please first get approval from Google team.
+DEPRECATED_RO_DATA = {
+    'initial_locale': ANY,
+    'initial_timezone': ANY,
+    'keyboard_layout': ANY,
+    'rlz_brand_code': r'[A-Z]{4}',
+    'customization_id': r'[A-Z0-9]+(-[A-Z0-9]+)?',
+    'battery_cto_disabled': ANY,
+    'panel_backlight_max_nits': r'[0-9]+',  # See b/110185527.
 }
