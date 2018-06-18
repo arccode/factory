@@ -17,6 +17,8 @@ from cros.factory.test.env import paths
 from cros.factory.test.test_lists import checker as checker_module
 from cros.factory.test.test_lists import test_list as test_list_module
 from cros.factory.utils import config_utils
+from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
 
 
@@ -256,7 +258,8 @@ class Manager(object):
           ACTIVE_PATH)
 
     if not os.path.exists(ACTIVE_PATH):
-      return DEFAULT_TEST_LIST_ID
+      default_test_list_id = Manager.SelectDefaultTestList()
+      file_utils.WriteFile(ACTIVE_PATH, default_test_list_id)
 
     with open(ACTIVE_PATH) as f:
       test_list_id = f.read().strip()
@@ -264,6 +267,18 @@ class Manager(object):
         raise type_utils.TestListError(
             '%s should contain only a test list ID' % test_list_id)
       return test_list_id
+
+  @staticmethod
+  def SelectDefaultTestList():
+    model = process_utils.SpawnOutput("mosys platform model").strip()
+
+    model_main = 'main_%s' % model
+
+    for test_list_id in [model_main, 'main', 'generic_main']:
+      if os.path.exists(os.path.join(TEST_LISTS_PATH,
+                                     test_list_id + '.test_list.json')):
+        return test_list_id
+    return DEFAULT_TEST_LIST_ID
 
   @staticmethod
   def SetActiveTestList(new_id):
