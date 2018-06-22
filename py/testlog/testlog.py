@@ -367,8 +367,6 @@ def LogTestRun(session_json_path, station_test_run=None):
       # Merge the station_test_run information.
       if station_test_run:
         test_run.Populate(station_test_run.ToDict())
-      # Check the event, or it may be rejected by Instalog input plugin.
-      test_run.CheckIsValid()
       Log(test_run)
     except Exception:
       # Not much we can do here.
@@ -540,6 +538,13 @@ class JSONLogFile(file_utils.FileLockContextManager):
       event['apiVersion'] = TESTLOG_API_VERSION
     if 'time' not in event:
       event['time'] = time.time()
+
+    # Check the event, or it may be rejected by Instalog input plugin.
+    try:
+      event.CheckIsValid()
+    except Exception:
+      logging.exception('Not able to log the event: %s', event.ToJSON())
+      return ''
 
     line = event.ToJSON() + '\n'
     with self:
