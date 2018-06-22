@@ -930,7 +930,7 @@ class FinalizeBundle(object):
     with self._DownloadResource(
         possible_urls, 'factory toolkit', requested_version
         ) as (downloaded_path, unused_url):
-      file_utils.ExtractFile(downloaded_path, target_dir)
+      file_utils.ExtractFile(downloaded_path, target_dir, exclude=['*/README'])
 
     return self._LocateOneResource(
         'factory toolkit', LOCAL, TOOLKIT_SEARCH_DIRS,

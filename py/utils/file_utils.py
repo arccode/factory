@@ -419,7 +419,8 @@ def GetCompressor(file_format, allow_parallel=True):
 
 
 def ExtractFile(compressed_file, output_dir, only_extracts=None,
-                overwrite=True, quiet=False, use_parallel=False):
+                overwrite=True, quiet=False, use_parallel=False,
+                exclude=None):
   """Extracts compressed file to output folder.
 
   Args:
@@ -431,6 +432,7 @@ def ExtractFile(compressed_file, output_dir, only_extracts=None,
       True.
     quiet: Whether to suppress output.
     use_parallel: Allow using parallel compressor to shorten execution time.
+    exclude: a list of file patterns to exclude.
 
   Raises:
     ExtractFileError if the method fails to extract the file.
@@ -450,9 +452,10 @@ def ExtractFile(compressed_file, output_dir, only_extracts=None,
   if compressed_file.endswith('.zip'):
     overwrite_opt = ['-o'] if overwrite else []
     quiet_opt = ['-qq'] if quiet else []
+    exclude_opt = ['-x'] + exclude if exclude else []
     cmd = (['unzip'] + overwrite_opt + quiet_opt + [compressed_file] +
            ['-d', output_dir] +
-           only_extracts)
+           only_extracts + exclude_opt)
   else:
     formats = (
         (['.tar'], None),
@@ -470,6 +473,8 @@ def ExtractFile(compressed_file, output_dir, only_extracts=None,
           cmd += ['-vv']
         if use_parallel:
           cmd += ['-I', GetCompressor(file_format, use_parallel)]
+        if exclude:
+          cmd += ['--exclude=%s' % e for e in exclude]
         cmd += only_extracts
         break
     if unsupported:
