@@ -5,13 +5,11 @@
 """Validator for HWID configs."""
 
 import logging
-import sys
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import verify_db_pattern
-from cros.factory.test.l10n import regions
 
 
 class ValidationError(ValueError):
@@ -20,14 +18,6 @@ class ValidationError(ValueError):
 
 class HwidValidator(object):
   """Validates HWID configs."""
-  def __init__(self):
-    """ Constructor of HwidValidator."""
-    # Patch cros.factory.test.l10n.regions.REGIONS to include all the regions,
-    # including unconfirmed regions. We only validate the region syntax here,
-    # rather than verify the feasibiliy of a region of a project.
-    sys.modules[
-        'cros.factory.test.l10n.regions'].REGIONS = regions.BuildRegionsDict(
-            include_all=True)
 
   def Validate(self, hwid_config_contents):
     """Validates a HWID config.
