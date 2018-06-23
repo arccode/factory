@@ -10,6 +10,7 @@
     "hwid_need_vpd": false,
     "__comment_hwid_need_vpd": "Set to true if some rules in the HWID database rely on VPD data",
     "is_chromebox": false,
+    "rma_mode": false,
     "sd": {
       "sysfs_path": "/sys/devices/pci0000:00/0000:00:xx.y/mmc_host"
     },
@@ -681,7 +682,8 @@
       "label": "Write HWID",
       "args": {
         "enable_factory_server": "eval! constants.enable_factory_server",
-        "run_vpd": "eval! constants.hwid_need_vpd"
+        "run_vpd": "eval! constants.hwid_need_vpd",
+        "rma_mode": "eval! constants.rma_mode"
       }
     },
     "WriteProtectSwitch": {

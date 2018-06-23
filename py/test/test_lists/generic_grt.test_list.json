@@ -48,6 +48,7 @@
         "gooftool_waive_list": "eval! constants.grt.gooftool_waive_list",
         "hwid_need_vpd": "eval! constants.hwid_need_vpd",
         "is_chromebox": "eval! constants.is_chromebox",
+        "rma_mode": "eval! constants.rma_mode",
         "secure_wipe": "eval! constants.grt.secure_wipe",
         "upload_method": "eval! 'shopfloor' if constants.enable_factory_server else 'none'",
         "write_protection": "eval! constants.grt.force_write_protect or options.phase == 'PVT'"
