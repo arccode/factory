@@ -238,6 +238,10 @@ test image in the first slot of Chrome OS image partitions
 ([#2 and #3](http://www.chromium.org/chromium-os/chromiumos-design-docs/disk-format#TOC-Drive-partitions)),
 and the release image in the second slot (#4 and #5).
 
+For all imaging methods listed below, you will need resource files (release
+image, test image, factory toolkit, hwid, ...) locally.  Please check
+[BUNDLE.md](setup/BUNDLE.md) for how to download each resource from CPFE.
+
 *** note
 **Note:** All imaging methods except pre-installation will try to update Main
 (AP) and EC firmware on target machine using a `chromeos-firmwareupdate` updater
@@ -297,8 +301,9 @@ refer to [Netboot Setup](./setup/NETBOOT.md).
 ![Diagram of Pre-Installation](doc/images/pre_installation.png)
 
 To speed up the process, many factories will try to pre-flash the internal
-storage so no imaging process is needed. You can generate the disk image from a
-factory test image and a release (recovery) image using setup scripts.
+storage so no imaging process is needed. You can generate the disk image from [a
+factory test image and a release (recovery) image](setup/BUNDLE.md) using setup
+scripts.
 
 To do that, use `image_tool preflash` command:
 
@@ -321,7 +326,8 @@ network. This is helpful in proto builds if network is not ready, and if copy
 machine is not available. This is also known as the "RMA shim" since it is
 widely used in RMA (Return Materiel Authorization) flow:
 
-To do that, use 'rma' sub command in `image_tool`:
+To generate a USB installation image from a [bundle](setup/BUNDLE.md), use 'rma'
+sub command in `image_tool`:
 
     ./setup/image_tool \
       rma -o rma_image.bin \
