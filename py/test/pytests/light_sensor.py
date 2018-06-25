@@ -318,18 +318,18 @@ class LightSensorTest(test_case.TestCase):
         with group_checker:
           testlog.LogParam(name + '_time', time.time())
           if 'above' in cfg:
-            passed = testlog.CheckValueParam(name, val, min=cfg['above'])
+            passed = testlog.CheckNumericParam(name, val, min=cfg['above'])
             logging.info('%s checking "above" %d > %d',
                          'PASSED' if passed else 'FAILED',
                          val, cfg['above'])
           elif 'below' in cfg:
-            passed = testlog.CheckValueParam(name, val, max=cfg['below'])
+            passed = testlog.CheckNumericParam(name, val, max=cfg['below'])
             logging.info('%s checking "below" %d < %d',
                          'PASSED' if passed else 'FAILED',
                          val, cfg['below'])
           elif 'between' in cfg:
             lb, ub = cfg['between']
-            passed = testlog.CheckValueParam(name, val, min=lb, max=ub)
+            passed = testlog.CheckNumericParam(name, val, min=lb, max=ub)
             logging.info('%s checking "between" %d < %d < %d',
                          'PASSED' if passed else 'FAILED',
                          lb, val, ub)

@@ -66,7 +66,7 @@ class ThermalLoadTest(unittest.TestCase):
     """
     testlog.LogParam('elapsed', elapsed)
     for index, temperature_value in enumerate(temperatures):
-      testlog.CheckNumericValue('%s_temperature' % self.sensors[index],
+      testlog.CheckNumericParam('%s_temperature' % self.sensors[index],
                                 temperature_value,
                                 min=self.args.lower_threshold[index],
                                 max=self.args.temperature_limit[index])
