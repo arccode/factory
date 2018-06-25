@@ -117,9 +117,6 @@ class PlanktonChargeBFTTest(test_case.TestCase):
       Arg('battery_cycle_threshold', int,
           'The threshold for battery cycle count',
           default=0),
-      Arg('check_current_max', bool,
-          'Whether to check battery current max is not zero',
-          default=False),
       Arg('check_protect_ina_current', bool,
           'If set True, it would check if Plankton 5V INA current is within '
           'protect_ina_current_range first for high-V protection',
@@ -464,9 +461,6 @@ class PlanktonChargeBFTTest(test_case.TestCase):
             self.args.battery_cycle_threshold)):
       raise type_utils.TestFailure('Battery cycle count is higher than %d' %
                                    self.args.battery_cycle_threshold)
-    if (self.args.check_current_max and
-        int(self._power.GetBatteryAttribute('current_max').strip()) == 0):
-      raise type_utils.TestFailure('Battery current max is zero')
 
     if self._remote_test:
       # Get remote target battery capacity and warn if almost full
