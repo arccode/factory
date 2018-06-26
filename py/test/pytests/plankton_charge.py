@@ -455,10 +455,9 @@ class PlanktonChargeBFTTest(test_case.TestCase):
     """
     if not self._power.CheckBatteryPresent():
       raise type_utils.TestFailure(
-          'Cannot locate battery sysfs path. Missing battery?')
+          'Cannot detect battery. Missing battery?')
     if (self.args.check_battery_cycle and
-        int(self._power.GetBatteryAttribute('cycle_count').strip()) > (
-            self.args.battery_cycle_threshold)):
+        self._power.GetBatteryCycleCount() > self.args.battery_cycle_threshold):
       raise type_utils.TestFailure('Battery cycle count is higher than %d' %
                                    self.args.battery_cycle_threshold)
 

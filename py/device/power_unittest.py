@@ -91,6 +91,16 @@ class SysfsPowerInfoTest(unittest.TestCase):
     self.power.ReadOneLine = mock.MagicMock(return_value='12660000')
     self.assertEquals(self.power.GetBatteryVoltage(), 12660)
 
+  def testGetBatteryCycleCount(self):
+    self.power.FindPowerPath = mock.MagicMock(return_value='')
+    self.power.ReadOneLine = mock.MagicMock(return_value='10')
+    self.assertEquals(self.power.GetBatteryCycleCount(), 10)
+
+  def testGetBatteryManufacturer(self):
+    self.power.FindPowerPath = mock.MagicMock(return_value='')
+    self.power.ReadOneLine = mock.MagicMock(return_value='LGC')
+    self.assertEquals(self.power.GetBatteryManufacturer(), 'LGC')
+
 
 class ECToolPowerInfoTest(unittest.TestCase):
   """Unittest for power.ECToolPowerInfoMixin."""
@@ -179,6 +189,16 @@ class ECToolPowerInfoTest(unittest.TestCase):
         return_value=self._MOCK_EC_BATTERY_READ)
     self.assertEqual(self.power.GetBatteryVoltage(), 15370)
 
+  def testGetBatteryCycleCount(self):
+    self.board.CallOutput = mock.MagicMock(
+        return_value=self._MOCK_EC_BATTERY_READ)
+    self.assertEqual(self.power.GetBatteryCycleCount(), 4)
+
+  def testGetBatteryManufacturer(self):
+    self.board.CallOutput = mock.MagicMock(
+        return_value=self._MOCK_EC_BATTERY_READ)
+    self.assertEquals(self.power.GetBatteryManufacturer(), 'LGC')
+
   def testGetInfoDict(self):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_EC_BATTERY_READ)
@@ -213,14 +233,11 @@ class ECToolPowerInfoTest(unittest.TestCase):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_EC_BATTERY_READ)
     # pylint: disable=protected-access
-    self.assertEqual(3220,
-                     self.power._GetECToolBatteryAttribute('Design capacity:'))
+    self.assertEqual('AC14B8K',
+                     self.power._GetECToolBatteryAttribute('Model number:'))
     # pylint: disable=protected-access
     self.assertEqual(4,
-                     self.power._GetECToolBatteryAttribute('Cycle count'))
-    # pylint: disable=protected-access
-    self.assertEqual(128,
-                     self.power._GetECToolBatteryAttribute('Present current'))
+                     self.power._GetECToolBatteryAttribute('Cycle count', int))
 
   def testUSBPDPowerInfo(self):
     _USB_PD_POWER_INFO = textwrap.dedent("""

@@ -79,18 +79,16 @@ class SysfsBatteryTest(unittest.TestCase):
       success = True
 
     if battery_present:
-      cycleCount = power.GetBatteryAttribute('cycle_count')
+      cycleCount = power.GetBatteryCycleCount()
       if success and self.args.maximum_cycle_count is not None:
-        if int(cycleCount) > self.args.maximum_cycle_count:
-          msg = 'Battery cycle count is too high: %s' % cycleCount
+        if cycleCount > self.args.maximum_cycle_count:
+          msg = 'Battery cycle count is too high: %d' % cycleCount
           success = False
 
-      capacity = power.GetBatteryAttribute('capacity')
-      manufacturer = power.GetBatteryAttribute('manufacturer')
+      manufacturer = power.GetBatteryManufacturer()
 
       testlog.LogParam('wearPct', wearPct)
       testlog.LogParam('cycleCount', cycleCount)
-      testlog.LogParam('capacity', capacity)
       testlog.LogParam('manufacturer', manufacturer)
       testlog.LogParam('battery_sysfs_info', power.GetInfoDict())
 

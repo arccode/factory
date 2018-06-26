@@ -169,8 +169,7 @@ class SimpleBatteryTest(test_case.TestCase):
     self.assertTrue(self._dut.power.CheckBatteryPresent(),
                     'Cannot locate battery sysfs path. Missing battery?')
 
-    cycle_count = int(
-        self._dut.power.GetBatteryAttribute('cycle_count').strip())
+    cycle_count = self._dut.power.GetBatteryCycleCount()
     self.assertLessEqual(
         cycle_count, self.args.max_cycle_count,
         'Battery cycle count %d exceeds max %d' % (cycle_count,

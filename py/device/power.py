@@ -201,6 +201,13 @@ class PowerInfoMixinBase(object):
     """
     raise NotImplementedError
 
+  def GetBatteryCycleCount(self):
+    """Gets battery's cycle count."""
+    raise NotImplementedError
+
+  def GetBatteryManufacturer(self):
+    """Gets battery's manufacturer."""
+    raise NotImplementedError
 
   def GetInfoDict(self):
     """Returns a dict containing information about the battery.
@@ -439,6 +446,14 @@ class SysfsPowerInfoMixin(PowerInfoMixinBase):
     voltage = self.GetBatteryAttribute('voltage_now')
     return int(voltage) / 1000
 
+  def GetBatteryCycleCount(self):
+    """See PowerInfoMixinBase.GetBatteryCycleCount"""
+    return int(self.GetBatteryAttribute('cycle_count'))
+
+  def GetBatteryManufacturer(self):
+    """See PowerInfoMixinBase.GetBatteryManufacturer"""
+    return self.GetBatteryAttribute('manufacturer')
+
 
 class ECToolPowerInfoMixin(PowerInfoMixinBase):
   """Power info mixin that uses ectool."""
@@ -457,11 +472,11 @@ class ECToolPowerInfoMixin(PowerInfoMixinBase):
     else:
       return []
 
-  def _GetECToolBatteryAttribute(self, key_name):
-    re_object = re.findall(r'%s\s+(\d+)' % key_name,
+  def _GetECToolBatteryAttribute(self, key_name, item_type=str):
+    re_object = re.findall(r'%s\s+(\S+)' % key_name,
                            self._device.CallOutput(['ectool', 'battery']))
     if re_object:
-      return int(re_object[0])
+      return item_type(re_object[0])
     else:
       raise self.Error('Cannot find key "%s" in ectool battery' % key_name)
 
@@ -482,11 +497,11 @@ class ECToolPowerInfoMixin(PowerInfoMixinBase):
 
   def GetCharge(self):
     """See PowerInfoMixinBase.GetCharge"""
-    return self._GetECToolBatteryAttribute('Remaining capacity')
+    return self._GetECToolBatteryAttribute('Remaining capacity', int)
 
   def GetChargeFull(self):
     """See PowerInfoMixinBase.GetChargeFull"""
-    return self._GetECToolBatteryAttribute('Last full charge:')
+    return self._GetECToolBatteryAttribute('Last full charge:', int)
 
   def GetChargePct(self, get_float=False):
     """See PowerInfoMixinBase.GetChargePct"""
@@ -515,12 +530,12 @@ class ECToolPowerInfoMixin(PowerInfoMixinBase):
   def GetBatteryCurrent(self):
     """See PowerInfoMixinBase.GetBatteryCurrent"""
     charging = 'CHARGING' in self._GetECToolBatteryFlags()
-    current = self._GetECToolBatteryAttribute('Present current')
+    current = self._GetECToolBatteryAttribute('Present current', int)
     return current if charging else -current
 
   def GetBatteryDesignCapacity(self):
     """See PowerInfoMixinBase.GetBatteryDesignCapacity"""
-    return self._GetECToolBatteryAttribute('Design capacity:')
+    return self._GetECToolBatteryAttribute('Design capacity:', int)
 
   def GetChargerCurrent(self):
     """See PowerInfoMixinBase.GetChargerCurrent"""
@@ -533,7 +548,15 @@ class ECToolPowerInfoMixin(PowerInfoMixinBase):
 
   def GetBatteryVoltage(self):
     """See PowerInfoMixinBase.GetBatteryVoltage"""
-    return int(self._GetECToolBatteryAttribute('Present voltage'))
+    return self._GetECToolBatteryAttribute('Present voltage', int)
+
+  def GetBatteryCycleCount(self):
+    """See PowerInfoMixinBase.GetBatteryCycleCount"""
+    return self._GetECToolBatteryAttribute('Cycle count', int)
+
+  def GetBatteryManufacturer(self):
+    """See PowerInfoMixinBase.GetBatteryManufacturer"""
+    return self._GetECToolBatteryAttribute('OEM name:')
 
   def GetPowerInfo(self):
     """Gets power information.
@@ -600,9 +623,6 @@ class ECToolPowerInfoMixin(PowerInfoMixinBase):
 class PowerDaemonPowerInfoMixin(PowerInfoMixinBase):
   """Power info mixin that uses powerd."""
 
-  # Regular expression for parsing charger current.
-  EC_CHARGER_CURRENT_RE = re.compile(r'^chg_current = (\d+)mA', re.MULTILINE)
-
   def _GetDumpPowerStatus(self):
     return self._device.CallOutput(['dump_power_status'])
 
@@ -659,16 +679,11 @@ class PowerDaemonPowerInfoMixin(PowerInfoMixinBase):
 
     TODO(chenghan): Currently cros-usb-pd-charger does not provide 'current_now'
                     file in sysfs (crbug/807753), which is read by
-                    `dump_power_status` to get 'line_power_current' field, so we
-                    use ectool to get this information. Change this function to
-                    use 'line_power_current' when the issue is fixed.
+                    `dump_power_status` to get 'line_power_current' field.
+                    Change this function to use 'line_power_current' when the
+                    issue is fixed.
     """
-    re_object = self.EC_CHARGER_CURRENT_RE.findall(
-        self._device.CheckOutput(['ectool', 'chargestate', 'show']))
-    if re_object:
-      return int(re_object[0])
-    else:
-      raise self.Error('Cannot find current in ectool chargestate show')
+    return super(PowerDaemonPowerInfoMixin, self).GetChargerCurrent()
 
   def GetBatteryCurrent(self):
     """See PowerInfoMixinBase.GetBatteryCurrent"""
@@ -686,6 +701,22 @@ class PowerDaemonPowerInfoMixin(PowerInfoMixinBase):
     return int(
         self._GetPowerAttribute('battery_voltage', float) * 1000)
 
+  def GetBatteryCycleCount(self):
+    """See PowerInfoMixinBase.GetBatteryCycleCount
+
+    TODO(chenghan): Change this function when `dump_power_status` supports
+                    this field.
+    """
+    return super(PowerDaemonPowerInfoMixin, self).GetBatteryCycleCount()
+
+  def GetBatteryManufacturer(self):
+    """See PowerInfoMixinBase.GetBatteryManufacturer
+
+    TODO(chenghan): Change this function when `dump_power_status` supports
+                    this field.
+    """
+    return super(PowerDaemonPowerInfoMixin, self).GetBatteryManufacturer()
+
 
 class LinuxPower(DummyPowerControlMixin, SysfsPowerInfoMixin, PowerBase):
   """Power with no power control and info from sysfs."""
@@ -698,9 +729,12 @@ class ChromeOSPowerLegacy(
   pass
 
 
-class ChromeOSPower(
-    ECToolPowerControlMixin, PowerDaemonPowerInfoMixin, PowerBase):
-  """Power with ectool power control and info from powerd."""
+class ChromeOSPower(ECToolPowerControlMixin, PowerDaemonPowerInfoMixin,
+                    ECToolPowerInfoMixin, PowerBase):
+  """Power with ectool power control and info from powerd.
+
+  If powerd does not support the function, fall back to use ectool.
+  """
   pass
 
 
