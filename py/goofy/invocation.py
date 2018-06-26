@@ -426,7 +426,7 @@ class TestInvocation(object):
 
     serial_numbers = log_args.pop('serial_numbers', None)
     if serial_numbers:
-      for k, v in serial_numbers:
+      for k, v in serial_numbers.iteritems():
         testlog_event.AddSerialNumber(k, v)
 
     if status == testlog.StationTestRun.STATUS.FAIL:
