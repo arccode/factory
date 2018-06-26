@@ -65,7 +65,10 @@ def main():
   repos = ['platform/factory', BuildBoard(args.board).factory_board_files]
   for repo_path in repos:
     if not repo_path:
-      raise ValueError('No overlay available for %s!' % args.board)
+      raise ValueError(
+          'No overlay available for %s! Please check if the board is correct '
+          'and you have done `setup_board --board %s`.'
+          % (args.board, args.board))
     print 'Repository %s' % repo_path
     repo_full_path = os.path.join(SRC, repo_path)
 
