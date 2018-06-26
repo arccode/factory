@@ -8,7 +8,6 @@
 
 from __future__ import print_function
 
-import datetime
 import logging
 import unittest
 
@@ -18,17 +17,17 @@ from instalog import flow_policy
 from instalog import log_utils
 
 
-_SAMPLE_DATETIME = datetime.datetime(1989, 12, 12, 12, 12, 12, 12)
+_SAMPLE_TIME = 629467932.000012
 
 _SAMPLE_PROCESS_STAGE1 = datatypes.ProcessStage(
     node_id='node_id1',
-    time=_SAMPLE_DATETIME,
+    time=_SAMPLE_TIME,
     plugin_id='plugin_id1',
     plugin_type='plugin_type1',
     target=datatypes.ProcessStage.BUFFER)
 _SAMPLE_PROCESS_STAGE2 = datatypes.ProcessStage(
     node_id='node_id2',
-    time=_SAMPLE_DATETIME,
+    time=_SAMPLE_TIME,
     plugin_id='plugin_id2',
     plugin_type='plugin_type2',
     target=datatypes.ProcessStage.EXTERNAL)

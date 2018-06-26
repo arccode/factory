@@ -11,6 +11,7 @@ iterating through it.
 from __future__ import print_function
 
 import copy
+import datetime
 import filecmp
 import logging
 import time
@@ -48,6 +49,9 @@ class ProcessStage(json_utils.Serializable):
   @classmethod
   def FromDict(cls, dct):
     """Returns a ProcessStage object from its dictionary equivalent."""
+    if isinstance(dct['time'], datetime.datetime):
+      dct['time'] = (time.mktime(dct['time'].timetuple()) +
+                     dct['time'].microsecond * 1e-6)
     return cls(
         dct['node_id'], dct['time'], dct['plugin_id'],
         dct['plugin_type'], dct['target'])

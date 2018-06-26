@@ -10,7 +10,6 @@ state, and implements PluginAPI functions for the plugin.
 
 from __future__ import print_function
 
-import datetime
 import inspect
 import logging
 import os
@@ -589,10 +588,9 @@ class PluginSandbox(plugin_base.PluginAPI, log_utils.LoggerMixin):
     self.debug('Emit called with state=%s', self._state)
 
     # TODO(kitching): Relocate the ProcessStage annotation into Core.
-    batch_time = datetime.datetime.utcnow()
     process_stage = datatypes.ProcessStage(
         node_id=self._core_api.GetNodeID(),
-        time=batch_time,
+        time=time.time(),
         plugin_id=self.plugin_id,
         plugin_type=self.plugin_type,
         target=datatypes.ProcessStage.BUFFER)
@@ -620,10 +618,9 @@ class PluginSandbox(plugin_base.PluginAPI, log_utils.LoggerMixin):
     ret = self._NextMatchingEvent(plugin_stream)
     if ret:
       # TODO(kitching): Relocate the ProcessStage annotation into Core.
-      batch_time = datetime.datetime.utcnow()
       process_stage = datatypes.ProcessStage(
           node_id=self._core_api.GetNodeID(),
-          time=batch_time,
+          time=time.time(),
           plugin_id=self.plugin_id,
           plugin_type=self.plugin_type,
           target=datatypes.ProcessStage.EXTERNAL)
