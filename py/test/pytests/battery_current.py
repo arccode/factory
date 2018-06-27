@@ -100,6 +100,10 @@ class BatteryCurrentTest(test_case.TestCase):
           'A sequence [usbpd_port, min_millivolt, max_millivolt] used to '
           'select a particular port from a multi-port DUT.',
           default=None),
+      Arg('use_max_voltage', bool,
+          'Use the negotiated max voltage in `ectool usbpdpower` to check '
+          'charger voltage, in case that instant voltage is not supported.',
+          default=False),
       i18n_arg_utils.I18nArg('usbpd_prompt',
                              'prompt operator which port to insert',
                              default='')
@@ -138,14 +142,16 @@ class BatteryCurrentTest(test_case.TestCase):
   def _CheckUSBPD(self):
     for unused_i in range(10):
       status = self._dut.usb_c.GetPDPowerStatus()
-      if 'millivolt' not in status[self._usbpd_port]:
+      voltage_field = ('max_millivolt' if self.args.use_max_voltage else
+                       'millivolt')
+      if voltage_field not in status[self._usbpd_port]:
         self.ui.SetState(
             _('Insert power to {prompt}({voltage}mV)',
               prompt=self._usbpd_prompt,
               voltage=0))
         logging.info('No millivolt detected in port %d', self._usbpd_port)
         return False
-      millivolt = status[self._usbpd_port]['millivolt']
+      millivolt = status[self._usbpd_port][voltage_field]
       logging.info('millivolt %d, acceptable range (%d, %d)', millivolt,
                    self._usbpd_min_millivolt, self._usbpd_max_millivolt)
       self.ui.SetState(
