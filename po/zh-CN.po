@@ -3157,6 +3157,14 @@ msgstr "一般 Chromebook 测试"
 msgid "Generic RF Station"
 msgstr "一般射频測試站"
 
+#: ../py/test/test_lists/generic_rma.test_list.json
+msgid "FFT"
+msgstr "最终功能测试"
+
+#: ../py/test/test_lists/generic_rma.test_list.json
+msgid "Generic RMA"
+msgstr "一般退货授权 (RMA) 测试"
+
 #: ../py/test/test_lists/generic_rrt.test_list.json
 #: ../py/test/test_lists/generic_run_in.test_list.json
 msgid "Dozing Stress"

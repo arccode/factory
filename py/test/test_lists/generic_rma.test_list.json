@@ -1,17 +1,17 @@
 {
-  "label": "Generic RMA",
   "inherit": [
     "disable_factory_server.test_list",
     "generic_grt.test_list"
   ],
+  "label": "Generic RMA",
   "constants": {
     "phase": "PROTO",
     "rma_mode": true
   },
   "definitions": {
     "RMAFFT": {
-      "label": "FFT",
       "inherit": "TestGroup",
+      "label": "FFT",
       "subtests": [
         "Placeholder"
       ]
