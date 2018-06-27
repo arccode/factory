@@ -103,6 +103,18 @@ def _GetFirmwareVersions(updater, expected_firmwares):
   return versions
 
 
+def _GetImageTool():
+  factory_par = sys_utils.GetRunningFactoryPythonArchivePath()
+  if factory_par is not None:
+    return [factory_par, 'image_tool']
+  elif os.path.exists(os.path.join(SCRIPT_DIR, 'image_tool')):
+    return [os.path.join(SCRIPT_DIR, 'image_tool')]
+  elif os.path.exists(os.path.join(SCRIPT_DIR, 'image_tool.py')):
+    return [os.path.join(SCRIPT_DIR, 'image_tool.py')]
+  else:
+    raise FinalizeBundleException('Cannot find image_tool')
+
+
 USAGE = """
 Finalizes a factory bundle.  This script checks to make sure that the
 bundle is valid, outputs version information into the README file, and
@@ -529,8 +541,6 @@ class FinalizeBundle(object):
     files_dir = os.path.join('chrome-bot', self.board)
     target_bootfile = os.path.join(files_dir, 'vmlinuz')
     target_argsfile = os.path.join(files_dir, 'cmdline')
-    image_tool = os.path.join(
-        self.bundle_dir, 'setup', 'image_tool')
 
     server_url = self.manifest.get('server_url')
     tftp_server_ip = (urlparse.urlparse(server_url).hostname if server_url else
@@ -546,7 +556,7 @@ class FinalizeBundle(object):
       if server_url:
         args += ['--factory-server-url=%s' % server_url,
                  '--tftpserverip=%s' % tftp_server_ip]
-      Spawn([image_tool, 'netboot'] + args, check_call=True, log=True)
+      Spawn(_GetImageTool() + ['netboot'] + args, check_call=True, log=True)
       shutil.move(new_netboot_firmware_image, netboot_firmware_image)
 
     tftp_root = os.path.join(self.bundle_dir, 'netboot', 'tftp')
@@ -796,11 +806,11 @@ class FinalizeBundle(object):
                     ['a beer'] * 8)[time.localtime().tm_hour])
 
       output_file = self.bundle_dir + '.tar.bz2'
-      Spawn(['tar', '-cf', output_file,
-             '-I', file_utils.GetCompressor('bz2'),
-             '--exclude', os.path.join(FIRMWARE_IMAGE_SOURCE_DIR, '*'),
-             '-C', self.bundle_dir, '.'],
-            log=True, check_call=True)
+      Spawn(_GetImageTool() +
+            ['bundle', '-o', self.work_dir, '--board', self.board,
+             '--timestamp', self.bundle_name.split('_')[0],
+             '--phase', self.bundle_name.split('_')[1]],
+            log=True, check_call=True, cwd=self.bundle_dir)
       logging.info(
           'Created %s (%.1f GiB).',
           output_file, os.path.getsize(output_file) / (1024. * 1024. * 1024.))
