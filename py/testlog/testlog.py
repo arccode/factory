@@ -57,8 +57,11 @@ from .utils import time_utils
 from .utils import type_utils
 
 
-TESTLOG_API_VERSION = '0.2'
+TESTLOG_API_VERSION = '0.21'
 TESTLOG_ENV_VARIABLE_NAME = 'TESTLOG'
+
+# Possible values for the `Stationstatus.parameters.type` field.
+PARAMETER_TYPE = type_utils.Enum(['argument', 'measurement'])
 
 # TODO(itspeter): Use config_utils for those default constants.
 # The primary JSON file. It will be ingested by Instalog.
@@ -1001,6 +1004,7 @@ class StationStatus(_StationBase):
             'description': schema.Scalar('description', basestring),
             'group': schema.Scalar('group', basestring),
             'valueUnit': schema.Scalar('valueUnit', basestring),
+            'type': schema.Scalar('type', basestring, list(PARAMETER_TYPE)),
             'data': DATA_SCHEMA})
     kwargs['schema'] = SCHEMA
     return testlog_validator.Validator.Dict(*args, **kwargs)
@@ -1037,19 +1041,22 @@ class StationStatus(_StationBase):
       value_dict['serializedValue'] = json.dumps(value)
     return value_dict
 
-  def _LogParamValue(self, name, value_dict):
+  def _CheckAndCreateParam(self, name):
     if 'parameters' not in self._data or name not in self['parameters']:
       self['parameters'] = {
           'key': name,
-          'value': {
-              'data': [value_dict]}}
-    else:
-      group = self['parameters'][name].get('group', None)
-      if group and group != self.in_group:
-        raise ValueError('The grouped parameter should be used in the '
-                         'GroupChecker')
+          'value': {'type': PARAMETER_TYPE.measurement, 'data': []}
+      }
 
-      self['parameters'][name]['data'].append(value_dict)
+  def _LogParamValue(self, name, value_dict):
+    self._CheckAndCreateParam(name)
+
+    group = self['parameters'][name].get('group', None)
+    if group and group != self.in_group:
+      raise ValueError('The grouped parameter should be used in the '
+                       'GroupChecker')
+
+    self['parameters'][name]['data'].append(value_dict)
 
   def AddSerialNumber(self, name, value):
     """Adds serial numbers."""
@@ -1098,20 +1105,17 @@ class StationStatus(_StationBase):
     self._LogParamValue(name, value_dict)
     return result
 
-  def UpdateParam(self, name, description=None, value_unit=None):
+  def UpdateParam(self, name, description=None, value_unit=None,
+                  param_type=None):
     """Updates parameter's metedata."""
-    if 'parameters' not in self._data or name not in self['parameters']:
-      value_dict = {'data': []}
-      if description:
-        value_dict['description'] = description
-      if value_unit:
-        value_dict['valueUnit'] = value_unit
-      self['parameters'] = {'key': name, 'value': value_dict}
-    else:
-      if description:
-        self['parameters'][name]['description'] = description
-      if value_unit:
-        self['parameters'][name]['valueUnit'] = value_unit
+    self._CheckAndCreateParam(name)
+
+    if description:
+      self['parameters'][name]['description'] = description
+    if value_unit:
+      self['parameters'][name]['valueUnit'] = value_unit
+    if param_type:
+      self['parameters'][name]['type'] = param_type
 
   in_group = None
 
@@ -1123,17 +1127,16 @@ class StationStatus(_StationBase):
       raise ValueError('param_list(%r) should be a list and not empty' %
                        param_list)
     for param in param_list:
-      if 'parameters' not in self._data or param not in self['parameters']:
-        self['parameters'] = {
-            'key': param,
-            'value': {
-                'group': name,
-                'data': []}}
-      else:
-        if self['parameters'][param]['data']:
-          raise ValueError(
-              'parameter(%s) should not have data before grouping' % param)
-        self['parameters'][param]['group'] = name
+      self._CheckAndCreateParam(param)
+
+      if self['parameters'][param]['data']:
+        raise ValueError(
+            'parameter(%s) should not have data before grouping' % param)
+      if self['parameters'][param].get('group', None):
+        raise ValueError(
+            'parameter(%s) should not be grouped twice' % param)
+
+      self['parameters'][param]['group'] = name
 
     return _GroupChecker(self, name, param_list)
 

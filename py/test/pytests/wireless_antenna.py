@@ -266,6 +266,7 @@ class WirelessTest(test_case.TestCase):
         event_log.Log('service_signal', service=service, strength=strength)
         group_checker = testlog.GroupParam('service_signal',
                                            ['service', 'service_strength'])
+        testlog.UpdateParam('service', param_type=testlog.PARAM_TYPE.argument)
         with group_checker:
           testlog.LogParam('service', service)
           testlog.LogParam('service_strength', strength)
@@ -471,6 +472,8 @@ class WirelessTest(test_case.TestCase):
                   meet=(scanned_strength and scanned_strength >= spec_strength))
     group_checker = testlog.GroupParam('antenna',
                                        ['antenna', 'freq', 'strength'])
+    testlog.UpdateParam('antenna', param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam('freq', param_type=testlog.PARAM_TYPE.argument)
     with group_checker:
       testlog.LogParam('antenna', antenna)
       testlog.LogParam('freq', service[1])

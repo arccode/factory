@@ -202,13 +202,16 @@ class TestlogEventTest(unittest.TestCase):
                 'text': {
                     'group': 'GG',
                     'description': 'TEST UPDATE',
+                    'type': 'measurement',
                     'data': [
                         {'textValue': 'unittest'}]},
                 'num': {
                     'group': 'GG',
+                    'type': 'measurement',
                     'data': [
                         {'numericValue': 3388}]},
                 'list': {
+                    'type': 'measurement',
                     'data': [
                         {'serializedValue': '[1, 2, 3]'}]}}}),
         event)
@@ -231,6 +234,7 @@ class TestlogEventTest(unittest.TestCase):
                 'text': {
                     'group': 'GG',
                     'description': 'TEST UPDATE',
+                    'type': 'measurement',
                     'data': [
                         {'textValue': 'unittest'},
                         {'textValue': 'unittest2'},
@@ -240,6 +244,7 @@ class TestlogEventTest(unittest.TestCase):
                          'status': 'PASS'}]},
                 'num': {
                     'group': 'GG',
+                    'type': 'measurement',
                     'data': [
                         {'numericValue': 3388},
                         {'numericValue': 3389},
@@ -250,6 +255,7 @@ class TestlogEventTest(unittest.TestCase):
                 'list': {
                     'description': 'TEST UPDATE2',
                     'valueUnit': 'UNIT',
+                    'type': 'measurement',
                     'data': [
                         {'serializedValue': '[1, 2, 3]'},
                         {'serializedValue': '{"1": 2, "3": [4]}'}]}}}),
@@ -412,18 +418,22 @@ class TestlogEventTest(unittest.TestCase):
             'text': {
                 'valueUnit': 'pcs',
                 'description': 'None',
+                'type': 'measurement',
                 'data': [
                     {'textValue': 'unittest'}]},
             'num': {
+                'type': 'measurement',
                 'data': [
                     {'numericValue': 3388}]},
             's1': {
+                'type': 'measurement',
                 'data': [
                     {'numericValue': 1234},
                     {'numericValue': 5678.0}]},
             's2': {
                 'valueUnit': 'dBm',
                 'description': 'withUnit',
+                'type': 'measurement',
                 'data': [
                     {'numericValue': 31.5},
                     {
@@ -616,6 +626,7 @@ class TestlogE2ETest(unittest.TestCase):
          'testName': 'TestlogDemo.Test', 'testRunId': session_uuid,
          'parameters': {
              'NAME': {'data': [{'numericValue': 1}],
+                      'type': 'measurement',
                       'description': 'DESCRIPTION'}},
          'serialNumbers': {'serial_number': 'TestlogDemo'}}
     ]

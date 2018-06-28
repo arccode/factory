@@ -12,8 +12,8 @@ import instalog_common  # pylint:disable=unused-import
 from instalog import json_utils
 
 
-def From0_1to0_2(event):
-  """Upgrades the event format from Testlog API 0.1 to Testlog API 0.2 ."""
+def From0_1to0_21(event):
+  """Upgrades the event format from Testlog API 0.1 to Testlog API 0.21 ."""
   def DateTimeToUnixTimestamp(obj):
     if isinstance(obj, basestring):
       obj = datetime.datetime.strptime(obj, json_utils.FORMAT_DATETIME)
@@ -45,8 +45,10 @@ def From0_1to0_2(event):
       for name, dct in event['series'].iteritems():
         key_name = name + '_key'
         value_name = name + '_value'
-        new_parameters[key_name] = {'group': name, 'data': []}
-        new_parameters[value_name] = {'group': name, 'data': []}
+        new_parameters[key_name] = {'group': name, 'type': 'argument',
+                                    'data': []}
+        new_parameters[value_name] = {'group': name, 'type': 'measurement',
+                                      'data': []}
         if 'description' in dct:
           new_parameters[value_name]['description'] = dct['description']
         if 'keyUnit' in dct:
@@ -63,7 +65,7 @@ def From0_1to0_2(event):
     if 'parameters' in event:
       for name, dct in event['parameters'].iteritems():
         name = 'parameter_' + name
-        new_parameters[name] = {}
+        new_parameters[name] = {'type': 'measurement'}
         if 'description' in dct:
           new_parameters[name]['description'] = dct['description']
           del dct['description']
@@ -74,13 +76,21 @@ def From0_1to0_2(event):
     if new_parameters:
       event['parameters'] = new_parameters
 
-  event['apiVersion'] = '0.2'
+  event['apiVersion'] = '0.21'
 
+  return event
+
+
+def From0_2to0_21(event):
+  """Upgrades the event format from Testlog API 0.2 to Testlog API 0.21 ."""
+  event['apiVersion'] = '0.21'
   return event
 
 
 def UpgradeEvent(event):
   """Upgrades the event format to the latest Testlog API version."""
   if event['apiVersion'] == '0.1':
-    event = From0_1to0_2(event)
+    event = From0_1to0_21(event)
+  if event['apiVersion'] == '0.2':
+    event = From0_2to0_21(event)
   return event

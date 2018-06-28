@@ -115,6 +115,7 @@ class LineCheckItemTest(test_case.TestCase):
     # Group checker for Testlog.
     self.group_checker = testlog.GroupParam(
         'checked_item', ['command', 'retcode', 'stdout', 'stderr'])
+    testlog.UpdateParam('command', param_type=testlog.PARAM_TYPE.argument)
 
   def runTest(self):
     """Main entrance of the test."""

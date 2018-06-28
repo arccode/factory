@@ -397,6 +397,7 @@ class BadBlocksTest(test_case.TestCase):
                     stdout=stdout_data, stderr=stderr_data)
       group_checker = testlog.GroupParam(
           'log_command', ['command', 'command_stdout', 'command_stderr'])
+      testlog.UpdateParam('command', param_type=testlog.PARAM_TYPE.argument)
       with group_checker:
         testlog.LogParam('command', self.args.extra_log_cmd)
         testlog.LogParam('command_stdout', stdout_data)

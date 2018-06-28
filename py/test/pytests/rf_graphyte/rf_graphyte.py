@@ -287,6 +287,14 @@ class RFGraphyteTest(test_case.TestCase):
         'result',
         ['rf_type', 'component_name', 'test_type', 'center_freq',
          'result_name', 'power_level', 'result', 'extra_fields'])
+    testlog.UpdateParam('rf_type', param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam('component_name',
+                        param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam('test_type', param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam('center_freq', param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam('result_name', param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam('power_level', param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam('extra_fields', param_type=testlog.PARAM_TYPE.argument)
 
     with open(self.result_file_path, 'r') as f:
       for data in csv.DictReader(f):

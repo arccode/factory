@@ -193,6 +193,7 @@ class ChargerTest(test_case.TestCase):
 
     group_checker = testlog.GroupParam(
         'charge_info', ['load', 'target', 'charge', 'elapsed', 'status'])
+    testlog.UpdateParam('target', param_type=testlog.PARAM_TYPE.argument)
 
     charge = self._GetCharge(self.args.use_percentage)
     battery_current = self._GetBatteryCurrent()

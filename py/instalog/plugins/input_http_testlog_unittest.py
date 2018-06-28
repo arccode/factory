@@ -60,7 +60,7 @@ class TestInputHTTPTestlog(unittest.TestCase):
     return datatypes.Event({
         'uuid': '8b127476-2604-422a-b9b1-f05e4f14bf72',
         'type': 'station.test_run',
-        'apiVersion': '0.2',
+        'apiVersion': '0.21',
         'time': 1483592505.503,
         'testRunId': '8b127472-4593-4be8-9e94-79f228fc1adc',
         'testName': 'the_test',
@@ -95,7 +95,7 @@ class TestInputHTTPTestlog(unittest.TestCase):
         'uuid': '8b127476-2604-422a-b9b1-f05e4f14bf72',
         'testType': 'aaaa',
         'testName': 'the_test',
-        'apiVersion': '0.2',
+        'apiVersion': '0.21',
         'startTime': 1483592505.489,
         # The time field is corrected.
         'time': self.core.emit_calls[0][0].payload['time'],
@@ -119,7 +119,7 @@ class TestInputHTTPTestlog(unittest.TestCase):
         'uuid': '8b127476-2604-422a-b9b1-f05e4f14bf72',
         'testType': 'aaaa',
         'testName': 'the_test',
-        'apiVersion': '0.2',
+        'apiVersion': '0.21',
         'startTime': 1483592505.489,
         # The time field is corrected.
         'time': self.core.emit_calls[1][0].payload['time'],
@@ -145,7 +145,6 @@ class TestInputHTTPTestlog(unittest.TestCase):
         {'key': 7.8, 'status': 'FAIL'}]}}
     data = {'event': datatypes.Event.Serialize(event)}
     r = self._RequestsPost(files=data, multi_event=False)
-    logging.info(r.reason)
     self.assertEqual(200, r.status_code)
     self.assertEqual(3, len(self.core.emit_calls))
     self.assertEqual(1, len(self.core.emit_calls[2]))
@@ -155,7 +154,7 @@ class TestInputHTTPTestlog(unittest.TestCase):
         'uuid': '8b127476-2604-422a-b9b1-f05e4f14bf72',
         'testType': 'aaaa',
         'testName': 'the_test',
-        'apiVersion': '0.2',
+        'apiVersion': '0.21',
         'startTime': 1483592505.489,
         # The time field is corrected.
         'time': self.core.emit_calls[2][0].payload['time'],
@@ -168,15 +167,18 @@ class TestInputHTTPTestlog(unittest.TestCase):
         'failures': [{'code': 'C', 'details': 'D'}],
         'parameters': {
             'A_key': {
+                'type': 'argument',
                 'data': [{'numericValue': 987},
                          {'numericValue': 7.8}],
                 'group': 'A'},
             'A_value': {
+                'type': 'measurement',
                 'data': [{'status': 'PASS'},
                          {'status': 'FAIL'}],
                 'description': 'D',
                 'group': 'A'},
             'parameter_A': {
+                'type': 'measurement',
                 'data': [{}],
                 'description': 'D'}},
         'serialNumbers': {'A': 'B'}})
@@ -193,7 +195,6 @@ class TestInputHTTPTestlog(unittest.TestCase):
     data = {'event': datatypes.Event.Serialize(event)}
     time_check = time.time()
     r = self._RequestsPost(files=data, multi_event=False)
-    logging.info(r.reason)
     self.assertEqual(200, r.status_code)
     self.assertEqual(1, len(self.core.emit_calls))
     self.assertEqual(1, len(self.core.emit_calls[0]))
@@ -279,12 +280,15 @@ class TestInputHTTPTestlog(unittest.TestCase):
     event['arguments']['C'] = {'value': '-9'}
     event['failures'] = [{'code': 'C', 'details': 'D'}]
     event['serialNumbers'] = {'A': 'B'}
-    event['parameters'] = {'A': {'description': 'D', 'data': [
-        {'numericValue': 987, 'status': 'PASS'},
-        {'serializedValue': '[7.8]'}]}}
+    event['parameters'] = {
+        'A': {
+            'description': 'D',
+            'type': 'measurement',
+            'data': [
+                {'numericValue': 987, 'status': 'PASS'},
+                {'serializedValue': '[7.8]'}]}}
     data = {'event': datatypes.Event.Serialize(event)}
     r = self._RequestsPost(files=data, multi_event=False)
-    logging.info(r.reason)
     self.assertEqual(200, r.status_code)
     self.assertEqual(2, len(self.core.emit_calls))
     self.assertEqual(1, len(self.core.emit_calls[1]))

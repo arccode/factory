@@ -977,8 +977,7 @@ class WiFiThroughput(test_case.TestCase):
           if 'intervals' in iperf_data['iperf_%s' % tx_rx]:
             testlog.UpdateParam(
                 name='throughput',
-                description='%s throughput test on AP %s over time' % (
-                    tx_rx.upper(), ap_config.ssid),
+                description='TX/RX throughput test on AP over time',
                 value_unit='Bits/second')
             testlog.UpdateParam(
                 name='start_time',
@@ -989,6 +988,9 @@ class WiFiThroughput(test_case.TestCase):
             group_checker = testlog.GroupParam(
                 'iperf_data',
                 ['tx_rx', 'ap_ssid', 'throughput', 'start_time', 'end_time'])
+            testlog.UpdateParam('tx_rx', param_name=testlog.PARAM_TYPE.argument)
+            testlog.UpdateParam('ap_ssid',
+                                param_name=testlog.PARAM_TYPE.argument)
             for interval in iperf_data['iperf_%s' % tx_rx]['intervals']:
               with group_checker:
                 testlog.LogParam('ap_ssid', ap_config.ssid)

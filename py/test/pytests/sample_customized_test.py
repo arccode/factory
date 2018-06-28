@@ -128,6 +128,8 @@ class SampleCustomizedTest(unittest.TestCase):
     # you can also measure and log a series of values
     group_checker = testlog.GroupParam(
         'audio', ['audio_quality', 'audio_frequency'])
+    testlog.UpdateParam('audio_frequency',
+                        param_type=testlog.PARAM_TYPE.argument)
     testlog.UpdateParam(
         name='audio_quality',
         description='quality of audio device on different frequency',

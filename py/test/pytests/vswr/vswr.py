@@ -179,6 +179,8 @@ class VSWR(test_case.TestCase):
 
     self.log['config']['file_path'] = self.args.config_path
     self.log['config']['content'] = self._config
+    testlog.UpdateParam('config_content',
+                        param_type=testlog.PARAM_TYPE.argument)
     testlog.LogParam('config_content', self._config)
 
   def _LoadParametersFromLocalDisk(self):
@@ -500,8 +502,10 @@ class VSWR(test_case.TestCase):
     # pylint: disable=redefined-builtin
     group_checker = testlog.GroupParam(
         'trace_data', ['name', 'trace_data', 'frequency'])
+    testlog.UpdateParam('name', param_type=testlog.PARAM_TYPE.argument)
     testlog.UpdateParam('trace_data', value_unit='dB')
-    testlog.UpdateParam('frequency', value_unit='Hz')
+    testlog.UpdateParam('frequency', value_unit='Hz',
+                        param_type=testlog.PARAM_TYPE.argument)
     if min is None and max is None:
       for freq, data in trace.iteritems():
         with group_checker:

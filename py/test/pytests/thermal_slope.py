@@ -108,6 +108,7 @@ class ThermalSlopeTest(unittest.TestCase):
     self.group_checker = testlog.GroupParam(
         'sample',
         ['stage', 'fan_rpm', 'temperatures', 'energy', 'power', 'elapsed'])
+    testlog.UpdateParam('stage', param_type=testlog.PARAM_TYPE.argument)
     testlog.UpdateParam('energy', value_unit='Joule')
     testlog.UpdateParam('power', value_unit='Watt')
 
