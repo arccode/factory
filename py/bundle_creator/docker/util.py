@@ -35,6 +35,9 @@ def CreateBundle(req):
     os.chdir(temp_dir)
     bundle_name = '{:%Y%m%d_%H%M}_{}'.format(datetime.datetime.now(), req.phase)
 
+    firmware_source = ('release_image/' + req.firmware_source
+                       if req.HasField('firmware_source')
+                       else 'release_image')
     manifest = {
         'board': req.board,
         'project': req.project,
@@ -42,6 +45,7 @@ def CreateBundle(req):
         'toolkit': req.toolkit_version,
         'test_image': req.test_image_version,
         'release_image': req.release_image_version,
+        'firmware': firmware_source,
     }
     with open(os.path.join(temp_dir, 'MANIFEST.yaml'), 'w') as f:
       yaml.dump(manifest, f)

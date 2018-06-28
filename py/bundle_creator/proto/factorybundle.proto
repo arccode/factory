@@ -9,6 +9,7 @@ message CreateBundleRpcRequest {
   optional string test_image_version = 5;
   optional string release_image_version = 6;
   optional string email = 7;
+  optional string firmware_source = 8;
 }
 
 message CreateBundleRpcResponse {
