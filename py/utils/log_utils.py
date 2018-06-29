@@ -7,6 +7,7 @@
 import logging
 import os
 import sys
+import time
 
 from . import file_utils
 
@@ -90,26 +91,33 @@ class NoisyLogger(object):
   message is not changed.
   """
 
-  def __init__(self, logger, suppress_limit=None, suppress_logger=None):
+  def __init__(self, logger, suppress_limit=None, suppress_timeout=None,
+               suppress_logger=None, all_suppress_logger=None):
     """Constructor.
 
     Args:
       logger: A logger function, for example logging.info.
       suppress_limit: An integer for limit of times to suppress, or None to
         suppress until message is changed.
+      suppress_timeout: A timeout in seconds, or None to not time out.
       suppress_logger: A logger function to be invoked when first time a message
         is suppressed. None to use default (``_DefaultSuppressLogger``).
+      all_suppress_logger: A secondary logger function for suppressed messages,
+        for example logging.debug. None to use default
+        (``_DefaultAllSuppressLogger``).
     """
+    if all_suppress_logger is None:
+      all_suppress_logger = self._DefaultAllSuppressLogger
     if suppress_logger is None:
       suppress_logger = self._DefaultSuppressLogger
     self._logger = logger
+    self._all_suppress_logger = all_suppress_logger
     self._suppress_limit = suppress_limit
+    self._suppress_timeout = suppress_timeout
     self._suppress_logger = suppress_logger
-    self._suppress_times = 0
+    self._suppress_count = 0
+    self._suppress_start = time.time()
     self._last_message = None
-    # TODO(hungte) Support time-based suppress limit, and a function to be
-    # invoked for each suppressed message, for exampling routing to
-    # logging.debug.
 
   def _DefaultSuppressLogger(self, message, *args, **kargs):
     """The default logger when the message is first time suppressed."""
@@ -117,13 +125,21 @@ class NoisyLogger(object):
     del kargs  # Unused
     logging.info('Suppressed repeating message(s): %s', message)
 
+  def _DefaultAllSuppressLogger(self, message, *args, **kargs):
+    del args  # Unused
+    del kargs  # Unused
+    logging.debug('Suppressed repeating message(s): %s', message)
+
   def ShouldSuppress(self, message):
     """Returns if the new message should be suppressed or not."""
     if message != self._last_message:
       return False
+    if (self._suppress_timeout is not None and
+        time.time() - self._suppress_start >= self._suppress_timeout):
+      return False
     if self._suppress_limit is None:
       return True
-    return self._suppress_times < self._suppress_limit
+    return self._suppress_count < self._suppress_limit
 
   def Log(self, message, *args, **kargs):
     """Logs the new message.
@@ -134,10 +150,13 @@ class NoisyLogger(object):
       kargs: Keyword arguments sent to logger.
     """
     if self.ShouldSuppress(message):
-      if self._suppress_times == 0:
-        self._suppress_logger(message)
-      self._suppress_times += 1
+      if self._suppress_count == 0:
+        self._suppress_logger(message, *args, **kargs)
+      self._all_suppress_logger(message, *args, **kargs)
+      self._suppress_count += 1
     else:
-      self._suppress_times = 0
       self._last_message = message
       self._logger(message, *args, **kargs)
+      self._suppress_count = 0
+      if self._suppress_timeout is not None:
+        self._suppress_start = time.time()

@@ -67,7 +67,9 @@ class InputHTTPTestlog(input_http.InputHTTP):
   def __init__(self, *args, **kwargs):
     super(InputHTTPTestlog, self).__init__(*args, **kwargs)
     self.noisy_info = log_utils.NoisyLogger(
-        self.info, suppress_logger=lambda message: None)
+        self.info, suppress_timeout=3600,
+        suppress_logger=lambda message, *args, **kargs: None,
+        all_suppress_logger=lambda message, *args, **kargs: None)
 
   def _CheckFormat(self, event, client_node_id):
     """Checks the event is following the Testlog format and sets attachments.
