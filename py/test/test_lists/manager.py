@@ -270,7 +270,7 @@ class Manager(object):
 
   @staticmethod
   def SelectDefaultTestList():
-    model = process_utils.SpawnOutput("mosys platform model").strip()
+    model = process_utils.SpawnOutput(['mosys', 'platform', 'model']).strip()
 
     model_main = 'main_%s' % model
 
