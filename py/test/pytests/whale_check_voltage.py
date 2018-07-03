@@ -46,37 +46,38 @@ class WhaleCheckVoltageTest(test_case.TestCase):
           default=0.3),
   ]
 
-  def CheckVoltage(self, index):
+  def CheckVoltage(self, elapsed):
     all_pass = True
     power_rail = self._bft.CheckPowerRail()
     self._power_rail_str = ', '.join(
         '%s: %d' % kv for kv in sorted(power_rail.items()))
     logging.debug('Measured power rail (mV): ' + self._power_rail_str)
 
-    # log the value by testlog
-    for key, unused_criteria in self._sorted_criteria:
-      measured = power_rail.get(key, 0)
-      self._testlog_voltage_series[key].LogValue(key=index, value=measured)
-
     self._errors = []
     for key, (display_name, expected, tolerance) in self._sorted_criteria:
       measured = power_rail.get(key, 0)
-
-      if expected is None:
-        state = 'ignored'
-      elif abs(measured - expected) * 100 > tolerance * expected:
-        all_pass = False
-        self._errors.append(
-            '%s: %d (expect %d +- %d%%)' % (display_name,
-                                            measured,
-                                            expected,
-                                            tolerance))
-        logging.info(
-            'Unexpected voltage on %s: expected %d mV, actual %d mV',
-            display_name, expected, measured)
-        state = 'failed'
-      else:
-        state = 'passed'
+      # log the value by testlog
+      with self._group_checker:
+        testlog.LogParam('ina_name', key)
+        testlog.LogParam('elapsed', elapsed)
+        if expected is None:
+          testlog.LogParam('voltage', measured)
+          state = 'ignored'
+        else:
+          if testlog.CheckNumericParam(
+              'voltage', measured,
+              min=expected - tolerance / 100. * expected,
+              max=expected + tolerance / 100. * expected):
+            state = 'passed'
+          else:
+            state = 'failed'
+            all_pass = False
+            self._errors.append(
+                '%s: %d (expect %d +- %d%%)' % (
+                    display_name, measured, expected, tolerance))
+            logging.info(
+                'Unexpected voltage on %s: expected %d mV, actual %d mV',
+                display_name, expected, measured)
 
       self.ui.SetHTML(
           '<div class=test-status-{0}>{1}</div>'.format(state, measured),
@@ -94,13 +95,14 @@ class WhaleCheckVoltageTest(test_case.TestCase):
     self._power_rail_str = None
     self._errors = []
 
-    self._testlog_voltage_series = {}
-    for key, unused_criteria in self._sorted_criteria:
-      self._testlog_voltage_series[key] = testlog.CreateSeries(
-          name=key,
-          description='Voltage value for %s over time' % key,
-          key_unit='trial',
-          value_unit='millivolt')
+    self._group_checker = testlog.GroupParam(
+        'voltage',
+        ['ina_name', 'voltage', 'elapsed'])
+    testlog.UpdateParam('ina_name', param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam(
+        'voltage',
+        description='Voltage value over time',
+        value_unit='millivolt')
 
   def InitDashboard(self):
     table = ui_templates.Table(element_id='dashboard', cols=4,
@@ -123,16 +125,14 @@ class WhaleCheckVoltageTest(test_case.TestCase):
   def runTest(self):
     self.InitDashboard()
 
-    now = time.time()
-    end_time = now + self.args.timeout_secs
-    index = 0
-    while now < end_time:
-      test_pass = self.CheckVoltage(index)
-      index += 1
+    start_time = time.time()
+    elapsed = time.time() - start_time
+    while elapsed < self.args.timeout_secs:
+      test_pass = self.CheckVoltage(elapsed)
       if test_pass:
         break
       time.sleep(self.args.poll_interval_secs)
-      now = time.time()
+      elapsed = time.time() - start_time
 
     if not test_pass:
       self.fail()

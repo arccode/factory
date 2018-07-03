@@ -173,14 +173,16 @@ class ChargerTest(test_case.TestCase):
     self.ui.SetState(MakeSpriteHTMLTag('charging_sprite.png', 256, 256))
     logging.info('Charging starting at %d%%', start_charge)
 
+    group_checker = testlog.GroupParam('charge', ['charge', 'elapsed'])
     for elapsed in xrange(self.args.timeout_secs):
       charge = self._power.GetChargePct()
 
       if charge >= target_charge:
         event_log.Log('charged', charge=charge, target=target_charge,
                       elapsed=elapsed)
-        testlog.CheckNumericParam('charge', charge, min=target_charge)
-        testlog.LogParam('elapsed', elapsed)
+        with group_checker:
+          testlog.CheckNumericParam('charge', charge, min=target_charge)
+          testlog.LogParam('elapsed', elapsed)
         return
       self.ui.RunJS(
           'document.getElementById("batteryIcon").style.backgroundPosition'
@@ -200,6 +202,5 @@ class ChargerTest(test_case.TestCase):
 
     event_log.Log('failed_to_charge', charge=charge, target=target_charge,
                   timeout_sec=self.args.timeout_secs)
-    testlog.CheckNumericParam('charge', charge, min=target_charge)
     self.FailTask('Cannot charge battery to %d%% in %d seconds.' %
                   (target_charge, self.args.timeout_secs))

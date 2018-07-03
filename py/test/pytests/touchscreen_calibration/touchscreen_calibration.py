@@ -494,7 +494,6 @@ class TouchscreenCalibration(test_case.TestCase):
     self._WriteSensorDataToFile(log_to_file, sn, phase, self.test_pass, data)
     self.log('touchscreen_calibration', sn=sn, phase=phase,
              test_pass=self.test_pass, sensor_data=str(data))
-    testlog.LogParam('sn', sn)
     testlog.LogParam('phase', phase)
     testlog.LogParam('test_pass', self.test_pass)
     testlog.LogParam('sensor_data', data)
@@ -527,7 +526,6 @@ class TouchscreenCalibration(test_case.TestCase):
     self._WriteSensorDataToFile(log_to_file, sn, phase, self.test_pass, data)
     self.log('touchscreen_calibration', sn=sn, phase=phase,
              test_pass=self.test_pass, sensor_data=str(data))
-    testlog.LogParam('sn', sn)
     testlog.LogParam('phase', phase)
     testlog.LogParam('test_pass', self.test_pass)
     testlog.LogParam('sensor_data', data)

@@ -298,17 +298,19 @@ class LightSensorTest(test_case.TestCase):
     self.ui.StartFailingCountdownTimer(
         self._timeout_per_subtest * len(self._subtest_list))
 
+    group_checker = testlog.GroupParam('light', ['name', 'elapsed', 'light'])
+    testlog.UpdateParam(name='name', param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam(
+        name='light',
+        description=('Light sensor values over time'))
+    testlog.UpdateParam(
+        name='elapsed',
+        value_unit='seconds')
     for idx, name in enumerate(self._subtest_list):
-      group_checker = testlog.GroupParam(name, [name, name + '_time'])
-      testlog.UpdateParam(
-          name=name,
-          description=('Light sensor values over time for subtest "%s"' % name))
-      testlog.UpdateParam(
-          name=name + '_time',
-          value_unit='seconds')
       self.ui.SetHTML('ACTIVE', id='result%d' % idx)
       current_iter_remained = self._iter_req_per_subtest
       cumulative_val = 0
+      start_time = time.time()
       while True:
         val = self._als.Read('mean', samples=5, delay=0)
         self.ui.SetHTML('Input: %d' % val, id='input')
@@ -316,23 +318,26 @@ class LightSensorTest(test_case.TestCase):
         cfg = self._subtest_cfg[name]
         passed = False
         with group_checker:
-          testlog.LogParam(name + '_time', time.time())
+          testlog.LogParam('name', name)
+          testlog.LogParam('elapsed', time.time() - start_time)
           if 'above' in cfg:
-            passed = testlog.CheckNumericParam(name, val, min=cfg['above'])
+            passed = testlog.CheckNumericParam('light', val, min=cfg['above'])
             logging.info('%s checking "above" %d > %d',
                          'PASSED' if passed else 'FAILED',
                          val, cfg['above'])
           elif 'below' in cfg:
-            passed = testlog.CheckNumericParam(name, val, max=cfg['below'])
+            passed = testlog.CheckNumericParam('light', val, max=cfg['below'])
             logging.info('%s checking "below" %d < %d',
                          'PASSED' if passed else 'FAILED',
                          val, cfg['below'])
           elif 'between' in cfg:
             lb, ub = cfg['between']
-            passed = testlog.CheckNumericParam(name, val, min=lb, max=ub)
+            passed = testlog.CheckNumericParam('light', val, min=lb, max=ub)
             logging.info('%s checking "between" %d < %d < %d',
                          'PASSED' if passed else 'FAILED',
                          lb, val, ub)
+          else:
+            self.fail('subtest_cfg doesn\'t have "above", "below" or "between"')
 
         if passed:
           cumulative_val += val

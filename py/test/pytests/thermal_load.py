@@ -64,12 +64,14 @@ class ThermalLoadTest(unittest.TestCase):
       temperatures: A list of temperatures in different sensors.
       elapsed: elapsed time since heat up.
     """
-    testlog.LogParam('elapsed', elapsed)
     for index, temperature_value in enumerate(temperatures):
-      testlog.CheckNumericParam('%s_temperature' % self.sensors[index],
-                                temperature_value,
-                                min=self.args.lower_threshold[index],
-                                max=self.args.temperature_limit[index])
+      with self.group_checker:
+        testlog.LogParam('elapsed', elapsed)
+        testlog.LogParam('sensor', self.sensors[index])
+        testlog.CheckNumericParam('temperature',
+                                  temperature_value,
+                                  min=self.args.lower_threshold[index],
+                                  max=self.args.temperature_limit[index])
 
       self.max_temperature[index] = max(
           self.max_temperature[index], temperature_value)
@@ -81,7 +83,6 @@ class ThermalLoadTest(unittest.TestCase):
                       lower_threshold=self.args.lower_threshold[index],
                       sensor=self.sensors[index],
                       elapsed_sec=elapsed)
-        testlog.LogParam('status', 'heated')
         logging.info('Sensor %s heated up to %d C in %d seconds.',
                      self.sensors[index],
                      self.args.lower_threshold[index], elapsed)
@@ -91,7 +92,6 @@ class ThermalLoadTest(unittest.TestCase):
                       temperature_limit=self.args.temperature_limit[index],
                       sensor=self.sensors[index],
                       elapsed_sec=elapsed)
-        testlog.LogParam('status', 'over_heated')
         self.fail('Sensor %s temperature got over %d.' % (
             self.sensors[index], self.args.temperature_limit[index]))
 
@@ -101,7 +101,6 @@ class ThermalLoadTest(unittest.TestCase):
                       lower_threshold=self.args.lower_threshold[index],
                       sensor=self.sensors[index],
                       timeout=self.args.heat_up_timeout_secs)
-        testlog.LogParam('status', 'slow_temp_slope')
         logging.info('temperature track: %r', self.temperatures_track)
         self.fail("Temperature %s didn't go over %d in %s seconds." % (
             self.sensors[index],
@@ -140,6 +139,11 @@ class ThermalLoadTest(unittest.TestCase):
     self.heated_up = [False] * len(sensors)
     self.max_temperature = [0] * len(sensors)
     self.temperatures_track = []
+
+    self.group_checker = testlog.GroupParam(
+        'temperature',
+        ['elapsed', 'sensor', 'temperature'])
+    testlog.UpdateParam('sensor', param_type=testlog.PARAM_TYPE.argument)
 
   def runTest(self):
     start_temperatures = self.GetTemperatures()

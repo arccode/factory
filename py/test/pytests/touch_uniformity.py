@@ -158,14 +158,13 @@ class TouchUniformity(test_case.TestCase):
     self.Sleep(_MESSAGE_DELAY_SECS)
 
     if self.args.keep_raw_logs:
-      serial_number = self.dut.info.GetSerialNumber()
       with file_utils.UnopenedTemporaryFile() as temp_path:
         with open(temp_path, 'w') as f:
           for obj in to_log:
             f.write('%r\n' % obj)
         testlog.AttachFile(
             path=temp_path,
-            name='touch_uniformity.%s.log' % serial_number,
+            name='touch_uniformity.log',
             mime_type='text/plain',
             description='plain text log of touch_uniformity')
 

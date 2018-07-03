@@ -79,7 +79,7 @@ class ACPowerTest(test_case.TestCase):
     self._skip_warning_remains = self.args.silent_warning
     if self.args.usbpd_power_range is not None:
       testlog.UpdateParam(
-          name='usbpdpower',
+          name='usbpd_power',
           description='Detected usbpd power.',
           value_unit='mW')
 
