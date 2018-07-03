@@ -4,7 +4,6 @@
 
 import Dialog from 'material-ui/Dialog';
 import FlatButton from 'material-ui/FlatButton';
-import TextField from 'material-ui/TextField';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
@@ -13,18 +12,9 @@ import {Field, formValueSelector, reduxForm} from 'redux-form/immutable';
 import {createStructuredSelector} from 'reselect';
 
 import formDialog from '@app/formDialog';
+import {renderTextField} from '@common/form';
 
 import {ENABLING_UMPIRE_FORM} from '../constants';
-
-const renderTextField = ({input, label}) => (
-  <TextField
-    fullWidth={true}
-    floatingLabelText={label}
-    {...input}
-  />
-);
-
-renderTextField.propTypes = {...fieldPropTypes};
 
 const renderAddExistingHint = ({input: {value, onChange}}) => (
   <div style={{textAlign: 'center', marginTop: 24}}>

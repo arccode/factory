@@ -3,34 +3,20 @@
 // found in the LICENSE file.
 
 import FlatButton from 'material-ui/FlatButton';
-import TextField from 'material-ui/TextField';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
-import {fieldPropTypes, formPropTypes, submit} from 'redux-form';
+import {formPropTypes, submit} from 'redux-form';
 import {Field, reduxForm} from 'redux-form/immutable';
 import {createStructuredSelector} from 'reselect';
 
 import formDialog from '@app/formDialog';
 import project from '@app/project';
 import FileUploadDialog from '@common/components/FileUploadDialog';
+import {renderTextField, validateRequired} from '@common/form';
 
 import {startUploadingBundle} from '../actions';
 import {UPLOADING_BUNDLE_FORM} from '../constants';
-
-const nonEmpty = (value) =>
-    value && value.length ? undefined : 'Can not be empty';
-
-const renderTextField = ({input, label, meta: {error}}) => (
-  <TextField
-    fullWidth={true}
-    floatingLabelText={label}
-    errorText={error}
-    {...input}
-  />
-);
-
-renderTextField.propTypes = {...fieldPropTypes};
 
 class InnerForm extends React.Component {
   static propTypes = {...formPropTypes};
@@ -38,7 +24,7 @@ class InnerForm extends React.Component {
   render() {
     return (
       <form>
-        <Field name='name' label='New Bundle Name' validate={nonEmpty}
+        <Field name='name' label='New Bundle Name' validate={validateRequired}
           component={renderTextField} />
         <Field name='note' label='New Bundle Note'
           component={renderTextField} />
