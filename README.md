@@ -118,7 +118,7 @@ dependencies you need to build before able to work on toolkits.
    build Chrome locally with very long time, another solution is to run
    following commands:
    ````
-   cros_workon --baord $BOARD start factory
+   cros_workon --board $BOARD start factory
    emerge-$BOARD factory-board factory --getbinpkg -j 16
    ````
    The `-j 16` means to merge in parallel, and should be changed to how many
