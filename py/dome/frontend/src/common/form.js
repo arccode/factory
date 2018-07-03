@@ -12,14 +12,14 @@ export const renderTextField = ({
   label,
   type='text',
   description='',
-  meta: {error},
+  meta: {error, touched},
 }) => (
   <TextField
     fullWidth={true}
     floatingLabelText={label}
     type={type}
     hintText={description}
-    errorText={error}
+    errorText={touched && error}
     {...input}
   />
 );

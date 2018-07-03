@@ -9,10 +9,13 @@ import {List, ListItem} from 'material-ui/List';
 import Paper from 'material-ui/Paper';
 import RaisedButton from 'material-ui/RaisedButton';
 import DeleteIcon from 'material-ui/svg-icons/action/delete';
-import TextField from 'material-ui/TextField';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
+import {formPropTypes, reset} from 'redux-form';
+import {Field, reduxForm} from 'redux-form/immutable';
+
+import {renderTextField, validateRequired} from '@common/form';
 
 import {
   createProject,
@@ -20,7 +23,36 @@ import {
   fetchProjects,
   switchProject,
 } from '../actions';
+import {CREATE_PROJECT_FORM} from '../constants';
 import {getProjects} from '../selectors';
+
+class CreateProjectForm extends React.Component {
+  static propTypes = {
+    projectNames: PropTypes.arrayOf(PropTypes.string).isRequired,
+    ...formPropTypes,
+  };
+
+  validateUnique = (value) => {
+    return this.props.projectNames.includes(value)
+      ? `${value} already exist` : undefined;
+  }
+
+  render() {
+    const {handleSubmit} = this.props;
+    return <form onSubmit={handleSubmit}>
+      <Field name='name' label='New project name'
+        validate={[validateRequired, this.validateUnique]}
+        component={renderTextField} />
+      <RaisedButton
+        label='CREATE A NEW PROJECT' primary={true} fullWidth={true}
+        type='submit' />
+    </form>;
+  }
+}
+
+CreateProjectForm = reduxForm({
+  form: CREATE_PROJECT_FORM,
+})(CreateProjectForm);
 
 class ProjectsApp extends React.Component {
   static propTypes = {
@@ -29,28 +61,12 @@ class ProjectsApp extends React.Component {
     deleteProject: PropTypes.func.isRequired,
     fetchProjects: PropTypes.func.isRequired,
     switchProject: PropTypes.func.isRequired,
+    resetForm: PropTypes.func.isRequired,
   };
 
-  state = {
-    nameInputValue: '',
-    nameInputErrorText: '',
-  };
-
-  handleCreate = () => {
-    // first, make sure the name field is not empty
-    this.setState({nameInputErrorText: ''});
-    if (this.state.nameInputValue == '') {
-      this.setState({nameInputErrorText: 'This field cannot be empty'});
-      return;
-    }
-
-    this.props.createProject(this.state.nameInputValue);
-    this.setState({nameInputValue: ''});
-  };
-
-  handleSubmit = (event) => {
-    event.preventDefault(); // prevent the form from submitting itself
-    this.handleCreate();
+  handleSubmit = (values) => {
+    this.props.createProject(values.get('name'));
+    this.props.resetForm();
   };
 
   componentDidMount() {
@@ -59,21 +75,22 @@ class ProjectsApp extends React.Component {
 
   render() {
     const style = {margin: 24};
+    const centerStyle = {textAlign: 'center'};
     const {projects, switchProject, deleteProject} = this.props;
     return (
       <Paper style={{
         maxWidth: 400, height: '100%',
         margin: 'auto', padding: 20,
-        textAlign: 'center',
       }}>
         {/* TODO(littlecvr): make a logo! */}
-        <h1 style={{textAlign: 'center'}}>Project list</h1>
+        <h1 style={centerStyle}>Project list</h1>
 
         <div style={style}>
           <Divider />
-          {projects.size <= 0 && <div style={{marginTop: 16, marginBottom: 16}}>
-            no projects, create or add an existing one
-          </div>}
+          {projects.size <= 0 &&
+              <div style={{...centerStyle, marginTop: 16, marginBottom: 16}}>
+                no projects, create or add an existing one
+              </div>}
           {projects.size > 0 && <List style={{textAlign: 'left'}}>
             {projects.keySeq().sort().toArray().map((name) => {
               return (
@@ -96,27 +113,13 @@ class ProjectsApp extends React.Component {
           <Divider />
         </div>
 
-        <div style={style}>OR</div>
+        <div style={{...style, ...centerStyle}}>OR</div>
 
-        <form
-          style={style}
-          onSubmit={this.handleSubmit} // called when enter key is pressed
-        >
-          <TextField
-            name='name'
-            fullWidth={true}
-            floatingLabelText='New project name'
-            value={this.state.nameInputValue}
-            onChange={(e) => this.setState({nameInputValue: e.target.value})}
-            errorText={this.state.nameInputErrorText}
-          />
-          <RaisedButton
-            label='CREATE A NEW PROJECT'
-            primary={true}
-            fullWidth={true}
-            onClick={this.handleCreate}
-          />
-        </form>
+        <div style={style}>
+          <CreateProjectForm projectNames={projects.keySeq().toJS()}
+            onSubmit={this.handleSubmit}>
+          </CreateProjectForm>
+        </div>
       </Paper>
     );
   }
@@ -131,6 +134,7 @@ const mapDispatchToProps = {
   deleteProject,
   fetchProjects,
   switchProject,
+  resetForm: () => reset(CREATE_PROJECT_FORM),
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProjectsApp);

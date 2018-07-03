@@ -3,3 +3,5 @@
 // found in the LICENSE file.
 
 export const NAME = 'project';
+
+export const CREATE_PROJECT_FORM = 'CreateProjectForm';
