@@ -120,11 +120,10 @@ class GoofyWebRequestHandler(
 
     local_path = callback_or_path
 
-    mime_type = mimetypes.guess_type(self.path)
+    mime_type = mimetypes.guess_type(self.path)[0]
     if not mime_type:
       logging.warn('Unable to guess MIME type')
-      self.send_response(404)
-      return
+      mime_type = 'application/octet-stream'
 
     if not local_path or not os.path.exists(local_path):
       logging.warn('File not found: %s', (local_path or self.path))
@@ -132,7 +131,7 @@ class GoofyWebRequestHandler(
       return
 
     self.send_response(200)
-    self.send_header('Content-Type', mime_type[0])
+    self.send_header('Content-Type', mime_type)
     self.send_header('Content-Length', os.path.getsize(local_path))
     self.end_headers()
     with open(local_path) as f:

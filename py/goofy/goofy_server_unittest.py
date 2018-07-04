@@ -5,7 +5,6 @@
 # found in the LICENSE file.
 
 import os
-import threading
 import time
 import unittest
 import urllib2
@@ -16,6 +15,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import goofy_server
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
+from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
 
@@ -76,11 +76,10 @@ class GoofyServerTest(unittest.TestCase):
     self.port = net_utils.FindUnusedTCPPort()
     self.server = goofy_server.GoofyServer(
         (net_utils.LOCALHOST, self.port))
-    self.server_thread = threading.Thread(
+    self.server_thread = process_utils.StartDaemonThread(
         target=self.server.serve_forever,
         args=(0.01,),
         name='GoofyServer')
-    self.server_thread.start()
 
     # Wait for server to start.
     sync_utils.WaitFor(ServerReady, 0.1)
