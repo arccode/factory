@@ -61,7 +61,7 @@ TESTLOG_API_VERSION = '0.21'
 TESTLOG_ENV_VARIABLE_NAME = 'TESTLOG'
 
 # Possible values for the `Stationstatus.parameters.type` field.
-PARAMETER_TYPE = type_utils.Enum(['argument', 'measurement'])
+PARAM_TYPE = type_utils.Enum(['argument', 'measurement'])
 
 # TODO(itspeter): Use config_utils for those default constants.
 # The primary JSON file. It will be ingested by Instalog.
@@ -1004,7 +1004,7 @@ class StationStatus(_StationBase):
             'description': schema.Scalar('description', basestring),
             'group': schema.Scalar('group', basestring),
             'valueUnit': schema.Scalar('valueUnit', basestring),
-            'type': schema.Scalar('type', basestring, list(PARAMETER_TYPE)),
+            'type': schema.Scalar('type', basestring, list(PARAM_TYPE)),
             'data': DATA_SCHEMA})
     kwargs['schema'] = SCHEMA
     return testlog_validator.Validator.Dict(*args, **kwargs)
@@ -1045,7 +1045,7 @@ class StationStatus(_StationBase):
     if 'parameters' not in self._data or name not in self['parameters']:
       self['parameters'] = {
           'key': name,
-          'value': {'type': PARAMETER_TYPE.measurement, 'data': []}
+          'value': {'type': PARAM_TYPE.measurement, 'data': []}
       }
 
   def _LogParamValue(self, name, value_dict):
