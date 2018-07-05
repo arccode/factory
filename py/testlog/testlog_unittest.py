@@ -297,6 +297,11 @@ class TestlogEventTest(unittest.TestCase):
         event.LogParam(name='list', value=[1, 2, 3])
         event.LogParam(name='list', value=[1, 2, 3])
 
+    with self.assertRaises(IOError):
+      with group_checker:
+        event.LogParam(name='num', value=3388)
+        raise IOError()
+
   def testAttachFileAndAttachContent(self):
     self._SimulateSubSession()
     CONTENT = 'Life is a maze and love is a riddle'

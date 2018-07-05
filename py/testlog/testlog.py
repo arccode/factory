@@ -937,15 +937,23 @@ class _StationBase(Event):
 
 
 class _GroupChecker(object):
+  """Context manager for checking grouped parameters."""
+
   def __init__(self, event, name, param_list):
     self.event = event
     self.name = name
     self.param_list = param_list
+
   def __enter__(self):
     if self.event.in_group:
       raise ValueError('Can\'t enter the same GroupChecker twice')
     self.event.in_group = self.name
+
   def __exit__(self, exc_type, exc_value, traceback):
+    # If an exception occurs, we don't want to suppress it.
+    if traceback:
+      return False
+
     if self.event.in_group != self.name:
       raise ValueError('This should not happen! Exit the wrong group!')
     self.event.in_group = None
