@@ -168,6 +168,32 @@ class ResourceMapTest(UmpireDockerTestCase):
         re.search(r'^payloads: .*\.json$', r.text, re.MULTILINE))
 
 
+class DownloadSlotsManagerTest(UmpireDockerTestCase):
+  """Tests for Umpire /webapps/download_slots."""
+  def testCanRequestSlot(self):
+    r = requests.get('%s/webapps/download_slots' % ADDR_BASE,
+                     headers={'X-Umpire-DUT': 'uuid='})
+    self.assertEqual(200, r.status_code)
+    self.assertIsNotNone(
+        re.search(r'^UUID: [\w-]+',
+                  r.text, re.MULTILINE))
+    self.assertIsNotNone(
+        re.search(r'^N_PLACE: 0$', r.text, re.MULTILINE))
+
+  def testExtendAliveTimeSlot(self):
+    r = requests.get('%s/webapps/download_slots' % ADDR_BASE,
+                     headers={'X-Umpire-DUT': 'uuid='})
+    self.assertEqual(200, r.status_code)
+    res = re.search(r'^UUID: ([\w-]+)$',
+                    r.text, re.MULTILINE)
+    self.assertIsNotNone(res)
+
+    r = requests.get('%s/webapps/download_slots' % ADDR_BASE,
+                     headers={'X-Umpire-DUT': 'uuid=%s' % res.group(1)})
+    self.assertEqual(200, r.status_code)
+    self.assertIsNotNone(
+        re.search(r'^UUID: (%s)$' % res.group(1), r.text, re.MULTILINE))
+
 class PostTest(UmpireDockerTestCase):
   """Tests for Umpire /post."""
   def testPostEcho(self):

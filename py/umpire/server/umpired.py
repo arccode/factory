@@ -18,6 +18,7 @@ from cros.factory.umpire.server import migrate
 from cros.factory.umpire.server import rpc_cli
 from cros.factory.umpire.server import rpc_dut
 from cros.factory.umpire.server import umpire_env
+from cros.factory.umpire.server import webapp_download_slots
 from cros.factory.umpire.server import webapp_resourcemap
 
 
@@ -56,6 +57,8 @@ def StartServer():
   # Add web applications.
   resourcemap_webapp = webapp_resourcemap.ResourceMapApp(env)
   umpired.AddWebApp(resourcemap_webapp.GetPathInfo(), resourcemap_webapp)
+  download_slots_webapp = webapp_download_slots.DownloadSlotsApp(env)
+  umpired.AddWebApp(download_slots_webapp.GetPathInfo(), download_slots_webapp)
   # Start listening to command port and webapp port.
   umpired.Run()
 

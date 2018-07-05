@@ -17,7 +17,8 @@ UMPIRE_DUT_RPC_VERSION = 3
 UMPIRE_VERSION = 2
 
 # Valid keys in DUT info.
-DUT_INFO_KEYS = set(['sn', 'mlb_sn', 'firmware', 'ec', 'pd', 'stage'])
+DUT_INFO_KEYS = set(['sn', 'mlb_sn', 'firmware', 'ec', 'pd', 'stage',
+                     'uuid', 'drop_slot'])
 
 # Deprecated keys in DUT info.
 LEGACY_DUT_INFO_KEYS = set(['board'])
