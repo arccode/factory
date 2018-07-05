@@ -2,52 +2,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Handles /resourcemap requests.
+"""Handles /webapps/resourcemap requests.
 
 According to DUT (device under test) info embedded in request header, it
 chooses the right bundle for the DUT and returns the resource map of the bundle.
 """
 
-import Cookie
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
-
-
-def ParseDUTHeader(header):
-  """Parses X-Umpire-DUT embedded in DUT's request.
-
-  It checks if it only contains key(s) defined in DUT_INFO_KEYS or
-  LEGACY_DUT_INFO_KEYS.  All legacy key-value pairs will be ignored and will
-  not be contained in the return result.
-
-  Args:
-    header: DUT info embedded in header X-Umpire-DUT. It is a string of
-        "key=value; key=value ...", which is the same as HTTP Cookie.
-
-  Returns:
-    A dict of DUT info.
-
-  Raises:
-    ValueError if header is ill-formed.
-  """
-  def ValidKey(key):
-    if key in common.DUT_INFO_KEYS:
-      return True
-    if key in common.LEGACY_DUT_INFO_KEYS:
-      return True
-    if any(key.startswith(prefix) for prefix in common.DUT_INFO_KEY_PREFIX):
-      return True
-    return False
-
-  dut_info = Cookie.SimpleCookie()
-  dut_info.load(header)
-  invalid_keys = [key for key in dut_info if not ValidKey(key)]
-  if invalid_keys:
-    raise ValueError('Invalid key(s): %r' % invalid_keys)
-
-  return {k: v.value for k, v in dut_info.iteritems()
-          if k not in common.LEGACY_DUT_INFO_KEYS}
 
 
 def SelectRuleset(config, dut_info):
@@ -56,7 +18,7 @@ def SelectRuleset(config, dut_info):
   Args:
     config: an UmpireConfig object
     dut_info: a DUT info represented in key-value dict. It should be parsed
-        from X-Umpire-DUT header by ParseDUTHeader().
+        from X-Umpire-DUT header by webapp_utils.ParseDUTHeader().
 
   Returns:
     ruleset; None if no ruleset is matched.
@@ -144,7 +106,7 @@ def SelectBundle(config, dut_info):
   Args:
     config: an UmpireConfig object
     dut_info: a DUT info represented in key-value dict. It should be parsed
-        from X-Umpire-DUT header by ParseDUTHeader().
+        from X-Umpire-DUT header by webapp_utils.ParseDUTHeader().
 
   Returns:
     Bundle ID; None if no ruleset is matched.
@@ -156,7 +118,8 @@ def SelectBundle(config, dut_info):
 def GetResourceMap(dut_info, env):
   """Gets resource map for the DUT.
 
-  It is used for twisted to call when receiving "GET /resourcemap" request.
+  It is used for twisted to call when receiving "GET /webapps/resourcemap"
+  request.
 
   Args:
     dut_info: value of request header X-Umpire-DUT.

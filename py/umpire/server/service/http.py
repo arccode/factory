@@ -23,8 +23,10 @@ NGINX_CONFIG_FILENAME = 'nginx_#%s#.conf'
 ROOT_RPC_PREFIX = '/RPC2'
 # Handles Umpire RPC.
 UMPIRE_RPC_PREFIX = '/umpire'
-# Handles /resourcemap request
-RESOURCEMAP_APP_PREFIX = '/resourcemap'
+# Handles /webapps request and dispatches to corresponding webapp.
+WEB_APP_PREFIX = '/webapps'
+# Handles legacy /resourcemap request which is moved under /webapps.
+RESOURCE_MAP_PREFIX = '/resourcemap'
 # Handles POST request
 POST_PREFIX = '/post'
 LEGACY_POST_PREFIX = '/upload'
@@ -85,7 +87,7 @@ http {
 
 NGINX_PROXY_TEMPLATE = """
 location %(location_rule)s {
-  proxy_pass http://localhost:%(port)d;
+  proxy_pass http://localhost:%(port)d%(changed_path)s;
   proxy_set_header Host $http_host;
 }
 """
@@ -168,32 +170,45 @@ class HTTPService(umpire_service.UmpireService):
       env: UmpireEnv object.
       config_path: path to config file to write.
     """
+    def _append_to_handlers(handlers, location_rule, port, changed_path=''):
+      handlers.append((location_rule, port, changed_path))
+
     http_config = umpire_config['services']['http']
     httpd_port = int(env.umpire_base_port)
 
     # Umpire common RPCs
     umpire_proxy_handlers = []
     # python xmlrpclib calls http://host/RPC2 for ServerProxy('http://host')
-    umpire_proxy_handlers.append((ROOT_RPC_PREFIX, env.umpire_rpc_port))
-    umpire_proxy_handlers.append((UMPIRE_RPC_PREFIX, env.umpire_rpc_port))
-    umpire_proxy_handlers.append(('= /', env.umpire_rpc_port))
+    _append_to_handlers(umpire_proxy_handlers,
+                        ROOT_RPC_PREFIX, env.umpire_rpc_port)
+    _append_to_handlers(umpire_proxy_handlers,
+                        UMPIRE_RPC_PREFIX, env.umpire_rpc_port)
+    _append_to_handlers(umpire_proxy_handlers,
+                        '= /', env.umpire_rpc_port)
     # Web applications
-    umpire_proxy_handlers.append(
-        (RESOURCEMAP_APP_PREFIX, env.umpire_webapp_port))
+    _append_to_handlers(umpire_proxy_handlers,
+                        WEB_APP_PREFIX, env.umpire_webapp_port)
+    # The legacy client would still access to /resourcemap so needs to pass to
+    # /webapps/resourcemap.
+    _append_to_handlers(umpire_proxy_handlers,
+                        RESOURCE_MAP_PREFIX, env.umpire_webapp_port,
+                        WEB_APP_PREFIX + RESOURCE_MAP_PREFIX)
     # POSTrequests
-    umpire_proxy_handlers.append((POST_PREFIX, env.umpire_http_post_port))
+    _append_to_handlers(umpire_proxy_handlers,
+                        POST_PREFIX, env.umpire_http_post_port)
     # POST (legacy URL)
-    umpire_proxy_handlers.append(
-        (LEGACY_POST_PREFIX, env.umpire_http_post_port))
+    _append_to_handlers(umpire_proxy_handlers,
+                        LEGACY_POST_PREFIX, env.umpire_http_post_port)
     # Instalog HTTP plugin
-    umpire_proxy_handlers.append(
-        (INSTALOG_PREFIX, env.umpire_instalog_http_port))
+    _append_to_handlers(umpire_proxy_handlers,
+                        INSTALOG_PREFIX, env.umpire_instalog_http_port)
 
     config_proxies_str = [
         NGINX_PROXY_TEMPLATE % {
             'location_rule': location_rule,
-            'port': port
-        } for location_rule, port in umpire_proxy_handlers
+            'port': port,
+            'changed_path': changed_path
+        } for location_rule, port, changed_path in umpire_proxy_handlers
     ]
 
     reverse_proxy_ips = []

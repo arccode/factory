@@ -6,7 +6,8 @@
 
 """Umpire resource map web application.
 
-The class handles 'http://umpire_address:umpire_port/resourcemap' HTTP GET.
+The class handles
+  'http://umpire_address:umpire_port/webapps/resourcemap' HTTP GET.
 """
 
 # TODO(b/64133247): Deprecate resourcemap.
@@ -16,10 +17,11 @@ import logging
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server import bundle_selector
 from cros.factory.umpire.server.web import wsgi
+from cros.factory.umpire.server import webapp_utils
 from cros.factory.utils import type_utils
 
 
-_PATH_INFO = '/resourcemap'
+_PATH_INFO = '/webapps/resourcemap'
 
 
 class ResourceMapApp(object):
@@ -37,7 +39,7 @@ class ResourceMapApp(object):
     session = wsgi.WSGISession(environ, start_response)
     logging.debug('resourcemap app: %s', session)
     if session.REQUEST_METHOD == 'GET':
-      dut_info = bundle_selector.ParseDUTHeader(session.HTTP_X_UMPIRE_DUT)
+      dut_info = webapp_utils.ParseDUTHeader(session.HTTP_X_UMPIRE_DUT)
       resource_map = bundle_selector.GetResourceMap(dut_info, self.env)
       if resource_map is None:
         return session.BadRequest400()

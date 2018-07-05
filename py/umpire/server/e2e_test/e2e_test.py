@@ -152,8 +152,15 @@ class UmpireDockerTestCase(unittest.TestCase):
 
 
 class ResourceMapTest(UmpireDockerTestCase):
-  """Tests for Umpire /resourcemap."""
+  """Tests for Umpire /webapps/resourcemap and legacy /resourcemap."""
   def testResourceMap(self):
+    r = requests.get('%s/webapps/resourcemap' % ADDR_BASE,
+                     headers={'X-Umpire-DUT': 'mac=00:11:22:33:44:55'})
+    self.assertEqual(200, r.status_code)
+    self.assertIsNotNone(
+        re.search(r'^payloads: .*\.json$', r.text, re.MULTILINE))
+
+  def testLegacyResourceMap(self):
     r = requests.get('%s/resourcemap' % ADDR_BASE,
                      headers={'X-Umpire-DUT': 'mac=00:11:22:33:44:55'})
     self.assertEqual(200, r.status_code)
