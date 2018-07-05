@@ -765,6 +765,10 @@ class EventBase(object):
     if missing_fields != []:
       raise testlog_utils.TestlogError('Missing fields: %s' % missing_fields)
 
+    if self._data['apiVersion'] != TESTLOG_API_VERSION:
+      raise testlog_utils.TestlogError('Invalid Testlog API version: %s' %
+                                       self._data['apiVersion'])
+
     # Check the length of the grouped parameters.
     if 'parameters' in self._data:
       group_length = {}

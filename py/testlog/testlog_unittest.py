@@ -110,7 +110,7 @@ class TestlogEventTest(unittest.TestCase):
   def testCheckIsValid(self):
     event = testlog.StationInit()
     event['failureMessage'] = 'Missed fields'
-    event['apiVersion'] = '0.2'
+    event['apiVersion'] = '0.21'
     with self.assertRaisesRegexp(
         testlog_utils.TestlogError,
         'Missing fields: \\[\'count\', \'success\', \'uuid\', \'time\'\\]'):
@@ -126,6 +126,13 @@ class TestlogEventTest(unittest.TestCase):
         'status': 'PASS',
         'startTime': SAMPLE_DATETIME_FLOAT,
     })
+
+    with self.assertRaisesRegexp(
+        testlog_utils.TestlogError,
+        'Invalid Testlog API version: 0.2'):
+      event.CheckIsValid()
+
+    event['apiVersion'] = '0.21'
     event.CheckIsValid()
     event['attachments'] = {'key': 'att_key1',
                             'value': {'path': '/path/to/file',
@@ -480,7 +487,7 @@ class TestlogEventTest(unittest.TestCase):
     example_dict = {
         'uuid': '8b127476-2604-422a-b9b1-f05e4f14bf72',
         'type': 'station.test_run',
-        'apiVersion': '0.1',
+        'apiVersion': '0.21',
         'time': SAMPLE_DATETIME_FLOAT,
         'seq': 8202191,
         'stationDeviceId': 'e7d3227e-f12d-42b3-9c64-0d9e8fa02f6d',
