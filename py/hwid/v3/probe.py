@@ -13,7 +13,7 @@ from cros.factory.probe import probe_utils
 
 
 DEFAULT_PROBE_STATEMENT_PATH = os.path.join(
-    os.path.dirname(__file__), 'default_probe_statement.json')
+    os.path.dirname(__file__), common.DEFAULT_PROBE_STATEMENT)
 
 
 def ProbeDUT():

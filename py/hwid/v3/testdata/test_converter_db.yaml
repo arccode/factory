@@ -1,0 +1,28 @@
+checksum: unused-checksum
+
+project: CHROMEBOOK
+
+encoding_patterns: {0: default}
+
+image_id: {0: PROTO, 1: EVT}
+
+pattern:
+  - image_ids: [0, 1]
+    encoding_scheme: base8192
+    fields: []
+
+encoded_fields:
+  comp_cls_3_field:
+    0: {comp_cls_3: []}
+
+components:
+  c1:
+    items:
+      c1_1: {values: {key: v1}}
+      c1_2: {values: null}
+
+  c2:
+    items:
+      c2_1: {status: unsupported, values: {key: v2, compact_str: !re .*}}
+
+rules: []

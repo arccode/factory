@@ -8,6 +8,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import type_utils
 
 
+DEFAULT_PROBE_STATEMENT = 'default_probe_statement.json'
 HEADER_BIT_LENGTH = 5
 HEADER_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
 OPERATION_MODE = type_utils.Enum(['normal', 'rma', 'no_check'])

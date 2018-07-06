@@ -13,6 +13,7 @@ import sys
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import builder
+from cros.factory.hwid.v3 import converter
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3 import probe
@@ -371,6 +372,20 @@ def VerifyHWIDDatabase(options):
     Output('Database %s verified' % options.project)
   else:
     Output('Database %s (not works for encoding) verified' % options.project)
+
+
+@Command(
+    'converter',
+    CmdArg('--output-file', default='-',
+           help='File name to store the converted results'))
+def ConverterCommand(options):
+  """Convert the default probe statements to project specific statements."""
+  converted_results_data = json_utils.DumpStr(
+      converter.ConvertToProbeStatement(options.database), pretty=True)
+  if options.output_file == '-':
+    Output(converted_results_data)
+  else:
+    file_utils.WriteFile(options.output_file, converted_results_data)
 
 
 def ParseOptions(args=None):

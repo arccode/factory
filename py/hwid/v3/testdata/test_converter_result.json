@@ -1,0 +1,25 @@
+{
+  "c1": {
+    "c1_1": {
+      "eval": "aaa",
+      "expect": {
+        "key": "v1"
+      },
+      "information": {
+        "status": "supported"
+      }
+    }
+  },
+  "c2": {
+    "c2_1": {
+      "eval": "bbb",
+      "expect": {
+        "compact_str": "!re .*",
+        "key": "v2"
+      },
+      "information": {
+        "status": "unsupported"
+      }
+    }
+  }
+}
