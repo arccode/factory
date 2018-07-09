@@ -17,6 +17,7 @@ from cros.factory.test.env import paths
 from cros.factory.test.test_lists import checker as checker_module
 from cros.factory.test.test_lists import test_list as test_list_module
 from cros.factory.utils import config_utils
+from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
 
@@ -251,15 +252,18 @@ class Manager(object):
           '%s is a symlink (should be a file containing a test list ID)' %
           ACTIVE_PATH)
 
-    if not os.path.exists(ACTIVE_PATH):
-      Manager.SetActiveTestList(Manager.SelectDefaultTestList())
-
-    with open(ACTIVE_PATH) as f:
-      test_list_id = f.read().strip()
+    test_list_id = ''
+    if os.path.exists(ACTIVE_PATH):
+      test_list_id = file_utils.ReadFile(ACTIVE_PATH).strip()
       if re.search(r'\s', test_list_id):
         raise type_utils.TestListError(
             '%s should contain only a test list ID' % test_list_id)
-      return test_list_id
+
+    if not test_list_id:
+      test_list_id = Manager.SelectDefaultTestList()
+      Manager.SetActiveTestList(test_list_id)
+
+    return test_list_id
 
   @staticmethod
   def SelectDefaultTestList():
