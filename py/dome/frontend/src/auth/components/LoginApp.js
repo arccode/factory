@@ -8,6 +8,7 @@ import React from 'react';
 import {connect} from 'react-redux';
 
 import {tryLogin} from '../actions';
+
 import LoginForm from './LoginForm';
 
 class LoginApp extends React.Component {
@@ -22,7 +23,7 @@ class LoginApp extends React.Component {
         <CardTitle title={'Login to continue'}></CardTitle>
         <CardText>
           <LoginForm
-            form='login'
+            form="login"
             onSubmit={tryLogin}
           />
         </CardText>

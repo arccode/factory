@@ -50,7 +50,7 @@ class TaskQueue {
       });
 
       if (startNow) {
-        dispatch(this._runTask(taskID));
+        dispatch(this.runTask_(taskID));
       }
     });
   }
@@ -62,9 +62,9 @@ class TaskQueue {
       type: actionTypes.DISMISS_TASK,
       taskID,
     });
-  };
+  }
 
-  _runTask = (taskID) => async (dispatch, getState) => {
+  runTask_ = (taskID) => async (dispatch, getState) => {
     const task = getAllTasks(getState()).get(taskID);
     const body = this._taskBodies[taskID];
 
@@ -117,13 +117,13 @@ class TaskQueue {
       dispatch(changeTaskState(taskID, TaskStates.RUNNING_WAIT_RESPONSE));
 
       // send the end request
-      const response = await client.request({
+      const endResponse = await client.request({
         url: task.get('url'),
         method: task.get('method'),
         data,
       });
 
-      this._taskResolves[taskID]({response, cancel: false});
+      this._taskResolves[taskID]({response: endResponse, cancel: false});
 
       // if all sub-tasks succeeded, mark it as succeeded, and start the next
       // task.
@@ -131,9 +131,9 @@ class TaskQueue {
 
       // find the first waiting task and start it
       const nextTaskEntry = getAllTasks(getState()).findEntry(
-          (task) => task.get('state') === TaskStates.WAITING);
+          (t) => t.get('state') === TaskStates.WAITING);
       if (nextTaskEntry) {
-        dispatch(this._runTask(nextTaskEntry[0]));
+        dispatch(this.runTask_(nextTaskEntry[0]));
       }
     } catch (err) {
       // if any sub-task above failed, display the error message
@@ -154,7 +154,7 @@ class TaskQueue {
       // mark the task as failed
       dispatch(changeTaskState(taskID, TaskStates.FAILED));
     }
-  };
+  }
 
   cancelWaitingTaskAfter = (taskID) => (dispatch, getState) => {
     // TODO(pihsun): probably need a better action name.
@@ -168,12 +168,12 @@ class TaskQueue {
         }).keySeq().reverse();
 
     // cancel all tasks below and include the target task
-    for (const taskID of toCancelTasks) {
-      this._taskResolves[taskID]({cancel: true});
-      dispatch(this.dismissTask(taskID));
+    for (const id of toCancelTasks) {
+      this._taskResolves[id]({cancel: true});
+      dispatch(this.dismissTask(id));
     }
-  };
-};
+  }
+}
 
 const taskQueue = new TaskQueue();
 const {runTask, dismissTask, cancelWaitingTaskAfter} = taskQueue;

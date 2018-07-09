@@ -10,7 +10,7 @@ import {connect} from 'react-redux';
 import {createStructuredSelector} from 'reselect';
 
 import {hideErrorDialog} from '../actions';
-import {isErrorDialogShown, getErrorMessage} from '../selectors';
+import {getErrorMessage, isErrorDialogShown} from '../selectors';
 
 class ErrorDialog extends React.Component {
   static propTypes = {
@@ -21,7 +21,7 @@ class ErrorDialog extends React.Component {
 
   handleClose = () => {
     this.props.hideErrorDialog();
-  };
+  }
 
   render() {
     return (
@@ -30,7 +30,7 @@ class ErrorDialog extends React.Component {
         modal={false}
         onRequestClose={this.handleCancel}
         actions={[
-          <RaisedButton key='btn' label='close' onClick={this.handleClose} />,
+          <RaisedButton key="btn" label="close" onClick={this.handleClose} />,
         ]}
       >
         <div>

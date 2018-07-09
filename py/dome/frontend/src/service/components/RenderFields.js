@@ -15,12 +15,11 @@ import {fieldArrayPropTypes, fieldPropTypes} from 'redux-form';
 import {Field, FieldArray, FormSection} from 'redux-form/immutable';
 
 const toNumber = (value) => value && Number(value);
-const setFalse = (value) => value == true || false;
 
 const renderTextField = ({input, label, description, type}) => (
   <TextField
     floatingLabelText={label}
-    hintText={description||label}
+    hintText={description || label}
     type={type}
     {...input}
   />
@@ -36,8 +35,8 @@ renderTextField.propTypes = {
 const renderToggle = ({input, label}) => (
   <Toggle
     label={label}
-    labelPosition='right'
-    toggled={input.value ? true : false}
+    labelPosition="right"
+    toggled={input.value}
     onToggle={input.onChange}
   />
 );
@@ -51,24 +50,24 @@ const renderArray = ({fields, schema}) => (
   <div>
     {fields.map((k, i) =>
       <FormSection name={k} key={k}>
-        <div style={{float: 'right', marginTop: 15 + 'px'}}>
+        <div style={{float: 'right', marginTop: '15px'}}>
           <IconButton
-            tooltip='Remove'
+            tooltip="Remove"
             onClick={() => fields.remove(i)}>
             <ContentClear/>
           </IconButton>
         </div>
-        <div style={{marginRight: 50 + 'px'}}>
+        <div style={{marginRight: '50px'}}>
           <RenderFields
             schema={schema.get('items')}
           />
         </div>
-      </FormSection>
+      </FormSection>,
     )}
     <div>
       <FloatingActionButton
         mini={true}
-        style={{float: 'right', margin: 1 + 'em'}}
+        style={{float: 'right', margin: '1em'}}
         onClick={() => fields.push({})}>
         <ContentAdd />
       </FloatingActionButton>
@@ -81,7 +80,6 @@ renderArray.propTypes = {
   ...fieldArrayPropTypes,
 };
 
-
 class RenderFields extends React.Component {
   static propTypes = {
     schema: PropTypes.object.isRequired,
@@ -91,10 +89,10 @@ class RenderFields extends React.Component {
     const {schema} = this.props;
 
     const marginStyle = {
-      marginLeft: 2 + 'em',
-      marginRight: 2 + 'em',
-      marginTop: 0.5 + 'em',
-      marginBottom: 0.5 + 'em',
+      marginLeft: '2em',
+      marginRight: '2em',
+      marginTop: '0.5em',
+      marginBottom: '0.5em',
     };
 
     return (
@@ -110,7 +108,7 @@ class RenderFields extends React.Component {
                   component={renderTextField}
                   label={k}
                   description={s.get('description')}
-                  type='text'
+                  type="text"
                 />
               );
             case 'integer':
@@ -122,7 +120,7 @@ class RenderFields extends React.Component {
                   label={k}
                   description={s.get('description')}
                   normalize={toNumber}
-                  type='number'
+                  type="number"
                 />
               );
             case 'boolean':
@@ -132,7 +130,6 @@ class RenderFields extends React.Component {
                   name={k}
                   component={renderToggle}
                   label={k}
-                  normalize={setFalse}
                 />
               );
             case 'object':

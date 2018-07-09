@@ -29,15 +29,15 @@ class ServiceForm extends React.Component {
           schema={schema}
         />
         <RaisedButton
-          label='Discard Changes'
+          label="Discard Changes"
           onClick={reset}
-          style={{margin: 1 + 'em'}}
+          style={{margin: '1em'}}
         />
         <RaisedButton
-          type='submit'
-          label='Deploy'
+          type="submit"
+          label="Deploy"
           primary={true}
-          style={{margin: 1 + 'em'}}
+          style={{margin: '1em'}}
         />
       </form>
     );

@@ -40,12 +40,12 @@ class CreateProjectForm extends React.Component {
   render() {
     const {handleSubmit} = this.props;
     return <form onSubmit={handleSubmit}>
-      <Field name='name' label='New project name'
+      <Field name="name" label="New project name"
         validate={[validateRequired, this.validateUnique]}
         component={renderTextField} />
       <RaisedButton
-        label='CREATE A NEW PROJECT' primary={true} fullWidth={true}
-        type='submit' />
+        label="CREATE A NEW PROJECT" primary={true} fullWidth={true}
+        type="submit" />
     </form>;
   }
 }
@@ -67,7 +67,7 @@ class ProjectsApp extends React.Component {
   handleSubmit = (values) => {
     this.props.createProject(values.get('name'));
     this.props.resetForm();
-  };
+  }
 
   componentDidMount() {
     this.props.fetchProjects();
@@ -100,7 +100,7 @@ class ProjectsApp extends React.Component {
                   onClick={() => switchProject(name)}
                   rightIconButton={
                     <IconButton
-                      tooltip='delete this project'
+                      tooltip="delete this project"
                       onClick={() => deleteProject(name)}
                     >
                       <DeleteIcon />

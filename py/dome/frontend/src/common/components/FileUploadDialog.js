@@ -9,7 +9,7 @@ import React from 'react';
 class HiddenFileSelect extends React.Component {
   static propTypes = {
     onChange: PropTypes.func.isRequired,
-  }
+  };
 
   constructor(props) {
     super(props);
@@ -32,8 +32,8 @@ class HiddenFileSelect extends React.Component {
   render() {
     return (
       <input
-        className='hidden'
-        type='file'
+        className="hidden"
+        type="file"
         onChange={this.handleChange}
         ref={this.fileInputRef}
       />);
@@ -51,7 +51,7 @@ class FileUploadDialog extends React.Component {
 
   state = {
     file: null,
-  }
+  };
 
   handleFileChange = (file) => {
     this.setState({file});
@@ -84,6 +84,6 @@ class FileUploadDialog extends React.Component {
       </>
     );
   }
-};
+}
 
 export default FileUploadDialog;

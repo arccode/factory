@@ -25,7 +25,7 @@ const buildOnCancel = (dispatch, getState) => {
 };
 
 const findBundle = (name, getState) => {
-  return getBundles(getState()).find((b) => b.get('name') == name).toJS();
+  return getBundles(getState()).find((b) => b.get('name') === name).toJS();
 };
 
 export const receiveBundles = (bundles) => ({
@@ -62,7 +62,7 @@ export const reorderBundles = (oldIndex, newIndex) =>
     });
 
     // send the request
-    const newBundleNameList = newBundleList.map((b) => b['name']);
+    const newBundleNameList = newBundleList.map((b) => b.name);
     const {cancel} = await dispatch(task.actions.runTask(
         'Reorder bundles', 'PUT', `${baseURL(getState)}/bundles/`,
         newBundleNameList));
@@ -76,7 +76,7 @@ export const activateBundle = (name, active) => async (dispatch, getState) => {
 
   // optimistic update
   const bundle = findBundle(name, getState);
-  bundle['active'] = active;
+  bundle.active = active;
   dispatch({
     type: actionTypes.UPDATE_BUNDLE,
     name,
@@ -104,7 +104,7 @@ export const changeBundleRules = (name, rules) =>
 
     // optimistic update
     const bundle = findBundle(name, getState);
-    bundle['rules'] = rules;
+    bundle.rules = rules;
     dispatch({
       type: actionTypes.UPDATE_BUNDLE,
       name,
@@ -195,11 +195,11 @@ export const startUpdatingResource = (resourceKey, data) => (
 
     // optimistic update
     const bundle = findBundle(srcBundleName, getState);
-    bundle['name'] = dstBundleName;
-    bundle['note'] = data.note;
+    bundle.name = dstBundleName;
+    bundle.note = data.note;
     // reset hash and version of the resource currently being update
-    bundle['resources'][resourceKey]['hash'] = '(waiting for update)';
-    bundle['resources'][resourceKey]['version'] = '(waiting for update)';
+    bundle.resources[resourceKey].hash = '(waiting for update)';
+    bundle.resources[resourceKey].version = '(waiting for update)';
     dispatch({
       type: actionTypes.ADD_BUNDLE,
       bundle,

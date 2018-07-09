@@ -64,10 +64,9 @@ class ResourceTable extends React.Component {
                 <TableRowColumn>
                   {
                     <RaisedButton
-                      label='update'
+                      label="update"
                       onClick={() => openUpdatingResourceForm(
-                          bundle.get('name'), key, resource.get('type')
-                      )}
+                          bundle.get('name'), key, resource.get('type'))}
                     />
                   }
                 </TableRowColumn>

@@ -9,8 +9,9 @@ import React from 'react';
 import {connect} from 'react-redux';
 import {createStructuredSelector} from 'reselect';
 
-import {fetchServiceSchemata, fetchServices, updateService} from '../actions';
-import {getServiceSchemata, getServices} from '../selectors';
+import {fetchServices, fetchServiceSchemata, updateService} from '../actions';
+import {getServices, getServiceSchemata} from '../selectors';
+
 import ServiceForm from './ServiceForm';
 
 class ServiceList extends React.Component {
@@ -50,7 +51,7 @@ class ServiceList extends React.Component {
               primaryTogglesNestedList={true}
               nestedItems={[
                 <ServiceForm
-                  key='form'
+                  key="form"
                   onSubmit={(values) => updateService(k, values)}
                   form={k}
                   schema={schema}

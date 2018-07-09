@@ -10,9 +10,9 @@ import {fieldPropTypes} from 'redux-form';
 export const renderTextField = ({
   input,
   label,
-  type='text',
-  description='',
   meta: {error, touched},
+  type = 'text',
+  description = '',
 }) => (
   <TextField
     fullWidth={true}

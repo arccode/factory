@@ -10,6 +10,7 @@ import {SortableContainer, SortableElement} from 'react-sortable-hoc';
 
 import {fetchBundles, reorderBundles} from '../actions';
 import {getBundles} from '../selectors';
+
 import Bundle from './Bundle';
 
 // The hierarchy of this component is complicated because of the design of
@@ -54,7 +55,7 @@ class BundleList extends React.Component {
   render() {
     return (
       <SortableBundleList
-        lockAxis='y'
+        lockAxis="y"
         useDragHandle={true}
         useWindowAsScrollContainer={true}
         onSortEnd={this.handleReorder}

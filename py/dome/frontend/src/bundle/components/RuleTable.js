@@ -27,7 +27,7 @@ class RuleTable extends React.Component {
     }
     rules[key].push(value);
     this.props.changeRules(rules);
-  };
+  }
 
   handleDelete = (key, value) => {
     const rules = this.props.rules.toJS();
@@ -36,7 +36,7 @@ class RuleTable extends React.Component {
       rules[key].splice(index, 1);
       this.props.changeRules(rules);
     }
-  };
+  }
 
   render() {
     // make sure every key exists
@@ -53,7 +53,7 @@ class RuleTable extends React.Component {
             <TableHeaderColumn>MAC</TableHeaderColumn>
             <TableRowColumn>
               <ChipInput
-                value={rules['macs']}
+                value={rules.macs}
                 onRequestAdd={(m) => this.handleAdd('macs', m)}
                 onRequestDelete={(m) => this.handleDelete('macs', m)}
               />
@@ -63,7 +63,7 @@ class RuleTable extends React.Component {
             <TableHeaderColumn>SN</TableHeaderColumn>
             <TableRowColumn>
               <ChipInput
-                value={rules['serialNumbers']}
+                value={rules.serialNumbers}
                 onRequestAdd={(s) => this.handleAdd('serialNumbers', s)}
                 onRequestDelete={(s) => this.handleDelete('serialNumbers', s)}
               />
@@ -73,7 +73,7 @@ class RuleTable extends React.Component {
             <TableHeaderColumn>MLB SN</TableHeaderColumn>
             <TableRowColumn>
               <ChipInput
-                value={rules['mlbSerialNumbers']}
+                value={rules.mlbSerialNumbers}
                 onRequestAdd={(s) => this.handleAdd('mlbSerialNumbers', s)}
                 onRequestDelete={
                   (s) => this.handleDelete('mlbSerialNumbers', s)

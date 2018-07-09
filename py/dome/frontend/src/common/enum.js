@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-export default function Enum(items) {
+export default (items) => {
   return items.reduce((object, item) => {
     object[item] = item;
     return object;
   }, {});
-}
+};

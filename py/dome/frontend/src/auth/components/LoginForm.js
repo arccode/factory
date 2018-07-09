@@ -34,24 +34,24 @@ class LoginForm extends React.Component {
     return (
       <form onSubmit={handleSubmit}>
         <Field
-          name='username'
-          label='Username'
+          name="username"
+          label="Username"
           component={renderTextField}
-          type='text'
+          type="text"
         />
         <br/>
         <Field
-          name='password'
-          label='Password'
+          name="password"
+          label="Password"
           component={renderTextField}
-          type='password'
+          type="password"
         />
         <br/>
         <RaisedButton
-          type='submit'
-          label='Login'
+          type="submit"
+          label="Login"
           primary={true}
-          style={{margin: 1 + 'em'}}
+          style={{margin: '1em'}}
         />
       </form>
     );

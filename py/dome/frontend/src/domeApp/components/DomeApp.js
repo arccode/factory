@@ -27,6 +27,7 @@ import TaskList from '@app/task/components/TaskList';
 import {switchApp} from '../actions';
 import {AppNames} from '../constants';
 import {getCurrentApp} from '../selectors';
+
 import FixedAppBar from './FixedAppBar';
 
 const APP_MENU_WIDTH = 250;
@@ -69,11 +70,11 @@ class DomeApp extends React.Component {
   handleClick = (nextApp) => {
     // close the drawer
     this.props.switchApp(nextApp);
-  };
+  }
 
   toggleAppMenu = () => {
     this.setState({appMenuOpened: !this.state.appMenuOpened});
-  };
+  }
 
   componentDidMount() {
     this.props.testAuthToken();
@@ -93,13 +94,13 @@ class DomeApp extends React.Component {
     let app = null;
     if (!isLoggedIn) {
       app = <LoginApp />;
-    } else if (appName == AppNames.PROJECTS_APP) {
+    } else if (appName === AppNames.PROJECTS_APP) {
       app = <ProjectsApp />;
-    } else if (appName == AppNames.CONFIG_APP) {
+    } else if (appName === AppNames.CONFIG_APP) {
       app = <ConfigApp />;
-    } else if (appName == AppNames.DASHBOARD_APP) {
+    } else if (appName === AppNames.DASHBOARD_APP) {
       app = <DashboardApp />;
-    } else if (appName == AppNames.BUNDLES_APP) {
+    } else if (appName === AppNames.BUNDLES_APP) {
       // TODO(littlecvr): standardize the floating button API so we don't need
       //                  to pass offset like this
       app = <BundlesApp offset={paddingBottom} />;
@@ -131,8 +132,8 @@ class DomeApp extends React.Component {
           zDepth={1} // below the AppBar
         >
           {isLoggedIn && <div>
-            {projectName != '' && <Subheader>{projectName}</Subheader>}
-            {projectName != '' &&
+            {projectName !== '' && <Subheader>{projectName}</Subheader>}
+            {projectName !== '' &&
               <MenuItem
                 onClick={() => this.handleClick(AppNames.DASHBOARD_APP)}
                 innerDivStyle={{paddingLeft: PROJECT_MENU_ITEM_PADDING_LEFT}}
@@ -140,7 +141,7 @@ class DomeApp extends React.Component {
                 Dashboard
               </MenuItem>
             }
-            {projectName != '' &&
+            {projectName !== '' &&
               <MenuItem
                 onClick={() => this.handleClick(AppNames.BUNDLES_APP)}
                 innerDivStyle={{paddingLeft: PROJECT_MENU_ITEM_PADDING_LEFT}}
@@ -151,7 +152,7 @@ class DomeApp extends React.Component {
               </MenuItem>
             }
 
-            {projectName != '' && <Divider />}
+            {projectName !== '' && <Divider />}
 
             <MenuItem
               onClick={() => this.handleClick(AppNames.PROJECTS_APP)}>

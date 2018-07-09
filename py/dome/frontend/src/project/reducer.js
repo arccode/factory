@@ -22,9 +22,9 @@ export default (state = INITIAL_STATE, action) => {
 
     case actionTypes.RECEIVE_PROJECTS:
       return state.set('projects', Immutable.Map(action.projects.map(
-          (b) => [b['name'], Immutable.fromJS(b).merge({
-            umpireReady: b['umpireEnabled'],
-          })]
+          (b) => [b.name, Immutable.fromJS(b).merge({
+            umpireReady: b.umpireEnabled,
+          })],
       )));
 
     case actionTypes.UPDATE_PROJECT:

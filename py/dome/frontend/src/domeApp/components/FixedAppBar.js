@@ -28,7 +28,7 @@ class FixedAppBar extends React.Component {
     if ('onHeightChange' in this.props) {
       this.props.onHeightChange(height);
     }
-  };
+  }
 
   render() {
     const {onHeightChange: unused, ...other} = this.props;

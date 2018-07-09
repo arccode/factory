@@ -41,6 +41,7 @@ export const testAuthToken = () => async (dispatch) => {
       dispatch(loginSucceed(token));
       return;
     } catch (err) {
+      /* Authorization failed. */
     }
   }
   // We might not need a auth token, for example, login is not needed for
@@ -50,6 +51,7 @@ export const testAuthToken = () => async (dispatch) => {
     dispatch(loginSucceed(null));
     return;
   } catch (err) {
+    /* Authorization failed. */
   }
   // Dispatch a login failed event to clear all wrong token.
   dispatch(loginFailed());

@@ -19,6 +19,7 @@ import ServiceList from '@app/service/components/ServiceList';
 
 import {disableUmpire, enableUmpireWithSettings} from '../actions';
 import {ENABLING_UMPIRE_FORM} from '../constants';
+
 import EnablingUmpireForm from './EnablingUmpireForm';
 
 class DashboardApp extends React.Component {
@@ -37,7 +38,7 @@ class DashboardApp extends React.Component {
     } else {
       openEnablingUmpireForm();
     }
-  };
+  }
 
   render() {
     const {
@@ -67,7 +68,7 @@ class DashboardApp extends React.Component {
                     onToggle={this.handleToggle}
                   />
                 }
-                primaryText='Enable Umpire'
+                primaryText="Enable Umpire"
               />
               {project.get('umpireEnabled') && project.get('umpireReady') &&
               <>

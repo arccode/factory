@@ -24,9 +24,9 @@ class InnerForm extends React.Component {
   render() {
     return (
       <form>
-        <Field name='name' label='New Bundle Name' validate={validateRequired}
+        <Field name="name" label="New Bundle Name" validate={validateRequired}
           component={renderTextField} />
-        <Field name='note' label='New Bundle Note'
+        <Field name="note" label="New Bundle Note"
           component={renderTextField} />
       </form>
     );
@@ -50,7 +50,7 @@ class UploadingBundleForm extends React.Component {
 
   state = {
     initialValues: {},
-  }
+  };
 
   handleCancel = () => {
     this.props.cancelUploading();
@@ -72,13 +72,13 @@ class UploadingBundleForm extends React.Component {
     const {open, submitForm} = this.props;
     return (
       <FileUploadDialog
-        title='Upload Bundle'
+        title="Upload Bundle"
         open={open}
         modal={false}
         onRequestClose={this.handleCancel}
         actions={<>
-          <FlatButton label='confirm' primary={true} onClick={submitForm} />
-          <FlatButton label='cancel' onClick={this.handleCancel} />
+          <FlatButton label="confirm" primary={true} onClick={submitForm} />
+          <FlatButton label="cancel" onClick={this.handleCancel} />
         </>}
         onSubmit={this.handleSubmit}
       >

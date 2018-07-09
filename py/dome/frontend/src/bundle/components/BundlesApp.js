@@ -11,6 +11,7 @@ import {connect} from 'react-redux';
 import formDialog from '@app/formDialog';
 
 import {UPLOADING_BUNDLE_FORM} from '../constants';
+
 import BundleList from './BundleList';
 import UpdatingResourceForm from './UpdatingResourceForm';
 import UploadingBundleForm from './UploadingBundleForm';

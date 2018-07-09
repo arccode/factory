@@ -22,7 +22,7 @@ const renderAddExistingHint = ({input: {value, onChange}}) => (
     <div>
       If you had not set up the Umpire Docker container, you should
       {' '}
-      <a href='#' onClick={(e) => {
+      <a href="#" onClick={(e) => {
         e.preventDefault();
         onChange(false);
       }}>
@@ -32,7 +32,7 @@ const renderAddExistingHint = ({input: {value, onChange}}) => (
     {!value && <div>
       If you had manually set up the Umpire Docker container, you can
       {' '}
-      <a href='#' onClick={(e) => {
+      <a href="#" onClick={(e) => {
         e.preventDefault();
         onChange(true);
       }}>
@@ -57,10 +57,10 @@ class InnerForm extends React.Component {
         {/* TODO(pihsun): Dome backend doesn't support host other than
             localhost, so this can be removed. */}
         {addExisting &&
-          <Field name='umpireHost' label='host' component={renderTextField} />
+          <Field name="umpireHost" label="host" component={renderTextField} />
         }
-        <Field name='umpirePort' label='port' component={renderTextField} />
-        <Field name='umpireAddExistingOne' component={renderAddExistingHint} />
+        <Field name="umpirePort" label="port" component={renderTextField} />
+        <Field name="umpireAddExistingOne" component={renderAddExistingHint} />
       </form>
     );
   }
@@ -88,7 +88,7 @@ class EnablingUmpireForm extends React.Component {
     const {open, onSubmit, onCancel, submitForm, addExisting} = this.props;
     return (
       <Dialog
-        title='Enable Umpire'
+        title="Enable Umpire"
         open={open}
         modal={false}
         onRequestClose={onCancel}
@@ -97,13 +97,13 @@ class EnablingUmpireForm extends React.Component {
             label={addExisting ?
                 'ADD AN EXISTING UMPIRE INSTANCE' :
                 'CREATE A NEW UMPIRE INSTANCE'}
-            key='submit'
+            key="submit"
             primary={true}
             onClick={submitForm}
           />,
           <FlatButton
-            label='CANCEL'
-            key='cancel'
+            label="CANCEL"
+            key="cancel"
             onClick={onCancel}
           />,
         ]}

@@ -58,16 +58,15 @@ const store = createStore(
           // Transform immutable state to plain object or it will be
           // hard to read.
           stateTransformer:
-              (s) => Immutable.Iterable.isIterable(s) ? s.toJS() : s,
+              (s) => Immutable.isImmutable(s) ? s.toJS() : s,
         })));
 
 class App extends React.Component {
   componentDidMount() {
     // check if user's using Chrome/Chromium
-    if (navigator.userAgent.indexOf('Chrome') == -1) {
-      window.alert('Warning!!\n\n' +
-                   'To visit Dome, please use Chrome/Chromium to ' +
-                   'avoid unnecessary issues.');
+    if (!navigator.userAgent.includes('Chrome')) {
+      window.alert(`Warning!!
+To visit Dome, please use Chrome/Chromium to avoid unnecessary issues.`);
     }
   }
 
@@ -84,5 +83,5 @@ class App extends React.Component {
 
 ReactDOM.render(
     <App />,
-    document.getElementById('app')
+    document.getElementById('app'),
 );

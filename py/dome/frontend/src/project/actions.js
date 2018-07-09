@@ -67,9 +67,9 @@ export const updateProject = (name, settings = {}) =>
         type: actionTypes.UPDATE_PROJECT,
         project: {
           name,
-          umpireVersion: data['umpireVersion'],
-          isUmpireRecent: data['isUmpireRecent'],
-          umpireReady: data['umpireEnabled'],
+          umpireVersion: data.umpireVersion,
+          isUmpireRecent: data.isUmpireRecent,
+          umpireReady: data.umpireEnabled,
         },
       });
     }, 1000);

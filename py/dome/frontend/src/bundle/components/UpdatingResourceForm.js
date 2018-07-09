@@ -13,8 +13,8 @@ import {Field, reduxForm} from 'redux-form/immutable';
 import {createStructuredSelector} from 'reselect';
 
 import formDialog from '@app/formDialog';
-import FileUploadDialog from '@common/components/FileUploadDialog';
 import project from '@app/project';
+import FileUploadDialog from '@common/components/FileUploadDialog';
 import {renderTextField, validateRequired} from '@common/form';
 
 import {startUpdatingResource} from '../actions';
@@ -26,9 +26,9 @@ class InnerForm extends React.Component {
   render() {
     return (
       <form>
-        <Field name='name' label='New Bundle Name' validate={validateRequired}
+        <Field name="name" label="New Bundle Name" validate={validateRequired}
           component={renderTextField} />
-        <Field name='note' label='Note' component={renderTextField} />
+        <Field name="note" label="Note" component={renderTextField} />
       </form>
     );
   }
@@ -49,7 +49,7 @@ class UpdatingResourceForm extends React.Component {
 
   state = {
     initialValues: {},
-  }
+  };
 
   static getDerivedStateFromProps(props, state) {
     // replace the timestamp in the old bundle name with current timestamp
@@ -101,12 +101,12 @@ class UpdatingResourceForm extends React.Component {
     const {open, submitForm} = this.props;
     return (
       <FileUploadDialog
-        title='Update Resource'
+        title="Update Resource"
         modal={false}
         onRequestClose={this.handleCancel}
         actions={<>
-          <FlatButton label='confirm' primary={true} onClick={submitForm} />
-          <FlatButton label='cancel' onClick={this.handleCancel} />
+          <FlatButton label="confirm" primary={true} onClick={submitForm} />
+          <FlatButton label="cancel" onClick={this.handleCancel} />
         </>}
         open={open}
         onSubmit={this.handleSubmit}

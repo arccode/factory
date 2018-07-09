@@ -11,7 +11,7 @@ const INITIAL_STATE = Immutable.Map({
   tasks: Immutable.OrderedMap(),
 });
 
-export default function taskReducer(state = INITIAL_STATE, action) {
+export default (state = INITIAL_STATE, action) => {
   switch (action.type) {
     case actionTypes.CREATE_TASK:
       return state.setIn(['tasks', action.taskID], Immutable.fromJS({
@@ -42,4 +42,4 @@ export default function taskReducer(state = INITIAL_STATE, action) {
     default:
       return state;
   }
-}
+};

@@ -10,7 +10,7 @@ export const authorizedAxios = () => {
   const token = localStorage.getItem('token');
   const config = {};
   if (token != null) {
-    config['headers'] = {
+    config.headers = {
       'Authorization': `Token ${localStorage.getItem('token')}`,
     };
   }

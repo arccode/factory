@@ -27,12 +27,13 @@ import {
   setBundleAsNetboot,
 } from '../actions';
 import {getBundleExpanded} from '../selectors';
+
 import ResourceTable from './ResourceTable';
 import RuleTable from './RuleTable';
 
 const DragHandle = SortableHandle(() => (
   <IconButton
-    tooltip='move this bundle'
+    tooltip="move this bundle"
     style={{cursor: 'move'}}
     onClick={(e) => e.stopPropagation()}
   >
@@ -58,7 +59,7 @@ class Bundle extends React.Component {
     event.stopPropagation();
     const {bundle, activateBundle} = this.props;
     activateBundle(bundle.get('name'), !bundle.get('active'));
-  };
+  }
 
   toggleExpand = () => {
     if (this.props.expanded) {
@@ -66,7 +67,7 @@ class Bundle extends React.Component {
     } else {
       this.props.expandBundle(this.props.bundle.get('name'));
     }
-  };
+  }
 
   render() {
     const {
@@ -85,7 +86,7 @@ class Bundle extends React.Component {
 
     return (
       <Card
-        className='bundle'
+        className="bundle"
         expanded={expanded}
         containerStyle={bundle.get('active') ? {} : INACTIVE_STYLE}
       >
@@ -115,7 +116,7 @@ class Bundle extends React.Component {
             <div style={{display: 'inline-block', width: 48}}></div>
             <DragHandle />
             <IconButton
-              tooltip='delete this bundle'
+              tooltip="delete this bundle"
               onClick={(e) => {
                 e.stopPropagation();
                 deleteBundle(bundle.get('name'));
@@ -130,18 +131,17 @@ class Bundle extends React.Component {
                 setBundleAsNetboot(bundle.get('name'), projectName);
               }}
             >
-              {(projectNetbootBundle == bundle.get('name')) &&
-                <ChosenIcon />}
-              {!(projectNetbootBundle == bundle.get('name')) &&
-                <UnchosenIcon />}
+              {(projectNetbootBundle === bundle.get('name')) ?
+                  <ChosenIcon /> :
+                  <UnchosenIcon />}
             </IconButton>
           </div>
         </CardTitle>
-        <CardHeader title='RESOURCES' expandable={true} />
+        <CardHeader title="RESOURCES" expandable={true} />
         <CardText expandable={true}>
           <ResourceTable bundle={bundle} />
         </CardText>
-        <CardHeader title='RULES' expandable={true} />
+        <CardHeader title="RULES" expandable={true} />
         <CardText expandable={true}>
           <RuleTable
             rules={bundle.get('rules')}

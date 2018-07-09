@@ -39,7 +39,7 @@ class TaskList extends React.Component {
   cancelAllWaitingTasks = (event) => {
     event.stopPropagation();
     this.props.cancelWaitingTaskAfter(this.props.tasks.keySeq().first());
-  };
+  }
 
   dismissAllSucceededTasks = (event) => {
     event.stopPropagation();
@@ -47,17 +47,17 @@ class TaskList extends React.Component {
         .filter((task) => task.get('state') === TaskStates.SUCCEEDED)
         .keySeq()
         .forEach((id) => this.props.dismissTask(id));
-  };
+  }
 
   retryTask = () => {
     console.warn('not implemented yet');
-  };
+  }
 
   render() {
     const {tasks, cancelWaitingTaskAfter, dismissTask} = this.props;
 
     const counts =
-        tasks.groupBy((t) => t.get('state')).map((tasks) => tasks.count());
+        tasks.groupBy((t) => t.get('state')).map((group) => group.count());
     const running = tasks.count((task) => isRunning(task.get('state')));
     const hasCancellableTask =
         tasks.some((task) => isCancellable(task.get('state')));

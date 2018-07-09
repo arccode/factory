@@ -51,18 +51,18 @@ class ConfigApp extends React.Component {
           <CardTitle title={'Config'}></CardTitle>
           <CardText>
             <Toggle
-              label='TFTP server'
+              label="TFTP server"
               toggled={isTFTPEnabled}
               onToggle={isTFTPEnabled ? disableTFTP : enableTFTP}
               disabled={isConfigUpdating}
             />
             <br/>
             <RaisedButton
-              type='button'
-              label='Logout'
+              type="button"
+              label="Logout"
               onClick={logout}
               primary={true}
-              style={{margin: 1 + 'em'}}
+              style={{margin: '1em'}}
             />
           </CardText>
         </Card>

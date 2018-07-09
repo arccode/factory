@@ -14,13 +14,13 @@ const INITIAL_STATE = Immutable.fromJS({
   expanded: {},
 });
 
-export default function bundlesReducer(state = INITIAL_STATE, action) {
+export default (state = INITIAL_STATE, action) => {
   switch (action.type) {
     case actionTypes.ADD_BUNDLE:
       return state.withMutations((s) => {
         s.setIn(['expanded', action.bundle.name], false);
         s.set('entries', s.get('entries').unshift(
-            Immutable.fromJS(action.bundle)
+            Immutable.fromJS(action.bundle),
         ));
       });
 
@@ -28,7 +28,7 @@ export default function bundlesReducer(state = INITIAL_STATE, action) {
       return state.withMutations((s) => {
         s.deleteIn(['expanded', action.name]);
         s.deleteIn(['entries', s.get('entries').findIndex(
-            (b) => b.get('name') == action.name
+            (b) => b.get('name') === action.name,
         )]);
       });
 
@@ -53,7 +53,7 @@ export default function bundlesReducer(state = INITIAL_STATE, action) {
 
     case actionTypes.UPDATE_BUNDLE:
       return state.set('entries', state.get('entries').map((bundle) => {
-        if (bundle.get('name') == action.name) {
+        if (bundle.get('name') === action.name) {
           return Immutable.fromJS(action.bundle);
         }
         return bundle;
@@ -68,4 +68,4 @@ export default function bundlesReducer(state = INITIAL_STATE, action) {
     default:
       return state;
   }
-}
+};

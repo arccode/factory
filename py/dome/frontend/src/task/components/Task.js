@@ -59,27 +59,27 @@ class Task extends React.Component {
           >
             <DeleteIcon />
           </IconButton>
-          {state == TaskStates.WAITING &&
+          {state === TaskStates.WAITING &&
             <IconButton tooltip={'waiting'}>
               <RunningIcon />
             </IconButton>
           }
-          {state == TaskStates.RUNNING_UPLOAD_FILE &&
+          {state === TaskStates.RUNNING_UPLOAD_FILE &&
             <IconButton tooltip={this.formatProgress(progress)}>
               <CircularProgress
-                mode='determinate'
+                mode="determinate"
                 max={progress.get('totalSize')}
                 value={progress.get('uploadedSize')}
                 size={20}
               />
             </IconButton>
           }
-          {state == TaskStates.RUNNING_WAIT_RESPONSE &&
+          {state === TaskStates.RUNNING_WAIT_RESPONSE &&
             <IconButton tooltip={'Waiting response'}>
               <CircularProgress size={20} />
             </IconButton>
           }
-          {state == TaskStates.SUCCEEDED &&
+          {state === TaskStates.SUCCEEDED &&
             <IconButton
               tooltip={'dismiss'}
               onClick={dismiss}
@@ -88,7 +88,7 @@ class Task extends React.Component {
               <DismissIcon />
             </IconButton>
           }
-          {state == TaskStates.FAILED &&
+          {state === TaskStates.FAILED &&
             <IconButton
               tooltip={'retry'}
               onClick={retry}

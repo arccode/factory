@@ -9,9 +9,9 @@ import project from '@app/project';
 
 import actionTypes from './actionTypes';
 
-function baseURL(getState) {
+const baseURL = (getState) => {
   return `/projects/${project.selectors.getCurrentProject(getState())}`;
-}
+};
 
 export const updateService = (name, config) => async (dispatch, getState) => {
   const data = {[name]: config};
