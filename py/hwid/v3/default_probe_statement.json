@@ -190,6 +190,9 @@
     },
     "elan": {
       "eval": "touchscreen_elan"
+    },
+    "raydium": {
+      "eval": "touchscreen_raydium"
     }
   },
   "tpm": {
