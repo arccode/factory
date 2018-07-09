@@ -82,6 +82,7 @@ class Instalog(plugin_sandbox.CoreAPI):
     self._rpc_server.register_function(self.Stop)
     self._rpc_server.register_function(self.Inspect)
     self._rpc_server.register_function(self.Flush)
+    self._rpc_server.register_function(self.GetAllProgress)
     self._rpc_thread = threading.Thread(target=self._rpc_server.serve_forever)
     self._rpc_thread.start()
 
@@ -317,6 +318,9 @@ class Instalog(plugin_sandbox.CoreAPI):
         return False, ('Flush for `%s\' failed within the specified timeout '
                        '(%d / %d events)'
                        % (plugin_id, progress[0], progress[1]))
+
+  def GetAllProgress(self, details=0):
+    return self._buffer.CallPlugin('ListConsumers', details)
 
   ############################################################
   # Functions below implement plugin_base.CoreAPI.

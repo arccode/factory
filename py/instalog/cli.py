@@ -125,6 +125,8 @@ class InstalogCLI(object):
     elif args.cmd == 'archive':
       self.Archive(config_path, config['instalog']['data_dir'],
                    args.archive_path, args.details)
+    elif args.cmd == 'progress':
+      self.Progress(args.plugin_id, args.details)
 
   def _LocateConfigFile(self, user_path):
     """Locates the config file that should be used by Instalog."""
@@ -238,6 +240,7 @@ class InstalogCLI(object):
       sys.exit(1)
 
   def Archive(self, config_path, data_dir, archive_path, details):
+    """Archives the whole Instalog."""
     if self._service.IsRunning():
       print('Is the Instalog running? You need to stop the Instalog first')
       sys.exit(1)
@@ -275,6 +278,15 @@ class InstalogCLI(object):
           print('Archiving virtual_env')
           tar.add(instalog_virtual_env_dir, 'instalog/virtual_env')
     print('DONE')
+
+  def Progress(self, plugin_id, details):
+    """Shows the progress of output plugins"""
+    progress_dict = self._core.GetAllProgress(details)
+    for name in sorted(progress_dict):
+      if plugin_id is None or name.startswith(plugin_id):
+        completed, total = progress_dict[name]
+        print('%s completed %d of %d events, and remaining %d events' %
+              (name, completed, total, total - completed))
 
 
 def main():
@@ -339,6 +351,16 @@ def main():
   archive_parser.add_argument(
       '--details', '-d', action='count', default=0,
       help='archive more details (instalog code / virtual_env)')
+
+  progress_parser = subparsers.add_parser(
+      'progress', help='print the progress of plugin')
+  progress_parser.set_defaults(cmd='progress')
+  progress_parser.add_argument(
+      'plugin_id', type=str, nargs='?', default=None,
+      help='ID of plugin\'s progress to print')
+  progress_parser.add_argument(
+      '--details', '-d', action='count', default=0,
+      help='print more details')
 
   args = parser.parse_args()
 

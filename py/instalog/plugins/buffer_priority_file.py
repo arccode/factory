@@ -290,17 +290,29 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
       for file_num in xrange(_LEVEL_FILE):
         self.buffer_file[pri_level][file_num].RemoveConsumer(name)
 
-  def ListConsumers(self):
+  def ListConsumers(self, details=0):
     """See BufferPlugin.ListConsumers."""
     consumers_dict = {}
+    progress_dict = {}
     for name in self.consumers:
-      consumers_dict[name] = (0, 0)
-    for pri_level in xrange(_PRIORITY_LEVEL):
-      for file_num in xrange(_LEVEL_FILE):
-        progress_dict = self.buffer_file[pri_level][file_num].ListConsumers()
-        for name, progress in progress_dict.iteritems():
-          consumers_dict[name] = (consumers_dict[name][0] + progress[0],
-                                  consumers_dict[name][1] + progress[1])
+      progress_dict[name] = {}
+      for pri_level in xrange(_PRIORITY_LEVEL):
+        progress_dict[name][pri_level] = {}
+        for file_num in xrange(_LEVEL_FILE):
+          progress_dict[name][pri_level][file_num] = (
+              self.buffer_file[pri_level][file_num].ListConsumers()[name])
+          if details >= 2:
+            consumers_dict['%s(%d-%d)' % (name, pri_level, file_num)] = (
+                progress_dict[name][pri_level][file_num])
+        progress_dict[name][pri_level] = tuple(
+            map(sum, zip(*progress_dict[name][pri_level].values())))
+        if details == 1:
+          consumers_dict['%s(%d)' % (name, pri_level)] = (
+              progress_dict[name][pri_level])
+      progress_dict[name] = tuple(
+          map(sum, zip(*progress_dict[name].values())))
+      if details <= 0:
+        consumers_dict[name] = progress_dict[name]
     return consumers_dict
 
   def Consume(self, name):

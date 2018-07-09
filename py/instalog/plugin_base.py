@@ -253,7 +253,7 @@ class BufferPlugin(Plugin):
     """
     raise NotImplementedError
 
-  def ListConsumers(self):
+  def ListConsumers(self, details=0):
     """Returns information about consumers subscribed to the buffer.
 
     Returns:

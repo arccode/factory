@@ -123,8 +123,9 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
     """See BufferPlugin.RemoveConsumer."""
     self.buffer_file.RemoveConsumer(name)
 
-  def ListConsumers(self):
+  def ListConsumers(self, details=0):
     """See BufferPlugin.ListConsumers."""
+    del details
     return self.buffer_file.ListConsumers()
 
   def Consume(self, name):
