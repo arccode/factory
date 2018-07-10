@@ -126,6 +126,14 @@ class VSWR(test_case.TestCase):
     self._results = {}
     self.test_passed = False
 
+    # Group checker and details for Testlog
+    self._group_checker = testlog.GroupParam(
+        'trace_data', ['name', 'trace_data', 'frequency'])
+    testlog.UpdateParam('name', param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam('trace_data', value_unit='dB')
+    testlog.UpdateParam('frequency', value_unit='Hz',
+                        param_type=testlog.PARAM_TYPE.argument)
+
   def _ConnectToENA(self, network_analyzer_config):
     """Connnects to the ENA and initializes the SCPI object."""
     valid_ping_count = 0
@@ -500,21 +508,15 @@ class VSWR(test_case.TestCase):
       max: the maximum threshold of the trace.
     """
     # pylint: disable=redefined-builtin
-    group_checker = testlog.GroupParam(
-        'trace_data', ['name', 'trace_data', 'frequency'])
-    testlog.UpdateParam('name', param_type=testlog.PARAM_TYPE.argument)
-    testlog.UpdateParam('trace_data', value_unit='dB')
-    testlog.UpdateParam('frequency', value_unit='Hz',
-                        param_type=testlog.PARAM_TYPE.argument)
     if min is None and max is None:
       for freq, data in trace.iteritems():
-        with group_checker:
+        with self._group_checker:
           testlog.LogParam('name', name)
           testlog.LogParam('trace_data', data)
           testlog.LogParam('frequency', freq)
     else:
       for freq, data in trace.iteritems():
-        with group_checker:
+        with self._group_checker:
           testlog.LogParam('name', name)
           testlog.CheckNumericParam('trace_data', data, min=min, max=max)
           testlog.LogParam('frequency', freq)
