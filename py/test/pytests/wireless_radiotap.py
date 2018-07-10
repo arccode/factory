@@ -105,7 +105,8 @@ def FlimConfigureService(flim, ssid, password):
   flim.manager.ConfigureService(wlan_dict)
 
 
-def IwScan(devname, sleep_retry_time_secs=2, max_retries=10):
+def IwScan(iw_scan_group_checker, devname,
+           sleep_retry_time_secs=2, max_retries=10):
   """Scans on device.
 
   Args:
@@ -126,8 +127,7 @@ def IwScan(devname, sleep_retry_time_secs=2, max_retries=10):
     stdout, stderr = process.communicate()
     retcode = process.returncode
     event_log.Log('iw_scaned', retcode=retcode, stderr=stderr)
-    group_checker = testlog.GroupParam('iw_scan', ['retcode', 'stderr'])
-    with group_checker:
+    with iw_scan_group_checker:
       testlog.LogParam('retcode', retcode)
       testlog.LogParam('stderr', stderr)
 
@@ -373,6 +373,17 @@ class WirelessRadiotapTest(test_case.TestCase):
     self._flim = flimflam.FlimFlam(dbus.SystemBus())
     self._connect_service = None
 
+    # Group checker for Testlog.
+    self._iw_scan_group_checker = testlog.GroupParam(
+        'iw_scan', ['retcode', 'stderr'])
+    self._service_group_checker = testlog.GroupParam(
+        'service_signal', ['service', 'service_strength'])
+    testlog.UpdateParam('service', param_type=testlog.PARAM_TYPE.argument)
+    self._antenna_group_checker = testlog.GroupParam(
+        'antenna', ['antenna', 'freq', 'strength'])
+    testlog.UpdateParam('antenna', param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam('freq', param_type=testlog.PARAM_TYPE.argument)
+
   def tearDown(self):
     self.DisconnectService()
 
@@ -440,10 +451,7 @@ class WirelessRadiotapTest(test_case.TestCase):
         session.console.info('Service %s signal strength %f.', service,
                              strength)
         event_log.Log('service_signal', service=service, strength=strength)
-        group_checker = testlog.GroupParam('service_signal',
-                                           ['service', 'service_strength'])
-        testlog.UpdateParam('service', param_type=testlog.PARAM_TYPE.argument)
-        with group_checker:
+        with self._service_group_checker:
           testlog.LogParam('service', service)
           testlog.LogParam('service_strength', strength)
         if strength > max_strength:
@@ -551,11 +559,7 @@ class WirelessRadiotapTest(test_case.TestCase):
           'antenna_%s' % antenna, freq=service[1],
           rssi=scanned_strength,
           meet=(scanned_strength and scanned_strength >= spec_strength))
-      group_checker = testlog.GroupParam('antenna',
-                                         ['antenna', 'freq', 'strength'])
-      testlog.UpdateParam('antenna', param_type=testlog.PARAM_TYPE.argument)
-      testlog.UpdateParam('freq', param_type=testlog.PARAM_TYPE.argument)
-      with group_checker:
+      with self._antenna_group_checker:
         testlog.LogParam('antenna', antenna)
         testlog.LogParam('freq', service[1])
         result = testlog.CheckNumericParam('strength', scanned_strength,
@@ -578,7 +582,7 @@ class WirelessRadiotapTest(test_case.TestCase):
     wireless_services = {}
     self.ui.SetState(_('Checking frequencies...'))
 
-    scan_result = IwScan(self.args.device_name)
+    scan_result = IwScan(self._iw_scan_group_checker, self.args.device_name)
     set_all_ssids = set(service[0] for service in services)
 
     for ssid, freq in scan_result:

@@ -202,6 +202,10 @@ class ALSFixture(test_case.TestCase):
 
     self.ui.SetTitle(_('ALS Sensor Calibration'))
 
+    # Group checker for Testlog.
+    self.group_checker = testlog.GroupParam(
+        'lux_value', ['name', 'value', 'elapsed'])
+
   def _Log(self, text):
     """Custom log function to log."""
     logging.info(text)
@@ -346,20 +350,16 @@ class ALSFixture(test_case.TestCase):
     if self.args.mock_mode:
       return ALS_MOCK_VALUE
     try:
-      testlog.UpdateParam(
-          param_name + '_time',
-          value_unit='seconds')
-      group_checker = testlog.GroupParam(param_name,
-                                         [param_name, param_name + '_time'])
       buf = []
       start_time = time.time()
       for unused_i in xrange(samples):
         self.Sleep(delay)
         buf.append(self.als_controller.GetLuxValue())
-        with group_checker:
+        with self.group_checker:
           elapsed_time = time.time() - start_time
-          testlog.LogParam(param_name, buf[-1])
-          testlog.LogParam(param_name + '_time', elapsed_time)
+          testlog.LogParam('name', param_name)
+          testlog.LogParam('value', buf[-1])
+          testlog.LogParam('elapsed', elapsed_time)
           self._Log('%r: %r' % (elapsed_time, buf[-1]))
     except ambient_light_sensor.AmbientLightSensorException as e:
       logging.exception('Error reading ALS value: %s', e.message)

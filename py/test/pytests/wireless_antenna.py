@@ -127,7 +127,8 @@ def IwSetAntenna(devname, phyname, tx_bitmap, rx_bitmap, max_retries=10,
     raise IwException('Failed to set antenna for %s tries' % max_retries)
 
 
-def IwScan(devname, frequency=None, sleep_retry_time_secs=2, max_retries=10):
+def IwScan(iw_scan_group_checker, devname,
+           frequency=None, sleep_retry_time_secs=2, max_retries=10):
   """Scans on device.
 
   Args:
@@ -154,8 +155,7 @@ def IwScan(devname, frequency=None, sleep_retry_time_secs=2, max_retries=10):
     retcode = process.returncode
 
     event_log.Log('iw_scaned', retcode=retcode, stderr=stderr)
-    group_checker = testlog.GroupParam('iw_scan', ['retcode', 'stderr'])
-    with group_checker:
+    with iw_scan_group_checker:
       testlog.LogParam('retcode', retcode)
       testlog.LogParam('stderr', stderr)
 
@@ -231,6 +231,17 @@ class WirelessTest(test_case.TestCase):
       self.fail('Switching antenna is disabled but antenna configs are %s' %
                 self.args.strength.keys())
 
+    # Group checker for Testlog.
+    self._iw_scan_group_checker = testlog.GroupParam(
+        'iw_scan', ['retcode', 'stderr'])
+    self._service_group_checker = testlog.GroupParam(
+        'service_signal', ['service', 'service_strength'])
+    testlog.UpdateParam('service', param_type=testlog.PARAM_TYPE.argument)
+    self._antenna_group_checker = testlog.GroupParam(
+        'antenna', ['antenna', 'freq', 'strength'])
+    testlog.UpdateParam('antenna', param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam('freq', param_type=testlog.PARAM_TYPE.argument)
+
   def tearDown(self):
     """Restores antenna."""
     self.RestoreAntenna()
@@ -264,10 +275,7 @@ class WirelessTest(test_case.TestCase):
         session.console.info('Service %s signal strength %f.', service,
                              strength)
         event_log.Log('service_signal', service=service, strength=strength)
-        group_checker = testlog.GroupParam('service_signal',
-                                           ['service', 'service_strength'])
-        testlog.UpdateParam('service', param_type=testlog.PARAM_TYPE.argument)
-        with group_checker:
+        with self._service_group_checker:
           testlog.LogParam('service', service)
           testlog.LogParam('service_strength', strength)
         if strength > max_strength:
@@ -299,7 +307,8 @@ class WirelessTest(test_case.TestCase):
           device=self.args.device_name,
           freq=freq))
 
-    scan_output = IwScan(self.args.device_name, freq)
+    scan_output = IwScan(self._iw_scan_group_checker, self.args.device_name,
+                         freq)
     self.ui.SetState(
         _('Done scanning on device {device} frequency {freq}...',
           device=self.args.device_name,
@@ -470,11 +479,7 @@ class WirelessTest(test_case.TestCase):
     event_log.Log('antenna_%s' % antenna, freq=service[1],
                   rssi=scanned_strength,
                   meet=(scanned_strength and scanned_strength >= spec_strength))
-    group_checker = testlog.GroupParam('antenna',
-                                       ['antenna', 'freq', 'strength'])
-    testlog.UpdateParam('antenna', param_type=testlog.PARAM_TYPE.argument)
-    testlog.UpdateParam('freq', param_type=testlog.PARAM_TYPE.argument)
-    with group_checker:
+    with self._antenna_group_checker:
       testlog.LogParam('antenna', antenna)
       testlog.LogParam('freq', service[1])
       result = testlog.CheckNumericParam('strength', scanned_strength,

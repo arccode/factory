@@ -908,6 +908,22 @@ class WiFiThroughput(test_case.TestCase):
 
     self.ui.ToggleTemplateClass('font-large', True)
 
+    # Group checker and details for Testlog.
+    self._group_checker = testlog.GroupParam(
+        'iperf_data',
+        ['tx_rx', 'ap_ssid', 'throughput', 'start_time', 'end_time'])
+    testlog.UpdateParam(
+        'throughput', description='TX/RX throughput test on AP over time',
+        value_unit='Bits/second')
+    testlog.UpdateParam(
+        'start_time', value_unit='seconds')
+    testlog.UpdateParam(
+        'end_time', value_unit='seconds')
+    testlog.UpdateParam(
+        'tx_rx', param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam(
+        'ap_ssid', param_type=testlog.PARAM_TYPE.argument)
+
   def tearDown(self):
     logging.info('Tear down...')
     self._EndOperatorFeedback()
@@ -975,24 +991,8 @@ class WiFiThroughput(test_case.TestCase):
         # Log throughput data via testlog.
         for tx_rx in ('tx', 'rx'):
           if 'intervals' in iperf_data['iperf_%s' % tx_rx]:
-            testlog.UpdateParam(
-                name='throughput',
-                description='TX/RX throughput test on AP over time',
-                value_unit='Bits/second')
-            testlog.UpdateParam(
-                name='start_time',
-                value_unit='seconds')
-            testlog.UpdateParam(
-                name='end_time',
-                value_unit='seconds')
-            group_checker = testlog.GroupParam(
-                'iperf_data',
-                ['tx_rx', 'ap_ssid', 'throughput', 'start_time', 'end_time'])
-            testlog.UpdateParam('tx_rx', param_name=testlog.PARAM_TYPE.argument)
-            testlog.UpdateParam('ap_ssid',
-                                param_name=testlog.PARAM_TYPE.argument)
             for interval in iperf_data['iperf_%s' % tx_rx]['intervals']:
-              with group_checker:
+              with self._group_checker:
                 testlog.LogParam('ap_ssid', ap_config.ssid)
                 testlog.LogParam('tx_rx', tx_rx)
                 testlog.LogParam(

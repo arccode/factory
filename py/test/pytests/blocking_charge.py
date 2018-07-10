@@ -145,6 +145,9 @@ class ChargerTest(test_case.TestCase):
   def setUp(self):
     self._power = device_utils.CreateDUTInterface().power
 
+    # Group checker for Testlog.
+    self._group_checker = testlog.GroupParam('charge', ['charge', 'elapsed'])
+
   def runTest(self):
     self.assertTrue(self._power.CheckBatteryPresent(), 'Cannot find battery.')
     self.assertTrue(self._power.CheckACPresent(), 'Cannot find AC power.')
@@ -173,14 +176,13 @@ class ChargerTest(test_case.TestCase):
     self.ui.SetState(MakeSpriteHTMLTag('charging_sprite.png', 256, 256))
     logging.info('Charging starting at %d%%', start_charge)
 
-    group_checker = testlog.GroupParam('charge', ['charge', 'elapsed'])
     for elapsed in xrange(self.args.timeout_secs):
       charge = self._power.GetChargePct()
 
       if charge >= target_charge:
         event_log.Log('charged', charge=charge, target=target_charge,
                       elapsed=elapsed)
-        with group_checker:
+        with self._group_checker:
           testlog.CheckNumericParam('charge', charge, min=target_charge)
           testlog.LogParam('elapsed', elapsed)
         return

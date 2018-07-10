@@ -79,6 +79,11 @@ class ChargerTest(test_case.TestCase):
     logging.info('Raw verbose logs saved in %s', verbose_log_path)
     self._verbose_log = open(verbose_log_path, 'a')
 
+    # Group checker for Testlog.
+    self._group_checker = testlog.GroupParam(
+        'charge_info', ['load', 'target', 'charge', 'elapsed', 'status'])
+    testlog.UpdateParam('target', param_type=testlog.PARAM_TYPE.argument)
+
   def _GetLabelWithUnit(self, value):
     return '%.2f%s' % (value, '%' if self.args.use_percentage else 'mAh')
 
@@ -191,10 +196,6 @@ class ChargerTest(test_case.TestCase):
     if load is None:
       load = self._dut.info.cpu_count
 
-    group_checker = testlog.GroupParam(
-        'charge_info', ['load', 'target', 'charge', 'elapsed', 'status'])
-    testlog.UpdateParam('target', param_type=testlog.PARAM_TYPE.argument)
-
     charge = self._GetCharge(self.args.use_percentage)
     battery_current = self._GetBatteryCurrent()
     target = charge + charge_change
@@ -205,7 +206,7 @@ class ChargerTest(test_case.TestCase):
                       'charge/discharge.', self._GetLabelWithUnit(charge),
                       self._GetLabelWithUnit(target))
       event_log.Log('target_too_close', charge=charge, target=target)
-      with group_checker:
+      with self._group_checker:
         testlog.LogParam('status', 'target_too_close')
         testlog.LogParam('target', target)
         testlog.LogParam('charge', charge)
@@ -249,7 +250,7 @@ class ChargerTest(test_case.TestCase):
         charge = self._GetCharge(self.args.use_percentage)
         battery_current = self._GetBatteryCurrent()
 
-        with group_checker:
+        with self._group_checker:
           testlog.LogParam('target', target)
           testlog.LogParam('charge', charge)
           testlog.LogParam('load', load)
@@ -263,7 +264,7 @@ class ChargerTest(test_case.TestCase):
                        self._GetLabelWithUnit(target), elapsed, load)
           event_log.Log('meet', elapsed=elapsed, load=load, target=target,
                         charge=charge)
-          with group_checker:
+          with self._group_checker:
             testlog.LogParam('target', target)
             testlog.LogParam('charge', charge)
             testlog.LogParam('load', load)
@@ -295,7 +296,7 @@ class ChargerTest(test_case.TestCase):
         self.Sleep(1)
 
       event_log.Log('not_meet', load=load, target=target, charge=charge)
-      with group_checker:
+      with self._group_checker:
         elapsed = time.time() - start_time
         testlog.LogParam('target', target)
         testlog.LogParam('charge', charge)

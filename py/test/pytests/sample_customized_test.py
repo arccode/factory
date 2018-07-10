@@ -94,6 +94,19 @@ class SampleCustomizedTest(unittest.TestCase):
     # for example, create a temporary folder on DUT
     self.temp_dir = self.dut.temp.mktemp(is_dir=True)
 
+    # Group checker for Testlog.
+    self.group_checker = testlog.GroupParam(
+        'audio', ['audio_quality', 'audio_frequency'])
+    testlog.UpdateParam('audio_frequency',
+                        param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam(
+        name='audio_quality',
+        description='quality of audio device on different frequency',
+        value_unit='quality')
+    testlog.UpdateParam(
+        name='audio_frequency',
+        value_unit='Hz')
+
   def tearDown(self):
     """Tear down function (for clean up)."""
     # remove the folder we created, and everything inside that folder.
@@ -125,23 +138,11 @@ class SampleCustomizedTest(unittest.TestCase):
         min=0.9, max=1.0):
       raise type_utils.TestFailure('The camera is not qualified')
 
-    # you can also measure and log a series of values
-    group_checker = testlog.GroupParam(
-        'audio', ['audio_quality', 'audio_frequency'])
-    testlog.UpdateParam('audio_frequency',
-                        param_type=testlog.PARAM_TYPE.argument)
-    testlog.UpdateParam(
-        name='audio_quality',
-        description='quality of audio device on different frequency',
-        value_unit='quality')
-    testlog.UpdateParam(
-        name='audio_frequency',
-        value_unit='Hz')
-
     failed = False
     for freq in xrange(1000, 4000, 50):
       quality = self.MeasureAudioQuality(freq)
-      with group_checker:
+      # you can also measure and log a series of values
+      with self.group_checker:
         if not testlog.CheckNumericParam('audio_quality', quality, min=0.8):
           failed = True
         testlog.LogParam('audio_frequency', freq)

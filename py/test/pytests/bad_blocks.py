@@ -90,6 +90,13 @@ class BadBlocksTest(test_case.TestCase):
 
     self.current_phase = 0
 
+    # Group checker for Testlog.
+    self.command_group_checker = testlog.GroupParam(
+        'log_command', ['command', 'command_stdout', 'command_stderr'])
+    testlog.UpdateParam('command', param_type=testlog.PARAM_TYPE.argument)
+    self.sata_link_info_group_checker = testlog.GroupParam(
+        'sata_link_info', ['sata_link_speed', 'system_log_message', 'phase'])
+
   def tearDown(self):
     # Sync, so that any problems (like writing outside of our partition)
     # will show up sooner rather than later.
@@ -395,10 +402,7 @@ class BadBlocksTest(test_case.TestCase):
         logging.info('stderr:\n%s', stderr_data)
       event_log.Log('log_command', command=self.args.extra_log_cmd,
                     stdout=stdout_data, stderr=stderr_data)
-      group_checker = testlog.GroupParam(
-          'log_command', ['command', 'command_stdout', 'command_stderr'])
-      testlog.UpdateParam('command', param_type=testlog.PARAM_TYPE.argument)
-      with group_checker:
+      with self.command_group_checker:
         testlog.LogParam('command', self.args.extra_log_cmd)
         testlog.LogParam('command_stdout', stdout_data)
         testlog.LogParam('command_stderr', stderr_data)
@@ -437,10 +441,6 @@ class BadBlocksTest(test_case.TestCase):
                      '/var/log/messages after %d seconds',
                      self.args.timeout_secs)
 
-    # Group checker for Testlog.
-    group_checker = testlog.GroupParam(
-        'sata_link_info', ['sata_link_speed', 'system_log_message', 'phase'])
-
     while True:
       rlist, unused_wlist, unused_xlist = select(
           [self.message_monitor.stdout], [], [], 0)
@@ -462,7 +462,7 @@ class BadBlocksTest(test_case.TestCase):
       if not first_time and re.search(r'\bata[0-9.]+:', log_line):
         logging.info('System log message: %s', log_line)
         event_log.Log('system_log_message', log_line=log_line)
-        with group_checker:
+        with self.sata_link_info_group_checker:
           testlog.LogParam('system_log_message', log_line)
           testlog.LogParam('phase', self.current_phase)
           testlog.LogParam('sata_link_speed', None)
@@ -474,7 +474,7 @@ class BadBlocksTest(test_case.TestCase):
     for event in link_info_events:
       logging.info('SATA link info: %r', event)
       event_log.Log('sata_link_info', **event)
-      with group_checker:
+      with self.sata_link_info_group_checker:
         testlog.LogParam('system_log_message', event['log_line'])
         testlog.LogParam('phase', self.current_phase)
         testlog.LogParam('sata_link_speed', event['speed_mbps'])

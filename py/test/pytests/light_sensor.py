@@ -282,6 +282,13 @@ class LightSensorTest(test_case.TestCase):
       ]
       self.ui.SetHTML(html, id='tasks', append=True)
 
+    # Group checker and details for Testlog.
+    self._group_checker = testlog.GroupParam(
+        'light', ['name', 'elapsed', 'light'])
+    testlog.UpdateParam('name', param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam('light', description=('Light sensor values over time'))
+    testlog.UpdateParam('elapsed', value_unit='seconds')
+
   def GetConfigDescription(self, cfg):
     if 'above' in cfg:
       return 'Input > %d' % cfg['above']
@@ -298,14 +305,6 @@ class LightSensorTest(test_case.TestCase):
     self.ui.StartFailingCountdownTimer(
         self._timeout_per_subtest * len(self._subtest_list))
 
-    group_checker = testlog.GroupParam('light', ['name', 'elapsed', 'light'])
-    testlog.UpdateParam(name='name', param_type=testlog.PARAM_TYPE.argument)
-    testlog.UpdateParam(
-        name='light',
-        description=('Light sensor values over time'))
-    testlog.UpdateParam(
-        name='elapsed',
-        value_unit='seconds')
     for idx, name in enumerate(self._subtest_list):
       self.ui.SetHTML('ACTIVE', id='result%d' % idx)
       current_iter_remained = self._iter_req_per_subtest
@@ -317,7 +316,7 @@ class LightSensorTest(test_case.TestCase):
 
         cfg = self._subtest_cfg[name]
         passed = False
-        with group_checker:
+        with self._group_checker:
           testlog.LogParam('name', name)
           testlog.LogParam('elapsed', time.time() - start_time)
           if 'above' in cfg:

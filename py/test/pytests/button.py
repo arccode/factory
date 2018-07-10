@@ -239,10 +239,12 @@ class ButtonTest(test_case.TestCase):
     else:
       self._fixture = None
 
+    # Group checker for Testlog.
+    self.group_checker = testlog.GroupParam(
+        'button_wait', ['time_to_press', 'time_to_release'])
+
   def tearDown(self):
     timestamps = self._action_timestamps + [float('inf')]
-    group_checker = testlog.GroupParam(
-        'button_wait', ['time_to_press', 'time_to_release'])
     for release_index in xrange(2, len(timestamps), 2):
       time_to_press = (timestamps[release_index - 1] -
                        timestamps[release_index - 2])
@@ -251,7 +253,7 @@ class ButtonTest(test_case.TestCase):
       event_log.Log('button_wait_sec',
                     time_to_press_sec=time_to_press,
                     time_to_release_sec=time_to_release)
-      with group_checker:
+      with self.group_checker:
         testlog.LogParam('time_to_press', time_to_press)
         testlog.LogParam('time_to_release', time_to_release)
     if self._fixture:

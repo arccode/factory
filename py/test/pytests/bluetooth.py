@@ -417,6 +417,9 @@ class BluetoothTest(test_case.TestCase):
                        'and press the space key on the test host.'),
                      test_ui.SPACE_KEY)
 
+    # Group checker for Testlog.
+    self.group_checker = testlog.GroupParam('avg_rssi', ['mac', 'average_rssi'])
+
   def tearDown(self):
     """Close the charge test fixture."""
     if self.args.use_charge_fixture:
@@ -722,15 +725,13 @@ class BluetoothTest(test_case.TestCase):
     if not candidate_rssis:
       self.FailTask('ScanDevicesTask: Fail to find any candidate device.')
 
-    # Group checker for Testlog.
-    group_checker = testlog.GroupParam('avg_rssi', ['mac', 'average_rssi'])
     # Calculates maximum average RSSI.
     max_average_rssi_mac, max_average_rssi = None, -sys.float_info.max
     for mac, rssis in candidate_rssis.iteritems():
       average_rssi = float(sum(rssis)) / len(rssis)
       logging.info('Device %s has average RSSI: %f', mac, average_rssi)
       event_log.Log('avg_rssi', mac=mac, average_rssi=average_rssi)
-      with group_checker:
+      with self.group_checker:
         testlog.LogParam('mac', mac)
         testlog.LogParam('average_rssi', average_rssi)
       if average_rssi > max_average_rssi:

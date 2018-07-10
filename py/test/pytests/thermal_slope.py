@@ -105,12 +105,16 @@ class ThermalSlopeTest(unittest.TestCase):
     # Last time we slept.
     self.last_sleep = None
     # Group checker and units info for testlog.
-    self.group_checker = testlog.GroupParam(
+    self.sample_group_checker = testlog.GroupParam(
         'sample',
         ['stage', 'fan_rpm', 'temperatures', 'energy', 'power', 'elapsed'])
     testlog.UpdateParam('stage', param_type=testlog.PARAM_TYPE.argument)
     testlog.UpdateParam('energy', value_unit='Joule')
     testlog.UpdateParam('power', value_unit='Watt')
+    self.result_group_checker = testlog.GroupParam(
+        'result', ['result_stage', 'result_temperature', 'result_power'])
+    testlog.UpdateParam('result_temperature', value_unit='degree Celsius')
+    testlog.UpdateParam('result_power', value_unit='Watt')
 
   def _Log(self):
     """Logs the current stage and status.
@@ -137,7 +141,7 @@ class ThermalSlopeTest(unittest.TestCase):
                   temperature=temperatures,
                   energy_j=self.snapshot['energy'],
                   power_w=self.snapshot['power'])
-    with self.group_checker:
+    with self.sample_group_checker:
       testlog.LogParam('elapsed', elapsed_time)
       testlog.LogParam('stage', self.stage)
       testlog.LogParam('fan_rpm', fan_rpm)
@@ -218,11 +222,7 @@ class ThermalSlopeTest(unittest.TestCase):
                     stage, temp, power_w)
       event_log.Log('stage_result',
                     stage=self.stage, temp=temp, power_w=power_w)
-      group_checker = testlog.GroupParam(
-          'result', ['result_stage', 'result_temperature', 'result_power'])
-      testlog.UpdateParam('result_temperature', value_unit='degree Celsius')
-      testlog.UpdateParam('result_power', value_unit='Watt')
-      with group_checker:
+      with self.result_group_checker:
         testlog.LogParam('result_stage', self.stage)
         testlog.LogParam('result_temperature', temp)
         testlog.LogParam('result_power', power_w)

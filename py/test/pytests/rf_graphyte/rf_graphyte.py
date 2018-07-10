@@ -136,6 +136,21 @@ class RFGraphyteTest(test_case.TestCase):
     self.result_file_path = self.GetLogPath(timestamp, RESULT_FILENAME)
     self.log_file_path = self.GetLogPath(timestamp, LOG_FILENAME)
 
+    # Group checker for Testlog.
+    self.group_checker = testlog.GroupParam(
+        'result',
+        ['rf_type', 'component_name', 'test_type', 'center_freq',
+         'result_name', 'power_level', 'result', 'extra_fields'])
+    testlog.UpdateParam('rf_type', param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam('component_name',
+                        param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam('test_type', param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam('center_freq', param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam('result_name', param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam('power_level', param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam('extra_fields', param_type=testlog.PARAM_TYPE.argument)
+
+
   def runTest(self):
     # Update the config file from factory server.
     self.FetchConfigFromFactoryServer()
@@ -283,19 +298,6 @@ class RFGraphyteTest(test_case.TestCase):
       except ValueError:
         return None
 
-    group_checker = testlog.GroupParam(
-        'result',
-        ['rf_type', 'component_name', 'test_type', 'center_freq',
-         'result_name', 'power_level', 'result', 'extra_fields'])
-    testlog.UpdateParam('rf_type', param_type=testlog.PARAM_TYPE.argument)
-    testlog.UpdateParam('component_name',
-                        param_type=testlog.PARAM_TYPE.argument)
-    testlog.UpdateParam('test_type', param_type=testlog.PARAM_TYPE.argument)
-    testlog.UpdateParam('center_freq', param_type=testlog.PARAM_TYPE.argument)
-    testlog.UpdateParam('result_name', param_type=testlog.PARAM_TYPE.argument)
-    testlog.UpdateParam('power_level', param_type=testlog.PARAM_TYPE.argument)
-    testlog.UpdateParam('extra_fields', param_type=testlog.PARAM_TYPE.argument)
-
     with open(self.result_file_path, 'r') as f:
       for data in csv.DictReader(f):
         if data['test_item'] == 'TOTAL RESULT':
@@ -310,7 +312,7 @@ class RFGraphyteTest(test_case.TestCase):
           details = '%s result is missing.' % json.dumps(parameters)
           testlog.AddFailure(code=code, details=details)
         else:
-          with group_checker:
+          with self.group_checker:
             testlog.CheckNumericParam(
                 name='result', value=result_value,
                 min=_ConvertToNumber(data['lower_bound']),
