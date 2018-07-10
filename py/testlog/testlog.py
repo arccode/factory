@@ -197,7 +197,7 @@ class Testlog(object):
     if self.primary_json:
       self.primary_json = JSONLogFile(
           uuid=self.uuid, seq_generator=self.seq_generator,
-          path=self.primary_json, mode='a')
+          path=self.primary_json, mode='a', check_event=True)
     # Initialize testlog._pylogger
     self.CaptureLogging(stationDeviceId, stationInstallationId)
 
@@ -510,11 +510,12 @@ def AddFailure(*args, **kwargs):
 class JSONLogFile(file_utils.FileLockContextManager):
   """Represents a JSON log file on disk."""
 
-  def __init__(self, uuid, seq_generator, path, mode='a'):
+  def __init__(self, uuid, seq_generator, path, mode='a', check_event=False):
     super(JSONLogFile, self).__init__(path=path, mode=mode)
     self._thread_data = threading.local()
     self.test_run_id = uuid
     self.seq_generator = seq_generator
+    self.check_event = check_event
 
   def Log(self, event, override=False):
     """Converts event into JSON string and writes into disk.
@@ -542,12 +543,13 @@ class JSONLogFile(file_utils.FileLockContextManager):
     if 'time' not in event:
       event['time'] = time.time()
 
-    # Check the event, or it may be rejected by Instalog input plugin.
-    try:
-      event.CheckIsValid()
-    except Exception:
-      logging.exception('Not able to log the event: %s', event.ToJSON())
-      return ''
+    if self.check_event:
+      # Check the event, or it may be rejected by Instalog input plugin.
+      try:
+        event.CheckIsValid()
+      except Exception:
+        logging.exception('Not able to log the event: %s', event.ToJSON())
+        raise
 
     line = event.ToJSON() + '\n'
     with self:

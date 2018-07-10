@@ -52,6 +52,10 @@ class TestlogEventTest(unittest.TestCase):
     os.environ[testlog.TESTLOG_ENV_VARIABLE_NAME] = session_json_path
     return session_json_path
 
+  def _ReadSessionEvent(self):
+    with open(self.session_json_path, 'r') as f:
+      return json.load(f)
+
   def setUp(self):
     self.tmp_dir = tempfile.mkdtemp()
     self.state_dir = tempfile.mkdtemp()
@@ -371,6 +375,11 @@ class TestlogEventTest(unittest.TestCase):
     testlog.AddArgument('K1', 'V1')
     testlog.AddArgument('K2', 2.2, 'D2')
 
+    group_checker = testlog.GroupParam('GROUP', ['A', 'B'])
+    with group_checker:
+      testlog.LogParam('A', 1)
+      testlog.LogParam('B', 2)
+
     testlog.LogParam(name='text', value='unittest')
     testlog.UpdateParam(name='text', description='None', value_unit='pcs')
     testlog.LogParam(name='num', value=3388)
@@ -402,7 +411,7 @@ class TestlogEventTest(unittest.TestCase):
         content=CONTENT,
         name='text2')
 
-    event = testlog.GetGlobalTestlog().last_test_run
+    event = self._ReadSessionEvent()
     self.assertEqual(
         event['serialNumbers'],
         {'KKK': 'SN'}
@@ -415,6 +424,14 @@ class TestlogEventTest(unittest.TestCase):
     self.assertEqual(
         event['parameters'],
         {
+            'A': {
+                'type': 'measurement',
+                'group': 'GROUP',
+                'data': [{'numericValue': 1}]},
+            'B': {
+                'type': 'measurement',
+                'group': 'GROUP',
+                'data': [{'numericValue': 2}]},
             'text': {
                 'valueUnit': 'pcs',
                 'description': 'None',
@@ -642,7 +659,7 @@ class TestlogE2ETest(unittest.TestCase):
     # Assuming we are the harness.
     my_uuid = time_utils.TimedUUID()
     testlog.Testlog(log_root=state_dir, uuid=my_uuid)
-    testlog.Log(testlog.StationInit({}))
+    testlog.Log(testlog.StationInit({'count': 1, 'success': True}))
     logging.getLogger().setLevel(logging.INFO)
 
 
