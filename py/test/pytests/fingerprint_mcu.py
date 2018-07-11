@@ -79,7 +79,7 @@ except ImportError:
 class FingerprintTest(unittest.TestCase):
   """Tests the fingerprint sensor."""
   ARGS = [
-      Arg('sensor_hwid', int,
+      Arg('sensor_hwid', (int, list),
           'The finger sensor Hardware ID exported in the model field.',
           default=None),
       Arg('max_dead_pixels', int,
@@ -256,7 +256,7 @@ class FingerprintTest(unittest.TestCase):
     self.assertIsNotNone(match_model,
                          'Unable to retrieve Sensor info (%s)' % (info))
     logging.info('ectool fpinfo:\n%s\n', info)
-    model = int(match_model.group(1), 16) if match_model else 0xdead
+    model = int(match_model.group(1), 16)
     match_errors = self.FPINFO_ERRORS_RE.search(info)
     self.assertIsNotNone(match_errors,
                          'Unable to retrieve Sensor error flags (%s)' % (info))
@@ -264,12 +264,12 @@ class FingerprintTest(unittest.TestCase):
 
     self.assertEqual(flags, '',
                      'Sensor failure: %s' % (flags))
-    expected_hwid = self.args.sensor_hwid if self.args.sensor_hwid else None
+    expected_hwid = type_utils.MakeList(self.args.sensor_hwid or [])
     testlog.UpdateParam(
         name='sensor_hwid', description='Sensor Hardware ID register')
-    if not testlog.CheckNumericParam(
-        name='sensor_hwid', value=model, min=expected_hwid, max=expected_hwid):
-      raise type_utils.TestFailure('Invalid sensor HWID')
+    testlog.LogParam('sensor_hwid', model)
+    if expected_hwid and model not in expected_hwid:
+      raise type_utils.TestFailure('Invalid sensor HWID: %r' % model)
 
     # checkerboard test patterns
     self.checkerboardTest(inverted=False)
