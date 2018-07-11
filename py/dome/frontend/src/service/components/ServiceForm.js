@@ -5,7 +5,7 @@
 import RaisedButton from 'material-ui/RaisedButton';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {reduxForm} from 'redux-form/immutable';
+import {reduxForm} from 'redux-form';
 
 import RenderFields from './RenderFields';
 

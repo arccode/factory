@@ -6,8 +6,7 @@ import FlatButton from 'material-ui/FlatButton';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
-import {formPropTypes, submit} from 'redux-form';
-import {Field, reduxForm} from 'redux-form/immutable';
+import {Field, formPropTypes, reduxForm, submit} from 'redux-form';
 import {createStructuredSelector} from 'reselect';
 
 import formDialog from '@app/formDialog';
@@ -56,14 +55,14 @@ class UploadingBundleForm extends React.Component {
     this.props.cancelUploading();
   }
 
-  handleSubmit = (values) => {
+  handleSubmit = ({name, note, file}) => {
     const {project, startUploading} = this.props;
 
     const data = {
       project,
-      name: values.get('name'),
-      note: values.get('note'),
-      bundleFile: values.get('file'),
+      name,
+      note,
+      bundleFile: file,
     };
     startUploading(data);
   }

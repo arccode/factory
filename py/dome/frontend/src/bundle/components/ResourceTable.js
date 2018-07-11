@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Immutable from 'immutable';
 import RaisedButton from 'material-ui/RaisedButton';
 import {
   Table,
@@ -23,12 +22,11 @@ import {UPDATING_RESOURCE_FORM} from '../constants';
 class ResourceTable extends React.Component {
   static propTypes = {
     openUpdatingResourceForm: PropTypes.func.isRequired,
-    bundle: PropTypes.instanceOf(Immutable.Map).isRequired,
+    bundle: PropTypes.object.isRequired,
   };
 
   render() {
-    const {bundle, openUpdatingResourceForm} = this.props;
-    const resources = bundle.get('resources');
+    const {bundle: {name, resources}, openUpdatingResourceForm} = this.props;
 
     return (
       <Table selectable={false}>
@@ -42,8 +40,8 @@ class ResourceTable extends React.Component {
           </TableRow>
         </TableHeader>
         <TableBody displayRowCheckbox={false}>
-          {resources.keySeq().sort().toArray().map((key) => {
-            const resource = resources.get(key);
+          {Object.keys(resources).sort().map((key) => {
+            const resource = resources[key];
 
             // Version string often exceeds the width of the cell, and the
             // default behavior of TableRowColumn is to clip it. We need to make
@@ -54,19 +52,20 @@ class ResourceTable extends React.Component {
             };
 
             return (
-              <TableRow key={resource.get('type')}>
+              <TableRow key={resource.type}>
                 <TableRowColumn style={style}>
-                  {resource.get('type')}
+                  {resource.type}
                 </TableRowColumn>
                 <TableRowColumn style={style}>
-                  {resource.get('version')}
+                  {resource.version}
                 </TableRowColumn>
                 <TableRowColumn>
                   {
                     <RaisedButton
                       label="update"
-                      onClick={() => openUpdatingResourceForm(
-                          bundle.get('name'), key, resource.get('type'))}
+                      onClick={
+                        () => openUpdatingResourceForm(name, key, resource.type)
+                      }
                     />
                   }
                 </TableRowColumn>

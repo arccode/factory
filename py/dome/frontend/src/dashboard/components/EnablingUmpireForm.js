@@ -7,8 +7,14 @@ import FlatButton from 'material-ui/FlatButton';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
-import {fieldPropTypes, formPropTypes, submit} from 'redux-form';
-import {Field, formValueSelector, reduxForm} from 'redux-form/immutable';
+import {
+  Field,
+  fieldPropTypes,
+  formPropTypes,
+  formValueSelector,
+  reduxForm,
+  submit,
+} from 'redux-form';
 import {createStructuredSelector} from 'reselect';
 
 import formDialog from '@app/formDialog';

@@ -4,6 +4,6 @@
 
 import {NAME} from './constants';
 
-export const localState = (state) => state.get(NAME);
+export const localState = (state) => state[NAME];
 
-export const getCurrentApp = (state) => localState(state).get('currentApp');
+export const getCurrentApp = (state) => localState(state).currentApp;

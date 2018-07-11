@@ -2,16 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Immutable from 'immutable';
 import {indigo500} from 'material-ui/styles/colors';
 import getMuiTheme from 'material-ui/styles/getMuiTheme';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {Provider} from 'react-redux';
-import {applyMiddleware, createStore} from 'redux';
-import {reducer as reduxFormReducer} from 'redux-form/immutable';
-import {combineReducers} from 'redux-immutable';
+import {applyMiddleware, combineReducers, createStore} from 'redux';
+import {reducer as reduxFormReducer} from 'redux-form';
 import {createLogger} from 'redux-logger';
 import thunkMiddleware from 'redux-thunk';
 
@@ -52,14 +50,7 @@ const store = createStore(
       }, {}),
       form: reduxFormReducer,
     }),
-    applyMiddleware(
-        thunkMiddleware,
-        createLogger({
-          // Transform immutable state to plain object or it will be
-          // hard to read.
-          stateTransformer:
-              (s) => Immutable.isImmutable(s) ? s.toJS() : s,
-        })));
+    applyMiddleware(thunkMiddleware, createLogger()));
 
 class App extends React.Component {
   componentDidMount() {

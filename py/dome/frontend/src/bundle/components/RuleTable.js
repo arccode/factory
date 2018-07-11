@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Immutable from 'immutable';
+import produce from 'immer';
 import ChipInput from 'material-ui-chip-input';
 import {
   Table,
@@ -16,35 +16,38 @@ import React from 'react';
 
 class RuleTable extends React.Component {
   static propTypes = {
-    rules: PropTypes.instanceOf(Immutable.Map).isRequired,
+    rules: PropTypes.object.isRequired,
     changeRules: PropTypes.func.isRequired,
   };
 
   handleAdd = (key, value) => {
-    const rules = this.props.rules.toJS();
-    if (!(key in rules)) {
-      rules[key] = [];
-    }
-    rules[key].push(value);
+    const rules = produce(this.props.rules, (draft) => {
+      if (!(key in draft)) {
+        draft[key] = [];
+      }
+      draft[key].push(value);
+    });
     this.props.changeRules(rules);
   }
 
   handleDelete = (key, value) => {
-    const rules = this.props.rules.toJS();
-    const index = rules[key].indexOf(value);
-    if (index >= 0) {
-      rules[key].splice(index, 1);
-      this.props.changeRules(rules);
-    }
+    const rules = produce(this.props.rules, (draft) => {
+      const index = draft[key].indexOf(value);
+      if (index >= 0) {
+        draft[key].splice(index, 1);
+      }
+    });
+    this.props.changeRules(rules);
   }
 
   render() {
     // make sure every key exists
-    const rules = this.props.rules.mergeDeep(Immutable.fromJS({
+    const rules = {
       'macs': [],
       'serialNumbers': [],
       'mlbSerialNumbers': [],
-    })).toJS();
+      ...this.props.rules,
+    };
 
     return (
       <Table selectable={false}>

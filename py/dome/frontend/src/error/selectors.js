@@ -4,7 +4,7 @@
 
 import {NAME} from './constants';
 
-export const localState = (state) => state.get(NAME);
+export const localState = (state) => state[NAME];
 
-export const isErrorDialogShown = (state) => localState(state).get('show');
-export const getErrorMessage = (state) => localState(state).get('message');
+export const isErrorDialogShown = (state) => localState(state).show;
+export const getErrorMessage = (state) => localState(state).message;

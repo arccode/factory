@@ -5,7 +5,7 @@
 import actionTypes from './actionTypes';
 import {isFormVisibleFactory} from './selectors';
 
-export const openForm = (formName, payload) => (dispatch, getState) => {
+export const openForm = (formName, payload = {}) => (dispatch, getState) => {
   // The file input does not fire any event when canceled, if the user opened
   // the file dialog and canceled, its onChange handler won't be called, the
   // form won't actually be opened, but its "show" attribute has already been

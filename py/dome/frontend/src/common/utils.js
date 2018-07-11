@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 import axios from 'axios';
-import Immutable from 'immutable';
 
 // add authentication token to header, if exists.
 export const authorizedAxios = () => {
@@ -15,19 +14,4 @@ export const authorizedAxios = () => {
     };
   }
   return axios.create(config);
-};
-
-export const deepFilterKeys = (data, pred) => {
-  const result = [];
-  if (!Immutable.isAssociative(data)) {
-    if (pred(data)) {
-      result.push(Immutable.List());
-    }
-  } else {
-    for (const [key, value] of data.toKeyedSeq()) {
-      result.push(
-          ...deepFilterKeys(value, pred).map((path) => path.unshift(key)));
-    }
-  }
-  return result;
 };

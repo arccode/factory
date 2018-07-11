@@ -2,14 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Immutable from 'immutable';
-
 import {NAME} from './constants';
 
-export const localState = (state) => state.get(NAME);
+export const localState = (state) => state[NAME];
 
 export const isFormVisibleFactory = (name) =>
-  (state) => localState(state).getIn(['visibility', name], false);
+  (state) => localState(state).visibility[name] || false;
 
 export const getFormPayloadFactory = (name) =>
-  (state) => localState(state).getIn(['payload', name], Immutable.Map());
+  (state) => localState(state).payload[name] || {};

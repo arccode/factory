@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Immutable from 'immutable';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
@@ -32,14 +31,14 @@ const SortableBundle = SortableElement(
 const SortableBundleList = SortableContainer(({bundles}) => (
   <div>
     {bundles.map((bundle, index) => (
-      <SortableBundle key={bundle.get('name')} index={index} bundle={bundle} />
+      <SortableBundle key={bundle.name} index={index} bundle={bundle} />
     ))}
   </div>
 ));
 
 class BundleList extends React.Component {
   static propTypes = {
-    bundles: PropTypes.instanceOf(Immutable.List).isRequired,
+    bundles: PropTypes.array.isRequired,
     fetchBundles: PropTypes.func.isRequired,
     reorderBundles: PropTypes.func.isRequired,
   };

@@ -2,41 +2,45 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Immutable from 'immutable';
+import produce from 'immer';
+import {combineReducers} from 'redux';
 
 import actionTypes from './actionTypes';
 
-const INITIAL_STATE = Immutable.fromJS({
-  projects: {},
-  currentProject: '',
-});
-
-export default (state = INITIAL_STATE, action) => {
+const projectsReducer = produce((draft, action) => {
   switch (action.type) {
     case actionTypes.ADD_PROJECT:
-      return state.setIn(['projects', action.project.name],
-          Immutable.fromJS(action.project));
+      draft[action.project.name] = action.project;
+      return;
 
     case actionTypes.DELETE_PROJECT:
-      return state.deleteIn(['projects', action.projectName]);
+      delete draft[action.projectName];
+      return;
 
     case actionTypes.RECEIVE_PROJECTS:
-      return state.set('projects', Immutable.Map(action.projects.map(
-          (b) => [b.name, Immutable.fromJS(b).merge({
-            umpireReady: b.umpireEnabled,
-          })],
-      )));
+      return action.projects.reduce((projectMap, project) => {
+        projectMap[project.name] = {
+          umpireReady: project.umpireEnabled,
+          ...project,
+        };
+        return projectMap;
+      }, {});
 
     case actionTypes.UPDATE_PROJECT:
-      return state.mergeIn(['projects', action.project.name],
-          Immutable.fromJS(action.project));
-
-    case actionTypes.SWITCH_PROJECT:
-      return state.withMutations((s) => {
-        s.set('currentProject', action.nextProject);
-      });
-
-    default:
-      return state;
+      Object.assign(draft[action.project.name], action.project);
+      return;
   }
-};
+}, {});
+
+export default combineReducers({
+  projects: projectsReducer,
+  currentProject: (state = '', action) => {
+    switch (action.type) {
+      case actionTypes.SWITCH_PROJECT:
+        return action.nextProject;
+
+      default:
+        return state;
+    }
+  },
+});

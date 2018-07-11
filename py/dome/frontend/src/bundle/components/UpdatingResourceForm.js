@@ -3,13 +3,11 @@
 // found in the LICENSE file.
 
 import DateAndTime from 'date-and-time';
-import Immutable from 'immutable';
 import FlatButton from 'material-ui/FlatButton';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
-import {formPropTypes, submit} from 'redux-form';
-import {Field, reduxForm} from 'redux-form/immutable';
+import {Field, formPropTypes, reduxForm, submit} from 'redux-form';
 import {createStructuredSelector} from 'reselect';
 
 import formDialog from '@app/formDialog';
@@ -44,7 +42,7 @@ class UpdatingResourceForm extends React.Component {
     startUpdating: PropTypes.func.isRequired,
 
     project: PropTypes.string.isRequired,
-    payload: PropTypes.instanceOf(Immutable.Map).isRequired,
+    payload: PropTypes.object.isRequired,
   };
 
   state = {
@@ -53,9 +51,7 @@ class UpdatingResourceForm extends React.Component {
 
   static getDerivedStateFromProps(props, state) {
     // replace the timestamp in the old bundle name with current timestamp
-    const {project, payload} = props;
-    const bundleName = payload.get('bundleName');
-    const resourceType = payload.get('resourceType');
+    const {project, payload: {bundleName, resourceType}} = props;
     const regexp = /\d{14}$/;
     const note = `Updated "${resourceType}" type resource`;
     let name = bundleName;
@@ -75,22 +71,21 @@ class UpdatingResourceForm extends React.Component {
     this.props.cancelUpdating();
   }
 
-  handleSubmit = (values) => {
-    const {project, startUpdating, payload} = this.props;
+  handleSubmit = ({name, note, file}) => {
     const {
-      bundleName,
-      resourceKey,
-      resourceType,
-    } = payload.toJS();
+      project,
+      startUpdating,
+      payload: {bundleName, resourceKey, resourceType},
+    } = this.props;
     const data = {
       project,
       name: bundleName,
-      newName: values.get('name'),
-      note: values.get('note'),
+      newName: name,
+      note,
       resources: {
         [resourceType]: {
           type: resourceType,
-          file: values.get('file'),
+          file,
         },
       },
     };

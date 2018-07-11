@@ -2,19 +2,21 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Immutable from 'immutable';
+import produce from 'immer';
+import {combineReducers} from 'redux';
 
 import actionTypes from './actionTypes';
 import {TaskStates} from './constants';
 
-const INITIAL_STATE = Immutable.Map({
-  tasks: Immutable.OrderedMap(),
-});
+const findTaskIndex = (tasks, taskID) => {
+  return tasks.findIndex((task) => task.taskID === taskID);
+};
 
-export default (state = INITIAL_STATE, action) => {
+const tasksReducer = produce((draft, action) => {
   switch (action.type) {
     case actionTypes.CREATE_TASK:
-      return state.setIn(['tasks', action.taskID], Immutable.fromJS({
+      draft.push({
+        taskID: action.taskID,
         state: TaskStates.WAITING,
         description: action.description,
         method: action.method,
@@ -26,20 +28,35 @@ export default (state = INITIAL_STATE, action) => {
           uploadedFiles: 0,
           uploadedSize: 0,
         },
-      }));
+      });
+      return;
 
-    case actionTypes.CHANGE_TASK_STATE:
-      return state.setIn(
-          ['tasks', action.taskID, 'state'], action.state);
+    case actionTypes.CHANGE_TASK_STATE: {
+      const taskIndex = findTaskIndex(draft, action.taskID);
+      if (taskIndex > -1) {
+        draft[taskIndex].state = action.state;
+      }
+      return;
+    }
 
-    case actionTypes.DISMISS_TASK:
-      return state.deleteIn(['tasks', action.taskID]);
+    case actionTypes.DISMISS_TASK: {
+      const taskIndex = findTaskIndex(draft, action.taskID);
+      if (taskIndex > -1) {
+        draft.splice(taskIndex, 1);
+      }
+      return;
+    }
 
-    case actionTypes.UPDATE_TASK_PROGRESS:
-      return state.mergeIn(
-          ['tasks', action.taskID, 'progress'], action.progress);
-
-    default:
-      return state;
+    case actionTypes.UPDATE_TASK_PROGRESS: {
+      const taskIndex = findTaskIndex(draft, action.taskID);
+      if (taskIndex > -1) {
+        Object.assign(draft[taskIndex].progress, action.progress);
+      }
+      return;
+    }
   }
-};
+}, []);
+
+export default combineReducers({
+  tasks: tasksReducer,
+});

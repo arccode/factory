@@ -11,5 +11,5 @@ export const disableUmpire = (projectName) => (
 export const enableUmpireWithSettings = (projectName, umpireSettings) => (
   project.actions.updateProject(
       projectName,
-      Object.assign({umpireEnabled: true}, umpireSettings))
+      {umpireEnabled: true, ...umpireSettings})
 );

@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Immutable from 'immutable';
 import {CardText} from 'material-ui/Card';
 import CircularProgress from 'material-ui/CircularProgress';
 import IconButton from 'material-ui/IconButton';
@@ -19,7 +18,7 @@ import {isCancellable, TaskStates} from '../constants';
 class Task extends React.Component {
   static propTypes = {
     state: PropTypes.oneOf(Object.values(TaskStates)),
-    progress: PropTypes.instanceOf(Immutable.Map).isRequired,
+    progress: PropTypes.object.isRequired,
     description: PropTypes.string.isRequired,
 
     dismiss: PropTypes.func.isRequired,
@@ -27,10 +26,9 @@ class Task extends React.Component {
     cancel: PropTypes.func.isRequired,
   };
 
-  formatProgress = (progress) => {
-    return `Uploading file (${
-      progress.get('uploadedFiles') + 1}/${progress.get('totalFiles')})`;
-  }
+  formatProgress = ({uploadedFiles, totalFiles}) => (
+    `Uploading file (${uploadedFiles + 1}/${totalFiles})`
+  )
 
   render() {
     const {state, progress, description, cancel, dismiss, retry} = this.props;
@@ -52,7 +50,7 @@ class Task extends React.Component {
           display: 'table-cell', textAlign: 'right', verticalAlign: 'middle',
         }}>
           <IconButton
-            tooltip={'cancel'}
+            tooltip="cancel"
             onClick={cancel}
             iconStyle={{fill: grey700}}
             disabled={!isCancellable(state)}
@@ -60,7 +58,7 @@ class Task extends React.Component {
             <DeleteIcon />
           </IconButton>
           {state === TaskStates.WAITING &&
-            <IconButton tooltip={'waiting'}>
+            <IconButton tooltip="waiting">
               <RunningIcon />
             </IconButton>
           }
@@ -68,8 +66,8 @@ class Task extends React.Component {
             <IconButton tooltip={this.formatProgress(progress)}>
               <CircularProgress
                 mode="determinate"
-                max={progress.get('totalSize')}
-                value={progress.get('uploadedSize')}
+                max={progress.totalSize}
+                value={progress.uploadedSize}
                 size={20}
               />
             </IconButton>

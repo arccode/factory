@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Immutable from 'immutable';
 import {Card, CardHeader, CardText, CardTitle} from 'material-ui/Card';
 import IconButton from 'material-ui/IconButton';
 import DeleteIcon from 'material-ui/svg-icons/action/delete';
@@ -46,7 +45,7 @@ class Bundle extends React.Component {
     activateBundle: PropTypes.func.isRequired,
     changeBundleRules: PropTypes.func.isRequired,
     deleteBundle: PropTypes.func.isRequired,
-    bundle: PropTypes.instanceOf(Immutable.Map).isRequired,
+    bundle: PropTypes.object.isRequired,
     projectName: PropTypes.string.isRequired,
     projectNetbootBundle: PropTypes.string,
     setBundleAsNetboot: PropTypes.func.isRequired,
@@ -57,15 +56,16 @@ class Bundle extends React.Component {
 
   handleActivate = (event) => {
     event.stopPropagation();
-    const {bundle, activateBundle} = this.props;
-    activateBundle(bundle.get('name'), !bundle.get('active'));
+    const {bundle: {name, active}, activateBundle} = this.props;
+    activateBundle(name, !active);
   }
 
   toggleExpand = () => {
-    if (this.props.expanded) {
-      this.props.collapseBundle(this.props.bundle.get('name'));
+    const {expanded, collapseBundle, expandBundle, bundle: {name}} = this.props;
+    if (expanded) {
+      collapseBundle(name);
     } else {
-      this.props.expandBundle(this.props.bundle.get('name'));
+      expandBundle(name);
     }
   }
 
@@ -88,11 +88,11 @@ class Bundle extends React.Component {
       <Card
         className="bundle"
         expanded={expanded}
-        containerStyle={bundle.get('active') ? {} : INACTIVE_STYLE}
+        containerStyle={bundle.active ? {} : INACTIVE_STYLE}
       >
         <CardTitle
-          title={bundle.get('name')}
-          subtitle={bundle.get('note')}
+          title={bundle.name}
+          subtitle={bundle.note}
           // Cannot use actAsExpander here, need to implement ourselves. The
           // Toggle below from Material-UI somewhat would not capture the click
           // event before CardTitle. If not using this way, when the user clicks
@@ -108,8 +108,8 @@ class Bundle extends React.Component {
               onClick={this.handleActivate}
             >
               <Toggle
-                label={bundle.get('active') ? 'ACTIVE' : 'INACTIVE'}
-                toggled={bundle.get('active')}
+                label={bundle.active ? 'ACTIVE' : 'INACTIVE'}
+                toggled={bundle.active}
               />
             </div>
             {/* make some space */}
@@ -119,7 +119,7 @@ class Bundle extends React.Component {
               tooltip="delete this bundle"
               onClick={(e) => {
                 e.stopPropagation();
-                deleteBundle(bundle.get('name'));
+                deleteBundle(bundle.name);
               }}
             >
               <DeleteIcon />
@@ -128,10 +128,10 @@ class Bundle extends React.Component {
               tooltip="use this bundle's netboot resource"
               onClick={(e) => {
                 e.stopPropagation();
-                setBundleAsNetboot(bundle.get('name'), projectName);
+                setBundleAsNetboot(bundle.name, projectName);
               }}
             >
-              {(projectNetbootBundle === bundle.get('name')) ?
+              {(projectNetbootBundle === bundle.name) ?
                   <ChosenIcon /> :
                   <UnchosenIcon />}
             </IconButton>
@@ -144,9 +144,9 @@ class Bundle extends React.Component {
         <CardHeader title="RULES" expandable={true} />
         <CardText expandable={true}>
           <RuleTable
-            rules={bundle.get('rules')}
+            rules={bundle.rules}
             changeRules={
-              (rules) => changeBundleRules(bundle.get('name'), rules)
+              (rules) => changeBundleRules(bundle.name, rules)
             }
           />
         </CardText>
@@ -160,7 +160,7 @@ const mapStateToProps = createStructuredSelector({
   projectName: project.selectors.getCurrentProject,
   projectNetbootBundle: createSelector(
       [project.selectors.getCurrentProjectObject],
-      (project) => project.get('netbootBundle'),
+      (project) => project.netbootBundle,
   ),
 });
 

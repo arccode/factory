@@ -12,7 +12,7 @@ import {getCurrentProject, getProjects} from './selectors';
 // TODO(pihsun): Have a better way to handle task cancellation.
 const buildOnCancel = (dispatch, getState) => {
   const projectsSnapshot = getProjects(getState());
-  return () => dispatch(receiveProjects(projectsSnapshot.values().toJS()));
+  return () => dispatch(receiveProjects(Object.values(projectsSnapshot)));
 };
 
 export const createProject = (name) => async (dispatch) => {
@@ -45,10 +45,11 @@ export const updateProject = (name, settings = {}) =>
     // optimistic update
     dispatch({
       type: actionTypes.UPDATE_PROJECT,
-      project: Object.assign({
+      project: {
         name,
         umpireReady: false,
-      }, settings),
+        ...settings,
+      },
     });
 
     const description = `Update project "${name}"`;

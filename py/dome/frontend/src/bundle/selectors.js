@@ -6,12 +6,12 @@ import {createSelector} from 'reselect';
 
 import {NAME} from './constants';
 
-export const localState = (state) => state.get(NAME);
+export const localState = (state) => state[NAME];
 
-export const getBundles = (state) => localState(state).get('entries');
-export const getExpandedMap = (state) => localState(state).get('expanded');
+export const getBundles = (state) => localState(state).entries;
+export const getExpandedMap = (state) => localState(state).expanded;
 
-const getPropBundleName = (state, props) => props.bundle.get('name');
+const getPropBundleName = (state, props) => props.bundle.name;
 export const getBundleExpanded = createSelector(
     [getExpandedMap, getPropBundleName],
-    (expanded, name) => expanded.get(name));
+    (expanded, name) => expanded[name]);

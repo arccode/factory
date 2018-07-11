@@ -2,24 +2,22 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Immutable from 'immutable';
+import {combineReducers} from 'redux';
 
 import actionTypes from './actionTypes';
 
-const INITIAL_STATE = Immutable.fromJS({
-  isLoggedIn: false,
+export default combineReducers({
+  isLoggedIn: (state = false, action) => {
+    switch (action.type) {
+      case actionTypes.LOGIN_SUCCEED:
+        return true;
+
+      case actionTypes.LOGIN_FAILED:
+      case actionTypes.LOGOUT:
+        return false;
+
+      default:
+        return state;
+    }
+  },
 });
-
-export default (state = INITIAL_STATE, action) => {
-  switch (action.type) {
-    case actionTypes.LOGIN_SUCCEED:
-      return state.set('isLoggedIn', true);
-
-    case actionTypes.LOGIN_FAILED:
-    case actionTypes.LOGOUT:
-      return state.set('isLoggedIn', false);
-
-    default:
-      return state;
-  }
-};

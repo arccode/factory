@@ -7,30 +7,20 @@ import FloatingActionButton from 'material-ui/FloatingActionButton';
 import IconButton from 'material-ui/IconButton';
 import ContentAdd from 'material-ui/svg-icons/content/add';
 import ContentClear from 'material-ui/svg-icons/content/clear';
-import TextField from 'material-ui/TextField';
 import Toggle from 'material-ui/Toggle';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {fieldArrayPropTypes, fieldPropTypes} from 'redux-form';
-import {Field, FieldArray, FormSection} from 'redux-form/immutable';
+import {
+  Field,
+  FieldArray,
+  fieldArrayPropTypes,
+  fieldPropTypes,
+  FormSection,
+} from 'redux-form';
+
+import {renderTextField} from '@common/form';
 
 const toNumber = (value) => value && Number(value);
-
-const renderTextField = ({input, label, description, type}) => (
-  <TextField
-    floatingLabelText={label}
-    hintText={description || label}
-    type={type}
-    {...input}
-  />
-);
-
-renderTextField.propTypes = {
-  label: PropTypes.string.isRequired,
-  type: PropTypes.string.isRequired,
-  description: PropTypes.string,
-  ...fieldPropTypes,
-};
 
 const renderToggle = ({input, label}) => (
   <Toggle
@@ -59,7 +49,7 @@ const renderArray = ({fields, schema}) => (
         </div>
         <div style={{marginRight: '50px'}}>
           <RenderFields
-            schema={schema.get('items')}
+            schema={schema.items}
           />
         </div>
       </FormSection>,
@@ -97,9 +87,9 @@ class RenderFields extends React.Component {
 
     return (
       <div style={marginStyle}>
-        {schema.get('properties').keySeq().map((k, i) => {
-          const s = schema.getIn(['properties', k]);
-          switch (s.get('type')) {
+        {Object.keys(schema.properties).map((k, i) => {
+          const s = schema.properties[k];
+          switch (s.type) {
             case 'string':
               return (
                 <Field
@@ -107,7 +97,7 @@ class RenderFields extends React.Component {
                   name={k}
                   component={renderTextField}
                   label={k}
-                  description={s.get('description')}
+                  description={s.description}
                   type="text"
                 />
               );
@@ -118,7 +108,7 @@ class RenderFields extends React.Component {
                   name={k}
                   component={renderTextField}
                   label={k}
-                  description={s.get('description')}
+                  description={s.description}
                   normalize={toNumber}
                   type="number"
                 />

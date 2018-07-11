@@ -3,25 +3,11 @@
 // found in the LICENSE file.
 
 import RaisedButton from 'material-ui/RaisedButton';
-import TextField from 'material-ui/TextField';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {fieldPropTypes} from 'redux-form';
-import {Field, reduxForm} from 'redux-form/immutable';
+import {Field, reduxForm} from 'redux-form';
 
-const renderTextField = ({input, label, type}) => (
-  <TextField
-    floatingLabelText={label}
-    type={type}
-    {...input}
-  />
-);
-
-renderTextField.propTypes = {
-  label: PropTypes.string.isRequired,
-  type: PropTypes.string.isRequired,
-  ...fieldPropTypes,
-};
+import {renderTextField} from '@common/form';
 
 class LoginForm extends React.Component {
   static propTypes = {

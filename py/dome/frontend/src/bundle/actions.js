@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import produce from 'immer';
 import {arrayMove} from 'react-sortable-hoc';
 
 import error from '@app/error';
@@ -21,11 +22,11 @@ const baseURL = (getState) => {
 // TODO(pihsun): Have a better way to handle task cancellation.
 const buildOnCancel = (dispatch, getState) => {
   const bundleListSnapshot = getBundles(getState());
-  return () => dispatch(receiveBundles(bundleListSnapshot.toJS()));
+  return () => dispatch(receiveBundles(bundleListSnapshot));
 };
 
 const findBundle = (name, getState) => {
-  return getBundles(getState()).find((b) => b.get('name') === name).toJS();
+  return getBundles(getState()).find((b) => b.name === name);
 };
 
 export const receiveBundles = (bundles) => ({
@@ -53,7 +54,7 @@ export const reorderBundles = (oldIndex, newIndex) =>
   async (dispatch, getState) => {
     const onCancel = buildOnCancel(dispatch, getState);
     const newBundleList =
-        arrayMove(getBundles(getState()).toJS(), oldIndex, newIndex);
+        arrayMove(getBundles(getState()), oldIndex, newIndex);
 
     // optimistic update
     dispatch({
@@ -76,11 +77,13 @@ export const activateBundle = (name, active) => async (dispatch, getState) => {
 
   // optimistic update
   const bundle = findBundle(name, getState);
-  bundle.active = active;
   dispatch({
     type: actionTypes.UPDATE_BUNDLE,
     name,
-    bundle,
+    bundle: {
+      ...bundle,
+      active,
+    },
   });
 
   // send the request
@@ -104,11 +107,13 @@ export const changeBundleRules = (name, rules) =>
 
     // optimistic update
     const bundle = findBundle(name, getState);
-    bundle.rules = rules;
     dispatch({
       type: actionTypes.UPDATE_BUNDLE,
       name,
-      bundle,
+      bundle: {
+        ...bundle,
+        rules,
+      },
     });
 
     // send the request
@@ -194,12 +199,13 @@ export const startUpdatingResource = (resourceKey, data) => (
     const dstBundleName = data.newName;
 
     // optimistic update
-    const bundle = findBundle(srcBundleName, getState);
-    bundle.name = dstBundleName;
-    bundle.note = data.note;
-    // reset hash and version of the resource currently being update
-    bundle.resources[resourceKey].hash = '(waiting for update)';
-    bundle.resources[resourceKey].version = '(waiting for update)';
+    const bundle = produce(findBundle(srcBundleName, getState), (draft) => {
+      draft.name = dstBundleName;
+      draft.note = data.note;
+      // reset hash and version of the resource currently being update
+      draft.resources[resourceKey].hash = '(waiting for update)';
+      draft.resources[resourceKey].version = '(waiting for update)';
+    });
     dispatch({
       type: actionTypes.ADD_BUNDLE,
       bundle,

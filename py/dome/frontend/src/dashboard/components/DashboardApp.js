@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Immutable from 'immutable';
 import {Card, CardText, CardTitle} from 'material-ui/Card';
 import Divider from 'material-ui/Divider';
 import {List, ListItem} from 'material-ui/List';
@@ -24,7 +23,7 @@ import EnablingUmpireForm from './EnablingUmpireForm';
 
 class DashboardApp extends React.Component {
   static propTypes = {
-    project: PropTypes.instanceOf(Immutable.Map).isRequired,
+    project: PropTypes.object.isRequired,
     closeEnablingUmpireForm: PropTypes.func.isRequired,
     disableUmpire: PropTypes.func.isRequired,
     enableUmpireWithSettings: PropTypes.func.isRequired,
@@ -32,9 +31,13 @@ class DashboardApp extends React.Component {
   };
 
   handleToggle = () => {
-    const {project, disableUmpire, openEnablingUmpireForm} = this.props;
-    if (project.get('umpireEnabled')) {
-      disableUmpire(project.get('name'));
+    const {
+      project: {umpireEnabled, name},
+      disableUmpire,
+      openEnablingUmpireForm,
+    } = this.props;
+    if (umpireEnabled) {
+      disableUmpire(name);
     } else {
       openEnablingUmpireForm();
     }
@@ -64,27 +67,27 @@ class DashboardApp extends React.Component {
               <ListItem
                 rightToggle={
                   <Toggle
-                    toggled={project.get('umpireEnabled')}
+                    toggled={project.umpireEnabled}
                     onToggle={this.handleToggle}
                   />
                 }
                 primaryText="Enable Umpire"
               />
-              {project.get('umpireEnabled') && project.get('umpireReady') &&
+              {project.umpireEnabled && project.umpireReady &&
               <>
                 <Subheader>Info</Subheader>
                 <Divider/>
-                {!project.get('isUmpireRecent') &&
+                {!project.isUmpireRecent &&
                 <ListItem style={styles.warningText} disabled={true}>
                   The umpire instance is using an old version of umpire, and
                   may not function properly, please restart it by disabling and
                   re-enabling it.
                 </ListItem>}
                 <ListItem disabled={true}>
-                  host: {project.get('umpireHost')}
+                  host: {project.umpireHost}
                 </ListItem>
                 <ListItem disabled={true}>
-                  port: {project.get('umpirePort')}
+                  port: {project.umpirePort}
                 </ListItem>
                 <Subheader>Services</Subheader>
                 <Divider/>
@@ -97,12 +100,11 @@ class DashboardApp extends React.Component {
         {/* TODO(littlecvr): add <SystemInfoPanel /> */}
 
         <EnablingUmpireForm
-          projectName={project.get('name')}
+          projectName={project.name}
           onCancel={closeEnablingUmpireForm}
           onSubmit={(umpireSettings) => {
             closeEnablingUmpireForm();
-            enableUmpireWithSettings(
-                project.get('name'), umpireSettings.toJS());
+            enableUmpireWithSettings(project.name, umpireSettings);
           }}
         />
       </div>

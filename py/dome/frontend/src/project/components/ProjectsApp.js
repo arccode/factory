@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Immutable from 'immutable';
 import Divider from 'material-ui/Divider';
 import IconButton from 'material-ui/IconButton';
 import {List, ListItem} from 'material-ui/List';
@@ -12,8 +11,7 @@ import DeleteIcon from 'material-ui/svg-icons/action/delete';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
-import {formPropTypes, reset} from 'redux-form';
-import {Field, reduxForm} from 'redux-form/immutable';
+import {Field, formPropTypes, reduxForm, reset} from 'redux-form';
 
 import {renderTextField, validateRequired} from '@common/form';
 
@@ -56,7 +54,7 @@ CreateProjectForm = reduxForm({
 
 class ProjectsApp extends React.Component {
   static propTypes = {
-    projects: PropTypes.instanceOf(Immutable.Map).isRequired,
+    projects: PropTypes.object.isRequired,
     createProject: PropTypes.func.isRequired,
     deleteProject: PropTypes.func.isRequired,
     fetchProjects: PropTypes.func.isRequired,
@@ -64,8 +62,8 @@ class ProjectsApp extends React.Component {
     resetForm: PropTypes.func.isRequired,
   };
 
-  handleSubmit = (values) => {
-    this.props.createProject(values.get('name'));
+  handleSubmit = ({name}) => {
+    this.props.createProject(name);
     this.props.resetForm();
   }
 
@@ -77,6 +75,7 @@ class ProjectsApp extends React.Component {
     const style = {margin: 24};
     const centerStyle = {textAlign: 'center'};
     const {projects, switchProject, deleteProject} = this.props;
+    const projectNames = Object.keys(projects).sort();
     return (
       <Paper style={{
         maxWidth: 400, height: '100%',
@@ -87,36 +86,36 @@ class ProjectsApp extends React.Component {
 
         <div style={style}>
           <Divider />
-          {projects.size <= 0 &&
-              <div style={{...centerStyle, marginTop: 16, marginBottom: 16}}>
+          {projectNames.length === 0 ?
+              (<div style={{...centerStyle, marginTop: 16, marginBottom: 16}}>
                 no projects, create or add an existing one
-              </div>}
-          {projects.size > 0 && <List style={{textAlign: 'left'}}>
-            {projects.keySeq().sort().toArray().map((name) => {
-              return (
-                <ListItem
-                  key={name}
-                  primaryText={name}
-                  onClick={() => switchProject(name)}
-                  rightIconButton={
-                    <IconButton
-                      tooltip="delete this project"
-                      onClick={() => deleteProject(name)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  }
-                />
-              );
-            })}
-          </List>}
+              </div>) :
+              (<List style={{textAlign: 'left'}}>
+                {projectNames.map((name) => {
+                  return (
+                    <ListItem
+                      key={name}
+                      primaryText={name}
+                      onClick={() => switchProject(name)}
+                      rightIconButton={
+                        <IconButton
+                          tooltip="delete this project"
+                          onClick={() => deleteProject(name)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      }
+                    />
+                  );
+                })}
+              </List>)}
           <Divider />
         </div>
 
         <div style={{...style, ...centerStyle}}>OR</div>
 
         <div style={style}>
-          <CreateProjectForm projectNames={projects.keySeq().toJS()}
+          <CreateProjectForm projectNames={projectNames}
             onSubmit={this.handleSubmit}>
           </CreateProjectForm>
         </div>

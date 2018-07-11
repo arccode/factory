@@ -2,11 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Immutable from 'immutable';
+import produce from 'immer';
 import uuid from 'uuid/v4';
 
 import error from '@app/error';
-import {authorizedAxios, deepFilterKeys} from '@common/utils';
+import {authorizedAxios} from '@common/utils';
 
 import actionTypes from './actionTypes';
 import {TaskStates} from './constants';
@@ -24,12 +24,29 @@ const updateTaskProgress = (taskID, progress) => ({
   progress,
 });
 
+const filterFileFields = (obj) => {
+  const result = [];
+  for (const [key, value] of Object.entries(obj)) {
+    if (value.constructor === Object) {
+      result.push(
+          ...filterFileFields(value).map((path) => [key, ...path]));
+    } else if (value instanceof File) {
+      result.push([key]);
+    }
+  }
+  return result;
+};
+
+const getIn = (obj, path) => {
+  return path.reduce((o, key) => o[key], obj);
+};
+
 class TaskQueue {
   constructor() {
     // Objects that cannot be serialized in the store.
-    // The _taskBodies can't be serialized since it might contains File objects.
-    this._taskBodies = {};
-    this._taskResolves = {};
+    // The taskBodies_ can't be serialized since it might contains File objects.
+    this.taskBodies_ = {};
+    this.taskResolves_ = {};
   }
 
   runTask = (description, method, url, body) => {
@@ -37,10 +54,10 @@ class TaskQueue {
       const taskID = uuid();
       // if all tasks before succeed, start this task now.
       const startNow = getAllTasks(getState()).every(
-          (task) => task.get('state') === TaskStates.SUCCEEDED);
+          ({state}) => state === TaskStates.SUCCEEDED);
 
-      this._taskBodies[taskID] = Immutable.fromJS(body);
-      this._taskResolves[taskID] = resolve;
+      this.taskBodies_[taskID] = body;
+      this.taskResolves_[taskID] = resolve;
       dispatch({
         type: actionTypes.CREATE_TASK,
         taskID,
@@ -56,8 +73,8 @@ class TaskQueue {
   }
 
   dismissTask = (taskID) => (dispatch) => {
-    delete this._taskBodies[taskID];
-    delete this._taskResolves[taskID];
+    delete this.taskBodies_[taskID];
+    delete this.taskResolves_[taskID];
     dispatch({
       type: actionTypes.DISMISS_TASK,
       taskID,
@@ -65,18 +82,18 @@ class TaskQueue {
   }
 
   runTask_ = (taskID) => async (dispatch, getState) => {
-    const task = getAllTasks(getState()).get(taskID);
-    const body = this._taskBodies[taskID];
+    const task = getAllTasks(getState()).find((t) => t.taskID === taskID);
+    const body = this.taskBodies_[taskID];
 
     try {
       const client = authorizedAxios();
 
       // go through the body and upload files first
-      const fileFields = deepFilterKeys(body, (v) => v instanceof File);
+      const fileFields = filterFileFields(body);
       // This is only an estimate, since this doesn't include the payload
       // header size for FormData.
       let totalSize = fileFields
-          .map((path) => body.getIn(path).size)
+          .map((path) => getIn(body, path).size)
           .reduce((a, b) => a + b, 0);
 
       dispatch(updateTaskProgress(taskID, {
@@ -89,7 +106,7 @@ class TaskQueue {
       let uploadedFiles = 0;
       let uploadedSize = 0;
       for (const path of fileFields) {
-        const file = body.getIn(path);
+        const file = getIn(body, path);
         const formData = new FormData();
         formData.append('file', file);
         let payloadSize = 0;
@@ -102,11 +119,12 @@ class TaskQueue {
             }));
           },
         });
-        data = data.withMutations((m) => {
-          const key = path.last();
-          m.deleteIn(path);
-          // replace `${key}` with `${key}Id` and set it to the file ID
-          m.setIn(path.pop().push(`${key}Id`), response.data.id);
+        data = produce(data, (draft) => {
+          const prefix = [...path];
+          const key = prefix.pop();
+          const obj = getIn(draft, prefix);
+          delete obj[key];
+          obj[`${key}Id`] = response.data.id;
         });
         totalSize += payloadSize - file.size;
         uploadedSize += payloadSize;
@@ -118,22 +136,22 @@ class TaskQueue {
 
       // send the end request
       const endResponse = await client.request({
-        url: task.get('url'),
-        method: task.get('method'),
+        url: task.url,
+        method: task.method,
         data,
       });
 
-      this._taskResolves[taskID]({response: endResponse, cancel: false});
+      this.taskResolves_[taskID]({response: endResponse, cancel: false});
 
       // if all sub-tasks succeeded, mark it as succeeded, and start the next
       // task.
       dispatch(changeTaskState(taskID, TaskStates.SUCCEEDED));
 
       // find the first waiting task and start it
-      const nextTaskEntry = getAllTasks(getState()).findEntry(
-          (t) => t.get('state') === TaskStates.WAITING);
-      if (nextTaskEntry) {
-        dispatch(this.runTask_(nextTaskEntry[0]));
+      const nextTask = getAllTasks(getState()).find(
+          ({state}) => state === TaskStates.WAITING);
+      if (nextTask) {
+        dispatch(this.runTask_(nextTask.taskID));
       }
     } catch (err) {
       // if any sub-task above failed, display the error message
@@ -161,16 +179,18 @@ class TaskQueue {
     // This action tries to cancel all waiting or failed tasks below and
     // include taskID.
     const tasks = getAllTasks(getState());
-    const toCancelTasks =
-        tasks.skipUntil((unusedTask, id) => id === taskID).filter((task) => {
-          const state = task.get('state');
-          return state === TaskStates.WAITING || state === TaskStates.FAILED;
-        }).keySeq().reverse();
+    const taskIndex = tasks.findIndex((task) => task.taskID === taskID);
+    if (taskIndex > -1) {
+      const toCancelTasks =
+          tasks.slice(taskIndex).filter(({state}) => (
+            state === TaskStates.WAITING || state === TaskStates.FAILED
+          )).reverse();
 
-    // cancel all tasks below and include the target task
-    for (const id of toCancelTasks) {
-      this._taskResolves[id]({cancel: true});
-      dispatch(this.dismissTask(id));
+      // cancel all tasks below and include the target task
+      for (const {taskID: id} of toCancelTasks) {
+        this.taskResolves_[id]({cancel: true});
+        dispatch(this.dismissTask(id));
+      }
     }
   }
 }

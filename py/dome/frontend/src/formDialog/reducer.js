@@ -2,30 +2,27 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Immutable from 'immutable';
+import produce from 'immer';
 
 import actionTypes from './actionTypes';
 
-const INITIAL_STATE = Immutable.fromJS({
+const INITIAL_STATE = {
   // default app is the project selection page.
   visibility: {
   },
   payload: {
   },
-});
+};
 
-export default (state = INITIAL_STATE, action) => {
+export default produce((draft, action) => {
   switch (action.type) {
     case actionTypes.OPEN_FORM:
-      return state.withMutations((s) => {
-        s.setIn(['visibility', action.formName], true);
-        s.mergeIn(['payload', action.formName], action.payload);
-      });
+      draft.visibility[action.formName] = true;
+      draft.payload[action.formName] = action.payload;
+      return;
 
     case actionTypes.CLOSE_FORM:
-      return state.setIn(['visibility', action.formName], false);
-
-    default:
-      return state;
+      draft.visibility[action.formName] = false;
+      return;
   }
-};
+}, INITIAL_STATE);

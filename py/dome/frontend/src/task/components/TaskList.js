@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Immutable from 'immutable';
 import {Card, CardActions, CardHeader} from 'material-ui/Card';
 import IconButton from 'material-ui/IconButton';
 import {grey700} from 'material-ui/styles/colors';
@@ -23,7 +22,7 @@ import Task from './Task';
 
 class TaskList extends React.Component {
   static propTypes = {
-    tasks: PropTypes.instanceOf(Immutable.OrderedMap).isRequired,
+    tasks: PropTypes.array.isRequired,
     cancelWaitingTaskAfter: PropTypes.func.isRequired,
     dismissTask: PropTypes.func.isRequired,
   };
@@ -38,15 +37,16 @@ class TaskList extends React.Component {
 
   cancelAllWaitingTasks = (event) => {
     event.stopPropagation();
-    this.props.cancelWaitingTaskAfter(this.props.tasks.keySeq().first());
+    this.props.cancelWaitingTaskAfter(this.props.tasks[0].taskID);
   }
 
   dismissAllSucceededTasks = (event) => {
     event.stopPropagation();
-    this.props.tasks
-        .filter((task) => task.get('state') === TaskStates.SUCCEEDED)
-        .keySeq()
-        .forEach((id) => this.props.dismissTask(id));
+    for (const {state, taskID} of this.props.tasks) {
+      if (state === TaskStates.SUCCEEDED) {
+        this.props.dismissTask(taskID);
+      }
+    }
   }
 
   retryTask = () => {
@@ -56,16 +56,17 @@ class TaskList extends React.Component {
   render() {
     const {tasks, cancelWaitingTaskAfter, dismissTask} = this.props;
 
-    const counts =
-        tasks.groupBy((t) => t.get('state')).map((group) => group.count());
-    const running = tasks.count((task) => isRunning(task.get('state')));
-    const hasCancellableTask =
-        tasks.some((task) => isCancellable(task.get('state')));
+    const counts = tasks.reduce((groups, {state}) => {
+      groups[state] = (groups[state] || 0) + 1;
+      return groups;
+    }, {});
+    const running = tasks.filter(({state}) => isRunning(state)).length;
+    const hasCancellableTask = tasks.some(({state}) => isCancellable(state));
 
-    const taskSummary = `${counts.get(TaskStates.WAITING, 0)} waiting, ` +
+    const taskSummary = `${counts[TaskStates.WAITING] || 0} waiting, ` +
         `${running} running, ` +
-        `${counts.get(TaskStates.SUCCEEDED, 0)} succeeded, ` +
-        `${counts.get(TaskStates.FAILED, 0)} failed`;
+        `${counts[TaskStates.SUCCEEDED] || 0} succeeded, ` +
+        `${counts[TaskStates.FAILED] || 0} failed`;
 
     return (
       <Card
@@ -73,7 +74,7 @@ class TaskList extends React.Component {
         containerStyle={{display: 'table'}}
       >
         {/* title bar */}
-        {tasks.size > 0 &&
+        {tasks.length > 0 &&
           <div
             style={{display: 'table-row'}}
           >
@@ -87,7 +88,7 @@ class TaskList extends React.Component {
               {!this.state.collapsed &&
                 <>
                   <IconButton
-                    tooltip={'cancel all waiting tasks'}
+                    tooltip="cancel all waiting tasks"
                     onClick={this.cancelAllWaitingTasks}
                     style={{marginRight: 0}}
                     iconStyle={{fill: grey700}}
@@ -96,7 +97,7 @@ class TaskList extends React.Component {
                     <DeleteIcon />
                   </IconButton>
                   <IconButton
-                    tooltip={'dismiss all finished tasks'}
+                    tooltip="dismiss all finished tasks"
                     onClick={this.dismissAllSucceededTasks}
                     style={{marginRight: 0}}
                     iconStyle={{fill: 'green'}}
@@ -104,7 +105,7 @@ class TaskList extends React.Component {
                     <DismissIcon />
                   </IconButton>
                   <IconButton
-                    tooltip={'collapse'}
+                    tooltip="collapse"
                     style={{marginRight: 0}}
                     onClick={() => this.setCollapsed(true)}
                   >
@@ -124,7 +125,7 @@ class TaskList extends React.Component {
                     marginRight: 0,
                   }}></div>
                   <IconButton
-                    tooltip={'expand'}
+                    tooltip="expand"
                     style={{marginRight: 0}}
                     onClick={() => this.setCollapsed(false)}
                   >
@@ -138,19 +139,19 @@ class TaskList extends React.Component {
 
         {/* task list */}
         {!this.state.collapsed &&
-          tasks.map((task, taskID) => {
+          tasks.map(({taskID, state, description, progress}) => {
             return (
               <Task
                 key={taskID}
-                state={task.get('state')}
-                description={task.get('description')}
-                progress={task.get('progress')}
+                state={state}
+                description={description}
+                progress={progress}
                 cancel={() => cancelWaitingTaskAfter(taskID)}
                 dismiss={() => dismissTask(taskID)}
                 retry={() => this.retryTask(taskID)}
               />
             );
-          }).valueSeq()}
+          })}
       </Card>
     );
   }

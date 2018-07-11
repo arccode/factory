@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Immutable from 'immutable';
 import Divider from 'material-ui/Divider';
 import Drawer from 'material-ui/Drawer';
 import MenuItem from 'material-ui/MenuItem';
@@ -56,7 +55,7 @@ class DomeApp extends React.Component {
   static propTypes = {
     isLoggedIn: PropTypes.bool.isRequired,
     appName: PropTypes.string.isRequired,
-    project: PropTypes.instanceOf(Immutable.Map).isRequired,
+    project: PropTypes.object.isRequired,
     testAuthToken: PropTypes.func.isRequired,
     switchApp: PropTypes.func.isRequired,
   };
@@ -108,7 +107,7 @@ class DomeApp extends React.Component {
       console.error(`Unknown app ${appName}`);
     }
 
-    const projectName = project.get('name', '');
+    const projectName = project.name || '';
 
     return (
       <div style={{paddingBottom}}>
@@ -145,10 +144,10 @@ class DomeApp extends React.Component {
               <MenuItem
                 onClick={() => this.handleClick(AppNames.BUNDLES_APP)}
                 innerDivStyle={{paddingLeft: PROJECT_MENU_ITEM_PADDING_LEFT}}
-                disabled={!project.get('umpireReady')}
+                disabled={!project.umpireReady}
               >
-                Bundles{project.get('umpireEnabled') &&
-                    !project.get('umpireReady') && ' (activating...)'}
+                Bundles {project.umpireEnabled &&
+                    !project.umpireReady && '(activating...)'}
               </MenuItem>
             }
 

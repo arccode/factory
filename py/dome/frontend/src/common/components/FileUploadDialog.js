@@ -58,7 +58,7 @@ class FileUploadDialog extends React.Component {
   }
 
   handleSubmit = (values) => {
-    this.props.onSubmit(values.set('file', this.state.file));
+    this.props.onSubmit({file: this.state.file, ...values});
   }
 
   componentWillUnmount() {

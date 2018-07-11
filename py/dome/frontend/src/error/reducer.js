@@ -2,27 +2,30 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Immutable from 'immutable';
+import {combineReducers} from 'redux';
 
 import actionTypes from './actionTypes';
 
-const INITIAL_STATE = Immutable.fromJS({
-  show: false,
-  message: '',
+export default combineReducers({
+  show: (state = false, action) => {
+    switch (action.type) {
+      case actionTypes.SHOW_ERROR_DIALOG:
+        return true;
+
+      case actionTypes.HIDE_ERROR_DIALOG:
+        return false;
+
+      default:
+        return state;
+    }
+  },
+  message: (state = '', action) => {
+    switch (action.type) {
+      case actionTypes.SET_ERROR_MESSAGE:
+        return action.message;
+
+      default:
+        return state;
+    }
+  },
 });
-
-export default (state = INITIAL_STATE, action) => {
-  switch (action.type) {
-    case actionTypes.SET_ERROR_MESSAGE:
-      return state.set('message', action.message);
-
-    case actionTypes.SHOW_ERROR_DIALOG:
-      return state.set('show', true);
-
-    case actionTypes.HIDE_ERROR_DIALOG:
-      return state.set('show', false);
-
-    default:
-      return state;
-  }
-};
