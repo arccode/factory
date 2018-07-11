@@ -18,6 +18,7 @@ import unittest
 from testlog_pkg import testlog
 from testlog_pkg import testlog_utils
 from testlog_pkg.utils import file_utils
+from testlog_pkg.utils import json_utils
 from testlog_pkg.utils import schema
 from testlog_pkg.utils import time_utils
 
@@ -27,7 +28,75 @@ SAMPLE_DATETIME = datetime.datetime(1989, 8, 8, 8, 8, 8, 888888)
 SAMPLE_DATETIME_STRING = '618538088.888888'
 
 
-class TestlogTest(unittest.TestCase):
+class TestlogTestBase(unittest.TestCase):
+
+  def setUp(self):
+    self.tmp_dir = tempfile.mkdtemp()
+    self.state_dir = tempfile.mkdtemp()
+    self.session_uuid = None
+
+  def tearDown(self):
+    shutil.rmtree(self.state_dir)
+    shutil.rmtree(self.tmp_dir)
+    self._reset()
+
+  def _reset(self):
+    """Deletes state files and resets global variables."""
+    # pylint: disable=protected-access
+    if testlog._global_testlog:
+      testlog._global_testlog.Close()
+    file_utils.TryUnlink(testlog._SEQUENCE_PATH)
+    if testlog.TESTLOG_ENV_VARIABLE_NAME in os.environ:
+      del os.environ[testlog.TESTLOG_ENV_VARIABLE_NAME]
+
+  def _SimulateSubSession(self):
+    # Prepare the attachments_folder by initializing testlog as a sub session
+    def _GetDUTDeviceID():
+      logging.debug('DEBUG')
+      return 'ThisIsDUTDeviceID'
+
+    def _GetStationDeviceID():
+      logging.warning('WARNING')
+      return 'ThisIsStationDeviceID'
+
+    def _GetInstallationID():
+      logging.info('INFO')
+      return 'ThisIsInstallationID'
+
+    self.session_uuid = time_utils.TimedUUID()
+    session_test_run = testlog.StationTestRun({
+        'dutDeviceId': _GetDUTDeviceID(),
+        'stationDeviceId': _GetStationDeviceID(),
+        'stationInstallationId': _GetInstallationID(),
+        'testRunId': self.session_uuid,
+        'testType': 'TestlogDemo',
+        'testName': 'TestlogDemo.Test',
+        'status': testlog.StationTestRun.STATUS.STARTING,
+        'startTime': SAMPLE_DATETIME_FLOAT,
+        'serialNumbers': {'serial_number': 'TestlogDemo'}
+    })
+
+    session_json_path = testlog.InitSubSession(
+        log_root=self.state_dir,
+        station_test_run=session_test_run,
+        uuid=self.session_uuid)
+    os.environ[testlog.TESTLOG_ENV_VARIABLE_NAME] = session_json_path
+    return session_json_path
+
+  def _GetSampleTestRunEvent(self):
+    return testlog.StationTestRun({
+        'uuid': '8b127476-2604-422a-b9b1-f05e4f14bf72',
+        'apiVersion': '0.21',
+        'time': SAMPLE_DATETIME_FLOAT,
+        'testRunId': '8b127472-4593-4be8-9e94-79f228fc1adc',
+        'testName': 'the_test',
+        'testType': 'aaaa',
+        'status': 'PASS',
+        'startTime': SAMPLE_DATETIME_FLOAT
+    })
+
+
+class TestlogTest(TestlogTestBase):
 
   def testDisallowRecursiveLogging(self):
     """Checks that calling 'logging' within log processing code is dropped."""
@@ -41,32 +110,7 @@ class TestlogTest(unittest.TestCase):
     self.assertEquals(logged_events[0]['message'], 'testing 123')
 
 
-class TestlogEventTest(unittest.TestCase):
-
-  def _SimulateSubSession(self):
-    # Prepare the attachments_folder by initializing testlog as a sub session
-    session_json_path = testlog.InitSubSession(
-        log_root=self.state_dir,
-        station_test_run=testlog.StationTestRun(),
-        uuid=time_utils.TimedUUID())
-    os.environ[testlog.TESTLOG_ENV_VARIABLE_NAME] = session_json_path
-    return session_json_path
-
-  def _ReadSessionEvent(self):
-    with open(self.session_json_path, 'r') as f:
-      return json.load(f)
-
-  def setUp(self):
-    self.tmp_dir = tempfile.mkdtemp()
-    self.state_dir = tempfile.mkdtemp()
-    self.session_json_path = self._SimulateSubSession()
-
-  def tearDown(self):
-    shutil.rmtree(self.state_dir)
-    shutil.rmtree(self.tmp_dir)
-    # pylint: disable=protected-access
-    if testlog._global_testlog:
-      testlog._global_testlog.Close()
+class TestlogEventTest(TestlogTestBase):
 
   def testDisallowInitializeFakeEventClasses(self):
     with self.assertRaisesRegexp(
@@ -116,20 +160,12 @@ class TestlogEventTest(unittest.TestCase):
         'Missing fields: \\[\'count\', \'success\', \'uuid\', \'time\'\\]'):
       event.CheckIsValid()
 
-    event = testlog.StationTestRun({
-        'uuid': '8b127476-2604-422a-b9b1-f05e4f14bf72',
-        'apiVersion': '0.2',
-        'time': SAMPLE_DATETIME_FLOAT,
-        'testRunId': '8b127472-4593-4be8-9e94-79f228fc1adc',
-        'testName': 'the_test',
-        'testType': 'aaaa',
-        'status': 'PASS',
-        'startTime': SAMPLE_DATETIME_FLOAT,
-    })
+    event = self._GetSampleTestRunEvent()
+    event['apiVersion'] = '0.05'
 
     with self.assertRaisesRegexp(
         testlog_utils.TestlogError,
-        'Invalid Testlog API version: 0.2'):
+        'Invalid Testlog API version: 0.05'):
       event.CheckIsValid()
 
     event['apiVersion'] = '0.21'
@@ -382,6 +418,7 @@ class TestlogEventTest(unittest.TestCase):
     self.assertEquals(len(paths), 3)
 
   def testStationTestRunWrapperInSession(self):
+    session_json_path = self._SimulateSubSession()
     testlog.AddSerialNumber('KKK', 'SN')
 
     testlog.AddArgument('K1', 'V1')
@@ -423,10 +460,10 @@ class TestlogEventTest(unittest.TestCase):
         content=CONTENT,
         name='text2')
 
-    event = self._ReadSessionEvent()
+    event = json_utils.LoadFile(session_json_path)
     self.assertEqual(
         event['serialNumbers'],
-        {'KKK': 'SN'}
+        {'KKK': 'SN', 'serial_number': 'TestlogDemo'}
     )
     self.assertEqual(
         event['arguments'],
@@ -523,110 +560,72 @@ class TestlogEventTest(unittest.TestCase):
       _unused_invalid_event = testlog.EventBase.FromDict(example_dict)
 
 
-class TestlogE2ETest(unittest.TestCase):
-  @staticmethod
-  def _reset():
-    """Deletes state files and resets global variables."""
-    # pylint: disable=protected-access
-    if testlog._global_testlog:
-      testlog._global_testlog.Close()
-    file_utils.TryUnlink(testlog._SEQUENCE_PATH)
-    if testlog.TESTLOG_ENV_VARIABLE_NAME in os.environ:
-      del os.environ[testlog.TESTLOG_ENV_VARIABLE_NAME]
+def SimulatedTestInAnotherProcess():
+  # Only executed when we have environment variable TESTLOG
+  if testlog.TESTLOG_ENV_VARIABLE_NAME not in os.environ:
+    return
 
-  def tearDown(self):
-    # pylint: disable=protected-access
-    if testlog._global_testlog:
-      testlog._global_testlog.Close()
+  # Initialize Testlog -- only needed because we don't have a harness
+  # doing it for us.
+  testlog.Testlog()
 
-  def testSimulatedTestInAnotherProcess(self):
-    # Only executed when we have environment variable TESTLOG
-    if testlog.TESTLOG_ENV_VARIABLE_NAME not in os.environ:
-      return
+  logging.info('SUBPROCESS')
+  # Snippet for attachment
+  tmp_dir = tempfile.mkdtemp()
+  def CreateTextFile():
+    TEST_STR = 'I\'m just a little bit caught in the middle'
+    TEST_FILENAME = 'TextFile.txt'
+    path = os.path.join(tmp_dir, TEST_FILENAME)
+    with open(path, 'w') as fd:
+      fd.write(TEST_STR)
+    return path
 
-    # Initialize Testlog -- only needed because we don't have a harness
-    # doing it for us.
-    testlog.Testlog()
+  # Additional steps that because multiprocessing.Process doesn't provide
+  # an argument to set the env like subprocess.Popen.
+  testlog.LogParam(name='NAME', value=1)
+  testlog.FlushEvent()
+  testlog.UpdateParam('NAME', description='DESCRIPTION')
 
-    logging.info('SUBPROCESS')
-    # Snippet for attachment
-    tmp_dir = tempfile.mkdtemp()
-    def CreateTextFile():
-      TEST_STR = 'I\'m just a little bit caught in the middle'
-      TEST_FILENAME = 'TextFile.txt'
-      path = os.path.join(tmp_dir, TEST_FILENAME)
-      with open(path, 'w') as fd:
-        fd.write(TEST_STR)
-      return path
+  # Move a file normally.
+  file_to_attach = CreateTextFile()
+  testlog.AttachFile(
+      path=os.path.realpath(file_to_attach),
+      name='FILE',
+      mime_type='text/plain')
 
-    # Additional steps that because multiprocessing.Process doesn't provide
-    # an argument to set the env like subprocess.Popen.
-    testlog.LogParam(name='NAME', value=1)
-    testlog.FlushEvent()
-    testlog.UpdateParam('NAME', description='DESCRIPTION')
+  # Clean up the tmp directory
+  shutil.rmtree(tmp_dir)
 
-    # Move a file normally.
-    file_to_attach = CreateTextFile()
-    testlog.AttachFile(
-        path=os.path.realpath(file_to_attach),
-        name='FILE',
-        mime_type='text/plain')
 
-    # Clean up the tmp directory
-    shutil.rmtree(tmp_dir)
+class TestlogE2ETest(TestlogTestBase):
 
   def testE2E(self):
-    def _GetDeviceID():
-      logging.warning('WARNING')
-      return 'ThisIsDeviceID'
-
-    def _GetInstallationID():
-      logging.info('INFO')
-      return 'ThisIsInstallationID'
-
     IN_TAG = '$IN$'
     OUT_TAG = '$OUT$'
-    TestlogE2ETest._reset()
-    state_dir = tempfile.mkdtemp()
     # Assuming we are the harness.
     my_uuid = time_utils.TimedUUID()
-    testlog.Testlog(log_root=state_dir, uuid=my_uuid)
+    testlog.Testlog(log_root=self.state_dir, uuid=my_uuid)
     # Simulate the logging of goofy framework start-up.
     testlog.Log(testlog.StationInit({
         'count': 10,
         'success': True}))
 
     # Prepare for another test session.
-    session_uuid = time_utils.TimedUUID()
-    session_test_run = testlog.StationTestRun({
-        'stationDeviceId': _GetDeviceID(),
-        'stationInstallationId': _GetInstallationID(),
-        'testRunId': session_uuid,
-        'testType': 'TestlogDemo',
-        'testName': 'TestlogDemo.Test',
-        'status': testlog.StationTestRun.STATUS.STARTING,
-        'startTime': SAMPLE_DATETIME_FLOAT,
-        'serialNumbers': {'serial_number': 'TestlogDemo'}
-        })
-    # Go
-    session_json_path = testlog.InitSubSession(
-        log_root=state_dir,
-        station_test_run=session_test_run,
-        uuid=session_uuid)
+    session_json_path = self._SimulateSubSession()
     env_additions = copy.deepcopy(os.environ)
-    env_additions.update({'TESTLOG': session_json_path})
     # Go with env_additions['TESTLOG']
     logging.info(IN_TAG)
     p = subprocess.Popen(
         ['python', os.path.abspath(__file__),
-         'TestlogE2ETest.testSimulatedTestInAnotherProcess'],
+         'SimulatedTestInAnotherProcess'],
         env=env_additions)
     p.wait()
     logging.info(OUT_TAG)
     session_json = json.loads(open(session_json_path).read())
     # Collect the session log
     testlog.LogFinalTestRun(session_json_path)
-    primary_json = open(os.path.join(state_dir, 'testlog.json')).readlines()
+    primary_json = file_utils.ReadLines(
+        os.path.join(self.state_dir, 'testlog.json'))
     logging.info('Load back session JSON:\n%s\n', pprint.pformat(session_json))
     logging.info('Load back primary JSON:\n%s\n', ''.join(primary_json))
 
@@ -635,23 +634,23 @@ class TestlogE2ETest(unittest.TestCase):
          'functionName': 'CaptureLogging', 'logLevel': 'INFO'},
         {'type': 'station.init', 'seq': 1, 'count': 10, 'success': True},
         {'type': 'station.message', 'seq': 2,
-         'functionName': '_GetDeviceID', 'logLevel': u'WARNING'},
+         'functionName': '_GetStationDeviceID', 'logLevel': u'WARNING'},
         {'type': 'station.message', 'seq': 3,
          'functionName': '_GetInstallationID', 'logLevel': 'INFO'},
         {'type': 'station.message', 'seq': 4,
          'functionName': 'testE2E', 'logLevel': 'INFO', 'message': '$IN$'},
         # Now that we are entering the subprocess, we should expect to see
-        # testRunId == session_uuid.
+        # testRunId == self.session_uuid.
         {'type': 'station.message', 'seq': 5,
          'functionName': 'CaptureLogging',
-         'logLevel': 'INFO', 'testRunId': session_uuid},
+         'logLevel': 'INFO', 'testRunId': self.session_uuid},
         {'type': 'station.message', 'seq': 6,
-         'functionName': 'testSimulatedTestInAnotherProcess',
-         'logLevel': 'INFO', 'testRunId': session_uuid},
+         'functionName': 'SimulatedTestInAnotherProcess',
+         'logLevel': 'INFO', 'testRunId': self.session_uuid},
         # Missing seq=7, 9, 10 because they are not sent to primary JSON.
         # This event is created by FlushEvent.
         {'type': 'station.test_run', 'seq': 8, 'testType': 'TestlogDemo',
-         'testName': 'TestlogDemo.Test', 'testRunId': session_uuid,
+         'testName': 'TestlogDemo.Test', 'testRunId': self.session_uuid,
          'parameters': {
              'NAME': {'data': [{'numericValue': 1}],
                       'type': 'measurement'}},
@@ -660,7 +659,7 @@ class TestlogE2ETest(unittest.TestCase):
          'functionName': 'testE2E', 'logLevel': 'INFO', 'message': '$OUT$'},
         # Don't check attachments since the filename is not deterministic.
         {'type': 'station.test_run', 'seq': 12, 'testType': 'TestlogDemo',
-         'testName': 'TestlogDemo.Test', 'testRunId': session_uuid,
+         'testName': 'TestlogDemo.Test', 'testRunId': self.session_uuid,
          'parameters': {
              'NAME': {'data': [{'numericValue': 1}],
                       'type': 'measurement',
@@ -674,11 +673,9 @@ class TestlogE2ETest(unittest.TestCase):
   def testDisallowReenterLog(self):
     # FileLock records a DEBUG message after getting the file lock.
     logging.getLogger().setLevel(logging.DEBUG)
-    TestlogE2ETest._reset()
-    state_dir = tempfile.mkdtemp()
     # Assuming we are the harness.
     my_uuid = time_utils.TimedUUID()
-    testlog.Testlog(log_root=state_dir, uuid=my_uuid)
+    testlog.Testlog(log_root=self.state_dir, uuid=my_uuid)
     testlog.Log(testlog.StationInit({'count': 1, 'success': True}))
     logging.getLogger().setLevel(logging.INFO)
 
