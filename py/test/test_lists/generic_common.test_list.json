@@ -373,6 +373,13 @@
         "QR_string": "Hello ChromeOS!"
       }
     },
+    "ReSignReleaseKernel": {
+      "pytest_name": "update_kernel",
+      "run_if": "constants.phase != 'PVT' and constants.grt.re_sign_release_kernel",
+      "args": {
+        "to_release": true
+      }
+    },
     "ReadDeviceDataFromVPD": {
       "pytest_name": "read_device_data_from_vpd"
     },

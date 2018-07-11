@@ -10,6 +10,8 @@
       "ec_pubkey_hash": null,
       "gooftool_skip_list": [],
       "gooftool_waive_list": [],
+      "re_sign_release_kernel": false,
+      "__comment_re_sign_release_kernel": "Enable this if you want to finalize with a DEV signed kernel; go/cros-factory-fw-in-early-builds",
       "secure_wipe": true
     }
   },
@@ -57,6 +59,7 @@
     "GRTItems": {
       "inherit": "FlattenGroup",
       "subtests": [
+        "ReSignReleaseKernel",
         "UploadRegCodes"
       ]
     },
