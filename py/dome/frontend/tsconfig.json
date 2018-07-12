@@ -20,11 +20,10 @@
     "noEmitOnError": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
-    "noImplicitThis": true,
     "noUnusedLocals": true,
     "pretty": true,
     "sourceMap": true,
-    "strictNullChecks": true
+    "strict": true
   },
   "include": ["src/**/*"]
 }

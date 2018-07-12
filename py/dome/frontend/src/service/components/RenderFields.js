@@ -97,7 +97,7 @@ class RenderFields extends React.Component {
                   name={k}
                   component={renderTextField}
                   label={k}
-                  description={s.description}
+                  hintText={s.description}
                   type="text"
                 />
               );
@@ -108,7 +108,7 @@ class RenderFields extends React.Component {
                   name={k}
                   component={renderTextField}
                   label={k}
-                  description={s.description}
+                  hintText={s.description}
                   normalize={toNumber}
                   type="number"
                 />
