@@ -383,8 +383,19 @@ class TestInvocation(object):
     # StationTestRun status.
     status = _status_conversion.get(status, status)
 
+    def GetDUTDeviceID(dut):
+      if not dut.link.IsReady():
+        return 'device-offline'
+      device_id = dut.info.device_id
+      # TODO(chuntsen): If the dutDeviceId won't be None anymore, remove this.
+      if not isinstance(device_id, basestring):
+        logging.error('DUT device ID is an unexpected type (%s)',
+                      type(device_id))
+        device_id = str(device_id)
+      return device_id
+
     kwargs = {
-        'dutDeviceId': self.dut.info.device_id,
+        'dutDeviceId': GetDUTDeviceID(self.dut),
         'stationDeviceId': session.GetDeviceID(),
         'stationInstallationId': session.GetInstallationID(),
         'testRunId': self.uuid,
