@@ -46,7 +46,7 @@
     "typescript": "~2.8.4"
   },
   "scripts": {
-    "build": "mkdir -p build && cp src/static/* build && browserify --debug -p [ tsify ] --transform [ babelify ] --outfile build/bundle.js --entry src/index.js",
+    "build": "mkdir -p build && cp src/static/* build && browserify --debug -p [ tsify ] --transform [ babelify ] --outfile build/app.js --entry src/index.js",
     "lint": "tslint -t verbose -p ./"
   },
   "browserify": {

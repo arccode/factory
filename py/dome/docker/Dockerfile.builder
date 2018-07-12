@@ -32,12 +32,12 @@ RUN npm run build
 WORKDIR "${workdir}/build"
 
 # make sure others can read
-RUN chmod 644 index.html bundle.js main.css
+RUN chmod 644 index.html app.js main.css
 
 ARG output_file="frontend.tar"
 ENV output_file="${output_file}"
 
-RUN tar cvf "${output_file}" index.html bundle.js main.css
+RUN tar cvf "${output_file}" index.html app.js main.css
 
 # nothing to do here
 CMD ["echo"]
