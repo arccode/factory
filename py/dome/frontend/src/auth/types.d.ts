@@ -2,8 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {NAME} from './constants';
-
-export const localState = (state) => state[NAME];
-
-export const isLoggedIn = (state) => localState(state).isLoggedIn;
+export interface AuthData {
+  username: string;
+  password: string;
+}

@@ -3,26 +3,38 @@
 // found in the LICENSE file.
 
 import axios from 'axios';
+import {Dispatch} from 'redux';
+import {createAction} from 'typesafe-actions';
 
 import {authorizedAxios} from '@common/utils';
 
-import actionTypes from './actionTypes';
+import {AuthData} from './types';
 
-const loginSucceed = (token) => {
-  if (token != null) {
-    localStorage.setItem('token', token);
-  } else {
+const loginSucceed = createAction('LOGIN_SUCCEED', (resolve) =>
+  (token: string | null) => {
+    if (token != null) {
+      localStorage.setItem('token', token);
+    } else {
+      localStorage.removeItem('token');
+    }
+    return resolve();
+  });
+
+const loginFailed = createAction('LOGIN_FAILED', (resolve) =>
+  () => {
     localStorage.removeItem('token');
-  }
-  return {type: actionTypes.LOGIN_SUCCEED};
-};
+    return resolve();
+  });
 
-const loginFailed = () => {
-  localStorage.removeItem('token');
-  return {type: actionTypes.LOGIN_FAILED};
-};
+export const logout = createAction('LOGOUT', (resolve) =>
+  () => {
+    localStorage.removeItem('token');
+    return resolve();
+  });
 
-export const tryLogin = (data) => async (dispatch) => {
+export const basicActions = {loginSucceed, loginFailed, logout};
+
+export const tryLogin = (data: AuthData) => async (dispatch: Dispatch) => {
   try {
     const response = await axios.post('/auth', data);
     dispatch(loginSucceed(response.data.token));
@@ -33,7 +45,7 @@ export const tryLogin = (data) => async (dispatch) => {
   }
 };
 
-export const testAuthToken = () => async (dispatch) => {
+export const testAuthToken = () => async (dispatch: Dispatch) => {
   const token = localStorage.getItem('token');
   if (token != null) {
     try {
@@ -55,9 +67,4 @@ export const testAuthToken = () => async (dispatch) => {
   }
   // Dispatch a login failed event to clear all wrong token.
   dispatch(loginFailed());
-};
-
-export const logout = () => (dispatch) => {
-  localStorage.removeItem('token');
-  dispatch({type: actionTypes.LOGOUT});
 };

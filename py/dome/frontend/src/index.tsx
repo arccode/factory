@@ -30,27 +30,22 @@ const THEME = {
   },
 };
 
-const reducerModules = [
-  auth,
-  bundle,
-  config,
-  domeApp,
-  error,
-  formDialog,
-  project,
-  service,
-  task,
-];
+export const rootReducer = combineReducers({
+  [auth.constants.NAME]: auth.reducer,
+  [bundle.constants.NAME]: bundle.reducer,
+  [config.constants.NAME]: config.reducer,
+  [domeApp.constants.NAME]: domeApp.reducer,
+  [error.constants.NAME]: error.reducer,
+  [formDialog.constants.NAME]: formDialog.reducer,
+  form: reduxFormReducer,
+  [project.constants.NAME]: project.reducer,
+  [service.constants.NAME]: service.reducer,
+  [task.constants.NAME]: task.reducer,
+});
 
 const store = createStore(
-    combineReducers({
-      ...reducerModules.reduce((obj, mod) => {
-        obj[mod.constants.NAME] = mod.reducer;
-        return obj;
-      }, {}),
-      form: reduxFormReducer,
-    }),
-    applyMiddleware(thunkMiddleware, createLogger()));
+  rootReducer,
+  applyMiddleware(thunkMiddleware, createLogger()));
 
 class App extends React.Component {
   componentDidMount() {
@@ -73,6 +68,6 @@ To visit Dome, please use Chrome/Chromium to avoid unnecessary issues.`);
 }
 
 ReactDOM.render(
-    <App />,
-    document.getElementById('app'),
+  <App />,
+  document.getElementById('app'),
 );

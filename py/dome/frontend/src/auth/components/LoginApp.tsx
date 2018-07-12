@@ -3,34 +3,29 @@
 // found in the LICENSE file.
 
 import {Card, CardText, CardTitle} from 'material-ui/Card';
-import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
 
 import {tryLogin} from '../actions';
+import {AuthData} from '../types';
 
 import LoginForm from './LoginForm';
 
-class LoginApp extends React.Component {
-  static propTypes = {
-    tryLogin: PropTypes.func.isRequired,
-  };
-
-  render() {
-    const {tryLogin} = this.props;
-    return (
-      <Card>
-        <CardTitle title={'Login to continue'}></CardTitle>
-        <CardText>
-          <LoginForm
-            form="login"
-            onSubmit={tryLogin}
-          />
-        </CardText>
-      </Card>
-    );
-  }
+interface LoginAppProps {
+  tryLogin: (values: AuthData) => any;
 }
+
+const LoginApp: React.SFC<LoginAppProps> = ({tryLogin}) => (
+  <Card>
+    <CardTitle title="Login to continue" />
+    <CardText>
+      <LoginForm
+        form="login"
+        onSubmit={tryLogin}
+      />
+    </CardText>
+  </Card>
+);
 
 const mapDispatchToProps = {tryLogin};
 

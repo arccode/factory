@@ -20,6 +20,7 @@
     "redux-thunk": "~2.3.0",
     "reselect": "~3.0.1",
     "tslib": "~1.9.3",
+    "typesafe-actions": "~2.0.4",
     "uuid": "~3.3.2"
   },
   "devDependencies": {
@@ -44,7 +45,7 @@
     "typescript": "~2.9.2"
   },
   "scripts": {
-    "build": "mkdir -p build && cp src/static/* build && browserify --debug -p [ tsify ] --transform [ babelify ] --outfile build/app.js --entry src/index.js",
+    "build": "mkdir -p build && cp src/static/* build && browserify --debug -p [ tsify ] --transform [ babelify ] --outfile build/app.js --entry src/index.tsx",
     "lint": "tslint -t verbose -p ./"
   },
   "browserify": {
