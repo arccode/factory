@@ -32,6 +32,7 @@ def IsLidEventDevice(dev):
   """
   return evdev.ecodes.SW_LID in dev.capabilities().get(evdev.ecodes.EV_SW, [])
 
+
 def IsTabletEventDevice(dev):
   """Check if a device is with EV_SW and SW_TABLET_MODE capabilities.
 
@@ -45,7 +46,6 @@ def IsTabletEventDevice(dev):
       evdev.ecodes.EV_SW, [])
 
 
-
 def IsKeyboardDevice(dev):
   """Check if a device is with EV_KEY and KEY_ENTER capabilities.
 
@@ -55,8 +55,13 @@ def IsKeyboardDevice(dev):
   Returns:
     True if dev is a keyboard device.
   """
-  return evdev.ecodes.KEY_ENTER in dev.capabilities().get(evdev.ecodes.EV_KEY,
-                                                          [])
+  keys = {
+      evdev.ecodes.KEY_ENTER,
+      evdev.ecodes.KEY_LEFTCTRL,
+      evdev.ecodes.KEY_LEFTALT
+  }
+  caps = set(dev.capabilities().get(evdev.ecodes.EV_KEY, []))
+  return keys.issubset(caps)
 
 
 def SendKeys(key_sequence):
