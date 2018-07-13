@@ -67,7 +67,7 @@ The Chromium OS Factory Software Platform has three major components:
   program" (built by running `emerge-$BOARD factory` or
   `make BOARD=$BOARD toolkit` inside factory repository).
 
-* **[Factory bundle](BUNDLE.md)**
+* **[Factory bundle](setup/BUNDLE.md)**
 
   An archive containing everything: a release (recovery) image, test image,
   factory shim image, factory toolkit, and few setup programs.
