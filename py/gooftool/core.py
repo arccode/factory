@@ -800,11 +800,11 @@ class Gooftool(object):
       service_mgr.RestoreServices()
 
 
-  def Cr50DisableRmaMode(self):
-    """Disable Cr50 RMA mode.
+  def Cr50DisableFactoryMode(self):
+    """Disable Cr50 Factory mode.
 
-    Cr50 RMA mode might be enabled in the factory and RMA center in order to
-    open ccd capabilities. Before finalizing the DUT, RMA mode MUST be
+    Cr50 factory mode might be enabled in the factory and RMA center in order to
+    open ccd capabilities. Before finalizing the DUT, factory mode MUST be
     disabled.
     """
     def _GetCr50Version():
@@ -830,17 +830,17 @@ class Gooftool(object):
     if not os.path.exists(gsctool_path):
       raise Error('gsctool is not available in path - %s.' % gsctool_path)
 
-    rma_mode_disabled = False
-    cmd = ['gsctool', '-a', '-r', 'disable']
+    factory_mode_disabled = False
+    cmd = ['gsctool', '-a', '-F', 'disable']
     result = self._util.shell(cmd)
     if result.success:
-      rma_mode_disabled = True
+      factory_mode_disabled = True
 
     if not _IsCCDInfoMandatory():
-      logging.warn('Command of disabling rma mode %s and can not get CCD '
-                   'info so there is no way to make sure rma mode status. '
+      logging.warn('Command of disabling factory mode %s and can not get CCD '
+                   'info so there is no way to make sure factory mode status. '
                    'cr50 version RW %s',
-                   'succeeds' if rma_mode_disabled else 'fails',
+                   'succeeds' if factory_mode_disabled else 'fails',
                    _GetCr50Version())
       return
 
@@ -858,4 +858,4 @@ class Gooftool(object):
     #   ...
     # CCD caps bitmap: 0x1ffff
     if re.search("^CCD caps bitmap: 0x1ffff$", info, re.MULTILINE):
-      raise Error('Failed to disable Cr50 rma mode. CCD info:\n%s' % info)
+      raise Error('Failed to disable Cr50 factory mode. CCD info:\n%s' % info)
