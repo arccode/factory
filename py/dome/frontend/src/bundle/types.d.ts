@@ -2,9 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {Enum} from '@common/enum';
-
-export default Enum([
-  'OPEN_FORM',
-  'CLOSE_FORM',
-]);
+export interface UpdatingResourceFormPayload {
+  bundleName: string;
+  resourceKey: string;
+  resourceType: string;
+}

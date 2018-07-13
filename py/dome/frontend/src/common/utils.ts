@@ -17,3 +17,4 @@ export const authorizedAxios = (): AxiosInstance => {
 };
 
 export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
+export type Unionize<T> = T[keyof T];
