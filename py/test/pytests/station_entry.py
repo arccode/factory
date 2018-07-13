@@ -107,6 +107,8 @@ class StationEntry(test_case.TestCase):
       Arg('clear_serial_numbers', bool,
           'To invoke device_data.ClearAllSerialNumbers() or not',
           default=True),
+      Arg('wait_goofy', bool, 'wait until we can connect to goofy',
+          default=True),
   ]
 
   def setUp(self):
@@ -160,6 +162,24 @@ class StationEntry(test_case.TestCase):
     except type_utils.TimeoutError:
       self.FailTask(
           'DUT is not connected in %d seconds' % self.args.timeout_secs)
+
+    if self.args.wait_goofy:
+      def _TryCreateStateProxy():
+        try:
+          state_proxy = state.GetInstance(self._dut.link.host)
+          state_proxy.data_shelf_has_key('test_list_options')
+          return True
+        except Exception:
+          session.console.exception('Cannot create state proxy')
+          return False
+
+      try:
+        sync_utils.WaitFor(_TryCreateStateProxy,
+                           self.args.timeout_secs,
+                           poll_interval=1)
+      except type_utils.TimeoutError:
+        self.FailTask(
+            'DUT Goofy is not connected in %d seconds' % self.args.timeout_secs)
 
     if self.args.prompt_start:
       self.ui.SetState(_('Press SPACE to start the test.'))

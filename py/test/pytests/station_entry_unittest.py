@@ -78,7 +78,8 @@ class FactoryEntryUnitTest(unittest.TestCase):
                                'timeout_secs': timeout_secs,
                                'disconnect_dut': True,
                                'invalidate_dut_info': True,
-                               'clear_serial_numbers': True, })
+                               'clear_serial_numbers': True,
+                               'wait_goofy': True})
 
     self.mock_dut.link.IsLocal.return_value = is_local
     self.mock_dut.link.IsReady.side_effect = (
@@ -103,7 +104,8 @@ class FactoryEntryUnitTest(unittest.TestCase):
                                'load_dut_storage': True,
                                'timeout_secs': timeout_secs,
                                'invalidate_dut_info': True,
-                               'clear_serial_numbers': True, })
+                               'clear_serial_numbers': True,
+                               'wait_goofy': True})
 
     self.mock_dut.link.IsReady.side_effect = (
         lambda: self._timeline.GetTime() >= 10)

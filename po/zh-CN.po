@@ -130,6 +130,10 @@ msgid "Check Image Version"
 msgstr "检查映像版本"
 
 #: ../build/pytests_label_generated.json
+msgid "Check Serial Number"
+msgstr "检查机器序号"
+
+#: ../build/pytests_label_generated.json
 msgid "Compass"
 msgstr "罗盘"
 
@@ -1574,6 +1578,10 @@ msgstr "正在烧录 {component}..."
 #: ../py/test/pytests/check_image_version.py
 msgid "Updating {component}...."
 msgstr "正在更新 {component}..."
+
+#: ../py/test/pytests/check_serial_number.py
+msgid "Checking Device State"
+msgstr "检查机器状态"
 
 #: ../py/test/pytests/compass.py
 msgid "north"
