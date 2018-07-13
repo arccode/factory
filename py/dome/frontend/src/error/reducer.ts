@@ -3,16 +3,24 @@
 // found in the LICENSE file.
 
 import {combineReducers} from 'redux';
+import {ActionType, getType} from 'typesafe-actions';
 
-import actionTypes from './actionTypes';
+import {basicActions as actions} from './actions';
 
-export default combineReducers({
+export interface ErrorState {
+  show: boolean;
+  message: string;
+}
+
+type ErrorAction = ActionType<typeof actions>;
+
+export default combineReducers<ErrorState, ErrorAction>({
   show: (state = false, action) => {
     switch (action.type) {
-      case actionTypes.SHOW_ERROR_DIALOG:
+      case getType(actions.showErrorDialog):
         return true;
 
-      case actionTypes.HIDE_ERROR_DIALOG:
+      case getType(actions.hideErrorDialog):
         return false;
 
       default:
@@ -21,8 +29,8 @@ export default combineReducers({
   },
   message: (state = '', action) => {
     switch (action.type) {
-      case actionTypes.SET_ERROR_MESSAGE:
-        return action.message;
+      case getType(actions.setError):
+        return action.payload.message;
 
       default:
         return state;
