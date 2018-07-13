@@ -7,7 +7,7 @@
 # dependencies. The dependencies are really big and we don't want to pull them
 # all into the running image since they are useless after the build.
 
-FROM node:6.9-slim
+FROM node:10-slim
 MAINTAINER Mao Huang <littlecvr@google.com>
 
 # mixing ARG and ENV to make CMD able to use the variable, this technique is
@@ -19,7 +19,7 @@ WORKDIR "${workdir}"
 
 # copy package.json and pull in dependencies first, so we don't need to do this
 # again if package.json hasn't been modified
-COPY frontend/package.json "${workdir}/"
+COPY frontend/package.json frontend/package-lock.json "${workdir}/"
 # npm outputs messages to stderr and docker makes them red, which is pretty
 # scaring, redirect them to stdout
 RUN npm install 2>&1

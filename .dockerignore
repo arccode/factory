@@ -12,3 +12,4 @@ py/goofy/static
 py/test/fixture
 py/test/pytests
 py/test_list_editor
+py/dome/frontend/build
