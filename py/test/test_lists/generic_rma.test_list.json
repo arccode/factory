@@ -5,7 +5,7 @@
   ],
   "label": "Generic RMA",
   "constants": {
-    "phase": "PROTO",
+    "phase": "PVT",
     "rma_mode": true
   },
   "definitions": {
@@ -15,10 +15,55 @@
       "subtests": [
         "Placeholder"
       ]
+    },
+    "RMAGRT": {
+      "inherit": "TestGroup",
+      "label": "GRT (Google Required Tests)",
+      "locals": {
+        "station_end_upload_report": true,
+        "station": "GRT"
+      },
+      "subtests": [
+        "WriteHWID",
+        "RMACr50Reset",
+        "RMAGRTEnd",
+        "AllCheckPoint",
+        "RMAGRTFinalize"
+      ]
+    },
+    "RMACr50Reset": {
+      "label": "Cr50 RMA Cleanup",
+      "inherit": "TestGroup",
+      "subtests": [{
+          "inherit": "ExecShell",
+          "label": "Clear RMA Unlock State",
+          "args": {
+            "commands": "gooftool cr50_disable_rma_mode"
+          }
+        }]
+    },
+    "RMAGRTEnd": {
+      "inherit": "TestGroup",
+      "label": "Finish",
+      "subtests": [
+        "TPMVerifyEK",
+        "ClearTPMOwnerRequest",
+        "Barrier",
+        "RebootStep"
+      ]
+    },
+    "RMAGRTFinalize": {
+      "inherit": "GRTFinalize",
+      "args": {
+        "rma_mode": true,
+        "enable_factory_server": false,
+        "upload_method": "none",
+        "write_protection": "eval! constants.force_write_protect or options.phase == 'PVT'"
+      }
     }
   },
   "tests": [
     "RMAFFT",
-    "GRT"
+    "RMAGRT"
   ]
 }
