@@ -3,9 +3,9 @@
 // found in the LICENSE file.
 
 import axios from 'axios';
-import {Dispatch} from 'redux';
 import {createAction} from 'typesafe-actions';
 
+import {Dispatch} from '@app/types';
 import {authorizedAxios} from '@common/utils';
 
 import {AuthData} from './types';

@@ -2,10 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {Dispatch} from 'redux';
 import {createAction} from 'typesafe-actions';
 
-import {RootState} from '@app/types';
+import {Dispatch, RootState} from '@app/types';
 
 import {isFormVisibleFactory} from './selectors';
 import {FormDataType, FormNames, FormPayloadTypeMap} from './types';
