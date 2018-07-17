@@ -57,8 +57,8 @@ const taskBodies: {[id: string]: any} = {};
 const taskResolves: {[id: string]: (result: TaskResult) => void} = {};
 
 export const runTask =
-  (description: string, method: string, url: string, body: any) =>
-    (dispatch: Dispatch, getState: () => RootState): Promise<TaskResult> =>
+  <T>(description: string, method: string, url: string, body: any) =>
+    (dispatch: Dispatch, getState: () => RootState): Promise<TaskResult<T>> =>
       new Promise((resolve) => {
         const taskID = uuid();
         // if all tasks before succeed, start this task now.

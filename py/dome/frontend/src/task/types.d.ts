@@ -27,7 +27,10 @@ export interface Task {
   progress: TaskProgress;
 }
 
-export interface TaskResult {
-  cancel: boolean;
-  response?: AxiosResponse;
-}
+export type TaskResult<T = any> =
+  {
+    cancel: true;
+  } | {
+    cancel: false;
+    response: AxiosResponse<T>;
+  };
