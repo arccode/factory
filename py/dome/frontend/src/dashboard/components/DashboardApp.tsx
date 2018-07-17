@@ -7,29 +7,30 @@ import Divider from 'material-ui/Divider';
 import {List, ListItem} from 'material-ui/List';
 import Subheader from 'material-ui/Subheader';
 import Toggle from 'material-ui/Toggle';
-import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
-import {createStructuredSelector} from 'reselect';
 
 import formDialog from '@app/formDialog';
 import project from '@app/project';
+import {Project, UmpireSetting} from '@app/project/types';
 import ServiceList from '@app/service/components/ServiceList';
+import {RootState} from '@app/types';
 
 import {disableUmpire, enableUmpireWithSettings} from '../actions';
 import {ENABLING_UMPIRE_FORM} from '../constants';
 
 import EnablingUmpireForm from './EnablingUmpireForm';
 
-class DashboardApp extends React.Component {
-  static propTypes = {
-    project: PropTypes.object.isRequired,
-    closeEnablingUmpireForm: PropTypes.func.isRequired,
-    disableUmpire: PropTypes.func.isRequired,
-    enableUmpireWithSettings: PropTypes.func.isRequired,
-    openEnablingUmpireForm: PropTypes.func.isRequired,
-  };
+interface DashboardAppProps {
+  project: Project;
+  openEnablingUmpireForm: () => any;
+  closeEnablingUmpireForm: () => any;
+  disableUmpire: (name: string) => any;
+  enableUmpireWithSettings: (
+    name: string, setting: Partial<UmpireSetting>) => any;
+}
 
+class DashboardApp extends React.Component<DashboardAppProps> {
   handleToggle = () => {
     const {
       project: {umpireEnabled, name},
@@ -61,7 +62,7 @@ class DashboardApp extends React.Component {
         {/* TODO(littlecvr): add <ProductionLineInfoPanel /> */}
 
         <Card>
-          <CardTitle title={'Dashboard'}></CardTitle>
+          <CardTitle title={'Dashboard'} />
           <CardText>
             <List>
               <ListItem
@@ -74,25 +75,25 @@ class DashboardApp extends React.Component {
                 primaryText="Enable Umpire"
               />
               {project.umpireEnabled && project.umpireReady &&
-              <>
-                <Subheader>Info</Subheader>
-                <Divider/>
-                {!project.isUmpireRecent &&
-                <ListItem style={styles.warningText} disabled={true}>
-                  The umpire instance is using an old version of umpire, and
-                  may not function properly, please restart it by disabling and
-                  re-enabling it.
-                </ListItem>}
-                <ListItem disabled={true}>
-                  host: {project.umpireHost}
-                </ListItem>
-                <ListItem disabled={true}>
-                  port: {project.umpirePort}
-                </ListItem>
-                <Subheader>Services</Subheader>
-                <Divider/>
-                <ServiceList/>
-              </>}
+                <>
+                  <Subheader>Info</Subheader>
+                  <Divider />
+                  {!project.isUmpireRecent &&
+                    <ListItem style={styles.warningText} disabled={true}>
+                      The umpire instance is using an old version of umpire,
+                      and may not function properly, please restart it by
+                      disabling and re-enabling it.
+                    </ListItem>}
+                  <ListItem disabled={true}>
+                    host: {project.umpireHost}
+                  </ListItem>
+                  <ListItem disabled={true}>
+                    port: {project.umpirePort}
+                  </ListItem>
+                  <Subheader>Services</Subheader>
+                  <Divider />
+                  <ServiceList />
+                </>}
             </List>
           </CardText>
         </Card>
@@ -100,7 +101,6 @@ class DashboardApp extends React.Component {
         {/* TODO(littlecvr): add <SystemInfoPanel /> */}
 
         <EnablingUmpireForm
-          projectName={project.name}
           onCancel={closeEnablingUmpireForm}
           onSubmit={(umpireSettings) => {
             closeEnablingUmpireForm();
@@ -112,8 +112,8 @@ class DashboardApp extends React.Component {
   }
 }
 
-const mapStateToProps = createStructuredSelector({
-  project: project.selectors.getCurrentProjectObject,
+const mapStateToProps = (state: RootState) => ({
+  project: project.selectors.getCurrentProjectObject(state),
 });
 
 const mapDispatchToProps = {

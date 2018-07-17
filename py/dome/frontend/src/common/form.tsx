@@ -32,3 +32,8 @@ export const renderTextField = ({
 export const validateRequired = (value: any): string | undefined => (
   value ? undefined : 'Required'
 );
+
+export const parseNumber = (value: string) => {
+  const num = Number(value);
+  return value === '' || isNaN(num) ? null : num;
+};

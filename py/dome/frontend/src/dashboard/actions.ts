@@ -4,12 +4,15 @@
 
 import project from '@app/project';
 
-export const disableUmpire = (projectName) => (
+import {UmpireSetting} from '@app/project/types';
+
+export const disableUmpire = (projectName: string) => (
   project.actions.updateProject(projectName, {umpireEnabled: false})
 );
 
-export const enableUmpireWithSettings = (projectName, umpireSettings) => (
-  project.actions.updateProject(
+export const enableUmpireWithSettings =
+  (projectName: string, umpireSettings: Partial<UmpireSetting>) => (
+    project.actions.updateProject(
       projectName,
       {umpireEnabled: true, ...umpireSettings})
-);
+  );
