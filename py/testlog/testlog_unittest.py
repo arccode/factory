@@ -13,6 +13,7 @@ import pprint
 import shutil
 import subprocess
 import tempfile
+import time
 import unittest
 
 from testlog_pkg import testlog
@@ -460,6 +461,8 @@ class TestlogEventTest(TestlogTestBase):
         content=CONTENT,
         name='text2')
 
+    # Wait the thread update the session json file.
+    time.sleep(0.5)
     event = json_utils.LoadFile(session_json_path)
     self.assertEqual(
         event['serialNumbers'],
@@ -583,7 +586,11 @@ def SimulatedTestInAnotherProcess():
   # Additional steps that because multiprocessing.Process doesn't provide
   # an argument to set the env like subprocess.Popen.
   testlog.LogParam(name='NAME', value=1)
+
+  # Wait the thread update the session json file.
+  time.sleep(0.5)
   testlog.FlushEvent()
+
   testlog.UpdateParam('NAME', description='DESCRIPTION')
 
   # Move a file normally.
@@ -595,6 +602,8 @@ def SimulatedTestInAnotherProcess():
 
   # Clean up the tmp directory
   shutil.rmtree(tmp_dir)
+  if testlog.TESTLOG_ENV_VARIABLE_NAME in os.environ:
+    testlog.GetGlobalTestlog().Close()
 
 
 class TestlogE2ETest(TestlogTestBase):
@@ -655,10 +664,10 @@ class TestlogE2ETest(TestlogTestBase):
              'NAME': {'data': [{'numericValue': 1}],
                       'type': 'measurement'}},
          'serialNumbers': {'serial_number': 'TestlogDemo'}},
-        {'type': 'station.message', 'seq': 11,
+        {'type': 'station.message',
          'functionName': 'testE2E', 'logLevel': 'INFO', 'message': '$OUT$'},
         # Don't check attachments since the filename is not deterministic.
-        {'type': 'station.test_run', 'seq': 12, 'testType': 'TestlogDemo',
+        {'type': 'station.test_run', 'testType': 'TestlogDemo',
          'testName': 'TestlogDemo.Test', 'testRunId': self.session_uuid,
          'parameters': {
              'NAME': {'data': [{'numericValue': 1}],

@@ -129,6 +129,8 @@ def main():
   if proc_title:
     setproctitle(proc_title)
   RunPytest(info)
+  if testlog.TESTLOG_ENV_VARIABLE_NAME in os.environ:
+    testlog.GetGlobalTestlog().Close()
 
 
 if __name__ == '__main__':

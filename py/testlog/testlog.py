@@ -101,6 +101,8 @@ _global_testlog = None
 _pylogger = None
 _pylogger_handler = None
 
+_update_session_json = threading.Event()
+
 
 class FlushException(Exception):
   """Represents an exception when flushing to Instalog."""
@@ -197,6 +199,19 @@ class Testlog(object):
     # Initialize testlog._pylogger
     self.CaptureLogging(stationDeviceId, stationInstallationId)
 
+    if self.in_subsession:
+      self.stop_session_json_thread = threading.Event()
+      self.session_json_thread = threading.Thread(
+          target=self.UpdateSessionJSON)
+      self.session_json_thread.start()
+
+  def UpdateSessionJSON(self):
+    while (not self.stop_session_json_thread.wait(0.2) or
+           _update_session_json.is_set()):
+      if _update_session_json.is_set():
+        _update_session_json.clear()
+        Log(self.last_test_run)
+
   def init_hooks(self, hooks_class):
     # Initialize the Testlog hooks class
     module, class_name = hooks_class.rsplit('.', 1)
@@ -225,6 +240,9 @@ class Testlog(object):
   def Close(self):
     # pylint: disable=global-statement
     global _global_testlog, _pylogger, _pylogger_handler
+    if self.in_subsession:
+      self.stop_session_json_thread.set()
+      self.session_json_thread.join()
     if self.primary_json:
       self.primary_json.Close()
     if self.session_json:
@@ -457,7 +475,7 @@ def _StationTestRunWrapperInSession(*args, **kwargs):
   if GetGlobalTestlog().last_test_run:
     ret = getattr(
         GetGlobalTestlog().last_test_run, method_name)(*args, **kwargs)
-    Log(GetGlobalTestlog().last_test_run)
+    _update_session_json.set()
     return ret
   else:
     raise testlog_utils.TestlogError(
