@@ -3,19 +3,22 @@
 // found in the LICENSE file.
 
 import RaisedButton from 'material-ui/RaisedButton';
-import PropTypes from 'prop-types';
 import React from 'react';
-import {reduxForm} from 'redux-form';
+import {InjectedFormProps, reduxForm} from 'redux-form';
+
+import {Schema, Service} from '../types';
 
 import RenderFields from './RenderFields';
 
-class ServiceForm extends React.Component {
-  static propTypes = {
-    handleSubmit: PropTypes.func.isRequired,
-    schema: PropTypes.object.isRequired,
-    reset: PropTypes.func.isRequired,
-  };
+type ServiceFormData = Service;
 
+interface ServiceFormProps {
+  schema: Schema;
+}
+
+class ServiceForm extends React.Component<
+  ServiceFormProps
+  & InjectedFormProps<ServiceFormData, ServiceFormProps>> {
   render() {
     const {
       handleSubmit,
@@ -44,4 +47,4 @@ class ServiceForm extends React.Component {
   }
 }
 
-export default reduxForm()(ServiceForm);
+export default reduxForm<ServiceFormData, ServiceFormProps>({})(ServiceForm);

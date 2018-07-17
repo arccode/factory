@@ -3,25 +3,26 @@
 // found in the LICENSE file.
 
 import {ListItem} from 'material-ui/List';
-import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
-import {createStructuredSelector} from 'reselect';
+
+import {RootState} from '@app/types';
 
 import {fetchServices, fetchServiceSchemata, updateService} from '../actions';
 import {getServices, getServiceSchemata} from '../selectors';
+import {SchemaMap, Service, ServiceMap} from '../types';
 
 import ServiceForm from './ServiceForm';
 
-class ServiceList extends React.Component {
-  static propTypes = {
-    schemata: PropTypes.object.isRequired,
-    services: PropTypes.object.isRequired,
-    fetchServiceSchemata: PropTypes.func.isRequired,
-    fetchServices: PropTypes.func.isRequired,
-    updateService: PropTypes.func.isRequired,
-  };
+interface ServiceListProps {
+  schemata: SchemaMap;
+  services: ServiceMap;
+  fetchServiceSchemata: () => any;
+  fetchServices: () => any;
+  updateService: (name: string, service: Service) => any;
+}
 
+class ServiceList extends React.Component<ServiceListProps> {
   componentDidMount() {
     this.props.fetchServices();
     this.props.fetchServiceSchemata();
@@ -65,9 +66,9 @@ class ServiceList extends React.Component {
   }
 }
 
-const mapStateToProps = createStructuredSelector({
-  schemata: getServiceSchemata,
-  services: getServices,
+const mapStateToProps = (state: RootState) => ({
+  schemata: getServiceSchemata(state),
+  services: getServices(state),
 });
 
 const mapDispatchToProps = {
