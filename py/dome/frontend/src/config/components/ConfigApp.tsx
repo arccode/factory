@@ -5,55 +5,54 @@
 import {Card, CardText, CardTitle} from 'material-ui/Card';
 import RaisedButton from 'material-ui/RaisedButton';
 import Toggle from 'material-ui/Toggle';
-import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
-import {createStructuredSelector} from 'reselect';
 
 import auth from '@app/auth';
+import {RootState} from '@app/types';
 
 import {
-  disableTFTP,
-  enableTFTP,
+  disableTftp,
+  enableTftp,
   fetchConfig,
 } from '../actions';
 import {
   isConfigUpdating,
-  isTFTPEnabled,
+  isTftpEnabled,
 } from '../selectors';
 
-class ConfigApp extends React.Component {
-  static propTypes = {
-    isTFTPEnabled: PropTypes.bool.isRequired,
-    isConfigUpdating: PropTypes.bool.isRequired,
-    disableTFTP: PropTypes.func.isRequired,
-    enableTFTP: PropTypes.func.isRequired,
-    fetchConfig: PropTypes.func.isRequired,
-    logout: PropTypes.func.isRequired,
-  };
+interface ConfigAppProps {
+  isTftpEnabled: boolean;
+  isConfigUpdating: boolean;
+  disableTftp: () => any;
+  enableTftp: () => any;
+  fetchConfig: () => any;
+  logout: () => any;
+}
 
+class ConfigApp extends React.Component<ConfigAppProps> {
   componentDidMount() {
     this.props.fetchConfig();
   }
 
   render() {
     const {
-      isTFTPEnabled,
+      isTftpEnabled,
       isConfigUpdating,
-      disableTFTP,
-      enableTFTP,
+      disableTftp,
+      enableTftp,
       logout,
     } = this.props;
 
     return (
       <div>
         <Card>
-          <CardTitle title={'Config'}></CardTitle>
+          <CardTitle title="Config" />
           <CardText>
             <Toggle
               label="TFTP server"
-              toggled={isTFTPEnabled}
-              onToggle={isTFTPEnabled ? disableTFTP : enableTFTP}
+              toggled={isTftpEnabled}
+              onToggle={isTftpEnabled ? disableTftp : enableTftp}
               disabled={isConfigUpdating}
             />
             <br/>
@@ -71,14 +70,14 @@ class ConfigApp extends React.Component {
   }
 }
 
-const mapStateToProps = createStructuredSelector({
-  isTFTPEnabled,
-  isConfigUpdating,
+const mapStateToProps = (state: RootState) => ({
+  isTftpEnabled: isTftpEnabled(state),
+  isConfigUpdating: isConfigUpdating(state),
 });
 
 const mapDispatchToProps = {
-  disableTFTP,
-  enableTFTP,
+  disableTftp,
+  enableTftp,
   fetchConfig,
   logout: auth.actions.logout,
 };
