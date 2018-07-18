@@ -86,8 +86,8 @@ class FakePluginAPI(plugin_base.PluginAPI):
     del plugin
     return False
 
-  def EventStreamNext(self, plugin, event_stream):
-    del plugin, event_stream
+  def EventStreamNext(self, plugin, event_stream, timeout=1):
+    del plugin, event_stream, timeout
     if self._expired:
       raise plugin_base.EventStreamExpired
     if self._buffer_queue.empty():
@@ -346,8 +346,8 @@ class TestEventStreamIterator(unittest.TestCase):
   def testBlockUntilWaitException(self):
     """Tests that iterator aborts before its timeout on WaitException."""
     wait_exception_begin = time_utils.MonotonicTime() + 1
-    def DelayedWaitException(plugin, event_stream):
-      del plugin, event_stream
+    def DelayedWaitException(plugin, event_stream, timeout):
+      del plugin, event_stream, timeout
       if time_utils.MonotonicTime() > wait_exception_begin:
         raise plugin_base.WaitException
       else:
@@ -365,8 +365,8 @@ class TestEventStreamIterator(unittest.TestCase):
   def testBlockUntilCountFulfilled(self):
     """Tests that an iterator ends when its count is fulfilled."""
     wait_event_begin = time_utils.MonotonicTime() + 1
-    def DelayedEvent(plugin, event_stream):
-      del plugin, event_stream
+    def DelayedEvent(plugin, event_stream, timeout):
+      del plugin, event_stream, timeout
       if time_utils.MonotonicTime() > wait_event_begin:
         return 'delayed_event'
       else:

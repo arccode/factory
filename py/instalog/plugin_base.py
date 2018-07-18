@@ -82,7 +82,7 @@ class PluginAPI(object):
     """See OutputPlugin.NewStream."""
     raise NotImplementedError
 
-  def EventStreamNext(self, plugin, plugin_stream):
+  def EventStreamNext(self, plugin, plugin_stream, timeout):
     """See BufferEventStream.Next."""
     raise NotImplementedError
 

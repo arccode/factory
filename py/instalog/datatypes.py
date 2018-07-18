@@ -243,20 +243,23 @@ class EventStream(object):
     """The total number of events retrieved so far."""
     return self._count
 
-  def Next(self):
+  def Next(self, timeout=1):
     """Gets the next available event from the buffer.
 
     Just like a normal Python iterable, should raise StopIteration when no
     more events are available.  However, in the case that the plugin has been
     paused, a WaitException will be raised.
 
+    Args:
+      timeout: Seconds to wait for retrieving next event.
+
     Returns:
-      None if no more events are currently available.
+      None if timeout or no more events are currently available.
 
     Raises:
       WaitException if the plugin has been paused.
     """
-    ret = self._plugin_api.EventStreamNext(self._plugin, self)
+    ret = self._plugin_api.EventStreamNext(self._plugin, self, timeout)
     if ret is not None:
       self._count += 1
     return ret
@@ -347,7 +350,8 @@ class EventStreamIterator(object):
       # Try getting the next event.  If the plugin is in a waiting state,
       # stop iteration immediately.
       try:
-        ret = self.event_stream.Next()
+        remaining_time = self._start + self.timeout - time_utils.MonotonicTime()
+        ret = self.event_stream.Next(timeout=remaining_time)
       except plugin_base.WaitException:
         raise StopIteration
 

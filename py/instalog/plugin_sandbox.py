@@ -609,13 +609,13 @@ class PluginSandbox(plugin_base.PluginAPI, log_utils.LoggerMixin):
     self._event_stream_map[plugin_stream] = buffer_stream
     return plugin_stream
 
-  def EventStreamNext(self, plugin, plugin_stream):
+  def EventStreamNext(self, plugin, plugin_stream, timeout=1):
     """See PluginAPI.EventStreamNext."""
     self._AskGatekeeper(plugin, self._GATEKEEPER_ALLOW_UP)
     self.debug('EventStreamNext called with state=%s', self._state)
     if plugin_stream not in self._event_stream_map:
       raise plugin_base.UnexpectedAccess
-    ret = self._NextMatchingEvent(plugin_stream)
+    ret = self._NextMatchingEvent(plugin_stream, timeout)
     if ret:
       # TODO(kitching): Relocate the ProcessStage annotation into Core.
       process_stage = datatypes.ProcessStage(
@@ -627,17 +627,27 @@ class PluginSandbox(plugin_base.PluginAPI, log_utils.LoggerMixin):
       ret.AppendStage(process_stage)
     return ret
 
-  def _NextMatchingEvent(self, plugin_stream):
+  def _NextMatchingEvent(self, plugin_stream, timeout):
     """Retrieves the next event matching the plugin's FlowPolicy.
 
-    Returns None if no events are available.
+    Args:
+      plugin_stream: A stream of events for an output plugin to process.
+      timeout: Seconds to wait for retrieving next event.
+
+    Returns:
+      None if timeout or no events are available.
     """
-    while True:
-      ret = self._event_stream_map[plugin_stream].Next()
-      if ret is None:
-        return None
-      if self._policy.MatchEvent(ret):
-        return ret
+    try:
+      def CheckEvent(event):
+        return event is None or self._policy.MatchEvent(event)
+
+      return sync_utils.PollForCondition(
+          poll_method=self._event_stream_map[plugin_stream].Next,
+          condition_method=CheckEvent,
+          timeout_secs=timeout,
+          poll_interval_secs=0)
+    except type_utils.TimeoutError:
+      return None
 
   def EventStreamCommit(self, plugin, plugin_stream):
     """See PluginAPI.EventStreamCommit."""
