@@ -699,7 +699,10 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
     if not os.path.exists(self.simple_file.data_path):
       return self.read_buf
     self.debug('_Buffer: waiting for read_lock')
-    with self.read_lock:
+    try:
+      # When the buffer is truncating, we can't get the read_lock.
+      if not self.read_lock.acquire(timeout=0.5):
+        return []
       metadata_dct = RestoreMetadata(self.simple_file.ConfigToDict())
       with open(self.simple_file.data_path, 'r') as f:
         cur = self.new_pos - metadata_dct['start_pos']
@@ -725,6 +728,11 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
           # proper offset.
           self.read_buf.append((seq, record, size + skipped_bytes))
           skipped_bytes = 0
+    finally:
+      try:
+        self.read_lock.release()
+      except Exception:
+        pass
     return self.read_buf
 
   def _Next(self):
