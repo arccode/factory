@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import {AppBarProps} from 'material-ui';
 import AppBar from 'material-ui/AppBar';
-import PropTypes from 'prop-types';
 import React from 'react';
 import Measure from 'react-measure';
 
@@ -13,21 +13,22 @@ import Measure from 'react-measure';
  * https://github.com/callemall/material-ui/issues/1792
  */
 
-class FixedAppBar extends React.Component {
-  static propTypes = {
-    // callback when the height of the AppBar changes, signature: (height)
-    onHeightChange: PropTypes.func,
-  };
+interface FixedAppBarProps extends AppBarProps {
+  onHeightChange: (height: number) => void;
+}
 
+interface FixedAppBarState {
+  height: number;
+}
+
+class FixedAppBar extends React.Component<FixedAppBarProps, FixedAppBarState> {
   state = {
     height: 0,
   };
 
-  handleHeightChange = (height) => {
+  handleHeightChange = (height: number) => {
     this.setState({height});
-    if ('onHeightChange' in this.props) {
-      this.props.onHeightChange(height);
-    }
+    this.props.onHeightChange(height);
   }
 
   render() {
@@ -41,7 +42,7 @@ class FixedAppBar extends React.Component {
             style={{position: 'fixed', top: 0, left: 0}}
           />
         </Measure>
-        <div style={{height: this.state.height}}></div>
+        <div style={{height: this.state.height}} />
       </div>
     );
   }

@@ -105,6 +105,5 @@ export const switchProject = (nextProject: string) =>
   (dispatch: Dispatch, getState: () => RootState) => {
     dispatch(switchProjectImpl(nextProject));
     // switch to dashboard after switching project by default
-    dispatch(
-      domeApp.actions.switchApp(domeApp.constants.AppNames.DASHBOARD_APP));
+    dispatch(domeApp.actions.switchApp('DASHBOARD_APP'));
   };

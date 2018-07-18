@@ -1,41 +1,11 @@
 {
   "extends": ["tslint:recommended", "tslint-react"],
-  "jsRules": {
-    "comment-format": [true, "check-space"],
-    "max-line-length": [true, 80],
-    "no-console": false,
-    "no-invalid-this": [true, "check-function-in-method"],
-    "no-shadowed-variable": [true, {"import": false}],
-    "no-this-assignment": true,
-    "object-literal-sort-keys": false,
-    "only-arrow-functions": true,
-    "ordered-imports": [true, {"grouped-imports": true}],
-    "prefer-template": [true, "allow-single-concat"],
-    "quotemark": [true, "single", "jsx-double"],
-    "semicolon": [true, "always", "ignore-bound-class-methods"],
-    "trailing-comma": [
-      true,
-      {
-        "singleline": "never",
-        "multiline": "always",
-        "esSpecCompliant": true
-      }
-    ],
-    "triple-equals": [true, "allow-null-check"],
-    "variable-name": [
-      true,
-      "ban-keywords",
-      "check-format",
-      "allow-pascal-case",
-      "allow-trailing-underscore"
-    ]
-  },
   "rules": {
     "array-type": [true, "array-simple"],
     "arrow-return-shorthand": true,
     "comment-format": [true, "check-space"],
     "curly": [true, "ignore-same-line"],
-    "indent": [true, 2],
+    "indent": [true, "space", 2],
     "interface-name": [true, "never-prefix"],
     "jsx-no-lambda": false,
     "jsx-no-multiline-js": false,
@@ -68,8 +38,7 @@
       true,
       "ban-keywords",
       "check-format",
-      "allow-pascal-case",
-      "allow-trailing-underscore"
+      "allow-pascal-case"
     ]
   }
 }

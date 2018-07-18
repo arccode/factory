@@ -7,11 +7,9 @@ import Drawer from 'material-ui/Drawer';
 import MenuItem from 'material-ui/MenuItem';
 import {amber300} from 'material-ui/styles/colors';
 import Subheader from 'material-ui/Subheader';
-import PropTypes from 'prop-types';
 import React from 'react';
 import Measure from 'react-measure';
 import {connect} from 'react-redux';
-import {createStructuredSelector} from 'reselect';
 
 import auth from '@app/auth';
 import LoginApp from '@app/auth/components/LoginApp';
@@ -21,11 +19,13 @@ import DashboardApp from '@app/dashboard/components/DashboardApp';
 import ErrorDialog from '@app/error/components/ErrorDialog';
 import project from '@app/project';
 import ProjectsApp from '@app/project/components/ProjectsApp';
+import {Project} from '@app/project/types';
 import TaskList from '@app/task/components/TaskList';
+import {RootState} from '@app/types';
 
 import {switchApp} from '../actions';
-import {AppNames} from '../constants';
 import {getCurrentApp} from '../selectors';
+import {AppName} from '../types';
 
 import FixedAppBar from './FixedAppBar';
 
@@ -34,15 +34,11 @@ const PROJECT_MENU_ITEM_PADDING_LEFT = 36;
 const SPACE_BEFORE_TASK_LIST = 24;
 const SPACE_AFTER_TASK_LIST = 24;
 
-const EmphasizedString = (props) => (
-  <span style={{fontWeight: 'bold', color: amber300}}>{props.children}</span>
+const EmphasizedString: React.SFC = ({children}) => (
+  <span style={{fontWeight: 'bold', color: amber300}}>{children}</span>
 );
 
-EmphasizedString.propTypes = {
-  children: PropTypes.node.isRequired,
-};
-
-const DomeAppBarTitle = () => (
+const DomeAppBarTitle: React.SFC = () => (
   <span>
     <EmphasizedString>D</EmphasizedString>ome:
     fact<EmphasizedString>o</EmphasizedString>ry
@@ -51,22 +47,28 @@ const DomeAppBarTitle = () => (
   </span>
 );
 
-class DomeApp extends React.Component {
-  static propTypes = {
-    isLoggedIn: PropTypes.bool.isRequired,
-    appName: PropTypes.string.isRequired,
-    project: PropTypes.object.isRequired,
-    testAuthToken: PropTypes.func.isRequired,
-    switchApp: PropTypes.func.isRequired,
-  };
+interface DomeAppProps {
+  isLoggedIn: boolean;
+  appName: AppName;
+  project: Project;
+  testAuthToken: () => any;
+  switchApp: (app: AppName) => any;
+}
 
+interface DomeAppState {
+  appBarHeight: number;
+  appMenuOpened: boolean;
+  taskListHeight: number;
+}
+
+class DomeApp extends React.Component<DomeAppProps, DomeAppState> {
   state = {
     appBarHeight: 0,
     appMenuOpened: true,
     taskListHeight: 0,
   };
 
-  handleClick = (nextApp) => {
+  handleClick = (nextApp: AppName) => {
     // close the drawer
     this.props.switchApp(nextApp);
   }
@@ -93,13 +95,13 @@ class DomeApp extends React.Component {
     let app = null;
     if (!isLoggedIn) {
       app = <LoginApp />;
-    } else if (appName === AppNames.PROJECTS_APP) {
+    } else if (appName === 'PROJECTS_APP') {
       app = <ProjectsApp />;
-    } else if (appName === AppNames.CONFIG_APP) {
+    } else if (appName === 'CONFIG_APP') {
       app = <ConfigApp />;
-    } else if (appName === AppNames.DASHBOARD_APP) {
+    } else if (appName === 'DASHBOARD_APP') {
       app = <DashboardApp />;
-    } else if (appName === AppNames.BUNDLES_APP) {
+    } else if (appName === 'BUNDLES_APP') {
       // TODO(littlecvr): standardize the floating button API so we don't need
       //                  to pass offset like this
       app = <BundlesApp offset={paddingBottom} />;
@@ -134,7 +136,7 @@ class DomeApp extends React.Component {
             {projectName !== '' && <Subheader>{projectName}</Subheader>}
             {projectName !== '' &&
               <MenuItem
-                onClick={() => this.handleClick(AppNames.DASHBOARD_APP)}
+                onClick={() => this.handleClick('DASHBOARD_APP')}
                 innerDivStyle={{paddingLeft: PROJECT_MENU_ITEM_PADDING_LEFT}}
               >
                 Dashboard
@@ -142,7 +144,7 @@ class DomeApp extends React.Component {
             }
             {projectName !== '' &&
               <MenuItem
-                onClick={() => this.handleClick(AppNames.BUNDLES_APP)}
+                onClick={() => this.handleClick('BUNDLES_APP')}
                 innerDivStyle={{paddingLeft: PROJECT_MENU_ITEM_PADDING_LEFT}}
                 disabled={!project.umpireReady}
               >
@@ -153,13 +155,11 @@ class DomeApp extends React.Component {
 
             {projectName !== '' && <Divider />}
 
-            <MenuItem
-              onClick={() => this.handleClick(AppNames.PROJECTS_APP)}>
+            <MenuItem onClick={() => this.handleClick('PROJECTS_APP')}>
               Change project
             </MenuItem>
             <Divider />
-            <MenuItem
-              onClick={() => this.handleClick(AppNames.CONFIG_APP)}>
+            <MenuItem onClick={() => this.handleClick('CONFIG_APP')}>
               Config
             </MenuItem>
           </div>}
@@ -179,10 +179,10 @@ class DomeApp extends React.Component {
   }
 }
 
-const mapStateToProps = createStructuredSelector({
-  isLoggedIn: auth.selectors.isLoggedIn,
-  appName: getCurrentApp,
-  project: project.selectors.getCurrentProjectObject,
+const mapStateToProps = (state: RootState) => ({
+  isLoggedIn: auth.selectors.isLoggedIn(state),
+  appName: getCurrentApp(state),
+  project: project.selectors.getCurrentProjectObject(state),
 });
 
 const mapDispatchToProps = {
