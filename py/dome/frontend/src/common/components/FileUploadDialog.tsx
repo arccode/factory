@@ -14,7 +14,7 @@ interface FileUploadDialogProps<T>
   extends Omit<DialogProps, 'onSubmit' | 'open'> {
   children: JSX.Element;
   open: boolean;
-  onSubmit: (values: T & {file: File | null}) => void;
+  onSubmit: (values: T & {file: File}) => void;
 }
 
 interface FileUploadDialogState {
@@ -33,9 +33,14 @@ export default class FileUploadDialog<T>
   }
 
   handleSubmit = (values: T) => {
+    const file = this.state.file;
+    if (file == null) {
+      throw new Error(
+        'File is null in FileUploadDialog, but handleSubmit is called.');
+    }
     // TODO(pihsun): We can use the spread operator after
     // https://github.com/Microsoft/TypeScript/pull/13288 is merged.
-    this.props.onSubmit(Object.assign({file: this.state.file}, values));
+    this.props.onSubmit(Object.assign({file}, values));
   }
 
   componentWillUnmount() {

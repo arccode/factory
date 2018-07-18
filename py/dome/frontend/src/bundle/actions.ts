@@ -1,0 +1,264 @@
+// Copyright 2016 The Chromium OS Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+import produce from 'immer';
+import {arrayMove} from 'react-sortable-hoc';
+import {createAction} from 'typesafe-actions';
+
+import error from '@app/error';
+import formDialog from '@app/formDialog';
+import project from '@app/project';
+import task from '@app/task';
+import {Dispatch, RootState} from '@app/types';
+import {authorizedAxios} from '@common/utils';
+
+import {UPDATE_RESOURCE_FORM, UPLOAD_BUNDLE_FORM} from './constants';
+import {getBundles} from './selectors';
+import {
+  Bundle,
+  Rules,
+  UpdateResourceRequestPayload,
+  UploadBundleRequestPayload,
+} from './types';
+
+const receiveBundles = createAction('RECEIVE_BUNDLES', (resolve) =>
+  (bundles: Bundle[]) => resolve({bundles}));
+
+const reorderBundlesImpl = createAction('REORDER_BUNDLES', (resolve) =>
+  (bundles: Bundle[]) => resolve({bundles}));
+
+const updateBundle = createAction('UPDATE_BUNDLE', (resolve) =>
+  (name: string, bundle: Bundle) => resolve({name, bundle}));
+
+const deleteBundleImpl = createAction('DELETE_BUNDLE', (resolve) =>
+  (name: string) => resolve({name}));
+
+const addBundle = createAction('ADD_BUNDLE', (resolve) =>
+  (bundle: Bundle) => resolve({bundle}));
+
+export const expandBundle = createAction('EXPAND_BUNDLE', (resolve) =>
+  (name: string) => resolve({name}));
+
+export const collapseBundle = createAction('COLLAPSE_BUNDLE', (resolve) =>
+  (name: string) => resolve({name}));
+
+export const basicActions = {
+  receiveBundles,
+  reorderBundlesImpl,
+  updateBundle,
+  deleteBundleImpl,
+  addBundle,
+  expandBundle,
+  collapseBundle,
+};
+
+const baseURL = (getState: () => RootState): string => {
+  return `/projects/${project.selectors.getCurrentProject(getState())}`;
+};
+
+// TODO(pihsun): Have a better way to handle task cancellation.
+const buildOnCancel = (dispatch: Dispatch, getState: () => RootState) => {
+  const bundleListSnapshot = getBundles(getState());
+  return () => dispatch(receiveBundles(bundleListSnapshot));
+};
+
+const findBundle = (name: string, getState: () => RootState) =>
+  getBundles(getState()).find((b) => b.name === name);
+
+export const fetchBundles = () =>
+  async (dispatch: Dispatch, getState: () => RootState) => {
+    // TODO(littlecvr): this is also a task but a hidden one, consider unify the
+    //                  task handling process. (If adding hidden task we can
+    //                  also get rid of _taskOnFinishes in task/actions since
+    //                  we only have to add a hidden task after the main task
+    //                  as the onFinish callback.)
+    try {
+      const response = await authorizedAxios().get<Bundle[]>(
+        `${baseURL(getState)}/bundles.json`);
+      dispatch(receiveBundles(response.data));
+    } catch (err) {
+      dispatch(error.actions.setAndShowErrorDialog(
+        `error fetching bundle list\n\n${err.message}`));
+    }
+  };
+
+export const reorderBundles = (oldIndex: number, newIndex: number) =>
+  async (dispatch: Dispatch, getState: () => RootState) => {
+    const onCancel = buildOnCancel(dispatch, getState);
+    const newBundleList =
+      arrayMove(getBundles(getState()), oldIndex, newIndex);
+
+    // optimistic update
+    dispatch(reorderBundlesImpl(newBundleList));
+
+    // send the request
+    const newBundleNameList = newBundleList.map((b) => b.name);
+    const {cancel} = await dispatch(task.actions.runTask(
+      'Reorder bundles', 'PUT', `${baseURL(getState)}/bundles/`,
+      newBundleNameList));
+    if (cancel) {
+      onCancel();
+    }
+  };
+
+export const activateBundle = (name: string, active: boolean) =>
+  async (dispatch: Dispatch, getState: () => RootState) => {
+    const onCancel = buildOnCancel(dispatch, getState);
+
+    // optimistic update
+    const bundle = findBundle(name, getState);
+    if (!bundle) {
+      return;
+    }
+    dispatch(updateBundle(name, {...bundle, active}));
+
+    // send the request
+    const body = {
+      project: project.selectors.getCurrentProject(getState()),
+      name,
+      active,
+    };
+    const verb = active ? 'Activate' : 'Deactivate';
+    const description = `${verb} bundle "${name}"`;
+    const {cancel} = await dispatch(task.actions.runTask(
+      description, 'PUT', `${baseURL(getState)}/bundles/${name}/`, body));
+    if (cancel) {
+      onCancel();
+    }
+  };
+
+export const changeBundleRules = (name: string, rules: Partial<Rules>) =>
+  async (dispatch: Dispatch, getState: () => RootState) => {
+    const onCancel = buildOnCancel(dispatch, getState);
+
+    // optimistic update
+    const bundle = findBundle(name, getState);
+    if (!bundle) {
+      return;
+    }
+    dispatch(updateBundle(name, {...bundle, rules}));
+
+    // send the request
+    const body = {
+      // TODO(littlecvr): refine the back-end API so we don't need project here,
+      //                  the URL already contains project
+      project: project.selectors.getCurrentProject(getState()),
+      name,
+      rules,
+    };
+    const description = `Change rules of bundle "${name}"`;
+    const {cancel} = await dispatch(task.actions.runTask(
+      description, 'PUT', `${baseURL(getState)}/bundles/${name}/`, body));
+    if (cancel) {
+      onCancel();
+    }
+  };
+
+export const deleteBundle = (name: string) =>
+  async (dispatch: Dispatch, getState: () => RootState) => {
+    const onCancel = buildOnCancel(dispatch, getState);
+
+    // optimistic update
+    dispatch(deleteBundleImpl(name));
+
+    // send the request
+    const description = `Delete bundle "${name}"`;
+    const {cancel} = await dispatch(task.actions.runTask(
+      description, 'DELETE', `${baseURL(getState)}/bundles/${name}/`, {}));
+    if (cancel) {
+      onCancel();
+    }
+  };
+
+export const startUploadBundle = (data: UploadBundleRequestPayload) =>
+  async (dispatch: Dispatch, getState: () => RootState) => {
+    dispatch(formDialog.actions.closeForm(UPLOAD_BUNDLE_FORM));
+
+    const onCancel = buildOnCancel(dispatch, getState);
+
+    // optimistic update
+    // TODO(littlecvr): to improve user experience, we should have a variable
+    //                  indicating that the bundle is currently being uploaded,
+    //                  so we can for example append "(uploading)" to bundle
+    //                  name to make it more clear, or we can make the resource
+    //                  and rule table totally unexpandable (since there are
+    //                  nothing there for now, expanding them is useless)
+    dispatch(addBundle({ // give it an empty bundle
+      name: data.name,
+      note: data.note,
+      active: true,
+      resources: {},
+      rules: {
+        macs: [],
+        serialNumbers: [],
+        mlbSerialNumbers: [],
+      },
+    }));
+
+    // send the request
+    const description = `Upload bundle "${data.name}"`;
+    const result = await dispatch(task.actions.runTask<Bundle>(
+      description, 'POST', `${baseURL(getState)}/bundles/`, data));
+    if (result.cancel) {
+      onCancel();
+      return;
+    }
+    const bundle = result.response.data;
+    // need to fill in the real data after the request has finished
+    dispatch(updateBundle(bundle.name, bundle));
+  };
+
+export const startUpdateResource =
+  (resourceKey: string, data: UpdateResourceRequestPayload) =>
+    async (dispatch: Dispatch, getState: () => RootState) => {
+      dispatch(formDialog.actions.closeForm(UPDATE_RESOURCE_FORM));
+
+      const onCancel = buildOnCancel(dispatch, getState);
+      const srcBundleName = data.name;
+      const dstBundleName = data.newName;
+
+      // optimistic update
+      const oldBundle = findBundle(srcBundleName, getState);
+      if (!oldBundle) {
+        return;
+      }
+      const bundle = produce(oldBundle, (draft) => {
+        draft.name = dstBundleName;
+        draft.note = data.note;
+        // reset hash and version of the resource currently being update
+        draft.resources[resourceKey].hash = '(waiting for update)';
+        draft.resources[resourceKey].version = '(waiting for update)';
+      });
+      dispatch(addBundle(bundle));
+
+      // for better user experience:
+      // - collapse and deactivate the old bundle
+      // - expand and activate the new bundle
+      // (but we cannot activate the new bundle here because the bundle is not
+      //  ready yet, we have to activate it after the task finished)
+      dispatch(collapseBundle(srcBundleName));
+      dispatch(expandBundle(dstBundleName));
+      // we can't deactivate the old bundle now or it will fail if there is only
+      // one bundle before this update operation.
+
+      // send the request
+      const description =
+        `Update bundle "${srcBundleName}" to bundle "${dstBundleName}"`;
+      const result = await dispatch(task.actions.runTask<Bundle>(
+        description, 'PUT', `${baseURL(getState)}/bundles/${srcBundleName}/`,
+        data));
+      if (result.cancel) {
+        onCancel();
+        return;
+      }
+      dispatch(updateBundle(dstBundleName, result.response.data));
+      // activate the new bundle by default for convenience
+      dispatch(activateBundle(dstBundleName, true));
+      dispatch(activateBundle(srcBundleName, false));
+    };
+
+export const setBundleAsNetboot = (name: string, projectName: string) => (
+  project.actions.updateProject(
+    projectName, {netbootBundle: name, umpireEnabled: true})
+);

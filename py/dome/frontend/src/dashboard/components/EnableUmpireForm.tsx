@@ -19,7 +19,7 @@ import formDialog from '@app/formDialog';
 import {RootState} from '@app/types';
 import {parseNumber, renderTextField} from '@common/form';
 
-import {ENABLING_UMPIRE_FORM} from '../constants';
+import {ENABLE_UMPIRE_FORM} from '../constants';
 
 const renderAddExistingHint =
   ({input: {value, onChange}}: WrappedFieldProps) => (
@@ -85,7 +85,7 @@ const InnerFormComponent: React.SFC<
   );
 
 const InnerForm = reduxForm<FormData, InnerFormProps>({
-  form: ENABLING_UMPIRE_FORM,
+  form: ENABLE_UMPIRE_FORM,
   initialValues: {
     umpireHost: 'localhost',
     umpirePort: 8080,
@@ -93,7 +93,7 @@ const InnerForm = reduxForm<FormData, InnerFormProps>({
   },
 })(InnerFormComponent);
 
-interface EnablingUmpireFormProps {
+interface EnableUmpireFormProps {
   addExisting: boolean;
   open: boolean;
   submitForm: () => any;
@@ -101,7 +101,7 @@ interface EnablingUmpireFormProps {
   onSubmit: (values: FormData) => any;
 }
 
-class EnablingUmpireForm extends React.Component<EnablingUmpireFormProps> {
+class EnableUmpireForm extends React.Component<EnableUmpireFormProps> {
   render() {
     const {open, onSubmit, onCancel, submitForm, addExisting} = this.props;
     return (
@@ -131,8 +131,8 @@ class EnablingUmpireForm extends React.Component<EnablingUmpireFormProps> {
 }
 
 const isFormVisible =
-  formDialog.selectors.isFormVisibleFactory(ENABLING_UMPIRE_FORM);
-const formValue = formValueSelector(ENABLING_UMPIRE_FORM);
+  formDialog.selectors.isFormVisibleFactory(ENABLE_UMPIRE_FORM);
+const formValue = formValueSelector(ENABLE_UMPIRE_FORM);
 
 const mapStateToProps = (state: RootState) => ({
   open: isFormVisible(state),
@@ -140,7 +140,7 @@ const mapStateToProps = (state: RootState) => ({
 });
 
 const mapDispatchToProps = {
-  submitForm: () => submit(ENABLING_UMPIRE_FORM),
+  submitForm: () => submit(ENABLE_UMPIRE_FORM),
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(EnablingUmpireForm);
+export default connect(mapStateToProps, mapDispatchToProps)(EnableUmpireForm);

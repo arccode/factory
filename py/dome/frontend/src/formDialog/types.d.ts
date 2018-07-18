@@ -3,15 +3,15 @@
 // found in the LICENSE file.
 
 import bundle from '@app/bundle';
-import {UpdatingResourceFormPayload} from '@app/bundle/types';
+import {UpdateResourceFormPayload} from '@app/bundle/types';
 import dashboard from '@app/dashboard';
 
 import {Unionize} from '@common/utils';
 
 export interface FormPayloadTypeMap {
-  [dashboard.constants.ENABLING_UMPIRE_FORM]: {};
-  [bundle.constants.UPLOADING_BUNDLE_FORM]: {};
-  [bundle.constants.UPDATING_RESOURCE_FORM]: UpdatingResourceFormPayload;
+  [dashboard.constants.ENABLE_UMPIRE_FORM]: {};
+  [bundle.constants.UPLOAD_BUNDLE_FORM]: {};
+  [bundle.constants.UPDATE_RESOURCE_FORM]: UpdateResourceFormPayload;
 }
 
 export type FormNames = keyof FormPayloadTypeMap;

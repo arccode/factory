@@ -4,5 +4,5 @@
 
 export const NAME = 'bundle';
 
-export const UPLOADING_BUNDLE_FORM = 'UploadingBundleForm';
-export const UPDATING_RESOURCE_FORM = 'UpdatingResourceForm';
+export const UPLOAD_BUNDLE_FORM = 'UploadBundleForm';
+export const UPDATE_RESOURCE_FORM = 'UpdateResourceForm';

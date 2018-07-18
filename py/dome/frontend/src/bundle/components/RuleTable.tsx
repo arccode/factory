@@ -11,43 +11,37 @@ import {
   TableRow,
   TableRowColumn,
 } from 'material-ui/Table';
-import PropTypes from 'prop-types';
 import React from 'react';
 
-class RuleTable extends React.Component {
-  static propTypes = {
-    rules: PropTypes.object.isRequired,
-    changeRules: PropTypes.func.isRequired,
-  };
+import {RuleKey, Rules} from '../types';
 
-  handleAdd = (key, value) => {
+interface RuleTableProps {
+  rules: Partial<Rules>;
+  changeRules: (rules: Partial<Rules>) => void;
+}
+
+class RuleTable extends React.Component<RuleTableProps> {
+  handleAdd = (key: RuleKey, value: string) => {
     const rules = produce(this.props.rules, (draft) => {
-      if (!(key in draft)) {
-        draft[key] = [];
-      }
-      draft[key].push(value);
+      draft[key] = [...(draft[key] || []), value];
     });
     this.props.changeRules(rules);
   }
 
-  handleDelete = (key, value) => {
+  handleDelete = (key: RuleKey, value: string) => {
     const rules = produce(this.props.rules, (draft) => {
-      const index = draft[key].indexOf(value);
+      const values = draft[key];
+      if (!values) return;
+      const index = values.indexOf(value);
       if (index >= 0) {
-        draft[key].splice(index, 1);
+        values.splice(index, 1);
       }
     });
     this.props.changeRules(rules);
   }
 
   render() {
-    // make sure every key exists
-    const rules = {
-      'macs': [],
-      'serialNumbers': [],
-      'mlbSerialNumbers': [],
-      ...this.props.rules,
-    };
+    const {rules} = this.props;
 
     return (
       <Table selectable={false}>
@@ -56,7 +50,7 @@ class RuleTable extends React.Component {
             <TableHeaderColumn>MAC</TableHeaderColumn>
             <TableRowColumn>
               <ChipInput
-                value={rules.macs}
+                value={rules.macs || []}
                 onRequestAdd={(m) => this.handleAdd('macs', m)}
                 onRequestDelete={(m) => this.handleDelete('macs', m)}
               />
@@ -66,7 +60,7 @@ class RuleTable extends React.Component {
             <TableHeaderColumn>SN</TableHeaderColumn>
             <TableRowColumn>
               <ChipInput
-                value={rules.serialNumbers}
+                value={rules.serialNumbers || []}
                 onRequestAdd={(s) => this.handleAdd('serialNumbers', s)}
                 onRequestDelete={(s) => this.handleDelete('serialNumbers', s)}
               />
@@ -76,7 +70,7 @@ class RuleTable extends React.Component {
             <TableHeaderColumn>MLB SN</TableHeaderColumn>
             <TableRowColumn>
               <ChipInput
-                value={rules.mlbSerialNumbers}
+                value={rules.mlbSerialNumbers || []}
                 onRequestAdd={(s) => this.handleAdd('mlbSerialNumbers', s)}
                 onRequestDelete={
                   (s) => this.handleDelete('mlbSerialNumbers', s)

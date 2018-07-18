@@ -11,22 +11,22 @@ import {
   TableRow,
   TableRowColumn,
 } from 'material-ui/Table';
-import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
 
 import formDialog from '@app/formDialog';
 
-import {UPDATING_RESOURCE_FORM} from '../constants';
+import {UPDATE_RESOURCE_FORM} from '../constants';
+import {Bundle} from '../types';
 
-class ResourceTable extends React.Component {
-  static propTypes = {
-    openUpdatingResourceForm: PropTypes.func.isRequired,
-    bundle: PropTypes.object.isRequired,
-  };
+interface ResourceTableProps {
+  openUpdateResourceForm: (name: string, key: string, type: string) => any;
+  bundle: Bundle;
+}
 
+class ResourceTable extends React.Component<ResourceTableProps> {
   render() {
-    const {bundle: {name, resources}, openUpdatingResourceForm} = this.props;
+    const {bundle: {name, resources}, openUpdateResourceForm} = this.props;
 
     return (
       <Table selectable={false}>
@@ -46,7 +46,7 @@ class ResourceTable extends React.Component {
             // Version string often exceeds the width of the cell, and the
             // default behavior of TableRowColumn is to clip it. We need to make
             // sure that the user can see the full string.
-            const style = {
+            const style: React.CSSProperties = {
               whiteSpace: 'normal',
               wordWrap: 'break-word',
             };
@@ -64,7 +64,7 @@ class ResourceTable extends React.Component {
                     <RaisedButton
                       label="update"
                       onClick={
-                        () => openUpdatingResourceForm(name, key, resource.type)
+                        () => openUpdateResourceForm(name, key, resource.type)
                       }
                     />
                   }
@@ -79,9 +79,10 @@ class ResourceTable extends React.Component {
 }
 
 const mapDispatchToProps = {
-  openUpdatingResourceForm: (bundleName, resourceKey, resourceType) => (
-    formDialog.actions.openForm(
-        UPDATING_RESOURCE_FORM,
+  openUpdateResourceForm:
+    (bundleName: string, resourceKey: string, resourceType: string) => (
+      formDialog.actions.openForm(
+        UPDATE_RESOURCE_FORM,
         // TODO(littlecvr): resourceKey are actually the same, but
         //                  resourceKey is CamelCased, resourceType is
         //                  lowercase_separated_by_underscores. We should
@@ -89,7 +90,7 @@ const mapDispatchToProps = {
         //                  have to pass both resourceKey and resourceType
         //                  into it.
         {bundleName, resourceKey, resourceType})
-  ),
+    ),
 };
 
 export default connect(null, mapDispatchToProps)(ResourceTable);

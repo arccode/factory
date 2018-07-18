@@ -17,14 +17,14 @@ import ServiceList from '@app/service/components/ServiceList';
 import {RootState} from '@app/types';
 
 import {disableUmpire, enableUmpireWithSettings} from '../actions';
-import {ENABLING_UMPIRE_FORM} from '../constants';
+import {ENABLE_UMPIRE_FORM} from '../constants';
 
-import EnablingUmpireForm from './EnablingUmpireForm';
+import EnableUmpireForm from './EnableUmpireForm';
 
 interface DashboardAppProps {
   project: Project;
-  openEnablingUmpireForm: () => any;
-  closeEnablingUmpireForm: () => any;
+  openEnableUmpireForm: () => any;
+  closeEnableUmpireForm: () => any;
   disableUmpire: (name: string) => any;
   enableUmpireWithSettings: (
     name: string, setting: Partial<UmpireSetting>) => any;
@@ -35,19 +35,19 @@ class DashboardApp extends React.Component<DashboardAppProps> {
     const {
       project: {umpireEnabled, name},
       disableUmpire,
-      openEnablingUmpireForm,
+      openEnableUmpireForm,
     } = this.props;
     if (umpireEnabled) {
       disableUmpire(name);
     } else {
-      openEnablingUmpireForm();
+      openEnableUmpireForm();
     }
   }
 
   render() {
     const {
       project,
-      closeEnablingUmpireForm,
+      closeEnableUmpireForm,
       enableUmpireWithSettings,
     } = this.props;
 
@@ -100,10 +100,10 @@ class DashboardApp extends React.Component<DashboardAppProps> {
 
         {/* TODO(littlecvr): add <SystemInfoPanel /> */}
 
-        <EnablingUmpireForm
-          onCancel={closeEnablingUmpireForm}
+        <EnableUmpireForm
+          onCancel={closeEnableUmpireForm}
           onSubmit={(umpireSettings) => {
-            closeEnablingUmpireForm();
+            closeEnableUmpireForm();
             enableUmpireWithSettings(project.name, umpireSettings);
           }}
         />
@@ -119,11 +119,11 @@ const mapStateToProps = (state: RootState) => ({
 const mapDispatchToProps = {
   disableUmpire,
   enableUmpireWithSettings,
-  openEnablingUmpireForm: () => (
-    formDialog.actions.openForm(ENABLING_UMPIRE_FORM)
+  openEnableUmpireForm: () => (
+    formDialog.actions.openForm(ENABLE_UMPIRE_FORM)
   ),
-  closeEnablingUmpireForm: () => (
-    formDialog.actions.closeForm(ENABLING_UMPIRE_FORM)
+  closeEnableUmpireForm: () => (
+    formDialog.actions.closeForm(ENABLE_UMPIRE_FORM)
   ),
 };
 

@@ -4,33 +4,32 @@
 
 import FloatingActionButton from 'material-ui/FloatingActionButton';
 import ContentAdd from 'material-ui/svg-icons/content/add';
-import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
 
 import formDialog from '@app/formDialog';
 
-import {UPLOADING_BUNDLE_FORM} from '../constants';
+import {UPLOAD_BUNDLE_FORM} from '../constants';
 
 import BundleList from './BundleList';
-import UpdatingResourceForm from './UpdatingResourceForm';
-import UploadingBundleForm from './UploadingBundleForm';
+import UpdateResourceForm from './UpdateResourceForm';
+import UploadBundleForm from './UploadBundleForm';
 
-class BundlesApp extends React.Component {
-  static propTypes = {
-    // TODO(littlecvr): there should be a better way to figure out the offset
-    //                  automatically such as using float
-    offset: PropTypes.number,
-    openUploadingNewBundleForm: PropTypes.func.isRequired,
-  };
+interface BundlesAppProps {
+  // TODO(littlecvr): there should be a better way to figure out the offset
+  //                  automatically such as using float
+  offset: number;
+  openUploadNewBundleForm: () => any;
+}
 
+class BundlesApp extends React.Component<BundlesAppProps> {
   render() {
     return (
       <>
         <BundleList />
 
-        <UploadingBundleForm />
-        <UpdatingResourceForm />
+        <UploadBundleForm />
+        <UpdateResourceForm />
 
         {/* upload button */}
         <FloatingActionButton
@@ -39,7 +38,7 @@ class BundlesApp extends React.Component {
             bottom: this.props.offset,
             right: 24,
           }}
-          onClick={this.props.openUploadingNewBundleForm}
+          onClick={this.props.openUploadNewBundleForm}
         >
           <ContentAdd />
         </FloatingActionButton>
@@ -49,8 +48,8 @@ class BundlesApp extends React.Component {
 }
 
 const mapDispatchToProps = {
-  openUploadingNewBundleForm: () => (
-    formDialog.actions.openForm(UPLOADING_BUNDLE_FORM)
+  openUploadNewBundleForm: () => (
+    formDialog.actions.openForm(UPLOAD_BUNDLE_FORM)
   ),
 };
 

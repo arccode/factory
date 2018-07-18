@@ -2,15 +2,17 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
 import {SortableContainer, SortableElement} from 'react-sortable-hoc';
 
+import {RootState} from '@app/types';
+
 import {fetchBundles, reorderBundles} from '../actions';
 import {getBundles} from '../selectors';
+import {Bundle} from '../types';
 
-import Bundle from './Bundle';
+import BundleComponent, {BundleComponentOwnProps} from './BundleComponent';
 
 // The hierarchy of this component is complicated because of the design of
 // react-sortable-hoc. Explaination below:
@@ -25,31 +27,35 @@ import Bundle from './Bundle';
 //  SortableBundle is a wrapper of Bundle, but SortableBundleList is not a
 //  wrapper of BundleList -- BundleList is the wrapper of SortableBundleList.
 
-const SortableBundle = SortableElement(
-    ({bundle}) => <Bundle bundle={bundle} />);
+const SortableBundle = SortableElement<BundleComponentOwnProps>(
+  ({bundle}) => <BundleComponent bundle={bundle} />);
 
-const SortableBundleList = SortableContainer(({bundles}) => (
-  <div>
-    {bundles.map((bundle, index) => (
-      <SortableBundle key={bundle.name} index={index} bundle={bundle} />
-    ))}
-  </div>
-));
+const SortableBundleList = SortableContainer<{bundles: Bundle[]}>(
+  ({bundles}) => (
+    <div>
+      {bundles.map((bundle, index) => (
+        <SortableBundle key={bundle.name} index={index} bundle={bundle} />
+      ))}
+    </div>
+  ));
 
-class BundleList extends React.Component {
-  static propTypes = {
-    bundles: PropTypes.array.isRequired,
-    fetchBundles: PropTypes.func.isRequired,
-    reorderBundles: PropTypes.func.isRequired,
-  };
+interface BundleListProps {
+  bundles: Bundle[];
+  fetchBundles: () => any;
+  reorderBundles: (oldIndex: number, newIndex: number) => any;
+}
 
+class BundleList extends React.Component<BundleListProps> {
   componentDidMount() {
     this.props.fetchBundles();
   }
 
-  handleReorder = ({oldIndex, newIndex}) => {
-    this.props.reorderBundles(oldIndex, newIndex);
-  }
+  handleReorder =
+    ({oldIndex, newIndex}: {oldIndex: number, newIndex: number}) => {
+      if (oldIndex !== newIndex) {
+        this.props.reorderBundles(oldIndex, newIndex);
+      }
+    }
 
   render() {
     return (
@@ -64,7 +70,7 @@ class BundleList extends React.Component {
   }
 }
 
-const mapStateToProps = (state) => ({bundles: getBundles(state)});
+const mapStateToProps = (state: RootState) => ({bundles: getBundles(state)});
 
 const mapDispatchToProps = {
   fetchBundles,

@@ -9,13 +9,12 @@ import DragHandleIcon from 'material-ui/svg-icons/editor/drag-handle';
 import ChosenIcon from 'material-ui/svg-icons/toggle/star';
 import UnchosenIcon from 'material-ui/svg-icons/toggle/star-border';
 import Toggle from 'material-ui/Toggle';
-import PropTypes from 'prop-types';
 import React from 'react';
 import {connect} from 'react-redux';
 import {SortableHandle} from 'react-sortable-hoc';
-import {createSelector, createStructuredSelector} from 'reselect';
 
 import project from '@app/project';
+import {RootState} from '@app/types';
 
 import {
   activateBundle,
@@ -25,7 +24,8 @@ import {
   expandBundle,
   setBundleAsNetboot,
 } from '../actions';
-import {getBundleExpanded} from '../selectors';
+import {getExpandedMap} from '../selectors';
+import {Bundle, Rules} from '../types';
 
 import ResourceTable from './ResourceTable';
 import RuleTable from './RuleTable';
@@ -40,22 +40,24 @@ const DragHandle = SortableHandle(() => (
   </IconButton>
 ));
 
-class Bundle extends React.Component {
-  static propTypes = {
-    activateBundle: PropTypes.func.isRequired,
-    changeBundleRules: PropTypes.func.isRequired,
-    deleteBundle: PropTypes.func.isRequired,
-    bundle: PropTypes.object.isRequired,
-    projectName: PropTypes.string.isRequired,
-    projectNetbootBundle: PropTypes.string,
-    setBundleAsNetboot: PropTypes.func.isRequired,
-    expanded: PropTypes.bool.isRequired,
-    expandBundle: PropTypes.func.isRequired,
-    collapseBundle: PropTypes.func.isRequired,
-  };
+export interface BundleComponentOwnProps {
+  bundle: Bundle;
+}
 
-  handleActivate = (event) => {
-    event.stopPropagation();
+interface BundleComponentProps extends BundleComponentOwnProps {
+  activateBundle: (name: string, active: boolean) => any;
+  changeBundleRules: (name: string, rules: Partial<Rules>) => any;
+  deleteBundle: (name: string) => any;
+  setBundleAsNetboot: (name: string, projectName: string) => any;
+  expandBundle: (name: string) => any;
+  collapseBundle: (name: string) => any;
+  projectName: string;
+  projectNetbootBundle: string | null;
+  expanded: boolean;
+}
+
+class BundleComponent extends React.Component<BundleComponentProps> {
+  handleActivate = () => {
     const {bundle: {name, active}, activateBundle} = this.props;
     activateBundle(name, !active);
   }
@@ -93,19 +95,22 @@ class Bundle extends React.Component {
         <CardTitle
           title={bundle.name}
           subtitle={bundle.note}
-          // Cannot use actAsExpander here, need to implement ourselves. The
-          // Toggle below from Material-UI somewhat would not capture the click
-          // event before CardTitle. If not using this way, when the user clicks
-          // on the Toggle (which should only change the state of the Toggle),
-          // the Card will also be affected (expanded or collapsed).
-          onClick={this.toggleExpand}
           style={{cursor: 'pointer'}}
+          // @ts-ignore The type for material-ui does not contain DOM
+          // attributes, but the implementation actually pass all other props
+          // onto the root div itself.
+          // TODO(pihsun): This should be solved after we upgrade to use
+          // Material-UI v1.
+          onClick={this.toggleExpand}
         >
           {/* TODO(littlecvr): top and right should be calculated */}
           <div style={{position: 'absolute', top: 18, right: 18}}>
             <div
               style={{display: 'inline-block'}}
-              onClick={this.handleActivate}
+              onClick={(e) => {
+                e.stopPropagation();
+                this.handleActivate();
+              }}
             >
               <Toggle
                 label={bundle.active ? 'ACTIVE' : 'INACTIVE'}
@@ -113,7 +118,7 @@ class Bundle extends React.Component {
               />
             </div>
             {/* make some space */}
-            <div style={{display: 'inline-block', width: 48}}></div>
+            <div style={{display: 'inline-block', width: 48}} />
             <DragHandle />
             <IconButton
               tooltip="delete this bundle"
@@ -132,8 +137,8 @@ class Bundle extends React.Component {
               }}
             >
               {(projectNetbootBundle === bundle.name) ?
-                  <ChosenIcon /> :
-                  <UnchosenIcon />}
+                <ChosenIcon /> :
+                <UnchosenIcon />}
             </IconButton>
           </div>
         </CardTitle>
@@ -155,14 +160,13 @@ class Bundle extends React.Component {
   }
 }
 
-const mapStateToProps = createStructuredSelector({
-  expanded: getBundleExpanded,
-  projectName: project.selectors.getCurrentProject,
-  projectNetbootBundle: createSelector(
-      [project.selectors.getCurrentProjectObject],
-      (project) => project.netbootBundle,
-  ),
-});
+const mapStateToProps =
+  (state: RootState, ownProps: BundleComponentOwnProps) => ({
+    expanded: getExpandedMap(state)[ownProps.bundle.name],
+    projectName: project.selectors.getCurrentProject(state),
+    projectNetbootBundle:
+      project.selectors.getCurrentProjectObject(state).netbootBundle,
+  });
 
 const mapDispatchToProps = {
   activateBundle,
@@ -173,4 +177,4 @@ const mapDispatchToProps = {
   setBundleAsNetboot,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(Bundle);
+export default connect(mapStateToProps, mapDispatchToProps)(BundleComponent);

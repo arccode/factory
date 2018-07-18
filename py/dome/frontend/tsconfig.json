@@ -6,6 +6,7 @@
       "@common/*": ["src/common/*"]
     },
     "outDir": "build/",
+    "typeRoots": ["node_modules/@types", "types"],
     "allowSyntheticDefaultImports": true,
     "allowJs": true,
     "declaration": false,

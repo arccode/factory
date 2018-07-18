@@ -4,4 +4,4 @@
 
 export const NAME = 'dashboard';
 
-export const ENABLING_UMPIRE_FORM = 'EnablingUmpireForm';
+export const ENABLE_UMPIRE_FORM = 'EnableUmpireForm';
