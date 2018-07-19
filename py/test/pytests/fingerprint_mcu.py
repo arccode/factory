@@ -60,7 +60,6 @@ import logging
 import numpy
 import re
 import sys
-import time
 import unittest
 
 import factory_common  # pylint: disable=unused-import
@@ -279,12 +278,8 @@ class FingerprintTest(unittest.TestCase):
     if self.args.rubber_finger_present:
       # Test sensor image quality
       self.MCUCommand('fpmode', 'capture', 'qual')
-      # should wait here for the cros_fp EC_MKBP_FP_IMAGE_READY event, so we
-      # know whether we captured a proper image or the finger was not present
-      # or the capture failed by using self.MCUCommand('waitevent 1 60000')
-      # requires kernel support: crosreview.com/866857
-      #      and ectool support: crosreview.com/806167
-      time.sleep(0.5)
+      # wait for the end of capture (or timeout after 5s)
+      self.MCUCommand('waitevent', self.EC_MKBP_EVENT_FINGERPRINT, '5000')
       img = self.MCUCommand('fpframe', 'raw')
       # record the raw image file for quality evaluation
       testlog.AttachContent(
