@@ -165,7 +165,7 @@ class TwistedProxy(WebServiceProxy):
 
   def callRemote(self, method, *args, **kargs):
     return threads.deferToThread(
-        self._proxy.callRemote, [method] + args, kargs)
+        self._proxy.callRemote, method, *args, **kargs)
 
 
 class JSONProxyFilter(WebServiceProxy):
