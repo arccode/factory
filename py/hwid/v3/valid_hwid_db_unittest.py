@@ -37,6 +37,9 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 
+BLACKLIST_PROJECT = ['KENCH']
+
+
 def _CheckProject(args):
   """Check if HWID database of a V3 HWID is valid.
 
@@ -127,6 +130,9 @@ class ValidHWIDDBsTest(unittest.TestCase):
     projects = []
     for f in files:
       project_name = os.path.basename(f)
+      if project_name in BLACKLIST_PROJECT:
+        logging.warning('%s in the blacklist, skip.', project_name)
+        continue
       if project_name not in projects_info:
         if self.V3_HWID_DATABASE_PATH_REGEXP.search(f):
           self.fail(msg='HWID database %r is not listed in projects.yaml' % f)
