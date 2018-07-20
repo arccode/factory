@@ -6,8 +6,9 @@
 
 import datetime
 import inspect
-import time
 import traceback
+
+from .utils import time_utils
 
 
 class TestlogError(Exception):
@@ -18,7 +19,8 @@ class TestlogError(Exception):
 def JSONHandler(obj):
   """Handler for serializing objects during conversion to JSON."""
   if isinstance(obj, datetime.datetime):
-    return str(time.mktime(obj.timetuple()) + obj.microsecond * 1e-6)
+    # Change datetime.datetime obj to Unix time.
+    return '%.6f' % time_utils.DatetimeToUnixtime(obj)
   elif isinstance(obj, datetime.date):
     # Currently we didn't expect obj in this type
     return obj.isoformat()

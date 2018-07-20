@@ -11,10 +11,9 @@ import unittest
 
 from testlog_pkg import testlog_utils
 
+SAMPLE_UNIX_TIME = 618566888.888888
+SAMPLE_DATETIME_STRING = '618566888.888888'
 SAMPLE_DATETIME = datetime.datetime(1989, 8, 8, 8, 8, 8, 888888)
-SAMPLE_DATETIME_STRING = '618538088.889'
-SAMPLE_DATETIME_ROUNDED_MIL = datetime.datetime(1989, 8, 8, 8, 8, 8, 888000)
-SAMPLE_DATETIME_ROUNDED_SEC = datetime.datetime(1989, 8, 8, 8, 8, 8, 000000)
 
 class TestlogUtilsTest(unittest.TestCase):
 

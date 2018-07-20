@@ -6,10 +6,10 @@
 
 import datetime
 import json
-import time
 
 import instalog_common  # pylint:disable=unused-import
 from instalog import json_utils
+from instalog.utils import time_utils
 
 
 def From0_1to0_21(event):
@@ -19,7 +19,7 @@ def From0_1to0_21(event):
       obj = datetime.datetime.strptime(obj, json_utils.FORMAT_DATETIME)
 
     if isinstance(obj, datetime.datetime):
-      return time.mktime(obj.timetuple()) + obj.microsecond * 1e-6
+      return time_utils.DatetimeToUnixtime(obj)
     elif isinstance(obj, float):
       return obj
     else:

@@ -14,7 +14,6 @@ from __future__ import print_function
 import datetime
 import json
 import math
-import time
 
 # pylint: disable=import-error
 from google.cloud.bigquery.schema import SchemaField
@@ -22,6 +21,7 @@ from google.cloud.bigquery.schema import SchemaField
 import instalog_common  # pylint: disable=unused-import
 from instalog import plugin_base
 from instalog.plugins import output_bigquery
+from instalog.utils import time_utils
 
 
 class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
@@ -119,7 +119,7 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
 
     def DateTimeToUnixTimestamp(obj):
       if isinstance(obj, datetime.datetime):
-        return time.mktime(obj.timetuple()) + obj.microsecond * 1e-6
+        return time_utils.DatetimeToUnixtime(obj)
       elif isinstance(obj, float):
         return obj
       else:
