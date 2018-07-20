@@ -168,12 +168,13 @@ class PlatformSKUModelTest(test_case.TestCase):
     OEM_ID_TYPE = 1
     SKU_ID_TYPE = 2
 
-    def GetSKUIDFromEEPROM():
+    def GetDataFromEEPROM(data_type):
       # Usage: ectool cbi get <type> [get_flag]
       # <type> is one of 0: BOARD_VERSION, 1: OEM_ID, 2: SKU_ID
-      cbi_output = self._dut.CallOutput('ectool cbi get %d', SKU_ID_TYPE)
-      # The output from ectool cbi get is 'SKU_ID: %u (0x%x)\n' % (val, val)
-      match = re.search(r'SKU_ID: ([0-9]+) \(0x[0-9a-fA-F]+\)', cbi_output)
+      cbi_output = self._dut.CallOutput(
+          ['ectool', 'cbi', 'get', str(data_type)])
+      # The output from ectool cbi get is 'As integer: %u (0x%x)\n' % (val, val)
+      match = re.search(r'As integer: ([0-9]+) \(0x[0-9a-fA-F]+\)', cbi_output)
       if match:
         return int(match.group(1))
       else:
@@ -192,25 +193,13 @@ class PlatformSKUModelTest(test_case.TestCase):
       else:
         self.FailTask('The SKU ID in device-data is not an integer')
 
-    def GetOEMIDFromEEPROM():
-      # Usage: ectool cbi get <type> [get_flag]
-      # <type> is one of 0: BOARD_VERSION, 1: OEM_ID, 2: SKU_ID
-      cbi_output = self._dut.CallOutput('ectool cbi get %d', OEM_ID_TYPE)
-      # The output from ectool cbi get is 'OEM_ID: %u (0x%x)\n' % (val, val)
-      match = re.search(r'OEM_ID: ([0-9]+) \(0x[0-9a-fA-F]+\)', cbi_output)
-      if match:
-        return int(match.group(1))
-      else:
-        self.FailTask('Is the format of the output from "ectool cbi get" '
-                      'changed?')
-
     def GetOEMIDFromCrosConfig(sku_id):
       output = self._dut.CallOutput(
-          'cros_config --test_sku_id=%d / oem-id' % sku_id)
+          ['cros_config', '--test_sku_id=%d' % sku_id, '/', 'oem-id'])
       return int(output)
 
     new_sku_id = GetSKUIDFromDeviceData()
-    old_sku_id = GetSKUIDFromEEPROM()
+    old_sku_id = GetDataFromEEPROM(SKU_ID_TYPE)
     if old_sku_id == new_sku_id:
       return
 
@@ -226,7 +215,7 @@ class PlatformSKUModelTest(test_case.TestCase):
     else:
       data_size = 4
 
-    oem_id_in_eeprom = GetOEMIDFromEEPROM()
+    oem_id_in_eeprom = GetDataFromEEPROM(OEM_ID_TYPE)
     oem_id_in_cros_config = GetOEMIDFromCrosConfig(new_sku_id)
     if oem_id_in_eeprom != oem_id_in_cros_config:
       self.FailTask('OEM ID in EEPROM (%d) is not equal to the OEM ID in '
@@ -239,8 +228,8 @@ class PlatformSKUModelTest(test_case.TestCase):
     # <type> is one of 0: BOARD_VERSION, 1: OEM_ID, 2: SKU_ID
     # <value> is integer to be set. No raw data support yet.
     # <size> is the size of the data.
-    self._dut.CheckCall('ectool cbi set %d %s %d' %
-                        (SKU_ID_TYPE, new_sku_id, data_size))
+    self._dut.CheckCall(
+        ['ectool', 'cbi', 'set', str(SKU_ID_TYPE), new_sku_id, str(data_size)])
 
   def runTest(self):
     if self.args.set_sku_id:
