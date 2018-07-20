@@ -206,8 +206,7 @@ resource: closure check-board-resources po
 	  tar -Af $(RESOURCE_PATH) $(file)${\n})
 	$(MK_DIR)/create_resources.py -v --output_dir $(RESOURCE_DIR) \
 	  --sysroot $(SYSROOT)  --resources $(RESOURCE_SRC_DIR) \
-	  $(if $(wildcard $(BOARD_FILES_DIR)/$(RESOURCE_SRC_DIR)), \
-	    --board_resources $(BOARD_FILES_DIR)/$(RESOURCE_SRC_DIR))
+	  --board_resources $(BOARD_FILES_DIR)/$(RESOURCE_SRC_DIR)
 
 # Apply files from BOARD_RESOURCES_DIR to particular folder.
 # Usage: $(call func-apply-board-resources,RESOURCE_TYPE,OUTPUT_FOLDER)

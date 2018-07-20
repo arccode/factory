@@ -47,9 +47,9 @@ def AddResource(output, rule, args):
   if os.path.isabs(src):
     src_list = [os.path.join(args.sysroot, '.' + src)]
   else:
-    src_list = [os.path.join(args.resources, src)]
+    src_list = [os.path.normpath(os.path.join(args.resources, src))]
     if args.board_resources:
-      src_list += [os.path.join(args.board_resources, src)]
+      src_list += [os.path.normpath(os.path.join(args.board_resources, src))]
 
   found = 0
   for src_path in src_list:
