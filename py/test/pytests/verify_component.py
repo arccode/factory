@@ -11,11 +11,14 @@ phase is PVT or PVT_DOGFOOD.
 """
 
 
+import hashlib
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.hwid.v3 import common
 from cros.factory.test import device_data
 from cros.factory.test.rules import phase
+from cros.factory.test import session
 from cros.factory.test import test_case
 from cros.factory.test.utils import deploy_utils
 from cros.factory.test.utils import update_utils
@@ -30,6 +33,9 @@ class VerifyComponentTest(test_case.TestCase):
   ARGS = [
       Arg('enable_factory_server', bool,
           'Update hwid data from factory server.',
+          default=True),
+      Arg('verify_checksum', bool,
+          'Enable converted statements checksum verification.',
           default=True)
   ]
 
@@ -42,20 +48,23 @@ class VerifyComponentTest(test_case.TestCase):
     self.not_supported = []
     self.probed_results = {}
     self.component_data = {}
+    self.converted_statement_file = self.dut.path.join(
+        self.tmpdir, 'converted_statement_file.json')
 
   def tearDown(self):
     self.dut.Call(['rm', '-rf', self.tmpdir])
 
   def runTest(self):
-    if self.args.enable_factory_server:
-      update_utils.UpdateHWIDDatabase(self.dut)
+    converted_statement, converted_checksum = self._GetConvertedStatement()
 
-    converted_statement_file = self.dut.path.join(
-        self.tmpdir, 'converted_statement_file.json')
-    self.factory_tools.CallOutput(
-        ['hwid', 'converter', '--output-file', converted_statement_file])
-    self.probed_results = json_utils.LoadStr(self.factory_tools.CallOutput(
-        ['probe', 'probe', '--config-file', converted_statement_file]))
+    if self.args.verify_checksum:
+      if hashlib.sha1(converted_statement).hexdigest() != converted_checksum:
+        self.FailTask('Checksum failed.')
+      else:
+        session.console.info('Checksum passed.')
+
+    self.probed_results = json_utils.LoadStr(self.factory_tools.CheckOutput(
+        ['probe', 'probe', '--config-file', self.converted_statement_file]))
     self.component_data = {k[4:]: int(v) for k, v in
                            device_data.GetDeviceData('component').iteritems()
                            if k.startswith('has_')}
@@ -107,3 +116,16 @@ class VerifyComponentTest(test_case.TestCase):
           status = comp_item['information']['status']
           if status != common.COMPONENT_STATUS.supported:
             self.not_supported.append((comp_cls, comp_item['name'], status))
+
+  def _GetConvertedStatement(self):
+    if self.args.enable_factory_server:
+      update_utils.UpdateHWIDDatabase(self.dut)
+
+    converted_checksum_file = self.dut.path.join(
+        self.tmpdir, 'converted_checksum')
+    self.factory_tools.CallOutput(
+        ['hwid', 'converter', '--output-file', self.converted_statement_file,
+         '--output-checksum-file', converted_checksum_file])
+    converted_statement = self.dut.ReadFile(self.converted_statement_file)
+    converted_checksum = self.dut.ReadFile(converted_checksum_file)
+    return converted_statement, converted_checksum

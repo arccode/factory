@@ -6,6 +6,7 @@
 
 """Command-line interface for HWID v3 utilities."""
 
+import hashlib
 import logging
 import os
 import shutil
@@ -380,15 +381,21 @@ def VerifyHWIDDatabase(options):
 @Command(
     'converter',
     CmdArg('--output-file', default='-',
-           help='File name to store the converted results'))
+           help='File name to store the converted results'),
+    CmdArg('--output-checksum-file', default=None,
+           help='File name to store the checksum of the converted results'))
 def ConverterCommand(options):
   """Convert the default probe statements to project specific statements."""
+  converted_results_obj = converter.ConvertToProbeStatement(options.database)
   converted_results_data = json_utils.DumpStr(
-      converter.ConvertToProbeStatement(options.database), pretty=True)
+      converted_results_obj, pretty=True)
   if options.output_file == '-':
     Output(converted_results_data)
   else:
     file_utils.WriteFile(options.output_file, converted_results_data)
+  if options.output_checksum_file:
+    checksum = hashlib.sha1(converted_results_data).hexdigest()
+    file_utils.WriteFile(options.output_checksum_file, checksum)
 
 
 def ParseOptions(args=None):
