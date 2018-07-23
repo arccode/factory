@@ -407,11 +407,11 @@ class BufferFile(log_utils.LoggerMixin):
 
     # Lock for writing to the self.data_path file.  Used by
     # Produce and Truncate.
-    self.data_write_lock = lock_utils.Lock()
+    self.data_write_lock = lock_utils.Lock(logger_name)
 
     # Lock for modifying the self.consumers variable or for
     # preventing other threads from changing it.
-    self._consumer_lock = lock_utils.Lock()
+    self._consumer_lock = lock_utils.Lock(logger_name)
     self.consumers = {}
 
     self._RestoreConsumers()
@@ -494,14 +494,8 @@ class BufferFile(log_utils.LoggerMixin):
         # Ensure that regardless of any errors, locks are released.
         if first_line:
           for consumer in self.consumers.values():
-            try:
-              consumer.read_lock.release()
-            except Exception:
-              pass
-          try:
-            self._consumer_lock.release()
-          except Exception:
-            pass
+            consumer.read_lock.CheckAndRelease()
+          self._consumer_lock.CheckAndRelease()
 
   def _GetFirstUnconsumedRecord(self):
     """Returns the seq and pos of the first unprocessed record.
@@ -548,10 +542,7 @@ class BufferFile(log_utils.LoggerMixin):
       finally:
         # Ensure that regardless of any errors, locks are released.
         for consumer in self.consumers.values():
-          try:
-            consumer.read_lock.release()
-          except Exception:
-            pass
+          consumer.read_lock.CheckAndRelease()
     # Now that we have written the new data and metadata to disk, remove any
     # unused attachments.
     if truncate_attachments:
@@ -615,8 +606,8 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
     self.metadata_path = metadata_path
     self.logger = logging.getLogger(logger_name)
 
-    self._stream_lock = lock_utils.Lock()
-    self.read_lock = lock_utils.Lock()
+    self._stream_lock = lock_utils.Lock(logger_name)
+    self.read_lock = lock_utils.Lock(logger_name)
     self.read_buf = []
 
     with self.read_lock:
@@ -729,10 +720,7 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
           self.read_buf.append((seq, record, size + skipped_bytes))
           skipped_bytes = 0
     finally:
-      try:
-        self.read_lock.release()
-      except Exception:
-        pass
+      self.read_lock.CheckAndRelease()
     return self.read_buf
 
   def _Next(self):
@@ -741,7 +729,7 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
     Returns:
       A tuple of (seq, record), or (None, None) if no records available.
     """
-    if not self._stream_lock.locked():
+    if not self._stream_lock.IsHolder():
       raise plugin_base.EventStreamExpired
     buf = self._Buffer()
     if not buf:
@@ -761,7 +749,7 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
 
   def Commit(self):
     """See BufferEventStream.Commit."""
-    if not self._stream_lock.locked():
+    if not self._stream_lock.IsHolder():
       raise plugin_base.EventStreamExpired
     self.cur_seq = self.new_seq
     self.cur_pos = self.new_pos
@@ -783,7 +771,7 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
 
   def Abort(self):
     """See BufferEventStream.Abort."""
-    if not self._stream_lock.locked():
+    if not self._stream_lock.IsHolder():
       raise plugin_base.EventStreamExpired
     self.new_seq = self.cur_seq
     self.new_pos = self.cur_pos

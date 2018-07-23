@@ -104,7 +104,7 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
             os.path.join(self.GetDataDir(), '%d_%d' % (pri_level, file_num)))
 
     for file_num in xrange(_LEVEL_FILE):
-      self._file_num_lock[file_num] = lock_utils.Lock()
+      self._file_num_lock[file_num] = lock_utils.Lock(self.logger.name)
 
     for name in self.buffer_file[0][0].consumers.keys():
       self.consumers[name] = Consumer(name, self)
@@ -221,7 +221,7 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
     Note the careful edge cases with attachment files.  We want them *all* to
     be either moved or copied into the buffer's database, or *none* at all.
     """
-    file_num = False
+    file_num = None
     tmp_metadata_path = ''
     with file_utils.TempDirectory(dir=self.attachments_tmp_dir) as tmp_dir:
       try:
@@ -239,7 +239,7 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
 
         # Step 2: Acquire a lock.
         file_num = self.AcquireLock()
-        if file_num is False:
+        if file_num is None:
           return False
 
         tmp_metadata_path = self.SaveTemporaryMetadata(file_num)
@@ -266,7 +266,7 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
         try:
           if os.path.isfile(tmp_metadata_path):
             self.RecoverTemporaryMetadata(tmp_metadata_path)
-          if file_num is not False:
+          if file_num is not None:
             for pri_level in xrange(_PRIORITY_LEVEL):
               self.buffer_file[pri_level][file_num].RestoreMetadata()
         except Exception:
@@ -274,8 +274,8 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
                          '(%s)', tmp_metadata_path)
         return False
       finally:
-        if file_num is not False and self._file_num_lock[file_num].locked():
-          self._file_num_lock[file_num].release()
+        if file_num is not None:
+          self._file_num_lock[file_num].CheckAndRelease()
 
   def AddConsumer(self, name):
     """See BufferPlugin.AddConsumer."""
