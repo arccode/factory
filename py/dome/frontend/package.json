@@ -44,6 +44,7 @@
     "browserify": "~16.2.2",
     "tsify": "~4.0.0",
     "tslint": "~5.10.0",
+    "tslint-eslint-rules": "~5.3.1",
     "tslint-react": "~3.6.0",
     "typescript": "~2.9.2"
   },
