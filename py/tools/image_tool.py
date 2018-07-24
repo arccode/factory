@@ -1011,6 +1011,52 @@ class ChromeOSFactoryBundle(object):
       Sudo(['df', '-h', stateful])
 
   @staticmethod
+  def ShowRMAImage(image):
+    """Show the content of a RMA image."""
+    gpt = GPT.LoadFromFile(image)
+
+    stateful_part = gpt.GetPartition(PART_CROS_STATEFUL)
+    with stateful_part.Mount() as stateful:
+      if not os.path.exists(os.path.join(stateful, PATH_CROS_RMA_METADATA)):
+        raise RuntimeError('Cannot find file /%s, is this a RMA shim?' %
+                           PATH_CROS_RMA_METADATA)
+
+      payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
+      if not os.path.exists(payloads_dir):
+        raise RuntimeError('Cannot find dir /%s, is this a RMA shim?' %
+                           DIR_CROS_PAYLOADS)
+
+      metadata = _ReadRMAMetadata(stateful)
+
+      print('This RMA shim contains boards: %s' % (
+          ' '.join(board_info.board for board_info in metadata)))
+      split_line = '-' * 25
+      print(split_line)
+      for board_info in metadata:
+        print('board:', board_info.board)
+
+        # Print the content of cros-payload.
+        cros_payload_metadata = os.path.join(
+            payloads_dir, '%s.json' % board_info.board)
+        if os.path.exists(cros_payload_metadata):
+          with open(cros_payload_metadata) as f:
+            cros_payload_metadata = json.load(f)
+          for resource_name, value in cros_payload_metadata.iteritems():
+            print('%s: %s' % (resource_name, value.get('version', '<unknown>')))
+        else:
+          logging.warning('Cannot find cros-payload metadata of %s',
+                          board_info.board)
+
+        # Print the version of install shim rootfs.
+        part = gpt.GetPartition(board_info.rootfs)
+        with part.MountAsCrOSRootfs() as rootfs:
+          lsb_path = os.path.join(rootfs, 'etc', 'lsb-release')
+          version = LSBFile(lsb_path).GetChromeOSVersion(remove_timestamp=False)
+          print('install_shim:', version)
+
+        print(split_line)
+
+  @staticmethod
   def MergeRMAImage(output, images):
     """Merges multiple RMA (USB installation) disk images.
 
@@ -1688,6 +1734,19 @@ class MergeRMAImageCommand(SubCommand):
     print('Scanning %s input image files...' % len(self.args.images))
     ChromeOSFactoryBundle.MergeRMAImage(self.args.output, self.args.images)
     print('OK: Merged successfully in new image: %s' % output)
+
+
+class ShowRMAImageCommand(SubCommand):
+  """Show the content of a RMA image."""
+  name = 'rma-show'
+
+  def Init(self):
+    self.subparser.add_argument(
+        'rma_image', type=ArgTypes.ExistsPath,
+        help='the path to mount partition')
+
+  def Run(self):
+    ChromeOSFactoryBundle.ShowRMAImage(self.args.rma_image)
 
 
 class CreateBundleCommand(SubCommand):
