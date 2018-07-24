@@ -485,6 +485,10 @@ msgid "Update Kernel"
 msgstr "更新 Kernel"
 
 #: ../build/pytests_label_generated.json
+msgid "Update Sku"
+msgstr "更新 SKU ID"
+
+#: ../build/pytests_label_generated.json
 msgid "Urandom"
 msgstr "乱数产生"
 
