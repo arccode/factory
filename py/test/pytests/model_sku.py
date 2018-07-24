@@ -229,7 +229,8 @@ class PlatformSKUModelTest(test_case.TestCase):
     # <value> is integer to be set. No raw data support yet.
     # <size> is the size of the data.
     self._dut.CheckCall(
-        ['ectool', 'cbi', 'set', str(SKU_ID_TYPE), new_sku_id, str(data_size)])
+        ['ectool', 'cbi', 'set', str(SKU_ID_TYPE), str(new_sku_id),
+         str(data_size)])
 
   def runTest(self):
     if self.args.set_sku_id:
