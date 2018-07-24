@@ -102,6 +102,22 @@ class GenerateBOMFromProbedResultsTest(unittest.TestCase):
                        'comp_cls_2': ['comp_2_x'],
                        'comp_cls_3': []})
 
+  def testUseNameMatch(self):
+    probed_results = {
+        'comp_cls_1': [{'name': 'comp11'}, {'name': 'comp12'}],
+        'comp_cls_2': [],
+        'comp_cls_3': [{'name': 'comp31'}]
+    }
+
+    bom = probe.GenerateBOMFromProbedResults(
+        self.database, probed_results, {}, {}, common.OPERATION_MODE.normal,
+        False, True)[0]
+
+    self.assertEquals(bom.components,
+                      {'comp_cls_1': ['comp11', 'comp12'],
+                       'comp_cls_2': [],
+                       'comp_cls_3': ['comp31']})
+
 
 if __name__ == '__main__':
   unittest.main()

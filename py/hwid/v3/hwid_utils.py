@@ -28,7 +28,7 @@ def _HWIDMode(rma_mode):
 
 
 def GenerateHWID(database, probed_results, device_info, vpd, rma_mode,
-                 allow_mismatched_components=False):
+                 allow_mismatched_components=False, use_name_match=False):
   """Generates a HWID v3 from the given data.
 
   The HWID is generated based on the given device info and a BOM object. If
@@ -47,6 +47,7 @@ def GenerateHWID(database, probed_results, device_info, vpd, rma_mode,
     rma_mode: Whether to verify components status in RMA mode.
     allow_mismatched_components: Whether to allows some probed components to be
         ignored if no any component in the database matches with them.
+    use_name_match: Use component name from probed results as matched component.
 
   Returns:
     The generated HWID Identity object.
@@ -57,7 +58,7 @@ def GenerateHWID(database, probed_results, device_info, vpd, rma_mode,
 
   bom = probe.GenerateBOMFromProbedResults(
       database, probed_results, device_info, vpd, hwid_mode,
-      allow_mismatched_components)[0]
+      allow_mismatched_components, use_name_match)[0]
   verifier.VerifyComponentStatus(database, bom, hwid_mode)
 
   identity = transformer.BOMToIdentity(database, bom)

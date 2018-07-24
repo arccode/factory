@@ -232,6 +232,8 @@ def UpdateDatabaseWrapper(options):
     CmdArg('--allow-mismatched-components', action='store_true',
            help='Allows some probed components to be ignored if no any '
                 'component in the database matches with them.'),
+    CmdArg('--use-name-match', action='store_true',
+           help='Use component name from probed results as matched component.'),
     *(_OUTPUT_FORMAT_COMMON_ARGS + _DEVICE_DATA_COMMON_ARGS + _RMA_COMMON_ARGS))
 def GenerateHWIDWrapper(options):
   """Generates HWID."""
@@ -240,7 +242,8 @@ def GenerateHWIDWrapper(options):
   identity = hwid_utils.GenerateHWID(
       options.database, device_data.probed_results,
       device_data.device_info, device_data.vpd, options.rma_mode,
-      allow_mismatched_components=options.allow_mismatched_components)
+      allow_mismatched_components=options.allow_mismatched_components,
+      use_name_match=options.use_name_match)
 
   OutputObject(options, {'encoded_string': identity.encoded_string,
                          'binary_string': identity.binary_string,

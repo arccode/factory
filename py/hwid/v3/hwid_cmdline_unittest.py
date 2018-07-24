@@ -156,7 +156,8 @@ class GenerateHWIDWrapperTest(TestCaseBaseWithMockedOutputObject):
         options.database, device_data.probed_results,
         device_data.device_info, device_data.vpd,
         options.rma_mode,
-        allow_mismatched_components=options.allow_mismatched_components)
+        allow_mismatched_components=options.allow_mismatched_components,
+        use_name_match=options.use_name_match)
 
     identity = generate_hwid_mock.return_value
     hwid_cmdline.OutputObject.assert_called_once_with(

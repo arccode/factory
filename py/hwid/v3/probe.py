@@ -32,7 +32,8 @@ def ProbeDUT():
 
 
 def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
-                                 mode, allow_mismatched_components):
+                                 mode, allow_mismatched_components,
+                                 use_name_match=False):
   """Generates a BOM object according to the given probed results.
 
   Args:
@@ -44,6 +45,7 @@ def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
     mode: None or "rma" or "normal".
     allow_mismatched_components: Whether to Allows some probed components to be
         ignored if no any component in the database matches with them.
+    use_name_match: Use component name from probed results as matched component.
 
   Returns:
     A instance of BOM class and a sub-dictionary of the probed results contains
@@ -71,39 +73,47 @@ def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
 
     return default_comp
 
-  # Construct a dict of component classes to list of component names.
-  matched_components = {comp_cls: []
-                        for comp_cls in database.GetComponentClasses()}
-  mismatched_components = {comp_cls: comps
-                           for comp_cls, comps in probed_results.iteritems()
-                           if comp_cls not in matched_components}
+  if use_name_match:
+    matched_components = {}
+    mismatched_components = {}
 
-  for comp_cls in database.GetComponentClasses():
-    default_comp = _GetDefaultComponent(comp_cls)
+    for comp_cls, comps in probed_results.iteritems():
+      matched_components[comp_cls] = [comp['name'] for comp in comps]
+  else:
+    # Construct a dict of component classes to list of component names.
+    matched_components = {comp_cls: []
+                          for comp_cls in database.GetComponentClasses()}
+    mismatched_components = {comp_cls: comps
+                             for comp_cls, comps in probed_results.iteritems()
+                             if comp_cls not in matched_components}
 
-    for probed_comp in probed_results.get(comp_cls, []):
-      for comp_name, comp_info in database.GetComponents(
-          comp_cls, include_default=False).iteritems():
-        if _IsValuesMatch(probed_comp['values'], comp_info.values):
-          matched_components[comp_cls].append(comp_name)
-          break
+    for comp_cls in database.GetComponentClasses():
+      default_comp = _GetDefaultComponent(comp_cls)
 
-      else:
-        if default_comp is not None:
-          matched_components[comp_cls].append(default_comp)
+      for probed_comp in probed_results.get(comp_cls, []):
+        for comp_name, comp_info in database.GetComponents(
+            comp_cls, include_default=False).iteritems():
+          if _IsValuesMatch(probed_comp['values'], comp_info.values):
+            matched_components[comp_cls].append(comp_name)
+            break
+
         else:
-          mismatched_components.setdefault(comp_cls, [])
-          mismatched_components[comp_cls].append(probed_comp)
+          if default_comp is not None:
+            matched_components[comp_cls].append(default_comp)
+          else:
+            mismatched_components.setdefault(comp_cls, [])
+            mismatched_components[comp_cls].append(probed_comp)
 
-    # If no any probed result of this component class, try add the default one.
-    if not matched_components[comp_cls] and default_comp is not None:
-      matched_components[comp_cls].append(default_comp)
+      # If no any probed result of this component class, try add the default
+      # one.
+      if not matched_components[comp_cls] and default_comp is not None:
+        matched_components[comp_cls].append(default_comp)
 
-  if (not allow_mismatched_components and
-      any(mismatched_components.itervalues())):
-    raise common.HWIDException(
-        'Probed components %r are not matched with any component records in '
-        'the database.' % mismatched_components)
+    if (not allow_mismatched_components and
+        any(mismatched_components.itervalues())):
+      raise common.HWIDException(
+          'Probed components %r are not matched with any component records in '
+          'the database.' % mismatched_components)
 
   bom = BOM(encoding_pattern_index=0,
             image_id=database.max_image_id,
