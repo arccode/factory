@@ -4,10 +4,18 @@
 # found in the LICENSE file.
 
 import os
+import signal
 import sys
 
 
+def handler(signum, frame):
+  del signum, frame  # Unused.
+  sys.exit(1)
+
+
 if __name__ == '__main__':
+  signal.signal(signal.SIGTERM, handler)
+
   os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 
   from django.core.management import execute_from_command_line

@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import views
 
+from backend import common
 from backend.models import Project
 from backend.models import Bundle
 from backend.models import DomeConfig
@@ -42,7 +43,8 @@ class InfoView(views.APIView):
     return Response({
         'docker_image_githash': docker_image_githash,
         'docker_image_islocal': docker_image_islocal,
-        'docker_image_timestamp': docker_image_timestamp
+        'docker_image_timestamp': docker_image_timestamp,
+        'is_dev_server': common.IsDomeDevServer()
     })
 
 

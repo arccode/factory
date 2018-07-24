@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {amber300} from 'material-ui/styles/colors';
+import {amber300, grey300, red500} from 'material-ui/styles/colors';
 import React from 'react';
 import {connect} from 'react-redux';
 
@@ -21,7 +21,7 @@ interface DomeInfoProps {
   domeInfo: DomeInfo | null;
 }
 
-const DomeInfo: React.SFC<DomeInfoProps> = ({domeInfo}) => {
+const DomeInfoComponent: React.SFC<DomeInfoProps> = ({domeInfo}) => {
   const dockerVersion =
     domeInfo == null ? '(unknown)' :
       `${domeInfo.dockerImageTimestamp}` +
@@ -32,11 +32,18 @@ const DomeInfo: React.SFC<DomeInfoProps> = ({domeInfo}) => {
     <pre
       style={{
         fontSize: 'x-small',
-        color: 'lightgray',
+        color: grey300,
       }}
     >
-      Docker image: {dockerVersion} {'\n'}
+      Docker image: {dockerVersion}
+      {'\n'}
       Hash: {dockerHash}
+      {domeInfo && domeInfo.isDevServer && (
+        <>
+          {'\n'}
+          <span style={{color: red500, fontWeight: 'bold'}}>DEV SERVER</span>
+        </>
+      )}
     </pre>
   );
 };
@@ -61,7 +68,7 @@ const DomeAppBar: React.SFC<DomeAppBarProps> =
   ({toggleAppMenu, onHeightChange, zDepth, domeInfo}) => (
     <FixedAppBar
       title={<DomeAppBarTitle />}
-      iconElementRight={<DomeInfo domeInfo={domeInfo} />}
+      iconElementRight={<DomeInfoComponent domeInfo={domeInfo} />}
       onLeftIconButtonClick={toggleAppMenu}
       onHeightChange={onHeightChange}
       zDepth={zDepth}

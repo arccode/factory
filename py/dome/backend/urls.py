@@ -19,7 +19,6 @@ Including another URLconf
 """
 
 from django.conf.urls import url
-from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.views.generic import TemplateView
 from rest_framework.urlpatterns import format_suffix_patterns
 from rest_framework.authtoken import views as drf_views
@@ -60,4 +59,3 @@ urlpatterns = [
         views.ServiceSchemaView.as_view())]
 
 urlpatterns = format_suffix_patterns(urlpatterns)
-urlpatterns += staticfiles_urlpatterns()

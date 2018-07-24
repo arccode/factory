@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import React from 'react';
+import {hot} from 'react-hot-loader';
 import Measure from 'react-measure';
 import {connect} from 'react-redux';
 
@@ -52,6 +53,11 @@ class DomeApp extends React.Component<DomeAppProps, DomeAppState> {
   }
 
   componentDidMount() {
+    // check if user's using Chrome/Chromium
+    if (!navigator.userAgent.includes('Chrome')) {
+      window.alert(`Warning!!
+To visit Dome, please use Chrome/Chromium to avoid unnecessary issues.`);
+    }
     this.props.testAuthToken();
     this.props.fetchDomeInfo();
   }
@@ -129,4 +135,5 @@ const mapDispatchToProps = {
   fetchDomeInfo,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(DomeApp);
+export default hot(module)(
+  connect(mapStateToProps, mapDispatchToProps)(DomeApp));

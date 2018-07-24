@@ -154,6 +154,7 @@ RESOURCE_PIXZ_SHA1="3bdf7473df19f2d089f2a9b055c18a4f7f1409e5"
 # Directories inside docker
 DOCKER_BASE_DIR="/usr/local/factory"
 DOCKER_DOME_DIR="${DOCKER_BASE_DIR}/py/dome"
+DOCKER_DOME_FRONTEND_DIR="${DOCKER_DOME_DIR}/frontend"
 DOCKER_UMPIRE_DIR="${DOCKER_BASE_DIR}/py/umpire"
 DOCKER_INSTALOG_DIR="${DOCKER_BASE_DIR}/py/instalog"
 
@@ -196,6 +197,7 @@ set_docker_image_info
 : "${UMPIRE_CONTAINER_DIR:="${HOST_UMPIRE_DIR}/${PROJECT}"}"
 : "${UMPIRE_PORT:="8080"}"  # base port for Umpire
 : "${DOME_PORT:="8000"}"  # port to access Dome
+: "${DOME_DEV_PORT:="18000"}"  # port to access Dome dev server
 : "${GOOFY_PORT:="4012"}"  # port to access Goofy
 : "${OVERLORD_HTTP_PORT:="9000"}"  # port to access Overlord
 : "${OVERLORD_LAN_DISC_IFACE:=""}"  # The network interface that Overlord LAN
@@ -203,6 +205,13 @@ set_docker_image_info
 
 DOME_UWSGI_CONTAINER_NAME="dome_uwsgi"
 DOME_NGINX_CONTAINER_NAME="dome_nginx"
+
+DOME_BUILDER_IMAGE_NAME="cros/dome-builder"
+
+DOME_DEV_FRONTEND_CONTAINER_NAME="dome_dev_frontend"
+DOME_DEV_DJANGO_CONTAINER_NAME="dome_dev_django"
+DOME_DEV_NGINX_CONTAINER_NAME="dome_dev_nginx"
+DOME_DEV_DOCKER_NETWORK_NAME="dome_dev_network"
 
 ensure_dir() {
   local dir="$1"
@@ -682,6 +691,138 @@ overlord_main() {
   esac
 }
 
+do_dev_run() {
+  check_docker
+
+  do_build
+
+  local docker_db_dir="/var/db/factory/dome"
+  local db_filename="db.sqlite3"
+  local docker_log_dir="/var/log/dome"
+  local host_log_dir="${HOST_DOME_DIR}/log"
+  local builder_container_name="dome_builder"
+
+  # stop and remove old containers
+  do_dev_destroy
+
+  do_prepare_dome
+
+  echo "Copying node_modules into host directory ..."
+  ${DOCKER} create --name "${builder_container_name}" \
+    "${DOME_BUILDER_IMAGE_NAME}"
+  ${DOCKER} cp \
+    "${builder_container_name}:${DOCKER_DOME_FRONTEND_DIR}/node_modules" \
+    "${DOME_DIR}/frontend"
+  ${DOCKER} rm "${builder_container_name}"
+
+  ${DOCKER} network create "${DOME_DEV_DOCKER_NETWORK_NAME}"
+
+  # Start dev server for frontend code.
+  ${DOCKER} run \
+    --detach \
+    --restart unless-stopped \
+    --name "${DOME_DEV_FRONTEND_CONTAINER_NAME}" \
+    --network "${DOME_DEV_DOCKER_NETWORK_NAME}" \
+    --volume "${DOME_DIR}:${DOCKER_DOME_DIR}" \
+    ${DOCKER_LOCALTIME_VOLUME} \
+    --workdir "${DOCKER_DOME_FRONTEND_DIR}" \
+    "${DOME_BUILDER_IMAGE_NAME}" \
+    npm run dev
+
+  # start django development server.
+  ${DOCKER} run \
+    --detach \
+    --restart unless-stopped \
+    --name "${DOME_DEV_DJANGO_CONTAINER_NAME}" \
+    --network "${DOME_DEV_DOCKER_NETWORK_NAME}" \
+    --volume /var/run/docker.sock:/var/run/docker.sock \
+    --env HOST_SHARED_DIR="${HOST_SHARED_DIR}" \
+    --env HOST_UMPIRE_DIR="${HOST_UMPIRE_DIR}" \
+    --env HOST_TFTP_DIR="${HOST_TFTP_DIR}" \
+    --env HOST_LOCALTIME_PATH="${HOST_LOCALTIME_PATH}" \
+    --env DOME_DEV_SERVER="1" \
+    --env PYTHONDONTWRITEBYTECODE="1" \
+    --volume /run \
+    --volume "${DOME_DIR}:${DOCKER_DOME_DIR}" \
+    --volume "${HOST_DOME_DIR}/${db_filename}:${docker_db_dir}/${db_filename}" \
+    --volume "${host_log_dir}:${docker_log_dir}" \
+    --volume "${HOST_TFTP_DIR}:${DOCKER_TFTP_DIR_IN_DOME}" \
+    --volume "${HOST_UMPIRE_DIR}:${DOCKER_UMPIRE_DIR_IN_DOME}" \
+    --volume "${HOST_SHARED_TMP_VOLUME}:${DOCKER_SHARED_TMP_DIR}" \
+    ${DOCKER_LOCALTIME_VOLUME} \
+    --workdir "${DOCKER_DOME_DIR}" \
+    "${DOCKER_IMAGE_NAME}" \
+    python manage.py runserver 0:8080
+
+  # start nginx
+  ${DOCKER} run \
+    --detach \
+    --restart unless-stopped \
+    --name "${DOME_DEV_NGINX_CONTAINER_NAME}" \
+    --network "${DOME_DEV_DOCKER_NETWORK_NAME}" \
+    --volumes-from "${DOME_DEV_DJANGO_CONTAINER_NAME}" \
+    --publish "127.0.0.1:${DOME_DEV_PORT}:80" \
+    "${DOCKER_IMAGE_NAME}" \
+    nginx -g "daemon off;" -c "${DOCKER_DOME_DIR}/nginx.dev.conf"
+
+  echo
+  echo "Dome Dev server is running!"
+  echo "Open the browser to http://localhost:${DOME_DEV_PORT}/ and enjoy!"
+}
+
+do_dev_destroy() {
+  check_docker
+
+  stop_and_remove_container "${DOME_DEV_FRONTEND_CONTAINER_NAME}"
+  stop_and_remove_container "${DOME_DEV_DJANGO_CONTAINER_NAME}"
+  stop_and_remove_container "${DOME_DEV_NGINX_CONTAINER_NAME}"
+  ${DOCKER} network rm "${DOME_DEV_DOCKER_NETWORK_NAME}" 2>/dev/null || true
+}
+
+dev_usage() {
+  cat << __EOF__
+Dome development server.
+
+The server would use py/dome/{frontend,backend} on host directly, and
+automatically reload when file changed.
+
+commands:
+  $0 dev help
+      Show this help message.
+
+  $0 dev run
+      Create and start development server for Dome.
+
+      You can change the listening port (default ${DOME_DEV_PORT}) by assigning
+      the DOME_DEV_PORT environment variable. For example:
+
+        DOME_DEV_PORT=1234 $0 dev run
+
+      will bind port 1234 instead of ${DOME_DEV_PORT}.
+
+  $0 dev destroy
+      Stop and remove the development server.
+__EOF__
+}
+
+dev_main() {
+  case "$1" in
+    "")
+      do_dev_run
+      ;;
+    run)
+      do_dev_run
+      ;;
+    destroy)
+      do_dev_destroy
+      ;;
+    *)
+      dev_usage
+      exit 1
+      ;;
+  esac
+}
+
 # Section for main commands
 do_pull() {
   echo "Pulling Factory Server Docker image ..."
@@ -707,17 +848,13 @@ do_install() {
   ${DOCKER} load <"${DOCKER_IMAGE_FILEPATH}"
 }
 
-do_run() {
+do_prepare_dome() {
   check_docker
 
   local docker_db_dir="/var/db/factory/dome"
   local db_filename="db.sqlite3"
   local docker_log_dir="/var/log/dome"
   local host_log_dir="${HOST_DOME_DIR}/log"
-
-  # stop and remove old containers
-  stop_and_remove_container "${DOME_UWSGI_CONTAINER_NAME}"
-  stop_and_remove_container "${DOME_NGINX_CONTAINER_NAME}"
 
   # make sure database file exists or mounting volume will fail
   if [[ ! -f "${HOST_DOME_DIR}/${db_filename}" ]]; then
@@ -752,6 +889,21 @@ do_run() {
     "${DOCKER_IMAGE_NAME}" \
     python manage.py shell --command \
     "import backend; backend.models.TemporaryUploadedFile.objects.all().delete()"
+}
+
+do_run() {
+  check_docker
+
+  # stop and remove old containers
+  stop_and_remove_container "${DOME_UWSGI_CONTAINER_NAME}"
+  stop_and_remove_container "${DOME_NGINX_CONTAINER_NAME}"
+
+  do_prepare_dome
+
+  local docker_db_dir="/var/db/factory/dome"
+  local db_filename="db.sqlite3"
+  local docker_log_dir="/var/log/dome"
+  local host_log_dir="${HOST_DOME_DIR}/log"
 
   # start uwsgi, the bridge between django and nginx
   # Note 'docker' currently reads from '/var/run/docker.sock', which does not
@@ -796,10 +948,10 @@ do_build_dome_deps() {
   check_docker
 
   local builder_output_file="$1"
-  local builder_workdir="/usr/src/app"
+  local builder_workdir="${DOCKER_DOME_FRONTEND_DIR}"
   local builder_dockerfile="${DOME_DIR}/docker/Dockerfile.builder"
   local builder_container_name="dome_builder"
-  local builder_image_name="cros/dome-builder"
+  local builder_image_name="${DOME_BUILDER_IMAGE_NAME}"
 
   # build the dome builder image
   ${DOCKER} build \
@@ -1115,6 +1267,9 @@ commands for developers:
   $0 overlord [subcommand]
       Commands for Overlord, see "$0 overlord help" for detail.
 
+  $0 dev
+      Commands for development server for Dome, see "$0 dev help" for detail.
+
 __EOF__
 }
 
@@ -1159,6 +1314,10 @@ main() {
     overlord)
       shift
       overlord_main "$@"
+      ;;
+    dev)
+      shift
+      dev_main "$@"
       ;;
     *)
       usage

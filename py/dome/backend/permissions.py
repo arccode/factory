@@ -9,6 +9,8 @@ import logging
 
 from rest_framework import permissions as drf_permissions
 
+from backend import common
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import net_utils
 
@@ -25,6 +27,10 @@ class AllowLocalHostOrIsAuthenticated(drf_permissions.IsAuthenticated):
     whitelist = ['127.0.0.1', str(net_utils.GetDockerHostIP())]
     if client_ip in whitelist:
       logger.info('Skip authentication, allow connection from %r', client_ip)
+      return True
+
+    if common.IsDomeDevServer():
+      logger.info('Skip authentication for dev server')
       return True
 
     # fallback to authentication
