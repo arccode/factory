@@ -5,10 +5,14 @@
 # TODO(littlecvr): return different format specified by "request_format"
 #                  variable.
 
+import os
+
 from rest_framework import generics
 from rest_framework import mixins
+from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework import views
 
 from backend.models import Project
 from backend.models import Bundle
@@ -21,6 +25,25 @@ from backend.serializers import ConfigSerializer
 from backend.serializers import ResourceSerializer
 from backend.serializers import ServiceSerializer
 from backend.serializers import UploadedFileSerializer
+
+
+class InfoView(views.APIView):
+  """View to get general info about Dome."""
+  permission_classes = (permissions.AllowAny,)
+
+  def get(self, request):
+    del request  # Unused.
+    docker_image_githash = os.environ.get('DOCKER_IMAGE_GITHASH', '')
+    docker_image_islocal = os.environ.get('DOCKER_IMAGE_ISLOCAL', '1')
+    # The DOCKER_IMAGE_ISLOCAL is a string '0' or '1', transform it back to
+    # boolean.
+    docker_image_islocal = bool(int(docker_image_islocal))
+    docker_image_timestamp = os.environ.get('DOCKER_IMAGE_TIMESTAMP', '')
+    return Response({
+        'docker_image_githash': docker_image_githash,
+        'docker_image_islocal': docker_image_islocal,
+        'docker_image_timestamp': docker_image_timestamp
+    })
 
 
 class ConfigView(mixins.CreateModelMixin,

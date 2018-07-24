@@ -165,7 +165,7 @@ const mapStateToProps =
     expanded: getExpandedMap(state)[ownProps.bundle.name],
     projectName: project.selectors.getCurrentProject(state),
     projectNetbootBundle:
-      project.selectors.getCurrentProjectObject(state).netbootBundle,
+      project.selectors.getCurrentProjectObject(state)!.netbootBundle,
   });
 
 const mapDispatchToProps = {

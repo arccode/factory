@@ -18,4 +18,4 @@ export const getCurrentProject =
   (state: RootState): string => localState(state).currentProject;
 export const getCurrentProjectObject = createSelector(
   [getProjects, getCurrentProject],
-  (projects, name) => projects[name] || {});
+  (projects, name) => name === '' ? null : projects[name]);

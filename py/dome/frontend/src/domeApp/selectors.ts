@@ -6,9 +6,12 @@ import {RootState} from '@app/types';
 
 import {NAME} from './constants';
 import {DomeAppState} from './reducer';
-import {AppName} from './types';
+import {AppName, DomeInfo} from './types';
 
 export const localState = (state: RootState): DomeAppState => state[NAME];
 
 export const getCurrentApp =
   (state: RootState): AppName => localState(state).currentApp;
+
+export const getDomeInfo =
+  (state: RootState): DomeInfo | null => localState(state).domeInfo;

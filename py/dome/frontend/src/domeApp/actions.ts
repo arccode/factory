@@ -2,11 +2,26 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import axios from 'axios';
 import {createAction} from 'typesafe-actions';
 
-import {AppName} from './types';
+import {Dispatch} from '@app/types';
+
+import {AppName, DomeInfo} from './types';
 
 export const switchApp = createAction('SWITCH_APP', (resolve) =>
   (nextApp: AppName) => resolve({nextApp}));
 
-export const basicActions = {switchApp};
+export const setDomeInfo = createAction('SET_DOME_INFO', (resolve) =>
+  (domeInfo: DomeInfo) => resolve({domeInfo}));
+
+export const basicActions = {switchApp, setDomeInfo};
+
+export const fetchDomeInfo = () => async (dispatch: Dispatch) => {
+  try {
+    const response = await axios.get<DomeInfo>('/info');
+    dispatch(setDomeInfo(response.data));
+  } catch (err) {
+    console.error('Can not get Dome info...');
+  }
+};

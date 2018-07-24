@@ -7,3 +7,9 @@ export type AppName =
   'BUNDLES_APP' |
   'CONFIG_APP' |
   'DASHBOARD_APP';
+
+export interface DomeInfo {
+  dockerImageGithash: string;
+  dockerImageIslocal: boolean;
+  dockerImageTimestamp: string;
+}

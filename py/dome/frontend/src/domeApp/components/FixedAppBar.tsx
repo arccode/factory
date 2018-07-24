@@ -17,35 +17,18 @@ interface FixedAppBarProps extends AppBarProps {
   onHeightChange: (height: number) => void;
 }
 
-interface FixedAppBarState {
-  height: number;
-}
-
-class FixedAppBar extends React.Component<FixedAppBarProps, FixedAppBarState> {
-  state = {
-    height: 0,
-  };
-
-  handleHeightChange = (height: number) => {
-    this.setState({height});
-    this.props.onHeightChange(height);
-  }
-
-  render() {
-    const {onHeightChange: unused, ...other} = this.props;
-
-    return (
-      <div>
-        <Measure onMeasure={(d) => this.handleHeightChange(d.height)}>
-          <AppBar
-            {...other}
-            style={{position: 'fixed', top: 0, left: 0}}
-          />
-        </Measure>
-        <div style={{height: this.state.height}} />
-      </div>
-    );
-  }
-}
+const FixedAppBar: React.SFC<FixedAppBarProps> = ({
+  onHeightChange,
+  ...other
+}) => (
+  <div>
+    <Measure onMeasure={(d) => onHeightChange(d.height)}>
+      <AppBar
+        {...other}
+        style={{position: 'fixed', top: 0, left: 0}}
+      />
+    </Measure>
+  </div>
+);
 
 export default FixedAppBar;
