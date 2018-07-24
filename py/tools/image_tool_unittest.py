@@ -208,7 +208,7 @@ class ImageToolTest(unittest.TestCase):
     self.assertEqual(open('tag.3').read().strip(), 'test_image')
     self.assertEqual(open('tag.5').read().strip(), 'release_image')
 
-    self.ImageTool('rma', '-o', 'rma.bin')
+    self.ImageTool('rma-create', '-o', 'rma.bin')
     image_tool.Partition('rma.bin', 1).CopyFile('tag', 'tag.1')
     image_tool.Partition('rma.bin', 3).CopyFile('tag', 'tag.3')
     image_tool.Partition('rma.bin', 1).CopyFile(
@@ -220,7 +220,7 @@ class ImageToolTest(unittest.TestCase):
     self.assertEqual(data['toolkit']['version'], u'Toolkit Version 1.0')
 
     self.ImageTool(
-        'merge_rma', '-f', '-o', 'rma_all.bin', '-i', 'rma.bin', 'rma.bin')
+        'rma-merge', '-f', '-o', 'rma_all.bin', '-i', 'rma.bin', 'rma.bin')
 
     self.ImageTool('bundle', '--no-firmware', '--timestamp', '20180101')
     bundle_name = 'factory_bundle_test_20180101_proto.tar.bz2'

@@ -1164,7 +1164,7 @@ class ChromeOSFactoryBundle(object):
       Returns the path of last created resource.
       """
       if not resources_glob:
-        return
+        return None
       resources = glob.glob(resources_glob)
       if not resources:
         raise RuntimeError('Cannot find resource: %s' % resources_glob)
@@ -1541,7 +1541,8 @@ class CreateRMAImageCommmand(SubCommand):
   centers can boot it from USB and install all factory software bits into
   a device.
   """
-  name = 'rma'
+  name = 'rma-create'
+  aliases = ['rma']
 
   def Init(self):
     ChromeOSFactoryBundle.DefineBundleArguments(
@@ -1571,7 +1572,8 @@ class CreateRMAImageCommmand(SubCommand):
 
 class MergeRMAImageCommand(SubCommand):
   """Merge multiple RMA images into one single large image."""
-  name = 'merge_rma'
+  name = 'rma-merge'
+  aliases = ['merge_rma']
 
   def Init(self):
     self.subparser.add_argument(
@@ -1878,18 +1880,19 @@ def main():
   parser.add_argument('--verbose', '-v', action='count', default=0,
                       help='Verbose output')
   subparsers = parser.add_subparsers(title='subcommands')
-  argv0 = os.path.splitext(os.path.basename(sys.argv[0]))[0]
+
+  verb = sys.argv[1]
 
   selected_command = None
   for unused_key, v in sorted(globals().items()):
     if v != SubCommand and inspect.isclass(v) and issubclass(v, SubCommand):
       subcommand = v(parser, subparsers)
       subcommand.Init()
-      if argv0 in subcommand.aliases:
+      if verb in subcommand.aliases:
         selected_command = subcommand.name
 
   if selected_command:
-    args = parser.parse_args([selected_command] + sys.argv[1:])
+    args = parser.parse_args([selected_command] + sys.argv[2:])
   else:
     args = parser.parse_args()
   logging.basicConfig(level=logging.WARNING - args.verbose * 10)

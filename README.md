@@ -249,7 +249,7 @@ program. If not specified, this will be pulled from the release (recovery) image
 (i.e., --release) you've provided.
 
 If you need to use a special version that is different from the one combined in
-release image, add a `--firmware PATH` option to `image_tool rma`
+release image, add a `--firmware PATH` option to `image_tool rma-create`
 command, or manually upload the updater file in Dome web UI.
 
 Also, if you only want the DEV signed firmware (also known as unsigned), grab
@@ -264,7 +264,7 @@ built and signed, extract the firmware from it:
     ./setup/image_tool get_firmware -i path/to/OS_IMAGE.bin
 
 Then you can find a `chromeos-firmwareupdate` file and use it for
-`image_tool rma` as `--firmware path/to/chromeos-firmwareupdate`.
+`image_tool rma-create` as `--firmware path/to/chromeos-firmwareupdate`.
 
 Also, if you are simply testing and no HWID bundle yet, change the `--hwid PATH`
 to `--hwid none`.
@@ -330,7 +330,7 @@ To generate a USB installation image from a [bundle](setup/BUNDLE.md), use 'rma'
 sub command in `image_tool`:
 
     ./setup/image_tool \
-      rma -o rma_image.bin \
+      rma-create -o rma_image.bin \
       --board=BOARD \
       --factory_shim=path/to/factory_install_shim.bin \
       --test_image=path/to/chromiumos_test_image.bin \
