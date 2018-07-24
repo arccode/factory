@@ -213,15 +213,26 @@ class ImageToolTest(unittest.TestCase):
     image_tool.Partition('rma.bin', 3).CopyFile('tag', 'tag.3')
     image_tool.Partition('rma.bin', 1).CopyFile(
         'cros_payloads/test.json', self.temp_dir)
+    image_tool.Partition('rma.bin', 1).CopyFile(
+        image_tool.PATH_CROS_RMA_METADATA, self.temp_dir)
     self.assertEqual(open('tag.1').read().strip(), 'factory_shim')
     self.assertEqual(open('tag.3').read().strip(), 'factory_shim')
     with open('test.json') as f:
       data = json.load(f)
     self.assertEqual(data['toolkit']['version'], u'Toolkit Version 1.0')
+    with open(os.path.basename(image_tool.PATH_CROS_RMA_METADATA)) as f:
+      data = json.load(f)
+    self.assertEqual(data, [{'board': 'test', 'kernel': 2, 'rootfs': 3}])
 
     self.ImageTool(
         'rma-merge', '-f', '-o', 'rma_all.bin', '-i', 'rma.bin', 'rma.bin')
 
+    image_tool.Partition('rma_all.bin', 1).CopyFile(
+        image_tool.PATH_CROS_RMA_METADATA, self.temp_dir)
+    with open(os.path.basename(image_tool.PATH_CROS_RMA_METADATA)) as f:
+      data = json.load(f)
+    self.assertEqual(data, [{'board': 'test', 'kernel': 2, 'rootfs': 3},
+                            {'board': 'test', 'kernel': 4, 'rootfs': 5}])
     self.ImageTool('bundle', '--no-firmware', '--timestamp', '20180101')
     bundle_name = 'factory_bundle_test_20180101_proto.tar.bz2'
     self.assertTrue(os.path.exists(bundle_name))

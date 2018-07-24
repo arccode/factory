@@ -17,6 +17,7 @@ import argparse
 import contextlib
 import glob
 import inspect
+import json
 import logging
 import os
 import pipes
@@ -59,6 +60,8 @@ FS_TYPE_CROS_ROOTFS = 'ext2'
 PATH_CROS_FIRMWARE_UPDATER = '/usr/sbin/chromeos-firmwareupdate'
 # The name of folder must match /etc/init/cros-payloads.conf.
 DIR_CROS_PAYLOADS = 'cros_payloads'
+# Relative path of RMA image metadata.
+PATH_CROS_RMA_METADATA = os.path.join(DIR_CROS_PAYLOADS, 'rma_metadata.json')
 # Mode for new created folder, 0755 = u+rwx, go+rx
 MODE_NEW_DIR = 0755
 # Regular expression for parsing LSB value, which should be sh compatible.
@@ -600,6 +603,62 @@ class LSBFile(object):
     return version
 
 
+class RMAImageBoardInfo(object):
+  """Store the RMA image information related to one board."""
+
+  __slots__ = ['board', 'kernel', 'rootfs']
+
+  def __init__(self,
+               board,
+               kernel=PART_CROS_KERNEL_A,
+               rootfs=PART_CROS_ROOTFS_A):
+    self.board = board
+    self.kernel = kernel
+    self.rootfs = rootfs
+
+  def ToDict(self):
+    return {k: getattr(self, k) for k in self.__slots__}
+
+
+def _WriteRMAMetadata(stateful, board_list):
+  """Write RMA metadata to mounted stateful parititon.
+
+  Args:
+    stateful: path of stateful partition mount point.
+    board_list: a list of RMAImageBoardInfo object.
+  """
+  with tempfile.NamedTemporaryFile(prefix='metadata_') as f:
+    json.dump([b.ToDict() for b in board_list], f)
+    f.flush()
+    os.chmod(f.name, 0644)
+    destination = os.path.join(stateful, PATH_CROS_RMA_METADATA)
+    Sudo(['cp', '-pf', f.name, destination])
+    Sudo(['chown', 'root:root', destination])
+
+
+def _ReadRMAMetadata(stateful):
+  """Read RMA metadata from mounted stateful partition.
+
+  Args:
+    stateful: path of stateful partition mount point.
+
+  Returns:
+    RMA metadata, or None if file doesn't not exist.
+  """
+  if os.path.exists(os.path.join(stateful, PATH_CROS_RMA_METADATA)):
+    with open(os.path.join(stateful, PATH_CROS_RMA_METADATA)) as f:
+      metadata = json.load(f)
+      metadata = [
+          RMAImageBoardInfo(board=e['board'],
+                            kernel=e['kernel'],
+                            rootfs=e['rootfs'])
+          for e in metadata]
+      return metadata
+  else:
+    logging.warning('Cannot find %s/%s', stateful, PATH_CROS_RMA_METADATA)
+    return None
+
+
 class ChromeOSFactoryBundle(object):
   """Utilities to work with factory bundle."""
 
@@ -945,6 +1004,10 @@ class ChromeOSFactoryBundle(object):
       lsb_file.AppendValue('FACTORY_INSTALL_FROM_USB', '1')
       lsb_file.AppendValue('USE_CROS_PAYLOAD', '1')
       lsb_file.Install(lsb_path)
+
+      _WriteRMAMetadata(stateful,
+                        board_list=[RMAImageBoardInfo(board=self.board)])
+
       Sudo(['df', '-h', stateful])
 
   @staticmethod
@@ -1038,18 +1101,40 @@ class ChromeOSFactoryBundle(object):
 
     with new_state.Mount(rw=True) as stateful:
       payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
+      board_list = []
+      board_set = set()  # To detect duplicated boards.
+
       for i, src_path in enumerate(images):
         print('Copying %s root/kernel partitions...' % src_path)
+        new_kernel = i * 2 + PART_CROS_KERNEL_A
+        new_rootfs = i * 2 + PART_CROS_ROOTFS_A
         Partition(src_path, PART_CROS_KERNEL_A).Copy(
-            Partition(output, i * 2 + PART_CROS_KERNEL_A))
+            Partition(output, new_kernel))
         Partition(src_path, PART_CROS_ROOTFS_A).Copy(
-            Partition(output, i * 2 + PART_CROS_ROOTFS_A))
-        if i == 0:
-          continue
+            Partition(output, new_rootfs))
+
         with Partition(src_path, PART_CROS_STATEFUL).Mount() as src_dir:
+          src_metadata = _ReadRMAMetadata(src_dir)
+
+          if src_metadata:
+            assert len(src_metadata) == 1, (
+                'Merging multiple universal RMA shim is not supported')
+            board_info = src_metadata[0]
+            if board_info.board in board_set:
+              logging.warning('Duplicated board: %r', board_info.board)
+            board_set.add(board_info.board)
+            board_info.kernel = new_kernel
+            board_info.rootfs = new_rootfs
+            board_list.append(board_info)
+
+          if i == 0:
+            continue
+
           print('Copying %s stateful resources...' % src_path)
           Sudo('cp -pr %s/* %s/.' %
                (os.path.join(src_dir, DIR_CROS_PAYLOADS), payloads_dir))
+
+      _WriteRMAMetadata(stateful, board_list)
 
   @staticmethod
   def GetKernelVersion(image_path):
