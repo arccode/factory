@@ -1,0 +1,69 @@
+{
+  "defaultSeverity": "warning",
+  "extends": ["tslint:recommended", "tslint-eslint-rules"],
+  "linterOptions": {
+    "exclude": [
+      "node_modules/**"
+    ]
+  },
+  "rules": {
+    "array-bracket-spacing": [true, "never"],
+    "array-type": [true, "array-simple"],
+    "arrow-return-shorthand": true,
+    "block-spacing": [true, "never"],
+    "brace-style": [true, "1tbs"],
+    "comment-format": [true, "check-space"],
+    "curly": [true, "ignore-same-line"],
+    "indent": [true, "spaces", 2],
+    "interface-name": [true, "never-prefix"],
+    "jsx-no-lambda": false,
+    "jsx-no-multiline-js": false,
+    "max-line-length": [true, 80],
+    "member-access": [true, "no-public"],
+    "member-ordering": [true, {"order": "fields-first"}],
+    "no-console": false,
+    "no-constant-condition": true,
+    "no-control-regex": true,
+    "no-duplicate-case": true,
+    "no-empty-character-class": true,
+    "no-ex-assign": true,
+    "no-extra-boolean-cast": true,
+    "no-extra-semi": true,
+    "no-inferrable-types": true,
+    "no-invalid-regexp": true,
+    "no-invalid-this": [true, "check-function-in-method"],
+    "no-irregular-whitespace": true,
+    "no-multi-spaces": true,
+    "no-regex-spaces": true,
+    "no-shadowed-variable": [true, {"import": false}],
+    "no-sparse-arrays": true,
+    "no-this-assignment": true,
+    "no-unexpected-multiline": true,
+    "object-curly-spacing": [true, "never"],
+    "object-literal-sort-keys": false,
+    "only-arrow-functions": true,
+    "ordered-imports": [true, {"grouped-imports": true}],
+    "prefer-template": [true, "allow-single-concat"],
+    "quotemark": [true, "single", "jsx-double"],
+    "semicolon": [true, "always", "ignore-bound-class-methods"],
+    "switch-default": true,
+    "ter-arrow-parens": [true, "always"],
+    "ter-arrow-spacing": [true, {"before": true, "after": true}],
+    "ter-func-call-spacing": [true, "never"],
+    "ter-max-len": [true, {"code": 80, "ignoreUrls": true}],
+    "ter-no-proto": true,
+    "ter-no-self-compare": true,
+    "trailing-comma": [
+      true,
+      {"singleline": "never", "multiline": "always", "esSpecCompliant": true}
+    ],
+    "triple-equals": [true, "allow-null-check"],
+    "valid-typeof": true,
+    "variable-name": [
+      true,
+      "ban-keywords",
+      "check-format",
+      "allow-pascal-case"
+    ]
+  }
+}
