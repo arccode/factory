@@ -1,0 +1,11 @@
+# Copyright 2018 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# This file is currently used by autoprefixer to adjust CSS to support the below specified browsers
+# For additional information regarding the format and rule options, please see:
+# https://github.com/browserslist/browserslist#queries
+#
+# Since this is a ChromeApp project, we only need to support Chrome.
+# The minimum version should be the same as the one in manifest.json.
+Chrome >= 50
