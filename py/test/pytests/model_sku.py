@@ -24,7 +24,7 @@ After the SKU is confirmed, the test will load a JSON configuration specified by
 ``config_name``. The config should be a dictionary containing what device data
 (usually ``component.*``) to set for matched model and SKU. For example, to set
 if the touchscreen is available for model 'coral' with default True, and only
-False for SKU 3::
+False for product_name `Coral` SKU 3::
 
   {
     "model": {
@@ -32,9 +32,11 @@ False for SKU 3::
         "component.has_touchscreen": true
       }
     },
-    "sku": {
-      "3": {
-        "component.has_touchscreen": false
+    "product_sku": {
+      "Coral": {
+        "3": {
+          "component.has_touchscreen": false
+        }
       }
     }
   }
@@ -77,6 +79,7 @@ from cros.factory.utils import config_utils
 
 
 _KEY_COMPONENT_SKU = device_data.JoinKeys(device_data.KEY_COMPONENT, 'sku')
+_PRODUCT_NAME_PATH = '/sys/devices/virtual/dmi/id/product_name'
 
 _MOSYS_ARGS = ['model', 'sku', 'chassis', 'brand']
 
@@ -96,9 +99,15 @@ class PlatformSKUModelTest(test_case.TestCase):
 
   def ApplyConfig(self):
     model = self._platform.get('model', '')
+    product_name = self._dut.ReadFile(_PRODUCT_NAME_PATH)
     sku = self._platform.get('sku', '')
     model_config = self._config.get('model', {}).get(model, {})
-    sku_config = self._config.get('sku', {}).get(sku, {})
+    if 'product_sku' in self.config:
+      sku_config = self._config.get(
+          'product_sku', {}).get(product_name, {}).get(sku, {})
+    else:
+      # TODO(chuntsen): Remove getting config from 'sku' after a period of time.
+      sku_config = self._config.get('sku', {}).get(sku, {})
 
     config_utils.OverrideConfig(model_config, sku_config)
     if model_config:

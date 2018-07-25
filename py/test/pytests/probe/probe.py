@@ -128,19 +128,21 @@ number of probed camera.  The test list should contain::
 And ``my_model_sku.json`` should contain::
 
   {
-    "sku": {
-      "34": {
-        "component.has_camera": False
-      },
-      "35": {
-        "component.has_camera": 2
+    "product_sku": {
+      "Example": {
+        "34": {
+          "component.has_camera": False
+        },
+        "35": {
+          "component.has_camera": 2
+        }
       }
     }
   }
 
 In this example, we expect the probe module to find no any camera component on
-a SKU 34 device. And expect the probe module to find two camera components
-on a SKU 35 device.
+a product_name `Example` SKU 34 device. And expect the probe module to find two
+camera components on a product_name `Example` SKU 35 device.
 """
 
 import collections

@@ -13,6 +13,11 @@
             "id": "/properties/sku",
             "properties": {},
             "type": "object"
+        },
+        "product_sku": {
+            "id": "/properties/product_sku",
+            "properties": {},
+            "type": "object"
         }
     },
     "type": "object"
