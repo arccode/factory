@@ -1,0 +1,15 @@
+{
+  "name": "devtools",
+  "version": "1.0.0",
+  "description": "DevTools for ChromeOS Diagnosis Tools",
+  "main": "generate-test-list.js",
+  "scripts": {
+    "generate-test-list": "ts-node ./generate-test-list.ts"
+  },
+  "author": "chromeos-factory-eng@google.com",
+  "license": "SEE LICENSE IN LICENSE",
+  "dependencies": {
+    "ts-node": "^7.0.0",
+    "ts-simple-ast": "^12.7.2"
+  }
+}

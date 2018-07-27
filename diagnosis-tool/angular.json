@@ -145,6 +145,21 @@
           }
         }
       }
+    },
+    "diagnosis-tool-devtools": {
+      "root": "devtools/",
+      "projectType": "application",
+      "architect": {
+        "lint": {
+          "builder": "@angular-devkit/build-angular:tslint",
+          "options": {
+            "tsConfig": "devtools/tsconfig.devtools.json",
+            "exclude": [
+              "**/node_modules/**"
+            ]
+          }
+        }
+      }
     }
   },
   "defaultProject": "diagnosis-tool"
