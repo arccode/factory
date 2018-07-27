@@ -1,0 +1,29 @@
+/*
+ * Copyright 2018 The Chromium OS Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+.result-container {
+  overflow: auto;
+}
+
+ul {
+  list-style-position: inside;
+}
+
+table {
+  padding-bottom: 1em;
+}
+
+th, td {
+  padding: 0 1em;
+}
+
+.prompt-message {
+  font-size: 2em;
+}
+
+.verify-component-mismatch-result {
+  margin-left:20px;
+}

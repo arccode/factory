@@ -1,0 +1,28 @@
+<test-template>
+  <i18n-label class="prompt-message" id="verify-component-probe">
+    Probing components...
+  </i18n-label>
+  <i18n-label class="prompt-message hidden" id="verify-component-failed">
+    Unable to pass verify component test.
+  </i18n-label>
+  <div class="result-container">
+    <h2 class="hidden" id="verify-component-mismatch-label">
+      <i18n-label>Number mismatch component classes</i18n-label>
+    </h2>
+    <div id="verify-component-mismatch"></div>
+    <h2 class="hidden" id="verify-component-not-supported-label">
+      <i18n-label>Not supported components</i18n-label>
+    </h2>
+    <div class="hidden" id="verify-component-not-supported">
+      <table>
+        <tbody>
+          <tr>
+            <th>Component</th>
+            <th>Name</th>
+            <th>Status</th>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</test-template>
