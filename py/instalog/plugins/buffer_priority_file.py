@@ -18,6 +18,7 @@ the order of its events."""
 
 from __future__ import print_function
 
+import itertools
 import multiprocessing
 import os
 import shutil
@@ -33,10 +34,10 @@ from instalog.utils import file_utils
 
 
 _PRIORITY_LEVEL = 4
-_LEVEL_FILE = 4
+_PARTITION = 4
 _LOCK_ACQUIRE_TIMEOUT = 0.1
 _LOCK_ACQUIRE_LOOP_TIMES = 25  # emit timeout in
-                               # (_LOCK_ACQUIRE_LOOP_TIMES * _LEVEL_FILE *
+                               # (_LOCK_ACQUIRE_LOOP_TIMES * _PARTITION *
                                #  _LOCK_ACQUIRE_TIMEOUT) = 10sec
 _PROCESSES_NUMBER = 10
 _TEMPORARY_METADATA_DIR = 'metadata_tmp_dir'
@@ -64,15 +65,18 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
   ]
 
   def __init__(self, *args, **kwargs):
-    self.buffer_file = [[[] for _unused_j in xrange(_LEVEL_FILE)]
+    self.buffer_file = [[[] for _unused_j in xrange(_PARTITION)]
                         for _unused_i in xrange(_PRIORITY_LEVEL)]
     self.attachments_tmp_dir = None
     self.metadata_tmp_dir = None
 
     self.consumers = {}
-    self._file_num_lock = [None] * _LEVEL_FILE
+    self._file_num_lock = [None] * _PARTITION
 
     self.process_pool = None
+
+    self._produce_partition = 0
+    self._consume_partition = 0
 
     super(BufferPriorityFile, self).__init__(*args, **kwargs)
 
@@ -97,13 +101,13 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
       os.makedirs(self.metadata_tmp_dir)
 
     for pri_level in xrange(_PRIORITY_LEVEL):
-      for file_num in xrange(_LEVEL_FILE):
+      for file_num in xrange(_PARTITION):
         self.buffer_file[pri_level][file_num] = buffer_file_common.BufferFile(
             self.args,
             self.logger.name,
             os.path.join(self.GetDataDir(), '%d_%d' % (pri_level, file_num)))
 
-    for file_num in xrange(_LEVEL_FILE):
+    for file_num in xrange(_PARTITION):
       self._file_num_lock[file_num] = lock_utils.Lock(self.logger.name)
 
     for name in self.buffer_file[0][0].consumers.keys():
@@ -133,18 +137,33 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
         continue
 
       self.Truncate()
-      self.Sleep(self.args.truncate_interval)
+      self.info('Truncating complete.  Sleeping %d secs...',
+                self.args.truncate_interval / _PARTITION)
+      self.Sleep(self.args.truncate_interval / _PARTITION)
+
+  def ProduceOrderIter(self):
+    """Returns a iterator to get produce order of partitioned buffers."""
+    first_level = self._produce_partition
+    self._produce_partition = (self._produce_partition + 1) % _PARTITION
+    return itertools.chain(xrange(first_level, _PARTITION),
+                           xrange(0, first_level))
+
+  def ConsumeOrderIter(self):
+    """Returns a iterator to get consume order of partitioned buffers."""
+    first_level = self._consume_partition
+    return itertools.chain(xrange(first_level, _PARTITION),
+                           xrange(0, first_level))
 
   def Truncate(self):
     """Truncates all data files to only contain unprocessed records."""
-    for file_num in xrange(_LEVEL_FILE):
-      with self._file_num_lock[file_num]:
-        for pri_level in xrange(_PRIORITY_LEVEL):
-          self.info('Truncating database %d_%d...', pri_level, file_num)
-          self.buffer_file[pri_level][file_num].Truncate(
-              process_pool=self.process_pool)
-    self.info('Truncating complete.  Sleeping %d secs...',
-              self.args.truncate_interval)
+    # A buffer can be truncated faster after it is consumed for a while.
+    file_num = self._consume_partition
+    self._consume_partition = (self._consume_partition + 1) % _PARTITION
+    with self._file_num_lock[file_num]:
+      for pri_level in xrange(_PRIORITY_LEVEL):
+        self.info('Truncating database %d_%d...', pri_level, file_num)
+        self.buffer_file[pri_level][file_num].Truncate(
+            process_pool=self.process_pool)
 
   def EventLevel(self, event):
     """Prioritizes the level of the event.
@@ -205,11 +224,11 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
     os.unlink(tmp_metadata_path)
 
   def AcquireLock(self):
-    for file_num in xrange(_LEVEL_FILE):
+    for file_num in self.ProduceOrderIter():
       if self._file_num_lock[file_num].acquire(block=False):
         return file_num
     for _unused_i in xrange(_LOCK_ACQUIRE_LOOP_TIMES):
-      for file_num in xrange(_LEVEL_FILE):
+      for file_num in self.ProduceOrderIter():
         if self._file_num_lock[file_num].acquire(
             timeout=_LOCK_ACQUIRE_TIMEOUT):
           return file_num
@@ -281,13 +300,13 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
     """See BufferPlugin.AddConsumer."""
     self.consumers[name] = Consumer(name, self)
     for pri_level in xrange(_PRIORITY_LEVEL):
-      for file_num in xrange(_LEVEL_FILE):
+      for file_num in xrange(_PARTITION):
         self.buffer_file[pri_level][file_num].AddConsumer(name)
 
   def RemoveConsumer(self, name):
     """See BufferPlugin.RemoveConsumer."""
     for pri_level in xrange(_PRIORITY_LEVEL):
-      for file_num in xrange(_LEVEL_FILE):
+      for file_num in xrange(_PARTITION):
         self.buffer_file[pri_level][file_num].RemoveConsumer(name)
 
   def ListConsumers(self, details=0):
@@ -298,7 +317,7 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
       progress_dict[name] = {}
       for pri_level in xrange(_PRIORITY_LEVEL):
         progress_dict[name][pri_level] = {}
-        for file_num in xrange(_LEVEL_FILE):
+        for file_num in xrange(_PARTITION):
           progress_dict[name][pri_level][file_num] = (
               self.buffer_file[pri_level][file_num].ListConsumers()[name])
           if details >= 2:
@@ -333,7 +352,7 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
     """Creates a BufferEventStream object to be used by Instalog core."""
     fail = False
     for pri_level in xrange(_PRIORITY_LEVEL):
-      for file_num in xrange(_LEVEL_FILE):
+      for file_num in self.priority_buffer.ConsumeOrderIter():
         self.streams.append(
             self.priority_buffer.buffer_file[pri_level][file_num].consumers[
                 self.name].CreateStream())
