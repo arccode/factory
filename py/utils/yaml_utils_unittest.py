@@ -12,26 +12,26 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import yaml_utils
 
 
-class BaseYAMLTagMetaclassUnittest(unittest.TestCase):
+class BaseYAMLTagHandlerUnittest(unittest.TestCase):
 
   def runTest(self):
-    class FooTagMetaclass(yaml_utils.BaseYAMLTagMetaclass):
+    class FooTag(object):
+      def __init__(self, content):
+        self.content = content
+
+    # pylint: disable=unused-variable
+    class FooYAMLTagHandler(yaml_utils.BaseYAMLTagHandler):
       YAML_TAG = '!foo'
+      TARGET_CLASS = FooTag
 
       @classmethod
-      def YAMLConstructor(mcs, loader, node):
+      def YAMLConstructor(cls, loader, node, deep=False):
         value = loader.construct_scalar(node)
         return FooTag(value)
 
       @classmethod
-      def YAMLRepresenter(mcs, dumper, data):
-        return dumper.represent_scalar(mcs.YAML_TAG, data.content)
-
-    class FooTag(object):
-      __metaclass__ = FooTagMetaclass
-
-      def __init__(self, content):
-        self.content = content
+      def YAMLRepresenter(cls, dumper, data):
+        return dumper.represent_scalar(cls.YAML_TAG, data.content)
 
     # Test load YAML tag.
     value = yaml.load('!foo foo_bar')

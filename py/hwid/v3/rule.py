@@ -175,33 +175,6 @@ def RuleFunction(ctx_list):
   return Wrapped
 
 
-class RuleMetaclass(yaml_tags.HWIDV3YAMLTagMetaclass):
-  """The metaclass for Rule class.
-
-  This metaclass registers YAML constructor and representer to decode from YAML
-  tag '!rule' and data to a Rule object, and to encode a Rule object to its
-  corresponding YAML representation.
-  """
-  YAML_TAG = '!rule'
-
-  @classmethod
-  def YAMLConstructor(mcs, loader, node):
-    value = loader.construct_mapping(node, deep=True)
-    for field in ('name', 'evaluate'):
-      if not value.get(field):
-        raise RuleException('Required field %r not specified' % field)
-    if value.get('otherwise') and not value.get('when'):
-      raise RuleException(
-          "'when' must be specified along with 'otherwise' in %r" %
-          value['name'])
-    return Rule(value['name'], value.get('when'), value['evaluate'],
-                value.get('otherwise'))
-
-  @classmethod
-  def YAMLRepresenter(mcs, dumper, data):
-    return dumper.represent_mapping(mcs.YAML_TAG, data.__dict__)
-
-
 class Rule(object):
   """The Rule class.
 
@@ -218,8 +191,6 @@ class Rule(object):
     otherwise: A list of Python expressions to evaluate if 'when' evaluates to
         False.
   """
-  __metaclass__ = RuleMetaclass
-
   def __init__(self, name, evaluate, when=None, otherwise=None):
     if otherwise and not when:
       raise RuleException(
@@ -354,26 +325,32 @@ class Rule(object):
       SetContext(None)
 
 
-class RegexpMetaclass(yaml_tags.HWIDV3YAMLTagMetaclass):
-  """Metaclass for creating regular expression-enabled Value object.
+class RuleYAMLTagHandler(yaml_tags.HWIDV3YAMLTagHandler):
+  """The YAML tag handler for Rule class.
 
-  This metaclass registers YAML constructor and representer to decode from YAML
-  tag '!re' and data to a Value object, and to encode a Value object to its
+  This class registers YAML constructor and representer to decode from YAML
+  tag '!rule' and data to a Rule object, and to encode a Rule object to its
   corresponding YAML representation.
   """
-  YAML_TAG = '!re'
+  YAML_TAG = '!rule'
+  TARGET_CLASS = Rule
 
   @classmethod
-  def YAMLConstructor(mcs, loader, node):
-    value = loader.construct_scalar(node)
-    return Value(value, is_re=True)
+  def YAMLConstructor(cls, loader, node, deep=False):
+    value = loader.construct_mapping(node, deep=True)
+    for field in ('name', 'evaluate'):
+      if not value.get(field):
+        raise RuleException('Required field %r not specified' % field)
+    if value.get('otherwise') and not value.get('when'):
+      raise RuleException(
+          "'when' must be specified along with 'otherwise' in %r" %
+          value['name'])
+    return cls.TARGET_CLASS(value['name'], value.get('when'), value['evaluate'],
+                            value.get('otherwise'))
 
   @classmethod
-  def YAMLRepresenter(mcs, dumper, data):
-    if data.is_re:
-      return dumper.represent_scalar('!re', data.raw_value)
-    else:
-      return dumper.represent_data(data.raw_value)
+  def YAMLRepresenter(cls, dumper, data):
+    return dumper.represent_mapping(cls.YAML_TAG, data.__dict__)
 
 
 class Value(object):
@@ -386,8 +363,6 @@ class Value(object):
     is_re: If True, raw_value is treated as a regular expression in expression
         evaluation.
   """
-  __metaclass__ = RegexpMetaclass
-
   def __init__(self, raw_value, is_re=False):
     self.raw_value = raw_value
     self.is_re = is_re
@@ -428,6 +403,29 @@ class Value(object):
   def __repr__(self):
     return '%s(%r, is_re=%r)' % (
         self.__class__.__name__, self.raw_value, self.is_re)
+
+
+class RegexpYAMLTagHandler(yaml_tags.HWIDV3YAMLTagHandler):
+  """Class for creating regular expression-enabled Value object.
+
+  This class registers YAML constructor and representer to decode from YAML
+  tag '!re' and data to a Value object, and to encode a Value object to its
+  corresponding YAML representation.
+  """
+  YAML_TAG = '!re'
+  TARGET_CLASS = Value
+
+  @classmethod
+  def YAMLConstructor(cls, loader, node, deep=False):
+    value = loader.construct_scalar(node)
+    return cls.TARGET_CLASS(value, is_re=True)
+
+  @classmethod
+  def YAMLRepresenter(cls, dumper, data):
+    if data.is_re:
+      return dumper.represent_scalar(cls.YAML_TAG, data.raw_value)
+    else:
+      return dumper.represent_data(data.raw_value)
 
 
 def _Eval(expr, local):

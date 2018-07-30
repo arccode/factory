@@ -37,44 +37,13 @@ class YamlNode(object):
 
 
 # pylint: disable=abstract-method
-class HWIDV3YAMLTagMetaclass(yaml_utils.BaseYAMLTagMetaclass):
-  def __init__(cls, *args, **kwargs):
-    super(HWIDV3YAMLTagMetaclass, cls).__init__(
-        loader=yaml.Loader, dumper=yaml.Dumper, *args, **kwargs)
-
-
-class RegionFieldMetaclass(HWIDV3YAMLTagMetaclass):
-  """Metaclass for registering the !region_field YAML tag.
-
-  The yaml format of RegionField should be:
-    !region_field [<region_code_1>, <region_code_2>,...]
-  """
-  YAML_TAG = '!region_field'
-
-  @classmethod
-  def YAMLConstructor(mcs, loader, node):
-    return RegionField(node.value)
-
-  @classmethod
-  def YAMLRepresenter(mcs, dumper, data):
-    """Represent the list style of RegionField.
-
-    When the RegionField is legacy style, we output:
-        !region_field 'YAML_DUMMY_STRING'
-    Otherwise when we dump the RegionField to yaml, it should output like:
-        !region_field [us, gb]
-    """
-    if data.is_legacy_style:
-      return dumper.represent_scalar(mcs.YAML_TAG, YAML_DUMMY_STRING)
-
-    # 0 is a reserved field for {region: None}. Ignore it.
-    region_list = [node['region'] for node in data.values()[1:]]
-    return dumper.represent_sequence(mcs.YAML_TAG, region_list)
+class HWIDV3YAMLTagHandler(yaml_utils.BaseYAMLTagHandler):
+  LOADER = yaml.Loader
+  DUMPER = yaml.Dumper
 
 
 class RegionField(dict):
   """A class for holding the region field data in a HWID database."""
-  __metaclass__ = RegionFieldMetaclass
 
   def __init__(self, list_node=None):
     if not isinstance(list_node, list):
@@ -142,22 +111,38 @@ class RegionField(dict):
       self[idx] = {'region': new_region}
 
 
-class RegionComponentMetaclass(HWIDV3YAMLTagMetaclass):
-  """Metaclass for registering the !region_component YAML tag."""
-  YAML_TAG = '!region_component'
+class RegionFieldYAMLTagHandler(HWIDV3YAMLTagHandler):
+  """Metaclass for registering the !region_field YAML tag.
+
+  The yaml format of RegionField should be:
+    !region_field [<region_code_1>, <region_code_2>,...]
+  """
+  YAML_TAG = '!region_field'
+  TARGET_CLASS = RegionField
 
   @classmethod
-  def YAMLConstructor(mcs, loader, node):
-    return RegionComponent()
+  def YAMLConstructor(cls, loader, node, deep=False):
+    return cls.TARGET_CLASS(node.value)
 
   @classmethod
-  def YAMLRepresenter(mcs, dumper, data):
-    return dumper.represent_scalar(mcs.YAML_TAG, YAML_DUMMY_STRING)
+  def YAMLRepresenter(cls, dumper, data):
+    """Represent the list style of RegionField.
+
+    When the RegionField is legacy style, we output:
+        !region_field 'YAML_DUMMY_STRING'
+    Otherwise when we dump the RegionField to yaml, it should output like:
+        !region_field [us, gb]
+    """
+    if data.is_legacy_style:
+      return dumper.represent_scalar(cls.YAML_TAG, YAML_DUMMY_STRING)
+
+    # 0 is a reserved field for {region: None}. Ignore it.
+    region_list = [node['region'] for node in data.values()[1:]]
+    return dumper.represent_sequence(cls.YAML_TAG, region_list)
 
 
 class RegionComponent(dict):
   """A class for holding the region component data in a HWID database."""
-  __metaclass__ = RegionComponentMetaclass
 
   def __init__(self):
     components_dict = {
@@ -169,3 +154,17 @@ class RegionComponent(dict):
               'region_code': region.region_code
           }}
     super(RegionComponent, self).__init__(components_dict)
+
+
+class RegionComponentYAMLTagHandler(HWIDV3YAMLTagHandler):
+  """Metaclass for registering the !region_component YAML tag."""
+  YAML_TAG = '!region_component'
+  TARGET_CLASS = RegionComponent
+
+  @classmethod
+  def YAMLConstructor(cls, loader, node, deep=False):
+    return cls.TARGET_CLASS()
+
+  @classmethod
+  def YAMLRepresenter(cls, dumper, data):
+    return dumper.represent_scalar(cls.YAML_TAG, YAML_DUMMY_STRING)

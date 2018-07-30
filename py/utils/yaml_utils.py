@@ -9,22 +9,30 @@ import collections
 import yaml
 
 
-class BaseYAMLTagMetaclass(type):
-  """Base metaclass for creating YAML tags."""
+class BaseYAMLTagHandlerMetaclass(type):
+  def __init__(cls, *args, **kwargs):
+    if cls.YAML_TAG is not None and cls.TARGET_CLASS is not None:
+      yaml.add_constructor(cls.YAML_TAG, cls.YAMLConstructor, Loader=cls.LOADER)
+      yaml.add_representer(cls.TARGET_CLASS, cls.YAMLRepresenter,
+                           Dumper=cls.DUMPER)
+    super(BaseYAMLTagHandlerMetaclass, cls).__init__(*args, **kwargs)
+
+
+class BaseYAMLTagHandler(object):
+  __metaclass__ = BaseYAMLTagHandlerMetaclass
+
   YAML_TAG = None
+  TARGET_CLASS = None
+  LOADER = yaml.Loader
+  DUMPER = yaml.Dumper
 
   @classmethod
-  def YAMLConstructor(mcs, loader, node):
+  def YAMLConstructor(cls, loader, node, deep=False):
     raise NotImplementedError
 
   @classmethod
-  def YAMLRepresenter(mcs, dumper, data):
+  def YAMLRepresenter(cls, dumper, data):
     raise NotImplementedError
-
-  def __init__(cls, name, bases, attrs, loader=yaml.Loader, dumper=yaml.Dumper):
-    yaml.add_constructor(cls.YAML_TAG, cls.YAMLConstructor, Loader=loader)
-    yaml.add_representer(cls, cls.YAMLRepresenter, Dumper=dumper)
-    super(BaseYAMLTagMetaclass, cls).__init__(name, bases, attrs)
 
 
 def ParseMappingAsOrderedDict(enable=True,
