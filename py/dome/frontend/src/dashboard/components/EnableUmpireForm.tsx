@@ -16,6 +16,7 @@ import {
 } from 'redux-form';
 
 import formDialog from '@app/formDialog';
+import {Project} from '@app/project/types';
 import {RootState} from '@app/types';
 import {parseNumber, renderTextField} from '@common/form';
 
@@ -86,49 +87,58 @@ const InnerFormComponent: React.SFC<
 
 const InnerForm = reduxForm<FormData, InnerFormProps>({
   form: ENABLE_UMPIRE_FORM,
-  initialValues: {
-    umpireHost: 'localhost',
-    umpirePort: 8080,
-    umpireAddExistingOne: false,
-  },
 })(InnerFormComponent);
 
 interface EnableUmpireFormProps {
   addExisting: boolean;
   open: boolean;
+  project: Project;
   submitForm: () => any;
   onCancel: () => any;
   onSubmit: (values: FormData) => any;
 }
 
-class EnableUmpireForm extends React.Component<EnableUmpireFormProps> {
-  render() {
-    const {open, onSubmit, onCancel, submitForm, addExisting} = this.props;
-    return (
-      <Dialog
-        title="Enable Umpire"
-        open={open}
-        modal={false}
-        onRequestClose={onCancel}
-        actions={[<>
-          <FlatButton
-            label={addExisting ?
-              'ADD AN EXISTING UMPIRE INSTANCE' :
-              'CREATE A NEW UMPIRE INSTANCE'}
-            primary={true}
-            onClick={submitForm}
-          />
-          <FlatButton
-            label="CANCEL"
-            onClick={onCancel}
-          />
-        </>]}
-      >
-        <InnerForm addExisting={addExisting} onSubmit={onSubmit} />
-      </Dialog>
-    );
-  }
-}
+const EnableUmpireForm: React.SFC<EnableUmpireFormProps> = ({
+  open,
+  onSubmit,
+  onCancel,
+  submitForm,
+  addExisting,
+  project,
+}) => {
+  const initialValues = {
+    umpireHost: project.umpireHost || 'localhost',
+    umpirePort: project.umpirePort || 8080,
+    umpireAddExistingOne: false,
+  };
+  return (
+    <Dialog
+      title="Enable Umpire"
+      open={open}
+      modal={false}
+      onRequestClose={onCancel}
+      actions={[<>
+        <FlatButton
+          label={addExisting ?
+            'ADD AN EXISTING UMPIRE INSTANCE' :
+            'CREATE A NEW UMPIRE INSTANCE'}
+          primary={true}
+          onClick={submitForm}
+        />
+        <FlatButton
+          label="CANCEL"
+          onClick={onCancel}
+        />
+      </>]}
+    >
+    <InnerForm
+      addExisting={addExisting}
+      onSubmit={onSubmit}
+      initialValues={initialValues}
+    />
+    </Dialog>
+  );
+};
 
 const isFormVisible =
   formDialog.selectors.isFormVisibleFactory(ENABLE_UMPIRE_FORM);

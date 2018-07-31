@@ -542,8 +542,6 @@ class Project(django.db.models.Model):
     subprocess.call(['docker', 'rm', container_name])
     self.umpire_version = None
     self.umpire_enabled = False
-    self.umpire_host = None
-    self.umpire_port = None
     self.save()
     return self
 

@@ -101,6 +101,7 @@ class DashboardApp extends React.Component<DashboardAppProps> {
         {/* TODO(littlecvr): add <SystemInfoPanel /> */}
 
         <EnableUmpireForm
+          project={project}
           onCancel={closeEnableUmpireForm}
           onSubmit={(umpireSettings) => {
             closeEnableUmpireForm();

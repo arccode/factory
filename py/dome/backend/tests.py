@@ -303,8 +303,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
         response.content, {
             'name': self.PROJECT_WITH_UMPIRE_NAME,
             'umpireEnabled': False,
-            'umpireHost': None,
-            'umpirePort': None,
+            'umpireHost': 'localhost',
+            'umpirePort': 8080,
             'umpireVersion': None,
             'netbootBundle': None,
             'isUmpireRecent': False
