@@ -7,7 +7,7 @@ import {createAction} from 'typesafe-actions';
 
 import {Dispatch} from '@app/types';
 
-import {AppName, DomeInfo} from './types';
+import {AppName, DomeInfo} from '@app/dome_app/types';
 
 export const switchApp = createAction('SWITCH_APP', (resolve) =>
   (nextApp: AppName) => resolve({nextApp}));

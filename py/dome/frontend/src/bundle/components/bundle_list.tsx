@@ -12,7 +12,7 @@ import {fetchBundles, reorderBundles} from '../actions';
 import {getBundles} from '../selectors';
 import {Bundle} from '../types';
 
-import BundleComponent, {BundleComponentOwnProps} from './BundleComponent';
+import BundleComponent, {BundleComponentOwnProps} from './bundle_component';
 
 // The hierarchy of this component is complicated because of the design of
 // react-sortable-hoc. Explaination below:

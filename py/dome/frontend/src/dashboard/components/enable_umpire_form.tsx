@@ -15,7 +15,7 @@ import {
   WrappedFieldProps,
 } from 'redux-form';
 
-import formDialog from '@app/formDialog';
+import formDialog from '@app/form_dialog';
 import {Project} from '@app/project/types';
 import {RootState} from '@app/types';
 import {parseNumber, renderTextField} from '@common/form';

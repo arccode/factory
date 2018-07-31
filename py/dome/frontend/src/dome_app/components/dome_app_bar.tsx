@@ -11,7 +11,7 @@ import {RootState} from '@app/types';
 import {getDomeInfo} from '../selectors';
 import {DomeInfo} from '../types';
 
-import FixedAppBar from './FixedAppBar';
+import FixedAppBar from './fixed_app_bar';
 
 const EmphasizedString: React.SFC = ({children}) => (
   <span style={{fontWeight: 'bold', color: amber300}}>{children}</span>

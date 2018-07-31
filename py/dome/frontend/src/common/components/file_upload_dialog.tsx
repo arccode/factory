@@ -8,7 +8,7 @@ import React from 'react';
 
 import {Omit} from '../utils';
 
-import {HiddenFileSelect} from './HiddenFileSelect';
+import {HiddenFileSelect} from './hidden_file_select';
 
 interface FileUploadDialogProps<T>
   extends Omit<DialogProps, 'onSubmit' | 'open'> {

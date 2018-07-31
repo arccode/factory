@@ -27,8 +27,8 @@ import {
 import {getExpandedMap} from '../selectors';
 import {Bundle, Rules} from '../types';
 
-import ResourceTable from './ResourceTable';
-import RuleTable from './RuleTable';
+import ResourceTable from './resources_table';
+import RuleTable from './rule_table';
 
 const DragHandle = SortableHandle(() => (
   <IconButton

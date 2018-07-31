@@ -23,7 +23,7 @@ import {CREATE_PROJECT_FORM} from '../constants';
 import {getProjects} from '../selectors';
 import {ProjectMap} from '../types';
 
-import CreateProjectForm, {CreateProjectFormData} from './CreateProjectForm';
+import CreateProjectForm, {CreateProjectFormData} from './create_project_form';
 
 interface ProjectAppProps {
   projects: ProjectMap;

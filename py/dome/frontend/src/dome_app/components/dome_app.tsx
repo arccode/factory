@@ -8,21 +8,21 @@ import Measure from 'react-measure';
 import {connect} from 'react-redux';
 
 import auth from '@app/auth';
-import LoginApp from '@app/auth/components/LoginApp';
-import BundlesApp from '@app/bundle/components/BundlesApp';
-import ConfigApp from '@app/config/components/ConfigApp';
-import DashboardApp from '@app/dashboard/components/DashboardApp';
-import ErrorDialog from '@app/error/components/ErrorDialog';
-import ProjectsApp from '@app/project/components/ProjectsApp';
-import TaskList from '@app/task/components/TaskList';
+import LoginApp from '@app/auth/components/login_app';
+import BundlesApp from '@app/bundle/components/bundles_app';
+import ConfigApp from '@app/config/components/config_app';
+import DashboardApp from '@app/dashboard/components/dashboard_app';
+import ErrorDialog from '@app/error/components/error_dialog';
+import ProjectsApp from '@app/project/components/projects_app';
+import TaskList from '@app/task/components/task_list';
 import {RootState} from '@app/types';
 
 import {fetchDomeInfo} from '../actions';
 import {getCurrentApp} from '../selectors';
 import {AppName} from '../types';
 
-import DomeAppBar from './DomeAppBar';
-import DomeDrawer from './DomeDrawer';
+import DomeAppBar from './dome_app_bar';
+import DomeDrawer from './dome_drawer';
 
 const APP_MENU_WIDTH = 250;
 const SPACE_BEFORE_TASK_LIST = 24;

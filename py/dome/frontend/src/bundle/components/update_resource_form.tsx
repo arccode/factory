@@ -13,10 +13,10 @@ import {
   submit,
 } from 'redux-form';
 
-import formDialog from '@app/formDialog';
+import formDialog from '@app/form_dialog';
 import project from '@app/project';
 import {RootState} from '@app/types';
-import FileUploadDialog from '@common/components/FileUploadDialog';
+import FileUploadDialog from '@common/components/file_upload_dialog';
 import {renderTextField, validateRequired} from '@common/form';
 
 import {startUpdateResource} from '../actions';

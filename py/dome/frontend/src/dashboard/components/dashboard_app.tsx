@@ -10,16 +10,16 @@ import Toggle from 'material-ui/Toggle';
 import React from 'react';
 import {connect} from 'react-redux';
 
-import formDialog from '@app/formDialog';
+import formDialog from '@app/form_dialog';
 import project from '@app/project';
 import {Project, UmpireSetting} from '@app/project/types';
-import ServiceList from '@app/service/components/ServiceList';
+import ServiceList from '@app/service/components/service_list';
 import {RootState} from '@app/types';
 
 import {disableUmpire, enableUmpireWithSettings} from '../actions';
 import {ENABLE_UMPIRE_FORM} from '../constants';
 
-import EnableUmpireForm from './EnableUmpireForm';
+import EnableUmpireForm from './enable_umpire_form';
 
 interface DashboardAppProps {
   project: Project;

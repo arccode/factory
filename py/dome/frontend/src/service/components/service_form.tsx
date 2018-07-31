@@ -8,7 +8,7 @@ import {InjectedFormProps, reduxForm} from 'redux-form';
 
 import {Schema, Service} from '../types';
 
-import RenderFields from './RenderFields';
+import RenderFields from './render_fields';
 
 type ServiceFormData = Service;
 

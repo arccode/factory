@@ -12,7 +12,7 @@ import {fetchServices, fetchServiceSchemata, updateService} from '../actions';
 import {getServices, getServiceSchemata} from '../selectors';
 import {SchemaMap, Service, ServiceMap} from '../types';
 
-import ServiceForm from './ServiceForm';
+import ServiceForm from './service_form';
 
 interface ServiceListProps {
   schemata: SchemaMap;

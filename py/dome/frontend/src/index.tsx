@@ -12,9 +12,9 @@ import {applyMiddleware, createStore} from 'redux';
 import {createLogger} from 'redux-logger';
 import thunkMiddleware from 'redux-thunk';
 
-import DomeApp from '@app/domeApp/components/DomeApp';
+import DomeApp from '@app/dome_app/components/dome_app';
 
-import rootReducer from './rootReducer';
+import rootReducer from './root_reducer';
 
 const THEME = {
   palette: {
@@ -28,8 +28,8 @@ const configureStore = () => {
     applyMiddleware(thunkMiddleware, createLogger()));
 
   if (module.hot) {
-    module.hot.accept('./rootReducer', () => {
-      const nextRootReducer = require('./rootReducer').default;
+    module.hot.accept('./root_reducer', () => {
+      const nextRootReducer = require('./root_reducer').default;
       s.replaceReducer(nextRootReducer);
     });
   }

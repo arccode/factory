@@ -4,7 +4,7 @@
 
 import {createAction} from 'typesafe-actions';
 
-import domeApp from '@app/domeApp';
+import domeApp from '@app/dome_app';
 import task from '@app/task';
 import {Dispatch, RootState} from '@app/types';
 import {authorizedAxios} from '@common/utils';

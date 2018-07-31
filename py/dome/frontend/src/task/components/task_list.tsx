@@ -19,7 +19,7 @@ import {isCancellable, isRunning} from '../constants';
 import {getAllTasks} from '../selectors';
 import {Task, TaskState} from '../types';
 
-import TaskComponent from './TaskComponent';
+import TaskComponent from './task_component';
 
 interface TaskListProps {
   tasks: Task[];

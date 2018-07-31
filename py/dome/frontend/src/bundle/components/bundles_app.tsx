@@ -7,13 +7,13 @@ import ContentAdd from 'material-ui/svg-icons/content/add';
 import React from 'react';
 import {connect} from 'react-redux';
 
-import formDialog from '@app/formDialog';
+import formDialog from '@app/form_dialog';
 
 import {UPLOAD_BUNDLE_FORM} from '../constants';
 
-import BundleList from './BundleList';
-import UpdateResourceForm from './UpdateResourceForm';
-import UploadBundleForm from './UploadBundleForm';
+import BundleList from './bundle_list';
+import UpdateResourceForm from './update_resource_form';
+import UploadBundleForm from './upload_bundle_form';
 
 interface BundlesAppProps {
   // TODO(littlecvr): there should be a better way to figure out the offset

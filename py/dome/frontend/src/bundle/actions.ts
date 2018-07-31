@@ -7,7 +7,7 @@ import {arrayMove} from 'react-sortable-hoc';
 import {createAction} from 'typesafe-actions';
 
 import error from '@app/error';
-import formDialog from '@app/formDialog';
+import formDialog from '@app/form_dialog';
 import project from '@app/project';
 import task from '@app/task';
 import {Dispatch, RootState} from '@app/types';

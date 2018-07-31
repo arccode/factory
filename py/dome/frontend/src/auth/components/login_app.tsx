@@ -9,7 +9,7 @@ import {connect} from 'react-redux';
 import {tryLogin} from '../actions';
 import {AuthData} from '../types';
 
-import LoginForm from './LoginForm';
+import LoginForm from './login_form';
 
 interface LoginAppProps {
   tryLogin: (values: AuthData) => any;

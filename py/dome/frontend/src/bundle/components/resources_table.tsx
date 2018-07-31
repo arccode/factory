@@ -14,7 +14,7 @@ import {
 import React from 'react';
 import {connect} from 'react-redux';
 
-import formDialog from '@app/formDialog';
+import formDialog from '@app/form_dialog';
 
 import {UPDATE_RESOURCE_FORM} from '../constants';
 import {Bundle} from '../types';
